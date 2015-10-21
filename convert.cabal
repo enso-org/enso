@@ -1,0 +1,54 @@
+name:                convert
+version:             1.0
+synopsis:            Safe and unsafe data conversion utilities with strong type-level operation. checking.
+-- description:         
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Wojciech Danilo
+maintainer:          Wojciech Danilo <wojciech.danilo@gmail.com>
+stability:           experimental
+homepage:            https://github.com/wdanilo/convert
+bug-reports:         https://github.com/wdanilo/convert/issues
+copyright:           Copyright (C) 2015 Wojciech Danilo
+category:            Data
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+
+flag dump-splices
+  default: False
+  manual: True
+
+library
+  Build-Depends: base>=3 && <5,
+                 old-time,
+                 time>=1.1.3,
+                 bytestring >= 0.10.2,
+                 containers,
+                 old-locale,
+                 mtl,
+                 text >= 0.8,
+                 either,
+                 template-haskell,
+                 lens
+
+  GHC-Options: -O2 -Wall -fno-warn-orphans
+
+
+  Exposed-Modules: Data.Convert,
+                   Data.Convert.Base,
+                   Data.Convert.Bound,
+                   Data.Convert.Errors,
+                   Data.Convert.Instances,
+                   Data.Convert.Instances.Map,
+                   Data.Convert.Instances.Num,
+                   Data.Convert.Instances.Text,
+                   Data.Convert.Instances.TH
+
+  Extensions: MultiParamTypeClasses,
+              UndecidableInstances, FlexibleInstances,
+              FlexibleContexts, CPP
+
+
+
