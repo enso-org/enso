@@ -1,5 +1,5 @@
 name:                prologue
-version:             1.0
+version:             1.0.1
 synopsis:            Replacement for the Haskell's Prelude, exposing more commonly used functions and patching old GHC ones to behave in the newest GHC's way.
 -- description:         
 license:             Apache-2.0
@@ -49,6 +49,7 @@ Library
                       Data.String.Class
                       Data.Default.Instances.Missing
                       Data.Binary.Instances.Missing
+                      Data.List.Class
 
   build-depends:      base >=4.6 && <4.9
                     , binary
@@ -64,3 +65,4 @@ Library
                     , transformers-base
                     , text
                     , string-qq
+                    , vector

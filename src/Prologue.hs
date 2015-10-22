@@ -38,7 +38,6 @@ import           Control.Lens.Wrapped               as X (Wrapped, _Wrapped, _Un
 import           Data.Text.Class                    as X (FromText (fromText), IsText, ToText (toText))
 import           Data.Text.Lazy                     as X (Text)
 import           Data.Typeable                      as X (Typeable)
-import           GHC.Exts                           as X (IsList, Item, fromList, fromListN, toList)
 import           GHC.Generics                       as X (Generic)
 import           GHC.Exts                           as X (Constraint)
 import           Control.Monad.Fix                  as X (MonadFix)
@@ -50,7 +49,8 @@ import           Control.Error.Util                 as X (isLeft, isRight)
 import           Data.String.QQ                     as X (s)
 import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal)
 import           Data.Typeable                      as X (Proxy(Proxy), typeOf, typeRep)
-
+import           Data.Repr.Meta                     as X (MetaRepr, Meta, as')
+import           Data.List.Class                    as X
 
 (++) :: Monoid a => a -> a -> a
 (++) = mappend
@@ -186,13 +186,13 @@ ifElseId cond a = if cond then a else id
 
 
 
-wrapped    = _Wrapped'
-unwrapped  = _Unwrapped'
-wrapping   = _Wrapping'
-unwrapping = _Unwrapping'
+wrapped'    = _Wrapped'
+unwrapped'  = _Unwrapped'
+wrapping'   = _Wrapping'
+unwrapping' = _Unwrapping'
 
-polyWrapped    = _Wrapped
-polyUnwrapped  = _Unwrapped
-polyWrapping   = _Wrapping
-polyUnwrapping = _Unwrapping
+wrapped    = _Wrapped
+unwrapped  = _Unwrapped
+wrapping   = _Wrapping
+unwrapping = _Unwrapping
 
