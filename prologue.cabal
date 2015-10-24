@@ -1,5 +1,5 @@
 name:                prologue
-version:             1.0.1
+version:             1.0.2
 synopsis:            Replacement for the Haskell's Prelude, exposing more commonly used functions and patching old GHC ones to behave in the newest GHC's way.
 -- description:         
 license:             Apache-2.0

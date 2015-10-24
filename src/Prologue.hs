@@ -51,6 +51,7 @@ import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, 
 import           Data.Typeable                      as X (Proxy(Proxy), typeOf, typeRep)
 import           Data.Repr.Meta                     as X (MetaRepr, Meta, as')
 import           Data.List.Class                    as X
+import           Data.Convert                       as X
 
 (++) :: Monoid a => a -> a -> a
 (++) = mappend
