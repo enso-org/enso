@@ -20,7 +20,7 @@ import           Data.List                          (intersperse)
 import qualified Prelude
 import           Text.Show.Pretty                   as X (ppShow)
 
-import           Prelude                            as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.))
+import           Prelude                            as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.), curry, uncurry)
 import           Data.Function                      as X (on)
 import           Data.Maybe                         as X (mapMaybe)
 import           Data.Default                       as X
@@ -50,8 +50,14 @@ import           Data.String.QQ                     as X (s)
 import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal)
 import           Data.Typeable                      as X (Proxy(Proxy), typeOf, typeRep)
 import           Data.Repr.Meta                     as X (MetaRepr, Meta, as')
-import           Data.List.Class                    as X
 import           Data.Convert                       as X
+import           Data.Layer                         as X
+import           Data.Tuple.Curry                   as X (Curry)
+import           Data.Functors                      as X
+import           Data.Container.Class               as X (Container, Index, Item)
+import           Data.Container.List                as X (FromList, fromList, ToList, toList)
+import qualified Data.Tuple.Curry                   as Tuple
+
 
 (++) :: Monoid a => a -> a -> a
 (++) = mappend
@@ -75,37 +81,7 @@ pprint = putStrLn . ppShow
 
 --
 
-fmap2 = fmap.fmap
-fmap3 = fmap.fmap2
-fmap4 = fmap.fmap3
-fmap5 = fmap.fmap4
-fmap6 = fmap.fmap5
-fmap7 = fmap.fmap6
-fmap8 = fmap.fmap7
-fmap9 = fmap.fmap8
 
-
-dot1 = (.)
-dot2 = dot1 . dot1
-dot3 = dot1 . dot2
-dot4 = dot1 . dot3
-dot5 = dot1 . dot4
-dot6 = dot1 . dot5
-dot7 = dot1 . dot6
-dot8 = dot1 . dot7
-dot9 = dot1 . dot8
-
-infixr 9 .
-(.) :: (Functor f) => (a -> b) -> f a -> f b
-(.)      = fmap
-(.:)     = dot2
-(.:.)    = dot3
-(.::)    = dot4
-(.::.)   = dot5
-(.:::)   = dot6
-(.:::.)  = dot7
-(.::::)  = dot8
-(.::::.) = dot9
 
 
 
@@ -184,16 +160,32 @@ mapOverM lens f a = do
 ifElseId :: Bool -> (a -> a) -> (a -> a)
 ifElseId cond a = if cond then a else id
 
-
-
+curry   :: Curry a b => a -> b
+uncurry :: Curry a b => b -> a
+curry   = Tuple.curryN
+uncurry = Tuple.uncurryN
 
 wrapped'    = _Wrapped'
 unwrapped'  = _Unwrapped'
 wrapping'   = _Wrapping'
 unwrapping' = _Unwrapping'
+unwrap'     = view wrapped'
+wrap'       = view unwrapped'
 
 wrapped    = _Wrapped
 unwrapped  = _Unwrapped
 wrapping   = _Wrapping
 unwrapping = _Unwrapping
+unwrap     = view wrapped
+wrap       = view unwrapped
 
+-- nested lenses
+-- | following functions are usefull when operating on nested structures with lenses, for example
+-- | given function foo :: a -> m (n a) and a lens l :: Lens' x a, we can use 
+-- | nested l foo to get signature of x -> m (n x) 
+
+newtype NestedFunctor m n a = NestedFunctor { fromNestedFunctor :: m (n a)} deriving (Show)
+instance (Functor m, Functor n) => Functor (NestedFunctor m n) where fmap f = NestedFunctor . (fmap $ fmap f) . fromNestedFunctor
+
+nested :: (Functor m, Functor n) => Lens a b c d -> (c -> m (n d)) -> (a -> m (n b))
+nested l f = fromNestedFunctor . l (fmap NestedFunctor f)
