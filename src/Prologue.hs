@@ -16,7 +16,6 @@ import qualified Data.Traversable                   as Traversable
 import           Data.Binary.Instances.Missing      ()
 import           Data.Default.Instances.Missing     ()
 import           Data.Foldable                      (forM_)
-import           Data.List                          (intersperse)
 import qualified Prelude
 import           Text.Show.Pretty                   as X (ppShow)
 
@@ -25,10 +24,11 @@ import           Data.Function                      as X (on)
 import           Data.Maybe                         as X (mapMaybe)
 import           Data.Default                       as X
 import           Control.Lens                       as X 
+import           Control.Lens.Utils                 as X
 import           Data.String.Class                  as X (IsString (fromString), ToString (toString))
 import           Control.Applicative                as X
 import           Control.Conditional                as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
-import           Control.Monad                      as X (MonadPlus, mplus, mzero, void)
+import           Control.Monad                      as X (MonadPlus, mplus, mzero, void, join)
 import           Control.Monad.IO.Class             as X (MonadIO, liftIO)
 import           Control.Monad.Trans                as X (MonadTrans, lift)
 import           Data.Foldable                      as X (Foldable, traverse_)
@@ -53,9 +53,9 @@ import           Data.Repr.Meta                     as X (MetaRepr, Meta, as')
 import           Data.Convert                       as X
 import           Data.Layer                         as X
 import           Data.Tuple.Curry                   as X (Curry)
-import           Data.Functors                      as X
-import           Data.Container.Class               as X (Container, Index, Item)
+import           Data.Container.Class               as X (Container, Index, Item, intercalate)
 import           Data.Container.List                as X (FromList, fromList, ToList, toList)
+import           Data.Functor.Utils                 as X
 import qualified Data.Tuple.Curry                   as Tuple
 
 
@@ -134,8 +134,7 @@ switch cond fail ok = do
   c <- cond
   return $ if c then ok else fail
 
-mjoin :: Monoid a => a -> [a] -> a
-mjoin delim l = mconcat (intersperse delim l)
+
 
 
 show' :: (Show a, IsString s) => a -> s
@@ -165,27 +164,5 @@ uncurry :: Curry a b => b -> a
 curry   = Tuple.curryN
 uncurry = Tuple.uncurryN
 
-wrapped'    = _Wrapped'
-unwrapped'  = _Unwrapped'
-wrapping'   = _Wrapping'
-unwrapping' = _Unwrapping'
-unwrap'     = view wrapped'
-wrap'       = view unwrapped'
 
-wrapped    = _Wrapped
-unwrapped  = _Unwrapped
-wrapping   = _Wrapping
-unwrapping = _Unwrapping
-unwrap     = view wrapped
-wrap       = view unwrapped
 
--- nested lenses
--- | following functions are usefull when operating on nested structures with lenses, for example
--- | given function foo :: a -> m (n a) and a lens l :: Lens' x a, we can use 
--- | nested l foo to get signature of x -> m (n x) 
-
-newtype NestedFunctor m n a = NestedFunctor { fromNestedFunctor :: m (n a)} deriving (Show)
-instance (Functor m, Functor n) => Functor (NestedFunctor m n) where fmap f = NestedFunctor . (fmap $ fmap f) . fromNestedFunctor
-
-nested :: (Functor m, Functor n) => Lens a b c d -> (c -> m (n d)) -> (a -> m (n b))
-nested l f = fromNestedFunctor . l (fmap NestedFunctor f)

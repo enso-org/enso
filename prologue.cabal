@@ -49,16 +49,18 @@ Library
                       Data.String.Class
                       Data.Default.Instances.Missing
                       Data.Binary.Instances.Missing
-                      Data.List.Class
 
   build-depends:      base >=4.6 && <4.9
                     , binary
                     , cond
+                    , container
                     , convert
                     , data-default
                     , data-repr
+                    , data-layer
                     , errors
                     , lens
+                    , lens-utils
                     , mtl
                     , pretty-show
                     , transformers
@@ -66,3 +68,5 @@ Library
                     , text
                     , string-qq
                     , vector
+                    , tuple
+                    , functor-utils
