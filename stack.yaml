@@ -1,0 +1,8 @@
+resolver: lts-3.14
+packages:
+- .
+extra-deps:
+- data-layer-1.0.1
+- typelevel-1.0.2
+- functor-utils-1.0
+- lens-utils-1.0
