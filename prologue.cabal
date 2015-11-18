@@ -1,6 +1,6 @@
 name:                prologue
-version:             1.0.2
-synopsis:            Replacement for the Haskell's Prelude, exposing more commonly used functions and patching old GHC ones to behave in the newest GHC's way.
+version:             1.0.5
+category:            control
 -- description:         
 license:             Apache-2.0
 license-file:        LICENSE
@@ -13,7 +13,12 @@ copyright:           Copyright (C) 2014 Wojciech Danilo
 build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
+synopsis:            Better, more general Prelude exporting common utilities.
+description:         Replacement for the Haskell's Prelude, exposing more commonly used functions and patching old GHC ones to behave in the newest GHC's way.
 
+source-repository head
+  type: git
+  location: git://github.com/wdanilo/prologue.git
 
 Library
   hs-source-dirs:     src
