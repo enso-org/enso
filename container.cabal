@@ -1,0 +1,79 @@
+name:                container
+version:             1.0
+synopsis:            Containers abstraction and utilities.
+-- description:         
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Wojciech Danilo
+maintainer:          Wojciech Danilo <wojciech.danilo@gmail.com>
+stability:           experimental
+homepage:            https://github.com/wdanilo/containers
+bug-reports:         https://github.com/wdanilo/containers/issues
+copyright:           Copyright (C) 2015 Wojciech Danilo
+category:            Text
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+
+Library
+  hs-source-dirs:     src
+  ghc-options:        -Wall -O2
+  default-language:   Haskell2010
+
+  default-extensions: ConstraintKinds
+                      DataKinds
+                      DefaultSignatures
+                      DeriveDataTypeable
+                      DeriveFoldable
+                      DeriveFunctor
+                      DeriveGeneric
+                      DeriveTraversable
+                      DoAndIfThenElse
+                      EmptyDataDecls
+                      FlexibleContexts
+                      FlexibleInstances
+                      GeneralizedNewtypeDeriving
+                      InstanceSigs
+                      LambdaCase
+                      MultiParamTypeClasses
+                      OverloadedStrings
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TupleSections
+                      TypeOperators
+                      ViewPatterns
+                      TypeFamilies
+  
+  exposed-modules:    Data.Container
+                      Data.Container.Auto
+                      Data.Container.Class
+                      Data.Container.Hetero
+                      Data.Container.Immersed
+                      Data.Container.Instances
+                      Data.Container.Instances.IntSet
+                      Data.Container.Instances.Vector.Lazy
+                      Data.Container.List
+                      Data.Container.Opts
+                      Data.Container.Parametrized
+                      Data.Container.Poly
+                      Data.Container.Proxy
+                      Data.Container.Resizable
+                      Data.Container.Reusable
+                      Data.Container.Type
+                      Data.Container.Weak
+
+  build-depends:      base >=4.6 && <4.9
+                    , containers
+                    , data-default
+                    , data-layer
+                    , functor-utils
+                    , lens
+                    , lens-utils
+                    , mtl
+                    , template-haskell
+                    , transformers
+                    , transformers-base
+                    , typelevel
+                    , vector
+                    , text
