@@ -5,6 +5,8 @@
 
 module Data.Convert.Instances.Num where
 
+import Prelude
+
 import Data.Convert.Bound
 import Data.Convert.Base
 import Data.Monoid

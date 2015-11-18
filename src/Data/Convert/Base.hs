@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds #-}
@@ -10,6 +11,7 @@
 
 module Data.Convert.Base where
 
+import Prelude
 import Control.Lens
 
 ----------------------------------------------------------------------

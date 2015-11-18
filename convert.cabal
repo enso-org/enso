@@ -34,6 +34,8 @@ library
                  lens
 
   GHC-Options: -O2 -Wall -fno-warn-orphans
+  default-language:   Haskell2010
+
 
 
   Exposed-Modules: Data.Convert,
@@ -46,9 +48,9 @@ library
                    Data.Convert.Instances.Text,
                    Data.Convert.Instances.TH
 
-  Extensions: MultiParamTypeClasses,
-              UndecidableInstances, FlexibleInstances,
-              FlexibleContexts, CPP
+  default-extensions: MultiParamTypeClasses,
+                      UndecidableInstances, FlexibleInstances,
+                      FlexibleContexts, CPP
 
 
 

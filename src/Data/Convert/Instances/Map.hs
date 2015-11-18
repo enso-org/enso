@@ -1,6 +1,7 @@
 module Data.Convert.Instances.Map()
 where
 
+import Prelude
 import Data.Convert.Base
 
 import qualified Data.Map as Map

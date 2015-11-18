@@ -10,6 +10,8 @@
 module Data.Convert.Instances.Text()
 where
 
+import Prelude
+
 import Data.Convert.Base
 import qualified Data.Text as TS
 import qualified Data.Text.Encoding as TE
@@ -46,11 +48,12 @@ instance Convertible TS.Text BL.ByteString where
 
 instance Convertible TS.Text BB.Builder where
     {-# INLINE convert #-}
-#if MIN_VERSION_text(1,2,0)
+-- FIXME: doesnt work on OSX
+-- #if MIN_VERSION_text(1,2,0)
     convert = TE.encodeUtf8Builder
-#else
-    convert = convert . TE.encodeUtf8
-#endif
+-- #else
+--     convert = convert . TE.encodeUtf8
+-- #endif
 
 
 
@@ -76,11 +79,12 @@ instance Convertible TL.Text BL.ByteString where
 
 instance Convertible TL.Text BB.Builder where
     {-# INLINE convert #-}
-#if MIN_VERSION_text(1,2,0)
+-- FIXME: doesnt work on OSX
+-- #if MIN_VERSION_text(1,2,0)
     convert = TLE.encodeUtf8Builder
-#else
-    convert = convert . TLE.encodeUtf8
-#endif
+-- #else
+--     convert = convert . TLE.encodeUtf8
+-- #endif
 
 
 
