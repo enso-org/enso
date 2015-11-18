@@ -7,8 +7,8 @@ license-file:        LICENSE
 author:              Wojciech Danilo
 maintainer:          Wojciech Danilo <wojciech.danilo@gmail.com>
 stability:           experimental
-homepage:            https://github.com/wdanilo/containers
-bug-reports:         https://github.com/wdanilo/containers/issues
+homepage:            https://github.com/wdanilo/container
+bug-reports:         https://github.com/wdanilo/container/issues
 copyright:           Copyright (C) 2015 Wojciech Danilo
 category:            Text
 build-type:          Simple
