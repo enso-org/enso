@@ -1,0 +1,52 @@
+name:                lens-utils
+version:             1.0
+synopsis:            Collection of missing lens utilities.
+-- description:         
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Wojciech Danilo
+maintainer:          Wojciech Danilo <wojciech.danilo@gmail.com>
+stability:           stable
+homepage:            https://github.com/wdanilo/lens-utils
+bug-reports:         https://github.com/wdanilo/lens-utils/issues
+copyright:           Copyright (C) 2015 Wojciech Danilo
+category:            Text
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+
+Library
+  hs-source-dirs:     src
+  ghc-options:        -Wall -O2
+  default-language:   Haskell2010
+
+  default-extensions: ConstraintKinds
+                      DataKinds
+                      DefaultSignatures
+                      DeriveDataTypeable
+                      DeriveFoldable
+                      DeriveFunctor
+                      DeriveGeneric
+                      DeriveTraversable
+                      DoAndIfThenElse
+                      EmptyDataDecls
+                      FlexibleContexts
+                      FlexibleInstances
+                      GeneralizedNewtypeDeriving
+                      InstanceSigs
+                      LambdaCase
+                      MultiParamTypeClasses
+                      OverloadedStrings
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TupleSections
+                      TypeOperators
+                      ViewPatterns
+                      TypeFamilies
+  
+  exposed-modules:    Control.Lens.Utils
+                      Control.Lens.Wrapped.Utils
+
+  build-depends:      base >=4.6 && <4.9
+                    , lens
