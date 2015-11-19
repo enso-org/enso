@@ -1,0 +1,11 @@
+resolver: lts-3.14
+packages:
+extra-deps:
+- container-1.0
+- convert-1.0
+- data-layer-1.0.1
+- functor-utils-1.0
+- string-qq-0.0.2
+- typelevel-1.0.2
+- lens-utils-1.0
+- data-construction-1.0
