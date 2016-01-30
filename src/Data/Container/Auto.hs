@@ -18,33 +18,33 @@ import Data.Default
 
 #define AUTO (Reusable idx (Resizable style a))
 
-newtype Auto idx style a = Auto AUTO deriving (Functor, Traversable, Foldable, Monoid, Default)
-type    Auto'    style a = Auto (Index (Container a)) style a
+newtype IxedAuto idx style a = IxedAuto AUTO deriving (Functor, Traversable, Foldable, Monoid, Default)
+type    Auto         style a = IxedAuto (Index (Container a)) style a
 
-deriving instance (IsContainer a, FromList (Container a), Default style) => FromList (Auto idx style a)
+deriving instance (IsContainer a, FromList (Container a), Default style) => FromList (IxedAuto idx style a)
 
-type instance Index (Auto idx style a) = Index   AUTO
-type instance Item  (Auto idx style a) = Item AUTO
+type instance Index (IxedAuto idx style a) = Index AUTO
+type instance Item  (IxedAuto idx style a) = Item  AUTO
 
-type instance            DataStore       (Auto idx style a) = DataStore AUTO
-type instance            Container       (Auto idx style a) = Container AUTO
-instance      Monad m => IsContainerM  m (Auto idx style a) where fromContainerM = fmap Auto . fromContainerM
-instance      Monad m => HasContainerM m (Auto idx style a) where viewContainerM = viewContainerM . view layered
-                                                                  setContainerM  = layered . setContainerM
+type instance            DataStore       (IxedAuto idx style a) = DataStore AUTO
+type instance            Container       (IxedAuto idx style a) = Container AUTO
+instance      Monad m => IsContainerM  m (IxedAuto idx style a) where fromContainerM = fmap IxedAuto  . fromContainerM
+instance      Monad m => HasContainerM m (IxedAuto idx style a) where viewContainerM = viewContainerM . view layered
+                                                                      setContainerM  = layered        . setContainerM
 
-instance (HasContainer a, ToList (Container a)) => ToList (Auto idx s a) where toList = toList . unwrap'
+instance (HasContainer a, ToList (Container a)) => ToList (IxedAuto idx s a) where toList = toList . unwrap'
 
 -- Wrappers & layers
 
-type instance       Unlayered  (Auto idx style a) = AUTO
-instance            Layered    (Auto idx style a)
-instance Monad m => LayeredM m (Auto idx style a)
-instance            Wrapped    (Auto idx style a) where
-    type            Unwrapped  (Auto idx style a) = AUTO
-    _Wrapped' = iso (\(Auto a) -> a) Auto
+type instance       Unlayered  (IxedAuto idx style a) = AUTO
+instance            Layered    (IxedAuto idx style a)
+instance Monad m => LayeredM m (IxedAuto idx style a)
+instance            Wrapped    (IxedAuto idx style a) where
+    type            Unwrapped  (IxedAuto idx style a) = AUTO
+    _Wrapped' = iso (\(IxedAuto a) -> a) IxedAuto
 
 
-deriving instance Show AUTO => Show (Auto idx style a)
+deriving instance Show AUTO => Show (IxedAuto idx style a)
 
 --instance Show a => Show (Auto idx style a) where
 --    showsPrec d (Auto a) = showParen (d > app_prec) $

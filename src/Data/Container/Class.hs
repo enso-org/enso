@@ -38,6 +38,9 @@ impossible = error "Impossible happened."
 type family Container a
 type family Item      a
 
+
+--type        Item      a = Item (Index a)
+
 -- | Points to the real structure handling the data. Used mainly internally.
 type family DataStore a
 
@@ -314,6 +317,7 @@ prepend   = withTransFunc (fmap3 runIdentity) prependM
 
 addM'     = queryBuilder addQM
 add'      = withTransFunc (fmap3 runIdentity) addM'
+rawAdd    = withTransFunc (fmap3 resToRTup) add' -- FIXME[WD] - we should remove Res datatype and implement it just as 2 elems tuple. This will allow us to create prefix "raw" which will reuslt just in tuple.
 addM      = queryBuilder $ fmap formatResult .:. addQM
 add       = withTransFunc (fmap3 runIdentity) addM
 add_      = withTransFunc (fmap3 res_) add'
