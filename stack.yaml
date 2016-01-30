@@ -1,0 +1,5 @@
+resolver: lts-3.14
+packages:
+- .
+extra-deps:
+- data-construction-1.0
