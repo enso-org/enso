@@ -1,5 +1,5 @@
 name:                prologue
-version:             1.0.6
+version:             1.0.7
 category:            control
 -- description:         
 license:             Apache-2.0
@@ -50,12 +50,14 @@ Library
                       ViewPatterns
   
   exposed-modules:    Prologue
+                      Data.Typeable.Proxy.Abbr
                       Data.Text.Class
                       Data.String.Class
                       Data.Default.Instances.Missing
                       Data.Binary.Instances.Missing
 
   build-depends:      base >=4.6 && <4.9
+                    , bifunctors
                     , binary
                     , cond
                     , container
@@ -74,3 +76,5 @@ Library
                     , vector
                     , tuple
                     , functor-utils
+                    , impossible
+                    , typelevel

@@ -46,16 +46,24 @@ import           Data.Traversable                   as X (mapM)
 import           Data.Foldable                      as X (mapM_)
 import           Control.Error.Util                 as X (isLeft, isRight)
 import           Data.String.QQ                     as X (s)
-import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal)
+import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
 import           Data.Typeable                      as X (Proxy(Proxy), typeOf, typeRep)
 import           Data.Convert                       as X
 import           Data.Layer                         as X
+import           Data.Coat                          as X
 import           Data.Tuple.Curry                   as X (Curry)
 import           Data.Container.Class               as X (Container, Index, Item, intercalate)
 import           Data.Container.List                as X (FromList, fromList, ToList, toList)
 import           Data.Functor.Utils                 as X
+import           Type.Operators                     as X -- (($), (&))
+import           Type.Show                          as X (TypeShow, showType, printType, ppPrintType, ppShowType)
+import           Control.Exception.Base             as X (assert)
+import           Data.Impossible                    as X
+import           Data.Impossible.Compact            as X
+import           Data.Bool                          as X (bool)
+import           Data.Typeable.Proxy.Abbr           as X (P, p)
+import           Data.Bifunctor                     as X (Bifunctor, bimap)
 import qualified Data.Tuple.Curry                   as Tuple
-
 
 (++) :: Monoid a => a -> a -> a
 (++) = mappend
@@ -79,6 +87,8 @@ pprint = putStrLn . ppShow
 
 --
 
+swap :: (a,b) -> (b,a)
+swap (a,b) = (b,a)
 
 fromJustM :: Monad m => Maybe a -> m a
 fromJustM Nothing  = fail "Prelude.fromJustM: Nothing"
@@ -160,3 +170,14 @@ uncurry = Tuple.uncurryN
 
 
 
+-- === Safe operations === --
+
+tryHead :: [a] -> Maybe a
+tryHead []      = Nothing
+tryHead (a : _) = Just a
+{-# INLINE tryHead #-}
+
+fromJustNote :: String -> Maybe a -> a
+fromJustNote n = \case
+    Just a  -> a
+    Nothing -> error n
