@@ -2,6 +2,7 @@
 
 module Control.Lens.Wrapped.Utils where
 
+import Prelude
 import Control.Lens
 
 
@@ -18,3 +19,5 @@ wrapping   = _Wrapping
 unwrapping = _Unwrapping
 unwrap     = view wrapped
 wrap       = view unwrapped
+
+rewrap     = _Wrapped %~ id
