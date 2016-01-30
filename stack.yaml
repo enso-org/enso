@@ -1,3 +1,4 @@
+resolver: lts-4.1
 packages:
 extra-deps:
 - container-1.0
