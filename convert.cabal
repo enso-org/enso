@@ -1,5 +1,5 @@
 name:                convert
-version:             1.0
+version:             1.0.2
 synopsis:            Safe and unsafe data conversion utilities with strong type-level operation. checking.
 -- description:         
 license:             Apache-2.0
@@ -21,17 +21,18 @@ flag dump-splices
   manual: True
 
 library
-  Build-Depends: base>=3 && <5,
-                 old-time,
-                 time>=1.1.3,
-                 bytestring >= 0.10.2,
-                 containers,
-                 old-locale,
-                 mtl,
-                 text >= 0.8,
-                 either,
-                 template-haskell,
-                 lens
+  hs-source-dirs: src
+  Build-Depends:  base>=3 && <5,
+                  old-time,
+                  time>=1.1.3,
+                  bytestring >= 0.10.2,
+                  containers,
+                  old-locale,
+                  mtl,
+                  text >= 0.8,
+                  either,
+                  template-haskell,
+                  lens
 
   GHC-Options: -O2 -Wall -fno-warn-orphans
   default-language:   Haskell2010
@@ -48,9 +49,12 @@ library
                    Data.Convert.Instances.Text,
                    Data.Convert.Instances.TH
 
-  default-extensions: MultiParamTypeClasses,
-                      UndecidableInstances, FlexibleInstances,
-                      FlexibleContexts, CPP
+  default-extensions: MultiParamTypeClasses
+                    , UndecidableInstances
+                    , FlexibleInstances
+                    , FlexibleContexts
+                    , CPP
+                    , DefaultSignatures
 
 
 
