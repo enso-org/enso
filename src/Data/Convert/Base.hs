@@ -31,6 +31,8 @@ class Convertible a b where
 class Convertible' a b | b -> a where
     convert' :: a -> b
 
+type BiCastable a b = (Castable a b, Castable b a)
+
 class Castable a b where
     cast :: a -> b
     default cast :: Convertible a b => a -> b
