@@ -25,6 +25,9 @@ import Data.Word (Word8)
 import Data.Foldable
 
 
+instance Convertible TS.Text TS.Text where
+    {-# INLINE convert #-}
+    convert = id
 
 instance Convertible TS.Text [Char] where
     {-# INLINE convert #-}
@@ -57,6 +60,10 @@ instance Convertible TS.Text BB.Builder where
 
 
 
+instance Convertible TL.Text TL.Text where
+    {-# INLINE convert #-}
+    convert = id
+
 instance Convertible TL.Text [Char] where
     {-# INLINE convert #-}
     convert = TL.unpack
@@ -88,6 +95,10 @@ instance Convertible TL.Text BB.Builder where
 
 
 
+instance Convertible TLB.Builder TLB.Builder where
+    {-# INLINE convert #-}
+    convert = id
+
 instance Convertible TLB.Builder [Char] where
     {-# INLINE convert #-}
     convert = convert . TLB.toLazyText
@@ -113,6 +124,9 @@ instance Convertible TLB.Builder BB.Builder where
     convert = convert . TLB.toLazyText
 
 
+instance Convertible BS.ByteString BS.ByteString where
+    {-# INLINE convert #-}
+    convert = id
 
 instance Convertible BS.ByteString [Word8] where
     {-# INLINE convert #-}

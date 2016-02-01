@@ -1,5 +1,6 @@
 module Data.Convert.Instances () where
 
+import Data.Convert.Instances.Base    ()
 import Data.Convert.Instances.Map     ()
 import Data.Convert.Instances.Num     ()
 import Data.Convert.Instances.Text    ()
