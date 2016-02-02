@@ -1,9 +1,3 @@
----------------------------------------------------
--- This is a generated cabal configuration file. --
--- DO NOT EDIT!                                  --
--- Use gencabal instead.                         --
----------------------------------------------------
-
 name:                prologue
 version:             1.0.8
 category:            control
@@ -55,13 +49,7 @@ Library
                       TypeOperators
                       ViewPatterns
   
-  exposed-modules:    
-        Data.Binary.Instances.Missing,
-        Data.Default.Instances.Missing,
-        Data.String.Class,
-        Data.Text.Class,
-        Data.Typeable.Proxy.Abbr,
-        Prologue
+  exposed-modules:    `findmodules('src', '.*\.hs')`
 
   build-depends:      base >=4.6 && <4.9
                     , bifunctors
