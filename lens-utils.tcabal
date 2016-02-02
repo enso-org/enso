@@ -1,9 +1,3 @@
----------------------------------------------------
--- This is a generated cabal configuration file. --
--- DO NOT EDIT!                                  --
--- Use gencabal instead.                         --
----------------------------------------------------
-
 name:                lens-utils
 version:             1.2
 synopsis:            Collection of missing lens utilities.
@@ -51,9 +45,7 @@ Library
                       ViewPatterns
                       TypeFamilies
   
-  exposed-modules:    
-        Control.Lens.Utils,
-        Control.Lens.Wrapped.Utils
+  exposed-modules:    `findmodules('src', '.*\.hs')`
 
   build-depends:      base >=4.6 && <4.9
                     , lens
