@@ -53,7 +53,7 @@ import           Data.Layer                         as X
 import           Data.Coat                          as X
 import           Data.Tuple.Curry                   as X (Curry)
 import           Data.Container.Class               as X (Container, Index, Item, intercalate)
-import           Data.Container.List                as X (FromList, fromList, ToList, toList)
+import           Data.Container.List                as X (FromList, fromList, ToList, toList, asList)
 import           Data.Functor.Utils                 as X
 import           Type.Operators                     as X -- (($), (&))
 import           Type.Show                          as X (TypeShow, showType, printType, ppPrintType, ppShowType)
