@@ -56,7 +56,8 @@ instance      Monad m => HasContainerM m (V.Vector a) where viewContainerM = ret
                                                             setContainerM  = const . return
 
 
-instance ToList (V.Vector a) where toList = V.toList
+instance ToList   (V.Vector a) where toList   = V.toList
+instance FromList (V.Vector a) where fromList = V.fromList
 
 ----------------------------------
 -- === Operations instances === --
