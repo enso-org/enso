@@ -23,7 +23,7 @@ import           Prelude                            as X hiding (mapM, mapM_, pr
 import           Data.Function                      as X (on)
 import           Data.Maybe                         as X (mapMaybe)
 import           Data.Default                       as X
-import           Control.Lens                       as X 
+import           Control.Lens                       as X
 import           Control.Lens.Utils                 as X
 import           Data.String.Class                  as X (IsString (fromString), ToString (toString))
 import           Control.Applicative                as X
@@ -50,6 +50,7 @@ import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, 
 import           Data.Typeable                      as X (Proxy(Proxy), typeOf, typeRep)
 import           Data.Convert                       as X
 import           Data.Layer                         as X
+import           Data.Layer.Cover                   as X
 import           Data.Coat                          as X
 import           Data.Tuple.Curry                   as X (Curry)
 import           Data.Container.Class               as X (Container, Index, Item, intercalate)

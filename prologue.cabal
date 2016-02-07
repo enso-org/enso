@@ -5,7 +5,7 @@
 ---------------------------------------------------
 
 name:                prologue
-version:             1.0.9
+version:             1.0.10
 category:            control
 -- description:         
 license:             Apache-2.0
@@ -60,6 +60,7 @@ Library
         Data.Default.Instances.Missing,
         Data.String.Class,
         Data.Text.Class,
+        Data.Tuple.Curry.Missing,
         Data.Typeable.Proxy.Abbr,
         Prologue
 
