@@ -4,7 +4,9 @@
 {-# LANGUAGE LambdaCase                #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE KindSignatures            #-}
+{-# LANGUAGE TypeFamilies              #-}
 
 module Prologue (
     module Prologue,
@@ -173,3 +175,23 @@ fromJustNote :: String -> Maybe a -> a
 fromJustNote n = \case
     Just a  -> a
     Nothing -> error n
+
+-- === MapM === ---
+
+type family Traversables (lst :: [* -> *]) :: Constraint where
+    Traversables '[]       = ()
+    Traversables (t ': ts) = (Traversable t, Traversables ts)
+
+mapM2 :: (Monad m, Traversables '[t1, t2]) => (a -> m b) -> t1 (t2 a) -> m (t1 (t2 b))
+mapM2 = mapM ∘ mapM ; {-# INLINE mapM2 #-}
+
+mapM3 :: (Monad m, Traversables [t1, t2, t3]) => (a -> m b) -> t1 (t2 (t3 a)) -> m (t1 (t2 (t3 b)))
+mapM3 = mapM ∘ mapM2 ; {-# INLINE mapM3 #-}
+
+mapM4 :: (Monad m, Traversables [t1, t2, t3, t4]) => (a -> m b) -> t1 (t2 (t3 (t4 a))) -> m (t1 (t2 (t3 (t4 b))))
+mapM4 = mapM ∘ mapM3 ; {-# INLINE mapM4 #-}
+
+mapM5 :: (Monad m, Traversables [t1, t2, t3, t4, t5]) => (a -> m b) -> t1 (t2 (t3 (t4 (t5 a)))) -> m (t1 (t2 (t3 (t4 (t5 b)))))
+mapM5 = mapM ∘ mapM4 ; {-# INLINE mapM5 #-}
+
+
