@@ -19,7 +19,7 @@ import           Data.Foldable                      (forM_)
 import qualified Prelude
 import           Text.Show.Pretty                   as X (ppShow)
 
-import           Prelude                            as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.), curry, uncurry)
+import           Prelude                            as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.), curry, uncurry, break)
 import           Data.Function                      as X (on)
 import           Data.Maybe                         as X (mapMaybe)
 import           Data.Default                       as X
