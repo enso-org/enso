@@ -24,7 +24,7 @@ import           Data.Function                      as X (on)
 import           Data.Maybe                         as X (mapMaybe)
 import           Data.Default                       as X
 import           Control.Lens                       as X
-import           Control.Lens.Utils                 as X
+import           Control.Lens.Wrapped.Utils         as X
 import           Data.String.Class                  as X (IsString (fromString), ToString (toString))
 import           Control.Applicative                as X
 import           Control.Conditional                as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
@@ -150,15 +150,6 @@ foldlDef f d = \case
     []     -> d
     (x:xs) -> foldl f x xs
 
-
-mapOver :: (Lens' a b) -> (b -> (b, out)) -> (a -> (a, out))
-mapOver lens f s = (s & lens .~ a, out) where
-    (a, out) = f $ s ^. lens
-
-mapOverM :: Monad m => (Lens' a b) -> (b -> m (b, out)) -> (a -> m (a, out))
-mapOverM lens f a = do
-    (b, out) <- f $ a ^. lens
-    return $ (a & lens .~ b, out)
 
 
 ifElseId :: Bool -> (a -> a) -> (a -> a)
