@@ -66,7 +66,9 @@ import           Data.Impossible.Compact            as X
 import           Data.Bool                          as X (bool)
 import           Data.Typeable.Proxy.Abbr           as X (P, p)
 import           Data.Bifunctor                     as X (Bifunctor, bimap)
+import           Data.Maybe                         as X (catMaybes, fromJust)
 import qualified Data.Tuple.Curry                   as Tuple
+import           Data.Functor.Compose
 
 (++) :: Monoid a => a -> a -> a
 (++) = mappend
@@ -195,3 +197,5 @@ mapM5 :: (Monad m, Traversables [t1, t2, t3, t4, t5]) => (a -> m b) -> t1 (t2 (t
 mapM5 = mapM ∘ mapM4 ; {-# INLINE mapM5 #-}
 
 
+composed :: Iso' (f (g a)) (Compose f g a)
+composed = iso Compose getCompose
