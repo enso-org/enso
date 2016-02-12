@@ -13,62 +13,63 @@ module Prologue (
     module X
 ) where
 
-import qualified Data.Traversable                   as Traversable
-
-import           Data.Binary.Instances.Missing      ()
-import           Data.Default.Instances.Missing     ()
-import           Data.Foldable                      (forM_)
 import qualified Prelude
-import           Text.Show.Pretty                   as X (ppShow)
 
-import           Prelude                            as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.), curry, uncurry, break)
-import           Data.Function                      as X (on)
-import           Data.Maybe                         as X (mapMaybe)
-import           Data.Default                       as X
-import           Control.Lens                       as X
-import           Control.Lens.Wrapped.Utils         as X
-import           Data.String.Class                  as X (IsString (fromString), ToString (toString))
-import           Control.Applicative                as X
-import           Control.Conditional                as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
-import           Control.Monad                      as X (MonadPlus, mplus, mzero, void, join)
-import           Control.Monad.IO.Class             as X (MonadIO, liftIO)
-import           Control.Monad.Trans                as X (MonadTrans, lift)
-import           Data.Foldable                      as X (Foldable, traverse_)
-import           Data.Monoid                        as X (Monoid, mappend, mconcat, mempty, (<>))
-import           Control.Lens.Wrapped               as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
-import           Data.Text.Class                    as X (FromText (fromText), IsText, ToText (toText))
-import           Data.Text.Lazy                     as X (Text)
-import           Data.Typeable                      as X (Typeable)
-import           GHC.Generics                       as X (Generic)
-import           GHC.Exts                           as X (Constraint)
-import           Control.Monad.Fix                  as X (MonadFix)
-import           Control.Monad                      as X ((<=<), (>=>))
-import           Control.Monad.Base                 as X
-import           Data.Traversable                   as X (mapM)
-import           Data.Foldable                      as X (mapM_)
-import           Control.Error.Util                 as X (isLeft, isRight)
-import           Data.String.QQ                     as X (s)
-import           GHC.TypeLits                       as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import           Data.Typeable                      as X (Proxy(Proxy), typeOf, typeRep)
-import           Data.Convert                       as X
-import           Data.Layer                         as X
-import           Data.Layer.Cover                   as X
-import           Data.Coat                          as X
-import           Data.Tuple.Curry                   as X (Curry)
-import           Data.Container.Class               as X (Container, Index, Item, intercalate)
-import           Data.Container.List                as X (FromList, fromList, ToList, toList, asList)
-import           Data.Functor.Utils                 as X
-import           Type.Operators                     as X -- (($), (&))
-import           Type.Show                          as X (TypeShow, showType, printType, ppPrintType, ppShowType)
-import           Control.Exception.Base             as X (assert)
-import           Data.Impossible                    as X
-import           Data.Impossible.Compact            as X
-import           Data.Bool                          as X (bool)
-import           Data.Typeable.Proxy.Abbr           as X (P, p)
-import           Data.Bifunctor                     as X (Bifunctor, bimap)
-import           Data.Maybe                         as X (catMaybes, fromJust)
+
+import Control.Applicative        as X
+import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
+import Control.Error.Util         as X (isLeft, isRight)
+import Control.Exception.Base     as X (assert)
+import Control.Lens               as X
+import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
+import Control.Lens.Wrapped.Utils as X
+import Control.Monad              as X (MonadPlus, mplus, mzero, void, join, (<=<), (>=>), zipWithM, zipWithM_)
+import Control.Monad.Base         as X
+import Control.Monad.Fix          as X (MonadFix)
+import Control.Monad.IO.Class     as X (MonadIO, liftIO)
+import Control.Monad.Trans        as X (MonadTrans, lift)
+import Data.Bifunctor             as X (Bifunctor, bimap)
+import Data.Bool                  as X (bool)
+import Data.Coat                  as X
+import Data.Container.Class       as X (Container, Index, Item, intercalate)
+import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
+import Data.Convert               as X
+import Data.Default               as X
+import Data.Foldable              as X (Foldable, traverse_)
+import Data.Foldable              as X (mapM_)
+import Data.Function              as X (on)
+import Data.Functor.Utils         as X
+import Data.Impossible            as X
+import Data.Impossible.Compact    as X
+import Data.Layer                 as X
+import Data.Layer.Cover           as X
+import Data.Maybe                 as X (catMaybes, fromJust)
+import Data.Maybe                 as X (mapMaybe)
+import Data.Monoid                as X (Monoid, mappend, mconcat, mempty, (<>))
+import Data.String.Class          as X (IsString (fromString), ToString (toString))
+import Data.String.QQ             as X (s)
+import Data.Text.Class            as X (FromText (fromText), IsText, ToText (toText))
+import Data.Text.Lazy             as X (Text)
+import Data.Traversable           as X (mapM)
+import Data.Tuple.Curry           as X (Curry)
+import Data.Typeable              as X (Proxy(Proxy), typeOf, typeRep)
+import Data.Typeable              as X (Typeable)
+import Data.Typeable.Proxy.Abbr   as X (P, p)
+import GHC.Exts                   as X (Constraint)
+import GHC.Generics               as X (Generic)
+import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
+import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.), curry, uncurry, break)
+import Text.Show.Pretty           as X (ppShow)
+import Type.Operators             as X -- (($), (&))
+import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
+
+import Data.Binary.Instances.Missing      ()
+import Data.Default.Instances.Missing     ()
+import Data.Foldable                      (forM_)
+import Data.Functor.Compose
+
+import qualified Data.Traversable                   as Traversable
 import qualified Data.Tuple.Curry                   as Tuple
-import           Data.Functor.Compose
 
 (++) :: Monoid a => a -> a -> a
 (++) = mappend
