@@ -37,7 +37,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 --import GHC.Prim
 
 import qualified Data.Container.Opts as M
-import           Data.Container.Opts (Opt(P,N), Knowledge(..), Query(..), OptQuery(..), ModsOf, ParamsOf)
+import           Data.Container.Opts (Opt(P,N), Knowledge(..), Query(..), OptQuery(..), ModsOf, ParamsOf, CondOpt, ifOpt)
 import Data.Layer
 import Data.Container.Type (In)
 
@@ -183,8 +183,8 @@ type instance ModsOf   IndexableOp       (V.Vector a) = '[M.Ixed]
 type instance ParamsOf TracksIxesOp      (V.Vector a) = '[]
 type instance ModsOf   TracksIxesOp      (V.Vector a) = '[]
 
-instance (Monad m, a ~ a', idx ~ Int, Cond2 unchecked, Cond2 try) => IndexableQM_  '[N       ] '[unchecked, try] m idx a' (V.Vector a) where indexM_  _ idx v = Res ()       <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
-instance (Monad m, a ~ a', idx ~ Int, Cond2 unchecked, Cond2 try) => IndexableQM_  '[P M.Ixed] '[unchecked, try] m idx a' (V.Vector a) where indexM_  _ idx v = Res (idx,()) <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
+instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_  '[N       ] '[unchecked, try] m idx a' (V.Vector a) where indexM_  _ idx v = Res ()       <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
+instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_  '[P M.Ixed] '[unchecked, try] m idx a' (V.Vector a) where indexM_  _ idx v = Res (idx,()) <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
 
 instance (Monad m, idx ~ Int)                                     => TracksIxesQM_  '[]        ps                m idx    (V.Vector a) where ixesM_   _     v = (return . Res ()) $ [0 .. size v -1]
 instance (Monad m, a ~ a')                                        => TracksElemsQM_ '[]        ps                m     a' (V.Vector a) where elemsM_  _     v = (return . Res ()) $ V.toList v
@@ -198,17 +198,10 @@ instance Default (V.Vector a) where def = mempty
 
 --- Utils (TODO: refactor)
 
-failT2 p = ifT2 p fail error
+failT2 p = ifOpt p fail error
 
 checkBounds2 i v l r = if i > max || i < 0 then l ("index " <> show i <> " out of bounds x[0," <> show max <> "]") else r where max = size v - 1
 checkBoundsM2 p idx v = checkBounds2 idx v (const . failT2 p) return
 checkedBoundsIfM2 unchecked try idx v = checkedIfM2 unchecked (checkBoundsM2 try idx v)
 
-checkedIfM2 p = ifT2 p return
-
-
-class    Cond2 (opt :: Opt *) where ifT2 :: Proxy opt -> a -> a -> a
-instance Cond2 (P a)          where ifT2 _ = const
-instance Cond2 N              where ifT2 _ = flip const
-
-
+checkedIfM2 p = ifOpt p return

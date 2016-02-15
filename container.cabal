@@ -52,7 +52,7 @@ Library
                       ViewPatterns
                       TypeFamilies
 
-  exposed-modules:    
+  exposed-modules:
         Data.Container,
         Data.Container.Auto,
         Data.Container.Class,
@@ -60,6 +60,7 @@ Library
         Data.Container.Immersed,
         Data.Container.Instances,
         Data.Container.Instances.IntSet,
+        Data.Container.Instances.List,
         Data.Container.Instances.Vector.Lazy,
         Data.Container.List,
         Data.Container.Opts,
@@ -69,7 +70,6 @@ Library
         Data.Container.Resizable,
         Data.Container.Reusable,
         Data.Container.Type,
-        Data.Container.Weak,
         Data.IntMap,
         Data.IntMap.Lazy,
         Data.IntMap.Strict,
@@ -80,6 +80,8 @@ Library
         Data.Sequence,
         Data.Set,
         Data.Tree
+        Data.Container.Utils,
+        Data.Container.Weak
 
   build-depends:      base >=4.6 && <4.9
                     , containers
