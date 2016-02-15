@@ -13,6 +13,7 @@ module Data.Container.Opts where
 import Prelude
 import Type.Bool
 import Data.Typeable
+import Data.Container.Utils
 
 
 ------------------
@@ -72,7 +73,13 @@ data Query    (mods :: [*])     (params :: [*])     = Query
 data OptQuery (mods :: [Opt *]) (params :: [Opt *]) = OptQuery
 
 
+-----------------------
+-- === Opt utils === --
+-----------------------
 
+class    CondOpt (opt :: Opt *) where ifOpt :: Proxy opt -> a -> a -> a
+instance CondOpt (P a)          where ifOpt _ = const
+instance CondOpt N              where ifOpt _ = flip const
 
 
 ------------------------
@@ -156,8 +163,6 @@ instance {-# OVERLAPPABLE #-} (GetQueryData p qs datas, GetOptData p datas q)
                            => GetQueryData p (q ': qs) datas where getQueryData p q datas = (getOptData p datas (Proxy :: Proxy q), getQueryData p (Proxy :: Proxy qs) datas)
 instance {-# OVERLAPPABLE #-} GetQueryData p '[]       datas where getQueryData _ _ _     = ()
 
-
-(.:) = (.) . (.)
 
 
 ixed      = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[ Ixed ] '[]                )

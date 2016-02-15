@@ -3,7 +3,9 @@ resolver: lts-4.1
 packages:
 - .
 extra-deps:
-- data-layer-1.0.1
+- data-layer-1.0.4
 - typelevel-1.0.2
 - functor-utils-1.0
 - lens-utils-1.0
+- convert-1.0.2
+- data-construction-1.1
