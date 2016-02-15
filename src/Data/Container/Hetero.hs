@@ -21,7 +21,16 @@ import Data.Container.Class
 import Data.Typeable         hiding (cast)
 import Unsafe.Coerce         (unsafeCoerce)
 import Data.Container.Poly
+import Data.Default
+import Control.Lens
 --import Data.Reprx
+
+
+-- === Definitions === --
+
+newtype Hetero a = Hetero a deriving (Show, Eq, Ord, Functor, Traversable, Foldable, Default)
+makeWrapped ''Hetero
+
 
 --- === Unified values ===
 

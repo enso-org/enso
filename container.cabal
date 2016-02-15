@@ -5,9 +5,9 @@
 ---------------------------------------------------
 
 name:                container
-version:             1.0.3
+version:             1.0.4
 synopsis:            Containers abstraction and utilities.
--- description:         
+-- description:
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Wojciech Danilo
@@ -18,7 +18,7 @@ bug-reports:         https://github.com/wdanilo/container/issues
 copyright:           Copyright (C) 2015 Wojciech Danilo
 category:            Text
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 
 
@@ -44,13 +44,14 @@ Library
                       LambdaCase
                       MultiParamTypeClasses
                       OverloadedStrings
+                      PackageImports
                       StandaloneDeriving
                       TemplateHaskell
                       TupleSections
                       TypeOperators
                       ViewPatterns
                       TypeFamilies
-  
+
   exposed-modules:    
         Data.Container,
         Data.Container.Auto,
@@ -68,7 +69,17 @@ Library
         Data.Container.Resizable,
         Data.Container.Reusable,
         Data.Container.Type,
-        Data.Container.Weak
+        Data.Container.Weak,
+        Data.IntMap,
+        Data.IntMap.Lazy,
+        Data.IntMap.Strict,
+        Data.IntSet,
+        Data.Map,
+        Data.Map.Lazy,
+        Data.Map.Strict,
+        Data.Sequence,
+        Data.Set,
+        Data.Tree
 
   build-depends:      base >=4.6 && <4.9
                     , containers
