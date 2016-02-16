@@ -51,13 +51,13 @@ type instance Index     (V.Vector a) = Int
 type instance Item      (V.Vector a) = a
 type instance Container (V.Vector a) = V.Vector a
 type instance DataStore (V.Vector a) = V.Vector a
-instance      Monad m => IsContainerM  m (V.Vector a) where fromContainerM = return
-instance      Monad m => HasContainerM m (V.Vector a) where viewContainerM = return
-                                                            setContainerM  = const . return
+instance      Monad m => IsContainerM  m (V.Vector a) where fromContainerM = return         ; {-# INLINE fromContainerM #-}
+instance      Monad m => HasContainerM m (V.Vector a) where viewContainerM = return         ; {-# INLINE viewContainerM #-}
+                                                            setContainerM  = const . return ; {-# INLINE setContainerM  #-}
 
 
-instance ToList   (V.Vector a) where toList   = V.toList
-instance FromList (V.Vector a) where fromList = V.fromList
+instance ToList   (V.Vector a) where toList   = V.toList   ; {-# INLINE toList   #-}
+instance FromList (V.Vector a) where fromList = V.fromList ; {-# INLINE fromList #-}
 
 ----------------------------------
 -- === Operations instances === --
@@ -78,9 +78,14 @@ type instance ModsOf   MinBoundedOp (V.Vector a) = '[]
 type instance ParamsOf MaxBoundedOp (V.Vector a) = '[]
 type instance ModsOf   MaxBoundedOp (V.Vector a) = '[]
 
-instance Monad m              => MeasurableQM_ '[] ps m     (V.Vector a) where sizeM_     _   = return . Res () . V.length
-instance (Monad m, idx ~ Int) => MinBoundedQM_ '[] ps m idx (V.Vector a) where minBoundM_ _ _ = return $ Res () 0
-instance (Monad m, idx ~ Int) => MaxBoundedQM_ '[] ps m idx (V.Vector a) where maxBoundM_ _ v = return $ Res () $ V.length v - 1
+instance Monad m              => MeasurableQM_ '[] ps m     (V.Vector a) where
+    sizeM_     _   = return . Res () . V.length       ; {-# INLINE sizeM_     #-}
+
+instance (Monad m, idx ~ Int) => MinBoundedQM_ '[] ps m idx (V.Vector a) where
+    minBoundM_ _ _ = return $ Res () 0                ; {-# INLINE minBoundM_ #-}
+
+instance (Monad m, idx ~ Int) => MaxBoundedQM_ '[] ps m idx (V.Vector a) where
+    maxBoundM_ _ v = return $ Res () $ V.length v - 1 ; {-# INLINE maxBoundM_ #-}
 
 
 -- === Construction ===
@@ -102,17 +107,33 @@ type instance ModsOf   ExpandableOp (V.Vector a) = '[M.Ixed]
 type instance ParamsOf GrowableOp   (V.Vector a) = '[]
 type instance ModsOf   GrowableOp   (V.Vector a) = '[M.Ixed]
 
-instance (Monad m, a ~ a') => SingletonQM_ '[N       ] ps m a' (V.Vector a) where singletonM_ _ = return . Res ()     . V.singleton
-instance (Monad m, a ~ a') => SingletonQM_ '[P M.Ixed] ps m a' (V.Vector a) where singletonM_ _ = return . Res (0,()) . V.singleton
+instance (Monad m, a ~ a') => SingletonQM_ '[N       ] ps m a' (V.Vector a) where
+    singletonM_ _ = return . Res ()     . V.singleton ; {-# INLINE singletonM_ #-}
+instance (Monad m, a ~ a') => SingletonQM_ '[P M.Ixed] ps m a' (V.Vector a) where
+    singletonM_ _ = return . Res (0,()) . V.singleton ; {-# INLINE singletonM_ #-}
 
-instance Monad m =>           AllocableQM_ '[N       ] ps m    (V.Vector a) where allocM_ _ i = return $ Res ()            $ runST $ V.unsafeFreeze =<< MV.unsafeNew i
-instance Monad m =>           AllocableQM_ '[P M.Ixed] ps m    (V.Vector a) where allocM_ _ i = return $ Res ([0..i-1],()) $ runST $ V.unsafeFreeze =<< MV.unsafeNew i
 
-instance Monad m =>           ExpandableQM_ '[N       ] ps m   (V.Vector a) where expandM_ _ v = return $ Res ()                $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow 1 >>= V.unsafeFreeze
-instance Monad m =>           ExpandableQM_ '[P M.Ixed] ps m   (V.Vector a) where expandM_ _ v = return $ Res ([V.length v],()) $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow 1 >>= V.unsafeFreeze
+instance Monad m => AllocableQM_ '[N       ] ps m    (V.Vector a) where
+    allocM_ _ i = return $ Res ()            $ runST $ V.unsafeFreeze =<< MV.unsafeNew i ; {-# INLINE allocM_ #-}
+instance Monad m => AllocableQM_ '[P M.Ixed] ps m    (V.Vector a) where
+    allocM_ _ i = return $ Res ([0..i-1],()) $ runST $ V.unsafeFreeze =<< MV.unsafeNew i ; {-# INLINE allocM_ #-}
 
-instance Monad m =>           GrowableQM_   '[N       ] ps m   (V.Vector a) where growM_ _ i v = return $ Res ()                                      $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow i >>= V.unsafeFreeze
-instance Monad m =>           GrowableQM_   '[P M.Ixed] ps m   (V.Vector a) where growM_ _ i v = return $ Res ([V.length v .. V.length v + i - 1],()) $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow i >>= V.unsafeFreeze
+
+instance Monad m => ExpandableQM_ '[N       ] ps m   (V.Vector a) where
+    expandM_ _ v = return $ Res ()                $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow 1 >>= V.unsafeFreeze
+    {-# INLINE expandM_ #-}
+instance Monad m => ExpandableQM_ '[P M.Ixed] ps m   (V.Vector a) where
+    expandM_ _ v = return $ Res ([V.length v],()) $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow 1 >>= V.unsafeFreeze
+    {-# INLINE expandM_ #-}
+
+
+instance Monad m => GrowableQM_ '[N       ] ps m   (V.Vector a) where
+    growM_ _ i v = return $ Res () $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow i >>= V.unsafeFreeze
+    {-# INLINE growM_ #-}
+instance Monad m => GrowableQM_ '[P M.Ixed] ps m   (V.Vector a) where
+    growM_ _ i v = return $ Res ([V.length v .. V.length v + i - 1],()) $ runST $
+        V.unsafeThaw v >>= flip MV.unsafeGrow i >>= V.unsafeFreeze
+    {-# INLINE growM_ #-}
 
 
 -- === Modification ===
@@ -142,30 +163,48 @@ type instance ModsOf   InsertableOp  (V.Vector a) = '[M.Ixed]
 type instance ParamsOf FreeableOp    (V.Vector a) = '[]
 type instance ModsOf   FreeableOp    (V.Vector a) = '[]
 
-instance (Monad m, a ~ a')       => AppendableQM_  '[N       ] ps m a' (V.Vector a) where appendM_  _ el v = (return . Res ())            $ V.snoc v el
-instance (Monad m, a ~ a')       => AppendableQM_  '[P M.Ixed] ps m a' (V.Vector a) where appendM_  _ el v = (return . Res (size v,())) $ V.snoc v el
-
-instance (Monad m, a ~ a')       => PrependableQM_ '[N       ] ps m a' (V.Vector a) where prependM_ _ el v = (return . Res ())     $ V.cons el v
-instance (Monad m, a ~ a')       => PrependableQM_ '[P M.Ixed] ps m a' (V.Vector a) where prependM_ _ el v = (return . Res (0,())) $ V.cons el v
-
-instance (Monad m, a ~ a')       => AddableQM_     '[N       ] ps m a' (V.Vector a) where addM_     _ el v = (return . Res ())            $ V.snoc v el
-instance (Monad m, a ~ a')       => AddableQM_     '[P M.Ixed] ps m a' (V.Vector a) where addM_     _ el v = (return . Res (size v,())) $ V.snoc v el
-
-instance (Monad m, Eq a, a ~ a') => RemovableQM_   '[N       ] '[P M.Try] m a' (V.Vector a) where removeM_ _ el v = case idx of
-                                                                                                                           Just  i -> (return . Res ()) $ V.slice 0 (i-1) v <> V.slice i (size v - i) v
-                                                                                                                           Nothing -> fail "Element not found"
-                                                                                                                       where idx = V.findIndex (== el) v
-instance (Monad m, Eq a, a ~ a') => RemovableQM_ '[P M.Ixed] '[P M.Try] m a' (V.Vector a) where removeM_ _ el v = case idx of
-                                                                                                                         Just  i -> (return . Res (i,())) $ V.slice 0 (i-1) v <> V.slice i (size v - i) v
-                                                                                                                         Nothing -> fail "Element not found"
-                                                                                                                     where idx = V.findIndex (== el) v
+instance (Monad m, a ~ a') => AppendableQM_  '[N       ] ps m a' (V.Vector a) where
+    appendM_ _ el v = (return . Res ())          $ V.snoc v el ; {-# INLINE appendM_ #-}
+instance (Monad m, a ~ a') => AppendableQM_  '[P M.Ixed] ps m a' (V.Vector a) where
+    appendM_ _ el v = (return . Res (size v,())) $ V.snoc v el ; {-# INLINE appendM_ #-}
 
 
-instance (Monad m, a ~ a', idx ~ Int) => InsertableQM_ '[N       ] ps m idx a' (V.Vector a) where insertM_ _ idx el v = (return . Res ())       $ (V.//) v [(idx,el)]
-instance (Monad m, a ~ a', idx ~ Int) => InsertableQM_ '[P M.Ixed] ps m idx a' (V.Vector a) where insertM_ _ idx el v = (return . Res (idx,())) $ (V.//) v [(idx,el)]
+instance (Monad m, a ~ a') => PrependableQM_ '[N       ] ps m a' (V.Vector a) where
+    prependM_ _ el v = (return . Res ())     $ V.cons el v ; {-# INLINE prependM_ #-}
+instance (Monad m, a ~ a') => PrependableQM_ '[P M.Ixed] ps m a' (V.Vector a) where
+    prependM_ _ el v = (return . Res (0,())) $ V.cons el v ; {-# INLINE prependM_ #-}
 
 
-instance (Monad m, idx ~ Int) => FreeableQM_ '[] ps m idx (V.Vector a) where freeM_ _ idx v = (return . Res ())       $ (V.//) v [(idx,error $ "uninitialized element at index " <> show idx)]
+instance (Monad m, a ~ a') => AddableQM_ '[N       ] ps m a' (V.Vector a) where
+    addM_ _ el v = (return . Res ())          $ V.snoc v el ; {-# INLINE addM_ #-}
+instance (Monad m, a ~ a') => AddableQM_ '[P M.Ixed] ps m a' (V.Vector a) where
+    addM_ _ el v = (return . Res (size v,())) $ V.snoc v el ; {-# INLINE addM_ #-}
+
+
+instance (Monad m, Eq a, a ~ a') => RemovableQM_ '[N       ] '[P M.Try] m a' (V.Vector a) where
+    removeM_ _ el v = case idx of
+        Just  i -> (return . Res ()) $ V.slice 0 (i-1) v <> V.slice i (size v - i) v
+        Nothing -> fail "Element not found"
+        where idx = V.findIndex (== el) v
+    {-# INLINE removeM_ #-}
+
+instance (Monad m, Eq a, a ~ a') => RemovableQM_ '[P M.Ixed] '[P M.Try] m a' (V.Vector a) where
+    removeM_ _ el v = case idx of
+        Just  i -> (return . Res (i,())) $ V.slice 0 (i-1) v <> V.slice i (size v - i) v
+        Nothing -> fail "Element not found"
+        where idx = V.findIndex (== el) v
+    {-# INLINE removeM_ #-}
+
+
+instance (Monad m, a ~ a', idx ~ Int) => InsertableQM_ '[N       ] ps m idx a' (V.Vector a) where
+    insertM_ _ idx el v = (return . Res ())       $ (V.//) v [(idx,el)] ; {-# INLINE insertM_ #-}
+instance (Monad m, a ~ a', idx ~ Int) => InsertableQM_ '[P M.Ixed] ps m idx a' (V.Vector a) where
+    insertM_ _ idx el v = (return . Res (idx,())) $ (V.//) v [(idx,el)] ; {-# INLINE insertM_ #-}
+
+
+instance (Monad m, idx ~ Int) => FreeableQM_ '[] ps m idx (V.Vector a) where
+    freeM_ _ idx v = (return . Res ()) $ (V.//) v [(idx,error $ "uninitialized element at index " <> show idx)]
+    {-# INLINE freeM_ #-}
 
 
 
@@ -183,17 +222,26 @@ type instance ModsOf   IndexableOp       (V.Vector a) = '[M.Ixed]
 type instance ParamsOf TracksIxesOp      (V.Vector a) = '[]
 type instance ModsOf   TracksIxesOp      (V.Vector a) = '[]
 
-instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_  '[N       ] '[unchecked, try] m idx a' (V.Vector a) where indexM_  _ idx v = Res ()       <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
-instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_  '[P M.Ixed] '[unchecked, try] m idx a' (V.Vector a) where indexM_  _ idx v = Res (idx,()) <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
 
-instance (Monad m, idx ~ Int)                                     => TracksIxesQM_  '[]        ps                m idx    (V.Vector a) where ixesM_   _     v = (return . Res ()) $ [0 .. size v -1]
-instance (Monad m, a ~ a')                                        => TracksElemsQM_ '[]        ps                m     a' (V.Vector a) where elemsM_  _     v = (return . Res ()) $ V.toList v
+instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_  '[N       ] '[unchecked, try] m idx a' (V.Vector a) where
+    indexM_  _ idx v = Res ()       <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
+    {-# INLINE indexM_ #-}
+instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_  '[P M.Ixed] '[unchecked, try] m idx a' (V.Vector a) where
+    indexM_  _ idx v = Res (idx,()) <$> checkedBoundsIfM2 (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx v (V.unsafeIndex v idx)
+    {-# INLINE indexM_ #-}
 
+
+instance (Monad m, idx ~ Int) => TracksIxesQM_ '[] ps m idx (V.Vector a) where
+    ixesM_ _ v = (return . Res ()) $ [0 .. size v - 1] ; {-# INLINE ixesM_ #-}
+
+
+instance (Monad m, a ~ a') => TracksElemsQM_ '[] ps m a' (V.Vector a) where
+    elemsM_ _ v = (return . Res ()) $ V.toList v ; {-# INLINE elemsM_ #-}
 
 
 ---- missing instances ----
 
-instance Default (V.Vector a) where def = mempty
+instance Default (V.Vector a) where def = mempty ; {-# INLINE def #-}
 
 
 --- Utils (TODO: refactor)
