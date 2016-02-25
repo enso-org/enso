@@ -150,7 +150,7 @@ Library
         Prelude.Luna,
         System.Platform
 
-    Other-Modules: Paths_luna
+    Other-Modules: Paths_luna-core
     Build-Depends: base
                  , constraints
                  , container
