@@ -7,16 +7,18 @@ import           Data.Graph.Builder.Class                as X
 import           Luna.Syntax.Model.Network.Builder.Term  as X
 import           Luna.Syntax.Model.Network.Builder.Layer as X
 
-import           Prologue                hiding (read, Getter, (#))
+import           Prelude.Luna
 import           Control.Monad           (forM)
 import           Data.Graph.Builder
 import           Data.Graph.Backend.VectorGraph
-import           Data.Container
+import           Data.Container          (usedIxes)
 import           Data.Layer.Cover
 import           Data.Construction
 import           Data.Index              (idx)
 import           Data.Prop
 import           Data.Map                (Map)
+import           Data.Maybe              (fromMaybe)
+import           Data.List               (partition)
 import qualified Data.Map                as Map
 import qualified Data.IntSet             as IntSet
 
@@ -29,6 +31,13 @@ import           Luna.Evaluation.Runtime        (Static)
 -- === Utils === --
 -------------------
 
+type NodeTranslator n = Ref Node n -> Ref Node n
+
+mkNodeTranslator :: Map (Ref Node n) (Ref Node n) -> NodeTranslator n
+mkNodeTranslator m r = case Map.lookup r m of
+    Just res -> res
+    Nothing  -> r
+
 importStructure :: ( node  ~ (NetLayers a :<: Draft Static)
                    , edge  ~ (Link node)
                    , graph ~ Hetero (VectorGraph n e c)
@@ -38,50 +47,57 @@ importStructure :: ( node  ~ (NetLayers a :<: Draft Static)
                    , Referred Node n graph
                    , Constructor m (Ref Node node)
                    , Constructor m (Ref Edge edge)
-                   ) => [(Ref Node node, node)] -> [(Ref Edge edge, edge)] -> m (Map (Ref Node node) (Ref Node node))
-importStructure nodes edges = do
-    let foreignNodeRefs = fst <$> nodes
+                   , Connectible (Ref Node node) (Ref Node node) m
+                   ) => [(Ref Node node, node)] -> [(Ref Edge edge, edge)] -> m (NodeTranslator node)
+importStructure nodes' edges' = do
+    let nodes           = filter ((/= universe) . fst) nodes'
+        edges           = filter ((/= universe) . view target . snd) edges'
+        foreignNodeRefs = fst <$> nodes
         foreignEdgeRefs = fst <$> edges
 
-    newNodeRefs <- mapM construct $ snd <$> nodes
+    newNodeRefs <- mapM (construct . (prop Succs .~ [])) $ snd <$> nodes
 
-    let nodeTrans = Map.fromList $ zip foreignNodeRefs newNodeRefs
-        foreignEs  = snd <$> edges
-        es         = foreignEs & over (mapped . source) unsafeTranslateNode
-                               & over (mapped . target) unsafeTranslateNode
-                   where
-                   unsafeTranslateNode i = fromJust $ Map.lookup i nodeTrans
+    let nodeTrans         = Map.fromList $ zip foreignNodeRefs newNodeRefs
+        translateNode     = mkNodeTranslator nodeTrans
+        translateEdgeEnds = (source %~ translateNode) . (target %~ translateNode)
+        foreignEs         = snd <$> edges
+        es                = translateEdgeEnds <$> foreignEs
 
-    newEdgeRefs <- forM es construct
+    newEdgeRefs <- forM es $ \e -> connection (e ^. source) (e ^. target)
     let edgeTrans = Map.fromList $ zip foreignEdgeRefs newEdgeRefs
 
     forM newNodeRefs $ \ref -> do
         node <- read ref
-        let nodeWithFixedEdges = node & over covered (fmapInputs unsafeTranslateEdge)
-                                      & over (prop Succs . mapped) unsafeTranslateEdge
-                                      & over (prop Type)           unsafeTranslateEdge
+        let nodeWithFixedEdges = node & over covered     (fmapInputs unsafeTranslateEdge)
+                                      & over (prop Type) unsafeTranslateEdge
                 where
-                unsafeTranslateEdge i = fromJust $ Map.lookup i edgeTrans
+                unsafeTranslateEdge i = fromMaybe i $ Map.lookup i edgeTrans
         write ref nodeWithFixedEdges
 
-    return nodeTrans
+    return translateNode
 
-merge :: ( node  ~ (NetLayers a :<: Draft Static)
+importToCluster :: ( node  ~ (NetLayers a :<: Draft Static)
          , edge  ~ (Link node)
          , graph ~ Hetero (VectorGraph n e c)
+         , clus  ~ NetCluster a
          , BiCastable e edge
          , BiCastable n node
+         , BiCastable c clus
          , MonadBuilder graph m
          , Referred Node n graph
          , Constructor m (Ref Node node)
          , Constructor m (Ref Edge edge)
-         ) => graph -> m (Map (Ref Node node) (Ref Node node))
-merge g = do
+         , Connectible (Ref Node node) (Ref Node node) m
+         ) => graph -> m (Ref Cluster clus, NodeTranslator node)
+importToCluster g = do
     let foreignNodeRefs = Ref <$> usedIxes (g ^. wrapped . nodeGraph)
         foreignEdgeRefs = Ref <$> usedIxes (g ^. wrapped . edgeGraph)
         foreignNodes    = flip view g . focus <$> foreignNodeRefs
         foreignEdges    = flip view g . focus <$> foreignEdgeRefs
-    importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)
+    trans <- importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)
+    cls <- subgraph
+    mapM (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
+    return (cls, trans)
 
 dupCluster :: forall graph node edge clus n e c a m .
               ( node  ~ NetNode a
@@ -96,7 +112,8 @@ dupCluster :: forall graph node edge clus n e c a m .
               , Constructor m (Ref Node    node)
               , Constructor m (Ref Edge    edge)
               , Constructor m (Ref Cluster clus)
-              ) => Ref Cluster clus -> String -> m (Ref Cluster clus, Map (Ref Node node) (Ref Node node))
+              , Connectible (Ref Node node) (Ref Node node) m
+              ) => Ref Cluster clus -> String -> m (Ref Cluster clus, NodeTranslator node)
 dupCluster cluster name = do
     nodeRefs <- members cluster
     (nodes :: [node]) <- mapM read nodeRefs
@@ -106,5 +123,8 @@ dupCluster cluster name = do
     trans <- importStructure (zip nodeRefs nodes) (zip edgeRefs edges)
     cl <- subgraph
     withRef cl $ prop Name .~ name
-    mapM (flip include cl) $ Map.elems trans
+    mapM (flip include cl) $ trans <$> nodeRefs
     return (cl, trans)
+
+universe :: Ref Node n
+universe = Ref 0

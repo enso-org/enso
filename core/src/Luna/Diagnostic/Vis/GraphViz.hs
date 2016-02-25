@@ -238,7 +238,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               --attrs   = Color (toColorList [color]) : shAttrs
               attrs = specAttrs
               specAttrs = caseTest (uncover node) $ do
-                  match $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]
+                  {-match $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
                   match $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   match $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   match $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
@@ -326,7 +326,6 @@ genInEdges (g :: NetGraph a) (n :: NetLayers a :<: Draft Static) = displayEdges 
 
 
 
-universe = Ref 0 -- FIXME [WD]: Implement it in safe way. Maybe "star" should always result in the top one?
 
 
 
