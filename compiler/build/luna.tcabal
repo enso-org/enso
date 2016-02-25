@@ -52,7 +52,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules: `findmodules('src', '.*\.hs', exclude='Lunac/.*')`
+    Exposed-modules: `findmodules('src', '.*\.hs')`
 
     Other-Modules: Paths_luna
     Build-Depends: base

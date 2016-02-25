@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Lunac.Parser.Operator where
+module Luna.Parser.Operator where
 
 --import           Flowbox.Prelude
 --import           Luna.Data.ASTInfo   (ASTInfo)

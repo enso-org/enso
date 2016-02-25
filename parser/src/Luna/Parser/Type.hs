@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Lunac.Parser.Type where
+module Luna.Parser.Type where
 
 --import           Flowbox.Prelude         hiding (noneOf, maybe, element, cons)
 --import qualified Luna.Syntax.Type        as Type

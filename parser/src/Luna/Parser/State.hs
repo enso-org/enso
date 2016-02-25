@@ -4,7 +4,7 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lunac.Parser.State where
+module Luna.Parser.State where
 
 --import           Flowbox.Prelude
 --import qualified Luna.Data.ASTInfo    as ASTInfo

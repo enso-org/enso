@@ -1,7 +1,7 @@
 
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Lunac.Parser.Combinators where
+module Luna.Parser.Combinators where
 
 --import           Control.Applicative
 --import           Control.Exception            (bracket)

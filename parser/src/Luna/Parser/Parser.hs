@@ -8,7 +8,7 @@
 {-# LANGUAGE OverloadedStrings          #-}
 
 
-module Lunac.Parser.Parser where
+module Luna.Parser.Parser where
 
 --import Flowbox.Prelude hiding (init)
 

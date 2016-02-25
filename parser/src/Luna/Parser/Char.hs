@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Lunac.Parser.Char where
+module Luna.Parser.Char where
 
 --import           Flowbox.Prelude         hiding (lex)
 --import           Control.Applicative

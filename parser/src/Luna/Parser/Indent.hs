@@ -7,7 +7,7 @@
 {-# LANGUAGE UndecidableInstances            #-}
 
 
-module Lunac.Parser.Indent where
+module Luna.Parser.Indent where
 
 --import Control.Lens
 --import Data.Default

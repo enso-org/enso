@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable        #-}
 
 
-module Lunac.Parser.Pragma where
+module Luna.Parser.Pragma where
 
 
 --import           Data.Typeable

@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Lunac.Parser.Literal where
+module Luna.Parser.Literal where
 
 --import Flowbox.Prelude
 --import qualified Luna.Parser.Token       as Tok

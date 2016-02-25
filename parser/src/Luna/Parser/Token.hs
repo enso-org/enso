@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoOverloadedStrings #-}
 
-module Lunac.Parser.Token where
+module Luna.Parser.Token where
 
 --import Control.Applicative
 --import Control.Monad (MonadPlus(..), when)

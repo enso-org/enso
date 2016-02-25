@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Lunac.Parser.Decl where
+module Luna.Parser.Decl where
 
 --import Flowbox.Prelude hiding (cons, maybe, noneOf)
 

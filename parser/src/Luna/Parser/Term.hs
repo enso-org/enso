@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Lunac.Parser.Term where
+module Luna.Parser.Term where
 
 --import Flowbox.Prelude hiding (maybe)
 

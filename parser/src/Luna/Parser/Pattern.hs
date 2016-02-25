@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Lunac.Parser.Pattern where
+module Luna.Parser.Pattern where
 
 --import Flowbox.Prelude
 
