@@ -1,0 +1,381 @@
+Name:           lunac
+Version:        0.1
+Cabal-Version:  >= 1.8
+--License-file:   LICENSE
+Build-Type:     Simple
+
+Flag lunaExe
+  Description: Lunac executable
+  Default:     True
+
+Flag infExe
+  Description: Inference test
+  Default:     True
+
+Flag intExe
+  Description: Interpreter test
+  Default:     True
+
+
+Library
+    Hs-Source-Dirs: src
+    GHC-Options:
+                    -- -dshow-passes
+                    -- -F -pgmF ./util/preprocessors/imports.py
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  FunctionalDependencies
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  PackageImports
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Exposed-modules: `findmodules('src', '.*\.hs', exclude='Lunac/.*')`
+
+    Build-Depends: base
+                 , luna
+                 , constraints
+                 , container
+                 , convert
+                 , data-member
+                 , data-base
+                 , data-construction
+                 , data-layer
+                 , either
+                 , error-util
+                 , errors
+                 , exceptions
+                 , extra
+                 , ghc
+                 , ghc-prim
+                 , ghc-session >= 0.1.2.0
+                 , graphviz >= 2999.17.0.2.2
+                 , lens
+                 , MissingH
+                 , mtl
+                 , OneTuple
+                 , placeholders
+                 , process
+                 , prologue
+                 , text
+                 , transformers
+                 , tuple
+                 , type-cache
+                 , typelevel
+                 , vector
+                 , data-result
+                 , split
+                 , dependent-state
+                 , lens-utils
+                 , data-pool
+
+
+Executable lunac
+    if flag(lunaExe)
+        Main-Is:        Main.hs
+        Hs-Source-Dirs: exe
+    else
+        Main-Is:        Dummy.hs
+        Hs-Source-Dirs: test
+
+    GHC-Options:
+                  -- -dshow-passes
+
+    -- -ddump-simpl -ddump-to-file
+
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Build-Depends: luna
+                 , base
+                 , constraints
+                 , container
+                 , convert
+                 , data-member
+                 , data-base
+                 , data-construction
+                 , data-layer
+                 , error-util
+                 , errors
+                 , exceptions
+                 , extra
+                 , ghc
+                 , ghc-prim
+                 , ghc-session >= 0.1.2.0
+                 , graphviz >= 2999.17.0.2.2
+                 , lens
+                 , MissingH
+                 , mtl
+                 , placeholders
+                 , process
+                 , prologue
+                 , text
+                 , transformers
+                 , type-cache
+                 , typelevel
+                 , vector
+                 , data-result
+                 , split
+                 , dependent-state
+
+
+Executable luna-test-inference
+    if flag(infExe)
+        Main-Is:        InferenceTest.hs
+        Hs-Source-Dirs: test
+    else
+        Main-Is:        Dummy.hs
+        Hs-Source-Dirs: test
+
+    GHC-Options:
+                  -- -dshow-passes
+
+    -- -ddump-simpl -ddump-to-file
+
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Build-Depends: luna
+                 , base
+                 , constraints
+                 , container
+                 , convert
+                 , data-member
+                 , data-base
+                 , data-construction
+                 , data-layer
+                 , error-util
+                 , errors
+                 , exceptions
+                 , extra
+                 , ghc
+                 , ghc-prim
+                 , ghc-session >= 0.1.2.0
+                 , graphviz >= 2999.17.0.2.2
+                 , lens
+                 , MissingH
+                 , mtl
+                 , placeholders
+                 , process
+                 , prologue
+                 , text
+                 , transformers
+                 , type-cache
+                 , typelevel
+                 , vector
+                 , data-result
+                 , split
+                 , dependent-state
+
+
+Executable luna-test-interpreter
+    if flag(intExe)
+        Main-Is:        InterpreterTest.hs
+        Hs-Source-Dirs: test
+    else
+        Main-Is:        Dummy.hs
+        Hs-Source-Dirs: test
+
+    GHC-Options:
+                  -- -dshow-passes
+
+    -- -ddump-simpl -ddump-to-file
+
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Build-Depends: luna
+                 , base
+                 , constraints
+                 , container
+                 , convert
+                 , data-member
+                 , data-base
+                 , data-construction
+                 , data-layer
+                 , error-util
+                 , errors
+                 , exceptions
+                 , extra
+                 , ghc
+                 , ghc-prim
+                 , ghc-session >= 0.1.2.0
+                 , graphviz >= 2999.17.0.2.2
+                 , lens
+                 , MissingH
+                 , mtl
+                 , placeholders
+                 , process
+                 , prologue
+                 , text
+                 , transformers
+                 , type-cache
+                 , typelevel
+                 , vector
+                 , data-result
+                 , split
+                 , dependent-state
+
+
+
+
+Executable luna-test-parser
+    if flag(intExe)
+        Main-Is:        Parser.hs
+        Hs-Source-Dirs: test
+    else
+        Main-Is:        Dummy.hs
+        Hs-Source-Dirs: test
+
+    GHC-Options:
+                  -- -dshow-passes
+
+    -- -ddump-simpl -ddump-to-file
+
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Build-Depends: luna
+                 , base
+                 , constraints
+                 , container
+                 , convert
+                 , data-member
+                 , data-base
+                 , data-construction
+                 , data-layer
+                 , error-util
+                 , errors
+                 , exceptions
+                 , extra
+                 , ghc
+                 , ghc-prim
+                 , ghc-session >= 0.1.2.0
+                 , graphviz >= 2999.17.0.2.2
+                 , lens
+                 , MissingH
+                 , mtl
+                 , placeholders
+                 , process
+                 , prologue
+                 , text
+                 , transformers
+                 , type-cache
+                 , typelevel
+                 , vector
+                 , data-result
+                 , split
+                 , dependent-state
+
