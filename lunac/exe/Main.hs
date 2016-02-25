@@ -350,9 +350,9 @@ test1 = do
                                    . (TypeCheckState.unresolvedSymbols .~ funcs)
 
             let tc = Sequence LiteralsPass
-                   $ Sequence StructuralInferencePass
-                   $ Loop $ Sequence (Loop UnificationPass)
-                          $ SymbolImportingPass
+                   {-$ Sequence StructuralInferencePass-}
+                   $ Loop $ Sequence SymbolImportingPass
+                          $ Loop UnificationPass
 
             TypeCheck.runTCWithArtifacts tc collectGraph
 

@@ -41,7 +41,6 @@ import Data.Graph.Backend.VectorGraph
                            , TermNode Lam   m (ls :<: term)                \
                            , TermNode Unify m (ls :<: term)                \
                            , TermNode Acc   m (ls :<: term)                \
-                           , TermNode Sub   m (ls :<: term)                \
                            , MonadIdentPool m                              \
                            )
 
@@ -63,37 +62,42 @@ instance ( PassCtx(m, ls, term)
         tcState <- TypeCheck.get
         let apps = tcState ^. TypeCheck.untypedApps
             accs = tcState ^. TypeCheck.untypedAccs
-        (newUnis, newSubs) <- runPass apps accs
+        newUnis <- runPass apps accs
         TypeCheck.put $ tcState & TypeCheck.untypedApps   .~ []
                                 & TypeCheck.untypedAccs   .~ []
                                 & TypeCheck.unresolvedUnis %~ (newUnis ++)
-                                & TypeCheck.unresolvedSubs %~ (newSubs ++)
         if (not $ null apps) || (not $ null accs)
             then return Progressed
             else return Stuck
-
 
 ---------------------------------
 -- === Pass Implementation === --
 ---------------------------------
 
-buildAppType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m ([nodeRef], [nodeRef])
+buildAppType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m [nodeRef]
 buildAppType appRef = do
     appNode <- read appRef
     caseTest (uncover appNode) $ do
         match $ \(App srcConn argConns) -> do
             src      <- follow source srcConn
             args     <- mapM2 (follow source) argConns
-            specArgs <- mapM2 getOrSpecType args
+            specArgs <- mapM2 getTypeSpec args
             out      <- var' =<< newVarIdent'
             l        <- lam' specArgs out
 
-            srcTSpec <- getOrSpecType src
-            srcSub   <- sub srcTSpec l
-            appTSpec <- getOrSpecType appRef
-            uniAppTp <- unify appTSpec out
+            src_v    <- read src
+            let src_tc = src_v # Type
+            src_t    <- follow source src_tc
+            uniSrcTp <- unify src_t l
+            reconnect src (prop Type) uniSrcTp
 
-            return ([uniAppTp], [srcSub])
+            app_v    <- read appRef
+            let app_tc = app_v # Type
+            app_t    <- follow source app_tc
+            uniAppTp <- unify app_t out
+            reconnect appRef (prop Type) uniAppTp
+
+            return [uniSrcTp, uniAppTp]
 
         match $ \ANY -> impossible
 
@@ -104,7 +108,7 @@ buildAccType accRef = do
     caseTest (uncover appNode) $ do
         match $ \(Acc name srcConn) -> do
             src      <- follow source srcConn
-            srcTSpec <- getOrSpecType src
+            srcTSpec <- getTypeSpec src
             newType  <- acc name srcTSpec
             acc_v    <- read accRef
             let acc_tc = acc_v # Type
@@ -117,8 +121,8 @@ buildAccType accRef = do
 
 -- | Returns a concrete type of a node
 --   If the type is just universe, create a new type variable
-getOrSpecType :: PassCtx(m,ls,term) => Ref Node (ls :<: term) -> m (Ref Node (ls :<: term))
-getOrSpecType ref = do
+getTypeSpec :: PassCtx(m,ls,term) => Ref Node (ls :<: term) -> m (Ref Node (ls :<: term))
+getTypeSpec ref = do
     val <- read ref
     tp  <- follow source $ val # Type
     if tp /= universe then return tp else do
@@ -126,12 +130,10 @@ getOrSpecType ref = do
         reconnect ref (prop Type) ntp
         return ntp
 
-runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> m ([nodeRef], [nodeRef])
+runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> m [nodeRef]
 runPass apps accs = do
-    (appUnis, appSubs) <- (\x -> (concat $ fmap fst x, concat $ fmap snd x)) <$> mapM buildAppType apps
-    accUnis            <- concat <$> mapM buildAccType accs
-    return $ (appUnis <> accUnis, appSubs) -- FIXME[WD]: use monadic element registration instead
+    appUnis <- concat <$> mapM buildAppType apps
+    accUnis <- concat <$> mapM buildAccType accs
+    return $ appUnis <> accUnis -- FIXME[WD]: use monadic element registration instead
 
 universe = Ref 0 -- FIXME [WD]: Implement it in safe way. Maybe "star" should always result in the top one?
-
-
