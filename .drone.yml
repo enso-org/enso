@@ -1,3 +1,5 @@
+clone:
+  recursive: true
 build:
   image: nbo/ghcjs-gui:20160201
   commands:
