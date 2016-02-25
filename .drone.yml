@@ -2,9 +2,8 @@ build:
   image: nbo/ghcjs-gui:20160201
   commands:
     - date
-    - git clone git@bitbucket.org:NewByteOrder/workflow.git scripts
     - scripts/gencabal
-    - scripts/build --nightly compiler
+    - scripts/build luna/compiler
     - date
 
 notify:
