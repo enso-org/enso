@@ -5,7 +5,7 @@ build:
   commands:
     - date
     - scripts/gencabal
-    - scripts/build --nightly lunac
+    - scripts/build --nightly compiler
     - date
 
 notify:
