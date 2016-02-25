@@ -80,6 +80,7 @@ checkedClr    = GVC.MediumOrchid
 selfClr       = GVC.White
 argClr        = GVC.LightYellow3
 outClr        = GVC.LightPink
+tpRepClr      = GVC.DarkOrange
 
 graphLabelClr = GVC.Gray30
 nodeLabelClr  = GVC.Gray8
@@ -260,10 +261,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
                                 match $ \(Term.Num n) -> valIntNodeClr
                                 match $ \ANY          -> nodeClr
 
-          getLambdaNodeColor n (FunctionPtr s a o) = whenSelf <|> whenArg <|> whenOut where
+          getLambdaNodeColor n (FunctionPtr s a o t) = whenSelf <|> whenArg <|> whenOut <|> whenType where
               whenSelf = maybe Nothing (\x -> if x ^. idx == n then Just selfClr else Nothing) s
               whenArg  = argClr <$ find ((== n) . view idx) a
-              whenOut  = if o ^. idx == n then Just outClr else Nothing
+              whenOut  = if o ^. idx == n then Just outClr   else Nothing
+              whenType = if t ^. idx == n then Just tpRepClr else Nothing
 
           genSubGraph :: Int -> [Int] -> DotSubGraph String
           genSubGraph sgIdx nodeIxs = DotSG

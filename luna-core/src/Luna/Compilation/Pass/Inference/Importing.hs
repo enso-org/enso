@@ -12,7 +12,7 @@ import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record
 import Data.Maybe                                   (fromMaybe)
-import Luna.Evaluation.Runtime                      (Static, Dynamic)
+import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.AST.Decl.Function                (Function, FunctionPtr)
 import Luna.Syntax.AST.Term                         hiding (source)
@@ -90,7 +90,8 @@ funLookup name = do
 unsafeTranslateFunctionPtr :: Map (Ref Node a) (Ref Node a) -> FunctionPtr a -> FunctionPtr a
 unsafeTranslateFunctionPtr m fptr = fptr & over (Function.self . mapped) unsafeTranslate
                                          & over (Function.args . mapped) unsafeTranslate
-                                         & over Function.out unsafeTranslate
+                                         & over Function.out   unsafeTranslate
+                                         & over Function.tpRep unsafeTranslate
     where unsafeTranslate i = fromJust $ Map.lookup i m
 
 importFunction :: PassCtx(m) => String -> Function node graph -> ImportErrorT m (Ref Cluster clus)
@@ -106,11 +107,8 @@ importFunction name fun = do
 
 attachTypeRepr :: PassCtx(ImportErrorT m) => FunctionPtr node -> Ref Node node -> ImportErrorT m (Ref Node node)
 attachTypeRepr fptr ref = do
-    argTypes <- mapM (follow (prop Type) >=> follow source) $ fptr ^. Function.args
-    outType  <- follow (prop Type) (fptr ^. Function.out) >>= follow source
-    tp <- lam (arg <$> argTypes) outType
     currentTp <- follow (prop Type) ref >>= follow source
-    uni <- unify tp currentTp
+    uni <- unify currentTp $ fptr ^. Function.tpRep
     reconnect ref (prop Type) uni
     return uni
 

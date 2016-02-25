@@ -34,6 +34,7 @@ import qualified Luna.Syntax.AST.Decl.Function    as Function
                          , TermNode Blank  m n                           \
                          , TermNode Native m n                           \
                          , TermNode Star   m n                           \
+                         , TermNode Lam    m n                           \
                          , TermNode Var    m n                           \
                          , MonadFix m                                    \
                          , NetworkBuilderT (NetGraph a) m Identity       \
@@ -43,9 +44,9 @@ import qualified Luna.Syntax.AST.Decl.Function    as Function
 buildGraph :: forall m n a b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph a)
 buildGraph m = runIdentity $ runNetworkBuilderT def ((star :: m nodeRef) >> m)
 
-makeFunction :: FunBuilderCtx(m) => m (Maybe nodeRef, [nodeRef], nodeRef) -> Function n (NetGraph a)
-makeFunction bldr = Function (FunctionPtr self args out) body where
-    ((self, args, out), body) = buildGraph bldr
+makeFunction :: FunBuilderCtx(m) => m (Maybe nodeRef, [nodeRef], nodeRef, nodeRef) -> Function n (NetGraph a)
+makeFunction bldr = Function (FunctionPtr self args out tpRep) body where
+    ((self, args, out, tpRep), body) = buildGraph bldr
 
 typed :: FunBuilderCtx(m) => m nodeRef -> nodeRef -> m nodeRef
 typed b t = do
@@ -53,7 +54,7 @@ typed b t = do
     reconnect el (prop Type) t
     return el
 
-makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Maybe nodeRef, [nodeRef], nodeRef)
+makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Maybe nodeRef, [nodeRef], nodeRef, nodeRef)
 makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
     selfType <- mapM (cons . fromString) selfTypeStr
     argTypes <- mapM (cons . fromString) argTypesStr
@@ -62,14 +63,16 @@ makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
     args <- mapM (typed blank) argTypes
     let nativeArgs = maybeToList self ++ args
     native <- native (fromString name) nativeArgs `typed` outType
-    return (self, args, native)
+    tpRep  <- lam (arg <$> argTypes) outType
+    return (self, args, native, tpRep)
 
 
-makeId :: FunBuilderCtx(m) => m (Maybe nodeRef, [nodeRef], nodeRef)
+makeId :: FunBuilderCtx(m) => m (Maybe nodeRef, [nodeRef], nodeRef, nodeRef)
 makeId = do
-    tpV <- var "#idTp1"
-    n   <- blank `typed` tpV
-    return (Nothing, [n], n)
+    tpV   <- var "#idTp1"
+    n     <- blank `typed` tpV
+    tpRep <- lam [arg tpV] tpV
+    return (Nothing, [n], n, tpRep)
 
 symbols :: Show a => SymbolMap (NetLayers a :<: Draft Static) (NetGraph a)
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b))
