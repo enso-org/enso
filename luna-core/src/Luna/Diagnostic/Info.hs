@@ -1,6 +1,6 @@
 module Luna.Diagnostic.Info where
 
-import Paths_luna   as PATHS
+import Paths_luna_core   as PATHS
 
 import Prelude.Luna hiding (Version)
 
