@@ -6,6 +6,9 @@ Author:         New Byte Order <contact@newbyteorder.com>
 Maintainer:     New Byte Order <contact@newbyteorder.com>
 Build-Type:     Simple
 
+Flag tests
+  Description: Parser tests
+  Default:     True
 
 Library
     Hs-Source-Dirs: src
@@ -45,3 +48,48 @@ Library
     Other-Modules: Paths_luna
     Build-Depends: base
                  , luna
+
+
+
+Executable luna-parser-test
+    if flag(tests)
+        Main-Is:        Main.hs
+        Hs-Source-Dirs: tst
+    else
+        Main-Is:        Dummy.hs
+        Hs-Source-Dirs: test
+
+    GHC-Options:
+                  -- -dshow-passes
+
+    -- -ddump-simpl -ddump-to-file
+
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Build-Depends: base
+                 , luna
+
