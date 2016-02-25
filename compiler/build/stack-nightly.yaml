@@ -5,7 +5,7 @@ local-bin-path: ./dist/bin
 packages:
 - {location: ..}
 - extra-dep: true
-  location: ../../luna-core
+  location: ../../core
 - extra-dep: true
   location: {commit: 8c1a0ef91a201102a8a0e4a450c3dc5cae582f28, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
