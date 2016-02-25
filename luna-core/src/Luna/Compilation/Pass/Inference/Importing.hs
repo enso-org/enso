@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (merge, dupCluster)
+import Luna.Syntax.Model.Network.Builder            (merge, dupCluster, replacement)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -128,7 +128,7 @@ processNode ref = runErrorT $ do
     let transPtr = unsafeTranslateFunctionPtr transes fptr
     withRef localLamb $ (prop Name   .~ show ref)
                       . (prop Lambda ?~ transPtr)
-    withRef ref $ prop Replacement ?~ cast localLamb
+    withRef ref $ prop TCData . replacement ?~ cast localLamb
     attachTypeRepr transPtr ref
 
 -----------------------------

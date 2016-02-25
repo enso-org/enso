@@ -44,6 +44,7 @@ import qualified Luna.Syntax.AST.Decl.Function           as Function
 import qualified Luna.Syntax.AST.Term                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
+import           Luna.Syntax.Model.Network.Builder.Layer
 import           Luna.Syntax.Model.Network.Builder.Term
 import           Luna.Syntax.Model.Network.Term
 import           Luna.Syntax.Repr.Styles                 (HeaderOnly (..), Simple (..))
@@ -306,8 +307,8 @@ genInEdges (g :: NetGraph a) (n :: NetLayers a :<: Draft Static) = displayEdges 
     te           = n ^. prop Type
     t            = getTgt te
     tpEdge       = (getTgtIdx te, [GV.color typedArrClr, ArrowHead dotArrow, genLabel $ te ^. idx])
-    redirEdge    = maybeToList $ makeRedirEdge <$> n ^. prop Redirect
-    replEdge     = maybeToList $ makeReplEdge  <$> n ^. prop Replacement
+    redirEdge    = maybeToList $ makeRedirEdge <$> n ^. prop TCData . redirect
+    replEdge     = maybeToList $ makeReplEdge  <$> n ^. prop TCData . replacement
 
     makeRedirEdge e       = (getTgtIdx e, [GV.color redirectClr, Dir Back, Style [SItem Dashed []]])
     makeReplEdge c        = (view (Function.out . idx) $ fromJust $ view (prop Lambda) $ clusterByIx $ c ^. idx,

@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Model.Layer where
 
-import Prologue hiding (Getter, Setter)
+import Prelude.Luna
 
 import Data.Construction
 import Data.Layer.Cover
@@ -122,9 +122,8 @@ instance (HasRecord (Uncovered (ls :< t)), Uncovered (Unwrapped (ls :< t)) ~ t, 
 -- === Layout-specific === --
 
 data Type        = Type        deriving (Show, Eq, Ord)
-data Redirect    = Redirect    deriving (Show, Eq, Ord)
 data Lambda      = Lambda      deriving (Show, Eq, Ord)
-data Replacement = Replacement deriving (Show, Eq, Ord)
+data TCData      = TCData      deriving (Show, Eq, Ord)
 
 -- === Universal === --
 

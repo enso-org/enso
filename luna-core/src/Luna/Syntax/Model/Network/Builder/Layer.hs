@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Model.Network.Builder.Layer where
 
-import Prologue hiding (read)
+import Prelude.Luna
 
 import           Data.Graph.Builders
 import           Control.Monad.Event
@@ -74,17 +74,23 @@ instance (MonadSelfBuilder s m, (Link l) ~ Connection s (Ref Node l), Connectibl
 instance (Monad m, Destructor m (LayerData (Network ls) Type a)) => Destructor m (Layer (Network ls) Type a) where
     destruct (Layer ref) = destruct ref
 
+-- === TCData layer === --
 
--- === Redirect layer === --
+data TCDataPayload t = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link (Shelled t)
+                                     , _replacement :: Maybe $ Ptr Cluster
+                                     } deriving (Show, Eq)
+makeLenses ''TCDataPayload
 
-type instance LayerData (Network ls) Redirect t = Maybe $ Ref Edge $ Link (Shelled t)
-instance Monad m => Creator m (Layer (Network ls) Redirect a) where
-    create = return $ Layer Nothing
+type instance LayerData (Network ls) TCData t = TCDataPayload t
+instance Monad m => Creator m (Layer (Network ls) TCData a) where
+    create = return $ Layer $ TCDataPayload Nothing Nothing
 
 instance (Monad m, Unregister m (Ref Edge $ Link (Shelled a)))
-      => Destructor m (Layer (Network ls) Redirect a) where
-    destruct (Layer r) = mapM_ unregister r
+      => Destructor m (Layer (Network ls) TCData a) where
+    destruct (Layer (TCDataPayload red _)) = mapM_ unregister red
 
+instance Castable (Shelled t) (Shelled t') => Castable (TCDataPayload t) (TCDataPayload t') where
+    cast (TCDataPayload a b) = TCDataPayload (cast <$> a) b
 
 -- === Lambda layer === --
 
@@ -93,14 +99,6 @@ instance Monad m => Creator m (Layer l Lambda (SubGraph n)) where
     create = return $ Layer Nothing
 instance Monad m => Destructor m (Layer l Lambda (SubGraph n)) where
     destruct _ = return ()
-
--- === Replacement layer === --
-
-type instance LayerData (Network ls) Replacement t = Maybe $ Ptr Cluster
-instance Monad m => Creator m (Layer (Network ls) Replacement a) where
-    create = return $ Layer Nothing
-instance Monad m => Destructor m (Layer (Network ls) Replacement a) where
-    destruct (Layer r) = return ()
 
 ------------------------------------------
 -- === Layer building & destruction === --
