@@ -54,6 +54,8 @@ Library
 
     Exposed-modules: `findmodules('../src', '.*\.hs')`
 
+    Other-Modules: Paths_luna_core
+
     Build-Depends: base
                  , constraints
                  , container
