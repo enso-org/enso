@@ -3,6 +3,7 @@
 
 Luna is a developer’s whiteboard on steroids. Design, prototype, develop and refactor any application simply by connecting visual elements together. Collaborate with co-workers, interactively fine tune parameters, inspect the results and visually profile the performance in real-time.
 
+Visit www.luna-lang.org to learn more!
 
 ## Getting Started
 
