@@ -1,0 +1,18 @@
+build:
+  image: nbo/ghcjs-gui:20160201
+  commands:
+    - date
+    - git clone git@bitbucket.org:NewByteOrder/workflow.git scripts
+    - scripts/gencabal
+    - scripts/build --nightly compiler
+    - date
+
+notify:
+  slack:
+    webhook_url: $$SLACK_URL
+    username: "luna: $$BRANCH"
+    channel: "#cd"
+    on_started: false
+    on_success: true
+    on_failure: true
+    template: "<{{ system.link_url }}/{{ repo.full_name }}/build {{ build.number }}|#{{ build.number}}>: *{{ build.status }}* by {{ build.author }}: <https://bitbucket.org/{{ repo.full_name }}/commits/$$COMMIT|$${COMMIT:0:6}>\n\n{{ build.message }}"
