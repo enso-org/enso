@@ -53,7 +53,7 @@ Library
     Exposed-modules: `findmodules('src', '.*\.hs', exclude='Lunac/.*')`
 
     Build-Depends: base
-                 , luna
+                 , luna-core
                  , constraints
                  , container
                  , convert
@@ -129,7 +129,7 @@ Executable lunac
                   TypeOperators
                   ViewPatterns
 
-    Build-Depends: luna
+    Build-Depends: luna-core
                  , base
                  , constraints
                  , container
@@ -201,7 +201,7 @@ Executable luna-test-inference
                   TypeOperators
                   ViewPatterns
 
-    Build-Depends: luna
+    Build-Depends: luna-core
                  , base
                  , constraints
                  , container
@@ -273,7 +273,7 @@ Executable luna-test-interpreter
                   TypeOperators
                   ViewPatterns
 
-    Build-Depends: luna
+    Build-Depends: luna-core
                  , base
                  , constraints
                  , container
@@ -347,7 +347,7 @@ Executable luna-test-parser
                   TypeOperators
                   ViewPatterns
 
-    Build-Depends: luna
+    Build-Depends: luna-core
                  , base
                  , constraints
                  , container

@@ -4,7 +4,7 @@
 -- Use gencabal instead.                         --
 ---------------------------------------------------
 
-Name:           luna
+Name:           luna-core
 Version:        0.1
 Cabal-Version:  >= 1.8
 --License-file:   LICENSE
