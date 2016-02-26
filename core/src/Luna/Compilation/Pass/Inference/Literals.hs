@@ -48,7 +48,7 @@ assignLiteralType :: PassCtx(m, ls, term)
 assignLiteralType consIntRef consStrRef ref = do
     node <- read ref
     caseTest (uncover node) $ do
-        let process = void ∘ reconnect ref (prop Type)
+        let process = void ∘ reconnect (prop Type) ref
         match $ \(Str str) -> process consStrRef
         match $ \(Num num) -> process consIntRef
         match $ \ANY       -> return ()

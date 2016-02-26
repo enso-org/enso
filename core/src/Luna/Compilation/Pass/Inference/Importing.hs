@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, NodeTranslator)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, translateFunctionPtr, NodeTranslator)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -88,12 +88,6 @@ funLookup name = do
     f <- lookupFunction $ QualPath.mk name
     fromMaybe (throwError SymbolNotFound) (return <$> f)
 
-translateFunctionPtr :: NodeTranslator a -> FunctionPtr a -> FunctionPtr a
-translateFunctionPtr f fptr = fptr & over (Function.self . mapped) f
-                                   & over (Function.args . mapped) f
-                                   & over Function.out   f
-                                   & over Function.tpRep f
-
 importFunction :: PassCtx(ImportErrorT m) => String -> Function node graph -> ImportErrorT m (Ref Cluster clus)
 importFunction name fun = do
     (cls, translator) <- importToCluster $ fun ^. Function.graph
@@ -107,7 +101,7 @@ attachTypeRepr :: PassCtx(ImportErrorT m) => FunctionPtr node -> Ref Node node -
 attachTypeRepr fptr ref = do
     currentTp <- follow (prop Type) ref >>= follow source
     uni <- unify currentTp $ fptr ^. Function.tpRep
-    reconnect ref (prop Type) uni
+    reconnect (prop Type) ref uni
     return uni
 
 processNode :: (PassCtx(ImportErrorT m), PassCtx(m)) => Ref Node node -> m (Either ImportError (Ref Node node))
@@ -120,12 +114,9 @@ processNode ref = runErrorT $ do
             fun <- funLookup name
             importFunction name fun
     (localLamb, trans) <- dupCluster lamb $ name <> " @ " <> (show ref)
-    fptr <- fromJust . view (prop Lambda) <$> read lamb
-    let transPtr = translateFunctionPtr trans fptr
-    withRef localLamb $ (prop Name   .~ show ref)
-                      . (prop Lambda ?~ transPtr)
     withRef ref $ prop TCData . replacement ?~ cast localLamb
-    attachTypeRepr transPtr ref
+    fptr <- fromJust <$> follow (prop Lambda) localLamb
+    attachTypeRepr fptr ref
 
 -----------------------------
 -- === TypeCheckerPass === --

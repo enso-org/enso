@@ -39,11 +39,11 @@ follow f ptr = view f <$> read ptr
 -- === Reconnects === --
 
 class Reconnectible m r el store inp where
-    reconnect :: Ref r el -> Lens' el store -> Ref r inp -> m store
+    reconnect :: Lens' el store -> Ref r el -> Ref r inp -> m store
 
 instance (MonadBuilder t m, Referred r el t, Destructor m (Ref Edge conn), Connectible' (Ref r inp) (Ref r el) m conn)
       => Reconnectible m r el (Ref Edge conn) inp where
-    reconnect elRef lens input = do
+    reconnect lens elRef input = do
         el  <- read elRef
         destruct $ el ^. lens
         conn <- connection input elRef
@@ -52,7 +52,7 @@ instance (MonadBuilder t m, Referred r el t, Destructor m (Ref Edge conn), Conne
 
 instance (MonadBuilder t m, Referred r el t, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn)
       => Reconnectible m r el (Maybe connRef) inp where
-    reconnect elRef lens input = do
+    reconnect lens elRef input = do
         el  <- read elRef
         mapM_ destruct $ el ^. lens
         conn <- connection input elRef

@@ -89,13 +89,13 @@ buildAppType appRef = do
             let src_tc = src_v # Type
             src_t    <- follow source src_tc
             uniSrcTp <- unify src_t l
-            reconnect src (prop Type) uniSrcTp
+            reconnect (prop Type) src uniSrcTp
 
             app_v    <- read appRef
             let app_tc = app_v # Type
             app_t    <- follow source app_tc
             uniAppTp <- unify app_t out
-            reconnect appRef (prop Type) uniAppTp
+            reconnect (prop Type) appRef uniAppTp
 
             return [uniSrcTp, uniAppTp]
 
@@ -114,7 +114,7 @@ buildAccType accRef = do
             let acc_tc = acc_v # Type
             acc_t    <- follow source acc_tc
             uniTp    <- unify acc_t newType
-            reconnect accRef (prop Type) uniTp
+            reconnect (prop Type) accRef uniTp
             return [uniTp]
         match $ \ANY -> impossible
 
@@ -127,7 +127,7 @@ getTypeSpec ref = do
     tp  <- follow source $ val # Type
     if tp /= universe then return tp else do
         ntp <- var' =<< newVarIdent'
-        reconnect ref (prop Type) ntp
+        reconnect (prop Type) ref ntp
         return ntp
 
 runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> m [nodeRef]

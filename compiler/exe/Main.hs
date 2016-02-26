@@ -37,6 +37,7 @@ import qualified Luna.Compilation.Env.Class                      as Env
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
 import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
+import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
@@ -296,11 +297,11 @@ symbolMapTest = do
         s3 <- str "yo yo guyz!"
         tint <- cons "Int"
         tstr <- cons "String"
-        reconnect i1 (prop Type) tint
-        reconnect i2 (prop Type) tint
-        reconnect s1 (prop Type) tstr
-        reconnect s2 (prop Type) tstr
-        reconnect s3 (prop Type) tstr
+        reconnect (prop Type) i1 tint
+        reconnect (prop Type) i2 tint
+        reconnect (prop Type) s1 tstr
+        reconnect (prop Type) s2 tstr
+        reconnect (prop Type) s3 tstr
         plus <- acc "+" i1
         err  <- acc "noMethod" s1
         l1   <- acc "length" s2
@@ -325,6 +326,8 @@ symbolMapTest = do
 collectGraph tag = do
     g <- Graph.get
     Writer.tell [(tag, g)]
+
+seq3 a b c = Sequence a $ Sequence b c
 
 test1 :: IO ()
 test1 = do
@@ -351,8 +354,7 @@ test1 = do
 
             let tc = Sequence LiteralsPass
                    {-$ Sequence StructuralInferencePass-}
-                   $ Loop $ Sequence SymbolImportingPass
-                          $ Loop UnificationPass
+                   $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
 
             TypeCheck.runTCWithArtifacts tc collectGraph
 

@@ -20,6 +20,8 @@ import qualified Data.IntSet             as IntSet
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Term (Draft)
 import           Luna.Evaluation.Runtime        (Static)
+import           Luna.Syntax.AST.Decl.Function  (FunctionPtr)
+import qualified Luna.Syntax.AST.Decl.Function  as Function
 
 
 -------------------
@@ -32,6 +34,12 @@ mkNodeTranslator :: Map (Ref Node n) (Ref Node n) -> NodeTranslator n
 mkNodeTranslator m r = case Map.lookup r m of
     Just res -> res
     Nothing  -> r
+
+translateFunctionPtr :: NodeTranslator a -> FunctionPtr a -> FunctionPtr a
+translateFunctionPtr f fptr = fptr & Function.self . mapped %~ f
+                                   & Function.args . mapped %~ f
+                                   & Function.out   %~ f
+                                   & Function.tpRep %~ f
 
 importStructure :: ( node  ~ (NetLayers a :<: Draft Static)
                    , edge  ~ (Link node)
@@ -116,8 +124,10 @@ dupCluster cluster name = do
     let edgeRefs = Ref <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
     edges <- mapM read edgeRefs
     trans <- importStructure (zip nodeRefs nodes) (zip edgeRefs edges)
+    fptr  <- follow (prop Lambda) cluster
     cl <- subgraph
-    withRef cl $ prop Name .~ name
+    withRef cl $ (prop Name   .~ name)
+               . (prop Lambda .~ (translateFunctionPtr trans <$> fptr))
     mapM (flip include cl) $ trans <$> nodeRefs
     return (cl, trans)
 
