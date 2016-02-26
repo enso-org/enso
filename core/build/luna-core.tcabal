@@ -92,3 +92,4 @@ Library
                  , type-cache
                  , typelevel
                  , vector
+                 , ghc-mtl

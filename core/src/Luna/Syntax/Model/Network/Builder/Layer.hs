@@ -46,7 +46,7 @@ instance Monad m => Destructor m (Layer (Network ls) Succs a) where
 -- === Utils === ---
 
 registerSuccs :: t -> Listener t SuccRegister m a -> m a
-registerSuccs _ = unwrap'
+registerSuccs _ = runListener
 
 
 

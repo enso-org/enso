@@ -3,10 +3,13 @@
 module Control.Monad.Event where
 
 
-import Prologue
+import           Prologue
 
-import Control.Monad.Fix
-import Control.Monad.State (StateT)
+import           Control.Monad.Catch          hiding (Handler)
+import           Control.Monad.Fix
+import           Control.Monad.State          (StateT)
+import           Control.Monad.Trans.Identity
+
 
 ----------------------
 -- === Listener === --
@@ -15,27 +18,13 @@ import Control.Monad.State (StateT)
 -- === Definitions === --
 
 class Handler    t cfg m a where handler :: a -> Listener t cfg m ()
-newtype Listener t cfg m a = Listener (m a) deriving (Show)
+newtype Listener t cfg m a = Listener (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask)
 makeWrapped ''Listener
-
-
--- === Instances === --
-
-instance Functor  m    => Functor     (Listener t cfg m) where fmap     f = wrapped %~ fmap f                    ; {-# INLINE fmap   #-}
-instance Monad    m    => Monad       (Listener t cfg m) where (>>=) tc f = wrap' $ unwrap' tc >>= unwrap' <$> f ; {-# INLINE (>>=)  #-}
-instance MonadIO  m    => MonadIO     (Listener t cfg m) where liftIO     = wrap' ∘ liftIO                       ; {-# INLINE liftIO #-}
-instance MonadFix m    => MonadFix    (Listener t cfg m) where mfix     f = wrap' $ mfix $ unwrap' <$> f         ; {-# INLINE mfix   #-}
-instance                  MonadTrans  (Listener t cfg)   where lift       = wrap'                                ; {-# INLINE lift   #-}
-instance Applicative m => Applicative (Listener t cfg m) where pure       = wrap' ∘ pure                         ; {-# INLINE pure   #-}
-                                                               (<*>)  f a = wrap' $ unwrap' f <*> unwrap' a      ; {-# INLINE (<*>)  #-}
 
 -- Registration time type constraint
 
 instance {-# OVERLAPPABLE #-} (Monad m, Dispatcher t a m)                    => Dispatcher t a (Listener t' cfg m) where dispatch_     = lift ∘∘ dispatch_
 instance {-# OVERLAPPABLE #-} (Monad m, Dispatcher t a m, Handler t cfg m a) => Dispatcher t a (Listener t  cfg m) where dispatch_ t a = handler a *> (lift $ dispatch_ t a)
-
-
-
 
 
 -----------------------------
@@ -57,17 +46,20 @@ class Equality_M1 a b
 instance (a ~ ma pa, b ~ mb pb, ma ~ mb) => Equality_M1 a b
 
 class Equality_M2 a b
-instance (a ~ m1a (m2a pa), b ~ m1b (m2b pb), m1a ~ m1b, m2a ~ m2b) => Equality_M2 a b 
+instance (a ~ m1a (m2a pa), b ~ m1b (m2b pb), m1a ~ m1b, m2a ~ m2b) => Equality_M2 a b
 
 class Equality_M3 a b
-instance (a ~ m1a (m2a (m3a pa)), b ~ m1b (m2b (m3b pb)), m1a ~ m1b, m2a ~ m2b, m3a ~ (m3b :: ([*] -> *) -> *)) => Equality_M3 a b 
+instance (a ~ m1a (m2a (m3a pa)), b ~ m1b (m2b (m3b pb)), m1a ~ m1b, m2a ~ m2b, m3a ~ (m3b :: ([*] -> *) -> *)) => Equality_M3 a b
 -- FIXME[WD]: remove the kind constraint above
 
 
 -- === Utils === ---
 
+runListener :: Listener t cfg m a -> m a
+runListener = runIdentityT ∘ unwrap'
+
 constrainType :: Proxy ctx -> t -> Proxy tp -> Listener t (TypeConstraint ctx tp) m a -> m a
-constrainType _ _ _ = unwrap'
+constrainType _ _ _ = runListener
 
 constrainTypeEq :: t -> Proxy tp -> Listener t (TypeConstraint Equality_Full tp) m a -> m a
 constrainTypeM1 :: t -> Proxy tp -> Listener t (TypeConstraint Equality_M1   tp) m a -> m a
@@ -77,9 +69,6 @@ constrainTypeEq = constrainType (p :: P Equality_Full)
 constrainTypeM1 = constrainType (p :: P Equality_M1)
 constrainTypeM2 = constrainType (p :: P Equality_M2)
 constrainTypeM3 = constrainType (p :: P Equality_M3)
-
-
-
 
 
 ----------------------
@@ -92,8 +81,7 @@ constrainTypeM3 = constrainType (p :: P Equality_M3)
 --   It does not equals a graph-like node - it can be a "node" in flat AST representation, like just an ordinary term.
 
 
-
-class Monad m => Dispatcher t a m where 
+class Monad m => Dispatcher t a m where
     dispatch_ :: t -> a -> m ()
 
 
