@@ -12,7 +12,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (merge, dupCluster, replacement)
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
