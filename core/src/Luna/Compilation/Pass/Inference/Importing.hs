@@ -11,7 +11,7 @@ import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record
-import Data.Maybe                                   (fromMaybe)
+import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.AST.Decl.Function                (Function, FunctionPtr)
@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, translateFunctionPtr, NodeTranslator)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, translateFunctionPtr, NodeTranslator)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -63,6 +63,13 @@ data ImportError = NotABindingNode | AmbiguousNodeType | SymbolNotFound deriving
 instance Error ImportError
 
 type ImportErrorT = ErrorT ImportError
+
+getSelf :: PassCtx(m) => Ref Node node -> m (Maybe $ Ref Node node)
+getSelf ref = do
+    node <- read ref
+    caseTest (uncover node) $ do
+        match $ \(Acc _ t) -> Just <$> follow source t
+        match $ \ANY -> return Nothing
 
 getTypeName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getTypeName ref = do
@@ -116,6 +123,8 @@ processNode ref = runErrorT $ do
     (localLamb, trans) <- dupCluster lamb $ name <> " @ " <> (show ref)
     withRef ref $ prop TCData . replacement ?~ cast localLamb
     fptr <- fromJust <$> follow (prop Lambda) localLamb
+    selfMay <- getSelf ref
+    zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (maybeToList selfMay)
     attachTypeRepr fptr ref
 
 -----------------------------

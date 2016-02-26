@@ -119,7 +119,7 @@ input_g2 :: ( term ~ Draft Static
             , TermNode Num  m (ls :<: term)
             ) => m ([nr],[nr],[nr],[nr])
 input_g2 = do
-    -- The expression here is `(id (1.+ (id 2)).toString).length`
+    -- The expression here is `(1.+ (id 2)).toString.length`
     n1  <- int 1
     n2  <- int 2
     pl  <- acc "+" n1
@@ -129,11 +129,10 @@ input_g2 = do
     br  <- app pl [arg apid2]
     ts  <- acc "toString" br
     tsa <- app ts []
-    idtsa <- app id1 [arg tsa]
-    le  <- acc "length" idtsa
+    le  <- acc "length" tsa
     lea <- app le []
 
-    return ([n1, n2], [br, tsa, lea, apid2, idtsa], [pl, ts, le], [pl, ts, le, id1])
+    return ([n1, n2], [br, tsa, lea, apid2], [pl, ts, le], [pl, ts, le, id1])
 
 input_g3 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
@@ -323,6 +322,16 @@ symbolMapTest = do
     renderAndOpen [("afterImporting", "afterImporting", g)]
     return ()
 
+input4Adam = do
+    i1 <- int 1
+    i2 <- int 2
+    s1 <- str "hi"
+    id <- var "id"
+    apl <- acc "+" i1
+    apppl <- app apl [arg i2]
+    appid <- app id  [arg s1]
+    return ([i1, i2, s1], [apppl, appid], [apl], [id, apl])
+
 collectGraph tag = do
     g <- Graph.get
     Writer.tell [(tag, g)]
@@ -341,9 +350,9 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            --(lits, apps, accs, funcs) <- input_g2
+            (lits, apps, accs, funcs) <- input4Adam
             --(lits, apps, accs, funcs) <- input_simple1
-            (lits, apps, accs, funcs) <- input_simple2
+            {-(lits, apps, accs, funcs) <- input_simple2-}
             collectGraph "Initial"
 
             Symbol.loadFunctions StdLib.symbols
