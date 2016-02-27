@@ -37,6 +37,7 @@ import qualified Luna.Compilation.Env.Class                      as Env
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
 import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
+import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
@@ -118,7 +119,7 @@ input_g2 :: ( term ~ Draft Static
             , TermNode Num  m (ls :<: term)
             ) => m ([nr],[nr],[nr],[nr])
 input_g2 = do
-    -- The expression here is `(id (1.+ (id 2)).toString).length`
+    -- The expression here is `(1.+ (id 2)).toString.length`
     n1  <- int 1
     n2  <- int 2
     pl  <- acc "+" n1
@@ -128,11 +129,10 @@ input_g2 = do
     br  <- app pl [arg apid2]
     ts  <- acc "toString" br
     tsa <- app ts []
-    idtsa <- app id1 [arg tsa]
-    le  <- acc "length" idtsa
+    le  <- acc "length" tsa
     lea <- app le []
 
-    return ([n1, n2], [br, tsa, lea, apid2, idtsa], [pl, ts, le], [pl, ts, le, id1])
+    return ([n1, n2], [br, tsa, lea, apid2], [pl, ts, le], [pl, ts, le, id1])
 
 input_g3 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
@@ -296,11 +296,11 @@ symbolMapTest = do
         s3 <- str "yo yo guyz!"
         tint <- cons "Int"
         tstr <- cons "String"
-        reconnect i1 (prop Type) tint
-        reconnect i2 (prop Type) tint
-        reconnect s1 (prop Type) tstr
-        reconnect s2 (prop Type) tstr
-        reconnect s3 (prop Type) tstr
+        reconnect (prop Type) i1 tint
+        reconnect (prop Type) i2 tint
+        reconnect (prop Type) s1 tstr
+        reconnect (prop Type) s2 tstr
+        reconnect (prop Type) s3 tstr
         plus <- acc "+" i1
         err  <- acc "noMethod" s1
         l1   <- acc "length" s2
@@ -322,9 +322,21 @@ symbolMapTest = do
     renderAndOpen [("afterImporting", "afterImporting", g)]
     return ()
 
+input4Adam = do
+    i1 <- int 1
+    i2 <- int 2
+    s1 <- str "hi"
+    id <- var "id"
+    apl <- acc "+" i1
+    apppl <- app apl [arg i2]
+    appid <- app id  [arg s1]
+    return ([i1, i2, s1], [apppl, appid], [apl], [id, apl])
+
 collectGraph tag = do
     g <- Graph.get
     Writer.tell [(tag, g)]
+
+seq3 a b c = Sequence a $ Sequence b c
 
 test1 :: IO ()
 test1 = do
@@ -338,9 +350,9 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            --(lits, apps, accs, funcs) <- input_g2
+            (lits, apps, accs, funcs) <- input4Adam
             --(lits, apps, accs, funcs) <- input_simple1
-            (lits, apps, accs, funcs) <- input_simple2
+            {-(lits, apps, accs, funcs) <- input_simple2-}
             collectGraph "Initial"
 
             Symbol.loadFunctions StdLib.symbols
@@ -351,8 +363,7 @@ test1 = do
 
             let tc = Sequence LiteralsPass
                    {-$ Sequence StructuralInferencePass-}
-                   $ Loop $ Sequence SymbolImportingPass
-                          $ Loop UnificationPass
+                   $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
 
             TypeCheck.runTCWithArtifacts tc collectGraph
 

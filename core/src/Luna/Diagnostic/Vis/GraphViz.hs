@@ -191,8 +191,9 @@ toGraphViz name net = DotGraph { strictGraph     = False
               succs    = node # Succs
               dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then " dirty" else " clean"
               required = if (node # InterpreterData) ^. InterpreterLayer.required then " req"   else ""
+              refStr   = " <Ref " <> show nix <> ">"
               value    = fromMaybe "" $ (\v -> " " <> show v) <$> (node # InterpreterData) ^. InterpreterLayer.value
-              interpr  = " Ref " <> show nix <> dirty <> required <> value
+              interpr  = refStr <> dirty <> required <> value
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers a :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness
@@ -238,7 +239,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               --attrs   = Color (toColorList [color]) : shAttrs
               attrs = specAttrs
               specAttrs = caseTest (uncover node) $ do
-                  match $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]
+                  {-match $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
                   match $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   match $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   match $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
@@ -299,7 +300,7 @@ fromListWithReps lst = foldr update (Map.fromList initLst) lst where
 genInEdges (g :: NetGraph a) (n :: NetLayers a :<: Draft Static) = displayEdges where
     --displayEdges = tpEdge : (addColor <$> inEdges)
     displayEdges = ($ (addColor <$> inEdges) ++ redirEdge ++ replEdge) $ if t == universe then id else (<> [tpEdge])
-    genLabel     = GV.Label . StrLabel . fromString . show
+    genLabel     = GV.XLabel . StrLabel . fromString . show
     ins          = n # Inputs
     inIxs        = view idx <$> ins
     inIdxs       = getTgtIdx <$> ins
@@ -326,7 +327,6 @@ genInEdges (g :: NetGraph a) (n :: NetLayers a :<: Draft Static) = displayEdges 
 
 
 
-universe = Ref 0 -- FIXME [WD]: Implement it in safe way. Maybe "star" should always result in the top one?
 
 
 

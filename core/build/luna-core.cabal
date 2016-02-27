@@ -58,7 +58,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules: 
+    Exposed-modules:
         Control.Monad.Event,
         Data.Build,
         Data.Direction,
@@ -145,6 +145,8 @@ Library
         Luna.Syntax.Model.Network.Builder.Term.Class,
         Luna.Syntax.Model.Network.Builder.Term.Inferred,
         Luna.Syntax.Model.Network.Builder.Type,
+        Luna.Syntax.Model.Network.Builder.Utils,
+        Luna.Syntax.Model.Network.Builder.Utils.Merging,
         Luna.Syntax.Model.Network.Class,
         Luna.Syntax.Model.Network.Graph,
         Luna.Syntax.Model.Network.Term,
@@ -190,3 +192,4 @@ Library
                  , type-cache
                  , typelevel
                  , vector
+                 , ghc-mtl

@@ -108,11 +108,25 @@ resolveUnify uni = do
 
             symmetrical (resolveStar uni) l r
             symmetrical (resolveVar  uni) l r
+            resolveCons uni l r
             resolveLams uni l r
 
         match $ \ANY -> impossible
 
     where symmetrical f a b = f a b *> f b a
+
+          resolveCons uni a b = do
+              uni' <- read uni
+              a'   <- read (a :: nodeRef)
+              b'   <- read (b :: nodeRef)
+              whenMatched (uncover a') $ \(Cons na) ->
+                  whenMatched (uncover b') $ \(Cons nb) ->
+                      if na == nb
+                          then do
+                              replaceNode uni a
+                              replaceNode b   a
+                              resolve_
+                          else return ()
 
           resolveStar uni a b = do
               uni' <- read uni

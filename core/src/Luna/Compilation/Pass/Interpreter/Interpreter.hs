@@ -24,7 +24,7 @@ import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterDat
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            (Lam, Acc (..), App (..), Blank (..), Num (..), Str (..), Unify (..), Var (..))
+import           Luna.Syntax.AST.Term                            (Lam, Acc (..), App (..), Native (..), Blank (..), Num (..), Str (..), Unify (..), Var (..))
 import           Luna.Syntax.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
@@ -35,17 +35,19 @@ import           Type.Inference
 
 -- import qualified Luna.Library.StdLib                             as StdLib
 
-import           Luna.Syntax.AST.Arg     (Arg)
-import qualified Luna.Syntax.AST.Arg     as Arg
+import           Luna.Syntax.AST.Arg                             (Arg)
+import qualified Luna.Syntax.AST.Arg                             as Arg
 
-import qualified Luna.Evaluation.Session    as Session
+import qualified Luna.Evaluation.Session                         as Session
 
-import           GHC.Prim                    (Any)
+import           GHC.Prim                                        (Any)
 
 
-import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
-import           Language.Haskell.Session    (GhcMonad)
-import qualified Language.Haskell.Session    as HS
+import           Control.Monad.Catch                             (MonadCatch, MonadMask, catchAll)
+import           Control.Monad.Ghc                               (GhcT)
+import           Language.Haskell.Session                        (GhcMonad)
+import qualified Language.Haskell.Session                        as HS
+
 
 
 #define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers a                                       \
@@ -60,6 +62,7 @@ import qualified Language.Haskell.Session    as HS
                                     , HasProp InterpreterData (ls :<: term)                    \
                                     , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer \
                                     , InterpreterMonad (Env (Ref Node (ls :<: term))) (m)      \
+                                    , MonadMask (m)                                            \
                                     )
 
 
@@ -153,7 +156,9 @@ collectNodesToEval ref = do
             collectNodesToEval p
 
 
-evaluateNode :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
+-- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
+
+evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
     node <- read ref
     putStrLn $ "evaluating " <> show ref
@@ -162,8 +167,6 @@ evaluateNode ref = do
         match $ \(Acc n t)    -> return ()
         match $ \(Var n)      -> return ()
         match $ \(App f args) -> do
-            -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
-            let tpString = "Int -> Int -> Int"
             funRep       <- follow source f
             unpackedArgs <- unpackArguments args
             funNode <- read funRep
@@ -171,13 +174,25 @@ evaluateNode ref = do
                 match $ \(Str name) -> return name
                 match $ \ANY        -> error "Function name is not string"
             putStrLn $ "App " <> show funRep <> " (" <> name <> ") " <> show unpackedArgs
-            -- putStrLn $ "funNode " <> show funNode
             values <- argumentsValues unpackedArgs
-            -- res <- flip catchAll (\e -> return $ Session.toAny (-1)) $ HS.run $ do
-            --     fun <- Session.findSymbol name tpString
-            --     let res = foldl Session.appArg fun $ Session.toAny <$> values
-            --     return res
-            -- putStrLn $ "res " <> show ((Session.unsafeCast res) :: Int)
+            return ()
+        match $ \(Native nameStr argsEdges) -> do
+            -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
+            let tpString = "Int -> Int -> Int"
+            -- args :: _
+            let (Str name) = nameStr
+            args   <- mapM (follow source) argsEdges
+            values <- argumentsValues args
+            putStrLn $ "Native " <> name <> " " <> show values
+            res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny (-1)) $ HS.run $ do
+                HS.setImports Session.defaultImports
+                fun <- Session.findSymbol name tpString
+                -- putStrLn $ "found fun " <> show fun
+                let res = foldl Session.appArg fun $ Session.toAny <$> values
+                return res
+            let value = ((Session.unsafeCast res) :: Int)
+            putStrLn $ "res " <> show value
+            setValue value ref
             return ()
             -- GHC.Prim.Any
         match $ \Blank        -> return ()
@@ -206,6 +221,7 @@ evaluateNodes reqRefs = do
                              , MonadFix (m)                                             \
                              , HasProp InterpreterData (ls :<: term)                    \
                              , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer \
+                             , MonadMask (m)                                            \
                              )
 
 run :: forall env m ls term ne a n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))

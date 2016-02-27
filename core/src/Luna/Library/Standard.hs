@@ -51,7 +51,7 @@ makeFunction bldr = Function (FunctionPtr self args out tpRep) body where
 typed :: FunBuilderCtx(m) => m nodeRef -> nodeRef -> m nodeRef
 typed b t = do
     el <- b
-    reconnect el (prop Type) t
+    reconnect (prop Type) el t
     return el
 
 makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Maybe nodeRef, [nodeRef], nodeRef, nodeRef)

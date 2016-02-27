@@ -11,7 +11,7 @@ import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record
-import Data.Maybe                                   (fromMaybe)
+import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.AST.Decl.Function                (Function, FunctionPtr)
@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (merge, dupCluster, replacement)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, translateFunctionPtr, NodeTranslator)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -37,24 +37,25 @@ import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 
 
-#define PassCtx(m) ( term  ~ Draft Static                         \
-                   , ls    ~ NetLayers a                          \
-                   , edge  ~ Link (ls :<: term)                   \
-                   , node  ~ (ls :<: term)                        \
-                   , clus  ~ NetCluster a                         \
-                   , graph ~ Hetero (VectorGraph n e c)           \
-                   , BiCastable     e edge                        \
-                   , BiCastable     n node                        \
-                   , BiCastable     c clus                        \
-                   , MonadBuilder graph (m)                       \
-                   , NodeInferable  (m) (ls :<: term)             \
-                   , TermNode Var   (m) (ls :<: term)             \
-                   , TermNode Acc   (m) (ls :<: term)             \
-                   , TermNode Cons  (m) (ls :<: term)             \
-                   , TermNode Lam   (m) (ls :<: term)             \
-                   , TermNode Unify (m) (ls :<: term)             \
-                   , MonadSymbol node clus graph (m)              \
-                   , Referred Node n graph                        \
+#define PassCtx(m) ( term  ~ Draft Static                            \
+                   , ls    ~ NetLayers a                             \
+                   , edge  ~ Link (ls :<: term)                      \
+                   , node  ~ (ls :<: term)                           \
+                   , clus  ~ NetCluster a                            \
+                   , graph ~ Hetero (VectorGraph n e c)              \
+                   , BiCastable     e edge                           \
+                   , BiCastable     n node                           \
+                   , BiCastable     c clus                           \
+                   , MonadBuilder graph (m)                          \
+                   , NodeInferable  (m) (ls :<: term)                \
+                   , TermNode Var   (m) (ls :<: term)                \
+                   , TermNode Acc   (m) (ls :<: term)                \
+                   , TermNode Cons  (m) (ls :<: term)                \
+                   , TermNode Lam   (m) (ls :<: term)                \
+                   , TermNode Unify (m) (ls :<: term)                \
+                   , MonadSymbol node clus graph (m)                 \
+                   , Referred Node n graph                           \
+                   , Connectible (Ref Node node) (Ref Node node) (m) \
                    )
 
 
@@ -62,6 +63,13 @@ data ImportError = NotABindingNode | AmbiguousNodeType | SymbolNotFound deriving
 instance Error ImportError
 
 type ImportErrorT = ErrorT ImportError
+
+getSelf :: PassCtx(m) => Ref Node node -> m (Maybe $ Ref Node node)
+getSelf ref = do
+    node <- read ref
+    caseTest (uncover node) $ do
+        match $ \(Acc _ t) -> Just <$> follow source t
+        match $ \ANY -> return Nothing
 
 getTypeName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getTypeName ref = do
@@ -87,19 +95,10 @@ funLookup name = do
     f <- lookupFunction $ QualPath.mk name
     fromMaybe (throwError SymbolNotFound) (return <$> f)
 
-unsafeTranslateFunctionPtr :: Map (Ref Node a) (Ref Node a) -> FunctionPtr a -> FunctionPtr a
-unsafeTranslateFunctionPtr m fptr = fptr & over (Function.self . mapped) unsafeTranslate
-                                         & over (Function.args . mapped) unsafeTranslate
-                                         & over Function.out   unsafeTranslate
-                                         & over Function.tpRep unsafeTranslate
-    where unsafeTranslate i = fromJust $ Map.lookup i m
-
-importFunction :: PassCtx(m) => String -> Function node graph -> ImportErrorT m (Ref Cluster clus)
+importFunction :: PassCtx(ImportErrorT m) => String -> Function node graph -> ImportErrorT m (Ref Cluster clus)
 importFunction name fun = do
-    translations <- merge $ fun ^. Function.graph
-    cls <- subgraph
-    mapM (flip include cls) $ Map.elems $ translations
-    let fptr = fun ^. Function.fptr & unsafeTranslateFunctionPtr translations
+    (cls, translator) <- importToCluster $ fun ^. Function.graph
+    let fptr = fun ^. Function.fptr & translateFunctionPtr translator
     withRef cls $ (prop Lambda  ?~ fptr)
                 . (prop Name    .~ name)
     loadLambda (QualPath.mk name) cls
@@ -109,7 +108,7 @@ attachTypeRepr :: PassCtx(ImportErrorT m) => FunctionPtr node -> Ref Node node -
 attachTypeRepr fptr ref = do
     currentTp <- follow (prop Type) ref >>= follow source
     uni <- unify currentTp $ fptr ^. Function.tpRep
-    reconnect ref (prop Type) uni
+    reconnect (prop Type) ref uni
     return uni
 
 processNode :: (PassCtx(ImportErrorT m), PassCtx(m)) => Ref Node node -> m (Either ImportError (Ref Node node))
@@ -121,13 +120,12 @@ processNode ref = runErrorT $ do
         Nothing -> do
             fun <- funLookup name
             importFunction name fun
-    (localLamb, transes) <- dupCluster lamb $ name <> " @ " <> (show ref)
-    fptr <- fromJust . view (prop Lambda) <$> read lamb
-    let transPtr = unsafeTranslateFunctionPtr transes fptr
-    withRef localLamb $ (prop Name   .~ show ref)
-                      . (prop Lambda ?~ transPtr)
+    (localLamb, trans) <- dupCluster lamb $ name <> " @ " <> (show ref)
     withRef ref $ prop TCData . replacement ?~ cast localLamb
-    attachTypeRepr transPtr ref
+    fptr <- fromJust <$> follow (prop Lambda) localLamb
+    selfMay <- getSelf ref
+    zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (maybeToList selfMay)
+    attachTypeRepr fptr ref
 
 -----------------------------
 -- === TypeCheckerPass === --
