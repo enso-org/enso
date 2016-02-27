@@ -10,45 +10,45 @@
 
 module Luna.Parser.Parser where
 
---import Flowbox.Prelude hiding (init)
+import Prelude.Luna hiding (init)
 
---import           Text.Parser.Combinators
---import qualified Data.ByteString.UTF8         as UTF8
---import Control.Monad.State (get, evalStateT)
+import           Text.Parser.Combinators
+import qualified Data.ByteString.UTF8         as UTF8
+import Control.Monad.State (get, evalStateT)
 
---import qualified Data.Text.Lazy.Encoding as Text
---import qualified Data.ByteString as ByteStr
---import           Text.PrettyPrint.ANSI.Leijen (displayIO, linebreak, renderPretty)
---import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
+import qualified Data.Text.Lazy.Encoding as Text
+import qualified Data.ByteString as ByteStr
+import           Text.PrettyPrint.ANSI.Leijen (displayIO, linebreak, renderPretty)
+import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
---import           Text.Trifecta.Delta (Delta(Directed))
---import           Text.Trifecta.Result (Result(Failure, Success))
---import qualified Text.Trifecta.Parser as Trifecta
+import           Text.Trifecta.Delta (Delta(Directed))
+import           Text.Trifecta.Result (Result(Failure, Success))
+import qualified Text.Trifecta.Parser as Trifecta
 
 
 
---import qualified Luna.Parser.State  as ParserState
---import           Luna.Parser.State  (ParserState)
---import qualified Luna.Parser.Token  as Tok
+import qualified Luna.Parser.State  as ParserState
+import           Luna.Parser.State  (ParserState)
+import qualified Luna.Parser.Token  as Tok
 --import           Luna.Parser.Indent (IndentStateT)
 --import qualified Luna.Parser.Indent as Indent
 
---import qualified Data.List as List
+import qualified Data.List as List
 
---import qualified Luna.Parser.Type    as Type
---import qualified Luna.Parser.Pattern as Pattern
---import qualified Luna.Parser.Literal as Literal
---import qualified Luna.Parser.Struct  as Struct
---import qualified Luna.Parser.Term    as Term
---import qualified Luna.Parser.Decl    as Decl
---import qualified Luna.Parser.Module  as Module
+import qualified Luna.Parser.Type    as Type
+import qualified Luna.Parser.Pattern as Pattern
+import qualified Luna.Parser.Literal as Literal
+import qualified Luna.Parser.Struct  as Struct
+import qualified Luna.Parser.Term    as Term
+import qualified Luna.Parser.Decl    as Decl
+import qualified Luna.Parser.Module  as Module
 
 --import Luna.Parser.Builder (labeled, label, nextID, qualifiedPath, withLabeled)
 --import qualified Luna.Parser.Pragma        as Pragma
 --import qualified Luna.System.Pragma.Store  as Pragma
 
 
---import Control.Monad.State (StateT)
+import Control.Monad.State (StateT)
 
 -------------------------------------------------------------
 ---- Utils

@@ -1,4 +1,4 @@
-module Luna.Syntax.Name.Ident.Type where
+module Luna.Syntax.Ident.Type where
 
 import Prelude.Luna
 

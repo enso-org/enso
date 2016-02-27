@@ -2,7 +2,7 @@ module Luna.Syntax.AST.Arg where
 
 import Prelude.Luna
 
-import Luna.Syntax.Name.Ident
+import Luna.Syntax.Ident
 
 data Arg a = Arg { __aname :: Maybe VarIdent , __arec :: a } deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 

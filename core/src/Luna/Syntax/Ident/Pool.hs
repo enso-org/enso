@@ -5,7 +5,7 @@
 
 {-# LANGUAGE RankNTypes      #-}
 
-module Luna.Syntax.Name.Ident.Pool where
+module Luna.Syntax.Ident.Pool where
 
 import Prelude.Luna
 
@@ -13,7 +13,7 @@ import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThr
 import qualified Control.Monad.State            as State
 import           Data.Pool
 import           Data.Tuple (swap)
-import           Luna.Syntax.Name.Ident.Class
+import           Luna.Syntax.Ident.Class
 
 
 -----------------------

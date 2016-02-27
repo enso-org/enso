@@ -4,43 +4,42 @@
 
 module Luna.Parser.Char where
 
---import           Flowbox.Prelude         hiding (lex)
---import           Control.Applicative
---import           Text.Parser.Combinators
---import           Text.Parser.Char        hiding (spaces)
+import           Prelude.Luna            hiding (lex)
+import           Text.Parser.Combinators
+import           Text.Parser.Char        hiding (spaces)
 
 
-------------------------------------------------------------------------
----- Type classes
-------------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Type classes
+----------------------------------------------------------------------
 
---class Lexical a where
---    lex :: CharParsing m => a -> m a
-
-
-------------------------------------------------------------------------
----- Utils
-------------------------------------------------------------------------
-
---eolSeq :: CharParsing m => m String
---eolSeq =   try (lex "\n\r")
---       <|> try (lex "\r\n")
---       <|> lex "\n"
---       <|> lex "\r"
---       <?> "end of line sequence"
-
---eol = eolSeq *> return () <?> "end of line"
+class Lexical a where
+    lex :: CharParsing m => a -> m a
 
 
-------------------------------------------------------------------------
----- Instances
-------------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Utils
+----------------------------------------------------------------------
 
---instance Lexical Char where
---    lex = char
+eolSeq :: CharParsing m => m String
+eolSeq =   try (lex "\n\r")
+       <|> try (lex "\r\n")
+       <|> lex "\n"
+       <|> lex "\r"
+       <?> "end of line sequence"
 
---instance Lexical String where
---    lex = string
+eol = eolSeq *> return () <?> "end of line"
 
---instance Lexical Text where
---    lex s = fromString <$> lex (toString s)
+
+----------------------------------------------------------------------
+-- Instances
+----------------------------------------------------------------------
+
+instance Lexical Char where
+    lex = char
+
+instance Lexical String where
+    lex = string
+
+instance Lexical Text where
+    lex s = fromString <$> lex (toString s)

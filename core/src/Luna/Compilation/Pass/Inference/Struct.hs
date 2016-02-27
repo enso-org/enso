@@ -17,13 +17,12 @@ import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool, newVarIdent')
+import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
 import Type.Inference
 
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import qualified Luna.Syntax.Name                       as Name
 import Data.Graph.Backend.VectorGraph
 
 

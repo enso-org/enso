@@ -43,18 +43,28 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules: `findmodules('src', '.*\.hs')`
+    Exposed-modules: `findmodules('../src', '.*\.hs')`
 
-    Other-Modules: Paths_luna
+    Other-Modules: Paths_luna_parser
     Build-Depends: base
                  , luna-core
-
+                 , mtl
+                 , bytestring
+                 , utf8-string
+                 , charset
+                 , parsers
+                 , trifecta
+                 , lens
+                 , unordered-containers
+                 , ansi-wl-pprint
+                 , text
+                 , container
 
 
 Executable luna-parser-test
     if flag(tests)
         Main-Is:        Main.hs
-        Hs-Source-Dirs: tst
+        Hs-Source-Dirs: test
     else
         Main-Is:        Dummy.hs
         Hs-Source-Dirs: test
@@ -92,4 +102,5 @@ Executable luna-parser-test
 
     Build-Depends: base
                  , luna-core
+                 , prologue
 

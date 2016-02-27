@@ -6,47 +6,44 @@
 
 module Luna.Parser.State where
 
---import           Flowbox.Prelude
+import           Prelude.Luna
 --import qualified Luna.Data.ASTInfo    as ASTInfo
 --import           Luna.Data.ASTInfo    (ASTInfo)
 --import           Luna.Data.SourceMap  (SourceMap)
 --import qualified Luna.Data.SourceMap  as SourceMap
---import           Luna.Parser.Operator (OperatorMap)
+import           Luna.Parser.Operator (OperatorMap)
 --import qualified Luna.Data.Namespace  as Namespace
 --import           Luna.Data.Namespace  (Namespace, NamespaceMonad)
---import qualified Data.List            as List
+import qualified Data.List            as List
 --import qualified Data.Maps            as Map
-----import           Luna.DEP.AST.Comment     (Comment(..))
---import           Flowbox.Control.Monad.State (mapStateVal, get, put, StateT)
---import qualified Flowbox.Control.Monad.State as State
+--import           Luna.DEP.AST.Comment     (Comment(..))
+import           Control.Monad.State (get, put, StateT)
+import qualified Control.Monad.State as State
 --import qualified Luna.Data.StructInfo        as StructInfo
 --import           Luna.Syntax.Name.Path       (QualPath)
 
---data ParserState= ParserState { _info          :: ASTInfo
---                              , _opFixity      :: OperatorMap
---                              , _sourceMap     :: SourceMap
---                              , _namespace     :: Namespace
---                              , _adhocReserved :: [Text]
---                              , _modPath       :: QualPath
---                              } deriving (Show)
+data ParserState= ParserState { --_info          :: ASTInfo
+                                _opFixity      :: OperatorMap
+                              --, _sourceMap     :: SourceMap
+                              --, _namespace     :: Namespace
+                              , _adhocReserved :: [Text]
+                              --, _modPath       :: QualPath
+                              } deriving (Show)
 
---makeLenses ''ParserState
+makeLenses ''ParserState
 
 
---------------------------------------------------------------------------
----- Utils
---------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- Utils
+------------------------------------------------------------------------
 
 --mk :: ASTInfo -> ParserState
 --mk i = def & info .~ i
 
---addReserved words = adhocReserved %~ (++words)
---delReserved words = adhocReserved %~ (flip (foldl (flip List.delete)) words)
+addReserved words = adhocReserved %~ (++words)
+delReserved words = adhocReserved %~ (flip (foldl (flip List.delete)) words)
 
 --lastID            = view (info . ASTInfo.lastID)
-----addComment cmt s  = s & comments %~ Map.insertWith (++) (lastID s) [cmt]
-
-----registerComment = mapStateVal . addComment . Comment
 
 
 
@@ -68,16 +65,16 @@ module Luna.Parser.State where
 
 --getStructInfo = view (namespace . Namespace.info) <$> get
 
---withReserved words p = do
---    s <- get
---    let reserved = view adhocReserved s
---    put $ (addReserved words s)
---    ret <- p
---    s   <- get
---    put (s & adhocReserved .~ reserved)
---    return ret
+withReserved words p = do
+    s <- get
+    let reserved = view adhocReserved s
+    put $ (addReserved words s)
+    ret <- p
+    s   <- get
+    put (s & adhocReserved .~ reserved)
+    return ret
 
---withCurrying p = p
+withCurrying p = p
 
 
 --withNewScope id p = do
@@ -106,7 +103,7 @@ module Luna.Parser.State where
 --        Just pid -> return pid
 
 --getScope  = view (namespace . Namespace.info . StructInfo.scope) <$> get
-----getASTMap = view (namespace . Namespace.info . StructInfo.ast) <$> get
+--getASTMap = view (namespace . Namespace.info . StructInfo.ast) <$> get
 
 
 
@@ -114,13 +111,13 @@ module Luna.Parser.State where
 --    pid <- getPid
 --    regParent id pid
 
---------------------------------------------------------------------------
----- Instances
---------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
 
----- FIXME[wd]: "Unnamed" string is an ugly hack for now
---instance conf~() => Default ParserState where
---        def = ParserState def def def def def "Unnamed"
+-- FIXME[wd]: "Unnamed" string is an ugly hack for now
+instance conf~() => Default ParserState where
+        def = ParserState def def  -- "Unnamed"
 
 
 --instance (Functor m, Monad m) => NamespaceMonad (StateT ParserState m) where
