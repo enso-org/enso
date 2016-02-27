@@ -58,7 +58,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules:
+    Exposed-modules: 
         Control.Monad.Event,
         Data.Build,
         Data.Direction,
@@ -126,6 +126,7 @@ Library
         Luna.Syntax.AST.Arg,
         Luna.Syntax.AST.Core,
         Luna.Syntax.AST.Decl.Function,
+        Luna.Syntax.AST.Lit,
         Luna.Syntax.AST.Term,
         Luna.Syntax.AST.Term.Class,
         Luna.Syntax.Builder,

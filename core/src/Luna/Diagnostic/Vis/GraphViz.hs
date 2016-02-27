@@ -52,6 +52,7 @@ import           Luna.Syntax.Repr.Styles                 (HeaderOnly (..), Simpl
 import           System.Platform
 import           System.Process                          (createProcess, shell)
 import           Data.Tuple.Select                       (sel1)
+import qualified Luna.Syntax.AST.Lit                     as Lit
 
 
 --instance Repr HeaderOnly Data where repr _ = "Data"
@@ -258,9 +259,9 @@ toGraphViz name net = DotGraph { strictGraph     = False
 
           --nodeColor :: (NetLayers a :<: Draft Static) -> Attribute
           getNodeColor n = caseTest (uncover n) $ do
-                                match $ \(Term.Str s) -> valStrNodeClr
-                                match $ \(Term.Num n) -> valIntNodeClr
-                                match $ \ANY          -> nodeClr
+                                match $ \(Lit.String   s) -> valStrNodeClr
+                                match $ \(Lit.Number _ n) -> valIntNodeClr
+                                match $ \ANY              -> nodeClr
 
           getLambdaNodeColor n (FunctionPtr s a o t) = whenSelf <|> whenArg <|> whenOut <|> whenType where
               whenSelf = maybe Nothing (\x -> if x ^. idx == n then Just selfClr else Nothing) s

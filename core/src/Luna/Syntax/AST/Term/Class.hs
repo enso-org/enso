@@ -25,6 +25,7 @@ import           Luna.Syntax.AST.Arg
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Evaluation.Model
+import qualified Luna.Syntax.AST.Lit          as Lit
 
 import Data.Record as X (Data)
 
@@ -91,11 +92,6 @@ class HasArgs   a where args   :: Lens' a (Args   a)
 -----------------------------
 
 
-data    Star   = Star          deriving (Show, Eq, Ord)
-newtype Str    = Str    String deriving (Show, Eq, Ord, IsString, ToString)
-newtype Num    = Num    Int    deriving (Show, Eq, Ord, P.Num)
-
-
 -- LEGEND
 --   N   - Name
 --   S   - Source
@@ -123,9 +119,9 @@ class MonoTFunctor t a where monoTMap :: (t -> t) -> a -> a
 class NFoldable a t where foldrN :: (a -> b -> b) -> b -> t -> b
 class TFoldable a t where foldrT :: (a -> b -> b) -> b -> t -> b
 
-instance {-# OVERLAPPABLE #-}           TFoldable t Star          where foldrT _ = const ; {-# INLINE foldrT #-}
-instance {-# OVERLAPPABLE #-}           TFoldable t Str           where foldrT _ = const ; {-# INLINE foldrT #-}
-instance {-# OVERLAPPABLE #-}           TFoldable t Num           where foldrT _ = const ; {-# INLINE foldrT #-}
+instance {-# OVERLAPPABLE #-}           TFoldable t Lit.Star      where foldrT _ = const ; {-# INLINE foldrT #-}
+instance {-# OVERLAPPABLE #-}           TFoldable t Lit.String    where foldrT _ = const ; {-# INLINE foldrT #-}
+instance {-# OVERLAPPABLE #-}           TFoldable t Lit.Number    where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-}           TFoldable t Blank         where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-}           TFoldable t (Var  n   )   where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-}           TFoldable t (Cons n   )   where foldrT _ = const ; {-# INLINE foldrT #-}
@@ -140,9 +136,9 @@ instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Native n t') where foldrT  
 -- === Instances ===
 
 -- Bases
-type instance Base Star         = Proxy Star
-type instance Base Str          = Proxy Str
-type instance Base Num          = Proxy Num
+type instance Base Lit.Star     = Lit.Star
+type instance Base Lit.String   = Lit.String
+type instance Base Lit.Number   = Lit.Number
 
 type instance Base (Lam     t)  = Proxy Lam
 type instance Base (Cons  n  )  = Proxy Cons
@@ -210,9 +206,9 @@ instance           TFunctor t r (Var    n   ) (Var    n  ) where fmapT = flip co
 instance           TFunctor t r (Cons   n   ) (Cons   n  ) where fmapT = flip const ; {-# INLINE fmapT #-}
 instance           TFunctor t r Blank         Blank        where fmapT = flip const ; {-# INLINE fmapT #-}
 
-instance           MonoTFunctor t Str           where monoTMap = flip const ; {-# INLINE monoTMap #-}
-instance           MonoTFunctor t Star          where monoTMap = flip const ; {-# INLINE monoTMap #-}
-instance           MonoTFunctor t Num           where monoTMap = flip const ; {-# INLINE monoTMap #-}
+instance           MonoTFunctor t Lit.Star      where monoTMap = flip const ; {-# INLINE monoTMap #-}
+instance           MonoTFunctor t Lit.String    where monoTMap = flip const ; {-# INLINE monoTMap #-}
+instance           MonoTFunctor t Lit.Number    where monoTMap = flip const ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (Lam      t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (Acc    n t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (Native n t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
@@ -226,36 +222,38 @@ instance           MonoTFunctor t Blank         where monoTMap = flip const ; {-
 -- Representations
 
 -- Default
-instance {-# OVERLAPPABLE #-}                   Repr s Star         where repr _            = "*"
-instance {-# OVERLAPPABLE #-}                   Repr s Str          where repr (Str    s)   = "Str"    <+> repr s
-instance {-# OVERLAPPABLE #-}                   Repr s Num          where repr (Num    n)   = "Num"    <+> repr n
-instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Var    n  ) where repr (Var    n)   = "Var"    <+> repr n
-instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Cons   n  ) where repr (Cons   n)   = "Cons"   <+> repr n
-instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Lam      t) where repr (Lam    s t) = "Lam  "  <+> repr s <+> repr t
-instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Acc    n t) where repr (Acc    n s) = "Acc"    <+> repr n <+> repr s
-instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (App      t) where repr (App    s a) = "App"    <+> repr s <+> repr a
-instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Unify    t) where repr (Unify  s t) = "Unify"  <+> repr s <+> repr t
-instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Sub      t) where repr (Sub    s t) = "Sub"    <+> repr s <+> repr t
-instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Native n t) where repr (Native n a) = "Native" <+> repr n <+> repr a
-instance {-# OVERLAPPABLE #-}                   Repr s  Blank       where repr _            = "Blank"
+instance {-# OVERLAPPABLE #-}                   Repr s Lit.Star     where repr _                = "*"
+instance {-# OVERLAPPABLE #-}                   Repr s Lit.String   where repr (Lit.String s)   = "Str"    <+> repr s
+instance {-# OVERLAPPABLE #-}                   Repr s Lit.Number   where repr (Lit.Number r n) = "Num"    <+> repr r <+> repr n
+instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Var    n  ) where repr (Var        n)   = "Var"    <+> repr n
+instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Cons   n  ) where repr (Cons       n)   = "Cons"   <+> repr n
+instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Lam      t) where repr (Lam        s t) = "Lam  "  <+> repr s <+> repr t
+instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Acc    n t) where repr (Acc        n s) = "Acc"    <+> repr n <+> repr s
+instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (App      t) where repr (App        s a) = "App"    <+> repr s <+> repr a
+instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Unify    t) where repr (Unify      s t) = "Unify"  <+> repr s <+> repr t
+instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Sub      t) where repr (Sub        s t) = "Sub"    <+> repr s <+> repr t
+instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Native n t) where repr (Native     n a) = "Native" <+> repr n <+> repr a
+instance {-# OVERLAPPABLE #-}                   Repr s  Blank       where repr _                = "Blank"
+instance {-# OVERLAPPABLE #-}                   Repr s Lit.System   where repr                  = \case Lit.Rational r -> repr r
+                                                                                                        Lit.Integer  i -> repr i
 
 -- HeaderOnly
 instance {-# OVERLAPPABLE #-} Repr StaticNameOnly n => Repr HeaderOnly (Var   n    ) where repr (Var n) = "Var" <+> fromString (reprStyled StaticNameOnly n)
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Cons   n    ) where repr _ = "Cons"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Cons   Str  ) where repr (Cons (Str m)) = fromString $ "Cons " <>  show m
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Lam        t) where repr _ = "Lam"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Acc    n   t) where repr _ = "Acc"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Acc    Str t) where repr (Acc (Str m) s) = fromString $ "Acc " <>  show m
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (App        t) where repr _ = "App"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Unify      t) where repr _ = "Unify"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Sub        t) where repr _ = "Sub"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Native n   t) where repr _ = "Native"
-instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Native Str t) where repr (Native (Str n) _) = fromString $ "Native " <> show n
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Cons   n           ) where repr _ = "Cons"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Cons   Lit.String  ) where repr (Cons s) = fromString $ "Cons " <>  show (unwrap' s)
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Lam               t) where repr _ = "Lam"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Acc    n          t) where repr _ = "Acc"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Acc    Lit.String t) where repr (Acc s _) = fromString $ "Acc " <>  show (unwrap' s)
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (App               t) where repr _ = "App"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Unify             t) where repr _ = "Unify"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Sub               t) where repr _ = "Sub"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Native n          t) where repr _ = "Native"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Native Lit.String t) where repr (Native s _) = fromString $ "Native " <> show (unwrap' s)
 
 
 
-instance {-# OVERLAPPABLE #-} Repr StaticNameOnly Str where repr (Str s) = fromString $ show s
-instance {-# OVERLAPPABLE #-} Repr StaticNameOnly a   where repr _       = ""
+instance {-# OVERLAPPABLE #-} Repr StaticNameOnly Lit.String where repr = fromString ∘ show ∘ unwrap'
+instance {-# OVERLAPPABLE #-} Repr StaticNameOnly a          where repr = const ""
 ---------------------------
 ---------------------------
 
@@ -315,7 +313,7 @@ type family TermOf     a
 type family Input     a
 type family NameInput a where
     NameInput I = Impossible
-    NameInput a = If (Runtime.Model a == Static) Str (Input a)
+    NameInput a = If (Runtime.Model a == Static) Lit.String (Input a)
 
 --type family NameLayoutOf a where
 --    NameLayoutOf I = Impossible
@@ -330,9 +328,9 @@ type TermGroups = '[Lit, Val, Thunk, Expr, Draft]
 
 type family   Elems term  n t :: [*]
 
-type instance Elems Lit   n t = Star
-                             ': Str
-                             ': Num
+type instance Elems Lit   n t = Lit.Star
+                             ': Lit.String
+                             ': Lit.Number
                              ': '[]
 
 type instance Elems Val   n t = Cons        n
@@ -371,7 +369,7 @@ type family SubRuntimeGroups' rt t gs where
   SubRuntimeGroups' rt t '[g]      = ApplySubRuntimes     rt t g
   SubRuntimeGroups' rt t (g ': gs) = ApplySubSemiRuntimes rt t g <> SubRuntimeGroups' rt t gs
 
-type NameByRuntime rt d = ByRuntime rt Str d
+type NameByRuntime rt d = ByRuntime rt Lit.String d
 
 
 -- === Variant repr === --
@@ -466,52 +464,52 @@ type  GroupList t =              '[ {-  0 -} Term t Lit   Static
                                   , {-  7 -} Term t Draft Static
                                   , {-  8 -} Term t Draft Dynamic
                                   ]
-type VariantList_MANUAL_CACHE t = [ {-  9 -} Star
-                                  , {- 10 -} Str
-                                  , {- 11 -} Num
-                                  , {- 12 -} Cons  Str
-                                  , {- 13 -} Lam        (Layout t Val   Static )
-                                  , {- 14 -} Cons       (Layout t Val   Dynamic)
-                                  , {- 15 -} Lam        (Layout t Val   Dynamic)
-                                  , {- 16 -} Acc   Str  (Layout t Thunk Static )
-                                  , {- 17 -} App        (Layout t Thunk Static )
-                                  , {- 18 -} Lam        (Layout t Thunk Static )
-                                  , {- 19 -} Native Str (Layout t Thunk Static )
-                                  , {- 20 -} Acc        (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)
-                                  , {- 21 -} App        (Layout t Thunk Dynamic)
-                                  , {- 22 -} Cons       (Layout t Thunk Dynamic)
-                                  , {- 23 -} Lam        (Layout t Thunk Dynamic)
-                                  , {- 24 -} Native     (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)
-                                  , {- 25 -} Var   Str
-                                  , {- 26 -} Unify      (Layout t Expr  Static )
-                                  , {- 27 -} Sub        (Layout t Expr  Static )
-                                  , {- 28 -} Acc   Str  (Layout t Expr  Static )
-                                  , {- 29 -} App        (Layout t Expr  Static )
-                                  , {- 30 -} Lam        (Layout t Expr  Static )
-                                  , {- 31 -} Native Str (Layout t Expr  Static )
-                                  , {- 32 -} Var        (Layout t Expr  Dynamic)
-                                  , {- 33 -} Unify      (Layout t Expr  Dynamic)
-                                  , {- 34 -} Sub        (Layout t Expr  Dynamic)
-                                  , {- 35 -} Acc        (Layout t Expr  Dynamic) (Layout t Expr  Dynamic)
-                                  , {- 36 -} App        (Layout t Expr  Dynamic)
-                                  , {- 37 -} Cons       (Layout t Expr  Dynamic)
-                                  , {- 38 -} Lam        (Layout t Expr  Dynamic)
-                                  , {- 39 -} Native     (Layout t Expr  Dynamic) (Layout t Expr  Dynamic)
+type VariantList_MANUAL_CACHE t = [ {-  9 -} Lit.Star
+                                  , {- 10 -} Lit.String
+                                  , {- 11 -} Lit.Number
+                                  , {- 12 -} Cons   Lit.String
+                                  , {- 13 -} Lam               (Layout t Val   Static )
+                                  , {- 14 -} Cons              (Layout t Val   Dynamic)
+                                  , {- 15 -} Lam               (Layout t Val   Dynamic)
+                                  , {- 16 -} Acc    Lit.String (Layout t Thunk Static )
+                                  , {- 17 -} App               (Layout t Thunk Static )
+                                  , {- 18 -} Lam               (Layout t Thunk Static )
+                                  , {- 19 -} Native Lit.String (Layout t Thunk Static )
+                                  , {- 20 -} Acc               (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)
+                                  , {- 21 -} App               (Layout t Thunk Dynamic)
+                                  , {- 22 -} Cons              (Layout t Thunk Dynamic)
+                                  , {- 23 -} Lam               (Layout t Thunk Dynamic)
+                                  , {- 24 -} Native            (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)
+                                  , {- 25 -} Var    Lit.String
+                                  , {- 26 -} Unify             (Layout t Expr  Static )
+                                  , {- 27 -} Sub               (Layout t Expr  Static )
+                                  , {- 28 -} Acc    Lit.String (Layout t Expr  Static )
+                                  , {- 29 -} App               (Layout t Expr  Static )
+                                  , {- 30 -} Lam               (Layout t Expr  Static )
+                                  , {- 31 -} Native Lit.String (Layout t Expr  Static )
+                                  , {- 32 -} Var               (Layout t Expr  Dynamic)
+                                  , {- 33 -} Unify             (Layout t Expr  Dynamic)
+                                  , {- 34 -} Sub               (Layout t Expr  Dynamic)
+                                  , {- 35 -} Acc               (Layout t Expr  Dynamic) (Layout t Expr  Dynamic)
+                                  , {- 36 -} App               (Layout t Expr  Dynamic)
+                                  , {- 37 -} Cons              (Layout t Expr  Dynamic)
+                                  , {- 38 -} Lam               (Layout t Expr  Dynamic)
+                                  , {- 39 -} Native            (Layout t Expr  Dynamic) (Layout t Expr  Dynamic)
                                   , {- 40 -} Blank
-                                  , {- 41 -} Unify      (Layout t Draft Static )
-                                  , {- 42 -} Sub        (Layout t Draft Static )
-                                  , {- 43 -} Acc   Str  (Layout t Draft Static )
-                                  , {- 44 -} App        (Layout t Draft Static )
-                                  , {- 45 -} Lam        (Layout t Draft Static )
-                                  , {- 46 -} Native Str (Layout t Draft Static )
-                                  , {- 47 -} Var        (Layout t Draft Dynamic)
-                                  , {- 48 -} Unify      (Layout t Draft Dynamic)
-                                  , {- 49 -} Sub        (Layout t Draft Dynamic)
-                                  , {- 50 -} Acc        (Layout t Draft Dynamic) (Layout t Draft Dynamic)
-                                  , {- 51 -} App        (Layout t Draft Dynamic)
-                                  , {- 52 -} Cons       (Layout t Draft Dynamic)
-                                  , {- 53 -} Lam        (Layout t Draft Dynamic)
-                                  , {- 54 -} Native     (Layout t Draft Dynamic) (Layout t Draft Dynamic)
+                                  , {- 41 -} Unify             (Layout t Draft Static )
+                                  , {- 42 -} Sub               (Layout t Draft Static )
+                                  , {- 43 -} Acc    Lit.String (Layout t Draft Static )
+                                  , {- 44 -} App               (Layout t Draft Static )
+                                  , {- 45 -} Lam               (Layout t Draft Static )
+                                  , {- 46 -} Native Lit.String (Layout t Draft Static )
+                                  , {- 47 -} Var               (Layout t Draft Dynamic)
+                                  , {- 48 -} Unify             (Layout t Draft Dynamic)
+                                  , {- 49 -} Sub               (Layout t Draft Dynamic)
+                                  , {- 50 -} Acc               (Layout t Draft Dynamic) (Layout t Draft Dynamic)
+                                  , {- 51 -} App               (Layout t Draft Dynamic)
+                                  , {- 52 -} Cons              (Layout t Draft Dynamic)
+                                  , {- 53 -} Lam               (Layout t Draft Dynamic)
+                                  , {- 54 -} Native            (Layout t Draft Dynamic) (Layout t Draft Dynamic)
                                   ]
 
 #ifndef CachedTypeFamilies
@@ -542,61 +540,61 @@ type instance Layout_Variants Variant (ASTRecord gs vs t d) = VariantList t
 -- === DecodeMap === --
 
 type DecodeMap_MANUAL_CACHE t =
-    'Map [ {-  0 -} '( Term t Lit   Static                                          ,  0 )
-         , {-  1 -} '( Term t Val   Static                                          ,  1 )
-         , {-  2 -} '( Term t Val   Dynamic                                         ,  2 )
-         , {-  3 -} '( Term t Thunk Static                                          ,  3 )
-         , {-  4 -} '( Term t Thunk Dynamic                                         ,  4 )
-         , {-  5 -} '( Term t Expr  Static                                          ,  5 )
-         , {-  6 -} '( Term t Expr  Dynamic                                         ,  6 )
-         , {-  7 -} '( Term t Draft Static                                          ,  7 )
-         , {-  8 -} '( Term t Draft Dynamic                                         ,  8 )
-         , {-  9 -} '( Star                                                         ,  9 )
-         , {- 10 -} '( Str                                                          , 10 )
-         , {- 11 -} '( Num                                                          , 11 )
-         , {- 12 -} '( Cons  Str                                                    , 12 )
-         , {- 13 -} '( Lam        (Layout t Val   Static )                          , 13 )
-         , {- 14 -} '( Cons       (Layout t Val   Dynamic)                          , 14 )
-         , {- 15 -} '( Lam        (Layout t Val   Dynamic)                          , 15 )
-         , {- 16 -} '( Acc   Str  (Layout t Thunk Static )                          , 16 )
-         , {- 17 -} '( App        (Layout t Thunk Static )                          , 17 )
-         , {- 18 -} '( Lam        (Layout t Thunk Static )                          , 18 )
-         , {- 19 -} '( Native Str (Layout t Thunk Static )                          , 19 )
-         , {- 20 -} '( Acc        (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , 20 )
-         , {- 21 -} '( App        (Layout t Thunk Dynamic)                          , 21 )
-         , {- 22 -} '( Cons       (Layout t Thunk Dynamic)                          , 22 )
-         , {- 23 -} '( Lam        (Layout t Thunk Dynamic)                          , 23 )
-         , {- 24 -} '( Native     (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , 24 )
-         , {- 25 -} '( Var   Str                                                    , 25 )
-         , {- 26 -} '( Unify      (Layout t Expr  Static )                          , 26 )
-         , {- 27 -} '( Sub        (Layout t Expr  Static )                          , 27 )
-         , {- 28 -} '( Acc   Str  (Layout t Expr  Static )                          , 28 )
-         , {- 29 -} '( App        (Layout t Expr  Static )                          , 29 )
-         , {- 30 -} '( Lam        (Layout t Expr  Static )                          , 30 )
-         , {- 31 -} '( Native Str (Layout t Expr  Static )                          , 31 )
-         , {- 32 -} '( Var        (Layout t Expr  Dynamic)                          , 32 )
-         , {- 33 -} '( Unify      (Layout t Expr  Dynamic)                          , 33 )
-         , {- 34 -} '( Sub        (Layout t Expr  Dynamic)                          , 34 )
-         , {- 35 -} '( Acc        (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , 35 )
-         , {- 36 -} '( App        (Layout t Expr  Dynamic)                          , 36 )
-         , {- 37 -} '( Cons       (Layout t Expr  Dynamic)                          , 37 )
-         , {- 38 -} '( Lam        (Layout t Expr  Dynamic)                          , 38 )
-         , {- 39 -} '( Native     (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , 39 )
-         , {- 40 -} '( Blank                                                        , 40 )
-         , {- 41 -} '( Unify      (Layout t Draft Static )                          , 41 )
-         , {- 42 -} '( Sub        (Layout t Draft Static )                          , 42 )
-         , {- 43 -} '( Acc   Str  (Layout t Draft Static )                          , 43 )
-         , {- 44 -} '( App        (Layout t Draft Static )                          , 44 )
-         , {- 45 -} '( Lam        (Layout t Draft Static )                          , 45 )
-         , {- 46 -} '( Native Str (Layout t Draft Static )                          , 46 )
-         , {- 47 -} '( Var        (Layout t Draft Dynamic)                          , 47 )
-         , {- 48 -} '( Unify      (Layout t Draft Dynamic)                          , 48 )
-         , {- 49 -} '( Sub        (Layout t Draft Dynamic)                          , 49 )
-         , {- 50 -} '( Acc        (Layout t Draft Dynamic) (Layout t Draft Dynamic) , 50 )
-         , {- 51 -} '( App        (Layout t Draft Dynamic)                          , 51 )
-         , {- 52 -} '( Cons       (Layout t Draft Dynamic)                          , 52 )
-         , {- 53 -} '( Lam        (Layout t Draft Dynamic)                          , 53 )
-         , {- 54 -} '( Native     (Layout t Draft Dynamic) (Layout t Draft Dynamic) , 54 )
+    'Map [ {-  0 -} '( Term t Lit   Static                                                 ,  0 )
+         , {-  1 -} '( Term t Val   Static                                                 ,  1 )
+         , {-  2 -} '( Term t Val   Dynamic                                                ,  2 )
+         , {-  3 -} '( Term t Thunk Static                                                 ,  3 )
+         , {-  4 -} '( Term t Thunk Dynamic                                                ,  4 )
+         , {-  5 -} '( Term t Expr  Static                                                 ,  5 )
+         , {-  6 -} '( Term t Expr  Dynamic                                                ,  6 )
+         , {-  7 -} '( Term t Draft Static                                                 ,  7 )
+         , {-  8 -} '( Term t Draft Dynamic                                                ,  8 )
+         , {-  9 -} '( Lit.Star                                                            ,  9 )
+         , {- 10 -} '( Lit.String                                                          , 10 )
+         , {- 11 -} '( Lit.Number                                                          , 11 )
+         , {- 12 -} '( Cons   Lit.String                                                   , 12 )
+         , {- 13 -} '( Lam               (Layout t Val   Static )                          , 13 )
+         , {- 14 -} '( Cons              (Layout t Val   Dynamic)                          , 14 )
+         , {- 15 -} '( Lam               (Layout t Val   Dynamic)                          , 15 )
+         , {- 16 -} '( Acc    Lit.String (Layout t Thunk Static )                          , 16 )
+         , {- 17 -} '( App               (Layout t Thunk Static )                          , 17 )
+         , {- 18 -} '( Lam               (Layout t Thunk Static )                          , 18 )
+         , {- 19 -} '( Native Lit.String (Layout t Thunk Static )                          , 19 )
+         , {- 20 -} '( Acc               (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , 20 )
+         , {- 21 -} '( App               (Layout t Thunk Dynamic)                          , 21 )
+         , {- 22 -} '( Cons              (Layout t Thunk Dynamic)                          , 22 )
+         , {- 23 -} '( Lam               (Layout t Thunk Dynamic)                          , 23 )
+         , {- 24 -} '( Native            (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , 24 )
+         , {- 25 -} '( Var    Lit.String                                                   , 25 )
+         , {- 26 -} '( Unify             (Layout t Expr  Static )                          , 26 )
+         , {- 27 -} '( Sub               (Layout t Expr  Static )                          , 27 )
+         , {- 28 -} '( Acc    Lit.String (Layout t Expr  Static )                          , 28 )
+         , {- 29 -} '( App               (Layout t Expr  Static )                          , 29 )
+         , {- 30 -} '( Lam               (Layout t Expr  Static )                          , 30 )
+         , {- 31 -} '( Native Lit.String (Layout t Expr  Static )                          , 31 )
+         , {- 32 -} '( Var               (Layout t Expr  Dynamic)                          , 32 )
+         , {- 33 -} '( Unify             (Layout t Expr  Dynamic)                          , 33 )
+         , {- 34 -} '( Sub               (Layout t Expr  Dynamic)                          , 34 )
+         , {- 35 -} '( Acc               (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , 35 )
+         , {- 36 -} '( App               (Layout t Expr  Dynamic)                          , 36 )
+         , {- 37 -} '( Cons              (Layout t Expr  Dynamic)                          , 37 )
+         , {- 38 -} '( Lam               (Layout t Expr  Dynamic)                          , 38 )
+         , {- 39 -} '( Native            (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , 39 )
+         , {- 40 -} '( Blank                                                               , 40 )
+         , {- 41 -} '( Unify             (Layout t Draft Static )                          , 41 )
+         , {- 42 -} '( Sub               (Layout t Draft Static )                          , 42 )
+         , {- 43 -} '( Acc    Lit.String (Layout t Draft Static )                          , 43 )
+         , {- 44 -} '( App               (Layout t Draft Static )                          , 44 )
+         , {- 45 -} '( Lam               (Layout t Draft Static )                          , 45 )
+         , {- 46 -} '( Native Lit.String (Layout t Draft Static )                          , 46 )
+         , {- 47 -} '( Var               (Layout t Draft Dynamic)                          , 47 )
+         , {- 48 -} '( Unify             (Layout t Draft Dynamic)                          , 48 )
+         , {- 49 -} '( Sub               (Layout t Draft Dynamic)                          , 49 )
+         , {- 50 -} '( Acc               (Layout t Draft Dynamic) (Layout t Draft Dynamic) , 50 )
+         , {- 51 -} '( App               (Layout t Draft Dynamic)                          , 51 )
+         , {- 52 -} '( Cons              (Layout t Draft Dynamic)                          , 52 )
+         , {- 53 -} '( Lam               (Layout t Draft Dynamic)                          , 53 )
+         , {- 54 -} '( Native            (Layout t Draft Dynamic) (Layout t Draft Dynamic) , 54 )
          ]
 
 #ifndef CachedTypeFamilies
@@ -619,52 +617,52 @@ type instance DecodeMap (ASTRecord gs vs t d) = DecodeMap_CACHE t
 -- === EncodeMap === --
 
 type EncodeMap_MANUAL_CACHE t =
-    'Map [ {-  9 -} '( Star                                                         , '[  9 , 0,1,2,3,4,5,6,7,8 ] )
-         , {- 10 -} '( Str                                                          , '[ 10 , 0,1,2,3,4,5,6,7,8 ] )
-         , {- 11 -} '( Num                                                          , '[ 11 , 0,1,2,3,4,5,6,7,8 ] )
-         , {- 12 -} '( Cons   Str                                                   , '[ 12 , 1,2,3,4,5,6,7,8   ] )
-         , {- 13 -} '( Lam        (Layout t Val   Static )                          , '[ 13 , 1,2,3,4,5,6,7,8   ] )
-         , {- 14 -} '( Cons       (Layout t Val   Dynamic)                          , '[ 14 , 2,4,6,8           ] )
-         , {- 15 -} '( Lam        (Layout t Val   Dynamic)                          , '[ 15 , 2,4,6,8           ] )
-         , {- 16 -} '( Acc    Str (Layout t Thunk Static )                          , '[ 16 , 3,4,5,6,7,8       ] )
-         , {- 17 -} '( App        (Layout t Thunk Static )                          , '[ 17 , 3,4,5,6,7,8       ] )
-         , {- 18 -} '( Lam        (Layout t Thunk Static )                          , '[ 18 , 3,4,5,6,7,8       ] )
-         , {- 19 -} '( Native Str (Layout t Thunk Static )                          , '[ 19 , 3,4,5,6,7,8       ] )
-         , {- 20 -} '( Acc        (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , '[ 20 , 4,6,8             ] )
-         , {- 21 -} '( App        (Layout t Thunk Dynamic)                          , '[ 21 , 4,6,8             ] )
-         , {- 22 -} '( Cons       (Layout t Thunk Dynamic)                          , '[ 22 , 4,6,8             ] )
-         , {- 23 -} '( Lam        (Layout t Thunk Dynamic)                          , '[ 23 , 4,6,8             ] )
-         , {- 24 -} '( Native     (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , '[ 24 , 4,6,8             ] )
-         , {- 25 -} '( Var    Str                                                   , '[ 25 , 5,6,7,8           ] )
-         , {- 26 -} '( Unify      (Layout t Expr  Static )                          , '[ 26 , 5,6,7,8           ] )
-         , {- 27 -} '( Sub        (Layout t Expr  Static )                          , '[ 27 , 5,6,7,8           ] )
-         , {- 28 -} '( Acc    Str (Layout t Expr  Static )                          , '[ 28 , 5,6,7,8           ] )
-         , {- 29 -} '( App        (Layout t Expr  Static )                          , '[ 29 , 5,6,7,8           ] )
-         , {- 30 -} '( Lam        (Layout t Expr  Static )                          , '[ 30 , 5,6,7,8           ] )
-         , {- 31 -} '( Native Str (Layout t Expr  Static )                          , '[ 31 , 5,6,7,8           ] )
-         , {- 32 -} '( Var        (Layout t Expr  Dynamic)                          , '[ 32 , 6,8               ] )
-         , {- 33 -} '( Unify      (Layout t Expr  Dynamic)                          , '[ 33 , 6,8               ] )
-         , {- 34 -} '( Sub        (Layout t Expr  Dynamic)                          , '[ 34 , 6,8               ] )
-         , {- 35 -} '( Acc        (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , '[ 35 , 6,8               ] )
-         , {- 36 -} '( App        (Layout t Expr  Dynamic)                          , '[ 36 , 6,8               ] )
-         , {- 37 -} '( Cons       (Layout t Expr  Dynamic)                          , '[ 37 , 6,8               ] )
-         , {- 38 -} '( Lam        (Layout t Expr  Dynamic)                          , '[ 38 , 6,8               ] )
-         , {- 39 -} '( Native     (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , '[ 39 , 6,8               ] )
-         , {- 40 -} '( Blank                                                        , '[ 40 , 7,8               ] )
-         , {- 41 -} '( Unify      (Layout t Draft Static )                          , '[ 41 , 7,8               ] )
-         , {- 42 -} '( Sub        (Layout t Draft Static )                          , '[ 42 , 7,8               ] )
-         , {- 43 -} '( Acc    Str (Layout t Draft Static )                          , '[ 43 , 7,8               ] )
-         , {- 44 -} '( App        (Layout t Draft Static )                          , '[ 44 , 7,8               ] )
-         , {- 45 -} '( Lam        (Layout t Draft Static )                          , '[ 45 , 7,8               ] )
-         , {- 46 -} '( Native Str (Layout t Draft Static )                          , '[ 46 , 7,8               ] )
-         , {- 47 -} '( Var        (Layout t Draft Dynamic)                          , '[ 47 , 8                 ] )
-         , {- 48 -} '( Unify      (Layout t Draft Dynamic)                          , '[ 48 , 8                 ] )
-         , {- 49 -} '( Sub        (Layout t Draft Dynamic)                          , '[ 49 , 8                 ] )
-         , {- 50 -} '( Acc        (Layout t Draft Dynamic) (Layout t Draft Dynamic) , '[ 50 , 8                 ] )
-         , {- 51 -} '( App        (Layout t Draft Dynamic)                          , '[ 51 , 8                 ] )
-         , {- 52 -} '( Cons       (Layout t Draft Dynamic)                          , '[ 52 , 8                 ] )
-         , {- 53 -} '( Lam        (Layout t Draft Dynamic)                          , '[ 53 , 8                 ] )
-         , {- 54 -} '( Native     (Layout t Draft Dynamic) (Layout t Draft Dynamic) , '[ 54 , 8                 ] )
+    'Map [ {-  9 -} '( Lit.Star                                                            , '[  9 , 0,1,2,3,4,5,6,7,8 ] )
+         , {- 10 -} '( Lit.String                                                          , '[ 10 , 0,1,2,3,4,5,6,7,8 ] )
+         , {- 11 -} '( Lit.Number                                                          , '[ 11 , 0,1,2,3,4,5,6,7,8 ] )
+         , {- 12 -} '( Cons   Lit.String                                                   , '[ 12 , 1,2,3,4,5,6,7,8   ] )
+         , {- 13 -} '( Lam               (Layout t Val   Static )                          , '[ 13 , 1,2,3,4,5,6,7,8   ] )
+         , {- 14 -} '( Cons              (Layout t Val   Dynamic)                          , '[ 14 , 2,4,6,8           ] )
+         , {- 15 -} '( Lam               (Layout t Val   Dynamic)                          , '[ 15 , 2,4,6,8           ] )
+         , {- 16 -} '( Acc    Lit.String (Layout t Thunk Static )                          , '[ 16 , 3,4,5,6,7,8       ] )
+         , {- 17 -} '( App               (Layout t Thunk Static )                          , '[ 17 , 3,4,5,6,7,8       ] )
+         , {- 18 -} '( Lam               (Layout t Thunk Static )                          , '[ 18 , 3,4,5,6,7,8       ] )
+         , {- 19 -} '( Native Lit.String (Layout t Thunk Static )                          , '[ 19 , 3,4,5,6,7,8       ] )
+         , {- 20 -} '( Acc               (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , '[ 20 , 4,6,8             ] )
+         , {- 21 -} '( App               (Layout t Thunk Dynamic)                          , '[ 21 , 4,6,8             ] )
+         , {- 22 -} '( Cons              (Layout t Thunk Dynamic)                          , '[ 22 , 4,6,8             ] )
+         , {- 23 -} '( Lam               (Layout t Thunk Dynamic)                          , '[ 23 , 4,6,8             ] )
+         , {- 24 -} '( Native            (Layout t Thunk Dynamic) (Layout t Thunk Dynamic) , '[ 24 , 4,6,8             ] )
+         , {- 25 -} '( Var    Lit.String                                                   , '[ 25 , 5,6,7,8           ] )
+         , {- 26 -} '( Unify             (Layout t Expr  Static )                          , '[ 26 , 5,6,7,8           ] )
+         , {- 27 -} '( Sub               (Layout t Expr  Static )                          , '[ 27 , 5,6,7,8           ] )
+         , {- 28 -} '( Acc    Lit.String (Layout t Expr  Static )                          , '[ 28 , 5,6,7,8           ] )
+         , {- 29 -} '( App               (Layout t Expr  Static )                          , '[ 29 , 5,6,7,8           ] )
+         , {- 30 -} '( Lam               (Layout t Expr  Static )                          , '[ 30 , 5,6,7,8           ] )
+         , {- 31 -} '( Native Lit.String (Layout t Expr  Static )                          , '[ 31 , 5,6,7,8           ] )
+         , {- 32 -} '( Var               (Layout t Expr  Dynamic)                          , '[ 32 , 6,8               ] )
+         , {- 33 -} '( Unify             (Layout t Expr  Dynamic)                          , '[ 33 , 6,8               ] )
+         , {- 34 -} '( Sub               (Layout t Expr  Dynamic)                          , '[ 34 , 6,8               ] )
+         , {- 35 -} '( Acc               (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , '[ 35 , 6,8               ] )
+         , {- 36 -} '( App               (Layout t Expr  Dynamic)                          , '[ 36 , 6,8               ] )
+         , {- 37 -} '( Cons              (Layout t Expr  Dynamic)                          , '[ 37 , 6,8               ] )
+         , {- 38 -} '( Lam               (Layout t Expr  Dynamic)                          , '[ 38 , 6,8               ] )
+         , {- 39 -} '( Native            (Layout t Expr  Dynamic) (Layout t Expr  Dynamic) , '[ 39 , 6,8               ] )
+         , {- 40 -} '( Blank                                                               , '[ 40 , 7,8               ] )
+         , {- 41 -} '( Unify             (Layout t Draft Static )                          , '[ 41 , 7,8               ] )
+         , {- 42 -} '( Sub               (Layout t Draft Static )                          , '[ 42 , 7,8               ] )
+         , {- 43 -} '( Acc    Lit.String (Layout t Draft Static )                          , '[ 43 , 7,8               ] )
+         , {- 44 -} '( App               (Layout t Draft Static )                          , '[ 44 , 7,8               ] )
+         , {- 45 -} '( Lam               (Layout t Draft Static )                          , '[ 45 , 7,8               ] )
+         , {- 46 -} '( Native Lit.String (Layout t Draft Static )                          , '[ 46 , 7,8               ] )
+         , {- 47 -} '( Var               (Layout t Draft Dynamic)                          , '[ 47 , 8                 ] )
+         , {- 48 -} '( Unify             (Layout t Draft Dynamic)                          , '[ 48 , 8                 ] )
+         , {- 49 -} '( Sub               (Layout t Draft Dynamic)                          , '[ 49 , 8                 ] )
+         , {- 50 -} '( Acc               (Layout t Draft Dynamic) (Layout t Draft Dynamic) , '[ 50 , 8                 ] )
+         , {- 51 -} '( App               (Layout t Draft Dynamic)                          , '[ 51 , 8                 ] )
+         , {- 52 -} '( Cons              (Layout t Draft Dynamic)                          , '[ 52 , 8                 ] )
+         , {- 53 -} '( Lam               (Layout t Draft Dynamic)                          , '[ 53 , 8                 ] )
+         , {- 54 -} '( Native            (Layout t Draft Dynamic) (Layout t Draft Dynamic) , '[ 54 , 8                 ] )
          ]
 
 #ifndef CachedTypeFamilies

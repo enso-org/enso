@@ -24,12 +24,13 @@ import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterDat
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            (Lam, Acc (..), App (..), Native (..), Blank (..), Num (..), Str (..), Unify (..), Var (..))
+import           Luna.Syntax.AST.Term                            (Lam, Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..))
 import           Luna.Syntax.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
+import qualified Luna.Syntax.AST.Lit                             as Lit
 
 import           Type.Inference
 
@@ -169,10 +170,10 @@ evaluateNode ref = do
         match $ \(App f args) -> do
             funRep       <- follow source f
             unpackedArgs <- unpackArguments args
-            funNode <- read funRep
-            name <- caseTest (uncover funNode) $ do
-                match $ \(Str name) -> return name
-                match $ \ANY        -> error "Function name is not string"
+            funNode      <- read funRep
+            name         <- caseTest (uncover funNode) $ do
+                match $ \(Lit.String name) -> return name
+                match $ \ANY               -> error "Function name is not a string"
             putStrLn $ "App " <> show funRep <> " (" <> name <> ") " <> show unpackedArgs
             values <- argumentsValues unpackedArgs
             return ()
@@ -180,7 +181,7 @@ evaluateNode ref = do
             -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
             let tpString = "Int -> Int -> Int"
             -- args :: _
-            let (Str name) = nameStr
+            let name = unwrap' nameStr
             args   <- mapM (follow source) argsEdges
             values <- argumentsValues args
             putStrLn $ "Native " <> name <> " " <> show values
@@ -196,11 +197,11 @@ evaluateNode ref = do
             return ()
             -- GHC.Prim.Any
         match $ \Blank        -> return ()
-        match $ \(Str str)    -> do
+        match $ \(Lit.String str)    -> do
             setValue (-1) ref
             -- putStrLn "string"
-        match $ \(Num num)    -> setValue num ref
-        match $ \ANY          -> return ()
+        match $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
+        match $ \ANY                -> return ()
     return ()
 
 evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()

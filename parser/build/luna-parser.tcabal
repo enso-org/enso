@@ -59,6 +59,7 @@ Library
                  , ansi-wl-pprint
                  , text
                  , container
+                 , exceptions
 
 
 Executable luna-parser-test

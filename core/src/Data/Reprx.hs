@@ -46,10 +46,12 @@ reprSimple = reprStyled SimpleStyle
 
 showRepr = fromString . show
 
-instance Repr s String where repr = showRepr
-instance Repr s Int    where repr = showRepr
-instance Repr s Float  where repr = showRepr
-instance Repr s Double where repr = showRepr
+instance Repr s String   where repr = showRepr
+instance Repr s Rational where repr = showRepr
+instance Repr s Integer  where repr = showRepr
+instance Repr s Int      where repr = showRepr
+instance Repr s Float    where repr = showRepr
+instance Repr s Double   where repr = showRepr
 
 instance Repr s a => Repr s (Maybe a) where
     repr = \case

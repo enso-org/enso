@@ -31,6 +31,7 @@ import           Data.Map (Map)
 
 import qualified Luna.Library.Symbol.QualPath     as QualPath
 import qualified Luna.Syntax.AST.Decl.Function    as Function
+import qualified Luna.Syntax.AST.Lit              as Lit
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
@@ -77,17 +78,17 @@ getTypeName ref = do
     tpRef <- follow source $ node # Type
     tp    <- read tpRef
     caseTest (uncover tp) $ do
-        match $ \(Cons (Str n)) -> return n
-        match $ \ANY -> throwError AmbiguousNodeType
+        match $ \(Cons (Lit.String s)) -> return s
+        match $ \ANY                   -> throwError AmbiguousNodeType
 
 getFunctionName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getFunctionName ref = do
     node <- read ref
     caseTest (uncover node) $ do
-        match $ \(Acc (Str n) t) -> do
+        match $ \(Acc name t) -> do
             tpName <- getTypeName =<< follow source t
-            return $ tpName <> "." <> n
-        match $ \(Var (Str n)) -> return n
+            return $ tpName <> "." <> unwrap' name
+        match $ \(Var name) -> return $ unwrap' name
         match $ \ANY -> throwError NotABindingNode
 
 funLookup :: PassCtx(m) => String -> ImportErrorT m (Function node graph)

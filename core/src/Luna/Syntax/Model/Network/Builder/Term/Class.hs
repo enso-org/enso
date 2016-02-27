@@ -31,6 +31,7 @@ import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
+import qualified Luna.Syntax.AST.Lit                     as Lit
 import           Type.Bool
 
 import Data.Graph.Backend.VectorGraph
@@ -87,22 +88,25 @@ arg = Arg Nothing
 
 -- === Lit === --
 
-type instance BuildArgs Star n = ()
-type instance BuildArgs Str  n = OneTuple String
-type instance BuildArgs Num  n = OneTuple Int
+type instance BuildArgs Lit.Star   n = ()
+type instance BuildArgs Lit.String n = OneTuple Lit.String
+type instance BuildArgs Lit.Number n = OneTuple Lit.Number
 
-instance ElemBuilder Star m a => TermBuilder Star m a where buildTerm p ()           = buildElem Star
-instance ElemBuilder Str  m a => TermBuilder Str  m a where buildTerm p (OneTuple s) = buildElem $ Str s
-instance ElemBuilder Num  m a => TermBuilder Num  m a where buildTerm p (OneTuple s) = buildElem $ Num s
+instance ElemBuilder Lit.Star   m a => TermBuilder Lit.Star   m a where buildTerm p ()           = buildElem Lit.Star
+instance ElemBuilder Lit.String m a => TermBuilder Lit.String m a where buildTerm p (OneTuple s) = buildElem s
+instance ElemBuilder Lit.Number m a => TermBuilder Lit.Number m a where buildTerm p (OneTuple s) = buildElem s
 
-star :: TermBuilder Star m a => m a
-star = curryN $ buildTerm (Proxy :: Proxy Star)
+star :: TermBuilder Lit.Star m a => m a
+star = curryN $ buildTerm (Proxy :: Proxy Lit.Star)
 
-str :: TermBuilder Str m a => String -> m a
-str = curryN $ buildTerm (Proxy :: Proxy Str)
+str :: TermBuilder Lit.String m a => String -> m a
+str = (curryN $ buildTerm (Proxy :: Proxy Lit.String)) ∘ Lit.String
 
-int :: TermBuilder Num m a => Int -> m a
-int = curryN $ buildTerm (Proxy :: Proxy Num)
+ratio :: TermBuilder Lit.Number m a => Rational -> m a
+ratio = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
+
+int :: TermBuilder Lit.Number m a => Integer -> m a
+int = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
 
 
 -- === Val === --
@@ -321,7 +325,7 @@ instance {-# OVERLAPPABLE #-}
 -- FIXME[WD]: inputs should be more general and should be refactored out
 inputstmp :: forall layout term rt x.
       (MapTryingElemList_
-                            (Elems term (ByRuntime rt Str x) x)
+                            (Elems term (ByRuntime rt Lit.String x) x)
                             (TFoldable x)
                             (Term layout term rt), x ~ Layout layout term rt) => Term layout term rt -> [x]
 inputstmp a = withElement_ (p :: P (TFoldable x)) (foldrT (:) []) a
@@ -332,7 +336,7 @@ type instance Prop Inputs (Term layout term rt) = [Layout layout term rt]
 instance (MapTryingElemList_
                            (Elems
                               term
-                              (ByRuntime rt Str (Layout layout term rt))
+                              (ByRuntime rt Lit.String (Layout layout term rt))
                               (Layout layout term rt))
                            (TFoldable (Layout layout term rt))
                            (Term layout term rt)) => Getter Inputs (Term layout term rt) where getter _ = inputstmp

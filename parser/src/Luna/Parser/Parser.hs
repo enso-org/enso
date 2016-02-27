@@ -30,8 +30,8 @@ import qualified Text.Trifecta.Parser as Trifecta
 import qualified Luna.Parser.State  as ParserState
 import           Luna.Parser.State  (ParserState)
 import qualified Luna.Parser.Token  as Tok
---import           Luna.Parser.Indent (IndentStateT)
---import qualified Luna.Parser.Indent as Indent
+import           Luna.Parser.Indent (IndentT)
+import qualified Luna.Parser.Indent as Indent
 
 import qualified Data.List as List
 
@@ -56,15 +56,15 @@ import Control.Monad.State (StateT)
 
 --parserName = "Luna Compiler"
 
---run :: Monad m => IndentStateT Indent.State (StateT s m) a -> s -> m a
---run p st = evalStateT (Indent.parser p) st
+run :: Monad m => IndentT (StateT s m) a -> s -> m a
+run p st = evalStateT (Indent.evalT' p) st
 ----run p st = fmap fst $ Pragma.runT (evalStateT (Indent.parser p) st) mempty
 
 --handleResult r = case r of
 --    Failure e -> Left e
 --    Success a -> Right a
 
---bundleResult p = (,) <$> p <*> get
+bundleResult p = (,) <$> p <*> get
 
 --end = (Tok.spaces <?> "") <* (eof <?> "")
 
@@ -94,7 +94,7 @@ import Control.Monad.State (StateT)
 ---- Section parsing
 -------------------------------------------------------------
 ---- Usage example: parseExpr (fileFeed "test.txt")
---parseGen p st = run (bundleResult (Module.unit p)) st
+parseGen p st = run (bundleResult p) st -- TU BYL `(Module.unit p)` zamiast `p`
 --parseGen2 p st = run (bundleResult p) st
 
 ----moduleParser modPath = parseGen (upToEnd $ func)

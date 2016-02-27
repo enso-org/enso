@@ -23,13 +23,13 @@ import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Type.Inference
+import Data.Graph.Backend.VectorGraph               as Graph
 
 import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import Data.Graph.Backend.VectorGraph                   as Graph
-
+import qualified Luna.Syntax.AST.Lit                    as Lit
 
 
 import Control.Monad.Fix
@@ -131,7 +131,7 @@ resolveUnify uni = do
           resolveStar uni a b = do
               uni' <- read uni
               a'   <- read (a :: nodeRef)
-              whenMatched (uncover a') $ \Star -> do
+              whenMatched (uncover a') $ \Lit.Star -> do
                   replaceNode uni b
                   resolve_
 

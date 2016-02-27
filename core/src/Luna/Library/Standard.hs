@@ -23,19 +23,19 @@ import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, Network
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Data.Map as Map
-
+import qualified Luna.Syntax.AST.Lit              as Lit
+import qualified Data.Map                         as Map
 import qualified Luna.Library.Symbol.QualPath     as QualPath
 import qualified Luna.Syntax.AST.Decl.Function    as Function
 
-#define FunBuilderCtx(m) ( n ~ (NetLayers a :<: Draft Static)             \
-                         , nodeRef ~ Ref Node n                          \
-                         , TermNode Cons   m n                           \
-                         , TermNode Blank  m n                           \
-                         , TermNode Native m n                           \
-                         , TermNode Star   m n                           \
-                         , TermNode Lam    m n                           \
-                         , TermNode Var    m n                           \
+#define FunBuilderCtx(m) ( n ~ (NetLayers a :<: Draft Static)            \
+                         , nodeRef ~ Ref Node  n                         \
+                         , TermNode Cons     m n                         \
+                         , TermNode Blank    m n                         \
+                         , TermNode Native   m n                         \
+                         , TermNode Lit.Star m n                         \
+                         , TermNode Lam      m n                         \
+                         , TermNode Var      m n                         \
                          , MonadFix m                                    \
                          , NetworkBuilderT (NetGraph a) m Identity       \
                          , MonadBuilder (NetGraph a) m                   \

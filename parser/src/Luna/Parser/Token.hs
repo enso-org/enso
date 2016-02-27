@@ -18,7 +18,7 @@ module Luna.Parser.Token where
 --import Text.Parser.Combinators
 --import Text.Parser.Token.Highlight hiding (Comment)
 --import Text.Parser.Token hiding (symbol, symbolic, ident)
---import Prologue as P hiding (op, noneOf, lex, use)
+--import Prelude.Luna as P hiding (op, noneOf, lex, use)
 --import qualified Luna.Syntax.Lit.Number as Number
 
 --import qualified Luna.Parser.Indent as Indent

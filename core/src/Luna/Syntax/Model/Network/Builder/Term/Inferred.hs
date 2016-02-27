@@ -8,10 +8,10 @@ import Prelude.Luna hiding (Num)
 import           Type.Inference
 import           Luna.Syntax.AST.Arg
 import           Luna.Syntax.AST.Term
-import           Data.Graph                                  (ELEMENT(..))
+import           Data.Graph                                   (ELEMENT(..))
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)
-
+import qualified Luna.Syntax.AST.Lit                          as Lit
 
 ---------------------
 -- === Helpers === --
@@ -36,13 +36,16 @@ inferNodeM = inferM ELEMENT
 
 -- === Lit === --
 
-starAs :: TermBuilderAs t Star m a => t -> m a
+starAs :: TermBuilderAs t Lit.Star m a => t -> m a
 starAs t = inferM t Term.star
 
-strAs :: TermBuilderAs t Str m a => t -> String -> m a
+strAs :: TermBuilderAs t Lit.String m a => t -> String -> m a
 strAs t = inferM t ∘ Term.str
 
-intAs :: TermBuilderAs t Num m a => t -> Int -> m a
+ratioAs :: TermBuilderAs t Lit.Number m a => t -> Rational -> m a
+ratioAs t = inferM t ∘ Term.ratio
+
+intAs :: TermBuilderAs t Lit.Number m a => t -> Integer -> m a
 intAs t = inferM t ∘ Term.int
 
 
@@ -89,13 +92,15 @@ blankAs t = inferM t Term.blank
 
 -- === Lit === --
 
-star :: TermBuilder Star m a => m a
-str  :: TermBuilder Str  m a => String -> m a
-int  :: TermBuilder Num  m a => Int -> m a
+star  :: TermBuilder Lit.Star   m a => m a
+str   :: TermBuilder Lit.String m a => String   -> m a
+ratio :: TermBuilder Lit.Number m a => Rational -> m a
+int   :: TermBuilder Lit.Number m a => Integer  -> m a
 
-star   = starAs ELEMENT
-str    = strAs  ELEMENT
-int    = intAs  ELEMENT
+star  = starAs  ELEMENT
+str   = strAs   ELEMENT
+ratio = ratioAs ELEMENT
+int   = intAs   ELEMENT
 
 -- === Val === --
 

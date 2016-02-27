@@ -14,7 +14,8 @@ import           Type.Inference
 
 import           Luna.Diagnostic.Vis.GraphViz
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            (Lam, Str(..), Num(..), Cons)
+import           Luna.Syntax.AST.Term                            (Lam, Cons)
+import qualified Luna.Syntax.AST.Lit                             as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
@@ -43,12 +44,12 @@ collectLiterals :: PassCtx(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node
 collectLiterals ref = do
     prev  <- pre ref
     lists <- mapM collectLiterals prev
-    let list = join lists
-    node <- read ref
-    caseTest (uncover node) $ do
-        match $ \(Str str) -> return $ ref : list
-        match $ \(Num num) -> return $ ref : list
-        match $ \ANY       -> return list
+    node  <- read ref
+    return $ caseTest (uncover node) $ do
+        let list = join lists
+        match $ \(Lit.String {}) -> ref : list
+        match $ \(Lit.Number {}) -> ref : list
+        match $ \ANY             -> list
 
 run :: PassCtx(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node (ls :<: term)]
 run root = collectLiterals root

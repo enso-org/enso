@@ -9,42 +9,117 @@
 
 module Luna.Parser.Indent where
 
---import Control.Lens
---import Data.Default
---import GHC.Int
---import Prelude
+import Control.Lens
+import GHC.Int
+import Prelude.Luna
 
---import           Control.Applicative
---import           Control.Monad
---import           Control.Monad.Trans
---import qualified Control.Monad.State       as State
---import           Control.Monad.State (MonadState)
---import           Text.Parser.Char
---import           Text.Parser.Combinators
---import           Text.Parser.Token
---import           Text.Trifecta.Combinators
---import           Text.Trifecta.Delta (column)
---import           Text.Parser.LookAhead
+import           Control.Monad.Catch       (MonadMask, MonadCatch, MonadThrow)
+import qualified Control.Monad.State       (State)
+import qualified Control.Monad.State       as State
+import           Control.Monad.State       (MonadState)
+import           Text.Parser.Char
+import           Text.Parser.Combinators
+import           Text.Parser.Token
+import           Text.Trifecta.Combinators
+import           Text.Trifecta.Delta       (column)
+import           Text.Parser.LookAhead
 
 
-------------------------------------------------------------------------
----- Inner state
-------------------------------------------------------------------------
+-------------------------
+-- === IndentState === --
+-------------------------
 
---data State = State { _col :: Int64, _stack :: [Int64] } deriving Show
+data IndentState = IndentState { _col :: Int64, _blocks :: [Int64] } deriving (Show)
 
---makeLenses ''State
+makeLenses ''IndentState
 
 
-------------------------------------------------------------------------
----- Utils
-------------------------------------------------------------------------
 
---parser p = evalIndentStateT p (def :: State)
+---- TODO: template haskellize
+---- >->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
 
---evalIndentStateT m s = do
---    ~(a, _) <- runIndentStateT m s
---    return a
+-- === Declarations === --
+
+type    Indent      = IndentT Identity
+newtype IndentT m a = IndentT (State.StateT IndentState m a)
+                              deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, MonadTrans
+                                       , Alternative, MonadFix, MonadMask, MonadCatch, MonadThrow)
+
+makeWrapped ''IndentT
+
+
+-- === Utils === --
+
+runT  ::            IndentT m a -> IndentState -> m (a, IndentState)
+evalT :: Monad m => IndentT m a -> IndentState -> m a
+execT :: Monad m => IndentT m a -> IndentState -> m IndentState
+
+runT  = State.runStateT  . unwrap' ; {-# INLINE runT  #-}
+evalT = State.evalStateT . unwrap' ; {-# INLINE evalT #-}
+execT = State.execStateT . unwrap' ; {-# INLINE execT #-}
+
+run  :: Indent a -> IndentState -> (a, IndentState)
+eval :: Indent a -> IndentState -> a
+exec :: Indent a -> IndentState -> IndentState
+
+run   = runIdentity .: runT  ; {-# INLINE run  #-}
+eval  = runIdentity .: evalT ; {-# INLINE eval #-}
+exec  = runIdentity .: execT ; {-# INLINE exec #-}
+
+with :: MonadIndent m => (IndentState -> IndentState) -> m a -> m a
+with f m = do
+    s <- get
+    put $ f s
+    out <- m
+    put s
+    return out
+{-# INLINE with #-}
+
+modify :: MonadIndent m => (IndentState -> (a, IndentState)) -> m a
+modify = modifyM . fmap return
+{-# INLINE modify #-}
+
+modifyM :: MonadIndent m => (IndentState -> m (a, IndentState)) -> m a
+modifyM f = do
+    s <- get
+    (a, s') <- f s
+    put $ s'
+    return a
+{-# INLINE modifyM #-}
+
+modify_ :: MonadIndent m => (IndentState -> IndentState) -> m ()
+modify_ = modify . fmap ((),)
+{-# INLINE modify_ #-}
+
+
+-- === Instances === --
+
+class Monad m => MonadIndent m where
+    get :: m IndentState
+    put :: IndentState -> m ()
+
+instance Monad m => MonadIndent (IndentT m) where
+    get = IndentT   State.get ; {-# INLINE get #-}
+    put = IndentT . State.put ; {-# INLINE put #-}
+
+instance State.MonadState s m => State.MonadState s (IndentT m) where
+    get = IndentT $ lift   State.get ; {-# INLINE get #-}
+    put = IndentT . lift . State.put ; {-# INLINE put #-}
+
+instance {-# OVERLAPPABLE #-} (MonadIndent m, MonadTrans t, Monad (t m)) => MonadIndent (t m) where
+    get = lift get   ; {-# INLINE get #-}
+    put = lift . put ; {-# INLINE put #-}
+
+-- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
+
+
+
+
+-- === Utils === --
+
+
+evalT' :: Monad m => IndentT m a -> m a
+evalT' = flip evalT def
 
 
 ----with f m = do
@@ -140,10 +215,14 @@ module Luna.Parser.Indent where
 
 --type MonadIndent m = MonadIndentState State m
 
-------------------------------------------------------------------------
----- Instances
-------------------------------------------------------------------------
 
---instance Default State where
---    def = State 0 def
+
+-- === Instances === --
+
+instance Default IndentState where
+    def = IndentState 0 def
+
+
+
+
 

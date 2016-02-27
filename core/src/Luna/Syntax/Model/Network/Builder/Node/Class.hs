@@ -16,7 +16,7 @@ import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term
 import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder)
 import           Type.Inference
-
+import qualified Luna.Syntax.AST.Lit                     as Lit
 
 
 -- === Types === --
@@ -41,7 +41,7 @@ type TermCtx m node = ( NodeLinkable   m node
                       , IsString (NameInput (Ref Node node))
                       )
 
-type LitLike a = ( Matches (Uncovered a) '[ANY, Star, Str, Term.Num], Covered a)
+type LitLike a = ( Matches (Uncovered a) '[ANY, Lit.Star, Lit.String, Lit.Number], Covered a)
 
 
 
@@ -52,13 +52,16 @@ node = id ; {-# INLINE node #-}
 
 --
 
-star :: NodeBuilder Star m (ls :<: term) => m (Ref Node $ ls :<: term)
+star :: NodeBuilder Lit.Star m (ls :<: term) => m (Ref Node $ ls :<: term)
 star  = node Term.star
 
-str :: NodeBuilder Str m (ls :<: term) => String -> m (Ref Node $ ls :<: term)
+str :: NodeBuilder Lit.String m (ls :<: term) => String -> m (Ref Node $ ls :<: term)
 str   = node ∘ Term.str
 
-int :: NodeBuilder Term.Num m (ls :<: term) => Int -> m (Ref Node $ ls :<: term)
+ratio :: NodeBuilder Lit.Number m (ls :<: term) => Rational -> m (Ref Node $ ls :<: term)
+ratio = node ∘ Term.ratio
+
+int :: NodeBuilder Lit.Number m (ls :<: term) => Integer -> m (Ref Node $ ls :<: term)
 int = node ∘ Term.int
 
 cons :: NodeBuilder Cons m (ls :<: term) => NameInput (Ref Node $ ls :<: term) -> m (Ref Node $ ls :<: term)

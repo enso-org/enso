@@ -16,6 +16,7 @@ import           Data.Graph.Backend.VectorGraph                  as Graph
 import           Luna.Diagnostic.Vis.GraphViz
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
 import           Luna.Syntax.AST.Term                            hiding (source)
+import qualified Luna.Syntax.AST.Lit                             as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
@@ -49,9 +50,9 @@ assignLiteralType consIntRef consStrRef ref = do
     node <- read ref
     caseTest (uncover node) $ do
         let process = void ∘ reconnect (prop Type) ref
-        match $ \(Str str) -> process consStrRef
-        match $ \(Num num) -> process consIntRef
-        match $ \ANY       -> return ()
+        match $ \(Lit.String {}) -> process consStrRef
+        match $ \(Lit.Number {}) -> process consIntRef
+        match $ \ANY             -> return ()
 
 createLiteralTypes :: PassCtx(m, ls, term) => m (Ref Node (ls :<: term), Ref Node (ls :<: term))
 createLiteralTypes = do
