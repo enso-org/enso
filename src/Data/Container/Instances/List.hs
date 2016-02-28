@@ -28,13 +28,13 @@ type instance Container [a] = [a]
 type instance DataStore [a] = [a]
 
 instance Monad m => IsContainerM  m [a] where
-    fromContainerM = return
+    fromContainerM = return       ; {-# INLINE fromContainerM #-}
 instance Monad m => HasContainerM m [a] where
-    viewContainerM = return
-    setContainerM  = const.return
+    viewContainerM = return       ; {-# INLINE viewContainerM #-}
+    setContainerM  = const.return ; {-# INLINE setContainerM  #-}
 
-instance ToList   [a] where toList = id
-instance FromList [a] where fromList = id
+instance ToList   [a] where toList = id   ; {-# INLINE toList   #-}
+instance FromList [a] where fromList = id ; {-# INLINE fromList #-}
 
 ----------------------------------
 -- === Operations instances === --
@@ -56,13 +56,13 @@ type instance ParamsOf MaxBoundedOp [a] = '[]
 type instance ModsOf   MaxBoundedOp [a] = '[]
 
 instance Monad m => MeasurableQM_ '[] '[] m [a] where
-    sizeM_ _ = return . Res () . length
+    sizeM_ _ = return . Res () . length ; {-# INLINE sizeM_ #-}
 
 instance (Monad m, idx ~ Int) => MinBoundedQM_ '[] '[] m idx [a] where
-    minBoundM_ _ _ = return $ Res () 0
+    minBoundM_ _ _ = return $ Res () 0  ; {-# INLINE minBoundM_ #-}
 
 instance (Monad m, idx ~ Int) => MaxBoundedQM_ '[] '[] m idx [a] where
-    maxBoundM_ _ = return . Res () . pred . length
+    maxBoundM_ _ = return . Res () . pred . length ; {-# INLINE maxBoundM_ #-}
 
 -- === Construction ===
 
@@ -75,7 +75,7 @@ type instance ParamsOf SingletonOp [a] = '[]
 type instance ModsOf   SingletonOp [a] = '[Ixed]
 
 instance (Monad m, a ~ a') => SingletonQM_ '[N] '[] m a' [a] where
-    singletonM_ _ = return . Res () . (: [])
+    singletonM_ _ = return . Res () . (: []) ; {-# INLINE singletonM_ #-}
 
 
 -- === Modification ===
@@ -102,16 +102,22 @@ type instance ParamsOf InsertableOp  [a] = '[Try]
 type instance ModsOf   InsertableOp  [a] = '[Ixed]
 
 
-instance (Monad m, a ~ a') => AppendableQM_ '[N     ] ps m a' [a] where appendM_ _ el l = return . Res ()             $ l ++ [el]
-instance (Monad m, a ~ a') => AppendableQM_ '[P Ixed] ps m a' [a] where appendM_ _ el l = return . Res (length l, ()) $ l ++ [el]
+instance (Monad m, a ~ a') => AppendableQM_ '[N     ] ps m a' [a] where
+    appendM_ _ el l = return . Res ()             $ l ++ [el] ; {-# INLINE appendM_ #-}
+instance (Monad m, a ~ a') => AppendableQM_ '[P Ixed] ps m a' [a] where
+    appendM_ _ el l = return . Res (length l, ()) $ l ++ [el] ; {-# INLINE appendM_ #-}
 
 
-instance (Monad m, a ~ a') => PrependableQM_ '[N     ] ps m a' [a] where prependM_ _ = return . Res ()      .: (:)
-instance (Monad m, a ~ a') => PrependableQM_ '[P Ixed] ps m a' [a] where prependM_ _ = return . Res (0, ()) .: (:)
+instance (Monad m, a ~ a') => PrependableQM_ '[N     ] ps m a' [a] where
+    prependM_ _ = return . Res ()      .: (:) ; {-# INLINE prependM_ #-}
+instance (Monad m, a ~ a') => PrependableQM_ '[P Ixed] ps m a' [a] where
+    prependM_ _ = return . Res (0, ()) .: (:) ; {-# INLINE prependM_ #-}
 
 
-instance (Monad m, a ~ a') => AddableQM_ '[N     ] ps m a' [a] where addM_ = prependM_
-instance (Monad m, a ~ a') => AddableQM_ '[P Ixed] ps m a' [a] where addM_ = prependM_
+instance (Monad m, a ~ a') => AddableQM_ '[N     ] ps m a' [a] where
+    addM_ = prependM_ ; {-# INLINE addM_ #-}
+instance (Monad m, a ~ a') => AddableQM_ '[P Ixed] ps m a' [a] where
+    addM_ = prependM_ ; {-# INLINE addM_ #-}
 
 
 
@@ -122,11 +128,12 @@ removeElement el l = case b of
     where (a, b) = List.break (/= el) l
 
 instance (Monad m, Eq a, a ~ a') => RemovableQM_ '[N]      '[P Try] m a' [a] where
-    removeM_ _ el l = Res () . snd <$> removeElement el l
+    removeM_ _ el l = Res () . snd <$> removeElement el l ; {-# INLINE removeM_ #-}
 instance (Monad m, Eq a, a ~ a') => RemovableQM_ '[P Ixed] '[P Try] m a' [a] where
     removeM_ _ el l = do
         (ix, l') <- removeElement el l
         return . Res (ix, ()) $ l'
+    {-# INLINE removeM_ #-}
 
 
 
@@ -137,9 +144,9 @@ insertElement ix el l = case b of
     where (a, b) = List.splitAt ix l
 
 instance (Monad m, a ~ a', idx ~ Int) => InsertableQM_ '[N] '[P Try] m idx a' [a] where
-    insertM_ _ ix el l = Res ()       <$> insertElement ix el l
+    insertM_ _ ix el l = Res ()       <$> insertElement ix el l ; {-# INLINE insertM_ #-}
 instance (Monad m, a ~ a', idx ~ Int) => InsertableQM_ '[P Ixed] '[P Try] m idx a' [a] where
-    insertM_ _ ix el l = Res (ix, ()) <$> insertElement ix el l
+    insertM_ _ ix el l = Res (ix, ()) <$> insertElement ix el l ; {-# INLINE insertM_ #-}
 
 
 
@@ -173,13 +180,15 @@ getElementChecked unchecked try idx l = getElement unchecked idx l (ifOpt try fa
 
 instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_ '[N] '[unchecked, try] m idx a' [a] where
     indexM_ _ idx l = Res ()        <$> getElementChecked (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx l
+    {-# INLINE indexM_ #-}
 instance (Monad m, a ~ a', idx ~ Int, CondOpt unchecked, CondOpt try) => IndexableQM_ '[P Ixed] '[unchecked, try] m idx a' [a] where
     indexM_ _ idx l = Res (idx, ()) <$> getElementChecked (Proxy :: Proxy unchecked) (Proxy :: Proxy try) idx l
+    {-# INLINE indexM_ #-}
 
 
 instance (Monad m, ix ~ Int) => TracksIxesQM_ '[] '[] m ix [a] where
-    ixesM_ _ l = return . Res () $ [0 .. length l - 1]
+    ixesM_ _ l = return . Res () $ [0 .. length l - 1] ; {-# INLINE ixesM_ #-}
 
 
 instance (Monad m, a ~ a') => TracksElemsQM_   '[] '[] m a' [a] where
-    elemsM_ _ l = return . Res () $ l
+    elemsM_ _ l = return . Res () $ l ; {-# INLINE elemsM_ #-}
