@@ -24,6 +24,12 @@ import           Text.Trifecta.Combinators
 import           Text.Trifecta.Delta       (column)
 import           Text.Parser.LookAhead
 
+import Control.Monad.Event
+import Type.Inference
+
+import Data.Graph.Builder.Class (BuilderT(..))
+import Luna.Syntax.Model.Network.Builder.Type (TypeBuilderT(..))
+import Luna.Syntax.Model.Network.Builder.Self (SelfBuilderT(..))
 
 -------------------------
 -- === IndentState === --
@@ -113,6 +119,37 @@ instance {-# OVERLAPPABLE #-} (MonadIndent m, MonadTrans t, Monad (t m)) => Mona
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
 
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (IndentT m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (IndentT m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (IndentT m)
+deriving instance DeltaParsing m                => DeltaParsing (IndentT m)
+
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (Listener t cfg m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (Listener t cfg m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (Listener t cfg m)
+deriving instance DeltaParsing m                => DeltaParsing (Listener t cfg m)
+
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (KnownTypeT cls t m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (KnownTypeT cls t m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (KnownTypeT cls t m)
+deriving instance DeltaParsing m                => DeltaParsing (KnownTypeT cls t m)
+
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (BuilderT g m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (BuilderT g m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (BuilderT g m)
+deriving instance DeltaParsing m                => DeltaParsing (BuilderT g m)
+
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (TypeBuilderT t m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (TypeBuilderT t m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (TypeBuilderT t m)
+deriving instance DeltaParsing m                => DeltaParsing (TypeBuilderT t m)
+
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (SelfBuilderT s m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (SelfBuilderT s m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (SelfBuilderT s m)
+deriving instance DeltaParsing m                => DeltaParsing (SelfBuilderT s m)
+
+
 
 
 -- === Utils === --
@@ -166,19 +203,19 @@ evalT' = flip evalT def
 --block = string "a" <|> (foldl (++) "" <$> (char ':' *> spaces *> indentBlock block))
 
 
---getIndent = column <$> position
+getIndent = column <$> position
 
---mapIndent f err = do
---  c <- getIndent
---  s <- get
---  when (not $ c `f` view col s) $ fail err
+mapIndent f err = do
+  c <- getIndent
+  s <- get
+  when (not $ c `f` view col s) $ fail err
 
 
---indented          = mapIndent (>)  "not indented"
---indentedOrEq      = mapIndent (>=) "not indented"
---checkIndent       = mapIndent (==) "indentation doesn't match"
---checkIndented     = mapIndent (>)  "indentation doesn't match"
---checkIndentedOrEq = mapIndent (>=) "indentation doesn't match"
+indented          = mapIndent (>)  "not indented"
+indentedOrEq      = mapIndent (>=) "not indented"
+checkIndent       = mapIndent (==) "indentation doesn't match"
+checkIndented     = mapIndent (>)  "indentation doesn't match"
+checkIndentedOrEq = mapIndent (>=) "indentation doesn't match"
 
 ------------------------------------------------------------------------
 ---- IndentStateT

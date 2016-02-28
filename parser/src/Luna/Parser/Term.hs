@@ -2,58 +2,54 @@
 
 module Luna.Parser.Term where
 
---import Flowbox.Prelude hiding (maybe)
+import Prelude.Luna hiding (maybe)
 
---import           Text.Parser.Combinators
---import qualified Luna.Parser.Token       as Tok
---import qualified Luna.Syntax.Expr as Expr
---import           Luna.Syntax.Expr (LExpr, Expr)
+import           Text.Parser.Combinators
+import qualified Luna.Parser.Token       as Tok
 --import Luna.Parser.Builder (label, labeled, withLabeled, nextID)
---import Luna.Parser.Combinators (just, many1, (<??>), applyAll, maybe)
+import Luna.Parser.Combinators (just, many1, (<??>), applyAll, maybe)
 --import Luna.Parser.Struct (blockBegin)
 --import Luna.Parser.Pattern (pattern)
---import           Luna.Syntax.Name             (vname)
---import qualified Luna.Syntax.Name.Path        as NamePath
---import           Data.Function                (on)
---import qualified Data.List                    as List
---import           Text.EditDistance            (defaultEditCosts, levenshteinDistance, EditCosts(..), Costs(..))
---import qualified Flowbox.Data.MapForest       as MapForest
---import qualified Data.Maps                    as Map
---import           Data.List                    (sortBy)
+import           Data.Function                (on)
+import qualified Data.List                    as List
+import           Text.EditDistance            (defaultEditCosts, levenshteinDistance, EditCosts(..), Costs(..))
+--import qualified Data.MapForest       as MapForest
+import qualified Data.Maps                    as Map
+import           Data.List                    (sortBy)
 --import qualified Luna.Data.StructInfo         as StructInfo
 --import qualified Luna.Data.Namespace.State    as Namespace
 --import           Luna.Data.Namespace          (NamespaceMonad)
---import qualified Luna.Parser.State            as ParserState
---import           Luna.Parser.State            (ParserState)
+import qualified Luna.Parser.State            as ParserState
+import           Luna.Parser.State            (ParserState)
 --import           Luna.Data.StructInfo         (OriginInfo(OriginInfo))
---import Control.Monad.State (MonadState, get)
---import           Data.Maybe                   (isJust, fromJust)
+import Control.Monad.State (MonadState, get)
+import           Data.Maybe                   (isJust, fromJust)
 --import qualified Luna.Syntax.Name.Pattern     as NamePat
 --import           Luna.Syntax.Label  (Label(Label))
 --import           Luna.Syntax.Name.Pattern     (NamePat(NamePat))
 
---import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser)
---import qualified Luna.Parser.Pattern as Pat
+import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser)
+import qualified Luna.Parser.Pattern as Pat
 --import           Luna.Parser.Type    (typic, metaBase)
 --import           Luna.Parser.Literal (literal)
 --import qualified Luna.Syntax.Name    as Name
---import qualified Data.ByteString.UTF8         as UTF8
---import           Data.Char                    (isSpace)
+import qualified Data.ByteString.UTF8         as UTF8
+import           Data.Char                    (isSpace)
 --import qualified Luna.System.Session as Session
 --import qualified Luna.System.Pragma.Store  as Pragma
 --import           Luna.System.Pragma.Store  (MonadPragmaStore)
 --import qualified Luna.System.Pragma        as Pragma (isEnabled)
---import qualified Luna.Parser.Pragma        as Pragma
+import qualified Luna.Parser.Pragma        as Pragma
 
---import qualified Luna.Parser.Decl          as Decl
+import qualified Luna.Parser.Decl          as Decl
 --import qualified Luna.Syntax.Label         as Label
 
---import Text.Trifecta.Rendering (Caret(Caret))
---import Text.Trifecta.Combinators (DeltaParsing, careting)
---import Text.Trifecta.Delta (column)
+import Text.Trifecta.Rendering (Caret(Caret))
+import Text.Trifecta.Combinators (DeltaParsing, careting)
+import Text.Trifecta.Delta (column)
 --import Luna.Syntax.Enum (IDTag)
 
---import Luna.Parser.Indent (MonadIndent)
+import Luna.Parser.Indent (MonadIndent)
 
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 

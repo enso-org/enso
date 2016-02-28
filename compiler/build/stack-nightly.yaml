@@ -4,10 +4,9 @@ ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O}
 local-bin-path: ./dist/bin
 packages:
 - {location: ..}
+- {extra-dep: true, location: ../../core}
 - extra-dep: true
-  location: ../../core
-- extra-dep: true
-  location: {commit: 8c1a0ef91a201102a8a0e4a450c3dc5cae582f28, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: 0154ec09008e030aee074617f8012bd392567c9b, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
@@ -37,7 +36,7 @@ packages:
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
-  location: {commit: 360c6001179284a97068ce79a41e6deaba6ac67b, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: 99776ed4cee181484be7561cff882c73204eaa2d, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true

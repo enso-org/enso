@@ -18,7 +18,7 @@ import           Control.Monad.Trans.Identity
 -- === Definitions === --
 
 class Handler    t cfg m a where handler :: a -> Listener t cfg m ()
-newtype Listener t cfg m a = Listener (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask)
+newtype Listener t cfg m a = Listener (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
 makeWrapped ''Listener
 
 -- Registration time type constraint

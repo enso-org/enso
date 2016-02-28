@@ -54,21 +54,21 @@ import Control.Monad.State (StateT)
 ---- Utils
 -------------------------------------------------------------
 
---parserName = "Luna Compiler"
+parserName = "Luna Compiler"
 
 run :: Monad m => IndentT (StateT s m) a -> s -> m a
 run p st = evalStateT (Indent.evalT' p) st
 ----run p st = fmap fst $ Pragma.runT (evalStateT (Indent.parser p) st) mempty
 
---handleResult r = case r of
---    Failure e -> Left e
---    Success a -> Right a
+handleResult r = case r of
+    Failure e -> Left e
+    Success a -> Right a
 
 bundleResult p = (,) <$> p <*> get
 
---end = (Tok.spaces <?> "") <* (eof <?> "")
+end = (Tok.spaces <?> "") <* (eof <?> "")
 
---upToEnd p = Tok.spaces *> p <* end
+upToEnd p = Tok.spaces *> p <* end
 
 --renderErr e = renderPretty 0.8 80 $ e Leijen.<> linebreak
 
@@ -81,8 +81,8 @@ bundleResult p = (,) <$> p <*> get
 ---- FIXME[wd]: logika powina byc przeniesiona na system pluginow
 --defConfig = appConf def
 ---- FIXME[wd]: debugowo ustawione wartosci typow
---emptyState = def :: ParserState
---defState  = emptyState
+emptyState = def :: ParserState
+defState  = emptyState
 
 
 ----st = def {State._conf = conf}
@@ -96,6 +96,9 @@ bundleResult p = (,) <$> p <*> get
 ---- Usage example: parseExpr (fileFeed "test.txt")
 parseGen p st = run (bundleResult p) st -- TU BYL `(Module.unit p)` zamiast `p`
 --parseGen2 p st = run (bundleResult p) st
+
+--exprTestParser = parseGen (upToEnd expr)
+
 
 ----moduleParser modPath = parseGen (upToEnd $ func)
 --moduleParser qPath = parseGen (upToEnd $ Module.pUnit $ Module.pModule qPath)
@@ -111,20 +114,21 @@ parseGen p st = run (bundleResult p) st -- TU BYL `(Module.unit p)` zamiast `p`
 ---- Input utils
 -------------------------------------------------------------
 
---parserDelta name = Directed (UTF8.fromString name) 0 0 0 0
+parserDelta name = Directed (UTF8.fromString name) 0 0 0 0
 
---parseFromByteString = Trifecta.parseByteString
+parseFromByteString = Trifecta.parseByteString
 
 --parseFromText p delta txt = Trifecta.parseByteString p delta (convert $ Text.encodeUtf8 txt)
 
---parseFromString p delta input = parseFromByteString p delta (UTF8.fromString input)
+parseFromString p delta input = parseFromByteString p delta (UTF8.fromString input)
 
 --parseFromFile p delta path = do
 --  s <- liftIO $ ByteStr.readFile path
 --  return $ parseFromByteString p delta s
 
 ----parseFile       path  p = handleResult <$> parseFromFile       p (parserDelta parserName) path
-----parseString     input p = handleResult  $  parseFromString     p (parserDelta parserName) input
+parseString :: String -> Trifecta.Parser a -> Either Leijen.Doc a
+parseString     input p = handleResult  $  parseFromString     p (parserDelta parserName) input
 ----parseByteString input p = handleResult  $  parseFromByteString p (parserDelta parserName) input
 
 

@@ -2,7 +2,7 @@
 
 module Luna.Parser.Module where
 
---import Flowbox.Prelude hiding (cons, maybe, noneOf)
+import Prelude.Luna hiding (cons, maybe, noneOf)
 
 --import Luna.Parser.Builder (labeled)
 --import           Luna.Syntax.Name.Path (QualPath(QualPath))
