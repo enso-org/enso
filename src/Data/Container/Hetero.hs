@@ -14,6 +14,7 @@ module Data.Container.Hetero where
 
 --import Flowbox.Prelude       hiding (Indexable, index, Repr, repr)
 import Prelude
+import Data.Monoid
 --import Control.Error.Util    (hush)
 import Data.Container.Class
 --import Data.Constraint.Void
@@ -31,6 +32,10 @@ import Control.Lens
 newtype Hetero a = Hetero a deriving (Show, Eq, Ord, Functor, Traversable, Foldable, Default)
 makeWrapped ''Hetero
 
+
+instance Monoid a => Monoid (Hetero a) where
+    mempty = Hetero mempty
+    mappend (Hetero a) (Hetero b) = Hetero $ a <> b
 
 --- === Unified values ===
 

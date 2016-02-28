@@ -62,4 +62,6 @@ Library
                     , typelevel
                     , vector
                     , text
+                    , unordered-containers
+                    , hashable
 
