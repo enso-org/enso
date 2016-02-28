@@ -52,6 +52,7 @@ import qualified Luna.Library.Standard                           as StdLib
 import qualified Luna.Library.Symbol.Class                       as Symbol
 import           Luna.Syntax.AST.Term                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Luna.Syntax.AST.Term                            as Term
+import qualified Luna.Syntax.AST.Lit                             as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer
@@ -90,11 +91,11 @@ evalBuild = fmap snd ∘∘ runBuild
 input_g1 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
             , MonadIO       m
-            , NodeInferable m (ls :<: term)
-            , TermNode Star m (ls :<: term)
-            , TermNode Var  m (ls :<: term)
-            , TermNode App  m (ls :<: term)
-            , TermNode Acc  m (ls :<: term)
+            , NodeInferable     m (ls :<: term)
+            , TermNode Lit.Star m (ls :<: term)
+            , TermNode Var      m (ls :<: term)
+            , TermNode App      m (ls :<: term)
+            , TermNode Acc      m (ls :<: term)
             ) => m ([nr],[nr],[nr])
 input_g1 = do
     f  <- var' "f"
@@ -111,12 +112,12 @@ input_g1 = do
 input_g2 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
             , MonadIO       m
-            , NodeInferable m (ls :<: term)
-            , TermNode Star m (ls :<: term)
-            , TermNode Var  m (ls :<: term)
-            , TermNode App  m (ls :<: term)
-            , TermNode Acc  m (ls :<: term)
-            , TermNode Num  m (ls :<: term)
+            , NodeInferable       m (ls :<: term)
+            , TermNode Lit.Star   m (ls :<: term)
+            , TermNode Lit.Number m (ls :<: term)
+            , TermNode Var        m (ls :<: term)
+            , TermNode App        m (ls :<: term)
+            , TermNode Acc        m (ls :<: term)
             ) => m ([nr],[nr],[nr],[nr])
 input_g2 = do
     -- The expression here is `(1.+ (id 2)).toString.length`
@@ -138,12 +139,12 @@ input_g3 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
             , MonadIO       m
             , NodeInferable m (ls :<: term)
-            , TermNode Star m (ls :<: term)
-            , TermNode Var  m (ls :<: term)
-            , TermNode App  m (ls :<: term)
-            , TermNode Acc  m (ls :<: term)
-            , TermNode Num  m (ls :<: term)
-            , TermNode Str  m (ls :<: term)
+            , TermNode Lit.Star   m (ls :<: term)
+            , TermNode Lit.Number m (ls :<: term)
+            , TermNode Lit.String m (ls :<: term)
+            , TermNode Var        m (ls :<: term)
+            , TermNode App        m (ls :<: term)
+            , TermNode Acc        m (ls :<: term)
             ) => m ([nr],[nr],[nr],[nr])
 input_g3 = do
     -- The expression here is `(id (1.+ (id 2)).toString).length`
@@ -163,12 +164,12 @@ input_g3 = do
 input_simple1 :: ( term ~ Draft Static
                  , nr   ~ Ref Node (ls :<: term)
                  , MonadIO       m
-                 , NodeInferable m (ls :<: term)
-                 , TermNode Star m (ls :<: term)
-                 , TermNode Var  m (ls :<: term)
-                 , TermNode App  m (ls :<: term)
-                 , TermNode Acc  m (ls :<: term)
-                 , TermNode Num  m (ls :<: term)
+                 , NodeInferable       m (ls :<: term)
+                 , TermNode Lit.Star   m (ls :<: term)
+                 , TermNode Lit.Number m (ls :<: term)
+                 , TermNode Var        m (ls :<: term)
+                 , TermNode App        m (ls :<: term)
+                 , TermNode Acc        m (ls :<: term)
                  ) => m ([nr],[nr],[nr],[nr])
 input_simple1 = do
     -- The expression here is `(id (1.+ (id 2)).toString).length`
@@ -183,13 +184,13 @@ input_simple1 = do
 input_simple2 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
             , MonadIO       m
-            , NodeInferable m (ls :<: term)
-            , TermNode Star m (ls :<: term)
-            , TermNode Var  m (ls :<: term)
-            , TermNode App  m (ls :<: term)
-            , TermNode Acc  m (ls :<: term)
-            , TermNode Num  m (ls :<: term)
-            , TermNode Str  m (ls :<: term)
+            , NodeInferable       m (ls :<: term)
+            , TermNode Lit.Star   m (ls :<: term)
+            , TermNode Lit.Number m (ls :<: term)
+            , TermNode Lit.String m (ls :<: term)
+            , TermNode Var        m (ls :<: term)
+            , TermNode App        m (ls :<: term)
+            , TermNode Acc        m (ls :<: term)
             ) => m ([nr],[nr],[nr],[nr])
 input_simple2 = do
     -- The expression here is `(id (1.+ (id 2)).toString).length`
@@ -210,14 +211,14 @@ input_g1_resolution_mock :: ( term ~ Draft Static
                             , BiCastable     n (ls :<: term)
                             , BiCastable     e edge
                             , MonadIO        m
-                            , NodeInferable  m (ls :<: term)
-                            , TermNode Star  m (ls :<: term)
-                            , TermNode Var   m (ls :<: term)
-                            , TermNode App   m (ls :<: term)
-                            , TermNode Acc   m (ls :<: term)
-                            , TermNode Cons  m (ls :<: term)
-                            , TermNode Lam   m (ls :<: term)
-                            , TermNode Unify m (ls :<: term)
+                            , NodeInferable     m (ls :<: term)
+                            , TermNode Lit.Star m (ls :<: term)
+                            , TermNode Var      m (ls :<: term)
+                            , TermNode App      m (ls :<: term)
+                            , TermNode Acc      m (ls :<: term)
+                            , TermNode Cons     m (ls :<: term)
+                            , TermNode Lam      m (ls :<: term)
+                            , TermNode Unify    m (ls :<: term)
                             , HasProp Type (ls :<: term)
                             , Prop    Type (ls :<: term) ~ er
                             , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
@@ -568,8 +569,8 @@ foo g = runNetworkBuilderT g
     title "pattern matching"
     print $ uncover s1_v
     print $ caseTest (uncover s1_v) $ do
-        match $ \Star -> "its a star! <3"
-        match $ \ANY  -> "something else!"
+        match $ \Lit.Star -> "its a star! <3"
+        match $ \ANY      -> "something else!"
 
     title "complex element building"
     u1 <- unify s1 s2

@@ -81,4 +81,4 @@ testparse2 = runIdentity ∘ runBuild (def :: NetGraph ()) ∘ fst <$> input_par
 
 
 xxx :: Either Doc (Ref Node (NetNode ()), NetGraph ())
-xxx = parseString "'hello'" testparse2
+xxx = parseString "'hello" testparse2

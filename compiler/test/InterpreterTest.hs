@@ -36,6 +36,7 @@ import           Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
 import           Data.Graph.Backend.VectorGraph
 import qualified Data.Graph.Builder.Class                        as Graph
+import qualified Luna.Syntax.AST.Lit                             as Lit
 
 import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 
@@ -49,12 +50,12 @@ graph1 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , BiCastable     e edge
                                                   , MonadIO       m
                                                   , NodeInferable m (ls :<: term)
-                                                  , TermNode Star m (ls :<: term)
-                                                  , TermNode Var  m (ls :<: term)
-                                                  , TermNode Num  m (ls :<: term)
-                                                  , TermNode Str  m (ls :<: term)
-                                                  , TermNode Acc  m (ls :<: term)
-                                                  , TermNode App  m (ls :<: term)
+                                                  , TermNode Lit.Star   m (ls :<: term)
+                                                  , TermNode Lit.Number m (ls :<: term)
+                                                  , TermNode Lit.String m (ls :<: term)
+                                                  , TermNode Var        m (ls :<: term)
+                                                  , TermNode Acc        m (ls :<: term)
+                                                  , TermNode App        m (ls :<: term)
                                                   , HasProp InterpreterData (ls :<: term)
                                                   , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
                                                   , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
@@ -112,13 +113,13 @@ graph2 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , BiCastable      e edge
                                                   , MonadIO         m
                                                   , NodeInferable   m (ls :<: term)
-                                                  , TermNode Star   m (ls :<: term)
-                                                  , TermNode Var    m (ls :<: term)
-                                                  , TermNode Num    m (ls :<: term)
-                                                  , TermNode Str    m (ls :<: term)
-                                                  , TermNode Acc    m (ls :<: term)
-                                                  , TermNode App    m (ls :<: term)
-                                                  , TermNode Native m (ls :<: term)
+                                                  , TermNode Lit.Star   m (ls :<: term)
+                                                  , TermNode Lit.Number m (ls :<: term)
+                                                  , TermNode Lit.String m (ls :<: term)
+                                                  , TermNode Var        m (ls :<: term)
+                                                  , TermNode Acc        m (ls :<: term)
+                                                  , TermNode App        m (ls :<: term)
+                                                  , TermNode Native     m (ls :<: term)
                                                   , HasProp InterpreterData (ls :<: term)
                                                   , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
                                                   , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
