@@ -40,6 +40,22 @@ import qualified Luna.Syntax.AST.Lit                             as Lit
 
 import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 
+import           Text.Printf                                     (printf)
+import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
+import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
+import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
+import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
+import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
+import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
+import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
+import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
+import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
+import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
+import qualified Control.Monad.Writer                            as Writer
+import qualified Luna.Library.Standard                           as StdLib
+import qualified Luna.Library.Symbol.Class                       as Symbol
+
+
 
 graph1 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , node ~ (ls :<: term)
@@ -156,8 +172,8 @@ runBuild (g :: NetGraph a) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (
 evalBuild = fmap snd ∘∘ runBuild
 
 
-main :: IO ()
-main = do
+test_old :: IO ()
+test_old = do
     putStrLn "Interpreter test"
     (_,  g00 :: NetGraph ()) <- prebuild
     flip catchAll (\e -> return ()) $ flip Env.evalT def $ do
@@ -171,6 +187,61 @@ main = do
     putStrLn "done"
 
 
+
+main :: IO ()
+main = test_old
+
+input4Adam = do
+    i1 <- int 1
+    i2 <- int 2
+    s1 <- str "hi"
+    id <- var "id"
+    apl <- acc "+" i1
+    apppl <- app apl [arg i2]
+    appid <- app id  [arg s1]
+    return ([i1, i2, s1], [apppl, appid], [apl], [id, apl])
+
+collectGraph tag = do
+    putStrLn $ "after pass: " ++ tag
+    tcState <- TypeCheckState.get
+    putStrLn $ "TCState is: " ++ show tcState
+    g <- Graph.get
+    Writer.tell [(tag, g)]
+
+seq3 a b c = Sequence a $ Sequence b c
+
+test1 :: IO ()
+test1 = do
+    (_,  g :: NetGraph () ) <- prebuild
+
+
+    -- Running compiler environment
+    flip Env.evalT def $ do
+        v <- view version <$> Env.get
+        putStrLn $ "Luna compiler version " <> showVersion v
+
+        -- Running Type Checking compiler stage
+        (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
+            (lits, apps, accs, funcs) <- input4Adam
+            --(lits, apps, accs, funcs) <- input_simple1
+            {-(lits, apps, accs, funcs) <- input_simple2-}
+
+            Symbol.loadFunctions StdLib.symbols
+            TypeCheckState.modify_ $ (TypeCheckState.untypedApps       .~ apps )
+                                   . (TypeCheckState.untypedAccs       .~ accs )
+                                   . (TypeCheckState.untypedLits       .~ lits )
+                                   . (TypeCheckState.unresolvedSymbols .~ funcs)
+
+            collectGraph "Initial"
+            let tc = Sequence LiteralsPass
+                   {-$ Sequence StructuralInferencePass-}
+                   $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
+
+            TypeCheck.runTCWithArtifacts tc collectGraph
+
+        let names = printf "%02d" <$> ([0..] :: [Int])
+        renderAndOpen $ zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
+    print "end"
 
 
 
