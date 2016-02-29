@@ -62,6 +62,7 @@ import Prelude                    as X hiding (mapM, mapM_, print, putStr, putSt
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
+import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 
 import Data.Binary.Instances.Missing      ()
 import Data.Default.Instances.Missing     ()

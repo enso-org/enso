@@ -7,7 +7,7 @@
 name:                prologue
 version:             1.1
 category:            control
--- description:         
+-- description:
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Wojciech Danilo
@@ -17,7 +17,7 @@ homepage:            https://github.com/wdanilo/prologue
 bug-reports:         https://github.com/wdanilo/prologue/issues
 copyright:           Copyright (C) 2014 Wojciech Danilo
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 synopsis:            Better, more general Prelude exporting common utilities.
 description:         Replacement for the Haskell's Prelude, exposing more commonly used functions and patching old GHC ones to behave in the newest GHC's way.
@@ -54,7 +54,7 @@ Library
                       TupleSections
                       TypeOperators
                       ViewPatterns
-  
+
   exposed-modules:    
         Data.Binary.Instances.Missing,
         Data.Default.Instances.Missing,
@@ -86,3 +86,4 @@ Library
                     , functor-utils
                     , impossible
                     , typelevel
+                    , exceptions
