@@ -13,7 +13,7 @@ import           Data.Graph.Backend.VectorGraph
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
-import           Luna.Syntax.AST.Decl.Function          (FunctionPtr)
+import qualified Luna.Syntax.AST.Decl.Function          as Func
 import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
 import           Data.Graph.Builder.Ref                 as Ref
@@ -94,7 +94,7 @@ instance Castable (Shelled t) (Shelled t') => Castable (TCDataPayload t) (TCData
 
 -- === Lambda layer === --
 
-type instance LayerData l Lambda (SubGraph n) = Maybe $ FunctionPtr n
+type instance LayerData l Lambda (SubGraph n) = Maybe $ Func.Signature (Ref Node n)
 instance Monad m => Creator m (Layer l Lambda (SubGraph n)) where
     create = return $ Layer Nothing
 instance Monad m => Destructor m (Layer l Lambda (SubGraph n)) where

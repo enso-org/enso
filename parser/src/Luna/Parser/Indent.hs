@@ -124,35 +124,6 @@ deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (IndentT m)
 deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (IndentT m)
 deriving instance DeltaParsing m                => DeltaParsing (IndentT m)
 
-deriving instance (MonadPlus m, Parsing      m) => Parsing      (Listener t cfg m)
-deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (Listener t cfg m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (Listener t cfg m)
-deriving instance DeltaParsing m                => DeltaParsing (Listener t cfg m)
-
-deriving instance (MonadPlus m, Parsing      m) => Parsing      (KnownTypeT cls t m)
-deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (KnownTypeT cls t m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (KnownTypeT cls t m)
-deriving instance DeltaParsing m                => DeltaParsing (KnownTypeT cls t m)
-
-deriving instance (MonadPlus m, Parsing      m) => Parsing      (BuilderT g m)
-deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (BuilderT g m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (BuilderT g m)
-deriving instance DeltaParsing m                => DeltaParsing (BuilderT g m)
-
-deriving instance (MonadPlus m, Parsing      m) => Parsing      (TypeBuilderT t m)
-deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (TypeBuilderT t m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (TypeBuilderT t m)
-deriving instance DeltaParsing m                => DeltaParsing (TypeBuilderT t m)
-
-deriving instance (MonadPlus m, Parsing      m) => Parsing      (SelfBuilderT s m)
-deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (SelfBuilderT s m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (SelfBuilderT s m)
-deriving instance DeltaParsing m                => DeltaParsing (SelfBuilderT s m)
-
-
-
-
--- === Utils === --
 
 
 evalT' :: Monad m => IndentT m a -> m a

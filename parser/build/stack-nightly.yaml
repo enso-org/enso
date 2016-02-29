@@ -32,7 +32,7 @@ packages:
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: 6ef3bf580b8b6502fa7e6b83bdd63705987844cb, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: c0165e82f021d2e71b7feb8f292d63fa5bef483f, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true

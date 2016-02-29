@@ -28,7 +28,7 @@ import qualified Text.Trifecta.Parser as Trifecta
 
 
 import qualified Luna.Parser.State  as ParserState
-import           Luna.Parser.State  (ParserState)
+import           Luna.Parser.State  (ParserStateT)
 import qualified Luna.Parser.Token  as Tok
 import           Luna.Parser.Indent (IndentT)
 import qualified Luna.Parser.Indent as Indent
@@ -48,7 +48,6 @@ import qualified Luna.Parser.Module  as Module
 --import qualified Luna.System.Pragma.Store  as Pragma
 
 
-import Control.Monad.State (StateT)
 
 -------------------------------------------------------------
 ---- Utils
@@ -56,15 +55,15 @@ import Control.Monad.State (StateT)
 
 parserName = "Luna Compiler"
 
-run :: Monad m => IndentT (StateT s m) a -> s -> m a
-run p st = evalStateT (Indent.evalT' p) st
+run :: Monad m => IndentT (ParserStateT m) a -> ParserState.State -> m a
+run p st = ParserState.evalT (Indent.evalT' p) st
 ----run p st = fmap fst $ Pragma.runT (evalStateT (Indent.parser p) st) mempty
 
 handleResult r = case r of
     Failure e -> Left e
     Success a -> Right a
 
-bundleResult p = (,) <$> p <*> get
+bundleResult p = (,) <$> p <*> ParserState.get
 
 end = (Tok.spaces <?> "") <* (eof <?> "")
 
@@ -81,7 +80,7 @@ upToEnd p = Tok.spaces *> p <* end
 ---- FIXME[wd]: logika powina byc przeniesiona na system pluginow
 --defConfig = appConf def
 ---- FIXME[wd]: debugowo ustawione wartosci typow
-emptyState = def :: ParserState
+emptyState = def :: ParserState.State
 defState  = emptyState
 
 

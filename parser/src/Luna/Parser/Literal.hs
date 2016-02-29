@@ -18,10 +18,10 @@ import Luna.Parser.Indent (MonadIndent)
 --stringL = labeled (Lit.String <$> Tok.stringLiteral)
 --numL    = labeled (Lit.Number <$> Tok.numberL)
 
-string :: (MonadIndent m, DeltaParsing m, TermBuilder Lit.String m a) => m a
-string = str =<< Tok.stringLiteral
+literal = choice [ string ]
 
-string2 :: (DeltaParsing f, MonadIndent f, TermBuilder Lit.String m a) => f (m a)
-string2 = str <$> Tok.stringLiteral
+string :: (DeltaParsing p, MonadIndent p, TermBuilder Lit.String m a) => p (m a)
+string = str <$> Tok.stringLiteral
 
 --str :: TermBuilder Lit.String m a => String -> m a
+

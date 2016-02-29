@@ -12,7 +12,6 @@ import Data.Prop
 import Data.Record
 import Data.Layer
 import Luna.Evaluation.Runtime                      (Static)
-import Luna.Syntax.AST.Decl.Function                (FunctionPtr)
 import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
@@ -56,7 +55,7 @@ data CallError = NotAFuncallNode | UnresolvedFunction | MalformedFunction derivi
 
 type CallErrorT = ExceptT CallError
 
-unifyTypes :: PassCtx(CallErrorT m) => FunctionPtr node -> Ref Node node -> [Ref Node node] -> CallErrorT m [Ref Node node]
+unifyTypes :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> [Ref Node node] -> CallErrorT m [Ref Node node]
 unifyTypes fptr out args = do
     let getType = follow (prop Type) >=> follow source
     outTp   <- getType out
@@ -64,7 +63,7 @@ unifyTypes fptr out args = do
     outUni  <- unify outFTp outTp
     reconnect (prop Type) out outUni
     argTps  <- mapM getType args
-    argFTps <- mapM getType $ fptr ^. Function.args
+    argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
     zipWithM (reconnect $ prop Type) args argUnis
     return $ outUni : argUnis
@@ -75,7 +74,7 @@ makeFuncall app args funClus = do
     fptr <- follow (prop Lambda) cls <?!> MalformedFunction
     withRef app $ (prop TCData . replacement ?~ cast cls)
     reconnect (prop TCData . redirect) app $ fptr ^. Function.out
-    zipWithM (reconnect $ prop TCData . redirect) (fptr ^. Function.args) args
+    zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) args -- FIXME[WD->MK] handle arg names. Using unlayer for now
     unifyTypes fptr app args
 
 processNode :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]

@@ -12,10 +12,12 @@ import qualified Data.Map                       as Map
 import           Luna.Syntax.AST.Decl.Function  (Function)
 import           Luna.Library.Symbol.QualPath   (QualPath)
 import           Data.Graph.Backend.VectorGraph (Ref, Cluster)
+import           Data.Graph.Model.Node
 
 -- === Definitions === --
 
-type SymbolMap n g = Map QualPath (Function n g)
+type SymbolMap n g = Map QualPath (Function (Ref Node n) g) -- FIXME[WD->MK]: this should be more general.
+                                                            --                we should not limit it to nodes and graphs
 type LocalMap  c   = Map QualPath (Ref Cluster c)
 
 data Env n c g = Env { _symbols      :: SymbolMap n g
@@ -110,7 +112,7 @@ instance {-# OVERLAPPABLE #-} (MonadSymbol n c g m, MonadTrans t, Monad (t m)) =
 loadFunctions :: MonadSymbol n c g m => SymbolMap n g -> m ()
 loadFunctions s = modify_ $ symbols %~ Map.union s
 
-lookupFunction :: MonadSymbol n c g m => QualPath -> m (Maybe (Function n g))
+lookupFunction :: MonadSymbol n c g m => QualPath -> m (Maybe (Function (Ref Node n) g))
 lookupFunction p = Map.lookup p  . view symbols <$> get
 
 loadLambda :: MonadSymbol n c g m => QualPath -> Ref Cluster c -> m ()

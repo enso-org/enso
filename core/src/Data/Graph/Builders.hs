@@ -10,7 +10,7 @@ import Data.Prop
 import Control.Monad.Event
 import Data.Direction
 import Data.Index
-import Data.Container          hiding (Impossible)
+import Data.Container          hiding (Impossible, impossible)
 import Luna.Evaluation.Runtime as Runtime
 import Type.Bool
 import Data.Graph.Model
@@ -49,5 +49,6 @@ instance (LayerConstructor m (Ref Edge c), Dispatcher CONNECTION (Ref Edge c) m,
 
 instance (ConnectibleNameH mod src tgt m conn
          , mod ~ Runtime.Model tgt)  => ConnectibleName'         src tgt m  conn where nameConnection          = nameConnectionH (Proxy :: Proxy mod) ; {-# INLINE nameConnection  #-}
+instance                                ConnectibleName'         I   I   m  I    where nameConnection          = impossible
 instance (Monad m, conn ~ src)       => ConnectibleNameH Static  src tgt m  conn where nameConnectionH _ src _ = return src                           ; {-# INLINE nameConnectionH #-}
 instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref Edge conn) where nameConnectionH _       = connection                           ; {-# INLINE nameConnectionH #-}

@@ -39,7 +39,6 @@ import           Data.GraphViz.Types.Canonical
 import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
 import           Luna.Evaluation.Runtime                 (Dynamic, Static)
-import           Luna.Syntax.AST.Decl.Function           (FunctionPtr (..))
 import qualified Luna.Syntax.AST.Decl.Function           as Function
 import qualified Luna.Syntax.AST.Term                    as Term
 import           Luna.Syntax.Model.Layer
@@ -263,9 +262,9 @@ toGraphViz name net = DotGraph { strictGraph     = False
                                 match $ \(Lit.Number _ n) -> valIntNodeClr
                                 match $ \ANY              -> nodeClr
 
-          getLambdaNodeColor n (FunctionPtr s a o t) = whenSelf <|> whenArg <|> whenOut <|> whenType where
+          getLambdaNodeColor n (Function.Signature s args o t) = whenSelf <|> whenArg <|> whenOut <|> whenType where
               whenSelf = maybe Nothing (\x -> if x ^. idx == n then Just selfClr else Nothing) s
-              whenArg  = argClr <$ find ((== n) . view idx) a
+              whenArg  = argClr <$ find ((== n) . view idx) (unlayer <$> args)
               whenOut  = if o ^. idx == n then Just outClr   else Nothing
               whenType = if t ^. idx == n then Just tpRepClr else Nothing
 

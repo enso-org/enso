@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -16,27 +17,121 @@ import           Luna.Parser.Operator (OperatorMap)
 import qualified Data.List            as List
 --import qualified Data.Maps            as Map
 --import           Luna.DEP.AST.Comment     (Comment(..))
-import           Control.Monad.State (get, put, StateT)
 import qualified Control.Monad.State as State
 --import qualified Luna.Data.StructInfo        as StructInfo
 --import           Luna.Syntax.Name.Path       (QualPath)
+import Luna.Data.Name
 
-data ParserState= ParserState { --_info          :: ASTInfo
+import           Text.Parser.Char          (CharParsing)
+import           Text.Parser.Combinators   (Parsing)
+import           Text.Parser.Token         (TokenParsing)
+import           Text.Trifecta.Combinators (DeltaParsing)
+
+data State = State { --_info          :: ASTInfo
                                 _opFixity      :: OperatorMap
                               --, _sourceMap     :: SourceMap
                               --, _namespace     :: Namespace
-                              , _adhocReserved :: [Text]
+                              , _adhocReserved :: [Name]
                               --, _modPath       :: QualPath
                               } deriving (Show)
 
-makeLenses ''ParserState
+makeLenses ''State
+
+
+
+
+
+---- TODO: template haskellize
+---- >->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+-- === Declarations === --
+
+type    ParserState      = ParserStateT Identity
+newtype ParserStateT m a = ParserStateT (State.StateT State m a)
+                              deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, MonadTrans
+                                       , Alternative, MonadFix, MonadMask, MonadCatch, MonadThrow)
+
+makeWrapped ''ParserStateT
+
+
+-- === Utils === --
+
+runT  ::            ParserStateT m a -> State -> m (a, State)
+evalT :: Monad m => ParserStateT m a -> State -> m a
+execT :: Monad m => ParserStateT m a -> State -> m State
+
+runT  = State.runStateT  . unwrap' ; {-# INLINE runT  #-}
+evalT = State.evalStateT . unwrap' ; {-# INLINE evalT #-}
+execT = State.execStateT . unwrap' ; {-# INLINE execT #-}
+
+run  :: ParserState a -> State -> (a, State)
+eval :: ParserState a -> State -> a
+exec :: ParserState a -> State -> State
+
+run   = runIdentity .: runT  ; {-# INLINE run  #-}
+eval  = runIdentity .: evalT ; {-# INLINE eval #-}
+exec  = runIdentity .: execT ; {-# INLINE exec #-}
+
+with :: MonadParserState m => (State -> State) -> m a -> m a
+with f m = do
+    s <- get
+    put $ f s
+    out <- m
+    put s
+    return out
+{-# INLINE with #-}
+
+modify :: MonadParserState m => (State -> (a, State)) -> m a
+modify = modifyM . fmap return
+{-# INLINE modify #-}
+
+modifyM :: MonadParserState m => (State -> m (a, State)) -> m a
+modifyM f = do
+    s <- get
+    (a, s') <- f s
+    put $ s'
+    return a
+{-# INLINE modifyM #-}
+
+modify_ :: MonadParserState m => (State -> State) -> m ()
+modify_ = modify . fmap ((),)
+{-# INLINE modify_ #-}
+
+
+-- === Instances === --
+
+class Monad m => MonadParserState m where
+    get :: m State
+    put :: State -> m ()
+
+instance Monad m => MonadParserState (ParserStateT m) where
+    get = ParserStateT   State.get ; {-# INLINE get #-}
+    put = ParserStateT . State.put ; {-# INLINE put #-}
+
+instance State.MonadState s m => State.MonadState s (ParserStateT m) where
+    get = ParserStateT $ lift   State.get ; {-# INLINE get #-}
+    put = ParserStateT . lift . State.put ; {-# INLINE put #-}
+
+instance {-# OVERLAPPABLE #-} (MonadParserState m, MonadTrans t, Monad (t m)) => MonadParserState (t m) where
+    get = lift get   ; {-# INLINE get #-}
+    put = lift . put ; {-# INLINE put #-}
+
+-- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
+
+
+deriving instance (MonadPlus m, Parsing      m) => Parsing      (ParserStateT m)
+deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (ParserStateT m)
+deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (ParserStateT m)
+deriving instance DeltaParsing m                => DeltaParsing (ParserStateT m)
+
+
 
 
 ------------------------------------------------------------------------
 -- Utils
 ------------------------------------------------------------------------
 
---mk :: ASTInfo -> ParserState
+--mk :: ASTInfo -> State
 --mk i = def & info .~ i
 
 addReserved words = adhocReserved %~ (++words)
@@ -115,11 +210,11 @@ withCurrying p = p
 ------------------------------------------------------------------------
 
 -- FIXME[wd]: "Unnamed" string is an ugly hack for now
-instance conf~() => Default ParserState where
-        def = ParserState def def  -- "Unnamed"
+instance conf~() => Default State where
+        def = State def def  -- "Unnamed"
 
 
---instance (Functor m, Monad m) => NamespaceMonad (StateT ParserState m) where
+--instance (Functor m, Monad m) => NamespaceMonad (StateT State m) where
 --    get = view namespace <$> State.get
 --    put ns = do
 --        s <- get

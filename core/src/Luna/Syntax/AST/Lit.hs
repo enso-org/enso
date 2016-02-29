@@ -1,8 +1,8 @@
 module Luna.Syntax.AST.Lit where
 
-import           Prelude.Luna hiding (Repr, Rational, Integer, String)
-import qualified Prelude.Luna as P
-
+import           Prelude.Luna   hiding (Repr, Rational, Integer, String)
+import qualified Prelude.Luna   as P
+import           Luna.Data.Name
 
 
 ------------------
@@ -11,6 +11,7 @@ import qualified Prelude.Luna as P
 
 data Star = Star deriving (Show, Read, Eq, Ord)
 
+
 --------------------
 -- === String === --
 --------------------
@@ -18,6 +19,11 @@ data Star = Star deriving (Show, Read, Eq, Ord)
 newtype String = String P.String deriving (Show, Read, Ord, Eq, IsString)
 makeClassy  ''String
 makeWrapped ''String
+
+-- === Instances === --
+
+instance Convertible Name   String where convert = String  ∘ convert ; {-# INLINE convert #-}
+instance Convertible String Name   where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
 
 
 --------------------

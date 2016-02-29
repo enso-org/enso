@@ -3,20 +3,27 @@
 module Luna.Syntax.AST.Decl.Function where
 
 import Prologue
-import Data.Graph.Backend.VectorGraph
+import Luna.Syntax.AST.Arg
 
 
-data FunctionPtr n = FunctionPtr { _self  :: Maybe (Ref Node n)
-                                 , _args  :: [Ref Node n]
-                                 , _out   :: Ref Node n
-                                 , _tpRep :: Ref Node n
-                                 } deriving (Show)
-makeLenses ''FunctionPtr
+-- === Definitions === --
 
-instance Castable n n' => Castable (FunctionPtr n) (FunctionPtr n') where
-    cast (FunctionPtr s a o t) = FunctionPtr (fmap cast s) (fmap cast a) (cast o) (cast t)
+data Signature a = Signature { _self  :: Maybe a --FIXME[WD->MK]: why we use Maybe here? Every function has a self value
+                             , _args  :: [Arg a]
+                             , _out   :: a
+                             , _tp    :: a --FIXME[WD->MK]: why should NOT keep it here. The type of a function is determined by its signature
+                             } deriving (Show, Functor, Traversable, Foldable)
 
-data Function n g = Function { _fptr  :: FunctionPtr n
-                             , _graph :: g
-                             } deriving (Show)
+data Function a b = Function { _sig  :: Signature a
+                             , _body :: b
+                             } deriving (Show, Functor, Traversable, Foldable)
+
+makeLenses ''Signature
 makeLenses ''Function
+
+
+-- === Instances === --
+
+-- Castable
+instance Castable n n' => Castable (Signature n) (Signature n') where
+    cast = fmap cast ; {-# INLINE cast #-}

@@ -20,7 +20,6 @@ import qualified Data.IntSet             as IntSet
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Term (Draft)
 import           Luna.Evaluation.Runtime        (Static)
-import           Luna.Syntax.AST.Decl.Function  (FunctionPtr)
 import qualified Luna.Syntax.AST.Decl.Function  as Function
 
 
@@ -35,11 +34,11 @@ mkNodeTranslator m r = case Map.lookup r m of
     Just res -> res
     Nothing  -> r
 
-translateFunctionPtr :: NodeTranslator a -> FunctionPtr a -> FunctionPtr a
-translateFunctionPtr f fptr = fptr & Function.self . mapped %~ f
-                                   & Function.args . mapped %~ f
-                                   & Function.out   %~ f
-                                   & Function.tpRep %~ f
+translateFunctionPtr :: NodeTranslator a -> Function.Signature (Ref Node a) -> Function.Signature (Ref Node a)
+translateFunctionPtr f fptr = fptr & Function.self . mapped          %~ f
+                                   & Function.args . mapped . mapped %~ f
+                                   & Function.out                    %~ f
+                                   & Function.tp                     %~ f
 
 importStructure :: ( node  ~ (NetLayers a :<: Draft Static)
                    , edge  ~ (Link node)

@@ -1,8 +1,9 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE RecursiveDo               #-}
 
 module Luna.Parser.Term where
 
-import Prelude.Luna hiding (maybe)
+import Prelude.Luna hiding (maybe, P)
 
 import           Text.Parser.Combinators
 import qualified Luna.Parser.Token       as Tok
@@ -20,7 +21,7 @@ import           Data.List                    (sortBy)
 --import qualified Luna.Data.Namespace.State    as Namespace
 --import           Luna.Data.Namespace          (NamespaceMonad)
 import qualified Luna.Parser.State            as ParserState
-import           Luna.Parser.State            (ParserState)
+import           Luna.Parser.State            (MonadParserState)
 --import           Luna.Data.StructInfo         (OriginInfo(OriginInfo))
 import Control.Monad.State (MonadState, get)
 import           Data.Maybe                   (isJust, fromJust)
@@ -31,7 +32,7 @@ import           Data.Maybe                   (isJust, fromJust)
 import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser)
 import qualified Luna.Parser.Pattern as Pat
 --import           Luna.Parser.Type    (typic, metaBase)
---import           Luna.Parser.Literal (literal)
+import           Luna.Parser.Literal (literal)
 --import qualified Luna.Syntax.Name    as Name
 import qualified Data.ByteString.UTF8         as UTF8
 import           Data.Char                    (isSpace)
@@ -48,8 +49,16 @@ import Text.Trifecta.Rendering (Caret(Caret))
 import Text.Trifecta.Combinators (DeltaParsing, careting)
 import Text.Trifecta.Delta (column)
 --import Luna.Syntax.Enum (IDTag)
-
+import Text.Parser.Token (TokenParsing, natural, parens, reserve)
+import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
+import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
+import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
+import Luna.Syntax.AST.Term (Unify, Var, App, Unify, Input, NameInput)
+import qualified Luna.Syntax.AST.Lit as Lit
+import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
+import Luna.Evaluation.Runtime (Model)
+import Luna.Data.Name
 
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 
@@ -180,6 +189,88 @@ import Luna.Parser.Indent (MonadIndent)
 --                   ]
 --           <?> "expression term"
 
+type P p = (Monad p, TokenParsing p, DeltaParsing p, MonadIndent p, MonadParserState p)
+
+entSimpleE = choice[ --caseE -- CHECK [wd]: removed try
+--                   --, condE
+--                   , labeled $ parensE expr
+--                   , labeled $ try lambda
+--                   , identE
+--                   --, try (labeled Expr.RefType <$  Tok.ref <*> Tok.conIdent) <* Tok.accessor <*> Tok.varOp
+--                   --, labeled $ Expr.Curry <$ Tok.curry <*> ParserState.withCurrying entSimpleE
+--                   , labeled $ Expr.Curry <$ Tok.curry <*> labeled (Expr.Var <$> (Expr.Variable <$> Tok.varIdent <*> pure ()))
+                   literal
+--                   , labeled $ listE
+--                   --, labeled $ Expr.Native  <$> nativeE
+                   ]
+           <?> "expression term"
+
+
+
+binary  name fun assoc = Infix   (fun <$ reservedOp name) assoc
+prefix  name fun       = Prefix  (fun <$ reservedOp name)
+postfix name fun       = Postfix (fun <$ reservedOp name)
+
+reservedOp name = reserve emptyOps name
+
+assignment :: (P p, T m a) => p (m a)
+assignment = bldr_assignment <$> var <* Tok.assignment <*> expr
+
+expr  :: (P p, T m a) => p (m a)
+expr   = buildExpressionParser opTable term
+      <?> "expression"
+
+
+term  :: (P p, T m a) => p (m a)
+term   = parens expr
+      <|> literal
+      <?> "simple expression"
+
+
+opTable :: (P p, T m a)
+        => [[Operator p (m a)]]
+opTable = [ [binary "+" (operator "+") AssocLeft] ]
+
+
+type T m a = ( a ~ Input a, MonadFix m
+             , TermBuilder Unify      m a
+             , TermBuilder Var        m a
+             , TermBuilder App        m a
+             , TermBuilder Unify      m a
+             , TermBuilder Lit.String m a
+             , IsString (NameInput a)
+             , Convertible Name (NameInput a)
+             )
+
+
+--unify :: TermBuilder Unify m a => Input a -> Input a -> m a
+--unify2 :: (TermBuilder Unify m a, Monad m) => m (Input a) -> m (Input a) -> m a
+unify2 :: (TermBuilder Unify m a, Monad m, a ~ Input a) => m a -> m a -> m a
+unify2 ma mb = do
+    a <- ma
+    b <- mb
+    AST.unify a b
+
+operator name ma mb = do
+    a  <- ma
+    b  <- mb
+    op <- AST.var name
+    ap <- AST.app op [AST.arg a, AST.arg b]
+
+    return ap
+
+
+bldr_assignment ma mb = do
+    a <- ma
+    b <- mb
+    AST.unify a b
+
+        --    out   <- buildElem $ Acc cname csrc
+        --cname <- nameConnection name out
+        --csrc  <- connection     src  out
+        --return out
+
+
 --optableE = [
 --             [ operator4 "^"                                  AssocLeft ]
 --           , [ operator4 "*"                                  AssocLeft ]
@@ -281,27 +372,30 @@ import Luna.Parser.Indent (MonadIndent)
 --              parseSegArgs (a:[]) = (:[]) <$> condParser argSimpleExpr a
 --              parseSegArgs (a:as) = (:) <$> condParser argCmplexExpr a <*> parseSegArgs as
 
-
---notReserved p = do
---    rsv  <- view ParserState.adhocReserved <$> get
---    name <- p
---    if name `elem` rsv then fail $ fromText $ "'" <> name <> "' is a reserved word"
---                       else return name
+notReserved :: MonadParserState m => m Name -> m Name
+notReserved p = do
+    rsv  <- view ParserState.adhocReserved <$> ParserState.get
+    name <- p
+    if name `elem` rsv then fail $ convert $ "'" <> name <> "' is a reserved word"
+                       else return name
 
 
 -----
---varE   = do
---    name <- try $ notReserved Tok.varIdent
---    ast  <- lookupAST name
 
---    case ast of
---        --Just possibleDescs -> fail $ show possibleDescs
---        Just possibleDescs -> mkFuncParsers possibleDescs (labeled . pure $ Expr.Var $ Expr.Variable (vname $ NamePath.single name) ())
---        Nothing            -> withLabeled $ \id -> do
---                                  let np = NamePath.single name
---                                  path <- ParserState.getModPath
---                                  Namespace.regVarName (OriginInfo path id) np
---                                  return $ Expr.Var $ Expr.Variable (vname np) ()
+var   = do
+    name <- convert <$> try (notReserved Tok.varIdent)
+    --name <- Tok.varIdent
+    return $ AST.var name
+    --ast  <- lookupAST name
+
+    --case ast of
+    --    --Just possibleDescs -> fail $ show possibleDescs
+    --    Just possibleDescs -> mkFuncParsers possibleDescs (labeled . pure $ Expr.Var $ Expr.Variable (vname $ NamePath.single name) ())
+    --    Nothing            -> withLabeled $ \id -> do
+    --                              let np = NamePath.single name
+    --                              path <- ParserState.getModPath
+    --                              Namespace.regVarName (OriginInfo path id) np
+    --                              return $ Expr.Var $ Expr.Variable (vname np) ()
 
 
 
@@ -367,6 +461,8 @@ import Luna.Parser.Indent (MonadIndent)
 --                , varOpE
 --                , conE
 --                ]
+
+ident = choice [ var ]
 
 -----
 

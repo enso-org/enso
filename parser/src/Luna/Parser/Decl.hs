@@ -2,16 +2,14 @@
 
 module Luna.Parser.Decl where
 
---import Flowbox.Prelude hiding (cons, maybe, noneOf)
+import Prelude.Luna hiding (cons, maybe, noneOf)
 
---import           Text.Parser.Combinators
---import qualified Luna.Parser.Token        as Tok
+import           Text.Parser.Combinators
+import qualified Luna.Parser.Token        as Tok
 --import qualified Luna.Syntax.Decl         as Decl
---import qualified Luna.Parser.Indent       as Indent
---import           Luna.Parser.Combinators  (many1, maybe, applyAll)
---import           Luna.Parser.Builder      (labeled)
---import qualified Luna.Parser.Type         as Type
---import           Luna.Parser.Type         (typic)
+import qualified Luna.Parser.Indent       as Indent
+import           Luna.Parser.Combinators  (many1, maybe, applyAll)
+import qualified Luna.Parser.Type         as Type
 --import           Luna.Syntax.Foreign      (Foreign(Foreign))
 --import qualified Luna.Syntax.Foreign      as Foreign
 --import           Luna.Syntax.Name.Pattern (NamePat(NamePat), Segment(Segment))

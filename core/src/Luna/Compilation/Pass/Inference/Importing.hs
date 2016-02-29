@@ -14,7 +14,7 @@ import Data.Record
 import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
-import Luna.Syntax.AST.Decl.Function                (Function, FunctionPtr)
+import Luna.Syntax.AST.Decl.Function                (Function)
 import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
@@ -91,24 +91,24 @@ getFunctionName ref = do
         match $ \(Var name) -> return $ unwrap' name
         match $ \ANY -> throwError NotABindingNode
 
-funLookup :: PassCtx(m) => String -> ImportErrorT m (Function node graph)
+funLookup :: PassCtx(m) => String -> ImportErrorT m (Function (Ref Node node) graph)
 funLookup name = do
     f <- lookupFunction $ QualPath.mk name
     fromMaybe (throwError SymbolNotFound) (return <$> f)
 
-importFunction :: PassCtx(ImportErrorT m) => String -> Function node graph -> ImportErrorT m (Ref Cluster clus)
+importFunction :: PassCtx(ImportErrorT m) => String -> Function (Ref Node node) graph -> ImportErrorT m (Ref Cluster clus)
 importFunction name fun = do
-    (cls, translator) <- importToCluster $ fun ^. Function.graph
-    let fptr = fun ^. Function.fptr & translateFunctionPtr translator
-    withRef cls $ (prop Lambda  ?~ fptr)
+    (cls, translator) <- importToCluster $ fun ^. Function.body
+    let sig = fun ^. Function.sig & translateFunctionPtr translator
+    withRef cls $ (prop Lambda  ?~ sig)
                 . (prop Name    .~ name)
     loadLambda (QualPath.mk name) cls
     return cls
 
-attachTypeRepr :: PassCtx(ImportErrorT m) => FunctionPtr node -> Ref Node node -> ImportErrorT m (Ref Node node)
+attachTypeRepr :: PassCtx(ImportErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> ImportErrorT m (Ref Node node)
 attachTypeRepr fptr ref = do
     currentTp <- follow (prop Type) ref >>= follow source
-    uni <- unify currentTp $ fptr ^. Function.tpRep
+    uni <- unify currentTp $ fptr ^. Function.tp
     reconnect (prop Type) ref uni
     return uni
 

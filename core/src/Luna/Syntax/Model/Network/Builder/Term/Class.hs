@@ -199,7 +199,7 @@ native = curryN $ buildTerm (Proxy :: Proxy Native)
 -- === Expr === --
 
 
-type instance BuildArgs Var   n = OneTuple (NameInput    n)
+type instance BuildArgs Var n = OneTuple (NameInput n)
 instance ( name ~ NameInput a
          , MonadFix m
          , ConnectibleName name a m
