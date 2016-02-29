@@ -171,7 +171,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
                     = not $ existing && validSource && validTarget where
               existing    = (edge ^. idx) `elem` edgeIxs
               validSource = edge' ^. source == node
-              validTarget = edge `elem` (tgt' # Type) : (tgt' # Inputs)
+              validTarget = edge `elem` (tgt' # Type) : (maybeToList $ tgt' ^. prop TCData . redirect) ++ (tgt' # Inputs)
 
               edge' = net ^. focus edge :: Link (NetLayers a :<: Draft Static)
               tgt   = edge' ^. target

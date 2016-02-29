@@ -334,6 +334,9 @@ input4Adam = do
     return ([i1, i2, s1], [apppl, appid], [apl], [id, apl])
 
 collectGraph tag = do
+    putStrLn $ "after pass: " ++ tag
+    tcState <- TypeCheckState.get
+    putStrLn $ "TCState is: " ++ show tcState
     g <- Graph.get
     Writer.tell [(tag, g)]
 
@@ -351,10 +354,9 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            (lits, apps, accs, funcs) <- input4Adam
+            (lits, apps, accs, funcs) <- input_g2
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
-            collectGraph "Initial"
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ (TypeCheckState.untypedApps       .~ apps )
@@ -362,6 +364,7 @@ test1 = do
                                    . (TypeCheckState.untypedLits       .~ lits )
                                    . (TypeCheckState.unresolvedSymbols .~ funcs)
 
+            collectGraph "Initial"
             let tc = Sequence LiteralsPass
                    {-$ Sequence StructuralInferencePass-}
                    $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass

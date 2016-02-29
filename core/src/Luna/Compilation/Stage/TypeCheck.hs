@@ -59,16 +59,18 @@ type PassTag = String
 
 data Loop a = Loop a deriving (Show, Eq)
 
+runLoop :: (HasTag (Loop a) PassTag, TypeCheckerPass a m) => Bool -> Loop a -> (PassTag -> m ()) -> m ProgressStatus
+runLoop progressed (Loop a) art = do
+    shouldStart <- hasJobs a
+    res <- if shouldStart then runTCWithArtifacts a art else return Stuck
+    case res of
+        Stuck -> return $ if progressed then Progressed else Stuck
+        _     -> runLoop True (Loop a) art
+
 instance (HasTag (Loop a) PassTag, TypeCheckerPass a m) => TypeCheckerPass (Loop a) m where
     hasJobs (Loop a) = hasJobs a
 
-    runTCWithArtifacts (Loop a) art = do
-        shouldStart <- hasJobs a
-        res <- if shouldStart then runTCWithArtifacts a art else return Stuck
-        case res of
-            Stuck -> return Stuck
-            _     -> runTCWithArtifacts (Loop a) art
-
+    runTCWithArtifacts = runLoop False
 
 data Sequence a b = Sequence a b deriving (Show, Eq)
 
