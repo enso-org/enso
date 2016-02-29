@@ -93,13 +93,6 @@ target/
 .python-version
 
 
-####################
-## Template cabal ##
-####################
-
-*.cabal
-
-
 ############################
 ## Luna compiler specific ##
 ############################

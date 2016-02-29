@@ -1,0 +1,135 @@
+---------------------------------------------------
+-- This is a generated cabal configuration file. --
+-- DO NOT EDIT!                                  --
+-- Use gencabal instead.                         --
+---------------------------------------------------
+
+Name:           luna-parser
+Version:        0.1
+Cabal-Version:  >= 1.8
+--License-file:   LICENSE
+Author:         New Byte Order <contact@newbyteorder.com>
+Maintainer:     New Byte Order <contact@newbyteorder.com>
+Build-Type:     Simple
+
+Flag tests
+  Description: Parser tests
+  Default:     True
+
+Library
+    Hs-Source-Dirs: src
+    GHC-Options:
+                    -- -dshow-passes
+                    -- -F -pgmF ./util/preprocessors/imports.py
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  FunctionalDependencies
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  PackageImports
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Exposed-modules: 
+        Luna.Parser.Builder,
+        Luna.Parser.Char,
+        Luna.Parser.Combinators,
+        Luna.Parser.Decl,
+        Luna.Parser.Indent,
+        Luna.Parser.Literal,
+        Luna.Parser.Module,
+        Luna.Parser.Operator,
+        Luna.Parser.Parser,
+        Luna.Parser.Pattern,
+        Luna.Parser.Pragma,
+        Luna.Parser.State,
+        Luna.Parser.Struct,
+        Luna.Parser.Term,
+        Luna.Parser.Token,
+        Luna.Parser.Type
+
+    Other-Modules: Paths_luna_parser
+    Build-Depends: base
+                 , luna-core
+                 , mtl
+                 , bytestring
+                 , utf8-string
+                 , charset
+                 , parsers
+                 , trifecta
+                 , lens
+                 , unordered-containers
+                 , ansi-wl-pprint
+                 , text
+                 , container
+                 , exceptions
+                 , edit-distance
+                 , typelevel
+
+
+Executable luna-parser-test
+    if flag(tests)
+        Main-Is:        Main.hs
+        Hs-Source-Dirs: test
+    else
+        Main-Is:        Dummy.hs
+        Hs-Source-Dirs: test
+
+    GHC-Options:
+                  -- -dshow-passes
+
+    -- -ddump-simpl -ddump-to-file
+
+    Extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+
+    Build-Depends: base
+                 , luna-core
+                 , luna-parser
+                 , prologue
+                 , typelevel
+                 , mtl
+                 , trifecta
+                 , ansi-wl-pprint
