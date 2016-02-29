@@ -16,7 +16,7 @@ import Luna.Evaluation.Runtime                      (Static, Dynamic)
 import Luna.Library.Symbol.Class                    (MonadSymbol, SymbolMap)
 
 import Luna.Syntax.AST.Arg
-import Luna.Syntax.AST.Decl.Function                (Function(..))
+import Luna.Syntax.AST.Decl.Function                (Function (..), Signature (..))
 import Luna.Syntax.AST.Term
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
@@ -45,9 +45,9 @@ import qualified Luna.Syntax.AST.Decl.Function    as Function
 buildGraph :: forall m n a b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph a)
 buildGraph m = runIdentity $ runNetworkBuilderT def ((star :: m nodeRef) >> m)
 
-makeFunction :: FunBuilderCtx(m) => m (Maybe nodeRef, [Arg nodeRef], nodeRef, nodeRef) -> Function (Ref Node n) (NetGraph a)
-makeFunction bldr = Function (Function.Signature self args out tpRep) body where
-    ((self, args, out, tpRep), body) = buildGraph bldr
+makeFunction :: FunBuilderCtx(m) => m (Signature nodeRef) -> Function (Ref Node n) (NetGraph a)
+makeFunction bldr = Function signature body where
+    (signature, body) = buildGraph bldr
 
 typed :: FunBuilderCtx(m) => m nodeRef -> nodeRef -> m nodeRef
 typed b t = do
@@ -55,41 +55,36 @@ typed b t = do
     reconnect (prop Type) el t
     return el
 
---makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Maybe nodeRef, [Arg nodeRef], nodeRef, nodeRef)
+makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Signature nodeRef)
 makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
-    error "FIXME in Library.Standard.hs" -- FIXME[WD->MK]: Haven't fixed it because functions returning tuples are anti-pattern and I dont know what it is doing
-    --selfType <- mapM (cons . fromString) selfTypeStr
-    --argTypes <- mapM (cons . fromString) argTypesStr
-    --outType  <- cons $ fromString outTypeStr
-    --self <- mapM (typed blank) selfType
-    --args <- mapM (typed blank) argTypes
-    --let nativeArgs = maybeToList self ++ args
-    --native <- native (fromString name) nativeArgs `typed` outType
-    --tpRep  <- lam (arg <$> argTypes) outType
-    --return (self, args, native, tpRep)
+    selfType <- mapM (cons . fromString) selfTypeStr
+    argTypes <- mapM (cons . fromString) argTypesStr
+    outType  <- cons $ fromString outTypeStr
+    self <- mapM (typed blank) selfType
+    args <- mapM (typed blank) argTypes
+    let nativeArgs = maybeToList self ++ args
+    native <- native (fromString name) nativeArgs `typed` outType
+    return $ Signature self (arg <$> args) native
 
-
---makeId :: FunBuilderCtx(m) => m (Maybe nodeRef, [nodeRef], nodeRef, nodeRef)
+makeId :: FunBuilderCtx(m) => m (Signature nodeRef)
 makeId = do
-    error "FIXME in Library.Standard.hs" -- FIXME[WD->MK]: Haven't fixed it because functions returning tuples are anti-pattern and I dont know what it is doing
-    --tpV   <- var "#idTp1"
-    --n     <- blank `typed` tpV
-    --tpRep <- lam [arg tpV] tpV
-    --return (Nothing, [n], n, tpRep)
+    tpV   <- var "#idTp1"
+    n     <- blank `typed` tpV
+    return $ Signature Nothing [arg n] n
 
 symbols :: Show a => SymbolMap (NetLayers a :<: Draft Static) (NetGraph a)
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b))
-    [ ("Int.+",          makeNativeFun "(+)"                     (Just "Int")      ["Int"]           "Int"      )
-    , ("Int.*",          makeNativeFun "(*)"                     (Just "Int")      ["Int"]           "Int"      )
-    , ("Int.toString",   makeNativeFun "show"                    (Just "Int")      []                "String"   )
-    , ("String.length",  makeNativeFun "length"                  (Just "String")   []                "Int"      )
-    , ("replicate"   ,   makeNativeFun "replicate"               Nothing           ["Int", "Double"] "[Double]" )
-    , ("Int.toDouble",   makeNativeFun "fromIntegral"            (Just "Int")      []                "Double"   )
+    [ ("Int.+"         , makeNativeFun "(+)"                     (Just "Int")      ["Int"]           "Int"      )
+    , ("Int.*"         , makeNativeFun "(*)"                     (Just "Int")      ["Int"]           "Int"      )
+    , ("Int.toString"  , makeNativeFun "show"                    (Just "Int")      []                "String"   )
+    , ("String.length" , makeNativeFun "length"                  (Just "String")   []                "Int"      )
+    , ("replicate"     , makeNativeFun "replicate"               Nothing           ["Int", "Double"] "[Double]" )
+    , ("Int.toDouble"  , makeNativeFun "fromIntegral"            (Just "Int")      []                "Double"   )
     , ("[Int].toDouble", makeNativeFun "(map fromIntegral)"      (Just "[Int]")    []                "[Double]" )
-    , ("zero2pi"     ,   makeNativeFun "[0.0,0.1 .. 3.14]"       Nothing           []                "[Double]" )
-    , ("vsin"        ,   makeNativeFun "(map sin)"               Nothing           ["[Double]"]      "[Double]" )
-    , ("sin"         ,   makeNativeFun "(sin)"                   Nothing           ["Double"]        "Double"   )
-    , ("range"       ,   makeNativeFun "enumFromTo"              Nothing           ["Int", "Int"]    "[Int]"    )
-    , ("[Double]./"  ,   makeNativeFun "(flip $ map . flip (/))" (Just "[Double]") ["Double"]        "[Double]" )
-    , ("id"          ,   makeId)
+    , ("zero2pi"       , makeNativeFun "[0.0,0.1 .. 3.14]"       Nothing           []                "[Double]" )
+    , ("vsin"          , makeNativeFun "(map sin)"               Nothing           ["[Double]"]      "[Double]" )
+    , ("sin"           , makeNativeFun "(sin)"                   Nothing           ["Double"]        "Double"   )
+    , ("range"         , makeNativeFun "enumFromTo"              Nothing           ["Int", "Int"]    "[Int]"    )
+    , ("[Double]./"    , makeNativeFun "(flip $ map . flip (/))" (Just "[Double]") ["Double"]        "[Double]" )
+    , ("id"            , makeId)
     ]

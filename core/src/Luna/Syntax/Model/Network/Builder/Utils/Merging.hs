@@ -3,19 +3,20 @@ module Luna.Syntax.Model.Network.Builder.Utils.Merging where
 import           Luna.Syntax.Model.Network.Builder.Term
 import           Luna.Syntax.Model.Network.Builder.Layer
 import           Prelude.Luna
-import           Control.Monad           (forM)
+import           Control.Monad                 (forM)
 import           Data.Graph.Builder
 import           Data.Graph.Backend.VectorGraph
-import           Data.Container          (usedIxes)
+import           Data.Container                (usedIxes)
 import           Data.Layer.Cover
 import           Data.Construction
-import           Data.Index              (idx)
+import           Data.Index                    (idx)
 import           Data.Prop
-import           Data.Map                (Map)
-import           Data.Maybe              (fromMaybe)
-import           Data.List               (partition)
-import qualified Data.Map                as Map
-import qualified Data.IntSet             as IntSet
+import           Data.Map                      (Map)
+import           Data.Maybe                    (fromMaybe)
+import           Data.List                     (partition)
+import qualified Data.Map                      as Map
+import qualified Data.IntSet                   as IntSet
+import           Luna.Syntax.AST.Decl.Function (Signature)
 
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Term (Draft)
@@ -34,11 +35,10 @@ mkNodeTranslator m r = case Map.lookup r m of
     Just res -> res
     Nothing  -> r
 
-translateFunctionPtr :: NodeTranslator a -> Function.Signature (Ref Node a) -> Function.Signature (Ref Node a)
-translateFunctionPtr f fptr = fptr & Function.self . mapped          %~ f
-                                   & Function.args . mapped . mapped %~ f
-                                   & Function.out                    %~ f
-                                   & Function.tp                     %~ f
+translateSignature :: NodeTranslator a -> Signature (Ref Node a) -> Signature (Ref Node a)
+translateSignature f sig = sig & Function.self . mapped          %~ f
+                               & Function.args . mapped . mapped %~ f
+                               & Function.out                    %~ f
 
 importStructure :: ( node  ~ (NetLayers a :<: Draft Static)
                    , edge  ~ (Link node)
@@ -126,7 +126,7 @@ dupCluster cluster name = do
     fptr  <- follow (prop Lambda) cluster
     cl <- subgraph
     withRef cl $ (prop Name   .~ name)
-               . (prop Lambda .~ (translateFunctionPtr trans <$> fptr))
+               . (prop Lambda .~ (translateSignature trans <$> fptr))
     mapM (flip include cl) $ trans <$> nodeRefs
     return (cl, trans)
 

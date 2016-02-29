@@ -14,12 +14,12 @@ import Data.Record
 import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
-import Luna.Syntax.AST.Decl.Function                (Function)
+import Luna.Syntax.AST.Decl.Function                (Function, Signature)
 import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, translateFunctionPtr, NodeTranslator)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, translateSignature, NodeTranslator)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -99,16 +99,23 @@ funLookup name = do
 importFunction :: PassCtx(ImportErrorT m) => String -> Function (Ref Node node) graph -> ImportErrorT m (Ref Cluster clus)
 importFunction name fun = do
     (cls, translator) <- importToCluster $ fun ^. Function.body
-    let sig = fun ^. Function.sig & translateFunctionPtr translator
+    let sig = fun ^. Function.sig & translateSignature translator
     withRef cls $ (prop Lambda  ?~ sig)
                 . (prop Name    .~ name)
     loadLambda (QualPath.mk name) cls
     return cls
 
-attachTypeRepr :: PassCtx(ImportErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> ImportErrorT m (Ref Node node)
-attachTypeRepr fptr ref = do
+buildTypeRep :: PassCtx(ImportErrorT m) => Signature (Ref Node node) -> ImportErrorT m (Ref Node node)
+buildTypeRep sig = do
+    argTypes <- (mapM . mapM) (follow (prop Type) >=> follow source) $ sig ^. Function.args
+    outType  <- follow (prop Type) (sig ^. Function.out) >>= follow source
+    lam argTypes outType
+
+attachTypeRep :: PassCtx(ImportErrorT m) => Signature (Ref Node node) -> Ref Node node -> ImportErrorT m (Ref Node node)
+attachTypeRep sig ref = do
     currentTp <- follow (prop Type) ref >>= follow source
-    uni <- unify currentTp $ fptr ^. Function.tp
+    importTp  <- buildTypeRep sig
+    uni <- unify currentTp importTp
     reconnect (prop Type) ref uni
     return uni
 
@@ -126,7 +133,7 @@ processNode ref = runErrorT $ do
     fptr <- fromJust <$> follow (prop Lambda) localLamb
     selfMay <- getSelf ref
     zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (maybeToList selfMay)
-    attachTypeRepr fptr ref
+    attachTypeRep fptr ref
 
 -----------------------------
 -- === TypeCheckerPass === --

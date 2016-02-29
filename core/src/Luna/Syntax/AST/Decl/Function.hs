@@ -8,10 +8,9 @@ import Luna.Syntax.AST.Arg
 
 -- === Definitions === --
 
-data Signature a = Signature { _self  :: Maybe a --FIXME[WD->MK]: why we use Maybe here? Every function has a self value
+data Signature a = Signature { _self  :: Maybe a
                              , _args  :: [Arg a]
                              , _out   :: a
-                             , _tp    :: a --FIXME[WD->MK]: why should NOT keep it here. The type of a function is determined by its signature
                              } deriving (Show, Functor, Traversable, Foldable)
 
 data Function a b = Function { _sig  :: Signature a
