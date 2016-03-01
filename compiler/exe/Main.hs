@@ -574,8 +574,8 @@ foo g = runNetworkBuilderT g
     title "pattern matching"
     print $ uncover s1_v
     print $ caseTest (uncover s1_v) $ do
-        match $ \Lit.Star -> "its a star! <3"
-        match $ \ANY      -> "something else!"
+        of' $ \Lit.Star -> "its a star! <3"
+        of' $ \ANY      -> "something else!"
 
     title "complex element building"
     u1 <- unify s1 s2

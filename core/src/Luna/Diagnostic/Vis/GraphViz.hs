@@ -201,13 +201,14 @@ toGraphViz name net = DotGraph { strictGraph     = False
               orphanTgtNodes = flip DotNode [shape PointShape, emptyLabel] ∘ ((nodeId <> "orphanTgt ") <>) ∘ show <$> orphanTgts
 
 
-              inPortsNum  = length ins
-              inPorts     = port        <$> [0 .. inPortsNum - 1]
-              phInPorts   = phantomPort <$> [0 .. inPortsNum - 1]
-              subInLayout = if length inPorts < 1 then [] else [Html.Cells $ phInPorts]
-              recInLayout = if length inPorts < 1 then [] else [Html.Cells $ blankCell : inPorts]
-              emptyLabel  = GV.Label  ∘ StrLabel ∘ fromString $ ""
-              idlabel     = GV.XLabel ∘ StrLabel ∘ fromString ∘ show $ nix
+              inPortsNum    = length ins
+              inPorts       = port        <$> [0 .. inPortsNum - 1]
+              phInPorts     = phantomPort <$> [0 .. inPortsNum - 1]
+              recInLayout   = if length inPorts < 1 then [] else [Html.Cells $ blankCell : inPorts]
+              subInLayout   = if length inPorts < 1 then [] else [Html.Cells $ phInPorts]
+              matchInLayout = if length inPorts < 1 then [] else [Html.Cells $ reverse $ phInPorts] -- reversed ports, so the arrow shows right pattern matching direction
+              emptyLabel    = GV.Label  ∘ StrLabel ∘ fromString $ ""
+              idlabel       = GV.XLabel ∘ StrLabel ∘ fromString ∘ show $ nix
               --htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ genNodeLabel node <> show (length orphanTgts)] where
 
               htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ genNodeLabel node
@@ -226,6 +227,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
 
               recordLabel    = GV.Label $ HtmlLabel $ Html.Table $ Html.HTable Nothing [Html.CellSpacing 3, Html.CellBorder 1, Html.Border 0] $ recInLayout <> [htmlCells]
               subLabel       = GV.Label $ HtmlLabel $ Html.Table $ Html.HTable Nothing [Html.CellSpacing 10, Html.CellBorder 1, Html.Border 0] $ subInLayout
+              matchLabel     = GV.Label $ HtmlLabel $ Html.Table $ Html.HTable Nothing [Html.CellSpacing 10, Html.CellBorder 1, Html.Border 0] $ matchInLayout
               unifyLabel     = GV.Label $ HtmlLabel $ Html.Table $ Html.HTable Nothing [Html.CellSpacing 3, Html.CellBorder 1, Html.Border 0] $ [cells] where
                                cells = Html.Cells [idCell $ show nix, spacerCell 40]
 
@@ -241,6 +243,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               specAttrs = caseTest (uncover node) $ do
                   {-of' $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
                   of' $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
+                  of' $ \(Term.Match a b) -> [Color nodeColor, shape PrimerSite   , matchLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, fontColor unifyLabelClr]
                   --of' $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   of' $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
 

@@ -54,7 +54,7 @@ import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
 import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
-import Luna.Syntax.AST.Term (Unify, Var, App, Unify, Input, NameInput)
+import Luna.Syntax.AST.Term (Unify, Var, App, Unify, Match, Input, NameInput)
 import qualified Luna.Syntax.AST.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
 import Luna.Evaluation.Runtime (Model)
@@ -252,6 +252,7 @@ type T m a = ( a ~ Input a, MonadFix m
              , TermBuilder Var        m a
              , TermBuilder App        m a
              , TermBuilder Unify      m a
+             , TermBuilder Match      m a
              , TermBuilder Lit.String m a
              , IsString (NameInput a)
              , Convertible Name (NameInput a)
@@ -284,7 +285,7 @@ bldr_call margs ma = do
 bldr_assignment ma mb = do
     a <- ma
     b <- mb
-    AST.unify a b
+    AST.match a b
 
         --    out   <- buildElem $ Acc cname csrc
         --cname <- nameConnection name out
