@@ -3,31 +3,53 @@
 module Luna.Data.Name.Class where
 
 import Prelude.Luna
-import FastString
+import Luna.Data.Name.FastString
+import Data.Data
+import Outputable
+import Unique
+import Binary
 
 
--- === Definitions === --
+------------------
+-- === Name === --
+------------------
 
-type Name = FastString
+newtype Name = Name FastString deriving (Data, Show, Read, Eq, Ord, Typeable, Outputable, Uniquable, Binary, Monoid, IsString, ToString, Repr s)
+makeWrapped ''Name
 
---type family Name a
-class HasName a where name :: Lens' a Name
+class HasName    a where name    :: Lens' a Name
+class HasOptName a where optName :: Lens' a (Maybe Name)
 
 
--- === FastString Instances === --
+-- === Instances === --
 
--- Monoid
-instance Monoid FastString where
-    mempty      = ""             ; {-# INLINE mempty  #-}
-    mappend a b = concatFS [a,b] ; {-# INLINE mappend #-}
-
--- Construction
-instance IsString FastString where fromString = convert ; {-# INLINE fromString #-}
-instance ToString FastString where toString   = convert ; {-# INLINE toString   #-}
-
--- Repr
-instance Repr s String => Repr s FastString where repr = repr ∘ toString
+-- Basic
+instance HasName Name where name = id ; {-# INLINE name #-}
 
 -- Conversions
-instance Convertible FastString String     where convert = unpackFS ; {-# INLINE convert #-}
-instance Convertible String     FastString where convert = fsLit    ; {-# INLINE convert #-}
+instance Convertible String Name   where convert = wrap'   ∘ convert ; {-# INLINE convert #-}
+instance Convertible Name   String where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
+
+
+
+-------------------------
+-- === SegmentName === --
+-------------------------
+
+-- TODO[WD]: make the implementation faster - we can use the same technique as the one used to implement FastString here
+data MultiName = MultiName Name [Name] deriving (Show, Read, Eq, Ord)
+
+class HasMultiName    a where multiName    :: Lens' a MultiName
+class HasOptMultiName a where optMultiName :: Lens' a (Maybe MultiName)
+
+
+-- === Instances === --
+
+-- Basic
+instance HasMultiName MultiName where multiName = id ; {-# INLINE multiName #-}
+
+-- Strings
+instance IsString MultiName where fromString = flip MultiName mempty ∘ fromString ; {-# INLINE fromString #-}
+
+-- Repr
+instance Repr s MultiName where repr = const "<multiname repr>" ; {-# INLINE repr #-}

@@ -5,7 +5,7 @@
 
 {-# LANGUAGE PolyKinds            #-}
 
-module Luna.Syntax.Model.Network.Builder.Term.Class where
+module Luna.Syntax.Model.Network.Builder.Term.Class (module Luna.Syntax.Model.Network.Builder.Term.Class, module X) where
 
 import Prelude.Luna hiding (Num)
 
@@ -22,6 +22,7 @@ import           Data.Tuple.Curry.Missing
 import           Data.Tuple.OneTuple
 import           Luna.Evaluation.Runtime                 as Runtime
 import           Luna.Syntax.AST.Arg
+import           Luna.Syntax.AST.Arg                     as X (arg)
 import           Luna.Syntax.AST.Term                    hiding (Val, Lit, Thunk, Expr, Draft, Source, Name)
 import qualified Luna.Syntax.AST.Term                    as Term
 import qualified Data.Graph.Builder                      as GraphBuilder
@@ -78,12 +79,6 @@ instance {-# OVERLAPPABLE #-} TermBuilder t IM a where buildTerm = impossible
 -------------------------------
 -- === Term constructors === --
 -------------------------------
-
--- === Args === --
-
--- TODO[WD]: add named option
-arg :: a -> Arg a
-arg = Arg Nothing
 
 
 -- === Lit === --

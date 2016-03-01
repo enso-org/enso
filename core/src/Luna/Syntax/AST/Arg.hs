@@ -2,14 +2,38 @@ module Luna.Syntax.AST.Arg where
 
 import Prelude.Luna
 
-import Luna.Syntax.Ident
+import Luna.Syntax.Ident (HasOptIdent, IdentType)
 
-data Arg a = Arg { __aname :: Maybe VarIdent , __arec :: a } deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
+import qualified Luna.Syntax.Ident      as Ident
+import qualified Luna.Syntax.Ident.Type as IdentType
 
-instance Repr s a => Repr s (Arg a) where repr (Arg n a) = "Arg" <+> repr n <+> repr a
 
 
---data NamedArg a = NamedArg VarIdent a deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
+-- === Definitions === --
 
+data Arg    a = Arg    { __ident_ :: Maybe Ident.Var , __val_  ::       a } deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
+data ArgDef a = ArgDef { __pat_   :: a               , __mval_ :: Maybe a } deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
+
+makeLenses ''Arg
+makeLenses ''ArgDef
+
+
+-- === Utils === --
+
+arg :: a -> Arg a
+arg = Arg Nothing
+
+
+
+-- === Instances === --
+
+-- Basic
+type instance IdentType   (Arg a) = IdentType.Var
+instance      HasOptIdent (Arg a) where optIdent = _ident_
+
+-- Layers
 type instance Unlayered (Arg a) = a
-instance Layered (Arg a) where layered = lens (\(Arg _ a) -> a) (\(Arg n _ ) a -> Arg n a)
+instance      Layered   (Arg a) where layered = lens (\(Arg _ a) -> a) (\(Arg n _ ) a -> Arg n a)
+
+-- Repr
+instance Repr s a => Repr s (Arg a) where repr (Arg n a) = "Arg" <+> repr n <+> repr a

@@ -43,7 +43,7 @@ main = do
     return ()
 
 
-input = "x = 'hello' + 'morelo' + 'ojeju'"
+input = "v = x y z"
 
 myparser :: (DeltaParsing p, TermBuilder Lit.String m a) => p (m a, Parser.State)
 myparser = parseGen PLit.string Parser.defState

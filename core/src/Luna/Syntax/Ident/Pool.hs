@@ -13,7 +13,7 @@ import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThr
 import qualified Control.Monad.State            as State
 import           Data.Pool
 import           Data.Tuple (swap)
-import           Luna.Syntax.Ident.Class
+import qualified Luna.Syntax.Ident.Class        as Ident
 
 
 -----------------------
@@ -22,8 +22,8 @@ import           Luna.Syntax.Ident.Class
 
 -- === Definitions === --
 
-data IdentPoolState = IdentPoolState { _varNames  :: Pool VarIdent
-                                     , _typeNames :: Pool TypeIdent
+data IdentPoolState = IdentPoolState { _varNames  :: Pool Ident.Var
+                                     , _typeNames :: Pool Ident.Type
                                      }
 
 makeLenses ''IdentPoolState
@@ -112,10 +112,10 @@ instance {-# OVERLAPPABLE #-} (MonadIdentPool m, MonadTrans t, Monad (t m)) => M
 
 -- === Utils === --
 
-newVarIdent :: MonadIdentPool m => m VarIdent
+newVarIdent :: MonadIdentPool m => m Ident.Var
 newVarIdent = new
 
-newTypeIdent :: MonadIdentPool m => m TypeIdent
+newTypeIdent :: MonadIdentPool m => m Ident.Type
 newTypeIdent = new
 
 newVarIdent' :: (MonadIdentPool m, IsString a) => m a
@@ -149,5 +149,5 @@ typeNamePool = newNamePool "" "#" ['A' .. 'Z'] ['a' .. 'z']
 instance Default IdentPoolState where
     def = IdentPoolState varNamePool typeNamePool where
 
-instance MonadIdentPool m => Generator m VarIdent  where new = modify $ varNames  allocate
-instance MonadIdentPool m => Generator m TypeIdent where new = modify $ typeNames allocate
+instance MonadIdentPool m => Generator m Ident.Var  where new = modify $ varNames  allocate
+instance MonadIdentPool m => Generator m Ident.Type where new = modify $ typeNames allocate

@@ -59,7 +59,8 @@ import qualified Luna.Syntax.AST.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
 import Luna.Evaluation.Runtime (Model)
 import Luna.Data.Name
-
+import           Luna.Syntax.AST.Arg
+import           Luna.Syntax.Ident (named)
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 
 --prevParsedChar = do
@@ -214,18 +215,32 @@ postfix name fun       = Postfix (fun <$ reservedOp name)
 reservedOp name = reserve emptyOps name
 
 assignment :: (P p, T m a) => p (m a)
-assignment = bldr_assignment <$> var <* Tok.assignment <*> expr
+assignment = bldr_assignment <$> pattern <* Tok.assignment <*> expr
 
 expr  :: (P p, T m a) => p (m a)
-expr   = buildExpressionParser opTable term
+expr   = buildExpressionParser opTable (app term)
       <?> "expression"
+
+
+app base = base <??> (bldr_call <$> many1 base)
+
+
+--app base = p <??> ((\a s -> callBuilder2 s a) <$> many1 (appArg p)) where
+
+
+--callBuilder2 src@(Label lab expr) args = case expr of
+--    Expr.App app -> Expr.App $ NamePat.appendLastSegmentArgs args app
+--    _             -> Expr.app src args
 
 
 term  :: (P p, T m a) => p (m a)
 term   = parens expr
       <|> literal
+      <|> var
       <?> "simple expression"
 
+pattern :: (P p, T m a) => p (m a)
+pattern = expr
 
 opTable :: (P p, T m a)
         => [[Operator p (m a)]]
@@ -258,6 +273,12 @@ operator name ma mb = do
     ap <- AST.app op [AST.arg a, AST.arg b]
 
     return ap
+
+
+bldr_call margs ma = do
+    args <- sequence margs
+    a    <- ma
+    AST.app a (named "hello" ∘ arg <$> args)
 
 
 bldr_assignment ma mb = do

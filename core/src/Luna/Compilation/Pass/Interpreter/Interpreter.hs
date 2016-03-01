@@ -137,7 +137,7 @@ markModified = markSuccessors
 
 
 unpackArguments :: InterpreterCtx(m, ls, term) => [Arg (Ref Edge (Link (ls :<: term)))] -> m [Ref Node (ls :<: term)]
-unpackArguments args = mapM (follow source . Arg.__arec) args
+unpackArguments args = mapM (follow source . Arg.__val_) args
 
 
 argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m Int

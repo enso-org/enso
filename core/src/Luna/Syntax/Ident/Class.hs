@@ -1,10 +1,12 @@
-module Luna.Syntax.Ident.Class where
+module Luna.Syntax.Ident.Class (module Luna.Syntax.Ident.Class, module X) where
 
 import Prelude.Luna
 
 import Data.Char                   (isLower, isUpper)
 import Luna.Data.Name
-import Luna.Syntax.Ident.Type
+
+import qualified Luna.Syntax.Ident.Type as Type
+import           Luna.Syntax.Ident.Type as X (IdentType)
 
 
 -------------------
@@ -13,28 +15,39 @@ import Luna.Syntax.Ident.Type
 
 -- === Definition === --
 
-newtype Ident t = Ident Name deriving (Show, Eq, Ord)
+type    Ident' a = Ident (IdentType a)
+newtype Ident  t = Ident MultiName deriving (Show, Read, Eq, Ord)
 makeWrapped ''Ident
 
-type VarIdent  = Ident Var
-type TypeIdent = Ident Type
+type Var  = Ident Type.Var
+type Type = Ident Type.Type
+
+class HasIdent    a where ident    :: Lens' a        (Ident' a)
+class HasOptIdent a where optIdent :: Lens' a (Maybe (Ident' a))
 
 
 -- === Utils === --
 
-varIdent :: String -> Ident Var
-varIdent = wrap' ∘ fromString
-{-# INLINE varIdent #-}
+var :: String -> Var
+var = fromString ; {-# INLINE var #-}
 
-typeIdent :: String -> Ident Type
-typeIdent = wrap' ∘ fromString
-{-# INLINE typeIdent #-}
+tp  :: String -> Type
+tp  = fromString ; {-# INLINE tp  #-}
+
+named :: HasOptIdent a => Ident' a -> a -> a
+named = set optIdent ∘ Just
+
+unnamed :: HasOptIdent a => a -> a
+unnamed = set optIdent Nothing
 
 
 -- === Instances === --
 
-instance IsString (Ident Var ) where fromString = varIdent           ; {-# INLINE fromString #-}
-instance IsString (Ident Type) where fromString = typeIdent          ; {-# INLINE fromString #-}
-instance ToString (Ident t)    where toString   = toString ∘ unwrap' ; {-# INLINE toString   #-}
-instance HasName  (Ident t)    where name       = wrapped'           ; {-# INLINE name       #-}
-instance Repr s   (Ident t)    where repr       = repr ∘ unwrap'     ; {-# INLINE repr       #-}
+-- Basic
+type instance IdentType (Ident t) = t
+instance      HasIdent  (Ident t) where ident = id ; {-# INLINE ident #-}
+
+-- Strings
+instance IsString     (Ident t) where fromString = wrap' ∘ fromString ; {-# INLINE fromString #-}
+instance HasMultiName (Ident t) where multiName  = wrapped'           ; {-# INLINE multiName  #-}
+instance Repr s       (Ident t) where repr       = repr ∘ unwrap'     ; {-# INLINE repr       #-}
