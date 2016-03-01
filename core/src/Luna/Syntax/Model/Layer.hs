@@ -10,6 +10,7 @@ import Data.Prop
 import Luna.Syntax.AST.Term (LayoutType)
 import Type.Bool
 import Data.Record
+import Data.HMap.Lazy (HTMap)
 
 
 --------------------
@@ -131,6 +132,7 @@ instance Castable Bool Bool where cast = id
 instance Castable (Maybe a) (Maybe a) where cast = id
 instance Castable Char Char where cast = id
 instance {-# OVERLAPPABLE #-} Castable a a' => Castable (Maybe a) (Maybe a') where cast = fmap cast
+instance Castable HTMap HTMap where cast = id
 
 -- Note layer
 data Note = Note deriving (Show, Eq, Ord)
@@ -152,7 +154,7 @@ instance Monad m => Creator    m (Layer l Markable a) where create = return $ La
 instance Monad m => Destructor m (Layer l Markable a) where destruct _ = return ()
 
 -- Meta layer
-data Meta a = Meta deriving (Eq)
-type instance LayerData l (Meta a) t = Maybe a
-instance Monad m => Creator    m (Layer l (Meta a) b) where create = return $ Layer Nothing
-instance Monad m => Destructor m (Layer l (Meta a) b) where destruct _ = return ()
+data Meta = Meta deriving (Show, Eq, Ord)
+type instance LayerData l Meta t = HTMap
+instance Monad m => Creator    m (Layer l Meta b) where create     = return $ Layer def
+instance Monad m => Destructor m (Layer l Meta b) where destruct _ = return ()

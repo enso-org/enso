@@ -28,6 +28,8 @@ import qualified Luna.Syntax.AST.Decl.Function  as Function
 -- === Utils === --
 -------------------
 
+-- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently
+
 type NodeTranslator n = Ref Node n -> Ref Node n
 
 mkNodeTranslator :: Map (Ref Node n) (Ref Node n) -> NodeTranslator n
@@ -40,7 +42,7 @@ translateSignature f sig = sig & Function.self . mapped          %~ f
                                & Function.args . mapped . mapped %~ f
                                & Function.out                    %~ f
 
-importStructure :: ( node  ~ (NetLayers a :<: Draft Static)
+importStructure :: ( node  ~ (NetLayers :<: Draft Static)
                    , edge  ~ (Link node)
                    , graph ~ Hetero (VectorGraph n e c)
                    , BiCastable e edge
@@ -78,10 +80,10 @@ importStructure nodes' edges' = do
 
     return translateNode
 
-importToCluster :: ( node  ~ (NetLayers a :<: Draft Static)
+importToCluster :: ( node  ~ (NetLayers :<: Draft Static)
          , edge  ~ (Link node)
          , graph ~ Hetero (VectorGraph n e c)
-         , clus  ~ NetCluster a
+         , clus  ~ NetCluster
          , BiCastable e edge
          , BiCastable n node
          , BiCastable c clus
@@ -101,10 +103,10 @@ importToCluster g = do
     mapM (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
     return (cls, trans)
 
-dupCluster :: forall graph node edge clus n e c a m .
-              ( node  ~ NetNode a
+dupCluster :: forall graph node edge clus n e c m .
+              ( node  ~ NetNode
               , edge  ~ (Link node)
-              , clus  ~ NetCluster a
+              , clus  ~ NetCluster
               , graph ~ Hetero (VectorGraph n e c)
               , BiCastable e edge
               , BiCastable n node

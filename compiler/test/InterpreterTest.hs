@@ -163,10 +163,10 @@ graph2 = do
     return refsToEval
 
 
-prebuild :: Show a => IO (Ref Node (NetLayers a :<: Draft Static), NetGraph a)
+prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild def star
 
-runBuild (g :: NetGraph a) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers a :<: Draft Static)))
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
 evalBuild = fmap snd ∘∘ runBuild
@@ -175,7 +175,7 @@ evalBuild = fmap snd ∘∘ runBuild
 test_old :: IO ()
 test_old = do
     putStrLn "Interpreter test"
-    (_,  g00 :: NetGraph ()) <- prebuild
+    (_,  g00 :: NetGraph) <- prebuild
     flip catchAll (\e -> return ()) $ flip Env.evalT def $ do
         v <- view version <$> Env.get
         putStrLn $ "Luna compiler version " <> showVersion v
@@ -212,7 +212,7 @@ seq3 a b c = Sequence a $ Sequence b c
 
 test1 :: IO ()
 test1 = do
-    (_,  g :: NetGraph () ) <- prebuild
+    (_,  g :: NetGraph) <- prebuild
 
 
     -- Running compiler environment

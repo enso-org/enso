@@ -37,12 +37,13 @@ import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), Ty
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 
+-- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently
 
 #define PassCtx(m) ( term  ~ Draft Static                            \
-                   , ls    ~ NetLayers a                             \
+                   , ls    ~ NetLayers                               \
                    , edge  ~ Link (ls :<: term)                      \
                    , node  ~ (ls :<: term)                           \
-                   , clus  ~ NetCluster a                            \
+                   , clus  ~ NetCluster                              \
                    , graph ~ Hetero (VectorGraph n e c)              \
                    , BiCastable     e edge                           \
                    , BiCastable     n node                           \

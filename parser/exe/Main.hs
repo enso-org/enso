@@ -73,14 +73,14 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 --  !!! KEEP THIS ON THE BEGINNING !!! --
 -- --------------------------------------
 -- - vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ---
-prebuild :: Show a => IO (Ref Node (NetLayers a :<: Draft Static), NetGraph a)
+prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild def star
 
-prebuild2 :: Show a => IO (NetLayers a :<: Draft Static, NetGraph a)
+prebuild2 :: IO (NetLayers :<: Draft Static, NetGraph)
 prebuild2 = runBuild def  (read =<< star)
 
 
-runBuild (g :: NetGraph a) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers a :<: Draft Static)))
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
 evalBuild = fmap snd ∘∘ runBuild
@@ -287,8 +287,8 @@ input_g1_resolution_mock [f,g] = do
 symbolMapTest :: IO ()
 symbolMapTest = do
     title "Symbol map testing"
-    (_, g :: NetGraph ()) <- prebuild
-    ((plus, sin, err, l1, l2), (g :: NetGraph ())) <- runBuild g $ do
+    (_, g :: NetGraph) <- prebuild
+    ((plus, sin, err, l1, l2), (g :: NetGraph)) <- runBuild g $ do
         i1 <- int 1
         i2 <- int 2
         s1 <- str "hello world!"
@@ -313,7 +313,7 @@ symbolMapTest = do
 
     renderAndOpen [("beforeImporting", "beforeImporting", g)]
 
-    (f, (g :: NetGraph ())) <- flip Symbol.evalT def $ runBuild g $ do
+    (f, (g :: NetGraph)) <- flip Symbol.evalT def $ runBuild g $ do
         Symbol.loadFunctions StdLib.symbols
         mapM Importing.processNode [plus, sin, err, l1, l2]
 
@@ -328,7 +328,7 @@ collectGraph tag = do
 
 test1 :: IO ()
 test1 = do
-    (_,  g :: NetGraph () ) <- prebuild
+    (_,  g :: NetGraph) <- prebuild
 
 
     -- Running compiler environment
@@ -442,7 +442,7 @@ nodes = Selector
 
 main2 :: IO ()
 main2 = do
-    (nr, g_ :: NetGraph ()) <- prebuild
+    (nr, g_ :: NetGraph) <- prebuild
     let g = Network' g_
     --print $ (refs g :: [Ref Node (NetLayers () :<: Draft Static)])
     check g
@@ -523,12 +523,12 @@ main = do
 
 showcase :: IO ()
 showcase = do
-    (_,  g :: NetGraph () ) <- prebuild
+    (_,  g :: NetGraph) <- prebuild
     (_, g') <- foo g
     renderAndOpen [ ("g", "g", g')
                   ]
 
-foo :: forall a. Show a => NetGraph a -> IO (Ref Node (NetLayers a :<: Draft Static), NetGraph a)
+foo :: NetGraph -> IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 --foo :: NetGraph -> IO ((), NetGraph)
 foo g = runNetworkBuilderT g
     $ do
@@ -562,7 +562,7 @@ foo g = runNetworkBuilderT g
 
     title "complex element building"
     u1 <- unify s1 s2
-    print (u1 :: Ref Node (NetLayers a :<: Draft Static))
+    print (u1 :: Ref Node (NetLayers :<: Draft Static))
     u1_v <- read u1
 
     title "inputs reading"

@@ -272,22 +272,22 @@ matchTypeM _ = id
 ------------------------------
 
 type NetClusterLayers = '[Lambda, Name]
-type NetLayers     a  = '[Type, Succs, TCData, InterpreterData, Meta a]
-type NetNode       a  = NetLayers a :<: Draft Static
-type NetRawNode    a  = NetLayers a :<: Raw
-type NetCluster    a  = NetClusterLayers :< SubGraph (NetNode a)
-type NetRawCluster a  = NetClusterLayers :< SubGraph (NetRawNode a)
+type NetLayers        = '[Type, Succs, TCData, InterpreterData, Meta]
+type NetNode          = NetLayers :<: Draft Static
+type NetRawNode       = NetLayers :<: Raw
+type NetCluster       = NetClusterLayers :< SubGraph NetNode
+type NetRawCluster    = NetClusterLayers :< SubGraph NetRawNode
 
-type NetGraph a = Hetero (VectorGraph (NetRawNode a) (Link (NetRawNode a)) (NetRawCluster a))
+type NetGraph = Hetero (VectorGraph NetRawNode (Link NetRawNode) NetRawCluster)
 
 buildNetwork  = runIdentity ∘ buildNetworkM
-buildNetworkM = rebuildNetworkM' (def :: NetGraph a)
+buildNetworkM = rebuildNetworkM' (def :: NetGraph)
 
 rebuildNetwork' = runIdentity .: rebuildNetworkM'
-rebuildNetworkM' (net :: NetGraph a) = flip Self.evalT (undefined ::        Ref Node $ NetNode a)
-                                     ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node $ NetNode a))
+rebuildNetworkM' (net :: NetGraph) = flip Self.evalT (undefined ::        Ref Node NetNode)
+                                     ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
                                      ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
-                                     ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node $ NetNode a)
+                                     ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
                                      ∘ flip GraphBuilder.runT net
                                      ∘ registerSuccs   CONNECTION
 {-# INLINE   buildNetworkM #-}
@@ -300,18 +300,18 @@ instance {-# OVERLAPPABLE #-} NetworkBuilderT I IM IM where runNetworkBuilderT =
 instance {-# OVERLAPPABLE #-}
     ( m      ~ Listener CONNECTION SuccRegister m'
     , m'     ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m''
-    , m''    ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node $ NetNode a)) m'''
+    , m''    ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m'''
     , m'''   ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m''''
-    , m''''  ~ Type.TypeBuilderT (Ref Node $ NetNode a) m'''''
-    , m''''' ~ Self.SelfBuilderT (Ref Node $ NetNode a) m''''''
+    , m''''  ~ Type.TypeBuilderT (Ref Node NetNode) m'''''
+    , m''''' ~ Self.SelfBuilderT (Ref Node NetNode) m''''''
     , Monad m'''''
     , Monad m''''''
     , net ~ Hetero (VectorGraph n e c)
     ) => NetworkBuilderT net m m'''''' where
-    runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node $ NetNode a)
-                           ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node $ NetNode a))
+    runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node NetNode)
+                           ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
                            ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
-                           ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node $ NetNode a)
+                           ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
                            ∘ flip GraphBuilder.runT net
                            ∘ registerSuccs   CONNECTION
 

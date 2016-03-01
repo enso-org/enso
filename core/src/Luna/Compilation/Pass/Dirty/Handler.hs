@@ -24,7 +24,7 @@ import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
 
 
-#define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers a                                      \
+#define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers                                        \
                                   , term ~ Draft Static                                     \
                                   , ne   ~ Link (ls :<: term)                               \
                                   , BiCastable     e ne                                     \

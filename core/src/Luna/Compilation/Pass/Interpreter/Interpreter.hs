@@ -51,7 +51,7 @@ import qualified Language.Haskell.Session                        as HS
 
 
 
-#define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers a                                       \
+#define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                                     , term ~ Draft Static                                      \
                                     , ne   ~ Link (ls :<: term)                                \
                                     , BiCastable e ne                                          \
@@ -210,7 +210,7 @@ evaluateNodes reqRefs = do
     mapM_ evaluateNode =<< Env.getNodesToEval
 
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers a                                       \
+#define PassCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                              , term ~ Draft Static                                      \
                              , ne   ~ Link (ls :<: term)                                \
                              , BiCastable e ne                                          \
@@ -225,7 +225,7 @@ evaluateNodes reqRefs = do
                              , MonadMask (m)                                            \
                              )
 
-run :: forall env m ls term ne a n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term ne n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     -- putStrLn $ "g " <> show g
