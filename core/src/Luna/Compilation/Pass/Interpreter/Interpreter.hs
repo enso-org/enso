@@ -200,7 +200,9 @@ evaluateNode ref = do
         match $ \(Lit.String str)    -> do
             setValue (-1) ref
             -- putStrLn "string"
-        match $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
+        -- match $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref
+         -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
+        match $ \(Lit.Number _ num) -> error "could not perform: setValue num ref"
         match $ \ANY                -> return ()
     return ()
 

@@ -179,7 +179,7 @@ test_old = do
     flip catchAll (\e -> return ()) $ flip Env.evalT def $ do
         v <- view version <$> Env.get
         putStrLn $ "Luna compiler version " <> showVersion v
-        flip catchAll (\e -> return ()) $ TypeCheck.runT $ do
+        flip catchAll (\e -> putStrLn $ show e) $ TypeCheck.runT $ do
             (refsToEval, g01) <- runBuild  g00 graph2
             g02               <- evalBuild g01 $ Interpreter.run refsToEval
             renderAndOpen [ ("g2", "g2", g02)
@@ -190,6 +190,7 @@ test_old = do
 
 main :: IO ()
 main = test_old
+-- main = test1
 
 input4Adam = do
     i1 <- int 1
@@ -240,7 +241,9 @@ test1 = do
             TypeCheck.runTCWithArtifacts tc collectGraph
 
         let names = printf "%02d" <$> ([0..] :: [Int])
-        renderAndOpen $ zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
+        let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
+        putStrLn $ intercalate " " $ (view _2) <$> graphs
+        renderAndOpen [ last graphs ]
     print "end"
 
 
