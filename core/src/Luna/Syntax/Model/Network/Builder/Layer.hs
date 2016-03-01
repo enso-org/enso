@@ -78,19 +78,21 @@ instance (Monad m, Destructor m (LayerData (Network ls) Type a)) => Destructor m
 
 data TCDataPayload t = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link (Shelled t)
                                      , _replacement :: Maybe $ Ptr Cluster
+                                     , _keep        :: Bool
+                                     , _seen        :: Bool
                                      } deriving (Show, Eq)
 makeLenses ''TCDataPayload
 
 type instance LayerData (Network ls) TCData t = TCDataPayload t
 instance Monad m => Creator m (Layer (Network ls) TCData a) where
-    create = return $ Layer $ TCDataPayload Nothing Nothing
+    create = return $ Layer $ TCDataPayload Nothing Nothing False False
 
 instance (Monad m, Unregister m (Ref Edge $ Link (Shelled a)))
       => Destructor m (Layer (Network ls) TCData a) where
-    destruct (Layer (TCDataPayload red _)) = mapM_ unregister red
+    destruct (Layer (TCDataPayload red _ _ _)) = mapM_ unregister red
 
 instance Castable (Shelled t) (Shelled t') => Castable (TCDataPayload t) (TCDataPayload t') where
-    cast (TCDataPayload a b) = TCDataPayload (cast <$> a) b
+    cast (TCDataPayload a b c d) = TCDataPayload (cast <$> a) b c d
 
 -- === Lambda layer === --
 

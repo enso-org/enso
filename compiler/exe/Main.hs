@@ -41,6 +41,7 @@ import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallin
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
+import           Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
@@ -355,6 +356,7 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             (lits, apps, accs, funcs) <- input_g2
+            subtreeWalk print (Ref 10 :: Ref Node (NetLayers :<: Draft Static))
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 
