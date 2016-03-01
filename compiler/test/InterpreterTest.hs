@@ -163,10 +163,10 @@ graph2 = do
     return refsToEval
 
 
-prebuild :: Show a => IO (Ref Node (NetLayers a :<: Draft Static), NetGraph a)
+prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild def star
 
-runBuild (g :: NetGraph a) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers a :<: Draft Static)))
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
 evalBuild = fmap snd ∘∘ runBuild
@@ -175,11 +175,11 @@ evalBuild = fmap snd ∘∘ runBuild
 test_old :: IO ()
 test_old = do
     putStrLn "Interpreter test"
-    (_,  g00 :: NetGraph ()) <- prebuild
+    (_,  g00 :: NetGraph) <- prebuild
     flip catchAll (\e -> return ()) $ flip Env.evalT def $ do
         v <- view version <$> Env.get
         putStrLn $ "Luna compiler version " <> showVersion v
-        flip catchAll (\e -> return ()) $ TypeCheck.runT $ do
+        flip catchAll (\e -> putStrLn $ show e) $ TypeCheck.runT $ do
             (refsToEval, g01) <- runBuild  g00 graph2
             g02               <- evalBuild g01 $ Interpreter.run refsToEval
             renderAndOpen [ ("g2", "g2", g02)
@@ -190,6 +190,7 @@ test_old = do
 
 main :: IO ()
 main = test_old
+-- main = test1
 
 input4Adam = do
     i1 <- int 1
@@ -212,7 +213,7 @@ seq3 a b c = Sequence a $ Sequence b c
 
 test1 :: IO ()
 test1 = do
-    (_,  g :: NetGraph () ) <- prebuild
+    (_,  g :: NetGraph) <- prebuild
 
 
     -- Running compiler environment
@@ -240,7 +241,9 @@ test1 = do
             TypeCheck.runTCWithArtifacts tc collectGraph
 
         let names = printf "%02d" <$> ([0..] :: [Int])
-        renderAndOpen $ zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
+        let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
+        putStrLn $ intercalate " " $ (view _2) <$> graphs
+        renderAndOpen [ last graphs ]
     print "end"
 
 

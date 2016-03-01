@@ -50,7 +50,7 @@ import           Language.Haskell.Session                        (GhcMonad)
 import qualified Language.Haskell.Session                        as HS
 
 
-#define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers a                                       \
+#define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                                     , term ~ Draft Static                                      \
                                     , ne   ~ Link (ls :<: term)                                \
                                     , BiCastable e ne                                          \
@@ -199,7 +199,9 @@ evaluateNode ref = do
         of' $ \(Lit.String str)    -> do
             setValue (-1) ref
             -- putStrLn "string"
-        of' $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
+        -- match $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref
+         -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
+        of' $ \(Lit.Number _ num) -> error "could not perform: setValue num ref"
         of' $ \ANY                -> return ()
     return ()
 
@@ -209,7 +211,7 @@ evaluateNodes reqRefs = do
     mapM_ evaluateNode =<< Env.getNodesToEval
 
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers a                                       \
+#define PassCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                              , term ~ Draft Static                                      \
                              , ne   ~ Link (ls :<: term)                                \
                              , BiCastable e ne                                          \
@@ -224,7 +226,7 @@ evaluateNodes reqRefs = do
                              , MonadMask (m)                                            \
                              )
 
-run :: forall env m ls term ne a n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term ne n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     -- putStrLn $ "g " <> show g

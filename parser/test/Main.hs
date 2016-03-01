@@ -26,7 +26,7 @@ import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import           Luna.Parser.Term (T)
 import qualified Luna.Parser.Term as Term
 
-runBuild (g :: NetGraph a) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers a :<: Draft Static)))
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
 
@@ -38,7 +38,7 @@ main = do
     case parsed of
         Left  d          -> print d
         Right (bldr, ps) -> do
-            (_ :: Ref Node (NetNode ()), g :: NetGraph ()) <- runBuild (def :: NetGraph ()) bldr
+            (_ :: Ref Node NetNode, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
             renderAndOpen [("g1", "g1", g)]
     return ()
 

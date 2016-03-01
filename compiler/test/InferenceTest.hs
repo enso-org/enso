@@ -85,10 +85,10 @@ graph1 = do
     return appPlus2
     -- return i1
 
-prebuild :: Show a => IO (Ref Node (NetLayers a :<: Draft Static), NetGraph a)
+prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild def star
 
-runBuild (g :: NetGraph a) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers a :<: Draft Static)))
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
 evalBuild = fmap snd ∘∘ runBuild
@@ -96,7 +96,7 @@ evalBuild = fmap snd ∘∘ runBuild
 
 main :: IO ()
 main = do
-    (_,  g00 :: NetGraph ()) <- prebuild
+    (_,  g00 :: NetGraph) <- prebuild
     flip Env.evalT def $ do
         v <- view version <$> Env.get
         putStrLn $ "Luna compiler version " <> showVersion v

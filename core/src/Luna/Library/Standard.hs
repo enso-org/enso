@@ -29,7 +29,7 @@ import qualified Data.Map                         as Map
 import qualified Luna.Library.Symbol.QualPath     as QualPath
 import qualified Luna.Syntax.AST.Decl.Function    as Function
 
-#define FunBuilderCtx(m) ( n ~ (NetLayers a :<: Draft Static)            \
+#define FunBuilderCtx(m) ( n ~ (NetLayers :<: Draft Static)              \
                          , nodeRef ~ Ref Node  n                         \
                          , TermNode Cons     m n                         \
                          , TermNode Blank    m n                         \
@@ -38,14 +38,14 @@ import qualified Luna.Syntax.AST.Decl.Function    as Function
                          , TermNode Lam      m n                         \
                          , TermNode Var      m n                         \
                          , MonadFix m                                    \
-                         , NetworkBuilderT (NetGraph a) m Identity       \
-                         , MonadBuilder (NetGraph a) m                   \
+                         , NetworkBuilderT NetGraph m Identity           \
+                         , MonadBuilder NetGraph m                       \
                          )
 
-buildGraph :: forall m n a b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph a)
+buildGraph :: forall m n b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph)
 buildGraph m = runIdentity $ runNetworkBuilderT def ((star :: m nodeRef) >> m)
 
-makeFunction :: FunBuilderCtx(m) => m (Signature nodeRef) -> Function (Ref Node n) (NetGraph a)
+makeFunction :: FunBuilderCtx(m) => m (Signature nodeRef) -> Function (Ref Node n) NetGraph
 makeFunction bldr = Function signature body where
     (signature, body) = buildGraph bldr
 
@@ -72,7 +72,7 @@ makeId = do
     n     <- blank `typed` tpV
     return $ Signature Nothing [arg n] n
 
-symbols :: Show a => SymbolMap (NetLayers a :<: Draft Static) (NetGraph a)
+symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b))
     [ ("Int.+"         , makeNativeFun "(+)"                     (Just "Int")      ["Int"]           "Int"      )
     , ("Int.*"         , makeNativeFun "(*)"                     (Just "Int")      ["Int"]           "Int"      )

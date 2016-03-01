@@ -25,7 +25,7 @@ import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term                  (Draft)
 
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers a                          \
+#define PassCtx(m, ls, term) ( ls   ~ NetLayers                            \
                              , term ~ Draft Static                         \
                              , ne   ~ Link (ls :<: term)                   \
                              , BiCastable    e ne                          \

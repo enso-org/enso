@@ -35,7 +35,7 @@ import           Control.Monad.Trans.Identity
 import           Data.Graph.Backend.VectorGraph
 
 
-#define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers a                                    \
+#define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers                                      \
                                   , term ~ Draft Static                                   \
                                   , ne   ~ Link (ls :<: term)                             \
                                   , BiCastable e ne                                       \
@@ -93,7 +93,7 @@ markSuccessors ref = do
             mapM_ markSuccessors =<< succ ref
 
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers a                                      \
+#define PassCtx(m, ls, term) ( ls   ~ NetLayers                                        \
                              , term ~ Draft Static                                     \
                              , ne   ~ Link (ls :<: term)                               \
                              , BiCastable e ne                                         \
@@ -110,7 +110,7 @@ markSuccessors ref = do
                              -- , HasProp Dirty (ls :<: term)                      \
                              -- , HasProp Required (ls :<: term)                   \
 
-run :: forall env m ls term ne a n e c. (PassCtx(DirtyT env m, ls, term), MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term ne n e c. (PassCtx(DirtyT env m, ls, term), MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => Ref Node (ls :<: term) -> m ()
 run ref = do
     ((), env) <- flip runDirtyT (def :: env) $ markSuccessors ref

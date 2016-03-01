@@ -121,7 +121,7 @@ gStyle name = [ GraphAttrs [ RankDir FromTop
 
 --check :: NetGraph a -> Coherence
 
-toGraphViz :: forall a. Show a => String -> NetGraph a -> DotGraph String
+toGraphViz :: String -> NetGraph -> DotGraph String
 toGraphViz name net = DotGraph { strictGraph     = False
                                , directedGraph   = True
                                , graphID         = Nothing
@@ -167,13 +167,13 @@ toGraphViz name net = DotGraph { strictGraph     = False
           --    colors = nodeColorAttr node
           --    attrs  = label : colors
 
-          isOrphanTgt (node :: Ref Node (NetLayers a :<: Draft Static)) (edge :: Ref Edge (Link (NetLayers a :<: Draft Static)))
+          isOrphanTgt (node :: Ref Node (NetLayers :<: Draft Static)) (edge :: Ref Edge (Link (NetLayers :<: Draft Static)))
                     = not $ existing && validSource && validTarget where
               existing    = (edge ^. idx) `elem` edgeIxs
               validSource = edge' ^. source == node
               validTarget = edge `elem` (tgt' # Type) : (maybeToList $ tgt' ^. prop TCData . redirect) ++ (tgt' # Inputs)
 
-              edge' = net ^. focus edge :: Link (NetLayers a :<: Draft Static)
+              edge' = net ^. focus edge :: Link (NetLayers :<: Draft Static)
               tgt   = edge' ^. target
               tgt'  = net ^. focus tgt
 
@@ -194,7 +194,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               refStr   = " <Ref " <> show nix <> ">"
               value    = fromMaybe "" $ (\v -> " " <> show v) <$> (node # InterpreterData) ^. InterpreterLayer.value
               interpr  = refStr <> dirty <> required <> value
-              succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers a :<: Draft Static)]
+              succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness
 
@@ -244,11 +244,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
                   --of' $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   of' $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
 
-          nodeInEdges   n   = zip3 ([0..] :: [Int]) (genInEdges net $ (cast $ index n ng :: NetLayers a :<: Draft Static)) (repeat n)
+          nodeInEdges   n   = zip3 ([0..] :: [Int]) (genInEdges net $ (cast $ index n ng :: NetLayers :<: Draft Static)) (repeat n)
           mkEdge  (n,(a,attrs),b) = DotEdge (nodeRef a) (nodeRef b) $ HeadPort (LabelledPort (inPortName n) Nothing) : TailPort (LabelledPort "label" Nothing) : attrs
 
-          draftNodeByIx ix   = cast $ index_ ix ng :: (NetLayers a :<: Draft Static)
-          clusterByIx   ix   = cast $ index_ ix cg :: NetCluster a
+          draftNodeByIx ix   = cast $ index_ ix ng :: (NetLayers :<: Draft Static)
+          clusterByIx   ix   = cast $ index_ ix cg :: NetCluster
           genNodeLabel  node = reprStyled HeaderOnly $ uncover node
 
           matchCluster :: Int -> Int -> Maybe Int
@@ -296,7 +296,7 @@ fromListWithReps lst = foldr update (Map.fromList initLst) lst where
     update (k,v) = Map.adjust (v:) k
 
 
-genInEdges (g :: NetGraph a) (n :: NetLayers a :<: Draft Static) = displayEdges where
+genInEdges (g :: NetGraph) (n :: NetLayers :<: Draft Static) = displayEdges where
     --displayEdges = tpEdge : (addColor <$> inEdges)
     displayEdges = ($ (addColor <$> inEdges) ++ redirEdge ++ replEdge) $ if t == universe then id else (<> [tpEdge])
     genLabel     = GV.XLabel . StrLabel . fromString . show
@@ -318,7 +318,7 @@ genInEdges (g :: NetGraph a) (n :: NetLayers a :<: Draft Static) = displayEdges 
     addColor (idx, attrs) = (idx, GV.color arrClr : attrs)
     getTgtIdx             = view idx ∘ getTgt
     getTgt    inp         = view source $ index (inp ^. idx) es
-    clusterByIx ix        = cast $ index_ ix cg :: NetCluster a
+    clusterByIx ix        = cast $ index_ ix cg :: NetCluster
     cg                    = g ^. wrapped . Graph.subGraphs
 
 
