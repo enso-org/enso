@@ -497,10 +497,10 @@ instance {-# OVERLAPPABLE #-} (m ~ InvalidPattern' a)                        => 
 
 -- === General matching interface === --
 
-class                                                                 Match a rec where match :: forall out. (a -> out) -> MatchSet rec out
-instance {-# OVERLAPPABLE #-} (Resolved a rec, AutoMatch a Ok rec) => Match a rec where match = fromOk ∘ autoMatch ; {-# INLINE match #-}
-instance {-# OVERLAPPABLE #-}                                         Match I rec where match = impossible         ; {-# INLINE match #-}
-instance {-# OVERLAPPABLE #-}                                         Match a I   where match = impossible         ; {-# INLINE match #-}
+class                                                                 Match a rec where of' :: forall out. (a -> out) -> MatchSet rec out
+instance {-# OVERLAPPABLE #-} (Resolved a rec, AutoMatch a Ok rec) => Match a rec where of' = fromOk ∘ autoMatch ; {-# INLINE of' #-}
+instance {-# OVERLAPPABLE #-}                                         Match I rec where of' = impossible         ; {-# INLINE of' #-}
+instance {-# OVERLAPPABLE #-}                                         Match a I   where of' = impossible         ; {-# INLINE of' #-}
 
 type family Matches rec lst :: Constraint where
     Matches rec '[]       = ()
@@ -509,7 +509,7 @@ type family Matches rec lst :: Constraint where
 -- === Static-AST matching === --
 
 static :: (rec' ~ ToStatic rec, Match rec' rec) => (rec' -> out) -> MatchSet rec out
-static = match
+static = of'
 
 
 

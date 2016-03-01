@@ -69,8 +69,8 @@ getSelf :: PassCtx(m) => Ref Node node -> m (Maybe $ Ref Node node)
 getSelf ref = do
     node <- read ref
     caseTest (uncover node) $ do
-        match $ \(Acc _ t) -> Just <$> follow source t
-        match $ \ANY -> return Nothing
+        of' $ \(Acc _ t) -> Just <$> follow source t
+        of' $ \ANY -> return Nothing
 
 getTypeName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getTypeName ref = do
@@ -78,18 +78,18 @@ getTypeName ref = do
     tpRef <- follow source $ node # Type
     tp    <- read tpRef
     caseTest (uncover tp) $ do
-        match $ \(Cons (Lit.String s)) -> return s
-        match $ \ANY                   -> throwError AmbiguousNodeType
+        of' $ \(Cons (Lit.String s)) -> return s
+        of' $ \ANY                   -> throwError AmbiguousNodeType
 
 getFunctionName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getFunctionName ref = do
     node <- read ref
     caseTest (uncover node) $ do
-        match $ \(Acc name t) -> do
+        of' $ \(Acc name t) -> do
             tpName <- getTypeName =<< follow source t
             return $ tpName <> "." <> unwrap' name
-        match $ \(Var name) -> return $ unwrap' name
-        match $ \ANY -> throwError NotABindingNode
+        of' $ \(Var name) -> return $ unwrap' name
+        of' $ \ANY -> throwError NotABindingNode
 
 funLookup :: PassCtx(m) => String -> ImportErrorT m (Function (Ref Node node) graph)
 funLookup name = do

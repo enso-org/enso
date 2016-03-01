@@ -50,9 +50,9 @@ assignLiteralType consIntRef consStrRef ref = do
     node <- read ref
     caseTest (uncover node) $ do
         let process = void ∘ reconnect (prop Type) ref
-        match $ \(Lit.String {}) -> process consStrRef
-        match $ \(Lit.Number {}) -> process consIntRef
-        match $ \ANY             -> return ()
+        of' $ \(Lit.String {}) -> process consStrRef
+        of' $ \(Lit.Number {}) -> process consIntRef
+        of' $ \ANY             -> return ()
 
 createLiteralTypes :: PassCtx(m, ls, term) => m (Ref Node (ls :<: term), Ref Node (ls :<: term))
 createLiteralTypes = do

@@ -77,7 +77,7 @@ buildAppType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRe
 buildAppType appRef = do
     appNode <- read appRef
     caseTest (uncover appNode) $ do
-        match $ \(App srcConn argConns) -> do
+        of' $ \(App srcConn argConns) -> do
             src      <- follow source srcConn
             args     <- mapM2 (follow source) argConns
             specArgs <- mapM2 getTypeSpec args
@@ -98,14 +98,14 @@ buildAppType appRef = do
 
             return [uniSrcTp, uniAppTp]
 
-        match $ \ANY -> impossible
+        of' $ \ANY -> impossible
 
 
 buildAccType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m [nodeRef]
 buildAccType accRef = do
     appNode <- read accRef
     caseTest (uncover appNode) $ do
-        match $ \(Acc name srcConn) -> do
+        of' $ \(Acc name srcConn) -> do
             src      <- follow source srcConn
             srcTSpec <- getTypeSpec src
             newType  <- acc name srcTSpec
@@ -115,7 +115,7 @@ buildAccType accRef = do
             uniTp    <- unify acc_t newType
             reconnect (prop Type) accRef uniTp
             return [uniTp]
-        match $ \ANY -> impossible
+        of' $ \ANY -> impossible
 
 
 -- | Returns a concrete type of a node

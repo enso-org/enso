@@ -81,11 +81,11 @@ processNode :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m
 processNode ref = do
     node <- read ref
     caseTest (uncover node) $ do
-        match $ \(App f as) -> do
+        of' $ \(App f as) -> do
             funReplacement <- (follow (prop TCData . replacement . casted) =<< follow source f) <?!> UnresolvedFunction
             args <- mapM (follow source . unlayer) as
             makeFuncall ref args funReplacement
-        match $ \ANY -> throwError NotAFuncallNode
+        of' $ \ANY -> throwError NotAFuncallNode
 
 -----------------------------
 -- === TypeCheckerPass === --

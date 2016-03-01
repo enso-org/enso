@@ -25,5 +25,5 @@ acc'   = Inf.acc
 app'   = Inf.app
 var'   = Inf.var
 unify' = Inf.unify
-sub'   = Inf.sub
+match' = Inf.match
 blank' = Inf.blank

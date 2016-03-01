@@ -102,7 +102,7 @@ resolveUnify :: forall m ls term nodeRef ne ter n e c. (PassCtx(m,ls,term),
 resolveUnify uni = do
     uni' <- read uni
     caseTest (uncover uni') $ do
-        match $ \(Unify lc rc) -> do
+        of' $ \(Unify lc rc) -> do
             l  <- follow source lc
             r  <- follow source rc
 
@@ -111,7 +111,7 @@ resolveUnify uni = do
             resolveCons uni l r
             resolveLams uni l r
 
-        match $ \ANY -> impossible
+        of' $ \ANY -> impossible
 
     where symmetrical f a b = f a b *> f b a
 
@@ -167,8 +167,8 @@ replaceNode oldRef newRef = do
     destruct oldRef
 
 whenMatched a f = caseTest a $ do
-    match f
-    match $ \ANY -> return ()
+    of' f
+    of' $ \ANY -> return ()
 
 
 data TCStatus = TCStatus { _terms     :: Int

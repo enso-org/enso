@@ -44,7 +44,7 @@ import qualified Luna.Syntax.AST.Term                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
 import           Luna.Syntax.Model.Network.Builder.Layer
-import           Luna.Syntax.Model.Network.Builder.Term
+import           Luna.Syntax.Model.Network.Builder.Term  hiding (match)
 import           Luna.Syntax.Model.Network.Term
 import           Luna.Syntax.Repr.Styles                 (HeaderOnly (..), Simple (..))
 
@@ -239,10 +239,10 @@ toGraphViz name net = DotGraph { strictGraph     = False
               --attrs   = Color (toColorList [color]) : shAttrs
               attrs = specAttrs
               specAttrs = caseTest (uncover node) $ do
-                  {-match $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
-                  match $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
-                  match $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
-                  match $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
+                  {-of' $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
+                  of' $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
+                  --of' $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
+                  of' $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
 
           nodeInEdges   n   = zip3 ([0..] :: [Int]) (genInEdges net $ (cast $ index n ng :: NetLayers a :<: Draft Static)) (repeat n)
           mkEdge  (n,(a,attrs),b) = DotEdge (nodeRef a) (nodeRef b) $ HeadPort (LabelledPort (inPortName n) Nothing) : TailPort (LabelledPort "label" Nothing) : attrs
@@ -258,9 +258,9 @@ toGraphViz name net = DotGraph { strictGraph     = False
 
           --nodeColor :: (NetLayers a :<: Draft Static) -> Attribute
           getNodeColor n = caseTest (uncover n) $ do
-                                match $ \(Lit.String   s) -> valStrNodeClr
-                                match $ \(Lit.Number _ n) -> valIntNodeClr
-                                match $ \ANY              -> nodeClr
+                                of' $ \(Lit.String   s) -> valStrNodeClr
+                                of' $ \(Lit.Number _ n) -> valIntNodeClr
+                                of' $ \ANY              -> nodeClr
 
           getLambdaNodeColor n (Function.Signature s args o) = whenSelf <|> whenArg <|> whenOut where
               whenSelf = maybe Nothing (\x -> if x ^. idx == n then Just selfClr else Nothing) s

@@ -47,9 +47,9 @@ collectLiterals ref = do
     node  <- read ref
     return $ caseTest (uncover node) $ do
         let list = join lists
-        match $ \(Lit.String {}) -> ref : list
-        match $ \(Lit.Number {}) -> ref : list
-        match $ \ANY             -> list
+        of' $ \(Lit.String {}) -> ref : list
+        of' $ \(Lit.Number {}) -> ref : list
+        of' $ \ANY             -> list
 
 run :: PassCtx(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node (ls :<: term)]
 run root = collectLiterals root

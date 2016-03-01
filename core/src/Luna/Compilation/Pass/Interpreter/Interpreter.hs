@@ -50,7 +50,6 @@ import           Language.Haskell.Session                        (GhcMonad)
 import qualified Language.Haskell.Session                        as HS
 
 
-
 #define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers a                                       \
                                     , term ~ Draft Static                                      \
                                     , ne   ~ Link (ls :<: term)                                \
@@ -164,20 +163,20 @@ evaluateNode ref = do
     node <- read ref
     putStrLn $ "evaluating " <> show ref
     caseTest (uncover node) $ do
-        match $ \(Unify l r)  -> return ()
-        match $ \(Acc n t)    -> return ()
-        match $ \(Var n)      -> return ()
-        match $ \(App f args) -> do
+        of' $ \(Unify l r)  -> return ()
+        of' $ \(Acc n t)    -> return ()
+        of' $ \(Var n)      -> return ()
+        of' $ \(App f args) -> do
             funRep       <- follow source f
             unpackedArgs <- unpackArguments args
             funNode      <- read funRep
             name         <- caseTest (uncover funNode) $ do
-                match $ \(Lit.String name) -> return name
-                match $ \ANY               -> error "Function name is not a string"
+                of' $ \(Lit.String name) -> return name
+                of' $ \ANY               -> error "Function name is not a string"
             putStrLn $ "App " <> show funRep <> " (" <> name <> ") " <> show unpackedArgs
             values <- argumentsValues unpackedArgs
             return ()
-        match $ \(Native nameStr argsEdges) -> do
+        of' $ \(Native nameStr argsEdges) -> do
             -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
             let tpString = "Int -> Int -> Int"
             -- args :: _
@@ -196,12 +195,12 @@ evaluateNode ref = do
             setValue value ref
             return ()
             -- GHC.Prim.Any
-        match $ \Blank        -> return ()
-        match $ \(Lit.String str)    -> do
+        of' $ \Blank        -> return ()
+        of' $ \(Lit.String str)    -> do
             setValue (-1) ref
             -- putStrLn "string"
-        match $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
-        match $ \ANY                -> return ()
+        of' $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
+        of' $ \ANY                -> return ()
     return ()
 
 evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()

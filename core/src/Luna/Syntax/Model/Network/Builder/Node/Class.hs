@@ -82,8 +82,8 @@ var = Term.var
 unify :: NodeBuilder Unify m (ls :<: term) => Ref Node $ ls :<: term -> Ref Node $ ls :<: term -> m (Ref Node $ ls :<: term)
 unify = Term.unify
 
-sub :: NodeBuilder Sub m (ls :<: term) => Ref Node $ ls :<: term -> Ref Node $ ls :<: term -> m (Ref Node $ ls :<: term)
-sub = Term.sub
+match :: NodeBuilder Match m (ls :<: term) => Ref Node $ ls :<: term -> Ref Node $ ls :<: term -> m (Ref Node $ ls :<: term)
+match = Term.match
 
 blank :: NodeBuilder Blank m (ls :<: term) => m (Ref Node $ ls :<: term)
 blank = Term.blank
