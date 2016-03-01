@@ -40,6 +40,7 @@ import           Luna.Compilation.Pass.Inference.Unification     (UnificationPas
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
+import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
 import           Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
@@ -118,8 +119,9 @@ input_g2 :: ( term ~ Draft Static
             , TermNode Lit.Number m (ls :<: term)
             , TermNode Var        m (ls :<: term)
             , TermNode App        m (ls :<: term)
+            , TermNode Term.Match m (ls :<: term)
             , TermNode Acc        m (ls :<: term)
-            ) => m ([nr],[nr],[nr],[nr])
+            ) => m [nr]
 input_g2 = do
     -- The expression here is `(1.+ (id 2)).toString.length`
     n1  <- int 1
@@ -133,8 +135,9 @@ input_g2 = do
     tsa <- app ts []
     le  <- acc "length" tsa
     lea <- app le []
-
-    return ([n1, n2], [br, tsa, lea, apid2], [pl, ts, le], [pl, ts, le, id1])
+    nname <- var "node1"
+    matcher <- match nname lea
+    return [matcher]
 
 input_g3 :: ( term ~ Draft Static
             , nr   ~ Ref Node (ls :<: term)
@@ -355,19 +358,14 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            (lits, apps, accs, funcs) <- input_g2
-            subtreeWalk print (Ref 10 :: Ref Node (NetLayers :<: Draft Static))
+            roots <- input_g2
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 
             Symbol.loadFunctions StdLib.symbols
-            TypeCheckState.modify_ $ (TypeCheckState.untypedApps       .~ apps )
-                                   . (TypeCheckState.untypedAccs       .~ accs )
-                                   . (TypeCheckState.untypedLits       .~ lits )
-                                   . (TypeCheckState.unresolvedSymbols .~ funcs)
-
+            TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
             collectGraph "Initial"
-            let tc = Sequence LiteralsPass
+            let tc = Sequence ScanPass $ Sequence LiteralsPass
                    {-$ Sequence StructuralInferencePass-}
                    $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
 
