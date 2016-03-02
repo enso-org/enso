@@ -18,14 +18,15 @@ import           GHC.Prim                        (Any)
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool
                                          , _required :: Bool
                                          , _value    :: Maybe Any
+                                         , _debug    :: String     -- debug data (String value)
                                          }
 makeLenses ''InterpreterLayer
 
 instance Default InterpreterLayer where
-    def = InterpreterLayer True False Nothing
+    def = InterpreterLayer True False Nothing def
 
 instance Show InterpreterLayer where
-    show (InterpreterLayer dirty required value) = "InterpreterLayer{" <> show dirty <> "," <> show required <> "," <> if isJust value then "Just Any" else "Nothing" <> "}"
+    show (InterpreterLayer dirty required value _) = "InterpreterLayer{" <> show dirty <> "," <> show required <> "," <> if isJust value then "Just Any" else "Nothing" <> "}"
 
 data InterpreterData = InterpreterData deriving (Show, Eq, Ord)
 

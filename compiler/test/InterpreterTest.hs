@@ -47,6 +47,7 @@ import           Luna.Compilation.Pass.Inference.Unification     (UnificationPas
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
+import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
@@ -187,7 +188,6 @@ test_old = do
     putStrLn "done"
 
 
-
 main :: IO ()
 main = do
     test1
@@ -201,7 +201,16 @@ input4Adam = do
     apl <- acc "+" i1
     apppl <- app apl [arg i2]
     appid <- app id  [arg s1]
-    return ([i1, i2, s1], [apppl, appid], [apl], [id, apl], [i1, s1])
+
+    let refsToEval = [i1]
+    -- let refsToEval = [i1, appid]
+
+    forM_ refsToEval (\ref -> do
+            (nd :: (ls :<: term)) <- read ref
+            write ref (nd & prop InterpreterData . Layer.required .~ True)
+        )
+
+    return ([apppl, appid], refsToEval)
 
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
@@ -224,21 +233,13 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, gint) <- TypeCheck.runT $ do
-            ((lits, apps, accs, funcs, refsToEval), gb) <- runBuild g input4Adam
+            ((roots, refsToEval), gb) <- runBuild g input4Adam
 
             (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
-                --(lits, apps, accs, funcs) <- input_simple1
-                {-(lits, apps, accs, funcs) <- input_simple2-}
-
                 Symbol.loadFunctions StdLib.symbols
-                TypeCheckState.modify_ $ (TypeCheckState.untypedApps       .~ apps )
-                                       . (TypeCheckState.untypedAccs       .~ accs )
-                                       . (TypeCheckState.untypedLits       .~ lits )
-                                       . (TypeCheckState.unresolvedSymbols .~ funcs)
-
+                TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
                 collectGraph "Initial"
-                let tc = Sequence LiteralsPass
-                       {-$ Sequence StructuralInferencePass-}
+                let tc = Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
                        $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
 
                 TypeCheck.runTCWithArtifacts tc collectGraph
@@ -249,8 +250,8 @@ test1 = do
         let names = printf "%02d" <$> ([0..] :: [Int])
         let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
         putStrLn $ intercalate " " $ (view _2) <$> graphs
+        renderAndOpen [ last graphs ]
         renderAndOpen [ ("gint", "gint", gint) ]
-        -- renderAndOpen [ last graphs ]
         -- renderAndOpen graphs
     print "end"
 
