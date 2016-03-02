@@ -68,7 +68,7 @@ instance {-# OVERLAPPABLE #-} Setter a (Attached (Layer l a  t) base) where sett
 --------------------
 
 data (layers :: [*]) :<  (a :: *)        = Shell (ShellStructure layers a)
-type (layers :: [*]) :<: (a :: [*] -> *) = layers :< a layers
+type (layers :: [*]) :<: (a :: [*] -> *) = layers :< a layers -- FIXME [WD->MK]: This should be a newtype, to make error inference more obvious
 
 type family ShellStructure ls a where
     ShellStructure '[]       a = Cover a

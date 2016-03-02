@@ -43,7 +43,7 @@ main = do
     return ()
 
 
-input = "v = x y z"
+input = "foo @ (Vector x y z) = v"
 
 myparser :: (DeltaParsing p, TermBuilder Lit.String m a) => p (m a, Parser.State)
 myparser = parseGen PLit.string Parser.defState
@@ -54,3 +54,4 @@ myparser2 = parseGen Term.assignment Parser.defState
 
 parsed :: T m a => Either Doc (m a, Parser.State)
 parsed = parseString input myparser2
+

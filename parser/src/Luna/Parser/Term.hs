@@ -8,7 +8,7 @@ import Prelude.Luna hiding (maybe, P)
 import           Text.Parser.Combinators
 import qualified Luna.Parser.Token       as Tok
 --import Luna.Parser.Builder (label, labeled, withLabeled, nextID)
-import Luna.Parser.Combinators (just, many1, (<??>), applyAll, maybe)
+import Luna.Parser.Combinators (just, many1, (<??>), applyAll, maybe, (<*?>))
 --import Luna.Parser.Struct (blockBegin)
 --import Luna.Parser.Pattern (pattern)
 import           Data.Function                (on)
@@ -54,12 +54,12 @@ import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
 import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
-import Luna.Syntax.AST.Term (Unify, Var, App, Unify, Match, Input, NameInput)
+import Luna.Syntax.AST.Term (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
 import qualified Luna.Syntax.AST.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
 import Luna.Evaluation.Runtime (Model)
 import Luna.Data.Name
-import           Luna.Syntax.AST.Arg
+import qualified Luna.Syntax.AST.Arg as AST
 import           Luna.Syntax.Ident (named)
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 
@@ -192,19 +192,19 @@ import           Luna.Syntax.Ident (named)
 
 type P p = (Monad p, TokenParsing p, DeltaParsing p, MonadIndent p, MonadParserState p)
 
-entSimpleE = choice[ --caseE -- CHECK [wd]: removed try
---                   --, condE
---                   , labeled $ parensE expr
---                   , labeled $ try lambda
---                   , identE
---                   --, try (labeled Expr.RefType <$  Tok.ref <*> Tok.conIdent) <* Tok.accessor <*> Tok.varOp
---                   --, labeled $ Expr.Curry <$ Tok.curry <*> ParserState.withCurrying entSimpleE
---                   , labeled $ Expr.Curry <$ Tok.curry <*> labeled (Expr.Var <$> (Expr.Variable <$> Tok.varIdent <*> pure ()))
-                   literal
---                   , labeled $ listE
---                   --, labeled $ Expr.Native  <$> nativeE
-                   ]
-           <?> "expression term"
+--entSimpleE = choice[ --caseE -- CHECK [wd]: removed try
+----                   --, condE
+----                   , labeled $ parensE expr
+----                   , labeled $ try lambda
+----                   , identE
+----                   --, try (labeled Expr.RefType <$  Tok.ref <*> Tok.conIdent) <* Tok.accessor <*> Tok.varOp
+----                   --, labeled $ Expr.Curry <$ Tok.curry <*> ParserState.withCurrying entSimpleE
+----                   , labeled $ Expr.Curry <$ Tok.curry <*> labeled (Expr.Var <$> (Expr.Variable <$> Tok.varIdent <*> pure ()))
+--                   literal
+----                   , labeled $ listE
+----                   --, labeled $ Expr.Native  <$> nativeE
+--                   ]
+--           <?> "expression term"
 
 
 
@@ -221,9 +221,28 @@ expr  :: (P p, T m a) => p (m a)
 expr   = buildExpressionParser opTable (app term)
       <?> "expression"
 
+pattern :: (P p, T m a) => p (m a)
+pattern = buildExpressionParser opTable (pat_app pat_term)
+      <?> "pattern"
 
-app base = base <??> (bldr_call <$> many1 base)
 
+app :: (P p, T m a) => p (m a) -> p (m a)
+app = appAs arg
+
+pat_app :: (P p, T m a) => p (m a) -> p (m a)
+pat_app = appAs gen_arg
+
+appAs :: (P p, T m a) => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
+appAs argmod base = base <??> (bldr_call <$> many1 (argmod base))
+
+
+
+arg :: (P p, T m a) => p (m a) -> p (m (AST.Arg a))
+arg p = (fmap ∘ named <$> Tok.varIdent <* Tok.assignment) <*?> gen_arg p
+
+
+gen_arg :: (P p, T m a) => p (m a) -> p (m (AST.Arg a))
+gen_arg p = AST.arg <<$>> p
 
 --app base = p <??> ((\a s -> callBuilder2 s a) <$> many1 (appArg p)) where
 
@@ -232,15 +251,15 @@ app base = base <??> (bldr_call <$> many1 base)
 --    Expr.App app -> Expr.App $ NamePat.appendLastSegmentArgs args app
 --    _             -> Expr.app src args
 
+pat_term = (bldr_alias <$> Tok.varIdent <* Tok.patAlias) <*?> term
 
 term  :: (P p, T m a) => p (m a)
 term   = parens expr
       <|> literal
       <|> var
+      <|> cons
       <?> "simple expression"
 
-pattern :: (P p, T m a) => p (m a)
-pattern = expr
 
 opTable :: (P p, T m a)
         => [[Operator p (m a)]]
@@ -250,6 +269,7 @@ opTable = [ [binary "+" (operator "+") AssocLeft] ]
 type T m a = ( a ~ Input a, MonadFix m
              , TermBuilder Unify      m a
              , TermBuilder Var        m a
+             , TermBuilder Cons       m a
              , TermBuilder App        m a
              , TermBuilder Unify      m a
              , TermBuilder Match      m a
@@ -275,11 +295,16 @@ operator name ma mb = do
 
     return ap
 
+bldr_alias ident tm = do
+    t <- tm
+    v <- AST.var ident
+    AST.unify t v
+
 
 bldr_call margs ma = do
     args <- sequence margs
     a    <- ma
-    AST.app a (named "hello" ∘ arg <$> args)
+    AST.app a args
 
 
 bldr_assignment ma mb = do
@@ -403,6 +428,8 @@ notReserved p = do
 
 
 -----
+
+cons = AST.cons <$> Tok.conIdent
 
 var   = do
     name <- convert <$> try (notReserved Tok.varIdent)

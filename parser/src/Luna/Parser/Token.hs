@@ -190,6 +190,7 @@ nameStart     = symbol '`'
 nameEnd       = symbol '`'
 range         = symbol ".."
 curry         = symbol '@'
+patAlias      = symbol '@'
 terminator    = symbol ';' <?> "terminator"
 
 pragma        = symbol '%'

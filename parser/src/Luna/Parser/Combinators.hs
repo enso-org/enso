@@ -47,6 +47,7 @@ p <??> q = p <**> (q <|> return id)
 p <**$> q = p <**> (flip (foldr ($)) <$> q)
 p <??$> q = p <**> ((flip (foldr ($)) <$> q) <|> return id)
 
+p <*?> q = (try p <|> pure id) <*> q
 
 sepBy2 p sep = (:) <$> p <* sep <*> sepBy1 p sep
 

@@ -10,6 +10,7 @@ import qualified Luna.Parser.Token        as Tok
 import qualified Luna.Parser.Indent       as Indent
 import           Luna.Parser.Combinators  (many1, maybe, applyAll)
 import qualified Luna.Parser.Type         as Type
+import Luna.Syntax.AST.Decl.Function
 --import           Luna.Syntax.Foreign      (Foreign(Foreign))
 --import qualified Luna.Syntax.Foreign      as Foreign
 --import           Luna.Syntax.Name.Pattern (NamePat(NamePat), Segment(Segment))
@@ -91,7 +92,28 @@ import qualified Luna.Parser.Type         as Type
 
 
 
-------- functions -----
+-- === Functions === --
+
+--data Pattern a = Pattern [ArgDef a] [Segment a] deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
+--data Segment a = Segment Name [ArgDef a]        deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
+
+
+
+
+
+--namePattern = Signature2 Nothing
+
+
+--data Signature2 a = Signature2 { __self_ :: Maybe a
+--                               , __pat_  :: Pattern a
+--                               , __out_  :: a
+--                               } deriving (Show, Functor, Foldable, Traversable)
+
+--data Function2 a b = Function2 { __sig_  :: Signature2 a
+--                               , __body_ :: b
+--                               } deriving (Show, Functor, Foldable, Traversable)
+
+
 
 --sigVarOp = Tok.explicitName Tok.varIdent <|> Tok.operator
 

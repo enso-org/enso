@@ -82,6 +82,8 @@ Library
         Data.Graph.Query.Sort,
         Data.Index,
         Data.Record,
+        Data.Relation.Order,
+        Data.Relation.Order.Partial,
         Data.Reprx,
         Data.Text.CodeBuilder,
         Data.Text.CodeBuilder.Builder,
@@ -156,6 +158,7 @@ Library
         Luna.Syntax.Model.Network.Class,
         Luna.Syntax.Model.Network.Graph,
         Luna.Syntax.Model.Network.Term,
+        Luna.Syntax.Model.Text.Fixity,
         Luna.Syntax.Repr.Styles,
         Prelude.Luna,
         System.Platform
