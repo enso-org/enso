@@ -151,7 +151,6 @@ input_g3 :: ( term ~ Draft Static
             , TermNode Acc        m (ls :<: term)
             ) => m ([nr],[nr],[nr],[nr])
 input_g3 = do
-    -- The expression here is `(id (1.+ (id 2)).toString).length`
     n1  <- int 1
     s1  <- str "Str!"
     foo <- var "foo"
@@ -205,6 +204,53 @@ input_simple2 = do
     appIdS <- app fid [arg s1]
 
     return ([n1, s1], [appIdN, appIdS], [], [fid])
+
+input_realistic_gui :: ( term ~ Draft Static
+            , nr   ~ Ref Node (ls :<: term)
+            , MonadIO       m
+            , NodeInferable       m (ls :<: term)
+            , TermNode Lit.Star   m (ls :<: term)
+            , TermNode Lit.Number m (ls :<: term)
+            , TermNode Lit.String m (ls :<: term)
+            , TermNode Var        m (ls :<: term)
+            , TermNode App        m (ls :<: term)
+            , TermNode Acc        m (ls :<: term)
+            , TermNode Term.Match m (ls :<: term)
+            ) => m [nr]
+input_realistic_gui = do
+    -- this is what a sample GUI input may look like.
+    -- corresponds to this code:
+    -- > node1 = 320
+    -- > node2 = node1.+ 40
+    -- > node3 = node2.toString
+    -- > node4 = "hello"
+    -- > node5 = node3.+ node4
+    node1     <- var "node1"
+    node2     <- var "node2"
+    node3     <- var "node3"
+    node4     <- var "node4"
+    node5     <- var "node5"
+
+    n1_expr   <- int 320
+    n1_match  <- match node1 n1_expr
+    acc_n1_pl <- acc "+" node1
+
+    lit_40    <- int 40
+    n2_expr   <- app acc_n1_pl [arg lit_40]
+    n2_match  <- match node2 n2_expr
+
+    acc_n2_tS <- acc "toString" node2
+    n3_expr   <- app acc_n2_tS []
+    n3_match  <- match node3 n3_expr
+
+    n4_expr   <- str "hello"
+    n4_match  <- match node4 n4_expr
+
+    acc_n3_pl <- acc "+" node3
+    n5_expr   <- app acc_n3_pl [arg node4]
+    n5_match  <- match node5 n5_expr
+
+    return [n1_match, n2_match, n3_match, n4_match, n5_match]
 
 
 input_g1_resolution_mock :: ( term ~ Draft Static
@@ -289,44 +335,6 @@ input_g1_resolution_mock [f,g] = do
 --           )
 
 
-symbolMapTest :: IO ()
-symbolMapTest = do
-    title "Symbol map testing"
-    (_, g :: NetGraph) <- prebuild
-    ((plus, sin, err, l1, l2), (g :: NetGraph)) <- runBuild g $ do
-        i1 <- int 1
-        i2 <- int 2
-        s1 <- str "hello world!"
-        s2 <- str "also hello!"
-        s3 <- str "yo yo guyz!"
-        tint <- cons "Int"
-        tstr <- cons "String"
-        reconnect (prop Type) i1 tint
-        reconnect (prop Type) i2 tint
-        reconnect (prop Type) s1 tstr
-        reconnect (prop Type) s2 tstr
-        reconnect (prop Type) s3 tstr
-        plus <- acc "+" i1
-        err  <- acc "noMethod" s1
-        l1   <- acc "length" s2
-        l2   <- acc "length" s3
-        sin  <- var "sin"
-        {-reconnect s1 (prop Redirect) err-}
-        {-write s1 $ s & prop Redirect .~ t-}
-
-        return (plus, sin, err, l1, l2)
-
-    renderAndOpen [("beforeImporting", "beforeImporting", g)]
-
-    (f, (g :: NetGraph)) <- flip Symbol.evalT def $ runBuild g $ do
-        Symbol.loadFunctions StdLib.symbols
-        mapM Importing.processNode [plus, sin, err, l1, l2]
-
-    mapM print f
-
-    renderAndOpen [("afterImporting", "afterImporting", g)]
-    return ()
-
 input4Adam = do
     i1 <- int 1
     i2 <- int 2
@@ -358,15 +366,14 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            roots <- input_g2
+            roots <- input_realistic_gui
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
             collectGraph "Initial"
-            let tc = Sequence ScanPass $ Sequence LiteralsPass
-                   {-$ Sequence StructuralInferencePass-}
+            let tc = Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
                    $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
 
             TypeCheck.runTCWithArtifacts tc collectGraph
@@ -498,7 +505,6 @@ instance e ~ e' => Referenced Edge (VectorGraph n e c) e' where refs = fmap Ref 
 main :: IO ()
 main = do
     --showcase
-    {-symbolMapTest-}
     test1
     --test2
     --main2
