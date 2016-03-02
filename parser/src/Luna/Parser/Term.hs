@@ -61,6 +61,8 @@ import Luna.Evaluation.Runtime (Model)
 import Luna.Data.Name
 import qualified Luna.Syntax.AST.Arg as AST
 import           Luna.Syntax.Ident (named)
+import           Luna.Parser.Class        (Parser, TermParser)
+
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 
 --prevParsedChar = do
@@ -190,7 +192,6 @@ import           Luna.Syntax.Ident (named)
 --                   ]
 --           <?> "expression term"
 
-type P p = (Monad p, TokenParsing p, DeltaParsing p, MonadIndent p, MonadParserState p)
 
 --entSimpleE = choice[ --caseE -- CHECK [wd]: removed try
 ----                   --, condE
@@ -214,34 +215,34 @@ postfix name fun       = Postfix (fun <$ reservedOp name)
 
 reservedOp name = reserve emptyOps name
 
-assignment :: (P p, T m a) => p (m a)
+assignment :: TermParser p m a => p (m a)
 assignment = bldr_assignment <$> pattern <* Tok.assignment <*> expr
 
-expr  :: (P p, T m a) => p (m a)
+expr  :: TermParser p m a => p (m a)
 expr   = buildExpressionParser opTable (app term)
       <?> "expression"
 
-pattern :: (P p, T m a) => p (m a)
+pattern :: TermParser p m a => p (m a)
 pattern = buildExpressionParser opTable (pat_app pat_term)
       <?> "pattern"
 
 
-app :: (P p, T m a) => p (m a) -> p (m a)
+app :: TermParser p m a => p (m a) -> p (m a)
 app = appAs arg
 
-pat_app :: (P p, T m a) => p (m a) -> p (m a)
+pat_app :: TermParser p m a => p (m a) -> p (m a)
 pat_app = appAs gen_arg
 
-appAs :: (P p, T m a) => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
+appAs :: TermParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
 appAs argmod base = base <??> (bldr_call <$> many1 (argmod base))
 
 
 
-arg :: (P p, T m a) => p (m a) -> p (m (AST.Arg a))
+arg :: TermParser p m a => p (m a) -> p (m (AST.Arg a))
 arg p = (fmap ∘ named <$> Tok.varIdent <* Tok.assignment) <*?> gen_arg p
 
 
-gen_arg :: (P p, T m a) => p (m a) -> p (m (AST.Arg a))
+gen_arg :: TermParser p m a => p (m a) -> p (m (AST.Arg a))
 gen_arg p = AST.arg <<$>> p
 
 --app base = p <??> ((\a s -> callBuilder2 s a) <$> many1 (appArg p)) where
@@ -253,7 +254,7 @@ gen_arg p = AST.arg <<$>> p
 
 pat_term = (bldr_alias <$> Tok.varIdent <* Tok.patAlias) <*?> term
 
-term  :: (P p, T m a) => p (m a)
+term  :: TermParser p m a => p (m a)
 term   = parens expr
       <|> literal
       <|> var
@@ -261,22 +262,9 @@ term   = parens expr
       <?> "simple expression"
 
 
-opTable :: (P p, T m a)
+opTable :: TermParser p m a
         => [[Operator p (m a)]]
 opTable = [ [binary "+" (operator "+") AssocLeft] ]
-
-
-type T m a = ( a ~ Input a, MonadFix m
-             , TermBuilder Unify      m a
-             , TermBuilder Var        m a
-             , TermBuilder Cons       m a
-             , TermBuilder App        m a
-             , TermBuilder Unify      m a
-             , TermBuilder Match      m a
-             , TermBuilder Lit.String m a
-             , IsString (NameInput a)
-             , Convertible Name (NameInput a)
-             )
 
 
 --unify :: TermBuilder Unify m a => Input a -> Input a -> m a
@@ -454,21 +442,21 @@ var   = do
 --    pid        <- ParserState.getPid
 --    let argPatts = view StructInfo.argPats structInfo
 
---    case Map.lookup pid scope of
+--    case Map.lookuParser pid scope of
 --            Nothing                    -> fail "Internal parser error [1]"
 --            Just (StructInfo.Scope varnames typenames) -> do
 --                let possibleElems = reverse $ sortBy (compare `on` (length . fst))
 --                                  $ MapForest.subElems name varnames
 --                    possibleIDs   = fmap (view StructInfo.target . snd) possibleElems
 --                    possiblePatts = fmap (flip Map.lookup argPatts) possibleIDs
---                    possibleDescs = zip possibleIDs possiblePatts
+--                    possibleDescs = ziParser possibleIDs possiblePatts
 
 --                case possibleDescs of
 --                    [] -> if (name == "self")
 --                          then return Nothing
 --                          else do
---                              allowOrphans <- Pragma.lookup Pragma.orphanNames
---                              case fmap Pragma.isEnabled allowOrphans of
+--                              allowOrphans <- Pragma.lookuParser pragma.orphanNames
+--                              case fmaParser pragma.isEnabled allowOrphans of
 --                                  Right True -> return Nothing
 --                                  _          -> fail . fromText $ "name '" <> name <> "' is not defined" <> msgTip
 --                                  where scopedNames = "self" : ((fmap $ mjoin " ") $ MapForest.keys varnames)

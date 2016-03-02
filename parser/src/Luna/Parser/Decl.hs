@@ -4,6 +4,7 @@ module Luna.Parser.Decl where
 
 import Prelude.Luna hiding (cons, maybe, noneOf)
 
+import           Luna.Parser.Class        (Parser)
 import           Text.Parser.Combinators
 import qualified Luna.Parser.Token        as Tok
 --import qualified Luna.Syntax.Decl         as Decl
@@ -11,6 +12,8 @@ import qualified Luna.Parser.Indent       as Indent
 import           Luna.Parser.Combinators  (many1, maybe, applyAll)
 import qualified Luna.Parser.Type         as Type
 import Luna.Syntax.AST.Decl.Function
+import Luna.Syntax.AST.Arg
+import Luna.Parser.Combinators
 --import           Luna.Syntax.Foreign      (Foreign(Foreign))
 --import qualified Luna.Syntax.Foreign      as Foreign
 --import           Luna.Syntax.Name.Pattern (NamePat(NamePat), Segment(Segment))
@@ -94,15 +97,12 @@ import Luna.Syntax.AST.Decl.Function
 
 -- === Functions === --
 
---data Pattern a = Pattern [ArgDef a] [Segment a] deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
---data Segment a = Segment Name [ArgDef a]        deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
 
 
+--data ArgDef a = ArgDef { __pat_   :: a               , __mval_ :: Maybe a } deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
 
-
-
---namePattern = Signature2 Nothing
-
+argDef :: Parser p => p a -> p a -> p (ArgDef a)
+argDef pat val = (ArgDef <$> pat) <*> ((Just <$ Tok.assignment <*> val) <|> pure Nothing)
 
 --data Signature2 a = Signature2 { __self_ :: Maybe a
 --                               , __pat_  :: Pattern a
@@ -112,6 +112,15 @@ import Luna.Syntax.AST.Decl.Function
 --data Function2 a b = Function2 { __sig_  :: Signature2 a
 --                               , __body_ :: b
 --                               } deriving (Show, Functor, Foldable, Traversable)
+
+
+--data Pattern a = Named   (Segment a) [Segment a]
+--               | Unnamed [ArgDef a]
+--               deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
+
+--data Segment a = Segment Name [ArgDef a]
+--               deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
+
 
 
 

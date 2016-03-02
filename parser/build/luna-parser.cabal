@@ -52,6 +52,7 @@ Library
     Exposed-modules: 
         Luna.Parser.Builder,
         Luna.Parser.Char,
+        Luna.Parser.Class,
         Luna.Parser.Combinators,
         Luna.Parser.Decl,
         Luna.Parser.Indent,
