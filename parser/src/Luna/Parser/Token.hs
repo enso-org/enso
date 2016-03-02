@@ -23,11 +23,18 @@ import           Luna.Parser.Indent (MonadIndent)
 import           Luna.Parser.Combinators
 import qualified Luna.Syntax.AST.Lit as Lit
 import qualified Luna.Syntax.AST.Lit as Number
-import           Luna.Parser.Char
+import           Luna.Parser.Lex
 import qualified Luna.Parser.State as State
 
 import qualified Text.Trifecta.Combinators as Trifecta
 import           Control.Monad.State.Class (MonadState)
+import qualified Luna.Parser.Token.Ident as Token
+import qualified Luna.Parser.Token.Layout as Layout
+import qualified Luna.Parser.Token.Ident as Ident
+import qualified Luna.Parser.Token.Style as Style
+import Luna.Parser.Token.Operator (operator)
+import Text.Parser.Token           (reserve)
+
 
 isSpaceLine c = isSpace c && c /= '\n' && c /= '\r'
 
@@ -37,131 +44,62 @@ spaceLine = satisfy isSpaceLine <?> "space"
 
 lineSpaces = many spaceLine <?> "white space"
 
-reservedIdents :: [String]
-reservedIdents = ["alias", "as", "case", "class", "def", "foreign", "from", "interface", "import", "in", "type"]
-
 --ident s = ident s <* Indent.indented
 
 --tokenBlock :: m a -> m a
 --tokenBlock p = p <* (try (someSpace <* Indent.checkIndented) <|> pure ())
-tokenBlock p = p <* (try (spaces *> Indent.checkIndented) <|> pure ())
 
 --tokenBlock2 p = p <**> spaces2
 
 
-spaces     = concat <$> many tokBase <?> ""
 
 
-lineCom   = (\a b -> a : (b ++ "\n")) <$> lineComStart <*> manyTill anyChar (eol <|> eof)
 
 
 
 betweenNative p = between nativeSym nativeSym p
 
-mlineCom = (++) <$> try mlineComStart <*> mlineComBody
---mlineCom = State.registerComment <=< try mlineComStart *> mlineComBody
-
-mlineComBody = try mlineComEnd
-                 <|> ((++) <$> mlineCom                <*> mlineComBody)
-                 <|> ((++) <$> many1 (noneOf startEnd) <*> mlineComBody)
-                 <|> oneOf startEnd                     *> mlineComBody
-                 <?> "end of comment"
-                 where startEnd = nub (mlineComEndLetter ++ mlineComStartLetter)
 
 --tokBase = many1 space <|> lineCom <?> ""
-tokBase = many1 space <|> try mlineCom <|> lineCom <?> ""
 
 
 --spaces2 = (try lineCom <|> pure id) <* (try (spaces <* Indent.checkIndented) <|> pure ())
 
 --ident :: (TokenParsing m, Monad m, IsString s) => IdentifierStyle m -> m s
-ident s = fmap fromString $ tokenBlock $ try $ do
+ident s = fmap fromString $ Layout.block $ try $ do
   name <- highlight (_styleHighlight s)
           ((:) <$> _styleStart s <*> many (_styleLetter s) <?> _styleName s)
   when (HashSet.member name (_styleReserved s)) $ unexpected $ "reserved " ++ _styleName s ++ " " ++ show name
   return name
 
-reserveBlock s name = tokenBlock $ try $ do
-   _ <- highlight (_styleReservedHighlight s) $ string name
-   notFollowedBy (_styleLetter s) <?> "end of " ++ show name
-{-# INLINE reserveBlock #-}
 
 
-opToken p = tokenBlock (highlight Operator p)
-
-opChars  = "!#$%&*+/<=>?\\^|-~"
-opLetter = oneOf opChars
-opStart  = opLetter
-
-operator = fmap fromString $ opToken ((:) <$> opStart <*> many opLetter <?> "operator")
-
-identStyle = IdentifierStyle
-  { _styleName      = "identifier"
-  , _styleStart     = letter <|> lex '_'
-  , _styleLetter    = alphaNum <|> oneOf "_'"
-  , _styleReserved  = HashSet.fromList reservedIdents
-  , _styleHighlight = Identifier
-  , _styleReservedHighlight = ReservedIdentifier
-  }
 
 
-pragmaStyle :: TokenParsing m => IdentifierStyle m
-pragmaStyle = identStyle { _styleName      = "pragma identifier"
-                         , _styleStart     = letter
-                         }
-
-varStyle :: TokenParsing m => IdentifierStyle m
-varStyle = identStyle { _styleName      = "variable identifier"
-                      , _styleStart     = lower
-                      }
-
-conStyle :: TokenParsing m => IdentifierStyle m
-conStyle = identStyle { _styleName      = "constructor identifier"
-                      , _styleStart     = upper
-                      }
-
-typeVarStyle :: TokenParsing m => IdentifierStyle m
-typeVarStyle = identStyle { _styleName      = "type variable identifier"
-                          , _styleStart     = lower
-                          }
 
 
-typeStyle :: TokenParsing m => IdentifierStyle m
-typeStyle = identStyle { _styleName      = "type identifier"
-                       , _styleStart     = upper
-                       }
 
 
-opStyle :: TokenParsing m => IdentifierStyle m
-opStyle = IdentifierStyle
-    { _styleName     = "operator"
-    , _styleStart    = opStart
-    , _styleLetter   = opLetter
-    , _styleReserved = HashSet.fromList [":","::","=","\\","|","<-","->","@","~","=>"]
-    , _styleHighlight = Operator
-    , _styleReservedHighlight = ReservedOperator
-    }
 
 --identifier :: (TokenParsing m, Monad m) => m String
---identifier = ident identStyle
+--identifier = ident Ident.style
 
 varOp           = varIdent <|> operator
 --varIdent :: (TokenParsing m, Monad m, Indent.MonadIndentState Indent.State m) => m String
-varIdent = ident varStyle
+varIdent = ident Style.var
 
-pragmaIdent = ident pragmaStyle
+pragmaIdent = ident Style.pragma
 
 --conIdent :: (TokenParsing m, Monad m, Indent.MonadIndentState Indent.State m) => m String
-conIdent = ident conStyle
+conIdent = ident Style.cons
 
 --typeVarIdent :: (TokenParsing m, Monad m, Indent.MonadIndentState Indent.State m) => m String
-typeVarIdent = ident typeVarStyle
+typeVarIdent = ident Style.typeVar
 
 --typeIdent :: (TokenParsing m, Monad m, Indent.MonadIndentState Indent.State m) => m String
-typeIdent = ident typeStyle
+typeIdent = ident Style.tp
 
-reservedIdent = reserveBlock identStyle
-reservedOp    = reserveBlock opStyle
+reservedOp    = reserve Style.operator
 
 identLetter  = alphaNum <|> lex '_'
 
@@ -199,38 +137,15 @@ pragmaDisable = symbol "-"
 pragmaPush    = symbol "push"
 pragmaPop     = symbol "pop"
 
-lineComStart        = lex '#'
-mlineComStartLetter = "#["
-mlineComEndLetter   = "#]"
-mlineComStart = string mlineComStartLetter
-mlineComEnd   = string mlineComEndLetter
 
 
-kwAlias     = reservedIdent "alias"
-kwAs        = reservedIdent "as"
-kwCase      = reservedIdent "case"
-kwClass     = reservedIdent "class"
-kwDef       = reservedIdent "def"
-kwElse      = reservedIdent "else"
-kwFrom      = reservedIdent "from"
-kwIf        = reservedIdent "if"
-kwInterface = reservedIdent "interface"
-kwImport    = reservedIdent "import"
-kwType      = reservedIdent "type"
-kwForeign   = reservedIdent "foreign"
 
--- context kewyords
-kwFHaskell  = reservedIdent "haskell"
-kwFCPP      = reservedIdent "c++"
-
--- type kewyords
-tkwMeta      = reservedIdent "Meta"
 
 ----------------------------------------------------------------------
 -- Numbers
 ----------------------------------------------------------------------
 
---numberL = try (sign <**> tokenBlock numBase) <?> "number"
+--numberL = try (sign <**> Layout.block numBase) <?> "number"
 
 --numBase =   (numPrefix ['o', 'O'] *> (Number.octodecimal <$> numRepr octDigit <*> numExp 'e'))
 --        <|> (numPrefix ['x', 'X'] *> (Number.hexadecimal <$> numRepr hexDigit <*> numExp 'p'))
@@ -258,7 +173,7 @@ tkwMeta      = reservedIdent "Meta"
 ----------------------------------------------------------------------
 
 stringLiteral :: (TokenParsing m, IsString s, Trifecta.DeltaParsing m, MonadIndent m) => m s
-stringLiteral = fromString <$> tokenBlock (highlight StringLiteral lit) where
+stringLiteral = fromString <$> Layout.block (highlight StringLiteral lit) where
   lit = Prelude.foldr (Prelude.maybe id (:)) ""
     <$> strParser
     <?> "string"
@@ -283,7 +198,7 @@ stringLiteral = fromString <$> tokenBlock (highlight StringLiteral lit) where
 
 
 --charLiteral :: TokenParsing m => m Char
-charLiteral = tokenBlock (highlight CharLiteral lit) where
+charLiteral = Layout.block (highlight CharLiteral lit) where
   lit = between (lex '\'') (lex '\'' <?> "end of character") characterChar
     <?> "character"
 {-# INLINE charLiteral #-}
@@ -319,10 +234,10 @@ escapeCode = (charEsc <|> charAscii <|> charControl) <?> "escape code"
 -- Chars
 ----------------------------------------------------------------------
 
---symbol   name = tokenBlock (highlight Symbol (string name))
---symbolic name = tokenBlock (highlight Symbol (lex name))
+--symbol   name = Layout.block (highlight Symbol (string name))
+--symbolic name = Layout.block (highlight Symbol (lex name))
 
-symbol name = tokenBlock (highlight Symbol (lex name))
+symbol name = Layout.block (highlight Symbol (lex name))
 ----------------------------------------------------------------------
 -- Combinators
 ----------------------------------------------------------------------

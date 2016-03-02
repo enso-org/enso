@@ -11,7 +11,7 @@ import           Prelude.Luna
 --import           Luna.Data.ASTInfo    (ASTInfo)
 --import           Luna.Data.SourceMap  (SourceMap)
 --import qualified Luna.Data.SourceMap  as SourceMap
-import           Luna.Parser.Operator (OperatorMap)
+--import           Luna.Parser.Operator (OperatorMap)
 --import qualified Luna.Data.Namespace  as Namespace
 --import           Luna.Data.Namespace  (Namespace, NamespaceMonad)
 import qualified Data.List            as List
@@ -28,10 +28,10 @@ import           Text.Parser.Token         (TokenParsing)
 import           Text.Trifecta.Combinators (DeltaParsing)
 
 data State = State { --_info          :: ASTInfo
-                                _opFixity      :: OperatorMap
+                                --_opFixity      :: OperatorMap
                               --, _sourceMap     :: SourceMap
                               --, _namespace     :: Namespace
-                              , _adhocReserved :: [Name]
+                               _adhocReserved :: [Name]
                               --, _modPath       :: QualPath
                               } deriving (Show)
 
@@ -211,7 +211,7 @@ withCurrying p = p
 
 -- FIXME[wd]: "Unnamed" string is an ugly hack for now
 instance conf~() => Default State where
-        def = State def def  -- "Unnamed"
+        def = State def  -- "Unnamed"
 
 
 --instance (Functor m, Monad m) => NamespaceMonad (StateT State m) where

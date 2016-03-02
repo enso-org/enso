@@ -1,7 +1,7 @@
 
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Luna.Parser.Combinators where
+module Luna.Parser.Combinators (module Luna.Parser.Combinators, module X) where
 
 import           Control.Applicative
 import           Control.Exception            (bracket)
@@ -19,7 +19,7 @@ import           Text.Parser.Token.Style
 import           Text.PrettyPrint.ANSI.Leijen (displayIO, linebreak, renderPretty, (<>))
 import           Text.Trifecta                hiding (token)
 import           Text.Trifecta.Delta          as Delta
-
+import           Text.Parser.Combinators      as X
 
 
 checkIf f msg p = do
@@ -59,8 +59,8 @@ sepBy2_ng p sep = (:) <$> p <*> try(sep *> sepBy1_ng p sep)
 many1 p = (:) <$> p <*> many p
 
 
-maybe p = try (just p) <|> pure Nothing
-just p = Just <$> p
+maybe p = just p <|> pure Nothing
+just  p = Just <$> p
 
 
 applyAll x (f : fs) = applyAll (f x) fs

@@ -29,7 +29,6 @@ import qualified Text.Trifecta.Parser as Trifecta
 
 import qualified Luna.Parser.State  as ParserState
 import           Luna.Parser.State  (ParserStateT)
-import qualified Luna.Parser.Token  as Tok
 import           Luna.Parser.Indent (IndentT)
 import qualified Luna.Parser.Indent as Indent
 
@@ -42,6 +41,10 @@ import qualified Luna.Parser.Struct  as Struct
 import qualified Luna.Parser.Term    as Term
 import qualified Luna.Parser.Decl    as Decl
 import qualified Luna.Parser.Module  as Module
+
+import qualified Luna.Parser.Token  as Tok
+import qualified Luna.Parser.Token.Layout  as Tok
+
 
 --import Luna.Parser.Builder (labeled, label, nextID, qualifiedPath, withLabeled)
 --import qualified Luna.Parser.Pragma        as Pragma
