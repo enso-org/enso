@@ -199,3 +199,4 @@ Library
                  , typelevel
                  , vector
                  , ghc-mtl
+                 , digits

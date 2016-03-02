@@ -142,9 +142,9 @@ graph2 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   )
        => m ([nr])
 graph2 = do
-    i1 <- int 2
-    i2 <- int 3
-    i3 <- int 4
+    i1 <- int 7
+    i2 <- int 8
+    i3 <- int 9
     -- s1 <- str "abc"
     -- s2 <- str "def"
     -- s3 <- str "ghi"
@@ -189,8 +189,9 @@ test_old = do
 
 
 main :: IO ()
-main = test_old
--- main = test1
+main = do
+    test1
+    -- test_old
 
 input4Adam = do
     i1 <- int 1
@@ -200,7 +201,7 @@ input4Adam = do
     apl <- acc "+" i1
     apppl <- app apl [arg i2]
     appid <- app id  [arg s1]
-    return ([i1, i2, s1], [apppl, appid], [apl], [id, apl])
+    return ([i1, i2, s1], [apppl, appid], [apl], [id, apl], [i1, s1])
 
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
@@ -222,28 +223,35 @@ test1 = do
         putStrLn $ "Luna compiler version " <> showVersion v
 
         -- Running Type Checking compiler stage
-        (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            (lits, apps, accs, funcs) <- input4Adam
-            --(lits, apps, accs, funcs) <- input_simple1
-            {-(lits, apps, accs, funcs) <- input_simple2-}
+        (gs, gint) <- TypeCheck.runT $ do
+            ((lits, apps, accs, funcs, refsToEval), gb) <- runBuild g input4Adam
 
-            Symbol.loadFunctions StdLib.symbols
-            TypeCheckState.modify_ $ (TypeCheckState.untypedApps       .~ apps )
-                                   . (TypeCheckState.untypedAccs       .~ accs )
-                                   . (TypeCheckState.untypedLits       .~ lits )
-                                   . (TypeCheckState.unresolvedSymbols .~ funcs)
+            (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
+                --(lits, apps, accs, funcs) <- input_simple1
+                {-(lits, apps, accs, funcs) <- input_simple2-}
 
-            collectGraph "Initial"
-            let tc = Sequence LiteralsPass
-                   {-$ Sequence StructuralInferencePass-}
-                   $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
+                Symbol.loadFunctions StdLib.symbols
+                TypeCheckState.modify_ $ (TypeCheckState.untypedApps       .~ apps )
+                                       . (TypeCheckState.untypedAccs       .~ accs )
+                                       . (TypeCheckState.untypedLits       .~ lits )
+                                       . (TypeCheckState.unresolvedSymbols .~ funcs)
 
-            TypeCheck.runTCWithArtifacts tc collectGraph
+                collectGraph "Initial"
+                let tc = Sequence LiteralsPass
+                       {-$ Sequence StructuralInferencePass-}
+                       $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
+
+                TypeCheck.runTCWithArtifacts tc collectGraph
+
+            gint <- evalBuild gtc $ Interpreter.run refsToEval
+            return (gs, gint)
 
         let names = printf "%02d" <$> ([0..] :: [Int])
         let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
         putStrLn $ intercalate " " $ (view _2) <$> graphs
-        renderAndOpen [ last graphs ]
+        renderAndOpen [ ("gint", "gint", gint) ]
+        -- renderAndOpen [ last graphs ]
+        -- renderAndOpen graphs
     print "end"
 
 

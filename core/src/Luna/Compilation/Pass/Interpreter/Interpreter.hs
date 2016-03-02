@@ -43,12 +43,27 @@ import qualified Luna.Evaluation.Session                         as Session
 
 import           GHC.Prim                                        (Any)
 
-
 import           Control.Monad.Catch                             (MonadCatch, MonadMask, catchAll)
 import           Control.Monad.Ghc                               (GhcT)
 import           Language.Haskell.Session                        (GhcMonad)
 import qualified Language.Haskell.Session                        as HS
 
+import           Data.Digits                                     (unDigits, digits)
+import           Data.Ratio
+
+convertBase :: Integral a => a -> a -> a
+convertBase radix = unDigits radix . digits 10
+
+
+
+convertRationalBase :: Integer -> Rational -> Rational
+convertRationalBase radix rational = nom % den where
+    nom = convertBase radix (numerator   rational)
+    den = convertBase radix (denominator rational)
+
+numberToAny :: Lit.Number -> Any
+numberToAny (Lit.Number radix (Lit.Rational r)) = Session.toAny $ convertRationalBase (toInteger radix) r
+numberToAny (Lit.Number radix (Lit.Integer  i)) = Session.toAny $ convertBase         (toInteger radix) i
 
 #define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                                     , term ~ Draft Static                                      \
@@ -88,7 +103,7 @@ markDirty ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.dirty .~ True)
 
-setValue :: InterpreterCtx(m, ls, term) => Int -> Ref Node (ls :<: term) -> m ()
+setValue :: InterpreterCtx(m, ls, term) => Any -> Ref Node (ls :<: term) -> m ()
 setValue val ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.value .~ (Just val)
@@ -139,12 +154,12 @@ unpackArguments :: InterpreterCtx(m, ls, term) => [Arg (Ref Edge (Link (ls :<: t
 unpackArguments args = mapM (follow source . Arg.__val_) args
 
 
-argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m Int
+argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m Any
 argumentValue ref = do
     node <- read ref
     return $ fromJust $ (node # InterpreterData) ^. Layer.value
 
-argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m [Int]
+argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m [Any]
 argumentsValues refs = mapM argumentValue refs
 
 collectNodesToEval :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
@@ -174,35 +189,29 @@ evaluateNode ref = do
                 of' $ \(Lit.String name) -> return name
                 of' $ \ANY               -> error "Function name is not a string"
             putStrLn $ "App " <> show funRep <> " (" <> name <> ") " <> show unpackedArgs
-            values <- argumentsValues unpackedArgs
+            -- values <- argumentsValues unpackedArgs
             return ()
         of' $ \(Native nameStr argsEdges) -> do
             -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
             let tpString = "Int -> Int -> Int"
-            -- args :: _
             let name = unwrap' nameStr
             args   <- mapM (follow source) argsEdges
             values <- argumentsValues args
-            putStrLn $ "Native " <> name <> " " <> show values
-            res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny (-1)) $ HS.run $ do
+            -- putStrLn $ "Native " <> name <> " " <> show values
+            res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
                 HS.setImports Session.defaultImports
                 fun <- Session.findSymbol name tpString
-                -- putStrLn $ "found fun " <> show fun
                 let res = foldl Session.appArg fun $ Session.toAny <$> values
+                -- let res = Session.toAny 0
                 return res
             let value = ((Session.unsafeCast res) :: Int)
             putStrLn $ "res " <> show value
-            setValue value ref
+            setValue res ref
             return ()
-            -- GHC.Prim.Any
-        of' $ \Blank        -> return ()
-        of' $ \(Lit.String str)    -> do
-            setValue (-1) ref
-            -- putStrLn "string"
-        -- match $ \(Lit.Number _ num) -> error "FIXME in Interpreter.hs" -- setValue num ref
-         -- FIXME[WD->AS]: Don't know what this is doing. Num has now 2 representations - the rational and integer one.
-        of' $ \(Lit.Number _ num) -> error "could not perform: setValue num ref"
-        of' $ \ANY                -> return ()
+        of' $ \(Lit.String str)                 -> setValue (Session.toAny str) ref
+        of' $ \number@(Lit.Number radix system) -> setValue (numberToAny number) ref
+        of' $ \Blank -> return ()
+        of' $ \ANY   -> return ()
     return ()
 
 evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()

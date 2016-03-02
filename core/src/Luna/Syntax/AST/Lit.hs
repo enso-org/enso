@@ -38,7 +38,7 @@ data Number = Number { _radix :: Int, _system :: System } deriving (Show, Read)
 makeClassy ''Number
 
 
-binary, ternary, quaternary, quinary, senary, septenary, octal, nonary, decimal, undecimal, duoDecimal, tridecimal,
+binary, ternary, quaternary, quinary, senary, septenary, octal, nonary, decimal, undecimal, duodecimal, tridecimal,
     tetradecimal, pentadecimal, hexadecimal, septendecimal, octodecimal, nonadecimal, vigesimal, unovigesimal,
     duovigesimal, triovigesimal, quadrovigesimal, pentavigesimal, hexavigesimal, heptovigesimal, ocotovigesimal,
     novovigesimal, trigesimal, unotrigesimal, duotrigesimal, triotrigesimal, quadrotrigesimal, pentatrigesimal, hexatrigesimal
@@ -54,7 +54,7 @@ octal            = Number 8
 nonary           = Number 9
 decimal          = Number 10
 undecimal        = Number 11
-duoDecimal       = Number 12
+duodecimal       = Number 12
 tridecimal       = Number 13
 tetradecimal     = Number 14
 pentadecimal     = Number 15
