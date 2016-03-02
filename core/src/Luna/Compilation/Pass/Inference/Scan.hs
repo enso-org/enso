@@ -53,6 +53,7 @@ investigate ref = do
                                  . (TypeCheck.unresolvedSymbols %~ (ref :))
         of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
         of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
+        of' $ \ANY              ->  id
     TypeCheck.modify_ mod
 
 -----------------------------
