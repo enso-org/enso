@@ -93,6 +93,7 @@ defState  = emptyState
 ---- Section parsing
 -------------------------------------------------------------
 ---- Usage example: parseExpr (fileFeed "test.txt")
+parseGen :: Monad p => IndentT (ParserStateT p) a -> ParserState.State -> p (a, ParserState.State)
 parseGen p st = run (bundleResult p) st -- TU BYL `(Module.unit p)` zamiast `p`
 --parseGen2 p st = run (bundleResult p) st
 

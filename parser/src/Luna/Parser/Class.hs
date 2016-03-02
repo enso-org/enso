@@ -13,9 +13,11 @@ import Text.Trifecta.Combinators              (DeltaParsing)
 import qualified Luna.Syntax.AST.Lit as Lit
 
 
-type Parser p = (Monad p, TokenParsing p, DeltaParsing p, MonadIndent p, MonadParserState p)
+type Parser     p = (ParserCore p, MonadIndent p, MonadParserState p)
+type ParserCore p = (Monad p, TokenParsing p, DeltaParsing p)
 
-type TermParser p m a = (Parser p, TermBuilderCtx m a)
+type TermParser     p m a = (Parser p, TermBuilderCtx m a)
+type TermParserCore p m a = (ParserCore p, TermBuilderCtx m a)
 
 
 type TermBuilderCtx m a = ( a ~ Input a, MonadFix m

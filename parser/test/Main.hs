@@ -23,8 +23,8 @@ import qualified Luna.Parser.Parser     as Parser
 import qualified Luna.Parser.State      as Parser
 import           Text.Trifecta.Combinators (DeltaParsing)
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
-import           Luna.Parser.Term (T)
 import qualified Luna.Parser.Term as Term
+import           Luna.Parser.Class        (Parser, TermParser, TermParserCore, TermBuilderCtx)
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
@@ -45,13 +45,13 @@ main = do
 
 input = "foo @ (Vector x y z) = v"
 
-myparser :: (DeltaParsing p, TermBuilder Lit.String m a) => p (m a, Parser.State)
+myparser :: TermParserCore p m a => p (m a, Parser.State)
 myparser = parseGen PLit.string Parser.defState
 
-myparser2 :: (DeltaParsing p, T m a) => p (m a, Parser.State)
+myparser2 :: TermParserCore p m a => p (m a, Parser.State)
 myparser2 = parseGen Term.assignment Parser.defState
 
 
-parsed :: T m a => Either Doc (m a, Parser.State)
+parsed :: TermBuilderCtx m a => Either Doc (m a, Parser.State)
 parsed = parseString input myparser2
 
