@@ -236,6 +236,7 @@ instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Native n t) where repr (
 instance {-# OVERLAPPABLE #-}                   Repr s  Blank       where repr _                = "Blank"
 instance {-# OVERLAPPABLE #-}                   Repr s Lit.System   where repr                  = \case Lit.Rational r -> repr r
                                                                                                         Lit.Integer  i -> repr i
+                                                                                                        Lit.Double   d -> repr d
 
 -- HeaderOnly
 instance {-# OVERLAPPABLE #-} Repr StaticNameOnly n => Repr HeaderOnly (Var   n    ) where repr (Var n) = "Var" <+> fromString (reprStyled StaticNameOnly n)
