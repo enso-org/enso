@@ -48,6 +48,8 @@ ratioAs t = inferM t ∘ Term.ratio
 intAs :: TermBuilderAs t Lit.Number m a => t -> Integer -> m a
 intAs t = inferM t ∘ Term.int
 
+doubleAs :: TermBuilderAs t Lit.Number m a => t -> Double -> m a
+doubleAs t = inferM t ∘ Term.double
 
 -- === Val === --
 
@@ -92,15 +94,17 @@ blankAs t = inferM t Term.blank
 
 -- === Lit === --
 
-star  :: TermBuilder Lit.Star   m a => m a
-str   :: TermBuilder Lit.String m a => String   -> m a
-ratio :: TermBuilder Lit.Number m a => Rational -> m a
-int   :: TermBuilder Lit.Number m a => Integer  -> m a
+star   :: TermBuilder Lit.Star   m a => m a
+str    :: TermBuilder Lit.String m a => String   -> m a
+ratio  :: TermBuilder Lit.Number m a => Rational -> m a
+int    :: TermBuilder Lit.Number m a => Integer  -> m a
+double :: TermBuilder Lit.Number m a => Double   -> m a
 
-star  = starAs  ELEMENT
-str   = strAs   ELEMENT
-ratio = ratioAs ELEMENT
-int   = intAs   ELEMENT
+star   = starAs   ELEMENT
+str    = strAs    ELEMENT
+ratio  = ratioAs  ELEMENT
+int    = intAs    ELEMENT
+double = doubleAs ELEMENT
 
 -- === Val === --
 
