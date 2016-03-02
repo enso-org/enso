@@ -31,40 +31,44 @@ import           Luna.Syntax.Model.Network.Term
 
 #define PassCtx(m, ls, term) ( ls   ~ NetLayers                            \
                              , term ~ Draft Static                         \
-                             , ne   ~ Link (ls :<: term)                    \
+                             , ne   ~ Link (ls :<: term)                   \
+                             , node ~ (ls :<: term)                        \
                              , BiCastable    e ne                          \
-                             , BiCastable    n (ls :<: term)                \
+                             , BiCastable    n (ls :<: term)               \
                              , MonadIO m                                   \
                              , MonadBuilder (Hetero (VectorGraph n e c)) m \
-                             , NodeInferable m (ls :<: term)                \
-                             , TermNode Cons m (ls :<: term)                \
-                             , TermNode Lam  m (ls :<: term)                \
+                             , NodeInferable m (ls :<: term)               \
+                             , TermNode Cons m (ls :<: term)               \
+                             , TermNode Lam  m (ls :<: term)               \
                              )
 
 assignLiteralType :: PassCtx(m, ls, term)
                   => Ref Node (ls :<: term)
                   -> Ref Node (ls :<: term)
                   -> Ref Node (ls :<: term)
+                  -> Ref Node (ls :<: term)
                   -> m ()
-assignLiteralType consIntRef consStrRef ref = do
+assignLiteralType consIntRef consStrRef consDblRef ref = do
     node <- read ref
     caseTest (uncover node) $ do
         let process = void ∘ reconnect (prop Type) ref
-        of' $ \(Lit.String {}) -> process consStrRef
-        of' $ \(Lit.Number {}) -> process consIntRef
+        of' $ \(Lit.String {} ) -> process consStrRef
+        of' $ \(Lit.Number _ n) -> case n of
+            Lit.Integer _ -> process consIntRef
+            Lit.Double  _ -> process consDblRef
         of' $ \ANY             -> return ()
 
-createLiteralTypes :: PassCtx(m, ls, term) => m (Ref Node (ls :<: term), Ref Node (ls :<: term))
+createLiteralTypes :: PassCtx(m, ls, term) => m (Ref Node node, Ref Node node, Ref Node node)
 createLiteralTypes = do
     consIntRef <- cons "Int"
     consStrRef <- cons "String"
-    return (consIntRef, consStrRef)
+    consDblRef <- cons "Double"
+    return (consIntRef, consStrRef, consDblRef)
 
 runPass :: PassCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()
 runPass literals = do
-    (consIntRef, consStrRef) <- createLiteralTypes
-    mapM_ (assignLiteralType consIntRef consStrRef) literals
-
+    (consIntRef, consStrRef, consDblRef) <- createLiteralTypes
+    mapM_ (assignLiteralType consIntRef consStrRef consDblRef) literals
 
 
 -----------------------------

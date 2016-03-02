@@ -32,6 +32,7 @@ instance Convertible String Name   where convert = convert ∘ unwrap' ; {-# INL
 
 data System = Rational P.Rational
             | Integer  P.Integer
+            | Double   P.Double
             deriving (Show, Read)
 
 data Number = Number { _radix :: Int, _system :: System } deriving (Show, Read)
