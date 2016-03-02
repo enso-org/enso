@@ -8,7 +8,7 @@ import           Control.Monad                                   (forM_)
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.State
-import           Data.Maybe                                      (isJust)
+import           Data.Maybe                                      (isNothing)
 
 import           Data.Construction
 import           Data.Graph
@@ -113,7 +113,7 @@ setValue :: InterpreterCtx(m, ls, term) => Maybe Any -> Ref Node (ls :<: term) -
 setValue val ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.value .~ val
-                    & prop InterpreterData . Layer.dirty .~ isJust val
+                    & prop InterpreterData . Layer.dirty .~ isNothing val
               )
     valueString <- getValueString ref
     displayValue ref

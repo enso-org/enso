@@ -202,8 +202,8 @@ input4Adam = do
     apppl <- app apl [arg i2]
     appid <- app id  [arg s1]
 
-    let refsToEval = [i1]
-    -- let refsToEval = [i1, appid]
+    -- let refsToEval = [i1]
+    let refsToEval = [i1, appid]
 
     forM_ refsToEval (\ref -> do
             (nd :: (ls :<: term)) <- read ref

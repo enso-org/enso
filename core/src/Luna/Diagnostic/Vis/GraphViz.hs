@@ -189,7 +189,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               node     = draftNodeByIx nix
               ins      = node # Inputs
               succs    = node # Succs
-              dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "⚫" else "⚪"
+              dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
               required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
               -- value    = fromMaybe "" $ (\v -> " Just Any") <$> (node # InterpreterData) ^. InterpreterLayer.value
               value    = " " <> (node # InterpreterData) ^. InterpreterLayer.debug
