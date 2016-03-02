@@ -103,6 +103,9 @@ ratio = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit
 int :: TermBuilder Lit.Number m a => Integer -> m a
 int = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
 
+double :: TermBuilder Lit.Number m a => Double -> m a
+double = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
+
 
 -- === Val === --
 

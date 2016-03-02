@@ -56,16 +56,19 @@ instance ( PassCtx(m, ls, term)
         tcState <- TypeCheck.get
         return $ (not . null $ tcState ^. TypeCheck.untypedApps)
               || (not . null $ tcState ^. TypeCheck.untypedAccs)
+              || (not . null $ tcState ^. TypeCheck.untypedBinds)
 
     runTCPass _ = do
         tcState <- TypeCheck.get
-        let apps = tcState ^. TypeCheck.untypedApps
-            accs = tcState ^. TypeCheck.untypedAccs
-        newUnis <- runPass apps accs
+        let apps  = tcState ^. TypeCheck.untypedApps
+            accs  = tcState ^. TypeCheck.untypedAccs
+            binds = tcState ^. TypeCheck.untypedBinds
+        newUnis <- runPass apps accs binds
         TypeCheck.put $ tcState & TypeCheck.untypedApps   .~ []
                                 & TypeCheck.untypedAccs   .~ []
+                                & TypeCheck.untypedBinds  .~ []
                                 & TypeCheck.unresolvedUnis %~ (newUnis ++)
-        if (not $ null apps) || (not $ null accs)
+        if (not $ null apps) || (not $ null accs) || (not $ null binds)
             then return Progressed
             else return Stuck
 
@@ -117,6 +120,21 @@ buildAccType accRef = do
             return [uniTp]
         of' $ \ANY -> impossible
 
+buildBindType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m nodeRef
+buildBindType ref = do
+    node <- read ref
+    caseTest (uncover node) $ do
+        of' $ \(Match l r) -> do
+            lr       <- follow source l
+            rr       <- follow source r
+            rtp      <- follow source =<< follow (prop Type) rr
+            commonTp <- getTypeSpec lr
+            uniTp    <- unify rtp commonTp
+            reconnect (prop Type) lr uniTp
+            reconnect (prop Type) rr uniTp
+            return uniTp
+        of' $ \ANY -> impossible
+
 
 -- | Returns a concrete type of a node
 --   If the type is just universe, create a new type variable
@@ -129,10 +147,13 @@ getTypeSpec ref = do
         reconnect (prop Type) ref ntp
         return ntp
 
-runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> m [nodeRef]
-runPass apps accs = do
-    appUnis <- concat <$> mapM buildAppType apps
-    accUnis <- concat <$> mapM buildAccType accs
-    return $ appUnis <> accUnis -- FIXME[WD]: use monadic element registration instead
+runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
+runPass apps accs binds = do
+    -- FIXME [MK]: Some of those still will be needed (definitely Acc typing) just in a form that does not introduce
+    -- monomorphisms. Consider later.
+    {-appUnis <- concat <$> mapM buildAppType apps-}
+    {-accUnis <- concat <$> mapM buildAccType accs-}
+    bindUnis <- mapM buildBindType binds
+    return $ bindUnis -- <> appUnis <> accUnis
 
-universe = Ref 0 -- FIXME [WD]: Implement it in safe way. Maybe "star" should always result in the top one?
+universe = Ref 0

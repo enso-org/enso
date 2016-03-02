@@ -189,11 +189,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
               node     = draftNodeByIx nix
               ins      = node # Inputs
               succs    = node # Succs
-              dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then " dirty" else " clean"
-              required = if (node # InterpreterData) ^. InterpreterLayer.required then " req"   else ""
-              refStr   = " <Ref " <> show nix <> ">"
-              value    = fromMaybe "" $ (\v -> " " <> show v) <$> (node # InterpreterData) ^. InterpreterLayer.value
-              interpr  = refStr <> dirty <> required <> value
+              dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
+              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
+              -- value    = fromMaybe "" $ (\v -> " Just Any") <$> (node # InterpreterData) ^. InterpreterLayer.value
+              value    = " " <> (node # InterpreterData) ^. InterpreterLayer.debug
+              interpr  = value <> required
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness
@@ -211,7 +211,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               idlabel       = GV.XLabel ∘ StrLabel ∘ fromString ∘ show $ nix
               --htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ genNodeLabel node <> show (length orphanTgts)] where
 
-              htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ genNodeLabel node
+              htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ dirty <> genNodeLabel node
                                             <> "(" <> show (length orphanTgts) <> ") "
                                             <> show (view idx <$> node # Succs)
                                             <> interpr] where

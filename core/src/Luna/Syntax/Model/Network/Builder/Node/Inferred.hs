@@ -11,6 +11,7 @@ import Luna.Syntax.Model.Network.Builder.Term.Inferred (inferNodeM)
 star   = inferNodeM    Node.star
 str    = inferNodeM ∘  Node.str
 int    = inferNodeM ∘  Node.int
+double = inferNodeM ∘  Node.double
 cons   = inferNodeM ∘  Node.cons
 lam    = inferNodeM ∘∘ Node.lam
 acc    = inferNodeM ∘∘ Node.acc

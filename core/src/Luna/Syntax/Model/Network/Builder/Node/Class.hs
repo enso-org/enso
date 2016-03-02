@@ -64,6 +64,9 @@ ratio = node ∘ Term.ratio
 int :: NodeBuilder Lit.Number m (ls :<: term) => Integer -> m (Ref Node $ ls :<: term)
 int = node ∘ Term.int
 
+double :: NodeBuilder Lit.Number m (ls :<: term) => Double -> m (Ref Node $ ls :<: term)
+double = node ∘ Term.double
+
 cons :: NodeBuilder Cons m (ls :<: term) => NameInput (Ref Node $ ls :<: term) -> m (Ref Node $ ls :<: term)
 cons = node ∘ Term.cons
 
