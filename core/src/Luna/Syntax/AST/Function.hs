@@ -1,26 +1,17 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Luna.Syntax.AST.Decl.Function where
+module Luna.Syntax.AST.Function (module Luna.Syntax.AST.Function, module X) where
 
-import Prologue
-import Luna.Syntax.AST.Arg
-import Luna.Syntax.Ident.Pattern
+import Luna.Syntax.AST.Function.Argument   as X
+--import Luna.Syntax.AST.Function.Definition as X
 
 
--- === Definitions === --
+---------------------------------------------------------------------------------------------
+-- OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD --
+---------------------------------------------------------------------------------------------
 
-data Signature2 a = Signature2 { __self_ :: Maybe a
-                               , __pat_  :: Pattern a
-                               , __out_  :: a
-                               } deriving (Show, Functor, Foldable, Traversable)
-
-data Function2 a b = Function2 { __sig_  :: Signature2 a
-                               , __body_ :: b
-                               } deriving (Show, Functor, Foldable, Traversable)
-
-makeLenses ''Signature2
-makeLenses ''Function2
-
+import Prelude.Luna
+import Luna.Syntax.AST.Function.Header
 
 
 data Signature a = Signature { _self  :: Maybe a
@@ -41,3 +32,6 @@ makeLenses ''Function
 -- Castable
 instance Castable n n' => Castable (Signature n) (Signature n') where
     cast = fmap cast ; {-# INLINE cast #-}
+
+
+

@@ -1,3 +1,4 @@
+-- FIXME[WD->MK]: there should be ban for using "Utils" name. Always :P
 module Luna.Syntax.Model.Network.Builder.Utils.Merging where
 
 import           Luna.Syntax.Model.Network.Builder.Term
@@ -16,12 +17,12 @@ import           Data.Maybe                    (fromMaybe)
 import           Data.List                     (partition)
 import qualified Data.Map                      as Map
 import qualified Data.IntSet                   as IntSet
-import           Luna.Syntax.AST.Decl.Function (Signature)
+import           Luna.Syntax.AST.Function      (Signature)
 
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Term (Draft)
 import           Luna.Evaluation.Runtime        (Static)
-import qualified Luna.Syntax.AST.Decl.Function  as Function
+import qualified Luna.Syntax.AST.Function       as Function
 
 
 -------------------

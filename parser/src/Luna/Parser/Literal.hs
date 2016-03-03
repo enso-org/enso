@@ -3,9 +3,9 @@
 module Luna.Parser.Literal where
 
 import Prelude.Luna
-import qualified Luna.Parser.Token       as Tok
+import qualified Luna.Parser.Token        as Tok
 import           Text.Parser.Combinators
-import qualified Luna.Syntax.AST.Lit     as Lit
+import qualified Luna.Syntax.AST.Term.Lit as Lit
 import           Luna.Syntax.Model.Network.Builder.Term.Class
 
 import Text.Trifecta.Combinators (DeltaParsing)

@@ -6,8 +6,8 @@ module Main where
 
 import Prologue
 import Luna.Parser.Parser
-import qualified Luna.Syntax.AST.Lit as Lit
-import qualified Luna.Parser.Literal as PLit
+import qualified Luna.Syntax.AST.Term.Lit as Lit
+import qualified Luna.Parser.Literal      as PLit
 import Luna.Syntax.Model.Network.Builder.Term
 import Luna.Syntax.Model.Network.Term
 import Luna.Evaluation.Runtime

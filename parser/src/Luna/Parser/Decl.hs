@@ -11,11 +11,10 @@ import qualified Luna.Parser.Token        as Tok
 import qualified Luna.Parser.Indent       as Indent
 import           Luna.Parser.Combinators  (many1, maybe, applyAll)
 import qualified Luna.Parser.Type         as Type
-import Luna.Syntax.AST.Decl.Function
-import Luna.Syntax.AST.Arg
+import Luna.Syntax.AST.Function
 import Luna.Parser.Combinators
-import qualified Luna.Syntax.Ident.Pattern as Pattern
-import           Luna.Syntax.Ident.Pattern (Segment(..), Pattern(..))
+--import qualified Luna.Syntax.Ident.Pattern as Pattern
+--import           Luna.Syntax.Ident.Pattern (Segment(..), Pattern(..))
 --import           Luna.Syntax.Foreign      (Foreign(Foreign))
 --import qualified Luna.Syntax.Foreign      as Foreign
 --import           Luna.Syntax.Name.Pattern (NamePat(NamePat), Segment(Segment))
@@ -102,20 +101,20 @@ import           Luna.Syntax.Ident.Pattern (Segment(..), Pattern(..))
 
 --data ArgDef a = ArgDef { __pat_   :: a               , __mval_ :: Maybe a } deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
 
-argDef :: Parser p => p a -> p a -> p (ArgDef a)
-argDef pat val = ArgDef <$> pat <*> maybe (Tok.assignment *> val)
+            --argDef :: Parser p => p a -> p a -> p (ArgDef a)
+            --argDef pat val = ArgDef <$> pat <*> maybe (Tok.assignment *> val)
 
-segment :: Parser p => p a -> p a -> p (Segment a)
-segment pat val = Segment <$> Tok.varIdent <*> many (argDef pat val)
+            --segment :: Parser p => p a -> p a -> p (Segment a)
+            --segment pat val = Segment <$> Tok.varIdent <*> many (argDef pat val)
 
-namedPattern :: Parser p => p a -> p a -> p (Pattern a)
-namedPattern pat val = Pattern.Named <$> segment pat val <*> many (segment pat val)
+            --namedPattern :: Parser p => p a -> p a -> p (Pattern a)
+            --namedPattern pat val = Pattern.Named <$> segment pat val <*> many (segment pat val)
 
-unnamedPattern :: Parser p => p a -> p a -> p (Pattern a)
-unnamedPattern pat val = Pattern.Unnamed <$> many (argDef pat val)
+            --unnamedPattern :: Parser p => p a -> p a -> p (Pattern a)
+            --unnamedPattern pat val = Pattern.Unnamed <$> many (argDef pat val)
 
-namedSignature :: Parser p => p (Maybe a) -> p a -> p a -> p a -> p (Signature2 a)
-namedSignature self pat val out = Signature2 <$> self <*> namedPattern pat val <*> out
+            --namedSignature :: Parser p => p (Maybe a) -> p a -> p a -> p a -> p (Signature2 a)
+            --namedSignature self pat val out = Signature2 <$> self <*> namedPattern pat val <*> out
 
 --function = Tok.
 

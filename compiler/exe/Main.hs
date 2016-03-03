@@ -54,7 +54,7 @@ import qualified Luna.Library.Standard                           as StdLib
 import qualified Luna.Library.Symbol.Class                       as Symbol
 import           Luna.Syntax.AST.Term                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Luna.Syntax.AST.Term                            as Term
-import qualified Luna.Syntax.AST.Lit                             as Lit
+import qualified Luna.Syntax.AST.Term.Lit                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer

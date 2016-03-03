@@ -16,7 +16,7 @@ import           Data.Graph.Backend.VectorGraph                  as Graph
 import           Luna.Diagnostic.Vis.GraphViz
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
 import           Luna.Syntax.AST.Term                            hiding (source)
-import qualified Luna.Syntax.AST.Lit                             as Lit
+import qualified Luna.Syntax.AST.Term.Lit                        as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)

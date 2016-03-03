@@ -21,11 +21,11 @@ import           Data.Typeable                (splitTyConApp, tyConName, typeRep
 import           Luna.Evaluation.Runtime      (Dynamic, Static, ToDynamic, ToStatic, SubRuntimes, SubSemiRuntimes, ByRuntime)
 import qualified Luna.Evaluation.Runtime      as Runtime
 import           Luna.Syntax.Repr.Styles
-import           Luna.Syntax.AST.Arg
+import           Luna.Syntax.AST.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Evaluation.Model
-import qualified Luna.Syntax.AST.Lit          as Lit
+import qualified Luna.Syntax.AST.Term.Lit     as Lit
 
 import Data.Record as X (Data)
 

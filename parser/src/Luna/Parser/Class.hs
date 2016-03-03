@@ -10,7 +10,7 @@ import Luna.Syntax.Model.Network.Builder.Term (TermBuilder)
 import Text.Parser.Token                      (TokenParsing)
 import Text.Trifecta.Combinators              (DeltaParsing)
 
-import qualified Luna.Syntax.AST.Lit as Lit
+import qualified Luna.Syntax.AST.Term.Lit as Lit
 
 
 type Parser     p = (ParserCore p, MonadIndent p, MonadParserState p)

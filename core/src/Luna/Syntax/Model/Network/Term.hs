@@ -17,7 +17,7 @@ import           Data.Reprx                     (Repr, repr)
 import           Luna.Syntax.AST.Term           hiding (Val, Lit, Thunk, Expr, Draft)
 import           Luna.Syntax.Model.Layer
 import           Luna.Evaluation.Runtime        as Runtime
-import           Luna.Syntax.AST.Arg
+import           Luna.Syntax.AST.Function.Argument
 import qualified Luna.Evaluation.Model          as Model
 import Data.Graph.Model.Edge
 import Data.Graph

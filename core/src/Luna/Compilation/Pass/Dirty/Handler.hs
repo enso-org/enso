@@ -22,6 +22,7 @@ import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 
 #define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers                                        \

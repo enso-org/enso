@@ -1,4 +1,4 @@
-module Luna.Syntax.AST.Arg where
+module Luna.Syntax.AST.Function.Argument where
 
 import Prelude.Luna
 

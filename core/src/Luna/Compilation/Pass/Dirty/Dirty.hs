@@ -33,6 +33,7 @@ import           Luna.Syntax.Model.Network.Term
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
 import           Data.Graph.Backend.VectorGraph
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 
 #define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers                                      \

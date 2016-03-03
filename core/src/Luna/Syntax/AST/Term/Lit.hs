@@ -1,4 +1,4 @@
-module Luna.Syntax.AST.Lit where
+module Luna.Syntax.AST.Term.Lit where
 
 import           Prelude.Luna   hiding (Repr, Rational, Integer, String)
 import qualified Prelude.Luna   as P
@@ -32,7 +32,7 @@ instance Convertible String Name   where convert = convert ∘ unwrap' ; {-# INL
 
 data System = Rational P.Rational
             | Integer  P.Integer
-            | Double   P.Double
+            | Double   P.Double -- FIXME[WD->MK]: to delete
             deriving (Show, Read)
 
 data Number = Number { _radix :: Int, _system :: System } deriving (Show, Read)

@@ -55,11 +55,11 @@ import Luna.Parser.Indent (MonadIndent)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
 import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Luna.Syntax.AST.Term (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
-import qualified Luna.Syntax.AST.Lit as Lit
+import qualified Luna.Syntax.AST.Term.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
 import Luna.Evaluation.Runtime (Model)
 import Luna.Data.Name
-import qualified Luna.Syntax.AST.Arg as AST
+import qualified Luna.Syntax.AST.Function.Argument as AST
 import           Luna.Syntax.Ident (named)
 import           Luna.Parser.Class        (Parser, TermParser)
 

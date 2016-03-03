@@ -14,7 +14,7 @@ import Data.Record
 import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
-import Luna.Syntax.AST.Decl.Function                (Function, Signature)
+import Luna.Syntax.AST.Function                     (Function, Signature)
 import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
@@ -30,8 +30,8 @@ import qualified Data.Map as Map
 import           Data.Map (Map)
 
 import qualified Luna.Library.Symbol.QualPath     as QualPath
-import qualified Luna.Syntax.AST.Decl.Function    as Function
-import qualified Luna.Syntax.AST.Lit              as Lit
+import qualified Luna.Syntax.AST.Function         as Function
+import qualified Luna.Syntax.AST.Term.Lit         as Lit
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)

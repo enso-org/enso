@@ -33,14 +33,14 @@ import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.AST.Lit                             as Lit
+import qualified Luna.Syntax.AST.Term.Lit                        as Lit
 
 import           Type.Inference
 
 -- import qualified Luna.Library.StdLib                             as StdLib
 
-import           Luna.Syntax.AST.Arg                             (Arg)
-import qualified Luna.Syntax.AST.Arg                             as Arg
+import           Luna.Syntax.AST.Function                        (Arg)
+import qualified Luna.Syntax.AST.Function.Argument               as Arg
 
 import qualified Luna.Evaluation.Session                         as Session
 
@@ -53,9 +53,7 @@ import qualified Language.Haskell.Session                        as HS
 
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
-
-
-
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 convertBase :: Integral a => a -> a -> a
 convertBase radix = unDigits radix . digits 10

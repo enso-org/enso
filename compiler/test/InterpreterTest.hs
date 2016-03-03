@@ -36,7 +36,7 @@ import           Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
 import           Data.Graph.Backend.VectorGraph
 import qualified Data.Graph.Builder.Class                        as Graph
-import qualified Luna.Syntax.AST.Lit                             as Lit
+import qualified Luna.Syntax.AST.Term.Lit                        as Lit
 
 import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 

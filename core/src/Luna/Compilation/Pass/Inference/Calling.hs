@@ -26,7 +26,7 @@ import Type.Inference
 import qualified Data.Map as Map
 import           Data.Map (Map)
 
-import qualified Luna.Syntax.AST.Decl.Function as Function
+import qualified Luna.Syntax.AST.Function as Function
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)

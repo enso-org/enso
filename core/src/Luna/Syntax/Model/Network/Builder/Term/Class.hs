@@ -21,8 +21,8 @@ import           Data.Record                             (RecordOf, IsRecord, Ha
 import           Data.Tuple.Curry.Missing
 import           Data.Tuple.OneTuple
 import           Luna.Evaluation.Runtime                 as Runtime
-import           Luna.Syntax.AST.Arg
-import           Luna.Syntax.AST.Arg                     as X (arg)
+import           Luna.Syntax.AST.Function.Argument
+import           Luna.Syntax.AST.Function.Argument       as X (arg)
 import           Luna.Syntax.AST.Term                    hiding (Val, Lit, Thunk, Expr, Draft, Source, Name)
 import qualified Luna.Syntax.AST.Term                    as Term
 import qualified Data.Graph.Builder                      as GraphBuilder
@@ -32,7 +32,7 @@ import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.AST.Lit                     as Lit
+import qualified Luna.Syntax.AST.Term.Lit                as Lit
 import           Type.Bool
 
 import Data.Graph.Backend.VectorGraph

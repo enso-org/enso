@@ -39,7 +39,7 @@ import           Data.GraphViz.Types.Canonical
 import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
 import           Luna.Evaluation.Runtime                 (Dynamic, Static)
-import qualified Luna.Syntax.AST.Decl.Function           as Function
+import qualified Luna.Syntax.AST.Function                as Function
 import qualified Luna.Syntax.AST.Term                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
@@ -51,7 +51,7 @@ import           Luna.Syntax.Repr.Styles                 (HeaderOnly (..), Simpl
 import           System.Platform
 import           System.Process                          (createProcess, shell)
 import           Data.Tuple.Select                       (sel1)
-import qualified Luna.Syntax.AST.Lit                     as Lit
+import qualified Luna.Syntax.AST.Term.Lit                as Lit
 
 
 --instance Repr HeaderOnly Data where repr _ = "Data"

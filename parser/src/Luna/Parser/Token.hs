@@ -21,8 +21,8 @@ import Prelude.Luna as Prelude hiding (op, noneOf, lex, use)
 import qualified Luna.Parser.Indent as Indent
 import           Luna.Parser.Indent (MonadIndent)
 import           Luna.Parser.Combinators
-import qualified Luna.Syntax.AST.Lit as Lit
-import qualified Luna.Syntax.AST.Lit as Number
+import qualified Luna.Syntax.AST.Term.Lit as Lit
+import qualified Luna.Syntax.AST.Term.Lit as Number
 import           Luna.Parser.Lex
 import qualified Luna.Parser.State as State
 

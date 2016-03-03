@@ -9,14 +9,14 @@ import           Data.Graph
 import           Data.Graph.Builders
 import           Data.Record                             (ANY, Matches)
 import           Data.Graph.Builder.Ref
-import           Luna.Syntax.AST.Arg
+import           Luna.Syntax.AST.Function.Argument
 import qualified Luna.Syntax.AST.Term                    as Term
 import           Luna.Syntax.AST.Term                    hiding (Val, Lit, Thunk, Expr, Draft, Source)
 import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term
 import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder)
 import           Type.Inference
-import qualified Luna.Syntax.AST.Lit                     as Lit
+import qualified Luna.Syntax.AST.Term.Lit                as Lit
 
 
 -- === Types === --
