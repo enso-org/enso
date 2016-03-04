@@ -23,7 +23,7 @@ import           Luna.Syntax.Model.Network.Class                 ()
                    , Getter Inputs node                           \
                    , Prop Inputs node ~ [Ref Edge edge]           \
                    , HasProp TCData node                          \
-                   , Prop TCData node ~ TCDataPayload (term ls)   \
+                   , Prop TCData node ~ TCDataPayload node        \
                    )
 
 inputs :: PassCtx(m) => Ref Node node -> m [Ref Node node]

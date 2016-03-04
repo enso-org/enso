@@ -51,6 +51,7 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
                    , TermNode Lam   (m) (ls :<: term)             \
                    , TermNode Unify (m) (ls :<: term)             \
                    , Referred Node n graph                        \
+                   , Clusterable node clus (m)                    \
                    )
 
 data CallError = NotAFuncallNode | UnresolvedFunction | MalformedFunction deriving (Show, Eq)

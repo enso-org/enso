@@ -75,6 +75,7 @@ Library
         Data.Graph.Model.Class,
         Data.Graph.Model.Cluster,
         Data.Graph.Model.Edge,
+        Data.Graph.Model.Events,
         Data.Graph.Model.Hetero,
         Data.Graph.Model.Node,
         Data.Graph.Model.Ref,

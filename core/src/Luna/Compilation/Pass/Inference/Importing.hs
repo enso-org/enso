@@ -58,6 +58,7 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
                    , MonadSymbol node clus graph (m)                 \
                    , Referred Node n graph                           \
                    , Connectible (Ref Node node) (Ref Node node) (m) \
+                   , Clusterable node clus (m)                       \
                    )
 
 
