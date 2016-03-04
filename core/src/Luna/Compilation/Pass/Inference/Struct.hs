@@ -41,6 +41,7 @@ import Data.Graph.Backend.VectorGraph
                            , TermNode Unify m (ls :<: term)                \
                            , TermNode Acc   m (ls :<: term)                \
                            , MonadIdentPool m                              \
+                           , Destructor m (Ref Edge ne)                    \
                            )
 
 -----------------------------

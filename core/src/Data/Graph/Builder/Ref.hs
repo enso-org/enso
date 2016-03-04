@@ -5,6 +5,7 @@ module Data.Graph.Builder.Ref where
 
 import Prelude.Luna
 
+import Control.Monad.Event
 import Data.List                      (delete)
 import Data.Graph.Builders
 import Data.Graph
@@ -108,11 +109,15 @@ instance (MonadBuilder t m, Prop Inputs node ~ [inp], Referred Node node t, Dest
         unregister ref
     {-# INLINE destruct #-}
 
-instance (MonadBuilder t m, Prop Succs node ~ [Ref Edge edge], edge ~ Arc node node, HasProp Succs node, Referred Node node t, Referred Edge edge t, Unregister m (Ref Edge edge))
+instance ( MonadBuilder t m
+         , edge ~ Arc node node
+         , Referred Node node t
+         , Referred Edge edge t
+         , Unregister m (Ref Edge edge)
+         , Dispatcher CONNECTION_REMOVE (Ref Edge edge) m)
       => Destructor m (Ref Edge edge) where
     destruct ref = do
-        s <- follow source ref
-        withRef s $ prop Succs %~ delete ref
+        dispatch CONNECTION_REMOVE ref
         unregister ref
     {-# INLINE destruct #-}
 

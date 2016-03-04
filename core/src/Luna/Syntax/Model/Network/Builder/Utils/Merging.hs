@@ -60,7 +60,7 @@ importStructure nodes' edges' = do
         foreignNodeRefs = fst <$> nodes
         foreignEdgeRefs = fst <$> edges
 
-    newNodeRefs <- mapM (construct . (prop Succs .~ [])) $ snd <$> nodes
+    newNodeRefs <- mapM (construct . (prop Succs .~ []) . (prop TCData . belongsTo .~ [])) $ snd <$> nodes
 
     let nodeTrans         = Map.fromList $ zip foreignNodeRefs newNodeRefs
         translateNode     = mkNodeTranslator nodeTrans

@@ -298,17 +298,17 @@ class NetworkBuilderT net m n | m -> n, m -> net where runNetworkBuilderT :: net
 
 instance {-# OVERLAPPABLE #-} NetworkBuilderT I IM IM where runNetworkBuilderT = impossible
 instance {-# OVERLAPPABLE #-}
-    ( m       ~ Listener SUBGRAPH_INCLUDE MemberRegister m'
-    , m'      ~ Listener CONNECTION SuccRegister m''
-    , m''     ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m'''
-    , m'''    ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m''''
-    , m''''   ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m'''''
-    , m'''''  ~ Type.TypeBuilderT (Ref Node NetNode) m''''''
-    , m'''''' ~ Self.SelfBuilderT (Ref Node NetNode) m'''''''
-    , Monad m''''''
-    , Monad m'''''''
+    ( m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
+    , m7 ~ Listener SUBGRAPH_INCLUDE  MemberRegister m6
+    , m6 ~ Listener CONNECTION        SuccRegister m5
+    , m5 ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m4
+    , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
+    , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
+    , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
+    , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
+    , Monad m
     , net ~ Hetero (VectorGraph n e c)
-    ) => NetworkBuilderT net m m''''''' where
+    ) => NetworkBuilderT net m8 m where
     runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node NetNode)
                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
                            ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
@@ -316,6 +316,7 @@ instance {-# OVERLAPPABLE #-}
                            ∘ flip GraphBuilder.runT net
                            ∘ registerSuccs   CONNECTION
                            ∘ registerMembers SUBGRAPH_INCLUDE
+                           ∘ unregisterSuccs CONNECTION_REMOVE
 
 
 -- FIXME[WD]: poprawic typ oraz `WithElement_` (!)

@@ -40,6 +40,7 @@ import           Luna.Syntax.Model.Network.Term
                              , NodeInferable m (ls :<: term)               \
                              , TermNode Cons m (ls :<: term)               \
                              , TermNode Lam  m (ls :<: term)               \
+                             , Destructor (m) (Ref Edge ne)                \
                              )
 
 assignLiteralType :: PassCtx(m, ls, term)

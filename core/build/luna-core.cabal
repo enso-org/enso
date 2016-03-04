@@ -148,6 +148,7 @@ Library
         Luna.Syntax.Model.Network,
         Luna.Syntax.Model.Network.Builder,
         Luna.Syntax.Model.Network.Builder.Layer,
+        Luna.Syntax.Model.Network.Builder.Layers.SuccTracking,
         Luna.Syntax.Model.Network.Builder.Node,
         Luna.Syntax.Model.Network.Builder.Node.Class,
         Luna.Syntax.Model.Network.Builder.Node.Inferred,

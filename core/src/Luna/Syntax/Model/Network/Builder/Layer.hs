@@ -1,8 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Model.Network.Builder.Layer where
+module Luna.Syntax.Model.Network.Builder.Layer (
+      module Luna.Syntax.Model.Network.Builder.Layer
+    , module X
+    ) where
 
 import Prelude.Luna
+
+import Luna.Syntax.Model.Network.Builder.Layers.SuccTracking as X
 
 import           Data.Graph.Builders
 import           Control.Monad.Event
@@ -21,42 +26,9 @@ import           Luna.Syntax.Model.Network.Class
 import           Data.Layer.Cover
 import           Data.Graph
 
---------------------------------
--- === Succs registration === --
---------------------------------
-
--- === Definitions === ---
-
-data SuccRegister = SuccRegister deriving (Show)
-instance ( MonadBuilder g m
-         , Referred Edge (Arc src tgt) g
-         , Referred Node src g
-         , Show src
-         , Prop Succs src ~ [Ref Edge (Arc src tgt)]
-         , HasProp Succs src
-         ) => Handler t SuccRegister m (Ref Edge (Arc src tgt)) where
-    handler e = do
-        ve <- lift $ read e -- FIXME[WD]: remove the lift (it could be handy to disable the magic trans-instance in Graph.hs)
-        lift $ Ref.with (ve ^. source) $ prop Succs %~ (e:)
-    {-# INLINE handler #-}
-
-instance Monad m => Destructor m (Layer (Network ls) Succs a) where
-    destruct _ = return ()
-
--- === Utils === ---
-
-registerSuccs :: t -> Listener t SuccRegister m a -> m a
-registerSuccs _ = runListener
-
 ------------------------------------------
 -- === Native layers implementation === --
 ------------------------------------------
-
--- === Succs layer === --
-
-type instance LayerData (Network ls) Succs t = [Ref Edge $ Link (Shelled t)]
-instance Monad m => Creator m (Layer (Network ls) Succs a) where create = return $ Layer []
-
 
 -- === Type layer === --
 

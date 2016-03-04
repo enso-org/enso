@@ -39,6 +39,7 @@ import qualified Luna.Syntax.AST.Function         as Function
                          , MonadFix m                                    \
                          , NetworkBuilderT NetGraph m Identity           \
                          , MonadBuilder NetGraph m                       \
+                         , Destructor m (Ref Edge $ Link n)              \
                          )
 
 buildGraph :: forall m n b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph)

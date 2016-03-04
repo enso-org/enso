@@ -59,6 +59,7 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
                    , Referred Node n graph                           \
                    , Connectible (Ref Node node) (Ref Node node) (m) \
                    , Clusterable node clus (m)                       \
+                   , Destructor (m) (Ref Edge edge)                  \
                    )
 
 
