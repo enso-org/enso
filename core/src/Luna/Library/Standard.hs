@@ -36,6 +36,7 @@ import qualified Luna.Syntax.AST.Function         as Function
                          , TermNode Lit.Star m n                         \
                          , TermNode Lam      m n                         \
                          , TermNode Var      m n                         \
+                         , TermNode App      m n                         \
                          , MonadFix m                                    \
                          , NetworkBuilderT NetGraph m Identity           \
                          , MonadBuilder NetGraph m                       \
@@ -59,12 +60,15 @@ makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> Strin
 makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
     selfType <- mapM (cons . fromString) selfTypeStr
     argTypes <- mapM (cons . fromString) argTypesStr
-    -- outType  <- cons $ fromString outTypeStr
-    self <- mapM (typed blank) selfType
-    args <- mapM (typed blank) argTypes
-    -- let nativeArgs = maybeToList self ++ args
-    native <- native (fromString name) -- nativeArgs `typed` outType
-    return $ Signature self (arg <$> args) native
+    outType  <- cons $ fromString outTypeStr
+    self     <- mapM (typed blank) selfType
+    args     <- mapM (typed blank) argTypes
+    let nativeArgTypes = maybeToList selfType <> argTypes
+    let nativeArgs = maybeToList self <> args
+    lambda   <- lam (arg <$> nativeArgTypes) outType
+    native   <- native (fromString name) `typed` lambda
+    out      <- app native (arg <$> nativeArgs) `typed` outType
+    return $ Signature self (arg <$> args) out
 
 makeId :: FunBuilderCtx(m) => m (Signature nodeRef)
 makeId = do
