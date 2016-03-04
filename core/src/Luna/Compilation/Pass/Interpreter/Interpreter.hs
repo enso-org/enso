@@ -183,14 +183,6 @@ collectNodesToEval ref = do
         whenM (isDirty <$> read p) $
             collectNodesToEval p
 
-
--- ref
-
--- node
-
--- node # Tc
-
-
 getValueString :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
 getValueString ref = do
     typeName <- getTypeName ref
@@ -249,18 +241,32 @@ evaluateNode ref = do
                     putStrLn $ "App " <> show funRep <> " (" <> name <> ") " <> show unpackedArgs
                     -- values <- argumentsValues unpackedArgs
                     return ()
-                of' $ \(Native nameStr argsEdges) -> do
+                -- of' $ \(Native nameStr argsEdges) -> do
+                --     -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
+                --     let tpString = "Int -> Int -> Int"
+                --     let name = unwrap' nameStr
+                --     args   <- mapM (follow source) argsEdges
+                --     values <- argumentsValues args
+                --     -- putStrLn $ "Native " <> name <> " " <> show values
+                --     res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
+                --         HS.setImports Session.defaultImports
+                --         fun <- Session.findSymbol name tpString
+                --         let res = foldl Session.appArg fun $ Session.toAny <$> values
+                --         -- let res = Session.toAny 0
+                --         return res
+                --     let value = ((Session.unsafeCast res) :: Int)
+                --     putStrLn $ "res " <> show value
+                --     setValue (Just res) ref
+                --     return ()
+                of' $ \(Native nameStr) -> do
                     -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
                     let tpString = "Int -> Int -> Int"
                     let name = unwrap' nameStr
-                    args   <- mapM (follow source) argsEdges
-                    values <- argumentsValues args
-                    -- putStrLn $ "Native " <> name <> " " <> show values
                     res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
                         HS.setImports Session.defaultImports
                         fun <- Session.findSymbol name tpString
-                        let res = foldl Session.appArg fun $ Session.toAny <$> values
-                        -- let res = Session.toAny 0
+                        -- let res = foldl Session.appArg fun $ Session.toAny <$> values
+                        let res = Session.toAny 0
                         return res
                     let value = ((Session.unsafeCast res) :: Int)
                     putStrLn $ "res " <> show value
@@ -269,14 +275,6 @@ evaluateNode ref = do
                 of' $ \(Lit.String str)                 -> do
                     setValue (Just $ Session.toAny str) ref
                 of' $ \number@(Lit.Number radix system) -> do
-                    putStrLn $ "Setting number value with radix " <> show radix <> " system " <> show system
-                    let Lit.Integer i = system
-                    let res = convertBase         (toInteger radix) i
-                    putStrLn $ "Converted " <> show res
-                    let anyy = (numberToAny number)
-                    let unannyy = ((Session.unsafeCast anyy) :: Integer)
-                    putStrLn $ "Unannyy " <> show unannyy
-
                     setValue (Just $ numberToAny number) ref
                 of' $ \Blank -> return ()
                 of' $ \ANY   -> return ()

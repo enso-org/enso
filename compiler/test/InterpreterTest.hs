@@ -121,27 +121,27 @@ graph1 = do
 
     return refsToEval
 
-graph2 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
-                                                  , node ~ (ls :<: term)
-                                                  , edge ~ Link (ls :<: term)
-                                                  , nr   ~ Ref Node node
-                                                  , er   ~ Ref Edge edge
-                                                  , BiCastable      n (ls :<: term)
-                                                  , BiCastable      e edge
-                                                  , MonadIO         m
-                                                  , NodeInferable   m (ls :<: term)
-                                                  , TermNode Lit.Star   m (ls :<: term)
-                                                  , TermNode Lit.Number m (ls :<: term)
-                                                  , TermNode Lit.String m (ls :<: term)
-                                                  , TermNode Var        m (ls :<: term)
-                                                  , TermNode Acc        m (ls :<: term)
-                                                  , TermNode App        m (ls :<: term)
-                                                  , TermNode Native     m (ls :<: term)
-                                                  , HasProp InterpreterData (ls :<: term)
-                                                  , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
-                                                  , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
-                                                  )
-       => m ([nr])
+-- graph2 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
+--                                                   , node ~ (ls :<: term)
+--                                                   , edge ~ Link (ls :<: term)
+--                                                   , nr   ~ Ref Node node
+--                                                   , er   ~ Ref Edge edge
+--                                                   , BiCastable            n (ls :<: term)
+--                                                   , BiCastable            e edge
+--                                                   , MonadIO               m
+--                                                   , NodeInferable         m (ls :<: term)
+--                                                   , TermNode Lit.Star     m (ls :<: term)
+--                                                   , TermNode Lit.Number   m (ls :<: term)
+--                                                   , TermNode Lit.String   m (ls :<: term)
+--                                                   , TermNode Var          m (ls :<: term)
+--                                                   , TermNode Acc          m (ls :<: term)
+--                                                   , TermNode App          m (ls :<: term)
+--                                                   , TermNode Native       m (ls :<: term)
+--                                                   , HasProp InterpreterData (ls :<: term)
+--                                                   , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
+--                                                   , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
+--                                                   )
+--        => m ([nr])
 graph2 = do
     i1 <- int 7
     i2 <- int 8
@@ -150,9 +150,11 @@ graph2 = do
     -- s2 <- str "def"
     -- s3 <- str "ghi"
 
-    appPlus1   <- native (fromString "(+)") [i1, i2]
+    -- appPlus1   <- native (fromString "(+)") [i1, i2]
+    -- appPlus2   <- native (fromString "(+)") [appPlus1, i3]
 
-    appPlus2   <- native (fromString "(+)") [appPlus1, i3]
+    appPlus1   <- native (fromString "(+)")
+    appPlus2   <- native (fromString "(+)")
 
     let refsToEval = [appPlus1]
 
@@ -181,7 +183,7 @@ test_old = do
         v <- view version <$> Env.get
         putStrLn $ "Luna compiler version " <> showVersion v
         flip catchAll (\e -> putStrLn $ show e) $ TypeCheck.runT $ do
-            (refsToEval, g01) <- runBuild  g00 graph2
+            (refsToEval, g01) <- runBuild  g00 graph1
             g02               <- evalBuild g01 $ Interpreter.run refsToEval
             renderAndOpen [ ("g2", "g2", g02)
                           ]

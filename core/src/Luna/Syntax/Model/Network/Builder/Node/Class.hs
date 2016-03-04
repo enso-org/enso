@@ -91,5 +91,5 @@ match = Term.match
 blank :: NodeBuilder Blank m (ls :<: term) => m (Ref Node $ ls :<: term)
 blank = Term.blank
 
-native :: NodeBuilder Native m (ls :<: term) => NameInput (Ref Node $ ls :<: term) -> [Ref Node $ ls :<: term] ->  m (Ref Node $ ls :<: term)
-native = node ∘∘ Term.native
+native :: NodeBuilder Native m (ls :<: term) => NameInput (Ref Node $ ls :<: term) -> m (Ref Node $ ls :<: term)
+native = Term.native

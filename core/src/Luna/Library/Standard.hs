@@ -58,11 +58,11 @@ makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> Strin
 makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
     selfType <- mapM (cons . fromString) selfTypeStr
     argTypes <- mapM (cons . fromString) argTypesStr
-    outType  <- cons $ fromString outTypeStr
+    -- outType  <- cons $ fromString outTypeStr
     self <- mapM (typed blank) selfType
     args <- mapM (typed blank) argTypes
-    let nativeArgs = maybeToList self ++ args
-    native <- native (fromString name) nativeArgs `typed` outType
+    -- let nativeArgs = maybeToList self ++ args
+    native <- native (fromString name) -- nativeArgs `typed` outType
     return $ Signature self (arg <$> args) native
 
 makeId :: FunBuilderCtx(m) => m (Signature nodeRef)
