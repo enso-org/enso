@@ -1,5 +1,6 @@
--- FIXME[WD->MK]: there should be ban for using "Utils" name. Always :P
-module Luna.Syntax.Model.Network.Builder.Utils.Merging where
+{-# LANGUAGE CPP #-}
+
+module Luna.Syntax.Model.Network.Builder.Structural.Merging where
 
 import           Luna.Syntax.Model.Network.Builder.Term
 import           Luna.Syntax.Model.Network.Builder.Layer
@@ -24,12 +25,25 @@ import           Luna.Syntax.Model.Network.Term (Draft)
 import           Luna.Evaluation.Runtime        (Static)
 import qualified Luna.Syntax.AST.Function       as Function
 
-
--------------------
--- === Utils === --
--------------------
-
--- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently
+#define ImportCtx  ( node  ~ (ls :<: term)                            \
+                   , edge  ~ Link node                                \
+                   , graph ~ Hetero (VectorGraph n e c)               \
+                   , BiCastable e edge                                \
+                   , BiCastable n node                                \
+                   , MonadBuilder graph m                             \
+                   , Referred Node n graph                            \
+                   , Covered node                                     \
+                   , Constructor m (Ref Node node)                    \
+                   , Constructor m (Ref Edge edge)                    \
+                   , Connectible (Ref Node node) (Ref Node node) m    \
+                   , HasInputs (term ls) (Ref Edge edge)              \
+                   , HasProp Type   node                              \
+                   , HasProp TCData node                              \
+                   , HasProp Succs  node                              \
+                   , Prop Type   node ~ Ref Edge edge                 \
+                   , Prop TCData node ~ TCDataPayload node            \
+                   , Prop Succs  node ~ [Ref Edge edge]               \
+                   )
 
 type NodeTranslator n = Ref Node n -> Ref Node n
 
@@ -43,17 +57,7 @@ translateSignature f sig = sig & Function.self . mapped          %~ f
                                & Function.args . mapped . mapped %~ f
                                & Function.out                    %~ f
 
-importStructure :: ( node  ~ (NetLayers :<: Draft Static)
-                   , edge  ~ (Link node)
-                   , graph ~ Hetero (VectorGraph n e c)
-                   , BiCastable e edge
-                   , BiCastable n node
-                   , MonadBuilder graph m
-                   , Referred Node n graph
-                   , Constructor m (Ref Node node)
-                   , Constructor m (Ref Edge edge)
-                   , Connectible (Ref Node node) (Ref Node node) m
-                   ) => [(Ref Node node, node)] -> [(Ref Edge edge, edge)] -> m (NodeTranslator node)
+importStructure :: ImportCtx => [(Ref Node node, node)] -> [(Ref Edge edge, edge)] -> m (NodeTranslator node)
 importStructure nodes' edges' = do
     let nodes           = filter ((/= universe) . fst) nodes'
         edges           = filter ((/= universe) . view target . snd) edges'
@@ -81,20 +85,12 @@ importStructure nodes' edges' = do
 
     return translateNode
 
-importToCluster :: ( node  ~ (NetLayers :<: Draft Static)
-         , edge  ~ (Link node)
-         , graph ~ Hetero (VectorGraph n e c)
-         , clus  ~ NetCluster
-         , BiCastable e edge
-         , BiCastable n node
-         , BiCastable c clus
-         , MonadBuilder graph m
-         , Referred Node n graph
-         , Constructor m (Ref Node node)
-         , Constructor m (Ref Edge edge)
-         , Connectible (Ref Node node) (Ref Node node) m
-         , Clusterable node clus m
-         ) => graph -> m (Ref Cluster clus, NodeTranslator node)
+importToCluster :: ( ImportCtx
+                   , clus ~ (NetClusterLayers :< SubGraph node)
+                   , Covered clus
+                   , Clusterable node clus m
+                   , BiCastable clus c
+                   ) => graph -> m (Ref Cluster clus, NodeTranslator node)
 importToCluster g = do
     let foreignNodeRefs = Ref <$> usedIxes (g ^. wrapped . nodeGraph)
         foreignEdgeRefs = Ref <$> usedIxes (g ^. wrapped . edgeGraph)
@@ -105,25 +101,21 @@ importToCluster g = do
     mapM (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
     return (cls, trans)
 
-dupCluster :: forall graph node edge clus n e c m .
-              ( node  ~ NetNode
-              , edge  ~ (Link node)
-              , clus  ~ NetCluster
-              , graph ~ Hetero (VectorGraph n e c)
-              , BiCastable e edge
-              , BiCastable n node
-              , BiCastable c clus
-              , MonadBuilder graph m
-              , Referred Node n graph
-              , Constructor m (Ref Node    node)
-              , Constructor m (Ref Edge    edge)
-              , Constructor m (Ref Cluster clus)
-              , Connectible (Ref Node node) (Ref Node node) m
+dupCluster :: ( ImportCtx
+              , Getter Inputs node
+              , Prop Inputs node ~ [Ref Edge edge]
+              , clus ~ (NetClusterLayers :< SubGraph node)
+              , Covered clus
+              , HasProp Name   clus
+              , HasProp Lambda clus
+              , Prop Name   clus ~ String
+              , Prop Lambda clus ~ Maybe (Signature (Ref Node node))
               , Clusterable node clus m
+              , BiCastable clus c
               ) => Ref Cluster clus -> String -> m (Ref Cluster clus, NodeTranslator node)
 dupCluster cluster name = do
     nodeRefs <- members cluster
-    (nodes :: [node]) <- mapM read nodeRefs
+    nodes <- mapM read nodeRefs
     let gatherEdges n = foldr IntSet.insert mempty (view idx <$> ((n # Inputs) ++ [n ^. prop Type]))
     let edgeRefs = Ref <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
     edges <- mapM read edgeRefs

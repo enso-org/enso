@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Model.Network.Builder (module Luna.Syntax.Model.Network.Builder, module X) where
 
-import           Data.Graph.Builder.Class                as X
-import           Luna.Syntax.Model.Network.Builder.Term  as X
-import           Luna.Syntax.Model.Network.Builder.Layer as X
-import           Luna.Syntax.Model.Network.Builder.Utils as X
+import           Data.Graph.Builder.Class                     as X
+import           Luna.Syntax.Model.Network.Builder.Term       as X
+import           Luna.Syntax.Model.Network.Builder.Layer      as X
+import           Luna.Syntax.Model.Network.Builder.Structural as X

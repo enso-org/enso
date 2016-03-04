@@ -339,7 +339,8 @@ instance (MapTryingElemList_
                            (TFoldable (Layout layout term rt))
                            (Term layout term rt)) => Getter Inputs (Term layout term rt) where getter _ = inputstmp
 
+type HasInputs n e = (OverElement (MonoTFunctor e) (RecordOf n), HasRecord n)
 
-fmapInputs :: (OverElement (MonoTFunctor t) (RecordOf r), HasRecord r) => (t -> t) -> (r -> r)
-fmapInputs (f :: t -> t) a = a & record %~ overElement (p :: P (MonoTFunctor t)) (monoTMap f)
+fmapInputs :: HasInputs n e => (e -> e) -> (n -> n)
+fmapInputs (f :: e -> e) a = a & record %~ overElement (p :: P (MonoTFunctor e)) (monoTMap f)
 
