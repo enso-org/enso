@@ -205,7 +205,9 @@ input4Adam = do
     appid <- app id  [arg s1]
 
     -- let refsToEval = [i1]
-    let refsToEval = [i1, appid]
+    -- let refsToEval = [i1, appid]
+    let refsToEval = [apppl, appid]
+
 
     forM_ refsToEval (\ref -> do
             (nd :: (ls :<: term)) <- read ref
@@ -226,7 +228,6 @@ seq3 a b c = Sequence a $ Sequence b c
 test1 :: IO ()
 test1 = do
     (_,  g :: NetGraph) <- prebuild
-
 
     -- Running compiler environment
     flip Env.evalT def $ do
@@ -252,7 +253,7 @@ test1 = do
         let names = printf "%02d" <$> ([0..] :: [Int])
         let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
         putStrLn $ intercalate " " $ (view _2) <$> graphs
-        renderAndOpen [ last graphs ]
+        -- renderAndOpen [ last graphs ]
         renderAndOpen [ ("gint", "gint", gint) ]
         -- renderAndOpen graphs
     print "end"
