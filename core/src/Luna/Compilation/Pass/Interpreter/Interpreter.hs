@@ -108,15 +108,29 @@ markDirty ref = do
     write ref (node & prop InterpreterData . Layer.dirty .~ True)
 
 setValue :: InterpreterCtx(m, ls, term) => Maybe Any -> Ref Node (ls :<: term) -> m ()
-setValue val ref = do
+setValue value ref = do
     node <- read ref
-    write ref (node & prop InterpreterData . Layer.value .~ val
-                    & prop InterpreterData . Layer.dirty .~ isNothing val
+    let dirty = isNothing value
+    write ref (node & prop InterpreterData . Layer.value .~ value
+                    & prop InterpreterData . Layer.dirty .~ dirty
               )
     valueString <- getValueString ref
     displayValue ref
     updNode <- read ref
     write ref $ updNode & prop InterpreterData . Layer.debug .~ valueString
+
+copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> m ()
+copyValue fromRef toRef = do
+    fromNode <- read fromRef
+    toNode   <- read toRef
+    let value = (fromNode # InterpreterData) ^. Layer.value
+        debug = (fromNode # InterpreterData) ^. Layer.debug
+    let dirty = isNothing value
+
+    write toRef (toNode & prop InterpreterData . Layer.value .~ value
+                        & prop InterpreterData . Layer.dirty .~ dirty
+                        & prop InterpreterData . Layer.debug .~ debug
+                )
 
 getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe Any)
 getValue ref = do
@@ -183,14 +197,6 @@ collectNodesToEval ref = do
         whenM (isDirty <$> read p) $
             collectNodesToEval p
 
-
--- ref
-
--- node
-
--- node # Tc
-
-
 getValueString :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
 getValueString ref = do
     typeName <- getTypeName ref
@@ -214,6 +220,10 @@ getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
 getTypeName ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
+    getTypeNameForType tpRef
+
+getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
+getTypeNameForType tpRef = do
     tp    <- read tpRef
     caseTest (uncover tp) $ do
         of' $ \(Cons (Lit.String s)) -> return s
@@ -222,61 +232,68 @@ getTypeName ref = do
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
 
+getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m String
+getNativeType ref = do
+    node  <- read ref
+    tpRef <- follow source $ node # Type
+    tp    <- read tpRef
+    caseTest (uncover tp) $ do
+        of' $ \(Lam args out) -> do
+            let rawArgs  = unlayer <$> args
+            sigElems     <- mapM (follow source) (rawArgs <> [out])
+            sigElemNames <- mapM getTypeNameForType sigElems
+            let funSig = intercalate " -> " sigElemNames
+            return funSig
+        of' $ \ANY -> error "Incorrect native type"
+
+evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m Any
+evaluateNative ref args = do
+    -- putStrLn $ "Evaluating native"
+    node <- read ref
+    (name, tpNative) <- caseTest (uncover node) $ do
+        of' $ \(Native nameStr) -> do
+            tpNative <- getNativeType ref
+            return (unwrap' nameStr, tpNative)
+        of' $ \ANY -> error "Error: native cannot be evaluated"
+
+    putStrLn $ name <> " :: " <> tpNative
+    values <- argumentsValues args
+    res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
+        HS.setImports Session.defaultImports
+        fun <- Session.findSymbol name tpNative
+        let res = foldl Session.appArg fun $ Session.toAny <$> values
+        -- let res = Session.toAny 0
+        return res
+    return res
+
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
     node <- read ref
-    putStrLn $ "evaluating " <> show ref
+    -- putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
         Just redirect -> do
             redirRef <- (follow source) redirect
-            putStrLn $ "redirecting to " <> show redirRef
+            -- putStrLn $ "redirecting to " <> show redirRef
             evaluateNode redirRef
-            value <- getValue redirRef
-            setValue value ref
-            return ()
+            copyValue redirRef ref
         Nothing -> do
             caseTest (uncover node) $ do
                 of' $ \(Unify l r)  -> return ()
                 of' $ \(Acc n t)    -> return ()
                 of' $ \(Var n)      -> return ()
                 of' $ \(App f args) -> do
-                    funRep       <- follow source f
+                    funRef       <- follow source f
                     unpackedArgs <- unpackArguments args
-                    funNode      <- read funRep
-                    name         <- caseTest (uncover funNode) $ do
-                        of' $ \(Lit.String name) -> return name
-                        of' $ \ANY               -> return "function name not a string"
-                    putStrLn $ "App " <> show funRep <> " (" <> name <> ") " <> show unpackedArgs
-                    -- values <- argumentsValues unpackedArgs
-                    return ()
-                of' $ \(Native nameStr argsEdges) -> do
-                    -- let tpString = (intercalate " -> " $ snd <$> values) <> " -> " <> outType
-                    let tpString = "Int -> Int -> Int"
-                    let name = unwrap' nameStr
-                    args   <- mapM (follow source) argsEdges
-                    values <- argumentsValues args
-                    -- putStrLn $ "Native " <> name <> " " <> show values
-                    res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
-                        HS.setImports Session.defaultImports
-                        fun <- Session.findSymbol name tpString
-                        let res = foldl Session.appArg fun $ Session.toAny <$> values
-                        -- let res = Session.toAny 0
-                        return res
-                    let value = ((Session.unsafeCast res) :: Int)
-                    putStrLn $ "res " <> show value
-                    setValue (Just res) ref
+                    mapM evaluateNode unpackedArgs
+                    funNode      <- read funRef
+                    nativeVal    <- caseTest (uncover funNode) $ do
+                        of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
+                        of' $ \ANY                      -> error "evaluating non native function"
+                    setValue (Just nativeVal) ref
                     return ()
                 of' $ \(Lit.String str)                 -> do
                     setValue (Just $ Session.toAny str) ref
                 of' $ \number@(Lit.Number radix system) -> do
-                    putStrLn $ "Setting number value with radix " <> show radix <> " system " <> show system
-                    let Lit.Integer i = system
-                    let res = convertBase         (toInteger radix) i
-                    putStrLn $ "Converted " <> show res
-                    let anyy = (numberToAny number)
-                    let unannyy = ((Session.unsafeCast anyy) :: Integer)
-                    putStrLn $ "Unannyy " <> show unannyy
-
                     setValue (Just $ numberToAny number) ref
                 of' $ \Blank -> return ()
                 of' $ \ANY   -> return ()

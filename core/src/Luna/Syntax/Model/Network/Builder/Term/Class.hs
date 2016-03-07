@@ -145,7 +145,7 @@ lam = curryN $ buildTerm (Proxy :: Proxy Lam)
 
 type instance BuildArgs Acc n    = (NameInput n, Input n)
 type instance BuildArgs App n    = (Input n, [Arg (Input n)])
-type instance BuildArgs Native n = (NameInput n, [Input n])
+type instance BuildArgs Native n = OneTuple (NameInput n)
 
 instance {-# OVERLAPPABLE #-}
          ( src  ~ Input a
@@ -173,16 +173,13 @@ instance ( inp ~ Input a
         return out
 
 instance ( name ~ NameInput a
-         , inp  ~ Input a
-         , ConnectibleName name a m
-         , Connectible     inp  a m
-         , ElemBuilder (Native (NameConnection name a) (Ref Edge $ Connection inp a)) m a
          , MonadFix m
+         , ConnectibleName name a m
+         , ElemBuilder (Native $ NameConnection name a) m a
          ) => TermBuilder Native m a where
-    buildTerm p (name, args) = mdo
-        out   <- buildElem $ Native cname cargs
+    buildTerm p (OneTuple name) = mdo
+        out   <- buildElem $ Native cname
         cname <- nameConnection name out
-        cargs <- mapM (flip connection out) args
         return out
 
 acc :: TermBuilder Acc m a => NameInput a -> Input a -> m a
@@ -191,7 +188,7 @@ acc = curryN $ buildTerm (Proxy :: Proxy Acc)
 app :: TermBuilder App m a => Input a -> [Arg $ Input a] -> m a
 app = curryN $ buildTerm (Proxy :: Proxy App)
 
-native :: TermBuilder Native m a => NameInput a -> [Input a] -> m a
+native :: TermBuilder Native m a => NameInput a -> m a
 native = curryN $ buildTerm (Proxy :: Proxy Native)
 
 -- === Expr === --
@@ -301,22 +298,25 @@ class NetworkBuilderT net m n | m -> n, m -> net where runNetworkBuilderT :: net
 
 instance {-# OVERLAPPABLE #-} NetworkBuilderT I IM IM where runNetworkBuilderT = impossible
 instance {-# OVERLAPPABLE #-}
-    ( m      ~ Listener CONNECTION SuccRegister m'
-    , m'     ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m''
-    , m''    ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m'''
-    , m'''   ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m''''
-    , m''''  ~ Type.TypeBuilderT (Ref Node NetNode) m'''''
-    , m''''' ~ Self.SelfBuilderT (Ref Node NetNode) m''''''
-    , Monad m'''''
-    , Monad m''''''
+    ( m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
+    , m7 ~ Listener SUBGRAPH_INCLUDE  MemberRegister m6
+    , m6 ~ Listener CONNECTION        SuccRegister m5
+    , m5 ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m4
+    , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
+    , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
+    , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
+    , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
+    , Monad m
     , net ~ Hetero (VectorGraph n e c)
-    ) => NetworkBuilderT net m m'''''' where
+    ) => NetworkBuilderT net m8 m where
     runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node NetNode)
                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
                            ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
                            ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
                            ∘ flip GraphBuilder.runT net
                            ∘ registerSuccs   CONNECTION
+                           ∘ registerMembers SUBGRAPH_INCLUDE
+                           ∘ unregisterSuccs CONNECTION_REMOVE
 
 
 -- FIXME[WD]: poprawic typ oraz `WithElement_` (!)

@@ -36,7 +36,7 @@ import qualified Luna.Syntax.AST.Term.Lit                        as Lit
                    , Getter Inputs node                           \
                    , Prop Inputs node ~ [Ref Edge edge]           \
                    , HasProp TCData node                          \
-                   , Prop TCData node ~ TCDataPayload (term ls)   \
+                   , Prop TCData node ~ TCDataPayload node        \
                    , MonadTypeCheck (ls :<: term) m               \
                    )
 

@@ -214,7 +214,8 @@ toGraphViz name net = DotGraph { strictGraph     = False
               htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ dirty <> genNodeLabel node
                                             <> "(" <> show (length orphanTgts) <> ") "
                                             <> show (view idx <$> node # Succs)
-                                            <> interpr] where
+                                            <> interpr
+                                            <> "[" <> show (view idx <$> node ^. prop TCData . belongsTo) <> "]"] where
                   width  = if null inPorts then 1 else fromIntegral inPortsNum
 
 

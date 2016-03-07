@@ -60,7 +60,7 @@ importStructure nodes' edges' = do
         foreignNodeRefs = fst <$> nodes
         foreignEdgeRefs = fst <$> edges
 
-    newNodeRefs <- mapM (construct . (prop Succs .~ [])) $ snd <$> nodes
+    newNodeRefs <- mapM (construct . (prop Succs .~ []) . (prop TCData . belongsTo .~ [])) $ snd <$> nodes
 
     let nodeTrans         = Map.fromList $ zip foreignNodeRefs newNodeRefs
         translateNode     = mkNodeTranslator nodeTrans
@@ -93,6 +93,7 @@ importToCluster :: ( node  ~ (NetLayers :<: Draft Static)
          , Constructor m (Ref Node node)
          , Constructor m (Ref Edge edge)
          , Connectible (Ref Node node) (Ref Node node) m
+         , Clusterable node clus m
          ) => graph -> m (Ref Cluster clus, NodeTranslator node)
 importToCluster g = do
     let foreignNodeRefs = Ref <$> usedIxes (g ^. wrapped . nodeGraph)
@@ -118,6 +119,7 @@ dupCluster :: forall graph node edge clus n e c m .
               , Constructor m (Ref Edge    edge)
               , Constructor m (Ref Cluster clus)
               , Connectible (Ref Node node) (Ref Node node) m
+              , Clusterable node clus m
               ) => Ref Cluster clus -> String -> m (Ref Cluster clus, NodeTranslator node)
 dupCluster cluster name = do
     nodeRefs <- members cluster
