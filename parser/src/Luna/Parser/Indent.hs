@@ -19,10 +19,11 @@ import qualified Control.Monad.State       as State
 import           Control.Monad.State       (MonadState)
 import           Text.Parser.Char
 import           Text.Parser.Combinators
-import           Text.Parser.Token
 import           Text.Trifecta.Combinators
 import           Text.Trifecta.Delta       (column)
 import           Text.Parser.LookAhead
+import           Text.Parser.Token         (TokenParsing, nesting, someSpace, semi, highlight, token)
+import qualified Control.Monad.Trans.State.Lazy as Lazy
 
 import Control.Monad.Event
 import Type.Inference
@@ -35,7 +36,7 @@ import Luna.Syntax.Model.Network.Builder.Self (SelfBuilderT(..))
 -- === IndentState === --
 -------------------------
 
-data IndentState = IndentState { _col :: Int64, _blocks :: [Int64] } deriving (Show)
+data IndentState = IndentState { _indent :: Int64, _blocks :: [Int64] } deriving (Show)
 
 makeLenses ''IndentState
 
@@ -121,65 +122,95 @@ instance {-# OVERLAPPABLE #-} (MonadIndent m, MonadTrans t, Monad (t m)) => Mona
 
 deriving instance (MonadPlus m, Parsing      m) => Parsing      (IndentT m)
 deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (IndentT m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (IndentT m)
 deriving instance DeltaParsing m                => DeltaParsing (IndentT m)
+--deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (IndentT m)
 
+-- FIXME[WD]: original implementation of monad transformers for TokenParsing are broken (they do not lift `token` method!)
+instance (MonadPlus m, TokenParsing m) => TokenParsing (IndentT m) where
+    nesting (IndentT p) = IndentT $ nesting p
+    someSpace = IndentT someSpace
+    semi      = IndentT semi
+    highlight h (IndentT p) = IndentT $ highlight h p
+    token (IndentT (Lazy.StateT m)) = IndentT $ Lazy.StateT $ token . m
 
 
 evalT' :: Monad m => IndentT m a -> m a
 evalT' = flip evalT def
 
 
-----with f m = do
-----  s   <- get
-----  put $ f s
-----  ret <- m
-----  put s
-----  return ret
 
---with f p = pushBlockWith f *> p <* popBlock
 
---currentIdent = view col <$> get
 
---pushBlockWith f = do
---    i <- view col <$> get
---    pushBlock $ f i
 
---pushBlock i = do
---    s <- get
---    let cIdent = s^.col
---    put $ s & col   .~ i
---            & stack %~ (cIdent:)
+currentIdent :: MonadIndent m => m Int64
+currentIdent = view indent <$> get
 
---popBlock = do
---    s <- get
---    let (x:xs) = s^.stack
---    put $ s & col   .~ x
---            & stack .~ xs
+getIndent :: DeltaParsing m => m Int64
+getIndent = column <$> position
 
---startBlock = pushBlock =<< getIndent
---endBlock   = popBlock
+setIndent :: MonadIndent m => Int64 -> m ()
+setIndent i = modify_ (indent .~ i)
 
---withPos p = do
---  c <- getIndent
---  with (const c) p
 
---withDiscarded = with (const 0)
+-- === Blocks === --
+
+
+pushBlock :: MonadIndent m => Int64 -> m ()
+pushBlock i = storeIndent >> setIndent i
+
+popBlock :: MonadIndent m => m Int64
+popBlock = currentIdent <* endBlock
+
+beginBlock :: (MonadIndent m, DeltaParsing m) => m ()
+beginBlock = pushBlock =<< getIndent
+
+endBlock :: MonadIndent m => m ()
+endBlock   = restoreIndent
+
+withBlock :: (MonadIndent m, DeltaParsing m) => m a -> m a
+withBlock p = do
+  c <- getIndent
+  withModBlock (const c) p
+
+withZeroIndentBlock :: MonadIndent m => m a -> m a
+withZeroIndentBlock = withModBlock (const 0)
+
+withModBlock :: MonadIndent m => (Int64 -> Int64) -> m a -> m a
+withModBlock f p = pushModBlock f *> p <* popBlock
+
+pushModBlock :: MonadIndent m => (Int64 -> Int64) -> m ()
+pushModBlock f = pushBlock ∘ f =<< currentIdent
+
+
+
+-- === Store / restore === --
+
+storeIndent :: MonadIndent m => m ()
+storeIndent = modify_ $ \s -> s & blocks %~ (s ^. indent :)
+
+restoreIndent :: MonadIndent m => m ()
+restoreIndent = do
+    s <- get
+    let (i:is) = s ^. blocks
+    put $ s & indent .~ i
+            & blocks .~ is
+
+
+
+
 
 --indentSegment p = many (checkIndent >> p)
 
---indentBlock p = spaces *> indented *> withPos (indentSegment p)
+--indentBlock p = spaces *> indented *> withBlock (indentSegment p)
 
 
 --block = string "a" <|> (foldl (++) "" <$> (char ':' *> spaces *> indentBlock block))
 
 
-getIndent = column <$> position
-
 mapIndent f err = do
   c <- getIndent
   s <- get
-  when (not $ c `f` view col s) $ fail err
+  when (not $ c `f` view indent s) $ fail err
 
 
 indented          = mapIndent (>)  "not indented"

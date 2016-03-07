@@ -51,18 +51,20 @@ Library
 
     Exposed-modules: 
         Luna.Parser.Builder,
+        Luna.Parser.Char,
         Luna.Parser.Class,
         Luna.Parser.Combinators,
-        Luna.Parser.Decl,
+        Luna.Parser.Function,
         Luna.Parser.Indent,
+        Luna.Parser.Layout,
         Luna.Parser.Lex,
         Luna.Parser.Literal,
+        Luna.Parser.Location,
         Luna.Parser.Module,
         Luna.Parser.Parser,
         Luna.Parser.Pattern,
         Luna.Parser.Pragma,
         Luna.Parser.State,
-        Luna.Parser.Struct,
         Luna.Parser.Term,
         Luna.Parser.Token,
         Luna.Parser.Token.Ident,
@@ -80,7 +82,7 @@ Library
                  , utf8-string
                  , charset
                  , parsers
-                 , trifecta
+                 , trifecta==1.5.2
                  , lens
                  , unordered-containers
                  , ansi-wl-pprint
@@ -89,6 +91,7 @@ Library
                  , exceptions
                  , edit-distance
                  , typelevel
+                 , transformers
 
 
 Executable luna-parser-test

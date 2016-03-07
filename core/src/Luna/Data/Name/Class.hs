@@ -5,7 +5,7 @@ module Luna.Data.Name.Class where
 import Prelude.Luna
 import Luna.Data.Name.FastString
 import Data.Data
-import Outputable
+import Outputable (Outputable)
 import Unique
 import Binary
 
@@ -32,12 +32,13 @@ instance Convertible Name   String where convert = convert ∘ unwrap' ; {-# INL
 
 
 
--------------------------
--- === SegmentName === --
--------------------------
+-----------------------
+-- === MultiName === --
+-----------------------
 
--- TODO[WD]: make the implementation faster - we can use the same technique as the one used to implement FastString here
-data MultiName = MultiName Name [Name] deriving (Show, Read, Eq, Ord)
+---- TODO[WD]: make the implementation faster - we can use the same technique as the one used to implement FastString here
+data MultiName = MultiName { __base_ :: Segment, __segs_ :: [Segment] } deriving (Show, Read, Eq, Ord)
+data Segment   = Segment   { __anum_ :: Int    , __name_ :: Name      } deriving (Show, Read, Eq, Ord)
 
 class HasMultiName    a where multiName    :: Lens' a MultiName
 class HasOptMultiName a where optMultiName :: Lens' a (Maybe MultiName)
@@ -50,6 +51,11 @@ instance HasMultiName MultiName where multiName = id ; {-# INLINE multiName #-}
 
 -- Strings
 instance IsString MultiName where fromString = flip MultiName mempty ∘ fromString ; {-# INLINE fromString #-}
+instance IsString Segment   where fromString = Segment 0 ∘ fromString             ; {-# INLINE fromString #-}
+
+instance ToString MultiName where toString (MultiName base segs) = concat $ toString <$> (base : segs) ; {-# INLINE toString #-}
+instance ToString Segment   where toString (Segment   anum name) = replicate anum '_' <> toString name ; {-# INLINE toString #-}
 
 -- Repr
 instance Repr s MultiName where repr = const "<multiname repr>" ; {-# INLINE repr #-}
+

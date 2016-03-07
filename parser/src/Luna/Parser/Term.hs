@@ -35,21 +35,20 @@ import qualified Luna.Parser.Pattern as Pat
 import           Luna.Parser.Literal (literal)
 --import qualified Luna.Syntax.Name    as Name
 import qualified Data.ByteString.UTF8         as UTF8
-import           Data.Char                    (isSpace)
+--import           Data.Char                    (isSpace)
 --import qualified Luna.System.Session as Session
 --import qualified Luna.System.Pragma.Store  as Pragma
 --import           Luna.System.Pragma.Store  (MonadPragmaStore)
 --import qualified Luna.System.Pragma        as Pragma (isEnabled)
 import qualified Luna.Parser.Pragma        as Pragma
 
-import qualified Luna.Parser.Decl          as Decl
 --import qualified Luna.Syntax.Label         as Label
 
 import Text.Trifecta.Rendering (Caret(Caret))
 import Text.Trifecta.Combinators (DeltaParsing, careting)
 import Text.Trifecta.Delta (column)
 --import Luna.Syntax.Enum (IDTag)
-import Text.Parser.Token (TokenParsing, natural, parens, reserve)
+import Text.Parser.Token (TokenParsing, token, natural, parens, reserve)
 import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
@@ -61,7 +60,22 @@ import Luna.Evaluation.Runtime (Model)
 import Luna.Data.Name
 import qualified Luna.Syntax.AST.Function.Argument as AST
 import           Luna.Syntax.Ident (named)
-import           Luna.Parser.Class        (Parser, TermParser)
+import           Luna.Parser.Class        (ASTParser)
+
+
+import Luna.Syntax.AST.Function.Class as Function
+import Luna.Syntax.AST.Function.Argument hiding (arg)
+--import           Luna.Syntax.AST.Function.Header (Segment(..), Header)
+--import qualified Luna.Syntax.AST.Function.Header as Header
+--import qualified Luna.Syntax.AST.Function.Signature as Signature
+import Luna.Parser.Token.Ident
+
+import qualified Luna.Syntax.Model.Text.Location as Location
+import Luna.Parser.Location (located)
+import qualified Luna.Parser.Layout as Layout
+
+
+import Luna.Parser.Char (CharParsing, isSpace, satisfy)
 
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 
@@ -215,35 +229,15 @@ postfix name fun       = Postfix (fun <$ reservedOp name)
 
 reservedOp name = reserve emptyOps name
 
-assignment :: TermParser p m a => p (m a)
-assignment = bldr_assignment <$> pattern <* Tok.assignment <*> expr
-
-expr  :: TermParser p m a => p (m a)
-expr   = buildExpressionParser opTable (app term)
-      <?> "expression"
-
-pattern :: TermParser p m a => p (m a)
-pattern = buildExpressionParser opTable (pat_app pat_term)
-      <?> "pattern"
-
-
-app :: TermParser p m a => p (m a) -> p (m a)
-app = appAs arg
-
-pat_app :: TermParser p m a => p (m a) -> p (m a)
-pat_app = appAs gen_arg
-
-appAs :: TermParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
-appAs argmod base = base <??> (bldr_call <$> many1 (argmod base))
 
 
 
-arg :: TermParser p m a => p (m a) -> p (m (AST.Arg a))
-arg p = (fmap ∘ named <$> Tok.varIdent <* Tok.assignment) <*?> gen_arg p
 
 
-gen_arg :: TermParser p m a => p (m a) -> p (m (AST.Arg a))
-gen_arg p = AST.arg <<$>> p
+
+
+
+
 
 --app base = p <??> ((\a s -> callBuilder2 s a) <$> many1 (appArg p)) where
 
@@ -252,28 +246,166 @@ gen_arg p = AST.arg <<$>> p
 --    Expr.App app -> Expr.App $ NamePat.appendLastSegmentArgs args app
 --    _             -> Expr.app src args
 
-pat_term = (bldr_alias <$> Tok.varIdent <* Tok.patAlias) <*?> term
-
-term  :: TermParser p m a => p (m a)
-term   = parens expr
-      <|> literal
-      <|> var
-      <|> cons
-      <?> "simple expression"
 
 
-opTable :: TermParser p m a
+notReserved :: MonadParserState m => m MultiName -> m MultiName
+notReserved p = do
+    rsv  <- view ParserState.adhocReserved <$> ParserState.get
+    name <- p
+    if name `elem` rsv then fail $ "'" <> toString name <> "' is a reserved word"
+                       else return name
+
+
+-----
+
+---------------------
+-- === General === --
+---------------------
+
+cons :: ASTParser p m a => p (m a)
+cons = located $ AST.cons <$> Tok.conIdent
+
+
+patVar = var
+
+var :: ASTParser p m a => p (m a)
+var   = located $ do
+    name <- fromString ∘ toString <$> try (notReserved Tok.varIdent)
+    --name <- Tok.varIdent
+    return $ AST.var name
+    --ast  <- lookupAST name
+
+    --case ast of
+    --    --Just possibleDescs -> fail $ show possibleDescs
+    --    Just possibleDescs -> mkFuncParsers possibleDescs (labeled . pure $ Expr.Var $ Expr.Variable (vname $ NamePath.single name) ())
+    --    Nothing            -> withLabeled $ \id -> do
+    --                              let np = NamePath.single name
+    --                              path <- ParserState.getModPath
+    --                              Namespace.regVarName (OriginInfo path id) np
+    --                              return $ Expr.Var $ Expr.Variable (vname np) ()
+
+
+
+
+-----------------------
+-- === Functions === --
+-----------------------
+
+-- === General === --
+
+--function :: ASTParser p m a => p (m a) -> p (m a) -> p (m a) -> p (m body) -> p (m (Function a body))
+--function pat val out body = bldr_function <$ _def_ <*> namedFuncSig pat val out <*> body <?> "function definition"
+
+function2 :: (Monad p, TokenParsing p) => p a -> p a -> p body -> p (Function a body)
+function2 pat val body = Function <$ _def_ <* Tok.varIdent <*> many (argDef2 pat val) <*> body <?> "function definition"
+
+
+-- === Signature === --
+
+--namedFuncSig :: ASTParser p m a => p (m a) -> p (m a) -> p (m a) -> p (m (Signature.Function a))
+--namedFuncSig pat val out = bldr_funcSig <$> Tok.varIdent <*> many (argDef pat val) <*> out
+
+--namedFuncSig2 pat val out = Signature.Function <$ Tok.varIdent <*> many (argDef2 pat val) <*> out
+
+--unnamedFuncSig :: Parser p => p a -> p a -> p a -> p (Signature.Function a)
+--unnamedFuncSig pat val out = Signature.Function <$> unnamedHeader pat val <*> out
+
+
+-- === Header === --
+
+--namedHeader :: ASTParser p m a => p (m (Header a))
+--namedHeader = bldr_namedHeader <$> headerSegment <*> many headerSubSegment <?> "function header"
+
+--unnamedHeader :: ASTParser p m a => p (m (Header a))
+--unnamedHeader = bldr_unnamedHeader <$> many argDef <?> "function header'"
+
+--headerSegment :: ASTParser p m a => p (m (Header.Segment a))
+--headerSegment = bldr_segment <$> name <*> many argDef where
+--      name = Tok.varIdent <?> "function's header segment"
+
+--headerSubSegment :: ASTParser p m a => p (m (Header.Segment a))
+--headerSubSegment = Tok.segmentConnector *> headerSegment
+
+
+-- === Arg === --
+
+arg :: ASTParser p m a => p (m a) -> p (m (AST.Arg a))
+arg p = AST.arg <<$>> p
+
+labArg :: ASTParser p m a => p (m a) -> p (m (AST.Arg a))
+labArg p = label <*?> arg p where
+    label = fmap ∘ named ∘ convert <$> Tok.varIdent <* Tok.assignment
+
+argDef :: ASTParser p m a => p (m a) -> p (m a) -> p (m (ArgDef a))
+argDef pat val = bldr <$> pat <*> maybe (Tok.assignment *> val) where
+    bldr ma mb = ArgDef <$> ma <*> sequence mb
+
+
+argDef2 pat val = ArgDef <$> pat <*> maybe (Tok.assignment *> val)
+
+
+-------------------------
+-- === Expressions === --
+-------------------------
+
+-- === General === --
+
+expr  :: ASTParser p m a => p (m a)
+expr   = buildExpressionParser opTable (labApp exprAtom)
+      <?> "expression"
+
+exprAtom :: ASTParser p m a => p (m a)
+exprAtom  = parens expr
+        <|> literal
+        <|> patVar
+        <|> cons
+        <?> "atomic expression"
+
+
+-- === Operators === --
+
+opTable :: ASTParser p m a
         => [[Operator p (m a)]]
 opTable = [ [binary "+" (operator "+") AssocLeft] ]
 
 
---unify :: TermBuilder Unify m a => Input a -> Input a -> m a
---unify2 :: (TermBuilder Unify m a, Monad m) => m (Input a) -> m (Input a) -> m a
-unify2 :: (TermBuilder Unify m a, Monad m, a ~ Input a) => m a -> m a -> m a
-unify2 ma mb = do
-    a <- ma
-    b <- mb
-    AST.unify a b
+-- === Assignment === --
+
+assignment :: ASTParser p m a => p (m a)
+assignment = located $ bldr <$> pattern <* Tok.assignment <*> expr where
+    bldr = liftM2 AST.match
+
+
+-- === App === --
+
+app :: ASTParser p m a => p (m a) -> p (m a)
+app = appAs arg
+
+labApp :: ASTParser p m a => p (m a) -> p (m a)
+labApp = appAs labArg
+
+appAs :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
+appAs argmod base = base <??> (bldr <$> many1 (argmod base)) where
+    bldr margs ma = liftM2 AST.app ma (sequence margs)
+
+
+
+----------------------
+-- === Patterns === --
+----------------------
+
+pattern :: ASTParser p m a => p (m a)
+pattern = buildExpressionParser opTable (app patAtom)
+      <?> "pattern"
+
+
+patAtom :: ASTParser p m a => p (m a)
+patAtom = located $ (bldr <$> patVar <* Tok.patAlias) <*?> exprAtom where
+    bldr = liftM2 (flip AST.unify)
+
+
+
+
 
 operator name ma mb = do
     a  <- ma
@@ -283,22 +415,69 @@ operator name ma mb = do
 
     return ap
 
-bldr_alias ident tm = do
-    t <- tm
-    v <- AST.var ident
-    AST.unify t v
 
 
-bldr_call margs ma = do
-    args <- sequence margs
-    a    <- ma
-    AST.app a args
 
 
-bldr_assignment ma mb = do
+
+liftM2 f ma mb = do
     a <- ma
     b <- mb
-    AST.match a b
+    f a b
+
+
+
+
+
+---------------------
+-- === Stage 1 === --
+---------------------
+
+data S1_Expr = S1_Func (Function String String)
+-- pattern matche
+             | S1_Text String
+
+exprText :: (TokenParsing p) => p (String)
+exprText = token $ many1 (satisfy $ \s -> not (isSpace s) && s /= ':')
+
+patText :: (TokenParsing p) => p (String)
+patText = exprText
+
+s1_function :: (DeltaParsing p, MonadIndent p) => p (Function String String)
+s1_function = function2 patText exprText (Layout.textBlock)
+
+
+s1_function' :: (Monad m, DeltaParsing p, MonadIndent p) => p (m (Function String String))
+s1_function' = fmap return $  s1_function
+
+--function :: ASTParser p m a => p (m a) -> p (m a) -> p (m a) -> p (m body) -> p (m (Function a body))
+
+--s1_assignment =
+
+--lambda :: Parser p => p a -> p a -> p a -> p body -> p (Function a body)
+--lambda pat val out body = Function.Def <$ _def_ <*> unnamedFuncSig pat val out <* Tok.indBlockBegin <*> body
+
+
+--stage1Body2 :: (DeltaParsing p, MonadIndent p) => p [String]
+--function :: ASTParser p m a => p (m a) -> p (m body) -> p (m (Function a body))
+
+
+--tst = function (pure $ return undefined) exprAtom
+--tst :: ASTParser p m a => p (m (Function a String))
+--tst = function patAtom exprAtom (pure $ AST.var "_out_") (return <$> Layout.textBlock)
+
+
+
+--multiName =
+
+
+--bldr_segment n as = Segment n <$> sequence as
+--bldr_namedHeader s ss = Header.Named <$> s <*> sequence ss
+--bldr_unnamedHeader ss = Header.Unnamed <$> sequence ss
+--bldr_funcSig name args out = Signature.Function <$> sequence args <*> out
+--bldr_function h b = Function.Def <$> h <*> b
+
+
 
         --    out   <- buildElem $ Acc cname csrc
         --cname <- nameConnection name out
@@ -407,32 +586,6 @@ bldr_assignment ma mb = do
 --              parseSegArgs (a:[]) = (:[]) <$> condParser argSimpleExpr a
 --              parseSegArgs (a:as) = (:) <$> condParser argCmplexExpr a <*> parseSegArgs as
 
-notReserved :: MonadParserState m => m Name -> m Name
-notReserved p = do
-    rsv  <- view ParserState.adhocReserved <$> ParserState.get
-    name <- p
-    if name `elem` rsv then fail $ convert $ "'" <> name <> "' is a reserved word"
-                       else return name
-
-
------
-
-cons = AST.cons <$> Tok.conIdent
-
-var   = do
-    name <- convert <$> try (notReserved Tok.varIdent)
-    --name <- Tok.varIdent
-    return $ AST.var name
-    --ast  <- lookupAST name
-
-    --case ast of
-    --    --Just possibleDescs -> fail $ show possibleDescs
-    --    Just possibleDescs -> mkFuncParsers possibleDescs (labeled . pure $ Expr.Var $ Expr.Variable (vname $ NamePath.single name) ())
-    --    Nothing            -> withLabeled $ \id -> do
-    --                              let np = NamePath.single name
-    --                              path <- ParserState.getModPath
-    --                              Namespace.regVarName (OriginInfo path id) np
-    --                              return $ Expr.Var $ Expr.Variable (vname np) ()
 
 
 

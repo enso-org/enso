@@ -11,7 +11,6 @@ import Luna.Syntax.AST.Function.Argument   as X
 ---------------------------------------------------------------------------------------------
 
 import Prelude.Luna
-import Luna.Syntax.AST.Function.Header
 
 
 data Signature a = Signature { _self  :: Maybe a

@@ -21,17 +21,18 @@ import qualified Control.Monad.State as State
 --import qualified Luna.Data.StructInfo        as StructInfo
 --import           Luna.Syntax.Name.Path       (QualPath)
 import Luna.Data.Name
+import qualified Control.Monad.Trans.State.Lazy as Lazy
 
 import           Text.Parser.Char          (CharParsing)
 import           Text.Parser.Combinators   (Parsing)
-import           Text.Parser.Token         (TokenParsing)
+import           Text.Parser.Token         (TokenParsing, nesting, someSpace, semi, highlight, token)
 import           Text.Trifecta.Combinators (DeltaParsing)
 
 data State = State { --_info          :: ASTInfo
                                 --_opFixity      :: OperatorMap
                               --, _sourceMap     :: SourceMap
                               --, _namespace     :: Namespace
-                               _adhocReserved :: [Name]
+                               _adhocReserved :: [MultiName]
                               --, _modPath       :: QualPath
                               } deriving (Show)
 
@@ -121,9 +122,30 @@ instance {-# OVERLAPPABLE #-} (MonadParserState m, MonadTrans t, Monad (t m)) =>
 
 deriving instance (MonadPlus m, Parsing      m) => Parsing      (ParserStateT m)
 deriving instance (MonadPlus m, CharParsing  m) => CharParsing  (ParserStateT m)
-deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (ParserStateT m)
 deriving instance DeltaParsing m                => DeltaParsing (ParserStateT m)
+--deriving instance (MonadPlus m, TokenParsing m) => TokenParsing (ParserStateT m)
 
+
+-- FIXME[WD]: original implementation of monad transformers for TokenParsing are broken (they do not lift `token` method!)
+instance (MonadPlus m, TokenParsing m) => TokenParsing (ParserStateT m) where
+    nesting (ParserStateT p) = ParserStateT $ nesting p
+    someSpace = ParserStateT someSpace
+    semi      = ParserStateT semi
+    highlight h (ParserStateT p) = ParserStateT $ highlight h p
+    token (ParserStateT (Lazy.StateT m)) = ParserStateT $ Lazy.StateT $ token . m
+
+
+--nesting (Lazy.StateT m) = Lazy.StateT $ nesting . m
+
+--instance (TokenParsing m, MonadPlus m) => TokenParsing (Lazy.StateT s m) where
+--  nesting (Lazy.StateT m) = Lazy.StateT $ nesting . m
+--  {-# INLINE nesting #-}
+--  someSpace = lift someSpace
+--  {-# INLINE someSpace #-}
+--  semi      = lift semi
+--  {-# INLINE semi #-}
+--  highlight h (Lazy.StateT m) = Lazy.StateT $ highlight h . m
+--  {-# INLINE highlight #-}
 
 
 

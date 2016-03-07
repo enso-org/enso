@@ -1,18 +1,24 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Luna.Parser.Decl where
+module Luna.Parser.Function where
 
 import Prelude.Luna hiding (cons, maybe, noneOf)
 
-import           Luna.Parser.Class        (Parser)
-import           Text.Parser.Combinators
-import qualified Luna.Parser.Token        as Tok
---import qualified Luna.Syntax.Decl         as Decl
-import qualified Luna.Parser.Indent       as Indent
-import           Luna.Parser.Combinators  (many1, maybe, applyAll)
-import qualified Luna.Parser.Type         as Type
-import Luna.Syntax.AST.Function
-import Luna.Parser.Combinators
+--import           Text.Parser.Combinators
+--import qualified Luna.Parser.Token        as Tok
+----import qualified Luna.Syntax.Decl         as Decl
+--import qualified Luna.Parser.Indent       as Indent
+--import           Luna.Parser.Combinators  (many1, maybe, applyAll)
+--import qualified Luna.Parser.Type         as Type
+--import Luna.Syntax.AST.Function.Definition as Function
+--import Luna.Syntax.AST.Function.Argument
+--import           Luna.Syntax.AST.Function.Header (Segment(..), Header)
+--import qualified Luna.Syntax.AST.Function.Header as Header
+--import Luna.Parser.Combinators
+--import qualified Luna.Syntax.AST.Function.Signature as Signature
+--import Luna.Parser.Token.Ident
+--import           Luna.Parser.Class        (ASTParser)
+
 --import qualified Luna.Syntax.Ident.Pattern as Pattern
 --import           Luna.Syntax.Ident.Pattern (Segment(..), Pattern(..))
 --import           Luna.Syntax.Foreign      (Foreign(Foreign))
@@ -31,6 +37,7 @@ import Luna.Parser.Combinators
 
 --import           Text.Parser.Char (char, alphaNum, spaces, noneOf)
 
+--import Luna.Parser.Expr as Expr
 
 ------- Imports -----
 
@@ -101,22 +108,20 @@ import Luna.Parser.Combinators
 
 --data ArgDef a = ArgDef { __pat_   :: a               , __mval_ :: Maybe a } deriving (Generic, Show, Read, Eq, Ord, Functor, Foldable, Traversable)
 
-            --argDef :: Parser p => p a -> p a -> p (ArgDef a)
-            --argDef pat val = ArgDef <$> pat <*> maybe (Tok.assignment *> val)
 
-            --segment :: Parser p => p a -> p a -> p (Segment a)
-            --segment pat val = Segment <$> Tok.varIdent <*> many (argDef pat val)
 
-            --namedPattern :: Parser p => p a -> p a -> p (Pattern a)
-            --namedPattern pat val = Pattern.Named <$> segment pat val <*> many (segment pat val)
+--lambda' = lambda term term (pure undefined) term
 
-            --unnamedPattern :: Parser p => p a -> p a -> p (Pattern a)
-            --unnamedPattern pat val = Pattern.Unnamed <$> many (argDef pat val)
+--data Def header body = Def { __header_ :: header
+--                           , __body_   :: body
+--                           } deriving (Show, Functor, Foldable, Traversable)
 
-            --namedSignature :: Parser p => p (Maybe a) -> p a -> p a -> p a -> p (Signature2 a)
-            --namedSignature self pat val out = Signature2 <$> self <*> namedPattern pat val <*> out
 
---function = Tok.
+--type Function a body = Def (Signature.Function a) body
+--type Method   a body = Def (Signature.Method   a) body
+
+
+
 
 --data Signature2 a = Signature2 { __self_ :: Maybe a
 --                               , __pat_  :: Pattern a
@@ -255,9 +260,9 @@ import Luna.Parser.Combinators
 
 --stage1DefArg = Tok.tokenBlock (many (noneOf " \t\r\n:"))
 
---stage1BodyInner = (many1 $ noneOf "\n\r")
 --stage1Body = (:) <$> stage1BodyInner <*> (try (spaces *> Indent.checkIndented *> stage1Body) <|> pure [[]])
 
+--stage1BodyInner = (many1 $ noneOf "\n\r")
 --stage1Body2 = ((:) <$> (try ((<>) <$> Tok.spaces <* Indent.checkIndented <*> stage1BodyInner)) <*> stage1Body2) <|> pure [[]]
 
 ----stage1Block = (++) <$> Tok.spaces <* Ident.checkIndented <*> Indent.withPos (indBlockBody p)

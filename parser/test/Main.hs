@@ -1,3 +1,4 @@
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 --{-# LANGUAGE PartialTypeSignatures     #-}
 
@@ -24,16 +25,37 @@ import qualified Luna.Parser.State      as Parser
 import           Text.Trifecta.Combinators (DeltaParsing)
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Luna.Parser.Term as Term
-import           Luna.Parser.Class        (Parser, TermParser, TermParserCore, TermBuilderCtx)
+import           Luna.Parser.Class        (ASTParser, ASTParserCore, ASTBuilderCtx)
+import qualified Luna.Syntax.Model.Text.Location as Location
+import Luna.Parser.Class (Parser)
+
+--import qualified Luna.Parser.Function as Func
+
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
-                             $ runNetworkBuilderT g m
+                           $ flip Location.evalT Nothing
+                           $ runNetworkBuilderT g m
 
 
 evalBuild = fmap snd ∘∘ runBuild
 
-main :: IO ()
-main = do
+
+
+
+input = "foo @ (Vector x y z) = v"
+
+myparser :: (ASTParserCore p m a, p ~ Parser) => p (m a, Parser.State)
+myparser = parseGen PLit.string Parser.defState
+
+myparser2 :: (ASTParserCore p m a, p ~ Parser) => p (m a, Parser.State)
+myparser2 = parseGen Term.assignment Parser.defState
+
+
+parsed :: ASTBuilderCtx m a => Either Doc (m a, Parser.State)
+parsed = parseString input myparser2
+
+main1 :: IO ()
+main1 = do
     print "Parser test!"
     case parsed of
         Left  d          -> print d
@@ -43,15 +65,39 @@ main = do
     return ()
 
 
-input = "foo @ (Vector x y z) = v"
-
-myparser :: TermParserCore p m a => p (m a, Parser.State)
-myparser = parseGen PLit.string Parser.defState
-
-myparser2 :: TermParserCore p m a => p (m a, Parser.State)
-myparser2 = parseGen Term.assignment Parser.defState
 
 
-parsed :: TermBuilderCtx m a => Either Doc (m a, Parser.State)
-parsed = parseString input myparser2
+input2 = [s|def if_then_else cond ok fail :
+    "foo"
+    "bar"
+i
+|]
 
+input3 = [s|Vector x y z = v
+|]
+
+
+--myparser3 :: ASTParserCore p m a => p (m a, Parser.State)
+myparser3 = parseGen Term.s1_function' Parser.defState
+myparser4 = parseGen Term.assignment   Parser.defState
+
+--parsed2 :: ASTBuilderCtx m a => Either Doc (m a, Parser.State)
+--parsed2 :: _ => _
+parsed2 = parseString input3 myparser4
+
+
+mainLam :: IO ()
+mainLam = do
+    print "Parser lam test!"
+    case parsed2 of
+        Left  d          -> print d
+        Right (bldr, ps) -> do
+            (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
+            renderAndOpen [("g1", "g1", g)]
+            print a
+            print "ok"
+    return ()
+
+
+main :: IO ()
+main = mainLam

@@ -16,8 +16,8 @@ import qualified Text.Parser.Token.Highlight as Highlight
 basic :: TokenParsing m => IdentifierStyle m
 basic = emptyIdents
       & styleName              .~ "identifier"
-      & styleStart             .~ (letter   <|> lex '_')
-      & styleLetter            .~ (alphaNum <|> oneOf "_'")
+      & styleStart             .~ letter
+      & styleLetter            .~ (alphaNum <|> char '\'')
       & styleReserved          .~ HashSet.fromList keywords
       & styleHighlight         .~ Highlight.Identifier
       & styleReservedHighlight .~ Highlight.ReservedIdentifier

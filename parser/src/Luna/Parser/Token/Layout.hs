@@ -8,9 +8,9 @@ import qualified Luna.Parser.Indent as Indent
 
 import Luna.Parser.Combinators
 import Luna.Parser.Lex
-import Text.Parser.Char        as X hiding (spaces)
+import Text.Parser.Char        (char, string, oneOf, noneOf, anyChar, CharParsing)
 import Data.List               (nub)
-
+import Luna.Parser.Char        as X
 
 ----------------------
 -- === Comments === --
@@ -45,12 +45,12 @@ mlineComEnd   = string mlineComEndLetter
 -- === Layout === --
 --------------------
 
-spaces     = concat <$> many tokBase <?> ""
+--spaces     = concat <$> many tokBase <?> ""
 
-tokBase = many1 space <|> try mlineCom <|> lineCom <?> ""
+--tokBase = many1 space <|> try mlineCom <|> lineCom <?> ""
 
 
-block p = p <* (try (spaces *> Indent.checkIndented) <|> pure ())
+--block p = p <* (try (spaces *> Indent.checkIndented) <|> pure ())
 
 
 

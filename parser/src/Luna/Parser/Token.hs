@@ -10,12 +10,13 @@ import Data.HashSet (HashSet)
 import Data.List (foldl', nub)
 import Data.Monoid
 import Data.String
-import Data.Text hiding (empty,zip,foldl,foldl', concat)
+import Data.Text hiding (empty,zip,foldl,foldl', concat, length)
 import qualified Text.ParserCombinators.ReadP as ReadP
 import Text.Parser.Char hiding (spaces)
 import Text.Parser.Combinators
 import Text.Parser.Token.Highlight hiding (Comment)
 import Text.Parser.Token hiding (symbol, symbolic, ident)
+import Text.Parser.Token (symbol, ident)
 import Prelude.Luna as Prelude hiding (op, noneOf, lex, use)
 
 import qualified Luna.Parser.Indent as Indent
@@ -34,7 +35,8 @@ import qualified Luna.Parser.Token.Ident as Ident
 import qualified Luna.Parser.Token.Style as Style
 import Luna.Parser.Token.Operator (operator)
 import Text.Parser.Token           (reserve)
-
+import Luna.Parser.Class (Parser)
+import Luna.Data.Name (Segment(..), MultiName(..))
 
 isSpaceLine c = isSpace c && c /= '\n' && c /= '\r'
 
@@ -66,27 +68,42 @@ betweenNative p = between nativeSym nativeSym p
 --spaces2 = (try lineCom <|> pure id) <* (try (spaces <* Indent.checkIndented) <|> pure ())
 
 --ident :: (TokenParsing m, Monad m, IsString s) => IdentifierStyle m -> m s
-ident s = fmap fromString $ Layout.block $ try $ do
-  name <- highlight (_styleHighlight s)
-          ((:) <$> _styleStart s <*> many (_styleLetter s) <?> _styleName s)
-  when (HashSet.member name (_styleReserved s)) $ unexpected $ "reserved " ++ _styleName s ++ " " ++ show name
-  return name
+--ident s = fmap fromString $ token $ try $ do
+--  name <- highlight (_styleHighlight s)
+--          ((:) <$> _styleStart s <*> many (_styleLetter s) <?> _styleName s)
+--  when (HashSet.member name (_styleReserved s)) $ unexpected $ "reserved " ++ _styleName s ++ " " ++ show name
+--  return name
 
 
 
 
+-- | Parse a non-reserved identifier or symbol
+multiName :: (TokenParsing m, Monad m) => IdentifierStyle m -> m MultiName
+multiName s = token $ do
+    let sname = s ^. styleName
+    mname <- highlight (_styleHighlight s)
+             (MultiName <$> segment s <*> many (segment s) <?> sname)
+    let name = toString mname
+    when (HashSet.member name (s ^. styleReserved)) $ unexpected $ "reserved " ++ sname ++ " " ++ show name
+    return mname
+{-# INLINE multiName #-}
 
 
-
-
+segment s = Segment <$> (length <$> many (char '_'))
+                    <*> (fromString ∘∘ (:) <$> s ^. styleStart <*> many (s ^. styleLetter))
+                    <?> (s ^. styleName <> " segment")
 
 
 --identifier :: (TokenParsing m, Monad m) => m String
 --identifier = ident Ident.style
 
-varOp           = varIdent <|> operator
+--varOp           = varIdent <|> operator
 --varIdent :: (TokenParsing m, Monad m, Indent.MonadIndentState Indent.State m) => m String
-varIdent = ident Style.var
+--varIdent = ident Style.var
+
+
+
+varIdent = multiName Style.var
 
 pragmaIdent = ident Style.pragma
 
@@ -104,34 +121,43 @@ reservedOp    = reserve Style.operator
 identLetter  = alphaNum <|> lex '_'
 
 
-nameWildcard  = symbol '_'   <?> "parameter wildcard"
-wildcard      = symbol '_'   <?> "wildcard"
+-- | Untokenized symbols
+symbol' :: TokenParsing m => String -> m String
+symbol' name = highlight Symbol (string name)
+
+
+
+nameWildcard  = symbol "_"   <?> "parameter wildcard"
+wildcard      = symbol "_"   <?> "wildcard"
 recWildcard   = symbol "..." <?> "record wildcard"
-indBlockBegin = symbol ':'
-separator     = symbol ','
-parenL        = symbol '('
-parenR        = symbol ')'
-bracketL      = symbol '['
-bracketR      = symbol ']'
-braceL        = symbol '{'
-braceR        = symbol '}'
-pipe          = symbol '|'
-accessor      = symbol '.' <?> "accessor (.)"
+
+indBlockBegin :: TokenParsing m => m String
+indBlockBegin = symbol ":"
+separator     = symbol ","
+parenL        = symbol "("
+parenR        = symbol ")"
+bracketL      = symbol "["
+bracketR      = symbol "]"
+braceL        = symbol "{"
+braceR        = symbol "}"
+pipe          = symbol "|"
+accessor      = symbol "." <?> "accessor (.)"
 arrow         = symbol "->"
 typeDecl      = symbol "::"
 meta          = symbol "::"
-metaRoot      = symbol '*'
-importAll     = symbol '*'
-assignment    = symbol '='
+metaRoot      = symbol "*"
+importAll     = symbol "*"
+assignment    = symbol "="
 nativeSym     = symbol "```"
-nameStart     = symbol '`'
-nameEnd       = symbol '`'
+nameStart     = symbol "`"
+nameEnd       = symbol "`"
 range         = symbol ".."
-curry         = symbol '@'
-patAlias      = symbol '@'
-terminator    = symbol ';' <?> "terminator"
+curry         = symbol "@"
+patAlias      = symbol "@"
+terminator    = symbol ";" <?> "terminator"
+terminator'   = symbol' ";" <?> "terminator"
 
-pragma        = symbol '%'
+pragma        = symbol "%"
 pragmaEnable  = symbol "+"
 pragmaDisable = symbol "-"
 pragmaPush    = symbol "push"
@@ -139,13 +165,15 @@ pragmaPop     = symbol "pop"
 
 
 
+segmentConnector = char '-'
 
+indBlockBegin' = symbol' ":"
 
 ----------------------------------------------------------------------
 -- Numbers
 ----------------------------------------------------------------------
 
---numberL = try (sign <**> Layout.block numBase) <?> "number"
+--numberL = try (sign <**> token numBase) <?> "number"
 
 --numBase =   (numPrefix ['o', 'O'] *> (Number.octodecimal <$> numRepr octDigit <*> numExp 'e'))
 --        <|> (numPrefix ['x', 'X'] *> (Number.hexadecimal <$> numRepr hexDigit <*> numExp 'p'))
@@ -173,7 +201,7 @@ pragmaPop     = symbol "pop"
 ----------------------------------------------------------------------
 
 stringLiteral :: (TokenParsing m, IsString s, Trifecta.DeltaParsing m, MonadIndent m) => m s
-stringLiteral = fromString <$> Layout.block (highlight StringLiteral lit) where
+stringLiteral = fromString <$> token (highlight StringLiteral lit) where
   lit = Prelude.foldr (Prelude.maybe id (:)) ""
     <$> strParser
     <?> "string"
@@ -198,7 +226,7 @@ stringLiteral = fromString <$> Layout.block (highlight StringLiteral lit) where
 
 
 --charLiteral :: TokenParsing m => m Char
-charLiteral = Layout.block (highlight CharLiteral lit) where
+charLiteral = token (highlight CharLiteral lit) where
   lit = between (lex '\'') (lex '\'' <?> "end of character") characterChar
     <?> "character"
 {-# INLINE charLiteral #-}
@@ -234,18 +262,19 @@ escapeCode = (charEsc <|> charAscii <|> charControl) <?> "escape code"
 -- Chars
 ----------------------------------------------------------------------
 
---symbol   name = Layout.block (highlight Symbol (string name))
---symbolic name = Layout.block (highlight Symbol (lex name))
+--symbol   name = token (highlight Symbol (string name))
+--symbolic name = token (highlight Symbol (lex name))
 
-symbol name = Layout.block (highlight Symbol (lex name))
+--symbol name = token (highlight Symbol (lex name))
+
 ----------------------------------------------------------------------
 -- Combinators
 ----------------------------------------------------------------------
 
-parens = nesting . between (symbol '(') (symbol ')')
+parens = nesting . between (symbol "(") (symbol ")")
 
-brackets = nesting . between (symbol '[') (symbol ']')
+brackets = nesting . between (symbol "[") (symbol "]")
 
-braces = nesting . between (symbol '{') (symbol '}')
+braces = nesting . between (symbol "{") (symbol "}")
 
 explicitName = between nameStart nameEnd

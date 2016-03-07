@@ -7,15 +7,15 @@ import           Luna.Data.Name
 
 
 
-------------------------
--- === Constraint === --
-------------------------
+--------------------------
+---- === Constraint === --
+--------------------------
 
-data Constraint a = Constraint a [Order.Strict a] deriving (Show, Functor, Foldable, Traversable)
+--data Constraint a = Constraint a [Order.Strict a] deriving (Show, Functor, Foldable, Traversable)
 
 
---------------------
--- === Fixity === --
---------------------
+----------------------
+---- === Fixity === --
+----------------------
 
-newtype Fixity = Fixity [Constraint MultiName]
+--newtype Fixity = Fixity [Constraint MultiName]

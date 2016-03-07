@@ -34,22 +34,22 @@ import qualified Luna.Parser.Indent as Indent
 
 import qualified Data.List as List
 
-import qualified Luna.Parser.Type    as Type
-import qualified Luna.Parser.Pattern as Pattern
-import qualified Luna.Parser.Literal as Literal
-import qualified Luna.Parser.Struct  as Struct
-import qualified Luna.Parser.Term    as Term
-import qualified Luna.Parser.Decl    as Decl
-import qualified Luna.Parser.Module  as Module
+import qualified Luna.Parser.Type     as Type
+import qualified Luna.Parser.Pattern  as Pattern
+import qualified Luna.Parser.Literal  as Literal
+import qualified Luna.Parser.Layout   as Layout
+--import qualified Luna.Parser.Expr     as Expr
+import qualified Luna.Parser.Function as Function
+import qualified Luna.Parser.Module   as Module
 
 import qualified Luna.Parser.Token  as Tok
 import qualified Luna.Parser.Token.Layout  as Tok
 
 
---import Luna.Parser.Builder (labeled, label, nextID, qualifiedPath, withLabeled)
---import qualified Luna.Parser.Pragma        as Pragma
---import qualified Luna.System.Pragma.Store  as Pragma
+import Text.Trifecta.Combinators (DeltaParsing(..))
+import Text.Parser.Token         (TokenParsing)
 
+import Luna.Parser.Class (Parser, runParser)
 
 
 -------------------------------------------------------------
@@ -96,7 +96,7 @@ defState  = emptyState
 ---- Section parsing
 -------------------------------------------------------------
 ---- Usage example: parseExpr (fileFeed "test.txt")
-parseGen :: Monad p => IndentT (ParserStateT p) a -> ParserState.State -> p (a, ParserState.State)
+parseGen :: (Monad p, p ~ Parser) => IndentT (ParserStateT p) a -> ParserState.State -> p (a, ParserState.State)
 parseGen p st = run (bundleResult p) st -- TU BYL `(Module.unit p)` zamiast `p`
 --parseGen2 p st = run (bundleResult p) st
 
@@ -129,9 +129,64 @@ parseFromString p delta input = parseFromByteString p delta (UTF8.fromString inp
 --  s <- liftIO $ ByteStr.readFile path
 --  return $ parseFromByteString p delta s
 
+--newtype MyParser a = MyParser { fromMyParser :: Trifecta.Parser a } deriving (MonadPlus, DeltaParsing, TokenParsing, Tok.CharParsing, Parsing, Alternative, Applicative, Functor, Monad)
+--newtype MyParser2 m a = MyParser2 { fromMyParser :: Trifecta.Parser (m a) }
+
+--instance MonadTrans       MyParser2
+--instance Functor         (MyParser2 m)
+--instance Applicative     (MyParser2 m)
+--instance Alternative     (MyParser2 m)
+--instance Monad m => Monad           (MyParser2 m) where
+--    return = MyParser2 ∘ return ∘ return
+--    (MyParser2 tma) >>= f = do
+--        ma <- tma
+--        do
+--            a <- ma
+--            let tma' = fromMyParser $ f a
+
+
+--instance Monad m => MonadPlus       (MyParser2 m)
+--instance TokenParsing    (MyParser2 m)
+--instance Tok.CharParsing (MyParser2 m) where
+--    satisfy = undefined
+--    char = undefined
+--    notChar = undefined
+--    anyChar = undefined
+--    string = undefined
+--    text = undefined
+
+--instance Parsing         (MyParser2 m) where
+--    try = undefined
+--    (<?>) = undefined
+--    skipMany = undefined
+--    skipSome = undefined
+--    unexpected = undefined
+--    eof = undefined
+--    notFollowedBy = undefined
+
+--instance Monad m => DeltaParsing (MyParser2 m) where
+--    line       = undefined
+--    position   = undefined
+--    rend       = undefined
+--    restOfLine = undefined
+--    slicedWith f (fromMyParser -> tma) = MyParser2 $ slicedWith f' tma where
+--        f' ma bs = do
+--            a <- ma
+--            return $ f a bs
+
+--slicedWith :: (a -> ByteString -> r) -> m a -> m r
+
+--foo :: _ => MyParser a -> _
+--foo :: _ => _
+--foo = Trifecta.parseByteString
+
 ----parseFile       path  p = handleResult <$> parseFromFile       p (parserDelta parserName) path
-parseString :: String -> Trifecta.Parser a -> Either Leijen.Doc a
-parseString     input p = handleResult  $  parseFromString     p (parserDelta parserName) input
+parseString :: String -> Parser a -> Either Leijen.Doc a
+parseString     input p = handleResult  $  parseFromString     (runParser p) (parserDelta parserName) input
+
+
+--parseString2 :: String -> MyParser a -> Either Leijen.Doc a
+--parseString2 input p = handleResult  $  parseFromString (fromMyParser p) (parserDelta parserName) input
 ----parseByteString input p = handleResult  $  parseFromByteString p (parserDelta parserName) input
 
 

@@ -131,8 +131,7 @@ Library
         Luna.Syntax.AST.Core,
         Luna.Syntax.AST.Function,
         Luna.Syntax.AST.Function.Argument,
-        Luna.Syntax.AST.Function.Definition,
-        Luna.Syntax.AST.Function.Header,
+        Luna.Syntax.AST.Function.Class,
         Luna.Syntax.AST.Function.Signature,
         Luna.Syntax.AST.Module,
         Luna.Syntax.AST.Term,
@@ -161,6 +160,7 @@ Library
         Luna.Syntax.Model.Network.Graph,
         Luna.Syntax.Model.Network.Term,
         Luna.Syntax.Model.Text.Fixity,
+        Luna.Syntax.Model.Text.Location,
         Luna.Syntax.Repr.Styles,
         Prelude.Luna,
         System.Platform

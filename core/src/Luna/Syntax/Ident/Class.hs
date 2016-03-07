@@ -51,3 +51,7 @@ instance      HasIdent  (Ident t) where ident = id ; {-# INLINE ident #-}
 instance IsString     (Ident t) where fromString = wrap' ∘ fromString ; {-# INLINE fromString #-}
 instance HasMultiName (Ident t) where multiName  = wrapped'           ; {-# INLINE multiName  #-}
 instance Repr s       (Ident t) where repr       = repr ∘ unwrap'     ; {-# INLINE repr       #-}
+
+-- Conversions
+instance Convertible MultiName (Ident t) where convert = wrap'   ; {-# INLINE convert #-}
+instance Convertible (Ident t) MultiName where convert = unwrap' ; {-# INLINE convert #-}

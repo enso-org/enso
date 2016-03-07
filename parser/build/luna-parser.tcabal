@@ -53,7 +53,7 @@ Library
                  , utf8-string
                  , charset
                  , parsers
-                 , trifecta
+                 , trifecta==1.5.2
                  , lens
                  , unordered-containers
                  , ansi-wl-pprint
@@ -62,6 +62,7 @@ Library
                  , exceptions
                  , edit-distance
                  , typelevel
+                 , transformers
 
 
 Executable luna-parser-test
