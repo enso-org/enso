@@ -226,7 +226,7 @@ getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m
 getTypeNameForType tpRef = do
     tp    <- read tpRef
     caseTest (uncover tp) $ do
-        of' $ \(Cons (Lit.String s)) -> return s
+        of' $ \(Cons (Lit.String s) args) -> return s
         of' $ \ANY                   -> error "Ambiguous node type"
 
 
@@ -277,6 +277,7 @@ evaluateNode ref = do
             evaluateNode redirRef
             copyValue redirRef ref
         Nothing -> do
+            -- use caches
             caseTest (uncover node) $ do
                 of' $ \(Unify l r)  -> return ()
                 of' $ \(Acc n t)    -> return ()

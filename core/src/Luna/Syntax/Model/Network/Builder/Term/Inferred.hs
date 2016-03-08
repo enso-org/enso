@@ -53,8 +53,8 @@ doubleAs t = inferM t ∘ Term.double
 
 -- === Val === --
 
-consAs :: TermBuilderAs t Cons m a => t -> NameInput a -> m a
-consAs t = inferM t ∘ Term.cons
+consAs :: TermBuilderAs t Cons m a => t -> NameInput a -> [Arg $ Input a] -> m a
+consAs t = inferM t ∘∘ Term.cons
 
 lamAs :: TermBuilderAs t Lam m a => t -> [Arg $ Input a] -> Input a -> m a
 lamAs t = inferM t ∘∘ Term.lam
@@ -108,7 +108,7 @@ double = doubleAs ELEMENT
 
 -- === Val === --
 
-cons :: TermBuilder Cons m a => NameInput a -> m a
+cons :: TermBuilder Cons m a => NameInput a -> [Arg $ Input a] -> m a
 cons   = consAs  ELEMENT
 
 

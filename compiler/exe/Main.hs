@@ -275,8 +275,8 @@ input_g1_resolution_mock :: ( term ~ Draft Static
                             , Castable e edge
                             ) => [nr] -> m [nr]
 input_g1_resolution_mock [f,g] = do
-    c_int   <- cons' "Int"
-    c_str   <- cons' "String"
+    c_int   <- cons' "Int" []
+    c_str   <- cons' "String" []
     ft_mock <- lam' [arg c_int, arg c_int] c_int
     gt_mock <- lam' [arg c_str]            c_str
     f'      <- read f

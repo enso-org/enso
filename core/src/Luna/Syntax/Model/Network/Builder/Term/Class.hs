@@ -109,17 +109,20 @@ double = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Li
 
 -- === Val === --
 
-type instance BuildArgs Cons n = OneTuple (NameInput n)
+type instance BuildArgs Cons n = (NameInput n, [Arg (Input n)])
 type instance BuildArgs Lam  n = ([Arg (Input n)], Input n)
 
 instance ( name ~ NameInput a
+         , inp ~ Input a
          , MonadFix m
+         , Connectible     inp  a m
          , ConnectibleName name a m
-         , ElemBuilder (Cons (NameConnection name a)) m a
+         , ElemBuilder (Cons (NameConnection name a) (Ref Edge $ Connection inp a)) m a
          ) => TermBuilder Cons m a where
-    buildTerm p (OneTuple name) = mdo
-        out   <- buildElem $ Cons cname
+    buildTerm p (name, args) = mdo
+        out   <- buildElem $ Cons cname cargs
         cname <- nameConnection name out
+        cargs <- (mapM ∘ mapM) (flip connection out) args
         return out
 
 instance ( inp ~ Input a
@@ -127,14 +130,14 @@ instance ( inp ~ Input a
          , Connectible inp a m
          , ElemBuilder (Lam $ Ref Edge $ Connection inp a) m a
          ) => TermBuilder Lam m a where
-    buildTerm p (args,res) = mdo
+    buildTerm p (args, res) = mdo
         out   <- buildElem $ Lam cargs cres
         cargs <- (mapM ∘ mapM) (flip connection out) args
         cres  <- connection res out
         return out
 
 
-cons :: TermBuilder Cons m a => NameInput a -> m a
+cons :: TermBuilder Cons m a => NameInput a -> [Arg $ Input a] -> m a
 cons = curryN $ buildTerm (Proxy :: Proxy Cons)
 
 lam :: TermBuilder Lam m a => [Arg $ Input a] -> Input a -> m a
@@ -166,7 +169,7 @@ instance ( inp ~ Input a
          , Connectible inp a m
          , ElemBuilder (App $ Ref Edge $ Connection inp a) m a
          ) => TermBuilder App m a where
-    buildTerm p (src,args) = mdo
+    buildTerm p (src, args) = mdo
         out   <- buildElem $ App csrc cargs
         csrc  <- connection src out
         cargs <- (mapM ∘ mapM) (flip connection out) args

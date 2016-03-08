@@ -81,8 +81,8 @@ getTypeName ref = do
     tpRef <- follow source $ node # Type
     tp    <- read tpRef
     caseTest (uncover tp) $ do
-        of' $ \(Cons (Lit.String s)) -> return s
-        of' $ \ANY                   -> throwError AmbiguousNodeType
+        of' $ \(Cons (Lit.String s) args) -> return s  -- TODO: handle args
+        of' $ \ANY                        -> throwError AmbiguousNodeType
 
 getFunctionName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getFunctionName ref = do
