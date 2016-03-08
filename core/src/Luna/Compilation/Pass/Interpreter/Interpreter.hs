@@ -181,13 +181,16 @@ unpackArguments :: InterpreterCtx(m, ls, term) => [Arg (Ref Edge (Link (ls :<: t
 unpackArguments args = mapM (follow source . Arg.__val_) args
 
 
-argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m Any
+-- TODO: handle exception
+argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe Any)
 argumentValue ref = do
     node <- read ref
-    return $ fromJust $ (node # InterpreterData) ^. Layer.value
+    return $ (node # InterpreterData) ^. Layer.value
 
-argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m [Any]
-argumentsValues refs = mapM argumentValue refs
+argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe [Any])
+argumentsValues refs = do
+    mayValuesList <- mapM argumentValue refs
+    return $ sequence mayValuesList
 
 collectNodesToEval :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 collectNodesToEval ref = do
@@ -246,7 +249,7 @@ getNativeType ref = do
             return funSig
         of' $ \ANY -> error "Incorrect native type"
 
-evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m Any
+evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Maybe Any)
 evaluateNative ref args = do
     -- putStrLn $ "Evaluating native"
     node <- read ref
@@ -257,14 +260,17 @@ evaluateNative ref args = do
         of' $ \ANY -> error "Error: native cannot be evaluated"
 
     putStrLn $ name <> " :: " <> tpNative
-    values <- argumentsValues args
-    res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
-        HS.setImports Session.defaultImports
-        fun <- Session.findSymbol name tpNative
-        let res = foldl Session.appArg fun $ Session.toAny <$> values
-        -- let res = Session.toAny 0
-        return res
-    return res
+    valuesMay <- argumentsValues args
+    case valuesMay of
+        Nothing -> return Nothing
+        Just values -> do
+            res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
+                HS.setImports Session.defaultImports
+                fun <- Session.findSymbol name tpNative
+                let res = foldl Session.appArg fun $ Session.toAny <$> values
+                -- let res = Session.toAny 0
+                return res
+            return $ Just res
 
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
@@ -277,7 +283,7 @@ evaluateNode ref = do
             evaluateNode redirRef
             copyValue redirRef ref
         Nothing -> do
-            -- use caches
+            -- TODO: use caches
             caseTest (uncover node) $ do
                 of' $ \(Unify l r)  -> return ()
                 of' $ \(Acc n t)    -> return ()
@@ -290,7 +296,7 @@ evaluateNode ref = do
                     nativeVal    <- caseTest (uncover funNode) $ do
                         of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
                         of' $ \ANY                      -> error "evaluating non native function"
-                    setValue (Just nativeVal) ref
+                    setValue nativeVal ref
                     return ()
                 of' $ \(Lit.String str)                 -> do
                     setValue (Just $ Session.toAny str) ref
