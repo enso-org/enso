@@ -295,7 +295,7 @@ evaluateNode ref = do
                     funNode      <- read funRef
                     nativeVal    <- caseTest (uncover funNode) $ do
                         of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                        of' $ \ANY                      -> error "evaluating non native function"
+                        of' $ \ANY                      -> return Nothing  -- error "evaluating non native function"
                     setValue nativeVal ref
                     return ()
                 of' $ \(Lit.String str)                 -> do
