@@ -225,12 +225,22 @@ getTypeName ref = do
     tpRef <- follow source $ node # Type
     getTypeNameForType tpRef
 
+getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
+getListType args = do
+    return $ Just "[Int]"
+
 getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
 getTypeNameForType tpRef = do
     tp    <- read tpRef
-    return $ caseTest (uncover tp) $ do
-        of' $ \(Cons (Lit.String s) args) -> Just s
-        of' $ \ANY                        -> Nothing -- error "Ambiguous node type"
+    caseTest (uncover tp) $ do
+        of' $ \(Cons (Lit.String s) args) -> do
+            if s == "List"
+                then do
+                    -- sigElems     <- mapM (follow source) (rawArgs <> [out])
+                    -- getListType $ unlayer <$> args
+                    return $ Just "List"
+                else return $ Just s
+        of' $ \ANY                        -> return Nothing -- error "Ambiguous node type"
 
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
@@ -292,26 +302,28 @@ evaluateNode ref = do
             copyValue redirRef ref
         Nothing -> do
             -- TODO: use caches
-            caseTest (uncover node) $ do
-                of' $ \(Unify l r)  -> return ()
-                of' $ \(Acc n t)    -> return ()
-                of' $ \(Var n)      -> return ()
-                of' $ \(App f args) -> do
-                    funRef       <- follow source f
-                    unpackedArgs <- unpackArguments args
-                    mapM evaluateNode unpackedArgs
-                    funNode      <- read funRef
-                    nativeVal    <- caseTest (uncover funNode) $ do
-                        of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                        of' $ \ANY                      -> return Nothing  -- error "evaluating non native function"
-                    setValue nativeVal ref
-                    return ()
-                of' $ \(Lit.String str)                 -> do
-                    setValue (Just $ Session.toAny str) ref
-                of' $ \number@(Lit.Number radix system) -> do
-                    setValue (Just $ numberToAny number) ref
-                of' $ \Blank -> return ()
-                of' $ \ANY   -> return ()
+            if isDirty node
+                then caseTest (uncover node) $ do
+                    of' $ \(Unify l r)  -> return ()
+                    of' $ \(Acc n t)    -> return ()
+                    of' $ \(Var n)      -> return ()
+                    of' $ \(App f args) -> do
+                        funRef       <- follow source f
+                        unpackedArgs <- unpackArguments args
+                        mapM evaluateNode unpackedArgs
+                        funNode      <- read funRef
+                        nativeVal    <- caseTest (uncover funNode) $ do
+                            of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
+                            of' $ \ANY                      -> return Nothing  -- error "evaluating non native function"
+                        setValue nativeVal ref
+                        return ()
+                    of' $ \(Lit.String str)                 -> do
+                        setValue (Just $ Session.toAny str) ref
+                    of' $ \number@(Lit.Number radix system) -> do
+                        setValue (Just $ numberToAny number) ref
+                    of' $ \Blank -> return ()
+                    of' $ \ANY   -> return ()
+                else return ()
     return ()
 
 evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()
