@@ -55,6 +55,10 @@ import           Data.Digits                                     (unDigits, digi
 import           Data.Ratio
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
+import           Data.String.Utils                               (replace)
+
+
+
 convertBase :: Integral a => a -> a -> a
 convertBase radix = unDigits radix . digits 10
 
@@ -253,6 +257,7 @@ getTypeNameForType tpRef = do
                     case argsTypeMay of
                         Nothing -> return $ Just s
                         Just argsType -> return . Just $ s <> " " <> argsType
+        of' $ \(Var (Lit.String name)) -> return . Just $ replace "#" "_" name
         of' $ \ANY                        -> return Nothing -- error "Ambiguous node type"
 
 
