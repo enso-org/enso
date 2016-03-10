@@ -366,7 +366,11 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
-            roots <- input_realistic_gui
+            roots <- do
+                i1 <- int 20
+                id <- var "id"
+                api <- app id [arg i1]
+                return [api]
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 

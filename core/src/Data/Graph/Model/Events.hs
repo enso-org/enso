@@ -7,6 +7,8 @@ import Data.Graph.Model.Ref
 
 data ELEMENT           = ELEMENT           deriving (Show)
 
+data NODE_REMOVE       = NODE_REMOVE       deriving (Show)
+
 data CONNECTION        = CONNECTION        deriving (Show)
 data CONNECTION_REMOVE = CONNECTION_REMOVE deriving (Show)
 

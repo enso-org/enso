@@ -7,7 +7,9 @@ module Luna.Syntax.Model.Network.Builder.Layer (
 
 import Prelude.Luna
 
-import Luna.Syntax.Model.Network.Builder.Layers.SuccTracking as X
+import Luna.Syntax.Model.Network.Builder.Layers.SuccTracking       as X
+import Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking as X
+import Luna.Syntax.Model.Network.Builder.Layers.TCData             as X
 
 import           Data.Graph.Builders
 import           Control.Monad.Event
@@ -44,27 +46,6 @@ instance (MonadSelfBuilder s m, (Link l) ~ Connection s (Ref Node l), Connectibl
 instance (Monad m, Destructor m (LayerData (Network ls) Type a)) => Destructor m (Layer (Network ls) Type a) where
     destruct (Layer ref) = destruct ref
 
--- === TCData layer === --
-
-data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link n
-                                     , _replacement :: Maybe $ Ptr Cluster
-                                     , _belongsTo   :: [Ptr Cluster]
-                                     , _keep        :: Bool
-                                     , _seen        :: Bool
-                                     } deriving (Show, Eq)
-makeLenses ''TCDataPayload
-
-type instance LayerData (Network ls) TCData t = TCDataPayload (Shelled t)
-instance Monad m => Creator m (Layer (Network ls) TCData a) where
-    create = return $ Layer $ TCDataPayload Nothing Nothing [] False False
-
-instance (Monad m, Unregister m (Ref Edge $ Link (Shelled a)))
-      => Destructor m (Layer (Network ls) TCData a) where
-    destruct (Layer (TCDataPayload red _ _ _ _)) = mapM_ unregister red
-
-instance Castable t t' => Castable (TCDataPayload t) (TCDataPayload t') where
-    cast (TCDataPayload a b c d e) = TCDataPayload (cast <$> a) b c d e
-
 -- === Lambda layer === --
 
 type instance LayerData l Lambda (SubGraph n) = Maybe $ Func.Signature (Ref Node n)
@@ -78,25 +59,4 @@ instance Monad m => Destructor m (Layer l Lambda (SubGraph n)) where
 ------------------------------------------
 
 instance CoverDestructor m (ls :<: a) => Destructor m (ls :<: a) where destruct a = () <$ destructCover a
-
----------------------------------------
--- === Cluster member management === --
----------------------------------------
-
--- === Definitions === ---
-
-data MemberRegister = MemberRegister deriving (Show, Eq)
-instance ( MonadBuilder g m
-         , Referred Node    n g
-         , Referred Cluster c g
-         , HasProp TCData n
-         , Prop TCData n ~ TCDataPayload n
-         ) => Handler t MemberRegister m (SubgraphNodeEvent n c) where
-    handler (SubgraphNodeEvent n c) = do
-        lift $ withRef n $ prop TCData . belongsTo %~ (cast c :)
-
--- === Utils === ---
-
-registerMembers :: t -> Listener t MemberRegister m a -> m a
-registerMembers _ = runListener
 

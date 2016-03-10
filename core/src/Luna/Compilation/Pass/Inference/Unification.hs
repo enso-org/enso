@@ -106,6 +106,7 @@ resolveUnify uni = do
             l  <- follow source lc
             r  <- follow source rc
 
+            resolveReflexivity uni l r
             symmetrical (resolveStar uni) l r
             symmetrical (resolveVar  uni) l r
             resolveCons uni l r
@@ -114,6 +115,13 @@ resolveUnify uni = do
         of' $ \ANY -> impossible
 
     where symmetrical f a b = f a b *> f b a
+
+          resolveReflexivity uni a b = do
+              if a == b
+                  then do
+                      replaceNode uni a
+                      resolve_
+                  else return ()
 
           resolveCons uni a b = do
               uni' <- read uni

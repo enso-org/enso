@@ -43,9 +43,21 @@ members :: ( MonadBuilder t m
            ) => Ref Cluster c -> m [Ref Node n]
 members cluster = fmap Ref <$> SubGraph.nodes . uncover <$> read cluster
 
-class Monad m => Clusterable n c m where
+class Clusterable n c m where
     include :: Ref Node n -> Ref Cluster c -> m ()
     exclude :: Ref Node n -> Ref Cluster c -> m ()
+
+{-instance Clusterable I c m where-}
+    {-include = impossible-}
+    {-exclude = impossible-}
+
+{-instance Clusterable n I m where-}
+    {-include = impossible-}
+    {-exclude = impossible-}
+
+{-instance Clusterable n c IM where-}
+    {-include = impossible-}
+    {-exclude = impossible-}
 
 instance ( MonadBuilder t m
          , Referred Cluster c t

@@ -301,9 +301,10 @@ class NetworkBuilderT net m n | m -> n, m -> net where runNetworkBuilderT :: net
 
 instance {-# OVERLAPPABLE #-} NetworkBuilderT I IM IM where runNetworkBuilderT = impossible
 instance {-# OVERLAPPABLE #-}
-    ( m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
+    ( m9 ~ Listener NODE_REMOVE       MemberRemove   m8
+    , m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
     , m7 ~ Listener SUBGRAPH_INCLUDE  MemberRegister m6
-    , m6 ~ Listener CONNECTION        SuccRegister m5
+    , m6 ~ Listener CONNECTION        SuccRegister   m5
     , m5 ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m4
     , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
     , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
@@ -311,7 +312,7 @@ instance {-# OVERLAPPABLE #-}
     , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
     , Monad m
     , net ~ Hetero (VectorGraph n e c)
-    ) => NetworkBuilderT net m8 m where
+    ) => NetworkBuilderT net m9 m where
     runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node NetNode)
                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
                            ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
@@ -320,6 +321,7 @@ instance {-# OVERLAPPABLE #-}
                            ∘ registerSuccs   CONNECTION
                            ∘ registerMembers SUBGRAPH_INCLUDE
                            ∘ unregisterSuccs CONNECTION_REMOVE
+                           ∘ removeMembers   NODE_REMOVE
 
 
 -- FIXME[WD]: poprawic typ oraz `WithElement_` (!)
