@@ -226,20 +226,33 @@ getTypeName ref = do
     getTypeNameForType tpRef
 
 getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
-getListType args = do
-    return $ Just "[Int]"
+getListType (arg:rest) = do
+    name <- getTypeNameForType arg
+    return $ (\s -> "[" <> s <> "]") <$> name
+    -- TODO: log error if args not empty
+getListType _ = return Nothing
+
+getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
+getArgsType args@(arg:rest) = do
+    typeNameMays <- mapM getTypeNameForType args
+    return $ (\typeNames -> "(" <> intercalate " " typeNames <> ")") <$> sequence typeNameMays
+getArgsType _ = return Nothing
 
 getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
 getTypeNameForType tpRef = do
     tp    <- read tpRef
     caseTest (uncover tp) $ do
         of' $ \(Cons (Lit.String s) args) -> do
+            let rawArgs  = unlayer <$> args
+            sigElems     <- mapM (follow source) rawArgs
             if s == "List"
-                then do
-                    -- sigElems     <- mapM (follow source) (rawArgs <> [out])
-                    -- getListType $ unlayer <$> args
-                    return $ Just "List"
-                else return $ Just s
+                then
+                    getListType sigElems
+                else do
+                    argsTypeMay <- getArgsType sigElems
+                    case argsTypeMay of
+                        Nothing -> return $ Just s
+                        Just argsType -> return . Just $ s <> " " <> argsType
         of' $ \ANY                        -> return Nothing -- error "Ambiguous node type"
 
 
