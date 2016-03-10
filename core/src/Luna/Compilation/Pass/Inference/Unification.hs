@@ -160,11 +160,13 @@ resolveUnify uni = do
                     let cRawArgs' = unlayer <$> cargs'
                     args  <- mapM (follow source) (cout  : cRawArgs )
                     args' <- mapM (follow source) (cout' : cRawArgs')
-                    unis  <- zipWithM unify args args'
-
-                    replaceNode uni a
-                    replaceNode b   a
-                    resolve unis
+                    if length args == length args'
+                        then do
+                            unis  <- zipWithM unify args args'
+                            replaceNode uni a
+                            replaceNode b   a
+                            resolve unis
+                        else return ()
 
 
 replaceNode oldRef newRef = do
