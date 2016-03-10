@@ -240,7 +240,7 @@ getListType _ = return Nothing
 getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
 getArgsType args@(arg:rest) = do
     typeNameMays <- mapM getTypeNameForType args
-    return $ (\typeNames -> "(" <> intercalate " " typeNames <> ")") <$> sequence typeNameMays
+    return $ (\typeNames -> "(" <> intercalate ") (" typeNames <> ")") <$> sequence typeNameMays
 getArgsType _ = return Nothing
 
 getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
