@@ -33,6 +33,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
 import qualified Luna.Syntax.AST.Term.Lit                as Lit
+import           Control.Monad.Trans.Identity
 import           Type.Bool
 
 import Data.Graph.Backend.VectorGraph
@@ -218,16 +219,43 @@ instance ( inp ~ Input a
         return out
 
 type instance BuildArgs Match n = (Input n, Input n)
-instance ( inp ~ Input a
+instance ( a ~ Input a
          , MonadFix m
-         , Connectible inp a m
-         , ElemBuilder (Match $ Ref Edge $ Connection inp a) m a
+         , Connectible a a m
+         , ElemBuilder (Match $ Ref Edge $ Connection a a) m a
+         --, Source2 a ~ Match (Binding a)
+
+         --, SmartCons (Match (Binding a)) (TermOf a)
+         --, TermBindBuilder m a
+         --, Bindable (n m) a
+         --, TransBinder n m a
+
+         --, TermBindBuilder t n m a
+         --, t ~ Match (Binding a)
          ) => TermBuilder Match m a where
-    buildTerm p (a,b) = mdo
+    buildTerm p (a :: a, b :: a) = mdo
         out <- buildElem $ Match ca cb
         ca  <- connection a out
         cb  <- connection b out
+        --foo <- runTransBinder $ runBuilderX $ buildTerm' =<< (Record.cons ∘∘ Match <$> bind a <*> bind b)
+
+        --foo <- evalBindings $ matchCons <$> bind a <*> bind b
+        --let x = matchType' foo out
+
         return out
+
+
+matchCons = Record.cons ∘∘ Match
+
+type TermCons a = SmartCons (Match (Binding a)) (TermOf a)
+
+--class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
+
+--class
+
+evalBindings :: (TransBinder n m a, TermBindBuilder m a)
+             => BindBuilder a (n m) (TermOf a) -> m a
+evalBindings m = runTransBinder $ runBuilderX $ (lift ∘ lift ∘ buildTerm') =<< m
 
 var :: TermBuilder Var m a => NameInput a -> m a
 var = curryN $ buildTerm (Proxy :: Proxy Var)
@@ -237,6 +265,59 @@ unify = curryN $ buildTerm (Proxy :: Proxy Unify)
 
 match :: TermBuilder Match m a => Input a -> Input a -> m a
 match = curryN $ buildTerm (Proxy :: Proxy Match)
+
+
+
+
+type family Binding a
+type family NameBinding a
+type family Source2 a
+
+--class TermBindBuilder m a where
+--    bindName   :: NameInput a -> m (NameBinding a)
+--    bind       :: a -> m (Binding a)
+--    buildTerm' :: Source2 a -> m a
+
+--class TransRunner n m
+
+class (MonadTrans n, Monad (n m), Monad m) => TransBinder n m a | m -> n where
+    runTransBinder :: n m a -> m a
+
+
+
+
+
+runBuilderX :: BindBuilder t m t -> m t
+runBuilderX = runIdentityT ∘ runBindBuilder
+
+
+newtype BindBuilder t m a = BindBuilder { runBindBuilder :: IdentityT m a } deriving (Show, Functor, Applicative, Monad, MonadTrans)
+
+class Bindable m t where
+    --bindName   :: NameInput t -> BindBuilder t m (NameBinding t)
+    bind       :: t           -> BindBuilder t m     (Binding t)
+
+
+class TermBindBuilder m t where
+    buildTerm' :: TermOf t -> m t
+
+
+instance TermBindBuilder m t where buildTerm' = undefined
+
+instance Monad m => Bindable m (Ref Node a) where
+    bind = return (error "ups")
+
+
+type instance TermOf (Ref t a) = TermOf a
+type instance Binding (Ref Node a) = Ref Edge (Link a)
+
+--Term t Val  Static
+
+
+--Term t term rt
+
+--class TermBuilder t term rt where
+--    bind ::
 
 
 -- === Draft === --
@@ -252,7 +333,8 @@ blank = curryN $ buildTerm (Proxy :: Proxy Blank)
 
 
 
-
+matchType' :: t -> t -> t
+matchType' = const
 
 
 

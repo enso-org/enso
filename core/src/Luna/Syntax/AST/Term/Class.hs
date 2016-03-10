@@ -108,6 +108,27 @@ data    Lam     t = Lam       ![Arg t] !t deriving (Show, Eq, Ord, Functor, Fold
 data    Native n  = Native !n             deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Blank     = Blank                 deriving (Show, Eq, Ord)
 
+data Var'    = Var'    deriving (Show, Eq, Ord)
+data Cons'   = Cons'   deriving (Show, Eq, Ord)
+data Acc'    = Acc'    deriving (Show, Eq, Ord)
+data App'    = App'    deriving (Show, Eq, Ord)
+data Unify'  = Unify'  deriving (Show, Eq, Ord)
+data Match'  = Match'  deriving (Show, Eq, Ord)
+data Lam'    = Lam'    deriving (Show, Eq, Ord)
+data Native' = Native' deriving (Show, Eq, Ord)
+data Blank'  = Blank'  deriving (Show, Eq, Ord)
+
+data family Term' s n t
+
+newtype instance Term' Var'    n t = T_Var     n
+newtype instance Term' Cons'   n t = T_Cons    n
+data    instance Term' Acc'    n t = T_Acc    !n !t
+data    instance Term' App'    n t = T_App       !t ![Arg t]
+data    instance Term' Unify'  n t = T_Unify     !t !t
+data    instance Term' Match'  n t = T_Match     !t !t
+data    instance Term' Lam'    n t = T_Lam       ![Arg t] !t
+data    instance Term' Native' n t = T_Native !n
+data    instance Term' Blank'  n t = T_Blank
 
 -- === N / T Folding === --
 -- | NFunctor and TFunctor allow mapping components over the `n` and `t` param type respectively.

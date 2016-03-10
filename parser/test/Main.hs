@@ -9,13 +9,14 @@ import Prologue
 import Luna.Parser.Parser
 import qualified Luna.Syntax.AST.Term.Lit as Lit
 import qualified Luna.Parser.Literal      as PLit
-import Luna.Syntax.Model.Network.Builder.Term
+import Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
 import Luna.Syntax.Model.Network.Term
 import Luna.Evaluation.Runtime
 import Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
 import Data.Graph
 import           Luna.Syntax.Model.Layer        ((:<:))
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
+import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
 import           Luna.Diagnostic.Vis.GraphViz
 import           Control.Monad.Event (Dispatcher)
@@ -28,13 +29,16 @@ import qualified Luna.Parser.Term as Term
 import           Luna.Parser.Class        (ASTParser, ASTParserCore, ASTBuilderCtx)
 import qualified Luna.Syntax.Model.Text.Location as Location
 import Luna.Parser.Class (Parser)
+import Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
 
 --import qualified Luna.Parser.Function as Func
 
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                            $ flip Location.evalT Nothing
-                           $ runNetworkBuilderT g m
+                           $ Term.runNetworkBuilderT g
+                           $ runNetworkBuilderT
+                           $ m
 
 
 evalBuild = fmap snd ∘∘ runBuild
