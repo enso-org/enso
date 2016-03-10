@@ -72,6 +72,7 @@ convertRationalBase radix rational = nom % den where
 numberToAny :: Lit.Number -> Any
 numberToAny (Lit.Number radix (Lit.Rational r)) = Session.toAny $ convertRationalBase (toInteger radix) r
 numberToAny (Lit.Number radix (Lit.Integer  i)) = Session.toAny $ convertBase         (toInteger radix) i
+numberToAny (Lit.Number radix (Lit.Double   d)) = Session.toAny $ d
 
 #define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                                     , term ~ Draft Static                                      \
