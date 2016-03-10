@@ -43,6 +43,11 @@ import qualified Luna.Syntax.AST.Function         as Function
                          , Destructor m (Ref Edge $ Link n)    \
                          )
 
+data TPRep = TCons String [TPRep] | TVar String
+
+listOf :: TPRep -> TPRep
+listOf t = TCons "List" [t]
+
 buildGraph :: forall m n b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph)
 buildGraph m = runIdentity $ runNetworkBuilderT def ((star :: m nodeRef) >> m)
 
@@ -56,11 +61,15 @@ typed b t = do
     reconnect (prop Type) el t
     return el
 
-makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Signature nodeRef)
-makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
-    selfType <- mapM ((flip cons []) . fromString) selfTypeStr
-    argTypes <- mapM ((flip cons []) . fromString) argTypesStr
-    outType  <- cons (fromString outTypeStr) []
+buildType :: FunBuilderCtx(m) => TPRep -> m nodeRef
+buildType (TCons name args) = mapM (fmap arg . buildType) args >>= cons (fromString name)
+buildType (TVar name)       = var . fromString $ name
+
+makeNativeFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
+makeNativeFun name selfTypeRep argTypesRep outTypeRep = do
+    selfType <- mapM buildType selfTypeRep
+    argTypes <- mapM buildType argTypesRep
+    outType  <- buildType outTypeRep
     self     <- mapM (typed blank) selfType
     args     <- mapM (typed blank) argTypes
     let nativeArgTypes = maybeToList selfType <> argTypes
@@ -76,20 +85,31 @@ makeId = do
     n     <- blank `typed` tpV
     return $ Signature Nothing [arg n] n
 
+makeReplicate :: FunBuilderCtx(m) => m (Signature nodeRef)
+makeReplicate = do
+    tpV <- var "#replicateA"
+    tpL <- cons "List" [arg tpV]
+    tpI <- cons "Int"  []
+    in1 <- blank `typed` tpI
+    in2 <- blank `typed` tpV
+    l   <- lam [arg tpI, arg tpV] tpL
+    n   <- native "replicate" `typed` l
+    out <- app n [arg in1, arg in2] `typed` tpL
+    return $ Signature Nothing [arg in1, arg in2] out
+
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b))
-    [ ("Int.+"         , makeNativeFun "(+)"                     (Just "Int")      ["Int"]           "Int"      )
-    , ("Int.*"         , makeNativeFun "(*)"                     (Just "Int")      ["Int"]           "Int"      )
-    , ("Int.toString"  , makeNativeFun "show"                    (Just "Int")      []                "String"   )
-    , ("String.length" , makeNativeFun "length"                  (Just "String")   []                "Int"      )
-    , ("String.+"      , makeNativeFun "(++)"                    (Just "String")   ["String"]        "String"   )
-    , ("replicate"     , makeNativeFun "replicate"               Nothing           ["Int", "Double"] "[Double]" )
-    , ("Int.toDouble"  , makeNativeFun "fromIntegral"            (Just "Int")      []                "Double"   )
-    , ("[Int].toDouble", makeNativeFun "(map fromIntegral)"      (Just "[Int]")    []                "[Double]" )
-    , ("zero2pi"       , makeNativeFun "[0.0,0.1 .. 3.14]"       Nothing           []                "[Double]" )
-    , ("vsin"          , makeNativeFun "(map sin)"               Nothing           ["[Double]"]      "[Double]" )
-    , ("sin"           , makeNativeFun "(sin)"                   Nothing           ["Double"]        "Double"   )
-    , ("range"         , makeNativeFun "enumFromTo"              Nothing           ["Int", "Int"]    "[Int]"    )
-    , ("[Double]./"    , makeNativeFun "(flip $ map . flip (/))" (Just "[Double]") ["Double"]        "[Double]" )
+    [ ("Int.+"         , makeNativeFun "(+)"                     (Just $ TCons "Int" [])    [TCons "Int" []] (TCons "Int"    []))
+    , ("Int.*"         , makeNativeFun "(*)"                     (Just $ TCons "Int" [])    [TCons "Int" []] (TCons "Int"    []))
+    , ("Int.toString"  , makeNativeFun "show"                    (Just $ TCons "Int" [])    []               (TCons "String" []))
+    , ("Int.toDouble"  , makeNativeFun "fromIntegral"            (Just $ TCons "Int" [])    []               (TCons "Double" []))
+
+    , ("String.length" , makeNativeFun "length"                  (Just $ TCons "String" []) []                  (TCons "Int"    []))
+    , ("String.+"      , makeNativeFun "(++)"                    (Just $ TCons "String" []) [TCons "String" []] (TCons "String" []))
+
+    , ("List.length"   , makeNativeFun "length"                  (Just $ listOf $ TVar "#lenA") [] (TCons "Int" []))
+
+    , ("replicate"     , makeReplicate)
+    , ("range"         , makeNativeFun "enumFromTo"              Nothing [TCons "Int" [], TCons "Int" []]     (listOf $ TCons "Int" []))
     , ("id"            , makeId)
     ]
