@@ -15,6 +15,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers)
+import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, redirect)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
@@ -26,22 +27,24 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import Data.Graph.Backend.VectorGraph
 
 
-#define PassCtx(m,ls,term) ( term ~ Draft Static                           \
-                           , ne   ~ Link (ls :<: term)                     \
-                           , Prop Type   (ls :<: term) ~ Ref Edge ne       \
-                           , Prop Succs  (ls :<: term) ~ [Ref Edge ne]     \
-                           , BiCastable     e ne                           \
-                           , BiCastable     n (ls :<: term)                \
-                           , MonadBuilder  (Hetero (VectorGraph n e c)) m  \
-                           , HasProp Type     (ls :<: term)                \
-                           , HasProp Succs    (ls :<: term)                \
-                           , NodeInferable  m (ls :<: term)                \
-                           , TermNode Var   m (ls :<: term)                \
-                           , TermNode Lam   m (ls :<: term)                \
-                           , TermNode Unify m (ls :<: term)                \
-                           , TermNode Acc   m (ls :<: term)                \
-                           , MonadIdentPool m                              \
-                           , Destructor m (Ref Edge ne)                    \
+#define PassCtx(m,ls,term) ( term ~ Draft Static                                     \
+                           , ne   ~ Link (ls :<: term)                               \
+                           , Prop Type   (ls :<: term) ~ Ref Edge ne                 \
+                           , Prop Succs  (ls :<: term) ~ [Ref Edge ne]               \
+                           , Prop TCData (ls :<: term) ~ TCDataPayload (ls :<: term) \
+                           , BiCastable     e ne                                     \
+                           , BiCastable     n (ls :<: term)                          \
+                           , MonadBuilder  (Hetero (VectorGraph n e c)) m            \
+                           , HasProp Type     (ls :<: term)                          \
+                           , HasProp Succs    (ls :<: term)                          \
+                           , HasProp TCData   (ls :<: term)                          \
+                           , NodeInferable  m (ls :<: term)                          \
+                           , TermNode Var   m (ls :<: term)                          \
+                           , TermNode Lam   m (ls :<: term)                          \
+                           , TermNode Unify m (ls :<: term)                          \
+                           , TermNode Acc   m (ls :<: term)                          \
+                           , MonadIdentPool m                                        \
+                           , Destructor m (Ref Edge ne)                              \
                            )
 
 -----------------------------
@@ -128,6 +131,7 @@ buildBindType ref = do
         of' $ \(Match l r) -> do
             lr       <- follow source l
             rr       <- follow source r
+            reconnect (prop TCData . redirect) lr rr -- FIXME[MK] : move the logic of creating redirect to a separate pass
             rtp      <- follow source =<< follow (prop Type) rr
             commonTp <- getTypeSpec lr
             uniTp    <- unify rtp commonTp

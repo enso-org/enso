@@ -29,18 +29,20 @@ import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
 
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers                            \
-                             , term ~ Draft Static                         \
-                             , ne   ~ Link (ls :<: term)                   \
-                             , node ~ (ls :<: term)                        \
-                             , BiCastable    e ne                          \
-                             , BiCastable    n (ls :<: term)               \
-                             , MonadIO m                                   \
-                             , MonadBuilder (Hetero (VectorGraph n e c)) m \
-                             , NodeInferable m (ls :<: term)               \
-                             , TermNode Cons m (ls :<: term)               \
-                             , TermNode Lam  m (ls :<: term)               \
-                             , Destructor (m) (Ref Edge ne)                \
+import           Luna.Syntax.AST.Function.Argument (Arg)
+
+#define PassCtx(m, ls, term) ( ls   ~ NetLayers                               \
+                             , term ~ Draft Static                            \
+                             , ne   ~ Link (ls :<: term)                      \
+                             , node ~ (ls :<: term)                           \
+                             , BiCastable    e ne                             \
+                             , BiCastable    n (ls :<: term)                  \
+                             , MonadIO       (m)                              \
+                             , MonadBuilder  (Hetero (VectorGraph n e c)) (m) \
+                             , NodeInferable (m) (ls :<: term)                \
+                             , TermNode Cons (m) (ls :<: term)                \
+                             , TermNode Lam  (m) (ls :<: term)                \
+                             , Destructor    (m) (Ref Edge ne)                \
                              )
 
 assignLiteralType :: PassCtx(m, ls, term)
@@ -61,9 +63,9 @@ assignLiteralType consIntRef consStrRef consDblRef ref = do
 
 createLiteralTypes :: PassCtx(m, ls, term) => m (Ref Node node, Ref Node node, Ref Node node)
 createLiteralTypes = do
-    consIntRef <- cons "Int"
-    consStrRef <- cons "String"
-    consDblRef <- cons "Double"
+    consIntRef <- cons "Int"    []
+    consStrRef <- cons "String" []
+    consDblRef <- cons "Double" []
     return (consIntRef, consStrRef, consDblRef)
 
 runPass :: PassCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()

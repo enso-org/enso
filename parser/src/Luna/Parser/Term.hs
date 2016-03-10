@@ -73,7 +73,7 @@ import Luna.Parser.Token.Ident
 import qualified Luna.Syntax.Model.Text.Location as Location
 import Luna.Parser.Location (located)
 import qualified Luna.Parser.Layout as Layout
-
+import qualified Luna.Parser.Token.Operator as Operator
 
 import Luna.Parser.Char (CharParsing, isSpace, satisfy)
 
@@ -262,8 +262,8 @@ notReserved p = do
 -- === General === --
 ---------------------
 
-cons :: ASTParser p m a => p (m a)
-cons = located $ AST.cons <$> Tok.conIdent
+--cons :: ASTParser p m a => p (m a)
+--cons = located $ AST.cons <$> Tok.conIdent
 
 
 patVar = var
@@ -358,7 +358,7 @@ exprAtom :: ASTParser p m a => p (m a)
 exprAtom  = parens expr
         <|> literal
         <|> patVar
-        <|> cons
+        -- <|> cons
         <?> "atomic expression"
 
 
@@ -366,7 +366,10 @@ exprAtom  = parens expr
 
 opTable :: ASTParser p m a
         => [[Operator p (m a)]]
-opTable = [ [binary "+" (operator "+") AssocLeft] ]
+opTable = [ [binary "+" (operator_bldr "+") AssocLeft] ]
+
+operator :: ASTParser p m a => p (m a)
+operator = AST.var ∘ fromString <$> Operator.ident <?> "operator"
 
 
 -- === Assignment === --
@@ -389,6 +392,15 @@ appAs argmod base = base <??> (bldr <$> many1 (argmod base)) where
     bldr margs ma = liftM2 AST.app ma (sequence margs)
 
 
+--------------------------
+-- === Partial expr === --
+--------------------------
+
+partial :: ASTParser p m a => p (m a)
+partial = expr
+      <|> operator
+      <?> "partial expression"
+
 
 ----------------------
 -- === Patterns === --
@@ -407,7 +419,7 @@ patAtom = located $ (bldr <$> patVar <* Tok.patAlias) <*?> exprAtom where
 
 
 
-operator name ma mb = do
+operator_bldr name ma mb = do
     a  <- ma
     b  <- mb
     op <- AST.var name

@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Data.Graph.Backend.VectorGraph.SubGraph where
 
 import Prologue

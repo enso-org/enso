@@ -67,8 +67,8 @@ int = node ∘ Term.int
 double :: NodeBuilder Lit.Number m (ls :<: term) => Double -> m (Ref Node $ ls :<: term)
 double = node ∘ Term.double
 
-cons :: NodeBuilder Cons m (ls :<: term) => NameInput (Ref Node $ ls :<: term) -> m (Ref Node $ ls :<: term)
-cons = node ∘ Term.cons
+cons :: NodeBuilder Cons m (ls :<: term) => NameInput (Ref Node $ ls :<: term) -> [Arg $ Ref Node $ ls :<: term] -> m (Ref Node $ ls :<: term)
+cons = node ∘∘ Term.cons
 
 lam :: NodeBuilder Lam m (ls :<: term) => [Arg $ Ref Node $ ls :<: term] -> Ref Node $ ls :<: term -> m (Ref Node $ ls :<: term)
 lam = node ∘∘ Term.lam

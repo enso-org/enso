@@ -39,9 +39,8 @@ includes cluster el = SubGraph.member (el ^. idx) . uncover <$> read cluster
 members :: ( MonadBuilder t m
            , Referred Cluster c t
            , Covered c
-           , Uncovered c ~ SubGraph a'
-           , BiCastable a a'
-           ) => Ref Cluster c -> m [Ref Node a]
+           , Uncovered c ~ SubGraph n
+           ) => Ref Cluster c -> m [Ref Node n]
 members cluster = fmap Ref <$> SubGraph.nodes . uncover <$> read cluster
 
 class Monad m => Clusterable n c m where

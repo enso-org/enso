@@ -8,7 +8,7 @@ import           Control.Monad                                   (forM_)
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.State
-import           Data.Maybe                                      (isNothing)
+import           Data.Maybe                                      (isNothing, isJust, catMaybes)
 
 import           Data.Construction
 import           Data.Graph
@@ -181,13 +181,16 @@ unpackArguments :: InterpreterCtx(m, ls, term) => [Arg (Ref Edge (Link (ls :<: t
 unpackArguments args = mapM (follow source . Arg.__val_) args
 
 
-argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m Any
+-- TODO: handle exception
+argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe Any)
 argumentValue ref = do
     node <- read ref
-    return $ fromJust $ (node # InterpreterData) ^. Layer.value
+    return $ (node # InterpreterData) ^. Layer.value
 
-argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m [Any]
-argumentsValues refs = mapM argumentValue refs
+argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe [Any])
+argumentsValues refs = do
+    mayValuesList <- mapM argumentValue refs
+    return $ sequence mayValuesList
 
 collectNodesToEval :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 collectNodesToEval ref = do
@@ -203,9 +206,9 @@ getValueString ref = do
     value <- getValue ref
     return $ case value of
                 Nothing  -> ""
-                Just val -> if typeName == "String"
+                Just val -> if typeName == Just "String"
                                then show ((Session.unsafeCast val) :: String)
-                               else (if typeName == "Int"
+                               else (if typeName == Just "Int"
                                    then show ((Session.unsafeCast val) :: Integer)
                                    else "unknown type")
 
@@ -213,26 +216,49 @@ displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
     typeName <- getTypeName ref
     valueString <- getValueString ref
-    putStrLn $ "Type " <> typeName <> " value " <> valueString
+    putStrLn $ "Type " <> show typeName <> " value " <> valueString
 
 
-getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
+getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
 getTypeName ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
     getTypeNameForType tpRef
 
-getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
+getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
+getListType (arg:rest) = do
+    name <- getTypeNameForType arg
+    return $ (\s -> "[" <> s <> "]") <$> name
+    -- TODO: log error if args not empty
+getListType _ = return Nothing
+
+getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
+getArgsType args@(arg:rest) = do
+    typeNameMays <- mapM getTypeNameForType args
+    return $ (\typeNames -> "(" <> intercalate " " typeNames <> ")") <$> sequence typeNameMays
+getArgsType _ = return Nothing
+
+getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
 getTypeNameForType tpRef = do
     tp    <- read tpRef
     caseTest (uncover tp) $ do
-        of' $ \(Cons (Lit.String s)) -> return s
-        of' $ \ANY                   -> error "Ambiguous node type"
+        of' $ \(Cons (Lit.String s) args) -> do
+            let rawArgs  = unlayer <$> args
+            sigElems     <- mapM (follow source) rawArgs
+            if s == "List"
+                then
+                    getListType sigElems
+                else do
+                    argsTypeMay <- getArgsType sigElems
+                    case argsTypeMay of
+                        Nothing -> return $ Just s
+                        Just argsType -> return . Just $ s <> " " <> argsType
+        of' $ \ANY                        -> return Nothing -- error "Ambiguous node type"
 
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
 
-getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m String
+getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (Maybe String)
 getNativeType ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
@@ -242,29 +268,40 @@ getNativeType ref = do
             let rawArgs  = unlayer <$> args
             sigElems     <- mapM (follow source) (rawArgs <> [out])
             sigElemNames <- mapM getTypeNameForType sigElems
-            let funSig = intercalate " -> " sigElemNames
-            return funSig
-        of' $ \ANY -> error "Incorrect native type"
+            return $ if all isJust sigElemNames
+                then
+                    let funSig = intercalate " -> " (catMaybes sigElemNames) in
+                    Just funSig
+                else
+                    Nothing
 
-evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m Any
+        of' $ \ANY -> return Nothing -- error "Incorrect native type"
+
+evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Maybe Any)
 evaluateNative ref args = do
     -- putStrLn $ "Evaluating native"
     node <- read ref
-    (name, tpNative) <- caseTest (uncover node) $ do
+    (name, tpNativeMay) <- caseTest (uncover node) $ do
         of' $ \(Native nameStr) -> do
-            tpNative <- getNativeType ref
-            return (unwrap' nameStr, tpNative)
-        of' $ \ANY -> error "Error: native cannot be evaluated"
+            tpNativeMay <- getNativeType ref
+            return (unwrap' nameStr, tpNativeMay)
+        of' $ \ANY -> return ("", Nothing) -- error "Error: native cannot be evaluated"
 
-    putStrLn $ name <> " :: " <> tpNative
-    values <- argumentsValues args
-    res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
-        HS.setImports Session.defaultImports
-        fun <- Session.findSymbol name tpNative
-        let res = foldl Session.appArg fun $ Session.toAny <$> values
-        -- let res = Session.toAny 0
-        return res
-    return res
+    case tpNativeMay of
+        Nothing -> return Nothing
+        Just tpNative -> do
+            putStrLn $ name <> " :: " <> tpNative
+            valuesMay <- argumentsValues args
+            case valuesMay of
+                Nothing -> return Nothing
+                Just values -> do
+                    res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
+                        HS.setImports Session.defaultImports
+                        fun <- Session.findSymbol name tpNative
+                        let res = foldl Session.appArg fun $ Session.toAny <$> values
+                        -- let res = Session.toAny 0
+                        return res
+                    return $ Just res
 
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
@@ -277,26 +314,29 @@ evaluateNode ref = do
             evaluateNode redirRef
             copyValue redirRef ref
         Nothing -> do
-            caseTest (uncover node) $ do
-                of' $ \(Unify l r)  -> return ()
-                of' $ \(Acc n t)    -> return ()
-                of' $ \(Var n)      -> return ()
-                of' $ \(App f args) -> do
-                    funRef       <- follow source f
-                    unpackedArgs <- unpackArguments args
-                    mapM evaluateNode unpackedArgs
-                    funNode      <- read funRef
-                    nativeVal    <- caseTest (uncover funNode) $ do
-                        of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                        of' $ \ANY                      -> error "evaluating non native function"
-                    setValue (Just nativeVal) ref
-                    return ()
-                of' $ \(Lit.String str)                 -> do
-                    setValue (Just $ Session.toAny str) ref
-                of' $ \number@(Lit.Number radix system) -> do
-                    setValue (Just $ numberToAny number) ref
-                of' $ \Blank -> return ()
-                of' $ \ANY   -> return ()
+            -- TODO: use caches
+            if isDirty node
+                then caseTest (uncover node) $ do
+                    of' $ \(Unify l r)  -> return ()
+                    of' $ \(Acc n t)    -> return ()
+                    of' $ \(Var n)      -> return ()
+                    of' $ \(App f args) -> do
+                        funRef       <- follow source f
+                        unpackedArgs <- unpackArguments args
+                        mapM evaluateNode unpackedArgs
+                        funNode      <- read funRef
+                        nativeVal    <- caseTest (uncover funNode) $ do
+                            of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
+                            of' $ \ANY                      -> return Nothing  -- error "evaluating non native function"
+                        setValue nativeVal ref
+                        return ()
+                    of' $ \(Lit.String str)                 -> do
+                        setValue (Just $ Session.toAny str) ref
+                    of' $ \number@(Lit.Number radix system) -> do
+                        setValue (Just $ numberToAny number) ref
+                    of' $ \Blank -> return ()
+                    of' $ \ANY   -> return ()
+                else return ()
     return ()
 
 evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()

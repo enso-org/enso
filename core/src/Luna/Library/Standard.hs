@@ -28,19 +28,19 @@ import qualified Data.Map                         as Map
 import qualified Luna.Library.Symbol.QualPath     as QualPath
 import qualified Luna.Syntax.AST.Function         as Function
 
-#define FunBuilderCtx(m) ( n ~ (NetLayers :<: Draft Static)              \
-                         , nodeRef ~ Ref Node  n                         \
-                         , TermNode Cons     m n                         \
-                         , TermNode Blank    m n                         \
-                         , TermNode Native   m n                         \
-                         , TermNode Lit.Star m n                         \
-                         , TermNode Lam      m n                         \
-                         , TermNode Var      m n                         \
-                         , TermNode App      m n                         \
-                         , MonadFix m                                    \
-                         , NetworkBuilderT NetGraph m Identity           \
-                         , MonadBuilder NetGraph m                       \
-                         , Destructor m (Ref Edge $ Link n)              \
+#define FunBuilderCtx(m) ( n ~ (NetLayers :<: Draft Static)    \
+                         , nodeRef ~ Ref Node  n               \
+                         , TermNode Cons     m n               \
+                         , TermNode Blank    m n               \
+                         , TermNode Native   m n               \
+                         , TermNode Lit.Star m n               \
+                         , TermNode Lam      m n               \
+                         , TermNode Var      m n               \
+                         , TermNode App      m n               \
+                         , MonadFix m                          \
+                         , NetworkBuilderT NetGraph m Identity \
+                         , MonadBuilder NetGraph m             \
+                         , Destructor m (Ref Edge $ Link n)    \
                          )
 
 buildGraph :: forall m n b nodeRef . FunBuilderCtx(m) => m b -> (b, NetGraph)
@@ -58,9 +58,9 @@ typed b t = do
 
 makeNativeFun :: FunBuilderCtx(m) => String -> Maybe String -> [String] -> String -> m (Signature nodeRef)
 makeNativeFun name selfTypeStr argTypesStr outTypeStr = do
-    selfType <- mapM (cons . fromString) selfTypeStr
-    argTypes <- mapM (cons . fromString) argTypesStr
-    outType  <- cons $ fromString outTypeStr
+    selfType <- mapM ((flip cons []) . fromString) selfTypeStr
+    argTypes <- mapM ((flip cons []) . fromString) argTypesStr
+    outType  <- cons (fromString outTypeStr) []
     self     <- mapM (typed blank) selfType
     args     <- mapM (typed blank) argTypes
     let nativeArgTypes = maybeToList selfType <> argTypes

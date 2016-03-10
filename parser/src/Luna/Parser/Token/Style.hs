@@ -8,8 +8,8 @@ import Text.Parser.Char
 import Text.Parser.Token
 import Text.Parser.Token.Style    (emptyIdents)
 import Luna.Parser.Token.Keyword  (keywords)
-import Luna.Parser.Token.Operator
 
+import qualified Luna.Parser.Token.Operator  as Operator
 import qualified Data.HashSet                as HashSet
 import qualified Text.Parser.Token.Highlight as Highlight
 
@@ -51,8 +51,8 @@ tp = basic
 operator :: TokenParsing m => IdentifierStyle m
 operator = basic
     & styleName              .~ "operator"
-    & styleStart             .~ opStart
-    & styleLetter            .~ opLetter
+    & styleStart             .~ Operator.startChar
+    & styleLetter            .~ Operator.char
     & styleReserved          .~ HashSet.fromList [":","::","=","\\","|","<-","->","@","~","=>"]
     & styleHighlight         .~ Highlight.Operator
     & styleReservedHighlight .~ Highlight.ReservedOperator

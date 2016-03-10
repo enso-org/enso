@@ -33,7 +33,6 @@ import qualified Luna.Parser.Token.Ident as Token
 import qualified Luna.Parser.Token.Layout as Layout
 import qualified Luna.Parser.Token.Ident as Ident
 import qualified Luna.Parser.Token.Style as Style
-import Luna.Parser.Token.Operator (operator)
 import Text.Parser.Token           (reserve)
 import Luna.Parser.Class (Parser)
 import Luna.Data.Name (Segment(..), MultiName(..))

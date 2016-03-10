@@ -20,7 +20,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
 import           Luna.Diagnostic.Vis.GraphViz
 import           Control.Monad.Event (Dispatcher)
-import           Control.Monad.Identity
+import           Control.Monad.Identity hiding (when)
 import qualified Luna.Parser.Parser     as Parser
 import qualified Luna.Parser.State      as Parser
 import           Text.Trifecta.Combinators (DeltaParsing)
@@ -89,10 +89,48 @@ myparser4 = parseGen Term.assignment   Parser.defState
 --parsed2 :: _ => _
 parsed2 = parseString input3 myparser4
 
+data Test a = Test { _showGraph :: Bool, _desc :: String, _content :: a} deriving (Show)
+makeLenses ''Test
+
+
+inputs :: [Test String]
+inputs  = [ Test False "Identifier parsing" "ala"
+          , Test False "Operator parsing"   "+"
+          , Test False "String literals"    "\"test\""
+          , Test False "Applications"       "foo bar baz"
+          ]
+
+checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDesc where
+    resDesc = case res of
+        Left e           -> return $ "error: \n" <> show e
+        Right (bldr, ps) -> do
+            (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
+            when draw $ renderAndOpen [(name, name, g)]
+            return "ok"
+
+
+
+partialInput = [s|+|]
+
+partialParsed = parseString partialInput partialParser
+partialParser = parseGen Term.partial Parser.defState
+
+
+mainPartial :: IO ()
+mainPartial = do
+    print "Partial parser test!"
+    case partialParsed of
+        Left  d          -> print d
+        Right (bldr, ps) -> do
+            (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
+            renderAndOpen [("g1", "g1", g)]
+            print a
+            print "ok"
+    return ()
 
 mainLam :: IO ()
 mainLam = do
-    print "Parser lam test!"
+    print "Parser test!"
     case parsed2 of
         Left  d          -> print d
         Right (bldr, ps) -> do
@@ -104,4 +142,6 @@ mainLam = do
 
 
 main :: IO ()
-main = mainLam
+main = do
+    let results = (content %~ flip parseString partialParser) <$> inputs
+    mapM_ checkResult results

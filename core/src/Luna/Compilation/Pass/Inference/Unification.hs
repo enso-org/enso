@@ -119,8 +119,8 @@ resolveUnify uni = do
               uni' <- read uni
               a'   <- read (a :: nodeRef)
               b'   <- read (b :: nodeRef)
-              whenMatched (uncover a') $ \(Cons na) ->
-                  whenMatched (uncover b') $ \(Cons nb) ->
+              whenMatched (uncover a') $ \(Cons na argsA) ->
+                  whenMatched (uncover b') $ \(Cons nb argsB) ->
                       if na == nb
                           then do
                               replaceNode uni a

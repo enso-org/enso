@@ -13,12 +13,12 @@ import qualified Luna.Parser.Token.Layout    as Layout
 
 -- === Operators === --
 
-opChars  = "!#$%&*+/<=>?\\^|-~"
-opLetter = oneOf opChars
-opStart  = opLetter
+charList  = "!#$%&*+/<=>?\\^|-~"
+char      = oneOf charList
+startChar = char
 
 
-opName = (:) <$> opStart <*> many opLetter <?> "operator name"
-operator = token (highlight Highlight.Operator opName) <?> "operator"
+name  = (:) <$> startChar <*> many char <?> "operator name"
+ident = token (highlight Highlight.Operator name) <?> "operator"
 
 
