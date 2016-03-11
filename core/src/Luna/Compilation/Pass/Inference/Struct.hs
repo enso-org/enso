@@ -156,9 +156,9 @@ runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -
 runPass apps accs binds = do
     -- FIXME [MK]: Some of those still will be needed (definitely Acc typing) just in a form that does not introduce
     -- monomorphisms. Consider later.
-    appUnis  <- concat <$> mapM buildAppType apps -- FIXME [MK]: This is inherently monomorphic. Move this pass after importing and work on local copies of types... later.
+    --appUnis  <- concat <$> mapM buildAppType apps -- FIXME [MK]: This is inherently monomorphic. Move this pass after importing and work on local copies of types... later.
     {-accUnis <- concat <$> mapM buildAccType accs-}
     bindUnis <- mapM buildBindType binds
-    return $ bindUnis <> appUnis -- <> appUnis <> accUnis
+    return $ bindUnis -- <> appUnis <> accUnis
 
 universe = Ref 0
