@@ -66,7 +66,9 @@ convertBase radix = unDigits radix . digits 10
 
 
 getCPUTime :: IO Integer
-getCPUTime = timeSpecAsNanoSecs <$> getTime ThreadCPUTime
+getCPUTime = do
+    timeNano <- timeSpecAsNanoSecs <$> getTime ThreadCPUTime
+    return $ timeNano `div` 1000
 
 
 convertRationalBase :: Integer -> Rational -> Rational
@@ -121,7 +123,7 @@ setValue :: InterpreterCtx(m, ls, term) => Maybe Any -> Ref Node (ls :<: term) -
 setValue value ref startTime = do
     endTime <- liftIO getCPUTime
     putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
-    let !time = (endTime - startTime) `div` 1000000
+    let !time = endTime - startTime
     node <- read ref
     let dirty = isNothing value
     write ref (node & prop InterpreterData . Layer.value .~ value
@@ -137,7 +139,7 @@ copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (
 copyValue fromRef toRef startTime = do
     endTime <- liftIO getCPUTime
     putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
-    let !time = (endTime - startTime) `div` 1000000
+    let !time = endTime - startTime
     fromNode <- read fromRef
     toNode   <- read toRef
     let value = (fromNode # InterpreterData) ^. Layer.value
