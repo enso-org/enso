@@ -190,10 +190,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
               ins      = node # Inputs
               succs    = node # Succs
               dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
-              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
+              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑ " else ""
+              time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
               -- value    = fromMaybe "" $ (\v -> " Just Any") <$> (node # InterpreterData) ^. InterpreterLayer.value
-              value    = " " <> (node # InterpreterData) ^. InterpreterLayer.debug
-              interpr  = value <> required
+              value    = (node # InterpreterData) ^. InterpreterLayer.debug
+              interpr  = " " <> value <> time <> required
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness

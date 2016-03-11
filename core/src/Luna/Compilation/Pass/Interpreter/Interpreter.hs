@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                       #-}
+{-# LANGUAGE BangPatterns              #-}
 
 module Luna.Compilation.Pass.Interpreter.Interpreter where
 
@@ -56,7 +57,7 @@ import           Data.Ratio
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 import           Data.String.Utils                               (replace)
-
+import           System.CPUTime                                  (getCPUTime)
 
 
 convertBase :: Integral a => a -> a -> a
@@ -112,20 +113,25 @@ markDirty ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.dirty .~ True)
 
-setValue :: InterpreterCtx(m, ls, term) => Maybe Any -> Ref Node (ls :<: term) -> m ()
-setValue value ref = do
+setValue :: InterpreterCtx(m, ls, term) => Maybe Any -> Ref Node (ls :<: term) -> Integer -> m ()
+setValue value ref startTime = do
+    endTime <- liftIO getCPUTime
+    let !time = (endTime - startTime) `div` 1000000
     node <- read ref
     let dirty = isNothing value
     write ref (node & prop InterpreterData . Layer.value .~ value
                     & prop InterpreterData . Layer.dirty .~ dirty
+                    & prop InterpreterData . Layer.time  .~ time
               )
     valueString <- getValueString ref
     displayValue ref
     updNode <- read ref
     write ref $ updNode & prop InterpreterData . Layer.debug .~ valueString
 
-copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> m ()
-copyValue fromRef toRef = do
+copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> Integer -> m ()
+copyValue fromRef toRef startTime = do
+    endTime <- liftIO getCPUTime
+    let !time = (endTime - startTime) `div` 1000000
     fromNode <- read fromRef
     toNode   <- read toRef
     let value = (fromNode # InterpreterData) ^. Layer.value
@@ -134,6 +140,7 @@ copyValue fromRef toRef = do
 
     write toRef (toNode & prop InterpreterData . Layer.value .~ value
                         & prop InterpreterData . Layer.dirty .~ dirty
+                        & prop InterpreterData . Layer.time  .~ time
                         & prop InterpreterData . Layer.debug .~ debug
                 )
 
@@ -301,16 +308,17 @@ evaluateNative ref args = do
             case valuesMay of
                 Nothing -> return Nothing
                 Just values -> do
-                    res <- flip catchAll (\e -> do putStrLn $ show e; return $ Session.toAny False) $ HS.run $ do
+                    res <- flip catchAll (\e -> do putStrLn $ show e; return Nothing) $ HS.run $ do
                         HS.setImports Session.defaultImports
                         fun <- Session.findSymbol name tpNative
                         let res = foldl Session.appArg fun $ Session.toAny <$> values
                         -- let res = Session.toAny 0
-                        return res
-                    return $ Just res
+                        return $ Just res
+                    return res
 
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
+    startTime <- liftIO getCPUTime
     node <- read ref
     -- putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
@@ -318,7 +326,7 @@ evaluateNode ref = do
             redirRef <- (follow source) redirect
             -- putStrLn $ "redirecting to " <> show redirRef
             evaluateNode redirRef
-            copyValue redirRef ref
+            copyValue redirRef ref startTime
         Nothing -> do
             -- TODO: use caches
             if isDirty node
@@ -334,12 +342,12 @@ evaluateNode ref = do
                         nativeVal    <- caseTest (uncover funNode) $ do
                             of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
                             of' $ \ANY                      -> return Nothing  -- error "evaluating non native function"
-                        setValue nativeVal ref
+                        setValue nativeVal ref startTime
                         return ()
                     of' $ \(Lit.String str)                 -> do
-                        setValue (Just $ Session.toAny str) ref
+                        setValue (Just $ Session.toAny str) ref startTime
                     of' $ \number@(Lit.Number radix system) -> do
-                        setValue (Just $ numberToAny number) ref
+                        setValue (Just $ numberToAny number) ref startTime
                     of' $ \Blank -> return ()
                     of' $ \ANY   -> return ()
                 else return ()
