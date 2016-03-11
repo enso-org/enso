@@ -94,3 +94,4 @@ Library
                  , vector
                  , ghc-mtl
                  , digits
+                 , clock

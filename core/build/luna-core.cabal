@@ -58,7 +58,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules: 
+    Exposed-modules:
         Control.Monad.Event,
         Data.Build,
         Data.Direction,
@@ -210,3 +210,4 @@ Library
                  , vector
                  , ghc-mtl
                  , digits
+                 , clock

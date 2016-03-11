@@ -57,12 +57,16 @@ import           Data.Ratio
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 import           Data.String.Utils                               (replace)
-import           System.CPUTime                                  (getCPUTime)
 
+import           System.Clock
 
 convertBase :: Integral a => a -> a -> a
 convertBase radix = unDigits radix . digits 10
 
+
+
+getCPUTime :: IO Integer
+getCPUTime = timeSpecAsNanoSecs <$> getTime ThreadCPUTime
 
 
 convertRationalBase :: Integer -> Rational -> Rational
@@ -116,6 +120,7 @@ markDirty ref = do
 setValue :: InterpreterCtx(m, ls, term) => Maybe Any -> Ref Node (ls :<: term) -> Integer -> m ()
 setValue value ref startTime = do
     endTime <- liftIO getCPUTime
+    putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = (endTime - startTime) `div` 1000000
     node <- read ref
     let dirty = isNothing value
@@ -131,6 +136,7 @@ setValue value ref startTime = do
 copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> Integer -> m ()
 copyValue fromRef toRef startTime = do
     endTime <- liftIO getCPUTime
+    putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = (endTime - startTime) `div` 1000000
     fromNode <- read fromRef
     toNode   <- read toRef
@@ -319,16 +325,16 @@ evaluateNative ref args = do
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
     startTime <- liftIO getCPUTime
+    putStrLn $ "startTime " <> show startTime
     node <- read ref
-    -- putStrLn $ "evaluating " <> show ref
+    putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
         Just redirect -> do
             redirRef <- (follow source) redirect
-            -- putStrLn $ "redirecting to " <> show redirRef
+            putStrLn $ "redirecting to " <> show redirRef
             evaluateNode redirRef
             copyValue redirRef ref startTime
         Nothing -> do
-            -- TODO: use caches
             if isDirty node
                 then caseTest (uncover node) $ do
                     of' $ \(Unify l r)  -> return ()
