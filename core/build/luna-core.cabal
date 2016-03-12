@@ -59,6 +59,7 @@ Library
                   ViewPatterns
 
     Exposed-modules: 
+        Control.Monad.Delayed,
         Control.Monad.Event,
         Data.Build,
         Data.Direction,
@@ -83,6 +84,8 @@ Library
         Data.Graph.Query.Sort,
         Data.Index,
         Data.Record,
+        Data.Record.Class,
+        Data.Record.Match,
         Data.Relation.Order,
         Data.Relation.Order.Partial,
         Data.Reprx,

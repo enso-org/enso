@@ -8,7 +8,7 @@ import           Prelude.Luna                                    hiding (Num, pr
 
 import           Data.Construction
 import           Data.Prop
-import           Data.Record                                     hiding (cons)
+import Data.Record.Match
 import           Type.Inference
 import           Data.Graph.Builder
 import           Data.Graph.Backend.VectorGraph                  as Graph

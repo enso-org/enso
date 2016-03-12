@@ -64,8 +64,10 @@ main1 = do
     case parsed of
         Left  d          -> print d
         Right (bldr, ps) -> do
+            print "ok"
             (_ :: Ref Node NetNode, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
-            renderAndOpen [("g1", "g1", g)]
+            print "ok"
+            --renderAndOpen [("g1", "g1", g)]
     return ()
 
 
@@ -77,7 +79,7 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|Vector x y z = v
+input3 = [s|x = v
 |]
 
 
@@ -143,5 +145,6 @@ mainLam = do
 
 main :: IO ()
 main = do
-    let results = (content %~ flip parseString partialParser) <$> inputs
-    mapM_ checkResult results
+    --let results = (content %~ flip parseString partialParser) <$> inputs
+    --mapM_ checkResult results
+    mainLam

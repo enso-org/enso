@@ -10,7 +10,7 @@ import Control.Monad.Error                          (throwError, ErrorT, runErro
 import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
-import Data.Record
+import Data.Record.Match
 import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)

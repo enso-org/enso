@@ -11,7 +11,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (ASTRecord, Layout, Variants, Match)
+import           Data.Record                  hiding (ASTRecord, Layout, Variants, Match, Cons)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container
@@ -107,6 +107,9 @@ data    Match    t = Match     !t !t       deriving (Show, Eq, Ord, Functor, Fol
 data    Lam      t = Lam       ![Arg t] !t deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Native n   = Native !n             deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Blank      = Blank                 deriving (Show, Eq, Ord)
+
+
+--var = Record.
 
 data Var'    = Var'    deriving (Show, Eq, Ord)
 data Cons'   = Cons'   deriving (Show, Eq, Ord)
