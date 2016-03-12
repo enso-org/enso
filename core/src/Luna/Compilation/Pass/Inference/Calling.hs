@@ -9,7 +9,7 @@ import Control.Monad.Except                         (throwError, ExceptT, runExc
 import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
-import Data.Record
+import Data.Record.Match
 import Data.Layer
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Syntax.AST.Term                         hiding (source)

@@ -14,6 +14,8 @@ import Data.Container          hiding (Impossible, impossible)
 import Luna.Evaluation.Runtime as Runtime
 import Type.Bool
 import Data.Graph.Model
+import Data.Graph.Backend.VectorGraph
+import Data.Graph.Builder.Class (MonadBuilder, modify)
 
 ---------------------------------
 -- === Connection Building === --
@@ -52,3 +54,16 @@ instance (ConnectibleNameH mod src tgt m conn
 instance                                ConnectibleName'         I   I   m  I    where nameConnection          = impossible
 instance (Monad m, conn ~ src)       => ConnectibleNameH Static  src tgt m  conn where nameConnectionH _ src _ = return src                           ; {-# INLINE nameConnectionH #-}
 instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref Edge conn) where nameConnectionH _       = connection                           ; {-# INLINE nameConnectionH #-}
+
+
+
+
+
+reserveConnection :: MonadBuilder (Hetero (VectorGraph n e c)) m => m (Ref Edge a)
+reserveConnection = Ref <$> modify (wrapped' ∘ edgeGraph $ swap ∘ ixed reserve)
+
+rawConnection :: Ref Node src -> Ref Node tgt -> Connection (Ref Node src) (Ref Node tgt)
+rawConnection src tgt = arc src tgt
+
+--instance (MonadBuilder (Hetero (VectorGraph n e c)) m, Castable a e) => Constructor m (Ref Edge a) where
+--    construct e = Ref <$> modify (wrapped' ∘ edgeGraph $ swap ∘ ixed add (cast e)) ; {-# INLINE construct #-}

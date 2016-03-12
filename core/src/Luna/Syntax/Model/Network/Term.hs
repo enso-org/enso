@@ -82,11 +82,17 @@ type instance TermWrapper Model.Draft = Draft
 
 -- Term origins
 
-type instance TermOf (Lit   rt ls) = TermOf (Unwrapped (Lit   rt ls))
-type instance TermOf (Val   rt ls) = TermOf (Unwrapped (Val   rt ls))
-type instance TermOf (Thunk rt ls) = TermOf (Unwrapped (Thunk rt ls))
-type instance TermOf (Expr  rt ls) = TermOf (Unwrapped (Expr  rt ls))
-type instance TermOf (Draft rt ls) = TermOf (Unwrapped (Draft rt ls))
+--type instance TermOf (Lit   rt ls) = TermOf (Unwrapped (Lit   rt ls))
+--type instance TermOf (Val   rt ls) = TermOf (Unwrapped (Val   rt ls))
+--type instance TermOf (Thunk rt ls) = TermOf (Unwrapped (Thunk rt ls))
+--type instance TermOf (Expr  rt ls) = TermOf (Unwrapped (Expr  rt ls))
+--type instance TermOf (Draft rt ls) = TermOf (Unwrapped (Draft rt ls))
+
+type instance TermOf (Lit   rt ls) = Lit   rt ls
+type instance TermOf (Val   rt ls) = Val   rt ls
+type instance TermOf (Thunk rt ls) = Thunk rt ls
+type instance TermOf (Expr  rt ls) = Expr  rt ls
+type instance TermOf (Draft rt ls) = Draft rt ls
 
 -- Records
 

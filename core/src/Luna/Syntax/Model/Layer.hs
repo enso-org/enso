@@ -7,7 +7,7 @@ import Prelude.Luna
 import Data.Construction
 import Data.Layer.Cover
 import Data.Prop
-import Luna.Syntax.AST.Term (LayoutType)
+import Luna.Syntax.AST.Term (LayoutType, TermOf)
 import Type.Bool
 import Data.Record
 import Data.HMap.Lazy (HTMap)
@@ -84,6 +84,7 @@ type family Shelled a where Shelled (t ls) = ls :<: t
 -- === Instances === --
 
 -- Primitive
+type instance TermOf (ls :< a) = TermOf a
 deriving instance Show (Unwrapped (ls :< a)) => Show (ls :< a)
 
 -- Wrappers

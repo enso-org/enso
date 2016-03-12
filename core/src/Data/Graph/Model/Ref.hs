@@ -53,9 +53,3 @@ instance Castable a a' => Castable (Ref r a) (Ref r' a') where cast = rewrap ; {
 instance Castable (Ref r a) (Ptr r)   where cast (Ref x) = Ptr x ; {-# INLINE cast #-}
 instance Castable (Ptr r)   (Ref r a) where cast (Ptr x) = Ref x ; {-# INLINE cast #-}
 
--- Construction
-instance Constructor m (Ref r a) => LayerConstructor m (Ref r a) where
-    constructLayer = construct ; {-# INLINE constructLayer #-}
-
-
-

@@ -16,6 +16,7 @@ import Data.Container
 import Data.Graph.Builder.Class       hiding (with)
 import Data.Graph.Backend.VectorGraph
 import Data.Graph.Model
+import Data.Layer
 
 
 -- === Utils === --
@@ -71,6 +72,9 @@ write ref = modify_ ∘ set (focus ref)
 -- === Instances === --
 
 -- Construction
+
+instance Constructor m (Ref r a) => LayerConstructor m (Ref r a) where
+    constructLayer = construct ; {-# INLINE constructLayer #-}
 
 instance (MonadBuilder (Hetero (VectorGraph n e c)) m, Castable a n) => Constructor m (Ref Node a) where
     construct n = Ref <$> modify (wrapped' ∘ nodeGraph $ swap ∘ ixed add (cast n)) ; {-# INLINE construct #-}

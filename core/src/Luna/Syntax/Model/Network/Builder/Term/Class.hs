@@ -33,10 +33,14 @@ import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
 import qualified Luna.Syntax.AST.Term.Lit                as Lit
+import           Control.Monad.Trans.Identity
 import           Type.Bool
 
 import Data.Graph.Backend.VectorGraph
 
+import Control.Monad.Delayed (delayed, MonadDelayed)
+import Data.Graph.Builder (write)
+import qualified Control.Monad.State as State
 
 -------------------------------------
 -- === Term building utilities === --
@@ -56,6 +60,11 @@ type family Expanded  (t :: k) n :: *
 class    ElemBuilder el m  a where buildElem :: el -> m a
 instance {-# OVERLAPPABLE #-} ElemBuilder el IM a where buildElem = impossible
 
+
+class    ElemBuilder2 el m  a where buildElem2 :: el -> m a
+instance {-# OVERLAPPABLE #-} ElemBuilder2 el IM a where buildElem2 = impossible
+
+
 instance {-# OVERLAPPABLE #-}
          ( SmartCons el (Uncovered a)
          , CoverConstructor m a
@@ -67,6 +76,18 @@ instance {-# OVERLAPPABLE #-}
     --           and fire monad every time we construct an element, not once for the graph
     buildElem el = dispatch ELEMENT =<< Self.buildAbsMe (constructCover $ Record.cons el) where
     {-# INLINE buildElem #-}
+
+instance {-# OVERLAPPABLE #-}
+         ( CoverConstructor m a
+         , Uncovered a ~ el
+         , Dispatcher ELEMENT a m
+         , Self.MonadSelfBuilder s m
+         , Castable a s
+         ) => ElemBuilder2 el (m :: * -> *) a where
+    -- TODO[WD]: change buildAbsMe to buildMe2
+    --           and fire monad every time we construct an element, not once for the graph
+    buildElem2 el = dispatch ELEMENT =<< Self.buildAbsMe (constructCover el) where
+    {-# INLINE buildElem2 #-}
 
 
 -- === TermBuilder === --
@@ -221,16 +242,29 @@ instance ( inp ~ Input a
         return out
 
 type instance BuildArgs Match n = (Input n, Input n)
-instance ( inp ~ Input a
-         , MonadFix m
-         , Connectible inp a m
-         , ElemBuilder (Match $ Ref Edge $ Connection inp a) m a
+instance ( a ~ Input a
+         , Monad m
+
+         , SmartCons (Match (Binding a)) (TermOf a)
+
+         , TermBindBuilder m a
+         , Bindable (n m) a
+         , TransBinder n m a
          ) => TermBuilder Match m a where
-    buildTerm p (a,b) = mdo
-        out <- buildElem $ Match ca cb
-        ca  <- connection a out
-        cb  <- connection b out
-        return out
+    buildTerm p (a,b) = evalBindings $ matchCons <$> bind a <*> bind b
+
+
+matchCons = Record.cons ∘∘ Match
+
+type TermCons a = SmartCons (Match (Binding a)) (TermOf a)
+
+--class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
+
+--class
+
+evalBindings :: (TransBinder n m a, TermBindBuilder m a)
+             => BindBuilder a (n m) (TermOf a) -> m a
+evalBindings m = runTransBinder $ runBuilderX $ (lift ∘ lift ∘ buildTerm') =<< m
 
 var :: TermBuilder Var m a => NameInput a -> m a
 var = curryN $ buildTerm (Proxy :: Proxy Var)
@@ -240,6 +274,95 @@ unify = curryN $ buildTerm (Proxy :: Proxy Unify)
 
 match :: TermBuilder Match m a => Input a -> Input a -> m a
 match = curryN $ buildTerm (Proxy :: Proxy Match)
+
+
+
+
+type family Binding a
+type family NameBinding a
+type family Source2 a
+
+--class TermBindBuilder m a where
+--    bindName   :: NameInput a -> m (NameBinding a)
+--    bind       :: a -> m (Binding a)
+--    buildTerm' :: Source2 a -> m a
+
+--class TransRunner n m
+
+class (MonadTrans n, Monad (n m), Monad m) => TransBinder n m a | m a -> n where
+    runTransBinder :: n m a -> m a
+
+
+
+
+newtype Root a   = Root a   deriving (Show, Functor, Foldable, Traversable)
+newtype Slot a   = Slot a   deriving (Show, Functor, Foldable, Traversable)
+data    Bind a b = Bind a b deriving (Show)
+
+
+class BindingResolver t m a | t -> a where
+    resolveBinding :: t -> m ()
+
+instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
+         , BindingResolver t m v
+         , State.MonadState [(a, Ref Edge a)] m
+         ) => BindingResolver (Bind t a) m v where
+    resolveBinding (Bind t a) = do
+        cref <- reserveConnection
+        State.modify ((a, cref):)
+        resolveBinding t -- dorobic aplikowanie trzeba
+
+
+runBuilderX :: BindBuilder t m t -> m t
+runBuilderX = runIdentityT ∘ runBindBuilder
+
+
+newtype BindBuilder t m a = BindBuilder { runBindBuilder :: IdentityT m a } deriving (Show, Functor, Applicative, Monad, MonadTrans)
+
+class Bindable m t where
+    --bindName   :: NameInput t -> BindBuilder t m (NameBinding t)
+    bind       :: t           -> BindBuilder t m     (Binding t)
+
+
+class TermBindBuilder m t where
+    buildTerm' :: TermOf t -> m t
+
+
+--instance TermBindBuilder m t where buildTerm' = undefined
+
+instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
+         , State.MonadState [(Ref Node a, Ref Edge (Link a))] m
+         --, MonadDelayed n () m
+         --, GraphBuilder.MonadBuilder t n
+         --, Referred Edge (Link a) t
+         --, State.MonadState (Ref Node a) n
+
+         --, Referred Edge (Link a) (Hetero (VectorGraph node eedge cluster))
+         )
+     => Bindable m (Ref Node a) where
+    bind t = do
+        cref <- reserveConnection
+        --write cref (rawConnection t t)
+        --delayed $ write cref ∘ rawConnection t =<< State.get
+        lift $ State.modify ((t, cref):) -- FIXME[WD]: remove lift
+        return cref
+
+
+--write :: (MonadBuilder t m, Referred r a t) => Ref r a -> a -> m ()
+--write ref = modify_ ∘ set (focus ref)
+
+
+
+type instance TermOf (Ref t a) = TermOf a
+type instance Binding (Ref Node a) = Ref Edge (Link a)
+
+--Term t Val  Static
+
+
+--Term t term rt
+
+--class TermBuilder t term rt where
+--    bind ::
 
 
 -- === Draft === --
@@ -255,7 +378,8 @@ blank = curryN $ buildTerm (Proxy :: Proxy Blank)
 
 
 
-
+matchType' :: t -> t -> t
+matchType' = const
 
 
 

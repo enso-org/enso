@@ -9,17 +9,18 @@ import Prologue
 import Luna.Parser.Parser
 import qualified Luna.Syntax.AST.Term.Lit as Lit
 import qualified Luna.Parser.Literal      as PLit
-import Luna.Syntax.Model.Network.Builder.Term
+import Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
 import Luna.Syntax.Model.Network.Term
 import Luna.Evaluation.Runtime
 import Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
 import Data.Graph
 import           Luna.Syntax.Model.Layer        ((:<:))
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
+import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
 import           Luna.Diagnostic.Vis.GraphViz
 import           Control.Monad.Event (Dispatcher)
-import           Control.Monad.Identity
+import           Control.Monad.Identity hiding (when)
 import qualified Luna.Parser.Parser     as Parser
 import qualified Luna.Parser.State      as Parser
 import           Text.Trifecta.Combinators (DeltaParsing)
@@ -28,13 +29,16 @@ import qualified Luna.Parser.Term as Term
 import           Luna.Parser.Class        (ASTParser, ASTParserCore, ASTBuilderCtx)
 import qualified Luna.Syntax.Model.Text.Location as Location
 import Luna.Parser.Class (Parser)
+import Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
 
 --import qualified Luna.Parser.Function as Func
 
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                            $ flip Location.evalT Nothing
-                           $ runNetworkBuilderT g m
+                           $ Term.runNetworkBuilderT g
+                           $ runNetworkBuilderT
+                           $ m
 
 
 evalBuild = fmap snd ∘∘ runBuild
@@ -60,8 +64,10 @@ main1 = do
     case parsed of
         Left  d          -> print d
         Right (bldr, ps) -> do
+            print "ok"
             (_ :: Ref Node NetNode, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
-            renderAndOpen [("g1", "g1", g)]
+            print "ok"
+            --renderAndOpen [("g1", "g1", g)]
     return ()
 
 
@@ -73,7 +79,7 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|Vector x y z = v
+input3 = [s|x = v
 |]
 
 
@@ -85,10 +91,48 @@ myparser4 = parseGen Term.assignment   Parser.defState
 --parsed2 :: _ => _
 parsed2 = parseString input3 myparser4
 
+data Test a = Test { _showGraph :: Bool, _desc :: String, _content :: a} deriving (Show)
+makeLenses ''Test
+
+
+inputs :: [Test String]
+inputs  = [ Test False "Identifier parsing" "ala"
+          , Test False "Operator parsing"   "+"
+          , Test False "String literals"    "\"test\""
+          , Test False "Applications"       "foo bar baz"
+          ]
+
+checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDesc where
+    resDesc = case res of
+        Left e           -> return $ "error: \n" <> show e
+        Right (bldr, ps) -> do
+            (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
+            when draw $ renderAndOpen [(name, name, g)]
+            return "ok"
+
+
+
+partialInput = [s|+|]
+
+partialParsed = parseString partialInput partialParser
+partialParser = parseGen Term.partial Parser.defState
+
+
+mainPartial :: IO ()
+mainPartial = do
+    print "Partial parser test!"
+    case partialParsed of
+        Left  d          -> print d
+        Right (bldr, ps) -> do
+            (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
+            renderAndOpen [("g1", "g1", g)]
+            print a
+            print "ok"
+    return ()
 
 mainLam :: IO ()
 mainLam = do
-    print "Parser lam test!"
+    print "Parser test!"
     case parsed2 of
         Left  d          -> print d
         Right (bldr, ps) -> do
@@ -100,4 +144,7 @@ mainLam = do
 
 
 main :: IO ()
-main = mainLam
+main = do
+    --let results = (content %~ flip parseString partialParser) <$> inputs
+    --mapM_ checkResult results
+    mainLam

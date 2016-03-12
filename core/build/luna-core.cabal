@@ -58,7 +58,8 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules:
+    Exposed-modules: 
+        Control.Monad.Delayed,
         Control.Monad.Event,
         Data.Build,
         Data.Direction,
@@ -83,6 +84,8 @@ Library
         Data.Graph.Query.Sort,
         Data.Index,
         Data.Record,
+        Data.Record.Class,
+        Data.Record.Match,
         Data.Relation.Order,
         Data.Relation.Order.Partial,
         Data.Reprx,
@@ -136,6 +139,7 @@ Library
         Luna.Syntax.AST.Function.Signature,
         Luna.Syntax.AST.Module,
         Luna.Syntax.AST.Term,
+        Luna.Syntax.AST.Term.Builder,
         Luna.Syntax.AST.Term.Class,
         Luna.Syntax.AST.Term.Lit,
         Luna.Syntax.Builder,
@@ -146,6 +150,7 @@ Library
         Luna.Syntax.Model.Layer,
         Luna.Syntax.Model.Network,
         Luna.Syntax.Model.Network.Builder,
+        Luna.Syntax.Model.Network.Builder.Class,
         Luna.Syntax.Model.Network.Builder.Layer,
         Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking,
         Luna.Syntax.Model.Network.Builder.Layers.SuccTracking,
