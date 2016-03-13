@@ -64,7 +64,7 @@ import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
-
+import Control.DeepSeq            as X (NFData, rnf, force)
 
 import Data.Binary.Instances.Missing      ()
 import Data.Default.Instances.Missing     ()

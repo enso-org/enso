@@ -59,6 +59,7 @@ Library
                     , convert
                     , data-default
                     , data-layer
+                    , deepseq
                     , errors
                     , lens
                     , lens-utils
