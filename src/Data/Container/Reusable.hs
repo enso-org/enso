@@ -17,14 +17,15 @@ import Data.Functor.Utils
 import Data.Layer
 import Data.List            ((\\))
 import Data.Monoid
-
+import GHC.Generics    (Generic)
+import Control.DeepSeq (NFData)
 
 
 ----------------------
 -- === Reusable === --
 ----------------------
 
-data Reusable idx a = Reusable [idx] !a deriving (Functor, Foldable, Traversable, Monoid)
+data Reusable idx a = Reusable [idx] !a deriving (Generic, Functor, Foldable, Traversable, Monoid)
 type Reusable'    a = Reusable (Index a) a
 
 type instance Index     (Reusable idx a) = Index (Container a)
@@ -40,7 +41,7 @@ type instance       Unlayered  (Reusable idx a) = a
 instance            Layered    (Reusable idx a) where layered = lens (\(Reusable _ a) -> a) (\(Reusable ixs _) a -> Reusable ixs a)
 instance Monad m => LayeredM m (Reusable idx a)
 
-instance (IsContainer a, FromList (Container a)) 
+instance (IsContainer a, FromList (Container a))
       => FromList  (Reusable idx a) where fromList = Reusable mempty . fromContainer . fromList
 
 instance Default a => Default (Reusable idx a) where def = Reusable def def
@@ -57,6 +58,11 @@ instance ( Show (Item a), TracksElems (Item a) (Reusable idx a)
 ------------------------
 -- === Instances === ---
 ------------------------
+
+-- Normal Form
+
+instance (NFData idx, NFData a) => NFData (Reusable idx a)
+
 
 -- === Finite ===
 
@@ -98,19 +104,19 @@ type instance ModsOf   ExpandableOp (Reusable idx a) = ModsOf   ExpandableOp (Co
 type instance ParamsOf GrowableOp   (Reusable idx a) = ParamsOf GrowableOp   (Container a)
 type instance ModsOf   GrowableOp   (Reusable idx a) = ModsOf   GrowableOp   (Container a)
 
-instance ( SingletonQM (Ixed ': GetOpts ms) (GetOpts ps) m el a, idx ~ Index (Container a)) => SingletonQM_ ms ps m el (Reusable idx a) where 
+instance ( SingletonQM (Ixed ': GetOpts ms) (GetOpts ps) m el a, idx ~ Index (Container a)) => SingletonQM_ ms ps m el (Reusable idx a) where
     singletonM_ _ el = do Res (ix,ds) r <- singletonQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) el
                           return $ Res ds $ Reusable [ix] r
 
-instance ( AllocableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => AllocableQM_ ms ps m (Reusable idx a) where 
+instance ( AllocableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => AllocableQM_ ms ps m (Reusable idx a) where
     allocM_ _ i = do Res (ixs,ds) r <- allocQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) i
                      return $ Res ds $ Reusable ixs r
 
-instance ( ExpandableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => ExpandableQM_ ms ps m (Reusable idx a) where 
+instance ( ExpandableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => ExpandableQM_ ms ps m (Reusable idx a) where
     expandM_ _ (Reusable ixs a) = do Res (ixs',ds) r <- expandQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) a
                                      return $ Res ds $ Reusable (ixs <> ixs') r
 
-instance ( GrowableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => GrowableQM_ ms ps m (Reusable idx a) where 
+instance ( GrowableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => GrowableQM_ ms ps m (Reusable idx a) where
     growM_ _ i (Reusable ixs a) = do Res (ixs',ds) r <- growQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) i a
                                      return $ Res ds $ Reusable (ixs <> ixs') r
 

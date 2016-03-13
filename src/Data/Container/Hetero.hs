@@ -24,12 +24,14 @@ import Unsafe.Coerce         (unsafeCoerce)
 import Data.Container.Poly
 import Data.Default
 import Control.Lens
+import GHC.Generics    (Generic)
+import Control.DeepSeq (NFData)
 --import Data.Reprx
 
 
 -- === Definitions === --
 
-newtype Hetero a = Hetero a deriving (Show, Eq, Ord, Functor, Traversable, Foldable, Default)
+newtype Hetero a = Hetero a deriving (Generic, NFData, Show, Eq, Ord, Functor, Traversable, Foldable, Default)
 makeWrapped ''Hetero
 
 

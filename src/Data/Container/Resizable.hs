@@ -18,12 +18,14 @@ import           Data.Container.Proxy
 import           Data.Default
 import           Data.Layer
 import           Data.Functor.Utils
+import           GHC.Generics    (Generic)
+import           Control.DeepSeq (NFData)
 
 ----------------------
 -- === Resizable === --
 ----------------------
 
-data Resizable style a = Resizable !style !a deriving (Show, Functor, Foldable, Traversable, Monoid)
+data Resizable style a = Resizable !style !a deriving (Generic, Show, Functor, Foldable, Traversable, Monoid)
 
 type instance Index     (Resizable s a) = Index (Container a)
 type instance Item      (Resizable s a) = Item  (Container a)
@@ -39,7 +41,7 @@ type instance       Unlayered  (Resizable s a) = a
 instance            Layered    (Resizable s a) where layered = lens (\(Resizable _ a) -> a) (\(Resizable s _) a -> Resizable s a)
 instance Monad m => LayeredM m (Resizable s a)
 
-instance (IsContainer a, FromList (Container a), Default s) 
+instance (IsContainer a, FromList (Container a), Default s)
       => FromList  (Resizable s a) where fromList = Resizable def . fromContainer . fromList
 
 instance (Default s, Default a) => Default (Resizable s a) where def = Resizable def def
@@ -53,9 +55,9 @@ style = lens (\(Resizable s _) -> s) (\(Resizable _ a) s -> Resizable s a)
 
 -- === Styles ===
 
-data Minimal     = Minimal     deriving (Show)
-data Exponential = Exponential deriving (Show)
-data Linear      = Linear Int  deriving (Show)
+data    Minimal     = Minimal     deriving (Generic, NFData, Show)
+data    Exponential = Exponential deriving (Generic, NFData, Show)
+newtype Linear      = Linear Int  deriving (Generic, NFData, Show)
 
 instance Default Minimal     where def = Minimal
 instance Default Exponential where def = Exponential
@@ -76,6 +78,10 @@ checkZeroSize s = if s == 0 then 1 else s
 ------------------------
 -- === Instances === ---
 ------------------------
+
+-- Normal Form
+
+instance (NFData style, NFData a) => NFData (Resizable style a)
 
 -- === Finite ===
 

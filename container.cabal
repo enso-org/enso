@@ -89,6 +89,7 @@ Library
                     , containers
                     , data-default
                     , data-layer
+                    , deepseq
                     , functor-utils
                     , lens
                     , lens-utils
