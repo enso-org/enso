@@ -22,11 +22,16 @@ import Data.HMap.Lazy (HTMap)
 type family LayerData layout d base
 newtype     Layer     layout t base = Layer (LayerData layout t base) -- deriving (Show) --, Eq, Ord, Functor, Traversable, Foldable)
 
-data Attached t a = Attached t a deriving (Show, Eq, Ord, Functor, Traversable, Foldable)
+data Attached t a = Attached t a deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
 
 
 -- === Instances === --
 
+-- Normal Form
+instance (NFData t, NFData a) => NFData (Attached t a)
+deriving instance NFData (LayerData layout t base) => NFData (Layer layout t base)
+
+-- Show
 deriving instance Show (Unwrapped (Layer l t a)) => Show (Layer l t a)
 
 -- Wrappers
@@ -67,8 +72,8 @@ instance {-# OVERLAPPABLE #-} Setter a (Attached (Layer l a  t) base) where sett
 -- === Shell === ---
 --------------------
 
-data (layers :: [*]) :<  (a :: *)        = Shell (ShellStructure layers a)
-type (layers :: [*]) :<: (a :: [*] -> *) = layers :< a layers -- FIXME [WD->MK]: This should be a newtype, to make error inference more obvious
+newtype (layers :: [*]) :<  (a :: *)        = Shell (ShellStructure layers a)
+type    (layers :: [*]) :<: (a :: [*] -> *) = layers :< a layers -- FIXME [WD->MK]: This should be a newtype, to make error inference more obvious
 
 type family ShellStructure ls a where
     ShellStructure '[]       a = Cover a
@@ -82,6 +87,9 @@ type family Shelled a where Shelled (t ls) = ls :<: t
 
 
 -- === Instances === --
+
+-- Normal Form
+deriving instance NFData (ShellStructure ls a) => NFData (ls :< a)
 
 -- Primitive
 type instance TermOf (ls :< a) = TermOf a

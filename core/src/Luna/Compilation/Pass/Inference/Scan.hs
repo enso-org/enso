@@ -5,7 +5,7 @@ module Luna.Compilation.Pass.Inference.Scan where
 import Prelude.Luna
 import Data.Construction
 import Data.Prop
-import Data.Record                                     hiding (cons)
+import Data.Record.Match
 import Data.Graph.Builder
 import Data.Graph.Backend.VectorGraph                  as Graph
 
@@ -44,16 +44,16 @@ investigate :: PassCtx(m) => Ref Node node -> m ()
 investigate ref = do
     node <- read ref
     let mod = caseTest (uncover node) $ do
-        of' $ \(Match _ _)      -> (TypeCheck.bindings          %~ (ref :))
-                                 . (TypeCheck.untypedBinds      %~ (ref :))
-        of' $ \(Var _)          ->  TypeCheck.unresolvedSymbols %~ (ref :)
-        of' $ \(App _ _)        -> (TypeCheck.untypedApps       %~ (ref :))
-                                 . (TypeCheck.uncalledApps      %~ (ref :))
-        of' $ \(Acc _ _)        -> (TypeCheck.untypedAccs       %~ (ref :))
-                                 . (TypeCheck.unresolvedSymbols %~ (ref :))
-        of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
-        of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
-        of' $ \ANY              ->  id
+            of' $ \(Match _ _)      -> (TypeCheck.bindings          %~ (ref :))
+                                     . (TypeCheck.untypedBinds      %~ (ref :))
+            of' $ \(Var _)          ->  TypeCheck.unresolvedSymbols %~ (ref :)
+            of' $ \(App _ _)        -> (TypeCheck.untypedApps       %~ (ref :))
+                                     . (TypeCheck.uncalledApps      %~ (ref :))
+            of' $ \(Acc _ _)        -> (TypeCheck.untypedAccs       %~ (ref :))
+                                     . (TypeCheck.unresolvedSymbols %~ (ref :))
+            of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
+            of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
+            of' $ \ANY              ->  id
     TypeCheck.modify_ mod
 
 -----------------------------

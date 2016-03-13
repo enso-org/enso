@@ -14,7 +14,7 @@ import Binary
 -- === Name === --
 ------------------
 
-newtype Name = Name FastString deriving (Data, Show, Read, Eq, Ord, Typeable, Outputable, Uniquable, Binary, Monoid, IsString, ToString, Repr s)
+newtype Name = Name FastString deriving (Generic, NFData, Data, Show, Read, Eq, Ord, Typeable, Outputable, Uniquable, Binary, Monoid, IsString, ToString, Repr s)
 makeWrapped ''Name
 
 class HasName    a where name    :: Lens' a Name
@@ -37,14 +37,18 @@ instance Convertible Name   String where convert = convert ∘ unwrap' ; {-# INL
 -----------------------
 
 ---- TODO[WD]: make the implementation faster - we can use the same technique as the one used to implement FastString here
-data MultiName = MultiName { __base_ :: Segment, __segs_ :: [Segment] } deriving (Show, Read, Eq, Ord)
-data Segment   = Segment   { __anum_ :: Int    , __name_ :: Name      } deriving (Show, Read, Eq, Ord)
+data MultiName = MultiName { __base_ :: Segment, __segs_ :: [Segment] } deriving (Generic, Show, Read, Eq, Ord)
+data Segment   = Segment   { __anum_ :: Int    , __name_ :: Name      } deriving (Generic, Show, Read, Eq, Ord)
 
 class HasMultiName    a where multiName    :: Lens' a MultiName
 class HasOptMultiName a where optMultiName :: Lens' a (Maybe MultiName)
 
 
 -- === Instances === --
+
+-- Normal Form
+instance NFData MultiName
+instance NFData Segment
 
 -- Basic
 instance HasMultiName MultiName where multiName = id ; {-# INLINE multiName #-}

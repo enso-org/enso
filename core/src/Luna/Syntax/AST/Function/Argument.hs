@@ -27,6 +27,10 @@ arg = Arg Nothing
 
 -- === Instances === --
 
+-- Normal Form
+instance NFData a => NFData (Arg    a)
+instance NFData a => NFData (ArgDef a)
+
 -- Basic
 type instance IdentType   (Arg a) = IdentType.Var
 instance      HasOptIdent (Arg a) where optIdent = _ident_

@@ -8,6 +8,9 @@ import FastString   as X
 
 -- === FastString Instances === --
 
+-- Normal Form
+instance NFData FastString where rnf = const ()
+
 -- Read
 instance Read FastString where readPrec = fromString <$> readPrec ; {-# INLINE readPrec #-}
 

@@ -2,7 +2,7 @@
 
 module Data.Graph.Model.Edge where
 
-import Prelude.Luna
+import Prologue
 
 import Data.Graph.Model.Ref
 import Data.Graph.Model.Node
@@ -25,8 +25,8 @@ type family Connection src tgt
 
 -- === Edge types === --
 
-newtype Arrow tgt     = Arrow (Ref Node tgt)                deriving (Show, Eq, Ord, Functor, Traversable, Foldable)
-data    Arc   src tgt = Arc   (Ref Node src) (Ref Node tgt) deriving (Show, Eq, Ord, Functor, Traversable, Foldable)
+newtype Arrow tgt     = Arrow (Ref Node tgt)                deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable, NFData)
+data    Arc   src tgt = Arc   (Ref Node src) (Ref Node tgt) deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
 type    Link  a       = Arc   a a
 
 
@@ -45,6 +45,9 @@ arrow = Arrow
 
 
 -- === Instances === --
+
+-- Normal Form
+instance NFData (Arc src tgt)
 
 -- Functors
 

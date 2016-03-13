@@ -10,7 +10,7 @@ import qualified Data.IntSet as IntSet
 
 -- === Definitions === --
 
-newtype SubGraph n = SubGraph IntSet deriving (Show)
+newtype SubGraph n = SubGraph IntSet deriving (Generic, NFData, Show)
 makeWrapped ''SubGraph
 
 -- === Utils === --

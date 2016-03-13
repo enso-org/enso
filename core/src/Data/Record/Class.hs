@@ -75,50 +75,13 @@ instance (KnownNat n, KnownNats ns) => KnownNats (n ': ns)       where natVals _
 data NOP = NOP deriving (Show)
 
 
-------------------------
--- === Properties === --
-------------------------
-
-data Value    = Value   deriving (Show)
-data Variant  = Variant deriving (Show)
-data Group    = Group   deriving (Show)
-
-
-type family ValueOf a
-class HasValue a where value :: Lens' a (ValueOf a)
-
-
-type family ElemType  a rec where ElemType  a rec = ElemType' a (RecordOf rec)
-type family ElemType' a rec where ElemType' a rec = If (a `In` Variants rec) ('Just Variant)
-                                                  ( If (a `In` Groups   rec) ('Just Group) 'Nothing)
-
-
----- === Resolvers === --
-
-type family ResolveGroups   a rec where ResolveGroups   a rec = ResolveAmong a (Groups   (RecordOf rec))
-type family ResolveVariants a rec where ResolveVariants a rec = ResolveAmong a (Variants (RecordOf rec))
-type family ResolveElems    a rec where ResolveElems    a rec = ResolveAmong a (Groups (RecordOf rec) <> Variants (RecordOf rec))
-
-type family ResolveAmong  a els where ResolveAmong  a els = LookupIdx (Index (Base a) (Bases els)) els
-type family LookupIdx (idx :: Maybe Nat) (els :: [*]) where
-    LookupIdx ('Just idx) els = 'Just (Index2 idx els)
-    LookupIdx 'Nothing    els = 'Nothing
-
-type family ResolveConstraint t a :: Constraint where
-    ResolveConstraint 'Nothing  a = ()
-    ResolveConstraint ('Just t) a = (t ~ a)
-
-type Resolved a rec = ResolveConstraint (ResolveElems a rec) a
-
-
-
 -------------------
 -- === Store === --
 -------------------
 
 -- TODO [WD]: rewrite to use memory block (FFI or Primitive)
 newtype Store = Store Any
-instance Show Store where show _ = "Store"
+makeWrapped ''Store
 
 unsafeStore :: a -> Store
 unsafeStore = Store ∘ unsafeCoerce
@@ -128,12 +91,10 @@ unsafeRestore :: Store -> a
 unsafeRestore = unsafeCoerce ∘ unwrap'
 {-# INLINE unsafeRestore #-}
 
-instance Rewrapped Store Store
-instance Wrapped   Store where
-    type Unwrapped Store = Any
-    _Wrapped' = iso (\(Store s) -> s) Store ; {-# INLINE _Wrapped' #-}
+-- === Instances === --
 
-
+instance Show   Store where show _ = "Store"
+instance NFData Store where rnf  _ = ()
 
 --------------------
 -- === Record === --
@@ -174,6 +135,43 @@ class Encoder t a m rec | t a rec -> m where encode :: Proxy t -> a -> m rec
 class UnsafeExtract t rec m a | t rec a -> m where unsafeExtract :: Proxy t -> rec -> m a
 class UnsafeInsert  t rec m a | t rec a -> m where unsafeInsert  :: Proxy t -> a -> rec -> m rec
 class CheckMatch    t a rec where checkMatch :: Proxy t -> Proxy (a :: *) -> rec -> Bool
+
+
+------------------------
+-- === Properties === --
+------------------------
+
+data Value    = Value   deriving (Show)
+data Variant  = Variant deriving (Show)
+data Group    = Group   deriving (Show)
+
+
+type family ValueOf a
+class HasValue a where value :: Lens' a (ValueOf a)
+
+
+type family ElemType  a rec where ElemType  a rec = ElemType' a (RecordOf rec)
+type family ElemType' a rec where ElemType' a rec = If (a `In` Variants rec) ('Just Variant)
+                                                  ( If (a `In` Groups   rec) ('Just Group) 'Nothing)
+
+
+---- === Resolvers === --
+
+type family ResolveGroups   a rec where ResolveGroups   a rec = ResolveAmong a (Groups   (RecordOf rec))
+type family ResolveVariants a rec where ResolveVariants a rec = ResolveAmong a (Variants (RecordOf rec))
+type family ResolveElems    a rec where ResolveElems    a rec = ResolveAmong a (Groups (RecordOf rec) <> Variants (RecordOf rec))
+
+type family ResolveAmong  a els where ResolveAmong  a els = LookupIdx (Index (Base a) (Bases els)) els
+type family LookupIdx (idx :: Maybe Nat) (els :: [*]) where
+    LookupIdx ('Just idx) els = 'Just (Index2 idx els)
+    LookupIdx 'Nothing    els = 'Nothing
+
+type family ResolveConstraint t a :: Constraint where
+    ResolveConstraint 'Nothing  a = ()
+    ResolveConstraint ('Just t) a = (t ~ a)
+
+type Resolved a rec = ResolveConstraint (ResolveElems a rec) a
+
 
 
 --------------------
@@ -524,15 +522,18 @@ static = of'
 
 data Data = Data { _mask    :: !Mask
                  , _variant :: !Store
-                 } deriving (Show)
+                 } deriving (Generic, Show)
 
 instance Eq Data where a == b = _mask a == _mask b
 
+-- === Instances === --
+-- Normal Form
+instance NFData Data
 
 ---------------------------------
 -- === AST Data definition === --
 ---------------------------------
-newtype Mask = Mask Int64 deriving (Eq, Num, Bits, FiniteBits)
+newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
 
 instance Show Mask where
     show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where

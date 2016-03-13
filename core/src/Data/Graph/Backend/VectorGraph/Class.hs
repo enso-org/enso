@@ -21,7 +21,7 @@ import Data.Graph.Backend.VectorGraph.SubGraph
 -- === Data container === --
 ----------------------------
 
-newtype AutoVector a = AutoVector (Auto Exponential (Vector a)) deriving (Show, Default)
+newtype AutoVector a = AutoVector (Auto Exponential (Vector a)) deriving (Generic, NFData, Show, Default)
 
 
 -- === Instances === --
@@ -54,13 +54,16 @@ instance Monad m => IsContainerM  m (AutoVector a) where
 data VectorGraph node edge cluster = VectorGraph { _nodeGraph :: !(AutoVector node)
                                                  , _edgeGraph :: !(AutoVector edge)
                                                  , _subGraphs :: !(AutoVector cluster)
-                                                 } deriving (Show)
+                                                 } deriving (Generic, Show)
 
 
 makeLenses  ''VectorGraph
 
 
 -- === Instances === --
+
+-- Normal Form
+instance (NFData n, NFData e, NFData c) => NFData (VectorGraph n e c)
 
 -- Construction
 

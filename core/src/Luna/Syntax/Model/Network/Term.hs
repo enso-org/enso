@@ -40,11 +40,11 @@ type family TermWrapper (a :: *) :: * -> [*] -> *
 -- === Definitions === --
 
 data    Raw      (ls :: [*]) = Raw Data                                 deriving (Show, Eq)
-newtype Lit   rt (ls :: [*]) = Lit   (Term (Network ls) Model.Lit   rt) deriving (Show, Eq)
-newtype Val   rt (ls :: [*]) = Val   (Term (Network ls) Model.Val   rt) deriving (Show, Eq)
-newtype Thunk rt (ls :: [*]) = Thunk (Term (Network ls) Model.Thunk rt) deriving (Show, Eq)
-newtype Expr  rt (ls :: [*]) = Expr  (Term (Network ls) Model.Expr  rt) deriving (Show, Eq)
-newtype Draft rt (ls :: [*]) = Draft (Term (Network ls) Model.Draft rt) deriving (Show, Eq)
+newtype Lit   rt (ls :: [*]) = Lit   (Term (Network ls) Model.Lit   rt) deriving (Show, Eq, Generic, NFData)
+newtype Val   rt (ls :: [*]) = Val   (Term (Network ls) Model.Val   rt) deriving (Show, Eq, Generic, NFData)
+newtype Thunk rt (ls :: [*]) = Thunk (Term (Network ls) Model.Thunk rt) deriving (Show, Eq, Generic, NFData)
+newtype Expr  rt (ls :: [*]) = Expr  (Term (Network ls) Model.Expr  rt) deriving (Show, Eq, Generic, NFData)
+newtype Draft rt (ls :: [*]) = Draft (Term (Network ls) Model.Draft rt) deriving (Show, Eq, Generic, NFData)
 
 
 -- === Instances === --

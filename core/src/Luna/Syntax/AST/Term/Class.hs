@@ -284,8 +284,8 @@ instance {-# OVERLAPPABLE #-} Repr StaticNameOnly a          where repr = const 
 
 
 
-
-newtype ASTRecord (groups :: [*]) (variants :: [*]) t d = ASTRecord d deriving (Show, Eq, Ord)
+-- FIXME[WD]: NFData jest tu zle zaimplementowana bo nie uwzglednia prwadziwych danych i jest przerucana na Data, ktra jest Storem z GHC.Any!
+newtype ASTRecord (groups :: [*]) (variants :: [*]) t d = ASTRecord d deriving (Generic, NFData, Show, Eq, Ord)
 
 
 -- === Instances === --
@@ -328,7 +328,7 @@ instance Castable  d (ASTRecord gs vs t d)   where cast    = wrap'   ; {-# INLIN
 -- | The following definitions are parameterized by the `t` type, which indicates which data `Layout` to choose.
 --   The `Layout` type family defines the recursive layout for AST structures.
 
-newtype     Term     t term rt = Term (ASTRecord (SubRuntimeGroups rt t term) (Variants t term rt) t Data)
+newtype     Term     t term rt = Term (ASTRecord (SubRuntimeGroups rt t term) (Variants t term rt) t Data) deriving (Generic, NFData)
 type        Variants t term rt = Elems term (NameByRuntime rt (Layout t term rt)) (Layout t term rt)
 type family Layout   t term rt
 --type family LayoutOf   a

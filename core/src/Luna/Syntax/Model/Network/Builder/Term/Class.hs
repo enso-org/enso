@@ -400,12 +400,18 @@ matchTypeM _ = id
 
 type NetClusterLayers = '[Lambda, Name]
 type NetLayers        = '[Type, Succs, TCData, InterpreterData, Meta]
-type NetNode          = NetLayers :<: Draft Static
-type NetRawNode       = NetLayers :<: Raw
+type NetLayers'       = '[Type, Succs]
+type NetNode          = NetLayers  :<: Draft Static
+type NetNode'         = NetLayers' :<: Draft Static
+type NetRawNode       = NetLayers  :<: Raw
 type NetCluster       = NetClusterLayers :< SubGraph NetNode
+type NetCluster'      = NetClusterLayers :< SubGraph NetNode'
 type NetRawCluster    = NetClusterLayers :< SubGraph NetRawNode
 
-type NetGraph = Hetero (VectorGraph NetRawNode (Link NetRawNode) NetRawCluster)
+type NetGraph   = Hetero (VectorGraph NetRawNode (Link NetRawNode) NetRawCluster)
+type NetGraph'  = Hetero (VectorGraph NetNode    (Link NetNode)    NetCluster)
+
+type NetGraph'' = Hetero (VectorGraph NetNode'   (Link NetNode')   NetCluster')
 
 buildNetwork  = runIdentity ∘ buildNetworkM
 buildNetworkM = rebuildNetworkM' (def :: NetGraph)
@@ -446,6 +452,16 @@ instance {-# OVERLAPPABLE #-}
                            ∘ registerMembers SUBGRAPH_INCLUDE
                            ∘ unregisterSuccs CONNECTION_REMOVE
                            ∘ removeMembers   NODE_REMOVE
+
+runNetworkBuilderT' net = flip Self.evalT (undefined ::        Ref Node NetNode')
+                        ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode'))
+                        ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
+                        ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode')
+                        ∘ flip GraphBuilder.runT net
+                        ∘ registerSuccs   CONNECTION
+                        ∘ registerMembers SUBGRAPH_INCLUDE
+                        ∘ unregisterSuccs CONNECTION_REMOVE
+                        ∘ removeMembers   NODE_REMOVE
 
 
 -- FIXME[WD]: poprawic typ oraz `WithElement_` (!)

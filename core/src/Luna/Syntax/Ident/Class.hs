@@ -16,7 +16,7 @@ import           Luna.Syntax.Ident.Type as X (IdentType)
 -- === Definition === --
 
 type    Ident' a = Ident (IdentType a)
-newtype Ident  t = Ident MultiName deriving (Show, Read, Eq, Ord)
+newtype Ident  t = Ident MultiName deriving (Generic, NFData, Show, Read, Eq, Ord)
 makeWrapped ''Ident
 
 type Var  = Ident Type.Var

@@ -19,8 +19,8 @@ import Data.Prop
 
 -- FIXME[WD]: Maybe we should parametrize the Ref to indicate the ref type, like Ref Node / Ref Edge / Ref Cluster / ...
 --            We can then introduce Ref and TypedRef (used with homo- and hetero- graphs)
-newtype Ref r a = Ref Int deriving (Show, Eq, Ord, Functor, Traversable, Foldable)
-newtype Ptr r   = Ptr Int deriving (Show, Eq, Ord)
+newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord, Functor, Traversable, Foldable)
+newtype Ptr r   = Ptr Int deriving (Generic, NFData, Show, Eq, Ord)
 
 class Referred r a t where focus :: Ref r a -> Lens' t a
 

@@ -16,17 +16,19 @@ import Prelude.Luna
 data Signature a = Signature { _self  :: Maybe a
                              , _args  :: [Arg a]
                              , _out   :: a
-                             } deriving (Show, Functor, Foldable, Traversable)
+                             } deriving (Generic, Show, Functor, Foldable, Traversable)
 
 data Function a b = Function { _sig  :: Signature a
                              , _body :: b
-                             } deriving (Show, Functor, Foldable, Traversable)
+                             } deriving (Generic, Show, Functor, Foldable, Traversable)
 
 makeLenses ''Signature
 makeLenses ''Function
 
 
 -- === Instances === --
+
+instance NFData a => NFData (Signature a)
 
 -- Castable
 instance Castable n n' => Castable (Signature n) (Signature n') where
