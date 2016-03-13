@@ -5,7 +5,7 @@ local-bin-path: ./dist/bin
 packages:
 - {location: ..}
 - extra-dep: true
-  location: {commit: 0154ec09008e030aee074617f8012bd392567c9b, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: 438948052b8030737fb4c4310bd932dc2baebe04, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
@@ -15,7 +15,7 @@ packages:
 - extra-dep: true
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
-  location: {commit: 89c3973c185959d60aa1710bbdaaf768ce41b0c3, git: 'https://github.com/wdanilo/data-layer.git'}
+  location: {commit: 8bfc7451203c143205998e8c20c024bff47082c5, git: 'https://github.com/wdanilo/data-layer.git'}
 - extra-dep: true
   location: {commit: 941777d7080fcb86fd50b982ed61eb040a5c03db, git: 'https://github.com/wdanilo/data-repr.git'}
 - extra-dep: true
@@ -31,7 +31,7 @@ packages:
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: 7182431349e946c8bdbf58ef7d48c413b2781329, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: 02edbf57945ad908069ed63596d420a1e51de35b, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
