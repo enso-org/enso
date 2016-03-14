@@ -69,6 +69,7 @@ Library
         Data.Container.Proxy,
         Data.Container.Resizable,
         Data.Container.Reusable,
+        Data.Container.SizeTracking,
         Data.Container.Type,
         Data.Container.Utils,
         Data.Container.Weak,
