@@ -25,8 +25,8 @@ type family Connection src tgt
 
 -- === Edge types === --
 
-newtype Arrow tgt     = Arrow (Ref Node tgt)                deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable, NFData)
-data    Arc   src tgt = Arc   (Ref Node src) (Ref Node tgt) deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
+newtype Arrow tgt     = Arrow (Ref Node tgt)                deriving (Generic, Show, Eq, Ord, NFData)
+data    Arc   src tgt = Arc   (Ref Node src) (Ref Node tgt) deriving (Generic, Show, Eq, Ord)
 type    Link  a       = Arc   a a
 
 
@@ -48,10 +48,6 @@ arrow = Arrow
 
 -- Normal Form
 instance NFData (Arc src tgt)
-
--- Functors
-
-instance Bifunctor Arc where bimap f g (Arc src tgt) = Arc (f <$> src) (g <$> tgt) ; {-# INLINE bimap #-}
 
 -- Wrappers
 
@@ -76,7 +72,8 @@ type instance Connection (Ref Node a) (Ref Node b) = Arc a b
 
 -- Conversions
 
-instance (Castable src src', Castable tgt tgt') => Castable (Arc src tgt) (Arc src' tgt') where
+instance {-# OVERLAPPABLE #-}                                           Castable (Arc src tgt) (Arc src  tgt)  where cast = id ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} (Castable src src', Castable tgt tgt') => Castable (Arc src tgt) (Arc src' tgt') where
     cast (Arc src tgt) = Arc (cast src) (cast tgt) ; {-# INLINE cast #-}
 
 

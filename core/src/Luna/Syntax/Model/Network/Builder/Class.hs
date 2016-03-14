@@ -30,7 +30,7 @@ runNetworkBuilderT = runIdentityT ∘ unwrap'
 
 -- === Instances === --
 
-instance (MonadBuilder g m, Referred Edge (Link a) g)
+instance (MonadBuilder g m, Referred Edge g (Link a))
       => TransBinder (State.StateT [(Ref Node a, Ref Edge (Link a))]) (NetworkBuilderT m) (Ref Node a) where
     runTransBinder m = do
         (a, pending) <- State.runStateT m mempty

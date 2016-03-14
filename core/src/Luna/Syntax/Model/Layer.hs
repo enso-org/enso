@@ -111,8 +111,8 @@ instance Monad m => LayerDestructor  m (ls :< a) where destructLayer  = return â
 
 -- Conversion
 -- FIXME[WD]: change the implementation to be independent from layers. Wee need to implement full-lens Layered and Covered type classes
-instance Castable (Unwrapped (ls :< a)) (Unwrapped (ls' :< a')) => Castable (ls :< a) (ls' :< a') where
-    cast = wrapped %~ cast ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-}                                                           Castable (ls :< a) (ls  :< a)  where cast = id              ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Unwrapped (ls :< a)) (Unwrapped (ls' :< a')) => Castable (ls :< a) (ls' :< a') where cast = wrapped %~ cast ; {-# INLINE cast #-}
 
 
 -- Attributes

@@ -81,6 +81,7 @@ Library
         Data.Graph.Model,
         Data.Graph.Model.Class,
         Data.Graph.Model.Cluster,
+        Data.Graph.Model.Dynamic,
         Data.Graph.Model.Edge,
         Data.Graph.Model.Events,
         Data.Graph.Model.Hetero,

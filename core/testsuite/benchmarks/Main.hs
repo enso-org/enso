@@ -78,41 +78,49 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 runBuild (g :: NetGraph'') m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers' :<: Draft Static)))
-                           $ runNetworkBuilderT' g m
+                             $ runNetworkBuilderT' g m
 
 
 prebuild :: IO (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
 prebuild = runBuild def star
 
---main :: IO ()
---main = do
---    --showcase
---    print "hello2"
---    return ()
 
 
--- The function we're benchmarking.
-fib m | m < 0     = error "negative!"
-      | otherwise = go m
-  where
-    go 0 = 0
-    go 1 = 1
-    go n = go (n-1) + go (n-2)
 
--- Our benchmark harness.
+
+addNodeEnv = do
+    (_,  g :: NetGraph'') <- prebuild
+    let n = fst $ nodeAdd g
+    return (g, n)
+
+
 main :: IO ()
 main = do
     (_,  g :: NetGraph'') <- prebuild
+    n <- evaluate $ force $ fst $ nodeAdd g
     return ()
-    defaultMain [
-        bgroup "single" [ bench "1"  $ nf nodeAdd g
-                        --, bench "5"  $ whnf fib 5
-                        --, bench "9"  $ whnf fib 9
-                        --, bench "11" $ whnf fib 11
-                        ]
+
+    defaultMain
+        [ env addNodeEnv $ \ ~(g,n) ->
+            bgroup "add nodes" $ take 6 $ benchNodeAdd g n <$> doubles 100
         ]
 
---foo :: _ => _
+
+
+
+
+benchNodeAdd :: NetGraph'' -> NetLayers' :<: Draft Static -> Int -> Benchmark
+benchNodeAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (nodeAddPure_ n))) g
+
+doubles :: Int -> [Int]
+doubles i = i : doubles (2 * i)
+
+
+nodeAddPure_ :: NetLayers' :<: Draft Static -> NetGraph'' -> NetGraph''
+nodeAddPure_ = snd ∘∘ nodeAddPure
+
+nodeAddPure :: NetLayers' :<: Draft Static -> NetGraph'' -> (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
+nodeAddPure = add
 --foo = force (undefined :: '[] Draft Static)
 
 -----------------------
@@ -126,10 +134,14 @@ main = do
 --    renderAndOpen [ ("g", "g", g')
 --                  ]
 
-nodeAdd :: NetGraph'' -> (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
+nodeAdd_ :: NetGraph'' -> NetGraph''
+nodeAdd_ = snd ∘ nodeAdd
+
+nodeAdd :: NetGraph'' -> (NetLayers' :<: Draft Static, NetGraph'')
 nodeAdd g = runIdentity $ runNetworkBuilderT' g $ do
-    s1 <- int 8
-    return s1
+    s1   <- int 8
+    s1_v <- read s1
+    return s1_v
 
 
 

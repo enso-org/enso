@@ -8,34 +8,29 @@ import Prelude.Luna
 import Control.Monad.Event
 import Data.List                      (delete)
 import Data.Graph.Builders
-import Data.Graph
 import Data.Construction
 import Data.Prop
 import Data.Index
-import Data.Container
+import Data.Container                 hiding (add, remove)
+import qualified Data.Container       as Cont
 import Data.Graph.Builder.Class       hiding (with)
 import Data.Graph.Backend.VectorGraph
-import Data.Graph.Model
 import Data.Layer
+--import Data.Graph.Model.Dynamic (Dynamic, add, remove)
 
 
 -- === Utils === --
 
---type RefHandler r m a = (Reader r m a, Writer r m a)
---class Monad m => Reader r m a where read  :: Ref r a -> m a
---class Monad m => Writer r m a where write :: Ref r a -> a -> m ()
-
-
-withM :: (MonadBuilder t m, Referred r a t) => Ref r a -> (a -> m a) -> m ()
+withM :: (MonadBuilder t m, Referred r t a) => Ref r a -> (a -> m a) -> m ()
 withM ref f = read ref >>= f >>= write ref
 
-with :: (MonadBuilder t m, Referred r a t) => Ref r a -> (a -> a) -> m ()
+with :: (MonadBuilder t m, Referred r t a) => Ref r a -> (a -> a) -> m ()
 with ref = withM ref ∘ (return <$>)
 
-withRef :: (MonadBuilder t m, Referred r a t) => Ref r a -> (a -> a) -> m ()
+withRef :: (MonadBuilder t m, Referred r t a) => Ref r a -> (a -> a) -> m ()
 withRef = with
 
-follow :: (MonadBuilder t m, Referred r a t) => Lens' a b -> Ref r a -> m b
+follow :: (MonadBuilder t m, Referred r t a) => Lens' a b -> Ref r a -> m b
 follow f ptr = view f <$> read ptr
 
 -- === Reconnects === --
@@ -43,7 +38,7 @@ follow f ptr = view f <$> read ptr
 class Reconnectible m r el store inp where
     reconnect :: Lens' el store -> Ref r el -> Ref r inp -> m store
 
-instance (MonadBuilder t m, Referred r el t, Destructor m (Ref Edge conn), Connectible' (Ref r inp) (Ref r el) m conn)
+instance (MonadBuilder t m, Referred r t el, Destructor m (Ref Edge conn), Connectible' (Ref r inp) (Ref r el) m conn)
       => Reconnectible m r el (Ref Edge conn) inp where
     reconnect lens elRef input = do
         el  <- read elRef
@@ -52,7 +47,7 @@ instance (MonadBuilder t m, Referred r el t, Destructor m (Ref Edge conn), Conne
         write elRef $ el & lens .~ conn
         return conn
 
-instance (MonadBuilder t m, Referred r el t, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn)
+instance (MonadBuilder t m, Referred r t el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn)
       => Reconnectible m r el (Maybe connRef) inp where
     reconnect lens elRef input = do
         el  <- read elRef
@@ -61,12 +56,12 @@ instance (MonadBuilder t m, Referred r el t, Destructor m connRef, Connectible' 
         write elRef $ el & lens ?~ conn
         return $ Just conn
 
---class Referred r a t where ref :: Ref r a -> Lens' t a
+--class Referred r t a where ref :: Ref r a -> Lens' t a
 
-read :: (MonadBuilder t m, Referred r a t) => Ref r a -> m a
+read :: (MonadBuilder t m, Referred r t a) => Ref r a -> m a
 read ref = view (focus ref) <$> get
 
-write :: (MonadBuilder t m, Referred r a t) => Ref r a -> a -> m ()
+write :: (MonadBuilder t m, Referred r t a) => Ref r a -> a -> m ()
 write ref = modify_ ∘ set (focus ref)
 
 -- === Instances === --
@@ -76,35 +71,17 @@ write ref = modify_ ∘ set (focus ref)
 instance Constructor m (Ref r a) => LayerConstructor m (Ref r a) where
     constructLayer = construct ; {-# INLINE constructLayer #-}
 
-instance (MonadBuilder (Hetero (VectorGraph n e c)) m, Castable a n) => Constructor m (Ref Node a) where
-    construct n = Ref <$> modify (wrapped' ∘ nodeGraph $ swap ∘ ixed add (cast n)) ; {-# INLINE construct #-}
-
-instance (MonadBuilder (Hetero (VectorGraph n e c)) m, Castable a e) => Constructor m (Ref Edge a) where
-    construct e = Ref <$> modify (wrapped' ∘ edgeGraph $ swap ∘ ixed add (cast e)) ; {-# INLINE construct #-}
-
-instance (MonadBuilder (Hetero (VectorGraph n e c)) m, Castable a c) => Constructor m (Ref Cluster a) where
-    construct c = Ref <$> modify (wrapped' ∘ subGraphs $ swap ∘ ixed add (cast c)) ; {-# INLINE construct #-}
-
--- Accessors
-
---instance (MonadBuilder (Hetero (VectorGraph n e)) m, Castable n a)              => Reader r m (Node a)       where read  = flip fmap get ∘ getter ; {-# INLINE read #-}
---instance (MonadBuilder (Hetero (VectorGraph n e)) m, Castable e e')             => Reader r m (Edge e')      where read  = flip fmap get ∘ getter ; {-# INLINE read #-}
---instance  MonadBuilder (Hetero (VectorGraph n e)) m                             => Reader r m Cluster        where read  = flip fmap get ∘ getter ; # INLINE read #
-
---instance (MonadBuilder (Hetero (VectorGraph n e)) m, Castable a n)              => Writer r m (Node a)       where write = modify_ ∘∘ setter ; {-# INLINE write #-}
---instance (MonadBuilder (Hetero (VectorGraph n e)) m, Castable e' e)             => Writer r m (Edge e')      where write = modify_ ∘∘ setter ; {-# INLINE write #-}
---instance  MonadBuilder (Hetero (VectorGraph n e)) m                             => Writer r m Cluster        where write = modify_ ∘∘ setter ; {-# INLINE write #-}
+instance (MonadBuilder g m, Dynamic t g a) => Constructor m (Ref t a) where
+    construct = modify ∘ add ; {-# INLINE construct #-}
 
 -- Unregistering
 
--- FXIME[WD]: hardcoded graph type
-instance MonadBuilder (Hetero (VectorGraph n e c)) m => Unregister m (Ref Node    node)    where unregister ref = modify_ $ wrapped' ∘ nodeGraph %~ free (ref ^. idx)
-instance MonadBuilder (Hetero (VectorGraph n e c)) m => Unregister m (Ref Edge    edge)    where unregister ref = modify_ $ wrapped' ∘ edgeGraph %~ free (ref ^. idx)
-instance MonadBuilder (Hetero (VectorGraph n e c)) m => Unregister m (Ref Cluster cluster) where unregister ref = modify_ $ wrapped' ∘ subGraphs %~ free (ref ^. idx)
+instance (MonadBuilder g m, Dynamic t g a) => Unregister m (Ref t a) where
+    unregister = modify_ ∘ remove ; {-# INLINE unregister #-}
 
 -- Destruction
 
-instance (MonadBuilder t m, Prop Inputs node ~ [inp], Referred Node node t, Destructor m inp, Getter Inputs node, Destructor m node, Unregister m (Ref Node node), Dispatcher NODE_REMOVE (Ref Node node) m)
+instance (MonadBuilder t m, Prop Inputs node ~ [inp], Referred Node t node, Destructor m inp, Getter Inputs node, Destructor m node, Unregister m (Ref Node node), Dispatcher NODE_REMOVE (Ref Node node) m)
       => Destructor m (Ref Node node) where
     destruct ref = do
         dispatch NODE_REMOVE ref
@@ -116,8 +93,8 @@ instance (MonadBuilder t m, Prop Inputs node ~ [inp], Referred Node node t, Dest
 
 instance ( MonadBuilder t m
          , edge ~ Arc node node
-         , Referred Node node t
-         , Referred Edge edge t
+         , Referred Node t node
+         , Referred Edge t edge
          , Unregister m (Ref Edge edge)
          , Dispatcher CONNECTION_REMOVE (Ref Edge edge) m)
       => Destructor m (Ref Edge edge) where

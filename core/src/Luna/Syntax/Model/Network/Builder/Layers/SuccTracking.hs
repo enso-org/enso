@@ -28,8 +28,8 @@ import           Data.Graph
 
 data SuccRegister = SuccRegister deriving (Show, Eq)
 instance ( MonadBuilder g m
-         , Referred Edge (Arc src tgt) g
-         , Referred Node src g
+         , Referred Edge g (Arc src tgt)
+         , Referred Node g src
          , Show src
          , Prop Succs src ~ [Ref Edge (Arc src tgt)]
          , HasProp Succs src
@@ -48,8 +48,8 @@ registerSuccs _ = runListener
 
 data SuccUnregister = SuccUnregister deriving (Show, Eq)
 instance ( MonadBuilder g m
-         , Referred Edge (Arc src tgt) g
-         , Referred Node src g
+         , Referred Edge g (Arc src tgt)
+         , Referred Node g src
          , Show src
          , Prop Succs src ~ [Ref Edge (Arc src tgt)]
          , HasProp Succs src

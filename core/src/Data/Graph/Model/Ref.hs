@@ -15,17 +15,20 @@ import Data.Prop
 -- === Ref === --
 -----------------
 
+data Unknown = Unknown -- FIXME[WD]: For greater flexibility we should implement this as data-kind - Known a / Unknown a
+
 -- === Definitions === --
 
--- FIXME[WD]: Maybe we should parametrize the Ref to indicate the ref type, like Ref Node / Ref Edge / Ref Cluster / ...
---            We can then introduce Ref and TypedRef (used with homo- and hetero- graphs)
-newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord, Functor, Traversable, Foldable)
-newtype Ptr r   = Ptr Int deriving (Generic, NFData, Show, Eq, Ord)
+newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord)
+type    Ptr r   = Ref r Unknown
 
-class Referred r a t where focus :: Ref r a -> Lens' t a
-
+class Referred r t a where focus :: Ref r a -> Lens' t a
+type  Referred' r t = Referred r t (t # r)
 
 -- === Utils === --
+
+focus' :: Referred' r t => Ref r (t # r) -> Lens' t (t # r)
+focus' = focus
 
 retarget :: Ref r a -> Ref r a'
 retarget = rewrap
@@ -35,7 +38,6 @@ retarget = rewrap
 
 -- Wrappers
 makeWrapped ''Ref
-makeWrapped ''Ptr
 
 -- Ref primitive instances
 type instance Uncovered     (Ref r a) = Uncovered a
@@ -45,11 +47,11 @@ type instance Deconstructed (Ref r a) = a
 -- Index
 type instance Index  (Ref r a) = Int
 instance      HasIdx (Ref r a) where idx = wrapped' ; {-# INLINE idx #-}
-type instance Index  (Ptr r)   = Int
-instance      HasIdx (Ptr r)   where idx = wrapped' ; {-# INLINE idx #-}
 
 -- Conversions
-instance Castable a a' => Castable (Ref r a) (Ref r' a') where cast = rewrap ; {-# INLINE cast #-}
-instance Castable (Ref r a) (Ptr r)   where cast (Ref x) = Ptr x ; {-# INLINE cast #-}
-instance Castable (Ptr r)   (Ref r a) where cast (Ptr x) = Ref x ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-}                  Castable (Ref r a)       (Ref r a)        where cast = id     ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable a a' => Castable (Ref r a)       (Ref r' a')      where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-}                  Castable (Ref r a)       (Ref r' Unknown) where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-}                  Castable (Ref r Unknown) (Ref r' a')      where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-}                  Castable (Ref r Unknown) (Ref r' Unknown) where cast = rewrap ; {-# INLINE cast #-}
 

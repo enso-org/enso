@@ -13,8 +13,7 @@ import Data.Index
 import Data.Container          hiding (Impossible, impossible)
 import Luna.Evaluation.Runtime as Runtime
 import Type.Bool
-import Data.Graph.Model
-import Data.Graph.Backend.VectorGraph
+import Data.Graph.Backend.VectorGraph hiding (Dynamic)
 import Data.Graph.Builder.Class (MonadBuilder, modify)
 
 ---------------------------------

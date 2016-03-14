@@ -29,7 +29,7 @@ subgraph :: ( CoverConstructor m c
 subgraph = constructLayer =<< subgraph'
 
 includes :: ( MonadBuilder t m
-            , Referred Cluster c t
+            , Referred Cluster t c
             , Covered c
             , Uncovered c ~ SubGraph a'
             , BiCastable a a'
@@ -37,7 +37,7 @@ includes :: ( MonadBuilder t m
 includes cluster el = SubGraph.member (el ^. idx) . uncover <$> read cluster
 
 members :: ( MonadBuilder t m
-           , Referred Cluster c t
+           , Referred Cluster t c
            , Covered c
            , Uncovered c ~ SubGraph n
            ) => Ref Cluster c -> m [Ref Node n]
@@ -60,7 +60,7 @@ class Clusterable n c m where
     {-exclude = impossible-}
 
 instance ( MonadBuilder t m
-         , Referred Cluster c t
+         , Referred Cluster t c
          , Covered c
          , Uncovered c ~ SubGraph n'
          , BiCastable n n'
