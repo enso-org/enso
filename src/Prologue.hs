@@ -35,7 +35,7 @@ import Data.Container.Class       as X (Container, Index, Item, intercalate)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
 import Data.Convert               as X
 import Data.Default               as X
-import Data.Foldable              as X (Foldable, traverse_)
+import Data.Foldable              as X (Foldable, traverse_, foldl')
 import Data.Foldable              as X (mapM_)
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
@@ -64,7 +64,10 @@ import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
+
+-- Normal Forms
 import Control.DeepSeq            as X (NFData, rnf, force)
+import Control.Exception          as X (evaluate)
 
 import Data.Binary.Instances.Missing      ()
 import Data.Default.Instances.Missing     ()
