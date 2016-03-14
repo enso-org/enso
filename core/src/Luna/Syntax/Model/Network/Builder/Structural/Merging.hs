@@ -9,6 +9,7 @@ import           Control.Monad                 (forM)
 import           Data.Graph.Builder
 import           Data.Graph.Backend.VectorGraph
 import           Data.Container                (usedIxes)
+import           Data.Container.SizeTracking   (SizeTracking)
 import           Data.Layer.Cover
 import           Data.Construction
 import           Data.Index                    (idx)
@@ -42,7 +43,7 @@ import qualified Luna.Syntax.AST.Function       as Function
                    , HasProp Succs  node                              \
                    , Prop Type   node ~ Ref Edge edge                 \
                    , Prop TCData node ~ TCDataPayload node            \
-                   , Prop Succs  node ~ [Ref Edge edge]               \
+                   , Prop Succs  node ~ SizeTracking IntSet.IntSet    \
                    )
 
 type NodeTranslator n = Ref Node n -> Ref Node n
@@ -64,7 +65,7 @@ importStructure nodes' edges' = do
         foreignNodeRefs = fst <$> nodes
         foreignEdgeRefs = fst <$> edges
 
-    newNodeRefs <- mapM (construct . (prop Succs .~ []) . (prop TCData . belongsTo .~ [])) $ snd <$> nodes
+    newNodeRefs <- mapM (construct . (prop Succs .~ fromList []) . (prop TCData . belongsTo .~ [])) $ snd <$> nodes
 
     let nodeTrans         = Map.fromList $ zip foreignNodeRefs newNodeRefs
         translateNode     = mkNodeTranslator nodeTrans

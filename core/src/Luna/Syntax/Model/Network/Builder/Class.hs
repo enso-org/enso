@@ -18,7 +18,7 @@ import Luna.Syntax.AST.Term (TermOf)
 
 -- === Definitions === --
 
-newtype NetworkBuilderT m a = NetworkBuilderT (IdentityT m a) deriving (Show, Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadFix)
+newtype NetworkBuilderT m a = NetworkBuilderT (IdentityT m a) deriving (Show, Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadFix, MonadIO)
 makeWrapped ''NetworkBuilderT
 
 

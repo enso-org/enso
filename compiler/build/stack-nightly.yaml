@@ -7,7 +7,7 @@ packages:
 - {extra-dep: true, location: ../../core}
 - {extra-dep: true, location: ../../parser}
 - extra-dep: true
-  location: {commit: 438948052b8030737fb4c4310bd932dc2baebe04, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: 912619ef7ae15c528ea2312fc1b5ebfc757fd367, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
