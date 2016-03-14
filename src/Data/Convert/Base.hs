@@ -69,11 +69,11 @@ converted = iso convert convert
 -- The following instances are commented out because they are pure EVIL.
 -- Lets consider following situation - we've got an instance:
 --     instance Castable (Edge src tgt) (Edge src' tgt') where ...
--- if we use it passing the same arguments it will overlap with the 
---     instance Castable a a 
+-- if we use it passing the same arguments it will overlap with the
+--     instance Castable a a
 -- in such way it ould be not possible to resolve by GHC!
--- 
--- instance {-# OVERLAPPABLE #-} Castable    a a where cast    = id ; {-# INLINE cast    #-}
+--
+instance {-# OVERLAPPABLE #-} Castable    a a where cast    = id ; {-# INLINE cast    #-}
 -- instance {-# OVERLAPPABLE #-} Convertible a a where convert = id ; {-# INLINE convert #-}
 
 instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Maybe a) (Maybe b) where convert = fmap convert ; {-# INLINE convert #-}
