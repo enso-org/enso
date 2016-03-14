@@ -35,9 +35,9 @@ instance FromList a => FromList (SizeTracking a) where
 
 -- === Finite ===
 
--- [+]  Measurable
--- [NI] MinBounded
--- [NI] MaxBounded
+-- [+] Measurable
+-- [ ] MinBounded
+-- [ ] MaxBounded
 
 type instance ParamsOf MeasurableOp (SizeTracking a) = '[]
 type instance ModsOf   MeasurableOp (SizeTracking a) = '[]
@@ -47,12 +47,12 @@ instance Monad m => MeasurableQM_ '[] '[] m (SizeTracking a) where
 
 -- === Modification ===
 
--- [+]  Appendable
--- [+]  Prependable
--- [+]  Addable
--- [+]  Removable
--- [NI] Insertable
--- [NI] Freeable
+-- [+] Appendable
+-- [+] Prependable
+-- [+] Addable
+-- [+] Removable
+-- [ ] Insertable
+-- [ ] Freeable
 
 type instance ParamsOf AppendableOp  (SizeTracking a) = ParamsOf AppendableOp a
 type instance ModsOf   AppendableOp  (SizeTracking a) = ModsOf   AppendableOp a
