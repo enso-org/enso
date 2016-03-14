@@ -75,7 +75,7 @@ type instance ModsOf   RemovableOp IntSet = '[]
 instance (Monad m, a ~ Int) => AddableQM_   '[] '[] m a IntSet where
     addM_ _    = return . Res () .: IntSet.insert ; {-# INLINE addM_    #-}
 
-instance (Monad m, a ~ Int) => RemovableQM_ '[] '[] m a IntSet where
+instance (Monad m, a ~ Int) => RemovableQM_ '[] '[P Try] m a IntSet where
     removeM_ _ key s = if IntSet.member key s
         then return . Res () $ IntSet.delete key s
         else fail "Element not found"
