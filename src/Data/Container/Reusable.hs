@@ -172,7 +172,9 @@ instance (InsertableQM  (GetOpts ms) (GetOpts ps) m idx el a
 instance (InsertableQM (GetOpts ms) (GetOpts ps) m idx el a, idx ~ idx') => InsertableQM_ ms (P Unchecked ': P Inplace ': ps) m idx el (Reusable idx' a) where insertM_ _     = nested layered .: insertQM (Query :: Query (GetOpts ms) (GetOpts ps))
 instance (FreeableQM   (GetOpts ms) (GetOpts ps) m idx    a, idx ~ idx') => FreeableQM_   ms ps                               m idx    (Reusable idx' a) where freeM_   _ idx = fmap2 (_indexes %~ (idx:)) . nested layered (freeQM (Query :: Query (GetOpts ms) (GetOpts ps)) idx)
 
-instance (Monad m, idx ~ Index (Container a)) => ReservableQM_ '[P Ixed] ps                        m        (Reusable idx  a) where reserveM_ _ (Reusable (i:is) a) = return $ Res (i,()) (Reusable is a)
+instance (Monad m, idx ~ Index (Container a), ExpandableM m (Reusable idx a)) => ReservableQM_ '[P Ixed] ps m (Reusable idx  a) where
+    reserveM_ q c@(Reusable []     a) = reserveM_ q =<< expandM c
+    reserveM_ _   (Reusable (i:is) a) = return $ Res (i,()) (Reusable is a)
 
 
 

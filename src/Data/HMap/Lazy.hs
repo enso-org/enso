@@ -20,7 +20,7 @@ import Control.Lens.Utils
 import Data.Functor.Utils
 
 import           Data.Maps         as X
-import           Prelude           hiding (lookup)
+import           Prelude           hiding (lookup, (.))
 import qualified Data.Maps         as Maps
 import           Data.Monoid
 import           Data.Typeable

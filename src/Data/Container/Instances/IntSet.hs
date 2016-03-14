@@ -69,14 +69,17 @@ instance (Monad m, a ~ Int) => SingletonQM_ '[] '[] m a IntSet where
 type instance ParamsOf AddableOp   IntSet = '[]
 type instance ModsOf   AddableOp   IntSet = '[]
 
-type instance ParamsOf RemovableOp IntSet = '[]
+type instance ParamsOf RemovableOp IntSet = '[Try]
 type instance ModsOf   RemovableOp IntSet = '[]
 
 instance (Monad m, a ~ Int) => AddableQM_   '[] '[] m a IntSet where
     addM_ _    = return . Res () .: IntSet.insert ; {-# INLINE addM_    #-}
 
-instance (Monad m, a ~ Int) => RemovableQM_ '[] '[] m a IntSet where
-    removeM_ _ = return . Res () .: IntSet.delete ; {-# INLINE removeM_ #-}
+instance (Monad m, a ~ Int) => RemovableQM_ '[] '[P Try] m a IntSet where
+    removeM_ _ key s = if IntSet.member key s
+        then return . Res () $ IntSet.delete key s
+        else fail "Element not found"
+    {-# INLINE removeM_ #-}
 
 -- === Indexing ===
 
