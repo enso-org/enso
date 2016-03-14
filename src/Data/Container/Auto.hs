@@ -19,7 +19,7 @@ import Control.DeepSeq (NFData)
 
 #define AUTO (Reusable idx (Resizable style a))
 
-newtype IxedAuto idx style a = IxedAuto AUTO deriving (Generic, NFData, Functor, Traversable, Foldable, Monoid, Default)
+newtype IxedAuto idx style a = IxedAuto AUTO deriving (Generic, Functor, Traversable, Foldable, Monoid, Default)
 type    Auto         style a = IxedAuto (Index (Container a)) style a
 
 deriving instance (IsContainer a, FromList (Container a), Default style) => FromList (IxedAuto idx style a)
@@ -46,6 +46,17 @@ instance            Wrapped    (IxedAuto idx style a) where
 
 
 deriving instance Show AUTO => Show (IxedAuto idx style a)
+
+-- === Instances === --
+
+-- Normal Form
+
+instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx (Resizable style a)) => NFData (IxedAuto idx style a)
+
+--instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx a) => NFData (Reusable idx a) where
+
+
+--instance (NFData [Item t], TrackUsedElems' t) => NFData t where
 
 --instance Show a => Show (Auto idx style a) where
 --    showsPrec d (Auto a) = showParen (d > app_prec) $

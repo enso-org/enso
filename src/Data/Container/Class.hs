@@ -4,6 +4,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE FunctionalDependencies    #-}
+{-# LANGUAGE RankNTypes                #-}
 
 
 module Data.Container.Class (module Data.Container.Class, module X) where
@@ -21,19 +22,35 @@ import           Data.Functor.Utils
 import           Control.Monad.Identity
 import           Control.Lens           hiding (Indexable, index, Bounded, Ixed, Simple, Indexed)
 import           Data.List              (intersperse)
-
+import           Data.Typeable
 
 data Impossible    = Impossible  deriving (Show)
 data ImpossibleM a = ImpossibleM deriving (Show, Functor)
-type ImpTL = '[Impossible] 
+type ImpTL = '[Impossible]
 
 
 
 impossible = error "Impossible happened."
 
-----------------------------
--- === General utilities ===
-----------------------------
+
+------------------------------------
+-- === Data / Component store === --
+------------------------------------
+
+-- | Points to the real structure handling the data
+type family DataStore a
+class HasDataStore t a where
+    dataStore :: Lens' a (DataStore a)
+
+-- | Points to the real structure handling the data of specific component
+type family ComponentStore t a
+class HasComponentStore t a where
+    componentStore :: Proxy t -> Lens' a (ComponentStore t a)
+
+
+-------------------------------
+-- === General utilities === --
+-------------------------------
 
 type family Container a
 type family Item      a
@@ -41,8 +58,6 @@ type family Item      a
 
 --type        Item      a = Item (Index a)
 
--- | Points to the real structure handling the data. Used mainly internally.
-type family DataStore a
 
 type  HasContainer = HasContainerM Identity
 class HasContainerM m a where
@@ -119,8 +134,8 @@ type family ModResult op (info :: Info (Knowledge *) (Knowledge *) *) mod
 
 type family GetOpts (m :: [Opt *]) :: [*] where
     GetOpts '[] = '[]
-    GetOpts (P a ': ms) = a ': GetOpts ms 
-    GetOpts (N   ': ms) = GetOpts ms 
+    GetOpts (P a ': ms) = a ': GetOpts ms
+    GetOpts (N   ': ms) = GetOpts ms
 
 
 
@@ -422,10 +437,10 @@ elems_     = withTransFunc (fmap2 res_) elems'
 
 
 type family Tup2RTup t where
-    Tup2RTup ()               = () 
-    Tup2RTup (t1, t2)         = (t1,(t2,())) 
-    Tup2RTup (t1, t2, t3)     = (t1,(t2,(t3,()))) 
-    Tup2RTup (t1, t2, t3, t4) = (t1,(t2,(t3,(t4,())))) 
+    Tup2RTup ()               = ()
+    Tup2RTup (t1, t2)         = (t1,(t2,()))
+    Tup2RTup (t1, t2, t3)     = (t1,(t2,(t3,())))
+    Tup2RTup (t1, t2, t3, t4) = (t1,(t2,(t3,(t4,()))))
     Tup2RTup a                = (a,())
 
 type family AppendedRT a rt where
@@ -464,7 +479,7 @@ instance {-# OVERLAPPABLE #-} (t1 ~ t1', t2 ~ t2', t3 ~ t3')    => RTup2TupX (t1
 
 
 
-type family PrettyCtx ms a :: Constraint where 
+type family PrettyCtx ms a :: Constraint where
     PrettyCtx '[] a = Tup2RTup a ~ (a,())
     PrettyCtx ms  a = ()
 

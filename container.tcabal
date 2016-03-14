@@ -1,5 +1,5 @@
 name:                container
-version:             1.0.4
+version:             1.0.5
 synopsis:            Containers abstraction and utilities.
 -- description:
 license:             Apache-2.0
@@ -52,6 +52,7 @@ Library
                     , containers
                     , data-default
                     , data-layer
+                    , data-member
                     , deepseq
                     , functor-utils
                     , lens

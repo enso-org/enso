@@ -7,7 +7,7 @@ module Data.Container.Reusable where
 
 import Prelude hiding ((.))
 
-import Control.Lens         hiding (Indexable, Ixed)
+import Control.Lens         hiding (Indexable, Ixed, index)
 import Data.Container.Class
 import Data.Container.List
 import Data.Container.Opts  (Opt(P,N), Query(..), ModsOf, ParamsOf, Unchecked, Inplace, Ixed)
@@ -18,7 +18,7 @@ import Data.Layer
 import Data.List            ((\\))
 import Data.Monoid
 import GHC.Generics    (Generic)
-import Control.DeepSeq (NFData)
+import Control.DeepSeq (NFData, rnf)
 
 
 ----------------------
@@ -55,13 +55,23 @@ instance ( Show (Item a), TracksElems (Item a) (Reusable idx a)
          ) => Show (Reusable idx a) where
     show a = "Reusable [" <> intercalate ", " (fmap show (elems_ a :: [Item a])) <> "]"
 
+
+-- === Utils === --
+
+type TrackUsedElems  t el = (TracksUsedIxes (Index t) t, Indexable (Index t) el t, Tup2RTup el ~ (el, ()))
+type TrackUsedElems' t    = TrackUsedElems t (Item t)
+
+usedElems :: forall t el. TrackUsedElems t el => t -> [el]
+usedElems c = flip index c <$> (usedIxes c :: [Index t])
+
+
 ------------------------
 -- === Instances === ---
 ------------------------
 
 -- Normal Form
-
-instance (NFData idx, NFData a) => NFData (Reusable idx a)
+instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx a) => NFData (Reusable idx a) where
+    rnf t = rnf (usedElems t :: [Item t])
 
 
 -- === Finite ===

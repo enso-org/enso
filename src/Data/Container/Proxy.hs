@@ -57,8 +57,8 @@ type ResultAxioms op info ms t = Result_ op (info t) (GetOpts ms) ~ Result_ op (
 -------------------------------------
 
 
-    
-runOp (Proxy :: Proxy cls) (Proxy :: Proxy cont) f getter setter (Query :: Query ms ps) x = do 
+
+runOp (Proxy :: Proxy cls) (Proxy :: Proxy cont) f getter setter (Query :: Query ms ps) x = do
     Res datas c <- f (OptQuery :: OptQuery (MatchOpts (ModsOf cls cont) ms) (MatchOpts (ParamsOf cls cont) ps)) =<< getter x
     Res (getQueryData (Proxy :: Proxy (GetOpts (MatchOpts (ModsOf cls cont) ms))) (Proxy :: Proxy ms) datas) <$> setter c x
 
@@ -89,7 +89,7 @@ instance {-# OVERLAPPABLE #-} (HasContainerM m a, OpCtx(MinBoundedOp,IdxInfo idx
 instance {-# OVERLAPPABLE #-} Monad m                                              => MaxBoundedQM ImpTL ps m idx a          where maxBoundQM = impossible
 instance {-# OVERLAPPABLE #-} (Monad m, PrettyCtx ms Impossible)                   => MaxBoundedQM ms    ps m idx Impossible where maxBoundQM = impossible
 instance {-# OVERLAPPABLE #-} (HasContainerM m a, OpCtx(MaxBoundedOp,IdxInfo idx)) => MaxBoundedQM ms    ps m idx a          where maxBoundQM = RUNOP() maxBoundM_ viewContainerM (const . return)
-    
+
 
 -- === Construction ===
 
