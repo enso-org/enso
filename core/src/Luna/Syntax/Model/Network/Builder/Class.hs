@@ -6,6 +6,7 @@ import Prelude.Luna
 
 import Control.Monad.Trans.Identity
 import Control.Monad.Except
+import Control.Monad.Catch
 import Control.Monad.Writer
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBindBuilder, buildTerm', TransBinder, runTransBinder, buildElem2, ElemBuilder2)
 import Control.Monad.Delayed as Delayed
@@ -20,7 +21,7 @@ import Luna.Syntax.AST.Term (TermOf)
 
 -- === Definitions === --
 
-newtype NetworkBuilderT m a = NetworkBuilderT (IdentityT m a) deriving (Show, Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadFix, MonadIO, MonadError e, MonadWriter w)
+newtype NetworkBuilderT m a = NetworkBuilderT (IdentityT m a) deriving (Show, Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadFix, MonadIO, MonadError e, MonadWriter w, MonadThrow, MonadCatch, MonadMask)
 makeWrapped ''NetworkBuilderT
 
 
