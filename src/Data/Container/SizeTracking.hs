@@ -17,7 +17,7 @@ import Data.Proxy
 -- === SizeTracking === --
 --------------------------
 
-data SizeTracking a = SizeTracking Int !a deriving (Functor, Foldable, Traversable)
+data SizeTracking a = SizeTracking Int !a deriving (Eq, Show, Functor, Foldable, Traversable)
 
 type instance Index     (SizeTracking a) = Index a
 type instance Item      (SizeTracking a) = Item  a
