@@ -28,7 +28,7 @@ import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
 import           Luna.Syntax.AST.Term                            (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
-import           Luna.Syntax.Model.Network.Builder               (redirect)
+import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs)
 import           Luna.Syntax.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
@@ -106,7 +106,7 @@ pre ref = do
 succ :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node (ls :<: term)]
 succ ref = do
     node <- read ref
-    mapM (follow target) $ node # Succs
+    mapM (follow target) $ readSuccs node
 
 isDirty :: (Prop InterpreterData n ~ InterpreterLayer, HasProp InterpreterData n) => n -> Bool
 isDirty node = (node # InterpreterData) ^. Layer.dirty

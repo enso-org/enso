@@ -188,7 +188,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               nodeId   = nodeRef nix
               node     = draftNodeByIx nix
               ins      = node # Inputs
-              succs    = node # Succs
+              succs    = readSuccs node
               dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
               required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑ " else ""
               time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
@@ -214,7 +214,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
 
               htmlCells  = Html.Cells [idCell $ show nix, labelCell width $ fromString $ dirty <> genNodeLabel node
                                             <> "(" <> show (length orphanTgts) <> ") "
-                                            <> show (view idx <$> node # Succs)
+                                            <> show (toList $ node # Succs)
                                             <> interpr
                                             <> "[" <> show (view idx <$> node ^. prop TCData . belongsTo) <> "]"] where
                   width  = if null inPorts then 1 else fromIntegral inPortsNum

@@ -27,6 +27,7 @@ import           Luna.Syntax.AST.Term.Class                      (Lam)
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
+import           Luna.Syntax.Model.Network.Builder               (readSuccs)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
 
@@ -60,7 +61,7 @@ pre ref = do
 succ :: PassCtxDirty(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node (ls :<: term)]
 succ ref = do
     node <- read ref
-    mapM (follow source) $ node ^. prop Succs
+    mapM (follow source) $ readSuccs node
 
 
 isDirty :: (Prop Interpreter n ~ InterpreterLayer, HasProp Interpreter n) => n -> Bool

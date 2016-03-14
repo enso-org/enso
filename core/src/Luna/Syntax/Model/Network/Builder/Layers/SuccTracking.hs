@@ -4,8 +4,11 @@ module Luna.Syntax.Model.Network.Builder.Layers.SuccTracking where
 
 import Prelude.Luna
 
-import           Data.Graph.Builders
 import           Control.Monad.Event
+import           Data.Graph.Builders
+import           Data.Container.SizeTracking            (SizeTracking)
+import           Data.Container                         (Addable, Removable, add, remove, try)
+import           Data.IntSet                            (IntSet)
 import           Data.Graph.Backend.VectorGraph         (SubGraph)
 import           Data.Prop
 import qualified Data.List                              as List
@@ -31,12 +34,12 @@ instance ( MonadBuilder g m
          , Referred Edge g (Arc src tgt)
          , Referred Node g src
          , Show src
-         , Prop Succs src ~ [Ref Edge (Arc src tgt)]
+         , Prop Succs src ~ SizeTracking IntSet
          , HasProp Succs src
          ) => Handler t SuccRegister m (Ref Edge (Arc src tgt)) where
     handler e = do
         ve <- read e
-        Ref.with (ve ^. source) $ prop Succs %~ (e:)
+        Ref.with (ve ^. source) $ prop Succs %~ add (unwrap e)
     {-# INLINE handler #-}
 
 registerSuccs :: t -> Listener t SuccRegister m a -> m a
@@ -51,12 +54,12 @@ instance ( MonadBuilder g m
          , Referred Edge g (Arc src tgt)
          , Referred Node g src
          , Show src
-         , Prop Succs src ~ [Ref Edge (Arc src tgt)]
+         , Prop Succs src ~ SizeTracking IntSet
          , HasProp Succs src
          ) => Handler t SuccUnregister m (Ref Edge (Arc src tgt)) where
     handler e = do
         s <- follow source e
-        Ref.with s $ prop Succs %~ List.delete e
+        Ref.with s $ prop Succs %~ try remove (unwrap e)
     {-# INLINE handler #-}
 
 unregisterSuccs :: t -> Listener t SuccUnregister m a -> m a
@@ -66,9 +69,22 @@ unregisterSuccs _ = runListener
 -- === Layer Data === ---
 -------------------------
 
-type instance LayerData (Network ls) Succs t = [Ref Edge $ Link (Shelled t)]
+type instance LayerData (Network ls) Succs t = SizeTracking IntSet
 instance Monad m => Creator    m (Layer (Network ls) Succs a) where
-    create     = return $ Layer []
+    create     = return $ Layer $ fromList []
 instance Monad m => Destructor m (Layer (Network ls) Succs a) where
     destruct _ = return ()
 
+instance (Castable a a') => Castable (SizeTracking a) (SizeTracking a') where
+    cast = fmap cast
+
+instance Castable IntSet IntSet where cast = id
+
+type HasSuccs n = (HasProp Succs n, Prop Succs n ~ SizeTracking IntSet)
+
+----------------------
+-- === Reading === ---
+----------------------
+
+readSuccs :: HasSuccs n => n -> [Ref Edge (Link n)]
+readSuccs = fmap Ref . toList . view (prop Succs)

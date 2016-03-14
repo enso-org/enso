@@ -19,6 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
@@ -41,12 +42,11 @@ import Control.Monad.Trans.Either
                            , ne   ~ Link (ls :<: term)                      \
                            , nodeRef ~ Ref Node (ls :<: term)               \
                            , Prop Type   (ls :<: term) ~ Ref Edge ne        \
-                           , Prop Succs  (ls :<: term) ~ [Ref Edge ne]      \
+                           , HasSuccs (ls :<: term)                         \
                            , BiCastable     e ne                            \
                            , BiCastable     n (ls :<: term)                 \
                            , MonadBuilder (Hetero (VectorGraph n e c)) (m)  \
                            , HasProp Type       (ls :<: term)               \
-                           , HasProp Succs      (ls :<: term)               \
                            , NodeInferable  (m) (ls :<: term)               \
                            , TermNode Var   (m) (ls :<: term)               \
                            , TermNode Lam   (m) (ls :<: term)               \
@@ -129,11 +129,14 @@ resolveUnify uni = do
               b'   <- read (b :: nodeRef)
               whenMatched (uncover a') $ \(Cons na argsA) ->
                   whenMatched (uncover b') $ \(Cons nb argsB) ->
-                      if na == nb
+                      if na == nb && length argsA == length argsB
                           then do
-                              replaceNode uni a
-                              replaceNode b   a
-                              resolve_
+                              asA <- mapM (follow source . unlayer) argsA
+                              asB <- mapM (follow source . unlayer) argsB
+                              newUnis <- zipWithM unify asA asB
+                              unified <- replaceAny a b
+                              replaceNode uni unified
+                              resolve newUnis
                           else return ()
 
           resolveStar uni a b = do
@@ -169,11 +172,19 @@ resolveUnify uni = do
                         else return ()
 
 
+replaceAny :: forall m ls term nodeRef ne ter n e c. PassCtx(m,ls,term) => nodeRef -> nodeRef -> m nodeRef
+replaceAny r1 r2 = do
+    n1 <- read r1
+    n2 <- read r2
+    if size (n1 # Succs) > size (n2 # Succs)
+        then replaceNode r2 r1 >> return r1
+        else replaceNode r1 r2 >> return r2
+
 replaceNode oldRef newRef = do
     oldNode <- read oldRef
-    forM (oldNode ^. prop Succs) $ \e -> do
+    forM (readSuccs oldNode) $ \e -> do
         withRef e      $ source     .~ newRef
-        withRef newRef $ prop Succs %~ (e :)
+        withRef newRef $ prop Succs %~ add (unwrap e)
     destruct oldRef
 
 whenMatched a f = caseTest a $ do
