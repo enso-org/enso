@@ -15,9 +15,13 @@ import qualified Luna.Syntax.Model.Network.Term  as Term
 
 import           GHC.Prim                        (Any)
 
+
+type EvalMonad = IO
+evalMonad = "IO"
+
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool
                                          , _required :: Bool
-                                         , _value    :: Maybe Any
+                                         , _value    :: Maybe (EvalMonad Any)
                                          , _time     :: Integer
                                          , _debug    :: String     -- debug data (String value)
                                          }

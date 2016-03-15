@@ -84,6 +84,7 @@ Library
                  , ghc
                  , ghc-mtl
                  , ghc-prim
+                 , ghc-paths
                  , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
