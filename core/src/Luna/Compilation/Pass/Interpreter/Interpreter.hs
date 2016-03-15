@@ -157,7 +157,7 @@ markDirty ref = do
 setValue :: InterpreterCtx(m, ls, term) => Maybe (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
 setValue value ref startTime = do
     endTime <- liftIO getCPUTime
-    putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
+    -- putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = endTime - startTime
     node <- read ref
     let dirty = isNothing value
@@ -173,7 +173,7 @@ setValue value ref startTime = do
 copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> Integer -> m ()
 copyValue fromRef toRef startTime = do
     endTime <- liftIO getCPUTime
-    putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
+    -- putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = endTime - startTime
     fromNode <- read fromRef
     toNode   <- read toRef
@@ -346,7 +346,7 @@ getNativeType ref = do
 exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (Maybe (EvalMonad Any))
 exceptionHandler e = do
     let asyncExcMay = ((fromException e) :: Maybe AsyncException)
-    putStrLn $ "Exception catched:\n" <> show e
+    -- putStrLn $ "Exception catched:\n" <> show e
     case asyncExcMay of
         Nothing  -> return Nothing
         Just exc -> do
@@ -366,7 +366,7 @@ evaluateNative ref args = do
     case tpNativeMay of
         Nothing -> return Nothing
         Just tpNative -> do
-            putStrLn $ name <> " :: " <> tpNative
+            -- putStrLn $ name <> " :: " <> tpNative
             valuesMay <- argumentsValues args
             case valuesMay of
                 Nothing -> return Nothing
@@ -391,13 +391,13 @@ evaluateNative ref args = do
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
     startTime <- liftIO getCPUTime
-    putStrLn $ "startTime " <> show startTime
+    -- putStrLn $ "startTime " <> show startTime
     node <- read ref
-    putStrLn $ "evaluating " <> show ref
+    -- putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
         Just redirect -> do
             redirRef <- (follow source) redirect
-            putStrLn $ "redirecting to " <> show redirRef
+            -- putStrLn $ "redirecting to " <> show redirRef
             evaluateNode redirRef
             copyValue redirRef ref startTime
         Nothing -> do
@@ -449,12 +449,12 @@ evaluateNodes reqRefs = do
 run :: forall env m ls term ne n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
-    putStrLn $ "Paths.libdir " <> Paths.libdir
+    -- putStrLn $ "Paths.libdir " <> Paths.libdir
     -- putStrLn $ "g " <> show g
-    putStrLn $ "reqRefs " <> show reqRefs
+    -- putStrLn $ "reqRefs " <> show reqRefs
     -- ((), env) <- flip runInterpreterT (def :: env) $ collectNodesToEval (head reqRefs) runStateT
     ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
-    putStrLn $ "env " <> show env
+    -- putStrLn $ "env " <> show env
 
     -- putStrLn $ show StdLib.symbols
 
