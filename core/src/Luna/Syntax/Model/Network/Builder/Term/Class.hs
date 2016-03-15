@@ -242,16 +242,16 @@ instance ( inp ~ Input a
         return out
 
 type instance BuildArgs Match n = (Input n, Input n)
-instance ( a ~ Input a
-         , Monad m
-
-         , SmartCons (Match (Binding a)) (TermOf a)
-
-         , TermBindBuilder m a
-         , Bindable (n m) a
-         , TransBinder n m a
+instance ( inp ~ Input a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder (Match $ Ref Edge $ Connection inp a) m a
          ) => TermBuilder Match m a where
-    buildTerm p (a,b) = evalBindings $ matchCons <$> bind a <*> bind b
+    buildTerm p (a,b) = mdo
+        out <- buildElem $ Match ca cb
+        ca  <- connection a out
+        cb  <- connection b out
+        return out
 
 
 matchCons = Record.cons ∘∘ Match
