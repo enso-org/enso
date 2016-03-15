@@ -88,20 +88,21 @@ Library
 
   build-depends:      base >=4.6 && <4.9
                     , containers
+                    , convert
                     , data-default
                     , data-layer
                     , data-member
                     , deepseq
                     , functor-utils
+                    , hashable
                     , lens
                     , lens-utils
                     , mtl
                     , template-haskell
+                    , text
                     , transformers
                     , transformers-base
                     , typelevel
-                    , vector
-                    , text
                     , unordered-containers
-                    , hashable
+                    , vector
 

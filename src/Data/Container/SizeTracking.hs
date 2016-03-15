@@ -12,26 +12,41 @@ import Data.Container.Opts
 import Data.Container.Proxy
 import Data.Container.Utils
 import Data.Proxy
+import Data.Convert
+import GHC.Generics    (Generic)
+import Control.DeepSeq (NFData, rnf)
+
 
 --------------------------
 -- === SizeTracking === --
 --------------------------
 
-data SizeTracking a = SizeTracking Int !a deriving (Eq, Show, Functor, Foldable, Traversable)
+data SizeTracking a = SizeTracking Int !a deriving (Generic, Eq, Show, Functor, Foldable, Traversable)
 
+
+-- === Instances === --
+
+-- Normal Form
+instance NFData a => NFData (SizeTracking a)
+
+-- Container
 type instance Index     (SizeTracking a) = Index a
 type instance Item      (SizeTracking a) = Item  a
 type instance Container (SizeTracking a) = SizeTracking a
 type instance DataStore (SizeTracking a) = DataStore    a
-
 instance Monad m => IsContainerM  m (SizeTracking a) where fromContainerM = return
 instance Monad m => HasContainerM m (SizeTracking a) where viewContainerM = return
                                                            setContainerM  = const . return
 
+-- List
 instance ToList a   => ToList   (SizeTracking a) where
     toList (SizeTracking _ c) = toList c ; {-# INLINE toList #-}
 instance FromList a => FromList (SizeTracking a) where
     fromList l = SizeTracking (length l) $ fromList l ; {-# INLINE fromList #-}
+
+-- Cast
+instance {-# OVERLAPPABLE #-} (Castable a a') => Castable (SizeTracking a) (SizeTracking a') where cast = fmap cast ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-}                    Castable (SizeTracking a) (SizeTracking a)  where cast = id        ; {-# INLINE cast #-}
 
 -- === Finite ===
 
