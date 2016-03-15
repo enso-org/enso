@@ -245,7 +245,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               specAttrs = caseTest (uncover node) $ do
                   {-of' $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
                   of' $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
-                  of' $ \(Term.Match a b) -> [Color nodeColor, shape PrimerSite   , matchLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, fontColor unifyLabelClr]
+                  {-of' $ \(Term.Match a b) -> [Color nodeColor, shape PrimerSite   , matchLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, fontColor unifyLabelClr]-}
                   --of' $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   of' $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
 
