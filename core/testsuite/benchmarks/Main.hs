@@ -8,7 +8,7 @@
 module Main where
 
 import Prelude.Luna
-import           Data.Graph
+import qualified Data.Graph as Graph
 import           Data.Graph.Builders
 --import           Prologue                                        hiding (Version, cons, read, ( # ), Num, Cons)
 
@@ -120,7 +120,7 @@ nodeAddPure_ :: NetLayers' :<: Draft Static -> NetGraph'' -> NetGraph''
 nodeAddPure_ = snd ∘∘ nodeAddPure
 
 nodeAddPure :: NetLayers' :<: Draft Static -> NetGraph'' -> (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
-nodeAddPure = add
+nodeAddPure = Graph.add
 --foo = force (undefined :: '[] Draft Static)
 
 -----------------------

@@ -32,7 +32,7 @@ import qualified Luna.Syntax.AST.Function       as Function
                    , BiCastable e edge                                \
                    , BiCastable n node                                \
                    , MonadBuilder graph m                             \
-                   , Referred Node n graph                            \
+                   , Referred Node graph n                            \
                    , Covered node                                     \
                    , Constructor m (Ref Node node)                    \
                    , Constructor m (Ref Edge edge)                    \

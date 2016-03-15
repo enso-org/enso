@@ -50,7 +50,7 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
                    , TermNode Cons  (m) (ls :<: term)             \
                    , TermNode Lam   (m) (ls :<: term)             \
                    , TermNode Unify (m) (ls :<: term)             \
-                   , Referred Node n graph                        \
+                   , Referred Node graph n                        \
                    , Clusterable node clus (m)                    \
                    , Destructor (m) (Ref Edge edge)               \
                    )
