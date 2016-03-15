@@ -149,6 +149,7 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("List.length"   , makeNativeFun1 "length"                  (Just $ listOf $ TVar "#len")  []                     (scons "Int"))
     , ("List.+"        , makeNativeFun2 "(++)"                    (Just $ listOf $ TVar "#lpl")  [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
 
+    , ("readFile"      , makeNativeFun  "readFile"                Nothing                        [scons "String"]       (scons "String"))
     , ("id"            , makeId)
     , ("if_then_else"  , makeNativeFun3 "(\\x y z -> if x then y else z)" Nothing [scons "Bool", TVar "#if", TVar "#if"] (TVar "#if"))
     ]
