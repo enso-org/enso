@@ -9,69 +9,29 @@ module Main where
 
 import Prelude.Luna
 import qualified Data.Graph as Graph
-import           Data.Graph.Builders
---import           Prologue                                        hiding (Version, cons, read, ( # ), Num, Cons)
+import           Data.Graph.Backend.VectorGraph (Ref, Node, ELEMENT(..))
 
---import           Text.Printf                                     (printf)
---import qualified Control.Monad.Writer                            as Writer
-import           Control.Monad.Event
---import           Data.Attr                                       (attr)
---import           Data.Construction
---import           Data.Container                                  (elems, index_)
---import           Data.Container                                  hiding (impossible)
-import           Data.Graph.Builder
-import           Data.Graph.Query                                hiding (Graph)
-import qualified Data.Graph.Query                                as Sort
-import           Data.Index                                      (idx)
---import           Data.Layer.Cover
---import qualified Data.Map                                        as Map
---import           Data.Prop
-import           Data.Record                                     hiding (Layout, cons)
-import           Data.Version.Semantic
---import           Development.Placeholders
 import           Type.Inference
-
-import qualified Luna.Compilation.Env.Class                      as Env
-import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
-import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
-import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
-import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
-import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
-import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
-import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
-import           Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
-import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import           Luna.Diagnostic.Vis.GraphViz
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import qualified Luna.Evaluation.Runtime                         as Runtime
-import qualified Luna.Evaluation.Model                           as EvalModel
-import qualified Luna.Library.Standard                           as StdLib
-import qualified Luna.Library.Symbol.Class                       as Symbol
-import           Luna.Syntax.AST.Term                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
-import qualified Luna.Syntax.AST.Term                            as Term
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
 import           Luna.Syntax.Model.Network.Builder.Node
-import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
-import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph'', NetLayers', NetCluster, runNetworkBuilderT', fmapInputs, inputstmp)
-import qualified Luna.Syntax.Model.Network.Builder.Term.Class    as C -- (NetGraph'', NetLayers, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
-import Data.Graph.Backend.VectorGraph
+import Data.Container
+import Data.Container.Auto
+import Data.Container.Reusable
+import Data.Container.Resizable (Exponential(..))
+import qualified Data.Vector                 as Boxed
+import qualified Data.Vector.Unboxed         as Unboxed
 
 import Control.Monad.Trans.Identity
 
 import Criterion.Main
-
-
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -85,7 +45,34 @@ prebuild :: IO (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
 prebuild = runBuild def star
 
 
+type AutoVec = Auto Exponential (Boxed.Vector Int)
 
+autoVecEnv = do
+    let v  = alloc 100000 :: AutoVec
+        el = 0 :: Int
+    return (v, el)
+
+nativeVecEnv = do
+    let i     = 100000
+        v     = Boxed.fromList (replicate i 0) :: Boxed.Vector Int
+    return v
+
+nativeVecEnv' = do
+    let i     = 10000000
+        v     = Boxed.fromList (replicate i 0) :: Boxed.Vector Int
+    return v
+
+vecEnv = do
+    let v  = alloc 0 :: Boxed.Vector Int
+        el = 0 :: Int
+    return (v, el)
+
+reusableVecEnv = do
+    let --v  = alloc 10000 :: Reusable Int (Boxed.Vector Int)
+        i  = 100000
+        v  = Reusable [0..i - 1] $ Boxed.fromList (replicate i 0) :: Reusable Int (Boxed.Vector Int)
+        el = 0 :: Int
+    return (v, el)
 
 
 addNodeEnv = do
@@ -96,21 +83,56 @@ addNodeEnv = do
 
 main :: IO ()
 main = do
-    (_,  g :: NetGraph'') <- prebuild
-    n <- evaluate $ force $ fst $ nodeAdd g
-    return ()
-
     defaultMain
-        [ env addNodeEnv $ \ ~(g,n) ->
-            bgroup "add nodes" $ take 6 $ benchNodeAdd g n <$> doubles 100
+        [ bgroup "native vec"
+              [ env nativeVecEnv $ \ ~(g) ->
+                    bgroup "add elems seq"  $ take 3 $ benchNativeVecIns     g <$> doubles 800
+              , env nativeVecEnv' $ \ ~(g) ->
+                    bgroup "add elems bulk" $ take 3 $ benchNativeVecInsBulk g <$> doubles 800000
+              ]
+        --, bgroup "vec"
+        --      [ env vecEnv $ \ ~(g, el) ->
+        --            bgroup "add elems" $ take 5 $ benchVecAdd g el <$> doubles 800
+        --      ]
+        --, bgroup "reusable vec"
+        --      [ env reusableVecEnv $ \ ~(g, el) ->
+        --            bgroup "add elems" $ take 3 $ benchReusableVecAdd' g el <$> doubles 800
+        --      ]
+        --, bgroup "autovec"
+        --      [ env autoVecEnv $ \ ~(g, el) ->
+        --            bgroup "add elems" $ take 5 $ benchContAdd g el <$> doubles 800
+        --      ]
+        --, bgroup "graph"
+        --      [ env addNodeEnv $ \ ~(g, el) ->
+        --            bgroup "add nodes" $ take 5 $ benchNodeAdd g el <$> doubles 200
+        --      ]
         ]
-
-
 
 
 
 benchNodeAdd :: NetGraph'' -> NetLayers' :<: Draft Static -> Int -> Benchmark
 benchNodeAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (nodeAddPure_ n))) g
+
+benchContAdd :: AutoVec -> Int -> Int -> Benchmark
+benchContAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (add n))) g
+
+benchVecAdd :: Boxed.Vector Int -> Int -> Int -> Benchmark
+benchVecAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (add n))) g
+
+benchReusableVecAdd :: Reusable Int (Boxed.Vector Int) -> Int -> Int -> Benchmark
+benchReusableVecAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (add n))) g
+
+benchReusableVecAdd' :: Reusable Int (Boxed.Vector Int) -> Int -> Int -> Benchmark
+benchReusableVecAdd' g n i = bench (show i) $ nf (head ∘ toList ∘ flip (foldl' (flip ($))) (replicate i (add n))) g
+
+benchNativeVecIns :: Boxed.Vector Int -> Int -> Benchmark
+benchNativeVecIns g i = bench (show i) $ nf (flip (foldl' (flip ($))) (take i (flip Boxed.unsafeUpd ∘ (:[]) <$> zip [0..] (repeat 0)))) g
+
+benchNativeVecInsBulk :: Boxed.Vector Int -> Int -> Benchmark
+benchNativeVecInsBulk g i = bench (show i) $ nf (flip Boxed.unsafeUpd $ take i $ zip [0..] (repeat 0)) g
+
+benchNativeVecAdd :: Boxed.Vector Int -> Int -> Int -> Benchmark
+benchNativeVecAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (flip Boxed.snoc n))) g
 
 doubles :: Int -> [Int]
 doubles i = i : doubles (2 * i)

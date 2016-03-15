@@ -263,7 +263,10 @@ benchmark graph-builder
         buildable: False
     else
         build-depends: base
+                     , container
                      , criterion
                      , luna-core
                      , typelevel
                      , transformers
+                     , vector
+                     , ghc-prim
