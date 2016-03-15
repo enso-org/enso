@@ -122,7 +122,19 @@ attachTypeRep sig ref = do
     reconnect (prop Type) ref uni
     return uni
 
-processNode :: (PassCtx(ImportErrorT m), PassCtx(m)) => Ref Node node -> m (Either ImportError (Ref Node node))
+attachSelfType :: PassCtx(ImportErrorT m) => Signature (Ref Node node) -> Ref Node node -> ImportErrorT m ([Ref Node node])
+attachSelfType sig ref = do
+    mySelf  <- maybeToList <$> getSelf ref
+    let sigSelf = maybeToList $ sig ^. Function.self
+    selfType <- mapM (follow (prop Type) >=> follow source) mySelf
+    sigSelfType <- mapM (follow (prop Type) >=> follow source) sigSelf
+    uni <- zipWithM unify selfType sigSelfType
+    zipWithM (reconnect $ prop Type) mySelf  uni
+    zipWithM (reconnect $ prop Type) sigSelf uni
+    return uni
+
+
+processNode :: (PassCtx(ImportErrorT m), PassCtx(m)) => Ref Node node -> m (Either ImportError [Ref Node node])
 processNode ref = runErrorT $ do
     name   <- getFunctionName ref
     lambda <- lookupLambda $ QualPath.mk name
@@ -136,7 +148,10 @@ processNode ref = runErrorT $ do
     fptr <- fromJust <$> follow (prop Lambda) localLamb
     selfMay <- getSelf ref
     zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (maybeToList selfMay)
-    attachTypeRep fptr ref
+    u1 <- attachTypeRep  fptr ref
+    u2 <- attachSelfType fptr ref -- TODO[MK]: monomorphic! copy self type and do unis in replacement only.
+    return $ u1 : u2
+
 
 -----------------------------
 -- === TypeCheckerPass === --
@@ -157,7 +172,7 @@ instance ( PassCtx(ImportErrorT m)
             retry (_, Left r)  = r == AmbiguousNodeType
             retry (_, Right r) = False
             retries      = fst <$> filter retry withResult
-            newUnis      = rights results
+            newUnis      = concat $ rights results
 
         TypeCheck.modify_ $ (TypeCheck.unresolvedSymbols .~ retries)
                           . (TypeCheck.unresolvedUnis    %~ (newUnis ++))
