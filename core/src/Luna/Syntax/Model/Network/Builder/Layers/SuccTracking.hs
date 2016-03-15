@@ -13,7 +13,7 @@ import           Data.Graph.Backend.VectorGraph         (SubGraph)
 import           Data.Prop
 import qualified Data.List                              as List
 import           Data.Construction
-import           Data.Graph.Backend.VectorGraph
+import           Data.Graph.Backend.VectorGraph         hiding (add, remove)
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
@@ -23,7 +23,8 @@ import           Luna.Syntax.Model.Layer
 import           Data.Graph.Builder.Ref                 as Ref
 import           Luna.Syntax.Model.Network.Class
 import           Data.Layer.Cover
-import           Data.Graph
+
+
 
 --------------------------------
 -- === Succs registration === --
@@ -45,6 +46,8 @@ instance ( MonadBuilder g m
 registerSuccs :: t -> Listener t SuccRegister m a -> m a
 registerSuccs _ = runListener
 
+
+
 ---------------------------
 -- === Succs removal === --
 ---------------------------
@@ -65,22 +68,25 @@ instance ( MonadBuilder g m
 unregisterSuccs :: t -> Listener t SuccUnregister m a -> m a
 unregisterSuccs _ = runListener
 
+
+
 -------------------------
 -- === Layer Data === ---
 -------------------------
 
 type instance LayerData (Network ls) Succs t = SizeTracking IntSet
+
 instance Monad m => Creator    m (Layer (Network ls) Succs a) where
     create     = return $ Layer $ fromList []
+
 instance Monad m => Destructor m (Layer (Network ls) Succs a) where
     destruct _ = return ()
-
-instance (Castable a a') => Castable (SizeTracking a) (SizeTracking a') where
-    cast = fmap cast
 
 instance Castable IntSet IntSet where cast = id
 
 type HasSuccs n = (HasProp Succs n, Prop Succs n ~ SizeTracking IntSet)
+
+
 
 ----------------------
 -- === Reading === ---

@@ -7,7 +7,6 @@ module Luna.Compilation.Pass.Inference.Unification where
 
 import Prelude.Luna
 
-import Data.Graph
 import Data.Construction
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete)
@@ -24,7 +23,7 @@ import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Type.Inference
-import Data.Graph.Backend.VectorGraph               as Graph
+import Data.Graph.Backend.VectorGraph               as Graph hiding (add, remove)
 
 import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
