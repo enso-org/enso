@@ -101,10 +101,35 @@ makeId = do
 
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b))
-    [ ("Int.+"         , makeNativeFun "(+)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int"   ))
-    , ("Int.*"         , makeNativeFun "(*)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int"   ))
+    [ ("Int.+"         , makeNativeFun "(+)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.*"         , makeNativeFun "(*)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.-"         , makeNativeFun "(-)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int./"         , makeNativeFun "div"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.%"         , makeNativeFun "mod"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.^"         , makeNativeFun "(^)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.negate"    , makeNativeFun "negate"                  (Just $ scons "Int")    []              (scons "Int" ))
+    , ("Int.abs"       , makeNativeFun "abs"                     (Just $ scons "Int")    []              (scons "Int" ))
+    , ("Int.signum"    , makeNativeFun "signum"                  (Just $ scons "Int")    []              (scons "Int" ))
+    , ("Int.pred"      , makeNativeFun "pred"                    (Just $ scons "Int")    []              (scons "Int" ))
+    , ("Int.succ"      , makeNativeFun "succ"                    (Just $ scons "Int")    []              (scons "Int" ))
+
+    , ("Int.=="        , makeNativeFun "(==)"                    (Just $ scons "Int")    [scons "Int"]   (scons "Bool"))
+    , ("Int./="        , makeNativeFun "(/=)"                    (Just $ scons "Int")    [scons "Int"]   (scons "Bool"))
+    , ("Int.<"         , makeNativeFun "(<)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Bool"))
+    , ("Int.<="        , makeNativeFun "(<=)"                    (Just $ scons "Int")    [scons "Int"]   (scons "Bool"))
+    , ("Int.>"         , makeNativeFun "(>)"                     (Just $ scons "Int")    [scons "Int"]   (scons "Bool"))
+    , ("Int.>="        , makeNativeFun "(>=)"                    (Just $ scons "Int")    [scons "Int"]   (scons "Bool"))
+    , ("Int.odd"       , makeNativeFun "odd"                     (Just $ scons "Int")    []              (scons "Bool"))
+    , ("Int.even"      , makeNativeFun "even"                    (Just $ scons "Int")    []              (scons "Bool"))
+
+    , ("Int.min"       , makeNativeFun "min"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.max"       , makeNativeFun "max"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.gcd"       , makeNativeFun "gcd"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+    , ("Int.lcm"       , makeNativeFun "lcm"                     (Just $ scons "Int")    [scons "Int"]   (scons "Int" ))
+
     , ("Int.toString"  , makeNativeFun "show"                    (Just $ scons "Int")    []              (scons "String"))
     , ("Int.toDouble"  , makeNativeFun "fromIntegral"            (Just $ scons "Int")    []              (scons "Double"))
+
     , ("Int.times"     , makeNativeFun "replicate"               (Just $ scons "Int")    [TVar "#times"] (listOf $ TVar "#times"))
     , ("Int.upto"      , makeNativeFun "enumFromTo"              (Just $ scons "Int")    [scons "Int"]   (listOf $ scons "Int"))
 
@@ -116,4 +141,5 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("List.+"        , makeNativeFun "(++)"                    (Just $ listOf $ TVar "#lpl")  [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
 
     , ("id"            , makeId)
+    , ("if_then_else"  , makeNativeFun "(\\x y z -> if x then y else z)" Nothing [scons "Bool", TVar "#if", TVar "#if"] (TVar "#if"))
     ]
