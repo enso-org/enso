@@ -67,23 +67,89 @@ import qualified GHC
 import           Control.Concurrent     (threadDelay)
 import           GHC.Exception          (fromException, Exception)
 import           Control.DeepSeq        (deepseq, force)
+import qualified DynFlags as GHC
 
--- libdir = "/home/adam/.cabal/lib/x86_64-linux-ghc-7.10.2/"
+
+
+-------
+
+-- initialize :: GhcMonad m => Config -> m ()
+-- initialize config = do
+--     globalPkgDb <- liftIO $ expand' $ Config.pkgDb $ Config.global config
+--     localPkgDb  <- liftIO $ expand' $ Config.pkgDb $ Config.local config
+--     let isNotUser GHC.UserPkgConf = False
+--         isNotUser _ = True
+--         extraPkgConfs p = [ GHC.PkgConfFile globalPkgDb
+--                           , GHC.PkgConfFile localPkgDb
+--                           ] ++ filter isNotUser p
+--     flags <- GHC.getSessionDynFlags
+--     _ <- GHC.setSessionDynFlags flags
+--                 { GHC.extraPkgConfs = extraPkgConfs
+--                 , GHC.hscTarget = GHC.HscInterpreted
+--                 , GHC.ghcLink   = GHC.LinkInMemory
+--                 --, GHC.verbosity = 4
+--                 }
+--     return ()
+
+
+-- run :: Config -> Ghc a -> IO a
+-- run config r = do
+--     topDir <- liftIO $ expand' $ Config.topDir $ Config.ghcS config
+--     GHC.runGhc (Just topDir) r
+
+-- topDir =  "x/base/lib/ghc-7.8.4"
+-- global = "x/pkgDb"
+-- local = "y/pkgDb"
+
+
+-----
+
+
+--
+
+externalLibs = False
+
+libdir = "/opt/ghc/7.10.3/lib64/ghc-7.10.3"
+globalPkgDb = "/opt/ghc/7.10.3/lib64/ghc-7.10.3/package.conf.d"
+localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.3/package.conf.d"
+
+
+-- globalPkgDb = "/usr/lib64/ghc-7.10.2/package.conf.d"
+-- localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.2/package.conf.d"
+
+
+-- libdir = "/home/adam/.stack/global/.stack-work/install/x86_64-linux/lts-4.1/7.10.3/lib/"
+-- libdir = ".stack/global/.stack-work/install/x86_64-linux/lts-4.1/7.10.3/lib/x86_64-linux-ghc-7.10.3/"
+
+libDirectory = if externalLibs then libdir else Paths.libdir
 
 runGHC :: (MGHC.MonadIO m, MonadMask m, Functor m) => MGHC.GhcT m a -> m a
--- runGHC session = MGHC.runGhcT (Just libdir) $ initializeGHC >> session
-runGHC session = MGHC.runGhcT (Just Paths.libdir) $ initializeGHC >> session
+runGHC session = MGHC.runGhcT (Just libDirectory) $ initializeGHC >> session
+-- runGHC session = MGHC.runGhcT (Just Paths.libdir) $ initializeGHC >> session
 
 initializeGHC :: GhcMonad m => m ()
 initializeGHC = do
-    HS.setStrFlags ["-fno-ghci-sandbox"]
+    -- HS.setStrFlags ["-fno-ghci-sandbox"]
+    let isNotUser GHC.UserPkgConf = False
+        isNotUser _ = True
+        extraPkgConfs p = [ GHC.PkgConfFile globalPkgDb
+                          , GHC.PkgConfFile localPkgDb
+                          ] ++ filter isNotUser p
     flags <- GHC.getSessionDynFlags
     void  $  GHC.setSessionDynFlags flags
                 { GHC.hscTarget     = GHC.HscInterpreted
                 , GHC.ghcLink       = GHC.LinkInMemory
+                -- , GHC.extraPkgConfs = extraPkgConfs
                 , GHC.ctxtStkDepth  = 1000
                 -- , GHC.verbosity     = 4
                 }
+    if externalLibs then do
+                            flags <- GHC.getSessionDynFlags
+                            void  $  GHC.setSessionDynFlags flags
+                                        { GHC.extraPkgConfs = extraPkgConfs
+                                        }
+                    else return ()
+
 
 defaultImports :: [HS.Import]
 defaultImports = [ "Prelude"
@@ -166,7 +232,7 @@ setValue value ref startTime = do
                     & prop InterpreterData . Layer.time  .~ time
               )
     valueString <- getValueString ref
-    displayValue ref
+    -- displayValue ref
     updNode <- read ref
     write ref $ updNode & prop InterpreterData . Layer.debug .~ valueString
 
@@ -277,7 +343,6 @@ displayValue ref = do
     valueString <- getValueString ref
     putStrLn $ "Type " <> show typeName <> " value " <> valueString
 
-
 getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
 getTypeName ref = do
     node  <- read ref
@@ -346,7 +411,7 @@ getNativeType ref = do
 exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (Maybe (EvalMonad Any))
 exceptionHandler e = do
     let asyncExcMay = ((fromException e) :: Maybe AsyncException)
-    -- putStrLn $ "Exception catched:\n" <> show e
+    putStrLn $ "Exception catched:\n" <> show e
     case asyncExcMay of
         Nothing  -> return Nothing
         Just exc -> do
@@ -373,7 +438,7 @@ evaluateNative ref args = do
                 Just valuesM -> do
                     res <- handleAll exceptionHandler $ runGHC $ do
                         HS.setImports defaultImports
-                        fun <- Session.findSymbol name tpNative
+                        fun  <- Session.findSymbol name tpNative
                         args <- liftIO $ sequence valuesM
                         let resA = foldl Session.appArg fun args
                         let resM = Session.unsafeCast resA :: EvalMonad Any
