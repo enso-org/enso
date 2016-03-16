@@ -250,15 +250,25 @@ instance ( inp ~ Input a
         return out
 
 type instance BuildArgs Match n = (Input n, Input n)
-instance ( a ~ Input a
-         , Record.Cons (Match (Binding a)) (TermOf a)
-         , TermBindBuilder n   a
-         , Bindable        n   a
-         , Binder          n m a
+instance ( inp ~ Input a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder (Match $ Ref Edge $ Connection inp a) m a
          ) => TermBuilder Match m a where
-    buildTerm p (a,b) = evalBindings $ matchCons <$> bind a <*> bind b
+    buildTerm p (a,b) = mdo
+        out <- buildElem $ Match ca cb
+        ca  <- connection a out
+        cb  <- connection b out
+        return out
 
-
+        --type instance BuildArgs Match n = (Input n, Input n)
+        --instance ( a ~ Input a
+        --         , Record.Cons (Match (Binding a)) (TermOf a)
+        --         , TermBindBuilder n   a
+        --         , Bindable        n   a
+        --         , Binder          n m a
+        --         ) => TermBuilder Match m a where
+        --    buildTerm p (a,b) = evalBindings $ matchCons <$> bind a <*> bind b
 
         --type instance BuildArgs Unify n = (Input n, Input n)
         --instance ( a ~ Input a

@@ -190,11 +190,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
               ins      = node # Inputs
               succs    = readSuccs node
               dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
-              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑ " else ""
+              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
               time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
               -- value    = fromMaybe "" $ (\v -> " Just Any") <$> (node # InterpreterData) ^. InterpreterLayer.value
               value    = (node # InterpreterData) ^. InterpreterLayer.debug
-              interpr  = " " <> value <> time <> required
+              interpr  = " " <> time <> value <> required <> " "
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness
@@ -245,7 +245,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               specAttrs = caseTest (uncover node) $ do
                   {-of' $ \Term.Star        -> [Color bgColor' , shape Star         , emptyLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, PenWidth 6, FillColor starColor, Style [SItem Filled []]]-}
                   of' $ \(Term.Unify a b) -> [Color nodeColor, shape DoubleCircle , unifyLabel  , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
-                  of' $ \(Term.Match a b) -> [Color nodeColor, shape PrimerSite   , matchLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, fontColor unifyLabelClr]
+                  {-of' $ \(Term.Match a b) -> [Color nodeColor, shape PrimerSite   , matchLabel  , FixedSize SetNodeSize, Width 0.4, Height 0.4, fontColor unifyLabelClr]-}
                   --of' $ \(Term.Sub   a b) -> [Color nodeColor, shape RArrow       , subLabel    , FixedSize SetNodeSize, Width 0.2, Height 0.2, fontColor unifyLabelClr]
                   of' $ \ANY              -> [Color nodeColor, shape PlainText    , recordLabel ]
 
