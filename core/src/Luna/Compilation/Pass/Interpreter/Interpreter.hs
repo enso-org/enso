@@ -66,7 +66,7 @@ import qualified Control.Monad.Ghc      as MGHC
 import qualified GHC
 import           Control.Concurrent     (threadDelay)
 import           GHC.Exception          (fromException, Exception)
-
+import           Control.DeepSeq        (deepseq, force)
 
 -- libdir = "/home/adam/.cabal/lib/x86_64-linux-ghc-7.10.2/"
 
@@ -285,11 +285,11 @@ getTypeName ref = do
     getTypeNameForType tpRef
 
 getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
-getListType (arg:rest) = do
+getListType (arg:more:_) = return Nothing -- error - too many parameters to list
+getListType (arg:_)      = do
     name <- getTypeNameForType arg
     return $ (\s -> "[" <> s <> "]") <$> name
-    -- TODO: log error if args not empty
-getListType _ = return Nothing
+getListType _            = return Nothing
 
 getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
 getArgsType args@(arg:rest) = do
@@ -307,13 +307,15 @@ getTypeNameForType tpRef = do
             if s == "List"
                 then
                     getListType sigElems
-                else do
-                    argsTypeMay <- getArgsType sigElems
-                    case argsTypeMay of
-                        Nothing -> return $ Just s
-                        Just argsType -> return . Just $ s <> " " <> argsType
+                else
+                    if null sigElems then return $ Just s
+                                     else do
+                                            argsTypeMay <- getArgsType sigElems
+                                            return $ case argsTypeMay of
+                                                Nothing       -> Nothing -- bad type arguments
+                                                Just argsType -> Just $ s <> " " <> argsType
         of' $ \(Var (Lit.String name)) -> return . Just $ replace "#" "_" name
-        of' $ \ANY                        -> return Nothing -- error "Ambiguous node type"
+        of' $ \ANY                     -> return Nothing -- error "Ambiguous node type"
 
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
@@ -326,8 +328,6 @@ getNativeType ref = do
     caseTest (uncover tp) $ do
         of' $ \(Lam args out) -> do
             let rawArgs  = unlayer <$> args
-            -- sigElems     <- mapM (follow source) (rawArgs <> [out])
-            -- sigElemNames <- mapM getTypeNameForType sigElems
             sigOut        <- (follow source) out
             sigOutName    <- (fmap ((evalMonad <> " ") <>)) <$> getTypeNameForType sigOut
             sigParams     <- mapM (follow source) rawArgs
@@ -375,18 +375,14 @@ evaluateNative ref args = do
                         HS.setImports defaultImports
                         fun <- Session.findSymbol name tpNative
                         args <- liftIO $ sequence valuesM
-                        -- let res = foldl Session.appArg fun $ Session.toAny <$> values
-                        -- let res = foldl (\f a -> Session.appArg f a) fun $ Session.toAny <$> args
-                        let resA = foldl (\f a -> Session.appArg f a) fun $ args
+                        let resA = foldl Session.appArg fun args
                         let resM = Session.unsafeCast resA :: EvalMonad Any
                         res <- liftIO $ resM
                         -- liftIO $ threadDelay 5000000
-                        -- let res = Session.toAny 0
                         return $ Just $ return res
-                    return res
+                    return $ res
 
--- join $ (pure f) (<*> a1) <*> a2
--- foldl (\f a -> f <*> a) (pure f) (values)
+-- join $ foldl (\f a -> f <*> a) (pure f) values
 
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
