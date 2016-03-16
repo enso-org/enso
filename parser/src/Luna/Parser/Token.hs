@@ -186,7 +186,7 @@ number :: CharParsing p => p Number
 number = some digit <**> (try rationalMod <|> integerMod)
 
 rationalMod :: CharParsing p => p (String -> Number)
-rationalMod = ((\base ext -> Number.decimal $ Number.Double $ read $ base ++ ('.' : ext)) <$ lex '.' <*> some digit)
+rationalMod = ((\ext base -> Number.decimal $ Number.Double $ read $ base ++ ('.' : ext)) <$ lex '.' <*> some digit)
 
 integerMod :: Applicative p => p (String -> Number)
 integerMod = pure (Number.decimal ∘ Number.Integer ∘ read)

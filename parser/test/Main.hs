@@ -79,7 +79,7 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|7.7
+input3 = [s|7.1
 |]
 
 
@@ -101,7 +101,7 @@ inputs  = [ Test False "Variables"           "ala"
           , Test False "Operators"           "+"
           , Test False "String literals"     "\"test\""
           , Test False "Integer literals"    "7"
-          , Test False "Fractional literals" "7.7"
+          , Test False "Fractional literals" "7.1"
           , Test False "Applications"        "foo bar baz"
           , Test False "Accessors"           "foo.bar"
           , Test False "Nested accessors"    "foo.bar.baz"
