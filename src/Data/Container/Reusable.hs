@@ -70,8 +70,10 @@ usedElems c = flip index c <$> (usedIxes c :: [Index t])
 ------------------------
 
 -- Normal Form
-instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx a) => NFData (Reusable idx a) where
-    rnf t = rnf (usedElems t :: [Item t])
+--instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx a) => NFData (Reusable idx a) where
+--    rnf t = rnf (usedElems t :: [Item t])
+
+instance NFData a => NFData (Reusable idx a) where rnf (Reusable ixs a) = rnf a
 
 
 -- === Finite ===

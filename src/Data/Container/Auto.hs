@@ -51,7 +51,7 @@ deriving instance Show AUTO => Show (IxedAuto idx style a)
 
 -- Normal Form
 
-instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx (Resizable style a)) => NFData (IxedAuto idx style a)
+instance (NFData style, NFData a) => NFData (IxedAuto idx style a)
 
 --instance (NFData [Item t], TrackUsedElems' t, t ~ Reusable idx a) => NFData (Reusable idx a) where
 

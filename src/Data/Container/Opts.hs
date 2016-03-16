@@ -30,7 +30,7 @@ data Opt a = P a -- Provided
 
 -- Knowledge
 
-data Knowledge a = Known a 
+data Knowledge a = Known a
                  | Unknown
                  deriving (Show)
 
@@ -55,14 +55,14 @@ data Raw       = Raw
 
 -------------------------
 type family MatchOpts (provided :: [*]) (selected :: [*]) :: [Opt *] where
-    MatchOpts (p ': ps) sel = (p `CheckIfKnown` sel) ': MatchOpts ps sel 
+    MatchOpts (p ': ps) sel = (p `CheckIfKnown` sel) ': MatchOpts ps sel
     MatchOpts '[]       sel = '[]
 
 
 type family CheckIfKnown flag flags :: Opt * where
-    CheckIfKnown f (f  ': fs) = P f 
+    CheckIfKnown f (f  ': fs) = P f
     CheckIfKnown f (f' ': fs) = CheckIfKnown f fs
-    CheckIfKnown f '[]        = N  
+    CheckIfKnown f '[]        = N
 
 
 -------------------------
@@ -78,8 +78,8 @@ data OptQuery (mods :: [Opt *]) (params :: [Opt *]) = OptQuery
 -----------------------
 
 class    CondOpt (opt :: Opt *) where ifOpt :: Proxy opt -> a -> a -> a
-instance CondOpt (P a)          where ifOpt _ = const
-instance CondOpt N              where ifOpt _ = flip const
+instance CondOpt (P a)          where ifOpt _ = const      ; {-# INLINE ifOpt #-}
+instance CondOpt N              where ifOpt _ = flip const ; {-# INLINE ifOpt #-}
 
 
 ------------------------
@@ -105,19 +105,23 @@ optBuilder = OptBuilder
 
 queryBuilder :: FuncTrans '[] '[] f a => f -> a
 queryBuilder = transFunc . optBuilder
+{-# INLINE queryBuilder #-}
 
-extendOptBuilder :: Query newMods newParams 
-                 -> Query collectedMods collectedParams 
+extendOptBuilder :: Query newMods newParams
+                 -> Query collectedMods collectedParams
                  -> OptBuilder mods params a
-                 -> OptBuilder (Concat newMods   (Concat collectedMods   mods  )) 
+                 -> OptBuilder (Concat newMods   (Concat collectedMods   mods  ))
                                (Concat newParams (Concat collectedParams params))
                                a
 extendOptBuilder _ _ (OptBuilder a) = OptBuilder a
+{-# INLINE extendOptBuilder #-}
 
 appFunc :: (f -> g) -> OptBuilder ms ps f -> OptBuilder ms ps g
 appFunc = fmap
+{-# INLINE appFunc #-}
 
 withTransFunc f = transFunc . appFunc f
+{-# INLINE withTransFunc #-}
 
 --------------------------------
 
@@ -142,7 +146,7 @@ type family Reverse' (lst :: [*]) (lst' :: [*]) where
 ----------------------------------
 
 type family OptData provided datas opt where
-    OptData (o ': ps) (d,ds) o = d 
+    OptData (o ': ps) (d,ds) o = d
     OptData (p ': ps) (d,ds) o = OptData ps ds o
 
 type family QueryData provided query datas where
@@ -154,20 +158,20 @@ class GetOptData (provided :: [*]) datas opt where getOptData :: Proxy provided 
 instance {-# OVERLAPPABLE #-} ( datas ~ (a,as)
                                , GetOptData ps as o
                                , OptData ps as o ~ OptData (p ': ps) (a, as) o
-                               )             => GetOptData (p ': ps)         datas o   where getOptData _ (a,as) o = getOptData (Proxy :: Proxy ps) as o
-instance {-# OVERLAPPABLE #-} datas ~ (a,as) => GetOptData (p ': ps)         datas p   where getOptData _ (a,as) _ = a
+                               )             => GetOptData (p ': ps) datas o where getOptData _ (a,as) o = getOptData (Proxy :: Proxy ps) as o ; {-# INLINE getOptData #-}
+instance {-# OVERLAPPABLE #-} datas ~ (a,as) => GetOptData (p ': ps) datas p where getOptData _ (a,as) _ = a                                   ; {-# INLINE getOptData #-}
 
 
 class    GetQueryData (provided :: [*]) (query :: [*]) datas where getQueryData :: Proxy provided -> Proxy query -> datas -> QueryData provided query datas
 instance {-# OVERLAPPABLE #-} (GetQueryData p qs datas, GetOptData p datas q)
-                           => GetQueryData p (q ': qs) datas where getQueryData p q datas = (getOptData p datas (Proxy :: Proxy q), getQueryData p (Proxy :: Proxy qs) datas)
-instance {-# OVERLAPPABLE #-} GetQueryData p '[]       datas where getQueryData _ _ _     = ()
+                           => GetQueryData p (q ': qs) datas where getQueryData p q datas = (getOptData p datas (Proxy :: Proxy q), getQueryData p (Proxy :: Proxy qs) datas) ; {-# INLINE getQueryData #-}
+instance {-# OVERLAPPABLE #-} GetQueryData p '[]       datas where getQueryData _ _ _     = ()                                                                                ; {-# INLINE getQueryData #-}
 
 
 
-ixed      = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[ Ixed ] '[]                )
-raw       = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Raw       ])
-try       = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Try       ])
-unchecked = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Unchecked ])
-unsafe    = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Unsafe    ])
-inplace   = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Inplace   ])
+ixed      = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[ Ixed ] '[]                ) ; {-# INLINE ixed      #-}
+raw       = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Raw       ]) ; {-# INLINE raw       #-}
+try       = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Try       ]) ; {-# INLINE try       #-}
+unchecked = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Unchecked ]) ; {-# INLINE unchecked #-}
+unsafe    = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Unsafe    ]) ; {-# INLINE unsafe    #-}
+inplace   = queryBuilder $ transFunc .: extendOptBuilder (Query :: Query '[]            '[ Inplace   ]) ; {-# INLINE inplace   #-}

@@ -324,6 +324,10 @@ appendM'  = queryBuilder appendQM
 append'   = withTransFunc (fmap3 runIdentity) appendM'
 appendM   = queryBuilder $ fmap formatResult .:. appendQM
 append    = withTransFunc (fmap3 runIdentity) appendM
+{-# INLINE appendM' #-}
+{-# INLINE append'  #-}
+{-# INLINE appendM  #-}
+{-# INLINE append   #-}
 
 prependM' = queryBuilder prependQM
 prepend'  = withTransFunc (fmap3 runIdentity) prependM'
@@ -467,15 +471,19 @@ class    rt ~ InitRT rt' => AppendRT a rt rt' | a rt -> rt', rt' -> a where appe
 
 resToRTup (Res ds a) = (a,ds)
 res_      (Res _  a) = a
+{-# INLINE resToRTup #-}
+{-# INLINE res_      #-}
+
 --resToRTup (Res ds a) = appendRT a ds
 
 formatResult = rtup2tupX . resToRTup
+{-# INLINE formatResult #-}
 
 class rt ~ Tup2RTup t => RTup2TupX rt t | rt -> t where rtup2tupX :: rt -> t
-instance {-# OVERLAPPABLE #-}                                      RTup2TupX () () where rtup2tupX = id
-instance {-# OVERLAPPABLE #-} (Tup2RTup t1 ~ (t1,()), t1 ~ t1') => RTup2TupX (t1,()) t1' where rtup2tupX (t1,()) = t1
-instance {-# OVERLAPPABLE #-} (t1 ~ t1', t2 ~ t2')              => RTup2TupX (t1,(t2,())) (t1',t2') where rtup2tupX (t1,(t2,())) = (t1,t2)
-instance {-# OVERLAPPABLE #-} (t1 ~ t1', t2 ~ t2', t3 ~ t3')    => RTup2TupX (t1,(t2,(t3,()))) (t1',t2',t3') where rtup2tupX (t1,(t2,(t3,()))) = (t1,t2,t3)
+instance {-# OVERLAPPABLE #-}                                      RTup2TupX () () where rtup2tupX = id ; {-# INLINE rtup2tupX #-}
+instance {-# OVERLAPPABLE #-} (Tup2RTup t1 ~ (t1,()), t1 ~ t1') => RTup2TupX (t1,()) t1' where rtup2tupX (t1,()) = t1 ; {-# INLINE rtup2tupX #-}
+instance {-# OVERLAPPABLE #-} (t1 ~ t1', t2 ~ t2')              => RTup2TupX (t1,(t2,())) (t1',t2') where rtup2tupX (t1,(t2,())) = (t1,t2) ; {-# INLINE rtup2tupX #-}
+instance {-# OVERLAPPABLE #-} (t1 ~ t1', t2 ~ t2', t3 ~ t3')    => RTup2TupX (t1,(t2,(t3,()))) (t1',t2',t3') where rtup2tupX (t1,(t2,(t3,()))) = (t1,t2,t3) ; {-# INLINE rtup2tupX #-}
 
 
 
@@ -498,4 +506,5 @@ type Ctx2 m = (Monad m)
 
 intercalate :: Monoid a => a -> [a] -> a
 intercalate delim l = mconcat (intersperse delim l)
+{-# INLINE intercalate #-}
 
