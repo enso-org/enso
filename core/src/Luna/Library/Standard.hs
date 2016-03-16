@@ -218,7 +218,7 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
 ------------------
 
     , ("List.length"    , makePureFun "length"                 (Just $ listOf $ TVar "#len")     []                     (scons "Int"))
-    , ("String.reverse" , makePureFun "reverse"                (Just $ listOf $ TVar "#reverse") []                     (listOf $ TVar "#reverse"))
+    , ("List.reverse"   , makePureFun "reverse"                (Just $ listOf $ TVar "#reverse") []                     (listOf $ TVar "#reverse"))
     , ("List.+"         , makePureFun "(++)"                   (Just $ listOf $ TVar "#lpl")     [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
     , ("empty"          , makePureFun "([])"                   Nothing                           []                     (listOf $ TVar "#empty"))
 
