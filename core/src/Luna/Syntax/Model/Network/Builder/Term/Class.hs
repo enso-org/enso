@@ -17,7 +17,7 @@ import           Data.Layer
 import           Data.Layer.Cover
 import           Data.Prop
 import qualified Data.Record                             as Record
-import           Data.Record                             (RecordOf, IsRecord, HasRecord, record, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props, withElement', Layout_Variants, MapTryingElemList, OverElement, overElement)
+import           Data.Record                             (RecordOf, IsRecord, HasRecord, record, asRecord, Variant, MapTryingElemList_, withElement_, Props, withElement', Layout_Variants, MapTryingElemList, OverElement, overElement)
 import           Data.Tuple.Curry.Missing
 import           Data.Tuple.OneTuple
 import           Luna.Evaluation.Runtime                 as Runtime
@@ -66,7 +66,7 @@ instance {-# OVERLAPPABLE #-} ElemBuilder2 el IM a where buildElem2 = impossible
 
 
 instance {-# OVERLAPPABLE #-}
-         ( SmartCons el (Uncovered a)
+         ( Record.Cons el (Uncovered a)
          , CoverConstructor m a
          , Dispatcher ELEMENT a m
          , Self.MonadSelfBuilder s m
@@ -95,6 +95,14 @@ instance {-# OVERLAPPABLE #-}
 class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
 instance {-# OVERLAPPABLE #-} TermBuilder t IM a where buildTerm = impossible
 
+
+
+
+newtype BindBuilder t m a = BindBuilder (IdentityT m a) deriving (Show, Functor, Applicative, Monad, MonadTrans)
+makeWrapped ''BindBuilder
+
+runBindBuilder :: BindBuilder t m t -> m t
+runBindBuilder = runIdentityT ∘ unwrap'
 
 
 -------------------------------
@@ -243,28 +251,39 @@ instance ( inp ~ Input a
 
 type instance BuildArgs Match n = (Input n, Input n)
 instance ( a ~ Input a
-         , Monad m
-
-         , SmartCons (Match (Binding a)) (TermOf a)
-
-         , TermBindBuilder m a
-         , Bindable (n m) a
-         , TransBinder n m a
+         , Record.Cons (Match (Binding a)) (TermOf a)
+         , TermBindBuilder n   a
+         , Bindable        n   a
+         , Binder          n m a
          ) => TermBuilder Match m a where
     buildTerm p (a,b) = evalBindings $ matchCons <$> bind a <*> bind b
 
 
+
+        --type instance BuildArgs Unify n = (Input n, Input n)
+        --instance ( a ~ Input a
+        --         , Record.Cons (Unify (Binding a)) (TermOf a)
+        --         , TermBindBuilder n   a
+        --         , Bindable        n   a
+        --         , Binder          n m a
+        --         ) => TermBuilder Unify m a where
+        --    buildTerm p (a,b) = evalBindings $ unifyCons <$> bind a <*> bind b
+
+
+varCons   = Record.cons ∘  Var
+unifyCons = Record.cons ∘∘ Unify
 matchCons = Record.cons ∘∘ Match
 
-type TermCons a = SmartCons (Match (Binding a)) (TermOf a)
+
+--type TermCons a = SmartCons (Match (Binding a)) (TermOf a)
 
 --class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
 
 --class
 
-evalBindings :: (TransBinder n m a, TermBindBuilder m a)
-             => BindBuilder a (n m) (TermOf a) -> m a
-evalBindings m = runTransBinder $ runBuilderX $ (lift ∘ lift ∘ buildTerm') =<< m
+--evalBindings :: (Binder n m a, TermBindBuilder m a)
+--             => BindBuilder a (n m) (TermOf a) -> m a
+evalBindings m = runBinder $ runBindBuilder $ (lift ∘ buildTerm') =<< m
 
 var :: TermBuilder Var m a => NameInput a -> m a
 var = curryN $ buildTerm (Proxy :: Proxy Var)
@@ -289,38 +308,38 @@ type family Source2 a
 
 --class TransRunner n m
 
-class (MonadTrans n, Monad (n m), Monad m) => TransBinder n m a | m a -> n where
-    runTransBinder :: n m a -> m a
+--class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m a -> n where
+--    runBinder :: n m a -> m a
+
+class (Monad n, Monad m) => Binder n m a | m a -> n where
+    runBinder :: n a -> m a
+
+
+--newtype Root a   = Root a   deriving (Show, Functor, Foldable, Traversable)
+--newtype Slot a   = Slot a   deriving (Show, Functor, Foldable, Traversable)
+--data    Bind a b = Bind a b deriving (Show)
+
+
+--class BindingResolver t m a | t -> a where
+--    resolveBinding :: t -> m ()
+
+--instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
+--         , BindingResolver t m v
+--         , State.MonadState [(a, Ref Edge a)] m
+--         ) => BindingResolver (Bind t a) m v where
+--    resolveBinding (Bind t a) = do
+--        cref <- reserveConnection
+--        State.modify ((a, cref):)
+--        resolveBinding t -- dorobic aplikowanie trzeba
 
 
 
 
-newtype Root a   = Root a   deriving (Show, Functor, Foldable, Traversable)
-newtype Slot a   = Slot a   deriving (Show, Functor, Foldable, Traversable)
-data    Bind a b = Bind a b deriving (Show)
 
 
-class BindingResolver t m a | t -> a where
-    resolveBinding :: t -> m ()
-
-instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
-         , BindingResolver t m v
-         , State.MonadState [(a, Ref Edge a)] m
-         ) => BindingResolver (Bind t a) m v where
-    resolveBinding (Bind t a) = do
-        cref <- reserveConnection
-        State.modify ((a, cref):)
-        resolveBinding t -- dorobic aplikowanie trzeba
-
-
-runBuilderX :: BindBuilder t m t -> m t
-runBuilderX = runIdentityT ∘ runBindBuilder
-
-
-newtype BindBuilder t m a = BindBuilder { runBindBuilder :: IdentityT m a } deriving (Show, Functor, Applicative, Monad, MonadTrans)
 
 class Bindable m t where
-    --bindName   :: NameInput t -> BindBuilder t m (NameBinding t)
+    bindName   :: NameInput t -> BindBuilder t m (NameBinding t)
     bind       :: t           -> BindBuilder t m     (Binding t)
 
 
@@ -330,22 +349,21 @@ class TermBindBuilder m t where
 
 --instance TermBindBuilder m t where buildTerm' = undefined
 
-instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
-         , State.MonadState [(Ref Node a, Ref Edge (Link a))] m
-         --, MonadDelayed n () m
-         --, GraphBuilder.MonadBuilder t n
-         --, Referred Edge (Link a) t
-         --, State.MonadState (Ref Node a) n
+--class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 
-         --, Referred Edge (Link a) (Hetero (VectorGraph node eedge cluster))
-         )
-     => Bindable m (Ref Node a) where
+
+instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
+         , NamedConnectionReservation (NameInput (Ref Node a)) (Ref Node a) m (NameBinding (Ref Node a))
+         , State.MonadState [(Ref Node a, Ref Edge (Link a))] m
+         ) => Bindable m (Ref Node a) where
     bind t = do
         cref <- reserveConnection
-        --write cref (rawConnection t t)
-        --delayed $ write cref ∘ rawConnection t =<< State.get
         lift $ State.modify ((t, cref):) -- FIXME[WD]: remove lift
         return cref
+    -- FIXME[WD]: add the logic for dynamic graphs to add pending connections to state, like above
+    bindName name = lift $ reserveNamedConnection name (p :: P (Ref Node a))
+    {-# INLINE bind     #-}
+    {-# INLINE bindName #-}
 
 
 --write :: (MonadBuilder t m, Referred r a t) => Ref r a -> a -> m ()
@@ -355,6 +373,7 @@ instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
 
 type instance TermOf (Ref t a) = TermOf a
 type instance Binding (Ref Node a) = Ref Edge (Link a)
+type instance NameBinding (Ref Node a) = Lit.String -- FIXME[WD]: Support dynamic terms
 
 --Term t Val  Static
 

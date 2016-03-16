@@ -1,4 +1,4 @@
-module Data.Graph.Model.Dynamic where
+module Data.Graph.Type.Dynamic where
 
 import Prologue
 
@@ -6,7 +6,9 @@ import Data.Prop
 import Data.Graph.Model.Ref
 
 
--- === Definitions === --
+---------------------
+-- === Dynamic === --
+---------------------
 
 -- Homogeneous interface
 
@@ -32,3 +34,15 @@ class Dynamic t g a where
 
     default remove :: (Dynamic' t g, a ~ (g # t)) => Ref t a -> g -> g
     remove = remove' ∘ retarget ; {-# INLINE remove #-}
+
+
+-- FIXME[WD]: finish after fixing vectors in ST patch
+--------------------------
+---- === Reservable === --
+--------------------------
+
+--class Reservable' t g where
+--    reserve' :: g -> Ptr t
+
+--class Reservable t g a where
+--    reserve :: g -> Ptr t a

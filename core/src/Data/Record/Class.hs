@@ -268,18 +268,24 @@ tryResolvedAutoCons :: TryResolvedAutoCons a m rec => a -> Maybe rec
 tryResolvedAutoCons = maybeResult ∘ resolvedCons ; {-# INLINE tryResolvedAutoCons #-}
 
 
--- === Smart constructors constructors === --
+-- === User friendly constructors === --
+
+class Cons a rec where cons :: a -> rec
+instance ResolvedAutoCons a Ok rec => Cons a rec where cons = evalResolvedAutoCons ; {-# INLINE cons #-}
+instance                              Cons I rec where cons = impossible           ; {-# INLINE cons #-}
+instance                              Cons a I   where cons = impossible           ; {-# INLINE cons #-}
+
+class TryCons a rec where tryCons :: a -> Maybe rec
+instance TryResolvedAutoCons a m rec => TryCons a rec where tryCons = tryResolvedAutoCons ; {-# INLINE tryCons #-}
+instance                                TryCons I rec where tryCons = impossible          ; {-# INLINE tryCons #-}
+instance                                TryCons a I   where tryCons = impossible          ; {-# INLINE tryCons #-}
 
 class SmartCons a rec where smartCons :: a -> rec
-instance {-# OVERLAPPABLE #-} TryResolvedAutoCons a m  rec => SmartCons a (Maybe rec) where smartCons = tryResolvedAutoCons  ; {-# INLINE smartCons #-}
-instance {-# OVERLAPPABLE #-} ResolvedAutoCons    a Ok rec => SmartCons a rec         where smartCons = evalResolvedAutoCons ; {-# INLINE smartCons #-}
-instance {-# OVERLAPPABLE #-}                                 SmartCons I rec         where smartCons = impossible           ; {-# INLINE smartCons #-}
-instance {-# OVERLAPPABLE #-}                                 SmartCons a (Maybe I)   where smartCons = impossible           ; {-# INLINE smartCons #-}
+instance {-# OVERLAPPABLE #-} TryCons a rec => SmartCons a (Maybe rec) where smartCons = tryCons    ; {-# INLINE smartCons #-}
+instance {-# OVERLAPPABLE #-} Cons    a rec => SmartCons a rec         where smartCons = cons       ; {-# INLINE smartCons #-}
+instance {-# OVERLAPPABLE #-}                  SmartCons a (Maybe I)   where smartCons = impossible ; {-# INLINE smartCons #-}
+instance {-# OVERLAPPABLE #-}                  SmartCons I rec         where smartCons = impossible ; {-# INLINE smartCons #-}
 
--- For convenience the `cons` function is abbreviation for `smartCons`
-
-cons :: SmartCons a rec => a -> rec
-cons = smartCons ; {-# INLINE cons #-}
 
 
 

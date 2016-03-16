@@ -28,7 +28,7 @@ import           Data.Index                                      (idx)
 import           Data.Layer.Cover
 import qualified Data.Map                                        as Map
 import           Data.Prop
-import           Data.Record                                     hiding (Layout, cons)
+import           Data.Record                                     hiding (Layout, Cons, cons)
 import           Data.Version.Semantic
 import           Development.Placeholders
 import           Type.Inference

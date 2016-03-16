@@ -26,6 +26,10 @@ type family NameConnection src tgt where
     NameConnection src I   = Impossible
     NameConnection src tgt = If (Runtime.Model tgt == Static) src (Connection src tgt)
 
+type family NameConnection2 src tgt where
+    NameConnection2 src tgt = Impossible
+    NameConnection2 src tgt = If (Runtime.Model tgt == Static) src (Connection src tgt)
+
 
 type ConCtx src tgt conn = ( conn ~ Connection src tgt
                            , src  ~ (conn # Source)
@@ -60,6 +64,15 @@ instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref
 
 reserveConnection :: MonadBuilder (Hetero (VectorGraph n e c)) m => m (Ref Edge a)
 reserveConnection = Ref <$> modify (wrapped' ∘ edgeGraph $ swap ∘ ixed reserve)
+
+class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
+class NamedConnectionReservationH rt src tgt m conn where reserveNamedConnectionH :: Proxy rt -> src -> Proxy tgt -> m conn
+
+instance (rt ~ Runtime.Model tgt, NamedConnectionReservationH rt src tgt m conn)
+      => NamedConnectionReservation src tgt m conn where reserveNamedConnection = reserveNamedConnectionH (Proxy :: Proxy rt)
+
+instance (Monad m, conn ~ src) => NamedConnectionReservationH Static  src tgt m conn where reserveNamedConnectionH _ src _ = return src
+--instance (Monad m) => NamedConnectionReservationH Dynamic src tgt m conn where reserveNamedConnectionH _ _ _ = reserveConnection
 
 rawConnection :: Ref Node src -> Ref Node tgt -> Connection (Ref Node src) (Ref Node tgt)
 rawConnection src tgt = arc src tgt

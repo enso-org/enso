@@ -96,7 +96,8 @@ makeLenses ''Test
 
 
 inputs :: [Test String]
-inputs  = [ Test False "Identifier parsing" "ala"
+inputs  = [ Test False "Variables"          "ala"
+          , Test False "Constructors"       "True"
           , Test False "Operator parsing"   "+"
           , Test False "String literals"    "\"test\""
           , Test False "Applications"       "foo bar baz"
@@ -145,6 +146,6 @@ mainLam = do
 
 main :: IO ()
 main = do
-    --let results = (content %~ flip parseString partialParser) <$> inputs
-    --mapM_ checkResult results
-    mainLam
+    let results = (content %~ flip parseString partialParser) <$> inputs
+    mapM_ checkResult results
+    --mainLam

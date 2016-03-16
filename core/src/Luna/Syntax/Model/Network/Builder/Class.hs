@@ -8,7 +8,7 @@ import Control.Monad.Trans.Identity
 import Control.Monad.Except
 import Control.Monad.Catch
 import Control.Monad.Writer
-import Luna.Syntax.Model.Network.Builder.Term.Class (TermBindBuilder, buildTerm', TransBinder, runTransBinder, buildElem2, ElemBuilder2)
+import Luna.Syntax.Model.Network.Builder.Term.Class (TermBindBuilder, buildTerm', Binder, runBinder, buildElem2, ElemBuilder2)
 import Control.Monad.Delayed as Delayed
 
 import Data.Graph
@@ -16,6 +16,7 @@ import Data.Graph.Builder (MonadBuilder, write)
 import Data.Graph.Builders (rawConnection)
 
 import qualified Control.Monad.State.Lazy as State
+import Control.Monad.Event (Dispatcher, dispatch)
 
 import Luna.Syntax.AST.Term (TermOf)
 
@@ -33,12 +34,13 @@ runNetworkBuilderT = runIdentityT ∘ unwrap'
 
 -- === Instances === --
 
-instance (MonadBuilder g m, Referred Edge g (Link a))
-      => TransBinder (State.StateT [(Ref Node a, Ref Edge (Link a))]) (NetworkBuilderT m) (Ref Node a) where
-    runTransBinder m = do
+instance (MonadBuilder g m, Referred Edge g (Link a), Dispatcher CONNECTION (Ref Edge (Link a)) m)
+      => Binder (State.StateT [(Ref Node a, Ref Edge (Link a))] (NetworkBuilderT m)) (NetworkBuilderT m) (Ref Node a) where
+    runBinder m = do
         (a, pending) <- State.runStateT m mempty
-        flip mapM pending $ \(nref, cref) ->
-            write cref $ rawConnection nref a
+        flip mapM pending $ \(nref, cref) -> do
+             write (retarget cref) (rawConnection nref a)
+             dispatch CONNECTION cref
         return a
 
 
@@ -67,8 +69,8 @@ instance ElemBuilder2 (TermOf t) m t => TermBindBuilder m t where buildTerm' = b
 
 -- State.MonadState [(Ref Node a, Ref Edge (Link a))]
 
---class (MonadTrans n, Monad (n m), Monad m) => TransBinder n m a | m -> n where
---    runTransBinder :: n m a -> m a
+--class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m -> n where
+--    runBinder :: n m a -> m a
 
 
 --run' :: Delayed t m a -> m (a, [m t])
@@ -77,6 +79,6 @@ instance ElemBuilder2 (TermOf t) m t => TermBindBuilder m t where buildTerm' = b
 
 
 
---class (MonadTrans n, Monad (n m), Monad m) => TransBinder n m a | m a -> n where
---    runTransBinder :: n m a -> m a
+--class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m a -> n where
+--    runBinder :: n m a -> m a
 
