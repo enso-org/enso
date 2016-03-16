@@ -74,6 +74,7 @@ Library
                  , data-member
                  , data-pool
                  , data-result
+                 , deepseq
                  , dependent-state
                  , digits
                  , either
