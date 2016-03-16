@@ -368,9 +368,16 @@ test1 = do
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
                 i1 <- int 20
-                id <- var "id"
-                api <- app id [arg i1]
-                return [api]
+                ti1 <- acc "times" i1
+                ti2 <- acc "times" i1
+                s  <- str "hi"
+                d  <- double 3.0
+                a1 <- app ti1 [arg s]
+                a2 <- app ti2 [arg d]
+                apl <- acc "+" a1
+                apped <- app apl [arg a2]
+
+                return [apped]
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 

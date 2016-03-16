@@ -129,7 +129,7 @@ buildBindType ref = do
         of' $ \(Match l r) -> do
             lr       <- follow source l
             rr       <- follow source r
-            reconnect (prop TCData . redirect) lr rr -- FIXME[MK] : move the logic of creating redirect to a separate pass
+            reconnect (prop TCData . redirect) lr (Just rr) -- FIXME[MK] : move the logic of creating redirect to a separate pass
             rtp      <- follow source =<< follow (prop Type) rr
             commonTp <- getTypeSpec lr
             uniTp    <- unify rtp commonTp

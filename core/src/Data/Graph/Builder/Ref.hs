@@ -35,11 +35,11 @@ follow f ptr = view f <$> read ptr
 
 -- === Reconnects === --
 
-class Reconnectible m r el store inp where
-    reconnect :: Lens' el store -> Ref r el -> Ref r inp -> m store
+class Reconnectible m r el edgeStore inpStore where
+    reconnect :: Lens' el edgeStore -> Ref r el -> inpStore -> m edgeStore
 
 instance (MonadBuilder t m, Referred r t el, Destructor m (Ref Edge conn), Connectible' (Ref r inp) (Ref r el) m conn)
-      => Reconnectible m r el (Ref Edge conn) inp where
+      => Reconnectible m r el (Ref Edge conn) (Ref r inp) where
     reconnect lens elRef input = do
         el  <- read elRef
         destruct $ el ^. lens
@@ -47,14 +47,15 @@ instance (MonadBuilder t m, Referred r t el, Destructor m (Ref Edge conn), Conne
         write elRef $ el & lens .~ conn
         return conn
 
-instance (MonadBuilder t m, Referred r t el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn)
-      => Reconnectible m r el (Maybe connRef) inp where
-    reconnect lens elRef input = do
-        el  <- read elRef
+instance (MonadBuilder t m, Referred r t el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn, Traversable f)
+      => Reconnectible m r el (f (Ref Edge conn)) (f (Ref r inp)) where
+    reconnect lens elRef inputs = do
+        el <- read elRef
         mapM_ destruct $ el ^. lens
-        conn <- connection input elRef
-        write elRef $ el & lens ?~ conn
-        return $ Just conn
+        conns <- mapM (flip connection elRef) inputs
+        write elRef $ el & lens .~ conns
+        return conns
+
 
 --class Referred r t a where ref :: Ref r a -> Lens' t a
 
