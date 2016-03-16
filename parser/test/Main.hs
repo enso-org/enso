@@ -79,7 +79,7 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|a . foo . bar + b
+input3 = [s|7.7
 |]
 
 
@@ -96,13 +96,15 @@ makeLenses ''Test
 
 
 inputs :: [Test String]
-inputs  = [ Test False "Variables"          "ala"
-          , Test False "Constructors"       "True"
-          , Test False "Operators"          "+"
-          , Test False "String literals"    "\"test\""
-          , Test False "Applications"       "foo bar baz"
-          , Test False "Accessors"          "foo.bar"
-          , Test False "Nested accessors"   "foo.bar.baz"
+inputs  = [ Test False "Variables"           "ala"
+          , Test False "Constructors"        "True"
+          , Test False "Operators"           "+"
+          , Test False "String literals"     "\"test\""
+          , Test False "Integer literals"    "7"
+          , Test False "Fractional literals" "7.7"
+          , Test False "Applications"        "foo bar baz"
+          , Test False "Accessors"           "foo.bar"
+          , Test False "Nested accessors"    "foo.bar.baz"
           ]
 
 checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDesc where
@@ -148,7 +150,7 @@ mainLam = do
 
 main :: IO ()
 main = do
-    let results = (content %~ flip parseString partialParser) <$> inputs
-    mapM_ checkResult results
-    --mainLam
+    --let results = (content %~ flip parseString partialParser) <$> inputs
+    --mapM_ checkResult results
+    mainLam
 

@@ -51,6 +51,9 @@ intAs t = inferM t ∘ Term.int
 doubleAs :: TermBuilderAs t Lit.Number m a => t -> Double -> m a
 doubleAs t = inferM t ∘ Term.double
 
+numberAs :: TermBuilderAs t Lit.Number m a => t -> Lit.Number -> m a
+numberAs t = inferM t ∘ Term.number
+
 -- === Val === --
 
 consAs :: TermBuilderAs t Cons m a => t -> NameInput a -> [Arg $ Input a] -> m a
@@ -95,16 +98,18 @@ blankAs t = inferM t Term.blank
 -- === Lit === --
 
 star   :: TermBuilder Lit.Star   m a => m a
-str    :: TermBuilder Lit.String m a => String   -> m a
-ratio  :: TermBuilder Lit.Number m a => Rational -> m a
-int    :: TermBuilder Lit.Number m a => Integer  -> m a
-double :: TermBuilder Lit.Number m a => Double   -> m a
+str    :: TermBuilder Lit.String m a => String     -> m a
+ratio  :: TermBuilder Lit.Number m a => Rational   -> m a
+int    :: TermBuilder Lit.Number m a => Integer    -> m a
+double :: TermBuilder Lit.Number m a => Double     -> m a
+number :: TermBuilder Lit.Number m a => Lit.Number -> m a
 
 star   = starAs   ELEMENT
 str    = strAs    ELEMENT
 ratio  = ratioAs  ELEMENT
 int    = intAs    ELEMENT
 double = doubleAs ELEMENT
+number = numberAs ELEMENT
 
 -- === Val === --
 

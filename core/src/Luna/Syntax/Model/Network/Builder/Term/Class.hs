@@ -135,6 +135,8 @@ int = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.I
 double :: TermBuilder Lit.Number m a => Double -> m a
 double = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
 
+number :: TermBuilder Lit.Number m a => Lit.Number -> m a
+number = (curryN $ buildTerm (Proxy :: Proxy Lit.Number))
 
 -- === Val === --
 

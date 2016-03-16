@@ -45,5 +45,6 @@ type ASTBuilderCtx m a = ( a ~ Input a
                          , TermBuilder Acc        m a
                          , TermBuilder Match      m a
                          , TermBuilder Lit.String m a
+                         , TermBuilder Lit.Number m a
                          , IsString              (NameInput a)
                          )

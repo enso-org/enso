@@ -18,12 +18,14 @@ import Text.Parser.Token.Highlight hiding (Comment)
 import Text.Parser.Token hiding (symbol, symbolic, ident)
 import Text.Parser.Token (symbol, ident)
 import Prelude.Luna as Prelude hiding (op, noneOf, lex, use)
+import Prelude (read)
 
 import qualified Luna.Parser.Indent as Indent
 import           Luna.Parser.Indent (MonadIndent)
 import           Luna.Parser.Combinators
 import qualified Luna.Syntax.AST.Term.Lit as Lit
 import qualified Luna.Syntax.AST.Term.Lit as Number
+import           Luna.Syntax.AST.Term.Lit (Number)
 import           Luna.Parser.Lex
 import qualified Luna.Parser.State as State
 
@@ -174,14 +176,23 @@ indBlockBegin' = symbol' ":"
 
 --numberL = try (sign <**> token numBase) <?> "number"
 
---numBase =   (numPrefix ['o', 'O'] *> (Number.octodecimal <$> numRepr octDigit <*> numExp 'e'))
---        <|> (numPrefix ['x', 'X'] *> (Number.hexadecimal <$> numRepr hexDigit <*> numExp 'p'))
---        <|> (Number.decimal <$> numRepr digit <*> numExp 'e')
+--numBase = --  (numPrefix ['o', 'O'] *> (Number.octodecimal <$> numRepr octDigit <*> numExp 'e'))
+--        -- <|> (numPrefix ['x', 'X'] *> (Number.hexadecimal <$> numRepr hexDigit <*> numExp 'p'))
+--        (Number.decimal <$> numRepr digit) -- <*> numExp 'e')
 
 --numPrefix pfxs = try (lex '0' *> choice (fmap lex pfxs))
+--numRepr baseDigit = some baseDigit <**> ((flip Number.Float <$> try (lex '.' *> some baseDigit)) <|> pure Number.Decimal)
+number :: CharParsing p => p Number
+number = some digit <**> (try rationalMod <|> integerMod)
+
+rationalMod :: CharParsing p => p (String -> Number)
+rationalMod = ((\base ext -> Number.decimal $ Number.Double $ read $ base ++ ('.' : ext)) <$ lex '.' <*> some digit)
+
+integerMod :: Applicative p => p (String -> Number)
+integerMod = pure (Number.decimal ∘ Number.Integer ∘ read)
 
 --numRepr baseDigit = some baseDigit <**> ((flip Number.Float <$> try (lex '.' *> some baseDigit)) <|> pure Number.Decimal)
---                  <|> try (Number.Float "0" <$ lex '.' <*> some baseDigit)
+                  -- <|> try (Number.Float "0" <$ lex '.' <*> some baseDigit)
 
 --numExp c = (Just <$ lex c <*> numberL) <|> pure Nothing
 
