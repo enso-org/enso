@@ -5,6 +5,8 @@
 {-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances            #-}
+{-# LANGUAGE GADTs            #-}
+{-# LANGUAGE TypeFamilies            #-}
 
 
 module Luna.Parser.Indent where

@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs            #-}
+
 module Luna.Parser.Class where
 
 import Prelude.Luna
@@ -40,6 +42,7 @@ type ASTBuilderCtx m a = ( a ~ Input a
                          , TermBuilder Cons       m a
                          , TermBuilder App        m a
                          , TermBuilder Unify      m a
+                         , TermBuilder Acc        m a
                          , TermBuilder Match      m a
                          , TermBuilder Lit.String m a
                          , IsString              (NameInput a)

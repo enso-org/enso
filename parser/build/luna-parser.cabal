@@ -21,39 +21,24 @@ Library
     GHC-Options:
                     -- -dshow-passes
                     -- -F -pgmF ./util/preprocessors/imports.py
-    Extensions:   ConstraintKinds
-                  DataKinds
-                  DefaultSignatures
-                  DeriveDataTypeable
-                  DeriveFoldable
-                  DeriveFunctor
-                  DeriveGeneric
-                  DeriveTraversable
-                  DoAndIfThenElse
-                  EmptyDataDecls
-                  FlexibleContexts
-                  FlexibleInstances
-                  FunctionalDependencies
-                  GeneralizedNewtypeDeriving
-                  InstanceSigs
-                  LambdaCase
-                  MultiParamTypeClasses
-                  NoImplicitPrelude
-                  OverloadedStrings
-                  PackageImports
-                  ScopedTypeVariables
-                  StandaloneDeriving
-                  TemplateHaskell
-                  TupleSections
-                  TypeFamilies
-                  TypeOperators
-                  ViewPatterns
+    Extensions: NoImplicitPrelude
+                StandaloneDeriving
+                TupleSections
+                TypeSynonymInstances
+                FlexibleInstances
+                LambdaCase
+                MultiParamTypeClasses
+                GeneralizedNewtypeDeriving
+                ConstraintKinds
+                FlexibleContexts
+                OverloadedStrings
 
     Exposed-modules: 
         Luna.Parser.Builder,
         Luna.Parser.Char,
         Luna.Parser.Class,
         Luna.Parser.Combinators,
+        Luna.Parser.Expression,
         Luna.Parser.Function,
         Luna.Parser.Indent,
         Luna.Parser.Layout,
@@ -141,3 +126,4 @@ Executable luna-parser-test
                  , mtl
                  , trifecta
                  , ansi-wl-pprint
+                 , parsers

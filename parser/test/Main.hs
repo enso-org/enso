@@ -24,13 +24,13 @@ import           Control.Monad.Identity hiding (when)
 import qualified Luna.Parser.Parser     as Parser
 import qualified Luna.Parser.State      as Parser
 import           Text.Trifecta.Combinators (DeltaParsing)
+import           Text.Parser.Combinators (eof)
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Luna.Parser.Term as Term
 import           Luna.Parser.Class        (ASTParser, ASTParserCore, ASTBuilderCtx)
 import qualified Luna.Syntax.Model.Text.Location as Location
 import Luna.Parser.Class (Parser)
 import Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
-
 --import qualified Luna.Parser.Function as Func
 
 
@@ -79,13 +79,13 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|x = v
+input3 = [s|a . foo . bar + b
 |]
 
 
 --myparser3 :: ASTParserCore p m a => p (m a, Parser.State)
 myparser3 = parseGen Term.s1_function' Parser.defState
-myparser4 = parseGen Term.assignment   Parser.defState
+myparser4 = parseGen Term.expr   Parser.defState
 
 --parsed2 :: ASTBuilderCtx m a => Either Doc (m a, Parser.State)
 --parsed2 :: _ => _
@@ -98,9 +98,11 @@ makeLenses ''Test
 inputs :: [Test String]
 inputs  = [ Test False "Variables"          "ala"
           , Test False "Constructors"       "True"
-          , Test False "Operator parsing"   "+"
+          , Test False "Operators"          "+"
           , Test False "String literals"    "\"test\""
           , Test False "Applications"       "foo bar baz"
+          , Test False "Accessors"          "foo.bar"
+          , Test False "Nested accessors"   "foo.bar.baz"
           ]
 
 checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDesc where
@@ -116,7 +118,7 @@ checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDes
 partialInput = [s|+|]
 
 partialParsed = parseString partialInput partialParser
-partialParser = parseGen Term.partial Parser.defState
+partialParser = parseGen (Term.partial <* eof) Parser.defState
 
 
 mainPartial :: IO ()
@@ -149,3 +151,4 @@ main = do
     let results = (content %~ flip parseString partialParser) <$> inputs
     mapM_ checkResult results
     --mainLam
+

@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE GADTs            #-}
 
 
 module Luna.Parser.Parser where

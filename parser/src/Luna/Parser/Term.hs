@@ -1,5 +1,9 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RecursiveDo               #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs            #-}
+
 
 module Luna.Parser.Term where
 
@@ -29,7 +33,7 @@ import           Data.Maybe                   (isJust, fromJust)
 --import           Luna.Syntax.Label  (Label(Label))
 --import           Luna.Syntax.Name.Pattern     (NamePat(NamePat))
 
-import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser)
+import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser, OperatorTable, Assoc(..))
 import qualified Luna.Parser.Pattern as Pat
 --import           Luna.Parser.Type    (typic, metaBase)
 import           Luna.Parser.Literal (literal)
@@ -75,8 +79,10 @@ import Luna.Parser.Location (located)
 import qualified Luna.Parser.Layout as Layout
 import qualified Luna.Parser.Token.Operator as Operator
 
-import Luna.Parser.Char (CharParsing, isSpace, satisfy)
+import Luna.Parser.Char (CharParsing, isSpace, satisfy, string)
 
+
+import qualified Luna.Parser.Expression as E
 --type ParserMonad m = (MonadIndent m, MonadState ParserState m, DeltaParsing m, NamespaceMonad m, MonadPragmaStore m)
 
 --prevParsedChar = do
@@ -223,11 +229,13 @@ import Luna.Parser.Char (CharParsing, isSpace, satisfy)
 
 
 
-binary  name fun assoc = Infix   (fun <$ reservedOp name) assoc
-prefix  name fun       = Prefix  (fun <$ reservedOp name)
-postfix name fun       = Postfix (fun <$ reservedOp name)
+binary   name fun assoc = Infix   (fun <$ reservedOp name) assoc
+prefix   name fun       = Prefix  (fun <$ reservedOp name)
+postfix  name fun       = Postfix (fun <$ reservedOp name)
+postfixM name fun       = Postfix (reservedOp name *> fun)
 
 reservedOp name = reserve emptyOps name
+reservedOp' name = string name
 
 
 
@@ -262,8 +270,8 @@ notReserved p = do
 -- === General === --
 ---------------------
 
---cons :: ASTParser p m a => p (m a)
---cons = located $ AST.cons <$> Tok.conIdent
+consHeader :: ASTParser p m a => p (m a)
+consHeader = AST.cons <$> Tok.conIdent <*> pure []
 
 
 patVar = var
@@ -348,17 +356,18 @@ argDef2 pat val = ArgDef <$> pat <*> maybe (Tok.assignment *> val)
 -- === Expressions === --
 -------------------------
 
+
 -- === General === --
 
 expr  :: ASTParser p m a => p (m a)
-expr   = buildExpressionParser opTable (labApp exprAtom)
+expr   = E.buildExpressionParser opTable (labApp exprAtom)
       <?> "expression"
 
 exprAtom :: ASTParser p m a => p (m a)
 exprAtom  = parens expr
         <|> literal
         <|> patVar
-        -- <|> cons
+        <|> consHeader
         <?> "atomic expression"
 
 
@@ -366,7 +375,10 @@ exprAtom  = parens expr
 
 opTable :: ASTParser p m a
         => [[Operator p (m a)]]
-opTable = [ [binary "+" (operator_bldr "+") AssocLeft] ]
+opTable = [ [ postfixM "." accessor_bldr                 ]
+          , [ binary   "*" (operator_bldr "*") AssocLeft ]
+          , [ binary   "+" (operator_bldr "+") AssocLeft ]
+          ]
 
 operator :: ASTParser p m a => p (m a)
 operator = AST.var ∘ fromString <$> Operator.ident <?> "operator"
@@ -416,8 +428,15 @@ patAtom = located $ (bldr <$> patVar <* Tok.patAlias) <*?> exprAtom where
     bldr = liftM2 (flip AST.unify)
 
 
+accessor_bldr = do
+    name <- fromString ∘ toString <$> Tok.varIdent
+    return $ \ ma -> do
+        a   <- ma
+        acc <- AST.acc name a
+        return acc
 
 
+--accessor_bldr = id
 
 operator_bldr name ma mb = do
     a  <- ma
