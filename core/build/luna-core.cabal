@@ -64,7 +64,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    exposed-modules:
+    exposed-modules: 
         Control.Monad.Delayed,
         Control.Monad.Event,
         Data.Build,
