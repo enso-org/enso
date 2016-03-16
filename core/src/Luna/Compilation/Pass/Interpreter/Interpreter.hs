@@ -182,6 +182,14 @@ numberToAny (Lit.Number radix (Lit.Rational r)) = toMonadAny $ convertRationalBa
 numberToAny (Lit.Number radix (Lit.Integer  i)) = toMonadAny $ convertBase         (toInteger radix) i
 numberToAny (Lit.Number radix (Lit.Double   d)) = toMonadAny $ d
 
+
+tryGetBool :: String -> Maybe Bool
+tryGetBool boolStr
+    | boolStr == "True"  = Just True
+    | boolStr == "False" = Just False
+    | otherwise          = Nothing
+
+
 #define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers                                         \
                                     , term ~ Draft Static                                      \
                                     , ne   ~ Link (ls :<: term)                                \
@@ -326,16 +334,24 @@ getValueString ref = do
     typeName <- getTypeName ref
     value    <- getValue    ref
     case value of
-                Nothing  -> return ""
-                Just val -> do
-                                -- val :: _
-                                pureVal <- liftIO val
-                                -- pureVal ::
-                                if typeName == Just "String"
-                                    then return $ show ((Session.unsafeCast pureVal) :: String)
-                                    else (if typeName == Just "Int"
-                                        then return $ show ((Session.unsafeCast pureVal) :: Integer)
-                                        else return "unknown type")
+        Nothing  -> return ""
+        Just val -> do
+                        -- val :: _
+                        pureVal <- liftIO val
+                        -- pureVal ::
+                        return $ getValueByType typeName pureVal
+                        where
+                            getValueByType typeName pureVal
+                                | typeName == Just "String" = show ((Session.unsafeCast pureVal) :: String)
+                                | typeName == Just "Int"    = show ((Session.unsafeCast pureVal) :: Integer)
+                                | typeName == Just "Bool"   = show ((Session.unsafeCast pureVal) :: Bool)
+                                | otherwise                 = "unknown type"
+
+                                -- if typeName == Just "String"
+                                --     then return $ show ((Session.unsafeCast pureVal) :: String)
+                                --     else (if typeName == Just "Int"
+                                --         then return $ show ((Session.unsafeCast pureVal) :: Integer)
+                                --         else return "unknown type")
 
 displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
@@ -481,6 +497,10 @@ evaluateNode ref = do
                         setValue (Just $ toMonadAny str) ref startTime
                     of' $ \number@(Lit.Number radix system) -> do
                         setValue (Just $ numberToAny number) ref startTime
+                    of' $ \(Cons (Lit.String s) args) -> do
+                        case tryGetBool s of
+                            Nothing   -> return ()
+                            Just bool -> setValue (Just $ toMonadAny bool) ref startTime
                     of' $ \Blank -> return ()
                     of' $ \ANY   -> return ()
                 else return ()
