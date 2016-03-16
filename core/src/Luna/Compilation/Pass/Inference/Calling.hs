@@ -101,11 +101,19 @@ rewireToUni uni ref = do
     withRef ref $ prop Succs .~ fromList []
     forM_ (readSuccs node) $ \e -> do
         edge <- read e
-        if edge ^. Graph.target /= uni
+        toUni <- isUni $ edge ^. Graph.target
+        if not toUni
             then do
                 withRef e   $ source .~ uni
                 withRef uni $ prop Succs %~ add (unwrap e)
             else withRef ref $ prop Succs %~ add (unwrap e)
+
+isUni :: PassCtx(m) => Ref Node node -> m Bool
+isUni ref = do
+    n <- read ref
+    caseTest (uncover n) $ do
+        of' $ \(Unify _ _) -> return True
+        of' $ \ANY -> return False
 
 -----------------------------
 -- === TypeCheckerPass === --
