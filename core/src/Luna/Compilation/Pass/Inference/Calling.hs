@@ -6,6 +6,7 @@ module Luna.Compilation.Pass.Inference.Calling where
 import Prelude.Luna
 
 import Control.Monad.Except                         (throwError, ExceptT, runExceptT)
+import Data.Container                               (add)
 import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
@@ -14,9 +15,9 @@ import Data.Layer
 import Luna.Evaluation.Runtime                      (Static)
 import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
-import Data.Graph.Backend.VectorGraph               as Graph
+import Data.Graph.Backend.VectorGraph               as Graph hiding (add)
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect)
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -67,11 +68,13 @@ unifyTypes fptr out args = do
     outUni  <- unify outFTp outTp
     reconnect (prop Type) out outUni
     reconnect (prop Type) (fptr ^. Function.out) outUni
+    rewireToUni outUni outFTp
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
     zipWithM (reconnect $ prop Type) args argUnis
     zipWithM (reconnect $ prop Type) (unlayer <$> fptr ^. Function.args) argUnis
+    zipWithM rewireToUni argUnis argFTps
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
@@ -92,6 +95,15 @@ processNode ref = do
             args <- mapM (follow source . unlayer) as
             makeFuncall ref args funReplacement
         of' $ \ANY -> throwError NotAFuncallNode
+
+rewireToUni :: PassCtx(m) => Ref Node node -> Ref Node node -> m ()
+rewireToUni uni ref = do
+    node <- read ref
+    forM_ (readSuccs node) $ \e -> do
+        edge <- read e
+        when (edge ^. Graph.target /= uni) $ do
+            withRef e   $ source .~ uni
+            withRef uni $ prop Succs %~ add (unwrap e)
 
 -----------------------------
 -- === TypeCheckerPass === --
