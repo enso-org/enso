@@ -66,10 +66,12 @@ unifyTypes fptr out args = do
     outFTp  <- getType $ fptr ^. Function.out
     outUni  <- unify outFTp outTp
     reconnect (prop Type) out outUni
+    reconnect (prop Type) (fptr ^. Function.out) outUni
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
     zipWithM (reconnect $ prop Type) args argUnis
+    zipWithM (reconnect $ prop Type) (unlayer <$> fptr ^. Function.args) argUnis
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
