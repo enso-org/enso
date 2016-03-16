@@ -11,7 +11,7 @@ import Data.Construction
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete)
 import Data.Prop
-import Data.Record
+import Data.Record                                  as Record
 import Luna.Evaluation.Runtime                      (Static, Dynamic)
 import Data.Index
 import Luna.Syntax.AST.Term                         hiding (source, target)
@@ -30,6 +30,7 @@ import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), Ty
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Luna.Syntax.AST.Term.Lit               as Lit
+import           Luna.Syntax.AST.Function.Argument
 
 
 import Control.Monad.Fix
@@ -39,6 +40,7 @@ import Control.Monad.Trans.Either
 
 #define PassCtx(m,ls,term) ( term ~ Draft Static                            \
                            , ne   ~ Link (ls :<: term)                      \
+                           , Covered (ls :<: term)                          \
                            , nodeRef ~ Ref Node (ls :<: term)               \
                            , Prop Type   (ls :<: term) ~ Ref Edge ne        \
                            , HasSuccs (ls :<: term)                         \
@@ -53,6 +55,7 @@ import Control.Monad.Trans.Either
                            , TermNode Acc   (m) (ls :<: term)               \
                            , MonadIdentPool (m)                             \
                            , Destructor     (m) (Ref Node (ls :<: term))    \
+                           , Destructor     (m) (Ref Edge ne)               \
                            , MonadTypeCheck (ls :<: term) (m)               \
                            )
 
@@ -115,6 +118,11 @@ resolveUnify uni = do
 
     where symmetrical f a b = f a b *> f b a
 
+          consArgs :: Lens' (ls :<: term) [Arg $ Ref Edge ne]
+          consArgs = covered . lens getter setter where
+              getter (v :: term ls)   = caseTest v $ of' $ \(Cons _ a) -> a :: [Arg $ Ref Edge ne]
+              setter (v :: term ls) a = caseTest v $ of' $ \(Cons n _) -> (Record.cons $ Cons n a :: term ls)
+
           resolveReflexivity uni a b = do
               if a == b
                   then do
@@ -135,6 +143,7 @@ resolveUnify uni = do
                               newUnis <- zipWithM unify asA asB
                               unified <- replaceAny a b
                               replaceNode uni unified
+                              reconnect (consArgs . composed) unified (view composed $ arg <$> newUnis)
                               resolve newUnis
                           else return ()
 

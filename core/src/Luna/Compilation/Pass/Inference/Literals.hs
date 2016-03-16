@@ -45,33 +45,25 @@ import           Luna.Syntax.AST.Function.Argument (Arg)
                              , Destructor    (m) (Ref Edge ne)                \
                              )
 
-assignLiteralType :: PassCtx(m, ls, term)
-                  => Ref Node (ls :<: term)
-                  -> Ref Node (ls :<: term)
-                  -> Ref Node (ls :<: term)
-                  -> Ref Node (ls :<: term)
-                  -> m ()
-assignLiteralType consIntRef consStrRef consDblRef ref = do
+assignLiteralType :: PassCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
+assignLiteralType ref = do
     node <- read ref
     caseTest (uncover node) $ do
-        let process = void ∘ reconnect (prop Type) ref
-        of' $ \(Lit.String {} ) -> process consStrRef
+        let process = void . (reconnect (prop Type) ref <=< (flip cons []))
+        of' $ \(Lit.String {} ) -> process "String"
         of' $ \(Lit.Number _ n) -> case n of
-            Lit.Integer _ -> process consIntRef
-            Lit.Double  _ -> process consDblRef
+            Lit.Integer _ -> process "Int"
+            Lit.Double  _ -> process "Double"
+        of' $ \(Cons (Lit.String n) as) -> case n of
+            -- FIXME[MK]: Hardcoded Bool types. We need a dynamic mapping between constructors and their types, probably managed in a separate pass
+            "True"  -> process "Bool"
+            "False" -> process "Bool"
+            _       -> return ()
         of' $ \ANY             -> return ()
-
-createLiteralTypes :: PassCtx(m, ls, term) => m (Ref Node node, Ref Node node, Ref Node node)
-createLiteralTypes = do
-    consIntRef <- cons "Int"    []
-    consStrRef <- cons "String" []
-    consDblRef <- cons "Double" []
-    return (consIntRef, consStrRef, consDblRef)
 
 runPass :: PassCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()
 runPass literals = do
-    (consIntRef, consStrRef, consDblRef) <- createLiteralTypes
-    mapM_ (assignLiteralType consIntRef consStrRef consDblRef) literals
+    mapM_ assignLiteralType literals
 
 
 -----------------------------

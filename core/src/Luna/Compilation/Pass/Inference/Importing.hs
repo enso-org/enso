@@ -147,9 +147,9 @@ processNode ref = runErrorT $ do
     withRef ref $ prop TCData . replacement ?~ cast localLamb
     fptr <- fromJust <$> follow (prop Lambda) localLamb
     selfMay <- getSelf ref
-    zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (maybeToList selfMay)
+    zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (Just <$> maybeToList selfMay)
     u1 <- attachTypeRep  fptr ref
-    u2 <- attachSelfType fptr ref -- TODO[MK]: monomorphic! copy self type and do unis in replacement only.
+    u2 <- attachSelfType fptr ref -- FIXME[MK]: monomorphic! copy self type and do unis in replacement only.
     return $ u1 : u2
 
 

@@ -64,7 +64,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    exposed-modules: 
+    exposed-modules:
         Control.Monad.Delayed,
         Control.Monad.Event,
         Data.Build,
@@ -197,6 +197,7 @@ Library
                  , data-member
                  , data-pool
                  , data-result
+                 , deepseq
                  , dependent-state
                  , digits
                  , either
