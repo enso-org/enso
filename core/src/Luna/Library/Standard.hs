@@ -82,7 +82,7 @@ getTypeRep tp = do
 makePureFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
 makePureFun name self args out = makeNativeFun fixedName self args out where
     fixedName = prefix <> name
-    prefix    = "(" ++ intercalate "." ("(.)" <$ (maybeToList self ++ args)) ++ ")"
+    prefix    = "(" ++ intercalate "." ("(.)" <$ (maybeToList self ++ args)) ++ ") return "
 
 makeNativeFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
 makeNativeFun name selfTypeRep argTypesRep outTypeRep = do
