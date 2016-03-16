@@ -11,7 +11,8 @@ import Data.Construction
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete)
 import Data.Prop
-import Data.Record                                  as Record
+import qualified Data.Record                        as Record
+import Data.Record                                  (caseTest, of', ANY (..))
 import Luna.Evaluation.Runtime                      (Static, Dynamic)
 import Data.Index
 import Luna.Syntax.AST.Term                         hiding (source, target)
@@ -53,6 +54,7 @@ import Control.Monad.Trans.Either
                            , TermNode Lam   (m) (ls :<: term)               \
                            , TermNode Unify (m) (ls :<: term)               \
                            , TermNode Acc   (m) (ls :<: term)               \
+                           , TermNode Cons  (m) (ls :<: term)               \
                            , MonadIdentPool (m)                             \
                            , Destructor     (m) (Ref Node (ls :<: term))    \
                            , Destructor     (m) (Ref Edge ne)               \
@@ -142,8 +144,10 @@ resolveUnify uni = do
                               asB <- mapM (follow source . unlayer) argsB
                               newUnis <- zipWithM unify asA asB
                               unified <- replaceAny a b
-                              replaceNode uni unified
-                              reconnect (consArgs . composed) unified (view composed $ arg <$> newUnis)
+                              uniReplacement <- if null argsA
+                                  then return unified
+                                  else cons na (arg <$> newUnis)
+                              replaceNode uni uniReplacement
                               resolve newUnis
                           else return ()
 

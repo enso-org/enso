@@ -72,7 +72,6 @@ unifyTypes fptr out args = do
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
-    zipWithM (reconnect $ prop Type) args argUnis
     zipWithM (reconnect $ prop Type) (unlayer <$> fptr ^. Function.args) argUnis
     zipWithM rewireToUni argUnis argFTps
     return $ outUni : argUnis
@@ -99,11 +98,22 @@ processNode ref = do
 rewireToUni :: PassCtx(m) => Ref Node node -> Ref Node node -> m ()
 rewireToUni uni ref = do
     node <- read ref
+    withRef ref $ prop Succs .~ fromList []
     forM_ (readSuccs node) $ \e -> do
         edge <- read e
-        when (edge ^. Graph.target /= uni) $ do
-            withRef e   $ source .~ uni
-            withRef uni $ prop Succs %~ add (unwrap e)
+        toUni <- isUni $ edge ^. Graph.target
+        if not toUni
+            then do
+                withRef e   $ source .~ uni
+                withRef uni $ prop Succs %~ add (unwrap e)
+            else withRef ref $ prop Succs %~ add (unwrap e)
+
+isUni :: PassCtx(m) => Ref Node node -> m Bool
+isUni ref = do
+    n <- read ref
+    caseTest (uncover n) $ do
+        of' $ \(Unify _ _) -> return True
+        of' $ \ANY -> return False
 
 -----------------------------
 -- === TypeCheckerPass === --
