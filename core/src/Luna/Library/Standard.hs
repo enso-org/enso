@@ -142,6 +142,10 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("Int.times"     , makeNativeFun2 "replicate"               (Just $ scons "Int")    [TVar "#times"] (listOf $ TVar "#times"))
     , ("Int.upto"      , makeNativeFun2 "enumFromTo"              (Just $ scons "Int")    [scons "Int"]   (listOf $ scons "Int"))
 
+    , ("Bool.&&"       , makeNativeFun2 "(&&)"                    (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool"))
+    , ("Bool.||"       , makeNativeFun2 "(||)"                    (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool"))
+    , ("Bool.not"      , makeNativeFun1 "not"                     (Just $ scons "Bool")   []              (scons "Bool"))
+
     , ("String.length" , makeNativeFun1 "length"                  (Just $ scons "String") []               (scons "Int"))
     , ("String.+"      , makeNativeFun2 "(++)"                    (Just $ scons "String") [scons "String"] (scons "String"))
 
