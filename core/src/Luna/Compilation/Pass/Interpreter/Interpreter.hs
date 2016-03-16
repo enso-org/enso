@@ -154,6 +154,7 @@ initializeGHC = do
 defaultImports :: [HS.Import]
 defaultImports = [ "Prelude"
                  , "Control.Applicative"
+                 , "Data.List"
                  -- , "Prologue"
                  ]
 
