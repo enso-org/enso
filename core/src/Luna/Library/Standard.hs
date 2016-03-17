@@ -223,6 +223,7 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("List.mapLength"   , makePureFun "(map length)"           (Just $ listOf $ listOf $ TVar "#ml") []                     (listOf $ scons "Int"))
     , ("List.mapToDouble" , makePureFun "(map fromIntegral)"     (Just $ listOf $ scons "Int")         []                     (listOf $ scons "Double"))
     , ("List.mapLog"      , makePureFun "(map log)"              (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
+    , ("List.sort"        , makePureFun "sort"                   (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
     , ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))
 
 ------------------
@@ -238,9 +239,9 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     ]
 
 primesBody :: String
-primesBody = unlines $
+primesBody = intercalate " ; " $
     [ "(\\x -> let primes' = 2 : filter isPrime [3, 5..]"
-    , "          isPrime = not $ any (\\p -> n `rem` p == 0) (takeWhile (\\p -> p*p <= n) primes')"
+    , "          isPrime n = not $ any (\\p -> n `rem` p == 0) (takeWhile (\\p -> p*p <= n) primes')"
     , "      in take x $ primes')"
     ]
 
