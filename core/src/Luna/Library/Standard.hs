@@ -217,13 +217,13 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
 -- === List === --
 ------------------
 
-    , ("List.length"    , makePureFun "length"                 (Just $ listOf $ TVar "#len")         []                     (scons "Int"))
-    , ("List.reverse"   , makePureFun "reverse"                (Just $ listOf $ TVar "#reverse")     []                     (listOf $ TVar "#reverse"))
-    , ("List.+"         , makePureFun "(++)"                   (Just $ listOf $ TVar "#lpl")         [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
-    , ("empty"          , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))
-    , ("mapLength"      , makePureFun "(map length)"           (Just $ listOf $ listOf $ TVar "#ml") []                     (listOf $ scons "Int"))
-    , ("mapToDouble"    , makePureFun "(map fromIntegral)"     (Just $ listOf $ scons "Int")         []                     (listOf $ scons "Double"))
-    , ("mapLog"         , makePureFun "(map log)"              (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
+    , ("List.length"      , makePureFun "length"                 (Just $ listOf $ TVar "#len")         []                     (scons "Int"))
+    , ("List.reverse"     , makePureFun "reverse"                (Just $ listOf $ TVar "#reverse")     []                     (listOf $ TVar "#reverse"))
+    , ("List.+"           , makePureFun "(++)"                   (Just $ listOf $ TVar "#lpl")         [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
+    , ("List.mapLength"   , makePureFun "(map length)"           (Just $ listOf $ listOf $ TVar "#ml") []                     (listOf $ scons "Int"))
+    , ("List.mapToDouble" , makePureFun "(map fromIntegral)"     (Just $ listOf $ scons "Int")         []                     (listOf $ scons "Double"))
+    , ("List.mapLog"      , makePureFun "(map log)"              (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
+    , ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))
 
 ------------------
 -- === Misc === --
