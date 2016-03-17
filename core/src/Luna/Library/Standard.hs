@@ -217,17 +217,32 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
 -- === List === --
 ------------------
 
-    , ("List.length"    , makePureFun "length"                 (Just $ listOf $ TVar "#len")     []                     (scons "Int"))
-    , ("List.reverse"   , makePureFun "reverse"                (Just $ listOf $ TVar "#reverse") []                     (listOf $ TVar "#reverse"))
-    , ("List.+"         , makePureFun "(++)"                   (Just $ listOf $ TVar "#lpl")     [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
-    , ("empty"          , makePureFun "([])"                   Nothing                           []                     (listOf $ TVar "#empty"))
+    , ("List.length"    , makePureFun "length"                 (Just $ listOf $ TVar "#len")         []                     (scons "Int"))
+    , ("List.reverse"   , makePureFun "reverse"                (Just $ listOf $ TVar "#reverse")     []                     (listOf $ TVar "#reverse"))
+    , ("List.+"         , makePureFun "(++)"                   (Just $ listOf $ TVar "#lpl")         [listOf $ TVar "#lpl"] (listOf $ TVar "#lpl"))
+    , ("empty"          , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))
+    , ("mapLength"      , makePureFun "(map length)"           (Just $ listOf $ listOf $ TVar "#ml") []                     (listOf $ scons "Int"))
+    , ("mapToDouble"    , makePureFun "(map fromIntegral)"     (Just $ listOf $ scons "Int")         []                     (listOf $ scons "Double"))
+    , ("mapLog"         , makePureFun "(map log)"              (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
 
 ------------------
 -- === Misc === --
 ------------------
 
-    , ("readFile"       , makeNativeFun  "readFile"                Nothing                        [scons "String"]       (scons "String"))
+    , ("readFile"       , makeNativeFun  "readFile"                Nothing                       [scons "String"]                        (scons "String"))
     , ("id"             , makeId)
     , ("switch"         , makePureFun "(\\x y z -> if x then y else z)"                  Nothing [scons "Bool", TVar "#if", TVar "#if"]  (TVar "#if"))
     , ("histogram"      , makePureFun "(map (\\l -> (head l, length l)) . group . sort)" Nothing [listOf $ scons "Int"]                  (scons "Histogram"))
+    , ("primes"         , makePureFun primesBody                                         Nothing [scons "Int"]                           (listOf $ scons "Int"))
+    , ("differences"    , makePureFun differencesBody                                    Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))
     ]
+
+primesBody :: String
+primesBody = unlines $
+    [ "(\\x -> let primes' = 2 : filter isPrime [3, 5..]"
+    , "          isPrime = not $ any (\\p -> n `rem` p == 0) (takeWhile (\\p -> p*p <= n) primes')"
+    , "      in take x $ primes')"
+    ]
+
+differencesBody :: String
+differencesBody = "(\\l -> zipWith (flip subtract) (if (null l) then [] else tail l) l)"
