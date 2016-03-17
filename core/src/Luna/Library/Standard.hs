@@ -228,5 +228,6 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
 
     , ("readFile"       , makeNativeFun  "readFile"                Nothing                        [scons "String"]       (scons "String"))
     , ("id"             , makeId)
-    , ("switch"         , makePureFun "(\\x y z -> if x then y else z)" Nothing [scons "Bool", TVar "#if", TVar "#if"] (TVar "#if"))
+    , ("switch"         , makePureFun "(\\x y z -> if x then y else z)"                  Nothing [scons "Bool", TVar "#if", TVar "#if"]  (TVar "#if"))
+    , ("histogram"      , makePureFun "(map (\\l -> (head l, length l)) . group . sort)" Nothing [listOf $ scons "Int"]                  (scons "Histogram"))
     ]
