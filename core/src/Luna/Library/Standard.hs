@@ -250,4 +250,4 @@ differencesBody :: String
 differencesBody = "(\\l -> zipWith (flip subtract) (if (null l) then [] else tail l) l)"
 
 meanBody :: String
-meanBody = "(uncurry (/) . foldr (\\e (s, c) -> (e + s, c + 1)) (0, 0) . map fromIntegral)"
+meanBody = "(uncurry (/) . foldr (\\e (s, c) -> (e + s, c + 1)) (0, 0))"
