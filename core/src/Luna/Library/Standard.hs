@@ -236,7 +236,7 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("histogram"      , makePureFun "(map (\\l -> (head l, length l)) . group . sort)" Nothing [listOf $ scons "Int"]                  (scons "Histogram"))
     , ("primes"         , makePureFun primesBody                                         Nothing [scons "Int"]                           (listOf $ scons "Int"))
     , ("differences"    , makePureFun differencesBody                                    Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))
-    , ("mean"           , makePureFun meanBody                                           Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))
+    , ("mean"           , makePureFun meanBody                                           Nothing [listOf $ scons "Double"]               (scons "Double"))
     ]
 
 primesBody :: String
