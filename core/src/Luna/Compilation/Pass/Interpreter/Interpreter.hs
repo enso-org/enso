@@ -386,16 +386,16 @@ getTypeNameForType tpRef = do
         of' $ \(Cons (Lit.String s) args) -> do
             let rawArgs  = unlayer <$> args
             sigElems     <- mapM (follow source) rawArgs
-            if s == "List"
-                then
-                    getListType sigElems
-                else
-                    if null sigElems then return $ Just s
-                                     else do
-                                            argsTypeMay <- getArgsType sigElems
-                                            return $ case argsTypeMay of
-                                                Nothing       -> Nothing -- bad type arguments
-                                                Just argsType -> Just $ s <> " " <> argsType
+            case s of
+                "List"      -> getListType sigElems
+                "Histogram" -> return $ Just "[(Int, Int)]"
+                _           -> if null sigElems
+                    then return $ Just s
+                    else do
+                           argsTypeMay <- getArgsType sigElems
+                           return $ case argsTypeMay of
+                               Nothing       -> Nothing -- bad type arguments
+                               Just argsType -> Just $ s <> " " <> argsType
         of' $ \(Var (Lit.String name)) -> return . Just $ replace "#" "_" name
         of' $ \ANY                     -> return Nothing -- error "Ambiguous node type"
 
