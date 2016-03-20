@@ -39,7 +39,7 @@ type family TermWrapper (a :: *) :: * -> [*] -> *
 
 -- === Definitions === --
 
-data    Raw      (ls :: [*]) = Raw Data                                 deriving (Show, Eq)
+data    Raw      (ls :: [*]) = Raw Data                                 deriving (Show)
 newtype Lit   rt (ls :: [*]) = Lit   (Term (Network ls) Model.Lit   rt) deriving (Show, Eq, Generic, NFData)
 newtype Val   rt (ls :: [*]) = Val   (Term (Network ls) Model.Val   rt) deriving (Show, Eq, Generic, NFData)
 newtype Thunk rt (ls :: [*]) = Thunk (Term (Network ls) Model.Thunk rt) deriving (Show, Eq, Generic, NFData)

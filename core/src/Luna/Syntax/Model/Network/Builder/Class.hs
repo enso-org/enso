@@ -8,7 +8,7 @@ import Control.Monad.Trans.Identity
 import Control.Monad.Except
 import Control.Monad.Catch
 import Control.Monad.Writer
-import Luna.Syntax.Model.Network.Builder.Term.Class (TermBindBuilder, buildTerm', Binder, runBinder, buildElem2, ElemBuilder2)
+import Luna.Syntax.Model.Network.Builder.Term.Class (ElemBuilder3, buildElem3, ParamResolver, resolveParams, buildElem2, ElemBuilder2)
 import Control.Monad.Delayed as Delayed
 
 import Data.Graph
@@ -35,8 +35,8 @@ runNetworkBuilderT = runIdentityT ∘ unwrap'
 -- === Instances === --
 
 instance (MonadBuilder g m, Referred Edge g (Link a), Dispatcher CONNECTION (Ref Edge (Link a)) m)
-      => Binder (State.StateT [(Ref Node a, Ref Edge (Link a))] (NetworkBuilderT m)) (NetworkBuilderT m) (Ref Node a) where
-    runBinder m = do
+      => ParamResolver (State.StateT [(Ref Node a, Ref Edge (Link a))] (NetworkBuilderT m)) (NetworkBuilderT m) (Ref Node a) where
+    resolveParams m = do
         (a, pending) <- State.runStateT m mempty
         flip mapM pending $ \(nref, cref) -> do
              write (retarget cref) (rawConnection nref a)
@@ -44,7 +44,8 @@ instance (MonadBuilder g m, Referred Edge g (Link a), Dispatcher CONNECTION (Ref
         return a
 
 
-instance ElemBuilder2 (TermOf t) m t => TermBindBuilder m t where buildTerm' = buildElem2
+-- FIXME[WD]: Make less polymorphic
+instance ElemBuilder2 (TermOf t) m t => ElemBuilder3 m t where buildElem3 = buildElem2
 
 
 --class    ElemBuilder2 el m  a where buildElem2 :: el -> m a
@@ -53,7 +54,7 @@ instance ElemBuilder2 (TermOf t) m t => TermBindBuilder m t where buildTerm' = b
 -- (NetworkBuilderT m)
 
 
---class TermBindBuilder m t where
+--class ElemBuilder3 m t where
 --    buildTerm' :: TermOf t -> m t
 
 
@@ -70,7 +71,7 @@ instance ElemBuilder2 (TermOf t) m t => TermBindBuilder m t where buildTerm' = b
 -- State.MonadState [(Ref Node a, Ref Edge (Link a))]
 
 --class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m -> n where
---    runBinder :: n m a -> m a
+--    resolveParams :: n m a -> m a
 
 
 --run' :: Delayed t m a -> m (a, [m t])
@@ -80,5 +81,5 @@ instance ElemBuilder2 (TermOf t) m t => TermBindBuilder m t where buildTerm' = b
 
 
 --class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m a -> n where
---    runBinder :: n m a -> m a
+--    resolveParams :: n m a -> m a
 

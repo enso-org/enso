@@ -12,4 +12,4 @@ import qualified Data.Version as V
 version = Version major minor patch (PreRelease (Tag Alpha Nothing) []) []
     where (major:minor:patch:_) = V.versionBranch (PATHS.version) <> repeat 0
 
-build = Build undefined undefined undefined undefined
+build = Build $notImplemented $notImplemented $notImplemented $notImplemented

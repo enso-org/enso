@@ -17,7 +17,9 @@
 
 module Data.Record.Class where
 
-import Prologue hiding (simple, empty, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, Repr, repr, minBound, maxBound, (#), assert, Index)
+import Prologue hiding (mask, simple, empty, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, Repr, repr, minBound, maxBound, (#), assert, Index)
+import Prologue.Unsafe (fromJustNote, undefined)
+
 import Type.Container
 
 import Luna.Evaluation.Runtime (ToStatic, ToDynamic)
@@ -54,6 +56,144 @@ import Type.Sequence          (Enumerate)
 
 
 
+
+
+
+
+-------------------
+-- === Store === --
+-------------------
+
+newtype Store = Store Any
+makeWrapped ''Store
+
+
+-- === Rebuilder === --
+
+type LayoutProxy l = Proxy (l :: [*])
+class    MaskRebuilder oldLayout newLayout where rebuildMask :: LayoutProxy oldLayout -> LayoutProxy newLayout -> Mask -> Mask
+instance MaskRebuilder layout    layout    where rebuildMask _ _ = id ; {-# INLINE rebuildMask #-}
+
+
+-- === Utils === --
+
+unsafeStore :: a -> Store
+unsafeStore = Store ∘ unsafeCoerce
+{-# INLINE unsafeStore #-}
+
+unsafeRestore :: Store -> a
+unsafeRestore = unsafeCoerce ∘ unwrap'
+{-# INLINE unsafeRestore #-}
+
+
+-- === Instances === --
+
+instance Show   Store where show _ = "Store"
+instance NFData Store where rnf  _ = ()
+
+
+
+------------------
+-- === Mask === --
+------------------
+
+newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
+makeWrapped ''Mask
+
+class    HasMask a    where mask :: Lens' a Mask
+instance HasMask Mask where mask = id ; {-# INLINE mask #-}
+
+
+-- === Instances === --
+
+instance Show Mask where
+    show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where
+        testBit' m b = if testBit m b then Just b else Nothing
+
+
+
+-----------------------------
+-- === Data definition === --
+-----------------------------
+
+data Data = Data !Mask !Store deriving (Generic, Show)
+
+--instance Eq Data where (==) = undefined -- (==) `on` (view mask)
+
+-- === Instances === --
+-- Normal Form
+instance NFData Data
+
+---------------------------------
+-- === AST Data definition === --
+---------------------------------
+
+-- === AST Data encoder === --
+
+-- Data encoding
+
+instance ( bits ~ MapLookup v emap
+         , emap ~ EncodeMap (rec Data)
+         , KnownNats bits
+         , Wrapped   (rec Data)
+         , Unwrapped (rec Data) ~ Data
+         ) => Encoder Variant v Ok (rec Data) where
+    encode _ v = Ok $ wrap' $ Data mask $ unsafeStore v where
+        bits    = fromIntegral <$> natVals (p :: P bits)
+        mask    = foldl' setBit zeroBits bits
+    {-# INLINE encode #-}
+
+instance ( MaskRebuilder layout layout'
+         , layout  ~ Layout (rec  Data)
+         , layout' ~ Layout (rec' Data)
+         , Unwrapped (rec  Data) ~ Data
+         , Unwrapped (rec' Data) ~ Data
+         , Wrapped   (rec  Data)
+         , Wrapped   (rec' Data)
+
+         , IsRecord r
+         , RecordOf r ~ rec Data
+         ) => Encoder Group r Ok (rec' Data) where
+    encode _ r = Ok $ wrap' $ Data mask' var where
+        Data mask var = unwrap' $ view asRecord r
+        mask' = rebuildMask (p :: P layout) (p :: P layout') mask
+    {-# INLINE encode #-}
+
+-- Data extraction / insertion
+
+instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data)) => UnsafeExtract Variant (r Data) Ok a where unsafeExtract _ (unwrap' -> Data _ v) = Ok $ unsafeRestore v                                         ; {-# INLINE unsafeExtract #-}
+instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data)) => UnsafeInsert  Variant (r Data) Ok a where unsafeInsert  _ a r                   = Ok $ r & wrapped' %~ (\(Data m s) -> Data m (unsafeStore a)) ; {-# INLINE unsafeInsert #-}
+
+-- Pattern matching
+
+instance ( rec  ~ r Data
+         , dmap ~ DecodeMap rec
+         , nat  ~ MapLookup g dmap
+         , KnownNat  nat
+         , Wrapped   rec
+         , Unwrapped rec ~ Data
+         ) => CheckMatch t g (r Data) where
+    checkMatch _ _ (unwrap' -> Data mask _) = match where
+        bit   = fromIntegral $ natVal (p :: P nat)
+        match = testBit mask bit
+    {-# INLINE checkMatch #-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -----------------------------------------------------------------
 
 withState f = do
@@ -75,26 +215,7 @@ instance (KnownNat n, KnownNats ns) => KnownNats (n ': ns)       where natVals _
 data NOP = NOP deriving (Show)
 
 
--------------------
--- === Store === --
--------------------
 
--- TODO [WD]: rewrite to use memory block (FFI or Primitive)
-newtype Store = Store Any
-makeWrapped ''Store
-
-unsafeStore :: a -> Store
-unsafeStore = Store ∘ unsafeCoerce
-{-# INLINE unsafeStore #-}
-
-unsafeRestore :: Store -> a
-unsafeRestore = unsafeCoerce ∘ unwrap'
-{-# INLINE unsafeRestore #-}
-
--- === Instances === --
-
-instance Show   Store where show _ = "Store"
-instance NFData Store where rnf  _ = ()
 
 --------------------
 -- === Record === --
@@ -123,12 +244,12 @@ type family Layout    a :: [*]
 type family EncodeMap a :: Map * [Nat]
 type family DecodeMap a :: Map * Nat
 
-type LayoutProxy l = Proxy (l :: [*])
 
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r
 {-# INLINE mkRecord #-}
 
+-- | `t` is the type of encoder, like Variant or Group
 class Encoder t a m rec | t a rec -> m where encode :: Proxy t -> a -> m rec
 
 -- TODO[WD]: Maybe unsafe extract / insert should be some kind of lens?
@@ -522,116 +643,13 @@ static = of'
 
 -- TODO[WD] refactor vvvvvvvvvvvvvvv
 
------------------------------
--- === Data definition === --
------------------------------
-
-data Data = Data { _mask    :: !Mask
-                 , _variant :: !Store
-                 } deriving (Generic, Show)
-
-instance Eq Data where a == b = _mask a == _mask b
-
--- === Instances === --
--- Normal Form
-instance NFData Data
-
----------------------------------
--- === AST Data definition === --
----------------------------------
-newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
-
-instance Show Mask where
-    show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where
-        testBit' m b = if testBit m b then Just b else Nothing
-
-
--- === Types === --
-
-
-newtype ASTRecord (groups :: [*]) (variants :: [*]) (t :: * -> *) d = ASTRecord (Unlayered (ASTRecord groups variants t d)) deriving (Show, Eq, Ord)
-type instance Unlayered (ASTRecord gs vs t d) = d
-
--- === Instances === --
-
-
-type instance Props Variant (ASTRecord gs vs t d) = vs
-type instance Props Group   (ASTRecord gs vs t d) = gs
-
-type instance RecordOf (ASTRecord gs vs t d) = ASTRecord gs vs t d
-instance      IsRecord (ASTRecord gs vs t d) where asRecord = id ; {-# INLINE asRecord #-}
-
--- Wrappers
-
-instance Layered   (ASTRecord gs vs t d)
-instance Rewrapped (ASTRecord gs vs t d) (ASTRecord gs' vs' t' d')
-instance Wrapped   (ASTRecord gs vs t d) where
-    type Unwrapped (ASTRecord gs vs t d) = d
-    _Wrapped' = iso (\(ASTRecord a) -> a) ASTRecord
-    {-# INLINE _Wrapped' #-}
-
--- Conversions
-
-instance Castable    (ASTRecord gs vs t d) d
-instance Convertible (ASTRecord gs vs t d) d where convert = unwrap'
-
-instance Castable d (ASTRecord gs vs t d) where cast = wrap'
-
-
--- === AST Data encoder === --
-
-instance ( bits ~ MapLookup v emap
-         , emap ~ EncodeMap (rec Data)
-         , KnownNats bits
-         , Wrapped   (rec Data)
-         , Unwrapped (rec Data) ~ Data
-         ) => Encoder Variant v Ok (rec Data) where
-    encode _ v = Ok $ wrap' $ Data mask $ unsafeStore v where
-        bits    = fromIntegral <$> natVals (p :: P bits)
-        mask    = foldl' setBit zeroBits bits
-    {-# INLINE encode #-}
-
--- FIXME[WD] - zalozenie RecordOf r ~ rec Data jest niedobre i za bardzo restrykcyjne
-instance ( MaskRebuilder layout layout'
-         , layout  ~ Layout (rec  Data)
-         , layout' ~ Layout (rec' Data)
-         , Unwrapped (rec  Data) ~ Data
-         , Unwrapped (rec' Data) ~ Data
-         , Wrapped   (rec  Data)
-         , Wrapped   (rec' Data)
-
-         , IsRecord r
-         , RecordOf r ~ rec Data
-         ) => Encoder Group r Ok (rec' Data) where
-    encode _ r = Ok $ wrap' $ Data mask' var where
-        Data mask var = unwrap' $ view asRecord r
-        mask' = rebuildMask (p :: P layout) (p :: P layout') mask
-    {-# INLINE encode #-}
-
-
-
-class    MaskRebuilder oldLayout newLayout where rebuildMask :: LayoutProxy oldLayout -> LayoutProxy newLayout -> Mask -> Mask
-instance MaskRebuilder layout    layout    where rebuildMask _ _ = id ; {-# INLINE rebuildMask #-}
 
 
 instance UncheckedGroupCons rec m a                                                    => UnsafeExtract Group   rec      m  a where unsafeExtract _                       = uncheckedGroupCons        ; {-# INLINE unsafeExtract #-}
 instance {-# OVERLAPPABLE #-} (UnsafeExtract Variant (Unwrapped rec) m a, Wrapped rec) => UnsafeExtract Variant rec      m  a where unsafeExtract t                       = unsafeExtract t ∘ unwrap' ; {-# INLINE unsafeExtract #-}
-instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data))            => UnsafeExtract Variant (r Data) Ok a where unsafeExtract _ (unwrap' -> Data _ v) = Ok $ unsafeRestore v      ; {-# INLINE unsafeExtract #-}
 
 instance {-# OVERLAPPABLE #-} (UnsafeInsert Variant (Unwrapped rec) m a, Wrapped rec, Functor m) => UnsafeInsert Variant rec      m  a where unsafeInsert t a   = wrapped' $ unsafeInsert t a                                  ; {-# INLINE unsafeInsert #-}
-instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data))                      => UnsafeInsert Variant (r Data) Ok a where unsafeInsert _ a r = Ok $ r & wrapped' %~ (\(Data m s) -> Data m (unsafeStore a)) ; {-# INLINE unsafeInsert #-}
 
 
 
-instance ( rec  ~ r Data
-         , dmap ~ DecodeMap rec
-         , nat  ~ MapLookup g dmap
-         , KnownNat  nat
-         , Wrapped   rec
-         , Unwrapped rec ~ Data
-         ) => CheckMatch t g (r Data) where
-    checkMatch _ _ (unwrap' -> Data mask _) = match where
-        bit   = fromIntegral $ natVal (p :: P nat)
-        match = testBit mask bit
-    {-# INLINE checkMatch #-}
 

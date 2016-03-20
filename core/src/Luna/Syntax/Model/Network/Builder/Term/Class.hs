@@ -7,7 +7,8 @@
 
 module Luna.Syntax.Model.Network.Builder.Term.Class (module Luna.Syntax.Model.Network.Builder.Term.Class, module X) where
 
-import Prelude.Luna hiding (Num)
+import Prelude.Luna    hiding (Num)
+import Prologue.Unsafe (undefined)
 
 import           Control.Monad.Event
 import           Data.Direction
@@ -52,6 +53,7 @@ import qualified Control.Monad.State as State
 -- FIXME[WD]: Skoro Layout okresla jakie jest "wejscie" do nodu, to Input nie jest potrzebny, bo mozna go wyinferowac jako odwrotnosc Connection
 
 type family BuildArgs (t :: k) n :: *
+type family BuildArgs2 t n :: *
 type family Expanded  (t :: k) n :: *
 
 
@@ -94,6 +96,10 @@ instance {-# OVERLAPPABLE #-}
 
 class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
 instance {-# OVERLAPPABLE #-} TermBuilder t IM a where buildTerm = impossible
+
+
+class TermBuilder2 t m a where buildTerm2 :: t -> BuildArgs2 t a -> m a
+instance {-# OVERLAPPABLE #-} TermBuilder2 t IM a where buildTerm2 = impossible
 
 
 
@@ -263,39 +269,57 @@ instance ( inp ~ Input a
         cb  <- connection b out
         return out
 
-        --type instance BuildArgs Match n = (Input n, Input n)
-        --instance ( a ~ Input a
-        --         , Record.Cons (Match (Binding a)) (TermOf a)
-        --         , TermBindBuilder n   a
-        --         , Bindable        n   a
-        --         , Binder          n m a
-        --         ) => TermBuilder Match m a where
-        --    buildTerm p (a,b) = evalBindings $ matchCons <$> bind a <*> bind b
 
         --type instance BuildArgs Unify n = (Input n, Input n)
         --instance ( a ~ Input a
-        --         , Record.Cons (Unify (Binding a)) (TermOf a)
-        --         , TermBindBuilder n   a
-        --         , Bindable        n   a
-        --         , Binder          n m a
+        --         , Record.Cons (Unify (Param a)) (TermOf a)
+        --         , ElemBuilder3 n   a
+        --         , Parametrized        n   a
+        --         , ParamResolver          n m a
         --         ) => TermBuilder Unify m a where
-        --    buildTerm p (a,b) = evalBindings $ unifyCons <$> bind a <*> bind b
+        --    buildTerm p (a,b) = term $ unifyCons <$> param a <*> param b
+
+
+type instance BuildArgs2 Var' a = OneTuple (NameInput a)
+instance TermBuilderCtx Var' n m a => TermBuilder2 Var' m a where
+    buildTerm2 p (OneTuple a) = term $ varCons <$> nameParam a
+
+type instance BuildArgs2 Match' a = (a,a)
+instance TermBuilderCtx Match' n m a => TermBuilder2 Match' m a where
+    buildTerm2 p (a,b) = term $ matchCons <$> param a <*> param b
+
+type instance BuildArgs2 Unify' a = (a, a)
+instance TermBuilderCtx Unify' n m a => TermBuilder2 Unify' m a where
+    buildTerm2 p (a,b) = term $ unifyCons <$> param a <*> param b
 
 
 varCons   = Record.cons ∘  Var
 unifyCons = Record.cons ∘∘ Unify
 matchCons = Record.cons ∘∘ Match
 
+type family Parameterized t a
+type instance Parameterized Var'   a = Var   $ NameParam a
+type instance Parameterized Unify' a = Unify $ Param     a
+type instance Parameterized Match' a = Match $ Param     a
 
---type TermCons a = SmartCons (Match (Binding a)) (TermOf a)
+
+type TermBuilderCtx t n m a = ( Record.Cons (Parameterized t a) (TermOf a)
+                              , ElemBuilder3  n   a
+                              , Parametrized  n   a
+                              , ParamResolver n m a
+                              )
+
+--type ElemBuilder3 a = SmartCons (Match (Param a)) (TermOf a)
 
 --class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
 
 --class
 
---evalBindings :: (Binder n m a, TermBindBuilder m a)
+--term :: (ParamResolver n m a, ElemBuilder3 m a)
 --             => BindBuilder a (n m) (TermOf a) -> m a
-evalBindings m = runBinder $ runBindBuilder $ (lift ∘ buildTerm') =<< m
+
+term :: (ElemBuilder3 n a, ParamResolver n m a) => BindBuilder a n (TermOf a) -> m a
+term m = resolveParams $ runBindBuilder $ (lift ∘ buildElem3) =<< m
 
 var :: TermBuilder Var m a => NameInput a -> m a
 var = curryN $ buildTerm (Proxy :: Proxy Var)
@@ -309,22 +333,22 @@ match = curryN $ buildTerm (Proxy :: Proxy Match)
 
 
 
-type family Binding a
-type family NameBinding a
+type family Param a
+type family NameParam a
 type family Source2 a
 
---class TermBindBuilder m a where
---    bindName   :: NameInput a -> m (NameBinding a)
---    bind       :: a -> m (Binding a)
---    buildTerm' :: Source2 a -> m a
+--class ElemBuilder3 m a where
+--    nameParam   :: NameInput a -> m (NameParam a)
+--    param       :: a -> m (Param a)
+--    buildElem3 :: Source2 a -> m a
 
 --class TransRunner n m
 
---class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m a -> n where
---    runBinder :: n m a -> m a
+--class (MonadTrans n, Monad (n m), Monad m) => ParamResolver n m a | m a -> n where
+--    resolveParams :: n m a -> m a
 
-class (Monad n, Monad m) => Binder n m a | m a -> n where
-    runBinder :: n a -> m a
+class (Monad n, Monad m) => ParamResolver n m a | m a -> n where
+    resolveParams :: n a -> m a
 
 
 --newtype Root a   = Root a   deriving (Show, Functor, Foldable, Traversable)
@@ -332,17 +356,17 @@ class (Monad n, Monad m) => Binder n m a | m a -> n where
 --data    Bind a b = Bind a b deriving (Show)
 
 
---class BindingResolver t m a | t -> a where
---    resolveBinding :: t -> m ()
+--class ParamResolver t m a | t -> a where
+--    resolveParam :: t -> m ()
 
 --instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
---         , BindingResolver t m v
+--         , ParamResolver t m v
 --         , State.MonadState [(a, Ref Edge a)] m
---         ) => BindingResolver (Bind t a) m v where
---    resolveBinding (Bind t a) = do
+--         ) => ParamResolver (Bind t a) m v where
+--    resolveParam (Bind t a) = do
 --        cref <- reserveConnection
 --        State.modify ((a, cref):)
---        resolveBinding t -- dorobic aplikowanie trzeba
+--        resolveParam t -- dorobic aplikowanie trzeba
 
 
 
@@ -350,32 +374,32 @@ class (Monad n, Monad m) => Binder n m a | m a -> n where
 
 
 
-class Bindable m t where
-    bindName   :: NameInput t -> BindBuilder t m (NameBinding t)
-    bind       :: t           -> BindBuilder t m     (Binding t)
+class Parametrized m t where
+    nameParam   :: NameInput t -> BindBuilder t m (NameParam t)
+    param       :: t           -> BindBuilder t m     (Param t)
 
 
-class TermBindBuilder m t where
-    buildTerm' :: TermOf t -> m t
+class ElemBuilder3 m t where
+    buildElem3 :: TermOf t -> m t
 
 
---instance TermBindBuilder m t where buildTerm' = undefined
+--instance ElemBuilder3 m t where buildElem3 = undefined
 
 --class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 
 
 instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
-         , NamedConnectionReservation (NameInput (Ref Node a)) (Ref Node a) m (NameBinding (Ref Node a))
+         , NamedConnectionReservation (NameInput (Ref Node a)) (Ref Node a) m (NameParam (Ref Node a))
          , State.MonadState [(Ref Node a, Ref Edge (Link a))] m
-         ) => Bindable m (Ref Node a) where
-    bind t = do
+         ) => Parametrized m (Ref Node a) where
+    param t = do
         cref <- reserveConnection
         lift $ State.modify ((t, cref):) -- FIXME[WD]: remove lift
         return cref
     -- FIXME[WD]: add the logic for dynamic graphs to add pending connections to state, like above
-    bindName name = lift $ reserveNamedConnection name (p :: P (Ref Node a))
-    {-# INLINE bind     #-}
-    {-# INLINE bindName #-}
+    nameParam name = lift $ reserveNamedConnection name (p :: P (Ref Node a))
+    {-# INLINE param     #-}
+    {-# INLINE nameParam #-}
 
 
 --write :: (MonadBuilder t m, Referred r a t) => Ref r a -> a -> m ()
@@ -384,8 +408,8 @@ instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
 
 
 type instance TermOf (Ref t a) = TermOf a
-type instance Binding (Ref Node a) = Ref Edge (Link a)
-type instance NameBinding (Ref Node a) = Lit.String -- FIXME[WD]: Support dynamic terms
+type instance Param (Ref Node a) = Ref Edge (Link a)
+type instance NameParam (Ref Node a) = Lit.String -- FIXME[WD]: Support dynamic terms
 
 --Term t Val  Static
 
@@ -393,7 +417,7 @@ type instance NameBinding (Ref Node a) = Lit.String -- FIXME[WD]: Support dynami
 --Term t term rt
 
 --class TermBuilder t term rt where
---    bind ::
+--    param ::
 
 
 -- === Draft === --
