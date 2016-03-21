@@ -65,15 +65,11 @@ unifyTypes fptr out args = do
     let getType = follow (prop Type) >=> follow source
     outTp   <- getType out
     outFTp  <- getType $ fptr ^. Function.out
-    outUni  <- unify outFTp outTp
+    outUni  <- replaceWithUnify outFTp outTp
     reconnect (prop Type) out outUni
-    reconnect (prop Type) (fptr ^. Function.out) outUni
-    rewireToUni outUni outFTp
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
-    argUnis <- zipWithM unify argFTps argTps
-    zipWithM (reconnect $ prop Type) (unlayer <$> fptr ^. Function.args) argUnis
-    zipWithM rewireToUni argUnis argFTps
+    argUnis <- zipWithM replaceWithUnify argFTps argTps
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
@@ -85,6 +81,17 @@ makeFuncall app args funClus = do
     zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) (Just <$> args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     unifyTypes fptr app args
 
+replaceWithUnify :: PassCtx(m) => Ref Node node -> Ref Node node -> m $ Ref Node node
+replaceWithUnify old new = do
+    uni <- unify old new
+    oldNode <- read old
+    newUniSuccs <- filterM (fmap (/= uni) . follow Graph.target) $ readSuccs oldNode
+    toUniEdges  <- filterM (fmap (== uni) . follow Graph.target) $ readSuccs oldNode
+    withRef uni $ prop Succs .~ fromList (unwrap <$> newUniSuccs)
+    withRef old $ prop Succs .~ fromList (unwrap <$> toUniEdges)
+    mapM_ (flip withRef $ source .~ uni) newUniSuccs
+    return uni
+
 processNode :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]
 processNode ref = do
     node <- read ref
@@ -94,26 +101,6 @@ processNode ref = do
             args <- mapM (follow source . unlayer) as
             makeFuncall ref args funReplacement
         of' $ \ANY -> throwError NotAFuncallNode
-
-rewireToUni :: PassCtx(m) => Ref Node node -> Ref Node node -> m ()
-rewireToUni uni ref = do
-    node <- read ref
-    withRef ref $ prop Succs .~ fromList []
-    forM_ (readSuccs node) $ \e -> do
-        edge <- read e
-        toUni <- isUni $ edge ^. Graph.target
-        if not toUni
-            then do
-                withRef e   $ source .~ uni
-                withRef uni $ prop Succs %~ add (unwrap e)
-            else withRef ref $ prop Succs %~ add (unwrap e)
-
-isUni :: PassCtx(m) => Ref Node node -> m Bool
-isUni ref = do
-    n <- read ref
-    caseTest (uncover n) $ do
-        of' $ \(Unify _ _) -> return True
-        of' $ \ANY -> return False
 
 -----------------------------
 -- === TypeCheckerPass === --

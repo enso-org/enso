@@ -368,9 +368,10 @@ test1 = do
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
                 i1 <- int 20
-                s  <- str "hi"
-                pl <- acc "+" s
-                apped <- app pl [arg i1]
+                i2 <- int 30
+                b  <- cons "True" []
+                if' <- var "switch"
+                apped <- app if' $ arg <$> [b, i1, i2]
 
                 return [apped]
             --(lits, apps, accs, funcs) <- input_simple1
