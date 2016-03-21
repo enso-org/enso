@@ -12,7 +12,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (ASTRecord, Layout, Variants, Match, Cons)
+import           Data.Record                  hiding (Layout, Variants, Match, Cons)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container
@@ -29,50 +29,7 @@ import           Luna.Evaluation.Model        as Eval
 import qualified Luna.Syntax.AST.Term.Lit     as Lit
 import Luna.Syntax.AST.Term.Atom as X
 
-import Data.Record as X (Data)
-
--- | Options in this section should be used only for development purpose and should never be enabled in production ready code.
--- | Their behaviour bases often on manually cached code, which could accidentaly get obsolete.
--- | We could probably throw it away in the future, but the following GHC bugs have to be resolved first:
--- |    - https://ghc.haskell.org/trac/ghc/ticket/8095
--- |    - https://ghc.haskell.org/trac/ghc/ticket/11375
-
-#ifndef RELEASE
-#ifdef  FastCompilation
-#define CachedTypeFamilies
-#endif
-#endif
-
-
-
--- Cache related pragmas
-#define CACHE(n)       cacheHelper ''n Nothing  ; cacheType ''n Nothing
-#define CACHE_AS(n,cn) cacheHelper ''n (Just cn); cacheType ''n (Just cn)
-#define CHECK_EQ(s,t)  assertTypesEq (Proxy :: Proxy (s)) (Proxy :: Proxy (t))
-
-
-
--- TODO[WD]: move to issue tracker after releasing Luna to github
-
---------------------------------------------
--- === Enhancement proposals & issues === --
---------------------------------------------
-
--- Status: pending | accepted | rejected
-
--- Reporter  Status   Description
--- wdanilo   pending  ACCESSORS AND FUNCTIONS UNIFICATION
---                    Check if we can throw away accessors in terms. Let's consider the following Luna code:
---                        a  = x.bar
---                        a' = acc x "bar"
---                    These lines should mean exactly the same with the followings rules:
---                        - both forms have to be distinguishable to provide Term <-> Text conversion
---                        - the performance of STATIC Luna compilation should be as fast as in current solution
---                        - accessors should be first class objects, althought we can easily make a workaround like `myacc = a : a.x`
-
-
-
-
+import Luna.Syntax.AST.Term.Record as X (Data, TermRecord)
 
 
 
@@ -81,12 +38,6 @@ import Data.Record as X (Data)
 -----------------------------
 -- === Component types === --
 -----------------------------
-
-
-
-
-
---var = Record.
 
 data Var'    = Var'    deriving (Show, Eq, Ord)
 data Cons'   = Cons'   deriving (Show, Eq, Ord)
@@ -107,58 +58,15 @@ data Blank'  = Blank'  deriving (Show, Eq, Ord)
 
 
 
-instance {-# OVERLAPPABLE #-} Repr StaticNameOnly Lit.String where repr = fromString ∘ show ∘ unwrap'
-instance {-# OVERLAPPABLE #-} Repr StaticNameOnly a          where repr = const ""
----------------------------
----------------------------
 
-
-
--- FIXME[WD]: NFData jest tu zle zaimplementowana bo nie uwzglednia prwadziwych danych i jest przerucana na Data, ktra jest Storem z GHC.Any!
-newtype ASTRecord (groups :: [*]) (variants :: [*]) t d = ASTRecord d deriving (Generic, NFData, Show, Eq, Ord)
-
-
--- === Instances === --
-
-type instance Props Variant (ASTRecord gs vs t d) = vs
-type instance Props Group   (ASTRecord gs vs t d) = gs
-
-type instance RecordOf (ASTRecord gs vs t d) = ASTRecord gs vs t d
-instance      IsRecord (ASTRecord gs vs t d) where asRecord = id ; {-# INLINE asRecord #-}
-
--- Wrappers
-makeWrapped ''ASTRecord
-type instance Unlayered (ASTRecord gs vs t d) = Unwrapped (ASTRecord gs vs t d)
-instance      Layered   (ASTRecord gs vs t d)
-
--- Conversions
-instance Castable    (ASTRecord gs vs t d) d
-instance Convertible (ASTRecord gs vs t d) d where convert = unwrap' ; {-# INLINE convert #-}
-instance Castable  d (ASTRecord gs vs t d)   where cast    = wrap'   ; {-# INLINE cast    #-}
-
-
-
-
-
---class TermCons n t term a | a -> n t where termCons :: term -> a
-
---instance (t ~ t', n ~ NameByRuntime rt t, t ~ Layout tp term rt, SmartCons (Unify t') (Term tp term rt))
---      => TermCons n t (Unify t') (Term tp term rt) where termCons = cons
-
---class TermCons2 a cls term rt where termCons2 :: a -> Term cls term rt
-
---instance (t ~ t', n ~ NameByRuntime rt t, t ~ Layout cls term rt, SmartCons (Unify t') (Term cls term rt))
---      => TermCons2 (Unify t) cls term rt where termCons2 = cons
-
-
--------------------------
--- === Term groups === --
--------------------------
+-----------------------------
+-- === Term definition === --
+-----------------------------
 
 -- | The following definitions are parameterized by the `t` type, which indicates which data `Layout` to choose.
 --   The `Layout` type family defines the recursive layout for AST structures.
 
-newtype     Term     t term rt = Term (ASTRecord (SubRuntimeGroups rt t term) (Variants t term rt) t Data) deriving (Generic, NFData)
+newtype     Term     t term rt = Term (TermRecord (SubRuntimeGroups rt t term) (Variants t term rt) t) deriving (Generic, NFData, Show)
 type        Variants t term rt = Elems term (NameByRuntime rt (Layout t term rt)) (Layout t term rt)
 type family Layout   t term rt
 --type family LayoutOf   a
@@ -169,13 +77,6 @@ type family Input     a
 type family NameInput a where
     NameInput I = Impossible
     NameInput a = If (Runtime.Model a == Static) Lit.String (Input a)
-
---type family NameLayoutOf a where
---    NameLayoutOf I = Impossible
---    NameLayoutOf a = If (Runtime.Model a == Static) Str (LayoutOf a)
-
-
-
 
 
 -- === Elems === --
@@ -203,6 +104,7 @@ type instance Elems Expr  n t = Var         n
 
 type instance Elems Draft n t = Blank
                              ': Elems Expr  n t
+
 
 
 -- === Syntax Layouts === --
@@ -233,7 +135,7 @@ type VariantRepr s rec = WithElement' ElemShow rec (Repr.Builder s Repr.Tok)
 class                                                 ElemShow a out where elemShow :: a -> out
 instance (Repr s a, Repr.Builder s Repr.Tok ~ out) => ElemShow a out where elemShow = repr
 
-instance {-# OVERLAPPABLE #-}  VariantRepr s (ASTRecord gs vs t d)                        => Repr s          (ASTRecord gs vs t d) where repr   = variantRepr                                      ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-}  VariantRepr s (TermRecord gs vs t)                         => Repr s          (TermRecord gs vs t)  where repr   = variantRepr                                      ; {-# INLINE repr #-}
 instance {-# OVERLAPPABLE #-} (VariantRepr s (Unwrapped (Term t term rt)), Typeable term) => Repr s          (Term      t term rt) where repr t = fromString (showTermType t) <+> repr (unwrap' t) ; {-# INLINE repr #-}
 instance                       VariantRepr HeaderOnly (Unwrapped (Term t term rt))        => Repr HeaderOnly (Term      t term rt) where repr   = repr ∘ unwrap'                                   ; {-# INLINE repr #-}
 
@@ -254,7 +156,6 @@ type instance Runtime.Model (Term t term rt) = rt
 type instance LayoutType    (Term t term rt) = t
 type instance TermOf        (Term t term rt) = Term t term rt
 
-deriving instance Show (Unlayered (Term t term rt)) => Show (Term t term rt)
 instance Eq  (Term t term rt) where (==)    = $notImplemented
 instance Ord (Term t term rt) where compare = $notImplemented
 
@@ -279,7 +180,7 @@ type instance ToDynamic (Term t term rt) = Term t term (ToDynamic rt)
 type instance Props p (Term t term rt) = Props p (RecordOf (Term t term rt))
 
 -- Conversions
-instance Unwrapped (Term t term rt) ~ ASTRecord gs vs t' d => Convertible (Term t term rt) (ASTRecord gs vs t' d) where convert = unwrap' ; {-# INLINE convert #-}
+instance Unwrapped (Term t term rt) ~ TermRecord gs vs t' => Convertible (Term t term rt) (TermRecord gs vs t') where convert = unwrap' ; {-# INLINE convert #-}
 
 instance Convertible (Unwrapped (Term t term rt)) Data => Castable    (Term t term rt) Data
 instance Convertible (Unwrapped (Term t term rt)) Data => Convertible (Term t term rt) Data where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
@@ -293,9 +194,29 @@ instance BiCastable (Abstract (Term t term rt)) (Term t term rt) => HasAbstract 
 
 
 
-------------------------------------
+-------------------------------------
 -- === Term Layout type caches === --
-------------------------------------
+-------------------------------------
+
+-- | Options in this section should be used only for development purpose and should never be enabled in production ready code.
+-- | Their behaviour bases often on manually cached code, which could accidentaly get obsolete.
+-- | We could probably throw it away in the future, but the following GHC bugs have to be resolved first:
+-- |    - https://ghc.haskell.org/trac/ghc/ticket/8095
+-- |    - https://ghc.haskell.org/trac/ghc/ticket/11375
+
+#ifndef RELEASE
+#ifdef  FastCompilation
+#define CachedTypeFamilies
+#endif
+#endif
+
+-- Cache related pragmas
+#define CACHE(n)       cacheHelper ''n Nothing  ; cacheType ''n Nothing
+#define CACHE_AS(n,cn) cacheHelper ''n (Just cn); cacheType ''n (Just cn)
+#define CHECK_EQ(s,t)  assertTypesEq (Proxy :: Proxy (s)) (Proxy :: Proxy (t))
+
+
+-- === Definitions === --
 
 -- The following code is result of type-families expressions and is cached in order to speed-up the compilation process.
 -- related GHC bug:        https://ghc.haskell.org/trac/ghc/ticket/8095#no1
@@ -388,9 +309,9 @@ type VariantList t = VariantList_CACHE t
 type Layout_RULE t = GroupList t <> VariantList t
 CACHE_AS(Layout_RULE, "Layout_CACHE")
 
-type instance Record.Layout (ASTRecord gs vs t d) = Layout_CACHE t
+type instance Record.Layout (TermRecord gs vs t) = Layout_CACHE t
 
-type instance Layout_Variants Variant (ASTRecord gs vs t d) = VariantList t
+type instance Layout_Variants Variant (TermRecord gs vs t) = VariantList t
 
 -- === DecodeMap === --
 
@@ -467,7 +388,7 @@ type DecodeMap_CACHE t = DecodeMap_MANUAL_CACHE t
 
 #endif
 
-type instance DecodeMap (ASTRecord gs vs t d) = DecodeMap_CACHE t
+type instance DecodeMap (TermRecord gs vs t) = DecodeMap_CACHE t
 
 
 -- === EncodeMap === --
@@ -594,7 +515,7 @@ type EncodeMap_CACHE t = EncodeMap_MANUAL_CACHE t
 
 #endif
 
-type instance EncodeMap (ASTRecord gs vs t d) = EncodeMap_CACHE t
+type instance EncodeMap (TermRecord gs vs t) = EncodeMap_CACHE t
 
 
 

@@ -11,6 +11,27 @@ import Luna.Syntax.Repr.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 import qualified Luna.Syntax.AST.Term.Lit as Lit
 
 
+
+-- TODO[WD]: move to issue tracker after releasing Luna to github
+
+--------------------------------------------
+-- === Enhancement proposals & issues === --
+--------------------------------------------
+
+-- Status: pending | accepted | rejected
+
+-- Reporter  Status   Description
+-- wdanilo   pending  ACCESSORS AND FUNCTIONS UNIFICATION
+--                    Check if we can throw away accessors in terms. Let's consider the following Luna code:
+--                        a  = x.bar
+--                        a' = acc x "bar"
+--                    These lines should mean exactly the same with the followings rules:
+--                        - both forms have to be distinguishable to provide Term <-> Text conversion
+--                        - the performance of STATIC Luna compilation should be as fast as in current solution
+--                        - accessors should be first class objects, althought we can easily make a workaround like `myacc = a : a.x`
+
+
+
 -- === Definition === --
 -- | Type parameter `t` defines the term type
 --   Type parameter `n` defines

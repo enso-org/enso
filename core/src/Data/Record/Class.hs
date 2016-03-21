@@ -56,144 +56,6 @@ import Type.Sequence          (Enumerate)
 
 
 
-
-
-
-
--------------------
--- === Store === --
--------------------
-
-newtype Store = Store Any
-makeWrapped ''Store
-
-
--- === Rebuilder === --
-
-type LayoutProxy l = Proxy (l :: [*])
-class    MaskRebuilder oldLayout newLayout where rebuildMask :: LayoutProxy oldLayout -> LayoutProxy newLayout -> Mask -> Mask
-instance MaskRebuilder layout    layout    where rebuildMask _ _ = id ; {-# INLINE rebuildMask #-}
-
-
--- === Utils === --
-
-unsafeStore :: a -> Store
-unsafeStore = Store ∘ unsafeCoerce
-{-# INLINE unsafeStore #-}
-
-unsafeRestore :: Store -> a
-unsafeRestore = unsafeCoerce ∘ unwrap'
-{-# INLINE unsafeRestore #-}
-
-
--- === Instances === --
-
-instance Show   Store where show _ = "Store"
-instance NFData Store where rnf  _ = ()
-
-
-
-------------------
--- === Mask === --
-------------------
-
-newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
-makeWrapped ''Mask
-
-class    HasMask a    where mask :: Lens' a Mask
-instance HasMask Mask where mask = id ; {-# INLINE mask #-}
-
-
--- === Instances === --
-
-instance Show Mask where
-    show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where
-        testBit' m b = if testBit m b then Just b else Nothing
-
-
-
------------------------------
--- === Data definition === --
------------------------------
-
-data Data = Data !Mask !Store deriving (Generic, Show)
-
---instance Eq Data where (==) = undefined -- (==) `on` (view mask)
-
--- === Instances === --
--- Normal Form
-instance NFData Data
-
----------------------------------
--- === AST Data definition === --
----------------------------------
-
--- === AST Data encoder === --
-
--- Data encoding
-
-instance ( bits ~ MapLookup v emap
-         , emap ~ EncodeMap (rec Data)
-         , KnownNats bits
-         , Wrapped   (rec Data)
-         , Unwrapped (rec Data) ~ Data
-         ) => Encoder Variant v Ok (rec Data) where
-    encode _ v = Ok $ wrap' $ Data mask $ unsafeStore v where
-        bits    = fromIntegral <$> natVals (p :: P bits)
-        mask    = foldl' setBit zeroBits bits
-    {-# INLINE encode #-}
-
-instance ( MaskRebuilder layout layout'
-         , layout  ~ Layout (rec  Data)
-         , layout' ~ Layout (rec' Data)
-         , Unwrapped (rec  Data) ~ Data
-         , Unwrapped (rec' Data) ~ Data
-         , Wrapped   (rec  Data)
-         , Wrapped   (rec' Data)
-
-         , IsRecord r
-         , RecordOf r ~ rec Data
-         ) => Encoder Group r Ok (rec' Data) where
-    encode _ r = Ok $ wrap' $ Data mask' var where
-        Data mask var = unwrap' $ view asRecord r
-        mask' = rebuildMask (p :: P layout) (p :: P layout') mask
-    {-# INLINE encode #-}
-
--- Data extraction / insertion
-
-instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data)) => UnsafeExtract Variant (r Data) Ok a where unsafeExtract _ (unwrap' -> Data _ v) = Ok $ unsafeRestore v                                         ; {-# INLINE unsafeExtract #-}
-instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data)) => UnsafeInsert  Variant (r Data) Ok a where unsafeInsert  _ a r                   = Ok $ r & wrapped' %~ (\(Data m s) -> Data m (unsafeStore a)) ; {-# INLINE unsafeInsert #-}
-
--- Pattern matching
-
-instance ( rec  ~ r Data
-         , dmap ~ DecodeMap rec
-         , nat  ~ MapLookup g dmap
-         , KnownNat  nat
-         , Wrapped   rec
-         , Unwrapped rec ~ Data
-         ) => CheckMatch t g (r Data) where
-    checkMatch _ _ (unwrap' -> Data mask _) = match where
-        bit   = fromIntegral $ natVal (p :: P nat)
-        match = testBit mask bit
-    {-# INLINE checkMatch #-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -----------------------------------------------------------------
 
 withState f = do
@@ -201,9 +63,6 @@ withState f = do
     put (f s)
 {-# INLINE withState #-}
 
-class                                  KnownNats (nats :: [Nat]) where natVals :: Proxy nats -> [Integer]
-instance                               KnownNats '[]             where natVals _ = []                                      ; {-# INLINE natVals #-}
-instance (KnownNat n, KnownNats ns) => KnownNats (n ': ns)       where natVals _ = natVal (p :: P n) : natVals (p :: P ns) ; {-# INLINE natVals #-}
 
 
 
@@ -583,7 +442,9 @@ groupMatch   :: GroupMapped   a rec => (a -> out) -> MatchSet rec out
 variantMatch f = MathState $ withMatchSet (variantMapped f:) ; {-# INLINE variantMatch #-}
 groupMatch   f = MathState $ withMatchSet (groupMapped   f:) ; {-# INLINE groupMatch   #-}
 
+uncheckedVariantMatch :: (UnsafeExtract Variant rec Ok v, IsRecord rec, CheckMatch Variant v (RecordOf rec)) => (v -> a) -> MathState rec a ()
 uncheckedVariantMatch f = MathState $ withMatchSet (uncheckedVariantMapped f:) ; {-# INLINE uncheckedVariantMatch #-}
+
 
 -- Pattern match evaluation
 

@@ -1,7 +1,8 @@
 module Luna.Syntax.AST.Term.Lit where
 
-import           Prelude.Luna   hiding (Repr, Rational, Integer, String)
-import qualified Prelude.Luna   as P
+import           Prelude.Luna            hiding (Rational, Integer, String)
+import qualified Prelude.Luna            as P
+import           Luna.Syntax.Repr.Styles (StaticNameOnly)
 import           Luna.Data.Name
 
 
@@ -22,8 +23,12 @@ makeWrapped ''String
 
 -- === Instances === --
 
+-- Conversions
 instance Convertible Name   String where convert = String  ∘ convert ; {-# INLINE convert #-}
 instance Convertible String Name   where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
+
+-- Repr
+instance {-# OVERLAPPABLE #-} Repr StaticNameOnly String where repr = fromString ∘ show ∘ unwrap'
 
 
 --------------------
