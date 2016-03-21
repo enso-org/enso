@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, requester, translateSignature, NodeTranslator)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, requester, tcErrors, translateSignature, NodeTranslator)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -36,6 +36,7 @@ import qualified Luna.Syntax.AST.Term.Lit         as Lit
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import           Luna.Compilation.Error
 
 -- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently
 
@@ -133,6 +134,16 @@ attachSelfType sig ref = do
     mapM (flip (reconnect $ prop TCData . requester) (Just ref)) uni
     return uni
 
+attachError :: PassCtx(m) => Ref Node node -> m ()
+attachError ref = do
+    node <- read ref
+    err <- caseTest (uncover node) $ do
+        of' $ \(Acc (Lit.String name) s) -> do
+            tpNode <- follow source =<< follow (prop Type) =<< follow source s
+            return [ImportError (Just tpNode) name]
+        of' $ \(Var (Lit.String n)) -> return [ImportError Nothing n]
+        of' $ \ANY -> return []
+    withRef ref $ prop TCData . tcErrors %~ (err ++)
 
 processNode :: (PassCtx(ImportErrorT m), PassCtx(m)) => Ref Node node -> m (Either ImportError [Ref Node node])
 processNode ref = runErrorT $ do
@@ -171,11 +182,16 @@ instance ( PassCtx(ImportErrorT m)
         let withResult   = zip syms results
             retry (_, Left r)  = r == AmbiguousNodeType
             retry (_, Right r) = False
-            retries      = fst <$> filter retry withResult
+            isError (_, Left  r) = r == SymbolNotFound
+            isError (_, Right _) = False
+            retries      = fst <$> filter retry   withResult
+            errors       = fst <$> filter isError withResult
             newUnis      = concat $ rights results
 
         TypeCheck.modify_ $ (TypeCheck.unresolvedSymbols .~ retries)
                           . (TypeCheck.unresolvedUnis    %~ (newUnis ++))
+
+        mapM_ attachError errors
 
         if length retries == length syms
             then return Stuck
