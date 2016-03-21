@@ -17,7 +17,7 @@ import Luna.Syntax.AST.Term                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph hiding (add)
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs)
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -61,15 +61,17 @@ data CallError = NotAFuncallNode | UnresolvedFunction | MalformedFunction derivi
 type CallErrorT = ExceptT CallError
 
 unifyTypes :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> [Ref Node node] -> CallErrorT m [Ref Node node]
-unifyTypes fptr out args = do
+unifyTypes fptr app args = do
     let getType = follow (prop Type) >=> follow source
-    outTp   <- getType out
+    outTp   <- getType app
     outFTp  <- getType $ fptr ^. Function.out
-    outUni  <- replaceWithUnify outFTp outTp
-    reconnect (prop Type) out outUni
+    outUni  <- unify outFTp outTp
+    reconnect (prop TCData . requester) outUni $ Just app
+    reconnect (prop Type) app outUni
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
-    argUnis <- zipWithM replaceWithUnify argFTps argTps
+    argUnis <- zipWithM unify argFTps argTps
+    mapM_ (flip (reconnect $ prop TCData . requester) $ Just app) argUnis
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
@@ -80,17 +82,6 @@ makeFuncall app args funClus = do
     reconnect (prop TCData . redirect) app $ Just $ fptr ^. Function.out
     zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) (Just <$> args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     unifyTypes fptr app args
-
-replaceWithUnify :: PassCtx(m) => Ref Node node -> Ref Node node -> m $ Ref Node node
-replaceWithUnify old new = do
-    uni <- unify old new
-    oldNode <- read old
-    newUniSuccs <- filterM (fmap (/= uni) . follow Graph.target) $ readSuccs oldNode
-    toUniEdges  <- filterM (fmap (== uni) . follow Graph.target) $ readSuccs oldNode
-    withRef uni $ prop Succs .~ fromList (unwrap <$> newUniSuccs)
-    withRef old $ prop Succs .~ fromList (unwrap <$> toUniEdges)
-    mapM_ (flip withRef $ source .~ uni) newUniSuccs
-    return uni
 
 processNode :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]
 processNode ref = do

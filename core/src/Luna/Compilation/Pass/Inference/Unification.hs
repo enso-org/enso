@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
@@ -30,6 +30,7 @@ import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import           Luna.Compilation.Error
 import qualified Luna.Syntax.AST.Term.Lit               as Lit
 import           Luna.Syntax.AST.Function.Argument
 
@@ -39,26 +40,28 @@ import Control.Monad (liftM, MonadPlus(..))
 
 import Control.Monad.Trans.Either
 
-#define PassCtx(m,ls,term) ( term ~ Draft Static                            \
-                           , ne   ~ Link (ls :<: term)                      \
-                           , Covered (ls :<: term)                          \
-                           , nodeRef ~ Ref Node (ls :<: term)               \
-                           , Prop Type   (ls :<: term) ~ Ref Edge ne        \
-                           , HasSuccs (ls :<: term)                         \
-                           , BiCastable     e ne                            \
-                           , BiCastable     n (ls :<: term)                 \
-                           , MonadBuilder (Hetero (VectorGraph n e c)) (m)  \
-                           , HasProp Type       (ls :<: term)               \
-                           , NodeInferable  (m) (ls :<: term)               \
-                           , TermNode Var   (m) (ls :<: term)               \
-                           , TermNode Lam   (m) (ls :<: term)               \
-                           , TermNode Unify (m) (ls :<: term)               \
-                           , TermNode Acc   (m) (ls :<: term)               \
-                           , TermNode Cons  (m) (ls :<: term)               \
-                           , MonadIdentPool (m)                             \
-                           , Destructor     (m) (Ref Node (ls :<: term))    \
-                           , Destructor     (m) (Ref Edge ne)               \
-                           , MonadTypeCheck (ls :<: term) (m)               \
+#define PassCtx(m,ls,term) ( term ~ Draft Static                                     \
+                           , ne   ~ Link (ls :<: term)                               \
+                           , Covered (ls :<: term)                                   \
+                           , nodeRef ~ Ref Node (ls :<: term)                        \
+                           , Prop Type   (ls :<: term) ~ Ref Edge ne                 \
+                           , Prop TCData (ls :<: term) ~ TCDataPayload (ls :<: term) \
+                           , HasSuccs (ls :<: term)                                  \
+                           , BiCastable     e ne                                     \
+                           , BiCastable     n (ls :<: term)                          \
+                           , MonadBuilder (Hetero (VectorGraph n e c)) (m)           \
+                           , HasProp Type       (ls :<: term)                        \
+                           , HasProp TCData     (ls :<: term)                        \
+                           , NodeInferable  (m) (ls :<: term)                        \
+                           , TermNode Var   (m) (ls :<: term)                        \
+                           , TermNode Lam   (m) (ls :<: term)                        \
+                           , TermNode Unify (m) (ls :<: term)                        \
+                           , TermNode Acc   (m) (ls :<: term)                        \
+                           , TermNode Cons  (m) (ls :<: term)                        \
+                           , MonadIdentPool (m)                                      \
+                           , Destructor     (m) (Ref Node (ls :<: term))             \
+                           , Destructor     (m) (Ref Edge ne)                        \
+                           , MonadTypeCheck (ls :<: term) (m)                        \
                            )
 
 -------------------------
@@ -120,11 +123,6 @@ resolveUnify uni = do
 
     where symmetrical f a b = f a b *> f b a
 
-          consArgs :: Lens' (ls :<: term) [Arg $ Ref Edge ne]
-          consArgs = covered . lens getter setter where
-              getter (v :: term ls)   = caseTest v $ of' $ \(Cons _ a) -> a :: [Arg $ Ref Edge ne]
-              setter (v :: term ls) a = caseTest v $ of' $ \(Cons n _) -> (Record.cons $ Cons n a :: term ls)
-
           resolveReflexivity uni a b = do
               if a == b
                   then do
@@ -142,14 +140,20 @@ resolveUnify uni = do
                           then do
                               asA <- mapM (follow source . unlayer) argsA
                               asB <- mapM (follow source . unlayer) argsB
+                              req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               newUnis <- zipWithM unify asA asB
+                              mapM (flip (reconnect $ prop TCData . requester) req) newUnis
                               unified <- replaceAny a b
                               uniReplacement <- if null argsA
                                   then return unified
                                   else cons na (arg <$> newUnis)
                               replaceNode uni uniReplacement
                               resolve newUnis
-                          else return ()
+                          else do
+                              req <- mapM (follow source) =<< follow (prop TCData . requester) uni
+                              case req of
+                                  Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError a b :)
+                                  Nothing -> return ()
 
           resolveStar uni a b = do
               uni' <- read uni
