@@ -9,8 +9,8 @@ import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
 import           Data.Map                       (Map)
 import qualified Data.Map                       as Map
-import           Luna.Syntax.AST.Function       (Function)
-import           Luna.Library.Symbol.QualPath   (QualPath)
+import           Luna.Syntax.Term.Function       (Function)
+import           Luna.Syntax.Name.Path   (QualPath)
 import           Data.Graph.Backend.VectorGraph (Ref, Cluster)
 import           Data.Graph.Model.Node
 

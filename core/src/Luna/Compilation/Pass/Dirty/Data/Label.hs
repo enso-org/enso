@@ -7,12 +7,12 @@ import           Luna.Syntax.Model.Layer
 import           Prologue                                       hiding (Getter, Setter)
 
 import           Data.Prop
-import           Luna.Evaluation.Model                          (Draft)
+import           Luna.Syntax.Term.Format                          (Draft)
 import           Luna.Syntax.Model.Network.Class                (Network)
 import qualified Luna.Syntax.Model.Network.Term                 as Term
 
-import           Luna.Evaluation.Runtime                        (Static)
-import           Luna.Syntax.AST.Term                           (Term)
+import           Luna.Runtime.Dynamics                        (Static)
+import           Luna.Syntax.Term.Expr                           (Term)
 
 
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool

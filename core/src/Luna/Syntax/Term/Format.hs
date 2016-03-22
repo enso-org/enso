@@ -1,4 +1,4 @@
-module Luna.Syntax.Format where
+module Luna.Syntax.Term.Format where
 
 import Prelude.Luna
 

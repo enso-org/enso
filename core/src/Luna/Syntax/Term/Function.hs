@@ -1,9 +1,9 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Luna.Syntax.AST.Function (module Luna.Syntax.AST.Function, module X) where
+module Luna.Syntax.Term.Function (module Luna.Syntax.Term.Function, module X) where
 
-import Luna.Syntax.AST.Function.Argument   as X
---import Luna.Syntax.AST.Function.Definition as X
+import Luna.Syntax.Term.Function.Argument   as X
+--import Luna.Syntax.Term.Function.Definition as X
 
 
 ---------------------------------------------------------------------------------------------

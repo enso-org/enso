@@ -22,8 +22,8 @@ import Prologue.Unsafe (fromJustNote, undefined)
 
 import Type.Container
 
-import Luna.Evaluation.Runtime (ToStatic, ToDynamic)
-import qualified Luna.Evaluation.Runtime as Runtime
+import Luna.Runtime.Dynamics (ToStatic, ToDynamic)
+import qualified Luna.Runtime.Dynamics as Runtime
 --import Data.Bits.Mask         (Mask)
 import GHC.Prim            (Any, unsafeCoerce#)
 import Data.Int            (Int64)

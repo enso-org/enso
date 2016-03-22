@@ -1,4 +1,4 @@
-module Luna.Syntax.Repr.Styles where
+module Luna.Pretty.Styles where
 
 import Prelude.Luna
 

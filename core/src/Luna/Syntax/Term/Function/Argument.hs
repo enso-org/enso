@@ -1,11 +1,11 @@
-module Luna.Syntax.AST.Function.Argument where
+module Luna.Syntax.Term.Function.Argument where
 
 import Prelude.Luna
 
-import Luna.Syntax.Ident (HasOptIdent, IdentType)
+import Luna.Syntax.Name.Ident (HasOptIdent, IdentType)
 
-import qualified Luna.Syntax.Ident      as Ident
-import qualified Luna.Syntax.Ident.Type as IdentType
+import qualified Luna.Syntax.Name.Ident      as Ident
+import qualified Luna.Syntax.Name.Ident.Type as IdentType
 
 
 

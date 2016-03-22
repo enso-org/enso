@@ -1,4 +1,4 @@
-module Luna.Data.Strictness where
+module Luna.Syntax.Term.Data.Strictness where
 
 import Prelude.Luna
 

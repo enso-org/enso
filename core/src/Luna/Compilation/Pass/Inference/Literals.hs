@@ -13,10 +13,10 @@ import           Type.Inference
 import           Data.Graph.Builder
 import           Data.Graph.Backend.VectorGraph                  as Graph
 
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            hiding (source)
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
+import           Luna.Pretty.GraphViz
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Syntax.Term.Expr                            hiding (source)
+import qualified Luna.Syntax.Term.Lit                        as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
@@ -29,7 +29,7 @@ import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
 
 
-import           Luna.Syntax.AST.Function.Argument (Arg)
+import           Luna.Syntax.Term.Function.Argument (Arg)
 
 #define PassCtx(m, ls, term) ( ls   ~ NetLayers                               \
                              , term ~ Draft Static                            \

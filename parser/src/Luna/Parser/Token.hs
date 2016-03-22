@@ -23,9 +23,9 @@ import Prelude (read)
 import qualified Luna.Parser.Indent as Indent
 import           Luna.Parser.Indent (MonadIndent)
 import           Luna.Parser.Combinators
-import qualified Luna.Syntax.AST.Term.Lit as Lit
-import qualified Luna.Syntax.AST.Term.Lit as Number
-import           Luna.Syntax.AST.Term.Lit (Number)
+import qualified Luna.Syntax.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Lit as Number
+import           Luna.Syntax.Term.Lit (Number)
 import           Luna.Parser.Lex
 import qualified Luna.Parser.State as State
 
@@ -37,7 +37,7 @@ import qualified Luna.Parser.Token.Ident as Ident
 import qualified Luna.Parser.Token.Style as Style
 import Text.Parser.Token           (reserve)
 import Luna.Parser.Class (Parser)
-import Luna.Data.Name (Segment(..), MultiName(..))
+import Luna.Syntax.Name (Segment(..), MultiName(..))
 
 isSpaceLine c = isSpace c && c /= '\n' && c /= '\r'
 

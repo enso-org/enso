@@ -1,9 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Data.Name.Class where
+module Luna.Syntax.Name.Class where
 
 import Prelude.Luna
-import Luna.Data.Name.FastString
+import Luna.Syntax.Name.FastString
 import Data.Data
 import Outputable (Outputable)
 import Unique

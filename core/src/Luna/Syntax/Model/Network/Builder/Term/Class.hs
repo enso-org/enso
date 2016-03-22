@@ -21,11 +21,11 @@ import qualified Data.Record                             as Record
 import           Data.Record                             (RecordOf, IsRecord, HasRecord, record, asRecord, Variant, MapTryingElemList_, withElement_, Props, withElement', Layout_Variants, MapTryingElemList, OverElement, overElement)
 import           Data.Tuple.Curry.Missing
 import           Data.Tuple.OneTuple
-import           Luna.Evaluation.Runtime                 as Runtime
-import           Luna.Syntax.AST.Function.Argument
-import           Luna.Syntax.AST.Function.Argument       as X (arg)
-import           Luna.Syntax.AST.Term                    hiding (Val, Lit, Thunk, Expr, Draft, Source, Name)
-import qualified Luna.Syntax.AST.Term                    as Term
+import           Luna.Runtime.Dynamics                 as Runtime
+import           Luna.Syntax.Term.Function.Argument
+import           Luna.Syntax.Term.Function.Argument       as X (arg)
+import           Luna.Syntax.Term.Expr                    hiding (Val, Lit, Thunk, Expr, Draft, Source, Name)
+import qualified Luna.Syntax.Term.Expr                    as Term
 import qualified Data.Graph.Builder                      as GraphBuilder
 import           Luna.Syntax.Model.Layer                 (Type, Markable, TCData, Meta, Name, Lambda, (:<:), (:<))
 import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData)
@@ -33,7 +33,7 @@ import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.AST.Term.Lit                as Lit
+import qualified Luna.Syntax.Term.Lit                as Lit
 import           Control.Monad.Trans.Identity
 import           Type.Bool
 

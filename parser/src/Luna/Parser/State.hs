@@ -13,15 +13,15 @@ import           Prelude.Luna
 --import           Luna.Data.SourceMap  (SourceMap)
 --import qualified Luna.Data.SourceMap  as SourceMap
 --import           Luna.Parser.Operator (OperatorMap)
---import qualified Luna.Data.Namespace  as Namespace
---import           Luna.Data.Namespace  (Namespace, NamespaceMonad)
+--import qualified Luna.Syntax.Namespace  as Namespace
+--import           Luna.Syntax.Namespace  (Namespace, NamespaceMonad)
 import qualified Data.List            as List
 --import qualified Data.Maps            as Map
 --import           Luna.DEP.AST.Comment     (Comment(..))
 import qualified Control.Monad.State as State
 --import qualified Luna.Data.StructInfo        as StructInfo
 --import           Luna.Syntax.Name.Path       (QualPath)
-import Luna.Data.Name
+import Luna.Syntax.Name
 import qualified Control.Monad.Trans.State.Lazy as Lazy
 
 import           Text.Parser.Char          (CharParsing)

@@ -13,7 +13,7 @@ module Luna.Parser.Pattern where
 --import           Luna.Parser.Type (typic)
 --import qualified Luna.Syntax.Name.Path        as NamePath
 --import qualified Luna.Parser.State            as ParserState
---import qualified Luna.Data.Namespace.State    as Namespace
+--import qualified Luna.Syntax.Namespace.State    as Namespace
 --import           Luna.Data.StructInfo         (OriginInfo(OriginInfo))
 --import           Luna.Parser.Literal          (literal)
 

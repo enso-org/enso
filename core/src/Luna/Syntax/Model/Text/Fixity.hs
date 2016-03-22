@@ -3,7 +3,7 @@ module Luna.Syntax.Model.Text.Fixity where
 import Prelude.Luna hiding (Constraint)
 
 import qualified Data.Relation.Order as Order
-import           Luna.Data.Name
+import           Luna.Syntax.Name
 
 
 

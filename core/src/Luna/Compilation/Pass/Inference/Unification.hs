@@ -13,16 +13,16 @@ import Data.List                                    (delete)
 import Data.Prop
 import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
-import Luna.Evaluation.Runtime                      (Static, Dynamic)
+import Luna.Runtime.Dynamics                      (Static, Dynamic)
 import Data.Index
-import Luna.Syntax.AST.Term                         hiding (source, target)
+import Luna.Syntax.Term.Expr                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
+import Luna.Syntax.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Type.Inference
 import Data.Graph.Backend.VectorGraph               as Graph hiding (add, remove)
 
@@ -30,8 +30,8 @@ import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import qualified Luna.Syntax.AST.Term.Lit               as Lit
-import           Luna.Syntax.AST.Function.Argument
+import qualified Luna.Syntax.Term.Lit               as Lit
+import           Luna.Syntax.Term.Function.Argument
 
 
 import Control.Monad.Fix

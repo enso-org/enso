@@ -1,4 +1,4 @@
-module Luna.Diagnostic.Info where
+module Luna.Info.Version where
 
 import Paths_luna_core   as PATHS
 

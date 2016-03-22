@@ -19,12 +19,12 @@ import           Data.Maybe                    (fromMaybe)
 import           Data.List                     (partition)
 import qualified Data.Map                      as Map
 import qualified Data.IntSet                   as IntSet
-import           Luna.Syntax.AST.Function      (Signature)
+import           Luna.Syntax.Term.Function      (Signature)
 
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Term (Draft)
-import           Luna.Evaluation.Runtime        (Static)
-import qualified Luna.Syntax.AST.Function       as Function
+import           Luna.Runtime.Dynamics        (Static)
+import qualified Luna.Syntax.Term.Function       as Function
 
 #define ImportCtx  ( node  ~ (ls :<: term)                            \
                    , edge  ~ Link node                                \

@@ -1,12 +1,12 @@
-module Luna.Syntax.Ident.Class (module Luna.Syntax.Ident.Class, module X) where
+module Luna.Syntax.Name.Ident.Class (module Luna.Syntax.Name.Ident.Class, module X) where
 
 import Prelude.Luna
 
 import Data.Char                   (isLower, isUpper)
-import Luna.Data.Name
+import Luna.Syntax.Name
 
-import qualified Luna.Syntax.Ident.Type as Type
-import           Luna.Syntax.Ident.Type as X (IdentType)
+import qualified Luna.Syntax.Name.Ident.Type as Type
+import           Luna.Syntax.Name.Ident.Type as X (IdentType)
 
 
 -------------------

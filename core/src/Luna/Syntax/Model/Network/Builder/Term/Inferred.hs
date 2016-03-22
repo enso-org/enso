@@ -6,12 +6,12 @@ module Luna.Syntax.Model.Network.Builder.Term.Inferred (module Luna.Syntax.Model
 import Prelude.Luna hiding (Num)
 
 import           Type.Inference
-import           Luna.Syntax.AST.Function.Argument
-import           Luna.Syntax.AST.Term
+import           Luna.Syntax.Term.Function.Argument
+import           Luna.Syntax.Term.Expr
 import           Data.Graph                                   (ELEMENT(..))
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)
-import qualified Luna.Syntax.AST.Term.Lit                     as Lit
+import qualified Luna.Syntax.Term.Lit                     as Lit
 
 ---------------------
 -- === Helpers === --

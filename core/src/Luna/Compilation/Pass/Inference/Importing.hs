@@ -12,10 +12,10 @@ import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record.Match
 import Data.Maybe                                   (fromMaybe, maybeToList)
-import Luna.Evaluation.Runtime                      (Static)
-import Luna.Library.Symbol.Class                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
-import Luna.Syntax.AST.Function                     (Function, Signature)
-import Luna.Syntax.AST.Term                         hiding (source)
+import Luna.Runtime.Dynamics                      (Static)
+import Luna.Library.Symbol                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
+import Luna.Syntax.Term.Function                     (Function, Signature)
+import Luna.Syntax.Term.Expr                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph
 import Luna.Syntax.Model.Layer
@@ -29,9 +29,9 @@ import Type.Inference
 import qualified Data.Map as Map
 import           Data.Map (Map)
 
-import qualified Luna.Library.Symbol.QualPath     as QualPath
-import qualified Luna.Syntax.AST.Function         as Function
-import qualified Luna.Syntax.AST.Term.Lit         as Lit
+import qualified Luna.Syntax.Name.Path     as QualPath
+import qualified Luna.Syntax.Term.Function         as Function
+import qualified Luna.Syntax.Term.Lit         as Lit
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)

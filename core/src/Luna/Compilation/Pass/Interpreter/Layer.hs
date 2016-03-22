@@ -6,9 +6,9 @@ import           Data.Construction
 import           Data.Prop
 import           Data.Maybe                      (isJust)
 
-import           Luna.Evaluation.Model           (Draft)
-import           Luna.Evaluation.Runtime         (Static)
-import           Luna.Syntax.AST.Term            (Term)
+import           Luna.Syntax.Term.Format           (Draft)
+import           Luna.Runtime.Dynamics         (Static)
+import           Luna.Syntax.Term.Expr            (Term)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Class (Network)
 import qualified Luna.Syntax.Model.Network.Term  as Term

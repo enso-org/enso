@@ -15,15 +15,14 @@ import qualified Luna.Compilation.Pass.Dirty.Data.Env            as Env
 import           Luna.Compilation.Pass.Dirty.Data.Label          (Interpreter(..), InterpreterLayer)
 import qualified Luna.Compilation.Pass.Dirty.Data.Label          as Label
 import           Luna.Compilation.Pass.Dirty.Monad               (DirtyMonad, runDirtyT, DirtyT)
-import           Luna.Syntax.Builder
 
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 
 import           Data.Construction
 import           Data.Record                                     hiding (cons)
 import           Type.Inference
 
-import           Luna.Syntax.AST.Term.Class                      (Lam)
+import           Luna.Syntax.Term.Expr                      (Lam)
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)

@@ -20,7 +20,7 @@ import           Data.Graph.Backend.VectorGraph
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
-import qualified Luna.Syntax.AST.Function               as Func
+import qualified Luna.Syntax.Term.Function               as Func
 import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
 import           Data.Graph.Builder.Ref                 as Ref

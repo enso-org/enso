@@ -1,9 +1,9 @@
-module Luna.Syntax.AST.Term.Lit where
+module Luna.Syntax.Term.Lit where
 
 import           Prelude.Luna            hiding (Rational, Integer, String)
 import qualified Prelude.Luna            as P
-import           Luna.Syntax.Repr.Styles (StaticNameOnly)
-import           Luna.Data.Name
+import           Luna.Pretty.Styles (StaticNameOnly)
+import           Luna.Syntax.Name
 
 
 ------------------

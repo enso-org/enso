@@ -1,14 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.AST.Term.Atom where
+module Luna.Syntax.Term.Atom where
 
 import Prelude.Luna
 
 import Data.Base
-import Luna.Syntax.AST.Function (Arg)
-import Luna.Syntax.Repr.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
+import Luna.Syntax.Term.Function (Arg)
+import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
-import qualified Luna.Syntax.AST.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Lit as Lit
 
 
 

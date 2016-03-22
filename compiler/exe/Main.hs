@@ -33,7 +33,7 @@ import           Data.Version.Semantic
 import           Development.Placeholders
 import           Type.Inference
 
-import qualified Luna.Compilation.Env.Class                      as Env
+import qualified Luna.Config.Env                      as Env
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
 import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
@@ -46,15 +46,15 @@ import           Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import qualified Luna.Evaluation.Runtime                         as Runtime
-import qualified Luna.Evaluation.Model                           as EvalModel
+import           Luna.Pretty.GraphViz
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import qualified Luna.Runtime.Dynamics                         as Runtime
+import qualified Luna.Syntax.Term.Format                           as EvalModel
 import qualified Luna.Library.Standard                           as StdLib
-import qualified Luna.Library.Symbol.Class                       as Symbol
-import           Luna.Syntax.AST.Term                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
-import qualified Luna.Syntax.AST.Term                            as Term
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
+import qualified Luna.Library.Symbol                       as Symbol
+import           Luna.Syntax.Term.Expr                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
+import qualified Luna.Syntax.Term.Expr                            as Term
+import qualified Luna.Syntax.Term.Lit                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer

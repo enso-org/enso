@@ -10,17 +10,17 @@ import Prelude.Luna hiding (cons, maybe, noneOf)
 --import qualified Luna.Parser.Indent       as Indent
 --import           Luna.Parser.Combinators  (many1, maybe, applyAll)
 --import qualified Luna.Parser.Type         as Type
---import Luna.Syntax.AST.Function.Definition as Function
---import Luna.Syntax.AST.Function.Argument
---import           Luna.Syntax.AST.Function.Header (Segment(..), Header)
---import qualified Luna.Syntax.AST.Function.Header as Header
+--import Luna.Syntax.Term.Function.Definition as Function
+--import Luna.Syntax.Term.Function.Argument
+--import           Luna.Syntax.Term.Function.Header (Segment(..), Header)
+--import qualified Luna.Syntax.Term.Function.Header as Header
 --import Luna.Parser.Combinators
---import qualified Luna.Syntax.AST.Function.Signature as Signature
+--import qualified Luna.Syntax.Term.Function.Signature as Signature
 --import Luna.Parser.Token.Ident
 --import           Luna.Parser.Class        (ASTParser)
 
---import qualified Luna.Syntax.Ident.Pattern as Pattern
---import           Luna.Syntax.Ident.Pattern (Segment(..), Pattern(..))
+--import qualified Luna.Syntax.Name.Ident.Pattern as Pattern
+--import           Luna.Syntax.Name.Ident.Pattern (Segment(..), Pattern(..))
 --import           Luna.Syntax.Foreign      (Foreign(Foreign))
 --import qualified Luna.Syntax.Foreign      as Foreign
 --import           Luna.Syntax.Name.Pattern (NamePat(NamePat), Segment(Segment))

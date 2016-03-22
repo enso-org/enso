@@ -1,4 +1,4 @@
-module Luna.Type.Dynamics where
+module Luna.Runtime.Dynamics where
 
 import Prologue
 

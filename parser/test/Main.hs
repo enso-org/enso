@@ -7,18 +7,18 @@ module Main where
 
 import Prologue
 import Luna.Parser.Parser
-import qualified Luna.Syntax.AST.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Lit as Lit
 import qualified Luna.Parser.Literal      as PLit
 import Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
 import Luna.Syntax.Model.Network.Term
-import Luna.Evaluation.Runtime
+import Luna.Runtime.Dynamics
 import Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
 import Data.Graph
 import           Luna.Syntax.Model.Layer        ((:<:))
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
-import           Luna.Diagnostic.Vis.GraphViz
+import           Luna.Pretty.GraphViz
 import           Control.Monad.Event (Dispatcher)
 import           Control.Monad.Identity hiding (when)
 import qualified Luna.Parser.Parser     as Parser

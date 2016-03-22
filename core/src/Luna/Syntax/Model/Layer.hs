@@ -7,7 +7,7 @@ import Prelude.Luna
 import Data.Construction
 import Data.Layer.Cover
 import Data.Prop
-import Luna.Syntax.AST.Term (LayoutType, TermOf)
+import Luna.Syntax.Term.Expr (LayoutType, TermOf)
 import Type.Bool
 import Data.Record
 import Data.HMap.Lazy (HTMap)

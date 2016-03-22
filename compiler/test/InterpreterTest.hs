@@ -14,14 +14,14 @@ import           Type.Inference
 
 import           Data.Graph
 import           Data.Graph.Builder
-import qualified Luna.Compilation.Env.Class                      as Env
+import qualified Luna.Config.Env                      as Env
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
-import           Luna.Syntax.AST.Term                            hiding (source)
-import qualified Luna.Syntax.AST.Term                            as Term
+import           Luna.Pretty.GraphViz
+import           Luna.Pretty.GraphViz
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Syntax.Term.Expr                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
+import           Luna.Syntax.Term.Expr                            hiding (source)
+import qualified Luna.Syntax.Term.Expr                            as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
@@ -36,7 +36,7 @@ import           Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
 import           Data.Graph.Backend.VectorGraph
 import qualified Data.Graph.Builder.Class                        as Graph
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
+import qualified Luna.Syntax.Term.Lit                        as Lit
 
 import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 
@@ -54,7 +54,7 @@ import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Seq
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Control.Monad.Writer                            as Writer
 import qualified Luna.Library.Standard                           as StdLib
-import qualified Luna.Library.Symbol.Class                       as Symbol
+import qualified Luna.Library.Symbol                       as Symbol
 
 
 
@@ -294,7 +294,7 @@ test1 = do
 -- import           Luna.Interpreter.Label       (Label)
 -- import qualified Luna.Interpreter.NodeRunner  as NodeRunner
 -- import qualified Luna.Interpreter.Session     as Session
--- import           Luna.Syntax.AST.Term
+-- import           Luna.Syntax.Term.Expr
 -- import           Luna.Syntax.Builder
 -- import qualified Luna.Syntax.Builder          as Builder
 -- import qualified Luna.Syntax.Builder.Node     as NodeBuilder

@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Compilation.Env.Class where
+module Luna.Config.Env where
 
 import Prelude.Luna
 
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
-import qualified Luna.Diagnostic.Info           as Info
+import qualified Luna.Info.Version           as Info
 import           Data.Build
 import           Data.Version.Semantic
 

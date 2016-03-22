@@ -11,16 +11,16 @@ import           Data.Record                                     hiding (cons)
 import           Data.Version.Semantic                           (showVersion, version)
 import           Type.Inference
 
-import qualified Luna.Compilation.Env.Class                      as Env
+import qualified Luna.Config.Env                      as Env
 import           Luna.Compilation.Pass.Inference.Literals        as LiteralsAssignement
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
-import           Luna.Syntax.AST.Term                            hiding (source)
-import qualified Luna.Syntax.AST.Term                            as Term
+import           Luna.Pretty.GraphViz
+import           Luna.Pretty.GraphViz
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Syntax.Term.Expr                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
+import           Luna.Syntax.Term.Expr                            hiding (source)
+import qualified Luna.Syntax.Term.Expr                            as Term
 import           Data.Graph
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Layer
@@ -30,7 +30,7 @@ import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
+import qualified Luna.Syntax.Term.Lit                        as Lit
 
 import qualified Data.Graph.Builder.Class               as Graph
 import           Data.Graph.Backend.VectorGraph

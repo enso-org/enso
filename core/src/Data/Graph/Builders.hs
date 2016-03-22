@@ -11,7 +11,7 @@ import Control.Monad.Event
 import Data.Direction
 import Data.Index
 import Data.Container          hiding (Impossible, impossible)
-import Luna.Evaluation.Runtime as Runtime
+import Luna.Runtime.Dynamics   (Dynamics, Static, Dynamic)
 import Type.Bool
 import Data.Graph.Backend.VectorGraph hiding (Dynamic)
 import Data.Graph.Builder.Class (MonadBuilder, modify)
@@ -24,11 +24,11 @@ import Data.Graph.Builder.Class (MonadBuilder, modify)
 
 type family NameConnection src tgt where
     NameConnection src I   = Impossible
-    NameConnection src tgt = If (Runtime.Model tgt == Static) src (Connection src tgt)
+    NameConnection src tgt = If (Dynamics tgt == Static) src (Connection src tgt)
 
 type family NameConnection2 src tgt where
     NameConnection2 src tgt = Impossible
-    NameConnection2 src tgt = If (Runtime.Model tgt == Static) src (Connection src tgt)
+    NameConnection2 src tgt = If (Dynamics tgt == Static) src (Connection src tgt)
 
 
 type ConCtx src tgt conn = ( conn ~ Connection src tgt
@@ -53,7 +53,7 @@ instance (LayerConstructor m (Ref Edge c), Dispatcher CONNECTION (Ref Edge c) m,
          connection src tgt = dispatch CONNECTION =<< constructLayer (arc src tgt)
 
 instance (ConnectibleNameH mod src tgt m conn
-         , mod ~ Runtime.Model tgt)  => ConnectibleName'         src tgt m  conn where nameConnection          = nameConnectionH (Proxy :: Proxy mod) ; {-# INLINE nameConnection  #-}
+         , mod ~ Dynamics tgt)  => ConnectibleName'         src tgt m  conn where nameConnection          = nameConnectionH (Proxy :: Proxy mod) ; {-# INLINE nameConnection  #-}
 instance                                ConnectibleName'         I   I   m  I    where nameConnection          = impossible
 instance (Monad m, conn ~ src)       => ConnectibleNameH Static  src tgt m  conn where nameConnectionH _ src _ = return src                           ; {-# INLINE nameConnectionH #-}
 instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref Edge conn) where nameConnectionH _       = connection                           ; {-# INLINE nameConnectionH #-}
@@ -68,7 +68,7 @@ reserveConnection = Ref <$> modify (wrapped' ∘ edgeGraph $ swap ∘ ixed reser
 class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 class NamedConnectionReservationH rt src tgt m conn where reserveNamedConnectionH :: Proxy rt -> src -> Proxy tgt -> m conn
 
-instance (rt ~ Runtime.Model tgt, NamedConnectionReservationH rt src tgt m conn)
+instance (rt ~ Dynamics tgt, NamedConnectionReservationH rt src tgt m conn)
       => NamedConnectionReservation src tgt m conn where reserveNamedConnection = reserveNamedConnectionH (Proxy :: Proxy rt)
 
 instance (Monad m, conn ~ src) => NamedConnectionReservationH Static  src tgt m conn where reserveNamedConnectionH _ src _ = return src

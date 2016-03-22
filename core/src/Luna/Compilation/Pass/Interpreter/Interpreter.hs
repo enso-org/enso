@@ -26,24 +26,23 @@ import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
 import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad)
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Syntax.Term.Expr                            (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
 import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs)
-import           Luna.Syntax.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
+import qualified Luna.Syntax.Term.Lit                        as Lit
 
 import           Type.Inference
 
 -- import qualified Luna.Library.StdLib                             as StdLib
 
-import           Luna.Syntax.AST.Function                        (Arg)
-import qualified Luna.Syntax.AST.Function.Argument               as Arg
+import           Luna.Syntax.Term.Function                        (Arg)
+import qualified Luna.Syntax.Term.Function.Argument               as Arg
 
-import qualified Luna.Evaluation.Session                         as Session
+--import qualified Luna.Evaluation.Session                         as Session
 
 import           GHC.Prim                                        (Any)
 
@@ -175,7 +174,7 @@ convertRationalBase radix rational = nom % den where
     den = convertBase radix (denominator rational)
 
 toMonadAny :: a -> EvalMonad Any
-toMonadAny = return . Session.toAny
+toMonadAny = $notImplemented -- return . Session.toAny
 
 
 numberToAny :: Lit.Number -> EvalMonad Any
@@ -336,23 +335,23 @@ getValueString ref = do
     value    <- getValue    ref
     case value of
         Nothing  -> return ""
-        Just val -> do
-                        -- val :: _
-                        pureVal <- liftIO val
-                        -- pureVal ::
-                        return $ getValueByType typeName pureVal
-                        where
-                            getValueByType typeName pureVal
-                                | typeName == Just "String" = show ((Session.unsafeCast pureVal) :: String)
-                                | typeName == Just "Int"    = show ((Session.unsafeCast pureVal) :: Integer)
-                                | typeName == Just "Bool"   = show ((Session.unsafeCast pureVal) :: Bool)
-                                | otherwise                 = "unknown type"
+        Just val -> $notImplemented -- do
+                        ---- val :: _
+                        --pureVal <- liftIO val
+                        ---- pureVal ::
+                        --return $ getValueByType typeName pureVal
+                        --where
+                        --    getValueByType typeName pureVal
+                        --        | typeName == Just "String" = show ((Session.unsafeCast pureVal) :: String)
+                        --        | typeName == Just "Int"    = show ((Session.unsafeCast pureVal) :: Integer)
+                        --        | typeName == Just "Bool"   = show ((Session.unsafeCast pureVal) :: Bool)
+                        --        | otherwise                 = "unknown type"
 
-                                -- if typeName == Just "String"
-                                --     then return $ show ((Session.unsafeCast pureVal) :: String)
-                                --     else (if typeName == Just "Int"
-                                --         then return $ show ((Session.unsafeCast pureVal) :: Integer)
-                                --         else return "unknown type")
+                        --        -- if typeName == Just "String"
+                        --        --     then return $ show ((Session.unsafeCast pureVal) :: String)
+                        --        --     else (if typeName == Just "Int"
+                        --        --         then return $ show ((Session.unsafeCast pureVal) :: Integer)
+                        --        --         else return "unknown type")
 
 displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
@@ -436,33 +435,33 @@ exceptionHandler e = do
                         liftIO $ throwIO e
 
 evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Maybe (EvalMonad Any))
-evaluateNative ref args = do
-    -- putStrLn $ "Evaluating native"
-    node <- read ref
-    (name, tpNativeMay) <- caseTest (uncover node) $ do
-        of' $ \(Native nameStr) -> do
-            tpNativeMay <- getNativeType ref
-            return (unwrap' nameStr, tpNativeMay)
-        of' $ \ANY -> return ("", Nothing) -- error "Error: native cannot be evaluated"
+evaluateNative ref args = $notImplemented -- do
+    ---- putStrLn $ "Evaluating native"
+    --node <- read ref
+    --(name, tpNativeMay) <- caseTest (uncover node) $ do
+    --    of' $ \(Native nameStr) -> do
+    --        tpNativeMay <- getNativeType ref
+    --        return (unwrap' nameStr, tpNativeMay)
+    --    of' $ \ANY -> return ("", Nothing) -- error "Error: native cannot be evaluated"
 
-    case tpNativeMay of
-        Nothing -> return Nothing
-        Just tpNative -> do
-            -- putStrLn $ name <> " :: " <> tpNative
-            valuesMay <- argumentsValues args
-            case valuesMay of
-                Nothing -> return Nothing
-                Just valuesM -> do
-                    res <- handleAll exceptionHandler $ runGHC $ do
-                        HS.setImports defaultImports
-                        fun  <- Session.findSymbol name tpNative
-                        args <- liftIO $ sequence valuesM
-                        let resA = foldl Session.appArg fun args
-                        let resM = Session.unsafeCast resA :: EvalMonad Any
-                        res <- liftIO $ resM
-                        -- liftIO $ threadDelay 5000000
-                        return $ Just $ return res
-                    return $ res
+    --case tpNativeMay of
+    --    Nothing -> return Nothing
+    --    Just tpNative -> do
+    --        -- putStrLn $ name <> " :: " <> tpNative
+    --        valuesMay <- argumentsValues args
+    --        case valuesMay of
+    --            Nothing -> return Nothing
+    --            Just valuesM -> do
+    --                res <- handleAll exceptionHandler $ runGHC $ do
+    --                    HS.setImports defaultImports
+    --                    fun  <- Session.findSymbol name tpNative
+    --                    args <- liftIO $ sequence valuesM
+    --                    let resA = foldl Session.appArg fun args
+    --                    let resM = Session.unsafeCast resA :: EvalMonad Any
+    --                    res <- liftIO $ resM
+    --                    -- liftIO $ threadDelay 5000000
+    --                    return $ Just $ return res
+    --                return $ res
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 

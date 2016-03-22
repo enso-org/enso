@@ -12,8 +12,8 @@ import qualified Data.Graph as Graph
 import           Data.Graph.Backend.VectorGraph (Ref, Node, ELEMENT(..))
 
 import           Type.Inference
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
+import           Luna.Pretty.GraphViz
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer

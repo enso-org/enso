@@ -22,8 +22,8 @@ import           Text.EditDistance            (defaultEditCosts, levenshteinDist
 import qualified Data.Maps                    as Map
 import           Data.List                    (sortBy)
 --import qualified Luna.Data.StructInfo         as StructInfo
---import qualified Luna.Data.Namespace.State    as Namespace
---import           Luna.Data.Namespace          (NamespaceMonad)
+--import qualified Luna.Syntax.Namespace.State    as Namespace
+--import           Luna.Syntax.Namespace          (NamespaceMonad)
 import qualified Luna.Parser.State            as ParserState
 import           Luna.Parser.State            (MonadParserState)
 --import           Luna.Data.StructInfo         (OriginInfo(OriginInfo))
@@ -57,21 +57,21 @@ import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
 import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
-import Luna.Syntax.AST.Term (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
-import qualified Luna.Syntax.AST.Term.Lit as Lit
+import Luna.Syntax.Term.Expr (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
+import qualified Luna.Syntax.Term.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
-import Luna.Evaluation.Runtime (Model)
-import Luna.Data.Name
-import qualified Luna.Syntax.AST.Function.Argument as AST
-import           Luna.Syntax.Ident (named)
+import Luna.Runtime.Dynamics (Model)
+import Luna.Syntax.Name
+import qualified Luna.Syntax.Term.Function.Argument as AST
+import           Luna.Syntax.Name.Ident (named)
 import           Luna.Parser.Class        (ASTParser)
 
 
-import Luna.Syntax.AST.Function.Class as Function
-import Luna.Syntax.AST.Function.Argument hiding (arg)
---import           Luna.Syntax.AST.Function.Header (Segment(..), Header)
---import qualified Luna.Syntax.AST.Function.Header as Header
---import qualified Luna.Syntax.AST.Function.Signature as Signature
+import Luna.Syntax.Term.Function.Class as Function
+import Luna.Syntax.Term.Function.Argument hiding (arg)
+--import           Luna.Syntax.Term.Function.Header (Segment(..), Header)
+--import qualified Luna.Syntax.Term.Function.Header as Header
+--import qualified Luna.Syntax.Term.Function.Signature as Signature
 import Luna.Parser.Token.Ident
 
 import qualified Luna.Syntax.Model.Text.Location as Location

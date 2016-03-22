@@ -1,8 +1,8 @@
-module Luna.Syntax.AST.Function.Class where
+module Luna.Syntax.Term.Function.Class where
 
 import Prelude.Luna
 
-import Luna.Syntax.AST.Function.Argument
+import Luna.Syntax.Term.Function.Argument
 
 
 data Method   a body = Method   { __self_ :: a

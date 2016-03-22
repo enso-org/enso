@@ -82,7 +82,7 @@
 module Luna.Extension.Pragma where
 
 import           Prelude.Luna           as P hiding (noneOf, lookup)
-import           Luna.Data.Name
+import           Luna.Syntax.Name
 import           Data.Map               (Map)
 import qualified Data.Map               as Map
 import           Data.Container.Hetero  (Hetero)

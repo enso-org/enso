@@ -1,2 +1,2 @@
-module Luna.Diagnostic.Monitor where
+module Luna.Info.Monitor where
 

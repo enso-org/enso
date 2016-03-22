@@ -5,7 +5,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 -- {-# LANGUAGE PartialTypeSignatures #-}
 
-module Luna.Diagnostic.Vis.GraphViz where
+module Luna.Pretty.GraphViz where
 
 import           Prelude.Luna                            hiding (index)
 
@@ -36,22 +36,22 @@ import           Data.GraphViz.Printing                  (renderDot, toDot)
 import           Data.GraphViz.Printing                  (PrintDot)
 import           Data.GraphViz.Types.Canonical
 
-import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
-import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
-import           Luna.Evaluation.Runtime                 (Dynamic, Static)
-import qualified Luna.Syntax.AST.Function                as Function
-import qualified Luna.Syntax.AST.Term                    as Term
+--import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
+--import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
+import           Luna.Runtime.Dynamics                 (Dynamic, Static)
+import qualified Luna.Syntax.Term.Function                as Function
+import qualified Luna.Syntax.Term.Expr                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
 import           Luna.Syntax.Model.Network.Builder.Layer
 import           Luna.Syntax.Model.Network.Builder.Term  hiding (match)
 import           Luna.Syntax.Model.Network.Term
-import           Luna.Syntax.Repr.Styles                 (HeaderOnly (..), Simple (..))
+import           Luna.Pretty.Styles                 (HeaderOnly (..), Simple (..))
 
 import           System.Platform
 import           System.Process                          (createProcess, shell)
 import           Data.Tuple.Select                       (sel1)
-import qualified Luna.Syntax.AST.Term.Lit                as Lit
+import qualified Luna.Syntax.Term.Lit                as Lit
 
 
 --instance Repr HeaderOnly Data where repr _ = "Data"
@@ -189,12 +189,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
               node     = draftNodeByIx nix
               ins      = node # Inputs
               succs    = readSuccs node
-              dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
-              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
-              time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
-              -- value    = fromMaybe "" $ (\v -> " Just Any") <$> (node # InterpreterData) ^. InterpreterLayer.value
-              value    = (node # InterpreterData) ^. InterpreterLayer.debug
-              interpr  = " " <> time <> value <> required <> " "
+              dirty    = "" -- if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
+              required = "" -- if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
+              --time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
+              --value    = (node # InterpreterData) ^. InterpreterLayer.debug
+              interpr  = "" -- " " <> time <> value <> required <> " "
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness

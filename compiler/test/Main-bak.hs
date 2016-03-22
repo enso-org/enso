@@ -61,7 +61,7 @@ main = do
 --import           Luna.Syntax.Builder
 --import qualified Luna.Syntax.Builder    as Builder
 --import qualified Luna.Syntax.Builder.Class as Builder
---import           Luna.Syntax.AST.Term
+--import           Luna.Syntax.Term.Expr
 --import           Luna.Syntax.AST
 --import           Luna.Syntax.AST.Decl
 --import           Luna.Syntax.Name.Pool

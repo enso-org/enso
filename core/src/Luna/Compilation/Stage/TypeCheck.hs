@@ -4,16 +4,16 @@ module Luna.Compilation.Stage.TypeCheck where
 
 import Prelude.Luna
 
-import qualified Luna.Compilation.Stage.Class as Stage
-import           Luna.Compilation.Stage.Class hiding (runT, run)
-import qualified Luna.Syntax.Ident.Pool       as IdentPool
-import           Luna.Syntax.Ident.Pool       (IdentPoolT)
+import qualified Luna.Pass.Stage as Stage
+import           Luna.Pass.Stage hiding (runT, run)
+import qualified Luna.Syntax.Name.Ident.Pool       as IdentPool
+import           Luna.Syntax.Name.Ident.Pool       (IdentPoolT)
 
 import           Luna.Compilation.Stage.TypeCheck.Class (TypeCheckT)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 
-import qualified Luna.Library.Symbol.Class as Symbol
-import           Luna.Library.Symbol.Class (SymbolT)
+import qualified Luna.Library.Symbol as Symbol
+import           Luna.Library.Symbol (SymbolT)
 
 
 -- === Definitions === --

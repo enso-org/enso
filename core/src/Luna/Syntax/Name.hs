@@ -1,3 +1,3 @@
-module Luna.Data.Name (module Luna.Data.Name, module X) where
+module Luna.Syntax.Name (module Luna.Syntax.Name, module X) where
 
-import Luna.Data.Name.Class as X
+import Luna.Syntax.Name.Class as X

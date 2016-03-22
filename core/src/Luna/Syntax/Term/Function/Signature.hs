@@ -1,8 +1,8 @@
-module Luna.Syntax.AST.Function.Signature where
+module Luna.Syntax.Term.Function.Signature where
 
 --import Prelude.Luna
 
---import Luna.Syntax.AST.Function.Argument
+--import Luna.Syntax.Term.Function.Argument
 
 
 ---- === Data definitions === --

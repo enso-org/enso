@@ -4,10 +4,10 @@ module Luna.Parser.Class where
 
 import Prelude.Luna
 
-import Luna.Data.Name
+import Luna.Syntax.Name
 import Luna.Parser.Indent                     (MonadIndent)
 import Luna.Parser.State                      (MonadParserState)
-import Luna.Syntax.AST.Term                   hiding (Name)
+import Luna.Syntax.Term.Expr                   hiding (Name)
 import Luna.Syntax.Model.Network.Builder.Term (TermBuilder)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)
@@ -15,7 +15,7 @@ import Luna.Syntax.Model.Text.Location        (MonadLocation)
 import Text.Parser.Char                       (CharParsing, char)
 import Text.Parser.Combinators                (Parsing)
 
-import qualified Luna.Syntax.AST.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Lit as Lit
 import qualified Text.Trifecta.Parser     as Trifecta
 
 

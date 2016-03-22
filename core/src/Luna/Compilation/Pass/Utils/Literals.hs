@@ -12,10 +12,10 @@ import           Data.Graph.Builder
 import           Data.Graph.Backend.VectorGraph                  as Graph
 import           Type.Inference
 
-import           Luna.Diagnostic.Vis.GraphViz
-import           Luna.Evaluation.Runtime                         (Dynamic, Static)
-import           Luna.Syntax.AST.Term                            (Lam, Cons)
-import qualified Luna.Syntax.AST.Term.Lit                        as Lit
+import           Luna.Pretty.GraphViz
+import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Syntax.Term.Expr                            (Lam, Cons)
+import qualified Luna.Syntax.Term.Lit                        as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
