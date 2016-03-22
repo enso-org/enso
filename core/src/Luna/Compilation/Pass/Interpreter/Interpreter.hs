@@ -10,7 +10,7 @@ import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.State
 import           Data.Maybe                                      (isNothing, isJust, catMaybes)
--- import           Data.Either                                     (isLeft, isRight)
+import           Data.Either                                     (rights)
 
 import           Data.Construction
 import           Data.Graph
@@ -344,9 +344,9 @@ getValueString ref = do
                         return $ getValueByType typeName pureVal
                         where
                             getValueByType typeName pureVal
-                                | typeName == Just "String" = show ((Session.unsafeCast pureVal) :: String)
-                                | typeName == Just "Int"    = show ((Session.unsafeCast pureVal) :: Integer)
-                                | typeName == Just "Bool"   = show ((Session.unsafeCast pureVal) :: Bool)
+                                | typeName == Right "String" = show ((Session.unsafeCast pureVal) :: String)
+                                | typeName == Right "Int"    = show ((Session.unsafeCast pureVal) :: Integer)
+                                | typeName == Right "Bool"   = show ((Session.unsafeCast pureVal) :: Bool)
                                 | otherwise                 = "unknown type"
 
                                 -- if typeName == Just "String"
@@ -361,26 +361,26 @@ displayValue ref = do
     valueString <- getValueString ref
     putStrLn $ "Type " <> show typeName <> " value " <> valueString
 
-getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
+getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value String)
 getTypeName ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
     getTypeNameForType tpRef
 
-getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
-getListType (arg:more:_) = return Nothing -- error - too many parameters to list
+getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Value String)
+getListType (arg:more:_) = return $ Left ["Too many parameters to list"]
 getListType (arg:_)      = do
     name <- getTypeNameForType arg
     return $ (\s -> "[" <> s <> "]") <$> name
-getListType _            = return Nothing
+getListType _            = return $ Left ["List should have a type parameter"]
 
-getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe String)
+getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Value String)
 getArgsType args@(arg:rest) = do
     typeNameMays <- mapM getTypeNameForType args
     return $ (\typeNames -> "(" <> intercalate ") (" typeNames <> ")") <$> sequence typeNameMays
-getArgsType _ = return Nothing
+getArgsType _ = return $ Left ["Bad type arguments"]
 
-getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe String)
+getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value String)
 getTypeNameForType tpRef = do
     tp    <- read tpRef
     caseTest (uncover tp) $ do
@@ -389,16 +389,16 @@ getTypeNameForType tpRef = do
             sigElems     <- mapM (follow source) rawArgs
             case s of
                 "List"      -> getListType sigElems
-                "Histogram" -> return $ Just "[(Int, Int)]"
+                "Histogram" -> return $ Right "[(Int, Int)]"
                 _           -> if null sigElems
-                    then return $ Just s
+                    then return $ Right s
                     else do
                            argsTypeMay <- getArgsType sigElems
                            return $ case argsTypeMay of
-                               Nothing       -> Nothing -- bad type arguments
-                               Just argsType -> Just $ s <> " " <> argsType
-        of' $ \(Var (Lit.String name)) -> return . Just $ replace "#" "_" name
-        of' $ \ANY                     -> return Nothing -- error "Ambiguous node type"
+                               Left err       -> Left err
+                               Right argsType -> Right $ s <> " " <> argsType
+        of' $ \(Var (Lit.String name)) -> return . Right $ replace "#" "_" name
+        of' $ \ANY                     -> return $ Left ["Ambiguous node type"]
 
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
@@ -416,9 +416,9 @@ getNativeType ref = do
             sigParams     <- mapM (follow source) rawArgs
             sigParamNames <- mapM getTypeNameForType sigParams
             let sigElemNames = sigParamNames <> [sigOutName]
-            return $ if all isJust sigElemNames
+            return $ if all isRight sigElemNames
                 then
-                    let funSig = intercalate " -> " (catMaybes sigElemNames) in
+                    let funSig = intercalate " -> " (rights sigElemNames) in
                     Right funSig
                 else
                     Left ["Could not evaluate all signature elements types"]
