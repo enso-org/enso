@@ -368,11 +368,17 @@ test1 = do
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
                 i1 <- int 20
-                s  <- str "hi"
-                pl <- acc "+" s
-                apped <- app pl [arg i1]
+                x1 <- var "primes"
+                ps <- app x1 [arg i1]
+                n1 <- var "node1"
+                m1 <- match n1 ps
 
-                return [apped]
+                x2 <- var "mean"
+                me <- app x2 [arg ps]
+                n2 <- var "node2"
+                m2 <- match n2 me
+
+                return [m1, m2]
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 

@@ -57,6 +57,17 @@ investigate ref = do
             of' $ \ANY              ->  id
     TypeCheck.modify_ mod
 
+-- FIXME[MK]: This does not take pattern matching into account. To implement.
+resolveLocalVars :: forall term node ls edge n e c m . PassCtx(m) => m ()
+resolveLocalVars = do
+    binds <- view TypeCheck.bindings <$> TypeCheck.get
+    vars  <- fmap catMaybes $ forM binds $ \r -> do
+        n :: node <- read r
+        caseTest (uncover n) $ do
+            of' $ \(Match l _) -> Just <$> follow source l
+            of' $ \ANY         -> return Nothing
+    TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem vars)
+
 -----------------------------
 -- === TypeCheckerPass === --
 -----------------------------
@@ -69,6 +80,7 @@ instance PassCtx(m) => TypeCheckerPass ScanPass m where
     runTCPass _ = do
         roots <- view TypeCheck.freshRoots <$> TypeCheck.get
         mapM_ (subtreeWalk investigate) roots
+        resolveLocalVars
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []
         case roots of
             [] -> return Stuck

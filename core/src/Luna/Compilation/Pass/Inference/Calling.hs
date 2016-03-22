@@ -17,7 +17,7 @@ import Luna.Syntax.Term.Expr                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph hiding (add)
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs)
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester, origin, Origin (..))
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -61,19 +61,19 @@ data CallError = NotAFuncallNode | UnresolvedFunction | MalformedFunction derivi
 type CallErrorT = ExceptT CallError
 
 unifyTypes :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> [Ref Node node] -> CallErrorT m [Ref Node node]
-unifyTypes fptr out args = do
+unifyTypes fptr app args = do
     let getType = follow (prop Type) >=> follow source
-    outTp   <- getType out
+    outTp   <- getType app
     outFTp  <- getType $ fptr ^. Function.out
     outUni  <- unify outFTp outTp
-    reconnect (prop Type) out outUni
-    reconnect (prop Type) (fptr ^. Function.out) outUni
-    rewireToUni outUni outFTp
+    withRef outUni $ prop TCData . origin ?~ Conclusion
+    reconnect (prop TCData . requester) outUni $ Just app
+    reconnect (prop Type) app outUni
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
-    zipWithM (reconnect $ prop Type) (unlayer <$> fptr ^. Function.args) argUnis
-    zipWithM rewireToUni argUnis argFTps
+    mapM_ (flip withRef $ prop TCData . origin ?~ Assumption) argUnis
+    mapM_ (flip (reconnect $ prop TCData . requester) $ Just app) argUnis
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
@@ -94,26 +94,6 @@ processNode ref = do
             args <- mapM (follow source . unlayer) as
             makeFuncall ref args funReplacement
         of' $ \ANY -> throwError NotAFuncallNode
-
-rewireToUni :: PassCtx(m) => Ref Node node -> Ref Node node -> m ()
-rewireToUni uni ref = do
-    node <- read ref
-    withRef ref $ prop Succs .~ fromList []
-    forM_ (readSuccs node) $ \e -> do
-        edge <- read e
-        toUni <- isUni $ edge ^. Graph.target
-        if not toUni
-            then do
-                withRef e   $ source .~ uni
-                withRef uni $ prop Succs %~ add (unwrap e)
-            else withRef ref $ prop Succs %~ add (unwrap e)
-
-isUni :: PassCtx(m) => Ref Node node -> m Bool
-isUni ref = do
-    n <- read ref
-    caseTest (uncover n) $ do
-        of' $ \(Unify _ _) -> return True
-        of' $ \ANY -> return False
 
 -----------------------------
 -- === TypeCheckerPass === --

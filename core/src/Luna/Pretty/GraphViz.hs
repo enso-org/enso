@@ -65,6 +65,7 @@ gClr          = GVC.Gray30
 typedArrClr   = GVC.Firebrick
 namedArrClr   = GVC.Turquoise
 redirectClr   = GVC.LightPink
+requesterClr  = GVC.Red
 accArrClr     = GVC.Yellow
 arrClr        = GVC.DarkOrange
 
@@ -171,7 +172,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
                     = not $ existing && validSource && validTarget where
               existing    = (edge ^. idx) `elem` edgeIxs
               validSource = edge' ^. source == node
-              validTarget = edge `elem` (tgt' # Type) : (maybeToList $ tgt' ^. prop TCData . redirect) ++ (tgt' # Inputs)
+              validTarget = edge `elem` (tgt' # Type) : (maybeToList $ tgt' ^. prop TCData . redirect) ++ (maybeToList $ tgt' ^. prop TCData . requester) ++ (tgt' # Inputs)
 
               edge' = net ^. focus edge :: Link (NetLayers :<: Draft Static)
               tgt   = edge' ^. target
@@ -302,7 +303,7 @@ fromListWithReps lst = foldr update (Map.fromList initLst) lst where
 
 genInEdges (g :: NetGraph) (n :: NetLayers :<: Draft Static) = displayEdges where
     --displayEdges = tpEdge : (addColor <$> inEdges)
-    displayEdges = ($ (addColor <$> inEdges) ++ redirEdge ++ replEdge) $ if t == universe then id else (<> [tpEdge])
+    displayEdges = ($ (addColor <$> inEdges) ++ redirEdge ++ replEdge ++ reqEdge) $ if t == universe then id else (<> [tpEdge])
     genLabel     = GV.XLabel . StrLabel . fromString . show
     ins          = n # Inputs
     inIxs        = view idx <$> ins
@@ -314,9 +315,11 @@ genInEdges (g :: NetGraph) (n :: NetLayers :<: Draft Static) = displayEdges wher
     t            = getTgt te
     tpEdge       = (getTgtIdx te, [GV.color typedArrClr, ArrowHead dotArrow, genLabel $ te ^. idx])
     redirEdge    = maybeToList $ makeRedirEdge <$> n ^. prop TCData . redirect
+    reqEdge      = maybeToList $ makeReqEdge   <$> n ^. prop TCData . requester
     replEdge     = maybeToList $ makeReplEdge  <$> n ^. prop TCData . replacement
 
     makeRedirEdge e       = (getTgtIdx e, [GV.color redirectClr, Dir Back, Style [SItem Dashed []]])
+    makeReqEdge e         = (getTgtIdx e, [GV.color requesterClr, Dir Back, Style [SItem Dashed []]])
     makeReplEdge c        = (view (Function.out . idx) $ fromJust $ view (prop Lambda) $ clusterByIx $ c ^. idx,
                             [GV.color redirectClr, Dir Back, Style [SItem Dashed []], LTail $ fromString $ "cluster_" ++ (show $ c ^. idx)])
     addColor (idx, attrs) = (idx, GV.color arrClr : attrs)

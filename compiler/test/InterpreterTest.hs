@@ -195,7 +195,7 @@ main = do
     test1
     -- test_old
 
-input4Adam = do
+graph3 = do
     i1 <- int 1
     i2 <- int 2
     s1 <- str "hi"
@@ -215,6 +215,25 @@ input4Adam = do
         )
 
     return ([apppl, appid], refsToEval)
+
+graph4 = do
+    i1 <- int 2
+    i2 <- int 3
+
+    act <- acc "times" i1
+    apt <- app act [arg i2]
+
+    ach <- acc "head" apt
+    aph <- app ach []
+
+    let refsToEval = [aph]
+
+    forM_ refsToEval (\ref -> do
+            (nd :: (ls :<: term)) <- read ref
+            write ref (nd & prop InterpreterData . Layer.required .~ True)
+        )
+
+    return ([aph], refsToEval)
 
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
@@ -236,7 +255,7 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, gint) <- TypeCheck.runT $ do
-            ((roots, refsToEval), gb) <- runBuild g input4Adam
+            ((roots, refsToEval), gb) <- runBuild g graph4
 
             (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
                 Symbol.loadFunctions StdLib.symbols
@@ -254,8 +273,8 @@ test1 = do
         let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
         putStrLn $ intercalate " " $ (view _2) <$> graphs
         -- renderAndOpen [ last graphs ]
-        renderAndOpen [ ("gint", "gint", gint) ]
-        -- renderAndOpen graphs
+        -- renderAndOpen [ ("gint", "gint", gint) ]
+        renderAndOpen graphs
     print "end"
 
 

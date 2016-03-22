@@ -76,7 +76,7 @@ getTypeRep tp = do
             r <- case tp of
                 TVar name -> var . fromString $ name
                 TCons n as -> mapM (fmap arg . getTypeRep) as >>= cons (fromString n)
-            State.put $ Map.insert tp r m
+            State.modify $ Map.insert tp r
             return r
 
 makePureFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
@@ -224,6 +224,8 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("List.mapToDouble" , makePureFun "(map fromIntegral)"     (Just $ listOf $ scons "Int")         []                     (listOf $ scons "Double"))
     , ("List.mapLog"      , makePureFun "(map log)"              (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
     , ("List.sort"        , makePureFun "sort"                   (Just $ listOf $ TVar "#sort")        []                     (listOf $ TVar "#sort"))
+    , ("List.head"        , makePureFun "head"                   (Just $ listOf $ TVar "#head")        []                     (TVar "#head"))
+    , ("List.map"         , makePureFun "map"                    (Just $ listOf $ TVar "#map")         [scons "(a -> a)"]     (listOf $ TVar "#map"))
     , ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))
 
 ------------------

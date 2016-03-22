@@ -103,6 +103,7 @@ Library
         Data.Text.CodeBuilder.Doc,
         Data.Text.CodeBuilder.Tok,
         Data.Version.Semantic,
+        Luna.Compilation.Error,
         Luna.Compilation.Pass.Dirty.Data.CallPointPath,
         Luna.Compilation.Pass.Dirty.Data.Env,
         Luna.Compilation.Pass.Dirty.Data.Label,
