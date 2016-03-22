@@ -33,11 +33,11 @@ packages:
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: 04adabb7ba7b195fc51660c77f437adc42692b21, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: 91f20407e21cb1079abb19cc22b97a0c3783d144, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
-  location: {commit: 99776ed4cee181484be7561cff882c73204eaa2d, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: 030eb9912f55604fe594eb34c5a09a5c19d261e8, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
