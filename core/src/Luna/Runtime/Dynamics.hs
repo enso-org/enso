@@ -1,9 +1,12 @@
-module Luna.Evaluation.Runtime where
+module Luna.Type.Dynamics where
 
 import Prologue
 
 
--- === Runtime definitions ===
+
+-------------------
+-- === Mode === ---
+-------------------
 
 data Dynamic = Dynamic deriving (Show)
 data Static  = Static  deriving (Show)
@@ -12,8 +15,7 @@ data Static  = Static  deriving (Show)
 type family ToStatic  a :: *
 type family ToDynamic a :: *
 
--- Model query
-type family Model a :: *
+type family Dynamics  a :: *
 
 
 -- === Utils === --

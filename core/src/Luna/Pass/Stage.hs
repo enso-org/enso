@@ -1,4 +1,4 @@
-module Luna.Compilation.Stage.Class where
+module Luna.Pass.Stage where
 
 import Prelude.Luna
 import Control.Monad.Identity

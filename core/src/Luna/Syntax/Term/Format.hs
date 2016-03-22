@@ -1,4 +1,4 @@
-module Luna.Evaluation.Model where
+module Luna.Syntax.Format where
 
 import Prelude.Luna
 
@@ -9,13 +9,13 @@ import Prelude.Luna
 
 -- === Definitions === --
 
-data Lit   = Lit   deriving (Show)
-data Val   = Val   deriving (Show)
-data Thunk = Thunk deriving (Show)
-data Expr  = Expr  deriving (Show)
-data Draft = Draft deriving (Show)
+data Lit    = Lit    deriving (Show)
+data Val    = Val    deriving (Show)
+data Thunk  = Thunk  deriving (Show)
+data Phrase = Phrase deriving (Show)
+data Draft  = Draft  deriving (Show)
 
-type Models = '[Lit, Val, Thunk, Expr, Draft]
+type Models = '[Lit, Val, Thunk, Phrase, Draft]
 
 
 -- TODO[WD]: refactor rest of the evaluation model here

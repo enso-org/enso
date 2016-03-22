@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module Luna.Library.Symbol.Class where
+module Luna.Library.Symbol where
 
 import Prologue  hiding (Symbol)
 

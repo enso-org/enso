@@ -1,4 +1,4 @@
-module Luna.Evaluation.Strategy where
+module Luna.Data.Strictness where
 
 import Prelude.Luna
 

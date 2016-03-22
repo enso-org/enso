@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.AST.Term.Record where
+module Data.Record.Model.Masked where
 
 import Prelude.Luna
 

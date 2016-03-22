@@ -51,6 +51,19 @@ data Blank'  = Blank'  deriving (Show, Eq, Ord)
 
 
 
+data family Expr atom runtime a
+
+newtype instance Expr Var'    rt a = T_Var     (NameByRuntime rt a)
+newtype instance Expr Cons'   rt a = T_Cons    (NameByRuntime rt a)
+data    instance Expr Acc'    rt a = T_Acc    !(NameByRuntime rt a) !a
+data    instance Expr App'    rt a = T_App                          !a ![Arg a]
+data    instance Expr Unify'  rt a = T_Unify                        !a !a
+data    instance Expr Match'  rt a = T_Match                        !a !a
+data    instance Expr Lam'    rt a = T_Lam                          ![Arg a] !a
+data    instance Expr Native' rt a = T_Native !(NameByRuntime rt a)
+data    instance Expr Blank'  rt a = T_Blank
+
+
 --var   = Record.cons ∘  Var
 --unify = Record.cons ∘∘ Unify
 --match = Record.cons ∘∘ Match
@@ -83,27 +96,27 @@ type family NameInput a where
 
 type family   Elems term  n t :: [*]
 
-type instance Elems Lit   n t = Lit.Star
-                             ': Lit.String
-                             ': Lit.Number
-                             ': '[]
+type instance Elems Lit    n t = Lit.Star
+                              ': Lit.String
+                              ': Lit.Number
+                              ': '[]
 
-type instance Elems Val   n t = Cons        n t
-                             ': Lam           t
-                             ': Elems Lit   n t
+type instance Elems Val    n t = Cons        n t
+                              ': Lam           t
+                              ': Elems Lit   n t
 
-type instance Elems Thunk n t = Acc         n t
-                             ': App           t
-                             ': Native      n
-                             ': Elems Val   n t
+type instance Elems Thunk  n t = Acc         n t
+                              ': App           t
+                              ': Native      n
+                              ': Elems Val   n t
 
-type instance Elems Expr  n t = Var         n
-                             ': Unify         t
-                             ': Match         t
-                             ': Elems Thunk n t
+type instance Elems Phrase n t = Var         n
+                              ': Unify         t
+                              ': Match         t
+                              ': Elems Thunk n t
 
-type instance Elems Draft n t = Blank
-                             ': Elems Expr  n t
+type instance Elems Draft  n t = Blank
+                              ': Elems Expr  n t
 
 
 

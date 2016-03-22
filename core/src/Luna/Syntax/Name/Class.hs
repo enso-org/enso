@@ -37,8 +37,8 @@ instance Convertible Name   String where convert = convert ∘ unwrap' ; {-# INL
 -----------------------
 
 ---- TODO[WD]: make the implementation faster - we can use the same technique as the one used to implement FastString here
-data MultiName = MultiName { __base_ :: Segment, __segs_ :: [Segment] } deriving (Generic, Show, Read, Eq, Ord)
-data Segment   = Segment   { __anum_ :: Int    , __name_ :: Name      } deriving (Generic, Show, Read, Eq, Ord)
+data MultiName = MultiName { __base_ :: !Segment, __segs_ :: ![Segment] } deriving (Generic, Show, Read, Eq, Ord)
+data Segment   = Segment   { __anum_ :: !Int    , __name_ :: !Name      } deriving (Generic, Show, Read, Eq, Ord)
 
 class HasMultiName    a where multiName    :: Lens' a MultiName
 class HasOptMultiName a where optMultiName :: Lens' a (Maybe MultiName)
