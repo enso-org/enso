@@ -62,7 +62,9 @@ Library
         Data.Text.Class,
         Data.Tuple.Curry.Missing,
         Data.Typeable.Proxy.Abbr,
-        Prologue
+        Prologue,
+        Prologue.Placeholders,
+        Prologue.Unsafe
 
   build-depends:      base >=4.6 && <4.9
                     , bifunctors
@@ -74,17 +76,20 @@ Library
                     , data-layer
                     , deepseq
                     , errors
+                    , exceptions
+                    , functor-utils
+                    , impossible
                     , lens
                     , lens-utils
                     , mtl
+                    , placeholders
                     , pretty-show
+                    , string-qq
+                    , template-haskell
+                    , text
                     , transformers
                     , transformers-base
-                    , text
-                    , string-qq
-                    , vector
                     , tuple
-                    , functor-utils
-                    , impossible
                     , typelevel
-                    , exceptions
+                    , vector
+

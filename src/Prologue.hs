@@ -30,6 +30,7 @@ import Control.Monad.IO.Class     as X (MonadIO, liftIO)
 import Control.Monad.Trans        as X (MonadTrans, lift)
 import Data.Bifunctor             as X (Bifunctor, bimap)
 import Data.Bool                  as X (bool)
+import Data.List                  as X (intersperse)
 import Data.Coat                  as X
 import Data.Container.Class       as X (Container, Index, Item, intercalate)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
@@ -58,7 +59,7 @@ import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (++), (.), curry, uncurry, break)
+import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, error, undefined)
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
@@ -77,8 +78,8 @@ import Data.Functor.Compose
 import qualified Data.Traversable                   as Traversable
 import qualified Data.Tuple.Curry                   as Tuple
 
-(++) :: Monoid a => a -> a -> a
-(++) = mappend
+-- Placeholders
+import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 -- IO
 
@@ -180,10 +181,7 @@ tryHead []      = Nothing
 tryHead (a : _) = Just a
 {-# INLINE tryHead #-}
 
-fromJustNote :: String -> Maybe a -> a
-fromJustNote n = \case
-    Just a  -> a
-    Nothing -> error n
+
 
 -- === MapM === ---
 
