@@ -4,7 +4,7 @@ import           Prologue                        hiding (Getter, Setter)
 
 import           Data.Construction
 import           Data.Prop
-import           Data.Maybe                      (isJust)
+import           Data.Either                     (isRight)
 
 import           Luna.Evaluation.Model           (Draft)
 import           Luna.Evaluation.Runtime         (Static)
@@ -19,23 +19,31 @@ import           GHC.Prim                        (Any)
 type EvalMonad = IO
 evalMonad = "IO"
 
+
+type Errors = [String]
+
+type Value a = Either Errors a
+
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool
                                          , _required :: Bool
-                                         , _value    :: Maybe (EvalMonad Any)
+                                         , _value    :: Value (EvalMonad Any)
                                          , _time     :: Integer
                                          , _debug    :: String     -- debug data (String value)
                                          }
 makeLenses ''InterpreterLayer
 
 instance Default InterpreterLayer where
-    def = InterpreterLayer True False Nothing 0 ""
+    def = InterpreterLayer True False (Left []) 0 ""
 
 instance Show InterpreterLayer where
     show (InterpreterLayer dirty required value time _) = "InterpreterLayer{"
         <> show dirty <> ","
         <> show required <> ","
-        <> if isJust value then "Just Any" else "Nothing" <> ","
-        <> show time <> "}"
+        <> valueStr <> ","
+        <> show time <> "}" where
+            valueStr = case value of
+                           Left err -> "Left " <> show err
+                           Right _  -> "Right Any"
 
 data InterpreterData = InterpreterData deriving (Show, Eq, Ord)
 

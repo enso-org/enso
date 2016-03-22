@@ -10,6 +10,7 @@ import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.State
 import           Data.Maybe                                      (isNothing, isJust, catMaybes)
+-- import           Data.Either                                     (isLeft, isRight)
 
 import           Data.Construction
 import           Data.Graph
@@ -17,13 +18,13 @@ import           Data.Graph.Backend.VectorGraph                  hiding (source,
 import           Data.Graph.Builder                              hiding (get)
 import qualified Data.IntSet                                     as IntSet
 import           Data.Prop
-import           Data.Record                                     hiding (cons)
+import           Data.Record                                     hiding (cons, Value)
 import           Development.Placeholders
 
 import           Luna.Compilation.Pass.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT)
 import           Luna.Compilation.Pass.Interpreter.Env           (Env)
 import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
-import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad)
+import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, Value(..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Evaluation.Runtime                         (Dynamic, Static)
@@ -229,13 +230,13 @@ markDirty ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.dirty .~ True)
 
-setValue :: InterpreterCtx(m, ls, term) => Maybe (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
+setValue :: InterpreterCtx(m, ls, term) => Value (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
 setValue value ref startTime = do
     endTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = endTime - startTime
     node <- read ref
-    let dirty = isNothing value
+    let dirty = isLeft value
     write ref (node & prop InterpreterData . Layer.value .~ value
                     & prop InterpreterData . Layer.dirty .~ dirty
                     & prop InterpreterData . Layer.time  .~ time
@@ -254,7 +255,7 @@ copyValue fromRef toRef startTime = do
     toNode   <- read toRef
     let value = (fromNode # InterpreterData) ^. Layer.value
         debug = (fromNode # InterpreterData) ^. Layer.debug
-    let dirty = isNothing value
+    let dirty = isLeft value
 
     write toRef (toNode & prop InterpreterData . Layer.value .~ value
                         & prop InterpreterData . Layer.dirty .~ dirty
@@ -262,7 +263,7 @@ copyValue fromRef toRef startTime = do
                         & prop InterpreterData . Layer.debug .~ debug
                 )
 
-getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe (EvalMonad Any))
+getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value (EvalMonad Any))
 getValue ref = do
     node <- read ref
     return $ (node # InterpreterData) ^. Layer.value
@@ -312,12 +313,12 @@ unpackArguments args = mapM (follow source . Arg.__val_) args
 
 
 -- TODO: handle exception
-argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Maybe (EvalMonad Any))
+argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value (EvalMonad Any))
 argumentValue ref = do
     node <- read ref
     return $ (node # InterpreterData) ^. Layer.value
 
-argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Maybe [EvalMonad Any])
+argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Value [EvalMonad Any])
 argumentsValues refs = do
     mayValuesList <- mapM argumentValue refs
     return $ sequence mayValuesList
@@ -335,8 +336,8 @@ getValueString ref = do
     typeName <- getTypeName ref
     value    <- getValue    ref
     case value of
-        Nothing  -> return ""
-        Just val -> do
+        Left err  -> return ""
+        Right val -> do
                         -- val :: _
                         pureVal <- liftIO val
                         -- pureVal ::
@@ -402,7 +403,7 @@ getTypeNameForType tpRef = do
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
 
-getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (Maybe String)
+getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (Value String)
 getNativeType ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
@@ -418,41 +419,41 @@ getNativeType ref = do
             return $ if all isJust sigElemNames
                 then
                     let funSig = intercalate " -> " (catMaybes sigElemNames) in
-                    Just funSig
+                    Right funSig
                 else
-                    Nothing
+                    Left ["Could not evaluate all signature elements types"]
 
-        of' $ \ANY -> return Nothing -- error "Incorrect native type"
+        of' $ \ANY -> return $ Left ["Incorrect native type"]
 
 
-exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (Maybe (EvalMonad Any))
+exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (Value (EvalMonad Any))
 exceptionHandler e = do
     let asyncExcMay = ((fromException e) :: Maybe AsyncException)
     putStrLn $ "Exception catched:\n" <> show e
     case asyncExcMay of
-        Nothing  -> return Nothing
+        Nothing  -> return $ Left [show e]
         Just exc -> do
                         putStrLn "Async exception occurred"
                         liftIO $ throwIO e
 
-evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Maybe (EvalMonad Any))
+evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Value (EvalMonad Any))
 evaluateNative ref args = do
     -- putStrLn $ "Evaluating native"
     node <- read ref
-    (name, tpNativeMay) <- caseTest (uncover node) $ do
+    (name, tpNativeE) <- caseTest (uncover node) $ do
         of' $ \(Native nameStr) -> do
             tpNativeMay <- getNativeType ref
             return (unwrap' nameStr, tpNativeMay)
-        of' $ \ANY -> return ("", Nothing) -- error "Error: native cannot be evaluated"
+        of' $ \ANY -> return ("", Left ["Error: native cannot be evaluated"])
 
-    case tpNativeMay of
-        Nothing -> return Nothing
-        Just tpNative -> do
+    case tpNativeE of
+        Left err -> return $ Left err
+        Right tpNative -> do
             -- putStrLn $ name <> " :: " <> tpNative
-            valuesMay <- argumentsValues args
-            case valuesMay of
-                Nothing -> return Nothing
-                Just valuesM -> do
+            valuesE <- argumentsValues args
+            case valuesE of
+                Left err -> return $ Left err
+                Right valuesM -> do
                     res <- handleAll exceptionHandler $ runGHC $ do
                         HS.setImports defaultImports
                         fun  <- Session.findSymbol name tpNative
@@ -461,7 +462,7 @@ evaluateNative ref args = do
                         let resM = Session.unsafeCast resA :: EvalMonad Any
                         res <- liftIO $ resM
                         -- liftIO $ threadDelay 5000000
-                        return $ Just $ return res
+                        return $ Right $ return res
                     return $ res
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
@@ -491,17 +492,17 @@ evaluateNode ref = do
                         funNode      <- read funRef
                         nativeVal    <- caseTest (uncover funNode) $ do
                             of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                            of' $ \ANY                      -> return Nothing  -- error "evaluating non native function"
+                            of' $ \ANY                      -> return $ Left ["evaluating non native function"]
                         setValue nativeVal ref startTime
                         return ()
                     of' $ \(Lit.String str)                 -> do
-                        setValue (Just $ toMonadAny str) ref startTime
+                        setValue (Right $ toMonadAny str) ref startTime
                     of' $ \number@(Lit.Number radix system) -> do
-                        setValue (Just $ numberToAny number) ref startTime
+                        setValue (Right $ numberToAny number) ref startTime
                     of' $ \(Cons (Lit.String s) args) -> do
                         case tryGetBool s of
                             Nothing   -> return ()
-                            Just bool -> setValue (Just $ toMonadAny bool) ref startTime
+                            Just bool -> setValue (Right $ toMonadAny bool) ref startTime
                     of' $ \Blank -> return ()
                     of' $ \ANY   -> return ()
                 else return ()
