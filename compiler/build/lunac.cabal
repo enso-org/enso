@@ -25,6 +25,7 @@ Flag intExe
 
 Library
     Hs-Source-Dirs: src
+                  , stdlib
     GHC-Options:
                     -- -dshow-passes
                     -- -F -pgmF ./util/preprocessors/imports.py
@@ -102,6 +103,7 @@ Executable lunac
     if flag(lunaExe)
         Main-Is:        Main.hs
         Hs-Source-Dirs: exe
+                      , stdlib
     else
         Main-Is:        Dummy.hs
         Hs-Source-Dirs: test
@@ -248,6 +250,7 @@ Executable luna-test-interpreter
     if flag(intExe)
         Main-Is:        InterpreterTest.hs
         Hs-Source-Dirs: test
+                      , stdlib
     else
         Main-Is:        Dummy.hs
         Hs-Source-Dirs: test

@@ -53,8 +53,8 @@ import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Control.Monad.Writer                            as Writer
-import qualified Luna.Library.Standard                           as StdLib
-import qualified Luna.Library.Symbol                       as Symbol
+import qualified StdLibMock                                      as StdLib
+import qualified Luna.Library.Symbol                             as Symbol
 
 
 

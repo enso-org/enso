@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Luna.Library.Standard where
+module StdLibMock where
 
 import Prelude.Luna
 

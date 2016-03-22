@@ -47,7 +47,7 @@ import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                         as Runtime
 import qualified Luna.Syntax.Term.Format                           as EvalModel
-import qualified Luna.Library.Standard                           as StdLib
+import qualified StdLibMock                           as StdLib
 import qualified Luna.Library.Symbol                       as Symbol
 import           Luna.Syntax.Term.Expr                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Luna.Syntax.Term.Expr                            as Term
