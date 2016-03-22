@@ -76,7 +76,7 @@ getTypeRep tp = do
             r <- case tp of
                 TVar name -> var . fromString $ name
                 TCons n as -> mapM (fmap arg . getTypeRep) as >>= cons (fromString n)
-            State.put $ Map.insert tp r m
+            State.modify $ Map.insert tp r
             return r
 
 makePureFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
