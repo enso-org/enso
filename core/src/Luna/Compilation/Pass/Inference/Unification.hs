@@ -9,7 +9,7 @@ import Prelude.Luna
 
 import Data.Construction
 import Data.Container                               hiding (impossible)
-import Data.List                                    (delete)
+import Data.List                                    (delete, sort)
 import Data.Prop
 import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
@@ -19,7 +19,7 @@ import Luna.Syntax.AST.Term                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, origin)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Ident.Pool                       (MonadIdentPool, newVarIdent')
@@ -267,8 +267,10 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
     hasJobs _ = not . null . view TypeCheck.unresolvedUnis <$> TypeCheck.get
 
     runTCPass _ = do
-        unis <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
-        results <- run unis
+        unis    <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
+        origins <- mapM (follow $ prop TCData . origin) unis
+        let sortedUnis = fmap snd $ sort $ zip origins unis
+        results <- run sortedUnis
         let newUnis = catUnresolved results ++ (concat $ catResolved results)
         TypeCheck.modify_ $ TypeCheck.unresolvedUnis .~ newUnis
         case catResolved results of

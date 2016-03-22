@@ -24,6 +24,14 @@ import           Data.Graph
 
 -- === TCData layer === --
 
+data Origin = Conclusion | Assumption deriving (Eq, Show)
+
+instance {-# OVERLAPPING #-} Ord (Maybe Origin) where
+    Nothing           <= _                 = True
+    _                 <= Nothing           = False
+    (Just Conclusion) <= (Just Assumption) = True
+    (Just Assumption) <= (Just Conclusion) = False
+
 data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link n
                                      , _replacement :: Maybe $ Ptr Cluster
                                      , _requester   :: Maybe $ Ref Edge $ Link n
@@ -31,19 +39,20 @@ data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link n
                                      , _keep        :: Bool
                                      , _seen        :: Bool
                                      , _tcErrors    :: [TCError $ Ref Node n]
+                                     , _origin      :: Maybe Origin
                                      } deriving (Show, Eq)
 makeLenses ''TCDataPayload
 
 type instance LayerData (Network ls) TCData t = TCDataPayload (Shelled t)
 instance Monad m => Creator m (Layer (Network ls) TCData a) where
-    create = return $ Layer $ TCDataPayload def def def def False False def
+    create = return $ Layer $ TCDataPayload def def def def False False def def
 
 instance (Monad m, Destructor m (Ref Edge $ Link (Shelled a)))
       => Destructor m (Layer (Network ls) TCData a) where
-    destruct (Layer (TCDataPayload red _ req _ _ _ _)) = do
+    destruct (Layer (TCDataPayload red _ req _ _ _ _ _)) = do
         mapM_ destruct red
         mapM_ destruct req
 
 instance Castable t t' => Castable (TCDataPayload t) (TCDataPayload t') where
-    cast (TCDataPayload a b c d e f g) = TCDataPayload (cast <$> a) b (cast <$> c) d e f (cast <$> g)
+    cast (TCDataPayload a b c d e f g h) = TCDataPayload (cast <$> a) b (cast <$> c) d e f (cast <$> g) h
 
