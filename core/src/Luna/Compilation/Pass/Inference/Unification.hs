@@ -19,10 +19,10 @@ import Luna.Syntax.Term.Expr                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, origin)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
+import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool, newVarIdent')
 import Type.Inference
 import Data.Graph.Backend.VectorGraph               as Graph hiding (add, remove)
 
@@ -258,9 +258,17 @@ catResolved (a : as) = ($ (catResolved as)) $ case a of
 -- === TypeCheckerPass === --
 -----------------------------
 
+getRequesterDepth :: PassCtx(m, ls, term) => nodeRef -> m (Maybe Int)
+getRequesterDepth ref = do
+    req <- follow (prop TCData . requester) ref
+    case req of
+        Just e  -> follow source e >>= follow (prop TCData . depth)
+        Nothing -> return Nothing
+
 data UnificationPass = UnificationPass deriving (Show, Eq)
 
 instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
+         , PassCtx(m, ls, term)
          , MonadBuilder (Hetero (VectorGraph n e c)) m
          , MonadTypeCheck (ls :<: term) m
          ) => TypeCheckerPass UnificationPass m where
@@ -268,8 +276,8 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
 
     runTCPass _ = do
         unis    <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
-        origins <- mapM (follow $ prop TCData . origin) unis
-        let sortedUnis = fmap snd $ sort $ zip origins unis
+        reqDeps <- mapM getRequesterDepth unis
+        let sortedUnis = fmap snd $ sort $ zip reqDeps unis
         results <- run sortedUnis
         let newUnis = catUnresolved results ++ (concat $ catResolved results)
         TypeCheck.modify_ $ TypeCheck.unresolvedUnis .~ newUnis

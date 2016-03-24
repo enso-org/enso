@@ -17,7 +17,7 @@ import Luna.Syntax.Term.Expr                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph.Backend.VectorGraph               as Graph hiding (add)
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester, origin, Origin (..))
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -66,13 +66,11 @@ unifyTypes fptr app args = do
     outTp   <- getType app
     outFTp  <- getType $ fptr ^. Function.out
     outUni  <- unify outFTp outTp
-    withRef outUni $ prop TCData . origin ?~ Conclusion
     reconnect (prop TCData . requester) outUni $ Just app
     reconnect (prop Type) app outUni
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
-    mapM_ (flip withRef $ prop TCData . origin ?~ Assumption) argUnis
     mapM_ (flip (reconnect $ prop TCData . requester) $ Just app) argUnis
     return $ outUni : argUnis
 
