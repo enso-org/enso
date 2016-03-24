@@ -272,9 +272,9 @@ test1 = do
         let names = printf "%02d" <$> ([0..] :: [Int])
         let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
         putStrLn $ intercalate " " $ (view _2) <$> graphs
+        renderAndOpen [ ("gint", "gint", gint) ]
         -- renderAndOpen [ last graphs ]
-        -- renderAndOpen [ ("gint", "gint", gint) ]
-        renderAndOpen graphs
+        -- renderAndOpen graphs
     print "end"
 
 

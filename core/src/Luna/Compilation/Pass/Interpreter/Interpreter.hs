@@ -52,6 +52,9 @@ import           Control.Monad.Ghc                               (GhcT)
 import           Control.Exception                               (SomeException(..), AsyncException(..), throwIO)
 import           Language.Haskell.Session                        (GhcMonad)
 import qualified Language.Haskell.Session                        as HS
+import qualified Language.Haskell.Session.Hint.Eval as HEval
+import           Unsafe.Coerce   -- TODO: move to another module
+
 
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
@@ -103,6 +106,21 @@ import qualified DynFlags as GHC
 
 
 -----
+
+-- TODO: move to another module and encapsulate
+
+findSymbol :: HS.SessionMonad m => String -> String -> m Any
+findSymbol name tpe = unsafeCoerce <$> HEval.interpretTyped name tpe
+
+appArg :: Any -> Any -> Any
+appArg = unsafeCoerce
+
+unsafeCast :: Any -> a
+unsafeCast = unsafeCoerce
+
+toAny :: a -> Any
+toAny = unsafeCoerce
+
 
 
 --
@@ -175,7 +193,7 @@ convertRationalBase radix rational = nom % den where
     den = convertBase radix (denominator rational)
 
 toMonadAny :: a -> EvalMonad Any
-toMonadAny = $notImplemented -- return . Session.toAny
+toMonadAny = return . toAny
 
 
 numberToAny :: Lit.Number -> EvalMonad Any
@@ -241,7 +259,7 @@ setValue value ref startTime = do
                     & prop InterpreterData . Layer.time  .~ time
               )
     valueString <- getValueString ref
-    -- displayValue ref
+    displayValue ref
     updNode <- read ref
     write ref $ updNode & prop InterpreterData . Layer.debug .~ valueString
 
@@ -336,23 +354,16 @@ getValueString ref = do
     value    <- getValue    ref
     case value of
         Left err  -> return ""
-        Right val -> $notImplemented -- do
-                        ---- val :: _
-                        --pureVal <- liftIO val
-                        ---- pureVal ::
-                        --return $ getValueByType typeName pureVal
-                        --where
-                        --    getValueByType typeName pureVal
-                        --        | typeName == Right "String" = show ((Session.unsafeCast pureVal) :: String)
-                        --        | typeName == Right "Int"    = show ((Session.unsafeCast pureVal) :: Integer)
-                        --        | typeName == Right "Bool"   = show ((Session.unsafeCast pureVal) :: Bool)
-                        --        | otherwise                 = "unknown type"
+        Right val -> do -- $notImplemented --
+                        pureVal <- liftIO val
+                        return $ getValueByType typeName pureVal
+                        where
+                           getValueByType typeName pureVal
+                               | typeName == Right "String" = show ((unsafeCast pureVal) :: String)
+                               | typeName == Right "Int"    = show ((unsafeCast pureVal) :: Integer)
+                               | typeName == Right "Bool"   = show ((unsafeCast pureVal) :: Bool)
+                               | otherwise                 = "unknown type"
 
-                        --        -- if typeName == Just "String"
-                        --        --     then return $ show ((Session.unsafeCast pureVal) :: String)
-                        --        --     else (if typeName == Just "Int"
-                        --        --         then return $ show ((Session.unsafeCast pureVal) :: Integer)
-                        --        --         else return "unknown type")
 
 displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
@@ -436,33 +447,33 @@ exceptionHandler e = do
                         liftIO $ throwIO e
 
 evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Value (EvalMonad Any))
-evaluateNative ref args = $notImplemented -- do
-    ---- putStrLn $ "Evaluating native"
-    --node <- read ref
-    --(name, tpNativeE) <- caseTest (uncover node) $ do
-    --    of' $ \(Native nameStr) -> do
-    --        tpNativeMay <- getNativeType ref
-    --        return (unwrap' nameStr, tpNativeMay)
-    --    of' $ \ANY -> return ("", Left ["Error: native cannot be evaluated"])
+evaluateNative ref args = do -- $notImplemented -- do
+    -- putStrLn $ "Evaluating native"
+    node <- read ref
+    (name, tpNativeE) <- caseTest (uncover node) $ do
+       of' $ \(Native nameStr) -> do
+           tpNativeMay <- getNativeType ref
+           return (unwrap' nameStr, tpNativeMay)
+       of' $ \ANY -> return ("", Left ["Error: native cannot be evaluated"])
 
-    --case tpNativeE of
-    --    Left err -> return $ Left err
-    --    Right tpNative -> do
-    --        -- putStrLn $ name <> " :: " <> tpNative
-    --        valuesE <- argumentsValues args
-    --        case valuesE of
-    --            Left err -> return $ Left err
-    --            Right valuesM -> do
-    --                res <- handleAll exceptionHandler $ runGHC $ do
-    --                    HS.setImports defaultImports
-    --                    fun  <- Session.findSymbol name tpNative
-    --                    args <- liftIO $ sequence valuesM
-    --                    let resA = foldl Session.appArg fun args
-    --                    let resM = Session.unsafeCast resA :: EvalMonad Any
-    --                    res <- liftIO $ resM
-    --                    -- liftIO $ threadDelay 5000000
-    --                    return $ Right $ return res
-    --                return $ res
+    case tpNativeE of
+       Left err -> return $ Left err
+       Right tpNative -> do
+           -- putStrLn $ name <> " :: " <> tpNative
+           valuesE <- argumentsValues args
+           case valuesE of
+               Left err -> return $ Left err
+               Right valuesM -> do
+                   res <- handleAll exceptionHandler $ runGHC $ do
+                       HS.setImports defaultImports
+                       fun  <- findSymbol name tpNative
+                       args <- liftIO $ sequence valuesM
+                       let resA = foldl appArg fun args
+                       let resM = unsafeCast resA :: EvalMonad Any
+                       res <- liftIO $ resM
+                       -- liftIO $ threadDelay 5000000
+                       return $ Right $ return res
+                   return $ res
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 
