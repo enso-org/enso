@@ -51,7 +51,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    Exposed-modules: `findmodules('src', '.*\.hs', exclude='Lunac/.*')`
+    Exposed-modules: `findmodules('../stdlib', '.*\.hs', exclude='Lunac/.*')`
 
     Build-Depends: base
                  , luna-core
