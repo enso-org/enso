@@ -63,6 +63,9 @@ Library
         Data.Tuple.Curry.Missing,
         Data.Typeable.Proxy.Abbr,
         Prologue,
+        Prologue.Control.DeepSeq,
+        Prologue.Data.Default,
+        Prologue.Data.Monoid,
         Prologue.Placeholders,
         Prologue.Unsafe
 
@@ -78,6 +81,7 @@ Library
                     , errors
                     , exceptions
                     , functor-utils
+                    , ghc-prim
                     , impossible
                     , lens
                     , lens-utils
@@ -92,4 +96,3 @@ Library
                     , tuple
                     , typelevel
                     , vector
-

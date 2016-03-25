@@ -63,6 +63,7 @@ Library
                     , errors
                     , exceptions
                     , functor-utils
+                    , ghc-prim
                     , impossible
                     , lens
                     , lens-utils
@@ -77,4 +78,3 @@ Library
                     , tuple
                     , typelevel
                     , vector
-

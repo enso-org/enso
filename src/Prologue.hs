@@ -35,8 +35,7 @@ import Data.Coat                  as X
 import Data.Container.Class       as X (Container, Index, Item, intercalate)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
 import Data.Convert               as X
-import Data.Default               as X
-import Data.Foldable              as X (Foldable, traverse_, foldl')
+import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_)
 import Data.Foldable              as X (mapM_)
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
@@ -46,7 +45,6 @@ import Data.Layer                 as X
 import Data.Layer.Cover           as X
 import Data.Maybe                 as X (catMaybes, fromJust)
 import Data.Maybe                 as X (mapMaybe)
-import Data.Monoid                as X (Monoid, mappend, mconcat, mempty, (<>))
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
 import Data.String.QQ             as X (s)
 import Data.Text.Class            as X (FromText (fromText), IsText, ToText (toText))
@@ -66,13 +64,18 @@ import Type.Show                  as X (TypeShow, showType, printType, ppPrintTy
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 
--- Normal Forms
-import Control.DeepSeq            as X (NFData, rnf, force)
-import Control.Exception          as X (evaluate)
+-- Data description
+import Prologue.Data.Default      as X
+import Prologue.Data.Monoid       as X
 
-import Data.Binary.Instances.Missing      ()
-import Data.Default.Instances.Missing     ()
-import Data.Foldable                      (forM_)
+-- Normal Forms
+import Prologue.Control.DeepSeq   as X
+
+
+-- Missing instances
+import Data.Binary.Instances.Missing  ()
+import Data.Default.Instances.Missing ()
+
 import Data.Functor.Compose
 
 import qualified Data.Traversable                   as Traversable
