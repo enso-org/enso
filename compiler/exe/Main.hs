@@ -65,7 +65,8 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetL
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
-import Data.Graph.Backend.NEC
+import qualified Data.Graph.Backend.NEC as NEC
+import           Data.Graph.Backend.SubGraph
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -270,7 +271,7 @@ input_g1_resolution_mock :: ( term ~ Draft Static
                             , TermNode Unify    m (ls :<: term)
                             , HasProp Type (ls :<: term)
                             , Prop    Type (ls :<: term) ~ er
-                            , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
+                            , Graph.MonadBuilder (Hetero (NEC.Graph n e c)) m
                             , Castable e edge
                             ) => [nr] -> m [nr]
 input_g1_resolution_mock [f,g] = do
@@ -421,7 +422,7 @@ data Error node edge = MissingInput  node (node # Input )
 
 
 
-newtype Network' ls cls = Network' (Hetero (VectorGraph (ls :<: Raw) (Link (ls :<: Raw)) (cls :< SubGraph (ls :<: Raw))))
+newtype Network' ls cls = Network' (Hetero (NEC.Graph (ls :<: Raw) (Link (ls :<: Raw)) (cls :< SubGraph (ls :<: Raw))))
 makeWrapped ''Network'
 
 type instance Prop Node (Network' ls cls) = ls :<: Draft Static
@@ -497,8 +498,8 @@ instance Referenced Edge (Network' ls cls) (Link (ls :<: Draft Static)) where re
 
 instance Referenced r t a => Referenced r (Hetero t) a where refs = refs ∘ unwrap'
 
-instance n ~ n' => Referenced Node (VectorGraph n e c) n' where refs = fmap Ref ∘ usedIxes ∘ view nodeGraph
-instance e ~ e' => Referenced Edge (VectorGraph n e c) e' where refs = fmap Ref ∘ usedIxes ∘ view edgeGraph
+instance n ~ n' => Referenced Node (NEC.Graph n e c) n' where refs = fmap Ref ∘ usedIxes ∘ view nodeStore
+instance e ~ e' => Referenced Edge (NEC.Graph n e c) e' where refs = fmap Ref ∘ usedIxes ∘ view edgeStore
 
 --g -> [Ref Node (g # Node)]
 
@@ -689,19 +690,19 @@ foo g = runNetworkBuilderT g
 
 --type instance Item (NetGraph a) = Ref $ Node (NetLayers a :<: Draft Static)
 
---instance Sort.CompleteGraph     (VectorGraph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw)))
+--instance Sort.CompleteGraph     (NEC.Graph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw)))
 
---instance Sort.MarkableGraph     (VectorGraph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw))) where
+--instance Sort.MarkableGraph     (NEC.Graph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw))) where
 --    markNode ref g = snd $ rebuildNetwork' g $ do
 --        Ref.with ref $ prop Markable .~ True
 --    isMarked ref g = fst $ rebuildNetwork' g $ do
 --        node <- read ref
 --        return $ node # Markable
 
---instance Sort.Graph             (VectorGraph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw))) where
+--instance Sort.Graph             (NEC.Graph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw))) where
 --    listNodes g = Ref <$> (Ref <$> usedIxes $ $ g ^. nodeGraph)
 
---instance Sort.ForwardEdgedGraph (VectorGraph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw))) where
+--instance Sort.ForwardEdgedGraph (NEC.Graph (NetLayers a :<: Raw) (Link (NetLayers a :<: Raw))) where
 --    successors ref g = fst $ rebuildNetwork' g $ do
 --        node <- read ref
 --        mapM (follow target) $ node ^. prop Succs

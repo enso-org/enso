@@ -70,13 +70,15 @@ instance NFDatas '[v,e,c] => NFData (NEC v e c)
 -- === Graph === --
 -------------------
 
-newtype Graph    n e c =  Graph (NEC' ( AutoVector  ) n e c) deriving (Generic, Show, Default)
+newtype Graph    n e c =  Graph (NEC' ( AutoVector  ) n e c) deriving (Generic, Show)
 newtype MGraph s n e c = MGraph (NEC' (MAutoVector s) n e c) deriving (Generic)
 makeWrapped ''Graph
 makeWrapped ''MGraph
 
 
 -- === Instances === --
+
+instance Default (Graph n e c) where def = Graph $ NEC (Cont.alloc 100) (Cont.alloc 100) (Cont.alloc 100)
 
 -- Normal Form
 

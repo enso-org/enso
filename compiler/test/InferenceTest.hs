@@ -33,7 +33,7 @@ import           Luna.Syntax.Model.Network.Term
 import qualified Luna.Syntax.Term.Lit                        as Lit
 
 import qualified Data.Graph.Builder.Class               as Graph
-import           Data.Graph.Backend.NEC
+import qualified Data.Graph.Backend.NEC                 as NEC
 
 
 graph1 :: forall term node edge nr er ls m n e c. (term ~ Draft Static
@@ -51,7 +51,7 @@ graph1 :: forall term node edge nr er ls m n e c. (term ~ Draft Static
           , TermNode Var        m (ls :<: term)
           , TermNode Acc        m (ls :<: term)
           , TermNode App        m (ls :<: term)
-          , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
+          , Graph.MonadBuilder (Hetero (NEC.Graph n e c)) m
           )
        => m nr
 graph1 = do
