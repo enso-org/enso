@@ -509,6 +509,32 @@ instance {-# OVERLAPPABLE #-}
                            ∘ unregisterSuccs CONNECTION_REMOVE
                            ∘ removeMembers   NODE_REMOVE
 
+class NetworkBuilderT2 net m n | m -> n, m -> net where runNetworkBuilderT2 :: net -> m a -> n (a, net)
+
+instance {-# OVERLAPPABLE #-} NetworkBuilderT2 I IM IM where runNetworkBuilderT2 = impossible
+instance {-# OVERLAPPABLE #-}
+    ( m9 ~ Listener NODE_REMOVE       MemberRemove   m8
+    , m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
+    , m7 ~ Listener SUBGRAPH_INCLUDE  MemberRegister m6
+    , m6 ~ Listener CONNECTION        SuccRegister   m5
+    , m5 ~ GraphBuilder.BuilderT (Hetero (NEC.MGraph s n e c)) m4
+    , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
+    , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
+    , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
+    , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
+    , Monad m
+    , net ~ Hetero (NEC.MGraph s n e c)
+    ) => NetworkBuilderT2 net m9 m where
+    runNetworkBuilderT2 net = flip Self.evalT (undefined ::        Ref Node NetNode)
+                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
+                            ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
+                            ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
+                            ∘ flip GraphBuilder.runT net
+                            ∘ registerSuccs   CONNECTION
+                            ∘ registerMembers SUBGRAPH_INCLUDE
+                            ∘ unregisterSuccs CONNECTION_REMOVE
+                            ∘ removeMembers   NODE_REMOVE
+
 runNetworkBuilderT' net = flip Self.evalT (undefined ::        Ref Node NetNode')
                         ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode'))
                         ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)

@@ -9,7 +9,7 @@ import Prologue.Unsafe
 
 import qualified Data.Container as Cont
 import           Data.Container (Store, HasStore, HasStores, store, unchecked, inplace, ixed)
-import           Data.AutoVector
+import           Data.AutoVector as AutoVector
 
 import Data.Prop
 import Data.Container.Auto      (Auto)
@@ -20,6 +20,7 @@ import Data.Vector.Mutable      (MVector)
 
 import Data.Graph
 import Data.Graph.Backend.SubGraph ()
+import Control.Monad.Primitive  (PrimMonad, PrimState)
 
 
 -----------------
@@ -76,8 +77,20 @@ makeWrapped ''Graph
 makeWrapped ''MGraph
 
 
+-- === Utils === --
+
+-- TODO[WD]: Move to containers as container utility function
+unsafeThaw :: PrimMonad m => Graph n e c -> m (MGraph (PrimState m) n e c)
+unsafeThaw (unwrap' -> NEC n e c) = wrap' <$> (NEC <$> AutoVector.unsafeThaw n <*> AutoVector.unsafeThaw e <*> AutoVector.unsafeThaw c) ; {-# INLINE unsafeThaw #-}
+
+-- TODO[WD]: Move to containers as container utility function
+unsafeFreeze :: PrimMonad m => MGraph (PrimState m) n e c -> m (Graph n e c)
+unsafeFreeze (unwrap' -> NEC n e c) = wrap' <$> (NEC <$> AutoVector.unsafeFreeze n <*> AutoVector.unsafeFreeze e <*> AutoVector.unsafeFreeze c) ; {-# INLINE unsafeFreeze #-}
+
+
 -- === Instances === --
 
+-- FIXME[WD]: remove the following default instance and derive it. It currently breaks passes because passes somehow require the initial vector not to be empty.
 instance Default (Graph n e c) where def = Graph $ NEC (Cont.alloc 100) (Cont.alloc 100) (Cont.alloc 100)
 
 -- Normal Form

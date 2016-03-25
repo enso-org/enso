@@ -204,8 +204,8 @@ Library
                  , extra
                  , ghc
                  , ghc-mtl
-                 , ghc-prim
                  , ghc-paths
+                 , ghc-prim
                  , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
@@ -214,6 +214,7 @@ Library
                  , mtl
                  , OneTuple
                  , placeholders
+                 , primitive
                  , process
                  , prologue
                  , split
