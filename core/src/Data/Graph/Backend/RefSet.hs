@@ -31,9 +31,6 @@ member el = IntSet.member el ∘ unwrap
 elems :: RefSet t e -> [Int]
 elems = IntSet.toList . unwrap
 
-instance Monad m => Creator m (RefSet t e) where
-    create = return . RefSet $ mempty
-
 -- === Instances === --
 
 -- Cast
@@ -46,3 +43,9 @@ instance Monad m => RefContainer (RefSet t e) (Ref t e) m where
     includeRef ref = return . add (unwrap ref)
     excludeRef ref = return . remove (unwrap ref)
     toRefList      = return . fmap Ref . elems
+
+-- Creator
+
+instance Monad m => Creator m (RefSet t e) where
+    create = return . RefSet $ mempty
+
