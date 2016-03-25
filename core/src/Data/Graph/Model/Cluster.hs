@@ -2,6 +2,7 @@ module Data.Graph.Model.Cluster where
 
 import Prologue
 
+import Data.Container
 import Data.Prop
 
 
@@ -14,7 +15,10 @@ class Clustered t where
     clusters :: Lens' t [t # Cluster]
 
 
----- === Utils === --
+-- === Utils === --
+
+clusterStore :: HasStore Cluster a => Lens' a (Store Cluster a)
+clusterStore = store (Proxy :: Proxy Cluster)
 
 --add :: Int -> Cluster -> Cluster
 --add el = wrapped %~ IntSet.insert el

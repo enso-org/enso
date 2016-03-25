@@ -150,3 +150,4 @@ benchmark graph-builder
                      , transformers
                      , vector
                      , ghc-prim
+                     , primitive

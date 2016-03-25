@@ -7,12 +7,12 @@ import Prelude.Luna
 
 import           Data.Graph.Builder
 import           Control.Monad.Event
-import           Data.Graph.Backend.VectorGraph          (SubGraph)
+import           Data.Graph.Backend.SubGraph          (SubGraph)
 import           Data.Prop
 import qualified Data.List                               as List
 import           Data.Construction
-import           Data.Graph.Backend.VectorGraph
-import qualified Data.Graph.Backend.VectorGraph.SubGraph as SubGraph
+import qualified Data.Graph.Backend.NEC          as VEC
+import qualified Data.Graph.Backend.SubGraph as SubGraph
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import           Luna.Syntax.Model.Network.Builder.Self  (MonadSelfBuilder, self)
@@ -51,7 +51,7 @@ instance ( MonadBuilder g m
          , Referred Node    g n
          , Referred Cluster g c
          , Clusterable n c (Listener t MemberRemove m)
-         , g ~ (Hetero (VectorGraph n' e' (cls :< SubGraph n')))
+         , g ~ (Hetero (VEC.Graph n' e' (cls :< SubGraph n')))
          , c ~ (cls :< SubGraph n)
          , HasProp TCData n
          , Covered c

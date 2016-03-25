@@ -6,7 +6,8 @@ import           Data.Prop
 import           Development.Placeholders
 import           Prologue                                        hiding (Getter, Setter, read, (#))
 
-import           Data.Graph.Backend.VectorGraph                  as Graph
+import qualified Data.Graph.Backend.NEC                  as NEC
+import           Data.Graph
 import           Data.Graph.Builder
 import           Luna.Compilation.Pass.Dirty.Data.Env            (Env)
 import           Luna.Compilation.Pass.Dirty.Data.Label          (Interpreter(..), InterpreterLayer(..))
@@ -30,7 +31,7 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
                                   , BiCastable     e ne                                     \
                                   , BiCastable     n (ls :<: term)                          \
                                   , MonadIO m                                               \
-                                  , MonadBuilder (Hetero (VectorGraph n e c)) m             \
+                                  , MonadBuilder (Hetero (NEC.Graph n e c)) m               \
                                   , NodeInferable m (ls :<: term)                           \
                                   , TermNode Lam  m (ls :<: term)                           \
                                   , HasProp Interpreter    (ls :<: term)                    \

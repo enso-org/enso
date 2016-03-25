@@ -9,11 +9,12 @@ import           Data.Graph.Builders
 import           Data.Container.SizeTracking            (SizeTracking)
 import           Data.Container                         (Addable, Removable, add, remove, try)
 import           Data.IntSet                            (IntSet)
-import           Data.Graph.Backend.VectorGraph         (SubGraph)
+import           Data.Graph                             hiding (add, remove)
+import           Data.Graph.Backend.SubGraph            (SubGraph)
 import           Data.Prop
 import qualified Data.List                              as List
 import           Data.Construction
-import           Data.Graph.Backend.VectorGraph         hiding (add, remove)
+import           Data.Graph.Backend.NEC
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)

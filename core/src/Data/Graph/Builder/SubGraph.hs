@@ -1,5 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
+-- FIXME[WD->MK]: This module imports Backend modules and should be abstracted away or not included in Data.Graph.Builder hierarchy
 module Data.Graph.Builder.SubGraph where
 
 import Prelude.Luna
@@ -8,12 +9,13 @@ import Control.Monad.Event
 import Data.Graph
 import Data.Index
 import Data.Construction
-import Data.Graph.Backend.VectorGraph
+import Data.Graph.Backend.NEC
+import Data.Graph.Backend.SubGraph
 import Data.Graph.Model.Events
 import Data.Graph.Builder.Ref
 import Data.Graph.Builder.Class
 
-import qualified Data.Graph.Backend.VectorGraph.SubGraph as SubGraph
+import qualified Data.Graph.Backend.SubGraph as SubGraph
 
 subgraph' :: ( CoverConstructor m c
              , Covered c
@@ -41,7 +43,13 @@ members :: ( MonadBuilder t m
            , Covered c
            , Uncovered c ~ SubGraph n
            ) => Ref Cluster c -> m [Ref Node n]
-members cluster = fmap Ref <$> SubGraph.nodes . uncover <$> read cluster
+members cluster = fmap Ref <$> SubGraph.elems . uncover <$> read cluster
+
+-- FIXME[WD->MK]: Clusterable should be defined more general (allowing clusters of for example edges) and in appropriate module (like Data.Graph.Cluster)
+--                Proposition:
+--    class Clusterable t a c m where
+--        include :: Ref t a -> Ref Cluster c -> m ()
+--        exclude :: Ref t a -> Ref Cluster c -> m ()
 
 class Clusterable n c m where
     include :: Ref Node n -> Ref Cluster c -> m ()

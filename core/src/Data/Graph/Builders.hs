@@ -13,7 +13,8 @@ import Data.Index
 import Data.Container          hiding (Impossible, impossible)
 import Luna.Runtime.Dynamics   (Dynamics, Static, Dynamic)
 import Type.Bool
-import Data.Graph.Backend.VectorGraph hiding (Dynamic)
+import qualified Data.Graph.Backend.NEC as VEC
+import Data.Graph hiding (Dynamic)
 import Data.Graph.Builder.Class (MonadBuilder, modify)
 
 ---------------------------------
@@ -53,17 +54,17 @@ instance (LayerConstructor m (Ref Edge c), Dispatcher CONNECTION (Ref Edge c) m,
          connection src tgt = dispatch CONNECTION =<< constructLayer (arc src tgt)
 
 instance (ConnectibleNameH mod src tgt m conn
-         , mod ~ Dynamics tgt)  => ConnectibleName'         src tgt m  conn where nameConnection          = nameConnectionH (Proxy :: Proxy mod) ; {-# INLINE nameConnection  #-}
-instance                                ConnectibleName'         I   I   m  I    where nameConnection          = impossible
-instance (Monad m, conn ~ src)       => ConnectibleNameH Static  src tgt m  conn where nameConnectionH _ src _ = return src                           ; {-# INLINE nameConnectionH #-}
+         , mod ~ Dynamics tgt)       => ConnectibleName'         src tgt m  conn            where nameConnection          = nameConnectionH (Proxy :: Proxy mod) ; {-# INLINE nameConnection  #-}
+instance                                ConnectibleName'         I   I   m  I               where nameConnection          = impossible                           ; {-# INLINE nameConnection  #-}
+instance (Monad m, conn ~ src)       => ConnectibleNameH Static  src tgt m  conn            where nameConnectionH _ src _ = return src                           ; {-# INLINE nameConnectionH #-}
 instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref Edge conn) where nameConnectionH _       = connection                           ; {-# INLINE nameConnectionH #-}
 
 
 
 
 
-reserveConnection :: MonadBuilder (Hetero (VectorGraph n e c)) m => m (Ref Edge a)
-reserveConnection = Ref <$> modify (wrapped' ∘ edgeGraph $ swap ∘ ixed reserve)
+reserveConnection :: MonadBuilder (Hetero (VEC.Graph n e c)) m => m (Ref Edge a)
+reserveConnection = Ref <$> modify (wrapped' ∘ edgeStore $ swap ∘ ixed reserve)
 
 class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 class NamedConnectionReservationH rt src tgt m conn where reserveNamedConnectionH :: Proxy rt -> src -> Proxy tgt -> m conn

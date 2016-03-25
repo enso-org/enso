@@ -70,9 +70,8 @@ Library
         Data.Build,
         Data.Direction,
         Data.Graph,
-        Data.Graph.Backend.VectorGraph,
-        Data.Graph.Backend.VectorGraph.Class,
-        Data.Graph.Backend.VectorGraph.SubGraph,
+        Data.Graph.Backend.NEC,
+        Data.Graph.Backend.SubGraph,
         Data.Graph.Builder,
         Data.Graph.Builder.Class,
         Data.Graph.Builder.Ref,
@@ -271,3 +270,4 @@ benchmark graph-builder
                      , transformers
                      , vector
                      , ghc-prim
+                     , primitive

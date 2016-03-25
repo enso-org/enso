@@ -62,7 +62,7 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetL
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
-import Data.Graph.Backend.VectorGraph
+import Data.Graph.Backend.NEC
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 

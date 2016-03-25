@@ -34,7 +34,7 @@ import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterDat
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 import           Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
-import           Data.Graph.Backend.VectorGraph
+import           Data.Graph.Backend.NEC
 import qualified Data.Graph.Builder.Class                        as Graph
 import qualified Luna.Syntax.Term.Lit                        as Lit
 

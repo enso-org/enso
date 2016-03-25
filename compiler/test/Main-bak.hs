@@ -93,7 +93,7 @@ main = do
 --import Data.Container.Auto
 --import Data.Container.Weak
 --import qualified Data.Container.Opts as Mods
---import qualified Data.Container.Instances.Vector.Lazy as Lazy
+--import qualified Data.Container.Instances.Vector.Boxed.Immutable as Lazy
 
 
 

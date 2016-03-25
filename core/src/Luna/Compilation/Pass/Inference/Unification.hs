@@ -24,7 +24,8 @@ import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Type.Inference
-import Data.Graph.Backend.VectorGraph               as Graph hiding (add, remove)
+import Data.Graph                                   as Graph hiding (add, remove)
+import qualified Data.Graph.Backend.NEC               as NEC
 
 import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
@@ -49,7 +50,7 @@ import Control.Monad.Trans.Either
                            , HasSuccs (ls :<: term)                                  \
                            , BiCastable     e ne                                     \
                            , BiCastable     n (ls :<: term)                          \
-                           , MonadBuilder (Hetero (VectorGraph n e c)) (m)           \
+                           , MonadBuilder (Hetero (NEC.Graph n e c)) (m)             \
                            , HasProp Type       (ls :<: term)                        \
                            , HasProp TCData     (ls :<: term)                        \
                            , NodeInferable  (m) (ls :<: term)                        \
@@ -217,7 +218,7 @@ makeLenses ''TCStatus
 -- FIXME[WD]: we should not return [Graph n e] from pass - we should use ~ IterativePassRunner instead which will handle iterations by itself
 run :: forall nodeRef m ls term n e ne c.
        ( PassCtx(ResolutionT [nodeRef] m,ls,term)
-       , MonadBuilder (Hetero (VectorGraph n e c)) m
+       , MonadBuilder (Hetero (NEC.Graph n e c)) m
        ) => [nodeRef] -> m [Resolution [nodeRef] nodeRef]
 run unis = forM unis $ \u -> fmap (resolveUnifyY u) $ runResolutionT $ resolveUnify u
 
@@ -261,7 +262,7 @@ catResolved (a : as) = ($ (catResolved as)) $ case a of
 data UnificationPass = UnificationPass deriving (Show, Eq)
 
 instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
-         , MonadBuilder (Hetero (VectorGraph n e c)) m
+         , MonadBuilder (Hetero (NEC.Graph n e c)) m
          , MonadTypeCheck (ls :<: term) m
          ) => TypeCheckerPass UnificationPass m where
     hasJobs _ = not . null . view TypeCheck.unresolvedUnis <$> TypeCheck.get

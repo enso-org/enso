@@ -14,7 +14,7 @@ import           Data.Either                                     (rights)
 
 import           Data.Construction
 import           Data.Graph
-import           Data.Graph.Backend.VectorGraph                  hiding (source, target)
+import qualified Data.Graph.Backend.NEC                  as NEC
 import           Data.Graph.Builder                              hiding (get)
 import qualified Data.IntSet                                     as IntSet
 import           Data.Prop
@@ -197,7 +197,7 @@ tryGetBool boolStr
                                     , BiCastable e ne                                          \
                                     , BiCastable n (ls :<: term)                               \
                                     , MonadIO (m)                                              \
-                                    , MonadBuilder (Hetero (VectorGraph n e c)) (m)            \
+                                    , MonadBuilder (Hetero (NEC.Graph n e c)) (m)              \
                                     , NodeInferable (m) (ls :<: term)                          \
                                     , TermNode Lam  (m) (ls :<: term)                          \
                                     , HasProp InterpreterData (ls :<: term)                    \
@@ -519,7 +519,7 @@ evaluateNodes reqRefs = do
                              , BiCastable e ne                                          \
                              , BiCastable n (ls :<: term)                               \
                              , MonadIO (m)                                              \
-                             , MonadBuilder ((Hetero (VectorGraph n e c))) (m)          \
+                             , MonadBuilder ((Hetero (NEC.Graph n e c))) (m)            \
                              , NodeInferable (m) (ls :<: term)                          \
                              , TermNode Lam  (m) (ls :<: term)                          \
                              , MonadFix (m)                                             \

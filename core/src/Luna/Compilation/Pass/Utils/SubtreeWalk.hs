@@ -6,8 +6,9 @@ import Prelude.Luna
 import           Data.Construction
 import           Data.Prop
 import           Data.Record                                     hiding (cons)
+import           Data.Graph
 import           Data.Graph.Builder
-import           Data.Graph.Backend.VectorGraph                  as Graph
+import qualified Data.Graph.Backend.NEC                  as NEC
 
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, seen)
@@ -19,7 +20,7 @@ import           Luna.Syntax.Model.Network.Class                 ()
                    , edge ~ Link node                             \
                    , BiCastable n node                            \
                    , BiCastable e edge                            \
-                   , MonadBuilder (Hetero (VectorGraph n e c)) m  \
+                   , MonadBuilder (Hetero (NEC.Graph n e c)) m    \
                    , Getter Inputs node                           \
                    , Prop Inputs node ~ [Ref Edge edge]           \
                    , HasProp TCData node                          \

@@ -6,8 +6,9 @@ import Prelude.Luna
 import Data.Construction
 import Data.Prop
 import Data.Record.Match
+import Data.Graph
 import Data.Graph.Builder
-import Data.Graph.Backend.VectorGraph                  as Graph
+import qualified Data.Graph.Backend.NEC                  as NEC
 
 import Luna.Syntax.Term.Expr                            hiding (source, target)
 import Luna.Syntax.Model.Layer
@@ -31,7 +32,7 @@ import qualified Luna.Syntax.Term.Lit                        as Lit
                    , edge ~ Link node                             \
                    , BiCastable n node                            \
                    , BiCastable e edge                            \
-                   , MonadBuilder (Hetero (VectorGraph n e c)) m  \
+                   , MonadBuilder (Hetero (NEC.Graph n e c)) m    \
                    , NodeInferable  (m) node                      \
                    , Getter Inputs node                           \
                    , Prop Inputs node ~ [Ref Edge edge]           \

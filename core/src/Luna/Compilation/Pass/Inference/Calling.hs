@@ -15,7 +15,8 @@ import Data.Layer
 import Luna.Runtime.Dynamics                      (Static)
 import Luna.Syntax.Term.Expr                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
-import Data.Graph.Backend.VectorGraph               as Graph hiding (add)
+import Data.Graph                                   as Graph hiding (add)
+import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester, origin, Origin (..))
 import Luna.Syntax.Model.Network.Builder.Node
@@ -40,7 +41,7 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
                    , edge  ~ Link (ls :<: term)                   \
                    , node  ~ (ls :<: term)                        \
                    , clus  ~ NetCluster                           \
-                   , graph ~ Hetero (VectorGraph n e c)           \
+                   , graph ~ Hetero (NEC.Graph n e c)             \
                    , BiCastable     e edge                        \
                    , BiCastable     n node                        \
                    , BiCastable     c clus                        \

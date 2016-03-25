@@ -1,6 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Backend.VectorGraph.SubGraph where
+-- TODO[WD]: refaktor and rename this module / datas to reflect that in fact it is just a set of elems used as SubGraph definition
+module Data.Graph.Backend.SubGraph where
 
 import Prologue
 
@@ -24,8 +25,8 @@ remove el = wrapped %~ IntSet.delete el
 member :: Int -> SubGraph n -> Bool
 member el = IntSet.member el ∘ unwrap
 
-nodes :: SubGraph n -> [Int]
-nodes = IntSet.toList . unwrap
+elems :: SubGraph n -> [Int]
+elems = IntSet.toList . unwrap
 
 
 -- === Instances === --

@@ -13,10 +13,9 @@ import Data.Prop
 import Data.Index
 import Data.Container                 hiding (add, remove)
 import qualified Data.Container       as Cont
+import Data.Graph
 import Data.Graph.Builder.Class       hiding (with)
-import Data.Graph.Backend.VectorGraph
 import Data.Layer
---import Data.Graph.Model.Dynamic (Dynamic, add, remove)
 
 
 -- === Utils === --

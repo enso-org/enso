@@ -7,7 +7,7 @@ packages:
 - {extra-dep: true, location: ../../core}
 - {extra-dep: true, location: ../../parser}
 - extra-dep: true
-  location: {commit: fed3aabd7ee959fb26dbca3f11d5a99961a69141, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: b95ff694fb6463e22527b05480275826504e5a39, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
@@ -29,11 +29,11 @@ packages:
 - extra-dep: true
   location: {commit: cab65d139d158f10c7c5b41db4aaedef945b11b2, git: 'https://github.com/wdanilo/impossible.git'}
 - extra-dep: true
-  location: {commit: 508ef1ccf6cd7ab1e1cd8e782170ffab19e526a5, git: 'https://github.com/wdanilo/lens-utils.git'}
+  location: {commit: 23af692b419b4c6ca611135bfdf605d5d6e50b2e, git: 'https://github.com/wdanilo/lens-utils.git'}
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: 91f20407e21cb1079abb19cc22b97a0c3783d144, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: 8c8b1d1569da4553377b52fc816b110c32a20a0e, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true

@@ -16,13 +16,13 @@ import           Luna.Compilation.Pass.Dirty.Data.Label          (Interpreter(..
 import qualified Luna.Compilation.Pass.Dirty.Data.Label          as Label
 import           Luna.Compilation.Pass.Dirty.Monad               (DirtyMonad, runDirtyT, DirtyT)
 
-import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Runtime.Dynamics                          (Dynamic, Static)
 
 import           Data.Construction
 import           Data.Record                                     hiding (cons)
 import           Type.Inference
 
-import           Luna.Syntax.Term.Expr                      (Lam)
+import           Luna.Syntax.Term.Expr                           (Lam)
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
@@ -32,7 +32,7 @@ import           Luna.Syntax.Model.Network.Term
 
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
-import           Data.Graph.Backend.VectorGraph
+import qualified Data.Graph.Backend.NEC                  as NEC
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 
@@ -42,7 +42,7 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
                                   , BiCastable e ne                                       \
                                   , BiCastable n (ls :<: term)                            \
                                   , MonadIO m                                             \
-                                  , MonadBuilder (Hetero (VectorGraph n e c)) m           \
+                                  , MonadBuilder (Hetero (NEC.Graph n e c)) m             \
                                   , NodeInferable m (ls :<: term)                         \
                                   , TermNode Lam  m (ls :<: term)                         \
                                   , HasProp Interpreter (ls :<: term)                     \
@@ -100,7 +100,7 @@ markSuccessors ref = do
                              , BiCastable e ne                                         \
                              , BiCastable n (ls :<: term)                              \
                              , MonadIO (m)                                             \
-                             , MonadBuilder ((Hetero (VectorGraph n e c))) (m)         \
+                             , MonadBuilder ((Hetero (NEC.Graph n e c))) (m)           \
                              , NodeInferable (m) (ls :<: term)                         \
                              , TermNode Lam  (m) (ls :<: term)                         \
                              , MonadFix (m)                                            \

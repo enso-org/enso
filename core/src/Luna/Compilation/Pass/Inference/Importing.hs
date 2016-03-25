@@ -16,8 +16,9 @@ import Luna.Runtime.Dynamics                      (Static)
 import Luna.Library.Symbol                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.Term.Function                     (Function, Signature)
 import Luna.Syntax.Term.Expr                         hiding (source)
+import Data.Graph                                   as Graph
 import Data.Graph.Builder                           as Graph hiding (run)
-import Data.Graph.Backend.VectorGraph               as Graph
+import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, requester, tcErrors, translateSignature, NodeTranslator, origin, Origin (..))
 import Luna.Syntax.Model.Network.Builder.Node
@@ -45,7 +46,7 @@ import           Luna.Compilation.Error
                    , edge  ~ Link (ls :<: term)                      \
                    , node  ~ (ls :<: term)                           \
                    , clus  ~ NetCluster                              \
-                   , graph ~ Hetero (VectorGraph n e c)              \
+                   , graph ~ Hetero (NEC.Graph n e c)                \
                    , BiCastable     e edge                           \
                    , BiCastable     n node                           \
                    , BiCastable     c clus                           \

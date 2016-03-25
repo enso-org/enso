@@ -16,6 +16,12 @@ data Node = Node deriving (Show, Eq, Ord)
 --type family NodeOf a
 
 
+-- === Utils === --
+
+nodeStore :: HasStore Node a => Lens' a (Store Node a)
+nodeStore = store (Proxy :: Proxy Node)
+
+
 -- === Instances === --
 
 ---- Wrappers

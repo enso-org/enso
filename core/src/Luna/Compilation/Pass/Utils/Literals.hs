@@ -8,8 +8,9 @@ import           Prelude.Luna                                    hiding (Num, pr
 import           Data.Construction
 import           Data.Prop
 import Data.Record.Match
+import           Data.Graph
 import           Data.Graph.Builder
-import           Data.Graph.Backend.VectorGraph                  as Graph
+import qualified Data.Graph.Backend.NEC                  as NEC
 import           Type.Inference
 
 import           Luna.Pretty.GraphViz
@@ -31,7 +32,7 @@ import           Luna.Syntax.Model.Network.Term                  (Draft)
                              , BiCastable    e ne                          \
                              , BiCastable    n (ls :<: term)               \
                              , MonadIO m                                   \
-                             , MonadBuilder (Hetero (VectorGraph n e c)) m \
+                             , MonadBuilder (Hetero (NEC.Graph n e c)) m   \
                              , NodeInferable m (ls :<: term)               \
                              , TermNode Cons m (ls :<: term)               \
                              , TermNode Lam  m (ls :<: term)               \

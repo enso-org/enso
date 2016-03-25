@@ -13,10 +13,10 @@ import Luna.Syntax.Model.Network.Builder.Layers.TCData             as X
 
 import           Data.Graph.Builders
 import           Control.Monad.Event
-import           Data.Graph.Backend.VectorGraph         (SubGraph)
+import           Data.Graph.Backend.SubGraph         (SubGraph)
 import           Data.Prop
 import           Data.Construction
-import           Data.Graph.Backend.VectorGraph
+import           Data.Graph.Backend.NEC
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)

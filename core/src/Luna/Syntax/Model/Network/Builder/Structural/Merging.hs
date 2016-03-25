@@ -6,8 +6,10 @@ import           Luna.Syntax.Model.Network.Builder.Term
 import           Luna.Syntax.Model.Network.Builder.Layer
 import           Prelude.Luna
 import           Control.Monad                 (forM)
+import           Data.Graph
 import           Data.Graph.Builder
-import           Data.Graph.Backend.VectorGraph
+import qualified Data.Graph.Backend.NEC as NEC
+import           Data.Graph.Backend.SubGraph
 import           Data.Container                (usedIxes)
 import           Data.Container.SizeTracking   (SizeTracking)
 import           Data.Layer.Cover
@@ -28,7 +30,7 @@ import qualified Luna.Syntax.Term.Function       as Function
 
 #define ImportCtx  ( node  ~ (ls :<: term)                            \
                    , edge  ~ Link node                                \
-                   , graph ~ Hetero (VectorGraph n e c)               \
+                   , graph ~ Hetero (NEC.Graph n e c)                 \
                    , BiCastable e edge                                \
                    , BiCastable n node                                \
                    , MonadBuilder graph m                             \
@@ -93,8 +95,8 @@ importToCluster :: ( ImportCtx
                    , BiCastable clus c
                    ) => graph -> m (Ref Cluster clus, NodeTranslator node)
 importToCluster g = do
-    let foreignNodeRefs = Ref <$> usedIxes (g ^. wrapped . nodeGraph)
-        foreignEdgeRefs = Ref <$> usedIxes (g ^. wrapped . edgeGraph)
+    let foreignNodeRefs = Ref <$> usedIxes (g ^. wrapped . nodeStore)
+        foreignEdgeRefs = Ref <$> usedIxes (g ^. wrapped . edgeStore)
         foreignNodes    = flip view g . focus <$> foreignNodeRefs
         foreignEdges    = flip view g . focus <$> foreignEdgeRefs
     trans <- importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)

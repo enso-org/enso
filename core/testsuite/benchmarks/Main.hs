@@ -7,9 +7,9 @@
 
 module Main where
 
-import Prelude.Luna
+import Prelude.Luna hiding (index)
 import qualified Data.Graph as Graph
-import           Data.Graph.Backend.VectorGraph (Ref, Node, ELEMENT(..))
+import           Data.Graph (Ref, Node, ELEMENT(..))
 
 import           Type.Inference
 import           Luna.Pretty.GraphViz
@@ -28,10 +28,15 @@ import Data.Container.Reusable
 import Data.Container.Resizable (Exponential(..))
 import qualified Data.Vector                 as Boxed
 import qualified Data.Vector.Unboxed         as Unboxed
+import qualified Data.Container.Instances.Vector.Boxed.Mutable as BM
+import           Data.Vector.Mutable (MVector)
+import qualified Data.Vector.Mutable as M
+import Control.Monad.ST
 
 import Control.Monad.Trans.Identity
 
 import Criterion.Main
+import Control.Monad.Primitive (PrimMonad, PrimState)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -45,12 +50,16 @@ prebuild :: IO (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
 prebuild = runBuild def star
 
 
-type AutoVec = Auto Exponential (Boxed.Vector Int)
+type AutoVec  = Auto Exponential (Boxed.Vector Int)
 
+autoVecEnv :: IO (AutoVec, Int)
 autoVecEnv = do
-    let v  = alloc 100000 :: AutoVec
+    let v  = alloc 0 :: AutoVec
         el = 0 :: Int
     return (v, el)
+
+tst :: PrimMonad m => AutoVec -> m (Auto Exponential (MVector (PrimState m) Int))
+tst (v :: AutoVec) = mapM Boxed.thaw v
 
 nativeVecEnv = do
     let i     = 100000
@@ -81,14 +90,38 @@ addNodeEnv = do
     return (g, n)
 
 
+mvecEnv' :: Boxed.Vector Int
+mvecEnv' = runST $ Boxed.unsafeFreeze =<< v
+    where i = 100000
+          v = do
+              v1 <- M.replicate i (0 :: Int)
+              v2 <- insertM 0 (1 :: Int) v1
+              return v1
+
 main :: IO ()
 main = do
+    (myv, _) <- autoVecEnv
+    let myv2 = runST $ tst myv >>= addM 0 >>= mapM Boxed.unsafeFreeze
+    let myv3 = runST $ tst myv >>= expandM >>= mapM Boxed.unsafeFreeze
+    let myv4 = runST $ tst myv3 >>= expandM >>= mapM Boxed.unsafeFreeze
+    print myv
+    print myv2
+    print myv3
+    print $ index 0 myv4
+    print "hello"
     defaultMain
         [ bgroup "native vec"
-              [ env nativeVecEnv $ \ ~(g) ->
-                    bgroup "add elems seq"  $ take 3 $ benchNativeVecIns     g <$> doubles 800
-              , env nativeVecEnv' $ \ ~(g) ->
-                    bgroup "add elems bulk" $ take 3 $ benchNativeVecInsBulk g <$> doubles 800000
+              [ --env nativeVecEnv  $ \ ~(g) -> bgroup "add elems seq"  $ take 3 $ benchNativeVecIns     g <$> doubles 800
+                env nativeVecEnv' $ \ ~(g) -> bgroup "add elems bulk" $ take 6 $ benchNativeVecInsBulk g <$> doubles 200000
+              ]
+        , bgroup "native mutable vec"
+              [ env nativeVecEnv' $ \ ~(g) -> bgroup "add elems seq"  $ take 6 $ benchNativeMVecIns  g 1 <$> doubles 200000
+              ]
+        , bgroup "mutable vec"
+              [ env nativeVecEnv' $ \ ~(g) -> bgroup "add elems seq"  $ take 6 $ benchMVecIns        g 1 <$> doubles 200000
+              ]
+        , bgroup "mutable auto vec"
+              [ env autoVecEnv $ \ ~(g, el) -> bgroup "add elems seq" $ take 6 $ benchMVecAdd      g el <$> doubles 200000
               ]
         --, bgroup "vec"
         --      [ env vecEnv $ \ ~(g, el) ->
@@ -108,7 +141,9 @@ main = do
         --      ]
         ]
 
+    --let
 
+--unsafeThaw :: PrimMonad m => Vector a -> m (MVector (PrimState m) a)
 
 benchNodeAdd :: NetGraph'' -> NetLayers' :<: Draft Static -> Int -> Benchmark
 benchNodeAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (nodeAddPure_ n))) g
@@ -118,6 +153,15 @@ benchContAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i 
 
 benchVecAdd :: Boxed.Vector Int -> Int -> Int -> Benchmark
 benchVecAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (add n))) g
+
+benchNativeMVecIns :: Boxed.Vector Int -> Int -> Int -> Benchmark
+benchNativeMVecIns g n i = bench (show i) $ nf (\g' -> runST $ Boxed.unsafeFreeze =<< flip (foldlM (flip ($))) ((\i' v -> M.write v i' n *> pure v) <$> [0..i]) =<< Boxed.thaw g :: Boxed.Vector Int) g
+
+benchMVecIns :: Boxed.Vector Int -> Int -> Int -> Benchmark
+benchMVecIns g n i = bench (show i) $ nf (\g' -> runST $ Boxed.unsafeFreeze =<< flip (foldlM (flip ($))) (flip insertM n <$> [0..i]) =<< Boxed.thaw g :: Boxed.Vector Int) g
+
+benchMVecAdd :: AutoVec -> Int -> Int -> Benchmark
+benchMVecAdd g n i = bench (show i) $ nf (\g' -> runST $ mapM Boxed.unsafeFreeze =<< flip (foldlM (flip ($))) (replicate i (addM n)) =<< mapM Boxed.thaw g :: AutoVec) g
 
 benchReusableVecAdd :: Reusable Int (Boxed.Vector Int) -> Int -> Int -> Benchmark
 benchReusableVecAdd g n i = bench (show i) $ nf (flip (foldl' (flip ($))) (replicate i (add n))) g

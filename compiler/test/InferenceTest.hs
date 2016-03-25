@@ -33,7 +33,7 @@ import           Luna.Syntax.Model.Network.Term
 import qualified Luna.Syntax.Term.Lit                        as Lit
 
 import qualified Data.Graph.Builder.Class               as Graph
-import           Data.Graph.Backend.VectorGraph
+import           Data.Graph.Backend.NEC
 
 
 graph1 :: forall term node edge nr er ls m n e c. (term ~ Draft Static

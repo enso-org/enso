@@ -21,9 +21,10 @@ import           Data.Prop
 import           Data.Record
 import           Data.Reprx
 
-import           Data.Graph.Backend.VectorGraph          hiding (subGraphs)
-import qualified Data.Graph.Backend.VectorGraph          as Graph
-import qualified Data.Graph.Backend.VectorGraph.SubGraph as SubGraph
+import           Data.Graph
+import           Data.Graph.Backend.NEC
+import qualified Data.Graph.Backend.NEC          as Graph
+import qualified Data.Graph.Backend.SubGraph as SubGraph
 import           Data.GraphViz
 import qualified Data.GraphViz.Attributes                as GV
 import qualified Data.GraphViz.Attributes.Colors         as GVC
@@ -134,13 +135,13 @@ toGraphViz name net = DotGraph { strictGraph     = False
                                }
     where -- === Inputs === --
 
-          ng                = net ^. wrapped' ∘ nodeGraph
-          eg                = net ^. wrapped' ∘ edgeGraph
-          cg                = net ^. wrapped' ∘ Graph.subGraphs
+          ng                = net ^. wrapped' ∘ nodeStore
+          eg                = net ^. wrapped' ∘ edgeStore
+          cg                = net ^. wrapped' ∘ clusterStore
           nodeIxs           = usedIxes ng :: [Int]
           edgeIxs           = usedIxes eg :: [Int]
           clrIxs            = usedIxes cg
-          clrs              = elems $ net ^. wrapped' ∘ Graph.subGraphs
+          clrs              = elems $ net ^. wrapped' ∘ clusterStore
           clredNodeIxs      = zip (safeHead ∘ matchClusters clrIxs <$> nodeIxs) nodeIxs :: [(Maybe Int, Int)]
           clredNodeMap      = fromListWithReps clredNodeIxs :: Map (Maybe Int) [Int]
           rootNodeIxs       = case Map.lookup Nothing clredNodeMap of
@@ -310,7 +311,7 @@ genInEdges (g :: NetGraph) (n :: NetLayers :<: Draft Static) = displayEdges wher
     inIdxs       = getTgtIdx <$> ins
     inEdges      = zipWith (,) inIdxs $ fmap ((:[]) . genLabel) inIxs :: [(Int, [Attribute])]
     --inEdges      = zipWith (,) inIdxs $ fmap ((:[]) . genLabel) [0..] :: [(Int, [Attribute])]
-    es           = g ^. wrapped' ∘ edgeGraph
+    es           = g ^. wrapped' ∘ edgeStore
     te           = n ^. prop Type
     t            = getTgt te
     tpEdge       = (getTgtIdx te, [GV.color typedArrClr, ArrowHead dotArrow, genLabel $ te ^. idx])
@@ -326,7 +327,7 @@ genInEdges (g :: NetGraph) (n :: NetLayers :<: Draft Static) = displayEdges wher
     getTgtIdx             = view idx ∘ getTgt
     getTgt    inp         = view source $ index (inp ^. idx) es
     clusterByIx ix        = cast $ index_ ix cg :: NetCluster
-    cg                    = g ^. wrapped . Graph.subGraphs
+    cg                    = g ^. wrapped . clusterStore
 
 
 

@@ -37,7 +37,8 @@ import qualified Luna.Syntax.Term.Lit                as Lit
 import           Control.Monad.Trans.Identity
 import           Type.Bool
 
-import Data.Graph.Backend.VectorGraph
+import qualified Data.Graph.Backend.NEC as NEC
+import           Data.Graph.Backend.SubGraph
 
 import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
@@ -388,7 +389,7 @@ class ElemBuilder3 m t where
 --class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 
 
-instance ( GraphBuilder.MonadBuilder (Hetero (VectorGraph node edge cluster)) m
+instance ( GraphBuilder.MonadBuilder (Hetero (NEC.Graph node edge cluster)) m
          , NamedConnectionReservation (NameInput (Ref Node a)) (Ref Node a) m (NameParam (Ref Node a))
          , State.MonadState [(Ref Node a, Ref Edge (Link a))] m
          ) => Parametrized m (Ref Node a) where
@@ -463,10 +464,10 @@ type NetCluster       = NetClusterLayers :< SubGraph NetNode
 type NetCluster'      = NetClusterLayers :< SubGraph NetNode'
 type NetRawCluster    = NetClusterLayers :< SubGraph NetRawNode
 
-type NetGraph   = Hetero (VectorGraph NetRawNode (Link NetRawNode) NetRawCluster)
-type NetGraph'  = Hetero (VectorGraph NetNode    (Link NetNode)    NetCluster)
+type NetGraph   = Hetero (NEC.Graph NetRawNode (Link NetRawNode) NetRawCluster)
+type NetGraph'  = Hetero (NEC.Graph NetNode    (Link NetNode)    NetCluster)
 
-type NetGraph'' = Hetero (VectorGraph NetNode'   (Link NetNode')   NetCluster')
+type NetGraph'' = Hetero (NEC.Graph NetNode'   (Link NetNode')   NetCluster')
 
 buildNetwork  = runIdentity ∘ buildNetworkM
 buildNetworkM = rebuildNetworkM' (def :: NetGraph)
@@ -490,13 +491,13 @@ instance {-# OVERLAPPABLE #-}
     , m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
     , m7 ~ Listener SUBGRAPH_INCLUDE  MemberRegister m6
     , m6 ~ Listener CONNECTION        SuccRegister   m5
-    , m5 ~ GraphBuilder.BuilderT (Hetero (VectorGraph n e c)) m4
+    , m5 ~ GraphBuilder.BuilderT (Hetero (NEC.Graph n e c)) m4
     , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
     , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
     , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
     , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
     , Monad m
-    , net ~ Hetero (VectorGraph n e c)
+    , net ~ Hetero (NEC.Graph n e c)
     ) => NetworkBuilderT net m9 m where
     runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node NetNode)
                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))

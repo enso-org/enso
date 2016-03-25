@@ -43,6 +43,9 @@ link = arc
 arrow :: Ref Node tgt -> Arrow tgt
 arrow = Arrow
 
+edgeStore :: HasStore Edge a => Lens' a (Store Edge a)
+edgeStore = store (Proxy :: Proxy Edge)
+
 
 -- === Instances === --
 

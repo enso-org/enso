@@ -24,7 +24,8 @@ import Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
 import Type.Inference
 
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import Data.Graph.Backend.VectorGraph
+import qualified Data.Graph.Backend.NEC as NEC
+import           Data.Graph
 
 
 #define PassCtx(m,ls,term) ( term ~ Draft Static                                     \
@@ -33,7 +34,7 @@ import Data.Graph.Backend.VectorGraph
                            , Prop TCData (ls :<: term) ~ TCDataPayload (ls :<: term) \
                            , BiCastable     e ne                                     \
                            , BiCastable     n (ls :<: term)                          \
-                           , MonadBuilder  (Hetero (VectorGraph n e c)) m            \
+                           , MonadBuilder  (Hetero (NEC.Graph n e c)) m              \
                            , HasProp Type     (ls :<: term)                          \
                            , HasProp TCData   (ls :<: term)                          \
                            , NodeInferable  m (ls :<: term)                          \
