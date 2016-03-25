@@ -60,7 +60,7 @@ import           Luna.Compilation.Error
                    , MonadSymbol node clus graph (m)                 \
                    , Referred Node graph n                           \
                    , Connectible (Ref Node node) (Ref Node node) (m) \
-                   , Clusterable node clus (m)                       \
+                   , Clusterable Node node clus (m)                  \
                    , Destructor (m) (Ref Edge edge)                  \
                    )
 

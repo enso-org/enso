@@ -13,7 +13,7 @@ import Luna.Syntax.Model.Network.Builder.Layers.TCData             as X
 
 import           Data.Graph.Builders
 import           Control.Monad.Event
-import           Data.Graph.Backend.SubGraph         (SubGraph)
+import           Data.Graph.Backend.RefSet         (RefSet)
 import           Data.Prop
 import           Data.Construction
 import           Data.Graph.Backend.NEC
@@ -48,10 +48,10 @@ instance (Monad m, Destructor m (LayerData (Network ls) Type a)) => Destructor m
 
 -- === Lambda layer === --
 
-type instance LayerData l Lambda (SubGraph n) = Maybe $ Func.Signature (Ref Node n)
-instance Monad m => Creator m (Layer l Lambda (SubGraph n)) where
+type instance LayerData l Lambda (RefSet t n) = Maybe $ Func.Signature (Ref t n)
+instance Monad m => Creator m (Layer l Lambda (RefSet t n)) where
     create = return $ Layer Nothing
-instance Monad m => Destructor m (Layer l Lambda (SubGraph n)) where
+instance Monad m => Destructor m (Layer l Lambda (RefSet t n)) where
     destruct _ = return ()
 
 ------------------------------------------

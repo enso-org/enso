@@ -38,7 +38,7 @@ import           Control.Monad.Trans.Identity
 import           Type.Bool
 
 import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Backend.SubGraph
+import           Data.Graph.Backend.RefSet
 
 import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
@@ -460,9 +460,9 @@ type NetLayers'       = '[Type, Succs]
 type NetNode          = NetLayers  :<: Draft Static
 type NetNode'         = NetLayers' :<: Draft Static
 type NetRawNode       = NetLayers  :<: Raw
-type NetCluster       = NetClusterLayers :< SubGraph NetNode
-type NetCluster'      = NetClusterLayers :< SubGraph NetNode'
-type NetRawCluster    = NetClusterLayers :< SubGraph NetRawNode
+type NetCluster       = NetClusterLayers :< RefSet Node NetNode
+type NetCluster'      = NetClusterLayers :< RefSet Node NetNode'
+type NetRawCluster    = NetClusterLayers :< RefSet Node NetRawNode
 
 type NetGraph   = Hetero (NEC.Graph NetRawNode (Link NetRawNode) NetRawCluster)
 type NetGraph'  = Hetero (NEC.Graph NetNode    (Link NetNode)    NetCluster)

@@ -15,6 +15,6 @@ data CONNECTION_REMOVE = CONNECTION_REMOVE deriving (Show)
 data SUBGRAPH_INCLUDE  = SUBGRAPH_INCLUDE  deriving (Show)
 data SUBGRAPH_EXCLUDE  = SUBGRAPH_EXCLUDE  deriving (Show)
 
-data SubgraphNodeEvent n c = SubgraphNodeEvent { _node    :: Ref Node n
-                                               , _cluster :: Ref Cluster c
-                                               } deriving (Show, Eq)
+data SubgraphElemEvent re rc = SubgraphElemEvent { _elem    :: re
+                                                 , _cluster :: rc
+                                                 } deriving (Show, Eq)

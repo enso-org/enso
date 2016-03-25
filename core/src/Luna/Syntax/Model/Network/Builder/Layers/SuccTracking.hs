@@ -10,7 +10,6 @@ import           Data.Container.SizeTracking            (SizeTracking)
 import           Data.Container                         (Addable, Removable, add, remove, try)
 import           Data.IntSet                            (IntSet)
 import           Data.Graph                             hiding (add, remove)
-import           Data.Graph.Backend.SubGraph            (SubGraph)
 import           Data.Prop
 import qualified Data.List                              as List
 import           Data.Construction

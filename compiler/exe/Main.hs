@@ -61,12 +61,12 @@ import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork
 import           Luna.Syntax.Model.Network.Builder.Node
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetNode, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
 import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Backend.SubGraph
+import           Data.Graph.Backend.RefSet
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -422,7 +422,7 @@ data Error node edge = MissingInput  node (node # Input )
 
 
 
-newtype Network' ls cls = Network' (Hetero (NEC.Graph (ls :<: Raw) (Link (ls :<: Raw)) (cls :< SubGraph (ls :<: Raw))))
+newtype Network' ls cls = Network' (Hetero (NEC.Graph (ls :<: Raw) (Link (ls :<: Raw)) (cls :< RefSet Node (ls :<: Raw))))
 makeWrapped ''Network'
 
 type instance Prop Node (Network' ls cls) = ls :<: Draft Static
@@ -623,11 +623,13 @@ foo g = runNetworkBuilderT g
     print "done"
 
     title "subgraph lookup"
-    print =<< sg1 `includes` s2
+    mems :: [Ref Node NetNode] <- members sg1
+    print mems
 
     title "subgraph modification"
     exclude s2 sg1
-    print =<< sg1 `includes` s2
+    mems2 :: [Ref Node NetNode] <- members sg1
+    print mems2
 
     return s1
 

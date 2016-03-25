@@ -19,8 +19,8 @@ import Data.Vector              (Vector)
 import Data.Vector.Mutable      (MVector)
 
 import Data.Graph
-import Data.Graph.Backend.SubGraph ()
 import Control.Monad.Primitive  (PrimMonad, PrimState)
+import Data.Graph.Backend.RefSet ()
 
 
 -----------------
