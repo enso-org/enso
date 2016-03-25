@@ -11,7 +11,7 @@
 {-# LANGUAGE OverlappingInstances #-}
 #endif
 
-module Data.Container.Instances.Vector.Lazy where
+module Data.Container.Instances.Vector.Boxed.Immutable where
 
 import Prelude
 

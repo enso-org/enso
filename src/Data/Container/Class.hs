@@ -269,6 +269,18 @@ grow        = withTransFunc (fmap3 runIdentity) growM
 -- Freeable
 
 
+-- TODO[WD]: New interface. All metadata should be registered in a Result monad.
+--           We should be able to define either an AddableM instance directly, which regardless of the mods and opts would have the same constraint, something like:
+--
+--               class AddableM mods opts el m cont where addM :: el -> cont -> m (Result (ElInfo el) mods opts cont)
+--
+--               instance (a ~ el, Provided mods Idx Int) => AddableM mods opts el m (Vector a) where
+--                   addM el v = do
+--                       provide Idx ...
+--                       return ...
+--
+--           We should be also able to use the mods sorting mechanism like the current solution, but choosing manually which instances need it.
+--           Additional we should reconsider how we decide modify result arguments based on the function type, for example the `alloc` function used with `ixed` modifier results in a list of ixes, not a single value
 
 class Ctx ms m cont => AppendableQM   ms ps m     el cont where appendQM  :: Query ms ps        -> el -> cont -> m (ElResult    AppendableOp    ms     el (Container cont) cont)
 class Ctx ms m cont => PrependableQM  ms ps m     el cont where prependQM :: Query ms ps        -> el -> cont -> m (ElResult    PrependableOp   ms     el (Container cont) cont)
@@ -277,6 +289,8 @@ class Ctx ms m cont => RemovableQM    ms ps m     el cont where removeQM  :: Que
 class Ctx ms m cont => InsertableQM   ms ps m idx el cont where insertQM  :: Query ms ps -> idx -> el -> cont -> m (IdxElResult InsertableOp    ms idx el (Container cont) cont)
 class Ctx ms m cont => FreeableQM     ms ps m idx    cont where freeQM    :: Query ms ps -> idx       -> cont -> m (IdxResult   FreeableOp      ms idx    (Container cont) cont)
 class Ctx ms m cont => ReservableQM   ms ps m        cont where reserveQM :: Query ms ps              -> cont -> m (PrimResult  ReservableOp    ms        (Container cont) cont)
+
+
 
 data  AppendableOp       = AppendableOp
 type  AppendableM        = Simple AppendableQM
@@ -351,6 +365,11 @@ insert'   = withTransFunc (fmap4 runIdentity) insertM'
 insertM   = queryBuilder $ fmap formatResult .:: insertQM
 insert    = withTransFunc (fmap4 runIdentity) insertM
 insert_   = withTransFunc (fmap4 res_) insert'
+{-# INLINE insertM' #-}
+{-# INLINE insert'  #-}
+{-# INLINE insertM  #-}
+{-# INLINE insert   #-}
+{-# INLINE insert_  #-}
 
 freeM'    = queryBuilder freeQM
 free'     = withTransFunc (fmap3 runIdentity) freeM'

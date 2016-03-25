@@ -53,6 +53,7 @@ Library
                       TypeFamilies
 
   exposed-modules:    
+        Data.AutoVector,
         Data.Container,
         Data.Container.Auto,
         Data.Container.Class,
@@ -61,15 +62,16 @@ Library
         Data.Container.Instances,
         Data.Container.Instances.IntSet,
         Data.Container.Instances.List,
-        Data.Container.Instances.Vector.Lazy,
+        Data.Container.Instances.Vector.Boxed.Immutable,
+        Data.Container.Instances.Vector.Boxed.Mutable,
         Data.Container.List,
         Data.Container.Opts,
-        Data.Container.Parametrized,
         Data.Container.Poly,
         Data.Container.Proxy,
         Data.Container.Resizable,
         Data.Container.Reusable,
         Data.Container.SizeTracking,
+        Data.Container.Store,
         Data.Container.Type,
         Data.Container.Utils,
         Data.Container.Weak,
@@ -94,10 +96,12 @@ Library
                     , data-member
                     , deepseq
                     , functor-utils
+                    , ghc-prim
                     , hashable
                     , lens
                     , lens-utils
                     , mtl
+                    , primitive
                     , template-haskell
                     , text
                     , transformers

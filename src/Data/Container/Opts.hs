@@ -101,6 +101,7 @@ instance {-# OVERLAPPABLE #-} (t ~ (f -> g), mods ~ '[], params ~ '[]) => FuncBu
 
 optBuilder :: f -> OptBuilderBase f
 optBuilder = OptBuilder
+{-# INLINE optBuilder #-}
 
 
 queryBuilder :: FuncTrans '[] '[] f a => f -> a
