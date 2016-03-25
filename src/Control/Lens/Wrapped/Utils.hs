@@ -21,3 +21,5 @@ unwrap     = view wrapped
 wrap       = view unwrapped
 
 rewrap     = _Wrapped %~ id
+
+wrappedM' f = fmap wrap' . f . unwrap'
