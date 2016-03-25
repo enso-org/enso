@@ -6,7 +6,7 @@ packages:
 - {location: ..}
 - {extra-dep: true, location: ../../core}
 - extra-dep: true
-  location: {commit: b95ff694fb6463e22527b05480275826504e5a39, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: 771b661befb0fb49c562f18f1b71d37d95ac2c3c, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
@@ -28,7 +28,7 @@ packages:
 - extra-dep: true
   location: {commit: cab65d139d158f10c7c5b41db4aaedef945b11b2, git: 'https://github.com/wdanilo/impossible.git'}
 - extra-dep: true
-  location: {commit: 23af692b419b4c6ca611135bfdf605d5d6e50b2e, git: 'https://github.com/wdanilo/lens-utils.git'}
+  location: {commit: 10d707b62fa6e9c823778f18e09339f8fb9f4392, git: 'https://github.com/wdanilo/lens-utils.git'}
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
