@@ -9,7 +9,7 @@ import           Control.Monad                 (forM)
 import           Data.Graph
 import           Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Backend.SubGraph
+import           Data.Graph.Backend.RefSet
 import           Data.Container                (usedIxes)
 import           Data.Container.SizeTracking   (SizeTracking)
 import           Data.Layer.Cover
@@ -89,9 +89,9 @@ importStructure nodes' edges' = do
     return translateNode
 
 importToCluster :: ( ImportCtx
-                   , clus ~ (NetClusterLayers :< SubGraph node)
+                   , clus ~ (NetClusterLayers :< RefSet Node node)
                    , Covered clus
-                   , Clusterable node clus m
+                   , Clusterable Node node clus m
                    , BiCastable clus c
                    ) => graph -> m (Ref Cluster clus, NodeTranslator node)
 importToCluster g = do
@@ -107,13 +107,13 @@ importToCluster g = do
 dupCluster :: ( ImportCtx
               , Getter Inputs node
               , Prop Inputs node ~ [Ref Edge edge]
-              , clus ~ (NetClusterLayers :< SubGraph node)
+              , clus ~ (NetClusterLayers :< RefSet Node node)
               , Covered clus
               , HasProp Name   clus
               , HasProp Lambda clus
               , Prop Name   clus ~ String
               , Prop Lambda clus ~ Maybe (Signature (Ref Node node))
-              , Clusterable node clus m
+              , Clusterable Node node clus m
               , BiCastable clus c
               ) => Ref Cluster clus -> String -> m (Ref Cluster clus, NodeTranslator node)
 dupCluster cluster name = do

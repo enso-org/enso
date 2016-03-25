@@ -7,12 +7,12 @@ import Prelude.Luna
 
 import           Data.Graph.Builder
 import           Control.Monad.Event
-import           Data.Graph.Backend.SubGraph          (SubGraph)
+import           Data.Graph.Backend.RefSet          (RefSet)
 import           Data.Prop
 import qualified Data.List                               as List
 import           Data.Construction
 import qualified Data.Graph.Backend.NEC          as VEC
-import qualified Data.Graph.Backend.SubGraph as SubGraph
+import qualified Data.Graph.Backend.RefSet       as RefSet
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import           Luna.Syntax.Model.Network.Builder.Self  (MonadSelfBuilder, self)
@@ -35,8 +35,8 @@ instance ( MonadBuilder g m
          , Referred Cluster g c
          , HasProp TCData n
          , Prop TCData n ~ TCDataPayload n
-         ) => Handler t MemberRegister m (SubgraphNodeEvent n c) where
-    handler (SubgraphNodeEvent n c) = do
+         ) => Handler t MemberRegister m (SubgraphElemEvent (Ref Node n) (Ref Cluster c)) where
+    handler (SubgraphElemEvent n c) = do
         lift $ withRef n $ prop TCData . belongsTo %~ (cast c :)
 
 registerMembers :: t -> Listener t MemberRegister m a -> m a
@@ -50,9 +50,9 @@ data MemberRemove = MemberRemove deriving (Show, Eq)
 instance ( MonadBuilder g m
          , Referred Node    g n
          , Referred Cluster g c
-         , Clusterable n c (Listener t MemberRemove m)
-         , g ~ (Hetero (VEC.Graph n' e' (cls :< SubGraph n')))
-         , c ~ (cls :< SubGraph n)
+         , Clusterable Node n c (Listener t MemberRemove m)
+         , g ~ (Hetero (VEC.Graph n' e' (cls :< RefSet Node n')))
+         , c ~ (cls :< RefSet Node n)
          , HasProp TCData n
          , Covered c
          , Prop TCData n ~ TCDataPayload n

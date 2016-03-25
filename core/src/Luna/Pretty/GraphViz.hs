@@ -24,7 +24,7 @@ import           Data.Reprx
 import           Data.Graph
 import           Data.Graph.Backend.NEC
 import qualified Data.Graph.Backend.NEC          as Graph
-import qualified Data.Graph.Backend.SubGraph as SubGraph
+import qualified Data.Graph.Backend.RefSet as SubGraph
 import           Data.GraphViz
 import qualified Data.GraphViz.Attributes                as GV
 import qualified Data.GraphViz.Attributes.Colors         as GVC

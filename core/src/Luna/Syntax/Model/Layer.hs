@@ -109,6 +109,9 @@ instance      Layered   (ls :< a)
 instance Monad m => LayerConstructor m (ls :< a) where constructLayer = return ∘ wrap'   ; {-# INLINE constructLayer #-}
 instance Monad m => LayerDestructor  m (ls :< a) where destructLayer  = return ∘ unwrap' ; {-# INLINE destructLayer  #-}
 
+instance (Monad m, CoverConstructor m (ls :< a), Creator m a) => Creator m (ls :< a) where
+    create = constructCover =<< create
+
 -- Conversion
 -- FIXME[WD]: change the implementation to be independent from layers. Wee need to implement full-lens Layered and Covered type classes
 instance {-# OVERLAPPABLE #-}                                                           Castable (ls :< a) (ls  :< a)  where cast = id              ; {-# INLINE cast #-}
