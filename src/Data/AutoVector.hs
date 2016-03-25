@@ -13,12 +13,28 @@ import Data.Layer
 import Data.Vector              (Vector)
 import Data.Vector.Mutable      (MVector)
 import GHC.Generics             (Generic)
+import Control.Monad.Primitive  (PrimMonad, PrimState)
+
+import qualified Data.Vector as V
 
 
 -- === Definitions === --
 
 newtype  AutoVector   a =  AutoVector (Auto Exponential (Vector a))    deriving (Generic, Show, Default)
 newtype MAutoVector s a = MAutoVector (Auto Exponential (MVector s a)) deriving (Generic)
+makeWrapped ''AutoVector
+makeWrapped ''MAutoVector
+
+
+-- === Utils === --
+
+-- TODO[WD]: Move to containers as container utility function
+unsafeThaw :: PrimMonad m => AutoVector a -> m (MAutoVector (PrimState m) a)
+unsafeThaw = wrappedM' $ mapM V.unsafeThaw ; {-# INLINE unsafeThaw #-}
+
+-- TODO[WD]: Move to containers as container utility function
+unsafeFreeze :: PrimMonad m => MAutoVector (PrimState m) a -> m (AutoVector a)
+unsafeFreeze = wrappedM' $ mapM V.unsafeFreeze ; {-# INLINE unsafeFreeze #-}
 
 
 -- === Instances === --
@@ -29,8 +45,6 @@ instance (NFData a, Tup2RTup a ~ (a, ())) => NFData (AutoVector a)
 
 -- Wrappers
 
-makeWrapped ''AutoVector
-makeWrapped ''MAutoVector
 type instance Unlayered ( AutoVector   a) = Unwrapped ( AutoVector   a)
 type instance Unlayered (MAutoVector s a) = Unwrapped (MAutoVector s a)
 instance      Layered   ( AutoVector   a)

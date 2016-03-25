@@ -281,6 +281,7 @@ grow        = withTransFunc (fmap3 runIdentity) growM
 --
 --           We should be also able to use the mods sorting mechanism like the current solution, but choosing manually which instances need it.
 --           Additional we should reconsider how we decide modify result arguments based on the function type, for example the `alloc` function used with `ixed` modifier results in a list of ixes, not a single value
+--           One more thing to consider are the functions that change the type of the container like `thaw` or `freeze` (like the ones in Data.Vector package)
 
 class Ctx ms m cont => AppendableQM   ms ps m     el cont where appendQM  :: Query ms ps        -> el -> cont -> m (ElResult    AppendableOp    ms     el (Container cont) cont)
 class Ctx ms m cont => PrependableQM  ms ps m     el cont where prependQM :: Query ms ps        -> el -> cont -> m (ElResult    PrependableOp   ms     el (Container cont) cont)
