@@ -42,7 +42,6 @@ import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
 import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
-import           Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
@@ -368,17 +367,23 @@ test1 = do
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
                 i1 <- int 20
-                x1 <- var "primes"
-                ps <- app x1 [arg i1]
-                n1 <- var "node1"
-                m1 <- match n1 ps
 
-                x2 <- var "mean"
-                me <- app x2 [arg ps]
-                n2 <- var "node2"
-                m2 <- match n2 me
+                f1 <- var "primes"
+                a1 <- app f1 [arg i1]
+                v1 <- var "node1"
+                m1 <- match v1 a1
 
-                return [m1, m2]
+                f2 <- var "id"
+                a2 <- app f2 [arg v1]
+                v2 <- var "node2"
+                m2 <- match v2 a2
+
+                f3 <- var "mean"
+                a3 <- app f3 [arg v2]
+                v3 <- var "node3"
+                m3 <- match v3 a3
+
+                return [m1, m2, m3]
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 

@@ -130,7 +130,7 @@ Library
         Luna.Info.User,
         Luna.Info.Version,
         Luna.Library.Symbol,
-        Luna.Pass.Manager,
+        Luna.Pass.Scheduler,
         Luna.Pass.Stage,
         Luna.Pretty.GraphViz,
         Luna.Pretty.Styles,

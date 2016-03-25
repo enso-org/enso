@@ -19,26 +19,28 @@ import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Term
 
 import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload)
+import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect)
 
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
 import qualified Luna.Syntax.Term.Lit                        as Lit
 
-#define PassCtx(m) ( term ~ Draft Static                          \
-                   , Covered node                                 \
-                   , node ~ (ls :<: term)                         \
-                   , edge ~ Link node                             \
-                   , BiCastable n node                            \
-                   , BiCastable e edge                            \
-                   , MonadBuilder (Hetero (NEC.Graph n e c)) m    \
-                   , NodeInferable  (m) node                      \
-                   , Getter Inputs node                           \
-                   , Prop Inputs node ~ [Ref Edge edge]           \
-                   , HasProp TCData node                          \
-                   , Prop TCData node ~ TCDataPayload node        \
-                   , MonadTypeCheck (ls :<: term) m               \
+#define PassCtx(m) ( term ~ Draft Static                           \
+                   , Covered node                                  \
+                   , node ~ (ls :<: term)                          \
+                   , edge ~ Link node                              \
+                   , BiCastable n node                             \
+                   , BiCastable e edge                             \
+                   , Destructor m (Ref Edge edge)                  \
+                   , Connectible (Ref Node node) (Ref Node node) m \
+                   , MonadBuilder (Hetero (NEC.Graph n e c)) m     \
+                   , NodeInferable  (m) node                       \
+                   , Getter Inputs node                            \
+                   , Prop Inputs node ~ [Ref Edge edge]            \
+                   , HasProp TCData node                           \
+                   , Prop TCData node ~ TCDataPayload node         \
+                   , MonadTypeCheck (ls :<: term) m                \
                    )
 
 investigate :: PassCtx(m) => Ref Node node -> m ()
@@ -58,6 +60,22 @@ investigate ref = do
             of' $ \ANY              ->  id
     TypeCheck.modify_ mod
 
+assignDepths :: PassCtx(m) => Ref Node node -> m Int
+assignDepths ref = do
+    currentDepth <- follow (prop TCData . depth) ref
+    case currentDepth of
+        Just d  -> return d
+        Nothing -> do
+            withRef ref $ prop TCData . depth ?~ -1 -- this serves as an unobtrusive "visited" flag. Needed because of the terrible behavior of our Star node.
+            n <- read ref
+            redir <- follow (prop TCData . redirect) ref
+            let edges = maybeToList redir ++ (n # Inputs)
+            predDeps <- mapM (follow source >=> assignDepths) edges
+            let newDep = 1 + maximum (-1 : predDeps)
+            withRef ref $ prop TCData . depth ?~ newDep
+            return newDep
+
+
 -- FIXME[MK]: This does not take pattern matching into account. To implement.
 resolveLocalVars :: forall term node ls edge n e c m . PassCtx(m) => m ()
 resolveLocalVars = do
@@ -65,7 +83,11 @@ resolveLocalVars = do
     vars  <- fmap catMaybes $ forM binds $ \r -> do
         n :: node <- read r
         caseTest (uncover n) $ do
-            of' $ \(Match l _) -> Just <$> follow source l
+            of' $ \(Match l r) -> do
+                ln <- follow source l
+                rn <- follow source r
+                reconnect (prop TCData . redirect) ln $ Just rn
+                return $ Just ln
             of' $ \ANY         -> return Nothing
     TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem vars)
 
@@ -82,6 +104,7 @@ instance PassCtx(m) => TypeCheckerPass ScanPass m where
         roots <- view TypeCheck.freshRoots <$> TypeCheck.get
         mapM_ (subtreeWalk investigate) roots
         resolveLocalVars
+        mapM_ assignDepths roots
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []
         case roots of
             [] -> return Stuck

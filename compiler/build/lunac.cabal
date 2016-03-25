@@ -58,7 +58,7 @@ Library
                   ViewPatterns
 
     Exposed-modules: 
-        
+        StdLibMock
 
     Build-Depends: base
                  , luna-core

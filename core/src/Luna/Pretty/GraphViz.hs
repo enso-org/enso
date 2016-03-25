@@ -37,8 +37,8 @@ import           Data.GraphViz.Printing                  (renderDot, toDot)
 import           Data.GraphViz.Printing                  (PrintDot)
 import           Data.GraphViz.Types.Canonical
 
---import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
---import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
+import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
+import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
 import           Luna.Runtime.Dynamics                 (Dynamic, Static)
 import qualified Luna.Syntax.Term.Function                as Function
 import qualified Luna.Syntax.Term.Expr                    as Term
@@ -191,11 +191,11 @@ toGraphViz name net = DotGraph { strictGraph     = False
               node     = draftNodeByIx nix
               ins      = node # Inputs
               succs    = readSuccs node
-              dirty    = "" -- if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
-              required = "" -- if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
-              --time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
-              --value    = (node # InterpreterData) ^. InterpreterLayer.debug
-              interpr  = "" -- " " <> time <> value <> required <> " "
+              dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
+              required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
+              time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
+              value    = "｢" <> (node # InterpreterData) ^. InterpreterLayer.debug <> "｣"  -- cool brackets http://www.amp-what.com/unicode/search/bracket
+              interpr  = " " <> time <> value <> required <> " "
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness
