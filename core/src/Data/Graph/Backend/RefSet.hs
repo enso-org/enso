@@ -35,17 +35,17 @@ elems = IntSet.toList . unwrap
 
 -- Cast
 
-instance Castable e e' => Castable (RefSet t e) (RefSet t e') where cast (RefSet s) = RefSet s
+instance Castable e e' => Castable (RefSet t e) (RefSet t e') where cast (RefSet s) = RefSet s ; {-# INLINE cast #-}
 
 -- RefContainer
 
 instance Monad m => RefContainer (RefSet t e) (Ref t e) m where
-    includeRef ref = return . add (unwrap ref)
-    excludeRef ref = return . remove (unwrap ref)
-    toRefList      = return . fmap Ref . elems
+    includeRef ref = return . add (unwrap ref)    ; {-# INLINE includeRef #-}
+    excludeRef ref = return . remove (unwrap ref) ; {-# INLINE excludeRef #-}
+    toRefList      = return . fmap Ref . elems    ; {-# INLINE toRefList  #-}
 
 -- Creator
 
 instance Monad m => Creator m (RefSet t e) where
-    create = return . RefSet $ mempty
+    create = return . RefSet $ mempty ; {-# INLINE create #-}
 

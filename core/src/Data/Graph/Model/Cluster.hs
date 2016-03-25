@@ -25,12 +25,14 @@ instance {-# OVERLAPPABLE #-} (Covered c, RefContainer (Uncovered c) ref m) => R
     includeRef ref c = do
         new <- includeRef ref $ uncover c
         return $ c & covered .~ new
+    {-# INLINE includeRef #-}
 
     excludeRef ref c = do
         new <- excludeRef ref $ uncover c
         return $ c & covered .~ new
+    {-# INLINE excludeRef #-}
 
-    toRefList      = toRefList . uncover
+    toRefList = toRefList . uncover  ; {-# INLINE toRefList #-}
 
 class Clusterable r e c m where
     include :: Ref r e -> Ref Cluster c -> m ()
