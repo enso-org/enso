@@ -83,7 +83,7 @@ Library
         Data.Graph.Model.Edge,
         Data.Graph.Model.Events,
         Data.Graph.Model.Node,
-        Data.Graph.Model.Ref,
+        Data.Graph.Model.Ptr,
         Data.Graph.Query,
         Data.Graph.Query.Sort,
         Data.Graph.Type,

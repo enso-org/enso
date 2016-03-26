@@ -3,7 +3,7 @@ module Data.Graph.Model.Events where
 import Prologue
 import Data.Graph.Model.Node
 import Data.Graph.Model.Cluster
-import Data.Graph.Model.Ref
+import Data.Graph.Model.Ptr
 
 data ELEMENT           = ELEMENT           deriving (Show)
 

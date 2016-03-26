@@ -6,7 +6,7 @@ import Prologue
 
 import Data.Container
 import Data.Prop
-import Data.Graph.Model.Ref
+import Data.Graph.Model.Ptr
 
 -- === Abstraction === --
 

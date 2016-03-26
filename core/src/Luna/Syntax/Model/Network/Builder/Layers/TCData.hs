@@ -27,8 +27,8 @@ import           Data.Graph
 data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link n
                                      , _requester   :: Maybe $ Ref Edge $ Link n
                                      , _tcErrors    :: [TCError $ Ref Node n]
-                                     , _replacement :: Maybe $ Ptr Cluster
-                                     , _belongsTo   :: [Ptr Cluster]
+                                     , _replacement :: Maybe $ Loc Cluster
+                                     , _belongsTo   :: [Loc Cluster]
                                      , _depth       :: Maybe Int
                                      , _seen        :: Bool
                                      } deriving (Show, Eq)

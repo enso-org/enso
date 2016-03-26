@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Model.Ref (module Data.Graph.Model.Ref, module X) where
+module Data.Graph.Model.Ptr (module Data.Graph.Model.Ptr, module X) where
 
 import Prelude.Luna
 
@@ -50,7 +50,7 @@ data UnknownX = UnknownX -- FIXME[WD]: For greater flexibility we should impleme
 -- === Definitions === --
 
 newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord)
-type    Ptr r   = Ref r UnknownX
+type    Loc r   = Ref r UnknownX
 
 class Referred r t a where focus :: Ref r a -> Lens' t a
 type  Referred' r t = Referred r t (t # r)

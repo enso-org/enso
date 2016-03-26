@@ -1,12 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
+-- FIXME[WD]: Maybe we should move it to Graph.Model.Ptr as PtrSet?
 module Data.Graph.Backend.RefSet where
 
 import Prologue
 
 import Data.Construction
 import Data.Graph.Model.Cluster
-import Data.Graph.Model.Ref
+import Data.Graph.Model.Ptr
 
 import           Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet

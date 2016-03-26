@@ -3,7 +3,7 @@ module Data.Graph.Type.Dynamic where
 import Prologue
 
 import Data.Prop
-import Data.Graph.Model.Ref
+import Data.Graph.Model.Ptr
 
 
 -----------------------
@@ -12,13 +12,13 @@ import Data.Graph.Model.Ref
 
 
 --class Dynamic' t g where
---    add'    :: g # t -> g -> (Ptr t, g)
---    remove' :: Ptr t -> g -> g
+--    add'    :: g # t -> g -> (Loc t, g)
+--    remove' :: Loc t -> g -> g
 
---    default add' :: Dynamic t g (g # t) => g # t -> g -> (Ptr t, g)
+--    default add' :: Dynamic t g (g # t) => g # t -> g -> (Loc t, g)
 --    add' a g = add a g & _1 %~ retarget ; {-# INLINE add' #-}
 
---    default remove' :: Dynamic t g (g # t) => Ptr t -> g -> g
+--    default remove' :: Dynamic t g (g # t) => Loc t -> g -> g
 --    remove' ref = remove (retarget ref :: Ref t (g # t)) ; {-# INLINE remove' #-}
 
 
@@ -39,11 +39,11 @@ import Data.Graph.Model.Ref
 
 type  Dynamic'  t g = DynamicM' t g Identity
 class DynamicM' t g m where
-    addM'    :: g # t -> g -> m (Ptr t, g)
-    removeM' :: Ptr t -> g -> m g
+    addM'    :: g # t -> g -> m (Loc t, g)
+    removeM' :: Loc t -> g -> m g
 
-    default addM'    :: (DynamicM t g m (g # t), Functor m) => g # t -> g -> m (Ptr t, g)
-    default removeM' :: (DynamicM t g m (g # t), Functor m) => Ptr t -> g -> m g
+    default addM'    :: (DynamicM t g m (g # t), Functor m) => g # t -> g -> m (Loc t, g)
+    default removeM' :: (DynamicM t g m (g # t), Functor m) => Loc t -> g -> m g
 
     addM'    el g = addM el g <&> _1 %~ retarget            ; {-# INLINE addM' #-}
     removeM' ref  = removeM (retarget ref :: Ref t (g # t)) ; {-# INLINE removeM' #-}
@@ -72,10 +72,10 @@ addM_ = fst <∘∘> addM ; {-# INLINE addM_ #-}
 removeM_ :: (DynamicM t g m a, Functor m) => Ref t a -> g -> m ()
 removeM_ = void ∘∘ removeM ; {-# INLINE removeM_ #-}
 
-addM'_ :: (DynamicM' t g m, Functor m) => g # t -> g -> m (Ptr t)
+addM'_ :: (DynamicM' t g m, Functor m) => g # t -> g -> m (Loc t)
 addM'_ = fst <∘∘> addM' ; {-# INLINE addM'_ #-}
 
-removeM'_ :: (DynamicM' t g m, Functor m) => Ptr t -> g -> m ()
+removeM'_ :: (DynamicM' t g m, Functor m) => Loc t -> g -> m ()
 removeM'_ = void ∘∘ removeM' ; {-# INLINE removeM'_ #-}
 
 -- Pure
@@ -86,10 +86,10 @@ add = runIdentity ∘∘ addM ; {-# INLINE add #-}
 remove :: Dynamic t g a => Ref t a -> g -> g
 remove = runIdentity ∘∘ removeM ; {-# INLINE remove #-}
 
-add' :: Dynamic' t g => g # t -> g -> (Ptr t, g)
+add' :: Dynamic' t g => g # t -> g -> (Loc t, g)
 add' = runIdentity ∘∘ addM' ; {-# INLINE add' #-}
 
-remove' :: Dynamic' t g => Ptr t -> g -> g
+remove' :: Dynamic' t g => Loc t -> g -> g
 remove' = runIdentity ∘∘ removeM' ; {-# INLINE remove' #-}
 
 
@@ -100,7 +100,7 @@ remove' = runIdentity ∘∘ removeM' ; {-# INLINE remove' #-}
 --------------------------
 
 --class Reservable' t g where
---    reserve' :: g -> Ptr t
+--    reserve' :: g -> Loc t
 
 --class Reservable t g a where
---    reserve :: g -> Ptr t a
+--    reserve :: g -> Loc t a
