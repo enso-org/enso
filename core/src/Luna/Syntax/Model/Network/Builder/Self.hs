@@ -8,6 +8,7 @@ module Luna.Syntax.Model.Network.Builder.Self where
 import qualified Control.Monad.Catch      as Catch
 import           Control.Monad.Fix
 import qualified Control.Monad.State      as State
+import           Control.Monad.Primitive
 import           Prelude.Luna
 import qualified Language.Haskell.Session as HS
 
@@ -89,6 +90,12 @@ instance State.MonadState s m => State.MonadState s (SelfBuilderT s m) where
 instance {-# OVERLAPPABLE #-} (MonadSelfBuilder s m, MonadTrans t, MonadFix (t m)) => MonadSelfBuilder s (t m) where
     get = lift get
     put = lift . put
+
+-- Primitive
+instance PrimMonad m => PrimMonad (SelfBuilderT s m) where
+    type PrimState (SelfBuilderT s m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<

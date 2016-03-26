@@ -7,6 +7,7 @@ module Luna.Syntax.Model.Network.Builder.Type where
 import qualified Control.Monad.Catch      as Catch
 import           Control.Monad.Fix
 import qualified Control.Monad.State      as State
+import           Control.Monad.Primitive
 import           Prelude.Luna
 import qualified Language.Haskell.Session as HS
 
@@ -89,6 +90,11 @@ instance {-# OVERLAPPABLE #-} (MonadTypeBuilder s m, MonadTrans t, Monad (t m)) 
     get = lift get
     put = lift . put
 
+-- Primitive
+instance PrimMonad m => PrimMonad (TypeBuilderT s m) where
+    type PrimState (TypeBuilderT s m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 

@@ -9,7 +9,7 @@ import           Control.Monad.Catch          hiding (Handler)
 import           Control.Monad.Fix
 import           Control.Monad.State          (StateT)
 import           Control.Monad.Trans.Identity
-
+import           Control.Monad.Primitive
 
 ----------------------
 -- === Listener === --
@@ -17,14 +17,22 @@ import           Control.Monad.Trans.Identity
 
 -- === Definitions === --
 
-class Handler    t cfg m a where handler :: a -> Listener t cfg m ()
+class   Handler  t cfg m a where handler :: a -> Listener t cfg m ()
 newtype Listener t cfg m a = Listener (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
 makeWrapped ''Listener
 
--- Registration time type constraint
 
+-- === Instances === --
+
+-- Registration time type constraint
 instance {-# OVERLAPPABLE #-} (Monad m, Dispatcher t a m)                    => Dispatcher t a (Listener t' cfg m) where dispatch_     = lift ∘∘ dispatch_
 instance {-# OVERLAPPABLE #-} (Monad m, Dispatcher t a m, Handler t cfg m a) => Dispatcher t a (Listener t  cfg m) where dispatch_ t a = handler a *> (lift $ dispatch_ t a)
+
+-- Primitive
+instance PrimMonad m => PrimMonad (Listener t cfg m) where
+    type PrimState (Listener t cfg m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 
 -----------------------------

@@ -61,7 +61,7 @@ import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork
 import           Luna.Syntax.Model.Network.Builder.Node
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetNode, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetNode, NetCluster, runNetworkBuilderT, runNetworkBuilderT2, fmapInputs, inputstmp)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
@@ -80,12 +80,17 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild def star
 
-prebuild2 :: IO (NetLayers :<: Draft Static, NetGraph)
-prebuild2 = runBuild def  (read =<< star)
+--prebuild2 :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
+--prebuild2 = runBuild2 def star
+
 
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
+
+
+runBuild2 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+                             $ runNetworkBuilderT2 g m
 
 evalBuild = fmap snd ∘∘ runBuild
 

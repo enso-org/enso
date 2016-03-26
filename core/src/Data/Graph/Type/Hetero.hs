@@ -25,10 +25,10 @@ instance  Referred I (Hetero a) n where focus   = impossible
 instance  Referred r (Hetero a) I where focus   = impossible
 instance  Referred r (Hetero I) n where focus   = impossible
 
+
 -- Dynamic
 
-instance (Castable (Prop t g) (Prop t g), Dynamic' t g) => Dynamic' t (Hetero g)
-
-instance (Dynamic' t g, Castable a (g # t)) => Dynamic t (Hetero g) a where
-    add a (Hetero g) = Hetero <$> add' (cast a) g & _1 %~ retarget ; {-# INLINE add    #-}
-    remove           =  fmap ∘ remove' ∘ retarget                  ; {-# INLINE remove #-}
+instance (Monad m, Castable (g # t) (g # t), DynamicM' t g m) => DynamicM' t (Hetero g) m
+instance (Monad m, DynamicM' t g m, Castable a (g # t))       => DynamicM  t (Hetero g) m a where
+    addM a (Hetero g) = Hetero <<$>> (addM' (cast a) g <&> _1 %~ retarget) ; {-# INLINE addM    #-}
+    removeM           = mapM ∘ removeM' ∘ retarget                         ; {-# INLINE removeM #-}

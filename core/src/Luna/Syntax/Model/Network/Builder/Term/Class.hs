@@ -43,6 +43,7 @@ import           Data.Graph.Backend.RefSet
 import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
+import Control.Monad.Primitive (PrimState, PrimMonad)
 
 -------------------------------------
 -- === Term building utilities === --
@@ -517,23 +518,28 @@ instance {-# OVERLAPPABLE #-}
     , m8 ~ Listener CONNECTION_REMOVE SuccUnregister m7
     , m7 ~ Listener SUBGRAPH_INCLUDE  MemberRegister m6
     , m6 ~ Listener CONNECTION        SuccRegister   m5
-    , m5 ~ GraphBuilder.BuilderT (Hetero (NEC.MGraph s n e c)) m4
+    , m5 ~ GraphBuilder.BuilderT (Hetero (NEC.MGraph (PrimState m) n e c)) m4
     , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
     , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
     , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
     , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
-    , Monad m
-    , net ~ Hetero (NEC.MGraph s n e c)
+    , PrimMonad m
+    , net ~ Hetero (NEC.Graph n e c)
     ) => NetworkBuilderT2 net m9 m where
-    runNetworkBuilderT2 net = flip Self.evalT (undefined ::        Ref Node NetNode)
-                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
-                            ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
-                            ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
-                            ∘ flip GraphBuilder.runT net
-                            ∘ registerSuccs   CONNECTION
-                            ∘ registerMembers SUBGRAPH_INCLUDE
-                            ∘ unregisterSuccs CONNECTION_REMOVE
-                            ∘ removeMembers   NODE_REMOVE
+    runNetworkBuilderT2 net mf = do
+        net' <- mapM NEC.unsafeThaw net
+        (a, netout) <- flip Self.evalT (undefined ::        Ref Node NetNode)
+                     ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
+                     ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
+                     ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
+                     ∘ flip GraphBuilder.runT net'
+                     ∘ registerSuccs   CONNECTION
+                     ∘ registerMembers SUBGRAPH_INCLUDE
+                     ∘ unregisterSuccs CONNECTION_REMOVE
+                     ∘ removeMembers   NODE_REMOVE
+                     $ mf
+        netout' <- mapM NEC.unsafeFreeze netout
+        return (a, netout')
 
 runNetworkBuilderT' net = flip Self.evalT (undefined ::        Ref Node NetNode')
                         ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode'))

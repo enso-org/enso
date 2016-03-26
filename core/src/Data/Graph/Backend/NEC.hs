@@ -99,9 +99,12 @@ instance (NFData (Unwrapped (Graph n e c))) => NFData (Graph n e c)
 
 -- Store
 
-type instance Store t (Graph n e c) = AutoVector (Graph n e c # t)
+type instance Store t ( Graph   n e c) = AutoVector    ( Graph   n e c # t)
+type instance Store t (MGraph s n e c) = MAutoVector s (MGraph s n e c # t)
 instance (HasStore t cont, Store t cont ~ Store t (Graph n e c), cont ~ Unwrapped (Graph n e c))
       => HasStore t (Graph n e c) where store p = wrapped' ∘ store p ; {-# INLINE store #-}
+instance (HasStore t cont, Store t cont ~ Store t (MGraph s n e c), cont ~ Unwrapped (MGraph s n e c))
+      => HasStore t (MGraph s n e c) where store p = wrapped' ∘ store p ; {-# INLINE store #-}
 
 -- Construction
 
@@ -109,12 +112,30 @@ type instance Prop Node    (Graph n e c) = n
 type instance Prop Edge    (Graph n e c) = e
 type instance Prop Cluster (Graph n e c) = c
 
+type instance Prop Node    (MGraph s n e c) = n
+type instance Prop Edge    (MGraph s n e c) = e
+type instance Prop Cluster (MGraph s n e c) = c
+
 -- Dynamic implementation
 
-instance (g ~ Graph n e c, HasStore t g, a ~ (g # t)) => Dynamic  t (Graph n e c) a
-instance (g ~ Graph n e c, HasStore t g)              => Dynamic' t (Graph n e c) where
-    add'    el  = store (p :: P t) $ swap ∘ fmap Ref ∘ ixed Cont.add el ; {-# INLINE add'    #-}
-    remove' ref = store (p :: P t) %~ Cont.free (ref ^. idx)            ; {-# INLINE remove' #-}
+--instance (g ~ Graph n e c, HasStore t g, a ~ (g # t)) => Dynamic  t (Graph n e c) a
+--instance (g ~ Graph n e c, HasStore t g)              => Dynamic' t (Graph n e c) where
+--    add'    el  = store (p :: P t) $ swap ∘ fmap Ref ∘ ixed Cont.add el ; {-# INLINE add'    #-}
+--    remove' ref = store (p :: P t) %~ Cont.free (ref ^. idx)            ; {-# INLINE remove' #-}
+
+
+--class DynamicM t a m g where
+--    addM    :: a -> g -> m (Ref t a, g)
+--    removeM :: Ref t a -> g -> m g
+
+instance (g ~ Graph n e c, HasStore t g, Monad m, a ~ (g # t)) => DynamicM  t (Graph n e c) m a
+instance (g ~ Graph n e c, HasStore t g, Monad m)              => DynamicM' t (Graph n e c) m where
+    addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ref) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
+    removeM' ref = store (p :: P t) $ Cont.freeM (ref ^. idx)                          ; {-# INLINE removeM' #-}
+
+instance (g ~ MGraph s n e c, s ~ PrimState m, PrimMonad m, HasStore t g)              => DynamicM' t (MGraph s n e c) m where
+    addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ref) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
+    removeM' ref = store (p :: P t) $ Cont.freeM (ref ^. idx)                          ; {-# INLINE removeM' #-}
 
 -- References handling
 

@@ -7,6 +7,7 @@ import Prologue hiding (Getter, Setter, read, (#))
 
 import           Data.Prop
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
+import           Control.Monad.Primitive
 import           Data.Construction
 import           Data.Container
 import           Data.Index
@@ -70,6 +71,10 @@ modify_ :: MonadBuilder g m => (g -> g) -> m ()
 modify_ = modify . fmap ((),)
 {-# INLINE modify_ #-}
 
+modifyM_ :: MonadBuilder g m => (g -> m g) -> m ()
+modifyM_ = modifyM . fmap2 ((),)
+{-# INLINE modifyM_ #-}
+
 
 -- === Instances === --
 
@@ -88,5 +93,11 @@ instance State.MonadState s m => State.MonadState s (BuilderT g m) where
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, MonadTrans t, Monad (t m)) => MonadBuilder g (t m) where
     get = lift get   ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
+
+-- Primitive
+instance PrimMonad m => PrimMonad (BuilderT g m) where
+    type PrimState (BuilderT g m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<

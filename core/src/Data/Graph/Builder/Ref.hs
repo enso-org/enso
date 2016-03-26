@@ -11,7 +11,7 @@ import Data.Graph.Builders
 import Data.Construction
 import Data.Prop
 import Data.Index
-import Data.Container                 hiding (add, remove)
+import Data.Container                 hiding (addM, removeM)
 import qualified Data.Container       as Cont
 import Data.Graph
 import Data.Graph.Builder.Class       hiding (with)
@@ -71,13 +71,13 @@ write ref = modify_ ∘ set (focus ref)
 instance Constructor m (Ref r a) => LayerConstructor m (Ref r a) where
     constructLayer = construct ; {-# INLINE constructLayer #-}
 
-instance (MonadBuilder g m, Dynamic t g a) => Constructor m (Ref t a) where
-    construct = modify ∘ add ; {-# INLINE construct #-}
+instance (MonadBuilder g m, DynamicM t g m a) => Constructor m (Ref t a) where
+    construct = modifyM ∘ addM ; {-# INLINE construct #-}
 
 -- Unregistering
 
-instance (MonadBuilder g m, Dynamic t g a) => Unregister m (Ref t a) where
-    unregister = modify_ ∘ remove ; {-# INLINE unregister #-}
+instance (MonadBuilder g m, DynamicM t g m a) => Unregister m (Ref t a) where
+    unregister = modifyM_ ∘ removeM ; {-# INLINE unregister #-}
 
 -- Destruction
 
