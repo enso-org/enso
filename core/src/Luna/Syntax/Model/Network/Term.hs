@@ -29,7 +29,7 @@ import Data.Prop
 -- === Network layout definition === --
 ---------------------------------------
 
-type instance Layout (Network ls) term rt = Ref Edge $ Link (ls :<: TermWrapper term rt)
+type instance Layout (Network ls) term rt = Ref Edge (Link (ls :<: TermWrapper term rt))
 
 type family TermWrapper (a :: *) :: * -> [*] -> *
 
@@ -39,12 +39,12 @@ type family TermWrapper (a :: *) :: * -> [*] -> *
 
 -- === Definitions === --
 
-data    Raw      (ls :: [*]) = Raw Data                                   deriving (Show)
-newtype Lit   rt (ls :: [*]) = Lit   (Term (Network ls) Format.Lit    rt) deriving (Show, Eq, Generic, NFData)
-newtype Val   rt (ls :: [*]) = Val   (Term (Network ls) Format.Val    rt) deriving (Show, Eq, Generic, NFData)
-newtype Thunk rt (ls :: [*]) = Thunk (Term (Network ls) Format.Thunk  rt) deriving (Show, Eq, Generic, NFData)
-newtype Phrase  rt (ls :: [*]) = Phrase  (Term (Network ls) Format.Phrase rt) deriving (Show, Eq, Generic, NFData)
-newtype Draft rt (ls :: [*]) = Draft (Term (Network ls) Format.Draft  rt) deriving (Show, Eq, Generic, NFData)
+data    Raw       (ls :: [*]) = Raw Data                                    deriving (Show)
+newtype Lit    rt (ls :: [*]) = Lit    (Term (Network ls) Format.Lit    rt) deriving (Show, Eq, Generic, NFData)
+newtype Val    rt (ls :: [*]) = Val    (Term (Network ls) Format.Val    rt) deriving (Show, Eq, Generic, NFData)
+newtype Thunk  rt (ls :: [*]) = Thunk  (Term (Network ls) Format.Thunk  rt) deriving (Show, Eq, Generic, NFData)
+newtype Phrase rt (ls :: [*]) = Phrase (Term (Network ls) Format.Phrase rt) deriving (Show, Eq, Generic, NFData)
+newtype Draft  rt (ls :: [*]) = Draft  (Term (Network ls) Format.Draft  rt) deriving (Show, Eq, Generic, NFData)
 
 
 -- === Instances === --

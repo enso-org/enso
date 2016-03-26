@@ -43,7 +43,7 @@ instance Castable e e' => Castable (RefSet t e) (RefSet t e') where cast (RefSet
 instance Monad m => RefContainer (RefSet t e) (Ref t e) m where
     includeRef ref = return . add (unwrap ref)
     excludeRef ref = return . remove (unwrap ref)
-    toRefList      = return . fmap Ref . elems
+    toRefList      = return . fmap Ptr . elems
 
 -- Creator
 

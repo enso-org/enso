@@ -156,7 +156,7 @@ instance ( name ~ NameInput a
          , MonadFix m
          , Connectible     inp  a m
          , ConnectibleName name a m
-         , ElemBuilder (Cons (NameConnection name a) (Ref Edge $ Connection inp a)) m a
+         , ElemBuilder (Cons (NameConnection name a) (Ref Edge (Connection inp a))) m a
          ) => TermBuilder Cons m a where
     buildTerm p (name, args) = mdo
         out   <- buildElem $ Cons cname cargs
@@ -167,7 +167,7 @@ instance ( name ~ NameInput a
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (Lam $ Ref Edge $ Connection inp a) m a
+         , ElemBuilder (Lam $ Ref Edge (Connection inp a)) m a
          ) => TermBuilder Lam m a where
     buildTerm p (args, res) = mdo
         out   <- buildElem $ Lam cargs cres
@@ -195,7 +195,7 @@ instance {-# OVERLAPPABLE #-}
          , MonadFix m
          , Connectible     src  a m
          , ConnectibleName name a m
-         , ElemBuilder (Acc (NameConnection name a) (Ref Edge $ Connection src a)) m a
+         , ElemBuilder (Acc (NameConnection name a) (Ref Edge (Connection src a))) m a
          ) => TermBuilder Acc m a where
     buildTerm p (name, src) = mdo
         out   <- buildElem $ Acc cname csrc
@@ -206,7 +206,7 @@ instance {-# OVERLAPPABLE #-}
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (App $ Ref Edge $ Connection inp a) m a
+         , ElemBuilder (App $ Ref Edge (Connection inp a)) m a
          ) => TermBuilder App m a where
     buildTerm p (src, args) = mdo
         out   <- buildElem $ App csrc cargs
@@ -251,7 +251,7 @@ type instance BuildArgs Unify n = (Input n, Input n)
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (Unify $ Ref Edge $ Connection inp a) m a
+         , ElemBuilder (Unify $ Ref Edge (Connection inp a)) m a
          ) => TermBuilder Unify m a where
     buildTerm p (a,b) = mdo
         out <- buildElem $ Unify ca cb
@@ -263,7 +263,7 @@ type instance BuildArgs Match n = (Input n, Input n)
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (Match $ Ref Edge $ Connection inp a) m a
+         , ElemBuilder (Match $ Ref Edge (Connection inp a)) m a
          ) => TermBuilder Match m a where
     buildTerm p (a,b) = mdo
         out <- buildElem $ Match ca cb
@@ -494,7 +494,7 @@ instance {-# OVERLAPPABLE #-}
     , m6 ~ Listener CONNECTION        SuccRegister   m5
     , m5 ~ GraphBuilder.BuilderT (Hetero (NEC.Graph n e c)) m4
     , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
-    , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
+    , m3 ~ Listener CONNECTION (TypeConstraint Equality_Full (Ref Edge (Link NetNode))) m2
     , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
     , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
     , Monad m
@@ -502,7 +502,7 @@ instance {-# OVERLAPPABLE #-}
     ) => NetworkBuilderT net m9 m where
     runNetworkBuilderT net = flip Self.evalT (undefined ::        Ref Node NetNode)
                            ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
-                           ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
+                           ∘ constrainTypeEq CONNECTION (Proxy :: Proxy $ Ref Edge (Link NetNode))
                            ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
                            ∘ flip GraphBuilder.runT net
                            ∘ registerSuccs   CONNECTION
@@ -520,7 +520,7 @@ instance {-# OVERLAPPABLE #-}
     , m6 ~ Listener CONNECTION        SuccRegister   m5
     , m5 ~ GraphBuilder.BuilderT (Hetero (NEC.MGraph (PrimState m) n e c)) m4
     , m4 ~ Listener ELEMENT (TypeConstraint Equality_Full (Ref Node NetNode)) m3
-    , m3 ~ Listener CONNECTION (TypeConstraint Equality_M1 (Ref Edge c)) m2
+    , m3 ~ Listener CONNECTION (TypeConstraint Equality_Full (Ref Edge (Link NetNode))) m2
     , m2 ~ Type.TypeBuilderT (Ref Node NetNode) m1
     , m1 ~ Self.SelfBuilderT (Ref Node NetNode) m
     , PrimMonad m
@@ -530,7 +530,7 @@ instance {-# OVERLAPPABLE #-}
         net' <- mapM NEC.unsafeThaw net
         (a, netout) <- flip Self.evalT (undefined ::        Ref Node NetNode)
                      ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
-                     ∘ constrainTypeM1 CONNECTION (Proxy :: Proxy $ Ref Edge c)
+                     ∘ constrainTypeEq CONNECTION (Proxy :: Proxy $ Ref Edge (Link NetNode))
                      ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
                      ∘ flip GraphBuilder.runT net'
                      ∘ registerSuccs   CONNECTION
@@ -551,6 +551,15 @@ runNetworkBuilderT' net = flip Self.evalT (undefined ::        Ref Node NetNode'
                         ∘ unregisterSuccs CONNECTION_REMOVE
                         ∘ removeMembers   NODE_REMOVE
 
+runNetworkBuilderT_1 net = flip Self.evalT (undefined ::        Ref Node NetNode)
+                         ∘ flip Type.evalT (Nothing   :: Maybe (Ref Node NetNode))
+                         ∘ constrainTypeEq CONNECTION (Proxy :: Proxy $ Ref Edge (Link NetNode))
+                         ∘ constrainTypeEq ELEMENT    (Proxy :: Proxy $ Ref Node NetNode)
+                         ∘ flip GraphBuilder.runT net
+                         ∘ registerSuccs   CONNECTION
+                         ∘ registerMembers SUBGRAPH_INCLUDE
+                         ∘ unregisterSuccs CONNECTION_REMOVE
+                         ∘ removeMembers   NODE_REMOVE
 
 -- FIXME[WD]: poprawic typ oraz `WithElement_` (!)
 -- FIXME[WD]: inputs should be more general and should be refactored out

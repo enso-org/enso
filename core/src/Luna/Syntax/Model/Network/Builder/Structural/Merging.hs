@@ -95,8 +95,8 @@ importToCluster :: ( ImportCtx
                    , BiCastable clus c
                    ) => graph -> m (Ref Cluster clus, NodeTranslator node)
 importToCluster g = do
-    let foreignNodeRefs = Ref <$> usedIxes (g ^. wrapped . nodeStore)
-        foreignEdgeRefs = Ref <$> usedIxes (g ^. wrapped . edgeStore)
+    let foreignNodeRefs = Ptr <$> usedIxes (g ^. wrapped . nodeStore)
+        foreignEdgeRefs = Ptr <$> usedIxes (g ^. wrapped . edgeStore)
         foreignNodes    = flip view g . focus <$> foreignNodeRefs
         foreignEdges    = flip view g . focus <$> foreignEdgeRefs
     trans <- importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)
@@ -120,7 +120,7 @@ dupCluster cluster name = do
     nodeRefs <- members cluster
     nodes <- mapM read nodeRefs
     let gatherEdges n = foldr IntSet.insert mempty (view idx <$> ((n # Inputs) ++ [n ^. prop Type]))
-    let edgeRefs = Ref <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
+    let edgeRefs = Ptr <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
     edges <- mapM read edgeRefs
     trans <- importStructure (zip nodeRefs nodes) (zip edgeRefs edges)
     fptr  <- follow (prop Lambda) cluster
@@ -131,4 +131,4 @@ dupCluster cluster name = do
     return (cl, trans)
 
 universe :: Ref Node n
-universe = Ref 0
+universe = Ptr 0

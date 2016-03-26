@@ -64,7 +64,7 @@ instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref
 
 
 reserveConnection :: MonadBuilder (Hetero (VEC.Graph n e c)) m => m (Ref Edge a)
-reserveConnection = Ref <$> modify (wrapped' ∘ edgeStore $ swap ∘ ixed reserve)
+reserveConnection = Ptr <$> modify (wrapped' ∘ edgeStore $ swap ∘ ixed reserve)
 
 class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 class NamedConnectionReservationH rt src tgt m conn where reserveNamedConnectionH :: Proxy rt -> src -> Proxy tgt -> m conn

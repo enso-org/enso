@@ -198,7 +198,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               interpr  = " " <> time <> value <> required <> " "
               succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
 
-              orphanTgts = selectOrphanTgts (Ref nix) succs -- FIXME[WD] ugliness
+              orphanTgts = selectOrphanTgts (Ptr nix) succs -- FIXME[WD] ugliness
 
               orphanTgtNodes = flip DotNode [shape PointShape, emptyLabel] ∘ ((nodeId <> "orphanTgt ") <>) ∘ show <$> orphanTgts
 

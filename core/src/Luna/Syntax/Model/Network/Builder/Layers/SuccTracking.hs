@@ -93,4 +93,4 @@ type HasSuccs n = (HasProp Succs n, Prop Succs n ~ SizeTracking IntSet)
 ----------------------
 
 readSuccs :: HasSuccs n => n -> [Ref Edge (Link n)]
-readSuccs = fmap Ref . toList . view (prop Succs)
+readSuccs = fmap Ptr . toList . view (prop Succs)

@@ -42,7 +42,7 @@ import qualified Luna.Syntax.Term.Function         as Function
                          , NetworkBuilderT NetGraph m0 Identity  \
                          , MonadBuilder NetGraph m               \
                          , Monad m0                              \
-                         , Destructor m (Ref Edge $ Link n)      \
+                         , Destructor m (Ref Edge (Link n))      \
                          , m ~ StateT (Map.Map TPRep nodeRef) m0 \
                          )
 

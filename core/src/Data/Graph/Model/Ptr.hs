@@ -15,9 +15,9 @@ import Data.Prop
 -- === Ref === --
 -----------------
 
---data Knowledge a = Known a
---                 | Unknown
---                 deriving (Show, Functor, Foldable, Traversable)
+data Knowledge a = Known a
+                 | Unknown
+                 deriving (Show, Functor, Foldable, Traversable)
 
 --newtype Ptr r (tgt :: Knowledge *) = Ptr Int deriving (Generic, NFData, Show, Eq, Ord)
 --type    Loc r   = Ptr r 'Unknown
@@ -45,12 +45,17 @@ import Data.Prop
 --    followM = dereferenceM ; {-# INLINE followM #-}
 
 
-data UnknownX = UnknownX -- FIXME[WD]: For greater flexibility we should implement this as data-kind - Known a / UnknownX a
+--data 'Unknown = 'Unknown -- FIXME[WD]: For greater flexibility we should implement this as data-kind - Known a / 'Unknown a
 
 -- === Definitions === --
 
-newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord)
-type    Loc r   = Ref r UnknownX
+newtype Ptrx r (tgt :: Knowledge *) = Ptr Int deriving (Generic, NFData, Show, Eq, Ord)
+type    Loc r   = Ptrx r 'Unknown
+type    Ref r a = Ptrx r ('Known a)
+
+
+--newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord)
+--type    Loc r   = Ref r 'Unknown
 
 class Referred r t a where focus :: Ref r a -> Lens' t a
 type  Referred' r t = Referred r t (t # r)
@@ -75,14 +80,14 @@ type  Referred' r t = Referred r t (t # r)
 focus' :: Referred' r t => Ref r (t # r) -> Lens' t (t # r)
 focus' = focus
 
-retarget :: Ref r a -> Ref r a'
+retarget :: Ptrx r a -> Ptrx r a'
 retarget = rewrap
 
 
 -- === Instances === --
 
 -- Wrappers
-makeWrapped ''Ref
+makeWrapped ''Ptrx
 
 -- Ref primitive instances
 type instance Uncovered     (Ref r a) = Uncovered a
@@ -90,13 +95,16 @@ type instance Unlayered     (Ref r a) = a
 type instance Deconstructed (Ref r a) = a
 
 -- Index
-type instance Index  (Ref r a) = Int
-instance      HasIdx (Ref r a) where idx = wrapped' ; {-# INLINE idx #-}
+type instance Index  (Ptrx r a) = Int
+instance      HasIdx (Ptrx r a) where idx = wrapped' ; {-# INLINE idx #-}
 
 -- Conversions
-instance {-# OVERLAPPABLE #-}                  Castable (Ref r a)       (Ref r a)        where cast = id     ; {-# INLINE cast #-}
-instance {-# OVERLAPPABLE #-} Castable a a' => Castable (Ref r a)       (Ref r' a')      where cast = rewrap ; {-# INLINE cast #-}
-instance {-# OVERLAPPABLE #-}                  Castable (Ref r a)       (Ref r' UnknownX) where cast = rewrap ; {-# INLINE cast #-}
-instance {-# OVERLAPPABLE #-}                  Castable (Ref r UnknownX) (Ref r' a')      where cast = rewrap ; {-# INLINE cast #-}
-instance {-# OVERLAPPABLE #-}                  Castable (Ref r UnknownX) (Ref r' UnknownX) where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable a a'
+                           => Castable (Ref r a) (Ref r' a') where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Ptrx r a) (Ptrx r  a ) where cast = id     ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Ref r a) (Ref r  a ) where cast = id     ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Loc r    ) where cast = id     ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Ptrx r a) (Loc r'   ) where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Ptrx r' a') where cast = rewrap ; {-# INLINE cast #-}
+instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Loc r'   ) where cast = rewrap ; {-# INLINE cast #-}
 

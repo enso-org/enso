@@ -34,13 +34,13 @@ import           Data.Graph
 
 -- === Type layer === --
 
-type instance LayerData (Network ls) Type t = Ref Edge $ Link (Shelled t)
+type instance LayerData (Network ls) Type t = Ref Edge (Link (Shelled t))
 
 instance (MonadSelfBuilder s m, (Link l) ~ Connection s (Ref Node l), Connectible s (Ref Node l) m, l ~ Shelled a)
       => Creator m (Layer (Network ls) Type a) where
     create = Layer <$> do
         s <- self
-        let tgt = Ref 0 :: Ref Node l -- FIXME[WD]: Pure magic. 0 is the ID of Star
+        let tgt = Ptr 0 :: Ref Node l -- FIXME[WD]: Pure magic. 0 is the ID of Star
         connection tgt s
 
 instance (Monad m, Destructor m (LayerData (Network ls) Type a)) => Destructor m (Layer (Network ls) Type a) where

@@ -24,8 +24,8 @@ import           Data.Graph
 
 -- === TCData layer === --
 
-data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge $ Link n
-                                     , _requester   :: Maybe $ Ref Edge $ Link n
+data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge (Link n)
+                                     , _requester   :: Maybe $ Ref Edge (Link n)
                                      , _tcErrors    :: [TCError $ Ref Node n]
                                      , _replacement :: Maybe $ Loc Cluster
                                      , _belongsTo   :: [Loc Cluster]
@@ -38,7 +38,7 @@ type instance LayerData (Network ls) TCData t = TCDataPayload (Shelled t)
 instance Monad m => Creator m (Layer (Network ls) TCData a) where
     create = return $ Layer $ TCDataPayload def def def def def def False
 
-instance (Monad m, Destructor m (Ref Edge $ Link (Shelled a)))
+instance (Monad m, Destructor m (Ref Edge (Link (Shelled a))))
       => Destructor m (Layer (Network ls) TCData a) where
     destruct (Layer (TCDataPayload red req _ _ _ _ _)) = do
         mapM_ destruct red

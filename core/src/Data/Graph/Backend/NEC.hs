@@ -130,11 +130,11 @@ type instance Prop Cluster (MGraph s n e c) = c
 
 instance (g ~ Graph n e c, HasStore t g, Monad m, a ~ (g # t)) => DynamicM  t (Graph n e c) m a
 instance (g ~ Graph n e c, HasStore t g, Monad m)              => DynamicM' t (Graph n e c) m where
-    addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ref) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
+    addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
     removeM' ref = store (p :: P t) $ Cont.freeM (ref ^. idx)                          ; {-# INLINE removeM' #-}
 
 instance (g ~ MGraph s n e c, s ~ PrimState m, PrimMonad m, HasStore t g)              => DynamicM' t (MGraph s n e c) m where
-    addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ref) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
+    addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
     removeM' ref = store (p :: P t) $ Cont.freeM (ref ^. idx)                          ; {-# INLINE removeM' #-}
 
 -- References handling

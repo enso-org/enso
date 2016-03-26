@@ -80,6 +80,8 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild def star
 
+
+
 --prebuild2 :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 --prebuild2 = runBuild2 def star
 
@@ -503,8 +505,8 @@ instance Referenced Edge (Network' ls cls) (Link (ls :<: Draft Static)) where re
 
 instance Referenced r t a => Referenced r (Hetero t) a where refs = refs ∘ unwrap'
 
-instance n ~ n' => Referenced Node (NEC.Graph n e c) n' where refs = fmap Ref ∘ usedIxes ∘ view nodeStore
-instance e ~ e' => Referenced Edge (NEC.Graph n e c) e' where refs = fmap Ref ∘ usedIxes ∘ view edgeStore
+instance n ~ n' => Referenced Node (NEC.Graph n e c) n' where refs = fmap Ptr ∘ usedIxes ∘ view nodeStore
+instance e ~ e' => Referenced Edge (NEC.Graph n e c) e' where refs = fmap Ptr ∘ usedIxes ∘ view edgeStore
 
 --g -> [Ref Node (g # Node)]
 
@@ -619,22 +621,22 @@ foo g = runNetworkBuilderT g
     print s1t
     print s1s
 
-    title "subgraph definition"
-    sg1 :: Ref Cluster $ NetCluster <- subgraph
-    sg2 :: Ref Cluster $ NetCluster <- subgraph
-    include s1 sg1
-    include s2 sg1
-    include s2 sg2
-    print "done"
+    --title "subgraph definition"
+    --sg1 :: Ref Cluster $ NetCluster <- subgraph
+    --sg2 :: Ref Cluster $ NetCluster <- subgraph
+    --include s1 sg1
+    --include s2 sg1
+    --include s2 sg2
+    --print "done"
 
-    title "subgraph lookup"
-    mems :: [Ref Node NetNode] <- members sg1
-    print mems
+    --title "subgraph lookup"
+    --mems :: [Ref Node NetNode] <- members sg1
+    --print mems
 
-    title "subgraph modification"
-    exclude s2 sg1
-    mems2 :: [Ref Node NetNode] <- members sg1
-    print mems2
+    --title "subgraph modification"
+    --exclude s2 sg1
+    --mems2 :: [Ref Node NetNode] <- members sg1
+    --print mems2
 
     return s1
 

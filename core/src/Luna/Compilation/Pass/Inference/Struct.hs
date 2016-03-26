@@ -159,4 +159,4 @@ runPass apps accs binds = do
     bindUnis <- mapM buildBindType binds
     return $ bindUnis -- <> appUnis <> accUnis
 
-universe = Ref 0
+universe = Ptr 0

@@ -223,7 +223,7 @@ run :: forall nodeRef m ls term n e ne c.
 run unis = forM unis $ \u -> fmap (resolveUnifyY u) $ runResolutionT $ resolveUnify u
 
 
-universe = Ref 0 -- FIXME [WD]: Implement it in safe way. Maybe "star" should always result in the top one?
+universe = Ptr 0 -- FIXME [WD]: Implement it in safe way. Maybe "star" should always result in the top one?
 
 ---- FIXME[WD]: Change the implementation to list builder
 --resolveUnifyX :: (PassCtx(ResolutionT [nodeRef] m,ls,term), nodeRef ~ Ref (Node $ (ls :<: term)), MonadIO m, Show (ls :<: term))
