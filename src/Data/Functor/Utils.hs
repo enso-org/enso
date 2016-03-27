@@ -87,8 +87,8 @@ f <<$>> a = fmap f <$> a
 
 -- nested lenses
 -- | following functions are usefull when operating on nested structures with lenses, for example
--- | given function foo :: a -> m (n a) and a lens l :: Lens' x a, we can use 
--- | nested l foo to get signature of x -> m (n x) 
+-- | given function foo :: a -> m (n a) and a lens l :: Lens' x a, we can use
+-- | nested l foo to get signature of x -> m (n x)
 
 newtype NestedFunctor m n a = NestedFunctor { fromNestedFunctor :: m (n a)} deriving (Show)
 instance (Functor m, Functor n) => Functor (NestedFunctor m n) where fmap f = NestedFunctor . (fmap $ fmap f) . fromNestedFunctor
@@ -98,6 +98,6 @@ nested l f = fromNestedFunctor . l (fmap NestedFunctor f)
 {-# INLINE nested #-}
 
 
-type family Functors lst :: Constraint where 
+type family Functors lst :: Constraint where
     Functors '[]       = ()
     Functors (f ': fs) = (Functor f, Functors fs)
