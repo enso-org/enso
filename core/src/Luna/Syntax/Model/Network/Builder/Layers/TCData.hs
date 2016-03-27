@@ -8,7 +8,7 @@ import           Data.Graph.Builders
 import           Control.Monad.Event
 import           Data.Prop
 import           Data.Construction
-import           Data.Graph.Backend.RefSet
+import           Data.Graph.Model.Pointer.Set
 import           Data.Graph.Backend.NEC
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self

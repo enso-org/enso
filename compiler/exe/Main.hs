@@ -66,7 +66,7 @@ import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
 import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Backend.RefSet
+import           Data.Graph.Model.Pointer.Set (RefSet)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 

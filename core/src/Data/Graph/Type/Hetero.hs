@@ -6,7 +6,7 @@ import Prologue hiding (Getter, Setter)
 
 import Data.Container.Hetero as X (Hetero(..))
 import Data.Prop
-import Data.Graph.Model.Ptr
+import Data.Graph.Model.Pointer
 import Data.Graph.Model.Edge
 import Data.Graph.Model.Node
 import Data.Graph.Type.Dynamic

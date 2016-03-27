@@ -38,7 +38,7 @@ import           Control.Monad.Trans.Identity
 import           Type.Bool
 
 import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Backend.RefSet
+import           Data.Graph.Model.Pointer.Set (RefSet)
 
 import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)

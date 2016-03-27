@@ -7,12 +7,11 @@ import Prelude.Luna
 
 import           Data.Graph.Builder
 import           Control.Monad.Event
-import           Data.Graph.Backend.RefSet          (RefSet)
 import           Data.Prop
 import qualified Data.List                               as List
 import           Data.Construction
-import qualified Data.Graph.Backend.NEC          as VEC
-import qualified Data.Graph.Backend.RefSet       as RefSet
+import qualified Data.Graph.Backend.NEC                  as VEC
+import           Data.Graph.Model.Pointer.Set            (RefSet)
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import           Luna.Syntax.Model.Network.Builder.Self  (MonadSelfBuilder, self)

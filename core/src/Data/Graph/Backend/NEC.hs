@@ -20,7 +20,7 @@ import Data.Vector.Mutable      (MVector)
 
 import Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)
-import Data.Graph.Backend.RefSet ()
+import Data.Graph.Model.Pointer.Set ()
 
 
 -----------------

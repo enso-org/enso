@@ -24,7 +24,7 @@ import           Data.Reprx
 import           Data.Graph
 import           Data.Graph.Backend.NEC
 import qualified Data.Graph.Backend.NEC          as Graph
-import qualified Data.Graph.Backend.RefSet as SubGraph
+import qualified Data.Graph.Model.Pointer.Set as SubGraph
 import           Data.GraphViz
 import qualified Data.GraphViz.Attributes                as GV
 import qualified Data.GraphViz.Attributes.Colors         as GVC
@@ -258,7 +258,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
           genNodeLabel  node = reprStyled HeaderOnly $ uncover node
 
           matchCluster :: Int -> Int -> Maybe Int
-          matchCluster clrIx  nix = if SubGraph.member nix (uncover $ clusterByIx clrIx) then Just clrIx else Nothing
+          matchCluster clrIx  nix = if SubGraph.member (wrap nix) (uncover $ clusterByIx clrIx) then Just clrIx else Nothing
           matchClusters :: [Int] -> Int -> [Int]
           matchClusters clrIxs nix = catMaybes $ flip matchCluster nix <$> clrIxs
 

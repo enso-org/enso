@@ -6,7 +6,7 @@ import Prologue
 
 import Data.Container
 import Data.Prop
-import Data.Graph.Model.Ptr
+import Data.Graph.Model.Pointer
 
 -- === Abstraction === --
 
@@ -21,6 +21,7 @@ class Monad m => RefContainer c ref m where
     excludeRef :: ref -> c -> m c
     toRefList  :: c -> m [ref]
 
+-- FIXME[WD->MK]: Remove this! It is pure evil. Contact me to discuss the proper implementation.
 instance {-# OVERLAPPABLE #-} (Covered c, RefContainer (Uncovered c) ref m) => RefContainer c ref m where
     includeRef ref c = do
         new <- includeRef ref $ uncover c

@@ -4,7 +4,7 @@ module Data.Graph.Model.Edge where
 
 import Prologue
 
-import Data.Graph.Model.Ptr
+import Data.Graph.Model.Pointer
 import Data.Graph.Model.Node
 
 import Data.Container          hiding (Impossible)
