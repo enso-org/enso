@@ -364,6 +364,7 @@ remove    = withTransFunc (fmap3 runIdentity) removeM
 insertM'  = queryBuilder insertQM
 insert'   = withTransFunc (fmap4 runIdentity) insertM'
 insertM   = queryBuilder $ fmap formatResult .:: insertQM
+insertM__    = withTransFunc (fmap5 res_) insertM'
 insert    = withTransFunc (fmap4 runIdentity) insertM
 insert_   = withTransFunc (fmap4 res_) insert'
 {-# INLINE insertM' #-}
@@ -430,6 +431,7 @@ type instance IdxMod TracksElemsOp a = [a]
 indexM'    = queryBuilder indexQM
 index'     = withTransFunc (fmap3 runIdentity) indexM'
 indexM     = queryBuilder $ fmap formatResult .:. indexQM
+indexM__    = withTransFunc (fmap4 res_) indexM'
 index      = withTransFunc (fmap3 runIdentity) indexM
 index_     = withTransFunc (fmap3 res_) index'
 

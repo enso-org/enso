@@ -97,9 +97,9 @@ instance (PrimMonad m, s ~ PrimState m) => AllocableQM_ '[P M.Ixed] ps m    (MVe
 --instance Monad m => ExpandableQM_ '[P M.Ixed] ps m   (MVector s a) where expandM_ _ v = return $ Res ([V.length v],()) $ runST $ V.unsafeThaw v >>= flip MV.unsafeGrow 1 >>= V.unsafeFreeze {-# INLINE expandM_ #-}
 
 
-instance (PrimMonad m, s ~ PrimState m) => GrowableQM_ '[P M.Ixed] ps m   (MVector s Int) where growM_ _ i v = Res (take i [size v ..],()) <$> (MV.unsafeGrow v i >>= flip (foldlM (flip ($))) ((\pi pv -> MV.write pv pi 7 *> pure pv) <$> take i [size v ..]))                      ; {-# INLINE growM_ #-}
---instance (PrimMonad m, s ~ PrimState m) => GrowableQM_ '[N       ] ps m   (MVector s a) where growM_ _ i v = Res () <$> MV.unsafeGrow v i                      ; {-# INLINE growM_ #-}
---instance (PrimMonad m, s ~ PrimState m) => GrowableQM_ '[P M.Ixed] ps m   (MVector s a) where growM_ _ i v = Res (take i [size v ..],()) <$> MV.unsafeGrow v i ; {-# INLINE growM_ #-}
+--instance (PrimMonad m, s ~ PrimState m) => GrowableQM_ '[P M.Ixed] ps m   (MVector s Int) where growM_ _ i v = Res (take i [size v ..],()) <$> (MV.unsafeGrow v i >>= flip (foldlM (flip ($))) ((\pi pv -> MV.write pv pi 7 *> pure pv) <$> take i [size v ..]))                      ; {-# INLINE growM_ #-}
+instance (PrimMonad m, s ~ PrimState m) => GrowableQM_ '[N       ] ps m   (MVector s a) where growM_ _ i v = Res () <$> MV.unsafeGrow v i                      ; {-# INLINE growM_ #-}
+instance (PrimMonad m, s ~ PrimState m) => GrowableQM_ '[P M.Ixed] ps m   (MVector s a) where growM_ _ i v = Res (take i [size v ..],()) <$> MV.unsafeGrow v i ; {-# INLINE growM_ #-}
 
 
 -- === Modification ===
@@ -126,8 +126,8 @@ type instance ModsOf   AddableOp     (MVector s a) = '[M.Ixed]
 type instance ParamsOf InsertableOp  (MVector s a) = '[]
 type instance ModsOf   InsertableOp  (MVector s a) = '[M.Ixed]
 
---type instance ParamsOf FreeableOp    (MVector s a) = '[]
---type instance ModsOf   FreeableOp    (MVector s a) = '[]
+type instance ParamsOf FreeableOp    (MVector s a) = '[]
+type instance ModsOf   FreeableOp    (MVector s a) = '[]
 
 --instance (Monad m, a ~ a') => AppendableQM_  '[N       ] ps m a' (MVector s a) where
 --    appendM_ _ el v = (return . Res ())          $ V.snoc v el ; {-# INLINE appendM_ #-}
@@ -165,9 +165,9 @@ instance (PrimMonad m, s ~ PrimState m, a ~ a', idx ~ Int) => InsertableQM_ '[N 
 instance (PrimMonad m, s ~ PrimState m, a ~ a', idx ~ Int) => InsertableQM_ '[P M.Ixed] ps m idx a' (MVector s a) where insertM_ _ idx el v = Res (idx,()) <$> (MV.write v idx el *> pure v) ; {-# INLINE insertM_ #-}
 
 
---instance (Monad m, idx ~ Int) => FreeableQM_ '[] ps m idx (MVector s a) where
---    freeM_ _ idx v = (return . Res ()) $ (V.//) v [(idx,error $ "uninitialized element at index " <> show idx)]
---    {-# INLINE freeM_ #-}
+instance (Monad m, idx ~ Int) => FreeableQM_ '[] ps m idx (MVector s a) where
+    freeM_ _ idx v = undefined -- (return . Res ()) $ (V.//) v [(idx,error $ "uninitialized element at index " <> show idx)]
+    {-# INLINE freeM_ #-}
 
 
 
