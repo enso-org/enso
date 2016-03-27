@@ -6,7 +6,7 @@ packages:
 - {location: ..}
 - {extra-dep: true, location: ../../core}
 - extra-dep: true
-  location: {commit: 771b661befb0fb49c562f18f1b71d37d95ac2c3c, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: e02ee11b4162911acdfa6e2af47bc760cc30d72f, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
@@ -24,7 +24,7 @@ packages:
 - extra-dep: true
   location: {commit: 8388cf190cb1c5d86fb8d3afc6ad8ad980e03dd5, git: 'https://github.com/wdanilo/dependent-state.git'}
 - extra-dep: true
-  location: {commit: a99e2bfc9bce86359a070c2b257cff9bde6b0106, git: 'https://github.com/wdanilo/functor-utils.git'}
+  location: {commit: 79b4b0b10d85200604831dd9525c160b6796d478, git: 'https://github.com/wdanilo/functor-utils.git'}
 - extra-dep: true
   location: {commit: cab65d139d158f10c7c5b41db4aaedef945b11b2, git: 'https://github.com/wdanilo/impossible.git'}
 - extra-dep: true
@@ -32,11 +32,11 @@ packages:
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: 8c8b1d1569da4553377b52fc816b110c32a20a0e, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: fa2e1cb156e2546f2e737f3f24706f5fe6aa7301, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
-  location: {commit: 030eb9912f55604fe594eb34c5a09a5c19d261e8, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: 2a82621b298b73708fdebb55cf095d718d25bde5, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
