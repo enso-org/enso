@@ -209,19 +209,23 @@ tryGetBool boolStr
     | otherwise          = Nothing
 
 
-#define InterpreterCtx(m, ls, term) ( ls   ~ NetLayers                                         \
-                                    , term ~ Draft Static                                      \
-                                    , ne   ~ Link (ls :<: term)                                \
-                                    , BiCastable e ne                                          \
-                                    , BiCastable n (ls :<: term)                               \
-                                    , MonadIO (m)                                              \
-                                    , MonadBuilder (Hetero (NEC.Graph n e c)) (m)              \
-                                    , NodeInferable (m) (ls :<: term)                          \
-                                    , TermNode Lam  (m) (ls :<: term)                          \
-                                    , HasProp InterpreterData (ls :<: term)                    \
-                                    , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer \
-                                    , InterpreterMonad (Env (Ref Node (ls :<: term))) (m)      \
-                                    , MonadMask (m)                                            \
+#define InterpreterCtx(m, ls, term) ( ls    ~ NetLayers                               \
+                                    , term  ~ Draft Static                            \
+                                    , node  ~ (ls :<: term)                           \
+                                    , edge  ~ Link node                               \
+                                    , graph ~ Hetero (NEC.Graph n e c)                \
+                                    , BiCastable e edge                               \
+                                    , BiCastable n node                               \
+                                    , MonadIO (m)                                     \
+                                    , MonadBuilder graph (m)                          \
+                                    , NodeInferable (m) node                          \
+                                    , TermNode Lam  (m) node                          \
+                                    , HasProp InterpreterData node                    \
+                                    , Prop    InterpreterData node ~ InterpreterLayer \
+                                    , InterpreterMonad (Env (Ref Node node)) (m)      \
+                                    , MonadMask (m)                                   \
+                                    , ReferencedM Node graph (m) node                 \
+                                    , ReferencedM Edge graph (m) edge                 \
                                     )
 
 
@@ -524,22 +528,26 @@ evaluateNodes reqRefs = do
     mapM_ evaluateNode =<< Env.getNodesToEval
 
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers                                         \
-                             , term ~ Draft Static                                      \
-                             , ne   ~ Link (ls :<: term)                                \
-                             , BiCastable e ne                                          \
-                             , BiCastable n (ls :<: term)                               \
-                             , MonadIO (m)                                              \
-                             , MonadBuilder ((Hetero (NEC.Graph n e c))) (m)            \
-                             , NodeInferable (m) (ls :<: term)                          \
-                             , TermNode Lam  (m) (ls :<: term)                          \
-                             , MonadFix (m)                                             \
-                             , HasProp InterpreterData (ls :<: term)                    \
-                             , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer \
-                             , MonadMask (m)                                            \
+#define PassCtx(m, ls, term) ( ls    ~ NetLayers                               \
+                             , term  ~ Draft Static                            \
+                             , node  ~ (ls :<: term)                           \
+                             , edge  ~ Link node                               \
+                             , graph ~ Hetero (NEC.Graph n e c)                \
+                             , BiCastable e edge                               \
+                             , BiCastable n node                               \
+                             , MonadIO (m)                                     \
+                             , MonadBuilder graph (m)                          \
+                             , NodeInferable (m) node                          \
+                             , TermNode Lam  (m) node                          \
+                             , MonadFix (m)                                    \
+                             , HasProp InterpreterData node                    \
+                             , Prop    InterpreterData node ~ InterpreterLayer \
+                             , MonadMask (m)                                   \
+                             , ReferencedM Node graph (m) node                 \
+                             , ReferencedM Edge graph (m) edge                 \
                              )
 
-run :: forall env m ls term ne n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term node edge graph n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     -- putStrLn $ "Paths.libdir " <> Paths.libdir

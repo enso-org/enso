@@ -22,7 +22,7 @@ import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, requester, tcErrors, translateSignature, NodeTranslator)
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
+import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster, NetClusterLayers)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Type.Inference
@@ -38,6 +38,8 @@ import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), Ty
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import           Luna.Compilation.Error
+
+import Data.Graph.Model.Pointer.Set (RefSet)
 
 -- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently
 
@@ -58,10 +60,13 @@ import           Luna.Compilation.Error
                    , TermNode Lam   (m) (ls :<: term)                \
                    , TermNode Unify (m) (ls :<: term)                \
                    , MonadSymbol node clus graph (m)                 \
-                   , Referred Node graph n                           \
                    , Connectible (Ref Node node) (Ref Node node) (m) \
                    , Clusterable Node node clus (m)                  \
                    , Destructor (m) (Ref Edge edge)                  \
+                   , ReferencedM Node graph (m) node                 \
+                   , ReferencedM Edge graph (m) edge                 \
+                   , ReferencedM Node graph (ErrorT ImportError (m)) node {- FIXME[WD->MK]: czemu tu pojawia sie ErrorT? -} \
+                   , ReferencedM Edge graph (ErrorT ImportError (m)) edge {- FIXME[WD->MK]: czemu tu pojawia sie ErrorT? -} \
                    )
 
 
@@ -101,7 +106,8 @@ funLookup name = do
     f <- lookupFunction $ QualPath.mk name
     fromMaybe (throwError SymbolNotFound) (return <$> f)
 
-importFunction :: PassCtx(ImportErrorT m) => String -> Function (Ref Node node) graph -> ImportErrorT m (Ref Cluster clus)
+importFunction :: (PassCtx(ImportErrorT m), ReferencedM Cluster (Hetero (NEC.Graph n e c)) (ErrorT ImportError m) (NetClusterLayers :< RefSet Node (NetLayers :<: Draft Static)))
+               => String -> Function (Ref Node node) graph -> ImportErrorT m (Ref Cluster clus)
 importFunction name fun = do
     (cls, translator) <- importToCluster $ fun ^. Function.body
     let sig = fun ^. Function.sig & translateSignature translator
@@ -146,7 +152,8 @@ attachError ref = do
         of' $ \ANY -> return []
     withRef ref $ prop TCData . tcErrors %~ (err ++)
 
-processNode :: (PassCtx(ImportErrorT m), PassCtx(m)) => Ref Node node -> m (Either ImportError [Ref Node node])
+processNode :: (PassCtx(ImportErrorT m), PassCtx(m), ReferencedM Cluster (Hetero (NEC.Graph n e c)) (ErrorT ImportError m) (NetClusterLayers :< RefSet Node (NetLayers :<: Draft Static)))
+            => Ref Node node -> m (Either ImportError [Ref Node node])
 processNode ref = runErrorT $ do
     name   <- getFunctionName ref
     lambda <- lookupLambda $ QualPath.mk name
@@ -174,6 +181,7 @@ data SymbolImportingPass = SymbolImportingPass deriving (Show, Eq)
 instance ( PassCtx(ImportErrorT m)
          , PassCtx(m)
          , MonadTypeCheck (ls :<: term) m
+         , ReferencedM Cluster (Hetero (NEC.Graph n e c)) (ErrorT ImportError m) (NetClusterLayers :< RefSet Node (NetLayers :<: Draft Static))
          ) => TypeCheckerPass SymbolImportingPass m where
     hasJobs _ = not . null . view TypeCheck.unresolvedSymbols <$> TypeCheck.get
 

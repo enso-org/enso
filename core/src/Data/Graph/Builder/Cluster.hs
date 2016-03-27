@@ -13,7 +13,7 @@ import Data.Graph.Builder.Class (MonadBuilder)
 instance ( Dispatcher SUBGRAPH_INCLUDE (SubgraphElemEvent (Ref r e) (Ref Cluster c)) m
          , RefContainer c (Ref r e) m
          , MonadBuilder t m
-         , Referred Cluster t c
+         , ReferencedM Cluster t m c
          ) => Clusterable r e c m where
     include el cluster = do
         withM cluster $ includeRef el

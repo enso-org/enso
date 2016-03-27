@@ -30,8 +30,7 @@ import           Luna.Syntax.Model.Network.Builder.Layers.TCData
 
 data MemberRegister = MemberRegister deriving (Show, Eq)
 instance ( MonadBuilder g m
-         , Referred Node    g n
-         , Referred Cluster g c
+         , ReferencedM Node g m n
          , HasProp TCData n
          , Prop TCData n ~ TCDataPayload n
          ) => Handler t MemberRegister m (SubgraphElemEvent (Ref Node n) (Ref Cluster c)) where
@@ -47,8 +46,7 @@ registerMembers _ = runListener
 
 data MemberRemove = MemberRemove deriving (Show, Eq)
 instance ( MonadBuilder g m
-         , Referred Node    g n
-         , Referred Cluster g c
+         , ReferencedM Node    g (Listener t MemberRemove m) n
          , Clusterable Node n c (Listener t MemberRemove m)
          , g ~ (Hetero (VEC.Graph n' e' (cls :< RefSet Node n')))
          , c ~ (cls :< RefSet Node n)

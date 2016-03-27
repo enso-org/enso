@@ -32,18 +32,21 @@ import           Luna.Syntax.Model.Network.Term
 
 import           Luna.Syntax.Term.Function.Argument (Arg)
 
-#define PassCtx(m, ls, term) ( ls   ~ NetLayers                               \
-                             , term ~ Draft Static                            \
-                             , ne   ~ Link (ls :<: term)                      \
-                             , node ~ (ls :<: term)                           \
-                             , BiCastable    e ne                             \
-                             , BiCastable    n (ls :<: term)                  \
-                             , MonadIO       (m)                              \
-                             , MonadBuilder  (Hetero (NEC.Graph n e c)) (m)   \
-                             , NodeInferable (m) (ls :<: term)                \
-                             , TermNode Cons (m) (ls :<: term)                \
-                             , TermNode Lam  (m) (ls :<: term)                \
-                             , Destructor    (m) (Ref Edge ne)                \
+#define PassCtx(m, ls, term) ( ls    ~ NetLayers                 \
+                             , term  ~ Draft Static              \
+                             , node  ~ (ls :<: term)             \
+                             , edge  ~ Link node                 \
+                             , graph ~ Hetero (NEC.Graph n e c)  \
+                             , BiCastable    e edge              \
+                             , BiCastable    n node              \
+                             , MonadIO       (m)                 \
+                             , MonadBuilder  graph (m)           \
+                             , NodeInferable (m) node            \
+                             , TermNode Cons (m) node            \
+                             , TermNode Lam  (m) node            \
+                             , Destructor    (m) (Ref Edge edge) \
+                             , ReferencedM Node graph (m) node   \
+                             , ReferencedM Edge graph (m) edge   \
                              )
 
 assignLiteralType :: PassCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()

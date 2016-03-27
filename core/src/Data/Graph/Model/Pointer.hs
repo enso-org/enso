@@ -95,11 +95,11 @@ instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Loc r'   ) where cast = rewrap
 --newtype Ref r a = Ref Int deriving (Generic, NFData, Show, Eq, Ord)
 --type    Loc r   = Ref r 'Unknown
 
-class Referred r t a where focus :: Ref r a -> Lens' t a
-type  Referred' r t = Referred r t (t # r)
+    --class Referred r t a where focus :: Ref r a -> Lens' t a
+    --type  Referred' r t = Referred r t (t # r)
 
-focus' :: Referred' r t => Ref r (t # r) -> Lens' t (t # r)
-focus' = focus
+    --focus' :: Referred' r t => Ref r (t # r) -> Lens' t (t # r)
+    --focus' = focus
 
 --class ReferencedM where
 --    referenceM   :: Ref r a -> a -> t -> m t

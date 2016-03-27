@@ -133,14 +133,25 @@ instance (g ~ Graph n e c, HasStore t g, Monad m)              => DynamicM' t (G
     addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
     removeM' ref = store (p :: P t) $ Cont.freeM (ref ^. idx)                          ; {-# INLINE removeM' #-}
 
+instance (g ~ MGraph s n e c, s ~ PrimState m, PrimMonad m, HasStore t g, a ~ (g # t)) => DynamicM  t (MGraph s n e c) m a
 instance (g ~ MGraph s n e c, s ~ PrimState m, PrimMonad m, HasStore t g)              => DynamicM' t (MGraph s n e c) m where
     addM'    el  = nested (store (p :: P t)) $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM el ; {-# INLINE addM'    #-}
     removeM' ref = store (p :: P t) $ Cont.freeM (ref ^. idx)                          ; {-# INLINE removeM' #-}
 
 -- References handling
 
-instance (g ~ (Graph n e c), r ~ (g # t), HasStore t g) => Referred t (Graph n e c) r where
-    focus r = lens getter setter where
-        getter g     = Cont.index_ (r ^. idx) $ g ^. store (p :: P t)                          ; {-# INLINE getter #-}
-        setter g val = g & (store (p :: P t)) %~ unchecked inplace Cont.insert_ (r ^. idx) val ; {-# INLINE setter #-}
-    {-# INLINE focus #-}
+--instance (g ~ Graph n e c, r ~ (g # t), HasStore t g) => Referred t (Graph n e c) r where
+--    focus r = lens getter setter where
+--        getter g     = Cont.index_ (r ^. idx) $ g ^. store (p :: P t)                          ; {-# INLINE getter #-}
+--        setter g val = g & (store (p :: P t)) %~ unchecked inplace Cont.insert_ (r ^. idx) val ; {-# INLINE setter #-}
+--    {-# INLINE focus #-}
+
+
+instance (g ~ Graph n e c, r ~ (g # t), HasStore t g, Monad m) => ReferencedM t (Graph n e c) m r where
+    writeRefM r v = store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
+    readRefM  r   = Cont.indexM__ (r ^. idx) ∘ view (store (p :: P t))               ; {-# INLINE readRefM  #-}
+
+
+instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => ReferencedM t (MGraph s n e c) m r where
+    writeRefM r v = store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
+    readRefM  r   = Cont.indexM__ (r ^. idx) ∘ view (store (p :: P t))               ; {-# INLINE readRefM  #-}

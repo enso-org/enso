@@ -25,6 +25,8 @@ import           Luna.Syntax.Model.Network.Class                 ()
                    , Prop Inputs node ~ [Ref Edge edge]           \
                    , HasProp TCData node                          \
                    , Prop TCData node ~ TCDataPayload node        \
+                   , ReferencedM Node (Hetero (NEC.Graph n e c)) m (ls :<: term) \
+                   , ReferencedM Edge (Hetero (NEC.Graph n e c)) m edge \
                    )
 
 inputs :: PassCtx(m) => Ref Node node -> m [Ref Node node]

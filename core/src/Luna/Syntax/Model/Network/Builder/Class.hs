@@ -34,14 +34,14 @@ runNetworkBuilderT = runIdentityT ∘ unwrap'
 
 -- === Instances === --
 
-instance (MonadBuilder g m, Referred Edge g (Link a), Dispatcher CONNECTION (Ref Edge (Link a)) m)
+instance (MonadBuilder g m, Dispatcher CONNECTION (Ref Edge (Link a)) m)
       => ParamResolver (State.StateT [(Ref Node a, Ref Edge (Link a))] (NetworkBuilderT m)) (NetworkBuilderT m) (Ref Node a) where
-    resolveParams m = do
-        (a, pending) <- State.runStateT m mempty
-        flip mapM pending $ \(nref, cref) -> do
-             write (retarget cref) (rawConnection nref a)
-             dispatch CONNECTION cref
-        return a
+    resolveParams m = $notImplemented -- do
+        --(a, pending) <- State.runStateT m mempty
+        --flip mapM pending $ \(nref, cref) -> do
+        --     write (retarget cref) (rawConnection nref a)
+        --     dispatch CONNECTION cref
+        --return a
 
 
 -- FIXME[WD]: Make less polymorphic

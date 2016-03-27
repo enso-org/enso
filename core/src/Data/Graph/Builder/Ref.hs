@@ -20,16 +20,16 @@ import Data.Layer
 
 -- === Utils === --
 
-withM :: (MonadBuilder t m, Referred r t a) => Ref r a -> (a -> m a) -> m ()
+withM :: (MonadBuilder t m, ReferencedM r t m a) => Ref r a -> (a -> m a) -> m ()
 withM ref f = read ref >>= f >>= write ref
 
-with :: (MonadBuilder t m, Referred r t a) => Ref r a -> (a -> a) -> m ()
+with :: (MonadBuilder t m, ReferencedM r t m a) => Ref r a -> (a -> a) -> m ()
 with ref = withM ref ∘ (return <$>)
 
-withRef :: (MonadBuilder t m, Referred r t a) => Ref r a -> (a -> a) -> m ()
+withRef :: (MonadBuilder t m, ReferencedM r t m a) => Ref r a -> (a -> a) -> m ()
 withRef = with
 
-follow :: (MonadBuilder t m, Referred r t a) => Lens' a b -> Ref r a -> m b
+follow :: (MonadBuilder t m, ReferencedM r t m a) => Lens' a b -> Ref r a -> m b
 follow f ptr = view f <$> read ptr
 
 -- === Reconnects === --
@@ -37,7 +37,7 @@ follow f ptr = view f <$> read ptr
 class Reconnectible m r el edgeStore inpStore where
     reconnect :: Lens' el edgeStore -> Ref r el -> inpStore -> m edgeStore
 
-instance (MonadBuilder t m, Referred r t el, Destructor m (Ref Edge conn), Connectible' (Ref r inp) (Ref r el) m conn)
+instance (MonadBuilder t m, ReferencedM r t m el, Destructor m (Ref Edge conn), Connectible' (Ref r inp) (Ref r el) m conn)
       => Reconnectible m r el (Ref Edge conn) (Ref r inp) where
     reconnect lens elRef input = do
         el  <- read elRef
@@ -46,7 +46,7 @@ instance (MonadBuilder t m, Referred r t el, Destructor m (Ref Edge conn), Conne
         write elRef $ el & lens .~ conn
         return conn
 
-instance (MonadBuilder t m, Referred r t el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn, Traversable f)
+instance (MonadBuilder t m, ReferencedM r t m el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn, Traversable f)
       => Reconnectible m r el (f (Ref Edge conn)) (f (Ref r inp)) where
     reconnect lens elRef inputs = do
         el <- read elRef
@@ -56,13 +56,18 @@ instance (MonadBuilder t m, Referred r t el, Destructor m connRef, Connectible' 
         return conns
 
 
---class Referred r t a where ref :: Ref r a -> Lens' t a
 
-read :: (MonadBuilder t m, Referred r t a) => Ref r a -> m a
-read ref = view (focus ref) <$> get
+--read :: (MonadBuilder t m, Referred r t a) => Ref r a -> m a
+--read ref = view (focus ref) <$> get
 
-write :: (MonadBuilder t m, Referred r t a) => Ref r a -> a -> m ()
-write ref = modify_ ∘ set (focus ref)
+read :: (MonadBuilder g m, PointedM t tgt g m a) => Ptr t tgt -> m a
+read ptr = readPtrM ptr =<< get
+
+write :: (MonadBuilder g m, PointedM t tgt g m a) => Ptr t tgt -> a -> m ()
+write = modifyM_ ∘∘ writePtrM
+
+--write :: (MonadBuilder t m, Referred r t a) => Ref r a -> a -> m ()
+--write ref = modify_ ∘ set (focus ref)
 
 -- === Instances === --
 
@@ -81,7 +86,7 @@ instance (MonadBuilder g m, DynamicM t g m a) => Unregister m (Ref t a) where
 
 -- Destruction
 
-instance (MonadBuilder t m, Prop Inputs node ~ [inp], Referred Node t node, Destructor m inp, Getter Inputs node, Destructor m node, Unregister m (Ref Node node), Dispatcher NODE_REMOVE (Ref Node node) m)
+instance (MonadBuilder t m, Prop Inputs node ~ [inp], ReferencedM Node t m node, Destructor m inp, Getter Inputs node, Destructor m node, Unregister m (Ref Node node), Dispatcher NODE_REMOVE (Ref Node node) m)
       => Destructor m (Ref Node node) where
     destruct ref = do
         dispatch NODE_REMOVE ref
@@ -93,8 +98,6 @@ instance (MonadBuilder t m, Prop Inputs node ~ [inp], Referred Node t node, Dest
 
 instance ( MonadBuilder t m
          , edge ~ Arc node node
-         , Referred Node t node
-         , Referred Edge t edge
          , Unregister m (Ref Edge edge)
          , Dispatcher CONNECTION_REMOVE (Ref Edge edge) m)
       => Destructor m (Ref Edge edge) where

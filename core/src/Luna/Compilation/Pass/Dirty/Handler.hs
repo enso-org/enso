@@ -25,18 +25,22 @@ import           Luna.Syntax.Model.Network.Term
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 
 
-#define PassCtxDirty(m, ls, term) ( ls   ~ NetLayers                                        \
-                                  , term ~ Draft Static                                     \
-                                  , ne   ~ Link (ls :<: term)                               \
-                                  , BiCastable     e ne                                     \
-                                  , BiCastable     n (ls :<: term)                          \
-                                  , MonadIO m                                               \
-                                  , MonadBuilder (Hetero (NEC.Graph n e c)) m               \
-                                  , NodeInferable m (ls :<: term)                           \
-                                  , TermNode Lam  m (ls :<: term)                           \
-                                  , HasProp Interpreter    (ls :<: term)                    \
-                                  , Prop Interpreter       (ls :<: term) ~ InterpreterLayer \
-                                  , DirtyMonad (Env (Ref Node (ls :<: term))) m             \
+#define PassCtxDirty(m, ls, term) ( ls    ~ NetLayers                              \
+                                  , term  ~ Draft Static                           \
+                                  , node  ~ (ls :<: term)                          \
+                                  , edge  ~ Link node                              \
+                                  , graph ~ Hetero (NEC.Graph n e c)               \
+                                  , BiCastable     e edge                          \
+                                  , BiCastable     n node                          \
+                                  , MonadIO m                                      \
+                                  , MonadBuilder graph m                           \
+                                  , NodeInferable m node                           \
+                                  , TermNode Lam  m node                           \
+                                  , HasProp Interpreter    node                    \
+                                  , Prop Interpreter       node ~ InterpreterLayer \
+                                  , DirtyMonad (Env (Ref Node node)) m             \
+                                  , ReferencedM Node graph (m) node                \
+                                  , ReferencedM Edge graph (m) edge                \
                                   )
 
 

@@ -19,11 +19,16 @@ import Data.Graph.Type.Dynamic
 -- | When referencing the Hetero graph, we query the underlying one for its native node and edge representations
 --   by using the focus' function.
 
-instance (Referred r a n', BiCastable n n', n' ~ (a # r))
-      =>  Referred r (Hetero a) n where focus r = wrapped' ∘ focus' (retarget r) ∘ casted ; {-# INLINE focus #-}
-instance  Referred I (Hetero a) n where focus   = impossible
-instance  Referred r (Hetero a) I where focus   = impossible
-instance  Referred r (Hetero I) n where focus   = impossible
+--instance (Referred r a n', BiCastable n n', n' ~ (a # r))
+--      =>  Referred r (Hetero a) n where focus r = wrapped' ∘ focus' (retarget r) ∘ casted ; {-# INLINE focus #-}
+--instance  Referred I (Hetero a) n where focus   = impossible
+--instance  Referred r (Hetero a) I where focus   = impossible
+--instance  Referred r (Hetero I) n where focus   = impossible
+
+
+instance ReferencedM t (Hetero g) m a where
+    writeRefM = $notImplemented
+    readRefM  = $notImplemented
 
 
 -- Dynamic

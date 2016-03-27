@@ -44,6 +44,8 @@ import           Data.Graph
                            , TermNode Acc   m (ls :<: term)                          \
                            , MonadIdentPool m                                        \
                            , Destructor m (Ref Edge ne)                              \
+                           , ReferencedM Node (Hetero (NEC.Graph n e c)) m (ls :<: term) \
+                           , ReferencedM Edge (Hetero (NEC.Graph n e c)) m ne \
                            )
 
 -----------------------------

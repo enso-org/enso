@@ -41,6 +41,8 @@ import qualified Luna.Syntax.Term.Lit                        as Lit
                    , HasProp TCData node                           \
                    , Prop TCData node ~ TCDataPayload node         \
                    , MonadTypeCheck (ls :<: term) m                \
+                   , ReferencedM Node (Hetero (NEC.Graph n e c)) m (ls :<: term) \
+                   , ReferencedM Edge (Hetero (NEC.Graph n e c)) m edge \
                    )
 
 investigate :: PassCtx(m) => Ref Node node -> m ()

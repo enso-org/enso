@@ -32,8 +32,8 @@ import           Data.Layer.Cover
 
 data SuccRegister = SuccRegister deriving (Show, Eq)
 instance ( MonadBuilder g m
-         , Referred Edge g (Arc src tgt)
-         , Referred Node g src
+         , ReferencedM Edge g (Listener t SuccRegister m) (Arc src tgt)
+         , ReferencedM Node g (Listener t SuccRegister m) src
          , Show src
          , Prop Succs src ~ SizeTracking IntSet
          , HasProp Succs src
@@ -54,8 +54,8 @@ registerSuccs _ = runListener
 
 data SuccUnregister = SuccUnregister deriving (Show, Eq)
 instance ( MonadBuilder g m
-         , Referred Edge g (Arc src tgt)
-         , Referred Node g src
+         , ReferencedM Edge g (Listener t SuccUnregister m) (Arc src tgt)
+         , ReferencedM Node g (Listener t SuccUnregister m) src
          , Show src
          , Prop Succs src ~ SizeTracking IntSet
          , HasProp Succs src

@@ -41,28 +41,32 @@ import Control.Monad (liftM, MonadPlus(..))
 
 import Control.Monad.Trans.Either
 
-#define PassCtx(m,ls,term) ( term ~ Draft Static                                     \
-                           , ne   ~ Link (ls :<: term)                               \
-                           , Covered (ls :<: term)                                   \
-                           , nodeRef ~ Ref Node (ls :<: term)                        \
-                           , Prop Type   (ls :<: term) ~ Ref Edge ne                 \
-                           , Prop TCData (ls :<: term) ~ TCDataPayload (ls :<: term) \
-                           , HasSuccs (ls :<: term)                                  \
-                           , BiCastable     e ne                                     \
-                           , BiCastable     n (ls :<: term)                          \
-                           , MonadBuilder (Hetero (NEC.Graph n e c)) (m)             \
-                           , HasProp Type       (ls :<: term)                        \
-                           , HasProp TCData     (ls :<: term)                        \
-                           , NodeInferable  (m) (ls :<: term)                        \
-                           , TermNode Var   (m) (ls :<: term)                        \
-                           , TermNode Lam   (m) (ls :<: term)                        \
-                           , TermNode Unify (m) (ls :<: term)                        \
-                           , TermNode Acc   (m) (ls :<: term)                        \
-                           , TermNode Cons  (m) (ls :<: term)                        \
-                           , MonadIdentPool (m)                                      \
-                           , Destructor     (m) (Ref Node (ls :<: term))             \
-                           , Destructor     (m) (Ref Edge ne)                        \
-                           , MonadTypeCheck (ls :<: term) (m)                        \
+#define PassCtx(m,ls,term) ( term  ~ Draft Static                  \
+                           , node  ~ (ls :<: term)                 \
+                           , edge  ~ Link node                     \
+                           , graph ~ Hetero (NEC.Graph n e c)      \
+                           , Covered node                          \
+                           , nodeRef ~ Ref Node node               \
+                           , Prop Type   node ~ Ref Edge edge      \
+                           , Prop TCData node ~ TCDataPayload node \
+                           , HasSuccs node                         \
+                           , BiCastable     e edge                 \
+                           , BiCastable     n node                 \
+                           , MonadBuilder graph (m)                \
+                           , HasProp Type       node               \
+                           , HasProp TCData     node               \
+                           , NodeInferable  (m) node               \
+                           , TermNode Var   (m) node               \
+                           , TermNode Lam   (m) node               \
+                           , TermNode Unify (m) node               \
+                           , TermNode Acc   (m) node               \
+                           , TermNode Cons  (m) node               \
+                           , MonadIdentPool (m)                    \
+                           , Destructor     (m) (Ref Node node)    \
+                           , Destructor     (m) (Ref Edge edge)    \
+                           , MonadTypeCheck node (m)               \
+                           , ReferencedM Node graph (m) node       \
+                           , ReferencedM Edge graph (m) edge       \
                            )
 
 -------------------------
@@ -104,7 +108,7 @@ data Resolution r u = Resolved   r
 
 resolve_ = resolve []
 
-resolveUnify :: forall m ls term nodeRef ne ter n e c. (PassCtx(m,ls,term),
+resolveUnify :: forall m ls term node edge graph nodeRef n e c. (PassCtx(m,ls,term),
                 MonadResolution [nodeRef] m)
              => nodeRef -> m ()
 resolveUnify uni = do
@@ -189,7 +193,7 @@ resolveUnify uni = do
                         else return ()
 
 
-replaceAny :: forall m ls term nodeRef ne ter n e c. PassCtx(m,ls,term) => nodeRef -> nodeRef -> m nodeRef
+replaceAny :: forall m ls term node edge graph nodeRef n e c. PassCtx(m,ls,term) => nodeRef -> nodeRef -> m nodeRef
 replaceAny r1 r2 = do
     n1 <- read r1
     n2 <- read r2
@@ -216,7 +220,7 @@ data TCStatus = TCStatus { _terms     :: Int
 makeLenses ''TCStatus
 
 -- FIXME[WD]: we should not return [Graph n e] from pass - we should use ~ IterativePassRunner instead which will handle iterations by itself
-run :: forall nodeRef m ls term n e ne c.
+run :: forall m ls term node edge graph nodeRef n e c.
        ( PassCtx(ResolutionT [nodeRef] m,ls,term)
        , MonadBuilder (Hetero (NEC.Graph n e c)) m
        ) => [nodeRef] -> m [Resolution [nodeRef] nodeRef]
