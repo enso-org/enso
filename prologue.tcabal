@@ -70,6 +70,7 @@ Library
                     , mtl
                     , placeholders
                     , pretty-show
+                    , primitive
                     , string-qq
                     , template-haskell
                     , text
