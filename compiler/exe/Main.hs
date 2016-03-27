@@ -82,8 +82,8 @@ prebuild = runBuild def star
 
 
 
---prebuild2 :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
---prebuild2 = runBuild2 def star
+prebuild2 :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
+prebuild2 = runBuild2 def star
 
 
 

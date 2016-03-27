@@ -13,6 +13,8 @@ import           Luna.Syntax.Term.Function      (Function)
 import           Luna.Syntax.Name.Path          (QualPath)
 import           Data.Graph                     (Ref, Cluster)
 import           Data.Graph.Model.Node
+import           Control.Monad.Primitive
+
 
 -- === Definitions === --
 
@@ -104,6 +106,12 @@ instance State.MonadState s m => State.MonadState s (SymbolT n c g m) where
 instance {-# OVERLAPPABLE #-} (MonadSymbol n c g m, MonadTrans t, Monad (t m)) => MonadSymbol n c g (t m) where
     get = lift get   ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
+
+-- Primitive
+instance PrimMonad m => PrimMonad (SymbolT n c g m) where
+    type PrimState (SymbolT n c g m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 

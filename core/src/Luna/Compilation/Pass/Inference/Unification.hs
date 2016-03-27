@@ -34,7 +34,7 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Luna.Syntax.Term.Lit               as Lit
 import           Luna.Syntax.Term.Function.Argument
 import           Luna.Compilation.Error
-
+import           Control.Monad.Primitive
 
 import Control.Monad.Fix
 import Control.Monad (liftM, MonadPlus(..))
@@ -104,7 +104,17 @@ data Resolution r u = Resolved   r
 
 
 
+-- Primitive
+instance PrimMonad m => PrimMonad (ResolutionT r m) where
+    type PrimState (ResolutionT r m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
+
+
+------------------
+-- === Pass === --
+------------------
 
 resolve_ = resolve []
 

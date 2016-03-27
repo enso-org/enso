@@ -77,13 +77,13 @@ unifyTypes fptr app args = do
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
-makeFuncall app args funClus = $notImplemented -- do
-    --(cls, trans) <- dupCluster funClus $ show app
-    --fptr <- follow (prop Lambda) cls <?!> MalformedFunction
-    --withRef app $ (prop TCData . replacement ?~ cast cls)
-    --reconnect (prop TCData . redirect) app $ Just $ fptr ^. Function.out
-    --zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) (Just <$> args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
-    --unifyTypes fptr app args
+makeFuncall app args funClus = do
+    (cls, trans) <- dupCluster funClus $ show app
+    fptr <- follow (prop Lambda) cls <?!> MalformedFunction
+    withRef app $ (prop TCData . replacement ?~ cast cls)
+    reconnect (prop TCData . redirect) app $ Just $ fptr ^. Function.out
+    zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) (Just <$> args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
+    unifyTypes fptr app args
 
 processNode :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]
 processNode ref = do

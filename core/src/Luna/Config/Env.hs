@@ -9,7 +9,7 @@ import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThr
 import qualified Luna.Info.Version           as Info
 import           Data.Build
 import           Data.Version.Semantic
-
+import           Control.Monad.Primitive
 
 
 -- === Definitions === --
@@ -98,5 +98,11 @@ instance State.MonadState s m => State.MonadState s (EnvT m) where
 instance {-# OVERLAPPABLE #-} (MonadEnv m, MonadTrans t, Monad (t m)) => MonadEnv (t m) where
     get = lift get   ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
+
+-- Primitive
+instance PrimMonad m => PrimMonad (EnvT m) where
+    type PrimState (EnvT m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<

@@ -8,6 +8,7 @@ import Prologue
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
 import           Data.Graph.Model               (Ref, Node)
+import           Control.Monad.Primitive
 
 -- === Definitions === --
 
@@ -102,5 +103,11 @@ instance State.MonadState s m => State.MonadState s (TypeCheckT n m) where
 instance {-# OVERLAPPABLE #-} (MonadTypeCheck n m, MonadTrans t, Monad (t m)) => MonadTypeCheck n (t m) where
     get = lift get   ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
+
+-- Primitive
+instance PrimMonad m => PrimMonad (TypeCheckT n m) where
+    type PrimState (TypeCheckT n m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<

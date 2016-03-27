@@ -147,11 +147,13 @@ instance (g ~ MGraph s n e c, s ~ PrimState m, PrimMonad m, HasStore t g)       
 --    {-# INLINE focus #-}
 
 
+instance (g ~ Graph n e c, r ~ (g # t), HasStore t g, Monad m) => LocatedM    t (Graph n e c) m
 instance (g ~ Graph n e c, r ~ (g # t), HasStore t g, Monad m) => ReferencedM t (Graph n e c) m r where
     writeRefM r v = store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
     readRefM  r   = Cont.indexM__ (r ^. idx) ∘ view (store (p :: P t))               ; {-# INLINE readRefM  #-}
 
 
+instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => LocatedM    t (MGraph s n e c) m
 instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => ReferencedM t (MGraph s n e c) m r where
     writeRefM r v = store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
     readRefM  r   = Cont.indexM__ (r ^. idx) ∘ view (store (p :: P t))               ; {-# INLINE readRefM  #-}

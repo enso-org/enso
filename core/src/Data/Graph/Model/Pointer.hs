@@ -28,9 +28,9 @@ type    Loc r   = Ptr r 'Unknown
 type    Ref r a = Ptr r ('Known a)
 
 
--- === Access === ---
+-- === Accessors === --
 
--- Specific access
+-- Specific accessors
 
 class ReferencedM r t m a where
     writeRefM :: Ref r a -> a -> t -> m t
@@ -40,8 +40,15 @@ class LocatedM r t m where
     writeLocM :: Loc r -> t # r -> t -> m t
     readLocM  :: Loc r -> t -> m (t # r)
 
--- General access
+    default writeLocM :: ReferencedM r t m (t # r) => Loc r -> t # r -> t -> m t
+    writeLocM = writeRefM ∘ retarget ; {-# INLINE writeLocM #-}
 
+    default readLocM :: ReferencedM r t m (t # r) => Loc r -> t -> m (t # r)
+    readLocM = readRefM ∘ retarget ; {-# INLINE readLocM #-}
+
+-- General accessors
+
+type  Pointed  r tgt t = PointedM r tgt t Identity
 class PointedM r tgt t m a where
     writePtrM :: Ptr r tgt -> a -> t -> m t
     readPtrM  :: Ptr r tgt -> t -> m a
@@ -53,6 +60,11 @@ instance (LocatedM r t m, a ~ (t # r)) => PointedM r 'Unknown t m a where
 instance (ReferencedM r t m a, a ~ tgt) => PointedM r ('Known tgt) t m a where
     writePtrM = writeRefM ; {-# INLINE writePtrM #-}
     readPtrM  = readRefM  ; {-# INLINE readPtrM  #-}
+
+-- Pure accessors
+
+focus :: Pointed r tgt t a => Ptr r tgt -> Lens' t a
+focus ptr = lens (runIdentity ∘ readPtrM ptr) (runIdentity ∘∘ flip (writePtrM ptr))
 
 
 -- === Utils === --

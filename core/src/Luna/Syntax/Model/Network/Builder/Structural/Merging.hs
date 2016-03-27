@@ -96,15 +96,15 @@ importToCluster :: ( ImportCtx
                    , Clusterable Node node clus m
                    , BiCastable clus c
                    ) => graph -> m (Ref Cluster clus, NodeTranslator node)
-importToCluster g = $notImplemented -- do
-    --let foreignNodeRefs = Ptr <$> usedIxes (g ^. wrapped . nodeStore)
-    --    foreignEdgeRefs = Ptr <$> usedIxes (g ^. wrapped . edgeStore)
-    --    foreignNodes    = flip view g . focus <$> foreignNodeRefs
-    --    foreignEdges    = flip view g . focus <$> foreignEdgeRefs
-    --trans <- importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)
-    --cls <- subgraph
-    --mapM (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
-    --return (cls, trans)
+importToCluster g = do
+    let foreignNodeRefs = Ptr <$> usedIxes (g ^. wrapped . nodeStore)
+        foreignEdgeRefs = Ptr <$> usedIxes (g ^. wrapped . edgeStore)
+    foreignNodes <- mapM (flip readRefM g) foreignNodeRefs
+    foreignEdges <- mapM (flip readRefM g) foreignEdgeRefs
+    trans        <- importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)
+    cls          <- subgraph
+    mapM (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
+    return (cls, trans)
 
 dupCluster :: ( ImportCtx
               , Getter Inputs node
@@ -118,19 +118,19 @@ dupCluster :: ( ImportCtx
               , Clusterable Node node clus m
               , BiCastable clus c
               ) => Ref Cluster clus -> String -> m (Ref Cluster clus, NodeTranslator node)
-dupCluster cluster name = $notImplemented -- do
-    --nodeRefs <- members cluster
-    --nodes <- mapM read nodeRefs
-    --let gatherEdges n = foldr IntSet.insert mempty (view idx <$> ((n # Inputs) ++ [n ^. prop Type]))
-    --let edgeRefs = Ptr <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
-    --edges <- mapM read edgeRefs
-    --trans <- importStructure (zip nodeRefs nodes) (zip edgeRefs edges)
-    --fptr  <- follow (prop Lambda) cluster
-    --cl <- subgraph
-    --withRef cl $ (prop Name   .~ name)
-    --           . (prop Lambda .~ (translateSignature trans <$> fptr))
-    --mapM (flip include cl) $ trans <$> nodeRefs
-    --return (cl, trans)
+dupCluster cluster name = do
+    nodeRefs <- members cluster
+    nodes <- mapM read nodeRefs
+    let gatherEdges n = foldr IntSet.insert mempty (view idx <$> ((n # Inputs) ++ [n ^. prop Type]))
+    let edgeRefs = Ptr <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
+    edges <- mapM read edgeRefs
+    trans <- importStructure (zip nodeRefs nodes) (zip edgeRefs edges)
+    fptr  <- follow (prop Lambda) cluster
+    cl <- subgraph
+    withRef cl $ (prop Name   .~ name)
+               . (prop Lambda .~ (translateSignature trans <$> fptr))
+    mapM (flip include cl) $ trans <$> nodeRefs
+    return (cl, trans)
 
 universe :: Ref Node n
 universe = Ptr 0

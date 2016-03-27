@@ -14,6 +14,7 @@ import qualified Control.Monad.State            as State
 import           Data.Pool
 import           Data.Tuple (swap)
 import qualified Luna.Syntax.Name.Ident.Class        as Ident
+import           Control.Monad.Primitive
 
 
 -----------------------
@@ -105,6 +106,12 @@ instance State.MonadState s m => State.MonadState s (IdentPoolT m) where
 instance {-# OVERLAPPABLE #-} (MonadIdentPool m, MonadTrans t, Monad (t m)) => MonadIdentPool (t m) where
     get = lift get   ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
+
+-- Primitive
+instance PrimMonad m => PrimMonad (IdentPoolT m) where
+    type PrimState (IdentPoolT m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
