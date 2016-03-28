@@ -19,8 +19,6 @@ import           Data.Layer.Cover
 import           Data.Prop
 import qualified Data.Record                             as Record
 import           Data.Record                             (RecordOf, IsRecord, HasRecord, record, asRecord, Variant, MapTryingElemList_, withElement_, Props, withElement', Layout_Variants, MapTryingElemList, OverElement, overElement)
-import           Data.Tuple.Curry.Missing
-import           Data.Tuple.OneTuple
 import           Luna.Runtime.Dynamics                 as Runtime
 import           Luna.Syntax.Term.Function.Argument
 import           Luna.Syntax.Term.Function.Argument       as X (arg)
@@ -129,22 +127,22 @@ instance ElemBuilder Lit.String m a => TermBuilder Lit.String m a where buildTer
 instance ElemBuilder Lit.Number m a => TermBuilder Lit.Number m a where buildTerm p (OneTuple s) = buildElem s
 
 star :: TermBuilder Lit.Star m a => m a
-star = curryN $ buildTerm (Proxy :: Proxy Lit.Star)
+star = curry $ buildTerm (Proxy :: Proxy Lit.Star)
 
 str :: TermBuilder Lit.String m a => String -> m a
-str = (curryN $ buildTerm (Proxy :: Proxy Lit.String)) ∘ Lit.String
+str = (curry $ buildTerm (Proxy :: Proxy Lit.String)) ∘ Lit.String
 
 ratio :: TermBuilder Lit.Number m a => Rational -> m a
-ratio = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
+ratio = (curry $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
 
 int :: TermBuilder Lit.Number m a => Integer -> m a
-int = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
+int = (curry $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
 
 double :: TermBuilder Lit.Number m a => Double -> m a
-double = (curryN $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
+double = (curry $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
 
 number :: TermBuilder Lit.Number m a => Lit.Number -> m a
-number = (curryN $ buildTerm (Proxy :: Proxy Lit.Number))
+number = (curry $ buildTerm (Proxy :: Proxy Lit.Number))
 
 -- === Val === --
 
@@ -177,10 +175,10 @@ instance ( inp ~ Input a
 
 
 cons :: TermBuilder Cons m a => NameInput a -> [Arg $ Input a] -> m a
-cons = curryN $ buildTerm (Proxy :: Proxy Cons)
+cons = curry $ buildTerm (Proxy :: Proxy Cons)
 
 lam :: TermBuilder Lam m a => [Arg $ Input a] -> Input a -> m a
-lam = curryN $ buildTerm (Proxy :: Proxy Lam)
+lam = curry $ buildTerm (Proxy :: Proxy Lam)
 
 
 -- === Thunk === --
@@ -225,13 +223,13 @@ instance ( name ~ NameInput a
         return out
 
 acc :: TermBuilder Acc m a => NameInput a -> Input a -> m a
-acc = curryN $ buildTerm (Proxy :: Proxy Acc)
+acc = curry $ buildTerm (Proxy :: Proxy Acc)
 
 app :: TermBuilder App m a => Input a -> [Arg $ Input a] -> m a
-app = curryN $ buildTerm (Proxy :: Proxy App)
+app = curry $ buildTerm (Proxy :: Proxy App)
 
 native :: TermBuilder Native m a => NameInput a -> m a
-native = curryN $ buildTerm (Proxy :: Proxy Native)
+native = curry $ buildTerm (Proxy :: Proxy Native)
 
 -- === Expr === --
 
@@ -324,13 +322,13 @@ term :: (ElemBuilder3 n a, ParamResolver n m a) => BindBuilder a n (TermOf a) ->
 term m = resolveParams $ runBindBuilder $ (lift ∘ buildElem3) =<< m
 
 var :: TermBuilder Var m a => NameInput a -> m a
-var = curryN $ buildTerm (Proxy :: Proxy Var)
+var = curry $ buildTerm (Proxy :: Proxy Var)
 
 unify :: TermBuilder Unify m a => Input a -> Input a -> m a
-unify = curryN $ buildTerm (Proxy :: Proxy Unify)
+unify = curry $ buildTerm (Proxy :: Proxy Unify)
 
 match :: TermBuilder Match m a => Input a -> Input a -> m a
-match = curryN $ buildTerm (Proxy :: Proxy Match)
+match = curry $ buildTerm (Proxy :: Proxy Match)
 
 
 
@@ -428,7 +426,7 @@ type instance BuildArgs   Blank n = ()
 instance      ElemBuilder Blank m a => TermBuilder Blank m a where buildTerm p () = buildElem Blank
 
 blank :: TermBuilder Blank m a => m a
-blank = curryN $ buildTerm (Proxy :: Proxy Blank)
+blank = curry $ buildTerm (Proxy :: Proxy Blank)
 
 
 
@@ -565,7 +563,7 @@ runNetworkBuilderT_1 net = flip Self.evalT (undefined ::        Ref Node NetNode
 -- FIXME[WD]: inputs should be more general and should be refactored out
 inputstmp :: forall layout term rt x.
       (MapTryingElemList_
-                            (Elems term (ByRuntime rt Lit.String x) x)
+                            (Elems term (ByDynamics rt Lit.String x) x)
                             (TFoldable x)
                             (Term layout term rt), x ~ Layout layout term rt) => Term layout term rt -> [x]
 inputstmp a = withElement_ (p :: P (TFoldable x)) (foldrT (:) []) a
@@ -576,7 +574,7 @@ type instance Prop Inputs (Term layout term rt) = [Layout layout term rt]
 instance (MapTryingElemList_
                            (Elems
                               term
-                              (ByRuntime rt Lit.String (Layout layout term rt))
+                              (ByDynamics rt Lit.String (Layout layout term rt))
                               (Layout layout term rt))
                            (TFoldable (Layout layout term rt))
                            (Term layout term rt)) => Getter Inputs (Term layout term rt) where getter _ = inputstmp

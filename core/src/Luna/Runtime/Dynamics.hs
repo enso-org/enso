@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.Runtime.Dynamics where
 
 import Prologue
@@ -8,31 +10,43 @@ import Prologue
 -- === Mode === ---
 -------------------
 
+-- === Definitions == --
+
+--data Dynamics = Dynamics deriving (Show)
+
+-- Dynamics types
 data Dynamic = Dynamic deriving (Show)
 data Static  = Static  deriving (Show)
 
--- Model conversion
-type family ToStatic  a :: *
-type family ToDynamic a :: *
 
-type family Dynamics  a :: *
+-- === Accessors === --
+
+type family Dynamics        a
+type family WithDynamics ds a
 
 
 -- === Utils === --
 
-type family ByRuntime runtime static dynamic where
-    ByRuntime Static   static dynamic = static
-    ByRuntime Dynamic  static dynamic = dynamic
+--type ToStatic  a = WithDynamics Static  a
+--type ToDynamic a = WithDynamics Dynamic a
 
-type        SubSemiRuntimes rt = rt ': SubRuntimes rt
-type family SubRuntimes     rt where SubRuntimes Static  = '[]
-                                     SubRuntimes Dynamic = '[Static]
+type family ByDynamics runtime static dynamic where
+            ByDynamics Static  static dynamic = static
+            ByDynamics Dynamic static dynamic = dynamic
+
+type        SubSemiDynamics rt = rt ': SubDynamics rt
+
+type family SubDynamics rt where
+            SubDynamics Static  = '[]
+            SubDynamics Dynamic = '[Static]
 
 
 -- === Instances === --
 
-type instance ToStatic Static  = Static
-type instance ToStatic Dynamic = Static
+-- Basic
+type instance WithDynamics dyn Static  = dyn
+type instance WithDynamics dyn Dynamic = dyn
 
-type instance ToDynamic Static  = Dynamic
-type instance ToDynamic Dynamic = Dynamic
+-- Conversions
+type instance To Static  a = WithDynamics Static  a
+type instance To Dynamic a = WithDynamics Dynamic a

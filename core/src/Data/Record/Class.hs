@@ -22,7 +22,7 @@ import Prologue.Unsafe (fromJustNote, undefined)
 
 import Type.Container
 
-import Luna.Runtime.Dynamics (ToStatic, ToDynamic)
+import Luna.Runtime.Dynamics (Static, Dynamic)
 import qualified Luna.Runtime.Dynamics as Runtime
 --import Data.Bits.Mask         (Mask)
 import GHC.Prim            (Any, unsafeCoerce#)
@@ -494,7 +494,7 @@ type family Matches rec lst :: Constraint where
 
 -- === Static-AST matching === --
 
-static :: (rec' ~ ToStatic rec, Match rec' rec) => (rec' -> out) -> MatchSet rec out
+static :: (rec' ~ To Static rec, Match rec' rec) => (rec' -> out) -> MatchSet rec out
 static = of'
 
 

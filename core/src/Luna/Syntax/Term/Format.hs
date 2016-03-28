@@ -15,7 +15,7 @@ data Thunk  = Thunk  deriving (Show)
 data Phrase = Phrase deriving (Show)
 data Draft  = Draft  deriving (Show)
 
-type Models = '[Lit, Val, Thunk, Phrase, Draft]
+type Formats = '[Lit, Val, Thunk, Phrase, Draft]
 
 
 -- TODO[WD]: refactor rest of the evaluation model here

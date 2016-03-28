@@ -19,13 +19,13 @@ import           Type.Container
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, ToDynamic, ToStatic, SubRuntimes, SubSemiRuntimes, ByRuntime)
+import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, WithDynamics, SubDynamics, SubSemiDynamics, ByDynamics)
 import qualified Luna.Runtime.Dynamics      as Dynamics
 import           Luna.Pretty.Styles
 import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
-import           Luna.Syntax.Term.Format        as Eval
+import           Luna.Syntax.Term.Format
 import qualified Luna.Syntax.Term.Lit     as Lit
 import Luna.Syntax.Term.Atom as X
 
@@ -33,11 +33,39 @@ import Data.Record.Model.Masked as X (Data, TermRecord)
 
 
 
+type DynName d a = NameByDynamics d a
+type NameByDynamics dyn d = ByDynamics dyn Lit.String d
 
 
------------------------------
--- === Component types === --
------------------------------
+
+--
+
+--type family TakeUntil (a :: k) (ls :: [k]) :: [k] where
+type family TakeUntil a ls where
+    TakeUntil a '[]       = '[]
+    TakeUntil a (a ': ls) = '[a]
+    TakeUntil a (l ': ls) = l ': TakeUntil a ls
+
+type f <$> as = FMap f as
+type family FMap (f :: * -> *) (as :: [*]) :: [*] where
+            FMap f             '[]         = '[]
+            FMap f             (a ': as)   = f a ': FMap f as
+
+--
+
+type SubFormats a = TakeUntil a Formats
+
+--
+
+type ExprRecord gs vs t = TermRecord gs vs t
+
+
+
+-------------------
+-- === Atoms === --
+-------------------
+
+-- === Types === --
 
 data Var'    = Var'    deriving (Show, Eq, Ord)
 data Cons'   = Cons'   deriving (Show, Eq, Ord)
@@ -50,23 +78,124 @@ data Native' = Native' deriving (Show, Eq, Ord)
 data Blank'  = Blank'  deriving (Show, Eq, Ord)
 
 
+-- === Definitions === --
 
-data family Expr atom runtime a
+data family Atom  t           dyn a
+type family Atoms (ts :: [*]) dyn a :: [*] where
+            Atoms '[]         dyn a = '[]
+            Atoms (t ': ts)   dyn a = Atom t dyn a ': Atoms ts dyn a
 
-newtype instance Expr Var'    rt a = T_Var     (NameByRuntime rt a)
-newtype instance Expr Cons'   rt a = T_Cons    (NameByRuntime rt a)
-data    instance Expr Acc'    rt a = T_Acc    !(NameByRuntime rt a) !a
-data    instance Expr App'    rt a = T_App                          !a ![Arg a]
-data    instance Expr Unify'  rt a = T_Unify                        !a !a
-data    instance Expr Match'  rt a = T_Match                        !a !a
-data    instance Expr Lam'    rt a = T_Lam                          ![Arg a] !a
-data    instance Expr Native' rt a = T_Native !(NameByRuntime rt a)
-data    instance Expr Blank'  rt a = T_Blank
+type family AtomArgs t dyn a
+class Atomic t where atom :: AtomArgs t d a -> Atom t d a
 
 
---var   = Record.cons ∘  Var
---unify = Record.cons ∘∘ Unify
---match = Record.cons ∘∘ Match
+-- === Instances === --
+
+newtype instance Atom Var'    dyn a = Atom_Var     (DynName dyn a)
+newtype instance Atom Cons'   dyn a = Atom_Cons    (DynName dyn a)
+data    instance Atom Acc'    dyn a = Atom_Acc    !(DynName dyn a) !a
+data    instance Atom App'    dyn a = Atom_App                     !a ![Arg a]
+data    instance Atom Unify'  dyn a = Atom_Unify                   !a !a
+data    instance Atom Match'  dyn a = Atom_Match                   !a !a
+data    instance Atom Lam'    dyn a = Atom_Lam                     ![Arg a] !a
+data    instance Atom Native' dyn a = Atom_Native !(DynName dyn a)
+data    instance Atom Blank'  dyn a = Atom_Blank
+
+type instance AtomArgs Var'    dyn a = OneTuple (DynName dyn a)
+type instance AtomArgs Cons'   dyn a = OneTuple (DynName dyn a)
+type instance AtomArgs Acc'    dyn a =          (DynName dyn a, a)
+type instance AtomArgs App'    dyn a =          (a, [Arg a])
+type instance AtomArgs Unify'  dyn a =          (a, a)
+type instance AtomArgs Match'  dyn a =          (a, a)
+type instance AtomArgs Lam'    dyn a =          ([Arg a], a)
+type instance AtomArgs Native' dyn a = OneTuple (DynName dyn a)
+type instance AtomArgs Blank'  dyn a =          ()
+
+instance Atomic Var'    where atom = uncurry Atom_Var    ; {-# INLINE atom #-}
+instance Atomic Cons'   where atom = uncurry Atom_Cons   ; {-# INLINE atom #-}
+instance Atomic Acc'    where atom = uncurry Atom_Acc    ; {-# INLINE atom #-}
+instance Atomic App'    where atom = uncurry Atom_App    ; {-# INLINE atom #-}
+instance Atomic Unify'  where atom = uncurry Atom_Unify  ; {-# INLINE atom #-}
+instance Atomic Match'  where atom = uncurry Atom_Match  ; {-# INLINE atom #-}
+instance Atomic Lam'    where atom = uncurry Atom_Lam    ; {-# INLINE atom #-}
+instance Atomic Native' where atom = uncurry Atom_Native ; {-# INLINE atom #-}
+instance Atomic Blank'  where atom = uncurry Atom_Blank  ; {-# INLINE atom #-}
+
+
+
+-------------------------
+-- === Expressions === --
+-------------------------
+-- | The following definitions are parameterized by the `t` type, which indicates which data `Layout` to choose.
+
+-- === Definitions === --
+
+newtype     Expr      t fmt dyn = Expr (ExprRecord (SubExprs t fmt dyn) (Variants2 t fmt dyn) t) deriving (Generic, NFData, Show)
+type        Variants2 t fmt dyn = Atoms (FormatElems fmt) dyn (Layout t fmt dyn)
+type family Layout    t fmt dyn
+
+type family LayoutType a
+type family ExprOf a
+
+type family   FormatElems t      :: [*]
+type instance FormatElems Lit    = '[Lit.Star, Lit.String, Lit.Number]
+type instance FormatElems Val    = '[Cons'   , Lam'                  ] <> FormatElems Lit
+type instance FormatElems Thunk  = '[Acc'    , App'      , Native'   ] <> FormatElems Val
+type instance FormatElems Phrase = '[Var'    , Unify'    , Match'    ] <> FormatElems Thunk
+type instance FormatElems Draft  = '[Blank                           ] <> FormatElems Phrase
+
+
+-- === Utils === --
+
+type SubDynExprs     t fmt dyn = Expr t fmt <$> SubDynamics     dyn
+type SubSemiDynExprs t fmt dyn = Expr t fmt <$> SubSemiDynamics dyn
+
+type SubExprs t fmt dyn = SubExprs' t dyn (SubFormats fmt)
+
+type family SubExprs' dyn t (fmts :: [*]) :: [*] where
+  SubExprs' t dyn '[]           = '[]
+  SubExprs' t dyn '[fmt]        = SubDynExprs     t fmt dyn
+  SubExprs' t dyn (fmt ': fmts) = SubSemiDynExprs t fmt dyn <> SubExprs' t dyn fmts
+
+
+-- === Instances === --
+
+-- Basic instances
+type instance Dynamics   (Expr t fmt dyn) = dyn
+type instance LayoutType (Expr t fmt dyn) = t
+type instance ExprOf     (Expr t fmt dyn) = Expr t fmt dyn
+
+instance Eq  (Expr t fmt dyn) where (==)    = $notImplemented
+instance Ord (Expr t fmt dyn) where compare = $notImplemented
+
+-- Wrappers & Layers
+makeWrapped ''Expr
+--TODO[WD]: add makeLayered util
+type instance Unlayered (Expr t fmt dyn) = Unwrapped (Expr t fmt dyn)
+instance      Layered   (Expr t fmt dyn)
+
+-- Record instances
+type instance RecordOf (Expr t fmt dyn) = RecordOf (Unlayered (Expr t fmt dyn))
+instance IsRecord (Unlayered (Expr t fmt dyn)) => IsRecord (Expr t fmt dyn) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
+
+-- Dynamics
+type instance WithDynamics dyn' (Expr t fmt dyn) = Expr t fmt dyn'
+
+-- Properties
+type instance Props p (Expr t fmt dyn) = Props p (RecordOf (Expr t fmt dyn))
+
+-- Conversions
+instance Unwrapped (Expr t fmt dyn) ~ ExprRecord gs vs t' => Convertible (Expr t fmt dyn) (ExprRecord gs vs t') where convert = unwrap' ; {-# INLINE convert #-}
+
+instance Convertible (Unwrapped (Expr t fmt dyn)) Data => Castable    (Expr t fmt dyn) Data
+instance Convertible (Unwrapped (Expr t fmt dyn)) Data => Convertible (Expr t fmt dyn) Data where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
+instance Castable    Data (Unwrapped (Expr t fmt dyn)) => Castable    Data (Expr t fmt dyn) where cast    = wrap'   ∘ cast    ; {-# INLINE cast    #-}
+
+-- Abstractions
+type instance                                                       Abstract    (Expr t fmt dyn) = Data
+instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => IsAbstract  (Expr t fmt dyn) where abstracted = iso cast cast ; {-# INLINE abstracted #-}
+instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => HasAbstract (Expr t fmt dyn)
+
 
 
 
@@ -79,11 +208,9 @@ data    instance Expr Blank'  rt a = T_Blank
 -- | The following definitions are parameterized by the `t` type, which indicates which data `Layout` to choose.
 --   The `Layout` type family defines the recursive layout for AST structures.
 
-newtype     Term     t term rt = Term (TermRecord (SubRuntimeGroups rt t term) (Variants t term rt) t) deriving (Generic, NFData, Show)
-type        Variants t term rt = Elems term (NameByRuntime rt (Layout t term rt)) (Layout t term rt)
-type family Layout   t term rt
+newtype     Term     t term rt = Term (TermRecord (SubTerms t term rt) (Variants t term rt) t) deriving (Generic, NFData, Show)
+type        Variants t term rt = Elems term (NameByDynamics rt (Layout t term rt)) (Layout t term rt)
 --type family LayoutOf   a
-type family LayoutType a
 type family TermOf     a
 
 type family Input     a
@@ -122,23 +249,24 @@ type instance Elems Draft  n t = Blank
 
 -- === Syntax Layouts === --
 
-type family SubSemiTerms ts term where
-    SubSemiTerms '[]       term = '[]
-    SubSemiTerms (t ': ts) t    = '[t]
-    SubSemiTerms (t ': ts) term = t ': SubSemiTerms ts term
 
-type ApplySubRuntimes     rt t a = ApplyLayouts (SubRuntimes     rt) t a
-type ApplySubSemiRuntimes rt t a = ApplyLayouts (SubSemiRuntimes rt) t a
-type family ApplyLayouts rts t a where ApplyLayouts '[]         t a = '[]
-                                       ApplyLayouts (rt ': rts) t a = Term a t rt ': ApplyLayouts rts t a
+type SubDynTerms     t fmt dyn = Term t fmt <$> SubDynamics     dyn
+type SubSemiDynTerms t fmt dyn = Term t fmt <$> SubSemiDynamics dyn
 
-type SubRuntimeGroups rt t a = SubRuntimeGroups' rt t (SubSemiTerms Eval.Models a)
-type family SubRuntimeGroups' rt t gs where
-  SubRuntimeGroups' rt t '[]       = '[]
-  SubRuntimeGroups' rt t '[g]      = ApplySubRuntimes     rt t g
-  SubRuntimeGroups' rt t (g ': gs) = ApplySubSemiRuntimes rt t g <> SubRuntimeGroups' rt t gs
 
-type NameByRuntime rt d = ByRuntime rt Lit.String d
+type SubTerms t fmt dyn = SubTerms' t dyn (SubFormats fmt)
+type family SubTerms' dyn t fmts where
+  SubTerms' t dyn '[]           = '[]
+  SubTerms' t dyn '[fmt]        = SubDynTerms     t fmt dyn
+  SubTerms' t dyn (fmt ': fmts) = SubSemiDynTerms t fmt dyn <> SubTerms' t dyn fmts
+
+
+--
+
+
+
+
+
 
 
 -- === Variant repr === --
@@ -179,15 +307,13 @@ type instance Base (Term t term rt) = Proxy term
 makeWrapped ''Term
 type instance Unlayered (Term t term rt) = Unwrapped (Term t term rt)
 instance      Layered   (Term t term rt)
-instance      Rewrapped (Term t term rt) (Term t' term' rt')
 
 -- Record instances
 type instance RecordOf (Term t term rt) = RecordOf (Unlayered (Term t term rt))
 instance IsRecord (Unlayered (Term t term rt)) => IsRecord (Term t term rt) where asRecord = wrapped' ∘ asRecord
 
 -- Layouts
-type instance ToStatic  (Term t term rt) = Term t term (ToStatic  rt)
-type instance ToDynamic (Term t term rt) = Term t term (ToDynamic rt)
+type instance WithDynamics rt' (Term t term rt) = Term t term rt'
 
 -- Properties
 type instance Props p (Term t term rt) = Props p (RecordOf (Term t term rt))
