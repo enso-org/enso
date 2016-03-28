@@ -42,12 +42,12 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 
-runBuild (g :: NetGraph'') m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers' :<: Draft Static)))
-                             $ runNetworkBuilderT' g m
+--runBuild (g :: NetGraph'') m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers' :<: Draft Static)))
+--                             $ runNetworkBuilderT' g m
 
 
-prebuild :: IO (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
-prebuild = runBuild def star
+--prebuild :: IO (Ref Node (NetLayers' :<: Draft Static), NetGraph'')
+--prebuild = runBuild def star
 
 
 type AutoVec  = Auto Exponential (Boxed.Vector Int)
@@ -84,10 +84,10 @@ reusableVecEnv = do
     return (v, el)
 
 
-addNodeEnv = do
-    (_,  g :: NetGraph'') <- prebuild
-    let n = fst $ nodeAdd g
-    return (g, n)
+--addNodeEnv = do
+--    (_,  g :: NetGraph'') <- prebuild
+--    let n = fst $ nodeAdd g
+--    return (g, n)
 
 
 mvecEnv' :: Boxed.Vector Int
@@ -200,14 +200,14 @@ nodeAddPure = Graph.add
 --    renderAndOpen [ ("g", "g", g')
 --                  ]
 
-nodeAdd_ :: NetGraph'' -> NetGraph''
-nodeAdd_ = snd ∘ nodeAdd
+--nodeAdd_ :: NetGraph'' -> NetGraph''
+--nodeAdd_ = snd ∘ nodeAdd
 
-nodeAdd :: NetGraph'' -> (NetLayers' :<: Draft Static, NetGraph'')
-nodeAdd g = runIdentity $ runNetworkBuilderT' g $ do
-    s1   <- int 8
-    s1_v <- read s1
-    return s1_v
+--nodeAdd :: NetGraph'' -> (NetLayers' :<: Draft Static, NetGraph'')
+--nodeAdd g = runIdentity $ runNetworkBuilderT' g $ do
+--    s1   <- int 8
+--    s1_v <- read s1
+--    return s1_v
 
 
 

@@ -24,6 +24,11 @@ Flag intExe
   Description: Interpreter test
   Default:     True
 
+-- 'cabal install -f-luna-exe' to disable luna executable building
+flag luna-exe
+  manual: True
+  default: True
+
 -- 'cabal install --enable-benchmarks -f-graph-benchmarks' to disable graph-benchmarks suite
 flag graph-benchmarks
   manual: True
@@ -224,6 +229,75 @@ Library
                  , type-cache
                  , typelevel
                  , vector
+
+
+Executable luna
+    Main-Is:        Main.hs
+    Hs-Source-Dirs: exe
+
+
+    extensions:   ConstraintKinds
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  FunctionalDependencies
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  MultiParamTypeClasses
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  PackageImports
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeOperators
+                  ViewPatterns
+
+    if !flag(luna-exe)
+        buildable: False
+    else
+        build-depends: luna-core
+                     , base
+                     , constraints
+                     , container
+                     , convert
+                     , data-member
+                     , data-base
+                     , data-construction
+                     , data-layer
+                     , error-util
+                     , errors
+                     , exceptions
+                     , extra
+                     , ghc
+                     , ghc-prim
+                     , ghc-session >= 0.1.2.0
+                     , graphviz >= 2999.17.0.2.2
+                     , lens
+                     , MissingH
+                     , mtl
+                     , placeholders
+                     , process
+                     , prologue
+                     , text
+                     , transformers
+                     , type-cache
+                     , typelevel
+                     , vector
+                     , data-result
+                     , split
+                     , dependent-state
+                     , ghc-mtl
 
 
 
