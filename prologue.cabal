@@ -60,12 +60,12 @@ Library
         Data.Default.Instances.Missing,
         Data.String.Class,
         Data.Text.Class,
-        Data.Tuple.Curry.Missing,
         Data.Typeable.Proxy.Abbr,
         Prologue,
         Prologue.Control.DeepSeq,
         Prologue.Data.Default,
         Prologue.Data.Monoid,
+        Prologue.Data.Tuple,
         Prologue.Placeholders,
         Prologue.Unsafe
 
@@ -86,6 +86,7 @@ Library
                     , lens
                     , lens-utils
                     , mtl
+                    , OneTuple
                     , placeholders
                     , pretty-show
                     , primitive

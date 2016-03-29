@@ -31,7 +31,6 @@ import Control.Monad.Trans        as X (MonadTrans, lift)
 import Data.Bifunctor             as X (Bifunctor, bimap)
 import Data.Bool                  as X (bool)
 import Data.List                  as X (intersperse)
-import Data.Coat                  as X
 import Data.Container.Class       as X (Container, Index, Item, intercalate)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
 import Data.Convert               as X
@@ -64,12 +63,15 @@ import Type.Show                  as X (TypeShow, showType, printType, ppPrintTy
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 
+-- Tuple handling
+import Prologue.Data.Tuple        as X
+
 -- Data description
-import Prologue.Data.Default      as X
-import Prologue.Data.Monoid       as X
+import Prologue.Data.Default        as X
+import Prologue.Data.Monoid         as X
 
 -- Normal Forms
-import Prologue.Control.DeepSeq   as X
+import Prologue.Control.DeepSeq     as X
 
 -- Missing instances
 import Data.Binary.Instances.Missing  ()
@@ -78,7 +80,6 @@ import Data.Default.Instances.Missing ()
 import Data.Functor.Compose
 
 import qualified Data.Traversable                   as Traversable
-import qualified Data.Tuple.Curry                   as Tuple
 
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
@@ -169,10 +170,6 @@ foldlDef f d = \case
 ifElseId :: Bool -> (a -> a) -> (a -> a)
 ifElseId cond a = if cond then a else id
 
-curry   :: Curry a b => a -> b
-uncurry :: Curry a b => b -> a
-curry   = Tuple.curryN
-uncurry = Tuple.uncurryN
 
 
 

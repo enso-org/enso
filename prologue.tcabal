@@ -68,6 +68,7 @@ Library
                     , lens
                     , lens-utils
                     , mtl
+                    , OneTuple
                     , placeholders
                     , pretty-show
                     , primitive
