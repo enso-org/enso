@@ -47,9 +47,9 @@ instance Show InterpreterLayer where
 
 data InterpreterData = InterpreterData deriving (Show, Eq, Ord)
 
-type instance LayerData layout InterpreterData t = InterpreterLayer
+type instance LayerData InterpreterData a = InterpreterLayer
 
-instance Monad m => Creator    m (Layer layout InterpreterData a) where create = return $ Layer def
-instance Monad m => Destructor m (Layer layout InterpreterData t) where destruct _ = return ()
+instance Monad m => Creator    m (Layer InterpreterData a) where create = return $ Layer def
+instance Monad m => Destructor m (Layer InterpreterData t) where destruct _ = return ()
 
 instance Castable InterpreterLayer InterpreterLayer where cast = id ; {-# INLINE cast #-}

@@ -109,6 +109,7 @@ Library
                  , type-cache
                  , typelevel
                  , vector
+                 , data-rtuple
 
 
 Executable luna
@@ -177,6 +178,7 @@ Executable luna
                      , data-result
                      , split
                      , dependent-state
+                     , data-rtuple
                      , ghc-mtl
 
 

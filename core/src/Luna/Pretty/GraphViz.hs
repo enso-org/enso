@@ -175,9 +175,9 @@ toGraphViz name net = DotGraph { strictGraph     = False
               validSource = edge' ^. source == node
               validTarget = edge `elem` (tgt' # Type) : (maybeToList $ tgt' ^. prop TCData . redirect) ++ (maybeToList $ tgt' ^. prop TCData . requester) ++ (tgt' # Inputs)
 
-              edge' = net ^. focus edge :: Link (NetLayers :<: Draft Static)
+              edge' = net ^. pointed edge :: Link (NetLayers :<: Draft Static)
               tgt   = edge' ^. target
-              tgt'  = net ^. focus tgt
+              tgt'  = net ^. pointed tgt
 
           matchOrphanTgt nix e = if isOrphanTgt nix e then Just e else Nothing
 
@@ -196,7 +196,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
               value    = "｢" <> (node # InterpreterData) ^. InterpreterLayer.debug <> "｣"  -- cool brackets http://www.amp-what.com/unicode/search/bracket
               interpr  = " " <> time <> value <> required <> " "
-              succs'   = (net ^.) ∘ focus <$> succs :: [Link (NetLayers :<: Draft Static)]
+              succs'   = (net ^.) ∘ pointed <$> succs :: [Link (NetLayers :<: Draft Static)]
 
               orphanTgts = selectOrphanTgts (Ptr nix) succs -- FIXME[WD] ugliness
 

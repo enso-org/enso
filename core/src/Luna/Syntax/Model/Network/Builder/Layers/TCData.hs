@@ -34,12 +34,12 @@ data TCDataPayload n = TCDataPayload { _redirect    :: Maybe $ Ref Edge (Link n)
                                      } deriving (Show, Eq)
 makeLenses ''TCDataPayload
 
-type instance LayerData (Network ls) TCData t = TCDataPayload (Shelled t)
-instance Monad m => Creator m (Layer (Network ls) TCData a) where
+type instance LayerData TCData t = TCDataPayload (ReShelled t)
+instance Monad m => Creator m (Layer TCData a) where
     create = return $ Layer $ TCDataPayload def def def def def def False
 
-instance (Monad m, Destructor m (Ref Edge (Link (Shelled a))))
-      => Destructor m (Layer (Network ls) TCData a) where
+instance (Monad m, Destructor m (Ref Edge (Link (ReShelled a))))
+      => Destructor m (Layer TCData a) where
     destruct (Layer (TCDataPayload red req _ _ _ _ _)) = do
         mapM_ destruct red
         mapM_ destruct req

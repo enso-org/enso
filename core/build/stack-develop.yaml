@@ -10,6 +10,7 @@ packages:
     - ../../../libs/data-layer
     - ../../../libs/data-pool
     - ../../../libs/data-repr
+    - ../../../libs/data-rtuple
     - ../../../libs/data-result
     - ../../../libs/dependent-state
     - ../../../libs/functor-utils
@@ -37,6 +38,7 @@ extra-deps:
     - data-repr-1.0
     - lens-utils-1.0
     - functor-utils-1.0
+    - data-rtuple-1.0
 
 ghc-options:
     "*": -DFastCompilation -threaded -funbox-strict-fields -O

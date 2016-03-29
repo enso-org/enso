@@ -34,24 +34,25 @@ import           Data.Graph
 
 -- === Type layer === --
 
-type instance LayerData (Network ls) Type t = Ref Edge (Link (Shelled t))
+type instance LayerData Type t = Ref Edge (Link (ReShelled t))
 
-instance (MonadSelfBuilder s m, (Link l) ~ Connection s (Ref Node l), Connectible s (Ref Node l) m, l ~ Shelled a)
-      => Creator m (Layer (Network ls) Type a) where
+instance (MonadSelfBuilder s m, (Link l) ~ Connection s (Ref Node l), Connectible s (Ref Node l) m, l ~ ReShelled a)
+      => Creator m (Layer Type a) where
     create = Layer <$> do
         s <- self
         let tgt = Ptr 0 :: Ref Node l -- FIXME[WD]: Pure magic. 0 is the ID of Star
         connection tgt s
 
-instance (Monad m, Destructor m (LayerData (Network ls) Type a)) => Destructor m (Layer (Network ls) Type a) where
+instance (Monad m, Destructor m (LayerData Type a)) => Destructor m (Layer Type a) where
     destruct (Layer ref) = destruct ref
 
 -- === Lambda layer === --
 
-type instance LayerData l Lambda (RefSet t n) = Maybe $ Func.Signature (Ref t n)
-instance Monad m => Creator m (Layer l Lambda (RefSet t n)) where
+-- FIXME[WD->MK]: What is a layer over a "refSet"? It is not informational and should be refactored ASAP.
+type instance LayerData Lambda (RefSet t n) = Maybe $ Func.Signature (Ref t n)
+instance Monad m => Creator m (Layer Lambda (RefSet t n)) where
     create = return $ Layer Nothing
-instance Monad m => Destructor m (Layer l Lambda (RefSet t n)) where
+instance Monad m => Destructor m (Layer Lambda (RefSet t n)) where
     destruct _ = return ()
 
 ------------------------------------------

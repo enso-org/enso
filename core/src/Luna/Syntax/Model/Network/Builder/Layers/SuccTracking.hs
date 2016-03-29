@@ -74,13 +74,10 @@ unregisterSuccs _ = runListener
 -- === Layer Data === ---
 -------------------------
 
-type instance LayerData (Network ls) Succs t = SizeTracking IntSet
+type instance LayerData Succs t = SizeTracking IntSet
 
-instance Monad m => Creator    m (Layer (Network ls) Succs a) where
-    create     = return $ Layer $ fromList []
-
-instance Monad m => Destructor m (Layer (Network ls) Succs a) where
-    destruct _ = return ()
+instance Monad m => Creator    m (Layer Succs a) where create     = return $ Layer $ fromList [] ; {-# INLINE create   #-}
+instance Monad m => Destructor m (Layer Succs a) where destruct _ = return ()                    ; {-# INLINE destruct #-}
 
 instance Castable IntSet IntSet where cast = id
 

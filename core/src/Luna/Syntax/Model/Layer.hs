@@ -11,35 +11,32 @@ import Luna.Syntax.Term.Expr (LayoutType, TermOf)
 import Type.Bool
 import Data.Record
 import Data.HMap.Lazy (HTMap)
+import Data.RTuple
 
 
---------------------
--- === Layers === --
---------------------
+
+----------------------
+-- === Attached === --
+----------------------
 
 -- === Definitions === --
 
-type family LayerData layout d base
-newtype     Layer     layout t base = Layer (LayerData layout t base) -- deriving (Show) --, Eq, Ord, Functor, Traversable, Foldable)
-
 data Attached t a = Attached t a deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
+
+
+-- === Utils === --
+
+type family AttachAll ls a where
+            AttachAll '[]       a = a
+            AttachAll (l ': ls) a = Attached l (AttachAll ls a)
 
 
 -- === Instances === --
 
 -- Normal Form
 instance (NFData t, NFData a) => NFData (Attached t a)
-deriving instance NFData (LayerData layout t base) => NFData (Layer layout t base)
-
--- Show
-deriving instance Show (Unwrapped (Layer l t a)) => Show (Layer l t a)
 
 -- Wrappers
-makeWrapped ''Layer
-type instance Uncovered (Layer l t a) = Uncovered (Unlayered (Layer l t a))
-type instance Unlayered (Layer l t a) = Unwrapped (Layer l t a)
-instance      Layered   (Layer l t a)
-
 type instance Uncovered (Attached t a) = Uncovered (Unlayered (Attached t a))
 type instance Unlayered (Attached t a) = a
 instance      Layered   (Attached t a) where
@@ -53,47 +50,99 @@ instance (Monad m, Destructor m t) => LayerDestructor  m (Attached t a) where de
 instance (Castable a a', Castable t t') => Castable (Attached t a) (Attached t' a') where
     cast (Attached d a) = Attached (cast d) (cast a) ; {-# INLINE cast #-}
 
-instance Castable (Unwrapped (Layer l t a)) (Unwrapped (Layer l' t' a')) => Castable (Layer l t a) (Layer l' t' a') where
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+-- === Definitions === --
+
+type family LayerData l base
+newtype     Layer     l base = Layer (LayerData l base)
+
+
+-- === Utils === --
+
+type family Layers ls base where
+            Layers '[]       base = '[]
+            Layers (l ': ls) base = Layer l base ': Layers ls base
+
+
+-- === Instances === --
+
+-- Normal Form
+deriving instance NFData (LayerData l base) => NFData (Layer l base)
+
+-- Show
+deriving instance Show (Unwrapped (Layer l a)) => Show (Layer l a)
+
+-- Wrappers
+makeWrapped ''Layer
+type instance Uncovered (Layer l a) = Uncovered (Unlayered (Layer l a))
+type instance Unlayered (Layer l a) = Unwrapped (Layer l a)
+instance      Layered   (Layer l a)
+
+-- Casting
+instance Castable (Unwrapped (Layer l a)) (Unwrapped (Layer l' a')) => Castable (Layer l a) (Layer l' a') where
     cast = wrapped %~ cast ; {-# INLINE cast #-}
 
 -- Attributes
-type instance Prop prop (Attached (Layer l t a) base) = If (prop == t) (Unwrapped (Layer l t a)) (Prop prop base)
+type instance Prop prop (Attached (Layer l a) base) = If (prop == l) (Unwrapped (Layer l a)) (Prop prop base)
 
-instance {-# OVERLAPPABLE #-} (Prop  a (Attached (Layer l a' t) base) ~ Prop a base, Getter a base)
-                           => Getter a (Attached (Layer l a' t) base) where getter a (Attached _ t) = getter a t ; {-# INLINE getter #-}
-instance {-# OVERLAPPABLE #-} Getter a (Attached (Layer l a  t) base) where getter _ (Attached d _) = unwrap' d  ; {-# INLINE getter #-}
+instance {-# OVERLAPPABLE #-} (Prop  a (Attached (Layer a' t) base) ~ Prop a base, Getter a base)
+                           => Getter a (Attached (Layer a' t) base) where getter a (Attached _ t) = getter a t ; {-# INLINE getter #-}
+instance {-# OVERLAPPABLE #-} Getter a (Attached (Layer a  t) base) where getter _ (Attached d _) = unwrap' d  ; {-# INLINE getter #-}
 
-instance {-# OVERLAPPABLE #-} (Prop  a (Attached (Layer l a' t) base) ~ Prop a base, Setter a base)
-                           => Setter a (Attached (Layer l a' t) base) where setter a v (Attached d t) = Attached d $ setter a v t ; {-# INLINE setter #-}
-instance {-# OVERLAPPABLE #-} Setter a (Attached (Layer l a  t) base) where setter _ v (Attached _ t) = Attached (Layer v) t      ; {-# INLINE setter #-}
+instance {-# OVERLAPPABLE #-} (Prop  a (Attached (Layer a' t) base) ~ Prop a base, Setter a base)
+                           => Setter a (Attached (Layer a' t) base) where setter a v (Attached d t) = Attached d $ setter a v t ; {-# INLINE setter #-}
+instance {-# OVERLAPPABLE #-} Setter a (Attached (Layer a  t) base) where setter _ v (Attached _ t) = Attached (Layer v) t      ; {-# INLINE setter #-}
 
 
 --------------------
 -- === Shell === ---
 --------------------
 
-newtype (layers :: [*]) :<  (a :: *)        = Shell (ShellStructure layers a)
-type    (layers :: [*]) :<: (a :: [*] -> *) = layers :< a layers -- FIXME [WD->MK]: This should be a newtype, to make error inference more obvious
+-- === Definitions === --
 
-type family ShellStructure ls a where
-    ShellStructure '[]       a = Cover a
-    ShellStructure (l ': ls) a = AttachedLayer l (ShellStructure ls a)
+data Covered' cover a = Covered' cover a deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
+type Shelled  ls    a = Covered' (Shell ls a) a
 
-type AttachedLayer t a = Attached (Layer (LayoutType (Uncovered a)) t (Uncovered a)) a
+type ls |:|  a = Shelled ls a
+type ls |:|: a = ls |:| a ls
 
--- === Utils === ---
+newtype Shell (ls :: [*]) (a :: *) = Shell (RTuple (Layers ls a))
 
-type family Shelled a where Shelled (t ls) = ls :<: t
+
+--class Focus t where
+--    focus :: t -> Shell ...
+
+-- |:|
+
+newtype (layers :: [*]) :<  (a :: *)        = Shelled_OLD (ShellLayers layers a)
+type    (layers :: [*]) :<: (a :: [*] -> *) = layers :< a layers
+
+type ShellLayers ls a = AttachAll (Layers ls a) (Cover a)
+
+--class HasLayer l a where
+--    layer :: Lens' a (Layer l (Uncovered a))
+
+
+--instance {-# OBERLAPPABLE #-} base ~ Uncovered a => HasLayer l (Attached (Layer l base) a) where layer = lens (\(Attached l _) -> l) (\(Attached _ a) l -> Attached l a) ; {-# INLINE layer #-}
+--instance {-# OBERLAPPABLE #-} HasLayer l a       => HasLayer l (Attached t              a) where layer = wrapped' ∘ layer                                                ; {-# INLINE layer #-}
+
+-- === Utils === --
+
+type family ReShelled a where ReShelled (t ls) = ls :<: t
 
 
 -- === Instances === --
 
--- Normal Form
-deriving instance NFData (ShellStructure ls a) => NFData (ls :< a)
-
--- Primitive
-type instance TermOf (ls :< a) = TermOf a
+-- Basic
 deriving instance Show (Unwrapped (ls :< a)) => Show (ls :< a)
+
+-- Normal Form
+deriving instance NFData (Unwrapped (ls :< a)) => NFData (ls :< a)
 
 -- Wrappers
 makeWrapped ''(:<)
@@ -101,22 +150,16 @@ type instance Uncovered (ls :< a) = a
 type instance Unlayered (ls :< a) = Unwrapped (ls :< a)
 instance      Layered   (ls :< a)
 
--- Layouts
---type instance LayoutOf (ls :<: a) = LayoutOf (Unlayered (ls :<: a))
---type instance LayoutOf (Cover a) = LayoutOf (Unlayered (Cover a))
-
 -- Construction
 instance Monad m => LayerConstructor m (ls :< a) where constructLayer = return ∘ wrap'   ; {-# INLINE constructLayer #-}
 instance Monad m => LayerDestructor  m (ls :< a) where destructLayer  = return ∘ unwrap' ; {-# INLINE destructLayer  #-}
 
 instance (Monad m, CoverConstructor m (ls :< a), Creator m a) => Creator m (ls :< a) where
-    create = constructCover =<< create
+    create = constructCover =<< create ; {-# INLINE create #-}
 
 -- Conversion
--- FIXME[WD]: change the implementation to be independent from layers. Wee need to implement full-lens Layered and Covered type classes
 instance {-# OVERLAPPABLE #-}                                                           Castable (ls :< a) (ls  :< a)  where cast = id              ; {-# INLINE cast #-}
 instance {-# OVERLAPPABLE #-} Castable (Unwrapped (ls :< a)) (Unwrapped (ls' :< a')) => Castable (ls :< a) (ls' :< a') where cast = wrapped %~ cast ; {-# INLINE cast #-}
-
 
 -- Attributes
 type instance                                Prop a (ls :< t) = Prop a (Unwrapped (ls :< t))
@@ -127,6 +170,8 @@ instance Setter a (Unwrapped (ls :< t)) => Setter a (ls :< t) where setter   = o
 type instance RecordOf (ls :< t) = RecordOf t
 instance (HasRecord (Uncovered (ls :< t)), Uncovered (Unwrapped (ls :< t)) ~ t, Covered (Unwrapped (ls :< t)))
       => HasRecord (ls :< t) where record = covered ∘ record
+
+
 
 ---------------------------
 -- === Native layers === --
@@ -148,25 +193,46 @@ instance Castable HTMap HTMap where cast = id
 
 -- Note layer
 data Note = Note deriving (Show, Eq, Ord)
-type instance LayerData l Note t = String
-instance Monad m => Creator m (Layer l Note a) where create = return $ Layer ""
+type instance LayerData Note t = String
+instance Monad m => Creator m (Layer Note a) where create = return $ Layer ""
 
 -- Name layer
 data Name = Name deriving (Show, Eq, Ord)
-type instance LayerData l Name a = String
-instance Monad m => Creator    m (Layer l Name a) where create     = return $ Layer ""
-instance Monad m => Destructor m (Layer l Name a) where destruct _ = return ()
+type instance LayerData Name a = String
+instance Monad m => Creator    m (Layer Name a) where create     = return $ Layer ""
+instance Monad m => Destructor m (Layer Name a) where destruct _ = return ()
 
 -- TODO: move it to a specific modules
 
 -- Markable layer
 data Markable = Markable deriving (Show, Eq, Ord)
-type instance LayerData l Markable t = Bool
-instance Monad m => Creator    m (Layer l Markable a) where create = return $ Layer False
-instance Monad m => Destructor m (Layer l Markable a) where destruct _ = return ()
+type instance LayerData Markable t = Bool
+instance Monad m => Creator    m (Layer Markable a) where create = return $ Layer False
+instance Monad m => Destructor m (Layer Markable a) where destruct _ = return ()
 
 -- Meta layer
 data Meta = Meta deriving (Show, Eq, Ord)
-type instance LayerData l Meta t = HTMap
-instance Monad m => Creator    m (Layer l Meta b) where create     = return $ Layer def
-instance Monad m => Destructor m (Layer l Meta b) where destruct _ = return ()
+type instance LayerData Meta t = HTMap
+instance Monad m => Creator    m (Layer Meta a) where create     = return $ Layer def
+instance Monad m => Destructor m (Layer Meta a) where destruct _ = return ()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------
+
+type instance TermOf (ls :< a) = TermOf a
