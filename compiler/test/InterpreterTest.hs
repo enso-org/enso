@@ -26,7 +26,7 @@ import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT, TermBuilder)
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
 
@@ -216,14 +216,40 @@ graph3 = do
 
     return ([apppl, appid], refsToEval)
 
+graph4 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
+                                                  , node ~ (ls :<: term)
+                                                  , edge ~ Link (ls :<: term)
+                                                  , nr   ~ Ref Node node
+                                                  , er   ~ Ref Edge edge
+                                                  , BiCastable            n (ls :<: term)
+                                                  , BiCastable            e edge
+                                                  , MonadIO               m
+                                                  , NodeInferable         m (ls :<: term)
+                                                  , TermNode Lit.Star     m (ls :<: term)
+                                                  , TermNode Lit.Number   m (ls :<: term)
+                                                  , TermNode Lit.String   m (ls :<: term)
+                                                  , TermNode Var          m (ls :<: term)
+                                                  , TermNode Acc          m (ls :<: term)
+                                                  , TermNode App          m (ls :<: term)
+                                                  , TermNode Native       m (ls :<: term)
+                                                  , HasProp InterpreterData (ls :<: term)
+                                                  , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
+                                                  , Graph.MonadBuilder (Hetero (NEC.Graph n e c)) m
+                                                  )
+       => m ([nr], [nr])
 graph4 = do
     i1 <- int 2
     i2 <- int 3
+    -- fun1 <- native (fromString "(+2)")
+    fun1 <- var "succ"
 
     act <- acc "times" i1
     apt <- app act [arg i2]
 
-    ach <- acc "head" apt
+    acm <- acc "map" apt
+    apm <- app acm [arg fun1]
+
+    ach <- acc "head" apm
     aph <- app ach []
 
     let refsToEval = [aph]

@@ -194,7 +194,7 @@ toGraphViz name net = DotGraph { strictGraph     = False
               dirty    = if (node # InterpreterData) ^. InterpreterLayer.dirty    then "●" else "○"
               required = if (node # InterpreterData) ^. InterpreterLayer.required then " ⚑" else ""
               time     = (show $ (node # InterpreterData) ^. InterpreterLayer.time) <> "μs "
-              value    = "｢" <> (node # InterpreterData) ^. InterpreterLayer.debug <> "｣"  -- cool brackets http://www.amp-what.com/unicode/search/bracket
+              value    = "|" <> (node # InterpreterData) ^. InterpreterLayer.debug <> "|"  -- cool brackets http://www.amp-what.com/unicode/search/bracket
               interpr  = " " <> time <> value <> required <> " "
               succs'   = (net ^.) ∘ pointed <$> succs :: [Link (NetLayers :<: Draft Static)]
 

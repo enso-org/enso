@@ -172,6 +172,7 @@ initializeGHC = do
 defaultImports :: [HS.Import]
 defaultImports = [ "Prelude"
                  , "Control.Applicative"
+                 , "Control.Monad"
                  , "Data.List"
                  -- , "Prologue"
                  ]
@@ -480,6 +481,16 @@ evaluateNative ref args = do -- $notImplemented -- do
                    return $ res
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
+
+-- TODO: import buildera
+--     runGraph :: InterprCtx(m) => Graph -> m a -> IO a
+-- interpretFunction -> Graph -> Signature -> Any -> IO Any
+
+
+test ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
+test a = do
+
+    return ()
 
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do

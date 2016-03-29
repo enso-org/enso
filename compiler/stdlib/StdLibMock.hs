@@ -46,7 +46,10 @@ import qualified Luna.Syntax.Term.Function         as Function
                          , m ~ StateT (Map.Map TPRep nodeRef) m0 \
                          )
 
-data TPRep = TCons String [TPRep] | TVar String deriving (Show, Eq, Ord)
+data TPRep = TCons String [TPRep]
+           | TVar String
+           | TLam [TPRep] TPRep
+           deriving (Show, Eq, Ord)
 
 listOf :: TPRep -> TPRep
 listOf t = TCons "List" [t]
@@ -74,8 +77,12 @@ getTypeRep tp = do
         Just r  -> return r
         Nothing -> do
             r <- case tp of
-                TVar name -> var . fromString $ name
-                TCons n as -> mapM (fmap arg . getTypeRep) as >>= cons (fromString n)
+                TVar name     -> var . fromString $ name
+                TCons n as    -> mapM (fmap arg . getTypeRep) as >>= cons (fromString n)
+                TLam args res -> do
+                    argNodes <- mapM getTypeRep args
+                    resNode  <- getTypeRep res
+                    lam (arg <$> argNodes) resNode
             State.modify $ Map.insert tp r
             return r
 
@@ -224,8 +231,6 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("List.mapToDouble" , makePureFun "(map fromIntegral)"     (Just $ listOf $ scons "Int")         []                     (listOf $ scons "Double"))
     , ("List.mapLog"      , makePureFun "(map log)"              (Just $ listOf $ scons "Double")      []                     (listOf $ scons "Double"))
     , ("List.sort"        , makePureFun "sort"                   (Just $ listOf $ TVar "#sort")        []                     (listOf $ TVar "#sort"))
-    , ("List.head"        , makePureFun "head"                   (Just $ listOf $ TVar "#head")        []                     (TVar "#head"))
-    , ("List.map"         , makePureFun "map"                    (Just $ listOf $ TVar "#map")         [scons "(a -> a)"]     (listOf $ TVar "#map"))
     , ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))
 
 ------------------
@@ -239,6 +244,15 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("primes"         , makePureFun primesBody                                         Nothing [scons "Int"]                           (listOf $ scons "Int"))
     , ("differences"    , makePureFun differencesBody                                    Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))
     , ("mean"           , makePureFun meanBody                                           Nothing [listOf $ scons "Double"]               (scons "Double"))
+
+------------------
+-- === Tests === --
+------------------
+
+    , ("List.head"      , makePureFun   "head"                   (Just $ listOf $ TVar "#head")        []                                   (TVar "#head"))
+    , ("List.map"       , makeNativeFun "forM"                   (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]  (listOf $ TVar "#map1"))
+    , ("succ"           , makePureFun   "succ"                   Nothing                               [scons "Int"]                        (scons "Int" ))
+
     ]
 
 primesBody :: String
