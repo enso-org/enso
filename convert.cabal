@@ -55,7 +55,8 @@ library
         Data.Convert.Instances.Map,
         Data.Convert.Instances.Num,
         Data.Convert.Instances.TH,
-        Data.Convert.Instances.Text
+        Data.Convert.Instances.Text,
+        Data.Convert.Type
 
   default-extensions: MultiParamTypeClasses
                     , UndecidableInstances
