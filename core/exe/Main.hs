@@ -67,6 +67,8 @@ import           Luna.Syntax.Model.Network.Term
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 
+import qualified Data.RTuple.Examples as E
+
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
@@ -99,6 +101,7 @@ evalBuild = fmap snd ∘∘ runBuild
 
 main :: IO ()
 main = do
+    E.main
     (_,  g :: NetGraph ) <- prebuild
     renderAndOpen [ ("xg", "xg", g)
                   ]

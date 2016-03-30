@@ -58,6 +58,7 @@ instance (Castable a a', Castable t t') => Castable (Attached t a) (Attached t' 
 
 -- === Definitions === --
 
+type family LayerBase l
 type family LayerData l base
 newtype     Layer     l base = Layer (LayerData l base)
 
@@ -70,6 +71,9 @@ type family Layers ls base where
 
 
 -- === Instances === --
+
+-- Basic
+type instance LayerBase (Layer l base) = base
 
 -- Normal Form
 deriving instance NFData (LayerData l base) => NFData (Layer l base)
@@ -105,7 +109,7 @@ instance {-# OVERLAPPABLE #-} Setter a (Attached (Layer a  t) base) where setter
 
 -- === Definitions === --
 
-data Covered' cover a = Covered' cover a deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
+data Covered' cover a = Covered' !cover !a deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
 type Shelled  ls    a = Covered' (Shell ls a) a
 
 type ls |:|  a = Shelled ls a
@@ -113,9 +117,17 @@ type ls |:|: a = ls |:| a ls
 
 newtype Shell (ls :: [*]) (a :: *) = Shell (RTuple (Layers ls a))
 
+--type family Focused t a
+
+--type instance HasLayer l a
 
 --class Focus t where
 --    focus :: t -> Shell ...
+
+class ShellLayer ls l where
+    shellLayer :: Lens' (Shell ls a) (Layer l a)
+
+
 
 -- |:|
 

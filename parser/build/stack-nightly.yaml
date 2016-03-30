@@ -36,7 +36,7 @@ packages:
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
-  location: {commit: 2a82621b298b73708fdebb55cf095d718d25bde5, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: c3f83b2cc4efdbe0bbd036acf3d06809e4e139f8, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
