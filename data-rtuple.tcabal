@@ -1,7 +1,7 @@
 name:                data-rtuple
-version:             1.0
+version:             1.1
 synopsis:            Recursive tuple data structure. It is very usefull when implementing some lo-level operations, allowing to traverse different elements using Haskell's type classes.
--- description:         
+-- description:
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Wojciech Danilo
@@ -12,7 +12,7 @@ bug-reports:         https://github.com/wdanilo/rtuple/issues
 copyright:           Copyright (C) 2014 Wojciech Danilo
 category:            Text
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 
 
@@ -45,9 +45,13 @@ Library
                       TypeOperators
                       ViewPatterns
                       TypeFamilies
-  
+
   exposed-modules:    `findmodules('src', '.*\.hs')`
 
   build-depends:      base >=4.6 && <4.9
                     , typelevel
                     , lens
+                    , lens-utils
+                    , ghc-prim
+                    , data-default
+                    , mtl
