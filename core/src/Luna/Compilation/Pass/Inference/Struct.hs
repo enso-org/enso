@@ -135,8 +135,8 @@ buildBindType ref = do
             rtp      <- follow source =<< follow (prop Type) rr
             commonTp <- getTypeSpec lr
             uniTp    <- unify rtp commonTp
-            reconnect (prop Type) lr uniTp
-            reconnect (prop Type) rr uniTp
+            reconnect (prop Type) lr commonTp
+            reconnect (prop Type) rr commonTp
             return uniTp
         of' $ \ANY -> impossible
 
@@ -156,8 +156,10 @@ runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -
 runPass apps accs binds = do
     -- FIXME [MK]: Some of those still will be needed (definitely Acc typing) just in a form that does not introduce
     -- monomorphisms. Consider later.
-    --appUnis  <- concat <$> mapM buildAppType apps -- FIXME [MK]: This is inherently monomorphic. Move this pass after importing and work on local copies of types... later.
+    {-appUnis  <- concat <$> mapM buildAppType apps -- FIXME [MK]: This is inherently monomorphic. Move this pass after importing and work on local copies of types... later.-}
     {-accUnis <- concat <$> mapM buildAccType accs-}
+    mapM getTypeSpec apps
+    mapM getTypeSpec accs
     bindUnis <- mapM buildBindType binds
     return $ bindUnis -- <> appUnis <> accUnis
 

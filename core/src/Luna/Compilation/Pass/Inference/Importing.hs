@@ -127,7 +127,6 @@ attachTypeRep sig ref = do
     currentTp <- follow (prop Type) ref >>= follow source
     importTp  <- buildTypeRep sig
     uni <- unify currentTp importTp
-    reconnect (prop Type) ref uni
     reconnect (prop TCData . requester) uni $ Just ref
     return uni
 

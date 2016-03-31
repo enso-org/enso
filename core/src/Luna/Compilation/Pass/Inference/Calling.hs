@@ -69,7 +69,6 @@ unifyTypes fptr app args = do
     outFTp  <- getType $ fptr ^. Function.out
     outUni  <- unify outFTp outTp
     reconnect (prop TCData . requester) outUni $ Just app
-    reconnect (prop Type) app outUni
     argTps  <- mapM getType args
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
