@@ -43,7 +43,7 @@ import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 import           Text.Printf                                     (printf)
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
+import           Luna.Compilation.Pass.Inference.Unification     (OptimisticUnificationPass (..), StrictUnificationPass (..))
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
@@ -287,8 +287,10 @@ test1 = do
                 Symbol.loadFunctions StdLib.symbols
                 TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
                 collectGraph "Initial"
-                let tc = Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
-                       $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
+                let tc = Sequence
+                           (Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
+                                     $ Loop $ seq3 SymbolImportingPass (Loop OptimisticUnificationPass) FunctionCallingPass)
+                           (Loop StrictUnificationPass)
 
                 TypeCheck.runTCWithArtifacts tc collectGraph
 
