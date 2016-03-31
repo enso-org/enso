@@ -3,19 +3,21 @@
 
 module Luna.Compilation.Pass.Interpreter.Interpreter where
 
-import           Prologue                                        hiding (Getter, Setter, pre, read, succ, ( # ))
+import           Prelude.Luna                                    hiding (pre, succ)
 
 import           Control.Monad                                   (forM_)
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.State
+-- import qualified Control.Monad.State                             as State
 import           Data.Maybe                                      (isNothing, isJust, catMaybes)
 import           Data.Either                                     (rights)
 
 import           Data.Construction
 import           Data.Graph
-import qualified Data.Graph.Backend.NEC                  as NEC
+import qualified Data.Graph.Backend.NEC                          as NEC
 import           Data.Graph.Builder                              hiding (get)
+import qualified Data.Graph.Builder                              as Builder
 import qualified Data.IntSet                                     as IntSet
 import           Data.Prop
 import           Data.Record                                     hiding (cons, Value)
@@ -27,21 +29,21 @@ import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
 import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, Value(..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
-import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Luna.Syntax.Term.Expr                            (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
+import           Luna.Runtime.Dynamics                           (Dynamic, Static)
+import           Luna.Syntax.Term.Expr                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
 import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.Term.Lit                        as Lit
+import qualified Luna.Syntax.Term.Lit                            as Lit
 
 import           Type.Inference
 
 -- import qualified Luna.Library.StdLib                             as StdLib
 
-import           Luna.Syntax.Term.Function                        (Arg)
-import qualified Luna.Syntax.Term.Function.Argument               as Arg
+import           Luna.Syntax.Term.Function                       (Arg)
+import qualified Luna.Syntax.Term.Function.Argument              as Arg
 
 --import qualified Luna.Evaluation.Session                         as Session
 
@@ -58,7 +60,8 @@ import           Unsafe.Coerce   -- TODO: move to another module
 
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
+-- import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT, TermBuilder)
 
 import           Data.String.Utils                               (replace)
 
@@ -70,7 +73,8 @@ import qualified GHC
 import           Control.Concurrent     (threadDelay)
 import           GHC.Exception          (fromException, Exception)
 import           Control.DeepSeq        (deepseq, force)
-import qualified DynFlags as GHC
+import qualified DynFlags               as GHC
+
 
 
 
@@ -484,19 +488,28 @@ evaluateNative ref args = do -- $notImplemented -- do
 
 -- TODO: import buildera
 --     runGraph :: InterprCtx(m) => Graph -> m a -> IO a
--- interpretFunction -> Graph -> Signature -> Any -> IO Any
+-- interpretFunction :: Graph -> Signature -> Any -> IO Any
+-- interpretFunction g sig arg = runGraph
 
-
-test ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
-test a = do
-
+handleVar ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
+handleVar na = do
     return ()
+
+
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+                             $ runNetworkBuilderT g m
+
+evalBuild g m = fmap snd $ runBuild g m
+
 
 evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
 evaluateNode ref = do
     startTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime
     node <- read ref
+    -- g <- lift $ get
+    g <- Builder.get
+
     -- putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
         Just redirect -> do
@@ -509,7 +522,10 @@ evaluateNode ref = do
                 then caseTest (uncover node) $ do
                     of' $ \(Unify l r)  -> return ()
                     of' $ \(Acc n t)    -> return ()
-                    of' $ \(Var n)      -> return ()
+                    of' $ \(Var n)      -> do
+                        -- g :: _
+
+                        return ()
                     of' $ \(App f args) -> do
                         funRef       <- follow source f
                         unpackedArgs <- unpackArguments args
@@ -565,6 +581,8 @@ run reqRefs = do
     -- putStrLn $ "g " <> show g
     -- putStrLn $ "reqRefs " <> show reqRefs
     -- ((), env) <- flip runInterpreterT (def :: env) $ collectNodesToEval (head reqRefs) runStateT
+    -- g <- Builder.get
+
     ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
     -- putStrLn $ "env " <> show env
 

@@ -32,7 +32,7 @@ import           Luna.Syntax.Model.Network.Term
 
 import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
-import           Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
+import qualified Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
 import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph
