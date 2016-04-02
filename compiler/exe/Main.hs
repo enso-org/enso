@@ -36,7 +36,7 @@ import           Type.Inference
 import qualified Luna.Config.Env                      as Env
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Inference.Unification     (UnificationPass (..))
+import           Luna.Compilation.Pass.Inference.Unification     (OptimisticUnificationPass (..), StrictUnificationPass (..))
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
@@ -360,6 +360,8 @@ collectGraph tag = do
     Writer.tell [(tag, g)]
 
 seq3 a b c = Sequence a $ Sequence b c
+seq4 a b c d = Sequence a $ Sequence b $ Sequence c d
+seq5 a b c d e = Sequence a $ Sequence b $ Sequence c $ Sequence d e
 
 test1 :: IO ()
 test1 = do
@@ -398,8 +400,16 @@ test1 = do
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
             collectGraph "Initial"
-            let tc = Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
-                   $ Loop $ seq3 SymbolImportingPass (Loop UnificationPass) FunctionCallingPass
+            let tc = seq5
+                       ScanPass
+                       LiteralsPass
+                       StructuralInferencePass
+                       (Loop $ seq3
+                         SymbolImportingPass
+                         (Loop OptimisticUnificationPass)
+                         FunctionCallingPass
+                       )
+                       (Loop StrictUnificationPass)
 
             TypeCheck.runTCWithArtifacts tc collectGraph
 
