@@ -21,7 +21,7 @@ data ImpossibleM5 t1 t2 t3 t4 t5 = ImpossibleM5 deriving (Show)
 
 -- ImpNat is defined as the maximum Int on 64 bit architecture. If GHC has some optimizations of Nat Values, it is nice not to exceed the value.
 type ImpossibleNat = 9223372036854775807
-
+type ImpLst = '[Impossible]
 -- === Dummy instances === --
 
 instance Applicative ImpossibleM1
