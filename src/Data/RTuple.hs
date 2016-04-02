@@ -10,37 +10,37 @@ module Data.RTuple where
 import           Prelude hiding (map, init, last, length, take, concat, mapM, head, tail, reverse, drop, zip, zip3, unzip, unzip3)
 import qualified Prelude as P
 
-import Control.Lens.Utils     hiding (cons, uncons, reversed)
+import Control.Lens.Utils     hiding (Index, cons, uncons, reversed, index)
 import Control.Monad.Identity hiding (mapM)
 import Data.Default
 import Data.List              (intercalate)
 import Data.Typeable
 import GHC.Prim               (Any, Constraint, unsafeCoerce#)
 import GHC.TypeLits
-import Type.Container         (Append, Concat, Index2, Reverse, type (<>))
+import Type.Container         (Append, Concat, Index, Index2, Reverse, type (<>))
 import Type.List
 
 -- === Definition === --
 
-newtype RTuple (t :: [*]) = RTuple (Lst2RT t)
+    --newtype RTuple (t :: [*]) = RTuple (Lst2RT t)
 
--- === Helpers === --
+    ---- === Helpers === --
 
-type family Lst2RT lst where
-    Lst2RT '[]       = ()
-    Lst2RT (a ': as) = (a, Lst2RT as)
+    --type family Lst2RT lst where
+    --    Lst2RT '[]       = ()
+    --    Lst2RT (a ': as) = (a, Lst2RT as)
 
 
--- === Instances === --
+    ---- === Instances === --
 
--- Show
-deriving instance Show (Lst2RT t) => Show (RTuple t)
+    ---- Show
+    --deriving instance Show (Lst2RT t) => Show (RTuple t)
 
--- Wrappers
-makeWrapped ''RTuple
+    ---- Wrappers
+    --makeWrapped ''RTuple
 
--- Type concat
-type instance Concat (RTuple a) (RTuple b) = RTuple (a <> b)
+    ---- Type concat
+    --type instance Concat (RTuple a) (RTuple b) = RTuple (a <> b)
 
 
 -- === Operations === --
@@ -274,6 +274,18 @@ index = unsafeCoerce# . index' . fromIntegral . natVal where
     {-# INLINE index' #-}
 {-# INLINE index #-}
 
+update :: KnownNat n => Proxy (n :: Nat) -> a -> List lst -> List (Update n a lst)
+update idx = unsafeCoerce# . update' (fromIntegral $ natVal idx) where
+    update' :: Int -> a -> List lst -> Any
+    update' 0 a (Cons _ l) = unsafeCoerce# $ Cons a l
+    update' n a (Cons x l) = unsafeCoerce# $ Cons x (unsafeCoerce# $ update' (pred n) a l)
+    {-# INLINE update' #-}
+{-# INLINE update #-}
+
+indexed :: KnownNat n => Proxy (n :: Nat) -> Lens (List lst) (List (Update n a lst)) (Index2 n lst) a
+indexed i = lens (index i) (flip $ update i)
+{-# INLINE indexed #-}
+
 
 -- === Zipping === --
 
@@ -282,37 +294,37 @@ zip = zip2
 {-# INLINE zip #-}
 
 zip2 :: List lst1 -> List lst2 -> List (Zip2 lst1 lst2)
+zip2 (Cons x1 xs1) (Cons x2 xs2) = Cons (x1,x2) $ zip2 xs1 xs2
 zip2 Null          _             = Null
 zip2 _             Null          = Null
-zip2 (Cons x1 xs1) (Cons x2 xs2) = Cons (x1,x2) $ zip2 xs1 xs2
 {-# INLINE zip2 #-}
 
 zip3 :: List lst1 -> List lst2 -> List lst3 -> List (Zip3 lst1 lst2 lst3)
+zip3 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) = Cons (x1,x2,x3) $ zip3 xs1 xs2 xs3
 zip3 Null          _             _             = Null
 zip3 _             Null          _             = Null
 zip3 _             _             Null          = Null
-zip3 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) = Cons (x1,x2,x3) $ zip3 xs1 xs2 xs3
 {-# INLINE zip3 #-}
 
 zip4 :: List lst1 -> List lst2 -> List lst3 -> List lst4 -> List (Zip4 lst1 lst2 lst3 lst4)
+zip4 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) (Cons x4 xs4) = Cons (x1,x2,x3,x4) $ zip4 xs1 xs2 xs3 xs4
 zip4 Null          _             _             _             = Null
 zip4 _             Null          _             _             = Null
 zip4 _             _             Null          _             = Null
 zip4 _             _             _             Null          = Null
-zip4 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) (Cons x4 xs4) = Cons (x1,x2,x3,x4) $ zip4 xs1 xs2 xs3 xs4
 {-# INLINE zip4 #-}
 
 zip5 :: List lst1 -> List lst2 -> List lst3 -> List lst4 -> List lst5 -> List (Zip5 lst1 lst2 lst3 lst4 lst5)
+zip5 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) (Cons x4 xs4) (Cons x5 xs5) = Cons (x1,x2,x3,x4,x5) $ zip5 xs1 xs2 xs3 xs4 xs5
 zip5 Null          _             _             _             _             = Null
 zip5 _             Null          _             _             _             = Null
 zip5 _             _             Null          _             _             = Null
 zip5 _             _             _             Null          _             = Null
 zip5 _             _             _             _             Null          = Null
-zip5 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) (Cons x4 xs4) (Cons x5 xs5) = Cons (x1,x2,x3,x4,x5) $ zip5 xs1 xs2 xs3 xs4 xs5
 {-# INLINE zip5 #-}
 
 
--- TODO[WD]: Unzipping is not straight-forward because we have to provide Haskell's constraint that the elements are tuples!
+-- TODO[WD]: Unzipping is not straight-forward because we have to ensure Haskell's TC that elements are tuples!
 
 --type family   ListTuple (t :: k)
 --type instance ListTuple '(l1, l2)             = (List l1, List l2)
@@ -329,7 +341,8 @@ zip5 (Cons x1 xs1) (Cons x2 xs2) (Cons x3 xs3) (Cons x4 xs4) (Cons x5 xs5) = Con
 -- === Instances === --
 
 -- Show
-instance Map Show lst => Show (List lst) where
+type ShowElems = Map Show
+instance ShowElems lst => Show (List lst) where
     show lst = '[' : intercalate "," (map (Proxy :: Proxy Show) show lst) ++ "]"
 
 -- Default
@@ -345,13 +358,87 @@ instance (Default l, Default (List ls)) => Default (List (l ': ls)) where def = 
 class    ctx a => CtxM ctx a (m :: * -> *)
 instance ctx a => CtxM ctx a m
 
-type  Map  ctx lst = MapM (CtxM ctx) lst Identity
-class MapM ctx lst m where
+type  Map  ctx = MapM (CtxM ctx) Identity
+class MapM ctx m lst where
     mapM :: Proxy ctx -> (forall a. ctx a m => a -> m b) -> List lst -> m [b]
 
 map :: forall ctx lst a b. Map ctx lst => Proxy ctx -> (forall a. ctx a => a -> b) -> List lst -> [b]
 map _ f lst = runIdentity $ mapM (Proxy :: Proxy (CtxM ctx)) (return . f) lst
 {-# INLINE map #-}
 
-instance Monad m                           => MapM ctx '[]       m where mapM _ _ _             = return []                     ; {-# INLINE mapM #-}
-instance (Monad m, ctx l m, MapM ctx ls m) => MapM ctx (l ': ls) m where mapM ctx f (Cons l ls) = (:) <$> f l <*> mapM ctx f ls ; {-# INLINE mapM #-}
+instance Monad m                           => MapM ctx m '[]       where mapM _ _ _             = return []                     ; {-# INLINE mapM #-}
+instance (Monad m, ctx l m, MapM ctx m ls) => MapM ctx m (l ': ls) where mapM ctx f (Cons l ls) = (:) <$> f l <*> mapM ctx f ls ; {-# INLINE mapM #-}
+
+
+
+
+
+
+
+--------------------------------------------------------------
+
+
+data Assoc key val = key :-> val deriving (Show, Functor, Traversable, Foldable)
+
+type family Assocs (keys :: [k]) (vals :: [v]) :: [Assoc k v] where
+    Assocs '[] '[] = '[]
+    Assocs (k ': ks) (v ': vs) = k ':-> v ': Assocs ks vs
+
+type family IndexOf' a lst where
+    IndexOf' a (a ': ls) = 0
+    IndexOf' a (l ': ls) = 1 + IndexOf' a ls
+
+type family Keys (rels :: [Assoc k v]) :: [k] where
+    Keys '[] = '[]
+    Keys (k ':-> v ': rels) = k ': Keys rels
+
+
+
+type family Target (rel :: Assoc k v) :: v where
+            Target (key ':-> val) = val
+
+type family Targets (rels :: [Assoc k v]) :: [v] where
+            Targets '[] = '[]
+            Targets (r ': rs) = Target r ': Targets rs
+
+
+--newtype TMap (keys :: [k]) (vals :: [*]) = TMap (List vals)
+
+newtype TMap (rels :: [Assoc k *]) = TMap (List (Targets rels))
+makeWrapped ''TMap
+
+deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
+
+empty2 :: TMap '[]
+empty2 = TMap empty
+{-# INLINE empty2 #-}
+
+insert2 :: Proxy (key :: k) -> val -> TMap (rels :: [Assoc k *]) -> TMap (key ':-> val ': rels)
+insert2 _ val = wrapped %~ prepend val
+{-# INLINE insert2 #-}
+
+-- Access
+
+type family Access (key :: k) (rels :: [Assoc k v]) :: v where
+    Access k (k ':-> v ': rels) = v
+    Access k (l ':-> v ': rels) = Access k rels
+
+class Accessible (key :: k) (rels :: [Assoc k *]) where access :: Proxy key -> Lens' (TMap rels) (Access key rels)
+
+instance {-# OVERLAPPABLE #-} (Access k (l ':-> v ': rels) ~ Access k rels, Accessible k rels)
+                           => Accessible k (l ':-> v ': rels) where access k = tail2 . access k ; {-# INLINE access #-}
+instance {-# OVERLAPPABLE #-} Accessible k (k ':-> v ': rels) where access _ = wrapped' . head  ; {-# INLINE access #-}
+
+
+tail2 :: Lens' (TMap (r ': rs)) (TMap rs)
+tail2 = wrapped . tail . from wrapped
+{-# INLINE tail2 #-}
+
+
+prepend2 :: Target r -> TMap rs -> TMap (r ': rs)
+prepend2 a = wrapped %~ prepend a
+
+
+--prepend :: a -> List lst -> List (a ': lst)
+--prepend = cons
+--{-# INLINE prepend #-}
