@@ -20,7 +20,7 @@ import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
 import           Data.Graph.Builder.Ref                  as Ref
 import           Luna.Syntax.Model.Network.Class
-import           Data.Layer.Cover
+import           Data.Layer.Cover_OLD
 import           Data.Graph
 import           Luna.Syntax.Model.Network.Builder.Layers.TCData
 

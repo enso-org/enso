@@ -25,7 +25,7 @@ import           Data.Graph.Builder
 import           Data.Graph.Query                                hiding (Graph)
 import qualified Data.Graph.Query                                as Sort
 import           Data.Index                                      (idx)
-import           Data.Layer.Cover
+import           Data.Layer.Cover_OLD
 import qualified Data.Map                                        as Map
 import           Data.Prop
 import           Data.Record                                     hiding (Layout, Cons, cons)

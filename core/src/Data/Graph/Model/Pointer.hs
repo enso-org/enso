@@ -10,7 +10,7 @@ import Data.Direction    as X
 import Data.Index
 import Data.Layer
 import Data.Prop
-
+import Data.Layer.Cover_OLD
 
 data Knowledge a = Known a
                  | Unknown

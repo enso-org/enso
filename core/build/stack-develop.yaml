@@ -20,6 +20,7 @@ packages:
     - ../../../libs/prologue
     - ../../../libs/type-cache
     - ../../../libs/typelevel
+    - ../../../libs/data-shell
 
 extra-deps:
     - ghc-session-0.1.2.0

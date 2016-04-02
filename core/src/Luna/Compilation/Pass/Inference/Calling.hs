@@ -33,6 +33,8 @@ import qualified Luna.Syntax.Term.Function as Function
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import           Data.Layer.Cover_OLD
+
 
 -- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently
 

@@ -25,6 +25,7 @@ import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
 import qualified Luna.Syntax.Term.Lit                        as Lit
+import           Data.Layer.Cover_OLD
 
 #define PassCtx(m) ( term ~ Draft Static                           \
                    , Covered node                                  \

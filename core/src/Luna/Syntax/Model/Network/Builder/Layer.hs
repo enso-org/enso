@@ -15,6 +15,7 @@ import           Data.Graph.Builders
 import           Control.Monad.Event
 import           Data.Graph.Model.Pointer.Set         (RefSet)
 import           Data.Prop
+import           Data.Record
 import           Data.Construction
 import           Data.Graph.Backend.NEC
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
@@ -25,8 +26,18 @@ import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
 import           Data.Graph.Builder.Ref                 as Ref
 import           Luna.Syntax.Model.Network.Class
-import           Data.Layer.Cover
+import           Data.Layer.Cover_OLD
 import           Data.Graph
+
+
+
+
+-- Records
+type instance RecordOf (ls :< t) = RecordOf t
+instance (HasRecord (Uncovered (ls :< t)), Uncovered (Unwrapped (ls :< t)) ~ t, Covered (Unwrapped (ls :< t)))
+      => HasRecord (ls :< t) where record = covered ∘ record
+
+
 
 ------------------------------------------
 -- === Native layers implementation === --

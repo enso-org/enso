@@ -110,6 +110,7 @@ Library
                  , typelevel
                  , vector
                  , data-rtuple
+                 , data-shell
 
 
 Executable luna
