@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE BangPatterns              #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
 
 module Luna.Compilation.Pass.Interpreter.Interpreter where
 
@@ -17,7 +18,7 @@ import           Data.Construction
 import           Data.Graph
 import qualified Data.Graph.Backend.NEC                          as NEC
 import           Data.Graph.Builder                              hiding (get)
-import qualified Data.Graph.Builder                              as Builder
+import qualified Data.Graph.Builder                              as GraphBuilder
 import qualified Data.IntSet                                     as IntSet
 import           Data.Prop
 import           Data.Record                                     hiding (cons, Value)
@@ -26,12 +27,12 @@ import           Development.Placeholders
 import           Luna.Compilation.Pass.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT)
 import           Luna.Compilation.Pass.Interpreter.Env           (Env)
 import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
-import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, Value(..))
+import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, ValueErr(..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
 import           Luna.Syntax.Term.Expr                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
-import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs)
+import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
@@ -42,7 +43,8 @@ import           Type.Inference
 
 -- import qualified Luna.Library.StdLib                             as StdLib
 
-import           Luna.Syntax.Term.Function                       (Arg)
+import           Luna.Syntax.Term.Function                       (Arg, Function (..), Signature (..))
+import qualified Luna.Syntax.Term.Function                       as Function
 import qualified Luna.Syntax.Term.Function.Argument              as Arg
 
 --import qualified Luna.Evaluation.Session                         as Session
@@ -61,7 +63,7 @@ import           Unsafe.Coerce   -- TODO: move to another module
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
 -- import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT, TermBuilder)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder)
 
 import           Data.String.Utils                               (replace)
 
@@ -231,6 +233,8 @@ tryGetBool boolStr
                                     , MonadMask (m)                                   \
                                     , ReferencedM Node graph (m) node                 \
                                     , ReferencedM Edge graph (m) edge                 \
+                                    , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
+                                    , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) (m) \
                                     )
 
 
@@ -256,7 +260,7 @@ markDirty ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.dirty .~ True)
 
-setValue :: InterpreterCtx(m, ls, term) => Value (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
+setValue :: InterpreterCtx(m, ls, term) => ValueErr (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
 setValue value ref startTime = do
     endTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
@@ -289,7 +293,7 @@ copyValue fromRef toRef startTime = do
                         & prop InterpreterData . Layer.debug .~ debug
                 )
 
-getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value (EvalMonad Any))
+getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
 getValue ref = do
     node <- read ref
     return $ (node # InterpreterData) ^. Layer.value
@@ -339,12 +343,12 @@ unpackArguments args = mapM (follow source . Arg.__val_) args
 
 
 -- TODO: handle exception
-argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value (EvalMonad Any))
+argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
 argumentValue ref = do
     node <- read ref
     return $ (node # InterpreterData) ^. Layer.value
 
-argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Value [EvalMonad Any])
+argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (ValueErr [EvalMonad Any])
 argumentsValues refs = do
     mayValuesList <- mapM argumentValue refs
     return $ sequence mayValuesList
@@ -380,26 +384,26 @@ displayValue ref = do
     valueString <- getValueString ref
     putStrLn $ "Type " <> show typeName <> " value " <> valueString
 
-getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value String)
+getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
 getTypeName ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
     getTypeNameForType tpRef
 
-getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Value String)
+getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (ValueErr String)
 getListType (arg:more:_) = return $ Left ["Too many parameters to list"]
 getListType (arg:_)      = do
     name <- getTypeNameForType arg
     return $ (\s -> "[" <> s <> "]") <$> name
 getListType _            = return $ Left ["List should have a type parameter"]
 
-getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (Value String)
+getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (ValueErr String)
 getArgsType args@(arg:rest) = do
     typeNameMays <- mapM getTypeNameForType args
     return $ (\typeNames -> "(" <> intercalate ") (" typeNames <> ")") <$> sequence typeNameMays
 getArgsType _ = return $ Left ["Bad type arguments"]
 
-getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (Value String)
+getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
 getTypeNameForType tpRef = do
     tp    <- read tpRef
     caseTest (uncover tp) $ do
@@ -422,7 +426,7 @@ getTypeNameForType tpRef = do
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
 
-getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (Value String)
+getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (ValueErr String)
 getNativeType ref = do
     node  <- read ref
     tpRef <- follow source $ node # Type
@@ -445,7 +449,7 @@ getNativeType ref = do
         of' $ \ANY -> return $ Left ["Incorrect native type"]
 
 
-exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (Value (EvalMonad Any))
+exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (ValueErr (EvalMonad Any))
 exceptionHandler e = do
     let asyncExcMay = ((fromException e) :: Maybe AsyncException)
     putStrLn $ "Exception catched:\n" <> show e
@@ -455,7 +459,7 @@ exceptionHandler e = do
                         putStrLn "Async exception occurred"
                         liftIO $ throwIO e
 
-evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (Value (EvalMonad Any))
+evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
 evaluateNative ref args = do -- $notImplemented -- do
     -- putStrLn $ "Evaluating native"
     node <- read ref
@@ -491,26 +495,62 @@ evaluateNative ref args = do -- $notImplemented -- do
 -- interpretFunction :: Graph -> Signature -> Any -> IO Any
 -- interpretFunction g sig arg = runGraph
 
-handleVar ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
-handleVar na = do
-    return ()
+-- handleVar ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => NetGraph -> Ref Node (ls :<: term) -> m ()
+interpretFunction ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Hetero (NEC.Graph n e c) -> Signature (Ref Node (ls :<: term)) -> Any -> m (EvalMonad Any)
+-- interpretFunction ::  Hetero (NEC.Graph n e c) -> Signature nodeRef -> Any -> IO Any
+interpretFunction g sig arg = do
+    -- let g = testG
+    let val = Right arg
+
+    (v, g) <- runBuild g $ do
+        let input = head $ sig ^. Function.args
+        -- withRef input $ (prop InterpreterData . Layer.dirty .~ False)
+        --               . (prop InterpreterData . Layer.value .~ val)
+        -- return ()
+        evaluateNode $ sig ^. Function.out
 
 
-runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
-                             $ runNetworkBuilderT g m
+
+    -- let a = toAny 0 :: Any
+    -- Either
+    case v of
+        Left err -> return $ $notImplemented -- error "No value evaluated"
+        Right val -> return val
+
+
+
+
+-- runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+runBuild (g :: Hetero (NEC.Graph n e c)) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+                                           $ runNetworkBuilderT g m
 
 evalBuild g m = fmap snd $ runBuild g m
 
 
-evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m ()
+testG :: Hetero (NEC.Graph n e c)
+testG = $notImplemented
+
+testSig :: Signature (Ref Node (ls :<: term))
+testSig = $notImplemented
+
+testRef :: Ref Node (ls :<: term)
+testRef = $notImplemented
+
+evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
 evaluateNode ref = do
     startTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime
     node <- read ref
     -- g <- lift $ get
-    g <- Builder.get
+    g <- GraphBuilder.get
 
-    -- putStrLn $ "evaluating " <> show ref
+
+    let a = toAny 0 :: Any
+        sig = testSig
+
+    interpretFunction g sig a
+
+    -- -- putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
         Just redirect -> do
             redirRef <- (follow source) redirect
@@ -523,8 +563,18 @@ evaluateNode ref = do
                     of' $ \(Unify l r)  -> return ()
                     of' $ \(Acc n t)    -> return ()
                     of' $ \(Var n)      -> do
-                        -- g :: _
+                        let clusterPtr = fromJust $ (node # TCData) ^. replacement
+                        -- let (cluster :: (Ref Cluster _)) = cast clusterPtr
+                        -- let cluster :: NetCluster = cast clusterPtr
+                        -- clustPtr :: Loc Cluster
+                        -- let abc = cast <$> clustPtr
+                        -- clust <- read $ cast <$> clustPtr
 
+                        -- sig <- fromJust $ clust # Lambda
+                        -- g <- GraphBuilder.get
+                        -- v <- interpretFunction g sig
+                        -- let val = toAny v
+                        -- setValue (Right $ val) ref startTime
                         return ()
                     of' $ \(App f args) -> do
                         funRef       <- follow source f
@@ -535,7 +585,6 @@ evaluateNode ref = do
                             of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
                             of' $ \ANY                      -> return $ Left ["evaluating non native function"]
                         setValue nativeVal ref startTime
-                        return ()
                     of' $ \(Lit.String str)                 -> do
                         setValue (Right $ toMonadAny str) ref startTime
                     of' $ \number@(Lit.Number radix system) -> do
@@ -547,7 +596,8 @@ evaluateNode ref = do
                     of' $ \Blank -> return ()
                     of' $ \ANY   -> return ()
                 else return ()
-    return ()
+    getValue ref
+
 
 evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
@@ -572,6 +622,8 @@ evaluateNodes reqRefs = do
                              , MonadMask (m)                                   \
                              , ReferencedM Node graph (m) node                 \
                              , ReferencedM Edge graph (m) edge                 \
+                             , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
+                             , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) (m) \
                              )
 
 run :: forall env m ls term node edge graph n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
@@ -582,10 +634,18 @@ run reqRefs = do
     -- putStrLn $ "reqRefs " <> show reqRefs
     -- ((), env) <- flip runInterpreterT (def :: env) $ collectNodesToEval (head reqRefs) runStateT
     -- g <- Builder.get
+    -- g <- lift $ Builder.get
 
     ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
     -- putStrLn $ "env " <> show env
 
     -- putStrLn $ show StdLib.symbols
 
+    return ()
+
+
+testRun :: forall env m ls term node edge graph n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+    => [Ref Node (ls :<: term)] -> m ()
+testRun reqRefs = do
+    putStrLn "I'm here"
     return ()
