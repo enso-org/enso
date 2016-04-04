@@ -12,7 +12,7 @@ import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set  (RefSet)
 import           Data.Container                (usedIxes)
 import           Data.Container.SizeTracking   (SizeTracking)
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 import           Data.Construction
 import           Data.Index                    (idx)
 import           Data.Prop

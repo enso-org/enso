@@ -12,7 +12,7 @@ import           Data.Construction
 import           Data.Container
 import           Data.Index
 import qualified Control.Monad.State            as State
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 
 ---- TODO: template haskellize

@@ -12,7 +12,7 @@ import           Prelude.Luna                            hiding (index)
 import           Data.Container
 import           Data.Container.Class
 import           Data.Index                              (idx)
-import           Data.Layer.Cover_OLD                        (uncover)
+import           Data.Layer_OLD.Cover_OLD                        (uncover)
 import           Data.List                               (find)
 import           Data.Map.Strict                         (Map)
 import qualified Data.Map.Strict                         as Map

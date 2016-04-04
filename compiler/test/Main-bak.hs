@@ -100,7 +100,7 @@ main = do
 --import Data.STRef
 --import Control.Monad.ST
 --import Data.Reprx
---import Data.Layer
+--import Data.Layer_OLD
 --import qualified System.Mem.Weak      as Mem
 --import Data.IORef
 
@@ -108,7 +108,7 @@ main = do
 --import Data.Container.Hetero (Ptr(Ptr), ptrIdx)
 
 --import Data.Container.Hetero
-----import Data.Layer.Coat
+----import Data.Layer_OLD.Coat
 --import qualified Luna.Syntax.Builder.Node as NodeBuilder
 --import           Luna.Syntax.Builder.Node (MonadNodeBuilder)
 --import qualified Data.IntSet as IntSet

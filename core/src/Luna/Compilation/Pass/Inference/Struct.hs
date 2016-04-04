@@ -26,7 +26,7 @@ import Type.Inference
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 
 #define PassCtx(m,ls,term) ( term ~ Draft Static                                     \

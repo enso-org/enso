@@ -15,7 +15,7 @@ import Data.Container                 hiding (addM, removeM)
 import qualified Data.Container       as Cont
 import Data.Graph
 import Data.Graph.Builder.Class       hiding (with)
-import Data.Layer
+import Data.Layer_OLD
 
 
 -- === Utils === --

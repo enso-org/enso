@@ -332,7 +332,7 @@ test1 = do
 
 -- import           Control.Monad.Trans.Except
 -- import           Control.Monad.Trans.Identity
--- import           Data.Layer.Coat
+-- import           Data.Layer_OLD.Coat
 -- import qualified Data.Map                     as Map
 -- import           Data.Variants                hiding (cons)
 -- import           Data.Vector.Mutable          ()

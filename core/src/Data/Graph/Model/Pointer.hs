@@ -8,9 +8,9 @@ import Prelude.Luna
 import Data.Construction
 import Data.Direction    as X
 import Data.Index
-import Data.Layer
+import Data.Layer_OLD
 import Data.Prop
-import Data.Layer.Cover_OLD
+import Data.Layer_OLD.Cover_OLD
 
 data Knowledge a = Known a
                  | Unknown

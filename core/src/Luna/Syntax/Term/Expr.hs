@@ -61,6 +61,7 @@ type ExprRecord gs vs t = TermRecord gs vs t
 
 
 
+
 -------------------
 -- === Atoms === --
 -------------------
@@ -429,7 +430,7 @@ type VariantList_MANUAL_CACHE t = [ {-  9 -} Lit.Star
 
 #ifndef CachedTypeFamilies
 
-FIXME
+-- FIXME
 --type VariantList_RULE t = Unique (GatherProps Variant (GroupList t))
 --CACHE_AS(VariantList_RULE, VariantList_GEN_CACHE)
 --CHECK_EQ(VariantList_GEN_CACHE IM, VariantList_MANUAL_CACHE IM)
@@ -515,7 +516,7 @@ type DecodeMap_MANUAL_CACHE t =
 
 #ifndef CachedTypeFamilies
 
-FIXME
+-- FIXME
 --type DecodeMap_RULE t = 'Map $ Zip (Layout_CACHE t) (Enumerate (Size (Layout_CACHE t)))
 --CACHE_AS(DecodeMap_RULE, DecodeMap_GEN_CACHE)
 --CHECK_EQ(DecodeMap_GEN_CACHE IM, DecodeMap_MANUAL_CACHE IM)
@@ -584,7 +585,7 @@ type EncodeMap_MANUAL_CACHE t =
 
 #ifndef CachedTypeFamilies
 
-FIXME
+-- FIXME
 ---- SubGroupRelations
 
 --type family MapIndex els (cont :: [*]) where MapIndex '[]       cont = '[]
@@ -655,7 +656,3 @@ type EncodeMap_CACHE t = EncodeMap_MANUAL_CACHE t
 #endif
 
 type instance EncodeMap (TermRecord gs vs t) = EncodeMap_CACHE t
-
-
-
-

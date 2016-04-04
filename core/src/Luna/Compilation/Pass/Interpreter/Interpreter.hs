@@ -74,7 +74,7 @@ import           Control.Concurrent     (threadDelay)
 import           GHC.Exception          (fromException, Exception)
 import           Control.DeepSeq        (deepseq, force)
 import qualified DynFlags as GHC
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 
 -------

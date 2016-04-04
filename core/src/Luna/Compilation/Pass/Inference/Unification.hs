@@ -39,7 +39,7 @@ import Control.Monad.Fix
 import Control.Monad (liftM, MonadPlus(..))
 
 import Control.Monad.Trans.Either
-import Data.Layer.Cover_OLD
+import Data.Layer_OLD.Cover_OLD
 
 
 #define PassCtx(m,ls,term) ( term  ~ Draft Static                  \

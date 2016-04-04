@@ -38,7 +38,7 @@ import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), Ty
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import           Luna.Compilation.Error
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 import Data.Graph.Model.Pointer.Set (RefSet)
 

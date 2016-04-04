@@ -24,7 +24,7 @@ import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term                  (Draft)
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 
 #define PassCtx(m, ls, term) ( ls    ~ NetLayers                \

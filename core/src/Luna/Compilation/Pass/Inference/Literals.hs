@@ -31,7 +31,7 @@ import           Luna.Syntax.Model.Network.Term
 
 
 import           Luna.Syntax.Term.Function.Argument (Arg)
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 
 #define PassCtx(m, ls, term) ( ls    ~ NetLayers                 \

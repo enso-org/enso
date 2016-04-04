@@ -1,0 +1,64 @@
+{
+  "exclude": [
+    "^(public\\/lib|node_modules|bower_components|\\.imdone|target|build)[\\/\\\\]?|\\.(git|svn)|\\~$|\\.(jpg|png|gif|swp|ttf|otf)$"
+  ],
+  "code": {
+    "include_lists": [
+      "TODO",
+      "DOING",
+      "DONE",
+      "PLANNING",
+      "FIXME",
+      "ARCHIVE"
+    ]
+  },
+  "watcher": true,
+  "lists": [
+    {
+      "name": "PLANNING",
+      "hidden": true
+    },
+    {
+      "name": "TODO",
+      "hidden": false
+    },
+    {
+      "name": "DOING",
+      "hidden": false
+    },
+    {
+      "name": "DONE",
+      "hidden": true
+    },
+    {
+      "name": "ARCHIVE",
+      "hidden": true
+    },
+    {
+      "name": "doing",
+      "hidden": true
+    },
+    {
+      "name": "todo",
+      "hidden": true
+    },
+    {
+      "name": "done",
+      "hidden": true
+    },
+    {
+      "name": "filters",
+      "hidden": true
+    }
+  ],
+  "marked": {
+    "gfm": true,
+    "tables": true,
+    "breaks": false,
+    "pedantic": false,
+    "sanitize": true,
+    "smartLists": true,
+    "langPrefix": "language-"
+  },
+  "keepEmptyPriority": false
+}

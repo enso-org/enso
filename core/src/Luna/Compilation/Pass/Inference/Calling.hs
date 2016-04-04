@@ -11,7 +11,7 @@ import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record.Match
-import Data.Layer
+import Data.Layer_OLD
 import Luna.Runtime.Dynamics                      (Static)
 import Luna.Syntax.Term.Expr                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
@@ -33,7 +33,7 @@ import qualified Luna.Syntax.Term.Function as Function
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import           Data.Layer.Cover_OLD
+import           Data.Layer_OLD.Cover_OLD
 
 
 -- FIXME[MK]: Do not explicitly type stuff here as NetGraph, solve the problems with typing it differently

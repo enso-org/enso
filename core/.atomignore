@@ -1,0 +1,14 @@
+.gitignore
+.public
+LICENSE
+*.cabal
+*.tcabal
+*.md
+*.yaml
+.stylish-haskell.yaml
+.imdone
+Setup.hs
+.atomignore
+
+build
+bin
