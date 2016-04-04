@@ -287,10 +287,10 @@ isDirty node = (node # InterpreterData) ^. Layer.dirty
 isRequired :: (Prop InterpreterData n ~ InterpreterLayer, HasProp InterpreterData n) => n -> Bool
 isRequired node = (node # InterpreterData) ^. Layer.required
 
-markDirty :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
-markDirty ref = do
+markDirty :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Bool -> m ()
+markDirty ref dirty = do
     node <- read ref
-    write ref (node & prop InterpreterData . Layer.dirty .~ True)
+    write ref (node & prop InterpreterData . Layer.dirty .~ dirty)
 
 setValue :: InterpreterCtx(m, ls, term) => ValueErr (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
 setValue value ref startTime = do
@@ -339,7 +339,7 @@ markSuccessors ref = do
     -- putStrLn $         "markSuccessors " <> show ref
     unless (isDirty node) $ do
         -- putStrLn $     "marking dirty  " <> show ref
-        markDirty ref
+        markDirty ref True
         when (isRequired node) $ do
             -- putStrLn $ "addReqNode     " <> show ref
             Env.addNodeToEval ref
@@ -399,16 +399,15 @@ getValueString ref = do
     value    <- getValue    ref
     case value of
         Left err  -> return ""
-        Right val -> do -- $notImplemented --
-                        pureVal <- liftIO val
-                        return $ getValueByType typeName pureVal
-                        where
-                           getValueByType typeName pureVal
-                               | typeName == Right "String" = show ((unsafeCast pureVal) :: String)
-                               | typeName == Right "Int"    = show ((unsafeCast pureVal) :: Integer)
-                               | typeName == Right "Bool"   = show ((unsafeCast pureVal) :: Bool)
-                               | otherwise                 = "unknown type"
-
+        Right val -> do
+            pureVal <- liftIO val
+            return $ getValueByType typeName pureVal
+            where
+               getValueByType typeName pureVal
+                   | typeName == Right "String" = show ((unsafeCast pureVal) :: String)
+                   | typeName == Right "Int"    = show ((unsafeCast pureVal) :: Integer)
+                   | typeName == Right "Bool"   = show ((unsafeCast pureVal) :: Bool)
+                   | otherwise                 = "unknown type"
 
 displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
@@ -449,15 +448,19 @@ getTypeNameForType tpRef = do
                 _           -> if null sigElems
                     then return $ Right s
                     else do
-                           argsTypeMay <- getArgsType sigElems
-                           return $ case argsTypeMay of
-                               Left err       -> Left err
-                               Right argsType -> Right $ s <> " " <> argsType
+                        argsTypeMay <- getArgsType sigElems
+                        return $ case argsTypeMay of
+                            Left err       -> Left err
+                            Right argsType -> Right $ s <> " " <> argsType
         of' $ \(Var (Lit.String name)) -> return . Right $ replace "#" "_" name
         of' $ \ANY                     -> return $ Left ["Ambiguous node type"]
 
 
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
+
+getSigElem :: ValueErr String -> String
+getSigElem (Left  err) = "<err " <> intercalate " " err <> ">"
+getSigElem (Right sigElem) = sigElem
 
 getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (ValueErr String)
 getNativeType ref = do
@@ -477,7 +480,8 @@ getNativeType ref = do
                     let funSig = intercalate " -> " (rights sigElemNames) in
                     Right funSig
                 else
-                    Left ["Could not evaluate all signature elements types"]
+                    let funSig = intercalate " -> " (getSigElem <$> sigElemNames) in
+                    Left ["Could not evaluate all signature elements types, evaluated " <> funSig]
 
         of' $ \ANY -> return $ Left ["Incorrect native type"]
 
@@ -489,8 +493,8 @@ exceptionHandler e = do
     case asyncExcMay of
         Nothing  -> return $ Left [show e]
         Just exc -> do
-                        putStrLn "Async exception occurred"
-                        liftIO $ throwIO e
+            putStrLn "Async exception occurred"
+            liftIO $ throwIO e
 
 evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
 evaluateNative ref args = do -- $notImplemented -- do
@@ -503,9 +507,12 @@ evaluateNative ref args = do -- $notImplemented -- do
        of' $ \ANY -> return ("", Left ["Error: native cannot be evaluated"])
 
     case tpNativeE of
-       Left err -> return $ Left err
+       Left err -> do
+           putStrLn $ "error " <> (intercalate " " err)
+           return $ Left err
        Right tpNative -> do
            putStrLn $ name <> " :: " <> tpNative
+           markDirty ref False
            valuesE <- argumentsValues args
            case valuesE of
                Left err -> return $ Left err

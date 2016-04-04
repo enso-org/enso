@@ -220,7 +220,7 @@ graph3 = do
 
     return ([apppl, appid], refsToEval)
 
-graph4 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
+graph4, graph5 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , node ~ (ls :<: term)
                                                   , edge ~ Link (ls :<: term)
                                                   , nr   ~ Ref Node node
@@ -241,7 +241,29 @@ graph4 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , Graph.MonadBuilder (Hetero (NEC.Graph n e c)) m
                                                   )
        => m ([nr], [nr])
+
 graph4 = do
+    i1 <- int 2
+    i2 <- int 3
+    -- fun1 <- native (fromString "(+2)")
+    fun1 <- var "succ"
+
+    act <- acc "times" i1
+    apt <- app act [arg i2]
+
+    ach <- acc "head" apt
+    aph <- app ach []
+
+    let refsToEval = [aph]
+
+    forM_ refsToEval (\ref -> do
+            (nd :: (ls :<: term)) <- read ref
+            write ref (nd & prop InterpreterData . Layer.required .~ True)
+        )
+
+    return ([aph], refsToEval)
+
+graph5 = do
     i1 <- int 2
     i2 <- int 3
     -- fun1 <- native (fromString "(+2)")
@@ -265,6 +287,7 @@ graph4 = do
 
     return ([aph], refsToEval)
 
+
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
     tcState <- TypeCheckState.get
@@ -286,7 +309,7 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, gint) <- TypeCheck.runT $ do
-            ((roots, refsToEval), gb) <- runBuild g graph4
+            ((roots, refsToEval), gb) <- runBuild g graph5
 
             (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
                 Symbol.loadFunctions StdLib.symbols
