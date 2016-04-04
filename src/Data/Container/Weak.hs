@@ -21,7 +21,7 @@ import Data.Container.List
 import Data.Container.Proxy
 import Data.Default
 import Data.Functor.Utils
-import Data.Layer
+import Data.Layer_OLD
 
 import Data.Container.Immersed (withDivedM)
 import Data.Container.Opts     (Query(..), ModsOf, ParamsOf)

@@ -9,7 +9,7 @@ import Data.Container           (Item, Container, Tup2RTup, IsContainerM(fromCon
 import Data.Container.Auto
 import Data.Container.List
 import Data.Container.Resizable (Exponential)
-import Data.Layer
+import Data.Layer_OLD
 import Data.Vector              (Vector)
 import Data.Vector.Mutable      (MVector)
 import GHC.Generics             (Generic)

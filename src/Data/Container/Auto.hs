@@ -12,7 +12,7 @@ import Data.Container.Class
 import Data.Container.Resizable
 import Data.Container.Reusable
 import Data.Container.List
-import Data.Layer
+import Data.Layer_OLD
 import Data.Default
 import GHC.Generics    (Generic)
 import Control.DeepSeq (NFData)

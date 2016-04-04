@@ -14,7 +14,7 @@ import Data.Container.Opts  (Opt(P,N), Query(..), ModsOf, ParamsOf, Unchecked, I
 import Data.Container.Proxy
 import Data.Default
 import Data.Functor.Utils
-import Data.Layer
+import Data.Layer_OLD
 import Data.List            ((\\))
 import Data.Monoid
 import GHC.Generics    (Generic)

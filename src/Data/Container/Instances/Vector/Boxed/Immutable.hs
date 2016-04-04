@@ -38,7 +38,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 
 import qualified Data.Container.Opts as M
 import           Data.Container.Opts (Opt(P,N), Knowledge(..), Query(..), OptQuery(..), ModsOf, ParamsOf, CondOpt, ifOpt)
-import Data.Layer
+import Data.Layer_OLD
 import Data.Container.Type (In)
 
 import Data.Container.Proxy

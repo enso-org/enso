@@ -6,7 +6,7 @@ module Data.Container.Immersed where
 import Prelude
 
 import Data.Container.Class
-import Data.Layer
+import Data.Layer_OLD
 import Control.Lens
 import Control.Monad
 

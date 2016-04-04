@@ -16,7 +16,7 @@ import           Data.Container.Opts    (Query(..), ModsOf, ParamsOf)
 import qualified Data.Container.Opts    as M
 import           Data.Container.Proxy
 import           Data.Default
-import           Data.Layer
+import           Data.Layer_OLD
 import           Data.Functor.Utils
 import           GHC.Generics    (Generic)
 import           Control.DeepSeq (NFData)
