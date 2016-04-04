@@ -428,7 +428,7 @@ type VariantList_MANUAL_CACHE t = [ {-  9 -} Lit.Star
                                   , {- 55 -} Native            (Layout t Draft Dynamic)
                                   ]
 
-#ifndef CachedTypeFamilies
+-- #ifndef CachedTypeFamilies
 
 -- FIXME
 --type VariantList_RULE t = Unique (GatherProps Variant (GroupList t))
@@ -436,11 +436,11 @@ type VariantList_MANUAL_CACHE t = [ {-  9 -} Lit.Star
 --CHECK_EQ(VariantList_GEN_CACHE IM, VariantList_MANUAL_CACHE IM)
 --type VariantList_CACHE t = VariantList_GEN_CACHE t
 
-#else
+-- #else
 
 type VariantList_CACHE t = VariantList_MANUAL_CACHE t
 
-#endif
+-- #endif
 
 type VariantList t = VariantList_CACHE t
 
@@ -514,7 +514,7 @@ type DecodeMap_MANUAL_CACHE t =
          , {- 55 -} '( Native            (Layout t Draft Dynamic)                          , 55 )
          ]
 
-#ifndef CachedTypeFamilies
+-- #ifndef CachedTypeFamilies
 
 -- FIXME
 --type DecodeMap_RULE t = 'Map $ Zip (Layout_CACHE t) (Enumerate (Size (Layout_CACHE t)))
@@ -522,11 +522,11 @@ type DecodeMap_MANUAL_CACHE t =
 --CHECK_EQ(DecodeMap_GEN_CACHE IM, DecodeMap_MANUAL_CACHE IM)
 --type DecodeMap_CACHE t = DecodeMap_GEN_CACHE t
 
-#else
+-- #else
 
 type DecodeMap_CACHE t = DecodeMap_MANUAL_CACHE t
 
-#endif
+-- #endif
 
 type instance DecodeMap (TermRecord gs vs t) = DecodeMap_CACHE t
 
@@ -583,7 +583,7 @@ type EncodeMap_MANUAL_CACHE t =
          , {- 55 -} '( Native            (Layout t Draft Dynamic)                          , '[ 55 , 8                 ] )
          ]
 
-#ifndef CachedTypeFamilies
+-- #ifndef CachedTypeFamilies
 
 -- FIXME
 ---- SubGroupRelations
@@ -649,10 +649,10 @@ type EncodeMap_MANUAL_CACHE t =
 --CHECK_EQ(EncodeMap_GEN_CACHE IM, EncodeMap_MANUAL_CACHE IM)
 --type EncodeMap_CACHE t = EncodeMap_GEN_CACHE t
 
-#else
+-- #else
 
 type EncodeMap_CACHE t = EncodeMap_MANUAL_CACHE t
 
-#endif
+-- #endif
 
 type instance EncodeMap (TermRecord gs vs t) = EncodeMap_CACHE t

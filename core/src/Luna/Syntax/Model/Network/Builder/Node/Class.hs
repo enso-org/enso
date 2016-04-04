@@ -97,3 +97,9 @@ blank = Term.blank
 
 native :: NodeBuilder Native m (ls :<: term) => NameInput (Ref Node (ls :<: term)) -> m (Ref Node (ls :<: term))
 native = Term.native
+
+
+
+star2 = node Term.star2
+
+var2 = node ∘ Term.var2

@@ -19,6 +19,8 @@ import qualified Control.Monad.State.Lazy as State
 import Control.Monad.Event (Dispatcher, dispatch)
 
 import Luna.Syntax.Term.Expr (TermOf)
+import Control.Monad.Primitive
+
 
 -- === Definitions === --
 
@@ -33,6 +35,12 @@ runNetworkBuilderT = runIdentityT ∘ unwrap'
 
 
 -- === Instances === --
+
+instance PrimMonad m => PrimMonad (NetworkBuilderT m) where
+    type PrimState (NetworkBuilderT m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
+    
 
 instance (MonadBuilder g m, Dispatcher CONNECTION (Ref Edge (Link a)) m, ReferencedM Edge g (NetworkBuilderT m) (Arc a a))
       => ParamResolver (State.StateT [(Ref Node a, Ref Edge (Link a))] (NetworkBuilderT m)) (NetworkBuilderT m) (Ref Node a) where
@@ -83,4 +91,3 @@ instance ElemBuilder2 (TermOf t) m t => ElemBuilder3 m t where buildElem3 = buil
 
 --class (MonadTrans n, Monad (n m), Monad m) => Binder n m a | m a -> n where
 --    resolveParams :: n m a -> m a
-

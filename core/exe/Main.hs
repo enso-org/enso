@@ -67,6 +67,9 @@ import           Data.Graph.Model.Pointer.Set (RefSet)
 
 import qualified Data.RTuple.Examples as E
 
+import           Luna.Syntax.Model.Network.Builder.Class ()
+import qualified Luna.Syntax.Model.Network.Builder.Class as XP
+
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
@@ -78,13 +81,16 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 -- --------------------------------------
 -- - vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ---
 
+
 prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 prebuild = runBuild2 def $ do
     star
     star
     star
 
-
+prebuild2 :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
+prebuild2 = runBuild3 def $ do
+    var2 "ala"
 
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
@@ -94,6 +100,12 @@ runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (Ne
 runBuild2 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT2 g m
 
+
+runBuild3 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+                             . runNetworkBuilderT2 g
+                             . XP.runNetworkBuilderT
+                             $ m
+
 evalBuild = fmap snd ∘∘ runBuild
 --TODO: test1
 -- TODO: test2
@@ -101,6 +113,6 @@ evalBuild = fmap snd ∘∘ runBuild
 main :: IO ()
 main = do
     E.main
-    (_,  g :: NetGraph ) <- prebuild
+    (_,  g :: NetGraph ) <- prebuild2
     renderAndOpen [ ("xg", "xg", g)
                   ]

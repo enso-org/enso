@@ -13,9 +13,10 @@ import Data.Index
 import Data.Container          hiding (Impossible, impossible)
 import Luna.Runtime.Dynamics   (Dynamics, Static, Dynamic)
 import Type.Bool
-import qualified Data.Graph.Backend.NEC as VEC
+import qualified Data.Graph.Backend.NEC as NEC
 import Data.Graph hiding (Dynamic)
-import Data.Graph.Builder.Class (MonadBuilder, modify)
+import Data.Graph.Builder.Class (MonadBuilder, modify, modifyM)
+import Control.Monad.Primitive (PrimState, PrimMonad)
 
 ---------------------------------
 -- === Connection Building === --
@@ -28,7 +29,7 @@ type family NameConnection src tgt where
     NameConnection src tgt = If (Dynamics tgt == Static) src (Connection src tgt)
 
 type family NameConnection2 src tgt where
-    NameConnection2 src tgt = Impossible
+    NameConnection2 src I   = Impossible
     NameConnection2 src tgt = If (Dynamics tgt == Static) src (Connection src tgt)
 
 
@@ -63,8 +64,15 @@ instance Connectible' src tgt m conn => ConnectibleNameH Dynamic src tgt m  (Ref
 
 
 
-reserveConnection :: MonadBuilder (Hetero (VEC.Graph n e c)) m => m (Ref Edge a)
+reserveConnection :: MonadBuilder (Hetero (NEC.Graph n e c)) m => m (Ref Edge a)
 reserveConnection = Ptr <$> modify (wrapped' ∘ edgeStore $ swap ∘ ixed reserve)
+
+
+reserveConnectionM :: (MonadBuilder (Hetero (NEC.MGraph (PrimState m) n e c)) m, PrimMonad m) => m (Ref Edge a)
+reserveConnectionM = Ptr <$> modifyM (nested (wrapped' ∘ edgeStore) $ swap <∘> ixed reserveM)
+
+
+
 
 class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 class NamedConnectionReservationH rt src tgt m conn where reserveNamedConnectionH :: Proxy rt -> src -> Proxy tgt -> m conn

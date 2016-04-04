@@ -152,3 +152,31 @@ columns: 200
 # language_extensions:
   # - TemplateHaskell
   # - QuasiQuotes
+
+language_extensions:
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - PackageImports
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeOperators
+    - ViewPatterns

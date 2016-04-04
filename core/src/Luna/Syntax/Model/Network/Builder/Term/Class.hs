@@ -34,14 +34,14 @@ import           Luna.Syntax.Model.Network.Term
 import qualified Luna.Syntax.Term.Lit                as Lit
 import           Control.Monad.Trans.Identity
 import           Type.Bool
-
+import           Luna.Syntax.Term.Lit               (Star(Star))
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 
 import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
-import Control.Monad.Primitive (PrimState, PrimMonad)
+import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
 
 -------------------------------------
 -- === Term building utilities === --
@@ -109,6 +109,11 @@ makeWrapped ''BindBuilder
 
 runBindBuilder :: BindBuilder t m t -> m t
 runBindBuilder = runIdentityT ∘ unwrap'
+
+instance PrimMonad m => PrimMonad (BindBuilder t m) where
+    type PrimState (BindBuilder t m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 
 
 -------------------------------
@@ -280,6 +285,18 @@ instance ( inp ~ Input a
         --    buildTerm p (a,b) = term $ unifyCons <$> param a <*> param b
 
 
+        -- instance ElemBuilder Lit.Star   m a => TermBuilder Lit.Star   m a where buildTerm p ()           = buildElem Lit.Star
+        -- instance ElemBuilder Lit.String m a => TermBuilder Lit.String m a where buildTerm p (OneTuple s) = buildElem s
+        -- instance ElemBuilder Lit.Number m a => TermBuilder Lit.Number m a where buildTerm p (OneTuple s) = buildElem s
+        --
+        -- star :: TermBuilder Lit.Star m a => m a
+        -- star = curry $ buildTerm (Proxy :: Proxy Lit.Star)
+
+
+type instance BuildArgs2 Star a = ()
+instance TermBuilderCtx Star n m a => TermBuilder2 Star m a where
+    buildTerm2 p () = term $ pure starCons
+
 type instance BuildArgs2 Var' a = OneTuple (NameInput a)
 instance TermBuilderCtx Var' n m a => TermBuilder2 Var' m a where
     buildTerm2 p (OneTuple a) = term $ varCons <$> nameParam a
@@ -292,12 +309,16 @@ type instance BuildArgs2 Unify' a = (a, a)
 instance TermBuilderCtx Unify' n m a => TermBuilder2 Unify' m a where
     buildTerm2 p (a,b) = term $ unifyCons <$> param a <*> param b
 
+starCons :: Record.Cons Star a => a
+starCons  = Record.cons    Star
 
+varCons :: Record.Cons (Var n) a => n -> a
 varCons   = Record.cons ∘  Var
 unifyCons = Record.cons ∘∘ Unify
 matchCons = Record.cons ∘∘ Match
 
 type family Parameterized t a
+type instance Parameterized Star   a = Star
 type instance Parameterized Var'   a = Var   $ NameParam a
 type instance Parameterized Unify' a = Unify $ Param     a
 type instance Parameterized Match' a = Match $ Param     a
@@ -330,7 +351,11 @@ unify = curry $ buildTerm (Proxy :: Proxy Unify)
 match :: TermBuilder Match m a => Input a -> Input a -> m a
 match = curry $ buildTerm (Proxy :: Proxy Match)
 
+star2 :: TermBuilder2 Star m a => m a
+star2 = curry $ buildTerm2 Star
 
+var2 :: TermBuilder2 Var' m a => NameInput a -> m a
+var2 = curry $ buildTerm2 Var'
 
 
 type family Param a
@@ -387,13 +412,14 @@ class ElemBuilder3 m t where
 
 --class NamedConnectionReservation     src tgt m conn where reserveNamedConnection  ::             src -> Proxy tgt -> m conn
 
+-- reserveConnectionM :: (MonadBuilder (Hetero (NEC.MGraph (PrimState m) n e c)) m, PrimMonad m) => m (Ref Edge a)
 
-instance ( GraphBuilder.MonadBuilder (Hetero (NEC.Graph node edge cluster)) m
+instance ( PrimMonad m, GraphBuilder.MonadBuilder (Hetero (NEC.MGraph (PrimState m) n e c)) m
          , NamedConnectionReservation (NameInput (Ref Node a)) (Ref Node a) m (NameParam (Ref Node a))
          , State.MonadState [(Ref Node a, Ref Edge (Link a))] m
          ) => Parametrized m (Ref Node a) where
     param t = do
-        cref <- reserveConnection
+        cref <- reserveConnectionM
         lift $ State.modify ((t, cref):) -- FIXME[WD]: remove lift
         return cref
     -- FIXME[WD]: add the logic for dynamic graphs to add pending connections to state, like above
@@ -583,4 +609,3 @@ type HasInputs n e = (OverElement (MonoTFunctor e) (RecordOf n), HasRecord n)
 
 fmapInputs :: HasInputs n e => (e -> e) -> (n -> n)
 fmapInputs (f :: e -> e) a = a & record %~ overElement (p :: P (MonoTFunctor e)) (monoTMap f)
-
