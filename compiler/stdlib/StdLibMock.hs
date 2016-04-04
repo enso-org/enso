@@ -89,7 +89,7 @@ getTypeRep tp = do
 makePureFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
 makePureFun name self args out = makeNativeFun fixedName self args out where
     fixedName = prefix <> name
-    prefix    = "(" ++ intercalate "." ("(.)" <$ (maybeToList self ++ args)) ++ ") return "
+    prefix    = "(" ++ intercalate "." ( "(.)" <$ (maybeToList self ++ args)) ++ ") return "
 
 makeNativeFun :: FunBuilderCtx(m) => String -> Maybe TPRep -> [TPRep] -> TPRep -> m (Signature nodeRef)
 makeNativeFun name selfTypeRep argTypesRep outTypeRep = do
@@ -249,7 +249,9 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
 -- === Tests === --
 ------------------
 
-    , ("List.head"      , makePureFun   "head"                   (Just $ listOf $ TVar "#head")        []                                   (TVar "#head"))
+    -- TODO: put back polymorphic head
+    -- , ("List.head"      , makePureFun   "head"                   (Just $ listOf $ TVar "#head")        []                                   (TVar "#head"))
+    , ("List.head"      , makePureFun   "head"                   (Just $ listOf $ scons "Int")        []                                   (scons "Int"))
     , ("List.map"       , makeNativeFun "forM"                   (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]  (listOf $ TVar "#map1"))
     , ("succ"           , makePureFun   "succ"                   Nothing                               [scons "Int"]                        (scons "Int" ))
 

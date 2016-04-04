@@ -245,31 +245,31 @@ tryGetBool boolStr
 
 
 
-#define PassCtx(m, ls, term) ( ls    ~ NetLayers                               \
-                             , term  ~ Draft Static                            \
-                             , node  ~ (ls :<: term)                           \
-                             , edge  ~ Link node                               \
-                             , n ~ NetRawNode                                  \
-                             , e ~ Link NetRawNode                             \
-                             , c ~ NetRawCluster                               \
-                             , graph ~ Hetero (NEC.Graph n e c)                \
-                             , clus  ~ NetCluster                              \
-                             , BiCastable e edge                               \
-                             , BiCastable n node                               \
-                             , BiCastable c clus                               \
-                             , MonadIO (m)                                     \
-                             , MonadBuilder graph (m)                          \
-                             , NodeInferable (m) node                          \
-                             , TermNode Lam  (m) node                          \
-                             , MonadFix (m)                                    \
-                             , HasProp InterpreterData node                    \
-                             , Prop    InterpreterData node ~ InterpreterLayer \
-                             , MonadMask (m)                                   \
-                             , ReferencedM Node graph (m) node                 \
-                             , ReferencedM Edge graph (m) edge                 \
-                             , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
-                             , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) (m) \
-                             )
+#define PassCtx(m, ls, term)        ( ls    ~ NetLayers                               \
+                                    , term  ~ Draft Static                            \
+                                    , node  ~ (ls :<: term)                           \
+                                    , edge  ~ Link node                               \
+                                    , n ~ NetRawNode                                  \
+                                    , e ~ Link NetRawNode                             \
+                                    , c ~ NetRawCluster                               \
+                                    , graph ~ Hetero (NEC.Graph n e c)                \
+                                    , clus  ~ NetCluster                              \
+                                    , BiCastable e edge                               \
+                                    , BiCastable n node                               \
+                                    , BiCastable c clus                               \
+                                    , MonadIO (m)                                     \
+                                    , MonadBuilder graph (m)                          \
+                                    , NodeInferable (m) node                          \
+                                    , TermNode Lam  (m) node                          \
+                                    , MonadFix (m)                                    \
+                                    , HasProp InterpreterData node                    \
+                                    , Prop    InterpreterData node ~ InterpreterLayer \
+                                    , MonadMask (m)                                   \
+                                    , ReferencedM Node graph (m) node                 \
+                                    , ReferencedM Edge graph (m) edge                 \
+                                    , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
+                                    , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) (m) \
+                                    )
 
 pre :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node (ls :<: term)]
 pre ref = do
@@ -434,6 +434,15 @@ getArgsType args@(arg:rest) = do
     return $ (\typeNames -> "(" <> intercalate ") (" typeNames <> ")") <$> sequence typeNameMays
 getArgsType _ = return $ Left ["Bad type arguments"]
 
+getFunArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> Ref Node (ls :<: term) -> m (ValueErr String)
+getFunArgsType args@(arg:rest) out = do
+    typeNameMays   <- mapM getTypeNameForType args
+    outTypeNameMay <- getTypeNameForType out
+    let argsSig = (\typeNames -> intercalate " -> " typeNames) <$> sequence typeNameMays
+        outSig  = (\typeName  -> "IO " <> typeName) <$> outTypeNameMay
+    return $ (\argsSig outSig -> "(" <> argsSig <> " -> " <> outSig <> ")") <$> argsSig <*> outSig
+getFunArgsType _ _ = return $ Left ["Bad type arguments"]
+
 getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
 getTypeNameForType tpRef = do
     -- putStrLn $ "getTypeNameForType " <> show tpRef
@@ -452,6 +461,11 @@ getTypeNameForType tpRef = do
                         return $ case argsTypeMay of
                             Left err       -> Left err
                             Right argsType -> Right $ s <> " " <> argsType
+        of' $ \(Lam args out) -> do
+            let rawSigElems  = unlayer <$> args
+            sigElems       <- mapM (follow source) rawSigElems
+            sigOut         <- follow source $ out
+            getFunArgsType sigElems sigOut
         of' $ \(Var (Lit.String name)) -> return . Right $ replace "#" "_" name
         of' $ \ANY                     -> return $ Left ["Ambiguous node type"]
 
@@ -459,7 +473,7 @@ getTypeNameForType tpRef = do
 -- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
 
 getSigElem :: ValueErr String -> String
-getSigElem (Left  err) = "<err " <> intercalate " " err <> ">"
+getSigElem (Left  err) = "<" <> intercalate ", " err <> ">"
 getSigElem (Right sigElem) = sigElem
 
 getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (ValueErr String)
@@ -481,7 +495,8 @@ getNativeType ref = do
                     Right funSig
                 else
                     let funSig = intercalate " -> " (getSigElem <$> sigElemNames) in
-                    Left ["Could not evaluate all signature elements types, evaluated " <> funSig]
+                    -- Right "[Int] -> (Int -> IO Int) -> IO [Int]"
+                    Left ["Could not evaluate all signature elements types: " <> funSig]
 
         of' $ \ANY -> return $ Left ["Incorrect native type"]
 

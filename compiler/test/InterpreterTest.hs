@@ -245,7 +245,6 @@ graph4, graph5 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
 graph4 = do
     i1 <- int 2
     i2 <- int 3
-    -- fun1 <- native (fromString "(+2)")
     fun1 <- var "succ"
 
     act <- acc "times" i1
@@ -266,7 +265,6 @@ graph4 = do
 graph5 = do
     i1 <- int 2
     i2 <- int 3
-    -- fun1 <- native (fromString "(+2)")
     fun1 <- var "succ"
 
     act <- acc "times" i1
