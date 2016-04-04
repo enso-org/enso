@@ -437,6 +437,7 @@ getArgsType _ = return $ Left ["Bad type arguments"]
 
 getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
 getTypeNameForType tpRef = do
+    -- putStrLn $ "getTypeNameForType " <> show tpRef
     tp    <- read tpRef
     caseTest (uncover tp) $ do
         of' $ \(Cons (Lit.String s) args) -> do
@@ -504,7 +505,7 @@ evaluateNative ref args = do -- $notImplemented -- do
     case tpNativeE of
        Left err -> return $ Left err
        Right tpNative -> do
-           -- putStrLn $ name <> " :: " <> tpNative
+           putStrLn $ name <> " :: " <> tpNative
            valuesE <- argumentsValues args
            case valuesE of
                Left err -> return $ Left err
@@ -590,7 +591,7 @@ evaluateNode ref = do
 
     -- liftIO $ interpretFunction g sig a
 
-    -- -- putStrLn $ "evaluating " <> show ref
+    putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
         Just redirect -> do
             redirRef <- (follow source) redirect
@@ -603,14 +604,21 @@ evaluateNode ref = do
                     of' $ \(Unify l r)  -> return ()
                     of' $ \(Acc n t)    -> return ()
                     of' $ \(Var n)      -> do
-                        let clusterPtr = fromJust $ (node # TCData) ^. replacement
-                        let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
-                        sig <- fromJust <$> follow (prop Lambda) cluster
-                        g <- GraphBuilder.get
-                        let fun = interpretFunction g sig
-                        let val = toMonadAny fun
-                        setValue (Right $ val) ref startTime
-                        return ()
+                        let clusterPtrMay = (node # TCData) ^. replacement
+                        case clusterPtrMay of
+                            Nothing -> return ()
+                            Just clusterPtr -> do
+                                let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
+                                sigMay <- follow (prop Lambda) cluster
+                                case sigMay of
+                                    Nothing -> return ()
+                                    Just sig -> do
+                                        -- sig <- fromJust <$> follow (prop Lambda) cluster
+                                        g <- GraphBuilder.get
+                                        let fun = interpretFunction g sig
+                                        let val = toMonadAny fun
+                                        setValue (Right $ val) ref startTime
+                                        return ()
                     of' $ \(App f args) -> do
                         funRef       <- follow source f
                         unpackedArgs <- unpackArguments args
