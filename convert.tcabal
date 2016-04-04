@@ -1,5 +1,5 @@
 name:                convert
-version:             1.0.2
+version:             1.0.3
 synopsis:            Safe and unsafe data conversion utilities with strong type-level operation. checking.
 -- description:         
 license:             Apache-2.0

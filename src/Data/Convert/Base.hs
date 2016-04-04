@@ -77,4 +77,3 @@ instance {-# OVERLAPPABLE #-} Castable    a a where cast    = id ; {-# INLINE ca
 -- instance {-# OVERLAPPABLE #-} Convertible a a where convert = id ; {-# INLINE convert #-}
 
 instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Maybe a) (Maybe b) where convert = fmap convert ; {-# INLINE convert #-}
-
