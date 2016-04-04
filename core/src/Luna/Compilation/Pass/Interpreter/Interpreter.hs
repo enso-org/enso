@@ -24,7 +24,7 @@ import           Data.Prop
 import           Data.Record                                     hiding (cons, Value)
 import           Development.Placeholders
 
-import           Luna.Compilation.Pass.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT)
+import           Luna.Compilation.Pass.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT, evalInterpreterT)
 import           Luna.Compilation.Pass.Interpreter.Env           (Env)
 import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
 import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, ValueErr(..))
@@ -63,7 +63,7 @@ import           Unsafe.Coerce   -- TODO: move to another module
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
 -- import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder, NetworkBuilderT, NetRawNode, NetRawCluster)
 
 import           Data.String.Utils                               (replace)
 
@@ -214,14 +214,21 @@ tryGetBool boolStr
     | boolStr == "False" = Just False
     | otherwise          = Nothing
 
+-- type NetGraph   = Hetero (NEC.Graph NetRawNode (Link NetRawNode) NetRawCluster)
+
 
 #define InterpreterCtx(m, ls, term) ( ls    ~ NetLayers                               \
                                     , term  ~ Draft Static                            \
                                     , node  ~ (ls :<: term)                           \
                                     , edge  ~ Link node                               \
+                                    , n ~ NetRawNode                                  \
+                                    , e ~ Link NetRawNode                             \
+                                    , c ~ NetRawCluster                               \
                                     , graph ~ Hetero (NEC.Graph n e c)                \
+                                    , clus  ~ NetCluster                              \
                                     , BiCastable e edge                               \
                                     , BiCastable n node                               \
+                                    , BiCastable c clus                               \
                                     , MonadIO (m)                                     \
                                     , MonadBuilder graph (m)                          \
                                     , NodeInferable (m) node                          \
@@ -237,6 +244,32 @@ tryGetBool boolStr
                                     )
 
 
+
+#define PassCtx(m, ls, term) ( ls    ~ NetLayers                               \
+                             , term  ~ Draft Static                            \
+                             , node  ~ (ls :<: term)                           \
+                             , edge  ~ Link node                               \
+                             , n ~ NetRawNode                                  \
+                             , e ~ Link NetRawNode                             \
+                             , c ~ NetRawCluster                               \
+                             , graph ~ Hetero (NEC.Graph n e c)                \
+                             , clus  ~ NetCluster                              \
+                             , BiCastable e edge                               \
+                             , BiCastable n node                               \
+                             , BiCastable c clus                               \
+                             , MonadIO (m)                                     \
+                             , MonadBuilder graph (m)                          \
+                             , NodeInferable (m) node                          \
+                             , TermNode Lam  (m) node                          \
+                             , MonadFix (m)                                    \
+                             , HasProp InterpreterData node                    \
+                             , Prop    InterpreterData node ~ InterpreterLayer \
+                             , MonadMask (m)                                   \
+                             , ReferencedM Node graph (m) node                 \
+                             , ReferencedM Edge graph (m) edge                 \
+                             , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
+                             , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) (m) \
+                             )
 
 pre :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m [Ref Node (ls :<: term)]
 pre ref = do
@@ -489,41 +522,50 @@ evaluateNative ref args = do -- $notImplemented -- do
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 
--- TODO: import buildera
---     runGraph :: InterprCtx(m) => Graph -> m a -> IO a
--- interpretFunction :: Graph -> Signature -> Any -> IO Any
--- interpretFunction g sig arg = runGraph
 
--- handleVar ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => NetGraph -> Ref Node (ls :<: term) -> m ()
-interpretFunction ::  (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Hetero (NEC.Graph n e c) -> Signature (Ref Node (ls :<: term)) -> Any -> m (EvalMonad Any)
--- interpretFunction ::  Hetero (NEC.Graph n e c) -> Signature nodeRef -> Any -> IO Any
+-- TODO: optimize native haskell functions
+
+-- interpretFunction :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Hetero (NEC.Graph n e c) -> Signature (Ref Node (ls :<: term)) -> Any -> EvalMonad Any
+interpretFunction :: NetGraph -> Signature (Ref Node (NetLayers :<: Draft Static)) -> Any -> EvalMonad Any
 interpretFunction g sig arg = do
     -- let g = testG
-    let val = Right arg
+    let (val :: ValueErr (EvalMonad Any)) = Right $ return arg
 
-    (v, g) <- runBuild g $ do
+    -- TODO: get env
+    v <- evalBuildInt g def $ do
         let input = head $ sig ^. Function.args
-        -- withRef input $ (prop InterpreterData . Layer.dirty .~ False)
-        --               . (prop InterpreterData . Layer.value .~ val)
-        -- return ()
-        evaluateNode $ sig ^. Function.out
-
-
-
+            ref = unlayer input
+        withRef ref $ (prop InterpreterData . Layer.dirty .~ False)
+                    . (prop InterpreterData . Layer.value .~ val)
+        res <- evaluateNode $ sig ^. Function.out
+        case res of
+            Left err -> $notImplemented -- error "No value evaluated"
+            Right val -> return val
+    v
     -- let a = toAny 0 :: Any
     -- Either
-    case v of
-        Left err -> return $ $notImplemented -- error "No value evaluated"
-        Right val -> return val
-
-
 
 
 -- runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
-runBuild (g :: Hetero (NEC.Graph n e c)) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+
+runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT (Ref Node (NetLayers :<: Draft Static)) n) => NetGraph -> m a -> n (a, NetGraph)
+runBuild g m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                                            $ runNetworkBuilderT g m
 
-evalBuild g m = fmap snd $ runBuild g m
+runBuildInt :: (Monad n, NetworkBuilderT NetGraph m (InterpreterT (Env (Ref Node (NetLayers :<: Draft Static))) (KnownTypeT ELEMENT (Ref Node (NetLayers :<: Draft Static)) n)))
+            => NetGraph -> Env (Ref Node (NetLayers :<: Draft Static)) -> m a -> n (a, NetGraph)
+runBuildInt g env m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+                                           $ flip evalInterpreterT env
+                                           $ runNetworkBuilderT g m
+
+    -- ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
+
+
+evalBuild g m = fmap fst $ runBuild g m
+evalBuildInt g env m = fmap fst $ runBuildInt g env m
+
+
+execBuild g m = fmap snd $ runBuild g m
 
 
 testG :: Hetero (NEC.Graph n e c)
@@ -541,13 +583,12 @@ evaluateNode ref = do
     -- putStrLn $ "startTime " <> show startTime
     node <- read ref
     -- g <- lift $ get
-    g <- GraphBuilder.get
+    -- g <- GraphBuilder.get
 
+    -- let a = toAny 0 :: Any
+    --     sig = testSig
 
-    let a = toAny 0 :: Any
-        sig = testSig
-
-    interpretFunction g sig a
+    -- liftIO $ interpretFunction g sig a
 
     -- -- putStrLn $ "evaluating " <> show ref
     case (node # TCData) ^. redirect of
@@ -563,17 +604,12 @@ evaluateNode ref = do
                     of' $ \(Acc n t)    -> return ()
                     of' $ \(Var n)      -> do
                         let clusterPtr = fromJust $ (node # TCData) ^. replacement
-                        -- let (cluster :: (Ref Cluster _)) = cast clusterPtr
-                        -- let cluster :: NetCluster = cast clusterPtr
-                        -- clustPtr :: Loc Cluster
-                        -- let abc = cast <$> clustPtr
-                        -- clust <- read $ cast <$> clustPtr
-
-                        -- sig <- fromJust $ clust # Lambda
-                        -- g <- GraphBuilder.get
-                        -- v <- interpretFunction g sig
-                        -- let val = toAny v
-                        -- setValue (Right $ val) ref startTime
+                        let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
+                        sig <- fromJust <$> follow (prop Lambda) cluster
+                        g <- GraphBuilder.get
+                        let fun = interpretFunction g sig
+                        let val = toMonadAny fun
+                        setValue (Right $ val) ref startTime
                         return ()
                     of' $ \(App f args) -> do
                         funRef       <- follow source f
@@ -604,28 +640,8 @@ evaluateNodes reqRefs = do
     mapM_ evaluateNode =<< Env.getNodesToEval
 
 
-#define PassCtx(m, ls, term) ( ls    ~ NetLayers                               \
-                             , term  ~ Draft Static                            \
-                             , node  ~ (ls :<: term)                           \
-                             , edge  ~ Link node                               \
-                             , graph ~ Hetero (NEC.Graph n e c)                \
-                             , BiCastable e edge                               \
-                             , BiCastable n node                               \
-                             , MonadIO (m)                                     \
-                             , MonadBuilder graph (m)                          \
-                             , NodeInferable (m) node                          \
-                             , TermNode Lam  (m) node                          \
-                             , MonadFix (m)                                    \
-                             , HasProp InterpreterData node                    \
-                             , Prop    InterpreterData node ~ InterpreterLayer \
-                             , MonadMask (m)                                   \
-                             , ReferencedM Node graph (m) node                 \
-                             , ReferencedM Edge graph (m) edge                 \
-                             , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
-                             , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) (m) \
-                             )
 
-run :: forall env m ls term node edge graph n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     -- putStrLn $ "Paths.libdir " <> Paths.libdir
@@ -643,7 +659,7 @@ run reqRefs = do
     return ()
 
 
-testRun :: forall env m ls term node edge graph n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+testRun :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 testRun reqRefs = do
     putStrLn "I'm here"

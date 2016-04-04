@@ -175,7 +175,7 @@ prebuild = runBuild def star
 runBuild (g :: Hetero (NEC.Graph n e c)) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
-evalBuild = fmap snd ∘∘ runBuild
+execBuild = fmap snd ∘∘ runBuild
 
 
 test_old :: IO ()
@@ -187,7 +187,7 @@ test_old = do
         putStrLn $ "Luna compiler version " <> showVersion v
         flip catchAll (\e -> putStrLn $ show e) $ TypeCheck.runT $ do
             (refsToEval, g01) <- runBuild  g00 graph1
-            g02               <- evalBuild g01 $ Interpreter.run refsToEval
+            g02               <- execBuild g01 $ Interpreter.run refsToEval
             renderAndOpen [ ("g2", "g2", g02)
                           ]
     putStrLn "done"
@@ -297,7 +297,7 @@ test1 = do
 
                 TypeCheck.runTCWithArtifacts tc collectGraph
 
-            -- gint <- evalBuild gtc $ Interpreter.run refsToEval
+            -- gint <- execBuild gtc $ Interpreter.run refsToEval
             gint <- intRun gtc refsToEval
             return (gs, gint)
 
@@ -318,7 +318,7 @@ intRun :: ( MonadFix m
           )
        => NetGraph -> [Ref Node (NetLayers :<: Draft Static)] -> m NetGraph
 intRun gtc refsToEval = do
-    gint <- evalBuild gtc $ Interpreter.run refsToEval
+    gint <- execBuild gtc $ Interpreter.run refsToEval
     return gint
 
 
