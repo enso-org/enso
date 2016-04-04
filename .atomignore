@@ -1,0 +1,9 @@
+.gitignore
+.public
+LICENSE
+*.cabal
+*.tcabal
+*.md
+*.yaml
+Setup.hs
+.atomignore

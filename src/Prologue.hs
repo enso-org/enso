@@ -40,8 +40,8 @@ import Data.Function              as X (on)
 import Data.Functor.Utils         as X
 import Data.Impossible            as X
 import Data.Impossible.Compact    as X
-import Data.Layer                 as X
---import Data.Layer.Cover_OLD           as X
+import Data.Layer_OLD                 as X
+--import Data.Layer_OLD.Cover_OLD           as X
 import Data.Maybe                 as X (catMaybes, fromJust)
 import Data.Maybe                 as X (mapMaybe)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
