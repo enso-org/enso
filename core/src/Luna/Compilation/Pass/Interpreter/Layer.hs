@@ -22,11 +22,11 @@ evalMonad = "IO"
 
 type Errors = [String]
 
-type Value a = Either Errors a
+type ValueErr a = Either Errors a
 
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool
                                          , _required :: Bool
-                                         , _value    :: Value (EvalMonad Any)
+                                         , _value    :: ValueErr (EvalMonad Any)
                                          , _time     :: Integer
                                          , _debug    :: String     -- debug data (String value)
                                          }

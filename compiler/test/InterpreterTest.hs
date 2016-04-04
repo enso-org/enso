@@ -56,6 +56,7 @@ import qualified Control.Monad.Writer                            as Writer
 import qualified StdLibMock                                      as StdLib
 import qualified Luna.Library.Symbol                             as Symbol
 
+import           Control.Monad.Event                             (Dispatcher)
 
 
 graph1 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
@@ -167,9 +168,11 @@ graph2 = do
 
 
 prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
+-- prebuild :: IO (Ref Node (NetLayers :<: Draft Static), Hetero (NEC.Graph n e c))
 prebuild = runBuild def star
 
-runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+-- runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+runBuild (g :: Hetero (NEC.Graph n e c)) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
 evalBuild = fmap snd ∘∘ runBuild
@@ -294,7 +297,8 @@ test1 = do
 
                 TypeCheck.runTCWithArtifacts tc collectGraph
 
-            gint <- evalBuild gtc $ Interpreter.run refsToEval
+            -- gint <- evalBuild gtc $ Interpreter.run refsToEval
+            gint <- intRun gtc refsToEval
             return (gs, gint)
 
         let names = printf "%02d" <$> ([0..] :: [Int])
@@ -304,6 +308,18 @@ test1 = do
         -- renderAndOpen [ last graphs ]
         -- renderAndOpen graphs
     print "end"
+
+
+intRun :: ( MonadFix m
+          , MonadMask m
+          , MonadIO m
+          , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) m
+          , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) m
+          )
+       => NetGraph -> [Ref Node (NetLayers :<: Draft Static)] -> m NetGraph
+intRun gtc refsToEval = do
+    gint <- evalBuild gtc $ Interpreter.run refsToEval
+    return gint
 
 
 
