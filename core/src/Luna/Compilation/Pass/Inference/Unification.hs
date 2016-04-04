@@ -8,7 +8,7 @@ import Prelude.Luna
 
 import Data.Construction
 import Data.Container                               hiding (impossible)
-import Data.List                                    (delete, sort)
+import Data.List                                    (delete, sort, groupBy)
 import Data.Prop
 import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
@@ -18,7 +18,7 @@ import Luna.Syntax.Term.Expr                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool, newVarIdent')
@@ -169,7 +169,8 @@ resolveUnify optimistic uni = do
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               case (optimistic, req) of
                                   (False, Just r) -> withRef r $ prop TCData . tcErrors %~ (UnificationError a b :)
-                                  (_,     _)      -> return ()
+                                  (_,      _)     -> return ()
+                              resolve_
 
           resolveStar uni a b = do
               uni' <- read uni
@@ -275,18 +276,18 @@ getRequesterDepth ref = do
         Just e  -> follow source e >>= follow (prop TCData . depth)
         Nothing -> return Nothing
 
-sortByDeps :: PassCtx(m, ls, term) => [nodeRef] -> m [nodeRef]
+sortByDeps :: PassCtx(m, ls, term) => [nodeRef] -> m [[nodeRef]]
 sortByDeps unis = do
     reqDeps <- mapM getRequesterDepth unis
-    return $ fmap snd $ sort $ zip reqDeps unis
+    return $ (fmap . fmap) snd $ groupBy (\(a, _) (b, _) -> a == b) $ sort $ zip reqDeps unis
 
 -----------------------------
 -- === TypeCheckerPass === --
 -----------------------------
 
 
-data OptimisticUnificationPass = OptimisticUnificationPass deriving (Show, Eq)
-data StrictUnificationPass     = StrictUnificationPass     deriving (Show, Eq)
+data OptimisticUnificationPass = OptimisticUnificationPass deriving (Show, Eq) -- FIXME[MK]: do I need that?
+data StrictUnificationPass     = StrictUnificationPass Sign Bool deriving (Show, Eq)
 
 instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
          , MonadBuilder (Hetero (NEC.Graph n e c)) m
@@ -297,7 +298,7 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
 
     runTCPass _ = do
         unis    <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
-        sortedUnis <- sortByDeps unis
+        sortedUnis <- concat <$> sortByDeps unis
         results <- run True sortedUnis
         let newUnis = catUnresolved results ++ (concat $ catResolved results)
         let resolved = fmap snd $ filter (isResolved . fst) $ zip results unis
@@ -312,22 +313,22 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
          , PassCtx(m, ls, term)
          , MonadTypeCheck (ls :<: term) m
          ) => TypeCheckerPass StrictUnificationPass m where
-    hasJobs _ = do
-        tc <- TypeCheck.get
-        let unresolved = tc ^. TypeCheck.unresolvedUnis
-            unchecked  = tc ^. TypeCheck.uncheckedUnis
-        return $ (not . null $ unresolved) || (not . null $ unchecked)
+    hasJobs (StrictUnificationPass sign _) = do
+        unresolved <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
+        properSign <- filterM (fmap ((==) sign) . follow (prop TCData . originSign)) unresolved
+        return . not . null $ properSign
 
-    runTCPass _ = do
-        tc <- TypeCheck.get
-        let unresolved = tc ^. TypeCheck.unresolvedUnis
-            unchecked  = tc ^. TypeCheck.uncheckedUnis
-            unis       = unresolved ++ unchecked
-        sortedUnis <- sortByDeps unis
-        results <- run False sortedUnis
-        let newUnis = catUnresolved results ++ (concat $ catResolved results)
-        TypeCheck.modify_ $ (TypeCheck.uncheckedUnis  .~ newUnis)
-                          . (TypeCheck.unresolvedUnis .~ [])
+    runTCPass (StrictUnificationPass sign singleDepth) = do
+        unresolved    <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
+        (unis, retry) <- partitionM (fmap ((==) sign) . follow (prop TCData . originSign)) unresolved
+        sortedUnis    <- sortByDeps unis
+        let (todo, toRetry) = case (singleDepth, sortedUnis) of
+                (True, (x : xs)) -> (x, concat xs ++ retry)
+                (_, _) -> (concat sortedUnis, retry)
+        results       <- run False todo
+        let newUnis = catUnresolved results ++ (concat $ catResolved results) ++ toRetry
+        TypeCheck.modify_ $ (TypeCheck.uncheckedUnis  .~ [])
+                          . (TypeCheck.unresolvedUnis .~ newUnis)
         case catResolved results of
             [] -> return Stuck
             _  -> return Progressed

@@ -23,6 +23,7 @@ import           Luna.Syntax.Term.Expr                            hiding (Draft,
 import           Luna.Syntax.Term.Expr                            hiding (source)
 import qualified Luna.Syntax.Term.Expr                            as Term
 import           Luna.Syntax.Model.Layer
+import           Luna.Syntax.Model.Network.Builder               (Sign (..))
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
@@ -175,7 +176,7 @@ prebuild = runBuild def star
 runBuild (g :: Hetero (NEC.Graph n e c)) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                              $ runNetworkBuilderT g m
 
-execBuild = fmap snd ∘∘ runBuild
+evalBuild = fmap snd ∘∘ runBuild
 
 
 test_old :: IO ()
@@ -187,7 +188,7 @@ test_old = do
         putStrLn $ "Luna compiler version " <> showVersion v
         flip catchAll (\e -> putStrLn $ show e) $ TypeCheck.runT $ do
             (refsToEval, g01) <- runBuild  g00 graph1
-            g02               <- execBuild g01 $ Interpreter.run refsToEval
+            g02               <- evalBuild g01 $ Interpreter.run refsToEval
             renderAndOpen [ ("g2", "g2", g02)
                           ]
     putStrLn "done"
@@ -272,6 +273,7 @@ collectGraph tag = do
     Writer.tell [(tag, g)]
 
 seq3 a b c = Sequence a $ Sequence b c
+seq4 a b c d = Sequence a $ seq3 b c d
 
 test1 :: IO ()
 test1 = do
@@ -290,14 +292,21 @@ test1 = do
                 Symbol.loadFunctions StdLib.symbols
                 TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
                 collectGraph "Initial"
-                let tc = Sequence
-                           (Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
-                                     $ Loop $ seq3 SymbolImportingPass (Loop OptimisticUnificationPass) FunctionCallingPass)
-                           (Loop StrictUnificationPass)
+                let tc = (seq4
+                             ScanPass
+                             LiteralsPass
+                             StructuralInferencePass
+                             (Loop $ Sequence
+                                 (Loop $ seq4
+                                     SymbolImportingPass
+                                     (Loop $ StrictUnificationPass Positive False)
+                                     FunctionCallingPass
+                                     (Loop $ StrictUnificationPass Positive False))
+                                 (StrictUnificationPass Negative True)))
 
                 TypeCheck.runTCWithArtifacts tc collectGraph
 
-            -- gint <- execBuild gtc $ Interpreter.run refsToEval
+            -- gint <- evalBuild gtc $ Interpreter.run refsToEval
             gint <- intRun gtc refsToEval
             return (gs, gint)
 
@@ -318,7 +327,7 @@ intRun :: ( MonadFix m
           )
        => NetGraph -> [Ref Node (NetLayers :<: Draft Static)] -> m NetGraph
 intRun gtc refsToEval = do
-    gint <- execBuild gtc $ Interpreter.run refsToEval
+    gint <- evalBuild gtc $ Interpreter.run refsToEval
     return gint
 
 

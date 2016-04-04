@@ -57,7 +57,7 @@ import qualified Luna.Syntax.Term.Lit                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
+import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork', Sign (..))
 import           Luna.Syntax.Model.Network.Builder.Node
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
@@ -376,40 +376,66 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
-                i1 <- int 20
+                pr <- var "primes"
+                i  <- int 30
+                appr <- app pr [arg i]
+                rev <- acc "reverse" appr
+                aprev <- app rev []
+                return [aprev]
+                {-rev <- acc "reverse" v1-}
+                {-aprev <- app rev []-}
 
-                f1 <- var "primes"
-                a1 <- app f1 [arg i1]
-                v1 <- var "node1"
-                m1 <- match v1 a1
+                {-id <- var "id"-}
+                {-apid <- app id [arg aprev]-}
 
-                f2 <- var "id"
-                a2 <- app f2 [arg v1]
-                v2 <- var "node2"
-                m2 <- match v2 a2
+                {-rev2 <- acc "reverse" apid-}
+                {-aprev2 <- app rev2 []-}
 
-                f3 <- var "mean"
-                a3 <- app f3 [arg v2]
-                v3 <- var "node3"
-                m3 <- match v3 a3
+                {-mean <- var "mean"-}
+                {-appmean <- app mean [arg aprev2]-}
+                {-return [appmean]-}
 
-                return [m1, m2, m3]
+                {-i1 <- double 20.0-}
+                {-id <- var "id"-}
+                {-succ <- var "succ"-}
+                {-apid <- app id [arg i1]-}
+                {-apsu <- app succ [arg apid]-}
+                {-return [apsu]-}
+                {-i1 <- double 20.0-}
+
+                {-f1 <- var "primes"-}
+                {-a1 <- app f1 [arg i1]-}
+                {-v1 <- var "node1"-}
+                {-m1 <- match v1 a1-}
+
+                {-f2 <- var "id"-}
+                {-a2 <- app f2 [arg v1]-}
+                {-v2 <- var "node2"-}
+                {-m2 <- match v2 a2-}
+
+                {-f3 <- var "mean"-}
+                {-a3 <- app f3 [arg v2]-}
+                {-v3 <- var "node3"-}
+                {-m3 <- match v3 a3-}
+
+                {-return [m1, m2, m3]-}
             --(lits, apps, accs, funcs) <- input_simple1
             {-(lits, apps, accs, funcs) <- input_simple2-}
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
             collectGraph "Initial"
-            let tc = seq5
-                       ScanPass
-                       LiteralsPass
-                       StructuralInferencePass
-                       (Loop $ seq3
-                         SymbolImportingPass
-                         (Loop OptimisticUnificationPass)
-                         FunctionCallingPass
-                       )
-                       (Loop StrictUnificationPass)
+            let tc = (seq4
+                         ScanPass
+                         LiteralsPass
+                         StructuralInferencePass
+                         (Loop $ Sequence
+                             (Loop $ seq4
+                                 SymbolImportingPass
+                                 (Loop $ StrictUnificationPass Positive False)
+                                 FunctionCallingPass
+                                 (Loop $ StrictUnificationPass Positive False))
+                             (StrictUnificationPass Negative True)))
 
             TypeCheck.runTCWithArtifacts tc collectGraph
 

@@ -18,7 +18,7 @@ import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph                                   as Graph hiding (add)
 import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester)
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
@@ -75,6 +75,7 @@ unifyTypes fptr app args = do
     argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
     argUnis <- zipWithM unify argFTps argTps
     mapM_ (flip (reconnect $ prop TCData . requester) $ Just app) argUnis
+    mapM_ (flip withRef $ prop TCData . originSign .~ Negative) argUnis
     return $ outUni : argUnis
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]

@@ -69,7 +69,8 @@ instance ( PassCtx(m, ls, term)
         let apps  = tcState ^. TypeCheck.untypedApps
             accs  = tcState ^. TypeCheck.untypedAccs
             binds = tcState ^. TypeCheck.untypedBinds
-        newUnis <- runPass apps accs binds
+            all   = tcState ^. TypeCheck.allNodes
+        newUnis <- runPass all apps accs binds
         TypeCheck.put $ tcState & TypeCheck.untypedApps   .~ []
                                 & TypeCheck.untypedAccs   .~ []
                                 & TypeCheck.untypedBinds  .~ []
@@ -153,14 +154,13 @@ getTypeSpec ref = do
         reconnect (prop Type) ref ntp
         return ntp
 
-runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
-runPass apps accs binds = do
+runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
+runPass all apps accs binds = do
     -- FIXME [MK]: Some of those still will be needed (definitely Acc typing) just in a form that does not introduce
     -- monomorphisms. Consider later.
     {-appUnis  <- concat <$> mapM buildAppType apps -- FIXME [MK]: This is inherently monomorphic. Move this pass after importing and work on local copies of types... later.-}
     {-accUnis <- concat <$> mapM buildAccType accs-}
-    mapM getTypeSpec apps
-    mapM getTypeSpec accs
+    mapM getTypeSpec all
     bindUnis <- mapM buildBindType binds
     return $ bindUnis -- <> appUnis <> accUnis
 

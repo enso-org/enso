@@ -20,7 +20,7 @@ import Data.Graph                                   as Graph
 import Data.Graph.Builder                           as Graph hiding (run)
 import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, requester, tcErrors, translateSignature, NodeTranslator)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, replacement, redirect, requester, tcErrors, translateSignature, NodeTranslator, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster, NetClusterLayers)
 import Luna.Syntax.Model.Network.Class              ()
@@ -139,6 +139,7 @@ attachSelfType sig ref = do
     sigSelfType <- mapM (follow (prop Type) >=> follow source) sigSelf
     uni         <- zipWithM unify selfType sigSelfType
     mapM (flip (reconnect $ prop TCData . requester) (Just ref)) uni
+    mapM (flip withRef $ prop TCData . originSign .~ Negative) uni
     return uni
 
 attachError :: PassCtx(m) => Ref Node node -> m ()

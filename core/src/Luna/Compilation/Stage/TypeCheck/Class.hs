@@ -12,7 +12,8 @@ import           Control.Monad.Primitive
 
 -- === Definitions === --
 
-data TCState n = TCState { _unresolvedUnis    :: ![Ref Node n]
+data TCState n = TCState { _allNodes          :: ![Ref Node n]
+                         , _unresolvedUnis    :: ![Ref Node n]
                          , _uncheckedUnis     :: ![Ref Node n]
                          , _unresolvedSymbols :: ![Ref Node n]
                          , _untypedApps       :: ![Ref Node n]
@@ -27,7 +28,7 @@ data TCState n = TCState { _unresolvedUnis    :: ![Ref Node n]
 makeLenses ''TCState
 
 instance Default (TCState n) where
-    def = TCState def def def def def def def def def def
+    def = TCState def def def def def def def def def def def
 
 
 ---- TODO: template haskellize
