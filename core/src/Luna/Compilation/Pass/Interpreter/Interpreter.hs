@@ -132,10 +132,11 @@ toAny = unsafeCoerce
 
 externalLibs = False
 
+-- use: "stack path" for more information
 libdir = "/opt/ghc/7.10.3/lib64/ghc-7.10.3"
 globalPkgDb = "/opt/ghc/7.10.3/lib64/ghc-7.10.3/package.conf.d"
 localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.3/package.conf.d"
-
+-- snapshotPkgDb = ""
 
 -- globalPkgDb = "/usr/lib64/ghc-7.10.2/package.conf.d"
 -- localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.2/package.conf.d"
@@ -157,6 +158,7 @@ initializeGHC = do
         isNotUser _ = True
         extraPkgConfs p = [ GHC.PkgConfFile globalPkgDb
                           , GHC.PkgConfFile localPkgDb
+                          -- , GHC.PkgConfFile snapshotPkgDb
                           ] ++ filter isNotUser p
     flags <- GHC.getSessionDynFlags
     void  $  GHC.setSessionDynFlags flags
