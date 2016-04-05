@@ -121,8 +121,8 @@ resolve_ = resolve []
 
 resolveUnify :: forall m ls term node edge graph nodeRef n e c. (PassCtx(m,ls,term),
                 MonadResolution [nodeRef] m)
-             => Bool -> nodeRef -> m ()
-resolveUnify optimistic uni = do
+             => nodeRef -> m ()
+resolveUnify uni = do
     uni' <- read uni
     caseTest (uncover uni') $ do
         of' $ \(Unify lc rc) -> do
@@ -142,7 +142,7 @@ resolveUnify optimistic uni = do
           resolveReflexivity uni (a :: nodeRef) (b :: nodeRef) = do
               if a == b
                   then do
-                      replaceNode optimistic uni a
+                      replaceNode uni a
                       resolve_
                   else return ()
 
@@ -159,31 +159,31 @@ resolveUnify optimistic uni = do
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               newUnis <- zipWithM unify asA asB
                               mapM (flip (reconnect $ prop TCData . requester) req) newUnis
-                              unified <- replaceAny optimistic a b
+                              unified <- replaceAny a b
                               uniReplacement <- if null argsA
                                   then return unified
                                   else cons na (arg <$> newUnis)
-                              replaceNode optimistic uni uniReplacement
+                              replaceNode uni uniReplacement
                               resolve newUnis
                           else do
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
-                              case (optimistic, req) of
-                                  (False, Just r) -> withRef r $ prop TCData . tcErrors %~ (UnificationError a b :)
-                                  (_,      _)     -> return ()
+                              case req of
+                                  Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError a b :)
+                                  Nothing -> return ()
                               resolve_
 
           resolveStar uni a b = do
               uni' <- read uni
               a'   <- read (a :: nodeRef)
               whenMatched (uncover a') $ \Lit.Star -> do
-                  replaceNode optimistic uni b
+                  replaceNode uni b
                   resolve_
 
           resolveVar uni a b = do
               a'   <- read (a :: nodeRef)
               whenMatched (uncover a') $ \(Var v) -> do
-                  replaceNode optimistic uni b
-                  replaceNode optimistic a   b
+                  replaceNode uni b
+                  replaceNode a   b
                   resolve_
 
           resolveLams uni a b = do
@@ -199,44 +199,27 @@ resolveUnify optimistic uni = do
                     if length args == length args'
                         then do
                             unis  <- zipWithM unify args args'
-                            replaceNode optimistic uni a
-                            replaceNode optimistic b   a
+                            replaceNode uni a
+                            replaceNode b   a
                             resolve unis
                         else return ()
 
 
-replaceAny :: forall m ls term node edge graph nodeRef n e c. PassCtx(m,ls,term) => Bool -> nodeRef -> nodeRef -> m nodeRef
-replaceAny optimistic r1 r2 = do
+replaceAny :: forall m ls term node edge graph nodeRef n e c. PassCtx(m,ls,term) => nodeRef -> nodeRef -> m nodeRef
+replaceAny r1 r2 = do
     n1 <- read r1
     n2 <- read r2
     if size (n1 # Succs) > size (n2 # Succs)
-        then replaceNode optimistic r2 r1 >> return r1
-        else replaceNode optimistic r1 r2 >> return r2
+        then replaceNode r2 r1 >> return r1
+        else replaceNode r1 r2 >> return r2
 
-replaceOptimistic :: PassCtx(m, ls, term) => nodeRef -> nodeRef -> m ()
-replaceOptimistic oldRef newRef = do
-    oldNode <- read oldRef
-    withRef oldRef $ prop Succs .~ fromList []
-    forM_ (readSuccs oldNode) $ \e -> do
-        tgtRef <- follow target e
-        tgt    <- read tgtRef
-        caseTest (uncover tgt) $ do
-            of' $ \(Unify _ _) -> do
-                withRef oldRef $ prop Succs %~ add (unwrap e)
-            of' $ \ANY -> do
-                withRef e      $ source     .~ newRef
-                withRef newRef $ prop Succs %~ add (unwrap e)
-
-replaceStrict :: PassCtx(m, ls, term) => nodeRef -> nodeRef -> m ()
-replaceStrict oldRef newRef = do
+replaceNode :: PassCtx(m, ls, term) => nodeRef -> nodeRef -> m ()
+replaceNode oldRef newRef = do
     oldNode <- read oldRef
     forM_ (readSuccs oldNode) $ \e -> do
         withRef e $ source .~ newRef
         withRef newRef $ prop Succs %~ add (unwrap e)
     destruct oldRef
-
-replaceNode :: PassCtx(m, ls, term) => Bool -> nodeRef -> nodeRef -> m ()
-replaceNode optimistic = if optimistic then replaceOptimistic else replaceStrict
 
 whenMatched a f = caseTest a $ do
     of' f
@@ -245,8 +228,8 @@ whenMatched a f = caseTest a $ do
 run :: forall m ls term node edge graph nodeRef n e c.
        ( PassCtx(ResolutionT [nodeRef] m,ls,term)
        , MonadBuilder (Hetero (NEC.Graph n e c)) m
-       ) => Bool -> [nodeRef] -> m [Resolution [nodeRef] nodeRef]
-run optimistic unis = forM unis $ \u -> fmap (getOutstandingUnifies u) $ runResolutionT $ resolveUnify optimistic u
+       ) => [nodeRef] -> m [Resolution [nodeRef] nodeRef]
+run unis = forM unis $ \u -> fmap (getOutstandingUnifies u) $ runResolutionT $ resolveUnify u
 
 
 universe = Ptr 0
@@ -286,27 +269,7 @@ sortByDeps unis = do
 -----------------------------
 
 
-data OptimisticUnificationPass = OptimisticUnificationPass deriving (Show, Eq) -- FIXME[MK]: do I need that?
-data StrictUnificationPass     = StrictUnificationPass Sign Bool deriving (Show, Eq)
-
-instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
-         , MonadBuilder (Hetero (NEC.Graph n e c)) m
-         , PassCtx(m, ls, term)
-         , MonadTypeCheck (ls :<: term) m
-         ) => TypeCheckerPass OptimisticUnificationPass m where
-    hasJobs _ = not . null . view TypeCheck.unresolvedUnis <$> TypeCheck.get
-
-    runTCPass _ = do
-        unis    <- view TypeCheck.unresolvedUnis <$> TypeCheck.get
-        sortedUnis <- concat <$> sortByDeps unis
-        results <- run True sortedUnis
-        let newUnis = catUnresolved results ++ (concat $ catResolved results)
-        let resolved = fmap snd $ filter (isResolved . fst) $ zip results unis
-        TypeCheck.modify_ $ (TypeCheck.unresolvedUnis .~ newUnis)
-                          . (TypeCheck.uncheckedUnis  %~ (resolved ++))
-        case catResolved results of
-            [] -> return Stuck
-            _  -> return Progressed
+data StrictUnificationPass = StrictUnificationPass Sign Bool deriving (Show, Eq)
 
 instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
          , MonadBuilder (Hetero (NEC.Graph n e c)) m
@@ -325,7 +288,7 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
         let (todo, toRetry) = case (singleDepth, sortedUnis) of
                 (True, (x : xs)) -> (x, concat xs ++ retry)
                 (_, _) -> (concat sortedUnis, retry)
-        results       <- run False todo
+        results <- run todo
         let newUnis = catUnresolved results ++ (concat $ catResolved results) ++ toRetry
         TypeCheck.modify_ $ (TypeCheck.uncheckedUnis  .~ [])
                           . (TypeCheck.unresolvedUnis .~ newUnis)
