@@ -17,7 +17,8 @@ import Data.List              (intercalate)
 import Data.Typeable
 import GHC.Prim               (Any, Constraint, unsafeCoerce#)
 import GHC.TypeLits
-import Type.Container         (Append, Concat, Index, Index2, Reverse, type (<>))
+import Type.Container         (Append, Index, Index2, Reverse)
+import Type.Monoid
 import Type.List
 
 -- === Definition === --
