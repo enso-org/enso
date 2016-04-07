@@ -32,7 +32,7 @@ import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
 import           Luna.Syntax.Term.Expr                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
-import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs)
+import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs, tcErrors)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
@@ -513,6 +513,7 @@ exceptionHandler e = do
             putStrLn "Async exception occurred"
             liftIO $ throwIO e
 
+-- TCData TCErrors - non empty
 evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
 evaluateNative ref args = do -- $notImplemented -- do
     -- putStrLn $ "Evaluating native"
@@ -616,53 +617,56 @@ evaluateNode ref = do
     -- liftIO $ interpretFunction g sig a
 
     putStrLn $ "evaluating " <> show ref
-    case (node # TCData) ^. redirect of
-        Just redirect -> do
-            redirRef <- (follow source) redirect
-            -- putStrLn $ "redirecting to " <> show redirRef
-            evaluateNode redirRef
-            copyValue redirRef ref startTime
-        Nothing -> do
-            if isDirty node
-                then caseTest (uncover node) $ do
-                    of' $ \(Unify l r)  -> return ()
-                    of' $ \(Acc n t)    -> return ()
-                    of' $ \(Var n)      -> do
-                        let clusterPtrMay = (node # TCData) ^. replacement
-                        case clusterPtrMay of
-                            Nothing -> return ()
-                            Just clusterPtr -> do
-                                let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
-                                sigMay <- follow (prop Lambda) cluster
-                                case sigMay of
-                                    Nothing -> return ()
-                                    Just sig -> do
-                                        -- sig <- fromJust <$> follow (prop Lambda) cluster
-                                        g <- GraphBuilder.get
-                                        let fun = interpretFunction g sig
-                                        let val = toMonadAny fun
-                                        setValue (Right $ val) ref startTime
-                                        return ()
-                    of' $ \(App f args) -> do
-                        funRef       <- follow source f
-                        unpackedArgs <- unpackArguments args
-                        mapM evaluateNode unpackedArgs
-                        funNode      <- read funRef
-                        nativeVal    <- caseTest (uncover funNode) $ do
-                            of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                            of' $ \ANY                      -> return $ Left ["evaluating non native function"]
-                        setValue nativeVal ref startTime
-                    of' $ \(Lit.String str)                 -> do
-                        setValue (Right $ toMonadAny str) ref startTime
-                    of' $ \number@(Lit.Number radix system) -> do
-                        setValue (Right $ numberToAny number) ref startTime
-                    of' $ \(Cons (Lit.String s) args) -> do
-                        case tryGetBool s of
-                            Nothing   -> return ()
-                            Just bool -> setValue (Right $ toMonadAny bool) ref startTime
-                    of' $ \Blank -> return ()
-                    of' $ \ANY   -> return ()
-                else return ()
+    let tcData = node # TCData
+    when (null $ tcData ^. tcErrors) $ do
+        case tcData ^. redirect of
+            Just redirect -> do
+                redirRef <- (follow source) redirect
+                -- putStrLn $ "redirecting to " <> show redirRef
+                evaluateNode redirRef
+                copyValue redirRef ref startTime
+            Nothing -> do
+                if isDirty node
+                    then caseTest (uncover node) $ do
+                        of' $ \(Unify l r)  -> return ()
+                        of' $ \(Acc n t)    -> return ()
+                        of' $ \(Var n)      -> do
+                            let clusterPtrMay = (node # TCData) ^. replacement
+                            case clusterPtrMay of
+                                Nothing -> return ()
+                                Just clusterPtr -> do
+                                    let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
+                                    sigMay <- follow (prop Lambda) cluster
+                                    case sigMay of
+                                        Nothing -> return ()
+                                        Just sig -> do
+                                            -- sig <- fromJust <$> follow (prop Lambda) cluster
+                                            g <- GraphBuilder.get
+                                            let fun = interpretFunction g sig
+                                            let val = toMonadAny fun
+                                            setValue (Right $ val) ref startTime
+                                            return ()
+                        of' $ \(App f args) -> do
+                            funRef       <- follow source f
+                            unpackedArgs <- unpackArguments args
+                            mapM evaluateNode unpackedArgs
+                            funNode      <- read funRef
+                            nativeVal    <- caseTest (uncover funNode) $ do
+                                of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
+                                of' $ \ANY                      -> return $ Left ["evaluating non native function"]
+                            setValue nativeVal ref startTime
+                        of' $ \(Lit.String str)                 -> do
+                            setValue (Right $ toMonadAny str) ref startTime
+                        of' $ \number@(Lit.Number radix system) -> do
+                            setValue (Right $ numberToAny number) ref startTime
+                        of' $ \(Cons (Lit.String s) args) -> do
+                            case tryGetBool s of
+                                Nothing   -> return ()
+                                Just bool -> setValue (Right $ toMonadAny bool) ref startTime
+                        of' $ \Blank -> return ()
+                        of' $ \ANY   -> return ()
+                    else return ()
+
     getValue ref
 
 
