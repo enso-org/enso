@@ -8,7 +8,7 @@ import Luna.Syntax.Name
 import Luna.Parser.Indent                     (MonadIndent)
 import Luna.Parser.State                      (MonadParserState)
 import Luna.Syntax.Term.Expr                   hiding (Name)
-import Luna.Syntax.Model.Network.Builder.Term (TermBuilder)
+import Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)
 import Luna.Syntax.Model.Text.Location        (MonadLocation)
@@ -37,14 +37,14 @@ type ASTParserCore p m a = (ParserCore p, ASTBuilderCtx m a)
 type ASTBuilderCtx m a = ( a ~ Input a
                          , MonadFix               m
                          , MonadLocation          m
-                         , TermBuilder Unify      m a
-                         , TermBuilder Var        m a
-                         , TermBuilder Cons       m a
-                         , TermBuilder App        m a
-                         , TermBuilder Unify      m a
-                         , TermBuilder Acc        m a
-                         , TermBuilder Match      m a
-                         , TermBuilder Lit.String m a
-                         , TermBuilder Lit.Number m a
+                         , TermBuilder_OLD Unify      m a
+                         , TermBuilder_OLD Var        m a
+                         , TermBuilder_OLD Cons       m a
+                         , TermBuilder_OLD App        m a
+                         , TermBuilder_OLD Unify      m a
+                         , TermBuilder_OLD Acc        m a
+                         , TermBuilder_OLD Match      m a
+                         , TermBuilder_OLD Lit.String m a
+                         , TermBuilder_OLD Lit.Number m a
                          , IsString              (NameInput a)
                          )

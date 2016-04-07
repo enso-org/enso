@@ -1,6 +1,6 @@
 extra-deps: [ghc-session-0.1.2.0, graphviz-2999.18.0.2, string-qq-0.0.2, error-util-0.0.1.1,
   cond-0.4.1.1, tuple-0.3.0.2, OneTuple-0.2.1]
-ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O}
+ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O0}
 local-bin-path: ./dist/bin
 packages:
 - {location: ..}
@@ -41,4 +41,8 @@ packages:
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
   location: {commit: c1d0a2d57471ec016471c371f2ffbd04b95a6dee, git: 'https://github.com/wdanilo/data-member.git'}
-resolver: lts-4.1
+- extra-dep: true
+  location: {commit: 28c9f5409572c6796370d4f115939b8d97e5f1d1, git: 'https://github.com/wdanilo/data-rtuple.git'}
+- extra-dep: true
+  location: {commit: 4500653d6b8e1022cb95e91960a3c340de04a3fe, git: 'https://github.com/wdanilo/data-shell.git'}
+resolver: lts-5.10

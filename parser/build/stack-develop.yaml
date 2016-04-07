@@ -1,4 +1,4 @@
-resolver: lts-4.1
+resolver: lts-5.10
 packages:
     - ..
     - ../../core
@@ -20,6 +20,8 @@ packages:
     - ../../../libs/prologue
     - ../../../libs/type-cache
     - ../../../libs/typelevel
+    - ../../../libs/data-rtuple
+    - ../../../libs/data-shell
 
 extra-deps:
     - ghc-session-0.1.2.0
@@ -40,6 +42,6 @@ extra-deps:
     - functor-utils-1.0
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O
+    "*": -DFastCompilation -threaded -funbox-strict-fields -O0
 
 local-bin-path: ./dist/bin
