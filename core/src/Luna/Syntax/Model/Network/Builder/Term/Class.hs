@@ -57,10 +57,10 @@ type family BuildArgs2 t n :: *
 type family Expanded  (t :: k) n :: *
 
 
--- === ElemBuilder === --
+-- === ElemBuilder_OLD === --
 
-class    ElemBuilder el m  a where buildElem :: el -> m a
-instance {-# OVERLAPPABLE #-} ElemBuilder el IM a where buildElem = impossible
+class    ElemBuilder_OLD el m  a where buildElem :: el -> m a
+instance {-# OVERLAPPABLE #-} ElemBuilder_OLD el IM a where buildElem = impossible
 
 
 class    ElemBuilder2 el m  a where buildElem2 :: el -> m a
@@ -73,10 +73,10 @@ instance {-# OVERLAPPABLE #-}
          , Dispatcher ELEMENT a m
          , Self.MonadSelfBuilder s m
          , Castable a s
-         ) => ElemBuilder el m a where
+         ) => ElemBuilder_OLD el m a where
     -- TODO[WD]: change buildAbsMe to buildMe2
     --           and fire monad every time we construct an element, not once for the graph
-    buildElem el = dispatch ELEMENT =<< Self.buildAbsMe (constructCover $ Record.cons el) where
+    buildElem el = dispatch ELEMENT =<< Self.buildAbsMe (constructCover $ Record.cons el)
     {-# INLINE buildElem #-}
 
 instance {-# OVERLAPPABLE #-}
@@ -88,18 +88,35 @@ instance {-# OVERLAPPABLE #-}
          ) => ElemBuilder2 el (m :: * -> *) a where
     -- TODO[WD]: change buildAbsMe to buildMe2
     --           and fire monad every time we construct an element, not once for the graph
-    buildElem2 el = dispatch ELEMENT =<< Self.buildAbsMe (constructCover el) where
+    buildElem2 el = dispatch ELEMENT =<< Self.buildAbsMe (constructCover el)
     {-# INLINE buildElem2 #-}
 
 
--- === TermBuilder === --
+-- === TermBuilder_OLD === --
 
-class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
-instance {-# OVERLAPPABLE #-} TermBuilder t IM a where buildTerm = impossible
+class TermBuilder_OLD (t :: k) m a where buildTerm_OLD :: Proxy t -> BuildArgs t a -> m a
+instance {-# OVERLAPPABLE #-} TermBuilder_OLD t IM a where buildTerm_OLD = impossible
 
 
-class TermBuilder2 t m a where buildTerm2 :: t -> BuildArgs2 t a -> m a
-instance {-# OVERLAPPABLE #-} TermBuilder2 t IM a where buildTerm2 = impossible
+
+class Dispatcher ELEMENT a m => TermBuilder t m a where buildTerm :: t -> BuildArgs2 t a -> m a
+instance {-# OVERLAPPABLE #-} Dispatcher ELEMENT a IM => TermBuilder t IM a where buildTerm = impossible
+
+
+class TermBuilder2 t fmt dyn a where buildTerm2 :: a -> BuildArgs2 a (KnownTerm t fmt dyn a) -> m (KnownTerm t fmt dyn a)
+-- newtype     Term2   t fmt dyn a = Term2 (Layout2 t fmt dyn a)
+
+
+
+type family TermBuilders ts m a :: Constraint where
+            TermBuilders '[] m a = ()
+            TermBuilders (t ': ts) m a = (TermBuilder t m a, TermBuilders ts m a)
+
+
+type ExprBuilder fmt m a = TermBuilders (Elems fmt) m a
+
+build :: TermBuilder t m a => t -> BuildArgs2 t a -> m a
+build t args = buildTerm t args >>= dispatch ELEMENT ; {-# INLINE build #-}
 
 
 
@@ -127,27 +144,27 @@ type instance BuildArgs Lit.Star   n = ()
 type instance BuildArgs Lit.String n = OneTuple Lit.String
 type instance BuildArgs Lit.Number n = OneTuple Lit.Number
 
-instance ElemBuilder Lit.Star   m a => TermBuilder Lit.Star   m a where buildTerm p ()           = buildElem Lit.Star
-instance ElemBuilder Lit.String m a => TermBuilder Lit.String m a where buildTerm p (OneTuple s) = buildElem s
-instance ElemBuilder Lit.Number m a => TermBuilder Lit.Number m a where buildTerm p (OneTuple s) = buildElem s
+instance ElemBuilder_OLD Lit.Star   m a => TermBuilder_OLD Lit.Star   m a where buildTerm_OLD p ()           = buildElem Lit.Star
+instance ElemBuilder_OLD Lit.String m a => TermBuilder_OLD Lit.String m a where buildTerm_OLD p (OneTuple s) = buildElem s
+instance ElemBuilder_OLD Lit.Number m a => TermBuilder_OLD Lit.Number m a where buildTerm_OLD p (OneTuple s) = buildElem s
 
-star :: TermBuilder Lit.Star m a => m a
-star = curry $ buildTerm (Proxy :: Proxy Lit.Star)
+star :: TermBuilder_OLD Lit.Star m a => m a
+star = curry $ buildTerm_OLD (Proxy :: Proxy Lit.Star)
 
-str :: TermBuilder Lit.String m a => String -> m a
-str = (curry $ buildTerm (Proxy :: Proxy Lit.String)) ∘ Lit.String
+str :: TermBuilder_OLD Lit.String m a => String -> m a
+str = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.String)) ∘ Lit.String
 
-ratio :: TermBuilder Lit.Number m a => Rational -> m a
-ratio = (curry $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
+ratio :: TermBuilder_OLD Lit.Number m a => Rational -> m a
+ratio = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
 
-int :: TermBuilder Lit.Number m a => Integer -> m a
-int = (curry $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
+int :: TermBuilder_OLD Lit.Number m a => Integer -> m a
+int = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
 
-double :: TermBuilder Lit.Number m a => Double -> m a
-double = (curry $ buildTerm (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
+double :: TermBuilder_OLD Lit.Number m a => Double -> m a
+double = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
 
-number :: TermBuilder Lit.Number m a => Lit.Number -> m a
-number = (curry $ buildTerm (Proxy :: Proxy Lit.Number))
+number :: TermBuilder_OLD Lit.Number m a => Lit.Number -> m a
+number = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number))
 
 -- === Val === --
 
@@ -159,9 +176,9 @@ instance ( name ~ NameInput a
          , MonadFix m
          , Connectible     inp  a m
          , ConnectibleName name a m
-         , ElemBuilder (Cons (NameConnection name a) (Ref Edge (Connection inp a))) m a
-         ) => TermBuilder Cons m a where
-    buildTerm p (name, args) = mdo
+         , ElemBuilder_OLD (Cons (NameConnection name a) (Ref Edge (Connection inp a))) m a
+         ) => TermBuilder_OLD Cons m a where
+    buildTerm_OLD p (name, args) = mdo
         out   <- buildElem $ Cons cname cargs
         cname <- nameConnection name out
         cargs <- (mapM ∘ mapM) (flip connection out) args
@@ -170,20 +187,20 @@ instance ( name ~ NameInput a
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (Lam $ Ref Edge (Connection inp a)) m a
-         ) => TermBuilder Lam m a where
-    buildTerm p (args, res) = mdo
+         , ElemBuilder_OLD (Lam $ Ref Edge (Connection inp a)) m a
+         ) => TermBuilder_OLD Lam m a where
+    buildTerm_OLD p (args, res) = mdo
         out   <- buildElem $ Lam cargs cres
         cargs <- (mapM ∘ mapM) (flip connection out) args
         cres  <- connection res out
         return out
 
 
-cons :: TermBuilder Cons m a => NameInput a -> [Arg $ Input a] -> m a
-cons = curry $ buildTerm (Proxy :: Proxy Cons)
+cons :: TermBuilder_OLD Cons m a => NameInput a -> [Arg $ Input a] -> m a
+cons = curry $ buildTerm_OLD (Proxy :: Proxy Cons)
 
-lam :: TermBuilder Lam m a => [Arg $ Input a] -> Input a -> m a
-lam = curry $ buildTerm (Proxy :: Proxy Lam)
+lam :: TermBuilder_OLD Lam m a => [Arg $ Input a] -> Input a -> m a
+lam = curry $ buildTerm_OLD (Proxy :: Proxy Lam)
 
 
 -- === Thunk === --
@@ -198,9 +215,9 @@ instance {-# OVERLAPPABLE #-}
          , MonadFix m
          , Connectible     src  a m
          , ConnectibleName name a m
-         , ElemBuilder (Acc (NameConnection name a) (Ref Edge (Connection src a))) m a
-         ) => TermBuilder Acc m a where
-    buildTerm p (name, src) = mdo
+         , ElemBuilder_OLD (Acc (NameConnection name a) (Ref Edge (Connection src a))) m a
+         ) => TermBuilder_OLD Acc m a where
+    buildTerm_OLD p (name, src) = mdo
         out   <- buildElem $ Acc cname csrc
         cname <- nameConnection name out
         csrc  <- connection     src  out
@@ -209,9 +226,9 @@ instance {-# OVERLAPPABLE #-}
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (App $ Ref Edge (Connection inp a)) m a
-         ) => TermBuilder App m a where
-    buildTerm p (src, args) = mdo
+         , ElemBuilder_OLD (App $ Ref Edge (Connection inp a)) m a
+         ) => TermBuilder_OLD App m a where
+    buildTerm_OLD p (src, args) = mdo
         out   <- buildElem $ App csrc cargs
         csrc  <- connection src out
         cargs <- (mapM ∘ mapM) (flip connection out) args
@@ -220,21 +237,21 @@ instance ( inp ~ Input a
 instance ( name ~ NameInput a
          , MonadFix m
          , ConnectibleName name a m
-         , ElemBuilder (Native $ NameConnection name a) m a
-         ) => TermBuilder Native m a where
-    buildTerm p (OneTuple name) = mdo
+         , ElemBuilder_OLD (Native $ NameConnection name a) m a
+         ) => TermBuilder_OLD Native m a where
+    buildTerm_OLD p (OneTuple name) = mdo
         out   <- buildElem $ Native cname
         cname <- nameConnection name out
         return out
 
-acc :: TermBuilder Acc m a => NameInput a -> Input a -> m a
-acc = curry $ buildTerm (Proxy :: Proxy Acc)
+acc :: TermBuilder_OLD Acc m a => NameInput a -> Input a -> m a
+acc = curry $ buildTerm_OLD (Proxy :: Proxy Acc)
 
-app :: TermBuilder App m a => Input a -> [Arg $ Input a] -> m a
-app = curry $ buildTerm (Proxy :: Proxy App)
+app :: TermBuilder_OLD App m a => Input a -> [Arg $ Input a] -> m a
+app = curry $ buildTerm_OLD (Proxy :: Proxy App)
 
-native :: TermBuilder Native m a => NameInput a -> m a
-native = curry $ buildTerm (Proxy :: Proxy Native)
+native :: TermBuilder_OLD Native m a => NameInput a -> m a
+native = curry $ buildTerm_OLD (Proxy :: Proxy Native)
 
 -- === Expr === --
 
@@ -243,9 +260,9 @@ type instance BuildArgs Var n = OneTuple (NameInput n)
 instance ( name ~ NameInput a
          , MonadFix m
          , ConnectibleName name a m
-         , ElemBuilder (Var $ NameConnection name a) m a
-         ) => TermBuilder Var m a where
-    buildTerm p (OneTuple name) = mdo
+         , ElemBuilder_OLD (Var $ NameConnection name a) m a
+         ) => TermBuilder_OLD Var m a where
+    buildTerm_OLD p (OneTuple name) = mdo
         out   <- buildElem $ Var cname
         cname <- nameConnection name out
         return out
@@ -254,9 +271,9 @@ type instance BuildArgs Unify n = (Input n, Input n)
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (Unify $ Ref Edge (Connection inp a)) m a
-         ) => TermBuilder Unify m a where
-    buildTerm p (a,b) = mdo
+         , ElemBuilder_OLD (Unify $ Ref Edge (Connection inp a)) m a
+         ) => TermBuilder_OLD Unify m a where
+    buildTerm_OLD p (a,b) = mdo
         out <- buildElem $ Unify ca cb
         ca  <- connection a out
         cb  <- connection b out
@@ -266,9 +283,9 @@ type instance BuildArgs Match n = (Input n, Input n)
 instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
-         , ElemBuilder (Match $ Ref Edge (Connection inp a)) m a
-         ) => TermBuilder Match m a where
-    buildTerm p (a,b) = mdo
+         , ElemBuilder_OLD (Match $ Ref Edge (Connection inp a)) m a
+         ) => TermBuilder_OLD Match m a where
+    buildTerm_OLD p (a,b) = mdo
         out <- buildElem $ Match ca cb
         ca  <- connection a out
         cb  <- connection b out
@@ -281,33 +298,33 @@ instance ( inp ~ Input a
         --         , ElemBuilder3 n   a
         --         , Parametrized        n   a
         --         , ParamResolver          n m a
-        --         ) => TermBuilder Unify m a where
-        --    buildTerm p (a,b) = term $ unifyCons <$> param a <*> param b
+        --         ) => TermBuilder_OLD Unify m a where
+        --    buildTerm_OLD p (a,b) = term $ unifyCons <$> param a <*> param b
 
 
-        -- instance ElemBuilder Lit.Star   m a => TermBuilder Lit.Star   m a where buildTerm p ()           = buildElem Lit.Star
-        -- instance ElemBuilder Lit.String m a => TermBuilder Lit.String m a where buildTerm p (OneTuple s) = buildElem s
-        -- instance ElemBuilder Lit.Number m a => TermBuilder Lit.Number m a where buildTerm p (OneTuple s) = buildElem s
+        -- instance ElemBuilder_OLD Lit.Star   m a => TermBuilder_OLD Lit.Star   m a where buildTerm_OLD p ()           = buildElem Lit.Star
+        -- instance ElemBuilder_OLD Lit.String m a => TermBuilder_OLD Lit.String m a where buildTerm_OLD p (OneTuple s) = buildElem s
+        -- instance ElemBuilder_OLD Lit.Number m a => TermBuilder_OLD Lit.Number m a where buildTerm_OLD p (OneTuple s) = buildElem s
         --
-        -- star :: TermBuilder Lit.Star m a => m a
-        -- star = curry $ buildTerm (Proxy :: Proxy Lit.Star)
+        -- star :: TermBuilder_OLD Lit.Star m a => m a
+        -- star = curry $ buildTerm_OLD (Proxy :: Proxy Lit.Star)
 
 
 type instance BuildArgs2 Star a = ()
-instance TermBuilderCtx Star n m a => TermBuilder2 Star m a where
-    buildTerm2 p () = term $ pure starCons
+instance TermBuilderCtx Star n m a => TermBuilder Star m a where
+    buildTerm p () = term $ pure starCons
 
 type instance BuildArgs2 Var' a = OneTuple (NameInput a)
-instance TermBuilderCtx Var' n m a => TermBuilder2 Var' m a where
-    buildTerm2 p (OneTuple a) = term $ varCons <$> nameParam a
+instance TermBuilderCtx Var' n m a => TermBuilder Var' m a where
+    buildTerm p (OneTuple a) = term $ varCons <$> nameParam a
 
 type instance BuildArgs2 Match' a = (a,a)
-instance TermBuilderCtx Match' n m a => TermBuilder2 Match' m a where
-    buildTerm2 p (a,b) = term $ matchCons <$> param a <*> param b
+instance TermBuilderCtx Match' n m a => TermBuilder Match' m a where
+    buildTerm p (a,b) = term $ matchCons <$> param a <*> param b
 
 type instance BuildArgs2 Unify' a = (a, a)
-instance TermBuilderCtx Unify' n m a => TermBuilder2 Unify' m a where
-    buildTerm2 p (a,b) = term $ unifyCons <$> param a <*> param b
+instance TermBuilderCtx Unify' n m a => TermBuilder Unify' m a where
+    buildTerm p (a,b) = term $ unifyCons <$> param a <*> param b
 
 starCons :: Record.Cons Star a => a
 starCons  = Record.cons    Star
@@ -324,7 +341,8 @@ type instance Parameterized Unify' a = Unify $ Param     a
 type instance Parameterized Match' a = Match $ Param     a
 
 
-type TermBuilderCtx t n m a = ( Record.Cons (Parameterized t a) (TermOf a)
+type TermBuilderCtx t n m a = ( Dispatcher ELEMENT a m
+                              , Record.Cons (Parameterized t a) (TermOf a)
                               , ElemBuilder3  n   a
                               , Parametrized  n   a
                               , ParamResolver n m a
@@ -332,7 +350,7 @@ type TermBuilderCtx t n m a = ( Record.Cons (Parameterized t a) (TermOf a)
 
 --type ElemBuilder3 a = SmartCons (Match (Param a)) (TermOf a)
 
---class TermBuilder (t :: k) m a where buildTerm :: Proxy t -> BuildArgs t a -> m a
+--class TermBuilder_OLD (t :: k) m a where buildTerm_OLD :: Proxy t -> BuildArgs t a -> m a
 
 --class
 
@@ -342,25 +360,32 @@ type TermBuilderCtx t n m a = ( Record.Cons (Parameterized t a) (TermOf a)
 term :: (ElemBuilder3 n a, ParamResolver n m a) => BindBuilder a n (TermOf a) -> m a
 term m = resolveParams $ runBindBuilder $ (lift ∘ buildElem3) =<< m
 
-var :: TermBuilder Var m a => NameInput a -> m a
-var = curry $ buildTerm (Proxy :: Proxy Var)
+var :: TermBuilder_OLD Var m a => NameInput a -> m a
+var = curry $ buildTerm_OLD (Proxy :: Proxy Var)
 
-unify :: TermBuilder Unify m a => Input a -> Input a -> m a
-unify = curry $ buildTerm (Proxy :: Proxy Unify)
+unify :: TermBuilder_OLD Unify m a => Input a -> Input a -> m a
+unify = curry $ buildTerm_OLD (Proxy :: Proxy Unify)
 
-match :: TermBuilder Match m a => Input a -> Input a -> m a
-match = curry $ buildTerm (Proxy :: Proxy Match)
+match :: TermBuilder_OLD Match m a => Input a -> Input a -> m a
+match = curry $ buildTerm_OLD (Proxy :: Proxy Match)
 
-star2 :: TermBuilder2 Star m a => m a
-star2 = curry $ buildTerm2 Star
+star2 :: TermBuilder Star m a => m a
+star2 = curry $ build Star
 
-var2 :: TermBuilder2 Var' m a => NameInput a -> m a
-var2 = curry $ buildTerm2 Var'
+var2 :: TermBuilder Var' m a => NameInput a -> m a
+var2 = curry $ build Var'
+
+
+-- star3 :: TermBuilder Star m a => m (Term2' t fmt dyn)
+-- star3 = curry $ build Star
+
 
 
 type family Param a
 type family NameParam a
 type family Source2 a
+
+
 
 --class ElemBuilder3 m a where
 --    nameParam   :: NameInput a -> m (NameParam a)
@@ -442,17 +467,17 @@ type instance NameParam (Ref Node a) = Lit.String -- FIXME[WD]: Support dynamic 
 
 --Term t term rt
 
---class TermBuilder t term rt where
+--class TermBuilder_OLD t term rt where
 --    param ::
 
 
 -- === Draft === --
 
 type instance BuildArgs   Blank n = ()
-instance      ElemBuilder Blank m a => TermBuilder Blank m a where buildTerm p () = buildElem Blank
+instance      ElemBuilder_OLD Blank m a => TermBuilder_OLD Blank m a where buildTerm_OLD p () = buildElem Blank
 
-blank :: TermBuilder Blank m a => m a
-blank = curry $ buildTerm (Proxy :: Proxy Blank)
+blank :: TermBuilder_OLD Blank m a => m a
+blank = curry $ buildTerm_OLD (Proxy :: Proxy Blank)
 
 
 
@@ -589,7 +614,7 @@ runNetworkBuilderT_1 net = flip Self.evalT (undefined ::        Ref Node NetNode
 -- FIXME[WD]: inputs should be more general and should be refactored out
 inputstmp :: forall layout term rt x.
       (MapTryingElemList_
-                            (Elems term (ByDynamics rt Lit.String x) x)
+                            (Elems_OLD term (ByDynamics rt Lit.String x) x)
                             (TFoldable x)
                             (Term layout term rt), x ~ Layout layout term rt) => Term layout term rt -> [x]
 inputstmp a = withElement_ (p :: P (TFoldable x)) (foldrT (:) []) a
@@ -598,7 +623,7 @@ inputstmp a = withElement_ (p :: P (TFoldable x)) (foldrT (:) []) a
 
 type instance Prop Inputs (Term layout term rt) = [Layout layout term rt]
 instance (MapTryingElemList_
-                           (Elems
+                           (Elems_OLD
                               term
                               (ByDynamics rt Lit.String (Layout layout term rt))
                               (Layout layout term rt))

@@ -5,7 +5,6 @@ import Prologue
 
 import Luna.Syntax.Term.Expr (TermOf)
 import Data.Shell_OLD as X
-import Data.Shell     as X
 import Data.Construction
 import Data.Convert
 import Data.Record
@@ -58,4 +57,3 @@ data Meta = Meta deriving (Show, Eq, Ord)
 type instance LayerData Meta t = HTMap
 instance Monad m => Creator    m (Layer Meta a) where create     = return $ Layer def
 instance Monad m => Destructor m (Layer Meta a) where destruct _ = return ()
-

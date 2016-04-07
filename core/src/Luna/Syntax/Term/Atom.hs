@@ -9,7 +9,8 @@ import Luna.Syntax.Term.Function (Arg)
 import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
 import qualified Luna.Syntax.Term.Lit as Lit
-
+import Type.Applicative
+import           Luna.Runtime.Dynamics      (ByDynamics)
 
 
 -- TODO[WD]: move to issue tracker after releasing Luna to github
@@ -31,6 +32,74 @@ import qualified Luna.Syntax.Term.Lit as Lit
 --                        - accessors should be first class objects, althought we can easily make a workaround like `myacc = a : a.x`
 
 
+type DynName d a = NameByDynamics d a
+type NameByDynamics dyn d = ByDynamics dyn Lit.String d
+
+
+-------------------
+-- === Atoms === --
+-------------------
+
+-- === Types === --
+
+data Var'    = Var'    deriving (Show, Eq, Ord)
+data Cons'   = Cons'   deriving (Show, Eq, Ord)
+data Acc'    = Acc'    deriving (Show, Eq, Ord)
+data App'    = App'    deriving (Show, Eq, Ord)
+data Unify'  = Unify'  deriving (Show, Eq, Ord)
+data Match'  = Match'  deriving (Show, Eq, Ord)
+data Lam'    = Lam'    deriving (Show, Eq, Ord)
+data Native' = Native' deriving (Show, Eq, Ord)
+data Blank'  = Blank'  deriving (Show, Eq, Ord)
+
+
+-- === Definitions === --
+
+data family Atom  t  dyn a
+type        Atoms ts dyn a = Atom <$> ts <*> '[dyn] <*> '[a]
+
+type family AtomArgs t dyn a
+class Atomic t where atom :: AtomArgs t d a -> Atom t d a
+
+
+-- === Instances === --
+
+type instance Base (Atom t dyn a) = t
+
+newtype instance Atom Var'    dyn a = Atom_Var     (DynName dyn a)
+newtype instance Atom Cons'   dyn a = Atom_Cons    (DynName dyn a)
+data    instance Atom Acc'    dyn a = Atom_Acc    !(DynName dyn a) !a
+data    instance Atom App'    dyn a = Atom_App                     !a ![Arg a]
+data    instance Atom Unify'  dyn a = Atom_Unify                   !a !a
+data    instance Atom Match'  dyn a = Atom_Match                   !a !a
+data    instance Atom Lam'    dyn a = Atom_Lam                     ![Arg a] !a
+data    instance Atom Native' dyn a = Atom_Native !(DynName dyn a)
+data    instance Atom Blank'  dyn a = Atom_Blank
+
+type instance AtomArgs Var'    dyn a = OneTuple (DynName dyn a)
+type instance AtomArgs Cons'   dyn a = OneTuple (DynName dyn a)
+type instance AtomArgs Acc'    dyn a =          (DynName dyn a, a)
+type instance AtomArgs App'    dyn a =          (a, [Arg a])
+type instance AtomArgs Unify'  dyn a =          (a, a)
+type instance AtomArgs Match'  dyn a =          (a, a)
+type instance AtomArgs Lam'    dyn a =          ([Arg a], a)
+type instance AtomArgs Native' dyn a = OneTuple (DynName dyn a)
+type instance AtomArgs Blank'  dyn a =          ()
+
+instance Atomic Var'    where atom = uncurry Atom_Var    ; {-# INLINE atom #-}
+instance Atomic Cons'   where atom = uncurry Atom_Cons   ; {-# INLINE atom #-}
+instance Atomic Acc'    where atom = uncurry Atom_Acc    ; {-# INLINE atom #-}
+instance Atomic App'    where atom = uncurry Atom_App    ; {-# INLINE atom #-}
+instance Atomic Unify'  where atom = uncurry Atom_Unify  ; {-# INLINE atom #-}
+instance Atomic Match'  where atom = uncurry Atom_Match  ; {-# INLINE atom #-}
+instance Atomic Lam'    where atom = uncurry Atom_Lam    ; {-# INLINE atom #-}
+instance Atomic Native' where atom = uncurry Atom_Native ; {-# INLINE atom #-}
+instance Atomic Blank'  where atom = uncurry Atom_Blank  ; {-# INLINE atom #-}
+
+
+--------------------------------------------------------------------------------------
+-- OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD
+--------------------------------------------------------------------------------------
 
 -- === Definition === --
 -- | Type parameter `t` defines the term type

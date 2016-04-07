@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Luna.Syntax.Term.Expr (module Luna.Syntax.Term.Expr, module X) where
 
@@ -29,12 +30,13 @@ import           Luna.Syntax.Term.Format
 import qualified Luna.Syntax.Term.Lit     as Lit
 import Luna.Syntax.Term.Atom as X
 
-import Data.Record.Model.Masked as X (Data, TermRecord)
+import Data.Shell
+import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
+import Type.Monoid
+import Type.Applicative
 
 
 
-type DynName d a = NameByDynamics d a
-type NameByDynamics dyn d = ByDynamics dyn Lit.String d
 
 
 
@@ -46,10 +48,8 @@ type family TakeUntil a ls where
     TakeUntil a (a ': ls) = '[a]
     TakeUntil a (l ': ls) = l ': TakeUntil a ls
 
-type f <$> as = FMap f as
-type family FMap (f :: * -> *) (as :: [*]) :: [*] where
-            FMap f             '[]         = '[]
-            FMap f             (a ': as)   = f a ': FMap f as
+
+
 
 --
 
@@ -62,140 +62,157 @@ type ExprRecord gs vs t = TermRecord gs vs t
 
 
 
--------------------
--- === Atoms === --
--------------------
-
--- === Types === --
-
-data Var'    = Var'    deriving (Show, Eq, Ord)
-data Cons'   = Cons'   deriving (Show, Eq, Ord)
-data Acc'    = Acc'    deriving (Show, Eq, Ord)
-data App'    = App'    deriving (Show, Eq, Ord)
-data Unify'  = Unify'  deriving (Show, Eq, Ord)
-data Match'  = Match'  deriving (Show, Eq, Ord)
-data Lam'    = Lam'    deriving (Show, Eq, Ord)
-data Native' = Native' deriving (Show, Eq, Ord)
-data Blank'  = Blank'  deriving (Show, Eq, Ord)
+-- === Refactor === --
 
 
--- === Definitions === --
-
-data family Atom  t           dyn a
-type family Atoms (ts :: [*]) dyn a :: [*] where
-            Atoms '[]         dyn a = '[]
-            Atoms (t ': ts)   dyn a = Atom t dyn a ': Atoms ts dyn a
-
-type family AtomArgs t dyn a
-class Atomic t where atom :: AtomArgs t d a -> Atom t d a
-
-
--- === Instances === --
-
-newtype instance Atom Var'    dyn a = Atom_Var     (DynName dyn a)
-newtype instance Atom Cons'   dyn a = Atom_Cons    (DynName dyn a)
-data    instance Atom Acc'    dyn a = Atom_Acc    !(DynName dyn a) !a
-data    instance Atom App'    dyn a = Atom_App                     !a ![Arg a]
-data    instance Atom Unify'  dyn a = Atom_Unify                   !a !a
-data    instance Atom Match'  dyn a = Atom_Match                   !a !a
-data    instance Atom Lam'    dyn a = Atom_Lam                     ![Arg a] !a
-data    instance Atom Native' dyn a = Atom_Native !(DynName dyn a)
-data    instance Atom Blank'  dyn a = Atom_Blank
-
-type instance AtomArgs Var'    dyn a = OneTuple (DynName dyn a)
-type instance AtomArgs Cons'   dyn a = OneTuple (DynName dyn a)
-type instance AtomArgs Acc'    dyn a =          (DynName dyn a, a)
-type instance AtomArgs App'    dyn a =          (a, [Arg a])
-type instance AtomArgs Unify'  dyn a =          (a, a)
-type instance AtomArgs Match'  dyn a =          (a, a)
-type instance AtomArgs Lam'    dyn a =          ([Arg a], a)
-type instance AtomArgs Native' dyn a = OneTuple (DynName dyn a)
-type instance AtomArgs Blank'  dyn a =          ()
-
-instance Atomic Var'    where atom = uncurry Atom_Var    ; {-# INLINE atom #-}
-instance Atomic Cons'   where atom = uncurry Atom_Cons   ; {-# INLINE atom #-}
-instance Atomic Acc'    where atom = uncurry Atom_Acc    ; {-# INLINE atom #-}
-instance Atomic App'    where atom = uncurry Atom_App    ; {-# INLINE atom #-}
-instance Atomic Unify'  where atom = uncurry Atom_Unify  ; {-# INLINE atom #-}
-instance Atomic Match'  where atom = uncurry Atom_Match  ; {-# INLINE atom #-}
-instance Atomic Lam'    where atom = uncurry Atom_Lam    ; {-# INLINE atom #-}
-instance Atomic Native' where atom = uncurry Atom_Native ; {-# INLINE atom #-}
-instance Atomic Blank'  where atom = uncurry Atom_Blank  ; {-# INLINE atom #-}
+-- newtype     Expr      t fmt dyn = Expr (ExprRecord (SubExprs t fmt dyn) (Variants2 t fmt dyn) t) deriving (Generic, NFData, Show)
+-- type        Variants2 t fmt dyn = Atoms (Elems fmt) dyn (Layout t fmt dyn)
 
 
 
--------------------------
--- === Expressions === --
--------------------------
--- | The following definitions are parameterized by the `t` type, which indicates which data `Layout` to choose.
 
--- === Definitions === --
-
-newtype     Expr      t fmt dyn = Expr (ExprRecord (SubExprs t fmt dyn) (Variants2 t fmt dyn) t) deriving (Generic, NFData, Show)
-type        Variants2 t fmt dyn = Atoms (FormatElems fmt) dyn (Layout t fmt dyn)
-type family Layout    t fmt dyn
 
 type family LayoutType a
-type family ExprOf a
+-- type family ExprOf a
 
-type family   FormatElems t      :: [*]
-type instance FormatElems Lit    = '[Lit.Star, Lit.String, Lit.Number]
-type instance FormatElems Val    = '[Cons'   , Lam'                  ] <> FormatElems Lit
-type instance FormatElems Thunk  = '[Acc'    , App'      , Native'   ] <> FormatElems Val
-type instance FormatElems Phrase = '[Var'    , Unify'    , Match'    ] <> FormatElems Thunk
-type instance FormatElems Draft  = '[Blank                           ] <> FormatElems Phrase
+type family   Elems t      :: [*]
+type instance Elems Lit    = '[Lit.Star, Lit.String, Lit.Number]
+type instance Elems Val    = '[Cons'   , Lam'                  ] <> Elems Lit
+type instance Elems Thunk  = '[Acc'    , App'      , Native'   ] <> Elems Val
+type instance Elems Phrase = '[Var'    , Unify'    , Match'    ] <> Elems Thunk
+type instance Elems Draft  = '[Blank'                          ] <> Elems Phrase
+
+
+
+
+
+
+-----------------------
+-- === Selectors === --
+-----------------------
+
+type family Selected (sel :: Maybe [*]) (lst :: [*]) where
+            Selected 'Nothing    lst = lst
+            Selected ('Just sel) lst = sel -- FIXME[WD]: Selekcja nie jest sprawdzana czy matchuje sie z mozlwymi wyborami
+
+
+-------------------
+-- === Terms === --
+-------------------
+
+-- === Definitions === --
+
+type        AnyTerm     t fmt dyn     = Term2       t fmt dyn 'Nothing
+type        LimitedTerm t fmt dyn a   = Term2       t fmt dyn ('Just a)
+type        KnownTerm   t fmt dyn a   = LimitedTerm t fmt dyn '[a]
+newtype     Term2       t fmt dyn sel = Term2 (Layout2 t fmt dyn sel)
+type family Layout2     t fmt dyn (sel :: Maybe [*]) :: *
+type family TermOf      a
 
 
 -- === Utils === --
 
-type SubDynExprs     t fmt dyn = Expr t fmt <$> SubDynamics     dyn
-type SubSemiDynExprs t fmt dyn = Expr t fmt <$> SubSemiDynamics dyn
+type TermShell ls t = Shelled t ls t
 
-type SubExprs t fmt dyn = SubExprs' t dyn (SubFormats fmt)
+type        Variants3       t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
+type        SubDynExprs     t fmt  dyn        = Term2 t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
+type        SubSemiDynExprs t fmt  dyn        = Term2 t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
+type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
+type family SubExprs'       t fmts dyn where
+            SubExprs' t '[]           dyn = '[]
+            SubExprs' t '[fmt]        dyn = SubDynExprs     t fmt dyn
+            SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
 
-type family SubExprs' dyn t (fmts :: [*]) :: [*] where
-  SubExprs' t dyn '[]           = '[]
-  SubExprs' t dyn '[fmt]        = SubDynExprs     t fmt dyn
-  SubExprs' t dyn (fmt ': fmts) = SubSemiDynExprs t fmt dyn <> SubExprs' t dyn fmts
+
+-- === Defaults === --
+
+-- | Standard term record definition
+type TermRecord2 t fmt dyn a bind = VGRecord2 (SubExprs t fmt dyn) (Variants3 t fmt dyn a bind) Data2
+
+
+-- === Instances === --
+
+makeWrapped ''Term2
+type instance TermOf (Term2 t fmt dyn a) = Term2 t fmt dyn a
+
+type instance Base (Term2 t fmt dyn a) = fmt
+
+instance IsRecord (Unwrapped (Term2 t fmt dyn a)) => IsRecord (Term2 t fmt dyn a) where asRecord = wrapped' ∘ asRecord
+
+
+
+
+
+------------------------------------
+-- === Example implementation === --
+------------------------------------
+
+data Net (ls :: [*])
+data SNet
+type instance Layout2 SNet     fmt dyn a = TermRecord2 SNet fmt dyn a Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type instance Layout2 (Net ls) fmt dyn a = TermShell ls (TermRecord2 (Net ls) fmt dyn a Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+
+
+type instance RecordOf (Term2 t fmt dyn sel) = RecordOf (Unwrapped (Term2 t fmt dyn sel))
+
+
+a1 = atom () :: Atom Blank' Static Int
+t1 = cons a1 :: AnyTerm SNet Draft Static
+
+
+type Foox = Record.Variants (RecordOf (AnyTerm SNet Draft Static))
+
+-- barr = () where
+--     a = undefined :: Proxy Foox
+--     b = a :: Proxy '[]
+
+
+-- barr2 = () where
+--     a = undefined :: Proxy (In (Atom Blank' Static Int) Foox)
+--     b = a :: Proxy 'False
+
+
+-- === Utils === --
+
 
 
 -- === Instances === --
 
 -- Basic instances
-type instance Dynamics   (Expr t fmt dyn) = dyn
-type instance LayoutType (Expr t fmt dyn) = t
-type instance ExprOf     (Expr t fmt dyn) = Expr t fmt dyn
-
-instance Eq  (Expr t fmt dyn) where (==)    = $notImplemented
-instance Ord (Expr t fmt dyn) where compare = $notImplemented
-
--- Wrappers & Layers
-makeWrapped ''Expr
---TODO[WD]: add makeLayered util
-type instance Unlayered (Expr t fmt dyn) = Unwrapped (Expr t fmt dyn)
-instance      Layered   (Expr t fmt dyn)
-
--- Record instances
-type instance RecordOf (Expr t fmt dyn) = RecordOf (Unlayered (Expr t fmt dyn))
-instance IsRecord (Unlayered (Expr t fmt dyn)) => IsRecord (Expr t fmt dyn) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
-
--- Dynamics
-type instance WithDynamics dyn' (Expr t fmt dyn) = Expr t fmt dyn'
-
--- Properties
-type instance Props p (Expr t fmt dyn) = Props p (RecordOf (Expr t fmt dyn))
-
--- Conversions
-instance Unwrapped (Expr t fmt dyn) ~ ExprRecord gs vs t' => Convertible (Expr t fmt dyn) (ExprRecord gs vs t') where convert = unwrap' ; {-# INLINE convert #-}
-
-instance Convertible (Unwrapped (Expr t fmt dyn)) Data => Castable    (Expr t fmt dyn) Data
-instance Convertible (Unwrapped (Expr t fmt dyn)) Data => Convertible (Expr t fmt dyn) Data where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
-instance Castable    Data (Unwrapped (Expr t fmt dyn)) => Castable    Data (Expr t fmt dyn) where cast    = wrap'   ∘ cast    ; {-# INLINE cast    #-}
-
--- Abstractions
-type instance                                                       Abstract    (Expr t fmt dyn) = Data
-instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => IsAbstract  (Expr t fmt dyn) where abstracted = iso cast cast ; {-# INLINE abstracted #-}
-instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => HasAbstract (Expr t fmt dyn)
+-- type instance Dynamics   (Expr t fmt dyn) = dyn
+-- type instance LayoutType (Expr t fmt dyn) = t
+-- -- type instance ExprOf     (Expr t fmt dyn) = Expr t fmt dyn
+--
+-- -- instance Eq  (Expr t fmt dyn) where (==)    = $notImplemented
+-- -- instance Ord (Expr t fmt dyn) where compare = $notImplemented
+--
+-- -- Wrappers & Layers
+-- -- makeWrapped ''Expr
+-- --TODO[WD]: add makeLayered util
+-- type instance Unlayered (Expr t fmt dyn) = Unwrapped (Expr t fmt dyn)
+-- instance      Layered   (Expr t fmt dyn)
+--
+-- -- Record instances
+-- type instance RecordOf (Expr t fmt dyn) = RecordOf (Unlayered (Expr t fmt dyn))
+-- instance IsRecord (Unlayered (Expr t fmt dyn)) => IsRecord (Expr t fmt dyn) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
+--
+-- -- Dynamics
+-- type instance WithDynamics dyn' (Expr t fmt dyn) = Expr t fmt dyn'
+--
+-- -- Properties
+-- type instance Props p (Expr t fmt dyn) = Props p (RecordOf (Expr t fmt dyn))
+--
+-- -- Conversions
+-- instance Unwrapped (Expr t fmt dyn) ~ ExprRecord gs vs t' => Convertible (Expr t fmt dyn) (ExprRecord gs vs t') where convert = unwrap' ; {-# INLINE convert #-}
+--
+-- instance Convertible (Unwrapped (Expr t fmt dyn)) Data => Castable    (Expr t fmt dyn) Data
+-- instance Convertible (Unwrapped (Expr t fmt dyn)) Data => Convertible (Expr t fmt dyn) Data where convert = convert ∘ unwrap' ; {-# INLINE convert #-}
+-- instance Castable    Data (Unwrapped (Expr t fmt dyn)) => Castable    Data (Expr t fmt dyn) where cast    = wrap'   ∘ cast    ; {-# INLINE cast    #-}
+--
+-- -- Abstractions
+-- type instance                                                       Abstract    (Expr t fmt dyn) = Data
+-- instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => IsAbstract  (Expr t fmt dyn) where abstracted = iso cast cast ; {-# INLINE abstracted #-}
+-- instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => HasAbstract (Expr t fmt dyn)
 
 
 
@@ -210,9 +227,9 @@ instance BiCastable (Abstract (Expr t fmt dyn)) (Expr t fmt dyn) => HasAbstract 
 --   The `Layout` type family defines the recursive layout for AST structures.
 
 newtype     Term     t term rt = Term (TermRecord (SubTerms t term rt) (Variants t term rt) t) deriving (Generic, NFData, Show)
-type        Variants t term rt = Elems term (NameByDynamics rt (Layout t term rt)) (Layout t term rt)
---type family LayoutOf   a
-type family TermOf     a
+type        Variants t term rt = Elems_OLD term (NameByDynamics rt (Layout t term rt)) (Layout t term rt)
+type family Layout    t fmt dyn
+
 
 type family Input     a
 type family NameInput a where
@@ -220,31 +237,31 @@ type family NameInput a where
     NameInput a = If (Dynamics a == Static) Lit.String (Input a)
 
 
--- === Elems === --
+-- === Elems_OLD === --
 
-type family   Elems term  n t :: [*]
+type family   Elems_OLD term  n t :: [*]
 
-type instance Elems Lit    n t = Lit.Star
+type instance Elems_OLD Lit    n t = Lit.Star
                               ': Lit.String
                               ': Lit.Number
                               ': '[]
 
-type instance Elems Val    n t = Cons         n t
+type instance Elems_OLD Val    n t = Cons         n t
                               ': Lam            t
-                              ': Elems Lit    n t
+                              ': Elems_OLD Lit    n t
 
-type instance Elems Thunk  n t = Acc          n t
+type instance Elems_OLD Thunk  n t = Acc          n t
                               ': App            t
                               ': Native       n
-                              ': Elems Val    n t
+                              ': Elems_OLD Val    n t
 
-type instance Elems Phrase n t = Var          n
+type instance Elems_OLD Phrase n t = Var          n
                               ': Unify          t
                               ': Match          t
-                              ': Elems Thunk  n t
+                              ': Elems_OLD Thunk  n t
 
-type instance Elems Draft  n t = Blank
-                              ': Elems Phrase n t
+type instance Elems_OLD Draft  n t = Blank
+                              ': Elems_OLD Phrase n t
 
 
 
@@ -582,6 +599,8 @@ type EncodeMap_MANUAL_CACHE t =
          , {- 54 -} '( Lam               (Layout t Draft Dynamic)                          , '[ 54 , 8                 ] )
          , {- 55 -} '( Native            (Layout t Draft Dynamic)                          , '[ 55 , 8                 ] )
          ]
+
+type instance Encode (Atom Blank' dyn a) rec = '[ 41 , 7,8               ]
 
 -- #ifndef CachedTypeFamilies
 

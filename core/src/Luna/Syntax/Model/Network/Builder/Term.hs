@@ -11,8 +11,8 @@ import Luna.Syntax.Model.Network.Builder.Term.Inferred as Inf
 
 -- === Aliases for inferred term types === --
 
-type InfTermBuilderAs t (term :: k) m a = Inf.TermBuilderAs t term m a
-type InfTermBuilder     (term :: k) m a = Inf.TermBuilder     term m a
+type InfTermBuilderAs t (term :: k) m a = Inf.TermBuilderAs_OLD t term m a
+type InfTermBuilder     (term :: k) m a = Inf.TermBuilder_OLD     term m a
 
 
 -- === Aliases for inferred term constructors === --

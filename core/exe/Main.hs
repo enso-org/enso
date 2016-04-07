@@ -51,15 +51,15 @@ import           Luna.Runtime.Dynamics                           (Dynamic, Stati
 import qualified Luna.Runtime.Dynamics                           as Runtime
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
-import           Luna.Syntax.Model.Network.Builder.Node
+import           Luna.Syntax.Model.Network.Builder.Node          hiding (star2)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
-import           Luna.Syntax.Model.Network.Term
+import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term.Expr                           hiding (Draft, Expr, Input, Lit, Source, Target, Thunk, Val, source, target)
 import qualified Luna.Syntax.Term.Expr                           as Term
-import qualified Luna.Syntax.Term.Format                         as EvalModel
+import           Luna.Syntax.Term.Format                         (Draft(Draft))
 import qualified Luna.Syntax.Term.Lit                            as Lit
 
 import qualified Data.Graph.Backend.NEC       as NEC
@@ -69,6 +69,7 @@ import qualified Data.RTuple.Examples as E
 
 import           Luna.Syntax.Model.Network.Builder.Class ()
 import qualified Luna.Syntax.Model.Network.Builder.Class as XP
+import           Luna.Syntax.Model.Network.Builder.Term.Class (star2, ExprBuilder)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -82,26 +83,83 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 -- - vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ---
 
 
-prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
+prebuild :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
 prebuild = runBuild2 def $ do
     star
     star
     star
 
-prebuild2 :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
+prebuild2 :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
 prebuild2 = runBuild3 def $ do
     var2 "ala"
 
+tst :: (Inferable ELEMENT a m, ExprBuilder Draft m a) => m a
+tst = do
+    star2
 
-runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+-- tst' :: (Inferable ELEMENT a m, ExprBuilder Draft m a) => m (Ref Node (ls :< Expr t Draft Static))
+-- tst' = do
+--     star2
+
+-- Ref' Node (ls :< Expr t Draft Static)
+--
+-- --------------
+-- Ref (Term t Draft Static Any)
+-- Ref (Link (Term t Draft Static Any))
+--
+-- read :: Ref a -> m a
+-- write :: a -> m (Ref a)
+
+
+-- var :: Name -> KnownTerm t fmt dyn Var
+-- unify :: Ref (Term t fmt dyn a) -> Ref (Term t fmt dyn b) -> Ref (KnownTerm t fmt dyn Unify)
+
+-- contains layers
+{-
+- nie trzeba uncoverowac i mozna sie bezposrednio ladnie na typach pattern-matchowac
+- bardziej jednolita architektura - nie wymusza layerowania
+- konstruktory moga byc dokladniejszych typow niz `m a`
+-}
+
+
+
+
+-- Term (Network ls) Draft  rt
+
+tst2 :: (PointedM t tgt g m a, MonadBuilder g m, Inferable ELEMENT (Ptr t tgt) m, ExprBuilder Draft m (Ptr t tgt)) => m a
+tst2 = do
+    s <- tst
+    read s
+
+-- read :: a -> m (Expr a)
+--
+-- read :: Mark Draft Static a -> m (ls :< Expr Draft Static a)
+--
+-- Ref Node (ls :<: Net.Draft Static) --> read
+--          (ls :<: Net.Draft Static)
+--
+--
+-- mkterm :: m a
+-- -- a moze byc np. Pointerem
+--
+-- Mark Draft Static (Ref Node (NetLayers :<: Net.Draft Static)) --> read
+--                             (NetLayers :<: Net.Draft Static)
+--
+--
+-- Mark Draft Static (NetLayers :< Loc Node) --> read
+
+
+
+
+runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Net.Draft Static)))
                              $ runNetworkBuilderT g m
 
 
-runBuild2 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+runBuild2 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Net.Draft Static)))
                              $ runNetworkBuilderT2 g m
 
 
-runBuild3 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
+runBuild3 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Net.Draft Static)))
                              . runNetworkBuilderT2 g
                              . XP.runNetworkBuilderT
                              $ m

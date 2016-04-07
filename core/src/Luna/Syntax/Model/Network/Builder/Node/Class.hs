@@ -14,7 +14,7 @@ import qualified Luna.Syntax.Term.Expr                    as Term
 import           Luna.Syntax.Term.Expr                    hiding (Val, Lit, Thunk, Expr, Draft, Source)
 import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term
-import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder)
+import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder_OLD)
 import           Type.Inference
 import qualified Luna.Syntax.Term.Lit                as Lit
 import           Data.Layer_OLD.Cover_OLD
@@ -22,7 +22,7 @@ import           Data.Layer_OLD.Cover_OLD
 
 -- === Types === --
 
-type NodeBuilder (t :: k) m node = TermBuilder t     m (Ref Node node)
+type NodeBuilder (t :: k) m node = TermBuilder_OLD t     m (Ref Node node)
 --type NodeReader           m node = Reader            m      (Node node)
 --type NodeWriter           m node = Writer            m      (Node node)
 type NodeLinkable         m node = Linkable            (Ref Node node) m

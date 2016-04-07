@@ -63,7 +63,7 @@ import           Unsafe.Coerce   -- TODO: move to another module
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
 -- import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder_OLD)
 
 import           Data.String.Utils                               (replace)
 

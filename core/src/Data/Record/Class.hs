@@ -52,7 +52,7 @@ import Type.Zip
 import Type.Maybe
 import Type.Show
 import Type.Sequence          (Enumerate)
-
+import Type.Monoid
 
 
 
@@ -103,6 +103,7 @@ type family Layout    a :: [*]
 type family EncodeMap a :: Map * [Nat]
 type family DecodeMap a :: Map * Nat
 
+type family Encode t rec :: [Nat] -- new interface
 
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r
@@ -510,7 +511,3 @@ instance UncheckedGroupCons rec m a                                             
 instance {-# OVERLAPPABLE #-} (UnsafeExtract Variant (Unwrapped rec) m a, Wrapped rec) => UnsafeExtract Variant rec      m  a where unsafeExtract t                       = unsafeExtract t ∘ unwrap' ; {-# INLINE unsafeExtract #-}
 
 instance {-# OVERLAPPABLE #-} (UnsafeInsert Variant (Unwrapped rec) m a, Wrapped rec, Functor m) => UnsafeInsert Variant rec      m  a where unsafeInsert t a   = wrapped' $ unsafeInsert t a                                  ; {-# INLINE unsafeInsert #-}
-
-
-
-

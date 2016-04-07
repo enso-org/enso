@@ -11,7 +11,7 @@ import GHC.Prim          (Any)
 import Type.Map          (MapLookup)
 import Type.Promotion    (KnownNats, natVals)
 import Data.Result       (Ok(Ok))
-import Data.Record.Class ( Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
+import Data.Record.Class ( Encode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
                          , Variant, Layout, IsRecord, RecordOf, Group, DecodeMap, Props, asRecord
                          )
 
@@ -73,10 +73,12 @@ instance Show Mask where
 -----------------------------
 
 data Data = Data !Mask !Store deriving (Generic, Show)
+data Data2 = Data2 !Mask !Store deriving (Generic, Show)
 
 -- === Instances === --
 -- Normal Form
 instance NFData Data
+instance NFData Data2
 
 
 
@@ -86,8 +88,8 @@ instance NFData Data
 
 -- FIXME[WD]: NFData jest tu zle zaimplementowana bo nie uwzglednia prwadziwych danych i jest przerucana na Data, ktra jest Storem z GHC.Any!
 -- FIXME[WD]: The `t` argument should be refactored out cause it is strictly term-related
-newtype VGRecord (groups :: [*]) (variants :: [*]) t d = VGRecord d deriving (Generic, NFData, Show)
-type TermRecord gs vs t = VGRecord gs vs t Data
+newtype VGRecord  (groups :: [*]) (variants :: [*]) t d = VGRecord  d deriving (Generic, NFData, Show)
+type TermRecord  gs vs t = VGRecord gs vs t Data
 
 
 -- === Instances === --
@@ -107,7 +109,6 @@ instance      Layered   (VGRecord gs vs t d)
 instance Castable    (VGRecord gs vs t d) d
 instance Convertible (VGRecord gs vs t d) d where convert = unwrap' ; {-# INLINE convert #-}
 instance Castable  d (VGRecord gs vs t d)   where cast    = wrap'   ; {-# INLINE cast    #-}
-
 
 
 -- === AST Data encoder === --
@@ -162,3 +163,60 @@ instance ( rec  ~ r Data
 
 
 
+
+
+
+------------------
+-- VGRECORD v.2 --
+------------------
+
+newtype VGRecord2 (groups :: [*]) (variants :: [*])   d = VGRecord2 d deriving (Generic, NFData, Show)
+type TermRecord2 gs vs = VGRecord2 gs vs Data2
+
+-- === Instances === --
+
+type instance Props Variant (VGRecord2 gs vs d) = vs
+type instance Props Group   (VGRecord2 gs vs d) = gs
+
+type instance RecordOf (VGRecord2 gs vs d) = VGRecord2 gs vs d
+instance      IsRecord (VGRecord2 gs vs d) where asRecord = id ; {-# INLINE asRecord #-}
+
+-- Wrappers
+makeWrapped ''VGRecord2
+type instance Unlayered (VGRecord2 gs vs d) = Unwrapped (VGRecord2 gs vs d)
+instance      Layered   (VGRecord2 gs vs d)
+
+-- Conversions
+instance Castable    (VGRecord2 gs vs d) d
+instance Convertible (VGRecord2 gs vs d) d where convert = unwrap' ; {-# INLINE convert #-}
+instance Castable  d (VGRecord2 gs vs d)   where cast    = wrap'   ; {-# INLINE cast    #-}
+
+-- === AST Data encoder === --
+
+-- Data encoding
+
+instance ( bits ~ Encode v (rec Data2)
+         , KnownNats bits
+         , Wrapped   (rec Data2)
+         , Unwrapped (rec Data2) ~ Data2
+         ) => Encoder Variant v Ok (rec Data2) where
+    encode _ v = Ok $ wrap' $ Data2 mask $ unsafeStore v where
+        bits    = fromIntegral <$> natVals (p :: P bits)
+        mask    = foldl' setBit zeroBits bits
+    {-# INLINE encode #-}
+
+-- instance ( MaskRebuilder layout layout'
+--          , layout  ~ Layout (rec  Data)
+--          , layout' ~ Layout (rec' Data)
+--          , Unwrapped (rec  Data) ~ Data
+--          , Unwrapped (rec' Data) ~ Data
+--          , Wrapped   (rec  Data)
+--          , Wrapped   (rec' Data)
+--
+--          , IsRecord r
+--          , RecordOf r ~ rec Data
+--          ) => Encoder Group r Ok (rec' Data) where
+--     encode _ r = Ok $ wrap' $ Data mask' var where
+--         Data mask var = unwrap' $ view asRecord r
+--         mask' = rebuildMask (p :: P layout) (p :: P layout') mask
+--     {-# INLINE encode #-}
