@@ -7,7 +7,7 @@
 
 module Luna.Syntax.Term.Expr (module Luna.Syntax.Term.Expr, module X) where
 
-import           Prologue.Unsafe (undefined)
+
 import           Prelude.Luna                 hiding (Num, Swapped, Curry)
 import qualified Prelude.Luna                 as P
 
@@ -35,7 +35,9 @@ import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 import Type.Monoid
 import Type.Applicative
 
+import Prologue.Unsafe (error)
 
+undefined = error "oh no in Expr.hs"
 
 
 

@@ -9,7 +9,7 @@ module Luna.Syntax.Model.Network.Builder.Term.Class (module Luna.Syntax.Model.Ne
 
 import Prelude.Luna    hiding (Num, curry, Curry)
 import qualified Prelude.Luna as P
-import Prologue.Unsafe (undefined)
+import Prologue.Unsafe (error)
 
 import           Control.Monad.Event
 import           Data.Direction
@@ -23,7 +23,7 @@ import           Data.Record                             (RecordOf, IsRecord, Ha
 import           Luna.Runtime.Dynamics                 as Runtime
 import           Luna.Syntax.Term.Function.Argument
 import           Luna.Syntax.Term.Function.Argument       as X (arg)
-import           Luna.Syntax.Term.Expr                    hiding (Val, Lit, Thunk, Expr, Draft, Source, Name)
+import           Luna.Syntax.Term.Expr                    hiding (undefined, Val, Lit, Thunk, Expr, Draft, Source, Name)
 import qualified Luna.Syntax.Term.Expr                    as Term
 import qualified Data.Graph.Builder                      as GraphBuilder
 import           Luna.Syntax.Model.Layer                 (Type, Markable, TCData, Meta, Name, Lambda, (:<:), (:<))
@@ -43,6 +43,9 @@ import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
+
+
+undefined = error "Undefined in Term/Class.hs"
 
 -------------------------------------
 -- === Term building utilities === --

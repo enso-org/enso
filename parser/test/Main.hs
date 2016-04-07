@@ -79,7 +79,7 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|7.1
+input3 = [s|@foo bar
 |]
 
 
@@ -103,6 +103,7 @@ inputs  = [ Test False "Variables"           "ala"
           , Test False "Integer literals"    "7"
           , Test False "Fractional literals" "7.1"
           , Test False "Applications"        "foo bar baz"
+          , Test False "Currying"            "@foo bar baz"
           , Test False "Accessors"           "foo.bar"
           , Test False "Nested accessors"    "foo.bar.baz"
           ]
@@ -141,16 +142,17 @@ mainLam = do
     case parsed2 of
         Left  d          -> print d
         Right (bldr, ps) -> do
+            print "hohoho"
             (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
-            renderAndOpen [("g1", "g1", g)]
+            print g
             print a
+            renderAndOpen [("g1", "g1", g)]
             print "ok"
     return ()
 
 
 main :: IO ()
 main = do
-    --let results = (content %~ flip parseString partialParser) <$> inputs
-    --mapM_ checkResult results
+    let results = (content %~ flip parseString partialParser) <$> inputs
+    mapM_ checkResult results
     mainLam
-

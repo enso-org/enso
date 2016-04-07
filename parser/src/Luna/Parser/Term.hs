@@ -360,8 +360,11 @@ argDef2 pat val = ArgDef <$> pat <*> maybe (Tok.assignment *> val)
 -- === General === --
 
 expr  :: ASTParser p m a => p (m a)
-expr   = E.buildExpressionParser opTable (labApp exprAtom)
+expr   = E.buildExpressionParser opTable exprApp
       <?> "expression"
+
+exprApp :: ASTParser p m a => p (m a)
+exprApp =  labCurry exprAtom <|> labApp exprAtom
 
 exprAtom :: ASTParser p m a => p (m a)
 exprAtom  = parens expr
@@ -399,9 +402,16 @@ app = appAs arg
 labApp :: ASTParser p m a => p (m a) -> p (m a)
 labApp = appAs labArg
 
+labCurry :: ASTParser p m a => p (m a) -> p (m a)
+labCurry = curryAs labArg
+
 appAs :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
 appAs argmod base = base <??> (bldr <$> many1 (argmod base)) where
     bldr margs ma = liftM2 AST.app ma (sequence margs)
+
+curryAs :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
+curryAs argmod base = (Tok.curry *> base) <??> (bldr <$> many1 (argmod base)) where
+    bldr margs ma = liftM2 AST.curry ma (sequence margs)
 
 
 --------------------------

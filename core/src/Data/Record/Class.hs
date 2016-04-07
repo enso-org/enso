@@ -18,7 +18,7 @@
 module Data.Record.Class where
 
 import Prologue hiding (mask, simple, empty, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, Repr, repr, minBound, maxBound, (#), assert, Index)
-import Prologue.Unsafe (fromJustNote, undefined)
+import Prologue.Unsafe (fromJustNote, error)
 
 import Type.Container
 
@@ -371,7 +371,7 @@ instance ( IsRecord rec
         Ok el = unsafeExtract t rec :: Ok el
 
 
-instance MapTryingElemList '[] ctx rec a where mapTryingElemList = undefined
+instance MapTryingElemList '[] ctx rec a where mapTryingElemList = error "Data/Record special error"
 
 
 
@@ -393,7 +393,7 @@ instance ( IsRecord rec
         Ok el = unsafeExtract t rec :: Ok el
 
 
-instance MapTryingElemList_ '[] ctx rec where mapTryingElemList_ = undefined
+instance MapTryingElemList_ '[] ctx rec where mapTryingElemList_ = error "Data/Record special error"
 
 --class NFunctor n m a a' | n m a -> a' where fmapN :: (n -> m) -> a -> a'
 
@@ -404,7 +404,7 @@ instance (MapOverElemList els ctx rec, els ~ (RecordOf rec ##. Variant)) => Over
 class MapOverElemList els ctx rec where mapOverElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> v) -> rec -> rec
 
 
-instance MapOverElemList '[] ctx rec where mapOverElemList = undefined
+instance MapOverElemList '[] ctx rec where mapOverElemList = error "Data/Record special error"
 
 
 instance ( IsRecord rec

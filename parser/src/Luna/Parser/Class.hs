@@ -2,7 +2,7 @@
 
 module Luna.Parser.Class where
 
-import Prelude.Luna
+import Prelude.Luna hiding (Curry)
 
 import Luna.Syntax.Name
 import Luna.Parser.Indent                     (MonadIndent)
@@ -41,6 +41,7 @@ type ASTBuilderCtx m a = ( a ~ Input a
                          , TermBuilder_OLD Var        m a
                          , TermBuilder_OLD Cons       m a
                          , TermBuilder_OLD App        m a
+                         , TermBuilder_OLD Curry      m a
                          , TermBuilder_OLD Unify      m a
                          , TermBuilder_OLD Acc        m a
                          , TermBuilder_OLD Match      m a
