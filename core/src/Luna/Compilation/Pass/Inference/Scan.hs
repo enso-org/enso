@@ -61,7 +61,7 @@ investigate ref = do
             of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Cons _ _)       ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \ANY              ->  id
-    TypeCheck.modify_ mod
+    TypeCheck.modify_ $ mod . (TypeCheck.allNodes %~ (ref :))
 
 assignDepths :: PassCtx(m) => Ref Node node -> m Int
 assignDepths ref = do

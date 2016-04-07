@@ -23,6 +23,7 @@ import           Luna.Syntax.Term.Expr                            hiding (Draft,
 import           Luna.Syntax.Term.Expr                            hiding (source)
 import qualified Luna.Syntax.Term.Expr                            as Term
 import           Luna.Syntax.Model.Layer
+import           Luna.Syntax.Model.Network.Builder               (Sign (..))
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
@@ -43,7 +44,7 @@ import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 import           Text.Printf                                     (printf)
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Inference.Unification     (OptimisticUnificationPass (..), StrictUnificationPass (..))
+import           Luna.Compilation.Pass.Inference.Unification     (StrictUnificationPass (..))
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
@@ -219,7 +220,7 @@ graph3 = do
 
     return ([apppl, appid], refsToEval)
 
-graph4 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
+graph4, graph5 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , node ~ (ls :<: term)
                                                   , edge ~ Link (ls :<: term)
                                                   , nr   ~ Ref Node node
@@ -240,10 +241,30 @@ graph4 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   , Graph.MonadBuilder (Hetero (NEC.Graph n e c)) m
                                                   )
        => m ([nr], [nr])
+
 graph4 = do
     i1 <- int 2
     i2 <- int 3
-    -- fun1 <- native (fromString "(+2)")
+    fun1 <- var "succ"
+
+    act <- acc "times" i1
+    apt <- app act [arg i2]
+
+    ach <- acc "head" apt
+    aph <- app ach []
+
+    let refsToEval = [aph]
+
+    forM_ refsToEval (\ref -> do
+            (nd :: (ls :<: term)) <- read ref
+            write ref (nd & prop InterpreterData . Layer.required .~ True)
+        )
+
+    return ([aph], refsToEval)
+
+graph5 = do
+    i1 <- int 2
+    i2 <- int 3
     fun1 <- var "succ"
 
     act <- acc "times" i1
@@ -264,6 +285,7 @@ graph4 = do
 
     return ([aph], refsToEval)
 
+
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
     tcState <- TypeCheckState.get
@@ -272,6 +294,7 @@ collectGraph tag = do
     Writer.tell [(tag, g)]
 
 seq3 a b c = Sequence a $ Sequence b c
+seq4 a b c d = Sequence a $ seq3 b c d
 
 test1 :: IO ()
 test1 = do
@@ -284,16 +307,23 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, gint) <- TypeCheck.runT $ do
-            ((roots, refsToEval), gb) <- runBuild g graph4
+            ((roots, refsToEval), gb) <- runBuild g graph5
 
             (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
                 Symbol.loadFunctions StdLib.symbols
                 TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
                 collectGraph "Initial"
-                let tc = Sequence
-                           (Sequence ScanPass $ Sequence LiteralsPass $ Sequence StructuralInferencePass
-                                     $ Loop $ seq3 SymbolImportingPass (Loop OptimisticUnificationPass) FunctionCallingPass)
-                           (Loop StrictUnificationPass)
+                let tc = (seq4
+                             ScanPass
+                             LiteralsPass
+                             StructuralInferencePass
+                             (Loop $ Sequence
+                                 (Loop $ seq4
+                                     SymbolImportingPass
+                                     (Loop $ StrictUnificationPass Positive False)
+                                     FunctionCallingPass
+                                     (Loop $ StrictUnificationPass Positive False))
+                                 (StrictUnificationPass Negative True)))
 
                 TypeCheck.runTCWithArtifacts tc collectGraph
 
