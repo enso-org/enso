@@ -168,7 +168,7 @@ resolveUnify uni = do
                           else do
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               case req of
-                                  Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError a b :)
+                                  Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError uni :)
                                   Nothing -> return ()
                               resolve_
 

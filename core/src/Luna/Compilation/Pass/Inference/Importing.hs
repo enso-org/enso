@@ -147,8 +147,8 @@ attachError ref = do
     node <- read ref
     err <- caseTest (uncover node) $ do
         of' $ \(Acc (Lit.String name) s) -> do
-            tpNode <- follow source =<< follow (prop Type) =<< follow source s
-            return [ImportError (Just tpNode) name]
+            n <- follow source s
+            return [ImportError (Just n) name]
         of' $ \(Var (Lit.String n)) -> return [ImportError Nothing n]
         of' $ \ANY -> return []
     withRef ref $ prop TCData . tcErrors %~ (err ++)
