@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Term.Atom where
 
-import Prelude.Luna
+import Prelude.Luna hiding (Curry)
 
 import Data.Base
 import Luna.Syntax.Term.Function (Arg)
@@ -46,6 +46,7 @@ data Var'    = Var'    deriving (Show, Eq, Ord)
 data Cons'   = Cons'   deriving (Show, Eq, Ord)
 data Acc'    = Acc'    deriving (Show, Eq, Ord)
 data App'    = App'    deriving (Show, Eq, Ord)
+data Curry'  = Curry'  deriving (Show, Eq, Ord)
 data Unify'  = Unify'  deriving (Show, Eq, Ord)
 data Match'  = Match'  deriving (Show, Eq, Ord)
 data Lam'    = Lam'    deriving (Show, Eq, Ord)
@@ -70,6 +71,7 @@ newtype instance Atom Var'    dyn a = Atom_Var     (DynName dyn a)
 newtype instance Atom Cons'   dyn a = Atom_Cons    (DynName dyn a)
 data    instance Atom Acc'    dyn a = Atom_Acc    !(DynName dyn a) !a
 data    instance Atom App'    dyn a = Atom_App                     !a ![Arg a]
+data    instance Atom Curry'  dyn a = Atom_Curry                   !a ![Arg a]
 data    instance Atom Unify'  dyn a = Atom_Unify                   !a !a
 data    instance Atom Match'  dyn a = Atom_Match                   !a !a
 data    instance Atom Lam'    dyn a = Atom_Lam                     ![Arg a] !a
@@ -80,6 +82,7 @@ type instance AtomArgs Var'    dyn a = OneTuple (DynName dyn a)
 type instance AtomArgs Cons'   dyn a = OneTuple (DynName dyn a)
 type instance AtomArgs Acc'    dyn a =          (DynName dyn a, a)
 type instance AtomArgs App'    dyn a =          (a, [Arg a])
+type instance AtomArgs Curry'  dyn a =          (a, [Arg a])
 type instance AtomArgs Unify'  dyn a =          (a, a)
 type instance AtomArgs Match'  dyn a =          (a, a)
 type instance AtomArgs Lam'    dyn a =          ([Arg a], a)
@@ -90,6 +93,7 @@ instance Atomic Var'    where atom = uncurry Atom_Var    ; {-# INLINE atom #-}
 instance Atomic Cons'   where atom = uncurry Atom_Cons   ; {-# INLINE atom #-}
 instance Atomic Acc'    where atom = uncurry Atom_Acc    ; {-# INLINE atom #-}
 instance Atomic App'    where atom = uncurry Atom_App    ; {-# INLINE atom #-}
+instance Atomic Curry'  where atom = uncurry Atom_Curry  ; {-# INLINE atom #-}
 instance Atomic Unify'  where atom = uncurry Atom_Unify  ; {-# INLINE atom #-}
 instance Atomic Match'  where atom = uncurry Atom_Match  ; {-# INLINE atom #-}
 instance Atomic Lam'    where atom = uncurry Atom_Lam    ; {-# INLINE atom #-}
@@ -116,6 +120,7 @@ newtype Var    n   = Var     n             deriving (Show, Eq, Ord, Functor, Fol
 data    Cons   n t = Cons    n    ![Arg t] deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Acc    n t = Acc    !n !t          deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    App      t = App       !t ![Arg t] deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
+data    Curry    t = Curry     !t ![Arg t] deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Unify    t = Unify     !t !t       deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Match    t = Match     !t !t       deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Lam      t = Lam       ![Arg t] !t deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
@@ -155,6 +160,7 @@ instance {-# OVERLAPPABLE #-}           TFoldable t (Var    n   ) where foldrT _
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Cons   n t') where foldrT   = foldr ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Acc    n t') where foldrT   = foldr ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (App      t') where foldrT   = foldr ; {-# INLINE foldrT #-}
+instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Curry    t') where foldrT   = foldr ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Unify    t') where foldrT   = foldr ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Match    t') where foldrT   = foldr ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Lam      t') where foldrT   = foldr ; {-# INLINE foldrT #-}
@@ -172,6 +178,7 @@ type instance Base (Lam      t) = Proxy Lam
 type instance Base (Cons   n t) = Proxy Cons
 type instance Base (Acc    n t) = Proxy Acc
 type instance Base (App      t) = Proxy App
+type instance Base (Curry    t) = Proxy Curry
 type instance Base (Var    n  ) = Proxy Var
 type instance Base (Unify    t) = Proxy Unify
 type instance Base (Match    t) = Proxy Match
@@ -189,6 +196,7 @@ type instance Name   (Acc    n t) = n
 type instance Name   (Native n  ) = n
 type instance Source (Acc    n t) = t
 type instance Source (App      t) = t
+type instance Source (Curry    t) = t
 type instance Source (Unify    t) = t
 type instance Source (Match    t) = t
 type instance Target (Lam      t) = t
@@ -196,6 +204,7 @@ type instance Target (Unify    t) = t
 type instance Target (Match    t) = t
 type instance Args   (Cons   n t) = [Arg t]
 type instance Args   (App      t) = [Arg t]
+type instance Args   (Curry    t) = [Arg t]
 type instance Args   (Lam      t) = [Arg t]
 
 instance HasName   (Var    n  ) where name   = wrapped'                                                  ; {-# INLINE name   #-}
@@ -204,6 +213,7 @@ instance HasName   (Acc    n t) where name   = lens (\(Acc    n _) -> n) (\(Acc 
 instance HasName   (Native n  ) where name   = wrapped'                                                  ; {-# INLINE name   #-}
 instance HasSource (Acc    n t) where source = lens (\(Acc    _ s) -> s) (\(Acc    n _) s -> Acc    n s) ; {-# INLINE source #-}
 instance HasSource (App      t) where source = lens (\(App    s _) -> s) (\(App    _ a) s -> App    s a) ; {-# INLINE source #-}
+instance HasSource (Curry    t) where source = lens (\(Curry  s _) -> s) (\(Curry  _ a) s -> Curry  s a) ; {-# INLINE source #-}
 instance HasSource (Unify    t) where source = lens (\(Unify  s _) -> s) (\(Unify  _ t) s -> Unify  s t) ; {-# INLINE source #-}
 instance HasSource (Match    t) where source = lens (\(Match  s _) -> s) (\(Match  _ t) s -> Match  s t) ; {-# INLINE source #-}
 instance HasTarget (Lam      t) where target = lens (\(Lam    _ t) -> t) (\(Lam    s _) t -> Lam    s t) ; {-# INLINE target #-}
@@ -211,6 +221,7 @@ instance HasTarget (Unify    t) where target = lens (\(Unify  _ t) -> t) (\(Unif
 instance HasTarget (Match    t) where target = lens (\(Match  _ t) -> t) (\(Match  s _) t -> Match  s t) ; {-# INLINE target #-}
 instance HasArgs   (Cons   n t) where args   = lens (\(Cons   _ a) -> a) (\(Cons   n _) a -> Cons   n a) ; {-# INLINE args   #-}
 instance HasArgs   (App      t) where args   = lens (\(App    _ a) -> a) (\(App    s _) a -> App    s a) ; {-# INLINE args   #-}
+instance HasArgs   (Curry    t) where args   = lens (\(Curry  _ a) -> a) (\(Curry  s _) a -> Curry  s a) ; {-# INLINE args   #-}
 instance HasArgs   (Lam      t) where args   = lens (\(Lam    a _) -> a) (\(Lam    _ o) a -> Lam    a o) ; {-# INLINE args   #-}
 
 -- Mapping
@@ -220,6 +231,7 @@ instance n ~ n' => NFunctor n m (Acc    n' t) (Acc    m t) where fmapN f (Acc n 
 instance n ~ n' => NFunctor n m (Native n'  ) (Native m  ) where fmapN f (Native n)   = Native (f n) ; {-# INLINE fmapN #-}
 instance           NFunctor n m (Lam       t) (Lam      t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
 instance           NFunctor n m (App       t) (App      t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
+instance           NFunctor n m (Curry     t) (Curry    t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
 instance           NFunctor n m (Unify     t) (Unify    t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
 instance           NFunctor n m (Match     t) (Match    t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
 instance           NFunctor n m Blank         Blank        where fmapN = flip const                  ; {-# INLINE fmapN #-}
@@ -228,6 +240,7 @@ instance t ~ t' => TFunctor t r (Lam      t') (Lam      r) where fmapT = fmap   
 instance t ~ t' => TFunctor t r (Acc    n t') (Acc    n r) where fmapT = fmap       ; {-# INLINE fmapT #-}
 instance           TFunctor t r (Native n   ) (Native n  ) where fmapT = flip const ; {-# INLINE fmapT #-}
 instance t ~ t' => TFunctor t r (App      t') (App      r) where fmapT = fmap       ; {-# INLINE fmapT #-}
+instance t ~ t' => TFunctor t r (Curry    t') (Curry    r) where fmapT = fmap       ; {-# INLINE fmapT #-}
 instance t ~ t' => TFunctor t r (Unify    t') (Unify    r) where fmapT = fmap       ; {-# INLINE fmapT #-}
 instance t ~ t' => TFunctor t r (Match    t') (Match    r) where fmapT = fmap       ; {-# INLINE fmapT #-}
 instance           TFunctor t r (Var    n   ) (Var    n  ) where fmapT = flip const ; {-# INLINE fmapT #-}
@@ -241,6 +254,7 @@ instance t ~ t' => MonoTFunctor t (Lam      t') where monoTMap = fmap       ; {-
 instance t ~ t' => MonoTFunctor t (Acc    n t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance           MonoTFunctor t (Native n   ) where monoTMap = flip const ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (App      t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
+instance t ~ t' => MonoTFunctor t (Curry    t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (Unify    t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (Match    t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance           MonoTFunctor t (Var    n   ) where monoTMap = flip const ; {-# INLINE monoTMap #-}
@@ -258,6 +272,7 @@ instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Cons   n t) where repr (
 instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Lam      t) where repr (Lam        s t) = "Lam  "  <+> repr s <+> repr t
 instance {-# OVERLAPPABLE #-} Reprs s '[n,t] => Repr s (Acc    n t) where repr (Acc        n s) = "Acc"    <+> repr n <+> repr s
 instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (App      t) where repr (App        s a) = "App"    <+> repr s <+> repr a
+instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Curry    t) where repr (Curry      s a) = "Curry"  <+> repr s <+> repr a
 instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Unify    t) where repr (Unify      s t) = "Unify"  <+> repr s <+> repr t
 instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Match    t) where repr (Match      s t) = "Match"  <+> repr s <+> repr t
 instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Native n  ) where repr (Native     n  ) = "Native" <+> repr n
@@ -274,6 +289,7 @@ instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Lam               t) where repr _
 instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Acc    n          t) where repr _ = "Acc"
 instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Acc    Lit.String t) where repr (Acc s _) = fromString $ "Acc " <>  show (unwrap' s)
 instance {-# OVERLAPPABLE #-} Repr HeaderOnly (App               t) where repr _ = "App"
+instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Curry             t) where repr _ = "Curry"
 instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Unify             t) where repr _ = "Unify"
 instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Match             t) where repr _ = "Match"
 instance {-# OVERLAPPABLE #-} Repr HeaderOnly (Native n           ) where repr _ = "Native"

@@ -22,6 +22,7 @@ double = inferNodeM ∘  Node.double
 number = inferNodeM ∘  Node.number
 lam    = inferNodeM ∘∘ Node.lam
 app    = inferNodeM ∘∘ Node.app
+curry  = inferNodeM ∘∘ Node.curry
 unify  = inferNodeM ∘∘ Node.unify
 match  = inferNodeM ∘∘ Node.match
 blank  = inferNodeM    Node.blank

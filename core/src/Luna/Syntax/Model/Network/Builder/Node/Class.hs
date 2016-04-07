@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Model.Network.Builder.Node.Class (module Luna.Syntax.Model.Network.Builder.Node.Class, module X) where
 
-import Prelude.Luna
+import Prelude.Luna hiding (Curry)
 
 import           Data.Graph
 import           Data.Graph.Builders
@@ -82,6 +82,9 @@ acc = node ∘∘ Term.acc
 
 app :: NodeBuilder App m (ls :<: term) => Ref Node (ls :<: term) -> [Arg $ Ref Node (ls :<: term)] -> m (Ref Node (ls :<: term))
 app = node ∘∘ Term.app
+
+curry :: NodeBuilder Curry m (ls :<: term) => Ref Node (ls :<: term) -> [Arg $ Ref Node (ls :<: term)] -> m (Ref Node (ls :<: term))
+curry = node ∘∘ Term.curry
 
 var :: NodeBuilder Var m (ls :<: term) => NameInput (Ref Node (ls :<: term)) -> m (Ref Node (ls :<: term))
 var = Term.var

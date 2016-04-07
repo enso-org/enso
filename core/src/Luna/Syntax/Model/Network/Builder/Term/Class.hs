@@ -7,7 +7,8 @@
 
 module Luna.Syntax.Model.Network.Builder.Term.Class (module Luna.Syntax.Model.Network.Builder.Term.Class, module X) where
 
-import Prelude.Luna    hiding (Num)
+import Prelude.Luna    hiding (Num, curry, Curry)
+import qualified Prelude.Luna as P
 import Prologue.Unsafe (undefined)
 
 import           Control.Monad.Event
@@ -149,22 +150,22 @@ instance ElemBuilder_OLD Lit.String m a => TermBuilder_OLD Lit.String m a where 
 instance ElemBuilder_OLD Lit.Number m a => TermBuilder_OLD Lit.Number m a where buildTerm_OLD p (OneTuple s) = buildElem s
 
 star :: TermBuilder_OLD Lit.Star m a => m a
-star = curry $ buildTerm_OLD (Proxy :: Proxy Lit.Star)
+star = P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.Star)
 
 str :: TermBuilder_OLD Lit.String m a => String -> m a
-str = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.String)) ∘ Lit.String
+str = (P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.String)) ∘ Lit.String
 
 ratio :: TermBuilder_OLD Lit.Number m a => Rational -> m a
-ratio = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
+ratio = (P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Rational
 
 int :: TermBuilder_OLD Lit.Number m a => Integer -> m a
-int = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
+int = (P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Integer
 
 double :: TermBuilder_OLD Lit.Number m a => Double -> m a
-double = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
+double = (P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number)) ∘ Lit.decimal ∘ Lit.Double
 
 number :: TermBuilder_OLD Lit.Number m a => Lit.Number -> m a
-number = (curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number))
+number = (P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number))
 
 -- === Val === --
 
@@ -197,16 +198,17 @@ instance ( inp ~ Input a
 
 
 cons :: TermBuilder_OLD Cons m a => NameInput a -> [Arg $ Input a] -> m a
-cons = curry $ buildTerm_OLD (Proxy :: Proxy Cons)
+cons = P.curry $ buildTerm_OLD (Proxy :: Proxy Cons)
 
 lam :: TermBuilder_OLD Lam m a => [Arg $ Input a] -> Input a -> m a
-lam = curry $ buildTerm_OLD (Proxy :: Proxy Lam)
+lam = P.curry $ buildTerm_OLD (Proxy :: Proxy Lam)
 
 
 -- === Thunk === --
 
-type instance BuildArgs Acc n    = (NameInput n, Input n)
-type instance BuildArgs App n    = (Input n, [Arg (Input n)])
+type instance BuildArgs Acc    n = (NameInput n, Input n)
+type instance BuildArgs App    n = (Input n, [Arg (Input n)])
+type instance BuildArgs Curry  n = (Input n, [Arg (Input n)])
 type instance BuildArgs Native n = OneTuple (NameInput n)
 
 instance {-# OVERLAPPABLE #-}
@@ -234,6 +236,17 @@ instance ( inp ~ Input a
         cargs <- (mapM ∘ mapM) (flip connection out) args
         return out
 
+instance ( inp ~ Input a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder_OLD (Curry $ Ref Edge (Connection inp a)) m a
+         ) => TermBuilder_OLD Curry m a where
+    buildTerm_OLD p (src, args) = mdo
+        out   <- buildElem $ Curry csrc cargs
+        csrc  <- connection src out
+        cargs <- (mapM ∘ mapM) (flip connection out) args
+        return out
+
 instance ( name ~ NameInput a
          , MonadFix m
          , ConnectibleName name a m
@@ -245,13 +258,16 @@ instance ( name ~ NameInput a
         return out
 
 acc :: TermBuilder_OLD Acc m a => NameInput a -> Input a -> m a
-acc = curry $ buildTerm_OLD (Proxy :: Proxy Acc)
+acc = P.curry $ buildTerm_OLD (Proxy :: Proxy Acc)
 
 app :: TermBuilder_OLD App m a => Input a -> [Arg $ Input a] -> m a
-app = curry $ buildTerm_OLD (Proxy :: Proxy App)
+app = P.curry $ buildTerm_OLD (Proxy :: Proxy App)
+
+curry :: TermBuilder_OLD Curry m a => Input a -> [Arg $ Input a] -> m a
+curry = P.curry $ buildTerm_OLD (Proxy :: Proxy Curry)
 
 native :: TermBuilder_OLD Native m a => NameInput a -> m a
-native = curry $ buildTerm_OLD (Proxy :: Proxy Native)
+native = P.curry $ buildTerm_OLD (Proxy :: Proxy Native)
 
 -- === Expr === --
 
@@ -361,19 +377,19 @@ term :: (ElemBuilder3 n a, ParamResolver n m a) => BindBuilder a n (TermOf a) ->
 term m = resolveParams $ runBindBuilder $ (lift ∘ buildElem3) =<< m
 
 var :: TermBuilder_OLD Var m a => NameInput a -> m a
-var = curry $ buildTerm_OLD (Proxy :: Proxy Var)
+var = P.curry $ buildTerm_OLD (Proxy :: Proxy Var)
 
 unify :: TermBuilder_OLD Unify m a => Input a -> Input a -> m a
-unify = curry $ buildTerm_OLD (Proxy :: Proxy Unify)
+unify = P.curry $ buildTerm_OLD (Proxy :: Proxy Unify)
 
 match :: TermBuilder_OLD Match m a => Input a -> Input a -> m a
-match = curry $ buildTerm_OLD (Proxy :: Proxy Match)
+match = P.curry $ buildTerm_OLD (Proxy :: Proxy Match)
 
 star2 :: TermBuilder Star m a => m a
-star2 = curry $ build Star
+star2 = P.curry $ build Star
 
 var2 :: TermBuilder Var' m a => NameInput a -> m a
-var2 = curry $ build Var'
+var2 = P.curry $ build Var'
 
 
 -- star3 :: TermBuilder Star m a => m (Term2' t fmt dyn)
@@ -477,7 +493,7 @@ type instance BuildArgs   Blank n = ()
 instance      ElemBuilder_OLD Blank m a => TermBuilder_OLD Blank m a where buildTerm_OLD p () = buildElem Blank
 
 blank :: TermBuilder_OLD Blank m a => m a
-blank = curry $ buildTerm_OLD (Proxy :: Proxy Blank)
+blank = P.curry $ buildTerm_OLD (Proxy :: Proxy Blank)
 
 
 

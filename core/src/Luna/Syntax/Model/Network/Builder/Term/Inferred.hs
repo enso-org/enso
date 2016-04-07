@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Model.Network.Builder.Term.Inferred (module Luna.Syntax.Model.Network.Builder.Term.Inferred, module X) where
 
-import Prelude.Luna hiding (Num)
+import Prelude.Luna hiding (Curry, Num)
 
 import           Data.Graph                                   (ELEMENT (..))
 import           Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)
@@ -71,6 +71,9 @@ accAs t = inferM t ∘∘ Term.acc
 appAs :: TermBuilderAs_OLD t App m a => t -> Input a -> [Arg $ Input a] -> m a
 appAs t = inferM t ∘∘ Term.app
 
+curryAs :: TermBuilderAs_OLD t Curry m a => t -> Input a -> [Arg $ Input a] -> m a
+curryAs t = inferM t ∘∘ Term.curry
+
 
 -- === Expr === --
 
@@ -119,11 +122,13 @@ cons   = consAs  ELEMENT
 
 -- === Thunk === --
 
-acc :: TermBuilder_OLD Acc m a => NameInput a -> Input a -> m a
-app :: TermBuilder_OLD App m a => Input a -> [Arg $ Input a] -> m a
+acc   :: TermBuilder_OLD Acc   m a => NameInput a -> Input a -> m a
+app   :: TermBuilder_OLD App   m a => Input a -> [Arg $ Input a] -> m a
+curry :: TermBuilder_OLD Curry m a => Input a -> [Arg $ Input a] -> m a
 
 acc    = accAs   ELEMENT
 app    = appAs   ELEMENT
+curry  = curryAs ELEMENT
 
 
 -- === Expr === --
