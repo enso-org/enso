@@ -42,7 +42,7 @@ packages:
 - extra-dep: true
   location: {commit: c1d0a2d57471ec016471c371f2ffbd04b95a6dee, git: 'https://github.com/wdanilo/data-member.git'}
 - extra-dep: true
-  location: {commit: 28c9f5409572c6796370d4f115939b8d97e5f1d1, git: 'https://github.com/wdanilo/data-rtuple.git'}
+  location: {commit: 3fc120a163d13be6e37b7ee81769e094dceed8be, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
   location: {commit: 4500653d6b8e1022cb95e91960a3c340de04a3fe, git: 'https://github.com/wdanilo/data-shell.git'}
 resolver: lts-5.10
