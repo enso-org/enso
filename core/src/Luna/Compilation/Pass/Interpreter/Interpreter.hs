@@ -549,10 +549,13 @@ evaluateNative ref args = do -- $notImplemented -- do
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 
 
+type NodeRef = Ref Node (NetLayers :<: Draft Static)
+type BindList = [(NodeRef, Any)]
+
 -- TODO: optimize native haskell functions
 
 -- interpretFunction :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Hetero (NEC.Graph n e c) -> Signature (Ref Node (ls :<: term)) -> Any -> EvalMonad Any
-interpretFunction :: NetGraph -> Signature (Ref Node (NetLayers :<: Draft Static)) -> Any -> EvalMonad Any
+interpretFunction :: NetGraph -> Signature NodeRef -> Any -> EvalMonad Any
 interpretFunction g sig arg = do
     -- let g = testG
     let (val :: ValueErr (EvalMonad Any)) = Right $ return arg
@@ -572,13 +575,29 @@ interpretFunction g sig arg = do
     -- Either
 
 
+
+interpretNoArgs :: NetGraph -> BindList -> EvalMonad Any
+interpretNoArgs g binds = evalBuildInt g def $ do
+    forM_ binds $ \(r, v) -> do --r & val .~ v
+        return ()
+    $notImplemented
+    -- doYourThings
+
+interpret' :: NetGraph -> BindList -> [NodeRef] -> Any
+interpret' g binds []     = toAny $ interpretNoArgs g binds
+interpret' g binds (x:xs) = toAny $ \v -> interpret' g ((x, v) : binds) xs
+
+interpret :: NetGraph -> [NodeRef] -> EvalMonad Any
+interpret g sig = return $ interpret' g [] $ reverse sig
+-- IO (Any -> Any -> ... -> Any -> IO Any)
+
 -- runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
 
-runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT (Ref Node (NetLayers :<: Draft Static)) n) => NetGraph -> m a -> n (a, NetGraph)
+runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT NodeRef n) => NetGraph -> m a -> n (a, NetGraph)
 runBuild g m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                                            $ runNetworkBuilderT g m
 
-runBuildInt :: (Monad n, NetworkBuilderT NetGraph m (InterpreterT (Env (Ref Node (NetLayers :<: Draft Static))) (KnownTypeT ELEMENT (Ref Node (NetLayers :<: Draft Static)) n)))
+runBuildInt :: (Monad n, NetworkBuilderT NetGraph m (InterpreterT (Env NodeRef) (KnownTypeT ELEMENT NodeRef n)))
             => NetGraph -> Env (Ref Node (NetLayers :<: Draft Static)) -> m a -> n (a, NetGraph)
 runBuildInt g env m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                                            $ flip evalInterpreterT env
