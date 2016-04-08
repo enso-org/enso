@@ -170,7 +170,9 @@ processNode ref = runErrorT $ do
     zipWithM (reconnect $ prop TCData . redirect) (maybeToList $ fptr ^. Function.self) (Just <$> maybeToList selfMay)
     u1 <- attachTypeRep  fptr ref
     u2 <- attachSelfType fptr ref -- FIXME[MK]: monomorphic! copy self type and do unis in replacement only.
-    return $ u1 : u2
+    let unis = u1 : u2
+    mapM_ (flip include localLamb) unis
+    return unis
 
 
 -----------------------------

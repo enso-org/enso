@@ -84,6 +84,8 @@ importStructure nodes' edges' = do
         node <- read ref
         let nodeWithFixedEdges = node & over covered     (fmapInputs unsafeTranslateEdge)
                                       & over (prop Type) unsafeTranslateEdge
+                                      & over (prop TCData . redirect  . mapped) unsafeTranslateEdge
+                                      & over (prop TCData . requester . mapped) unsafeTranslateEdge
                 where
                 unsafeTranslateEdge i = fromMaybe i $ Map.lookup i edgeTrans
         write ref nodeWithFixedEdges
@@ -121,7 +123,10 @@ dupCluster :: ( ImportCtx
 dupCluster cluster name = do
     nodeRefs <- members cluster
     nodes <- mapM read nodeRefs
-    let gatherEdges n = foldr IntSet.insert mempty (view idx <$> ((n # Inputs) ++ [n ^. prop Type]))
+    let gatherEdges n = IntSet.fromList $ view idx <$> [n ^. prop Type]
+                                                    ++ maybeToList (n ^. prop TCData . redirect)
+                                                    ++ maybeToList (n ^. prop TCData . requester)
+                                                    ++ (n # Inputs)
     let edgeRefs = Ptr <$> (IntSet.toList $ foldr IntSet.union mempty (gatherEdges <$> nodes))
     edges <- mapM read edgeRefs
     trans <- importStructure (zip nodeRefs nodes) (zip edgeRefs edges)

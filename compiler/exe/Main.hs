@@ -352,6 +352,7 @@ input4Adam = do
     appid <- app id  [arg s1]
     return ([i1, i2, s1], [apppl, appid], [apl], [id, apl])
 
+
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
     tcState <- TypeCheckState.get
@@ -376,12 +377,23 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
-                pr <- var "primes"
-                i  <- int 30
-                appr <- app pr [arg i]
-                rev <- acc "reverse" appr
-                aprev <- app rev []
-                return [aprev]
+                i1 <- int 2
+                i2 <- int 3
+                fun1 <- var "succ"
+
+                act <- acc "times" i1
+                apt <- app act [arg i2]
+
+                ach <- acc "head" apt
+                aph <- app ach []
+
+                return [aph]
+                {-pr <- var "primes"-}
+                {-i  <- int 30-}
+                {-appr <- app pr [arg i]-}
+                {-rev <- acc "reverse" appr-}
+                {-aprev <- app rev []-}
+                {-return [aprev]-}
                 {-rev <- acc "reverse" v1-}
                 {-aprev <- app rev []-}
 
