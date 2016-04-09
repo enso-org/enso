@@ -40,9 +40,9 @@ packages:
 - extra-dep: true
   location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
-  location: {commit: c1d0a2d57471ec016471c371f2ffbd04b95a6dee, git: 'https://github.com/wdanilo/data-member.git'}
+  location: {commit: aa5ac0164cd8d721c0abd762f9ebdad0f5432b92, git: 'https://github.com/wdanilo/data-member.git'}
 - extra-dep: true
-  location: {commit: 3fc120a163d13be6e37b7ee81769e094dceed8be, git: 'https://github.com/wdanilo/data-rtuple.git'}
+  location: {commit: 01ad58ca75756ed0b4c95144d5cf54a74a6ecb33, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
-  location: {commit: 4500653d6b8e1022cb95e91960a3c340de04a3fe, git: 'https://github.com/wdanilo/data-shell.git'}
+  location: {commit: 9e1f4671b5bd061bca8e392ffb39271f3626702a, git: 'https://github.com/wdanilo/data-shell.git'}
 resolver: lts-5.10
