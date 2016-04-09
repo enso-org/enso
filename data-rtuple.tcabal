@@ -1,5 +1,5 @@
 name:                data-rtuple
-version:             1.1.1
+version:             1.1.2
 synopsis:            Recursive tuple data structure. It is very usefull when implementing some lo-level operations, allowing to traverse different elements using Haskell's type classes.
 -- description:
 license:             Apache-2.0
@@ -54,4 +54,5 @@ Library
                     , lens-utils
                     , ghc-prim
                     , data-default
+                    , data-construction
                     , mtl

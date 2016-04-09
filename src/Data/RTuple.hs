@@ -20,6 +20,7 @@ import GHC.TypeLits
 import Type.Container         (Append, Index, Index2, Reverse)
 import Type.Monoid
 import Type.List
+import Data.Construction
 
 -- === Definition === --
 
@@ -385,6 +386,9 @@ type family Assocs (keys :: [k]) (vals :: [v]) :: [Assoc k v] where
     Assocs '[] '[] = '[]
     Assocs (k ': ks) (v ': vs) = k ':-> v ': Assocs ks vs
 
+type keys :->> vals = Assocs keys vals
+
+
 type family IndexOf' a lst where
     IndexOf' a (a ': ls) = 0
     IndexOf' a (l ': ls) = 1 + IndexOf' a ls
@@ -408,7 +412,6 @@ type family Targets (rels :: [Assoc k v]) :: [v] where
 newtype TMap (rels :: [Assoc k *]) = TMap (List (Targets rels))
 makeWrapped ''TMap
 
-deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
 
 empty2 :: TMap '[]
 empty2 = TMap empty
@@ -440,6 +443,23 @@ prepend2 :: Target r -> TMap rs -> TMap (r ': rs)
 prepend2 a = wrapped %~ prepend a
 
 
+-- === Instances === --
+
+deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
+
 --prepend :: a -> List lst -> List (a ': lst)
 --prepend = cons
 --{-# INLINE prepend #-}
+
+
+instance Creator m (Unwrapped (TMap rels)) => Creator m (TMap rels) where
+    create = TMap <$> create ; {-# INLINE create #-}
+
+instance Monad m                            => Creator m (List '[])       where create = return Null                ; {-# INLINE create #-}
+instance (Creator m l, Creator m (List ls)) => Creator m (List (l ': ls)) where create = Cons <$> create <*> create ; {-# INLINE create #-}
+
+
+
+-- data List lst where
+--     Null :: List '[]
+--     Cons :: a -> List lst -> List (a ': lst)
