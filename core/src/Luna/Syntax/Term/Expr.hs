@@ -30,12 +30,13 @@ import           Luna.Syntax.Term.Format
 import qualified Luna.Syntax.Term.Lit     as Lit
 import Luna.Syntax.Term.Atom as X
 
-import Data.Shell
+import Data.Shell               as Shell
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 import Type.Monoid
 import Type.Applicative
 
 import Prologue.Unsafe (error)
+
 
 undefined = error "oh no in Expr.hs"
 
@@ -149,7 +150,9 @@ makeWrapped ''Term2
 instance IsRecord (Unwrapped (Term2 t fmt dyn a)) => IsRecord (Term2 t fmt dyn a) where
     asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
 
-
+-- Shell
+instance Shell.HasLayer' l (Unwrapped (Term2 t fmt dyn sel)) => Shell.HasLayer' l (Term2 t fmt dyn sel) where
+    layer' = wrapped' ∘ layer' ; {-# INLINE layer' #-}
 
 
 

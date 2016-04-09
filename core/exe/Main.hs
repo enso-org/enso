@@ -74,7 +74,7 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class (star2, ExprBuilde
 
 import qualified Data.Record                  as Record
 
-import Data.Shell
+import Data.Shell as Shell
 import Data.Cover
 import Type.Applicative
 
@@ -194,34 +194,51 @@ main = do
 ------------------------------------
 
 
-data IntLayer
--- data IntLayerData = IntLayerData Int deriving (Show)
+----------------------
+-- === IntLayer === --
+----------------------
+
+-- === Definitions === --
+
+data IntLayer = IntLayer deriving (Show)
 
 type instance LayerData IntLayer = Int
--- instance Monad m => Creator m IntLayerData where create = return $ IntLayerData 7
+
+-- === Instances === --
+
+instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = return $ Layer 0
 
 
-instance Monad m => Creator m (Layer (TermLayer t IntLayer)) where create = return $ Layer 0
 
+---------------------
+-- === Network === --
+---------------------
+
+-- == Definitions === --
 
 data Net (ls :: [*])
-data SNet
+newtype NetLayer t a = NetLayer a deriving (Show, Functor, Traversable, Foldable)
 
-type TRex  fmt dyn sel = TermRecord2 SNet              fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+
+-- === Instances === --
+
+-- Type relations
+type instance LayerData (NetLayer t a) = LayerData a
+
+-- Layout
+type TermShell ls term rec = (NetLayer term <$> ls) :| rec
+type instance Layout2 (Net ls) fmt dyn sel = TermShell ls (Term2 (Net ls) fmt dyn sel) (TermRecord2 (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+
+-- Shell
+type instance Shell.Access l (Term2 (Net ls) fmt dyn sel) = NetLayer (Term2 (Net ls) fmt dyn sel) l
+
+
+
+----------------------------------
+
+
+
 type TRex2 t fmt dyn sel = TermRecord2 t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-
-type instance Layout2 SNet     fmt dyn a = TRex fmt dyn a
-type instance Layout2 (Net ls) fmt dyn a = ls :|: TermRecord2 (Net ls) fmt dyn a Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-
-
-
-
-
-newtype TermLayer t a = TermLayer a deriving (Show, Functor, Traversable, Foldable)
-
-type ls :|: term = (TermLayer term <$> ls) :| term
-
-type instance LayerData (TermLayer t a) = LayerData a
 
 
 
@@ -248,3 +265,4 @@ instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
 main2 = do
 
     print t2
+    print $ t2 ^. Shell.access' IntLayer
