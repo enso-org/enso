@@ -53,7 +53,7 @@ import Type.Maybe
 import Type.Show
 import Type.Sequence          (Enumerate)
 import Type.Monoid
-
+import Data.Cover
 
 
 -----------------------------------------------------------------
@@ -116,6 +116,11 @@ class Encoder t a m rec | t a rec -> m where encode :: Proxy t -> a -> m rec
 class UnsafeExtract t rec m a | t rec a -> m where unsafeExtract :: Proxy t -> rec -> m a
 class UnsafeInsert  t rec m a | t rec a -> m where unsafeInsert  :: Proxy t -> a -> rec -> m rec
 class CheckMatch    t a rec where checkMatch :: Proxy t -> Proxy (a :: *) -> rec -> Bool
+
+
+-- === Instances === --
+
+type instance RecordOf (Cover c a) = RecordOf a
 
 
 ------------------------

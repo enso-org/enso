@@ -2,6 +2,7 @@
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE UndecidableInstances      #-}
+{-# LANGUAGE TypeFamilies              #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE PolyKinds                 #-}
@@ -23,7 +24,7 @@ import           Data.Graph.Builder
 import           Data.Graph.Query         hiding (Graph)
 import qualified Data.Graph.Query         as Sort
 import           Data.Index               (idx)
-import           Data.Layer_OLD.Cover_OLD
+-- import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                 as Map
 import           Data.Prop
 import           Data.Record              hiding (Cons, Layout, cons)
@@ -49,7 +50,7 @@ import qualified Luna.Library.Symbol                             as Symbol
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                           as Runtime
-import           Luna.Syntax.Model.Layer
+import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
 import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
 import           Luna.Syntax.Model.Network.Builder.Node          hiding (star2)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
@@ -70,6 +71,13 @@ import qualified Data.RTuple.Examples as E
 import           Luna.Syntax.Model.Network.Builder.Class ()
 import qualified Luna.Syntax.Model.Network.Builder.Class as XP
 import           Luna.Syntax.Model.Network.Builder.Term.Class (star2, ExprBuilder)
+
+import qualified Data.Record                  as Record
+
+import Data.Shell
+import Data.Cover
+import Type.Applicative
+
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -174,3 +182,69 @@ main = do
     (_,  g :: NetGraph ) <- prebuild2
     renderAndOpen [ ("xg", "xg", g)
                   ]
+
+    main2
+
+
+
+
+
+------------------------------------
+-- === Example implementation === --
+------------------------------------
+
+
+data IntLayer
+-- data IntLayerData = IntLayerData Int deriving (Show)
+
+type instance LayerData IntLayer = Int
+-- instance Monad m => Creator m IntLayerData where create = return $ IntLayerData 7
+
+
+instance Monad m => Creator m (Layer (TermLayer t IntLayer)) where create = return $ Layer 0
+
+
+data Net (ls :: [*])
+data SNet
+
+type TRex  fmt dyn sel = TermRecord2 SNet              fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type TRex2 t fmt dyn sel = TermRecord2 t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+
+type instance Layout2 SNet     fmt dyn a = TRex fmt dyn a
+type instance Layout2 (Net ls) fmt dyn a = ls :|: TermRecord2 (Net ls) fmt dyn a Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+
+
+
+
+
+newtype TermLayer t a = TermLayer a deriving (Show, Functor, Traversable, Foldable)
+
+type ls :|: term = (TermLayer term <$> ls) :| term
+
+type instance LayerData (TermLayer t a) = LayerData a
+
+
+
+
+a1 = atom () :: Atom Blank' Static Int
+-- -- t1 = Record.cons a1 :: AnyTerm SNet Draft Static
+t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
+
+t2 = runIdentity $ overbuild t1 :: AnyTerm (Net '[IntLayer]) Draft Static
+--
+--
+-- type Foox = Record.Variants (RecordOf (AnyTerm SNet Draft Static))
+
+
+instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
+    overbuild a = Cover <$> create <*> overbuild a
+
+
+--
+-- class Monad m => OverBuilder m a where
+--     overbuild :: RecordOf a -> m a
+
+
+main2 = do
+
+    print t2

@@ -301,7 +301,7 @@ Executable luna
                      , dependent-state
                      , data-rtuple
                      , ghc-mtl
-
+                     , data-shell
 
 
 benchmark graph-builder

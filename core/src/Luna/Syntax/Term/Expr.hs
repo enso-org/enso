@@ -104,17 +104,17 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
 
 -- === Definitions === --
 
+newtype     Term2       t fmt dyn sel = Term2 (Layout2 t fmt dyn sel)
 type        AnyTerm     t fmt dyn     = Term2       t fmt dyn 'Nothing
 type        LimitedTerm t fmt dyn a   = Term2       t fmt dyn ('Just a)
 type        KnownTerm   t fmt dyn a   = LimitedTerm t fmt dyn '[a]
-newtype     Term2       t fmt dyn sel = Term2 (Layout2 t fmt dyn sel)
+
 type family Layout2     t fmt dyn (sel :: Maybe [*]) :: *
 type family TermOf      a
 
 
 -- === Utils === --
 
-type TermShell ls t = Shelled t ls t
 
 type        Variants3       t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Term2 t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
@@ -134,35 +134,39 @@ type TermRecord2 t fmt dyn a bind = VGRecord2 (SubExprs t fmt dyn) (Variants3 t 
 
 -- === Instances === --
 
-makeWrapped ''Term2
-type instance TermOf (Term2 t fmt dyn a) = Term2 t fmt dyn a
+-- Show
+deriving instance Show (Unwrapped (Term2 t fmt dyn sel)) => Show (Term2 t fmt dyn sel)
 
-type instance Base (Term2 t fmt dyn a) = fmt
-
-instance IsRecord (Unwrapped (Term2 t fmt dyn a)) => IsRecord (Term2 t fmt dyn a) where asRecord = wrapped' ∘ asRecord
-
-
-
-
-
-------------------------------------
--- === Example implementation === --
-------------------------------------
-
-data Net (ls :: [*])
-data SNet
-type instance Layout2 SNet     fmt dyn a = TermRecord2 SNet fmt dyn a Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-type instance Layout2 (Net ls) fmt dyn a = TermShell ls (TermRecord2 (Net ls) fmt dyn a Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-
-
+-- Relations
+type instance TermOf   (Term2 t fmt dyn sel) = Term2 t fmt dyn sel
+type instance Base     (Term2 t fmt dyn sel) = fmt
 type instance RecordOf (Term2 t fmt dyn sel) = RecordOf (Unwrapped (Term2 t fmt dyn sel))
 
+-- Wrapper
+makeWrapped ''Term2
 
-a1 = atom () :: Atom Blank' Static Int
-t1 = cons a1 :: AnyTerm SNet Draft Static
+-- IsRecord
+instance IsRecord (Unwrapped (Term2 t fmt dyn a)) => IsRecord (Term2 t fmt dyn a) where
+    asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
 
 
-type Foox = Record.Variants (RecordOf (AnyTerm SNet Draft Static))
+
+
+
+-------------------
+-- === Shell === --
+-------------------
+
+class Monad m => OverBuilder m a where
+    overbuild :: RecordOf a -> m a
+
+instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
+    overbuild = return ; {-# INLINE overbuild #-}
+
+instance OverBuilder m (Unwrapped (Term2 t fmt dyn a)) => OverBuilder m (Term2 t fmt dyn a) where
+    overbuild = Term2 <∘> overbuild ; {-# INLINE overbuild #-}
+
+
 
 -- barr = () where
 --     a = undefined :: Proxy Foox
@@ -501,49 +505,49 @@ type DecodeMap_MANUAL_CACHE t =
          , {- 16 -} '( Cons   Lit.String (Layout t Thunk Static )                            , 16 )
          , {- 17 -} '( Acc    Lit.String (Layout t Thunk Static )                            , 17 )
          , {- 18 -} '( App               (Layout t Thunk Static )                            , 18 )
-         , {- 19 -} '( Curry             (Layout t Thunk Static )                            , 18 )
-         , {- 20 -} '( Lam               (Layout t Thunk Static )                            , 19 )
-         , {- 21 -} '( Native Lit.String                                                     , 20 )
-         , {- 22 -} '( Acc               (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)   , 21 )
-         , {- 23 -} '( App               (Layout t Thunk Dynamic)                            , 22 )
-         , {- 24 -} '( Curry             (Layout t Thunk Dynamic)                            , 22 )
-         , {- 25 -} '( Cons              (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)   , 23 )
-         , {- 26 -} '( Lam               (Layout t Thunk Dynamic)                            , 24 )
-         , {- 27 -} '( Native            (Layout t Thunk Dynamic)                            , 25 )
-         , {- 28 -} '( Var    Lit.String                                                     , 26 )
-         , {- 29 -} '( Cons   Lit.String (Layout t Phrase Static )                           , 27 )
-         , {- 30 -} '( Unify             (Layout t Phrase Static )                           , 28 )
-         , {- 31 -} '( Match             (Layout t Phrase Static )                           , 29 )
-         , {- 32 -} '( Acc    Lit.String (Layout t Phrase Static )                           , 30 )
-         , {- 33 -} '( App               (Layout t Phrase Static )                           , 31 )
-         , {- 34 -} '( Curry             (Layout t Phrase Static )                           , 31 )
-         , {- 35 -} '( Lam               (Layout t Phrase Static )                           , 32 )
-         , {- 36 -} '( Var               (Layout t Phrase Dynamic)                           , 33 )
-         , {- 37 -} '( Unify             (Layout t Phrase Dynamic)                           , 34 )
-         , {- 38 -} '( Match             (Layout t Phrase Dynamic)                           , 35 )
-         , {- 39 -} '( Acc               (Layout t Phrase Dynamic) (Layout t Phrase Dynamic) , 36 )
-         , {- 40 -} '( App               (Layout t Phrase Dynamic)                           , 37 )
-         , {- 41 -} '( Curry             (Layout t Phrase Dynamic)                           , 37 )
-         , {- 42 -} '( Cons              (Layout t Phrase Dynamic) (Layout t Phrase Dynamic) , 38 )
-         , {- 43 -} '( Lam               (Layout t Phrase Dynamic)                           , 39 )
-         , {- 44 -} '( Native            (Layout t Phrase Dynamic)                           , 40 )
-         , {- 45 -} '( Blank                                                                 , 41 )
-         , {- 46 -} '( Cons   Lit.String (Layout t Draft Static )                            , 42 )
-         , {- 47 -} '( Unify             (Layout t Draft Static )                            , 43 )
-         , {- 48 -} '( Match             (Layout t Draft Static )                            , 44 )
-         , {- 49 -} '( Acc    Lit.String (Layout t Draft Static )                            , 45 )
-         , {- 50 -} '( App               (Layout t Draft Static )                            , 46 )
-         , {- 51 -} '( Curry             (Layout t Draft Static )                            , 46 )
-         , {- 52 -} '( Lam               (Layout t Draft Static )                            , 47 )
-         , {- 53 -} '( Var               (Layout t Draft Dynamic)                            , 48 )
-         , {- 54 -} '( Unify             (Layout t Draft Dynamic)                            , 49 )
-         , {- 55 -} '( Match             (Layout t Draft Dynamic)                            , 50 )
-         , {- 56 -} '( Acc               (Layout t Draft Dynamic) (Layout t Draft Dynamic)   , 51 )
-         , {- 57 -} '( App               (Layout t Draft Dynamic)                            , 52 )
-         , {- 58 -} '( Curry             (Layout t Draft Dynamic)                            , 52 )
-         , {- 59 -} '( Cons              (Layout t Draft Dynamic) (Layout t Draft Dynamic)   , 53 )
-         , {- 60 -} '( Lam               (Layout t Draft Dynamic)                            , 54 )
-         , {- 61 -} '( Native            (Layout t Draft Dynamic)                            , 55 )
+         , {- 19 -} '( Curry             (Layout t Thunk Static )                            , 19 )
+         , {- 20 -} '( Lam               (Layout t Thunk Static )                            , 20 )
+         , {- 21 -} '( Native Lit.String                                                     , 21 )
+         , {- 22 -} '( Acc               (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)   , 22 )
+         , {- 23 -} '( App               (Layout t Thunk Dynamic)                            , 23 )
+         , {- 24 -} '( Curry             (Layout t Thunk Dynamic)                            , 24 )
+         , {- 25 -} '( Cons              (Layout t Thunk Dynamic) (Layout t Thunk Dynamic)   , 25 )
+         , {- 26 -} '( Lam               (Layout t Thunk Dynamic)                            , 26 )
+         , {- 27 -} '( Native            (Layout t Thunk Dynamic)                            , 27 )
+         , {- 28 -} '( Var    Lit.String                                                     , 28 )
+         , {- 29 -} '( Cons   Lit.String (Layout t Phrase Static )                           , 29 )
+         , {- 30 -} '( Unify             (Layout t Phrase Static )                           , 30 )
+         , {- 31 -} '( Match             (Layout t Phrase Static )                           , 31 )
+         , {- 32 -} '( Acc    Lit.String (Layout t Phrase Static )                           , 32 )
+         , {- 33 -} '( App               (Layout t Phrase Static )                           , 33 )
+         , {- 34 -} '( Curry             (Layout t Phrase Static )                           , 34 )
+         , {- 35 -} '( Lam               (Layout t Phrase Static )                           , 35 )
+         , {- 36 -} '( Var               (Layout t Phrase Dynamic)                           , 36 )
+         , {- 37 -} '( Unify             (Layout t Phrase Dynamic)                           , 37 )
+         , {- 38 -} '( Match             (Layout t Phrase Dynamic)                           , 38 )
+         , {- 39 -} '( Acc               (Layout t Phrase Dynamic) (Layout t Phrase Dynamic) , 39 )
+         , {- 40 -} '( App               (Layout t Phrase Dynamic)                           , 40 )
+         , {- 41 -} '( Curry             (Layout t Phrase Dynamic)                           , 41 )
+         , {- 42 -} '( Cons              (Layout t Phrase Dynamic) (Layout t Phrase Dynamic) , 42 )
+         , {- 43 -} '( Lam               (Layout t Phrase Dynamic)                           , 43 )
+         , {- 44 -} '( Native            (Layout t Phrase Dynamic)                           , 44 )
+         , {- 45 -} '( Blank                                                                 , 45 )
+         , {- 46 -} '( Cons   Lit.String (Layout t Draft Static )                            , 46 )
+         , {- 47 -} '( Unify             (Layout t Draft Static )                            , 47 )
+         , {- 48 -} '( Match             (Layout t Draft Static )                            , 48 )
+         , {- 49 -} '( Acc    Lit.String (Layout t Draft Static )                            , 49 )
+         , {- 50 -} '( App               (Layout t Draft Static )                            , 50 )
+         , {- 51 -} '( Curry             (Layout t Draft Static )                            , 51 )
+         , {- 52 -} '( Lam               (Layout t Draft Static )                            , 52 )
+         , {- 53 -} '( Var               (Layout t Draft Dynamic)                            , 53 )
+         , {- 54 -} '( Unify             (Layout t Draft Dynamic)                            , 54 )
+         , {- 55 -} '( Match             (Layout t Draft Dynamic)                            , 55 )
+         , {- 56 -} '( Acc               (Layout t Draft Dynamic) (Layout t Draft Dynamic)   , 56 )
+         , {- 57 -} '( App               (Layout t Draft Dynamic)                            , 57 )
+         , {- 58 -} '( Curry             (Layout t Draft Dynamic)                            , 58 )
+         , {- 59 -} '( Cons              (Layout t Draft Dynamic) (Layout t Draft Dynamic)   , 59 )
+         , {- 60 -} '( Lam               (Layout t Draft Dynamic)                            , 60 )
+         , {- 61 -} '( Native            (Layout t Draft Dynamic)                            , 61 )
          ]
 
 -- #ifndef CachedTypeFamilies
