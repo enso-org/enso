@@ -146,9 +146,9 @@ type instance RecordOf (Term2 t fmt dyn sel) = RecordOf (Unwrapped (Term2 t fmt 
 -- Wrapper
 makeWrapped ''Term2
 
--- IsRecord
-instance IsRecord (Unwrapped (Term2 t fmt dyn a)) => IsRecord (Term2 t fmt dyn a) where
-    asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
+-- Record
+instance IsRecord  (Unwrapped (Term2 t fmt dyn a)) => IsRecord  (Term2 t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
+instance HasRecord (Unwrapped (Term2 t fmt dyn a)) => HasRecord (Term2 t fmt dyn a) where record   = wrapped' ∘ record   ; {-# INLINE record   #-}
 
 -- Shell
 instance Shell.HasLayer' l (Unwrapped (Term2 t fmt dyn sel)) => Shell.HasLayer' l (Term2 t fmt dyn sel) where
@@ -339,6 +339,7 @@ instance      Layered   (Term t term rt)
 -- Record instances
 type instance RecordOf (Term t term rt) = RecordOf (Unlayered (Term t term rt))
 instance IsRecord (Unlayered (Term t term rt)) => IsRecord (Term t term rt) where asRecord = wrapped' ∘ asRecord
+instance HasRecord (Unlayered (Term t term rt)) => HasRecord (Term t term rt) where record = wrapped' ∘ record
 
 -- Layouts
 type instance WithDynamics rt' (Term t term rt) = Term t term rt'
@@ -629,6 +630,7 @@ type EncodeMap_MANUAL_CACHE t =
          ]
 
 type instance Encode (Atom Blank' dyn a) rec = '[ 41 , 7,8               ]
+type instance Decode (Atom Blank' dyn a) rec = 41
 
 -- #ifndef CachedTypeFamilies
 

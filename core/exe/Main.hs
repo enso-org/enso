@@ -176,16 +176,30 @@ evalBuild = fmap snd ∘∘ runBuild
 --TODO: test1
 -- TODO: test2
 
-main :: IO ()
-main = do
-    E.main
-    (_,  g :: NetGraph ) <- prebuild2
-    renderAndOpen [ ("xg", "xg", g)
-                  ]
-
-    main2
 
 
+
+------------------
+-- === Refs === --
+------------------
+
+type family Referred a
+newtype Ref2 a = Ref2 (Referred a)
+makeWrapped ''Ref2
+
+class Monad m => Referable m a where
+    refer'  :: a -> m (Referred a)
+    read2'  :: Referred a -> m a
+    write2' :: Referred a -> a -> m ()
+
+refer :: Referable m a => a -> m (Ref2 a)
+refer = Ref2 <∘> refer' ; {-# INLINE refer #-}
+
+read2 :: Referable m a => Ref2 a -> m a
+read2 = read2' ∘ unwrap' ; {-# INLINE read2 #-}
+
+write2 :: Referable m a => Ref2 a -> a -> m ()
+write2 = write2' ∘ unwrap' ; {-# INLINE write2 #-}
 
 
 
@@ -209,7 +223,6 @@ type instance LayerData IntLayer = Int
 instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = return $ Layer 0
 
 
-
 ---------------------
 -- === Network === --
 ---------------------
@@ -218,6 +231,7 @@ instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = retur
 
 data Net (ls :: [*])
 newtype NetLayer t a = NetLayer a deriving (Show, Functor, Traversable, Foldable)
+newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable)
 
 
 -- === Instances === --
@@ -231,6 +245,11 @@ type instance Layout2 (Net ls) fmt dyn sel = TermShell ls (Term2 (Net ls) fmt dy
 
 -- Shell
 type instance Shell.Access l (Term2 (Net ls) fmt dyn sel) = NetLayer (Term2 (Net ls) fmt dyn sel) l
+
+-- Ref
+type instance Referred (Term2 (Net ls) fmt dyn sel) = NetRef (Term2 (Net ls) fmt dyn sel)
+instance Monad m => Referable m (Term2 (Net ls) fmt dyn sel) where refer' = return ∘ NetRef
+
 
 
 
@@ -248,6 +267,11 @@ a1 = atom () :: Atom Blank' Static Int
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
 t2 = runIdentity $ overbuild t1 :: AnyTerm (Net '[IntLayer]) Draft Static
+
+t3 = runIdentity $ refer t2
+
+-- t4 :: OverBuilder Identity (Term2 t fmt dyn sel) => a -> Ref2 (Term2 t fmt dyn sel)
+-- t4 a = runIdentity $ foox a
 --
 --
 -- type Foox = Record.Variants (RecordOf (AnyTerm SNet Draft Static))
@@ -256,13 +280,39 @@ t2 = runIdentity $ overbuild t1 :: AnyTerm (Net '[IntLayer]) Draft Static
 instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
     overbuild a = Cover <$> create <*> overbuild a
 
+type ElemBuilder2 atom m a = (Record.Cons atom (RecordOf a), OverBuilder m a, Referable m a)
+
+elemBuilder2 :: ElemBuilder2 atom m a => atom -> m (Ref2 a)
+elemBuilder2 a = overbuild (Record.cons a) >>= refer
+
+-- powinnismy wprowadzic abstrakcje Bind, ktora moglaby miec source i target i w networku reprezentowalaby connection
 
 --
 -- class Monad m => OverBuilder m a where
 --     overbuild :: RecordOf a -> m a
 
+tx = Record.cons Blank :: Term Int Draft Runtime.Dynamic
+
+main :: IO ()
+main = do
+    E.main
+    (_,  g :: NetGraph ) <- prebuild2
+    renderAndOpen [ ("xg", "xg", g)
+                  ]
+    main2
 
 main2 = do
 
     print t2
     print $ t2 ^. Shell.access' IntLayer
+
+    print tx
+
+
+    caseTest tx $ do
+        of' $ \Blank -> print "it is Blank!"
+        -- of' $ \ANY        -> print "hello"
+
+    caseTest t2 $ do
+        of' $ \Atom_Blank -> print "it is Blank!"
+        -- of' $ \ANY        -> print "hello"

@@ -3,6 +3,7 @@
 module Data.Record.Model.Masked where
 
 import Prelude.Luna
+import Prologue.Unsafe (error)
 
 import Data.Bits         (Bits, FiniteBits, finiteBitSize, testBit, setBit, zeroBits)
 import Unsafe.Coerce     (unsafeCoerce)
@@ -11,8 +12,8 @@ import GHC.Prim          (Any)
 import Type.Map          (MapLookup)
 import Type.Promotion    (KnownNats, natVals)
 import Data.Result       (Ok(Ok))
-import Data.Record.Class ( Encode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
-                         , Variant, Layout, IsRecord, RecordOf, Group, DecodeMap, Props, asRecord
+import Data.Record.Class ( Encode, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
+                         , Variant, Layout, IsRecord, HasRecord, RecordOf, Group, DecodeMap, Props, asRecord, record
                          )
 
 
@@ -97,8 +98,9 @@ type TermRecord  gs vs t = VGRecord gs vs t Data
 type instance Props Variant (VGRecord gs vs t d) = vs
 type instance Props Group   (VGRecord gs vs t d) = gs
 
-type instance RecordOf (VGRecord gs vs t d) = VGRecord gs vs t d
-instance      IsRecord (VGRecord gs vs t d) where asRecord = id ; {-# INLINE asRecord #-}
+type instance RecordOf  (VGRecord gs vs t d) = VGRecord gs vs t d
+instance      IsRecord  (VGRecord gs vs t d) where asRecord = id ; {-# INLINE asRecord #-}
+instance      HasRecord (VGRecord gs vs t d) where record   = id ; {-# INLINE record   #-}
 
 -- Wrappers
 makeWrapped ''VGRecord
@@ -178,8 +180,9 @@ type TermRecord2 gs vs = VGRecord2 gs vs Data2
 type instance Props Variant (VGRecord2 gs vs d) = vs
 type instance Props Group   (VGRecord2 gs vs d) = gs
 
-type instance RecordOf (VGRecord2 gs vs d) = VGRecord2 gs vs d
-instance      IsRecord (VGRecord2 gs vs d) where asRecord = id ; {-# INLINE asRecord #-}
+type instance RecordOf  (VGRecord2 gs vs d) = VGRecord2 gs vs d
+instance      IsRecord  (VGRecord2 gs vs d) where asRecord = id ; {-# INLINE asRecord #-}
+instance      HasRecord (VGRecord2 gs vs d) where record   = id ; {-# INLINE record   #-}
 
 -- Wrappers
 makeWrapped ''VGRecord2
@@ -205,18 +208,36 @@ instance ( bits ~ Encode v (rec Data2)
         mask    = foldl' setBit zeroBits bits
     {-# INLINE encode #-}
 
--- instance ( MaskRebuilder layout layout'
---          , layout  ~ Layout (rec  Data)
---          , layout' ~ Layout (rec' Data)
---          , Unwrapped (rec  Data) ~ Data
---          , Unwrapped (rec' Data) ~ Data
---          , Wrapped   (rec  Data)
---          , Wrapped   (rec' Data)
---
---          , IsRecord r
---          , RecordOf r ~ rec Data
---          ) => Encoder Group r Ok (rec' Data) where
---     encode _ r = Ok $ wrap' $ Data mask' var where
---         Data mask var = unwrap' $ view asRecord r
---         mask' = rebuildMask (p :: P layout) (p :: P layout') mask
---     {-# INLINE encode #-}
+instance ( -- MaskRebuilder layout layout'
+        --  , layout  ~ Layout (rec  Data)
+        --  , layout' ~ Layout (rec' Data)
+        --  , Unwrapped (rec  Data) ~ Data
+        --  , Unwrapped (rec' Data) ~ Data
+        --  , Wrapped   (rec  Data)
+        --  , Wrapped   (rec' Data)
+         --
+        --  , IsRecord r
+        --  , RecordOf r ~ rec Data
+         ) => Encoder Group r Ok (rec' Data2) where
+    encode _ r = error "data error 1" -- Ok $ wrap' $ Data mask' var where
+    --     Data mask var = unwrap' $ view asRecord r
+    --     mask' = rebuildMask (p :: P layout) (p :: P layout') mask
+    -- {-# INLINE encode #-}
+
+-- Data extraction / insertion
+
+instance {-# OVERLAPPABLE #-} (Unwrapped (r Data2) ~ Data2, Wrapped (r Data2)) => UnsafeExtract Variant (r Data2) Ok a where unsafeExtract _ (unwrap' -> Data2 _ v) = Ok $ unsafeRestore v                                           ; {-# INLINE unsafeExtract #-}
+instance {-# OVERLAPPABLE #-} (Unwrapped (r Data2) ~ Data2, Wrapped (r Data2)) => UnsafeInsert  Variant (r Data2) Ok a where unsafeInsert  _ a r                    = Ok $ r & wrapped' %~ (\(Data2 m s) -> Data2 m (unsafeStore a)) ; {-# INLINE unsafeInsert #-}
+
+-- Pattern matching
+
+instance ( rec  ~ r Data2
+         , nat ~ Decode v rec
+         , KnownNat  nat
+         , Wrapped   rec
+         , Unwrapped rec ~ Data2
+         ) => CheckMatch t v (r Data2) where
+    checkMatch _ _ (unwrap' -> Data2 mask _) = match where
+        bit   = fromIntegral $ natVal (p :: P nat)
+        match = testBit mask bit
+    {-# INLINE checkMatch #-}

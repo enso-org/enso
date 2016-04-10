@@ -54,6 +54,7 @@ import Type.Show
 import Type.Sequence          (Enumerate)
 import Type.Monoid
 import Data.Cover
+import Data.Shell
 
 
 -----------------------------------------------------------------
@@ -104,6 +105,7 @@ type family EncodeMap a :: Map * [Nat]
 type family DecodeMap a :: Map * Nat
 
 type family Encode t rec :: [Nat] -- new interface
+type family Decode t rec ::  Nat  -- new interface
 
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r
@@ -121,7 +123,7 @@ class CheckMatch    t a rec where checkMatch :: Proxy t -> Proxy (a :: *) -> rec
 -- === Instances === --
 
 type instance RecordOf (Cover c a) = RecordOf a
-
+instance HasRecord a => HasRecord (Cover c a) where record = covered ∘ record ; {-# INLINE record #-}
 
 ------------------------
 -- === Properties === --
@@ -301,13 +303,15 @@ instance {-# OVERLAPPABLE #-} ( ok ~ (v `In` (r ##. t)) , ElemMap' ok t v m r )
 instance {-# OVERLAPPABLE #-} m ~ Ok => ElemMap         t ANY m r where elemMap  _ f _   = Ok $ Just $ f ANY    ; {-# INLINE elemMap  #-}
 instance {-# OVERLAPPABLE #-} m ~ IM => ElemMap         t v   m I where elemMap  _ _ _   = impossible           ; {-# INLINE elemMap  #-}
 instance m ~ Invalid' t v            => ElemMap' 'False t v   m r where elemMap' _ _ _ _ = Error                ; {-# INLINE elemMap' #-}
-instance ( UnsafeExtract t r m a
-         , IsRecord r
+instance ( UnsafeExtract t rec m a
+         , HasRecord r
+         , rec ~ RecordOf r
          , Monad m
-         , CheckMatch t a (RecordOf r)
+         , CheckMatch t a rec
          ) => ElemMap' 'True t a m r where
-    elemMap' _ t f rec = if match then (Just ∘ (f $) <$> val) else return Nothing where
-        match    = checkMatch t (p :: P a) $ view asRecord rec
+    elemMap' _ t f r = if match then (Just ∘ (f $) <$> val) else return Nothing where
+        rec      = r ^. record
+        match    = checkMatch t (p :: P a) rec
         val      = unsafeExtract t rec :: m a
     {-# INLINE elemMap' #-}
 
@@ -364,15 +368,17 @@ instance (MapTryingElemList els ctx rec a, els ~ Layout_Variants Variant (Record
 
 class MapTryingElemList els ctx rec a where mapTryingElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v a => v -> a) -> rec -> a
 
-instance ( IsRecord rec
-         , CheckMatch Variant el (RecordOf rec)
+instance ( HasRecord r
+         , rec ~ RecordOf r
+         , CheckMatch Variant el rec
          , UnsafeExtract Variant rec Ok el
          , ctx el a
-         , MapTryingElemList els ctx rec a
-         ) => MapTryingElemList (el ': els) ctx rec a where
-    mapTryingElemList _ ctx f rec = if match then f el else mapTryingElemList (p :: P els) ctx f rec where
+         , MapTryingElemList els ctx r a
+         ) => MapTryingElemList (el ': els) ctx r a where
+    mapTryingElemList _ ctx f r = if match then f el else mapTryingElemList (p :: P els) ctx f r where
+        rec   = r ^. record
         t     = p :: P Variant
-        match = checkMatch t (p :: P el) $ view asRecord rec
+        match = checkMatch t (p :: P el) rec
         Ok el = unsafeExtract t rec :: Ok el
 
 
@@ -386,15 +392,17 @@ instance (MapTryingElemList_ els ctx rec, els ~ (RecordOf rec ##. Variant)) => W
 
 class MapTryingElemList_ els ctx rec where mapTryingElemList_ :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> a) -> rec -> a
 
-instance ( IsRecord rec
-         , CheckMatch Variant el (RecordOf rec)
+instance ( HasRecord r
+         , rec ~ RecordOf r
+         , CheckMatch Variant el rec
          , UnsafeExtract Variant rec Ok el
          , ctx el
-         , MapTryingElemList_ els ctx rec
-         ) => MapTryingElemList_ (el ': els) ctx rec where
-    mapTryingElemList_ _ ctx f rec = if match then f el else mapTryingElemList_ (p :: P els) ctx f rec where
+         , MapTryingElemList_ els ctx r
+         ) => MapTryingElemList_ (el ': els) ctx r where
+    mapTryingElemList_ _ ctx f r = if match then f el else mapTryingElemList_ (p :: P els) ctx f r where
+        rec   = r ^. record
         t     = p :: P Variant
-        match = checkMatch t (p :: P el) $ view asRecord rec
+        match = checkMatch t (p :: P el) rec
         Ok el = unsafeExtract t rec :: Ok el
 
 
@@ -412,18 +420,20 @@ class MapOverElemList els ctx rec where mapOverElemList :: Proxy (els :: [*]) ->
 instance MapOverElemList '[] ctx rec where mapOverElemList = error "Data/Record special error"
 
 
-instance ( IsRecord rec
-         , CheckMatch Variant el (RecordOf rec)
+instance ( HasRecord r
+         , rec ~ RecordOf r
+         , CheckMatch Variant el (RecordOf r)
          , UnsafeExtract Variant rec Ok el
          , UnsafeInsert  Variant rec Ok el
          , ctx el
-         , MapOverElemList els ctx rec
-         ) => MapOverElemList (el ': els) ctx rec where
-    mapOverElemList _ ctx f rec = if match then out else mapOverElemList (p :: P els) ctx f rec where
+         , MapOverElemList els ctx r
+         ) => MapOverElemList (el ': els) ctx r where
+    mapOverElemList _ ctx f r = if match then out else mapOverElemList (p :: P els) ctx f r where
+        rec    = r ^. record
         t      = p :: P Variant
-        match  = checkMatch t (p :: P el) $ view asRecord rec
+        match  = checkMatch t (p :: P el) rec
         Ok el  = unsafeExtract t rec :: Ok el
-        Ok out = unsafeInsert  t (f el) rec
+        Ok out = flip (set record) r <$> (unsafeInsert  t (f el) rec :: Ok rec) :: Ok r
 
 
 --class UnsafeInsert  t rec m a | t rec a -> m where unsafeInsert  :: Proxy t -> a -> rec -> m rec
@@ -437,19 +447,19 @@ instance ( IsRecord rec
 
 data PM = PM deriving (Show)
 
-newtype MathState rec s a = MathState (State.State PM [rec -> Maybe s] a) deriving (Functor, Applicative, Monad)
-type    MatchSet  rec s   = MathState rec s ()
+newtype MatchState rec s a = MatchState (State.State PM [rec -> Maybe s] a) deriving (Functor, Applicative, Monad)
+type    MatchSet   rec s   = MatchState rec s ()
 
 
 -- === Basic matching === --
 
 variantMatch :: VariantMapped a rec => (a -> out) -> MatchSet rec out
 groupMatch   :: GroupMapped   a rec => (a -> out) -> MatchSet rec out
-variantMatch f = MathState $ withMatchSet (variantMapped f:) ; {-# INLINE variantMatch #-}
-groupMatch   f = MathState $ withMatchSet (groupMapped   f:) ; {-# INLINE groupMatch   #-}
+variantMatch f = MatchState $ withMatchSet (variantMapped f:) ; {-# INLINE variantMatch #-}
+groupMatch   f = MatchState $ withMatchSet (groupMapped   f:) ; {-# INLINE groupMatch   #-}
 
-uncheckedVariantMatch :: (UnsafeExtract Variant rec Ok v, IsRecord rec, CheckMatch Variant v (RecordOf rec)) => (v -> a) -> MathState rec a ()
-uncheckedVariantMatch f = MathState $ withMatchSet (uncheckedVariantMapped f:) ; {-# INLINE uncheckedVariantMatch #-}
+uncheckedVariantMatch :: (rec ~ RecordOf r, UnsafeExtract Variant rec Ok v, HasRecord r, CheckMatch Variant v rec) => (v -> a) -> MatchState r a ()
+uncheckedVariantMatch f = MatchState $ withMatchSet (uncheckedVariantMapped f:) ; {-# INLINE uncheckedVariantMatch #-}
 
 
 -- Pattern match evaluation
@@ -459,7 +469,7 @@ withMatchSet = State.withState PM
 {-# INLINE withMatchSet #-}
 
 matchedOptions :: rec -> MatchSet rec s -> [s]
-matchedOptions t (MathState s) = catMaybes ∘ reverse $ ($ t) <$> State.exec PM s [] ; {-# INLINE matchedOptions #-}
+matchedOptions t (MatchState s) = catMaybes ∘ reverse $ ($ t) <$> State.exec PM s [] ; {-# INLINE matchedOptions #-}
 
 runMatches :: rec -> MatchSet rec s -> Maybe s
 runMatches = tryHead ∘∘ matchedOptions ; {-# INLINE runMatches #-}
@@ -512,7 +522,7 @@ static = of'
 
 
 
-instance UncheckedGroupCons rec m a                                                    => UnsafeExtract Group   rec      m  a where unsafeExtract _                       = uncheckedGroupCons        ; {-# INLINE unsafeExtract #-}
-instance {-# OVERLAPPABLE #-} (UnsafeExtract Variant (Unwrapped rec) m a, Wrapped rec) => UnsafeExtract Variant rec      m  a where unsafeExtract t                       = unsafeExtract t ∘ unwrap' ; {-# INLINE unsafeExtract #-}
-
-instance {-# OVERLAPPABLE #-} (UnsafeInsert Variant (Unwrapped rec) m a, Wrapped rec, Functor m) => UnsafeInsert Variant rec      m  a where unsafeInsert t a   = wrapped' $ unsafeInsert t a                                  ; {-# INLINE unsafeInsert #-}
+-- FIXME[WD]: Remove the following instances. They are very dangerous and are a anti-pattern in HS.
+instance UncheckedGroupCons rec m a                                                              => UnsafeExtract Group   rec      m  a where unsafeExtract _  = uncheckedGroupCons          ; {-# INLINE unsafeExtract #-}
+-- instance {-# OVERLAPPABLE #-} (UnsafeExtract Variant (Unwrapped rec) m a, Wrapped rec)           => UnsafeExtract Variant rec      m  a where unsafeExtract t  = unsafeExtract t ∘ unwrap'   ; {-# INLINE unsafeExtract #-}
+-- instance {-# OVERLAPPABLE #-} (UnsafeInsert Variant (Unwrapped rec) m a, Wrapped rec, Functor m) => UnsafeInsert  Variant rec      m  a where unsafeInsert t a = wrapped' $ unsafeInsert t a ; {-# INLINE unsafeInsert  #-}
