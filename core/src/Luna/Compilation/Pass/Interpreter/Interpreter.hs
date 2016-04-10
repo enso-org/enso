@@ -31,7 +31,7 @@ import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterDat
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
-import           Luna.Syntax.Term.Expr                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
+import           Luna.Syntax.Term.Class                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
 import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)

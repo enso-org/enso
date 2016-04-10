@@ -58,8 +58,8 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term.Expr                           hiding (Draft, Expr, Input, Lit, Source, Target, Thunk, Val, source, target)
-import qualified Luna.Syntax.Term.Expr                           as Term
+import           Luna.Syntax.Term.Class                          (OverBuilder, Layout2, Term2, TermRecord2, overbuild, Blank', AnyTerm, Term)
+import qualified Luna.Syntax.Term.Class                           as Term
 import           Luna.Syntax.Term.Format                         (Draft(Draft))
 import qualified Luna.Syntax.Term.Lit                            as Lit
 
@@ -77,7 +77,7 @@ import qualified Data.Record                  as Record
 import Data.Shell as Shell
 import Data.Cover
 import Type.Applicative
-
+import Luna.Syntax.Term.Expr
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -262,7 +262,7 @@ type TRex2 t fmt dyn sel = TermRecord2 t fmt dyn sel Int -- Int is a mock for pa
 
 
 
-a1 = atom () :: Atom Blank' Static Int
+a1 = () ^. from exprArgs :: Expr Blank' Static Int
 -- -- t1 = Record.cons a1 :: AnyTerm SNet Draft Static
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
@@ -291,7 +291,7 @@ elemBuilder2 a = overbuild (Record.cons a) >>= refer
 -- class Monad m => OverBuilder m a where
 --     overbuild :: RecordOf a -> m a
 
-tx = Record.cons Blank :: Term Int Draft Runtime.Dynamic
+-- tx = Record.cons Atom.Blank :: Term Int Draft Runtime.Dynamic
 
 main :: IO ()
 main = do
@@ -306,13 +306,12 @@ main2 = do
     print t2
     print $ t2 ^. Shell.access' IntLayer
 
-    print tx
 
 
-    caseTest tx $ do
-        of' $ \Blank -> print "it is Blank!"
+    -- caseTest tx $ do
+    --     of' $ \Blank -> print "it is Blank!"
         -- of' $ \ANY        -> print "hello"
 
     caseTest t2 $ do
-        of' $ \Atom_Blank -> print "it is Blank!"
-        -- of' $ \ANY        -> print "hello"
+        of' $ \Blank -> print "it is Blank!"
+    --     -- of' $ \ANY        -> print "hello"

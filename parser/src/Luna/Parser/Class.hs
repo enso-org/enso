@@ -7,7 +7,7 @@ import Prelude.Luna hiding (Curry)
 import Luna.Syntax.Name
 import Luna.Parser.Indent                     (MonadIndent)
 import Luna.Parser.State                      (MonadParserState)
-import Luna.Syntax.Term.Expr                   hiding (Name)
+import Luna.Syntax.Term.Class                   hiding (Name)
 import Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)

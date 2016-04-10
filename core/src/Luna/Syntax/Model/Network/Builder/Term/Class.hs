@@ -23,8 +23,8 @@ import           Data.Record                             (RecordOf, IsRecord, Ha
 import           Luna.Runtime.Dynamics                 as Runtime
 import           Luna.Syntax.Term.Function.Argument
 import           Luna.Syntax.Term.Function.Argument       as X (arg)
-import           Luna.Syntax.Term.Expr                    hiding (undefined, Val, Lit, Thunk, Expr, Draft, Source, Name)
-import qualified Luna.Syntax.Term.Expr                    as Term
+import           Luna.Syntax.Term.Class                    hiding (undefined, Val, Lit, Thunk, Expr, Draft, Source, Name)
+import qualified Luna.Syntax.Term.Class                    as Term
 import qualified Data.Graph.Builder                      as GraphBuilder
 import           Luna.Syntax.Model.Layer                 (Type, Markable, TCData, Meta, Name, Lambda, (:<:), (:<))
 import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData)

@@ -10,7 +10,6 @@ import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
 import qualified Luna.Syntax.Term.Lit as Lit
 import Type.Applicative
-import           Luna.Runtime.Dynamics      (ByDynamics)
 
 
 -- TODO[WD]: move to issue tracker after releasing Luna to github
@@ -32,8 +31,10 @@ import           Luna.Runtime.Dynamics      (ByDynamics)
 --                        - accessors should be first class objects, althought we can easily make a workaround like `myacc = a : a.x`
 
 
-type DynName d a = NameByDynamics d a
-type NameByDynamics dyn d = ByDynamics dyn Lit.String d
+
+
+
+-- class HasArgs   a where args   :: Lens' a (Args   a)
 
 
 -------------------
@@ -53,52 +54,21 @@ data Lam'    = Lam'    deriving (Show, Eq, Ord)
 data Native' = Native' deriving (Show, Eq, Ord)
 data Blank'  = Blank'  deriving (Show, Eq, Ord)
 
-
--- === Definitions === --
-
-data family Atom  t  dyn a
-type        Atoms ts dyn a = Atom <$> ts <*> '[dyn] <*> '[a]
-
-type family AtomArgs t dyn a
-class Atomic t where atom :: AtomArgs t d a -> Atom t d a
-
-
 -- === Instances === --
 
-type instance Base (Atom t dyn a) = t
+instance Default Var'    where def = Var'
+instance Default Cons'   where def = Cons'
+instance Default Acc'    where def = Acc'
+instance Default App'    where def = App'
+instance Default Curry'  where def = Curry'
+instance Default Unify'  where def = Unify'
+instance Default Match'  where def = Match'
+instance Default Lam'    where def = Lam'
+instance Default Native' where def = Native'
+instance Default Blank'  where def = Blank'
 
-newtype instance Atom Var'    dyn a = Atom_Var     (DynName dyn a)
-newtype instance Atom Cons'   dyn a = Atom_Cons    (DynName dyn a)
-data    instance Atom Acc'    dyn a = Atom_Acc    !(DynName dyn a) !a
-data    instance Atom App'    dyn a = Atom_App                     !a ![Arg a]
-data    instance Atom Curry'  dyn a = Atom_Curry                   !a ![Arg a]
-data    instance Atom Unify'  dyn a = Atom_Unify                   !a !a
-data    instance Atom Match'  dyn a = Atom_Match                   !a !a
-data    instance Atom Lam'    dyn a = Atom_Lam                     ![Arg a] !a
-data    instance Atom Native' dyn a = Atom_Native !(DynName dyn a)
-data    instance Atom Blank'  dyn a = Atom_Blank
 
-type instance AtomArgs Var'    dyn a = OneTuple (DynName dyn a)
-type instance AtomArgs Cons'   dyn a = OneTuple (DynName dyn a)
-type instance AtomArgs Acc'    dyn a =          (DynName dyn a, a)
-type instance AtomArgs App'    dyn a =          (a, [Arg a])
-type instance AtomArgs Curry'  dyn a =          (a, [Arg a])
-type instance AtomArgs Unify'  dyn a =          (a, a)
-type instance AtomArgs Match'  dyn a =          (a, a)
-type instance AtomArgs Lam'    dyn a =          ([Arg a], a)
-type instance AtomArgs Native' dyn a = OneTuple (DynName dyn a)
-type instance AtomArgs Blank'  dyn a =          ()
 
-instance Atomic Var'    where atom = uncurry Atom_Var    ; {-# INLINE atom #-}
-instance Atomic Cons'   where atom = uncurry Atom_Cons   ; {-# INLINE atom #-}
-instance Atomic Acc'    where atom = uncurry Atom_Acc    ; {-# INLINE atom #-}
-instance Atomic App'    where atom = uncurry Atom_App    ; {-# INLINE atom #-}
-instance Atomic Curry'  where atom = uncurry Atom_Curry  ; {-# INLINE atom #-}
-instance Atomic Unify'  where atom = uncurry Atom_Unify  ; {-# INLINE atom #-}
-instance Atomic Match'  where atom = uncurry Atom_Match  ; {-# INLINE atom #-}
-instance Atomic Lam'    where atom = uncurry Atom_Lam    ; {-# INLINE atom #-}
-instance Atomic Native' where atom = uncurry Atom_Native ; {-# INLINE atom #-}
-instance Atomic Blank'  where atom = uncurry Atom_Blank  ; {-# INLINE atom #-}
 
 
 --------------------------------------------------------------------------------------
@@ -133,12 +103,10 @@ data    Blank      = Blank                 deriving (Show, Eq, Ord)
 type family Name   a
 type family Source a
 type family Target a
-type family Args   a
 
 class HasName   a where name   :: Lens' a (Name   a)
 class HasSource a where source :: Lens' a (Source a)
 class HasTarget a where target :: Lens' a (Target a)
-class HasArgs   a where args   :: Lens' a (Args   a)
 
 
 
@@ -202,10 +170,10 @@ type instance Source (Match    t) = t
 type instance Target (Lam      t) = t
 type instance Target (Unify    t) = t
 type instance Target (Match    t) = t
-type instance Args   (Cons   n t) = [Arg t]
-type instance Args   (App      t) = [Arg t]
-type instance Args   (Curry    t) = [Arg t]
-type instance Args   (Lam      t) = [Arg t]
+-- type instance Args   (Cons   n t) = [Arg t]
+-- type instance Args   (App      t) = [Arg t]
+-- type instance Args   (Curry    t) = [Arg t]
+-- type instance Args   (Lam      t) = [Arg t]
 
 instance HasName   (Var    n  ) where name   = wrapped'                                                  ; {-# INLINE name   #-}
 instance HasName   (Cons   n t) where name   = lens (\(Cons   n _) -> n) (\(Cons   _ t) n -> Cons   n t) ; {-# INLINE name   #-}
@@ -219,10 +187,10 @@ instance HasSource (Match    t) where source = lens (\(Match  s _) -> s) (\(Matc
 instance HasTarget (Lam      t) where target = lens (\(Lam    _ t) -> t) (\(Lam    s _) t -> Lam    s t) ; {-# INLINE target #-}
 instance HasTarget (Unify    t) where target = lens (\(Unify  _ t) -> t) (\(Unify  s _) t -> Unify  s t) ; {-# INLINE target #-}
 instance HasTarget (Match    t) where target = lens (\(Match  _ t) -> t) (\(Match  s _) t -> Match  s t) ; {-# INLINE target #-}
-instance HasArgs   (Cons   n t) where args   = lens (\(Cons   _ a) -> a) (\(Cons   n _) a -> Cons   n a) ; {-# INLINE args   #-}
-instance HasArgs   (App      t) where args   = lens (\(App    _ a) -> a) (\(App    s _) a -> App    s a) ; {-# INLINE args   #-}
-instance HasArgs   (Curry    t) where args   = lens (\(Curry  _ a) -> a) (\(Curry  s _) a -> Curry  s a) ; {-# INLINE args   #-}
-instance HasArgs   (Lam      t) where args   = lens (\(Lam    a _) -> a) (\(Lam    _ o) a -> Lam    a o) ; {-# INLINE args   #-}
+-- instance HasArgs   (Cons   n t) where args   = lens (\(Cons   _ a) -> a) (\(Cons   n _) a -> Cons   n a) ; {-# INLINE args   #-}
+-- instance HasArgs   (App      t) where args   = lens (\(App    _ a) -> a) (\(App    s _) a -> App    s a) ; {-# INLINE args   #-}
+-- instance HasArgs   (Curry    t) where args   = lens (\(Curry  _ a) -> a) (\(Curry  s _) a -> Curry  s a) ; {-# INLINE args   #-}
+-- instance HasArgs   (Lam      t) where args   = lens (\(Lam    a _) -> a) (\(Lam    _ o) a -> Lam    a o) ; {-# INLINE args   #-}
 
 -- Mapping
 instance n ~ n' => NFunctor n m (Var    n'  ) (Var    m  ) where fmapN = (wrapped %~)                ; {-# INLINE fmapN #-}

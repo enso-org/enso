@@ -41,7 +41,7 @@ import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
 import           Luna.Runtime.Dynamics                 (Dynamic, Static)
 import qualified Luna.Syntax.Term.Function                as Function
-import qualified Luna.Syntax.Term.Expr                    as Term
+import qualified Luna.Syntax.Term.Class                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
 import           Luna.Syntax.Model.Network.Builder.Layer
