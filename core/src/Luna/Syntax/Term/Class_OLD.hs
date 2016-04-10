@@ -5,7 +5,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE PolyKinds #-}
 
-module Luna.Syntax.Term.Class (module Luna.Syntax.Term.Class, module X) where
+module Luna.Syntax.Term.Class_OLD (module Luna.Syntax.Term.Class_OLD, module X) where
 
 
 import           Prelude.Luna                 hiding (Num, Swapped, Curry)

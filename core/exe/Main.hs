@@ -58,8 +58,8 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term.Class                          (OverBuilder, Layout2, Term2, TermRecord2, overbuild, AnyTerm, Term)
-import qualified Luna.Syntax.Term.Class                           as Term
+import           Luna.Syntax.Term.Class_OLD                          (OverBuilder, Layout2, Term2, TermRecord2, overbuild, AnyTerm, Term)
+import qualified Luna.Syntax.Term.Class_OLD                           as Term
 import           Luna.Syntax.Term.Format                         (Draft(Draft))
 import qualified Luna.Syntax.Term.Lit                            as Lit
 

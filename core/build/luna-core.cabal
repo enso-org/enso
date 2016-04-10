@@ -174,7 +174,7 @@ Library
         Luna.Syntax.Name.Path,
         Luna.Syntax.Term.Atom,
         Luna.Syntax.Term.Atom_OLD,
-        Luna.Syntax.Term.Class,
+        Luna.Syntax.Term.Class_OLD,
         Luna.Syntax.Term.Data.Strictness,
         Luna.Syntax.Term.Expr,
         Luna.Syntax.Term.Format,

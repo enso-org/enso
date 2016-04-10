@@ -22,7 +22,7 @@ import           Data.Construction
 import           Data.Record                                     hiding (cons)
 import           Type.Inference
 
-import           Luna.Syntax.Term.Class                           (Lam)
+import           Luna.Syntax.Term.Class_OLD                          (Lam)
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)

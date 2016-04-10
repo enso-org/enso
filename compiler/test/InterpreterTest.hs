@@ -19,9 +19,9 @@ import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Pretty.GraphViz
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
-import           Luna.Syntax.Term.Class                            hiding (source)
-import qualified Luna.Syntax.Term.Class                            as Term
+import           Luna.Syntax.Term.Class_OLD                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
+import           Luna.Syntax.Term.Class_OLD                            hiding (source)
+import qualified Luna.Syntax.Term.Class_OLD                            as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder               (Sign (..))
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
@@ -387,7 +387,7 @@ intRun gtc refsToEval = do
 -- import           Luna.Interpreter.Label       (Label)
 -- import qualified Luna.Interpreter.NodeRunner  as NodeRunner
 -- import qualified Luna.Interpreter.Session     as Session
--- import           Luna.Syntax.Term.Class
+-- import           Luna.Syntax.Term.Class_OLD
 -- import           Luna.Syntax.Builder
 -- import qualified Luna.Syntax.Builder          as Builder
 -- import qualified Luna.Syntax.Builder.Node     as NodeBuilder

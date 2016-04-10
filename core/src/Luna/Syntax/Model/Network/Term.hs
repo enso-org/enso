@@ -14,7 +14,7 @@ import           Data.Layer_OLD.Cover_OLD
 import           Data.Record                    (HasRecord, RecordOf, IsRecord, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props)
 import qualified Data.Record                    as Record
 import           Data.Reprx                     (Repr, repr)
-import           Luna.Syntax.Term.Class           hiding (Val, Lit, Thunk, Expr, Draft)
+import           Luna.Syntax.Term.Class_OLD           hiding (Val, Lit, Thunk, Expr, Draft)
 import           Luna.Syntax.Model.Layer
 import           Luna.Runtime.Dynamics          (Dynamics)
 import           Luna.Syntax.Term.Function.Argument
@@ -180,4 +180,3 @@ instance SubSetter a (Val    rt ls) => Setter a (Val    rt ls)
 instance SubSetter a (Thunk  rt ls) => Setter a (Thunk  rt ls)
 instance SubSetter a (Phrase rt ls) => Setter a (Phrase rt ls)
 instance SubSetter a (Draft  rt ls) => Setter a (Draft  rt ls)
-

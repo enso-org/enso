@@ -10,7 +10,7 @@ import Data.Graph
 import Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC                  as NEC
 
-import Luna.Syntax.Term.Class                            hiding (source, target)
+import Luna.Syntax.Term.Class_OLD                            hiding (source, target)
 import Luna.Syntax.Model.Layer
 import Luna.Runtime.Dynamics                         (Static)
 import Luna.Syntax.Model.Network.Class                 ()
@@ -112,4 +112,3 @@ instance PassCtx(m) => TypeCheckerPass ScanPass m where
         case roots of
             [] -> return Stuck
             _  -> return Progressed
-

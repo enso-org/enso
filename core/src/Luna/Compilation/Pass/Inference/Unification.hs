@@ -14,7 +14,7 @@ import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
 import Luna.Runtime.Dynamics                      (Static, Dynamic)
 import Data.Index
-import Luna.Syntax.Term.Class                         hiding (source, target)
+import Luna.Syntax.Term.Class_OLD                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node

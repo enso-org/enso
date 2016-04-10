@@ -18,7 +18,7 @@ import Data.Graph.Builders (rawConnection)
 import qualified Control.Monad.State.Lazy as State
 import Control.Monad.Event (Dispatcher, dispatch)
 
-import Luna.Syntax.Term.Class (TermOf)
+import Luna.Syntax.Term.Class_OLD (TermOf)
 import Control.Monad.Primitive
 
 
@@ -40,7 +40,7 @@ instance PrimMonad m => PrimMonad (NetworkBuilderT m) where
     type PrimState (NetworkBuilderT m) = PrimState m
     primitive = lift . primitive
     {-# INLINE primitive #-}
-    
+
 
 instance (MonadBuilder g m, Dispatcher CONNECTION (Ref Edge (Link a)) m, ReferencedM Edge g (NetworkBuilderT m) (Arc a a))
       => ParamResolver (State.StateT [(Ref Node a, Ref Edge (Link a))] (NetworkBuilderT m)) (NetworkBuilderT m) (Ref Node a) where

@@ -5,7 +5,7 @@ module Luna.Syntax.Model.Network.Graph (module Luna.Syntax.Model.Network.Graph) 
 import Prelude.Luna
 
 import           Luna.Runtime.Dynamics        (Dynamics)
-import           Luna.Syntax.Term.Class           (Input)
+import           Luna.Syntax.Term.Class_OLD           (Input)
 import           Luna.Syntax.Model.Layer        ((:<:))
 import           Data.Graph
 import           Data.Layer_OLD.Cover_OLD

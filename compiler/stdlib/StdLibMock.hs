@@ -17,7 +17,7 @@ import Luna.Runtime.Dynamics                      (Static, Dynamic)
 import Luna.Library.Symbol                    (MonadSymbol, SymbolMap)
 
 import Luna.Syntax.Term.Function                     (Function (..), Signature (..))
-import Luna.Syntax.Term.Class
+import Luna.Syntax.Term.Class_OLD
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetworkBuilderT, NetLayers, NetGraph)

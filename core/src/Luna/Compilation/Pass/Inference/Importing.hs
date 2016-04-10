@@ -15,7 +15,7 @@ import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Runtime.Dynamics                      (Static)
 import Luna.Library.Symbol                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.Term.Function                     (Function, Signature)
-import Luna.Syntax.Term.Class                         hiding (source)
+import Luna.Syntax.Term.Class_OLD                         hiding (source)
 import Data.Graph                                   as Graph
 import Data.Graph.Builder                           as Graph hiding (run)
 import qualified Data.Graph.Backend.NEC               as NEC
