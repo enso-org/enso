@@ -32,7 +32,7 @@ import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
 import           Luna.Syntax.Term.Class_OLD                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
-import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs)
+import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs, tcErrors)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
@@ -513,6 +513,7 @@ exceptionHandler e = do
             putStrLn "Async exception occurred"
             liftIO $ throwIO e
 
+-- TCData TCErrors - non empty
 evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
 evaluateNative ref args = do -- $notImplemented -- do
     -- putStrLn $ "Evaluating native"
@@ -548,10 +549,13 @@ evaluateNative ref args = do -- $notImplemented -- do
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 
 
+type NodeRef = Ref Node (NetLayers :<: Draft Static)
+type BindList = [(NodeRef, Any)]
+
 -- TODO: optimize native haskell functions
 
 -- interpretFunction :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Hetero (NEC.Graph n e c) -> Signature (Ref Node (ls :<: term)) -> Any -> EvalMonad Any
-interpretFunction :: NetGraph -> Signature (Ref Node (NetLayers :<: Draft Static)) -> Any -> EvalMonad Any
+interpretFunction :: NetGraph -> Signature NodeRef -> Any -> EvalMonad Any
 interpretFunction g sig arg = do
     -- let g = testG
     let (val :: ValueErr (EvalMonad Any)) = Right $ return arg
@@ -571,13 +575,29 @@ interpretFunction g sig arg = do
     -- Either
 
 
+
+interpretNoArgs :: NetGraph -> BindList -> EvalMonad Any
+interpretNoArgs g binds = evalBuildInt g def $ do
+    forM_ binds $ \(r, v) -> do --r & val .~ v
+        return ()
+    $notImplemented
+    -- doYourThings
+
+interpret' :: NetGraph -> BindList -> [NodeRef] -> Any
+interpret' g binds []     = toAny $ interpretNoArgs g binds
+interpret' g binds (x:xs) = toAny $ \v -> interpret' g ((x, v) : binds) xs
+
+interpret :: NetGraph -> [NodeRef] -> EvalMonad Any
+interpret g sig = return $ interpret' g [] $ reverse sig
+-- IO (Any -> Any -> ... -> Any -> IO Any)
+
 -- runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
 
-runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT (Ref Node (NetLayers :<: Draft Static)) n) => NetGraph -> m a -> n (a, NetGraph)
+runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT NodeRef n) => NetGraph -> m a -> n (a, NetGraph)
 runBuild g m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                                            $ runNetworkBuilderT g m
 
-runBuildInt :: (Monad n, NetworkBuilderT NetGraph m (InterpreterT (Env (Ref Node (NetLayers :<: Draft Static))) (KnownTypeT ELEMENT (Ref Node (NetLayers :<: Draft Static)) n)))
+runBuildInt :: (Monad n, NetworkBuilderT NetGraph m (InterpreterT (Env NodeRef) (KnownTypeT ELEMENT NodeRef n)))
             => NetGraph -> Env (Ref Node (NetLayers :<: Draft Static)) -> m a -> n (a, NetGraph)
 runBuildInt g env m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
                                            $ flip evalInterpreterT env
@@ -616,53 +636,56 @@ evaluateNode ref = do
     -- liftIO $ interpretFunction g sig a
 
     putStrLn $ "evaluating " <> show ref
-    case (node # TCData) ^. redirect of
-        Just redirect -> do
-            redirRef <- (follow source) redirect
-            -- putStrLn $ "redirecting to " <> show redirRef
-            evaluateNode redirRef
-            copyValue redirRef ref startTime
-        Nothing -> do
-            if isDirty node
-                then caseTest (uncover node) $ do
-                    of' $ \(Unify l r)  -> return ()
-                    of' $ \(Acc n t)    -> return ()
-                    of' $ \(Var n)      -> do
-                        let clusterPtrMay = (node # TCData) ^. replacement
-                        case clusterPtrMay of
-                            Nothing -> return ()
-                            Just clusterPtr -> do
-                                let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
-                                sigMay <- follow (prop Lambda) cluster
-                                case sigMay of
-                                    Nothing -> return ()
-                                    Just sig -> do
-                                        -- sig <- fromJust <$> follow (prop Lambda) cluster
-                                        g <- GraphBuilder.get
-                                        let fun = interpretFunction g sig
-                                        let val = toMonadAny fun
-                                        setValue (Right $ val) ref startTime
-                                        return ()
-                    of' $ \(App f args) -> do
-                        funRef       <- follow source f
-                        unpackedArgs <- unpackArguments args
-                        mapM evaluateNode unpackedArgs
-                        funNode      <- read funRef
-                        nativeVal    <- caseTest (uncover funNode) $ do
-                            of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                            of' $ \ANY                      -> return $ Left ["evaluating non native function"]
-                        setValue nativeVal ref startTime
-                    of' $ \(Lit.String str)                 -> do
-                        setValue (Right $ toMonadAny str) ref startTime
-                    of' $ \number@(Lit.Number radix system) -> do
-                        setValue (Right $ numberToAny number) ref startTime
-                    of' $ \(Cons (Lit.String s) args) -> do
-                        case tryGetBool s of
-                            Nothing   -> return ()
-                            Just bool -> setValue (Right $ toMonadAny bool) ref startTime
-                    of' $ \Blank -> return ()
-                    of' $ \ANY   -> return ()
-                else return ()
+    let tcData = node # TCData
+    when (null $ tcData ^. tcErrors) $ do
+        case tcData ^. redirect of
+            Just redirect -> do
+                redirRef <- (follow source) redirect
+                -- putStrLn $ "redirecting to " <> show redirRef
+                evaluateNode redirRef
+                copyValue redirRef ref startTime
+            Nothing -> do
+                if isDirty node
+                    then caseTest (uncover node) $ do
+                        of' $ \(Unify l r)  -> return ()
+                        of' $ \(Acc n t)    -> return ()
+                        of' $ \(Var n)      -> do
+                            let clusterPtrMay = (node # TCData) ^. replacement
+                            case clusterPtrMay of
+                                Nothing -> return ()
+                                Just clusterPtr -> do
+                                    let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
+                                    sigMay <- follow (prop Lambda) cluster
+                                    case sigMay of
+                                        Nothing -> return ()
+                                        Just sig -> do
+                                            -- sig <- fromJust <$> follow (prop Lambda) cluster
+                                            g <- GraphBuilder.get
+                                            let fun = interpretFunction g sig
+                                            let val = toMonadAny fun
+                                            setValue (Right $ val) ref startTime
+                                            return ()
+                        of' $ \(App f args) -> do
+                            funRef       <- follow source f
+                            unpackedArgs <- unpackArguments args
+                            mapM evaluateNode unpackedArgs
+                            funNode      <- read funRef
+                            nativeVal    <- caseTest (uncover funNode) $ do
+                                of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
+                                of' $ \ANY                      -> return $ Left ["evaluating non native function"]
+                            setValue nativeVal ref startTime
+                        of' $ \(Lit.String str)                 -> do
+                            setValue (Right $ toMonadAny str) ref startTime
+                        of' $ \number@(Lit.Number radix system) -> do
+                            setValue (Right $ numberToAny number) ref startTime
+                        of' $ \(Cons (Lit.String s) args) -> do
+                            case tryGetBool s of
+                                Nothing   -> return ()
+                                Just bool -> setValue (Right $ toMonadAny bool) ref startTime
+                        of' $ \Blank -> return ()
+                        of' $ \ANY   -> return ()
+                    else return ()
+
     getValue ref
 
 

@@ -249,12 +249,13 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
 -- === Tests === --
 ------------------
 
-    -- TODO: put back polymorphic head
-    -- , ("List.head"      , makePureFun   "head"                   (Just $ listOf $ TVar "#head")        []                                   (TVar "#head"))
-    , ("List.head"      , makePureFun   "head"                   (Just $ listOf $ scons "Int")        []                                   (scons "Int"))
-    , ("List.map"       , makeNativeFun "forM"                   (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]  (listOf $ TVar "#map1"))
-    , ("succ"           , makePureFun   "succ"                   Nothing                               [scons "Int"]                        (scons "Int" ))
-
+    , ("List.head"      , makePureFun   "head"                     (Just $ listOf $ TVar "#head")        []                                   (TVar "#head"))
+    , ("List.map"       , makeNativeFun "forM"                     (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]  (listOf $ TVar "#map1"))
+    , ("List.fold"      , makeNativeFun "(\\l f i -> foldM f i l)" (Just $ listOf $ TVar "#foldB")       [TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (listOf $ TVar "#foldA"))
+    , ("succ"           , makePureFun   "succ"                     Nothing                               [scons "Int"]                        (scons "Int" ))
+    , ("(+)"            , makePureFun   "(+)"                      Nothing                               [scons "Int", scons "Int"]           (scons "Int" ))
+    -- forM  :: Monad m => [a] -> (a -> m b) -> m [b]
+    -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
     ]
 
 primesBody :: String

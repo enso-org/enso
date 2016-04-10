@@ -64,6 +64,13 @@ data CallError = NotAFuncallNode | UnresolvedFunction | MalformedFunction derivi
 
 type CallErrorT = ExceptT CallError
 
+isUni :: PassCtx(m) => Ref Node node -> m Bool
+isUni r = do
+    n <- read r
+    return $ caseTest (uncover n) $ do
+        of' $ \(Unify _ _) -> True
+        of' $ \ANY -> False
+
 unifyTypes :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> [Ref Node node] -> CallErrorT m [Ref Node node]
 unifyTypes fptr app args = do
     let getType = follow (prop Type) >=> follow source
@@ -85,7 +92,9 @@ makeFuncall app args funClus = do
     withRef app $ (prop TCData . replacement ?~ cast cls)
     reconnect (prop TCData . redirect) app $ Just $ fptr ^. Function.out
     zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) (Just <$> args) -- FIXME[WD->MK] handle arg names. Using unlayer for now
-    unifyTypes fptr app args
+    callUnis   <- unifyTypes fptr app args
+    importUnis <- filterM isUni =<< members cls
+    return $ importUnis <> callUnis
 
 processNode :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]
 processNode ref = do

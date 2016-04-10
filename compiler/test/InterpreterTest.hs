@@ -285,6 +285,29 @@ graph5 = do
 
     return ([aph], refsToEval)
 
+graph6 = do
+    i1 <- int 2
+    i2 <- int 3
+    fun1 <- var "succ"
+
+    act <- acc "times" i1
+    apt <- app act [arg i2]
+
+    acm <- acc "map" apt
+    apm <- app acm [arg fun1]
+
+    ach <- acc "head" apm
+    aph <- app ach []
+
+    let refsToEval = [aph]
+
+    forM_ refsToEval (\ref -> do
+            (nd :: (ls :<: term)) <- read ref
+            write ref (nd & prop InterpreterData . Layer.required .~ True)
+        )
+
+    return ([aph], refsToEval)
+
 
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
