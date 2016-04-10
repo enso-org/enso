@@ -263,15 +263,15 @@ graph4 = do
     return ([aph], refsToEval)
 
 graph5 = do
-    i1 <- int 2
-    i2 <- int 3
-    fun1 <- var "succ"
+    iLen <- int 10
+    iVal <- int 3
+    fun  <- var "succ"
 
-    act <- acc "times" i1
-    apt <- app act [arg i2]
+    act <- acc "times" iLen
+    apt <- app act [arg iVal]
 
     acm <- acc "map" apt
-    apm <- app acm [arg fun1]
+    apm <- app acm [arg fun]
 
     ach <- acc "head" apm
     aph <- app ach []
@@ -286,27 +286,25 @@ graph5 = do
     return ([aph], refsToEval)
 
 graph6 = do
-    i1 <- int 2
-    i2 <- int 3
-    fun1 <- var "succ"
+    iLen  <- int 5
+    iVal  <- int 3
+    iInit <- int 1
+    fun   <- var "(+)"
 
-    act <- acc "times" i1
-    apt <- app act [arg i2]
+    act <- acc "times" iLen
+    apt <- app act [arg iVal]
 
-    acm <- acc "map" apt
-    apm <- app acm [arg fun1]
+    acf <- acc "fold" apt
+    apf <- app acf [arg iInit, arg fun]
 
-    ach <- acc "head" apm
-    aph <- app ach []
-
-    let refsToEval = [aph]
+    let refsToEval = [apf]
 
     forM_ refsToEval (\ref -> do
             (nd :: (ls :<: term)) <- read ref
             write ref (nd & prop InterpreterData . Layer.required .~ True)
         )
 
-    return ([aph], refsToEval)
+    return ([apf], refsToEval)
 
 
 collectGraph tag = do
@@ -330,7 +328,7 @@ test1 = do
 
         -- Running Type Checking compiler stage
         (gs, gint) <- TypeCheck.runT $ do
-            ((roots, refsToEval), gb) <- runBuild g graph5
+            ((roots, refsToEval), gb) <- runBuild g graph6
 
             (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
                 Symbol.loadFunctions StdLib.symbols
