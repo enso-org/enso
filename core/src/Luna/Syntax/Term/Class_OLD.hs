@@ -29,7 +29,6 @@ import           Type.Bool
 import           Luna.Syntax.Term.Format
 import qualified Luna.Syntax.Term.Lit     as Lit
 import Luna.Syntax.Term.Atom_OLD as X
-import Luna.Syntax.Term.Atom
 
 import Data.Shell               as Shell
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)

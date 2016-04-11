@@ -81,11 +81,11 @@ type family LayoutType a
 -- type family ExprOf a
 
 type family   Elems t      :: [*]
-type instance Elems Lit    = '[Lit.Star, Lit.String, Lit.Number           ]
-type instance Elems Val    = '[Cons'   , Lam'                             ] <> Elems Lit
-type instance Elems Thunk  = '[Acc'    , App'      , Curry'     , Native' ] <> Elems Val
-type instance Elems Phrase = '[Var'    , Unify'    , Match'               ] <> Elems Thunk
-type instance Elems Draft  = '[Blank'                                     ] <> Elems Phrase
+type instance Elems Lit    = '[Lit.Star, Lit.String, Lit.Number          ]
+type instance Elems Val    = '[Cons    , Lam                             ] <> Elems Lit
+type instance Elems Thunk  = '[Acc     , App       , Curry      , Native ] <> Elems Val
+type instance Elems Phrase = '[Var     , Unify     , Match               ] <> Elems Thunk
+type instance Elems Draft  = '[Blank                                     ] <> Elems Phrase
 
 
 
@@ -178,5 +178,5 @@ instance OverBuilder m (Unwrapped (Term2 t fmt dyn a)) => OverBuilder m (Term2 t
 -- === Term Layout type caches === --
 -------------------------------------
 
-type instance Encode (Expr Blank' dyn a) rec = '[ 41 , 7,8               ]
-type instance Decode (Expr Blank' dyn a) rec = 41
+type instance Encode (Expr Blank dyn a) rec = '[ 41 , 7,8               ]
+type instance Decode (Expr Blank dyn a) rec = 41

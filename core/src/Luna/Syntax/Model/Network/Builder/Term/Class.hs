@@ -43,8 +43,10 @@ import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
-import Luna.Syntax.Term
 
+import qualified Luna.Syntax.Term as New
+import           Luna.Syntax.Term (KnownTerm, Elems, TermOf)
+import qualified Luna.Syntax.Term.Atom as Atom
 
 undefined = error "Undefined in Term/Class.hs"
 
@@ -334,16 +336,16 @@ type instance BuildArgs2 Star a = ()
 instance TermBuilderCtx Star n m a => TermBuilder Star m a where
     buildTerm p () = term $ pure starCons
 
-type instance BuildArgs2 Var' a = OneTuple (NameInput a)
-instance TermBuilderCtx Var' n m a => TermBuilder Var' m a where
+type instance BuildArgs2 New.Var a = OneTuple (NameInput a)
+instance TermBuilderCtx New.Var n m a => TermBuilder New.Var m a where
     buildTerm p (OneTuple a) = term $ varCons <$> nameParam a
 
-type instance BuildArgs2 Match' a = (a,a)
-instance TermBuilderCtx Match' n m a => TermBuilder Match' m a where
+type instance BuildArgs2 New.Match a = (a,a)
+instance TermBuilderCtx New.Match n m a => TermBuilder New.Match m a where
     buildTerm p (a,b) = term $ matchCons <$> param a <*> param b
 
-type instance BuildArgs2 Unify' a = (a, a)
-instance TermBuilderCtx Unify' n m a => TermBuilder Unify' m a where
+type instance BuildArgs2 New.Unify a = (a, a)
+instance TermBuilderCtx New.Unify n m a => TermBuilder New.Unify m a where
     buildTerm p (a,b) = term $ unifyCons <$> param a <*> param b
 
 starCons :: Record.Cons Star a => a
@@ -356,9 +358,9 @@ matchCons = Record.cons ∘∘ Match
 
 type family Parameterized t a
 type instance Parameterized Star   a = Star
-type instance Parameterized Var'   a = Var   $ NameParam a
-type instance Parameterized Unify' a = Unify $ Param     a
-type instance Parameterized Match' a = Match $ Param     a
+type instance Parameterized New.Var   a = Var   $ NameParam a
+type instance Parameterized New.Unify a = Unify $ Param     a
+type instance Parameterized New.Match a = Match $ Param     a
 
 
 type TermBuilderCtx t n m a = ( Dispatcher ELEMENT a m
@@ -392,8 +394,8 @@ match = P.curry $ buildTerm_OLD (Proxy :: Proxy Match)
 star2 :: TermBuilder Star m a => m a
 star2 = P.curry $ build Star
 
-var2 :: TermBuilder Var' m a => NameInput a -> m a
-var2 = P.curry $ build Var'
+var2 :: TermBuilder New.Var m a => NameInput a -> m a
+var2 = P.curry $ build Atom.Var
 
 
 -- star3 :: TermBuilder Star m a => m (Term2' t fmt dyn)

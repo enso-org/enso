@@ -263,7 +263,7 @@ type TRex2 t fmt dyn sel = TermRecord2 t fmt dyn sel Int -- Int is a mock for pa
 
 
 
-a1 = () ^. from exprArgs :: Expr Blank' Static Int
+a1 = () ^. from exprArgs :: Expr Blank Static Int
 -- -- t1 = Record.cons a1 :: AnyTerm SNet Draft Static
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
