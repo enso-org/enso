@@ -18,7 +18,7 @@ import Data.Graph.Builders (rawConnection)
 import qualified Control.Monad.State.Lazy as State
 import Control.Monad.Event (Dispatcher, dispatch)
 
-import Luna.Syntax.Term.Class_OLD (TermOf)
+import Luna.Syntax.Term (TermOf)
 import Control.Monad.Primitive
 
 

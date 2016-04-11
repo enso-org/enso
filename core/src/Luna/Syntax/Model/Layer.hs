@@ -3,7 +3,7 @@ module Luna.Syntax.Model.Layer (module Luna.Syntax.Model.Layer, module X) where
 
 import Prologue
 
-import Luna.Syntax.Term.Class_OLD (TermOf)
+import Luna.Syntax.Term (TermOf)
 import Data.Shell_OLD as X
 import Data.Construction
 import Data.Convert

@@ -43,7 +43,8 @@ import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
-import Luna.Syntax.Term.Atom
+import Luna.Syntax.Term
+
 
 undefined = error "Undefined in Term/Class.hs"
 

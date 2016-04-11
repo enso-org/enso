@@ -15,7 +15,7 @@ packages:
 - extra-dep: true
   location: {commit: 345c1cdf5bef30631d3eadd55c326086ea0b6f71, git: 'https://github.com/wdanilo/data-base.git'}
 - extra-dep: true
-  location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
+  location: {commit: 10fe1b60a76adec8178f3858782fcda53d6d60d1, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
   location: {commit: c6310eeddc391fb1d6041863d918fa59bd3f07f8, git: 'https://github.com/wdanilo/data-layer.git'}
 - extra-dep: true
@@ -39,7 +39,7 @@ packages:
 - extra-dep: true
   location: {commit: 6ae9be62066e7c39d36af35314d7fdf89b843f45, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
-  location: {commit: 13c735377b61d6ab634f689e88612cf68d6a4111, git: 'https://github.com/wdanilo/data-construction.git'}
+  location: {commit: 10fe1b60a76adec8178f3858782fcda53d6d60d1, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
   location: {commit: aa5ac0164cd8d721c0abd762f9ebdad0f5432b92, git: 'https://github.com/wdanilo/data-member.git'}
 - extra-dep: true
