@@ -306,7 +306,7 @@ setValue value ref startTime = do
                     & prop InterpreterData . Layer.time  .~ time
               )
     valueString <- getValueString ref
-    displayValue ref
+    -- displayValue ref
     updNode <- read ref
     write ref $ updNode & prop InterpreterData . Layer.debug .~ valueString
 
@@ -411,6 +411,7 @@ getValueString ref = do
                    | typeName == Right "Bool"   = show ((unsafeCast pureVal) :: Bool)
                    | otherwise                 = "unknown type"
 
+-- Test function
 displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
     typeName <- getTypeName ref
@@ -554,44 +555,33 @@ type BindList = [(NodeRef, Any)]
 
 -- TODO: optimize native haskell functions
 
--- interpretFunction :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Hetero (NEC.Graph n e c) -> Signature (Ref Node (ls :<: term)) -> Any -> EvalMonad Any
-interpretFunction :: NetGraph -> Signature NodeRef -> Any -> EvalMonad Any
-interpretFunction g sig arg = do
-    -- let g = testG
-    let (val :: ValueErr (EvalMonad Any)) = Right $ return arg
-
-    -- TODO: get env
-    v <- evalBuildInt g def $ do
-        let input = head $ sig ^. Function.args
-            ref = unlayer input
-        withRef ref $ (prop InterpreterData . Layer.dirty .~ False)
-                    . (prop InterpreterData . Layer.value .~ val)
-        res <- evaluateNode $ sig ^. Function.out
+interpretNoArgs :: NetGraph -> BindList -> NodeRef -> EvalMonad Any
+interpretNoArgs g binds out = do
+    v <- evalBuildInt g def $ do -- TODO: pass env (instead of def)
+        forM_ binds $ \(r, v) -> do
+            let (val :: ValueErr (EvalMonad Any)) = Right $ return v
+            withRef r $ (prop InterpreterData . Layer.dirty .~ False)
+                      . (prop InterpreterData . Layer.value .~ val)
+        res <- evaluateNode out
         case res of
             Left err -> $notImplemented -- error "No value evaluated"
             Right val -> return val
     v
-    -- let a = toAny 0 :: Any
-    -- Either
 
+interpret' :: NetGraph -> BindList -> [NodeRef] -> NodeRef -> Any
+interpret' g binds []         out = toAny $ interpretNoArgs g binds out
+interpret' g binds (arg:args) out = toAny $ \v -> interpret' g ((arg, v) : binds) args out
 
+interpret :: NetGraph -> [NodeRef] -> NodeRef -> EvalMonad Any
+interpret g args out = return $ interpret' g [] (reverse args) out
 
-interpretNoArgs :: NetGraph -> BindList -> EvalMonad Any
-interpretNoArgs g binds = evalBuildInt g def $ do
-    forM_ binds $ \(r, v) -> do --r & val .~ v
-        return ()
-    $notImplemented
-    -- doYourThings
+interpretFun :: NetGraph -> Signature NodeRef -> EvalMonad Any
+interpretFun g sig = do
+    let args = unlayer <$> sig ^. Function.args
+        out  = sig ^. Function.out
+    interpret g args out
 
-interpret' :: NetGraph -> BindList -> [NodeRef] -> Any
-interpret' g binds []     = toAny $ interpretNoArgs g binds
-interpret' g binds (x:xs) = toAny $ \v -> interpret' g ((x, v) : binds) xs
-
-interpret :: NetGraph -> [NodeRef] -> EvalMonad Any
-interpret g sig = return $ interpret' g [] $ reverse sig
 -- IO (Any -> Any -> ... -> Any -> IO Any)
-
--- runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
 
 runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT NodeRef n) => NetGraph -> m a -> n (a, NetGraph)
 runBuild g m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
@@ -627,15 +617,7 @@ evaluateNode ref = do
     startTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime
     node <- read ref
-    -- g <- lift $ get
-    -- g <- GraphBuilder.get
-
-    -- let a = toAny 0 :: Any
-    --     sig = testSig
-
-    -- liftIO $ interpretFunction g sig a
-
-    putStrLn $ "evaluating " <> show ref
+    -- putStrLn $ "evaluating " <> show ref
     let tcData = node # TCData
     when (null $ tcData ^. tcErrors) $ do
         case tcData ^. redirect of
@@ -659,10 +641,10 @@ evaluateNode ref = do
                                     case sigMay of
                                         Nothing -> return ()
                                         Just sig -> do
-                                            -- sig <- fromJust <$> follow (prop Lambda) cluster
                                             g <- GraphBuilder.get
-                                            let fun = interpretFunction g sig
-                                            let val = toMonadAny fun
+                                            -- let fun = interpretFunction g sig
+                                            -- let val = toMonadAny fun
+                                            let val = interpretFun g sig
                                             setValue (Right $ val) ref startTime
                                             return ()
                         of' $ \(App f args) -> do
