@@ -254,6 +254,7 @@ symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFuncti
     , ("List.fold"      , makeNativeFun "(\\l i f -> foldM f i l)" (Just $ listOf $ TVar "#foldB")       [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (TVar "#foldA"))
     , ("succ"           , makePureFun   "succ"                     Nothing                               [scons "Int"]                                                         (scons "Int" ))
     , ( "(+)"           , makePureFun   "(+)"                      Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" ))
+    , ( "add"           , makePureFun   "(+)"                      Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" ))
     , ( "(*)"           , makePureFun   "(*)"                      Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" ))
     -- forM  :: Monad m => [a] -> (a -> m b) -> m [b]
     -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a

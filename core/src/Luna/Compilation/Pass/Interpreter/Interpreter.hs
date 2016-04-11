@@ -31,7 +31,7 @@ import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterDat
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
-import           Luna.Syntax.Term.Class_OLD                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..))
+import           Luna.Syntax.Term.Class_OLD                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
 import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs, tcErrors)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
@@ -416,7 +416,8 @@ displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 displayValue ref = do
     typeName <- getTypeName ref
     valueString <- getValueString ref
-    putStrLn $ "Type " <> show typeName <> " value " <> valueString
+    return ()
+    {-putStrLn $ "Type " <> show typeName <> " value " <> valueString-}
 
 getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
 getTypeName ref = do
@@ -516,8 +517,7 @@ exceptionHandler e = do
 
 -- TCData TCErrors - non empty
 evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
-evaluateNative ref args = do -- $notImplemented -- do
-    -- putStrLn $ "Evaluating native"
+evaluateNative ref args = do
     node <- read ref
     (name, tpNativeE) <- caseTest (uncover node) $ do
        of' $ \(Native nameStr) -> do
@@ -530,7 +530,6 @@ evaluateNative ref args = do -- $notImplemented -- do
            putStrLn $ "error " <> (intercalate " " err)
            return $ Left err
        Right tpNative -> do
-           putStrLn $ name <> " :: " <> tpNative
            markDirty ref False
            valuesE <- argumentsValues args
            case valuesE of
@@ -543,7 +542,6 @@ evaluateNative ref args = do -- $notImplemented -- do
                        let resA = foldl appArg fun args
                        let resM = unsafeCast resA :: EvalMonad Any
                        res <- liftIO $ resM
-                       -- liftIO $ threadDelay 5000000
                        return $ Right $ return res
                    return $ res
 
@@ -631,7 +629,7 @@ evaluateNode ref = do
                     then caseTest (uncover node) $ do
                         of' $ \(Unify l r)  -> return ()
                         of' $ \(Acc n t)    -> return ()
-                        of' $ \(Var n)      -> do
+                        of' $ \(Curry _ _)  -> do
                             let clusterPtrMay = (node # TCData) ^. replacement
                             case clusterPtrMay of
                                 Nothing -> return ()
@@ -642,8 +640,6 @@ evaluateNode ref = do
                                         Nothing -> return ()
                                         Just sig -> do
                                             g <- GraphBuilder.get
-                                            -- let fun = interpretFunction g sig
-                                            -- let val = toMonadAny fun
                                             let val = interpretFun g sig
                                             setValue (Right $ val) ref startTime
                                             return ()
@@ -681,18 +677,7 @@ evaluateNodes reqRefs = do
 run :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
-    -- putStrLn $ "Paths.libdir " <> Paths.libdir
-    -- putStrLn $ "g " <> show g
-    -- putStrLn $ "reqRefs " <> show reqRefs
-    -- ((), env) <- flip runInterpreterT (def :: env) $ collectNodesToEval (head reqRefs) runStateT
-    -- g <- Builder.get
-    -- g <- lift $ Builder.get
-
     ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
-    -- putStrLn $ "env " <> show env
-
-    -- putStrLn $ show StdLib.symbols
-
     return ()
 
 
