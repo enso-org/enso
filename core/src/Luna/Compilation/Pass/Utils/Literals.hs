@@ -16,7 +16,7 @@ import           Type.Inference
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import           Luna.Syntax.Term.Class_OLD                            (Lam, Cons)
-import qualified Luna.Syntax.Term.Lit                        as Lit
+import qualified Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)

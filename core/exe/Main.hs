@@ -60,8 +60,8 @@ import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term                               (OverBuilder, Layout2, Term2, TermRecord2, overbuild, AnyTerm)
 import qualified Luna.Syntax.Term.Class_OLD                           as Term
-import           Luna.Syntax.Term.Format                         (Draft(Draft))
-import qualified Luna.Syntax.Term.Lit                            as Lit
+import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft))
+import qualified Luna.Syntax.Term.Expr.Lit                            as Lit
 
 import qualified Data.Graph.Backend.NEC       as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
@@ -203,6 +203,21 @@ write2 :: Referable m a => Ref2 a -> a -> m ()
 write2 = write2' ∘ unwrap' ; {-# INLINE write2 #-}
 
 
+------------------
+-- === Binds === --
+------------------
+
+type family Binded a
+newtype Bind a = Bind (Binded a)
+makeWrapped ''Bind
+
+class Monad m => Bindable m a where
+    bind' :: a -> m (Binded a)
+
+bind :: Bindable m a => a -> m (Bind a)
+bind = Bind <∘> bind' ; {-# INLINE bind #-}
+
+
 
 ------------------------------------
 -- === Example implementation === --
@@ -221,7 +236,7 @@ type instance LayerData IntLayer = Int
 
 -- === Instances === --
 
-instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = return $ Layer 0
+instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = return $ Layer 7
 
 
 ---------------------
@@ -263,7 +278,7 @@ type TRex2 t fmt dyn sel = TermRecord2 t fmt dyn sel Int -- Int is a mock for pa
 
 
 
-a1 = () ^. from exprArgs :: Expr Blank Static Int
+a1 = () ^. from atomArgs :: Atom Blank Static Int
 -- -- t1 = Record.cons a1 :: AnyTerm SNet Draft Static
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
@@ -281,10 +296,14 @@ t3 = runIdentity $ refer t2
 instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
     overbuild a = Cover <$> create <*> overbuild a
 
-type ElemBuilder2 atom m a = (Record.Cons atom (RecordOf a), OverBuilder m a, Referable m a)
+type ElemBuilder atom m a = (Record.Cons atom (RecordOf a), OverBuilder m a)
+type RefBuilder  atom m a = (ElemBuilder atom m a, Referable m a)
 
-elemBuilder2 :: ElemBuilder2 atom m a => atom -> m (Ref2 a)
-elemBuilder2 a = overbuild (Record.cons a) >>= refer
+buildElem :: ElemBuilder atom m a => atom -> m a
+buildElem = overbuild ∘ Record.cons ; {-# INLINE buildElem #-}
+
+buildRef :: RefBuilder atom m a => atom -> m (Ref2 a)
+buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 -- powinnismy wprowadzic abstrakcje Bind, ktora moglaby miec source i target i w networku reprezentowalaby connection
 
@@ -315,4 +334,5 @@ main2 = do
 
     caseTest t2 $ do
         of' $ \Blank -> print "it is Blank!"
+        -- of' $ \(Unify a b) -> print "oh, unify!"
     --     -- of' $ \ANY        -> print "hello"

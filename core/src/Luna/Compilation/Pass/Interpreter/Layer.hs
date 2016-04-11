@@ -6,7 +6,7 @@ import           Data.Construction
 import           Data.Prop
 import           Data.Either                     (isRight)
 
-import           Luna.Syntax.Term.Format           (Draft)
+import           Luna.Syntax.Term.Expr.Format           (Draft)
 import           Luna.Runtime.Dynamics         (Static)
 import           Luna.Syntax.Term.Class_OLD            (Term)
 import           Luna.Syntax.Model.Layer

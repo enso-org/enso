@@ -7,7 +7,7 @@ import           Luna.Syntax.Model.Layer
 import           Prologue                                       hiding (Getter, Setter)
 
 import           Data.Prop
-import           Luna.Syntax.Term.Format                          (Draft)
+import           Luna.Syntax.Term.Expr.Format                          (Draft)
 import           Luna.Syntax.Model.Network.Class                (Network)
 import qualified Luna.Syntax.Model.Network.Term                 as Term
 

@@ -7,7 +7,7 @@ module Main where
 
 import Prologue
 import Luna.Parser.Parser
-import qualified Luna.Syntax.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Expr.Lit as Lit
 import qualified Luna.Parser.Literal      as PLit
 import Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
 import Luna.Syntax.Model.Network.Term

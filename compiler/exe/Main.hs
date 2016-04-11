@@ -48,12 +48,12 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckSta
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                         as Runtime
-import qualified Luna.Syntax.Term.Format                           as EvalModel
+import qualified Luna.Syntax.Term.Expr.Format                           as EvalModel
 import qualified StdLibMock                           as StdLib
 import qualified Luna.Library.Symbol                       as Symbol
 import           Luna.Syntax.Term.Class_OLD                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Luna.Syntax.Term.Class_OLD                            as Term
-import qualified Luna.Syntax.Term.Lit                        as Lit
+import qualified Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer

@@ -26,9 +26,9 @@ import           Luna.Pretty.Styles
 import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
-import           Luna.Syntax.Term.Format
-import qualified Luna.Syntax.Term.Lit     as Lit
-import Luna.Syntax.Term.Atom
+import           Luna.Syntax.Term.Expr.Format
+import qualified Luna.Syntax.Term.Expr.Lit     as Lit
+import Luna.Syntax.Term.Expr.Symbol
 
 import Data.Shell               as Shell
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
@@ -36,7 +36,7 @@ import Type.Monoid
 import Type.Applicative
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (Expr, Exprs, NameByDynamics)
+import Luna.Syntax.Term.Expr (Atom, Atoms, NameByDynamics)
 
 
 
@@ -119,7 +119,7 @@ type family TermOf      a
 -- === Utils === --
 
 
-type        Variants3       t fmt  dyn a bind = Exprs (Selected a (Elems fmt)) dyn bind
+type        Variants3       t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Term2 t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
 type        SubSemiDynExprs t fmt  dyn        = Term2 t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
@@ -178,5 +178,6 @@ instance OverBuilder m (Unwrapped (Term2 t fmt dyn a)) => OverBuilder m (Term2 t
 -- === Term Layout type caches === --
 -------------------------------------
 
-type instance Encode (Expr Blank dyn a) rec = '[ 41 , 7,8               ]
-type instance Decode (Expr Blank dyn a) rec = 41
+type instance Encode (Atom Blank dyn a) rec = '[ 41 , 7,8               ]
+type instance Decode (Atom Blank dyn a) rec = 41
+-- type instance Encode (Expr Unify dyn a) rec = '[ 41 , 7,8               ]

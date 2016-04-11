@@ -32,10 +32,10 @@ import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.Term.Lit                as Lit
+import qualified Luna.Syntax.Term.Expr.Lit                as Lit
 import           Control.Monad.Trans.Identity
 import           Type.Bool
-import           Luna.Syntax.Term.Lit               (Star(Star))
+import           Luna.Syntax.Term.Expr.Lit               (Star(Star))
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 
@@ -46,7 +46,7 @@ import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
 
 import qualified Luna.Syntax.Term as New
 import           Luna.Syntax.Term (KnownTerm, Elems, TermOf)
-import qualified Luna.Syntax.Term.Atom as Atom
+import qualified Luna.Syntax.Term.Expr.Symbol as Atom
 
 undefined = error "Undefined in Term/Class.hs"
 

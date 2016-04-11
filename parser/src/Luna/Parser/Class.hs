@@ -15,7 +15,7 @@ import Luna.Syntax.Model.Text.Location        (MonadLocation)
 import Text.Parser.Char                       (CharParsing, char)
 import Text.Parser.Combinators                (Parsing)
 
-import qualified Luna.Syntax.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Expr.Lit as Lit
 import qualified Text.Trifecta.Parser     as Trifecta
 
 

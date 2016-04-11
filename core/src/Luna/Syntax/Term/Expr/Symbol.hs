@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Term.Atom where
+module Luna.Syntax.Term.Expr.Symbol where
 
 import Prelude.Luna hiding (Curry)
 
@@ -8,15 +8,15 @@ import Data.Base
 import Luna.Syntax.Term.Function (Arg)
 import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
-import qualified Luna.Syntax.Term.Lit as Lit
+import qualified Luna.Syntax.Term.Expr.Lit as Lit
 import Type.Applicative
 
 
 -------------------
--- === Atoms === --
+-- === Types === --
 -------------------
 
--- === Types === --
+-- === Definitions === --
 
 data Var    = Var    deriving (Show, Eq, Ord)
 data Cons   = Cons   deriving (Show, Eq, Ord)

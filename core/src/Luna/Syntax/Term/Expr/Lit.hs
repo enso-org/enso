@@ -1,4 +1,4 @@
-module Luna.Syntax.Term.Lit where
+module Luna.Syntax.Term.Expr.Lit where
 
 import           Prelude.Luna            hiding (Rational, Integer, String)
 import qualified Prelude.Luna            as P

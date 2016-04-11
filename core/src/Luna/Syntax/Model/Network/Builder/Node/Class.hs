@@ -16,7 +16,7 @@ import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term
 import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder_OLD)
 import           Type.Inference
-import qualified Luna.Syntax.Term.Lit                as Lit
+import qualified Luna.Syntax.Term.Expr.Lit                as Lit
 import           Data.Layer_OLD.Cover_OLD
 
 

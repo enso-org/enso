@@ -18,7 +18,7 @@ import           Luna.Syntax.Term.Class_OLD           hiding (Val, Lit, Thunk, E
 import           Luna.Syntax.Model.Layer
 import           Luna.Runtime.Dynamics          (Dynamics)
 import           Luna.Syntax.Term.Function.Argument
-import qualified Luna.Syntax.Term.Format          as Format
+import qualified Luna.Syntax.Term.Expr.Format          as Format
 import           Luna.Syntax.Term
 import Data.Graph.Model.Edge
 import Data.Graph

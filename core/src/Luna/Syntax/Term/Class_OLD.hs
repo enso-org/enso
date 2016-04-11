@@ -26,8 +26,8 @@ import           Luna.Pretty.Styles
 import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
-import           Luna.Syntax.Term.Format
-import qualified Luna.Syntax.Term.Lit     as Lit
+import           Luna.Syntax.Term.Expr.Format
+import qualified Luna.Syntax.Term.Expr.Lit     as Lit
 import Luna.Syntax.Term.Atom_OLD as X
 
 import Data.Shell               as Shell
@@ -36,7 +36,7 @@ import Type.Monoid
 import Type.Applicative
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (Expr, Exprs, NameByDynamics)
+import Luna.Syntax.Term.Expr (NameByDynamics)
 import Luna.Syntax.Term.Class (SubFormats, LayoutType, TermOf)
 
 undefined = error "oh no in Term.Class_OLD.hs"
