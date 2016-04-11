@@ -5,7 +5,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE PolyKinds #-}
 
-module Luna.Syntax.Term.Class where
+module Luna.Syntax.Term.Expr.Class where
 
 
 import           Prelude.Luna                 hiding (Num, Swapped, Curry)
@@ -107,9 +107,9 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
 
 -- === Definitions === --
 
-newtype     Term2       t fmt dyn sel = Term2 (Layout2 t fmt dyn sel)
-type        AnyTerm     t fmt dyn     = Term2       t fmt dyn 'Nothing
-type        LimitedTerm t fmt dyn a   = Term2       t fmt dyn ('Just a)
+newtype     Expr       t fmt dyn sel = Expr (Layout2 t fmt dyn sel)
+type        AnyTerm     t fmt dyn     = Expr       t fmt dyn 'Nothing
+type        LimitedTerm t fmt dyn a   = Expr       t fmt dyn ('Just a)
 type        KnownTerm   t fmt dyn a   = LimitedTerm t fmt dyn '[a]
 
 type family Layout2     t fmt dyn (sel :: Maybe [*]) :: *
@@ -120,8 +120,8 @@ type family TermOf      a
 
 
 type        Variants3       t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
-type        SubDynExprs     t fmt  dyn        = Term2 t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
-type        SubSemiDynExprs t fmt  dyn        = Term2 t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
+type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
+type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
 type family SubExprs'       t fmts dyn where
             SubExprs' t '[]           dyn = '[]
@@ -138,22 +138,22 @@ type TermRecord2 t fmt dyn a bind = VGRecord2 (SubExprs t fmt dyn) (Variants3 t 
 -- === Instances === --
 
 -- Show
-deriving instance Show (Unwrapped (Term2 t fmt dyn sel)) => Show (Term2 t fmt dyn sel)
+deriving instance Show (Unwrapped (Expr t fmt dyn sel)) => Show (Expr t fmt dyn sel)
 
 -- Relations
-type instance TermOf   (Term2 t fmt dyn sel) = Term2 t fmt dyn sel
-type instance Base     (Term2 t fmt dyn sel) = fmt
-type instance RecordOf (Term2 t fmt dyn sel) = RecordOf (Unwrapped (Term2 t fmt dyn sel))
+type instance TermOf   (Expr t fmt dyn sel) = Expr t fmt dyn sel
+type instance Base     (Expr t fmt dyn sel) = fmt
+type instance RecordOf (Expr t fmt dyn sel) = RecordOf (Unwrapped (Expr t fmt dyn sel))
 
 -- Wrapper
-makeWrapped ''Term2
+makeWrapped ''Expr
 
 -- Record
-instance IsRecord  (Unwrapped (Term2 t fmt dyn a)) => IsRecord  (Term2 t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
-instance HasRecord (Unwrapped (Term2 t fmt dyn a)) => HasRecord (Term2 t fmt dyn a) where record   = wrapped' ∘ record   ; {-# INLINE record   #-}
+instance IsRecord  (Unwrapped (Expr t fmt dyn a)) => IsRecord  (Expr t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
+instance HasRecord (Unwrapped (Expr t fmt dyn a)) => HasRecord (Expr t fmt dyn a) where record   = wrapped' ∘ record   ; {-# INLINE record   #-}
 
 -- Shell
-instance Shell.HasLayer' l (Unwrapped (Term2 t fmt dyn sel)) => Shell.HasLayer' l (Term2 t fmt dyn sel) where
+instance Shell.HasLayer' l (Unwrapped (Expr t fmt dyn sel)) => Shell.HasLayer' l (Expr t fmt dyn sel) where
     layer' = wrapped' ∘ layer' ; {-# INLINE layer' #-}
 
 
@@ -168,8 +168,8 @@ class Monad m => OverBuilder m a where
 instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
     overbuild = return ; {-# INLINE overbuild #-}
 
-instance OverBuilder m (Unwrapped (Term2 t fmt dyn a)) => OverBuilder m (Term2 t fmt dyn a) where
-    overbuild = Term2 <∘> overbuild ; {-# INLINE overbuild #-}
+instance OverBuilder m (Unwrapped (Expr t fmt dyn a)) => OverBuilder m (Expr t fmt dyn a) where
+    overbuild = Expr <∘> overbuild ; {-# INLINE overbuild #-}
 
 
 

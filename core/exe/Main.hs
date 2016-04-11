@@ -58,7 +58,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term                               (OverBuilder, Layout2, Term2, TermRecord2, overbuild, AnyTerm)
+import           Luna.Syntax.Term                               (OverBuilder, Layout2, Expr, TermRecord2, overbuild, AnyTerm)
 import qualified Luna.Syntax.Term.Class_OLD                           as Term
 import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft))
 import qualified Luna.Syntax.Term.Expr.Lit                            as Lit
@@ -257,14 +257,14 @@ type instance LayerData (NetLayer t a) = LayerData a
 
 -- Layout
 type TermShell ls term rec = (NetLayer term <$> ls) :| rec
-type instance Layout2 (Net ls) fmt dyn sel = TermShell ls (Term2 (Net ls) fmt dyn sel) (TermRecord2 (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type instance Layout2 (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (TermRecord2 (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 -- Shell
-type instance Shell.Access l (Term2 (Net ls) fmt dyn sel) = NetLayer (Term2 (Net ls) fmt dyn sel) l
+type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
 
 -- Ref
-type instance Referred (Term2 (Net ls) fmt dyn sel) = NetRef (Term2 (Net ls) fmt dyn sel)
-instance Monad m => Referable m (Term2 (Net ls) fmt dyn sel) where refer' = return ∘ NetRef
+type instance Referred (Expr (Net ls) fmt dyn sel) = NetRef (Expr (Net ls) fmt dyn sel)
+instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = return ∘ NetRef
 
 
 
@@ -286,7 +286,7 @@ t2 = runIdentity $ overbuild t1 :: AnyTerm (Net '[IntLayer]) Draft Static
 
 t3 = runIdentity $ refer t2
 
--- t4 :: OverBuilder Identity (Term2 t fmt dyn sel) => a -> Ref2 (Term2 t fmt dyn sel)
+-- t4 :: OverBuilder Identity (Expr t fmt dyn sel) => a -> Ref2 (Expr t fmt dyn sel)
 -- t4 a = runIdentity $ foox a
 --
 --
