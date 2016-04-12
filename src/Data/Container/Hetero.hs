@@ -31,6 +31,8 @@ import Data.Prop
 newtype Hetero a = Hetero a deriving (Generic, NFData, Show, Eq, Ord, Functor, Traversable, Foldable, Default)
 makeWrapped ''Hetero
 
+type family Elems t :: [*]
+
 
 -- === Instances === ---
 
@@ -62,4 +64,3 @@ instance PtrIdx (HPtr i m a) i  where ptrIdx (HPtr p) = ptrIdx p
 
 instance {-# OVERLAPPABLE #-} (p ~ i) => PtrFrom p         i where ptrFrom = Ptr
 instance                                 PtrFrom (Ptr i a) i where ptrFrom (Ptr i) = Ptr i
-
