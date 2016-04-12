@@ -35,5 +35,5 @@ type SubFormats a = TakeUntil a Formats
 type instance Elems Literal = '[Star    , String    , Integer , Rational ]
 type instance Elems Value   = '[Cons    , Lam                            ] <> Elems Literal
 type instance Elems Thunk   = '[Acc     , App       , Curry   , Native   ] <> Elems Value
-type instance Elems Phrase  = '[Var     , Unify     , Match              ] <> Elems Thunk
-type instance Elems Draft   = '[Blank                                    ] <> Elems Phrase
+type instance Elems Phrase  = '[Blank   , Match     , Unify   , Var      ] <> Elems Thunk
+type instance Elems Draft   = '[Missing                                  ] <> Elems Phrase

@@ -37,6 +37,7 @@ data    Match    t = Match     !t !t       deriving (Show, Eq, Ord, Functor, Fol
 data    Lam      t = Lam       ![Arg t] !t deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Native n   = Native !n             deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 data    Blank      = Blank                 deriving (Show, Eq, Ord)
+data    Missing    = Missing               deriving (Show, Eq, Ord)
 
 
 -- === Properties === --
@@ -65,6 +66,7 @@ instance {-# OVERLAPPABLE #-}           TFoldable t Lit.Star      where foldrT _
 instance {-# OVERLAPPABLE #-}           TFoldable t Lit.String    where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-}           TFoldable t Lit.Number    where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-}           TFoldable t Blank         where foldrT _ = const ; {-# INLINE foldrT #-}
+instance {-# OVERLAPPABLE #-}           TFoldable t Missing       where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-}           TFoldable t (Var    n   ) where foldrT _ = const ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Cons   n t') where foldrT   = foldr ; {-# INLINE foldrT #-}
 instance {-# OVERLAPPABLE #-} t ~ t' => TFoldable t (Acc    n t') where foldrT   = foldr ; {-# INLINE foldrT #-}
@@ -92,6 +94,7 @@ type instance Base (Var    n  ) = Proxy Var
 type instance Base (Unify    t) = Proxy Unify
 type instance Base (Match    t) = Proxy Match
 type instance Base Blank        = Proxy Blank
+type instance Base Missing      = Proxy Missing
 type instance Base (Native n  ) = Proxy Native
 
 -- Wrappers
@@ -144,6 +147,7 @@ instance           NFunctor n m (Curry     t) (Curry    t) where fmapN = flip co
 instance           NFunctor n m (Unify     t) (Unify    t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
 instance           NFunctor n m (Match     t) (Match    t) where fmapN = flip const                  ; {-# INLINE fmapN #-}
 instance           NFunctor n m Blank         Blank        where fmapN = flip const                  ; {-# INLINE fmapN #-}
+instance           NFunctor n m Missing       Missing      where fmapN = flip const                  ; {-# INLINE fmapN #-}
 
 instance t ~ t' => TFunctor t r (Lam      t') (Lam      r) where fmapT = fmap       ; {-# INLINE fmapT #-}
 instance t ~ t' => TFunctor t r (Acc    n t') (Acc    n r) where fmapT = fmap       ; {-# INLINE fmapT #-}
@@ -155,6 +159,7 @@ instance t ~ t' => TFunctor t r (Match    t') (Match    r) where fmapT = fmap   
 instance           TFunctor t r (Var    n   ) (Var    n  ) where fmapT = flip const ; {-# INLINE fmapT #-}
 instance t ~ t' => TFunctor t r (Cons   n t') (Cons   n r) where fmapT = fmap       ; {-# INLINE fmapT #-}
 instance           TFunctor t r Blank         Blank        where fmapT = flip const ; {-# INLINE fmapT #-}
+instance           TFunctor t r Missing       Missing      where fmapT = flip const ; {-# INLINE fmapT #-}
 
 instance           MonoTFunctor t Lit.Star      where monoTMap = flip const ; {-# INLINE monoTMap #-}
 instance           MonoTFunctor t Lit.String    where monoTMap = flip const ; {-# INLINE monoTMap #-}
@@ -169,6 +174,7 @@ instance t ~ t' => MonoTFunctor t (Match    t') where monoTMap = fmap       ; {-
 instance           MonoTFunctor t (Var    n   ) where monoTMap = flip const ; {-# INLINE monoTMap #-}
 instance t ~ t' => MonoTFunctor t (Cons   n t') where monoTMap = fmap       ; {-# INLINE monoTMap #-}
 instance           MonoTFunctor t Blank         where monoTMap = flip const ; {-# INLINE monoTMap #-}
+instance           MonoTFunctor t Missing       where monoTMap = flip const ; {-# INLINE monoTMap #-}
 
 -- Representations
 
@@ -185,6 +191,7 @@ instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Unify    t) where repr (
 instance {-# OVERLAPPABLE #-} Repr  s t      => Repr s (Match    t) where repr (Match      s t) = "Match"  <+> repr s <+> repr t
 instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Native n  ) where repr (Native     n  ) = "Native" <+> repr n
 instance {-# OVERLAPPABLE #-}                   Repr s  Blank       where repr _                = "Blank"
+instance {-# OVERLAPPABLE #-}                   Repr s  Missing     where repr _                = "Missing"
 instance {-# OVERLAPPABLE #-}                   Repr s Lit.System   where repr                  = \case Lit.Rational r -> repr r
                                                                                                         Lit.Integer  i -> repr i
                                                                                                         Lit.Double   d -> repr d
