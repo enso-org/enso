@@ -79,40 +79,6 @@ import           Control.DeepSeq        (deepseq, force)
 import qualified DynFlags as GHC
 import           Data.Layer_OLD.Cover_OLD
 
-
--------
-
--- initialize :: GhcMonad m => Config -> m ()
--- initialize config = do
---     globalPkgDb <- liftIO $ expand' $ Config.pkgDb $ Config.global config
---     localPkgDb  <- liftIO $ expand' $ Config.pkgDb $ Config.local config
---     let isNotUser GHC.UserPkgConf = False
---         isNotUser _ = True
---         extraPkgConfs p = [ GHC.PkgConfFile globalPkgDb
---                           , GHC.PkgConfFile localPkgDb
---                           ] ++ filter isNotUser p
---     flags <- GHC.getSessionDynFlags
---     _ <- GHC.setSessionDynFlags flags
---                 { GHC.extraPkgConfs = extraPkgConfs
---                 , GHC.hscTarget = GHC.HscInterpreted
---                 , GHC.ghcLink   = GHC.LinkInMemory
---                 --, GHC.verbosity = 4
---                 }
---     return ()
-
-
--- run :: Config -> Ghc a -> IO a
--- run config r = do
---     topDir <- liftIO $ expand' $ Config.topDir $ Config.ghcS config
---     GHC.runGhc (Just topDir) r
-
--- topDir =  "x/base/lib/ghc-7.8.4"
--- global = "x/pkgDb"
--- local = "y/pkgDb"
-
-
------
-
 -- TODO: move to another module and encapsulate
 
 findSymbol :: HS.SessionMonad m => String -> String -> m Any
@@ -127,65 +93,8 @@ unsafeCast = unsafeCoerce
 toAny :: a -> Any
 toAny = unsafeCoerce
 
-
-
---
-
-externalLibs = False
-
--- use: "stack path" for more information
-libdir = "/opt/ghc/7.10.3/lib64/ghc-7.10.3"
-globalPkgDb = "/opt/ghc/7.10.3/lib64/ghc-7.10.3/package.conf.d"
-localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.3/package.conf.d"
--- snapshotPkgDb = ""
-
--- globalPkgDb = "/usr/lib64/ghc-7.10.2/package.conf.d"
--- localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.2/package.conf.d"
-
-
--- libdir = "/home/adam/.stack/global/.stack-work/install/x86_64-linux/lts-4.1/7.10.3/lib/"
--- libdir = ".stack/global/.stack-work/install/x86_64-linux/lts-4.1/7.10.3/lib/x86_64-linux-ghc-7.10.3/"
-
-libDirectory = if externalLibs then libdir else Paths.libdir
-
-initializeGHC :: GhcMonad m => m ()
-initializeGHC = do
-    -- HS.setStrFlags ["-fno-ghci-sandbox"]
-    let isNotUser GHC.UserPkgConf = False
-        isNotUser _ = True
-        extraPkgConfs p = [ GHC.PkgConfFile globalPkgDb
-                          , GHC.PkgConfFile localPkgDb
-                          -- , GHC.PkgConfFile snapshotPkgDb
-                          ] ++ filter isNotUser p
-    flags <- GHC.getSessionDynFlags
-    void  $  GHC.setSessionDynFlags flags
-                { GHC.hscTarget     = GHC.HscInterpreted
-                , GHC.ghcLink       = GHC.LinkInMemory
-                -- , GHC.extraPkgConfs = extraPkgConfs
-                , GHC.ctxtStkDepth  = 1000
-                -- , GHC.verbosity     = 4
-                }
-    if externalLibs then do
-                            flags <- GHC.getSessionDynFlags
-                            void  $  GHC.setSessionDynFlags flags
-                                        { GHC.extraPkgConfs = extraPkgConfs
-                                        }
-                    else return ()
-
-
-defaultImports :: [HS.Import]
-defaultImports = [ "Prelude"
-                 , "Control.Applicative"
-                 , "Control.Monad"
-                 , "Data.List"
-                 -- , "Prologue"
-                 ]
-
-
-
 convertBase :: Integral a => a -> a -> a
 convertBase radix = unDigits radix . digits 10
-
 
 getCPUTime :: IO Integer
 getCPUTime = do
@@ -200,7 +109,6 @@ convertRationalBase radix rational = nom % den where
 toMonadAny :: a -> EvalMonad Any
 toMonadAny = return . toAny
 
-
 numberToAny :: Lit.Number -> EvalMonad Any
 numberToAny (Lit.Number radix (Lit.Rational r)) = toMonadAny $ convertRationalBase (toInteger radix) r
 numberToAny (Lit.Number radix (Lit.Integer  i)) = toMonadAny $ convertBase         (toInteger radix) i
@@ -212,9 +120,6 @@ tryGetBool boolStr
     | boolStr == "True"  = Just True
     | boolStr == "False" = Just False
     | otherwise          = Nothing
-
--- type NetGraph   = Hetero (NEC.Graph NetRawNode (Link NetRawNode) NetRawCluster)
-
 
 #define InterpreterCtx(m, ls, term) ( ls    ~ NetLayers                               \
                                     , term  ~ Draft Static                            \
@@ -292,7 +197,6 @@ markDirty ref dirty = do
 setValue :: InterpreterCtx(m, ls, term) => ValueErr (EvalMonad Any) -> Ref Node (ls :<: term) -> Integer -> m ()
 setValue value ref startTime = do
     endTime <- liftIO getCPUTime
-    -- putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = endTime - startTime
     node <- read ref
     let dirty = isLeft value
@@ -304,7 +208,6 @@ setValue value ref startTime = do
 copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> Integer -> m ()
 copyValue fromRef toRef startTime = do
     endTime <- liftIO getCPUTime
-    -- putStrLn $ "startTime " <> show startTime <> " endTime " <> show endTime
     let !time = endTime - startTime
     fromNode <- read fromRef
     toNode   <- read toRef
@@ -323,22 +226,14 @@ getValue ref = do
     node <- read ref
     return $ (node # InterpreterData) ^. Layer.value
 
---- sandbox
-
-
 markSuccessors :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 markSuccessors ref = do
     node <- read ref
-    -- putStrLn $         "markSuccessors " <> show ref
     unless (isDirty node) $ do
-        -- putStrLn $     "marking dirty  " <> show ref
         markDirty ref True
         when (isRequired node) $ do
-            -- putStrLn $ "addReqNode     " <> show ref
             Env.addNodeToEval ref
             mapM_ markSuccessors =<< succ ref
-
--- handler
 
 nodesToExecute :: InterpreterCtx(m, ls, term) =>  m [Ref Node (ls :<: term)]
 nodesToExecute = do
@@ -486,7 +381,8 @@ testSig = $notImplemented
 testRef :: Ref Node (ls :<: term)
 testRef = $notImplemented
 
-evaluateNode :: (InterpreterCtx(m, ls, term)) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
+-- FIXME[MK]: fix this context, by migrating WHOLE file to ExceptT. No time for this right now
+evaluateNode :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] m), ls, term)) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
 evaluateNode ref = do
     startTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime
@@ -525,8 +421,8 @@ evaluateNode ref = do
                             mapM evaluateNode unpackedArgs
                             funNode      <- read funRef
                             nativeVal    <- caseTest (uncover funNode) $ do
-                                of' $ \native@(Native nameStr)  -> evaluateNative funRef unpackedArgs
-                                of' $ \ANY                      -> return $ Left ["evaluating non native function"]
+                                of' $ \(Native _) -> evaluateNative funRef unpackedArgs
+                                of' $ \ANY        -> return $ Left ["evaluating non native function"]
                             setValue nativeVal ref startTime
                         of' $ \(Lit.String str)                 -> do
                             setValue (Right $ toMonadAny str) ref startTime
@@ -543,22 +439,15 @@ evaluateNode ref = do
     getValue ref
 
 
-evaluateNodes :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m ()
+evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] m), ls, term)) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
     mapM_ collectNodesToEval reqRefs
     mapM_ evaluateNode =<< Env.getNodesToEval
 
 
 
-run :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (InterpreterT env m)), ls, term), env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
-    return ()
-
-
-testRun :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), MonadIO m, MonadFix m, env ~ Env (Ref Node (ls :<: term)))
-    => [Ref Node (ls :<: term)] -> m ()
-testRun reqRefs = do
-    putStrLn "I'm here"
     return ()
