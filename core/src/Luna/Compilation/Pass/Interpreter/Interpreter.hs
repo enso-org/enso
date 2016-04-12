@@ -8,6 +8,7 @@ import           Prelude.Luna                                    hiding (pre, su
 
 import           Control.Monad                                   (forM_)
 import           Control.Monad.Event                             (Dispatcher)
+import           Control.Monad.Except                            (runExceptT, ExceptT (..), throwError)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.State
 -- import qualified Control.Monad.State                             as State
@@ -51,7 +52,7 @@ import qualified Luna.Syntax.Term.Function.Argument              as Arg
 
 import           GHC.Prim                                        (Any)
 
-import           Control.Monad.Catch                             (MonadCatch, MonadMask, handleAll, handleJust)
+import           Control.Monad.Catch                             (MonadCatch, handleAll, handleJust)
 import           Control.Monad.Ghc                               (GhcT)
 import           Control.Exception                               (SomeException(..), AsyncException(..), throwIO)
 import           Language.Haskell.Session                        (GhcMonad)
@@ -147,10 +148,6 @@ localPkgDb  = "/home/adam/.ghc/x86_64-linux-7.10.3/package.conf.d"
 
 libDirectory = if externalLibs then libdir else Paths.libdir
 
-runGHC :: (MGHC.MonadIO m, MonadMask m, Functor m) => MGHC.GhcT m a -> m a
-runGHC session = MGHC.runGhcT (Just libDirectory) $ initializeGHC >> session
--- runGHC session = MGHC.runGhcT (Just Paths.libdir) $ initializeGHC >> session
-
 initializeGHC :: GhcMonad m => m ()
 initializeGHC = do
     -- HS.setStrFlags ["-fno-ghci-sandbox"]
@@ -238,7 +235,6 @@ tryGetBool boolStr
                                     , HasProp InterpreterData node                    \
                                     , Prop    InterpreterData node ~ InterpreterLayer \
                                     , InterpreterMonad (Env (Ref Node node)) (m)      \
-                                    , MonadMask (m)                                   \
                                     , ReferencedM Node graph (m) node                 \
                                     , ReferencedM Edge graph (m) edge                 \
                                     , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
@@ -266,7 +262,6 @@ tryGetBool boolStr
                                     , MonadFix (m)                                    \
                                     , HasProp InterpreterData node                    \
                                     , Prop    InterpreterData node ~ InterpreterLayer \
-                                    , MonadMask (m)                                   \
                                     , ReferencedM Node graph (m) node                 \
                                     , ReferencedM Edge graph (m) edge                 \
                                     , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) (m) \
@@ -305,10 +300,6 @@ setValue value ref startTime = do
                     & prop InterpreterData . Layer.dirty .~ dirty
                     & prop InterpreterData . Layer.time  .~ time
               )
-    valueString <- getValueString ref
-    -- displayValue ref
-    updNode <- read ref
-    write ref $ updNode & prop InterpreterData . Layer.debug .~ valueString
 
 copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> Integer -> m ()
 copyValue fromRef toRef startTime = do
@@ -395,116 +386,6 @@ collectNodesToEval ref = do
         whenM (isDirty <$> read p) $
             collectNodesToEval p
 
-getValueString :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m String
-getValueString ref = do
-    typeName <- getTypeName ref
-    value    <- getValue    ref
-    case value of
-        Left err  -> return ""
-        Right val -> do
-            pureVal <- liftIO val
-            return $ getValueByType typeName pureVal
-            where
-               getValueByType typeName pureVal
-                   | typeName == Right "String" = show ((unsafeCast pureVal) :: String)
-                   | typeName == Right "Int"    = show ((unsafeCast pureVal) :: Integer)
-                   | typeName == Right "Bool"   = show ((unsafeCast pureVal) :: Bool)
-                   | otherwise                 = "unknown type"
-
--- Test function
-displayValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
-displayValue ref = do
-    typeName <- getTypeName ref
-    valueString <- getValueString ref
-    return ()
-    {-putStrLn $ "Type " <> show typeName <> " value " <> valueString-}
-
-getTypeName :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
-getTypeName ref = do
-    node  <- read ref
-    tpRef <- follow source $ node # Type
-    getTypeNameForType tpRef
-
-getListType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (ValueErr String)
-getListType (arg:more:_) = return $ Left ["Too many parameters to list"]
-getListType (arg:_)      = do
-    name <- getTypeNameForType arg
-    return $ (\s -> "[" <> s <> "]") <$> name
-getListType _            = return $ Left ["List should have a type parameter"]
-
-getArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (ValueErr String)
-getArgsType args@(arg:rest) = do
-    typeNameMays <- mapM getTypeNameForType args
-    return $ (\typeNames -> "(" <> intercalate ") (" typeNames <> ")") <$> sequence typeNameMays
-getArgsType _ = return $ Left ["Bad type arguments"]
-
-getFunArgsType :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> Ref Node (ls :<: term) -> m (ValueErr String)
-getFunArgsType args@(arg:rest) out = do
-    typeNameMays   <- mapM getTypeNameForType args
-    outTypeNameMay <- getTypeNameForType out
-    let argsSig = (\typeNames -> intercalate " -> " typeNames) <$> sequence typeNameMays
-        outSig  = (\typeName  -> "IO " <> typeName) <$> outTypeNameMay
-    return $ (\argsSig outSig -> "(" <> argsSig <> " -> " <> outSig <> ")") <$> argsSig <*> outSig
-getFunArgsType _ _ = return $ Left ["Bad type arguments"]
-
-getTypeNameForType :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr String)
-getTypeNameForType tpRef = do
-    -- putStrLn $ "getTypeNameForType " <> show tpRef
-    tp    <- read tpRef
-    caseTest (uncover tp) $ do
-        of' $ \(Cons (Lit.String s) args) -> do
-            let rawArgs  = unlayer <$> args
-            sigElems     <- mapM (follow source) rawArgs
-            case s of
-                "List"      -> getListType sigElems
-                "Histogram" -> return $ Right "[(Int, Int)]"
-                _           -> if null sigElems
-                    then return $ Right s
-                    else do
-                        argsTypeMay <- getArgsType sigElems
-                        return $ case argsTypeMay of
-                            Left err       -> Left err
-                            Right argsType -> Right $ s <> " " <> argsType
-        of' $ \(Lam args out) -> do
-            let rawSigElems  = unlayer <$> args
-            sigElems       <- mapM (follow source) rawSigElems
-            sigOut         <- follow source $ out
-            getFunArgsType sigElems sigOut
-        of' $ \(Var (Lit.String name)) -> return . Right $ replace "#" "_" name
-        of' $ \ANY                     -> return $ Left ["Ambiguous node type"]
-
-
--- run :: (MonadIO m, MonadMask m, Functor m) => GhcT m a -> m a
-
-getSigElem :: ValueErr String -> String
-getSigElem (Left  err) = "<" <> intercalate ", " err <> ">"
-getSigElem (Right sigElem) = sigElem
-
-getNativeType :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (ValueErr String)
-getNativeType ref = do
-    node  <- read ref
-    tpRef <- follow source $ node # Type
-    tp    <- read tpRef
-    caseTest (uncover tp) $ do
-        of' $ \(Lam args out) -> do
-            let rawArgs  = unlayer <$> args
-            sigOut        <- (follow source) out
-            sigOutName    <- (fmap ((evalMonad <> " ") <>)) <$> getTypeNameForType sigOut
-            sigParams     <- mapM (follow source) rawArgs
-            sigParamNames <- mapM getTypeNameForType sigParams
-            let sigElemNames = sigParamNames <> [sigOutName]
-            return $ if all isRight sigElemNames
-                then
-                    let funSig = intercalate " -> " (rights sigElemNames) in
-                    Right funSig
-                else
-                    let funSig = intercalate " -> " (getSigElem <$> sigElemNames) in
-                    -- Right "[Int] -> (Int -> IO Int) -> IO [Int]"
-                    Left ["Could not evaluate all signature elements types: " <> funSig]
-
-        of' $ \ANY -> return $ Left ["Incorrect native type"]
-
-
 exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (ValueErr (EvalMonad Any))
 exceptionHandler e = do
     let asyncExcMay = ((fromException e) :: Maybe AsyncException)
@@ -516,34 +397,29 @@ exceptionHandler e = do
             liftIO $ throwIO e
 
 -- TCData TCErrors - non empty
-evaluateNative :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
-evaluateNative ref args = do
+evaluateNative :: (InterpreterCtx((ExceptT [String] m), ls, term)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
+evaluateNative ref args = runExceptT $ do
     node <- read ref
-    (name, tpNativeE) <- caseTest (uncover node) $ do
+    name <- caseTest (uncover node) $ do
        of' $ \(Native nameStr) -> do
-           tpNativeMay <- getNativeType ref
-           return (unwrap' nameStr, tpNativeMay)
-       of' $ \ANY -> return ("", Left ["Error: native cannot be evaluated"])
+           return $ unwrap' nameStr
+       of' $ \ANY -> throwError ["Error: native cannot be evaluated"]
 
-    case tpNativeE of
-       Left err -> do
-           putStrLn $ "error " <> (intercalate " " err)
-           return $ Left err
-       Right tpNative -> do
-           markDirty ref False
-           valuesE <- argumentsValues args
-           case valuesE of
-               Left err -> return $ Left err
-               Right valuesM -> do
-                   res <- handleAll exceptionHandler $ runGHC $ do
-                       HS.setImports defaultImports
-                       fun  <- findSymbol name tpNative
-                       args <- liftIO $ sequence valuesM
-                       let resA = foldl appArg fun args
-                       let resM = unsafeCast resA :: EvalMonad Any
-                       res <- liftIO $ resM
-                       return $ Right $ return res
-                   return $ res
+    markDirty ref False
+    valuesE <- argumentsValues args
+    values <- ExceptT $ return valuesE
+    res <- do
+        let fun :: Any = case name of
+                "Int.upto" -> unsafeCoerce (return .: enumFromTo :: Int -> Int -> IO [Int])
+                "List.map" -> unsafeCoerce (forM :: [Any] -> (Any -> IO Any) -> IO [Any])
+                "add"      -> unsafeCoerce (return .: (+) :: Int -> Int -> IO Int)
+
+        args <- liftIO $ sequence values
+        let resA = foldl appArg fun args
+        let resM = unsafeCast resA :: EvalMonad Any
+        res <- liftIO $ resM
+        return $ return res
+    return $ res
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 
@@ -610,7 +486,7 @@ testSig = $notImplemented
 testRef :: Ref Node (ls :<: term)
 testRef = $notImplemented
 
-evaluateNode :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
+evaluateNode :: (InterpreterCtx(m, ls, term)) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
 evaluateNode ref = do
     startTime <- liftIO getCPUTime
     -- putStrLn $ "startTime " <> show startTime
