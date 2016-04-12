@@ -10,13 +10,13 @@ import           Data.Graph.Builders
 import           Data.Record                             (ANY, Matches)
 import           Data.Graph.Builder.Ref
 import           Luna.Syntax.Term.Function.Argument
-import qualified Luna.Syntax.Term.Class_OLD                    as Term
-import           Luna.Syntax.Term.Class_OLD                    hiding (Val, Lit, Thunk, Expr, Draft, Source)
+import qualified Old.Luna.Syntax.Term.Class                    as Term
+import           Old.Luna.Syntax.Term.Class                    hiding (Val, Lit, Thunk, Expr, Draft, Source)
 import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term
 import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder_OLD)
 import           Type.Inference
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 import           Data.Layer_OLD.Cover_OLD
 
 

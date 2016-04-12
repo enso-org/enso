@@ -18,9 +18,9 @@ import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Pretty.GraphViz
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Luna.Syntax.Term.Class_OLD                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
-import           Luna.Syntax.Term.Class_OLD                            hiding (source)
-import qualified Luna.Syntax.Term.Class_OLD                            as Term
+import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
+import           Old.Luna.Syntax.Term.Class                            hiding (source)
+import qualified Old.Luna.Syntax.Term.Class                            as Term
 import           Data.Graph
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Layer
@@ -30,7 +30,7 @@ import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                        as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
 import qualified Data.Graph.Builder.Class               as Graph
 import qualified Data.Graph.Backend.NEC                 as NEC

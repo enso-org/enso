@@ -31,13 +31,13 @@ import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterDat
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
-import           Luna.Syntax.Term.Class_OLD                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
+import           Old.Luna.Syntax.Term.Class                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
 import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs, tcErrors)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                            as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
 
 import           Type.Inference
 

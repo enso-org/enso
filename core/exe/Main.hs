@@ -59,9 +59,9 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, Ne
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term                               (OverBuilder, Layout2, Expr, TermRecord2, overbuild, AnyTerm)
-import qualified Luna.Syntax.Term.Class_OLD                           as Term
+import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft))
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                            as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
 
 import qualified Data.Graph.Backend.NEC       as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)

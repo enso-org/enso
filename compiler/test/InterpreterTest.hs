@@ -19,9 +19,9 @@ import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Pretty.GraphViz
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Luna.Syntax.Term.Class_OLD                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
-import           Luna.Syntax.Term.Class_OLD                            hiding (source)
-import qualified Luna.Syntax.Term.Class_OLD                            as Term
+import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
+import           Old.Luna.Syntax.Term.Class                            hiding (source)
+import qualified Old.Luna.Syntax.Term.Class                            as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder               (Sign (..))
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
@@ -37,7 +37,7 @@ import qualified Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
 import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                        as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
 import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 
@@ -408,7 +408,7 @@ intRun gtc refsToEval = do
 -- import           Luna.Interpreter.Label       (Label)
 -- import qualified Luna.Interpreter.NodeRunner  as NodeRunner
 -- import qualified Luna.Interpreter.Session     as Session
--- import           Luna.Syntax.Term.Class_OLD
+-- import           Old.Luna.Syntax.Term.Class
 -- import           Luna.Syntax.Builder
 -- import qualified Luna.Syntax.Builder          as Builder
 -- import qualified Luna.Syntax.Builder.Node     as NodeBuilder

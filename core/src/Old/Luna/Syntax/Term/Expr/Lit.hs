@@ -1,4 +1,4 @@
-module Luna.Syntax.Term.Expr.Lit_OLD (module Luna.Syntax.Term.Expr.Lit_OLD, module X) where
+module Old.Luna.Syntax.Term.Expr.Lit (module Old.Luna.Syntax.Term.Expr.Lit, module X) where
 
 import           Prelude.Luna            hiding (Rational, Integer, String)
 import qualified Prelude.Luna            as P

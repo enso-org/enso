@@ -41,7 +41,7 @@ import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
 import           Luna.Runtime.Dynamics                 (Dynamic, Static)
 import qualified Luna.Syntax.Term.Function                as Function
-import qualified Luna.Syntax.Term.Class_OLD                    as Term
+import qualified Old.Luna.Syntax.Term.Class                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
 import           Luna.Syntax.Model.Network.Builder.Layer
@@ -52,7 +52,7 @@ import           Luna.Pretty.Styles                 (HeaderOnly (..), Simple (..
 import           System.Platform
 import           System.Process                          (createProcess, shell)
 import           Data.Tuple.Select                       (sel1)
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 
 
 --instance Repr HeaderOnly Data where repr _ = "Data"

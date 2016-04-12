@@ -9,9 +9,9 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Class as Node
 import Luna.Syntax.Model.Network.Builder.Term.Inferred (inferNodeM)
 import Data.Graph
 import Luna.Syntax.Model.Layer
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 import           Type.Inference (Inferable)
-import Luna.Syntax.Term.Class_OLD (NameInput, Cons)
+import Old.Luna.Syntax.Term.Class (NameInput, Cons)
 import Luna.Syntax.Term.Function.Argument (Arg)
 
 star :: (Node.NodeBuilder Lit.Star m (ls :<: term), Inferable ELEMENT (Ref Node (ls :<: term)) m) => m (Ref Node (ls :<: term))

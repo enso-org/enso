@@ -11,7 +11,7 @@ import Luna.Runtime.Dynamics     (ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
 import Type.Applicative
 
-import qualified Luna.Syntax.Term.Expr.Lit_OLD  as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
 
 import qualified Data.Construction as C
 

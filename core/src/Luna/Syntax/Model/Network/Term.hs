@@ -14,7 +14,7 @@ import           Data.Layer_OLD.Cover_OLD
 import           Data.Record                    (HasRecord, RecordOf, IsRecord, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props)
 import qualified Data.Record                    as Record
 import           Data.Reprx                     (Repr, repr)
-import           Luna.Syntax.Term.Class_OLD           hiding (Val, Lit, Thunk, Expr, Draft)
+import           Old.Luna.Syntax.Term.Class           hiding (Val, Lit, Thunk, Expr, Draft)
 import           Luna.Syntax.Model.Layer
 import           Luna.Runtime.Dynamics          (Dynamics)
 import           Luna.Syntax.Term.Function.Argument

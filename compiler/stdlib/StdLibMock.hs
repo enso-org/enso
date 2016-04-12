@@ -17,14 +17,14 @@ import Luna.Runtime.Dynamics                      (Static, Dynamic)
 import Luna.Library.Symbol                    (MonadSymbol, SymbolMap)
 
 import Luna.Syntax.Term.Function                     (Function (..), Signature (..))
-import Luna.Syntax.Term.Class_OLD
+import Old.Luna.Syntax.Term.Class
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetworkBuilderT, NetLayers, NetGraph)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Luna.Syntax.Term.Expr.Lit_OLD         as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit         as Lit
 import qualified Data.Map                         as Map
 import qualified Luna.Syntax.Name.Path     as QualPath
 import qualified Luna.Syntax.Term.Function         as Function

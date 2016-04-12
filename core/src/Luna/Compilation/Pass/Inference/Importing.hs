@@ -15,7 +15,7 @@ import Data.Maybe                                   (fromMaybe, maybeToList)
 import Luna.Runtime.Dynamics                      (Static)
 import Luna.Library.Symbol                    (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.Term.Function                     (Function, Signature)
-import Luna.Syntax.Term.Class_OLD                         hiding (source)
+import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Data.Graph                                   as Graph
 import Data.Graph.Builder                           as Graph hiding (run)
 import qualified Data.Graph.Backend.NEC               as NEC
@@ -32,7 +32,7 @@ import           Data.Map (Map)
 
 import qualified Luna.Syntax.Name.Path     as QualPath
 import qualified Luna.Syntax.Term.Function         as Function
-import qualified Luna.Syntax.Term.Expr.Lit_OLD         as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit         as Lit
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)

@@ -49,8 +49,8 @@ import qualified Luna.Runtime.Dynamics                         as Runtime
 import qualified Luna.Syntax.Term.Expr.Format                           as EvalModel
 import qualified StdLibMock                           as StdLib
 import qualified Luna.Library.Symbol                       as Symbol
-import           Luna.Syntax.Term.Class_OLD                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
-import qualified Luna.Syntax.Term.Class_OLD                            as Term
+import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
+import qualified Old.Luna.Syntax.Term.Class                            as Term
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer

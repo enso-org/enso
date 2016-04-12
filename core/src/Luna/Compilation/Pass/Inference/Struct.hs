@@ -11,7 +11,7 @@ import Data.Prop
 import Data.Record
 import Data.Graph.Builder
 import Luna.Runtime.Dynamics                      (Static, Dynamic)
-import Luna.Syntax.Term.Class_OLD                         hiding (source)
+import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers)

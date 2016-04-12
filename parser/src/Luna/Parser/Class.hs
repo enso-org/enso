@@ -7,7 +7,7 @@ import Prelude.Luna hiding (Curry)
 import Luna.Syntax.Name
 import Luna.Parser.Indent                     (MonadIndent)
 import Luna.Parser.State                      (MonadParserState)
-import Luna.Syntax.Term.Class_OLD                   hiding (Name)
+import Old.Luna.Syntax.Term.Class                   hiding (Name)
 import Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)
@@ -15,7 +15,7 @@ import Luna.Syntax.Model.Text.Location        (MonadLocation)
 import Text.Parser.Char                       (CharParsing, char)
 import Text.Parser.Combinators                (Parsing)
 
-import qualified Luna.Syntax.Term.Expr.Lit_OLD as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import qualified Text.Trifecta.Parser     as Trifecta
 
 

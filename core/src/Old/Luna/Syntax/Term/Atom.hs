@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Term.Atom_OLD where
+module Old.Luna.Syntax.Term.Atom where
 
 import Prelude.Luna hiding (Curry)
 
@@ -8,7 +8,7 @@ import Data.Base
 import Luna.Syntax.Term.Function (Arg)
 import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
-import qualified Luna.Syntax.Term.Expr.Lit_OLD as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import Type.Applicative
 
 

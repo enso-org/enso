@@ -16,8 +16,8 @@ import qualified Data.Graph.Backend.NEC                  as NEC
 
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Luna.Syntax.Term.Class_OLD                            hiding (source)
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                        as Lit
+import           Old.Luna.Syntax.Term.Class                            hiding (source)
+import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)

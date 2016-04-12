@@ -57,8 +57,8 @@ import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
 import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
-import Luna.Syntax.Term.Class_OLD (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
-import qualified Luna.Syntax.Term.Expr.Lit_OLD as Lit
+import Old.Luna.Syntax.Term.Class (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
+import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
 import Luna.Runtime.Dynamics (Dynamics)
 import Luna.Syntax.Name

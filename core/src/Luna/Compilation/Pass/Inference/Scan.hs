@@ -10,7 +10,7 @@ import Data.Graph
 import Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC                  as NEC
 
-import Luna.Syntax.Term.Class_OLD                            hiding (source, target)
+import Old.Luna.Syntax.Term.Class                            hiding (source, target)
 import Luna.Syntax.Model.Layer
 import Luna.Runtime.Dynamics                         (Static)
 import Luna.Syntax.Model.Network.Class                 ()
@@ -24,7 +24,7 @@ import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, re
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                        as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Data.Layer_OLD.Cover_OLD
 
 #define PassCtx(m) ( term ~ Draft Static                           \

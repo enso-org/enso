@@ -17,7 +17,7 @@ import qualified Luna.Compilation.Pass.Dirty.Data.Label          as Label
 import qualified Luna.Compilation.Pass.Dirty.Dirty               as Dirty
 import           Luna.Compilation.Pass.Dirty.Monad               (DirtyMonad)
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Luna.Syntax.Term.Class_OLD                     (Lam)
+import           Old.Luna.Syntax.Term.Class                     (Lam)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred

@@ -5,7 +5,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE PolyKinds #-}
 
-module Luna.Syntax.Term.Class_OLD (module Luna.Syntax.Term.Class_OLD, module X) where
+module Old.Luna.Syntax.Term.Class (module Old.Luna.Syntax.Term.Class, module X) where
 
 
 import           Prelude.Luna                 hiding (Num, Swapped, Curry)
@@ -27,8 +27,8 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import qualified Luna.Syntax.Term.Expr.Lit_OLD     as Lit
-import Luna.Syntax.Term.Atom_OLD as X
+import qualified Old.Luna.Syntax.Term.Expr.Lit     as Lit
+import Old.Luna.Syntax.Term.Atom as X
 
 import Data.Shell               as Shell
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)

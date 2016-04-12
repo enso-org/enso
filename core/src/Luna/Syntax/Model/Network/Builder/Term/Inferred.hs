@@ -8,9 +8,9 @@ import Prelude.Luna hiding (Curry, Num)
 import           Data.Graph                                   (ELEMENT (..))
 import           Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
-import           Luna.Syntax.Term.Class_OLD
+import           Old.Luna.Syntax.Term.Class
 import           Luna.Syntax.Term.Function.Argument
-import qualified Luna.Syntax.Term.Expr.Lit_OLD                         as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                         as Lit
 import           Type.Inference
 
 ---------------------

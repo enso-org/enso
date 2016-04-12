@@ -12,7 +12,7 @@ import           Luna.Syntax.Model.Network.Class                (Network)
 import qualified Luna.Syntax.Model.Network.Term                 as Term
 
 import           Luna.Runtime.Dynamics                        (Static)
-import           Luna.Syntax.Term.Class_OLD                           (Term)
+import           Old.Luna.Syntax.Term.Class                           (Term)
 
 
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool

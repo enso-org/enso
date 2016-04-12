@@ -13,7 +13,7 @@ import Data.Prop
 import Data.Record.Match
 import Data.Layer_OLD
 import Luna.Runtime.Dynamics                      (Static)
-import Luna.Syntax.Term.Class_OLD                         hiding (source)
+import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph                                   as Graph hiding (add)
 import qualified Data.Graph.Backend.NEC               as NEC
