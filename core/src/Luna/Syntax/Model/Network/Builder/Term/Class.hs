@@ -45,7 +45,8 @@ import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
 
 import qualified Luna.Syntax.Term as New
-import           Luna.Syntax.Term (KnownTerm, Elems, TermOf)
+import           Luna.Syntax.Term (AtomicExpr, TermOf)
+import           Data.Container.Hetero (Elems)
 import qualified Luna.Syntax.Term.Expr.Symbol as Atom
 
 undefined = error "Undefined in Term/Class.hs"
@@ -110,7 +111,7 @@ class Dispatcher ELEMENT a m => TermBuilder t m a where buildTerm :: t -> BuildA
 instance {-# OVERLAPPABLE #-} Dispatcher ELEMENT a IM => TermBuilder t IM a where buildTerm = impossible
 
 
-class TermBuilder2 t fmt dyn a where buildTerm2 :: a -> BuildArgs2 a (KnownTerm t fmt dyn a) -> m (KnownTerm t fmt dyn a)
+class TermBuilder2 t fmt dyn a where buildTerm2 :: a -> BuildArgs2 a (AtomicExpr t fmt dyn a) -> m (AtomicExpr t fmt dyn a)
 -- newtype     Term2   t fmt dyn a = Term2 (Layout2 t fmt dyn a)
 
 

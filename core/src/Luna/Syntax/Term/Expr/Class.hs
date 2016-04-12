@@ -38,66 +38,8 @@ import Prologue.Unsafe (error)
 import Luna.Syntax.Term.Expr (Atom, Atoms, NameByDynamics)
 
 
+import Data.Container.Hetero (Elems)
 
-
-
-
-
-
---
-
---type family TakeUntil (a :: k) (ls :: [k]) :: [k] where
-type family TakeUntil a ls where
-    TakeUntil a '[]       = '[]
-    TakeUntil a (a ': ls) = '[a]
-    TakeUntil a (l ': ls) = l ': TakeUntil a ls
-
-
-
-
---
-
-type SubFormats a = TakeUntil a Formats
-
---
-
-type ExprRecord gs vs t = TermRecord gs vs t
-
-
-
-
--- === Refactor === --
-
-
--- newtype     Expr      t fmt dyn = Expr (ExprRecord (SubExprs t fmt dyn) (Variants2 t fmt dyn) t) deriving (Generic, NFData, Show)
--- type        Variants2 t fmt dyn = Atoms (Elems fmt) dyn (Layout t fmt dyn)
-
-
-
-
-
-type family LayoutType a
--- type family ExprOf a
-
-type family   Elems t      :: [*]
-type instance Elems Literal = '[Star    , String    , Integer , Rational ]
-type instance Elems Value   = '[Cons    , Lam                            ] <> Elems Literal
-type instance Elems Thunk   = '[Acc     , App       , Curry   , Native   ] <> Elems Value
-type instance Elems Phrase  = '[Var     , Unify     , Match              ] <> Elems Thunk
-type instance Elems Draft   = '[Blank                                    ] <> Elems Phrase
-
-
-
-
-
-
------------------------
--- === Selectors === --
------------------------
-
-type family Selected (sel :: Maybe [*]) (lst :: [*]) where
-            Selected 'Nothing    lst = lst
-            Selected ('Just sel) lst = sel -- FIXME[WD]: Selekcja nie jest sprawdzana czy matchuje sie z mozlwymi wyborami
 
 
 -------------------
@@ -106,19 +48,22 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
 
 -- === Definitions === --
 
-newtype     Expr       t fmt dyn sel = Expr (Layout2 t fmt dyn sel)
-type        AnyTerm     t fmt dyn     = Expr       t fmt dyn 'Nothing
-type        LimitedTerm t fmt dyn a   = Expr       t fmt dyn ('Just a)
-type        KnownTerm   t fmt dyn a   = LimitedTerm t fmt dyn '[a]
+newtype     Expr        t fmt dyn sel = Expr (Layout t fmt dyn sel)
+type        AnyExpr     t fmt dyn     = Expr         t fmt dyn 'Nothing
+type        LimitedExpr t fmt dyn a   = Expr         t fmt dyn ('Just a)
+type        AtomicExpr  t fmt dyn a   = LimitedExpr  t fmt dyn '[a]
 
-type family Layout2     t fmt dyn (sel :: Maybe [*]) :: *
+type family Layout      t fmt dyn (sel :: Maybe [*]) :: *
 type family TermOf      a
 
 
 -- === Utils === --
 
+type family Selected (sel :: Maybe [*]) (lst :: [*]) where
+            Selected 'Nothing    lst = lst
+            Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
 
-type        Variants3       t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
+type        Variants        t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
 type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
@@ -130,8 +75,8 @@ type family SubExprs'       t fmts dyn where
 
 -- === Defaults === --
 
--- | Standard term record definition
-type TermRecord2 t fmt dyn a bind = VGRecord2 (SubExprs t fmt dyn) (Variants3 t fmt dyn a bind) Data2
+-- | Standard expr record definition
+type ExprRecord t fmt dyn a bind = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn a bind) Data2
 
 
 -- === Instances === --
@@ -157,9 +102,9 @@ instance Shell.HasLayer' l (Unwrapped (Expr t fmt dyn sel)) => Shell.HasLayer' l
 
 
 
--------------------
--- === Shell === --
--------------------
+-------------------------
+-- === OverBuilder === --
+-------------------------
 
 class Monad m => OverBuilder m a where
     overbuild :: RecordOf a -> m a
@@ -169,7 +114,6 @@ instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
 
 instance OverBuilder m (Unwrapped (Expr t fmt dyn a)) => OverBuilder m (Expr t fmt dyn a) where
     overbuild = Expr <∘> overbuild ; {-# INLINE overbuild #-}
-
 
 
 

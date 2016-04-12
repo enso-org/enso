@@ -1,11 +1,18 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.Syntax.Term.Expr.Format where
 
-import Prelude.Luna
+import Prelude.Luna hiding (String, Integer, Rational)
+
+import Data.Container.Hetero (Elems)
+import Type.List             (TakeUntil)
+
+import Luna.Syntax.Term.Expr.Symbol
 
 
-------------------------------
--- === Evaluation Model === --
-------------------------------
+--------------------------------
+-- === Expression formats === --
+--------------------------------
 
 -- === Definitions === --
 
@@ -16,3 +23,17 @@ data Phrase  = Phrase  deriving (Show)
 data Draft   = Draft   deriving (Show)
 
 type Formats = '[Literal, Value, Thunk, Phrase, Draft]
+
+
+-- === Utils === --
+
+type SubFormats a = TakeUntil a Formats
+
+
+-- === Relations === --
+
+type instance Elems Literal = '[Star    , String    , Integer , Rational ]
+type instance Elems Value   = '[Cons    , Lam                            ] <> Elems Literal
+type instance Elems Thunk   = '[Acc     , App       , Curry   , Native   ] <> Elems Value
+type instance Elems Phrase  = '[Var     , Unify     , Match              ] <> Elems Thunk
+type instance Elems Draft   = '[Blank                                    ] <> Elems Phrase

@@ -58,7 +58,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term                               (OverBuilder, Layout2, Expr, TermRecord2, overbuild, AnyTerm)
+import           Luna.Syntax.Term                               (OverBuilder, Layout, Expr, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
@@ -257,7 +257,7 @@ type instance LayerData (NetLayer t a) = LayerData a
 
 -- Layout
 type TermShell ls term rec = (NetLayer term <$> ls) :| rec
-type instance Layout2 (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (TermRecord2 (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type instance Layout (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 -- Shell
 type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
@@ -273,16 +273,16 @@ instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = retur
 
 
 
-type TRex2 t fmt dyn sel = TermRecord2 t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 
 
 
 a1 = () ^. from atomArgs :: Atom Blank Static Int
--- -- t1 = Record.cons a1 :: AnyTerm SNet Draft Static
+-- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
-t2 = runIdentity $ overbuild t1 :: AnyTerm (Net '[IntLayer]) Draft Static
+t2 = runIdentity $ overbuild t1 :: AnyExpr (Net '[IntLayer]) Draft Static
 
 t3 = runIdentity $ refer t2
 
@@ -290,7 +290,7 @@ t3 = runIdentity $ refer t2
 -- t4 a = runIdentity $ foox a
 --
 --
--- type Foox = Record.Variants (RecordOf (AnyTerm SNet Draft Static))
+-- type Foox = Record.Variants (RecordOf (AnyExpr SNet Draft Static))
 
 
 instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where

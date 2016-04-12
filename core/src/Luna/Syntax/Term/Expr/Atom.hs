@@ -56,9 +56,9 @@ type        Atoms ts dyn a = Atom <$> ts <*> '[dyn] <*> '[a]
 
 -- === Definitions === --
 
-data    instance Atom Integer  dyn a = Integer  P.Integer
-data    instance Atom Rational dyn a = Rational P.Rational
-data    instance Atom String   dyn a = String   P.String
+newtype instance Atom Integer  dyn a = Integer  P.Integer
+newtype instance Atom Rational dyn a = Rational P.Rational
+newtype instance Atom String   dyn a = String   P.String
 
 data    instance Atom Acc    dyn a = Acc    !(DynName dyn a) !a
 data    instance Atom App    dyn a = App                     !a ![Arg a]
