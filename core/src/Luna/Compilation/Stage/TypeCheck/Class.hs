@@ -21,6 +21,7 @@ data TCState n = TCState { _allNodes          :: ![Ref Node n]
                          , _untypedBinds      :: ![Ref Node n]
                          , _untypedLits       :: ![Ref Node n]
                          , _uncalledApps      :: ![Ref Node n]
+                         , _uncalledCurries   :: ![Ref Node n]
                          , _bindings          :: ![Ref Node n]
                          , _freshRoots        :: ![Ref Node n]
                          } deriving (Show, Eq)
@@ -28,7 +29,7 @@ data TCState n = TCState { _allNodes          :: ![Ref Node n]
 makeLenses ''TCState
 
 instance Default (TCState n) where
-    def = TCState def def def def def def def def def def def
+    def = TCState def def def def def def def def def def def def
 
 
 ---- TODO: template haskellize

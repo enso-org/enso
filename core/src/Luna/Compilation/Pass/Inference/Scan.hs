@@ -60,6 +60,7 @@ investigate ref = do
             of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Cons _ _)       ->  TypeCheck.untypedLits       %~ (ref :)
+            of' $ \(Curry _ _)      ->  TypeCheck.uncalledCurries   %~ (ref :)
             of' $ \ANY              ->  id
     TypeCheck.modify_ $ mod . (TypeCheck.allNodes %~ (ref :))
 

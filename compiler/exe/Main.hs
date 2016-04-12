@@ -12,7 +12,7 @@ module Main where
 
 import           Data.Graph
 import           Data.Graph.Builders
-import           Prologue                                        hiding (Version, cons, read, ( # ), Num, Cons)
+import           Prelude.Luna                                    hiding (curry)
 
 import           Text.Printf                                     (printf)
 import qualified Control.Monad.Writer                            as Writer
@@ -377,65 +377,20 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
-                i1 <- int 2
-                i2 <- int 3
-                fun1 <- var "succ"
+                prsFun <- var "primes"
+                ten    <- int 10
+                one    <- int 1
+                primes <- app prsFun [arg ten]
+                add    <- var "add"
+                curid  <- curry add [arg one]
 
-                act <- acc "times" i1
-                apt <- app act [arg i2]
+                mapF   <- acc "map" primes
+                apped  <- app mapF [arg curid]
 
-                ach <- acc "head" apt
-                aph <- app ach []
-
-                return [aph]
-                {-pr <- var "primes"-}
-                {-i  <- int 30-}
-                {-appr <- app pr [arg i]-}
-                {-rev <- acc "reverse" appr-}
-                {-aprev <- app rev []-}
-                {-return [aprev]-}
-                {-rev <- acc "reverse" v1-}
-                {-aprev <- app rev []-}
-
-                {-id <- var "id"-}
-                {-apid <- app id [arg aprev]-}
-
-                {-rev2 <- acc "reverse" apid-}
-                {-aprev2 <- app rev2 []-}
-
-                {-mean <- var "mean"-}
-                {-appmean <- app mean [arg aprev2]-}
-                {-return [appmean]-}
-
-                {-i1 <- double 20.0-}
-                {-id <- var "id"-}
-                {-succ <- var "succ"-}
-                {-apid <- app id [arg i1]-}
-                {-apsu <- app succ [arg apid]-}
-                {-return [apsu]-}
-                {-i1 <- double 20.0-}
-
-                {-f1 <- var "primes"-}
-                {-a1 <- app f1 [arg i1]-}
-                {-v1 <- var "node1"-}
-                {-m1 <- match v1 a1-}
-
-                {-f2 <- var "id"-}
-                {-a2 <- app f2 [arg v1]-}
-                {-v2 <- var "node2"-}
-                {-m2 <- match v2 a2-}
-
-                {-f3 <- var "mean"-}
-                {-a3 <- app f3 [arg v2]-}
-                {-v3 <- var "node3"-}
-                {-m3 <- match v3 a3-}
-
-                {-return [m1, m2, m3]-}
-            --(lits, apps, accs, funcs) <- input_simple1
-            {-(lits, apps, accs, funcs) <- input_simple2-}
+                return [apped]
 
             Symbol.loadFunctions StdLib.symbols
-            TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
+            TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ roots
             collectGraph "Initial"
             let tc = (seq4
                          ScanPass
