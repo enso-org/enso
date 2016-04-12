@@ -19,7 +19,6 @@ import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import qualified Text.Trifecta.Parser     as Trifecta
 
 
-
 newtype Parser a = Parser { runParser :: Trifecta.Parser a } deriving ( Functor, Applicative, Alternative, Monad, MonadPlus
                                                                       , DeltaParsing, CharParsing, Parsing)
 
@@ -45,6 +44,7 @@ type ASTBuilderCtx m a = ( a ~ Input a
                          , TermBuilder_OLD Unify      m a
                          , TermBuilder_OLD Acc        m a
                          , TermBuilder_OLD Match      m a
+                         , TermBuilder_OLD Blank      m a
                          , TermBuilder_OLD Lit.String m a
                          , TermBuilder_OLD Lit.Number m a
                          , IsString              (NameInput a)

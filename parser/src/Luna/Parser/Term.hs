@@ -79,7 +79,7 @@ import Luna.Parser.Location (located)
 import qualified Luna.Parser.Layout as Layout
 import qualified Luna.Parser.Token.Operator as Operator
 
-import Luna.Parser.Char (CharParsing, isSpace, satisfy, string)
+import Luna.Parser.Char (CharParsing, isSpace, satisfy, string, char)
 
 
 import qualified Luna.Parser.Expression as E
@@ -368,6 +368,7 @@ exprApp =  labCurry (exprAtom <|> operator) exprAtom <|> labApp exprAtom
 
 exprAtom :: ASTParser p m a => p (m a)
 exprAtom  = parens expr
+        <|> blank
         <|> literal
         <|> patVar
         <|> consHeader
@@ -410,8 +411,14 @@ appAs argmod base = base <??> (bldr <$> many1 (argmod base)) where
     bldr margs ma = liftM2 AST.app ma (sequence margs)
 
 curryAs :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a) -> p (m a)
-curryAs argmod base arg = (Tok.curry *> base) <??> (bldr <$> many (argmod arg)) where
+curryAs argmod base arg = ( try (Tok.curry <* notFollowedBy (char '.')) *> base) <??> (bldr <$> many (argmod arg)) where
     bldr margs ma = liftM2 AST.curry ma (sequence margs)
+
+-- === Other === --
+
+blank :: ASTParser p m a => p (m a)
+blank = return AST.blank <* Tok.blank
+
 
 
 --------------------------

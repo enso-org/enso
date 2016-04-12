@@ -122,7 +122,7 @@ checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDes
 
 
 
-partialInput = [s|2 + 2|]
+partialInput = [s|@.foo|]
 
 partialParsed = parseString partialInput partialParser
 partialParser = parseGen (Term.partial <* eof) Parser.defState
