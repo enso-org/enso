@@ -79,7 +79,7 @@ input2 = [s|def if_then_else cond ok fail :
 i
 |]
 
-input3 = [s|@foo bar
+input3 = [s|7
 |]
 
 
@@ -96,16 +96,20 @@ makeLenses ''Test
 
 
 inputs :: [Test String]
-inputs  = [ Test False "Variables"           "ala"
-          , Test False "Constructors"        "True"
-          , Test False "Operators"           "+"
-          , Test False "String literals"     "\"test\""
-          , Test False "Integer literals"    "7"
-          , Test False "Fractional literals" "7.1"
-          , Test False "Applications"        "foo bar baz"
-          , Test False "Currying"            "@foo bar baz"
-          , Test False "Accessors"           "foo.bar"
-          , Test False "Nested accessors"    "foo.bar.baz"
+inputs  = [ Test False "Variables"            "ala"
+          , Test False "Constructors"         "True"
+          , Test False "Operators"            "+"
+          , Test False "Operator expressions" "2 + 3"
+          , Test False "String literals"      "\"test\""
+          , Test False "Integer literals"     "7"
+          , Test False "Fractional literals"  "7.1"
+          , Test False "Applications"         "foo bar baz"
+          , Test False "Currying empty"       "@foo"
+          , Test False "Currying app"         "@foo bar baz"
+          , Test False "Currying operator"    "@+"
+          , Test False "Accessors"            "foo.bar"
+          , Test False "Operator accessors"   "foo.op+"
+          , Test False "Nested accessors"     "foo.bar.baz"
           ]
 
 checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDesc where
@@ -118,7 +122,7 @@ checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDes
 
 
 
-partialInput = [s|+|]
+partialInput = [s|2 + 2|]
 
 partialParsed = parseString partialInput partialParser
 partialParser = parseGen (Term.partial <* eof) Parser.defState
@@ -155,4 +159,4 @@ main :: IO ()
 main = do
     let results = (content %~ flip parseString partialParser) <$> inputs
     mapM_ checkResult results
-    mainLam
+    mainPartial

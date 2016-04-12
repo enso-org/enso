@@ -21,4 +21,4 @@ startChar = char
 name  = (:) <$> startChar <*> many char <?> "operator name"
 ident = token (highlight Highlight.Operator name) <?> "operator"
 
-
+-- identr name = reserve (highlight Highlight.Operator name) *> pure name

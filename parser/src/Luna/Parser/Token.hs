@@ -182,8 +182,8 @@ indBlockBegin' = symbol' ":"
 
 --numPrefix pfxs = try (lex '0' *> choice (fmap lex pfxs))
 --numRepr baseDigit = some baseDigit <**> ((flip Number.Float <$> try (lex '.' *> some baseDigit)) <|> pure Number.Decimal)
-number :: CharParsing p => p Number
-number = some digit <**> (try rationalMod <|> integerMod)
+number :: TokenParsing p => p Number
+number = token $ some digit <**> (try rationalMod <|> integerMod)
 
 rationalMod :: CharParsing p => p (String -> Number)
 rationalMod = ((\ext base -> Number.decimal $ Number.Double $ read $ base ++ ('.' : ext)) <$ lex '.' <*> some digit)

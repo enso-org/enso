@@ -11,6 +11,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Text.Parser.Char (CharParsing)
 import Text.Trifecta.Combinators (DeltaParsing)
 import Luna.Parser.Indent (MonadIndent)
+import Text.Parser.Token (TokenParsing)
 --import Luna.Parser.Builder (labeled)
 
 
@@ -24,7 +25,7 @@ literal = choice [ string, number ]
 string :: (DeltaParsing p, MonadIndent p, TermBuilder_OLD Lit.String m a) => p (m a)
 string = str <$> Tok.stringLiteral
 
-number :: (CharParsing p, TermBuilder_OLD Lit.Number m a) => p (m a)
+number :: (TokenParsing p, TermBuilder_OLD Lit.Number m a) => p (m a)
 number = Term.number <$> Tok.number
 
 --str :: TermBuilder Lit.String m a => String -> m a

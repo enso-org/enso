@@ -7,7 +7,7 @@ packages:
 - {extra-dep: true, location: ../../core}
 - {extra-dep: true, location: ../../parser}
 - extra-dep: true
-  location: {commit: e815016cc514ff8d5cef26655b3bf6251138621a, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: 4a54a3c64a5b4e092e07532181405ec7a2a9bab5, git: 'https://github.com/wdanilo/container.git'}
 - extra-dep: true
   location: {commit: 3200aa2d8ab36570afc9daacb3f88926f0b2ec47, git: 'https://github.com/wdanilo/data-pool.git'}
 - extra-dep: true
@@ -33,11 +33,11 @@ packages:
 - extra-dep: true
   location: {commit: 8cb9cbd7e87f5c5223dc171ae97762e2a535483b, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: 79b19634c4cf85aa84b74431343c2e359d98d7ef, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: 1b0ca3a4951002abf31aa9520f538c3f8606015c, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: eee76a96bdd1d442299cecdcd1e445d76eef3b1a, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
-  location: {commit: 6ae9be62066e7c39d36af35314d7fdf89b843f45, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: bcfd5d8f67f7d837c9daeb9e645ac6d1d4d4f75d, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
   location: {commit: 10fe1b60a76adec8178f3858782fcda53d6d60d1, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
