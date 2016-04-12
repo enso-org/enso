@@ -28,30 +28,30 @@ import Control.Monad.Base         as X
 import Control.Monad.Fix          as X (MonadFix)
 import Control.Monad.IO.Class     as X (MonadIO, liftIO)
 import Control.Monad.Trans        as X (MonadTrans, lift)
+import Control.Monad.Trans.Identity as X (IdentityT, runIdentityT)
+import Control.Monad.Primitive    as X (PrimState, PrimMonad, primitive)
+
 import Data.Bifunctor             as X (Bifunctor, bimap)
 import Data.Bool                  as X (bool)
 import Data.List                  as X (intersperse)
 import Data.Container.Class       as X (Container, Index, Item, intercalate)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
 import Data.Convert               as X
-import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_)
-import Data.Foldable              as X (mapM_)
+import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_, mapM_)
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
 import Data.Impossible            as X
 import Data.Impossible.Compact    as X
 import Data.Layer_OLD                 as X
 --import Data.Layer_OLD.Cover_OLD           as X
-import Data.Maybe                 as X (catMaybes, fromJust)
-import Data.Maybe                 as X (mapMaybe)
+import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
 import Data.String.QQ             as X (s)
 import Data.Text.Class            as X (FromText (fromText), IsText, ToText (toText))
 import Data.Text.Lazy             as X (Text)
 import Data.Traversable           as X (mapM)
 import Data.Tuple.Curry           as X (Curry)
-import Data.Typeable              as X (Proxy(Proxy), typeOf, typeRep)
-import Data.Typeable              as X (Typeable)
+import Data.Typeable              as X (Typeable, Proxy(Proxy), typeOf, typeRep)
 import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
@@ -60,6 +60,8 @@ import Prelude                    as X hiding (mapM, mapM_, print, putStr, putSt
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
+import Type.Monoid                as X (type (<>))
+import Type.Applicative           as X (type (<$>), type (<*>))
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 
