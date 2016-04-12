@@ -112,7 +112,9 @@ makeId = do
     return $ Signature Nothing [arg n] n
 
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
-symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b))
+symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b)) symbolsList
+
+symbolsList =
 ------------------
 -- === Int === --
 ------------------
@@ -272,3 +274,6 @@ differencesBody = "(\\l -> zipWith (flip subtract) (if (null l) then [] else tai
 
 meanBody :: String
 meanBody = "(uncurry (/) . foldr (\\e (s, c) -> (e + s, c + 1)) (0, 0))"
+
+symbolsNames :: [String]
+symbolsNames = fst <$> symbolsList
