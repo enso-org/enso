@@ -8,7 +8,7 @@ import Data.Base
 import Luna.Syntax.Term.Function (Arg)
 import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
-import qualified Luna.Syntax.Term.Expr.Lit as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD as Lit
 import Type.Applicative
 
 
@@ -173,7 +173,6 @@ instance           MonoTFunctor t Blank         where monoTMap = flip const ; {-
 -- Representations
 
 -- Default
-instance {-# OVERLAPPABLE #-}                   Repr s Lit.Star     where repr _                = "*"
 instance {-# OVERLAPPABLE #-}                   Repr s Lit.String   where repr (Lit.String s  ) = "Str"    <+> repr s
 instance {-# OVERLAPPABLE #-}                   Repr s Lit.Number   where repr (Lit.Number r n) = "Num"    <+> repr r <+> repr n
 instance {-# OVERLAPPABLE #-} Repr  s n      => Repr s (Var    n  ) where repr (Var        n  ) = "Var"    <+> repr n

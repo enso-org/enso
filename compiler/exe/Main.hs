@@ -53,7 +53,7 @@ import qualified StdLibMock                           as StdLib
 import qualified Luna.Library.Symbol                       as Symbol
 import           Luna.Syntax.Term.Class_OLD                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Luna.Syntax.Term.Class_OLD                            as Term
-import qualified Luna.Syntax.Term.Expr.Lit                        as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer

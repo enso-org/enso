@@ -5,7 +5,7 @@ module Luna.Parser.Literal where
 import Prelude.Luna
 import qualified Luna.Parser.Token        as Tok
 import           Text.Parser.Combinators
-import qualified Luna.Syntax.Term.Expr.Lit as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD as Lit
 import           Luna.Syntax.Model.Network.Builder.Term.Class hiding (number)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Text.Parser.Char (CharParsing)

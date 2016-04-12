@@ -23,9 +23,9 @@ import Prelude (read)
 import qualified Luna.Parser.Indent as Indent
 import           Luna.Parser.Indent (MonadIndent)
 import           Luna.Parser.Combinators
-import qualified Luna.Syntax.Term.Expr.Lit as Lit
-import qualified Luna.Syntax.Term.Expr.Lit as Number
-import           Luna.Syntax.Term.Expr.Lit (Number)
+import qualified Luna.Syntax.Term.Expr.Lit_OLD as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD as Number
+import           Luna.Syntax.Term.Expr.Lit_OLD (Number)
 import           Luna.Parser.Lex
 import qualified Luna.Parser.State as State
 

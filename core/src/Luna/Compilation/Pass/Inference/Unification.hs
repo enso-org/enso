@@ -30,7 +30,7 @@ import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import qualified Luna.Syntax.Term.Expr.Lit               as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD               as Lit
 import           Luna.Syntax.Term.Function.Argument
 import           Luna.Compilation.Error
 import           Control.Monad.Primitive

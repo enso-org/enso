@@ -9,7 +9,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Class as Node
 import Luna.Syntax.Model.Network.Builder.Term.Inferred (inferNodeM)
 import Data.Graph
 import Luna.Syntax.Model.Layer
-import qualified Luna.Syntax.Term.Expr.Lit                as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                as Lit
 import           Type.Inference (Inferable)
 import Luna.Syntax.Term.Class_OLD (NameInput, Cons)
 import Luna.Syntax.Term.Function.Argument (Arg)

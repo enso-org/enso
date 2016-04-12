@@ -13,7 +13,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, Match, Cons)
+import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container
@@ -27,7 +27,7 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import qualified Luna.Syntax.Term.Expr.Lit     as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD     as Lit
 import Luna.Syntax.Term.Atom_OLD as X
 
 import Data.Shell               as Shell
@@ -65,24 +65,24 @@ type family NameInput a where
 
 type family   Elems_OLD term  n t :: [*]
 
-type instance Elems_OLD Lit    n t = Lit.Star
-                              ': Lit.String
-                              ': Lit.Number
-                              ': '[]
+type instance Elems_OLD Literal n t = Lit.Star
+                                   ': Lit.String
+                                   ': Lit.Number
+                                   ': '[]
 
-type instance Elems_OLD Val    n t = Cons         n t
-                              ': Lam            t
-                              ': Elems_OLD Lit    n t
+type instance Elems_OLD Value n t = Cons              n t
+                                 ': Lam                 t
+                                 ': Elems_OLD Literal n t
 
 type instance Elems_OLD Thunk  n t = Acc          n t
-                              ': App            t
-                              ': Curry          t
-                              ': Native       n
-                              ': Elems_OLD Val    n t
+                              ': App                t
+                              ': Curry              t
+                              ': Native           n
+                              ': Elems_OLD Value  n t
 
 type instance Elems_OLD Phrase n t = Var          n
-                              ': Unify          t
-                              ': Match          t
+                              ': Unify              t
+                              ': Match              t
                               ': Elems_OLD Thunk  n t
 
 type instance Elems_OLD Draft  n t = Blank
@@ -212,9 +212,9 @@ instance BiCastable (Abstract (Term t term rt)) (Term t term rt) => HasAbstract 
 
 -- === VariantList === --
 
-type  GroupList t =              '[ {-  0 -} Term t Lit   Static
-                                  , {-  1 -} Term t Val   Static
-                                  , {-  2 -} Term t Val   Dynamic
+type  GroupList t =              '[ {-  0 -} Term t Literal   Static
+                                  , {-  1 -} Term t Value   Static
+                                  , {-  2 -} Term t Value   Dynamic
                                   , {-  3 -} Term t Thunk Static
                                   , {-  4 -} Term t Thunk Dynamic
                                   , {-  5 -} Term t Phrase Static
@@ -225,10 +225,10 @@ type  GroupList t =              '[ {-  0 -} Term t Lit   Static
 type VariantList_MANUAL_CACHE t = [ {-  9 -} Lit.Star
                                   , {- 10 -} Lit.String
                                   , {- 11 -} Lit.Number
-                                  , {- 12 -} Cons   Lit.String (Layout t Val   Static )
-                                  , {- 13 -} Lam               (Layout t Val   Static )
-                                  , {- 14 -} Cons              (Layout t Val   Dynamic) (Layout t Val Dynamic)
-                                  , {- 15 -} Lam               (Layout t Val   Dynamic)
+                                  , {- 12 -} Cons   Lit.String (Layout t Value   Static )
+                                  , {- 13 -} Lam               (Layout t Value   Static )
+                                  , {- 14 -} Cons              (Layout t Value   Dynamic) (Layout t Value Dynamic)
+                                  , {- 15 -} Lam               (Layout t Value   Dynamic)
                                   , {- 16 -} Cons   Lit.String (Layout t Thunk Static )
                                   , {- 17 -} Acc    Lit.String (Layout t Thunk Static )
                                   , {- 18 -} App               (Layout t Thunk Static )
@@ -305,9 +305,9 @@ type instance Layout_Variants Variant (TermRecord gs vs t) = VariantList t
 -- === DecodeMap === --
 
 type DecodeMap_MANUAL_CACHE t =
-    'Map [ {-  0 -} '( Term t Lit   Static                                                   ,  0 )
-         , {-  1 -} '( Term t Val   Static                                                   ,  1 )
-         , {-  2 -} '( Term t Val   Dynamic                                                  ,  2 )
+    'Map [ {-  0 -} '( Term t Literal   Static                                                   ,  0 )
+         , {-  1 -} '( Term t Value   Static                                                   ,  1 )
+         , {-  2 -} '( Term t Value   Dynamic                                                  ,  2 )
          , {-  3 -} '( Term t Thunk Static                                                   ,  3 )
          , {-  4 -} '( Term t Thunk Dynamic                                                  ,  4 )
          , {-  5 -} '( Term t Phrase Static                                                  ,  5 )
@@ -317,10 +317,10 @@ type DecodeMap_MANUAL_CACHE t =
          , {-  9 -} '( Lit.Star                                                              ,  9 )
          , {- 10 -} '( Lit.String                                                            , 10 )
          , {- 11 -} '( Lit.Number                                                            , 11 )
-         , {- 12 -} '( Cons   Lit.String (Layout t Val   Static )                            , 12 )
-         , {- 13 -} '( Lam               (Layout t Val   Static )                            , 13 )
-         , {- 14 -} '( Cons              (Layout t Val   Dynamic) (Layout t Val   Dynamic)   , 14 )
-         , {- 15 -} '( Lam               (Layout t Val   Dynamic)                            , 15 )
+         , {- 12 -} '( Cons   Lit.String (Layout t Value   Static )                            , 12 )
+         , {- 13 -} '( Lam               (Layout t Value   Static )                            , 13 )
+         , {- 14 -} '( Cons              (Layout t Value   Dynamic) (Layout t Value   Dynamic)   , 14 )
+         , {- 15 -} '( Lam               (Layout t Value   Dynamic)                            , 15 )
          , {- 16 -} '( Cons   Lit.String (Layout t Thunk Static )                            , 16 )
          , {- 17 -} '( Acc    Lit.String (Layout t Thunk Static )                            , 17 )
          , {- 18 -} '( App               (Layout t Thunk Static )                            , 18 )
@@ -392,10 +392,10 @@ type EncodeMap_MANUAL_CACHE t =
     'Map [ {-  9 -} '( Lit.Star                                                              , '[  9 , 0,1,2,3,4,5,6,7,8 ] )
          , {- 10 -} '( Lit.String                                                            , '[ 10 , 0,1,2,3,4,5,6,7,8 ] )
          , {- 11 -} '( Lit.Number                                                            , '[ 11 , 0,1,2,3,4,5,6,7,8 ] )
-         , {- 12 -} '( Cons   Lit.String (Layout t Val   Static )                            , '[ 12 , 1,2,3,4,5,6,7,8   ] )
-         , {- 13 -} '( Lam               (Layout t Val   Static )                            , '[ 13 , 1,2,3,4,5,6,7,8   ] )
-         , {- 14 -} '( Cons              (Layout t Val   Dynamic) (Layout t Val   Dynamic)   , '[ 14 , 2,4,6,8           ] )
-         , {- 15 -} '( Lam               (Layout t Val   Dynamic)                            , '[ 15 , 2,4,6,8           ] )
+         , {- 12 -} '( Cons   Lit.String (Layout t Value   Static )                            , '[ 12 , 1,2,3,4,5,6,7,8   ] )
+         , {- 13 -} '( Lam               (Layout t Value   Static )                            , '[ 13 , 1,2,3,4,5,6,7,8   ] )
+         , {- 14 -} '( Cons              (Layout t Value   Dynamic) (Layout t Value   Dynamic)   , '[ 14 , 2,4,6,8           ] )
+         , {- 15 -} '( Lam               (Layout t Value   Dynamic)                            , '[ 15 , 2,4,6,8           ] )
          , {- 16 -} '( Cons   Lit.String (Layout t Thunk Static )                            , '[ 16 , 3,4,5,6,7,8       ] )
          , {- 17 -} '( Acc    Lit.String (Layout t Thunk Static )                            , '[ 17 , 3,4,5,6,7,8       ] )
          , {- 18 -} '( App               (Layout t Thunk Static )                            , '[ 18 , 3,4,5,6,7,8       ] )

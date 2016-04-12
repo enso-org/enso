@@ -8,12 +8,12 @@
 module Luna.Syntax.Term.Expr.Class where
 
 
-import           Prelude.Luna                 hiding (Num, Swapped, Curry)
+import           Prelude.Luna                 hiding (Num, Swapped, Curry, String, Integer, Rational)
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, Match, Cons)
+import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container
@@ -27,7 +27,6 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import qualified Luna.Syntax.Term.Expr.Lit     as Lit
 import Luna.Syntax.Term.Expr.Symbol
 
 import Data.Shell               as Shell
@@ -81,11 +80,11 @@ type family LayoutType a
 -- type family ExprOf a
 
 type family   Elems t      :: [*]
-type instance Elems Lit    = '[Lit.Star, Lit.String, Lit.Number          ]
-type instance Elems Val    = '[Cons    , Lam                             ] <> Elems Lit
-type instance Elems Thunk  = '[Acc     , App       , Curry      , Native ] <> Elems Val
-type instance Elems Phrase = '[Var     , Unify     , Match               ] <> Elems Thunk
-type instance Elems Draft  = '[Blank                                     ] <> Elems Phrase
+type instance Elems Literal = '[Star    , String    , Integer , Rational ]
+type instance Elems Value   = '[Cons    , Lam                            ] <> Elems Literal
+type instance Elems Thunk   = '[Acc     , App       , Curry   , Native   ] <> Elems Value
+type instance Elems Phrase  = '[Var     , Unify     , Match              ] <> Elems Thunk
+type instance Elems Draft   = '[Blank                                    ] <> Elems Phrase
 
 
 

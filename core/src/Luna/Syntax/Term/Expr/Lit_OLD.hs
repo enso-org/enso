@@ -1,16 +1,10 @@
-module Luna.Syntax.Term.Expr.Lit where
+module Luna.Syntax.Term.Expr.Lit_OLD (module Luna.Syntax.Term.Expr.Lit_OLD, module X) where
 
 import           Prelude.Luna            hiding (Rational, Integer, String)
 import qualified Prelude.Luna            as P
 import           Luna.Pretty.Styles (StaticNameOnly)
 import           Luna.Syntax.Name
-
-
-------------------
--- === Star === --
-------------------
-
-data Star = Star deriving (Show, Read, Eq, Ord)
+import           Luna.Syntax.Term.Expr.Symbol as X (Star(Star))
 
 
 --------------------

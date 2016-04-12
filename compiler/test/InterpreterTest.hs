@@ -37,7 +37,7 @@ import qualified Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
 
 import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph
-import qualified Luna.Syntax.Term.Expr.Lit                        as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                        as Lit
 
 import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
 

@@ -40,12 +40,12 @@ type family TermWrapper (a :: *) :: * -> [*] -> *
 
 -- === Definitions === --
 
-data    Raw       (ls :: [*]) = Raw Data                                    deriving (Show)
-newtype Lit    rt (ls :: [*]) = Lit    (Term (Network ls) Format.Lit    rt) deriving (Show, Eq, Generic, NFData)
-newtype Val    rt (ls :: [*]) = Val    (Term (Network ls) Format.Val    rt) deriving (Show, Eq, Generic, NFData)
-newtype Thunk  rt (ls :: [*]) = Thunk  (Term (Network ls) Format.Thunk  rt) deriving (Show, Eq, Generic, NFData)
-newtype Phrase rt (ls :: [*]) = Phrase (Term (Network ls) Format.Phrase rt) deriving (Show, Eq, Generic, NFData)
-newtype Draft  rt (ls :: [*]) = Draft  (Term (Network ls) Format.Draft  rt) deriving (Show, Eq, Generic, NFData)
+data    Raw       (ls :: [*]) = Raw Data                                     deriving (Show)
+newtype Lit    rt (ls :: [*]) = Lit    (Term (Network ls) Format.Literal rt) deriving (Show, Eq, Generic, NFData)
+newtype Val    rt (ls :: [*]) = Val    (Term (Network ls) Format.Value   rt) deriving (Show, Eq, Generic, NFData)
+newtype Thunk  rt (ls :: [*]) = Thunk  (Term (Network ls) Format.Thunk   rt) deriving (Show, Eq, Generic, NFData)
+newtype Phrase rt (ls :: [*]) = Phrase (Term (Network ls) Format.Phrase  rt) deriving (Show, Eq, Generic, NFData)
+newtype Draft  rt (ls :: [*]) = Draft  (Term (Network ls) Format.Draft   rt) deriving (Show, Eq, Generic, NFData)
 
 
 -- === Instances === --
@@ -75,11 +75,11 @@ instance Layered (Draft  rt ls)
 
 -- Term bindings
 
-type instance TermWrapper Format.Lit    = Lit
-type instance TermWrapper Format.Val    = Val
-type instance TermWrapper Format.Thunk  = Thunk
-type instance TermWrapper Format.Phrase = Phrase
-type instance TermWrapper Format.Draft  = Draft
+type instance TermWrapper Format.Literal = Lit
+type instance TermWrapper Format.Value   = Val
+type instance TermWrapper Format.Thunk   = Thunk
+type instance TermWrapper Format.Phrase  = Phrase
+type instance TermWrapper Format.Draft   = Draft
 
 -- Term origins
 

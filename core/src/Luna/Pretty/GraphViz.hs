@@ -52,7 +52,7 @@ import           Luna.Pretty.Styles                 (HeaderOnly (..), Simple (..
 import           System.Platform
 import           System.Process                          (createProcess, shell)
 import           Data.Tuple.Select                       (sel1)
-import qualified Luna.Syntax.Term.Expr.Lit                as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                as Lit
 
 
 --instance Repr HeaderOnly Data where repr _ = "Data"

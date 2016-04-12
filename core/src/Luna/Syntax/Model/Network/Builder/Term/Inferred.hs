@@ -10,7 +10,7 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Luna.Syntax.Term.Class_OLD
 import           Luna.Syntax.Term.Function.Argument
-import qualified Luna.Syntax.Term.Expr.Lit                         as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                         as Lit
 import           Type.Inference
 
 ---------------------

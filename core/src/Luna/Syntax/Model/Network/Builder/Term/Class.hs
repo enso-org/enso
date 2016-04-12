@@ -32,10 +32,10 @@ import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.Term.Expr.Lit                as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                as Lit
 import           Control.Monad.Trans.Identity
 import           Type.Bool
-import           Luna.Syntax.Term.Expr.Lit               (Star(Star))
+import           Luna.Syntax.Term.Expr.Lit_OLD               (Star(Star))
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 

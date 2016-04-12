@@ -24,7 +24,7 @@ import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, Network
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Luna.Syntax.Term.Expr.Lit         as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD         as Lit
 import qualified Data.Map                         as Map
 import qualified Luna.Syntax.Name.Path     as QualPath
 import qualified Luna.Syntax.Term.Function         as Function

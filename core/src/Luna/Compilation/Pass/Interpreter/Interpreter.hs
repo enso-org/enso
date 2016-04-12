@@ -37,7 +37,7 @@ import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
-import qualified Luna.Syntax.Term.Expr.Lit                            as Lit
+import qualified Luna.Syntax.Term.Expr.Lit_OLD                            as Lit
 
 import           Type.Inference
 
