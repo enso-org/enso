@@ -293,7 +293,7 @@ exceptionHandler e = do
             liftIO $ throwIO e
 
 -- TCData TCErrors - non empty
-evaluateNative :: (InterpreterCtx((ExceptT [String] m), ls, term)) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
+evaluateNative :: (InterpreterCtx((ExceptT [String] m), ls, term), Monad m) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))
 evaluateNative ref args = runExceptT $ do
     node <- read ref
     name <- caseTest (uncover node) $ do
@@ -443,7 +443,7 @@ evaluateNodes reqRefs = do
 
 
 
-run :: forall env m ls term node edge graph clus n e c. (PassCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (InterpreterT env m)), ls, term), env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term node edge graph clus n e c. (Monad m, PassCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (InterpreterT env m)), ls, term), env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
