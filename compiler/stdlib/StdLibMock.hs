@@ -113,37 +113,41 @@ symbolsList =
 ------------------
 -- === Int === --
 ------------------
-    --[ --makeNativeFun "Int.+"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
-    {-, makeNativeFun "Int.*"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.-"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int./"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.%"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.^"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.negate"    (Just $ scons "Int")    []              (scons "Int" )-}
-    {-, makeNativeFun "Int.abs"       (Just $ scons "Int")    []              (scons "Int" )-}
-    {-, makeNativeFun "Int.signum"    (Just $ scons "Int")    []              (scons "Int" )-}
-    {-, makeNativeFun "Int.pred"      (Just $ scons "Int")    []              (scons "Int" )-}
-    {-, makeNativeFun "Int.succ"      (Just $ scons "Int")    []              (scons "Int" )-}
-    {-, makeNativeFun "Int.=="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")-}
-    {-, makeNativeFun "Int./="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")-}
-    {-, makeNativeFun "Int.<"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")-}
-    {-, makeNativeFun "Int.<="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")-}
-    {-, makeNativeFun "Int.>"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")-}
-    {-, makeNativeFun "Int.>="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")-}
-    {-, makeNativeFun "Int.odd"       (Just $ scons "Int")    []              (scons "Bool")-}
-    {-, makeNativeFun "Int.even"      (Just $ scons "Int")    []              (scons "Bool")-}
-    {-, makeNativeFun "Int.min"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.max"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.gcd"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.lcm"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )-}
-    {-, makeNativeFun "Int.toString"  (Just $ scons "Int")    []              (scons "String")-}
-    {-, makeNativeFun "Int.toDouble"  (Just $ scons "Int")    []              (scons "Double")-}
-    {-, makeNativeFun "Int.times"     (Just $ scons "Int")    [TVar "#times"] (listOf $ TVar "#times")-}
-    [ makeNativeFun "Int.upto"      (Just $ scons "Int")    [scons "Int"]   (listOf $ scons "Int")
+    [ makeNativeFun "Int.+"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.*"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.-"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int./"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.%"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.^"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
 
-    , makeNativeFun "List.head"  (Just $ listOf $ TVar "#head")        []                                                                    (TVar "#head")
-    , makeNativeFun "List.map"   (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]                                   (listOf $ TVar "#map1")
-    , makeNativeFun "add"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" )
+    , makeNativeFun "Int.negate"    (Just $ scons "Int")    []              (scons "Int" )
+    , makeNativeFun "Int.abs"       (Just $ scons "Int")    []              (scons "Int" )
+    , makeNativeFun "Int.signum"    (Just $ scons "Int")    []              (scons "Int" )
+    , makeNativeFun "Int.pred"      (Just $ scons "Int")    []              (scons "Int" )
+    , makeNativeFun "Int.succ"      (Just $ scons "Int")    []              (scons "Int" )
+    , makeNativeFun "Int.even"      (Just $ scons "Int")    []              (scons "Bool")
+    , makeNativeFun "Int.odd"       (Just $ scons "Int")    []              (scons "Bool")
+
+    , makeNativeFun "Int.=="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int./="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.<"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.<="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.>"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.>="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+
+    , makeNativeFun "Int.min"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.max"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.gcd"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.lcm"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+
+    , makeNativeFun "Int.toString"  (Just $ scons "Int")    []              (scons "String")
+    , makeNativeFun "Int.toDouble"  (Just $ scons "Int")    []              (scons "Double")
+    , makeNativeFun "Int.times"     (Just $ scons "Int")    [TVar "#times"] (listOf $ TVar "#times")
+    , makeNativeFun "Int.upto"      (Just $ scons "Int")    [scons "Int"]   (listOf $ scons "Int")
+
+    {-, makeNativeFun "List.head"  (Just $ listOf $ TVar "#head")        []                                                                    (TVar "#head")-}
+    {-, makeNativeFun "List.map"   (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]                                   (listOf $ TVar "#map1")-}
+    {-, makeNativeFun "add"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" )-}
     {-, ("List.fold"  (Just $ listOf $ TVar "#foldB")       [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (TVar "#foldA"))-}
     {-, ("succ"       Nothing                               [scons "Int"]                                                         (scons "Int" ))-}
     {-, ( "(+)"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" ))-}

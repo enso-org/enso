@@ -30,6 +30,7 @@ import           Luna.Compilation.Pass.Interpreter.Env           (Env)
 import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
 import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, ValueErr(..))
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
+import           Luna.Compilation.Pass.Interpreter.NativeCalls   (lookupNative)
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
 import           Old.Luna.Syntax.Term.Class                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
@@ -304,11 +305,7 @@ evaluateNative ref args = runExceptT $ do
     valuesE <- argumentsValues args
     values <- ExceptT $ return valuesE
     res <- do
-        let fun :: Any = case name of
-                "Int.upto" -> unsafeCoerce (return .: enumFromTo :: Int -> Int -> IO [Int])
-                "List.map" -> unsafeCoerce (forM :: [Any] -> (Any -> IO Any) -> IO [Any])
-                "add"      -> unsafeCoerce (return .: (+) :: Int -> Int -> IO Int)
-
+        fun :: Any <- maybe (throwError ["Unknown native call: " <> name]) return $ lookupNative name
         args <- liftIO $ sequence values
         let resA = foldl appArg fun args
         let resM = unsafeCast resA :: EvalMonad Any
