@@ -142,6 +142,7 @@ nativeCalls = Map.fromList $
     , ("differences",   unsafeCoerce (return . (\l -> zipWithM (return .: (-)) (drop 1 l) l) :: [Int] -> [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
     , ("switch",        unsafeCoerce (return .:. (\x y z -> if x then y else z) :: Bool -> Any -> Any -> IO Any))
+    , ("readFile",      unsafeCoerce (readFile :: String -> IO String))
 
     ]
 
