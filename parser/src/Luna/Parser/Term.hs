@@ -364,7 +364,7 @@ expr   = E.buildExpressionParser opTable exprApp
       <?> "expression"
 
 exprApp :: ASTParser p m a => p (m a)
-exprApp =  labCurry (exprAtom <|> operator) exprAtom <|> labApp exprAtom
+exprApp =  labCurry (exprAtom <|> operator) exprAtom <|> labApp2 exprAtom (E.buildExpressionParser opTable exprAtom) -- FIXME[WD]: this is hack for precedence parsing : map @.foo to be parsed correctly instead of (map @).foo .
 
 exprAtom :: ASTParser p m a => p (m a)
 exprAtom  = parens expr
@@ -403,11 +403,18 @@ app = appAs arg
 labApp :: ASTParser p m a => p (m a) -> p (m a)
 labApp = appAs labArg
 
+labApp2 :: ASTParser p m a => p (m a) -> p (m a) -> p (m a)
+labApp2 = appAs2 labArg
+
 labCurry :: ASTParser p m a => p (m a) -> p (m a) -> p (m a)
 labCurry = curryAs labArg
 
 appAs :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a)
 appAs argmod base = base <??> (bldr <$> many1 (argmod base)) where
+    bldr margs ma = liftM2 AST.app ma (sequence margs)
+
+appAs2 :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a) -> p (m a)
+appAs2 argmod base arg = base <??> (bldr <$> many1 (argmod arg)) where
     bldr margs ma = liftM2 AST.app ma (sequence margs)
 
 curryAs :: ASTParser p m a => (p (m a) -> p (m (AST.Arg a))) -> p (m a) -> p (m a) -> p (m a)

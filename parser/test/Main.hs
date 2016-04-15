@@ -103,14 +103,15 @@ inputs  = [ Test False "Variables"            "ala"
           , Test False "String literals"      "\"test\""
           , Test False "Integer literals"     "7"
           , Test False "Fractional literals"  "7.1"
-          , Test False "Applications"         "foo bar baz"
+          , Test False "Applications"         "foo bar.x baz"
           , Test False "Currying empty"       "@foo"
           , Test False "Currying app"         "@foo bar baz"
           , Test False "Currying operator"    "@+"
           , Test False "Blank currying"       "@.foo"
+          , Test False "Blank currying app"   "@.foo 1 2 3" -- FIXME[WD]
           , Test False "Accessors"            "foo.bar"
           , Test False "Operator accessors"   "foo.op+"
-          , Test False "Nested accessors"     "foo.bar.baz"
+          , Test False "Nested accessors"     "foo.bar.baz" -- FIXME[WD]
           ]
 
 checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDesc where
@@ -123,7 +124,7 @@ checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDes
 
 
 
-partialInput = [s|@.foo|]
+partialInput = [s|map @.foo|]
 
 partialParsed = parseString partialInput partialParser
 partialParser = parseGen (Term.partial <* eof) Parser.defState
