@@ -49,6 +49,7 @@ instance      HasIdent  (Ident t) where ident = id ; {-# INLINE ident #-}
 
 -- Strings
 instance IsString     (Ident t) where fromString = wrap' ∘ fromString ; {-# INLINE fromString #-}
+instance ToString     (Ident t) where toString   = toString . unwrap  ; {-# INLINE toString   #-}
 instance HasMultiName (Ident t) where multiName  = wrapped'           ; {-# INLINE multiName  #-}
 instance Repr s       (Ident t) where repr       = repr ∘ unwrap'     ; {-# INLINE repr       #-}
 
