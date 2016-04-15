@@ -34,18 +34,19 @@ data TCDataPayload n = TCDataPayload { _redirect      :: Maybe $ Ref Edge (Link 
                                      , _depth         :: Maybe Int
                                      , _seen          :: Bool
                                      , _originSign    :: Sign
+                                     , _isLambda      :: Bool
                                      } deriving (Show, Eq)
 makeLenses ''TCDataPayload
 
 type instance LayerData TCData t = TCDataPayload (ReShelled t)
 instance Monad m => Creator m (Layer TCData a) where
-    create = return $ Layer $ TCDataPayload def def def def def def False Positive
+    create = return $ Layer $ TCDataPayload def def def def def def False Positive False
 
 instance (Monad m, Destructor m (Ref Edge (Link (ReShelled a))))
       => Destructor m (Layer TCData a) where
-    destruct (Layer (TCDataPayload red req _ _ _ _ _ _)) = do
+    destruct (Layer (TCDataPayload red req _ _ _ _ _ _ _)) = do
         mapM_ destruct red
         mapM_ destruct req
 
 instance Castable t t' => Castable (TCDataPayload t) (TCDataPayload t') where
-    cast (TCDataPayload red req tce rep bto dep seen sign) = TCDataPayload (cast <$> red) (cast <$> req) (cast <$> tce) rep bto dep seen sign
+    cast (TCDataPayload red req tce rep bto dep seen sign islam) = TCDataPayload (cast <$> red) (cast <$> req) (cast <$> tce) rep bto dep seen sign islam

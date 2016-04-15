@@ -12,24 +12,26 @@ import           Control.Monad.Primitive
 
 -- === Definitions === --
 
-data TCState n = TCState { _allNodes          :: ![Ref Node n]
-                         , _unresolvedUnis    :: ![Ref Node n]
-                         , _uncheckedUnis     :: ![Ref Node n]
-                         , _unresolvedSymbols :: ![Ref Node n]
-                         , _untypedApps       :: ![Ref Node n]
-                         , _untypedAccs       :: ![Ref Node n]
-                         , _untypedBinds      :: ![Ref Node n]
-                         , _untypedLits       :: ![Ref Node n]
-                         , _uncalledApps      :: ![Ref Node n]
-                         , _uncalledCurries   :: ![Ref Node n]
-                         , _bindings          :: ![Ref Node n]
-                         , _freshRoots        :: ![Ref Node n]
+data TCState n = TCState { _allNodes            :: ![Ref Node n]
+                         , _unresolvedUnis      :: ![Ref Node n]
+                         , _uncheckedUnis       :: ![Ref Node n]
+                         , _unresolvedSymbols   :: ![Ref Node n]
+                         , _untypedApps         :: ![Ref Node n]
+                         , _untypedAccs         :: ![Ref Node n]
+                         , _untypedBinds        :: ![Ref Node n]
+                         , _untypedLits         :: ![Ref Node n]
+                         , _uncalledApps        :: ![Ref Node n]
+                         , _uncalledCurries     :: ![Ref Node n]
+                         , _bindings            :: ![Ref Node n]
+                         , _freshRoots          :: ![Ref Node n]
+                         , _untypedLambdaAccs   :: ![Ref Node n]
+                         , _unshiftedLambdaAccs :: ![Ref Node n]
                          } deriving (Show, Eq)
 
 makeLenses ''TCState
 
 instance Default (TCState n) where
-    def = TCState def def def def def def def def def def def def
+    def = TCState def def def def def def def def def def def def def def
 
 
 ---- TODO: template haskellize

@@ -100,11 +100,11 @@ makeNativeFun name selfTypeRep argTypesRep outTypeRep = (,) name $ do
     out      <- app native (arg <$> nativeArgs) `typed` outType
     return $ Signature self (arg <$> args) out
 
-makeId :: FunBuilderCtx(m) => m (String, Signature nodeRef)
+makeId :: FunBuilderCtx(m) => m (Signature nodeRef)
 makeId = do
     tpV   <- var "#idTp1"
     n     <- blank `typed` tpV
-    return ("id", Signature Nothing [arg n] n)
+    return $ Signature Nothing [arg n] n
 
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b)) symbolsList
@@ -235,13 +235,13 @@ symbolsList =
 {--------------------}
 
     {-, ("readFile"       , makeNativeFun  "readFile"                                      Nothing [scons "String"]                        (scons "String"))-}
-    {-, ("id"             , makeId)-}
+    , ("id", makeId)
     {-, ("switch"         , makePureFun "(\\x y z -> if x then y else z)"                  Nothing [scons "Bool", TVar "#if", TVar "#if"]  (TVar "#if"))-}
     {-, ("histogram"      , makePureFun "(map (\\l -> (head l, length l)) . group . sort)" Nothing [listOf $ scons "Int"]                  (scons "Histogram"))-}
     {-, ("primes"         , makePureFun primesBody                                         Nothing [scons "Int"]                           (listOf $ scons "Int"))-}
     {-, ("differences"    , makePureFun differencesBody                                    Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))-}
 
-    {-, makeNativeFun "add"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" )-}
+    , makeNativeFun "add"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" )
     {-, ( "(*)"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" ))-}
     ]
 

@@ -131,6 +131,11 @@ nativeCalls = Map.fromList $
     , ("List.map",      unsafeCoerce (forM                     :: [Any] -> (Any -> IO Any) -> IO [Any]))
     , ("List.fold",     unsafeCoerce ((\l i f -> foldlM f i l) :: [Any] -> Any -> (Any -> Any -> IO Any) -> IO Any))
 
+------------------
+-- === Misc === --
+------------------
+    , ("add",        unsafeCoerce (return .: (+) :: Int -> Int -> IO Int))
+
     ]
 
 lookupNative :: String -> Maybe Any

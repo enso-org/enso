@@ -330,7 +330,9 @@ interpretNoArgs g binds out = do
                       . (prop InterpreterData . Layer.value .~ val)
         res <- evaluateNode out
         case res of
-            Left err -> $notImplemented -- error "No value evaluated"
+            Left err -> do
+                print err
+                $notImplemented
             Right val -> return val
     v
 
@@ -378,6 +380,24 @@ testSig = $notImplemented
 testRef :: Ref Node (ls :<: term)
 testRef = $notImplemented
 
+evaluateFirstOrderFun :: (InterpreterCtx(m, ls, term)) => Ref Node (ls :<: term) -> m ()
+evaluateFirstOrderFun ref = do
+    startTime <- liftIO getCPUTime
+    node <- read ref
+    let clusterPtrMay = (node # TCData) ^. replacement
+    case clusterPtrMay of
+        Nothing -> return ()
+        Just clusterPtr -> do
+            let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
+            sigMay <- follow (prop Lambda) cluster
+            case sigMay of
+                Nothing -> return ()
+                Just sig -> do
+                    g <- GraphBuilder.get
+                    let val = interpretFun g sig
+                    setValue (Right $ val) ref startTime
+                    return ()
+
 -- FIXME[MK]: fix this context, by migrating WHOLE file to ExceptT. No time for this right now
 evaluateNode :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] m), ls, term)) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))
 evaluateNode ref = do
@@ -397,21 +417,8 @@ evaluateNode ref = do
                 if isDirty node
                     then caseTest (uncover node) $ do
                         of' $ \(Unify l r)  -> return ()
-                        of' $ \(Acc n t)    -> return ()
-                        of' $ \(Curry _ _)  -> do
-                            let clusterPtrMay = (node # TCData) ^. replacement
-                            case clusterPtrMay of
-                                Nothing -> return ()
-                                Just clusterPtr -> do
-                                    let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr
-                                    sigMay <- follow (prop Lambda) cluster
-                                    case sigMay of
-                                        Nothing -> return ()
-                                        Just sig -> do
-                                            g <- GraphBuilder.get
-                                            let val = interpretFun g sig
-                                            setValue (Right $ val) ref startTime
-                                            return ()
+                        of' $ \(Acc _ _)  -> evaluateFirstOrderFun ref
+                        of' $ \(Curry _ _)  -> evaluateFirstOrderFun ref
                         of' $ \(App f args) -> do
                             funRef       <- follow source f
                             unpackedArgs <- unpackArguments args

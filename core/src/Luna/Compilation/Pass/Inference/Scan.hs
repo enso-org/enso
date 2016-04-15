@@ -8,6 +8,7 @@ import Data.Prop
 import Data.Record.Match
 import Data.Graph
 import Data.Graph.Builder
+import Data.Maybe                                        (catMaybes)
 import qualified Data.Graph.Backend.NEC                  as NEC
 
 import Old.Luna.Syntax.Term.Class                            hiding (source, target)
@@ -19,7 +20,7 @@ import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Term
 
 import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect)
+import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect, isLambda)
 
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
@@ -79,6 +80,29 @@ assignDepths ref = do
             withRef ref $ prop TCData . depth ?~ newDep
             return newDep
 
+isBlank :: PassCtx(m) => Ref Node node -> m Bool
+isBlank r = do
+    n <- read r
+    caseTest (uncover n) $ do
+        of' $ \Blank -> return True
+        of' $ \ANY   -> return False
+
+findLambdaAccessors :: PassCtx(m) => m ()
+findLambdaAccessors = do
+    accs <- view TypeCheck.untypedAccs <$> TypeCheck.get
+    justLambdas <- forM accs $ \accRef -> do
+        acc <- read accRef
+        caseTest (uncover acc) $ do
+            of' $ \(Acc n t) -> do
+                isB <- isBlank =<< follow source t
+                if isB
+                    then do
+                        withRef accRef $ prop TCData . isLambda .~ True
+                        return $ Just accRef
+                    else return Nothing
+            of' $ \ANY -> impossible
+    TypeCheck.modify_ $ TypeCheck.untypedLambdaAccs .~ catMaybes justLambdas
+
 
 -- FIXME[MK]: This does not take pattern matching into account. To implement.
 resolveLocalVars :: forall term node ls edge n e c m . PassCtx(m) => m ()
@@ -109,6 +133,7 @@ instance PassCtx(m) => TypeCheckerPass ScanPass m where
         mapM_ (subtreeWalk investigate) roots
         resolveLocalVars
         mapM_ assignDepths roots
+        findLambdaAccessors
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []
         case roots of
             [] -> return Stuck

@@ -377,17 +377,15 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
-                prsFun <- var "primes"
-                ten    <- int 10
-                one    <- int 1
-                primes <- app prsFun [arg ten]
-                add    <- var "add"
-                curid  <- curry add [arg one]
-
-                mapF   <- acc "map" primes
-                apped  <- app mapF [arg curid]
-
-                return [apped]
+                v1 <- blank
+                v2 <- acc "succ" v1
+                v3 <- int 3
+                v4 <- int 4
+                v5 <- acc "times" v3
+                v6 <- app v5 [arg v4]
+                v7 <- acc "map" v6
+                v8 <- app v7 [arg v2]
+                return [v8]
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ roots
