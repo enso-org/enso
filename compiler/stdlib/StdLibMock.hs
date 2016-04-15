@@ -228,7 +228,7 @@ symbolsList =
     , makeNativeFun "List.fold"    (Just $ listOf $ TVar "#foldB")       [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (TVar "#foldA")
     , makeNativeFun "List.map"     (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]                                   (listOf $ TVar "#map1")
     , makeNativeFun "List.zip"     (Just $ listOf $ TVar "#a")           [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]         (listOf $ TVar "#c")
-    {-, ("List.sort"        , makePureFun "sort"                   (Just $ listOf $ TVar "#sort")        []                     (listOf $ TVar "#sort"))-}
+    , makeNativeFun "List.sort"    (Just $ listOf $ scons "Int")         []                                                                    (listOf $ scons "Int")
     {-, ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))-}
 
 
