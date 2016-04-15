@@ -237,11 +237,11 @@ symbolsList =
 {--------------------}
 
     , ("id",         makeId)
-    , makeNativeFun "readFile"  Nothing [scons "String"]                        (scons "String")
-    , makeNativeFun "switch"    Nothing [scons "Bool", TVar "#a", TVar "#a"]    (TVar "#a")
-    , makeNativeFun "histogram" Nothing [listOf $ scons "Int"]                  (scons "Histogram")
-    , makeNativeFun "primes"    Nothing [scons "Int"]                           (listOf $ scons "Int")
-    {-, ("differences"    , makePureFun differencesBody                                    Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))-}
+    , makeNativeFun "readFile"     Nothing [scons "String"]                        (scons "String")
+    , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]    (TVar "#a")
+    , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                  (scons "Histogram")
+    , makeNativeFun "primes"       Nothing [scons "Int"]                           (listOf $ scons "Int")
+    , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int")
     ]
 
 {--------------------}
