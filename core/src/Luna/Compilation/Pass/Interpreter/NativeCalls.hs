@@ -7,6 +7,7 @@ import qualified Data.Map as Map
 import           Data.Map (Map)
 import           Unsafe.Coerce   (unsafeCoerce)
 import           GHC.Prim        (Any)
+import           Data.List       (sort, group)
 
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $
@@ -126,17 +127,28 @@ nativeCalls = Map.fromList $
 ------------------
 
     , ("List.+",        unsafeCoerce (return .: (++)           :: [Any] -> [Any] -> IO [Any]))
-    , ("List.length",   unsafeCoerce (return . length          :: [Any] -> IO Int))
-    , ("List.reverse",  unsafeCoerce (return . reverse         :: [Any] -> IO [Any]))
+    , ("List.length",   unsafeCoerce (return .  length         :: [Any] -> IO Int))
+    , ("List.reverse",  unsafeCoerce (return .  reverse        :: [Any] -> IO [Any]))
+    , ("List.drop",     unsafeCoerce (return .: flip drop      :: [Any] -> Int -> IO [Any]))
+    , ("List.sort",     unsafeCoerce (return .  sort           :: [Int] -> IO [Int]))
     , ("List.map",      unsafeCoerce (forM                     :: [Any] -> (Any -> IO Any) -> IO [Any]))
     , ("List.fold",     unsafeCoerce ((\l i f -> foldlM f i l) :: [Any] -> Any -> (Any -> Any -> IO Any) -> IO Any))
+    , ("List.zip",      unsafeCoerce (flip zipWithM            :: [Any] -> (Any -> Any -> IO Any) -> [Any] -> IO [Any]))
 
 ------------------
 -- === Misc === --
 ------------------
-    , ("add",        unsafeCoerce (return .: (+) :: Int -> Int -> IO Int))
+    , ("primes",        unsafeCoerce primes)
+    , ("differences",   unsafeCoerce (return . (\l -> zipWithM (return .: (-)) (drop 1 l) l) :: [Int] -> [Int] -> IO [Int]))
+    , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
+    , ("switch",        unsafeCoerce (return .:. (\x y z -> if x then y else z) :: Bool -> Any -> Any -> IO Any))
 
     ]
+
+primes :: Int -> IO [Int]
+primes count = return $ take count primes' where
+    primes'   = 2 : filter isPrime [3, 5..]
+    isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
 
 lookupNative :: String -> Maybe Any
 lookupNative = flip Map.lookup nativeCalls

@@ -223,9 +223,11 @@ symbolsList =
 
     , makeNativeFun "List.length"  (Just $ listOf $ TVar "#len")         []                                                                    (scons "Int")
     , makeNativeFun "List.reverse" (Just $ listOf $ TVar "#reverse")     []                                                                    (listOf $ TVar "#reverse")
+    , makeNativeFun "List.drop"    (Just $ listOf $ TVar "#a")           [scons "Int"]                                                         (listOf $ TVar "#a")
     , makeNativeFun "List.+"       (Just $ listOf $ TVar "#lpl")         [listOf $ TVar "#lpl"]                                                (listOf $ TVar "#lpl")
     , makeNativeFun "List.fold"    (Just $ listOf $ TVar "#foldB")       [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (TVar "#foldA")
     , makeNativeFun "List.map"     (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]                                   (listOf $ TVar "#map1")
+    , makeNativeFun "List.zip"     (Just $ listOf $ TVar "#a")           [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]         (listOf $ TVar "#c")
     {-, ("List.sort"        , makePureFun "sort"                   (Just $ listOf $ TVar "#sort")        []                     (listOf $ TVar "#sort"))-}
     {-, ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))-}
 
@@ -234,15 +236,12 @@ symbolsList =
 {--- === Misc === ---}
 {--------------------}
 
-    {-, ("readFile"       , makeNativeFun  "readFile"                                      Nothing [scons "String"]                        (scons "String"))-}
-    , ("id", makeId)
-    {-, ("switch"         , makePureFun "(\\x y z -> if x then y else z)"                  Nothing [scons "Bool", TVar "#if", TVar "#if"]  (TVar "#if"))-}
-    {-, ("histogram"      , makePureFun "(map (\\l -> (head l, length l)) . group . sort)" Nothing [listOf $ scons "Int"]                  (scons "Histogram"))-}
-    {-, ("primes"         , makePureFun primesBody                                         Nothing [scons "Int"]                           (listOf $ scons "Int"))-}
+    , ("id",         makeId)
+    , makeNativeFun "readFile"  Nothing [scons "String"]                        (scons "String")
+    , makeNativeFun "switch"    Nothing [scons "Bool", TVar "#a", TVar "#a"]    (TVar "#a")
+    , makeNativeFun "histogram" Nothing [listOf $ scons "Int"]                  (scons "Histogram")
+    , makeNativeFun "primes"    Nothing [scons "Int"]                           (listOf $ scons "Int")
     {-, ("differences"    , makePureFun differencesBody                                    Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int"))-}
-
-    , makeNativeFun "add"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" )
-    {-, ( "(*)"       Nothing                               [scons "Int", scons "Int"]                                            (scons "Int" ))-}
     ]
 
 {--------------------}
