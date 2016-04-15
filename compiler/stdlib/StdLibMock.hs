@@ -106,6 +106,14 @@ makeId = do
     n     <- blank `typed` tpV
     return $ Signature Nothing [arg n] n
 
+makeConst :: FunBuilderCtx(m) => m (Signature nodeRef)
+makeConst = do
+    tpVa <- var "#a"
+    tpVb <- var "#b"
+    na   <- blank `typed` tpVa
+    nb   <- blank `typed` tbVb
+    return $ Signature Nothing [arg na, arg nb] na
+
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b)) symbolsList
 
@@ -237,6 +245,7 @@ symbolsList =
 {--------------------}
 
     , ("id",         makeId)
+    , ("const",      makeConst)
     , makeNativeFun "readFile"     Nothing [scons "String"]                        (scons "String")
     , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]    (TVar "#a")
     , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                  (scons "Histogram")
