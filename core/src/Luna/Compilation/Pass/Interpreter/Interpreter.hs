@@ -282,7 +282,7 @@ collectNodesToEval ref = do
         whenM (isDirty <$> read p) $
             collectNodesToEval p
 
-exceptionHandler :: (InterpreterCtx(m, ls, term), HS.SessionMonad (GhcT m)) => SomeException -> m (ValueErr (EvalMonad Any))
+exceptionHandler :: SomeException -> IO (ValueErr (EvalMonad Any))
 exceptionHandler e = do
     let asyncExcMay = ((fromException e) :: Maybe AsyncException)
     putStrLn $ "Exception catched:\n" <> show e
@@ -304,14 +304,16 @@ evaluateNative ref args = runExceptT $ do
     markDirty ref False
     valuesE <- argumentsValues args
     values <- ExceptT $ return valuesE
-    res <- do
-        fun :: Any <- maybe (throwError ["Unknown native call: " <> name]) return $ lookupNative name
+    fun :: Any <- maybe (throwError ["Unknown native call: " <> name]) return $ lookupNative name
+    res <- liftIO $ handleAll exceptionHandler $ do
         args <- liftIO $ sequence values
         let resA = foldl appArg fun args
         let resM = unsafeCast resA :: EvalMonad Any
         res <- liftIO $ resM
-        return $ return res
-    return $ res
+        return $ Right $ return res
+    case res of
+        Left errs -> throwError errs
+        Right res -> return res
 
 -- join $ foldl (\f a -> f <*> a) (pure f) values
 
