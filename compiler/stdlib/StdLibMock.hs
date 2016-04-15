@@ -111,7 +111,7 @@ makeConst = do
     tpVa <- var "#a"
     tpVb <- var "#b"
     na   <- blank `typed` tpVa
-    nb   <- blank `typed` tbVb
+    nb   <- blank `typed` tpVb
     return $ Signature Nothing [arg na, arg nb] na
 
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
