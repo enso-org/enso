@@ -117,11 +117,36 @@ makeConst = do
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b)) symbolsList
 
-symbolsList =
+symbolsList = [
+------------------
+-- === List === --
+------------------
+
+      makeNativeFun "List.+"        (Just $ listOf $ TVar "#lpl")         [listOf $ TVar "#lpl"]                                                (listOf $ TVar "#lpl")
+    , makeNativeFun "List.append"   (Just $ listOf $ TVar "#append")      [TVar "#append"]                                                      (listOf $ TVar "#append")
+    , makeNativeFun "List.prepend"  (Just $ listOf $ TVar "#prepend")     [TVar "#prepend"]                                                     (listOf $ TVar "#prepend")
+    , makeNativeFun "List.length"   (Just $ listOf $ TVar "#len")         []                                                                    (scons "Int")
+    , makeNativeFun "List.reverse"  (Just $ listOf $ TVar "#reverse")     []                                                                    (listOf $ TVar "#reverse")
+    , makeNativeFun "List.drop"     (Just $ listOf $ TVar "#a")           [scons "Int"]                                                         (listOf $ TVar "#a")
+    , makeNativeFun "List.sort"     (Just $ listOf $ scons "Int")         []                                                                    (listOf $ scons "Int")
+
+    , makeNativeFun "List.fold"     (Just $ listOf $ TVar "#foldB")       [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (TVar "#foldA")
+    , makeNativeFun "List.map"      (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]                                   (listOf $ TVar "#map1")
+    , makeNativeFun "List.zip"      (Just $ listOf $ TVar "#a")           [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]         (listOf $ TVar "#c")
+
 ------------------
 -- === Int === --
 ------------------
-    [ makeNativeFun "Int.+"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.=="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int./="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.<"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.<="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.>"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.>="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
+    , makeNativeFun "Int.min"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.max"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+
+    , makeNativeFun "Int.+"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.*"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.-"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int./"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
@@ -131,139 +156,121 @@ symbolsList =
     , makeNativeFun "Int.negate"    (Just $ scons "Int")    []              (scons "Int" )
     , makeNativeFun "Int.abs"       (Just $ scons "Int")    []              (scons "Int" )
     , makeNativeFun "Int.signum"    (Just $ scons "Int")    []              (scons "Int" )
+
     , makeNativeFun "Int.pred"      (Just $ scons "Int")    []              (scons "Int" )
     , makeNativeFun "Int.succ"      (Just $ scons "Int")    []              (scons "Int" )
     , makeNativeFun "Int.even"      (Just $ scons "Int")    []              (scons "Bool")
     , makeNativeFun "Int.odd"       (Just $ scons "Int")    []              (scons "Bool")
 
-    , makeNativeFun "Int.=="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
-    , makeNativeFun "Int./="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
-    , makeNativeFun "Int.<"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
-    , makeNativeFun "Int.<="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
-    , makeNativeFun "Int.>"         (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
-    , makeNativeFun "Int.>="        (Just $ scons "Int")    [scons "Int"]   (scons "Bool")
-
-    , makeNativeFun "Int.min"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
-    , makeNativeFun "Int.max"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.gcd"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.lcm"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
 
-    , makeNativeFun "Int.toString"  (Just $ scons "Int")    []              (scons "String")
-    , makeNativeFun "Int.toDouble"  (Just $ scons "Int")    []              (scons "Double")
     , makeNativeFun "Int.times"     (Just $ scons "Int")    [TVar "#times"] (listOf $ TVar "#times")
     , makeNativeFun "Int.upto"      (Just $ scons "Int")    [scons "Int"]   (listOf $ scons "Int")
+
+    , makeNativeFun "Int.toDouble"  (Just $ scons "Int")    []              (scons "Double")
+    , makeNativeFun "Int.toString"  (Just $ scons "Int")    []              (scons "String")
 
 --------------------
 -- === Double === --
 --------------------
-    , makeNativeFun "Double.=="      (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
-    , makeNativeFun "Double./="      (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
-    , makeNativeFun "Double.<"       (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
-    , makeNativeFun "Double.<="      (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
-    , makeNativeFun "Double.>"       (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
-    , makeNativeFun "Double.>="      (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
-    , makeNativeFun "Double.min"     (Just $ scons "Double")    [scons "Double"]   (scons "Double")
-    , makeNativeFun "Double.max"     (Just $ scons "Double")    [scons "Double"]   (scons "Double")
+    , makeNativeFun "Double.=="       (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
+    , makeNativeFun "Double./="       (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
+    , makeNativeFun "Double.<"        (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
+    , makeNativeFun "Double.<="       (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
+    , makeNativeFun "Double.>"        (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
+    , makeNativeFun "Double.>="       (Just $ scons "Double")    [scons "Double"]   (scons "Bool")
+    , makeNativeFun "Double.min"      (Just $ scons "Double")    [scons "Double"]   (scons "Double")
+    , makeNativeFun "Double.max"      (Just $ scons "Double")    [scons "Double"]   (scons "Double")
 
-    , makeNativeFun "Double.+"       (Just $ scons "Double")    [scons "Double"]   (scons "Double")
-    , makeNativeFun "Double.*"       (Just $ scons "Double")    [scons "Double"]   (scons "Double")
-    , makeNativeFun "Double.-"       (Just $ scons "Double")    [scons "Double"]   (scons "Double")
-    , makeNativeFun "Double./"       (Just $ scons "Double")    [scons "Double"]   (scons "Double")
-    , makeNativeFun "Double.**"      (Just $ scons "Double")    [scons "Double"]   (scons "Double")
-    , makeNativeFun "Double.negate"  (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.abs"     (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.signum"  (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.+"        (Just $ scons "Double")    [scons "Double"]   (scons "Double")
+    , makeNativeFun "Double.*"        (Just $ scons "Double")    [scons "Double"]   (scons "Double")
+    , makeNativeFun "Double.-"        (Just $ scons "Double")    [scons "Double"]   (scons "Double")
+    , makeNativeFun "Double./"        (Just $ scons "Double")    [scons "Double"]   (scons "Double")
+    , makeNativeFun "Double.**"       (Just $ scons "Double")    [scons "Double"]   (scons "Double")
 
-    , makeNativeFun "Double.round"   (Just $ scons "Double")    []                 (scons "Int")
-    , makeNativeFun "Double.ceiling" (Just $ scons "Double")    []                 (scons "Int")
-    , makeNativeFun "Double.floor"   (Just $ scons "Double")    []                 (scons "Int")
+    , makeNativeFun "Double.negate"   (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.abs"      (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.signum"   (Just $ scons "Double")    []                 (scons "Double")
 
-    , makeNativeFun "Double.exp"     (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.log"     (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.sqrt"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.sin"     (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.cos"     (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.tan"     (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.asin"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.acos"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.atan"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.sinh"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.cosh"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.tanh"    (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.asinh"   (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.acosh"   (Just $ scons "Double")    []                 (scons "Double")
-    , makeNativeFun "Double.atanh"   (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.round"    (Just $ scons "Double")    []                 (scons "Int")
+    , makeNativeFun "Double.ceiling"  (Just $ scons "Double")    []                 (scons "Int")
+    , makeNativeFun "Double.floor"    (Just $ scons "Double")    []                 (scons "Int")
+
+    , makeNativeFun "Double.exp"      (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.log"      (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.sqrt"     (Just $ scons "Double")    []                 (scons "Double")
+
+    , makeNativeFun "Double.sin"      (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.cos"      (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.tan"      (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.asin"     (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.acos"     (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.atan"     (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.sinh"     (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.cosh"     (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.tanh"     (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.asinh"    (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.acosh"    (Just $ scons "Double")    []                 (scons "Double")
+    , makeNativeFun "Double.atanh"    (Just $ scons "Double")    []                 (scons "Double")
+
+    , makeNativeFun "Double.toString" (Just $ scons "Double")    []                 (scons "String")
 
 ------------------
 -- === Bool === --
 ------------------
 
-    , makeNativeFun "Bool.&&"  (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool.||"  (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool.not" (Just $ scons "Bool")   []              (scons "Bool")
-    , makeNativeFun "Bool.=="  (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool./="  (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool.<"   (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool.<="  (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool.>"   (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
-    , makeNativeFun "Bool.>="  (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.=="       (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool./="       (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.<"        (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.<="       (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.>"        (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.>="       (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.min"      (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.max"      (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+
+    , makeNativeFun "Bool.&&"       (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.||"       (Just $ scons "Bool")   [scons "Bool"]  (scons "Bool")
+    , makeNativeFun "Bool.not"      (Just $ scons "Bool")   []              (scons "Bool")
+
+    , makeNativeFun "Bool.toString" (Just $ scons "Bool")   []              (scons "String")
 
 --------------------
 -- === String === --
 --------------------
 
-    , makeNativeFun "String.length"  (Just $ scons "String") []                        (scons "Int")
-    , makeNativeFun "String.reverse" (Just $ scons "String") []                        (scons "String")
-    , makeNativeFun "String.words"   (Just $ scons "String") []                        (listOf $ scons "String")
-    , makeNativeFun "String.lines"   (Just $ scons "String") []                        (listOf $ scons "String")
-    , makeNativeFun "String.join"    (Just $ scons "String") [listOf $ scons "String"] (scons "String")
-    , makeNativeFun "String.+"       (Just $ scons "String") [scons "String"]          (scons "String")
-    , makeNativeFun "String.=="      (Just $ scons "String") [scons "String"]          (scons "Bool")
-    , makeNativeFun "String./="      (Just $ scons "String") [scons "String"]          (scons "Bool")
-    , makeNativeFun "String.<"       (Just $ scons "String") [scons "String"]          (scons "Bool")
-    , makeNativeFun "String.<="      (Just $ scons "String") [scons "String"]          (scons "Bool")
-    , makeNativeFun "String.>"       (Just $ scons "String") [scons "String"]          (scons "Bool")
-    , makeNativeFun "String.>="      (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String.=="       (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String./="       (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String.<"        (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String.<="       (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String.>"        (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String.>="       (Just $ scons "String") [scons "String"]          (scons "Bool")
+    , makeNativeFun "String.min"      (Just $ scons "String") [scons "String"]          (scons "String")
+    , makeNativeFun "String.max"      (Just $ scons "String") [scons "String"]          (scons "String")
 
-------------------
--- === List === --
-------------------
+    , makeNativeFun "String.+"        (Just $ scons "String") [scons "String"]          (scons "String")
+    , makeNativeFun "String.length"   (Just $ scons "String") []                        (scons "Int")
+    , makeNativeFun "String.reverse"  (Just $ scons "String") []                        (scons "String")
+    , makeNativeFun "String.words"    (Just $ scons "String") []                        (listOf $ scons "String")
+    , makeNativeFun "String.lines"    (Just $ scons "String") []                        (listOf $ scons "String")
+    , makeNativeFun "String.join"     (Just $ scons "String") [listOf $ scons "String"] (scons "String")
 
-    , makeNativeFun "List.length"  (Just $ listOf $ TVar "#len")         []                                                                    (scons "Int")
-    , makeNativeFun "List.reverse" (Just $ listOf $ TVar "#reverse")     []                                                                    (listOf $ TVar "#reverse")
-    , makeNativeFun "List.drop"    (Just $ listOf $ TVar "#a")           [scons "Int"]                                                         (listOf $ TVar "#a")
-    , makeNativeFun "List.+"       (Just $ listOf $ TVar "#lpl")         [listOf $ TVar "#lpl"]                                                (listOf $ TVar "#lpl")
-    , makeNativeFun "List.fold"    (Just $ listOf $ TVar "#foldB")       [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]  (TVar "#foldA")
-    , makeNativeFun "List.map"     (Just $ listOf $ TVar "#map")         [TLam [TVar "#map"] (TVar "#map1")]                                   (listOf $ TVar "#map1")
-    , makeNativeFun "List.zip"     (Just $ listOf $ TVar "#a")           [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]         (listOf $ TVar "#c")
-    , makeNativeFun "List.sort"    (Just $ listOf $ scons "Int")         []                                                                    (listOf $ scons "Int")
-    {-, ("empty"            , makePureFun "([])"                   Nothing                               []                     (listOf $ TVar "#empty"))-}
+    , makeNativeFun "String.toString" (Just $ scons "String") []                        (scons "String")
 
-
-{--------------------}
-{--- === Misc === ---}
-{--------------------}
+--------------------
+--- === Misc === ---
+--------------------
 
     , ("id",         makeId)
     , ("const",      makeConst)
-    , makeNativeFun "readFile"     Nothing [scons "String"]                        (scons "String")
+    -- , makeNativeFun "empty"        Nothing []                                      (listOf $ TVar "#empty")
     , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]    (TVar "#a")
+    , makeNativeFun "readFile"     Nothing [scons "String"]                        (scons "String")
+    , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]               (scons "Double")
+    , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int")
     , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                  (scons "Histogram")
     , makeNativeFun "primes"       Nothing [scons "Int"]                           (listOf $ scons "Int")
-    , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                  (listOf $ scons "Int")
     ]
-
-{--------------------}
-{--- === Tests === ---}
-{--------------------}
-
-
-{-primesBody :: String-}
-{-primesBody = intercalate " ; " $-}
-    {-[ "(\\x -> let primes' = 2 : filter isPrime [3, 5..]"-}
-    {-, "          isPrime n = not $ any (\\p -> n `rem` p == 0) (takeWhile (\\p -> p*p <= n) primes')"-}
-    {-, "      in take x $ primes')"-}
-    {-]-}
 
 symbolsNames :: [String]
 symbolsNames = fst <$> symbolsList
