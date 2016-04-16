@@ -158,7 +158,7 @@ nativeCalls = Map.fromList $ [
     , ("switch",        unsafeCoerce (return .:. (\x y z -> if x then y else z) :: Bool -> Any -> Any -> IO Any))
     , ("readFile",      unsafeCoerce (readFile :: String -> IO String))
     , ("mean",          unsafeCoerce (return . (uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> IO Double))
-    , ("differences",   unsafeCoerce (return . (\l -> zipWithM (return .: (-)) (drop 1 l) l) :: [Int] -> [Int] -> IO [Int]))
+    , ("differences",   unsafeCoerce (return . (\l -> zipWith (-) (drop 1 l) l) :: [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
     , ("primes",        unsafeCoerce primes)
 
