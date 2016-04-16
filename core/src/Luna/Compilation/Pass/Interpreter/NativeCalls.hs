@@ -16,17 +16,17 @@ nativeCalls = Map.fromList $ [
 -- === List === --
 ------------------
 
-      ("List.+",        unsafeCoerce (return .: (++)               :: [Any] -> [Any] -> IO [Any]))
-    , ("List.append",   unsafeCoerce (return .: (\l e -> l ++ [e]) :: [Any] -> Any -> IO [Any]))
-    , ("List.prepend",  unsafeCoerce (return .: flip (:)           :: [Any] -> Any -> IO [Any]))
-    , ("List.length",   unsafeCoerce (return .  length             :: [Any] -> IO Int))
-    , ("List.reverse",  unsafeCoerce (return .  reverse            :: [Any] -> IO [Any]))
-    , ("List.drop",     unsafeCoerce (return .: flip drop          :: [Any] -> Int -> IO [Any]))
-    , ("List.sort",     unsafeCoerce (return .  sort               :: [Int] -> IO [Int]))
+      ("List.+",        unsafeCoerce (return .: (++)                  :: [Any] -> [Any] -> IO [Any]))
+    , ("List.append",   unsafeCoerce (return .: (\l e -> l ++ [e])    :: [Any] -> Any -> IO [Any]))
+    , ("List.prepend",  unsafeCoerce (return .: flip (:)              :: [Any] -> Any -> IO [Any]))
+    , ("List.length",   unsafeCoerce (return .  length                :: [Any] -> IO Int))
+    , ("List.reverse",  unsafeCoerce (return .  reverse               :: [Any] -> IO [Any]))
+    , ("List.drop",     unsafeCoerce (return .: flip drop             :: [Any] -> Int -> IO [Any]))
+    , ("List.sort",     unsafeCoerce (return .  sort                  :: [Int] -> IO [Int]))
 
-    , ("List.map",      unsafeCoerce (forM                         :: [Any] -> (Any -> IO Any) -> IO [Any]))
-    , ("List.fold",     unsafeCoerce ((\l i f -> foldlM f i l)     :: [Any] -> Any -> (Any -> Any -> IO Any) -> IO Any))
-    , ("List.zip",      unsafeCoerce (flip zipWithM                :: [Any] -> (Any -> Any -> IO Any) -> [Any] -> IO [Any]))
+    , ("List.map",      unsafeCoerce (forM                            :: [Any] -> (Any -> IO Any) -> IO [Any]))
+    , ("List.fold",     unsafeCoerce ((\l i f -> foldlM (flip f) i l) :: [Any] -> Any -> (Any -> Any -> IO Any) -> IO Any))
+    , ("List.zip",      unsafeCoerce (flip zipWithM                   :: [Any] -> (Any -> Any -> IO Any) -> [Any] -> IO [Any]))
 
 -----------------
 -- === Int === --
