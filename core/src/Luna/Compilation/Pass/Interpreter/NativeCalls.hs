@@ -33,6 +33,7 @@ nativeCalls = Map.fromList $ [
 -----------------
 -- === Int === --
 -----------------
+
     , ("Int.==",       unsafeCoerce (return .: (==) :: Int -> Int -> IO Bool))
     , ("Int./=",       unsafeCoerce (return .: (/=) :: Int -> Int -> IO Bool))
     , ("Int.<",        unsafeCoerce (return .: (<)  :: Int -> Int -> IO Bool))
@@ -70,6 +71,7 @@ nativeCalls = Map.fromList $ [
 --------------------
 -- === Double === --
 --------------------
+
     , ("Double.==",       unsafeCoerce (return .: (==) :: Double -> Double -> IO Bool))
     , ("Double./=",       unsafeCoerce (return .: (/=) :: Double -> Double -> IO Bool))
     , ("Double.<",        unsafeCoerce (return .: (<)  :: Double -> Double -> IO Bool))
@@ -156,8 +158,10 @@ nativeCalls = Map.fromList $ [
 ------------------
 -- === Misc === --
 ------------------
-    , ("comp",          unsafeCoerce (return .: (<=<)          :: (Any -> IO Any) -> (Any -> IO Any) -> IO (Any -> IO Any)))
-    , ("app",           unsafeCoerce ((\f a -> return a >>= f) :: (Any -> IO Any) -> Any -> IO Any))
+
+    , ("app",           unsafeCoerce ((\f a -> f a)           :: (Any -> IO Any) -> Any -> IO Any))
+    , ("comp",          unsafeCoerce (return .: (<=<)         :: (Any -> IO Any) -> (Any -> IO Any) -> IO (Any -> IO Any)))
+    , ("flip",          unsafeCoerce ((\f -> return $ flip f) :: (Any -> Any -> IO Any) -> IO (Any -> Any -> IO Any)))
 
     , ("empty",         unsafeCoerce (return []      :: IO [Any]))
     , ("singleton",     unsafeCoerce (return . (:[]) :: Any -> IO [Any]))
@@ -170,6 +174,16 @@ nativeCalls = Map.fromList $ [
     , ("differences",   unsafeCoerce (return . (\l -> zipWith (-) (drop 1 l) l) :: [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
     , ("primes",        unsafeCoerce primes)
+
+--------------------------
+-- === Experimental === --
+--------------------------
+
+    , ("app1to2",       unsafeCoerce ((\f a     -> return $ f a)   :: (Any -> Any -> IO Any)        -> Any               -> IO (Any -> IO Any)))
+    , ("app2to2",       unsafeCoerce ((\f a b   -> f a b)          :: (Any -> Any -> IO Any)        -> Any -> Any        -> IO Any))
+    , ("app1to3",       unsafeCoerce ((\f a     -> return $ f a)   :: (Any -> Any -> Any -> IO Any) -> Any               -> IO (Any -> Any -> IO Any)))
+    , ("app2to3",       unsafeCoerce ((\f a b   -> return $ f a b) :: (Any -> Any -> Any -> IO Any) -> Any -> Any        -> IO (Any -> IO Any)))
+    , ("app3to3",       unsafeCoerce ((\f a b c -> f a b c)        :: (Any -> Any -> Any -> IO Any) -> Any -> Any -> Any -> IO Any))
 
     ]
 
