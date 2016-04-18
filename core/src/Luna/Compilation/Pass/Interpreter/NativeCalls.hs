@@ -155,10 +155,16 @@ nativeCalls = Map.fromList $ [
 ------------------
 -- === Misc === --
 ------------------
-    , ("empty",         unsafeCoerce (return [] :: IO [Any]))
+    , ("comp",          unsafeCoerce ((<=<)                    :: (Any -> IO Any) -> (Any -> IO Any) -> (Any -> IO Any)))
+    , ("app",           unsafeCoerce ((\f a -> return a >>= f) :: (Any -> IO Any) -> Any -> IO Any))
+
+    , ("empty",         unsafeCoerce (return []      :: IO [Any]))
     , ("singleton",     unsafeCoerce (return . (:[]) :: Any -> IO [Any]))
+
     , ("switch",        unsafeCoerce (return .:. (\x y z -> if x then y else z) :: Bool -> Any -> Any -> IO Any))
+
     , ("readFile",      unsafeCoerce (readFile :: String -> IO String))
+
     , ("mean",          unsafeCoerce (return . (uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> IO Double))
     , ("differences",   unsafeCoerce (return . (\l -> zipWith (-) (drop 1 l) l) :: [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))

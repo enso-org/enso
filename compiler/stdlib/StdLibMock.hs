@@ -122,18 +122,18 @@ symbolsList = [
 -- === List === --
 ------------------
 
-      makeNativeFun "List.+"        (Just $ listOf $ TVar "#lpl")     [listOf $ TVar "#lpl"]                                                    (listOf $ TVar "#lpl")
-    , makeNativeFun "List.append"   (Just $ listOf $ TVar "#append")  [TVar "#append"]                                                          (listOf $ TVar "#append")
-    , makeNativeFun "List.prepend"  (Just $ listOf $ TVar "#prepend") [TVar "#prepend"]                                                         (listOf $ TVar "#prepend")
-    , makeNativeFun "List.length"   (Just $ listOf $ TVar "#len")     []                                                                        (scons "Int")
-    , makeNativeFun "List.reverse"  (Just $ listOf $ TVar "#reverse") []                                                                        (listOf $ TVar "#reverse")
-    , makeNativeFun "List.drop"     (Just $ listOf $ TVar "#drop")    [scons "Int"]                                                             (listOf $ TVar "#drop")
-    , makeNativeFun "List.sort"     (Just $ listOf $ scons "Int")     []                                                                        (listOf $ scons "Int")
+      makeNativeFun "List.+"        (Just $ listOf $ TVar "#a")    [listOf $ TVar "#a"]                                           (listOf $ TVar "#a")
+    , makeNativeFun "List.append"   (Just $ listOf $ TVar "#a")    [TVar "#a"]                                                    (listOf $ TVar "#a")
+    , makeNativeFun "List.prepend"  (Just $ listOf $ TVar "#a")    [TVar "#a"]                                                    (listOf $ TVar "#a")
+    , makeNativeFun "List.length"   (Just $ listOf $ TVar "#a")    []                                                             (scons "Int")
+    , makeNativeFun "List.reverse"  (Just $ listOf $ TVar "#a")    []                                                             (listOf $ TVar "#a")
+    , makeNativeFun "List.drop"     (Just $ listOf $ TVar "#a")    [scons "Int"]                                                  (listOf $ TVar "#a")
+    , makeNativeFun "List.sort"     (Just $ listOf $ scons "Int")  []                                                             (listOf $ scons "Int")
 
-    , makeNativeFun "List.fold"     (Just $ listOf $ TVar "#foldB")   [TVar "#foldA", TLam [TVar "#foldA", TVar "#foldB"] (TVar "#foldA")]      (TVar "#foldA")
-    , makeNativeFun "List.map"      (Just $ listOf $ TVar "#mapA")    [TLam [TVar "#mapA"] (TVar "#mapB")]                                      (listOf $ TVar "#mapB")
-    , makeNativeFun "List.zip"      (Just $ listOf $ TVar "#zipA")    [TLam [TVar "#zipA", TVar "#zipB"] (TVar "#zipC"), listOf $ TVar "#zipB"] (listOf $ TVar "#zipC")
-    , makeNativeFun "List.filter"   (Just $ listOf $ TVar "#filter")  [TLam [TVar "#filter"] (scons "Bool")]                                    (listOf $ TVar "#filter")
+    , makeNativeFun "List.fold"     (Just $ listOf $ TVar "#a")    [TVar "#b", TLam [TVar "#b", TVar "#a"] (TVar "#b")]           (TVar "#b")
+    , makeNativeFun "List.map"      (Just $ listOf $ TVar "#a")    [TLam [TVar "#a"] (TVar "#b")]                                 (listOf $ TVar "#b")
+    , makeNativeFun "List.zip"      (Just $ listOf $ TVar "#a")    [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]  (listOf $ TVar "#c")
+    , makeNativeFun "List.filter"   (Just $ listOf $ TVar "#a")    [TLam [TVar "#a"] (scons "Bool")]                              (listOf $ TVar "#a")
 
 ------------------
 -- === Int === --
@@ -166,7 +166,7 @@ symbolsList = [
     , makeNativeFun "Int.gcd"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.lcm"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
 
-    , makeNativeFun "Int.times"     (Just $ scons "Int")    [TVar "#times"] (listOf $ TVar "#times")
+    , makeNativeFun "Int.times"     (Just $ scons "Int")    [TVar "#a"]     (listOf $ TVar "#a")
     , makeNativeFun "Int.upto"      (Just $ scons "Int")    [scons "Int"]   (listOf $ scons "Int")
 
     , makeNativeFun "Int.toDouble"  (Just $ scons "Int")    []              (scons "Double")
@@ -264,15 +264,21 @@ symbolsList = [
 
     , ("id",         makeId)
     , ("const",      makeConst)
-    -- , makeNativeFun "comp"         Nothing [TLam [TVar "#filter"] (scons "Bool")]                                             (listOf $ TVar "#empty")
-    , makeNativeFun "empty"        Nothing []                                             (listOf $ TVar "#empty")
-    , makeNativeFun "singleton"    Nothing [TVar "#singleton"]                            (listOf $ TVar "#singleton")
-    , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#switch", TVar "#switch"] (TVar "#switch")
-    , makeNativeFun "readFile"     Nothing [scons "String"]                               (scons "String")
-    , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]                      (scons "Double")
-    , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                         (listOf $ scons "Int")
-    , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                         (scons "Histogram")
-    , makeNativeFun "primes"       Nothing [scons "Int"]                                  (listOf $ scons "Int")
+
+    , makeNativeFun "comp"         Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a"] (TVar "#b")]   (TLam [TVar "#a"] (TVar "#c"))
+    , makeNativeFun "app"          Nothing [TLam [TVar "#a"] (TVar "#b"), (TVar "#a")]                    (TVar "#b")
+
+    , makeNativeFun "empty"        Nothing []                                                             (listOf $ TVar "#a")
+    , makeNativeFun "singleton"    Nothing [TVar "#a"]                                                    (listOf $ TVar "#a")
+
+    , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]                           (TVar "#a")
+
+    , makeNativeFun "readFile"     Nothing [scons "String"]                                               (scons "String")
+
+    , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]                                      (scons "Double")
+    , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                                         (listOf $ scons "Int")
+    , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                                         (scons "Histogram")
+    , makeNativeFun "primes"       Nothing [scons "Int"]                                                  (listOf $ scons "Int")
     ]
 
 symbolsNames :: [String]
