@@ -156,7 +156,7 @@ nativeCalls = Map.fromList $ [
 ------------------
 -- === Misc === --
 ------------------
-    , ("comp",          unsafeCoerce ((<=<)                    :: (Any -> IO Any) -> (Any -> IO Any) -> (Any -> IO Any)))
+    , ("comp",          unsafeCoerce (return .: (<=<)          :: (Any -> IO Any) -> (Any -> IO Any) -> IO (Any -> IO Any)))
     , ("app",           unsafeCoerce ((\f a -> return a >>= f) :: (Any -> IO Any) -> Any -> IO Any))
 
     , ("empty",         unsafeCoerce (return []      :: IO [Any]))
