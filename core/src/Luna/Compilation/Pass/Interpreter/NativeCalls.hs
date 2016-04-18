@@ -21,6 +21,7 @@ nativeCalls = Map.fromList $ [
     , ("List.prepend",  unsafeCoerce (return .: flip (:)              :: [Any] -> Any -> IO [Any]))
     , ("List.length",   unsafeCoerce (return .  length                :: [Any] -> IO Int))
     , ("List.reverse",  unsafeCoerce (return .  reverse               :: [Any] -> IO [Any]))
+    , ("List.take",     unsafeCoerce (return .: flip take             :: [Any] -> Int -> IO [Any]))
     , ("List.drop",     unsafeCoerce (return .: flip drop             :: [Any] -> Int -> IO [Any]))
     , ("List.sort",     unsafeCoerce (return .  sort                  :: [Int] -> IO [Int]))
 

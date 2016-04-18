@@ -127,6 +127,7 @@ symbolsList = [
     , makeNativeFun "List.prepend"  (Just $ listOf $ TVar "#a")    [TVar "#a"]                                                    (listOf $ TVar "#a")
     , makeNativeFun "List.length"   (Just $ listOf $ TVar "#a")    []                                                             (scons "Int")
     , makeNativeFun "List.reverse"  (Just $ listOf $ TVar "#a")    []                                                             (listOf $ TVar "#a")
+    , makeNativeFun "List.take"     (Just $ listOf $ TVar "#a")    [scons "Int"]                                                  (listOf $ TVar "#a")
     , makeNativeFun "List.drop"     (Just $ listOf $ TVar "#a")    [scons "Int"]                                                  (listOf $ TVar "#a")
     , makeNativeFun "List.sort"     (Just $ listOf $ scons "Int")  []                                                             (listOf $ scons "Int")
 
