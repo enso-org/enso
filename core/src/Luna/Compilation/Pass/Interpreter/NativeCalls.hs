@@ -154,7 +154,7 @@ nativeCalls = Map.fromList $ [
 ------------------
 -- === Misc === --
 ------------------
-    -- , ("empty",         unsafeCoerce (return [] :: IO [Any]))
+    , ("empty",         unsafeCoerce (return [] :: IO [Any]))
     , ("switch",        unsafeCoerce (return .:. (\x y z -> if x then y else z) :: Bool -> Any -> Any -> IO Any))
     , ("readFile",      unsafeCoerce (readFile :: String -> IO String))
     , ("mean",          unsafeCoerce (return . (uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> IO Double))

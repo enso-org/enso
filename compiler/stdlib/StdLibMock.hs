@@ -263,7 +263,7 @@ symbolsList = [
 
     , ("id",         makeId)
     , ("const",      makeConst)
-    -- , makeNativeFun "empty"        Nothing []                                      (listOf $ TVar "#empty")
+    , makeNativeFun "empty"        Nothing []                                      (listOf $ TVar "#a")
     , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]    (TVar "#a")
     , makeNativeFun "readFile"     Nothing [scons "String"]                        (scons "String")
     , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]               (scons "Double")
