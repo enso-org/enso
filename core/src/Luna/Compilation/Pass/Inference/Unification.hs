@@ -196,11 +196,13 @@ resolveUnify uni = do
                     let cRawArgs' = unlayer <$> cargs'
                     args  <- mapM (follow source) (cout  : cRawArgs )
                     args' <- mapM (follow source) (cout' : cRawArgs')
+                    req   <- mapM (follow source) =<< follow (prop TCData . requester) uni
                     if length args == length args'
                         then do
                             unis  <- zipWithM unify args args'
                             replaceNode uni a
                             replaceNode b   a
+                            mapM (flip (reconnect $ prop TCData . requester) req) unis
                             resolve unis
                         else return ()
 
