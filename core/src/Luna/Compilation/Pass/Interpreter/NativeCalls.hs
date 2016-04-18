@@ -179,11 +179,12 @@ nativeCalls = Map.fromList $ [
 -- === Experimental === --
 --------------------------
 
-    , ("app1to2",       unsafeCoerce ((\f a     -> return $ f a)   :: (Any -> Any -> IO Any)        -> Any               -> IO (Any -> IO Any)))
-    , ("app2to2",       unsafeCoerce ((\f a b   -> f a b)          :: (Any -> Any -> IO Any)        -> Any -> Any        -> IO Any))
-    , ("app1to3",       unsafeCoerce ((\f a     -> return $ f a)   :: (Any -> Any -> Any -> IO Any) -> Any               -> IO (Any -> Any -> IO Any)))
-    , ("app2to3",       unsafeCoerce ((\f a b   -> return $ f a b) :: (Any -> Any -> Any -> IO Any) -> Any -> Any        -> IO (Any -> IO Any)))
-    , ("app3to3",       unsafeCoerce ((\f a b c -> f a b c)        :: (Any -> Any -> Any -> IO Any) -> Any -> Any -> Any -> IO Any))
+    , ("app1to2",       unsafeCoerce ((\f a     -> return $ f a)           :: (Any -> Any -> IO Any)        -> Any               -> IO (Any -> IO Any)))
+    , ("app2to2",       unsafeCoerce ((\f a b   -> f a b)                  :: (Any -> Any -> IO Any)        -> Any -> Any        -> IO Any))
+    , ("app1to3",       unsafeCoerce ((\f a     -> return $ f a)           :: (Any -> Any -> Any -> IO Any) -> Any               -> IO (Any -> Any -> IO Any)))
+    , ("app2to3",       unsafeCoerce ((\f a b   -> return $ f a b)         :: (Any -> Any -> Any -> IO Any) -> Any -> Any        -> IO (Any -> IO Any)))
+    , ("app3to3",       unsafeCoerce ((\f a b c -> f a b c)                :: (Any -> Any -> Any -> IO Any) -> Any -> Any -> Any -> IO Any))
+    , ("cycle3",        unsafeCoerce ((\f -> return $ (\b c a -> f a b c)) :: (Any -> Any -> Any -> IO Any)                      -> IO (Any -> Any -> Any -> IO Any)))
 
     ]
 

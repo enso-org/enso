@@ -293,6 +293,7 @@ symbolsList = [
     , makeNativeFun "app1to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a")]                           (TLam [TVar "#b", TVar "#c"] (TVar "#d"))
     , makeNativeFun "app2to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b")]              (TLam [TVar "#c"] (TVar "#d"))
     , makeNativeFun "app3to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b"), (TVar "#c")] (TVar "#d")
+    , makeNativeFun "cycle3"       Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d")]                                        (TLam [TVar "#b", TVar "#c", TVar "#a"] (TVar "#d"))
 
     ]
 
