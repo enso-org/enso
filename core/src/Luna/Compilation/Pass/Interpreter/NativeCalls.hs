@@ -27,6 +27,7 @@ nativeCalls = Map.fromList $ [
     , ("List.map",      unsafeCoerce (forM                            :: [Any] -> (Any -> IO Any) -> IO [Any]))
     , ("List.fold",     unsafeCoerce ((\l i f -> foldlM (flip f) i l) :: [Any] -> Any -> (Any -> Any -> IO Any) -> IO Any))
     , ("List.zip",      unsafeCoerce (flip zipWithM                   :: [Any] -> (Any -> Any -> IO Any) -> [Any] -> IO [Any]))
+    , ("List.filter",   unsafeCoerce ((\l p -> filterM p l)           :: [Any] -> (Any -> IO Bool) -> IO [Any]))
 
 -----------------
 -- === Int === --
@@ -51,19 +52,19 @@ nativeCalls = Map.fromList $ [
     , ("Int.abs",      unsafeCoerce (return . abs    :: Int -> IO Int))
     , ("Int.signum",   unsafeCoerce (return . signum :: Int -> IO Int))
 
-    , ("Int.pred",     unsafeCoerce (return . pred   :: Int -> IO Int))
-    , ("Int.succ",     unsafeCoerce (return . succ   :: Int -> IO Int))
-    , ("Int.even",     unsafeCoerce (return . even   :: Int -> IO Bool))
-    , ("Int.odd",      unsafeCoerce (return . odd    :: Int -> IO Bool))
+    , ("Int.pred",     unsafeCoerce (return . pred :: Int -> IO Int))
+    , ("Int.succ",     unsafeCoerce (return . succ :: Int -> IO Int))
+    , ("Int.even",     unsafeCoerce (return . even :: Int -> IO Bool))
+    , ("Int.odd",      unsafeCoerce (return . odd  :: Int -> IO Bool))
 
     , ("Int.gcd",      unsafeCoerce (return .: gcd :: Int -> Int -> IO Int))
     , ("Int.lcm",      unsafeCoerce (return .: lcm :: Int -> Int -> IO Int))
 
-    , ("Int.times",    unsafeCoerce (return .: replicate    :: Int -> Any -> IO [Any]))
-    , ("Int.upto",     unsafeCoerce (return .: enumFromTo   :: Int -> Int -> IO [Int]))
+    , ("Int.times",    unsafeCoerce (return .: replicate  :: Int -> Any -> IO [Any]))
+    , ("Int.upto",     unsafeCoerce (return .: enumFromTo :: Int -> Int -> IO [Int]))
 
-    , ("Int.toDouble", unsafeCoerce (return .  fromIntegral :: Int -> IO Double))
-    , ("Int.toString", unsafeCoerce (return .  show         :: Int -> IO String))
+    , ("Int.toDouble", unsafeCoerce (return . fromIntegral :: Int -> IO Double))
+    , ("Int.toString", unsafeCoerce (return . show         :: Int -> IO String))
 
 --------------------
 -- === Double === --
@@ -77,23 +78,23 @@ nativeCalls = Map.fromList $ [
     , ("Double.min",      unsafeCoerce (return .: min  :: Double -> Double -> IO Double))
     , ("Double.max",      unsafeCoerce (return .: max  :: Double -> Double -> IO Double))
 
-    , ("Double.+",        unsafeCoerce (return .: (+)    :: Double -> Double -> IO Double))
-    , ("Double.*",        unsafeCoerce (return .: (*)    :: Double -> Double -> IO Double))
-    , ("Double.-",        unsafeCoerce (return .: (-)    :: Double -> Double -> IO Double))
-    , ("Double./",        unsafeCoerce (return .: (/)    :: Double -> Double -> IO Double))
-    , ("Double.**",       unsafeCoerce (return .: (**)   :: Double -> Double -> IO Double))
+    , ("Double.+",        unsafeCoerce (return .: (+)  :: Double -> Double -> IO Double))
+    , ("Double.*",        unsafeCoerce (return .: (*)  :: Double -> Double -> IO Double))
+    , ("Double.-",        unsafeCoerce (return .: (-)  :: Double -> Double -> IO Double))
+    , ("Double./",        unsafeCoerce (return .: (/)  :: Double -> Double -> IO Double))
+    , ("Double.**",       unsafeCoerce (return .: (**) :: Double -> Double -> IO Double))
 
-    , ("Double.negate",   unsafeCoerce (return .  negate :: Double -> IO Double))
-    , ("Double.abs",      unsafeCoerce (return .  abs    :: Double -> IO Double))
-    , ("Double.signum",   unsafeCoerce (return .  signum :: Double -> IO Double))
+    , ("Double.negate",   unsafeCoerce (return . negate :: Double -> IO Double))
+    , ("Double.abs",      unsafeCoerce (return . abs    :: Double -> IO Double))
+    , ("Double.signum",   unsafeCoerce (return . signum :: Double -> IO Double))
 
     , ("Double.round",    unsafeCoerce (return . round   :: Double -> IO Int))
     , ("Double.ceiling",  unsafeCoerce (return . ceiling :: Double -> IO Int))
     , ("Double.floor",    unsafeCoerce (return . floor   :: Double -> IO Int))
 
-    , ("Double.exp",      unsafeCoerce (return . exp   :: Double -> IO Double))
-    , ("Double.log",      unsafeCoerce (return . log   :: Double -> IO Double))
-    , ("Double.sqrt",     unsafeCoerce (return . sqrt  :: Double -> IO Double))
+    , ("Double.exp",      unsafeCoerce (return . exp  :: Double -> IO Double))
+    , ("Double.log",      unsafeCoerce (return . log  :: Double -> IO Double))
+    , ("Double.sqrt",     unsafeCoerce (return . sqrt :: Double -> IO Double))
 
     , ("Double.sin",      unsafeCoerce (return . sin   :: Double -> IO Double))
     , ("Double.cos",      unsafeCoerce (return . cos   :: Double -> IO Double))
@@ -155,6 +156,7 @@ nativeCalls = Map.fromList $ [
 -- === Misc === --
 ------------------
     , ("empty",         unsafeCoerce (return [] :: IO [Any]))
+    , ("singleton",     unsafeCoerce (return . (:[]) :: Any -> IO [Any]))
     , ("switch",        unsafeCoerce (return .:. (\x y z -> if x then y else z) :: Bool -> Any -> Any -> IO Any))
     , ("readFile",      unsafeCoerce (readFile :: String -> IO String))
     , ("mean",          unsafeCoerce (return . (uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> IO Double))
