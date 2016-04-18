@@ -343,7 +343,7 @@ interpret' g binds []         out = toAny $ interpretNoArgs g binds out
 interpret' g binds (arg:args) out = toAny $ \v -> interpret' g ((arg, v) : binds) args out
 
 interpret :: NetGraph -> [NodeRef] -> NodeRef -> EvalMonad Any
-interpret g args out = return $ interpret' g [] (reverse args) out
+interpret g args out = return $ interpret' g [] args out
 
 interpretFun :: NetGraph -> Signature NodeRef -> EvalMonad Any
 interpretFun g sig = do
