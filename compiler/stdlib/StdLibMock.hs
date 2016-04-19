@@ -300,5 +300,14 @@ symbolsList = [
 
     ]
 
+experimental = [ "fix"
+               , "app1to2"
+               , "app2to2"
+               , "app1to3"
+               , "app2to3"
+               , "app3to3"
+               , "cycle3"
+               ]
+
 symbolsNames :: [String]
 symbolsNames = fst <$> symbolsList
