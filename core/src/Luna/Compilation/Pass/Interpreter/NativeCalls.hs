@@ -3,11 +3,12 @@ module Luna.Compilation.Pass.Interpreter.NativeCalls where
 
 import           Prelude.Luna
 
-import qualified Data.Map as Map
-import           Data.Map (Map)
-import           Unsafe.Coerce   (unsafeCoerce)
-import           GHC.Prim        (Any)
-import           Data.List       (sort, group)
+import qualified Data.Map          as Map
+import           Data.Map          (Map)
+import           Control.Monad.Fix (mfix)
+import           Unsafe.Coerce     (unsafeCoerce)
+import           GHC.Prim          (Any)
+import           Data.List         (sort, group)
 
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $ [
@@ -179,6 +180,7 @@ nativeCalls = Map.fromList $ [
 -- === Experimental === --
 --------------------------
 
+    , ("fix",           unsafeCoerce (mfix                                 :: (Any -> IO Any)                                    -> IO Any))
     , ("app1to2",       unsafeCoerce ((\f a     -> return $ f a)           :: (Any -> Any -> IO Any)        -> Any               -> IO (Any -> IO Any)))
     , ("app2to2",       unsafeCoerce ((\f a b   -> f a b)                  :: (Any -> Any -> IO Any)        -> Any -> Any        -> IO Any))
     , ("app1to3",       unsafeCoerce ((\f a     -> return $ f a)           :: (Any -> Any -> Any -> IO Any) -> Any               -> IO (Any -> Any -> IO Any)))
