@@ -204,7 +204,6 @@ resolveUnify uni = do
                               unis  <- zipWithM unify args args'
                               replaceNode uni a
                               replaceNode b   a
-                              req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               mapM (flip (reconnect $ prop TCData . requester) req) unis
                               resolve unis
                           else reportError uni
