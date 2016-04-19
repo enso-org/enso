@@ -132,8 +132,8 @@ resolveUnify uni = do
             resolveReflexivity uni l r
             symmetrical (resolveStar uni) l r
             symmetrical (resolveVar  uni) l r
+            symmetrical (resolveLams uni) l r
             resolveCons uni l r
-            resolveLams uni l r
 
         of' $ \ANY -> impossible
 
