@@ -114,6 +114,24 @@ makeConst = do
     nb   <- blank `typed` tpVb
     return $ Signature Nothing [arg na, arg nb] na
 
+makeFlipConst :: FunBuilderCtx(m) => m (Signature nodeRef)
+makeFlipConst = do
+    tpVa <- var "#a"
+    tpVb <- var "#b"
+    na   <- blank `typed` tpVa
+    nb   <- blank `typed` tpVb
+    return $ Signature Nothing [arg na, arg nb] nb
+
+makeFlipConst2 :: FunBuilderCtx(m) => m (Signature nodeRef)
+makeFlipConst2 = do
+    tpVa <- var "#a"
+    tpVb <- var "#b"
+    tpVc <- var "#c"
+    na   <- blank `typed` tpVa
+    nb   <- blank `typed` tpVb
+    nc   <- blank `typed` tpVc
+    return $ Signature Nothing [arg na, arg nb, arg nc] nc
+
 symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b)) symbolsList
 
@@ -297,6 +315,14 @@ symbolsList = [
     , makeNativeFun "app2to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b")]              (TLam [TVar "#c"] (TVar "#d"))
     , makeNativeFun "app3to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b"), (TVar "#c")] (TVar "#d")
     , makeNativeFun "cycle3"       Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d")]                                        (TLam [TVar "#b", TVar "#c", TVar "#a"] (TVar "#d"))
+    , makeNativeFun "comp2"        Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a", TVar "#a1"] (TVar "#b")]   (TLam [TVar "#a", TVar "#a1"] (TVar "#c"))
+    , makeNativeFun "comp2to2"     Nothing [TLam [TVar "#t3", TVar "#t4"] (TVar "#t1"), TLam [TVar "#t3", TVar "#t4"] (TVar "#t2"), TLam [TVar "#t1", TVar "#t2"] (TVar "#t")]   (TLam [TVar "#t3", TVar "#t4"] (TVar "#t"))
+    , makeNativeFun "comp3to2"     Nothing [TLam [TVar "#t4", TVar "#t5"] (TVar "#t1"), TLam [TVar "#t4", TVar "#t5"] (TVar "#t2"), TLam [TVar "#t4", TVar "#t5"] (TVar "#t3"), TLam [TVar "#t1", TVar "#t2", TVar "#t3"] (TVar "#t")]   (TLam [TVar "#t4", TVar "#t5"] (TVar "#t"))
+    , ("p12",        makeConst)
+    , ("p22",        makeFlipConst)
+    , ("flipConst",  makeFlipConst)
+    , ("flipConst2", makeFlipConst2)
+    , makeNativeFun "retFun2"       Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c")]                                      (TLam [TVar "#a"] (TLam [TVar "#b"] (TVar "#c")))
 
     ]
 
@@ -307,6 +333,14 @@ experimental = [ "fix"
                , "app2to3"
                , "app3to3"
                , "cycle3"
+               , "comp2"
+               , "comp2to2"
+               , "comp3to2"
+               , "p12"
+               , "p22"
+               , "flipConst"
+               , "flipConst2"
+               , "retFun2"
                ]
 
 symbolsNames :: [String]

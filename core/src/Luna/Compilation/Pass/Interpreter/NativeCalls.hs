@@ -189,8 +189,33 @@ nativeCalls = Map.fromList $ [
     , ("app2to3",       unsafeCoerce ((\f a b   -> return $ f a b)         :: (Any -> Any -> Any -> IO Any) -> Any -> Any        -> IO (Any -> IO Any)))
     , ("app3to3",       unsafeCoerce ((\f a b c -> f a b c)                :: (Any -> Any -> Any -> IO Any) -> Any -> Any -> Any -> IO Any))
     , ("cycle3",        unsafeCoerce ((\f -> return $ (\b c a -> f a b c)) :: (Any -> Any -> Any -> IO Any)                      -> IO (Any -> Any -> Any -> IO Any)))
+    , ("comp2",         unsafeCoerce (return .: (<==<)                     :: (Any -> IO Any) -> (Any -> Any -> IO Any) -> IO (Any -> Any -> IO Any)))
+    , ("comp2to2",      unsafeCoerce comp2to2)
+    , ("comp3to2",      unsafeCoerce comp3to2)
+    , ("retFun2",       unsafeCoerce retFun2)
 
     ]
+
+retFun2 :: (Any -> Any -> IO Any) -> IO (Any -> IO (Any -> IO Any))
+retFun2 f = return $ \x -> do
+    return $ f x
+
+
+comp2to2 :: (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> IO (Any -> Any -> IO Any)
+comp2to2 f1 f2 f = return $ \x y -> do
+    f1xy <- f1 x y
+    f2xy <- f2 x y
+    f f1xy f2xy
+
+comp3to2 :: (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> (Any -> Any -> Any -> IO Any) -> IO (Any -> Any -> IO Any)
+comp3to2 f1 f2 f3 f = return $ \x y -> do
+    f1xy <- f1 x y
+    f2xy <- f2 x y
+    f3xy <- f3 x y
+    f f1xy f2xy f3xy
+
+(<==<)       :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
+g <==< f     = \x y -> f x y >>= g
 
 primes :: Int -> IO [Int]
 primes count = return $ take count primes' where
