@@ -138,6 +138,12 @@ resolveUnify uni = do
         of' $ \ANY -> impossible
 
     where symmetrical f a b = f a b *> f b a
+          reportError uni = do
+              req <- mapM (follow source) =<< follow (prop TCData . requester) uni
+              case req of
+                  Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError uni :)
+                  Nothing -> return ()
+              resolve_
 
           resolveReflexivity uni (a :: nodeRef) (b :: nodeRef) = do
               if a == b
@@ -165,12 +171,7 @@ resolveUnify uni = do
                                   else cons na (arg <$> newUnis)
                               replaceNode uni uniReplacement
                               resolve newUnis
-                          else do
-                              req <- mapM (follow source) =<< follow (prop TCData . requester) uni
-                              case req of
-                                  Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError uni :)
-                                  Nothing -> return ()
-                              resolve_
+                          else reportError uni
 
           resolveStar uni a b = do
               uni' <- read uni
@@ -190,25 +191,23 @@ resolveUnify uni = do
               uni' <- read uni
               a'   <- read (a :: nodeRef)
               b'   <- read (b :: nodeRef)
-              whenMatched (uncover a') $ \(Lam cargs cout) ->
+              whenMatched (uncover a') $ \(Lam cargs cout) -> do
+                  whenMatched (uncover b') $ \(Cons _ _) -> reportError uni
                   whenMatched (uncover b') $ \(Lam cargs' cout') -> do
-                    let cRawArgs  = unlayer <$> cargs
-                    let cRawArgs' = unlayer <$> cargs'
-                    args  <- mapM (follow source) (cout  : cRawArgs )
-                    args' <- mapM (follow source) (cout' : cRawArgs')
-                    req   <- mapM (follow source) =<< follow (prop TCData . requester) uni
-                    if length args == length args'
-                        then do
-                            unis  <- zipWithM unify args args'
-                            replaceNode uni a
-                            replaceNode b   a
-                            mapM (flip (reconnect $ prop TCData . requester) req) unis
-                            resolve unis
-                        else do
-                            case req of
-                                Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError uni :)
-                                Nothing -> return ()
-                            resolve_
+                      let cRawArgs  = unlayer <$> cargs
+                      let cRawArgs' = unlayer <$> cargs'
+                      args  <- mapM (follow source) (cout  : cRawArgs )
+                      args' <- mapM (follow source) (cout' : cRawArgs')
+                      req   <- mapM (follow source) =<< follow (prop TCData . requester) uni
+                      if length args == length args'
+                          then do
+                              unis  <- zipWithM unify args args'
+                              replaceNode uni a
+                              replaceNode b   a
+                              req <- mapM (follow source) =<< follow (prop TCData . requester) uni
+                              mapM (flip (reconnect $ prop TCData . requester) req) unis
+                              resolve unis
+                          else reportError uni
 
 
 
