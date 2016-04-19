@@ -150,6 +150,8 @@ nativeCalls = Map.fromList $ [
     , ("String.+",        unsafeCoerce (return .: (++)        :: String -> String -> IO String))
     , ("String.length",   unsafeCoerce (return .  length      :: String -> IO Int))
     , ("String.reverse",  unsafeCoerce (return .  reverse     :: String -> IO String))
+    , ("String.take",     unsafeCoerce (return .: flip take   :: String -> Int -> IO String))
+    , ("String.drop",     unsafeCoerce (return .: flip drop   :: String -> Int -> IO String))
     , ("String.words",    unsafeCoerce (return .  words       :: String -> IO [String]))
     , ("String.lines",    unsafeCoerce (return .  lines       :: String -> IO [String]))
     , ("String.join",     unsafeCoerce (return .: intercalate :: String -> [String] -> IO String))

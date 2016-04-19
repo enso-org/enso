@@ -255,6 +255,8 @@ symbolsList = [
     , makeNativeFun "String.+"        (Just $ scons "String") [scons "String"]          (scons "String")
     , makeNativeFun "String.length"   (Just $ scons "String") []                        (scons "Int")
     , makeNativeFun "String.reverse"  (Just $ scons "String") []                        (scons "String")
+    , makeNativeFun "String.take"     (Just $ scons "String") [scons "Int"]             (scons "String")
+    , makeNativeFun "String.drop"     (Just $ scons "String") [scons "Int"]             (scons "String")
     , makeNativeFun "String.words"    (Just $ scons "String") []                        (listOf $ scons "String")
     , makeNativeFun "String.lines"    (Just $ scons "String") []                        (listOf $ scons "String")
     , makeNativeFun "String.join"     (Just $ scons "String") [listOf $ scons "String"] (scons "String")
