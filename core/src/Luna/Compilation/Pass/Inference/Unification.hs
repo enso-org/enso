@@ -204,7 +204,12 @@ resolveUnify uni = do
                             replaceNode b   a
                             mapM (flip (reconnect $ prop TCData . requester) req) unis
                             resolve unis
-                        else return ()
+                        else do
+                            case req of
+                                Just r  -> withRef r $ prop TCData . tcErrors %~ (UnificationError uni :)
+                                Nothing -> return ()
+                            resolve_
+
 
 
 replaceAny :: forall m ls term node edge graph nodeRef n e c. PassCtx(m,ls,term) => nodeRef -> nodeRef -> m nodeRef
