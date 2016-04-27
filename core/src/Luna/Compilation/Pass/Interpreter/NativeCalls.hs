@@ -9,6 +9,7 @@ import           Control.Monad.Fix (mfix)
 import           Unsafe.Coerce     (unsafeCoerce)
 import           GHC.Prim          (Any)
 import           Data.List         (sort, group)
+import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
 
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $ [
@@ -158,6 +159,13 @@ nativeCalls = Map.fromList $ [
 
     , ("String.toString", unsafeCoerce (return                :: String -> IO String))
 
+-----------------
+-- === Ref === --
+-----------------
+    , ("ref",             unsafeCoerce (newIORef  :: Any -> IO (IORef Any)))
+    , ("Ref.modify",      unsafeCoerce modifyRef)
+    , ("Ref.read",        unsafeCoerce (readIORef :: IORef Any -> IO Any))
+
 ------------------
 -- === Misc === --
 ------------------
@@ -216,6 +224,13 @@ comp3to2 f1 f2 f3 f = return $ \x y -> do
 
 (<==<)       :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
 g <==< f     = \x y -> f x y >>= g
+
+modifyRef :: IORef Any -> (Any -> IO Any) -> IO (IORef Any)
+modifyRef ref f = do
+    v  <- readIORef ref
+    v' <- f v
+    writeIORef ref v'
+    return ref
 
 primes :: Int -> IO [Int]
 primes count = return $ take count primes' where

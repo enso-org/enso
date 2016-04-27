@@ -447,7 +447,7 @@ evaluateNode ref = do
 
 evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] m), ls, term)) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
-    mapM_ collectNodesToEval reqRefs
+    mapM_ collectNodesToEval $ reverse reqRefs
     mapM_ evaluateNode =<< Env.getNodesToEval
 
 

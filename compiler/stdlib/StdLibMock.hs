@@ -54,6 +54,9 @@ data TPRep = TCons String [TPRep]
 listOf :: TPRep -> TPRep
 listOf t = TCons "List" [t]
 
+refOf :: TPRep -> TPRep
+refOf t = TCons "Ref" [t]
+
 scons :: String -> TPRep
 scons = flip TCons []
 
@@ -280,6 +283,14 @@ symbolsList = [
     , makeNativeFun "String.join"     (Just $ scons "String") [listOf $ scons "String"] (scons "String")
 
     , makeNativeFun "String.toString" (Just $ scons "String") []                        (scons "String")
+
+
+-----------------
+-- === Ref === --
+-----------------
+    , makeNativeFun "ref"             Nothing                    [TVar "#a"]                    (refOf $ TVar "#a")
+    , makeNativeFun "Ref.modify"      (Just $ refOf $ TVar "#a") [TLam [TVar "#a"] $ TVar "#a"] (refOf $ TVar "#a")
+    , makeNativeFun "Ref.read"        (Just $ refOf $ TVar "#a") []                             (TVar "#a")
 
 --------------------
 --- === Misc === ---
