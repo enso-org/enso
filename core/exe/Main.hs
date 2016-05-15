@@ -55,7 +55,7 @@ import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork
 import           Luna.Syntax.Model.Network.Builder.Node          hiding (star2)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term                               (OverBuilder, Layout, Expr, ExprRecord, overbuild, AnyExpr)
@@ -73,11 +73,14 @@ import qualified Luna.Syntax.Model.Network.Builder.Class as XP
 import           Luna.Syntax.Model.Network.Builder.Term.Class (star2, ExprBuilder)
 
 import qualified Data.Record                  as Record
+import qualified Data.Graph.Builder                      as GraphBuilder
 
 import Data.Shell as Shell
 import Data.Cover
 import Type.Applicative
 import Luna.Syntax.Term.Expr
+
+import GHC.Prim (Any)
 
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
@@ -202,6 +205,10 @@ read2 = read2' ∘ unwrap' ; {-# INLINE read2 #-}
 write2 :: Referable m a => Ref2 a -> a -> m ()
 write2 = write2' ∘ unwrap' ; {-# INLINE write2 #-}
 
+-- === Instances === --
+
+deriving instance Show (Referred a) => Show (Ref2 a)
+
 
 ------------------
 -- === Binds === --
@@ -232,7 +239,7 @@ bind = Bind <∘> bind' ; {-# INLINE bind #-}
 
 data IntLayer = IntLayer deriving (Show)
 
-type instance LayerData IntLayer = Int
+type instance LayerData (NetLayer t IntLayer) = Int
 
 -- === Instances === --
 
@@ -253,7 +260,7 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 -- === Instances === --
 
 -- Type relations
-type instance LayerData (NetLayer t a) = LayerData a
+-- type instance LayerData (NetLayer t a) = LayerData a
 
 -- Layout
 type TermShell ls term rec = (NetLayer term <$> ls) :| rec
@@ -283,6 +290,8 @@ a1 = () ^. from atomArgs :: Atom Blank Static Int
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
 t2 = runIdentity $ overbuild t1 :: AnyExpr (Net '[IntLayer]) Draft Static
+
+t2' = runIdentity $ buildElem $ a1 :: AnyExpr (Net '[IntLayer]) Draft Static
 
 t3 = runIdentity $ refer t2
 
@@ -317,9 +326,10 @@ main :: IO ()
 main = do
     E.main
     (_,  g :: NetGraph ) <- prebuild2
-    renderAndOpen [ ("xg", "xg", g)
-                  ]
+    -- renderAndOpen [ ("xg", "xg", g)
+    --               ]
     main2
+    main3
 
 main2 = do
 
@@ -336,3 +346,12 @@ main2 = do
         of' $ \Blank -> print "it is Blank!"
         -- of' $ \(Unify a b) -> print "oh, unify!"
     --     -- of' $ \ANY        -> print "hello"
+
+main3 :: IO ()
+main3 = do
+    (n,g) <- flip GraphBuilder.runT (def :: NetGraph2) $ do
+        (n1 :: Ref2 (AnyExpr (Net '[IntLayer]) Draft Static)) <- buildRef a1
+        return n1
+    print n
+
+    return ()

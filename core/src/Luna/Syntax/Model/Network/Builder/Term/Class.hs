@@ -48,6 +48,8 @@ import qualified Luna.Syntax.Term as New
 import           Luna.Syntax.Term (AtomicExpr, TermOf)
 import           Data.Container.Hetero (Elems)
 import qualified Luna.Syntax.Term.Expr.Symbol as Atom
+import GHC.Prim (Any)
+
 
 undefined = error "Undefined in Term/Class.hs"
 
@@ -539,6 +541,8 @@ type NetRawCluster    = NetClusterLayers :< RefSet Node NetRawNode
 
 type NetGraph   = Hetero (NEC.Graph NetRawNode (Link NetRawNode) NetRawCluster)
 type NetGraph'  = Hetero (NEC.Graph NetNode    (Link NetNode)    NetCluster)
+
+type NetGraph2  = Hetero (NEC.Graph Any Any Any)
 
 type NetGraph'' = Hetero (NEC.Graph NetNode'   (Link NetNode')   NetCluster')
 
