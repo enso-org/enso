@@ -90,6 +90,7 @@ Library
                  , lens-utils
                  , data-pool
                  , ghc-mtl
+                 , visualization-api
 
 
 Executable lunac

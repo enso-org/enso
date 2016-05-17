@@ -44,4 +44,6 @@ packages:
   location: {commit: 01ad58ca75756ed0b4c95144d5cf54a74a6ecb33, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
   location: {commit: 9e1f4671b5bd061bca8e392ffb39271f3626702a, git: 'https://github.com/wdanilo/data-shell.git'}
+- extra-dep: true
+  location: {commit: 3e8782e2a5f7e5bb485dba34e9cc5dcddbb57ace, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
 resolver: lts-5.10

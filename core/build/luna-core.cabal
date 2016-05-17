@@ -237,6 +237,7 @@ Library
                  , vector
                  , data-rtuple
                  , data-shell
+                 , visualization-api
 
 
 Executable luna

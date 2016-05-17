@@ -315,6 +315,16 @@ symbolsList = [
     , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                                         (scons "Histogram")
     , makeNativeFun "primes"       Nothing [scons "Int"]                                                  (listOf $ scons "Int")
 
+----------------------
+--- === Shapes === ---
+----------------------
+
+    , makeNativeFun "translate"    Nothing [scons "Int", scons "Int"]                                     (scons "Translate")
+
+    , makeNativeFun "square"       Nothing [scons "Int"]                                                  (scons "Square")
+    , makeNativeFun "rectangle"    Nothing [scons "Int", scons "Int"]                                     (scons "Rectangle")
+    , makeNativeFun "circle"       Nothing [scons "Int"]                                                  (scons "Circle")
+
 --------------------------
 -- === Experimental === --
 --------------------------

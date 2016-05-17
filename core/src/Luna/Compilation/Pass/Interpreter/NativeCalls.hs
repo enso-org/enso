@@ -11,6 +11,9 @@ import           GHC.Prim          (Any)
 import           Data.List         (sort, group)
 import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
 
+import           Graphics.API.Transformations
+import           Graphics.API.Shapes
+
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $ [
 
@@ -185,6 +188,17 @@ nativeCalls = Map.fromList $ [
     , ("differences",   unsafeCoerce (return . (\l -> zipWith (-) (drop 1 l) l) :: [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
     , ("primes",        unsafeCoerce primes)
+
+
+----------------------
+--- === Shapes === ---
+----------------------
+
+    , ("translate",     unsafeCoerce (return .: (\x y -> Translate x y (Square 10)) :: Int -> Int -> IO (Translate Square)))
+
+    , ("square",        unsafeCoerce (return .  (\s     -> Square s)                :: Int ->        IO Square))
+    , ("rectangle",     unsafeCoerce (return .: (\dx dy -> Rectangle dx dy)         :: Int -> Int -> IO Rectangle))
+    , ("circle",        unsafeCoerce (return .  (\d     -> Circle d)                :: Int ->        IO Circle))
 
 --------------------------
 -- === Experimental === --

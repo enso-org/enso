@@ -1,6 +1,8 @@
 resolver: lts-4.1
 packages:
     - .
+    - extra-dep: true
+      location: {commit: 3e8782e2a5f7e5bb485dba34e9cc5dcddbb57ace, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
 
 extra-deps:
     - ghc-session-0.1.2.0
@@ -19,8 +21,9 @@ extra-deps:
     - data-repr-1.0
     - lens-utils-1.0
     - functor-utils-1.0
+    - hsprocessing-0.1.0.0
 
 ghc-options:
     "*": -DFastCompilation -threaded -funbox-strict-fields -O
 
-local-bin-path: ./build/dist/bin
+local-bin-path: ./dist/bin
