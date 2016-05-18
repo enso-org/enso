@@ -202,7 +202,7 @@ nativeCalls = Map.fromList $ [
     , ("rotate",        unsafeCoerce (return .:  (\(Transformation dx dy a r) a'      -> Transformation dx dy (a + a') r)          :: Transformation -> Double ->           IO Transformation))
     , ("reflect",       unsafeCoerce (return .   (\(Transformation dx dy a r)         -> Transformation dx dy a (not r))           :: Transformation ->                     IO Transformation))
 
-    , ("color",         unsafeCoerce (return .:: Color :: Double -> Double -> Double -> Double -> IO Color))
+    , ("fill",          unsafeCoerce (return .:: Color :: Double -> Double -> Double -> Double -> IO Color))
 
     , ("square",        unsafeCoerce (return .  Square    :: Double ->           IO Shape))
     , ("rectangle",     unsafeCoerce (return .: Rectangle :: Double -> Double -> IO Shape))
