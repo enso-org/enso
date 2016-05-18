@@ -2,7 +2,7 @@ resolver: lts-5.10
 packages:
     - .
     - extra-dep: true
-      location: {commit: 8859d99d2259daf777adc91a66984af59ad3327c, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
+      location: {commit: 6c95157df500f3577153ac39d91726768c809f44, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
 
 extra-deps:
     - ghc-session-0.1.2.0
