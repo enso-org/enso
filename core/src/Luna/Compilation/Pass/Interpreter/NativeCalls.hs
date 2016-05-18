@@ -11,8 +11,11 @@ import           GHC.Prim          (Any)
 import           Data.List         (sort, group)
 import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
 
-import           Graphics.API.Transformations
 import           Graphics.API.Shapes
+import           Graphics.API.Materials
+import           Graphics.API.Transformations
+import           Graphics.API.Objects
+
 
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $ [
@@ -194,11 +197,18 @@ nativeCalls = Map.fromList $ [
 --- === Shapes === ---
 ----------------------
 
-    , ("translate",     unsafeCoerce (return .: (\x y -> Translate x y (Square 10)) :: Int -> Int -> IO (Translate Square)))
+    , ("initPos",       unsafeCoerce (return def :: IO Transformation))
+    , ("translate",     unsafeCoerce (return .:. (\(Transformation dx dy a r) dx' dy' -> Transformation (dx + dx') (dy + dy') a r) :: Transformation -> Double -> Double -> IO Transformation))
+    , ("rotate",        unsafeCoerce (return .:  (\(Transformation dx dy a r) a'      -> Transformation dx dy (a + a') r)          :: Transformation -> Double ->           IO Transformation))
+    , ("reflect",       unsafeCoerce (return .   (\(Transformation dx dy a r)         -> Transformation dx dy a (not r))           :: Transformation ->                     IO Transformation))
 
-    , ("square",        unsafeCoerce (return .  (\s     -> Square s)                :: Int ->        IO Square))
-    , ("rectangle",     unsafeCoerce (return .: (\dx dy -> Rectangle dx dy)         :: Int -> Int -> IO Rectangle))
-    , ("circle",        unsafeCoerce (return .  (\d     -> Circle d)                :: Int ->        IO Circle))
+    , ("color",         unsafeCoerce (return .:: Color :: Double -> Double -> Double -> Double -> IO Color))
+
+    , ("square",        unsafeCoerce (return .  Square    :: Double ->           IO Shape))
+    , ("rectangle",     unsafeCoerce (return .: Rectangle :: Double -> Double -> IO Shape))
+    , ("circle",        unsafeCoerce (return .  Circle    :: Double ->           IO Shape))
+
+    , ("object",        unsafeCoerce (return .:. Object   :: Shape -> Color -> Transformation -> IO Object))
 
 --------------------------
 -- === Experimental === --

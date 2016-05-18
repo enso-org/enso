@@ -47,15 +47,21 @@ import qualified Luna.Syntax.Term.Function         as Function
                          )
 
 data TPRep = TCons String [TPRep]
-           | TVar String
-           | TLam [TPRep] TPRep
+           | TVar  String
+           | TLam         [TPRep] TPRep
            deriving (Show, Eq, Ord)
 
+consOf :: String -> [TPRep] -> TPRep
+consOf = TCons
+
+consOfS :: String -> TPRep -> TPRep
+consOfS cons t = TCons cons [t]
+
 listOf :: TPRep -> TPRep
-listOf t = TCons "List" [t]
+listOf = consOfS "List"
 
 refOf :: TPRep -> TPRep
-refOf t = TCons "Ref" [t]
+refOf = consOfS "Ref"
 
 scons :: String -> TPRep
 scons = flip TCons []
@@ -319,11 +325,18 @@ symbolsList = [
 --- === Shapes === ---
 ----------------------
 
-    , makeNativeFun "translate"    Nothing [scons "Int", scons "Int"]                                     (scons "Translate")
+    , makeNativeFun "initPos"      Nothing []                                                                (scons "Transformation")
+    , makeNativeFun "translate"    Nothing [scons "Transformation", scons "Double", scons "Double"]          (scons "Transformation")
+    , makeNativeFun "rotate"       Nothing [scons "Transformation", scons "Double"]                          (scons "Transformation")
+    , makeNativeFun "reflect"      Nothing [scons "Transformation"]                                          (scons "Transformation")
 
-    , makeNativeFun "square"       Nothing [scons "Int"]                                                  (scons "Square")
-    , makeNativeFun "rectangle"    Nothing [scons "Int", scons "Int"]                                     (scons "Rectangle")
-    , makeNativeFun "circle"       Nothing [scons "Int"]                                                  (scons "Circle")
+    , makeNativeFun "fill"         Nothing [scons "Double", scons "Double", scons "Double", scons "Double"]  (scons "Color")
+
+    , makeNativeFun "square"       Nothing [scons "Double"]                                                  (scons "Shape")
+    , makeNativeFun "rectangle"    Nothing [scons "Double", scons "Double"]                                  (scons "Shape")
+    , makeNativeFun "circle"       Nothing [scons "Double"]                                                  (scons "Shape")
+
+    , makeNativeFun "object"       Nothing [scons "Shape", scons "Color", scons "Transformation"]            (scons "Object")
 
 --------------------------
 -- === Experimental === --

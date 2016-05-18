@@ -21,7 +21,6 @@ extra-deps:
     - data-repr-1.0
     - lens-utils-1.0
     - functor-utils-1.0
-    - hsprocessing-0.1.0.0
 
 ghc-options:
     "*": -DFastCompilation -threaded -funbox-strict-fields -O
