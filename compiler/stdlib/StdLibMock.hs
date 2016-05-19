@@ -326,17 +326,20 @@ symbolsList = [
 ----------------------
 
     , makeNativeFun "initPos"      Nothing []                                                                (scons "Transformation")
+    , makeNativeFun "scale"        Nothing [scons "Transformation", scons "Double", scons "Double"]          (scons "Transformation")
     , makeNativeFun "translate"    Nothing [scons "Transformation", scons "Double", scons "Double"]          (scons "Transformation")
     , makeNativeFun "rotate"       Nothing [scons "Transformation", scons "Double"]                          (scons "Transformation")
     , makeNativeFun "reflect"      Nothing [scons "Transformation"]                                          (scons "Transformation")
-
-    , makeNativeFun "fill"         Nothing [scons "Double", scons "Double", scons "Double", scons "Double"]  (scons "Color")
 
     , makeNativeFun "square"       Nothing [scons "Double"]                                                  (scons "Shape")
     , makeNativeFun "rectangle"    Nothing [scons "Double", scons "Double"]                                  (scons "Shape")
     , makeNativeFun "circle"       Nothing [scons "Double"]                                                  (scons "Shape")
 
-    , makeNativeFun "object"       Nothing [scons "Shape", scons "Color", scons "Transformation"]            (scons "Object")
+    , makeNativeFun "color"        Nothing [scons "Double", scons "Double", scons "Double", scons "Double"]  (scons "Color")
+    , makeNativeFun "fill"         Nothing [scons "Shape", scons "Color"]                                    (scons "Component")
+    , makeNativeFun "shader"       Nothing [listOf $ scons "Component"]                                      (scons "Shader")
+    , makeNativeFun "layer"        Nothing [scons "Shader", listOf $ scons "Transformation"]                 (scons "Layer")
+    , makeNativeFun "draw"         Nothing [listOf $ scons "Layer"]                                          (scons "Graphics")
 
 --------------------------
 -- === Experimental === --

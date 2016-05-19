@@ -11,10 +11,7 @@ import           GHC.Prim          (Any)
 import           Data.List         (sort, group)
 import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
 
-import           Graphics.API.Shapes
-import           Graphics.API.Materials
-import           Graphics.API.Transformations
-import           Graphics.API.Objects
+import           Graphics.API
 
 
 nativeCalls :: Map String Any
@@ -198,17 +195,20 @@ nativeCalls = Map.fromList $ [
 ----------------------
 
     , ("initPos",       unsafeCoerce (return def :: IO Transformation))
-    , ("translate",     unsafeCoerce (return .:. (\(Transformation dx dy a r) dx' dy' -> Transformation (dx + dx') (dy + dy') a r) :: Transformation -> Double -> Double -> IO Transformation))
-    , ("rotate",        unsafeCoerce (return .:  (\(Transformation dx dy a r) a'      -> Transformation dx dy (a + a') r)          :: Transformation -> Double ->           IO Transformation))
-    , ("reflect",       unsafeCoerce (return .   (\(Transformation dx dy a r)         -> Transformation dx dy a (not r))           :: Transformation ->                     IO Transformation))
-
-    , ("fill",          unsafeCoerce (return .:: Color :: Double -> Double -> Double -> Double -> IO Color))
+    , ("scale",         unsafeCoerce (return .:. (\(Transformation sx sy dx dy a r) sx' sy' -> Transformation (sx * sx') (sy * sy') dx dy a r) :: Transformation -> Double -> Double -> IO Transformation))
+    , ("translate",     unsafeCoerce (return .:. (\(Transformation sx sy dx dy a r) dx' dy' -> Transformation sx sy (dx + dx') (dy + dy') a r) :: Transformation -> Double -> Double -> IO Transformation))
+    , ("rotate",        unsafeCoerce (return .:  (\(Transformation sx sy dx dy a r) a'      -> Transformation sx sy dx dy (a + a') r)          :: Transformation -> Double ->           IO Transformation))
+    , ("reflect",       unsafeCoerce (return .   (\(Transformation sx sy dx dy a r)         -> Transformation sx sy dx dy a (not r))           :: Transformation ->                     IO Transformation))
 
     , ("square",        unsafeCoerce (return .  Square    :: Double ->           IO Shape))
     , ("rectangle",     unsafeCoerce (return .: Rectangle :: Double -> Double -> IO Shape))
     , ("circle",        unsafeCoerce (return .  Circle    :: Double ->           IO Shape))
 
-    , ("object",        unsafeCoerce (return .:. Object   :: Shape -> Color -> Transformation -> IO Object))
+    , ("color",         unsafeCoerce (return .:: Color     :: Double -> Double -> Double -> Double -> IO Color))
+    , ("fill",          unsafeCoerce (return .:  Component :: Shape -> Color -> IO Component))
+    , ("shader",        unsafeCoerce (return .   Shader    :: [Component] -> IO Shader))
+    , ("layer",         unsafeCoerce (return .:  Layer     :: Shader -> [Transformation] -> IO Layer))
+    , ("draw",          unsafeCoerce (return .   Graphics  :: [Layer] -> IO Graphics))
 
 --------------------------
 -- === Experimental === --
