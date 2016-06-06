@@ -325,21 +325,35 @@ symbolsList = [
 --- === Shapes === ---
 ----------------------
 
-    , makeNativeFun "initPos"      Nothing []                                                                (scons "Transformation")
-    , makeNativeFun "scale"        Nothing [scons "Transformation", scons "Double", scons "Double"]          (scons "Transformation")
-    , makeNativeFun "translate"    Nothing [scons "Transformation", scons "Double", scons "Double"]          (scons "Transformation")
-    , makeNativeFun "rotate"       Nothing [scons "Transformation", scons "Double"]                          (scons "Transformation")
-    , makeNativeFun "reflect"      Nothing [scons "Transformation"]                                          (scons "Transformation")
+    , makeNativeFun "initTrans"      Nothing []                                                               (scons "Transformation")
+    , makeNativeFun "scale"          Nothing [scons "Transformation", scons "Double", scons "Double"]         (scons "Transformation")
+    , makeNativeFun "translate"      Nothing [scons "Transformation", scons "Double", scons "Double"]         (scons "Transformation")
+    , makeNativeFun "rotate"         Nothing [scons "Transformation", scons "Double"]                         (scons "Transformation")
+    , makeNativeFun "reflect"        Nothing [scons "Transformation"]                                         (scons "Transformation")
 
-    , makeNativeFun "square"       Nothing [scons "Double"]                                                  (scons "Shape")
-    , makeNativeFun "rectangle"    Nothing [scons "Double", scons "Double"]                                  (scons "Shape")
-    , makeNativeFun "circle"       Nothing [scons "Double"]                                                  (scons "Shape")
+    , makeNativeFun "square"         Nothing [scons "Double"]                                                 (scons "Figure")
+    , makeNativeFun "rectangle"      Nothing [scons "Double", scons "Double"]                                 (scons "Figure")
+    , makeNativeFun "circle"         Nothing [scons "Double"]                                                 (scons "Figure")
 
-    , makeNativeFun "color"        Nothing [scons "Double", scons "Double", scons "Double", scons "Double"]  (scons "Color")
-    , makeNativeFun "fill"         Nothing [scons "Shape", scons "Color"]                                    (scons "Component")
-    , makeNativeFun "shader"       Nothing [listOf $ scons "Component"]                                      (scons "Shader")
-    , makeNativeFun "layer"        Nothing [scons "Shader", listOf $ scons "Transformation"]                 (scons "Layer")
-    , makeNativeFun "draw"         Nothing [listOf $ scons "Layer"]                                          (scons "Graphics")
+    , makeNativeFun "position"       Nothing [scons "Double", scons "Double"]                                 (scons "Point2")
+    , makeNativeFun "initAttributes" Nothing []                                                               (scons "Attributes")
+    , makeNativeFun "primitive"      Nothing [scons "Figure", scons "Point2", scons "Attributes"]             (scons "Primitive")
+
+    , makeNativeFun "color"          Nothing [scons "Double", scons "Double", scons "Double", scons "Double"] (scons "Material")
+
+    , makeNativeFun "single"         Nothing [scons "Primitive"]                                              (scons "Shape")
+    , makeNativeFun "merge"          Nothing [scons "Shape", scons "Shape"]                                   (scons "Shape")
+    , makeNativeFun "subtract"       Nothing [scons "Shape", scons "Shape"]                                   (scons "Shape")
+    , makeNativeFun "intersect"      Nothing [scons "Shape", scons "Shape"]                                   (scons "Shape")
+
+    , makeNativeFun "shape"          Nothing [scons "Shape"]                                                  (scons "Surface")
+
+    , makeNativeFun "geoElem"        Nothing [listOf $ scons "Surface"]                                       (scons "GeoComponent")
+    , makeNativeFun "geoGroup"       Nothing [listOf $ scons "Geometry"]                                      (scons "GeoComponent")
+    , makeNativeFun "geometry"       Nothing [scons "GeoComponent", scons "Transformation", scons "Material"] (scons "Geometry")
+
+    , makeNativeFun "layer"          Nothing [scons "Geometry", listOf $ scons "Transformation"]              (scons "Layer")
+    , makeNativeFun "graphics"       Nothing [listOf $ scons "Layer"]                                         (scons "Graphics")
 
 --------------------------
 -- === Experimental === --

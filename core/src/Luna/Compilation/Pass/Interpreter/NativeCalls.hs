@@ -194,21 +194,36 @@ nativeCalls = Map.fromList $ [
 --- === Shapes === ---
 ----------------------
 
-    , ("initPos",       unsafeCoerce (return def :: IO Transformation))
-    , ("scale",         unsafeCoerce (return .:. (\(Transformation sx sy dx dy a r) sx' sy' -> Transformation (sx * sx') (sy * sy') dx dy a r) :: Transformation -> Double -> Double -> IO Transformation))
-    , ("translate",     unsafeCoerce (return .:. (\(Transformation sx sy dx dy a r) dx' dy' -> Transformation sx sy (dx + dx') (dy + dy') a r) :: Transformation -> Double -> Double -> IO Transformation))
-    , ("rotate",        unsafeCoerce (return .:  (\(Transformation sx sy dx dy a r) a'      -> Transformation sx sy dx dy (a + a') r)          :: Transformation -> Double ->           IO Transformation))
-    , ("reflect",       unsafeCoerce (return .   (\(Transformation sx sy dx dy a r)         -> Transformation sx sy dx dy a (not r))           :: Transformation ->                     IO Transformation))
+    , ("initTrans",      unsafeCoerce (return def :: IO Transformation))
+    , ("scale",          unsafeCoerce (return .:. scale     :: Transformation -> Double -> Double -> IO Transformation))
+    , ("translate",      unsafeCoerce (return .:. translate :: Transformation -> Double -> Double -> IO Transformation))
+    , ("rotate",         unsafeCoerce (return .:  rotate    :: Transformation -> Double ->           IO Transformation))
+    , ("reflect",        unsafeCoerce (return .   reflect   :: Transformation ->                     IO Transformation))
 
-    , ("square",        unsafeCoerce (return .  Square    :: Double ->           IO Shape))
-    , ("rectangle",     unsafeCoerce (return .: Rectangle :: Double -> Double -> IO Shape))
-    , ("circle",        unsafeCoerce (return .  Circle    :: Double ->           IO Shape))
+    , ("square",         unsafeCoerce (return .   Square    :: Double ->           IO Figure))
+    , ("rectangle",      unsafeCoerce (return .:  Rectangle :: Double -> Double -> IO Figure))
+    , ("circle",         unsafeCoerce (return .   Circle    :: Double ->           IO Figure))
 
-    , ("color",         unsafeCoerce (return .:: Color     :: Double -> Double -> Double -> Double -> IO Color))
-    , ("fill",          unsafeCoerce (return .:  Component :: Shape -> Color -> IO Component))
-    , ("shader",        unsafeCoerce (return .   Shader    :: [Component] -> IO Shader))
-    , ("layer",         unsafeCoerce (return .:  Layer     :: Shader -> [Transformation] -> IO Layer))
-    , ("draw",          unsafeCoerce (return .   Graphics  :: [Layer] -> IO Graphics))
+    , ("position",       unsafeCoerce (return .:  Point2 :: Double -> Double -> IO Point2))
+    , ("initAttributes", unsafeCoerce (return def :: IO Attributes))
+    , ("primitive",      unsafeCoerce (return .:. Primitive :: Figure -> Point2 -> Attributes -> IO Primitive))
+
+    , ("color",          unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
+
+    , ("single",         unsafeCoerce (return .   Single    :: Primitive      -> IO Shape))
+    , ("merge",          unsafeCoerce (return .:  Merge     :: Shape -> Shape -> IO Shape))
+    , ("subtract",       unsafeCoerce (return .:  Subtract  :: Shape -> Shape -> IO Shape))
+    , ("intersect",      unsafeCoerce (return .:  Intersect :: Shape -> Shape -> IO Shape))
+
+    , ("shape",          unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
+
+    , ("geoElem",        unsafeCoerce (return .   GeoElem  :: [Surface]  -> IO GeoComponent))
+    , ("geoGroup",       unsafeCoerce (return .   GeoGroup :: [Geometry] -> IO GeoComponent))
+    -- , ("geometry",       unsafeCoerce (return .:. Geometry :: GeoComponent -> Transformation -> Material -> IO Geometry))
+    , ("geometry",       unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
+
+    , ("layer",          unsafeCoerce (return .:  Layer    :: Geometry -> [Transformation] -> IO Layer))
+    , ("graphics",       unsafeCoerce (return .   Graphics :: [Layer] -> IO Graphics))
 
 --------------------------
 -- === Experimental === --
