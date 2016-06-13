@@ -165,11 +165,6 @@ resolveUnify uni = do
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               newUnis <- zipWithM unify asA asB
                               mapM (flip (reconnect $ prop TCData . requester) req) newUnis
-                              unified <- replaceAny a b
-                              uniReplacement <- if null argsA
-                                  then return unified
-                                  else cons na (arg <$> newUnis)
-                              replaceNode uni uniReplacement
                               resolve newUnis
                           else reportError uni
 
