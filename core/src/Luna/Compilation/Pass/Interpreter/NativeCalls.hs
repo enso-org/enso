@@ -14,6 +14,9 @@ import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
 import           Graphics.API
 
 
+lookupNative :: String -> Maybe Any
+lookupNative = flip Map.lookup nativeCalls
+
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $ [
 
@@ -165,6 +168,7 @@ nativeCalls = Map.fromList $ [
 -----------------
 -- === Ref === --
 -----------------
+
     , ("ref",             unsafeCoerce (newIORef  :: Any -> IO (IORef Any)))
     , ("Ref.modify",      unsafeCoerce modifyRef)
     , ("Ref.read",        unsafeCoerce (readIORef :: IORef Any -> IO Any))
@@ -189,7 +193,6 @@ nativeCalls = Map.fromList $ [
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
     , ("primes",        unsafeCoerce primes)
 
-
 ----------------------
 --- === Shapes === ---
 ----------------------
@@ -210,12 +213,12 @@ nativeCalls = Map.fromList $ [
 
     , ("color",          unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
 
-    , ("single",         unsafeCoerce (return .   Single    :: Primitive      -> IO Shape))
+    , ("shape",          unsafeCoerce (return .   Single    :: Primitive      -> IO Shape))
     , ("merge",          unsafeCoerce (return .:  Merge     :: Shape -> Shape -> IO Shape))
     , ("subtract",       unsafeCoerce (return .:  Subtract  :: Shape -> Shape -> IO Shape))
     , ("intersect",      unsafeCoerce (return .:  Intersect :: Shape -> Shape -> IO Shape))
 
-    , ("shape",          unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
+    , ("surface",        unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
 
     , ("geoElem",        unsafeCoerce (return .   GeoElem  :: [Surface]  -> IO GeoComponent))
     , ("geoGroup",       unsafeCoerce (return .   GeoGroup :: [Geometry] -> IO GeoComponent))
@@ -224,6 +227,14 @@ nativeCalls = Map.fromList $ [
 
     , ("layer",          unsafeCoerce (return .:  Layer    :: Geometry -> [Transformation] -> IO Layer))
     , ("graphics",       unsafeCoerce (return .   Graphics :: [Layer] -> IO Graphics))
+
+---------------------------
+--- === Drawing API === ---
+---------------------------
+
+    , ("toPoint",        unsafeCoerce (return .:  (\x y -> translate def x y) :: Double -> Double -> IO Transformation))
+    , ("drawCircle",     unsafeCoerce (return .:  drawCircle                  :: Double -> Material -> IO Geometry))
+    , ("withBounds",     unsafeCoerce (return .:. withBounds                  :: Double -> Double -> [Transformation] -> IO [Transformation]))
 
 --------------------------
 -- === Experimental === --
@@ -243,10 +254,49 @@ nativeCalls = Map.fromList $ [
 
     ]
 
+------------------------------------- IMPLEMENTATIONS -------------------------------------
+
+---------------------------------
+-- === Ref Implementations === --
+---------------------------------
+
+modifyRef :: IORef Any -> (Any -> IO Any) -> IO (IORef Any)
+modifyRef ref f = do
+    v  <- readIORef ref
+    v' <- f v
+    writeIORef ref v'
+    return ref
+
+----------------------------------
+-- === Misc Implementations === --
+----------------------------------
+
+primes :: Int -> IO [Int]
+primes count = return $ take count primes' where
+    primes'   = 2 : filter isPrime [3, 5..]
+    isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
+
+-------------------------------------------
+--- === Drawing API Implementations === ---
+-------------------------------------------
+
+drawCircle :: Double -> Material -> Geometry
+drawCircle d mat = Geometry (GeoElem [ShapeSurface (Single (Primitive (Circle d) def def))]) def (Just mat)
+
+withBounds :: Double -> Double -> [Transformation] -> [Transformation]
+withBounds w h = fmap $ normTranslation w h
+
+-- TODO: rearrange sig
+normTranslation ::  Double -> Double -> Transformation -> Transformation
+normTranslation rx ry (Transformation sx sy dx dy a r) = Transformation sx sy (dx / rx) (dy / ry) a r
+
+------------------------------------------
+-- === Experimental Implementations === --
+------------------------------------------
+
 retFun2 :: (Any -> Any -> IO Any) -> IO (Any -> IO (Any -> IO Any))
 retFun2 f = return $ \x -> do
     return $ f x
-
 
 comp2to2 :: (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> IO (Any -> Any -> IO Any)
 comp2to2 f1 f2 f = return $ \x y -> do
@@ -263,18 +313,3 @@ comp3to2 f1 f2 f3 f = return $ \x y -> do
 
 (<==<)       :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
 g <==< f     = \x y -> f x y >>= g
-
-modifyRef :: IORef Any -> (Any -> IO Any) -> IO (IORef Any)
-modifyRef ref f = do
-    v  <- readIORef ref
-    v' <- f v
-    writeIORef ref v'
-    return ref
-
-primes :: Int -> IO [Int]
-primes count = return $ take count primes' where
-    primes'   = 2 : filter isPrime [3, 5..]
-    isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
-
-lookupNative :: String -> Maybe Any
-lookupNative = flip Map.lookup nativeCalls

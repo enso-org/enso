@@ -145,6 +145,7 @@ symbols :: SymbolMap (NetLayers :<: Draft Static) NetGraph
 symbols = Map.fromList $ fmap (\(n, b) -> (QualPath.mk (n :: String), makeFunction b)) symbolsList
 
 symbolsList = [
+
 ------------------
 -- === List === --
 ------------------
@@ -290,7 +291,6 @@ symbolsList = [
 
     , makeNativeFun "String.toString" (Just $ scons "String") []                        (scons "String")
 
-
 -----------------
 -- === Ref === --
 -----------------
@@ -341,12 +341,12 @@ symbolsList = [
 
     , makeNativeFun "color"          Nothing [scons "Double", scons "Double", scons "Double", scons "Double"] (scons "Material")
 
-    , makeNativeFun "single"         Nothing [scons "Primitive"]                                              (scons "Shape")
+    , makeNativeFun "shape"          Nothing [scons "Primitive"]                                              (scons "Shape")
     , makeNativeFun "merge"          Nothing [scons "Shape", scons "Shape"]                                   (scons "Shape")
     , makeNativeFun "subtract"       Nothing [scons "Shape", scons "Shape"]                                   (scons "Shape")
     , makeNativeFun "intersect"      Nothing [scons "Shape", scons "Shape"]                                   (scons "Shape")
 
-    , makeNativeFun "shape"          Nothing [scons "Shape"]                                                  (scons "Surface")
+    , makeNativeFun "surface"        Nothing [scons "Shape"]                                                  (scons "Surface")
 
     , makeNativeFun "geoElem"        Nothing [listOf $ scons "Surface"]                                       (scons "GeoComponent")
     , makeNativeFun "geoGroup"       Nothing [listOf $ scons "Geometry"]                                      (scons "GeoComponent")
@@ -354,6 +354,14 @@ symbolsList = [
 
     , makeNativeFun "layer"          Nothing [scons "Geometry", listOf $ scons "Transformation"]              (scons "Layer")
     , makeNativeFun "graphics"       Nothing [listOf $ scons "Layer"]                                         (scons "Graphics")
+
+---------------------------
+--- === Drawing API === ---
+---------------------------
+
+    , makeNativeFun "toPoint"          Nothing [scons "Double", scons "Double"]                                  (scons "Transformation")
+    , makeNativeFun "drawCircle"       Nothing [scons "Double", scons "Material"]                                (scons "Geometry")
+    , makeNativeFun "withBounds"       Nothing [scons "Double", scons "Double", listOf $ scons "Transformation"] (listOf $ scons "Transformation")
 
 --------------------------
 -- === Experimental === --
