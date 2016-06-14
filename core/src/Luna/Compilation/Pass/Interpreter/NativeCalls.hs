@@ -288,10 +288,10 @@ primes count = return $ take count primes' where
 withBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
 withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
     rx = x2 - x1
-    ry = -(y2 - y1)
+    ry = y2 - y1
 
 normTranslation :: Double -> Double -> Double -> Double -> Transformation -> Transformation
-normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) ((dy - y1) / ry) a r
+normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) (1.0 - ((dy - y1) / ry)) a r
 
 -- drawing
 
