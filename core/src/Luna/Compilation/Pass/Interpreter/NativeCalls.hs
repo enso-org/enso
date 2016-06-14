@@ -197,23 +197,23 @@ nativeCalls = Map.fromList $ [
 --- === Shapes === ---
 ----------------------
 
-    , ("initTrans",      unsafeCoerce (return def :: IO Transformation))
-    , ("scale",          unsafeCoerce (return .:. scale     :: Transformation -> Double -> Double -> IO Transformation))
-    , ("translate",      unsafeCoerce (return .:. translate :: Transformation -> Double -> Double -> IO Transformation))
-    , ("rotate",         unsafeCoerce (return .:  rotate    :: Transformation -> Double ->           IO Transformation))
-    , ("reflect",        unsafeCoerce (return .   reflect   :: Transformation ->                     IO Transformation))
+    , ("initTrans",      unsafeCoerce (return     def       :: IO Transformation))
+    , ("scale",          unsafeCoerce (return .:. scale     :: Double -> Double -> Transformation -> IO Transformation))
+    , ("translate",      unsafeCoerce (return .:. translate :: Double -> Double -> Transformation -> IO Transformation))
+    , ("rotate",         unsafeCoerce (return .:  rotate    :: Double ->           Transformation -> IO Transformation))
+    , ("reflect",        unsafeCoerce (return .   reflect   ::                     Transformation -> IO Transformation))
 
     , ("square",         unsafeCoerce (return .   Square    :: Double ->           IO Figure))
     , ("rectangle",      unsafeCoerce (return .:  Rectangle :: Double -> Double -> IO Figure))
     , ("circle",         unsafeCoerce (return .   Circle    :: Double ->           IO Figure))
 
-    , ("position",       unsafeCoerce (return .:  Point2 :: Double -> Double -> IO Point2))
-    , ("initAttributes", unsafeCoerce (return def :: IO Attributes))
+    , ("position",       unsafeCoerce (return .:  Point2    :: Double -> Double -> IO Point2))
+    , ("initAttributes", unsafeCoerce (return     def       :: IO Attributes))
     , ("primitive",      unsafeCoerce (return .:. Primitive :: Figure -> Point2 -> Attributes -> IO Primitive))
 
     , ("color",          unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
 
-    , ("shape",          unsafeCoerce (return .   Single    :: Primitive      -> IO Shape))
+    , ("shape",          unsafeCoerce (return .   Shape     :: Primitive      -> IO Shape))
     , ("merge",          unsafeCoerce (return .:  Merge     :: Shape -> Shape -> IO Shape))
     , ("subtract",       unsafeCoerce (return .:  Subtract  :: Shape -> Shape -> IO Shape))
     , ("intersect",      unsafeCoerce (return .:  Intersect :: Shape -> Shape -> IO Shape))
@@ -222,7 +222,6 @@ nativeCalls = Map.fromList $ [
 
     , ("geoElem",        unsafeCoerce (return .   GeoElem  :: [Surface]  -> IO GeoComponent))
     , ("geoGroup",       unsafeCoerce (return .   GeoGroup :: [Geometry] -> IO GeoComponent))
-    -- , ("geometry",       unsafeCoerce (return .:. Geometry :: GeoComponent -> Transformation -> Material -> IO Geometry))
     , ("geometry",       unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
 
     , ("layer",          unsafeCoerce (return .:  Layer    :: Geometry -> [Transformation] -> IO Layer))
@@ -232,9 +231,15 @@ nativeCalls = Map.fromList $ [
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",        unsafeCoerce (return .:  (\x y -> translate def x y) :: Double -> Double -> IO Transformation))
-    , ("drawCircle",     unsafeCoerce (return .:  drawCircle                  :: Double -> Material -> IO Geometry))
-    , ("withBounds",     unsafeCoerce (return .:. withBounds                  :: Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("toPoint",        unsafeCoerce (return .:   (\x y -> translate x y def) :: Double -> Double -> IO Transformation))
+    , ("inBounds",       unsafeCoerce (return .::. withBounds                  :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+
+    , ("drawCircle",     unsafeCoerce (return .:   drawCircle                  :: Double ->           Material -> IO Geometry))
+    , ("drawSquare",     unsafeCoerce (return .:   drawSquare                  :: Double ->           Material -> IO Geometry))
+    , ("drawRectangle",  unsafeCoerce (return .:.  drawRectangle               :: Double -> Double -> Material -> IO Geometry))
+
+    , ("scatterChart",   unsafeCoerce (return .:   Layer                       :: Geometry -> [Transformation] -> IO Layer))
+    , ("barChart",       unsafeCoerce (return .:   barChart                    :: Material -> [Transformation] -> IO Layer))
 
 --------------------------
 -- === Experimental === --
@@ -280,15 +285,34 @@ primes count = return $ take count primes' where
 --- === Drawing API Implementations === ---
 -------------------------------------------
 
+withBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
+withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
+    rx = x2 - x1
+    ry = y2 - y1
+
+normTranslation :: Double -> Double -> Double -> Double -> Transformation -> Transformation
+normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) ((dy - y1) / ry) a r
+
+-- drawing
+
+drawFigure :: Figure -> Material -> Geometry
+drawFigure figure mat = Geometry (GeoElem [ShapeSurface (Shape (Primitive figure def def))]) def (Just mat)
+
 drawCircle :: Double -> Material -> Geometry
-drawCircle d mat = Geometry (GeoElem [ShapeSurface (Single (Primitive (Circle d) def def))]) def (Just mat)
+drawCircle d = drawFigure $ Circle d
 
-withBounds :: Double -> Double -> [Transformation] -> [Transformation]
-withBounds w h = fmap $ normTranslation w h
+drawSquare :: Double -> Material -> Geometry
+drawSquare s = drawFigure $ Square s
 
--- TODO: rearrange sig
-normTranslation ::  Double -> Double -> Transformation -> Transformation
-normTranslation rx ry (Transformation sx sy dx dy a r) = Transformation sx sy (dx / rx) (dy / ry) a r
+drawRectangle :: Double -> Double -> Material -> Geometry
+drawRectangle w h = drawFigure $ Rectangle w h
+
+-- charts
+
+barChart :: Material -> [Transformation] -> Layer
+barChart mat transformations = Layer geometry transformations where
+    geometry = drawCircle 0.02 mat
+
 
 ------------------------------------------
 -- === Experimental Implementations === --
