@@ -191,7 +191,8 @@ nativeCalls = Map.fromList $ [
     , ("mean",          unsafeCoerce (return . (uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> IO Double))
     , ("differences",   unsafeCoerce (return . (\l -> zipWith (-) (drop 1 l) l) :: [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
-    , ("primes",        unsafeCoerce primes)
+    , ("primes",        unsafeCoerce (return . primes                                        :: Int -> IO [Int]))
+    , ("pi",            unsafeCoerce (return   pi                                            :: IO Double))
 
 ----------------------
 --- === Shapes === ---
@@ -233,7 +234,7 @@ nativeCalls = Map.fromList $ [
 
     , ("toPoint",        unsafeCoerce (return .:   toPoint                     :: Double -> Double -> IO Transformation))
     , ("inBounds",       unsafeCoerce (return .::. withBounds                  :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
-    , ("generateData",   unsafeCoerce (            generateData                :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
+    , ("sampleData",     unsafeCoerce (            generateData                :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
     , ("drawCircle",     unsafeCoerce (return .:   drawCircle                  :: Double ->           Material -> IO Geometry))
     , ("drawSquare",     unsafeCoerce (return .:   drawSquare                  :: Double ->           Material -> IO Geometry))
@@ -277,8 +278,8 @@ modifyRef ref f = do
 -- === Misc Implementations === --
 ----------------------------------
 
-primes :: Int -> IO [Int]
-primes count = return $ take count primes' where
+primes :: Int -> [Int]
+primes count = take count primes' where
     primes'   = 2 : filter isPrime [3, 5..]
     isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
 
@@ -299,23 +300,24 @@ withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
 normTranslation :: Double -> Double -> Double -> Double -> Transformation -> Transformation
 normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) (1.0 - ((dy - y1) / ry)) a r
 
-
 generateData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]
 generateData f x1 x2 res = do
-    let nums = [0..(res-1)]
+    let resNorm = if res < 2 then 2 else res
+        nums = [0 .. (resNorm - 1)]
         range = x2 - x1
-        resPrec = fromIntegral res
+        resPrec = fromIntegral (resNorm - 1)
         xs = (\n -> x1 + range * (fromIntegral n / resPrec)) <$> nums
         ys = f <$> xs
         toPointF x = do
             y <- f x
             return $ toPoint x y
-    forM xs toPointF
+    mapM toPointF xs
 
 -- drawing
 
 drawFigure :: Figure -> Material -> Geometry
-drawFigure figure mat = Geometry (GeoElem [ShapeSurface (Shape (Primitive figure def def))]) def (Just mat)
+drawFigure figure mat = Geometry geoComp def (Just mat) where
+    geoComp = GeoElem [ShapeSurface $ Shape $ Primitive figure def def]
 
 drawCircle :: Double -> Material -> Geometry
 drawCircle = drawFigure . Circle
@@ -328,9 +330,21 @@ drawRectangle = drawFigure .: Rectangle
 
 -- charts
 
+-- TODO: possible rewrite to new-API with composable shapes with transformations
 barChart :: Material -> [Transformation] -> Layer
-barChart mat transformations = Layer geometry transformations where
-    geometry = drawCircle 0.02 mat
+barChart mat transformations = layer where
+    transformationsX = transformX <$> transformations
+    transformationsY = transformY <$> transformations
+    geoComponent     = GeoElem  $ toSurface  <$> transformationsY
+    geoComponentMain = GeoGroup $ toGeometry <$> transformationsX
+    geometry         = Geometry geoComponentMain def $ Just mat
+    layer            = Layer geometry [def]
+    toGeometry :: Transformation -> Geometry
+    toGeometry transformation = Geometry geoComponent transformation $ Just mat
+    toSurface :: Transformation -> Surface
+    toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 dy) def def
+    transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0        a r
+    transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 (dy * 0.5) a r
 
 ------------------------------------------
 -- === Experimental Implementations === --
