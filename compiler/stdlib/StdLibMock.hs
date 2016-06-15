@@ -362,6 +362,8 @@ symbolsList = [
     , makeNativeFun "toPoint"        Nothing [scons "Double", scons "Double"]                                  (scons "Transformation")
     , makeNativeFun "inBounds"       Nothing [scons "Double", scons "Double",
                                               scons "Double", scons "Double", listOf $ scons "Transformation"] (listOf $ scons "Transformation")
+    , makeNativeFun "generateData"   Nothing [TLam [scons "Double"] (scons "Double"),
+                                              scons "Double", scons "Double", scons "Int"]                     (listOf $ scons "Transformation")
 
     , makeNativeFun "drawCircle"     Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
     , makeNativeFun "drawSquare"     Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")

@@ -231,8 +231,9 @@ nativeCalls = Map.fromList $ [
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",        unsafeCoerce (return .:   (\x y -> translate x y def) :: Double -> Double -> IO Transformation))
+    , ("toPoint",        unsafeCoerce (return .:   toPoint                     :: Double -> Double -> IO Transformation))
     , ("inBounds",       unsafeCoerce (return .::. withBounds                  :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("generateData",   unsafeCoerce (            generateData                :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
     , ("drawCircle",     unsafeCoerce (return .:   drawCircle                  :: Double ->           Material -> IO Geometry))
     , ("drawSquare",     unsafeCoerce (return .:   drawSquare                  :: Double ->           Material -> IO Geometry))
@@ -285,6 +286,11 @@ primes count = return $ take count primes' where
 --- === Drawing API Implementations === ---
 -------------------------------------------
 
+-- helpers
+
+toPoint :: Double -> Double -> Transformation
+toPoint x y = translate x y def
+
 withBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
 withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
     rx = x2 - x1
@@ -293,26 +299,38 @@ withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
 normTranslation :: Double -> Double -> Double -> Double -> Transformation -> Transformation
 normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) (1.0 - ((dy - y1) / ry)) a r
 
+
+generateData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]
+generateData f x1 x2 res = do
+    let nums = [0..(res-1)]
+        range = x2 - x1
+        resPrec = fromIntegral res
+        xs = (\n -> x1 + range * (fromIntegral n / resPrec)) <$> nums
+        ys = f <$> xs
+        toPointF x = do
+            y <- f x
+            return $ toPoint x y
+    forM xs toPointF
+
 -- drawing
 
 drawFigure :: Figure -> Material -> Geometry
 drawFigure figure mat = Geometry (GeoElem [ShapeSurface (Shape (Primitive figure def def))]) def (Just mat)
 
 drawCircle :: Double -> Material -> Geometry
-drawCircle d = drawFigure $ Circle d
+drawCircle = drawFigure . Circle
 
 drawSquare :: Double -> Material -> Geometry
-drawSquare s = drawFigure $ Square s
+drawSquare = drawFigure . Square
 
 drawRectangle :: Double -> Double -> Material -> Geometry
-drawRectangle w h = drawFigure $ Rectangle w h
+drawRectangle = drawFigure .: Rectangle
 
 -- charts
 
 barChart :: Material -> [Transformation] -> Layer
 barChart mat transformations = Layer geometry transformations where
     geometry = drawCircle 0.02 mat
-
 
 ------------------------------------------
 -- === Experimental Implementations === --
@@ -335,5 +353,5 @@ comp3to2 f1 f2 f3 f = return $ \x y -> do
     f3xy <- f3 x y
     f f1xy f2xy f3xy
 
-(<==<)       :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
-g <==< f     = \x y -> f x y >>= g
+(<==<)   :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
+g <==< f = \x y -> f x y >>= g
