@@ -13,6 +13,7 @@ import           Data.IORef         (newIORef, IORef, writeIORef, readIORef)
 
 import           Network.HTTP       (ResponseCode, simpleHTTP, getResponseCode, getRequest, urlEncode)
 import           System.Environment (lookupEnv)
+import           Text.Printf        (printf)
 
 import           Graphics.API
 
@@ -124,6 +125,7 @@ nativeCalls = Map.fromList $ [
     , ("Double.atanh",    unsafeCoerce (return . atanh :: Double -> IO Double))
 
     , ("Double.toString", unsafeCoerce (return .  show :: Double -> IO String))
+    , ("Double.toStringFormat", unsafeCoerce (return .:. toStringFormat :: Double -> Int -> Int -> IO String))
 
 ------------------
 -- === Bool === --
@@ -201,50 +203,50 @@ nativeCalls = Map.fromList $ [
 --- === Shapes === ---
 ----------------------
 
-    , ("initTrans",      unsafeCoerce (return     def       :: IO Transformation))
-    , ("scale",          unsafeCoerce (return .:. scale     :: Double -> Double -> Transformation -> IO Transformation))
-    , ("translate",      unsafeCoerce (return .:. translate :: Double -> Double -> Transformation -> IO Transformation))
-    , ("rotate",         unsafeCoerce (return .:  rotate    :: Double ->           Transformation -> IO Transformation))
-    , ("reflect",        unsafeCoerce (return .   reflect   ::                     Transformation -> IO Transformation))
+    , ("initTrans",                unsafeCoerce (return     def       :: IO Transformation))
+    , ("Transformation.scale",     unsafeCoerce (return .:. scale     :: Transformation -> Double -> Double -> IO Transformation))
+    , ("Transformation.translate", unsafeCoerce (return .:. translate :: Transformation -> Double -> Double -> IO Transformation))
+    , ("Transformation.rotate",    unsafeCoerce (return .:  rotate    :: Transformation -> Double ->           IO Transformation))
+    , ("Transformation.reflect",   unsafeCoerce (return .   reflect   :: Transformation ->                     IO Transformation))
 
-    , ("square",         unsafeCoerce (return .   Square    :: Double ->           IO Figure))
-    , ("rectangle",      unsafeCoerce (return .:  Rectangle :: Double -> Double -> IO Figure))
-    , ("circle",         unsafeCoerce (return .   Circle    :: Double ->           IO Figure))
+    , ("squareFigure",    unsafeCoerce (return .   Square    :: Double ->           IO Figure))
+    , ("rectangleFigure", unsafeCoerce (return .:  Rectangle :: Double -> Double -> IO Figure))
+    , ("circleFigure",    unsafeCoerce (return .   Circle    :: Double ->           IO Figure))
 
-    , ("position",       unsafeCoerce (return .:  Point2    :: Double -> Double -> IO Point2))
-    , ("initAttributes", unsafeCoerce (return     def       :: IO Attributes))
-    , ("primitive",      unsafeCoerce (return .:. Primitive :: Figure -> Point2 -> Attributes -> IO Primitive))
+    , ("position",         unsafeCoerce (return .:  Point2    :: Double -> Double -> IO Point2))
+    , ("initAttributes",   unsafeCoerce (return     def       :: IO Attributes))
+    , ("color",            unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
 
-    , ("color",          unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
+    , ("Figure.primitive", unsafeCoerce (return .:. Primitive :: Figure -> Point2 -> Attributes -> IO Primitive))
 
-    , ("shape",          unsafeCoerce (return .   Shape     :: Primitive      -> IO Shape))
-    , ("merge",          unsafeCoerce (return .:  Merge     :: Shape -> Shape -> IO Shape))
-    , ("subtract",       unsafeCoerce (return .:  Subtract  :: Shape -> Shape -> IO Shape))
-    , ("intersect",      unsafeCoerce (return .:  Intersect :: Shape -> Shape -> IO Shape))
+    , ("Primitive.shape", unsafeCoerce (return .   Shape     :: Primitive      -> IO Shape))
+    , ("Shape.merge",     unsafeCoerce (return .:  Merge     :: Shape -> Shape -> IO Shape))
+    , ("Shape.subtract",  unsafeCoerce (return .:  Subtract  :: Shape -> Shape -> IO Shape))
+    , ("Shape.intersect", unsafeCoerce (return .:  Intersect :: Shape -> Shape -> IO Shape))
 
-    , ("surface",        unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
+    , ("Shape.surface",   unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
 
-    , ("geoElem",        unsafeCoerce (return .   GeoElem  :: [Surface]  -> IO GeoComponent))
-    , ("geoGroup",       unsafeCoerce (return .   GeoGroup :: [Geometry] -> IO GeoComponent))
-    , ("geometry",       unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
+    , ("geoElem",               unsafeCoerce (return .   GeoElem  :: [Surface]  -> IO GeoComponent))
+    , ("geoGroup",              unsafeCoerce (return .   GeoGroup :: [Geometry] -> IO GeoComponent))
+    , ("GeoComponent.geometry", unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
 
-    , ("layer",          unsafeCoerce (return .:  Layer    :: Geometry -> [Transformation] -> IO Layer))
+    , ("Geometry.layer", unsafeCoerce (return .:  Layer    :: Geometry -> [Transformation] -> IO Layer))
     , ("graphics",       unsafeCoerce (return .   Graphics :: [Layer] -> IO Graphics))
 
 ---------------------------
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",        unsafeCoerce (return .:   toPoint       :: Double -> Double -> IO Transformation))
-    , ("inBounds",       unsafeCoerce (return .::. withBounds    :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
-    , ("sampleData",     unsafeCoerce (            generateData  :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
+    , ("toPoint",    unsafeCoerce (return .:   toPoint       :: Double -> Double -> IO Transformation))
+    , ("inBounds",   unsafeCoerce (return .::. withBounds    :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("sampleData", unsafeCoerce (            generateData  :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
-    , ("drawCircle",     unsafeCoerce (return .:   drawCircle    :: Double ->           Material -> IO Geometry))
-    , ("drawSquare",     unsafeCoerce (return .:   drawSquare    :: Double ->           Material -> IO Geometry))
-    , ("drawRectangle",  unsafeCoerce (return .:.  drawRectangle :: Double -> Double -> Material -> IO Geometry))
+    , ("circle",    unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
+    , ("square",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
+    , ("rectangle", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("scatterChart",   unsafeCoerce (return .:   Layer         :: Geometry -> [Transformation] -> IO Layer))
-    , ("barChart",       unsafeCoerce (return .:   barChart      :: Material -> [Transformation] -> IO Layer))
+    , ("scatterChart", unsafeCoerce (return .:   Layer         :: Geometry -> [Transformation] -> IO Layer))
+    , ("barChart",     unsafeCoerce (return .:   barChart      :: Material -> [Transformation] -> IO Layer))
 
 ------------------------
 --- === IoT Demo === ---
@@ -275,6 +277,13 @@ nativeCalls = Map.fromList $ [
 
 ------------------------------------- IMPLEMENTATIONS -------------------------------------
 
+------------------------------------
+-- === Double Implementations === --
+------------------------------------
+
+toStringFormat :: Double -> Int -> Int -> String
+toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in printf format v
+
 ---------------------------------
 -- === Ref Implementations === --
 ---------------------------------
@@ -302,7 +311,7 @@ primes count = take count primes' where
 -- helpers
 
 toPoint :: Double -> Double -> Transformation
-toPoint x y = translate x y def
+toPoint = translate def
 
 withBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
 withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
@@ -327,18 +336,18 @@ generateData f x1 x2 res = do
 
 -- drawing
 
-drawFigure :: Figure -> Material -> Geometry
-drawFigure figure mat = Geometry geoComp def (Just mat) where
+figureToGeo :: Figure -> Material -> Geometry
+figureToGeo figure mat = Geometry geoComp def (Just mat) where
     geoComp = GeoElem [ShapeSurface $ Shape $ Primitive figure def def]
 
-drawCircle :: Double -> Material -> Geometry
-drawCircle = drawFigure . Circle
+circleToGeo :: Double -> Material -> Geometry
+circleToGeo = figureToGeo . Circle
 
-drawSquare :: Double -> Material -> Geometry
-drawSquare = drawFigure . Square
+squareToGeo :: Double -> Material -> Geometry
+squareToGeo = figureToGeo . Square
 
-drawRectangle :: Double -> Double -> Material -> Geometry
-drawRectangle = drawFigure .: Rectangle
+rectangleToGeo :: Double -> Double -> Material -> Geometry
+rectangleToGeo = figureToGeo .: Rectangle
 
 -- charts
 
