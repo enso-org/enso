@@ -11,6 +11,7 @@ import           GHC.Prim          (Any)
 import           Data.List         (sort, group)
 import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
 
+import           Network.HTTP
 import           Graphics.API
 
 
@@ -232,16 +233,23 @@ nativeCalls = Map.fromList $ [
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",        unsafeCoerce (return .:   toPoint                     :: Double -> Double -> IO Transformation))
-    , ("inBounds",       unsafeCoerce (return .::. withBounds                  :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
-    , ("sampleData",     unsafeCoerce (            generateData                :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
+    , ("toPoint",        unsafeCoerce (return .:   toPoint       :: Double -> Double -> IO Transformation))
+    , ("inBounds",       unsafeCoerce (return .::. withBounds    :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("sampleData",     unsafeCoerce (            generateData  :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
-    , ("drawCircle",     unsafeCoerce (return .:   drawCircle                  :: Double ->           Material -> IO Geometry))
-    , ("drawSquare",     unsafeCoerce (return .:   drawSquare                  :: Double ->           Material -> IO Geometry))
-    , ("drawRectangle",  unsafeCoerce (return .:.  drawRectangle               :: Double -> Double -> Material -> IO Geometry))
+    , ("drawCircle",     unsafeCoerce (return .:   drawCircle    :: Double ->           Material -> IO Geometry))
+    , ("drawSquare",     unsafeCoerce (return .:   drawSquare    :: Double ->           Material -> IO Geometry))
+    , ("drawRectangle",  unsafeCoerce (return .:.  drawRectangle :: Double -> Double -> Material -> IO Geometry))
 
-    , ("scatterChart",   unsafeCoerce (return .:   Layer                       :: Geometry -> [Transformation] -> IO Layer))
-    , ("barChart",       unsafeCoerce (return .:   barChart                    :: Material -> [Transformation] -> IO Layer))
+    , ("scatterChart",   unsafeCoerce (return .:   Layer         :: Geometry -> [Transformation] -> IO Layer))
+    , ("barChart",       unsafeCoerce (return .:   barChart      :: Material -> [Transformation] -> IO Layer))
+
+------------------------
+--- === IoT Demo === ---
+------------------------
+
+    , ("displayLCD",     unsafeCoerce (            displayLCD :: String -> String -> IO Int))
+    , ("temperature",    unsafeCoerce (return .    id         :: Double -> IO Double))
 
 --------------------------
 -- === Experimental === --
@@ -258,6 +266,8 @@ nativeCalls = Map.fromList $ [
     , ("comp2to2",      unsafeCoerce comp2to2)
     , ("comp3to2",      unsafeCoerce comp3to2)
     , ("retFun2",       unsafeCoerce retFun2)
+
+    , ("testControls",  unsafeCoerce (return .:: testControls :: String -> Int -> Double -> Bool -> IO String))
 
     ]
 
@@ -330,7 +340,7 @@ drawRectangle = drawFigure .: Rectangle
 
 -- charts
 
--- TODO: possible rewrite to new-API with composable shapes with transformations
+-- TODO: possible rewrite to new-maybe-API with composable list of shapes with transformations
 barChart :: Material -> [Transformation] -> Layer
 barChart mat transformations = layer where
     transformationsX = transformX <$> transformations
@@ -345,6 +355,19 @@ barChart mat transformations = layer where
     toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 dy) def def
     transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0        a r
     transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 (dy * 0.5) a r
+
+------------------------
+--- === IoT Demo === ---
+------------------------
+
+getCode :: String -> IO ResponseCode
+getCode url = simpleHTTP req >>= getResponseCode
+    where req = getRequest url
+
+displayLCD :: String -> String -> IO Int
+displayLCD first second = do
+    (code, _, _) <- getCode $ "http://192.168.2.222:8000/display?first=" <> first <> "&second=" <> second
+    return code
 
 ------------------------------------------
 -- === Experimental Implementations === --
@@ -369,3 +392,7 @@ comp3to2 f1 f2 f3 f = return $ \x y -> do
 
 (<==<)   :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
 g <==< f = \x y -> f x y >>= g
+
+
+testControls :: String -> Int -> Double -> Bool -> String
+testControls s i d b = s <> " " <> show i <> " " <> show d <> " " <> show b

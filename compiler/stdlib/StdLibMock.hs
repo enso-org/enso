@@ -373,6 +373,13 @@ symbolsList = [
     , makeNativeFun "scatterChart"   Nothing [scons "Geometry", listOf $ scons "Transformation"]               (scons "Layer")
     , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
 
+------------------------
+--- === IoT Demo === ---
+------------------------
+
+    , makeNativeFun "toPoint"        Nothing [scons "String", scons "String"]                  (scons "Int")
+    , makeNativeFun "temperature"    Nothing [scons "Double"]                                  (scons "Double")
+
 --------------------------
 -- === Experimental === --
 --------------------------
@@ -410,6 +417,7 @@ experimental = [ "fix"
                , "flipConst"
                , "flipConst2"
                , "retFun2"
+               , "testControls"
                ]
 
 symbolsNames :: [String]
