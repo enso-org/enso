@@ -11,7 +11,7 @@ import           GHC.Prim           (Any)
 import           Data.List          (sort, group)
 import           Data.IORef         (newIORef, IORef, writeIORef, readIORef)
 
-import           Network.HTTP       (ResponseCode, simpleHTTP, getResponseCode, getRequest)
+import           Network.HTTP       (ResponseCode, simpleHTTP, getResponseCode, getRequest, urlEncode)
 import           System.Environment (lookupEnv)
 
 import           Graphics.API
@@ -372,7 +372,7 @@ displayLCD :: String -> String -> IO Int
 displayLCD first second = do
     lcdEndpointMay <- lookupEnv "LCD_ENDPOINT"
     let lcdEndpoint = fromMaybe defautlLcdEndpoint lcdEndpointMay
-    (code, _, _) <- getCode $ lcdEndpoint <> "?first=" <> first <> "&second=" <> second
+    (code, _, _) <- getCode . urlEncode $ lcdEndpoint <> "?first=" <> first <> "&second=" <> second
     return code
 
 ------------------------------------------
