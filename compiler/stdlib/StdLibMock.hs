@@ -377,7 +377,7 @@ symbolsList = [
 --- === IoT Demo === ---
 ------------------------
 
-    , makeNativeFun "toPoint"        Nothing [scons "String", scons "String"]                  (scons "Int")
+    , makeNativeFun "displayLCD"     Nothing [scons "String", scons "String"]                  (scons "Int")
     , makeNativeFun "temperature"    Nothing [scons "Double"]                                  (scons "Double")
 
 --------------------------
@@ -399,6 +399,8 @@ symbolsList = [
     , ("flipConst",  makeFlipConst)
     , ("flipConst2", makeFlipConst2)
     , makeNativeFun "retFun2"       Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c")]                                      (TLam [TVar "#a"] (TLam [TVar "#b"] (TVar "#c")))
+
+    , makeNativeFun "testControls"  Nothing [scons "String", scons "Int", scons "Double", scons "Bool"]  (scons "String")
 
     ]
 

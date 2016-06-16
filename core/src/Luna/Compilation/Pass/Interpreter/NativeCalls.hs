@@ -3,15 +3,17 @@ module Luna.Compilation.Pass.Interpreter.NativeCalls where
 
 import           Prelude.Luna
 
-import qualified Data.Map          as Map
-import           Data.Map          (Map)
-import           Control.Monad.Fix (mfix)
-import           Unsafe.Coerce     (unsafeCoerce)
-import           GHC.Prim          (Any)
-import           Data.List         (sort, group)
-import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
+import qualified Data.Map           as Map
+import           Data.Map           (Map)
+import           Control.Monad.Fix  (mfix)
+import           Unsafe.Coerce      (unsafeCoerce)
+import           GHC.Prim           (Any)
+import           Data.List          (sort, group)
+import           Data.IORef         (newIORef, IORef, writeIORef, readIORef)
 
-import           Network.HTTP
+import           Network.HTTP       (ResponseCode, simpleHTTP, getResponseCode, getRequest)
+import           System.Environment (lookupEnv)
+
 import           Graphics.API
 
 
@@ -360,13 +362,17 @@ barChart mat transformations = layer where
 --- === IoT Demo === ---
 ------------------------
 
+defautlLcdEndpoint = "http://192.168.2.222:8000/display"
+
 getCode :: String -> IO ResponseCode
 getCode url = simpleHTTP req >>= getResponseCode
     where req = getRequest url
 
 displayLCD :: String -> String -> IO Int
 displayLCD first second = do
-    (code, _, _) <- getCode $ "http://192.168.2.222:8000/display?first=" <> first <> "&second=" <> second
+    lcdEndpointMay <- lookupEnv "LCD_ENDPOINT"
+    let lcdEndpoint = fromMaybe defautlLcdEndpoint lcdEndpointMay
+    (code, _, _) <- getCode $ lcdEndpoint <> "?first=" <> first <> "&second=" <> second
     return code
 
 ------------------------------------------
