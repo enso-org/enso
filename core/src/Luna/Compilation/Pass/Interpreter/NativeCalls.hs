@@ -238,15 +238,18 @@ nativeCalls = Map.fromList $ [
 ---------------------------
 
     , ("toPoint",      unsafeCoerce (return .:   toPoint        :: Double -> Double -> IO Transformation))
-    , ("inBounds",     unsafeCoerce (return .::. withBounds     :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("inBounds",     unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
     , ("sampleData",   unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
     , ("circle",       unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
     , ("square",       unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
     , ("rectangle",    unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("scatterChart", unsafeCoerce (return .:   Layer          :: Geometry -> [Transformation] -> IO Layer))
+    , ("scatterChart", unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
     , ("barChart",     unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
+
+    , ("showScatterChart", unsafeCoerce (return .:::.  showScatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("showBarChart",     unsafeCoerce (return .:::   showBarChart     :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
 
 ------------------------
 --- === IoT Demo === ---
@@ -320,8 +323,8 @@ primes count = take count primes' where
 toPoint :: Double -> Double -> Transformation
 toPoint = translate def
 
-withBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
-withBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
+inBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
+inBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
     rx = x2 - x1
     ry = y2 - y1
 
@@ -358,6 +361,9 @@ rectangleToGeo = figureToGeo .: Rectangle
 
 -- charts
 
+scatterChart :: Geometry -> [Transformation] -> Layer
+scatterChart = Layer
+
 -- TODO: possible rewrite to new-maybe-API with composable list of shapes with transformations
 barChart :: Material -> [Transformation] -> Layer
 barChart mat transformations = layer where
@@ -373,6 +379,15 @@ barChart mat transformations = layer where
     toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 dy) def def
     transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0        a r
     transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 (dy * 0.5) a r
+
+showScatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
+showScatterChart mat figure x1 x2 y1 y2 transformations = scatterChart geometry transformationsInBounds where
+    geometry = figureToGeo figure mat
+    transformationsInBounds = inBounds x1 x2 y1 y2 transformations
+
+showBarChart :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
+showBarChart mat x1 x2 y1 y2 transformations = barChart mat transformationsInBounds where
+    transformationsInBounds = inBounds x1 x2 y1 y2 transformations
 
 ------------------------
 --- === IoT Demo === ---

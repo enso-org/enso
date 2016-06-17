@@ -374,6 +374,13 @@ symbolsList = [
     , makeNativeFun "scatterChart"   Nothing [scons "Geometry", listOf $ scons "Transformation"]               (scons "Layer")
     , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
 
+    , makeNativeFun "showScatterChart"   Nothing [scons "Material", scons "Figure",
+                                                  scons "Double", scons "Double", scons "Double", scons "Double",
+                                                  listOf $ scons "Transformation"]                                 (scons "Layer")
+    , makeNativeFun "showBarChart"       Nothing [scons "Material",
+                                                  scons "Double", scons "Double", scons "Double", scons "Double",
+                                                  listOf $ scons "Transformation"]                                 (scons "Layer")
+
 ------------------------
 --- === IoT Demo === ---
 ------------------------
