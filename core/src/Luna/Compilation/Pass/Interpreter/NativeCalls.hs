@@ -203,57 +203,64 @@ nativeCalls = Map.fromList $ [
 --- === Shapes === ---
 ----------------------
 
-    , ("initTrans",                unsafeCoerce (return     def       :: IO Transformation))
-    , ("Transformation.scale",     unsafeCoerce (return .:. scale     :: Transformation -> Double -> Double -> IO Transformation))
-    , ("Transformation.translate", unsafeCoerce (return .:. translate :: Transformation -> Double -> Double -> IO Transformation))
-    , ("Transformation.rotate",    unsafeCoerce (return .:  rotate    :: Transformation -> Double ->           IO Transformation))
-    , ("Transformation.reflect",   unsafeCoerce (return .   reflect   :: Transformation ->                     IO Transformation))
+    , ("initTrans",                unsafeCoerce (return     def        :: IO Transformation))
+    , ("Transformation.scale",     unsafeCoerce (return .:. scale      :: Transformation -> Double -> Double -> IO Transformation))
+    , ("Transformation.translate", unsafeCoerce (return .:. translate  :: Transformation -> Double -> Double -> IO Transformation))
+    , ("Transformation.rotate",    unsafeCoerce (return .:  rotate     :: Transformation -> Double ->           IO Transformation))
+    , ("Transformation.reflect",   unsafeCoerce (return .   reflect    :: Transformation ->                     IO Transformation))
 
-    , ("squareFigure",    unsafeCoerce (return .   Square    :: Double ->           IO Figure))
-    , ("rectangleFigure", unsafeCoerce (return .:  Rectangle :: Double -> Double -> IO Figure))
-    , ("circleFigure",    unsafeCoerce (return .   Circle    :: Double ->           IO Figure))
+    , ("squareFigure",             unsafeCoerce (return .   Square     :: Double ->           IO Figure))
+    , ("rectangleFigure",          unsafeCoerce (return .:  Rectangle  :: Double -> Double -> IO Figure))
+    , ("circleFigure",             unsafeCoerce (return .   Circle     :: Double ->           IO Figure))
 
-    , ("position",         unsafeCoerce (return .:  Point2    :: Double -> Double -> IO Point2))
-    , ("initAttributes",   unsafeCoerce (return     def       :: IO Attributes))
-    , ("color",            unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
+    , ("position",                 unsafeCoerce (return .:  Point2     :: Double -> Double -> IO Point2))
+    , ("initAttributes",           unsafeCoerce (return     def        :: IO Attributes))
+    , ("color",                    unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
 
-    , ("Figure.primitive", unsafeCoerce (return .:. Primitive :: Figure -> Point2 -> Attributes -> IO Primitive))
+    , ("Figure.primitive",         unsafeCoerce (return .:. Primitive  :: Figure -> Point2 -> Attributes -> IO Primitive))
 
-    , ("Primitive.shape", unsafeCoerce (return .   Shape     :: Primitive      -> IO Shape))
-    , ("Shape.merge",     unsafeCoerce (return .:  Merge     :: Shape -> Shape -> IO Shape))
-    , ("Shape.subtract",  unsafeCoerce (return .:  Subtract  :: Shape -> Shape -> IO Shape))
-    , ("Shape.intersect", unsafeCoerce (return .:  Intersect :: Shape -> Shape -> IO Shape))
+    , ("Primitive.shape",          unsafeCoerce (return .   Shape      :: Primitive      -> IO Shape))
+    , ("Shape.merge",              unsafeCoerce (return .:  Merge      :: Shape -> Shape -> IO Shape))
+    , ("Shape.subtract",           unsafeCoerce (return .:  Subtract   :: Shape -> Shape -> IO Shape))
+    , ("Shape.intersect",          unsafeCoerce (return .:  Intersect  :: Shape -> Shape -> IO Shape))
 
-    , ("Shape.surface",   unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
+    , ("Shape.surface",            unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
 
-    , ("geoElem",               unsafeCoerce (return .   GeoElem  :: [Surface]  -> IO GeoComponent))
-    , ("geoGroup",              unsafeCoerce (return .   GeoGroup :: [Geometry] -> IO GeoComponent))
-    , ("GeoComponent.geometry", unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
+    , ("geoElem",                  unsafeCoerce (return .   GeoElem    :: [Surface]  -> IO GeoComponent))
+    , ("geoGroup",                 unsafeCoerce (return .   GeoGroup   :: [Geometry] -> IO GeoComponent))
+    , ("GeoComponent.geometry",    unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
 
-    , ("Geometry.layer", unsafeCoerce (return .:  Layer    :: Geometry -> [Transformation] -> IO Layer))
-    , ("graphics",       unsafeCoerce (return .   Graphics :: [Layer] -> IO Graphics))
+    , ("Geometry.layer",           unsafeCoerce (return .:  Layer      :: Geometry -> [Transformation] -> IO Layer))
+    , ("graphics",                 unsafeCoerce (return .   Graphics   :: [Layer] -> IO Graphics))
 
 ---------------------------
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",    unsafeCoerce (return .:   toPoint       :: Double -> Double -> IO Transformation))
-    , ("inBounds",   unsafeCoerce (return .::. withBounds    :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
-    , ("sampleData", unsafeCoerce (            generateData  :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
+    , ("toPoint",      unsafeCoerce (return .:   toPoint        :: Double -> Double -> IO Transformation))
+    , ("inBounds",     unsafeCoerce (return .::. withBounds     :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("sampleData",   unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
-    , ("circle",    unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
-    , ("square",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
-    , ("rectangle", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
+    , ("circle",       unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
+    , ("square",       unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
+    , ("rectangle",    unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("scatterChart", unsafeCoerce (return .:   Layer         :: Geometry -> [Transformation] -> IO Layer))
-    , ("barChart",     unsafeCoerce (return .:   barChart      :: Material -> [Transformation] -> IO Layer))
+    , ("scatterChart", unsafeCoerce (return .:   Layer          :: Geometry -> [Transformation] -> IO Layer))
+    , ("barChart",     unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
 
 ------------------------
 --- === IoT Demo === ---
 ------------------------
 
-    , ("displayLCD",     unsafeCoerce (            displayLCD :: String -> String -> IO Int))
-    , ("temperature",    unsafeCoerce (return .    id         :: Double -> IO Double))
+    , ("temperature",          unsafeCoerce (return    Temperature  :: IO Temperature))
+    , ("fan",                  unsafeCoerce (return    Fan          :: IO Fan))
+    , ("controlPanel",         unsafeCoerce (return    ControlPanel :: IO ControlPanel))
+
+    , ("Temperature.inside",   unsafeCoerce (return .: tempInside     :: Temperature  -> Double -> IO Double))
+    , ("Temperature.outside",  unsafeCoerce (return .: tempOutside    :: Temperature  -> Double -> IO Double))
+    , ("ControlPanel.knob",    unsafeCoerce (return .: controlKnob    :: ControlPanel -> Double -> IO Double))
+    , ("ControlPanel.display", unsafeCoerce (          displayLCD     :: ControlPanel -> String -> String -> IO Int))
+    , ("Fan.power",            unsafeCoerce (          fanOnOff       :: Fan          -> Bool             -> IO Int))
 
 --------------------------
 -- === Experimental === --
@@ -371,17 +378,39 @@ barChart mat transformations = layer where
 --- === IoT Demo === ---
 ------------------------
 
-defautlLcdEndpoint = "http://192.168.2.222:8000/display"
+-- helpers
 
 getCode :: String -> IO ResponseCode
 getCode url = simpleHTTP req >>= getResponseCode
     where req = getRequest url
+defautlLcdEndpoint = "http://192.168.2.222:8000/display"
+defautlFanEndpoint = "http://192.168.2.222:8000/fan"
 
-displayLCD :: String -> String -> IO Int
-displayLCD first second = do
+-- implementation
+
+data Temperature  = Temperature
+data ControlPanel = ControlPanel
+data Fan          = Fan
+
+tempInside, tempOutside :: Temperature -> Double -> Double
+tempInside  = const id
+tempOutside = const id
+
+controlKnob :: ControlPanel -> Double -> Double
+controlKnob = const id
+
+displayLCD :: ControlPanel -> String -> String -> IO Int
+displayLCD _ first second = do
     lcdEndpointMay <- lookupEnv "LCD_ENDPOINT"
-    let lcdEndpoint = fromMaybe defautlLcdEndpoint lcdEndpointMay
-    (code, _, _) <- getCode $ lcdEndpoint <> "?first=" <> urlEncode first <> "&second=" <> urlEncode second
+    let endpoint = fromMaybe defautlLcdEndpoint lcdEndpointMay
+    (code, _, _) <- getCode $ endpoint <> "?first=" <> urlEncode first <> "&second=" <> urlEncode second
+    return code
+
+fanOnOff :: Fan -> Bool -> IO Int
+fanOnOff _ state = do
+    fanEndpointMay <- lookupEnv "FAN_ENDPOINT"
+    let endpoint = fromMaybe defautlFanEndpoint fanEndpointMay
+    (code, _, _) <- getCode $ endpoint <> "?state=" <> show (fromEnum state)
     return code
 
 ------------------------------------------

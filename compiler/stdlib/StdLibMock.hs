@@ -378,8 +378,15 @@ symbolsList = [
 --- === IoT Demo === ---
 ------------------------
 
-    , makeNativeFun "displayLCD"     Nothing [scons "String", scons "String"]                  (scons "Int")
-    , makeNativeFun "temperature"    Nothing [scons "Double"]                                  (scons "Double")
+    , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")
+    , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
+    , makeNativeFun "controlPanel"    Nothing []                                  (scons "ControlPanel")
+
+    , makeNativeFun "Temperature.inside"    (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    , makeNativeFun "Temperature.outside"   (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    , makeNativeFun "ControlPanel.knob"     (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
+    , makeNativeFun "ControlPanel.display"  (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "Int")
+    , makeNativeFun "Fan.power"             (Just $ scons "Fan")          [scons "Bool" ]                   (scons "Int")
 
 --------------------------
 -- === Experimental === --
