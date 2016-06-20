@@ -237,16 +237,17 @@ nativeCalls = Map.fromList $ [
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",      unsafeCoerce (return .:   toPoint        :: Double -> Double -> IO Transformation))
-    , ("inBounds",     unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
-    , ("sampleData",   unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
+    , ("toPoint",       unsafeCoerce (return .:   toPoint        :: Double -> Double -> IO Transformation))
+    , ("inBounds",      unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    , ("sampleData",    unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
-    , ("circle",       unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
-    , ("square",       unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
-    , ("rectangle",    unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
+    , ("circle",        unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
+    , ("square",        unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
+    , ("rectangle",     unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("scatterChart", unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
-    , ("barChart",     unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
+    , ("scatterChart",  unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
+    , ("barChart",      unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
+    , ("barChartGraph", unsafeCoerce (return .:   barChartLayers :: Material -> [Transformation] -> IO Graphics))
 
     , ("showScatterChart", unsafeCoerce (return .:::.  showScatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
     , ("showBarChart",     unsafeCoerce (return .:::   showBarChart     :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
@@ -262,8 +263,8 @@ nativeCalls = Map.fromList $ [
     , ("Temperature.inside",   unsafeCoerce (return .: tempInside     :: Temperature  -> Double -> IO Double))
     , ("Temperature.outside",  unsafeCoerce (return .: tempOutside    :: Temperature  -> Double -> IO Double))
     , ("ControlPanel.knob",    unsafeCoerce (return .: controlKnob    :: ControlPanel -> Double -> IO Double))
-    , ("ControlPanel.display", unsafeCoerce (          displayLCD     :: ControlPanel -> String -> String -> IO Int))
-    , ("Fan.power",            unsafeCoerce (          fanOnOff       :: Fan          -> Bool             -> IO Int))
+    , ("ControlPanel.display", unsafeCoerce (          displayLCD     :: ControlPanel -> String -> String -> IO String))
+    , ("Fan.power",            unsafeCoerce (          fanOnOff       :: Fan          -> Bool             -> IO String))
 
 --------------------------
 -- === Experimental === --
@@ -364,9 +365,15 @@ rectangleToGeo = figureToGeo .: Rectangle
 scatterChart :: Geometry -> [Transformation] -> Layer
 scatterChart = Layer
 
--- TODO: possible rewrite to new-maybe-API with composable list of shapes with transformations
-barChart :: Material -> [Transformation] -> Layer
-barChart mat transformations = layer where
+barChart = barChartGeometries
+
+-- TODO: barChartShapes :: Material -> [Transformation] -> Layer
+-- rewrite to new2 API with composable list of shapes with transformations
+
+-- TODO: check why this hangs
+-- TODO: check why composing geometries does not work with translations
+barChartGeometries :: Material -> [Transformation] -> Layer
+barChartGeometries mat transformations = layer where
     transformationsX = transformX <$> transformations
     transformationsY = transformY <$> transformations
     geoComponent     = GeoElem  $ toSurface  <$> transformationsY
@@ -379,6 +386,11 @@ barChart mat transformations = layer where
     toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 dy) def def
     transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0        a r
     transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 (dy * 0.5) a r
+
+barChartLayers :: Material -> [Transformation] -> Graphics
+barChartLayers mat transformations = Graphics [barChartGeometries mat transformations]
+
+-- multi-param charts
 
 showScatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
 showScatterChart mat figure x1 x2 y1 y2 transformations = scatterChart geometry transformationsInBounds where
@@ -414,19 +426,23 @@ tempOutside = const id
 controlKnob :: ControlPanel -> Double -> Double
 controlKnob = const id
 
-displayLCD :: ControlPanel -> String -> String -> IO Int
+displayLCD :: ControlPanel -> String -> String -> IO String
 displayLCD _ first second = do
     lcdEndpointMay <- lookupEnv "LCD_ENDPOINT"
     let endpoint = fromMaybe defautlLcdEndpoint lcdEndpointMay
     (code, _, _) <- getCode $ endpoint <> "?first=" <> urlEncode first <> "&second=" <> urlEncode second
-    return code
+    return $ case code of
+        2 -> first <> "\n" <> second
+        _ -> "error"
 
-fanOnOff :: Fan -> Bool -> IO Int
+fanOnOff :: Fan -> Bool -> IO String
 fanOnOff _ state = do
     fanEndpointMay <- lookupEnv "FAN_ENDPOINT"
     let endpoint = fromMaybe defautlFanEndpoint fanEndpointMay
     (code, _, _) <- getCode $ endpoint <> "?state=" <> show (fromEnum state)
-    return code
+    return $ case code of
+        2 -> if state then "On" else "Off"
+        _ -> "error"
 
 ------------------------------------------
 -- === Experimental Implementations === --

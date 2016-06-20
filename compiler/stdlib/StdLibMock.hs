@@ -373,6 +373,7 @@ symbolsList = [
 
     , makeNativeFun "scatterChart"   Nothing [scons "Geometry", listOf $ scons "Transformation"]               (scons "Layer")
     , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
+    , makeNativeFun "barChartGraph"  Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Graphics")
 
     , makeNativeFun "showScatterChart"   Nothing [scons "Material", scons "Figure",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
@@ -392,8 +393,8 @@ symbolsList = [
     , makeNativeFun "Temperature.inside"    (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
     , makeNativeFun "Temperature.outside"   (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
     , makeNativeFun "ControlPanel.knob"     (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.display"  (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "Int")
-    , makeNativeFun "Fan.power"             (Just $ scons "Fan")          [scons "Bool" ]                   (scons "Int")
+    , makeNativeFun "ControlPanel.display"  (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
+    , makeNativeFun "Fan.power"             (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
 
 --------------------------
 -- === Experimental === --
