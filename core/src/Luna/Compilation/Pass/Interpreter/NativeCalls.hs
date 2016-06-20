@@ -260,11 +260,11 @@ nativeCalls = Map.fromList $ [
     , ("fan",                  unsafeCoerce (return    Fan          :: IO Fan))
     , ("controlPanel",         unsafeCoerce (return    ControlPanel :: IO ControlPanel))
 
-    , ("Temperature.inside",   unsafeCoerce (return .: tempInside     :: Temperature  -> Double -> IO Double))
-    , ("Temperature.outside",  unsafeCoerce (return .: tempOutside    :: Temperature  -> Double -> IO Double))
-    , ("ControlPanel.knob",    unsafeCoerce (return .: controlKnob    :: ControlPanel -> Double -> IO Double))
-    , ("ControlPanel.display", unsafeCoerce (          displayLCD     :: ControlPanel -> String -> String -> IO String))
-    , ("Fan.power",            unsafeCoerce (          fanOnOff       :: Fan          -> Bool             -> IO String))
+    , ("Temperature.inside",                unsafeCoerce (return .: tempInside           :: Temperature  -> Double -> IO Double))
+    , ("Temperature.outside",               unsafeCoerce (return .: tempOutside          :: Temperature  -> Double -> IO Double))
+    , ("ControlPanel.temperatureThreshold", unsafeCoerce (return .: temperatureThreshold :: ControlPanel -> Double -> IO Double))
+    , ("ControlPanel.display",              unsafeCoerce (          displayLCD           :: ControlPanel -> String -> String -> IO String))
+    , ("Fan.power",                         unsafeCoerce (          fanOnOff             :: Fan          -> Bool             -> IO String))
 
 --------------------------
 -- === Experimental === --
@@ -423,8 +423,8 @@ tempInside, tempOutside :: Temperature -> Double -> Double
 tempInside  = const id
 tempOutside = const id
 
-controlKnob :: ControlPanel -> Double -> Double
-controlKnob = const id
+temperatureThreshold :: ControlPanel -> Double -> Double
+temperatureThreshold = const id
 
 displayLCD :: ControlPanel -> String -> String -> IO String
 displayLCD _ first second = do

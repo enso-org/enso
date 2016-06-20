@@ -390,11 +390,11 @@ symbolsList = [
     , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
     , makeNativeFun "controlPanel"    Nothing []                                  (scons "ControlPanel")
 
-    , makeNativeFun "Temperature.inside"    (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
-    , makeNativeFun "Temperature.outside"   (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.knob"     (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.display"  (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
-    , makeNativeFun "Fan.power"             (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
+    , makeNativeFun "Temperature.inside"                (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    , makeNativeFun "Temperature.outside"               (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    , makeNativeFun "ControlPanel.temperatureThreshold" (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
+    , makeNativeFun "ControlPanel.display"              (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
+    , makeNativeFun "Fan.power"                         (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
 
 --------------------------
 -- === Experimental === --
