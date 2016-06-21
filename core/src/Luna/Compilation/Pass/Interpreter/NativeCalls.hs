@@ -388,7 +388,18 @@ barChartGeometries mat transformations = layer where
     transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 (dy * 0.5) a r
 
 barChartLayers :: Material -> [Transformation] -> Graphics
-barChartLayers mat transformations = Graphics [barChartGeometries mat transformations]
+barChartLayers mat transformations = graphics where
+    graphics   = Graphics layers
+    layers     = toLayer <$> transformations
+    toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
+        transformation
+            | sign >= 0 = Transformation sx sy dx     0 a r
+            | sign <  0 = Transformation sx sy dx (-dy) a r
+        geometry        = Geometry geoComp def (Just mat)
+        geoComp         = convert figure :: GeoComponent
+        figure          = Rectangle 0.02 h
+        h               = abs dy
+        sign            = signum dy
 
 -- multi-param charts
 
