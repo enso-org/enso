@@ -209,9 +209,9 @@ nativeCalls = Map.fromList $ [
     , ("Transformation.rotate",    unsafeCoerce (return .:  rotate     :: Transformation -> Double ->           IO Transformation))
     , ("Transformation.reflect",   unsafeCoerce (return .   reflect    :: Transformation ->                     IO Transformation))
 
-    , ("squareFigure",             unsafeCoerce (return .   Square     :: Double ->           IO Figure))
-    , ("rectangleFigure",          unsafeCoerce (return .:  Rectangle  :: Double -> Double -> IO Figure))
-    , ("circleFigure",             unsafeCoerce (return .   Circle     :: Double ->           IO Figure))
+    , ("square",                   unsafeCoerce (return .   Square     :: Double ->           IO Figure))
+    , ("rectangle",                unsafeCoerce (return .:  Rectangle  :: Double -> Double -> IO Figure))
+    , ("circle",                   unsafeCoerce (return .   Circle     :: Double ->           IO Figure))
 
     , ("position",                 unsafeCoerce (return .:  Point2     :: Double -> Double -> IO Point2))
     , ("initAttributes",           unsafeCoerce (return     def        :: IO Attributes))
@@ -241,9 +241,9 @@ nativeCalls = Map.fromList $ [
     -- , ("inBounds",      unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
     , ("sampleData",    unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
-    , ("circle",        unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
-    , ("square",        unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
-    , ("rectangle",     unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
+    , ("circleGeometry",    unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
+    , ("squareGeometry",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
+    , ("rectangleGeometry", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
     -- , ("scatterChart",  unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
     -- , ("barChart",      unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
@@ -363,6 +363,10 @@ rectangleToGeo = figureToGeo .: Rectangle
 
 -- charts
 
+-- axes :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
+-- axes mat figure x1 x2 y1 y2 transformations = scatterChartImpl geometry mx my normTransformations where
+--     geometry = figureToGeo figure mat
+
 scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
 scatterChart mat figure x1 x2 y1 y2 transformations = scatterChartImpl geometry mx my normTransformations where
     geometry = figureToGeo figure mat
@@ -378,6 +382,9 @@ barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Transform
 barChartLayers mat x1 x2 y1 y2 transformations = graphics where
     graphics   = Graphics layers
     layers     = toLayer <$> transformations
+    normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
+    mx = getOffset x1 x2
+    my = getOffset y1 y2
     toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
         transformation
             | sign >= 0 = Transformation sx sy dx     0 a r
@@ -393,7 +400,7 @@ barChartLayers mat x1 x2 y1 y2 transformations = graphics where
 scatterChartImpl :: Geometry -> Double -> Double -> [Transformation] -> Layer
 scatterChartImpl geometry mx my transformations = Layer geometry transformations' where
     transformations' = center <$> transformations
-    center (Transformation sx sy dx dy a r) = Transformation sx sy (dx - mx) (-(dy - my)) a r
+    center (Transformation sx sy dx dy a r) = Transformation sx sy (dx - mx) (1.0 - (dy - my)) a r
 
 barChartImpl = barChartGeometriesImpl
 

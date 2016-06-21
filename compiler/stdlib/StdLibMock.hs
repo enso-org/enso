@@ -333,9 +333,9 @@ symbolsList = [
     , makeNativeFun "Transformation.rotate"    (Just $ scons "Transformation") [scons "Double"]                         (scons "Transformation")
     , makeNativeFun "Transformation.reflect"   (Just $ scons "Transformation") []                                       (scons "Transformation")
 
-    , makeNativeFun "squareFigure"             Nothing                         [scons "Double"]                         (scons "Figure")
-    , makeNativeFun "rectangleFigure"          Nothing                         [scons "Double", scons "Double"]         (scons "Figure")
-    , makeNativeFun "circleFigure"             Nothing                         [scons "Double"]                         (scons "Figure")
+    , makeNativeFun "square"                   Nothing                         [scons "Double"]                         (scons "Figure")
+    , makeNativeFun "rectangle"                Nothing                         [scons "Double", scons "Double"]         (scons "Figure")
+    , makeNativeFun "circle"                   Nothing                         [scons "Double"]                         (scons "Figure")
 
     , makeNativeFun "position"                 Nothing [scons "Double", scons "Double"]                                 (scons "Point2")
     , makeNativeFun "initAttributes"           Nothing []                                                               (scons "Attributes")
@@ -367,9 +367,9 @@ symbolsList = [
     , makeNativeFun "sampleData"     Nothing [TLam [scons "Double"] (scons "Double"),
                                               scons "Double", scons "Double", scons "Int"]                     (listOf $ scons "Transformation")
 
-    , makeNativeFun "circle"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
-    , makeNativeFun "square"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
-    , makeNativeFun "rectangle"      Nothing [scons "Double", scons "Double", scons "Material"]                (scons "Geometry")
+    , makeNativeFun "circleGeometry"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
+    , makeNativeFun "squareGeometry"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
+    , makeNativeFun "rectangleGeometry"      Nothing [scons "Double", scons "Double", scons "Material"]                (scons "Geometry")
 
     -- , makeNativeFun "scatterChart"   Nothing [scons "Geometry", listOf $ scons "Transformation"]               (scons "Layer")
     -- , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
