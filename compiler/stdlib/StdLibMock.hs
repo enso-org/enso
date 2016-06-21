@@ -362,8 +362,8 @@ symbolsList = [
 ---------------------------
 
     , makeNativeFun "toPoint"        Nothing [scons "Double", scons "Double"]                                  (scons "Transformation")
-    , makeNativeFun "inBounds"       Nothing [scons "Double", scons "Double",
-                                              scons "Double", scons "Double", listOf $ scons "Transformation"] (listOf $ scons "Transformation")
+    -- , makeNativeFun "inBounds"       Nothing [scons "Double", scons "Double",
+                                              -- scons "Double", scons "Double", listOf $ scons "Transformation"] (listOf $ scons "Transformation")
     , makeNativeFun "sampleData"     Nothing [TLam [scons "Double"] (scons "Double"),
                                               scons "Double", scons "Double", scons "Int"]                     (listOf $ scons "Transformation")
 
@@ -371,14 +371,14 @@ symbolsList = [
     , makeNativeFun "square"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
     , makeNativeFun "rectangle"      Nothing [scons "Double", scons "Double", scons "Material"]                (scons "Geometry")
 
-    , makeNativeFun "scatterChart"   Nothing [scons "Geometry", listOf $ scons "Transformation"]               (scons "Layer")
-    , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
-    , makeNativeFun "barChartGraph"  Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Graphics")
+    -- , makeNativeFun "scatterChart"   Nothing [scons "Geometry", listOf $ scons "Transformation"]               (scons "Layer")
+    -- , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
+    -- , makeNativeFun "barChartGraph"  Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Graphics")
 
-    , makeNativeFun "showScatterChart"   Nothing [scons "Material", scons "Figure",
+    , makeNativeFun "scatterChart"   Nothing [scons "Material", scons "Figure",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
                                                   listOf $ scons "Transformation"]                                 (scons "Layer")
-    , makeNativeFun "showBarChart"       Nothing [scons "Material",
+    , makeNativeFun "barChart"       Nothing [scons "Material",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
                                                   listOf $ scons "Transformation"]                                 (scons "Layer")
 

@@ -238,19 +238,19 @@ nativeCalls = Map.fromList $ [
 ---------------------------
 
     , ("toPoint",       unsafeCoerce (return .:   toPoint        :: Double -> Double -> IO Transformation))
-    , ("inBounds",      unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
+    -- , ("inBounds",      unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
     , ("sampleData",    unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
 
     , ("circle",        unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
     , ("square",        unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
     , ("rectangle",     unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("scatterChart",  unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
-    , ("barChart",      unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
-    , ("barChartGraph", unsafeCoerce (return .:   barChartLayers :: Material -> [Transformation] -> IO Graphics))
+    -- , ("scatterChart",  unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
+    -- , ("barChart",      unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
+    -- , ("barChartGraph", unsafeCoerce (return .:   barChartLayers :: Material -> [Transformation] -> IO Graphics))
 
-    , ("showScatterChart", unsafeCoerce (return .:::.  showScatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
-    , ("showBarChart",     unsafeCoerce (return .:::   showBarChart     :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("scatterChart", unsafeCoerce (return .:::.  scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("barChart",     unsafeCoerce (return .:::   barChart     :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
 
 ------------------------
 --- === IoT Demo === ---
@@ -324,13 +324,14 @@ primes count = take count primes' where
 toPoint :: Double -> Double -> Transformation
 toPoint = translate def
 
-inBounds :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
-inBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
-    rx = x2 - x1
-    ry = y2 - y1
+normalizeTranslations :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
+normalizeTranslations x1 x2 y1 y2 = fmap $ normTranslation (x2 - x1) (y2 - y1)
 
-normTranslation :: Double -> Double -> Double -> Double -> Transformation -> Transformation
-normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) ((dy - y1) / ry) a r
+normTranslation :: Double -> Double -> Transformation -> Transformation
+normTranslation rx ry (Transformation sx sy dx dy a r) = Transformation sx sy (dx / rx) (dy / ry) a r
+
+getOffset :: Double -> Double -> Double
+getOffset p1 p2 = p1 / (p2 - p1)
 
 generateData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]
 generateData f x1 x2 res = do
@@ -362,35 +363,19 @@ rectangleToGeo = figureToGeo .: Rectangle
 
 -- charts
 
-scatterChart :: Geometry -> [Transformation] -> Layer
-scatterChart geometry transformations = Layer geometry transformations' where
-    transformations' = center <$> transformations
-    center (Transformation sx sy dx dy a r) = Transformation sx sy dx (0.5 - dy) a r
+scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
+scatterChart mat figure x1 x2 y1 y2 transformations = scatterChartImpl geometry mx my normTransformations where
+    geometry = figureToGeo figure mat
+    normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
+    mx = getOffset x1 x2
+    my = getOffset y1 y2
 
-barChart = barChartGeometries
+barChart :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
+barChart mat x1 x2 y1 y2 transformations = barChartImpl mat transformationsInBounds where
+    transformationsInBounds = normalizeTranslations x1 x2 y1 y2 transformations
 
--- TODO: barChartShapes :: Material -> [Transformation] -> Layer
--- rewrite to new2 API with composable list of shapes with transformations
-
--- TODO: check why this hangs
--- TODO: check why composing geometries does not work with translations
-barChartGeometries :: Material -> [Transformation] -> Layer
-barChartGeometries mat transformations = layer where
-    transformationsX = transformX <$> transformations
-    transformationsY = transformY <$> transformations
-    geoComponent     = GeoElem  $ toSurface  <$> transformationsY
-    geoComponentMain = GeoGroup $ toGeometry <$> transformationsX
-    geometry         = Geometry geoComponentMain def $ Just mat
-    layer            = Layer geometry [def]
-    toGeometry :: Transformation -> Geometry
-    toGeometry transformation = Geometry geoComponent transformation $ Just mat
-    toSurface :: Transformation -> Surface
-    toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 dy) def def
-    transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0        a r
-    transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 (dy * 0.5) a r
-
-barChartLayers :: Material -> [Transformation] -> Graphics
-barChartLayers mat transformations = graphics where
+barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Graphics
+barChartLayers mat x1 x2 y1 y2 transformations = graphics where
     graphics   = Graphics layers
     layers     = toLayer <$> transformations
     toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
@@ -403,16 +388,35 @@ barChartLayers mat transformations = graphics where
         h               = abs dy
         sign            = signum dy
 
--- multi-param charts
+-- charts helpers
 
-showScatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
-showScatterChart mat figure x1 x2 y1 y2 transformations = scatterChart geometry transformationsInBounds where
-    geometry = figureToGeo figure mat
-    transformationsInBounds = inBounds x1 x2 y1 y2 transformations
+scatterChartImpl :: Geometry -> Double -> Double -> [Transformation] -> Layer
+scatterChartImpl geometry mx my transformations = Layer geometry transformations' where
+    transformations' = center <$> transformations
+    center (Transformation sx sy dx dy a r) = Transformation sx sy (dx - mx) (-(dy - my)) a r
 
-showBarChart :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
-showBarChart mat x1 x2 y1 y2 transformations = barChart mat transformationsInBounds where
-    transformationsInBounds = inBounds x1 x2 y1 y2 transformations
+barChartImpl = barChartGeometriesImpl
+
+-- TODO: barChartShapes :: Material -> [Transformation] -> Layer
+-- rewrite to new2 API with composable list of shapes with transformations
+
+-- TODO: check why this hangs
+-- TODO: check why composing geometries does not work with translations
+barChartGeometriesImpl :: Material -> [Transformation] -> Layer
+barChartGeometriesImpl mat transformations = layer where
+    transformationsX = transformX <$> transformations
+    transformationsY = transformY <$> transformations
+    geoComponent     = GeoElem  $ toSurface  <$> transformationsY
+    geoComponentMain = GeoGroup $ toGeometry <$> transformationsX
+    geometry         = Geometry geoComponentMain def $ Just mat
+    layer            = Layer geometry [def]
+    toGeometry :: Transformation -> Geometry
+    toGeometry transformation = Geometry geoComponent transformation $ Just mat
+    toSurface :: Transformation -> Surface
+    toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 (abs dy)) def def
+    transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0  a r
+    transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 dy   a r
+
 
 ------------------------
 --- === IoT Demo === ---
