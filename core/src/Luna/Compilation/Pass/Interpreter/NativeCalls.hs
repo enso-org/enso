@@ -351,6 +351,9 @@ generateData f x1 x2 res = do
             return $ toPoint x y
     mapM toPointF xs
 
+centerTransformation :: Double -> Double -> Transformation -> Transformation
+centerTransformation mx my (Transformation sx sy dx dy a r) = Transformation sx sy (dx - mx) (1.0 - (dy - my)) a r
+
 -- drawing
 
 figureToGeo :: Figure -> Material -> Geometry
@@ -403,24 +406,19 @@ barChartLayers mat x1 x2 y1 y2 transformations = graphics where
     graphics            = Graphics layers
     layers              = toLayer <$> normTransformations
     normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
-    mx                  = getOffset x1 x2 --  0.0
-    my                  = getOffset y1 y2 -- -0.5
-    toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
-        transformation  = Transformation sx sy (dx - mx) (1.0 - (dy * 0.5 - my)) a r
-            -- | sign >= 0 = Transformation sx sy (mx + dx) (my +   dy * 0.5) a r
-            -- | sign <  0 = Transformation sx sy (mx + dx) (my -   dy * 0.5) a r
+    mx                  = getOffset x1 x2
+    my                  = getOffset y1 y2
+    toLayer (Transformation sx sy dx dy a r) = Layer geometry [centerTransformation mx my transformation] where
+        transformation  = Transformation sx sy dx (dy * 0.5) a r
         geometry        = Geometry geoComp def (Just mat)
         geoComp         = convert figure :: GeoComponent
         figure          = Rectangle 0.005 h
         h               = abs dy
-        -- sign            = signum dy
 
 -- charts helpers
 
 scatterChartImpl :: Geometry -> Double -> Double -> [Transformation] -> Layer
-scatterChartImpl geometry mx my transformations = Layer geometry transformations' where
-    transformations' = center <$> transformations
-    center (Transformation sx sy dx dy a r) = Transformation sx sy (dx - mx) (1.0 - (dy - my)) a r
+scatterChartImpl geometry mx my transformations = Layer geometry $ centerTransformation mx my <$> transformations
 
 barChartImpl = barChartGeometriesImpl
 
