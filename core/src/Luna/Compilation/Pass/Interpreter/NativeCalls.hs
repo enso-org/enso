@@ -406,14 +406,14 @@ barChartLayers mat x1 x2 y1 y2 transformations = graphics where
     mx                  = getOffset x1 x2 --  0.0
     my                  = getOffset y1 y2 -- -0.5
     toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
-        transformation  = Transformation sx sy (mx + dx) (my + dy * 0.5) a r
+        transformation  = Transformation sx sy (1.0 - mx + dx) (1.0 + my + dy * 0.5) a r
             -- | sign >= 0 = Transformation sx sy (mx + dx) (my +   dy * 0.5) a r
             -- | sign <  0 = Transformation sx sy (mx + dx) (my -   dy * 0.5) a r
         geometry        = Geometry geoComp def (Just mat)
         geoComp         = convert figure :: GeoComponent
         figure          = Rectangle 0.005 h
         h               = abs dy
-        sign            = signum dy
+        -- sign            = signum dy
 
 -- charts helpers
 
