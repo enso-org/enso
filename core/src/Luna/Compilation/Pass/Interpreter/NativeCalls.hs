@@ -370,14 +370,14 @@ rectangleToGeo = figureToGeo .: Rectangle
 axisX :: Material -> Double -> Double -> Layer
 axisX mat y1 y2 = Layer geometry [transformation] where
     geometry       = rectangleToGeo 1.0 0.01 mat
-    transformation = Transformation 0.0 0.0 0.0 my 0.0 False
-    my             = 1.0 - (getOffset y1 y2)
+    transformation = Transformation 0.0 0.0 0.5 my 0.0 False
+    my             = 1.0 + (getOffset y1 y2)
 
 axisY :: Material -> Double -> Double -> Layer
 axisY mat x1 x2 = Layer geometry [transformation] where
     geometry       = rectangleToGeo 0.01 1.0 mat
-    transformation = Transformation 0.0 0.0 mx 0.0 0.0 False
-    mx             = getOffset x1 x2
+    transformation = Transformation 0.0 0.0 mx 0.5 0.0 False
+    mx             = -(getOffset x1 x2)
 
 axesXY :: Material -> Double -> Double -> Double -> Double -> [Layer]
 axesXY mat x1 x2 y1 y2 = [aX, aY] where
