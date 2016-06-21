@@ -408,11 +408,12 @@ barChartLayers mat x1 x2 y1 y2 transformations = graphics where
     normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
     mx                  = getOffset x1 x2
     my                  = getOffset y1 y2
+    w                   = 0.5 / (fromIntegral $ length transformations)
     toLayer (Transformation sx sy dx dy a r) = Layer geometry [centerTransformation mx my transformation] where
         transformation  = Transformation sx sy dx (dy * 0.5) a r
         geometry        = Geometry geoComp def (Just mat)
         geoComp         = convert figure :: GeoComponent
-        figure          = Rectangle 0.005 h
+        figure          = Rectangle w h
         h               = abs dy
 
 -- charts helpers
