@@ -253,8 +253,9 @@ nativeCalls = Map.fromList $ [
     , ("axisY",  unsafeCoerce      (return .:.    axisY  :: Material -> Double -> Double -> IO Layer))
     , ("axesXY", unsafeCoerce      (return .::.   axesXY :: Material -> Double -> Double -> Double -> Double -> IO [Layer]))
 
-    , ("scatterChart", unsafeCoerce (return .:::.  scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
-    , ("barChart",     unsafeCoerce (return .:::   barChart     :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("scatterChart", unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("barChart",     unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("barChartGraph",unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Graphics))
 
 ------------------------
 --- === IoT Demo === ---
@@ -405,9 +406,9 @@ barChartLayers mat x1 x2 y1 y2 transformations = graphics where
     mx                  = getOffset x1 x2 --  0.0
     my                  = getOffset y1 y2 -- -0.5
     toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
-        transformation
-            | sign >= 0 = Transformation sx sy dx     0 a r
-            | sign <  0 = Transformation sx sy dx (-dy) a r
+        transformation  = Transformation sx sy (mx + dx) (my + dy * 0.5) a r
+            -- | sign >= 0 = Transformation sx sy (mx + dx) (my +   dy * 0.5) a r
+            -- | sign <  0 = Transformation sx sy (mx + dx) (my -   dy * 0.5) a r
         geometry        = Geometry geoComp def (Just mat)
         geoComp         = convert figure :: GeoComponent
         figure          = Rectangle 0.005 h
