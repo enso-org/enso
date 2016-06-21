@@ -375,6 +375,10 @@ symbolsList = [
     -- , makeNativeFun "barChart"       Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Layer")
     -- , makeNativeFun "barChartGraph"  Nothing [scons "Material", listOf $ scons "Transformation"]               (scons "Graphics")
 
+    , makeNativeFun "axisX"   Nothing [scons "Material", scons "Double", scons "Double"]                                  (scons "Layer")
+    , makeNativeFun "axisY"   Nothing [scons "Material", scons "Double", scons "Double"]                                  (scons "Layer")
+    , makeNativeFun "axesXY"  Nothing [scons "Material", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
+
     , makeNativeFun "scatterChart"   Nothing [scons "Material", scons "Figure",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
                                                   listOf $ scons "Transformation"]                                 (scons "Layer")

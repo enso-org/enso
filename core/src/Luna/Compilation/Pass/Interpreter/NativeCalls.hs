@@ -249,6 +249,10 @@ nativeCalls = Map.fromList $ [
     -- , ("barChart",      unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
     -- , ("barChartGraph", unsafeCoerce (return .:   barChartLayers :: Material -> [Transformation] -> IO Graphics))
 
+    , ("axisX",  unsafeCoerce      (return .:.    axisX  :: Material -> Double -> Double -> IO Layer))
+    , ("axisY",  unsafeCoerce      (return .:.    axisY  :: Material -> Double -> Double -> IO Layer))
+    , ("axesXY", unsafeCoerce      (return .::.   axesXY :: Material -> Double -> Double -> Double -> Double -> IO [Layer]))
+
     , ("scatterChart", unsafeCoerce (return .:::.  scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
     , ("barChart",     unsafeCoerce (return .:::   barChart     :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
 
@@ -361,18 +365,33 @@ squareToGeo = figureToGeo . Square
 rectangleToGeo :: Double -> Double -> Material -> Geometry
 rectangleToGeo = figureToGeo .: Rectangle
 
--- charts
+-- axes
 
--- axes :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
--- axes mat figure x1 x2 y1 y2 transformations = scatterChartImpl geometry mx my normTransformations where
---     geometry = figureToGeo figure mat
+axisX :: Material -> Double -> Double -> Layer
+axisX mat y1 y2 = Layer geometry [transformation] where
+    geometry       = rectangleToGeo 1.0 0.01 mat
+    transformation = Transformation 0.0 0.0 0.0 my 0.0 False
+    my             = 1.0 - (getOffset y1 y2)
+
+axisY :: Material -> Double -> Double -> Layer
+axisY mat x1 x2 = Layer geometry [transformation] where
+    geometry       = rectangleToGeo 0.01 1.0 mat
+    transformation = Transformation 0.0 0.0 mx 0.0 0.0 False
+    mx             = getOffset x1 x2
+
+axesXY :: Material -> Double -> Double -> Double -> Double -> [Layer]
+axesXY mat x1 x2 y1 y2 = [aX, aY] where
+    aX = axisX mat y1 y2
+    aY = axisY mat x1 x2
+
+-- charts
 
 scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
 scatterChart mat figure x1 x2 y1 y2 transformations = scatterChartImpl geometry mx my normTransformations where
-    geometry = figureToGeo figure mat
+    geometry            = figureToGeo figure mat
     normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
-    mx = getOffset x1 x2
-    my = getOffset y1 y2
+    mx                  = getOffset x1 x2
+    my                  = getOffset y1 y2
 
 barChart :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
 barChart mat x1 x2 y1 y2 transformations = barChartImpl mat transformationsInBounds where
@@ -380,11 +399,11 @@ barChart mat x1 x2 y1 y2 transformations = barChartImpl mat transformationsInBou
 
 barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Graphics
 barChartLayers mat x1 x2 y1 y2 transformations = graphics where
-    graphics   = Graphics layers
-    layers     = toLayer <$> transformations
+    graphics            = Graphics layers
+    layers              = toLayer <$> normTransformations
     normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
-    mx = getOffset x1 x2
-    my = getOffset y1 y2
+    mx                  = getOffset x1 x2 --  0.0
+    my                  = getOffset y1 y2 -- -0.5
     toLayer (Transformation sx sy dx dy a r) = Layer geometry [transformation] where
         transformation
             | sign >= 0 = Transformation sx sy dx     0 a r
