@@ -330,7 +330,7 @@ inBounds x1 x2 y1 y2 = fmap $ normTranslation x1 y1 rx ry where
     ry = y2 - y1
 
 normTranslation :: Double -> Double -> Double -> Double -> Transformation -> Transformation
-normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) (1.0 - ((dy - y1) / ry)) a r
+normTranslation x1 y1 rx ry (Transformation sx sy dx dy a r) = Transformation sx sy ((dx - x1) / rx) ((dy - y1) / ry) a r
 
 generateData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]
 generateData f x1 x2 res = do
@@ -363,7 +363,9 @@ rectangleToGeo = figureToGeo .: Rectangle
 -- charts
 
 scatterChart :: Geometry -> [Transformation] -> Layer
-scatterChart = Layer
+scatterChart geometry transformations = Layer geometry transformations' where
+    transformations' = center <$> transformations
+    center (Transformation sx sy dx dy a r) = Transformation sx sy dx (0.5 - dy) a r
 
 barChart = barChartGeometries
 
@@ -397,7 +399,7 @@ barChartLayers mat transformations = graphics where
             | sign <  0 = Transformation sx sy dx (-dy) a r
         geometry        = Geometry geoComp def (Just mat)
         geoComp         = convert figure :: GeoComponent
-        figure          = Rectangle 0.02 h
+        figure          = Rectangle 0.005 h
         h               = abs dy
         sign            = signum dy
 
