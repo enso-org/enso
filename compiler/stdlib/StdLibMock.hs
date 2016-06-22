@@ -385,9 +385,9 @@ symbolsList = [
     , makeNativeFun "barChart"       Nothing [scons "Material",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
                                                   listOf $ scons "Transformation"]                                 (scons "Layer")
-    , makeNativeFun "barChartGraph"  Nothing [scons "Material",
+    , makeNativeFun "barChartLayers"  Nothing [scons "Material",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Transformation"]                                 (scons "Graphics")
+                                                  listOf $ scons "Transformation"]                                 (listOf $ scons "Layer")
 
 ------------------------
 --- === IoT Demo === ---

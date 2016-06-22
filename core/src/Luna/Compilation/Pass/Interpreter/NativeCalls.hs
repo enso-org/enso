@@ -253,9 +253,9 @@ nativeCalls = Map.fromList $ [
     , ("axisY",  unsafeCoerce      (return .:.    axisY  :: Material -> Double -> Double -> IO Layer))
     , ("axesXY", unsafeCoerce      (return .::.   axesXY :: Material -> Double -> Double -> Double -> Double -> IO [Layer]))
 
-    , ("scatterChart", unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
-    , ("barChart",     unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
-    , ("barChartGraph",unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Graphics))
+    , ("scatterChart",   unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("barChart",       unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
+    , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO [Layer]))
 
 ------------------------
 --- === IoT Demo === ---
@@ -401,9 +401,8 @@ barChart :: Material -> Double -> Double -> Double -> Double -> [Transformation]
 barChart mat x1 x2 y1 y2 transformations = barChartImpl mat transformationsInBounds where
     transformationsInBounds = normalizeTranslations x1 x2 y1 y2 transformations
 
-barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Graphics
-barChartLayers mat x1 x2 y1 y2 transformations = graphics where
-    graphics            = Graphics layers
+barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> [Layer]
+barChartLayers mat x1 x2 y1 y2 transformations = layers where
     layers              = toLayer <$> normTransformations
     normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
     mx                  = getOffset x1 x2
