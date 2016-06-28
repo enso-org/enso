@@ -344,9 +344,9 @@ symbolsList = [
     , makeNativeFun "Figure.primitive"         (Just $ scons "Figure")       [scons "Point2", scons "Attributes"]       (scons "Primitive")
 
     , makeNativeFun "Primitive.shape"          (Just $ scons "Primitive")    []                                         (scons "Shape")
-    , makeNativeFun "Shape.merge"              Nothing                       [scons "Shape", scons "Shape"]             (scons "Shape")
-    , makeNativeFun "Shape.subtract"           Nothing                       [scons "Shape", scons "Shape"]             (scons "Shape")
-    , makeNativeFun "Shape.intersect"          Nothing                       [scons "Shape", scons "Shape"]             (scons "Shape")
+    , makeNativeFun "Shape.merge"              (Just $ scons "Shape")        [scons "Shape"]                            (scons "Shape")
+    , makeNativeFun "Shape.subtract"           (Just $ scons "Shape")        [scons "Shape"]                            (scons "Shape")
+    , makeNativeFun "Shape.intersect"          (Just $ scons "Shape")        [scons "Shape"]                            (scons "Shape")
 
     , makeNativeFun "Shape.surface"            (Just $ scons "Shape")        []                                         (scons "Surface")
 
