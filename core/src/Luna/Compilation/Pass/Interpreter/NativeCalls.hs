@@ -213,11 +213,11 @@ nativeCalls = Map.fromList $ [
     , ("rectangle",                unsafeCoerce (return .:  Rectangle  :: Double -> Double -> IO Figure))
     , ("circle",                   unsafeCoerce (return .   Circle     :: Double ->           IO Figure))
 
-    , ("position",                 unsafeCoerce (return .:  Point2     :: Double -> Double -> IO Point2))
+    , ("point",                    unsafeCoerce (return .:  Point      :: Double -> Double -> IO Point))
     , ("initAttributes",           unsafeCoerce (return     def        :: IO Attributes))
     , ("color",                    unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
 
-    , ("Figure.primitive",         unsafeCoerce (return .:. Primitive  :: Figure -> Point2 -> Attributes -> IO Primitive))
+    , ("Figure.primitive",         unsafeCoerce (return .:. Primitive  :: Figure -> Point -> Attributes -> IO Primitive))
 
     , ("Primitive.shape",          unsafeCoerce (return .   Shape      :: Primitive      -> IO Shape))
     , ("Shape.merge",              unsafeCoerce (return .:  Merge      :: Shape -> Shape -> IO Shape))
@@ -237,25 +237,22 @@ nativeCalls = Map.fromList $ [
 --- === Drawing API === ---
 ---------------------------
 
-    , ("toPoint",       unsafeCoerce (return .:   toPoint        :: Double -> Double -> IO Transformation))
-    -- , ("inBounds",      unsafeCoerce (return .::. inBounds       :: Double -> Double -> Double -> Double -> [Transformation] -> IO [Transformation]))
-    , ("sampleData",    unsafeCoerce (            generateData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]))
+    , ("sampleData",    unsafeCoerce (sampleData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]))
 
     , ("circleGeometry",    unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
     , ("squareGeometry",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
     , ("rectangleGeometry", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    -- , ("scatterChart",  unsafeCoerce (return .:   scatterChart   :: Geometry -> [Transformation] -> IO Layer))
-    -- , ("barChart",      unsafeCoerce (return .:   barChart       :: Material -> [Transformation] -> IO Layer))
-    -- , ("barChartGraph", unsafeCoerce (return .:   barChartLayers :: Material -> [Transformation] -> IO Graphics))
-
     , ("axisX",  unsafeCoerce      (return .:.    axisX  :: Material -> Double -> Double -> IO Layer))
     , ("axisY",  unsafeCoerce      (return .:.    axisY  :: Material -> Double -> Double -> IO Layer))
     , ("axesXY", unsafeCoerce      (return .::.   axesXY :: Material -> Double -> Double -> Double -> Double -> IO [Layer]))
 
-    , ("scatterChart",   unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
-    , ("barChart",       unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO Layer))
-    , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Transformation] -> IO [Layer]))
+    , ("scatterChart",   unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
+    , ("barChart",       unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
+    , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO [Layer]))
+
+    , ("autoScatterChartInt",    unsafeCoerce (return .:.  autoScatterChartInt    :: Material -> Figure -> [Int]    -> IO Layer))
+    , ("autoScatterChartDouble", unsafeCoerce (return .:.  autoScatterChartDouble :: Material -> Figure -> [Double] -> IO Layer))
 
 ------------------------
 --- === IoT Demo === ---
@@ -326,20 +323,20 @@ primes count = take count primes' where
 
 -- helpers
 
-toPoint :: Double -> Double -> Transformation
-toPoint = translate def
+toTransformation :: Point -> Transformation
+toTransformation (Point dx dy) = translate def dx dy
 
-normalizeTranslations :: Double -> Double -> Double -> Double -> [Transformation] -> [Transformation]
-normalizeTranslations x1 x2 y1 y2 = fmap $ normTranslation (x2 - x1) (y2 - y1)
+normalizePoints :: Double -> Double -> Double -> Double -> [Point] -> [Point]
+normalizePoints x1 x2 y1 y2 = fmap $ normalizePoint (x2 - x1) (y2 - y1)
 
-normTranslation :: Double -> Double -> Transformation -> Transformation
-normTranslation rx ry (Transformation sx sy dx dy a r) = Transformation sx sy (dx / rx) (dy / ry) a r
+normalizePoint :: Double -> Double -> Point -> Point
+normalizePoint rx ry (Point dx dy) = Point (dx / rx) (dy / ry)
 
 getOffset :: Double -> Double -> Double
 getOffset p1 p2 = p1 / (p2 - p1)
 
-generateData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Transformation]
-generateData f x1 x2 res = do
+sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
+sampleData f x1 x2 res = do
     let resNorm = if res < 2 then 2 else res
         nums = [0 .. (resNorm - 1)]
         range = x2 - x1
@@ -348,11 +345,11 @@ generateData f x1 x2 res = do
         ys = f <$> xs
         toPointF x = do
             y <- f x
-            return $ toPoint x y
+            return $ Point x y
     mapM toPointF xs
 
-centerTransformation :: Double -> Double -> Transformation -> Transformation
-centerTransformation mx my (Transformation sx sy dx dy a r) = Transformation sx sy (dx - mx) (1.0 - (dy - my)) a r
+centerPoint :: Double -> Double -> Point -> Point
+centerPoint mx my (Point dx dy) = Point (dx - mx) (1.0 - (dy - my))
 
 -- drawing
 
@@ -372,44 +369,57 @@ rectangleToGeo = figureToGeo .: Rectangle
 -- axes
 
 axisX :: Material -> Double -> Double -> Layer
-axisX mat y1 y2 = Layer geometry [transformation] where
-    geometry       = rectangleToGeo 1.0 0.01 mat
-    transformation = Transformation 0.0 0.0 0.5 my 0.0 False
-    my             = 1.0 + (getOffset y1 y2)
+axisX mat y1 y2 = Layer geometry [toTransformation point] where
+    geometry = rectangleToGeo 1.0 0.01 mat
+    point    = Point 0.5 my
+    my       = 1.0 + (getOffset y1 y2)
 
 axisY :: Material -> Double -> Double -> Layer
-axisY mat x1 x2 = Layer geometry [transformation] where
-    geometry       = rectangleToGeo 0.01 1.0 mat
-    transformation = Transformation 0.0 0.0 mx 0.5 0.0 False
-    mx             = -(getOffset x1 x2)
+axisY mat x1 x2 = Layer geometry [toTransformation point] where
+    geometry = rectangleToGeo 0.01 1.0 mat
+    point    = Point mx 0.5
+    mx       = -(getOffset x1 x2)
 
 axesXY :: Material -> Double -> Double -> Double -> Double -> [Layer]
 axesXY mat x1 x2 y1 y2 = [aX, aY] where
     aX = axisX mat y1 y2
     aY = axisY mat x1 x2
 
+-- auto charts
+
+autoScatterChartInt :: Material -> Figure -> [Int] -> Layer
+autoScatterChartInt mat figure ints = autoScatterChartDouble mat figure $ fromIntegral <$> ints
+
+autoScatterChartDouble :: Material -> Figure -> [Double] -> Layer
+autoScatterChartDouble mat figure doubles = scatterChart mat figure x1 x2 y1 y2 points where
+    x1 = 0.0
+    x2 = fromIntegral $ length doubles - 1
+    y1 = minimum doubles
+    y2 = maximum doubles
+    points = (\(i, v) -> Point (fromIntegral i) v) <$> zip [1..] doubles
+
 -- charts
 
-scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
-scatterChart mat figure x1 x2 y1 y2 transformations = scatterChartImpl geometry mx my normTransformations where
-    geometry            = figureToGeo figure mat
-    normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
-    mx                  = getOffset x1 x2
-    my                  = getOffset y1 y2
+scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Point] -> Layer
+scatterChart mat figure x1 x2 y1 y2 points = scatterChartImpl geometry mx my normPoints where
+    geometry   = figureToGeo figure mat
+    normPoints = normalizePoints x1 x2 y1 y2 points
+    mx         = getOffset x1 x2
+    my         = getOffset y1 y2
 
-barChart :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> Layer
-barChart mat x1 x2 y1 y2 transformations = barChartImpl mat transformationsInBounds where
-    transformationsInBounds = normalizeTranslations x1 x2 y1 y2 transformations
+barChart :: Material -> Double -> Double -> Double -> Double -> [Point] -> Layer
+barChart mat x1 x2 y1 y2 points = barChartImpl mat pointsInBounds where
+    pointsInBounds = normalizePoints x1 x2 y1 y2 points
 
-barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Transformation] -> [Layer]
-barChartLayers mat x1 x2 y1 y2 transformations = layers where
-    layers              = toLayer <$> normTransformations
-    normTransformations = normalizeTranslations x1 x2 y1 y2 transformations
-    mx                  = getOffset x1 x2
-    my                  = getOffset y1 y2
-    w                   = 0.5 / (fromIntegral $ length transformations)
-    toLayer (Transformation sx sy dx dy a r) = Layer geometry [centerTransformation mx my transformation] where
-        transformation  = Transformation sx sy dx (dy * 0.5) a r
+barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Point] -> [Layer]
+barChartLayers mat x1 x2 y1 y2 points = layers where
+    layers     = toLayer <$> normPoints
+    normPoints = normalizePoints x1 x2 y1 y2 points
+    mx         = getOffset x1 x2
+    my         = getOffset y1 y2
+    w                   = 0.5 / (fromIntegral $ length points)
+    toLayer (Point dx dy) = Layer geometry [toTransformation $ centerPoint mx my point] where
+        point     = Point dx (dy * 0.5)
         geometry        = Geometry geoComp def (Just mat)
         geoComp         = convert figure :: GeoComponent
         figure          = Rectangle w h
@@ -417,8 +427,8 @@ barChartLayers mat x1 x2 y1 y2 transformations = layers where
 
 -- charts helpers
 
-scatterChartImpl :: Geometry -> Double -> Double -> [Transformation] -> Layer
-scatterChartImpl geometry mx my transformations = Layer geometry $ centerTransformation mx my <$> transformations
+scatterChartImpl :: Geometry -> Double -> Double -> [Point] -> Layer
+scatterChartImpl geometry mx my points = Layer geometry $ toTransformation . centerPoint mx my <$> points
 
 barChartImpl = barChartGeometriesImpl
 
@@ -427,20 +437,20 @@ barChartImpl = barChartGeometriesImpl
 
 -- TODO: check why this hangs
 -- TODO: check why composing geometries does not work with translations
-barChartGeometriesImpl :: Material -> [Transformation] -> Layer
-barChartGeometriesImpl mat transformations = layer where
-    transformationsX = transformX <$> transformations
-    transformationsY = transformY <$> transformations
-    geoComponent     = GeoElem  $ toSurface  <$> transformationsY
-    geoComponentMain = GeoGroup $ toGeometry <$> transformationsX
+barChartGeometriesImpl :: Material -> [Point] -> Layer
+barChartGeometriesImpl mat points = layer where
+    pointsX          = transformX <$> points
+    pointsY          = transformY <$> points
+    geoComponent     = GeoElem  $ toSurface  <$> pointsY
+    geoComponentMain = GeoGroup $ toGeometry <$> pointsX
     geometry         = Geometry geoComponentMain def $ Just mat
     layer            = Layer geometry [def]
-    toGeometry :: Transformation -> Geometry
-    toGeometry transformation = Geometry geoComponent transformation $ Just mat
-    toSurface :: Transformation -> Surface
-    toSurface  (Transformation sx sy _  dy a r) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 (abs dy)) def def
-    transformX (Transformation sx sy dx dy a r) = Transformation sx sy dx  0.0  a r
-    transformY (Transformation sx sy dx dy a r) = Transformation sx sy 0.0 dy   a r
+    toGeometry :: Point -> Geometry
+    toGeometry point = Geometry geoComponent (toTransformation point) $ Just mat
+    toSurface :: Point -> Surface
+    toSurface  (Point _  dy) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 (abs dy)) def def
+    transformX (Point dx dy) = Point dx  0.0
+    transformY (Point dx dy) = Point 0.0 dy
 
 
 ------------------------
