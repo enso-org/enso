@@ -356,6 +356,7 @@ symbolsList = [
 
     , makeNativeFun "Geometry.layer"           (Just $ scons "Geometry")     [listOf $ scons "Transformation"]          (scons "Layer")
     , makeNativeFun "graphics"                 Nothing                       [listOf $ scons "Layer"]                   (scons "Graphics")
+    , makeNativeFun "Graphics.layers"          (Just $ scons "Graphics")     []                                         (listOf $ scons "Layer")
 
 ---------------------------
 --- === Drawing API === ---
@@ -380,10 +381,10 @@ symbolsList = [
                                                   listOf $ scons "Point"]                                 (scons "Layer")
     , makeNativeFun "barChartLayers"  Nothing [scons "Material",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (listOf $ scons "Layer")
+                                                  listOf $ scons "Point"]                                 (scons "Graphics")
 
-    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Figure", listOf $ scons "Int"]              (scons "Layer")
-    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Figure", listOf $ scons "Double"]           (scons "Layer")
+    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Figure", listOf $ scons "Int"]              (scons "Graphics")
+    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Figure", listOf $ scons "Double"]           (scons "Graphics")
 
 ------------------------
 --- === IoT Demo === ---

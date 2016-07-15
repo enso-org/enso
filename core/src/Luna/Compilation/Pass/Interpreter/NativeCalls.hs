@@ -231,7 +231,8 @@ nativeCalls = Map.fromList $ [
     , ("GeoComponent.geometry",    unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
 
     , ("Geometry.layer",           unsafeCoerce (return .:  Layer      :: Geometry -> [Transformation] -> IO Layer))
-    , ("graphics",                 unsafeCoerce (return .   Graphics   :: [Layer] -> IO Graphics))
+    , ("graphics",                 unsafeCoerce (return .   Graphics   :: [Layer]  -> IO Graphics))
+    , ("Graphics.layers",          unsafeCoerce (return .   _graphics  :: Graphics -> IO [Layer]))
 
 ---------------------------
 --- === Drawing API === ---
@@ -249,10 +250,10 @@ nativeCalls = Map.fromList $ [
 
     , ("scatterChart",   unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
     , ("barChart",       unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
-    , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO [Layer]))
+    , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
 
-    , ("autoScatterChartInt",    unsafeCoerce (return .:.  autoScatterChartInt    :: Material -> Figure -> [Int]    -> IO Layer))
-    , ("autoScatterChartDouble", unsafeCoerce (return .:.  autoScatterChartDouble :: Material -> Figure -> [Double] -> IO Layer))
+    , ("autoScatterChartInt",    unsafeCoerce (return .:.  autoScatterChartInt    :: Material -> Figure -> [Int]    -> IO Graphics))
+    , ("autoScatterChartDouble", unsafeCoerce (return .:.  autoScatterChartDouble :: Material -> Figure -> [Double] -> IO Graphics))
 
 ------------------------
 --- === IoT Demo === ---
@@ -387,11 +388,11 @@ axesXY mat x1 x2 y1 y2 = [aX, aY] where
 
 -- auto charts
 
-autoScatterChartInt :: Material -> Figure -> [Int] -> Layer
+autoScatterChartInt :: Material -> Figure -> [Int] -> Graphics
 autoScatterChartInt mat figure ints = autoScatterChartDouble mat figure $ fromIntegral <$> ints
 
-autoScatterChartDouble :: Material -> Figure -> [Double] -> Layer
-autoScatterChartDouble mat figure doubles = scatterChart mat figure x1 x2 y1 y2 points where
+autoScatterChartDouble :: Material -> Figure -> [Double] -> Graphics
+autoScatterChartDouble mat figure doubles = Graphics [scatterChart mat figure x1 x2 y1 y2 points] where
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = minimum doubles
@@ -411,8 +412,8 @@ barChart :: Material -> Double -> Double -> Double -> Double -> [Point] -> Layer
 barChart mat x1 x2 y1 y2 points = barChartImpl mat pointsInBounds where
     pointsInBounds = normalizePoints x1 x2 y1 y2 points
 
-barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Point] -> [Layer]
-barChartLayers mat x1 x2 y1 y2 points = layers where
+barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Point] -> Graphics
+barChartLayers mat x1 x2 y1 y2 points = Graphics layers where
     layers     = toLayer <$> normPoints
     normPoints = normalizePoints x1 x2 y1 y2 points
     mx         = getOffset x1 x2
