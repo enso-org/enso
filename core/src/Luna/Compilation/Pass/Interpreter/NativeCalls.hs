@@ -396,7 +396,7 @@ autoScatterChartDouble mat figure doubles = scatterChart mat figure x1 x2 y1 y2 
     x2 = fromIntegral $ length doubles - 1
     y1 = minimum doubles
     y2 = maximum doubles
-    points = (\(i, v) -> Point (fromIntegral i) v) <$> zip [1..] doubles
+    points = (\(i, v) -> Point (fromIntegral i) v) <$> zip [0..] doubles
 
 -- charts
 
