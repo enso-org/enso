@@ -392,13 +392,14 @@ autoScatterChartInt :: Material -> Material -> Figure -> [Int] -> Graphics
 autoScatterChartInt gridMat mat figure ints = autoScatterChartDouble gridMat mat figure $ fromIntegral <$> ints
 
 autoScatterChartDouble :: Material -> Material -> Figure -> [Double] -> Graphics
+autoScatterChartDouble gridMat mat figure []      = Graphics []
 autoScatterChartDouble gridMat mat figure doubles = Graphics $ axesLayer <> [chartLayer] where
     chartLayer = scatterChart mat figure x1 x2 y1 y2 points
     axesLayer  = axesXY gridMat x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
-    y1 = minimum doubles
-    y2 = maximum doubles
+    y1 = min 0.0 $ minimum doubles
+    y2 = max 0.0 $ maximum doubles
     points = (\(i, v) -> Point (fromIntegral i) v) <$> zip [0..] doubles
 
 -- charts
