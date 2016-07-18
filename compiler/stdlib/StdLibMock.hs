@@ -383,8 +383,8 @@ symbolsList = [
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
                                                   listOf $ scons "Point"]                                 (scons "Graphics")
 
-    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Figure", listOf $ scons "Int"]              (scons "Graphics")
-    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Figure", listOf $ scons "Double"]           (scons "Graphics")
+    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Material", scons "Figure", listOf $ scons "Int"]              (scons "Graphics")
+    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Material", scons "Figure", listOf $ scons "Double"]           (scons "Graphics")
 
 ------------------------
 --- === IoT Demo === ---

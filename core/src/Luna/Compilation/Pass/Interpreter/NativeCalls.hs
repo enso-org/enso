@@ -252,8 +252,8 @@ nativeCalls = Map.fromList $ [
     , ("barChart",       unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
     , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
 
-    , ("autoScatterChartInt",    unsafeCoerce (return .:.  autoScatterChartInt    :: Material -> Figure -> [Int]    -> IO Graphics))
-    , ("autoScatterChartDouble", unsafeCoerce (return .:.  autoScatterChartDouble :: Material -> Figure -> [Double] -> IO Graphics))
+    , ("autoScatterChartInt",    unsafeCoerce (return .:: autoScatterChartInt    :: Material -> Material -> Figure -> [Int]    -> IO Graphics))
+    , ("autoScatterChartDouble", unsafeCoerce (return .:: autoScatterChartDouble :: Material -> Material -> Figure -> [Double] -> IO Graphics))
 
 ------------------------
 --- === IoT Demo === ---
@@ -388,11 +388,13 @@ axesXY mat x1 x2 y1 y2 = [aX, aY] where
 
 -- auto charts
 
-autoScatterChartInt :: Material -> Figure -> [Int] -> Graphics
-autoScatterChartInt mat figure ints = autoScatterChartDouble mat figure $ fromIntegral <$> ints
+autoScatterChartInt :: Material -> Material -> Figure -> [Int] -> Graphics
+autoScatterChartInt gridMat mat figure ints = autoScatterChartDouble gridMat mat figure $ fromIntegral <$> ints
 
-autoScatterChartDouble :: Material -> Figure -> [Double] -> Graphics
-autoScatterChartDouble mat figure doubles = Graphics [scatterChart mat figure x1 x2 y1 y2 points] where
+autoScatterChartDouble :: Material -> Material -> Figure -> [Double] -> Graphics
+autoScatterChartDouble gridMat mat figure doubles = Graphics $ axesLayer <> [chartLayer] where
+    chartLayer = scatterChart mat figure x1 x2 y1 y2 points
+    axesLayer  = axesXY gridMat x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = minimum doubles
