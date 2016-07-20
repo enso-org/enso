@@ -244,16 +244,17 @@ nativeCalls = Map.fromList $ [
     , ("squareGeometry",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
     , ("rectangleGeometry", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("axisX",  unsafeCoerce      (return .:.    axisX  :: Material -> Double -> Double -> IO Layer))
-    , ("axisY",  unsafeCoerce      (return .:.    axisY  :: Material -> Double -> Double -> IO Layer))
-    , ("axesXY", unsafeCoerce      (return .::.   axesXY :: Material -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("axisX",  unsafeCoerce      (return .::    axisX  :: Material -> Double -> Double -> Double -> IO Layer))
+    , ("axisY",  unsafeCoerce      (return .::    axisY  :: Material -> Double -> Double -> Double -> IO Layer))
+    , ("axesXY", unsafeCoerce      (return .:::   axesXY :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
 
-    , ("scatterChart",   unsafeCoerce (return .:::.  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
-    , ("barChart",       unsafeCoerce (return .:::   barChart       :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
-    , ("barChartLayers", unsafeCoerce (return .:::   barChartLayers :: Material ->           Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
+    , ("scatterChart",   unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
 
-    , ("autoScatterChartInt",    unsafeCoerce (return .:: autoScatterChartInt    :: Material -> Material -> Figure -> [Int]    -> IO Graphics))
-    , ("autoScatterChartDouble", unsafeCoerce (return .:: autoScatterChartDouble :: Material -> Material -> Figure -> [Double] -> IO Graphics))
+    , ("barChart",       unsafeCoerce (return .:::.  barChart       :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
+    , ("barChartLayers", unsafeCoerce (return .:::.  barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
+
+    , ("autoScatterChartInt",    unsafeCoerce (return .::. autoScatterChartInt    :: Material -> Material -> Figure -> Double -> [Int]    -> IO Graphics))
+    , ("autoScatterChartDouble", unsafeCoerce (return .::. autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> IO Graphics))
 
 ------------------------
 --- === IoT Demo === ---
@@ -325,13 +326,25 @@ primes count = take count primes' where
 -- helpers
 
 toTransformation :: Point -> Transformation
-toTransformation (Point dx dy) = translate def dx dy
+toTransformation (Point x y) = translate def x y
 
-normalizePoints :: Double -> Double -> Double -> Double -> [Point] -> [Point]
-normalizePoints x1 x2 y1 y2 = fmap $ normalizePoint (x2 - x1) (y2 - y1)
+transformToViewPoint :: Double -> Double -> Double -> Double -> Point -> Point
+transformToViewPoint sx sy rx ry = flipPointY . offsetPoint rx ry . normalizePoint sx sy
+
+-- normalizePoints :: Double -> Double -> [Point] -> [Point]
+-- normalizePoints sx sy = fmap $ normalizePoint sx sy
 
 normalizePoint :: Double -> Double -> Point -> Point
-normalizePoint rx ry (Point dx dy) = Point (dx / rx) (dy / ry)
+normalizePoint sx sy (Point x y) = Point (x / sx) (y / sy)
+
+-- offsetPoints :: Double -> Double -> [Point] -> [Point]
+-- offsetPoints rx ry = fmap $ offsetPoint rx ry
+
+offsetPoint :: Double -> Double -> Point -> Point
+offsetPoint rx ry (Point x y) = Point (x - rx) (y - ry)
+
+flipPointY :: Point -> Point
+flipPointY (Point x y) = Point x (1.0 - y)
 
 getOffset :: Double -> Double -> Double
 getOffset p1 p2 = p1 / (p2 - p1)
@@ -349,8 +362,6 @@ sampleData f x1 x2 res = do
             return $ Point x y
     mapM toPointF xs
 
-centerPoint :: Double -> Double -> Point -> Point
-centerPoint mx my (Point dx dy) = Point (dx - mx) (1.0 - (dy - my))
 
 -- drawing
 
@@ -369,33 +380,47 @@ rectangleToGeo = figureToGeo .: Rectangle
 
 -- axes
 
-axisX :: Material -> Double -> Double -> Layer
-axisX mat y1 y2 = Layer geometry [toTransformation point] where
-    geometry = rectangleToGeo 1.0 0.01 mat
+axisWidth = 0.01
+
+axisX :: Material -> Double -> Double -> Double -> Layer
+axisX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
+    geometry = rectangleToGeo viewSize axisWidth mat
     point    = Point 0.5 my
     my       = 1.0 + (getOffset y1 y2)
 
-axisY :: Material -> Double -> Double -> Layer
-axisY mat x1 x2 = Layer geometry [toTransformation point] where
-    geometry = rectangleToGeo 0.01 1.0 mat
+axisY :: Material -> Double -> Double -> Double -> Layer
+axisY mat viewSize x1 x2 = Layer geometry [toTransformation point] where
+    geometry = rectangleToGeo axisWidth viewSize mat
     point    = Point mx 0.5
     mx       = -(getOffset x1 x2)
 
-axesXY :: Material -> Double -> Double -> Double -> Double -> [Layer]
-axesXY mat x1 x2 y1 y2 = [aX, aY] where
-    aX = axisX mat y1 y2
-    aY = axisY mat x1 x2
+-- TODO: add margin
+axesXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+axesXY mat viewSize x1 x2 y1 y2 = [aX, aY] where
+    aX = axisX mat viewSize y1 y2
+    aY = axisY mat viewSize x1 x2
+
+gridX :: Material -> Double -> Double -> Double -> Layer
+gridX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
+    geometry = rectangleToGeo viewSize axisWidth mat
+    point    = Point 0.5 my
+    my       = 1.0 + (getOffset y1 y2)
+
+gridXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+gridXY mat viewSize x1 x2 y1 y2 = [aX] where
+    aX = gridX mat viewSize y1 y2
+    -- aY = gridY mat x1 x2
 
 -- auto charts
 
-autoScatterChartInt :: Material -> Material -> Figure -> [Int] -> Graphics
-autoScatterChartInt gridMat mat figure ints = autoScatterChartDouble gridMat mat figure $ fromIntegral <$> ints
+autoScatterChartInt :: Material -> Material -> Figure -> Double -> [Int] -> Graphics
+autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDouble gridMat mat figure viewSize $ fromIntegral <$> ints
 
-autoScatterChartDouble :: Material -> Material -> Figure -> [Double] -> Graphics
-autoScatterChartDouble gridMat mat figure []      = Graphics []
-autoScatterChartDouble gridMat mat figure doubles = Graphics $ axesLayer <> [chartLayer] where
-    chartLayer = scatterChart mat figure x1 x2 y1 y2 points
-    axesLayer  = axesXY gridMat x1 x2 y1 y2
+autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
+autoScatterChartDouble gridMat mat figure viewSize []      = Graphics []
+autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ axesLayer <> [chartLayer] where
+    chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
+    axesLayer  = axesXY gridMat viewSize x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = min 0.0 $ minimum doubles
@@ -404,35 +429,37 @@ autoScatterChartDouble gridMat mat figure doubles = Graphics $ axesLayer <> [cha
 
 -- charts
 
-scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> [Point] -> Layer
-scatterChart mat figure x1 x2 y1 y2 points = scatterChartImpl geometry mx my normPoints where
+scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
+scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
     geometry   = figureToGeo figure mat
-    normPoints = normalizePoints x1 x2 y1 y2 points
-    mx         = getOffset x1 x2
-    my         = getOffset y1 y2
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry <$> points
+    rx         = getOffset x1 x2
+    ry         = getOffset y1 y2
 
-barChart :: Material -> Double -> Double -> Double -> Double -> [Point] -> Layer
-barChart mat x1 x2 y1 y2 points = barChartImpl mat pointsInBounds where
-    pointsInBounds = normalizePoints x1 x2 y1 y2 points
+barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
+barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry <$> points
+    rx         = getOffset x1 x2
+    ry         = getOffset y1 y2
 
-barChartLayers :: Material -> Double -> Double -> Double -> Double -> [Point] -> Graphics
-barChartLayers mat x1 x2 y1 y2 points = Graphics layers where
-    layers     = toLayer <$> normPoints
-    normPoints = normalizePoints x1 x2 y1 y2 points
-    mx         = getOffset x1 x2
-    my         = getOffset y1 y2
-    w                   = 0.5 / (fromIntegral $ length points)
-    toLayer (Point dx dy) = Layer geometry [toTransformation $ centerPoint mx my point] where
+barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
+barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
+    layers     = toLayer <$> viewPoints
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry <$> points
+    rx         = getOffset x1 x2
+    ry         = getOffset y1 y2
+    w          = 0.5 / (fromIntegral $ length points)
+    toLayer (Point dx dy) = Layer geometry [toTransformation point] where
         point     = Point dx (dy * 0.5)
-        geometry        = Geometry geoComp def (Just mat)
-        geoComp         = convert figure :: GeoComponent
-        figure          = Rectangle w h
-        h               = abs dy
+        geometry  = Geometry geoComp def (Just mat)
+        geoComp   = convert figure :: GeoComponent
+        figure    = Rectangle w h
+        h         = abs dy
 
 -- charts helpers
 
-scatterChartImpl :: Geometry -> Double -> Double -> [Point] -> Layer
-scatterChartImpl geometry mx my points = Layer geometry $ toTransformation . centerPoint mx my <$> points
+scatterChartImpl :: Geometry -> [Point] -> Layer
+scatterChartImpl geometry points = Layer geometry $ toTransformation <$> points
 
 barChartImpl = barChartGeometriesImpl
 
