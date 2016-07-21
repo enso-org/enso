@@ -350,7 +350,7 @@ initialOffset :: Double -> Double -> Double
 initialOffset p1 p2 = -p1 / (p2 - p1)
 
 getOffset :: Double -> Double -> Double
-getOffset w p = -p / w
+getOffset w p = p / w
 
 sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
 sampleData f x1 x2 res = do
@@ -429,7 +429,7 @@ gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo axisWidth viewSize  mat
     points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
     step     = (x2 - x1) / maxSteps
-    steps    = (* step) <$> [0..maxSteps]
+    steps    = (* step) <$> [0..(maxSteps - 1)]
     xis      = (+ x1) <$> steps
     mxst     = getOffset (x2 - x1) <$> xis
     mxs      = (+ initialOffset x1 x2) <$> mxst
