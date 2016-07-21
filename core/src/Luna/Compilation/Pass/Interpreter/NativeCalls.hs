@@ -383,10 +383,13 @@ rectangleToGeo = figureToGeo .: Rectangle
 
 -- axes
 
+axisWidth :: Double
 axisWidth = 0.01
+
+maxSteps :: Int
 maxSteps  = 10
 
-axisLength viewSize = viewSize + 0.5 * axisWidth
+axisLength viewSize = viewSize + axisWidth
 
 axisH :: Material -> Double -> Double -> Double -> Layer
 axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
@@ -419,7 +422,7 @@ gridH :: Material -> Double -> Double -> Double -> Layer
 gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
-    width    = (y2 - y1) / maxSteps
+    width    = (y2 - y1) / (fromIntegral maxSteps)
     y1i      = truncate y1
     y2i      = truncate y2
     yis      = fromIntegral <$> [y1i..y2i]
@@ -430,8 +433,9 @@ gridV :: Material -> Double -> Double -> Double -> Layer
 gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
-    step     = (x2 - x1) / maxSteps
-    steps    = (* step) <$> [0..maxSteps]
+    -- step     = (x2 - x1) / maxSteps
+    step     = findTick maxSteps (x2 - x1)
+    steps    = (\i -> (fromIntegral i) * step) <$> [0..maxSteps]
     xis      = (+ x1) <$> steps
     mxst     = getOffset (x2 - x1) <$> xis
     mxs      = (+ initialOffset x1 x2) <$> mxst
@@ -440,6 +444,16 @@ grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridHStep1 mat viewSize y1 y2
     gV = gridV mat viewSize x1 x2
+
+findTick :: Int -> Double -> Double
+findTick maxTicks range = tick where
+    minTick   = range / (fromIntegral maxTicks)
+    magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
+    residual  = minTick / magnitude
+    tick | residual > 5.0 = 10.0 * magnitude
+         | residual > 2.0 =  5.0 * magnitude
+         | residual > 1.0 =  2.0 * magnitude
+         | otherwise      =        magnitude
 
 -- auto charts
 
