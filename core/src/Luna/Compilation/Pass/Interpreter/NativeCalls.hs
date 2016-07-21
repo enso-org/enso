@@ -329,7 +329,10 @@ toTransformation :: Point -> Transformation
 toTransformation (Point x y) = translate def x y
 
 transformToViewPoint :: Double -> Double -> Double -> Double -> Double -> Point -> Point
-transformToViewPoint sx sy rx ry viewSize = offsetPoint viewOff viewOff . scalePoint viewSize viewSize . flipPointY . offsetPoint rx ry . normalizePoint sx sy where
+transformToViewPoint sx sy rx ry viewSize = scaleToViewPoint viewSize . offsetPoint rx ry . normalizePoint sx sy
+
+scaleToViewPoint :: Double -> Point -> Point
+scaleToViewPoint viewSize = offsetPoint viewOff viewOff . scalePoint viewSize viewSize . flipPointY where
     viewOff = 0.5 * (1.0 - viewSize)
 
 scalePoint :: Double -> Double -> Point -> Point
@@ -383,13 +386,13 @@ axisWidth = 0.01
 axisX :: Material -> Double -> Double -> Double -> Layer
 axisX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo viewSize axisWidth mat
-    point    = Point 0.5 my
-    my       = 1.0 - (getOffset y1 y2)
+    point    = scaleToViewPoint viewSize $ Point 0.5 my
+    my       = getOffset y1 y2
 
 axisY :: Material -> Double -> Double -> Double -> Layer
 axisY mat viewSize x1 x2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo axisWidth viewSize mat
-    point    = Point mx 0.5
+    point    = scaleToViewPoint viewSize $ Point mx 0.5
     mx       = getOffset x1 x2
 
 -- TODO: add margin
@@ -401,8 +404,8 @@ axesXY mat viewSize x1 x2 y1 y2 = [aX, aY] where
 gridX :: Material -> Double -> Double -> Double -> Layer
 gridX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo viewSize axisWidth mat
-    point    = Point 0.5 my
-    my       = 1.0 - (getOffset y1 y2)
+    point    = scaleToViewPoint viewSize $ Point 0.5 my
+    my       = getOffset y1 y2
 
 gridXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 gridXY mat viewSize x1 x2 y1 y2 = [aX] where
