@@ -386,7 +386,7 @@ rectangleToGeo = figureToGeo .: Rectangle
 axisWidth = 0.01
 maxSteps  = 10
 
-axisLength viewSize = viewSize + 2.0 * axisWidth
+axisLength viewSize = viewSize + 0.5 * axisWidth
 
 axisH :: Material -> Double -> Double -> Double -> Layer
 axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
