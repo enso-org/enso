@@ -386,15 +386,17 @@ rectangleToGeo = figureToGeo .: Rectangle
 axisWidth = 0.01
 maxSteps  = 10
 
+axisLength viewSize = viewSize + 2.0 * axisWidth
+
 axisH :: Material -> Double -> Double -> Double -> Layer
 axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
-    geometry = rectangleToGeo viewSize axisWidth mat
+    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     point    = scaleToViewPoint viewSize $ Point 0.5 my
     my       = initialOffset y1 y2
 
 axisV :: Material -> Double -> Double -> Double -> Layer
 axisV mat viewSize x1 x2 = Layer geometry [toTransformation point] where
-    geometry = rectangleToGeo axisWidth viewSize mat
+    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     point    = scaleToViewPoint viewSize $ Point mx 0.5
     mx       = initialOffset x1 x2
 
@@ -405,7 +407,7 @@ axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
 
 gridHStep1 :: Material -> Double -> Double -> Double -> Layer
 gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
-    geometry = rectangleToGeo viewSize axisWidth mat
+    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
     y1i      = truncate y1
     y2i      = truncate y2
@@ -415,7 +417,7 @@ gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points whe
 
 gridH :: Material -> Double -> Double -> Double -> Layer
 gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
-    geometry = rectangleToGeo viewSize axisWidth mat
+    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
     width    = (y2 - y1) / maxSteps
     y1i      = truncate y1
@@ -426,10 +428,10 @@ gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
 
 gridV :: Material -> Double -> Double -> Double -> Layer
 gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
-    geometry = rectangleToGeo axisWidth viewSize  mat
+    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
     step     = (x2 - x1) / maxSteps
-    steps    = (* step) <$> [0..(maxSteps - 1)]
+    steps    = (* step) <$> [0..maxSteps]
     xis      = (+ x1) <$> steps
     mxst     = getOffset (x2 - x1) <$> xis
     mxs      = (+ initialOffset x1 x2) <$> mxst
