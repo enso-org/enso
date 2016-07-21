@@ -346,8 +346,11 @@ offsetPoint rx ry (Point x y) = Point (x + rx) (y + ry)
 flipPointY :: Point -> Point
 flipPointY (Point x y) = Point x (1.0 - y)
 
+initialOffset :: Double -> Double -> Double
+initialOffset p1 p2 = -p1 / (p2 - p1)
+
 getOffset :: Double -> Double -> Double
-getOffset p1 p2 = -p1 / (p2 - p1)
+getOffset p1 w = -p1 / w
 
 sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
 sampleData f x1 x2 res = do
@@ -381,37 +384,57 @@ rectangleToGeo = figureToGeo .: Rectangle
 -- axes
 
 axisWidth = 0.01
+maxSteps  = 10
 
-axisX :: Material -> Double -> Double -> Double -> Layer
-axisX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
+axisH :: Material -> Double -> Double -> Double -> Layer
+axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo viewSize axisWidth mat
     point    = scaleToViewPoint viewSize $ Point 0.5 my
-    my       = getOffset y1 y2
+    my       = initialOffset y1 y2
 
-axisY :: Material -> Double -> Double -> Double -> Layer
-axisY mat viewSize x1 x2 = Layer geometry [toTransformation point] where
+axisV :: Material -> Double -> Double -> Double -> Layer
+axisV mat viewSize x1 x2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo axisWidth viewSize mat
     point    = scaleToViewPoint viewSize $ Point mx 0.5
-    mx       = getOffset x1 x2
+    mx       = initialOffset x1 x2
 
 axes :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-axes mat viewSize x1 x2 y1 y2 = [aX, aY] where
-    aX = axisX mat viewSize y1 y2
-    aY = axisY mat viewSize x1 x2
+axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
+    aH = axisH mat viewSize y1 y2
+    aV = axisV mat viewSize x1 x2
 
-gridX :: Material -> Double -> Double -> Double -> Layer
-gridX mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
+gridHStep1 :: Material -> Double -> Double -> Double -> Layer
+gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo viewSize axisWidth mat
     points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
     y1i      = truncate y1
     y2i      = truncate y2
     yis      = fromIntegral <$> [y1i..y2i]
-    mys      = flip getOffset y2 <$> yis
+    mys      = flip getOffset (y2 - y1) <$> yis
+
+gridH :: Material -> Double -> Double -> Double -> Layer
+gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
+    geometry = rectangleToGeo viewSize axisWidth mat
+    points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
+    width    = (y2 - y1) / maxSteps
+    y1i      = truncate y1
+    y2i      = truncate y2
+    yis      = fromIntegral <$> [y1i..y2i]
+    mys      = flip getOffset (y2 - y1) <$> yis
+
+gridV :: Material -> Double -> Double -> Double -> Layer
+gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
+    geometry = rectangleToGeo axisWidth viewSize  mat
+    points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
+    step     = (x2 - x1) / maxSteps
+    steps    = (* step) <$> [0..maxSteps]
+    xis      = (+ x1) <$> steps
+    mxs      = flip getOffset (x2 - x1) <$> xis
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-grid mat viewSize x1 x2 y1 y2 = [aX] where
-    aX = gridX mat viewSize y1 y2
-    -- aY = gridY mat x1 x2
+grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
+    gH = gridHStep1 mat viewSize y1 y2
+    gV = gridV mat viewSize x1 x2
 
 -- auto charts
 
@@ -420,9 +443,9 @@ autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDouble gr
 
 autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
 autoScatterChartDouble gridMat mat figure viewSize []      = Graphics []
-autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ axesLayer <> [chartLayer] where
+autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ gridLayer <> [chartLayer] where
     chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    axesLayer  = axes gridMat viewSize x1 x2 y1 y2
+    gridLayer  = grid gridMat viewSize x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = min 0.0 $ minimum doubles
@@ -435,21 +458,21 @@ scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Do
 scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
     geometry   = figureToGeo figure mat
     viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
-    rx         = getOffset x1 x2
-    ry         = getOffset y1 y2
+    rx         = initialOffset x1 x2
+    ry         = initialOffset y1 y2
 
 barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
     viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
-    rx         = getOffset x1 x2
-    ry         = getOffset y1 y2
+    rx         = initialOffset x1 x2
+    ry         = initialOffset y1 y2
 
 barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
 barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
     layers     = toLayer <$> viewPoints
     viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
-    rx         = getOffset x1 x2
-    ry         = getOffset y1 y2
+    rx         = initialOffset x1 x2
+    ry         = initialOffset y1 y2
     w          = 0.5 / (fromIntegral $ length points)
     toLayer (Point dx dy) = Layer geometry [toTransformation point] where
         point     = Point dx (dy * 0.5)
