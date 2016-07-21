@@ -328,26 +328,24 @@ primes count = take count primes' where
 toTransformation :: Point -> Transformation
 toTransformation (Point x y) = translate def x y
 
-transformToViewPoint :: Double -> Double -> Double -> Double -> Point -> Point
-transformToViewPoint sx sy rx ry = flipPointY . offsetPoint rx ry . normalizePoint sx sy
+transformToViewPoint :: Double -> Double -> Double -> Double -> Double -> Point -> Point
+transformToViewPoint sx sy rx ry viewSize = offsetPoint viewOff viewOff . scalePoint viewSize viewSize . flipPointY . offsetPoint rx ry . normalizePoint sx sy where
+    viewOff = 1.0 - viewSize
 
--- normalizePoints :: Double -> Double -> [Point] -> [Point]
--- normalizePoints sx sy = fmap $ normalizePoint sx sy
+scalePoint :: Double -> Double -> Point -> Point
+scalePoint px py (Point x y) = Point (x * px) (y * py)
 
 normalizePoint :: Double -> Double -> Point -> Point
 normalizePoint sx sy (Point x y) = Point (x / sx) (y / sy)
 
--- offsetPoints :: Double -> Double -> [Point] -> [Point]
--- offsetPoints rx ry = fmap $ offsetPoint rx ry
-
 offsetPoint :: Double -> Double -> Point -> Point
-offsetPoint rx ry (Point x y) = Point (x - rx) (y - ry)
+offsetPoint rx ry (Point x y) = Point (x + rx) (y + ry)
 
 flipPointY :: Point -> Point
 flipPointY (Point x y) = Point x (1.0 - y)
 
 getOffset :: Double -> Double -> Double
-getOffset p1 p2 = p1 / (p2 - p1)
+getOffset p1 p2 = -p1 / (p2 - p1)
 
 sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
 sampleData f x1 x2 res = do
@@ -386,13 +384,13 @@ axisX :: Material -> Double -> Double -> Double -> Layer
 axisX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo viewSize axisWidth mat
     point    = Point 0.5 my
-    my       = 1.0 + (getOffset y1 y2)
+    my       = 1.0 - (getOffset y1 y2)
 
 axisY :: Material -> Double -> Double -> Double -> Layer
 axisY mat viewSize x1 x2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo axisWidth viewSize mat
     point    = Point mx 0.5
-    mx       = -(getOffset x1 x2)
+    mx       = getOffset x1 x2
 
 -- TODO: add margin
 axesXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
@@ -404,7 +402,7 @@ gridX :: Material -> Double -> Double -> Double -> Layer
 gridX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
     geometry = rectangleToGeo viewSize axisWidth mat
     point    = Point 0.5 my
-    my       = 1.0 + (getOffset y1 y2)
+    my       = 1.0 - (getOffset y1 y2)
 
 gridXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 gridXY mat viewSize x1 x2 y1 y2 = [aX] where
@@ -432,20 +430,20 @@ autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ axesLaye
 scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
     geometry   = figureToGeo figure mat
-    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry <$> points
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
     rx         = getOffset x1 x2
     ry         = getOffset y1 y2
 
 barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
-    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry <$> points
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
     rx         = getOffset x1 x2
     ry         = getOffset y1 y2
 
 barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
 barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
     layers     = toLayer <$> viewPoints
-    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry <$> points
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
     rx         = getOffset x1 x2
     ry         = getOffset y1 y2
     w          = 0.5 / (fromIntegral $ length points)
