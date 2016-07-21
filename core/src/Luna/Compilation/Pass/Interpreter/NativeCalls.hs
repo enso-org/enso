@@ -350,7 +350,7 @@ initialOffset :: Double -> Double -> Double
 initialOffset p1 p2 = -p1 / (p2 - p1)
 
 getOffset :: Double -> Double -> Double
-getOffset p1 w = -p1 / w
+getOffset w p = -p / w
 
 sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
 sampleData f x1 x2 res = do
@@ -410,7 +410,8 @@ gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points whe
     y1i      = truncate y1
     y2i      = truncate y2
     yis      = fromIntegral <$> [y1i..y2i]
-    mys      = flip getOffset (y2 - y1) <$> yis
+    myst     = getOffset (y2 - y1) <$> yis
+    mys      = (+ initialOffset y1 y2) <$> myst
 
 gridH :: Material -> Double -> Double -> Double -> Layer
 gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
@@ -420,7 +421,8 @@ gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
     y1i      = truncate y1
     y2i      = truncate y2
     yis      = fromIntegral <$> [y1i..y2i]
-    mys      = flip getOffset (y2 - y1) <$> yis
+    myst     = getOffset (y2 - y1) <$> yis
+    mys      = (+ initialOffset y1 y2) <$> myst
 
 gridV :: Material -> Double -> Double -> Double -> Layer
 gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
@@ -429,7 +431,8 @@ gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
     step     = (x2 - x1) / maxSteps
     steps    = (* step) <$> [0..maxSteps]
     xis      = (+ x1) <$> steps
-    mxs      = flip getOffset (x2 - x1) <$> xis
+    mxst     = getOffset (x2 - x1) <$> xis
+    mxs      = (+ initialOffset x1 x2) <$> mxst
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
