@@ -330,7 +330,7 @@ toTransformation (Point x y) = translate def x y
 
 transformToViewPoint :: Double -> Double -> Double -> Double -> Double -> Point -> Point
 transformToViewPoint sx sy rx ry viewSize = offsetPoint viewOff viewOff . scalePoint viewSize viewSize . flipPointY . offsetPoint rx ry . normalizePoint sx sy where
-    viewOff = 1.0 - viewSize
+    viewOff = 0.5 * (1.0 - viewSize)
 
 scalePoint :: Double -> Double -> Point -> Point
 scalePoint px py (Point x y) = Point (x * px) (y * py)
