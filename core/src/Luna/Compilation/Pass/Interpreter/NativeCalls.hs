@@ -244,9 +244,8 @@ nativeCalls = Map.fromList $ [
     , ("squareGeometry",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
     , ("rectangleGeometry", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("axisX",  unsafeCoerce      (return .::    axisX  :: Material -> Double -> Double -> Double -> IO Layer))
-    , ("axisY",  unsafeCoerce      (return .::    axisY  :: Material -> Double -> Double -> Double -> IO Layer))
-    , ("axesXY", unsafeCoerce      (return .:::   axesXY :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("axes",   unsafeCoerce      (return .::: axes   :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("grid",   unsafeCoerce      (return .::: grid   :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
 
     , ("scatterChart",   unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
 
@@ -395,20 +394,22 @@ axisY mat viewSize x1 x2 = Layer geometry [toTransformation point] where
     point    = scaleToViewPoint viewSize $ Point mx 0.5
     mx       = getOffset x1 x2
 
--- TODO: add margin
-axesXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-axesXY mat viewSize x1 x2 y1 y2 = [aX, aY] where
+axes :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+axes mat viewSize x1 x2 y1 y2 = [aX, aY] where
     aX = axisX mat viewSize y1 y2
     aY = axisY mat viewSize x1 x2
 
 gridX :: Material -> Double -> Double -> Double -> Layer
-gridX mat viewSize y1 y2 = Layer geometry [toTransformation point] where
+gridX mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo viewSize axisWidth mat
-    point    = scaleToViewPoint viewSize $ Point 0.5 my
-    my       = getOffset y1 y2
+    points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
+    y1i      = truncate y1
+    y2i      = truncate y2
+    yis      = fromIntegral <$> [y1i..y2i]
+    mys      = flip getOffset y2 <$> yis
 
-gridXY :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-gridXY mat viewSize x1 x2 y1 y2 = [aX] where
+grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+grid mat viewSize x1 x2 y1 y2 = [aX] where
     aX = gridX mat viewSize y1 y2
     -- aY = gridY mat x1 x2
 
@@ -421,7 +422,7 @@ autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -
 autoScatterChartDouble gridMat mat figure viewSize []      = Graphics []
 autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ axesLayer <> [chartLayer] where
     chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    axesLayer  = axesXY gridMat viewSize x1 x2 y1 y2
+    axesLayer  = axes gridMat viewSize x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = min 0.0 $ minimum doubles
