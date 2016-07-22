@@ -433,10 +433,12 @@ gridV :: Material -> Double -> Double -> Double -> Layer
 gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
-    -- step     = (x2 - x1) / maxSteps
-    step     = findTick maxSteps (x2 - x1)
-    steps    = (\i -> (fromIntegral i) * step) <$> [0..maxSteps]
-    xis      = (+ x1) <$> steps
+    x1t      = fromIntegral . floor   $ x1 / step
+    x2t      = fromIntegral . ceiling $ x2 / step
+    actSteps = (x2t - x1t) / step
+    step     = calculateTick maxSteps (x2 - x1)
+    steps    = (\i -> i * step) <$> [0..actSteps]
+    xis      = (+ x1t) <$> steps
     mxst     = getOffset (x2 - x1) <$> xis
     mxs      = (+ initialOffset x1 x2) <$> mxst
 
@@ -445,8 +447,8 @@ grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridHStep1 mat viewSize y1 y2
     gV = gridV mat viewSize x1 x2
 
-findTick :: Int -> Double -> Double
-findTick maxTicks range = tick where
+calculateTick :: Int -> Double -> Double
+calculateTick maxTicks range = tick where
     minTick   = range / (fromIntegral maxTicks)
     magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
     residual  = minTick / magnitude
