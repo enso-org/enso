@@ -425,8 +425,8 @@ gridPoints p1 p2 = mps where
     step       = calculateTick maxSteps (p2 - p1)
     steps      = (\i -> i * step) <$> [0..actSteps]
     pis        = (+ p1t) <$> steps
-    mpst       = getOffset (p2 - p1) <$> pis
-    mps        = (+ initialOffset p1 p2) <$> mpst
+    mpst       = getOffset (p2t - p1t) <$> pis
+    mps        = (+ initialOffset p1t p2t) <$> mpst
 
 gridH :: Material -> Double -> Double -> Double -> Layer
 gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
@@ -481,10 +481,13 @@ autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ gridLaye
 scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
     geometry   = figureToGeo figure mat
-    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
-    rx         = initialOffset x1 x2
-    ry         = initialOffset y1 y2
-    -- (x1t, x2t) = edgePoints step x1 x2
+    viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize <$> points
+    rx         = initialOffset x1t x2t
+    ry         = initialOffset y1t y2t
+    stepX      = calculateTick maxSteps (x2 - x1)
+    stepY      = calculateTick maxSteps (y2 - y1)
+    (x1t, x2t) = edgePoints stepX x1 x2
+    (y1t, y2t) = edgePoints stepY y1 y2
 
 barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
