@@ -419,17 +419,18 @@ evaluateNode ref = do
                 if isDirty node
                     then caseTest (uncover node) $ do
                         of' $ \(Unify l r)  -> return ()
-                        of' $ \(Acc _ _)  -> evaluateFirstOrderFun ref
+                        of' $ \(Acc _ _)    -> evaluateFirstOrderFun ref
                         of' $ \(Curry _ _)  -> evaluateFirstOrderFun ref
                         of' $ \(App f args) -> do
                             funRef       <- follow source f
                             unpackedArgs <- unpackArguments args
                             mapM evaluateNode unpackedArgs
                             funNode      <- read funRef
-                            nativeVal    <- caseTest (uncover funNode) $ do
-                                of' $ \(Native _) -> evaluateNative funRef unpackedArgs
-                                of' $ \ANY        -> return $ Left ["evaluating non native function"]
-                            setValue nativeVal ref startTime
+                            caseTest (uncover funNode) $ do
+                                of' $ \(Native _) -> do
+                                    nativeVal <- evaluateNative funRef unpackedArgs
+                                    setValue nativeVal ref startTime
+                                of' $ \ANY        -> evaluateFirstOrderFun ref
                         of' $ \(Lit.String str)                 -> do
                             setValue (Right $ toMonadAny str) ref startTime
                         of' $ \number@(Lit.Number radix system) -> do

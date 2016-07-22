@@ -377,15 +377,10 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
-                v1 <- blank
-                v2 <- acc "succ" v1
-                v3 <- int 3
-                v4 <- int 4
-                v5 <- acc "times" v3
-                v6 <- app v5 [arg v4]
-                v7 <- acc "map" v6
-                v8 <- app v7 [arg v2]
-                return [v8]
+                v1 <- var "const"
+                v2 <- int 1
+                v3 <- app v1 [arg v2]
+                return [v3]
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ roots

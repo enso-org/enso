@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Luna.Compilation.Pass.Interpreter.NativeCalls where
 
 

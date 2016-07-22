@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 
 module Luna.Compilation.Pass.Inference.Calling where
 
@@ -66,6 +67,8 @@ data CallError = NotAFuncallNode | NotACurryNode | UnresolvedFunction | Malforme
 
 type CallErrorT = ExceptT CallError
 
+is :: PassCtx(m) => Ref Node node -> Proxy 
+
 isUni :: PassCtx(m) => Ref Node node -> m Bool
 isUni r = do
     n <- read r
@@ -83,52 +86,39 @@ unifyArgTypes fptr caller args = do
     mapM_ (flip withRef $ prop TCData . originSign .~ Negative) argUnis
     return argUnis
 
-unifyAppOutType :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> [Ref Node node] -> CallErrorT m (Ref Node node)
-unifyAppOutType fptr app args = do
+unifyAppOutType :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> CallErrorT m (Ref Node node)
+unifyAppOutType fptr app = do
     let getType = follow (prop Type) >=> follow source
     outTp   <- getType app
     outFTp  <- getType $ fptr ^. Function.out
-    outUni  <- unify outFTp outTp
+    argTps  <- mapM getType $ unlayer <$> fptr ^. Function.args
+    tp <- case argTps of
+        [] -> return outFTp
+        _  -> lam (arg <$> argTps) outFTp
+    outUni  <- unify tp outTp
     reconnect (prop TCData . requester) outUni $ Just app
-    return outUni
-
-unifyCurryOutType :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node -> [Ref Node node] -> CallErrorT m (Ref Node node)
-unifyCurryOutType fptr curry args = do
-    let getType = follow (prop Type) >=> follow source
-    currentTp <- getType curry
-    outFTp  <- getType $ fptr ^. Function.out
-    argFTps <- mapM getType $ (unlayer <$> fptr ^. Function.args)
-    let outstandingArgTypes = drop (length args) argFTps
-    curryTp <- lam (arg <$> outstandingArgTypes) outFTp
-    print "curry!"
-    outUni  <- unify curryTp currentTp
-    reconnect (prop TCData . requester) outUni $ Just curry
     return outUni
 
 setupCall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m (Ref Cluster clus, Function.Signature (Ref Node node))
 setupCall caller args funClus = do
-    (cls, trans) <- dupCluster funClus $ show caller
+    (cls, _) <- dupCluster funClus $ show caller
     fptr <- follow (prop Lambda) cls <?!> MalformedFunction
     withRef caller $ (prop TCData . replacement ?~ cast cls)
-    zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> fptr ^. Function.args) (Just <$> args)
+    let argDefs = fptr ^. Function.args
+    zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> argDefs) (Just <$> args)
+    let outstandingArgs = drop (length args) argDefs
+    let appliedPtr = fptr & Function.args .~ outstandingArgs
+    withRef cls $ prop Lambda ?~ appliedPtr
     return (cls, fptr)
 
 makeFuncall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
 makeFuncall app args funClus = do
     (cls, fptr) <- setupCall app args funClus
     argUnis     <- unifyArgTypes fptr app args
-    outUni      <- unifyAppOutType fptr app args
+    newFptr     <- follow (prop Lambda) cls <?!> MalformedFunction
+    outUni      <- unifyAppOutType newFptr app
     importUnis  <- filterM isUni =<< members cls
-    reconnect (prop TCData . redirect) app $ Just $ fptr ^. Function.out
-    return $ importUnis <> (outUni : argUnis)
-
-makeCurriedCall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m [Ref Node node]
-makeCurriedCall curry args funClus = do
-    (cls, fptr) <- setupCall curry args funClus
-    argUnis     <- unifyArgTypes fptr curry args
-    outUni      <- unifyCurryOutType fptr curry args
-    importUnis  <- filterM isUni =<< members cls
-    withRef cls $ prop Lambda . _Just . Function.args %~ drop (length args)
+    when (null $ newFptr ^. Function.args) $ void $ reconnect (prop TCData . redirect) app $ Just $ fptr ^. Function.out
     return $ importUnis <> (outUni : argUnis)
 
 processApp :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]
@@ -139,16 +129,6 @@ processApp ref = do
             funReplacement <- (follow (prop TCData . replacement . casted) =<< follow source f) <?!> UnresolvedFunction
             args <- mapM (follow source . unlayer) as
             makeFuncall ref args funReplacement
-        of' $ \ANY -> throwError NotAFuncallNode
-
-processCurry :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> CallErrorT m [Ref Node node]
-processCurry ref = do
-    node <- read ref
-    caseTest (uncover node) $ do
-        of' $ \(Curry f as) -> do
-            funReplacement <- (follow (prop TCData . replacement . casted) =<< follow source f) <?!> UnresolvedFunction
-            args <- mapM (follow source . unlayer) as
-            makeCurriedCall ref args funReplacement
         of' $ \ANY -> throwError NotAFuncallNode
 
 -----------------------------
@@ -164,21 +144,13 @@ instance ( PassCtx(CallErrorT m)
     hasJobs _ = do
         tc <- TypeCheck.get
         let apps  = tc ^. TypeCheck.uncalledApps
-            currs = tc ^. TypeCheck.uncalledApps
-        return $ (not . null $ apps) || (not . null $ currs)
+        return $ not . null $ apps
 
     runTCPass _ = do
-        apps        <- view TypeCheck.uncalledApps <$> TypeCheck.get
-        appResults  <- mapM (runExceptT . processApp) apps
-        currs       <- view TypeCheck.uncalledCurries <$> TypeCheck.get
-        currResults <- mapM (runExceptT . processCurry) currs
-        let withRefs      = zip apps appResults
-            appFailures   = fst <$> filter (isLeft . snd) withRefs
-            curryRefs     = zip apps currResults
-            curryFailures = fst <$> filter (isLeft . snd) withRefs
-        TypeCheck.modify_ $ (TypeCheck.unresolvedUnis %~ (++ (concat $ rights $ appResults ++ currResults)))
-                          . (TypeCheck.uncalledApps    .~ appFailures)
-                          . (TypeCheck.uncalledCurries .~ curryFailures)
-        if length appFailures == length apps && length curryFailures == length currs
-            then return Stuck
-            else return Progressed
+        apps    <- view TypeCheck.uncalledApps <$> TypeCheck.get
+        results <- mapM (runExceptT . processApp) apps
+        let withRefs = zip apps results
+            failures = fst <$> filter (isLeft . snd) withRefs
+        TypeCheck.modify_ $ (TypeCheck.unresolvedUnis %~ (++ (concat $ rights results)))
+                          . (TypeCheck.uncalledApps   .~ failures)
+        return $ if length failures == length apps then Stuck else Progressed
