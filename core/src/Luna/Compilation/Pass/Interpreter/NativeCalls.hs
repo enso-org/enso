@@ -391,17 +391,23 @@ maxSteps  = 12
 
 axisLength viewSize = viewSize + axisWidth
 
+axisPoint :: Double -> Double -> Double
+axisPoint p1 p2 = mp where
+    step       = calculateTick maxSteps (p2 - p1)
+    (p1t, p2t) = edgePoints step p1 p2
+    mp         = initialOffset p1t p2t
+
 axisH :: Material -> Double -> Double -> Double -> Layer
 axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
-    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    point    = scaleToViewPoint viewSize $ Point 0.5 my
-    my       = initialOffset y1 y2
+    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
+    point      = scaleToViewPoint viewSize $ Point 0.5 my
+    my         = axisPoint y1 y2
 
 axisV :: Material -> Double -> Double -> Double -> Layer
 axisV mat viewSize x1 x2 = Layer geometry [toTransformation point] where
-    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
-    point    = scaleToViewPoint viewSize $ Point mx 0.5
-    mx       = initialOffset x1 x2
+    geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
+    point      = scaleToViewPoint viewSize $ Point mx 0.5
+    mx         = axisPoint x1 x2
 
 axes :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
@@ -420,9 +426,9 @@ gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points whe
 
 gridPoints :: Double -> Double -> [Double]
 gridPoints p1 p2 = mps where
+    step       = calculateTick maxSteps (p2 - p1)
     (p1t, p2t) = edgePoints step p1 p2
     actSteps   = (p2t - p1t) / step
-    step       = calculateTick maxSteps (p2 - p1)
     steps      = (\i -> i * step) <$> [0..actSteps]
     pis        = (+ p1t) <$> steps
     mpst       = getOffset (p2t - p1t) <$> pis
