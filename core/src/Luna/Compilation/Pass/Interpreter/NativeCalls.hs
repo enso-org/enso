@@ -387,7 +387,7 @@ axisWidth :: Double
 axisWidth = 0.01
 
 maxSteps :: Int
-maxSteps  = 10
+maxSteps  = 12
 
 axisLength viewSize = viewSize + axisWidth
 
@@ -418,38 +418,41 @@ gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points whe
     myst     = getOffset (y2 - y1) <$> yis
     mys      = (+ initialOffset y1 y2) <$> myst
 
+gridPoints :: Double -> Double -> [Double]
+gridPoints p1 p2 = mps where
+    (p1t, p2t) = edgePoints step p1 p2
+    actSteps   = (p2t - p1t) / step
+    step       = calculateTick maxSteps (p2 - p1)
+    steps      = (\i -> i * step) <$> [0..actSteps]
+    pis        = (+ p1t) <$> steps
+    mpst       = getOffset (p2 - p1) <$> pis
+    mps        = (+ initialOffset p1 p2) <$> mpst
+
 gridH :: Material -> Double -> Double -> Double -> Layer
 gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
-    width    = (y2 - y1) / (fromIntegral maxSteps)
-    y1i      = truncate y1
-    y2i      = truncate y2
-    yis      = fromIntegral <$> [y1i..y2i]
-    myst     = getOffset (y2 - y1) <$> yis
-    mys      = (+ initialOffset y1 y2) <$> myst
+    mys      = gridPoints y1 y2
 
 gridV :: Material -> Double -> Double -> Double -> Layer
 gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
-    x1t      = fromIntegral . floor   $ x1 / step
-    x2t      = fromIntegral . ceiling $ x2 / step
-    actSteps = (x2t - x1t) / step
-    step     = calculateTick maxSteps (x2 - x1)
-    steps    = (\i -> i * step) <$> [0..actSteps]
-    xis      = (+ x1t) <$> steps
-    mxst     = getOffset (x2 - x1) <$> xis
-    mxs      = (+ initialOffset x1 x2) <$> mxst
+    mxs      = gridPoints x1 x2
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
-    gH = gridHStep1 mat viewSize y1 y2
+    gH = gridH mat viewSize y1 y2
     gV = gridV mat viewSize x1 x2
+
+edgePoints :: Double -> Double -> Double -> (Double, Double)
+edgePoints step p1 p2 = (p1t, p2t) where
+    p1t = (* step) . fromIntegral . floor   $ p1 / step
+    p2t = (* step) . fromIntegral . ceiling $ p2 / step
 
 calculateTick :: Int -> Double -> Double
 calculateTick maxTicks range = tick where
-    minTick   = range / (fromIntegral maxTicks)
+    minTick   = range / (fromIntegral (maxTicks - 2))
     magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
     residual  = minTick / magnitude
     tick | residual > 5.0 = 10.0 * magnitude
@@ -481,6 +484,7 @@ scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry 
     viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
     rx         = initialOffset x1 x2
     ry         = initialOffset y1 y2
+    -- (x1t, x2t) = edgePoints step x1 x2
 
 barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
