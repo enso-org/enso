@@ -67,7 +67,7 @@ data CallError = NotAFuncallNode | NotACurryNode | UnresolvedFunction | Malforme
 
 type CallErrorT = ExceptT CallError
 
-is :: PassCtx(m) => Ref Node node -> Proxy 
+{-is :: PassCtx(m) => Ref Node node -> Proxy -}
 
 isUni :: PassCtx(m) => Ref Node node -> m Bool
 isUni r = do
