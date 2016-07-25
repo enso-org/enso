@@ -58,7 +58,7 @@ type ResultAxioms op info ms t = Result_ op (info t) (GetOpts ms) ~ Result_ op (
 
 
 
-runOp (Proxy :: Proxy cls) (Proxy :: Proxy cont) f getter setter (Query :: Query ms ps) x = do
+runOp (Proxy :: Proxy (cls :: *)) (Proxy :: Proxy (cont :: *)) f getter setter (Query :: Query ms ps) x = do
     Res datas c <- f (OptQuery :: OptQuery (MatchOpts (ModsOf cls cont) ms) (MatchOpts (ParamsOf cls cont) ps)) =<< getter x
     Res (getQueryData (Proxy :: Proxy (GetOpts (MatchOpts (ModsOf cls cont) ms))) (Proxy :: Proxy ms) datas) <$> setter c x
 {-# INLINE runOp #-}
@@ -223,6 +223,3 @@ instance {-# OVERLAPPABLE #-} (HasContainerM m a, OpCtx(TracksIxesOp,IdxInfo idx
 instance {-# OVERLAPPABLE #-} Monad m                                                  => TracksElemsQM    ImpTL ps m     el a          where elemsQM          = impossible
 instance {-# OVERLAPPABLE #-} (Monad m, PrettyCtx ms Impossible)                       => TracksElemsQM    ms    ps m     el Impossible where elemsQM          = impossible
 instance {-# OVERLAPPABLE #-} (HasContainerM m a, OpCtx(TracksElemsOp,ElInfo el))      => TracksElemsQM    ms    ps m     el a          where elemsQM          = RUNOP() elemsM_ viewContainerM (const . return) ; {-# INLINE elemsQM #-}
-
-
-

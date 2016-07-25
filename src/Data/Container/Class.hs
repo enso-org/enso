@@ -5,6 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE FunctionalDependencies    #-}
 {-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE CPP                       #-}
+
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 
 
 module Data.Container.Class (module Data.Container.Class, module X) where
@@ -39,8 +44,8 @@ impossible = error "Impossible happened."
 
 -- | Points to the real structure handling the data
 type family DataStore a
-class HasDataStore t a where
-    dataStore :: Lens' a (DataStore a)
+--class HasDataStore t a where
+--    dataStore :: Lens' a (DataStore a)
 
 -- | Points to the real structure handling the data of specific component
 type family ComponentStore t a
@@ -529,4 +534,3 @@ type Ctx2 m = (Monad m)
 intercalate :: Monoid a => a -> [a] -> a
 intercalate delim l = mconcat (intersperse delim l)
 {-# INLINE intercalate #-}
-

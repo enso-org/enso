@@ -91,9 +91,9 @@ type instance ModsOf   MinBoundedOp (Reusable idx a) = ModsOf   MinBoundedOp (Co
 type instance ParamsOf MaxBoundedOp (Reusable idx a) = ParamsOf MaxBoundedOp (Container a)
 type instance ModsOf   MaxBoundedOp (Reusable idx a) = ModsOf   MaxBoundedOp (Container a)
 
-instance (MeasurableQM (GetOpts ms) (GetOpts ps) m     a)             => MeasurableQM_ ms ps m     (Reusable idx  a) where sizeM_     _ = sizeQM     (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
-instance (MinBoundedQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => MinBoundedQM_ ms ps m idx (Reusable idx' a) where minBoundM_ _ = minBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
-instance (MaxBoundedQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => MaxBoundedQM_ ms ps m idx (Reusable idx' a) where maxBoundM_ _ = maxBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MeasurableQM (GetOpts ms) (GetOpts ps) m     a)             => MeasurableQM_ ms ps m     (Reusable idx  a) where sizeM_     _ = sizeQM     (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MinBoundedQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => MinBoundedQM_ ms ps m idx (Reusable idx' a) where minBoundM_ _ = minBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MaxBoundedQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => MaxBoundedQM_ ms ps m idx (Reusable idx' a) where maxBoundM_ _ = maxBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
 
 
 
@@ -116,19 +116,19 @@ type instance ModsOf   ExpandableOp (Reusable idx a) = ModsOf   ExpandableOp (Co
 type instance ParamsOf GrowableOp   (Reusable idx a) = ParamsOf GrowableOp   (Container a)
 type instance ModsOf   GrowableOp   (Reusable idx a) = ModsOf   GrowableOp   (Container a)
 
-instance ( SingletonQM (Ixed ': GetOpts ms) (GetOpts ps) m el a, idx ~ Index (Container a)) => SingletonQM_ ms ps m el (Reusable idx a) where
+instance (Monad m,  SingletonQM (Ixed ': GetOpts ms) (GetOpts ps) m el a, idx ~ Index (Container a)) => SingletonQM_ ms ps m el (Reusable idx a) where
     singletonM_ _ el = do Res (ix,ds) r <- singletonQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) el
                           return $ Res ds $ Reusable [ix] r
 
-instance ( AllocableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => AllocableQM_ ms ps m (Reusable idx a) where
+instance (Monad m,  AllocableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => AllocableQM_ ms ps m (Reusable idx a) where
     allocM_ _ i = do Res (ixs,ds) r <- allocQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) i
                      return $ Res ds $ Reusable ixs r
 
-instance ( ExpandableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => ExpandableQM_ ms ps m (Reusable idx a) where
+instance (Monad m,  ExpandableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => ExpandableQM_ ms ps m (Reusable idx a) where
     expandM_ _ (Reusable ixs a) = do Res (ixs',ds) r <- expandQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) a
                                      return $ Res ds $ Reusable (ixs <> ixs') r
 
-instance ( GrowableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => GrowableQM_ ms ps m (Reusable idx a) where
+instance (Monad m,  GrowableQM (Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => GrowableQM_ ms ps m (Reusable idx a) where
     growM_ _ i (Reusable ixs a) = do Res (ixs',ds) r <- growQM (Query :: Query (Ixed ': GetOpts ms) (GetOpts ps)) i a
                                      return $ Res ds $ Reusable (ixs <> ixs') r
 
@@ -162,19 +162,19 @@ type instance ParamsOf ReservableOp   (Reusable idx a) = '[]
 type instance ModsOf   ReservableOp   (Reusable idx a) = '[Ixed]
 
 
-instance (AppendableQM  (GetOpts ms) (GetOpts ps) m el a)           => AppendableQM_  ms ps m el   (Reusable idx  a) where appendM_  _      = nested layered . appendQM  (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (PrependableQM (GetOpts ms) (GetOpts ps) m el a)           => PrependableQM_ ms ps m el   (Reusable idx  a) where prependM_ _      = nested layered . prependQM (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (InsertableQM  (GetOpts ms) (GetOpts ps) m idx el a
+instance (Monad m, AppendableQM  (GetOpts ms) (GetOpts ps) m el a)           => AppendableQM_  ms ps m el   (Reusable idx  a) where appendM_  _      = nested layered . appendQM  (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, PrependableQM (GetOpts ms) (GetOpts ps) m el a)           => PrependableQM_ ms ps m el   (Reusable idx  a) where prependM_ _      = nested layered . prependQM (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, InsertableQM  (GetOpts ms) (GetOpts ps) m idx el a
          , ExpandableM m (Reusable idx a)
          , Result_ InsertableOp (IdxElInfo idx el (Container a)) (GetOpts ms) ~ Result_ AddableOp (ElInfo el (Reusable idx a)) (GetOpts ms)
          ) => AddableQM_     ms ps m el   (Reusable idx  a) where addM_     q el t = case view _indexes t of
                                                                                          (x:xs) -> fmap2 (Reusable xs) $ insertQM (Query :: Query (GetOpts ms) (GetOpts ps)) x el $ unlayer t
                                                                                          []     -> addM_ q el =<< expandM t
 
-instance (InsertableQM (GetOpts ms) (GetOpts ps) m idx el a, idx ~ idx') => InsertableQM_ ms (P Unchecked ': P Inplace ': ps) m idx el (Reusable idx' a) where insertM_ _     = nested layered .: insertQM (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (FreeableQM   (GetOpts ms) (GetOpts ps) m idx    a, idx ~ idx') => FreeableQM_   ms ps                               m idx    (Reusable idx' a) where freeM_   _ idx = fmap2 (_indexes %~ (idx:)) . nested layered (freeQM (Query :: Query (GetOpts ms) (GetOpts ps)) idx)
+instance (Monad m, InsertableQM (GetOpts ms) (GetOpts ps) m idx el a, idx ~ idx') => InsertableQM_ ms (P Unchecked ': P Inplace ': ps) m idx el (Reusable idx' a) where insertM_ _     = nested layered .: insertQM (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, FreeableQM   (GetOpts ms) (GetOpts ps) m idx    a, idx ~ idx') => FreeableQM_   ms ps                               m idx    (Reusable idx' a) where freeM_   _ idx = fmap2 (_indexes %~ (idx:)) . nested layered (freeQM (Query :: Query (GetOpts ms) (GetOpts ps)) idx)
 
-instance (Monad m, idx ~ Index (Container a), ExpandableM m (Reusable idx a)) => ReservableQM_ '[P Ixed] ps m (Reusable idx  a) where
+instance (Monad m, Monad m, idx ~ Index (Container a), ExpandableM m (Reusable idx a)) => ReservableQM_ '[P Ixed] ps m (Reusable idx  a) where
     reserveM_ q c@(Reusable []     a) = reserveM_ q =<< expandM c
     reserveM_ _   (Reusable (i:is) a) = return $ Res (i,()) (Reusable is a)
 
@@ -204,8 +204,8 @@ type instance ParamsOf TracksElemsOp    (Reusable idx a) = '[]
 type instance ModsOf   TracksElemsOp    (Reusable idx a) = '[]
 
 
-instance (IndexableQM      (GetOpts ms) (GetOpts ps) m idx el a, idx ~ idx') => IndexableQM_       ms ps m idx el (Reusable idx' a) where indexM_     _ idx   = indexQM    (Query :: Query (GetOpts ms) (GetOpts ps)) idx . unlayer
-instance (TracksIxesQM     (GetOpts ms) (GetOpts ps) m idx    a, idx ~ idx') => TracksIxesQM_      ms ps m idx    (Reusable idx' a) where ixesM_      _       = ixesQM     (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
+instance (Monad m, IndexableQM      (GetOpts ms) (GetOpts ps) m idx el a, idx ~ idx') => IndexableQM_       ms ps m idx el (Reusable idx' a) where indexM_     _ idx   = indexQM    (Query :: Query (GetOpts ms) (GetOpts ps)) idx . unlayer
+instance (Monad m, TracksIxesQM     (GetOpts ms) (GetOpts ps) m idx    a, idx ~ idx') => TracksIxesQM_      ms ps m idx    (Reusable idx' a) where ixesM_      _       = ixesQM     (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
 instance (Monad m, idx ~ idx')                                               => TracksFreeIxesQM_ '[] ps m idx    (Reusable idx' a) where freeIxesM_  _       = return . Res () . view _indexes
 
 instance (TracksIxes idx (Reusable idx a)

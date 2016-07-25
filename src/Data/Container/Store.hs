@@ -2,7 +2,7 @@
 
 module Data.Container.Store where
 
-import GHC.Prim      (Constraint)
+import GHC.Exts      (Constraint)
 import Control.Lens
 import Data.Typeable (Proxy)
 

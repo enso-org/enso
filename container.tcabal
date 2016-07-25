@@ -1,5 +1,5 @@
 name:                container
-version:             1.0.7
+version:             1.0.8
 synopsis:            Containers abstraction and utilities.
 -- description:
 license:             Apache-2.0
@@ -48,7 +48,7 @@ Library
 
   exposed-modules:    `findmodules('src', '.*\.hs')`
 
-  build-depends:      base >=4.6 && <4.9
+  build-depends:      base >=4.6 && <4.10
                     , containers
                     , convert
                     , data-default
@@ -69,4 +69,3 @@ Library
                     , typelevel
                     , unordered-containers
                     , vector
-

@@ -98,9 +98,9 @@ type instance ModsOf   MinBoundedOp (Resizable s a) = ModsOf   MinBoundedOp (Con
 type instance ParamsOf MaxBoundedOp (Resizable s a) = ParamsOf MaxBoundedOp (Container a)
 type instance ModsOf   MaxBoundedOp (Resizable s a) = ModsOf   MaxBoundedOp (Container a)
 
-instance (MeasurableQM (GetOpts ms) (GetOpts ps) m     a) => MeasurableQM_ ms ps m     (Resizable s a) where sizeM_     _ = sizeQM     (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
-instance (MinBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MinBoundedQM_ ms ps m idx (Resizable s a) where minBoundM_ _ = minBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
-instance (MaxBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MaxBoundedQM_ ms ps m idx (Resizable s a) where maxBoundM_ _ = maxBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MeasurableQM (GetOpts ms) (GetOpts ps) m     a) => MeasurableQM_ ms ps m     (Resizable s a) where sizeM_     _ = sizeQM     (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MinBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MinBoundedQM_ ms ps m idx (Resizable s a) where minBoundM_ _ = minBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MaxBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MaxBoundedQM_ ms ps m idx (Resizable s a) where maxBoundM_ _ = maxBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
 
 
 
@@ -123,9 +123,9 @@ type instance ModsOf   ExpandableOp (Resizable s a) = ModsOf   GrowableOp   (Con
 type instance ParamsOf GrowableOp   (Resizable s a) = ParamsOf GrowableOp   (Container a)
 type instance ModsOf   GrowableOp   (Resizable s a) = ModsOf   GrowableOp   (Container a)
 
-instance (SingletonQM  (GetOpts ms) (GetOpts ps) m el a, Default s) => SingletonQM_  ms ps m el (Resizable s a) where  singletonM_ _ = fmap2 (Resizable def) . singletonQM (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (AllocableQM  (GetOpts ms) (GetOpts ps) m    a, Default s) => AllocableQM_  ms ps m    (Resizable s a) where  allocM_     _ = fmap2 (Resizable def) . allocQM     (Query :: Query (GetOpts ms) (GetOpts ps))
-instance ( GrowableQM  (GetOpts ms) (GetOpts ps) m    a, ResizeStep s a
+instance (Monad m, SingletonQM  (GetOpts ms) (GetOpts ps) m el a, Default s) => SingletonQM_  ms ps m el (Resizable s a) where  singletonM_ _ = fmap2 (Resizable def) . singletonQM (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, AllocableQM  (GetOpts ms) (GetOpts ps) m    a, Default s) => AllocableQM_  ms ps m    (Resizable s a) where  allocM_     _ = fmap2 (Resizable def) . allocQM     (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m,  GrowableQM  (GetOpts ms) (GetOpts ps) m    a, ResizeStep s a
          , Result_ GrowableOp (PrimInfo (Container a)) (GetOpts ms) ~ Result_ ExpandableOp (PrimInfo (Resizable s a)) (GetOpts ms)
          ) => ExpandableQM_ ms ps m    (Resizable s a) where  expandM_    _ t = nested layered (growQM (Query :: Query (GetOpts ms) (GetOpts ps)) $ resizeStep t) t
 
@@ -157,12 +157,12 @@ type instance ModsOf   InsertableOp   (Resizable s a) = ModsOf   InsertableOp  (
 type instance ParamsOf FreeableOp     (Resizable s a) = ParamsOf FreeableOp    (Container a)
 type instance ModsOf   FreeableOp     (Resizable s a) = ModsOf   FreeableOp    (Container a)
 
-instance (AppendableQM  (GetOpts ms) (GetOpts ps) m     el a) => AppendableQM_  ms ps m     el (Resizable s a) where appendM_  _ = nested layered .  appendQM  (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (PrependableQM (GetOpts ms) (GetOpts ps) m     el a) => PrependableQM_ ms ps m     el (Resizable s a) where prependM_ _ = nested layered .  prependQM (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (AddableQM     (GetOpts ms) (GetOpts ps) m     el a) => AddableQM_     ms ps m     el (Resizable s a) where addM_     _ = nested layered .  addQM     (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (RemovableQM   (GetOpts ms) (GetOpts ps) m     el a) => RemovableQM_   ms ps m     el (Resizable s a) where removeM_  _ = nested layered .  removeQM  (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (InsertableQM  (GetOpts ms) (GetOpts ps) m idx el a) => InsertableQM_  ms ps m idx el (Resizable s a) where insertM_  _ = nested layered .: insertQM  (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (FreeableQM    (GetOpts ms) (GetOpts ps) m idx    a) => FreeableQM_    ms ps m idx    (Resizable s a) where freeM_    _ = nested layered .  freeQM    (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, AppendableQM  (GetOpts ms) (GetOpts ps) m     el a) => AppendableQM_  ms ps m     el (Resizable s a) where appendM_  _ = nested layered .  appendQM  (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, PrependableQM (GetOpts ms) (GetOpts ps) m     el a) => PrependableQM_ ms ps m     el (Resizable s a) where prependM_ _ = nested layered .  prependQM (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, AddableQM     (GetOpts ms) (GetOpts ps) m     el a) => AddableQM_     ms ps m     el (Resizable s a) where addM_     _ = nested layered .  addQM     (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, RemovableQM   (GetOpts ms) (GetOpts ps) m     el a) => RemovableQM_   ms ps m     el (Resizable s a) where removeM_  _ = nested layered .  removeQM  (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, InsertableQM  (GetOpts ms) (GetOpts ps) m idx el a) => InsertableQM_  ms ps m idx el (Resizable s a) where insertM_  _ = nested layered .: insertQM  (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, FreeableQM    (GetOpts ms) (GetOpts ps) m idx    a) => FreeableQM_    ms ps m idx    (Resizable s a) where freeM_    _ = nested layered .  freeQM    (Query :: Query (GetOpts ms) (GetOpts ps))
 
 
 
@@ -190,11 +190,11 @@ type instance ModsOf   TracksUsedIxesOp (Resizable s a) = ModsOf   TracksUsedIxe
 type instance ParamsOf TracksElemsOp    (Resizable s a) = ParamsOf TracksElemsOp    (Container a)
 type instance ModsOf   TracksElemsOp    (Resizable s a) = ModsOf   TracksElemsOp    (Container a)
 
-instance (IndexableQM      (GetOpts ms) (GetOpts ps) m idx el a) => IndexableQM_       ms ps m idx el (Resizable s a) where indexM_     _ idx   = indexQM    (Query :: Query (GetOpts ms) (GetOpts ps)) idx . unlayer
-instance (TracksIxesQM     (GetOpts ms) (GetOpts ps) m idx    a) => TracksIxesQM_      ms ps m idx    (Resizable s a) where ixesM_      _       = ixesQM     (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
-instance (TracksFreeIxesQM (GetOpts ms) (GetOpts ps) m idx    a) => TracksFreeIxesQM_  ms ps m idx    (Resizable s a) where freeIxesM_  _       = freeIxesQM (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
-instance (TracksUsedIxesQM (GetOpts ms) (GetOpts ps) m idx    a) => TracksUsedIxesQM_  ms ps m idx    (Resizable s a) where usedIxesM_  _       = usedIxesQM (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
-instance (TracksElemsQM    (GetOpts ms) (GetOpts ps) m     el a) => TracksElemsQM_     ms ps m     el (Resizable s a) where elemsM_     _       = elemsQM    (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
+instance (Monad m, IndexableQM      (GetOpts ms) (GetOpts ps) m idx el a) => IndexableQM_       ms ps m idx el (Resizable s a) where indexM_     _ idx   = indexQM    (Query :: Query (GetOpts ms) (GetOpts ps)) idx . unlayer
+instance (Monad m, TracksIxesQM     (GetOpts ms) (GetOpts ps) m idx    a) => TracksIxesQM_      ms ps m idx    (Resizable s a) where ixesM_      _       = ixesQM     (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
+instance (Monad m, TracksFreeIxesQM (GetOpts ms) (GetOpts ps) m idx    a) => TracksFreeIxesQM_  ms ps m idx    (Resizable s a) where freeIxesM_  _       = freeIxesQM (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
+instance (Monad m, TracksUsedIxesQM (GetOpts ms) (GetOpts ps) m idx    a) => TracksUsedIxesQM_  ms ps m idx    (Resizable s a) where usedIxesM_  _       = usedIxesQM (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
+instance (Monad m, TracksElemsQM    (GetOpts ms) (GetOpts ps) m     el a) => TracksElemsQM_     ms ps m     el (Resizable s a) where elemsM_     _       = elemsQM    (Query :: Query (GetOpts ms) (GetOpts ps))     . unlayer
 
 
 

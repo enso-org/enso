@@ -29,12 +29,12 @@ import System.IO.Unsafe        (unsafePerformIO)
 
 import qualified Data.Container.Opts as M
 import qualified System.Mem.Weak     as Mem
-
+import GHC.Generics (Generic)
 ------------------
 -- === Weak === --
 ------------------
 
-data Weak f a = Weak !(Maybe f) !a deriving (Functor, Foldable, Traversable, Default, Monoid)
+data Weak f a = Weak !(Maybe f) !a deriving (Generic, Functor, Foldable, Traversable, Default, Monoid)
 type Weak'  a = Weak (IdxFinalizer (Index a)) a
 
 -- Instances
@@ -47,7 +47,7 @@ type instance Finalizer (Weak f a) = Maybe f
 
 instance      Monad m => IsContainerM  m (Weak f a) where fromContainerM = return
 instance      Monad m => HasContainerM m (Weak f a) where viewContainerM = return
-                                                          setContainerM  = const . return 
+                                                          setContainerM  = const . return
 
 type instance Unlayered (Weak f a) = a
 instance      Layered   (Weak f a) where layered = lens (\(Weak _ a) -> a) (\(Weak f _) a -> Weak f a)
@@ -64,12 +64,12 @@ class       HasFinalizer a where finalizer :: Lens' a (Finalizer a)
 class       HasFinalizerM a m f | a -> f where viewFinalizerM :: a -> m (Maybe f)
                                                setFinalizerM  :: Maybe f -> a -> m a
 
--- Basic finalizer instances 
+-- Basic finalizer instances
 
 instance {-# OVERLAPPABLE #-} ( Finalizer (Unlayered a) ~ Finalizer a
                               , HasFinalizer (Unlayered a)
                               , Layered a)
-                           => HasFinalizer a          where finalizer = layered . finalizer  
+                           => HasFinalizer a          where finalizer = layered . finalizer
 instance {-# OVERLAPPABLE #-} HasFinalizer (Weak f a) where finalizer = lens (\(Weak f _) -> f) (\(Weak _ a) f -> Weak f a)
 
 
@@ -103,7 +103,7 @@ instance Monoid (IdxFinalizer idx) where
 -- items
 
 type family WeakData a where WeakData (Mem.Weak a) = a
-type WeakItemAxiom t = Item (Container t) ~ Mem.Weak (WeakData (Item (Container t))) 
+type WeakItemAxiom t = Item (Container t) ~ Mem.Weak (WeakData (Item (Container t)))
 instance (WeakItemAxiom a, IsContainer a, FromList (Container a)) => FromList (Weak f a) where
     fromList = Weak def . fromContainer . fromList . fmap (unsafePerformIO . flip Mem.mkWeakPtr Nothing)
     {-# NOINLINE fromList #-}
@@ -139,9 +139,9 @@ type instance ModsOf   MinBoundedOp (Weak f a) = ModsOf   MinBoundedOp (Containe
 type instance ParamsOf MaxBoundedOp (Weak f a) = ParamsOf MaxBoundedOp (Container a)
 type instance ModsOf   MaxBoundedOp (Weak f a) = ModsOf   MaxBoundedOp (Container a)
 
-instance (MeasurableQM (GetOpts ms) (GetOpts ps) m     a) => MeasurableQM_ ms ps m     (Weak f a) where sizeM_     _ = sizeQM     (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
-instance (MinBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MinBoundedQM_ ms ps m idx (Weak f a) where minBoundM_ _ = minBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
-instance (MaxBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MaxBoundedQM_ ms ps m idx (Weak f a) where maxBoundM_ _ = maxBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MeasurableQM (GetOpts ms) (GetOpts ps) m     a) => MeasurableQM_ ms ps m     (Weak f a) where sizeM_     _ = sizeQM     (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MinBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MinBoundedQM_ ms ps m idx (Weak f a) where minBoundM_ _ = minBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
+instance (Monad m, MaxBoundedQM (GetOpts ms) (GetOpts ps) m idx a) => MaxBoundedQM_ ms ps m idx (Weak f a) where maxBoundM_ _ = maxBoundQM (Query :: Query (GetOpts ms) (GetOpts ps)) . unlayer
 
 
 -- === Construction ===
@@ -163,15 +163,15 @@ type instance ModsOf   ExpandableOp (Weak f a) = ModsOf   GrowableOp   (Containe
 type instance ParamsOf GrowableOp   (Weak f a) = ParamsOf GrowableOp   (Container a)
 type instance ModsOf   GrowableOp   (Weak f a) = ModsOf   GrowableOp   (Container a)
 
-instance ( MonadIO m
+instance (Monad m,  MonadIO m
          , SingletonQM  (GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
          , (Result_ SingletonOp (ElInfo (Mem.Weak el) (Container a)) (GetOpts ms) ~ Result_ SingletonOp (ElInfo el (Weak f a)) (GetOpts ms))
-         ) => SingletonQM_  ms ps m el (Weak f a) where 
+         ) => SingletonQM_  ms ps m el (Weak f a) where
     singletonM_ _ el = (fmap2 (Weak def) . singletonQM (Query :: Query (GetOpts ms) (GetOpts ps))) =<< (liftIO . flip mkWeakPtr Nothing) el
 
-instance (AllocableQM  (GetOpts ms) (GetOpts ps) m    a) => AllocableQM_  ms ps m    (Weak f a) where  allocM_     _ = fmap2 (Weak def) . allocQM     (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (ExpandableQM (GetOpts ms) (GetOpts ps) m    a) => ExpandableQM_ ms ps m    (Weak f a) where  expandM_    _ = nested layered   $ expandQM    (Query :: Query (GetOpts ms) (GetOpts ps))
-instance (GrowableQM   (GetOpts ms) (GetOpts ps) m    a) => GrowableQM_   ms ps m    (Weak f a) where  growM_      _ = nested layered   . growQM      (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, AllocableQM  (GetOpts ms) (GetOpts ps) m    a) => AllocableQM_  ms ps m    (Weak f a) where  allocM_     _ = fmap2 (Weak def) . allocQM     (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, ExpandableQM (GetOpts ms) (GetOpts ps) m    a) => ExpandableQM_ ms ps m    (Weak f a) where  expandM_    _ = nested layered   $ expandQM    (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, GrowableQM   (GetOpts ms) (GetOpts ps) m    a) => GrowableQM_   ms ps m    (Weak f a) where  growM_      _ = nested layered   . growQM      (Query :: Query (GetOpts ms) (GetOpts ps))
 
 
 
@@ -196,49 +196,49 @@ type instance ParamsOf FreeableOp     (Weak f a) = ParamsOf FreeableOp    (Conta
 type instance ModsOf   FreeableOp     (Weak f a) = ModsOf   FreeableOp    (Container a)
 
 
-instance (AppendableQM  (M.Ixed ': GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
+instance (Monad m, AppendableQM  (M.Ixed ': GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
          , Result_ AppendableOp (ElInfo (Mem.Weak el) (Container a)) (GetOpts ms) ~ Result_ AppendableOp (ElInfo el (Weak (IdxFinalizer idx) a)) (GetOpts ms)
          , idx ~ Index (Container a)
          , MonadIO  m
          , MonadFix m
-         ) => AppendableQM_  ms ps m el (Weak (IdxFinalizer idx) a) where 
+         ) => AppendableQM_  ms ps m el (Weak (IdxFinalizer idx) a) where
     appendM_  _ el t@(Weak mf a) = mdo
         Res (ix,ds) r <- appendQM (Query :: Query (M.Ixed ': GetOpts ms) (GetOpts ps)) ref a
         ref           <- mkWeakPtr el $ fmap (($ ix) . unwrap) mf
         return $ Res ds (Weak mf r)
 
-instance (PrependableQM  (M.Ixed ': GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
+instance (Monad m, PrependableQM  (M.Ixed ': GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
          , Result_ PrependableOp (ElInfo (Mem.Weak el) (Container a)) (GetOpts ms) ~ Result_ PrependableOp (ElInfo el (Weak (IdxFinalizer idx) a)) (GetOpts ms)
          , idx ~ Index (Container a)
          , MonadIO  m
          , MonadFix m
-         ) => PrependableQM_  ms ps m el (Weak (IdxFinalizer idx) a) where 
+         ) => PrependableQM_  ms ps m el (Weak (IdxFinalizer idx) a) where
     prependM_  _ el t@(Weak mf a) = mdo
         Res (ix,ds) r <- prependQM (Query :: Query (M.Ixed ': GetOpts ms) (GetOpts ps)) ref a
         ref           <- mkWeakPtr el $ fmap (($ ix) . unwrap) mf
         return $ Res ds (Weak mf r)
 
-instance (AddableQM  (M.Ixed ': GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
+instance (Monad m, AddableQM  (M.Ixed ': GetOpts ms) (GetOpts ps) m (Mem.Weak el) a
          , Result_ AddableOp (ElInfo (Mem.Weak el) (Container a)) (GetOpts ms) ~ Result_ AddableOp (ElInfo el (Weak (IdxFinalizer idx) a)) (GetOpts ms)
          , idx ~ Index (Container a)
          , MonadIO  m
          , MonadFix m
-         ) => AddableQM_  ms ps m el (Weak (IdxFinalizer idx) a) where 
+         ) => AddableQM_  ms ps m el (Weak (IdxFinalizer idx) a) where
     addM_  _ el t@(Weak mf a) = mdo
         Res (ix,ds) r <- addQM (Query :: Query (M.Ixed ': GetOpts ms) (GetOpts ps)) ref a
         ref           <- mkWeakPtr el $ fmap (($ ix) . unwrap) mf
         return $ Res ds (Weak mf r)
 
-instance (FreeableQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => FreeableQM_  ms ps m idx (Weak (IdxFinalizer idx) a) where freeM_ _ = nested layered . freeQM (Query :: Query (GetOpts ms) (GetOpts ps))
+instance (Monad m, FreeableQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => FreeableQM_  ms ps m idx (Weak (IdxFinalizer idx) a) where freeM_ _ = nested layered . freeQM (Query :: Query (GetOpts ms) (GetOpts ps))
 
         --flip (nested layered) t $ appendQM (Query :: Query (GetOpts ms) (GetOpts ps)) =<< liftIO (flip Mem.mkWeakPtr f el)
---instance (PrependableQM (GetOpts ms) (GetOpts ps) m el a)           => PrependableQM_ ms ps m el   (Weak idx  a) where prependM_ _      = nested layered . prependQM (Query :: Query (GetOpts ms) (GetOpts ps))
+--instance (Monad m, PrependableQM (GetOpts ms) (GetOpts ps) m el a)           => PrependableQM_ ms ps m el   (Weak idx  a) where prependM_ _      = nested layered . prependQM (Query :: Query (GetOpts ms) (GetOpts ps))
 --instance (InsertableM m idx el a, ExpandableM m (Weak f a))   => AddableQM_    '[] ps m el   (Weak idx  a) where addM_     q el t = case view indexes t of
 --                                                                                                                               (x:xs) -> fmap2 (Weak xs) $ insertM' x el $ unlayer t
 --                                                                                                                               []     -> addM_ q el =<< expandM t
 --instance (FreeableQM (GetOpts ms) (GetOpts ps) m idx a, idx ~ idx') => FreeableQM_    ms ps m idx  (Weak idx' a) where freeM_ _ idx     = fmap2 (indexes %~ (idx:)) . nested layered (freeQM (Query :: Query (GetOpts ms) (GetOpts ps)) idx)
 
---instance ( GrowableQM (M.Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => GrowableQM_ ms ps m (Reusable idx a) where 
+--instance ( GrowableQM (M.Ixed ': GetOpts ms) (GetOpts ps) m a, idx ~ Index (Container a)) => GrowableQM_ ms ps m (Reusable idx a) where
 --    growM_ _ i (Reusable ixs a) = do Res (ixs',ds) r <- growQM (Query :: Query (M.Ixed ': GetOpts ms) (GetOpts ps)) i a
 --                                     return $ Res ds $ Reusable (ixs <> ixs') r
 
