@@ -1,9 +1,14 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE MagicHash            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE UndecidableInstances    #-}
+{-# LANGUAGE ScopedTypeVariables     #-}
+{-# LANGUAGE GADTs                   #-}
+{-# LANGUAGE MagicHash               #-}
+{-# LANGUAGE RankNTypes              #-}
+{-# LANGUAGE PolyKinds               #-}
+{-# LANGUAGE CPP                     #-}
+
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 
 module Data.RTuple where
 
@@ -15,7 +20,7 @@ import Control.Monad.Identity hiding (mapM)
 import Data.Default
 import Data.List              (intercalate)
 import Data.Typeable
-import GHC.Prim               (Any, Constraint, unsafeCoerce#)
+import GHC.Prim               (Any, unsafeCoerce#)
 import GHC.TypeLits
 import Type.Container         (Append, Index, Index2, Reverse)
 import Type.Monoid
@@ -452,7 +457,7 @@ deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
 --{-# INLINE prepend #-}
 
 
-instance Creator m (Unwrapped (TMap rels)) => Creator m (TMap rels) where
+instance (Creator m (Unwrapped (TMap rels)), Monad m) => Creator m (TMap rels) where
     create = TMap <$> create ; {-# INLINE create #-}
 
 instance Monad m                            => Creator m (List '[])       where create = return Null                ; {-# INLINE create #-}
