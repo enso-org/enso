@@ -41,11 +41,11 @@ packages:
 - extra-dep: true
   location: {commit: 10fe1b60a76adec8178f3858782fcda53d6d60d1, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
-  location: {commit: aa5ac0164cd8d721c0abd762f9ebdad0f5432b92, git: 'https://github.com/wdanilo/data-member.git'}
+  location: {commit: b13db833f28614fad707a66fc102054a95df48c6, git: 'https://github.com/wdanilo/data-member.git'}
 - extra-dep: true
   location: {commit: 01ad58ca75756ed0b4c95144d5cf54a74a6ecb33, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
-  location: {commit: 9e1f4671b5bd061bca8e392ffb39271f3626702a, git: 'https://github.com/wdanilo/data-shell.git'}
+  location: {commit: ba5ee3d356e060ed074a58e3330771686b6fe75b, git: 'https://github.com/wdanilo/data-shell.git'}
 - extra-dep: true
   location: {commit: 27ee79bdc41e13af42fa13654b894205302dcbbd, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
 resolver: lts-4.1
