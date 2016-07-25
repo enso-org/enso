@@ -1,4 +1,4 @@
-resolver: lts-5.14
+resolver: lts-6.9
 packages:
     - ..
 
@@ -25,10 +25,7 @@ packages:
     - ../../../libs/visualization-api
 
 extra-deps:
-    - ghc-session-0.1.2.0
-    - graphviz-2999.18.0.2
     - string-qq-0.0.2
-    - error-util-0.0.1.1
     - cond-0.4.1.1
     - tuple-0.3.0.2
     - OneTuple-0.2.1
@@ -42,6 +39,10 @@ extra-deps:
     - lens-utils-1.0
     - functor-utils-1.0
     - data-rtuple-1.0
+
+    - placeholders-0.1
+    - ghc-mtl-1.2.1.0
+    - graphviz-2999.18.1.2
 
 ghc-options:
     "*": -DFastCompilation -threaded -funbox-strict-fields -O0

@@ -83,7 +83,6 @@ Library
                  , dependent-state
                  , digits
                  , either
-                 , error-util
                  , errors
                  , exceptions
                  , extra
@@ -91,8 +90,8 @@ Library
                  , ghc-mtl
                  , ghc-paths
                  , ghc-prim
-                 , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
+                 , ghc-session
                  , lens
                  , lens-utils
                  , MissingH
@@ -159,13 +158,11 @@ Executable luna
                      , data-base
                      , data-construction
                      , data-layer
-                     , error-util
                      , errors
                      , exceptions
                      , extra
                      , ghc
                      , ghc-prim
-                     , ghc-session >= 0.1.2.0
                      , graphviz >= 2999.17.0.2.2
                      , lens
                      , MissingH
