@@ -3,7 +3,7 @@
 module Data.Functor.Utils where
 
 import Prelude hiding ((.))
-import GHC.Prim (Constraint)
+import GHC.Exts (Constraint)
 
 -- Nested fmaps
 
