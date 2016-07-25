@@ -5,9 +5,9 @@
 ---------------------------------------------------
 
 name:                impossible
-version:             1.0.0
+version:             1.0.1
 synopsis:            Set of data and type definitions of impossible types. Impossible types are useful when declaring type classes / type families instances that should not be expanded by GHC until a specific type is provided in order to keep the types nice and readable.
--- description:         
+-- description:
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Wojciech Danilo
@@ -18,7 +18,7 @@ bug-reports:         https://github.com/wdanilo/impossible/issues
 copyright:           Copyright (C) 2015 Wojciech Danilo
 category:            Data
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 
 
@@ -50,10 +50,10 @@ Library
                       TypeOperators
                       ViewPatterns
                       TypeFamilies
-  
+
   exposed-modules:    
         Data.Impossible,
         Data.Impossible.Compact
 
-  build-depends:      base >=4.6 && <4.9
+  build-depends:      base >=4.6 && <4.10
                     , lens
