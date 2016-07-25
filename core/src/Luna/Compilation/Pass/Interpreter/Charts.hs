@@ -6,6 +6,12 @@ import           Graphics.API
 
 -- helpers
 
+mkLayer :: Geometry -> [Transformation] -> Layer
+mkLayer geo trans = Layer geo trans []
+
+mkLayerWithLabels :: Geometry -> [Transformation] -> [Label] -> Layer
+mkLayerWithLabels = Layer
+
 toTransformation :: Point -> Transformation
 toTransformation (Point x y) = translate def x y
 
@@ -81,13 +87,13 @@ axisPoint p1 p2 = mp where
     mp         = initialOffset p1t p2t
 
 axisH :: Material -> Double -> Double -> Double -> Layer
-axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
+axisH mat viewSize y1 y2 = mkLayer geometry [toTransformation point] where
     geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
     point      = scaleToViewPoint viewSize viewSize $ Point 0.5 my
     my         = axisPoint y1 y2
 
 axisV :: Material -> Double -> Double -> Double -> Layer
-axisV mat viewSize x1 x2 = Layer geometry [toTransformation point] where
+axisV mat viewSize x1 x2 = mkLayer geometry [toTransformation point] where
     geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
     point      = scaleToViewPoint viewSize viewSize $ Point mx 0.5
     mx         = axisPoint x1 x2
@@ -98,7 +104,7 @@ axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
     aV = axisV mat viewSize x1 x2
 
 gridHStep1 :: Material -> Double -> Double -> Double -> Layer
-gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
+gridHStep1 mat viewSize y1 y2 = mkLayer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     y1i      = truncate y1
@@ -118,13 +124,13 @@ gridPoints p1 p2 = mps where
     mps        = (+ initialOffset p1t p2t) <$> mpst
 
 gridH :: Material -> Double -> Double -> Double -> Layer
-gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
+gridH mat viewSize y1 y2 = mkLayer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     mys      = gridPoints y1 y2
 
 gridV :: Material -> Double -> Double -> Double -> Layer
-gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
+gridV mat viewSize x1 x2 = mkLayer geometry $ toTransformation <$> points where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     mxs      = gridPoints x1 x2
@@ -191,7 +197,7 @@ barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
     rx         = initialOffset x1 x2
     ry         = initialOffset y1 y2
     w          = 0.5 / (fromIntegral $ length points)
-    toLayer (Point dx dy) = Layer geometry [toTransformation point] where
+    toLayer (Point dx dy) = mkLayer geometry [toTransformation point] where
         point     = Point dx (dy * 0.5)
         geometry  = Geometry geoComp def (Just mat)
         geoComp   = convert figure :: GeoComponent
@@ -201,7 +207,7 @@ barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
 -- charts helpers
 
 scatterChartImpl :: Geometry -> [Point] -> Layer
-scatterChartImpl geometry points = Layer geometry $ toTransformation <$> points
+scatterChartImpl geometry points = mkLayer geometry $ toTransformation <$> points
 
 barChartImpl = barChartGeometriesImpl
 
@@ -217,7 +223,7 @@ barChartGeometriesImpl mat points = layer where
     geoComponent     = GeoElem  $ toSurface  <$> pointsY
     geoComponentMain = GeoGroup $ toGeometry <$> pointsX
     geometry         = Geometry geoComponentMain def $ Just mat
-    layer            = Layer geometry [def]
+    layer            = mkLayer geometry [def]
     toGeometry :: Point -> Geometry
     toGeometry point = Geometry geoComponent (toTransformation point) $ Just mat
     toSurface :: Point -> Surface
