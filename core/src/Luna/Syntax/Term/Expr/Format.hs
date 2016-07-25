@@ -22,6 +22,7 @@ data Thunk   = Thunk   deriving (Show)
 data Phrase  = Phrase  deriving (Show)
 data Draft   = Draft   deriving (Show)
 
+data Format  = Format deriving (Show)
 type Formats = '[Literal, Value, Thunk, Phrase, Draft]
 
 

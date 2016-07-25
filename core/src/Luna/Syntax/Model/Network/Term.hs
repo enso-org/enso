@@ -16,7 +16,7 @@ import qualified Data.Record                    as Record
 import           Data.Reprx                     (Repr, repr)
 import           Old.Luna.Syntax.Term.Class     hiding (Val, Lit, Thunk, Expr, Draft)
 import           Luna.Syntax.Model.Layer
-import           Luna.Runtime.Dynamics          (Dynamics)
+import           Luna.Runtime.Dynamics          (Dynamics_OLD)
 import           Luna.Syntax.Term.Function.Argument
 import qualified Luna.Syntax.Term.Expr.Format          as Format
 import           Luna.Syntax.Term               hiding (Layout)
@@ -117,11 +117,11 @@ instance HasRecord (Draft  rt ls)
 
 -- Runtime models
 
-type instance Dynamics (Lit    rt ls) = Dynamics (Unwrapped (Lit    rt ls))
-type instance Dynamics (Val    rt ls) = Dynamics (Unwrapped (Val    rt ls))
-type instance Dynamics (Thunk  rt ls) = Dynamics (Unwrapped (Thunk  rt ls))
-type instance Dynamics (Phrase rt ls) = Dynamics (Unwrapped (Phrase rt ls))
-type instance Dynamics (Draft  rt ls) = Dynamics (Unwrapped (Draft  rt ls))
+type instance Dynamics_OLD (Lit    rt ls) = Dynamics_OLD (Unwrapped (Lit    rt ls))
+type instance Dynamics_OLD (Val    rt ls) = Dynamics_OLD (Unwrapped (Val    rt ls))
+type instance Dynamics_OLD (Thunk  rt ls) = Dynamics_OLD (Unwrapped (Thunk  rt ls))
+type instance Dynamics_OLD (Phrase rt ls) = Dynamics_OLD (Unwrapped (Phrase rt ls))
+type instance Dynamics_OLD (Draft  rt ls) = Dynamics_OLD (Unwrapped (Draft  rt ls))
 
 -- Layouts
 

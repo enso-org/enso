@@ -1,0 +1,91 @@
+strict digraph {
+  rankdir="LR"
+  
+  
+  
+  HSC [label="Haskell Core"]
+  LLVMIR [label="LLVM IR"]
+  BC     [label="Bytecode"]
+  JS     [label="JavaScript"]
+  Object [label="Object files"]
+  FC     [label="Foreign C", style=filled]
+  
+ 
+  FS     [label="Foreign Services", style=dashed]
+  
+  
+  FH     [label="Foreign Haskell", style=filled]
+  PY     [label="Python", style=filled]
+  NJS    [label="JavaScript", style=filled]
+  GHCS   [label="Haskell", style=filled]
+  R      [style=filled]
+  CPP    [style=filled]
+  Dots   [label="...", style=filled]
+  
+   subgraph cluster_xxx {
+    color=white
+
+    ASG  [label="ASG"]
+    TC   [label="Type checker"]
+    Interpreter
+
+      subgraph cluster_src {
+        node [style=filled];
+        Textual []
+        Visual  []
+        Other   []
+        style=invis
+      }
+  }
+  
+  HS -> HSAST
+  FH -> HS
+  HSAST -> HTC [dir="both"]
+  HTC -> HSC
+  
+  
+  Visual -> ASG [dir="both"]
+  Textual -> ASG [dir="both"]
+  Other   -> ASG [dir="both"]
+  ASG -> ASG [label="opt"]
+  ASG -> TC [dir="both"]
+  TC -> Interpreter [dir="both"]
+  ASG -> Interpreter [dir="both"]
+  Object -> Interpreter [style=dashed]
+  ASG -> HSC [style=dashed]
+  
+  BC -> FS [style=dashed]
+  Interpreter -> FS [style=dashed]
+  FJS -> JS
+  JS -> FS    [style=dashed]
+  FS -> PY    [dir="back", style=dashed]
+  FS -> NJS   [dir="back", style=dashed]
+  FS -> GHCS  [dir="back", style=dashed]
+  FS -> R     [dir="back", style=dashed]
+  FS -> CPP   [dir="back", style=dashed]
+  FS -> Dots  [dir="back", style=dashed]
+  
+  subgraph cluster_top {
+    FH     [label="Foreign Haskell"]
+    color=white
+  
+  
+      subgraph cluster_ghc {
+        node [style=filled];
+        label = "GHC";
+        HS     [label="Haskell code"]
+        HTC    [label="Type checker"]
+        HSAST  [label="AST"]
+        FJS    [label="Foreign JavaScript", style=filled]
+        
+        FC  -> LLVMIR
+        HSC -> HSC [label="opt"]
+        HSC -> JS
+        HSC -> LLVMIR
+        LLVMIR -> LLVMIR [label="opt"]
+        LLVMIR -> Object
+        Object -> BC
+        color=blue
+      }
+  }
+}

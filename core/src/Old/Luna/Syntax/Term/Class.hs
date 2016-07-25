@@ -20,7 +20,7 @@ import           Type.Container
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, WithDynamics, SubDynamics, SubSemiDynamics, ByDynamics)
+import           Luna.Runtime.Dynamics      (Dynamics_OLD, Dynamic, Static, WithDynamics_OLD, SubDynamics, SubSemiDynamics, ByDynamics)
 import qualified Luna.Runtime.Dynamics      as Dynamics
 import           Luna.Pretty.Styles
 import           Luna.Syntax.Term.Function.Argument
@@ -61,7 +61,7 @@ type family Layout    t fmt dyn
 type family Input     a
 type family NameInput a where
     NameInput I = Impossible
-    NameInput a = If (Dynamics a == Static) Lit.String (Input a)
+    NameInput a = If (Dynamics_OLD a == Static) Lit.String (Input a)
 
 
 -- === Elems_OLD === --
@@ -140,7 +140,7 @@ showTermType (t :: Term t term rt) = tyConName $ typeRepTyCon $ head $ snd $ spl
 -- === Instances === --
 
 -- Basic instances
-type instance Dynamics   (Term t term rt) = rt
+type instance Dynamics_OLD   (Term t term rt) = rt
 type instance LayoutType (Term t term rt) = t
 type instance TermOf     (Term t term rt) = Term t term rt
 
@@ -161,7 +161,7 @@ instance IsRecord (Unlayered (Term t term rt)) => IsRecord (Term t term rt) wher
 instance HasRecord (Unlayered (Term t term rt)) => HasRecord (Term t term rt) where record = wrapped' ∘ record
 
 -- Layouts
-type instance WithDynamics rt' (Term t term rt) = Term t term rt'
+type instance WithDynamics_OLD rt' (Term t term rt) = Term t term rt'
 
 -- Properties
 type instance Props p (Term t term rt) = Props p (RecordOf (Term t term rt))

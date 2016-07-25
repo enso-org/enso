@@ -20,7 +20,7 @@ import           Type.Container
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, WithDynamics, SubDynamics, SubSemiDynamics, ByDynamics)
+import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynamics, SubSemiDynamics, ByDynamics)
 import qualified Luna.Runtime.Dynamics      as Dynamics
 import           Luna.Pretty.Styles
 import           Luna.Syntax.Term.Function.Argument
@@ -48,12 +48,39 @@ import Data.Container.Hetero (Elems)
 
 -- === Definitions === --
 
+-- newtype     Expr2        fmt dyn sel a = Expr2 (ExprRecord2 fmt dyn sel a)
+
+-- AST to zla nazwa, to powinien byc symbol terminalny lub cos podobnego - to cos co ma warstwy, choc nie do konca, bo jest to tylko transformata
+-- powinnismy ponadto zamiast :| zastosowac mapowanie ls jak w Mainie: TermShell
+-- tylko nalezy zmienic definicje shella z
+-- newtype Shell    ls = Shell (TMap (ls :->> Layers ls))
+-- na
+-- newtype Shell ks ls = Shell (TMap (ks :->> Layers ls))
+-- i przemapowac sie ladniej, dzieki temu nie trzeba definiowac przeksztalcen proxy jak w mainie (type instance Shell.Access ...)
+-- newtype AST t f = AST (f (Bind t (AST t f)))
+-- TODO ^^^
+-- newtype AST t ls f = AST (ls :| f (Item (AST t ls f)))
+--
+-- type ASTExpr t ls fmt dyn sel = AST t ls (ExprRecord2 fmt dyn sel)
+newtype ExprLayer t a = ExprLayer a deriving (Show, Functor, Traversable, Foldable)
+
+type TermStack ls el = Stack ls (ExprLayer el <$> ls)
+
+newtype Element ls = Element (TermStack ls (Element ls))
+
+data Expr2 = Expr2 deriving (Show)
+
+type instance LayerData (ExprLayer el Expr2) = ExprRecord2 (el # Format) (el # Dynamics) 'Nothing el
+
+type family a # prop
+
 newtype     Expr        t fmt dyn sel = Expr (Layout t fmt dyn sel)
 type        AnyExpr     t fmt dyn     = Expr         t fmt dyn 'Nothing
 type        LimitedExpr t fmt dyn a   = Expr         t fmt dyn ('Just a)
 type        AtomicExpr  t fmt dyn a   = LimitedExpr  t fmt dyn '[a]
 
 type family Layout      t fmt dyn (sel :: Maybe [*]) :: *
+-- type family Layout2     t a :: *
 type family TermOf      a
 
 
@@ -73,10 +100,22 @@ type family SubExprs'       t fmts dyn where
             SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
 
 
+type        Variants2        fmt  dyn sel a = Atoms (Selected sel (Elems fmt)) dyn a
+-- type        SubDynExprs2     fmt  dyn a      = Expr2 fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
+-- type        SubSemiDynExprs2 fmt  dyn a      = Expr2 fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ] <*> '[ a ]
+-- type        SubExprs2        fmt  dyn a      = SubExprs2' (SubFormats fmt) dyn a
+-- type family SubExprs2' fmts          dyn a where
+--             SubExprs2' '[]           dyn a = '[]
+--             SubExprs2' '[fmt]        dyn a = SubDynExprs2     fmt dyn a
+--             SubExprs2' (fmt ': fmts) dyn a = SubSemiDynExprs2 fmt dyn a <> SubExprs2' fmts dyn a
+
+
 -- === Defaults === --
 
 -- | Standard expr record definition
-type ExprRecord t fmt dyn a bind = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn a bind) Data2
+type ExprRecord t fmt dyn sel a = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn sel a) Data2
+-- newtype ExprRecord2 fmt dyn sel a = ExprRecord2 (VGRecord2 (SubExprs2 fmt dyn a) (Variants2 fmt dyn sel a) Data2)
+newtype ExprRecord2 fmt dyn sel a = ExprRecord2 (VGRecord2 '[] (Variants2 fmt dyn sel a) Data2)
 
 
 -- === Instances === --

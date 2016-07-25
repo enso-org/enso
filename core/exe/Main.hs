@@ -264,7 +264,8 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 
 -- Layout
 type TermShell ls term rec = (NetLayer term <$> ls) :| rec
-type instance Layout (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+-- type instance Layout (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type instance Layout (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 -- Shell
 type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
@@ -334,18 +335,10 @@ main = do
 main2 = do
 
     print t2
-    print $ t2 ^. Shell.access' IntLayer
-
-
-
-    -- caseTest tx $ do
-    --     of' $ \Blank -> print "it is Blank!"
-        -- of' $ \ANY        -> print "hello"
+    -- print $ t2 ^. Shell.access' IntLayer
 
     caseTest t2 $ do
         of' $ \Blank -> print "it is Blank!"
-        -- of' $ \(Unify a b) -> print "oh, unify!"
-    --     -- of' $ \ANY        -> print "hello"
 
 main3 :: IO ()
 main3 = do

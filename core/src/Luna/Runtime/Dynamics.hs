@@ -12,17 +12,11 @@ import Prologue
 
 -- === Definitions == --
 
---data Dynamics = Dynamics deriving (Show)
+data Dynamics = Dynamics deriving (Show)
 
 -- Dynamics types
 data Dynamic = Dynamic deriving (Show)
 data Static  = Static  deriving (Show)
-
-
--- === Accessors === --
-
-type family Dynamics        a
-type family WithDynamics ds a
 
 
 -- === Utils === --
@@ -41,12 +35,15 @@ type family SubDynamics rt where
             SubDynamics Dynamic = '[Static]
 
 
--- === Instances === --
+-- === DEPRECIATED === --
+
+type family Dynamics_OLD        a
+type family WithDynamics_OLD ds a
 
 -- Basic
-type instance WithDynamics dyn Static  = dyn
-type instance WithDynamics dyn Dynamic = dyn
+type instance WithDynamics_OLD dyn Static  = dyn
+type instance WithDynamics_OLD dyn Dynamic = dyn
 
 -- Conversions
-type instance To Static  a = WithDynamics Static  a
-type instance To Dynamic a = WithDynamics Dynamic a
+type instance To Static  a = WithDynamics_OLD Static  a
+type instance To Dynamic a = WithDynamics_OLD Dynamic a
