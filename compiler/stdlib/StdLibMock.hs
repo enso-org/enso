@@ -337,6 +337,10 @@ symbolsList = [
     , makeNativeFun "rectangle"                Nothing                         [scons "Double", scons "Double"]         (scons "Figure")
     , makeNativeFun "circle"                   Nothing                         [scons "Double"]                         (scons "Figure")
 
+    , makeNativeFun "circleGeometry"           Nothing [scons "Double",                 scons "Material"]               (scons "Geometry")
+    , makeNativeFun "squareGeometry"           Nothing [scons "Double",                 scons "Material"]               (scons "Geometry")
+    , makeNativeFun "rectangleGeometry"        Nothing [scons "Double", scons "Double", scons "Material"]               (scons "Geometry")
+
     , makeNativeFun "point"                    Nothing [scons "Double", scons "Double"]                                 (scons "Point")
     , makeNativeFun "initAttributes"           Nothing []                                                               (scons "Attributes")
     , makeNativeFun "color"                    Nothing [scons "Double", scons "Double", scons "Double", scons "Double"] (scons "Material")
@@ -364,10 +368,6 @@ symbolsList = [
 
     , makeNativeFun "sampleData"     Nothing [TLam [scons "Double"] (scons "Double"),
                                               scons "Double", scons "Double", scons "Int"]                     (listOf $ scons "Point")
-
-    , makeNativeFun "circleGeometry"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
-    , makeNativeFun "squareGeometry"         Nothing [scons "Double",                 scons "Material"]                (scons "Geometry")
-    , makeNativeFun "rectangleGeometry"      Nothing [scons "Double", scons "Double", scons "Material"]                (scons "Geometry")
 
     , makeNativeFun "axes"  Nothing [scons "Material", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
     , makeNativeFun "grid"  Nothing [scons "Material", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
