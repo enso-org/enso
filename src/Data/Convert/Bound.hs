@@ -58,9 +58,13 @@ genConversion c@(Conversion qexp (Type name bounds) (Type name' bounds')) = do
     exp <- qexp :: Q Exp
     let convf name fmod = [ValD (VarP $ mkName name) (NormalB $ fmod exp) []]
     return $ if bounds `isSubBound` bounds'
+#if __GLASGOW_HASKELL__ >= 800
+        then InstanceD Nothing [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id
+        else InstanceD Nothing [] (AppT (AppT (AppT (ConT $ mkName "MaybeConvertible") (ConT name)) (ConT $ mkName "BoundError")) (ConT name')) $ convf "tryConvert" $ AppE (VarE $ mkName "boundedConversion")
+#else
         then InstanceD [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id
         else InstanceD [] (AppT (AppT (AppT (ConT $ mkName "MaybeConvertible") (ConT name)) (ConT $ mkName "BoundError")) (ConT name')) $ convf "tryConvert" $ AppE (VarE $ mkName "boundedConversion")
-
+#endif
 
 genConversions :: [Conversion] -> Q [Dec]
 genConversions = mapM genConversion
