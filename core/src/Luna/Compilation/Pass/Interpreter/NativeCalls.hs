@@ -1,15 +1,27 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Luna.Compilation.Pass.Interpreter.NativeCalls where
 
 
 import           Prelude.Luna
 
-import qualified Data.Map          as Map
-import           Data.Map          (Map)
-import           Control.Monad.Fix (mfix)
-import           Unsafe.Coerce     (unsafeCoerce)
-import           GHC.Prim          (Any)
-import           Data.List         (sort, group)
-import           Data.IORef        (newIORef, IORef, writeIORef, readIORef)
+import qualified Data.Map           as Map
+import           Data.Map           (Map)
+import           Control.Monad.Fix  (mfix)
+import           Unsafe.Coerce      (unsafeCoerce)
+import           GHC.Prim           (Any)
+import           Data.List          (sort, group)
+import           Data.IORef         (newIORef, IORef, writeIORef, readIORef)
+
+import           Network.HTTP       (ResponseCode, simpleHTTP, getResponseCode, getRequest, urlEncode)
+import           System.Environment (lookupEnv)
+import           Text.Printf        (printf)
+
+import           Graphics.API
+
+
+lookupNative :: String -> Maybe Any
+lookupNative = flip Map.lookup nativeCalls
 
 nativeCalls :: Map String Any
 nativeCalls = Map.fromList $ [
@@ -115,6 +127,7 @@ nativeCalls = Map.fromList $ [
     , ("Double.atanh",    unsafeCoerce (return . atanh :: Double -> IO Double))
 
     , ("Double.toString", unsafeCoerce (return .  show :: Double -> IO String))
+    , ("Double.toStringFormat", unsafeCoerce (return .:. toStringFormat :: Double -> Int -> Int -> IO String))
 
 ------------------
 -- === Bool === --
@@ -162,6 +175,7 @@ nativeCalls = Map.fromList $ [
 -----------------
 -- === Ref === --
 -----------------
+
     , ("ref",             unsafeCoerce (newIORef  :: Any -> IO (IORef Any)))
     , ("Ref.modify",      unsafeCoerce modifyRef)
     , ("Ref.read",        unsafeCoerce (readIORef :: IORef Any -> IO Any))
@@ -184,7 +198,78 @@ nativeCalls = Map.fromList $ [
     , ("mean",          unsafeCoerce (return . (uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> IO Double))
     , ("differences",   unsafeCoerce (return . (\l -> zipWith (-) (drop 1 l) l) :: [Int] -> IO [Int]))
     , ("histogram",     unsafeCoerce (return . map (\l -> (head l, length l)) . group . sort :: [Int] -> IO [(Int, Int)]))
-    , ("primes",        unsafeCoerce primes)
+    , ("primes",        unsafeCoerce (return . primes                                        :: Int -> IO [Int]))
+    , ("pi",            unsafeCoerce (return   pi                                            :: IO Double))
+
+----------------------
+--- === Shapes === ---
+----------------------
+
+    , ("initTrans",                unsafeCoerce (return     def        :: IO Transformation))
+    , ("Transformation.scale",     unsafeCoerce (return .:. scale      :: Transformation -> Double -> Double -> IO Transformation))
+    , ("Transformation.translate", unsafeCoerce (return .:. translate  :: Transformation -> Double -> Double -> IO Transformation))
+    , ("Transformation.rotate",    unsafeCoerce (return .:  rotate     :: Transformation -> Double ->           IO Transformation))
+    , ("Transformation.reflect",   unsafeCoerce (return .   reflect    :: Transformation ->                     IO Transformation))
+
+    , ("square",                   unsafeCoerce (return .   Square     :: Double ->           IO Figure))
+    , ("rectangle",                unsafeCoerce (return .:  Rectangle  :: Double -> Double -> IO Figure))
+    , ("circle",                   unsafeCoerce (return .   Circle     :: Double ->           IO Figure))
+
+    , ("point",                    unsafeCoerce (return .:  Point      :: Double -> Double -> IO Point))
+    , ("initAttributes",           unsafeCoerce (return     def        :: IO Attributes))
+    , ("color",                    unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
+
+    , ("Figure.primitive",         unsafeCoerce (return .:. Primitive  :: Figure -> Point -> Attributes -> IO Primitive))
+
+    , ("Primitive.shape",          unsafeCoerce (return .   Shape      :: Primitive      -> IO Shape))
+    , ("Shape.merge",              unsafeCoerce (return .:  Merge      :: Shape -> Shape -> IO Shape))
+    , ("Shape.subtract",           unsafeCoerce (return .:  Subtract   :: Shape -> Shape -> IO Shape))
+    , ("Shape.intersect",          unsafeCoerce (return .:  Intersect  :: Shape -> Shape -> IO Shape))
+
+    , ("Shape.surface",            unsafeCoerce (return .   ShapeSurface :: Shape -> IO Surface))
+
+    , ("geoElem",                  unsafeCoerce (return .   GeoElem    :: [Surface]  -> IO GeoComponent))
+    , ("geoGroup",                 unsafeCoerce (return .   GeoGroup   :: [Geometry] -> IO GeoComponent))
+    , ("GeoComponent.geometry",    unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
+
+    , ("Geometry.layer",           unsafeCoerce (return .:  Layer      :: Geometry -> [Transformation] -> IO Layer))
+    , ("graphics",                 unsafeCoerce (return .   Graphics   :: [Layer]  -> IO Graphics))
+    , ("Graphics.layers",          unsafeCoerce (return .   _graphics  :: Graphics -> IO [Layer]))
+
+---------------------------
+--- === Drawing API === ---
+---------------------------
+
+    , ("sampleData",    unsafeCoerce (sampleData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]))
+
+    , ("circleGeometry",    unsafeCoerce (return .:   circleToGeo    :: Double ->           Material -> IO Geometry))
+    , ("squareGeometry",    unsafeCoerce (return .:   squareToGeo    :: Double ->           Material -> IO Geometry))
+    , ("rectangleGeometry", unsafeCoerce (return .:.  rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
+
+    , ("axes",   unsafeCoerce      (return .::: axes   :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("grid",   unsafeCoerce      (return .::: grid   :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+
+    , ("scatterChart",   unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
+
+    , ("barChart",       unsafeCoerce (return .:::.  barChart       :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
+    , ("barChartLayers", unsafeCoerce (return .:::.  barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
+
+    , ("autoScatterChartInt",    unsafeCoerce (return .::. autoScatterChartInt    :: Material -> Material -> Figure -> Double -> [Int]    -> IO Graphics))
+    , ("autoScatterChartDouble", unsafeCoerce (return .::. autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> IO Graphics))
+
+------------------------
+--- === IoT Demo === ---
+------------------------
+
+    , ("temperature",          unsafeCoerce (return    Temperature  :: IO Temperature))
+    , ("fan",                  unsafeCoerce (return    Fan          :: IO Fan))
+    , ("controlPanel",         unsafeCoerce (return    ControlPanel :: IO ControlPanel))
+
+    , ("Temperature.inside",                unsafeCoerce (return .: tempInside           :: Temperature  -> Double -> IO Double))
+    , ("Temperature.outside",               unsafeCoerce (return .: tempOutside          :: Temperature  -> Double -> IO Double))
+    , ("ControlPanel.temperatureThreshold", unsafeCoerce (return .: temperatureThreshold :: ControlPanel -> Double -> IO Double))
+    , ("ControlPanel.display",              unsafeCoerce (          displayLCD           :: ControlPanel -> String -> String -> IO String))
+    , ("Fan.power",                         unsafeCoerce (          fanOnOff             :: Fan          -> Bool             -> IO String))
 
 --------------------------
 -- === Experimental === --
@@ -202,12 +287,314 @@ nativeCalls = Map.fromList $ [
     , ("comp3to2",      unsafeCoerce comp3to2)
     , ("retFun2",       unsafeCoerce retFun2)
 
+    , ("testControls",  unsafeCoerce (return .:: testControls :: String -> Int -> Double -> Bool -> IO String))
+
     ]
+
+------------------------------------- IMPLEMENTATIONS -------------------------------------
+
+------------------------------------
+-- === Double Implementations === --
+------------------------------------
+
+toStringFormat :: Double -> Int -> Int -> String
+toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in printf format v
+
+---------------------------------
+-- === Ref Implementations === --
+---------------------------------
+
+modifyRef :: IORef Any -> (Any -> IO Any) -> IO (IORef Any)
+modifyRef ref f = do
+    v  <- readIORef ref
+    v' <- f v
+    writeIORef ref v'
+    return ref
+
+----------------------------------
+-- === Misc Implementations === --
+----------------------------------
+
+primes :: Int -> [Int]
+primes count = take count primes' where
+    primes'   = 2 : filter isPrime [3, 5..]
+    isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
+
+-------------------------------------------
+--- === Drawing API Implementations === ---
+-------------------------------------------
+
+-- helpers
+
+toTransformation :: Point -> Transformation
+toTransformation (Point x y) = translate def x y
+
+transformToViewPoint :: Double -> Double -> Double -> Double -> Double -> Point -> Point
+transformToViewPoint sx sy rx ry viewSize = scaleToViewPoint viewSize . offsetPoint rx ry . normalizePoint sx sy
+
+scaleToViewPoint :: Double -> Point -> Point
+scaleToViewPoint viewSize = offsetPoint viewOff viewOff . scalePoint viewSize viewSize . flipPointY where
+    viewOff = 0.5 * (1.0 - viewSize)
+
+scalePoint :: Double -> Double -> Point -> Point
+scalePoint px py (Point x y) = Point (x * px) (y * py)
+
+normalizePoint :: Double -> Double -> Point -> Point
+normalizePoint sx sy (Point x y) = Point (x / sx) (y / sy)
+
+offsetPoint :: Double -> Double -> Point -> Point
+offsetPoint rx ry (Point x y) = Point (x + rx) (y + ry)
+
+flipPointY :: Point -> Point
+flipPointY (Point x y) = Point x (1.0 - y)
+
+initialOffset :: Double -> Double -> Double
+initialOffset p1 p2 = -p1 / (p2 - p1)
+
+getOffset :: Double -> Double -> Double
+getOffset w p = p / w
+
+sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
+sampleData f x1 x2 res = do
+    let resNorm = if res < 2 then 2 else res
+        nums = [0 .. (resNorm - 1)]
+        range = x2 - x1
+        resPrec = fromIntegral (resNorm - 1)
+        xs = (\n -> x1 + range * (fromIntegral n / resPrec)) <$> nums
+        ys = f <$> xs
+        toPointF x = do
+            y <- f x
+            return $ Point x y
+    mapM toPointF xs
+
+
+-- drawing
+
+figureToGeo :: Figure -> Material -> Geometry
+figureToGeo figure mat = Geometry geoComp def (Just mat) where
+    geoComp = GeoElem [ShapeSurface $ Shape $ Primitive figure def def]
+
+circleToGeo :: Double -> Material -> Geometry
+circleToGeo = figureToGeo . Circle
+
+squareToGeo :: Double -> Material -> Geometry
+squareToGeo = figureToGeo . Square
+
+rectangleToGeo :: Double -> Double -> Material -> Geometry
+rectangleToGeo = figureToGeo .: Rectangle
+
+-- axes
+
+axisWidth :: Double
+axisWidth = 0.01
+
+maxSteps :: Int
+maxSteps  = 12
+
+axisLength viewSize = viewSize + axisWidth
+
+axisPoint :: Double -> Double -> Double
+axisPoint p1 p2 = mp where
+    step       = calculateTick maxSteps (p2 - p1)
+    (p1t, p2t) = edgePoints step p1 p2
+    mp         = initialOffset p1t p2t
+
+axisH :: Material -> Double -> Double -> Double -> Layer
+axisH mat viewSize y1 y2 = Layer geometry [toTransformation point] where
+    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
+    point      = scaleToViewPoint viewSize $ Point 0.5 my
+    my         = axisPoint y1 y2
+
+axisV :: Material -> Double -> Double -> Double -> Layer
+axisV mat viewSize x1 x2 = Layer geometry [toTransformation point] where
+    geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
+    point      = scaleToViewPoint viewSize $ Point mx 0.5
+    mx         = axisPoint x1 x2
+
+axes :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
+    aH = axisH mat viewSize y1 y2
+    aV = axisV mat viewSize x1 x2
+
+gridHStep1 :: Material -> Double -> Double -> Double -> Layer
+gridHStep1 mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
+    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
+    points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
+    y1i      = truncate y1
+    y2i      = truncate y2
+    yis      = fromIntegral <$> [y1i..y2i]
+    myst     = getOffset (y2 - y1) <$> yis
+    mys      = (+ initialOffset y1 y2) <$> myst
+
+gridPoints :: Double -> Double -> [Double]
+gridPoints p1 p2 = mps where
+    step       = calculateTick maxSteps (p2 - p1)
+    (p1t, p2t) = edgePoints step p1 p2
+    actSteps   = (p2t - p1t) / step
+    steps      = (\i -> i * step) <$> [0..actSteps]
+    pis        = (+ p1t) <$> steps
+    mpst       = getOffset (p2t - p1t) <$> pis
+    mps        = (+ initialOffset p1t p2t) <$> mpst
+
+gridH :: Material -> Double -> Double -> Double -> Layer
+gridH mat viewSize y1 y2 = Layer geometry $ toTransformation <$> points where
+    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
+    points   = scaleToViewPoint viewSize . Point 0.5 <$> mys
+    mys      = gridPoints y1 y2
+
+gridV :: Material -> Double -> Double -> Double -> Layer
+gridV mat viewSize x1 x2 = Layer geometry $ toTransformation <$> points where
+    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
+    points   = scaleToViewPoint viewSize . flip Point 0.5 <$> mxs
+    mxs      = gridPoints x1 x2
+
+grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
+    gH = gridH mat viewSize y1 y2
+    gV = gridV mat viewSize x1 x2
+
+edgePoints :: Double -> Double -> Double -> (Double, Double)
+edgePoints step p1 p2 = (p1t, p2t) where
+    p1t = (* step) . fromIntegral . floor   $ p1 / step
+    p2t = (* step) . fromIntegral . ceiling $ p2 / step
+
+calculateTick :: Int -> Double -> Double
+calculateTick maxTicks range = tick where
+    minTick   = range / (fromIntegral (maxTicks - 2))
+    magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
+    residual  = minTick / magnitude
+    tick | residual > 5.0 = 10.0 * magnitude
+         | residual > 2.0 =  5.0 * magnitude
+         | residual > 1.0 =  2.0 * magnitude
+         | otherwise      =        magnitude
+
+-- auto charts
+
+autoScatterChartInt :: Material -> Material -> Figure -> Double -> [Int] -> Graphics
+autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDouble gridMat mat figure viewSize $ fromIntegral <$> ints
+
+autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
+autoScatterChartDouble gridMat mat figure viewSize []      = Graphics []
+autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ gridLayer <> [chartLayer] where
+    chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
+    gridLayer  = grid gridMat viewSize x1 x2 y1 y2
+    x1 = 0.0
+    x2 = fromIntegral $ length doubles - 1
+    y1 = min 0.0 $ minimum doubles
+    y2 = max 0.0 $ maximum doubles
+    points = (\(i, v) -> Point (fromIntegral i) v) <$> zip [0..] doubles
+
+-- charts
+
+scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
+scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
+    geometry   = figureToGeo figure mat
+    viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize <$> points
+    rx         = initialOffset x1t x2t
+    ry         = initialOffset y1t y2t
+    stepX      = calculateTick maxSteps (x2 - x1)
+    stepY      = calculateTick maxSteps (y2 - y1)
+    (x1t, x2t) = edgePoints stepX x1 x2
+    (y1t, y2t) = edgePoints stepY y1 y2
+
+barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
+barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
+    rx         = initialOffset x1 x2
+    ry         = initialOffset y1 y2
+
+barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
+barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
+    layers     = toLayer <$> viewPoints
+    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize <$> points
+    rx         = initialOffset x1 x2
+    ry         = initialOffset y1 y2
+    w          = 0.5 / (fromIntegral $ length points)
+    toLayer (Point dx dy) = Layer geometry [toTransformation point] where
+        point     = Point dx (dy * 0.5)
+        geometry  = Geometry geoComp def (Just mat)
+        geoComp   = convert figure :: GeoComponent
+        figure    = Rectangle w h
+        h         = abs dy
+
+-- charts helpers
+
+scatterChartImpl :: Geometry -> [Point] -> Layer
+scatterChartImpl geometry points = Layer geometry $ toTransformation <$> points
+
+barChartImpl = barChartGeometriesImpl
+
+-- TODO: barChartShapes :: Material -> [Transformation] -> Layer
+-- rewrite to new2 API with composable list of shapes with transformations
+
+-- TODO: check why this hangs
+-- TODO: check why composing geometries does not work with translations
+barChartGeometriesImpl :: Material -> [Point] -> Layer
+barChartGeometriesImpl mat points = layer where
+    pointsX          = transformX <$> points
+    pointsY          = transformY <$> points
+    geoComponent     = GeoElem  $ toSurface  <$> pointsY
+    geoComponentMain = GeoGroup $ toGeometry <$> pointsX
+    geometry         = Geometry geoComponentMain def $ Just mat
+    layer            = Layer geometry [def]
+    toGeometry :: Point -> Geometry
+    toGeometry point = Geometry geoComponent (toTransformation point) $ Just mat
+    toSurface :: Point -> Surface
+    toSurface  (Point _  dy) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 (abs dy)) def def
+    transformX (Point dx dy) = Point dx  0.0
+    transformY (Point dx dy) = Point 0.0 dy
+
+
+------------------------
+--- === IoT Demo === ---
+------------------------
+
+-- helpers
+
+getCode :: String -> IO ResponseCode
+getCode url = simpleHTTP req >>= getResponseCode
+    where req = getRequest url
+defautlLcdEndpoint = "http://192.168.2.222:8000/display"
+defautlFanEndpoint = "http://192.168.2.222:8000/fan"
+
+-- implementation
+
+data Temperature  = Temperature
+data ControlPanel = ControlPanel
+data Fan          = Fan
+
+tempInside, tempOutside :: Temperature -> Double -> Double
+tempInside  = const id
+tempOutside = const id
+
+temperatureThreshold :: ControlPanel -> Double -> Double
+temperatureThreshold = const id
+
+displayLCD :: ControlPanel -> String -> String -> IO String
+displayLCD _ first second = do
+    lcdEndpointMay <- lookupEnv "LCD_ENDPOINT"
+    let endpoint = fromMaybe defautlLcdEndpoint lcdEndpointMay
+    (code, _, _) <- getCode $ endpoint <> "?first=" <> urlEncode first <> "&second=" <> urlEncode second
+    return $ case code of
+        2 -> first <> "\n" <> second
+        _ -> "error"
+
+fanOnOff :: Fan -> Bool -> IO String
+fanOnOff _ state = do
+    fanEndpointMay <- lookupEnv "FAN_ENDPOINT"
+    let endpoint = fromMaybe defautlFanEndpoint fanEndpointMay
+    (code, _, _) <- getCode $ endpoint <> "?state=" <> show (fromEnum state)
+    return $ case code of
+        2 -> if state then "On" else "Off"
+        _ -> "error"
+
+------------------------------------------
+-- === Experimental Implementations === --
+------------------------------------------
 
 retFun2 :: (Any -> Any -> IO Any) -> IO (Any -> IO (Any -> IO Any))
 retFun2 f = return $ \x -> do
     return $ f x
-
 
 comp2to2 :: (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> (Any -> Any -> IO Any) -> IO (Any -> Any -> IO Any)
 comp2to2 f1 f2 f = return $ \x y -> do
@@ -222,20 +609,9 @@ comp3to2 f1 f2 f3 f = return $ \x y -> do
     f3xy <- f3 x y
     f f1xy f2xy f3xy
 
-(<==<)       :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
-g <==< f     = \x y -> f x y >>= g
+(<==<)   :: Monad m => (b -> m c) -> (a -> a1 -> m b) -> (a -> a1 -> m c)
+g <==< f = \x y -> f x y >>= g
 
-modifyRef :: IORef Any -> (Any -> IO Any) -> IO (IORef Any)
-modifyRef ref f = do
-    v  <- readIORef ref
-    v' <- f v
-    writeIORef ref v'
-    return ref
 
-primes :: Int -> IO [Int]
-primes count = return $ take count primes' where
-    primes'   = 2 : filter isPrime [3, 5..]
-    isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
-
-lookupNative :: String -> Maybe Any
-lookupNative = flip Map.lookup nativeCalls
+testControls :: String -> Int -> Double -> Bool -> String
+testControls s i d b = s <> " " <> show i <> " " <> show d <> " " <> show b

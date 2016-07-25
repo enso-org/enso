@@ -164,12 +164,9 @@ resolveUnify uni = do
                               asB <- mapM (follow source . unlayer) argsB
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
                               newUnis <- zipWithM unify asA asB
+                              uniCons <- cons na $ arg <$> newUnis
+                              replaceNode uni uniCons
                               mapM (flip (reconnect $ prop TCData . requester) req) newUnis
-                              unified <- replaceAny a b
-                              uniReplacement <- if null argsA
-                                  then return unified
-                                  else cons na (arg <$> newUnis)
-                              replaceNode uni uniReplacement
                               resolve newUnis
                           else reportError uni
 
@@ -196,17 +193,30 @@ resolveUnify uni = do
                   whenMatched (uncover b') $ \(Lam cargs' cout') -> do
                       let cRawArgs  = unlayer <$> cargs
                       let cRawArgs' = unlayer <$> cargs'
-                      args  <- mapM (follow source) (cout  : cRawArgs )
-                      args' <- mapM (follow source) (cout' : cRawArgs')
+                      args  <- mapM (follow source) cRawArgs
+                      out   <- follow source cout
+                      args' <- mapM (follow source) cRawArgs'
+                      out'  <- follow source cout'
                       req   <- mapM (follow source) =<< follow (prop TCData . requester) uni
-                      if length args == length args'
+                      unis <- if length args == length args'
                           then do
-                              unis  <- zipWithM unify args args'
+                              argUnis <- zipWithM unify args args'
+                              outUni  <- unify out out'
+                              let unis = outUni : argUnis
                               replaceNode uni a
                               replaceNode b   a
-                              mapM (flip (reconnect $ prop TCData . requester) req) unis
-                              resolve unis
-                          else reportError uni
+                              return $ outUni : argUnis
+                          else do
+                              let l  = (args,  out)
+                                  l' = (args', out')
+                                  ((shortArgs, shortOut), (longArgs, longOut)) = if length args < length args' then (l, l') else (l', l)
+                              argUnis <- zipWithM unify args args'
+                              newLam  <- lam (arg <$> drop (length shortArgs) longArgs) longOut
+                              outUni  <- unify shortOut newLam
+                              replaceNode uni a
+                              return $ outUni : argUnis
+                      mapM (flip (reconnect $ prop TCData . requester) req) unis
+                      resolve unis
 
 
 
