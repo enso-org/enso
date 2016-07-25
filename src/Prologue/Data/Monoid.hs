@@ -2,7 +2,7 @@
 
 module Prologue.Data.Monoid (module Prologue.Data.Monoid, module X) where
 
-import GHC.Prim    (Constraint)
+import GHC.Exts    (Constraint)
 import Data.Monoid as X (Monoid, mappend, mconcat, mempty, (<>))
 
 type family Monoids lst :: Constraint where

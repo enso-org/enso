@@ -2,7 +2,7 @@
 
 module Prologue.Data.Default (module Prologue.Data.Default, module X) where
 
-import GHC.Prim     (Constraint)
+import GHC.Exts     (Constraint)
 import Data.Default as X
 
 type family Defaults lst :: Constraint where

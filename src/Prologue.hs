@@ -76,7 +76,6 @@ import Prologue.Data.Monoid         as X
 import Prologue.Control.DeepSeq     as X
 
 -- Missing instances
-import Data.Binary.Instances.Missing  ()
 import Data.Default.Instances.Missing ()
 
 import Data.Functor.Compose
