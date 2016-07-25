@@ -22,7 +22,7 @@ packages:
     - ../../../libs/typelevel
     - ../../../libs/data-shell
 
-    - ../../../visualization-api
+    - ../../../libs/visualization-api
 
 extra-deps:
     - ghc-session-0.1.2.0
