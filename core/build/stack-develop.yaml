@@ -1,4 +1,4 @@
-resolver: lts-6.9
+resolver: nightly-2016-07-19
 packages:
     - ..
 
@@ -45,6 +45,6 @@ extra-deps:
     - graphviz-2999.18.1.2
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0
+    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100
 
 local-bin-path: ./dist/bin

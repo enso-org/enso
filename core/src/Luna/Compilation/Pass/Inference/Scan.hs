@@ -124,7 +124,7 @@ resolveLocalVars = do
 
 data ScanPass = ScanPass deriving (Show, Eq)
 
-instance PassCtx(m) => TypeCheckerPass ScanPass m where
+instance (Monad m {-ghc8-}, PassCtx(m)) => TypeCheckerPass ScanPass m where
     hasJobs _ = not . null . view TypeCheck.freshRoots <$> TypeCheck.get
 
     runTCPass _ = do

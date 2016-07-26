@@ -10,7 +10,6 @@ import           Control.Monad.Fix
 import qualified Control.Monad.State      as State
 import           Control.Monad.Primitive
 import           Prelude.Luna
-import qualified Language.Haskell.Session as HS
 
 -- TODO: template haskellize
 -- >->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
@@ -22,7 +21,7 @@ import qualified Language.Haskell.Session as HS
 type    SelfBuilder  s     = SelfBuilderT s Identity
 newtype SelfBuilderT s m a = SelfBuilderT STATE_DEF(s,m,a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, MonadTrans, Alternative
-                 , MonadFix, HS.GhcMonad, HS.ExceptionMonad, HS.HasDynFlags, Catch.MonadMask
+                 , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
 
 class MonadFix m => MonadSelfBuilder s m | m -> s where

@@ -70,4 +70,4 @@ instance Monad m => Destructor m (Layer Lambda (RefSet t n)) where
 -- === Layer building & destruction === --
 ------------------------------------------
 
-instance CoverDestructor m (ls :<: a) => Destructor m (ls :<: a) where destruct a = () <$ destructCover a
+instance (Monad m {-ghc8-}, CoverDestructor m (ls :<: a)) => Destructor m (ls :<: a) where destruct a = () <$ destructCover a

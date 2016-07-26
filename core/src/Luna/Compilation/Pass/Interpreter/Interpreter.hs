@@ -56,9 +56,6 @@ import           GHC.Prim                                        (Any)
 import           Control.Monad.Catch                             (MonadCatch, handleAll, handleJust)
 import           Control.Monad.Ghc                               (GhcT)
 import           Control.Exception                               (SomeException(..), AsyncException(..), throwIO)
-import           Language.Haskell.Session                        (GhcMonad)
-import qualified Language.Haskell.Session                        as HS
-import qualified Language.Haskell.Session.Hint.Eval as HEval
 import           Unsafe.Coerce   -- TODO: move to another module
 
 
@@ -82,8 +79,8 @@ import           Data.Layer_OLD.Cover_OLD
 
 -- TODO: move to another module and encapsulate
 
-findSymbol :: HS.SessionMonad m => String -> String -> m Any
-findSymbol name tpe = unsafeCoerce <$> HEval.interpretTyped name tpe
+-- findSymbol :: HS.SessionMonad m => String -> String -> m Any
+-- findSymbol name tpe = unsafeCoerce <$> HEval.interpretTyped name tpe
 
 appArg :: Any -> Any -> Any
 appArg = unsafeCoerce

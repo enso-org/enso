@@ -71,7 +71,7 @@ newtype Element ls = Element (TermStack ls (Element ls))
 data Expr2 = Expr2 deriving (Show)
 
 type instance LayerData (ExprLayer el Expr2) = ExprRecord2 (el # Format) (el # Dynamics) 'Nothing el
-
+-- !!!!!!!!!!!!!!!!!!!!!! przy konstruktorach robimy tak ze atom wkladamy do monady konstruujacej i odpalamy tworzenie warst. Te ktore beda go chcialy sie do niego dostana. Wtedy bedziemy wiedzieli jak uzyc dokladnie VGRecord2
 type family a # prop
 
 newtype     Expr        t fmt dyn sel = Expr (Layout t fmt dyn sel)
@@ -151,7 +151,7 @@ class Monad m => OverBuilder m a where
 instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
     overbuild = return ; {-# INLINE overbuild #-}
 
-instance OverBuilder m (Unwrapped (Expr t fmt dyn a)) => OverBuilder m (Expr t fmt dyn a) where
+instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder m (Expr t fmt dyn a) where
     overbuild = Expr <∘> overbuild ; {-# INLINE overbuild #-}
 
 
