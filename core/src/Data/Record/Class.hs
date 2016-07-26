@@ -382,7 +382,7 @@ instance ( HasRecord r
         Ok el = unsafeExtract t rec :: Ok el
 
 
-instance MapTryingElemList '[] ctx rec a -- where mapTryingElemList = error "Data/Record special error"
+instance MapTryingElemList '[] ctx rec a where mapTryingElemList = error "Data/Record special error"
 
 
 
@@ -406,7 +406,7 @@ instance ( HasRecord r
         Ok el = unsafeExtract t rec :: Ok el
 
 
-instance MapTryingElemList_ '[] ctx rec -- where mapTryingElemList_ = error "Data/Record special error"
+instance MapTryingElemList_ '[] ctx rec where mapTryingElemList_ = error "Data/Record special error"
 
 --class NFunctor n m a a' | n m a -> a' where fmapN :: (n -> m) -> a -> a'
 
@@ -417,7 +417,7 @@ instance (MapOverElemList els ctx rec, els ~ (RecordOf rec ##. Variant)) => Over
 class MapOverElemList els ctx rec where mapOverElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> v) -> rec -> rec
 
 
-instance MapOverElemList '[] ctx rec -- where mapOverElemList = error "Data/Record special error"
+instance MapOverElemList '[] ctx rec where mapOverElemList = error "Data/Record special error"
 
 
 instance ( HasRecord r
