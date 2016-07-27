@@ -167,7 +167,7 @@ labelOffX = -0.1
 labelOffY = -0.05
 
 labelAdjustX = 0.0
-labelAdjustY = -0.02
+labelAdjustY = 0.04
 
 showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
@@ -201,13 +201,33 @@ gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridLabeledH mat decim viewSize y1 y2
     gV = gridLabeledV mat decim viewSize x1 x2
 
+chartShift = Point 0.1 (-0.1)
+
+shiftPoint :: Double -> Double -> Point -> Point
+shiftPoint viewX viewY (Point x y) = Point (viewX * x) (viewY * y)
+
+shiftGraphics :: Point -> Graphics -> Graphics
+shiftGraphics point (Graphics layers) = Graphics layers' where
+    layers'  = shiftLayer point <$> layers
+
+shiftLayer :: Point -> Layer -> Layer
+shiftLayer point (Layer geo trans labels) = Layer geo trans' labels' where
+    trans'  = shiftTrans point <$> trans
+    labels' = shiftLabel point <$> labels
+    shiftTrans (Point x y) transformation = translate transformation x y
+    shiftLabel (Point x y) (Label (Point lx ly) fontSize text) = Label (Point (lx + x) (ly + y)) fontSize text
+
 -- auto charts
 
 autoScatterChartInt :: Material -> Material -> Figure -> Double -> [Int] -> Graphics
-autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize $ fromIntegral <$> ints
+autoScatterChartInt gridMat mat figure viewSize ints = shiftGraphics shift chart where
+    chart = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize $ fromIntegral <$> ints
+    shift = shiftPoint viewSize viewSize chartShift
 
 autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
-autoScatterChartDouble gridMat mat figure viewSize doubles = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize doubles
+autoScatterChartDouble gridMat mat figure viewSize doubles = shiftGraphics shift chart where
+    chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize doubles
+    shift = shiftPoint viewSize viewSize chartShift
 
 autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> [Double] -> Graphics
 autoScatterChartDoubleImpl gridMat mat figure decim viewSize []      = Graphics []
