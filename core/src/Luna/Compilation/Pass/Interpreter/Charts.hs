@@ -158,6 +158,9 @@ gridV mat viewSize x1 x2 = mkLayer geometry points where
 
 labelOff viewSize = 0.5 * (1.0 - viewSize)
 
+labelOffX = -0.2
+labelOffY = -0.2
+
 showLabel :: Double -> String
 showLabel = printf "%0.1f"
 
@@ -167,8 +170,9 @@ labeledGridH mat viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     labels   = mkLabel <$> mys
     mys      = gridPoints y1 y2
-    mkLabel y = Label pos labelFontSize $ showLabel y where
-        pos   = scaleToViewPoint viewSize viewSize $ Point (labelOff viewSize) y
+    mkLabel y = Label pos labelFontSize $ showLabel ay where
+        ay    = y1 + y * (y2 - y1)
+        pos   = scaleToViewPoint viewSize viewSize $ Point labelOffX y
 
 labeledGridV :: Material -> Double -> Double -> Double -> Layer
 labeledGridV mat viewSize x1 x2 = mkLayerWithLabels geometry points labels where
@@ -176,8 +180,9 @@ labeledGridV mat viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     labels   = mkLabel <$> mxs
     mxs      = gridPoints x1 x2
-    mkLabel x = Label pos labelFontSize $ showLabel x where
-        pos   = scaleToViewPoint viewSize viewSize $ Point x (labelOff viewSize)
+    mkLabel x = Label pos labelFontSize $ showLabel ax where
+        ax    = x1 + x * (x2 - x1)
+        pos   = scaleToViewPoint viewSize viewSize $ Point x labelOffX
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
