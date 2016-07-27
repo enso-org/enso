@@ -369,8 +369,9 @@ symbolsList = [
     , makeNativeFun "sampleData"     Nothing [TLam [scons "Double"] (scons "Double"),
                                               scons "Double", scons "Double", scons "Int"]                     (listOf $ scons "Point")
 
-    , makeNativeFun "axes"  Nothing [scons "Material", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
-    , makeNativeFun "grid"  Nothing [scons "Material", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
+    , makeNativeFun "axes"         Nothing [scons "Material",              scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
+    , makeNativeFun "grid"         Nothing [scons "Material",              scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
+    , makeNativeFun "gridLabeled"  Nothing [scons "Material", scons "Int", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
 
     , makeNativeFun "scatterChart"    Nothing [scons "Material", scons "Figure", scons "Double",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",

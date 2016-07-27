@@ -247,8 +247,9 @@ nativeCalls = Map.fromList $ [
 
     , ("sampleData",    unsafeCoerce (sampleData   :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]))
 
-    , ("axes",   unsafeCoerce      (return .::: axes   :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
-    , ("grid",   unsafeCoerce      (return .::: grid   :: Material -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("axes",        unsafeCoerce      (return .:::  axes        :: Material ->        Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("grid",        unsafeCoerce      (return .:::  grid        :: Material ->        Double -> Double -> Double -> Double -> Double -> IO [Layer]))
+    , ("gridLabeled", unsafeCoerce      (return .:::. gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
 
     , ("scatterChart",   unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
 

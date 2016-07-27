@@ -156,53 +156,64 @@ gridV mat viewSize x1 x2 = mkLayer geometry points where
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     mxs      = gridPoints x1 x2
 
+grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
+    gH = gridH mat viewSize y1 y2
+    gV = gridV mat viewSize x1 x2
+
 labelOff viewSize = 0.5 * (1.0 - viewSize)
 
 labelOffX = -0.1
-labelOffY = -0.1
+labelOffY = -0.05
 
-showLabel :: Double -> String
-showLabel = printf "%0.1f"
+labelAdjustX = 0.0
+labelAdjustY = -0.02
 
-labeledGridH :: Material -> Double -> Double -> Double -> Layer
-labeledGridH mat viewSize y1 y2 = mkLayerWithLabels geometry points labels where
+showLabel :: Int -> Double -> String
+showLabel decim = printf $ "%0." <> show decim <> "f"
+
+gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
+gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     labels   = mkLabel <$> mys
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
     (y1t, y2t) = edgePoints stepY y1 y2
-    mkLabel y = Label pos labelFontSize $ showLabel ay where
+    mkLabel y = Label pos labelFontSize $ showLabel decim ay where
         ay    = y1t + y * (y2t - y1t)
-        pos   = scaleToViewPoint viewSize viewSize $ Point labelOffY y
+        pos   = scaleToViewPoint viewSize viewSize $ Point labelOffX (y + labelAdjustY)
 
-labeledGridV :: Material -> Double -> Double -> Double -> Layer
-labeledGridV mat viewSize x1 x2 = mkLayerWithLabels geometry points labels where
+gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
+gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     labels   = mkLabel <$> mxs
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
     (x1t, x2t) = edgePoints stepX x1 x2
-    mkLabel x = Label pos labelFontSize $ showLabel ax where
+    mkLabel x = Label pos labelFontSize $ showLabel decim ax where
         ax    = x1t + x * (x2t - x1t)
-        pos   = scaleToViewPoint viewSize viewSize $ Point x labelOffX
+        pos   = scaleToViewPoint viewSize viewSize $ Point (x + labelAdjustX) labelOffY
 
-grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
-    gH = labeledGridH mat viewSize y1 y2
-    gV = labeledGridV mat viewSize x1 x2
+gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> [Layer]
+gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
+    gH = gridLabeledH mat decim viewSize y1 y2
+    gV = gridLabeledV mat decim viewSize x1 x2
 
 -- auto charts
 
 autoScatterChartInt :: Material -> Material -> Figure -> Double -> [Int] -> Graphics
-autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDouble gridMat mat figure viewSize $ fromIntegral <$> ints
+autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize $ fromIntegral <$> ints
 
 autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
-autoScatterChartDouble gridMat mat figure viewSize []      = Graphics []
-autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ gridLayers <> [chartLayer] where
+autoScatterChartDouble gridMat mat figure viewSize doubles = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize doubles
+
+autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> [Double] -> Graphics
+autoScatterChartDoubleImpl gridMat mat figure decim viewSize []      = Graphics []
+autoScatterChartDoubleImpl gridMat mat figure decim viewSize doubles = Graphics $ gridLayers <> [chartLayer] where
     chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    gridLayers = grid gridMat viewSize x1 x2 y1 y2
+    gridLayers = gridLabeled gridMat decim viewSize x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = min 0.0 $ minimum doubles
