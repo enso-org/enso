@@ -12,6 +12,9 @@ mkLayer geo trans = Layer geo trans []
 mkLayerWithLabels :: Geometry -> [Transformation] -> [Label] -> Layer
 mkLayerWithLabels = Layer
 
+withLabels :: Layer -> [Label] -> Layer
+withLabels (Layer geo trans _) labels = Layer geo trans labels
+
 toTransformation :: Point -> Transformation
 toTransformation (Point x y) = translate def x y
 
@@ -75,10 +78,27 @@ rectangleToGeo = figureToGeo .: Rectangle
 axisWidth :: Double
 axisWidth = 0.008
 
+axisLength viewSize = viewSize + axisWidth
+
 maxSteps :: Int
 maxSteps  = 12
 
-axisLength viewSize = viewSize + axisWidth
+labelFontSize = 10.0
+
+edgePoints :: Double -> Double -> Double -> (Double, Double)
+edgePoints step p1 p2 = (p1t, p2t) where
+    p1t = (* step) . fromIntegral . floor   $ p1 / step
+    p2t = (* step) . fromIntegral . ceiling $ p2 / step
+
+calculateTick :: Int -> Double -> Double
+calculateTick maxTicks range = tick where
+    minTick   = range / (fromIntegral (maxTicks - 2))
+    magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
+    residual  = minTick / magnitude
+    tick | residual > 5.0 = 10.0 * magnitude
+         | residual > 2.0 =  5.0 * magnitude
+         | residual > 1.0 =  2.0 * magnitude
+         | otherwise      =        magnitude
 
 axisPoint :: Double -> Double -> Double
 axisPoint p1 p2 = mp where
@@ -124,36 +144,41 @@ gridPoints p1 p2 = mps where
     mps        = (+ initialOffset p1t p2t) <$> mpst
 
 gridH :: Material -> Double -> Double -> Double -> Layer
-gridH mat viewSize y1 y2 = mkLayer geometry $ toTransformation <$> points where
+gridH mat viewSize y1 y2 = mkLayer geometry points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
+    points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     mys      = gridPoints y1 y2
 
 gridV :: Material -> Double -> Double -> Double -> Layer
-gridV mat viewSize x1 x2 = mkLayer geometry $ toTransformation <$> points where
+gridV mat viewSize x1 x2 = mkLayer geometry points where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
-    points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
+    points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     mxs      = gridPoints x1 x2
+
+labelOff viewSize = 0.5 * (1.0 - viewSize)
+
+labeledGridH :: Material -> Double -> Double -> Double -> Layer
+labeledGridH mat viewSize y1 y2 = mkLayerWithLabels geometry points labels where
+    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
+    points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
+    labels   = mkLabel <$> mys
+    mys      = gridPoints y1 y2
+    mkLabel y = Label pos labelFontSize $ show y where
+        pos   = Point (labelOff viewSize) y
+
+labeledGridV :: Material -> Double -> Double -> Double -> Layer
+labeledGridV mat viewSize x1 x2 = mkLayerWithLabels geometry points labels where
+    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
+    points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
+    labels   = mkLabel <$> mxs
+    mxs      = gridPoints x1 x2
+    mkLabel x = Label pos labelFontSize $ show x where
+        pos   = Point x (labelOff viewSize)
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
-    gH = gridH mat viewSize y1 y2
-    gV = gridV mat viewSize x1 x2
-
-edgePoints :: Double -> Double -> Double -> (Double, Double)
-edgePoints step p1 p2 = (p1t, p2t) where
-    p1t = (* step) . fromIntegral . floor   $ p1 / step
-    p2t = (* step) . fromIntegral . ceiling $ p2 / step
-
-calculateTick :: Int -> Double -> Double
-calculateTick maxTicks range = tick where
-    minTick   = range / (fromIntegral (maxTicks - 2))
-    magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
-    residual  = minTick / magnitude
-    tick | residual > 5.0 = 10.0 * magnitude
-         | residual > 2.0 =  5.0 * magnitude
-         | residual > 1.0 =  2.0 * magnitude
-         | otherwise      =        magnitude
+    gH = labeledGridH mat viewSize y1 y2
+    gV = labeledGridV mat viewSize x1 x2
 
 -- auto charts
 
@@ -162,9 +187,9 @@ autoScatterChartInt gridMat mat figure viewSize ints = autoScatterChartDouble gr
 
 autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
 autoScatterChartDouble gridMat mat figure viewSize []      = Graphics []
-autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ gridLayer <> [chartLayer] where
+autoScatterChartDouble gridMat mat figure viewSize doubles = Graphics $ gridLayers <> [chartLayer] where
     chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    gridLayer  = grid gridMat viewSize x1 x2 y1 y2
+    gridLayers = grid gridMat viewSize x1 x2 y1 y2
     x1 = 0.0
     x2 = fromIntegral $ length doubles - 1
     y1 = min 0.0 $ minimum doubles
