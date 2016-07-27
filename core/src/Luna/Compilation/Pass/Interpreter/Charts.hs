@@ -84,7 +84,7 @@ axisLength viewSize = viewSize + axisWidth
 maxSteps :: Int
 maxSteps  = 12
 
-labelFontSize = 6.0
+labelFontSize = 10.0
 
 edgePoints :: Double -> Double -> Double -> (Double, Double)
 edgePoints step p1 p2 = (p1t, p2t) where
@@ -167,7 +167,7 @@ labelOffX = -0.1
 labelOffY = -0.05
 
 labelAdjustX = 0.0
-labelAdjustY = 0.06
+labelAdjustY = 0.04
 
 showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
