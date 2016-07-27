@@ -84,7 +84,7 @@ axisLength viewSize = viewSize + axisWidth
 maxSteps :: Int
 maxSteps  = 12
 
-labelFontSize = 8.0
+labelFontSize = 6.0
 
 edgePoints :: Double -> Double -> Double -> (Double, Double)
 edgePoints step p1 p2 = (p1t, p2t) where
@@ -180,7 +180,7 @@ gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
     (y1t, y2t) = edgePoints stepY y1 y2
-    mkLabel y = Label pos labelFontSize $ showLabel decim ay where
+    mkLabel y = Label pos (labelFontSize * viewSize) $ showLabel decim ay where
         ay    = y1t + y * (y2t - y1t)
         pos   = scaleToViewPoint viewSize viewSize $ Point labelOffX (y + labelAdjustY)
 
@@ -192,7 +192,7 @@ gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
     (x1t, x2t) = edgePoints stepX x1 x2
-    mkLabel x = Label pos labelFontSize $ showLabel decim ax where
+    mkLabel x = Label pos (labelFontSize * viewSize) $ showLabel decim ax where
         ax    = x1t + x * (x2t - x1t)
         pos   = scaleToViewPoint viewSize viewSize $ Point (x + labelAdjustX) labelOffY
 
