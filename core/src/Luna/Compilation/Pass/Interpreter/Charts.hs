@@ -163,11 +163,11 @@ grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
 
 labelOff viewSize = 0.5 * (1.0 - viewSize)
 
-labelOffX = -0.1
-labelOffY = -0.05
+labelOffX = -0.05
+labelOffY = -0.025
 
 labelAdjustX = 0.0
-labelAdjustY = 0.04
+labelAdjustY = 0.035
 
 showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
