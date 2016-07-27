@@ -167,7 +167,7 @@ labelOffX = -0.1
 labelOffY = -0.05
 
 labelAdjustX = 0.0
-labelAdjustY = 0.04
+labelAdjustY = 0.06
 
 showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
@@ -201,7 +201,7 @@ gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridLabeledH mat decim viewSize y1 y2
     gV = gridLabeledV mat decim viewSize x1 x2
 
-chartShift = Point 0.1 (-0.1)
+chartShift = Point 0.05 (-0.05)
 
 shiftPoint :: Double -> Double -> Point -> Point
 shiftPoint viewX viewY (Point x y) = Point (viewX * x) (viewY * y)
