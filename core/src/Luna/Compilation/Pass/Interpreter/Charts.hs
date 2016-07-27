@@ -1,6 +1,7 @@
 module Luna.Compilation.Pass.Interpreter.Charts where
 
 import           Prelude.Luna
+import           Text.Printf        (printf)
 
 import           Graphics.API
 
@@ -83,7 +84,7 @@ axisLength viewSize = viewSize + axisWidth
 maxSteps :: Int
 maxSteps  = 12
 
-labelFontSize = 10.0
+labelFontSize = 8.0
 
 edgePoints :: Double -> Double -> Double -> (Double, Double)
 edgePoints step p1 p2 = (p1t, p2t) where
@@ -157,14 +158,17 @@ gridV mat viewSize x1 x2 = mkLayer geometry points where
 
 labelOff viewSize = 0.5 * (1.0 - viewSize)
 
+showLabel :: Double -> String
+showLabel = printf "%0.1f"
+
 labeledGridH :: Material -> Double -> Double -> Double -> Layer
 labeledGridH mat viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     labels   = mkLabel <$> mys
     mys      = gridPoints y1 y2
-    mkLabel y = Label pos labelFontSize $ show y where
-        pos   = Point (labelOff viewSize) y
+    mkLabel y = Label pos labelFontSize $ showLabel y where
+        pos   = scaleToViewPoint viewSize viewSize $ Point (labelOff viewSize) y
 
 labeledGridV :: Material -> Double -> Double -> Double -> Layer
 labeledGridV mat viewSize x1 x2 = mkLayerWithLabels geometry points labels where
@@ -172,8 +176,8 @@ labeledGridV mat viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     labels   = mkLabel <$> mxs
     mxs      = gridPoints x1 x2
-    mkLabel x = Label pos labelFontSize $ show x where
-        pos   = Point x (labelOff viewSize)
+    mkLabel x = Label pos labelFontSize $ showLabel x where
+        pos   = scaleToViewPoint viewSize viewSize $ Point x (labelOff viewSize)
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
 grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
