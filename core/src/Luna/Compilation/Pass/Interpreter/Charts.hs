@@ -163,7 +163,7 @@ grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
 
 labelOff viewSize = 0.5 * (1.0 - viewSize)
 
-labelOffX = -0.05
+labelOffX = -0.08
 labelOffY = -0.025
 
 labelAdjustX = 0.0
@@ -201,7 +201,7 @@ gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridLabeledH mat decim viewSize y1 y2
     gV = gridLabeledV mat decim viewSize x1 x2
 
-chartShift = Point 0.05 (-0.05)
+chartShift = Point 0.03 (-0.03)
 
 shiftPoint :: Double -> Double -> Point -> Point
 shiftPoint viewX viewY (Point x y) = Point (viewX * x) (viewY * y)
