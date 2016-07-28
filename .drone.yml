@@ -2,6 +2,10 @@ clone:
   recursive: true
 build:
   image: lunalang/buildenv:alpine-8.0
+  auth_config:
+    username:  $$DOCKERHUB_USER
+    password:  $$DOCKERHUB_PASS
+    email: $$DOCKERHUB_EMAIL
   commands:
     - date
     - scripts/gencabal
