@@ -1,7 +1,7 @@
 clone:
   recursive: true
 build:
-  image: lunalang/buildenv-deps:v20160412
+  image: lunalang/buildenv:alpine-8.0
   commands:
     - date
     - scripts/gencabal
