@@ -3,7 +3,7 @@ module Luna.Compilation.Pass.Interpreter.Charts where
 import           Prelude.Luna
 import           Text.Printf        (printf)
 
-import           Graphics.API
+import           Graphics.API       as API
 
 -- helpers
 
@@ -180,7 +180,7 @@ gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
     (y1t, y2t) = edgePoints stepY y1 y2
-    mkLabel y = Label pos (labelFontSize * viewSize) $ showLabel decim ay where
+    mkLabel y = Label pos (labelFontSize * viewSize) API.Right $ showLabel decim ay where
         ay    = y1t + y * (y2t - y1t)
         pos   = scaleToViewPoint viewSize viewSize $ Point labelOffX (y + labelAdjustY)
 
@@ -192,7 +192,7 @@ gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
     (x1t, x2t) = edgePoints stepX x1 x2
-    mkLabel x = Label pos (labelFontSize * viewSize) $ showLabel decim ax where
+    mkLabel x = Label pos (labelFontSize * viewSize) API.Center $ showLabel decim ax where
         ax    = x1t + x * (x2t - x1t)
         pos   = scaleToViewPoint viewSize viewSize $ Point (x + labelAdjustX) labelOffY
 
@@ -215,7 +215,7 @@ shiftLayer point (Layer geo trans labels) = Layer geo trans' labels' where
     trans'  = shiftTrans point <$> trans
     labels' = shiftLabel point <$> labels
     shiftTrans (Point x y) transformation = translate transformation x y
-    shiftLabel (Point x y) (Label (Point lx ly) fontSize text) = Label (Point (lx + x) (ly + y)) fontSize text
+    shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly + y)) fontSize alignment text
 
 -- auto charts
 
