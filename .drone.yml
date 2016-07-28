@@ -9,7 +9,8 @@ build:
   commands:
     - date
     - scripts/gencabal
-    - scripts/build --nightly compiler
+    - cd compiler
+    - stack build --stack-yaml build/stack-nightly.yaml
     - date
 
 notify:
