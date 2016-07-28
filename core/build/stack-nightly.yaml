@@ -46,4 +46,4 @@ packages:
   location: {commit: 2070935673fb6b0a382387ba80bd950b4718eadb, git: 'https://github.com/wdanilo/data-shell.git'}
 - extra-dep: true
   location: {commit: 3ce232656045e9772b84d00c5561170f39063d95, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
-resolver: lts-5.10
+resolver: nightly-2016-07-19
