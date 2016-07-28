@@ -37,7 +37,7 @@ Library
                  , utf8-string
                  , charset
                  , parsers
-                 , trifecta==1.5.2
+                 , trifecta
                  , lens
                  , unordered-containers
                  , ansi-wl-pprint

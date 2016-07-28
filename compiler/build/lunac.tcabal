@@ -63,13 +63,11 @@ Library
                  , data-construction
                  , data-layer
                  , either
-                 , error-util
                  , errors
                  , exceptions
                  , extra
                  , ghc
                  , ghc-prim
-                 , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
                  , MissingH
@@ -142,13 +140,11 @@ Executable lunac
                  , data-base
                  , data-construction
                  , data-layer
-                 , error-util
                  , errors
                  , exceptions
                  , extra
                  , ghc
                  , ghc-prim
-                 , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
                  , MissingH
@@ -215,13 +211,11 @@ Executable luna-test-inference
                  , data-base
                  , data-construction
                  , data-layer
-                 , error-util
                  , errors
                  , exceptions
                  , extra
                  , ghc
                  , ghc-prim
-                 , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
                  , MissingH
@@ -289,13 +283,11 @@ Executable luna-test-interpreter
                  , data-base
                  , data-construction
                  , data-layer
-                 , error-util
                  , errors
                  , exceptions
                  , extra
                  , ghc
                  , ghc-prim
-                 , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
                  , MissingH
@@ -364,13 +356,11 @@ Executable luna-test-parser
                  , data-base
                  , data-construction
                  , data-layer
-                 , error-util
                  , errors
                  , exceptions
                  , extra
                  , ghc
                  , ghc-prim
-                 , ghc-session >= 0.1.2.0
                  , graphviz >= 2999.17.0.2.2
                  , lens
                  , MissingH
@@ -387,4 +377,3 @@ Executable luna-test-parser
                  , split
                  , dependent-state
                  , ghc-mtl
-

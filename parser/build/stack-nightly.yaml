@@ -45,4 +45,4 @@ packages:
   location: {commit: a8344f5abf03845bd3605291353a9c4d19c41abb, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
   location: {commit: 2070935673fb6b0a382387ba80bd950b4718eadb, git: 'https://github.com/wdanilo/data-shell.git'}
-resolver: lts-5.10
+resolver: nightly-2016-07-19

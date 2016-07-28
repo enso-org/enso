@@ -23,7 +23,7 @@ import           Text.PrettyPrint.ANSI.Leijen (displayIO, linebreak, renderPrett
 import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
 import           Text.Trifecta.Delta (Delta(Directed))
-import           Text.Trifecta.Result (Result(Failure, Success))
+import           Text.Trifecta.Result (Result(Failure, Success), _errDoc)
 import qualified Text.Trifecta.Parser as Trifecta
 
 
@@ -64,7 +64,7 @@ run p st = ParserState.evalT (Indent.evalT' p) st
 ----run p st = fmap fst $ Pragma.runT (evalStateT (Indent.parser p) st) mempty
 
 handleResult r = case r of
-    Failure e -> Left e
+    Failure e -> Left (_errDoc e)
     Success a -> Right a
 
 bundleResult p = (,) <$> p <*> ParserState.get
