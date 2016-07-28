@@ -42,47 +42,108 @@ import Data.Container.Hetero (Elems)
 
 
 
+
+
+data Scope = Scope deriving (Show)
+data Layout = Layout deriving (Show)
+data Binding = Binding deriving (Show)
+type family Bound layout term :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
+
+
+type family a ^. prop
+data a := b
+
+
 -------------------
 -- === Terms === --
 -------------------
 
 -- === Definitions === --
 
--- newtype     Expr2        fmt dyn sel a = Expr2 (ExprRecord2 fmt dyn sel a)
+newtype Term attrs layers = Term (TermStack layers (Term attrs layers))
 
--- AST to zla nazwa, to powinien byc symbol terminalny lub cos podobnego - to cos co ma warstwy, choc nie do konca, bo jest to tylko transformata
--- powinnismy ponadto zamiast :| zastosowac mapowanie ls jak w Mainie: TermShell
--- tylko nalezy zmienic definicje shella z
--- newtype Shell    ls = Shell (TMap (ls :->> Layers ls))
--- na
--- newtype Shell ks ls = Shell (TMap (ks :->> Layers ls))
--- i przemapowac sie ladniej, dzieki temu nie trzeba definiowac przeksztalcen proxy jak w mainie (type instance Shell.Access ...)
--- newtype AST t f = AST (f (Bind t (AST t f)))
--- TODO ^^^
--- newtype AST t ls f = AST (ls :| f (Item (AST t ls f)))
+type TermStack layers term = Stack layers (TermLayer <$> layers <*> '[term])
+data TermLayer layer  term
+
+
+-- === Instances === --
+
+-- Show
+deriving instance Show (Unwrapped (Term attrs layers)) => Show (Term attrs layers)
+
+-- Wrapper
+makeWrapped ''Term
+
+
+
+------------------
+-- === Expr === --
+------------------
+
+-- === Definitions === --
+
+type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layout, Dynamics := dyn] (ExprData ': layers)
+
+-- type Expr2 binding layers layout = Term '[Binding := binding, Layout := layout] (ExprData ': layers)
 --
--- type ASTExpr t ls fmt dyn sel = AST t ls (ExprRecord2 fmt dyn sel)
-newtype ExprLayer t a = ExprLayer a deriving (Show, Functor, Traversable, Foldable)
+-- type Expr3 binding layers layout scope = Term '[Binding := binding, Layout := layout, Scope := scope] (ExprData ': layers)
+--
+-- Expr3 Network '[] (Layout Static Draft) (Layout Static Draft)
+-- Expr3 Network '[] (Layout Static Draft) (Layout Static App)
+--
+--
+-- Node Static Draft Static App
+--
+-- Node' Static Draft
+--
+--
+-- Scoped Node Static Draft App
 
-type TermStack ls el = Stack ls (ExprLayer el <$> ls)
 
-newtype Element ls = Element (TermStack ls (Element ls))
+-- === Expr layer === --
 
-data Expr2 = Expr2 deriving (Show)
+data ExprData = ExprData deriving (Show)
+type instance LayerData (TermLayer ExprData term) = ExprRecord2 (term ^. Layout) (term ^. Dynamics) (Bound (term ^. Binding) term)
 
-type instance LayerData (ExprLayer el Expr2) = ExprRecord2 (el # Format) (el # Dynamics) 'Nothing el
+
+-- === ExprRecord === --
+
+newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Atoms (Elems layout) dyn bind) Data2)
+
+
+
+
+-- Term '[Scope := Draft, Dynamics := Static, Layout := Network] '[Expr, Type, ...]
+-- Layout okresla jakie sa polaczenia pomiedzy elementami AST/ASG oraz dla innych warstw jak np. dla Type.
+-- UWAGA: dla nodow sa inne polaczenia niz dla Type - dla Type sa edge, dla nodow nie? Czy moze sa takie same?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- !!!!!!!!!!!!!!!!!!!!!! przy konstruktorach robimy tak ze atom wkladamy do monady konstruujacej i odpalamy tworzenie warst. Te ktore beda go chcialy sie do niego dostana. Wtedy bedziemy wiedzieli jak uzyc dokladnie VGRecord2
-type family a # prop
 
-newtype     Expr        t fmt dyn sel = Expr (Layout t fmt dyn sel)
+
+newtype     Expr        t fmt dyn sel = Expr (Layout_OLD t fmt dyn sel)
 type        AnyExpr     t fmt dyn     = Expr         t fmt dyn 'Nothing
 type        LimitedExpr t fmt dyn a   = Expr         t fmt dyn ('Just a)
 type        AtomicExpr  t fmt dyn a   = LimitedExpr  t fmt dyn '[a]
 
-type family Layout      t fmt dyn (sel :: Maybe [*]) :: *
+type family Layout_OLD      t fmt dyn (sel :: Maybe [*]) :: *
 -- type family Layout2     t a :: *
 type family TermOf      a
 
+type family Layout2 t :: * -> *
 
 -- === Utils === --
 
@@ -101,6 +162,8 @@ type family SubExprs'       t fmts dyn where
 
 
 type        Variants2        fmt  dyn sel a = Atoms (Selected sel (Elems fmt)) dyn a
+
+
 -- type        SubDynExprs2     fmt  dyn a      = Expr2 fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
 -- type        SubSemiDynExprs2 fmt  dyn a      = Expr2 fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ] <*> '[ a ]
 -- type        SubExprs2        fmt  dyn a      = SubExprs2' (SubFormats fmt) dyn a
@@ -115,7 +178,6 @@ type        Variants2        fmt  dyn sel a = Atoms (Selected sel (Elems fmt)) d
 -- | Standard expr record definition
 type ExprRecord t fmt dyn sel a = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn sel a) Data2
 -- newtype ExprRecord2 fmt dyn sel a = ExprRecord2 (VGRecord2 (SubExprs2 fmt dyn a) (Variants2 fmt dyn sel a) Data2)
-newtype ExprRecord2 fmt dyn sel a = ExprRecord2 (VGRecord2 '[] (Variants2 fmt dyn sel a) Data2)
 
 
 -- === Instances === --
@@ -132,8 +194,8 @@ type instance RecordOf (Expr t fmt dyn sel) = RecordOf (Unwrapped (Expr t fmt dy
 makeWrapped ''Expr
 
 -- Record
-instance IsRecord  (Unwrapped (Expr t fmt dyn a)) => IsRecord  (Expr t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-# INLINE asRecord #-}
-instance HasRecord (Unwrapped (Expr t fmt dyn a)) => HasRecord (Expr t fmt dyn a) where record   = wrapped' ∘ record   ; {-# INLINE record   #-}
+instance IsRecord  (Unwrapped (Expr t fmt dyn a)) => IsRecord  (Expr t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-^. INLINE asRecord ^.-}
+instance HasRecord (Unwrapped (Expr t fmt dyn a)) => HasRecord (Expr t fmt dyn a) where record   = wrapped' ∘ record   ; {-^. INLINE record   #-}
 
 -- Shell
 instance Shell.HasLayer' l (Unwrapped (Expr t fmt dyn sel)) => Shell.HasLayer' l (Expr t fmt dyn sel) where
@@ -160,6 +222,31 @@ instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder 
 -- === Term Layout type caches === --
 -------------------------------------
 
-type instance Encode (Atom Blank dyn a) rec = '[ 41 , 7,8               ]
-type instance Decode (Atom Blank dyn a) rec = 41
--- type instance Encode (Expr Unify dyn a) rec = '[ 41 , 7,8               ]
+type instance Encode rec (Atom symbol dyn a) = {-dyn-} 0 ': Decode rec symbol ': {-formats-} '[6]
+
+
+type instance Decode rec Static  = 0
+type instance Decode rec Dynamic = 1
+
+type instance Decode rec Literal = 2
+type instance Decode rec Value   = 3
+type instance Decode rec Thunk   = 4
+type instance Decode rec Phrase  = 5
+type instance Decode rec Draft   = 6
+
+type instance Decode rec Acc     = 7
+type instance Decode rec App     = 8
+type instance Decode rec Blank   = 9
+type instance Decode rec Cons    = 10
+type instance Decode rec Curry   = 11
+type instance Decode rec Lam     = 12
+type instance Decode rec Match   = 13
+type instance Decode rec Missing = 14
+type instance Decode rec Native  = 15
+type instance Decode rec Star    = 16
+type instance Decode rec Unify   = 17
+type instance Decode rec Var     = 18
+
+
+-- class Cons2 v t where
+--     cons2 :: v -> t

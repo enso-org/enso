@@ -186,31 +186,40 @@ type instance BuildArgs Cons n = (NameInput n, [Arg (Input n)])
 type instance BuildArgs Lam  n = ([Arg (Input n)], Input n)
 
 
+
 instance ( name ~ NameInput a
-        --  , inp ~ Input a
-        --  , MonadFix m
-        --  , Connectible     inp  a m
-        --  , ConnectibleName name a m
-        --  , ElemBuilder_OLD (Cons (NameConnection name a) (Ref Edge (Connection inp a))) m a
+         , inp ~ Input a
+         , MonadFix m
+         , Connectible     inp  a m
+         , ConnectibleName name a m
+         , ElemBuilder_OLD (Cons (NameConnection name a) (Ref Edge (Connection inp a))) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Cons m a where
-    buildTerm_OLD p (name, args) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    -- mdo
-    --     out   <- buildElem $ Cons cname cargs
-    --     cname <- nameConnection name out
-    --     cargs <- (mapM ∘ mapM) (flip connection out) args
-    --     return out
+    buildTerm_OLD p (name, args) = mdo
+        out   <- buildElem $ Cons cname cargs
+        cname <- nameConnection name out
+        cargs <- (mapM ∘ mapM) (flip connection out) args
+        return out
 
 instance ( inp ~ Input a
-        --  , MonadFix m
-        --  , Connectible inp a m
-        --  , ElemBuilder_OLD (Lam $ Ref Edge (Connection inp a)) m a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder_OLD (Lam $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Lam m a where
-    buildTerm_OLD p (args, res) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    -- mdo
-    --     out   <- buildElem $ Lam cargs cres
-    --     cargs <- (mapM ∘ mapM) (flip connection out) args
-    --     cres  <- connection res out
-    --     return out
+    buildTerm_OLD p (args, res) = mdo
+        out   <- buildElem $ Lam cargs cres
+        cargs <- (mapM ∘ mapM) (flip connection out) args
+        cres  <- connection res out
+        return out
 
 
 cons :: TermBuilder_OLD Cons m a => NameInput a -> [Arg $ Input a] -> m a
@@ -228,43 +237,52 @@ type instance BuildArgs Curry  n = (Input n, [Arg (Input n)])
 type instance BuildArgs Native n = OneTuple (NameInput n)
 
 instance {-# OVERLAPPABLE #-}
-         ( src  ~ Input a
-        --  , name ~ NameInput a
-        --  , MonadFix m
-        --  , Connectible     src  a m
-        --  , ConnectibleName name a m
-        --  , ElemBuilder_OLD (Acc (NameConnection name a) (Ref Edge (Connection src a))) m a
+         ( inp  ~ Input a
+         , name ~ NameInput a
+         , MonadFix m
+         , Connectible     inp  a m
+         , ConnectibleName name a m
+         , ElemBuilder_OLD (Acc (NameConnection name a) (Ref Edge (Connection inp a))) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Acc m a where
-    buildTerm_OLD p (name, src) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    -- mdo
-    --     out   <- buildElem $ Acc cname csrc
-    --     cname <- nameConnection name out
-    --     csrc  <- connection     src  out
-    --     return out
+    buildTerm_OLD p (name, src) = mdo
+        out   <- buildElem $ Acc cname csrc
+        cname <- nameConnection name out
+        csrc  <- connection     src  out
+        return out
 
 instance ( inp ~ Input a
-        --  , MonadFix m
-        --  , Connectible inp a m
-        --  , ElemBuilder_OLD (App $ Ref Edge (Connection inp a)) m a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder_OLD (App $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD App m a where
-    buildTerm_OLD p (src, args) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    --mdo
-        -- out   <- buildElem $ App csrc cargs
-        -- csrc  <- connection src out
-        -- cargs <- (mapM ∘ mapM) (flip connection out) args
-        -- return out
+    buildTerm_OLD p (src, args) = mdo
+        out   <- buildElem $ App csrc cargs
+        csrc  <- connection src out
+        cargs <- (mapM ∘ mapM) (flip connection out) args
+        return out
 
 instance ( inp ~ Input a
-        --  , MonadFix m
-        --  , Connectible inp a m
-        --  , ElemBuilder_OLD (Curry $ Ref Edge (Connection inp a)) m a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder_OLD (Curry $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Curry m a where
-    buildTerm_OLD p (src, args) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    -- mdo
-    --     out   <- buildElem $ Curry csrc cargs
-    --     csrc  <- connection src out
-    --     cargs <- (mapM ∘ mapM) (flip connection out) args
-    --     return out
+    buildTerm_OLD p (src, args) = mdo
+        out   <- buildElem $ Curry csrc cargs
+        csrc  <- connection src out
+        cargs <- (mapM ∘ mapM) (flip connection out) args
+        return out
 
 instance ( name ~ NameInput a
          , MonadFix m
@@ -304,29 +322,37 @@ instance ( name ~ NameInput a
 
 type instance BuildArgs Unify n = (Input n, Input n)
 instance ( inp ~ Input a
-        --  , MonadFix m
-        --  , Connectible inp a m
-        --  , ElemBuilder_OLD (Unify $ Ref Edge (Connection inp a)) m a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder_OLD (Unify $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Unify m a where
-    buildTerm_OLD p (a,b) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    -- mdo
-    --     out <- buildElem $ Unify ca cb
-    --     ca  <- connection a out
-    --     cb  <- connection b out
-    --     return out
+    buildTerm_OLD p (a,b) = mdo
+        out <- buildElem $ Unify ca cb
+        ca  <- connection a out
+        cb  <- connection b out
+        return out
 
 type instance BuildArgs Match n = (Input n, Input n)
 instance ( inp ~ Input a
-        --  , MonadFix m
-        --  , Connectible inp a m
-        --  , ElemBuilder_OLD (Match $ Ref Edge (Connection inp a)) m a
+         , MonadFix m
+         , Connectible inp a m
+         , ElemBuilder_OLD (Match $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Match m a where
-    buildTerm_OLD p (a,b) = error "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
-    -- mdo
-    --     out <- buildElem $ Match ca cb
-    --     ca  <- connection a out
-    --     cb  <- connection b out
-    --     return out
+    buildTerm_OLD p (a,b) = mdo
+        out <- buildElem $ Match ca cb
+        ca  <- connection a out
+        cb  <- connection b out
+        return out
 
 
         --type instance BuildArgs Unify n = (Input n, Input n)

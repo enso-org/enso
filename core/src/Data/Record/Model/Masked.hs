@@ -198,7 +198,7 @@ instance Castable  d (VGRecord2 gs vs d)   where cast    = wrap'   ; {-# INLINE 
 
 -- Data encoding
 
-instance ( bits ~ Encode v (rec Data2)
+instance ( bits ~ Encode (rec Data2) v
          , KnownNats bits
          , Wrapped   (rec Data2)
          , Unwrapped (rec Data2) ~ Data2
@@ -232,7 +232,7 @@ instance {-# OVERLAPPABLE #-} (Unwrapped (r Data2) ~ Data2, Wrapped (r Data2)) =
 -- Pattern matching
 
 instance ( rec  ~ r Data2
-         , nat ~ Decode v rec
+         , nat ~ Decode rec v
          , KnownNat  nat
          , Wrapped   rec
          , Unwrapped rec ~ Data2
@@ -241,3 +241,13 @@ instance ( rec  ~ r Data2
         bit   = fromIntegral $ natVal (p :: P nat)
         match = testBit mask bit
     {-# INLINE checkMatch #-}
+
+
+
+-- API3 vvv
+
+encodeData2 :: KnownNats (Encode Char v) => v -> Data2
+encodeData2 (v :: v) = Data2 mask $ unsafeStore v where
+    bits    = fromIntegral <$> natVals (p :: P (Encode Char v))
+    mask    = foldl' setBit zeroBits bits
+{-# INLINE encodeData2 #-}

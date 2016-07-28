@@ -58,7 +58,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term                               (OverBuilder, Layout, Expr, ExprRecord, overbuild, AnyExpr)
+import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, Expr, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
@@ -82,6 +82,11 @@ import Luna.Syntax.Term.Expr
 
 import GHC.Prim (Any)
 
+import Type.Promotion    (KnownNats, natVals)
+import qualified Luna.Syntax.Term.Expr.Class as TEST
+import Data.Record.Model.Masked (encodeData2, Data2)
+
+import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -105,7 +110,7 @@ prebuild2 :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
 prebuild2 = runBuild3 def $ do
     var2 "ala"
 
-tst :: (Inferable ELEMENT a m, ExprBuilder Draft m a) => m a
+tst :: (TermBuilder Star m a, Inferable ELEMENT a m, ExprBuilder Draft m a) => m a
 tst = do
     star2
 
@@ -138,7 +143,7 @@ tst = do
 
 -- Term (Network ls) Draft  rt
 
-tst2 :: (PointedM t tgt g m a, MonadBuilder g m, Inferable ELEMENT (Ptr t tgt) m, ExprBuilder Draft m (Ptr t tgt)) => m a
+tst2 :: (TermBuilder Star m (Ptr t tgt), PointedM t tgt g m a, MonadBuilder g m, Inferable ELEMENT (Ptr t tgt) m, ExprBuilder Draft m (Ptr t tgt)) => m a
 tst2 = do
     s <- tst
     read s
@@ -262,10 +267,10 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 -- Type relations
 -- type instance LayerData (NetLayer t a) = LayerData a
 
--- Layout
+-- Layout_OLD
 type TermShell ls term rec = (NetLayer term <$> ls) :| rec
--- type instance Layout (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-type instance Layout (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+-- type instance Layout_OLD (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+type instance Layout_OLD (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 -- Shell
 type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
@@ -325,26 +330,45 @@ buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 main :: IO ()
 main = do
-    E.main
-    (_,  g :: NetGraph ) <- prebuild2
-    -- renderAndOpen [ ("xg", "xg", g)
-    --               ]
-    main2
-    main3
+    print a1
+    print $ (cons2 a1 :: Data2)
 
-main2 = do
+    -- E.main
 
-    print t2
-    -- print $ t2 ^. Shell.access' IntLayer
+    -- TEST.main
+    -- (_,  g :: NetGraph ) <- prebuild2
+    -- -- renderAndOpen [ ("xg", "xg", g)
+    -- --               ]
+    -- main2
+    -- main3
+        --
+        -- main2 = do
+        --
+        --     print t2
+        --     -- print $ t2 ^. Shell.access' IntLayer
+        --
+        --     caseTest t2 $ do
+        --         of' $ \Blank -> print "it is Blank!"
+        --
+        -- main3 :: IO ()
+        -- main3 = do
+        --     (n,g) <- flip GraphBuilder.runT (def :: NetGraph2) $ do
+        --         (n1 :: Ref2 (AnyExpr (Net '[IntLayer]) Draft Static)) <- buildRef a1
+        --         return n1
+        --     print n
+        --
+        --     return ()
 
-    caseTest t2 $ do
-        of' $ \Blank -> print "it is Blank!"
 
-main3 :: IO ()
-main3 = do
-    (n,g) <- flip GraphBuilder.runT (def :: NetGraph2) $ do
-        (n1 :: Ref2 (AnyExpr (Net '[IntLayer]) Draft Static)) <- buildRef a1
-        return n1
-    print n
 
-    return ()
+class Cons2 v t where
+    cons2 :: v -> t
+
+
+instance KnownNats (Encode Char (Atom symbol dyn a))
+      => Cons2 (Atom symbol dyn a) Data2 where
+    cons2 = encodeData2
+
+
+-- instance Cons2 (Atom symbol dyn a) (Term attrs layers) where
+--     cons2 _ = Term  TODO

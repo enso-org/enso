@@ -104,8 +104,8 @@ type family Layout    a :: [*]
 type family EncodeMap a :: Map * [Nat]
 type family DecodeMap a :: Map * Nat
 
-type family Encode t rec :: [Nat] -- new interface
-type family Decode t rec ::  Nat  -- new interface
+type family Encode rec t :: [Nat] -- new interface
+type family Decode rec t ::  Nat  -- new interface
 
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r
