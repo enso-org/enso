@@ -23,7 +23,7 @@ class Monad m => RefContainer c ref m where
     toRefList  :: c -> m [ref]
 
 -- FIXME[WD->MK]: Remove this! It is pure evil. Contact me to discuss the proper implementation.
-instance {-# OVERLAPPABLE #-} (Covered c, RefContainer (Uncovered c) ref m) => RefContainer c ref m where
+instance {-# OVERLAPPABLE #-} (Monad m, Covered c, RefContainer (Uncovered c) ref m) => RefContainer c ref m where
     includeRef ref c = do
         new <- includeRef ref $ uncover c
         return $ c & covered .~ new

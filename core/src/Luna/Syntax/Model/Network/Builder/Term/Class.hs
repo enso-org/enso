@@ -131,8 +131,12 @@ build t args = buildTerm t args >>= dispatch ELEMENT ; {-# INLINE build #-}
 
 
 
-newtype BindBuilder t m a = BindBuilder (IdentityT m a) deriving (Show, Functor, Applicative, Monad, MonadTrans)
+newtype BindBuilder t m a = BindBuilder (IdentityT m a) deriving (Functor, Applicative, Monad, MonadTrans)
 makeWrapped ''BindBuilder
+
+{-ghc8 dirty fix-}
+instance Show (BindBuilder t m a) where
+    show _ = "ghc8 dirty fix in Luna.Syntax.Model.Network.Builder.Term.Class"
 
 runBindBuilder :: BindBuilder t m t -> m t
 runBindBuilder = runIdentityT ∘ unwrap'
@@ -181,12 +185,19 @@ number = (P.curry $ buildTerm_OLD (Proxy :: Proxy Lit.Number))
 type instance BuildArgs Cons n = (NameInput n, [Arg (Input n)])
 type instance BuildArgs Lam  n = ([Arg (Input n)], Input n)
 
+
+
 instance ( name ~ NameInput a
          , inp ~ Input a
          , MonadFix m
          , Connectible     inp  a m
          , ConnectibleName name a m
          , ElemBuilder_OLD (Cons (NameConnection name a) (Ref Edge (Connection inp a))) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Cons m a where
     buildTerm_OLD p (name, args) = mdo
         out   <- buildElem $ Cons cname cargs
@@ -198,6 +209,11 @@ instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
          , ElemBuilder_OLD (Lam $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Lam m a where
     buildTerm_OLD p (args, res) = mdo
         out   <- buildElem $ Lam cargs cres
@@ -221,12 +237,16 @@ type instance BuildArgs Curry  n = (Input n, [Arg (Input n)])
 type instance BuildArgs Native n = OneTuple (NameInput n)
 
 instance {-# OVERLAPPABLE #-}
-         ( src  ~ Input a
+         ( inp  ~ Input a
          , name ~ NameInput a
          , MonadFix m
-         , Connectible     src  a m
+         , Connectible     inp  a m
          , ConnectibleName name a m
-         , ElemBuilder_OLD (Acc (NameConnection name a) (Ref Edge (Connection src a))) m a
+         , ElemBuilder_OLD (Acc (NameConnection name a) (Ref Edge (Connection inp a))) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Acc m a where
     buildTerm_OLD p (name, src) = mdo
         out   <- buildElem $ Acc cname csrc
@@ -238,6 +258,10 @@ instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
          , ElemBuilder_OLD (App $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD App m a where
     buildTerm_OLD p (src, args) = mdo
         out   <- buildElem $ App csrc cargs
@@ -249,6 +273,10 @@ instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
          , ElemBuilder_OLD (Curry $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Curry m a where
     buildTerm_OLD p (src, args) = mdo
         out   <- buildElem $ Curry csrc cargs
@@ -297,6 +325,11 @@ instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
          , ElemBuilder_OLD (Unify $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Unify m a where
     buildTerm_OLD p (a,b) = mdo
         out <- buildElem $ Unify ca cb
@@ -309,6 +342,11 @@ instance ( inp ~ Input a
          , MonadFix m
          , Connectible inp a m
          , ElemBuilder_OLD (Match $ Ref Edge (Connection inp a)) m a
+         {-ghc8-}
+         , inp ~ Ref Node src
+         , Uncovered a ~ Uncovered (Unlayered a)
+         , LayerConstructor m a
+         , Connectible' (Ref Node src) a m (Arc src src)
          ) => TermBuilder_OLD Match m a where
     buildTerm_OLD p (a,b) = mdo
         out <- buildElem $ Match ca cb

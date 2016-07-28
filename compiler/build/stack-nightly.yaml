@@ -1,4 +1,4 @@
-extra-deps: [ghc-session-0.1.2.0, graphviz-2999.18.0.2, string-qq-0.0.2, error-util-0.0.1.1,
+extra-deps: [ghc-mtl-1.2.1.0, placeholders-0.1, graphviz-2999.18.1.2, string-qq-0.0.2,
   cond-0.4.1.1, tuple-0.3.0.2, OneTuple-0.2.1]
 ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O}
 local-bin-path: ./dist/bin
@@ -48,4 +48,5 @@ packages:
   location: {commit: 2070935673fb6b0a382387ba80bd950b4718eadb, git: 'https://github.com/wdanilo/data-shell.git'}
 - extra-dep: true
   location: {commit: 933fbba7d5e5d964b0d3d36fca25768077ab78ef, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
-resolver: lts-4.1
+
+resolver: nightly-2016-07-19

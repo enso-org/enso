@@ -91,7 +91,6 @@ Library
                  , ghc-paths
                  , ghc-prim
                  , graphviz >= 2999.17.0.2.2
-                 , ghc-session
                  , lens
                  , lens-utils
                  , MissingH

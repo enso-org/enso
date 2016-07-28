@@ -46,7 +46,7 @@ instance (MonadBuilder t m, ReferencedM r t m el, Destructor m (Ref Edge conn), 
         write elRef $ el & lens .~ conn
         return conn
 
-instance (MonadBuilder t m, ReferencedM r t m el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn, Traversable f)
+instance (conn ~ Arc inp el {- ghc8 -}, MonadBuilder t m, ReferencedM r t m el, Destructor m connRef, Connectible' (Ref r inp) (Ref r el) m conn, connRef ~ Ref Edge conn, Traversable f)
       => Reconnectible m r el (f (Ref Edge conn)) (f (Ref r inp)) where
     reconnect lens elRef inputs = do
         el <- read elRef
@@ -73,7 +73,7 @@ write = modifyM_ ∘∘ writePtrM
 
 -- Construction
 
-instance Constructor m (Ref r a) => LayerConstructor m (Ref r a) where
+instance (Monad m {-ghc8-}, Constructor m (Ref r a)) => LayerConstructor m (Ref r a) where
     constructLayer = construct ; {-# INLINE constructLayer #-}
 
 instance (MonadBuilder g m, DynamicM t g m a) => Constructor m (Ref t a) where

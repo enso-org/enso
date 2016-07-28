@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.Syntax.Term.Expr.Atom (module Luna.Syntax.Term.Expr.Atom, module X) where
 
 import qualified Prelude.Luna as P
@@ -63,6 +65,7 @@ newtype instance Atom String   dyn a = String   P.String
 data    instance Atom Acc      dyn a = Acc    !(DynName dyn a) !a
 data    instance Atom App      dyn a = App                     !a ![Arg a]
 data    instance Atom Blank    dyn a = Blank
+newtype instance Atom Cons     dyn a = Cons    (DynName dyn a)
 data    instance Atom Curry    dyn a = Curry                   !a ![Arg a]
 data    instance Atom Lam      dyn a = Lam                     ![Arg a] !a
 data    instance Atom Match    dyn a = Match                   !a !a
@@ -70,13 +73,28 @@ data    instance Atom Missing  dyn a = Missing
 data    instance Atom Native   dyn a = Native !(DynName dyn a)
 data    instance Atom Star     dyn a = Star
 data    instance Atom Unify    dyn a = Unify                   !a !a
-newtype instance Atom Cons     dyn a = Cons    (DynName dyn a)
 newtype instance Atom Var      dyn a = Var     (DynName dyn a)
+
 
 
 -- === Instances === --
 
 type instance Base (Atom t dyn a) = t
+
+-- Show
+deriving instance (Show a, Show (DynName dyn a)) => Show (Atom Acc     dyn a)
+deriving instance  Show a                        => Show (Atom App     dyn a)
+deriving instance                                   Show (Atom Blank   dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Atom Cons    dyn a)
+deriving instance  Show a                        => Show (Atom Curry   dyn a)
+deriving instance  Show a                        => Show (Atom Lam     dyn a)
+deriving instance  Show a                        => Show (Atom Match   dyn a)
+deriving instance                                   Show (Atom Missing dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Atom Native  dyn a)
+deriving instance                                   Show (Atom Star    dyn a)
+deriving instance  Show a                        => Show (Atom Unify   dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Atom Var     dyn a)
+
 
 -- Args
 

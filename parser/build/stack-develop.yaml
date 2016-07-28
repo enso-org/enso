@@ -1,4 +1,4 @@
-resolver: lts-5.10
+resolver: nightly-2016-07-19
 packages:
     - ..
     - ../../core
