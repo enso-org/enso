@@ -74,9 +74,16 @@ instance Show Mask where
 -----------------------------
 
 data Data = Data !Mask !Store deriving (Generic, Show)
-data Data2 = Data2 !Mask !Store deriving (Generic, Show)
+data Data2 = Data2 !Mask !Store deriving (Generic)
 
 -- === Instances === --
+
+-- Show
+instance Show Data2 where
+    showsPrec d (Data2 mask _) = showParen (d > app_prec) $
+            showString "Data " . showsPrec (app_prec+1) mask
+         where app_prec = 10
+
 -- Normal Form
 instance NFData Data
 instance NFData Data2

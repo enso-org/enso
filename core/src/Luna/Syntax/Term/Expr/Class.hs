@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE PolyKinds #-}
 
 module Luna.Syntax.Term.Expr.Class where
@@ -16,7 +17,7 @@ import           Data.Base
 import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
-import           Type.Container
+import           Type.Container               hiding (Empty)
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
@@ -39,7 +40,7 @@ import Luna.Syntax.Term.Expr (Atom, Atoms, NameByDynamics)
 
 
 import Data.Container.Hetero (Elems)
-
+import Data.RTuple (Empty, empty)
 
 
 
@@ -47,10 +48,10 @@ import Data.Container.Hetero (Elems)
 data Scope = Scope deriving (Show)
 data Layout = Layout deriving (Show)
 data Binding = Binding deriving (Show)
-type family Bound layout term :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
+type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
 
 
-type family a ^. prop
+type family (a :: k) ^. (prop :: *) :: *
 data a := b
 
 
@@ -60,11 +61,12 @@ data a := b
 
 -- === Definitions === --
 
-newtype Term attrs layers = Term (TermStack layers (Term attrs layers))
+newtype Term (attrs :: [*]) layers = Term (TermStack attrs layers)
 
-type TermStack layers term = Stack layers (TermLayer <$> layers <*> '[term])
-data TermLayer layer  term
-
+type TermStack     (attrs :: [*]) layers = Stack layers (TermLayerDesc attrs <$> layers)
+data TermLayerDesc (attrs :: [*]) layer
+type TermLayer     (attrs :: [*]) layer  = Layer (TermLayerDesc attrs layer)
+type TermLayers    (attrs :: [*]) layers = Layer <$> (TermLayerDesc attrs <$> layers)
 
 -- === Instances === --
 
@@ -74,6 +76,9 @@ deriving instance Show (Unwrapped (Term attrs layers)) => Show (Term attrs layer
 -- Wrapper
 makeWrapped ''Term
 
+-- Construction
+instance layers ~ '[] => Empty (Term attrs layers) where
+    empty = Term empty ; {-# INLINE empty #-}
 
 
 ------------------
@@ -83,6 +88,10 @@ makeWrapped ''Term
 -- === Definitions === --
 
 type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layout, Dynamics := dyn] (ExprData ': layers)
+
+
+-- TO REFACTOR:
+type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
 
 -- type Expr2 binding layers layout = Term '[Binding := binding, Layout := layout] (ExprData ': layers)
 --
@@ -103,12 +112,13 @@ type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layo
 -- === Expr layer === --
 
 data ExprData = ExprData deriving (Show)
-type instance LayerData (TermLayer ExprData term) = ExprRecord2 (term ^. Layout) (term ^. Dynamics) (Bound (term ^. Binding) term)
-
+type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Dynamics) (attrs ^. Layout)
+type instance LayerData (TermLayerDesc attrs Int) = Int
 
 -- === ExprRecord === --
 
-newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Atoms (Elems layout) dyn bind) Data2)
+-- newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Atoms (Elems layout) dyn bind) Data2)
+newtype ExprRecord2 bind dyn layout = ExprRecord2 Data2 deriving (Show)
 
 
 
@@ -123,7 +133,7 @@ newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Atoms (Elems l
 
 
 
-
+--
 
 
 

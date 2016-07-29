@@ -60,13 +60,15 @@ import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, Expr, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
-import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft))
+import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft), Literal(Literal))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
 
 import qualified Data.Graph.Backend.NEC       as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 
 import qualified Data.RTuple.Examples as E
+import qualified Data.RTuple as List
+import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
 
 import           Luna.Syntax.Model.Network.Builder.Class ()
 import qualified Luna.Syntax.Model.Network.Builder.Class as XP
@@ -76,6 +78,7 @@ import qualified Data.Record                  as Record
 import qualified Data.Graph.Builder                      as GraphBuilder
 
 import Data.Shell as Shell
+import Data.Shell (Stack(..))
 import Data.Cover
 import Type.Applicative
 import Luna.Syntax.Term.Expr
@@ -84,9 +87,15 @@ import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
+import Luna.Syntax.Term.Expr.Class (Term(..), Expr2, ExprRecord2(..), TermLayer(..), TermLayers)
 import Data.Record.Model.Masked (encodeData2, Data2)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
+import Prelude (error, undefined)
+import Type.List (In)
+import Data.Container.Hetero (Elems)
+import GHC.TypeLits
+import GHC.TypeLits (ErrorMessage(Text))
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -291,7 +300,8 @@ type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for par
 
 
 
-a1 = () ^. from atomArgs :: Atom Blank Static Int
+a1  = () ^. from atomArgs :: Atom Blank Static Int
+a1' = () ^. from atomArgs :: Atom Blank dyn a
 -- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
@@ -328,10 +338,14 @@ buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 -- tx = Record.cons Atom.Blank :: Term Int Draft Runtime.Dynamic
 
+data Network2 = Network2 deriving (Show)
+
 main :: IO ()
 main = do
     print a1
-    print $ (cons2 a1 :: Data2)
+    print $ (runIdentity (cons2 a1) :: Data2)
+    -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
+    print $ (runIdentity (cons2 a1') :: Expr2 Network2 '[Int] Static Draft)
 
     -- E.main
 
@@ -360,15 +374,54 @@ main = do
         --     return ()
 
 
-
-class Cons2 v t where
-    cons2 :: v -> t
-
-
-instance KnownNats (Encode Char (Atom symbol dyn a))
-      => Cons2 (Atom symbol dyn a) Data2 where
-    cons2 = encodeData2
+-- refactor to Data.Construction ?
+class Monad m => Cons2 v m t where
+    cons2 :: v -> m t
 
 
--- instance Cons2 (Atom symbol dyn a) (Term attrs layers) where
---     cons2 _ = Term  TODO
+instance (Monad m, KnownNats (Encode Char (Atom symbol dyn a)))
+      => Cons2 (Atom symbol dyn a) m Data2 where
+    cons2 = return . encodeData2
+
+
+    -- instance ( Monad m
+    --         , Cons2 v m (ExprRecord2 dyn' layout))
+    --       => Cons2 v m (Expr2 binding '[] dyn' layout) where
+    --     cons2 v = (Term . Stack . TMap . List.singleton . Shell.Layer) <$> cons2 v
+
+-- instance ( Monad m, Cons2 v m (TermLayer attrs l))
+--       => Cons2 v m (Term attrs '[l]) where
+--     cons2 v = (Term . Stack . TMap . List.singleton) <$> cons2 v ; {-# INLINE cons2 #-}
+--
+
+instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
+      => Cons2 v m (Term attrs ls) where
+         cons2 v = (Term . Stack . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
+
+
+instance (Monad m, Cons2 v m (LayerData l))
+      => Cons2 v m (Layer l) where
+         cons2 v = Shell.Layer <$> cons2 v ; {-# INLINE cons2 #-}
+
+
+instance Monad m => Cons2 v m (Term attrs '[]) where
+    cons2 _ = return empty ; {-# INLINE cons2 #-}
+
+
+instance ( Functor m
+         , Cons2 (Atom symbol dyn bind) m Data2
+         {-constraint solving-}
+         , dyn  ~ dyn'
+         , bind ~ bind'
+         , Assert (symbol `In` Elems layout) ('Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid atom of format `" :<>: 'ShowType layout :<>: 'Text "`")
+         )
+      => Cons2 (Atom symbol dyn bind) m (ExprRecord2 bind' dyn' layout) where
+    cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
+
+
+instance Monad m => Cons2 v m Int where cons2 _ = return 5
+
+
+class                     Assert (ok :: Bool) (err :: ErrorMessage)
+instance                  Assert 'True  err
+instance TypeError err => Assert 'False err
