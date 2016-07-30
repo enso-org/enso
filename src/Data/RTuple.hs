@@ -24,7 +24,7 @@ import GHC.Prim               (Any, unsafeCoerce#)
 import GHC.TypeLits
 import Type.Container         (Append, Index, Index2, Reverse)
 import Type.Monoid
-import Type.List
+import Type.List              hiding (Empty)
 import Data.Construction
 
 -- === Definition === --
@@ -71,6 +71,8 @@ import Data.Construction
 --append
 
 
+class Empty a where
+    empty :: a
 
 -- === Definition === --
 
@@ -82,6 +84,12 @@ data List lst where
 -- === Type instance === --
 
 type instance Concat (List a) (List b) = List (a <> b)
+
+
+-- === Instnaces === --
+
+instance lst ~ '[] => Empty (List lst) where
+    empty = Null ; {-# INLINE empty #-}
 
 
 -- === Utils === --
@@ -106,10 +114,6 @@ length (Cons _ lst) = succ $ length lst
 
 -- Construction
 
-empty :: List '[]
-empty = Null
-{-# INLINE empty #-}
-
 singleton :: a -> List '[a]
 singleton a = Cons a Null
 {-# INLINE singleton #-}
@@ -130,6 +134,15 @@ fromList len lst = unsafeCoerce# . fromList' <$> safeTake (fromIntegral $ natVal
 
 {-# INLINE fromList #-}
 
+
+class Monad m => Generate ctx m lst where
+    generate :: Proxy ctx -> (forall a. ctx m a => m a) -> m (List lst)
+
+instance Monad m => Generate ctx m '[] where
+    generate _ _ = return empty ; {-# INLINE generate #-}
+
+instance (Monad m, ctx m l, Generate ctx m ls) => Generate ctx m (l ': ls) where
+    generate ctx g = Cons <$> g <*> generate ctx g ; {-# INLINE generate #-}
 
 -- Modification
 
@@ -414,15 +427,22 @@ type family Targets (rels :: [Assoc k v]) :: [v] where
 
 --newtype TMap (keys :: [k]) (vals :: [*]) = TMap (List vals)
 
-newtype TMap (rels :: [Assoc k *]) = TMap (List (Targets rels))
+newtype TMap (keys :: [k]) (vals :: [*]) = TMap (List vals)
+-- newtype TMap (rels :: [Assoc k *]) = TMap (List (Targets rels))
 makeWrapped ''TMap
 
+-- === Instances === --
 
-empty2 :: TMap '[]
+instance (keys ~ '[], vals ~ '[]) => Empty (TMap keys vals) where
+    empty = TMap empty ; {-# INLINE empty #-}
+
+-- === Utils === --
+
+empty2 :: TMap '[] '[]
 empty2 = TMap empty
 {-# INLINE empty2 #-}
 
-insert2 :: Proxy (key :: k) -> val -> TMap (rels :: [Assoc k *]) -> TMap (key ':-> val ': rels)
+insert2 :: Proxy (key :: k) -> val -> TMap keys vals -> TMap (key ': keys) (val ': vals)
 insert2 _ val = wrapped %~ prepend val
 {-# INLINE insert2 #-}
 
@@ -432,36 +452,42 @@ type family Access (key :: k) (rels :: [Assoc k v]) :: v where
     Access k (k ':-> v ': rels) = v
     Access k (l ':-> v ': rels) = Access k rels
 
-class Accessible (key :: k) (rels :: [Assoc k *]) where access :: Proxy key -> Lens' (TMap rels) (Access key rels)
-
-instance {-# OVERLAPPABLE #-} (Access k (l ':-> v ': rels) ~ Access k rels, Accessible k rels)
-                           => Accessible k (l ':-> v ': rels) where access k = tail2 . access k ; {-# INLINE access #-}
-instance {-# OVERLAPPABLE #-} Accessible k (k ':-> v ': rels) where access _ = wrapped' . head  ; {-# INLINE access #-}
+type family Access2 (key :: k) (keys :: [k]) (vals :: [v]) :: v where
+    Access2 k (k ': ks) (v ': vs) = v
+    Access2 k (l ': ks) (v ': vs) = Access2 k ks vs
 
 
-tail2 :: Lens' (TMap (r ': rs)) (TMap rs)
+
+class Accessible (key :: k) (keys :: [k]) (vals :: [*]) where access :: Proxy key -> Lens' (TMap keys vals) (Access2 key keys vals)
+
+-- instance {-# OVERLAPPABLE #-} (Access k (l ':-> v ': rels) ~ Access k rels, Accessible k rels)
+--                            => Accessible k (l ':-> v ': rels) where access k = tail2 . access k ; {-# INLINE access #-}
+-- instance {-# OVERLAPPABLE #-} Accessible k (k ':-> v ': rels) where access _ = wrapped' . head  ; {-# INLINE access #-}
+
+
+tail2 :: Lens' (TMap (k ': ks) (v ': vs)) (TMap ks vs)
 tail2 = wrapped . tail . from wrapped
 {-# INLINE tail2 #-}
-
-
-prepend2 :: Target r -> TMap rs -> TMap (r ': rs)
+--
+--
+prepend2 :: v -> TMap ks vs -> TMap (k ': ks) (v ': vs)
 prepend2 a = wrapped %~ prepend a
-
-
--- === Instances === --
-
-deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
-
---prepend :: a -> List lst -> List (a ': lst)
---prepend = cons
---{-# INLINE prepend #-}
-
-
-instance (Creator m (Unwrapped (TMap rels)), Monad m) => Creator m (TMap rels) where
-    create = TMap <$> create ; {-# INLINE create #-}
-
-instance Monad m                            => Creator m (List '[])       where create = return Null                ; {-# INLINE create #-}
-instance (Creator m l, Creator m (List ls)) => Creator m (List (l ': ls)) where create = Cons <$> create <*> create ; {-# INLINE create #-}
+--
+--
+-- -- === Instances === --
+--
+deriving instance Show (Unwrapped (TMap ks vs)) => Show (TMap ks vs)
+--
+-- --prepend :: a -> List lst -> List (a ': lst)
+-- --prepend = cons
+-- --{-# INLINE prepend #-}
+--
+--
+-- instance (Creator m (Unwrapped (TMap rels)), Monad m) => Creator m (TMap rels) where
+--     create = TMap <$> create ; {-# INLINE create #-}
+--
+-- instance Monad m                            => Creator m (List '[])       where create = return Null                ; {-# INLINE create #-}
+-- instance (Creator m l, Creator m (List ls)) => Creator m (List (l ': ls)) where create = Cons <$> create <*> create ; {-# INLINE create #-}
 
 
 
