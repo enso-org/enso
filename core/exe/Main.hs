@@ -96,6 +96,7 @@ import Type.List (In)
 import Data.Container.Hetero (Elems)
 import GHC.TypeLits hiding (Symbol)
 import GHC.TypeLits (ErrorMessage(Text))
+import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -420,7 +421,7 @@ instance ( Functor m
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
-         , Assert (symbol `In` Elems layout) (InvalidFormatSymbol symbol layout)
+         , Assert (symbol `In` Atoms layout) (InvalidFormatSymbol symbol layout)
          )
       => Cons2 (Symbol symbol dyn bind) m (ExprRecord2 bind' model (L dyn' layout)) where
     cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}

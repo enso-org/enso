@@ -4,8 +4,8 @@ module Luna.Syntax.Term.Expr.Format where
 
 import Prelude.Luna hiding (String, Integer, Rational)
 
-import Data.Container.Hetero (Elems)
-import Type.List             (TakeUntil)
+import Luna.Syntax.Term.Expr.Atom (Atoms)
+import Type.List                  (TakeUntil)
 
 import Luna.Syntax.Term.Expr.Atom
 
@@ -33,8 +33,8 @@ type SubFormats a = TakeUntil a Formats
 
 -- === Relations === --
 
-type instance Elems Literal = '[Star    , String    , Integer , Rational ]
-type instance Elems Value   = '[Cons    , Lam                            ] <> Elems Literal
-type instance Elems Thunk   = '[Acc     , App       , Curry   , Native   ] <> Elems Value
-type instance Elems Phrase  = '[Blank   , Match     , Unify   , Var      ] <> Elems Thunk
-type instance Elems Draft   = '[Missing                                  ] <> Elems Phrase
+type instance Atoms Literal = '[Star    , String    , Integer , Rational ]
+type instance Atoms Value   = '[Cons    , Lam                            ] <> Atoms Literal
+type instance Atoms Thunk   = '[Acc     , App       , Curry   , Native   ] <> Atoms Value
+type instance Atoms Phrase  = '[Blank   , Match     , Unify   , Var      ] <> Atoms Thunk
+type instance Atoms Draft   = '[Missing                                  ] <> Atoms Phrase

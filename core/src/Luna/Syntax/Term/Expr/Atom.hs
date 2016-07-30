@@ -34,19 +34,19 @@ data Var      = Var      deriving (Show, Eq, Ord)
 
 -- === Selectors === --
 
--- type family   Atoms a       :: [*]
--- type instance Atoms Acc     = '[Acc    ]
--- type instance Atoms App     = '[App    ]
--- type instance Atoms Blank   = '[Blank  ]
--- type instance Atoms Cons    = '[Cons   ]
--- type instance Atoms Curry   = '[Curry  ]
--- type instance Atoms Lam     = '[Lam    ]
--- type instance Atoms Match   = '[Match  ]
--- type instance Atoms Missing = '[Missing]
--- type instance Atoms Native  = '[Native ]
--- type instance Atoms Star    = '[Star   ]
--- type instance Atoms Unify   = '[Unify  ]
--- type instance Atoms Var     = '[Var    ]
+type family   Atoms a       :: [*]
+type instance Atoms Acc     = '[Acc    ]
+type instance Atoms App     = '[App    ]
+type instance Atoms Blank   = '[Blank  ]
+type instance Atoms Cons    = '[Cons   ]
+type instance Atoms Curry   = '[Curry  ]
+type instance Atoms Lam     = '[Lam    ]
+type instance Atoms Match   = '[Match  ]
+type instance Atoms Missing = '[Missing]
+type instance Atoms Native  = '[Native ]
+type instance Atoms Star    = '[Star   ]
+type instance Atoms Unify   = '[Unify  ]
+type instance Atoms Var     = '[Var    ]
 
 
 -- === Instances === --

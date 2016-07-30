@@ -175,7 +175,7 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
             Selected 'Nothing    lst = lst
             Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
 
-type        Variants        t fmt  dyn a bind = Symbols (Selected a (Elems fmt)) dyn bind
+type        Variants        t fmt  dyn a bind = Symbols (Selected a (Atoms fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
 type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
@@ -185,7 +185,7 @@ type family SubExprs'       t fmts dyn where
             SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
 
 
-type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Elems fmt)) dyn a
+type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Atoms fmt)) dyn a
 
 
 -- type        SubDynExprs2     fmt  dyn a      = Expr2 fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
