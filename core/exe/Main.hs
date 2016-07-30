@@ -12,7 +12,7 @@ module Main where
 
 import Data.Graph
 import Data.Graph.Builders
-import Prologue            hiding (Cons, Num, Version, cons, read, ( # ))
+import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ))
 
 import           Control.Monad.Event
 import qualified Control.Monad.Writer     as Writer
@@ -94,7 +94,7 @@ import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Prelude (error, undefined)
 import Type.List (In)
 import Data.Container.Hetero (Elems)
-import GHC.TypeLits
+import GHC.TypeLits hiding (Symbol)
 import GHC.TypeLits (ErrorMessage(Text))
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
@@ -300,8 +300,8 @@ type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for par
 
 
 
-a1  = () ^. from atomArgs :: Atom Blank Static Int
-a1' = () ^. from atomArgs :: Atom Blank dyn a
+a1  = () ^. from symbolArgs :: Symbol Blank Static Int
+a1' = () ^. from symbolArgs :: Symbol Blank dyn a
 -- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
 t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 
@@ -350,7 +350,7 @@ main = do
     print a1
     print $ (runIdentity (cons2 a1) :: Data2)
     -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
-    -- print $ (runIdentity (cons2 a1') :: Expr2 Network2 '[] '[Int] (L Static Draft) (L Static Draft))
+    print $ (runIdentity (cons2 a1') :: Expr2 Network2 '[] '[Int] (L Static Draft) (L Static Draft))
 
     -- E.main
 
@@ -384,8 +384,8 @@ class Monad m => Cons2 v m t where
     cons2 :: v -> m t
 
 
-instance (Monad m, KnownNats (Encode Char (Atom symbol dyn a)))
-      => Cons2 (Atom symbol dyn a) m Data2 where
+instance (Monad m, KnownNats (Encode Char (Symbol symbol dyn a)))
+      => Cons2 (Symbol symbol dyn a) m Data2 where
     cons2 = return . encodeData2
 
 
@@ -413,18 +413,17 @@ instance Monad m => Cons2 v m (Term attrs '[]) where
     cons2 _ = return empty ; {-# INLINE cons2 #-}
 
 
-type InvalidFormatAtom symbol format = 'Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid atom of format `" :<>: 'ShowType format :<>: 'Text "`"
+type InvalidFormatSymbol symbol format = 'Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
--- instance ( Functor m
---          , Cons2 (Atom symbol dyn bind) m Data2
---          {-constraint solving-}
---          , dyn  ~ dyn'
---          , bind ~ bind'
---          , Assert (symbol `In` Elems layout) (InvalidFormatAtom symbol layout)
---          )
---       => Cons2 (Atom symbol dyn bind) m (ExprRecord2 bind' dyn' layout) where
---     cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
--- TODO: zmienic parametryzacje ExprRecord2 na Layouty i bedzie dzialalo
+instance ( Functor m
+         , Cons2 (Symbol symbol dyn bind) m Data2
+         {-constraint solving-}
+         , dyn  ~ dyn'
+         , bind ~ bind'
+         , Assert (symbol `In` Elems layout) (InvalidFormatSymbol symbol layout)
+         )
+      => Cons2 (Symbol symbol dyn bind) m (ExprRecord2 bind' model (L dyn' layout)) where
+    cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
 
 instance Monad m => Cons2 v m Int where cons2 _ = return 5
 

@@ -4,7 +4,7 @@ import           Prelude.Luna            hiding (Rational, Integer, String)
 import qualified Prelude.Luna            as P
 import           Luna.Pretty.Styles (StaticNameOnly)
 import           Luna.Syntax.Name
-import           Luna.Syntax.Term.Expr.Symbol as X (Star(Star))
+import           Luna.Syntax.Term.Expr.Atom as X (Star(Star))
 
 
 --------------------

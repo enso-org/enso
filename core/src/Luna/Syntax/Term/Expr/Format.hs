@@ -7,7 +7,7 @@ import Prelude.Luna hiding (String, Integer, Rational)
 import Data.Container.Hetero (Elems)
 import Type.List             (TakeUntil)
 
-import Luna.Syntax.Term.Expr.Symbol
+import Luna.Syntax.Term.Expr.Atom
 
 
 --------------------------------

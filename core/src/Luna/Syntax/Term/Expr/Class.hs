@@ -9,7 +9,7 @@
 module Luna.Syntax.Term.Expr.Class where
 
 
-import           Prelude.Luna                 hiding (Num, Swapped, Curry, String, Integer, Rational)
+import           Prelude.Luna                 hiding (Num, Swapped, Curry, String, Integer, Rational, Symbol)
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
@@ -28,7 +28,7 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol
+import Luna.Syntax.Term.Expr.Atom
 
 import Data.Shell               as Shell
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
@@ -36,7 +36,7 @@ import Type.Monoid
 import Type.Applicative
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (Atom, Atoms, NameByDynamics)
+import Luna.Syntax.Term.Expr (Symbol, Symbols, NameByDynamics)
 
 
 import Data.Container.Hetero (Elems)
@@ -95,8 +95,6 @@ instance layers ~ '[] => Empty (Term attrs layers) where
 
 -- type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layout, Dynamics := dyn] (ExprData ': layers)
 
-data Layer2 t a = Layer2 a deriving (Show, Functor, Traversable, Foldable)
-
 type Expr2 binding attrs layers model scope = Term ( Binding := binding
                                                   ': Model   := model
                                                   ': Scope   := scope
@@ -104,8 +102,6 @@ type Expr2 binding attrs layers model scope = Term ( Binding := binding
                                                    ) (ExprData ': layers)
 
 type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
-
-type Expr3 binding layers model scope = Term (Layer2 ExprData (ExprRecord2 binding model scope) ': layers)
 
 -- TO REFACTOR:
 type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
@@ -134,7 +130,7 @@ type instance LayerData (TermLayerDesc attrs Int) = Int
 
 -- === ExprRecord === --
 
--- newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Atoms (Elems layout) dyn bind) Data2)
+-- newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Symbols (Elems layout) dyn bind) Data2)
 -- newtype ExprRecord2 bind dyn layout = ExprRecord2 Data2 deriving (Show)
 newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
 --
@@ -179,7 +175,7 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
             Selected 'Nothing    lst = lst
             Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
 
-type        Variants        t fmt  dyn a bind = Atoms (Selected a (Elems fmt)) dyn bind
+type        Variants        t fmt  dyn a bind = Symbols (Selected a (Elems fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
 type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
@@ -189,7 +185,7 @@ type family SubExprs'       t fmts dyn where
             SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
 
 
-type        Variants2        fmt  dyn sel a = Atoms (Selected sel (Elems fmt)) dyn a
+type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Elems fmt)) dyn a
 
 
 -- type        SubDynExprs2     fmt  dyn a      = Expr2 fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
@@ -250,7 +246,7 @@ instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder 
 -- === Term Layout type caches === --
 -------------------------------------
 
-type instance Encode rec (Atom symbol dyn a) = {-dyn-} 0 ': Decode rec symbol ': {-formats-} '[6]
+type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
 
 
 type instance Decode rec Static  = 0

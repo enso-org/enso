@@ -1,139 +1,90 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Term.Expr.Atom (module Luna.Syntax.Term.Expr.Atom, module X) where
+module Luna.Syntax.Term.Expr.Atom where
 
-import qualified Prelude.Luna as P
-import           Prelude.Luna hiding (String, Integer, Rational, Curry)
+import Prelude.Luna hiding (String, Integer, Rational, Curry)
 
-import Luna.Syntax.Term.Expr.Symbol as X (String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
-
-import Data.Base                 (Base)
-import Data.Construction         (Args, DataType (args))
-import Luna.Runtime.Dynamics     (ByDynamics)
-import Luna.Syntax.Term.Function (Arg)
-import Type.Applicative
-
-import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
-
-import qualified Data.Construction as C
-
-
--- TODO[WD]: move to issue tracker after releasing Luna to github
---------------------------------------------
--- === Enhancement proposals & issues === --
---------------------------------------------
-
--- Status: pending | accepted | rejected
-
--- Reporter  Status   Description
--- wdanilo   pending  ACCESSORS AND FUNCTIONS UNIFICATION
---                    Check if we can throw away accessors in terms. Let's consider the following Luna code:
---                        a  = x.bar
---                        a' = acc x "bar"
---                    These lines should mean exactly the same with the followings rules:
---                        - both forms have to be distinguishable to provide Term <-> Text conversion
---                        - the performance of STATIC Luna compilation should be as fast as in current solution
---                        - accessors should be first class objects, althought we can easily make a workaround like `myacc = a : a.x`
+import Data.Base
 
 
 -------------------
--- === Utils === --
+-- === Types === --
 -------------------
-
-type DynName d a = NameByDynamics d a
-type NameByDynamics dyn d = ByDynamics dyn Lit.String d
-
-
--------------------
--- === Atoms === --
--------------------
-
--- === Abstractions === --
-
-class Atomic t where atomArgs :: Iso (Atom t d a) (Atom t d' a') (Args (Atom t d a)) (Args (Atom t d' a'))
-
-data family Atom  t  dyn a
-type        Atoms ts dyn a = Atom <$> ts <*> '[dyn] <*> '[a]
 
 
 -- === Definitions === --
 
-newtype instance Atom Integer  dyn a = Integer  P.Integer
-newtype instance Atom Rational dyn a = Rational P.Rational
-newtype instance Atom String   dyn a = String   P.String
+data Integer  = Integer  deriving (Show, Eq, Ord)
+data Rational = Rational deriving (Show, Eq, Ord)
+data String   = String   deriving (Show, Eq, Ord)
 
-data    instance Atom Acc      dyn a = Acc    !(DynName dyn a) !a
-data    instance Atom App      dyn a = App                     !a ![Arg a]
-data    instance Atom Blank    dyn a = Blank
-newtype instance Atom Cons     dyn a = Cons    (DynName dyn a)
-data    instance Atom Curry    dyn a = Curry                   !a ![Arg a]
-data    instance Atom Lam      dyn a = Lam                     ![Arg a] !a
-data    instance Atom Match    dyn a = Match                   !a !a
-data    instance Atom Missing  dyn a = Missing
-data    instance Atom Native   dyn a = Native !(DynName dyn a)
-data    instance Atom Star     dyn a = Star
-data    instance Atom Unify    dyn a = Unify                   !a !a
-newtype instance Atom Var      dyn a = Var     (DynName dyn a)
+data Acc      = Acc      deriving (Show, Eq, Ord)
+data App      = App      deriving (Show, Eq, Ord)
+data Blank    = Blank    deriving (Show, Eq, Ord)
+data Cons     = Cons     deriving (Show, Eq, Ord)
+data Curry    = Curry    deriving (Show, Eq, Ord)
+data Lam      = Lam      deriving (Show, Eq, Ord)
+data Match    = Match    deriving (Show, Eq, Ord)
+data Missing  = Missing  deriving (Show, Eq, Ord)
+data Native   = Native   deriving (Show, Eq, Ord)
+data Star     = Star     deriving (Show, Eq, Ord)
+data Unify    = Unify    deriving (Show, Eq, Ord)
+data Var      = Var      deriving (Show, Eq, Ord)
 
+
+-- === Selectors === --
+
+-- type family   Atoms a       :: [*]
+-- type instance Atoms Acc     = '[Acc    ]
+-- type instance Atoms App     = '[App    ]
+-- type instance Atoms Blank   = '[Blank  ]
+-- type instance Atoms Cons    = '[Cons   ]
+-- type instance Atoms Curry   = '[Curry  ]
+-- type instance Atoms Lam     = '[Lam    ]
+-- type instance Atoms Match   = '[Match  ]
+-- type instance Atoms Missing = '[Missing]
+-- type instance Atoms Native  = '[Native ]
+-- type instance Atoms Star    = '[Star   ]
+-- type instance Atoms Unify   = '[Unify  ]
+-- type instance Atoms Var     = '[Var    ]
 
 
 -- === Instances === --
 
-type instance Base (Atom t dyn a) = t
+-- Default
 
--- Show
-deriving instance (Show a, Show (DynName dyn a)) => Show (Atom Acc     dyn a)
-deriving instance  Show a                        => Show (Atom App     dyn a)
-deriving instance                                   Show (Atom Blank   dyn a)
-deriving instance          Show (DynName dyn a)  => Show (Atom Cons    dyn a)
-deriving instance  Show a                        => Show (Atom Curry   dyn a)
-deriving instance  Show a                        => Show (Atom Lam     dyn a)
-deriving instance  Show a                        => Show (Atom Match   dyn a)
-deriving instance                                   Show (Atom Missing dyn a)
-deriving instance          Show (DynName dyn a)  => Show (Atom Native  dyn a)
-deriving instance                                   Show (Atom Star    dyn a)
-deriving instance  Show a                        => Show (Atom Unify   dyn a)
-deriving instance          Show (DynName dyn a)  => Show (Atom Var     dyn a)
+instance Default Integer  where def = Integer  ; {-# INLINE def #-}
+instance Default String   where def = String   ; {-# INLINE def #-}
+instance Default Rational where def = Rational ; {-# INLINE def #-}
 
+instance Default Acc      where def = Acc      ; {-# INLINE def #-}
+instance Default App      where def = App      ; {-# INLINE def #-}
+instance Default Blank    where def = Blank    ; {-# INLINE def #-}
+instance Default Cons     where def = Cons     ; {-# INLINE def #-}
+instance Default Curry    where def = Curry    ; {-# INLINE def #-}
+instance Default Lam      where def = Lam      ; {-# INLINE def #-}
+instance Default Match    where def = Match    ; {-# INLINE def #-}
+instance Default Missing  where def = Missing  ; {-# INLINE def #-}
+instance Default Native   where def = Native   ; {-# INLINE def #-}
+instance Default Star     where def = Star     ; {-# INLINE def #-}
+instance Default Unify    where def = Unify    ; {-# INLINE def #-}
+instance Default Var      where def = Var      ; {-# INLINE def #-}
 
--- Args
+-- Repr
 
-type instance Args (Atom Integer  dyn a) = OneTuple P.Integer
-type instance Args (Atom Rational dyn a) = OneTuple P.Rational
-type instance Args (Atom String   dyn a) = OneTuple P.String
+instance {-# OVERLAPPABLE #-} Repr s Integer  where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Rational where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s String   where repr = fromString ∘ show ; {-# INLINE repr #-}
 
-type instance Args (Atom Acc     dyn a) =          (DynName dyn a, a)
-type instance Args (Atom App     dyn a) =          (a, [Arg a])
-type instance Args (Atom Blank   dyn a) =          ()
-type instance Args (Atom Cons    dyn a) = OneTuple (DynName dyn a)
-type instance Args (Atom Curry   dyn a) =          (a, [Arg a])
-type instance Args (Atom Lam     dyn a) =          ([Arg a], a)
-type instance Args (Atom Match   dyn a) =          (a, a)
-type instance Args (Atom Missing dyn a) =          ()
-type instance Args (Atom Native  dyn a) = OneTuple (DynName dyn a)
-type instance Args (Atom Star    dyn a) =          ()
-type instance Args (Atom Unify   dyn a) =          (a, a)
-type instance Args (Atom Var     dyn a) = OneTuple (DynName dyn a)
-
--- Atomic
-
-instance Atomic Integer  where atomArgs = iso (\(Integer  t1) -> OneTuple t1) (uncurry Integer  ) ; {-# INLINE atomArgs #-}
-instance Atomic Rational where atomArgs = iso (\(Rational t1) -> OneTuple t1) (uncurry Rational ) ; {-# INLINE atomArgs #-}
-instance Atomic String   where atomArgs = iso (\(String   t1) -> OneTuple t1) (uncurry String   ) ; {-# INLINE atomArgs #-}
-
-instance Atomic Acc     where atomArgs = iso (\(Acc    t1 t2) -> (t1,t2)    ) (uncurry Acc    ) ; {-# INLINE atomArgs #-}
-instance Atomic App     where atomArgs = iso (\(App    t1 t2) -> (t1,t2)    ) (uncurry App    ) ; {-# INLINE atomArgs #-}
-instance Atomic Blank   where atomArgs = iso (\ Blank         -> ()         ) (uncurry Blank  ) ; {-# INLINE atomArgs #-}
-instance Atomic Cons    where atomArgs = iso (\(Cons   t1   ) -> OneTuple t1) (uncurry Cons   ) ; {-# INLINE atomArgs #-}
-instance Atomic Curry   where atomArgs = iso (\(Curry  t1 t2) -> (t1,t2)    ) (uncurry Curry  ) ; {-# INLINE atomArgs #-}
-instance Atomic Lam     where atomArgs = iso (\(Lam    t1 t2) -> (t1,t2)    ) (uncurry Lam    ) ; {-# INLINE atomArgs #-}
-instance Atomic Match   where atomArgs = iso (\(Match  t1 t2) -> (t1,t2)    ) (uncurry Match  ) ; {-# INLINE atomArgs #-}
-instance Atomic Missing where atomArgs = iso (\ Missing       -> ()         ) (uncurry Missing) ; {-# INLINE atomArgs #-}
-instance Atomic Native  where atomArgs = iso (\(Native t1   ) -> OneTuple t1) (uncurry Native ) ; {-# INLINE atomArgs #-}
-instance Atomic Star    where atomArgs = iso (\ Star          -> ()         ) (uncurry Star   ) ; {-# INLINE atomArgs #-}
-instance Atomic Unify   where atomArgs = iso (\(Unify  t1 t2) -> (t1,t2)    ) (uncurry Unify  ) ; {-# INLINE atomArgs #-}
-instance Atomic Var     where atomArgs = iso (\(Var    t1   ) -> OneTuple t1) (uncurry Var    ) ; {-# INLINE atomArgs #-}
-
--- DataType
-
-instance Atomic t => DataType (Atom t dyn a) (Atom t dyn' a') where args = atomArgs ; {-# INLINE args #-}
+instance {-# OVERLAPPABLE #-} Repr s Acc      where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s App      where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Blank    where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Cons     where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Curry    where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Lam      where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Match    where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Missing  where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Native   where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Star     where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Unify    where repr = fromString ∘ show ; {-# INLINE repr #-}
+instance {-# OVERLAPPABLE #-} Repr s Var      where repr = fromString ∘ show ; {-# INLINE repr #-}

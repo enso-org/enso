@@ -1,72 +1,139 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Term.Expr.Symbol where
+module Luna.Syntax.Term.Expr.Symbol (module Luna.Syntax.Term.Expr.Symbol, module X) where
 
-import Prelude.Luna hiding (String, Integer, Rational, Curry)
+import qualified Prelude.Luna as P
+import           Prelude.Luna hiding (String, Integer, Rational, Curry, Symbol)
 
-import Data.Base
+import Luna.Syntax.Term.Expr.Atom as X (String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+
+import Data.Base                 (Base)
+import Data.Construction         (Args, DataType (args))
+import Luna.Runtime.Dynamics     (ByDynamics)
+import Luna.Syntax.Term.Function (Arg)
+import Type.Applicative
+
+import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
+
+import qualified Data.Construction as C
+
+
+-- TODO[WD]: move to issue tracker after releasing Luna to github
+--------------------------------------------
+-- === Enhancement proposals & issues === --
+--------------------------------------------
+
+-- Status: pending | accepted | rejected
+
+-- Reporter  Status   Description
+-- wdanilo   pending  ACCESSORS AND FUNCTIONS UNIFICATION
+--                    Check if we can throw away accessors in terms. Let's consider the following Luna code:
+--                        a  = x.bar
+--                        a' = acc x "bar"
+--                    These lines should mean exactly the same with the followings rules:
+--                        - both forms have to be distinguishable to provide Term <-> Text conversion
+--                        - the performance of STATIC Luna compilation should be as fast as in current solution
+--                        - accessors should be first class objects, althought we can easily make a workaround like `myacc = a : a.x`
 
 
 -------------------
--- === Types === --
+-- === Utils === --
 -------------------
+
+type DynName d a = NameByDynamics d a
+type NameByDynamics dyn d = ByDynamics dyn Lit.String d
+
+
+---------------------
+-- === Symbols === --
+---------------------
+
+-- === Abstractions === --
+
+class IsSymbol t where symbolArgs :: Iso (Symbol t d a) (Symbol t d' a') (Args (Symbol t d a)) (Args (Symbol t d' a'))
+
+data family Symbol  t  dyn a
+type        Symbols ts dyn a = Symbol <$> ts <*> '[dyn] <*> '[a]
+
 
 -- === Definitions === --
 
-data Integer  = Integer  deriving (Show, Eq, Ord)
-data Rational = Rational deriving (Show, Eq, Ord)
-data String   = String   deriving (Show, Eq, Ord)
+newtype instance Symbol Integer  dyn a = Integer  P.Integer
+newtype instance Symbol Rational dyn a = Rational P.Rational
+newtype instance Symbol String   dyn a = String   P.String
 
-data Acc      = Acc      deriving (Show, Eq, Ord)
-data App      = App      deriving (Show, Eq, Ord)
-data Blank    = Blank    deriving (Show, Eq, Ord)
-data Cons     = Cons     deriving (Show, Eq, Ord)
-data Curry    = Curry    deriving (Show, Eq, Ord)
-data Lam      = Lam      deriving (Show, Eq, Ord)
-data Match    = Match    deriving (Show, Eq, Ord)
-data Missing  = Missing  deriving (Show, Eq, Ord)
-data Native   = Native   deriving (Show, Eq, Ord)
-data Star     = Star     deriving (Show, Eq, Ord)
-data Unify    = Unify    deriving (Show, Eq, Ord)
-data Var      = Var      deriving (Show, Eq, Ord)
+data    instance Symbol Acc      dyn a = Acc    !(DynName dyn a) !a
+data    instance Symbol App      dyn a = App                     !a ![Arg a]
+data    instance Symbol Blank    dyn a = Blank
+newtype instance Symbol Cons     dyn a = Cons    (DynName dyn a)
+data    instance Symbol Curry    dyn a = Curry                   !a ![Arg a]
+data    instance Symbol Lam      dyn a = Lam                     ![Arg a] !a
+data    instance Symbol Match    dyn a = Match                   !a !a
+data    instance Symbol Missing  dyn a = Missing
+data    instance Symbol Native   dyn a = Native !(DynName dyn a)
+data    instance Symbol Star     dyn a = Star
+data    instance Symbol Unify    dyn a = Unify                   !a !a
+newtype instance Symbol Var      dyn a = Var     (DynName dyn a)
+
 
 
 -- === Instances === --
 
--- Default
+type instance Base (Symbol t dyn a) = t
 
-instance Default Integer  where def = Integer  ; {-# INLINE def #-}
-instance Default String   where def = String   ; {-# INLINE def #-}
-instance Default Rational where def = Rational ; {-# INLINE def #-}
+-- Show
+deriving instance (Show a, Show (DynName dyn a)) => Show (Symbol Acc     dyn a)
+deriving instance  Show a                        => Show (Symbol App     dyn a)
+deriving instance                                   Show (Symbol Blank   dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Symbol Cons    dyn a)
+deriving instance  Show a                        => Show (Symbol Curry   dyn a)
+deriving instance  Show a                        => Show (Symbol Lam     dyn a)
+deriving instance  Show a                        => Show (Symbol Match   dyn a)
+deriving instance                                   Show (Symbol Missing dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Symbol Native  dyn a)
+deriving instance                                   Show (Symbol Star    dyn a)
+deriving instance  Show a                        => Show (Symbol Unify   dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Symbol Var     dyn a)
 
-instance Default Acc      where def = Acc      ; {-# INLINE def #-}
-instance Default App      where def = App      ; {-# INLINE def #-}
-instance Default Blank    where def = Blank    ; {-# INLINE def #-}
-instance Default Cons     where def = Cons     ; {-# INLINE def #-}
-instance Default Curry    where def = Curry    ; {-# INLINE def #-}
-instance Default Lam      where def = Lam      ; {-# INLINE def #-}
-instance Default Match    where def = Match    ; {-# INLINE def #-}
-instance Default Missing  where def = Missing  ; {-# INLINE def #-}
-instance Default Native   where def = Native   ; {-# INLINE def #-}
-instance Default Star     where def = Star     ; {-# INLINE def #-}
-instance Default Unify    where def = Unify    ; {-# INLINE def #-}
-instance Default Var      where def = Var      ; {-# INLINE def #-}
 
--- Repr
+-- Args
 
-instance {-# OVERLAPPABLE #-} Repr s Integer  where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Rational where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s String   where repr = fromString ∘ show ; {-# INLINE repr #-}
+type instance Args (Symbol Integer  dyn a) = OneTuple P.Integer
+type instance Args (Symbol Rational dyn a) = OneTuple P.Rational
+type instance Args (Symbol String   dyn a) = OneTuple P.String
 
-instance {-# OVERLAPPABLE #-} Repr s Acc      where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s App      where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Blank    where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Cons     where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Curry    where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Lam      where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Match    where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Missing  where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Native   where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Star     where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Unify    where repr = fromString ∘ show ; {-# INLINE repr #-}
-instance {-# OVERLAPPABLE #-} Repr s Var      where repr = fromString ∘ show ; {-# INLINE repr #-}
+type instance Args (Symbol Acc     dyn a) =          (DynName dyn a, a)
+type instance Args (Symbol App     dyn a) =          (a, [Arg a])
+type instance Args (Symbol Blank   dyn a) =          ()
+type instance Args (Symbol Cons    dyn a) = OneTuple (DynName dyn a)
+type instance Args (Symbol Curry   dyn a) =          (a, [Arg a])
+type instance Args (Symbol Lam     dyn a) =          ([Arg a], a)
+type instance Args (Symbol Match   dyn a) =          (a, a)
+type instance Args (Symbol Missing dyn a) =          ()
+type instance Args (Symbol Native  dyn a) = OneTuple (DynName dyn a)
+type instance Args (Symbol Star    dyn a) =          ()
+type instance Args (Symbol Unify   dyn a) =          (a, a)
+type instance Args (Symbol Var     dyn a) = OneTuple (DynName dyn a)
+
+-- IsSymbol
+
+instance IsSymbol Integer  where symbolArgs = iso (\(Integer  t1) -> OneTuple t1) (uncurry Integer  ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Rational where symbolArgs = iso (\(Rational t1) -> OneTuple t1) (uncurry Rational ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol String   where symbolArgs = iso (\(String   t1) -> OneTuple t1) (uncurry String   ) ; {-# INLINE symbolArgs #-}
+
+instance IsSymbol Acc     where symbolArgs = iso (\(Acc    t1 t2) -> (t1,t2)    ) (uncurry Acc    ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol App     where symbolArgs = iso (\(App    t1 t2) -> (t1,t2)    ) (uncurry App    ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Blank   where symbolArgs = iso (\ Blank         -> ()         ) (uncurry Blank  ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Cons    where symbolArgs = iso (\(Cons   t1   ) -> OneTuple t1) (uncurry Cons   ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Curry   where symbolArgs = iso (\(Curry  t1 t2) -> (t1,t2)    ) (uncurry Curry  ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Lam     where symbolArgs = iso (\(Lam    t1 t2) -> (t1,t2)    ) (uncurry Lam    ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Match   where symbolArgs = iso (\(Match  t1 t2) -> (t1,t2)    ) (uncurry Match  ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Missing where symbolArgs = iso (\ Missing       -> ()         ) (uncurry Missing) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Native  where symbolArgs = iso (\(Native t1   ) -> OneTuple t1) (uncurry Native ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Star    where symbolArgs = iso (\ Star          -> ()         ) (uncurry Star   ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Unify   where symbolArgs = iso (\(Unify  t1 t2) -> (t1,t2)    ) (uncurry Unify  ) ; {-# INLINE symbolArgs #-}
+instance IsSymbol Var     where symbolArgs = iso (\(Var    t1   ) -> OneTuple t1) (uncurry Var    ) ; {-# INLINE symbolArgs #-}
+
+-- DataType
+
+instance IsSymbol t => DataType (Symbol t dyn a) (Symbol t dyn' a') where args = symbolArgs ; {-# INLINE args #-}
