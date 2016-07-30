@@ -16,7 +16,7 @@ module Prologue (
 import qualified Prelude
 
 
-import Control.Applicative        as X
+import Control.Applicative        as X hiding (empty)
 import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
 import Control.Error.Util         as X (isLeft, isRight)
 import Control.Exception.Base     as X (assert)
