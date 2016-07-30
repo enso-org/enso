@@ -40,14 +40,17 @@ import Luna.Syntax.Term.Expr (Atom, Atoms, NameByDynamics)
 
 
 import Data.Container.Hetero (Elems)
-import Data.RTuple (Empty, empty)
+import Data.RTuple (List, Empty, empty)
 
 
 
+data L dyn form = L dyn form deriving (Show)
 
-data Scope = Scope deriving (Show)
-data Layout = Layout deriving (Show)
+data Scope   = Scope   deriving (Show)
+data Layout  = Layout  deriving (Show)
 data Binding = Binding deriving (Show)
+data Model   = Model   deriving (Show)
+
 type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
 
 
@@ -71,7 +74,10 @@ type TermLayers    (attrs :: [*]) layers = Layer <$> (TermLayerDesc attrs <$> la
 -- === Instances === --
 
 -- Show
-deriving instance Show (Unwrapped (Term attrs layers)) => Show (Term attrs layers)
+instance Show (List (TermLayers attrs layers)) => Show (Term attrs layers) where
+    showsPrec d (Term t) = showParen (d > app_prec) $
+        showString "Term " . showsPrec (app_prec+1) (unwrap $ unwrap t)
+        where app_prec = 10
 
 -- Wrapper
 makeWrapped ''Term
@@ -87,18 +93,29 @@ instance layers ~ '[] => Empty (Term attrs layers) where
 
 -- === Definitions === --
 
-type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layout, Dynamics := dyn] (ExprData ': layers)
+-- type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layout, Dynamics := dyn] (ExprData ': layers)
 
+data Layer2 t a = Layer2 a deriving (Show, Functor, Traversable, Foldable)
+
+type Expr2 binding attrs layers model scope = Term ( Binding := binding
+                                                  ': Model   := model
+                                                  ': Scope   := scope
+                                                  ': attrs
+                                                   ) (ExprData ': layers)
+
+type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
+
+type Expr3 binding layers model scope = Term (Layer2 ExprData (ExprRecord2 binding model scope) ': layers)
 
 -- TO REFACTOR:
 type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
 
 -- type Expr2 binding layers layout = Term '[Binding := binding, Layout := layout] (ExprData ': layers)
 --
--- type Expr3 binding layers layout scope = Term '[Binding := binding, Layout := layout, Scope := scope] (ExprData ': layers)
+-- type Expr2 binding layers layout scope = Term '[Binding := binding, Layout := layout, Scope := scope] (ExprData ': layers)
 --
--- Expr3 Network '[] (Layout Static Draft) (Layout Static Draft)
--- Expr3 Network '[] (Layout Static Draft) (Layout Static App)
+-- Expr2 Network '[] (Layout Static Draft) (Layout Static Draft)
+-- Expr2 Network '[] (Layout Static Draft) (Layout Static App)
 --
 --
 -- Node Static Draft Static App
@@ -112,14 +129,15 @@ type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
 -- === Expr layer === --
 
 data ExprData = ExprData deriving (Show)
-type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Dynamics) (attrs ^. Layout)
+type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
 type instance LayerData (TermLayerDesc attrs Int) = Int
 
 -- === ExprRecord === --
 
 -- newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Atoms (Elems layout) dyn bind) Data2)
-newtype ExprRecord2 bind dyn layout = ExprRecord2 Data2 deriving (Show)
-
+-- newtype ExprRecord2 bind dyn layout = ExprRecord2 Data2 deriving (Show)
+newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
+--
 
 
 

@@ -87,7 +87,7 @@ import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (Term(..), Expr2, ExprRecord2(..), TermLayer(..), TermLayers)
+import Luna.Syntax.Term.Expr.Class (L(..), Term(..), Expr2, ExprRecord2(..), TermLayer(..), TermLayers)
 import Data.Record.Model.Masked (encodeData2, Data2)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -340,12 +340,17 @@ buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 data Network2 = Network2 deriving (Show)
 
+-- Expr2 Network2 '[Int] Static Draft Static Draft
+-- Expr3 Network2 '[] '[Int] Static Draft Static App
+--
+-- Expr3 Network2 '[] '[Int] (Layout Static Draft) (Layout Static App)
+
 main :: IO ()
 main = do
     print a1
     print $ (runIdentity (cons2 a1) :: Data2)
     -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
-    print $ (runIdentity (cons2 a1') :: Expr2 Network2 '[Int] Static Draft)
+    -- print $ (runIdentity (cons2 a1') :: Expr2 Network2 '[] '[Int] (L Static Draft) (L Static Draft))
 
     -- E.main
 
@@ -408,16 +413,18 @@ instance Monad m => Cons2 v m (Term attrs '[]) where
     cons2 _ = return empty ; {-# INLINE cons2 #-}
 
 
-instance ( Functor m
-         , Cons2 (Atom symbol dyn bind) m Data2
-         {-constraint solving-}
-         , dyn  ~ dyn'
-         , bind ~ bind'
-         , Assert (symbol `In` Elems layout) ('Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid atom of format `" :<>: 'ShowType layout :<>: 'Text "`")
-         )
-      => Cons2 (Atom symbol dyn bind) m (ExprRecord2 bind' dyn' layout) where
-    cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
+type InvalidFormatAtom symbol format = 'Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid atom of format `" :<>: 'ShowType format :<>: 'Text "`"
 
+-- instance ( Functor m
+--          , Cons2 (Atom symbol dyn bind) m Data2
+--          {-constraint solving-}
+--          , dyn  ~ dyn'
+--          , bind ~ bind'
+--          , Assert (symbol `In` Elems layout) (InvalidFormatAtom symbol layout)
+--          )
+--       => Cons2 (Atom symbol dyn bind) m (ExprRecord2 bind' dyn' layout) where
+--     cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
+-- TODO: zmienic parametryzacje ExprRecord2 na Layouty i bedzie dzialalo
 
 instance Monad m => Cons2 v m Int where cons2 _ = return 5
 
