@@ -32,17 +32,17 @@ packages:
 - extra-dep: true
   location: {commit: 1c41d3032b13afaec94c91d2b4459927687e4930, git: 'https://github.com/wdanilo/poly-control.git'}
 - extra-dep: true
-  location: {commit: a1012df59944f807a53b08522d3d2d0d841e0cfc, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: ebdd4b6cfa7708e50f1ff0f283b947b3af5bd5d6, git: 'https://github.com/wdanilo/prologue.git'}
 - extra-dep: true
   location: {commit: bb6c4bcf50a4395a393920767b908d1fea517eed, git: 'https://github.com/wdanilo/type-cache.git'}
 - extra-dep: true
-  location: {commit: eef9145047522904a011fa959585356438d749d3, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: 76e8501f61af80adc3b76d74bc8cd9f7a07a6b96, git: 'https://github.com/wdanilo/typelevel.git'}
 - extra-dep: true
   location: {commit: c3c7f553815dc8343d7690624b421fe65893324d, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
   location: {commit: 9c306106c546db4d89b6757fd53f1d6b35e927c3, git: 'https://github.com/wdanilo/data-member.git'}
 - extra-dep: true
-  location: {commit: a8344f5abf03845bd3605291353a9c4d19c41abb, git: 'https://github.com/wdanilo/data-rtuple.git'}
+  location: {commit: 06d2622acba03187325410efd23c051576a80c12, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
-  location: {commit: 2070935673fb6b0a382387ba80bd950b4718eadb, git: 'https://github.com/wdanilo/data-shell.git'}
+  location: {commit: 62a569d633db4832374e1ca1c61fcbfe207de61b, git: 'https://github.com/wdanilo/data-shell.git'}
 resolver: nightly-2016-07-19

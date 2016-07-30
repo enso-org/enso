@@ -421,8 +421,7 @@ instance ( Functor m
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
-         , Assert (symbol `In` Atoms layout) (InvalidFormatSymbol symbol layout)
-         )
+         , Assert (symbol `In` Atoms layout) (InvalidFormatSymbol symbol layout))
       => Cons2 (Symbol symbol dyn bind) m (ExprRecord2 bind' model (L dyn' layout)) where
     cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
 
