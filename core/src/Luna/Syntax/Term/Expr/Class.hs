@@ -37,17 +37,20 @@ import Type.Applicative
 
 import Prologue.Unsafe (error)
 import Luna.Syntax.Term.Expr (Symbol, Symbols, NameByDynamics)
-
+import qualified Data.RTuple as List
+import Type.Promotion    (KnownNats)
 
 import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty)
+import Data.Record.Model.Masked (encodeData2, Data2)
+import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
 
+import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
+import Type.Error (Assert)
 
-
-data L dyn form = L dyn form deriving (Show)
+data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
 data Scope   = Scope   deriving (Show)
-data Layout  = Layout  deriving (Show)
 data Binding = Binding deriving (Show)
 data Model   = Model   deriving (Show)
 
@@ -56,6 +59,11 @@ type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, p
 
 type family (a :: k) ^. (prop :: *) :: *
 data a := b
+
+-- TO REFACTOR:
+type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
+
+
 
 
 -------------------
@@ -87,13 +95,12 @@ instance layers ~ '[] => Empty (Term attrs layers) where
     empty = Term empty ; {-# INLINE empty #-}
 
 
+
 ------------------
 -- === Expr === --
 ------------------
 
 -- === Definitions === --
-
--- type Expr2 binding layers dyn layout = Term '[Binding := binding, Layout := layout, Dynamics := dyn] (ExprData ': layers)
 
 type Expr2 binding attrs layers model scope = Term ( Binding := binding
                                                   ': Model   := model
@@ -103,23 +110,10 @@ type Expr2 binding attrs layers model scope = Term ( Binding := binding
 
 type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
 
--- TO REFACTOR:
-type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
 
--- type Expr2 binding layers layout = Term '[Binding := binding, Layout := layout] (ExprData ': layers)
---
--- type Expr2 binding layers layout scope = Term '[Binding := binding, Layout := layout, Scope := scope] (ExprData ': layers)
---
--- Expr2 Network '[] (Layout Static Draft) (Layout Static Draft)
--- Expr2 Network '[] (Layout Static Draft) (Layout Static App)
---
---
--- Node Static Draft Static App
---
--- Node' Static Draft
---
---
--- Scoped Node Static Draft App
+-- === ExprRecord === --
+
+newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
 
 
 -- === Expr layer === --
@@ -128,12 +122,57 @@ data ExprData = ExprData deriving (Show)
 type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
 type instance LayerData (TermLayerDesc attrs Int) = Int
 
--- === ExprRecord === --
 
--- newtype ExprRecord2 layout dyn bind = ExprRecord2 (VGRecord2 '[] (Symbols (Elems layout) dyn bind) Data2)
--- newtype ExprRecord2 bind dyn layout = ExprRecord2 Data2 deriving (Show)
-newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
---
+
+
+---------------------
+-- === Records === --
+---------------------
+
+-- === Construction === --
+
+class Monad m => Cons2 v m t where
+    cons2 :: v -> m t
+
+
+instance (Monad m, KnownNats (Encode Char (Symbol symbol dyn a)))
+      => Cons2 (Symbol symbol dyn a) m Data2 where
+    cons2 = return . encodeData2
+
+instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
+      => Cons2 v m (Term attrs ls) where
+         cons2 v = (Term . Stack . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
+
+instance (Monad m, Cons2 v m (LayerData l))
+      => Cons2 v m (Layer l) where
+         cons2 v = Shell.Layer <$> cons2 v ; {-# INLINE cons2 #-}
+
+instance Monad m => Cons2 v m (Term attrs '[]) where
+    cons2 _ = return empty ; {-# INLINE cons2 #-}
+
+
+type InvalidFormatSymbol symbol format = 'Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
+
+instance ( Functor m
+         , Cons2 (Symbol symbol dyn bind) m Data2
+         {-constraint solving-}
+         , dyn  ~ dyn'
+         , bind ~ bind'
+         , Assert (symbol `In` Atoms layout) (InvalidFormatSymbol symbol layout))
+      => Cons2 (Symbol symbol dyn bind) m (ExprRecord2 bind' model (Layout dyn' layout)) where
+    cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
+
+
+instance Monad m => Cons2 v m Int where cons2 _ = return 5
+
+
+
+
+
+
+
+
+----------------------------------------------------
 
 
 

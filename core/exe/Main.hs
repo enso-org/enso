@@ -87,7 +87,7 @@ import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (L(..), Term(..), Expr2, ExprRecord2(..), TermLayer(..), TermLayers)
+import Luna.Syntax.Term.Expr.Class (cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), TermLayer(..), TermLayers)
 import Data.Record.Model.Masked (encodeData2, Data2)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -351,7 +351,7 @@ main = do
     print a1
     print $ (runIdentity (cons2 a1) :: Data2)
     -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
-    print $ (runIdentity (cons2 a1') :: Expr2 Network2 '[] '[Int] (L Static Draft) (L Static Draft))
+    print $ (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
 
     -- E.main
 
@@ -381,53 +381,3 @@ main = do
 
 
 -- refactor to Data.Construction ?
-class Monad m => Cons2 v m t where
-    cons2 :: v -> m t
-
-
-instance (Monad m, KnownNats (Encode Char (Symbol symbol dyn a)))
-      => Cons2 (Symbol symbol dyn a) m Data2 where
-    cons2 = return . encodeData2
-
-
-    -- instance ( Monad m
-    --         , Cons2 v m (ExprRecord2 dyn' layout))
-    --       => Cons2 v m (Expr2 binding '[] dyn' layout) where
-    --     cons2 v = (Term . Stack . TMap . List.singleton . Shell.Layer) <$> cons2 v
-
--- instance ( Monad m, Cons2 v m (TermLayer attrs l))
---       => Cons2 v m (Term attrs '[l]) where
---     cons2 v = (Term . Stack . TMap . List.singleton) <$> cons2 v ; {-# INLINE cons2 #-}
---
-
-instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
-      => Cons2 v m (Term attrs ls) where
-         cons2 v = (Term . Stack . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
-
-
-instance (Monad m, Cons2 v m (LayerData l))
-      => Cons2 v m (Layer l) where
-         cons2 v = Shell.Layer <$> cons2 v ; {-# INLINE cons2 #-}
-
-
-instance Monad m => Cons2 v m (Term attrs '[]) where
-    cons2 _ = return empty ; {-# INLINE cons2 #-}
-
-
-type InvalidFormatSymbol symbol format = 'Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
-
-instance ( Functor m
-         , Cons2 (Symbol symbol dyn bind) m Data2
-         {-constraint solving-}
-         , dyn  ~ dyn'
-         , bind ~ bind'
-         , Assert (symbol `In` Atoms layout) (InvalidFormatSymbol symbol layout))
-      => Cons2 (Symbol symbol dyn bind) m (ExprRecord2 bind' model (L dyn' layout)) where
-    cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
-
-instance Monad m => Cons2 v m Int where cons2 _ = return 5
-
-
-class                     Assert (ok :: Bool) (err :: ErrorMessage)
-instance                  Assert 'True  err
-instance TypeError err => Assert 'False err
