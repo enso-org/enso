@@ -258,3 +258,13 @@ encodeData2 (v :: v) = Data2 mask $ unsafeStore v where
     bits    = fromIntegral <$> natVals (p :: P (Encode Char v))
     mask    = foldl' setBit zeroBits bits
 {-# INLINE encodeData2 #-}
+
+checkData2 :: KnownNat (Decode Char v) => Data2 -> Proxy v -> Bool
+checkData2 (Data2 mask _) (_ :: Proxy v) = match where
+    bit   = fromIntegral $ natVal (p :: P (Decode Char v))
+    match = testBit mask bit
+{-# INLINE checkData2 #-}
+
+decodeData2 :: forall v. KnownNat (Decode Char v) => Data2 -> Maybe v
+decodeData2 d@(Data2 mask store) = if checkData2 d (Proxy :: Proxy v) then Just (unsafeRestore store) else Nothing
+{-# INLINE decodeData2 #-}

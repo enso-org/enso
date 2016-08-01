@@ -87,7 +87,7 @@ import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), TermLayer(..), TermLayers)
+import Luna.Syntax.Term.Expr.Class (ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case2, of2)
 import Data.Record.Model.Masked (encodeData2, Data2)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -97,6 +97,8 @@ import Data.Container.Hetero (Elems)
 import GHC.TypeLits hiding (Symbol)
 import GHC.TypeLits (ErrorMessage(Text))
 import Luna.Syntax.Term.Expr.Atom (Atoms)
+
+import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -346,12 +348,36 @@ data Network2 = Network2 deriving (Show)
 --
 -- Expr3 Network2 '[] '[Int] (Layout Static Draft) (Layout Static App)
 
+
+data ZZ = AA | BB
+
 main :: IO ()
 main = do
     print a1
     print $ (runIdentity (cons2 a1) :: Data2)
     -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
-    print $ (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
+    let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
+    print e1
+
+    -- let a = AA
+    -- case a of
+    --     BB -> print "tsr"
+
+    -- case2 e1 $
+    --     of2 $ \(Symbol.Unify l r) -> print "hello"
+    --     -- __                      -> print "oh!"
+
+    print $ view (List.access' ExprData) e1 -- Refactor, List is in Fact TMap
+
+
+
+    -- case' e1 $
+    --     of'                   $ \(Symbol.Unify l r) -> print "hello"
+    --     match  Unify          $ \unify              -> print "hello2"
+    --     match  (Unify || App) $ \ua                 -> print "hello3"
+    --     static                $ \s                  -> print "static"
+    --     :_                    $                        print "oh!"
+
 
     -- E.main
 

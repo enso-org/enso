@@ -4,7 +4,10 @@
 
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE OverloadedLabels #-}
+
+
+
 
 module Luna.Syntax.Term.Expr.Class where
 
@@ -30,7 +33,7 @@ import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
 import Luna.Syntax.Term.Expr.Atom
 
-import Data.Shell               as Shell
+import Data.Shell               as Shell hiding (Access)
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 import Type.Monoid
 import Type.Applicative
@@ -41,12 +44,15 @@ import qualified Data.RTuple as List
 import Type.Promotion    (KnownNats)
 
 import Data.Container.Hetero (Elems)
-import Data.RTuple (List, Empty, empty)
-import Data.Record.Model.Masked (encodeData2, Data2)
+import Data.RTuple (List, Empty, empty, Access, Accessible', accessProxy')
+import Data.Record.Model.Masked (encodeData2, checkData2, decodeData2, Data2(..), unsafeRestore)
 import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
 import Type.Error (Assert)
+import Control.Monad.State
+import Control.Lens.Property
+import GHC.Stack (callStack)
 
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
@@ -57,11 +63,11 @@ data Model   = Model   deriving (Show)
 type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
 
 
-type family (a :: k) ^. (prop :: *) :: *
+
 data a := b
 
 -- TO REFACTOR:
-type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
+type instance View l ((k := v) ': ls) = If (k == l) v (ls ^. l)
 
 
 
@@ -69,30 +75,65 @@ type instance ((k := v) ': ls) ^. l = If (k == l) v (ls ^. l)
 -------------------
 -- === Terms === --
 -------------------
+--
+-- -- === Definitions === --
+--
+-- newtype Term (attrs :: [*]) layers = Term (TermStack attrs layers)
+--
+-- type TermStack     (attrs :: [*]) layers = Stack layers (TermLayerDesc attrs <$> layers)
+-- data TermLayerDesc (attrs :: [*]) layer
+-- type TermLayer     (attrs :: [*]) layer  = Layer (TermLayerDesc attrs layer)
+-- type TermLayers    (attrs :: [*]) layers = Layer <$> (TermLayerDesc attrs <$> layers)
+--
+-- -- === Instances === --
+--
+-- -- Show
+-- instance Show (List (TermLayers attrs layers)) => Show (Term attrs layers) where
+--     showsPrec d (Term t) = showParen (d > app_prec) $
+--         showString "Term " . showsPrec (app_prec+1) (unwrap $ unwrap t)
+--         where app_prec = 10
+--
+-- -- Wrapper
+-- makeWrapped ''Term
+--
+-- -- Construction
+-- instance layers ~ '[] => Empty (Term attrs layers) where
+--     empty = Term empty ; {-# INLINE empty #-}
+--
+
 
 -- === Definitions === --
 
-newtype Term (attrs :: [*]) layers = Term (TermStack attrs layers)
+newtype Term (attrs :: [*]) tags = Term (TMap tags (TermDatas attrs tags))
 
-type TermStack     (attrs :: [*]) layers = Stack layers (TermLayerDesc attrs <$> layers)
-data TermLayerDesc (attrs :: [*]) layer
-type TermLayer     (attrs :: [*]) layer  = Layer (TermLayerDesc attrs layer)
-type TermLayers    (attrs :: [*]) layers = Layer <$> (TermLayerDesc attrs <$> layers)
+type family TermData  (attrs :: [*]) tag
+type family TermDatas (attrs :: [*]) tags where
+    TermDatas attrs '[] = '[]
+    TermDatas attrs (t ': ts) = TermData attrs t ': TermDatas attrs ts
+
 
 -- === Instances === --
 
 -- Show
-instance Show (List (TermLayers attrs layers)) => Show (Term attrs layers) where
+instance Show (List (TermDatas attrs tags)) => Show (Term attrs tags) where
     showsPrec d (Term t) = showParen (d > app_prec) $
-        showString "Term " . showsPrec (app_prec+1) (unwrap $ unwrap t)
+        showString "Term " . showsPrec (app_prec+1) (unwrap t)
         where app_prec = 10
 
 -- Wrapper
 makeWrapped ''Term
 
 -- Construction
-instance layers ~ '[] => Empty (Term attrs layers) where
+instance tags ~ '[] => Empty (Term attrs tags) where
     empty = Term empty ; {-# INLINE empty #-}
+
+
+-- Property access
+type instance Access p (Term attrs tags) = Access p (Unwrapped (Term attrs tags))
+
+instance Accessible' p (Unwrapped (Term attrs tags))
+      => Accessible' p (Term attrs tags) where
+         accessProxy' p = wrapped . accessProxy' p ; {-# INLINE accessProxy' #-}
 
 
 
@@ -119,8 +160,11 @@ newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
 -- === Expr layer === --
 
 data ExprData = ExprData deriving (Show)
-type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
-type instance LayerData (TermLayerDesc attrs Int) = Int
+-- type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
+-- type instance LayerData (TermLayerDesc attrs Int) = Int
+
+type instance TermData attrs ExprData = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
+type instance TermData attrs Int      = Int
 
 
 
@@ -128,6 +172,15 @@ type instance LayerData (TermLayerDesc attrs Int) = Int
 ---------------------
 -- === Records === --
 ---------------------
+
+
+-- === Relations === --
+
+-- | Variants is needed for operations that need to know all possible variant types
+--   like maps that should invoke some action on current variant (e.g. `show`).
+type family Variants3 rec :: [*]
+
+type family InferVariant rec v :: Constraint
 
 -- === Construction === --
 
@@ -137,29 +190,34 @@ class Monad m => Cons2 v m t where
 
 instance (Monad m, KnownNats (Encode Char (Symbol symbol dyn a)))
       => Cons2 (Symbol symbol dyn a) m Data2 where
-    cons2 = return . encodeData2
+         cons2 = return . encodeData2
 
-instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
+-- instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
+--       => Cons2 v m (Term attrs ls) where
+--          cons2 v = (Term . Stack . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
+
+instance (Monad m, List.Generate (Cons2 v) m (TermDatas attrs ls))
       => Cons2 v m (Term attrs ls) where
-         cons2 v = (Term . Stack . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
-
-instance (Monad m, Cons2 v m (LayerData l))
-      => Cons2 v m (Layer l) where
-         cons2 v = Shell.Layer <$> cons2 v ; {-# INLINE cons2 #-}
-
-instance Monad m => Cons2 v m (Term attrs '[]) where
-    cons2 _ = return empty ; {-# INLINE cons2 #-}
+         cons2 v = (Term . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 
 
-type InvalidFormatSymbol symbol format = 'Text "Symbol `" :<>: 'ShowType symbol :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
+-- instance (Monad m, Cons2 v m (LayerData l))
+--       => Cons2 v m (Layer l) where
+--          cons2 v = Shell.Layer <$> cons2 v ; {-# INLINE cons2 #-}
+
+-- instance Monad m => Cons2 v m (Term attrs '[]) where
+--     cons2 _ = return empty ; {-# INLINE cons2 #-}
+
+
+type InvalidFormatAtom atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
 instance ( Functor m
-         , Cons2 (Symbol symbol dyn bind) m Data2
+         , Cons2 (Symbol atom dyn bind) m Data2
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
-         , Assert (symbol `In` Atoms layout) (InvalidFormatSymbol symbol layout))
-      => Cons2 (Symbol symbol dyn bind) m (ExprRecord2 bind' model (Layout dyn' layout)) where
+         , Assert (atom `In` Atoms layout) (InvalidFormatAtom atom layout))
+      => Cons2 (Symbol atom dyn bind) m (ExprRecord2 bind' model (Layout dyn' layout)) where
     cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
 
 
@@ -167,10 +225,50 @@ instance Monad m => Cons2 v m Int where cons2 _ = return 5
 
 
 
+-- === Pattern Matching === --
+
+class Match2 v rec where
+    of2 :: forall out. (v -> out) -> MatchSet2 rec out
+
+
+-- FIXME: draft implementation, to refactor
+instance ( IsAtom atom
+         , KnownNat (Decode Char atom)
+         , bind ~ bind'
+         , dyn  ~ dyn'
+         )
+      => Match2 (Symbol atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
+    of2 f = MatchState2 $ do
+        s <- get
+        let run (ExprRecord2 (d@(Data2 _ store))) = f <$> (if checkData2 d (Proxy :: Proxy atom) then Just $ unsafeRestore store else Nothing)
+        put (s <> [run])
+
+
+matchedOptions2 :: rec -> MatchSet2 rec s -> [s]
+matchedOptions2 t (MatchState2 s) = catMaybes ∘ reverse $ ($ t) <$> execState s [] ; {-# INLINE matchedOptions2 #-}
+
+runMatches2 :: rec -> MatchSet2 rec s -> Maybe s
+runMatches2 = tryHead ∘∘ matchedOptions2 ; {-# INLINE runMatches2 #-}
+
+fromJustNote2 err = \case
+    Just a  -> a
+    Nothing -> error err
+
+case2 :: rec -> MatchSet2 rec b -> b
+case2 = fromJustNote2 "ss" ∘∘ runMatches2
 
 
 
+-- -- TODO [WD]: Add TH case' interface
+-- __case__ lib file loc = fromJustNote err ∘∘ runMatches where
+--     err = lib <> ": " <> file <> ":" <> show loc <> ": Non-exhaustive patterns in case"
+-- {-# INLINE __case__ #-}
 
+-- rec -> Maybe v
+-- f :: v -> out
+--
+newtype MatchState2 rec s a = MatchState2 (State [rec -> Maybe s] a) deriving (Functor, Applicative, Monad)
+type    MatchSet2   rec s   = MatchState2 rec s ()
 
 ----------------------------------------------------
 

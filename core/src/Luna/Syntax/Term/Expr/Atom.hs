@@ -13,16 +13,28 @@ import Data.Base
 -- === Definition pragmas === --
 
 #define DEFINE_ATOM(name)                                      \
+                                                               \
 data name = name deriving (Show, Eq, Ord)                     ;\
+                                                               \
 type instance Atoms name = '[name]                            ;\
-instance Default name where {def = name ; {-# INLINE def #-}} ;\
-instance {-# OVERLAPPABLE #-} Repr s name where {repr = fromString ∘ show ; {-# INLINE repr #-}}
+                                                               \
+instance Default name where {                                  \
+    def = name ; {-# INLINE def #-}}                          ;\
+                                                               \
+instance IsAtom name where {                                   \
+    atom = name ; {-# INLINE atom #-}}                        ;\
+                                                               \
+instance {-# OVERLAPPABLE #-} Repr s name where {              \
+    repr = fromString ∘ show ; {-# INLINE repr #-}}
 
 
 -- === Queries === --
 
+data Atom = Atom deriving (Show)
+
 type family Atoms a :: [*]
 
+class IsAtom a where atom :: a
 
 -- === Definitions === --
 
