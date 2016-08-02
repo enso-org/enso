@@ -12,10 +12,11 @@ import GHC.Prim          (Any)
 import Type.Map          (MapLookup)
 import Type.Promotion    (KnownNats, natVals)
 import Data.Result       (Ok(Ok))
-import Data.Record.Class ( Encode, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
+import Data.Record.Class ( Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
                          , Variant, Layout, IsRecord, HasRecord, RecordOf, Group, DecodeMap, Props, asRecord, record
                          )
 
+import Type.Maybe (FromJust)
 
 -------------------
 -- === Store === --
@@ -75,6 +76,7 @@ instance Show Mask where
 
 data Data = Data !Mask !Store deriving (Generic, Show)
 data Data2 = Data2 !Mask !Store deriving (Generic)
+data Data3 = Data3 !Int !Store deriving (Generic, Show)
 
 -- === Instances === --
 
@@ -259,11 +261,22 @@ encodeData2 (v :: v) = Data2 mask $ unsafeStore v where
     mask    = foldl' setBit zeroBits bits
 {-# INLINE encodeData2 #-}
 
+encodeVariant :: KnownNat (FromJust (Encode2 rec Variant a)) => Proxy rec -> a -> Data3
+encodeVariant rec a = Data3 (encodeNat rec a) $ unsafeStore a where
+{-# INLINE encodeVariant #-}
+
+
+encodeNat :: KnownNat (FromJust (Encode2 rec Variant a)) => Proxy rec -> a -> Int
+encodeNat (rec :: Proxy rec) (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 rec Variant a)))
+{-# INLINE encodeNat #-}
+
 checkData2 :: KnownNat (Decode Char v) => Data2 -> Proxy v -> Bool
-checkData2 (Data2 mask _) (_ :: Proxy v) = match where
-    bit   = fromIntegral $ natVal (p :: P (Decode Char v))
-    match = testBit mask bit
+checkData2 (Data2 mask _) v = testBit mask (decodeNat v)
 {-# INLINE checkData2 #-}
+
+decodeNat :: KnownNat (Decode Char v) => Proxy v -> Int
+decodeNat (_ :: Proxy v) = fromIntegral $ natVal (p :: P (Decode Char v))
+{-# INLINE decodeNat #-}
 
 decodeData2 :: forall v. KnownNat (Decode Char v) => Data2 -> Maybe v
 decodeData2 d@(Data2 mask store) = if checkData2 d (Proxy :: Proxy v) then Just (unsafeRestore store) else Nothing

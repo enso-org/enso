@@ -5,6 +5,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE RankNTypes #-}
 
 
 
@@ -12,7 +13,7 @@
 module Luna.Syntax.Term.Expr.Class where
 
 
-import           Prelude.Luna                 hiding (Num, Swapped, Curry, String, Integer, Rational, Symbol)
+import           Prelude.Luna                 hiding (Num, Swapped, Curry, String, Integer, Rational, Symbol, Index)
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
@@ -20,7 +21,7 @@ import           Data.Base
 import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
-import           Type.Container               hiding (Empty)
+import           Type.Container               hiding (Empty, FromJust)
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
@@ -45,7 +46,7 @@ import Type.Promotion    (KnownNats)
 
 import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty, Access, Accessible', accessProxy')
-import Data.Record.Model.Masked (encodeData2, checkData2, decodeData2, Data2(..), unsafeRestore)
+import Data.Record.Model.Masked (encodeNat, encodeData2, encodeVariant, checkData2, decodeData2, Data2(..), Data3(..), unsafeRestore, decodeNat)
 import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
@@ -53,6 +54,11 @@ import Type.Error (Assert)
 import Control.Monad.State
 import Control.Lens.Property
 import GHC.Stack (HasCallStack, callStack, prettyCallStack, withFrozenCallStack)
+import Data.Vector.Mutable (MVector)
+import qualified Data.Vector.Mutable as V
+import Control.Monad.ST (ST, runST)
+import Type.List (Index, Size)
+import Type.Maybe (FromJust)
 
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
@@ -70,6 +76,9 @@ data a := b
 type instance View l ((k := v) ': ls) = If (k == l) v (ls ^. l)
 
 
+data EE = EE -- TODO: refactor to Expr selector
+
+type PossibleVariants = [Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
 
 
 -------------------
@@ -154,7 +163,7 @@ type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
 
 -- === ExprRecord === --
 
-newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
+newtype ExprRecord2 bind model scope = ExprRecord2 Data3 deriving (Show)
 
 
 -- === Expr layer === --
@@ -187,9 +196,9 @@ class Monad m => Cons2 v m t where
     cons2 :: v -> m t
 
 
-instance (Monad m, KnownNats (Encode Char (Symbol symbol dyn a)))
-      => Cons2 (Symbol symbol dyn a) m Data2 where
-         cons2 = return . encodeData2
+instance (Monad m, KnownNat (FromJust (Encode2 EE Variant atom)), IsAtom atom)
+      => Cons2 (Symbol atom dyn a) m Data3 where
+         cons2 _ = return $ encodeVariant (Proxy :: Proxy EE) (atom :: atom)
 
 -- instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
 --       => Cons2 v m (Term attrs ls) where
@@ -211,7 +220,7 @@ instance (Monad m, List.Generate (Cons2 v) m (TermDatas attrs ls))
 type InvalidFormatAtom atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
 instance ( Functor m
-         , Cons2 (Symbol atom dyn bind) m Data2
+         , Cons2 (Symbol atom dyn bind) m Data3
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
@@ -226,41 +235,11 @@ instance Monad m => Cons2 v m Int where cons2 _ = return 5
 
 -- === Pattern Matching === --
 
-class Match2 v rec where
-    of2 :: forall out. (v -> out) -> MatchSet2 rec out
-
-
--- FIXME: draft implementation, to refactor
-instance ( IsAtom atom
-         , KnownNat (Decode Char atom)
-         , bind ~ bind'
-         , dyn  ~ dyn'
-         )
-      => Match2 (Symbol atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
-    of2 f = MatchState2 $ do
-        s <- get
-        let run (ExprRecord2 (d@(Data2 _ store))) = f <$> (if checkData2 d (Proxy :: Proxy atom) then Just $ unsafeRestore store else Nothing)
-        put (s <> [run])
-
 type family RecordOf2 t
 
 class HasRecord2 t where
     record2 :: Lens' t (RecordOf2 t)
 
-
-matchedOptions2 :: rec -> MatchSet2 rec s -> [s]
-matchedOptions2 t (MatchState2 s) = catMaybes ∘ reverse $ ($ t) <$> execState s [] ; {-# INLINE matchedOptions2 #-}
-
-runMatches2 :: rec -> MatchSet2 rec s -> Maybe s
-runMatches2 = tryHead ∘∘ matchedOptions2 ; {-# INLINE runMatches2 #-}
-
-fromJustNote2 :: HasCallStack => P.String -> Maybe t -> t
-fromJustNote2 err = \case
-    Just a  -> a
-    Nothing -> error err
-
-case2 :: (HasCallStack, HasRecord2 t) => t -> MatchSet2 (RecordOf2 t) b -> b
-case2 = withFrozenCallStack $ fromJustNote2 ("Non-exhaustive patterns in case") ∘∘ runMatches2 ∘ view record2
 
 type instance RecordOf2 (Term attrs tags) = Access ExprData (Term attrs tags)
 
@@ -272,11 +251,51 @@ instance Accessible' ExprData (Term attrs tags)
 --     err = lib <> ": " <> file <> ":" <> show loc <> ": Non-exhaustive patterns in case"
 -- {-# INLINE __case__ #-}
 
--- rec -> Maybe v
--- f :: v -> out
+-- === Pattern Matching === --
+
+
+newtype MatchState3 rec out a = MatchState3 {ffg :: forall s. StateT (MVector s (rec -> out)) (ST s) a }
+type    MatchSet3   rec out  = MatchState3 rec out ()
+
+
+instance Functor (MatchState3 rec out) where
+    fmap f (MatchState3 s) = MatchState3 $ f <$> s ; {-# INLINE fmap #-}
+
+instance Applicative (MatchState3 rec out) where
+    pure a = MatchState3 $ pure a ; {-# INLINE pure #-}
+    (MatchState3 f) <*> (MatchState3 a) = MatchState3 $ f <*> a
+
+instance Monad (MatchState3 rec out) where
+    return a = MatchState3 $ return a
+    (MatchState3 a) >>= f = MatchState3 $ a >>= (fmap ffg f)
+
+
+class Match3 v rec where
+    of3 :: forall out. (v -> out) -> MatchSet3 rec out
+
+
+-- FIXME: draft implementation, to refactor
+instance ( KnownNat (FromJust (Encode2 EE Variant atom))
+         , IsAtom atom
+         , bind ~ bind'
+         , dyn  ~ dyn' )
+      => Match3 (Symbol atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
+    of3 f = MatchState3 $ do
+        reg  <- get
+        let run (ExprRecord2 (d@(Data3 _ store))) = f $ unsafeRestore store
+        V.unsafeWrite reg (encodeNat (Proxy :: Proxy EE) (atom :: atom)) run
+    {-# INLINE of3 #-}
+
+
 --
-newtype MatchState2 rec s a = MatchState2 (State [rec -> Maybe s] a) deriving (Functor, Applicative, Monad)
-type    MatchSet2   rec s   = MatchState2 rec s ()
+case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
+case3 rec@(ExprRecord2 (d@(Data3 nat _))) (MatchState3 body) = runST $ do
+    defaults  <- V.replicate (fromIntegral $ natVal (Proxy :: Proxy (Size PossibleVariants))) (error "Non-exhaustive patterns in case")
+    selectors <- execStateT body defaults
+    func      <- V.unsafeRead selectors nat
+    return $ func rec
+{-# INLINE case3 #-}
+
 
 ----------------------------------------------------
 
@@ -391,6 +410,10 @@ instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder 
 -- === Term Layout type caches === --
 -------------------------------------
 
+-- TODO: Refactor to Possible type class and arguments Variants etc.
+-- type PossibleElements = [Static, Dynamic, Literal, Value, Thunk, Phrase, Draft, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
+type OffsetVariants = 7
+
 type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
 
 
@@ -416,6 +439,8 @@ type instance Decode rec Star    = 16
 type instance Decode rec Unify   = 17
 type instance Decode rec Var     = 18
 
+
+type instance Encode2 EE Variant v = Index v PossibleVariants
 
 
 -- TODO: refactor, Decode2 should replace Decode. Refactor Decode -> Test
