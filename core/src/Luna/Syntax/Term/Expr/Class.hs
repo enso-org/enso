@@ -52,7 +52,7 @@ import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
 import Type.Error (Assert)
 import Control.Monad.State
 import Control.Lens.Property
-import GHC.Stack (callStack)
+import GHC.Stack (HasCallStack, callStack, prettyCallStack, withFrozenCallStack)
 
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
@@ -160,10 +160,9 @@ newtype ExprRecord2 bind model scope = ExprRecord2 Data2 deriving (Show)
 -- === Expr layer === --
 
 data ExprData = ExprData deriving (Show)
--- type instance LayerData (TermLayerDesc attrs ExprData) = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
--- type instance LayerData (TermLayerDesc attrs Int) = Int
-
 type instance TermData attrs ExprData = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
+
+
 type instance TermData attrs Int      = Int
 
 
@@ -243,6 +242,11 @@ instance ( IsAtom atom
         let run (ExprRecord2 (d@(Data2 _ store))) = f <$> (if checkData2 d (Proxy :: Proxy atom) then Just $ unsafeRestore store else Nothing)
         put (s <> [run])
 
+type family RecordOf2 t
+
+class HasRecord2 t where
+    record2 :: Lens' t (RecordOf2 t)
+
 
 matchedOptions2 :: rec -> MatchSet2 rec s -> [s]
 matchedOptions2 t (MatchState2 s) = catMaybes ∘ reverse $ ($ t) <$> execState s [] ; {-# INLINE matchedOptions2 #-}
@@ -250,14 +254,18 @@ matchedOptions2 t (MatchState2 s) = catMaybes ∘ reverse $ ($ t) <$> execState 
 runMatches2 :: rec -> MatchSet2 rec s -> Maybe s
 runMatches2 = tryHead ∘∘ matchedOptions2 ; {-# INLINE runMatches2 #-}
 
+fromJustNote2 :: HasCallStack => P.String -> Maybe t -> t
 fromJustNote2 err = \case
     Just a  -> a
     Nothing -> error err
 
-case2 :: rec -> MatchSet2 rec b -> b
-case2 = fromJustNote2 "ss" ∘∘ runMatches2
+case2 :: (HasCallStack, HasRecord2 t) => t -> MatchSet2 (RecordOf2 t) b -> b
+case2 = withFrozenCallStack $ fromJustNote2 ("Non-exhaustive patterns in case") ∘∘ runMatches2 ∘ view record2
 
+type instance RecordOf2 (Term attrs tags) = Access ExprData (Term attrs tags)
 
+instance Accessible' ExprData (Term attrs tags)
+      => HasRecord2 (Term attrs tags) where record2 = List.access' ExprData
 
 -- -- TODO [WD]: Add TH case' interface
 -- __case__ lib file loc = fromJustNote err ∘∘ runMatches where
@@ -408,6 +416,44 @@ type instance Decode rec Star    = 16
 type instance Decode rec Unify   = 17
 type instance Decode rec Var     = 18
 
+
+
+-- TODO: refactor, Decode2 should replace Decode. Refactor Decode -> Test
+-- TODO: Decode2 should have more params to be more generic
+type family Decode2 (ns :: [Nat]) :: [*] where
+    Decode2 '[] = '[]
+    Decode2 (n ': ns) = DecodeComponent n ': Decode2 ns
+
+type family DecodeComponent (n :: Nat) :: *
+
+type instance DecodeComponent 0 = Static
+type instance DecodeComponent 1 = Dynamic
+
+type instance DecodeComponent 2 = Literal
+type instance DecodeComponent 3 = Value
+type instance DecodeComponent 4 = Thunk
+type instance DecodeComponent 5 = Phrase
+type instance DecodeComponent 6 = Draft
+
+type instance DecodeComponent 7  = Acc
+type instance DecodeComponent 8  = App
+type instance DecodeComponent 9  = Blank
+type instance DecodeComponent 10 = Cons
+type instance DecodeComponent 11 = Curry
+type instance DecodeComponent 12 = Lam
+type instance DecodeComponent 13 = Match
+type instance DecodeComponent 14 = Missing
+type instance DecodeComponent 15 = Native
+type instance DecodeComponent 16 = Star
+type instance DecodeComponent 17 = Unify
+type instance DecodeComponent 18 = Var
+
+
+
+-- class RecordRepr rec where
+--     recordRepr :: rec -> String
+--
+-- instance RecordRepr
 
 -- class Cons2 v t where
 --     cons2 :: v -> t

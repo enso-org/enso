@@ -363,8 +363,11 @@ main = do
     -- case a of
     --     BB -> print "tsr"
 
-    -- case2 e1 $
+    -- case2 (view (List.access' ExprData) e1) $
     --     of2 $ \(Symbol.Unify l r) -> print "hello"
+
+    case2 e1 $
+        of2 $ \(Symbol.Unify l r) -> print "hello"
     --     -- __                      -> print "oh!"
 
     print $ view (List.access' ExprData) e1 -- Refactor, List is in Fact TMap
