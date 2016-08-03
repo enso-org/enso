@@ -5,6 +5,7 @@ module Luna.Syntax.Term.Expr.Atom where
 
 import Prelude.Luna hiding (String, Integer, Rational, Curry)
 import Data.Base
+import Data.Phantom
 
 -------------------
 -- === Atoms === --
@@ -21,8 +22,8 @@ type instance Atoms name = '[name]                            ;\
 instance Default name where {                                  \
     def = name ; {-# INLINE def #-}}                          ;\
                                                                \
-instance IsAtom name where {                                   \
-    atom = name ; {-# INLINE atom #-}}                        ;\
+instance Phantom name where {                                  \
+    phantom = name ; {-# INLINE phantom #-}}                  ;\
                                                                \
 instance {-# OVERLAPPABLE #-} Repr s name where {              \
     repr = fromString ∘ show ; {-# INLINE repr #-}}
@@ -34,7 +35,6 @@ data Atom = Atom deriving (Show)
 
 type family Atoms a :: [*]
 
-class IsAtom a where atom :: a
 
 -- === Definitions === --
 

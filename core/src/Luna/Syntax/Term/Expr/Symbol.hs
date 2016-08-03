@@ -5,13 +5,16 @@ module Luna.Syntax.Term.Expr.Symbol (module Luna.Syntax.Term.Expr.Symbol, module
 import qualified Prelude.Luna as P
 import           Prelude.Luna hiding (String, Integer, Rational, Curry, Symbol)
 
-import Luna.Syntax.Term.Expr.Atom as X (String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
 import Data.Construction         (Args, DataType (args))
-import Luna.Runtime.Dynamics     (ByDynamics)
+import Luna.Runtime.Dynamics     (Dynamics, ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
 import Type.Applicative
+import Control.Lens.Property
+import Data.Phantom
+import Luna.Syntax.Term.Expr.Format
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
 
@@ -52,8 +55,8 @@ type NameByDynamics dyn d = ByDynamics dyn Lit.String d
 
 class IsSymbol t where symbolArgs :: Iso (Symbol t d a) (Symbol t d' a') (Args (Symbol t d a)) (Args (Symbol t d' a'))
 
-data family Symbol  t  dyn a
-type        Symbols ts dyn a = Symbol <$> ts <*> '[dyn] <*> '[a]
+data family Symbol  atom  dyn a
+type        Symbols atoms dyn a = Symbol <$> atoms <*> '[dyn] <*> '[a]
 
 
 -- === Definitions === --
@@ -79,9 +82,27 @@ newtype instance Symbol Var      dyn a = Var     (DynName dyn a)
 
 -- === Instances === --
 
-type instance Base (Symbol t dyn a) = t
+-- Properties
+
+data Binding = Binding deriving (Show)
+
+type instance GetProxy Atom          (Symbol atom _   _) = Proxy atom
+type instance SetProxy Atom     atom (Symbol _    dyn a) = Proxy (Symbol atom dyn a)
+
+type instance GetProxy Dynamics      (Symbol _    dyn _) = Proxy dyn
+type instance SetProxy Dynamics dyn  (Symbol atom dyn a) = Proxy (Symbol atom dyn a)
+
+type instance GetProxy Binding       (Symbol _    _   a) = Proxy a
+type instance SetProxy Binding  a    (Symbol atom dyn _) = Proxy (Symbol atom dyn a)
+
+instance Phantom atom => Getter Atom     (Symbol atom dyn a) where getProxy _ _ = phantom
+instance Phantom dyn  => Getter Dynamics (Symbol atom dyn a) where getProxy _ _ = phantom
+
+
+type instance GetProxy SuperFormats (Symbol atom _ _) = GetProxy SuperFormats atom
 
 -- Show
+
 deriving instance (Show a, Show (DynName dyn a)) => Show (Symbol Acc     dyn a)
 deriving instance  Show a                        => Show (Symbol App     dyn a)
 deriving instance                                   Show (Symbol Blank   dyn a)

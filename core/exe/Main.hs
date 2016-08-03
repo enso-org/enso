@@ -12,7 +12,7 @@ module Main where
 
 import Data.Graph
 import Data.Graph.Builders
-import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ))
+import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum)
 
 import           Control.Monad.Event
 import qualified Control.Monad.Writer     as Writer
@@ -60,7 +60,7 @@ import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, Expr, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
-import           Luna.Syntax.Term.Expr.Format                         (Draft(Draft), Literal(Literal))
+import           Luna.Syntax.Term.Expr.Format                         (SuperFormats, Draft(Draft), Literal(Literal))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
 
 import qualified Data.Graph.Backend.NEC       as NEC
@@ -83,12 +83,12 @@ import Data.Cover
 import Type.Applicative
 import Luna.Syntax.Term.Expr
 
-import GHC.Prim (Any)
+-- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
 import Luna.Syntax.Term.Expr.Class (ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
-import Data.Record.Model.Masked (encodeData2, Data3)
+import Data.Record.Model.Masked (encodeData2, Data3, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Prelude (error, undefined)
@@ -99,6 +99,7 @@ import GHC.TypeLits (ErrorMessage(Text))
 import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
+import Control.Lens.Property
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -301,18 +302,18 @@ instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = retur
 type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 
-
-
+--
+--
 a1  = () ^. from symbolArgs :: Symbol Blank Static Int
 a1' = () ^. from symbolArgs :: Symbol Blank dyn a
--- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
-t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
-
-t2 = runIdentity $ overbuild t1 :: AnyExpr (Net '[IntLayer]) Draft Static
-
-t2' = runIdentity $ buildElem $ a1 :: AnyExpr (Net '[IntLayer]) Draft Static
-
-t3 = runIdentity $ refer t2
+-- -- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
+-- t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
+--
+-- t2 = runIdentity $ overbuild t1 :: AnyExpr (Net '[IntLayer]) Draft Static
+--
+-- -- t2' = runIdentity $ buildElem $ a1 :: AnyExpr (Net '[IntLayer]) Draft Static
+--
+-- t3 = runIdentity $ refer t2
 
 -- t4 :: OverBuilder Identity (Expr t fmt dyn sel) => a -> Ref2 (Expr t fmt dyn sel)
 -- t4 a = runIdentity $ foox a
@@ -354,6 +355,9 @@ data ZZ = AA | BB
 main :: IO ()
 main = do
     print a1
+    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Raw All])
+    print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Mask SuperFormats])
+    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom])
     print $ (runIdentity (cons2 a1) :: Data3)
     -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
     let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))

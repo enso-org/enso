@@ -2,7 +2,7 @@
 
 module Data.Record.Model.Masked where
 
-import Prelude.Luna
+import Prelude.Luna    hiding (Enum)
 import Prologue.Unsafe (error)
 
 import Data.Bits         (Bits, FiniteBits, finiteBitSize, testBit, setBit, zeroBits)
@@ -17,6 +17,8 @@ import Data.Record.Class ( Encode, Encode2, Decode, Encoder(encode), EncodeMap, 
                          )
 
 import Type.Maybe (FromJust)
+import Data.RTuple (List)
+import Control.Lens.Property
 
 -------------------
 -- === Store === --
@@ -26,11 +28,6 @@ newtype Store = Store Any
 makeWrapped ''Store
 
 
--- === Rebuilder === --
-
-type LayoutProxy l = Proxy (l :: [*])
-class    MaskRebuilder oldLayout newLayout where rebuildMask :: LayoutProxy oldLayout -> LayoutProxy newLayout -> Mask -> Mask
-instance MaskRebuilder layout    layout    where rebuildMask _ _ = id ; {-# INLINE rebuildMask #-}
 
 
 -- === Utils === --
@@ -49,11 +46,28 @@ unsafeRestore = unsafeCoerce ∘ unwrap'
 instance Show   Store where show _ = "Store"
 instance NFData Store where rnf  _ = ()
 
+-----------------------------------------
+
+
+-----------------
+-- === Raw === --
+-----------------
+
+-- === Definition === --
+
+newtype Raw = Raw Any
+makeWrapped ''Raw
+
+-- === Instances === --
+
+instance Show Raw where show _ = "Raw" ; {-# INLINE show #-}
 
 
 ------------------
 -- === Mask === --
 ------------------
+
+-- === Definition === --
 
 newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
 makeWrapped ''Mask
@@ -69,6 +83,59 @@ instance Show Mask where
         testBit' m b = if testBit m b then Just b else Nothing
 
 
+------------------
+-- === Enum === --
+------------------
+
+-- === Definition === --
+
+newtype Enum = Enum Int deriving (Show, Num)
+makeWrapped ''Enum
+
+
+
+
+-------------------
+-- === Store === --
+-------------------
+
+-- === Definitions === --
+
+data {-kind-} Slot tp a = Slot tp a
+newtype Store2 (slots :: [Slot * *]) = Store2 (List (SlotTypes slots))
+
+
+
+-- === Helpers === --
+
+-- TODO: refactor to some kind of abstraction of "target" and "tag"
+type family SlotTarget slot where
+            SlotTarget ('Slot t a) = a
+
+type family SlotsTargets slots where
+            SlotsTargets '[]       = '[]
+            SlotsTargets (s ': ss) = SlotTarget s ': SlotsTargets ss
+
+type family SlotTag slot where
+            SlotTag ('Slot t a) = t
+
+type family SlotTypes slots where
+            SlotTypes '[]       = '[]
+            SlotTypes (s ': ss) = SlotTag s ': SlotTypes ss
+
+
+-- === Instances === --
+
+-- Wrapped
+makeWrapped ''Store2
+
+-- Show
+deriving instance Show (Unwrapped (Store2 slots)) => Show (Store2 slots)
+
+-- Store '[Slot Enum Variant, Slot Mask Group, Slot Switch Dynamics, Slot Raw Data]
+-- Store '[Enum :- Atom, Mask :- Group, Switch :- Dynamics, Raw :- Binding]
+
+
 
 -----------------------------
 -- === Data definition === --
@@ -77,6 +144,11 @@ instance Show Mask where
 data Data = Data !Mask !Store deriving (Generic, Show)
 data Data2 = Data2 !Mask !Store deriving (Generic)
 data Data3 = Data3 !Int !Store deriving (Generic, Show)
+
+
+
+
+
 
 -- === Instances === --
 
@@ -123,6 +195,13 @@ instance Castable  d (VGRecord gs vs t d)   where cast    = wrap'   ; {-# INLINE
 
 
 -- === AST Data encoder === --
+
+-- === Rebuilder === --
+
+type LayoutProxy l = Proxy (l :: [*])
+class    MaskRebuilder oldLayout newLayout where rebuildMask :: LayoutProxy oldLayout -> LayoutProxy newLayout -> Mask -> Mask
+instance MaskRebuilder layout    layout    where rebuildMask _ _ = id ; {-# INLINE rebuildMask #-}
+
 
 -- Data encoding
 
