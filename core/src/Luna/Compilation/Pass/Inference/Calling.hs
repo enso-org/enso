@@ -67,13 +67,20 @@ data CallError = NotAFuncallNode | NotACurryNode | UnresolvedFunction | Malforme
 
 type CallErrorT = ExceptT CallError
 
-{-is :: PassCtx(m) => Ref Node node -> Proxy -}
+-- FIXME[MK]: API3 is supposed to clean this up
 
 isUni :: PassCtx(m) => Ref Node node -> m Bool
 isUni r = do
     n <- read r
     return $ caseTest (uncover n) $ do
         of' $ \(Unify _ _) -> True
+        of' $ \ANY -> False
+
+isBlank :: PassCtx(m) => Ref Node node -> m Bool
+isBlank r = do
+    n <- read r
+    return $ caseTest (uncover n) $ do
+        of' $ \Blank -> True
         of' $ \ANY -> False
 
 unifyArgTypes :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node ->  [Ref Node node] -> CallErrorT m [Ref Node node]
@@ -102,12 +109,15 @@ unifyAppOutType fptr app = do
 setupCall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m (Ref Cluster clus, Function.Signature (Ref Node node))
 setupCall caller args funClus = do
     (cls, _) <- dupCluster funClus $ show caller
-    fptr <- follow (prop Lambda) cls <?!> MalformedFunction
+    fptr     <- follow (prop Lambda) cls <?!> MalformedFunction
     withRef caller $ (prop TCData . replacement ?~ cast cls)
-    let argDefs = fptr ^. Function.args
-    zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> argDefs) (Just <$> args)
-    let outstandingArgs = drop (length args) argDefs
-    let appliedPtr = fptr & Function.args .~ outstandingArgs
+    let argDefs         = fptr ^. Function.args
+    let argsWithDefs    = zip argDefs args
+    (blanks, nonBlanks) <- partitionM (isBlank . snd) argsWithDefs
+    let toRedirect      = map (\(d, a) -> (unlayer d, Just a)) nonBlanks
+    mapM (uncurry $ reconnect $ prop TCData . redirect) toRedirect
+    let outstandingArgs = map fst blanks ++ drop (length args) argDefs
+    let appliedPtr      = fptr & Function.args .~ outstandingArgs
     withRef cls $ prop Lambda ?~ appliedPtr
     return (cls, fptr)
 
