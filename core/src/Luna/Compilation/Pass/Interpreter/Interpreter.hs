@@ -14,6 +14,8 @@ import           Control.Monad.Trans.State
 -- import qualified Control.Monad.State                             as State
 import           Data.Maybe                                      (isNothing, isJust, catMaybes)
 import           Data.Either                                     (rights)
+import           Data.Map                                        (Map)
+import qualified Data.Map                                        as Map
 
 import           Data.Construction
 import           Data.Graph
@@ -45,7 +47,7 @@ import           Type.Inference
 
 -- import qualified Luna.Library.StdLib                             as StdLib
 
-import           Luna.Syntax.Term.Function                       (Arg, Function (..), Signature (..))
+import           Luna.Syntax.Term.Function                       (Arg, Signature (..))
 import qualified Luna.Syntax.Term.Function                       as Function
 import qualified Luna.Syntax.Term.Function.Argument              as Arg
 
@@ -77,10 +79,45 @@ import           Control.DeepSeq        (deepseq, force)
 import qualified DynFlags as GHC
 import           Data.Layer_OLD.Cover_OLD
 
--- TODO: move to another module and encapsulate
+type Ident = String
+data Value  = Pure Data | Monadic (IO Value)
+data Data   = Function (Data -> Value) | Data (Object ObjectData) | Boxed (Object Any)
+data Object a = Object { _proto :: ClassDescription a
+                       , _body  :: a
+                       }
+data ObjectData = ObjectData (Map Ident Value)
+data ClassDescription a = ClassDescription (Map Ident (Method a))
+data Method a = Method (Object a -> Value)
+makeWrapped ''Method
+makeLenses ''Object
+makeWrapped ''ClassDescription
+makeWrapped ''ObjectData
 
--- findSymbol :: HS.SessionMonad m => String -> String -> m Any
--- findSymbol name tpe = unsafeCoerce <$> HEval.interpretTyped name tpe
+
+intDesc :: ClassDescription Any
+intDesc = ClassDescription $ Map.fromList
+  [ ("+", toMethodBoxed ((+) :: Int -> Int -> Int)) ]
+
+class ToValue a where
+    unsafeToValue :: a -> Value
+
+class FromData a where
+    unsafeFromData :: Data -> a
+
+instance ToValue Int where
+    unsafeToValue = Pure . Boxed . Object intDesc . unsafeCoerce
+
+instance ToValue Value where
+    unsafeToValue = id
+
+instance FromData Int where
+    unsafeFromData (Boxed (Object _ i)) = unsafeCoerce i
+
+instance (FromData a, ToValue b) => ToValue (a -> b) where
+    unsafeToValue f = Pure $ Function $ \x -> unsafeToValue $ f (unsafeFromData x)
+
+toMethodBoxed :: forall a b. ToValue b => (a -> b) -> Method Any
+toMethodBoxed f = Method $ \(Object _ x) -> unsafeToValue $ f (unsafeCoerce x :: a)
 
 appArg :: Any -> Any -> Any
 appArg = unsafeCoerce
