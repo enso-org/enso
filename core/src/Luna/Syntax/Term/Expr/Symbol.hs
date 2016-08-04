@@ -95,8 +95,8 @@ type instance Set Dynamics dyn  (Symbol atom dyn a) = (Symbol atom dyn a)
 type instance Get Binding       (Symbol _    _   a) = a
 type instance Set Binding  a    (Symbol atom dyn _) = (Symbol atom dyn a)
 
-instance Phantom atom => Getter Atom     (Symbol atom dyn a) where getProxy _ _ = phantom
-instance Phantom dyn  => Getter Dynamics (Symbol atom dyn a) where getProxy _ _ = phantom
+instance Phantom atom => Getter Atom     (Symbol atom dyn a) where get _ = phantom
+instance Phantom dyn  => Getter Dynamics (Symbol atom dyn a) where get _ = phantom
 
 type instance Get Format (Symbol atom _ _) = Get Format atom
 

@@ -7,6 +7,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 
 
@@ -48,7 +49,7 @@ import Data.Bits         (setBit, zeroBits)
 
 import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty, Access, Accessible', accessProxy')
-import Data.Record.Model.Masked (encode2, encode3, Mask, encodeNat, encodeData2, encodeVariant, checkData2, decodeData2, Raw(Raw), Data2(..), Data3(..), unsafeRestore, decodeNat)
+import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), Data2(..), unsafeRestore, decodeNat)
 import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
@@ -170,7 +171,8 @@ type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
 
 -- === ExprRecord === --
 
-newtype ExprRecord2 bind model scope = ExprRecord2 Data3 deriving (Show)
+newtype ExprRecord2 bind model scope = ExprRecord2 Data4 deriving (Show)
+type Data4 = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Id ]
 
 
 -- === Expr layer === --
@@ -203,53 +205,16 @@ class Monad m => Cons2 v m t where
     cons2 :: v -> m t
 
 
-instance (Monad m, KnownNat (FromJust (Encode2 Variant atom)), Phantom atom)
-      => Cons2 (Symbol atom dyn a) m Data3 where
-         cons2 _ = return $ encodeVariant (phantom :: atom)
-
-
-instance (Monad m, KnownNat (FromJust (Encode2 t (Get t a))), Getter t a)
-      => Cons2 a m (Store2 '[ 'Slot Enum t]) where
-         cons2 a = return $ Store2 $ List.singleton $ Enum nat where
-             nat = encode2 (Proxy :: Proxy t) (Prop.get (Proxy :: Proxy t) a)
-
-instance (Monad m, Getter t a)
-      => Cons2 a m (Store2 '[ 'Slot Raw t]) where
-         cons2 a = return $ Store2 $ List.singleton $ Raw $ unsafeCoerce (Prop.get (Proxy :: Proxy t) a)
-
-instance (Monad m, nats ~ MapEncode t (SemiSuper (Get t a)), KnownNats nats)
-      => Cons2 a m (Store2 '[ 'Slot Mask t]) where
-         cons2 a = return $ Store2 $ List.singleton mask where
-             bits    = fromIntegral <$> natVals (Proxy :: Proxy nats)
-             mask    = foldl' setBit zeroBits bits
-
-
--- class EncodeStore where
---     EncodeStore
-
-class EncodeSlot t a m s where
-    encodeSlot :: Proxy t -> a -> m s
-
-instance (Monad m, Getter t a, KnownNat (FromJust (Encode2 t (Get t a))))
-      => EncodeSlot t a m Enum where
-    encodeSlot _ a = return $ Enum nat where
-        nat = encode3 @t (Prop.get (Proxy :: Proxy t) a)
-
-instance (Monad m, Getter t a)
-      => EncodeSlot t a m Raw where
-    encodeSlot _ a = return $ Raw $ unsafeCoerce $ Prop.get (Proxy :: Proxy t) a
-
-instance (Monad m, nats ~ MapEncode t (SemiSuper (Get t a)), KnownNats nats)
-      => EncodeSlot t a m Mask where
-    encodeSlot _ a = return mask where
-        bits = fromIntegral <$> natVals (Proxy :: Proxy nats)
-        mask = foldl' setBit zeroBits bits
+instance (Monad m, EncodeStore slots a m) => Cons2 a m (Store2 slots) where
+    cons2 = encodeStore ; {-# INLINE cons2 #-}
 
 
 
-type family MapEncode t fmts where
-    MapEncode t '[]       = '[]
-    MapEncode t (f ': fs) = FromJust (Encode2 t f) ': MapEncode t fs
+
+
+
+
+
 
 -- instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
 --       => Cons2 v m (Term attrs ls) where
@@ -270,8 +235,8 @@ instance (Monad m, List.Generate (Cons2 v) m (TermDatas attrs ls))
 
 type InvalidFormatAtom atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
-instance ( Functor m
-         , Cons2 (Symbol atom dyn bind) m Data3
+instance ( Monad m
+         , Cons2 (Symbol atom dyn bind) m Data4
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
@@ -333,19 +298,20 @@ instance ( KnownNat (FromJust (Encode2 Variant atom))
       => Match3 (Symbol atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
     of3 f = MatchState3 $ do
         reg  <- get
-        let run (ExprRecord2 (d@(Data3 _ store))) = f $ unsafeRestore store
+        let run = error "x"
+        -- let run (ExprRecord2 (d@(Data3 _ store))) = f $ unsafeRestore store
         V.unsafeWrite reg (encodeNat (phantom :: atom)) run
     {-# INLINE of3 #-}
 
-
+case3 = error "y"
 --
-case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
-case3 rec@(ExprRecord2 (d@(Data3 nat _))) (MatchState3 body) = runST $ do
-    defaults  <- V.replicate (fromIntegral $ natVal (Proxy :: Proxy (Size PossibleVariants))) (error "Non-exhaustive patterns in case")
-    selectors <- execStateT body defaults
-    func      <- V.unsafeRead selectors nat
-    return $ func rec
-{-# INLINE case3 #-}
+        -- case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
+        -- case3 rec@(ExprRecord2 (d@(Data3 nat _))) (MatchState3 body) = runST $ do
+        --     defaults  <- V.replicate (fromIntegral $ natVal (Proxy :: Proxy (Size PossibleVariants))) (error "Non-exhaustive patterns in case")
+        --     selectors <- execStateT body defaults
+        --     func      <- V.unsafeRead selectors nat
+        --     return $ func rec
+        -- {-# INLINE case3 #-}
 
 
 ----------------------------------------------------

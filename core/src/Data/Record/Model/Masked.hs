@@ -1,5 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE TypeApplications     #-}
 
 module Data.Record.Model.Masked where
 
@@ -13,13 +14,15 @@ import GHC.Prim          (Any)
 import Type.Map          (MapLookup)
 import Type.Promotion    (KnownNats, natVals)
 import Data.Result       (Ok(Ok))
-import Data.Record.Class ( Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
+import Data.Record.Class ( encode3, MapEncode, Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
                          , Variant, Layout, IsRecord, HasRecord, RecordOf, Group, DecodeMap, Props, asRecord, record
                          )
 
 import Type.Maybe (FromJust)
 import Data.RTuple (List)
-import Control.Lens.Property
+import qualified Data.RTuple as List
+import Control.Lens.Property as Prop
+import Type.Relation (SemiSuper)
 
 -------------------
 -- === Store === --
@@ -50,52 +53,6 @@ instance NFData Store where rnf  _ = ()
 -----------------------------------------
 
 
------------------
--- === Raw === --
------------------
-
--- === Definition === --
-
-newtype Raw = Raw Any
-makeWrapped ''Raw
-
--- === Instances === --
-
-instance Show Raw where show _ = "Raw" ; {-# INLINE show #-}
-
-
-------------------
--- === Mask === --
-------------------
-
--- === Definition === --
-
-newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
-makeWrapped ''Mask
-
-class    HasMask a    where mask :: Lens' a Mask
-instance HasMask Mask where mask = id ; {-# INLINE mask #-}
-
-
--- === Instances === --
-
-instance Show Mask where
-    show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where
-        testBit' m b = if testBit m b then Just b else Nothing
-
-
-------------------
--- === Enum === --
-------------------
-
--- === Definition === --
-
-newtype Enum = Enum Int deriving (Show, Num)
-makeWrapped ''Enum
-
-
-
-
 -------------------
 -- === Store === --
 -------------------
@@ -105,6 +62,23 @@ makeWrapped ''Enum
 data {-kind-} Slot tp a = Slot tp a
 newtype Store2 (slots :: [Slot * *]) = Store2 (List (SlotTypes slots))
 
+
+-- === Classes === --
+
+class EncodeStore slots a m where
+    encodeStore :: a -> m (Store2 slots)
+
+class EncodeSlot t a m s where
+    encodeSlot :: a -> m s
+
+
+instance Monad m => EncodeStore '[] a m where
+    encodeStore _ = return $ Store2 List.empty
+    {-# INLINE encodeStore #-}
+
+instance (EncodeSlot t a m s, EncodeStore ss a m, Monad m)
+      => EncodeStore ('Slot s t ': ss) a m where
+    encodeStore a = Store2 <$> (List.prepend <$> (encodeSlot @t) a <*> (unwrap' <$> (encodeStore a :: m (Store2 ss))))
 
 
 -- === Helpers === --
@@ -138,13 +112,84 @@ deriving instance Show (Unwrapped (Store2 slots)) => Show (Store2 slots)
 
 
 
+
+-----------------
+-- === Raw === --
+-----------------
+
+-- === Definition === --
+
+newtype Raw = Raw Any
+makeWrapped ''Raw
+
+-- === Instances === --
+
+instance Show Raw where show _ = "Raw" ; {-# INLINE show #-}
+
+instance (Monad m, Getter t a)
+      => EncodeSlot t a m Raw where
+    encodeSlot a = return $ Raw $ unsafeCoerce $ Prop.get @t a
+    {-# INLINE encodeSlot #-}
+
+
+
+------------------
+-- === Enum === --
+------------------
+
+-- === Definition === --
+
+newtype Enum = Enum Int deriving (Show, Num)
+makeWrapped ''Enum
+
+
+-- === Instances === --
+
+instance (Monad m, Getter t a, KnownNat (FromJust (Encode2 t (Get t a))))
+      => EncodeSlot t a m Enum where
+    encodeSlot a = return $ Enum nat where
+        nat = encode3 @t (Prop.get @t a)
+    {-# INLINE encodeSlot #-}
+
+
+
+------------------
+-- === Mask === --
+------------------
+
+-- === Definition === --
+
+newtype Mask = Mask Int64 deriving (Generic, NFData, Eq, Num, Bits, FiniteBits)
+makeWrapped ''Mask
+
+class    HasMask a    where mask :: Lens' a Mask
+instance HasMask Mask where mask = id ; {-# INLINE mask #-}
+
+
+-- === Instances === --
+
+instance Show Mask where
+    show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where
+        testBit' m b = if testBit m b then Just b else Nothing
+
+instance (Monad m, nats ~ MapEncode t (SemiSuper (Get t a)), KnownNats nats)
+      => EncodeSlot t a m Mask where
+    encodeSlot a = return $ foldl' setBit zeroBits bits where
+        bits = fromIntegral <$> natVals (Proxy :: Proxy nats)
+    {-# INLINE encodeSlot #-}
+
+
+
+
+
+
 -----------------------------
 -- === Data definition === --
 -----------------------------
 
 data Data = Data !Mask !Store deriving (Generic, Show)
 data Data2 = Data2 !Mask !Store deriving (Generic)
-data Data3 = Data3 !Int !Store deriving (Generic, Show)
+-- data Data3 = Data3 !Int !Store deriving (Generic, Show)
 
 
 
@@ -341,9 +386,6 @@ encodeData2 (v :: v) = Data2 mask $ unsafeStore v where
     mask    = foldl' setBit zeroBits bits
 {-# INLINE encodeData2 #-}
 
-encodeVariant :: KnownNat (FromJust (Encode2 Variant a)) => a -> Data3
-encodeVariant a = Data3 (encodeNat a) $ unsafeStore a where
-{-# INLINE encodeVariant #-}
 
 
 encodeNat :: KnownNat (FromJust (Encode2 Variant a)) => a -> Int
@@ -366,7 +408,3 @@ decodeData2 d@(Data2 mask store) = if checkData2 d (Proxy :: Proxy v) then Just 
 encode2 :: KnownNat (FromJust (Encode2 t a)) => Proxy t -> a -> Int
 encode2 (t :: Proxy t) (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
 {-# INLINE encode2 #-}
-
-encode3 :: forall t a. KnownNat (FromJust (Encode2 t a)) => a -> Int
-encode3 (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
-{-# INLINE encode3 #-}

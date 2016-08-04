@@ -13,6 +13,7 @@
 {-# LANGUAGE NoOverloadedStrings #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 
 module Data.Record.Class where
@@ -20,7 +21,7 @@ module Data.Record.Class where
 import Prologue hiding (mask, simple, empty, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, Repr, repr, minBound, maxBound, (#), assert, Index)
 import Prologue.Unsafe (fromJustNote, error)
 
-import Type.Container
+import Type.Container hiding (FromJust)
 
 import Luna.Runtime.Dynamics (Static, Dynamic)
 import qualified Luna.Runtime.Dynamics as Runtime
@@ -41,7 +42,7 @@ import Control.Monad.State hiding (when, withState)
 import Data.Maybe (isNothing, catMaybes)
 import Data.Base
 import Type.Bool
-import Type.List
+import Type.List hiding (FromJust)
 import System.Environment (getArgs)
 import Data.List.Split (chunksOf)
 
@@ -108,6 +109,14 @@ type family Encode rec t :: [Nat] -- new interface
 type family Decode rec t ::  Nat  -- new interface
 
 type family Encode2 t a :: Maybe Nat -- new interface 2 -- e.g Encode Atom Blank
+
+type family MapEncode t fmts where
+    MapEncode t '[]       = '[]
+    MapEncode t (f ': fs) = FromJust (Encode2 t f) ': MapEncode t fs
+
+encode3 :: forall t a. KnownNat (FromJust (Encode2 t a)) => a -> Int
+encode3 (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
+{-# INLINE encode3 #-}
 
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r

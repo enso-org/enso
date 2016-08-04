@@ -87,8 +87,8 @@ import Luna.Syntax.Term.Expr
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
-import Data.Record.Model.Masked (encodeData2, Data3, Store2, Slot(Slot), Enum, Raw, Mask)
+import Luna.Syntax.Term.Expr.Class (encodeStore, ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
+import Data.Record.Model.Masked (encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Prelude (error, undefined)
@@ -356,12 +356,7 @@ data ZZ = AA | BB
 main :: IO ()
 main = do
     print a1
-    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Raw Id])
-    print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Mask Format])
-    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom])
-    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Raw Id])
-    print $ (runIdentity (cons2 a1) :: Data3)
-    -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
+    print $ (runIdentity (encodeStore a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Id ])
     let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
     print e1
 
@@ -371,13 +366,10 @@ main = do
 
     -- case3 (view (List.access' ExprData) e1) $
     --     of3 $ \(Symbol.Unify l r) -> (print "hello" :: IO ())
-
-    case3 (view (List.access' ExprData) e1) $ do
-        of3 $ \(Symbol.Unify l r) -> print "hello"
-        of3 $ \(Symbol.Blank)     -> print "hello2"
-        -- of3 $ \(Symbol.Blank)     -> print "hello2"
-    --     -- __                      -> print "oh!"
-
+            --
+            -- case3 (view (List.access' ExprData) e1) $ do
+            --     of3 $ \(Symbol.Unify l r) -> print "hello"
+            --     of3 $ \(Symbol.Blank)     -> print "hello2"
     -- print $ view (List.access' ExprData) e1 -- Refactor, List is in Fact TMap
 
 
