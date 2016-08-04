@@ -126,6 +126,13 @@ instance tags ~ '[] => Empty (Term attrs tags) where
 
 type instance Get t (Term attrs tags) = Get t (Unwrapped (Term attrs tags))
 
+instance Getter t (Unwrapped (Term attrs tags))
+      => Getter t (Term attrs tags) where get = Prop.get @t . unwrap'
+
+-- instance Accessible' ExprData (Term attrs tags)
+--       => HasRecord2 (Term attrs tags) where record2 = List.access' ExprData
+
+
 -- type instance Access p (Term attrs tags) = Access p (Unwrapped (Term attrs tags))
 --
 -- instance Accessible' p (Unwrapped (Term attrs tags))
@@ -144,7 +151,7 @@ type Expr2 binding attrs layers model scope = Term ( Binding := binding
                                                   ': Model   := model
                                                   ': Scope   := scope
                                                   ': attrs
-                                                   ) (ExprData ': layers)
+                                                   ) (Symbol ': layers)
 
 type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
 
@@ -154,11 +161,13 @@ type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
 newtype ExprRecord2 bind model scope = ExprRecord2 Data4 deriving (Show)
 type Data4 = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ]
 
+makeWrapped ''ExprRecord2
+
 
 -- === Expr layer === --
 
-data ExprData = ExprData deriving (Show)
-type instance TermData attrs ExprData = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
+
+type instance TermData attrs Symbol = ExprRecord2 (Bound (attrs ^. Binding) attrs) (attrs ^. Model) (attrs ^. Scope)
 
 
 type instance TermData attrs Int      = Int
@@ -237,10 +246,10 @@ class HasRecord2 t where
     record2 :: Lens' t (RecordOf2 t)
 
 
-type instance RecordOf2 (Term attrs tags) = Access ExprData (Term attrs tags)
+-- type instance RecordOf2 (Term attrs tags) = Access ExprData (Term attrs tags)
 
-instance Accessible' ExprData (Term attrs tags)
-      => HasRecord2 (Term attrs tags) where record2 = List.access' ExprData
+-- instance Accessible' ExprData (Term attrs tags)
+--       => HasRecord2 (Term attrs tags) where record2 = List.access' ExprData
 
 -- -- TODO [WD]: Add TH case' interface
 -- __case__ lib file loc = fromJustNote err ∘∘ runMatches where
@@ -271,19 +280,22 @@ class Match3 v rec where
 
 
 -- FIXME: draft implementation, to refactor
-instance ( KnownNat (FromJust (Encode2 Variant atom))
+instance ( KnownNat (FromJust (Encode2 Atom atom))
          , Phantom atom
          , bind ~ bind'
          , dyn  ~ dyn' )
       => Match3 (Symbol.Data atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
     of3 f = MatchState3 $ do
         reg  <- get
-        let run = error "x"
+        -- let run = error "x"
         -- let run (ExprRecord2 (d@(Data3 _ store))) = f $ unsafeRestore store
-        V.unsafeWrite reg (encodeNat (phantom :: atom)) run
+        let run (ExprRecord2 d) = f $ unsafeCoerce sym where
+                Raw sym = Prop.get @Symbol d
+
+        V.unsafeWrite reg (encode3 @Atom (phantom :: atom)) run
     {-# INLINE of3 #-}
 
-case3 = error "y"
+-- case3 = error "y"
 --
         -- case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
         -- case3 rec@(ExprRecord2 (d@(Data3 nat _))) (MatchState3 body) = runST $ do
@@ -292,6 +304,18 @@ case3 = error "y"
         --     func      <- V.unsafeRead selectors nat
         --     return $ func rec
         -- {-# INLINE case3 #-}
+
+
+case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
+-- case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> IO ()
+case3 rec@(ExprRecord2 d) (MatchState3 body) = runST $ do
+    let Enum nat = Prop.get @Atom d
+    defaults  <- V.replicate (fromIntegral $ natVal (Proxy :: Proxy (Size PossibleVariants))) (error "Non-exhaustive patterns in case")
+    selectors <- execStateT body defaults
+    func      <- V.unsafeRead selectors nat
+    return $ func rec
+    -- return (return ())
+{-# INLINE case3 #-}
 
 
 ----------------------------------------------------

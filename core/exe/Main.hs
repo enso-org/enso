@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE TypeApplications          #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE PolyKinds                 #-}
@@ -20,7 +21,7 @@ import           Data.Attr                (attr)
 import           Data.Construction
 import           Data.Container           (elems, index_)
 import           Data.Container           hiding (impossible)
-import           Data.Graph.Builder
+import           Data.Graph.Builder       hiding (get)
 import           Data.Graph.Query         hiding (Graph)
 import qualified Data.Graph.Query         as Sort
 import           Data.Index               (idx)
@@ -87,7 +88,7 @@ import Luna.Syntax.Term.Expr
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
+import Luna.Syntax.Term.Expr.Class (cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -360,6 +361,9 @@ main = do
     let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
     print e1
 
+    putStrLn ""
+    print $ unwrap' $ get @Symbol e1
+    print $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
     -- case a of
     --     BB -> print "tsr"
@@ -367,9 +371,9 @@ main = do
     -- case3 (view (List.access' ExprData) e1) $
     --     of3 $ \(Symbol.Unify l r) -> (print "hello" :: IO ())
             --
-            -- case3 (view (List.access' ExprData) e1) $ do
-            --     of3 $ \(Symbol.Unify l r) -> print "hello"
-            --     of3 $ \(Symbol.Blank)     -> print "hello2"
+    case3 (get @Symbol e1) $ do
+        of3 $ \(Symbol.Unify l r) -> print "hello"
+        of3 $ \(Symbol.Blank)     -> print "hello2"
     -- print $ view (List.access' ExprData) e1 -- Refactor, List is in Fact TMap
 
 

@@ -19,7 +19,7 @@ import Data.Record.Class ( encode3, MapEncode, Encode, Encode2, Decode, Encoder(
                          )
 
 import Type.Maybe (FromJust)
-import Data.RTuple (List)
+import Data.RTuple (TMap)
 import qualified Data.RTuple as List
 import Control.Lens.Property as Prop
 import Type.Relation (SemiSuper)
@@ -60,7 +60,7 @@ instance NFData Store where rnf  _ = ()
 -- === Definitions === --
 
 data {-kind-} Slot tp a = Slot tp a
-newtype Store2 (slots :: [Slot * *]) = Store2 (List (SlotTypes slots))
+newtype Store2 (slots :: [Slot * *]) = Store2 (TMap (SlotsTargets slots) (SlotTypes slots))
 
 
 -- === Classes === --
@@ -78,7 +78,7 @@ instance Monad m => EncodeStore '[] a m where
 
 instance (EncodeSlot t a m s, EncodeStore ss a m, Monad m)
       => EncodeStore ('Slot s t ': ss) a m where
-    encodeStore a = Store2 <$> (List.prepend <$> (encodeSlot @t) a <*> (unwrap' <$> (encodeStore a :: m (Store2 ss))))
+    encodeStore a = Store2 <$> (List.prepend2 <$> (encodeSlot @t) a <*> (unwrap' <$> (encodeStore a :: m (Store2 ss))))
 
 
 -- === Helpers === --
@@ -107,11 +107,13 @@ makeWrapped ''Store2
 -- Show
 deriving instance Show (Unwrapped (Store2 slots)) => Show (Store2 slots)
 
--- Store '[Slot Enum Variant, Slot Mask Group, Slot Switch Dynamics, Slot Raw Data]
--- Store '[Enum :- Atom, Mask :- Group, Switch :- Dynamics, Raw :- Binding]
+-- Properties
+type instance Get t (Store2 slots) = Get t (Unwrapped (Store2 slots))
 
+instance Getter t (Unwrapped (Store2 slots)) => Getter t (Store2 slots) where
+    get = get @t . unwrap' ; {-# INLINE get #-}
 
-
+    
 
 -----------------
 -- === Raw === --
