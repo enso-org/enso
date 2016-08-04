@@ -9,7 +9,7 @@ import Type.List                  (TakeUntil)
 
 import Luna.Syntax.Term.Expr.Atom
 import Control.Lens.Property
-
+import Type.Relation              (Super)
 
 --------------------------------
 -- === Expression formats === --
@@ -45,7 +45,25 @@ type instance Atoms Phrase  = '[Blank   , Match     , Unify   , Var      ] <> At
 type instance Atoms Draft   = '[Missing                                  ] <> Atoms Phrase
 
 
-type instance GetProxy SuperFormats Blank = GetProxy SuperFormats Phrase
+type instance Get Format Star     = Literal
+type instance Get Format String   = Literal
+type instance Get Format Integer  = Literal
+type instance Get Format Rational = Literal
+type instance Get Format Cons     = Value
+type instance Get Format Lam      = Value
+type instance Get Format Acc      = Thunk
+type instance Get Format App      = Thunk
+type instance Get Format Curry    = Thunk
+type instance Get Format Native   = Thunk
+type instance Get Format Blank    = Phrase
+type instance Get Format Match    = Phrase
+type instance Get Format Unify    = Phrase
+type instance Get Format Var      = Phrase
+type instance Get Format Missing  = Draft
 
 
-type instance GetProxy SuperFormats Phrase = Proxy '[Literal, Value, Thunk, Phrase]
+type instance Super Literal = '[]
+type instance Super Value   = Literal ': Super Literal
+type instance Super Thunk   = Value   ': Super Value
+type instance Super Phrase  = Thunk   ': Super Thunk
+type instance Super Draft   = Phrase  ': Super Phrase

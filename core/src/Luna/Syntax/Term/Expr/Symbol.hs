@@ -86,20 +86,19 @@ newtype instance Symbol Var      dyn a = Var     (DynName dyn a)
 
 data Binding = Binding deriving (Show)
 
-type instance GetProxy Atom          (Symbol atom _   _) = Proxy atom
-type instance SetProxy Atom     atom (Symbol _    dyn a) = Proxy (Symbol atom dyn a)
+type instance Get Atom          (Symbol atom _   _) = atom
+type instance Set Atom     atom (Symbol _    dyn a) = (Symbol atom dyn a)
 
-type instance GetProxy Dynamics      (Symbol _    dyn _) = Proxy dyn
-type instance SetProxy Dynamics dyn  (Symbol atom dyn a) = Proxy (Symbol atom dyn a)
+type instance Get Dynamics      (Symbol _    dyn _) = dyn
+type instance Set Dynamics dyn  (Symbol atom dyn a) = (Symbol atom dyn a)
 
-type instance GetProxy Binding       (Symbol _    _   a) = Proxy a
-type instance SetProxy Binding  a    (Symbol atom dyn _) = Proxy (Symbol atom dyn a)
+type instance Get Binding       (Symbol _    _   a) = a
+type instance Set Binding  a    (Symbol atom dyn _) = (Symbol atom dyn a)
 
 instance Phantom atom => Getter Atom     (Symbol atom dyn a) where getProxy _ _ = phantom
 instance Phantom dyn  => Getter Dynamics (Symbol atom dyn a) where getProxy _ _ = phantom
 
-
-type instance GetProxy SuperFormats (Symbol atom _ _) = GetProxy SuperFormats atom
+type instance Get Format (Symbol atom _ _) = Get Format atom
 
 -- Show
 

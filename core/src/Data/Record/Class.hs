@@ -107,7 +107,7 @@ type family DecodeMap a :: Map * Nat
 type family Encode rec t :: [Nat] -- new interface
 type family Decode rec t ::  Nat  -- new interface
 
-type family Encode2 rec t a :: Maybe Nat -- new interface 2 -- e.g Encode Expr Variant v
+type family Encode2 t a :: Maybe Nat -- new interface 2 -- e.g Encode Atom Blank
 
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r

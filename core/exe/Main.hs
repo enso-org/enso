@@ -100,6 +100,7 @@ import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import Control.Lens.Property
+import Luna.Syntax.Term.Expr.Format (Format)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -355,9 +356,10 @@ data ZZ = AA | BB
 main :: IO ()
 main = do
     print a1
-    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Raw All])
-    print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Mask SuperFormats])
+    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Raw Id])
+    print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Mask Format])
     -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Enum Atom])
+    -- print $ (runIdentity (cons2 a1) :: Store2 '[ 'Slot Raw Id])
     print $ (runIdentity (cons2 a1) :: Data3)
     -- print $ (runIdentity (cons2 a1) :: Expr2 Network2 '[Int] Static Draft)
     let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))

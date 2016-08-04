@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Data.Record.Model.Masked where
 
@@ -340,13 +341,13 @@ encodeData2 (v :: v) = Data2 mask $ unsafeStore v where
     mask    = foldl' setBit zeroBits bits
 {-# INLINE encodeData2 #-}
 
-encodeVariant :: KnownNat (FromJust (Encode2 rec Variant a)) => Proxy rec -> a -> Data3
-encodeVariant rec a = Data3 (encodeNat rec a) $ unsafeStore a where
+encodeVariant :: KnownNat (FromJust (Encode2 Variant a)) => a -> Data3
+encodeVariant a = Data3 (encodeNat a) $ unsafeStore a where
 {-# INLINE encodeVariant #-}
 
 
-encodeNat :: KnownNat (FromJust (Encode2 rec Variant a)) => Proxy rec -> a -> Int
-encodeNat (rec :: Proxy rec) (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 rec Variant a)))
+encodeNat :: KnownNat (FromJust (Encode2 Variant a)) => a -> Int
+encodeNat (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 Variant a)))
 {-# INLINE encodeNat #-}
 
 checkData2 :: KnownNat (Decode Char v) => Data2 -> Proxy v -> Bool
@@ -360,3 +361,12 @@ decodeNat (_ :: Proxy v) = fromIntegral $ natVal (p :: P (Decode Char v))
 decodeData2 :: forall v. KnownNat (Decode Char v) => Data2 -> Maybe v
 decodeData2 d@(Data2 mask store) = if checkData2 d (Proxy :: Proxy v) then Just (unsafeRestore store) else Nothing
 {-# INLINE decodeData2 #-}
+
+
+encode2 :: KnownNat (FromJust (Encode2 t a)) => Proxy t -> a -> Int
+encode2 (t :: Proxy t) (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
+{-# INLINE encode2 #-}
+
+encode3 :: forall t a. KnownNat (FromJust (Encode2 t a)) => a -> Int
+encode3 (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
+{-# INLINE encode3 #-}

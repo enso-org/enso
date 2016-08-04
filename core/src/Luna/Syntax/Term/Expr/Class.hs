@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 
 
@@ -42,11 +43,12 @@ import Type.Applicative
 import Prologue.Unsafe (error)
 import Luna.Syntax.Term.Expr (Symbol, Symbols, NameByDynamics)
 import qualified Data.RTuple as List
-import Type.Promotion    (KnownNats)
+import Type.Promotion    (KnownNats, natVals)
+import Data.Bits         (setBit, zeroBits)
 
 import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty, Access, Accessible', accessProxy')
-import Data.Record.Model.Masked (Mask, encodeNat, encodeData2, encodeVariant, checkData2, decodeData2, Raw(Raw), Data2(..), Data3(..), unsafeRestore, decodeNat)
+import Data.Record.Model.Masked (encode2, encode3, Mask, encodeNat, encodeData2, encodeVariant, checkData2, decodeData2, Raw(Raw), Data2(..), Data3(..), unsafeRestore, decodeNat)
 import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
@@ -62,7 +64,7 @@ import Type.List (Index, Size)
 import Type.Maybe (FromJust)
 import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
-
+import Type.Relation (SemiSuper)
 
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
@@ -83,6 +85,7 @@ type instance View l ((k := v) ': ls) = If (k == l) v (ls ^. l)
 data EE = EE -- TODO: refactor to Expr selector
 
 type PossibleVariants = [Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
+type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 
 
 -------------------
@@ -200,24 +203,53 @@ class Monad m => Cons2 v m t where
     cons2 :: v -> m t
 
 
-instance (Monad m, KnownNat (FromJust (Encode2 EE Variant atom)), Phantom atom)
+instance (Monad m, KnownNat (FromJust (Encode2 Variant atom)), Phantom atom)
       => Cons2 (Symbol atom dyn a) m Data3 where
-         cons2 _ = return $ encodeVariant (Proxy :: Proxy EE) (phantom :: atom)
+         cons2 _ = return $ encodeVariant (phantom :: atom)
 
 
-instance (Monad m, KnownNat (FromJust (Encode2 EE Variant d)), d ~ (Get t (Symbol atom dyn a)), Getter t (Symbol atom dyn a))
-      => Cons2 (Symbol atom dyn a) m (Store2 '[ 'Slot Enum t]) where
-         cons2 v = return $ Store2 $ List.singleton $ Enum nat where
-             nat = encodeNat (Proxy :: Proxy EE) (Prop.get (Proxy :: Proxy t) v)
+instance (Monad m, KnownNat (FromJust (Encode2 t (Get t a))), Getter t a)
+      => Cons2 a m (Store2 '[ 'Slot Enum t]) where
+         cons2 a = return $ Store2 $ List.singleton $ Enum nat where
+             nat = encode2 (Proxy :: Proxy t) (Prop.get (Proxy :: Proxy t) a)
 
-instance (Monad m, Getter t (Symbol atom dyn a))
-      => Cons2 (Symbol atom dyn a) m (Store2 '[ 'Slot Raw t]) where
-         cons2 v = return $ Store2 $ List.singleton $ Raw $ unsafeCoerce (Prop.get (Proxy :: Proxy t) v)
+instance (Monad m, Getter t a)
+      => Cons2 a m (Store2 '[ 'Slot Raw t]) where
+         cons2 a = return $ Store2 $ List.singleton $ Raw $ unsafeCoerce (Prop.get (Proxy :: Proxy t) a)
 
-instance (Monad m, d ~ Get t (Symbol atom dyn a), d ~ '[])
-      => Cons2 (Symbol atom dyn a) m (Store2 '[ 'Slot Mask t]) where
-         cons2 v = return $ Store2 $ List.singleton $ error "x"
+instance (Monad m, nats ~ MapEncode t (SemiSuper (Get t a)), KnownNats nats)
+      => Cons2 a m (Store2 '[ 'Slot Mask t]) where
+         cons2 a = return $ Store2 $ List.singleton mask where
+             bits    = fromIntegral <$> natVals (Proxy :: Proxy nats)
+             mask    = foldl' setBit zeroBits bits
 
+
+-- class EncodeStore where
+--     EncodeStore
+
+class EncodeSlot t a m s where
+    encodeSlot :: Proxy t -> a -> m s
+
+instance (Monad m, Getter t a, KnownNat (FromJust (Encode2 t (Get t a))))
+      => EncodeSlot t a m Enum where
+    encodeSlot _ a = return $ Enum nat where
+        nat = encode3 @t (Prop.get (Proxy :: Proxy t) a)
+
+instance (Monad m, Getter t a)
+      => EncodeSlot t a m Raw where
+    encodeSlot _ a = return $ Raw $ unsafeCoerce $ Prop.get (Proxy :: Proxy t) a
+
+instance (Monad m, nats ~ MapEncode t (SemiSuper (Get t a)), KnownNats nats)
+      => EncodeSlot t a m Mask where
+    encodeSlot _ a = return mask where
+        bits = fromIntegral <$> natVals (Proxy :: Proxy nats)
+        mask = foldl' setBit zeroBits bits
+
+
+
+type family MapEncode t fmts where
+    MapEncode t '[]       = '[]
+    MapEncode t (f ': fs) = FromJust (Encode2 t f) ': MapEncode t fs
 
 -- instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
 --       => Cons2 v m (Term attrs ls) where
@@ -294,7 +326,7 @@ class Match3 v rec where
 
 
 -- FIXME: draft implementation, to refactor
-instance ( KnownNat (FromJust (Encode2 EE Variant atom))
+instance ( KnownNat (FromJust (Encode2 Variant atom))
          , Phantom atom
          , bind ~ bind'
          , dyn  ~ dyn' )
@@ -302,7 +334,7 @@ instance ( KnownNat (FromJust (Encode2 EE Variant atom))
     of3 f = MatchState3 $ do
         reg  <- get
         let run (ExprRecord2 (d@(Data3 _ store))) = f $ unsafeRestore store
-        V.unsafeWrite reg (encodeNat (Proxy :: Proxy EE) (phantom :: atom)) run
+        V.unsafeWrite reg (encodeNat (phantom :: atom)) run
     {-# INLINE of3 #-}
 
 
@@ -459,7 +491,10 @@ type instance Decode rec Unify   = 17
 type instance Decode rec Var     = 18
 
 
-type instance Encode2 EE Variant v = Index v PossibleVariants
+type instance Encode2 Variant v = Index v PossibleVariants -- TODO: deleteme
+
+type instance Encode2 Atom    v = Index v PossibleVariants
+type instance Encode2 Format  v = Index v PossibleFormats
 
 
 -- TODO: refactor, Decode2 should replace Decode. Refactor Decode -> Test
