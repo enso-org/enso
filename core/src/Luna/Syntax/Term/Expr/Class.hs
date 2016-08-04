@@ -34,6 +34,7 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
+import Luna.Syntax.Term.Expr.Symbol (Symbol)
 import Luna.Syntax.Term.Expr.Atom
 
 import Data.Shell               as Shell hiding (Access)
@@ -42,7 +43,8 @@ import Type.Monoid
 import Type.Applicative
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (Symbol, Symbols, NameByDynamics)
+import Luna.Syntax.Term.Expr (NameByDynamics)
+import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Data.RTuple as List
 import Type.Promotion    (KnownNats, natVals)
 import Data.Bits         (setBit, zeroBits)
@@ -92,32 +94,6 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 -------------------
 -- === Terms === --
 -------------------
---
--- -- === Definitions === --
---
--- newtype Term (attrs :: [*]) layers = Term (TermStack attrs layers)
---
--- type TermStack     (attrs :: [*]) layers = Stack layers (TermLayerDesc attrs <$> layers)
--- data TermLayerDesc (attrs :: [*]) layer
--- type TermLayer     (attrs :: [*]) layer  = Layer (TermLayerDesc attrs layer)
--- type TermLayers    (attrs :: [*]) layers = Layer <$> (TermLayerDesc attrs <$> layers)
---
--- -- === Instances === --
---
--- -- Show
--- instance Show (List (TermLayers attrs layers)) => Show (Term attrs layers) where
---     showsPrec d (Term t) = showParen (d > app_prec) $
---         showString "Term " . showsPrec (app_prec+1) (unwrap $ unwrap t)
---         where app_prec = 10
---
--- -- Wrapper
--- makeWrapped ''Term
---
--- -- Construction
--- instance layers ~ '[] => Empty (Term attrs layers) where
---     empty = Term empty ; {-# INLINE empty #-}
---
-
 
 -- === Definitions === --
 
@@ -131,14 +107,15 @@ type family TermDatas (attrs :: [*]) tags where
 
 -- === Instances === --
 
+-- Wrapper
+makeWrapped ''Term
+
 -- Show
 instance Show (List (TermDatas attrs tags)) => Show (Term attrs tags) where
     showsPrec d (Term t) = showParen (d > app_prec) $
         showString "Term " . showsPrec (app_prec+1) (unwrap t)
         where app_prec = 10
 
--- Wrapper
-makeWrapped ''Term
 
 -- Construction
 instance tags ~ '[] => Empty (Term attrs tags) where
@@ -146,11 +123,14 @@ instance tags ~ '[] => Empty (Term attrs tags) where
 
 
 -- Property access
-type instance Access p (Term attrs tags) = Access p (Unwrapped (Term attrs tags))
 
-instance Accessible' p (Unwrapped (Term attrs tags))
-      => Accessible' p (Term attrs tags) where
-         accessProxy' p = wrapped . accessProxy' p ; {-# INLINE accessProxy' #-}
+type instance Get t (Term attrs tags) = Get t (Unwrapped (Term attrs tags))
+
+-- type instance Access p (Term attrs tags) = Access p (Unwrapped (Term attrs tags))
+--
+-- instance Accessible' p (Unwrapped (Term attrs tags))
+--       => Accessible' p (Term attrs tags) where
+--          accessProxy' p = wrapped . accessProxy' p ; {-# INLINE accessProxy' #-}
 
 
 
@@ -172,7 +152,7 @@ type Expr2' binding attrs layers model = Expr2 binding attrs layers model model
 -- === ExprRecord === --
 
 newtype ExprRecord2 bind model scope = ExprRecord2 Data4 deriving (Show)
-type Data4 = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Id ]
+type Data4 = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ]
 
 
 -- === Expr layer === --
@@ -236,12 +216,12 @@ instance (Monad m, List.Generate (Cons2 v) m (TermDatas attrs ls))
 type InvalidFormatAtom atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
 instance ( Monad m
-         , Cons2 (Symbol atom dyn bind) m Data4
+         , Cons2 (Symbol.Data atom dyn bind) m Data4
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
          , Assert (atom `In` Atoms layout) (InvalidFormatAtom atom layout))
-      => Cons2 (Symbol atom dyn bind) m (ExprRecord2 bind' model (Layout dyn' layout)) where
+      => Cons2 (Symbol.Data atom dyn bind) m (ExprRecord2 bind' model (Layout dyn' layout)) where
     cons2 v = ExprRecord2 <$> cons2 v ; {-# INLINE cons2 #-}
 
 
@@ -295,7 +275,7 @@ instance ( KnownNat (FromJust (Encode2 Variant atom))
          , Phantom atom
          , bind ~ bind'
          , dyn  ~ dyn' )
-      => Match3 (Symbol atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
+      => Match3 (Symbol.Data atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
     of3 f = MatchState3 $ do
         reg  <- get
         let run = error "x"
@@ -356,7 +336,7 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
             Selected 'Nothing    lst = lst
             Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
 
-type        Variants        t fmt  dyn a bind = Symbols (Selected a (Atoms fmt)) dyn bind
+type        Variants        t fmt  dyn a bind = Symbol.Datas (Selected a (Atoms fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
 type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
@@ -366,7 +346,7 @@ type family SubExprs'       t fmts dyn where
             SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
 
 
-type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Atoms fmt)) dyn a
+type        Variants2        fmt  dyn sel a = Symbol.Datas (Selected sel (Atoms fmt)) dyn a
 
 
 -- type        SubDynExprs2     fmt  dyn a      = Expr2 fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
@@ -431,7 +411,7 @@ instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder 
 -- type PossibleElements = [Static, Dynamic, Literal, Value, Thunk, Phrase, Draft, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
 type OffsetVariants = 7
 
-type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
+type instance Encode rec (Symbol.Data atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
 
 
 type instance Decode rec Static  = 0
@@ -456,8 +436,6 @@ type instance Decode rec Star    = 16
 type instance Decode rec Unify   = 17
 type instance Decode rec Var     = 18
 
-
-type instance Encode2 Variant v = Index v PossibleVariants -- TODO: deleteme
 
 type instance Encode2 Atom    v = Index v PossibleVariants
 type instance Encode2 Format  v = Index v PossibleFormats

@@ -87,8 +87,8 @@ import Luna.Syntax.Term.Expr
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (encodeStore, ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
-import Data.Record.Model.Masked (encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
+import Luna.Syntax.Term.Expr.Class (ExprData(..), cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
+import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Prelude (error, undefined)
@@ -305,8 +305,8 @@ type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for par
 
 --
 --
-a1  = () ^. from symbolArgs :: Symbol Blank Static Int
-a1' = () ^. from symbolArgs :: Symbol Blank dyn a
+a1  = () ^. from symbolArgs :: Symbol.Data Blank Static Int
+a1' = () ^. from symbolArgs :: Symbol.Data Blank dyn a
 -- -- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
 -- t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
 --
@@ -356,7 +356,7 @@ data ZZ = AA | BB
 main :: IO ()
 main = do
     print a1
-    print $ (runIdentity (encodeStore a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Id ])
+    print $ (runIdentity (encodeStore a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ])
     let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
     print e1
 

@@ -3,7 +3,7 @@
 module Luna.Syntax.Term.Expr.Symbol (module Luna.Syntax.Term.Expr.Symbol, module X) where
 
 import qualified Prelude.Luna as P
-import           Prelude.Luna hiding (String, Integer, Rational, Curry, Symbol)
+import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Curry, Data)
 
 import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
@@ -48,35 +48,44 @@ type NameByDynamics dyn d = ByDynamics dyn Lit.String d
 
 
 ---------------------
--- === Symbols === --
+-- === Datas === --
 ---------------------
 
 -- === Abstractions === --
 
-class IsSymbol t where symbolArgs :: Iso (Symbol t d a) (Symbol t d' a') (Args (Symbol t d a)) (Args (Symbol t d' a'))
+class IsSymbol t where symbolArgs :: Iso (Data t d a) (Data t d' a') (Args (Data t d a)) (Args (Data t d' a'))
 
-data family Symbol  atom  dyn a
-type        Symbols atoms dyn a = Symbol <$> atoms <*> '[dyn] <*> '[a]
+data family Data  atom  dyn a
+type        Datas atoms dyn a = Data <$> atoms <*> '[dyn] <*> '[a]
+
+
+-- === Selectors === --
+
+data Symbol = Symbol deriving (Show)
+
+type instance Get    Symbol (Data atom dyn a) = Data atom dyn a
+instance      Getter Symbol (Data atom dyn a) where
+    get = id ; {-# INLINE get #-}
 
 
 -- === Definitions === --
 
-newtype instance Symbol Integer  dyn a = Integer  P.Integer
-newtype instance Symbol Rational dyn a = Rational P.Rational
-newtype instance Symbol String   dyn a = String   P.String
+newtype instance Data Integer  dyn a = Integer  P.Integer
+newtype instance Data Rational dyn a = Rational P.Rational
+newtype instance Data String   dyn a = String   P.String
 
-data    instance Symbol Acc      dyn a = Acc    !(DynName dyn a) !a
-data    instance Symbol App      dyn a = App                     !a ![Arg a]
-data    instance Symbol Blank    dyn a = Blank
-newtype instance Symbol Cons     dyn a = Cons    (DynName dyn a)
-data    instance Symbol Curry    dyn a = Curry                   !a ![Arg a]
-data    instance Symbol Lam      dyn a = Lam                     ![Arg a] !a
-data    instance Symbol Match    dyn a = Match                   !a !a
-data    instance Symbol Missing  dyn a = Missing
-data    instance Symbol Native   dyn a = Native !(DynName dyn a)
-data    instance Symbol Star     dyn a = Star
-data    instance Symbol Unify    dyn a = Unify                   !a !a
-newtype instance Symbol Var      dyn a = Var     (DynName dyn a)
+data    instance Data Acc      dyn a = Acc    !(DynName dyn a) !a
+data    instance Data App      dyn a = App                     !a ![Arg a]
+data    instance Data Blank    dyn a = Blank
+newtype instance Data Cons     dyn a = Cons    (DynName dyn a)
+data    instance Data Curry    dyn a = Curry                   !a ![Arg a]
+data    instance Data Lam      dyn a = Lam                     ![Arg a] !a
+data    instance Data Match    dyn a = Match                   !a !a
+data    instance Data Missing  dyn a = Missing
+data    instance Data Native   dyn a = Native !(DynName dyn a)
+data    instance Data Star     dyn a = Star
+data    instance Data Unify    dyn a = Unify                   !a !a
+newtype instance Data Var      dyn a = Var     (DynName dyn a)
 
 
 
@@ -86,54 +95,54 @@ newtype instance Symbol Var      dyn a = Var     (DynName dyn a)
 
 data Binding = Binding deriving (Show)
 
-type instance Get Atom          (Symbol atom _   _) = atom
-type instance Set Atom     atom (Symbol _    dyn a) = (Symbol atom dyn a)
+type instance Get Atom          (Data atom _   _) = atom
+type instance Set Atom     atom (Data _    dyn a) = (Data atom dyn a)
 
-type instance Get Dynamics      (Symbol _    dyn _) = dyn
-type instance Set Dynamics dyn  (Symbol atom dyn a) = (Symbol atom dyn a)
+type instance Get Dynamics      (Data _    dyn _) = dyn
+type instance Set Dynamics dyn  (Data atom dyn a) = (Data atom dyn a)
 
-type instance Get Binding       (Symbol _    _   a) = a
-type instance Set Binding  a    (Symbol atom dyn _) = (Symbol atom dyn a)
+type instance Get Binding       (Data _    _   a) = a
+type instance Set Binding  a    (Data atom dyn _) = (Data atom dyn a)
 
-instance Phantom atom => Getter Atom     (Symbol atom dyn a) where get _ = phantom
-instance Phantom dyn  => Getter Dynamics (Symbol atom dyn a) where get _ = phantom
+instance Phantom atom => Getter Atom     (Data atom dyn a) where get _ = phantom
+instance Phantom dyn  => Getter Dynamics (Data atom dyn a) where get _ = phantom
 
-type instance Get Format (Symbol atom _ _) = Get Format atom
+type instance Get Format (Data atom _ _) = Get Format atom
 
 -- Show
 
-deriving instance (Show a, Show (DynName dyn a)) => Show (Symbol Acc     dyn a)
-deriving instance  Show a                        => Show (Symbol App     dyn a)
-deriving instance                                   Show (Symbol Blank   dyn a)
-deriving instance          Show (DynName dyn a)  => Show (Symbol Cons    dyn a)
-deriving instance  Show a                        => Show (Symbol Curry   dyn a)
-deriving instance  Show a                        => Show (Symbol Lam     dyn a)
-deriving instance  Show a                        => Show (Symbol Match   dyn a)
-deriving instance                                   Show (Symbol Missing dyn a)
-deriving instance          Show (DynName dyn a)  => Show (Symbol Native  dyn a)
-deriving instance                                   Show (Symbol Star    dyn a)
-deriving instance  Show a                        => Show (Symbol Unify   dyn a)
-deriving instance          Show (DynName dyn a)  => Show (Symbol Var     dyn a)
+deriving instance (Show a, Show (DynName dyn a)) => Show (Data Acc     dyn a)
+deriving instance  Show a                        => Show (Data App     dyn a)
+deriving instance                                   Show (Data Blank   dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Data Cons    dyn a)
+deriving instance  Show a                        => Show (Data Curry   dyn a)
+deriving instance  Show a                        => Show (Data Lam     dyn a)
+deriving instance  Show a                        => Show (Data Match   dyn a)
+deriving instance                                   Show (Data Missing dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Data Native  dyn a)
+deriving instance                                   Show (Data Star    dyn a)
+deriving instance  Show a                        => Show (Data Unify   dyn a)
+deriving instance          Show (DynName dyn a)  => Show (Data Var     dyn a)
 
 
 -- Args
 
-type instance Args (Symbol Integer  dyn a) = OneTuple P.Integer
-type instance Args (Symbol Rational dyn a) = OneTuple P.Rational
-type instance Args (Symbol String   dyn a) = OneTuple P.String
+type instance Args (Data Integer  dyn a) = OneTuple P.Integer
+type instance Args (Data Rational dyn a) = OneTuple P.Rational
+type instance Args (Data String   dyn a) = OneTuple P.String
 
-type instance Args (Symbol Acc     dyn a) =          (DynName dyn a, a)
-type instance Args (Symbol App     dyn a) =          (a, [Arg a])
-type instance Args (Symbol Blank   dyn a) =          ()
-type instance Args (Symbol Cons    dyn a) = OneTuple (DynName dyn a)
-type instance Args (Symbol Curry   dyn a) =          (a, [Arg a])
-type instance Args (Symbol Lam     dyn a) =          ([Arg a], a)
-type instance Args (Symbol Match   dyn a) =          (a, a)
-type instance Args (Symbol Missing dyn a) =          ()
-type instance Args (Symbol Native  dyn a) = OneTuple (DynName dyn a)
-type instance Args (Symbol Star    dyn a) =          ()
-type instance Args (Symbol Unify   dyn a) =          (a, a)
-type instance Args (Symbol Var     dyn a) = OneTuple (DynName dyn a)
+type instance Args (Data Acc     dyn a) =          (DynName dyn a, a)
+type instance Args (Data App     dyn a) =          (a, [Arg a])
+type instance Args (Data Blank   dyn a) =          ()
+type instance Args (Data Cons    dyn a) = OneTuple (DynName dyn a)
+type instance Args (Data Curry   dyn a) =          (a, [Arg a])
+type instance Args (Data Lam     dyn a) =          ([Arg a], a)
+type instance Args (Data Match   dyn a) =          (a, a)
+type instance Args (Data Missing dyn a) =          ()
+type instance Args (Data Native  dyn a) = OneTuple (DynName dyn a)
+type instance Args (Data Star    dyn a) =          ()
+type instance Args (Data Unify   dyn a) =          (a, a)
+type instance Args (Data Var     dyn a) = OneTuple (DynName dyn a)
 
 -- IsSymbol
 
@@ -156,4 +165,4 @@ instance IsSymbol Var     where symbolArgs = iso (\(Var    t1   ) -> OneTuple t1
 
 -- DataType
 
-instance IsSymbol t => DataType (Symbol t dyn a) (Symbol t dyn' a') where args = symbolArgs ; {-# INLINE args #-}
+instance IsSymbol t => DataType (Data t dyn a) (Data t dyn' a') where args = symbolArgs ; {-# INLINE args #-}
