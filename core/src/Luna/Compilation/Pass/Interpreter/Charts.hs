@@ -231,24 +231,24 @@ autoScatterChartDouble gridMat mat figure viewSize doubles = shiftGraphics shift
 
 autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> [(Int, Int)] -> Graphics
 autoScatterChartIntTuple gridMat mat figure viewSize intTuples = shiftGraphics shift chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure viewSize $ toDoubleTuple <$> intTuples
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 0 viewSize $ toDoubleTuple <$> intTuples
     shift = shiftPoint viewSize viewSize chartShift
     toDoubleTuple :: (Int, Int) -> (Double, Double)
     toDoubleTuple (int1, int2) = (fromIntegral int1, fromIntegral int2)
 
 autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> [(Double, Double)] -> Graphics
 autoScatterChartDoubleTuple gridMat mat figure viewSize doubleTuples = shiftGraphics shift chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure viewSize doubleTuples
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 1 viewSize doubleTuples
     shift = shiftPoint viewSize viewSize chartShift
 
 autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> [Double] -> Graphics
-autoScatterChartDoubleImpl gridMat mat figure decim viewSize doublesY = autoScatterChartDoubleTupleImpl gridMat mat figure viewSize $ zip [0.0..] doublesY
+autoScatterChartDoubleImpl gridMat mat figure decim viewSize doublesY = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize $ zip [0.0..] doublesY
 
-autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTupleImpl gridMat mat figure viewSize []        = Graphics []
-autoScatterChartDoubleTupleImpl gridMat mat figure viewSize doublesXY = Graphics $ gridLayer <> [chartLayer] where
+autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Int -> Double -> [(Double, Double)] -> Graphics
+autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize []        = Graphics []
+autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize doublesXY = Graphics $ gridLayers <> [chartLayer] where
     chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    gridLayer  = grid gridMat viewSize x1 x2 y1 y2
+    gridLayers = gridLabeled gridMat decim viewSize x1 x2 y1 y2
     doublesX   = fst <$> doublesXY
     doublesY   = snd <$> doublesXY
     x1 = min 0.0 $ minimum doublesX
