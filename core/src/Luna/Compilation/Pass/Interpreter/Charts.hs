@@ -229,16 +229,33 @@ autoScatterChartDouble gridMat mat figure viewSize doubles = shiftGraphics shift
     chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize doubles
     shift = shiftPoint viewSize viewSize chartShift
 
+autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> [(Int, Int)] -> Graphics
+autoScatterChartIntTuple gridMat mat figure viewSize intTuples = shiftGraphics shift chart where
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure viewSize $ toDoubleTuple <$> intTuples
+    shift = shiftPoint viewSize viewSize chartShift
+    toDoubleTuple :: (Int, Int) -> (Double, Double)
+    toDoubleTuple (int1, int2) = (fromIntegral int1, fromIntegral int2)
+
+autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> [(Double, Double)] -> Graphics
+autoScatterChartDoubleTuple gridMat mat figure viewSize doubleTuples = shiftGraphics shift chart where
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure viewSize doubleTuples
+    shift = shiftPoint viewSize viewSize chartShift
+
 autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> [Double] -> Graphics
-autoScatterChartDoubleImpl gridMat mat figure decim viewSize []      = Graphics []
-autoScatterChartDoubleImpl gridMat mat figure decim viewSize doubles = Graphics $ gridLayers <> [chartLayer] where
+autoScatterChartDoubleImpl gridMat mat figure decim viewSize doublesY = autoScatterChartDoubleTupleImpl gridMat mat figure viewSize $ zip [0.0..] doublesY
+
+autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Double -> [(Double, Double)] -> Graphics
+autoScatterChartDoubleTupleImpl gridMat mat figure viewSize []        = Graphics []
+autoScatterChartDoubleTupleImpl gridMat mat figure viewSize doublesXY = Graphics $ gridLayer <> [chartLayer] where
     chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    gridLayers = gridLabeled gridMat decim viewSize x1 x2 y1 y2
-    x1 = 0.0
-    x2 = fromIntegral $ length doubles - 1
-    y1 = min 0.0 $ minimum doubles
-    y2 = max 0.0 $ maximum doubles
-    points = (\(i, v) -> Point (fromIntegral i) v) <$> zip [0..] doubles
+    gridLayer  = grid gridMat viewSize x1 x2 y1 y2
+    doublesX   = fst <$> doublesXY
+    doublesY   = snd <$> doublesXY
+    x1 = min 0.0 $ minimum doublesX
+    x2 = max 0.0 $ maximum doublesX
+    y1 = min 0.0 $ minimum doublesY
+    y2 = max 0.0 $ maximum doublesY
+    points = (\(i, v) -> Point i v) <$> doublesXY
 
 -- charts
 
