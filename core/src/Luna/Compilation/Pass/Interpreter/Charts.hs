@@ -286,16 +286,21 @@ barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
 barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
 barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
     layers     = toLayer <$> viewPoints
-    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize viewSize <$> points
-    rx         = initialOffset x1 x2
-    ry         = initialOffset y1 y2
+    viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize viewSize <$> points
+    rx         = initialOffset x1t x2t
+    ry         = initialOffset y1t y2t
+    stepX      = calculateTick maxSteps (x2 - x1)
+    stepY      = calculateTick maxSteps (y2 - y1)
+    (x1t, x2t) = edgePoints stepX x1 x2
+    (y1t, y2t) = edgePoints stepY y1 y2
     w          = 0.5 / (fromIntegral $ length points)
     toLayer (Point dx dy) = mkLayer geometry [toTransformation point] where
-        point     = Point dx (dy * 0.5)
+        rdy       = dy + ry
+        point     = Point dx (rdy * 0.5)
         geometry  = Geometry geoComp def (Just mat)
         geoComp   = convert figure :: GeoComponent
         figure    = Rectangle w h
-        h         = abs dy
+        h         = abs rdy
 
 -- charts helpers
 
