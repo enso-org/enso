@@ -378,13 +378,10 @@ symbolsList = [
                                                   listOf $ scons "Point"]                                 (scons "Layer")
     , makeNativeFun "barChart"        Nothing [scons "Material", scons "Double",
                                                   scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (scons "Layer")
-    , makeNativeFun "barChartLayers"  Nothing [scons "Material", scons "Double",
-                                                  scons "Double", scons "Double", scons "Double", scons "Double",
                                                   listOf $ scons "Point"]                                 (scons "Graphics")
 
-    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", listOf $ scons "Int"]              (scons "Graphics")
-    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", listOf $ scons "Double"]           (scons "Graphics")
+    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", scons "Double", listOf $ scons "Int"]              (scons "Graphics")
+    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", scons "Double", listOf $ scons "Double"]           (scons "Graphics")
 
 ------------------------
 --- === IoT Demo === ---

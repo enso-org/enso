@@ -201,10 +201,8 @@ gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridLabeledH mat decim viewSize y1 y2
     gV = gridLabeledV mat decim viewSize x1 x2
 
-chartShift = Point 0.03 (-0.03)
-
-shiftPoint :: Double -> Double -> Point -> Point
-shiftPoint viewX viewY (Point x y) = Point (viewX * x) (viewY * y)
+shiftPoint :: Double -> Double -> Double -> Double -> Point
+shiftPoint viewX viewY x y = Point (viewX * x) (viewY * (-y))
 
 shiftGraphics :: Point -> Graphics -> Graphics
 shiftGraphics point (Graphics layers) = Graphics layers' where
@@ -219,27 +217,27 @@ shiftLayer point (Layer geo trans labels) = Layer geo trans' labels' where
 
 -- auto charts
 
-autoScatterChartInt :: Material -> Material -> Figure -> Double -> [Int] -> Graphics
-autoScatterChartInt gridMat mat figure viewSize ints = shiftGraphics shift chart where
+autoScatterChartInt :: Material -> Material -> Figure -> Double -> Double -> [Int] -> Graphics
+autoScatterChartInt gridMat mat figure viewSize viewShift ints = shiftGraphics shift chart where
     chart = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize $ fromIntegral <$> ints
-    shift = shiftPoint viewSize viewSize chartShift
+    shift = shiftPoint viewSize viewSize viewShift viewShift
 
-autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> Graphics
-autoScatterChartDouble gridMat mat figure viewSize doubles = shiftGraphics shift chart where
+autoScatterChartDouble :: Material -> Material -> Figure -> Double -> Double -> [Double] -> Graphics
+autoScatterChartDouble gridMat mat figure viewSize viewShift doubles = shiftGraphics shift chart where
     chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize doubles
-    shift = shiftPoint viewSize viewSize chartShift
+    shift = shiftPoint viewSize viewSize viewShift viewShift
 
-autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> [(Int, Int)] -> Graphics
-autoScatterChartIntTuple gridMat mat figure viewSize intTuples = shiftGraphics shift chart where
+autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> Double -> [(Int, Int)] -> Graphics
+autoScatterChartIntTuple gridMat mat figure viewSize viewShift intTuples = shiftGraphics shift chart where
     chart = autoScatterChartDoubleTupleImpl gridMat mat figure 0 viewSize $ toDoubleTuple <$> intTuples
-    shift = shiftPoint viewSize viewSize chartShift
+    shift = shiftPoint viewSize viewSize viewShift viewShift
     toDoubleTuple :: (Int, Int) -> (Double, Double)
     toDoubleTuple (int1, int2) = (fromIntegral int1, fromIntegral int2)
 
-autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTuple gridMat mat figure viewSize doubleTuples = shiftGraphics shift chart where
+autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> Double -> [(Double, Double)] -> Graphics
+autoScatterChartDoubleTuple gridMat mat figure viewSize viewShift doubleTuples = shiftGraphics shift chart where
     chart = autoScatterChartDoubleTupleImpl gridMat mat figure 1 viewSize doubleTuples
-    shift = shiftPoint viewSize viewSize chartShift
+    shift = shiftPoint viewSize viewSize viewShift viewShift
 
 autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> [Double] -> Graphics
 autoScatterChartDoubleImpl gridMat mat figure decim viewSize doublesY = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize $ zip [0.0..] doublesY
@@ -270,6 +268,7 @@ scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry 
     (x1t, x2t) = edgePoints stepX x1 x2
     (y1t, y2t) = edgePoints stepY y1 y2
 
+-- TODO: fix
 barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
 barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
     viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize viewSize <$> points

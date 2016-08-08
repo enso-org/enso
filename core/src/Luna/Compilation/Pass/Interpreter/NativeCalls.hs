@@ -237,9 +237,10 @@ nativeCalls = Map.fromList $ [
     , ("geoGroup",                 unsafeCoerce (return .   GeoGroup   :: [Geometry] -> IO GeoComponent))
     , ("GeoComponent.geometry",    unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
 
-    , ("Geometry.layer",           unsafeCoerce (return .:  mkLayer    :: Geometry -> [Transformation] -> IO Layer))
-    , ("graphics",                 unsafeCoerce (return .   Graphics   :: [Layer]  -> IO Graphics))
-    , ("Graphics.layers",          unsafeCoerce (return .   _graphics  :: Graphics -> IO [Layer]))
+    , ("Geometry.layer",           unsafeCoerce (return .:  mkLayer       :: Geometry -> [Transformation] -> IO Layer))
+    , ("graphics",                 unsafeCoerce (return .   Graphics      :: [Layer]  -> IO Graphics))
+    , ("Graphics.layers",          unsafeCoerce (return .   _graphics     :: Graphics -> IO [Layer]))
+    , ("Graphics.shift",           unsafeCoerce (return .:  shiftGraphics :: Point -> Graphics -> IO Graphics))
 
 --------------------------
 --- === Charts API === ---
@@ -251,13 +252,11 @@ nativeCalls = Map.fromList $ [
     , ("grid",        unsafeCoerce      (return .:::  grid        :: Material ->        Double -> Double -> Double -> Double -> Double -> IO [Layer]))
     , ("gridLabeled", unsafeCoerce      (return .:::. gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
 
-    , ("scatterChart",   unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
+    , ("scatterChart", unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
+    , ("barChar",      unsafeCoerce (return .:::.  barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
 
-    , ("barChart",       unsafeCoerce (return .:::.  barChart       :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer)) -- broken
-    , ("barChartLayers", unsafeCoerce (return .:::.  barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
-
-    , ("autoScatterChartInt",    unsafeCoerce (return .::. autoScatterChartInt    :: Material -> Material -> Figure -> Double -> [Int]    -> IO Graphics))
-    , ("autoScatterChartDouble", unsafeCoerce (return .::. autoScatterChartDouble :: Material -> Material -> Figure -> Double -> [Double] -> IO Graphics))
+    , ("autoScatterChartInt",    unsafeCoerce (return .::: autoScatterChartInt    :: Material -> Material -> Figure -> Double -> Double -> [Int]    -> IO Graphics))
+    , ("autoScatterChartDouble", unsafeCoerce (return .::: autoScatterChartDouble :: Material -> Material -> Figure -> Double -> Double -> [Double] -> IO Graphics))
 
 ------------------------
 --- === IoT Demo === ---
