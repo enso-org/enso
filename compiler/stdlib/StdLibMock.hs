@@ -361,6 +361,7 @@ symbolsList = [
     , makeNativeFun "Geometry.layer"           (Just $ scons "Geometry")     [listOf $ scons "Transformation"]          (scons "Layer")
     , makeNativeFun "graphics"                 Nothing                       [listOf $ scons "Layer"]                   (scons "Graphics")
     , makeNativeFun "Graphics.layers"          (Just $ scons "Graphics")     []                                         (listOf $ scons "Layer")
+    , makeNativeFun "Graphics.shift"           (Just $ scons "Graphics")     [scons "Point"]                            (scons "Graphics")
 
 ---------------------------
 --- === Drawing API === ---
