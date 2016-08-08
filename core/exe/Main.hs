@@ -59,7 +59,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, Expr, ExprRecord, overbuild, AnyExpr)
+import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.Syntax.Term.Expr.Format                         (SuperFormats, Draft(Draft), Literal(Literal))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
@@ -82,13 +82,13 @@ import Data.Shell as Shell
 import Data.Shell (Stack(..))
 import Data.Cover
 import Type.Applicative
-import Luna.Syntax.Term.Expr
+import Luna.Syntax.Term.Expr hiding (Data)
 
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..))
+import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Term', Data)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -351,7 +351,7 @@ buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 data Network2 = Network2 deriving (Show)
 
--- Expr2 Network2 '[Int] Static Draft Static Draft
+-- Term Network2 '[Int] Static Draft Static Draft
 -- Expr3 Network2 '[] '[Int] Static Draft Static App
 --
 -- Expr3 Network2 '[] '[Int] (Layout Static Draft) (Layout Static App)
@@ -363,10 +363,10 @@ data ZZ = AA | BB
 -- #define CASE $(testTH [| case
 -- #define ESAC {--}|])
 
-runCase :: Expr2 binding attrs layers model scope -> [Any -> out] -> out
+runCase :: Term binding attrs layers model scope -> [Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    s   = unwrap' $ get @Symbol $ unwrap' $ get @Symbol el
-    idx = unwrap' $ get @Atom $ unwrap' $ get @Symbol el
+    s   = unwrap' $ get @Symbol $ unwrap' $ get @Data el
+    idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
 {-# INLINE runCase #-}
 
 
@@ -378,19 +378,26 @@ defaultMatch = error "wrong match"
 {-# INLINE defaultMatch #-}
 
 --
-type A1 = Expr2 Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
-type A2 = Expr2 Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
+type A1 = Term Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
+type A2 = Term Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
+
+type Expr  dyn scope dyn' scope' = Term Network2 '[] '[Int] (Layout dyn scope) (Layout dyn' scope')
+type Expr' dyn scope             = Expr dyn scope dyn scope
+
+-- Ref Node (Expr Static Value)
 
 main :: IO ()
 main = do
     print a1
     print $ (runIdentity (encodeStore a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ])
-    let e1 = (runIdentity (cons2 a1') :: Expr2 Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    print e1
+    let e1 = (runIdentity (cons2 a1') :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
+    let e2 = (runIdentity (cons2 a1') :: Expr' Static Draft)
+    -- let e3 = (runIdentity (cons2 a1') :: Ref Node (Expr' Static Draft))
+    print e2
 
     putStrLn ""
-    print $ get @Symbol $ unwrap' $ get @Symbol e1
-    print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
+    print $ get @Symbol $ unwrap' $ get @Data e1
+    print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
     -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
     -- case a of

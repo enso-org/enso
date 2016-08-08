@@ -126,4 +126,3 @@ instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Loc r'   ) where cast = rewrap
 --class ReferencedUnknownM r a m t where
 --    unknownReferenceM   :: Ptr r -> a -> t -> m t
 --    unknownDereferenceM :: Ptr r -> t -> m a
-
