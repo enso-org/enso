@@ -177,7 +177,8 @@ showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
 
 skipSecond (x:y:xs) = x : skipSecond xs
-skipSecond _        = []
+skipSecond (x:[])   = [x]
+skipSecond []       = []
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
