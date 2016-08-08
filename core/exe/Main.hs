@@ -4,14 +4,14 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE TypeApplications          #-}
+{-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE PolyKinds                 #-}
 
 module Main where
 
-
-import Data.Graph
+import Data.Graph          hiding (Dynamic)
 import Data.Graph.Builders
 import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum)
 
@@ -88,7 +88,7 @@ import Luna.Syntax.Term.Expr
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..), case3, of3)
+import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term(..), Expr2, Expr2', ExprRecord2(..))
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -102,6 +102,11 @@ import Luna.Syntax.Term.Expr.Atom (Atoms)
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import Control.Lens.Property
 import Luna.Syntax.Term.Expr.Format (Format)
+import TH
+import qualified Data.Vector as V
+import GHC.Prim (Any)
+
+import Unsafe.Coerce (unsafeCoerce)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -296,7 +301,6 @@ instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = retur
 
 
 
-
 ----------------------------------
 
 
@@ -338,7 +342,8 @@ buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 -- powinnismy wprowadzic abstrakcje Bind, ktora moglaby miec source i target i w networku reprezentowalaby connection
 
---
+--DataConI Luna.Syntax.Term.Expr.Symbol.Unify (ForallT [KindedTV dyn_1761715480 StarT,KindedTV a_1761715481 StarT] [] (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT (AppT (ConT Luna.Syntax.Term.Expr.Symbol.Data) (ConT Luna.Syntax.Term.Expr.Atom.Unify)) (VarT dyn_1761715480)) (VarT a_1761715481))))) Luna.Syntax.Term.Expr.Symbol.Data
+
 -- class Monad m => OverBuilder m a where
 --     overbuild :: RecordOf a -> m a
 
@@ -354,16 +359,39 @@ data Network2 = Network2 deriving (Show)
 
 data ZZ = AA | BB
 
+
+-- #define CASE $(testTH [| case
+-- #define ESAC {--}|])
+
+runCase :: Expr2 binding attrs layers model scope -> [Any -> out] -> out
+runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
+    s   = unwrap' $ get @Symbol $ unwrap' $ get @Symbol el
+    idx = unwrap' $ get @Atom $ unwrap' $ get @Symbol el
+{-# INLINE runCase #-}
+
+
+matchx f = f . unsafeCoerce
+{-# INLINE matchx #-}
+
+
+defaultMatch = error "wrong match"
+{-# INLINE defaultMatch #-}
+
+--
+type A1 = Expr2 Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
+type A2 = Expr2 Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
+
 main :: IO ()
 main = do
     print a1
     print $ (runIdentity (encodeStore a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ])
-    let e1 = (runIdentity (cons2 a1') :: Expr2' Network2 '[] '[Int] (Layout Static Draft))
+    let e1 = (runIdentity (cons2 a1') :: Expr2 Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
     print e1
 
     putStrLn ""
-    print $ unwrap' $ get @Symbol e1
-    print $ get @Atom $ unwrap' $ get @Symbol e1
+    print $ get @Symbol $ unwrap' $ get @Symbol e1
+    print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
+    -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
     -- case a of
     --     BB -> print "tsr"
@@ -371,9 +399,61 @@ main = do
     -- case3 (view (List.access' ExprData) e1) $
     --     of3 $ \(Symbol.Unify l r) -> (print "hello" :: IO ())
             --
-    case3 (get @Symbol e1) $ do
-        of3 $ \(Symbol.Unify l r) -> print "hello"
-        of3 $ \(Symbol.Blank)     -> print "hello2"
+            -- case3 (get @Symbol e1) $ do
+            --     of3 $ \(Symbol.Unify l r) -> print "hello"
+            --     of3 $ \(Symbol.Blank)     -> print "hello2"
+
+    -- CASE e1 of
+    --     Symbol.Unify l r -> print "hello"
+    --     Symbol.Blank     -> print "hello2"
+    -- ESAC
+    --
+
+
+
+    -- $(testTH2 'e1 ( \(Symbol.Unify l r) -> print "hello"  :: IO ()
+    --               , \Symbol.Blank       -> print "hello2" :: IO ()
+    --               )
+    --  )
+
+    let xx = (let a1 = 2 in a1)
+
+
+    let { exp = e1
+    ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+        ala = 11
+    ;f2 = matchx $ \Symbol.Blank       -> (print "hello2" )
+       where ala = 11
+    } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Blank|] ] ['f1, 'f2])
+
+    case' e1 of
+        Symbol.Unify l r -> print 11
+        Symbol.Blank     -> case' e1 of
+            Symbol.Unify l r -> print "hello"
+            Symbol.Blank     -> print "hello3x"
+
+
+    -- $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
+
+
+    --
+    -- case' e1 of
+    --     Symbol.Unify l r -> print "hello"
+    --     Symbol.Blank     -> print "hello2"
+
+
+    -- runCase e1 [
+    --     matchx $ \(Symbol.Unify l r) -> print "hello"
+    --     matchx $ \Symbol.Blank       -> print "hello2"
+    --
+    -- ]
+
+    -- runCase e1 $ [ \_ -> print "1"
+    --                                             , \_ -> print "2"
+    --                                             ]
+
+    return ()
+
     -- print $ view (List.access' ExprData) e1 -- Refactor, List is in Fact TMap
 
 

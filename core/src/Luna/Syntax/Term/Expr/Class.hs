@@ -193,33 +193,16 @@ type family InferVariant rec v :: Constraint
 class Monad m => Cons2 v m t where
     cons2 :: v -> m t
 
-
 instance (Monad m, EncodeStore slots a m) => Cons2 a m (Store2 slots) where
     cons2 = encodeStore ; {-# INLINE cons2 #-}
 
 
-
-
-
-
-
-
-
--- instance (Monad m, List.Generate (Cons2 v) m (TermLayers attrs ls))
---       => Cons2 v m (Term attrs ls) where
---          cons2 v = (Term . Stack . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 
 instance (Monad m, List.Generate (Cons2 v) m (TermDatas attrs ls))
       => Cons2 v m (Term attrs ls) where
          cons2 v = (Term . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 
 
--- instance (Monad m, Cons2 v m (LayerData l))
---       => Cons2 v m (Layer l) where
---          cons2 v = Shell.Layer <$> cons2 v ; {-# INLINE cons2 #-}
-
--- instance Monad m => Cons2 v m (Term attrs '[]) where
---     cons2 _ = return empty ; {-# INLINE cons2 #-}
 
 
 type InvalidFormatAtom atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
@@ -246,76 +229,8 @@ class HasRecord2 t where
     record2 :: Lens' t (RecordOf2 t)
 
 
--- type instance RecordOf2 (Term attrs tags) = Access ExprData (Term attrs tags)
-
--- instance Accessible' ExprData (Term attrs tags)
---       => HasRecord2 (Term attrs tags) where record2 = List.access' ExprData
-
--- -- TODO [WD]: Add TH case' interface
--- __case__ lib file loc = fromJustNote err ∘∘ runMatches where
---     err = lib <> ": " <> file <> ":" <> show loc <> ": Non-exhaustive patterns in case"
--- {-# INLINE __case__ #-}
-
--- === Pattern Matching === --
 
 
-newtype MatchState3 rec out a = MatchState3 {ffg :: forall s. StateT (MVector s (rec -> out)) (ST s) a }
-type    MatchSet3   rec out  = MatchState3 rec out ()
-
-
-instance Functor (MatchState3 rec out) where
-    fmap f (MatchState3 s) = MatchState3 $ f <$> s ; {-# INLINE fmap #-}
-
-instance Applicative (MatchState3 rec out) where
-    pure a = MatchState3 $ pure a ; {-# INLINE pure #-}
-    (MatchState3 f) <*> (MatchState3 a) = MatchState3 $ f <*> a
-
-instance Monad (MatchState3 rec out) where
-    return a = MatchState3 $ return a
-    (MatchState3 a) >>= f = MatchState3 $ a >>= (fmap ffg f)
-
-
-class Match3 v rec where
-    of3 :: forall out. (v -> out) -> MatchSet3 rec out
-
-
--- FIXME: draft implementation, to refactor
-instance ( KnownNat (FromJust (Encode2 Atom atom))
-         , Phantom atom
-         , bind ~ bind'
-         , dyn  ~ dyn' )
-      => Match3 (Symbol.Data atom dyn bind) (ExprRecord2 bind' model (Layout dyn' layout)) where
-    of3 f = MatchState3 $ do
-        reg  <- get
-        -- let run = error "x"
-        -- let run (ExprRecord2 (d@(Data3 _ store))) = f $ unsafeRestore store
-        let run (ExprRecord2 d) = f $ unsafeCoerce sym where
-                Raw sym = Prop.get @Symbol d
-
-        V.unsafeWrite reg (encode3 @Atom (phantom :: atom)) run
-    {-# INLINE of3 #-}
-
--- case3 = error "y"
---
-        -- case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
-        -- case3 rec@(ExprRecord2 (d@(Data3 nat _))) (MatchState3 body) = runST $ do
-        --     defaults  <- V.replicate (fromIntegral $ natVal (Proxy :: Proxy (Size PossibleVariants))) (error "Non-exhaustive patterns in case")
-        --     selectors <- execStateT body defaults
-        --     func      <- V.unsafeRead selectors nat
-        --     return $ func rec
-        -- {-# INLINE case3 #-}
-
-
-case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> out
--- case3 :: ExprRecord2 bind model scope ~ rec => rec -> MatchSet3 rec out -> IO ()
-case3 rec@(ExprRecord2 d) (MatchState3 body) = runST $ do
-    let Enum nat = Prop.get @Atom d
-    defaults  <- V.replicate (fromIntegral $ natVal (Proxy :: Proxy (Size PossibleVariants))) (error "Non-exhaustive patterns in case")
-    selectors <- execStateT body defaults
-    func      <- V.unsafeRead selectors nat
-    return $ func rec
-    -- return (return ())
-{-# INLINE case3 #-}
 
 
 ----------------------------------------------------
@@ -496,6 +411,9 @@ type instance DecodeComponent 17 = Unify
 type instance DecodeComponent 18 = Var
 
 
+type family All a :: [*]
+type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
+-- type instance All Atom = '[Acc, App]
 
 -- class RecordRepr rec where
 --     recordRepr :: rec -> String

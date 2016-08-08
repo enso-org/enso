@@ -45,6 +45,6 @@ extra-deps:
     - graphviz-2999.18.1.2
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10
+    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10 -F -pgmF ../toolchain/ghc/booster/booster -optF --source=../toolchain/ghc/extensions
 
 local-bin-path: ./dist/bin

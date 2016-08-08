@@ -47,9 +47,9 @@ type DynName d a = NameByDynamics d a
 type NameByDynamics dyn d = ByDynamics dyn Lit.String d
 
 
----------------------
+-------------------
 -- === Datas === --
----------------------
+-------------------
 
 -- === Abstractions === --
 

@@ -1,4 +1,4 @@
 [submodule "scripts"]
-	path = scripts
+	path = toolchain/scripts
 	url = git@bitbucket.org:NewByteOrder/workflow.git
 	branch = master

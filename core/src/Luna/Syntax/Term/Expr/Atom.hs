@@ -1,5 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE CPP                  #-}
+{-# BOOSTER  Templates            #-}
 
 module Luna.Syntax.Term.Expr.Atom where
 
@@ -13,20 +13,22 @@ import Data.Phantom
 
 -- === Definition pragmas === --
 
-#define DEFINE_ATOM(name)                                      \
-                                                               \
-data name = name deriving (Show, Eq, Ord)                     ;\
-                                                               \
-type instance Atoms name = '[name]                            ;\
-                                                               \
-instance Default name where {                                  \
-    def = name ; {-# INLINE def #-}}                          ;\
-                                                               \
-instance Phantom name where {                                  \
-    phantom = name ; {-# INLINE phantom #-}}                  ;\
-                                                               \
-instance {-# OVERLAPPABLE #-} Repr s name where {              \
-    repr = fromString ∘ show ; {-# INLINE repr #-}}
+define name = {{
+
+data {name} = {name} deriving (Show, Eq, Ord)
+
+type instance Atoms {name} = '[{name}]
+
+instance Default {name} where
+    def = {name} ; {-# INLINE def #-}
+
+instance Phantom {name} where
+    phantom = {name} ; {-# INLINE phantom #-}
+
+instance {-# OVERLAPPABLE #-} Repr s {name} where
+    repr = fromString ∘ show ; {-# INLINE repr #-}
+
+}}
 
 
 -- === Queries === --
@@ -38,19 +40,19 @@ type family Atoms a :: [*]
 
 -- === Definitions === --
 
-DEFINE_ATOM(Integer )
-DEFINE_ATOM(Rational)
-DEFINE_ATOM(String  )
+define Integer
+define Rational
+define String
 
-DEFINE_ATOM(Acc    )
-DEFINE_ATOM(App    )
-DEFINE_ATOM(Blank  )
-DEFINE_ATOM(Cons   )
-DEFINE_ATOM(Curry  )
-DEFINE_ATOM(Lam    )
-DEFINE_ATOM(Match  )
-DEFINE_ATOM(Missing)
-DEFINE_ATOM(Native )
-DEFINE_ATOM(Star   )
-DEFINE_ATOM(Unify  )
-DEFINE_ATOM(Var    )
+define Acc
+define App
+define Blank
+define Cons
+define Curry
+define Lam
+define Match
+define Missing
+define Native
+define Star
+define Unify
+define Var

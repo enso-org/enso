@@ -307,6 +307,7 @@ Executable luna
                      , data-rtuple
                      , ghc-mtl
                      , data-shell
+                     , template-haskell
 
 
 benchmark graph-builder
