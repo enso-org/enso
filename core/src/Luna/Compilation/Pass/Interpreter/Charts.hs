@@ -39,6 +39,10 @@ offsetPoint rx ry (Point x y) = Point (x + rx) (y + ry)
 flipPointY :: Point -> Point
 flipPointY (Point x y) = Point x (1.0 - y)
 
+toDoublePairList :: [Point] -> [(Double, Double)]
+toDoublePairList = fmap toDoublePair where
+    toDoublePair (Point x y) = (x, y)
+
 initialOffset :: Double -> Double -> Double
 initialOffset p1 p2 = -p1 / (p2 - p1)
 
@@ -172,14 +176,14 @@ labelAdjustY = 0.035
 showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
 
-everySecond (x:y:xs) = y : everySecond xs
-everySecond _ = []
+skipSecond (x:y:xs) = x : skipSecond xs
+skipSecond _        = []
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    labels   = mkLabel <$> (everySecond mys)
+    labels   = mkLabel <$> (skipSecond mys)
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
     (y1t, y2t) = edgePoints stepY y1 y2
@@ -191,7 +195,7 @@ gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
-    labels   = mkLabel <$> (everySecond mxs)
+    labels   = mkLabel <$> (skipSecond mxs)
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
     (x1t, x2t) = edgePoints stepX x1 x2
@@ -205,7 +209,7 @@ gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
     gV = gridLabeledV mat decim viewSize x1 x2
 
 shiftPoint :: Double -> Double -> Double -> Double -> Point
-shiftPoint viewX viewY x y = Point (viewX * x) (viewY * (-y))
+shiftPoint viewX viewY x y = Point (viewX * x) (viewY * y)
 
 shiftGraphics :: Point -> Graphics -> Graphics
 shiftGraphics point (Graphics layers) = Graphics layers' where
@@ -215,8 +219,8 @@ shiftLayer :: Point -> Layer -> Layer
 shiftLayer point (Layer geo trans labels) = Layer geo trans' labels' where
     trans'  = shiftTrans point <$> trans
     labels' = shiftLabel point <$> labels
-    shiftTrans (Point x y) transformation = translate transformation x y
-    shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly + y)) fontSize alignment text
+    shiftTrans (Point x y) transformation = translate transformation x (-y)
+    shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly - y)) fontSize alignment text
 
 -- auto charts
 

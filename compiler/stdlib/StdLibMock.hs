@@ -342,6 +342,8 @@ symbolsList = [
     , makeNativeFun "rectangleGeometry"        Nothing [scons "Double", scons "Double", scons "Material"]               (scons "Geometry")
 
     , makeNativeFun "point"                    Nothing [scons "Double", scons "Double"]                                 (scons "Point")
+    , makeNativeFun "toDoublePairList"         Nothing [listOf $ scons "Point"]                                         (scons "DoublePairList")
+
     , makeNativeFun "initAttributes"           Nothing []                                                               (scons "Attributes")
     , makeNativeFun "color"                    Nothing [scons "Double", scons "Double", scons "Double", scons "Double"] (scons "Material")
 
@@ -374,12 +376,8 @@ symbolsList = [
     , makeNativeFun "grid"         Nothing [scons "Material",              scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
     , makeNativeFun "gridLabeled"  Nothing [scons "Material", scons "Int", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
 
-    , makeNativeFun "scatterChart"    Nothing [scons "Material", scons "Figure", scons "Double",
-                                                  scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (scons "Layer")
-    , makeNativeFun "barChart"        Nothing [scons "Material", scons "Double",
-                                                  scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (scons "Graphics")
+    , makeNativeFun "scatterChart"    Nothing [scons "Material", scons "Figure", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double", listOf $ scons "Point"] (scons "Layer")
+    , makeNativeFun "barChart"        Nothing [scons "Material",                 scons "Double", scons "Double", scons "Double", scons "Double", scons "Double", listOf $ scons "Point"] (scons "Graphics")
 
     , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", scons "Double", listOf $ scons "Int"]              (scons "Graphics")
     , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", scons "Double", listOf $ scons "Double"]           (scons "Graphics")

@@ -220,7 +220,9 @@ nativeCalls = Map.fromList $ [
     , ("squareGeometry",           unsafeCoerce (return .:  squareToGeo    :: Double ->           Material -> IO Geometry))
     , ("rectangleGeometry",        unsafeCoerce (return .:. rectangleToGeo :: Double -> Double -> Material -> IO Geometry))
 
-    , ("point",                    unsafeCoerce (return .:  Point      :: Double -> Double -> IO Point))
+    , ("point",                    unsafeCoerce (return .:  Point            :: Double -> Double -> IO Point))
+    , ("toDoublePairList",         unsafeCoerce (return .   toDoublePairList :: [Point] -> IO [(Double, Double)]))
+
     , ("initAttributes",           unsafeCoerce (return     def        :: IO Attributes))
     , ("color",                    unsafeCoerce (return .:: SolidColor :: Double -> Double -> Double -> Double -> IO Material))
 
@@ -253,7 +255,7 @@ nativeCalls = Map.fromList $ [
     , ("gridLabeled", unsafeCoerce      (return .:::. gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> IO [Layer]))
 
     , ("scatterChart", unsafeCoerce (return .::::  scatterChart   :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Layer))
-    , ("barChar",      unsafeCoerce (return .:::.  barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
+    , ("barChar",      unsafeCoerce (return .:::.  barChartLayers :: Material ->           Double -> Double -> Double -> Double -> Double -> [Point] -> IO Graphics))
 
     , ("autoScatterChartInt",    unsafeCoerce (return .::: autoScatterChartInt    :: Material -> Material -> Figure -> Double -> Double -> [Int]    -> IO Graphics))
     , ("autoScatterChartDouble", unsafeCoerce (return .::: autoScatterChartDouble :: Material -> Material -> Figure -> Double -> Double -> [Double] -> IO Graphics))
