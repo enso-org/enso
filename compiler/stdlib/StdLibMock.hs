@@ -163,6 +163,8 @@ symbolsList = [
     , makeNativeFun "List.map"      (Just $ listOf $ TVar "#a")    [TLam [TVar "#a"] (TVar "#b")]                                 (listOf $ TVar "#b")
     , makeNativeFun "List.zip"      (Just $ listOf $ TVar "#a")    [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]  (listOf $ TVar "#c")
     , makeNativeFun "List.filter"   (Just $ listOf $ TVar "#a")    [TLam [TVar "#a"] (scons "Bool")]                              (listOf $ TVar "#a")
+    , makeNativeFun "List.unsafeHead" (Just $ listOf $ TVar "#a")  [] (TVar "#a")
+
 
 ------------------
 -- === Int === --

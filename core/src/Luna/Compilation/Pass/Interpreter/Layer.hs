@@ -12,8 +12,8 @@ import           Old.Luna.Syntax.Term.Class            (Term)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Class (Network)
 import qualified Luna.Syntax.Model.Network.Term  as Term
+import           Luna.Compilation.Pass.Interpreter.Value
 
-import           GHC.Prim                        (Any)
 
 
 type EvalMonad = IO
@@ -26,7 +26,7 @@ type ValueErr a = Either Errors a
 
 data InterpreterLayer = InterpreterLayer { _dirty    :: Bool
                                          , _required :: Bool
-                                         , _value    :: ValueErr (EvalMonad Any)
+                                         , _value    :: ValueErr Value
                                          , _time     :: Integer
                                          , _debug    :: String     -- debug data (String value)
                                          }

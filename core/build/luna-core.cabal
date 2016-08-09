@@ -126,6 +126,7 @@ Library
         Luna.Compilation.Pass.Interpreter.Interpreter,
         Luna.Compilation.Pass.Interpreter.Layer,
         Luna.Compilation.Pass.Interpreter.NativeCalls,
+        Luna.Compilation.Pass.Interpreter.Value,
         Luna.Compilation.Pass.Utils.Literals,
         Luna.Compilation.Pass.Utils.SubtreeWalk,
         Luna.Compilation.Stage.TypeCheck,
