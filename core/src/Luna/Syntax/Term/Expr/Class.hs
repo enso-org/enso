@@ -69,7 +69,13 @@ import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 
+
+
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
+
+type instance Get Dynamics (Layout dyn form) = dyn
+type instance Get Format   (Layout dyn form) = form
+
 
 data Scope   = Scope   deriving (Show)
 data Binding = Binding deriving (Show)
@@ -81,8 +87,9 @@ type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, p
 
 data a := b
 
--- TO REFACTOR:
-type instance View l ((k := v) ': ls) = If (k == l) v (ls ^. l)
+type instance Get t (l := v ': ls) = If (t == l) v (Get t ls)
+
+
 
 
 data EE = EE -- TODO: refactor to Expr selector
@@ -140,13 +147,13 @@ instance Getter t (Unwrapped (Record dict fields))
 
 -- === Definitions === --
 
-type Term binding dict layers model scope = Record ( Binding := binding
+type Term binding dict fields model scope = Record ( Binding := binding
                                                   ': Model   := model
                                                   ': Scope   := scope
                                                   ': dict
-                                                   ) (Data ': layers)
+                                                   ) (Data ': fields)
 
-type Term' binding dict layers model = Term binding dict layers model model
+type Term' binding dict fields model = Term binding dict fields model model
 
 
 -- === Properties === --
@@ -170,7 +177,7 @@ makeWrapped ''ExprData
 -- === Expr layer === --
 
 
-type instance Field Data dict = ExprData (Bound (dict ^. Binding) dict) (dict ^. Model) (dict ^. Scope)
+type instance Field Data dict = ExprData (Bound (Get Binding dict) dict) (Get Model dict) (Get Scope dict)
 
 
 type instance Field Int dict    = Int

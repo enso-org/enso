@@ -28,7 +28,7 @@ import           Data.Index               (idx)
 -- import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                 as Map
 import           Data.Prop
-import           Data.Record              hiding (Cons, Layout, cons)
+import           Data.Record              hiding (Cons, Layout, cons, Value)
 import           Data.Version.Semantic
 import           Development.Placeholders
 import           Text.Printf              (printf)
@@ -49,11 +49,11 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckSta
 import qualified Luna.Config.Env                                 as Env
 import qualified Luna.Library.Symbol                             as Symbol
 import           Luna.Pretty.GraphViz
-import           Luna.Runtime.Dynamics                           (Dynamic, Static)
+import           Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                           as Runtime
 import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
 import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
-import           Luna.Syntax.Model.Network.Builder.Node          hiding (star2)
+import           Luna.Syntax.Model.Network.Builder.Node          hiding (star2, blank, unify)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
@@ -61,7 +61,7 @@ import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
-import           Luna.Syntax.Term.Expr.Format                         (SuperFormats, Draft(Draft), Literal(Literal))
+import           Luna.Syntax.Term.Expr.Format                         (SuperFormats, Draft(Draft), Literal(Literal), Value(Value))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
 
 import qualified Data.Graph.Backend.NEC       as NEC
@@ -310,14 +310,13 @@ type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for par
 
 --
 --
-a1  = () ^. from symbolArgs :: Symbol.Data Blank Static Int
-a1' = () ^. from symbolArgs :: Symbol.Data Blank dyn a
--- -- -- t1 = Record.cons a1 :: AnyExpr SNet Draft Static
--- t1 = Record.cons a1 :: TRex2 t Draft Static 'Nothing
+-- blank  = () ^. from symbolArgs :: Symbol.Data Blank Static Int
+-- -- -- t1 = Record.cons blank :: AnyExpr SNet Draft Static
+-- t1 = Record.cons blank :: TRex2 t Draft Static 'Nothing
 --
 -- t2 = runIdentity $ overbuild t1 :: AnyExpr (Net '[IntLayer]) Draft Static
 --
--- -- t2' = runIdentity $ buildElem $ a1 :: AnyExpr (Net '[IntLayer]) Draft Static
+-- -- t2' = runIdentity $ buildElem $ blank :: AnyExpr (Net '[IntLayer]) Draft Static
 --
 -- t3 = runIdentity $ refer t2
 
@@ -386,13 +385,27 @@ type Expr' dyn scope             = Expr dyn scope dyn scope
 
 -- Ref Node (Expr Static Value)
 
+
+instance Monad m => TEST.Cons2 a m (Ref Edge x) where
+    cons2 _ = return $ Ptr 0
+
+type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.Scope dict))
+                                                         (Get Format   (Get TEST.Scope dict))
+                                                  )
+blank :: Symbol.Data Blank dyn a
+blank = () ^. from symbolArgs :: Symbol.Data Blank dyn a
+
+unify :: a -> a -> Symbol.Data Unify dyn a
+unify l r = view (from symbolArgs) (l,r)
+
 main :: IO ()
 main = do
-    print a1
-    print $ (runIdentity (encodeStore a1) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ])
-    let e1 = (runIdentity (cons2 a1') :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    let e2 = (runIdentity (cons2 a1') :: Expr' Static Draft)
-    -- let e3 = (runIdentity (cons2 a1') :: Ref Node (Expr' Static Draft))
+    print blank
+    print $ (runIdentity (encodeStore blank) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ])
+    let e1 = (runIdentity (cons2 blank) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
+    let e2 = (runIdentity (cons2 blank) :: Expr' Static Draft)
+    let eb1 = (runIdentity (cons2 blank) :: Ref Edge (Expr' Static Draft))
+    let eu1 = (runIdentity (cons2 $ unify eb1 eb1) :: Expr' Static Draft)
     print e2
 
     putStrLn ""
@@ -423,7 +436,8 @@ main = do
     --               )
     --  )
 
-    let xx = (let a1 = 2 in a1)
+
+    let xx = (let blank = 2 in blank)
 
 
     let { exp = e1
@@ -493,7 +507,7 @@ main = do
         -- main3 :: IO ()
         -- main3 = do
         --     (n,g) <- flip GraphBuilder.runT (def :: NetGraph2) $ do
-        --         (n1 :: Ref2 (AnyExpr (Net '[IntLayer]) Draft Static)) <- buildRef a1
+        --         (n1 :: Ref2 (AnyExpr (Net '[IntLayer]) Draft Static)) <- buildRef blank
         --         return n1
         --     print n
         --
