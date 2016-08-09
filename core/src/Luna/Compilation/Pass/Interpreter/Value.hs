@@ -37,7 +37,7 @@ unsafeAppFun f (Nothing : as) = do
 unsafeAppFun f (Just a  : as) = do
     (Function func) <- f
     a' <- a
-    func a'
+    unsafeAppFun (func a') as
 
 unsafeGetProperty :: String -> Value -> Value
 unsafeGetProperty prop v = do

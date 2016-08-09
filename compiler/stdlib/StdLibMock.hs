@@ -403,6 +403,7 @@ symbolsList = [
 --------------------------
 
     , makeNativeFun "fix"          Nothing [TLam [TVar "#a"] (TVar "#a")]                                                              (TVar "#a")
+    , makeNativeFun "prepend"      Nothing [TVar "#a", listOf $ TVar "#a"] (listOf $ TVar "#a")
     , makeNativeFun "app1to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), (TVar "#a")]                                      (TLam [TVar "#b"] (TVar "#c"))
     , makeNativeFun "app2to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), (TVar "#a"), (TVar "#b")]                         (TVar "#c")
     , makeNativeFun "app1to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a")]                           (TLam [TVar "#b", TVar "#c"] (TVar "#d"))

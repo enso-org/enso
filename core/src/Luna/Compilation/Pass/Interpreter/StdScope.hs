@@ -5,6 +5,7 @@ import Luna.Compilation.Pass.Interpreter.Env
 import Luna.Compilation.Pass.Interpreter.Value
 import Data.List (sort, group)
 import Control.Arrow ((&&&))
+import Control.Monad.Fix (fix, mfix)
 
 import qualified Data.Map as Map
 
@@ -21,6 +22,10 @@ stdScope = Scope $ Map.fromList
     , ("histogram",   unsafeToValue (map (head &&& length) . group . sort :: [Int] -> [(Int, Int)]))
     , ("primes",      unsafeToValue (primes :: Int -> [Int]))
     , ("pi",          unsafeToValue (pi :: Double))
+
+    , ("fix",         unsafeToValue (fix :: (Data -> Data) -> Data))
+    , ("app",         unsafeToValue (id :: Data -> Data))
+    , ("prepend",     unsafeToValue ((:) :: Data -> [Data] -> [Data]))
     ]
 
 primes :: Int -> [Int]
