@@ -9,71 +9,46 @@ import           Prelude.Luna                                    hiding (pre, su
 import           Control.Monad                                   (forM_)
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Except                            (runExceptT, ExceptT (..), throwError, MonadError)
-import           Control.Monad.Trans.Identity
-import           Control.Monad.Trans.State
--- import qualified Control.Monad.State                             as State
-import           Data.Maybe                                      (isNothing, isJust, catMaybes, fromJust)
-import           Data.Either                                     (rights)
 
 import           Data.Construction
 import           Data.Graph
 import qualified Data.Graph.Backend.NEC                          as NEC
 import           Data.Graph.Builder                              hiding (get)
 import qualified Data.Graph.Builder                              as GraphBuilder
-import qualified Data.IntSet                                     as IntSet
 import           Data.Prop
 import           Data.Record                                     hiding (cons, Value)
 import           Development.Placeholders
 
 import           Luna.Compilation.Pass.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT, evalInterpreterT)
-import           Luna.Compilation.Pass.Interpreter.Env           (Env)
+import           Luna.Compilation.Pass.Interpreter.Env           (Env, enrichScope, lookupVar)
 import qualified Luna.Compilation.Pass.Interpreter.Env           as Env
 import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, ValueErr(..))
+import           Luna.Compilation.Pass.Interpreter.StdScope      (stdScope)
 import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
-import           Luna.Compilation.Pass.Interpreter.NativeCalls   (lookupNative)
 import           Luna.Compilation.Pass.Interpreter.Value
 
 import           Luna.Runtime.Dynamics                           (Dynamic, Static)
-import           Old.Luna.Syntax.Term.Class                           (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
-import           Luna.Syntax.Model.Network.Builder               (redirect, replacement, readSuccs, tcErrors)
+import           Old.Luna.Syntax.Term.Class                      (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
+import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs, tcErrors)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
-import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
+import qualified Old.Luna.Syntax.Term.Expr.Lit                   as Lit
 
 import           Type.Inference
 
--- import qualified Luna.Library.StdLib                             as StdLib
-
-import           Luna.Syntax.Term.Function                       (Arg, Signature (..))
-import qualified Luna.Syntax.Term.Function                       as Function
-import qualified Luna.Syntax.Term.Function.Argument              as Arg
-
---import qualified Luna.Evaluation.Session                         as Session
-
+import           Luna.Syntax.Term.Function                       (Arg)
 
 import           Control.Monad.Catch                             (MonadCatch, handleAll, handleJust)
-import           Control.Monad.Ghc                               (GhcT)
 import           Control.Exception                               (SomeException(..), AsyncException(..), throwIO)
 
 
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
--- import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder_OLD, NetworkBuilderT, NetRawNode, NetRawCluster)
 
-import           Data.String.Utils                               (replace)
-
-import           System.Clock
-
-import qualified GHC.Paths              as Paths
-import qualified Control.Monad.Ghc      as MGHC
-import qualified GHC
-import           Control.Concurrent     (threadDelay)
 import           GHC.Exception          (fromException, Exception)
-import           Control.DeepSeq        (deepseq, force)
-import qualified DynFlags as GHC
 import           Data.Layer_OLD.Cover_OLD
 
 convertBase :: Integral a => a -> a -> a
@@ -88,7 +63,6 @@ numberToValue :: Lit.Number -> Value
 numberToValue (Lit.Number radix (Lit.Rational r)) = unsafeToValue $ convertRationalBase (toInteger radix) r
 numberToValue (Lit.Number radix (Lit.Integer  i)) = unsafeToValue (fromIntegral $ convertBase         (toInteger radix) i :: Int)
 numberToValue (Lit.Number radix (Lit.Double   d)) = unsafeToValue $ d
-
 
 tryGetBool :: String -> Maybe Bool
 tryGetBool boolStr
@@ -145,22 +119,6 @@ markDirty dirty ref = do
 setValue :: InterpreterCtx(m, ls, term) => ValueErr Value -> Ref Node (ls :<: term) -> m ()
 setValue value ref = withRef ref $ (prop InterpreterData . Layer.value .~ value)
 
-{-copyValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> Ref Node (ls :<: term) -> Integer -> m ()-}
-{-copyValue fromRef toRef startTime = do-}
-    {-endTime <- liftIO getCPUTime-}
-    {-let !time = endTime - startTime-}
-    {-fromNode <- read fromRef-}
-    {-toNode   <- read toRef-}
-    {-let value = (fromNode # InterpreterData) ^. Layer.value-}
-        {-debug = (fromNode # InterpreterData) ^. Layer.debug-}
-    {-let dirty = isLeft value-}
-
-    {-write toRef (toNode & prop InterpreterData . Layer.value .~ value-}
-                        {-& prop InterpreterData . Layer.dirty .~ dirty-}
-                        {-& prop InterpreterData . Layer.time  .~ time-}
-                        {-& prop InterpreterData . Layer.debug .~ debug-}
-                {-)-}
-
 getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr Value)
 getValue ref = do
     node <- read ref
@@ -194,24 +152,8 @@ connect prev next = do
 markModified :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 markModified = markSuccessors
 
-
--- interpreter
-
-
 unpackArguments :: InterpreterCtx(m, ls, term) => [Arg (Ref Edge (Link (ls :<: term)))] -> m [Ref Node (ls :<: term)]
 unpackArguments args = mapM (follow source . unlayer) args
-
-
--- TODO: handle exception
-{-argumentValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr (EvalMonad Any))-}
-{-argumentValue ref = do-}
-    {-node <- read ref-}
-    {-return $ (node # InterpreterData) ^. Layer.value-}
-
-{-argumentsValues :: InterpreterCtx(m, ls, term) => [Ref Node (ls :<: term)] -> m (ValueErr [EvalMonad Any])-}
-{-argumentsValues refs = do-}
-    {-mayValuesList <- mapM argumentValue refs-}
-    {-return $ sequence mayValuesList-}
 
 collectNodesToEval :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 collectNodesToEval ref = do
@@ -227,103 +169,6 @@ exceptionHandler e = case asyncExcMay of
         Just exc -> liftIO $ throwIO e
     where asyncExcMay = ((fromException e) :: Maybe AsyncException)
 
--- TCData TCErrors - non empty
-{-evaluateNative :: (InterpreterCtx((ExceptT [String] m), ls, term), Monad m) => Ref Node (ls :<: term) -> [Ref Node (ls :<: term)] -> m (ValueErr (EvalMonad Any))-}
-{-evaluateNative ref args = runExceptT $ do-}
-    {-node <- read ref-}
-    {-name <- caseTest (uncover node) $ do-}
-       {-of' $ \(Native nameStr) -> do-}
-           {-return $ unwrap' nameStr-}
-       {-of' $ \ANY -> throwError ["Error: native cannot be evaluated"]-}
-
-    {-markDirty ref False-}
-    {-valuesE <- argumentsValues args-}
-    {-values <- ExceptT $ return valuesE-}
-    {-fun :: Any <- maybe (throwError ["Unknown native call: " <> name]) return $ lookupNative name-}
-    {-res <- liftIO $ handleAll exceptionHandler $ do-}
-        {-args <- liftIO $ sequence values-}
-        {-let resA = foldl appArg fun args-}
-        {-let resM = unsafeCast resA :: EvalMonad Any-}
-        {-res <- liftIO $ resM-}
-        {-return $ Right $ return res-}
-    {-case res of-}
-        {-Left errs -> throwError errs-}
-        {-Right res -> return res-}
-
--- join $ foldl (\f a -> f <*> a) (pure f) values
-
-
-{-type NodeRef = Ref Node (NetLayers :<: Draft Static)-}
-{-type BindList = [(NodeRef, Any)]-}
-
--- TODO: optimize native haskell functions
-
-{-interpretNoArgs :: NetGraph -> BindList -> NodeRef -> EvalMonad Any-}
-{-interpretNoArgs g binds out = do-}
-    {-v <- evalBuildInt g def $ do -- TODO: pass env (instead of def)-}
-        {-forM_ binds $ \(r, v) -> do-}
-            {-let (val :: ValueErr (EvalMonad Any)) = Right $ return v-}
-            {-withRef r $ (prop InterpreterData . Layer.dirty .~ False)-}
-                      {-. (prop InterpreterData . Layer.value .~ val)-}
-        {-res <- evaluateNode out-}
-        {-case res of-}
-            {-Left err -> do-}
-                {-print err-}
-                {-$notImplemented-}
-            {-Right val -> return val-}
-    {-v-}
-
-{-interpret' :: NetGraph -> BindList -> [NodeRef] -> NodeRef -> Any-}
-{-interpret' g binds []         out = toAny $ interpretNoArgs g binds out-}
-{-interpret' g binds (arg:args) out = toAny $ \v -> interpret' g ((arg, v) : binds) args out-}
-
-{-interpret :: NetGraph -> [NodeRef] -> NodeRef -> EvalMonad Any-}
-{-interpret g args out = return $ interpret' g [] args out-}
-
-{-interpretFun :: NetGraph -> Signature NodeRef -> EvalMonad Any-}
-{-interpretFun g sig = do-}
-    {-let args = unlayer <$> sig ^. Function.args-}
-        {-out  = sig ^. Function.out-}
-    {-interpret g args out-}
-
--- IO (Any -> Any -> ... -> Any -> IO Any)
-
-{-runBuild :: NetworkBuilderT NetGraph m (KnownTypeT ELEMENT NodeRef n) => NetGraph -> m a -> n (a, NetGraph)-}
-{-runBuild g m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))-}
-                                           {-$ runNetworkBuilderT g m-}
-
-{-runBuildInt :: (Monad n, NetworkBuilderT NetGraph m (InterpreterT (Env NodeRef) (KnownTypeT ELEMENT NodeRef n)))-}
-            {-=> NetGraph -> Env (Ref Node (NetLayers :<: Draft Static)) -> m a -> n (a, NetGraph)-}
-{-runBuildInt g env m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))-}
-                                           {-$ flip evalInterpreterT env-}
-                                           {-$ runNetworkBuilderT g m-}
-
-    -- ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
-
-
-{-evalBuild g m = fmap fst $ runBuild g m-}
-{-evalBuildInt g env m = fmap fst $ runBuildInt g env m-}
-
-{-execBuild g m = fmap snd $ runBuild g m-}
-
-{-evaluateFirstOrderFun :: (InterpreterCtx(m, ls, term)) => Ref Node (ls :<: term) -> m ()-}
-{-evaluateFirstOrderFun ref = do-}
-    {-startTime <- liftIO getCPUTime-}
-    {-node <- read ref-}
-    {-let clusterPtrMay = (node # TCData) ^. replacement-}
-    {-case clusterPtrMay of-}
-        {-Nothing -> return ()-}
-        {-Just clusterPtr -> do-}
-            {-let (cluster :: (Ref Cluster NetCluster)) = cast clusterPtr-}
-            {-sigMay <- follow (prop Lambda) cluster-}
-            {-case sigMay of-}
-                {-Nothing -> return ()-}
-                {-Just sig -> do-}
-                    {-g <- GraphBuilder.get-}
-                    {-let val = interpretFun g sig-}
-                    {-setValue (Right $ val) ref startTime-}
-                    {-return ()-}
-
 evaluateNode :: (InterpreterCtx(m, ls, term), MonadError [String] m) => Ref Node (ls :<: term) -> m Value
 evaluateNode ref = do
     node <- read ref
@@ -334,6 +179,10 @@ evaluateNode ref = do
             of' $ \(Lit.String str) -> do
                 return . unsafeToValue $ str
             of' $ return . numberToValue
+            of' $ \(Cons n args) -> case unwrap n of
+                "True"  -> return $ unsafeToValue True
+                "False" -> return $ unsafeToValue False
+                _       -> throwError ["Undefined constructor"]
             of' $ \(App f args) -> do
                 funRef       <- follow source f
                 funVal       <- evaluateNode funRef
@@ -352,7 +201,7 @@ evaluateNode ref = do
                     of' $ \ANY   -> do
                         targetVal <- evaluateNode targetRef
                         return $ unsafeGetProperty name targetVal
-            of' $ \(Var _) -> do
+            of' $ \(Var n) -> do
                 case tcData ^. redirect of
                     Just e -> do
                         ref         <- follow source e
@@ -363,51 +212,14 @@ evaluateNode ref = do
                                 let msgs = ("Runtime exception: " <>) <$> errs
                                 setValue (Left msgs) ref
                                 throwError msgs
-                            Right v -> return $ return v
-                    Nothing -> throwError ["No variable definition"]
+                            Right v -> return $ Pure v
+                    Nothing -> lookupVar (unwrap n) <?!> ["Undefined variable"]
             of' $ \ANY -> throwError ["Unexpected node type"]
         setValue (Right val) ref
     v <- getValue ref
     case v of
         Left  e -> throwError e
         Right v -> return v
-
-    {-when (null $ tcData ^. tcErrors) $ do-}
-        {-case tcData ^. redirect of-}
-            {-Just redirect -> do-}
-                {-redirRef <- follow source redirect-}
-                {-evaluateNode redirRef-}
-                {-copyValue redirRef ref startTime-}
-            {-Nothing -> do-}
-                {-if isDirty node-}
-                    {-then caseTest (uncover node) $ do-}
-                        {-of' $ \(Unify l r)  -> return ()-}
-                        {-of' $ \(Acc _ _)    -> evaluateFirstOrderFun ref-}
-                        {-of' $ \(Curry _ _)  -> evaluateFirstOrderFun ref-}
-                        {-of' $ \(App f args) -> do-}
-                            {-funRef       <- follow source f-}
-                            {-unpackedArgs <- unpackArguments args-}
-                            {-mapM evaluateNode unpackedArgs-}
-                            {-funNode      <- read funRef-}
-                            {-caseTest (uncover funNode) $ do-}
-                                {-of' $ \(Native _) -> do-}
-                                    {-nativeVal <- evaluateNative funRef unpackedArgs-}
-                                    {-setValue nativeVal ref startTime-}
-                                {-of' $ \ANY        -> evaluateFirstOrderFun ref-}
-                        {-of' $ \(Lit.String str)                 -> do-}
-                            {-setValue (Right $ toMonadAny str) ref startTime-}
-                        {-of' $ \number@(Lit.Number radix system) -> do-}
-                            {-setValue (Right $ numberToAny number) ref startTime-}
-                        {-of' $ \(Cons (Lit.String s) args) -> do-}
-                            {-case tryGetBool s of-}
-                                {-Nothing   -> return ()-}
-                                {-Just bool -> setValue (Right $ toMonadAny bool) ref startTime-}
-                        {-of' $ \Blank -> return ()-}
-                        {-of' $ \ANY   -> return ()-}
-                    {-else return ()-}
-
-    {-getValue ref-}
-
 
 evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] m), ls, term)) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
@@ -417,5 +229,7 @@ evaluateNodes reqRefs = do
 run :: forall env m ls term node edge graph clus n e c. (Monad m, InterpreterCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (InterpreterT env m)), ls, term), env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
-    ((), env) <- flip runInterpreterT (def :: env) $ evaluateNodes reqRefs
+    ((), env) <- flip runInterpreterT (def :: env) $ do
+        enrichScope stdScope
+        evaluateNodes reqRefs
     return ()
