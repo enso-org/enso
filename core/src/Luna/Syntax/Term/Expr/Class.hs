@@ -34,7 +34,7 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol (Symbol)
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, Symbols)
 import Luna.Syntax.Term.Expr.Atom
 
 import Data.Shell               as Shell hiding (Access)
@@ -169,7 +169,7 @@ data Data = Data deriving (Show)
 -- === ExprRecord === --
 
 newtype ExprData bind model scope = ExprData ExprStore deriving (Show)
-type ExprStore = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ]
+type ExprStore = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Sym ]
 
 makeWrapped ''ExprData
 
@@ -218,12 +218,12 @@ instance (Monad m, List.Generate (Cons2 v) m (Fields fields dict))
 type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
 instance ( Monad m
-         , Cons2 (Symbol.Data atom dyn bind) m ExprStore
+         , Cons2 (Symbol atom dyn bind) m ExprStore
          {-constraint solving-}
          , dyn  ~ dyn'
          , bind ~ bind'
          , Assert (atom `In` Atoms layout) (InvalidAtomFormat atom layout))
-      => Cons2 (Symbol.Data atom dyn bind) m (ExprData bind' model (Layout dyn' layout)) where
+      => Cons2 (Symbol atom dyn bind) m (ExprData bind' model (Layout dyn' layout)) where
     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
 
 
@@ -285,7 +285,7 @@ type family Selected (sel :: Maybe [*]) (lst :: [*]) where
             Selected 'Nothing    lst = lst
             Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
 
-type        Variants        t fmt  dyn a bind = Symbol.Datas (Selected a (Atoms fmt)) dyn bind
+type        Variants        t fmt  dyn a bind = Symbols (Selected a (Atoms fmt)) dyn bind
 type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
 type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
 type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
@@ -295,7 +295,7 @@ type family SubExprs'       t fmts dyn where
             SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
 
 
-type        Variants2        fmt  dyn sel a = Symbol.Datas (Selected sel (Atoms fmt)) dyn a
+type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Atoms fmt)) dyn a
 
 
 -- type        SubDynExprs2     fmt  dyn a      = Term fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
@@ -360,7 +360,7 @@ instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder 
 -- type PossibleElements = [Static, Dynamic, Literal, Value, Thunk, Phrase, Draft, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
 type OffsetVariants = 7
 
-type instance Encode rec (Symbol.Data atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
+type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
 
 
 type instance Decode rec Static  = 0

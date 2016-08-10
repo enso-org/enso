@@ -4,6 +4,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE TypeApplications          #-}
+{-# LANGUAGE TypeFamilyDependencies    #-}
 {-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
@@ -53,7 +54,8 @@ import           Luna.Runtime.Dynamics                           (Dynamics, Dyna
 import qualified Luna.Runtime.Dynamics                           as Runtime
 import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
 import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
-import           Luna.Syntax.Model.Network.Builder.Node          hiding (star2, blank, unify)
+import           Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star2, blank, unify)
+import qualified Luna.Syntax.Model.Network.Builder.Node          as Old
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
@@ -100,6 +102,7 @@ import GHC.TypeLits (ErrorMessage(Text))
 import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol)
 import Control.Lens.Property
 import Luna.Syntax.Term.Expr.Format (Format)
 import TH
@@ -122,9 +125,9 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 prebuild :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
 prebuild = runBuild2 def $ do
-    star
-    star
-    star
+    Old.star
+    Old.star
+    Old.star
 
 prebuild2 :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
 prebuild2 = runBuild3 def $ do
@@ -310,7 +313,7 @@ type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for par
 
 --
 --
--- blank  = () ^. from symbolArgs :: Symbol.Data Blank Static Int
+-- blank  = () ^. from symbolArgs :: Symbol Blank Static Int
 -- -- -- t1 = Record.cons blank :: AnyExpr SNet Draft Static
 -- t1 = Record.cons blank :: TRex2 t Draft Static 'Nothing
 --
@@ -341,7 +344,7 @@ buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 -- powinnismy wprowadzic abstrakcje Bind, ktora moglaby miec source i target i w networku reprezentowalaby connection
 
---DataConI Luna.Syntax.Term.Expr.Symbol.Unify (ForallT [KindedTV dyn_1761715480 StarT,KindedTV a_1761715481 StarT] [] (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT (AppT (ConT Luna.Syntax.Term.Expr.Symbol.Data) (ConT Luna.Syntax.Term.Expr.Atom.Unify)) (VarT dyn_1761715480)) (VarT a_1761715481))))) Luna.Syntax.Term.Expr.Symbol.Data
+--DataConI Luna.Syntax.Term.Expr.Symbol.Unify (ForallT [KindedTV dyn_1761715480 StarT,KindedTV a_1761715481 StarT] [] (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT (AppT (ConT Luna.Syntax.Term.Expr.Symbol) (ConT Luna.Syntax.Term.Expr.Atom.Unify)) (VarT dyn_1761715480)) (VarT a_1761715481))))) Luna.Syntax.Term.Expr.Symbol
 
 -- class Monad m => OverBuilder m a where
 --     overbuild :: RecordOf a -> m a
@@ -364,7 +367,7 @@ data ZZ = AA | BB
 
 runCase :: Term binding attrs layers model scope -> [Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    s   = unwrap' $ get @Symbol $ unwrap' $ get @Data el
+    s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
 {-# INLINE runCase #-}
 
@@ -389,27 +392,30 @@ type Expr' dyn scope             = Expr dyn scope dyn scope
 instance Monad m => TEST.Cons2 a m (Ref Edge x) where
     cons2 _ = return $ Ptr 0
 
-type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.Scope dict))
-                                                         (Get Format   (Get TEST.Scope dict))
+type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.Model dict))
+                                                         (Get Format   (Get TEST.Model dict))
                                                   )
-blank :: Symbol.Data Blank dyn a
-blank = () ^. from symbolArgs :: Symbol.Data Blank dyn a
 
-unify :: a -> a -> Symbol.Data Unify dyn a
-unify l r = view (from symbolArgs) (l,r)
+
+
+
+
+
 
 main :: IO ()
 main = do
     print blank
-    print $ (runIdentity (encodeStore blank) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Symbol ])
+    print $ (runIdentity (encodeStore blank) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Sym ])
     let e1 = (runIdentity (cons2 blank) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
     let e2 = (runIdentity (cons2 blank) :: Expr' Static Draft)
+    let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
     let eb1 = (runIdentity (cons2 blank) :: Ref Edge (Expr' Static Draft))
     let eu1 = (runIdentity (cons2 $ unify eb1 eb1) :: Expr' Static Draft)
+    let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
     print e2
 
     putStrLn ""
-    print $ get @Symbol $ unwrap' $ get @Data e1
+    print $ get @Sym $ unwrap' $ get @Data e1
     print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
     -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
