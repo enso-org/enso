@@ -27,6 +27,7 @@ stdScope = Scope $ Map.fromList
     , ("fix",         unsafeToValue (fix :: (Data -> Data) -> Data))
     , ("app",         unsafeToValue (id :: Data -> Data))
     , ("prepend",     unsafeToValue ((:) :: Data -> [Data] -> [Data]))
+    , ("comp2to2",    unsafeToValue ((\g h f x y -> f (g x y) (h x y)) :: (Data -> Data -> Data) -> (Data -> Data -> Data) -> (Data -> Data -> Data) -> Data -> Data -> Data))
     ]
 
 primes :: Int -> [Int]

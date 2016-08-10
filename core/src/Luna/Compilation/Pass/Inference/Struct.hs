@@ -10,6 +10,7 @@ import Data.Construction
 import Data.Prop
 import Data.Record
 import Data.Graph.Builder
+import Data.Maybe                                 (catMaybes)
 import Luna.Runtime.Dynamics                      (Static, Dynamic)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Luna.Syntax.Model.Layer
@@ -92,13 +93,29 @@ buildAppType appRef = do
             args     <- mapM (follow source . unlayer) as
             argTypes <- mapM getTypeSpec args
             outType  <- getTypeSpec appRef
+
+            curriedArgs <- fmap catMaybes $ forM (zip args argTypes) $ \(arg, typ) -> do
+                node <- read arg
+                return $ caseTest (uncover node) $ do
+                    of' $ \Blank -> Just typ
+                    of' $ \ANY   -> Nothing
+
+            (unis, newOutType) <- if (not . null $ curriedArgs)
+                then do
+                    newOutTpe <- var' =<< newVarIdent'
+                    newType   <- lam (arg <$> curriedArgs) newOutTpe
+                    uni       <- unify outType newType
+                    return ([uni], newOutTpe)
+                else return ([], outType)
+
             funType  <- case as of
-                [] -> return outType
-                _  -> lam (arg <$> argTypes) outType
+                [] -> return newOutType
+                _  -> lam (arg <$> argTypes) newOutType
+
             oldFunType <- follow (prop Type) fun >>= follow source
             funUni     <- unify oldFunType funType
 
-            return [funUni]
+            return $ funUni : unis
 
         of' $ \ANY -> impossible
 
