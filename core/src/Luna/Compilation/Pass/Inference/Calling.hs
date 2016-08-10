@@ -151,16 +151,16 @@ instance ( PassCtx(CallErrorT m)
          , PassCtx(m)
          , MonadTypeCheck (ls :<: term) m
          ) => TypeCheckerPass FunctionCallingPass m where
-    hasJobs _ = do
-        tc <- TypeCheck.get
-        let apps  = tc ^. TypeCheck.uncalledApps
-        return $ not . null $ apps
+    hasJobs _ = return False
+        {-tc <- TypeCheck.get-}
+        {-let apps  = tc ^. TypeCheck.uncalledApps-}
+        {-return $ not . null $ apps-}
 
-    runTCPass _ = do
-        apps    <- view TypeCheck.uncalledApps <$> TypeCheck.get
-        results <- mapM (runExceptT . processApp) apps
-        let withRefs = zip apps results
-            failures = fst <$> filter (isLeft . snd) withRefs
-        TypeCheck.modify_ $ (TypeCheck.unresolvedUnis %~ (++ (concat $ rights results)))
-                          . (TypeCheck.uncalledApps   .~ failures)
-        return $ if length failures == length apps then Stuck else Progressed
+    runTCPass _ = return Stuck
+        {-apps    <- view TypeCheck.uncalledApps <$> TypeCheck.get-}
+        {-results <- mapM (runExceptT . processApp) apps-}
+        {-let withRefs = zip apps results-}
+            {-failures = fst <$> filter (isLeft . snd) withRefs-}
+        {-TypeCheck.modify_ $ (TypeCheck.unresolvedUnis %~ (++ (concat $ rights results)))-}
+                          {-. (TypeCheck.uncalledApps   .~ failures)-}
+        {-return $ if length failures == length apps then Stuck else Progressed-}

@@ -377,10 +377,9 @@ test1 = do
         -- Running Type Checking compiler stage
         (gs, _) <- TypeCheck.runT $ runBuild g $ Writer.execWriterT $ do
             roots <- do
-                v1 <- var "const"
-                v2 <- int 1
-                v3 <- app v1 [arg v2]
-                return [v3]
+                v1 <- int 1
+                v2 <- acc "pred" v1
+                return [v2]
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ roots
@@ -390,10 +389,8 @@ test1 = do
                          LiteralsPass
                          StructuralInferencePass
                          (Loop $ Sequence
-                             (Loop $ seq4
+                             (Loop $ Sequence
                                  SymbolImportingPass
-                                 (Loop $ StrictUnificationPass Positive False)
-                                 FunctionCallingPass
                                  (Loop $ StrictUnificationPass Positive False))
                              (StrictUnificationPass Negative True)))
 

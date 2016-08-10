@@ -24,7 +24,7 @@ data TCState n = TCState { _allNodes            :: ![Ref Node n]
                          , _bindings            :: ![Ref Node n]
                          , _freshRoots          :: ![Ref Node n]
                          , _untypedLambdaAccs   :: ![Ref Node n]
-                         , _unshiftedLambdaAccs :: ![Ref Node n]
+                         , _typelevelAccs       :: ![Ref Node n]
                          } deriving (Show, Eq)
 
 makeLenses ''TCState

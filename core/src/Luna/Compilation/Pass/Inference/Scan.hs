@@ -20,7 +20,7 @@ import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Term
 
 import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect, isLambda)
+import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect)
 
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
@@ -56,8 +56,7 @@ investigate ref = do
             of' $ \(Var _)          ->  TypeCheck.unresolvedSymbols %~ (ref :)
             of' $ \(App _ _)        -> (TypeCheck.untypedApps       %~ (ref :))
                                      . (TypeCheck.uncalledApps      %~ (ref :))
-            of' $ \(Acc _ _)        -> (TypeCheck.untypedAccs       %~ (ref :))
-                                     . (TypeCheck.unresolvedSymbols %~ (ref :))
+            of' $ \(Acc _ _)        ->  TypeCheck.untypedAccs       %~ (ref :)
             of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Cons _ _)       ->  TypeCheck.untypedLits       %~ (ref :)
@@ -85,22 +84,6 @@ isBlank r = do
     caseTest (uncover n) $ do
         of' $ \Blank -> return True
         of' $ \ANY   -> return False
-
-findLambdaAccessors :: PassCtx(m) => m ()
-findLambdaAccessors = do
-    accs <- view TypeCheck.untypedAccs <$> TypeCheck.get
-    justLambdas <- forM accs $ \accRef -> do
-        acc <- read accRef
-        caseTest (uncover acc) $ do
-            of' $ \(Acc n t) -> do
-                isB <- isBlank =<< follow source t
-                if isB
-                    then do
-                        withRef accRef $ prop TCData . isLambda .~ True
-                        return $ Just accRef
-                    else return Nothing
-            of' $ \ANY -> impossible
-    TypeCheck.modify_ $ TypeCheck.untypedLambdaAccs .~ catMaybes justLambdas
 
 
 -- FIXME[MK]: This does not take pattern matching into account. To implement.
@@ -132,7 +115,6 @@ instance (Monad m {-ghc8-}, PassCtx(m)) => TypeCheckerPass ScanPass m where
         mapM_ (subtreeWalk investigate) roots
         resolveLocalVars
         mapM_ assignDepths roots
-        findLambdaAccessors
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []
         case roots of
             [] -> return Stuck

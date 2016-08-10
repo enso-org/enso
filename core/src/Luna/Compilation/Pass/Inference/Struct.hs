@@ -14,6 +14,7 @@ import Luna.Runtime.Dynamics                      (Static, Dynamic)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
+import Luna.Syntax.Model.Network.Builder            (requester)
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers)
 import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, redirect)
 import Luna.Syntax.Model.Network.Class              ()
@@ -43,6 +44,7 @@ import           Data.Layer_OLD.Cover_OLD
                            , TermNode Lam   m (ls :<: term)                          \
                            , TermNode Unify m (ls :<: term)                          \
                            , TermNode Acc   m (ls :<: term)                          \
+                           , MonadTypeCheck (ls :<: term) m                          \
                            , MonadIdentPool m                                        \
                            , Destructor m (Ref Edge ne)                              \
                            , ReferencedM Node (Hetero (NEC.Graph n e c)) m (ls :<: term) \
@@ -55,9 +57,7 @@ import           Data.Layer_OLD.Cover_OLD
 
 data StructuralInferencePass = StructuralInferencePass deriving (Show, Eq)
 
-instance ( PassCtx(m, ls, term)
-         , MonadTypeCheck (ls :<: term) m
-         ) => TypeCheckerPass StructuralInferencePass m where
+instance (PassCtx(m, ls, term)) => TypeCheckerPass StructuralInferencePass m where
     hasJobs _ = do
         tcState <- TypeCheck.get
         return $ (not . null $ tcState ^. TypeCheck.untypedApps)
@@ -71,10 +71,10 @@ instance ( PassCtx(m, ls, term)
             binds = tcState ^. TypeCheck.untypedBinds
             all   = tcState ^. TypeCheck.allNodes
         newUnis <- runPass all apps accs binds
-        TypeCheck.put $ tcState & TypeCheck.untypedApps   .~ []
-                                & TypeCheck.untypedAccs   .~ []
-                                & TypeCheck.untypedBinds  .~ []
-                                & TypeCheck.unresolvedUnis %~ (newUnis ++)
+        TypeCheck.modify_ $ (TypeCheck.untypedApps   .~ [])
+                          . (TypeCheck.untypedAccs   .~ [])
+                          . (TypeCheck.untypedBinds  .~ [])
+                          . (TypeCheck.unresolvedUnis %~ (newUnis ++))
         if (not $ null apps) || (not $ null accs) || (not $ null binds)
             then return Progressed
             else return Stuck
@@ -87,26 +87,18 @@ buildAppType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRe
 buildAppType appRef = do
     appNode <- read appRef
     caseTest (uncover appNode) $ do
-        of' $ \(App srcConn argConns) -> do
-            src      <- follow source srcConn
-            args     <- mapM2 (follow source) argConns
-            specArgs <- mapM2 getTypeSpec args
-            out      <- var' =<< newVarIdent'
-            l        <- lam' specArgs out
+        of' $ \(App f as) -> do
+            fun      <- follow source f
+            args     <- mapM (follow source . unlayer) as
+            argTypes <- mapM getTypeSpec args
+            outType  <- getTypeSpec appRef
+            funType  <- case as of
+                [] -> return outType
+                _  -> lam (arg <$> argTypes) outType
+            oldFunType <- follow (prop Type) fun >>= follow source
+            funUni     <- unify oldFunType funType
 
-            src_v    <- read src
-            let src_tc = src_v # Type
-            src_t    <- follow source src_tc
-            uniSrcTp <- unify src_t l
-            reconnect (prop Type) src uniSrcTp
-
-            app_v    <- read appRef
-            let app_tc = app_v # Type
-            app_t    <- follow source app_tc
-            uniAppTp <- unify app_t out
-            reconnect (prop Type) appRef uniAppTp
-
-            return [uniSrcTp, uniAppTp]
+            return [funUni]
 
         of' $ \ANY -> impossible
 
@@ -117,13 +109,17 @@ buildAccType accRef = do
     caseTest (uncover appNode) $ do
         of' $ \(Acc name srcConn) -> do
             src      <- follow source srcConn
-            srcTSpec <- getTypeSpec src
-            newType  <- acc name srcTSpec
-            acc_v    <- read accRef
-            let acc_tc = acc_v # Type
-            acc_t    <- follow source acc_tc
-            uniTp    <- unify acc_t newType
+            srcNode  <- read src
+            srcType  <- follow (prop Type) src >>= follow source
+            accType  <- acc name srcType
+            newType  <- caseTest (uncover srcNode) $ do
+                of' $ \Blank -> lam [arg srcType] accType
+                of' $ \ANY   -> return accType
+            oldType  <- follow (prop Type) accRef >>= follow source
+            uniTp    <- unify oldType newType
             reconnect (prop Type) accRef uniTp
+            reconnect (prop TCData . requester) accType (Just accRef)
+            TypeCheck.modify_ $ TypeCheck.typelevelAccs %~ (accType :)
             return [uniTp]
         of' $ \ANY -> impossible
 
@@ -156,12 +152,10 @@ getTypeSpec ref = do
 
 runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
 runPass all apps accs binds = do
-    -- FIXME [MK]: Some of those still will be needed (definitely Acc typing) just in a form that does not introduce
-    -- monomorphisms. Consider later.
-    {-appUnis  <- concat <$> mapM buildAppType apps -- FIXME [MK]: This is inherently monomorphic. Move this pass after importing and work on local copies of types... later.-}
-    {-accUnis <- concat <$> mapM buildAccType accs-}
     mapM getTypeSpec all
+    accUnis  <- concat <$> mapM buildAccType accs
+    appUnis  <- concat <$> mapM buildAppType apps
     bindUnis <- mapM buildBindType binds
-    return $ bindUnis -- <> appUnis <> accUnis
+    return $ bindUnis <> accUnis <> appUnis
 
 universe = Ptr 0

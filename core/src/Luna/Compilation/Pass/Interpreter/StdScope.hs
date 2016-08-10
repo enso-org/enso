@@ -11,6 +11,7 @@ import qualified Data.Map as Map
 
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))
+    , ("const",     unsafeToValue (const :: Data -> Data -> Data))
     , ("readFile",  unsafeToValue readFile)
     , ("flip",      unsafeToValue (flip :: (Data -> Data -> Value) -> Data -> Data -> Value))
     , ("switch",    unsafeToValue ((\b t f -> if b then t else f) :: Bool -> Data -> Data -> Data))
