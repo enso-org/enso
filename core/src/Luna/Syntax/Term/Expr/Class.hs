@@ -50,9 +50,9 @@ import Type.Promotion    (KnownNats, natVals)
 import Data.Bits         (setBit, zeroBits)
 
 import Data.Container.Hetero (Elems)
-import Data.RTuple (List, Empty, empty, Access, Accessible', accessProxy')
+import Data.RTuple (List, Empty, empty)
 import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), Data2(..), unsafeRestore, decodeNat)
-import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
+import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
 import Type.Error (Assert)
@@ -99,7 +99,20 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 
 
 
+-- newtype Graph     rels = Graph   (Tmap (Assocs (Keys rels) (Vector    <$> Vals rels)))
+-- newtype MGraph  s rels = MGraph  (Tmap (Assocs (Keys rels) (MVector s <$> Vals rels)))
+-- newtype HGraph    els  = HGraph  (TMap (Assocs els (Hetero Vector     )))
+-- newtype HMGraph s els  = HMGraph (TMap (Assocs els (Hetero (MVector s))))
+--
+-- type Network s = HMGraph s '[Node, Edge, Cluster]
+-- Graph '[Node, Edge, Cluster]
 
+---------------------
+-- === Records === --
+---------------------
+
+
+-- newtype Record3 (dict :: [Assoc]) (fields :: [*]) = Record3 (TMap2 (Assocs fields (Fields fields dict)))
 
 ---------------------
 -- === Records === --
@@ -107,7 +120,7 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 
 -- === Definitions === --
 
-newtype Record (dict :: [*]) (fields :: [*]) = Record (TMap fields (Fields fields dict))
+newtype Record (dict :: [*]) (fields :: [*]) = Record (TMap (fields :=: Fields fields dict))
 
 type family Field  field  (dict :: [*])
 type family Fields fields (dict :: [*]) where
@@ -118,10 +131,13 @@ type family Fields fields (dict :: [*]) where
 -- === Instances === --
 
 -- Wrapper
-makeWrapped ''Record
+-- makeWrapped ''Record -- GHC 8 TH cannot represent kind casts
+instance Wrapped   (Record dict fields) where
+    type Unwrapped (Record dict fields) = TMap (Assocs fields (Fields fields dict))
+    _Wrapped' = iso (\(Record t) -> t) Record ; {-# INLINE _Wrapped' #-}
 
 -- Show
-instance Show (List (Fields fields dict)) => Show (Record dict fields) where
+instance Show (Unwrapped (Unwrapped (Record dict fields))) => Show (Record dict fields) where
     showsPrec d (Record t) = showParen (d > app_prec) $
         showString "Record " . showsPrec (app_prec+1) (unwrap t)
         where app_prec = 10
@@ -169,7 +185,7 @@ data Data = Data deriving (Show)
 -- === ExprRecord === --
 
 newtype ExprData bind model scope = ExprData ExprStore deriving (Show)
-type ExprStore = Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Sym ]
+type ExprStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
 
 makeWrapped ''ExprData
 
@@ -208,7 +224,7 @@ instance (Monad m, EncodeStore slots a m) => Cons2 a m (Store2 slots) where
 
 
 
-instance (Monad m, List.Generate (Cons2 v) m (Fields fields dict))
+instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record dict fields))))
       => Cons2 v m (Record dict fields) where
          cons2 v = (Record . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 

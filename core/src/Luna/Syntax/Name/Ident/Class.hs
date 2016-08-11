@@ -1,6 +1,6 @@
 module Luna.Syntax.Name.Ident.Class (module Luna.Syntax.Name.Ident.Class, module X) where
 
-import Prelude.Luna
+import Prelude.Luna                hiding (Type)
 
 import Data.Char                   (isLower, isUpper)
 import Luna.Syntax.Name

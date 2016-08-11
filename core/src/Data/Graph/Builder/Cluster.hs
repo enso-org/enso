@@ -24,5 +24,5 @@ instance ( Dispatcher SUBGRAPH_INCLUDE (SubgraphElemEvent (Ref r e) (Ref Cluster
 
     members cluster = read cluster >>= toRefList ; {-# INLINE members #-}
 
-subgraph :: (Creator m c, Constructor m (Ref Cluster c)) => m (Ref Cluster c)
+subgraph :: (Creator m c, Constructor' m (Ref Cluster c)) => m (Ref Cluster c)
 subgraph = constructLayer =<< create

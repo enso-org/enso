@@ -73,11 +73,11 @@ write = modifyM_ ∘∘ writePtrM
 
 -- Construction
 
-instance (Monad m {-ghc8-}, Constructor m (Ref r a)) => LayerConstructor m (Ref r a) where
-    constructLayer = construct ; {-# INLINE constructLayer #-}
+instance (Monad m {-ghc8-}, Constructor' m (Ref r a)) => LayerConstructor m (Ref r a) where
+    constructLayer = construct' ; {-# INLINE constructLayer #-}
 
-instance (MonadBuilder g m, DynamicM t g m a) => Constructor m (Ref t a) where
-    construct = modifyM ∘ addM ; {-# INLINE construct #-}
+instance (MonadBuilder g m, DynamicM t g m a) => Constructor' m (Ref t a) where
+    construct' = modifyM ∘ addM ; {-# INLINE construct' #-}
 
 -- Unregistering
 

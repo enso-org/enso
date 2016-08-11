@@ -19,7 +19,7 @@ import Data.Record.Class ( encode3, MapEncode, Encode, Encode2, Decode, Encoder(
                          )
 
 import Type.Maybe (FromJust)
-import Data.RTuple (TMap)
+import Data.RTuple (TMap, Assoc(..))
 import qualified Data.RTuple as List
 import Control.Lens.Property as Prop
 import Type.Relation (SemiSuper)
@@ -60,7 +60,7 @@ instance NFData Store where rnf  _ = ()
 -- === Definitions === --
 
 data {-kind-} Slot tp a = Slot tp a
-newtype Store2 (slots :: [Slot * *]) = Store2 (TMap (SlotsTargets slots) (SlotTypes slots))
+newtype Store2 (slots :: [Assoc ★ ★]) = Store2 (TMap slots)
 
 
 -- === Classes === --
@@ -77,7 +77,7 @@ instance Monad m => EncodeStore '[] a m where
     {-# INLINE encodeStore #-}
 
 instance (EncodeSlot t a m s, EncodeStore ss a m, Monad m)
-      => EncodeStore ('Slot s t ': ss) a m where
+      => EncodeStore ((t ':= s) ': ss) a m where
     encodeStore a = Store2 <$> (List.prepend2 <$> (encodeSlot @t) a <*> (unwrap' <$> (encodeStore a :: m (Store2 ss))))
 
 
@@ -113,7 +113,7 @@ type instance Get t (Store2 slots) = Get t (Unwrapped (Store2 slots))
 instance Getter t (Unwrapped (Store2 slots)) => Getter t (Store2 slots) where
     get = get @t . unwrap' ; {-# INLINE get #-}
 
-    
+
 
 -----------------
 -- === Raw === --

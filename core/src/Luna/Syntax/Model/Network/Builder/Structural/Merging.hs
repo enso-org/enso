@@ -35,8 +35,8 @@ import qualified Luna.Syntax.Term.Function       as Function
                    , BiCastable n node                                \
                    , MonadBuilder graph m                             \
                    , Covered node                                     \
-                   , Constructor m (Ref Node node)                    \
-                   , Constructor m (Ref Edge edge)                    \
+                   , Constructor' m (Ref Node node)                    \
+                   , Constructor' m (Ref Edge edge)                    \
                    , Connectible (Ref Node node) (Ref Node node) m    \
                    , HasInputs (term ls) (Ref Edge edge)              \
                    , HasProp Type   node                              \
@@ -69,7 +69,7 @@ importStructure nodes' edges' = do
         foreignNodeRefs = fst <$> nodes
         foreignEdgeRefs = fst <$> edges
 
-    newNodeRefs <- mapM (construct . (prop Succs .~ fromList []) . (prop TCData . belongsTo .~ [])) $ snd <$> nodes
+    newNodeRefs <- mapM (construct' . (prop Succs .~ fromList []) . (prop TCData . belongsTo .~ [])) $ snd <$> nodes
 
     let nodeTrans         = Map.fromList $ zip foreignNodeRefs newNodeRefs
         translateNode     = mkNodeTranslator nodeTrans

@@ -35,7 +35,9 @@ import           Development.Placeholders
 import           Text.Printf              (printf)
 import           Type.Inference
 
+import           Data.Container.Hetero                           (Hetero(..), Any(..))
 import qualified Data.Graph.Builder.Class                        as Graph
+import qualified Data.Graph.Builder.Class                        as Graph.Builder
 import           Data.Graph.Builder.Ref                          as Ref
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
@@ -71,7 +73,7 @@ import           Data.Graph.Model.Pointer.Set (RefSet)
 
 import qualified Data.RTuple.Examples as E
 import qualified Data.RTuple as List
-import           Data.RTuple (TMap(..), empty) -- refactor empty to another library
+import           Data.RTuple (TMap(..), empty, Assoc(..)) -- refactor empty to another library
 
 import           Luna.Syntax.Model.Network.Builder.Class ()
 import qualified Luna.Syntax.Model.Network.Builder.Class as XP
@@ -81,7 +83,6 @@ import qualified Data.Record                  as Record
 import qualified Data.Graph.Builder                      as GraphBuilder
 
 import Data.Shell as Shell
-import Data.Shell (Stack(..))
 import Data.Cover
 import Type.Applicative
 import Luna.Syntax.Term.Expr hiding (Data)
@@ -107,7 +108,7 @@ import Control.Lens.Property
 import Luna.Syntax.Term.Expr.Format (Format)
 import TH
 import qualified Data.Vector as V
-import GHC.Prim (Any)
+import qualified GHC.Prim as Prim
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -291,7 +292,7 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 -- type instance LayerData (NetLayer t a) = LayerData a
 
 -- Layout_OLD
-type TermShell ls term rec = (NetLayer term <$> ls) :| rec
+-- type TermShell ls term rec = (NetLayer term <$> ls) :| rec
 -- type instance Layout_OLD (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 type instance Layout_OLD (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
@@ -365,7 +366,7 @@ data ZZ = AA | BB
 -- #define CASE $(testTH [| case
 -- #define ESAC {--}|])
 
-runCase :: Term binding attrs layers model scope -> [Any -> out] -> out
+runCase :: Term binding attrs layers model scope -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
@@ -389,8 +390,9 @@ type Expr' dyn scope             = Expr dyn scope dyn scope
 -- Ref Node (Expr Static Value)
 
 
-instance Monad m => TEST.Cons2 a m (Ref Edge x) where
-    cons2 _ = return $ Ptr 0
+instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
+      => TEST.Cons2 a m (Ref Edge t) where
+    cons2 = construct' <=< cons2
 
 type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.Model dict))
                                                          (Get Format   (Get TEST.Model dict))
@@ -398,25 +400,32 @@ type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST
 
 
 
-
+test_g1 :: forall m . PrimMonad m
+        => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
+test_g1 = do
+    v <- Hetero <$> NEC.unsafeThaw def
+    flip Graph.Builder.runT v $ cons2 star
 
 
 
 main :: IO ()
 main = do
     print blank
-    print $ (runIdentity (encodeStore blank) :: Store2 '[ 'Slot Enum Atom, 'Slot Mask Format, 'Slot Raw Sym ])
+    print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     let e1 = (runIdentity (cons2 blank) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
     let e2 = (runIdentity (cons2 blank) :: Expr' Static Draft)
-    let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
-    let eb1 = (runIdentity (cons2 blank) :: Ref Edge (Expr' Static Draft))
-    let eu1 = (runIdentity (cons2 $ unify eb1 eb1) :: Expr' Static Draft)
-    let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
+    -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
+    -- let eb1 = (runIdentity (cons2 blank) :: Ref Edge (Expr' Static Draft))
+    -- let eu1 = (runIdentity (cons2 $ unify eb1 eb1) :: Expr' Static Draft)
+    -- let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
     print e2
 
     putStrLn ""
     print $ get @Sym $ unwrap' $ get @Data e1
     print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
+
+    (a,g) <- test_g1
+    print a
     -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
     -- case a of
