@@ -22,6 +22,9 @@ import Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)
 import Data.Graph.Model.Pointer.Set ()
 
+import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:), MapVals, Cycle(..))
+import qualified Data.RTuple as List
+import           Data.Container.Hetero (Hetero2(..))
 
 -----------------
 -- === NEC === --
@@ -157,3 +160,28 @@ instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMo
 instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => ReferencedM t (MGraph s n e c) m r where
     writeRefM r v = store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
     readRefM  r   = Cont.indexM__ (r ^. idx) ∘ view (store (p :: P t))               ; {-# INLINE readRefM  #-}
+
+
+
+
+--------------------
+-- === Graphs === --
+--------------------
+
+newtype Graph2    rels         = Graph2  (TMap (MapVals AutoVector      rels))
+newtype MGraph2 s rels         = MGraph2 (TMap (MapVals (MAutoVector s) rels))
+newtype HGraph    (els :: [★]) = HGraph  (TMap (els :=: 'Cycle (Hetero2 AutoVector     )))
+newtype HMGraph s (els :: [★]) = HMGraph (TMap (els :=: 'Cycle (Hetero2 (MAutoVector s))))
+
+
+emptyHMGraph :: PrimMonad m => m (HMGraph (PrimState m) '[Node, Edge, Cluster])
+emptyHMGraph = do
+    nn <- Hetero2 <$> AutoVector.unsafeThaw def
+    ne <- Hetero2 <$> AutoVector.unsafeThaw def
+    nc <- Hetero2 <$> AutoVector.unsafeThaw def
+    return $ HMGraph
+           $ TMap
+           $ List.prepend nc
+           $ List.prepend ne
+           $ List.prepend nn
+           $ List.empty

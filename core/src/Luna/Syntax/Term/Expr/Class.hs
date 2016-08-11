@@ -99,6 +99,8 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 
 
 
+
+
 -- newtype Graph     rels = Graph   (Tmap (Assocs (Keys rels) (Vector    <$> Vals rels)))
 -- newtype MGraph  s rels = MGraph  (Tmap (Assocs (Keys rels) (MVector s <$> Vals rels)))
 -- newtype HGraph    els  = HGraph  (TMap (Assocs els (Hetero Vector     )))
