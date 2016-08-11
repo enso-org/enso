@@ -1,17 +1,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Data.Graph.Backend.NEC where
 
-import Prologue                 hiding (Getter, Setter)
+import Prologue                 hiding (Getter, Setter, Setter', set')
 import Prologue.Unsafe
 
 import qualified Data.Container as Cont
 import           Data.Container (Store, HasStore, HasStores, store, unchecked, inplace, ixed)
 import           Data.AutoVector as AutoVector
 
-import Data.Prop
+import Data.Prop                hiding (Getter, Setter)
 import Data.Container.Auto      (Auto)
 import Data.Container.Resizable (Exponential)
 import Data.Index
@@ -24,7 +25,9 @@ import Data.Graph.Model.Pointer.Set ()
 
 import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:), MapVals, Cycle(..))
 import qualified Data.RTuple as List
-import           Data.Container.Hetero (Hetero2(..))
+import           Data.Container.Hetero (Hetero2(..), Any)
+import           Control.Lens.Property
+import           Unsafe.Coerce (unsafeCoerce)
 
 -----------------
 -- === NEC === --
@@ -174,14 +177,50 @@ newtype HGraph    (els :: [★]) = HGraph  (TMap (els :=: 'Cycle (Hetero2 AutoVe
 newtype HMGraph s (els :: [★]) = HMGraph (TMap (els :=: 'Cycle (Hetero2 (MAutoVector s))))
 
 
+-- === Instances === --
+
+-- makeWrapped ''HMGraph -- ghc8 incompatible
+instance Wrapped (HMGraph s els) where
+    type Unwrapped (HMGraph s els) = TMap (els :=: 'Cycle (Hetero2 (MAutoVector s)))
+    _Wrapped' = iso (\(HMGraph g) -> g) HMGraph ; {-# INLINE _Wrapped' #-}
+
+type instance Get t                           (HMGraph s els) = Hetero2 (MAutoVector s)
+type instance Set t (Hetero2 (MAutoVector s)) (HMGraph s els) = HMGraph s els
+
+instance (g ~ HMGraph s els, g' ~ Unwrapped g, Get t g ~ Get t g', HasProperty2' t g')
+      => Getter t (HMGraph s els) where
+    get = get @t . unwrap' ; {-# INLINE get #-}
+
+instance (g ~ HMGraph s els, g' ~ Unwrapped g, Get t g ~ Get t g', HasProperty2' t g, HasProperty2' t g')
+      => Setter' t (HMGraph s els) where
+    set' a = wrapped' %~ set' @t a ; {-# INLINE set' #-}
+
 emptyHMGraph :: PrimMonad m => m (HMGraph (PrimState m) '[Node, Edge, Cluster])
 emptyHMGraph = do
     nn <- Hetero2 <$> AutoVector.unsafeThaw def
     ne <- Hetero2 <$> AutoVector.unsafeThaw def
     nc <- Hetero2 <$> AutoVector.unsafeThaw def
-    return $ HMGraph
-           $ TMap
-           $ List.prepend nc
-           $ List.prepend ne
-           $ List.prepend nn
+    return . HMGraph
+           . TMap
+           . List.prepend nc
+           . List.prepend ne
+           . List.prepend nn
            $ List.empty
+
+-- class DynamicM t g m a where
+--     addM    :: a -> g -> m (Ref t a, g)
+--     removeM :: Ref t a -> g -> m g
+--
+--     default addM    :: (DynamicM' t g m , a ~ (g # t), Functor m) => a -> g -> m (Ref t a, g)
+--     default removeM :: (DynamicM' t g m , a ~ (g # t), Functor m) => Ref t a -> g -> m g
+--
+--     addM a g = addM' a g <&> _1 %~ retarget ; {-# INLINE addM #-}
+--     removeM = removeM' ∘ retarget           ; {-# INLINE removeM #-}
+
+-- GHC BUG - the second constraint makes infinit e compilation times in Main
+instance {-# OVERLAPPABLE #-}
+         (PrimMonad m, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
+        --  (PrimMonad m, HasProperty2' t g, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m)
+      => DynamicM t (HMGraph s rels) m a where
+    addM el = nested (prop2' @t . wrapped') $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM (unsafeCoerce el)
+    removeM = error "o"

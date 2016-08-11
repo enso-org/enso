@@ -12,6 +12,7 @@
 
 module Main where
 
+
 import Data.Graph          hiding (Dynamic)
 import Data.Graph.Builders
 import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum)
@@ -400,11 +401,20 @@ type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST
 
 
 
+
+type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
+
 test_g1 :: forall m . PrimMonad m
         => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
 test_g1 = do
     v <- Hetero <$> NEC.unsafeThaw def
     flip Graph.Builder.runT v $ cons2 star
+
+test_g2 :: forall m . PrimMonad m
+        => m (Ref Edge (Expr' Static Value), Network3 m)
+test_g2 = do
+    g <- NEC.emptyHMGraph
+    flip Graph.Builder.runT g $ cons2 star
 
 
 
@@ -424,7 +434,7 @@ main = do
     print $ get @Sym $ unwrap' $ get @Data e1
     print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
 
-    (a,g) <- test_g1
+    (a,g) <- test_g2
     print a
     -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
