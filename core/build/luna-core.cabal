@@ -180,6 +180,7 @@ Library
         Luna.Syntax.Term.Expr.Atom,
         Luna.Syntax.Term.Expr.Class,
         Luna.Syntax.Term.Expr.Format,
+        Luna.Syntax.Term.Expr.Layout,
         Luna.Syntax.Term.Expr.Symbol,
         Luna.Syntax.Term.Function,
         Luna.Syntax.Term.Function.Argument,
