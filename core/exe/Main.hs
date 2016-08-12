@@ -385,6 +385,8 @@ defaultMatch = error "wrong match"
 type A1 = Term Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
 type A2 = Term Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
 
+type NTerm  dict fields dyn scope dyn' scope' = Term Network2 dict fields (Layout dyn scope) (Layout dyn' scope')
+type NTerm' dict fields dyn scope             = NTerm dict fields dyn scope dyn scope
 type Expr  dyn scope dyn' scope' = Term Network2 '[] '[Int] (Layout dyn scope) (Layout dyn' scope')
 type Expr' dyn scope             = Expr dyn scope dyn scope
 
@@ -417,6 +419,41 @@ test_g2 = do
     flip Graph.Builder.runT g $ cons2 star
 
 
+
+starx :: forall m dict fields dyn scope dyn' scope' g .
+         (TEST.Cons2 (Symbol Star dyn' (Ref Edge (Expr' dyn scope))) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')))
+      => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
+starx = cons2 (star :: Symbol Star dyn' (Ref Edge (Expr' dyn scope)))
+
+
+starx2 :: forall m dict fields dyn scope dyn' scope' g .
+          (TEST.Cons2 (Symbol Star Static (Ref Edge (NTerm' dict fields Static Value))) m (Ref Edge (NTerm' dict fields Static Value)))
+       => m (Ref Edge (NTerm' dict fields Static Value))
+starx2 = cons2 (star :: Symbol Star Static (Ref Edge (NTerm' dict fields Static Value)))
+
+type MyTerm  dict layers dyn scope dyn' scope' = Term  Network2 dict layers (Layout dyn scope) (Layout dyn' scope')
+type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Layout dyn scope)
+
+class TermCons a m where
+    -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
+    -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields (Layout dyn scope))) -> m (Ref Edge (Term X dict fields (Layout dyn scope) (Layout dyn' (a ^. Format))))
+    termCons :: Symbol a dyn' (Ref Edge (MyTerm' dict fields dyn scope)) -> m (Ref Edge (MyTerm dict fields dyn scope dyn' (a ^. Format)))
+
+    -- termCons :: Symbol a dyn  (Ref Edge (MyTerm' dict fields model)) -> m (Ref Edge (MyTerm dict fields model (SymModel a dyn)))
+
+-- -- test_desc1 :: TEST.Cons2 (Symbol Star Static Int) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')) => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
+-- test_desc1 :: forall m dict fields dyn scope dyn' scope' g .
+--               (TEST.Cons2 (Symbol Star dyn' (Ref Edge (Expr' dyn scope))) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')))
+-- -- dojsc do tego ->            --   TermCons Star m (Expr' Static Draft)
+-- -- i zastanowic sie jaka dac abstrakcje nad refami by mogly zostac zawsze niezaleznie od grafu lub nie
+--            => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
+test_desc1 = do
+    s1 <- starx2
+    s2 <- starx2
+    return s1
+
+
+-- auto_star ::
 
 main :: IO ()
 main = do

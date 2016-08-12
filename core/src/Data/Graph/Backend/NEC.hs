@@ -179,11 +179,16 @@ newtype HMGraph s (els :: [★]) = HMGraph (TMap (els :=: 'Cycle (Hetero2 (MAuto
 
 -- === Instances === --
 
+-- Wrapped
 -- makeWrapped ''HMGraph -- ghc8 incompatible
 instance Wrapped (HMGraph s els) where
     type Unwrapped (HMGraph s els) = TMap (els :=: 'Cycle (Hetero2 (MAutoVector s)))
     _Wrapped' = iso (\(HMGraph g) -> g) HMGraph ; {-# INLINE _Wrapped' #-}
 
+-- Show
+deriving instance Show (Unwrapped (HMGraph s els)) => Show (HMGraph s els)
+
+-- Properties
 type instance Get t                           (HMGraph s els) = Hetero2 (MAutoVector s)
 type instance Set t (Hetero2 (MAutoVector s)) (HMGraph s els) = HMGraph s els
 
