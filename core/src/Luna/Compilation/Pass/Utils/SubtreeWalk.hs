@@ -4,7 +4,7 @@ module Luna.Compilation.Pass.Utils.SubtreeWalk where
 
 import Prelude.Luna
 import           Data.Construction
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Record                                     hiding (cons)
 import           Data.Graph
 import           Data.Graph.Builder

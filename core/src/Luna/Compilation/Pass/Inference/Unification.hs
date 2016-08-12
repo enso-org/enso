@@ -9,7 +9,7 @@ import Prelude.Luna
 import Data.Construction
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete, sort, groupBy)
-import Data.Prop
+import Old.Data.Prop
 import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
 import Luna.Runtime.Dynamics                      (Static, Dynamic)

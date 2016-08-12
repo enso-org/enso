@@ -2,7 +2,7 @@ module Data.Graph.Type.Dynamic where
 
 import Prologue
 
-import Data.Prop
+import Old.Data.Prop
 import Data.Graph.Model.Pointer
 
 

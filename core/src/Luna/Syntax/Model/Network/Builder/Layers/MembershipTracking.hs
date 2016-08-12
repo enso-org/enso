@@ -7,7 +7,7 @@ import Prelude.Luna
 
 import           Data.Graph.Builder
 import           Control.Monad.Event
-import           Data.Prop
+import           Old.Data.Prop
 import qualified Data.List                               as List
 import           Data.Construction
 import qualified Data.Graph.Backend.NEC                  as VEC

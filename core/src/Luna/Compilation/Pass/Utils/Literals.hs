@@ -6,7 +6,7 @@ module Luna.Compilation.Pass.Utils.Literals where
 import           Prelude.Luna                                    hiding (Num, pre)
 
 import           Data.Construction
-import           Data.Prop
+import           Old.Data.Prop
 import Data.Record.Match
 import           Data.Graph
 import           Data.Graph.Builder

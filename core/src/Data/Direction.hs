@@ -3,7 +3,7 @@ module Data.Direction where
 import Prologue
 
 import Control.Lens
-import Data.Prop
+import Old.Data.Prop
 
 
 data Source = Source deriving (Show)

@@ -3,7 +3,7 @@ module Luna.Compilation.Pass.Interpreter.Layer where
 import           Prologue                        hiding (Getter, Setter)
 
 import           Data.Construction
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Either                     (isRight)
 
 import           Luna.Syntax.Term.Expr.Format           (Draft)

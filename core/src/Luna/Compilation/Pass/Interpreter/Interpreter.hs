@@ -21,7 +21,7 @@ import qualified Data.Graph.Backend.NEC                          as NEC
 import           Data.Graph.Builder                              hiding (get)
 import qualified Data.Graph.Builder                              as GraphBuilder
 import qualified Data.IntSet                                     as IntSet
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Record                                     hiding (cons, Value)
 import           Development.Placeholders
 

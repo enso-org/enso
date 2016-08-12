@@ -9,7 +9,7 @@ import Data.Construction
 import Data.Direction    as X
 import Data.Index
 import Data.Layer_OLD
-import Data.Prop
+import Old.Data.Prop
 import Data.Layer_OLD.Cover_OLD
 
 data Knowledge a = Known a

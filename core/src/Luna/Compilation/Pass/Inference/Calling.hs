@@ -10,7 +10,7 @@ import Control.Monad.Except                         (throwError, ExceptT, runExc
 import Data.Container                               (add)
 import Data.Construction
 import Data.Either                                  (rights)
-import Data.Prop
+import Old.Data.Prop
 import Data.Record.Match
 import Data.Layer_OLD
 import Luna.Runtime.Dynamics                      (Static)

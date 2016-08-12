@@ -6,7 +6,7 @@ import Prologue hiding (Getter, Setter)
 
 import Data.Container
 import Data.Index
-import Data.Prop
+import Old.Data.Prop
 import Data.Record
 
 

@@ -6,7 +6,7 @@ import           Data.Graph
 import           Control.Monad                                   (forM_)
 import           Control.Monad.Trans.State
 import qualified Data.IntSet                                     as IntSet
-import           Data.Prop
+import           Old.Data.Prop
 import           Development.Placeholders
 import           Prologue                                        hiding (Getter, Setter, pre, read, succ, (#))
 

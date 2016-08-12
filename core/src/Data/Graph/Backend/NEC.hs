@@ -12,7 +12,7 @@ import qualified Data.Container as Cont
 import           Data.Container (Store, HasStore, HasStores, store, unchecked, inplace, ixed)
 import           Data.AutoVector as AutoVector
 
-import Data.Prop                hiding (Getter, Setter)
+import Old.Data.Prop                hiding (Getter, Setter)
 import Data.Container.Auto      (Auto)
 import Data.Container.Resizable (Exponential)
 import Data.Index

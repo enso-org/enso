@@ -17,7 +17,7 @@ import           Data.Graph
 import           Data.Graph.Builders
 import           Data.Layer_OLD
 import           Data.Layer_OLD.Cover_OLD
-import           Data.Prop
+import           Old.Data.Prop
 import qualified Data.Record                             as Record
 import           Data.Record                             (RecordOf, IsRecord, HasRecord, record, asRecord, Variant, MapTryingElemList_, withElement_, Props, withElement', Layout_Variants, MapTryingElemList, OverElement, overElement)
 import           Luna.Runtime.Dynamics                 as Runtime

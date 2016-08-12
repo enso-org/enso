@@ -5,7 +5,7 @@ module Data.Graph.Model.Cluster where
 import Prologue
 
 import Data.Container
-import Data.Prop
+import Old.Data.Prop
 import Data.Graph.Model.Pointer
 import Data.Layer_OLD.Cover_OLD
 

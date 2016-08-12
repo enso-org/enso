@@ -7,7 +7,7 @@ module Luna.Compilation.Pass.Inference.Struct where
 import Prelude.Luna
 
 import Data.Construction
-import Data.Prop
+import Old.Data.Prop
 import Data.Record
 import Data.Graph.Builder
 import Luna.Runtime.Dynamics                      (Static, Dynamic)

@@ -6,7 +6,7 @@ module Data.Graph.Builders where
 import Prelude.Luna
 
 
-import Data.Prop
+import Old.Data.Prop
 import Control.Monad.Event
 import Data.Direction
 import Data.Index

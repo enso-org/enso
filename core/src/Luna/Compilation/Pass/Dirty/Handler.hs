@@ -2,7 +2,7 @@
 
 module Luna.Compilation.Pass.Dirty.Handler where
 
-import           Data.Prop
+import           Old.Data.Prop
 import           Development.Placeholders
 import           Prologue                                        hiding (Getter, Setter, read, (#))
 

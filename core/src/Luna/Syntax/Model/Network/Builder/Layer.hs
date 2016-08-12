@@ -14,7 +14,7 @@ import Luna.Syntax.Model.Network.Builder.Layers.TCData             as X
 import           Data.Graph.Builders
 import           Control.Monad.Event
 import           Data.Graph.Model.Pointer.Set         (RefSet)
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Record
 import           Data.Construction
 import           Data.Graph.Backend.NEC

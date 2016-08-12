@@ -8,7 +8,7 @@ import Prelude.Luna
 
 import Data.Construction
 import Data.Maybe                                   (maybeToList)
-import Data.Prop
+import Old.Data.Prop
 import Data.Graph
 import Data.Graph.Builder
 import Control.Monad.State                          as State

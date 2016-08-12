@@ -9,7 +9,7 @@ import Prelude.Luna
 import Control.Monad.Error                          (throwError, ErrorT, runErrorT, Error)
 import Data.Construction
 import Data.Either                                  (rights)
-import Data.Prop
+import Old.Data.Prop
 import Data.Record.Match
 import Data.Maybe                                   (fromMaybe, maybeToList, isJust, isNothing)
 import Data.List                                    (partition)

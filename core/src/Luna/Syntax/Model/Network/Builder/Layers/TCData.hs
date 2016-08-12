@@ -6,7 +6,7 @@ import Prelude.Luna
 
 import           Data.Graph.Builders
 import           Control.Monad.Event
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Construction
 import           Data.Graph.Model.Pointer.Set
 import           Data.Graph.Backend.NEC

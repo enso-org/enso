@@ -9,7 +9,7 @@ import Prologue hiding (Getter, Setter, Cons, Num, cons)
 
 import           Luna.Syntax.Model.Network.Class
 import           Control.Monad.Event
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Record                    (HasRecord, RecordOf, IsRecord, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props)
 import qualified Data.Record                    as Record
@@ -22,7 +22,7 @@ import qualified Luna.Syntax.Term.Expr.Format          as Format
 import           Luna.Syntax.Term               hiding (Layout, Term, Data)
 import Data.Graph.Model.Edge
 import Data.Graph
-import Data.Prop
+import Old.Data.Prop
 
 -- TODO[WD]: refactor the code to some kind of Luna/Evaluation/Model
 

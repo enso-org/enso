@@ -10,7 +10,7 @@ import Data.Graph.Model.Node
 import Data.Container          hiding (Impossible)
 import Data.Direction
 import Data.Index
-import Data.Prop
+import Old.Data.Prop
 import Type.Bool
 
 ------------------

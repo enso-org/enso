@@ -5,7 +5,7 @@ module Data.Graph.Type.Hetero (module Data.Graph.Type.Hetero, module X) where
 import Prologue hiding (Getter, Setter)
 
 import Data.Container.Hetero as X (Hetero(..))
-import Data.Prop
+import Old.Data.Prop
 import Data.Graph.Model.Pointer
 import Data.Graph.Model.Edge
 import Data.Graph.Model.Node
