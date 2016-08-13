@@ -20,7 +20,56 @@ import           Luna.Syntax.Term.Expr.Layout (Layout)
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
 
-import qualified Data.Construction as C
+import Data.Construction
+import           Data.RTuple (List(Null, (:-:)))
+import qualified Data.RTuple as List
+
+
+
+---------------------
+-- === Symbols === --
+---------------------
+
+-- === Definitions === --
+
+data family Symbol2  atom  layout
+type        Symbols2 atoms layout = Symbol2 <$> atoms <*> '[layout]
+
+
+-- === Selectors === --
+
+-- data Sym = Sym deriving (Show)
+
+type instance Get    Sym (Symbol2 atom layout) = Symbol2 atom layout
+instance      Getter Sym (Symbol2 atom layout) where
+    get = id ; {-# INLINE get #-}
+
+
+-- === Instances === --
+
+-- Properties
+
+type instance Get Atom          (Symbol2 atom _     ) = atom
+type instance Set Atom   atom   (Symbol2 _    layout) = (Symbol2 atom layout)
+
+type instance Get Layout        (Symbol2 _    layout) = layout
+type instance Set Layout layout (Symbol2 atom _     ) = (Symbol2 atom layout)
+
+type instance Get Format        (Symbol2 atom _     ) = Get Format atom
+
+instance Phantom atom => Getter Atom     (Symbol2 atom layout) where get _ = phantom
+
+
+
+
+---------------------------------------------------------
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --
+---------------------------------------------------------
+-- DEPRECIATED
+
+
+
+
 
 
 -- TODO[WD]: move to issue tracker after releasing Luna to github
@@ -213,170 +262,3 @@ unify = symbol ; {-# INLINE unify #-}
 
 var :: DynName dyn a -> Symbol Var dyn a
 var = symbol ; {-# INLINE var #-}
-
-
-
-
-
-
----------------------
--- === Symbols === --
----------------------
-
--- === Abstractions === --
-
-class IsSymbol2 t where symbolArgs2 :: Iso (Symbol2 t l) (Symbol2 t l') (Args (Symbol2 t l)) (Args (Symbol2 t l'))
-
-data family Symbol2  atom  layout
-type        Symbols2 atoms layout = Symbol2 <$> atoms <*> '[layout]
-
-
--- === Selectors === --
-
--- data Sym = Sym deriving (Show)
-
-type instance Get    Sym (Symbol2 atom layout) = Symbol2 atom layout
-instance      Getter Sym (Symbol2 atom layout) where
-    get = id ; {-# INLINE get #-}
-
-
--- === Definitions === --
-
-newtype instance Symbol2 Integer  (Layout.Named n a) = Integer2  P.Integer
-newtype instance Symbol2 Rational (Layout.Named n a) = Rational2 P.Rational
-newtype instance Symbol2 String   (Layout.Named n a) = String2   P.String
-
-data    instance Symbol2 Acc      (Layout.Named n a) = Acc2     !n !a
-data    instance Symbol2 App      (Layout.Named n a) = App2     !a ![Arg a]
-data    instance Symbol2 Blank    (Layout.Named n a) = Blank2
-newtype instance Symbol2 Cons     (Layout.Named n a) = Cons2     n
-data    instance Symbol2 Curry    (Layout.Named n a) = Curry2   !a ![Arg a]
-data    instance Symbol2 Lam      (Layout.Named n a) = Lam2     ![Arg a] !a
-data    instance Symbol2 Match    (Layout.Named n a) = Match2   !a !a
-data    instance Symbol2 Missing  (Layout.Named n a) = Missing2
-data    instance Symbol2 Native   (Layout.Named n a) = Native2  !n
-data    instance Symbol2 Star     (Layout.Named n a) = Star2
-data    instance Symbol2 Unify    (Layout.Named n a) = Unify2   !a !a
-newtype instance Symbol2 Var      (Layout.Named n a) = Var2      n
-
-
-
--- === Instances === --
-
--- Properties
-
-type instance Get Atom          (Symbol2 atom _     ) = atom
-type instance Set Atom   atom   (Symbol2 _    layout) = (Symbol2 atom layout)
-
-type instance Get Layout        (Symbol2 _    layout) = layout
-type instance Set Layout layout (Symbol2 atom _     ) = (Symbol2 atom layout)
-
-type instance Get Format        (Symbol2 atom _     ) = Get Format atom
-
-instance Phantom atom => Getter Atom     (Symbol2 atom layout) where get _ = phantom
-
-
--- Show
-
-deriving instance (Show a, Show n) => Show (Symbol2 Acc     (Layout.Named n a))
-deriving instance  Show a          => Show (Symbol2 App     (Layout.Named n a))
-deriving instance                     Show (Symbol2 Blank   (Layout.Named n a))
-deriving instance          Show n  => Show (Symbol2 Cons    (Layout.Named n a))
-deriving instance  Show a          => Show (Symbol2 Curry   (Layout.Named n a))
-deriving instance  Show a          => Show (Symbol2 Lam     (Layout.Named n a))
-deriving instance  Show a          => Show (Symbol2 Match   (Layout.Named n a))
-deriving instance                     Show (Symbol2 Missing (Layout.Named n a))
-deriving instance          Show n  => Show (Symbol2 Native  (Layout.Named n a))
-deriving instance                     Show (Symbol2 Star    (Layout.Named n a))
-deriving instance  Show a          => Show (Symbol2 Unify   (Layout.Named n a))
-deriving instance          Show n  => Show (Symbol2 Var     (Layout.Named n a))
-
--- Args
-
-type instance Args2 (Symbol2 Integer  (Layout.Named n a)) = '[P.Integer]
-type instance Args2 (Symbol2 Rational (Layout.Named n a)) = '[P.Rational]
-type instance Args2 (Symbol2 String   (Layout.Named n a)) = '[P.String]
-
-type instance Args2 (Symbol2 Acc      (Layout.Named n a)) = '[n, a]
-type instance Args2 (Symbol2 App      (Layout.Named n a)) = '[a, [Arg a]]
-type instance Args2 (Symbol2 Blank    (Layout.Named n a)) = '[]
-type instance Args2 (Symbol2 Cons     (Layout.Named n a)) = '[n]
-type instance Args2 (Symbol2 Curry    (Layout.Named n a)) = '[a, [Arg a]]
-type instance Args2 (Symbol2 Lam      (Layout.Named n a)) = '[[Arg a], a]
-type instance Args2 (Symbol2 Match    (Layout.Named n a)) = '[a, a]
-type instance Args2 (Symbol2 Missing  (Layout.Named n a)) = '[]
-type instance Args2 (Symbol2 Native   (Layout.Named n a)) = '[n]
-type instance Args2 (Symbol2 Star     (Layout.Named n a)) = '[]
-type instance Args2 (Symbol2 Unify    (Layout.Named n a)) = '[a, a]
-type instance Args2 (Symbol2 Var      (Layout.Named n a)) = '[n]
---
--- -- IsSymbol
---
--- instance IsSymbol Integer  where symbolArgs = iso (\(Integer  t1) -> OneTuple t1) (uncurry Integer  ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Rational where symbolArgs = iso (\(Rational t1) -> OneTuple t1) (uncurry Rational ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol String   where symbolArgs = iso (\(String   t1) -> OneTuple t1) (uncurry String   ) ; {-# INLINE symbolArgs #-}
---
--- instance IsSymbol Acc     where symbolArgs = iso (\(Acc    t1 t2) -> (t1,t2)    ) (uncurry Acc    ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol App     where symbolArgs = iso (\(App    t1 t2) -> (t1,t2)    ) (uncurry App    ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Blank   where symbolArgs = iso (\ Blank         -> ()         ) (uncurry Blank  ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Cons    where symbolArgs = iso (\(Cons   t1   ) -> OneTuple t1) (uncurry Cons   ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Curry   where symbolArgs = iso (\(Curry  t1 t2) -> (t1,t2)    ) (uncurry Curry  ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Lam     where symbolArgs = iso (\(Lam    t1 t2) -> (t1,t2)    ) (uncurry Lam    ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Match   where symbolArgs = iso (\(Match  t1 t2) -> (t1,t2)    ) (uncurry Match  ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Missing where symbolArgs = iso (\ Missing       -> ()         ) (uncurry Missing) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Native  where symbolArgs = iso (\(Native t1   ) -> OneTuple t1) (uncurry Native ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Star    where symbolArgs = iso (\ Star          -> ()         ) (uncurry Star   ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Unify   where symbolArgs = iso (\(Unify  t1 t2) -> (t1,t2)    ) (uncurry Unify  ) ; {-# INLINE symbolArgs #-}
--- instance IsSymbol Var     where symbolArgs = iso (\(Var    t1   ) -> OneTuple t1) (uncurry Var    ) ; {-# INLINE symbolArgs #-}
---
---
--- --------------------------
--- -- === Construction === --
--- --------------------------
---
--- symbol :: (IsSymbol t, Curry' f, s ~ Symbol t d a, Uncurried' f ~ (Args s -> s)) => f
--- symbol = curry' $ view (from symbolArgs) ; {-# INLINE symbol #-}
---
---
--- integer :: P.Integer -> Symbol Integer dyn a
--- integer = symbol ; {-# INLINE integer #-}
---
--- rational :: P.Rational -> Symbol Rational dyn a
--- rational = symbol ; {-# INLINE rational #-}
---
--- string :: P.String -> Symbol String dyn a
--- string = symbol ; {-# INLINE string #-}
---
---
--- acc :: DynName dyn a -> a -> Symbol Acc  dyn a
--- acc = symbol ; {-# INLINE acc #-}
---
--- app :: a -> [Arg a] -> Symbol App dyn a
--- app = symbol ; {-# INLINE app #-}
---
--- blank :: Symbol Blank dyn a
--- blank = symbol ; {-# INLINE blank #-}
---
--- cons :: DynName dyn a -> Symbol Cons dyn a
--- cons = symbol ; {-# INLINE cons #-}
---
--- curry :: a -> [Arg a] -> Symbol Curry dyn a
--- curry = symbol ; {-# INLINE curry #-}
---
--- lam :: [Arg a] -> a -> Symbol Lam dyn a
--- lam = symbol ; {-# INLINE lam #-}
---
--- match :: a -> a -> Symbol Match dyn a
--- match = symbol ; {-# INLINE match #-}
---
--- missing :: Symbol Missing dyn a
--- missing = symbol ; {-# INLINE missing #-}
---
--- star :: Symbol Star dyn a
--- star = symbol ; {-# INLINE star #-}
---
--- unify :: a -> a -> Symbol Unify dyn a
--- unify = symbol ; {-# INLINE unify #-}
---
--- var :: DynName dyn a -> Symbol Var dyn a
--- var = symbol ; {-# INLINE var #-}

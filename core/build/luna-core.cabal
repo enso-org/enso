@@ -182,6 +182,7 @@ Library
         Luna.Syntax.Term.Expr.Format,
         Luna.Syntax.Term.Expr.Layout,
         Luna.Syntax.Term.Expr.Symbol,
+        Luna.Syntax.Term.Expr.Symbol.Named,
         Luna.Syntax.Term.Function,
         Luna.Syntax.Term.Function.Argument,
         Luna.Syntax.Term.Function.Class,
