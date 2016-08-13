@@ -457,6 +457,18 @@ type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Lay
 
 
 -- auto_star ::
+-- 
+-- NamedSymbol Star String Draft
+--
+-- Symbol t Star (Named String Draft)
+--
+-- Expr t (Named String Draft)
+--
+-- Expr t (Named String (Unify :-> Draft))
+--
+-- Expr t (Named (Draft ) (Unify :@ Draft))
+--
+-- Expr t (Named String Draft)
 
 main :: IO ()
 main = do

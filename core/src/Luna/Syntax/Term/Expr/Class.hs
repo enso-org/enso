@@ -204,6 +204,68 @@ type instance Field Int dict    = Int
 
 
 
+
+------------------
+-- === Term === --
+------------------
+
+-- === Definitions === --
+
+type Term2 t dict layers model = Record ( Binding  := t
+                                       ': Model    := model
+                                       ': dict
+                                        ) (Data ': layers)
+
+
+-- === Properties === --
+
+data Data = Data deriving (Show)
+
+
+--
+-- ------------------
+-- -- === Expr === --
+-- ------------------
+--
+-- -- === ExprRecord === --
+--
+-- newtype ExprData bind model scope = ExprData ExprStore deriving (Show)
+-- type ExprStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+--
+-- makeWrapped ''ExprData
+--
+--
+-- -- === Expr layer === --
+--
+--
+-- type instance Field Data dict = ExprData (Bound (Get Binding dict) dict) (Get SubModel dict) (Get Model dict)
+--
+--
+-- type instance Field Int dict    = Int
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---------------------
 -- === Records === --
 ---------------------
