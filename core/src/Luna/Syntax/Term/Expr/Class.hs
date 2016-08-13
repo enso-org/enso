@@ -34,7 +34,7 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, Symbols, Symbol2)
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol2)
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
@@ -44,7 +44,7 @@ import Type.Monoid
 import Type.Applicative
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (NameByDynamics)
+-- import Luna.Syntax.Term.Expr (NameByDynamics)
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Data.RTuple as List
 import Type.Promotion    (KnownNats, natVals)
@@ -236,14 +236,14 @@ instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record dict 
 
 type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
-instance ( Monad m
-         , Cons2 (Symbol atom dyn bind) m ExprStore
-         {-constraint solving-}
-         , dyn  ~ dyn'
-         , bind ~ bind'
-         , Assert (atom `In` Atoms layout) (InvalidAtomFormat atom layout))
-      => Cons2 (Symbol atom dyn bind) m (ExprData bind' model (Layout dyn' layout)) where
-    cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
+-- instance ( Monad m
+--          , Cons2 (Symbol atom dyn bind) m ExprStore
+--          {-constraint solving-}
+--          , dyn  ~ dyn'
+--          , bind ~ bind'
+--          , Assert (atom `In` Atoms layout) (InvalidAtomFormat atom layout))
+--       => Cons2 (Symbol atom dyn bind) m (ExprData bind' model (Layout dyn' layout)) where
+--     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
 
 -- instance ( Monad m
 --          , Cons2 (Symbol atom dyn bind) m ExprStore
@@ -303,87 +303,87 @@ class HasRecord2 t where
 -- !!!!!!!!!!!!!!!!!!!!!! przy konstruktorach robimy tak ze atom wkladamy do monady konstruujacej i odpalamy tworzenie warst. Te ktore beda go chcialy sie do niego dostana. Wtedy bedziemy wiedzieli jak uzyc dokladnie VGRecord2
 
 
-newtype     Expr        t fmt dyn sel = Expr (Layout_OLD t fmt dyn sel)
-type        AnyExpr     t fmt dyn     = Expr         t fmt dyn 'Nothing
-type        LimitedExpr t fmt dyn a   = Expr         t fmt dyn ('Just a)
-type        AtomicExpr  t fmt dyn a   = LimitedExpr  t fmt dyn '[a]
-
-type family Layout_OLD      t fmt dyn (sel :: Maybe [*]) :: *
--- type family Layout2     t a :: *
+-- newtype     Expr        t fmt dyn sel = Expr (Layout_OLD t fmt dyn sel)
+-- type        AnyExpr     t fmt dyn     = Expr         t fmt dyn 'Nothing
+-- type        LimitedExpr t fmt dyn a   = Expr         t fmt dyn ('Just a)
+-- type        AtomicExpr  t fmt dyn a   = LimitedExpr  t fmt dyn '[a]
+--
+-- type family Layout_OLD      t fmt dyn (sel :: Maybe [*]) :: *
+-- -- type family Layout2     t a :: *
 type family TermOf      a
-
-type family Layout2 t :: * -> *
-
--- === Utils === --
-
-type family Selected (sel :: Maybe [*]) (lst :: [*]) where
-            Selected 'Nothing    lst = lst
-            Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
-
-type        Variants        t fmt  dyn a bind = Symbols (Selected a (Atoms fmt)) dyn bind
-type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
-type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
-type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
-type family SubExprs'       t fmts dyn where
-            SubExprs' t '[]           dyn = '[]
-            SubExprs' t '[fmt]        dyn = SubDynExprs     t fmt dyn
-            SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
-
-
-type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Atoms fmt)) dyn a
-
-
--- type        SubDynExprs2     fmt  dyn a      = Term fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
--- type        SubSemiDynExprs2 fmt  dyn a      = Term fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ] <*> '[ a ]
--- type        SubExprs2        fmt  dyn a      = SubExprs2' (SubFormats fmt) dyn a
--- type family SubExprs2' fmts          dyn a where
---             SubExprs2' '[]           dyn a = '[]
---             SubExprs2' '[fmt]        dyn a = SubDynExprs2     fmt dyn a
---             SubExprs2' (fmt ': fmts) dyn a = SubSemiDynExprs2 fmt dyn a <> SubExprs2' fmts dyn a
-
-
--- === Defaults === --
-
--- | Standard expr record definition
-type ExprRecord t fmt dyn sel a = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn sel a) Data2
--- newtype ExprData fmt dyn sel a = ExprData (VGRecord2 (SubExprs2 fmt dyn a) (Variants2 fmt dyn sel a) Data2)
+--
+-- type family Layout2 t :: * -> *
+--
+-- -- === Utils === --
+--
+-- type family Selected (sel :: Maybe [*]) (lst :: [*]) where
+--             Selected 'Nothing    lst = lst
+--             Selected ('Just sel) lst = sel -- FIXME[WD]: The selection does NOT check if it matches with possible candidates
+--
+-- type        Variants        t fmt  dyn a bind = Symbols (Selected a (Atoms fmt)) dyn bind
+-- type        SubDynExprs     t fmt  dyn        = Expr t fmt <$> SubDynamics     dyn <*> '[ 'Nothing ]
+-- type        SubSemiDynExprs t fmt  dyn        = Expr t fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ]
+-- type        SubExprs        t fmt  dyn        = SubExprs' t (SubFormats fmt) dyn
+-- type family SubExprs'       t fmts dyn where
+--             SubExprs' t '[]           dyn = '[]
+--             SubExprs' t '[fmt]        dyn = SubDynExprs     t fmt dyn
+--             SubExprs' t (fmt ': fmts) dyn = SubSemiDynExprs t fmt dyn <> SubExprs' t fmts dyn
+--
+--
+-- type        Variants2        fmt  dyn sel a = Symbols (Selected sel (Atoms fmt)) dyn a
+--
+--
+-- -- type        SubDynExprs2     fmt  dyn a      = Term fmt <$> SubDynamics     dyn <*> '[ 'Nothing ] <*> '[ a ]
+-- -- type        SubSemiDynExprs2 fmt  dyn a      = Term fmt <$> SubSemiDynamics dyn <*> '[ 'Nothing ] <*> '[ a ]
+-- -- type        SubExprs2        fmt  dyn a      = SubExprs2' (SubFormats fmt) dyn a
+-- -- type family SubExprs2' fmts          dyn a where
+-- --             SubExprs2' '[]           dyn a = '[]
+-- --             SubExprs2' '[fmt]        dyn a = SubDynExprs2     fmt dyn a
+-- --             SubExprs2' (fmt ': fmts) dyn a = SubSemiDynExprs2 fmt dyn a <> SubExprs2' fmts dyn a
 
 
--- === Instances === --
-
--- Show
-deriving instance Show (Unwrapped (Expr t fmt dyn sel)) => Show (Expr t fmt dyn sel)
-
--- Relations
-type instance TermOf   (Expr t fmt dyn sel) = Expr t fmt dyn sel
-type instance Base     (Expr t fmt dyn sel) = fmt
-type instance RecordOf (Expr t fmt dyn sel) = RecordOf (Unwrapped (Expr t fmt dyn sel))
-
--- Wrapper
-makeWrapped ''Expr
-
--- Record
-instance IsRecord  (Unwrapped (Expr t fmt dyn a)) => IsRecord  (Expr t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-^. INLINE asRecord ^.-}
-instance HasRecord (Unwrapped (Expr t fmt dyn a)) => HasRecord (Expr t fmt dyn a) where record   = wrapped' ∘ record   ; {-^. INLINE record   #-}
-
--- Shell
-instance Shell.HasLayer' l (Unwrapped (Expr t fmt dyn sel)) => Shell.HasLayer' l (Expr t fmt dyn sel) where
-    layer' = wrapped' ∘ layer' ; {-# INLINE layer' #-}
-
-
-
--------------------------
--- === OverBuilder === --
--------------------------
-
-class Monad m => OverBuilder m a where
-    overbuild :: RecordOf a -> m a
-
-instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
-    overbuild = return ; {-# INLINE overbuild #-}
-
-instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder m (Expr t fmt dyn a) where
-    overbuild = Expr <∘> overbuild ; {-# INLINE overbuild #-}
+-- -- === Defaults === --
+--
+-- -- | Standard expr record definition
+-- type ExprRecord t fmt dyn sel a = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn sel a) Data2
+-- -- newtype ExprData fmt dyn sel a = ExprData (VGRecord2 (SubExprs2 fmt dyn a) (Variants2 fmt dyn sel a) Data2)
+--
+--
+-- -- === Instances === --
+--
+-- -- Show
+-- deriving instance Show (Unwrapped (Expr t fmt dyn sel)) => Show (Expr t fmt dyn sel)
+--
+-- -- Relations
+-- type instance TermOf   (Expr t fmt dyn sel) = Expr t fmt dyn sel
+-- type instance Base     (Expr t fmt dyn sel) = fmt
+-- type instance RecordOf (Expr t fmt dyn sel) = RecordOf (Unwrapped (Expr t fmt dyn sel))
+--
+-- -- Wrapper
+-- makeWrapped ''Expr
+--
+-- -- Record
+-- instance IsRecord  (Unwrapped (Expr t fmt dyn a)) => IsRecord  (Expr t fmt dyn a) where asRecord = wrapped' ∘ asRecord ; {-^. INLINE asRecord ^.-}
+-- instance HasRecord (Unwrapped (Expr t fmt dyn a)) => HasRecord (Expr t fmt dyn a) where record   = wrapped' ∘ record   ; {-^. INLINE record   #-}
+--
+-- -- Shell
+-- instance Shell.HasLayer' l (Unwrapped (Expr t fmt dyn sel)) => Shell.HasLayer' l (Expr t fmt dyn sel) where
+--     layer' = wrapped' ∘ layer' ; {-# INLINE layer' #-}
+--
+--
+--
+-- -------------------------
+-- -- === OverBuilder === --
+-- -------------------------
+--
+-- class Monad m => OverBuilder m a where
+--     overbuild :: RecordOf a -> m a
+--
+-- instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
+--     overbuild = return ; {-# INLINE overbuild #-}
+--
+-- instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder m (Expr t fmt dyn a) where
+--     overbuild = Expr <∘> overbuild ; {-# INLINE overbuild #-}
 
 
 
@@ -395,7 +395,7 @@ instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder 
 -- type PossibleElements = [Static, Dynamic, Literal, Value, Thunk, Phrase, Draft, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
 type OffsetVariants = 7
 
-type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
+-- type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
 
 
 type instance Decode rec Static  = 0

@@ -47,6 +47,6 @@ extra-deps:
     - trifecta-1.6
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10
+    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10 -F -pgmF preskell -optF --source=../toolchain/ghc/extensions
 
 local-bin-path: ./dist/bin

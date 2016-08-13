@@ -64,7 +64,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
-import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
+-- import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.Syntax.Term.Expr.Format                         (SuperFormats, Draft(Draft), Literal(Literal), Value(Value))
 import qualified Old.Luna.Syntax.Term.Expr.Lit                            as Lit
@@ -105,7 +105,7 @@ import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
-import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol)
+import Luna.Syntax.Term.Expr.Symbol (Sym)
 import Control.Lens.Property
 import Luna.Syntax.Term.Expr.Format (Format)
 import TH
@@ -296,7 +296,7 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 -- Layout_OLD
 -- type TermShell ls term rec = (NetLayer term <$> ls) :| rec
 -- type instance Layout_OLD (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-type instance Layout_OLD (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+-- type instance Layout_OLD (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 -- Shell
 type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
@@ -311,7 +311,7 @@ instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = retur
 
 
 
-type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
+    -- type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 
 --
@@ -333,17 +333,17 @@ type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for par
 -- type Foox = Record.Variants (RecordOf (AnyExpr SNet Draft Static))
 
 
-instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
-    overbuild a = Cover <$> create <*> overbuild a
-
-type ElemBuilder atom m a = (Record.Cons atom (RecordOf a), OverBuilder m a)
-type RefBuilder  atom m a = (ElemBuilder atom m a, Referable m a)
-
-buildElem :: ElemBuilder atom m a => atom -> m a
-buildElem = overbuild ∘ Record.cons ; {-# INLINE buildElem #-}
-
-buildRef :: RefBuilder atom m a => atom -> m (Ref2 a)
-buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
+    -- instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
+    --     overbuild a = Cover <$> create <*> overbuild a
+    --
+    -- type ElemBuilder atom m a = (Record.Cons atom (RecordOf a), OverBuilder m a)
+    -- type RefBuilder  atom m a = (ElemBuilder atom m a, Referable m a)
+    --
+    -- buildElem :: ElemBuilder atom m a => atom -> m a
+    -- buildElem = overbuild ∘ Record.cons ; {-# INLINE buildElem #-}
+    --
+    -- buildRef :: RefBuilder atom m a => atom -> m (Ref2 a)
+    -- buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
 
 -- powinnismy wprowadzic abstrakcje Bind, ktora moglaby miec source i target i w networku reprezentowalaby connection
 
@@ -411,37 +411,37 @@ test_g1 :: forall m . PrimMonad m
         => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
 test_g1 = do
     v <- Hetero <$> NEC.unsafeThaw def
-    flip Graph.Builder.runT v $ cons2 star
+    flip Graph.Builder.runT v $ cons2 N.star
 
 test_g2 :: forall m . PrimMonad m
         => m (Ref Edge (Expr' Static Value), Network3 m)
 test_g2 = do
     g <- NEC.emptyHMGraph
-    flip Graph.Builder.runT g $ cons2 star
+    flip Graph.Builder.runT g $ cons2 N.star
 
 
 
-starx :: forall m dict fields dyn scope dyn' scope' g .
-         (TEST.Cons2 (Symbol Star dyn' (Ref Edge (Expr' dyn scope))) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')))
-      => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
-starx = cons2 (star :: Symbol Star dyn' (Ref Edge (Expr' dyn scope)))
-
-
-starx2 :: forall m dict fields dyn scope dyn' scope' g .
-          (TEST.Cons2 (Symbol Star Static (Ref Edge (NTerm' dict fields Static Value))) m (Ref Edge (NTerm' dict fields Static Value)))
-       => m (Ref Edge (NTerm' dict fields Static Value))
-starx2 = cons2 (star :: Symbol Star Static (Ref Edge (NTerm' dict fields Static Value)))
+    -- starx :: forall m dict fields dyn scope dyn' scope' g .
+    --          (TEST.Cons2 (Symbol Star dyn' (Ref Edge (Expr' dyn scope))) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')))
+    --       => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
+    -- starx = cons2 (star :: Symbol Star dyn' (Ref Edge (Expr' dyn scope)))
+    --
+    --
+    -- starx2 :: forall m dict fields dyn scope dyn' scope' g .
+    --           (TEST.Cons2 (Symbol Star Static (Ref Edge (NTerm' dict fields Static Value))) m (Ref Edge (NTerm' dict fields Static Value)))
+    --        => m (Ref Edge (NTerm' dict fields Static Value))
+    -- starx2 = cons2 (star :: Symbol Star Static (Ref Edge (NTerm' dict fields Static Value)))
 
 type MyTerm  dict layers dyn scope dyn' scope' = Term  Network2 dict layers (Layout dyn scope) (Layout dyn' scope')
 type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Layout dyn scope)
 
-class TermCons a m where
-    -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
-    -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields (Layout dyn scope))) -> m (Ref Edge (Term X dict fields (Layout dyn scope) (Layout dyn' (a ^. Format))))
-    termCons :: Symbol a dyn' (Ref Edge (MyTerm' dict fields dyn scope)) -> m (Ref Edge (MyTerm dict fields dyn scope dyn' (a ^. Format)))
-    -- termCons :: Symbol a layout -> m (Ref Edge (MyTerm dict fields sublayout (XX layout)))
-
-    -- termCons :: Symbol a dyn  (Ref Edge (MyTerm' dict fields model)) -> m (Ref Edge (MyTerm dict fields model (SymModel a dyn)))
+    -- class TermCons a m where
+    --     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
+    --     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields (Layout dyn scope))) -> m (Ref Edge (Term X dict fields (Layout dyn scope) (Layout dyn' (a ^. Format))))
+    --     termCons :: Symbol a dyn' (Ref Edge (MyTerm' dict fields dyn scope)) -> m (Ref Edge (MyTerm dict fields dyn scope dyn' (a ^. Format)))
+    --     -- termCons :: Symbol a layout -> m (Ref Edge (MyTerm dict fields sublayout (XX layout)))
+    --
+    --     -- termCons :: Symbol a dyn  (Ref Edge (MyTerm' dict fields model)) -> m (Ref Edge (MyTerm dict fields model (SymModel a dyn)))
 
 -- -- test_desc1 :: TEST.Cons2 (Symbol Star Static Int) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')) => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
 -- test_desc1 :: forall m dict fields dyn scope dyn' scope' g .
@@ -449,10 +449,10 @@ class TermCons a m where
 -- -- dojsc do tego ->            --   TermCons Star m (Expr' Static Draft)
 -- -- i zastanowic sie jaka dac abstrakcje nad refami by mogly zostac zawsze niezaleznie od grafu lub nie
 --            => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
-test_desc1 = do
-    s1 <- starx2
-    s2 <- starx2
-    return s1
+    -- test_desc1 = do
+    --     s1 <- starx2
+    --     s2 <- starx2
+    --     return s1
 
 
 
@@ -460,19 +460,19 @@ test_desc1 = do
 
 main :: IO ()
 main = do
-    print blank
+    -- print blank
     print N.blank
-    print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
+    -- print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     print $ (runIdentity (encodeStore N.blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
-    let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    let e1' = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
-    let e2' = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
+    -- let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
+    let e1 = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
+    -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
+    let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
     -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
     -- let eb1 = (runIdentity (cons2 blank) :: Ref Edge (Expr' Static Draft))
     -- let eu1 = (runIdentity (cons2 $ unify eb1 eb1) :: Expr' Static Draft)
     -- let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
-    print e2'
+    print e2
 
     putStrLn ""
     print $ get @Sym $ unwrap' $ get @Data e1
@@ -509,18 +509,18 @@ main = do
     let xx = (let blank = 2 in blank)
 
 
-    let { exp = e1
-    ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
-        ala = 11
-    ;f2 = matchx $ \Symbol.Blank       -> (print "hello2" )
-       where ala = 11
-    } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Blank|] ] ['f1, 'f2])
-
-    case' e1 of
-        Symbol.Unify l r -> print 11
-        Symbol.Blank     -> case' e1 of
-            Symbol.Unify l r -> print "hello"
-            Symbol.Blank     -> print "hello3x"
+        -- let { exp = e1
+        -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+        --     ala = 11
+        -- ;f2 = matchx $ \Symbol.Blank       -> (print "hello2" )
+        --    where ala = 11
+        -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Blank|] ] ['f1, 'f2])
+        --
+        -- case' e1 of
+        --     Symbol.Unify l r -> print 11
+        --     Symbol.Blank     -> case' e1 of
+        --         Symbol.Unify l r -> print "hello"
+        --         Symbol.Blank     -> print "hello3x"
 
 
     -- $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
