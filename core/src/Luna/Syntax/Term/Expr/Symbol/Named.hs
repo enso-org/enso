@@ -5,7 +5,7 @@ module Luna.Syntax.Term.Expr.Symbol.Named (module Luna.Syntax.Term.Expr.Symbol.N
 import qualified Prelude.Luna as P
 import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Curry, Data)
 
-import Luna.Syntax.Term.Expr.Symbol as X (Symbol2)
+import Luna.Syntax.Term.Expr.Symbol as X (Symbol)
 import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
@@ -31,25 +31,25 @@ import qualified Data.RTuple as List
 
 -- === Definitions === --
 
-type NamedSymbol t n a = Symbol2 t (Layout.Named n a)
+type NamedSymbol t n a = Symbol t (Layout.Named n a)
 
 
-newtype instance Symbol2 Integer  (Layout.Named n a) = Integer2  P.Integer
-newtype instance Symbol2 Rational (Layout.Named n a) = Rational2 P.Rational
-newtype instance Symbol2 String   (Layout.Named n a) = String2   P.String
+newtype instance Symbol Integer  (Layout.Named n a) = Integer2  P.Integer
+newtype instance Symbol Rational (Layout.Named n a) = Rational2 P.Rational
+newtype instance Symbol String   (Layout.Named n a) = String2   P.String
 
-data    instance Symbol2 Acc      (Layout.Named n a) = Acc2     !n !a
-data    instance Symbol2 App      (Layout.Named n a) = App2     !a ![Arg a]
-data    instance Symbol2 Blank    (Layout.Named n a) = Blank2
-newtype instance Symbol2 Cons     (Layout.Named n a) = Cons2     n
-data    instance Symbol2 Curry    (Layout.Named n a) = Curry2   !a ![Arg a]
-data    instance Symbol2 Lam      (Layout.Named n a) = Lam2     ![Arg a] !a
-data    instance Symbol2 Match    (Layout.Named n a) = Match2   !a !a
-data    instance Symbol2 Missing  (Layout.Named n a) = Missing2
-data    instance Symbol2 Native   (Layout.Named n a) = Native2  !n
-data    instance Symbol2 Star     (Layout.Named n a) = Star2
-data    instance Symbol2 Unify    (Layout.Named n a) = Unify2   !a !a
-newtype instance Symbol2 Var      (Layout.Named n a) = Var2      n
+data    instance Symbol Acc      (Layout.Named n a) = Acc2     !n !a
+data    instance Symbol App      (Layout.Named n a) = App2     !a ![Arg a]
+data    instance Symbol Blank    (Layout.Named n a) = Blank2
+newtype instance Symbol Cons     (Layout.Named n a) = Cons2     n
+data    instance Symbol Curry    (Layout.Named n a) = Curry2   !a ![Arg a]
+data    instance Symbol Lam      (Layout.Named n a) = Lam2     ![Arg a] !a
+data    instance Symbol Match    (Layout.Named n a) = Match2   !a !a
+data    instance Symbol Missing  (Layout.Named n a) = Missing2
+data    instance Symbol Native   (Layout.Named n a) = Native2  !n
+data    instance Symbol Star     (Layout.Named n a) = Star2
+data    instance Symbol Unify    (Layout.Named n a) = Unify2   !a !a
+newtype instance Symbol Var      (Layout.Named n a) = Var2      n
 
 
 

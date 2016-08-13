@@ -34,7 +34,7 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol2)
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol)
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
@@ -78,9 +78,9 @@ type instance Get Dynamics (Layout dyn form) = dyn
 type instance Get Format   (Layout dyn form) = form
 
 
-data Scope   = Scope   deriving (Show)
-data Binding = Binding deriving (Show)
-data Model   = Model   deriving (Show)
+data Model    = Model   deriving (Show)
+data Binding  = Binding deriving (Show)
+data SubModel = SubModel   deriving (Show)
 
 type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
 
@@ -166,13 +166,13 @@ instance Getter t (Unwrapped (Record dict fields))
 
 -- === Definitions === --
 
-type Term binding dict layers model scope = Record ( Binding := binding
-                                                  ': Model   := model
-                                                  ': Scope   := scope
-                                                  ': dict
-                                                   ) (Data ': layers)
+type Term binding dict layers submodel model = Record ( Binding  := binding
+                                                     ': SubModel := submodel
+                                                     ': Model    := model
+                                                     ': dict
+                                                      ) (Data ': layers)
 
-type Term' binding dict layers model = Term binding dict layers model model
+type Term' binding dict layers submodel = Term binding dict layers submodel submodel
 
 
 -- === Properties === --
@@ -196,7 +196,7 @@ makeWrapped ''ExprData
 -- === Expr layer === --
 
 
-type instance Field Data dict = ExprData (Bound (Get Binding dict) dict) (Get Model dict) (Get Scope dict)
+type instance Field Data dict = ExprData (Bound (Get Binding dict) dict) (Get SubModel dict) (Get Model dict)
 
 
 type instance Field Int dict    = Int
@@ -249,16 +249,16 @@ type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Te
 --          , Cons2 (Symbol atom dyn bind) m ExprStore
 --          {-constraint solving-}
 --          , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
---       => Cons2 (Symbol2 atom layout) m (ExprData bind' model (Layout dyn' ll)) where
+--       => Cons2 (Symbol atom layout) m (ExprData bind' model (Layout dyn' ll)) where
 --     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
 --
 instance ( Monad m
-         , Cons2 (N.NamedSymbol atom n bind) m ExprStore
+         , Cons2 (N.NamedSymbol atom name el) m ExprStore
          {-constraint solving-}
-         , n ~ Int
-         , bind ~ bind'
+         , name ~ Int
+         , el ~ el'
          , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
-      => Cons2 (N.NamedSymbol atom n bind) m (ExprData bind' model (Layout dyn' ll)) where
+      => Cons2 (N.NamedSymbol atom name el) m (ExprData el' model (Layout dyn' ll)) where
     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
 --
 

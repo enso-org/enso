@@ -398,8 +398,8 @@ instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
       => TEST.Cons2 a m (Ref Edge t) where
     cons2 = construct' <=< cons2
 
-type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.Model dict))
-                                                         (Get Format   (Get TEST.Model dict))
+type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.SubModel dict))
+                                                         (Get Format   (Get TEST.SubModel dict))
                                                   )
 
 
@@ -435,13 +435,13 @@ test_g2 = do
 type MyTerm  dict layers dyn scope dyn' scope' = Term  Network2 dict layers (Layout dyn scope) (Layout dyn' scope')
 type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Layout dyn scope)
 
-    -- class TermCons a m where
-    --     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
-    --     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields (Layout dyn scope))) -> m (Ref Edge (Term X dict fields (Layout dyn scope) (Layout dyn' (a ^. Format))))
-    --     termCons :: Symbol a dyn' (Ref Edge (MyTerm' dict fields dyn scope)) -> m (Ref Edge (MyTerm dict fields dyn scope dyn' (a ^. Format)))
-    --     -- termCons :: Symbol a layout -> m (Ref Edge (MyTerm dict fields sublayout (XX layout)))
-    --
-    --     -- termCons :: Symbol a dyn  (Ref Edge (MyTerm' dict fields model)) -> m (Ref Edge (MyTerm dict fields model (SymModel a dyn)))
+-- class TermCons a m where
+--     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
+--     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields (Layout dyn scope))) -> m (Ref Edge (Term X dict fields (Layout dyn scope) (Layout dyn' (a ^. Format))))
+--     -- termCons :: Symbol a dyn' (Ref Edge (MyTerm' dict fields dyn scope)) -> m (Ref Edge (MyTerm dict fields dyn scope dyn' (a ^. Format)))
+--     termCons :: Symbol a layout -> m (Ref Edge (MyTerm dict fields sublayout (XX layout)))
+--
+--     -- termCons :: Symbol a dyn  (Ref Edge (MyTerm' dict fields model)) -> m (Ref Edge (MyTerm dict fields model (SymModel a dyn)))
 
 -- -- test_desc1 :: TEST.Cons2 (Symbol Star Static Int) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')) => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
 -- test_desc1 :: forall m dict fields dyn scope dyn' scope' g .
@@ -465,14 +465,14 @@ main = do
     -- print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     print $ (runIdentity (encodeStore N.blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     -- let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    let e1 = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
+    let e1 = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
-    let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
+    -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
     -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
     -- let eb1 = (runIdentity (cons2 blank) :: Ref Edge (Expr' Static Draft))
     -- let eu1 = (runIdentity (cons2 $ unify eb1 eb1) :: Expr' Static Draft)
     -- let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
-    print e2
+    -- print e2
 
     putStrLn ""
     print $ get @Sym $ unwrap' $ get @Data e1
