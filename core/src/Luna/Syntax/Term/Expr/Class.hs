@@ -15,7 +15,7 @@
 module Luna.Syntax.Term.Expr.Class where
 
 
-import           Prelude.Luna                 hiding (Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data)
+import           Prelude.Luna                 hiding (Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field2)
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
@@ -39,7 +39,7 @@ import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
 import Data.Shell               as Shell hiding (Access)
-import Data.Record.Model.Masked as X (Data2, TermRecord, VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
+import Data.Record.Model.Masked as X (TermRecord, VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
 import Type.Monoid
 import Type.Applicative
 
@@ -52,7 +52,7 @@ import Data.Bits         (setBit, zeroBits)
 
 import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty)
-import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), Data2(..), unsafeRestore, decodeNat)
+import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
@@ -70,7 +70,7 @@ import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 
-
+import qualified Luna.Syntax.Term.Expr.Layout as Layout
 
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
@@ -88,7 +88,8 @@ type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, p
 
 data a := b
 
-type instance Get t (l := v ': ls) = If (t == l) v (Get t ls)
+type instance Get t (l  := v ': ls) = If (t == l) v (Get t ls)
+type instance Get t (l ':= v ': ls) = If (t == l) v (Get t ls)
 
 
 
@@ -134,7 +135,7 @@ type family Fields fields (dict :: [*]) where
 -- === Instances === --
 
 -- Wrapper
--- makeWrapped ''Record -- GHC 8 TH cannot represent kind casts
+-- makeWrapped ''Record -- GHC8 TH cannot represent kind casts
 instance Wrapped   (Record dict fields) where
     type Unwrapped (Record dict fields) = TMap (Assocs fields (Fields fields dict))
     _Wrapped' = iso (\(Record t) -> t) Record ; {-# INLINE _Wrapped' #-}
@@ -160,9 +161,38 @@ instance Getter t (Unwrapped (Record dict fields))
 
 
 
+
+---------------------
+-- === Records === --
+---------------------
+
+
+type family Dict    t :: [Assoc * *]
+type family Fields2 t :: [*]
+
+type family Field2   field  t
+type family MapField fields t where
+    MapField '[]       t = '[]
+    MapField (f ': fs) t = Field2 f t ': MapField fs t
+
+newtype Record2 t = Record2 (Unwrapped (Record2 t))
+
+
+-- === Instances === --
+
+-- Wrapper
+-- makeWrapped ''Record -- GHC8 TH cannot represent kind casts
+instance Wrapped   (Record2 t) where
+    type Unwrapped (Record2 t) = TMap (Fields2 t :=: MapField (Fields2 t) t)
+    _Wrapped' = iso (\(Record2 t) -> t) Record2 ; {-# INLINE _Wrapped' #-}
+
+
+
+
 ------------------
 -- === Term === --
 ------------------
+
 
 -- === Definitions === --
 
@@ -209,44 +239,116 @@ type instance Field Int dict    = Int
 -- === Term === --
 ------------------
 
+-- === Properties === --
+
+-- TODO: refactor
+data Data2 = Data2 deriving (Show)
+
+
 -- === Definitions === --
 
-type Term2 t dict layers model = Record ( Binding  := t
-                                       ': Model    := model
-                                       ': dict
-                                        ) (Data ': layers)
+data System = System deriving (Show)
 
+newtype Term2 sys dict layers model = Term2 (Record ( System := sys
+                                                   ': Model  := model
+                                                   ': dict
+                                                    ) (Data2 ': layers)
+                                            )
+makeWrapped ''Term2
+
+
+
+
+
+
+------------------
+-- === Expr === --
+------------------
+
+-- === ExprRecord === --
+
+newtype ExprData2 sys model = ExprData2 ExprStore2 deriving (Show)
+type ExprStore2 = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+
+
+-- === Instances === --
+
+-- Wrappers
+makeWrapped ''ExprData2
+
+
+-- === Expr layer === --
+
+
+type instance Field Data2 dict = ExprData2 (dict ^. System) (dict ^. Model)
+
+
+
+
+
+
+
+
+
+
+
+
+------------------
+-- === Term === --
+------------------
 
 -- === Properties === --
 
-data Data = Data deriving (Show)
+-- TODO: refactor
+data Data3 = Data3 deriving (Show)
 
 
---
+-- === Definitions === --
+
+-- data System = System deriving (Show)
+
+data TermDesc t model
+
+newtype Term3 t model = Term3 (Record2 (TermDesc t model))
+makeWrapped ''Term3
+
+-- === Instances === --
+
+type instance Fields2 (TermDesc t model) = Data3 ': Fields2 t
+
+type instance Get p (Term3    t model) = Get p (Unwrapped (Term3 t model))
+type instance Get p (TermDesc t model) = Get p (Dict (TermDesc t model))
+
+type instance Dict (TermDesc s model) = System ':= s
+                                     ': Model  ':= model
+                                     ': Dict s
+
+
+
 -- ------------------
 -- -- === Expr === --
 -- ------------------
 --
 -- -- === ExprRecord === --
 --
--- newtype ExprData bind model scope = ExprData ExprStore deriving (Show)
--- type ExprStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+newtype ExprData3 t = ExprData3 ExprStore2 deriving (Show)
+-- type ExprStore2 = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
 --
--- makeWrapped ''ExprData
+--
+-- -- === Instances === --
+--
+-- -- Wrappers
+-- makeWrapped ''ExprData2
 --
 --
 -- -- === Expr layer === --
 --
 --
--- type instance Field Data dict = ExprData (Bound (Get Binding dict) dict) (Get SubModel dict) (Get Model dict)
---
---
--- type instance Field Int dict    = Int
-
-
-
-
-
+-- to raczej powinno wskazywac na cos w stylu ExprData2 poniewaz
+-- to per-warstwa powinnismy analizowac strutkury i np. sprawdzac jak wygladaja bindingi
+-- aby bylo to jednolite wsrod warstw - np. dla warstwy Type.
+-- type instance Field2 Data3 t = ExprData3 t
+type instance Field2 Data3 t = ExprData2 (t ^. System) (t ^. Model)
 
 
 
@@ -294,6 +396,11 @@ instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record dict 
          cons2 v = (Record . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 
 
+instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record2 t))))
+      => Cons2 v m (Record2 t) where
+         cons2 v = (Record2 . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
+
+
 
 
 type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
@@ -314,6 +421,19 @@ type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Te
 --       => Cons2 (Symbol atom layout) m (ExprData bind' model (Layout dyn' ll)) where
 --     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
 --
+
+
+
+instance (Monad m, Cons2 (Symbol atom layout) m (Unwrapped (Term2 sys dict layers model)))
+      => Cons2 (Symbol atom layout) m (Term2 sys dict layers model) where
+         cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
+
+instance (Monad m, Cons2 a m (Unwrapped (Term3 t model)))
+      => Cons2 a m (Term3 t model) where
+         cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
+
+
+
 instance ( Monad m
          , Cons2 (N.NamedSymbol atom name el) m ExprStore
          {-constraint solving-}
@@ -322,6 +442,41 @@ instance ( Monad m
          , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
       => Cons2 (N.NamedSymbol atom name el) m (ExprData el' model (Layout dyn' ll)) where
     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
+
+
+instance ( Monad m
+         , Cons2 (Symbol atom layout) m ExprStore2
+         {-constraint solving-}
+         , layout ~ BindModel sys model
+         , scope  ~ (model ^. Scope)
+         , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
+      => Cons2 (Symbol atom layout) m (ExprData2 sys model) where
+    cons2 v = ExprData2 <$> cons2 v ; {-# INLINE cons2 #-}
+
+--
+-- instance ( Monad m
+--          , Cons2 (Symbol atom layout) m ExprStore2
+--          {-constraint solving-}
+--          , layout ~ Layout.Named Int Int -- BindModel sys model
+--         --  , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
+--          )
+--       => Cons2 (Symbol atom layout) m (ExprData3 t) where
+--     cons2 v = ExprData3 <$> cons2 v ; {-# INLINE cons2 #-}
+
+data Scope = Scope
+type instance Get Scope (Layout.Named n a) = a
+
+type family   SubTerm model
+type family   SubName model
+type family   BindModel sys model
+type instance BindModel sys (Layout.Named n a) = Layout.Named (BindName sys (Layout.Named n a))
+                                                              (BindTerm sys (Layout.Named n a))
+
+type family BindTerm sys model
+type family BindName sys model
+
+
+
 --
 
 instance Monad m => Cons2 v m Int where cons2 _ = return 5

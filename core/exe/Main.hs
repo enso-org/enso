@@ -92,7 +92,7 @@ import Luna.Syntax.Term.Expr hiding (Data)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Term', Data)
+import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Term', Data, Term2, Term3)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -111,6 +111,7 @@ import Luna.Syntax.Term.Expr.Format (Format)
 import TH
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
+import qualified Luna.Syntax.Term.Expr.Layout as Layout
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -404,6 +405,13 @@ type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST
 
 
 
+type instance TEST.BindTerm Network2 model = Ref Edge (Term3 Network2 (TEST.SubTerm model))
+type instance TEST.BindName Network2 model = Ref Edge (Term3 Network2 (TEST.SubName model))
+
+type instance TEST.SubTerm  (Layout.Named n t) = Layout.Named n (TEST.SubTerm t)
+type instance TEST.SubTerm  Draft = Draft
+
+type instance TEST.SubName  (Layout.Named n t) = n
 
 type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
@@ -457,7 +465,7 @@ type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Lay
 
 
 -- auto_star ::
--- 
+--
 -- NamedSymbol Star String Draft
 --
 -- Symbol t Star (Named String Draft)
@@ -470,6 +478,9 @@ type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Lay
 --
 -- Expr t (Named String Draft)
 
+type instance TEST.Fields2 Network2 = '[]
+type instance TEST.Dict    Network2 = '[]
+
 main :: IO ()
 main = do
     -- print blank
@@ -477,7 +488,10 @@ main = do
     -- print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     print $ (runIdentity (encodeStore N.blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     -- let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    let e1 = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
+    let e1   = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
+    let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
+    let e1'' = (runIdentity (cons2 N.blank) :: Term3 Network2 (Layout.Named N.String Draft))
+
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
     -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
     -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
