@@ -92,7 +92,7 @@ import Luna.Syntax.Term.Expr hiding (Data)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term)
+import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Name, Data(Data))
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -105,6 +105,7 @@ import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
+import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
 import Luna.Syntax.Term.Expr.Symbol (Sym)
 import Control.Lens.Property
 import Luna.Syntax.Term.Expr.Format (Format)
@@ -369,11 +370,11 @@ data ZZ = AA | BB
 -- #define CASE $(testTH [| case
 -- #define ESAC {--}|])
 
-    -- runCase :: Term binding attrs layers model scope -> [Prim.Any -> out] -> out
-    -- runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    --     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
-    --     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
-    -- {-# INLINE runCase #-}
+runCase :: Term t model -> [Prim.Any -> out] -> out
+runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
+    s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
+    idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
+{-# INLINE runCase #-}
 
 
 matchx f = f . unsafeCoerce
@@ -405,13 +406,14 @@ instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
 
 
 
-type instance TEST.BindTerm Network2 model = Ref Edge (Term Network2 (TEST.SubTerm model))
-type instance TEST.BindName Network2 model = Ref Edge (Term Network2 (TEST.SubName model))
+type instance TEST.Bind t Network2 model = Ref Edge (Term Network2 (TEST.Subscope t model))
+-- type instance TEST.Bind Name Network2 model = Ref Edge (Term Network2 (TEST.Subscope Name model))
 
-type instance TEST.SubTerm  (Layout.Named n t) = Layout.Named n (TEST.SubTerm t)
-type instance TEST.SubTerm  Draft = Draft
+type instance TEST.Subscope Atom (Layout.Named n t) = Layout.Named n (TEST.Subscope Atom t)
+type instance TEST.Subscope Atom Draft = Draft
+type instance TEST.Scope    Atom Draft = Draft
 
-type instance TEST.SubName  (Layout.Named n t) = n
+type instance TEST.Subscope Name (Layout.Named n t) = n
 
 type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
@@ -492,8 +494,7 @@ main = do
     -- let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
     let e1 = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
 
-    print e1
-    
+
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
     -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
     -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
@@ -502,12 +503,15 @@ main = do
     -- let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
     -- print e2
 
-        -- putStrLn ""
-        -- print $ get @Sym $ unwrap' $ get @Data e1
-        -- print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
-        --
-        -- (a,g) <- test_g2
-        -- print a
+    putStrLn ""
+    print e1
+    print $ get @Data e1
+    print $ get @Sym $ unwrap' $ get @Data e1
+    print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
+    --
+    -- (a,g) <- test_g2
+    -- print a
+
     -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
     -- case a of
@@ -536,19 +540,24 @@ main = do
 
     let xx = (let blank = 2 in blank)
 
+    --
+    let { exp = e1
+    ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+        ala = 11
+    ;f2 = matchx $ \Symbol.Blank       -> (print "hello2" )
+       where ala = 11
+    } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Blank|] ] ['f1, 'f2])
 
-        -- let { exp = e1
-        -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
-        --     ala = 11
-        -- ;f2 = matchx $ \Symbol.Blank       -> (print "hello2" )
-        --    where ala = 11
-        -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Blank|] ] ['f1, 'f2])
-        --
-        -- case' e1 of
-        --     Symbol.Unify l r -> print 11
-        --     Symbol.Blank     -> case' e1 of
-        --         Symbol.Unify l r -> print "hello"
-        --         Symbol.Blank     -> print "hello3x"
+    -- let { exp = e1
+    -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+    --     ala = 11
+    -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
+
+    case' e1 of
+        Symbol.Unify l r -> print 11
+        Symbol.Blank     -> case' e1 of
+            Symbol.Unify l r -> print "hello"
+            Symbol.Blank     -> print "hello3x"
 
 
     -- $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])

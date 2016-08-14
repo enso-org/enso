@@ -142,23 +142,13 @@ instance Show (Unwrapped (Unwrapped (Record t))) => Show (Record t) where
     showsPrec d (Record t) = showParen (d > app_prec) $
         showString "Record " . showsPrec (app_prec+1) (unwrap t)
         where app_prec = 10
---
---
--- -- Construction
--- instance fields ~ '[] => Empty (Record dict fields) where
---     empty = Record empty ; {-# INLINE empty #-}
---
---
--- -- Property access
--- type instance Get t (Record dict fields) = Get t (Unwrapped (Record dict fields))
---
--- instance Getter t (Unwrapped (Record dict fields))
---       => Getter t (Record dict fields) where get = Prop.get @t . unwrap' ; {-# INLINE get #-}
 
 
+-- Property access
+type instance Get p (Record t) = Get p (Unwrapped (Record t))
 
-
-
+instance Getter p (Unwrapped (Record t))
+      => Getter p (Record t) where get = Prop.get @p . unwrap' ; {-# INLINE get #-}
 
 
 
@@ -179,13 +169,17 @@ makeWrapped ''Term
 -- Properties
 
 type instance Fields (TermDesc t model) = Data ': Fields t
+type instance Dict   (TermDesc t model) = System ':= t
+                                       ': Model  ':= model
+                                       ': Dict t
 
-type instance Dict (TermDesc s model) = System ':= s
-                                     ': Model  ':= model
-                                     ': Dict s
 
+--
 type instance Get p (Term     t model) = Get p (Unwrapped (Term t model))
 type instance Get p (TermDesc t model) = Get p (Dict (TermDesc t model))
+
+instance Getter p (Unwrapped (Term t model))
+      => Getter p (Term t model) where get = Prop.get @p . unwrap' ; {-# INLINE get #-}
 
 -- Show
 
@@ -200,6 +194,7 @@ deriving instance Show (Unwrapped (Term t model)) => Show (Term t model)
 -- === Definition === --
 
 type TermStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+
 newtype TermData sys model = TermData TermStore deriving (Show)
 makeWrapped ''TermData
 
@@ -305,8 +300,8 @@ instance (Monad m, Cons2 a m (Unwrapped (Term t model)))
 instance ( Monad m
          , Cons2 (Symbol atom layout) m TermStore
          {-constraint solving-}
-         , layout ~ BindModel sys model
-         , scope  ~ (model ^. Scope)
+         , layout ~ ModelLayout sys model
+         , scope  ~ Scope Atom model
          , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
       => Cons2 (Symbol atom layout) m (TermData sys model) where
     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
@@ -315,23 +310,27 @@ instance ( Monad m
 -- instance ( Monad m
 --          , Cons2 (Symbol atom layout) m TermStore
 --          {-constraint solving-}
---          , layout ~ Layout.Named Int Int -- BindModel sys model
+--          , layout ~ Layout.Named Int Int -- Bind t sys model
 --         --  , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
 --          )
 --       => Cons2 (Symbol atom layout) m (TermData t) where
 --     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
-data Scope = Scope
-type instance Get Scope (Layout.Named n a) = a
+data Name  = Name
 
-type family   SubTerm model
-type family   SubName model
-type family   BindModel sys model
-type instance BindModel sys (Layout.Named n a) = Layout.Named (BindName sys (Layout.Named n a))
-                                                              (BindTerm sys (Layout.Named n a))
 
-type family BindTerm sys model
-type family BindName sys model
+type family   Subscope t model
+type family   Scope    t model
+
+type family   Bind t sys model
+type family   ModelLayout sys model
+
+
+type instance Scope Atom (Layout.Named n a) = Scope Atom a
+
+type instance ModelLayout sys (Layout.Named n a) = Layout.Named (Bind Name sys (Layout.Named n a))
+                                                                (Bind Atom sys (Layout.Named n a))
+
 
 
 

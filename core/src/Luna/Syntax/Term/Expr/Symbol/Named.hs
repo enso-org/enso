@@ -34,22 +34,22 @@ import qualified Data.RTuple as List
 type NamedSymbol t n a = Symbol t (Layout.Named n a)
 
 
-newtype instance Symbol Integer  (Layout.Named n a) = Integer2  P.Integer
-newtype instance Symbol Rational (Layout.Named n a) = Rational2 P.Rational
-newtype instance Symbol String   (Layout.Named n a) = String2   P.String
+newtype instance Symbol Integer  (Layout.Named n a) = Integer  P.Integer
+newtype instance Symbol Rational (Layout.Named n a) = Rational P.Rational
+newtype instance Symbol String   (Layout.Named n a) = String   P.String
 
-data    instance Symbol Acc      (Layout.Named n a) = Acc2     !n !a
-data    instance Symbol App      (Layout.Named n a) = App2     !a ![Arg a]
-data    instance Symbol Blank    (Layout.Named n a) = Blank2
-newtype instance Symbol Cons     (Layout.Named n a) = Cons2     n
-data    instance Symbol Curry    (Layout.Named n a) = Curry2   !a ![Arg a]
-data    instance Symbol Lam      (Layout.Named n a) = Lam2     ![Arg a] !a
-data    instance Symbol Match    (Layout.Named n a) = Match2   !a !a
-data    instance Symbol Missing  (Layout.Named n a) = Missing2
-data    instance Symbol Native   (Layout.Named n a) = Native2  !n
-data    instance Symbol Star     (Layout.Named n a) = Star2
-data    instance Symbol Unify    (Layout.Named n a) = Unify2   !a !a
-newtype instance Symbol Var      (Layout.Named n a) = Var2      n
+data    instance Symbol Acc      (Layout.Named n a) = Acc     !n !a
+data    instance Symbol App      (Layout.Named n a) = App     !a ![Arg a]
+data    instance Symbol Blank    (Layout.Named n a) = Blank
+newtype instance Symbol Cons     (Layout.Named n a) = Cons     n
+data    instance Symbol Curry    (Layout.Named n a) = Curry   !a ![Arg a]
+data    instance Symbol Lam      (Layout.Named n a) = Lam     ![Arg a] !a
+data    instance Symbol Match    (Layout.Named n a) = Match   !a !a
+data    instance Symbol Missing  (Layout.Named n a) = Missing
+data    instance Symbol Native   (Layout.Named n a) = Native  !n
+data    instance Symbol Star     (Layout.Named n a) = Star
+data    instance Symbol Unify    (Layout.Named n a) = Unify   !a !a
+newtype instance Symbol Var      (Layout.Named n a) = Var      n
 
 
 
@@ -91,21 +91,21 @@ type instance Fields (NamedSymbol Var      n a) = '[n]
 
 -- Products
 
-instance Product (NamedSymbol Integer  n a) (NamedSymbol Integer  n' a') where fields = iso (\(Integer2  t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Integer2  t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Rational n a) (NamedSymbol Rational n' a') where fields = iso (\(Rational2 t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Rational2 t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol String   n a) (NamedSymbol String   n' a') where fields = iso (\(String2   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> String2   t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Acc      n a) (NamedSymbol Acc      n' a') where fields = iso (\(Acc2      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Acc2      t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol App      n a) (NamedSymbol App      n' a') where fields = iso (\(App2      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> App2      t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Blank    n a) (NamedSymbol Blank    n' a') where fields = iso (\ Blank2           -> Null              ) (\(Null              ) -> Blank2          ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Cons     n a) (NamedSymbol Cons     n' a') where fields = iso (\(Cons2     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Cons2     t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Curry    n a) (NamedSymbol Curry    n' a') where fields = iso (\(Curry2    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Curry2    t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Lam      n a) (NamedSymbol Lam      n' a') where fields = iso (\(Lam2      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Lam2      t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Match    n a) (NamedSymbol Match    n' a') where fields = iso (\(Match2    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Match2    t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Missing  n a) (NamedSymbol Missing  n' a') where fields = iso (\ Missing2         -> Null              ) (\(Null              ) -> Missing2        ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Native   n a) (NamedSymbol Native   n' a') where fields = iso (\(Native2   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Native2   t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Star     n a) (NamedSymbol Star     n' a') where fields = iso (\ Star2            -> Null              ) (\(Null              ) -> Star2           ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Unify    n a) (NamedSymbol Unify    n' a') where fields = iso (\(Unify2    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Unify2    t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Var      n a) (NamedSymbol Var      n' a') where fields = iso (\(Var2      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Var2      t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Integer  n a) (NamedSymbol Integer  n' a') where fields = iso (\(Integer  t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Integer  t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Rational n a) (NamedSymbol Rational n' a') where fields = iso (\(Rational t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Rational t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol String   n a) (NamedSymbol String   n' a') where fields = iso (\(String   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> String   t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Acc      n a) (NamedSymbol Acc      n' a') where fields = iso (\(Acc      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Acc      t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol App      n a) (NamedSymbol App      n' a') where fields = iso (\(App      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> App      t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Blank    n a) (NamedSymbol Blank    n' a') where fields = iso (\ Blank           -> Null              ) (\(Null              ) -> Blank          ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Cons     n a) (NamedSymbol Cons     n' a') where fields = iso (\(Cons     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Cons     t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Curry    n a) (NamedSymbol Curry    n' a') where fields = iso (\(Curry    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Curry    t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Lam      n a) (NamedSymbol Lam      n' a') where fields = iso (\(Lam      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Lam      t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Match    n a) (NamedSymbol Match    n' a') where fields = iso (\(Match    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Match    t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Missing  n a) (NamedSymbol Missing  n' a') where fields = iso (\ Missing         -> Null              ) (\(Null              ) -> Missing        ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Native   n a) (NamedSymbol Native   n' a') where fields = iso (\(Native   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Native   t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Star     n a) (NamedSymbol Star     n' a') where fields = iso (\ Star            -> Null              ) (\(Null              ) -> Star           ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Unify    n a) (NamedSymbol Unify    n' a') where fields = iso (\(Unify    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Unify    t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Var      n a) (NamedSymbol Var      n' a') where fields = iso (\(Var      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Var      t1    ) ; {-# INLINE fields #-}
 
 
 --------------------------

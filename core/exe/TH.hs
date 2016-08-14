@@ -16,7 +16,7 @@ testTH2 el matchesQ fnames = do
     [TySynInstD _ (TySynEqn ts lst)] <- reifyInstances (mkName "All") [ConT $ mkName "Atom"]
     let atoms = typeListElems lst
 
-    Just idxs <- sequence <$> mapM (matchToID2 atoms) matches
+    Just idxs <- sequence <$> mapM (matchToID atoms) matches
 
     let funcs     = VarE <$> fnames
         funcTable = Map.fromList $ zip idxs funcs
@@ -33,39 +33,11 @@ testTH2 el matchesQ fnames = do
 
 
 
-testTH qe = do
-    CaseE exp matches <- qe
-    [TySynInstD _ (TySynEqn ts lst)] <- reifyInstances (mkName "All") [ConT $ mkName "Atom"]
-    let atoms = typeListElems lst
-
-    Just idxs <- sequence <$> mapM (matchToID atoms) matches
-    let funcs     = matchToFunc <$> matches
-        funcTable = Map.fromList $ zip idxs funcs
-        -- ixedFuncs = Map.fromList $ zip idxs funss
-
-        defaultMatch = VarE $ mkName "defaultMatch"
-        runCase      = VarE $ mkName "runCase"
-        table        = ListE $ row <$> [0 .. length atoms]
-        row i        = case Map.lookup i funcTable of
-            Just f  -> f
-            Nothing -> defaultMatch
-
-    -- runIO $ putStrLn $ pprint i
-    return $ AppE (AppE runCase exp) table
-
-
 matchToFunc match = mkMatch $ LamE [pat] exp where
     Match pat (NormalB exp) _ = match
     mkMatch                   = AppE (VarE $ mkName "matchx")
 
 matchToID atoms match = do
-    let Match (ConP symDN _) body decs = match
-    symD <- reify symDN
-    let atom  = getAtomFromSymD symD
-        idx   = atom `elemIndex` atoms
-    return idx
-
-matchToID2 atoms match = do
     let ConP symDN _ = match
     symD <- reify symDN
     let atom  = getAtomFromSymD symD
@@ -94,4 +66,4 @@ getAtomFromSymD d = findTarget t2 where
     ForallT _ _ t2                               = t
     findTarget = \case
         AppT (AppT ArrowT _) t     -> findTarget t
-        AppT (AppT (AppT _ x) _) _ -> x
+        AppT (AppT _ x) _ -> x
