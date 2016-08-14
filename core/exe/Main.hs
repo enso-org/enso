@@ -92,7 +92,7 @@ import Luna.Syntax.Term.Expr hiding (Data)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Term', Data, Term2, Term3)
+import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -300,11 +300,11 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 -- type instance Layout_OLD (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
 
 -- Shell
-type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
+-- type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
 
 -- Ref
-type instance Referred (Expr (Net ls) fmt dyn sel) = NetRef (Expr (Net ls) fmt dyn sel)
-instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = return ∘ NetRef
+-- type instance Referred (Expr (Net ls) fmt dyn sel) = NetRef (Expr (Net ls) fmt dyn sel)
+-- instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = return ∘ NetRef
 
 
 
@@ -369,11 +369,11 @@ data ZZ = AA | BB
 -- #define CASE $(testTH [| case
 -- #define ESAC {--}|])
 
-runCase :: Term binding attrs layers model scope -> [Prim.Any -> out] -> out
-runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
-    idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
-{-# INLINE runCase #-}
+    -- runCase :: Term binding attrs layers model scope -> [Prim.Any -> out] -> out
+    -- runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
+    --     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
+    --     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
+    -- {-# INLINE runCase #-}
 
 
 matchx f = f . unsafeCoerce
@@ -384,13 +384,13 @@ defaultMatch = error "wrong match"
 {-# INLINE defaultMatch #-}
 
 --
-type A1 = Term Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
-type A2 = Term Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
-
-type NTerm  dict fields dyn scope dyn' scope' = Term Network2 dict fields (Layout dyn scope) (Layout dyn' scope')
-type NTerm' dict fields dyn scope             = NTerm dict fields dyn scope dyn scope
-type Expr  dyn scope dyn' scope' = Term Network2 '[] '[Int] (Layout dyn scope) (Layout dyn' scope')
-type Expr' dyn scope             = Expr dyn scope dyn scope
+    -- type A1 = Term Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
+    -- type A2 = Term Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
+    --
+    -- type NTerm  dict fields dyn scope dyn' scope' = Term Network2 dict fields (Layout dyn scope) (Layout dyn' scope')
+    -- type NTerm' dict fields dyn scope             = NTerm dict fields dyn scope dyn scope
+    -- type Expr  dyn scope dyn' scope' = Term Network2 '[] '[Int] (Layout dyn scope) (Layout dyn' scope')
+    -- type Expr' dyn scope             = Expr dyn scope dyn scope
 
 -- Ref Node (Expr Static Value)
 
@@ -399,14 +399,14 @@ instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
       => TEST.Cons2 a m (Ref Edge t) where
     cons2 = construct' <=< cons2
 
-type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.SubModel dict))
-                                                         (Get Format   (Get TEST.SubModel dict))
-                                                  )
+-- type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.SubModel dict))
+--                                                          (Get Format   (Get TEST.SubModel dict))
+--                                                   )
 
 
 
-type instance TEST.BindTerm Network2 model = Ref Edge (Term3 Network2 (TEST.SubTerm model))
-type instance TEST.BindName Network2 model = Ref Edge (Term3 Network2 (TEST.SubName model))
+type instance TEST.BindTerm Network2 model = Ref Edge (Term Network2 (TEST.SubTerm model))
+type instance TEST.BindName Network2 model = Ref Edge (Term Network2 (TEST.SubName model))
 
 type instance TEST.SubTerm  (Layout.Named n t) = Layout.Named n (TEST.SubTerm t)
 type instance TEST.SubTerm  Draft = Draft
@@ -415,17 +415,17 @@ type instance TEST.SubName  (Layout.Named n t) = n
 
 type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
-test_g1 :: forall m . PrimMonad m
-        => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
-test_g1 = do
-    v <- Hetero <$> NEC.unsafeThaw def
-    flip Graph.Builder.runT v $ cons2 N.star
-
-test_g2 :: forall m . PrimMonad m
-        => m (Ref Edge (Expr' Static Value), Network3 m)
-test_g2 = do
-    g <- NEC.emptyHMGraph
-    flip Graph.Builder.runT g $ cons2 N.star
+    -- test_g1 :: forall m . PrimMonad m
+    --         => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
+    -- test_g1 = do
+    --     v <- Hetero <$> NEC.unsafeThaw def
+    --     flip Graph.Builder.runT v $ cons2 N.star
+    --
+    -- test_g2 :: forall m . PrimMonad m
+    --         => m (Ref Edge (Expr' Static Value), Network3 m)
+    -- test_g2 = do
+    --     g <- NEC.emptyHMGraph
+    --     flip Graph.Builder.runT g $ cons2 N.star
 
 
 
@@ -440,8 +440,8 @@ test_g2 = do
     --        => m (Ref Edge (NTerm' dict fields Static Value))
     -- starx2 = cons2 (star :: Symbol Star Static (Ref Edge (NTerm' dict fields Static Value)))
 
-type MyTerm  dict layers dyn scope dyn' scope' = Term  Network2 dict layers (Layout dyn scope) (Layout dyn' scope')
-type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Layout dyn scope)
+    -- type MyTerm  dict layers dyn scope dyn' scope' = Term  Network2 dict layers (Layout dyn scope) (Layout dyn' scope')
+    -- type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Layout dyn scope)
 
 -- class TermCons a m where
 --     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
@@ -478,8 +478,8 @@ type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Lay
 --
 -- Expr t (Named String Draft)
 
-type instance TEST.Fields2 Network2 = '[]
-type instance TEST.Dict    Network2 = '[]
+type instance TEST.Fields Network2 = '[]
+type instance TEST.Dict   Network2 = '[]
 
 main :: IO ()
 main = do
@@ -488,10 +488,12 @@ main = do
     -- print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     print $ (runIdentity (encodeStore N.blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
     -- let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
-    let e1   = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
-    let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
-    let e1'' = (runIdentity (cons2 N.blank) :: Term3 Network2 (Layout.Named N.String Draft))
+    -- let e1   = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
+    -- let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
+    let e1 = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
 
+    print e1
+    
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
     -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
     -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))
@@ -500,12 +502,12 @@ main = do
     -- let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
     -- print e2
 
-    putStrLn ""
-    print $ get @Sym $ unwrap' $ get @Data e1
-    print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
-
-    (a,g) <- test_g2
-    print a
+        -- putStrLn ""
+        -- print $ get @Sym $ unwrap' $ get @Data e1
+        -- print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
+        --
+        -- (a,g) <- test_g2
+        -- print a
     -- print $ unwrap' $ get @Atom $ unwrap' $ get @Symbol e1
     -- let a = AA
     -- case a of

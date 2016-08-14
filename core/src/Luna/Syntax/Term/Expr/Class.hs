@@ -15,7 +15,7 @@
 module Luna.Syntax.Term.Expr.Class where
 
 
-import           Prelude.Luna                 hiding (Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field2)
+import           Prelude.Luna                 hiding (Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field)
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
@@ -103,133 +103,61 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 
 
 
--- newtype Graph     rels = Graph   (Tmap (Assocs (Keys rels) (Vector    <$> Vals rels)))
--- newtype MGraph  s rels = MGraph  (Tmap (Assocs (Keys rels) (MVector s <$> Vals rels)))
--- newtype HGraph    els  = HGraph  (TMap (Assocs els (Hetero Vector     )))
--- newtype HMGraph s els  = HMGraph (TMap (Assocs els (Hetero (MVector s))))
---
--- type Network s = HMGraph s '[Node, Edge, Cluster]
--- Graph '[Node, Edge, Cluster]
+-- === Properties === --
+
+-- TODO: refactor
+data Data = Data deriving (Show)
+data System = System deriving (Show)
+
+
+
 
 ---------------------
 -- === Records === --
 ---------------------
 
+-- === Properties === --
 
--- newtype Record3 (dict :: [Assoc]) (fields :: [*]) = Record3 (TMap2 (Assocs fields (Fields fields dict)))
+type family Dict   t :: [Assoc * *]
+type family Fields t :: [*]
 
----------------------
--- === Records === --
----------------------
+type family Field    field  t
+type family MapField fields t where
+    MapField '[]       t = '[]
+    MapField (f ': fs) t = Field f t ': MapField fs t
 
--- === Definitions === --
-
-newtype Record (dict :: [*]) (fields :: [*]) = Record (TMap (fields :=: Fields fields dict))
-
-type family Field  field  (dict :: [*])
-type family Fields fields (dict :: [*]) where
-    Fields '[]       dict = '[]
-    Fields (f ': fs) dict = Field f dict ': Fields fs dict
+newtype Record t = Record (Unwrapped (Record t))
 
 
 -- === Instances === --
 
 -- Wrapper
 -- makeWrapped ''Record -- GHC8 TH cannot represent kind casts
-instance Wrapped   (Record dict fields) where
-    type Unwrapped (Record dict fields) = TMap (Assocs fields (Fields fields dict))
+instance Wrapped   (Record t) where
+    type Unwrapped (Record t) = TMap (Fields t :=: MapField (Fields t) t)
     _Wrapped' = iso (\(Record t) -> t) Record ; {-# INLINE _Wrapped' #-}
 
 -- Show
-instance Show (Unwrapped (Unwrapped (Record dict fields))) => Show (Record dict fields) where
+instance Show (Unwrapped (Unwrapped (Record t))) => Show (Record t) where
     showsPrec d (Record t) = showParen (d > app_prec) $
         showString "Record " . showsPrec (app_prec+1) (unwrap t)
         where app_prec = 10
-
-
--- Construction
-instance fields ~ '[] => Empty (Record dict fields) where
-    empty = Record empty ; {-# INLINE empty #-}
-
-
--- Property access
-type instance Get t (Record dict fields) = Get t (Unwrapped (Record dict fields))
-
-instance Getter t (Unwrapped (Record dict fields))
-      => Getter t (Record dict fields) where get = Prop.get @t . unwrap' ; {-# INLINE get #-}
-
-
-
-
-
----------------------
--- === Records === --
----------------------
-
-
-type family Dict    t :: [Assoc * *]
-type family Fields2 t :: [*]
-
-type family Field2   field  t
-type family MapField fields t where
-    MapField '[]       t = '[]
-    MapField (f ': fs) t = Field2 f t ': MapField fs t
-
-newtype Record2 t = Record2 (Unwrapped (Record2 t))
-
-
--- === Instances === --
-
--- Wrapper
--- makeWrapped ''Record -- GHC8 TH cannot represent kind casts
-instance Wrapped   (Record2 t) where
-    type Unwrapped (Record2 t) = TMap (Fields2 t :=: MapField (Fields2 t) t)
-    _Wrapped' = iso (\(Record2 t) -> t) Record2 ; {-# INLINE _Wrapped' #-}
+--
+--
+-- -- Construction
+-- instance fields ~ '[] => Empty (Record dict fields) where
+--     empty = Record empty ; {-# INLINE empty #-}
+--
+--
+-- -- Property access
+-- type instance Get t (Record dict fields) = Get t (Unwrapped (Record dict fields))
+--
+-- instance Getter t (Unwrapped (Record dict fields))
+--       => Getter t (Record dict fields) where get = Prop.get @t . unwrap' ; {-# INLINE get #-}
 
 
 
 
-------------------
--- === Term === --
-------------------
-
-
--- === Definitions === --
-
-type Term binding dict layers submodel model = Record ( Binding  := binding
-                                                     ': SubModel := submodel
-                                                     ': Model    := model
-                                                     ': dict
-                                                      ) (Data ': layers)
-
-type Term' binding dict layers submodel = Term binding dict layers submodel submodel
-
-
--- === Properties === --
-
-data Data = Data deriving (Show)
-
-
-
-------------------
--- === Expr === --
-------------------
-
--- === ExprRecord === --
-
-newtype ExprData bind model scope = ExprData ExprStore deriving (Show)
-type ExprStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
-
-makeWrapped ''ExprData
-
-
--- === Expr layer === --
-
-
-type instance Field Data dict = ExprData (Bound (Get Binding dict) dict) (Get SubModel dict) (Get Model dict)
-
-
-type instance Field Int dict    = Int
 
 
 
@@ -239,116 +167,46 @@ type instance Field Int dict    = Int
 -- === Term === --
 ------------------
 
--- === Properties === --
-
--- TODO: refactor
-data Data2 = Data2 deriving (Show)
-
-
 -- === Definitions === --
 
-data System = System deriving (Show)
-
-newtype Term2 sys dict layers model = Term2 (Record ( System := sys
-                                                   ': Model  := model
-                                                   ': dict
-                                                    ) (Data2 ': layers)
-                                            )
-makeWrapped ''Term2
-
-
-
-
-
-
-------------------
--- === Expr === --
-------------------
-
--- === ExprRecord === --
-
-newtype ExprData2 sys model = ExprData2 ExprStore2 deriving (Show)
-type ExprStore2 = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+data    TermDesc t model
+newtype Term     t model = Term (Record (TermDesc t model))
+makeWrapped ''Term
 
 
 -- === Instances === --
 
--- Wrappers
-makeWrapped ''ExprData2
+-- Properties
 
-
--- === Expr layer === --
-
-
-type instance Field Data2 dict = ExprData2 (dict ^. System) (dict ^. Model)
-
-
-
-
-
-
-
-
-
-
-
-
-------------------
--- === Term === --
-------------------
-
--- === Properties === --
-
--- TODO: refactor
-data Data3 = Data3 deriving (Show)
-
-
--- === Definitions === --
-
--- data System = System deriving (Show)
-
-data TermDesc t model
-
-newtype Term3 t model = Term3 (Record2 (TermDesc t model))
-makeWrapped ''Term3
-
--- === Instances === --
-
-type instance Fields2 (TermDesc t model) = Data3 ': Fields2 t
-
-type instance Get p (Term3    t model) = Get p (Unwrapped (Term3 t model))
-type instance Get p (TermDesc t model) = Get p (Dict (TermDesc t model))
+type instance Fields (TermDesc t model) = Data ': Fields t
 
 type instance Dict (TermDesc s model) = System ':= s
                                      ': Model  ':= model
                                      ': Dict s
 
+type instance Get p (Term     t model) = Get p (Unwrapped (Term t model))
+type instance Get p (TermDesc t model) = Get p (Dict (TermDesc t model))
+
+-- Show
+
+deriving instance Show (Unwrapped (Term t model)) => Show (Term t model)
 
 
--- ------------------
--- -- === Expr === --
--- ------------------
---
--- -- === ExprRecord === --
---
-newtype ExprData3 t = ExprData3 ExprStore2 deriving (Show)
--- type ExprStore2 = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
---
---
--- -- === Instances === --
---
--- -- Wrappers
--- makeWrapped ''ExprData2
---
---
--- -- === Expr layer === --
---
---
--- to raczej powinno wskazywac na cos w stylu ExprData2 poniewaz
--- to per-warstwa powinnismy analizowac strutkury i np. sprawdzac jak wygladaja bindingi
--- aby bylo to jednolite wsrod warstw - np. dla warstwy Type.
--- type instance Field2 Data3 t = ExprData3 t
-type instance Field2 Data3 t = ExprData2 (t ^. System) (t ^. Model)
+
+----------------------
+-- === TermData === --
+----------------------
+
+-- === Definition === --
+
+type TermStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+newtype TermData sys model = TermData TermStore deriving (Show)
+makeWrapped ''TermData
+
+
+-- === Instances === --
+
+type instance Field Data t = TermData (t ^. System) (t ^. Model)
 
 
 
@@ -390,15 +248,15 @@ instance (Monad m, EncodeStore slots a m) => Cons2 a m (Store2 slots) where
     cons2 = encodeStore ; {-# INLINE cons2 #-}
 
 
+--
+-- instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record dict fields))))
+--       => Cons2 v m (Record dict fields) where
+--          cons2 v = (Record . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 
-instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record dict fields))))
-      => Cons2 v m (Record dict fields) where
+
+instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record t))))
+      => Cons2 v m (Record t) where
          cons2 v = (Record . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
-
-
-instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record2 t))))
-      => Cons2 v m (Record2 t) where
-         cons2 v = (Record2 . TMap) <$> List.generate (Proxy :: Proxy (Cons2 v)) (cons2 v) ; {-# INLINE cons2 #-}
 
 
 
@@ -406,62 +264,62 @@ instance (Monad m, List.Generate (Cons2 v) m (Unwrapped (Unwrapped (Record2 t)))
 type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Text "` is not a valid for format `" :<>: 'ShowType format :<>: 'Text "`"
 
 -- instance ( Monad m
---          , Cons2 (Symbol atom dyn bind) m ExprStore
+--          , Cons2 (Symbol atom dyn bind) m TermStore
 --          {-constraint solving-}
 --          , dyn  ~ dyn'
 --          , bind ~ bind'
 --          , Assert (atom `In` Atoms layout) (InvalidAtomFormat atom layout))
---       => Cons2 (Symbol atom dyn bind) m (ExprData bind' model (Layout dyn' layout)) where
---     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
+--       => Cons2 (Symbol atom dyn bind) m (TermData bind' model (Layout dyn' layout)) where
+--     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
 -- instance ( Monad m
---          , Cons2 (Symbol atom dyn bind) m ExprStore
+--          , Cons2 (Symbol atom dyn bind) m TermStore
 --          {-constraint solving-}
 --          , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
---       => Cons2 (Symbol atom layout) m (ExprData bind' model (Layout dyn' ll)) where
---     cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
+--       => Cons2 (Symbol atom layout) m (TermData bind' model (Layout dyn' ll)) where
+--     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 --
 
 
+--
+-- instance (Monad m, Cons2 (Symbol atom layout) m (Unwrapped (Term2 sys dict layers model)))
+--       => Cons2 (Symbol atom layout) m (Term2 sys dict layers model) where
+--          cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
 
-instance (Monad m, Cons2 (Symbol atom layout) m (Unwrapped (Term2 sys dict layers model)))
-      => Cons2 (Symbol atom layout) m (Term2 sys dict layers model) where
+instance (Monad m, Cons2 a m (Unwrapped (Term t model)))
+      => Cons2 a m (Term t model) where
          cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
 
-instance (Monad m, Cons2 a m (Unwrapped (Term3 t model)))
-      => Cons2 a m (Term3 t model) where
-         cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
 
+
+-- instance ( Monad m
+--          , Cons2 (N.NamedSymbol atom name el) m TermStore
+--          {-constraint solving-}
+--          , name ~ Int
+--          , el ~ el'
+--          , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
+--       => Cons2 (N.NamedSymbol atom name el) m (TermData el' model (Layout dyn' ll)) where
+--     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
 
 instance ( Monad m
-         , Cons2 (N.NamedSymbol atom name el) m ExprStore
-         {-constraint solving-}
-         , name ~ Int
-         , el ~ el'
-         , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
-      => Cons2 (N.NamedSymbol atom name el) m (ExprData el' model (Layout dyn' ll)) where
-    cons2 v = ExprData <$> cons2 v ; {-# INLINE cons2 #-}
-
-
-instance ( Monad m
-         , Cons2 (Symbol atom layout) m ExprStore2
+         , Cons2 (Symbol atom layout) m TermStore
          {-constraint solving-}
          , layout ~ BindModel sys model
          , scope  ~ (model ^. Scope)
          , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
-      => Cons2 (Symbol atom layout) m (ExprData2 sys model) where
-    cons2 v = ExprData2 <$> cons2 v ; {-# INLINE cons2 #-}
+      => Cons2 (Symbol atom layout) m (TermData sys model) where
+    cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
 --
 -- instance ( Monad m
---          , Cons2 (Symbol atom layout) m ExprStore2
+--          , Cons2 (Symbol atom layout) m TermStore
 --          {-constraint solving-}
 --          , layout ~ Layout.Named Int Int -- BindModel sys model
 --         --  , Assert (atom `In` Atoms ll) (InvalidAtomFormat atom ll))
 --          )
---       => Cons2 (Symbol atom layout) m (ExprData3 t) where
---     cons2 v = ExprData3 <$> cons2 v ; {-# INLINE cons2 #-}
+--       => Cons2 (Symbol atom layout) m (TermData t) where
+--     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
 data Scope = Scope
 type instance Get Scope (Layout.Named n a) = a
@@ -483,13 +341,13 @@ instance Monad m => Cons2 v m Int where cons2 _ = return 5
 
 
 
--- === Pattern Matching === --
-
-type family RecordOf2 t
-
-class HasRecord2 t where
-    record2 :: Lens' t (RecordOf2 t)
-
+-- -- === Pattern Matching === --
+--
+-- type family RecordOf2 t
+--
+-- class HasRecord t where
+--     record2 :: Lens' t (RecordOf2 t)
+--
 
 
 
@@ -517,7 +375,7 @@ class HasRecord2 t where
 
 
 
--- !!!!!!!!!!!!!!!!!!!!!! przy konstruktorach robimy tak ze atom wkladamy do monady konstruujacej i odpalamy tworzenie warst. Te ktore beda go chcialy sie do niego dostana. Wtedy bedziemy wiedzieli jak uzyc dokladnie VGRecord2
+-- !!!!!!!!!!!!!!!!!!!!!! przy konstruktorach robimy tak ze atom wkladamy do monady konstruujacej i odpalamy tworzenie warst. Te ktore beda go chcialy sie do niego dostana. Wtedy bedziemy wiedzieli jak uzyc dokladnie VGRecord
 
 
 -- newtype     Expr        t fmt dyn sel = Expr (Layout_OLD t fmt dyn sel)
@@ -562,8 +420,8 @@ type family TermOf      a
 -- -- === Defaults === --
 --
 -- -- | Standard expr record definition
--- type ExprRecord t fmt dyn sel a = VGRecord2 (SubExprs t fmt dyn) (Variants t fmt dyn sel a) Data2
--- -- newtype ExprData fmt dyn sel a = ExprData (VGRecord2 (SubExprs2 fmt dyn a) (Variants2 fmt dyn sel a) Data2)
+-- type ExprRecord t fmt dyn sel a = VGRecord (SubExprs t fmt dyn) (Variants t fmt dyn sel a) Data2
+-- -- newtype TermData fmt dyn sel a = TermData (VGRecord (SubExprs2 fmt dyn a) (Variants2 fmt dyn sel a) Data2)
 --
 --
 -- -- === Instances === --
@@ -596,7 +454,7 @@ type family TermOf      a
 -- class Monad m => OverBuilder m a where
 --     overbuild :: RecordOf a -> m a
 --
--- instance Monad m => OverBuilder m (VGRecord2 gs vs d) where
+-- instance Monad m => OverBuilder m (VGRecord gs vs d) where
 --     overbuild = return ; {-# INLINE overbuild #-}
 --
 -- instance (Monad m, OverBuilder m (Unwrapped (Expr t fmt dyn a))) => OverBuilder m (Expr t fmt dyn a) where
