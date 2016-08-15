@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE TypeApplications          #-}
 {-# LANGUAGE TypeFamilyDependencies    #-}
+{-# LANGUAGE PartialTypeSignatures     #-}
 {-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
@@ -396,9 +397,13 @@ defaultMatch = error "wrong match"
 -- Ref Node (Expr Static Value)
 
 
-instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
+-- instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
+--       => TEST.Cons2 a m (Ref Edge t) where
+--     cons2 = construct' <=< cons2
+
+instance (Monad m, TEST.Cons2 a m t) -- , Constructor' m (Ref Edge t))
       => TEST.Cons2 a m (Ref Edge t) where
-    cons2 = construct' <=< cons2
+    cons2 _ = return $ Ptr 0 -- construct' <=< cons2
 
 -- type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.SubModel dict))
 --                                                          (Get Format   (Get TEST.SubModel dict))
@@ -413,7 +418,7 @@ type instance TEST.Subscope Atom (Layout.Named n t) = Layout.Named n (TEST.Subsc
 type instance TEST.Subscope Atom Draft = Draft
 type instance TEST.Scope    Atom Draft = Draft
 
-type instance TEST.Subscope Name (Layout.Named n t) = n
+type instance TEST.Subscope Name (Layout.Named n t) = Layout.Named n n
 
 type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
@@ -480,8 +485,57 @@ type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 --
 -- Expr t (Named String Draft)
 
+-- Terms Draft ... -- < = >
+-- DraftCons Network2 Unify m
+--
+-- TermCons Network2 Unify m Draft
+-- po co ten Draft ...
+
+
+    -- class TermCons atom m t where
+    --     termCons :: Symbol atom (ModelLayout t model) -> m (Ref Edge (Term t model))
+    --
+    --
+    -- class TermCons m where
+    --     termCons :: forall atom layout t model. TEST.Cons2 (Symbol atom layout) m (Ref Edge (Term t model))
+    --              => Symbol atom layout -> m (Ref Edge (Term t model))
+-- --
+-- instance TermCons m where
+--     termCons = cons2
+
+    -- foos :: TermCons m => Symbol atom layout -> m (Ref Edge (Term t model))
+    -- foos = termCons
+
+-- test :: TermCons Draft t model
+
+-- blank_x :: forall n a m t model .
+--            (TEST.Cons2 (Symbol Blank (Layout.Named n a)) m (Term t model), _)
+--         => m (Term t model)
+-- blank_x = cons2 (N.blank :: Symbol Blank (Layout.Named n a))
+
+type family MatchModels m1 m2
+type family MatchScopes t1 t2
+
+type instance MatchModels (Layout.Named n1 t1) (Layout.Named n2 t2) = Layout.Named (MatchScopes n1 n2) (MatchScopes t1 t2)
+
+type instance MatchScopes Draft Draft = Draft
+
+unify_x :: (t~Network2, xmodel1 ~ xmodel2, xmodel1 ~ Layout.Named Draft Draft, Monad m
+           , model ~ MatchModels xmodel1 xmodel2)
+        => Ref Edge (Term t xmodel1) -> Ref Edge (Term t xmodel2) -> m (Ref Edge (Term t model))
+unify_x l r = cons2 $ N.unify l r
+
 type instance TEST.Fields Network2 = '[]
 type instance TEST.Dict   Network2 = '[]
+
+
+-- type NTerm n a = Term (Named n a)
+--
+-- star :: NTerm () ()
+--
+-- unfiy star star :: NTerm () Phrase
+--
+
 
 main :: IO ()
 main = do
@@ -492,7 +546,9 @@ main = do
     -- let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
     -- let e1   = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
     -- let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
-    let e1 = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
+    let e1  = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
+        er1 = (runIdentity (cons2 N.blank) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
+        u1  = (runIdentity (unify_x er1 er1) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
 
 
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)

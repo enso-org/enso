@@ -209,7 +209,8 @@ type instance Field Data t = TermData (t ^. System) (t ^. Model)
 
 
 
-
+class TermCons a m t where
+    termCons :: forall model. a -> m (Term t model)
 
 
 
