@@ -17,7 +17,7 @@ import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder            (requester)
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers)
-import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, redirect)
+import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, redirect, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
@@ -119,6 +119,8 @@ buildAppType appRef = do
 
             oldFunType <- follow (prop Type) fun >>= follow source
             funUni     <- unify oldFunType funType
+            withRef funUni $ prop TCData . originSign .~ Negative
+            reconnect (prop TCData . requester) funUni (Just appRef)
 
             return [funUni]
 

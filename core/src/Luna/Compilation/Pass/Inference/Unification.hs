@@ -163,10 +163,12 @@ resolveUnify uni = do
                               asA <- mapM (follow source . unlayer) argsA
                               asB <- mapM (follow source . unlayer) argsB
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
+                              sgn <- follow (prop TCData . originSign) uni
                               newUnis <- zipWithM unify asA asB
                               uniCons <- cons na $ arg <$> newUnis
                               replaceNode uni uniCons
                               mapM (flip (reconnect $ prop TCData . requester) req) newUnis
+                              mapM (flip withRef $ prop TCData . originSign .~ sgn) newUnis
                               resolve newUnis
                           else reportError uni
 
