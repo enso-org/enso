@@ -61,6 +61,7 @@ investigate ref = do
             of' $ \(App _ _)        -> (TypeCheck.untypedApps       %~ (ref :))
                                      . (TypeCheck.uncalledApps      %~ (ref :))
             of' $ \(Acc _ _)        ->  TypeCheck.untypedAccs       %~ (ref :)
+            of' $ \(Lam _ _)        ->  TypeCheck.untypedLambdas    %~ (ref :)
             of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Cons _ _)       ->  TypeCheck.untypedLits       %~ (ref :)
@@ -104,6 +105,49 @@ resolveLocalVars = do
                 return $ Just ln
             of' $ \ANY         -> return Nothing
     TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem vars)
+
+resolveLambdaBinders :: PassCtx(m) => m ()
+resolveLambdaBinders = do
+    lambdas   <- view TypeCheck.untypedLambdas <$> TypeCheck.get
+    boundVars <- fmap concat $ forM lambdas $ \ref -> do
+        n <- read ref
+        caseTest (uncover n) $ do
+            of' $ \(Lam as _) -> mapM (follow source . unlayer) as
+            of' $ \ANY -> impossible
+    TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem boundVars)
+
+replaceVar :: PassCtx(m) => Ref Node node -> String -> Ref Node node -> m ()
+replaceVar root name replacement = do
+    nroot <- read root
+    forM_ (nroot # Inputs) $ \inp -> do
+        nref <- follow source inp
+        replaceVar nref name replacement
+    caseTest (uncover nroot) $ do
+        of' $ \(Var (Lit.String n)) -> if n == name && root /= replacement
+            then do
+                replaceNode root replacement
+                TypeCheck.modify_ $ (TypeCheck.unresolvedSymbols %~ (filter (/= root)))
+                                  . (TypeCheck.allNodes %~ (filter (/= root)))
+            else return ()
+        of' $ \ANY -> return ()
+
+unifyLambdaArguments :: PassCtx(m) => m ()
+unifyLambdaArguments = do
+    lambdas <- view TypeCheck.untypedLambdas <$> TypeCheck.get
+    forM_ lambdas $ \ref -> do
+        n <- read ref
+        caseTest (uncover n) $ do
+            of' $ \(Lam as o) -> do
+                args <- mapM (follow source . unlayer) as
+                toReplace <- fmap catMaybes $ forM args $ \rv -> do
+                    nv <- read rv
+                    return $ caseTest (uncover nv) $ do
+                        of' $ \(Var (Lit.String name)) -> Just (name, rv)
+                        of' $ \ANY -> Nothing
+                out <- follow source o
+                mapM (uncurry $ replaceVar out) toReplace
+            of' $ \ANY -> impossible
+
 
 desugarLambdas :: PassCtx(m) => m ()
 desugarLambdas = do
@@ -151,6 +195,8 @@ instance (Monad m {-ghc8-}, PassCtx(m)) => TypeCheckerPass ScanPass m where
         roots <- view TypeCheck.freshRoots <$> TypeCheck.get
         mapM_ (subtreeWalk investigate) roots
         resolveLocalVars
+        resolveLambdaBinders
+        unifyLambdaArguments
         desugarLambdas
         mapM_ assignDepths roots
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []

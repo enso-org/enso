@@ -324,6 +324,8 @@ symbolsList = [
     , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                                         (scons "Histogram")
     , makeNativeFun "primes"       Nothing [scons "Int"]                                                  (listOf $ scons "Int")
     , makeNativeFun "pi"           Nothing []                                                             (scons "Double")
+    , makeNativeFun "+"            Nothing [scons "Int", scons "Int"]                                     (scons "Int")
+    , makeNativeFun "*"            Nothing [scons "Int", scons "Int"]                                     (scons "Int")
 
 ----------------------
 --- === Shapes === ---

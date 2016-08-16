@@ -60,10 +60,10 @@ convertRationalBase radix rational = nom % den where
     nom = convertBase radix (numerator   rational)
     den = convertBase radix (denominator rational)
 
-numberToData :: Lit.Number -> Data
-numberToData (Lit.Number radix (Lit.Rational r)) = unsafeToData $ convertRationalBase (toInteger radix) r
-numberToData (Lit.Number radix (Lit.Integer  i)) = unsafeToData (fromIntegral $ convertBase (toInteger radix) i :: Int)
-numberToData (Lit.Number radix (Lit.Double   d)) = unsafeToData $ d
+numberToValue :: Lit.Number -> Value
+numberToValue (Lit.Number radix (Lit.Rational r)) = unsafeToValue $ convertRationalBase (toInteger radix) r
+numberToValue (Lit.Number radix (Lit.Integer  i)) = unsafeToValue (fromIntegral $ convertBase (toInteger radix) i :: Int)
+numberToValue (Lit.Number radix (Lit.Double   d)) = unsafeToValue $ d
 
 tryGetBool :: String -> Maybe Bool
 tryGetBool boolStr
@@ -176,13 +176,13 @@ liftBinders (_ : as) f v = do
     Function func <- v
     unsafeToValue $ \(x :: Data) -> liftBinders as f (func x)
 
-makeConst :: Data -> [a] -> Value
-makeConst d []       = return d
-makeConst d (_ : as) = unsafeToValue $ \(x :: Data) -> makeConst d as
+makeConst :: Value -> [a] -> Value
+makeConst v []       = v
+makeConst v (_ : as) = unsafeToValue $ \(x :: Data) -> makeConst v as
 
 handleArgs :: [Ref Node n] -> Ref Node n -> Maybe Value
 handleArgs [] _ = Nothing
-handleArgs (a : as) r | r == a    = Just . unsafeToValue $ \x -> makeConst x as
+handleArgs (a : as) r | r == a    = Just . unsafeToValue $ \x -> makeConst (Pure x) as
                       | otherwise = unsafeToValue . (const :: Value -> Data -> Value) <$> handleArgs as r
 
 composeManyToMany :: [a] -> [Value] -> Value -> Value
@@ -199,12 +199,12 @@ evaluateAST ref = do
     args <- ask
     let tcData = node # TCData
     caseTest (uncover node) $ do
-        of' $ \(Lit.String str) -> return . flip makeConst args . unsafeToData $ str
-        of' $ return . flip makeConst args . numberToData
+        of' $ \(Lit.String str) -> return . flip makeConst args . unsafeToValue $ str
+        of' $ return . flip makeConst args . numberToValue
         of' $ \(Cons n _) -> do
             v <- case unwrap n of
-                "True"  -> return $ unsafeToData True
-                "False" -> return $ unsafeToData False
+                "True"  -> return $ unsafeToValue True
+                "False" -> return $ unsafeToValue False
                 _       -> throwError ["Undefined constructor"]
             return $ makeConst v args
         of' $ \(App f as) -> do
@@ -212,7 +212,9 @@ evaluateAST ref = do
             funVal       <- evaluateNode funRef
             unpackedArgs <- unpackArguments as
             argVals      <- mapM evaluateNode unpackedArgs
-            return $ composeManyToMany args argVals funVal
+            return $ case argVals of
+                [] -> funVal
+                _  -> composeManyToMany args argVals funVal
         of' $ \(Acc (Lit.String name) t) -> do
             targetRef <- follow source t
             targetVal <- evaluateNode targetRef
@@ -230,7 +232,9 @@ evaluateAST ref = do
                         {-setValue (Left msgs) ref-}
                         {-throwError msgs-}
                     {-Right v -> return $ Pure v-}
-            Nothing -> lookupVar (unwrap n) <?!> ["Undefined variable"]
+            Nothing -> do
+                v <- lookupVar (unwrap n) <?!> ["Undefined variable"]
+                return $ makeConst v args
         of' $ \(Lam as out) -> do
             unpackedArgs <- unpackArguments as
             outRef <- follow source out
