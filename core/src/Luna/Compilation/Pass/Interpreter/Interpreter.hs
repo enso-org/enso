@@ -9,6 +9,7 @@ import           Prelude.Luna                                    hiding (pre, su
 import           Control.Monad                                   (forM_)
 import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Except                            (runExceptT, ExceptT (..), throwError, MonadError)
+import           Control.Monad.Reader                            (runReaderT, ReaderT, MonadReader, ask, local)
 
 import           Data.Construction
 import           Data.Graph
@@ -59,10 +60,10 @@ convertRationalBase radix rational = nom % den where
     nom = convertBase radix (numerator   rational)
     den = convertBase radix (denominator rational)
 
-numberToValue :: Lit.Number -> Value
-numberToValue (Lit.Number radix (Lit.Rational r)) = unsafeToValue $ convertRationalBase (toInteger radix) r
-numberToValue (Lit.Number radix (Lit.Integer  i)) = unsafeToValue (fromIntegral $ convertBase         (toInteger radix) i :: Int)
-numberToValue (Lit.Number radix (Lit.Double   d)) = unsafeToValue $ d
+numberToData :: Lit.Number -> Data
+numberToData (Lit.Number radix (Lit.Rational r)) = unsafeToData $ convertRationalBase (toInteger radix) r
+numberToData (Lit.Number radix (Lit.Integer  i)) = unsafeToData (fromIntegral $ convertBase (toInteger radix) i :: Int)
+numberToData (Lit.Number radix (Lit.Double   d)) = unsafeToData $ d
 
 tryGetBool :: String -> Maybe Bool
 tryGetBool boolStr
@@ -169,64 +170,100 @@ exceptionHandler e = case asyncExcMay of
         Just exc -> liftIO $ throwIO e
     where asyncExcMay = ((fromException e) :: Maybe AsyncException)
 
-evaluateNode :: (InterpreterCtx(m, ls, term), MonadError [String] m) => Ref Node (ls :<: term) -> m Value
-evaluateNode ref = do
+liftBinders :: [a] -> (Value -> Value) -> Value -> Value
+liftBinders [] f v = f v
+liftBinders (_ : as) f v = do
+    Function func <- v
+    unsafeToValue $ \(x :: Data) -> liftBinders as f (func x)
+
+makeConst :: Data -> [a] -> Value
+makeConst d []       = return d
+makeConst d (_ : as) = unsafeToValue $ \(x :: Data) -> makeConst d as
+
+handleArgs :: [Ref Node n] -> Ref Node n -> Maybe Value
+handleArgs [] _ = Nothing
+handleArgs (a : as) r | r == a    = Just . unsafeToValue $ \x -> makeConst x as
+                      | otherwise = unsafeToValue . (const :: Value -> Data -> Value) <$> handleArgs as r
+
+composeManyToMany :: [a] -> [Value] -> Value -> Value
+composeManyToMany []       fs g = unsafeAppFun g fs
+composeManyToMany (_ : as) fs g = unsafeToValue $ \(x :: Data) -> let appArg f = unsafeAppFun f [Pure x]
+                                                                  in  composeManyToMany as (appArg <$> fs) (appArg g)
+
+evaluateAST :: ( InterpreterCtx(m, ls, term)
+               , MonadError [String] m
+               , MonadReader [Ref Node (ls :<: term)] m
+               ) => Ref Node (ls :<: term) -> m Value
+evaluateAST ref = do
     node <- read ref
-    markDirty False ref
+    args <- ask
     let tcData = node # TCData
-    when (isDirty node && null (tcData ^. tcErrors)) $ do
-        val <- caseTest (uncover node) $ do
-            of' $ \(Lit.String str) -> do
-                return . unsafeToValue $ str
-            of' $ return . numberToValue
-            of' $ \(Cons n args) -> case unwrap n of
-                "True"  -> return $ unsafeToValue True
-                "False" -> return $ unsafeToValue False
+    caseTest (uncover node) $ do
+        of' $ \(Lit.String str) -> return . flip makeConst args . unsafeToData $ str
+        of' $ return . flip makeConst args . numberToData
+        of' $ \(Cons n _) -> do
+            v <- case unwrap n of
+                "True"  -> return $ unsafeToData True
+                "False" -> return $ unsafeToData False
                 _       -> throwError ["Undefined constructor"]
-            of' $ \(App f args) -> do
-                funRef       <- follow source f
-                funVal       <- evaluateNode funRef
-                unpackedArgs <- unpackArguments args
-                argVals <- forM unpackedArgs $ \ref -> do
-                    node <- read ref
-                    caseTest (uncover node) $ do
-                        of' $ \Blank -> return Nothing
-                        of' $ \ANY   -> Just <$> evaluateNode ref
-                return $ unsafeAppFun funVal argVals
-            of' $ \(Acc (Lit.String name) t) -> do
-                targetRef <- follow source t
-                target <- read targetRef
-                caseTest (uncover target) $ do
-                    of' $ \Blank -> return $ unsafeMakeAccessor name
-                    of' $ \ANY   -> do
-                        targetVal <- evaluateNode targetRef
-                        return $ unsafeGetProperty name targetVal
-            of' $ \(Var n) -> do
-                case tcData ^. redirect of
-                    Just e -> do
-                        ref         <- follow source e
-                        assignedVal <- evaluateNode ref
-                        v <- liftIO $ handleAll exceptionHandler $ Right <$> toIO assignedVal
-                        case v of
-                            Left errs -> do
-                                let msgs = ("Runtime exception: " <>) <$> errs
-                                setValue (Left msgs) ref
-                                throwError msgs
-                            Right v -> return $ Pure v
-                    Nothing -> lookupVar (unwrap n) <?!> ["Undefined variable"]
-            of' $ \ANY -> throwError ["Unexpected node type"]
-        setValue (Right val) ref
-    v <- getValue ref
-    case v of
+            return $ makeConst v args
+        of' $ \(App f as) -> do
+            funRef       <- follow source f
+            funVal       <- evaluateNode funRef
+            unpackedArgs <- unpackArguments as
+            argVals      <- mapM evaluateNode unpackedArgs
+            return $ composeManyToMany args argVals funVal
+        of' $ \(Acc (Lit.String name) t) -> do
+            targetRef <- follow source t
+            targetVal <- evaluateNode targetRef
+            return $ liftBinders args (unsafeGetProperty name) targetVal
+        of' $ \(Var n) -> case tcData ^. redirect of
+            Just e -> do
+                ref         <- follow source e
+                assignedVal <- evaluateNode ref
+                return assignedVal
+                -- TODO[MK]: Figure output repacking with lambdas (how to encode the transform without AST in place!)
+                {-v <- liftIO $ handleAll exceptionHandler $ Right <$> toIO assignedVal-}
+                {-case v of-}
+                    {-Left errs -> do-}
+                        {-let msgs = ("Runtime exception: " <>) <$> errs-}
+                        {-setValue (Left msgs) ref-}
+                        {-throwError msgs-}
+                    {-Right v -> return $ Pure v-}
+            Nothing -> lookupVar (unwrap n) <?!> ["Undefined variable"]
+        of' $ \(Lam as out) -> do
+            unpackedArgs <- unpackArguments as
+            outRef <- follow source out
+            local (++ unpackedArgs) $ evaluateNode outRef
+        of' $ \ANY -> throwError ["Unexpected node type"]
+
+evaluateNode :: ( InterpreterCtx(m, ls, term)
+                , MonadError [String] m
+                , MonadReader [Ref Node (ls :<: term)] m
+                ) => Ref Node (ls :<: term) -> m Value
+evaluateNode ref = do
+    args <- ask
+    val  <- case handleArgs args ref of
+        Just v -> return $ Right v
+        _      -> do
+            node <- read ref
+            let tcData = node # TCData
+            if isDirty node && null (tcData ^. tcErrors)
+                then do
+                    markDirty False ref
+                    Right <$> evaluateAST ref
+                else getValue ref
+    setValue val ref
+    case val of
         Left  e -> throwError e
         Right v -> return v
 
-evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] m), ls, term)) => [Ref Node (ls :<: term)] -> m ()
+evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT [Ref Node (ls :<: term)] m)), ls, term)) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
     mapM_ collectNodesToEval $ reverse reqRefs
-    mapM_ (runExceptT . evaluateNode) =<< Env.getNodesToEval
+    mapM_ (flip runReaderT [] . runExceptT . evaluateNode) =<< Env.getNodesToEval
 
-run :: forall env m ls term node edge graph clus n e c. (Monad m, InterpreterCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (InterpreterT env m)), ls, term), env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term node edge graph clus n e c. (Monad m, InterpreterCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT [Ref Node (ls :<: term)] (InterpreterT env m))), ls, term), env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     ((), env) <- flip runInterpreterT (def :: env) $ do

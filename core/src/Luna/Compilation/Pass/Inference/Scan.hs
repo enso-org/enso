@@ -15,12 +15,11 @@ import Old.Luna.Syntax.Term.Class                            hiding (source, tar
 import Luna.Syntax.Model.Layer
 import Luna.Runtime.Dynamics                         (Static)
 import Luna.Syntax.Model.Network.Class                 ()
-import Luna.Syntax.Model.Network.Builder.Node.Inferred
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Term
 
 import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect)
+import Luna.Syntax.Model.Network.Builder               (TCDataPayload, depth, redirect, replaceNodeNonDestructive, replaceNode, HasSuccs)
 
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
@@ -34,10 +33,15 @@ import           Data.Layer_OLD.Cover_OLD
                    , edge ~ Link node                              \
                    , BiCastable n node                             \
                    , BiCastable e edge                             \
+                   , Covered node                                  \
                    , Destructor m (Ref Edge edge)                  \
+                   , Destructor m (Ref Node node)                  \
                    , Connectible (Ref Node node) (Ref Node node) m \
                    , MonadBuilder (Hetero (NEC.Graph n e c)) m     \
                    , NodeInferable  (m) node                       \
+                   , HasSuccs node                                 \
+                   , TermNode Lam   m (ls :<: term)                \
+                   , TermNode Blank m (ls :<: term)                \
                    , Getter Inputs node                            \
                    , Prop Inputs node ~ [Ref Edge edge]            \
                    , HasProp TCData node                           \
@@ -101,6 +105,39 @@ resolveLocalVars = do
             of' $ \ANY         -> return Nothing
     TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem vars)
 
+desugarLambdas :: PassCtx(m) => m ()
+desugarLambdas = do
+    accs <- view TypeCheck.untypedAccs <$> TypeCheck.get
+    forM_ accs $ \ref -> do
+        acc <- read ref
+        caseTest (uncover acc) $ do
+            of' $ \(Acc _ t) -> do
+                tgt <- follow source t
+                isB <- isBlank tgt
+                when isB $ do
+                    tempBlank <- blank
+                    replaceNodeNonDestructive ref tempBlank
+                    lambda <- lam [arg tgt] ref
+                    replaceNode tempBlank lambda
+                    TypeCheck.modify_ $ TypeCheck.untypedLambdas %~ (lambda :)
+            of' $ \ANY -> impossible
+
+    apps <- view TypeCheck.untypedApps <$> TypeCheck.get
+    forM_ apps $ \ref -> do
+        node <- read ref
+        caseTest (uncover node) $ do
+            of' $ \(App _ as) -> do
+                args   <- mapM (follow source . unlayer) as
+                blanks <- filterM isBlank args
+                when (not . null $ blanks) $ do
+                    tempBlank <- blank
+                    replaceNodeNonDestructive ref tempBlank
+                    lambda <- lam (arg <$> blanks) ref
+                    replaceNode tempBlank lambda
+                    TypeCheck.modify_ $ TypeCheck.untypedLambdas %~ (lambda :)
+            of' $ \ANY -> impossible
+
+
 -----------------------------
 -- === TypeCheckerPass === --
 -----------------------------
@@ -114,6 +151,7 @@ instance (Monad m {-ghc8-}, PassCtx(m)) => TypeCheckerPass ScanPass m where
         roots <- view TypeCheck.freshRoots <$> TypeCheck.get
         mapM_ (subtreeWalk investigate) roots
         resolveLocalVars
+        desugarLambdas
         mapM_ assignDepths roots
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []
         case roots of

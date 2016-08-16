@@ -18,7 +18,7 @@ import Old.Luna.Syntax.Term.Class                         hiding (source, target
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool, newVarIdent')
@@ -227,14 +227,6 @@ replaceAny r1 r2 = do
     if size (n1 # Succs) > size (n2 # Succs)
         then replaceNode r2 r1 >> return r1
         else replaceNode r1 r2 >> return r2
-
-replaceNode :: PassCtx(m, ls, term) => nodeRef -> nodeRef -> m ()
-replaceNode oldRef newRef = do
-    oldNode <- read oldRef
-    forM_ (readSuccs oldNode) $ \e -> do
-        withRef e $ source .~ newRef
-        withRef newRef $ prop Succs %~ add (unwrap e)
-    destruct oldRef
 
 whenMatched a f = caseTest a $ do
     of' f

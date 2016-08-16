@@ -33,6 +33,7 @@ import           Data.Layer_OLD.Cover_OLD
 
 #define PassCtx(m,ls,term) ( term ~ Draft Static                                     \
                            , ne   ~ Link (ls :<: term)                               \
+                           , nodeRef ~ Ref Node (ls :<: term)                        \
                            , Prop Type   (ls :<: term) ~ Ref Edge ne                 \
                            , Prop TCData (ls :<: term) ~ TCDataPayload (ls :<: term) \
                            , BiCastable     e ne                                     \
@@ -64,19 +65,22 @@ instance (PassCtx(m, ls, term)) => TypeCheckerPass StructuralInferencePass m whe
         return $ (not . null $ tcState ^. TypeCheck.untypedApps)
               || (not . null $ tcState ^. TypeCheck.untypedAccs)
               || (not . null $ tcState ^. TypeCheck.untypedBinds)
+              || (not . null $ tcState ^. TypeCheck.untypedLambdas)
 
     runTCPass _ = do
         tcState <- TypeCheck.get
         let apps  = tcState ^. TypeCheck.untypedApps
             accs  = tcState ^. TypeCheck.untypedAccs
             binds = tcState ^. TypeCheck.untypedBinds
+            lams  = tcState ^. TypeCheck.untypedLambdas
             all   = tcState ^. TypeCheck.allNodes
-        newUnis <- runPass all apps accs binds
-        TypeCheck.modify_ $ (TypeCheck.untypedApps   .~ [])
-                          . (TypeCheck.untypedAccs   .~ [])
-                          . (TypeCheck.untypedBinds  .~ [])
+        newUnis <- runPass all apps accs binds lams
+        TypeCheck.modify_ $ (TypeCheck.untypedApps    .~ [])
+                          . (TypeCheck.untypedAccs    .~ [])
+                          . (TypeCheck.untypedBinds   .~ [])
+                          . (TypeCheck.untypedLambdas .~ [])
                           . (TypeCheck.unresolvedUnis %~ (newUnis ++))
-        if (not $ null apps) || (not $ null accs) || (not $ null binds)
+        if (not $ null apps) || (not $ null accs) || (not $ null binds) || (not $ null lams)
             then return Progressed
             else return Stuck
 
@@ -84,7 +88,22 @@ instance (PassCtx(m, ls, term)) => TypeCheckerPass StructuralInferencePass m whe
 -- === Pass Implementation === --
 ---------------------------------
 
-buildAppType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m [nodeRef]
+buildLambdaType :: PassCtx(m,ls,term) => nodeRef -> m [nodeRef]
+buildLambdaType lamRef = do
+    lamNode <- read lamRef
+    caseTest (uncover lamNode) $ do
+        of' $ \(Lam as r) -> do
+            res      <- follow source r
+            args     <- mapM (follow source . unlayer) as
+            argTypes <- mapM getTypeSpec args
+            outType  <- getTypeSpec res
+            oldType  <- getTypeSpec lamRef
+            newType  <- lam (arg <$> argTypes) outType
+            uni      <- unify oldType newType
+            return [uni]
+        of' $ \ANY -> impossible
+
+buildAppType :: PassCtx(m,ls,term) => nodeRef -> m [nodeRef]
 buildAppType appRef = do
     appNode <- read appRef
     caseTest (uncover appNode) $ do
@@ -94,33 +113,19 @@ buildAppType appRef = do
             argTypes <- mapM getTypeSpec args
             outType  <- getTypeSpec appRef
 
-            curriedArgs <- fmap catMaybes $ forM (zip args argTypes) $ \(arg, typ) -> do
-                node <- read arg
-                return $ caseTest (uncover node) $ do
-                    of' $ \Blank -> Just typ
-                    of' $ \ANY   -> Nothing
-
-            (unis, newOutType) <- if (not . null $ curriedArgs)
-                then do
-                    newOutTpe <- var' =<< newVarIdent'
-                    newType   <- lam (arg <$> curriedArgs) newOutTpe
-                    uni       <- unify outType newType
-                    return ([uni], newOutTpe)
-                else return ([], outType)
-
             funType  <- case as of
-                [] -> return newOutType
-                _  -> lam (arg <$> argTypes) newOutType
+                [] -> return outType
+                _  -> lam (arg <$> argTypes) outType
 
             oldFunType <- follow (prop Type) fun >>= follow source
             funUni     <- unify oldFunType funType
 
-            return $ funUni : unis
+            return [funUni]
 
         of' $ \ANY -> impossible
 
 
-buildAccType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m [nodeRef]
+buildAccType :: PassCtx(m,ls,term) => nodeRef -> m [nodeRef]
 buildAccType accRef = do
     appNode <- read accRef
     caseTest (uncover appNode) $ do
@@ -128,19 +133,16 @@ buildAccType accRef = do
             src      <- follow source srcConn
             srcNode  <- read src
             srcType  <- follow (prop Type) src >>= follow source
-            accType  <- acc name srcType
-            newType  <- caseTest (uncover srcNode) $ do
-                of' $ \Blank -> lam [arg srcType] accType
-                of' $ \ANY   -> return accType
+            newType  <- acc name srcType
             oldType  <- follow (prop Type) accRef >>= follow source
             uniTp    <- unify oldType newType
             reconnect (prop Type) accRef uniTp
-            reconnect (prop TCData . requester) accType (Just accRef)
-            TypeCheck.modify_ $ TypeCheck.typelevelAccs %~ (accType :)
+            reconnect (prop TCData . requester) newType (Just accRef)
+            TypeCheck.modify_ $ TypeCheck.typelevelAccs %~ (newType :)
             return [uniTp]
         of' $ \ANY -> impossible
 
-buildBindType :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => nodeRef -> m nodeRef
+buildBindType :: PassCtx(m,ls,term) => nodeRef -> m nodeRef
 buildBindType ref = do
     node <- read ref
     caseTest (uncover node) $ do
@@ -167,12 +169,13 @@ getTypeSpec ref = do
         reconnect (prop Type) ref ntp
         return ntp
 
-runPass :: (PassCtx(m,ls,term), nodeRef ~ Ref Node (ls :<: term)) => [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
-runPass all apps accs binds = do
+runPass :: PassCtx(m,ls,term) => [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
+runPass all apps accs binds lams = do
     mapM getTypeSpec all
     accUnis  <- concat <$> mapM buildAccType accs
     appUnis  <- concat <$> mapM buildAppType apps
+    lamUnis  <- concat <$> mapM buildLambdaType lams
     bindUnis <- mapM buildBindType binds
-    return $ bindUnis <> accUnis <> appUnis
+    return $ bindUnis <> accUnis <> appUnis <> lamUnis
 
 universe = Ptr 0

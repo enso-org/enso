@@ -29,15 +29,13 @@ toIO :: LunaM a -> IO a
 toIO (Pure a)    = return a
 toIO (Monadic a) = a
 
-unsafeAppFun :: Value -> [Maybe Value] -> Value
-unsafeAppFun f [] = f
-unsafeAppFun f (Nothing : as) = do
-    (Function func) <- f
-    return . Function $ \x -> unsafeAppFun (func x) as
-unsafeAppFun f (Just a  : as) = do
-    (Function func) <- f
-    a' <- a
-    unsafeAppFun (func a') as
+unsafeAppFun :: Value -> [Value] -> Value
+unsafeAppFun = foldl unsafeAppArg where
+    unsafeAppArg :: Value -> Value -> Value
+    unsafeAppArg f a = do
+        (Function func) <- f
+        a' <- a
+        func a'
 
 unsafeGetProperty :: String -> Value -> Value
 unsafeGetProperty prop v = do

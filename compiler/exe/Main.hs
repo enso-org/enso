@@ -379,7 +379,28 @@ test1 = do
             roots <- do
                 v1 <- int 1
                 v2 <- acc "pred" v1
-                return [v2]
+                v3 <- var "var_v"
+                v4 <- match v3 v2
+
+                w1 <- blank
+                w2 <- acc "foo" w1
+                w3 <- var "var_w"
+                w4 <- match w3 w2
+
+                x1 <- blank
+                x2 <- int 1
+                x3 <- var "foo"
+                x4 <- app x3 [arg x1, arg x2]
+                x5 <- var "var_x"
+                x6 <- match x5 x4
+
+                y1 <- int 1
+                y2 <- int 2
+                y3 <- var "bar"
+                y4 <- app y3 [arg y1, arg y2]
+                y5 <- var "var_y"
+                y6 <- match y5 y4
+                return [v4, w4, x6, y6]
 
             Symbol.loadFunctions StdLib.symbols
             TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ roots

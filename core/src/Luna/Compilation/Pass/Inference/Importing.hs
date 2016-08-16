@@ -8,7 +8,6 @@ import Prelude.Luna
 
 import Control.Monad.Error                          (throwError, ErrorT, runErrorT, Error)
 import Data.Construction
-import Data.Container                               (add)
 import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record.Match
@@ -22,7 +21,7 @@ import Data.Graph                                   as Graph hiding (add)
 import Data.Graph.Builder                           as Graph hiding (run)
 import qualified Data.Graph.Backend.NEC             as NEC
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (readSuccs, importToCluster, dupCluster, requester, tcErrors, translateSignature, NodeTranslator, originSign, Sign (..))
+import Luna.Syntax.Model.Network.Builder            (readSuccs, importToCluster, dupCluster, requester, tcErrors, translateSignature, NodeTranslator, originSign, Sign (..), replaceNode)
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster, NetClusterLayers)
 import Luna.Syntax.Model.Network.Class              ()
@@ -79,15 +78,6 @@ data ImportError = NotABindingNode | AmbiguousNodeType | SymbolNotFound deriving
 instance Error ImportError
 
 type ImportErrorT = ErrorT ImportError
-
--- FIXME[MK]: Copy-pasted from Unification pass. Refactor when figuring contexts does not suck anymore [API3]
-replaceNode :: PassCtx(m) => Ref Node node -> Ref Node node -> m ()
-replaceNode oldRef newRef = do
-    oldNode <- read oldRef
-    forM_ (readSuccs oldNode) $ \e -> do
-        withRef e $ source .~ newRef
-        withRef newRef $ prop Succs %~ add (unwrap e)
-    destruct oldRef
 
 getTypeName :: PassCtx(m) => Ref Node node -> ImportErrorT m String
 getTypeName ref = do
