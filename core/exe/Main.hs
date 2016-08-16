@@ -9,7 +9,6 @@
 {-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
-{-# LANGUAGE PolyKinds                 #-}
 
 module Main where
 
@@ -93,7 +92,7 @@ import Luna.Syntax.Term.Expr hiding (Data)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Name, Data(Data))
+import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Name, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -116,6 +115,7 @@ import qualified GHC.Prim as Prim
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
 
 import Unsafe.Coerce (unsafeCoerce)
+import Type.Set as Set hiding (Set)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -357,7 +357,6 @@ newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable
 
 -- tx = Record.cons Atom.Blank :: Term Int Draft Runtime.Dynamic
 
-data Network2 = Network2 deriving (Show)
 
 -- Term Network2 '[Int] Static Draft Static Draft
 -- Expr3 Network2 '[] '[Int] Static Draft Static App
@@ -411,16 +410,7 @@ instance (Monad m, TEST.Cons2 a m t) -- , Constructor' m (Ref Edge t))
 
 
 
-type instance TEST.Bind t Network2 model = Ref Edge (Term Network2 (TEST.Subscope t model))
--- type instance TEST.Bind Name Network2 model = Ref Edge (Term Network2 (TEST.Subscope Name model))
 
-type instance TEST.Subscope Atom (Layout.Named n t) = Layout.Named n (TEST.Subscope Atom t)
-type instance TEST.Subscope Atom Draft = Draft
-type instance TEST.Scope    Atom Draft = Draft
-
-type instance TEST.Subscope Name (Layout.Named n t) = Layout.Named n n
-
-type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
     -- test_g1 :: forall m . PrimMonad m
     --         => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
@@ -513,20 +503,12 @@ type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 --         => m (Term t model)
 -- blank_x = cons2 (N.blank :: Symbol Blank (Layout.Named n a))
 
-type family MatchModels m1 m2
-type family MatchScopes t1 t2
 
-type instance MatchModels (Layout.Named n1 t1) (Layout.Named n2 t2) = Layout.Named (MatchScopes n1 n2) (MatchScopes t1 t2)
 
-type instance MatchScopes Draft Draft = Draft
-
-unify_x :: (t~Network2, xmodel1 ~ xmodel2, xmodel1 ~ Layout.Named Draft Draft, Monad m
-           , model ~ MatchModels xmodel1 xmodel2)
-        => Ref Edge (Term t xmodel1) -> Ref Edge (Term t xmodel2) -> m (Ref Edge (Term t model))
-unify_x l r = cons2 $ N.unify l r
-
-type instance TEST.Fields Network2 = '[]
-type instance TEST.Dict   Network2 = '[]
+-- unify_x :: (t~Network2, xmodel1 ~ xmodel2, xmodel1 ~ Layout.Named Draft Draft, Monad m
+--            , model ~ MatchModels xmodel1 xmodel2)
+--         => Ref Edge (Term t xmodel1) -> Ref Edge (Term t xmodel2) -> m (Ref Edge (Term t model))
+-- unify_x l r = cons2 $ N.unify l r
 
 
 -- type NTerm n a = Term (Named n a)
@@ -536,6 +518,153 @@ type instance TEST.Dict   Network2 = '[]
 -- unfiy star star :: NTerm () Phrase
 --
 
+-- test_sig1 :: TermCons m t
+-- test_sig1 = do
+--     s1 <- star
+--     u1 <- unify s1 s1
+--     return u1
+
+
+
+type instance TEST.Bind t Network2 model = Ref Edge (Term Network2 (TEST.Subscope t model))
+-- type instance TEST.Bind Name Network2 model = Ref Edge (Term Network2 (TEST.Subscope Name model))
+
+type instance TEST.Subscope Atom (Layout.Named n t) = Layout.Named n (TEST.Subscope Atom t)
+type instance TEST.Subscope Atom Draft = Draft
+type instance TEST.Scope    Atom Draft = Draft
+
+type instance TEST.Subscope Name (Layout.Named n t) = Layout.Named n n
+
+type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
+
+
+
+
+type instance TEST.Bind2 t Network2 model = Ref Edge (Term2 Network2 (TEST.Subscope t model))
+type instance TEST.Bind2 t (NetworkT n) model = Ref Edge (Term2 (NetworkT n) (TEST.Subscope t model))
+
+type instance TEST.Subscope Atom (Layout.TNA t n a) = Layout.TNA t n (TEST.Subscope Atom a)
+type instance TEST.Subscope Name (Layout.TNA t n a) = Layout.TNA t n n
+type instance TEST.Scope    Atom (Layout.TNA t n a) = TEST.Scope Atom a
+
+type instance TEST.Subscope Atom (LayoutX SimpleX '[Atom := Draft]) = LayoutX SimpleX '[Atom := Draft]
+
+
+
+type instance TEST.BindModel Sym s (Layout.TNA t n c) = Layout.Named (TEST.Bind2 Name s (Layout.TNA t n c))
+                                                                     (TEST.Bind2 Atom s (Layout.TNA t n c))
+
+
+type instance TEST.BindModel Sym s (LayoutX l bs) = Layout.Named (TEST.Bind2 Name s (LayoutX l bs))
+                                                                 (TEST.Bind2 Atom s (LayoutX l bs))
+
+
+type instance TEST.BindModel Sym s (LayoutY l ks vs) = Layout.Named (TEST.Bind2 Name s (LayoutY l ks vs))
+                                                                    (TEST.Bind2 Atom s (LayoutY l ks vs))
+
+
+type instance TEST.Scope    t (LayoutX l bs) = TEST.Scope t (bs ^. t)
+
+type instance TEST.Scope    t (LayoutY l ks vs) = TEST.Scope t ((LayoutY l ks vs) ^. t)
+
+
+
+
+data G = G
+type instance TEST.Fields G = '[]
+
+xstar :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Layout.TNA Draft () Draft))
+xstar = consTerm N.star
+
+xstar2 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (LayoutX SimpleX '[Atom := Draft]))
+xstar2 = consTerm N.star
+
+xstar3 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Set Atom Star (DefaultLayout l ks)))
+xstar3 = unsafeConsTerm N.star
+
+xstar4 :: TEST.ASTBuilder (NetworkT a) m => m (Term2 (NetworkT a) (TNA SimpleX Draft Draft Star))
+xstar4 = xstar3
+
+-- xstar2 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) l)
+-- xstar2 = consTerm N.star
+
+type DefaultLayout l ks = LayoutY l ks (DefaultScopes l ks)
+
+
+type family DefaultScopes l ks where
+    DefaultScopes l '[]       = '[]
+    DefaultScopes l (k ': ks) = DefaultScope l k ': DefaultScopes l ks
+
+type family DefaultScope l k
+
+type instance DefaultScope SimpleX k = Draft
+
+type family LookupAssoc k s where
+    LookupAssoc k '[]            = 'Nothing
+    LookupAssoc k (k ':= v ': _) = 'Just v
+    LookupAssoc k (l ':= _ ': s) = LookupAssoc k s
+
+type instance Set k v (LayoutY l ks vs) = LayoutY l ks (SetByKey k v ks vs)
+type instance Get k   (LayoutY l ks vs) = GetByKey k ks vs
+
+type family SetByKey k v ks vs where
+    SetByKey k v (k ': _)  (_ ': vs) = v ': vs
+    SetByKey k n (_ ': ks) (v ': vs) = v ': SetByKey k n ks vs
+
+type family GetByKey k ks vs where
+    GetByKey k (k ': _)  (v ': _)  = v
+    GetByKey k (_ ': ks) (_ ': vs) = GetByKey k ks vs
+
+
+type family MatchModels m1 m2
+type family UniScope t1 t2
+
+type instance MatchModels (Layout.Named n1 t1) (Layout.Named n2 t2) = Layout.Named (UniScope n1 n2) (UniScope t1 t2)
+
+type instance MatchModels (LayoutX t bs) (LayoutX t bs') = LayoutX t (MatchByKeys (Set.ToList (Concat (AsSet (List.Keys bs)) (AsSet (List.Keys bs)))) bs bs')
+
+type family MatchByKeys (ks :: [*]) (bs :: [Assoc * *]) (bs' :: [Assoc * *]) :: [Assoc * *] where
+    MatchByKeys '[] bs bs' = '[]
+    MatchByKeys (k ': ks) bs bs' = (k ':= MatchFinal (LookupAssoc k bs) (LookupAssoc k bs')) ': MatchByKeys ks bs bs'
+
+type family MatchFinal l r where
+    MatchFinal 'Nothing  ('Just a)  = a
+    MatchFinal ('Just a) 'Nothing   = a
+    MatchFinal ('Just a) ('Just a') = MatchXScopes a a'
+
+type family MatchXScopes a b
+type instance MatchXScopes Draft Draft = Draft
+type instance MatchXScopes Draft Value = Draft
+
+
+type instance MatchModels (Layout.TNA t n a) (Layout.TNA t' n' a') = Layout.TNA (UniScope t t') (UniScope n n') (UniScope a a')
+
+
+type instance UniScope Draft Draft = Draft
+
+
+xunify :: forall t a m model model1 model2 layout n x.
+          ( t ~ NetworkT a, Monad m, model ~ MatchModels model1 model2, TEST.ASTBuilder t m
+          , TEST.MatchModel (Symbol Unify layout) t model, layout ~ Layout.Named n x)
+        => Ref Edge (Term2 t model1) -> Ref Edge (Term2 t model2) -> m (Term2 t model)
+xunify l r = consTerm $ N.unify (unsafeCoerce l) (unsafeCoerce r)
+
+-- moze zakodowac glebiej zaleznosci - w Symbolach ?
+-- moznaby pisac wtedy np.
+-- data    instance Symbol Acc      layout = Acc     !(Bind Name layout) !(Bind Child layout)
+-- lub cos podobnego, przycyzm layout musialby zawierac `sys` !
+
+data SimpleX
+
+data LayoutX t (ls :: [Assoc * *])
+data LayoutY t (keys :: [*]) (scopes :: [*])
+data LayoutZ l (scopes :: [*])
+
+type family Scopes a :: [*]
+data Z_TNA
+type instance Scopes Z_TNA = '[Type, Name, Atom]'
+
+type TNA l t n a = LayoutY l '[Type, Name, Atom] '[t, n, a]
 
 main :: IO ()
 main = do
@@ -548,7 +677,13 @@ main = do
     -- let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
     let e1  = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
         er1 = (runIdentity (cons2 N.blank) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
-        u1  = (runIdentity (unify_x er1 er1) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
+        -- u1  = (runIdentity (unify_x er1 er1) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
+
+        xe1 = (runIdentity (consTerm N.blank) :: (Term2 Network2 (Layout.TNA Draft Draft Draft)))
+
+        fs1 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
+        fs2 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
+        -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
 
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)

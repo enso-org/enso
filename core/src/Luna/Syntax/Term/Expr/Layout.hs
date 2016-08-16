@@ -8,3 +8,5 @@ data Layout = Layout deriving (Show)
 
 
 data Named n a
+
+data TNA tp name atom
