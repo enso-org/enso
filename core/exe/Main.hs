@@ -116,6 +116,7 @@ import qualified Luna.Syntax.Term.Expr.Layout as Layout
 
 import Unsafe.Coerce (unsafeCoerce)
 import Type.Set as Set hiding (Set)
+import qualified Type.List as TList
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -562,6 +563,9 @@ type instance TEST.BindModel Sym s (LayoutX l bs) = Layout.Named (TEST.Bind2 Nam
 type instance TEST.BindModel Sym s (LayoutY l ks vs) = Layout.Named (TEST.Bind2 Name s (LayoutY l ks vs))
                                                                     (TEST.Bind2 Atom s (LayoutY l ks vs))
 
+type instance TEST.BindModel Sym s (LayoutZ l t ss) = Layout.Named (TEST.Bind2 Name s (LayoutZ l t ss))
+                                                                   (TEST.Bind2 Atom s (LayoutZ l t ss))
+
 
 type instance TEST.Scope    t (LayoutX l bs) = TEST.Scope t (bs ^. t)
 
@@ -572,6 +576,19 @@ type instance TEST.Scope    t (LayoutY l ks vs) = TEST.Scope t ((LayoutY l ks vs
 
 data G = G
 type instance TEST.Fields G = '[]
+
+
+type family Scopes t :: [*]
+type family MapScopes ts where
+    MapScopes '[]       = '[]
+    MapScopes (t ': ts) = Scopes t ': MapScopes ts
+
+
+type family DiscoverScopes t where
+    DiscoverScopes t = Atom ': Name ': TList.Join (MapScopes (Fields t))
+
+type instance Scopes (NetworkT a) = DiscoverScopes a
+
 
 xstar :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Layout.TNA Draft () Draft))
 xstar = consTerm N.star
@@ -585,10 +602,42 @@ xstar3 = unsafeConsTerm N.star
 xstar4 :: TEST.ASTBuilder (NetworkT a) m => m (Term2 (NetworkT a) (TNA SimpleX Draft Draft Star))
 xstar4 = xstar3
 
+-- xstar5 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Set Atom Star (DefaultLayout2 l (NetworkT a))))
+-- xstar5 = unsafeConsTerm N.star
+--
+-- xstar6 :: forall l m a. (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (SetScope Atom Star (DefaultTerm (NetworkT a) l))
+-- xstar6 = unsafeConsTerm N.star
+
+
+-- type FGGG = Int : Char
+-- data a # b
+--
+-- Term Network (Atom # Draft, Type # Draft)
+--
+-- Term Network (Atom # Draft, Name # Draft, Type # Draft)
+--
+-- Term Network [Atom := Draft, Name := Draft, Type := Draft]
+--
+-- Term Network (Atom,Name,Type)  (Draft, Draft, Draft)
+--
+--
+-- Atom := Draft , Name := String
+--
+-- Atom := Draft , Name := String , Type := Thunk
+
+-- tyy :: m Int
+-- tyy = xstar6 @SimpleX
+
+type DefaultTerm t l = Term2 t (DefaultLayout2 l t)
+
+type family SetScope s v t where
+    SetScope s v (Term2 t model) = Term2 t (Set s v model)
+
 -- xstar2 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) l)
 -- xstar2 = consTerm N.star
 
 type DefaultLayout l ks = LayoutY l ks (DefaultScopes l ks)
+type DefaultLayout2 l t = LayoutZ l t (DefaultScopes l (Scopes t))
 
 
 type family DefaultScopes l ks where
@@ -606,6 +655,8 @@ type family LookupAssoc k s where
 
 type instance Set k v (LayoutY l ks vs) = LayoutY l ks (SetByKey k v ks vs)
 type instance Get k   (LayoutY l ks vs) = GetByKey k ks vs
+
+type instance Set k v (LayoutZ l t ss) = LayoutZ l t (SetByKey k v (Scopes t) ss)
 
 type family SetByKey k v ks vs where
     SetByKey k v (k ': _)  (_ ': vs) = v ': vs
@@ -641,6 +692,7 @@ type instance MatchModels (Layout.TNA t n a) (Layout.TNA t' n' a') = Layout.TNA 
 
 
 type instance UniScope Draft Draft = Draft
+type instance UniScope Value Draft = Draft
 
 
 xunify :: forall t a m model model1 model2 layout n x.
@@ -658,13 +710,14 @@ data SimpleX
 
 data LayoutX t (ls :: [Assoc * *])
 data LayoutY t (keys :: [*]) (scopes :: [*])
-data LayoutZ l (scopes :: [*])
+data LayoutZ l t (scopes :: [*])
 
-type family Scopes a :: [*]
 data Z_TNA
-type instance Scopes Z_TNA = '[Type, Name, Atom]'
+type instance Scopes Z_TNA = '[Type, Name, Atom]
 
 type TNA l t n a = LayoutY l '[Type, Name, Atom] '[t, n, a]
+
+
 
 main :: IO ()
 main = do
@@ -681,7 +734,7 @@ main = do
 
         xe1 = (runIdentity (consTerm N.blank) :: (Term2 Network2 (Layout.TNA Draft Draft Draft)))
 
-        fs1 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
+        fs1 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Value))
         fs2 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
         -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
