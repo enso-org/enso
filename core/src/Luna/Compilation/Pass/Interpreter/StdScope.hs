@@ -19,6 +19,7 @@ stdScope = Scope $ Map.fromList
     , ("empty",     unsafeToValue ([] :: [Data]))
     , ("+",         unsafeToValue ((+) :: Int -> Int -> Int))
     , ("*",         unsafeToValue ((*) :: Int -> Int -> Int))
+    , ("==",        unsafeToValue ((==) :: Int -> Int -> Bool))
 
     , ("mean",        unsafeToValue ((uncurry (/) . foldr (\e (s, c) -> (e + s, c + 1)) (0, 0)) :: [Double] -> Double))
     , ("differences", unsafeToValue ((\l -> zipWith (-) (drop 1 l) l) :: [Int] -> [Int]))

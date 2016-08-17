@@ -326,6 +326,7 @@ symbolsList = [
     , makeNativeFun "pi"           Nothing []                                                             (scons "Double")
     , makeNativeFun "+"            Nothing [scons "Int", scons "Int"]                                     (scons "Int")
     , makeNativeFun "*"            Nothing [scons "Int", scons "Int"]                                     (scons "Int")
+    , makeNativeFun "=="           Nothing [scons "Int", scons "Int"]                                     (scons "Bool")
 
 ----------------------
 --- === Shapes === ---

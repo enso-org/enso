@@ -11,6 +11,8 @@ import           Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Except                            (runExceptT, ExceptT (..), throwError, MonadError)
 import           Control.Monad.Reader                            (runReaderT, ReaderT, MonadReader, ask, local)
 
+import           Data.IORef                                      (IORef, newIORef, readIORef, modifyIORef, writeIORef)
+
 import           Data.Construction
 import           Data.Graph
 import qualified Data.Graph.Backend.NEC                          as NEC
@@ -18,6 +20,8 @@ import           Data.Graph.Builder                              hiding (get)
 import qualified Data.Graph.Builder                              as GraphBuilder
 import           Data.Prop
 import           Data.Record                                     hiding (cons, Value)
+import           Data.Map                                        (Map)
+import qualified Data.Map                                        as Map
 import           Development.Placeholders
 
 import           Luna.Compilation.Pass.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT, evalInterpreterT)
@@ -164,9 +168,9 @@ collectNodesToEval ref = do
         whenM (isDirty <$> read p) $
             collectNodesToEval p
 
-exceptionHandler :: SomeException -> IO (ValueErr a)
+exceptionHandler :: SomeException -> ExceptT String IO a
 exceptionHandler e = case asyncExcMay of
-        Nothing  -> return $ Left [show e]
+        Nothing  -> throwError $ show e
         Just exc -> liftIO $ throwIO e
     where asyncExcMay = ((fromException e) :: Maybe AsyncException)
 
@@ -190,13 +194,50 @@ composeManyToMany []       fs g = unsafeAppFun g fs
 composeManyToMany (_ : as) fs g = unsafeToValue $ \(x :: Data) -> let appArg f = unsafeAppFun f [Pure x]
                                                                   in  composeManyToMany as (appArg <$> fs) (appArg g)
 
+data Stack = Stack { _global :: StackFrame
+                   , _local  :: [StackFrame]
+                   }
+
+newtype StackFrame = StackFrame (IORef (Map Int Value))
+makeWrapped ''StackFrame
+
+makeStack :: MonadIO m => m Stack
+makeStack = Stack <$> liftIO (StackFrame <$> newIORef Map.empty) <*> pure []
+
+readStack :: MonadIO m => Stack -> Ref Node n -> m (Maybe Value)
+readStack (Stack g l) r = readFrames g l where
+    readFrames g []       = readFrame g
+    readFrames g (f : fs) = do
+        res <- readFrame g
+        case res of
+            Nothing -> readFrames g fs
+            _ -> return res
+
+    readFrame (StackFrame mref) = Map.lookup (unwrap r) <$> liftIO (readIORef mref)
+
+putValue :: MonadIO m => Stack -> Ref Node n -> Value -> m ()
+putValue (Stack g l) r v = putVal g l where
+    putVal g []      = putFrame g
+    putVal _ (f : _) = putFrame f
+
+    putFrame (StackFrame mref) = liftIO $ modifyIORef mref (Map.insert (unwrap r) v)
+
+allocFrame :: MonadIO m => Stack -> m Stack
+allocFrame (Stack g l) = liftIO $ do
+    newFrame <- StackFrame <$> newIORef Map.empty
+    return $ Stack g (newFrame : l)
+
+clearLocal :: MonadIO m => Stack -> m ()
+clearLocal (Stack _ ((StackFrame l) : ls)) = liftIO $ writeIORef l Map.empty
+clearLocal _ = return ()
+
 evaluateAST :: ( InterpreterCtx(m, ls, term)
                , MonadError [String] m
-               , MonadReader [Ref Node (ls :<: term)] m
+               , MonadReader (Stack, [Ref Node (ls :<: term)]) m
                ) => Ref Node (ls :<: term) -> m Value
 evaluateAST ref = do
     node <- read ref
-    args <- ask
+    (stack, args) <- ask
     let tcData = node # TCData
     caseTest (uncover node) $ do
         of' $ \(Lit.String str) -> return . flip makeConst args . unsafeToValue $ str
@@ -223,30 +264,31 @@ evaluateAST ref = do
             Just e -> do
                 ref         <- follow source e
                 assignedVal <- evaluateNode ref
-                return assignedVal
-                -- TODO[MK]: Figure output repacking with lambdas (how to encode the transform without AST in place!)
-                {-v <- liftIO $ handleAll exceptionHandler $ Right <$> toIO assignedVal-}
-                {-case v of-}
-                    {-Left errs -> do-}
-                        {-let msgs = ("Runtime exception: " <>) <$> errs-}
-                        {-setValue (Left msgs) ref-}
-                        {-throwError msgs-}
-                    {-Right v -> return $ Pure v-}
+                return $ flip (liftBinders args) assignedVal $ \val -> do
+                    memo <- readStack stack ref
+                    v <- case memo of
+                        Just v  -> v
+                        Nothing -> Monadic $ handleAll exceptionHandler $ toIO val
+                    putValue stack ref (Pure v)
+                    return v
             Nothing -> do
                 v <- lookupVar (unwrap n) <?!> ["Undefined variable"]
                 return $ makeConst v args
         of' $ \(Lam as out) -> do
             unpackedArgs <- unpackArguments as
-            outRef <- follow source out
-            local (++ unpackedArgs) $ evaluateNode outRef
+            outRef       <- follow source out
+            newStack     <- allocFrame stack
+            let newArgs  =  args ++ unpackedArgs
+            funVal <- local (const (newStack, newArgs)) $ evaluateNode outRef
+            return $ liftBinders newArgs (clearLocal newStack >>) funVal
         of' $ \ANY -> throwError ["Unexpected node type"]
 
 evaluateNode :: ( InterpreterCtx(m, ls, term)
                 , MonadError [String] m
-                , MonadReader [Ref Node (ls :<: term)] m
+                , MonadReader (Stack, [Ref Node (ls :<: term)]) m
                 ) => Ref Node (ls :<: term) -> m Value
 evaluateNode ref = do
-    args <- ask
+    (_, args) <- ask
     val  <- case handleArgs args ref of
         Just v -> return $ Right v
         _      -> do
@@ -262,12 +304,13 @@ evaluateNode ref = do
         Left  e -> throwError e
         Right v -> return v
 
-evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT [Ref Node (ls :<: term)] m)), ls, term)) => [Ref Node (ls :<: term)] -> m ()
+evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT (Stack, [Ref Node (ls :<: term)]) m)), ls, term)) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
     mapM_ collectNodesToEval $ reverse reqRefs
-    mapM_ (flip runReaderT [] . runExceptT . evaluateNode) =<< Env.getNodesToEval
+    stack <- makeStack
+    mapM_ (flip runReaderT (stack, []) . runExceptT . evaluateNode) =<< Env.getNodesToEval
 
-run :: forall env m ls term node edge graph clus n e c. (Monad m, InterpreterCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT [Ref Node (ls :<: term)] (InterpreterT env m))), ls, term), env ~ Env (Ref Node (ls :<: term)))
+run :: forall env m ls term node edge graph clus n e c. (Monad m, InterpreterCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT (Stack, [Ref Node (ls :<: term)]) (InterpreterT env m))), ls, term), env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()
 run reqRefs = do
     ((), env) <- flip runInterpreterT (def :: env) $ do

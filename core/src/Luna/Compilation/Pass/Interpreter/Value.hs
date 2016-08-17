@@ -8,10 +8,11 @@ import           Data.Map      (Map)
 import qualified Data.Map      as Map
 import           Unsafe.Coerce
 import           Data.List (sort)
-import           Text.Printf        (printf)
+import           Text.Printf (printf)
+import           Control.Monad.Except
 
 type Ident    = String
-data LunaM a  = Pure a | Monadic (IO a)
+data LunaM a  = Pure a | Monadic (ExceptT String IO a)
 type Value    = LunaM Data
 data Data     = Function (Data -> Value) | Data (Object ObjectData) | Boxed (Object Any)
 data Object a = Object { _proto :: ClassDescription a
@@ -25,7 +26,7 @@ makeWrapped ''Method
 makeWrapped ''ClassDescription
 makeWrapped ''ObjectData
 
-toIO :: LunaM a -> IO a
+toIO :: LunaM a -> ExceptT String IO a
 toIO (Pure a)    = return a
 toIO (Monadic a) = a
 
@@ -61,7 +62,12 @@ instance Monad LunaM where
     (Monadic a) >>= f = Monadic $ fmap f a >>= toIO
 
 instance MonadIO LunaM where
-    liftIO = Monadic
+    liftIO = Monadic . liftIO
+
+instance MonadError String LunaM where
+    throwError = Monadic . throwError
+    catchError (Pure a)    _       = Pure a
+    catchError (Monadic v) handler = Monadic $ catchError v (toIO . handler)
 
 intDesc :: ClassDescription Any
 intDesc = ClassDescription $ Map.fromList
@@ -251,7 +257,7 @@ instance ToData a => ToValue (LunaM a) where
     unsafeToValue = fmap unsafeToData
 
 instance ToValue a => ToValue (IO a) where
-    unsafeToValue a = Monadic $ a >>= toIO . unsafeToValue
+    unsafeToValue a = Monadic $ liftIO a >>= toIO . unsafeToValue
 
 instance FromData Int where
     unsafeFromData (Boxed (Object _ i)) = unsafeCoerce i
