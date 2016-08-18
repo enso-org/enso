@@ -3,9 +3,9 @@
 module Luna.Syntax.Term.Expr.Symbol.Named (module Luna.Syntax.Term.Expr.Symbol.Named, module X) where
 
 import qualified Prelude.Luna as P
-import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Curry, Data)
+import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Curry, Data, product, product')
 
-import Luna.Syntax.Term.Expr.Symbol as X (Symbol)
+import Luna.Syntax.Term.Expr.Symbol.Class as X
 import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
@@ -107,54 +107,116 @@ instance Product (NamedSymbol Star     n a) (NamedSymbol Star     n' a') where f
 instance Product (NamedSymbol Unify    n a) (NamedSymbol Unify    n' a') where fields = iso (\(Unify    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Unify    t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedSymbol Var      n a) (NamedSymbol Var      n' a') where fields = iso (\(Var      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Var      t1    ) ; {-# INLINE fields #-}
 
+instance Product' (NamedSymbol Integer  n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Rational n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol String   n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Acc      n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol App      n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Blank    n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Cons     n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Curry    n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Lam      n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Match    n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Missing  n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Native   n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Star     n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Unify    n a) where fields' = fields ; {-# INLINE fields' #-}
+instance Product' (NamedSymbol Var      n a) where fields' = fields ; {-# INLINE fields' #-}
 
 --------------------------
 -- === Construction === --
 --------------------------
 
-symbol :: (Product s s, List.Curry' f, List.Uncurried' f ~ (List (Fields s) -> s)) => f
-symbol = List.curry' $ view (from fields) ; {-# INLINE symbol #-}
+type Symbolic atom s sym = (sym ~ AsSymbol s, FromSymbol s, Product' sym, atom ~ (s ^. Atom))
+
+
+integer' :: (Symbolic Integer s sym, Fields sym ~ '[t1]) => t1 -> s
+integer' = fromSymbol . product' ; {-# INLINE integer' #-}
+
+rational' :: (Symbolic Rational s sym, Fields sym ~ '[t1]) => t1 -> s
+rational' = fromSymbol . product' ; {-# INLINE rational' #-}
+
+string' :: (Symbolic String s sym, Fields sym ~ '[t1]) => t1 -> s
+string' = fromSymbol . product' ; {-# INLINE string' #-}
+
+
+acc' :: (Symbolic Acc s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+acc' = fromSymbol .: product' ; {-# INLINE acc' #-}
+
+app' :: (Symbolic App s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+app' = fromSymbol .: product' ; {-# INLINE app' #-}
+
+blank' :: (Symbolic Blank s sym, Fields sym ~ '[]) => s
+blank' = fromSymbol product' ; {-# INLINE blank' #-}
+
+cons' :: (Symbolic Cons s sym, Fields sym ~ '[t1]) => t1 -> s
+cons' = fromSymbol . product' ; {-# INLINE cons' #-}
+
+curry' :: (Symbolic Curry s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+curry' = fromSymbol .: product' ; {-# INLINE curry' #-}
+
+lam' :: (Symbolic Lam s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+lam' = fromSymbol .: product' ; {-# INLINE lam' #-}
+
+match' :: (Symbolic Match s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+match' = fromSymbol .: product' ; {-# INLINE match' #-}
+
+missing' :: (Symbolic Missing s sym, Fields sym ~ '[]) => s
+missing' = fromSymbol product' ; {-# INLINE missing' #-}
+
+star' :: (Symbolic Star s sym, Fields sym ~ '[]) => s
+star' = fromSymbol product' ; {-# INLINE star' #-}
+
+unify' :: (Symbolic Unify s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+unify' = fromSymbol .: product' ; {-# INLINE unify' #-}
+
+var' :: (Symbolic Var s sym, Fields sym ~ '[t1]) => t1 -> s
+var' = fromSymbol . product' ; {-# INLINE var' #-}
+
+
+
+
 
 
 integer :: P.Integer -> NamedSymbol Integer n a
-integer = symbol ; {-# INLINE integer #-}
+integer = product' ; {-# INLINE integer #-}
 
 rational :: P.Rational -> NamedSymbol Rational n a
-rational = symbol ; {-# INLINE rational #-}
+rational = product' ; {-# INLINE rational #-}
 
 string :: P.String -> NamedSymbol String n a
-string = symbol ; {-# INLINE string #-}
+string = product' ; {-# INLINE string #-}
 
 
 acc :: n -> a -> NamedSymbol Acc  n a
-acc = symbol ; {-# INLINE acc #-}
+acc = product' ; {-# INLINE acc #-}
 
 app :: a -> [Arg a] -> NamedSymbol App n a
-app = symbol ; {-# INLINE app #-}
+app = product' ; {-# INLINE app #-}
 
 blank :: NamedSymbol Blank n a
-blank = symbol ; {-# INLINE blank #-}
+blank = product' ; {-# INLINE blank #-}
 
 cons :: n -> NamedSymbol Cons n a
-cons = symbol ; {-# INLINE cons #-}
+cons = product' ; {-# INLINE cons #-}
 
 curry :: a -> [Arg a] -> NamedSymbol Curry n a
-curry = symbol ; {-# INLINE curry #-}
+curry = product' ; {-# INLINE curry #-}
 
 lam :: [Arg a] -> a -> NamedSymbol Lam n a
-lam = symbol ; {-# INLINE lam #-}
+lam = product' ; {-# INLINE lam #-}
 
 match :: a -> a -> NamedSymbol Match n a
-match = symbol ; {-# INLINE match #-}
+match = product' ; {-# INLINE match #-}
 
 missing :: NamedSymbol Missing n a
-missing = symbol ; {-# INLINE missing #-}
+missing = product' ; {-# INLINE missing #-}
 
 star :: NamedSymbol Star n a
-star = symbol ; {-# INLINE star #-}
+star = product' ; {-# INLINE star #-}
 
 unify :: a -> a -> NamedSymbol Unify n a
-unify = symbol ; {-# INLINE unify #-}
+unify = product' ; {-# INLINE unify #-}
 
 var :: n -> NamedSymbol Var n a
-var = symbol ; {-# INLINE var #-}
+var = product' ; {-# INLINE var #-}

@@ -118,6 +118,10 @@ encode3 :: forall t a. KnownNat (FromJust (Encode2 t a)) => a -> Int
 encode3 (a :: a) = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
 {-# INLINE encode3 #-}
 
+encodeType :: forall t a. KnownNat (FromJust (Encode2 t a)) => Int
+encodeType = fromIntegral $ natVal (p :: P (FromJust (Encode2 t a)))
+{-# INLINE encodeType #-}
+
 mkRecord :: IsRecord a => RecordOf a -> a
 mkRecord r = view (from asRecord) r
 {-# INLINE mkRecord #-}

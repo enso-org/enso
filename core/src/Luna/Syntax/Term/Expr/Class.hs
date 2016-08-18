@@ -35,11 +35,12 @@ import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol)
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, FromSymbol, fromSymbol, ToSymbol, toSymbol)
+import qualified Luna.Syntax.Term.Expr.Symbol2 as S2
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
-import Data.Shell               as Shell hiding (Access)
+-- import Data.Shell               as Shell hiding (Access)
 import Data.Record.Model.Masked as X (TermRecord, VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
 import Type.Monoid
 import Type.Applicative
@@ -70,7 +71,7 @@ import Type.Maybe (FromJust)
 import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
-
+import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
 
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
@@ -80,7 +81,7 @@ type instance Get Format   (Layout dyn form) = form
 
 
 data Model    = Model   deriving (Show)
-data Binding  = Binding deriving (Show)
+-- data Binding  = Binding deriving (Show)
 data SubModel = SubModel   deriving (Show)
 
 type family Bound layout (attrs :: [*]) :: * -- to musi byc tak zadeklarowane, poniewaz w ``(Binding (term # Layout) term)`, `term` moze byc zbyt rozpakowanego typu
@@ -256,7 +257,8 @@ deriving instance Show (Unwrapped (Term t model)) => Show (Term t model)
 
 -- === Definition === --
 
-type TermStore = Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+type TermStoreSlots = '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+type TermStore = Store2 TermStoreSlots
 
 newtype TermData sys model = TermData TermStore deriving (Show)
 makeWrapped ''TermData
@@ -295,6 +297,100 @@ type instance Field Data t = TermData (t ^. System) (t ^. Model)
 
 
     -- type Unwrapped (Record t) = TMap (Fields t :=: MapField (Fields t) t)
+
+
+
+-------------------
+-- === Stack === --
+-------------------
+
+-- === Definition === --
+
+data Stack3 layers (t :: ★ -> ★) where
+    SLayer3 :: t l -> Stack3 ls t -> Stack3 (l ': ls) t
+    SNull3  :: Stack3 '[] t
+--
+-- -- === Utils === --
+--
+-- -- Construction
+--
+
+------------------
+-- === Term === --
+------------------
+
+-- === Definitions === --
+
+data Term3 t = Term3 (TermStack t) TermStore
+
+
+-- === Term stack === --
+
+type TermStack t = Stack3 (Layers t) (Layer t)
+
+class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack3 ls (Layer t))
+instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull3
+instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer3 <$> consLayer <*> buildLayers
+
+
+-- === Layers === --
+
+data family Layer  t l
+type family Layers a :: [*]
+
+class LayerCons m l where
+    consLayer :: forall t. m (Layer t l)
+
+
+
+data Name = Name
+
+type family Binding t :: * -> *
+type family Sub t a
+
+type Connection c t = Binding t (Term3 (Sub c t))
+
+
+
+newtype TermSymbol atom t = TermSymbol (N.NamedSymbol atom (Connection Atom t) (Connection Name t))
+makeWrapped ''TermSymbol
+
+type instance Get p (TermSymbol atom t) = Get p (Unwrapped (TermSymbol atom t))
+
+
+-- scope ~ Scope Atom model
+-- , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope)
+
+
+instance (scope ~ (t ^. Model ^. Atom), Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
+      => FromSymbol (TermSymbol atom t) where fromSymbol = wrap'
+
+class SymbolEncoder atom where
+    encodeSymbol :: forall t. TermSymbol atom t -> TermStore
+
+
+instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
+      => SymbolEncoder atom where
+    encodeSymbol = runIdentity . encodeStore . hideLayout . unwrap' -- magic
+
+
+
+
+type TermCons atom m t = (LayersCons (Layers t) m, SymbolEncoder atom)
+
+uncheckedConsTerm2 :: TermCons atom m t => TermSymbol atom t -> m (Term3 t)
+uncheckedConsTerm2 a = flip Term3 (encodeSymbol a) <$> buildLayers
+
+
+
+
+
+
+
+
+
+
+-- type Term = Term (Network )
 
 ------------------
 -- === Term === --
@@ -360,7 +456,6 @@ type instance MatchModel (Symbol atom layout) t model = ( -- layout ~ ModelLayou
 --           => Symbol atom (Model t model) -> m (Term2 t model)
 -- consTerm2 a = Term2 <$> consStack <*> cons2 a
 
-data Name  = Name
 
 
 type family   Subscope t model

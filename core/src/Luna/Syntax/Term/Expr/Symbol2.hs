@@ -1,0 +1,212 @@
+{-# LANGUAGE UndecidableInstances #-}
+
+module Luna.Syntax.Term.Expr.Symbol2 (module Luna.Syntax.Term.Expr.Symbol2) where
+--
+-- import qualified Prelude.Luna as P
+-- import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Curry, Data)
+--
+-- import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+--
+-- import Data.Base                 (Base)
+-- import Data.Construction         (Args)
+-- import Luna.Runtime.Dynamics     (Dynamics, ByDynamics)
+-- import Luna.Syntax.Term.Function (Arg)
+-- import Type.Applicative
+-- import Control.Lens.Property
+-- import Data.Phantom
+-- import Luna.Syntax.Term.Expr.Format
+-- import qualified Luna.Syntax.Term.Expr.Layout as Layout
+-- import           Luna.Syntax.Term.Expr.Layout (Layout)
+--
+-- import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
+--
+-- import Data.Construction
+-- import           Data.RTuple (List(Null, (:-:)))
+-- import qualified Data.RTuple as List
+-- import Luna.Syntax.Term.Expr.Layout
+-- import Unsafe.Coerce (unsafeCoerce)
+-- import GHC.Prim (Any)
+
+--
+-- ---------------------
+-- -- === Symbols === --
+-- ---------------------
+--
+-- -- === Definitions === --
+--
+-- data family Symbol  atom  t
+-- type        Symbols atoms t = Symbol <$> atoms <*> '[t]
+--
+--
+-- -- === Hidden === --
+--
+-- newtype PhantomSymbol atom = PhantomSymbol Any
+-- makeWrapped ''PhantomSymbol
+--
+-- phantomize :: Symbol atom t -> PhantomSymbol atom
+-- phantomize = PhantomSymbol . unsafeCoerce
+--
+-- unsafeReveal :: PhantomSymbol atom -> Symbol atom t
+-- unsafeReveal = unsafeCoerce . unwrap'
+--
+--
+-- -- === Selectors === --
+--
+-- data Sym = Sym deriving (Show)
+--
+-- type instance Get    Sym (Symbol atom t) = Symbol atom t
+-- instance      Getter Sym (Symbol atom t) where
+--     get = id ; {-# INLINE get #-}
+--
+--
+-- -- === Definitions === --
+--
+-- type CN t = Connection Name t
+-- type CA t = Connection Atom t
+--
+-- newtype instance Symbol Integer  t = Integer  P.Integer
+-- newtype instance Symbol Rational t = Rational P.Rational
+-- newtype instance Symbol String   t = String   P.String
+--
+-- data    instance Symbol Acc      t = Acc     !(CN t) !(CA t)
+-- data    instance Symbol App      t = App      (CA t) ![Arg (CA t)]
+-- data    instance Symbol Blank    t = Blank
+-- newtype instance Symbol Cons     t = Cons     (CN t)
+-- data    instance Symbol Curry    t = Curry    (CA t) ![Arg (CA t)]
+-- data    instance Symbol Lam      t = Lam     ![Arg (CA t)] (CA t)
+-- data    instance Symbol Match    t = Match    (CA t) (CA t)
+-- data    instance Symbol Missing  t = Missing
+-- data    instance Symbol Native   t = Native  !(CN t)
+-- data    instance Symbol Star     t = Star
+-- data    instance Symbol Unify    t = Unify    (CA t) (CA t)
+-- newtype instance Symbol Var      t = Var      (CN t)
+--
+--
+-- -- === Instances === --
+--
+-- -- Properties
+--
+-- type instance Get Atom        (Symbol atom _) = atom
+-- type instance Set Atom   atom (Symbol _    t) = Symbol atom t
+-- type instance Get Format      (Symbol atom _) = Get Format atom
+--
+-- type instance Get Sym    (PhantomSymbol atom) = Any
+-- type instance Get Atom   (PhantomSymbol atom) = atom
+-- type instance Get Format (PhantomSymbol atom) = Get Format atom
+--
+--
+-- -- Show
+--
+-- deriving instance ShowFields (Symbol Acc     t) => Show (Symbol Acc     t)
+-- deriving instance ShowFields (Symbol App     t) => Show (Symbol App     t)
+-- deriving instance ShowFields (Symbol Blank   t) => Show (Symbol Blank   t)
+-- deriving instance ShowFields (Symbol Cons    t) => Show (Symbol Cons    t)
+-- deriving instance ShowFields (Symbol Curry   t) => Show (Symbol Curry   t)
+-- deriving instance ShowFields (Symbol Lam     t) => Show (Symbol Lam     t)
+-- deriving instance ShowFields (Symbol Match   t) => Show (Symbol Match   t)
+-- deriving instance ShowFields (Symbol Missing t) => Show (Symbol Missing t)
+-- deriving instance ShowFields (Symbol Native  t) => Show (Symbol Native  t)
+-- deriving instance ShowFields (Symbol Star    t) => Show (Symbol Star    t)
+-- deriving instance ShowFields (Symbol Unify   t) => Show (Symbol Unify   t)
+-- deriving instance ShowFields (Symbol Var     t) => Show (Symbol Var     t)
+--
+-- -- Args
+--
+-- type instance Fields (Symbol Integer  t) = '[P.Integer]
+-- type instance Fields (Symbol Rational t) = '[P.Rational]
+-- type instance Fields (Symbol String   t) = '[P.String]
+--
+-- type instance Fields (Symbol Acc      t) = '[CN t, CA t]
+-- type instance Fields (Symbol App      t) = '[CA t, [Arg (CA t)]]
+-- type instance Fields (Symbol Blank    t) = '[]
+-- type instance Fields (Symbol Cons     t) = '[CN t]
+-- type instance Fields (Symbol Curry    t) = '[CA t, [Arg (CA t)]]
+-- type instance Fields (Symbol Lam      t) = '[[Arg (CA t)], CA t]
+-- type instance Fields (Symbol Match    t) = '[CA t, CA t]
+-- type instance Fields (Symbol Missing  t) = '[]
+-- type instance Fields (Symbol Native   t) = '[CN t]
+-- type instance Fields (Symbol Star     t) = '[]
+-- type instance Fields (Symbol Unify    t) = '[CA t, CA t]
+-- type instance Fields (Symbol Var      t) = '[CN t]
+--
+-- -- Products
+--
+-- instance Product (Symbol Integer  t) (Symbol Integer  t') where fields = iso (\(Integer  t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Integer  t1    ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Rational t) (Symbol Rational t') where fields = iso (\(Rational t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Rational t1    ) ; {-# INLINE fields #-}
+-- instance Product (Symbol String   t) (Symbol String   t') where fields = iso (\(String   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> String   t1    ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Acc      t) (Symbol Acc      t') where fields = iso (\(Acc      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Acc      t1 t2 ) ; {-# INLINE fields #-}
+-- instance Product (Symbol App      t) (Symbol App      t') where fields = iso (\(App      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> App      t1 t2 ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Blank    t) (Symbol Blank    t') where fields = iso (\ Blank           -> Null              ) (\(Null              ) -> Blank          ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Cons     t) (Symbol Cons     t') where fields = iso (\(Cons     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Cons     t1    ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Curry    t) (Symbol Curry    t') where fields = iso (\(Curry    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Curry    t1 t2 ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Lam      t) (Symbol Lam      t') where fields = iso (\(Lam      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Lam      t1 t2 ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Match    t) (Symbol Match    t') where fields = iso (\(Match    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Match    t1 t2 ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Missing  t) (Symbol Missing  t') where fields = iso (\ Missing         -> Null              ) (\(Null              ) -> Missing        ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Native   t) (Symbol Native   t') where fields = iso (\(Native   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Native   t1    ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Star     t) (Symbol Star     t') where fields = iso (\ Star            -> Null              ) (\(Null              ) -> Star           ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Unify    t) (Symbol Unify    t') where fields = iso (\(Unify    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Unify    t1 t2 ) ; {-# INLINE fields #-}
+-- instance Product (Symbol Var      t) (Symbol Var      t') where fields = iso (\(Var      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Var      t1    ) ; {-# INLINE fields #-}
+--
+--
+-- --------------------------
+-- -- === Construction === --
+-- --------------------------
+--
+-- symbol :: (Product s s, List.Curry' f, List.Uncurried' f ~ (List (Fields s) -> s)) => f
+-- symbol = List.curry' $ view (from fields) ; {-# INLINE symbol #-}
+--
+--
+-- integer :: P.Integer -> Symbol Integer t
+-- integer = symbol ; {-# INLINE integer #-}
+--
+-- rational :: P.Rational -> Symbol Rational t
+-- rational = symbol ; {-# INLINE rational #-}
+--
+-- string :: P.String -> Symbol String t
+-- string = symbol ; {-# INLINE string #-}
+--
+--
+-- acc :: CN t -> CA t -> Symbol Acc  t
+-- acc = symbol ; {-# INLINE acc #-}
+--
+-- app :: CA t -> [Arg (CA t)] -> Symbol App t
+-- app = symbol ; {-# INLINE app #-}
+--
+-- blank :: Symbol Blank t
+-- blank = symbol ; {-# INLINE blank #-}
+--
+-- cons :: CN t -> Symbol Cons t
+-- cons = symbol ; {-# INLINE cons #-}
+--
+-- curry :: CA t -> [Arg (CA t)] -> Symbol Curry t
+-- curry = symbol ; {-# INLINE curry #-}
+--
+-- lam :: [Arg (CA t)] -> CA t -> Symbol Lam t
+-- lam = symbol ; {-# INLINE lam #-}
+--
+-- match :: CA t -> CA t -> Symbol Match t
+-- match = symbol ; {-# INLINE match #-}
+--
+-- missing :: Symbol Missing t
+-- missing = symbol ; {-# INLINE missing #-}
+--
+-- star :: Symbol Star t
+-- star = symbol ; {-# INLINE star #-}
+--
+-- unify :: CA t -> CA t -> Symbol Unify t
+-- unify = symbol ; {-# INLINE unify #-}
+--
+-- var :: CN t -> Symbol Var t
+-- var = symbol ; {-# INLINE var #-}
+--
+--
+--
+--
+--
+-- --
+-- -- ---------------------------------------------------------
+-- -- -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --
+-- -- ---------------------------------------------------------
+-- -- -- DEPRECIATED
+--
+-- type NameByDynamics dyn d = ByDynamics dyn Lit.String d

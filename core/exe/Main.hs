@@ -92,7 +92,7 @@ import Luna.Syntax.Term.Expr hiding (Data)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class (All, cons2, Layout(..), Term, Name, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, Term2)
+import Luna.Syntax.Term.Expr.Class (Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, uncheckedConsTerm2, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
@@ -106,6 +106,7 @@ import Luna.Syntax.Term.Expr.Atom (Atoms)
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
+import qualified Luna.Syntax.Term.Expr.Symbol2 as S2
 import Luna.Syntax.Term.Expr.Symbol (Sym)
 import Control.Lens.Property
 import Luna.Syntax.Term.Expr.Format (Format)
@@ -287,7 +288,7 @@ instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = retur
 
 -- == Definitions === --
 
-data Net (ls :: [*])
+-- data Net (ls :: [*])
 newtype NetLayer t a = NetLayer a deriving (Show, Functor, Traversable, Foldable)
 newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable)
 
@@ -616,7 +617,7 @@ xstar4 = xstar3
 --
 -- Term Network (Atom # Draft, Name # Draft, Type # Draft)
 --
--- Term Network [Atom := Draft, Name := Draft, Type := Draft]
+-- Term [Type, Succs] [Atom := Draft, Name := Draft, Type := Draft]
 --
 -- Term Network (Atom,Name,Type)  (Draft, Draft, Draft)
 --
@@ -708,9 +709,14 @@ xunify l r = consTerm $ N.unify (unsafeCoerce l) (unsafeCoerce r)
 
 data SimpleX
 
-data LayoutX t (ls :: [Assoc * *])
 data LayoutY t (keys :: [*]) (scopes :: [*])
 data LayoutZ l t (scopes :: [*])
+
+
+
+data LayoutX t (ls :: [Assoc * *])
+type instance Get p (LayoutX t ls) = Get p ls
+
 
 data Z_TNA
 type instance Scopes Z_TNA = '[Type, Name, Atom]
@@ -718,6 +724,12 @@ type instance Scopes Z_TNA = '[Type, Name, Atom]
 type TNA l t n a = LayoutY l '[Type, Name, Atom] '[t, n, a]
 
 
+data Net = Net
+
+data ExprX (layers :: [*]) (layout :: [Assoc ★ ★])
+
+type instance TEST.Layers    (ExprX layers _) = layers
+type instance Get TEST.Model (ExprX _ layout) = LayoutX SimpleX layout
 
 main :: IO ()
 main = do
@@ -736,6 +748,10 @@ main = do
 
         fs1 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Value))
         fs2 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
+
+        -- s1 = S2.star :: S2.Symbol Star Net
+
+        ss1 = runIdentity (uncheckedConsTerm2 N.blank') :: Term3 (ExprX '[] '[Atom := Draft])
         -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
 
@@ -747,6 +763,7 @@ main = do
     -- let eu2 = (runIdentity (cons2 $ unify es1 es1) :: Expr Static Value Static Draft)
     -- print e2
 
+    -- print s1
     putStrLn ""
     print e1
     print $ get @Data e1

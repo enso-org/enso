@@ -14,7 +14,7 @@ import GHC.Prim          (Any)
 import Type.Map          (MapLookup)
 import Type.Promotion    (KnownNats, natVals)
 import Data.Result       (Ok(Ok))
-import Data.Record.Class ( encode3, MapEncode, Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
+import Data.Record.Class ( encodeType, MapEncode, Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
                          , Variant, Layout, IsRecord, HasRecord, RecordOf, Group, DecodeMap, Props, asRecord, record
                          )
 
@@ -147,10 +147,10 @@ makeWrapped ''Enum
 
 -- === Instances === --
 
-instance (Monad m, Getter t a, KnownNat (FromJust (Encode2 t (Get t a))))
+instance (Monad m, x ~ Get t a, KnownNat (FromJust (Encode2 t x)))
       => EncodeSlot t a m Enum where
     encodeSlot a = return $ Enum nat where
-        nat = encode3 @t (Prop.get @t a)
+        nat = encodeType @t @x
     {-# INLINE encodeSlot #-}
 
 

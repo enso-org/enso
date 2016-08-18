@@ -6,6 +6,7 @@ module Luna.Syntax.Term.Expr.Atom where
 import Prelude.Luna hiding (String, Integer, Rational, Curry)
 import Data.Base
 import Data.Phantom
+import Control.Lens.Property
 
 -------------------
 -- === Atoms === --
@@ -17,7 +18,8 @@ define name = {{
 
 data {name} = {name} deriving (Show, Eq, Ord)
 
-type instance Atoms {name} = '[{name}]
+type instance Atoms    {name} = '[{name}]
+type instance Get Atom {name} =   {name}
 
 instance Default {name} where
     def = {name} ; {-# INLINE def #-}
