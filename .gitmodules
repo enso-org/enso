@@ -2,3 +2,6 @@
 	path = scripts
 	url = git@bitbucket.org:NewByteOrder/workflow.git
 	branch = master
+[submodule "tools/HaskellBooster"]
+	path = tools/HaskellBooster
+	url = https://github.com/wdanilo/HaskellBooster.git
