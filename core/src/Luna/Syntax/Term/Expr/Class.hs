@@ -58,7 +58,7 @@ import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encode
 import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
-import Type.Error (Assert)
+import Type.Error
 import Control.Monad.State
 import Control.Lens.Property hiding (get)
 import qualified Control.Lens.Property as Prop
@@ -346,24 +346,64 @@ class LayerCons m l where
 data Name = Name
 
 type family Binding t :: * -> *
-type family Sub t a
 
-type Connection c t = Binding t (Term3 (Sub c t))
+-- type Connection c t = Binding t (Term3 (Sub c t))
+
+type family Connection c t where
+    -- Connection I t = I
+    -- Connection c I = I
+    Connection c t = Binding t (Term3 (Sub c t))
+
+type Connection' c t = Term3 (Sub c t)
 
 
-
-newtype TermSymbol atom t = TermSymbol (N.NamedSymbol atom (Connection Atom t) (Connection Name t))
+newtype TermSymbol atom t = TermSymbol (N.NamedSymbol atom (Connection Name t) (Connection Atom t))
 makeWrapped ''TermSymbol
 
 type instance Get p (TermSymbol atom t) = Get p (Unwrapped (TermSymbol atom t))
 
 
--- scope ~ Scope Atom model
--- , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope)
+
+instance ValidateModel (t ^. Model) Atom atom
+      => FromSymbol (TermSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
-instance (scope ~ (t ^. Model ^. Atom), Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
-      => FromSymbol (TermSymbol atom t) where fromSymbol = wrap'
+
+
+-- === ValidateModel === ---
+-- | Model validation. Type-assertion utility, proving that symbol construction is not ill-typed.
+
+type InvalidFormat sel a format = 'ShowType sel
+                             :</>: Ticked ('ShowType a)
+                             :</>: 'Text  "is not a valid"
+                             :</>: Ticked ('ShowType format)
+
+
+class                                                       ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
+type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
+
+
+class                                                       ValidateModel model sel a
+instance {-# OVERLAPPABLE #-} ValidateModel_ model sel a => ValidateModel model sel a
+instance {-# OVERLAPPABLE #-}                               ValidateModel I     sel a
+instance {-# OVERLAPPABLE #-}                               ValidateModel model I   a
+instance {-# OVERLAPPABLE #-}                               ValidateModel model sel I
+type ValidateModel_ model sel a = ValidateScope (model ^. sel) sel a
+type ValidateModel' t     sel a = ValidateModel (t ^. Model) sel a
+
+-- TODO: Booster Extension vvv
+-- alias ValidateScope scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
+-- alias ValidateModel model sel a = ValidateScope (model ^. sel) sel a
+
+
+
+
+
+
 
 class SymbolEncoder atom where
     encodeSymbol :: forall t. TermSymbol atom t -> TermStore
@@ -376,10 +416,14 @@ instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
 
 
 
-type TermCons atom m t = (LayersCons (Layers t) m, SymbolEncoder atom)
+type UncheckedTermCons atom m t = (LayersCons (Layers t) m, SymbolEncoder atom)
+type TermCons          atom m t = (UncheckedTermCons atom m t, ValidateModel (t ^. Model) Atom atom)
 
-uncheckedConsTerm2 :: TermCons atom m t => TermSymbol atom t -> m (Term3 t)
-uncheckedConsTerm2 a = flip Term3 (encodeSymbol a) <$> buildLayers
+-- | The `term` type does not force the construction to be checked,
+--   because it has to be already performed in order to deliver TermSymbol.
+term :: UncheckedTermCons atom m t => TermSymbol atom t -> m (Term3 t)
+term a = flip Term3 (encodeSymbol a) <$> buildLayers
+
 
 
 
@@ -450,11 +494,11 @@ type instance MatchModel (Symbol atom layout) t model = ( -- layout ~ ModelLayou
 
 
 
--- consTerm2 :: ( ASTBuilder t m, AtomBuilder (Symbol atom (Model t model)) m, scope ~ Scope Atom model
+-- term :: ( ASTBuilder t m, AtomBuilder (Symbol atom (Model t model)) m, scope ~ Scope Atom model
 --              , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope
 --              )
 --           => Symbol atom (Model t model) -> m (Term2 t model)
--- consTerm2 a = Term2 <$> consStack <*> cons2 a
+-- term a = Term2 <$> consStack <*> cons2 a
 
 
 

@@ -8,44 +8,37 @@ import Data.Base
 import Data.Phantom
 import Control.Lens.Property
 
--------------------
--- === Atoms === --
--------------------
-
 -- === Definition pragmas === --
 
 define name = {{
 
-data {name} = {name} deriving (Show, Eq, Ord)
-
-type instance Atoms    {name} = '[{name}]
-type instance Get Atom {name} =   {name}
-
-instance Default {name} where
-    def = {name} ; {-# INLINE def #-}
-
-instance Phantom {name} where
-    phantom = {name} ; {-# INLINE phantom #-}
-
-instance {-# OVERLAPPABLE #-} Repr s {name} where
-    repr = fromString ∘ show ; {-# INLINE repr #-}
+data Atom_{name}
+type {name} = Atomic Atom_{name}
 
 }}
-
 
 -- === Queries === --
 
 data Atom = Atom deriving (Show)
-
 type family Atoms a :: [*]
 
 
 -- === Definitions === --
 
+data Atomic a
+
+
+-- === Instances === --
+
+type instance Atoms    (Atomic a) = '[Atomic a]
+type instance Get Atom (Atomic a) = Atomic a
+
+
+-- === Atoms === --
+
 define Integer
 define Rational
 define String
-
 define Acc
 define App
 define Blank

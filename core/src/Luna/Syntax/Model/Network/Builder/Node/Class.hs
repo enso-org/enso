@@ -103,6 +103,6 @@ native = Term.native
 
 
 
-star2 = node Term.star2
-
-var2 = node ∘ Term.var2
+-- star2 = node Term.star2
+--
+-- var2 = node ∘ Term.var2

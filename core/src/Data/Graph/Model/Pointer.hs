@@ -24,8 +24,12 @@ data Knowledge a = Known a
 -- === Definitions === --
 
 newtype Ptr r (tgt :: Knowledge *) = Ptr Int deriving (Generic, NFData, Show, Eq, Ord)
-type    Loc r   = Ptr r 'Unknown
-type    Ref r a = Ptr r ('Known a)
+type    Loc r   = Ptr r 'Unknown   -- Depreciated
+type    Ref r a = Ptr r ('Known a) -- Depreciated
+
+
+newtype Loc2 r   = Loc2 (Ptr r 'Unknown  ) deriving (Generic, NFData, Show, Eq, Ord)
+newtype Ref2 r a = Ref2 (Ptr r ('Known a)) deriving (Generic, NFData, Show, Eq, Ord)
 
 
 -- === Accessors === --
@@ -78,6 +82,12 @@ retarget = rewrap ; {-# INLINE retarget #-}
 
 -- Wrappers
 makeWrapped ''Ptr
+makeWrapped ''Loc2
+makeWrapped ''Ref2
+
+instance Num (Ptr r tgt) where fromInteger = wrap' . fromInteger ; {-# INLINE fromInteger #-}
+instance Num (Loc2 r)    where fromInteger = wrap' . fromInteger ; {-# INLINE fromInteger #-}
+instance Num (Ref2 r a)  where fromInteger = wrap' . fromInteger ; {-# INLINE fromInteger #-}
 
 -- Ref primitive instances
 type instance Uncovered     (Ref r a) = Uncovered a

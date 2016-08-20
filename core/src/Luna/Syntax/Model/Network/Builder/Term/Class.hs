@@ -436,8 +436,8 @@ match = P.curry $ buildTerm_OLD (Proxy :: Proxy Match)
 star2 :: TermBuilder Star m a => m a
 star2 = P.curry $ build Star
 
-var2 :: TermBuilder New.Var m a => NameInput a -> m a
-var2 = P.curry $ build Atom.Var
+-- var2 :: TermBuilder New.Var m a => NameInput a -> m a
+-- var2 = P.curry $ build Atom.Var
 
 
 -- star3 :: TermBuilder Star m a => m (Term2' t fmt dyn)
