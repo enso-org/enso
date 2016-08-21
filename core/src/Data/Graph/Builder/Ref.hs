@@ -79,6 +79,9 @@ instance (Monad m {-ghc8-}, Constructor' m (Ref r a)) => LayerConstructor m (Ref
 instance (MonadBuilder g m, DynamicM t g m a) => Constructor' m (Ref t a) where
     construct' = modifyM ∘ addM ; {-# INLINE construct' #-}
 
+instance (MonadBuilder g m, DynamicM2 t g m a) => Constructor' m (Ref2 t a) where
+    construct' = modifyM ∘ addM2 ; {-# INLINE construct' #-}
+
 -- Unregistering
 
 instance (MonadBuilder g m, DynamicM t g m a) => Unregister m (Ref t a) where

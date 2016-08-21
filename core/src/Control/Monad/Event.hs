@@ -79,9 +79,12 @@ constrainTypeM2 = constrainType (p :: P Equality_M2)
 constrainTypeM3 = constrainType (p :: P Equality_M3)
 
 
-----------------------
+
+
+
+------------------------
 -- === Dispatcher === --
-----------------------
+------------------------
 -- | The `dispatch` function can be used to indicate that a particular element is "done".
 --   It does not provide any general special meaning. In general, this information can be lost when not used explicitly.
 --   For a specific usage look at the `Network` builder, where `dispatch` is used to add type constrains on graph nodes and edges.
@@ -114,4 +117,27 @@ instance                                                         Dispatcher t a 
 instance                                                         Dispatcher t a Identity where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
 
 
+------------------------
+-- === Dispatcher === --
+------------------------
 
+newtype SuppressorT (t :: Maybe *) m a = SuppressorT (IdentityT m a) deriving (Show, Functor, Traversable, Foldable, Applicative, Monad, MonadTrans)
+makeWrapped ''SuppressorT
+
+instance {-# OVERLAPPABLE #-} Monad m          => Dispatcher t a (SuppressorT 'Nothing   m) where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-} Monad m          => Dispatcher t a (SuppressorT ('Just t)  m) where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-} Dispatcher t a m => Dispatcher t a (SuppressorT ('Just t') m) where dispatch_     = lift ∘∘ dispatch_ ; {-# INLINE dispatch_ #-}
+
+runSuppressorT :: SuppressorT t m a -> m a
+runSuppressorT = runIdentityT . unwrap' ; {-# INLINE runSuppressorT #-}
+
+suppress :: SuppressorT ('Just t) m a -> m a
+suppress = runSuppressorT ; {-# INLINE suppress #-}
+
+suppressAll :: SuppressorT 'Nothing m a -> m a
+suppressAll = runSuppressorT ; {-# INLINE suppressAll #-}
+
+
+instance PrimMonad m => PrimMonad (SuppressorT t m) where
+    type PrimState (SuppressorT t m) = PrimState m
+    primitive = lift . primitive

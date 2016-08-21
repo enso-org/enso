@@ -94,6 +94,8 @@ type instance Uncovered     (Ref r a) = Uncovered a
 type instance Unlayered     (Ref r a) = a
 type instance Deconstructed (Ref r a) = a
 
+type instance Deconstructed (Ref2 r a) = a
+
 -- Index
 type instance Index  (Ptr r a) = Int
 instance      HasIdx (Ptr r a) where idx = wrapped' ; {-# INLINE idx #-}

@@ -61,6 +61,9 @@ class DynamicM t g m a where
     addM a g = addM' a g <&> _1 %~ retarget ; {-# INLINE addM #-}
     removeM = removeM' ∘ retarget           ; {-# INLINE removeM #-}
 
+class DynamicM2 t g m a where
+    addM2    :: a -> g -> m (Ref2 t a, g)
+    removeM2 :: Ref2 t a -> g -> m g
 
 -- === Utils === --
 

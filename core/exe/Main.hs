@@ -419,11 +419,6 @@ instance (Monad m, TEST.Cons2 a m t) -- , Constructor' m (Ref Edge t))
     --     v <- Hetero <$> NEC.unsafeThaw def
     --     flip Graph.Builder.runT v $ cons2 N.star
     --
-    -- test_g2 :: forall m . PrimMonad m
-    --         => m (Ref Edge (Expr' Static Value), Network3 m)
-    -- test_g2 = do
-    --     g <- NEC.emptyHMGraph
-    --     flip Graph.Builder.runT g $ cons2 N.star
 
 
 
@@ -741,7 +736,8 @@ type instance MatchModels (LayoutX t bs) (LayoutX t bs') = LayoutX t (MatchByKey
 
 type MyExpr layers a n t = Term3 (ExprX layers a n t)
 
-type instance TEST.Binding (ExprX _ _ _ _) = Ref2 Edge
+type instance Binding (Term3 t) = Binding t
+type instance Binding (ExprX _ _ _ _) = Ref2 Edge
 
 
 -- type instance Sub p (Term3 t) = Term3 (Set Model (Sub p (t ^. Model)) t)
@@ -809,6 +805,13 @@ unify_auto l r = term $ N.unify' (unsafeCoerce l) (unsafeCoerce r) ; {-# INLINE 
 star_auto :: (DefaultModel Star t, TermCons Star m t) => m (Term3 t)
 star_auto = term N.star'
 
+
+type TermDispatcher t m = Dispatcher Node (Binding t (Term3 t)) m
+
+star_auto2 :: (DefaultModel Star t, TermCons Star m t, ConnectionBuilder m t, TermDispatcher t m)
+           => m (Binding t (Term3 t))
+star_auto2 = star_auto >>= buildConnection >>= dispatch Node
+
 tx2 :: TermCons Unify m t => Connection Atom t -> Connection Atom t -> m (Term3 t)
 tx2 = term .: N.unify'
 
@@ -821,6 +824,20 @@ type instance DefaultModel defAtom (ANTLayout l a n t) = (a ~ defAtom, n ~ (), t
 --
 -- instance Generalizable t t' => Generalizable (Term3 t) (Term3 t') where generalize = unsafeCoerce ; {-# INLINE generalize #-}
 -- instance validates ... => Generalizable (ExprX layers a n t) (ExprX layers a' n' t') where generalize = unsafeCoerce ; {-# INLINE generalize #-}
+class ConnectionBuilder m t where
+    buildConnection :: Term3 t -> m (Binding t (Term3 t))
+
+instance (Deconstructed (Binding t (Term3 t)) ~ Term3 t, Constructor' m (Binding t (Term3 t)))
+      => ConnectionBuilder m t where buildConnection = construct'
+
+
+test_g2 :: forall m . PrimMonad m
+        => m (Ref2 Edge (MyExpr '[] Star () ()), Network3 m)
+test_g2 = do
+    g <- NEC.emptyHMGraph
+    flip Graph.Builder.runT g $ suppressAll $ star_auto2
+
+
 
 main :: IO ()
 main = do
@@ -854,7 +871,9 @@ main = do
 
         -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
-
+    (x,g) <- test_g2
+    print x
+    -- print g
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
     -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)
     -- let es1 = (runIdentity (cons2 star) :: Ref Edge (Expr' Static Value))

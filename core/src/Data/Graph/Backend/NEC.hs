@@ -229,3 +229,12 @@ instance {-# OVERLAPPABLE #-}
       => DynamicM t (HMGraph s rels) m a where
     addM el = nested (prop2' @t . wrapped') $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM = error "o"
+
+
+-- GHC BUG - the second constraint makes infinit e compilation times in Main
+instance {-# OVERLAPPABLE #-}
+         (PrimMonad m, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
+        --  (PrimMonad m, HasProperty2' t g, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m)
+      => DynamicM2 t (HMGraph s rels) m a where
+    addM2 el = nested (prop2' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
+    removeM2 = error "o"
