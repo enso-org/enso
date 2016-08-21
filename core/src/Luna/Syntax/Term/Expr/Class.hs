@@ -309,7 +309,17 @@ type instance Field Data t = TermData (t ^. System) (t ^. Model)
 data Stack3 layers (t :: ★ -> ★) where
     SLayer3 :: t l -> Stack3 ls t -> Stack3 (l ': ls) t
     SNull3  :: Stack3 '[] t
---
+
+
+-- === Instances === --
+
+instance Show (Stack3 '[] t) where
+    show _ = ")"
+
+instance (Show (t l), Show (Stack3 ls t)) => Show (Stack3 (l ': ls) t) where
+    show (SLayer3 l ls) = show l <> ", " <> show ls
+
+
 -- -- === Utils === --
 --
 -- -- Construction
@@ -342,6 +352,25 @@ class LayerCons m l where
     consLayer :: forall t. m (Layer t l)
 
 
+-- === Isntances === --
+
+deriving instance Show (TermStack t) => Show (Term3 t)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 data Name = Name
 
@@ -350,8 +379,8 @@ type family Binding t :: * -> *
 -- type Connection c t = Binding t (Term3 (Sub c t))
 
 type family Connection c t where
-    -- Connection I t = I
-    -- Connection c I = I
+    Connection I t = I
+    Connection c I = I
     Connection c t = Binding t (Term3 (Sub c t))
 
 type Connection' c t = Term3 (Sub c t)

@@ -831,12 +831,27 @@ instance (Deconstructed (Binding t (Term3 t)) ~ Term3 t, Constructor' m (Binding
       => ConnectionBuilder m t where buildConnection = construct'
 
 
-test_g2 :: forall m . PrimMonad m
-        => m (Ref2 Edge (MyExpr '[] Star () ()), Network3 m)
+class IsExprX a
+instance (v ~ Binding t (Term3 t), t ~ ExprX '[] a n tp) => IsExprX v
+type IsExprX' = TypeConstraint2 IsExprX
+--
+-- test_g2 :: forall m . PrimMonad m
+--         => m (Ref2 Edge (MyExpr '[] Star () ()), Network3 m)
 test_g2 = do
     g <- NEC.emptyHMGraph
-    flip Graph.Builder.runT g $ suppressAll $ star_auto2
+    flip Graph.Builder.runT g $ suppressAll
+                              $ runListener @Node @IsExprX'
+                              $ do
+        sref3 <- star_auto2
+        sref2 <- star_auto2
+        sref <- star_auto2
+        s <- read (unwrap' sref)
+        print "!!!"
+        print sref
+        print s
+        return sref
 
+fff = follow
 
 
 main :: IO ()

@@ -32,6 +32,9 @@ withRef = with
 follow :: (MonadBuilder t m, ReferencedM r t m a) => Lens' a b -> Ref r a -> m b
 follow f ptr = view f <$> read ptr
 
+follow2 :: (MonadBuilder t m, ReferencedM r t m a) => Lens' a b -> Ref2 r a -> m b
+follow2 f ref = view f <$> read (unwrap' ref)
+
 -- === Reconnects === --
 
 class Reconnectible m r el edgeStore inpStore where

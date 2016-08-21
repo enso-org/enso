@@ -238,3 +238,14 @@ instance {-# OVERLAPPABLE #-}
       => DynamicM2 t (HMGraph s rels) m a where
     addM2 el = nested (prop2' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM2 = error "o"
+
+
+
+
+-- instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => LocatedM    t (MGraph s n e c) m
+-- instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => ReferencedM t (HMGraph s rels) m r where
+instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (MAutoVector s), Getter t g)
+      => ReferencedM t (HMGraph s rels) m r where
+    writeRefM r v = error "x" -- store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
+    -- readRefM  r g = Cont.indexM__ (r ^. idx) $ (get @t (g :: g) :: Get t g)              ; {-# INLINE readRefM  #-}
+    readRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE readRefM  #-}

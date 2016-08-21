@@ -41,8 +41,10 @@ instance PrimMonad m => PrimMonad (Listener t cfg m) where
 
 -- === Definitions === ---
 
-data TypeConstraint (ctx :: * -> * -> Constraint) tp
+data TypeConstraint (ctx :: * -> * -> Constraint) tp -- Depreciated
+data TypeConstraint2 (ctx :: * -> Constraint)
 instance (ctx a tp, Monad m) => Handler t (TypeConstraint ctx tp) m a where handler _ = return () ; {-# INLINE handler #-}
+instance (ctx a, Monad m) => Handler t (TypeConstraint2 ctx) m a where handler _ = return () ; {-# INLINE handler #-}
 
 
 -- === Constraint rules === ---
@@ -121,7 +123,7 @@ instance                                                         Dispatcher t a 
 -- === Dispatcher === --
 ------------------------
 
-newtype SuppressorT (t :: Maybe *) m a = SuppressorT (IdentityT m a) deriving (Show, Functor, Traversable, Foldable, Applicative, Monad, MonadTrans)
+newtype SuppressorT (t :: Maybe *) m a = SuppressorT (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
 makeWrapped ''SuppressorT
 
 instance {-# OVERLAPPABLE #-} Monad m          => Dispatcher t a (SuppressorT 'Nothing   m) where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
