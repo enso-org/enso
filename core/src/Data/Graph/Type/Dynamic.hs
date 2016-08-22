@@ -65,6 +65,10 @@ class DynamicM2 t g m a where
     addM2    :: a -> g -> m (Ref2 t a, g)
     removeM2 :: Ref2 t a -> g -> m g
 
+class DynamicM3 t g m where
+    addM3    :: a -> g -> m (Ref2 t a, g)
+    removeM3 :: Ref2 t a -> g -> m g
+
 -- === Utils === --
 
 -- Monadic

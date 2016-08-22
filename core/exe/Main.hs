@@ -812,6 +812,13 @@ star_auto2 :: (DefaultModel Star t, TermCons Star m t, ConnectionBuilder m t, Te
            => m (Binding t (Term3 t))
 star_auto2 = star_auto >>= buildConnection >>= dispatch Node
 
+-- TermDispatcher - nie moze byc dla kazdego t, bo bedzie ich bardzo duzo powstawalo. Mozemy zatem dispatchowac jedynie pointery, albo rzutowane na Drafty. Ladniejsze typy dadza same pointery
+-- ConnectionBuilder - moze byc zalezne jedynie od (Binding t) a nie calego `t` dzieki uzyciu DynamicM3 - ale to i tak jest wycinane (patrz nizej)
+-- Cos jest nie tak nizej chyba, bo jedyny constriant dotycyz Edge, nie Node.
+star_auto3 :: (LayersCons ls m, TermDispatcher t m, t ~ ExprX ls Star () (), MonadBuilder g m, DynamicM3 Edge g m)
+           => m (Binding t (Term3 t))
+star_auto3 = star_auto >>= buildConnection >>= dispatch Node
+
 tx2 :: TermCons Unify m t => Connection Atom t -> Connection Atom t -> m (Term3 t)
 tx2 = term .: N.unify'
 
@@ -850,6 +857,29 @@ test_g2 = do
         print sref
         print s
         return sref
+
+    -- test_g3 :: _ => g -> m (Ref2 Edge (Term3 (ExprX '[] Star () ())), g)
+    -- test_g3 g = do
+    --     flip Graph.Builder.runT g $ suppressAll
+    --                               $ runListener @Node @IsExprX'
+    --                               $ do
+    --         -- sref3 <- star_auto2
+    --         -- sref2 <- star_auto2
+    --         sref <- star_auto2
+    --         -- s <- read (unwrap' sref)
+    --         -- print "!!!"
+    --         -- print sref
+    --         -- print s
+    --         return sref
+
+    -- txxx :: (m ~ Listener Node IsExprX' m', ConnectionBuilder m t, TermDispatcher t m
+    --         , t ~ ExprX '[] Star () ())
+    --      => m' (Ref2 Edge (Term3 t))
+    -- txxx = runListener @Node @IsExprX' $ do
+    --     -- sref3 <- star_auto2
+    --     -- sref2 <- star_auto2
+    --     sref <- star_auto2
+    --     return sref
 
 fff = follow
 
