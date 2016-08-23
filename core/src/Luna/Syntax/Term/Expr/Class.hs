@@ -357,6 +357,8 @@ class LayerCons m l where
 deriving instance Show (TermStack t) => Show (Term3 t)
 
 
+type family Props a :: [Assoc * *]
+
 
 ------------------
 -- === Term === --
@@ -368,6 +370,9 @@ data Term4 t (layers :: [*]) model = Term4 (TermStack2 t layers model) TermStore
 
 type instance Get Model       (Term4 _ _ model)  = model
 type instance Set Model model (Term4 t layers _) = Term4 t layers model
+
+type instance Get Data (Term4 _ _ _) = TermStore
+instance Getter Data (Term4 t layers model) where get (Term4 _ s) = s ; {-# INLINE get #-}
 
 type instance Sub s (Term4 t layers model) = Term4 t layers (Sub s model)
 
@@ -391,9 +396,9 @@ type TermStack2 t layers model = Stack3 layers (Layer (Term4 t layers model))
 --     consLayer :: forall t. m (Layer t l)
 --
 --
--- -- === Isntances === --
---
--- deriving instance Show (TermStack t) => Show (Term4 t)
+-- === Isntances === --
+
+deriving instance Show (TermStack2 t layers model) => Show (Term4 t layers model)
 
 
 
@@ -446,16 +451,16 @@ makeWrapped ''TermSymbol
 newtype TermSymbol2 atom t = TermSymbol2 (N.NamedSymbol atom (Connection2 Name t) (Connection2 Atom t))
 makeWrapped ''TermSymbol2
 
-type instance Get p (TermSymbol atom t) = Get p (Unwrapped (TermSymbol atom t))
+type instance Get p (TermSymbol atom t)  = Get p (Unwrapped (TermSymbol atom t))
 type instance Get p (TermSymbol2 atom t) = Get p (Unwrapped (TermSymbol2 atom t))
 
 
 
-instance ValidateModel (t ^. Model) Atom atom
+instance ValidateModel (Get Model t) Atom atom
       => FromSymbol (TermSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
-instance ValidateModel (t ^. Model) Atom atom
+instance ValidateModel (Get Model t) Atom atom
       => FromSymbol (TermSymbol2 atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 

@@ -127,7 +127,7 @@ instance Product' (NamedSymbol Var      n a) where fields' = fields ; {-# INLINE
 -- === Construction === --
 --------------------------
 
-type Symbolic atom s sym = (sym ~ AsSymbol s, FromSymbol s, Product' sym, atom ~ (s ^. Atom))
+type Symbolic atom s sym = (sym ~ AsSymbol s, FromSymbol s, Product' sym, atom ~ Get Atom s)
 
 
 integer' :: (Symbolic Integer s sym, Fields sym ~ '[t1]) => t1 -> s

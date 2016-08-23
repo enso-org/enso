@@ -93,7 +93,7 @@ constrainTypeM3 = constrainType (p :: P Equality_M3)
 --   The `t` parameter is the type of registration, like `Node` or `Edge`. Please keep in mind, that `Node` indicates a "kind" of a structure.
 --   It does not equals a graph-like node - it can be a "node" in flat AST representation, like just an ordinary term.
 
-
+type Dispatcher2 t m a = Dispatcher t a m
 class Monad m => Dispatcher t a m where
     dispatch_ :: t -> a -> m ()
 

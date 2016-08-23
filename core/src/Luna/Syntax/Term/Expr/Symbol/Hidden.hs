@@ -26,8 +26,8 @@ makeWrapped ''HiddenSymbol
 
 type instance Get Atom   (HiddenSymbol atom) = atom
 type instance Get Format (HiddenSymbol atom) = Get Format atom
-type instance Get Sym    (HiddenSymbol atom) = Any
 
+type instance Get Sym    (HiddenSymbol atom) = Any
 instance Getter Sym (HiddenSymbol atom) where get = unwrap' ; {-# INLINE get #-}
 
 -- === Utils === --

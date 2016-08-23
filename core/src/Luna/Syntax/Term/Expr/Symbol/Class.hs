@@ -38,7 +38,7 @@ type        Symbols atoms layout = Symbol <$> atoms <*> '[layout]
 
 -- === Symbol isomorphisms === --
 
-type AsSymbol s = Symbol (s ^. Atom) (s ^. Layout)
+type AsSymbol s = Symbol (Get Atom s) (Get Layout s)
 
 type  IsSymbol   s s' = (ToSymbol s, FromSymbol s')
 type  IsSymbol'  s    = IsSymbol s s
@@ -77,7 +77,7 @@ type instance Set Layout layout (Symbol atom _     ) = (Symbol atom layout)
 
 type instance Get Format        (Symbol atom _     ) = Get Format atom
 
-instance Phantom atom => Getter Atom     (Symbol atom layout) where get _ = phantom
+-- instance Phantom atom => Getter Atom     (Symbol atom layout) where get _ = phantom
 
 
 

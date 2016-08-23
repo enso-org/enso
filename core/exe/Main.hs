@@ -371,7 +371,7 @@ data ZZ = AA | BB
 -- #define CASE $(testTH [| case
 -- #define ESAC {--}|])
 
-runCase :: Term t model -> [Prim.Any -> out] -> out
+runCase :: Term4 t layers model -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
@@ -800,24 +800,24 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 
-tx1 = term N.blank'
+-- tx1 = term N.blank'
 
-tx1_1 :: (LayersCons (Layers t) m, ValidateModel' t Atom Blank) => m (Term3 t)
-tx1_1 = tx1
+-- tx1_1 :: (LayersCons (Layers t) m, ValidateModel' t Atom Blank) => m (Term3 t)
+-- tx1_1 = tx1
+--
+-- tx1_2 :: TermCons Blank m t => m (Term3 t)
+-- tx1_2 = tx1
 
-tx1_2 :: TermCons Blank m t => m (Term3 t)
-tx1_2 = tx1
-
-tx2_1 :: (LayersCons layers m, ValidateScope a Atom Blank) => m (Term3 (ExprX layers a n t))
-tx2_1 = tx1
+-- tx2_1 :: (LayersCons layers m, ValidateScope a Atom Blank) => m (Term3 (ExprX layers a n t))
+-- tx2_1 = tx1
 
 
-unify_auto :: (TermCons Unify m t, t ~ Specialized Atom Unify (ExtendModel Atom l r))
-           => Binding Node t (Term3 l) -> Binding Node t (Term3 r) -> m (Term3 t)
-unify_auto l r = term $ N.unify' (unsafeCoerce l) (unsafeCoerce r) ; {-# INLINE unify_auto #-}
-
-star_auto :: (DefaultModel' Star t, TermCons Star m t) => m (Term3 t)
-star_auto = term N.star'
+-- unify_auto :: (TermCons Unify m t, t ~ Specialized Atom Unify (ExtendModel Atom l r))
+--            => Binding Node t (Term3 l) -> Binding Node t (Term3 r) -> m (Term3 t)
+-- unify_auto l r = term $ N.unify' (unsafeCoerce l) (unsafeCoerce r) ; {-# INLINE unify_auto #-}
+--
+-- star_auto :: (DefaultModel' Star t, TermCons Star m t) => m (Term3 t)
+-- star_auto = term N.star'
 
 star_auto2 :: (DefaultModel Star model, TermCons2 Star m layers model) => m (Term4 t layers model)
 star_auto2 = term2 N.star'
@@ -848,19 +848,20 @@ type TermDispatcher t m = Dispatcher Node (Binding Node t (Term3 t)) m
 --     return s
 
 
-star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
-              , LayersCons ls m, MonadBuilder g m, DynamicM2 Node g m (AnyExpr ls)
-              , t ~ ExprX2 ls model)
-           => m (Binding Node t (Term3 t))
-star_auto5 = do
-    s <- universalBind =<< star_auto
-    -- dispatch Node $ universal s
-    return s
+-- star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
+--               , LayersCons ls m, MonadBuilder g m, DynamicM2 Node g m (AnyExpr ls)
+--               , t ~ ExprX2 ls model)
+--            => m (Binding Node t (Term3 t))
+-- star_auto5 = do
+--     s <- universalBind =<< star_auto
+--     -- dispatch Node $ universal s
+--     return s
 
-star_auto6 :: ( DefaultModel Star model, ValidateModel model Atom Star
-              , LayersCons layers m, Bindable Node m (AnyTerm t layers)
-              , Dispatcher Node (Binding3 Node (AnyTerm t layers)) m)
-           => m (Binding3 Node (Term4 t layers model))
+
+type TermBuilder2 t layers m = (LayersCons layers m, Bindable Node m (AnyTerm t layers), Dispatcher2 Node m (Binding3 Node (AnyTerm t layers)))
+type AtomBuilder2 t model    = (DefaultModel t model, ValidateModel model Atom t)
+
+star_auto6 :: (AtomBuilder2 Star model, TermBuilder2 t layers m) => m (Binding3 Node (Term4 t layers model))
 star_auto6 = do
     s <- universalBind3 =<< star_auto3
     dispatch Node $ universal s
@@ -884,13 +885,13 @@ type AnyTerm t ls = Term4 t ls (Uniform Draft)
 
     --  >>= bind >>= dispatch Node
 
-tx2 :: TermCons Unify m t => Connection Atom t -> Connection Atom t -> m (Term3 t)
-tx2 = term .: N.unify'
+-- tx2 :: TermCons Unify m t => Connection Atom t -> Connection Atom t -> m (Term3 t)
+-- tx2 = term .: N.unify'
 
 -- tx2' :: TermCons2 Unify m layers model => Connection2 Atom (Term4 t layers model) -> Connection2 Atom (Term4 t layers model) -> m (Term4 t layers model)
 -- tx2' :: TermCons2 Unify m layers model => Binding Edge t (Term4 t layers (Sub Atom model)) -> Binding Edge t (Term4 t layers (Sub Atom model)) -> m (Term4 t layers model)
-tx2' :: (TermCons2 Unify m layers model, term ~ Term4 t layers model) => Binding3 Edge (Sub Atom term) -> Binding3 Edge (Sub Atom term) -> m term
-tx2' = term2 .: N.unify'
+    -- tx2' :: (TermCons2 Unify m layers model, term ~ Term4 t layers model) => Binding3 Edge (Sub Atom term) -> Binding3 Edge (Sub Atom term) -> m term
+    -- tx2' = term2 .: N.unify'
 
 type family DefaultModel defAtom t :: Constraint
 -- type instance DefaultModel defAtom (ExprX layers a n t) = DefaultModel defAtom (ExprX layers a n t ^. Model)
@@ -1042,31 +1043,30 @@ main = do
     -- let e1  = (runIdentity (cons2 blank  ) :: Term Network2 '[] '[Int] (Layout Static Draft) (Layout Static Draft))
     -- let e1   = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
     -- let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
-    let e1  = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
+    let -- e1  = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
         -- er1 = (runIdentity (cons2 N.blank) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
         -- u1  = (runIdentity (unify_x er1 er1) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
 
-        xe1 = (runIdentity (consTerm N.blank) :: (Term2 Network2 (Layout.TNA Draft Draft Draft)))
-
-        fs1 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Value))
-        fs2 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
+        -- xe1 = (runIdentity (consTerm N.blank) :: (Term2 Network2 (Layout.TNA Draft Draft Draft)))
+        --
+        -- fs1 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Value))
+        -- fs2 = Ptr 0 :: Ref Edge (Term2 (NetworkT a) (Layout.TNA Draft Draft Draft))
 
         -- s1 = S2.star :: S2.Symbol Star Net
 
-        ss1 = runIdentity (term N.blank') :: MyExpr2 '[] Draft Draft Draft
+        -- ss1 = runIdentity (term N.blank') :: MyExpr2 '[] Draft Draft Draft
 
 
-        fss1 = 0 :: Ref2 Edge (MyExpr2 '[] (Missing :> Draft) Draft Draft)
-        fss2 = 0 :: Ref2 Edge (MyExpr2 '[] (App :> Draft) Draft Draft)
+        -- fss1 = 0 :: Ref2 Edge (MyExpr2 '[] (Missing :> Draft) Draft Draft)
+        -- fss2 = 0 :: Ref2 Edge (MyExpr2 '[] (App :> Draft) Draft Draft)
 
-        -- x1 = runIdentity star_auto :: MyExpr '[] _ _ _
+        x1 = runIdentity star_auto3 :: Term4 Net '[] (ANTLayout SimpleX Star () ())
         -- su1 = runIdentity (term $ N.unify' fss1 fss1) :: MyExpr2 '[] (Unify :> Value) Draft Draft
 
         -- uux = runIdentity $ unify_auto fss2 fss1 :: Int
 
         -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
-    print ss1
     print "==="
         -- (x,g) <- test_g2
         -- print x
@@ -1081,10 +1081,10 @@ main = do
 
     -- print s1
     putStrLn ""
-    print e1
-    print $ get @Data e1
-    print $ get @Sym $ unwrap' $ get @Data e1
-    print $ unwrap' $ get @Atom $ unwrap' $ get @Data e1
+    print x1
+    print $ get @Data x1
+    print $ get @Sym $ unwrap' $ get @Data x1
+    print $ unwrap' $ get @Atom $ unwrap' $ get @Data x1
     --
     -- (a,g) <- test_g2
     -- print a
@@ -1115,26 +1115,26 @@ main = do
     --  )
 
 
-    let xx = (let blank = 2 in blank)
+    -- let xx = (let blank = 2 in blank)
 
     --
-    let { exp = e1
+    let { exp = x1
     ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
         ala = 11
-    ;f2 = matchx $ \Symbol.Blank       -> (print "hello2" )
+    ;f2 = matchx $ \Symbol.Star       -> (print "hello2" )
        where ala = 11
-    } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Blank|] ] ['f1, 'f2])
-
-    -- let { exp = e1
-    -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
-    --     ala = 11
-    -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
-
-    case' e1 of
-        Symbol.Unify l r -> print 11
-        Symbol.Blank     -> case' e1 of
-            Symbol.Unify l r -> print "hello"
-            Symbol.Blank     -> print "hello3x"
+    } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
+            --
+            -- -- let { exp = e1
+            -- -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+            -- --     ala = 11
+            -- -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
+            --
+            -- case' e1 of
+            --     Symbol.Unify l r -> print 11
+            --     Symbol.Blank     -> case' e1 of
+            --         Symbol.Unify l r -> print "hello"
+            --         Symbol.Blank     -> print "hello3x"
 
 
     -- $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
