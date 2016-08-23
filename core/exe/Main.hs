@@ -249,15 +249,15 @@ evalBuild = fmap snd ∘∘ runBuild
 -- === Binds === --
 ------------------
 
-type family Binded a
-newtype Bind a = Bind (Binded a)
-makeWrapped ''Bind
-
-class Monad m => Bindable m a where
-    bind' :: a -> m (Binded a)
-
-bind :: Bindable m a => a -> m (Bind a)
-bind = Bind <∘> bind' ; {-# INLINE bind #-}
+-- type family Binded a
+-- newtype Bind a = Bind (Binded a)
+-- makeWrapped ''Bind
+--
+-- class Monad m => Bindable m a where
+--     bind' :: a -> m (Binded a)
+--
+-- bind :: Bindable m a => a -> m (Bind a)
+-- bind = Bind <∘> bind' ; {-# INLINE bind #-}
 
 
 
@@ -401,9 +401,9 @@ defaultMatch = error "wrong match"
 --       => TEST.Cons2 a m (Ref Edge t) where
 --     cons2 = construct' <=< cons2
 
-instance (Monad m, TEST.Cons2 a m t) -- , Constructor' m (Ref Edge t))
-      => TEST.Cons2 a m (Ref Edge t) where
-    cons2 _ = return $ Ptr 0 -- construct' <=< cons2
+-- instance (Monad m, TEST.Cons2 a m t) -- , Constructor' m (Ref Edge t))
+--       => TEST.Cons2 a m (Ref Edge t) where
+--     cons2 _ = return $ Ptr 0 -- construct' <=< cons2
 
 -- type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.SubModel dict))
 --                                                          (Get Format   (Get TEST.SubModel dict))
@@ -716,12 +716,25 @@ type TNA l t n a = LayoutY l '[Type, Name, Atom] '[t, n, a]
 data Net = Net
 
 data ExprX (layers :: [*]) a n t
+data ExprX2 (layers :: [*]) model
+
 
 type instance TEST.Layers    (ExprX layers _ _ _) = layers
 type instance Get Model                           (ExprX _ a n t) = ANTLayout SimpleX a n t
 type instance Set Model (ANTLayout SimpleX a n t) (ExprX layers _ _ _) = ExprX layers a n t
 
+type instance Layers          (ExprX2 layers _)     = layers
+type instance Get Model       (ExprX2 _  model)     = model
+type instance Set Model model (ExprX2 layers _)     = ExprX2 layers model
+type instance Binding   t     (ExprX2 _ _)          = Ref2 t
+type instance Sub       p     (ExprX2 layers model) = ExprX2 layers (Sub p model)
 
+
+type instance Get p   (Term3 t) = Get p t
+type instance Set p v (Term3 t) = Term3 (Set p v t)
+
+type instance Get p   (Ref2 t a) = Get p a
+type instance Set p v (Ref2 t a) = Ref2 t (Set p v a)
 
 
 type instance MatchModels (ExprX layers a n t) (ExprX layers a' n' t') =
@@ -734,10 +747,11 @@ type instance MatchModels (LayoutX t bs) (LayoutX t bs') = LayoutX t (MatchByKey
 
 
 
-type MyExpr layers a n t = Term3 (ExprX layers a n t)
+type MyExpr  layers a n t = Term3 (ExprX layers a n t)
+type MyExpr2 layers a n t = Term3 (ExprX2 layers (ANTLayout SimpleX a n t))
 
-type instance Binding (Term3 t) = Binding t
-type instance Binding (ExprX _ _ _ _) = Ref2 Edge
+type instance Binding t (Term3 a) = Binding t a
+type instance Binding t (ExprX _ _ _ _) = Ref2 t
 
 
 -- type instance Sub p (Term3 t) = Term3 (Set Model (Sub p (t ^. Model)) t)
@@ -799,64 +813,199 @@ tx2_1 = tx1
 
 
 unify_auto :: (TermCons Unify m t, t ~ Specialized Atom Unify (ExtendModel Atom l r))
-           => Binding t (Term3 l) -> Binding t (Term3 r) -> m (Term3 t)
+           => Binding Node t (Term3 l) -> Binding Node t (Term3 r) -> m (Term3 t)
 unify_auto l r = term $ N.unify' (unsafeCoerce l) (unsafeCoerce r) ; {-# INLINE unify_auto #-}
 
-star_auto :: (DefaultModel Star t, TermCons Star m t) => m (Term3 t)
+star_auto :: (DefaultModel' Star t, TermCons Star m t) => m (Term3 t)
 star_auto = term N.star'
 
+star_auto2 :: (DefaultModel Star model, TermCons2 Star m layers model) => m (Term4 t layers model)
+star_auto2 = term2 N.star'
 
-type TermDispatcher t m = Dispatcher Node (Binding t (Term3 t)) m
+star_auto3 :: (DefaultModel Star model, LayersCons layers m, ValidateModel model Atom Star) => m (Term4 t layers model)
+star_auto3 = term2 N.star'
 
-star_auto2 :: (DefaultModel Star t, TermCons Star m t, ConnectionBuilder m t, TermDispatcher t m)
-           => m (Binding t (Term3 t))
-star_auto2 = star_auto >>= buildConnection >>= dispatch Node
 
--- TermDispatcher - nie moze byc dla kazdego t, bo bedzie ich bardzo duzo powstawalo. Mozemy zatem dispatchowac jedynie pointery, albo rzutowane na Drafty. Ladniejsze typy dadza same pointery
--- ConnectionBuilder - moze byc zalezne jedynie od (Binding t) a nie calego `t` dzieki uzyciu DynamicM3 - ale to i tak jest wycinane (patrz nizej)
--- Cos jest nie tak nizej chyba, bo jedyny constriant dotycyz Edge, nie Node.
-star_auto3 :: (LayersCons ls m, TermDispatcher t m, t ~ ExprX ls Star () (), MonadBuilder g m, DynamicM3 Edge g m)
-           => m (Binding t (Term3 t))
-star_auto3 = star_auto >>= buildConnection >>= dispatch Node
+type TermDispatcher t m = Dispatcher Node (Binding Node t (Term3 t)) m
+
+-- star_auto2 :: (DefaultModel' Star t, TermCons Star m t, Bindable m t, TermDispatcher t m)
+--            => m (Binding Node t (Term3 t))
+-- star_auto2 = star_auto >>= bind >>= dispatch Node
+--
+-- -- TermDispatcher - nie moze byc dla kazdego t, bo bedzie ich bardzo duzo powstawalo. Mozemy zatem dispatchowac jedynie pointery, albo rzutowane na Drafty. Ladniejsze typy dadza same pointery
+-- -- Bindable - moze byc zalezne jedynie od (Binding t) a nie calego `t` dzieki uzyciu DynamicM3 - ale to i tak jest wycinane (patrz nizej)
+-- star_auto3 :: (LayersCons ls m, TermDispatcher t m, t ~ ExprX ls Star () (), MonadBuilder g m, DynamicM3 Node g m)
+--            => m (Binding Node t (Term3 t))
+-- star_auto3 = star_auto >>= bind >>= dispatch Node
+--
+--
+-- star_auto4 :: ( DefaultModel Star model, ValidateModel model Atom Star, LayersCons ls m, t ~ ExprX2 ls model
+--               , MonadBuilder g m, DynamicM3 Node g m, Dispatcher Node (Ref2 Node (Term3 (ExprX2 ls (Uniform Draft)))) m)
+--            => m (Binding Node t (Term3 t))
+-- star_auto4 = do
+--     s <- bind =<< star_auto
+--     dispatch Node $ universal s
+--     return s
+
+
+star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
+              , LayersCons ls m, MonadBuilder g m, DynamicM2 Node g m (AnyExpr ls)
+              , t ~ ExprX2 ls model)
+           => m (Binding Node t (Term3 t))
+star_auto5 = do
+    s <- universalBind =<< star_auto
+    -- dispatch Node $ universal s
+    return s
+
+star_auto6 :: ( DefaultModel Star model, ValidateModel model Atom Star
+              , LayersCons layers m, Bindable Node m (AnyTerm t layers)
+              , Dispatcher Node (Binding3 Node (AnyTerm t layers)) m)
+           => m (Binding3 Node (Term4 t layers model))
+star_auto6 = do
+    s <- universalBind3 =<< star_auto3
+    dispatch Node $ universal s
+    return s
+
+
+
+type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
+type AnyTerm t ls = Term4 t ls (Uniform Draft)
+
+-- -- TODO: GDispatcher - rename, dispatcher of graph locations without a type
+-- star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
+--               , LayersCons ls m
+--               , MonadBuilder g m, DynamicM3 Edge g m (AnyExpr ls), GDispatcher Node m
+--               , t ~ ExprX2 ls model)
+--            => m (Binding t (Term3 t))
+-- star_auto5 = do
+--     s <- bind =<< star_auto
+--     dispatch Node $ universal s
+--     return s
+
+    --  >>= bind >>= dispatch Node
 
 tx2 :: TermCons Unify m t => Connection Atom t -> Connection Atom t -> m (Term3 t)
 tx2 = term .: N.unify'
 
+-- tx2' :: TermCons2 Unify m layers model => Connection2 Atom (Term4 t layers model) -> Connection2 Atom (Term4 t layers model) -> m (Term4 t layers model)
+-- tx2' :: TermCons2 Unify m layers model => Binding Edge t (Term4 t layers (Sub Atom model)) -> Binding Edge t (Term4 t layers (Sub Atom model)) -> m (Term4 t layers model)
+tx2' :: (TermCons2 Unify m layers model, term ~ Term4 t layers model) => Binding3 Edge (Sub Atom term) -> Binding3 Edge (Sub Atom term) -> m term
+tx2' = term2 .: N.unify'
+
 type family DefaultModel defAtom t :: Constraint
-type instance DefaultModel defAtom (ExprX layers a n t) = DefaultModel defAtom (ExprX layers a n t ^. Model)
+-- type instance DefaultModel defAtom (ExprX layers a n t) = DefaultModel defAtom (ExprX layers a n t ^. Model)
 type instance DefaultModel defAtom (ANTLayout l a n t) = (a ~ defAtom, n ~ (), t ~ ())
 
+
+-- TODO: rename vvv
+type DefaultModel' a t = DefaultModel a (t ^. Model)
+
+
+
 -- type instance DefaultModel (ANTLayout SimpleX a n t) = ANTLayout SimpleX () () ()
--- class Generalizable a b where generalize :: a -> b
---
--- instance Generalizable t t' => Generalizable (Term3 t) (Term3 t') where generalize = unsafeCoerce ; {-# INLINE generalize #-}
+
+
+data Uniform a
+
+-- !!! Moze zamienic Generalizable na TF zwracajaca jakas wartosc lub Constraint?
+class Generalizable a b
+instance Generalizable t t' => Generalizable (Term3 t) (Term3 t')
+instance (layers ~ layers', Generalizable model model') => Generalizable (ExprX2 layers model) (ExprX2 layers' model')
+instance Generalizable a (Uniform Draft)
+
+generalize :: Generalizable a b => a -> b
+generalize = unsafeCoerce ; {-# INLINE generalize #-}
+
+
+type Universal a = Set Model (Uniform Draft) a
+
+universal :: a -> Universal a
+universal = unsafeCoerce ; {-# INLINE universal #-}
+
+
 -- instance validates ... => Generalizable (ExprX layers a n t) (ExprX layers a' n' t') where generalize = unsafeCoerce ; {-# INLINE generalize #-}
-class ConnectionBuilder m t where
-    buildConnection :: Term3 t -> m (Binding t (Term3 t))
 
-instance (Deconstructed (Binding t (Term3 t)) ~ Term3 t, Constructor' m (Binding t (Term3 t)))
-      => ConnectionBuilder m t where buildConnection = construct'
 
+-- Universal powinno podmieniac model na UniversalModel. Z takim modelem mozemy wartosci wkaldac do grafu
+-- po wlozeniu wartosci do grafu mozemy je odczytywac i przetwarzac, bo znamy ich Typy. Mozemy tez
+-- je rzutowac na inne modele, ktore pokrywaja sie z Universal (czyli wszysktie polaczenia sa draftami)
+-- Dzieki uzywaniu modelu Universal upraszczaja sie nam typy, np. Dowolny Expr przeniesiony na Universalma model
+-- UniversalModel i nie musi byc robiona mapa po Assocs szczegolnie jezeli bedizemy chieli supportowac nieznane klucze
+-- Dodatkowo, trzeba przejsc na DynamicM2, wtedy graf bedzie przechowywal informacje o wartosciach
+-- i bedzie mozna go lepiej o nie odpytywac bez niebezpeicznego rzutowania, poniewaz wszystkie wartosci tam
+-- beda w UniversalModel,,,,,,,
+
+-- type family Universal a
+-- type instance Universal I = I
+--
+-- type Universal' a = Set Model (Universal (a ^. Model)) a
+--
+-- universal :: Term3 t -> Universal (Term3 t)
+-- universal = unsafeCoerce ; {-# INLINE universal #-}
+--
+--
+-- type instance Universal (LayoutX l as) = LayoutX l (List.ReplaceVals Draft as)
+-- type instance Universal (ExprX ls a n t) = Universal' (ExprX ls a n t)
+
+
+-- class Bindable3 t m a where
+--     bind3 :: a -> m (Binding2 a t a)
+
+
+class Monad m => Bindable t m a where
+    bind :: a -> m (Binding3 t a)
+
+
+-- instance (MonadBuilder g m, DynamicM2 t g m (Universal a)) => Bindable4' (Ref2 t) m a where
+--     construct' = modifyM ∘ addM3 ; {-# INLINE construct' #-}
+
+
+-- class Bindable t layers m where
+--     bind :: forall model. Term4 t layers model -> m (Binding2 t Node (Term4 t layers model))
+
+-- instance (Deconstructed (Binding Node t (Term3 t)) ~ Term3 t, Constructor' m (Binding Node t (Term3 t)))
+--       => Bindable m t where bind = construct'
+
+
+universalBind :: forall t m term bind uterm. (term ~ Term3 t, bind ~ Binding Node t, uterm ~ Universal term
+                 , Deconstructed (bind uterm) ~ uterm, Constructor' m (bind uterm), Universal (bind term) ~ bind uterm)
+      => Term3 t -> m (bind term)
+universalBind = unsafeUniversalAppM construct'
+
+universalBind2 :: Constructor' m (Binding3 Node (AnyTerm t layers))
+               => Term4 t layers model -> m (Binding3 Node (Term4 t layers model))
+universalBind2 = unsafeUniversalAppM construct'
+
+universalBind3 :: Bindable Node m (AnyTerm t layers)
+               => Term4 t layers model -> m (Binding3 Node (Term4 t layers model))
+universalBind3 = unsafeUniversalAppM bind
+
+
+unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
+unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
 
 class IsExprX a
-instance (v ~ Binding t (Term3 t), t ~ ExprX '[] a n tp) => IsExprX v
+instance (v ~ Binding Node t (Term3 t), t ~ ExprX '[] a n tp) => IsExprX v
 type IsExprX' = TypeConstraint2 IsExprX
+
+
+
 --
 -- test_g2 :: forall m . PrimMonad m
 --         => m (Ref2 Edge (MyExpr '[] Star () ()), Network3 m)
-test_g2 = do
-    g <- NEC.emptyHMGraph
-    flip Graph.Builder.runT g $ suppressAll
-                              $ runListener @Node @IsExprX'
-                              $ do
-        sref3 <- star_auto2
-        sref2 <- star_auto2
-        sref <- star_auto2
-        s <- read (unwrap' sref)
-        print "!!!"
-        print sref
-        print s
-        return sref
+            -- test_g2 = do
+            --     g <- NEC.emptyHMGraph
+            --     flip Graph.Builder.runT g $ suppressAll
+            --                               $ runListener @Node @IsExprX'
+            --                               $ do
+            --         sref3 <- star_auto2
+            --         sref2 <- star_auto2
+            --         sref <- star_auto2
+            --         s <- read (unwrap' sref)
+            --         print "!!!"
+            --         print sref
+            --         print s
+            --         return sref
 
     -- test_g3 :: _ => g -> m (Ref2 Edge (Term3 (ExprX '[] Star () ())), g)
     -- test_g3 g = do
@@ -872,7 +1021,7 @@ test_g2 = do
     --         -- print s
     --         return sref
 
-    -- txxx :: (m ~ Listener Node IsExprX' m', ConnectionBuilder m t, TermDispatcher t m
+    -- txxx :: (m ~ Listener Node IsExprX' m', Bindable m t, TermDispatcher t m
     --         , t ~ ExprX '[] Star () ())
     --      => m' (Ref2 Edge (Term3 t))
     -- txxx = runListener @Node @IsExprX' $ do
@@ -894,7 +1043,7 @@ main = do
     -- let e1   = (runIdentity (cons2 N.blank) :: Term Network2 '[] '[Int] (Layout N.String Draft) (Layout N.String Draft))
     -- let e1'  = (runIdentity (cons2 N.blank) :: Term2 Network2 '[] '[Int] (Layout.Named N.String Draft))
     let e1  = (runIdentity (cons2 N.blank) :: Term Network2 (Layout.Named N.String Draft))
-        er1 = (runIdentity (cons2 N.blank) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
+        -- er1 = (runIdentity (cons2 N.blank) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
         -- u1  = (runIdentity (unify_x er1 er1) :: Ref Edge (Term Network2 (Layout.Named Draft Draft)))
 
         xe1 = (runIdentity (consTerm N.blank) :: (Term2 Network2 (Layout.TNA Draft Draft Draft)))
@@ -904,20 +1053,23 @@ main = do
 
         -- s1 = S2.star :: S2.Symbol Star Net
 
-        ss1 = runIdentity (term N.blank') :: MyExpr '[] Draft Draft Draft
+        ss1 = runIdentity (term N.blank') :: MyExpr2 '[] Draft Draft Draft
 
-        fss1 = 0 :: Ref2 Edge (MyExpr '[] (Missing :> Draft) Draft Draft)
-        fss2 = 0 :: Ref2 Edge (MyExpr '[] (App :> Draft) Draft Draft)
+
+        fss1 = 0 :: Ref2 Edge (MyExpr2 '[] (Missing :> Draft) Draft Draft)
+        fss2 = 0 :: Ref2 Edge (MyExpr2 '[] (App :> Draft) Draft Draft)
 
         -- x1 = runIdentity star_auto :: MyExpr '[] _ _ _
-        -- su1 = runIdentity (term $ N.unify' fss1 fss1) :: MyExpr '[] (Unify :> Value) Draft Draft
+        -- su1 = runIdentity (term $ N.unify' fss1 fss1) :: MyExpr2 '[] (Unify :> Value) Draft Draft
 
         -- uux = runIdentity $ unify_auto fss2 fss1 :: Int
 
         -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
-    (x,g) <- test_g2
-    print x
+    print ss1
+    print "==="
+        -- (x,g) <- test_g2
+        -- print x
     -- print g
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
     -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)

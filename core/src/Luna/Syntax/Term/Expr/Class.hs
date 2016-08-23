@@ -73,7 +73,7 @@ import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
-
+import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
 type instance Get Dynamics (Layout dyn form) = dyn
@@ -358,6 +358,45 @@ deriving instance Show (TermStack t) => Show (Term3 t)
 
 
 
+------------------
+-- === Term === --
+------------------
+
+-- === Definitions === --
+
+data Term4 t (layers :: [*]) model = Term4 (TermStack2 t layers model) TermStore
+
+type instance Get Model       (Term4 _ _ model)  = model
+type instance Set Model model (Term4 t layers _) = Term4 t layers model
+
+type instance Sub s (Term4 t layers model) = Term4 t layers (Sub s model)
+
+type instance Binding2 (Term4 t _ _) = Binding2 t
+
+-- === Term stack === --
+
+type TermStack2 t layers model = Stack3 layers (Layer (Term4 t layers model))
+--
+-- class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack3 ls (Layer t))
+-- instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull3
+-- instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer3 <$> consLayer <*> buildLayers
+--
+--
+-- -- === Layers === --
+--
+-- data family Layer  t l
+-- type family Layers a :: [*]
+--
+-- class LayerCons m l where
+--     consLayer :: forall t. m (Layer t l)
+--
+--
+-- -- === Isntances === --
+--
+-- deriving instance Show (TermStack t) => Show (Term4 t)
+
+
+
 
 
 
@@ -374,27 +413,50 @@ deriving instance Show (TermStack t) => Show (Term3 t)
 
 data Name = Name
 
-type family Binding t :: * -> *
+type family Binding t a :: * -> *
+
+-- |                      BindingType (eg. Node) -> term -> binding
+type family Binding2 t :: *                      -> *    -> *
+
+
+data family Binding3 b a
+newtype instance Binding3 b (Term4 t layers model) = Binding (Binding2 t b (Term4 t layers model))
+
+type instance Deconstructed (Binding3 b a) = a
+type instance Get p   (Binding3 b a) = Get p a
+type instance Set p v (Binding3 b a) = Binding3 b (Set p v a)
+
 
 -- type Connection c t = Binding t (Term3 (Sub c t))
 
 type family Connection c t where
     Connection I t = I
     Connection c I = I
-    Connection c t = Binding t (Term3 (Sub c t))
+    Connection c t = Binding Edge t (Term3 (Sub c t))
 
 type Connection' c t = Term3 (Sub c t)
+
+
+type Connection2 c t = Binding3 Edge (Sub c t)
 
 
 newtype TermSymbol atom t = TermSymbol (N.NamedSymbol atom (Connection Name t) (Connection Atom t))
 makeWrapped ''TermSymbol
 
+newtype TermSymbol2 atom t = TermSymbol2 (N.NamedSymbol atom (Connection2 Name t) (Connection2 Atom t))
+makeWrapped ''TermSymbol2
+
 type instance Get p (TermSymbol atom t) = Get p (Unwrapped (TermSymbol atom t))
+type instance Get p (TermSymbol2 atom t) = Get p (Unwrapped (TermSymbol2 atom t))
 
 
 
 instance ValidateModel (t ^. Model) Atom atom
       => FromSymbol (TermSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
+
+
+instance ValidateModel (t ^. Model) Atom atom
+      => FromSymbol (TermSymbol2 atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
 
@@ -445,14 +507,32 @@ instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
 
 
 
+class SymbolEncoder2 atom where
+    encodeSymbol2 :: forall t. TermSymbol2 atom t -> TermStore
+
+
+instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
+      => SymbolEncoder2 atom where
+    encodeSymbol2 = runIdentity . encodeStore . hideLayout . unwrap' -- magic
+
+
+
+
 type UncheckedTermCons atom m t = (LayersCons (Layers t) m, SymbolEncoder atom)
+type UncheckedTermCons2 atom m layers = (LayersCons layers m, SymbolEncoder2 atom)
 type TermCons          atom m t = (UncheckedTermCons atom m t, ValidateModel (t ^. Model) Atom atom)
+type TermCons2         atom m layers model = (UncheckedTermCons2 atom m layers, ValidateModel model Atom atom)
 
 -- | The `term` type does not force the construction to be checked,
 --   because it has to be already performed in order to deliver TermSymbol.
 term :: UncheckedTermCons atom m t => TermSymbol atom t -> m (Term3 t)
 term a = flip Term3 (encodeSymbol a) <$> buildLayers
 
+
+-- | The `term` type does not force the construction to be checked,
+--   because it has to be already performed in order to deliver TermSymbol.
+term2 :: (term ~ Term4 t layers model, UncheckedTermCons2 atom m layers) => TermSymbol2 atom term -> m term
+term2 a = flip Term4 (encodeSymbol2 a) <$> buildLayers
 
 
 
