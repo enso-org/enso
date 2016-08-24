@@ -1,7 +1,7 @@
-[submodule "scripts"]
-	path = toolchain/scripts
-	url = git@bitbucket.org:NewByteOrder/workflow.git
-	branch = master
 [submodule "toolchain/HaskellBooster"]
 	path = toolchain/HaskellBooster
 	url = https://github.com/wdanilo/HaskellBooster.git
+[submodule "toolchain/scripts"]
+	path = toolchain/scripts
+	url = https://bitbucket.org/NewByteOrder/workflow.git
+	branch = master
