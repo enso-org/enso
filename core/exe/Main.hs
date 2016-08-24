@@ -699,6 +699,21 @@ data SimpleX
 data LayoutY t (keys :: [*]) (scopes :: [*])
 data LayoutZ l t (scopes :: [*])
 
+-------------------------
+-- === Prim layout === --
+-------------------------
+
+-- === Definition === --
+
+data Prim name atom
+
+
+-- === Isntances === --
+
+type instance Get Atom (Prim _ atom) = atom
+type instance Get Name (Prim name _) = name
+type instance Get Type (Prim _ _)    = Star
+
 
 
 data LayoutX t (ls :: [Assoc * *])
@@ -825,52 +840,26 @@ star_auto2 = term2 N.star'
 star_auto3 :: (DefaultModel Star model, LayersCons layers m, ValidateModel model Atom Star) => m (Term4 t layers model)
 star_auto3 = term2 N.star'
 
+star_auto4 :: LayersCons layers m => m (PrimTerm' t layers Star)
+star_auto4 = term2 N.star'
 
-type TermDispatcher t m = Dispatcher Node (Binding Node t (Term3 t)) m
-
--- star_auto2 :: (DefaultModel' Star t, TermCons Star m t, Bindable m t, TermDispatcher t m)
---            => m (Binding Node t (Term3 t))
--- star_auto2 = star_auto >>= bind >>= dispatch Node
---
--- -- TermDispatcher - nie moze byc dla kazdego t, bo bedzie ich bardzo duzo powstawalo. Mozemy zatem dispatchowac jedynie pointery, albo rzutowane na Drafty. Ladniejsze typy dadza same pointery
--- -- Bindable - moze byc zalezne jedynie od (Binding t) a nie calego `t` dzieki uzyciu DynamicM3 - ale to i tak jest wycinane (patrz nizej)
--- star_auto3 :: (LayersCons ls m, TermDispatcher t m, t ~ ExprX ls Star () (), MonadBuilder g m, DynamicM3 Node g m)
---            => m (Binding Node t (Term3 t))
--- star_auto3 = star_auto >>= bind >>= dispatch Node
---
---
--- star_auto4 :: ( DefaultModel Star model, ValidateModel model Atom Star, LayersCons ls m, t ~ ExprX2 ls model
---               , MonadBuilder g m, DynamicM3 Node g m, Dispatcher Node (Ref2 Node (Term3 (ExprX2 ls (Uniform Draft)))) m)
---            => m (Binding Node t (Term3 t))
--- star_auto4 = do
---     s <- bind =<< star_auto
---     dispatch Node $ universal s
---     return s
-
-
--- star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
---               , LayersCons ls m, MonadBuilder g m, DynamicM2 Node g m (AnyExpr ls)
---               , t ~ ExprX2 ls model)
---            => m (Binding Node t (Term3 t))
--- star_auto5 = do
---     s <- universalBind =<< star_auto
---     -- dispatch Node $ universal s
---     return s
 
 
 type TermBuilder2 t layers m = (LayersCons layers m, Bindable Node m (AnyTerm t layers), Dispatcher2 Node m (Binding3 Node (AnyTerm t layers)))
-type AtomBuilder2 t model    = (DefaultModel t model, ValidateModel model Atom t)
+-- type AtomBuilder2 t model    = (DefaultModel t model, ValidateModel model Atom t)
 
-star_auto6 :: (AtomBuilder2 Star model, TermBuilder2 t layers m) => m (Binding3 Node (Term4 t layers model))
+star_auto6 :: TermBuilder2 t layers m => m (Binding3 Node (PrimTerm' t layers Star))
 star_auto6 = do
-    s <- universalBind3 =<< star_auto3
+    s <- universalBind3 =<< star_auto4
     dispatch Node $ universal s
     return s
 
 
+-- type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
 
-type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
-type AnyTerm t ls = Term4 t ls (Uniform Draft)
+type PrimTerm  t ls name atom = Term4 t ls (Prim name atom)
+type PrimTerm' t ls      atom = PrimTerm t ls () atom
+type AnyTerm  t ls           = Term4 t ls (Uniform Draft)
 
 -- -- TODO: GDispatcher - rename, dispatcher of graph locations without a type
 -- star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
@@ -952,9 +941,14 @@ universal = unsafeCoerce ; {-# INLINE universal #-}
 -- class Bindable3 t m a where
 --     bind3 :: a -> m (Binding2 a t a)
 
+type instance Binding2 Net = Ref2
 
 class Monad m => Bindable t m a where
     bind :: a -> m (Binding3 t a)
+
+instance (MonadBuilder g m, DynamicM2 Node g m (Term4 Net layers model))
+      => Bindable Node m (Term4 Net layers model) where
+    bind a = Binding <$> construct' a
 
 
 -- instance (MonadBuilder g m, DynamicM2 t g m (Universal a)) => Bindable4' (Ref2 t) m a where
@@ -986,27 +980,27 @@ unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
 unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
 
 class IsExprX a
-instance (v ~ Binding Node t (Term3 t), t ~ ExprX '[] a n tp) => IsExprX v
+instance (v ~ Binding3 Node (Term4 t layers model), layers ~ '[]) => IsExprX v
 type IsExprX' = TypeConstraint2 IsExprX
 
 
 
---
--- test_g2 :: forall m . PrimMonad m
---         => m (Ref2 Edge (MyExpr '[] Star () ()), Network3 m)
-            -- test_g2 = do
-            --     g <- NEC.emptyHMGraph
-            --     flip Graph.Builder.runT g $ suppressAll
-            --                               $ runListener @Node @IsExprX'
-            --                               $ do
-            --         sref3 <- star_auto2
-            --         sref2 <- star_auto2
-            --         sref <- star_auto2
-            --         s <- read (unwrap' sref)
-            --         print "!!!"
-            --         print sref
-            --         print s
-            --         return sref
+
+test_g2 :: forall m . PrimMonad m
+        => m (Binding3 Node (PrimTerm' Net '[] Star), Network3 m)
+test_g2 = do
+    g <- NEC.emptyHMGraph
+    flip Graph.Builder.runT g $ suppressAll
+                              $ runListener @Node @IsExprX'
+                              $ do
+        -- sref3 <- star_auto2
+        -- sref2 <- star_auto2
+        sref <- star_auto6
+        -- s <- read (unwrap' sref)
+        -- print "!!!"
+        -- print sref
+        -- print s
+        return sref
 
     -- test_g3 :: _ => g -> m (Ref2 Edge (Term3 (ExprX '[] Star () ())), g)
     -- test_g3 g = do
@@ -1130,11 +1124,11 @@ main = do
             -- --     ala = 11
             -- -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
             --
-            -- case' e1 of
-            --     Symbol.Unify l r -> print 11
-            --     Symbol.Blank     -> case' e1 of
-            --         Symbol.Unify l r -> print "hello"
-            --         Symbol.Blank     -> print "hello3x"
+    case' x1 of
+        Symbol.Unify l r -> print 11
+        Symbol.Star      -> case' x1 of
+            Symbol.Unify l r -> print "hello"
+            Symbol.Star      -> print "hello3x"
 
 
     -- $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
