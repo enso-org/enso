@@ -46,7 +46,7 @@ import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
 
 import qualified Luna.Syntax.Term as New
 -- import           Luna.Syntax.Term (AtomicExpr, TermOf)
-import           Luna.Syntax.Term (TermOf)
+import           Old.Luna.Syntax.Term.Class (TermOf)
 import           Data.Container.Hetero (Elems)
 import qualified Luna.Syntax.Term.Expr.Atom as Atom
 import GHC.Prim (Any)

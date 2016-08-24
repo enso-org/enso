@@ -37,13 +37,12 @@ import Type.Applicative
 
 import Prologue.Unsafe (error)
 import Luna.Syntax.Term.Expr (NameByDynamics)
-import Luna.Syntax.Term.Expr.Class (TermOf)
 import Luna.Syntax.Term.Expr.Format (SubFormats)
 
 undefined = error "oh no in Term.Class_OLD.hs"
 
 
-
+type family TermOf     a
 type family LayoutType a
 
 -----------------------------

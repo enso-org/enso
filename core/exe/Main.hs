@@ -125,7 +125,7 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 
-runCase :: Term4 t layers model -> [Prim.Any -> out] -> out
+runCase :: Term t layers model -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
@@ -148,57 +148,12 @@ type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
 
 
-data G = G
-type instance TEST.Fields G = '[]
-
-
-type family Scopes t :: [*]
-type family MapScopes ts where
-    MapScopes '[]       = '[]
-    MapScopes (t ': ts) = Scopes t ': MapScopes ts
-
-
-type family DiscoverScopes t where
-    DiscoverScopes t = Atom ': Name ': TList.Join (MapScopes (Fields t))
-
-type instance Scopes (NetworkT a) = DiscoverScopes a
-
-
-
-
-
-
-
-
-type DefaultLayout l ks = LayoutY l ks (DefaultScopes l ks)
-type DefaultLayout2 l t = LayoutZ l t (DefaultScopes l (Scopes t))
-
-
-type family DefaultScopes l ks where
-    DefaultScopes l '[]       = '[]
-    DefaultScopes l (k ': ks) = DefaultScope l k ': DefaultScopes l ks
-
-type family DefaultScope l k
-
-type instance DefaultScope SimpleX k = Draft
-
 type family LookupAssoc k s where
     LookupAssoc k '[]            = 'Nothing
     LookupAssoc k (k ':= v ': _) = 'Just v
     LookupAssoc k (l ':= _ ': s) = LookupAssoc k s
 
-type instance Set k v (LayoutY l ks vs) = LayoutY l ks (SetByKey k v ks vs)
-type instance Get k   (LayoutY l ks vs) = GetByKey k ks vs
 
-type instance Set k v (LayoutZ l t ss) = LayoutZ l t (SetByKey k v (Scopes t) ss)
-
-type family SetByKey k v ks vs where
-    SetByKey k v (k ': _)  (_ ': vs) = v ': vs
-    SetByKey k n (_ ': ks) (v ': vs) = v ': SetByKey k n ks vs
-
-type family GetByKey k ks vs where
-    GetByKey k (k ': _)  (v ': _)  = v
-    GetByKey k (_ ': ks) (_ ': vs) = GetByKey k ks vs
 
 
 type family MatchModels m1 m2
@@ -235,8 +190,25 @@ type instance UniScope Value Draft = Draft
 data Type
 data SimpleX
 
-data LayoutY t (keys :: [*]) (scopes :: [*])
-data LayoutZ l t (scopes :: [*])
+
+
+----------------------------
+-- === Uniform layout === --
+----------------------------
+
+-- === Definitions === --
+
+data Uniform a
+
+
+-- === Utils === --
+
+type Universal a = Set Model (Uniform Draft) a
+
+universal :: a -> Universal a
+universal = unsafeCoerce ; {-# INLINE universal #-}
+
+
 
 -------------------------
 -- === Prim layout === --
@@ -255,61 +227,57 @@ type instance Get Type (Prim _ _)    = Star
 
 
 
-data LayoutX t (ls :: [Assoc * *])
-type instance Get p (LayoutX t ls) = Get p ls
+-----------------------------
+-- === Compound layout === --
+-----------------------------
 
-type ANTLayout l a n t = LayoutX l '[Atom := a, Name := n, Type := t]
+-- === Definition === --
+
+data Compound t (ls :: [Assoc * *])
 
 
-data Z_TNA
-type instance Scopes Z_TNA = '[Type, Name, Atom]
+-- === Instances === --
 
-type TNA l t n a = LayoutY l '[Type, Name, Atom] '[t, n, a]
+type instance Get p (Compound t ls) = Get p ls
+
+type instance MatchModels (Compound t bs) (Compound t bs') = Compound t (MatchByKeys (Set.ToList (Concat (AsSet (List.Keys bs)) (AsSet (List.Keys bs')))) bs bs')
+
+
+
+-------------------------------
+-- === Hierarchy layouts === --
+-------------------------------
+
+-- === Definition === --
+-- TODO: refactor, it exists in Luna.Syntax.Term.Expr.Format
+
+-- === Instances === --
+
+type instance Sub t (a :> b) = b
+type instance Atoms (a :> b) = Atoms a
+
+
+
+
+
+
+
+
+
+
+type ANTLayout l a n t = Compound l '[Atom := a, Name := n, Type := t]
+
+
 
 
 data Net = Net
 
--- data ExprX (layers :: [*]) a n t
--- data ExprX2 (layers :: [*]) model
-
-
--- type instance TEST.Layers    (ExprX layers _ _ _) = layers
--- type instance Get Model                           (ExprX _ a n t) = ANTLayout SimpleX a n t
--- type instance Set Model (ANTLayout SimpleX a n t) (ExprX layers _ _ _) = ExprX layers a n t
-
--- type instance Layers          (ExprX2 layers _)     = layers
--- type instance Get Model       (ExprX2 _  model)     = model
--- type instance Set Model model (ExprX2 layers _)     = ExprX2 layers model
--- type instance Binding   t     (ExprX2 _ _)          = Ref2 t
--- type instance Sub       p     (ExprX2 layers model) = ExprX2 layers (Sub p model)
-
-
--- type instance Get p   (Term3 t) = Get p t
--- type instance Set p v (Term3 t) = Term3 (Set p v t)
 
 type instance Get p   (Ref2 t a) = Get p a
 type instance Set p v (Ref2 t a) = Ref2 t (Set p v a)
 
 
--- type instance MatchModels (ExprX layers a n t) (ExprX layers a' n' t') =
---     Set Model (MatchModels (ExprX layers a n t ^. Model) (ExprX layers a' n' t' ^. Model)) (ExprX layers a n t)
 
-type instance MatchModels (LayoutX t bs) (LayoutX t bs') = LayoutX t (MatchByKeys (Set.ToList (Concat (AsSet (List.Keys bs)) (AsSet (List.Keys bs')))) bs bs')
--- type instance MatchModels (LayoutX t bs) (LayoutX t bs') = Fooq (Proxy (List.Keys bs))
-
--- type family Fooq a
-
-
-
--- type MyExpr  layers a n t = Term3 (ExprX layers a n t)
--- type MyExpr2 layers a n t = Term3 (ExprX2 layers (ANTLayout SimpleX a n t))
-
--- type instance Binding t (Term3 a) = Binding t a
--- type instance Binding t (ExprX _ _ _ _) = Ref2 t
-
-
--- type instance Sub p (Term3 t) = Term3 (Set Model (Sub p (t ^. Model)) t)
--- type instance Sub p (ExprX layers a n t) = Set Model (Sub p ((ExprX layers a n t) ^. Model)) (ExprX layers a n t)
 
 
 type instance Sub Atom (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Atom a) n t
@@ -332,8 +300,7 @@ type instance MatchModels (Form a) (Form a) = Form a
 -- type instance MatchModels Draft Draft = Draft
 
 
-type instance Sub t (a :> b) = b
-type instance Atoms (a :> b) = Atoms a
+
 
 
 type family ExtendModel c l t
@@ -354,29 +321,15 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 
--- tx1 = term N.blank'
-
--- tx1_1 :: (LayersCons (Layers t) m, ValidateModel' t Atom Blank) => m (Term3 t)
--- tx1_1 = tx1
---
--- tx1_2 :: TermCons Blank m t => m (Term3 t)
--- tx1_2 = tx1
-
--- tx2_1 :: (LayersCons layers m, ValidateScope a Atom Blank) => m (Term3 (ExprX layers a n t))
--- tx2_1 = tx1
 
 
--- unify_auto :: (TermCons Unify m t, t ~ Specialized Atom Unify (ExtendModel Atom l r))
---            => Binding Node t (Term3 l) -> Binding Node t (Term3 r) -> m (Term3 t)
--- unify_auto l r = term $ N.unify' (unsafeCoerce l) (unsafeCoerce r) ; {-# INLINE unify_auto #-}
---
--- star_auto :: (DefaultModel' Star t, TermCons Star m t) => m (Term3 t)
--- star_auto = term N.star'
 
-star_auto2 :: (DefaultModel Star model, TermCons2 Star m layers model) => m (Term4 t layers model)
+
+
+star_auto2 :: (DefaultModel Star model, TermCons Star m layers model) => m (Term t layers model)
 star_auto2 = term2 N.star'
 
-star_auto3 :: (DefaultModel Star model, LayersCons layers m, ValidateModel model Atom Star) => m (Term4 t layers model)
+star_auto3 :: (DefaultModel Star model, LayersCons layers m, ValidateModel model Atom Star) => m (Term t layers model)
 star_auto3 = term2 N.star'
 
 star_auto4 :: LayersCons layers m => m (PrimTerm' t layers Star)
@@ -384,10 +337,10 @@ star_auto4 = term2 N.star'
 
 
 
-type TermBuilder2 t layers m = (LayersCons layers m, Bindable Node m (AnyTerm t layers), Dispatcher2 Node m (Binding3 Node (AnyTerm t layers)))
+type TermBuilder2 t layers m = (LayersCons layers m, Bindable Node m (AnyTerm t layers), Dispatcher2 Node m (Binding Node (AnyTerm t layers)))
 -- type AtomBuilder2 t model    = (DefaultModel t model, ValidateModel model Atom t)
 
-star_auto6 :: TermBuilder2 t layers m => m (Binding3 Node (PrimTerm' t layers Star))
+star_auto6 :: TermBuilder2 t layers m => m (Binding Node (PrimTerm' t layers Star))
 star_auto6 = do
     s <- universalBind3 =<< star_auto4
     dispatch Node $ universal s
@@ -396,30 +349,14 @@ star_auto6 = do
 
 -- type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
 
-type PrimTerm  t ls name atom = Term4 t ls (Prim name atom)
+type PrimTerm  t ls name atom = Term t ls (Prim name atom)
 type PrimTerm' t ls      atom = PrimTerm t ls () atom
-type AnyTerm  t ls           = Term4 t ls (Uniform Draft)
+type AnyTerm  t ls           = Term t ls (Uniform Draft)
 
--- -- TODO: GDispatcher - rename, dispatcher of graph locations without a type
--- star_auto5 :: ( DefaultModel Star model, ValidateModel model Atom Star
---               , LayersCons ls m
---               , MonadBuilder g m, DynamicM3 Edge g m (AnyExpr ls), GDispatcher Node m
---               , t ~ ExprX2 ls model)
---            => m (Binding t (Term3 t))
--- star_auto5 = do
---     s <- bind =<< star_auto
---     dispatch Node $ universal s
---     return s
 
-    --  >>= bind >>= dispatch Node
 
--- tx2 :: TermCons Unify m t => Connection Atom t -> Connection Atom t -> m (Term3 t)
--- tx2 = term .: N.unify'
 
--- tx2' :: TermCons2 Unify m layers model => Connection2 Atom (Term4 t layers model) -> Connection2 Atom (Term4 t layers model) -> m (Term4 t layers model)
--- tx2' :: TermCons2 Unify m layers model => Binding Edge t (Term4 t layers (Sub Atom model)) -> Binding Edge t (Term4 t layers (Sub Atom model)) -> m (Term4 t layers model)
-    -- tx2' :: (TermCons2 Unify m layers model, term ~ Term4 t layers model) => Binding3 Edge (Sub Atom term) -> Binding3 Edge (Sub Atom term) -> m term
-    -- tx2' = term2 .: N.unify'
+
 
 type family DefaultModel defAtom t :: Constraint
 -- type instance DefaultModel defAtom (ExprX layers a n t) = DefaultModel defAtom (ExprX layers a n t ^. Model)
@@ -434,7 +371,6 @@ type DefaultModel' a t = DefaultModel a (t ^. Model)
 -- type instance DefaultModel (ANTLayout SimpleX a n t) = ANTLayout SimpleX () () ()
 
 
-data Uniform a
 
 -- !!! Moze zamienic Generalizable na TF zwracajaca jakas wartosc lub Constraint?
 class Generalizable a b
@@ -446,10 +382,7 @@ generalize :: Generalizable a b => a -> b
 generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
 
-type Universal a = Set Model (Uniform Draft) a
 
-universal :: a -> Universal a
-universal = unsafeCoerce ; {-# INLINE universal #-}
 
 
 -- instance validates ... => Generalizable (ExprX layers a n t) (ExprX layers a' n' t') where generalize = unsafeCoerce ; {-# INLINE generalize #-}
@@ -473,45 +406,34 @@ universal = unsafeCoerce ; {-# INLINE universal #-}
 -- universal = unsafeCoerce ; {-# INLINE universal #-}
 --
 --
--- type instance Universal (LayoutX l as) = LayoutX l (List.ReplaceVals Draft as)
+-- type instance Universal (Compound l as) = Compound l (List.ReplaceVals Draft as)
 -- type instance Universal (ExprX ls a n t) = Universal' (ExprX ls a n t)
 
 
 -- class Bindable3 t m a where
---     bind3 :: a -> m (Binding2 a t a)
+--     bind3 :: a -> m (Connector a t a)
 
-type instance Binding2 Net = Ref2
+type instance Connector Net = Ref2
 
 class Monad m => Bindable t m a where
-    bind :: a -> m (Binding3 t a)
+    bind :: a -> m (Binding t a)
 
-instance (MonadBuilder g m, DynamicM2 Node g m (Term4 Net layers model))
-      => Bindable Node m (Term4 Net layers model) where
+instance (MonadBuilder g m, DynamicM2 Node g m (Term Net layers model))
+      => Bindable Node m (Term Net layers model) where
     bind a = Binding <$> construct' a
 
 
--- instance (MonadBuilder g m, DynamicM2 t g m (Universal a)) => Bindable4' (Ref2 t) m a where
---     construct' = modifyM ∘ addM3 ; {-# INLINE construct' #-}
 
 
--- class Bindable t layers m where
---     bind :: forall model. Term4 t layers model -> m (Binding2 t Node (Term4 t layers model))
-
--- instance (Deconstructed (Binding Node t (Term3 t)) ~ Term3 t, Constructor' m (Binding Node t (Term3 t)))
---       => Bindable m t where bind = construct'
 
 
--- universalBind :: forall t m term bind uterm. (term ~ Term3 t, bind ~ Binding Node t, uterm ~ Universal term
---                  , Deconstructed (bind uterm) ~ uterm, Constructor' m (bind uterm), Universal (bind term) ~ bind uterm)
---       => Term3 t -> m (bind term)
--- universalBind = unsafeUniversalAppM construct'
 
-universalBind2 :: Constructor' m (Binding3 Node (AnyTerm t layers))
-               => Term4 t layers model -> m (Binding3 Node (Term4 t layers model))
+universalBind2 :: Constructor' m (Binding Node (AnyTerm t layers))
+               => Term t layers model -> m (Binding Node (Term t layers model))
 universalBind2 = unsafeUniversalAppM construct'
 
 universalBind3 :: Bindable Node m (AnyTerm t layers)
-               => Term4 t layers model -> m (Binding3 Node (Term4 t layers model))
+               => Term t layers model -> m (Binding Node (Term t layers model))
 universalBind3 = unsafeUniversalAppM bind
 
 
@@ -519,14 +441,14 @@ unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
 unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
 
 class IsExprX a
-instance (v ~ Binding3 Node (Term4 t layers model), layers ~ '[]) => IsExprX v
+instance (v ~ Binding Node (Term t layers model), layers ~ '[]) => IsExprX v
 type IsExprX' = TypeConstraint2 IsExprX
 
 
 
 
 test_g2 :: forall m . PrimMonad m
-        => m (Binding3 Node (PrimTerm' Net '[] Star), Network3 m)
+        => m (Binding Node (PrimTerm' Net '[] Star), Network3 m)
 test_g2 = do
     g <- NEC.emptyHMGraph
     flip Graph.Builder.runT g $ suppressAll
@@ -593,7 +515,7 @@ main = do
         -- fss1 = 0 :: Ref2 Edge (MyExpr2 '[] (Missing :> Draft) Draft Draft)
         -- fss2 = 0 :: Ref2 Edge (MyExpr2 '[] (App :> Draft) Draft Draft)
 
-        x1 = runIdentity star_auto3 :: Term4 Net '[] (ANTLayout SimpleX Star () ())
+        x1 = runIdentity star_auto3 :: Term Net '[] (ANTLayout SimpleX Star () ())
         -- su1 = runIdentity (term $ N.unify' fss1 fss1) :: MyExpr2 '[] (Unify :> Value) Draft Draft
 
         -- uux = runIdentity $ unify_auto fss2 fss1 :: Int
