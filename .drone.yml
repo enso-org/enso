@@ -8,8 +8,10 @@ build:
     email: $$DOCKERHUB_EMAIL
   commands:
     - date
-    - scripts/gencabal
+    - toolchain/scripts/gencabal
+    - apk add python3
     - cd compiler
+    - export PATH=$PATH:$DRONE_DIR/toolchain/HaskellBooster/preprocessor
     - stack build --stack-yaml build/stack-nightly.yaml
     - date
 
