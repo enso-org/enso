@@ -122,254 +122,8 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 
---instance Castable (Arc src tgt) (Arc src' tgt') => Castable (Arc src tgt) (Arc src' tgt') where cast (Edge e) = cast e
---instance Castable (Arc src tgt) (Arc src' tgt') => Castable (Arc src tgt) (Arc src' tgt') where cast e = Edge $ cast e
--- --------------------------------------
---  !!! KEEP THIS ON THE BEGINNING !!! --
--- --------------------------------------
--- - vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ---
 
 
-prebuild :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
-prebuild = runBuild2 def $ do
-    Old.star
-    Old.star
-    Old.star
-
--- prebuild2 :: IO (Ref Node (NetLayers :<: Net.Draft Static), NetGraph)
--- prebuild2 = runBuild3 def $ do
---     var2 "ala"
-
--- tst :: (TermBuilder Star m a, Inferable ELEMENT a m, ExprBuilder Draft m a) => m a
--- tst = do
---     star2
-
--- tst' :: (Inferable ELEMENT a m, ExprBuilder Draft m a) => m (Ref Node (ls :< Expr t Draft Static))
--- tst' = do
---     star2
-
--- Ref' Node (ls :< Expr t Draft Static)
---
--- --------------
--- Ref (Term t Draft Static Any)
--- Ref (Link (Term t Draft Static Any))
---
--- read :: Ref a -> m a
--- write :: a -> m (Ref a)
-
-
--- var :: Name -> KnownTerm t fmt dyn Var
--- unify :: Ref (Term t fmt dyn a) -> Ref (Term t fmt dyn b) -> Ref (KnownTerm t fmt dyn Unify)
-
--- contains layers
-{-
-- nie trzeba uncoverowac i mozna sie bezposrednio ladnie na typach pattern-matchowac
-- bardziej jednolita architektura - nie wymusza layerowania
-- konstruktory moga byc dokladniejszych typow niz `m a`
--}
-
-
-
-
--- Term (Network ls) Draft  rt
-
--- tst2 :: (TermBuilder Star m (Ptr t tgt), PointedM t tgt g m a, MonadBuilder g m, Inferable ELEMENT (Ptr t tgt) m, ExprBuilder Draft m (Ptr t tgt)) => m a
--- tst2 = do
---     s <- tst
---     read s
-
--- read :: a -> m (Expr a)
---
--- read :: Mark Draft Static a -> m (ls :< Expr Draft Static a)
---
--- Ref Node (ls :<: Net.Draft Static) --> read
---          (ls :<: Net.Draft Static)
---
---
--- mkterm :: m a
--- -- a moze byc np. Pointerem
---
--- Mark Draft Static (Ref Node (NetLayers :<: Net.Draft Static)) --> read
---                             (NetLayers :<: Net.Draft Static)
---
---
--- Mark Draft Static (NetLayers :< Loc Node) --> read
-
-
-
-
-runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Net.Draft Static)))
-                             $ runNetworkBuilderT g m
-
-
-runBuild2 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Net.Draft Static)))
-                             $ runNetworkBuilderT2 g m
-
-
-runBuild3 (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Net.Draft Static)))
-                             . runNetworkBuilderT2 g
-                             . XP.runNetworkBuilderT
-                             $ m
-
-evalBuild = fmap snd ∘∘ runBuild
---TODO: test1
--- TODO: test2
-
-
-
---
--- ------------------
--- -- === Refs === --
--- ------------------
---
--- type family Referred a
--- newtype Ref2 a = Ref2 (Referred a)
--- makeWrapped ''Ref2
---
--- class Monad m => Referable m a where
---     refer'  :: a -> m (Referred a)
---     read2'  :: Referred a -> m a
---     write2' :: Referred a -> a -> m ()
---
--- refer :: Referable m a => a -> m (Ref2 a)
--- refer = Ref2 <∘> refer' ; {-# INLINE refer #-}
---
--- read2 :: Referable m a => Ref2 a -> m a
--- read2 = read2' ∘ unwrap' ; {-# INLINE read2 #-}
---
--- write2 :: Referable m a => Ref2 a -> a -> m ()
--- write2 = write2' ∘ unwrap' ; {-# INLINE write2 #-}
---
--- -- === Instances === --
---
--- deriving instance Show (Referred a) => Show (Ref2 a)
---
-
-------------------
--- === Binds === --
-------------------
-
--- type family Binded a
--- newtype Bind a = Bind (Binded a)
--- makeWrapped ''Bind
---
--- class Monad m => Bindable m a where
---     bind' :: a -> m (Binded a)
---
--- bind :: Bindable m a => a -> m (Bind a)
--- bind = Bind <∘> bind' ; {-# INLINE bind #-}
-
-
-
-------------------------------------
--- === Example implementation === --
-------------------------------------
-
-
-----------------------
--- === IntLayer === --
-----------------------
-
--- === Definitions === --
-
-data IntLayer = IntLayer deriving (Show)
-
-type instance LayerData (NetLayer t IntLayer) = Int
-
--- === Instances === --
-
-instance Monad m => Creator m (Layer (NetLayer t IntLayer)) where create = return $ Layer 7
-
-
----------------------
--- === Network === --
----------------------
-
--- == Definitions === --
-
--- data Net (ls :: [*])
-newtype NetLayer t a = NetLayer a deriving (Show, Functor, Traversable, Foldable)
-newtype NetRef     a = NetRef   a deriving (Show, Functor, Traversable, Foldable)
-
-
--- === Instances === --
-
--- Type relations
--- type instance LayerData (NetLayer t a) = LayerData a
-
--- Layout_OLD
--- type TermShell ls term rec = (NetLayer term <$> ls) :| rec
--- type instance Layout_OLD (Net ls) fmt dyn sel = TermShell ls (Expr (Net ls) fmt dyn sel) (ExprRecord (Net ls) fmt dyn sel Int) -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
--- type instance Layout_OLD (Net ls) fmt dyn sel = ExprRecord (Net ls) fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-
--- Shell
--- type instance Shell.Access l (Expr (Net ls) fmt dyn sel) = NetLayer (Expr (Net ls) fmt dyn sel) l
-
--- Ref
--- type instance Referred (Expr (Net ls) fmt dyn sel) = NetRef (Expr (Net ls) fmt dyn sel)
--- instance Monad m => Referable m (Expr (Net ls) fmt dyn sel) where refer' = return ∘ NetRef
-
-
-
-----------------------------------
-
-
-
-    -- type TRex2 t fmt dyn sel = ExprRecord t fmt dyn sel Int -- Int is a mock for parameterized binding (i.e. Link between nodes in Network)
-
-
---
---
--- blank  = () ^. from symbolArgs :: Symbol Blank Static Int
--- -- -- t1 = Record.cons blank :: AnyExpr SNet Draft Static
--- t1 = Record.cons blank :: TRex2 t Draft Static 'Nothing
---
--- t2 = runIdentity $ overbuild t1 :: AnyExpr (Net '[IntLayer]) Draft Static
---
--- -- t2' = runIdentity $ buildElem $ blank :: AnyExpr (Net '[IntLayer]) Draft Static
---
--- t3 = runIdentity $ refer t2
-
--- t4 :: OverBuilder Identity (Expr t fmt dyn sel) => a -> Ref2 (Expr t fmt dyn sel)
--- t4 a = runIdentity $ foox a
---
---
--- type Foox = Record.Variants (RecordOf (AnyExpr SNet Draft Static))
-
-
-    -- instance (Creator m c, OverBuilder m a) => OverBuilder m (Cover c a) where
-    --     overbuild a = Cover <$> create <*> overbuild a
-    --
-    -- type ElemBuilder atom m a = (Record.Cons atom (RecordOf a), OverBuilder m a)
-    -- type RefBuilder  atom m a = (ElemBuilder atom m a, Referable m a)
-    --
-    -- buildElem :: ElemBuilder atom m a => atom -> m a
-    -- buildElem = overbuild ∘ Record.cons ; {-# INLINE buildElem #-}
-    --
-    -- buildRef :: RefBuilder atom m a => atom -> m (Ref2 a)
-    -- buildRef = buildElem >=> refer ; {-# INLINE buildRef #-}
-
--- powinnismy wprowadzic abstrakcje Bind, ktora moglaby miec source i target i w networku reprezentowalaby connection
-
---DataConI Luna.Syntax.Term.Expr.Symbol.Unify (ForallT [KindedTV dyn_1761715480 StarT,KindedTV a_1761715481 StarT] [] (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT ArrowT (VarT a_1761715481)) (AppT (AppT (AppT (ConT Luna.Syntax.Term.Expr.Symbol) (ConT Luna.Syntax.Term.Expr.Atom.Unify)) (VarT dyn_1761715480)) (VarT a_1761715481))))) Luna.Syntax.Term.Expr.Symbol
-
--- class Monad m => OverBuilder m a where
---     overbuild :: RecordOf a -> m a
-
--- tx = Record.cons Atom.Blank :: Term Int Draft Runtime.Dynamic
-
-
--- Term Network2 '[Int] Static Draft Static Draft
--- Expr3 Network2 '[] '[Int] Static Draft Static App
---
--- Expr3 Network2 '[] '[Int] (Layout Static Draft) (Layout Static App)
-
-
-data ZZ = AA | BB
-
-
--- #define CASE $(testTH [| case
--- #define ESAC {--}|])
 
 runCase :: Term4 t layers model -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
@@ -386,185 +140,10 @@ defaultMatch = error "wrong match"
 {-# INLINE defaultMatch #-}
 
 --
-    -- type A1 = Term Network2 '[] '[Int] (Layout Dynamic Draft) (Layout Static Unify)
-    -- type A2 = Term Network2 '[] '[Int] (Layout Static Value) (Layout Dynamic Draft)
-    --
-    -- type NTerm  dict fields dyn scope dyn' scope' = Term Network2 dict fields (Layout dyn scope) (Layout dyn' scope')
-    -- type NTerm' dict fields dyn scope             = NTerm dict fields dyn scope dyn scope
-    -- type Expr  dyn scope dyn' scope' = Term Network2 '[] '[Int] (Layout dyn scope) (Layout dyn' scope')
-    -- type Expr' dyn scope             = Expr dyn scope dyn scope
-
--- Ref Node (Expr Static Value)
 
 
--- instance (Monad m, TEST.Cons2 a m t, Constructor' m (Ref Edge t))
---       => TEST.Cons2 a m (Ref Edge t) where
---     cons2 = construct' <=< cons2
-
--- instance (Monad m, TEST.Cons2 a m t) -- , Constructor' m (Ref Edge t))
---       => TEST.Cons2 a m (Ref Edge t) where
---     cons2 _ = return $ Ptr 0 -- construct' <=< cons2
-
--- type instance TEST.Bound Network2 dict = Ref Edge (Expr' (Get Dynamics (Get TEST.SubModel dict))
---                                                          (Get Format   (Get TEST.SubModel dict))
---                                                   )
-
-
-
-
-
-    -- test_g1 :: forall m . PrimMonad m
-    --         => m (Ref Edge (Expr' Static Value), Hetero (NEC.MGraph (PrimState m) Any Any Any))
-    -- test_g1 = do
-    --     v <- Hetero <$> NEC.unsafeThaw def
-    --     flip Graph.Builder.runT v $ cons2 N.star
-    --
-
-
-
-    -- starx :: forall m dict fields dyn scope dyn' scope' g .
-    --          (TEST.Cons2 (Symbol Star dyn' (Ref Edge (Expr' dyn scope))) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')))
-    --       => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
-    -- starx = cons2 (star :: Symbol Star dyn' (Ref Edge (Expr' dyn scope)))
-    --
-    --
-    -- starx2 :: forall m dict fields dyn scope dyn' scope' g .
-    --           (TEST.Cons2 (Symbol Star Static (Ref Edge (NTerm' dict fields Static Value))) m (Ref Edge (NTerm' dict fields Static Value)))
-    --        => m (Ref Edge (NTerm' dict fields Static Value))
-    -- starx2 = cons2 (star :: Symbol Star Static (Ref Edge (NTerm' dict fields Static Value)))
-
-    -- type MyTerm  dict layers dyn scope dyn' scope' = Term  Network2 dict layers (Layout dyn scope) (Layout dyn' scope')
-    -- type MyTerm' dict layers dyn scope             = Term' Network2 dict layers (Layout dyn scope)
-
--- class TermCons a m where
---     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields model)) -> m (Ref Edge (Term X dict fields model dyn' scope'))
---     -- termCons :: Symbol a dyn' (Ref Edge (Term' X dict fields (Layout dyn scope))) -> m (Ref Edge (Term X dict fields (Layout dyn scope) (Layout dyn' (a ^. Format))))
---     -- termCons :: Symbol a dyn' (Ref Edge (MyTerm' dict fields dyn scope)) -> m (Ref Edge (MyTerm dict fields dyn scope dyn' (a ^. Format)))
---     termCons :: Symbol a layout -> m (Ref Edge (MyTerm dict fields sublayout (XX layout)))
---
---     -- termCons :: Symbol a dyn  (Ref Edge (MyTerm' dict fields model)) -> m (Ref Edge (MyTerm dict fields model (SymModel a dyn)))
-
--- -- test_desc1 :: TEST.Cons2 (Symbol Star Static Int) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')) => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
--- test_desc1 :: forall m dict fields dyn scope dyn' scope' g .
---               (TEST.Cons2 (Symbol Star dyn' (Ref Edge (Expr' dyn scope))) m (Ref Edge (NTerm dict fields dyn scope dyn' scope')))
--- -- dojsc do tego ->            --   TermCons Star m (Expr' Static Draft)
--- -- i zastanowic sie jaka dac abstrakcje nad refami by mogly zostac zawsze niezaleznie od grafu lub nie
---            => m (Ref Edge (NTerm dict fields dyn scope dyn' scope'))
-    -- test_desc1 = do
-    --     s1 <- starx2
-    --     s2 <- starx2
-    --     return s1
-
-
-
--- auto_star ::
---
--- NamedSymbol Star String Draft
---
--- Symbol t Star (Named String Draft)
---
--- Expr t (Named String Draft)
---
--- Expr t (Named String (Unify :-> Draft))
---
--- Expr t (Named (Draft ) (Unify :@ Draft))
---
--- Expr t (Named String Draft)
-
--- Terms Draft ... -- < = >
--- DraftCons Network2 Unify m
---
--- TermCons Network2 Unify m Draft
--- po co ten Draft ...
-
-
-    -- class TermCons atom m t where
-    --     termCons :: Symbol atom (ModelLayout t model) -> m (Ref Edge (Term t model))
-    --
-    --
-    -- class TermCons m where
-    --     termCons :: forall atom layout t model. TEST.Cons2 (Symbol atom layout) m (Ref Edge (Term t model))
-    --              => Symbol atom layout -> m (Ref Edge (Term t model))
--- --
--- instance TermCons m where
---     termCons = cons2
-
-    -- foos :: TermCons m => Symbol atom layout -> m (Ref Edge (Term t model))
-    -- foos = termCons
-
--- test :: TermCons Draft t model
-
--- blank_x :: forall n a m t model .
---            (TEST.Cons2 (Symbol Blank (Layout.Named n a)) m (Term t model), _)
---         => m (Term t model)
--- blank_x = cons2 (N.blank :: Symbol Blank (Layout.Named n a))
-
-
-
--- unify_x :: (t~Network2, xmodel1 ~ xmodel2, xmodel1 ~ Layout.Named Draft Draft, Monad m
---            , model ~ MatchModels xmodel1 xmodel2)
---         => Ref Edge (Term t xmodel1) -> Ref Edge (Term t xmodel2) -> m (Ref Edge (Term t model))
--- unify_x l r = cons2 $ N.unify l r
-
-
--- type NTerm n a = Term (Named n a)
---
--- star :: NTerm () ()
---
--- unfiy star star :: NTerm () Phrase
---
-
--- test_sig1 :: TermCons m t
--- test_sig1 = do
---     s1 <- star
---     u1 <- unify s1 s1
---     return u1
-
-
-
-type instance TEST.Bind t Network2 model = Ref Edge (Term Network2 (TEST.Subscope t model))
--- type instance TEST.Bind Name Network2 model = Ref Edge (Term Network2 (TEST.Subscope Name model))
-
-type instance TEST.Subscope Atom (Layout.Named n t) = Layout.Named n (TEST.Subscope Atom t)
-type instance TEST.Subscope Atom Draft = Draft
-type instance TEST.Scope    Atom Draft = Draft
-
-type instance TEST.Subscope Name (Layout.Named n t) = Layout.Named n n
 
 type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
-
-
-
-
-type instance TEST.Bind2 t Network2 model = Ref Edge (Term2 Network2 (TEST.Subscope t model))
-type instance TEST.Bind2 t (NetworkT n) model = Ref Edge (Term2 (NetworkT n) (TEST.Subscope t model))
-
-type instance TEST.Subscope Atom (Layout.TNA t n a) = Layout.TNA t n (TEST.Subscope Atom a)
-type instance TEST.Subscope Name (Layout.TNA t n a) = Layout.TNA t n n
-type instance TEST.Scope    Atom (Layout.TNA t n a) = TEST.Scope Atom a
-
-type instance TEST.Subscope Atom (LayoutX SimpleX '[Atom := Draft]) = LayoutX SimpleX '[Atom := Draft]
-
-
-
-type instance TEST.BindModel Sym s (Layout.TNA t n c) = Layout.Named (TEST.Bind2 Name s (Layout.TNA t n c))
-                                                                     (TEST.Bind2 Atom s (Layout.TNA t n c))
-
-
-type instance TEST.BindModel Sym s (LayoutX l bs) = Layout.Named (TEST.Bind2 Name s (LayoutX l bs))
-                                                                 (TEST.Bind2 Atom s (LayoutX l bs))
-
-
-type instance TEST.BindModel Sym s (LayoutY l ks vs) = Layout.Named (TEST.Bind2 Name s (LayoutY l ks vs))
-                                                                    (TEST.Bind2 Atom s (LayoutY l ks vs))
-
-type instance TEST.BindModel Sym s (LayoutZ l t ss) = Layout.Named (TEST.Bind2 Name s (LayoutZ l t ss))
-                                                                   (TEST.Bind2 Atom s (LayoutZ l t ss))
-
-
-type instance TEST.Scope    t (LayoutX l bs) = TEST.Scope t (bs ^. t)
-
-type instance TEST.Scope    t (LayoutY l ks vs) = TEST.Scope t ((LayoutY l ks vs) ^. t)
 
 
 
@@ -585,51 +164,11 @@ type family DiscoverScopes t where
 type instance Scopes (NetworkT a) = DiscoverScopes a
 
 
-xstar :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Layout.TNA Draft () Draft))
-xstar = consTerm N.star
-
-xstar2 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (LayoutX SimpleX '[Atom := Draft]))
-xstar2 = consTerm N.star
-
-xstar3 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Set Atom Star (DefaultLayout l ks)))
-xstar3 = unsafeConsTerm N.star
-
-xstar4 :: TEST.ASTBuilder (NetworkT a) m => m (Term2 (NetworkT a) (TNA SimpleX Draft Draft Star))
-xstar4 = xstar3
-
--- xstar5 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) (Set Atom Star (DefaultLayout2 l (NetworkT a))))
--- xstar5 = unsafeConsTerm N.star
---
--- xstar6 :: forall l m a. (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (SetScope Atom Star (DefaultTerm (NetworkT a) l))
--- xstar6 = unsafeConsTerm N.star
 
 
--- type FGGG = Int : Char
--- data a # b
---
--- Term Network (Atom # Draft, Type # Draft)
---
--- Term Network (Atom # Draft, Name # Draft, Type # Draft)
---
--- Term [Type, Succs] [Atom := Draft, Name := Draft, Type := Draft]
---
--- Term Network (Atom,Name,Type)  (Draft, Draft, Draft)
---
---
--- Atom := Draft , Name := String
---
--- Atom := Draft , Name := String , Type := Thunk
 
--- tyy :: m Int
--- tyy = xstar6 @SimpleX
 
-type DefaultTerm t l = Term2 t (DefaultLayout2 l t)
 
-type family SetScope s v t where
-    SetScope s v (Term2 t model) = Term2 t (Set s v model)
-
--- xstar2 :: (Monad m, TEST.ASTBuilder (NetworkT a) m) => m (Term2 (NetworkT a) l)
--- xstar2 = consTerm N.star
 
 type DefaultLayout l ks = LayoutY l ks (DefaultScopes l ks)
 type DefaultLayout2 l t = LayoutZ l t (DefaultScopes l (Scopes t))
@@ -682,11 +221,11 @@ type instance UniScope Draft Draft = Draft
 type instance UniScope Value Draft = Draft
 
 
-xunify :: forall t a m model model1 model2 layout n x.
-          ( t ~ NetworkT a, Monad m, model ~ MatchModels model1 model2, TEST.ASTBuilder t m
-          , TEST.MatchModel (Symbol Unify layout) t model, layout ~ Layout.Named n x)
-        => Ref Edge (Term2 t model1) -> Ref Edge (Term2 t model2) -> m (Term2 t model)
-xunify l r = consTerm $ N.unify (unsafeCoerce l) (unsafeCoerce r)
+                -- xunify :: forall t a m model model1 model2 layout n x.
+                --           ( t ~ NetworkT a, Monad m, model ~ MatchModels model1 model2, TEST.ASTBuilder t m
+                --           , TEST.MatchModel (Symbol Unify layout) t model, layout ~ Layout.Named n x)
+                --         => Ref Edge (Term2 t model1) -> Ref Edge (Term2 t model2) -> m (Term2 t model)
+                -- xunify l r = consTerm $ N.unify (unsafeCoerce l) (unsafeCoerce r)
 
 -- moze zakodowac glebiej zaleznosci - w Symbolach ?
 -- moznaby pisac wtedy np.
@@ -730,30 +269,30 @@ type TNA l t n a = LayoutY l '[Type, Name, Atom] '[t, n, a]
 
 data Net = Net
 
-data ExprX (layers :: [*]) a n t
-data ExprX2 (layers :: [*]) model
+-- data ExprX (layers :: [*]) a n t
+-- data ExprX2 (layers :: [*]) model
 
 
-type instance TEST.Layers    (ExprX layers _ _ _) = layers
-type instance Get Model                           (ExprX _ a n t) = ANTLayout SimpleX a n t
-type instance Set Model (ANTLayout SimpleX a n t) (ExprX layers _ _ _) = ExprX layers a n t
+-- type instance TEST.Layers    (ExprX layers _ _ _) = layers
+-- type instance Get Model                           (ExprX _ a n t) = ANTLayout SimpleX a n t
+-- type instance Set Model (ANTLayout SimpleX a n t) (ExprX layers _ _ _) = ExprX layers a n t
 
-type instance Layers          (ExprX2 layers _)     = layers
-type instance Get Model       (ExprX2 _  model)     = model
-type instance Set Model model (ExprX2 layers _)     = ExprX2 layers model
-type instance Binding   t     (ExprX2 _ _)          = Ref2 t
-type instance Sub       p     (ExprX2 layers model) = ExprX2 layers (Sub p model)
+-- type instance Layers          (ExprX2 layers _)     = layers
+-- type instance Get Model       (ExprX2 _  model)     = model
+-- type instance Set Model model (ExprX2 layers _)     = ExprX2 layers model
+-- type instance Binding   t     (ExprX2 _ _)          = Ref2 t
+-- type instance Sub       p     (ExprX2 layers model) = ExprX2 layers (Sub p model)
 
 
-type instance Get p   (Term3 t) = Get p t
-type instance Set p v (Term3 t) = Term3 (Set p v t)
+-- type instance Get p   (Term3 t) = Get p t
+-- type instance Set p v (Term3 t) = Term3 (Set p v t)
 
 type instance Get p   (Ref2 t a) = Get p a
 type instance Set p v (Ref2 t a) = Ref2 t (Set p v a)
 
 
-type instance MatchModels (ExprX layers a n t) (ExprX layers a' n' t') =
-    Set Model (MatchModels (ExprX layers a n t ^. Model) (ExprX layers a' n' t' ^. Model)) (ExprX layers a n t)
+-- type instance MatchModels (ExprX layers a n t) (ExprX layers a' n' t') =
+--     Set Model (MatchModels (ExprX layers a n t ^. Model) (ExprX layers a' n' t' ^. Model)) (ExprX layers a n t)
 
 type instance MatchModels (LayoutX t bs) (LayoutX t bs') = LayoutX t (MatchByKeys (Set.ToList (Concat (AsSet (List.Keys bs)) (AsSet (List.Keys bs')))) bs bs')
 -- type instance MatchModels (LayoutX t bs) (LayoutX t bs') = Fooq (Proxy (List.Keys bs))
@@ -762,15 +301,15 @@ type instance MatchModels (LayoutX t bs) (LayoutX t bs') = LayoutX t (MatchByKey
 
 
 
-type MyExpr  layers a n t = Term3 (ExprX layers a n t)
-type MyExpr2 layers a n t = Term3 (ExprX2 layers (ANTLayout SimpleX a n t))
+-- type MyExpr  layers a n t = Term3 (ExprX layers a n t)
+-- type MyExpr2 layers a n t = Term3 (ExprX2 layers (ANTLayout SimpleX a n t))
 
-type instance Binding t (Term3 a) = Binding t a
-type instance Binding t (ExprX _ _ _ _) = Ref2 t
+-- type instance Binding t (Term3 a) = Binding t a
+-- type instance Binding t (ExprX _ _ _ _) = Ref2 t
 
 
 -- type instance Sub p (Term3 t) = Term3 (Set Model (Sub p (t ^. Model)) t)
-type instance Sub p (ExprX layers a n t) = Set Model (Sub p ((ExprX layers a n t) ^. Model)) (ExprX layers a n t)
+-- type instance Sub p (ExprX layers a n t) = Set Model (Sub p ((ExprX layers a n t) ^. Model)) (ExprX layers a n t)
 
 
 type instance Sub Atom (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Atom a) n t
@@ -798,7 +337,7 @@ type instance Atoms (a :> b) = Atoms a
 
 
 type family ExtendModel c l t
-type instance ExtendModel c (ExprX layers a n t) (ExprX layers a' n' t') = Set Model (ExtendModel c (ExprX layers a n t ^. Model) (ExprX layers a' n' t' ^. Model)) (ExprX layers a n t)
+-- type instance ExtendModel c (ExprX layers a n t) (ExprX layers a' n' t') = Set Model (ExtendModel c (ExprX layers a n t ^. Model) (ExprX layers a' n' t' ^. Model)) (ExprX layers a n t)
 
 type instance ExtendModel Atom (ANTLayout SimpleX a n t) (ANTLayout SimpleX a' n' t') = ANTLayout SimpleX (Merge a a') (Merge n n') (Merge t t')
 type instance ExtendModel Name (ANTLayout SimpleX a n t) (ANTLayout SimpleX a' n' t') = ANTLayout SimpleX a (Merges '[n, a', n', t']) t
@@ -810,7 +349,7 @@ type family Merges lst where
 
 type family Specialized t spec model
 
-type instance Specialized p spec (ExprX layers a n t) = Set Model (Specialized p spec (ExprX layers a n t ^. Model)) (ExprX layers a n t)
+-- type instance Specialized p spec (ExprX layers a n t) = Set Model (Specialized p spec (ExprX layers a n t ^. Model)) (ExprX layers a n t)
 type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify (spec :> a)) n t
 
 
@@ -899,8 +438,8 @@ data Uniform a
 
 -- !!! Moze zamienic Generalizable na TF zwracajaca jakas wartosc lub Constraint?
 class Generalizable a b
-instance Generalizable t t' => Generalizable (Term3 t) (Term3 t')
-instance (layers ~ layers', Generalizable model model') => Generalizable (ExprX2 layers model) (ExprX2 layers' model')
+-- instance Generalizable t t' => Generalizable (Term3 t) (Term3 t')
+-- instance (layers ~ layers', Generalizable model model') => Generalizable (ExprX2 layers model) (ExprX2 layers' model')
 instance Generalizable a (Uniform Draft)
 
 generalize :: Generalizable a b => a -> b
@@ -962,10 +501,10 @@ instance (MonadBuilder g m, DynamicM2 Node g m (Term4 Net layers model))
 --       => Bindable m t where bind = construct'
 
 
-universalBind :: forall t m term bind uterm. (term ~ Term3 t, bind ~ Binding Node t, uterm ~ Universal term
-                 , Deconstructed (bind uterm) ~ uterm, Constructor' m (bind uterm), Universal (bind term) ~ bind uterm)
-      => Term3 t -> m (bind term)
-universalBind = unsafeUniversalAppM construct'
+-- universalBind :: forall t m term bind uterm. (term ~ Term3 t, bind ~ Binding Node t, uterm ~ Universal term
+--                  , Deconstructed (bind uterm) ~ uterm, Constructor' m (bind uterm), Universal (bind term) ~ bind uterm)
+--       => Term3 t -> m (bind term)
+-- universalBind = unsafeUniversalAppM construct'
 
 universalBind2 :: Constructor' m (Binding3 Node (AnyTerm t layers))
                => Term4 t layers model -> m (Binding3 Node (Term4 t layers model))

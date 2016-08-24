@@ -164,91 +164,6 @@ type instance Get p (Record t) = Get p (Unwrapped (Record t))
 instance Getter p (Unwrapped (Record t))
       => Getter p (Record t) where get = Prop.get @p . unwrap' ; {-# INLINE get #-}
 
---
--- -------------------
--- -- === Term2 === --
--- -------------------
---
--- -- === Properties === --
---
--- -- type family Dict   t :: [Assoc * *]
--- -- type family Fields t :: [*]
---
--- type family Field2    field  t :: * -> *
--- type family MapField2 fields t model where
---     MapField2 '[]       t model = '[]
---     MapField2 (f ': fs) t model = Field2 f t model ': MapField2 fs t model
---
---
--- newtype Term2 t model = Term2 (Unwrapped (Term2 t model))
---
---
--- -- === Instances === --
---
--- -- Wrapper
--- -- makeWrapped ''Record -- GHC8 TH cannot represent kind casts
--- instance Wrapped   (Term2 t model) where
---     type Unwrapped (Term2 t model) = TMap (Fields t :=: MapField2 (Fields t) t model)
---     _Wrapped' = iso (\(Term2 t) -> t) Term2 ; {-# INLINE _Wrapped' #-}
--- --
--- -- -- Show
--- -- instance Show (Unwrapped (Unwrapped (Record t))) => Show (Record t) where
--- --     showsPrec d (Record t) = showParen (d > app_prec) $
--- --         showString "Record " . showsPrec (app_prec+1) (unwrap t)
--- --         where app_prec = 10
--- --
--- --
--- -- -- Property access
--- -- type instance Get p (Record t) = Get p (Unwrapped (Record t))
--- --
--- -- instance Getter p (Unwrapped (Record t))
--- --       => Getter p (Record t) where get = Prop.get @p . unwrap' ; {-# INLINE get #-}
--- --
---
---
--- class ConsTermx a m t where
---     consTermx :: forall model. a -> m (Term t model)
---
---
---
--- --
---
-
-
-
-
-------------------
--- === Term === --
-------------------
-
--- === Definitions === --
-
-data    TermDesc t model
-newtype Term     t model = Term (Record (TermDesc t model))
-makeWrapped ''Term
-
-
--- === Instances === --
-
--- Properties
-
-type instance Fields (TermDesc t model) = Data ': Fields t
-type instance Dict   (TermDesc t model) = System ':= t
-                                       ': Model  ':= model
-                                       ': Dict t
-
-
---
-type instance Get p (Term     t model) = Get p (Unwrapped (Term t model))
-type instance Get p (TermDesc t model) = Get p (Dict (TermDesc t model))
-
-instance Getter p (Unwrapped (Term t model))
-      => Getter p (Term t model) where get = Prop.get @p . unwrap' ; {-# INLINE get #-}
-
--- Show
-
-deriving instance Show (Unwrapped (Term t model)) => Show (Term t model)
-
 
 
 ----------------------
@@ -267,36 +182,6 @@ makeWrapped ''TermData
 -- === Instances === --
 
 type instance Field Data t = TermData (t ^. System) (t ^. Model)
-
-
-
-
-
-
-
-
--- class TermCons a m t where
---     termCons :: forall model. a -> m (Term t model)
---
--- instance (RecCons a m t, Functor m) => TermCons a m t where
---     termCons a = wrap' <$> recCons a
---
---
---
--- class RecCons a m t where
---     recCons :: forall model. a -> m (Record (TermDesc t model))
---
--- instance RecCons a m t where
---     recCons =
---
---
--- class FieldCons a m f t where
---     fieldCons :: forall model. a -> m (Field f (TermDesc t model))
-
-
-
-
-    -- type Unwrapped (Record t) = TMap (Fields t :=: MapField (Fields t) t)
 
 
 
@@ -320,45 +205,6 @@ instance (Show (t l), Show (Stack3 ls t)) => Show (Stack3 (l ': ls) t) where
     show (SLayer3 l ls) = show l <> ", " <> show ls
 
 
--- -- === Utils === --
---
--- -- Construction
---
-
-------------------
--- === Term === --
-------------------
-
--- === Definitions === --
-
-data Term3 t = Term3 (TermStack t) TermStore
-
-
--- === Term stack === --
-
-type TermStack t = Stack3 (Layers t) (Layer t)
-
-class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack3 ls (Layer t))
-instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull3
-instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer3 <$> consLayer <*> buildLayers
-
-
--- === Layers === --
-
-data family Layer  t l
-type family Layers a :: [*]
-
-class LayerCons m l where
-    consLayer :: forall t. m (Layer t l)
-
-
--- === Isntances === --
-
-deriving instance Show (TermStack t) => Show (Term3 t)
-
-
-type family Props a :: [Assoc * *]
-
 
 ------------------
 -- === Term === --
@@ -381,22 +227,22 @@ type instance Binding2 (Term4 t _ _) = Binding2 t
 -- === Term stack === --
 
 type TermStack2 t layers model = Stack3 layers (Layer (Term4 t layers model))
---
--- class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack3 ls (Layer t))
--- instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull3
--- instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer3 <$> consLayer <*> buildLayers
---
---
--- -- === Layers === --
---
--- data family Layer  t l
--- type family Layers a :: [*]
---
--- class LayerCons m l where
---     consLayer :: forall t. m (Layer t l)
---
---
--- === Isntances === --
+
+class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack3 ls (Layer t))
+instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull3
+instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer3 <$> consLayer <*> buildLayers
+
+
+-- === Layers === --
+
+data family Layer  t l
+type family Layers a :: [*]
+
+class LayerCons m l where
+    consLayer :: forall t. m (Layer t l)
+
+
+-- === Instances === --
 
 deriving instance Show (TermStack2 t layers model) => Show (Term4 t layers model)
 
@@ -418,9 +264,6 @@ deriving instance Show (TermStack2 t layers model) => Show (Term4 t layers model
 
 data Name = Name
 
-type family Binding t a :: * -> *
-
--- |                      BindingType (eg. Node) -> term -> binding
 type family Binding2 t :: *                      -> *    -> *
 
 
@@ -432,32 +275,17 @@ type instance Get p   (Binding3 b a) = Get p a
 type instance Set p v (Binding3 b a) = Binding3 b (Set p v a)
 
 
--- type Connection c t = Binding t (Term3 (Sub c t))
 
-type family Connection c t where
-    Connection I t = I
-    Connection c I = I
-    Connection c t = Binding Edge t (Term3 (Sub c t))
 
-type Connection' c t = Term3 (Sub c t)
 
 
 type Connection2 c t = Binding3 Edge (Sub c t)
 
 
-newtype TermSymbol atom t = TermSymbol (N.NamedSymbol atom (Connection Name t) (Connection Atom t))
-makeWrapped ''TermSymbol
-
 newtype TermSymbol2 atom t = TermSymbol2 (N.NamedSymbol atom (Connection2 Name t) (Connection2 Atom t))
 makeWrapped ''TermSymbol2
 
-type instance Get p (TermSymbol atom t)  = Get p (Unwrapped (TermSymbol atom t))
 type instance Get p (TermSymbol2 atom t) = Get p (Unwrapped (TermSymbol2 atom t))
-
-
-
-instance ValidateModel (Get Model t) Atom atom
-      => FromSymbol (TermSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
 instance ValidateModel (Get Model t) Atom atom
@@ -498,20 +326,6 @@ type ValidateModel' t     sel a = ValidateModel (t ^. Model) sel a
 
 
 
-
-
-
-class SymbolEncoder atom where
-    encodeSymbol :: forall t. TermSymbol atom t -> TermStore
-
-
-instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
-      => SymbolEncoder atom where
-    encodeSymbol = runIdentity . encodeStore . hideLayout . unwrap' -- magic
-
-
-
-
 class SymbolEncoder2 atom where
     encodeSymbol2 :: forall t. TermSymbol2 atom t -> TermStore
 
@@ -523,15 +337,15 @@ instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
 
 
 
-type UncheckedTermCons atom m t = (LayersCons (Layers t) m, SymbolEncoder atom)
+-- type UncheckedTermCons atom m t = (LayersCons (Layers t) m, SymbolEncoder atom)
 type UncheckedTermCons2 atom m layers = (LayersCons layers m, SymbolEncoder2 atom)
-type TermCons          atom m t = (UncheckedTermCons atom m t, ValidateModel (t ^. Model) Atom atom)
+-- type TermCons          atom m t = (UncheckedTermCons atom m t, ValidateModel (t ^. Model) Atom atom)
 type TermCons2         atom m layers model = (UncheckedTermCons2 atom m layers, ValidateModel model Atom atom)
 
 -- | The `term` type does not force the construction to be checked,
 --   because it has to be already performed in order to deliver TermSymbol.
-term :: UncheckedTermCons atom m t => TermSymbol atom t -> m (Term3 t)
-term a = flip Term3 (encodeSymbol a) <$> buildLayers
+-- term :: UncheckedTermCons atom m t => TermSymbol atom t -> m (Term3 t)
+-- term a = flip Term3 (encodeSymbol a) <$> buildLayers
 
 
 -- | The `term` type does not force the construction to be checked,
@@ -548,63 +362,18 @@ term2 a = flip Term4 (encodeSymbol2 a) <$> buildLayers
 
 
 
--- type Term = Term (Network )
-
-------------------
--- === Term === --
-------------------
-
--- === Definitions === --
-
-data Term2    t model = Term2 (Stack (Fields t) t model) TermStore
-
-data family TermLayer l t model
-
-data Stack layers t model where
-    SLayer :: TermLayer l t model -> Stack ls t tmodel -> Stack (l ': ls) t model
-    SNull  :: Stack '[] t model
 
 
--- === Classes === --
-
-class ConsTermLayer m l t where
-    consTermLayer :: m (TermLayer l t model)
-
-type ASTBuilder t m = (ConsStack (Fields t) t m, Monad m)
-class ConsStack ls t m where
-    consStack :: forall model. m (Stack ls t model)
-
-instance Monad m                                          => ConsStack '[]       t m where consStack = return SNull
-instance (Monad m, ConsStack ls t m, ConsTermLayer m l t) => ConsStack (l ': ls) t m where consStack = SLayer <$> consTermLayer <*> consStack
 
 
--- class ConsTerm a m t where
---     consTerm :: forall model. a -> m (Term2 t model)
-
--- instance (ConsStack' t m, Cons2 a m TermStore) => ConsTerm a m t where
---     consTerm a = Term2 <$> consStack <*> cons2 a
-
-type AtomBuilder a m = Cons2 a m TermStore
-
-unsafeConsTerm :: ( ASTBuilder t m, AtomBuilder (Symbol atom layout) m
-                  , layout ~ BindModel Sym t model, scope ~ Scope Atom model)
-               => (Symbol atom layout) -> m (Term2 t model)
-unsafeConsTerm a = Term2 <$> consStack <*> cons2 a
-
-consTerm :: ( ASTBuilder t m, AtomBuilder (Symbol atom layout) m
-            , layout ~ BindModel Sym t model, scope ~ Scope Atom model
-            , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
-         => (Symbol atom layout) -> m (Term2 t model)
-consTerm a = Term2 <$> consStack <*> cons2 a
-
-type family MatchModel a t model :: Constraint
-
-type instance MatchModel (Symbol atom layout) t model = ( -- layout ~ ModelLayout t model
-                                                        layout ~ BindModel Sym t model
-                                                        -- , scope  ~ Scope Atom model
-                                                        , Assert (atom `In` Atoms (Scope Atom model)) (InvalidAtomFormat atom (Scope Atom model))
-                                                        )
-
+-- type family MatchModel a t model :: Constraint
+--
+-- type instance MatchModel (Symbol atom layout) t model = ( -- layout ~ ModelLayout t model
+--                                                         layout ~ BindModel Sym t model
+--                                                         -- , scope  ~ Scope Atom model
+--                                                         , Assert (atom `In` Atoms (Scope Atom model)) (InvalidAtomFormat atom (Scope Atom model))
+--                                                         )
+--
 
 
 
@@ -615,24 +384,24 @@ type instance MatchModel (Symbol atom layout) t model = ( -- layout ~ ModelLayou
 -- term a = Term2 <$> consStack <*> cons2 a
 
 
-
-type family   Subscope t model
-type family   Scope    t model
-
-type family   Bind t sys model
-type family   Bind2 t sys model
-type family   ModelLayout sys model
-
-
-type instance Scope Atom (Layout.Named n a) = Scope Atom a
-
-type instance ModelLayout sys (Layout.Named n a) = Layout.Named (Bind Name sys (Layout.Named n a))
-                                                                (Bind Atom sys (Layout.Named n a))
-
-
-
-
-type family BindModel t sys model
+--
+-- type family   Subscope t model
+-- type family   Scope    t model
+--
+-- type family   Bind t sys model
+-- type family   Bind2 t sys model
+-- type family   ModelLayout sys model
+--
+--
+-- type instance Scope Atom (Layout.Named n a) = Scope Atom a
+--
+-- type instance ModelLayout sys (Layout.Named n a) = Layout.Named (Bind Name sys (Layout.Named n a))
+--                                                                 (Bind Atom sys (Layout.Named n a))
+--
+--
+--
+--
+-- type family BindModel t sys model
 
 -- instance ConsTerm (Symbol atom layout) m t where
 
@@ -737,9 +506,9 @@ type InvalidAtomFormat atom format = 'Text "Atom `" :<>: 'ShowType atom :<>: 'Te
 --       => Cons2 (Symbol atom layout) m (Term2 sys dict layers model) where
 --          cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
 
-instance (Monad m, Cons2 a m (Unwrapped (Term t model)))
-      => Cons2 a m (Term t model) where
-         cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
+-- instance (Monad m, Cons2 a m (Unwrapped (Term t model)))
+--       => Cons2 a m (Term t model) where
+--          cons2 a = wrap' <$> cons2 a ; {-# INLINE cons2 #-}
 
 
 
@@ -753,14 +522,14 @@ instance (Monad m, Cons2 a m (Unwrapped (Term t model)))
 --     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
 
-instance ( Monad m
-         , Cons2 (Symbol atom layout) m TermStore
-         {-constraint solving-}
-         , layout ~ ModelLayout sys model
-         , scope  ~ Scope Atom model
-         , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
-      => Cons2 (Symbol atom layout) m (TermData sys model) where
-    cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
+-- instance ( Monad m
+--          , Cons2 (Symbol atom layout) m TermStore
+--          {-constraint solving-}
+--          , layout ~ ModelLayout sys model
+--          , scope  ~ Scope Atom model
+--          , Assert (atom `In` Atoms scope) (InvalidAtomFormat atom scope))
+--       => Cons2 (Symbol atom layout) m (TermData sys model) where
+--     cons2 v = TermData <$> cons2 v ; {-# INLINE cons2 #-}
 
 --
 -- instance ( Monad m
@@ -775,7 +544,7 @@ instance ( Monad m
 
 --
 
-instance Monad m => Cons2 v m Int where cons2 _ = return 5
+-- instance Monad m => Cons2 v m Int where cons2 _ = return 5
 
 
 
