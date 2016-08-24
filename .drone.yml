@@ -9,12 +9,17 @@ build:
   commands:
     - date
     - toolchain/scripts/gencabal
-    - apk add python3
+    - mkdir -p .stack
+    - export STACK_ROOT=$DRONE_DIR/.stack
     - cd compiler
-    - export PATH=$PATH:$DRONE_DIR/toolchain/HaskellBooster/preprocessor
-    - stack build --stack-yaml build/stack-nightly.yaml
+    - apk add python3
+    - export PATH=$PATH:$DRONE_DIR/tools/HaskellBooster/preprocessor
+    - stack build --stack-yaml build/stack-nightly.yaml --only-snapshot
+    - stack build --stack-yaml build/stack-nightly.yaml --copy-bins --fast
     - date
-
+cache:
+  mount:
+    - .stack
 notify:
   slack:
     webhook_url: $$SLACK_URL
