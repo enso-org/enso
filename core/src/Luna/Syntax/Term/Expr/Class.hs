@@ -255,11 +255,6 @@ instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildL
 -- === Definition === --
 
 data family Binding b a
-newtype instance Binding b (Term t layers model) = Binding (Connector t b (Term t layers model))
-
--- | Param `t` defines the Connector type. The args are connection type and connection target.
---   For example `Connector Net Node (Term ...)`
-type family Connector t :: * -> * -> *
 
 
 -- === Utils === --
@@ -276,6 +271,34 @@ type instance Set p v (Binding b a) = Binding b (Set p v a)
 
 
 
+
+------------------------------
+------------------------------
+------------------------------
+
+-- | Param `t` defines the Connector type. The args are connection type and connection target.
+--   For example `Connector Net Node (Term ...)`
+type family Connector t :: * -> * -> *
+
+
+-------------------------
+-- === TermBinding === --
+-------------------------
+
+-- === Definitions === --
+
+type TermBinding b t layers model = Binding b (Term t layers model)
+newtype instance Binding b (Term t layers model) = Binding (Unwrapped (TermBinding b t layers model))
+
+
+-- === Instances === --
+
+deriving instance Show (Unwrapped (TermBinding b t layers model))
+               => Show (TermBinding b t layers model)
+
+instance Wrapped (TermBinding b t layers model) where
+    type Unwrapped (TermBinding b t layers model) = Connector t b (Term t layers model)
+    _Wrapped' = iso (\(Binding a) -> a) Binding ; {-# INLINE _Wrapped' #-}
 
 
 

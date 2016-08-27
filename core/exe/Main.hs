@@ -340,11 +340,8 @@ star_auto4 = term2 N.star'
 type TermBuilder2 t layers m = (LayersCons layers m, Bindable Node m (AnyTerm t layers), Dispatcher2 Node m (Binding Node (AnyTerm t layers)))
 -- type AtomBuilder2 t model    = (DefaultModel t model, ValidateModel model Atom t)
 
-star_auto6 :: TermBuilder2 t layers m => m (Binding Node (PrimTerm' t layers Star))
-star_auto6 = do
-    s <- universalBind3 =<< star_auto4
-    dispatch Node $ universal s
-    return s
+star_auto6 :: TermBuilder2 t layers m => m $ Binding Node (PrimTerm' t layers Star)
+star_auto6 = universalDispatch Node =<< universalBind3 =<< star_auto4
 
 
 -- type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
@@ -354,6 +351,7 @@ type PrimTerm' t ls      atom = PrimTerm t ls () atom
 type AnyTerm  t ls           = Term t ls (Uniform Draft)
 
 
+universalDispatch t a = a <$ dispatch t (universal a)
 
 
 
@@ -445,48 +443,30 @@ instance (v ~ Binding Node (Term t layers model), layers ~ '[]) => IsExprX v
 type IsExprX' = TypeConstraint2 IsExprX
 
 
+instance (Wrapped (Binding t b), Unwrapped (Binding t b) ~ ref a, Referred ref m)
+      => MonadAccess (Binding t b) m a where
+    write2 = refer   . unwrap'
+    read2  = derefer . unwrap'
 
 
-test_g2 :: forall m . PrimMonad m
+test_gr1 :: (TermBuilder2 t layers m, Referred (Connector t Node) m)
+         => m $ Binding Node (PrimTerm' t layers Star)
+test_gr1 = do
+    sref <- star_auto6
+    t <- read2 sref
+    -- print "!!!"
+    -- print sref
+    -- print t
+    return sref
+
+
+test_g2 :: forall m . (PrimMonad m, MonadIO m)
         => m (Binding Node (PrimTerm' Net '[] Star), Network3 m)
 test_g2 = do
     g <- NEC.emptyHMGraph
     flip Graph.Builder.runT g $ suppressAll
                               $ runListener @Node @IsExprX'
-                              $ do
-        -- sref3 <- star_auto2
-        -- sref2 <- star_auto2
-        sref <- star_auto6
-        -- s <- read (unwrap' sref)
-        -- print "!!!"
-        -- print sref
-        -- print s
-        return sref
-
-    -- test_g3 :: _ => g -> m (Ref2 Edge (Term3 (ExprX '[] Star () ())), g)
-    -- test_g3 g = do
-    --     flip Graph.Builder.runT g $ suppressAll
-    --                               $ runListener @Node @IsExprX'
-    --                               $ do
-    --         -- sref3 <- star_auto2
-    --         -- sref2 <- star_auto2
-    --         sref <- star_auto2
-    --         -- s <- read (unwrap' sref)
-    --         -- print "!!!"
-    --         -- print sref
-    --         -- print s
-    --         return sref
-
-    -- txxx :: (m ~ Listener Node IsExprX' m', Bindable m t, TermDispatcher t m
-    --         , t ~ ExprX '[] Star () ())
-    --      => m' (Ref2 Edge (Term3 t))
-    -- txxx = runListener @Node @IsExprX' $ do
-    --     -- sref3 <- star_auto2
-    --     -- sref2 <- star_auto2
-    --     sref <- star_auto2
-    --     return sref
-
-fff = follow
+                              $ test_gr1
 
 
 main :: IO ()
@@ -522,9 +502,10 @@ main = do
 
         -- fu1 = runIdentity $ xunify fs1 fs2 :: Int
 
+
     print "==="
-        -- (x,g) <- test_g2
-        -- print x
+    (x,g) <- test_g2
+    print x
     -- print g
     -- let e2  = (runIdentity (cons2 blank  ) :: Expr' Static Draft)
     -- let e2 = (runIdentity (cons2 N.blank) :: Expr' Static Draft)

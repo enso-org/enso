@@ -255,3 +255,11 @@ instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (M
     writeRefM r v = error "x" -- store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
     -- readRefM  r g = Cont.indexM__ (r ^. idx) $ (get @t (g :: g) :: Get t g)              ; {-# INLINE readRefM  #-}
     readRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE readRefM  #-}
+
+
+
+instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (MAutoVector s), Getter t g)
+      => ReferableM t (HMGraph s rels) m where
+    setRefM r v = error "x" -- store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
+    -- readRefM  r g = Cont.indexM__ (r ^. idx) $ (get @t (g :: g) :: Get t g)              ; {-# INLINE readRefM  #-}
+    viewRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE viewRefM  #-}
