@@ -207,12 +207,13 @@ instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildL
 
 -- === Definition === --
 
-data family Binding b a
+data family Binding t tgt
+data family Link    src tgt
 
 
 -- === Utils === --
 
-type Connection c t = Binding Edge (Sub c t)
+type Connection c t = Link t (Sub c t)
 
 
 -- === Instances === --

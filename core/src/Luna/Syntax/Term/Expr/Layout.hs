@@ -37,7 +37,7 @@ type family LookupAssoc k s where
     LookupAssoc k (l ':= _ ': s) = LookupAssoc k s
 
 
-type family MatchModels m1 m2
+type family MatchLayouts m1 m2
 
 type family MatchByKeys (ks :: [*]) (bs :: [Assoc * *]) (bs' :: [Assoc * *]) :: [Assoc * *] where
     MatchByKeys '[] bs bs' = '[]
@@ -46,7 +46,7 @@ type family MatchByKeys (ks :: [*]) (bs :: [Assoc * *]) (bs' :: [Assoc * *]) :: 
 type family MatchFinal l r where
     MatchFinal 'Nothing  ('Just a)  = a
     MatchFinal ('Just a) 'Nothing   = a
-    MatchFinal ('Just a) ('Just a') = MatchModels a a'
+    MatchFinal ('Just a) ('Just a') = MatchLayouts a a'
 
 
 
@@ -98,7 +98,7 @@ data Compound t (ls :: [Assoc * *])
 
 type instance Get p (Compound t ls) = Get p ls
 
-type instance MatchModels (Compound t bs) (Compound t bs') = Compound t (MatchByKeys (Set.ToList (Concat (AsSet (List.Keys bs)) (AsSet (List.Keys bs')))) bs bs')
+type instance MatchLayouts (Compound t bs) (Compound t bs') = Compound t (MatchByKeys (Set.ToList (Concat (AsSet (List.Keys bs)) (AsSet (List.Keys bs')))) bs bs')
 
 
 

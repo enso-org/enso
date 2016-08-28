@@ -78,5 +78,3 @@ type instance Connection (Ref Node a) (Ref Node b) = Arc a b
 instance {-# OVERLAPPABLE #-}                                           Castable (Arc src tgt) (Arc src  tgt)  where cast = id ; {-# INLINE cast #-}
 instance {-# OVERLAPPABLE #-} (Castable src src', Castable tgt tgt') => Castable (Arc src tgt) (Arc src' tgt') where
     cast (Arc src tgt) = Arc (cast src) (cast tgt) ; {-# INLINE cast #-}
-
-
