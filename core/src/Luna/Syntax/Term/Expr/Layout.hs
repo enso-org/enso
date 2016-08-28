@@ -25,7 +25,7 @@ data Named n a
 -----------------------------
 
 data Layout = Layout deriving (Show)
-data Model    = Model    deriving (Show) -- FIXME: depreciated, replace with Layout
+-- data Model    = Model    deriving (Show) -- FIXME: depreciated, replace with Layout
 data Name     = Name     deriving (Show) -- TODO: refactor
 data Type                                -- TODO: refactor
 
@@ -61,7 +61,7 @@ data Uniform a
 
 -- === Utils === --
 
-type Universal a = Set Model (Uniform Draft) a
+type Universal a = Set Layout (Uniform Draft) a
 
 universal :: a -> Universal a
 universal = unsafeCoerce ; {-# INLINE universal #-}

@@ -73,12 +73,12 @@ import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
-import Luna.Syntax.Term.Expr.Layout (Model, Name)
+import Luna.Syntax.Term.Expr.Layout (Layout, Name, Prim, Uniform)
 import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
-data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
-
-type instance Get Dynamics (Layout dyn form) = dyn
-type instance Get Format   (Layout dyn form) = form
+-- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
+--
+-- type instance Get Dynamics (Layout dyn form) = dyn
+-- type instance Get Format   (Layout dyn form) = form
 
 
 
@@ -107,61 +107,6 @@ data TermType = TermType deriving (Show)
 
 
 
-
-
-
-
--- ##################################################################################
--- ##################################################################################
--- data Network2 = Network2 deriving (Show)
--- data NetworkT a = NetworkT a deriving (Show)
--- type instance Fields Network2 = '[]
--- type instance Dict   Network2 = '[]
---
--- type instance Fields (NetworkT a) = Fields a
--- type instance Dict   (NetworkT a) = Dict   a
--- ---------------------
--- -- === Records === --
--- ---------------------
---
--- -- === Properties === --
---
--- type family Dict   t :: [Assoc * *]
--- type family Fields t :: [*]
---
--- type family Field    field  t
--- type family MapField fields t where
---     MapField '[]       t = '[]
---     MapField (f ': fs) t = Field f t ': MapField fs t
---
--- newtype Record t = Record (Unwrapped (Record t))
---
---
--- -- === Instances === --
---
--- -- Wrapper
--- -- makeWrapped ''Record -- GHC8 TH cannot represent kind casts
--- instance Wrapped   (Record t) where
---     type Unwrapped (Record t) = TMap (Fields t :=: MapField (Fields t) t)
---     _Wrapped' = iso (\(Record t) -> t) Record ; {-# INLINE _Wrapped' #-}
---
--- -- Show
--- instance Show (Unwrapped (Unwrapped (Record t))) => Show (Record t) where
---     showsPrec d (Record t) = showParen (d > app_prec) $
---         showString "Record " . showsPrec (app_prec+1) (unwrap t)
---         where app_prec = 10
---
---
--- -- Property access
--- type instance Get p (Record t) = Get p (Unwrapped (Record t))
---
--- instance Getter p (Unwrapped (Record t))
---       => Getter p (Record t) where get = Prop.get @p . unwrap' ; {-# INLINE get #-}
--- ##################################################################################
--- ##################################################################################
-
-
-
 ----------------------
 -- === TermData === --
 ----------------------
@@ -182,18 +127,18 @@ makeWrapped ''TermData
 
 -- === Definition === --
 
-data Stack3 layers (t :: ★ -> ★) where
-    SLayer3 :: t l -> Stack3 ls t -> Stack3 (l ': ls) t
-    SNull3  :: Stack3 '[] t
+data Stack layers (t :: ★ -> ★) where
+    SLayer :: t l -> Stack ls t -> Stack (l ': ls) t
+    SNull  :: Stack '[] t
 
 
 -- === Instances === --
 
-instance Show (Stack3 '[] t) where
+instance Show (Stack '[] t) where
     show _ = ")"
 
-instance (Show (t l), Show (Stack3 ls t)) => Show (Stack3 (l ': ls) t) where
-    show (SLayer3 l ls) = show l <> ", " <> show ls
+instance (Show (t l), Show (Stack ls t)) => Show (Stack (l ': ls) t) where
+    show (SLayer l ls) = show l <> ", " <> show ls
 
 
 
@@ -203,29 +148,32 @@ instance (Show (t l), Show (Stack3 ls t)) => Show (Stack3 (l ': ls) t) where
 
 -- === Definitions === --
 
-data Expr t (layers :: [*]) model = Expr (TermStack t layers model) TermStore
+data Expr      t layers layout    = Expr (TermStack t layers layout) TermStore
+type AnyExpr   t layers           = Expr t layers (Uniform Draft)
+type PrimExpr  t layers name atom = Expr t layers (Prim name atom)
+type PrimExpr' t layers      atom = PrimExpr t layers () atom
 
-type TermStack t layers model = Stack3 layers (Layer (Expr t layers model))
+type TermStack t layers layout = Stack layers (Layer (Expr t layers layout))
 
 
 -- === Properties === --
 
-type instance Get Model       (Expr _ _ model)  = model
-type instance Set Model model (Expr t layers _) = Expr t layers model
-type instance Get Data        (Expr _ _ _)      = TermStore
-type instance Get TermType    (Expr t _ _)      = t
+type instance Get Layout        (Expr _ _ layout) = layout
+type instance Set Layout layout (Expr t layers _) = Expr t layers layout
+type instance Get Data          (Expr _ _ _)      = TermStore
+type instance Get TermType      (Expr t _ _)      = t
 -- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
 
 
-instance Getter Data (Expr t layers model) where get (Expr _ s) = s ; {-# INLINE get #-}
+instance Getter Data (Expr t layers layout) where get (Expr _ s) = s ; {-# INLINE get #-}
 
 
 -- === Instances === --
 
 type instance Connector (Expr t _ _) = Connector t
-type instance Sub s (Expr t layers model) = Expr t layers (Sub s model)
+type instance Sub s (Expr t layers layout) = Expr t layers (Sub s layout)
 
-deriving instance Show (TermStack t layers model) => Show (Expr t layers model)
+deriving instance Show (TermStack t layers layout) => Show (Expr t layers layout)
 
 
 
@@ -247,9 +195,9 @@ data Layers
 
 -- === Construction === --
 
-class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack3 ls (Layer t))
-instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull3
-instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer3 <$> consLayer <*> buildLayers
+class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack ls (Layer t))
+instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull
+instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer <$> consLayer <*> buildLayers
 
 
 
@@ -317,14 +265,14 @@ makeWrapped ''ExprSymbol
 type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
 
 
-instance ValidateModel (Get Model t) Atom atom
+instance ValidateLayout (Get Layout t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
 
 
--- === ValidateModel === ---
--- | Model validation. Type-assertion utility, proving that symbol construction is not ill-typed.
+-- === ValidateLayout === ---
+-- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
 
 type InvalidFormat sel a format = 'ShowType sel
                              :</>: Ticked ('ShowType a)
@@ -340,17 +288,17 @@ instance {-# OVERLAPPABLE #-}                               ValidateScope scope 
 type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
 
 
-class                                                       ValidateModel model sel a
-instance {-# OVERLAPPABLE #-} ValidateModel_ model sel a => ValidateModel model sel a
-instance {-# OVERLAPPABLE #-}                               ValidateModel I     sel a
-instance {-# OVERLAPPABLE #-}                               ValidateModel model I   a
-instance {-# OVERLAPPABLE #-}                               ValidateModel model sel I
-type ValidateModel_ model sel a = ValidateScope (model ^. sel) sel a
-type ValidateModel' t     sel a = ValidateModel (t ^. Model) sel a
+class                                                        ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
+type ValidateLayout_ model sel a = ValidateScope (model ^. sel) sel a
+type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
 
 -- TODO: Booster Extension vvv
 -- alias ValidateScope scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
--- alias ValidateModel model sel a = ValidateScope (model ^. sel) sel a
+-- alias ValidateLayout model sel a = ValidateScope (model ^. sel) sel a
 
 
 
@@ -367,7 +315,7 @@ instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
 
 
 type UncheckedTermCons atom m layers = (LayersCons layers m, SymbolEncoder atom)
-type TermCons         atom m layers model = (UncheckedTermCons atom m layers, ValidateModel model Atom atom)
+type TermCons         atom m layers model = (UncheckedTermCons atom m layers, ValidateLayout model Atom atom)
 
 -- | The `term` type does not force the construction to be checked,
 --   because it has to be already performed in order to deliver ExprSymbol.
@@ -472,5 +420,5 @@ type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Na
 
 -- === Expressions === --
 
--- star :: (LayersCons layers m, ValidateModel model Atom Star) => m (Expr t layers model)
+-- star :: (LayersCons layers m, ValidateLayout model Atom Star) => m (Expr t layers model)
 -- star = expr N.star'

@@ -126,7 +126,7 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 
-runCase :: Expr t layers model -> [Prim.Any -> out] -> out
+runCase :: Expr t layers layout -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
@@ -173,10 +173,10 @@ type instance UniScope Draft Draft = Draft
 type instance UniScope Value Draft = Draft
 
 
-                -- xunify :: forall t a m model model1 model2 layout n x.
-                --           ( t ~ NetworkT a, Monad m, model ~ MatchModels model1 model2, TEST.ASTBuilder t m
-                --           , TEST.MatchModel (Symbol Unify layout) t model, layout ~ Layout.Named n x)
-                --         => Ref Edge (Term2 t model1) -> Ref Edge (Term2 t model2) -> m (Term2 t model)
+                -- xunify :: forall t a m layout layout1 layout2 layout n x.
+                --           ( t ~ NetworkT a, Monad m, layout ~ MatchModels layout1 layout2, TEST.ASTBuilder t m
+                --           , TEST.MatchModel (Symbol Unify layout) t layout, layout ~ Layout.Named n x)
+                --         => Ref Edge (Term2 t layout1) -> Ref Edge (Term2 t layout2) -> m (Term2 t layout)
                 -- xunify l r = consTerm $ N.unify (unsafeCoerce l) (unsafeCoerce r)
 
 -- moze zakodowac glebiej zaleznosci - w Symbolach ?
@@ -239,7 +239,7 @@ type family Merges lst where
     Merges '[a]      = a
     Merges (a ': as) = Merge a (Merges as)
 
-type family Specialized t spec model
+type family Specialized t spec layout
 
 -- type instance Specialized p spec (ExprX layers a n t) = Set Model (Specialized p spec (ExprX layers a n t ^. Model)) (ExprX layers a n t)
 type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify (spec :> a)) n t
@@ -251,7 +251,7 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 
-star_auto3 :: (LayersCons layers m, ValidateModel model Atom Star) => m (Expr t layers model)
+star_auto3 :: (LayersCons layers m, ValidateLayout layout Atom Star) => m (Expr t layers layout)
 star_auto3 = expr N.star'
 
 star_auto4 :: LayersCons layers m => m (PrimExpr' t layers Star)
@@ -275,34 +275,32 @@ star_auto_i = star_auto6 -- inferTerm star_auto6
 
 -- type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
 
-type PrimExpr  t ls name atom = Expr t ls (Prim name atom)
-type PrimExpr' t ls      atom = PrimExpr t ls () atom
-type AnyExpr  t ls           = Expr t ls (Uniform Draft)
+
 
 
 universalDispatch t a = a <$ dispatch t (universal a)
 
 
 
+-- 
+-- type family DefaultLayout defAtom t :: Constraint
+-- -- type instance DefaultLayout defAtom (ExprX layers a n t) = DefaultLayout defAtom (ExprX layers a n t ^. Model)
+-- type instance DefaultLayout defAtom (ANTLayout l a n t) = (a ~ defAtom, n ~ (), t ~ ())
+--
+--
+-- -- TODO: rename vvv
+-- type DefaultLayout' a t = DefaultLayout a (t ^. Layout)
 
-type family DefaultModel defAtom t :: Constraint
--- type instance DefaultModel defAtom (ExprX layers a n t) = DefaultModel defAtom (ExprX layers a n t ^. Model)
-type instance DefaultModel defAtom (ANTLayout l a n t) = (a ~ defAtom, n ~ (), t ~ ())
 
 
--- TODO: rename vvv
-type DefaultModel' a t = DefaultModel a (t ^. Model)
-
-
-
--- type instance DefaultModel (ANTLayout SimpleX a n t) = ANTLayout SimpleX () () ()
+-- type instance DefaultLayout (ANTLayout SimpleX a n t) = ANTLayout SimpleX () () ()
 
 
 
 -- !!! Moze zamienic Generalizable na TF zwracajaca jakas wartosc lub Constraint?
 class Generalizable a b
 -- instance Generalizable t t' => Generalizable (Term3 t) (Term3 t')
--- instance (layers ~ layers', Generalizable model model') => Generalizable (ExprX2 layers model) (ExprX2 layers' model')
+-- instance (layers ~ layers', Generalizable layout layout') => Generalizable (ExprX2 layers layout) (ExprX2 layers' layout')
 instance Generalizable a (Uniform Draft)
 
 generalize :: Generalizable a b => a -> b
@@ -315,10 +313,10 @@ generalize = unsafeCoerce ; {-# INLINE generalize #-}
 -- instance validates ... => Generalizable (ExprX layers a n t) (ExprX layers a' n' t') where generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
 
--- Universal powinno podmieniac model na UniversalModel. Z takim modelem mozemy wartosci wkaldac do grafu
+-- Universal powinno podmieniac layout na UniversalModel. Z takim layoutem mozemy wartosci wkaldac do grafu
 -- po wlozeniu wartosci do grafu mozemy je odczytywac i przetwarzac, bo znamy ich Typy. Mozemy tez
--- je rzutowac na inne modele, ktore pokrywaja sie z Universal (czyli wszysktie polaczenia sa draftami)
--- Dzieki uzywaniu modelu Universal upraszczaja sie nam typy, np. Dowolny Expr przeniesiony na Universalma model
+-- je rzutowac na inne layoute, ktore pokrywaja sie z Universal (czyli wszysktie polaczenia sa draftami)
+-- Dzieki uzywaniu layoutu Universal upraszczaja sie nam typy, np. Dowolny Expr przeniesiony na Universalma layout
 -- UniversalModel i nie musi byc robiona mapa po Assocs szczegolnie jezeli bedizemy chieli supportowac nieznane klucze
 -- Dodatkowo, trzeba przejsc na DynamicM2, wtedy graf bedzie przechowywal informacje o wartosciach
 -- i bedzie mozna go lepiej o nie odpytywac bez niebezpeicznego rzutowania, poniewaz wszystkie wartosci tam
@@ -345,8 +343,8 @@ type instance Connector Net = Ref2
 class Monad m => Bindable t m a where
     bind :: a -> m (Binding t a)
 
-instance (MonadBuilder g m, DynamicM2 Node g m (Expr Net layers model))
-      => Bindable Node m (Expr Net layers model) where
+instance (MonadBuilder g m, DynamicM2 Node g m (Expr Net layers layout))
+      => Bindable Node m (Expr Net layers layout) where
     bind a = Binding <$> construct' a
 
 
@@ -356,11 +354,11 @@ instance (MonadBuilder g m, DynamicM2 Node g m (Expr Net layers model))
 
 
 universalBind2 :: Constructor' m (Binding Node (AnyExpr t layers))
-               => Expr t layers model -> m (Binding Node (Expr t layers model))
+               => Expr t layers layout -> m (Binding Node (Expr t layers layout))
 universalBind2 = unsafeUniversalAppM construct'
 
 universalBind3 :: Bindable Node m (AnyExpr t layers)
-               => Expr t layers model -> m (Binding Node (Expr t layers model))
+               => Expr t layers layout -> m (Binding Node (Expr t layers layout))
 universalBind3 = unsafeUniversalAppM bind
 
 
@@ -368,7 +366,7 @@ unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
 unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
 
 class IsExprX a
-instance (v ~ Binding Node (Expr t layers model), layers ~ '[]) => IsExprX v
+instance (v ~ Binding Node (Expr t layers layout), layers ~ '[]) => IsExprX v
 type IsExprX' = TypeConstraint2 IsExprX
 
 
