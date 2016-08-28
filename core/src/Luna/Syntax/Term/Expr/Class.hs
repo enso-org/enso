@@ -74,7 +74,7 @@ import Type.Relation (SemiSuper)
 import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
 import Luna.Syntax.Term.Expr.Layout (Layout, Name, Prim, Uniform)
-import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
+-- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 --
 -- type instance Get Dynamics (Layout dyn form) = dyn
@@ -170,11 +170,12 @@ instance Getter Data (Expr t layers layout) where get (Expr _ s) = s ; {-# INLIN
 
 -- === Instances === --
 
-type instance Connector (Expr t _ _) = Connector t
+type instance Binder (Expr t _ _)               = Binder t
+type instance Linker (Expr t _ _) (Expr t' _ _) = Linker t t'
+
 type instance Sub s (Expr t layers layout) = Expr t layers (Sub s layout)
 
 deriving instance Show (TermStack t layers layout) => Show (Expr t layers layout)
-
 
 
 --------------------
@@ -201,66 +202,57 @@ instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildL
 
 
 
-----------------------
--- === Bindings === --
-----------------------
-
--- === Definition === --
-
-data family Binding t tgt
-data family Link    src tgt
 
 
--- === Utils === --
-
-type Connection c t = Link t (Sub c t)
-
-
--- === Instances === --
-
-type instance Deconstructed (Binding b a) = a
-type instance Get p   (Binding b a) = Get p a
-type instance Set p v (Binding b a) = Binding b (Set p v a)
-
--- type instance Layers (Binding b a) = Layers a
-
-
-
-------------------------------
-------------------------------
-------------------------------
-
--- | Param `t` defines the Connector type. The args are connection type and connection target.
---   For example `Connector Net Node (Expr ...)`
-type family Connector t :: * -> * -> *
 
 
 -------------------------
--- === TermBinding === --
+-- === Connections === --
 -------------------------
 
 -- === Definitions === --
 
-type TermBinding b t layers model = Binding b (Expr t layers model)
-newtype instance Binding b (Expr t layers model) = Binding (Unwrapped (TermBinding b t layers model))
+type family Binder      tgt :: * -> *
+type family Linker  src tgt :: * -> * -> *
+type        Binder'     tgt = Binder     tgt     tgt
+type        Linker' src tgt = Linker src tgt src tgt
+
+newtype Binding     tgt = Binding (Binder' tgt)
+newtype Link    src tgt = Link    (Linker' src tgt)
+makeWrapped ''Binding
+makeWrapped ''Link
+
+
+-- === Classes === --
+
+class Monad m => Bindable     tgt m where bind ::        tgt -> m (Binding     tgt)
+class Monad m => Linkable src tgt m where link :: src -> tgt -> m (Link    src tgt)
+
+
+-- === Utils === --
+
+type SubLink    c t = Link t  (Sub c t)
+type SubBinding c t = Binding (Sub c t)
 
 
 -- === Instances === --
 
-deriving instance Show (Unwrapped (TermBinding b t layers model))
-               => Show (TermBinding b t layers model)
+deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
+deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
 
-instance Wrapped (TermBinding b t layers model) where
-    type Unwrapped (TermBinding b t layers model) = Connector t b (Expr t layers model)
-    _Wrapped' = iso (\(Binding a) -> a) Binding ; {-# INLINE _Wrapped' #-}
-
-
+type instance Deconstructed (Binding a) = a
+type instance Get p   (Binding a) = Get p a
+type instance Set p v (Binding a) = Binding (Set p v a)
 
 
 
 
 
-newtype ExprSymbol atom t = ExprSymbol (N.NamedSymbol atom (Connection Name t) (Connection Atom t))
+
+
+
+
+newtype ExprSymbol atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (SubLink Atom t))
 makeWrapped ''ExprSymbol
 
 type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))

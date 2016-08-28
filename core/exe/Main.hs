@@ -244,7 +244,7 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 type ExprInferable t (layers :: [*]) m = (Inferable2 InfLayers layers m, Inferable2 TermType t m)
-type ExprBuilder2 t layers m = (LayersCons layers m, Bindable Node m (AnyExpr t layers), Dispatcher2 Node m (Binding Node (AnyExpr t layers)))
+type ExprBuilder2 t layers m = (LayersCons layers m, Bindable (AnyExpr t layers) m, Dispatcher2 Node m (Binding (AnyExpr t layers)))
 type ExprBuilder_i t layers m = (ExprBuilder2 t layers m, ExprInferable t layers m)
 
 
@@ -256,10 +256,10 @@ star1 = expr N.star'
 star2 :: LayersCons layers m => m (PrimExpr' t layers Star)
 star2 = star1
 
-star3 :: ExprBuilder2 t layers m => m $ Binding Node (PrimExpr' t layers Star)
+star3 :: ExprBuilder2 t layers m => m $ Binding (PrimExpr' t layers Star)
 star3 = universalDispatch Node =<< universalBind3 =<< star2
 
-star4 :: ExprBuilder_i t layers m => m $ Binding Node (PrimExpr' t layers Star)
+star4 :: ExprBuilder_i t layers m => m $ Binding (PrimExpr' t layers Star)
 star4 = star3 -- inferTerm star3
 
 -- inferTerm :: ExprInferable (a ^. TermType) (a ^. Layers) m => m a -> m a
@@ -269,8 +269,8 @@ star4 = star3 -- inferTerm star3
 -- type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
 
 xunify :: (layout ~ MatchLayouts l1 l2, LayersCons ls m, ValidateLayout layout Atom Unify)
-        => Binding Node (Expr t ls l1) -> Binding Node (Expr t ls l2) -> m (Expr t ls layout)
-xunify l r = expr $ N.unify' (unsafeCoerce l :: Int) (unsafeCoerce r)
+        => Binding (Expr t ls l1) -> Binding (Expr t ls l2) -> m (Expr t ls layout)
+xunify l r = expr $ N.unify' (unsafeCoerce l) (unsafeCoerce r)
 
 -- zrobic connectiony!
                 -- xunify :: forall t a m layout layout1 layout2 layout n x.
@@ -339,15 +339,14 @@ generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
 
 -- class Bindable3 t m a where
---     bind3 :: a -> m (Connector a t a)
+--     bind3 :: a -> m (Binder a t a)
 
-type instance Connector Net = Ref2
+type instance Binder Net = Ref2 Node
 
-class Monad m => Bindable t m a where
-    bind :: a -> m (Binding t a)
+
 
 instance (MonadBuilder g m, DynamicM2 Node g m (Expr Net layers layout))
-      => Bindable Node m (Expr Net layers layout) where
+      => Bindable (Expr Net layers layout) m where
     bind a = Binding <$> construct' a
 
 
@@ -356,12 +355,12 @@ instance (MonadBuilder g m, DynamicM2 Node g m (Expr Net layers layout))
 
 
 
-universalBind2 :: Constructor' m (Binding Node (AnyExpr t layers))
-               => Expr t layers layout -> m (Binding Node (Expr t layers layout))
+universalBind2 :: Constructor' m (Binding (AnyExpr t layers))
+               => Expr t layers layout -> m (Binding (Expr t layers layout))
 universalBind2 = unsafeUniversalAppM construct'
 
-universalBind3 :: Bindable Node m (AnyExpr t layers)
-               => Expr t layers layout -> m (Binding Node (Expr t layers layout))
+universalBind3 :: Bindable (AnyExpr t layers) m
+               => Expr t layers layout -> m (Binding (Expr t layers layout))
 universalBind3 = unsafeUniversalAppM bind
 
 
@@ -369,18 +368,18 @@ unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
 unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
 
 class IsExprX a
-instance (v ~ Binding Node (Expr t layers layout), layers ~ '[]) => IsExprX v
+instance (v ~ Binding (Expr t layers layout), layers ~ '[]) => IsExprX v
 type IsExprX' = TypeConstraint2 IsExprX
 
 
-instance (Wrapped (Binding t b), Unwrapped (Binding t b) ~ ref a, Referred ref m)
-      => MonadAccess (Binding t b) m a where
+instance (Wrapped (Binding t), Unwrapped (Binding t) ~ ref a, Referred ref m)
+      => MonadAccess (Binding t) m a where
     write2 = refer   . unwrap'
     read2  = derefer . unwrap'
 
 data InfLayers = InfLayers
 
-test_gr1 :: (ExprBuilder_i t layers m, Referred (Connector t Node) m
+test_gr1 :: (ExprBuilder_i t layers m, Referred (Binder t) m
             , MonadIO m, Show (PrimExpr' t layers Star))
          => m ()
 test_gr1 = do
