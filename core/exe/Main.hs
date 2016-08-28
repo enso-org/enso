@@ -123,6 +123,7 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 
+data InfLayers = InfLayers
 
 
 
@@ -244,7 +245,7 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 type ExprInferable t (layers :: [*]) m = (Inferable2 InfLayers layers m, Inferable2 TermType t m)
-type ExprBuilder2 t layers m = (LayersCons layers m, Bindable (AnyExpr t layers) m, Dispatcher2 Node m (Binding (AnyExpr t layers)))
+type ExprBuilder2 t layers m = (LayersCons layers m, Bindable t m, Dispatcher2 Node m (Binding (AnyExpr t layers)))
 type ExprBuilder_i t layers m = (ExprBuilder2 t layers m, ExprInferable t layers m)
 
 
@@ -257,7 +258,10 @@ star2 :: LayersCons layers m => m (PrimExpr' t layers Star)
 star2 = star1
 
 star3 :: ExprBuilder2 t layers m => m $ Binding (PrimExpr' t layers Star)
-star3 = universalDispatch Node =<< universalBind3 =<< star2
+star3 = universalDispatch Node =<< mkBinding =<< star2
+
+-- star3' :: ExprBuilder2 t layers m => m $ Binding (PrimExpr' t layers Star)
+-- star3' = universalDispatch Node =<< universalBind3' =<< star2
 
 star4 :: ExprBuilder_i t layers m => m $ Binding (PrimExpr' t layers Star)
 star4 = star3 -- inferTerm star3
@@ -341,50 +345,65 @@ generalize = unsafeCoerce ; {-# INLINE generalize #-}
 -- class Bindable3 t m a where
 --     bind3 :: a -> m (Binder a t a)
 
-type instance Binder Net = Ref2 Node
+newtype NodeRef     tgt = NodeRef (Ref2 Node tgt)
+newtype EdgeRef src tgt = EdgeRef (Ref2 Edge (Arc2 src tgt))
+
+makeWrapped ''NodeRef
+makeWrapped ''EdgeRef
+
+type instance Binder Net     = NodeRef
+type instance Linker Net Net = EdgeRef
+
+
+-- instance (MonadBuilder g m, DynamicM2 Node g m a)
+--       => Bindable Net a m where
+--     bind a = construct' a ; {-# INLINE bind #-}
+--
 
 
 
-instance (MonadBuilder g m, DynamicM2 Node g m (Expr Net layers layout))
-      => Bindable (Expr Net layers layout) m where
-    bind a = Binding <$> construct' a
 
 
 
+-- universalBind2 :: Constructor' m (Binding (AnyExpr t layers))
+--                => Expr t layers layout -> m (Binding (Expr t layers layout))
+-- universalBind2 = unsafeUniversalAppM construct'
+
+-- universalBind3 :: Bindable (AnyExpr t layers) m
+--                => Expr t layers layout -> m (Binding (Expr t layers layout))
+-- universalBind3 = unsafeUniversalAppM bind
+
+-- universalBind3 :: (BindableX (AnyExpr t layers) m, Functor m)
+--                => Expr t layers layout -> m (Binding (Expr t layers layout))
+-- universalBind3 = unsafeUniversalAppM bindX
+
+-- universalBind4 :: (Bindable t m, Functor m)
+--                => Expr t layers layout -> m (Binding (Expr t layers layout))
+-- universalBind4 = unsafeUniversalAppM bind
+
+
+-- unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
+-- unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
+
+-- class IsExprX a
+-- instance (v ~ Binding (Expr t layers layout), layers ~ '[]) => IsExprX v
+-- type IsExprX' = TypeConstraint2 IsExprX
 
 
 
-
-universalBind2 :: Constructor' m (Binding (AnyExpr t layers))
-               => Expr t layers layout -> m (Binding (Expr t layers layout))
-universalBind2 = unsafeUniversalAppM construct'
-
-universalBind3 :: Bindable (AnyExpr t layers) m
-               => Expr t layers layout -> m (Binding (Expr t layers layout))
-universalBind3 = unsafeUniversalAppM bind
+instance (Monad m, MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m)
+      => Bindable Net m where
+    mkBinder   = NodeRef <∘> construct' ; {-# INLINE mkBinder   #-}
+    readBinder = readRef . unwrap'      ; {-# INLINE readBinder #-}
 
 
-unsafeUniversalAppM :: Functor m => (Universal a -> m (Universal b)) -> a -> m b
-unsafeUniversalAppM f a = unsafeCoerce <$> (f $ universal a)
 
-class IsExprX a
-instance (v ~ Binding (Expr t layers layout), layers ~ '[]) => IsExprX v
-type IsExprX' = TypeConstraint2 IsExprX
-
-
-instance (Wrapped (Binding t), Unwrapped (Binding t) ~ ref a, Referred ref m)
-      => MonadAccess (Binding t) m a where
-    write2 = refer   . unwrap'
-    read2  = derefer . unwrap'
-
-data InfLayers = InfLayers
-
-test_gr1 :: (ExprBuilder_i t layers m, Referred (Binder t) m
+test_gr1 :: ( ExprBuilder_i t layers m
             , MonadIO m, Show (PrimExpr' t layers Star))
          => m ()
 test_gr1 = do
     sref <- star4
-    t <- read2 sref
+    t <- readBinding sref
 
     case' t of
         Symbol.Unify l r -> print 11

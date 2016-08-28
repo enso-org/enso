@@ -150,7 +150,6 @@ instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Loc r'   ) where cast = rewrap
 newtype Ptr2 r   = Ptr2 (Ptr r 'Unknown  ) deriving (Generic, NFData, Show, Eq, Ord, Num)
 newtype Ref2 r a = Ref2 (Ptr r ('Known a)) deriving (Generic, NFData, Show, Eq, Ord, Num)
 
-
 -- === Location Accessors === --
 
 type  Pointable  r t = PointableM r t Identity

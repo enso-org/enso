@@ -8,6 +8,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {-# LANGUAGE GADTs #-}
 
 
@@ -106,6 +108,75 @@ data TermType = TermType deriving (Show)
 
 
 
+-------------------------
+-- === Connections === --
+-------------------------
+
+-- === Definitions === --
+
+type family Binder    t  :: * -> *
+type family Linker  t t' :: * -> * -> *
+type        Binder'     tgt = Binder     tgt     tgt
+type        Linker' src tgt = Linker src tgt src tgt
+
+newtype Binding     tgt = Binding (Binder' tgt)
+newtype Link    src tgt = Link    (Linker' src tgt)
+makeWrapped ''Binding
+makeWrapped ''Link
+
+
+-- === Classes === --
+
+class Monad m => Bindable t m where
+    mkBinder    :: forall a. a -> m (Binder t a)
+    rmBinder    :: forall a. Binder t a      -> m ()
+    writeBinder :: forall a. Binder t a -> a -> m ()
+    readBinder  :: forall a. Binder t a      -> m a
+
+mkBinding    :: forall a m. Bindable a m => a -> m (Binding a)
+rmBinding    :: forall a m. Bindable a m => Binding a      -> m ()
+writeBinding :: forall a m. Bindable a m => Binding a -> a -> m ()
+readBinding  :: forall a m. Bindable a m => Binding a      -> m a
+mkBinding    = wrap' <∘> mkBinder @a    ; {-# INLINE mkBinding    #-}
+rmBinding    = rmBinder    @a . unwrap' ; {-# INLINE rmBinding    #-}
+writeBinding = writeBinder @a . unwrap' ; {-# INLINE writeBinding #-}
+readBinding  = readBinder  @a . unwrap' ; {-# INLINE readBinding  #-}
+
+
+class Monad m => Linkable t t' m where
+    mkLinker    :: forall a b. Binding a -> Binding b -> m (Linker t t' a b)
+    rmLinker    :: forall a b. Linker t t' a b -> m ()
+    writeLinker :: forall a b. Linker t t' a b -> Binding a -> Binding b -> m ()
+    readLinker  :: forall a b. Linker t t' a b -> m (Binding a, Binding b)
+
+mkLink    :: forall a b m. Linkable a b m => Binding a -> Binding b -> m (Link a b)
+rmLink    :: forall a b m. Linkable a b m => Link a b -> m ()
+writeLink :: forall a b m. Linkable a b m => Link a b -> Binding a -> Binding b -> m ()
+readLink  :: forall a b m. Linkable a b m => Link a b -> m (Binding a, Binding b)
+mkLink    = wrap' <∘∘> mkLinker @a @b   ; {-# INLINE mkLink    #-}
+rmLink    = rmLinker    @a @b . unwrap' ; {-# INLINE rmLink    #-}
+writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
+readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
+
+
+-- === Utils === --
+
+type SubLink    c t = Link t  (Sub c t)
+type SubBinding c t = Binding (Sub c t)
+
+
+-- === Instances === --
+
+deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
+deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
+
+type instance Deconstructed (Binding a) = a
+type instance Get p   (Binding a) = Get p a
+type instance Set p v (Binding a) = Binding (Set p v a)
+
+
+
+
 
 ----------------------
 -- === TermData === --
@@ -168,10 +239,26 @@ type instance Get TermType      (Expr t _ _)      = t
 instance Getter Data (Expr t layers layout) where get (Expr _ s) = s ; {-# INLINE get #-}
 
 
--- === Instances === --
+-- === Bindings === --
 
-type instance Binder (Expr t _ _)               = Binder t
+type instance Binder              (Expr t  _ _) = Binder   t
 type instance Linker (Expr t _ _) (Expr t' _ _) = Linker t t'
+
+instance Bindable t m => Bindable (Expr t layers model) m where
+    mkBinder    = mkBinder    @t ; {-# INLINE mkBinder    #-}
+    rmBinder    = rmBinder    @t ; {-# INLINE rmBinder    #-}
+    writeBinder = writeBinder @t ; {-# INLINE writeBinder #-}
+    readBinder  = readBinder  @t ; {-# INLINE readBinder  #-}
+
+instance Linkable t t' m => Linkable (Expr t layers model) (Expr t' layers' model') m where
+    mkLinker    = mkLinker    @t @t' ; {-# INLINE mkLinker    #-}
+    rmLinker    = rmLinker    @t @t' ; {-# INLINE rmLinker    #-}
+    writeLinker = writeLinker @t @t' ; {-# INLINE writeLinker #-}
+    readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
+
+
+
+-- === Instances === --
 
 type instance Sub s (Expr t layers layout) = Expr t layers (Sub s layout)
 
@@ -206,43 +293,7 @@ instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildL
 
 
 
--------------------------
--- === Connections === --
--------------------------
 
--- === Definitions === --
-
-type family Binder      tgt :: * -> *
-type family Linker  src tgt :: * -> * -> *
-type        Binder'     tgt = Binder     tgt     tgt
-type        Linker' src tgt = Linker src tgt src tgt
-
-newtype Binding     tgt = Binding (Binder' tgt)
-newtype Link    src tgt = Link    (Linker' src tgt)
-makeWrapped ''Binding
-makeWrapped ''Link
-
-
--- === Classes === --
-
-class Monad m => Bindable     tgt m where bind ::        tgt -> m (Binding     tgt)
-class Monad m => Linkable src tgt m where link :: src -> tgt -> m (Link    src tgt)
-
-
--- === Utils === --
-
-type SubLink    c t = Link t  (Sub c t)
-type SubBinding c t = Binding (Sub c t)
-
-
--- === Instances === --
-
-deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
-deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
-
-type instance Deconstructed (Binding a) = a
-type instance Get p   (Binding a) = Get p a
-type instance Set p v (Binding a) = Binding (Set p v a)
 
 
 
