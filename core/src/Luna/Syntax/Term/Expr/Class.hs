@@ -73,6 +73,7 @@ import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
+import Luna.Syntax.Term.Expr.Layout (Model, Name)
 import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 
@@ -99,10 +100,9 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 -- === Properties === --
 
 -- TODO: refactor
-data Name   = Name   deriving (Show)
-data Model  = Model  deriving (Show)
-data Data   = Data   deriving (Show)
-data System = System deriving (Show)
+data Data     = Data     deriving (Show)
+data System   = System   deriving (Show)
+data TermType = TermType deriving (Show)
 
 
 
@@ -198,32 +198,34 @@ instance (Show (t l), Show (Stack3 ls t)) => Show (Stack3 (l ': ls) t) where
 
 
 ------------------
--- === Term === --
+-- === Expr === --
 ------------------
 
 -- === Definitions === --
 
-data Term t (layers :: [*]) model = Term (TermStack t layers model) TermStore
+data Expr t (layers :: [*]) model = Expr (TermStack t layers model) TermStore
 
-type TermStack t layers model = Stack3 layers (Layer (Term t layers model))
+type TermStack t layers model = Stack3 layers (Layer (Expr t layers model))
 
 
 -- === Properties === --
 
-type instance Get Model       (Term _ _ model)  = model
-type instance Set Model model (Term t layers _) = Term t layers model
+type instance Get Model       (Expr _ _ model)  = model
+type instance Set Model model (Expr t layers _) = Expr t layers model
+type instance Get Data        (Expr _ _ _)      = TermStore
+type instance Get TermType    (Expr t _ _)      = t
+-- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
 
-type instance Get Data        (Term _ _ _) = TermStore
 
-instance Getter Data (Term t layers model) where get (Term _ s) = s ; {-# INLINE get #-}
+instance Getter Data (Expr t layers model) where get (Expr _ s) = s ; {-# INLINE get #-}
 
 
 -- === Instances === --
 
-type instance Connector (Term t _ _) = Connector t
-type instance Sub s (Term t layers model) = Term t layers (Sub s model)
+type instance Connector (Expr t _ _) = Connector t
+type instance Sub s (Expr t layers model) = Expr t layers (Sub s model)
 
-deriving instance Show (TermStack t layers model) => Show (Term t layers model)
+deriving instance Show (TermStack t layers model) => Show (Expr t layers model)
 
 
 
@@ -234,11 +236,14 @@ deriving instance Show (TermStack t layers model) => Show (Term t layers model)
 -- === Definition === --
 
 data family Layer  t l
-type family Layers a :: [*]
 
 class LayerCons m l where
     consLayer :: forall t. m (Layer t l)
 
+
+-- === Parameters === --
+
+data Layers
 
 -- === Construction === --
 
@@ -268,7 +273,7 @@ type instance Deconstructed (Binding b a) = a
 type instance Get p   (Binding b a) = Get p a
 type instance Set p v (Binding b a) = Binding b (Set p v a)
 
-
+-- type instance Layers (Binding b a) = Layers a
 
 
 
@@ -277,7 +282,7 @@ type instance Set p v (Binding b a) = Binding b (Set p v a)
 ------------------------------
 
 -- | Param `t` defines the Connector type. The args are connection type and connection target.
---   For example `Connector Net Node (Term ...)`
+--   For example `Connector Net Node (Expr ...)`
 type family Connector t :: * -> * -> *
 
 
@@ -287,8 +292,8 @@ type family Connector t :: * -> * -> *
 
 -- === Definitions === --
 
-type TermBinding b t layers model = Binding b (Term t layers model)
-newtype instance Binding b (Term t layers model) = Binding (Unwrapped (TermBinding b t layers model))
+type TermBinding b t layers model = Binding b (Expr t layers model)
+newtype instance Binding b (Expr t layers model) = Binding (Unwrapped (TermBinding b t layers model))
 
 
 -- === Instances === --
@@ -297,7 +302,7 @@ deriving instance Show (Unwrapped (TermBinding b t layers model))
                => Show (TermBinding b t layers model)
 
 instance Wrapped (TermBinding b t layers model) where
-    type Unwrapped (TermBinding b t layers model) = Connector t b (Term t layers model)
+    type Unwrapped (TermBinding b t layers model) = Connector t b (Expr t layers model)
     _Wrapped' = iso (\(Binding a) -> a) Binding ; {-# INLINE _Wrapped' #-}
 
 
@@ -306,14 +311,14 @@ instance Wrapped (TermBinding b t layers model) where
 
 
 
-newtype TermSymbol atom t = TermSymbol (N.NamedSymbol atom (Connection Name t) (Connection Atom t))
-makeWrapped ''TermSymbol
+newtype ExprSymbol atom t = ExprSymbol (N.NamedSymbol atom (Connection Name t) (Connection Atom t))
+makeWrapped ''ExprSymbol
 
-type instance Get p (TermSymbol atom t) = Get p (Unwrapped (TermSymbol atom t))
+type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
 
 
 instance ValidateModel (Get Model t) Atom atom
-      => FromSymbol (TermSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
+      => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
 
@@ -351,7 +356,7 @@ type ValidateModel' t     sel a = ValidateModel (t ^. Model) sel a
 
 
 class SymbolEncoder atom where
-    encodeSymbol :: forall t. TermSymbol atom t -> TermStore
+    encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
 
 
 instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
@@ -365,15 +370,15 @@ type UncheckedTermCons atom m layers = (LayersCons layers m, SymbolEncoder atom)
 type TermCons         atom m layers model = (UncheckedTermCons atom m layers, ValidateModel model Atom atom)
 
 -- | The `term` type does not force the construction to be checked,
---   because it has to be already performed in order to deliver TermSymbol.
--- term :: UncheckedTermCons atom m t => TermSymbol atom t -> m (Term3 t)
+--   because it has to be already performed in order to deliver ExprSymbol.
+-- term :: UncheckedTermCons atom m t => ExprSymbol atom t -> m (Term3 t)
 -- term a = flip Term3 (encodeSymbol a) <$> buildLayers
 
 
--- | The `term` type does not force the construction to be checked,
---   because it has to be already performed in order to deliver TermSymbol.
-term2 :: (term ~ Term t layers model, UncheckedTermCons atom m layers) => TermSymbol atom term -> m term
-term2 a = flip Term (encodeSymbol a) <$> buildLayers
+-- | The `expr` type does not force the construction to be checked,
+--   because it has to be already performed in order to deliver ExprSymbol.
+expr :: (expr ~ Expr t layers model, UncheckedTermCons atom m layers) => ExprSymbol atom expr -> m expr
+expr a = flip Expr (encodeSymbol a) <$> buildLayers
 
 
 
@@ -382,7 +387,7 @@ term2 a = flip Term (encodeSymbol a) <$> buildLayers
 
 
 -------------------------------------
--- === Term Layout type caches === --
+-- === Expr Layout type caches === --
 -------------------------------------
 
 -- TODO: Refactor to Possible type class and arguments Variants etc.
@@ -461,3 +466,11 @@ type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Na
 
 -- class Cons2 v t where
 --     cons2 :: v -> t
+
+
+
+
+-- === Expressions === --
+
+-- star :: (LayersCons layers m, ValidateModel model Atom Star) => m (Expr t layers model)
+-- star = expr N.star'
