@@ -301,12 +301,21 @@ symbolsList = [
     , makeNativeFun "Ref.modify"      (Just $ refOf $ TVar "#a") [TLam [TVar "#a"] $ TVar "#a"] (refOf $ TVar "#a")
     , makeNativeFun "Ref.read"        (Just $ refOf $ TVar "#a") []                             (TVar "#a")
 
+----------------------
+--- === Stream === ---
+----------------------
+
+    , makeNativeFun "Stream.map"      (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (TVar "#b")] (consOfS "Stream" $ TVar "#b")
+
 --------------------
 --- === Misc === ---
 --------------------
 
     , ("id",         makeId)
     , ("const",      makeConst)
+
+    , makeNativeFun "time"         Nothing []                                                             (consOfS "Stream" $ scons "Int")
+    , makeNativeFun "listen"       Nothing [scons "String", scons "Int"]                                  (consOfS "Stream" $ scons "String")
 
     , makeNativeFun "app"          Nothing [TLam [TVar "#a"] (TVar "#b"),            (TVar "#a")]         (TVar "#b")
     , makeNativeFun "comp"         Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a"] (TVar "#b")]   (TLam [TVar "#a"] (TVar "#c"))
@@ -318,6 +327,7 @@ symbolsList = [
     , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]                           (TVar "#a")
 
     , makeNativeFun "readFile"     Nothing [scons "String"]                                               (scons "String")
+    , makeNativeFun "writeFile"    Nothing [scons "String", scons "String"]                               (scons "OK")
 
     , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]                                      (scons "Double")
     , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                                         (listOf $ scons "Int")

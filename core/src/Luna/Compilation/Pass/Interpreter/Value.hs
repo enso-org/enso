@@ -21,14 +21,22 @@ data Object a = Object { _proto :: ClassDescription a
 data ObjectData = ObjectData (Map Ident Value)
 data ClassDescription a = ClassDescription (Map Ident (Method a))
 data Method a = Method (Object a -> Value)
+
 makeLenses  ''Object
 makeWrapped ''Method
 makeWrapped ''ClassDescription
 makeWrapped ''ObjectData
 
-toIO :: LunaM a -> ExceptT String IO a
-toIO (Pure a)    = return a
-toIO (Monadic a) = a
+toExceptIO :: LunaM a -> ExceptT String IO a
+toExceptIO (Pure a)    = return a
+toExceptIO (Monadic a) = a
+
+toIO :: LunaM a -> IO a
+toIO m = do
+    m' <- runExceptT $ toExceptIO m
+    case m' of
+        Right a -> return a
+        Left  e -> fail e
 
 unsafeAppFun :: Value -> [Value] -> Value
 unsafeAppFun = foldl unsafeAppArg where
@@ -55,11 +63,11 @@ instance Applicative LunaM where
     pure = Pure
 
     (Pure f) <*> (Pure a) = Pure $ f a
-    f        <*> a        = Monadic $ toIO f <*> toIO a
+    f        <*> a        = Monadic $ toExceptIO f <*> toExceptIO a
 
 instance Monad LunaM where
     (Pure a)    >>= f = f a
-    (Monadic a) >>= f = Monadic $ fmap f a >>= toIO
+    (Monadic a) >>= f = Monadic $ fmap f a >>= toExceptIO
 
 instance MonadIO LunaM where
     liftIO = Monadic . liftIO
@@ -67,7 +75,7 @@ instance MonadIO LunaM where
 instance MonadError String LunaM where
     throwError = Monadic . throwError
     catchError (Pure a)    _       = Pure a
-    catchError (Monadic v) handler = Monadic $ catchError v (toIO . handler)
+    catchError (Monadic v) handler = Monadic $ catchError v (toExceptIO . handler)
 
 intDesc :: ClassDescription Any
 intDesc = ClassDescription $ Map.fromList
@@ -237,6 +245,9 @@ instance ToData String where
 instance ToData Bool where
     unsafeToData = Boxed . Object boolDesc . unsafeCoerce
 
+instance ToData () where
+    unsafeToData = Boxed . Object dummyDesc . unsafeCoerce
+
 instance (ToData a, ToData b) => ToData (a, b) where
     unsafeToData (a, b) = Boxed . Object dummyDesc $ unsafeCoerce (unsafeToData a, unsafeToData b)
 
@@ -257,7 +268,7 @@ instance ToData a => ToValue (LunaM a) where
     unsafeToValue = fmap unsafeToData
 
 instance ToValue a => ToValue (IO a) where
-    unsafeToValue a = Monadic $ liftIO a >>= toIO . unsafeToValue
+    unsafeToValue a = Monadic $ liftIO a >>= toExceptIO . unsafeToValue
 
 instance FromData Int where
     unsafeFromData (Boxed (Object _ i)) = unsafeCoerce i
@@ -266,6 +277,9 @@ instance FromData String where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
 instance FromData Bool where
+    unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
+
+instance FromData () where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
 instance FromData Double where
@@ -292,3 +306,26 @@ toMethodBoxed f = Method $ \(Object _ x) -> unsafeToValue $ f (unsafeCoerce x ::
 
 toStringFormat :: Double -> Int -> Int -> String
 toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in printf format v
+
+
+newtype Stream = Stream ((Data -> IO ()) -> IO ())
+makeWrapped ''Stream
+
+streamDesc :: ClassDescription Any
+streamDesc = ClassDescription $ Map.fromList
+    [ ("map", toMethodBoxed mapStream)
+    ]
+
+instance ToData Stream where
+    unsafeToData = Boxed . Object streamDesc . unsafeCoerce
+
+instance FromData Stream where
+    unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
+
+attachListener :: Stream -> (Data -> IO ()) -> IO ()
+attachListener = unwrap
+
+mapStream :: Stream -> (Data -> Value) -> Stream
+mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
+
+{-zipStream :: Stream -> Stream -> (Data -> Data -> Value) ->-}

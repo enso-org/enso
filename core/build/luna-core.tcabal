@@ -95,6 +95,7 @@ Library
                  , lens-utils
                  , MissingH
                  , mtl
+                 , network
                  , OneTuple
                  , placeholders
                  , primitive
@@ -102,6 +103,7 @@ Library
                  , prologue
                  , split
                  , text
+                 , time
                  , transformers
                  , tuple
                  , type-cache

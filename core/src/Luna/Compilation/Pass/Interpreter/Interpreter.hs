@@ -268,7 +268,7 @@ evaluateAST ref = do
                     memo <- readStack stack ref
                     v <- case memo of
                         Just v  -> v
-                        Nothing -> Monadic $ handleAll exceptionHandler $ toIO val
+                        Nothing -> Monadic $ handleAll exceptionHandler $ toExceptIO val
                     putValue stack ref (Pure v)
                     return v
             Nothing -> do
