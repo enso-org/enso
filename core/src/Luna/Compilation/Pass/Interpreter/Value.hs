@@ -5,6 +5,7 @@ module Luna.Compilation.Pass.Interpreter.Value where
 import           Prelude (error)
 import           Prelude.Luna
 import           Prelude              (error)
+import           Text.Read (readEither)
 import           GHC.Prim             (Any)
 import           Data.Map             (Map)
 import qualified Data.Map             as Map
@@ -12,8 +13,12 @@ import           Unsafe.Coerce
 import           Data.List            (sort)
 import           Text.Printf          (printf)
 import           Control.Monad.Except
+import           Control.Concurrent (ThreadId)
 import           Control.Concurrent.MVar
-
+import           Control.Concurrent.Chan (Chan, writeChan)
+import           Network.Socket (Socket, SockAddr)
+import           Control.Exception (throw)
+import GHC.IO.Handle (Handle)
 type Ident    = String
 data LunaM a  = Pure a | Monadic (ExceptT String IO a)
 type Value    = LunaM Data
@@ -94,8 +99,9 @@ intDesc = ClassDescription $ Map.fromList
     , ("+",        toMethodBoxed ((+) :: Int -> Int -> Int))
     , ("*",        toMethodBoxed ((*) :: Int -> Int -> Int))
     , ("-",        toMethodBoxed ((-) :: Int -> Int -> Int))
-    , ("/",        toMethodBoxed (intDiv :: Int -> Int -> Int))
-    , ("%",        toMethodBoxed (intMod :: Int -> Int -> Int))
+    , ("/",        toMethodBoxed (intDiv :: Int -> Int -> LunaM Int))
+    , ("%",        toMethodBoxed (intMod :: Int -> Int -> LunaM Int))
+    , ("mod",      toMethodBoxed (intMod :: Int -> Int -> LunaM Int))
     , ("^",        toMethodBoxed ((^) :: Int -> Int -> Int))
 
     , ("negate",   toMethodBoxed (negate :: Int -> Int))
@@ -117,11 +123,13 @@ intDesc = ClassDescription $ Map.fromList
     , ("toString", toMethodBoxed (show         :: Int -> String))
     ]
 
-intDiv :: Int -> Int -> Int
-intDiv a b = if b /= 0 then a `div` b else error "Error: Division by zero"
+intDiv :: Int -> Int -> LunaM Int
+intDiv _ 0 = throwError "Error: Division by zero"
+intDiv a b = return $ a `div` b
 
-intMod :: Int -> Int -> Int
-intMod a b = if b /= 0 then a `mod` b else error "Error: Division by zero"
+intMod :: Int -> Int -> LunaM Int
+intMod _ 0 = throwError "Error: Division by zero"
+intMod a b = return $ a `mod` b
 
 lstDesc :: ClassDescription Any
 lstDesc = ClassDescription $ Map.fromList
@@ -206,25 +214,45 @@ boolDesc = ClassDescription $ Map.fromList
 
 stringDesc :: ClassDescription Any
 stringDesc = ClassDescription $ Map.fromList
-    [ ("==",       toMethodBoxed ((==) :: String -> String -> Bool))
-    , ("/=",       toMethodBoxed ((/=) :: String -> String -> Bool))
-    , ("<",        toMethodBoxed ((<)  :: String -> String -> Bool))
-    , ("<=",       toMethodBoxed ((<=) :: String -> String -> Bool))
-    , (">",        toMethodBoxed ((>)  :: String -> String -> Bool))
-    , (">=",       toMethodBoxed ((>=) :: String -> String -> Bool))
-    , ("min",      toMethodBoxed (min  :: String -> String -> String))
-    , ("max",      toMethodBoxed (max  :: String -> String -> String))
+    [ ("==",          toMethodBoxed ((==) :: String -> String -> Bool))
+    , ("/=",          toMethodBoxed ((/=) :: String -> String -> Bool))
+    , ("<",           toMethodBoxed ((<)  :: String -> String -> Bool))
+    , ("<=",          toMethodBoxed ((<=) :: String -> String -> Bool))
+    , (">",           toMethodBoxed ((>)  :: String -> String -> Bool))
+    , (">=",          toMethodBoxed ((>=) :: String -> String -> Bool))
+    , ("min",         toMethodBoxed (min  :: String -> String -> String))
+    , ("max",         toMethodBoxed (max  :: String -> String -> String))
 
-    , ("+",        toMethodBoxed ((++)        :: String -> String -> String))
-    , ("length",   toMethodBoxed (length      :: String -> Int))
-    , ("reverse",  toMethodBoxed (reverse     :: String -> String))
-    , ("take",     toMethodBoxed (flip take   :: String -> Int -> String))
-    , ("drop",     toMethodBoxed (flip drop   :: String -> Int -> String))
-    , ("words",    toMethodBoxed (words       :: String -> [String]))
-    , ("lines",    toMethodBoxed (lines       :: String -> [String]))
-    , ("join",     toMethodBoxed (intercalate :: String -> [String] -> String))
+    , ("+",           toMethodBoxed ((++)        :: String -> String -> String))
+    , ("length",      toMethodBoxed (length      :: String -> Int))
+    , ("reverse",     toMethodBoxed (reverse     :: String -> String))
+    , ("take",        toMethodBoxed (flip take   :: String -> Int -> String))
+    , ("drop",        toMethodBoxed (flip drop   :: String -> Int -> String))
+    , ("words",       toMethodBoxed (words       :: String -> [String]))
+    , ("lines",       toMethodBoxed (lines       :: String -> [String]))
+    , ("join",        toMethodBoxed (intercalate :: String -> [String] -> String))
 
-    , ("toString", toMethodBoxed (id          :: String -> String))
+    , ("toString",    toMethodBoxed (id          :: String -> String))
+    , ("parseInt",    toMethodBoxed (safeRead    :: String -> LunaM Int))
+    , ("parseDouble", toMethodBoxed (safeRead    :: String -> LunaM Double))
+    ]
+
+newtype Stream = Stream ((Data -> IO ()) -> IO (IO ()))
+
+
+data MySocket = MySocket { _socketSocket      :: Socket
+                         , _socketPublishChan :: Chan String
+                         , _socketNextId      :: MVar Int
+                         , _socketListeners   :: MVar (Map.Map Int (Data -> IO ()))
+                         , _socketStream      :: Stream
+                         , _socketConnections :: MVar (Map.Map SockAddr (Handle, ThreadId, ThreadId))
+                         , _destruct    :: IO ()
+                         }
+
+socketDesc :: ClassDescription Any
+socketDesc = ClassDescription $ Map.fromList
+    [ ("write",       toMethodBoxed (socketWrite       :: MySocket -> String -> IO ()))
+    , ("data",        toMethodBoxed (socketData        :: MySocket -> Stream))
     ]
 
 dummyDesc :: ClassDescription Any
@@ -253,6 +281,9 @@ instance ToData String where
 
 instance ToData Bool where
     unsafeToData = Boxed . Object boolDesc . unsafeCoerce
+
+instance ToData MySocket where
+    unsafeToData = Boxed . Object socketDesc . unsafeCoerce
 
 instance ToData () where
     unsafeToData = Boxed . Object dummyDesc . unsafeCoerce
@@ -288,6 +319,9 @@ instance FromData String where
 instance FromData Bool where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
+instance FromData MySocket where
+    unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
+
 instance FromData () where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
@@ -316,10 +350,6 @@ toMethodBoxed f = Method $ \(Object _ x) -> unsafeToValue $ f (unsafeCoerce x ::
 toStringFormat :: Double -> Int -> Int -> String
 toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in printf format v
 
-
-newtype Stream = Stream ((Data -> IO ()) -> IO (IO ()))
-makeWrapped ''Stream
-
 streamDesc :: ClassDescription Any
 streamDesc = ClassDescription $ Map.fromList
     [ ("map",   toMethodBoxed mapStream)
@@ -338,6 +368,11 @@ attachListener = unwrap
 mapStream :: Stream -> (Data -> Value) -> Stream
 mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
 
+safeRead :: Read a => String -> LunaM a
+safeRead s = case readEither s of
+    Left err -> throwError err
+    Right v -> return v
+
 {-accumStream :: Stream -> LunaM Stream-}
 {-accumStream s = liftIO $ do-}
     {-dataVar <- newMVar []-}
@@ -345,5 +380,14 @@ mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
         {-modifyMVar_ dataVar $ return . (val :)-}
         {-d <- readMVar dataVar-}
         {-l $ unsafeToData d-}
+
+socketWrite :: MySocket -> String -> IO ()
+socketWrite s payload = writeChan (_socketPublishChan s) payload
+
+socketData :: MySocket -> Stream
+socketData s = _socketStream s
+makeLenses ''MySocket
+
+makeWrapped ''Stream
 
 {-zipStream :: Stream -> Stream -> (Data -> Data -> Value) ->-}

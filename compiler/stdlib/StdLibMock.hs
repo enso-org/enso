@@ -184,6 +184,7 @@ symbolsList = [
     , makeNativeFun "Int.-"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int./"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.%"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.mod"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.^"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
 
     , makeNativeFun "Int.negate"    (Just $ scons "Int")    []              (scons "Int" )
@@ -291,6 +292,8 @@ symbolsList = [
     , makeNativeFun "String.words"    (Just $ scons "String") []                        (listOf $ scons "String")
     , makeNativeFun "String.lines"    (Just $ scons "String") []                        (listOf $ scons "String")
     , makeNativeFun "String.join"     (Just $ scons "String") [listOf $ scons "String"] (scons "String")
+    , makeNativeFun "String.parseInt"     (Just $ scons "String") [] (scons "Int")
+    , makeNativeFun "String.parseDouble"     (Just $ scons "String") [] (scons "Double")
 
     , makeNativeFun "String.toString" (Just $ scons "String") []                        (scons "String")
 
@@ -315,7 +318,10 @@ symbolsList = [
     , ("const",      makeConst)
 
     , makeNativeFun "time"         Nothing []                                                             (consOfS "Stream" $ scons "Int")
-    , makeNativeFun "listen"       Nothing [scons "String", scons "Int"]                                  (consOfS "Stream" $ scons "String")
+    , makeNativeFun "listen"       Nothing [scons "Int"]                                                  (scons "Socket")
+
+    , makeNativeFun "Socket.data"        (Just $ scons "Socket") []                                       (consOfS "Stream" $ scons "String")
+    , makeNativeFun "Socket.write"       (Just $ scons "Socket") [scons "String"]                         (scons "OK")
 
     , makeNativeFun "app"          Nothing [TLam [TVar "#a"] (TVar "#b"),            (TVar "#a")]         (TVar "#b")
     , makeNativeFun "comp"         Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a"] (TVar "#b")]   (TLam [TVar "#a"] (TVar "#c"))
@@ -328,6 +334,7 @@ symbolsList = [
 
     , makeNativeFun "readFile"     Nothing [scons "String"]                                               (scons "String")
     , makeNativeFun "writeFile"    Nothing [scons "String", scons "String"]                               (scons "OK")
+    , makeNativeFun "system"       Nothing [scons "String"]                                               (scons "OK")
 
     , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]                                      (scons "Double")
     , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                                         (listOf $ scons "Int")
@@ -401,15 +408,17 @@ symbolsList = [
 --- === IoT Demo === ---
 ------------------------
 
-    , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")
-    , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
-    , makeNativeFun "controlPanel"    Nothing []                                  (scons "ControlPanel")
+    , makeNativeFun "setLedColor"        Nothing [scons "Int", scons "Double", scons "Double", scons "Double"] (scons "OK")
 
-    , makeNativeFun "Temperature.inside"                (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
-    , makeNativeFun "Temperature.outside"               (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.temperatureThreshold" (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.display"              (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
-    , makeNativeFun "Fan.power"                         (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
+    -- , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")
+    -- , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
+    -- , makeNativeFun "controlPanel"    Nothing []                                  (scons "ControlPanel")
+    --
+    -- , makeNativeFun "Temperature.inside"                (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    -- , makeNativeFun "Temperature.outside"               (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    -- , makeNativeFun "ControlPanel.temperatureThreshold" (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
+    -- , makeNativeFun "ControlPanel.display"              (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
+    -- , makeNativeFun "Fan.power"                         (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
 
 --------------------------
 -- === Experimental === --
