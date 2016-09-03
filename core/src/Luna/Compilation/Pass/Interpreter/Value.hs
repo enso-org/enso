@@ -2,6 +2,7 @@
 
 module Luna.Compilation.Pass.Interpreter.Value where
 
+import           Prelude (error)
 import           Prelude.Luna
 import           Prelude              (error)
 import           GHC.Prim             (Any)
@@ -11,6 +12,7 @@ import           Unsafe.Coerce
 import           Data.List            (sort)
 import           Text.Printf          (printf)
 import           Control.Monad.Except
+import           Control.Concurrent.MVar
 
 type Ident    = String
 data LunaM a  = Pure a | Monadic (ExceptT String IO a)
@@ -315,12 +317,13 @@ toStringFormat :: Double -> Int -> Int -> String
 toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in printf format v
 
 
-newtype Stream = Stream ((Data -> IO ()) -> IO ())
+newtype Stream = Stream ((Data -> IO ()) -> IO (IO ()))
 makeWrapped ''Stream
 
 streamDesc :: ClassDescription Any
 streamDesc = ClassDescription $ Map.fromList
-    [ ("map", toMethodBoxed mapStream)
+    [ ("map",   toMethodBoxed mapStream)
+    {-, ("accum", toMethodBoxed accumStream)-}
     ]
 
 instance ToData Stream where
@@ -329,10 +332,18 @@ instance ToData Stream where
 instance FromData Stream where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
-attachListener :: Stream -> (Data -> IO ()) -> IO ()
+attachListener :: Stream -> (Data -> IO ()) -> IO (IO ())
 attachListener = unwrap
 
 mapStream :: Stream -> (Data -> Value) -> Stream
 mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
+
+{-accumStream :: Stream -> LunaM Stream-}
+{-accumStream s = liftIO $ do-}
+    {-dataVar <- newMVar []-}
+    {-return $ Stream $ \l -> attachListener s $ \val -> do-}
+        {-modifyMVar_ dataVar $ return . (val :)-}
+        {-d <- readMVar dataVar-}
+        {-l $ unsafeToData d-}
 
 {-zipStream :: Stream -> Stream -> (Data -> Data -> Value) ->-}

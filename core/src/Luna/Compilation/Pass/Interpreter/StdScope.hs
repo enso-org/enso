@@ -41,15 +41,29 @@ stdScope = Scope $ Map.fromList
     , ("listen",      unsafeToValue listenSocket)
     ]
 
-time :: Stream
-time = Stream $ \listener -> do
+managingStream :: MVar Int -> MVar (Map.Map Int (Data -> IO ())) -> IO () -> Stream
+managingStream nextId listeners destructor = Stream $ \listener -> do
+    id <- takeMVar nextId
+    putMVar nextId $ id + 1
+    modifyMVar_ listeners $ return . Map.insert id listener
+    return $ do
+        lsts <- takeMVar listeners
+        let newLsts = Map.delete id lsts
+        when (Map.null newLsts) destructor
+        putMVar listeners newLsts
+
+time :: LunaM Stream
+time = liftIO $ do
+    listeners <- newMVar Map.empty
     let worker = do
           time <- round <$> getPOSIXTime
-          listener $ unsafeToData (time :: Int)
+          lsts <- readMVar listeners
+          mapM_ ($ unsafeToData (time :: Int)) $ Map.elems lsts
           threadDelay 1000000
           worker
-    forkIO worker
-    return ()
+    th     <- forkIO worker
+    nextId <- newMVar 0
+    return $ managingStream nextId listeners $ killThread th
 
 listenSocket :: String -> Int -> LunaM Stream
 listenSocket host port = liftIO $ do
@@ -57,14 +71,15 @@ listenSocket host port = liftIO $ do
       let serverAddr = head addrInfo
       sock <- socket (addrFamily serverAddr) Socket.Stream defaultProtocol
       connect sock (addrAddress serverAddr)
-      listeners <- newMVar []
+      listeners <- newMVar Map.empty
       let worker = do
             msg   <- recv sock 4096
             lists <- readMVar listeners
-            mapM_ ($ unsafeToData msg) lists
+            mapM_ ($ unsafeToData msg) $ Map.elems lists
             worker
-      forkIO worker
-      return $ Stream $ \listener -> modifyMVar_ listeners $ return . (listener :)
+      th     <- forkIO worker
+      nextId <- newMVar 0
+      return $ managingStream nextId listeners $ killThread th >> close sock
 
 primes :: Int -> [Int]
 primes count = take count primes' where
