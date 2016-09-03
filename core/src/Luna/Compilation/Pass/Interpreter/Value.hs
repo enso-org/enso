@@ -3,12 +3,13 @@
 module Luna.Compilation.Pass.Interpreter.Value where
 
 import           Prelude.Luna
-import           GHC.Prim      (Any)
-import           Data.Map      (Map)
-import qualified Data.Map      as Map
+import           Prelude              (error)
+import           GHC.Prim             (Any)
+import           Data.Map             (Map)
+import qualified Data.Map             as Map
 import           Unsafe.Coerce
-import           Data.List (sort)
-import           Text.Printf (printf)
+import           Data.List            (sort)
+import           Text.Printf          (printf)
 import           Control.Monad.Except
 
 type Ident    = String
@@ -91,8 +92,8 @@ intDesc = ClassDescription $ Map.fromList
     , ("+",        toMethodBoxed ((+) :: Int -> Int -> Int))
     , ("*",        toMethodBoxed ((*) :: Int -> Int -> Int))
     , ("-",        toMethodBoxed ((-) :: Int -> Int -> Int))
-    , ("/",        toMethodBoxed (div :: Int -> Int -> Int))
-    , ("%",        toMethodBoxed (mod :: Int -> Int -> Int))
+    , ("/",        toMethodBoxed (intDiv :: Int -> Int -> Int))
+    , ("%",        toMethodBoxed (intMod :: Int -> Int -> Int))
     , ("^",        toMethodBoxed ((^) :: Int -> Int -> Int))
 
     , ("negate",   toMethodBoxed (negate :: Int -> Int))
@@ -113,6 +114,12 @@ intDesc = ClassDescription $ Map.fromList
     , ("toDouble", toMethodBoxed (fromIntegral :: Int -> Double))
     , ("toString", toMethodBoxed (show         :: Int -> String))
     ]
+
+intDiv :: Int -> Int -> Int
+intDiv a b = if b /= 0 then a `div` b else error "Error: Division by zero"
+
+intMod :: Int -> Int -> Int
+intMod a b = if b /= 0 then a `mod` b else error "Error: Division by zero"
 
 lstDesc :: ClassDescription Any
 lstDesc = ClassDescription $ Map.fromList
