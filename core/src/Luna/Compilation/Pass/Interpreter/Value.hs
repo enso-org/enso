@@ -423,10 +423,11 @@ socketData s = _socketStream s
 
 setColor :: LedRing -> Int -> Color -> IO ()
 setColor lr ix (Color r g b) = do
+    let brightness = 64
     let vals = [ ix
-               , (floor $ r * 255)
-               , (floor $ g * 255)
-               , (floor $ b * 255)
+               , (floor $ r * brightness)
+               , (floor $ g * brightness)
+               , (floor $ b * brightness)
                ]
         line = (intercalate " " $ show <$> vals) <> "\n"
     SP.send (_serialPort lr) $ B.pack line
