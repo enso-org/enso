@@ -334,6 +334,9 @@ instance (FromData a, FromData b) => FromData (a, b) where
 instance {-# OVERLAPPABLE #-} FromData a => FromData [a] where
     unsafeFromData (Boxed (Object _ as)) = unsafeFromData <$> unsafeCoerce as
 
+instance FromData a => FromData (Maybe a) where
+    unsafeFromData (Boxed (Object _ s)) = unsafeFromData <$> unsafeCoerce s
+
 instance (ToData a, FromData b) => FromData (a -> LunaM b) where
     unsafeFromData (Function f) = fmap unsafeFromData . f . unsafeToData
 
