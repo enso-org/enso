@@ -18,7 +18,11 @@ import           Control.Concurrent.MVar
 import           Control.Concurrent.Chan (Chan, writeChan)
 import           Network.Socket (Socket, SockAddr)
 import           Control.Exception (throw)
-import GHC.IO.Handle (Handle)
+import           GHC.IO.Handle (Handle)
+import qualified System.Hardware.Serialport as SP
+import qualified Data.ByteString.Char8 as B
+
+
 type Ident    = String
 data LunaM a  = Pure a | Monadic (ExceptT String IO a)
 type Value    = LunaM Data
@@ -249,11 +253,26 @@ data MySocket = MySocket { _socketSocket      :: Socket
                          , _destruct    :: IO ()
                          }
 
+data LedRing = LedRing { _serialPort :: SP.SerialPort
+                       , _ledRingDestruct :: IO ()
+                       }
+
+data Color = Color Double Double Double
+
 socketDesc :: ClassDescription Any
 socketDesc = ClassDescription $ Map.fromList
     [ ("write",       toMethodBoxed (socketWrite       :: MySocket -> String -> IO ()))
     , ("data",        toMethodBoxed (socketData        :: MySocket -> Stream))
     ]
+
+ledRingDesc :: ClassDescription Any
+ledRingDesc = ClassDescription $ Map.fromList
+    [ ("setColor", toMethodBoxed (setColor       :: LedRing -> Int -> Color -> IO ()))
+    ]
+
+colorDesc :: ClassDescription Any
+colorDesc = ClassDescription $ Map.fromList
+    [ ]
 
 dummyDesc :: ClassDescription Any
 dummyDesc = ClassDescription Map.empty
@@ -284,6 +303,12 @@ instance ToData Bool where
 
 instance ToData MySocket where
     unsafeToData = Boxed . Object socketDesc . unsafeCoerce
+
+instance ToData LedRing where
+    unsafeToData = Boxed . Object ledRingDesc . unsafeCoerce
+
+instance ToData Color where
+    unsafeToData = Boxed . Object colorDesc . unsafeCoerce
 
 instance ToData () where
     unsafeToData = Boxed . Object dummyDesc . unsafeCoerce
@@ -320,6 +345,12 @@ instance FromData Bool where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
 instance FromData MySocket where
+    unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
+
+instance FromData LedRing where
+    unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
+
+instance FromData Color where
     unsafeFromData (Boxed (Object _ s)) = unsafeCoerce s
 
 instance FromData () where
@@ -389,7 +420,21 @@ socketWrite s payload = writeChan (_socketPublishChan s) payload
 
 socketData :: MySocket -> Stream
 socketData s = _socketStream s
+
+setColor :: LedRing -> Int -> Color -> IO ()
+setColor lr ix (Color r g b) = do
+    let vals = [ ix
+               , (floor $ r * 255)
+               , (floor $ g * 255)
+               , (floor $ b * 255)
+               ]
+        line = (intercalate " " $ show <$> vals) <> "\n"
+    SP.send (_serialPort lr) $ B.pack line
+    return ()
+
+
 makeLenses ''MySocket
+makeLenses ''LedRing
 
 makeWrapped ''Stream
 

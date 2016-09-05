@@ -113,6 +113,8 @@ Library
                  , data-shell
                  , HTTP
                  , visualization-api
+                 , serialport
+                 , bytestring
 
 
 Executable luna

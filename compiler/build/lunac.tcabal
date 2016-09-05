@@ -89,6 +89,7 @@ Library
                  , data-pool
                  , ghc-mtl
                  , visualization-api
+                 , serialport
 
 
 Executable lunac
@@ -161,6 +162,7 @@ Executable lunac
                  , split
                  , dependent-state
                  , ghc-mtl
+                 , serialport
 
 
 Executable luna-test-inference
