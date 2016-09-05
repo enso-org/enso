@@ -1,5 +1,5 @@
 extra-deps: [ghc-mtl-1.2.1.0, placeholders-0.1, graphviz-2999.18.1.2, string-qq-0.0.2,
-  cond-0.4.1.1, tuple-0.3.0.2, OneTuple-0.2.1]
+  cond-0.4.1.1, tuple-0.3.0.2, OneTuple-0.2.1, serialport-0.4.7]
 ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O}
 local-bin-path: ./dist/bin
 packages:
