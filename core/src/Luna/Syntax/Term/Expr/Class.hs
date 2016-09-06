@@ -143,6 +143,7 @@ writeBinding = writeBinder @a . unwrap' ; {-# INLINE writeBinding #-}
 readBinding  = readBinder  @a . unwrap' ; {-# INLINE readBinding  #-}
 
 
+type Linkable' t m = Linkable t t m
 class Monad m => Linkable t t' m where
     mkLinker    :: forall a b. Binding a -> Binding b -> m (Linker t t' a b)
     rmLinker    :: forall a b. Linker t t' a b -> m ()

@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE TypeApplications          #-}
 {-# LANGUAGE TypeFamilyDependencies    #-}
+{-# LANGUAGE RecursiveDo               #-}
 {-# LANGUAGE PartialTypeSignatures     #-}
 {-# BOOSTER  VariantCase               #-}
 
@@ -14,7 +15,7 @@ module Main where
 
 
 import Data.Graph          hiding (Dynamic, Connection)
-import Data.Graph.Builders
+import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type)
 
 import           Control.Monad.Event
@@ -23,7 +24,7 @@ import           Old.Data.Attr                (attr)
 import           Data.Construction
 import           Data.Container           (elems, index_)
 import           Data.Container           hiding (impossible)
-import           Data.Graph.Builder       hiding (get)
+import           Data.Graph.Builder       hiding (get, Linkable)
 import           Data.Graph.Query         hiding (Graph)
 import qualified Data.Graph.Query         as Sort
 import           Data.Index               (idx)
@@ -276,6 +277,15 @@ xunify :: (layout ~ MatchLayouts l1 l2, LayersCons ls m, ValidateLayout layout A
         => Binding (Expr t ls l1) -> Binding (Expr t ls l2) -> m (Expr t ls layout)
 xunify l r = expr $ N.unify' (unsafeCoerce l) (unsafeCoerce r)
 
+
+xunify2 :: (MonadFix m, layout ~ MatchLayouts l1 l2, LayersCons ls m, ValidateLayout layout Atom Unify, Bindable t m, Linkable' t m)
+        => Binding (Expr t ls l1) -> Binding (Expr t ls l2) -> m (Binding (Expr t ls layout))
+xunify2 a b = mdo
+    n  <- mkBinding =<< (expr $ N.unify' la lb)
+    la <- mkLink n (unsafeCoerce a) -- Sub Atom layout ~~ l1  -- should be checked
+    lb <- mkLink n (unsafeCoerce b)
+    return n
+
 -- zrobic connectiony!
                 -- xunify :: forall t a m layout layout1 layout2 layout n x.
                 --           ( t ~ NetworkT a, Monad m, layout ~ MatchLayouts layout1 layout2, TEST.ASTBuilder t m
@@ -345,8 +355,8 @@ generalize = unsafeCoerce ; {-# INLINE generalize #-}
 -- class Bindable3 t m a where
 --     bind3 :: a -> m (Binder a t a)
 
-newtype NodeRef     tgt = NodeRef (Ref2 Node tgt)
-newtype EdgeRef src tgt = EdgeRef (Ref2 Edge (Arc2 src tgt))
+newtype NodeRef     tgt = NodeRef (Ref2 Node tgt) deriving (Show)
+newtype EdgeRef src tgt = EdgeRef (Ref2 Edge (Arc2 (Binding src) (Binding tgt))) deriving (Show)
 
 makeWrapped ''NodeRef
 makeWrapped ''EdgeRef
@@ -397,22 +407,28 @@ instance (Monad m, MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m)
     readBinder = readRef . unwrap'      ; {-# INLINE readBinder #-}
 
 
+instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
+      => Linkable Net Net m where
+    mkLinker a b = EdgeRef <$> construct' (Arc2 a b)
 
-test_gr1 :: ( ExprBuilder_i t layers m
-            , MonadIO m, Show (PrimExpr' t layers Star))
+test_gr1 :: ( ExprBuilder_i t layers m, Linkable t t m
+            , MonadIO m, Show (PrimExpr' t layers Star), Show (Binding (PrimExpr' t layers Star)))
          => m ()
 test_gr1 = do
     sref <- star4
     t <- readBinding sref
+    l <- mkLink sref sref
 
     case' t of
         Symbol.Unify l r -> print 11
         Symbol.Star      -> case' t of
             Symbol.Unify l r -> print "hello"
             Symbol.Star      -> print "hello3xx"
-    -- print "!!!"
-    -- print sref
+
+
+    print "!!!"
     print t
+    print sref
     return ()
 
 
@@ -425,6 +441,7 @@ test_g2 = do
                               $ runInferenceT2 @TermType  @Net
                               $ test_gr1
 -- runInferenceT2 :: forall t cls m a. cls -> KnownTypeT cls t m a -> m a
+
 
 
 main :: IO ()

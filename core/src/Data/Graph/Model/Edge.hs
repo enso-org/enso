@@ -29,7 +29,8 @@ newtype Arrow tgt     = Arrow (Ref Node tgt)                deriving (Generic, S
 data    Arc   src tgt = Arc   (Ref Node src) (Ref Node tgt) deriving (Generic, Show, Eq, Ord)
 type    Link  a       = Arc   a a
 
-data Arc2 src tgt = Arc2 (Ref2 Node src) (Ref2 Node tgt) deriving (Generic, Show, Eq, Ord)
+-- data Arc2 src tgt = Arc2 (Ref2 Node src) (Ref2 Node tgt) deriving (Generic, Show, Eq, Ord)
+data Arc2 src tgt = Arc2 src tgt deriving (Generic, Show, Eq, Ord, Functor, Traversable, Foldable)
 
 -- === Utils === --
 
