@@ -18,6 +18,8 @@ import System.Cmd (system)
 import System.Process (createProcess, proc)
 import System.IO
 import qualified System.Hardware.Serialport as SP
+import Numeric (readHex)
+import Data.Fixed (mod')
 
 import qualified Data.Map as Map
 
@@ -49,8 +51,9 @@ stdScope = Scope $ Map.fromList
     , ("ledRing",     unsafeToValue ledRing)
     , ("system",      unsafeToValue (\cmd -> void $ system cmd))
     , ("say",         unsafeToValue (\what -> void $ createProcess (proc "say" [what])))
-    , ("rgbColor",       unsafeToValue (\r g b -> Color r g b))
-    , ("cssColor",       unsafeToValue cssColor)
+    , ("rgbColor",    unsafeToValue (\r g b -> Color r g b))
+    , ("cssColor",    unsafeToValue cssColor)
+    , ("hsvColor",    unsafeToValue hsvColor)
     ]
 
 managingStream :: MVar Int -> MVar (Map.Map Int (Data -> IO ())) -> IO () -> Stream
@@ -156,10 +159,11 @@ primes count = take count primes' where
     isPrime n = not $ any (\p -> n `rem` p == 0) $ takeWhile (\p -> p * p <= n) primes'
 
 ledRing :: LunaM LedRing
-ledRing = do
+ledRing = liftIO $ do
      let port = "/tmp/ledring"
-     s <- liftIO $ SP.openSerial port SP.defaultSerialSettings { SP.commSpeed = SP.CS9600 }
-     return $ LedRing s $ SP.closeSerial s
+     s       <- SP.openSerial port SP.defaultSerialSettings { SP.commSpeed = SP.CS9600 }
+     lastLed <- newMVar 0
+     return $ LedRing s lastLed $ SP.closeSerial s
 
 
 colors = Map.fromList   [ ("black", normalizedColor 0 0 0)
@@ -325,17 +329,37 @@ colors = Map.fromList   [ ("black", normalizedColor 0 0 0)
                         , ("whitesmoke", normalizedColor 245 245 245)
                         , ("yellow", normalizedColor 255 255 0)
                         , ("yellowgreen", normalizedColor 154 205 50)
-                        ] where normalizedColor r g b = Color ((fromIntegral r) / 255.0) ((fromIntegral g) / 255.0) ((fromIntegral b) / 255.0)
+                        ]
+normalizedColor :: Int -> Int -> Int -> Color
+normalizedColor r g b = Color ((fromIntegral r) / 255.0) ((fromIntegral g) / 255.0) ((fromIntegral b) / 255.0)
 
 cssColor :: String -> LunaM Color
+cssColor ('#':hexCol) = handle hexCol where
+    handle hs | length hs <= 6
+      = case hs of
+        [a,b,c,d,e,f] -> normalizedColor <$> (hex a b) <*> (hex c d) <*> (hex e f)
+        [a,b,c]       -> normalizedColor <$> (hex a a) <*> (hex b b) <*> (hex c c)
+        _             -> throwError $ "Could not parse color"
+    handle _ = throwError $ "Could not parse color"
+    hex a b = case readHex [a,b] of
+                [(h,"")] -> return h
+                _        -> throwError $ "could not parse as a hex value " ++ [a,b]
+
+
 cssColor name = maybe (throwError "Unknown color") return $ Map.lookup name colors
 
--- setLedColor :: Int -> Double -> Double -> Double -> IO ()
--- setLedColor ix r g b = do
---     let vals = [ ix
---                , (floor $ r * 255)
---                , (floor $ g * 255)
---                , (floor $ b * 255)
---                ]
---         line = (intercalate " " $ show <$> vals) <> "\n"
---     writeFile "/dev/cu.usbmodemFA131" line
+
+hsvColor :: Double -> Double -> Double -> Color
+hsvColor h s v = case hi of
+    0 -> Color v t p
+    1 -> Color q v p
+    2 -> Color p v t
+    3 -> Color p q v
+    4 -> Color t p v
+    5 -> Color v p q
+ where
+  hi = floor (h/60) `mod` 6
+  f = (h/60) `mod'` 1
+  p = v*(1-s)
+  q = v*(1-f*s)
+  t = v*(1-(1-f)*s)

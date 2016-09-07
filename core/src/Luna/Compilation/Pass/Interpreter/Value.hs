@@ -253,7 +253,8 @@ data MySocket = MySocket { _socketSocket      :: Socket
                          , _destruct    :: IO ()
                          }
 
-data LedRing = LedRing { _serialPort :: SP.SerialPort
+data LedRing = LedRing { _serialPort      :: SP.SerialPort
+                       , _ledRingLastLed         :: MVar Int
                        , _ledRingDestruct :: IO ()
                        }
 
@@ -267,7 +268,8 @@ socketDesc = ClassDescription $ Map.fromList
 
 ledRingDesc :: ClassDescription Any
 ledRingDesc = ClassDescription $ Map.fromList
-    [ ("setColor", toMethodBoxed (setColor       :: LedRing -> Int -> Color -> IO ()))
+    [ ("setColor",     toMethodBoxed (setColor     :: LedRing -> Int -> Color -> IO ()))
+    , ("setNextColor", toMethodBoxed (setNextColor :: LedRing ->        Color -> IO ()))
     ]
 
 colorDesc :: ClassDescription Any
@@ -430,8 +432,15 @@ setColor lr ix (Color r g b) = do
                , (floor $ b * brightness)
                ]
         line = (intercalate " " $ show <$> vals) <> "\n"
+
     SP.send (_serialPort lr) $ B.pack line
-    return ()
+    void $ swapMVar (_ledRingLastLed lr) ix
+
+setNextColor :: LedRing -> Color -> IO ()
+setNextColor  lr col = do
+    lastLed <- readMVar $ _ledRingLastLed lr
+    let nextLed =  (lastLed + 1) `mod` 16
+    setColor lr nextLed col
 
 
 makeLenses ''MySocket

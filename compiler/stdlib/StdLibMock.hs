@@ -410,8 +410,10 @@ symbolsList = [
 
     , makeNativeFun "ledRing"        Nothing [] (scons "LedRing")
     , makeNativeFun "LedRing.setColor"        (Just $ scons "LedRing") [scons "Int", scons "RGBColor"] (scons "OK")
+    , makeNativeFun "LedRing.setNextColor"        (Just $ scons "LedRing") [scons "RGBColor"] (scons "OK")
     , makeNativeFun "rgbColor"        Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
     , makeNativeFun "cssColor"        Nothing [scons "String"] (scons "RGBColor")
+    , makeNativeFun "hsvColor"        Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
 
     -- , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")
     -- , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
