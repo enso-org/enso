@@ -13,10 +13,10 @@ import Data.Graph
 import Data.Graph.Builder
 import Control.Monad.State                          as State
 
-import Luna.Runtime.Dynamics                      (Static, Dynamic)
-import Luna.Library.Symbol                    (MonadSymbol, SymbolMap)
+import Luna.Runtime.Dynamics                        (Static, Dynamic)
+import Luna.Library.Symbol                          (MonadSymbol, SymbolMap)
 
-import Luna.Syntax.Term.Function                     (Function (..), Signature (..))
+import Luna.Syntax.Term.Function                    (Function (..), Signature (..))
 import Old.Luna.Syntax.Term.Class
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
@@ -24,10 +24,10 @@ import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, Network
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Old.Luna.Syntax.Term.Expr.Lit         as Lit
-import qualified Data.Map                         as Map
-import qualified Luna.Syntax.Name.Path     as QualPath
-import qualified Luna.Syntax.Term.Function         as Function
+import qualified Old.Luna.Syntax.Term.Expr.Lit      as Lit
+import qualified Data.Map                           as Map
+import qualified Luna.Syntax.Name.Path              as QualPath
+import qualified Luna.Syntax.Term.Function          as Function
 
 #define FunBuilderCtx(m) ( n ~ (NetLayers :<: Draft Static)      \
                          , nodeRef ~ Ref Node  n                 \
@@ -410,7 +410,7 @@ symbolsList = [
 
     , makeNativeFun "ledRing"        Nothing [] (scons "LedRing")
     , makeNativeFun "LedRing.setColor"        (Just $ scons "LedRing") [scons "Int", scons "RGBColor"] (scons "OK")
-    , makeNativeFun "LedRing.setNextColor"        (Just $ scons "LedRing") [scons "RGBColor"] (scons "OK")
+    , makeNativeFun "LedRing.setNextColor"    (Just $ scons "LedRing") [             scons "RGBColor"] (scons "OK")
     , makeNativeFun "rgbColor"        Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
     , makeNativeFun "cssColor"        Nothing [scons "String"] (scons "RGBColor")
     , makeNativeFun "hsvColor"        Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
@@ -431,11 +431,11 @@ symbolsList = [
 
     , makeNativeFun "fix"          Nothing [TLam [TVar "#a"] (TVar "#a")]                                                              (TVar "#a")
     , makeNativeFun "prepend"      Nothing [TVar "#a", listOf $ TVar "#a"] (listOf $ TVar "#a")
-    , makeNativeFun "app1to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), (TVar "#a")]                                      (TLam [TVar "#b"] (TVar "#c"))
-    , makeNativeFun "app2to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), (TVar "#a"), (TVar "#b")]                         (TVar "#c")
-    , makeNativeFun "app1to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a")]                           (TLam [TVar "#b", TVar "#c"] (TVar "#d"))
-    , makeNativeFun "app2to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b")]              (TLam [TVar "#c"] (TVar "#d"))
-    , makeNativeFun "app3to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b"), (TVar "#c")] (TVar "#d")
+    , makeNativeFun "app1to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), TVar "#a"]                                        (TLam [TVar "#b"] (TVar "#c"))
+    , makeNativeFun "app2to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), TVar "#a", TVar "#b"]                             (TVar "#c")
+    , makeNativeFun "app1to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), TVar "#a"]                             (TLam [TVar "#b", TVar "#c"] (TVar "#d"))
+    , makeNativeFun "app2to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), TVar "#a", TVar "#b"]                  (TLam [TVar "#c"] (TVar "#d"))
+    , makeNativeFun "app3to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), TVar "#a", TVar "#b", TVar "#c"]       (TVar "#d")
     , makeNativeFun "cycle3"       Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d")]                                        (TLam [TVar "#b", TVar "#c", TVar "#a"] (TVar "#d"))
     , makeNativeFun "comp2"        Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a", TVar "#a1"] (TVar "#b")]   (TLam [TVar "#a", TVar "#a1"] (TVar "#c"))
     , makeNativeFun "comp2to2"     Nothing [TLam [TVar "#t3", TVar "#t4"] (TVar "#t1"), TLam [TVar "#t3", TVar "#t4"] (TVar "#t2"), TLam [TVar "#t1", TVar "#t2"] (TVar "#t")]   (TLam [TVar "#t3", TVar "#t4"] (TVar "#t"))
@@ -466,6 +466,15 @@ experimental = [ "fix"
                , "flipConst2"
                , "retFun2"
                , "testControls"
+               , "ref"
+               , "Ref.modify"
+               , "Ref.read"
+               , "ledRing"
+               , "LedRing.setColor"
+               , "LedRing.setNextColor"
+               , "rgbColor"
+               , "cssColor"
+               , "hsvColor"
                ]
 
 symbolsNames :: [String]

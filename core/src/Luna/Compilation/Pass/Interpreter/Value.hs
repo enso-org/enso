@@ -262,8 +262,8 @@ data Color = Color Double Double Double
 
 socketDesc :: ClassDescription Any
 socketDesc = ClassDescription $ Map.fromList
-    [ ("write",       toMethodBoxed (socketWrite       :: MySocket -> String -> IO ()))
-    , ("data",        toMethodBoxed (socketData        :: MySocket -> Stream))
+    [ ("write",       toMethodBoxed (socketWrite   :: MySocket -> String -> IO ()))
+    , ("data",        toMethodBoxed (socketData    :: MySocket -> Stream))
     ]
 
 ledRingDesc :: ClassDescription Any
@@ -427,11 +427,11 @@ setColor :: LedRing -> Int -> Color -> IO ()
 setColor lr ix (Color r g b) = do
     let brightness = 64
     let vals = [ ix
-               , (floor $ r * brightness)
-               , (floor $ g * brightness)
-               , (floor $ b * brightness)
+               , floor $ r * brightness
+               , floor $ g * brightness
+               , floor $ b * brightness
                ]
-        line = (intercalate " " $ show <$> vals) <> "\n"
+        line = intercalate " " (show <$> vals) <> "\n"
 
     SP.send (_serialPort lr) $ B.pack line
     void $ swapMVar (_ledRingLastLed lr) ix
