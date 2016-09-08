@@ -29,14 +29,15 @@ data InterpreterLayer = InterpreterLayer { _dirty    :: Bool
                                          , _value    :: ValueErr Value
                                          , _time     :: Integer
                                          , _debug    :: String     -- debug data (String value)
+                                         , _binders  :: Int
                                          }
 makeLenses ''InterpreterLayer
 
 instance Default InterpreterLayer where
-    def = InterpreterLayer True False (Left []) 0 ""
+    def = InterpreterLayer True False (Left []) 0 "" 0
 
 instance Show InterpreterLayer where
-    show (InterpreterLayer dirty required value time _) = "InterpreterLayer{"
+    show (InterpreterLayer dirty required value time _ _) = "InterpreterLayer{"
         <> show dirty <> ","
         <> show required <> ","
         <> valueStr <> ","

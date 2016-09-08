@@ -121,14 +121,6 @@ markDirty dirty ref = do
     node <- read ref
     write ref (node & prop InterpreterData . Layer.dirty .~ dirty)
 
-setValue :: InterpreterCtx(m, ls, term) => ValueErr Value -> Ref Node (ls :<: term) -> m ()
-setValue value ref = withRef ref $ (prop InterpreterData . Layer.value .~ value)
-
-getValue :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m (ValueErr Value)
-getValue ref = do
-    node <- read ref
-    return $ (node # InterpreterData) ^. Layer.value
-
 markSuccessors :: InterpreterCtx(m, ls, term) => Ref Node (ls :<: term) -> m ()
 markSuccessors ref = do
     node <- read ref
@@ -222,6 +214,28 @@ putValue (Stack g l) r v = putVal g l where
 
     putFrame (StackFrame mref) = liftIO $ modifyIORef mref (Map.insert (unwrap r) v)
 
+setValue :: ( InterpreterCtx(m, ls, term)
+            , MonadReader (Stack, [Ref Node (ls :<: term)]) m
+            ) => ValueErr Value -> Ref Node (ls :<: term) -> m ()
+setValue value ref = do
+    (_, binds) <- ask
+    print $ "setting binds of " ++ show ref ++ " to " ++ show binds
+    withRef ref $ (prop InterpreterData . Layer.value   .~ value)
+                . (prop InterpreterData . Layer.binders .~ length binds)
+
+getValue :: ( InterpreterCtx(m, ls, term)
+            , MonadReader (Stack, [Ref Node (ls :<: term)]) m
+            ) => Ref Node (ls :<: term) -> m (ValueErr Value)
+getValue ref = do
+    node  <- read ref
+    (_, binds) <- ask
+    let intData = node # InterpreterData
+    let outstandingBinds = length binds - (intData ^. Layer.binders)
+    print $ show ref ++ " binds are " ++ show (intData ^. Layer.binders) ++ " and currently " ++ show binds
+    return $ case intData ^. Layer.value of
+        Left err -> Left err
+        Right v  -> Right $ makeConst v $ take outstandingBinds $ repeat ()
+
 allocFrame :: MonadIO m => Stack -> m Stack
 allocFrame (Stack g l) = liftIO $ do
     newFrame <- StackFrame <$> newIORef Map.empty
@@ -279,6 +293,7 @@ evaluateAST ref = do
             outRef       <- follow source out
             newStack     <- allocFrame stack
             let newArgs  =  args ++ unpackedArgs
+            print $ "just added binds " ++ show newArgs
             funVal <- local (const (newStack, newArgs)) $ evaluateNode outRef
             return $ liftBinders newArgs (clearLocal newStack >>) funVal
         of' $ \ANY -> throwError ["Unexpected node type"]
