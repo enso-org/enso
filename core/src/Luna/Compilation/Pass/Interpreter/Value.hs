@@ -27,12 +27,12 @@ type Ident    = String
 data LunaM a  = Pure a | Monadic (ExceptT String IO a)
 type Value    = LunaM Data
 data Data     = Function (Data -> Value) | Data (Object ObjectData) | Boxed (Object Any)
-data Object a = Object { _proto :: ClassDescription a
+data Object a = Object { _proto :: ClassDescription
                        , _body  :: a
                        }
-data ObjectData = ObjectData (Map Ident Value)
-data ClassDescription a = ClassDescription (Map Ident (Method a))
-data Method a = Method (Object a -> Value)
+data ObjectData       = ObjectData (Map Ident Value)
+data ClassDescription = ClassDescription (Map Ident Method)
+data Method           = Method (Data -> Value)
 
 makeLenses  ''Object
 makeWrapped ''Method
@@ -60,7 +60,7 @@ unsafeAppFun = foldl unsafeAppArg where
 
 unsafeGetProperty :: String -> Value -> Value
 unsafeGetProperty prop v = do
-    (Boxed obj@(Object cls _)) <- v
+    obj@(Boxed (Object cls _)) <- v
     let method = unwrap . fromJust . Map.lookup prop . unwrap $ cls
     method obj
 
@@ -89,7 +89,7 @@ instance MonadError String LunaM where
     catchError (Pure a)    _       = Pure a
     catchError (Monadic v) handler = Monadic $ catchError v (toExceptIO . handler)
 
-intDesc :: ClassDescription Any
+intDesc :: ClassDescription
 intDesc = ClassDescription $ Map.fromList
     [ ("==",       toMethodBoxed ((==) :: Int -> Int -> Bool))
     , ("/=",       toMethodBoxed ((/=) :: Int -> Int -> Bool))
@@ -135,7 +135,7 @@ intMod :: Int -> Int -> LunaM Int
 intMod _ 0 = throwError "Error: Division by zero"
 intMod a b = return $ a `mod` b
 
-lstDesc :: ClassDescription Any
+lstDesc :: ClassDescription
 lstDesc = ClassDescription $ Map.fromList
     [ ("+",       toMethodBoxed ((++)               :: [Data] -> [Data] -> [Data]))
     , ("append",  toMethodBoxed ((\l e -> l ++ [e]) :: [Data] -> Data -> [Data]))
@@ -152,7 +152,7 @@ lstDesc = ClassDescription $ Map.fromList
     , ("filter",  toMethodBoxed (flip filterM                    :: [Data] -> (Data -> LunaM Bool) -> LunaM [Data]))
     ]
 
-doubleDesc :: ClassDescription Any
+doubleDesc :: ClassDescription
 doubleDesc = ClassDescription $ Map.fromList
     [ ("==",       toMethodBoxed ((==) :: Double -> Double -> Bool))
     , ("/=",       toMethodBoxed ((/=) :: Double -> Double -> Bool))
@@ -198,7 +198,7 @@ doubleDesc = ClassDescription $ Map.fromList
     , ("toStringFormat", toMethodBoxed (toStringFormat :: Double -> Int -> Int -> String))
     ]
 
-boolDesc :: ClassDescription Any
+boolDesc :: ClassDescription
 boolDesc = ClassDescription $ Map.fromList
     [ ("==",       toMethodBoxed ((==) :: Bool -> Bool -> Bool))
     , ("/=",       toMethodBoxed ((/=) :: Bool -> Bool -> Bool))
@@ -216,7 +216,7 @@ boolDesc = ClassDescription $ Map.fromList
     , ("toString", toMethodBoxed (show :: Bool -> String))
     ]
 
-stringDesc :: ClassDescription Any
+stringDesc :: ClassDescription
 stringDesc = ClassDescription $ Map.fromList
     [ ("==",          toMethodBoxed ((==) :: String -> String -> Bool))
     , ("/=",          toMethodBoxed ((/=) :: String -> String -> Bool))
@@ -260,23 +260,23 @@ data LedRing = LedRing { _serialPort      :: SP.SerialPort
 
 data Color = Color Double Double Double
 
-socketDesc :: ClassDescription Any
+socketDesc :: ClassDescription
 socketDesc = ClassDescription $ Map.fromList
     [ ("write",       toMethodBoxed (socketWrite   :: MySocket -> String -> IO ()))
     , ("data",        toMethodBoxed (socketData    :: MySocket -> Stream))
     ]
 
-ledRingDesc :: ClassDescription Any
+ledRingDesc :: ClassDescription
 ledRingDesc = ClassDescription $ Map.fromList
     [ ("setColor",     toMethodBoxed (setColor     :: LedRing -> Int -> Color -> IO ()))
     , ("setNextColor", toMethodBoxed (setNextColor :: LedRing ->        Color -> IO ()))
     ]
 
-colorDesc :: ClassDescription Any
+colorDesc :: ClassDescription
 colorDesc = ClassDescription $ Map.fromList
     [ ]
 
-dummyDesc :: ClassDescription Any
+dummyDesc :: ClassDescription
 dummyDesc = ClassDescription Map.empty
 
 class ToValue a where
@@ -380,13 +380,13 @@ instance {-# OVERLAPPABLE #-} (ToData a, FromData b) => FromData (a -> b) where
 instance FromData Data where
     unsafeFromData = id
 
-toMethodBoxed :: forall a b. ToValue b => (a -> b) -> Method Any
-toMethodBoxed f = Method $ \(Object _ x) -> unsafeToValue $ f (unsafeCoerce x :: a)
+toMethodBoxed :: forall a b. (FromData a, ToValue b) => (a -> b) -> Method
+toMethodBoxed f = Method $ \x -> unsafeToValue $ f (unsafeFromData x :: a)
 
 toStringFormat :: Double -> Int -> Int -> String
 toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in printf format v
 
-streamDesc :: ClassDescription Any
+streamDesc :: ClassDescription
 streamDesc = ClassDescription $ Map.fromList
     [ ("map",   toMethodBoxed mapStream)
     {-, ("accum", toMethodBoxed accumStream)-}
