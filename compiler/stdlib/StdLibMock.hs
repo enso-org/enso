@@ -345,7 +345,7 @@ symbolsList = [
     , makeNativeFun "empty"        Nothing []                                                             (listOf $ TVar "#a")
     , makeNativeFun "singleton"    Nothing [TVar "#a"]                                                    (listOf $ TVar "#a")
 
-    , makeNativeFun "just"         Nothing []                                                             (maybeOf $ TVar "#a")
+    , makeNativeFun "just"         Nothing [TVar "#a"]                                                    (maybeOf $ TVar "#a")
     , makeNativeFun "nothing"      Nothing []                                                             (maybeOf $ TVar "#a")
     , makeNativeFun "catMaybes"    Nothing [listOf $ maybeOf $ TVar "#a"]                                 (listOf $ TVar "#a")
 
