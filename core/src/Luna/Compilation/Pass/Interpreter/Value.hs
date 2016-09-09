@@ -155,7 +155,7 @@ lstDesc = ClassDescription $ Map.fromList
     , ("unsafeHead", toMethodBoxed (head        :: [Data] -> Data))
     ]
 
-maybeDesc :: ClassDescription Any
+maybeDesc :: ClassDescription
 maybeDesc = ClassDescription $ Map.fromList
     [ ("fromMaybe",      toMethodBoxed (flip fromMaybe :: Maybe Data -> Data -> Data))
     , ("toList",         toMethodBoxed (maybeToList    :: Maybe Data -> [Data]))
