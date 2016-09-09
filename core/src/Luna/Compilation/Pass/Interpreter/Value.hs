@@ -2,25 +2,25 @@
 
 module Luna.Compilation.Pass.Interpreter.Value where
 
-import           Prelude (error)
 import           Prelude.Luna
-import           Prelude              (error)
-import           Text.Read (readEither)
-import           GHC.Prim             (Any)
-import           Data.Map             (Map)
-import qualified Data.Map             as Map
+import           Prelude                    (error)
+import           Text.Read                  (readEither)
+import           GHC.Prim                   (Any)
+import           Data.Map                   (Map)
+import qualified Data.Map                   as Map
 import           Unsafe.Coerce
-import           Data.List            (sort)
-import           Text.Printf          (printf)
+import           Data.List                  (sort, isInfixOf)
+import           Data.Maybe                 (isJust, isNothing, listToMaybe, maybeToList)
+import           Text.Printf                (printf)
 import           Control.Monad.Except
-import           Control.Concurrent (ThreadId)
+import           Control.Concurrent         (ThreadId)
 import           Control.Concurrent.MVar
-import           Control.Concurrent.Chan (Chan, writeChan)
-import           Network.Socket (Socket, SockAddr)
-import           Control.Exception (throw)
-import           GHC.IO.Handle (Handle)
+import           Control.Concurrent.Chan    (Chan, writeChan)
+import           Network.Socket             (Socket, SockAddr)
+import           Control.Exception          (throw)
+import           GHC.IO.Handle              (Handle)
 import qualified System.Hardware.Serialport as SP
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Char8      as B
 
 
 type Ident    = String
@@ -150,6 +150,18 @@ lstDesc = ClassDescription $ Map.fromList
     , ("fold",    toMethodBoxed ((\l i f -> foldlM (flip f) i l) :: [Data] -> Data -> (Data -> Data -> Value) -> Value))
     , ("zip",     toMethodBoxed (flip zipWithM                   :: [Data] -> (Data -> Data -> Value) -> [Data] -> LunaM [Data]))
     , ("filter",  toMethodBoxed (flip filterM                    :: [Data] -> (Data -> LunaM Bool) -> LunaM [Data]))
+
+    , ("head",       toMethodBoxed (listToMaybe :: [Data] -> Maybe Data))
+    , ("unsafeHead", toMethodBoxed (head        :: [Data] -> Data))
+    ]
+
+maybeDesc :: ClassDescription Any
+maybeDesc = ClassDescription $ Map.fromList
+    [ ("fromMaybe",      toMethodBoxed (flip fromMaybe :: Maybe Data -> Data -> Data))
+    , ("toList",         toMethodBoxed (maybeToList    :: Maybe Data -> [Data]))
+    , ("isJust",         toMethodBoxed (isJust         :: Maybe Data -> Bool))
+    , ("isNothing",      toMethodBoxed (isNothing      :: Maybe Data -> Bool))
+    , ("unsafeFromJust", toMethodBoxed (fromJust       :: Maybe Data -> Data))
     ]
 
 doubleDesc :: ClassDescription
@@ -235,6 +247,7 @@ stringDesc = ClassDescription $ Map.fromList
     , ("words",       toMethodBoxed (words       :: String -> [String]))
     , ("lines",       toMethodBoxed (lines       :: String -> [String]))
     , ("join",        toMethodBoxed (intercalate :: String -> [String] -> String))
+    , ("isInfixOf",   toMethodBoxed (isInfixOf   :: String -> String -> Bool))
 
     , ("toString",    toMethodBoxed (id          :: String -> String))
     , ("parseInt",    toMethodBoxed (safeRead    :: String -> LunaM Int))
@@ -320,6 +333,9 @@ instance (ToData a, ToData b) => ToData (a, b) where
 
 instance {-# OVERLAPPABLE #-} ToData a => ToData [a] where
     unsafeToData = Boxed . Object lstDesc . unsafeCoerce . fmap unsafeToData
+
+instance ToData a => ToData (Maybe a) where
+    unsafeToData = Boxed . Object maybeDesc . unsafeCoerce . fmap unsafeToData
 
 instance ToData Data where
     unsafeToData = id

@@ -1,27 +1,28 @@
 module Luna.Compilation.Pass.Interpreter.StdScope where
 
-import Prelude.Luna
-import Luna.Compilation.Pass.Interpreter.Env
-import Luna.Compilation.Pass.Interpreter.Value
-import Data.List (sort, group)
-import Control.Arrow ((&&&))
-import Control.Monad.Fix (fix, mfix)
-import Control.Concurrent
-import Control.Exception (finally)
-import Control.Monad.Except                         (throwError, ExceptT, runExceptT)
-import Data.Time.Clock.POSIX
-import Network.Socket hiding (Stream)
-import qualified Network.Socket as Socket
-import Control.Concurrent.MVar
-import Text.Printf (printf)
-import System.Cmd (system)
-import System.Process (createProcess, proc)
-import System.IO
-import qualified System.Hardware.Serialport as SP
-import Numeric (readHex)
-import Data.Fixed (mod')
+import           Prelude.Luna
+import           Luna.Compilation.Pass.Interpreter.Env
+import           Luna.Compilation.Pass.Interpreter.Value
+import           Data.List                               (sort, group)
+import           Data.Maybe                              (catMaybes)
+import           Control.Arrow                           ((&&&))
+import           Control.Monad.Fix                       (fix, mfix)
+import           Control.Concurrent
+import           Control.Exception                       (finally)
+import           Control.Monad.Except                    (throwError, ExceptT, runExceptT)
+import           Data.Time.Clock.POSIX
+import           Network.Socket                          hiding (Stream)
+import qualified Network.Socket                          as Socket
+import           Control.Concurrent.MVar
+import           Text.Printf                             (printf)
+import           System.Cmd                              (system)
+import           System.Process                          (createProcess, proc)
+import           System.IO
+import qualified System.Hardware.Serialport              as SP
+import           Numeric                                 (readHex)
+import           Data.Fixed                              (mod')
 
-import qualified Data.Map as Map
+import qualified Data.Map                                as Map
 
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))
@@ -32,6 +33,9 @@ stdScope = Scope $ Map.fromList
     , ("switch",    unsafeToValue ((\b t f -> if b then t else f) :: Bool -> Data -> Data -> Data))
     , ("singleton", unsafeToValue ((:[]) :: Data -> [Data]))
     , ("empty",     unsafeToValue ([] :: [Data]))
+    , ("just",      unsafeToValue (Just      :: Data -> Maybe Data))
+    , ("nothing",   unsafeToValue (Nothing   :: Maybe Data))
+    , ("catMaybes", unsafeToValue (catMaybes :: [Maybe Data] -> [Data]))
     , ("+",         unsafeToValue ((+) :: Int -> Int -> Int))
     , ("*",         unsafeToValue ((*) :: Int -> Int -> Int))
     , ("==",        unsafeToValue ((==) :: Int -> Int -> Bool))
@@ -49,9 +53,9 @@ stdScope = Scope $ Map.fromList
     , ("time",        unsafeToValue time)
     , ("listen",      unsafeToValue listenSocket)
     , ("ledRing",     unsafeToValue ledRing)
-    , ("system",      unsafeToValue (\cmd -> void $ system cmd))
+    , ("system",      unsafeToValue (void . system))
     , ("say",         unsafeToValue (\what -> void $ createProcess (proc "say" [what])))
-    , ("rgbColor",    unsafeToValue (\r g b -> Color r g b))
+    , ("rgbColor",    unsafeToValue Color)
     , ("cssColor",    unsafeToValue cssColor)
     , ("hsvColor",    unsafeToValue hsvColor)
     ]
@@ -333,20 +337,20 @@ colors = Map.fromList   [ ("black", normalizedColor 0 0 0)
 normalizedColor :: Int -> Int -> Int -> Color
 normalizedColor r g b = Color ((fromIntegral r) / 255.0) ((fromIntegral g) / 255.0) ((fromIntegral b) / 255.0)
 
-cssColor :: String -> LunaM Color
-cssColor ('#':hexCol) = handle hexCol where
+cssColor :: String -> LunaM (Maybe Color)
+cssColor ('#':hexCol) = return $ handle hexCol where
     handle hs | length hs <= 6
       = case hs of
         [a,b,c,d,e,f] -> normalizedColor <$> (hex a b) <*> (hex c d) <*> (hex e f)
         [a,b,c]       -> normalizedColor <$> (hex a a) <*> (hex b b) <*> (hex c c)
-        _             -> throwError $ "Could not parse color"
-    handle _ = throwError $ "Could not parse color"
+        _             -> Nothing -- throwError $ "Could not parse color"
+    handle _ = Nothing -- throwError $ "Could not parse color"
     hex a b = case readHex [a,b] of
-                [(h,"")] -> return h
-                _        -> throwError $ "could not parse as a hex value " ++ [a,b]
+                [(h,"")] -> Just h
+                _        -> Nothing -- throwError $ "could not parse as a hex value " ++ [a,b]
 
 
-cssColor name = maybe (throwError "Unknown color") return $ Map.lookup name colors
+cssColor name = return $ Map.lookup name colors
 
 
 hsvColor :: Double -> Double -> Double -> Color
