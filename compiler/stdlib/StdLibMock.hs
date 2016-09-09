@@ -323,7 +323,8 @@ symbolsList = [
 --- === Stream === ---
 ----------------------
 
-    , makeNativeFun "Stream.map"      (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (TVar "#b")] (consOfS "Stream" $ TVar "#b")
+    , makeNativeFun "Stream.map"      (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (TVar "#b")]    (consOfS "Stream" $ TVar "#b")
+    , makeNativeFun "Stream.filter"   (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (scons "Bool")] (consOfS "Stream" $ TVar "#a")
 
 --------------------
 --- === Misc === ---

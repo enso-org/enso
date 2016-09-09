@@ -404,7 +404,8 @@ toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in
 
 streamDesc :: ClassDescription
 streamDesc = ClassDescription $ Map.fromList
-    [ ("map",   toMethodBoxed mapStream)
+    [ ("map",    toMethodBoxed mapStream)
+    , ("filter", toMethodBoxed filterStream)
     {-, ("accum", toMethodBoxed accumStream)-}
     ]
 
@@ -419,6 +420,9 @@ attachListener = unwrap
 
 mapStream :: Stream -> (Data -> Value) -> Stream
 mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
+
+filterStream :: Stream -> (Data -> Bool) -> Stream
+filterStream s f = s -- TODO: implement
 
 safeRead :: Read a => String -> LunaM a
 safeRead s = case readEither s of
