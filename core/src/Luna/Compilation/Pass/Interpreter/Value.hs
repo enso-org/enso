@@ -12,7 +12,7 @@ import           Unsafe.Coerce
 import           Data.List                  (sort, isInfixOf)
 import           Data.Maybe                 (isJust, isNothing, listToMaybe, maybeToList)
 import           Text.Printf                (printf)
-import           Control.Monad.Except
+import           Control.Monad.Except       hiding (when)
 import           Control.Concurrent         (ThreadId)
 import           Control.Concurrent.MVar
 import           Control.Concurrent.Chan    (Chan, writeChan)
@@ -422,7 +422,7 @@ mapStream :: Stream -> (Data -> Value) -> Stream
 mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
 
 filterStream :: Stream -> (Data -> Bool) -> Stream
-filterStream s f = s -- TODO: implement
+filterStream s f = Stream $ \l -> attachListener s $ (\v -> when (f v) (l v))
 
 safeRead :: Read a => String -> LunaM a
 safeRead s = case readEither s of
