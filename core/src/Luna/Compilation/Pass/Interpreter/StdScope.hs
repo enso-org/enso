@@ -52,6 +52,7 @@ stdScope = Scope $ Map.fromList
     , ("comp2to2",    unsafeToValue ((\g h f x y -> f (g x y) (h x y)) :: (Data -> Data -> Data) -> (Data -> Data -> Data) -> (Data -> Data -> Data) -> Data -> Data -> Data))
     , ("time",        unsafeToValue time)
     , ("listen",      unsafeToValue listenSocket)
+    , ("listenUDP",   unsafeToValue listenUDP)
     , ("ledRing",     unsafeToValue ledRing)
     , ("system",      unsafeToValue (void . system))
     , ("say",         unsafeToValue (\what -> void $ createProcess (proc "say" [what])))
@@ -83,6 +84,20 @@ time = liftIO $ do
     th     <- forkIO worker
     nextId <- newMVar 0
     return $ managingStream nextId listeners $ killThread th
+
+listenUDP :: Int -> LunaM Stream
+listenUDP port = liftIO $ do
+    listeners <- newMVar Map.empty
+    sock <- socket AF_INET Datagram 0
+    bind sock $ SockAddrInet (fromIntegral port) iNADDR_ANY
+    let worker = do
+          (msg, _, _) <- recvFrom sock 1024
+          lsts <- readMVar listeners
+          mapM_ ($ unsafeToData msg) $ Map.elems lsts
+          worker
+    th <- forkIO worker
+    nextId <- newMVar 0
+    return $ managingStream nextId listeners $ killThread th >> close sock
 
 runConnIn :: MySocket -> (Socket, SockAddr) -> Handle -> IO ()
 runConnIn s (sock, addr) hdl = do

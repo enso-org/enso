@@ -335,6 +335,7 @@ symbolsList = [
 
     , makeNativeFun "time"         Nothing []                                                             (consOfS "Stream" $ scons "Int")
     , makeNativeFun "listen"       Nothing [scons "Int"]                                                  (scons "Socket")
+    , makeNativeFun "listenUDP"    Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "String")
 
     , makeNativeFun "Socket.data"        (Just $ scons "Socket") []                                       (consOfS "Stream" $ scons "String")
     , makeNativeFun "Socket.write"       (Just $ scons "Socket") [scons "String"]                         (scons "OK")

@@ -135,6 +135,21 @@ intMod :: Int -> Int -> LunaM Int
 intMod _ 0 = throwError "Error: Division by zero"
 intMod a b = return $ a `mod` b
 
+actionedFold :: [Data] -> Data -> (Data -> LunaM (Data -> Value)) -> Value
+actionedFold [] d _ = return d
+actionedFold (a : as) d f = do
+    f' <- f d
+    d' <- f' a
+    actionedFold as d' f
+
+actionedZip :: [Data] -> (Data -> LunaM (Data -> Value)) -> [Data] -> LunaM [Data]
+actionedZip [] _ _  = return []
+actionedZip _  _ [] = return []
+actionedZip (a : as) f (b : bs) = do
+    f' <- f a
+    el <- f' b
+    (el :) <$> actionedZip as f bs
+
 lstDesc :: ClassDescription
 lstDesc = ClassDescription $ Map.fromList
     [ ("+",       toMethodBoxed ((++)               :: [Data] -> [Data] -> [Data]))
@@ -147,8 +162,8 @@ lstDesc = ClassDescription $ Map.fromList
     , ("sort",    toMethodBoxed (sort               :: [Int]  -> [Int]))
 
     , ("map",     toMethodBoxed (forM                            :: [Data] -> (Data -> Value) -> LunaM [Data]))
-    , ("fold",    toMethodBoxed ((\l i f -> foldlM (flip f) i l) :: [Data] -> Data -> (Data -> Data -> Value) -> Value))
-    , ("zip",     toMethodBoxed (flip zipWithM                   :: [Data] -> (Data -> Data -> Value) -> [Data] -> LunaM [Data]))
+    , ("fold",    toMethodBoxed actionedFold)
+    , ("zip",     toMethodBoxed actionedZip)
     , ("filter",  toMethodBoxed (flip filterM                    :: [Data] -> (Data -> LunaM Bool) -> LunaM [Data]))
 
     , ("head",       toMethodBoxed (listToMaybe :: [Data] -> Maybe Data))
@@ -393,6 +408,8 @@ instance {-# OVERLAPPABLE #-} (ToData a, FromData b) => FromData (a -> b) where
     unsafeFromData (Function f) a = case f (unsafeToData a) of
         Pure b -> unsafeFromData b
 
+
+
 instance FromData Data where
     unsafeFromData = id
 
@@ -421,8 +438,10 @@ attachListener = unwrap
 mapStream :: Stream -> (Data -> Value) -> Stream
 mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
 
-filterStream :: Stream -> (Data -> Bool) -> Stream
-filterStream s f = Stream $ \l -> attachListener s $ (\v -> when (f v) (l v))
+filterStream :: Stream -> (Data -> LunaM Bool) -> Stream
+filterStream s f = Stream $ \l -> attachListener s $ \v -> do
+    cond <- toIO $ f v
+    when cond (l v)
 
 safeRead :: Read a => String -> LunaM a
 safeRead s = case readEither s of

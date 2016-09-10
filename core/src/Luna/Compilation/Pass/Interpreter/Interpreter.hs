@@ -219,7 +219,6 @@ setValue :: ( InterpreterCtx(m, ls, term)
             ) => ValueErr Value -> Ref Node (ls :<: term) -> m ()
 setValue value ref = do
     (_, binds) <- ask
-    print $ "setting binds of " ++ show ref ++ " to " ++ show binds
     withRef ref $ (prop InterpreterData . Layer.value   .~ value)
                 . (prop InterpreterData . Layer.binders .~ length binds)
 
@@ -231,7 +230,6 @@ getValue ref = do
     (_, binds) <- ask
     let intData = node # InterpreterData
     let outstandingBinds = length binds - (intData ^. Layer.binders)
-    print $ show ref ++ " binds are " ++ show (intData ^. Layer.binders) ++ " and currently " ++ show binds
     return $ case intData ^. Layer.value of
         Left err -> Left err
         Right v  -> Right $ makeConst v $ take outstandingBinds $ repeat ()
@@ -293,7 +291,6 @@ evaluateAST ref = do
             outRef       <- follow source out
             newStack     <- allocFrame stack
             let newArgs  =  args ++ unpackedArgs
-            print $ "just added binds " ++ show newArgs
             funVal <- local (const (newStack, newArgs)) $ evaluateNode outRef
             return $ liftBinders newArgs (clearLocal newStack >>) funVal
         of' $ \ANY -> throwError ["Unexpected node type"]
