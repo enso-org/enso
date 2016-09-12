@@ -78,17 +78,16 @@ time = liftIO $ mdo
     return stream
 
 timeTenthS :: LunaM Stream
-timeTenthS = liftIO $ do
-    listeners <- newMVar Map.empty
+timeTenthS = liftIO $ mdo
+    (stream, callback, addDest) <- managingStream
     let worker = do
-          time <- round <$> (*10) <$> getPOSIXTime
-          lsts <- readMVar listeners
-          mapM_ ($ unsafeToData (time :: Int)) $ Map.elems lsts
+          time <- round . (*10) <$> getPOSIXTime
+          callback $ unsafeToData (time :: Int)
           threadDelay 100000
           worker
-    th     <- forkIO worker
-    nextId <- newMVar 0
-    return $ managingStream nextId listeners $ killThread th
+    th <- forkIO worker
+    addDest $ killThread th
+    return stream
 
 listenUDP :: Int -> LunaM Stream
 listenUDP port = liftIO $ do
