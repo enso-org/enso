@@ -325,6 +325,16 @@ symbolsList = [
 
     , makeNativeFun "Stream.map"      (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (TVar "#b")]    (consOfS "Stream" $ TVar "#b")
     , makeNativeFun "Stream.filter"   (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (scons "Bool")] (consOfS "Stream" $ TVar "#a")
+    , makeNativeFun "Stream.fold"     (Just $ consOfS "Stream" $ TVar "#a") [TVar "#b", TLam [TVar "#b", TVar "#a"] (TVar "#b")] (consOfS "Stream" $ TVar "#b")
+    , makeNativeFun "Stream.history"  (Just $ consOfS "Stream" $ TVar "#a") [scons "Int"] (consOfS "Stream" $ listOf $ TVar "#a")
+    , makeNativeFun "Stream.count"    (Just $ consOfS "Stream" $ TVar "#a") [] (consOfS "Stream" $ scons "Int")
+
+----------------------
+--- === Stream === ---
+----------------------
+
+    , makeNativeFun "Twitter.watchHashtag"  (Just $ scons "Twitter") [scons "String"]    (consOfS "Stream" $ scons "String")
+    , makeNativeFun "Twitter.watchMentions" (Just $ scons "Twitter") [scons "String"]    (consOfS "Stream" $ scons "String")
 
 --------------------
 --- === Misc === ---
@@ -336,6 +346,7 @@ symbolsList = [
     , makeNativeFun "time"         Nothing []                                                             (consOfS "Stream" $ scons "Int")
     , makeNativeFun "listen"       Nothing [scons "Int"]                                                  (scons "Socket")
     , makeNativeFun "listenUDP"    Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "String")
+    , makeNativeFun "twitter"      Nothing []                                                  (scons "Twitter")
 
     , makeNativeFun "Socket.data"        (Just $ scons "Socket") []                                       (consOfS "Stream" $ scons "String")
     , makeNativeFun "Socket.write"       (Just $ scons "Socket") [scons "String"]                         (scons "OK")

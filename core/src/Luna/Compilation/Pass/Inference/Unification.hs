@@ -68,6 +68,7 @@ import Data.Layer_OLD.Cover_OLD
                            , MonadTypeCheck node (m)               \
                            , ReferencedM Node graph (m) node       \
                            , ReferencedM Edge graph (m) edge       \
+                           , MonadIO (m) \
                            )
 
 -------------------------
@@ -295,7 +296,7 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
         (unis, retry) <- partitionM (fmap ((==) sign) . follow (prop TCData . originSign)) unresolved
         sortedUnis    <- sortByDeps unis
         let (todo, toRetry) = case (singleDepth, sortedUnis) of
-                (True, (x : xs)) -> (x, concat xs ++ retry)
+                (True, (x : xs)) -> (concat sortedUnis, retry) -- JUST ONE PLZ
                 (_, _) -> (concat sortedUnis, retry)
         results <- run todo
         let newUnis = catUnresolved results ++ (concat $ catResolved results) ++ toRetry

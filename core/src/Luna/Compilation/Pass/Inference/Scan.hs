@@ -163,7 +163,8 @@ desugarLambdas = do
                     replaceNodeNonDestructive ref tempBlank
                     lambda <- lam [arg tgt] ref
                     replaceNode tempBlank lambda
-                    TypeCheck.modify_ $ TypeCheck.untypedLambdas %~ (lambda :)
+                    TypeCheck.modify_ $ (TypeCheck.untypedLambdas %~ (lambda :))
+                                      . (TypeCheck.allNodes %~ (lambda :))
             of' $ \ANY -> impossible
 
     apps <- view TypeCheck.untypedApps <$> TypeCheck.get
@@ -178,7 +179,8 @@ desugarLambdas = do
                     replaceNodeNonDestructive ref tempBlank
                     lambda <- lam (arg <$> blanks) ref
                     replaceNode tempBlank lambda
-                    TypeCheck.modify_ $ TypeCheck.untypedLambdas %~ (lambda :)
+                    TypeCheck.modify_ $ (TypeCheck.untypedLambdas %~ (lambda :))
+                                      . (TypeCheck.allNodes %~ (lambda :))
             of' $ \ANY -> impossible
 
 

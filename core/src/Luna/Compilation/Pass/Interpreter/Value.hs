@@ -274,9 +274,8 @@ newtype Stream = Stream ((Data -> IO ()) -> IO (IO ()))
 
 data MySocket = MySocket { _socketSocket      :: Socket
                          , _socketPublishChan :: Chan String
-                         , _socketNextId      :: MVar Int
-                         , _socketListeners   :: MVar (Map.Map Int (Data -> IO ()))
                          , _socketStream      :: Stream
+                         , _onData            :: Data -> IO ()
                          , _socketConnections :: MVar (Map.Map SockAddr (Handle, ThreadId, ThreadId))
                          , _destruct    :: IO ()
                          }
@@ -408,8 +407,6 @@ instance {-# OVERLAPPABLE #-} (ToData a, FromData b) => FromData (a -> b) where
     unsafeFromData (Function f) a = case f (unsafeToData a) of
         Pure b -> unsafeFromData b
 
-
-
 instance FromData Data where
     unsafeFromData = id
 
@@ -421,9 +418,14 @@ toStringFormat v w dec = let format = "%" <> show w <> "." <> show dec <> "f" in
 
 streamDesc :: ClassDescription
 streamDesc = ClassDescription $ Map.fromList
-    [ ("map",    toMethodBoxed mapStream)
-    , ("filter", toMethodBoxed filterStream)
+    [ ("map",     toMethodBoxed mapStream)
+    , ("filter",  toMethodBoxed filterStream)
+    , ("fold",    toMethodBoxed foldStream)
+    , ("history", toMethodBoxed history)
+    , ("count",   toMethodBoxed count)
     {-, ("accum", toMethodBoxed accumStream)-}
+    , ("watchHashtag",  toMethodBoxed watchHashtag)
+    , ("watchMentions", toMethodBoxed watchMentions)
     ]
 
 instance ToData Stream where
@@ -435,6 +437,34 @@ instance FromData Stream where
 attachListener :: Stream -> (Data -> IO ()) -> IO (IO ())
 attachListener = unwrap
 
+pushActions :: Monad m => (a -> m (b -> m c)) -> a -> b -> m c
+pushActions f a b = f a >>= ($ b)
+
+managingStream :: IO (Stream, Data -> IO (), IO () -> IO ())
+managingStream = do
+    nextId      <- newMVar 0
+    listeners   <- newMVar Map.empty
+    destructors <- newMVar []
+    let stream = Stream $ \listener -> do
+          id <- takeMVar nextId
+          putMVar nextId $ id + 1
+          modifyMVar_ listeners $ return . Map.insert id listener
+          return $ do
+              lsts <- takeMVar listeners
+              let newLsts = Map.delete id lsts
+              when (Map.null newLsts) $ do
+                  dests <- readMVar destructors
+                  sequence_ dests
+              putMVar listeners newLsts
+    let callback val = do
+          lsts <- readMVar listeners
+          mapM_ ($ val) $ Map.elems lsts
+    let registerDestructor d = do
+          dests <- takeMVar destructors
+          putMVar destructors $ d : dests
+
+    return (stream, callback, registerDestructor)
+
 mapStream :: Stream -> (Data -> Value) -> Stream
 mapStream s f = Stream $ \l -> attachListener s $ (toIO . f) >=> l
 
@@ -442,6 +472,32 @@ filterStream :: Stream -> (Data -> LunaM Bool) -> Stream
 filterStream s f = Stream $ \l -> attachListener s $ \v -> do
     cond <- toIO $ f v
     when cond (l v)
+
+watchHashtag :: Stream -> String -> Stream
+watchHashtag s tag = filterStream s $ \d -> return $ isInfixOf ("#" ++ tag) (unsafeFromData d :: String)
+
+watchMentions :: Stream -> String -> Stream
+watchMentions s user = filterStream s $ \d -> return $ isInfixOf ("@" ++ user) (unsafeFromData d :: String)
+
+foldStream :: Stream -> Data -> (Data -> LunaM (Data -> Value)) -> LunaM Stream
+foldStream s a trans = liftIO $ do
+    last <- newMVar a
+    let f = pushActions trans
+    (stream, callback, addDestructor) <- managingStream
+    callback a
+    dest <- attachListener s $ \v -> do
+        val <- takeMVar last
+        new <- toIO $ f val v
+        putMVar last new
+        callback new
+    addDestructor dest
+    return stream
+
+history :: Stream -> Int -> LunaM Stream
+history s count = foldStream s (unsafeToData ([] :: [Data])) $ \ary -> return $ \d -> return $ unsafeToData $ take count $ d : (unsafeFromData ary :: [Data])
+
+count :: Stream -> LunaM Stream
+count s = foldStream s (unsafeToData (0 :: Int)) $ \c -> return $ \_ -> return $ unsafeToData $ 1 + (unsafeFromData c :: Int)
 
 safeRead :: Read a => String -> LunaM a
 safeRead s = case readEither s of

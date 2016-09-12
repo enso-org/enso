@@ -1,3 +1,5 @@
+{-# LANGUAGE RecursiveDo #-}
+
 module Luna.Compilation.Pass.Interpreter.StdScope where
 
 import           Prelude.Luna
@@ -59,45 +61,36 @@ stdScope = Scope $ Map.fromList
     , ("rgbColor",    unsafeToValue Color)
     , ("cssColor",    unsafeToValue cssColor)
     , ("hsvColor",    unsafeToValue hsvColor)
+    , ("twitter",     unsafeToValue twitter)
     ]
 
-managingStream :: MVar Int -> MVar (Map.Map Int (Data -> IO ())) -> IO () -> Stream
-managingStream nextId listeners destructor = Stream $ \listener -> do
-    id <- takeMVar nextId
-    putMVar nextId $ id + 1
-    modifyMVar_ listeners $ return . Map.insert id listener
-    return $ do
-        lsts <- takeMVar listeners
-        let newLsts = Map.delete id lsts
-        when (Map.null newLsts) destructor
-        putMVar listeners newLsts
-
 time :: LunaM Stream
-time = liftIO $ do
-    listeners <- newMVar Map.empty
+time = liftIO $ mdo
+    (stream, callback, addDest) <- managingStream
     let worker = do
           time <- round <$> getPOSIXTime
-          lsts <- readMVar listeners
-          mapM_ ($ unsafeToData (time :: Int)) $ Map.elems lsts
+          callback $ unsafeToData (time :: Int)
           threadDelay 1000000
           worker
-    th     <- forkIO worker
-    nextId <- newMVar 0
-    return $ managingStream nextId listeners $ killThread th
+    th <- forkIO worker
+    addDest $ killThread th
+    return stream
 
 listenUDP :: Int -> LunaM Stream
 listenUDP port = liftIO $ do
-    listeners <- newMVar Map.empty
     sock <- socket AF_INET Datagram 0
     bind sock $ SockAddrInet (fromIntegral port) iNADDR_ANY
+    (stream, callback, addDest) <- managingStream
     let worker = do
-          (msg, _, _) <- recvFrom sock 1024
-          lsts <- readMVar listeners
-          mapM_ ($ unsafeToData msg) $ Map.elems lsts
+          (msg, _, _) <- recvFrom sock 4096
+          callback $ unsafeToData msg
           worker
     th <- forkIO worker
-    nextId <- newMVar 0
-    return $ managingStream nextId listeners $ killThread th >> close sock
+    addDest $ killThread th >> close sock >> Prelude.Luna.print "close UDP"
+    return stream
+
+twitter :: LunaM Stream
+twitter = listenUDP 4321
 
 runConnIn :: MySocket -> (Socket, SockAddr) -> Handle -> IO ()
 runConnIn s (sock, addr) hdl = do
@@ -110,8 +103,8 @@ runConnIn s (sock, addr) hdl = do
 
         loop = fix $ \loop -> do
             line  <- hGetLine hdl
-            lists <- readMVar $ s ^. socketListeners
-            mapM_ ($ unsafeToData line) lists
+            let callback = s ^. onData
+            callback $ unsafeToData line
             loop
     finally loop cleanUp
 
@@ -152,13 +145,11 @@ listenSocket port = liftIO $ do
     listen sock 2                             -- set a max of 2 queued connections
 
     chan        <- newChan
-    listeners   <- newMVar Map.empty
-    nextId      <- newMVar 0
     connections <- newMVar Map.empty
 
-    let stream   = managingStream nextId listeners $ return ()
+    (stream, callback, _) <- managingStream
 
-    thId <- forkIO $ socketLoop $ MySocket sock chan nextId listeners stream connections $ return ()
+    thId <- forkIO $ socketLoop $ MySocket sock chan stream callback connections $ return ()
     let destructor = do
             killThread thId
             close sock
@@ -168,7 +159,7 @@ listenSocket port = liftIO $ do
                 killThread th2
                 hClose hdl
 
-        mySocket = MySocket sock chan nextId listeners stream connections destructor
+        mySocket = MySocket sock chan stream callback connections destructor
 
     return mySocket
 
