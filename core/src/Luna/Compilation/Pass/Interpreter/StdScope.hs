@@ -200,8 +200,9 @@ sentiment sentence = liftIO $ do
     let plus  = length $ filter (`elem` positives) ws
     let minus = length $ filter (`elem` negatives) ws
     rnd <- randomIO
+    let rangeFix = (2.0 * rnd) - 1.0
     case plus + minus of
-        0 -> return $ rnd * rnd * rnd
+        0 -> return $ rangeFix * rangeFix * rangeFix
         _ -> return $ fromIntegral (plus - minus) / fromIntegral (plus + minus)
 
 
