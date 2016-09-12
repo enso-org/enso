@@ -328,6 +328,8 @@ symbolsList = [
     , makeNativeFun "Stream.fold"     (Just $ consOfS "Stream" $ TVar "#a") [TVar "#b", TLam [TVar "#b", TVar "#a"] (TVar "#b")] (consOfS "Stream" $ TVar "#b")
     , makeNativeFun "Stream.history"  (Just $ consOfS "Stream" $ TVar "#a") [scons "Int"] (consOfS "Stream" $ listOf $ TVar "#a")
     , makeNativeFun "Stream.count"    (Just $ consOfS "Stream" $ TVar "#a") [] (consOfS "Stream" $ scons "Int")
+    , makeNativeFun "Stream.zip"      (Just $ consOfS "Stream" $ TVar "#a") [consOfS "Stream" $ TVar "#b", TLam [TVar "#a", TVar "#b"] (TVar "#c")]  (consOfS "Stream" $ TVar "#c")
+    , makeNativeFun "Stream.mean"     (Just $ consOfS "Stream" $ scons "Double") [] (consOfS "Stream" $ scons "Double")
 
 ----------------------
 --- === Stream === ---
@@ -348,6 +350,7 @@ symbolsList = [
     , makeNativeFun "listen"       Nothing [scons "Int"]                                                  (scons "Socket")
     , makeNativeFun "listenUDP"    Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "String")
     , makeNativeFun "twitter"      Nothing []                                                  (scons "Twitter")
+    , makeNativeFun "sentiment"    Nothing [scons "String"]                                                (scons "Double")
 
     , makeNativeFun "Socket.data"        (Just $ scons "Socket") []                                       (consOfS "Stream" $ scons "String")
     , makeNativeFun "Socket.write"       (Just $ scons "Socket") [scons "String"]                         (scons "OK")
@@ -445,7 +448,8 @@ symbolsList = [
     , makeNativeFun "LedRing.setColor"     (Just $ scons "LedRing") [scons "Int", scons "RGBColor"] (scons "OK")
     , makeNativeFun "LedRing.setNextColor" (Just $ scons "LedRing") [             scons "RGBColor"] (scons "OK")
     , makeNativeFun "rgbColor"             Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
-    , makeNativeFun "cssColor"             Nothing [scons "String"]                                 (maybeOf $ scons "RGBColor")
+    , makeNativeFun "colorByName"          Nothing [scons "String"]                                 (scons "RGBColor")
+    , makeNativeFun "cssColor"          Nothing [scons "String"]                                 (maybeOf $ scons "RGBColor")
     , makeNativeFun "hsvColor"             Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
 
     -- , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")

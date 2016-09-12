@@ -101,6 +101,7 @@ Library
                  , primitive
                  , process
                  , prologue
+                 , random
                  , split
                  , text
                  , time

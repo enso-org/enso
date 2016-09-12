@@ -6,7 +6,7 @@ import           Prelude.Luna
 import           Luna.Compilation.Pass.Interpreter.Env
 import           Luna.Compilation.Pass.Interpreter.Value
 import           Data.List                               (sort, group)
-import           Data.Maybe                              (catMaybes)
+import           Data.Maybe                              (catMaybes, fromJust)
 import           Control.Arrow                           ((&&&))
 import           Control.Monad.Fix                       (fix, mfix)
 import           Control.Concurrent
@@ -25,6 +25,7 @@ import           Numeric                                 (readHex)
 import           Data.Fixed                              (mod')
 
 import qualified Data.Map                                as Map
+import           System.Random
 
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))
@@ -60,9 +61,11 @@ stdScope = Scope $ Map.fromList
     , ("system",      unsafeToValue (void . system))
     , ("say",         unsafeToValue (\what -> void $ createProcess (proc "say" [what])))
     , ("rgbColor",    unsafeToValue Color)
+    , ("colorByName", unsafeToValue (fmap fromJust . cssColor))
     , ("cssColor",    unsafeToValue cssColor)
     , ("hsvColor",    unsafeToValue hsvColor)
     , ("twitter",     unsafeToValue twitter)
+    , ("sentiment",   unsafeToValue sentiment)
     ]
 
 time :: LunaM Stream
@@ -187,6 +190,19 @@ ledRing = liftIO $ do
      s       <- SP.openSerial port SP.defaultSerialSettings { SP.commSpeed = SP.CS9600 }
      lastLed <- newMVar 0
      return $ LedRing s lastLed $ SP.closeSerial s
+
+
+sentiment :: String -> LunaM Double
+sentiment sentence = liftIO $ do
+    let ws = words sentence
+    positives <- words <$> liftIO (readFile "/userdata/positive-words.txt")
+    negatives <- words <$> liftIO (readFile "/userdata/negative-words.txt")
+    let plus  = length $ filter (`elem` positives) ws
+    let minus = length $ filter (`elem` negatives) ws
+    rnd <- randomIO
+    case plus + minus of
+        0 -> return $ rnd * rnd * rnd
+        _ -> return $ fromIntegral (plus - minus) / fromIntegral (plus + minus)
 
 
 colors = Map.fromList   [ ("black", normalizedColor 0 0 0)

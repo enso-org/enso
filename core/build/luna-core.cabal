@@ -69,7 +69,7 @@ Library
                   TypeOperators
                   ViewPatterns
 
-    exposed-modules:
+    exposed-modules: 
         Control.Monad.Delayed,
         Control.Monad.Event,
         Data.Build,
@@ -230,6 +230,7 @@ Library
                  , primitive
                  , process
                  , prologue
+                 , random
                  , split
                  , text
                  , time

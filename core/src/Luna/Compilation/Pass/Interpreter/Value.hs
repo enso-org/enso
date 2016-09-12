@@ -423,6 +423,8 @@ streamDesc = ClassDescription $ Map.fromList
     , ("fold",    toMethodBoxed foldStream)
     , ("history", toMethodBoxed history)
     , ("count",   toMethodBoxed count)
+    , ("zip",     toMethodBoxed zipStream)
+    , ("mean",    toMethodBoxed mean)
     {-, ("accum", toMethodBoxed accumStream)-}
     , ("watchHashtag",  toMethodBoxed watchHashtag)
     , ("watchMentions", toMethodBoxed watchMentions)
@@ -498,6 +500,48 @@ history s count = foldStream s (unsafeToData ([] :: [Data])) $ \ary -> return $ 
 
 count :: Stream -> LunaM Stream
 count s = foldStream s (unsafeToData (0 :: Int)) $ \c -> return $ \_ -> return $ unsafeToData $ 1 + (unsafeFromData c :: Int)
+
+mean :: Stream -> LunaM Stream
+mean s = liftIO $ do
+    count <- newMVar 0.0
+    sum   <- newMVar 0.0
+    (stream, callback, addDestructor) <- managingStream
+    dest <- attachListener s $ \v -> do
+        c <- takeMVar count
+        s <- takeMVar sum
+        let newS = s + (unsafeFromData v :: Double)
+            newC = c + 1.0
+        putMVar sum newS
+        putMVar count newC
+        callback $ unsafeToData $ newS / newC
+    addDestructor dest
+    return stream
+
+zipStream :: Stream -> Stream -> (Data -> LunaM (Data -> Value)) -> LunaM Stream
+zipStream s1 s2 trans = liftIO $ do
+    last1 <- newMVar Nothing
+    last2 <- newMVar Nothing
+    let f = pushActions trans
+    (stream, callback, addDestructor) <- managingStream
+    let trySend = do
+          st <- readMVar last1
+          nd <- readMVar last2
+          case (st, nd) of
+              (Just v1, Just v2) -> do
+                  v <- toIO $ f v1 v2
+                  callback v
+              _ -> return ()
+    d1 <- attachListener s1 $ \v -> do
+        _ <- takeMVar last1
+        putMVar last1 $ Just v
+        trySend
+    d2 <- attachListener s2 $ \v -> do
+        _ <- takeMVar last2
+        putMVar last2 $ Just v
+        trySend
+    addDestructor $ d1 >> d2
+    return stream
+
 
 safeRead :: Read a => String -> LunaM a
 safeRead s = case readEither s of
