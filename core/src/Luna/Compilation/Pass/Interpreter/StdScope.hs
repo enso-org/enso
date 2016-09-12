@@ -53,7 +53,7 @@ stdScope = Scope $ Map.fromList
     , ("prepend",     unsafeToValue ((:) :: Data -> [Data] -> [Data]))
     , ("comp2to2",    unsafeToValue ((\g h f x y -> f (g x y) (h x y)) :: (Data -> Data -> Data) -> (Data -> Data -> Data) -> (Data -> Data -> Data) -> Data -> Data -> Data))
     , ("time",        unsafeToValue time)
-    , ("timeTenthS",  unsafeToValue timeTenthS)
+    , ("timePrec",    unsafeToValue timePrec)
     , ("listen",      unsafeToValue listenSocket)
     , ("listenUDP",   unsafeToValue listenUDP)
     , ("ledRing",     unsafeToValue ledRing)
@@ -77,13 +77,13 @@ time = liftIO $ mdo
     addDest $ killThread th
     return stream
 
-timeTenthS :: LunaM Stream
-timeTenthS = liftIO $ mdo
+timePrec :: Int -> LunaM Stream
+timePrec divBy = liftIO $ mdo
     (stream, callback, addDest) <- managingStream
     let worker = do
-          time <- round . (*10) <$> getPOSIXTime
+          time <- round . (* fromIntegral divBy) <$> getPOSIXTime
           callback $ unsafeToData (time :: Int)
-          threadDelay 100000
+          threadDelay $ 1000000 `div` divBy
           worker
     th <- forkIO worker
     addDest $ killThread th

@@ -344,7 +344,7 @@ symbolsList = [
     , ("const",      makeConst)
 
     , makeNativeFun "time"         Nothing []                                                             (consOfS "Stream" $ scons "Int")
-    , makeNativeFun "timeTenthS"   Nothing []                                                             (consOfS "Stream" $ scons "Int")
+    , makeNativeFun "timePrec"     Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "Int")
     , makeNativeFun "listen"       Nothing [scons "Int"]                                                  (scons "Socket")
     , makeNativeFun "listenUDP"    Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "String")
     , makeNativeFun "twitter"      Nothing []                                                  (scons "Twitter")
@@ -510,7 +510,7 @@ experimental = [ "fix"
                , "hsvColor"
                , "List.unsafeHead"
                , "Maybe.unsafeFromJust"
-               , "timeTenthS"
+               , "timePrec"
                ]
 
 symbolsNames :: [String]
