@@ -265,12 +265,14 @@ autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize doublesXY = Gr
     gridLayers = gridLabeled gridMat decim viewSize x1 x2 y1 y2
     doublesX   = fst <$> doublesXY
     doublesY   = snd <$> doublesXY
-    x1  = min 0.0 $ minimum doublesX
-    x2' = max 0.0 $ maximum doublesX
-    x2  = if x2' == x1 then x2' + 1.0 else x2'
-    y1  = min 0.0 $ minimum doublesY
-    y2' = max 0.0 $ maximum doublesY
-    y2  = if y2' == y1 then y2' + 1.0 else y2'
+    x1'  = min 0.0 $ minimum doublesX
+    x2c' = max 0.0 $ maximum doublesX
+    x2'  = if x2c' == x1' then x2c' + 1.0 else x2c'
+    y1'  = min 0.0 $ minimum doublesY
+    y2c' = max 0.0 $ maximum doublesY
+    y2'  = if y2c' == y1' then y2c' + 1.0 else y2c'
+    (x1, x2) = if x1' <= x2' then (x1', x2') else (x2', x1')
+    (y1, y2) = if y1' <= y2' then (y1', y2') else (y2', y1')
     points = uncurry Point <$> doublesXY
 
 -- charts
