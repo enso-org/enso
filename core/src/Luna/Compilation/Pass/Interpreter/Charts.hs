@@ -190,7 +190,7 @@ gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    labels   = filterLabels $ mkLabel <$> skipSecond mys
+    labels   =  mkLabel <$> skipSecond mys
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
     (y1t, y2t) = edgePoints stepY y1 y2
@@ -202,7 +202,7 @@ gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
-    labels   = filterLabels $ mkLabel <$> skipSecond mxs
+    labels   = filterLabels $ mkLabel <$> mxs
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
     (x1t, x2t) = edgePoints stepX x1 x2
