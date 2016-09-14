@@ -176,7 +176,8 @@ labelAdjustX = 0.0
 labelAdjustY = 0.035
 
 showLabel :: Int -> Double -> String
-showLabel decim = printf $ "%0." <> show decim <> "f"
+showLabel decim val = printf ("%0." <> show decim <> "f") $ fromIntegral (truncate $ val * m) / m where
+    m = 10.0 ** fromIntegral decim
 
 skipSecond (x:y:xs) = x : skipSecond xs
 skipSecond [x]      = [x]
