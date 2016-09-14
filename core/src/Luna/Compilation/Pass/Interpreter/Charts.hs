@@ -183,7 +183,7 @@ skipSecond [x]      = [x]
 skipSecond []       = []
 
 filterLabels :: [Label] -> [Label]
-filterLabels = fmap head . groupBy $ on (==) _text
+filterLabels = fmap head . groupBy ((==) `on` _text)
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
