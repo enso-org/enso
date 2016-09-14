@@ -184,7 +184,8 @@ skipSecond [x]      = [x]
 skipSecond []       = []
 
 filterLabels :: [Label] -> [Label]
-filterLabels = fmap head . groupBy ((==) `on` _text)
+filterLabels = fmap takeElem . groupBy ((==) `on` _text) where
+    takeElem (p:ps) = if head (_text p) == '-' then last ps else p
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
