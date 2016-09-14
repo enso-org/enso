@@ -1,6 +1,8 @@
 module Luna.Compilation.Pass.Interpreter.Charts where
 
 import           Prelude.Luna
+import           Data.List          (groupBy)
+import           Data.Function      (on)
 import           Text.Printf        (printf)
 
 import           Graphics.API       as API
@@ -14,7 +16,7 @@ mkLayerWithLabels :: Geometry -> [Transformation] -> [Label] -> Layer
 mkLayerWithLabels = Layer
 
 withLabels :: Layer -> [Label] -> Layer
-withLabels (Layer geo trans _) labels = Layer geo trans labels
+withLabels (Layer geo trans _) = Layer geo trans
 
 toTransformation :: Point -> Transformation
 toTransformation (Point x y) = translate def x y
@@ -97,7 +99,7 @@ edgePoints step p1 p2 = (p1t, p2t) where
 
 calculateTick :: Int -> Double -> Double
 calculateTick maxTicks range = tick where
-    minTick   = range / (fromIntegral (maxTicks - 2))
+    minTick   = range / fromIntegral (maxTicks - 2)
     magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
     residual  = minTick / magnitude
     tick | residual > 5.0 = 10.0 * magnitude
@@ -143,7 +145,7 @@ gridPoints p1 p2 = mps where
     step       = calculateTick maxSteps (p2 - p1)
     (p1t, p2t) = edgePoints step p1 p2
     actSteps   = (p2t - p1t) / step
-    steps      = (\i -> i * step) <$> [0..actSteps]
+    steps      = (* step) <$> [0..actSteps]
     pis        = (+ p1t) <$> steps
     mpst       = getOffset (p2t - p1t) <$> pis
     mps        = (+ initialOffset p1t p2t) <$> mpst
@@ -177,14 +179,17 @@ showLabel :: Int -> Double -> String
 showLabel decim = printf $ "%0." <> show decim <> "f"
 
 skipSecond (x:y:xs) = x : skipSecond xs
-skipSecond (x:[])   = [x]
+skipSecond [x]      = [x]
 skipSecond []       = []
+
+filterLabels :: [Label] -> [Label]
+filterLabels = fmap head . groupBy $ on (==) _text
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    labels   = mkLabel <$> (skipSecond mys)
+    labels   = filterLabels $ mkLabel <$> skipSecond mys
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
     (y1t, y2t) = edgePoints stepY y1 y2
@@ -196,7 +201,7 @@ gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
-    labels   = mkLabel <$> (skipSecond mxs)
+    labels   = filterLabels $ mkLabel <$> skipSecond mxs
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
     (x1t, x2t) = edgePoints stepX x1 x2
@@ -263,7 +268,7 @@ autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize doublesXY = Gr
     y1  = min 0.0 $ minimum doublesY
     y2' = max 0.0 $ maximum doublesY
     y2  = if y2' == y1 then y2' + 1.0 else y2'
-    points = (\(i, v) -> Point i v) <$> doublesXY
+    points = uncurry Point <$> doublesXY
 
 -- charts
 
@@ -295,7 +300,7 @@ barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
     stepY      = calculateTick maxSteps (y2 - y1)
     (x1t, x2t) = edgePoints stepX x1 x2
     (y1t, y2t) = edgePoints stepY y1 y2
-    w          = 0.5 / (fromIntegral $ length points)
+    w          = 0.5 / fromIntegral (length points)
     toLayer (Point dx dy) = mkLayer geometry [toTransformation point] where
         rdy       = dy - ry
         point     = Point dx (ry + rdy * 0.5)
