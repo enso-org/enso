@@ -1,6 +1,7 @@
 module Luna.Compilation.Pass.Interpreter.Charts where
 
 import           Prelude.Luna
+import           Data.Maybe         (listToMaybe)
 import           Data.List          (groupBy)
 import           Data.Function      (on)
 import           Text.Printf        (printf)
@@ -176,24 +177,30 @@ labelAdjustX = 0.0
 labelAdjustY = 0.035
 
 showLabel :: Int -> Double -> String
-showLabel decim val = printf (sign <> "%0." <> show decim <> "f") $ abs trVal  where
-    trVal = fromIntegral (truncate $ val * den) / den
-    den   = 10.0 ** fromIntegral decim
-    sign  = if val < 0 then "-" else ""
+showLabel decim val = label where
+    label  = if val < 0 && trVal == 0 then "" else label'
+    label' = printf (sign <> "%0." <> show decim <> "f") $ abs trVal
+    trVal  = fromIntegral (truncate $ val * den) / den
+    den    = 10.0 ** fromIntegral decim
+    sign   = if val < 0 then "-" else ""
 
-skipSecond (x:y:xs) = x : skipSecond xs
+skipSecond :: [Label] -> [Label]
+skipSecond (x:y:xs) = x : rest where
+    rest = if isZero y then y : skipped else skipped
+    skipped = skipSecond xs
+    isZero p = _text p == "0" || _text p == "0.0"
 skipSecond [x]      = [x]
 skipSecond []       = []
 
-filterLabels :: [Label] -> [Label]
-filterLabels = fmap takeElem . groupBy ((==) `on` _text) where
-    takeElem ps@(p:_) = if head (_text p) == '-' then last ps else p
+filterDupLabels :: [Label] -> [Label]
+filterDupLabels = fmap takeElem . groupBy ((==) `on` _text) . filter (not . null . _text) where
+    takeElem ls@(l:_) = if listToMaybe (_text l) == Just '-' then last ls else l
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    labels'  = filterLabels $ mkLabel <$> mys
+    labels'  = filterDupLabels $ mkLabel <$> mys
     labels   = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
     mys      = gridPoints y1 y2
     stepY      = calculateTick maxSteps (y2 - y1)
@@ -206,7 +213,7 @@ gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
     points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
-    labels'  = filterLabels $ mkLabel <$> mxs
+    labels'  = filterDupLabels $ mkLabel <$> mxs
     labels   = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
     mxs      = gridPoints x1 x2
     stepX      = calculateTick maxSteps (x2 - x1)
