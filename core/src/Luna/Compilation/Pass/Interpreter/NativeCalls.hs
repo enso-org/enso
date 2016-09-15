@@ -56,7 +56,7 @@ nativeCalls = Map.fromList $ [
     , ("geoGroup",                 unsafeCoerce (return .   GeoGroup   :: [Geometry] -> IO GeoComponent))
     , ("GeoComponent.geometry",    unsafeCoerce (return .:. (\c t m -> Geometry c t (Just m)) :: GeoComponent -> Transformation -> Material -> IO Geometry))
 
-    , ("Geometry.layer",           unsafeCoerce (return .:  mkLayer            :: Geometry -> [Transformation] -> IO Layer))
+    , ("Geometry.layer",           unsafeCoerce (return .:  mkLayerTransf      :: Geometry -> [Transformation] -> IO Layer))
     , ("graphics",                 unsafeCoerce (return .   Graphics           :: [Layer]  -> IO Graphics))
     , ("Graphics.layers",          unsafeCoerce (return .   _graphics          :: Graphics -> IO [Layer]))
     , ("Graphics.shift",           unsafeCoerce (return .:  flip shiftGraphics :: Graphics -> Point -> IO Graphics))

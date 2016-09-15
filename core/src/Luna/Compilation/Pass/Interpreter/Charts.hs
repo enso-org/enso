@@ -10,14 +10,17 @@ import           Graphics.API       as API
 
 -- helpers
 
-mkLayer :: Geometry -> [Transformation] -> Layer
-mkLayer geo trans = Layer geo trans []
+mkLayerTransl :: Geometry -> [Point] -> Layer
+mkLayerTransl geo transl = Layer geo (Translations transl) (Labels [])
 
-mkLayerWithLabels :: Geometry -> [Transformation] -> [Label] -> Layer
-mkLayerWithLabels = Layer
+mkLayerTransf :: Geometry -> [Transformation] -> Layer
+mkLayerTransf geo transf = Layer geo (Transformations transf) (Labels [])
 
-withLabels :: Layer -> [Label] -> Layer
-withLabels (Layer geo trans _) = Layer geo trans
+mkLayerWithLabels :: Geometry -> [Point] -> [Label] -> Layer
+mkLayerWithLabels geo transl labels = Layer geo (Translations transl) (Labels labels)
+
+withLabels :: Layer -> Labels -> Layer
+withLabels (Layer geo placement _) = Layer geo placement
 
 toTransformation :: Point -> Transformation
 toTransformation (Point x y) = translate def x y
@@ -115,13 +118,13 @@ axisPoint p1 p2 = mp where
     mp         = initialOffset p1t p2t
 
 axisH :: Material -> Double -> Double -> Double -> Layer
-axisH mat viewSize y1 y2 = mkLayer geometry [toTransformation point] where
+axisH mat viewSize y1 y2 = mkLayerTransl geometry [point] where
     geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
     point      = scaleToViewPoint viewSize viewSize $ Point 0.5 my
     my         = axisPoint y1 y2
 
 axisV :: Material -> Double -> Double -> Double -> Layer
-axisV mat viewSize x1 x2 = mkLayer geometry [toTransformation point] where
+axisV mat viewSize x1 x2 = mkLayerTransl geometry [point] where
     geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
     point      = scaleToViewPoint viewSize viewSize $ Point mx 0.5
     mx         = axisPoint x1 x2
@@ -132,7 +135,7 @@ axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
     aV = axisV mat viewSize x1 x2
 
 gridHStep1 :: Material -> Double -> Double -> Double -> Layer
-gridHStep1 mat viewSize y1 y2 = mkLayer geometry $ toTransformation <$> points where
+gridHStep1 mat viewSize y1 y2 = mkLayerTransl geometry points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
     points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     y1i      = truncate y1
@@ -152,15 +155,15 @@ gridPoints p1 p2 = mps where
     mps        = (+ initialOffset p1t p2t) <$> mpst
 
 gridH :: Material -> Double -> Double -> Double -> Layer
-gridH mat viewSize y1 y2 = mkLayer geometry points where
+gridH mat viewSize y1 y2 = mkLayerTransl geometry points where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
+    points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     mys      = gridPoints y1 y2
 
 gridV :: Material -> Double -> Double -> Double -> Layer
-gridV mat viewSize x1 x2 = mkLayer geometry points where
+gridV mat viewSize x1 x2 = mkLayerTransl geometry points where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
-    points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
+    points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     mxs      = gridPoints x1 x2
 
 grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
@@ -199,7 +202,7 @@ filterDupLabels = fmap takeElem . groupBy ((==) `on` _text) . filter (not . null
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    points   = toTransformation . scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
+    points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
     labels'  = filterDupLabels $ mkLabel <$> mys
     labels   = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
     mys      = gridPoints y1 y2
@@ -212,7 +215,7 @@ gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels
 gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
 gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
-    points   = toTransformation . scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
+    points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
     labels'  = filterDupLabels $ mkLabel <$> mxs
     labels   = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
     mxs      = gridPoints x1 x2
@@ -234,12 +237,22 @@ shiftGraphics :: Point -> Graphics -> Graphics
 shiftGraphics point (Graphics layers) = Graphics layers' where
     layers'  = shiftLayer point <$> layers
 
+shiftLabel :: Point -> Label -> Label
+shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly - y)) fontSize alignment text
+
+shiftTransl :: Point -> Point -> Point
+shiftTransl (Point x y) (Point xt yt) = Point (xt + x) (yt - y)
+
+shiftTransf :: Point -> Transformation -> Transformation
+shiftTransf (Point x y) transformation = translate transformation x (-y)
+
 shiftLayer :: Point -> Layer -> Layer
-shiftLayer point (Layer geo trans labels) = Layer geo trans' labels' where
-    trans'  = shiftTrans point <$> trans
-    labels' = shiftLabel point <$> labels
-    shiftTrans (Point x y) transformation = translate transformation x (-y)
-    shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly - y)) fontSize alignment text
+shiftLayer point (Layer geo (Translations transl) (Labels labels)) = Layer geo (Translations transl') (Labels labels') where
+    transl' = shiftTransl point <$> transl
+    labels' = shiftLabel  point <$> labels
+shiftLayer point (Layer geo (Transformations transf) (Labels labels)) = Layer geo (Transformations transf') (Labels labels') where
+    transf' = shiftTransf point <$> transf
+    labels' = shiftLabel  point <$> labels
 
 -- auto charts
 
@@ -316,7 +329,7 @@ barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
     (x1t, x2t) = edgePoints stepX x1 x2
     (y1t, y2t) = edgePoints stepY y1 y2
     w          = 0.5 / fromIntegral (length points)
-    toLayer (Point dx dy) = mkLayer geometry [toTransformation point] where
+    toLayer (Point dx dy) = mkLayerTransl geometry [point] where
         rdy       = dy - ry
         point     = Point dx (ry + rdy * 0.5)
         geometry  = Geometry geoComp def (Just mat)
@@ -327,7 +340,7 @@ barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
 -- charts helpers
 
 scatterChartImpl :: Geometry -> [Point] -> Layer
-scatterChartImpl geometry points = mkLayer geometry $ toTransformation <$> points
+scatterChartImpl geometry points = mkLayerTransl geometry points
 
 barChartImpl = barChartGeometriesImpl
 
@@ -343,7 +356,7 @@ barChartGeometriesImpl mat points = layer where
     geoComponent     = GeoElem  $ toSurface  <$> pointsY
     geoComponentMain = GeoGroup $ toGeometry <$> pointsX
     geometry         = Geometry geoComponentMain def $ Just mat
-    layer            = mkLayer geometry [def]
+    layer            = mkLayerTransl geometry [def]
     toGeometry :: Point -> Geometry
     toGeometry point = Geometry geoComponent (toTransformation point) $ Just mat
     toSurface :: Point -> Surface
