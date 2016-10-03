@@ -100,6 +100,7 @@ buildLambdaType lamRef = do
             oldType  <- getTypeSpec lamRef
             newType  <- lam (arg <$> argTypes) outType
             uni      <- unify oldType newType
+            reconnect (prop TCData . requester) uni (Just lamRef)
             return [uni]
         of' $ \ANY -> impossible
 
