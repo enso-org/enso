@@ -219,9 +219,10 @@ setValue :: ( InterpreterCtx(m, ls, term)
             ) => ValueErr Value -> Ref Node (ls :<: term) -> m ()
 setValue value ref = do
     (_, binds) <- ask
-    withRef ref $ (prop InterpreterData . Layer.value   .~ value)
-                . (prop InterpreterData . Layer.binders .~ length binds)
-
+    node <- read ref
+    when (node ^. prop InterpreterData . Layer.binders >= length binds) $
+        withRef ref $ (prop InterpreterData . Layer.value   .~ value)
+                    . (prop InterpreterData . Layer.binders .~ length binds)
 getValue :: ( InterpreterCtx(m, ls, term)
             , MonadReader (Stack, [Ref Node (ls :<: term)]) m
             ) => Ref Node (ls :<: term) -> m (ValueErr Value)
