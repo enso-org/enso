@@ -8,8 +8,9 @@ import           Text.Read                  (readEither)
 import           GHC.Prim                   (Any)
 import           Data.Map                   (Map)
 import qualified Data.Map                   as Map
+import           Data.Ord
 import           Unsafe.Coerce
-import           Data.List                  (sort, isInfixOf)
+import           Data.List                  (sort, isInfixOf, sortBy)
 import           Data.Maybe                 (isJust, isNothing, listToMaybe, maybeToList)
 import           Text.Printf                (printf)
 import           Control.Monad.Except       hiding (when)
@@ -150,6 +151,17 @@ actionedZip (a : as) f (b : bs) = do
     el <- f' b
     (el :) <$> actionedZip as f bs
 
+selectBy :: [Data] -> (Data -> LunaM String) -> String -> LunaM [Data]
+selectBy lst f pat = filterM (\x -> (== pat) <$> f x) lst
+
+sortBy' :: [Data] -> (Data -> LunaM Double) -> LunaM [Data]
+sortBy' lst key = do
+    keys <- (mapM key lst :: LunaM [Double])
+    let withKey = zip keys lst :: [(Double, Data)]
+    let sorted  = sortBy (comparing fst) withKey :: [(Double, Data)]
+    let result  = fmap snd sorted :: [Data]
+    return result
+
 lstDesc :: ClassDescription
 lstDesc = ClassDescription $ Map.fromList
     [ ("+",       toMethodBoxed ((++)               :: [Data] -> [Data] -> [Data]))
@@ -165,6 +177,8 @@ lstDesc = ClassDescription $ Map.fromList
     , ("fold",    toMethodBoxed actionedFold)
     , ("zip",     toMethodBoxed actionedZip)
     , ("filter",  toMethodBoxed (flip filterM                    :: [Data] -> (Data -> LunaM Bool) -> LunaM [Data]))
+    , ("sortBy",  toMethodBoxed sortBy')
+    , ("selectBy", toMethodBoxed selectBy)
 
     , ("head",       toMethodBoxed (listToMaybe :: [Data] -> Maybe Data))
     , ("unsafeHead", toMethodBoxed (head        :: [Data] -> Data))

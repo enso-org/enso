@@ -124,6 +124,7 @@ Library
         Luna.Compilation.Pass.Interpreter.Class,
         Luna.Compilation.Pass.Interpreter.Docker,
         Luna.Compilation.Pass.Interpreter.Env,
+        Luna.Compilation.Pass.Interpreter.Genetic,
         Luna.Compilation.Pass.Interpreter.Interpreter,
         Luna.Compilation.Pass.Interpreter.Layer,
         Luna.Compilation.Pass.Interpreter.NativeCalls,

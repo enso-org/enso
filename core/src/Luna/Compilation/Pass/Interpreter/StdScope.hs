@@ -28,6 +28,7 @@ import qualified Data.Map                                as Map
 import           System.Random
 
 import           Luna.Compilation.Pass.Interpreter.Docker
+import           Luna.Compilation.Pass.Interpreter.Genetic
 
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))
@@ -72,6 +73,7 @@ stdScope = Scope $ Map.fromList
     , ("indexGenome", unsafeToValue indexGenome)
     , ("mapGenome",   unsafeToValue mapGenome)
     , ("makeTranscript", unsafeToValue makeTranscript)
+    , ("parseTranscript", unsafeToValue parseTranscript)
     ]
 
 indexGenome :: DockerConf -> String -> String -> LunaM String
@@ -81,7 +83,7 @@ indexGenome docker infile outname = do
 
 mapGenome :: DockerConf -> String -> String -> LunaM String
 mapGenome docker index readPairs = do
-    runDocker docker $ "tophat2 " ++ index ++ " " ++ readPairs
+    runDocker docker $ "if [ ! -f tophat_out/accepted_hits.bam ]; then tophat2 " ++ index ++ " " ++ readPairs ++ "; fi"
     return "tophat_out/accepted_hits.bam"
 
 makeTranscript :: DockerConf -> String -> LunaM String

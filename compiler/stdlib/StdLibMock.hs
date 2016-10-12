@@ -166,6 +166,8 @@ symbolsList = [
     , makeNativeFun "List.map"        (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (TVar "#b")]                                 (listOf $ TVar "#b")
     , makeNativeFun "List.zip"        (Just $ listOf $ TVar "#a")   [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]  (listOf $ TVar "#c")
     , makeNativeFun "List.filter"     (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (scons "Bool")]                              (listOf $ TVar "#a")
+    , makeNativeFun "List.sortBy"     (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (scons "Double")]                            (listOf $ TVar "#a")
+    , makeNativeFun "List.selectBy"   (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (scons "String"), scons "String"]            (listOf $ TVar "#a")
     , makeNativeFun "List.head"       (Just $ listOf $ TVar "#a")   []                                                             (maybeOf $ TVar "#a")
     , makeNativeFun "List.unsafeHead" (Just $ listOf $ TVar "#a")   []                                                             (TVar "#a")
 
@@ -500,6 +502,19 @@ symbolsList = [
     , makeNativeFun "indexGenome"    Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
     , makeNativeFun "mapGenome"      Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
     , makeNativeFun "makeTranscript" Nothing [scons "Docker", scons "String"]                 (scons "String")
+
+    , makeNativeFun "parseTranscript" Nothing [scons "String"]                 (scons "Transcript")
+    , makeNativeFun "Transcript.feature"      (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.start"        (Just $ scons "Transcript") [] (scons "Int")
+    , makeNativeFun "Transcript.end"          (Just $ scons "Transcript") [] (scons "Int")
+    , makeNativeFun "Transcript.score"        (Just $ scons "Transcript") [] (scons "Int")
+    , makeNativeFun "Transcript.strand"       (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.geneId"       (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.transcriptId" (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.fpkm"         (Just $ scons "Transcript") [] (scons "Double")
+    , makeNativeFun "Transcript.confLo"       (Just $ scons "Transcript") [] (scons "Double")
+    , makeNativeFun "Transcript.confHi"       (Just $ scons "Transcript") [] (scons "Double")
+    , makeNativeFun "Transcript.cov"          (Just $ scons "Transcript") [] (scons "Double")
     ]
 
 experimental = [ "fix"
