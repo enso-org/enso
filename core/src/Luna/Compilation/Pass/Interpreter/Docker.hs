@@ -24,6 +24,7 @@ dockerConfClass = ClassDescription $ Map.fromList
     , ("setPWD",       toMethodBoxed $ \d dir -> d & workdir ?~ dir)
     , ("mount",        toMethodBoxed $ \d s t -> d & mounts    %~ ((s, t) :))
     , ("run",          toMethodBoxed runDocker)
+    , ("readFile",     toMethodBoxed readDockerFile)
     ]
 
 runDocker :: DockerConf -> String -> LunaM String
@@ -39,6 +40,9 @@ runDocker conf cmd = do
     case code of
         ExitSuccess   -> return out
         ExitFailure c -> throwError $ unlines [show c, err]
+
+readDockerFile :: DockerConf -> String -> LunaM String
+readDockerFile conf path = runDocker conf $ "cat " ++ path
 
 instance ToData   DockerConf where unsafeToData = Boxed . Object dockerConfClass . unsafeCoerce
 instance FromData DockerConf where unsafeFromData (Boxed (Object _ d)) = unsafeCoerce d

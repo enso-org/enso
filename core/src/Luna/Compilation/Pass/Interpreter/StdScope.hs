@@ -70,12 +70,24 @@ stdScope = Scope $ Map.fromList
     , ("sentiment",   unsafeToValue sentiment)
     , ("docker",      unsafeToValue mkDockerConf)
     , ("indexGenome", unsafeToValue indexGenome)
+    , ("mapGenome",   unsafeToValue mapGenome)
+    , ("makeTranscript", unsafeToValue makeTranscript)
     ]
 
 indexGenome :: DockerConf -> String -> String -> LunaM String
 indexGenome docker infile outname = do
     runDocker docker $ "bowtie2-build " ++ infile ++ " " ++ outname
-    return $ outname ++ ".*.bt2"
+    return outname
+
+mapGenome :: DockerConf -> String -> String -> LunaM String
+mapGenome docker index readPairs = do
+    runDocker docker $ "tophat2 " ++ index ++ " " ++ readPairs
+    return "tophat_out/accepted_hits.bam"
+
+makeTranscript :: DockerConf -> String -> LunaM String
+makeTranscript docker mapping = do
+    runDocker docker $ "cufflinks " ++ mapping
+    return "transcripts.gtf"
 
 time :: LunaM Stream
 time = liftIO $ mdo

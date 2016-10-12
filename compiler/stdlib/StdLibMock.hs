@@ -492,11 +492,14 @@ symbolsList = [
     , makeNativeFun "Docker.run"    (Just $ scons "Docker") [scons "String"]                 (scons "String")
     , makeNativeFun "Docker.mount"  (Just $ scons "Docker") [scons "String", scons "String"] (scons "Docker")
     , makeNativeFun "Docker.setPWD" (Just $ scons "Docker") [scons "String"]                 (scons "Docker")
+    , makeNativeFun "Docker.readFile" (Just $ scons "Docker") [scons "String"]                 (scons "String")
 
 -----------------
 -- === BIO === --
 -----------------
-    , makeNativeFun "indexGenome" Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
+    , makeNativeFun "indexGenome"    Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
+    , makeNativeFun "mapGenome"      Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
+    , makeNativeFun "makeTranscript" Nothing [scons "Docker", scons "String"]                 (scons "String")
     ]
 
 experimental = [ "fix"
