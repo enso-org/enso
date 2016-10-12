@@ -122,6 +122,7 @@ Library
         Luna.Compilation.Pass.Inference.Unification,
         Luna.Compilation.Pass.Interpreter.Charts,
         Luna.Compilation.Pass.Interpreter.Class,
+        Luna.Compilation.Pass.Interpreter.Docker,
         Luna.Compilation.Pass.Interpreter.Env,
         Luna.Compilation.Pass.Interpreter.Interpreter,
         Luna.Compilation.Pass.Interpreter.Layer,

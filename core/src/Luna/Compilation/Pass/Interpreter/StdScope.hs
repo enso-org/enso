@@ -27,6 +27,8 @@ import           Data.Fixed                              (mod')
 import qualified Data.Map                                as Map
 import           System.Random
 
+import           Luna.Compilation.Pass.Interpreter.Docker
+
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))
     , ("const",     unsafeToValue (const :: Data -> Data -> Data))
@@ -66,7 +68,14 @@ stdScope = Scope $ Map.fromList
     , ("hsvColor",    unsafeToValue hsvColor)
     , ("twitter",     unsafeToValue twitter)
     , ("sentiment",   unsafeToValue sentiment)
+    , ("docker",      unsafeToValue mkDockerConf)
+    , ("indexGenome", unsafeToValue indexGenome)
     ]
+
+indexGenome :: DockerConf -> String -> String -> LunaM String
+indexGenome docker infile outname = do
+    runDocker docker $ "bowtie2-build " ++ infile ++ " " ++ outname
+    return $ outname ++ ".*.bt2"
 
 time :: LunaM Stream
 time = liftIO $ mdo

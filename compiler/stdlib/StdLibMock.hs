@@ -485,6 +485,18 @@ symbolsList = [
 
     , makeNativeFun "testControls"  Nothing [scons "String", scons "Int", scons "Double", scons "Bool"]  (scons "String")
 
+--------------------
+-- === Docker === --
+--------------------
+    , makeNativeFun "docker"        Nothing                 [scons "String"]                 (scons "Docker")
+    , makeNativeFun "Docker.run"    (Just $ scons "Docker") [scons "String"]                 (scons "String")
+    , makeNativeFun "Docker.mount"  (Just $ scons "Docker") [scons "String", scons "String"] (scons "Docker")
+    , makeNativeFun "Docker.setPWD" (Just $ scons "Docker") [scons "String"]                 (scons "Docker")
+
+-----------------
+-- === BIO === --
+-----------------
+    , makeNativeFun "indexGenome" Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
     ]
 
 experimental = [ "fix"
