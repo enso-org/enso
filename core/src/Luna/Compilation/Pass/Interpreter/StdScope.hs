@@ -78,7 +78,7 @@ stdScope = Scope $ Map.fromList
 
 indexGenome :: DockerConf -> String -> String -> LunaM String
 indexGenome docker infile outname = do
-    runDocker docker $ "bowtie2-build " ++ infile ++ " " ++ outname
+    runDocker docker $ "if [ ! -f " ++ outname ++ ".1.bt2 ]; then bowtie2-build " ++ infile ++ " " ++ outname ++ "; fi"
     return outname
 
 mapGenome :: DockerConf -> String -> String -> LunaM String
@@ -88,7 +88,7 @@ mapGenome docker index readPairs = do
 
 makeTranscript :: DockerConf -> String -> LunaM String
 makeTranscript docker mapping = do
-    runDocker docker $ "cufflinks " ++ mapping
+    runDocker docker $ "if [ ! -f transcripts.gtf ]; then cufflinks " ++ mapping ++ "; fi"
     return "transcripts.gtf"
 
 time :: LunaM Stream
