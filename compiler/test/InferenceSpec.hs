@@ -1,7 +1,12 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE TypeOperators             #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE OverloadedStrings         #-}
 
-module Main where
+module InferenceSpec (spec) where
 
 import           Prelude.Luna                                    hiding (Num)
 
@@ -34,6 +39,9 @@ import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
 import qualified Data.Graph.Builder.Class               as Graph
 import qualified Data.Graph.Backend.NEC                 as NEC
+
+import           Test.Hspec (Spec, describe, it)
+import           System.IO.Silently (silence)
 
 
 graph1 :: forall term node edge nr er ls m n e c. (term ~ Draft Static
@@ -94,8 +102,8 @@ runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (Ne
 evalBuild = fmap snd ∘∘ runBuild
 
 
-main :: IO ()
-main = do
+test :: IO ()
+test = do
     (_,  g00 :: NetGraph) <- prebuild
     flip Env.evalT def $ do
         v <- view version <$> Env.get
@@ -104,6 +112,12 @@ main = do
             (root,     g01) <- runBuild  g00 graph1
             (literals, g02) <- runBuild  g01 $ LiteralsUtils.run root
             g03             <- evalBuild g02 $ LiteralsAssignement.runPass literals
-            renderAndOpen [ ("g1", "g1", g03)
-                          ]
+            -- renderAndOpen [ ("g1", "g1", g03) ]
+            return ()
     putStrLn "done"
+
+spec :: Spec
+spec = do
+    describe "inference" $ do
+        it "inferences" $
+            silence test

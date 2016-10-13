@@ -1,7 +1,13 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TypeOperators             #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE OverloadedStrings         #-}
 
-module Main where
+module InterpreterSpec (spec) where
 
 import           Prelude.Luna                                    hiding (Num)
 
@@ -58,6 +64,10 @@ import qualified StdLibMock                                      as StdLib
 import qualified Luna.Library.Symbol                             as Symbol
 
 import           Control.Monad.Event                             (Dispatcher)
+
+import           Test.Hspec (Spec, describe, it)
+import           System.IO.Silently (silence)
+
 
 
 graph1 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
@@ -193,11 +203,6 @@ test_old = do
                           ]
     putStrLn "done"
 
-
-main :: IO ()
-main = do
-    test1
-    -- test_old
 
 graph3 = do
     i1 <- int 1
@@ -355,7 +360,7 @@ test1 = do
         let names = printf "%02d" <$> ([0..] :: [Int])
         let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
         putStrLn $ intercalate " " $ (view _2) <$> graphs
-        renderAndOpen [ ("gint", "gint", gint) ]
+        -- renderAndOpen [ ("gint", "gint", gint) ]
         -- renderAndOpen [ last graphs ]
         -- renderAndOpen graphs
     print "end"
@@ -372,7 +377,11 @@ intRun gtc refsToEval = do
     gint <- evalBuild gtc $ Interpreter.run refsToEval
     return gint
 
-
+spec :: Spec
+spec = do
+    describe "interpreter" $ do
+        it "interprets" $
+            silence test1
 
 -- old version
 
