@@ -225,7 +225,7 @@ type AnyExpr   t layers           = Expr t layers (Uniform Draft)
 type PrimExpr  t layers name atom = Expr t layers (Prim name atom)
 type PrimExpr' t layers      atom = PrimExpr t layers () atom
 
-type TermStack t layers layout = Stack layers (Layer (Expr t layers layout))
+type TermStack t layers layout = Stack layers (Layer2 t layers layout)
 
 
 -- === Properties === --
@@ -291,8 +291,52 @@ instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildL
 
 
 
+--------------------
+-- === Layers === --
+--------------------
+
+-- === Definition === --
+
+data family Layer2 t (layers :: [*]) layout l
+
+class LayerCons2 l t layers m where
+    consLayer2 :: forall layout. m (Layer2 t layers layout l)
 
 
+-- === Parameters === --
+
+-- data Layers
+
+-- === Construction === --
+
+type LayersCons2' t layers m = LayersCons2 layers t layers m
+instance (LayersCons2 ls t layers m, LayerCons2 l t layers m)
+                 => LayersCons2 (l ': ls) t layers m where buildLayers2 = SLayer <$> consLayer2 <*> buildLayers2
+instance Monad m => LayersCons2 '[]       t layers m where buildLayers2 = return SNull
+class    Monad m => LayersCons2 ls        t layers m where buildLayers2 :: forall layout. m (Stack ls (Layer2 t layers layout))
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+-- === Definition === --
+
+-- data family Layer  t l
+
+class LayerCons3 l m t where
+    consLayer3 :: m (Layer t l)
+
+
+-- === Parameters === --
+
+-- data Layers
+
+-- === Construction === --
+
+class    Monad m                           => LayersCons3 ls        t m where buildLayers3 :: m (Stack ls (Layer t))
+instance Monad m                           => LayersCons3 '[]       t m where buildLayers3 = return SNull
+instance (LayersCons3 ls t m, LayerCons m l) => LayersCons3 (l ': ls) t m where buildLayers3 = SLayer <$> consLayer <*> buildLayers3
 
 
 
@@ -346,7 +390,7 @@ type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
 -- alias ValidateLayout model sel a = ValidateScope (model ^. sel) sel a
 
 
-
+-- moze powinnismy zrobic prostsze expression ktore towrylyby sie w layoucie top (latwo konwertowalnym do wszystkiego innego?)
 
 class SymbolEncoder atom where
     encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
@@ -359,8 +403,8 @@ instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
 
 
 
-type UncheckedTermCons atom m layers = (LayersCons layers m, SymbolEncoder atom)
-type TermCons         atom m layers model = (UncheckedTermCons atom m layers, ValidateLayout model Atom atom)
+type UncheckedTermCons atom t layers m = (LayersCons2' t layers m, SymbolEncoder atom)
+type TermCons         atom t layers layout m = (UncheckedTermCons atom t layers m, ValidateLayout layout Atom atom)
 
 -- | The `term` type does not force the construction to be checked,
 --   because it has to be already performed in order to deliver ExprSymbol.
@@ -370,8 +414,68 @@ type TermCons         atom m layers model = (UncheckedTermCons atom m layers, Va
 
 -- | The `expr` type does not force the construction to be checked,
 --   because it has to be already performed in order to deliver ExprSymbol.
-expr :: (expr ~ Expr t layers model, UncheckedTermCons atom m layers) => ExprSymbol atom expr -> m expr
-expr a = flip Expr (encodeSymbol a) <$> buildLayers
+expr :: (expr ~ Expr t layers layout, UncheckedTermCons atom t layers m) => ExprSymbol atom expr -> m expr
+expr a = flip Expr (encodeSymbol a) <$> buildLayers2
+
+
+
+
+
+
+
+
+
+
+
+------------------
+-- === Expr === --
+------------------
+
+-- === Definitions === --
+
+newtype Expr2  t layers layout    = Expr (TermStack2 t layers layout)
+-- type AnyExpr   t layers           = Expr t layers (Uniform Draft)
+-- type PrimExpr  t layers name atom = Expr t layers (Prim name atom)
+-- type PrimExpr' t layers      atom = PrimExpr t layers () atom
+--
+type TermStack2 t layers layout = Stack layers (Layer4 (Expr2  t layers layout))
+--
+--
+-- -- === Properties === --
+--
+-- type instance Get Layout        (Expr _ _ layout) = layout
+-- type instance Set Layout layout (Expr t layers _) = Expr t layers layout
+-- type instance Get Data          (Expr _ _ _)      = TermStore
+-- type instance Get TermType      (Expr t _ _)      = t
+-- -- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
+--
+--
+-- instance Getter Data (Expr t layers layout) where get (Expr _ s) = s ; {-# INLINE get #-}
+--
+
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+-- === Definition === --
+
+data family Layer4 t l
+
+class LayerCons4 t m l where
+    consLayer4 :: m (Layer4 t l)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

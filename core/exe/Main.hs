@@ -83,7 +83,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Class as XP
 import qualified Data.Record                  as Record
 import qualified Data.Graph.Builder                      as GraphBuilder
 
-import Data.Shell as Shell hiding (Layers)
+-- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
 import Luna.Syntax.Term.Expr hiding (Data)
@@ -92,7 +92,7 @@ import Luna.Syntax.Term.Expr hiding (Data)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.Syntax.Term.Expr.Class as TEST
-import Luna.Syntax.Term.Expr.Class hiding (Bind, Fields, Layer, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
+import Luna.Syntax.Term.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Luna.Syntax.Model.Network.Builder.Term.Class (ExprBuilder)
@@ -119,6 +119,8 @@ import Luna.Syntax.Term.Expr.Layout
 import Unsafe.Coerce (unsafeCoerce)
 import Type.Set as Set hiding (Set)
 import qualified Type.List as TList
+import qualified Control.Monad.State as State
+import Control.Monad.State hiding (get, set)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -246,16 +248,21 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 type ExprInferable t (layers :: [*]) m = (Inferable2 InfLayers layers m, Inferable2 TermType t m)
-type ExprBuilder2 t layers m = (LayersCons layers m, Bindable t m, Dispatcher2 Node m (Binding (AnyExpr t layers)))
+type ExprBuilder2 t layers m = (LayersCons2' t layers m, Bindable t m, Dispatcher2 Node m (Binding (AnyExpr t layers)))
 type ExprBuilder_i t layers m = (ExprBuilder2 t layers m, ExprInferable t layers m)
 
 
 
+magicStar :: (LayersCons2' t layers m, Bindable t m) => m $ Binding (Expr t layers layout)
+magicStar = mkBinding =<< expr (wrap' N.star')
+-- FIXME: wrap' is pure magic - it just doesnt construct ExprSymbol the right way, so we
+--        can omit checking if the layout is valid
 
-star1 :: (LayersCons layers m, ValidateLayout layout Atom Star) => m (Expr t layers layout)
+
+star1 :: (LayersCons2' t layers m, ValidateLayout layout Atom Star) => m (Expr t layers layout)
 star1 = expr N.star'
 
-star2 :: LayersCons layers m => m (PrimExpr' t layers Star)
+star2 :: LayersCons2' t layers m => m (PrimExpr' t layers Star)
 star2 = star1
 
 star3 :: ExprBuilder2 t layers m => m $ Binding (PrimExpr' t layers Star)
@@ -273,12 +280,12 @@ star4 = star3 -- inferTerm star3
 
 -- type AnyExpr ls = Term3 (ExprX2 ls (Uniform Draft))
 
-xunify :: (layout ~ MatchLayouts l1 l2, LayersCons ls m, ValidateLayout layout Atom Unify)
+xunify :: (layout ~ MatchLayouts l1 l2, LayersCons2' t ls m, ValidateLayout layout Atom Unify)
         => Binding (Expr t ls l1) -> Binding (Expr t ls l2) -> m (Expr t ls layout)
 xunify l r = expr $ N.unify' (unsafeCoerce l) (unsafeCoerce r)
 
 
-xunify2 :: (MonadFix m, layout ~ MatchLayouts l1 l2, LayersCons ls m, ValidateLayout layout Atom Unify, Bindable t m, Linkable' t m)
+xunify2 :: (MonadFix m, layout ~ MatchLayouts l1 l2, LayersCons2' t ls m, ValidateLayout layout Atom Unify, Bindable t m, Linkable' t m)
         => Binding (Expr t ls l1) -> Binding (Expr t ls l2) -> m (Binding (Expr t ls layout))
 xunify2 a b = mdo
     n  <- mkBinding =<< (expr $ N.unify' la lb)
@@ -443,9 +450,85 @@ test_g2 = do
 -- runInferenceT2 :: forall t cls m a. cls -> KnownTypeT cls t m a -> m a
 
 
+newtype instance Layer t Type = TypeLayer (Unwrapped (Layer t Type))
+
+instance Wrapped (Layer t Type) where
+    type Unwrapped (Layer t Type) = SubLink Type t
+    _Wrapped' = iso (\(TypeLayer l) -> l) TypeLayer ; {-# INLINE _Wrapped' #-}
+
+deriving instance Show (Unwrapped (Layer t Type)) => Show (Layer t Type)
+
+
+-- (Layer (Expr Net '[Type] (Prim () Star)) Type)
+
+newtype instance Layer2 t layers layout Type = TypeLayer2 (SubLink Type (Expr t layers layout))
+
+-- magicStar :: (LayersCons2' t layers m, Bindable t m) => m $ Binding (Expr t layers layout)
+
+-- instance (Monad m, Bindable t m, Linkable' t m, LayersCons2' t layers m)
+--       => LayerCons2 Type t layers m where
+--     consLayer2 = do
+--         s <- magicStar
+--         l <- mkLink (error "x") s
+--         return $ TypeLayer2 l
+
+instance (Monad m, Linkable' t m, Top m t layers)
+      => LayerCons2 Type t layers m where
+    consLayer2 = do
+        s <- localTop
+        l <- mkLink (error "x") s
+        return $ TypeLayer2 l
+
+
+instance (Monad m, Bindable t m, Linkable' t m, LayersCons2' t layers m)
+      => LayerCons3 Type m (Expr t layers layout) where
+    consLayer3 = do
+        s <- magicStar
+        l <- mkLink (error "x") s
+        return $ TypeLayer l
+
+class Top m t layers where
+    checkTop :: forall layout. m (Maybe (Binding (Expr t layers layout)))
+    newTop   :: forall layout. m (Binding (Expr t layers layout))
+    setTop   :: forall layout. Binding (Expr t layers layout) -> m ()
+
+
+localTop :: (Top m t layers, Monad m) => m (Binding (Expr t layers layout))
+localTop = checkTop >>= fromMaybeM (newTop >>~ setTop)
+
+data TopMonad t layers m a = TopMonad (forall layout. StateT (Binding (Expr t layers layout)) m a)
+
+    -- magicStar :: (LayersCons2' t layers m, Bindable t m) => m $ Binding (Expr t layers layout)
+    -- magicStar = mkBinding =<< expr (wrap' N.star')
+
+-- get type (getTop) moze byc zawsze draftem
+-- selfconnect moze byc zahardcodowane w tworzeniu
+
+-- data family Layer2 t (layers :: [*]) layout l
+--
+-- class LayerCons2 l t layers m where
+--     consLayer2 :: forall layout. m (Layer2 t layers layout l)
+
+
+    -- problemem jest to ze zarowno self jak i getType musza miec w typei cos zwiazanego z layout
+    -- co jest tylko po to by sprawdzic czy sie matchuje, a nie chcemy do konsturowania warstw tego wrzucac
+    -- bo nam bardzo typy to psuje
+    --
+    -- mozna zrobic classe SelfConnect - ktora moglaby to rozwiazywac
+    -- ogolnie - mozna tworzyc typeclassy ktore gwarantowalyby te wlasnosci jakos
+    --
+    -- to jedna nie zadziala, bo typy nie beda sie matchowaly, bo consLayer ma forall layout.
+    --
+    -- Mozna za to zrobic conslayer kotry nie ma ZADNEGO foralla i ograniczyc typy
+    -- dopiero w typeclassie pozniej, ktora nakladalaby informacje na layout, takie ze dzialalby
+    -- self i getType, a nie musialby byc w kontekscie
+    --
+    -- -- self :: m $ Binding (Expr t layers layout)
+    -- -- getType :: m $ Binding (Expr t layers (Sub Type layout))
 
 main :: IO ()
 main = do
+
     -- print blank
     print N.blank
     -- print $ (runIdentity (encodeStore blank) :: Store2 '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ])
