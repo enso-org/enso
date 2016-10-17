@@ -319,9 +319,8 @@ evaluateNode ref = do
 
 evaluateNodes :: (InterpreterCtx(m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT (Stack, [Ref Node (ls :<: term)]) m)), ls, term)) => [Ref Node (ls :<: term)] -> m ()
 evaluateNodes reqRefs = do
-    mapM_ collectNodesToEval $ reverse reqRefs
     stack <- makeStack
-    mapM_ (flip runReaderT (stack, []) . runExceptT . evaluateNode) =<< Env.getNodesToEval
+    mapM_ (flip runReaderT (stack, []) . runExceptT . evaluateNode) reqRefs
 
 run :: forall env m ls term node edge graph clus n e c. (Monad m, InterpreterCtx(InterpreterT env m, ls, term), InterpreterCtx((ExceptT [String] (ReaderT (Stack, [Ref Node (ls :<: term)]) (InterpreterT env m))), ls, term), env ~ Env (Ref Node (ls :<: term)))
     => [Ref Node (ls :<: term)] -> m ()

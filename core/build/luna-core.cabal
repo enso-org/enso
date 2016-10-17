@@ -131,7 +131,6 @@ Library
         Luna.Interpreter.Genetic,
         Luna.Interpreter.Interpreter,
         Luna.Interpreter.Layer,
-        Luna.Interpreter.NativeCalls,
         Luna.Interpreter.StdScope,
         Luna.Interpreter.Value,
         Luna.Library.Symbol,
