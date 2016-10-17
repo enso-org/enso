@@ -78,52 +78,11 @@ Library
                  , typelevel
                  , transformers
 
-
-Executable luna-parser-test
-    if flag(tests)
-        Main-Is:        Main.hs
-        Hs-Source-Dirs: test
-    else
-        Main-Is:        Dummy.hs
-        Hs-Source-Dirs: test
-
-    GHC-Options:
-                  -- -dshow-passes
-
-    -- -ddump-simpl -ddump-to-file
-
-    Extensions:   ConstraintKinds
-                  DataKinds
-                  DefaultSignatures
-                  DeriveDataTypeable
-                  DeriveFoldable
-                  DeriveFunctor
-                  DeriveGeneric
-                  DeriveTraversable
-                  DoAndIfThenElse
-                  EmptyDataDecls
-                  FlexibleContexts
-                  FlexibleInstances
-                  GeneralizedNewtypeDeriving
-                  InstanceSigs
-                  LambdaCase
-                  MultiParamTypeClasses
-                  NoImplicitPrelude
-                  OverloadedStrings
-                  ScopedTypeVariables
-                  StandaloneDeriving
-                  TemplateHaskell
-                  TupleSections
-                  TypeFamilies
-                  TypeOperators
-                  ViewPatterns
-
-    Build-Depends: base
-                 , luna-core
-                 , luna-parser
-                 , prologue
-                 , typelevel
-                 , mtl
-                 , trifecta
-                 , ansi-wl-pprint
-                 , parsers
+test-suite spec
+    type: exitcode-stdio-1.0
+    ghc-options: -Wall
+    hs-source-dirs: test
+    main-is: Spec.hs
+    build-depends: base
+                 , hspec
+                 , silently

@@ -3,7 +3,7 @@
 --{-# LANGUAGE PartialTypeSignatures     #-}
 
 
-module Main where
+module ParserSpec (spec) where
 
 import Prologue
 import Luna.Parser.Parser
@@ -32,6 +32,9 @@ import qualified Luna.Syntax.Model.Text.Location as Location
 import Luna.Parser.Class (Parser)
 import Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
 --import qualified Luna.Parser.Function as Func
+
+import Test.Hspec (Spec, describe, it)
+import System.IO.Silently (silence)
 
 
 runBuild (g :: NetGraph) m = runInferenceT ELEMENT (Proxy :: Proxy (Ref Node (NetLayers :<: Draft Static)))
@@ -119,7 +122,7 @@ checkResult (Test draw name res) = (putStrLn ∘ ((name <> ": ") <>)) =<< resDes
         Left e           -> return $ "error: \n" <> show e
         Right (bldr, ps) -> do
             (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
-            when draw $ renderAndOpen [(name, name, g)]
+            -- when draw $ renderAndOpen [(name, name, g)]
             return "ok"
 
 
@@ -137,7 +140,7 @@ mainPartial = do
         Left  d          -> print d
         Right (bldr, ps) -> do
             (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
-            renderAndOpen [("g1", "g1", g)]
+            -- renderAndOpen [("g1", "g1", g)]
             print a
             print "ok"
     return ()
@@ -152,7 +155,7 @@ mainLam = do
             (a, g :: NetGraph) <- runBuild (def :: NetGraph) bldr
             print g
             print a
-            renderAndOpen [("g1", "g1", g)]
+            -- renderAndOpen [("g1", "g1", g)]
             print "ok"
     return ()
 
@@ -162,3 +165,15 @@ main = do
     let results = (content %~ flip parseString partialParser) <$> inputs
     mapM_ checkResult results
     mainPartial
+
+spec :: Spec
+spec = do
+    describe "parser" $ do
+        it "mains" $
+            main
+        it "lams" $
+            silence mainLam
+        it "partials" $
+            silence mainPartial
+        it "ones" $
+            silence main1
