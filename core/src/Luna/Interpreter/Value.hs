@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Compilation.Pass.Interpreter.Value where
+module Luna.Interpreter.Value where
 
 import           Prelude.Luna
 import           Prelude                    (error)

@@ -1,10 +1,10 @@
 {-# LANGUAGE RecursiveDo #-}
 
-module Luna.Compilation.Pass.Interpreter.StdScope where
+module Luna.Interpreter.StdScope where
 
 import           Prelude.Luna
-import           Luna.Compilation.Pass.Interpreter.Env
-import           Luna.Compilation.Pass.Interpreter.Value
+import           Luna.Interpreter.Env
+import           Luna.Interpreter.Value
 import           Data.List                               (sort, group)
 import           Data.Maybe                              (catMaybes, fromJust)
 import           Control.Arrow                           ((&&&))
@@ -27,8 +27,8 @@ import           Data.Fixed                              (mod')
 import qualified Data.Map                                as Map
 import           System.Random
 
-import           Luna.Compilation.Pass.Interpreter.Docker
-import           Luna.Compilation.Pass.Interpreter.Genetic
+import           Luna.Interpreter.Docker
+import           Luna.Interpreter.Genetic
 
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))

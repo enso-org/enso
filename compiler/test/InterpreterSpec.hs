@@ -37,9 +37,9 @@ import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetL
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
 
-import           Luna.Compilation.Pass.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
-import qualified Luna.Compilation.Pass.Interpreter.Layer         as Layer
-import qualified Luna.Compilation.Pass.Interpreter.Interpreter   as Interpreter
+import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
+import qualified Luna.Interpreter.Layer         as Layer
+import qualified Luna.Interpreter.Interpreter   as Interpreter
 
 import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph

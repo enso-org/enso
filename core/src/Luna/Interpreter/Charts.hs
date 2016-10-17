@@ -1,4 +1,4 @@
-module Luna.Compilation.Pass.Interpreter.Charts where
+module Luna.Interpreter.Charts where
 
 import           Prelude.Luna
 import           Data.Maybe         (listToMaybe)

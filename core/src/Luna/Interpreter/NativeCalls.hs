@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Luna.Compilation.Pass.Interpreter.NativeCalls where
+module Luna.Interpreter.NativeCalls where
 
 
 import           Prelude.Luna
@@ -18,7 +18,7 @@ import           System.Environment (lookupEnv)
 import           Text.Printf        (printf)
 
 import           Graphics.API
-import           Luna.Compilation.Pass.Interpreter.Charts
+import           Luna.Interpreter.Charts
 
 
 nativeCalls :: Map String Any

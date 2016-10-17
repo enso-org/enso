@@ -1,4 +1,4 @@
-module Luna.Compilation.Pass.Interpreter.Layer where
+module Luna.Interpreter.Layer where
 
 import           Prologue                        hiding (Getter, Setter)
 
@@ -12,7 +12,7 @@ import           Old.Luna.Syntax.Term.Class            (Term)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Class (Network)
 import qualified Luna.Syntax.Model.Network.Term  as Term
-import           Luna.Compilation.Pass.Interpreter.Value
+import           Luna.Interpreter.Value
 
 
 

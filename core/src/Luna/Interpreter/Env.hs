@@ -1,9 +1,9 @@
-module Luna.Compilation.Pass.Interpreter.Env where
+module Luna.Interpreter.Env where
 
 import           Prologue
 
-import           Luna.Compilation.Pass.Interpreter.Class
-import           Luna.Compilation.Pass.Interpreter.Value (Value)
+import           Luna.Interpreter.Class
+import           Luna.Interpreter.Value (Value)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map

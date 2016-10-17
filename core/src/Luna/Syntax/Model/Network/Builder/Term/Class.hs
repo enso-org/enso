@@ -27,7 +27,7 @@ import           Old.Luna.Syntax.Term.Class                    hiding (undefined
 import qualified Old.Luna.Syntax.Term.Class                    as Term
 import qualified Data.Graph.Builder                      as GraphBuilder
 import           Luna.Syntax.Model.Layer                 (Type, Markable, TCData, Meta, Name, Lambda, (:<:), (:<))
-import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData)
+import           Luna.Interpreter.Layer (InterpreterData)
 import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type  as Type

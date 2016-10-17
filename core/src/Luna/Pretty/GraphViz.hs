@@ -37,8 +37,8 @@ import           Data.GraphViz.Printing                  (renderDot, toDot)
 import           Data.GraphViz.Printing                  (PrintDot)
 import           Data.GraphViz.Types.Canonical
 
-import           Luna.Compilation.Pass.Interpreter.Layer (InterpreterData (..))
-import qualified Luna.Compilation.Pass.Interpreter.Layer as InterpreterLayer
+import           Luna.Interpreter.Layer (InterpreterData (..))
+import qualified Luna.Interpreter.Layer as InterpreterLayer
 import           Luna.Runtime.Dynamics                 (Dynamic, Static)
 import qualified Luna.Syntax.Term.Function                as Function
 import qualified Old.Luna.Syntax.Term.Class                    as Term
