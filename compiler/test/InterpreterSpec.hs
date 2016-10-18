@@ -39,6 +39,7 @@ import           Luna.Syntax.Model.Network.Term
 
 import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
 import qualified Luna.Interpreter.Layer         as Layer
+import qualified Luna.Interpreter.Value         as Value
 import qualified Luna.Interpreter.Interpreter   as Interpreter
 
 import qualified Data.Graph.Backend.NEC                          as NEC
@@ -62,10 +63,9 @@ import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckSta
 import qualified Control.Monad.Writer                            as Writer
 import qualified StdLibMock                                      as StdLib
 import qualified Luna.Library.Symbol                             as Symbol
-
 import           Control.Monad.Event                             (Dispatcher)
 
-import           Test.Hspec (Spec, describe, it)
+import           Test.Hspec (Spec, describe, it, shouldBe, shouldReturn)
 import           System.IO.Silently (silence)
 
 
@@ -322,6 +322,55 @@ collectGraph tag = do
 seq3 a b c = Sequence a $ Sequence b c
 seq4 a b c d = Sequence a $ seq3 b c d
 
+test2 :: IO ()
+test2 = do
+    (_, g :: NetGraph) <- prebuild
+
+    let graph' = do
+            two <- int 2
+            two' <- int 2
+            a <- var "app"
+            bl <- blank
+            accpl <- acc "+" bl
+            bl2 <- blank
+            apl <- app accpl [arg bl2, arg two]
+            apl' <- app a [arg apl, arg two']
+            forM_ [apl'] (\ref -> do
+                    (nd :: (ls :<: term)) <- read ref
+                    write ref (nd & prop InterpreterData . Layer.required .~ True)
+                )
+            return [apl']
+
+    res <- flip Env.evalT def $ do
+        TypeCheck.runT $ do
+            ([root], gb) <- runBuild g graph'
+
+            (gs, gtc) <- runBuild gb $ do
+                Symbol.loadFunctions StdLib.symbols
+                TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ [root]
+                -- collectGraph "Initial"
+                let tc = (seq4
+                             ScanPass
+                             LiteralsPass
+                             StructuralInferencePass
+                             (Loop $ Sequence
+                                 (Loop $ seq4
+                                     SymbolImportingPass
+                                     (Loop $ StrictUnificationPass Positive False)
+                                     FunctionCallingPass
+                                     (Loop $ StrictUnificationPass Positive False))
+                                 (StrictUnificationPass Negative True)))
+                TypeCheck.runTCPass tc
+
+            gint <- intRun gtc [root]
+
+            (dupa, gint') <- runBuild gint $ do
+                follow (prop InterpreterData . Layer.value) root
+
+            return $ dupa ^?! _Right
+
+    Value.unsafeFromData <$> Value.toIO res `shouldReturn` (4::Int)
+
 test1 :: IO ()
 test1 = do
     (_,  g :: NetGraph) <- prebuild
@@ -382,6 +431,8 @@ spec = do
     describe "interpreter" $ do
         it "interprets" $
             silence test1
+        it "2+2" $
+            test2
 
 -- old version
 
