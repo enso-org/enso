@@ -554,22 +554,31 @@ class Monad m => MonadTop t layers m | m -> t layers where
 -- localTop :: MonadTop t layers m => m (Binding (Expr2 t layers layout))
 -- localTop = checkTop >>= fromMaybeM (newTop >>~ setTop)
 
-localTop :: (MonadTop t layers m, MonadFix m) => m (Binding (Expr2 t layers AnyLayout))
-localTop = do
-    mt <- checkTop
-    case mt of
-        Just t  -> return t
-        Nothing -> mdo
-            setTop (Just nt)
-            nt <- newTop
-            setTop mt
-            return nt
+-- localTop :: (MonadTop t layers m, MonadFix m) => m (Binding (Expr2 t layers AnyLayout))
+-- localTop = do
+--     mt <- checkTop
+--     case mt of
+--         Just t  -> return t
+--         Nothing -> mdo
+--             setTop (Just nt)
+--             nt <- newTop
+--             setTop mt
+--             return nt
 
--- newtype TopStore t layers m a = TopStore (forall layout. StateT (Maybe (Binding (Expr2 t layers layout))) m a) deriving (Monad)
+newtype TopStore t layers m a = TopStore (StateT (Maybe (Binding (Expr2 t layers AnyLayout))) m a) deriving (Monad, Applicative, Functor, MonadTrans, MonadFix, MonadIO)
 --
+
+instance PrimMonad m => PrimMonad (TopStore t layers m) where
+    type PrimState (TopStore t layers m) = PrimState m
+    primitive = lift . primitive
+    {-# INLINE primitive #-}
 --
--- instance Monad m => MonadTop t layers (TopStore t layers m) where
---     checkTop = TopStore State.get
+instance (Monad m, Constructor TermStore m (TermStack2 t layers AnyLayout)) => MonadTop t layers (TopStore t layers m) where
+    checkTop = undefined -- TopStore State.get
+    newTop   = undefined
+    setTop   = undefined
+
+topevalT (TopStore s) = State.evalStateT s
 
 
 -- Type.get >>= fromMaybeM ()
@@ -577,35 +586,38 @@ localTop = do
 type instance Get Atom AnyLayout = AnyLayout
 type instance Atoms AnyLayout = '[Star]
 --
--- localTop :: ( Type.MonadTypeBuilder (Binding (Expr2 t layers AnyLayout)) m, Constructor TermStore m (TermStack2 t layers AnyLayout)
---             , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m, MonadFix m, Bindable t m)
---          => m (Binding (Expr2 t layers AnyLayout))
--- localTop = do
---     mt <- Type.get
---     case mt of
---         Just t  -> return t
---         Nothing -> mdo
---             Type.put (Just nt)
---             nt <- nstar
---             Type.put mt
---             return nt
+localTop :: ( Type.MonadTypeBuilder (Binding (Expr2 t layers AnyLayout)) m, Constructor TermStore m (TermStack2 t layers AnyLayout)
+            , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m, MonadFix m, Bindable t m)
+         => m (Binding (Expr2 t layers AnyLayout))
+localTop = do
+    mt <- Type.get
+    case mt of
+        Just t  -> return t
+        Nothing -> mdo
+            Type.put (Just nt)
+            nt <- nstar
+            Type.put mt
+            return nt
 
 
 instance ( expr ~ Expr2 t layers AnyLayout
          , bind ~ Binding expr
          , Linkable' t m
          , Self.MonadSelfBuilder bind m
-         , MonadTop t layers m
-        --  , Type.MonadTypeBuilder bind m
-        --  , Constructor TermStore m (TermStack2 t layers AnyLayout)
-         ) => Constructor a m (Layer4 expr Type) where
+
+        --  , MonadTop t layers m
+         , Type.MonadTypeBuilder bind m
+         , Constructor TermStore m (TermStack2 t layers AnyLayout), t ~ Net, layers ~ '[Data,Type], Bindable t m, MonadFix m
+         ) => Constructor TermStore m (Layer4 expr Type) where
     cons _ = do
         -- undefined
         -- s <- nmagicStar
         -- Just tp <- Type.get
         self <- Self.get
-        top  <- localTop
-        l    <- mkLink self (specifyLayout2 top)
+        top  <- localTop -- to nie powinno byc localTop ( tak nie dziala z kontekstem z linii 576) - tylko powinno byc cos ala 589
+        -- l    <- mkLink self (specifyLayout2 top)
+        l    <- mkLink self top
+        -- l    <- mkLink self self
         return $ Layer4 l
 
 -- nstar1 :: (Monad m) => m (Expr2 Net '[Data] (ANTLayout SimpleX Star () ()))
@@ -678,7 +690,8 @@ test_gr3 :: ( ExprCons t layers m, Bindable t m, ExprInferable t layers m
             , MonadIO m, Show bind, Show (PrimExpr2' t layers Star), layers~'[Data, Type]
             , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
             , bind ~ Binding (PrimExpr2' t layers Star)
-        ) => m bind
+        ) => m (Binding (PrimExpr2' t layers Star))
+        ) => m bind - tutaj jest blad ghc
 test_gr3 = do
     sref <- nstar3
     t <- readBinding sref
@@ -729,16 +742,16 @@ test_gr3 = do
 --         Symbol.Star      -> print "hello3x"
 
 
-test_g3 :: (PrimMonad m, MonadIO m, MonadFix m)
+test_g3 :: forall m. (PrimMonad m, MonadIO m, MonadFix m)
         => m (Binding (PrimExpr2' Net '[Data, Type] Star), Network3 m)
 test_g3 = do
     g <- NEC.emptyHMGraph
     flip Self.evalT undefined $
         flip Type.evalT Nothing $
-        flip Graph.Builder.runT g $ suppressAll
+        flip Graph.Builder.runT g -- $ suppressAll
                                   $ runInferenceT2 @InfLayers @'[Data, Type]
                                   $ runInferenceT2 @TermType  @Net
-                                  $ test_gr3
+                                  $ (test_gr3)
 
 
 main :: IO ()
