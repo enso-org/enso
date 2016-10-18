@@ -23,7 +23,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
+import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value, cons)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container               hiding (Empty, FromJust)
@@ -61,8 +61,8 @@ import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refa
 
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
 import Type.Error
-import Control.Monad.State
-import Control.Lens.Property hiding (get)
+-- import Control.Monad.State
+import Control.Lens.Property hiding (Constructor)
 import qualified Control.Lens.Property as Prop
 import GHC.Stack (HasCallStack, callStack, prettyCallStack, withFrozenCallStack)
 import Data.Vector.Mutable (MVector)
@@ -192,10 +192,12 @@ newtype TermData sys model = TermData TermStore deriving (Show)
 makeWrapped ''TermData
 
 
-
 -------------------
 -- === Stack === --
 -------------------
+
+class Monad m => Constructor a m t where
+    cons :: a -> m t
 
 -- === Definition === --
 
@@ -203,6 +205,18 @@ data Stack layers (t :: ★ -> ★) where
     SLayer :: t l -> Stack ls t -> Stack (l ': ls) t
     SNull  :: Stack '[] t
 
+
+-- === Construction === --
+
+-- class    Monad m                               => StackCons t ls        m where newStack :: m (Stack ls t)
+-- instance Monad m                               => StackCons t '[]       m where newStack = return SNull
+-- instance (Generator m (t l), StackCons t ls m) => StackCons t (l ': ls) m where newStack = SLayer <$> new <*> newStack
+
+instance ( Constructor a m (t l)
+         , Constructor a m (Stack ls t)) => Constructor a m (Stack (l ': ls) t) where cons a = SLayer <$> cons a <*> cons a
+instance Monad m                         => Constructor a m (Stack '[]       t) where cons _ = return SNull
+
+-- instance
 
 -- === Instances === --
 
@@ -212,6 +226,12 @@ instance Show (Stack '[] t) where
 instance (Show (t l), Show (Stack ls t)) => Show (Stack (l ': ls) t) where
     show (SLayer l ls) = show l <> ", " <> show ls
 
+
+
+type instance Get p (Stack ls t) = t p
+
+instance {-# OVERLAPPABLE #-}                          Getter p (Stack (p ': ls) t) where get (SLayer t _) = t
+instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls) t) where get (SLayer _ l) = get @p l
 
 
 ------------------
@@ -422,38 +442,21 @@ expr a = flip Expr (encodeSymbol a) <$> buildLayers2
 
 
 
+------- Data Layer
 
+type family ExprLayer l t
+newtype Layer4 t l = Layer4 (ExprLayer l t)
 
+type instance ExprLayer Data t = TermStore
 
+instance Monad m => Constructor TermStore m (Layer4 t Data) where cons = return . Layer4
 
+-- instance Monad m => Constructor TermStore m (ExprLayer Data t) where
+--     cons = return
 
-------------------
--- === Expr === --
-------------------
+deriving instance Show (ExprLayer l t) => Show (Layer4 t l)
 
--- === Definitions === --
-
-newtype Expr2  t layers layout    = Expr (TermStack2 t layers layout)
--- type AnyExpr   t layers           = Expr t layers (Uniform Draft)
--- type PrimExpr  t layers name atom = Expr t layers (Prim name atom)
--- type PrimExpr' t layers      atom = PrimExpr t layers () atom
---
-type TermStack2 t layers layout = Stack layers (Layer4 (Expr2  t layers layout))
---
---
--- -- === Properties === --
---
--- type instance Get Layout        (Expr _ _ layout) = layout
--- type instance Set Layout layout (Expr t layers _) = Expr t layers layout
--- type instance Get Data          (Expr _ _ _)      = TermStore
--- type instance Get TermType      (Expr t _ _)      = t
--- -- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
---
---
--- instance Getter Data (Expr t layers layout) where get (Expr _ s) = s ; {-# INLINE get #-}
---
-
-
+makeWrapped ''Layer4
 
 --------------------
 -- === Layers === --
@@ -461,18 +464,98 @@ type TermStack2 t layers layout = Stack layers (Layer4 (Expr2  t layers layout))
 
 -- === Definition === --
 
-data family Layer4 t l
-
-class LayerCons4 t m l where
-    consLayer4 :: m (Layer4 t l)
+-- data family Layer4 t l
 
 
 
+------------------
+-- === Expr === --
+------------------
+
+type TermStack2 t layers layout = Stack layers (Layer4 (Expr2 t layers layout))
+
+-- === Definitions === --
+
+newtype Expr2  t layers layout    = Expr2 (TermStack2 t layers layout)
+
+makeWrapped ''Expr2
+-- type AnyExpr   t layers           = Expr t layers (Uniform Draft)
+type PrimExpr2  t layers name atom = Expr2 t layers (Prim name atom)
+type PrimExpr2' t layers      atom = PrimExpr2 t layers () atom
+--
+--
+--
+-- -- === Properties === --
+--
+type instance Get Layout        (Expr2 _ _ layout) = layout
+-- type instance Set Layout layout (Expr t layers _) = Expr t layers layout
+type instance Get Data          (Expr2 t layers layout) = Unwrapped (Get Data (Unwrapped (Expr2 t layers layout))) -- TODO: simplify
+-- type instance Get TermType      (Expr t _ _)      = t
+-- -- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
+--
+--
+instance Getter Data (Unwrapped (Expr2 t layers layout)) => Getter Data (Expr2 t layers layout) where get = unwrap' . get @Data . unwrap' ; {-# INLINE get #-}
+--
+
+
+-- === Bindings === --
+
+type instance Binder               (Expr2 t  _ _) = Binder   t
+type instance Linker (Expr2 t _ _) (Expr2 t' _ _) = Linker t t'
+
+instance Bindable t m => Bindable (Expr2 t layers model) m where
+    mkBinder    = mkBinder    @t ; {-# INLINE mkBinder    #-}
+    rmBinder    = rmBinder    @t ; {-# INLINE rmBinder    #-}
+    writeBinder = writeBinder @t ; {-# INLINE writeBinder #-}
+    readBinder  = readBinder  @t ; {-# INLINE readBinder  #-}
+
+instance Linkable t t' m => Linkable (Expr2 t layers model) (Expr2 t' layers' model') m where
+    mkLinker    = mkLinker    @t @t' ; {-# INLINE mkLinker    #-}
+    rmLinker    = rmLinker    @t @t' ; {-# INLINE rmLinker    #-}
+    writeLinker = writeLinker @t @t' ; {-# INLINE writeLinker #-}
+    readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
+
+
+-- === Instances === --
+
+type instance Sub s (Expr2 t layers layout) = Expr2 t layers (Sub s layout)
+
+
+
+
+data AnyLayout = AnyLayout deriving (Show)
+
+type instance Sub t AnyLayout = AnyLayout
+
+-- TODO: zamiast zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
+-- expr2 :: (Constructor a m (TermStack2 t layers layout), expr ~ Expr2 t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
+-- expr2 a = Expr2 <$> cons a
+
+expr3 :: (SymbolEncoder atom, Constructor TermStore m (TermStack2 t layers AnyLayout), expr ~ Expr2 t layers layout) => ExprSymbol atom expr -> m expr
+expr3 a = specifyLayout . Expr2 <$> cons (encodeSymbol a)
+
+specifyLayout :: Expr2 t layers AnyLayout -> Expr2 t layers layout
+specifyLayout = unsafeCoerce
+
+specifyLayout2 :: Binding (Expr2 t layers AnyLayout) -> Binding (Expr2 t layers layout)
+specifyLayout2 = unsafeCoerce
+
+anyLayout :: Expr2 t layers layout -> Expr2 t layers AnyLayout
+anyLayout = unsafeCoerce
+
+anyLayout2 :: Binding (Expr2 t layers layout) -> Binding (Expr2 t layers AnyLayout)
+anyLayout2 = unsafeCoerce
+
+-- === Instances === --
+
+deriving instance Show (Unwrapped (Expr2 t layers layout)) => Show (Expr2 t layers layout)
+-- deriving as Unwrapped instance Show (Expr2 t layers layout)
 
 
 
 
 
+-- class Monad m => Generator     m a where new         :: m a                      ; default new :: Maker a => Deconstructed a -> m a
 
 
 

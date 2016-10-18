@@ -16,7 +16,7 @@ module Main where
 
 import Data.Graph          hiding (Dynamic, Connection)
 import Data.Graph.Builders hiding (Linkable)
-import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type)
+import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
 
 import           Control.Monad.Event
 import qualified Control.Monad.Writer     as Writer
@@ -30,7 +30,7 @@ import qualified Data.Graph.Query         as Sort
 import           Data.Index               (idx)
 -- import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                 as Map
-import           Old.Data.Prop
+-- import           Old.Data.Prop
 import           Data.Record              hiding (Cons, Layout, cons, Value)
 import           Data.Version.Semantic
 import           Development.Placeholders
@@ -108,7 +108,7 @@ import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
 import qualified Luna.Syntax.Term.Expr.Symbol2 as S2
 import Luna.Syntax.Term.Expr.Symbol (Sym)
-import Control.Lens.Property
+import Control.Lens.Property hiding (Constructor)
 import Luna.Syntax.Term.Expr.Format (Format, Sub)
 import TH
 import qualified Data.Vector as V
@@ -121,6 +121,10 @@ import Type.Set as Set hiding (Set)
 import qualified Type.List as TList
 import qualified Control.Monad.State as State
 import Control.Monad.State hiding (get, set)
+
+import System.Exit (exitSuccess)
+import qualified Luna.Syntax.Model.Network.Builder.Self as Self
+import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -135,6 +139,12 @@ runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
 {-# INLINE runCase #-}
+
+runCase2 :: Getter Data (Expr2 t layers layout) => Expr2 t layers layout -> [Prim.Any -> out] -> out
+runCase2 el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
+    s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
+    idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
+{-# INLINE runCase2 #-}
 
 
 matchx f = f . unsafeCoerce
@@ -472,12 +482,12 @@ newtype instance Layer2 t layers layout Type = TypeLayer2 (SubLink Type (Expr t 
 --         l <- mkLink (error "x") s
 --         return $ TypeLayer2 l
 
-instance (Monad m, Linkable' t m, Top m t layers)
-      => LayerCons2 Type t layers m where
-    consLayer2 = do
-        s <- localTop
-        l <- mkLink (error "x") s
-        return $ TypeLayer2 l
+-- instance (Monad m, Linkable' t m, Top m t layers)
+--       => LayerCons2 Type t layers m where
+--     consLayer2 = do
+--         s <- localTop
+--         l <- mkLink (error "x") s
+--         return $ TypeLayer2 l
 
 
 instance (Monad m, Bindable t m, Linkable' t m, LayersCons2' t layers m)
@@ -487,16 +497,7 @@ instance (Monad m, Bindable t m, Linkable' t m, LayersCons2' t layers m)
         l <- mkLink (error "x") s
         return $ TypeLayer l
 
-class Top m t layers where
-    checkTop :: forall layout. m (Maybe (Binding (Expr t layers layout)))
-    newTop   :: forall layout. m (Binding (Expr t layers layout))
-    setTop   :: forall layout. Binding (Expr t layers layout) -> m ()
 
-
-localTop :: (Top m t layers, Monad m) => m (Binding (Expr t layers layout))
-localTop = checkTop >>= fromMaybeM (newTop >>~ setTop)
-
-data TopMonad t layers m a = TopMonad (forall layout. StateT (Binding (Expr t layers layout)) m a)
 
     -- magicStar :: (LayersCons2' t layers m, Bindable t m) => m $ Binding (Expr t layers layout)
     -- magicStar = mkBinding =<< expr (wrap' N.star')
@@ -526,8 +527,229 @@ data TopMonad t layers m a = TopMonad (forall layout. StateT (Binding (Expr t la
     -- -- self :: m $ Binding (Expr t layers layout)
     -- -- getType :: m $ Binding (Expr t layers (Sub Type layout))
 
+data TopLayout = TopLayout deriving (Show)
+
+type instance Get Atom TopLayout = TopLayout
+type instance Atoms TopLayout = '[Star]
+
+-- newTest :: IO (Expr2 Net '[] TopLayout)
+-- newTest = do
+--     e <- expr2
+--     print e
+--     return e
+-- LayersCons2' t layers m, ValidateLayout layout Atom Star
+
+-- nstar0 :: Constructor (ExprSymbol Star (Expr2 t ls layout)) m (TermStack2 t ls layout) => m (Expr2 t ls layout)
+-- nstar0 = expr2 N.star'
+type instance ExprLayer Type t = SubLink Type t
+
+--                 --
+--
+class Monad m => MonadTop t layers m | m -> t layers where
+    checkTop :: forall layout. m (Maybe (Binding (Expr2 t layers layout)))
+    newTop   :: forall layout. m (Binding (Expr2 t layers layout))
+    setTop   :: forall layout. Maybe (Binding (Expr2 t layers layout)) -> m ()
+
+
+-- localTop :: MonadTop t layers m => m (Binding (Expr2 t layers layout))
+-- localTop = checkTop >>= fromMaybeM (newTop >>~ setTop)
+
+localTop :: (MonadTop t layers m, MonadFix m) => m (Binding (Expr2 t layers AnyLayout))
+localTop = do
+    mt <- checkTop
+    case mt of
+        Just t  -> return t
+        Nothing -> mdo
+            setTop (Just nt)
+            nt <- newTop
+            setTop mt
+            return nt
+
+-- newtype TopStore t layers m a = TopStore (forall layout. StateT (Maybe (Binding (Expr2 t layers layout))) m a) deriving (Monad)
+--
+--
+-- instance Monad m => MonadTop t layers (TopStore t layers m) where
+--     checkTop = TopStore State.get
+
+
+-- Type.get >>= fromMaybeM ()
+
+type instance Get Atom AnyLayout = AnyLayout
+type instance Atoms AnyLayout = '[Star]
+--
+-- localTop :: ( Type.MonadTypeBuilder (Binding (Expr2 t layers AnyLayout)) m, Constructor TermStore m (TermStack2 t layers AnyLayout)
+--             , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m, MonadFix m, Bindable t m)
+--          => m (Binding (Expr2 t layers AnyLayout))
+-- localTop = do
+--     mt <- Type.get
+--     case mt of
+--         Just t  -> return t
+--         Nothing -> mdo
+--             Type.put (Just nt)
+--             nt <- nstar
+--             Type.put mt
+--             return nt
+
+
+instance ( expr ~ Expr2 t layers AnyLayout
+         , bind ~ Binding expr
+         , Linkable' t m
+         , Self.MonadSelfBuilder bind m
+         , MonadTop t layers m
+        --  , Type.MonadTypeBuilder bind m
+        --  , Constructor TermStore m (TermStack2 t layers AnyLayout)
+         ) => Constructor a m (Layer4 expr Type) where
+    cons _ = do
+        -- undefined
+        -- s <- nmagicStar
+        -- Just tp <- Type.get
+        self <- Self.get
+        top  <- localTop
+        l    <- mkLink self (specifyLayout2 top)
+        return $ Layer4 l
+
+-- nstar1 :: (Monad m) => m (Expr2 Net '[Data] (ANTLayout SimpleX Star () ()))
+-- nstar1 = expr3 N.star'
+
+type ExprCons t layers m = Constructor TermStore m (TermStack2 t layers AnyLayout)
+
+nstar1 :: (ExprCons t layers m, ValidateLayout layout Atom Star) => m (Expr2 t layers layout)
+nstar1 = expr3 N.star'
+
+
+nstar2 :: ExprCons t layers m => m (PrimExpr2' t layers Star)
+nstar2 = nstar1
+
+nstar3 :: ( ExprCons t layers m, Bindable t m, Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+          , ExprInferable t layers m)
+       => m (Binding (PrimExpr2' t layers Star))
+nstar3 = Self.put . anyLayout2 =<<& (nstar2 >>= mkBinding)
+
+nstar :: (ExprCons t layers m, ValidateLayout layout Atom Star, Bindable t m, Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m)
+      => m (Binding (Expr2 t layers layout))
+nstar = Self.put . anyLayout2 =<<& (expr3 N.star' >>= mkBinding)
+
+
+
+
+
+-- nstar4 :: ()
+--        => m (Binding (PrimExpr2' t layers Star))
+-- nstar4 = mdo
+--     bind <- Self.evalT (mkBinding =<< nstar2) bind
+--     return bind
+
+    -- Self.put =<<& (nstar2 >>= mkBinding)
+
+-- class Monad m => Bindable t m where
+--     mkBinder    :: forall a. a -> m (Binder t a)
+--     rmBinder    :: forall a. Binder t a      -> m ()
+--     writeBinder :: forall a. Binder t a -> a -> m ()
+--     readBinder  :: forall a. Binder t a      -> m a
+
+-- instance Bindable t (Self.SelfBuilderT (Binding (PrimExpr2' t layers Star)) m) where
+--     mkBinder = lift . mkBinder
+
+-- nstar3' :: ( ExprCons t layers m, Bindable t m, expr ~ Binding (PrimExpr2' t layers Star), Self.MonadSelfBuilder expr m
+--           , ExprInferable t layers m, layers ~ '[Data, Type], t ~ Net)
+--        => m expr
+-- nstar3' = mdo
+--     Self.put bind
+--     bind <- mkBinding =<< nstar2
+--     return bind
+
+-- nstar4 :: (ExprCons t layers m, Bindable t m, ExprInferable t layers m) => m $ Binding (PrimExpr2' t layers Star)
+-- nstar4 = nstar3 -- inferTerm ...
+
+nmagicStar :: (ExprCons t layers m, Bindable t m) => m $ Binding (Expr2 t layers layout)
+nmagicStar = mkBinding =<< expr3 (wrap' N.star')
+
+-- star3' :: ExprBuilder2 t layers m => m $ Binding (PrimExpr' t layers Star)
+-- star3' = universalDispatch Node =<< universalBind3' =<< star2
+--
+-- star4 :: ExprBuilder_i t layers m => m $ Binding (PrimExpr' t layers Star)
+-- star4 = star3 -- inferTerm star3
+
+            -- ntest :: (Monad m, MonadBuilder g m, DynamicM3 Node g m, DynamicM3 Edge g m, ReferableM Node g m) => m (Expr2 Net '[Data] (ANTLayout SimpleX Star () ()))
+            -- ntest = nstar1
+
+
+test_gr3 :: ( ExprCons t layers m, Bindable t m, ExprInferable t layers m
+            , MonadIO m, Show bind, Show (PrimExpr2' t layers Star), layers~'[Data, Type]
+            , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+            , bind ~ Binding (PrimExpr2' t layers Star)
+        ) => m bind
+test_gr3 = do
+    sref <- nstar3
+    t <- readBinding sref
+    -- l <- mkLink sref sref
+    --
+    -- case' t of
+    --     Symbol.Unify l r -> print 11
+    --     Symbol.Star      -> case' t of
+    --         Symbol.Unify l r -> print "hello"
+    --         Symbol.Star      -> print "hello3xx"
+
+    let { exp = t
+    ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+        ala = 11
+    ;f2 = matchx $ \Symbol.Star       -> (print "hello2" )
+       where ala = 11
+    } in $(testTH3 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
+    --
+    --
+    -- --
+    -- --
+    print "!!!"
+    print t
+    print sref
+    -- print $ get @Sym $ unwrap' $ get @Data t
+    return sref
+
+
+
+
+
+        -- runCase :: Expr t layers layout -> [Prim.Any -> out] -> out
+        -- runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
+        --     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
+        --     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
+        -- {-# INLINE runCase #-}
+
+        --
+        -- -- let { exp = e1
+        -- -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+        -- --     ala = 11
+        -- -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
+        --
+-- case' x1 of
+--     Symbol.Unify l r -> print 11
+--     Symbol.Star      -> case' x1 of
+--         Symbol.Unify l r -> print "hello"
+--         Symbol.Star      -> print "hello3x"
+
+
+test_g3 :: (PrimMonad m, MonadIO m, MonadFix m)
+        => m (Binding (PrimExpr2' Net '[Data, Type] Star), Network3 m)
+test_g3 = do
+    g <- NEC.emptyHMGraph
+    flip Self.evalT undefined $
+        flip Type.evalT Nothing $
+        flip Graph.Builder.runT g $ suppressAll
+                                  $ runInferenceT2 @InfLayers @'[Data, Type]
+                                  $ runInferenceT2 @TermType  @Net
+                                  $ test_gr3
+
+
 main :: IO ()
 main = do
+
+    -- newTest
+
+    (x,g) <- test_g3
+    print x
+
+    exitSuccess
 
     -- print blank
     print N.blank

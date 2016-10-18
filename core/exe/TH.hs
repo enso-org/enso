@@ -31,6 +31,28 @@ testTH2 el matchesQ fnames = do
 
     return $ AppE (AppE runCase (VarE el)) table
 
+testTH3 el matchesQ fnames = do
+    matches <- sequence matchesQ
+
+
+    [TySynInstD _ (TySynEqn ts lst)] <- reifyInstances (mkName "All") [ConT $ mkName "Atom"]
+    let atoms = typeListElems lst
+
+    Just idxs <- sequence <$> mapM (matchToID atoms) matches
+
+    let funcs     = VarE <$> fnames
+        funcTable = Map.fromList $ zip idxs funcs
+
+        defaultMatch = VarE $ mkName "defaultMatch"
+        runCase      = VarE $ mkName "runCase2"
+        table        = ListE $ row <$> [0 .. length atoms]
+        row i        = case Map.lookup i funcTable of
+            Just f  -> f
+            Nothing -> defaultMatch
+
+
+    return $ AppE (AppE runCase (VarE el)) table
+
 
 
 matchToFunc match = mkMatch $ LamE [pat] exp where
