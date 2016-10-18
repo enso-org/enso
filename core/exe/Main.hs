@@ -686,12 +686,12 @@ nmagicStar = mkBinding =<< expr3 (wrap' N.star')
             -- ntest = nstar1
 
 
-test_gr3 :: ( ExprCons t layers m, Bindable t m, ExprInferable t layers m
+test_gr3 :: ( ExprCons t layers m, Bindable t m, Inferable2 InfLayers layers m, Inferable2 TermType t m
             , MonadIO m, Show bind, Show (PrimExpr2' t layers Star), layers~'[Data, Type]
             , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
             , bind ~ Binding (PrimExpr2' t layers Star)
-        ) => m (Binding (PrimExpr2' t layers Star))
-        ) => m bind - tutaj jest blad ghc
+        -- ) => m (Binding (PrimExpr2' t layers Star))
+        ) => m ()
 test_gr3 = do
     sref <- nstar3
     t <- readBinding sref
@@ -717,7 +717,7 @@ test_gr3 = do
     print t
     print sref
     -- print $ get @Sym $ unwrap' $ get @Data t
-    return sref
+    return ()
 
 
 
@@ -743,14 +743,14 @@ test_gr3 = do
 
 
 test_g3 :: forall m. (PrimMonad m, MonadIO m, MonadFix m)
-        => m (Binding (PrimExpr2' Net '[Data, Type] Star), Network3 m)
+        => m ((), Network3 m)
 test_g3 = do
     g <- NEC.emptyHMGraph
     flip Self.evalT undefined $
         flip Type.evalT Nothing $
         flip Graph.Builder.runT g -- $ suppressAll
-                                  $ runInferenceT2 @InfLayers @'[Data, Type]
                                   $ runInferenceT2 @TermType  @Net
+                                  $ runInferenceT2 @InfLayers @'[Data, Type]
                                   $ (test_gr3)
 
 
@@ -759,8 +759,8 @@ main = do
 
     -- newTest
 
-    (x,g) <- test_g3
-    print x
+    test_g3
+    -- print x
 
     exitSuccess
 

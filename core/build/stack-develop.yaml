@@ -47,6 +47,6 @@ extra-deps:
     - extra-1.5
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10 -F -pgmF preskell -optF --source=../toolchain/ghc/extensions
+    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10 -F -pgmF preskell -optF --source=../toolchain/ghc/extensions -ddump-cs-trace
 
 local-bin-path: ./dist/bin
