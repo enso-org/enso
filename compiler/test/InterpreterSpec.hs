@@ -1,20 +1,20 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE TypeOperators             #-}
-{-# LANGUAGE NoImplicitPrelude         #-}
-{-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE PartialTypeSignatures     #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TypeApplications          #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE TypeOperators             #-}
 
 module InterpreterSpec (spec) where
 
 import           Prelude.Luna                                    hiding (Num)
 
 import           Control.Monad                                   (forM_)
-import           Data.Construction
 import           Data.Prop
-import           Data.Record                                     hiding (cons)
 import           Data.Version.Semantic                           (showVersion, version)
 import           Type.Inference
 
@@ -23,17 +23,14 @@ import           Data.Graph.Builder
 import qualified Luna.Config.Env                      as Env
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Pretty.GraphViz
-import           Luna.Pretty.GraphViz
-import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
+import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
-import qualified Old.Luna.Syntax.Term.Class                            as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder               (Sign (..))
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT, TermBuilder)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
 
@@ -46,14 +43,12 @@ import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
-import           Control.Monad.Catch         (MonadCatch, MonadMask, catchAll)
+import           Control.Monad.Catch         (catchAll)
 
-import           Text.Printf                                     (printf)
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
 import           Luna.Compilation.Pass.Inference.Unification     (StrictUnificationPass (..))
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
-import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
 import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
 import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
@@ -65,7 +60,7 @@ import qualified StdLibMock                                      as StdLib
 import qualified Luna.Library.Symbol                             as Symbol
 import           Control.Monad.Event                             (Dispatcher)
 
-import           Test.Hspec (Spec, describe, it, shouldBe, shouldReturn)
+import           Test.Hspec (Spec, describe, it, shouldBe, expectationFailure)
 import           System.IO.Silently (silence)
 
 
@@ -126,11 +121,6 @@ graph1 = do
     -- let refsToEval = [appConc1b, appPlus1a]
     let refsToEval = [appPlus0]
 
-    forM_ refsToEval (\ref -> do
-            (nd :: (ls :<: term)) <- read ref
-            write ref (nd & prop InterpreterData . Layer.required .~ True)
-        )
-
     return refsToEval
 
 -- graph2 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
@@ -170,11 +160,6 @@ graph2 = do
 
     let refsToEval = [appPlus1]
 
-    forM_ refsToEval (\ref -> do
-            (nd :: (ls :<: term)) <- read ref
-            write ref (nd & prop InterpreterData . Layer.required .~ True)
-        )
-
     return refsToEval
 
 
@@ -203,54 +188,24 @@ test_old = do
                           ]
     putStrLn "done"
 
-
+-- 1.+ 2
 graph3 = do
     i1 <- int 1
     i2 <- int 2
-    s1 <- str "hi"
-    id <- var "id"
     apl <- acc "+" i1
     apppl <- app apl [arg i2]
-    appid <- app id  [arg s1]
 
-    -- let refsToEval = [i1]
-    -- let refsToEval = [i1, appid]
-    let refsToEval = [apppl, appid]
+    return [apppl]
 
-
-    forM_ refsToEval (\ref -> do
-            (nd :: (ls :<: term)) <- read ref
-            write ref (nd & prop InterpreterData . Layer.required .~ True)
-        )
-
-    return ([apppl, appid], refsToEval)
-
-graph4, graph5 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
-                                                  , node ~ (ls :<: term)
-                                                  , edge ~ Link (ls :<: term)
-                                                  , nr   ~ Ref Node node
-                                                  , er   ~ Ref Edge edge
-                                                  , BiCastable            n (ls :<: term)
-                                                  , BiCastable            e edge
-                                                  , MonadIO               m
-                                                  , NodeInferable         m (ls :<: term)
-                                                  , TermNode Lit.Star     m (ls :<: term)
-                                                  , TermNode Lit.Number   m (ls :<: term)
-                                                  , TermNode Lit.String   m (ls :<: term)
-                                                  , TermNode Var          m (ls :<: term)
-                                                  , TermNode Acc          m (ls :<: term)
-                                                  , TermNode App          m (ls :<: term)
-                                                  , TermNode Native       m (ls :<: term)
-                                                  , HasProp InterpreterData (ls :<: term)
-                                                  , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
-                                                  , Graph.MonadBuilder (Hetero (NEC.Graph n e c)) m
-                                                  )
-       => m ([nr], [nr])
+graph3' = do
+    s1 <- str "hi"
+    id <- var "id"
+    appid <- app id [arg s1]
+    return [appid]
 
 graph4 = do
     i1 <- int 2
     i2 <- int 3
-    fun1 <- var "succ"
 
     act <- acc "times" i1
     apt <- app act [arg i2]
@@ -258,14 +213,7 @@ graph4 = do
     ach <- acc "head" apt
     aph <- app ach []
 
-    let refsToEval = [aph]
-
-    forM_ refsToEval (\ref -> do
-            (nd :: (ls :<: term)) <- read ref
-            write ref (nd & prop InterpreterData . Layer.required .~ True)
-        )
-
-    return ([aph], refsToEval)
+    return [aph]
 
 graph5 = do
     iLen <- int 10
@@ -281,14 +229,7 @@ graph5 = do
     ach <- acc "head" apm
     aph <- app ach []
 
-    let refsToEval = [aph]
-
-    forM_ refsToEval (\ref -> do
-            (nd :: (ls :<: term)) <- read ref
-            write ref (nd & prop InterpreterData . Layer.required .~ True)
-        )
-
-    return ([aph], refsToEval)
+    return [aph]
 
 graph6 = do
     iLen  <- int 5
@@ -302,16 +243,12 @@ graph6 = do
     acf <- acc "fold" apt
     apf <- app acf [arg iInit, arg fun]
 
-    let refsToEval = [apf]
+    return [apf]
 
-    forM_ refsToEval (\ref -> do
-            (nd :: (ls :<: term)) <- read ref
-            write ref (nd & prop InterpreterData . Layer.required .~ True)
-        )
-
-    return ([apf], refsToEval)
-
-
+collectGraph :: forall (m :: * -> *) n t.
+                (TypeCheckState.MonadTypeCheck n m, MonadBuilder t m,
+                 Writer.MonadWriter [([Char], t)] m, MonadIO m) =>
+                [Char] -> m ()
 collectGraph tag = do
     putStrLn $ "after pass: " ++ tag
     tcState <- TypeCheckState.get
@@ -319,104 +256,93 @@ collectGraph tag = do
     g <- Graph.get
     Writer.tell [(tag, g)]
 
+seq3 :: forall a a1 b. a -> a1 -> b -> Sequence a (Sequence a1 b)
 seq3 a b c = Sequence a $ Sequence b c
+seq4 :: forall a a1 a2 b.
+        a -> a1 -> a2 -> b -> Sequence a (Sequence a1 (Sequence a2 b))
 seq4 a b c d = Sequence a $ seq3 b c d
 
-test2 :: IO ()
-test2 = do
-    (_, g :: NetGraph) <- prebuild
+equals :: (Value.FromData a, Eq a, Show a) => Layer.ValueErr Value.Value -> a -> IO ()
+equals v expected = case v of
+    Left v' -> do
+        mapM_ putStrLn v'
+        expectationFailure "error on node evaluation"
+    Right v' -> do
+        v'' <- Value.toIO v'
+        Value.unsafeFromData v'' `shouldBe` expected
 
-    let graph' = do
-            two <- int 2
-            two' <- int 2
-            a <- var "app"
-            bl <- blank
-            accpl <- acc "+" bl
-            bl2 <- blank
-            apl <- app accpl [arg bl2, arg two]
-            apl' <- app a [arg apl, arg two']
-            forM_ [apl'] (\ref -> do
-                    (nd :: (ls :<: term)) <- read ref
-                    write ref (nd & prop InterpreterData . Layer.required .~ True)
-                )
-            return [apl']
+oneAndOnlyTypecheckerFlow :: Sequence
+                               ScanPass
+                               (Sequence
+                                  LiteralsPass
+                                  (Sequence
+                                     StructuralInferencePass
+                                     (Loop
+                                        (Sequence
+                                           (Loop
+                                              (Sequence
+                                                 SymbolImportingPass
+                                                 (Sequence
+                                                    (Loop StrictUnificationPass)
+                                                    (Sequence
+                                                       FunctionCallingPass
+                                                       (Loop StrictUnificationPass)))))
+                                           StrictUnificationPass))))
+oneAndOnlyTypecheckerFlow = seq4
+     ScanPass
+     LiteralsPass
+     StructuralInferencePass
+     (Loop $ Sequence
+         (Loop $ seq4
+             SymbolImportingPass
+             (Loop $ StrictUnificationPass Positive False)
+             FunctionCallingPass
+             (Loop $ StrictUnificationPass Positive False))
+         (StrictUnificationPass Negative True))
+
+evaluatesTo :: forall a. (Value.FromData a, Show a, Eq a) => _ -> a -> IO ()
+evaluatesTo graph expected = do
+    (_, g :: NetGraph) <- prebuild
 
     res <- flip Env.evalT def $ do
         TypeCheck.runT $ do
-            ([root], gb) <- runBuild g graph'
+            ([root], gb) <- runBuild g graph
 
-            (gs, gtc) <- runBuild gb $ do
+            (_, gtc) <- runBuild gb $ do
                 Symbol.loadFunctions StdLib.symbols
                 TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ [root]
-                -- collectGraph "Initial"
-                let tc = (seq4
-                             ScanPass
-                             LiteralsPass
-                             StructuralInferencePass
-                             (Loop $ Sequence
-                                 (Loop $ seq4
-                                     SymbolImportingPass
-                                     (Loop $ StrictUnificationPass Positive False)
-                                     FunctionCallingPass
-                                     (Loop $ StrictUnificationPass Positive False))
-                                 (StrictUnificationPass Negative True)))
-                TypeCheck.runTCPass tc
+                TypeCheck.runTCPass oneAndOnlyTypecheckerFlow
 
             gint <- intRun gtc [root]
 
-            (dupa, gint') <- runBuild gint $ do
+            (output, _) <- runBuild gint $ do
                 follow (prop InterpreterData . Layer.value) root
 
-            return $ dupa ^?! _Right
+            return output
 
-    Value.unsafeFromData <$> Value.toIO res `shouldReturn` (4::Int)
+    equals @a res expected
 
-test1 :: IO ()
-test1 = do
-    (_,  g :: NetGraph) <- prebuild
+graph2Plus2 :: _
+graph2Plus2 = do
+    two <- int 2
+    two' <- int 2
+    twoplus <- acc "+" two
+    apl <- app twoplus [arg two']
+    return [apl]
 
-    -- Running compiler environment
-    flip Env.evalT def $ do
-        v <- view version <$> Env.get
-        putStrLn $ "Luna compiler version " <> showVersion v
-
-        -- Running Type Checking compiler stage
-        (gs, gint) <- TypeCheck.runT $ do
-            ((roots, refsToEval), gb) <- runBuild g graph6
-
-            (gs, gtc) <- runBuild gb $ Writer.execWriterT $ do
-                Symbol.loadFunctions StdLib.symbols
-                TypeCheckState.modify_ $ (TypeCheckState.freshRoots .~ roots)
-                collectGraph "Initial"
-                let tc = (seq4
-                             ScanPass
-                             LiteralsPass
-                             StructuralInferencePass
-                             (Loop $ Sequence
-                                 (Loop $ seq4
-                                     SymbolImportingPass
-                                     (Loop $ StrictUnificationPass Positive False)
-                                     FunctionCallingPass
-                                     (Loop $ StrictUnificationPass Positive False))
-                                 (StrictUnificationPass Negative True)))
-
-                TypeCheck.runTCWithArtifacts tc collectGraph
-
-            -- gint <- evalBuild gtc $ Interpreter.run refsToEval
-            gint <- intRun gtc refsToEval
-            return (gs, gint)
-
-        let names = printf "%02d" <$> ([0..] :: [Int])
-        let graphs = zipWith (\ord (tag, g) -> (ord, ord <> "_" <> tag, g)) names gs
-        putStrLn $ intercalate " " $ (view _2) <$> graphs
-        -- renderAndOpen [ ("gint", "gint", gint) ]
-        -- renderAndOpen [ last graphs ]
-        -- renderAndOpen graphs
-    print "end"
-
+graph2Plus2Fancy :: _
+graph2Plus2Fancy = do
+    two <- int 2
+    two' <- int 2
+    a <- var "app"
+    bl <- blank
+    accpl <- acc "+" bl
+    bl2 <- blank
+    apl <- app accpl [arg bl2, arg two]
+    apl' <- app a [arg apl, arg two']
+    return [apl']
 
 intRun :: ( MonadFix m
-          , MonadMask m
           , MonadIO m
           , Dispatcher ELEMENT (Ptr Node ('Known (NetLayers :<: Draft Static))) m
           , Dispatcher CONNECTION (Ptr Edge ('Known (Arc (NetLayers :< Draft Static NetLayers) (NetLayers :< Draft Static NetLayers)))) m
@@ -429,10 +355,20 @@ intRun gtc refsToEval = do
 spec :: Spec
 spec = do
     describe "interpreter" $ do
-        it "interprets" $
-            silence test1
-        it "2+2" $
-            test2
+        it "2.+ 2" $
+            graph2Plus2 `evaluatesTo` (4::Int)
+        it "app ((_.+) _ 2) 2" $
+            graph2Plus2Fancy `evaluatesTo` (4::Int)
+        it "(5.times 3).fold 1 (+)" $
+            graph6 `evaluatesTo` (16::Int)
+        it "((10.times 3).map succ).head" $
+            graph5 `evaluatesTo` (11::Int)
+        it "(2.times 3).head" $
+            graph4 `evaluatesTo` (2::Int)
+        it "1.+ 2" $
+            graph3 `evaluatesTo` (3::Int)
+        it "id \"hi\"" $
+            graph3' `evaluatesTo` ("hi"::String)
 
 -- old version
 
