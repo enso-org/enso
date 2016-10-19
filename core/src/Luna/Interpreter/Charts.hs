@@ -199,36 +199,39 @@ filterDupLabels :: [Label] -> [Label]
 filterDupLabels = fmap takeElem . groupBy ((==) `on` _text) . filter (not . null . _text) where
     takeElem ls@(l:_) = if listToMaybe (_text l) == Just '-' then last ls else l
 
+gridLabeledHV :: Material -> Int -> Double -> Double -> Double -> (Double -> Point) -> (Double -> Point) -> TextAlignment -> Layer
+gridLabeledHV mat decim viewSize p1 p2 posLine posLabel labelAlign = mkLayerWithLabels geometry points labels where
+    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
+    points     = scaleToViewPoint viewSize viewSize . posLine <$> mps
+    labels'    = filterDupLabels $ mkLabel <$> mps
+    labels     = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
+    mps        = gridPoints p1 p2
+    stepP      = calculateTick maxSteps (p2 - p1)
+    (p1t, p2t) = edgePoints stepP p1 p2
+    mkLabel p  = Label pos (labelFontSize * viewSize) labelAlign $ showLabel decim ap where
+        ap     = p1t + p * (p2t - p1t)
+        pos    = scaleToViewPoint viewSize viewSize $ posLabel p
+
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
-gridLabeledH mat decim viewSize y1 y2 = mkLayerWithLabels geometry points labels where
-    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    labels'  = filterDupLabels $ mkLabel <$> mys
-    labels   = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
-    mys      = gridPoints y1 y2
-    stepY      = calculateTick maxSteps (y2 - y1)
-    (y1t, y2t) = edgePoints stepY y1 y2
-    mkLabel y = Label pos (labelFontSize * viewSize) API.Right $ showLabel decim ay where
-        ay    = y1t + y * (y2t - y1t)
-        pos   = scaleToViewPoint viewSize viewSize $ Point labelOffX (y + labelAdjustY)
+gridLabeledH mat decim viewSize y1 y2 = gridLabeledHV mat decim viewSize y1 y2 posLine posLabel API.Right where
+    posLabel y = Point labelOffX (y + labelAdjustY)
+    posLine  y = Point 0.5 y
 
 gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
-gridLabeledV mat decim viewSize x1 x2 = mkLayerWithLabels geometry points labels where
-    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
-    points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
-    labels'  = filterDupLabels $ mkLabel <$> mxs
-    labels   = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
-    mxs      = gridPoints x1 x2
-    stepX      = calculateTick maxSteps (x2 - x1)
-    (x1t, x2t) = edgePoints stepX x1 x2
-    mkLabel x = Label pos (labelFontSize * viewSize) API.Center $ showLabel decim ax where
-        ax    = x1t + x * (x2t - x1t)
-        pos   = scaleToViewPoint viewSize viewSize $ Point (x + labelAdjustX) labelOffY
+gridLabeledV mat decim viewSize x1 x2 = gridLabeledHV mat decim viewSize x1 x2 posLine posLabel API.Center where
+    posLabel x = Point (x + labelAdjustX) labelOffY
+    posLine  x = Point x 0.5
 
 gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> [Layer]
 gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridLabeledH mat decim viewSize y1 y2
     gV = gridLabeledV mat decim viewSize x1 x2
+    labelX1 = showLabel decim x1
+    labelX2 = showLabel decim x2
+    labelY1 = showLabel decim y1
+    labelY2 = showLabel decim y2
+    labelLenX = max (length labelX1) (length labelX2)
+    labelLenY = max (length labelY1) (length labelY2)
 
 shiftPoint :: Double -> Double -> Double -> Double -> Point
 shiftPoint viewX viewY x y = Point (viewX * x) (viewY * y)
