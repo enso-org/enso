@@ -26,7 +26,7 @@ import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
 import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder               (Sign (..))
+import           Luna.Syntax.Model.Network.Builder               (Sign (..), tcErrors)
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
@@ -228,8 +228,15 @@ newtype LunaEvaluationException = LunaEvaluationException [String]
     deriving (Eq, Show, Typeable)
 instance Exception LunaEvaluationException
 
+data LunaTypecheckingException = LunaTypecheckingException
+    deriving (Eq, Show, Typeable)
+instance Exception LunaTypecheckingException
+
 lunaEvaluationException :: LunaEvaluationException -> Bool
 lunaEvaluationException = const True
+
+lunaTypecheckingException :: LunaTypecheckingException -> Bool
+lunaTypecheckingException = const True
 
 equals :: (Value.FromData a, Eq a, Show a) => Value.Value -> a -> IO ()
 equals v expected = do
@@ -270,25 +277,37 @@ extract v = case v of
     Left v' -> throwM $ LunaEvaluationException v'
     Right v' -> return v'
 
-evaluateGraph :: _
-evaluateGraph graph = do
+typecheckGraph :: _
+typecheckGraph graph = do
     (_, g :: NetGraph) <- prebuild
 
     flip Env.evalT def $
         TypeCheck.runT $ do
             ([root], gb) <- runBuild g graph
 
-            (_, gtc) <- runBuild gb $ do
+            (_, tcGraph) <- runBuild gb $ do
                 Symbol.loadFunctions StdLib.symbols
                 TypeCheckState.modify_ $ TypeCheckState.freshRoots .~ [root]
                 TypeCheck.runTCPass oneAndOnlyTypecheckerFlow
 
-            gint <- intRun gtc [root]
+            (foobar, _) <- runBuild tcGraph $
+                follow (prop TCData . tcErrors) root
 
-            (output, _) <- runBuild gint $ do
-                follow (prop InterpreterData . Layer.value) root
+            when (not $ null foobar) $ throwM LunaTypecheckingException
 
-            extract output
+            return (tcGraph, root)
+
+evaluateGraph :: _
+evaluateGraph graph = do
+    (tcGraph, root) <- typecheckGraph graph
+
+    flip Env.evalT def $ do
+        gint <- intRun tcGraph [root]
+
+        (output, _) <- runBuild gint $ do
+            follow (prop InterpreterData . Layer.value) root
+
+        extract output
 
 evaluatesTo :: forall a. (Value.FromData a, Show a, Eq a) => _ -> a -> IO ()
 evaluatesTo graph expected = do
@@ -329,7 +348,7 @@ intRun gtc refsToEval = do
 
 spec :: Spec
 spec = do
-    describe "interpreter" $ do
+    describe "interprets" $ do
         it "2.+ 2" $
             graph2Plus2 `evaluatesTo` (4::Int)
         it "app ((_.+) _ 2) 2" $
@@ -344,12 +363,13 @@ spec = do
             graph3 `evaluatesTo` (3::Int)
         it "id \"hi\"" $
             graph3' `evaluatesTo` ("hi"::String)
-        it "\"+\" 6 7" $ do
-            graph1 `throws` lunaEvaluationException
         it "(2.+ 3).+ 4" $
             graph1' `evaluatesTo` (9::Int)
         it "((\"abc\".++ \"def\").++ \"ghi\").len" $
             graph1'' `evaluatesTo` (9::Int)
+    describe "does not typecheck" $ do
+        it "\"+\" 6 7" $ do
+            graph1 `throws` lunaTypecheckingException
 
 -- old version
 
