@@ -179,8 +179,13 @@ labelOffY = -0.025
 labelAdjustX = 0.0
 labelAdjustY = 0.035
 
+compact :: String -> String
+compact str | length str > limit = take limit str <> ".."
+            | otherwise          = str
+            where limit = 7
+
 showLabel :: Int -> Double -> String
-showLabel decim val = label where
+showLabel decim val = compact label where
     label  = if val < 0 && trVal == 0 then "" else label'
     label' = printf (sign <> "%0." <> show decim <> "f") $ abs trVal
     trVal  = fromIntegral (truncate $ val * den) / den
@@ -199,9 +204,8 @@ filterDupLabels :: [Label] -> [Label]
 filterDupLabels = fmap takeElem . groupBy ((==) `on` _text) . filter (not . null . _text) where
     takeElem ls@(l:_) = if listToMaybe (_text l) == Just '-' then last ls else l
 
-gridLabeledHV :: Material -> Int -> Double -> Double -> Double -> (Double -> Point) -> (Double -> Point) -> TextAlignment -> Layer
-gridLabeledHV mat decim viewSize p1 p2 posLine posLabel labelAlign = mkLayerWithLabels geometry points labels where
-    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
+gridLabeledHV :: Geometry -> Int -> Double -> Double -> Double -> (Double -> Point) -> (Double -> Point) -> TextAlignment -> Layer
+gridLabeledHV geometry decim viewSize p1 p2 posLine posLabel labelAlign = mkLayerWithLabels geometry points labels where
     points     = scaleToViewPoint viewSize viewSize . posLine <$> mps
     labels'    = filterDupLabels $ mkLabel <$> mps
     labels     = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
@@ -213,25 +217,21 @@ gridLabeledHV mat decim viewSize p1 p2 posLine posLabel labelAlign = mkLayerWith
         pos    = scaleToViewPoint viewSize viewSize $ posLabel p
 
 gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
-gridLabeledH mat decim viewSize y1 y2 = gridLabeledHV mat decim viewSize y1 y2 posLine posLabel API.Right where
+gridLabeledH mat decim viewSize y1 y2 = gridLabeledHV geometry decim viewSize y1 y2 posLine posLabel API.Right where
+    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
     posLabel y = Point labelOffX (y + labelAdjustY)
     posLine  y = Point 0.5 y
 
 gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
-gridLabeledV mat decim viewSize x1 x2 = gridLabeledHV mat decim viewSize x1 x2 posLine posLabel API.Center where
+gridLabeledV mat decim viewSize x1 x2 = gridLabeledHV geometry decim viewSize x1 x2 posLine posLabel API.Center where
+    geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
     posLabel x = Point (x + labelAdjustX) labelOffY
     posLine  x = Point x 0.5
 
 gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> [Layer]
-gridLabeled mat decim viewSize x1 x2 y1 y2 = [gH, gV] where
+gridLabeled mat decim viewSize x1 x2 y1 y2 = [gV, gH] where
     gH = gridLabeledH mat decim viewSize y1 y2
     gV = gridLabeledV mat decim viewSize x1 x2
-    labelX1 = showLabel decim x1
-    labelX2 = showLabel decim x2
-    labelY1 = showLabel decim y1
-    labelY2 = showLabel decim y2
-    labelLenX = max (length labelX1) (length labelX2)
-    labelLenY = max (length labelY1) (length labelY2)
 
 shiftPoint :: Double -> Double -> Double -> Double -> Point
 shiftPoint viewX viewY x y = Point (viewX * x) (viewY * y)
@@ -260,35 +260,34 @@ shiftLayer point (Layer geo (Transformations transf) (Labels labels)) = Layer ge
 -- auto charts
 
 autoScatterChartInt :: Material -> Material -> Figure -> Double -> Double -> [Int] -> Graphics
-autoScatterChartInt gridMat mat figure viewSize viewShift ints = shiftGraphics shift chart where
-    chart = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize $ fromIntegral <$> ints
-    shift = shiftPoint viewSize viewSize viewShift viewShift
+autoScatterChartInt gridMat mat figure viewSize viewShift ints = chart where
+    chart = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize viewShift $ fromIntegral <$> ints
 
 autoScatterChartDouble :: Material -> Material -> Figure -> Double -> Double -> [Double] -> Graphics
-autoScatterChartDouble gridMat mat figure viewSize viewShift doubles = shiftGraphics shift chart where
-    chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize doubles
-    shift = shiftPoint viewSize viewSize viewShift viewShift
+autoScatterChartDouble gridMat mat figure viewSize viewShift doubles =  chart where
+    chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize viewShift doubles
 
 autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> Double -> [(Int, Int)] -> Graphics
-autoScatterChartIntTuple gridMat mat figure viewSize viewShift intTuples = shiftGraphics shift chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 0 viewSize $ toDoubleTuple <$> intTuples
-    shift = shiftPoint viewSize viewSize viewShift viewShift
+autoScatterChartIntTuple gridMat mat figure viewSize viewShift intTuples = chart where
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 0 viewSize viewShift $ toDoubleTuple <$> intTuples
     toDoubleTuple :: (Int, Int) -> (Double, Double)
     toDoubleTuple (int1, int2) = (fromIntegral int1, fromIntegral int2)
 
 autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTuple gridMat mat figure viewSize viewShift doubleTuples = shiftGraphics shift chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 1 viewSize doubleTuples
-    shift = shiftPoint viewSize viewSize viewShift viewShift
+autoScatterChartDoubleTuple gridMat mat figure viewSize viewShift doubleTuples = chart where
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 1 viewSize viewShift doubleTuples
 
-autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> [Double] -> Graphics
-autoScatterChartDoubleImpl gridMat mat figure decim viewSize doublesY = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize $ zip [0.0..] doublesY
+autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [Double] -> Graphics
+autoScatterChartDoubleImpl gridMat mat figure decim viewSize viewShift doublesY = chart where
+    chart = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift $ zip [0.0..] doublesY
 
-autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Int -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize []        = Graphics []
-autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize doublesXY = Graphics $ gridLayers <> [chartLayer] where
-    chartLayer = scatterChart mat figure viewSize x1 x2 y1 y2 points
-    gridLayers = gridLabeled gridMat decim viewSize x1 x2 y1 y2
+autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [(Double, Double)] -> Graphics
+autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift []        = Graphics []
+autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift doublesXY = shiftGraphics shift chart where
+    chart      = Graphics $ gridLayers <> [chartLayer]
+    shift      = shiftPoint viewSize' viewSize' viewShift viewShift
+    chartLayer = scatterChart mat figure viewSize' x1 x2 y1 y2 points
+    gridLayers = gridLabeled gridMat decim viewSize' x1 x2 y1 y2
     doublesX   = fst <$> doublesXY
     doublesY   = snd <$> doublesXY
     x1'  = min 0.0 $ minimum doublesX
@@ -300,6 +299,19 @@ autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize doublesXY = Gr
     (x1, x2) = if x1' <= x2' then (x1', x2') else (x2', x1')
     (y1, y2) = if y1' <= y2' then (y1', y2') else (y2', y1')
     points = uncurry Point <$> doublesXY
+    labelLen  = longestLabelSize decim x1 x2 y1 y2
+    labelLenBase = 3
+    labelFactor = 1.0 + 0.035 * fromIntegral (max 0 $ labelLen - labelLenBase)
+    viewSize' = viewSize / labelFactor
+
+longestLabelSize :: Int -> Double -> Double -> Double -> Double -> Int
+longestLabelSize decim x1 x2 y1 y2 = max labelLenX labelLenY where
+    labelX1 = showLabel decim x1
+    labelX2 = showLabel decim x2
+    labelY1 = showLabel decim y1
+    labelY2 = showLabel decim y2
+    labelLenX = max (length labelX1) (length labelX2)
+    labelLenY = max (length labelY1) (length labelY2)
 
 -- charts
 
