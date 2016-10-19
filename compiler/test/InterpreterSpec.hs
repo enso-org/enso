@@ -43,7 +43,7 @@ import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
-import           Control.Monad.Catch         (catchAll)
+import           Control.Monad.Catch         (Exception, catchAll)
 
 import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
@@ -60,7 +60,7 @@ import qualified StdLibMock                                      as StdLib
 import qualified Luna.Library.Symbol                             as Symbol
 import           Control.Monad.Event                             (Dispatcher)
 
-import           Test.Hspec (Spec, describe, it, shouldBe, expectationFailure)
+import           Test.Hspec (Spec, describe, it, shouldBe, shouldThrow, expectationFailure)
 import           System.IO.Silently (silence)
 
 
@@ -86,26 +86,27 @@ graph1 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
                                                   )
        => m ([nr])
 graph1 = do
-    i1 <- int 2
-    i2 <- int 3
-    i3 <- int 4
-    s1 <- str "abc"
-    s2 <- str "def"
-    s3 <- str "ghi"
-
     j1 <- int 6
     j2 <- int 7
     plus <- str "+"
+    appPlus0 <- app plus [arg j1, arg j2]
+    return [appPlus0]
 
-
-    appPlus0   <- app plus [arg j1, arg j2]
-
+graph1' = do
+    i1 <- int 2
+    i2 <- int 3
+    i3 <- int 4
     accPlus1a  <- acc "+" i1
     appPlus1a  <- app accPlus1a [arg i2]
 
     accPlus1b  <- acc "+" i3
     appPlus1b  <- app accPlus1b [arg appPlus1a]
+    return [appPlus1b]
 
+graph1'' = do
+    s1 <- str "abc"
+    s2 <- str "def"
+    s3 <- str "ghi"
     accConc1a  <- acc "++" s2
     appConc1a  <- app accConc1a [arg s1]
 
@@ -115,53 +116,14 @@ graph1 = do
     accLen     <- acc "len" appConc1b
     appLen     <- app accLen []
 
-    accPlus2   <- acc "+" appPlus1b
-    appPlus2   <- app accPlus2 [arg appLen]
+    return [appLen]
 
-    -- let refsToEval = [appConc1b, appPlus1a]
-    let refsToEval = [appPlus0]
-
-    return refsToEval
-
--- graph2 :: forall term node edge nr er ls m n e c. ( term ~ Draft Static
---                                                   , node ~ (ls :<: term)
---                                                   , edge ~ Link (ls :<: term)
---                                                   , nr   ~ Ref Node node
---                                                   , er   ~ Ref Edge edge
---                                                   , BiCastable            n (ls :<: term)
---                                                   , BiCastable            e edge
---                                                   , MonadIO               m
---                                                   , NodeInferable         m (ls :<: term)
---                                                   , TermNode Lit.Star     m (ls :<: term)
---                                                   , TermNode Lit.Number   m (ls :<: term)
---                                                   , TermNode Lit.String   m (ls :<: term)
---                                                   , TermNode Var          m (ls :<: term)
---                                                   , TermNode Acc          m (ls :<: term)
---                                                   , TermNode App          m (ls :<: term)
---                                                   , TermNode Native       m (ls :<: term)
---                                                   , HasProp InterpreterData (ls :<: term)
---                                                   , Prop    InterpreterData (ls :<: term) ~ InterpreterLayer
---                                                   , Graph.MonadBuilder (Hetero (VectorGraph n e c)) m
---                                                   )
---        => m ([nr])
-graph2 = do
-    i1 <- int 7
-    i2 <- int 8
-    i3 <- int 9
-    -- s1 <- str "abc"
-    -- s2 <- str "def"
-    -- s3 <- str "ghi"
-
-    -- appPlus1   <- native (fromString "(+)") [i1, i2]
-    -- appPlus2   <- native (fromString "(+)") [appPlus1, i3]
-
-    appPlus1   <- native (fromString "(+)")
-    appPlus2   <- native (fromString "(+)")
-
-    let refsToEval = [appPlus1]
-
-    return refsToEval
-
+graph1''' = do
+    [appPlus1b] <- graph1'
+    [appLen] <- graph1''
+    accPlus2  <- acc "+" appPlus1b
+    appPlus2  <- app accPlus2 [arg appLen]
+    return [appPlus2]
 
 prebuild :: IO (Ref Node (NetLayers :<: Draft Static), NetGraph)
 -- prebuild :: IO (Ref Node (NetLayers :<: Draft Static), Hetero (NEC.Graph n e c))
@@ -262,14 +224,17 @@ seq4 :: forall a a1 a2 b.
         a -> a1 -> a2 -> b -> Sequence a (Sequence a1 (Sequence a2 b))
 seq4 a b c d = Sequence a $ seq3 b c d
 
-equals :: (Value.FromData a, Eq a, Show a) => Layer.ValueErr Value.Value -> a -> IO ()
-equals v expected = case v of
-    Left v' -> do
-        mapM_ putStrLn v'
-        expectationFailure "error on node evaluation"
-    Right v' -> do
-        v'' <- Value.toIO v'
-        Value.unsafeFromData v'' `shouldBe` expected
+newtype LunaEvaluationException = LunaEvaluationException [String]
+    deriving (Eq, Show, Typeable)
+instance Exception LunaEvaluationException
+
+lunaEvaluationException :: LunaEvaluationException -> Bool
+lunaEvaluationException = const True
+
+equals :: (Value.FromData a, Eq a, Show a) => Value.Value -> a -> IO ()
+equals v expected = do
+    v' <- Value.toIO v
+    Value.unsafeFromData v' `shouldBe` expected
 
 oneAndOnlyTypecheckerFlow :: Sequence
                                ScanPass
@@ -300,11 +265,16 @@ oneAndOnlyTypecheckerFlow = seq4
              (Loop $ StrictUnificationPass Positive False))
          (StrictUnificationPass Negative True))
 
-evaluatesTo :: forall a. (Value.FromData a, Show a, Eq a) => _ -> a -> IO ()
-evaluatesTo graph expected = do
+extract :: (MonadThrow m) => Layer.ValueErr Value.Value -> m Value.Value
+extract v = case v of
+    Left v' -> throwM $ LunaEvaluationException v'
+    Right v' -> return v'
+
+evaluateGraph :: _
+evaluateGraph graph = do
     (_, g :: NetGraph) <- prebuild
 
-    res <- flip Env.evalT def $ do
+    flip Env.evalT def $
         TypeCheck.runT $ do
             ([root], gb) <- runBuild g graph
 
@@ -318,9 +288,14 @@ evaluatesTo graph expected = do
             (output, _) <- runBuild gint $ do
                 follow (prop InterpreterData . Layer.value) root
 
-            return output
+            extract output
 
+evaluatesTo :: forall a. (Value.FromData a, Show a, Eq a) => _ -> a -> IO ()
+evaluatesTo graph expected = do
+    res <- evaluateGraph graph
     equals @a res expected
+
+throws graph expected = evaluateGraph graph `shouldThrow` expected
 
 graph2Plus2 :: _
 graph2Plus2 = do
@@ -369,6 +344,12 @@ spec = do
             graph3 `evaluatesTo` (3::Int)
         it "id \"hi\"" $
             graph3' `evaluatesTo` ("hi"::String)
+        it "\"+\" 6 7" $ do
+            graph1 `throws` lunaEvaluationException
+        it "(2.+ 3).+ 4" $
+            graph1' `evaluatesTo` (9::Int)
+        it "((\"abc\".++ \"def\").++ \"ghi\").len" $
+            graph1'' `evaluatesTo` (9::Int)
 
 -- old version
 
