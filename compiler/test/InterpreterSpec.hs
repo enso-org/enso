@@ -107,13 +107,13 @@ graph1'' = do
     s1 <- str "abc"
     s2 <- str "def"
     s3 <- str "ghi"
-    accConc1a  <- acc "++" s2
+    accConc1a  <- acc "+" s2
     appConc1a  <- app accConc1a [arg s1]
 
-    accConc1b  <- acc "++" appConc1a
+    accConc1b  <- acc "+" appConc1a
     appConc1b  <- app accConc1b [arg s3]
 
-    accLen     <- acc "len" appConc1b
+    accLen     <- acc "length" appConc1b
     appLen     <- app accLen []
 
     return [appLen]
@@ -180,7 +180,8 @@ graph4 = do
 graph5 = do
     iLen <- int 10
     iVal <- int 3
-    fun  <- var "succ"
+    bl   <- blank
+    fun  <- acc "succ" bl
 
     act <- acc "times" iLen
     apt <- app act [arg iVal]
@@ -197,7 +198,7 @@ graph6 = do
     iLen  <- int 5
     iVal  <- int 3
     iInit <- int 1
-    fun   <- var "(+)"
+    fun   <- var "+"
 
     act <- acc "times" iLen
     apt <- app act [arg iVal]
@@ -350,23 +351,23 @@ spec :: Spec
 spec = do
     describe "interprets" $ do
         it "2.+ 2" $
-            graph2Plus2 `evaluatesTo` (4::Int)
+            graph2Plus2 `evaluatesTo` (4 :: Int)
         it "app ((_.+) _ 2) 2" $
-            graph2Plus2Fancy `evaluatesTo` (4::Int)
+            graph2Plus2Fancy `evaluatesTo` (4 :: Int)
         it "(5.times 3).fold 1 (+)" $
-            graph6 `evaluatesTo` (16::Int)
-        it "((10.times 3).map succ).head" $
-            graph5 `evaluatesTo` (11::Int)
+            graph6 `evaluatesTo` (16 :: Int)
+        it "((10.times 3).map _.succ).head" $
+            graph5 `evaluatesTo` (Just 4 :: Maybe Int)
         it "(2.times 3).head" $
-            graph4 `evaluatesTo` (2::Int)
+            graph4 `evaluatesTo` (Just 3 :: Maybe Int)
         it "1.+ 2" $
-            graph3 `evaluatesTo` (3::Int)
+            graph3 `evaluatesTo` (3 :: Int)
         it "id \"hi\"" $
-            graph3' `evaluatesTo` ("hi"::String)
+            graph3' `evaluatesTo` ("hi" :: String)
         it "(2.+ 3).+ 4" $
-            graph1' `evaluatesTo` (9::Int)
-        it "((\"abc\".++ \"def\").++ \"ghi\").len" $
-            graph1'' `evaluatesTo` (9::Int)
+            graph1' `evaluatesTo` (9 :: Int)
+        it "((\"abc\".+ \"def\").+ \"ghi\").length" $
+            graph1'' `evaluatesTo` (9 :: Int)
     describe "does not typecheck" $ do
         it "\"+\" 6 7" $ do
             graph1 `throws` lunaTypecheckingException
