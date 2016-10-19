@@ -474,6 +474,16 @@ makeWrapped ''Layer4
 
 type TermStack2 t layers layout = Stack layers (Layer4 (Expr2 t layers layout))
 
+
+-- === Classes === --
+
+class HasLayer layer layers where
+    layer :: forall t layout layers'. Stack layers (Layer4 (Expr2 t layers' layout)) -> ExprLayer layer (Expr2 t layers' layout)
+
+instance {-# OVERLAPPABLE #-}                  HasLayer l (l ': ls) where layer (SLayer t _) = unwrap' t
+instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer (SLayer _ s) = layer @l s
+
+
 -- === Definitions === --
 
 newtype Expr2  t layers layout    = Expr2 (TermStack2 t layers layout)
@@ -494,7 +504,7 @@ type instance Get Data          (Expr2 t layers layout) = Unwrapped (Get Data (U
 -- -- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
 --
 --
-instance Getter Data (Unwrapped (Expr2 t layers layout)) => Getter Data (Expr2 t layers layout) where get = unwrap' . get @Data . unwrap' ; {-# INLINE get #-}
+instance HasLayer Data layers => Getter Data (Expr2 t layers layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
 --
 
 

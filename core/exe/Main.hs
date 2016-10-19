@@ -607,8 +607,8 @@ instance ( expr ~ Expr2 t layers AnyLayout
 
         --  , MonadTop t layers m
          , Type.MonadTypeBuilder bind m
-         , Constructor TermStore m (TermStack2 t layers AnyLayout), t ~ Net, layers ~ '[Data,Type], Bindable t m, MonadFix m
-         ) => Constructor TermStore m (Layer4 expr Type) where
+         , Constructor TermStore m (TermStack2 t layers AnyLayout), t ~ Net, Bindable t m, MonadFix m
+         ) => Constructor TermStore m (Layer4 (Expr2 t layers AnyLayout) Type) where
     cons _ = do
         -- undefined
         -- s <- nmagicStar
@@ -686,8 +686,8 @@ nmagicStar = mkBinding =<< expr3 (wrap' N.star')
             -- ntest = nstar1
 
 
-test_gr3 :: ( ExprCons t layers m, Bindable t m, Inferable2 InfLayers layers m, Inferable2 TermType t m
-            , MonadIO m, Show bind, Show (PrimExpr2' t layers Star), layers~'[Data, Type]
+test_gr3 :: ( ExprCons t layers m, Bindable t m, ExprInferable t layers m
+            , MonadIO m, Show bind, Show (PrimExpr2' t layers Star), HasLayer Data layers
             , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
             , bind ~ Binding (PrimExpr2' t layers Star)
         -- ) => m (Binding (PrimExpr2' t layers Star))
@@ -749,8 +749,8 @@ test_g3 = do
     flip Self.evalT undefined $
         flip Type.evalT Nothing $
         flip Graph.Builder.runT g -- $ suppressAll
-                                  $ runInferenceT2 @TermType  @Net
                                   $ runInferenceT2 @InfLayers @'[Data, Type]
+                                  $ runInferenceT2 @TermType  @Net
                                   $ (test_gr3)
 
 
@@ -759,8 +759,8 @@ main = do
 
     -- newTest
 
-    test_g3
-    -- print x
+    (x,g) <- test_g3
+    print x
 
     exitSuccess
 
