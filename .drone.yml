@@ -16,6 +16,7 @@ build:
     - export PATH=$PATH:$DRONE_DIR/tools/HaskellBooster/preprocessor
     - stack build --stack-yaml build/stack-nightly.yaml --only-snapshot
     - stack build --stack-yaml build/stack-nightly.yaml --copy-bins --fast
+    - stack test  --stack-yaml build/stack-nightly.yaml --fast
     - date
 cache:
   mount:
