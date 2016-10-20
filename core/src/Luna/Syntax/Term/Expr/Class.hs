@@ -534,6 +534,8 @@ type instance Sub s (Expr2 t layers layout) = Expr2 t layers (Sub s layout)
 
 
 data AnyLayout = AnyLayout deriving (Show)
+type instance Get Atom AnyLayout = AnyLayout
+type instance Atoms AnyLayout = '[Star]
 
 type instance Sub t AnyLayout = AnyLayout
 
