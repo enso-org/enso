@@ -58,7 +58,7 @@ import           Luna.Runtime.Dynamics                           (Dynamics, Dyna
 import qualified Luna.Runtime.Dynamics                           as Runtime
 import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
 import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
-import           Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star2, blank, unify)
+-- import           Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star2, blank, unify)
 import qualified Luna.Syntax.Model.Network.Builder.Node          as Old
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
@@ -86,7 +86,7 @@ import qualified Data.Graph.Builder                      as GraphBuilder
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.Syntax.Term.Expr hiding (Data)
+import Luna.Syntax.Term.Expr hiding (Data, cons)
 
 -- import GHC.Prim (Any)
 
@@ -134,17 +134,11 @@ data InfLayers = InfLayers
 
 
 
-runCase :: Expr t layers layout -> [Prim.Any -> out] -> out
+runCase :: Getter Data (Expr2 t layers layout) => Expr2 t layers layout -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
 {-# INLINE runCase #-}
-
-runCase2 :: Getter Data (Expr2 t layers layout) => Expr2 t layers layout -> [Prim.Any -> out] -> out
-runCase2 el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
-    idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
-{-# INLINE runCase2 #-}
 
 
 matchx f = f . unsafeCoerce
@@ -299,7 +293,7 @@ xunify2 :: (MonadFix m, layout ~ MatchLayouts l1 l2, LayersCons2' t ls m, Valida
         => Binding (Expr t ls l1) -> Binding (Expr t ls l2) -> m (Binding (Expr t ls layout))
 xunify2 a b = mdo
     n  <- mkBinding =<< (expr $ N.unify' la lb)
-    la <- mkLink n (unsafeCoerce a) -- Sub Atom layout ~~ l1  -- should be checked
+    la <- mkLink n (unsafeCoerce a)
     lb <- mkLink n (unsafeCoerce b)
     return n
 
@@ -433,19 +427,19 @@ test_gr1 :: ( ExprBuilder_i t layers m, Linkable t t m
          => m ()
 test_gr1 = do
     sref <- star4
-    t <- readBinding sref
-    l <- mkLink sref sref
-
-    case' t of
-        Symbol.Unify l r -> print 11
-        Symbol.Star      -> case' t of
-            Symbol.Unify l r -> print "hello"
-            Symbol.Star      -> print "hello3xx"
-
-
-    print "!!!"
-    print t
-    print sref
+    -- t <- readBinding sref
+    -- l <- mkLink sref sref
+    --
+    -- case' t of
+    --     Symbol.Unify l r -> print 11
+    --     Symbol.Star      -> case' t of
+    --         Symbol.Unify l r -> print "hello"
+    --         Symbol.Star      -> print "hello3xx"
+    --
+    --
+    -- print "!!!"
+    -- print t
+    -- print sref
     return ()
 
 
@@ -632,46 +626,92 @@ nstar1 = expr3 N.star'
 nstar2 :: ExprCons t layers m => m (PrimExpr2' t layers Star)
 nstar2 = nstar1
 
-nstar3 :: ( ExprCons t layers m, Bindable t m, Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
-          , ExprInferable t layers m)
-       => m (Binding (PrimExpr2' t layers Star))
-nstar3 = Self.put . anyLayout2 =<<& (nstar2 >>= mkBinding)
 
-nstar :: (ExprCons t layers m, ValidateLayout layout Atom Star, Bindable t m, Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m)
+
+nstar :: ( ExprCons t layers m, Bindable t m
+         , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+         , ValidateLayout layout Atom Star)
       => m (Binding (Expr2 t layers layout))
 nstar = Self.put . anyLayout2 =<<& (expr3 N.star' >>= mkBinding)
 
+nstar3 :: ( ExprCons t layers m, Bindable t m
+          , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+          , Inferable2 InfLayers layers m, Inferable2 TermType t m)
+       => m (Binding (PrimExpr2' t layers Star))
+nstar3 = nstar
+
+
+nstar' :: ( ExprCons t layers m, Bindable t m
+         , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+         , Inferable2 Layout    layout m
+         , Inferable2 InfLayers layers m
+         , Inferable2 TermType  t      m
+         )
+      => m (Binding (Expr2 t layers (Set Atom Star layout)))
+nstar' = Self.put . anyLayout2 =<<& (expr3 (wrap' N.star') >>= mkBinding)
 
 
 
 
--- nstar4 :: ()
---        => m (Binding (PrimExpr2' t layers Star))
--- nstar4 = mdo
---     bind <- Self.evalT (mkBinding =<< nstar2) bind
---     return bind
+type instance MatchLayouts (Prim () Star) (Prim () Star) = Prim () Star
 
-    -- Self.put =<<& (nstar2 >>= mkBinding)
+type instance Specialized Atom s (Prim n a) = Prim n (s :> a)
 
--- class Monad m => Bindable t m where
---     mkBinder    :: forall a. a -> m (Binder t a)
---     rmBinder    :: forall a. Binder t a      -> m ()
---     writeBinder :: forall a. Binder t a -> a -> m ()
---     readBinder  :: forall a. Binder t a      -> m a
+data XX
 
--- instance Bindable t (Self.SelfBuilderT (Binding (PrimExpr2' t layers Star)) m) where
---     mkBinder = lift . mkBinder
+-- nunify2 :: (MonadFix m, layout ~ Specialized Atom Unify (Merge l1 l2), ValidateLayout layout Atom Unify, Bindable t m, Linkable' t m, ExprCons t ls m)
+--         => Binding (Expr2 t ls l1) -> Binding (Expr2 t ls l2) -> m (Binding (Expr2 t ls layout))
+-- nunify2 a b = mdo
+--     n  <- mkBinding =<< (expr3 $ N.unify' la lb)
+--     la <- mkLink n (unsafeCoerce a) -- Sub Atom layout ~~ l1  -- should be checked
+--     lb <- mkLink n (unsafeCoerce b)
+--     return n
 
--- nstar3' :: ( ExprCons t layers m, Bindable t m, expr ~ Binding (PrimExpr2' t layers Star), Self.MonadSelfBuilder expr m
---           , ExprInferable t layers m, layers ~ '[Data, Type], t ~ Net)
---        => m expr
--- nstar3' = mdo
---     Self.put bind
---     bind <- mkBinding =<< nstar2
---     return bind
+nunify :: ( MonadFix m
+           , layout ~ Specialized Atom Unify (Merge l1 l2)
+        --    , ValidateLayout layout Atom Unify
+           , Bindable t m
+           , Linkable' t m
+           , ExprCons t layers m
+           , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+           )
+        => Binding (Expr2 t layers l1) -> Binding (Expr2 t layers l2) -> m (Binding (Expr2 t layers layout))
+nunify a b = Self.put . anyLayout2 =<<& mdo
+    n  <- mkBinding =<< (expr3 $ wrap' $ N.unify' la lb)
+    la <- mkLink n (unsafeGeneralize a)
+    lb <- mkLink n (unsafeGeneralize b)
+    return n
 
--- nstar4 :: (ExprCons t layers m, Bindable t m, ExprInferable t layers m) => m $ Binding (PrimExpr2' t layers Star)
--- nstar4 = nstar3 -- inferTerm ...
+
+instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t m) c where
+    cons = lift . cons
+
+
+instance {-# INCOHERENT #-} Linkable l l' m => Linkable l l' (KnownTypeT cls t m) where
+    mkLinker    = lift .:  mkLinker    @l @l' -- :: forall a b. Binding a -> Binding b -> m (Linker t t' a b)
+    rmLinker    = lift .   rmLinker    @l @l' -- :: forall a b. Linker t t' a b -> m ()
+    writeLinker = lift .:. writeLinker @l @l' -- :: forall a b. Linker t t' a b -> Binding a -> Binding b -> m ()
+    readLinker  = lift .   readLinker  @l @l' -- :: forall a b. Linker t t' a b -> m (Binding a, Binding b)
+
+-- instance {-# INCOHERENT #-} Bindable b m => Bindable b (KnownTypeT cls t m)
+
+instance {-# INCOHERENT #-} Bindable b m => Bindable b (KnownTypeT cls t m) where
+    mkBinder    = lift .  mkBinder    @b -- :: forall a. a -> m (Binder t a)
+    rmBinder    = lift .  rmBinder    @b -- :: forall a. Binder t a      -> m ()
+    writeBinder = lift .: writeBinder @b -- :: forall a. Binder t a -> a -> m ()
+    readBinder  = lift .  readBinder  @b -- :: forall a. Binder t a      -> m a
+
+
+
+type family   UnsafeGeneralizable a b :: Constraint
+type instance UnsafeGeneralizable (Binding a) (Binding b) = UnsafeGeneralizable a b
+type instance UnsafeGeneralizable (Expr2 t layers l1) (Expr2 t layers l2) = ()
+
+unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
+unsafeGeneralize = unsafeCoerce
+
+-- class Generalizable a b where
+--     generalize :: a -> b
 
 nmagicStar :: (ExprCons t layers m, Bindable t m) => m $ Binding (Expr2 t layers layout)
 nmagicStar = mkBinding =<< expr3 (wrap' N.star')
@@ -685,37 +725,53 @@ nmagicStar = mkBinding =<< expr3 (wrap' N.star')
             -- ntest :: (Monad m, MonadBuilder g m, DynamicM3 Node g m, DynamicM3 Edge g m, ReferableM Node g m) => m (Expr2 Net '[Data] (ANTLayout SimpleX Star () ()))
             -- ntest = nstar1
 
+type ANT a n t = ANTLayout SimpleX a n t
 
-test_gr3 :: ( ExprCons t layers m, Bindable t m, ExprInferable t layers m
-            , MonadIO m, Show bind, Show (PrimExpr2' t layers Star), HasLayer Data layers
+type Expr' cls layers a n t = Expr2 cls layers (ANT a n t)
+type UntyppedExpr cls layers a n = Expr' cls layers a n Star
+
+baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
+baseLayout = runInferenceT2 @Layout
+
+test_gr3 :: forall t layers m .
+            ( MonadIO m
+            , Bindable  t m
+            , Linkable' t m
+            , ExprCons t layers m
+            , Inferable2 InfLayers layers m
+            , Inferable2 TermType  t      m
             , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
-            , bind ~ Binding (PrimExpr2' t layers Star)
-        -- ) => m (Binding (PrimExpr2' t layers Star))
+            , Show (PrimExpr2' t layers Star), HasLayer Data layers
         ) => m ()
-test_gr3 = do
-    sref <- nstar3
-    t <- readBinding sref
-    -- l <- mkLink sref sref
+test_gr3 = baseLayout @(ANTLayout SimpleX () () Star) $ do
+    (s1 :: Binding (UntyppedExpr t layers Star            ())) <- nstar'
+    (s2 :: Binding (UntyppedExpr t layers Star            ())) <- nstar'
+    (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- nunify s1 s2
+            -- un   <- nunify2 s1 s1
+    -- let x = s1 :: Binding (Expr2 t layers (ANTLayout SimpleX Star () Star))
+    -- let _ = u1 :: _ -- :: Binding (Expr2 t layers (ANTLayout SimpleX Star () Star))
+    t <- readBinding s1
+            -- -- l <- mkLink s1 s1
+            -- --
+    case' t of
+        Symbol.Unify l r -> print 11
+        Symbol.Star      -> case' t of
+            Symbol.Unify l r -> print "hello"
+            Symbol.Star      -> print "hello3xx"
     --
-    -- case' t of
-    --     Symbol.Unify l r -> print 11
-    --     Symbol.Star      -> case' t of
-    --         Symbol.Unify l r -> print "hello"
-    --         Symbol.Star      -> print "hello3xx"
-
-    let { exp = t
-    ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
-        ala = 11
-    ;f2 = matchx $ \Symbol.Star       -> (print "hello2" )
-       where ala = 11
-    } in $(testTH3 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
-    --
-    --
+    -- let { exp = t
+    -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+    --     ala = 11
+    -- ;f2 = matchx $ \Symbol.Star       -> (print "hello2" )
+    --    where ala = 11
+    -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
     -- --
     -- --
-    print "!!!"
-    print t
-    print sref
+    -- -- --
+    -- -- --
+    -- print "!!!"
+    -- print t
+    -- print s1
     -- print $ get @Sym $ unwrap' $ get @Data t
     return ()
 
@@ -847,23 +903,23 @@ main = do
     -- let xx = (let blank = 2 in blank)
 
     --
-    let { exp = x1
-    ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
-        ala = 11
-    ;f2 = matchx $ \Symbol.Star       -> (print "hello2" )
-       where ala = 11
-    } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
-            --
-            -- -- let { exp = e1
-            -- -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
-            -- --     ala = 11
-            -- -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
-            --
-    case' x1 of
-        Symbol.Unify l r -> print 11
-        Symbol.Star      -> case' x1 of
-            Symbol.Unify l r -> print "hello"
-            Symbol.Star      -> print "hello3x"
+    -- let { exp = x1
+    -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+    --     ala = 11
+    -- ;f2 = matchx $ \Symbol.Star       -> (print "hello2" )
+    --    where ala = 11
+    -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
+    --         --
+    --         -- -- let { exp = e1
+    --         -- -- ;f1 = matchx $ \(Symbol.Unify l r) -> print ala where
+    --         -- --     ala = 11
+    --         -- -- } in $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
+    --         --
+    -- case' x1 of
+    --     Symbol.Unify l r -> print 11
+    --     Symbol.Star      -> case' x1 of
+    --         Symbol.Unify l r -> print "hello"
+    --         Symbol.Star      -> print "hello3x"
 
 
     -- $(testTH2 'exp [ [p|Symbol.Unify l r|] ] ['f1])
