@@ -7,6 +7,7 @@
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE KindSignatures            #-}
 {-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE RecursiveDo               #-}
 
 module Prologue (
     module Prologue,
@@ -41,7 +42,6 @@ import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, fol
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
 import Data.Impossible            as X
-import Data.Impossible.Compact    as X
 import Data.Layer_OLD                 as X
 --import Data.Layer_OLD.Cover_OLD           as X
 import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust)
@@ -51,6 +51,7 @@ import Data.Text.Class            as X (FromText (fromText), IsText, ToText (toT
 import Data.Text.Lazy             as X (Text)
 import Data.Traversable           as X (mapM)
 import Data.Tuple.Curry           as X (Curry)
+import Data.Tuple.Curry.Total     as X (Uncurried', Curry', curry')
 import Data.Typeable              as X (Typeable, Proxy(Proxy), typeOf, typeRep)
 import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
@@ -64,6 +65,8 @@ import Type.Monoid                as X (type (<>))
 import Type.Applicative           as X (type (<$>), type (<*>))
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
+import Data.Kind                  as X (Type, Constraint, type (★), type (*))
+import Data.Constraints           as X (Constraints)
 
 -- Tuple handling
 import Prologue.Data.Tuple        as X
@@ -172,6 +175,11 @@ ifElseId :: Bool -> (a -> a) -> (a -> a)
 ifElseId cond a = if cond then a else id
 
 
+fromMaybeM :: Monad m => m a -> Maybe a -> m a
+fromMaybeM ma = \case
+    Just a  -> return a
+    Nothing -> ma
+
 
 
 -- === Safe operations === --
@@ -204,3 +212,19 @@ mapM5 = mapM ∘ mapM4 ; {-# INLINE mapM5 #-}
 
 composed :: Iso' (f (g a)) (Compose f g a)
 composed = iso Compose getCompose
+
+
+-- Monads
+
+(>>~) :: Monad m => m a -> (a -> m b) -> m a
+f >>~ g = do
+    fa <- f
+    g fa
+    return fa
+
+infixr 1 =<<&
+(=<<&) :: MonadFix m => (a -> m b) -> m a -> m a
+g =<<& f = mdo
+    g fa
+    fa <- f
+    return fa
