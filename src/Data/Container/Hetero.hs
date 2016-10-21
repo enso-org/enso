@@ -13,7 +13,7 @@
 module Data.Container.Hetero where
 
 import Prelude
-import Data.Monoid
+import Data.Monoid           hiding (Any)
 import Data.Container.Class
 import Data.Typeable         hiding (cast)
 import Unsafe.Coerce         (unsafeCoerce)
@@ -23,8 +23,9 @@ import Control.Lens.Utils    hiding (Getter, Setter)
 import Data.Functor.Utils
 import GHC.Generics    (Generic)
 import Control.DeepSeq (NFData)
-import Data.Prop
-
+import Old.Data.Prop
+import Data.Convert
+import qualified GHC.Prim    as Prim
 
 -- === Definitions === --
 
@@ -64,3 +65,33 @@ instance PtrIdx (HPtr i m a) i  where ptrIdx (HPtr p) = ptrIdx p
 
 instance {-# OVERLAPPABLE #-} (p ~ i) => PtrFrom p         i where ptrFrom = Ptr
 instance                                 PtrFrom (Ptr i a) i where ptrFrom (Ptr i) = Ptr i
+
+
+-----------------
+-- === Any === --
+-----------------
+
+newtype Any = Any Prim.Any
+
+instance Show Any where show _ = "Any"
+
+instance Castable Any a   where cast = unsafeCoerce ; {-# INLINE cast #-}
+instance Castable a   Any where cast = unsafeCoerce ; {-# INLINE cast #-}
+
+
+---------------------
+-- === Hetero2 === --
+---------------------
+
+-- === Definition === --
+
+newtype Hetero2 t = Hetero2 (t Any)
+makeWrapped ''Hetero2
+
+
+
+-- === Instances === --
+
+type instance Container (Hetero2 t) = Unwrapped (Hetero2 t)
+
+deriving instance Show (t Any) => Show (Hetero2 t)
