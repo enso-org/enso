@@ -55,6 +55,9 @@ with f m = do
     put s
     return out
 
+with' :: MonadTypeBuilder s m => Maybe s -> m b -> m b
+with' = with . const
+
 modify :: MonadTypeBuilder s m => (Maybe s -> (Maybe s, a)) -> m a
 modify f = do
     s <- get

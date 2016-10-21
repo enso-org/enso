@@ -86,7 +86,7 @@ import qualified Data.Graph.Builder                      as GraphBuilder
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.Syntax.Term.Expr hiding (Data, cons)
+import Luna.Syntax.Term.Expr hiding (Data, cons, unify, star)
 
 -- import GHC.Prim (Any)
 
@@ -134,7 +134,7 @@ data InfLayers = InfLayers
 
 
 
-runCase :: Getter Data (Expr2 t layers layout) => Expr2 t layers layout -> [Prim.Any -> out] -> out
+runCase :: Getter Data (Expr t layers layout) => Expr t layers layout -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
     idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
@@ -233,68 +233,53 @@ instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
 type instance ExprLayer Type t = SubLink Type t
 
 
-instance ( expr ~ Expr2 t layers AnyLayout
+instance ( expr ~ AnyExpr t layers
          , bind ~ Binding expr
          , Linkable' t m
          , Self.MonadSelfBuilder bind m
          , Type.MonadTypeBuilder bind m
-         , Constructor TermStore m (TermStack2 t layers AnyLayout), t ~ Net, Bindable t m, MonadFix m
-         ) => Constructor TermStore m (Layer4 (Expr2 t layers AnyLayout) Type) where
+         , Constructor TermStore m (AnyExprStack t layers), t ~ Net, Bindable t m, MonadFix m
+         ) => Constructor TermStore m (Layer (AnyExpr t layers) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
     cons _ = do
         self <- Self.get
         top  <- localTop
         l    <- mkLink self top
-        return $ Layer4 l
+        return $ Layer l
 
 
 
 
 
 
+-- | Run a function and use the result as a context type
+mfixType :: (Type.MonadTypeBuilder a m, MonadFix m) => m a -> m a
+mfixType f = mfix $ flip Type.with' f . Just
+
+
+localTop :: ( Type.MonadTypeBuilder (Binding (AnyExpr t layers)) m, Constructor TermStore m (AnyExprStack t layers)
+            , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m, MonadFix m, Bindable t m)
+         => m (Binding (AnyExpr t layers))
+localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
 
 
+type AnyExprCons t layers m = Constructor TermStore m (AnyExprStack t layers)
 
 
---
-localTop :: ( Type.MonadTypeBuilder (Binding (Expr2 t layers AnyLayout)) m, Constructor TermStore m (TermStack2 t layers AnyLayout)
-            , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m, MonadFix m, Bindable t m)
-         => m (Binding (Expr2 t layers AnyLayout))
-localTop = do
-    mt <- Type.get
-    case mt of
-        Just t  -> return t
-        Nothing -> mdo
-            Type.put (Just nt)
-            nt <- nstar
-            Type.put mt
-            return nt
+magicStar :: ( AnyExprCons t layers m, Bindable t m
+             , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m)
+          => m (Binding (AnyExpr t layers))
+magicStar = Self.put . anyLayout2 =<<& (expr N.star' >>= mkBinding)
 
 
-
-
-
-
-
-type ExprCons t layers m = Constructor TermStore m (TermStack2 t layers AnyLayout)
-
-
-nstar :: ( ExprCons t layers m, Bindable t m
-         , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
-         , ValidateLayout layout Atom Star)
-      => m (Binding (Expr2 t layers layout))
-nstar = Self.put . anyLayout2 =<<& (expr3 N.star' >>= mkBinding)
-
-
-nstar' :: ( ExprCons t layers m, Bindable t m
-         , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
-         , Inferable2 Layout    layout m
-         , Inferable2 InfLayers layers m
-         , Inferable2 TermType  t      m
-         )
-      => m (Binding (Expr2 t layers (Set Atom Star layout)))
-nstar' = Self.put . anyLayout2 =<<& (expr3 (wrap' N.star') >>= mkBinding)
+star :: ( AnyExprCons t layers m, Bindable t m
+        , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
+        , Inferable2 Layout    layout m
+        , Inferable2 InfLayers layers m
+        , Inferable2 TermType  t      m )
+      => m (Binding (Expr t layers (Set Atom Star layout)))
+star = Self.put . anyLayout2 =<<& (expr (wrap' N.star') >>= mkBinding)
 
 
 
@@ -306,15 +291,15 @@ type instance Specialized Atom s (Prim n a) = Prim n (s :> a)
 data XX
 
 
-nunify :: ( MonadFix m
+unify :: ( MonadFix m
           , Bindable t m
           , Linkable' t m
-          , ExprCons t layers m
-          , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
+          , AnyExprCons t layers m
+          , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
           )
-        => Binding (Expr2 t layers l1) -> Binding (Expr2 t layers l2) -> m (Binding (Expr2 t layers (Specialized Atom Unify (Merge l1 l2))))
-nunify a b = Self.put . anyLayout2 =<<& mdo
-    n  <- mkBinding =<< (expr3 $ wrap' $ N.unify' la lb)
+        => Binding (Expr t layers l1) -> Binding (Expr t layers l2) -> m (Binding (Expr t layers (Specialized Atom Unify (Merge l1 l2))))
+unify a b = Self.put . anyLayout2 =<<& mdo
+    n  <- mkBinding =<< (expr $ wrap' $ N.unify' la lb)
     la <- mkLink n (unsafeGeneralize a)
     lb <- mkLink n (unsafeGeneralize b)
     return n
@@ -323,61 +308,60 @@ nunify a b = Self.put . anyLayout2 =<<& mdo
 instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t m) c where
     cons = lift . cons
 
-
 instance {-# INCOHERENT #-} Linkable l l' m => Linkable l l' (KnownTypeT cls t m) where
-    mkLinker    = lift .:  mkLinker    @l @l' -- :: forall a b. Binding a -> Binding b -> m (Linker t t' a b)
-    rmLinker    = lift .   rmLinker    @l @l' -- :: forall a b. Linker t t' a b -> m ()
-    writeLinker = lift .:. writeLinker @l @l' -- :: forall a b. Linker t t' a b -> Binding a -> Binding b -> m ()
-    readLinker  = lift .   readLinker  @l @l' -- :: forall a b. Linker t t' a b -> m (Binding a, Binding b)
-
--- instance {-# INCOHERENT #-} Bindable b m => Bindable b (KnownTypeT cls t m)
+    mkLinker    = lift .:  mkLinker    @l @l' ; {-# INLINE mkLinker    #-}
+    rmLinker    = lift .   rmLinker    @l @l' ; {-# INLINE rmLinker    #-}
+    writeLinker = lift .:. writeLinker @l @l' ; {-# INLINE writeLinker #-}
+    readLinker  = lift .   readLinker  @l @l' ; {-# INLINE readLinker  #-}
 
 instance {-# INCOHERENT #-} Bindable b m => Bindable b (KnownTypeT cls t m) where
-    mkBinder    = lift .  mkBinder    @b -- :: forall a. a -> m (Binder t a)
-    rmBinder    = lift .  rmBinder    @b -- :: forall a. Binder t a      -> m ()
-    writeBinder = lift .: writeBinder @b -- :: forall a. Binder t a -> a -> m ()
-    readBinder  = lift .  readBinder  @b -- :: forall a. Binder t a      -> m a
+    mkBinder    = lift .  mkBinder    @b ; {-# INLINE mkBinder    #-}
+    rmBinder    = lift .  rmBinder    @b ; {-# INLINE rmBinder    #-}
+    writeBinder = lift .: writeBinder @b ; {-# INLINE writeBinder #-}
+    readBinder  = lift .  readBinder  @b ; {-# INLINE readBinder  #-}
 
 
 
 type family   UnsafeGeneralizable a b :: Constraint
 type instance UnsafeGeneralizable (Binding a) (Binding b) = UnsafeGeneralizable a b
-type instance UnsafeGeneralizable (Expr2 t layers l1) (Expr2 t layers l2) = ()
+type instance UnsafeGeneralizable (Expr t layers l1) (Expr t layers l2) = ()
 
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
 unsafeGeneralize = unsafeCoerce
 
 
 
-nmagicStar :: (ExprCons t layers m, Bindable t m) => m $ Binding (Expr2 t layers layout)
-nmagicStar = mkBinding =<< expr3 (wrap' N.star')
+nmagicStar :: (AnyExprCons t layers m, Bindable t m) => m $ Binding (Expr t layers layout)
+nmagicStar = mkBinding =<< expr (wrap' N.star')
 
 
 
 type ANT' a n t = ANT SimpleX a n t
 
-type Expr' cls layers a n t = Expr2 cls layers (ANT' a n t)
+type Expr' cls layers a n t = Expr cls layers (ANT' a n t)
 type UntyppedExpr cls layers a n = Expr' cls layers a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
 
-test_gr3 :: forall t layers m .
+test_gr :: forall t layers m .
             ( MonadIO m
             , Bindable  t m
             , Linkable' t m
-            , ExprCons t layers m
+            , AnyExprCons t layers m
             , Inferable2 InfLayers layers m
             , Inferable2 TermType  t      m
-            , Self.MonadSelfBuilder (Binding (Expr2 t layers AnyLayout)) m
-            , Show (PrimExpr2' t layers Star), HasLayer Data layers
+            , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
+            , HasLayer Data layers
+            , Show (UntyppedExpr t layers Star            ())
         ) => m ()
-test_gr3 = baseLayout @(ANT SimpleX () () Star) $ do
-    (s1 :: Binding (UntyppedExpr t layers Star            ())) <- nstar'
-    (s2 :: Binding (UntyppedExpr t layers Star            ())) <- nstar'
-    (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- nunify s1 s2
+test_gr = baseLayout @(ANT SimpleX () () Star) $ do
+    (s1 :: Binding (UntyppedExpr t layers Star            ())) <- star
+    (s2 :: Binding (UntyppedExpr t layers Star            ())) <- star
+    (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- unify s1 s2
 
     t <- readBinding s1
+    -- t <- target s1
 
     case' t of
         Symbol.Unify l r -> print 11
@@ -386,12 +370,12 @@ test_gr3 = baseLayout @(ANT SimpleX () () Star) $ do
             Symbol.Star      -> print "hello3xx"
 
     -- print "!!!"
-    -- print t
+    print t
     -- print s1
     -- print $ get @Sym $ unwrap' $ get @Data t
     return ()
 
-
+-- yyy = folllowe
 
 
 test_g3 :: forall m. (PrimMonad m, MonadIO m, MonadFix m)
@@ -403,7 +387,7 @@ test_g3 = do
         flip Graph.Builder.runT g -- $ suppressAll
                                   $ runInferenceT2 @InfLayers @'[Data, Type]
                                   $ runInferenceT2 @TermType  @Net
-                                  $ (test_gr3)
+                                  $ (test_gr)
 
 
 main :: IO ()

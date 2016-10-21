@@ -83,6 +83,64 @@ import Luna.Syntax.Term.Expr.Layout (Layout, Name, Prim, Uniform)
 -- type instance Get Format   (Layout dyn form) = form
 
 
+type ContentShow a = Show (Content a)
+newtype Content a = Content a deriving (Functor, Traversable, Foldable)
+makeWrapped ''Content
+
+contentShow :: ContentShow a => a -> P.String
+contentShow = show . Content
+
+
+class Monad m => Constructor a m t where
+    cons :: a -> m t
+
+
+-- === ValidateLayout === ---
+-- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
+
+type InvalidFormat sel a format = 'ShowType sel
+                             :</>: Ticked ('ShowType a)
+                             :</>: 'Text  "is not a valid"
+                             :</>: Ticked ('ShowType format)
+
+
+class                                                       ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
+type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
+
+
+class                                                        ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
+type ValidateLayout_ model sel a = ValidateScope (model ^. sel) sel a
+type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
+
+
+
+
+data AnyLayout = AnyLayout deriving (Show)
+type instance Get Atom AnyLayout = AnyLayout
+type instance Atoms AnyLayout = '[Star]
+
+type instance Sub t AnyLayout = AnyLayout
+
+-- TODO: zamiast zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
+-- expr2 :: (Constructor a m (ExprStack t layers layout), expr ~ Expr t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
+-- expr2 a = Expr <$> cons a
+
+-- | The `expr` type does not force the construction to be checked,
+--   because it has to be already performed in order to deliver ExprSymbol.
+
+
+
+
+
+
 
 
 data a := b
@@ -160,6 +218,10 @@ writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
 readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
 
+-- class Connection where
+--     read :: c -> m (Target c)
+
+
 -- === Utils === --
 
 type SubLink    c t = Link t  (Sub c t)
@@ -171,19 +233,29 @@ type SubBinding c t = Binding (Sub c t)
 deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
 deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
 
-type instance Deconstructed (Binding a) = a
 type instance Get p   (Binding a) = Get p a
 type instance Set p v (Binding a) = Binding (Set p v a)
 
 
+
+------------------------
+-- === ExprSymbol === --
+------------------------
+
+newtype ExprSymbol atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (SubLink Atom t))
+makeWrapped ''ExprSymbol
+
+-- === Instances === --
+
+type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
+instance ValidateLayout (Get Layout t) Atom atom
+      => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
 
 ----------------------
 -- === TermData === --
 ----------------------
-
--- === Definition === --
 
 type TermStoreSlots = '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
 type TermStore = Store2 TermStoreSlots
@@ -192,46 +264,71 @@ newtype TermData sys model = TermData TermStore deriving (Show)
 makeWrapped ''TermData
 
 
+-- === Encoding === --
+
+class                                                               SymbolEncoder atom where encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
+instance                                                            SymbolEncoder I    where encodeSymbol = impossible
+instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity => SymbolEncoder atom where
+    encodeSymbol = runIdentity . encodeStore . hideLayout . unwrap' ; {-# INLINE encodeSymbol #-} -- magic
+
+
+
 -------------------
 -- === Stack === --
 -------------------
-
-class Monad m => Constructor a m t where
-    cons :: a -> m t
-
--- === Definition === --
 
 data Stack layers (t :: ★ -> ★) where
     SLayer :: t l -> Stack ls t -> Stack (l ': ls) t
     SNull  :: Stack '[] t
 
 
--- === Construction === --
-
--- class    Monad m                               => StackCons t ls        m where newStack :: m (Stack ls t)
--- instance Monad m                               => StackCons t '[]       m where newStack = return SNull
--- instance (Generator m (t l), StackCons t ls m) => StackCons t (l ': ls) m where newStack = SLayer <$> new <*> newStack
-
-instance ( Constructor a m (t l)
-         , Constructor a m (Stack ls t)) => Constructor a m (Stack (l ': ls) t) where cons a = SLayer <$> cons a <*> cons a
-instance Monad m                         => Constructor a m (Stack '[]       t) where cons _ = return SNull
-
--- instance
-
 -- === Instances === --
 
-instance Show (Stack '[] t) where
-    show _ = ")"
+-- Show
+instance ContentShow (Stack ls t)               => Show          (Stack ls        t)  where show s                        = "(" <> contentShow s <> ")"      ; {-# INLINE show #-}
+instance                                           Show (Content (Stack '[]       t)) where show _                        = ""                               ; {-# INLINE show #-}
+instance (Show (t l), ContentShow (Stack ls t)) => Show (Content (Stack (l ': ls) t)) where show (unwrap' -> SLayer l ls) = show l <> ", " <> contentShow ls ; {-# INLINE show #-}
+instance {-# OVERLAPPING #-} Show (t l)         => Show (Content (Stack '[l]      t)) where show (unwrap' -> SLayer l ls) = show l                           ; {-# INLINE show #-}
 
-instance (Show (t l), Show (Stack ls t)) => Show (Stack (l ': ls) t) where
-    show (SLayer l ls) = show l <> ", " <> show ls
+-- Constructor
+instance ( Constructor a m (t l)
+         , Constructor a m (Stack ls t)) => Constructor a m (Stack (l ': ls) t) where cons a = SLayer <$> cons a <*> cons a ; {-# INLINE cons #-}
+instance Monad m                         => Constructor a m (Stack '[]       t) where cons _ = return SNull                 ; {-# INLINE cons #-}
 
 
-
+-- Properties
 type instance Get p (Stack ls t) = t p
 
-instance {-# OVERLAPPABLE #-}                          Getter p (Stack (p ': ls) t) where get (SLayer t _) = t
-instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls) t) where get (SLayer _ l) = get @p l
+instance {-# OVERLAPPABLE #-}                          Getter p (Stack (p ': ls) t) where get (SLayer t _) = t        ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls) t) where get (SLayer _ l) = get @p l ; {-# INLINE get #-}
+
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+type family ExprLayer l t
+newtype Layer t l = Layer (ExprLayer l t)
+
+type instance ExprLayer Data t = TermStore
+
+instance Monad m => Constructor TermStore m (Layer t Data) where cons = return . Layer
+
+
+
+deriving instance Show (ExprLayer l t) => Show (Layer t l)
+
+makeWrapped ''Layer
+
+-- === Classes === --
+
+class HasLayer layer layers where
+    layer :: forall t layout layers'. Stack layers (Layer (Expr t layers' layout)) -> ExprLayer layer (Expr t layers' layout)
+
+instance {-# OVERLAPPABLE #-}                  HasLayer l (l ': ls) where layer (SLayer t _) = unwrap' t
+instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer (SLayer _ s) = layer @l s
+
 
 
 ------------------
@@ -240,29 +337,33 @@ instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls)
 
 -- === Definitions === --
 
-data Expr      t layers layout    = Expr (TermStack t layers layout) TermStore
-type AnyExpr   t layers           = Expr t layers (Uniform Draft)
-type PrimExpr  t layers name atom = Expr t layers (Prim name atom)
-type PrimExpr' t layers      atom = PrimExpr t layers () atom
+newtype Expr    t layers layout = Expr (ExprStack t layers layout)
+type    AnyExpr t layers        = Expr t layers AnyLayout
 
-type TermStack t layers layout = Stack layers (Layer2 t layers layout)
+type ExprStack    t layers layout = Stack layers (Layer (Expr t layers layout))
+type AnyExprStack t layers        = Stack layers (Layer (Expr t layers AnyLayout))
+
+
+-- === Utils === --
+
+expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t layers), expr ~ Expr t layers layout) => ExprSymbol atom expr -> m expr
+expr a = specifyLayout . Expr <$> cons (encodeSymbol a)
+
+-- TODO: refactor vvv
+specifyLayout :: AnyExpr t layers -> Expr t layers layout
+specifyLayout = unsafeCoerce
 
 
 -- === Properties === --
 
 type instance Get Layout        (Expr _ _ layout) = layout
 type instance Set Layout layout (Expr t layers _) = Expr t layers layout
-type instance Get Data          (Expr _ _ _)      = TermStore
-type instance Get TermType      (Expr t _ _)      = t
--- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
-
-
-instance Getter Data (Expr t layers layout) where get (Expr _ s) = s ; {-# INLINE get #-}
+type instance Get Data          (Expr t layers layout) = Unwrapped (Get Data (Unwrapped (Expr t layers layout))) -- TODO: simplify
 
 
 -- === Bindings === --
 
-type instance Binder              (Expr t  _ _) = Binder   t
+type instance Binder              (Expr t  _ _) = Binder t
 type instance Linker (Expr t _ _) (Expr t' _ _) = Linker t t'
 
 instance Bindable t m => Bindable (Expr t layers model) m where
@@ -278,298 +379,36 @@ instance Linkable t t' m => Linkable (Expr t layers model) (Expr t' layers' mode
     readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
 
 
-
 -- === Instances === --
 
+-- Wrapper
+makeWrapped ''Expr
+
+-- Show
+deriving instance Show (Unwrapped (Expr t layers layout)) => Show (Expr t layers layout)
+
+-- Sub
 type instance Sub s (Expr t layers layout) = Expr t layers (Sub s layout)
 
-deriving instance Show (TermStack t layers layout) => Show (Expr t layers layout)
+-- Layers
+instance HasLayer Data layers => Getter Data (Expr t layers layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
 
 
---------------------
--- === Layers === --
---------------------
 
--- === Definition === --
 
-data family Layer  t l
+------------------------- something
 
-class LayerCons m l where
-    consLayer :: forall t. m (Layer t l)
 
 
--- === Parameters === --
 
-data Layers
-
--- === Construction === --
-
-class    Monad m                          => LayersCons ls        m where buildLayers :: forall t. m (Stack ls (Layer t))
-instance Monad m                          => LayersCons '[]       m where buildLayers = return SNull
-instance (LayersCons ls m, LayerCons m l) => LayersCons (l ': ls) m where buildLayers = SLayer <$> consLayer <*> buildLayers
-
-
-
-
---------------------
--- === Layers === --
---------------------
-
--- === Definition === --
-
-data family Layer2 t (layers :: [*]) layout l
-
-class LayerCons2 l t layers m where
-    consLayer2 :: forall layout. m (Layer2 t layers layout l)
-
-
--- === Parameters === --
-
--- data Layers
-
--- === Construction === --
-
-type LayersCons2' t layers m = LayersCons2 layers t layers m
-instance (LayersCons2 ls t layers m, LayerCons2 l t layers m)
-                 => LayersCons2 (l ': ls) t layers m where buildLayers2 = SLayer <$> consLayer2 <*> buildLayers2
-instance Monad m => LayersCons2 '[]       t layers m where buildLayers2 = return SNull
-class    Monad m => LayersCons2 ls        t layers m where buildLayers2 :: forall layout. m (Stack ls (Layer2 t layers layout))
-
-
---------------------
--- === Layers === --
---------------------
-
--- === Definition === --
-
--- data family Layer  t l
-
-class LayerCons3 l m t where
-    consLayer3 :: m (Layer t l)
-
-
--- === Parameters === --
-
--- data Layers
-
--- === Construction === --
-
-class    Monad m                           => LayersCons3 ls        t m where buildLayers3 :: m (Stack ls (Layer t))
-instance Monad m                           => LayersCons3 '[]       t m where buildLayers3 = return SNull
-instance (LayersCons3 ls t m, LayerCons m l) => LayersCons3 (l ': ls) t m where buildLayers3 = SLayer <$> consLayer <*> buildLayers3
-
-
-
-
-
-
-
-
-
-
-
-newtype ExprSymbol atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (SubLink Atom t))
-makeWrapped ''ExprSymbol
-
-type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
-
-
-instance ValidateLayout (Get Layout t) Atom atom
-      => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
-
-
-
-
--- === ValidateLayout === ---
--- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
-
-type InvalidFormat sel a format = 'ShowType sel
-                             :</>: Ticked ('ShowType a)
-                             :</>: 'Text  "is not a valid"
-                             :</>: Ticked ('ShowType format)
-
-
-class                                                       ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
-type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
-
-
-class                                                        ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
-type ValidateLayout_ model sel a = ValidateScope (model ^. sel) sel a
-type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
-
--- TODO: Booster Extension vvv
--- alias ValidateScope scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
--- alias ValidateLayout model sel a = ValidateScope (model ^. sel) sel a
-
-
--- moze powinnismy zrobic prostsze expression ktore towrylyby sie w layoucie top (latwo konwertowalnym do wszystkiego innego?)
-
-class SymbolEncoder atom where
-    encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
-
-
-instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity
-      => SymbolEncoder atom where
-    encodeSymbol = runIdentity . encodeStore . hideLayout . unwrap' -- magic
-
-
-
-
-type UncheckedTermCons atom t layers m = (LayersCons2' t layers m, SymbolEncoder atom)
-type TermCons         atom t layers layout m = (UncheckedTermCons atom t layers m, ValidateLayout layout Atom atom)
-
--- | The `term` type does not force the construction to be checked,
---   because it has to be already performed in order to deliver ExprSymbol.
--- term :: UncheckedTermCons atom m t => ExprSymbol atom t -> m (Term3 t)
--- term a = flip Term3 (encodeSymbol a) <$> buildLayers
-
-
--- | The `expr` type does not force the construction to be checked,
---   because it has to be already performed in order to deliver ExprSymbol.
-expr :: (expr ~ Expr t layers layout, UncheckedTermCons atom t layers m) => ExprSymbol atom expr -> m expr
-expr a = flip Expr (encodeSymbol a) <$> buildLayers2
-
-
-
-
-
-
-------- Data Layer
-
-type family ExprLayer l t
-newtype Layer4 t l = Layer4 (ExprLayer l t)
-
-type instance ExprLayer Data t = TermStore
-
-instance Monad m => Constructor TermStore m (Layer4 t Data) where cons = return . Layer4
-
--- instance Monad m => Constructor TermStore m (ExprLayer Data t) where
---     cons = return
-
-deriving instance Show (ExprLayer l t) => Show (Layer4 t l)
-
-makeWrapped ''Layer4
-
---------------------
--- === Layers === --
---------------------
-
--- === Definition === --
-
--- data family Layer4 t l
-
-
-
-------------------
--- === Expr === --
-------------------
-
-type TermStack2 t layers layout = Stack layers (Layer4 (Expr2 t layers layout))
-
-
--- === Classes === --
-
-class HasLayer layer layers where
-    layer :: forall t layout layers'. Stack layers (Layer4 (Expr2 t layers' layout)) -> ExprLayer layer (Expr2 t layers' layout)
-
-instance {-# OVERLAPPABLE #-}                  HasLayer l (l ': ls) where layer (SLayer t _) = unwrap' t
-instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer (SLayer _ s) = layer @l s
-
-
--- === Definitions === --
-
-newtype Expr2  t layers layout    = Expr2 (TermStack2 t layers layout)
-
-makeWrapped ''Expr2
--- type AnyExpr   t layers           = Expr t layers (Uniform Draft)
-type PrimExpr2  t layers name atom = Expr2 t layers (Prim name atom)
-type PrimExpr2' t layers      atom = PrimExpr2 t layers () atom
---
---
---
--- -- === Properties === --
---
-type instance Get Layout        (Expr2 _ _ layout) = layout
--- type instance Set Layout layout (Expr t layers _) = Expr t layers layout
-type instance Get Data          (Expr2 t layers layout) = Unwrapped (Get Data (Unwrapped (Expr2 t layers layout))) -- TODO: simplify
--- type instance Get TermType      (Expr t _ _)      = t
--- -- type instance Get Layers      (Expr _ layers _) = Proxy layers -- FIXME: when using ghc >= 8.0.1-head
---
---
-instance HasLayer Data layers => Getter Data (Expr2 t layers layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
---
-
-
--- === Bindings === --
-
-type instance Binder               (Expr2 t  _ _) = Binder   t
-type instance Linker (Expr2 t _ _) (Expr2 t' _ _) = Linker t t'
-
-instance Bindable t m => Bindable (Expr2 t layers model) m where
-    mkBinder    = mkBinder    @t ; {-# INLINE mkBinder    #-}
-    rmBinder    = rmBinder    @t ; {-# INLINE rmBinder    #-}
-    writeBinder = writeBinder @t ; {-# INLINE writeBinder #-}
-    readBinder  = readBinder  @t ; {-# INLINE readBinder  #-}
-
-instance Linkable t t' m => Linkable (Expr2 t layers model) (Expr2 t' layers' model') m where
-    mkLinker    = mkLinker    @t @t' ; {-# INLINE mkLinker    #-}
-    rmLinker    = rmLinker    @t @t' ; {-# INLINE rmLinker    #-}
-    writeLinker = writeLinker @t @t' ; {-# INLINE writeLinker #-}
-    readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
-
-
--- === Instances === --
-
-type instance Sub s (Expr2 t layers layout) = Expr2 t layers (Sub s layout)
-
-
-
-
-data AnyLayout = AnyLayout deriving (Show)
-type instance Get Atom AnyLayout = AnyLayout
-type instance Atoms AnyLayout = '[Star]
-
-type instance Sub t AnyLayout = AnyLayout
-
--- TODO: zamiast zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
--- expr2 :: (Constructor a m (TermStack2 t layers layout), expr ~ Expr2 t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
--- expr2 a = Expr2 <$> cons a
-
-expr3 :: (SymbolEncoder atom, Constructor TermStore m (TermStack2 t layers AnyLayout), expr ~ Expr2 t layers layout) => ExprSymbol atom expr -> m expr
-expr3 a = specifyLayout . Expr2 <$> cons (encodeSymbol a)
-
-specifyLayout :: Expr2 t layers AnyLayout -> Expr2 t layers layout
-specifyLayout = unsafeCoerce
-
-specifyLayout2 :: Binding (Expr2 t layers AnyLayout) -> Binding (Expr2 t layers layout)
+specifyLayout2 :: Binding (Expr t layers AnyLayout) -> Binding (Expr t layers layout)
 specifyLayout2 = unsafeCoerce
 
-anyLayout :: Expr2 t layers layout -> Expr2 t layers AnyLayout
+anyLayout :: Expr t layers layout -> Expr t layers AnyLayout
 anyLayout = unsafeCoerce
 
-anyLayout2 :: Binding (Expr2 t layers layout) -> Binding (Expr2 t layers AnyLayout)
+anyLayout2 :: Binding (Expr t layers layout) -> Binding (Expr t layers AnyLayout)
 anyLayout2 = unsafeCoerce
-
--- === Instances === --
-
-deriving instance Show (Unwrapped (Expr2 t layers layout)) => Show (Expr2 t layers layout)
--- deriving as Unwrapped instance Show (Expr2 t layers layout)
-
-
-
-
-
--- class Monad m => Generator     m a where new         :: m a                      ; default new :: Maker a => Deconstructed a -> m a
-
-
 
 
 
