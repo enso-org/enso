@@ -5,7 +5,7 @@
 ---------------------------------------------------
 
 name:                impossible
-version:             1.0.1
+version:             1.0.2
 synopsis:            Set of data and type definitions of impossible types. Impossible types are useful when declaring type classes / type families instances that should not be expanded by GHC until a specific type is provided in order to keep the types nice and readable.
 -- description:
 license:             Apache-2.0
@@ -52,8 +52,7 @@ Library
                       TypeFamilies
 
   exposed-modules:    
-        Data.Impossible,
-        Data.Impossible.Compact
+        Data.Impossible
 
   build-depends:      base >=4.6 && <4.10
                     , lens
