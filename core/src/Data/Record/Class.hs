@@ -138,7 +138,7 @@ class CheckMatch    t a rec where checkMatch :: Proxy t -> Proxy (a :: *) -> rec
 -- === Instances === --
 
 type instance RecordOf (Cover c a) = RecordOf a
-instance HasRecord a => HasRecord (Cover c a) where record = covered ∘ record ; {-# INLINE record #-}
+-- instance HasRecord a => HasRecord (Cover c a) where record = covered ∘ record ; {-# INLINE record #-}
 
 ------------------------
 -- === Properties === --

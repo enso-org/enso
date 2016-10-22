@@ -218,8 +218,12 @@ writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
 readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
 
--- class Connection where
---     read :: c -> m (Target c)
+type family Result (m :: * -> *)
+
+class Connection a m where
+    read  :: a -> m (a ^. Content)
+    write :: a ^. Content -> a -> m (Result m)
+
 
 
 -- === Utils === --

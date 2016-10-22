@@ -336,6 +336,16 @@ nmagicStar = mkBinding =<< expr (wrap' N.star')
 
 
 
+-- newtype LensM = LensM { _lensGetter :: a -> m c
+--                       , _lensSetter ::
+--                       }
+--
+--
+--
+-- newtype LensM t a m = LensM { _lensGetter :: a -> m (Get t a)
+--                             , _lensSetter ::
+--                             }
+
 type ANT' a n t = ANT SimpleX a n t
 
 type Expr' cls layers a n t = Expr cls layers (ANT' a n t)
@@ -361,7 +371,14 @@ test_gr = baseLayout @(ANT SimpleX () () Star) $ do
     (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- unify s1 s2
 
     t <- readBinding s1
-    -- t <- target s1
+
+    -- t <- read s1
+    -- write s1 t
+    --
+    -- Unify l r <- read u1
+    -- tgt  <- targetM l
+    -- src  <- sourceM l
+    -- both <- read l
 
     case' t of
         Symbol.Unify l r -> print 11
