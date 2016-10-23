@@ -302,9 +302,30 @@ instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (M
     readRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE readRefM  #-}
 
 
-
-instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (MAutoVector s), Getter t g)
-      => ReferableM t (HMGraph s rels) m where
-    setRefM r v = error "x" -- store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
+-- TODO: [WD] it should be refactored together with containers library
+instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (MAutoVector s), Getter t g
+         , Get t tassocs ~ Hetero2 (MAutoVector s)
+         , Set t (Get t tassocs) tassocs ~ tassocs
+         , Getter  t tassocs
+         , Setter' t tassocs
+         , assocs ~ Assocs rels ('Cycle (Hetero2 (MAutoVector s)))
+         , tassocs ~ TMap assocs
+         ) => ReferableM t (HMGraph s rels) m where
+    setRefM r v g = (prop2' @t $ unchecked inplace Cont.insertM__ (r ^. idx) (unsafeCoerce v)) g
     -- readRefM  r g = Cont.indexM__ (r ^. idx) $ (get @t (g :: g) :: Get t g)              ; {-# INLINE readRefM  #-}
     viewRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE viewRefM  #-}
+
+--
+-- instance (g ~ Graph n e c, r ~ (g # t), HasStore t g, Monad m) => ReferencedM t (Graph n e c) m r where
+--     writeRefM r v = store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
+--     readRefM  r   = Cont.indexM__ (r ^. idx) ∘ view (store (p :: P t))               ; {-# INLINE readRefM  #-}
+
+
+-- class ReferencedM r t m a where
+--     writeRefM :: Ref r a -> a -> t -> m t
+--     readRefM  :: Ref r a -> t -> m a
+--
+-- class ReferableM r t m where
+--     setRefM  :: Ref2 r a -> a -> t -> m t
+--     viewRefM :: Ref2 r a      -> t -> m a
+--     viewPtrs :: t -> m [Ptr2 r]

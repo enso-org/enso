@@ -216,9 +216,9 @@ type instance Linker Net Net = EdgeRef
 
 instance (Monad m, MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m)
       => Bindable Net m where
-    mkBinder   = NodeRef <∘> construct' ; {-# INLINE mkBinder   #-}
-    readBinder = readRef . unwrap'      ; {-# INLINE readBinder #-}
-
+    mkBinder    = NodeRef <∘> construct' ; {-# INLINE mkBinder    #-}
+    readBinder  = readRef  . unwrap'     ; {-# INLINE readBinder  #-}
+    writeBinder = writeRef . unwrap'     ; {-# INLINE writeBinder #-}
 
 instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
       => Linkable Net Net m where
@@ -371,43 +371,7 @@ baseLayout = runInferenceT2 @Layout
 
 
 
-test_gr :: forall t layers m .
-            ( --MonadIO m
-             Bindable  t m
-            , Linkable' t m
-            , AnyExprCons t layers m
-            , Inferable2 InfLayers layers m
-            , Inferable2 TermType  t      m
-            , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
-            , HasLayer Data layers
-            , Show (UntyppedExpr t layers Star            ())
-        ) => m (Binding (UntyppedExpr t layers Star ()))
-test_gr = baseLayout @(ANT SimpleX () () Star) $ do
-    (s1 :: Binding (UntyppedExpr t layers Star            ())) <- star
-    (s2 :: Binding (UntyppedExpr t layers Star            ())) <- star
-    (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- unify s1 s2
 
-    t <- read s1
-
-    -- t <- read s1
-    -- write s1 t
-    --
-    -- Unify l r <- read u1
-    -- tgt  <- targetM l
-    -- src  <- sourceM l
-    -- both <- read l
-
-    -- case' t of
-    --     Symbol.Unify l r -> print 11
-    --     Symbol.Star      -> case' t of
-    --         Symbol.Unify l r -> print "hello"
-    --         Symbol.Star      -> print "hello3xx"
-
-    -- print "!!!"
-    -- print t
-    -- print s1
-    -- print $ get @Sym $ unwrap' $ get @Data t
-    return s1
 
 -- yyy = folllowe
 
@@ -431,18 +395,19 @@ evalGraphT f g = fst <$> runGraphT f g
 execGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m Network3
 execGraphT f g = snd <$> runGraphT f g
 
-evalGraph :: GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a -> Network3 -> a
-evalGraph f g = runST $ unsafeCoerce $ evalGraphT f g -- ST magic, could we get rid of unsafeCoerce? it prevents "escaping" from scope
+evalGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> a
+evalGraph f g = runST $ evalGraphT f g
 
-execGraph :: GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a -> Network3 -> Network3
-execGraph f g = runST $ unsafeCoerce $ execGraphT f g -- ST magic, could we get rid of unsafeCoerce? it prevents "escaping" from scope
+execGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> Network3
+execGraph f g = runST $ execGraphT f g
+
 
 
 -- runGraph = runST .: runGraphT
 --
 -- evalGraph = fst .: runGraph
 
-test_g3 :: (PrimMonad m, MonadFix m)
+test_g3 :: (MonadIO m, PrimMonad m, MonadFix m)
         => m (Binding (UntyppedExpr Net '[Data, Type] Star ()), Network3)
 test_g3 = runNewGraphT
         $ flip Self.evalT undefined
@@ -453,22 +418,124 @@ test_g3 = runNewGraphT
 
 
 instance Connection (Binding (Expr Net layers layout)) ((->) Network3) where
-    read  = evalGraph .  read  ; {-# INLINE read  #-}
-    write = execGraph .: write ; {-# INLINE write #-}
+    read  a   = evalGraph $ read a    ; {-# INLINE read  #-}
+    write a t = execGraph $ write a t ; {-# INLINE write #-}
+
+instance XBuilder (AnyExpr Net layers) ((->) Network3) where
+    bindings g = runST $ do
+        mg <- NEC.thaw2 g
+        fmap (Binding . NodeRef . unsafeRefer) <$> viewPtrs mg
+    {-# INLINE bindings #-}
+
+bindings2 :: (XBuilder a m, a ~ AnyExpr Net layers) => m [Binding a]
+bindings2 = bindings
+
+-- unsafeRebindST :: ST s a -> ST s' a
+-- unsafeRebindST = unsafeCoerce
+
+-- testu :: (ReferableM r Network3 (ST s)) => Network3 -> [Ptr2 r]
+-- testu t = runST $ unsafeRebindST $ viewPtrs t
+
+-- class Foo2 a where foo2 :: forall s. ST s a
+
+-- class STM where
+--     stm :: m a -> forall s. ST s a
+
+class Foo  m a where foo  :: m a
+class Foo2   a where foo2 :: forall s. ST s a
+
+-- class LiftST m a where
+--     liftST :: m a -> forall s. ST s a
+
+-- class RunMe m a where
+--     runMe :: m a -> a
+--
+-- instance m ~ ST s => RunMe m a where
+--     runMe = runST
+
+-- bar :: Foo m a
+-- bar = runST foo
+
+-- bar2 :: Foo2 a => a
+-- bar2 = runST foo2
+
+-- newtype ST' a = ST' { fromST' :: forall s. ST s a } deriving (Functor) -- , Foldable, Traversable)
+--
+-- instance Applicative ST' where
+--     pure a              = ST' $ pure a  ; {-# INLINE pure  #-}
+--     (ST' f) <*> (ST' a) = ST' $ f <*> a ; {-# INLINE (<*>) #-}
+--
+-- instance Monad ST' where
+--     return a    = ST' $ return a            ; {-# INLINE return #-}
+--     ST' a >>= f = ST' $ a >>= (fromST' . f) ; {-# INLINE (>>=)  #-}
+--
+-- runST' :: ST' a -> a
+-- runST' (ST' st) = runST st
+--
+-- myTest :: Foo ST' a => a
+-- myTest = runST' foo
+--
+-- newtype SomeST a = SomeST (forall s. ST s a)
+--
+-- runSomeST :: SomeST a -> a
+-- runSomeST (SomeST st) = runST st
+--
+-- unsafeToSomeST :: forall a. (forall s. (ST s a)) -> SomeST a
+-- unsafeToSomeST ma = undefined -- SomeST $ (unsafeCoerce ma :: forall s. ST s a)
+
+
+test_gr :: forall t layers m .
+            ( MonadIO m
+            , Bindable  t m
+            , Linkable' t m
+            , AnyExprCons t layers m
+            , Inferable2 InfLayers layers m
+            , Inferable2 TermType  t      m
+            , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
+            , HasLayer Data layers
+            , Show (UntyppedExpr t layers Star            ())
+        ) => m (Binding (UntyppedExpr t layers Star ()))
+test_gr = baseLayout @(ANT SimpleX () () Star) $ do
+    (s1 :: Binding (UntyppedExpr t layers Star            ())) <- star
+    (s2 :: Binding (UntyppedExpr t layers Star            ())) <- star
+    (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- unify s1 s2
+
+    t <- read s1
+    write s1 t
+
+    -- bs <- bindings
+    -- Unify l r <- read u1
+    -- tgt  <- targetM l
+    -- src  <- sourceM l
+    -- both <- read l
+
+    case' t of
+        Symbol.Unify l r -> print 11
+        Symbol.Star      -> case' t of
+            Symbol.Unify l r -> print "hello"
+            Symbol.Star      -> print "hello3xx"
+
+    -- print "!!!"
+    -- print t
+    -- print s1
+    -- print $ get @Sym $ unwrap' $ get @Data t
+    return s1
+
 
 
 
 main :: IO ()
 main = do
 
-    let (s,g) = runST test_g3
-    -- (s,g) <- test_g3
-    print s
+    -- let (s,g) = runST test_g3
+    (s1,g) <- test_g3
 
-    print ""
-    print "---"
+    putStrLn "\n\n---"
 
-    let t = read s g
+    let t  = read  s1 g
+        g' = write s1 t g
+        bs = bindings2 g
     print t
+    -- print bs
 
     return ()

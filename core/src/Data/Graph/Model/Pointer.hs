@@ -150,6 +150,10 @@ instance {-# OVERLAPPABLE #-} Castable (Loc r  ) (Loc r'   ) where cast = rewrap
 newtype Ptr2 r   = Ptr2 (Ptr r 'Unknown  ) deriving (Generic, NFData, Show, Eq, Ord, Num)
 newtype Ref2 r a = Ref2 (Ptr r ('Known a)) deriving (Generic, NFData, Show, Eq, Ord, Num)
 
+
+unsafeRefer :: Ptr2 r -> Ref2 r a
+unsafeRefer = wrap . retarget . unwrap' ; {-# INLINE unsafeRefer #-}
+
 -- === Location Accessors === --
 
 type  Pointable  r t = PointableM r t Identity
@@ -161,6 +165,7 @@ type  Referable r t = ReferableM r t Identity
 class ReferableM r t m where
     setRefM  :: Ref2 r a -> a -> t -> m t
     viewRefM :: Ref2 r a      -> t -> m a
+    viewPtrs :: t -> m [Ptr2 r]
 
 
 -- | General interface for location handling
@@ -185,11 +190,12 @@ instance (ReferableM r t m, a ~ a') => LocalizableM (Ref2 r a) t m a' where
 class MonadRef r m where
     writeRef :: Ref2 r a -> a -> m ()
     readRef  :: Ref2 r a      -> m a
+    pointers :: m [Ptr2 r]
 
 instance (Graph.Builder.MonadBuilder g m, ReferableM t g m) => MonadRef t m where
     writeRef ref a = Graph.Builder.modifyM_ (setRefM ref a) ; {-# INLINE writeRef #-}
     readRef  ref   = viewRefM ref =<< Graph.Builder.get     ; {-# INLINE readRef  #-}
-
+    pointers       = viewPtrs =<< Graph.Builder.get         ; {-# INLINE pointers #-}
 
 
 class MonadPtr r m a where

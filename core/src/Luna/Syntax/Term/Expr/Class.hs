@@ -179,6 +179,7 @@ type        Linker' src tgt = Linker src tgt src tgt
 
 newtype Binding     tgt = Binding (Binder' tgt)
 newtype Link    src tgt = Link    (Linker' src tgt)
+type    Link'   a       = Link    a a
 makeWrapped ''Binding
 makeWrapped ''Link
 
@@ -228,8 +229,12 @@ type NoResult m = Result m ~ ()
 
 
 class Connection a m where
-    read  :: a -> m (Content2 a)
-    write :: a -> Content2 a -> m (Result m)
+    read     :: a -> m (Content2 a)
+    write    :: a -> Content2 a -> m (Result m)
+
+class XBuilder a m where
+    bindings :: m [Binding a]
+    -- links    :: m [Link'   a]
 
 
 type instance Content2 (Binding a)   = a
