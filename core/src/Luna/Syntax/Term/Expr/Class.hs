@@ -218,11 +218,27 @@ writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
 readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
 
-type family Result (m :: * -> *)
+type family Content2 a
+
+type family Result (m :: * -> *) where
+    Result ((->) t) = t
+    Result m        = ()
+
+type NoResult m = Result m ~ ()
+
 
 class Connection a m where
-    read  :: a -> m (a ^. Content)
-    write :: a ^. Content -> a -> m (Result m)
+    read  :: a -> m (Content2 a)
+    write :: a -> Content2 a -> m (Result m)
+
+
+type instance Content2 (Binding a)   = a
+type instance Content2 (Link    a b) = (Binding a, Binding b)
+
+instance {-# OVERLAPPABLE #-} (Bindable a m, NoResult m) => Connection (Binding a) m where
+    read  = readBinding  ; {-# INLINE read  #-}
+    write = writeBinding ; {-# INLINE write #-}
+
 
 
 
@@ -237,8 +253,8 @@ type SubBinding c t = Binding (Sub c t)
 deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
 deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
 
-type instance Get p   (Binding a) = Get p a
-type instance Set p v (Binding a) = Binding (Set p v a)
+-- type instance Get p   (Binding a) = Get p a
+-- type instance Set p v (Binding a) = Binding (Set p v a)
 
 
 

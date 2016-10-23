@@ -23,7 +23,7 @@ import Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)
 import Data.Graph.Model.Pointer.Set ()
 
-import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:), MapVals, Cycle(..))
+import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:), MapVals, Cycle(..), List((:-:), Null))
 import qualified Data.RTuple as List
 import           Data.Container.Hetero (Hetero2(..), Any)
 import           Control.Lens.Property
@@ -92,6 +92,14 @@ unsafeThaw (unwrap' -> NEC n e c) = wrap' <$> (NEC <$> AutoVector.unsafeThaw n <
 -- TODO[WD]: Move to containers as container utility function
 unsafeFreeze :: PrimMonad m => MGraph (PrimState m) n e c -> m (Graph n e c)
 unsafeFreeze (unwrap' -> NEC n e c) = wrap' <$> (NEC <$> AutoVector.unsafeFreeze n <*> AutoVector.unsafeFreeze e <*> AutoVector.unsafeFreeze c) ; {-# INLINE unsafeFreeze #-}
+
+-- TODO[WD]: Move to containers as container utility function
+thaw :: PrimMonad m => Graph n e c -> m (MGraph (PrimState m) n e c)
+thaw (unwrap' -> NEC n e c) = wrap' <$> (NEC <$> AutoVector.thaw n <*> AutoVector.thaw e <*> AutoVector.thaw c) ; {-# INLINE thaw #-}
+
+-- TODO[WD]: Move to containers as container utility function
+freeze :: PrimMonad m => MGraph (PrimState m) n e c -> m (Graph n e c)
+freeze (unwrap' -> NEC n e c) = wrap' <$> (NEC <$> AutoVector.freeze n <*> AutoVector.freeze e <*> AutoVector.freeze c) ; {-# INLINE freeze #-}
 
 
 -- === Instances === --
@@ -177,6 +185,35 @@ newtype HGraph    (els :: [★]) = HGraph  (TMap (els :=: 'Cycle (Hetero2 AutoVe
 newtype HMGraph s (els :: [★]) = HMGraph (TMap (els :=: 'Cycle (Hetero2 (MAutoVector s))))
 
 
+freeze2 :: PrimMonad m => HMGraph (PrimState m) '[Node, Edge, Cluster] -> m (HGraph '[Node, Edge, Cluster])
+freeze2 (HMGraph (TMap (n :-: e :-: c :-: Null))) = do
+    n' <- Hetero2 <$> AutoVector.freeze (unwrap' n)
+    e' <- Hetero2 <$> AutoVector.freeze (unwrap' e)
+    c' <- Hetero2 <$> AutoVector.freeze (unwrap' c)
+    return $ HGraph (TMap (n' :-: e' :-: c' :-: Null))
+
+thaw2 :: PrimMonad m => HGraph '[Node, Edge, Cluster] -> m (HMGraph (PrimState m) '[Node, Edge, Cluster])
+thaw2 (HGraph (TMap (n :-: e :-: c :-: Null))) = do
+    n' <- Hetero2 <$> AutoVector.thaw (unwrap' n)
+    e' <- Hetero2 <$> AutoVector.thaw (unwrap' e)
+    c' <- Hetero2 <$> AutoVector.thaw (unwrap' c)
+    return $ HMGraph (TMap (n' :-: e' :-: c' :-: Null))
+
+unsafeFreeze2 :: PrimMonad m => HMGraph (PrimState m) '[Node, Edge, Cluster] -> m (HGraph '[Node, Edge, Cluster])
+unsafeFreeze2 (HMGraph (TMap (n :-: e :-: c :-: Null))) = do
+    n' <- Hetero2 <$> AutoVector.unsafeFreeze (unwrap' n)
+    e' <- Hetero2 <$> AutoVector.unsafeFreeze (unwrap' e)
+    c' <- Hetero2 <$> AutoVector.unsafeFreeze (unwrap' c)
+    return $ HGraph (TMap (n' :-: e' :-: c' :-: Null))
+
+unsafeThaw2 :: PrimMonad m => HGraph '[Node, Edge, Cluster] -> m (HMGraph (PrimState m) '[Node, Edge, Cluster])
+unsafeThaw2 (HGraph (TMap (n :-: e :-: c :-: Null))) = do
+    n' <- Hetero2 <$> AutoVector.unsafeThaw (unwrap' n)
+    e' <- Hetero2 <$> AutoVector.unsafeThaw (unwrap' e)
+    c' <- Hetero2 <$> AutoVector.unsafeThaw (unwrap' c)
+    return $ HMGraph (TMap (n' :-: e' :-: c' :-: Null))
+
+
 -- === Instances === --
 
 -- Wrapped
@@ -211,6 +248,14 @@ emptyHMGraph = do
            . List.prepend ne
            . List.prepend nn
            $ List.empty
+
+emptyHGraph :: HGraph '[Node, Edge, Cluster]
+emptyHGraph = HGraph
+            . TMap
+            . List.prepend def
+            . List.prepend def
+            . List.prepend def
+            $ List.empty
 
 -- class DynamicM t g m a where
 --     addM    :: a -> g -> m (Ref t a, g)

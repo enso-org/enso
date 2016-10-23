@@ -52,8 +52,6 @@ import qualified Luna.Syntax.Term.Expr.Atom as Atom
 import GHC.Prim (Any)
 
 
-undefined = error "Undefined in Term/Class.hs"
-
 -------------------------------------
 -- === Term building utilities === --
 -------------------------------------

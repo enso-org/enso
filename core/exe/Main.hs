@@ -24,7 +24,7 @@ import           Old.Data.Attr                (attr)
 import           Data.Construction
 import           Data.Container           (elems, index_)
 import           Data.Container           hiding (impossible)
-import           Data.Graph.Builder       hiding (get, Linkable)
+import           Data.Graph.Builder       (MonadBuilder)
 import           Data.Graph.Query         hiding (Graph)
 import qualified Data.Graph.Query         as Sort
 import           Data.Index               (idx)
@@ -40,7 +40,7 @@ import           Type.Inference
 import           Data.Container.Hetero                           (Hetero(..), Any(..))
 import qualified Data.Graph.Builder.Class                        as Graph
 import qualified Data.Graph.Builder.Class                        as Graph.Builder
-import           Data.Graph.Builder.Ref                          as Ref
+-- import           Data.Graph.Builder.Ref                          as Ref
 import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
 import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
 import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
@@ -126,6 +126,8 @@ import System.Exit (exitSuccess)
 import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 
+import Control.Monad.ST
+
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
@@ -152,7 +154,8 @@ defaultMatch = error "wrong match"
 
 
 
-type Network3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
+type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
+type MNetwork3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
 
 
@@ -226,6 +229,10 @@ instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
 
 
 
+--
+-- class ReferableM r t m where
+--     setRefM  :: Ref2 r a -> a -> t -> m t
+--     viewRefM :: Ref2 r a      -> t -> m a
 
 
 -- === Type Layer === --
@@ -336,9 +343,12 @@ nmagicStar = mkBinding =<< expr (wrap' N.star')
 
 
 
--- newtype LensM = LensM { _lensGetter :: a -> m c
---                       , _lensSetter ::
---                       }
+data LensM s t a b m = LensM { _lensGetter :: s -> m a
+                             , _lensSetter :: b -> m t
+                             }
+
+type LensM' s a m = LensM s s a a m
+
 --
 --
 --
@@ -354,9 +364,16 @@ type UntyppedExpr cls layers a n = Expr' cls layers a n Star
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
 
+
+
+
+
+
+
+
 test_gr :: forall t layers m .
-            ( MonadIO m
-            , Bindable  t m
+            ( --MonadIO m
+             Bindable  t m
             , Linkable' t m
             , AnyExprCons t layers m
             , Inferable2 InfLayers layers m
@@ -364,13 +381,13 @@ test_gr :: forall t layers m .
             , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
             , HasLayer Data layers
             , Show (UntyppedExpr t layers Star            ())
-        ) => m ()
+        ) => m (Binding (UntyppedExpr t layers Star ()))
 test_gr = baseLayout @(ANT SimpleX () () Star) $ do
     (s1 :: Binding (UntyppedExpr t layers Star            ())) <- star
     (s2 :: Binding (UntyppedExpr t layers Star            ())) <- star
     (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- unify s1 s2
 
-    t <- readBinding s1
+    t <- read s1
 
     -- t <- read s1
     -- write s1 t
@@ -380,37 +397,78 @@ test_gr = baseLayout @(ANT SimpleX () () Star) $ do
     -- src  <- sourceM l
     -- both <- read l
 
-    case' t of
-        Symbol.Unify l r -> print 11
-        Symbol.Star      -> case' t of
-            Symbol.Unify l r -> print "hello"
-            Symbol.Star      -> print "hello3xx"
+    -- case' t of
+    --     Symbol.Unify l r -> print 11
+    --     Symbol.Star      -> case' t of
+    --         Symbol.Unify l r -> print "hello"
+    --         Symbol.Star      -> print "hello3xx"
 
     -- print "!!!"
-    print t
+    -- print t
     -- print s1
     -- print $ get @Sym $ unwrap' $ get @Data t
-    return ()
+    return s1
 
 -- yyy = folllowe
 
+runNewGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> m (a, Network3)
+runNewGraphT f = do
+    mg       <- NEC.unsafeThaw2 (NEC.emptyHGraph)
+    (a, mg') <- Graph.Builder.runT f mg
+    g'       <- NEC.unsafeFreeze2 mg'
+    return (a, g')
 
-test_g3 :: forall m. (PrimMonad m, MonadIO m, MonadFix m)
-        => m ((), Network3 m)
-test_g3 = do
-    g <- NEC.emptyHMGraph
-    flip Self.evalT undefined $
-        flip Type.evalT Nothing $
-        flip Graph.Builder.runT g -- $ suppressAll
-                                  $ runInferenceT2 @InfLayers @'[Data, Type]
-                                  $ runInferenceT2 @TermType  @Net
-                                  $ (test_gr)
+runGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m (a, Network3)
+runGraphT f g = do
+    mg       <- NEC.thaw2 g
+    (a, mg') <- Graph.Builder.runT f mg
+    g'       <- NEC.unsafeFreeze2 mg'
+    return (a, g')
+
+evalGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m a
+evalGraphT f g = fst <$> runGraphT f g
+
+execGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m Network3
+execGraphT f g = snd <$> runGraphT f g
+
+evalGraph :: GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a -> Network3 -> a
+evalGraph f g = runST $ unsafeCoerce $ evalGraphT f g -- ST magic, could we get rid of unsafeCoerce? it prevents "escaping" from scope
+
+execGraph :: GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a -> Network3 -> Network3
+execGraph f g = runST $ unsafeCoerce $ execGraphT f g -- ST magic, could we get rid of unsafeCoerce? it prevents "escaping" from scope
+
+
+-- runGraph = runST .: runGraphT
+--
+-- evalGraph = fst .: runGraph
+
+test_g3 :: (PrimMonad m, MonadFix m)
+        => m (Binding (UntyppedExpr Net '[Data, Type] Star ()), Network3)
+test_g3 = runNewGraphT
+        $ flip Self.evalT undefined
+        $ flip Type.evalT Nothing
+        $ runInferenceT2 @InfLayers @'[Data, Type]
+        $ runInferenceT2 @TermType  @Net
+        $ test_gr
+
+
+instance Connection (Binding (Expr Net layers layout)) ((->) Network3) where
+    read  = evalGraph .  read  ; {-# INLINE read  #-}
+    write = execGraph .: write ; {-# INLINE write #-}
+
 
 
 main :: IO ()
 main = do
 
-    (x,g) <- test_g3
-    print x
+    let (s,g) = runST test_g3
+    -- (s,g) <- test_g3
+    print s
+
+    print ""
+    print "---"
+
+    let t = read s g
+    print t
 
     return ()
