@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeFamilyDependencies    #-}
 {-# LANGUAGE RecursiveDo               #-}
 {-# LANGUAGE PartialTypeSignatures     #-}
+{-# LANGUAGE AllowAmbiguousTypes       #-}
 {-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
@@ -138,8 +139,9 @@ data InfLayers = InfLayers
 
 runCase :: Getter Data (Expr t layers layout) => Expr t layers layout -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    s   = unwrap' $ get @Sym $ unwrap' $ get @Data el
-    idx = unwrap' $ get @Atom $ unwrap' $ get @Data el
+    d   = unwrap' $ get @Data el
+    s   = unwrap' $ get @Sym  d
+    idx = unwrap' $ get @Atom d
 {-# INLINE runCase #-}
 
 
@@ -185,18 +187,22 @@ makeWrapped ''EdgeRef
 
 -- === Definition === ---
 
-type ANT l a n t = Compound l '[Atom := a, Name := n, Type := t]
+data ANT
+type ANTLayout l a n t = Compound l '[Atom := a, Name := n, Type := t]
 
 
 -- === Instances === ---
 
+-- DefaultLayout
+type instance DefaultLayout ANT = ANTLayout SimpleX () () Star
+
 -- Sub
-type instance Sub Atom (ANT SimpleX a n t) = ANT SimpleX (Sub Atom a) n t
-type instance Sub Name (ANT SimpleX a n t) = ANT SimpleX (Sub Name n) (Sub Name n) (Sub Name n)
-type instance Sub Type (ANT SimpleX a n t) = ANT SimpleX (Sub Type t) (Sub Type t) (Sub Type t)
+type instance Sub Atom (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Atom a) n t
+type instance Sub Name (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Name n) (Sub Name n) (Sub Name n)
+type instance Sub Type (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Type t) (Sub Type t) (Sub Type t)
 
 -- Specialized
-type instance Specialized Atom spec (ANT l a n t) = ANT l (Simplify (spec :> a)) n t
+type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify (spec :> a)) n t
 
 
 
@@ -356,7 +362,7 @@ type LensM' s a m = LensM s s a a m
 --                             , _lensSetter ::
 --                             }
 
-type ANT' a n t = ANT SimpleX a n t
+type ANT' a n t = ANTLayout SimpleX a n t
 
 type Expr' cls layers a n t = Expr cls layers (ANT' a n t)
 type UntyppedExpr cls layers a n = Expr' cls layers a n Star
@@ -365,15 +371,9 @@ baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
 
 
+layouted :: forall l m a. KnownTypeT Layout (DefaultLayout l) m a -> m a
+layouted = baseLayout @(DefaultLayout l)
 
-
-
-
-
-
-
-
--- yyy = folllowe
 
 runNewGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> m (a, Network3)
 runNewGraphT f = do
@@ -402,11 +402,6 @@ execGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Ne
 execGraph f g = runST $ execGraphT f g
 
 
-
--- runGraph = runST .: runGraphT
---
--- evalGraph = fst .: runGraph
-
 test_g3 :: (MonadIO m, PrimMonad m, MonadFix m)
         => m (Binding (UntyppedExpr Net '[Data, Type] Star ()), Network3)
 test_g3 = runNewGraphT
@@ -430,59 +425,6 @@ instance XBuilder (AnyExpr Net layers) ((->) Network3) where
 bindings2 :: (XBuilder a m, a ~ AnyExpr Net layers) => m [Binding a]
 bindings2 = bindings
 
--- unsafeRebindST :: ST s a -> ST s' a
--- unsafeRebindST = unsafeCoerce
-
--- testu :: (ReferableM r Network3 (ST s)) => Network3 -> [Ptr2 r]
--- testu t = runST $ unsafeRebindST $ viewPtrs t
-
--- class Foo2 a where foo2 :: forall s. ST s a
-
--- class STM where
---     stm :: m a -> forall s. ST s a
-
-class Foo  m a where foo  :: m a
-class Foo2   a where foo2 :: forall s. ST s a
-
--- class LiftST m a where
---     liftST :: m a -> forall s. ST s a
-
--- class RunMe m a where
---     runMe :: m a -> a
---
--- instance m ~ ST s => RunMe m a where
---     runMe = runST
-
--- bar :: Foo m a
--- bar = runST foo
-
--- bar2 :: Foo2 a => a
--- bar2 = runST foo2
-
--- newtype ST' a = ST' { fromST' :: forall s. ST s a } deriving (Functor) -- , Foldable, Traversable)
---
--- instance Applicative ST' where
---     pure a              = ST' $ pure a  ; {-# INLINE pure  #-}
---     (ST' f) <*> (ST' a) = ST' $ f <*> a ; {-# INLINE (<*>) #-}
---
--- instance Monad ST' where
---     return a    = ST' $ return a            ; {-# INLINE return #-}
---     ST' a >>= f = ST' $ a >>= (fromST' . f) ; {-# INLINE (>>=)  #-}
---
--- runST' :: ST' a -> a
--- runST' (ST' st) = runST st
---
--- myTest :: Foo ST' a => a
--- myTest = runST' foo
---
--- newtype SomeST a = SomeST (forall s. ST s a)
---
--- runSomeST :: SomeST a -> a
--- runSomeST (SomeST st) = runST st
---
--- unsafeToSomeST :: forall a. (forall s. (ST s a)) -> SomeST a
--- unsafeToSomeST ma = undefined -- SomeST $ (unsafeCoerce ma :: forall s. ST s a)
-
 
 test_gr :: forall t layers m .
             ( MonadIO m
@@ -493,9 +435,9 @@ test_gr :: forall t layers m .
             , Inferable2 TermType  t      m
             , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
             , HasLayer Data layers
-            , Show (UntyppedExpr t layers Star            ())
+            , Show (UntyppedExpr t layers Star ())
         ) => m (Binding (UntyppedExpr t layers Star ()))
-test_gr = baseLayout @(ANT SimpleX () () Star) $ do
+test_gr = layouted @ANT $ do
     (s1 :: Binding (UntyppedExpr t layers Star            ())) <- star
     (s2 :: Binding (UntyppedExpr t layers Star            ())) <- star
     (u1 :: Binding (UntyppedExpr t layers (Unify :> Star) ())) <- unify s1 s2
@@ -510,17 +452,16 @@ test_gr = baseLayout @(ANT SimpleX () () Star) $ do
     -- both <- read l
 
     case' t of
-        Symbol.Unify l r -> print 11
-        Symbol.Star      -> case' t of
-            Symbol.Unify l r -> print "hello"
-            Symbol.Star      -> print "hello3xx"
+        Unify l r -> print 11
+        Star      -> case' t of
+            Unify l r -> print "hello"
+            Star      -> print "hello3xx"
 
     -- print "!!!"
     -- print t
     -- print s1
     -- print $ get @Sym $ unwrap' $ get @Data t
     return s1
-
 
 
 

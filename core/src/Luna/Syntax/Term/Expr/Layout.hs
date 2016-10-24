@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE PolyKinds            #-}
 
 module Luna.Syntax.Term.Expr.Layout where
 
@@ -25,10 +26,10 @@ data Named n a
 -----------------------------
 
 data Layout = Layout deriving (Show)
--- data Model    = Model    deriving (Show) -- FIXME: depreciated, replace with Layout
 data Name     = Name     deriving (Show) -- TODO: refactor
 data Type                                -- TODO: refactor
 
+type family DefaultLayout (p :: k)
 
 -- TODO: refactor
 type family LookupAssoc k s where
@@ -105,6 +106,7 @@ type instance Set Name n (Prim _ a) = Prim n a
 
 data Compound t (ls :: [Assoc * *])
 
+type family ToCompound a
 
 -- === Instances === --
 
