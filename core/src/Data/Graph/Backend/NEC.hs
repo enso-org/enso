@@ -311,9 +311,10 @@ instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (M
          , assocs ~ Assocs rels ('Cycle (Hetero2 (MAutoVector s)))
          , tassocs ~ TMap assocs
          ) => ReferableM t (HMGraph s rels) m where
-    setRefM r v g = (prop2' @t $ unchecked inplace Cont.insertM__ (r ^. idx) (unsafeCoerce v)) g
-    -- readRefM  r g = Cont.indexM__ (r ^. idx) $ (get @t (g :: g) :: Get t g)              ; {-# INLINE readRefM  #-}
-    viewRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE viewRefM  #-}
+    setRefM  r v g = (prop2' @t $ unchecked inplace Cont.insertM__ (r ^. idx) (unsafeCoerce v)) g ; {-# INLINE setRefM   #-}
+    viewRefM r     = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t                 ; {-# INLINE viewRefM  #-}
+    viewPtrs       = Ptr2 . Ptr <∘∘> Cont.usedIxesM ∘ get @t                                      ; {-# INLINE viewPtrs  #-}
+
 
 --
 -- instance (g ~ Graph n e c, r ~ (g # t), HasStore t g, Monad m) => ReferencedM t (Graph n e c) m r where

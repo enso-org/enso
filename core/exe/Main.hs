@@ -471,6 +471,6 @@ main = do
         g' = write s1 t g
         bs = bindings2 g
     print t
-    -- print bs
+    print bs
 
     return ()
