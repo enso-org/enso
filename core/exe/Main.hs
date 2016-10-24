@@ -107,14 +107,12 @@ import Luna.Syntax.Term.Expr.Atom (Atoms)
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
-import qualified Luna.Syntax.Term.Expr.Symbol2 as S2
 import Luna.Syntax.Term.Expr.Symbol (Sym)
 import Control.Lens.Property hiding (Constructor)
 import Luna.Syntax.Term.Expr.Format (Format, Sub)
 import TH
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
-import qualified Luna.Syntax.Term.Expr.Layout as Layout
 import Luna.Syntax.Term.Expr.Layout
 
 import Unsafe.Coerce (unsafeCoerce)
@@ -296,14 +294,6 @@ star = Self.put . anyLayout2 =<<& (expr (wrap' N.star') >>= mkBinding)
 
 
 
-
-type instance MatchLayouts (Prim () Star) (Prim () Star) = Prim () Star
-
-type instance Specialized Atom s (Prim n a) = Prim n (s :> a)
-
-data XX
-
-
 unify :: ( MonadFix m
           , Bindable t m
           , Linkable' t m
@@ -340,7 +330,8 @@ type instance UnsafeGeneralizable (Binding a) (Binding b) = UnsafeGeneralizable 
 type instance UnsafeGeneralizable (Expr t layers l1) (Expr t layers l2) = ()
 
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
-unsafeGeneralize = unsafeCoerce
+unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
+
 
 
 
@@ -444,6 +435,9 @@ test_gr = layouted @ANT $ do
 
     t <- read s1
     write s1 t
+
+    let u1'  = generalize u1 :: Binding (UntyppedExpr t layers Draft ())
+        -- u1'' =
 
     -- bs <- bindings
     -- Unify l r <- read u1

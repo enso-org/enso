@@ -38,7 +38,6 @@ import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
 import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, FromSymbol, fromSymbol, ToSymbol, toSymbol)
-import qualified Luna.Syntax.Term.Expr.Symbol2 as S2
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
@@ -75,7 +74,7 @@ import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
-import Luna.Syntax.Term.Expr.Layout (Layout, Name, Prim, Uniform)
+import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize)
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 --
@@ -123,11 +122,7 @@ type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
 
 
 
-data AnyLayout = AnyLayout deriving (Show)
-type instance Get Atom AnyLayout = AnyLayout
-type instance Atoms AnyLayout = '[Star]
 
-type instance Sub t AnyLayout = AnyLayout
 
 -- TODO: zamiast zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
 -- expr2 :: (Constructor a m (ExprStack t layers layout), expr ~ Expr t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
@@ -163,6 +158,10 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 data Data     = Data     deriving (Show)
 data System   = System   deriving (Show)
 data TermType = TermType deriving (Show)
+
+
+
+
 
 
 
@@ -258,8 +257,14 @@ type SubBinding c t = Binding (Sub c t)
 deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
 deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
 
+-- Generalize
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Binding b) => Generalize (Binding a) t
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Binding a) => Generalize t (Binding b)
+instance {-# OVERLAPPABLE #-} (Generalize a b)                => Generalize (Binding a) (Binding b)
 -- type instance Get p   (Binding a) = Get p a
 -- type instance Set p v (Binding a) = Binding (Set p v a)
+
+
 
 
 
@@ -363,10 +368,10 @@ instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer 
 -- === Definitions === --
 
 newtype Expr    t layers layout = Expr (ExprStack t layers layout)
-type    AnyExpr t layers        = Expr t layers AnyLayout
+type    AnyExpr t layers        = Expr t layers Layout.Any
 
 type ExprStack    t layers layout = Stack layers (Layer (Expr t layers layout))
-type AnyExprStack t layers        = Stack layers (Layer (Expr t layers AnyLayout))
+type AnyExprStack t layers        = Stack layers (Layer (Expr t layers Layout.Any))
 
 
 -- === Utils === --
@@ -418,21 +423,23 @@ type instance Sub s (Expr t layers layout) = Expr t layers (Sub s layout)
 -- Layers
 instance HasLayer Data layers => Getter Data (Expr t layers layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
 
-
-
+-- Scoping
+instance {-# OVERLAPPABLE #-} (t ~ t', layers ~ layers', Generalize layout layout') => Generalize (Expr t layers layout) (Expr t' layers' layout')
+instance {-# OVERLAPPABLE #-} (a ~ Expr t' l' ll', Generalize (Expr t l ll) a)      => Generalize (Expr t l ll)           a
+instance {-# OVERLAPPABLE #-} (a ~ Expr t' l' ll', Generalize a (Expr t l ll))      => Generalize a                       (Expr t l ll)
 
 ------------------------- something
 
 
 
 
-specifyLayout2 :: Binding (Expr t layers AnyLayout) -> Binding (Expr t layers layout)
+specifyLayout2 :: Binding (Expr t layers Layout.Any) -> Binding (Expr t layers layout)
 specifyLayout2 = unsafeCoerce
 
-anyLayout :: Expr t layers layout -> Expr t layers AnyLayout
+anyLayout :: Expr t layers layout -> Expr t layers Layout.Any
 anyLayout = unsafeCoerce
 
-anyLayout2 :: Binding (Expr t layers layout) -> Binding (Expr t layers AnyLayout)
+anyLayout2 :: Binding (Expr t layers layout) -> Binding (Expr t layers Layout.Any)
 anyLayout2 = unsafeCoerce
 
 

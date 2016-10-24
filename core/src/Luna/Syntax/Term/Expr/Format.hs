@@ -11,6 +11,7 @@ import Luna.Syntax.Term.Expr.Atom
 import Control.Lens.Property
 import Type.Relation              (Super)
 import Type.Bool
+import Type.Repr
 
 --------------------------------
 -- === Expression formats === --
@@ -22,6 +23,7 @@ define name = {{
 
 data Form_{name}
 type {name} = Form Form_{name}
+type instance TypeRepr Form_{name} = "{name}"
 
 }}
 
@@ -44,9 +46,9 @@ data Format       = Format       deriving (Show)
 data SuperFormats = SuperFormats deriving (Show)
 
 
--- === Utils === --
-type SubFormats a = TakeUntil a Formats
+-- === Instances === --
 
+type instance TypeRepr (Form a) = TypeRepr a
 
 -- === Relations === --
 
@@ -81,38 +83,11 @@ type instance Super Draft   = Phrase  ': Super Phrase
 
 -- === Sub-formats === --
 
-type family Sub t a
+type SubFormats a = TakeUntil a Formats
 
+type family   Sub t a
 type instance Sub t (Form   f) = Form   f
 type instance Sub t (Atomic a) = Atomic a
-
--- === Merging === --
-
-data a :> b
-type family Merge a b
-
-type family Simplify l where
-    Simplify (a :> ()) = a
-    Simplify (a :> a)  = a
-    Simplify a         = a
-
-type instance Merge (Form   a) (Form   b) = If (Form a > Form b) (Form a) (Form b)
-type instance Merge (Form   a) (Atomic b) = Merge (Form a) (Atomic b ^. Format)
-type instance Merge (Atomic a) (Form   b) = Merge (Atomic a ^. Format) (Form b)
-type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a ^. Format) (Atomic b ^. Format))-- TODO: refactor
-type instance Merge (Form   a) ()         = Form a
-type instance Merge ()         (Form a  ) = Form a
-type instance Merge (Atomic a) ()         = Atomic a
-type instance Merge ()         (Atomic a) = Atomic a
-type instance Merge (t :> s)   ()         = t :> s
-type instance Merge ()         (t :> s)   = t :> s
-type instance Merge ()         ()         = ()
-
-type instance Merge (t :> s)   (t' :> s') = Simplify (Merge t t' :> Merge s s')
-type instance Merge (t :> s)   (Atomic a) = Simplify (Merge t (Atomic a) :> Merge s (Atomic a))
-type instance Merge (Atomic a) (t :> s)   = Simplify (Merge (Atomic a) t :> Merge (Atomic a) s)
-type instance Merge (t :> s)   (Form a)   = Simplify (Merge t (Form a) :> Merge s (Form a))
-type instance Merge (Form a)   (t :> s)   = Simplify (Merge (Form a) t :> Merge (Form a) s)
 
 -- TODO: automatize:
 

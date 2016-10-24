@@ -7,6 +7,7 @@ import Prelude.Luna hiding (String, Integer, Rational, Curry)
 import Data.Base
 import Data.Phantom
 import Control.Lens.Property
+import Type.Repr
 
 -- === Definition pragmas === --
 
@@ -14,6 +15,7 @@ define name = {{
 
 data Atom_{name}
 type {name} = Atomic Atom_{name}
+type instance TypeRepr Atom_{name} = "{name}"
 
 }}
 
@@ -32,7 +34,7 @@ data Atomic a
 
 type instance Atoms    (Atomic a) = '[Atomic a]
 type instance Get Atom (Atomic a) = Atomic a
-
+type instance TypeRepr (Atomic a) = TypeRepr a
 
 -- === Atoms === --
 
