@@ -63,7 +63,7 @@ import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork
 import qualified Luna.Syntax.Model.Network.Builder.Node          as Old
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetLayers, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 -- import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
@@ -143,8 +143,10 @@ runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
 {-# INLINE runCase #-}
 
 
-matchx f = f . unsafeCoerce
-{-# INLINE matchx #-}
+matchx :: expr ~ Expr t layers layout => expr -> (ExprSymbol atom expr -> b) -> x -> b
+matchx t f = rebind (f . uniExprTypes t) where
+    rebind :: (a -> b) -> x -> b
+    rebind f = f . unsafeCoerce ; {-# INLINE rebind #-}
 
 
 defaultMatch = error "wrong match"
@@ -153,7 +155,7 @@ defaultMatch = error "wrong match"
 --
 
 
-
+type NetLayers   = '[Data, Type]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
 type MNetwork3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
@@ -394,11 +396,11 @@ execGraph f g = runST $ execGraphT f g
 
 
 test_g3 :: (MonadIO m, PrimMonad m, MonadFix m)
-        => m (Binding (UntyppedExpr Net '[Data, Type] Star ()), Network3)
+        => m (Binding (UntyppedExpr Net NetLayers Star ()), Network3)
 test_g3 = runNewGraphT
         $ flip Self.evalT undefined
         $ flip Type.evalT Nothing
-        $ runInferenceT2 @InfLayers @'[Data, Type]
+        $ runInferenceT2 @InfLayers @NetLayers
         $ runInferenceT2 @TermType  @Net
         $ test_gr
 
@@ -407,14 +409,15 @@ instance Connection (Binding (Expr Net layers layout)) ((->) Network3) where
     read  a   = evalGraph $ read a    ; {-# INLINE read  #-}
     write a t = execGraph $ write a t ; {-# INLINE write #-}
 
-instance XBuilder (AnyExpr Net layers) ((->) Network3) where
+instance XBuilder (Expr Net layers Draft) ((->) Network3) where
     bindings g = runST $ do
         mg <- NEC.thaw2 g
         fmap (Binding . NodeRef . unsafeRefer) <$> viewPtrs mg
     {-# INLINE bindings #-}
 
-bindings2 :: (XBuilder a m, a ~ AnyExpr Net layers) => m [Binding a]
+bindings2 :: (XBuilder a m, a ~ Expr Net NetLayers Draft) => m [Binding a]
 bindings2 = bindings
+
 
 
 test_gr :: forall t layers m .
@@ -427,6 +430,7 @@ test_gr :: forall t layers m .
             , Self.MonadSelfBuilder (Binding (AnyExpr t layers)) m
             , HasLayer Data layers
             , Show (UntyppedExpr t layers Star ())
+            -- , Show (Linker' t (UntyppedExpr t layers Star ()))
         ) => m (Binding (UntyppedExpr t layers Star ()))
 test_gr = layouted @ANT $ do
     (s1 :: Binding (UntyppedExpr t layers Star            ())) <- star
@@ -450,6 +454,16 @@ test_gr = layouted @ANT $ do
         Star      -> case' t of
             Unify l r -> print "hello"
             Star      -> print "hello3xx"
+        _         -> print "not found"
+
+
+    let { case_expr = t
+    ;f1 = matchx case_expr $ \(ExprSymbol (Symbol.Unify l r)) -> print ala where
+        ala = 11
+    ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)       -> (print "hello3" )
+       where ala = 11
+    } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
+
 
     -- print "!!!"
     -- print t
@@ -473,4 +487,14 @@ main = do
     print t
     print bs
 
+    putStrLn "\n\n---"
+
+    print t
+    let d   = unwrap' $ get @Data t
+        s   = unwrap' $ get @Sym  d
+        idx = unwrap' $ get @Atom d
+
+    print d
+    -- print s
+    print idx
     return ()

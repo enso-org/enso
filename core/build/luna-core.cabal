@@ -187,7 +187,6 @@ Library
         Luna.Syntax.Term.Expr.Layout.Nested,
         Luna.Syntax.Term.Expr.Symbol,
         Luna.Syntax.Term.Expr.Symbol.Class,
-        Luna.Syntax.Term.Expr.Symbol.Hidden,
         Luna.Syntax.Term.Expr.Symbol.Named,
         Luna.Syntax.Term.Function,
         Luna.Syntax.Term.Function.Argument,

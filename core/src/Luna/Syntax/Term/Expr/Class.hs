@@ -72,7 +72,6 @@ import Type.Maybe (FromJust)
 import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
-import Luna.Syntax.Term.Expr.Symbol.Hidden
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
 import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize)
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
@@ -272,12 +271,28 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)                => Generalize (Bin
 -- === ExprSymbol === --
 ------------------------
 
-newtype ExprSymbol atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (SubLink Atom t))
+newtype ExprSymbol  atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (SubLink Atom t))
+type    ExprSymbol' atom   = ExprSymbol atom Layout.Any
 makeWrapped ''ExprSymbol
+
+-- === Helpers === --
+hideLayout :: ExprSymbol atom t -> ExprSymbol atom Layout.Any
+hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
 
 -- === Instances === --
 
-type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
+-- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
+type instance Get Layout (ExprSymbol atom t) = Get Layout (Unwrapped (ExprSymbol atom t))
+type instance Get Atom   (ExprSymbol atom t) = atom
+type instance Get Format (ExprSymbol atom t) = Get Format atom
+type instance Get Sym    (ExprSymbol atom t) = ExprSymbol atom t
+
+instance Getter Sym (ExprSymbol atom t) where get = id ; {-# INLINE get #-}
+
+-- type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
+-- instance Getter p (Unwrapped (ExprSymbol atom t)) => Getter p (ExprSymbol atom t) where
+--     get = get @p . unwrap' ; {-# INLINE get #-}
+
 instance ValidateLayout (Get Layout t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
@@ -296,10 +311,10 @@ makeWrapped ''TermData
 
 -- === Encoding === --
 
-class                                                               SymbolEncoder atom where encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
-instance                                                            SymbolEncoder I    where encodeSymbol = impossible
-instance EncodeStore TermStoreSlots (HiddenSymbol atom) Identity => SymbolEncoder atom where
-    encodeSymbol = runIdentity . encodeStore . hideLayout . unwrap' ; {-# INLINE encodeSymbol #-} -- magic
+class                                                              SymbolEncoder atom where encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
+instance                                                           SymbolEncoder I    where encodeSymbol = impossible
+instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
+    encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
 
 
@@ -378,6 +393,9 @@ type AnyExprStack t layers        = Stack layers (Layer (Expr t layers Layout.An
 
 expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t layers), expr ~ Expr t layers layout) => ExprSymbol atom expr -> m expr
 expr a = specifyLayout . Expr <$> cons (encodeSymbol a)
+
+uniExprTypes :: expr ~ Expr t layers layout => expr -> ExprSymbol atom expr -> ExprSymbol atom expr
+uniExprTypes _ = id ; {-# INLINE uniExprTypes #-}
 
 -- TODO: refactor vvv
 specifyLayout :: AnyExpr t layers -> Expr t layers layout
