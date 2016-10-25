@@ -17,7 +17,7 @@ module Main where
 
 import Data.Graph          hiding (Dynamic, Connection)
 import Data.Graph.Builders hiding (Linkable)
-import Prologue            hiding (Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
+import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
 
 import           Control.Monad.Event
 import qualified Control.Monad.Writer     as Writer
@@ -420,6 +420,9 @@ instance XBuilder (Expr Net layers Draft) ((->) Network3) where
 bindings2 :: (XBuilder a m, a ~ Expr Net NetLayers Draft) => m [Binding a]
 bindings2 = bindings
 
+elements2 :: (XBuilder a m, a ~ Expr Net NetLayers Draft) => m [a]
+elements2 = elements
+
 
 
 test_gr :: forall t layers m .
@@ -486,10 +489,12 @@ main = do
     let t  = read  s1 g
         g' = write s1 t g
         bs = bindings2 g
+        os = elements2 g
 
     putStrLn $ reprStyled HeaderOnly t
     print t
-    print bs
+    -- print os
+    print $ map (reprStyled HeaderOnly) os
 
     putStrLn "\n\n---"
 

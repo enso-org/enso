@@ -226,13 +226,16 @@ type family Result (m :: * -> *) where
 type NoResult m = Result m ~ ()
 
 
-class Connection a m where
+class Monad m => Connection a m where
     read     :: a -> m (Content2 a)
     write    :: a -> Content2 a -> m (Result m)
 
 class XBuilder a m where
     bindings :: m [Binding a]
-    -- links    :: m [Link'   a]
+    elements :: m [a]
+
+    default elements :: Connection (Binding a) m => m [a]
+    elements = bindings >>= mapM read ; {-# INLINE elements #-}
 
 
 type instance Content2 (Binding a)   = a
