@@ -68,6 +68,7 @@ Library
                   TypeFamilies
                   TypeOperators
                   ViewPatterns
+                  TypeApplications
 
     exposed-modules: 
         Control.Monad.Delayed,

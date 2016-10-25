@@ -13,7 +13,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)), TypeError)
 import Type.Error
 import Type.List (In)
-import Type.Repr
+import Data.Reprx
 import Type.Bool
 
 

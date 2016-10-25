@@ -11,7 +11,7 @@ import Luna.Syntax.Term.Expr.Atom
 import Control.Lens.Property
 import Type.Relation              (Super)
 import Type.Bool
-import Type.Repr
+import Data.Reprx
 
 --------------------------------
 -- === Expression formats === --

@@ -126,6 +126,8 @@ import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 
 import Control.Monad.ST
+import Data.Reprx
+import Luna.Pretty.Styles  (HeaderOnly(..))
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -484,6 +486,8 @@ main = do
     let t  = read  s1 g
         g' = write s1 t g
         bs = bindings2 g
+
+    putStrLn $ reprStyled HeaderOnly t
     print t
     print bs
 

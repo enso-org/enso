@@ -23,7 +23,8 @@ import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
 import Data.Construction
 import           Data.RTuple (List(Null, (:-:)))
 import qualified Data.RTuple as List
-
+import           Data.Reprx
+import Luna.Pretty.Styles  (HeaderOnly)
 
 
 ---------------------
@@ -81,7 +82,9 @@ type instance Get Format        (Symbol atom _     ) = Get Format atom
 
 
 
+-- Repr
 
+instance KnownRepr a => Repr HeaderOnly (Symbol a l) where repr _ = fromString $ typeRepr @a ; {-# INLINE repr #-}
 
 
 

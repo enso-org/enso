@@ -24,7 +24,6 @@ import           Data.RTuple (List(Null, (:-:)))
 import qualified Data.RTuple as List
 
 
-
 ---------------------
 -- === Symbols === --
 ---------------------

@@ -62,6 +62,7 @@ Library
                   TypeFamilies
                   TypeOperators
                   ViewPatterns
+                  TypeApplications
 
     exposed-modules: `findmodules('../src', '.*\.hs')`
 

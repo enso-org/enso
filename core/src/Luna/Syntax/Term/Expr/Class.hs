@@ -23,7 +23,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value, cons)
+import           Data.Record                  hiding (Layout, Variants, VariantMap, variantMap, Match, Cons, Value, cons)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container               hiding (Empty, FromJust)
@@ -34,7 +34,7 @@ import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynam
 import qualified Luna.Runtime.Dynamics      as Dynamics
 import           Luna.Pretty.Styles
 import           Luna.Syntax.Term.Function.Argument
-import qualified Data.Reprx                   as Repr
+import           Data.Reprx
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
 import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, FromSymbol, fromSymbol, ToSymbol, toSymbol)
@@ -297,6 +297,9 @@ instance ValidateLayout (Get Layout t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
+-- Repr
+instance Repr s (Unwrapped (ExprSymbol atom t))
+      => Repr s (ExprSymbol atom t) where repr = repr . unwrap' ; {-# INLINE repr #-}
 
 ----------------------
 -- === TermData === --
@@ -382,11 +385,12 @@ instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer 
 
 -- === Definitions === --
 
-newtype Expr    t layers layout = Expr (ExprStack t layers layout)
-type    AnyExpr t layers        = Expr t layers Layout.Any
-
 type ExprStack    t layers layout = Stack layers (Layer (Expr t layers layout))
 type AnyExprStack t layers        = Stack layers (Layer (Expr t layers Layout.Any))
+
+newtype Expr    t layers layout = Expr (ExprStack t layers layout)
+type    AnyExpr t layers        = Expr t layers Layout.Any
+makeWrapped ''Expr
 
 
 -- === Utils === --
@@ -399,7 +403,7 @@ uniExprTypes _ = id ; {-# INLINE uniExprTypes #-}
 
 -- TODO: refactor vvv
 specifyLayout :: AnyExpr t layers -> Expr t layers layout
-specifyLayout = unsafeCoerce
+specifyLayout = unsafeCoerce ; {-# INLINE specifyLayout #-}
 
 
 -- === Properties === --
@@ -427,10 +431,34 @@ instance Linkable t t' m => Linkable (Expr t layers model) (Expr t' layers' mode
     readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
 
 
--- === Instances === --
+-- === Variant mapping === --
 
--- Wrapper
-makeWrapped ''Expr
+type  VariantMap = VariantMap' (All Atom)
+class VariantMap' (atoms :: [*]) ctx expr where
+    variantMap' :: expr -> (forall a. ctx a => a -> b) -> b
+
+variantMap :: forall ctx expr b. VariantMap ctx expr => expr -> (forall a. ctx a => a -> b) -> b
+variantMap = variantMap' @(All Atom) @ctx ; {-# INLINE variantMap #-}
+
+-- FIXME: [WD]: the following instance bases on the idea that "Data" layer contains all the information
+--              we should relax it and maybe introduce distinction between getting a layer and getting a prop
+--              then we can get prop Atom, which will scan layers asking them which one provides the Atom information
+instance ( ctx (ExprSymbol a (Expr t layers layout))
+         , VariantMap' as ctx (Expr t layers layout)
+         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
+         , KnownNat idx, HasLayer Data layers
+         )
+      => VariantMap' (a ': as) ctx (Expr t layers layout) where
+    variantMap' expr f = if (idx == eidx) then f sym else variantMap' @as @ctx expr f where
+        d    = unwrap' $ get @Data expr
+        eidx = unwrap' $ get @Atom d
+        idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+        sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr t layers layout)
+
+instance VariantMap' '[] ctx expr where variantMap' _ _ = impossible
+
+
+-- === Instances === --
 
 -- Show
 deriving instance Show (Unwrapped (Expr t layers layout)) => Show (Expr t layers layout)
@@ -446,6 +474,12 @@ instance {-# OVERLAPPABLE #-} (t ~ t', layers ~ layers', Generalize layout layou
 instance {-# OVERLAPPABLE #-} (a ~ Expr t' l' ll', Generalize (Expr t l ll) a)      => Generalize (Expr t l ll)           a
 instance {-# OVERLAPPABLE #-} (a ~ Expr t' l' ll', Generalize a (Expr t l ll))      => Generalize a                       (Expr t l ll)
 
+-- Repr
+instance HasLayer Data layers => Repr HeaderOnly (Expr t layers layout) where repr expr = variantMap @(Repr HeaderOnly) expr repr
+
+
+
+
 ------------------------- something
 
 
@@ -459,10 +493,6 @@ anyLayout = unsafeCoerce
 
 anyLayout2 :: Binding (Expr t layers layout) -> Binding (Expr t layers Layout.Any)
 anyLayout2 = unsafeCoerce
-
-
-
-
 
 
 

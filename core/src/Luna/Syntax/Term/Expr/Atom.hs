@@ -7,7 +7,7 @@ import Prelude.Luna hiding (String, Integer, Rational, Curry)
 import Data.Base
 import Data.Phantom
 import Control.Lens.Property
-import Type.Repr
+import Data.Reprx
 
 -- === Definition pragmas === --
 

@@ -3,6 +3,8 @@
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE PolyKinds                 #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE TypeApplications          #-}
 
 module Data.Reprx ( module Data.Reprx
                  , module X
@@ -16,9 +18,19 @@ import Data.Text.CodeBuilder.Tok as X (Tok)
 
 import Data.Text.CodeBuilder as X ((<+>))
 import GHC.Exts (Constraint)
+import GHC.TypeLits
 
+type family TypeRepr a :: Symbol
 class Repr  s a        where repr  ::       a -> Builder s Tok
 class ReprT s (a :: k) where reprT :: Proxy a -> Builder s Tok
+
+type KnownRepr a = KnownSymbol (TypeRepr a)
+
+typeRepr :: forall a. KnownRepr a => String
+typeRepr = symbolVal (Proxy :: Proxy (TypeRepr a)) ; {-# INLINE typeRepr #-}
+
+typeReprOf :: forall a. KnownRepr a => a -> String
+typeReprOf _ = typeRepr @a ; {-# INLINE typeReprOf #-}
 
 --instance {-# OVERLAPPABLE #-} Show a => Repr a where
     --repr = show
