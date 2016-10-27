@@ -34,12 +34,10 @@ Library
                 OverloadedStrings
 
     Exposed-modules: 
-        Luna.Parser.Builder,
         Luna.Parser.Char,
         Luna.Parser.Class,
         Luna.Parser.Combinators,
         Luna.Parser.Expression,
-        Luna.Parser.Function,
         Luna.Parser.Indent,
         Luna.Parser.Layout,
         Luna.Parser.Lex,
@@ -47,8 +45,6 @@ Library
         Luna.Parser.Location,
         Luna.Parser.Module,
         Luna.Parser.Parser,
-        Luna.Parser.Pattern,
-        Luna.Parser.Pragma,
         Luna.Parser.State,
         Luna.Parser.Term,
         Luna.Parser.Token,
@@ -56,8 +52,7 @@ Library
         Luna.Parser.Token.Keyword,
         Luna.Parser.Token.Layout,
         Luna.Parser.Token.Operator,
-        Luna.Parser.Token.Style,
-        Luna.Parser.Type
+        Luna.Parser.Token.Style
 
     Other-Modules: Paths_luna_parser
     Build-Depends: base
