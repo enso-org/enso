@@ -1,5 +1,7 @@
 module ParserSpec where
 
+import Prelude
+
 import Test.Hspec (Spec, describe, it)
 
 
