@@ -1,0 +1,53 @@
+name: luna-parser
+version: "0.1"
+author: New Byte Order <contact@newbyteorder.com>
+maintainer: New Byte Order <contact@newbyteorder.com>
+build-type: Simple
+
+library:
+    source-dirs: src
+    other-modules: Paths_luna_parser
+
+tests:
+    spec:
+        main: Spec.hs
+        source-dirs: test
+        dependencies:
+            - luna-parser
+            - hspec
+            - silently
+            - prologue
+
+dependencies:
+    - ansi-wl-pprint
+    - base
+    - bytestring
+    - charset
+    - container
+    - edit-distance
+    - exceptions
+    - lens
+    - luna-core
+    - mtl
+    - parsers
+    - text
+    - transformers
+    - trifecta
+    - typelevel
+    - unordered-containers
+    - utf8-string
+
+default-extensions:
+    - ConstraintKinds
+    - FlexibleContexts
+    - FlexibleInstances
+    - GeneralizedNewtypeDeriving
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TupleSections
+    - TypeOperators
+    - TypeSynonymInstances
