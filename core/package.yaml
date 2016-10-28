@@ -1,0 +1,103 @@
+name: luna-core
+version: "0.1"
+author: New Byte Order <contact@newbyteorder.com>
+maintainer: New Byte Order <contact@newbyteorder.com>
+build-type: Simple
+
+library:
+    source-dirs: src
+    other-modules: Paths_luna_core
+
+executables:
+    luna:
+        main: Main.hs
+        source-dirs: exe
+        dependencies: luna-core
+
+benchmarks:
+    graph-builder:
+        main: Main.hs
+        source-dirs: testsuite/benchmarks
+        dependencies:
+            - criterion
+            - luna-core
+
+dependencies:
+    - base
+    - bytestring
+    - clock
+    - constraints
+    - container
+    - convert
+    - data-base
+    - data-construction
+    - data-default
+    - data-layer
+    - data-member
+    - data-pool
+    - data-result
+    - data-rtuple
+    - data-shell
+    - deepseq
+    - dependent-state
+    - digits
+    - either
+    - errors
+    - exceptions
+    - extra
+    - ghc
+    - ghc-mtl
+    - ghc-paths
+    - ghc-prim
+    - graphviz >= 2999.17.0.2.2
+    - HTTP
+    - lens
+    - lens-utils
+    - MissingH
+    - mtl
+    - network
+    - OneTuple
+    - placeholders
+    - primitive
+    - process
+    - prologue
+    - random
+    - serialport
+    - split
+    - text
+    - time
+    - transformers
+    - tuple
+    - type-cache
+    - typelevel
+    - vector
+    - visualization-api
+
+default-extensions:
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - PackageImports
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeFamilies
+    - TypeOperators
+    - ViewPatterns
