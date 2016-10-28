@@ -248,7 +248,7 @@ benchmark graph-builder
   type: exitcode-stdio-1.0
   main-is: Main.hs
   hs-source-dirs:
-      testsuite/benchmarks
+      benchmarks
   default-extensions: ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls FlexibleContexts FlexibleInstances FunctionalDependencies GeneralizedNewtypeDeriving InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PackageImports ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies TypeOperators ViewPatterns
   build-depends:
       base

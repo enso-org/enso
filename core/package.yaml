@@ -17,7 +17,7 @@ executables:
 benchmarks:
     graph-builder:
         main: Main.hs
-        source-dirs: testsuite/benchmarks
+        source-dirs: benchmarks
         dependencies:
             - criterion
             - luna-core
