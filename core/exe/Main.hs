@@ -54,7 +54,7 @@ import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Luna.Config.Env                                 as Env
 import qualified Luna.Library.Symbol                             as Symbol
-import           Luna.Pretty.GraphViz
+import           Luna.Pretty.GraphViz2
 import           Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                           as Runtime
 import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
@@ -243,7 +243,13 @@ instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
 --     viewRefM :: Ref2 r a      -> t -> m a
 
 
--- === Type Layer === --
+-- === UID layer === --
+
+data UID = UID deriving (Show)
+
+
+
+-- === Type layer === --
 
 type instance ExprLayer Type t = SubLink Type t
 

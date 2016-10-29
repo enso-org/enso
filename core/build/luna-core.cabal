@@ -141,6 +141,7 @@ Library
         Luna.Pass.Scheduler,
         Luna.Pass.Stage,
         Luna.Pretty.GraphViz,
+        Luna.Pretty.GraphViz2,
         Luna.Pretty.Styles,
         Luna.Runtime.Dynamics,
         Luna.Syntax.Model.Layer,

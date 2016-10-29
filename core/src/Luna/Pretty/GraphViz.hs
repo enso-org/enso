@@ -152,9 +152,9 @@ toGraphViz name net = DotGraph { strictGraph     = False
           -- === outputs === --
 
           inEdges           = concat $ fmap nodeInEdges nodeIxs
-          edgeStmts         = fmap mkEdge inEdges
-          nodeStmts         = concat $ labeledNode Nothing <$> rootNodeIxs
-          subGraphs         = uncurry genSubGraph ∘ (_1 %~ fromJust) <$> Map.assocs (Map.delete Nothing clredNodeMap)
+          edgeStmts         = fmap mkEdge inEdges :: [DotEdge String]
+          nodeStmts         = concat $ labeledNode Nothing <$> rootNodeIxs :: [DotNode String]
+          subGraphs         = uncurry genSubGraph ∘ (_1 %~ fromJust) <$> Map.assocs (Map.delete Nothing clredNodeMap) :: [DotSubGraph String]
 
 
           -- === Utils === --
