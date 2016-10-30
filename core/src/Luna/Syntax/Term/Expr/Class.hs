@@ -247,7 +247,7 @@ class Monad m => Connection a m where
     read     :: a -> m (Content2 a)
     write    :: a -> Content2 a -> m (Result m)
 
--- dorobic parametryzacje - nodes, edges, clusters, bindings? ... 
+-- dorobic parametryzacje - nodes, edges, clusters, bindings? ...
 class Monad m => XBuilder a m where
     bindings :: m [Binding a]
     elements :: m [a]
@@ -386,6 +386,8 @@ instance Monad m => Constructor TermStore m (Layer t Data) where cons = return .
 type family LayerData l t
 newtype Layer t l = Layer (LayerData l t)
 
+type family Layers a :: [*]
+
 
 deriving instance Show (LayerData l t) => Show (Layer t l)
 
@@ -393,11 +395,16 @@ makeWrapped ''Layer
 
 -- === Classes === --
 
-class HasLayer layer layers where
-    layer :: forall t layout layers'. Stack layers (Layer (Expr t layers' layout)) -> LayerData layer (Expr t layers' layout)
+class HasLayer layer t where
+    layer :: forall layout. Stack (Layers t) (Layer (Expr t layout)) -> LayerData layer (Expr t layout)
 
-instance {-# OVERLAPPABLE #-}                  HasLayer l (l ': ls) where layer (SLayer t _) = unwrap' t
-instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer (SLayer _ s) = layer @l s
+instance HasLayer' layer (Layers t) => HasLayer layer t where layer = layer' @layer @(Layers t) ; {-# INLINE layer #-} -- TODO[WD]: add impossible instance
+
+class HasLayer' layer layers where
+    layer' :: forall layout t. Stack layers (Layer (Expr t layout)) -> LayerData layer (Expr t layout)
+
+instance {-# OVERLAPPABLE #-}                   HasLayer' l (l ': ls) where layer' (SLayer t _) = unwrap' t   ; {-# INLINE layer' #-}
+instance {-# OVERLAPPABLE #-} HasLayer' l ls => HasLayer' l (t ': ls) where layer' (SLayer _ s) = layer' @l s ; {-# INLINE layer' #-}
 
 
 
@@ -407,48 +414,48 @@ instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer 
 
 -- === Definitions === --
 
-type ExprStack    t layers layout = Stack layers (Layer (Expr t layers layout))
-type AnyExprStack t layers        = Stack layers (Layer (Expr t layers Layout.Any))
+type ExprStack    t layout = Stack (Layers t) (Layer (Expr t layout))
+type AnyExprStack t        = Stack (Layers t) (Layer (Expr t Layout.Any))
 
 -- to mozna zmienic na inna nazwe-  nie ma to nic wspolnego z expressionami i  w tej samej strukturze trzymac edge
-newtype Expr    t layers layout = Expr (ExprStack t layers layout)
-type    AnyExpr t layers        = Expr t layers Layout.Any
+newtype Expr    t layout = Expr (ExprStack t layout)
+type    AnyExpr t        = Expr t Layout.Any
 makeWrapped ''Expr
 
 -- mozliwe ze na razie nie musimy robic zadnych warstw na edgach tlyko pamietac uid nodow do kotrych lacza!
 
 -- === Utils === --
 
-expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t layers), expr ~ Expr t layers layout) => ExprSymbol atom expr -> m expr
+expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr
 expr a = specifyLayout . Expr <$> cons (encodeSymbol a)
 
-uniExprTypes :: expr ~ Expr t layers layout => expr -> ExprSymbol atom expr -> ExprSymbol atom expr
+uniExprTypes :: expr ~ Expr t layout => expr -> ExprSymbol atom expr -> ExprSymbol atom expr
 uniExprTypes _ = id ; {-# INLINE uniExprTypes #-}
 
 -- TODO: refactor vvv
-specifyLayout :: AnyExpr t layers -> Expr t layers layout
+specifyLayout :: AnyExpr t -> Expr t layout
 specifyLayout = unsafeCoerce ; {-# INLINE specifyLayout #-}
 
 
 -- === Properties === --
 
-type instance Get Layout        (Expr _ _ layout) = layout
-type instance Set Layout layout (Expr t layers _) = Expr t layers layout
-type instance Get Data          (Expr t layers layout) = Unwrapped (Get Data (Unwrapped (Expr t layers layout))) -- TODO: simplify
+type instance Get Layout        (Expr _ layout) = layout
+type instance Set Layout layout (Expr t  _)     = Expr t layout
+type instance Get Data          (Expr t layout) = Unwrapped (Get Data (Unwrapped (Expr t layout))) -- TODO: simplify
 
 
 -- === Bindings === --
 
-type instance Binder              (Expr t  _ _) = Binder t
-type instance Linker (Expr t _ _) (Expr t' _ _) = Linker t t'
+type instance Binder            (Expr t  _) = Binder t
+type instance Linker (Expr t _) (Expr t' _) = Linker t t'
 
-instance Bindable t m => Bindable (Expr t layers model) m where
+instance Bindable t m => Bindable (Expr t model) m where
     mkBinder    = mkBinder    @t ; {-# INLINE mkBinder    #-}
     rmBinder    = rmBinder    @t ; {-# INLINE rmBinder    #-}
     writeBinder = writeBinder @t ; {-# INLINE writeBinder #-}
     readBinder  = readBinder  @t ; {-# INLINE readBinder  #-}
 
-instance Linkable t t' m => Linkable (Expr t layers model) (Expr t' layers' model') m where
+instance Linkable t t' m => Linkable (Expr t model) (Expr t' model') m where
     mkLinker    = mkLinker    @t @t' ; {-# INLINE mkLinker    #-}
     rmLinker    = rmLinker    @t @t' ; {-# INLINE rmLinker    #-}
     writeLinker = writeLinker @t @t' ; {-# INLINE writeLinker #-}
@@ -467,17 +474,17 @@ variantMap = variantMap' @(All Atom) @ctx ; {-# INLINE variantMap #-}
 -- FIXME: [WD]: the following instance bases on the idea that "Data" layer contains all the information
 --              we should relax it and maybe introduce distinction between getting a layer and getting a prop
 --              then we can get prop Atom, which will scan layers asking them which one provides the Atom information
-instance ( ctx (ExprSymbol a (Expr t layers layout))
-         , VariantMap' as ctx (Expr t layers layout)
+instance ( ctx (ExprSymbol a (Expr t layout))
+         , VariantMap' as ctx (Expr t layout)
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx, HasLayer Data layers
+         , KnownNat idx, HasLayer Data t
          )
-      => VariantMap' (a ': as) ctx (Expr t layers layout) where
+      => VariantMap' (a ': as) ctx (Expr t layout) where
     variantMap' expr f = if (idx == eidx) then f sym else variantMap' @as @ctx expr f where
         d    = unwrap' $ get @Data expr
         eidx = unwrap' $ get @Atom d
         idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-        sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr t layers layout)
+        sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr t layout)
 
 instance VariantMap' '[] ctx expr where variantMap' _ _ = impossible
 
@@ -485,21 +492,21 @@ instance VariantMap' '[] ctx expr where variantMap' _ _ = impossible
 -- === Instances === --
 
 -- Show
-deriving instance Show (Unwrapped (Expr t layers layout)) => Show (Expr t layers layout)
+deriving instance Show (Unwrapped (Expr t layout)) => Show (Expr t layout)
 
 -- Sub
-type instance Sub s (Expr t layers layout) = Expr t layers (Sub s layout)
+type instance Sub s (Expr t layout) = Expr t (Sub s layout)
 
 -- Layers
-instance HasLayer Data layers => Getter Data (Expr t layers layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
+instance HasLayer Data t => Getter Data (Expr t layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
 
 -- Scoping
-instance {-# OVERLAPPABLE #-} (t ~ t', layers ~ layers', Generalize layout layout') => Generalize (Expr t layers layout) (Expr t' layers' layout')
-instance {-# OVERLAPPABLE #-} (a ~ Expr t' l' ll', Generalize (Expr t l ll) a)      => Generalize (Expr t l ll)           a
-instance {-# OVERLAPPABLE #-} (a ~ Expr t' l' ll', Generalize a (Expr t l ll))      => Generalize a                       (Expr t l ll)
+instance {-# OVERLAPPABLE #-} (t ~ t', Generalize layout layout')                 => Generalize (Expr t layout) (Expr t' layout')
+instance {-# OVERLAPPABLE #-} (a ~ Expr t' layout', Generalize (Expr t layout) a) => Generalize (Expr t layout)     a
+instance {-# OVERLAPPABLE #-} (a ~ Expr t' layout', Generalize a (Expr t layout)) => Generalize a               (Expr t layout)
 
 -- Repr
-instance HasLayer Data layers => Repr HeaderOnly (Expr t layers layout) where repr expr = variantMap @(Repr HeaderOnly) expr repr
+instance HasLayer Data t => Repr HeaderOnly (Expr t layout) where repr expr = variantMap @(Repr HeaderOnly) expr repr
 
 
 
@@ -509,13 +516,13 @@ instance HasLayer Data layers => Repr HeaderOnly (Expr t layers layout) where re
 
 
 
-specifyLayout2 :: Binding (Expr t layers Layout.Any) -> Binding (Expr t layers layout)
+specifyLayout2 :: Binding (Expr t Layout.Any) -> Binding (Expr t layout)
 specifyLayout2 = unsafeCoerce
 
-anyLayout :: Expr t layers layout -> Expr t layers Layout.Any
+anyLayout :: Expr t layout -> Expr t Layout.Any
 anyLayout = unsafeCoerce
 
-anyLayout2 :: Binding (Expr t layers layout) -> Binding (Expr t layers Layout.Any)
+anyLayout2 :: Binding (Expr t layout) -> Binding (Expr t Layout.Any)
 anyLayout2 = unsafeCoerce
 
 
