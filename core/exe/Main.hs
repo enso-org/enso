@@ -219,6 +219,7 @@ data Net = Net
 type instance Binder Net     = NodeRef
 type instance Linker Net Net = EdgeRef
 
+-- type instance Linked
 
 -- === Instances === --
 
@@ -251,7 +252,7 @@ data UID = UID deriving (Show)
 
 -- === Type layer === --
 
-type instance ExprLayer Type t = SubLink Type t
+type instance LayerData Type t = SubLink Type t
 
 
 instance ( expr ~ AnyExpr t layers
@@ -332,6 +333,10 @@ instance {-# INCOHERENT #-} Bindable b m => Bindable b (KnownTypeT cls t m) wher
     rmBinder    = lift .  rmBinder    @b ; {-# INLINE rmBinder    #-}
     writeBinder = lift .: writeBinder @b ; {-# INLINE writeBinder #-}
     readBinder  = lift .  readBinder  @b ; {-# INLINE readBinder  #-}
+
+instance {-# INCOHERENT #-} XBuilder a m => XBuilder a (KnownTypeT cls t m) where
+    bindings = lift bindings ; {-# INLINE bindings #-}
+    elements = lift elements ; {-# INLINE elements #-}
 
 
 
@@ -417,17 +422,28 @@ instance Connection (Binding (Expr Net layers layout)) ((->) Network3) where
     read  a   = evalGraph $ read a    ; {-# INLINE read  #-}
     write a t = execGraph $ write a t ; {-# INLINE write #-}
 
-instance XBuilder (Expr Net layers Draft) ((->) Network3) where
+instance {-# OVERLAPPABLE #-} XBuilder (Expr Net layers Draft) ((->) Network3) where
     bindings g = runST $ do
         mg <- NEC.thaw2 g
         fmap (Binding . NodeRef . unsafeRefer) <$> viewPtrs mg
     {-# INLINE bindings #-}
+
+
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, ReferableM Node g m) => XBuilder (Expr Net layers Draft) m where
+    bindings = do
+        g <- GraphBuilder.get
+        fmap (Binding . NodeRef . unsafeRefer) <$> viewPtrs g
+    elements = undefined
+
 
 bindings2 :: (XBuilder a m, a ~ Expr Net NetLayers Draft) => m [Binding a]
 bindings2 = bindings
 
 elements2 :: (XBuilder a m, a ~ Expr Net NetLayers Draft) => m [a]
 elements2 = elements
+
+-- elementsX :: m [Expr t Draft]
+-- bindingsX :: m []
 
 
 
@@ -452,6 +468,12 @@ test_gr = layouted @ANT $ do
     write s1 t
 
     let u1'  = generalize u1 :: Binding (UntyppedExpr t layers Draft ())
+
+    -- let u1'  = generalize u1 :: Binding (UntyppedExpr t layers Draft ())
+    -- let u1'  = generalize u1 :: Link    (UntyppedExpr t layers Draft ())
+
+    -- let u1'  = generalize u1 :: Ref Node (UntyppedExpr t layers Draft ())
+    -- let u1'  = generalize u1 :: Ref Edge (UntyppedExpr t layers Draft ())
         -- u1'' =
 
     -- bs <- bindings
@@ -475,6 +497,8 @@ test_gr = layouted @ANT $ do
        where ala = 11
     } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
 
+    -- es <- elements2
+
 
     -- print "!!!"
     -- print t
@@ -482,6 +506,9 @@ test_gr = layouted @ANT $ do
     -- print $ get @Sym $ unwrap' $ get @Data t
     return s1
 
+
+
+-- vis
 
 
 main :: IO ()

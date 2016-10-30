@@ -162,8 +162,6 @@ data TermType = TermType deriving (Show)
 
 
 
-
-
 -------------------------
 -- === Connections === --
 -------------------------
@@ -176,10 +174,13 @@ type        Binder'     tgt = Binder     tgt     tgt
 type        Linker' src tgt = Linker src tgt src tgt
 
 newtype Binding     tgt = Binding (Binder' tgt)
-newtype Link    src tgt = Link    (Linker' src tgt)
-type    Link'   a       = Link    a a
+newtype LinkX    src tgt = LinkX    (Linker' src tgt)
+type    LinkX'   a       = LinkX    a a
+
+type family Linked src tgt
+newtype     Link     src tgt = Link (Linked src tgt)
 makeWrapped ''Binding
-makeWrapped ''Link
+makeWrapped ''LinkX
 
 
 -- === Classes === --
@@ -207,15 +208,31 @@ class Monad m => Linkable t t' m where
     writeLinker :: forall a b. Linker t t' a b -> Binding a -> Binding b -> m ()
     readLinker  :: forall a b. Linker t t' a b -> m (Binding a, Binding b)
 
-mkLink    :: forall a b m. Linkable a b m => Binding a -> Binding b -> m (Link a b)
-rmLink    :: forall a b m. Linkable a b m => Link a b -> m ()
-writeLink :: forall a b m. Linkable a b m => Link a b -> Binding a -> Binding b -> m ()
-readLink  :: forall a b m. Linkable a b m => Link a b -> m (Binding a, Binding b)
+mkLink    :: forall a b m. Linkable a b m => Binding a -> Binding b -> m (LinkX a b)
+rmLink    :: forall a b m. Linkable a b m => LinkX a b -> m ()
+writeLink :: forall a b m. Linkable a b m => LinkX a b -> Binding a -> Binding b -> m ()
+readLink  :: forall a b m. Linkable a b m => LinkX a b -> m (Binding a, Binding b)
 mkLink    = wrap' <∘∘> mkLinker @a @b   ; {-# INLINE mkLink    #-}
 rmLink    = rmLinker    @a @b . unwrap' ; {-# INLINE rmLink    #-}
 writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
 readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
+-- TODO [WD]: change ^^^ to vvv
+-- type Linkable' t m = Linkable t t m
+-- class Monad m => Linkable t t' m where
+--     mkLinker    :: forall a b. Link a b -> m (Linker t t' a b)
+--     rmLinker    :: forall a b. Linker t t' a b -> m ()
+--     writeLinker :: forall a b. Linker t t' a b -> Link a b -> m ()
+--     readLinker  :: forall a b. Linker t t' a b -> m (Link a b)
+--
+-- mkLink    :: forall a b m. Linkable a b m => Link a b -> m (LinkX a b)
+-- rmLink    :: forall a b m. Linkable a b m => LinkX a b -> m ()
+-- writeLink :: forall a b m. Linkable a b m => LinkX a b -> Link a b -> m ()
+-- readLink  :: forall a b m. Linkable a b m => LinkX a b -> m (Link a b)
+-- mkLink    = wrap' <∘> mkLinker @a @b   ; {-# INLINE mkLink    #-}
+-- rmLink    = rmLinker    @a @b . unwrap' ; {-# INLINE rmLink    #-}
+-- writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
+-- readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
 type family Content2 a
 
@@ -230,7 +247,8 @@ class Monad m => Connection a m where
     read     :: a -> m (Content2 a)
     write    :: a -> Content2 a -> m (Result m)
 
-class XBuilder a m where
+-- dorobic parametryzacje - nodes, edges, clusters, bindings? ... 
+class Monad m => XBuilder a m where
     bindings :: m [Binding a]
     elements :: m [a]
 
@@ -239,7 +257,7 @@ class XBuilder a m where
 
 
 type instance Content2 (Binding a)   = a
-type instance Content2 (Link    a b) = (Binding a, Binding b)
+type instance Content2 (LinkX   a b) = (Binding a, Binding b)
 
 instance {-# OVERLAPPABLE #-} (Bindable a m, NoResult m) => Connection (Binding a) m where
     read  = readBinding  ; {-# INLINE read  #-}
@@ -250,14 +268,14 @@ instance {-# OVERLAPPABLE #-} (Bindable a m, NoResult m) => Connection (Binding 
 
 -- === Utils === --
 
-type SubLink    c t = Link t  (Sub c t)
+type SubLink    c t = LinkX t  (Sub c t)
 type SubBinding c t = Binding (Sub c t)
 
 
 -- === Instances === --
 
 deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
-deriving instance Show (Unwrapped (Link    src tgt)) => Show (Link    src tgt)
+deriving instance Show (Unwrapped (LinkX   src tgt)) => Show (LinkX   src tgt)
 
 -- Generalize
 instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Binding b) => Generalize (Binding a) t
@@ -355,27 +373,28 @@ instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls)
 
 
 
+--- SOMETHING
+
+type instance LayerData Data t = TermStore
+instance Monad m => Constructor TermStore m (Layer t Data) where cons = return . Layer
+
+
 --------------------
 -- === Layers === --
 --------------------
 
-type family ExprLayer l t
-newtype Layer t l = Layer (ExprLayer l t)
-
-type instance ExprLayer Data t = TermStore
-
-instance Monad m => Constructor TermStore m (Layer t Data) where cons = return . Layer
+type family LayerData l t
+newtype Layer t l = Layer (LayerData l t)
 
 
-
-deriving instance Show (ExprLayer l t) => Show (Layer t l)
+deriving instance Show (LayerData l t) => Show (Layer t l)
 
 makeWrapped ''Layer
 
 -- === Classes === --
 
 class HasLayer layer layers where
-    layer :: forall t layout layers'. Stack layers (Layer (Expr t layers' layout)) -> ExprLayer layer (Expr t layers' layout)
+    layer :: forall t layout layers'. Stack layers (Layer (Expr t layers' layout)) -> LayerData layer (Expr t layers' layout)
 
 instance {-# OVERLAPPABLE #-}                  HasLayer l (l ': ls) where layer (SLayer t _) = unwrap' t
 instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer (SLayer _ s) = layer @l s
@@ -391,10 +410,12 @@ instance {-# OVERLAPPABLE #-} HasLayer l ls => HasLayer l (t ': ls) where layer 
 type ExprStack    t layers layout = Stack layers (Layer (Expr t layers layout))
 type AnyExprStack t layers        = Stack layers (Layer (Expr t layers Layout.Any))
 
+-- to mozna zmienic na inna nazwe-  nie ma to nic wspolnego z expressionami i  w tej samej strukturze trzymac edge
 newtype Expr    t layers layout = Expr (ExprStack t layers layout)
 type    AnyExpr t layers        = Expr t layers Layout.Any
 makeWrapped ''Expr
 
+-- mozliwe ze na razie nie musimy robic zadnych warstw na edgach tlyko pamietac uid nodow do kotrych lacza!
 
 -- === Utils === --
 
