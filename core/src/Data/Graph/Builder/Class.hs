@@ -3,16 +3,14 @@
 
 module Data.Graph.Builder.Class where
 
-import Prologue hiding (Getter, Setter, read, (#))
+import Prologue hiding (Getter, Setter, read, (#), s)
 
-import           Data.Prop
+import           Data.Prop ()
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
-import           Control.Monad.Primitive
-import           Data.Construction
-import           Data.Container
-import           Data.Index
+import           Data.Construction ()
+import           Data.Container ()
+import           Data.Index ()
 import qualified Control.Monad.State            as State
-import           Data.Layer_OLD.Cover_OLD
 
 
 ---- TODO: template haskellize

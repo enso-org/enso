@@ -45,8 +45,8 @@ bracked  = sbox . (doc %~ between "[" "]")
 braced   = sbox . (doc %~ between "{" "}")
 
 precParens :: Prec -> Tok -> Doc
-precParens tresh t@(Tok prec bldr) = view doc $ if checkPrec tresh prec then parensed t
-                                                                        else t
+precParens tresh t@(Tok prec _bldr) = view doc $ if checkPrec tresh prec then parensed t
+                                                                         else t
 
 checkPrec :: Prec -> Prec -> Bool
 checkPrec p1 p2 = case p2 of
@@ -60,7 +60,7 @@ checkPrec p1 p2 = case p2 of
 
 instance Monoid Tok where
     mempty = Tok Top mempty
-    (Tok pri doc) `mappend` (Tok pri' doc') = Tok pri $ doc `mappend` doc'
+    (Tok pri doc) `mappend` (Tok _pri' doc') = Tok pri $ doc `mappend` doc'
 
 instance Num Prec where
     fromInteger = Lvl . fromInteger

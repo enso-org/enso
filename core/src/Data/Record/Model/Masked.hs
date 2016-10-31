@@ -2,7 +2,8 @@
 
 module Data.Record.Model.Masked where
 
-import Prelude.Luna
+import Prelude.Luna    hiding (mask)
+import Data.Typeable.Proxy.Abbr (P, p)
 import Prologue.Unsafe (error)
 
 import Data.Bits         (Bits, FiniteBits, finiteBitSize, testBit, setBit, zeroBits)

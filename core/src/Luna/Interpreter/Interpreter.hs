@@ -13,47 +13,41 @@ import           Control.Monad.Reader                            (runReaderT, Re
 
 import           Data.IORef                                      (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 
-import           Data.Construction
 import           Data.Graph
 import qualified Data.Graph.Backend.NEC                          as NEC
 import           Data.Graph.Builder                              hiding (get)
-import qualified Data.Graph.Builder                              as GraphBuilder
 import           Data.Prop
 import           Data.Record                                     hiding (cons, Value)
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as Map
-import           Development.Placeholders
 
-import           Luna.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT, evalInterpreterT)
+import           Luna.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT)
 import           Luna.Interpreter.Env           (Env, enrichScope, lookupVar)
 import qualified Luna.Interpreter.Env           as Env
-import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, EvalMonad, evalMonad, ValueErr(..))
+import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, ValueErr)
 import           Luna.Interpreter.StdScope      (stdScope)
 import qualified Luna.Interpreter.Layer         as Layer
 import           Luna.Interpreter.Value
 
-import           Luna.Runtime.Dynamics                           (Dynamic, Static)
-import           Old.Luna.Syntax.Term.Class                      (Lam (..), Acc (..), App (..), Native (..), Blank (..), Unify (..), Var (..), Cons (..), Curry (..))
+import           Luna.Runtime.Dynamics                           (Static)
+import           Old.Luna.Syntax.Term.Class                      (Lam (..), Acc (..), App (..), Var (..), Cons (..))
 import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs, tcErrors)
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
-import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                   as Lit
 
-import           Type.Inference
-
 import           Luna.Syntax.Term.Function                       (Arg)
 
-import           Control.Monad.Catch                             (MonadCatch, handleAll, handleJust)
+import           Control.Monad.Catch                             (handleAll)
 import           Control.Exception                               (SomeException(..), AsyncException(..), throwIO)
 
 
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, TermBuilder_OLD, NetworkBuilderT, NetRawNode, NetRawCluster)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers, NetCluster, NetRawNode, NetRawCluster)
 
-import           GHC.Exception          (fromException, Exception)
+import           GHC.Exception          (fromException)
 import           Data.Layer_OLD.Cover_OLD
 
 convertBase :: Integral a => a -> a -> a

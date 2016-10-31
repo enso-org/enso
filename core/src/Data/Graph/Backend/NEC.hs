@@ -5,18 +5,13 @@
 module Data.Graph.Backend.NEC where
 
 import Prologue                 hiding (Getter, Setter)
-import Prologue.Unsafe
 
 import qualified Data.Container as Cont
 import           Data.Container (Store, HasStore, HasStores, store, unchecked, inplace, ixed)
 import           Data.AutoVector as AutoVector
 
 import Data.Prop
-import Data.Container.Auto      (Auto)
-import Data.Container.Resizable (Exponential)
 import Data.Index
-import Data.Vector              (Vector)
-import Data.Vector.Mutable      (MVector)
 
 import Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)

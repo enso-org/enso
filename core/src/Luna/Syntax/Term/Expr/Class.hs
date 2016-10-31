@@ -9,37 +9,22 @@
 module Luna.Syntax.Term.Expr.Class where
 
 
-import           Prelude.Luna                 hiding (Num, Swapped, Curry, String, Integer, Rational, Symbol)
-import qualified Prelude.Luna                 as P
+import           Prelude.Luna                 hiding (Num, Swapped, String, Integer, Rational, Symbol)
 
-import           Data.Abstract
+import           Data.Abstract ()
 import           Data.Base
 import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
-import qualified Data.Record                  as Record
-import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
-import           Type.Container               hiding (Empty)
-import           Type.Map
 
-import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynamics, SubSemiDynamics, ByDynamics)
-import qualified Luna.Runtime.Dynamics      as Dynamics
-import           Luna.Pretty.Styles
-import           Luna.Syntax.Term.Function.Argument
-import qualified Data.Reprx                   as Repr
+import           Luna.Runtime.Dynamics      (Dynamic, Static, SubDynamics, SubSemiDynamics)
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
 import Luna.Syntax.Term.Expr.Atom
 
 import Data.Shell               as Shell
-import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
-import Type.Monoid
-import Type.Applicative
+import Data.Record.Model.Masked as X (Data2, VGRecord2)
 
-import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (Symbol, Symbols, NameByDynamics)
+import Luna.Syntax.Term.Expr (Symbol, Symbols)
 
-
-import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty)
 
 

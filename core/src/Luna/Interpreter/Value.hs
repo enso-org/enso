@@ -3,7 +3,6 @@
 module Luna.Interpreter.Value where
 
 import           Prelude.Luna
-import           Prelude                    (error)
 import           Text.Read                  (readEither)
 import           GHC.Prim                   (Any)
 import           Data.Map                   (Map)
@@ -18,7 +17,6 @@ import           Control.Concurrent         (ThreadId)
 import           Control.Concurrent.MVar
 import           Control.Concurrent.Chan    (Chan, writeChan)
 import           Network.Socket             (Socket, SockAddr)
-import           Control.Exception          (throw)
 import           GHC.IO.Handle              (Handle)
 import qualified System.Hardware.Serialport as SP
 import qualified Data.ByteString.Char8      as B
@@ -586,7 +584,7 @@ setColor lr ix (Color r g b) = do
                ]
         line = intercalate " " (show <$> vals) <> "\n"
 
-    SP.send (_serialPort lr) $ B.pack line
+    _ <- SP.send (_serialPort lr) $ B.pack line
     void $ swapMVar (_ledRingLastLed lr) ix
 
 setNextColor :: LedRing -> Color -> IO ()

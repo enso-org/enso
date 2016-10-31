@@ -3,16 +3,13 @@
 module Luna.Compilation.Pass.Utils.SubtreeWalk where
 
 import Prelude.Luna
-import           Data.Construction
 import           Data.Prop
-import           Data.Record                                     hiding (cons)
 import           Data.Graph
 import           Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC                  as NEC
 
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, seen)
-import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Class                 ()
 
 

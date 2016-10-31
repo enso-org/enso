@@ -89,11 +89,13 @@ rectangleToGeo = figureToGeo .: Rectangle
 axisWidth :: Double
 axisWidth = 0.008
 
+axisLength :: Double -> Double
 axisLength viewSize = viewSize + axisWidth
 
 maxSteps :: Int
 maxSteps  = 12
 
+labelFontSize :: Double
 labelFontSize = 10.0
 
 edgePoints :: Double -> Double -> Double -> (Double, Double)
@@ -171,11 +173,14 @@ grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
     gH = gridH mat viewSize y1 y2
     gV = gridV mat viewSize x1 x2
 
+labelOff :: Double -> Double
 labelOff viewSize = 0.5 * (1.0 - viewSize)
 
+labelOffX, labelOffY :: Double
 labelOffX = -0.04
 labelOffY = -0.025
 
+labelAdjustX, labelAdjustY :: Double
 labelAdjustX = 0.0
 labelAdjustY = 0.035
 
@@ -282,7 +287,7 @@ autoScatterChartDoubleImpl gridMat mat figure decim viewSize viewShift doublesY 
     chart = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift $ zip [0.0..] doublesY
 
 autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift []        = Graphics []
+autoScatterChartDoubleTupleImpl _gridMat _mat _figure _decim _viewSize _viewShift []  = Graphics []
 autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift doublesXY = shiftGraphics shift chart where
     chart      = Graphics $ gridLayers <> [chartLayer]
     shift      = shiftPoint viewSize' viewSize' viewShift viewShift

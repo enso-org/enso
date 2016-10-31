@@ -3,20 +3,15 @@ module Luna.Interpreter.Layer where
 import           Prologue                        hiding (Getter, Setter)
 
 import           Data.Construction
-import           Data.Prop
-import           Data.Either                     (isRight)
 
-import           Luna.Syntax.Term.Expr.Format           (Draft)
-import           Luna.Runtime.Dynamics         (Static)
-import           Old.Luna.Syntax.Term.Class            (Term)
 import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Class (Network)
-import qualified Luna.Syntax.Model.Network.Term  as Term
 import           Luna.Interpreter.Value
 
 
 
 type EvalMonad = IO
+
+evalMonad :: String
 evalMonad = "IO"
 
 

@@ -5,23 +5,18 @@ module Luna.Compilation.Pass.Utils.Literals where
 
 import           Prelude.Luna                                    hiding (Num, pre)
 
-import           Data.Construction
 import           Data.Prop
 import Data.Record.Match
 import           Data.Graph
 import           Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC                  as NEC
-import           Type.Inference
 
-import           Luna.Pretty.GraphViz
-import           Luna.Runtime.Dynamics                         (Dynamic, Static)
+import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            (Lam, Cons)
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
-import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
-import           Luna.Syntax.Model.Network.Builder.Node.Inferred
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
+import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term                  (Draft)
 import           Data.Layer_OLD.Cover_OLD

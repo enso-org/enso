@@ -8,10 +8,10 @@ import Data.Graph.Model.Pointer
 import Data.Graph.Model.Node
 
 import Data.Container          hiding (Impossible)
-import Data.Direction
-import Data.Index
+import Data.Direction ()
+import Data.Index ()
 import Data.Prop
-import Type.Bool
+import Type.Bool ()
 
 ------------------
 -- === Edge === --
@@ -78,5 +78,3 @@ type instance Connection (Ref Node a) (Ref Node b) = Arc a b
 instance {-# OVERLAPPABLE #-}                                           Castable (Arc src tgt) (Arc src  tgt)  where cast = id ; {-# INLINE cast #-}
 instance {-# OVERLAPPABLE #-} (Castable src src', Castable tgt tgt') => Castable (Arc src tgt) (Arc src' tgt') where
     cast (Arc src tgt) = Arc (cast src) (cast tgt) ; {-# INLINE cast #-}
-
-

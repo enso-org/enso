@@ -4,22 +4,8 @@ module Luna.Syntax.Model.Network.Builder.Layers.TCData where
 
 import Prelude.Luna
 
-import           Data.Graph.Builders
-import           Control.Monad.Event
-import           Data.Prop
-import           Data.Construction
-import           Data.Graph.Model.Pointer.Set
-import           Data.Graph.Backend.NEC
-import qualified Luna.Syntax.Model.Network.Builder.Type as Type
-import qualified Luna.Syntax.Model.Network.Builder.Self as Self
-import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
-import qualified Luna.Syntax.Term.Function               as Func
 import           Luna.Compilation.Error
-import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
-import           Data.Graph.Builder.Ref                 as Ref
-import           Luna.Syntax.Model.Network.Class
-import           Data.Layer_OLD.Cover_OLD
 import           Data.Graph
 
 -- === TCData layer === --

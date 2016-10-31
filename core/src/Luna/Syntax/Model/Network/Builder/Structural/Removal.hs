@@ -8,9 +8,8 @@ import           Data.Prop
 import           Data.Graph.Builder
 import           Luna.Syntax.Model.Network.Term
 import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder.Node
 import           Luna.Syntax.Model.Network.Builder.Layer (HasSuccs, readSuccs)
-import           Luna.Runtime.Dynamics (Static, Dynamic)
+import           Luna.Runtime.Dynamics (Static)
 import           Data.Graph             hiding (add, remove)
 import qualified Data.Graph.Backend.NEC as NEC
 

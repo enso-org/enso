@@ -3,7 +3,6 @@
 module Luna.Syntax.Model.Network.Builder.Node.Inferred where
 
 import Prelude.Luna
-import Prologue.Unsafe
 
 import qualified Luna.Syntax.Model.Network.Builder.Node.Class as Node
 import Luna.Syntax.Model.Network.Builder.Term.Inferred (inferNodeM)
@@ -11,8 +10,6 @@ import Data.Graph
 import Luna.Syntax.Model.Layer
 import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 import           Type.Inference (Inferable)
-import Old.Luna.Syntax.Term.Class (NameInput, Cons)
-import Luna.Syntax.Term.Function.Argument (Arg)
 
 star :: (Node.NodeBuilder Lit.Star m (ls :<: term), Inferable ELEMENT (Ref Node (ls :<: term)) m) => m (Ref Node (ls :<: term))
 star   = inferNodeM    Node.star

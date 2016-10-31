@@ -3,7 +3,7 @@ module Luna.Interpreter.Docker where
 import           Prelude.Luna
 import           Luna.Interpreter.Value
 import           Control.Monad.Except
-import           System.Process                          (callProcess, readProcessWithExitCode)
+import           System.Process                          (readProcessWithExitCode)
 import           System.Exit
 import qualified Data.Map                                as Map
 import           Unsafe.Coerce
@@ -31,7 +31,7 @@ runDocker :: DockerConf -> String -> LunaM String
 runDocker conf cmd = do
     let ms  = case conf ^. mounts of
           [] -> []
-          ms -> "-v" : ((\(a, b) -> a ++ ":" ++ b) <$> conf ^. mounts)
+          ms' -> "-v" : ((\(a, b) -> a ++ ":" ++ b) <$> ms')
     let pwd = case conf ^. workdir of
           Just w -> ["-w", w]
           _      -> []

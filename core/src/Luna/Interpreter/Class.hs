@@ -112,7 +112,7 @@ withEnv :: InterpreterMonad env m => (env -> (env, a)) -> m a
 withEnv = withEnvM . fmap return
 
 withEnv' :: InterpreterMonad env m => (env -> (a, env)) -> m a
-withEnv' = withEnvM . fmap (return . switch')
+withEnv' = withEnvM . fmap (return . swap)
 
 withEnv_ :: InterpreterMonad env m => (env -> env) -> m ()
 withEnv_ = withEnv . fmap (,())
@@ -123,13 +123,10 @@ withEnvM = modifyM
 withEnvM_ :: InterpreterMonad env m => (env -> m env) -> m ()
 withEnvM_ = withEnvM . (fmap . fmap) (,())
 
-runInterpreterT  :: Functor m => InterpreterT env m a -> env -> m (a, env)
+runInterpreterT  ::              InterpreterT env m a -> env -> m (a, env)
 execInterpreterT :: Monad   m => InterpreterT env m a -> env -> m env
 evalInterpreterT :: Monad   m => InterpreterT env m a -> env -> m a
 
 runInterpreterT  = runT
 execInterpreterT = execT
 evalInterpreterT = evalT
-
-
-switch' (a,b) = (b,a)

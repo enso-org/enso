@@ -31,7 +31,6 @@ import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable,
 import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
 import           Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
-import           Luna.Syntax.Model.Network.Class                 ()
 import           Luna.Syntax.Model.Network.Term
 
 import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)

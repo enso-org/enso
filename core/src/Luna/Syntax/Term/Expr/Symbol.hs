@@ -3,19 +3,16 @@
 module Luna.Syntax.Term.Expr.Symbol (module Luna.Syntax.Term.Expr.Symbol, module X) where
 
 import qualified Prelude.Luna as P
-import           Prelude.Luna hiding (String, Integer, Rational, Curry, Symbol)
+import           Prelude.Luna hiding (String, Integer, Rational, Symbol)
 
 import Luna.Syntax.Term.Expr.Atom as X (String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
-import Data.Construction         (Args, DataType (args))
 import Luna.Runtime.Dynamics     (ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
-import Type.Applicative
+import Type.Applicative ()
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
-
-import qualified Data.Construction as C
 
 
 -- TODO[WD]: move to issue tracker after releasing Luna to github

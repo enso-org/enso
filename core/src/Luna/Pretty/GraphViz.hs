@@ -10,20 +10,16 @@ module Luna.Pretty.GraphViz where
 import           Prelude.Luna                            hiding (index)
 
 import           Data.Container
-import           Data.Container.Class
 import           Data.Index                              (idx)
 import           Data.Layer_OLD.Cover_OLD                        (uncover)
 import           Data.List                               (find)
 import           Data.Map.Strict                         (Map)
 import qualified Data.Map.Strict                         as Map
-import           Data.Maybe                              (maybe, maybeToList, fromMaybe)
+import           Data.Maybe                              (maybe, maybeToList)
 import           Data.Prop
 import           Data.Record
-import           Data.Reprx
 
 import           Data.Graph
-import           Data.Graph.Backend.NEC
-import qualified Data.Graph.Backend.NEC          as Graph
 import qualified Data.Graph.Model.Pointer.Set as SubGraph
 import           Data.GraphViz
 import qualified Data.GraphViz.Attributes                as GV
@@ -32,22 +28,16 @@ import qualified Data.GraphViz.Attributes.Colors.X11     as GVC
 import           Data.GraphViz.Attributes.Complete       hiding (Int, Label, Star, focus)
 import qualified Data.GraphViz.Attributes.Complete       as GV
 import qualified Data.GraphViz.Attributes.HTML           as Html
-import           Data.GraphViz.Commands
-import           Data.GraphViz.Printing                  (renderDot, toDot)
-import           Data.GraphViz.Printing                  (PrintDot)
-import           Data.GraphViz.Types.Canonical
 
 import           Luna.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Interpreter.Layer as InterpreterLayer
-import           Luna.Runtime.Dynamics                 (Dynamic, Static)
+import           Luna.Runtime.Dynamics                 (Static)
 import qualified Luna.Syntax.Term.Function                as Function
 import qualified Old.Luna.Syntax.Term.Class                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder
-import           Luna.Syntax.Model.Network.Builder.Layer
-import           Luna.Syntax.Model.Network.Builder.Term  hiding (match)
 import           Luna.Syntax.Model.Network.Term
-import           Luna.Pretty.Styles                 (HeaderOnly (..), Simple (..))
+import           Luna.Pretty.Styles                 (HeaderOnly (..))
 
 import           System.Platform
 import           System.Process                          (createProcess, shell)

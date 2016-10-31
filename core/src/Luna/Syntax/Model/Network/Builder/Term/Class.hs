@@ -7,26 +7,24 @@
 
 module Luna.Syntax.Model.Network.Builder.Term.Class (module Luna.Syntax.Model.Network.Builder.Term.Class, module X) where
 
-import Prelude.Luna    hiding (Num, curry, Curry)
+import Prelude.Luna    hiding (Num, curry)
 import qualified Prelude.Luna as P
 import Prologue.Unsafe (error)
+import Data.Typeable.Proxy.Abbr (P, p)
 
 import           Control.Monad.Event
-import           Data.Direction
 import           Data.Graph
 import           Data.Graph.Builders
-import           Data.Layer_OLD
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Prop
 import qualified Data.Record                             as Record
-import           Data.Record                             (RecordOf, IsRecord, HasRecord, record, asRecord, Variant, MapTryingElemList_, withElement_, Props, withElement', Layout_Variants, MapTryingElemList, OverElement, overElement)
+import           Data.Record                             (RecordOf, HasRecord, record, MapTryingElemList_, withElement_, OverElement, overElement)
 import           Luna.Runtime.Dynamics                 as Runtime
 import           Luna.Syntax.Term.Function.Argument
 import           Luna.Syntax.Term.Function.Argument       as X (arg)
-import           Old.Luna.Syntax.Term.Class                    hiding (undefined, Val, Lit, Thunk, Expr, Draft, Source, Name)
-import qualified Old.Luna.Syntax.Term.Class                    as Term
+import           Old.Luna.Syntax.Term.Class                    hiding (undefined, Source, Name)
 import qualified Data.Graph.Builder                      as GraphBuilder
-import           Luna.Syntax.Model.Layer                 (Type, Markable, TCData, Meta, Name, Lambda, (:<:), (:<))
+import           Luna.Syntax.Model.Layer                 (Type, TCData, Meta, Name, Lambda, (:<:), (:<))
 import           Luna.Interpreter.Layer (InterpreterData)
 import           Luna.Syntax.Model.Network.Builder.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
@@ -34,13 +32,10 @@ import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
 import           Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 import           Control.Monad.Trans.Identity
-import           Type.Bool
 import           Old.Luna.Syntax.Term.Expr.Lit               (Star(Star))
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 
-import Control.Monad.Delayed (delayed, MonadDelayed)
-import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
 

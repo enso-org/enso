@@ -5,11 +5,7 @@ module Control.Monad.Event where
 
 import           Prologue
 
-import           Control.Monad.Catch          hiding (Handler)
-import           Control.Monad.Fix
-import           Control.Monad.State          (StateT)
 import           Control.Monad.Trans.Identity
-import           Control.Monad.Primitive
 
 ----------------------
 -- === Listener === --
@@ -112,6 +108,3 @@ instance {-# OVERLAPPABLE #-}
          (Dispatcher t a m, MonadTrans f, Monad m, Monad (f m)) => Dispatcher t a (f m)    where dispatch_     = lift ∘∘ dispatch_ ; {-# INLINE dispatch_ #-}
 instance                                                         Dispatcher t a IO       where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
 instance                                                         Dispatcher t a Identity where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
-
-
-

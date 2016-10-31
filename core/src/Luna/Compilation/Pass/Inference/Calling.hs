@@ -6,34 +6,25 @@ module Luna.Compilation.Pass.Inference.Calling where
 
 import Prelude.Luna
 
-import Control.Monad.Except                         (throwError, ExceptT, runExceptT)
-import Data.Container                               (add)
-import Data.Construction
-import Data.Either                                  (rights)
+import Control.Monad.Except                         (throwError, ExceptT)
 import Data.Prop
 import Data.Record.Match
-import Data.Layer_OLD
 import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph                                   as Graph hiding (add)
 import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester, originSign, Sign (..))
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, requester, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
+import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Type.Inference
-
-import qualified Data.Map as Map
-import           Data.Map (Map)
 
 import qualified Luna.Syntax.Term.Function as Function
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
-import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import           Data.Layer_OLD.Cover_OLD
 
 

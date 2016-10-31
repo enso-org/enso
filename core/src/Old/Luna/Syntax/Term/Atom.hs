@@ -2,14 +2,14 @@
 
 module Old.Luna.Syntax.Term.Atom where
 
-import Prelude.Luna hiding (Curry)
+import Prelude.Luna
 
 import Data.Base
 import Luna.Syntax.Term.Function (Arg)
 import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
-import Type.Applicative
+import Type.Applicative ()
 
 
 

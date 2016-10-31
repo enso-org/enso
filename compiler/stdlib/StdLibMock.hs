@@ -21,7 +21,6 @@ import Old.Luna.Syntax.Term.Class
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetworkBuilderT, NetLayers, NetGraph)
-import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit      as Lit

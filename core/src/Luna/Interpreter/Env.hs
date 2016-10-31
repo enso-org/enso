@@ -1,6 +1,6 @@
 module Luna.Interpreter.Env where
 
-import           Prologue
+import           Prologue hiding (s)
 
 import           Luna.Interpreter.Class
 import           Luna.Interpreter.Value (Value)

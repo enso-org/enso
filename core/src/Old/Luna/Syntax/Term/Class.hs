@@ -8,32 +8,25 @@
 module Old.Luna.Syntax.Term.Class (module Old.Luna.Syntax.Term.Class, module X) where
 
 
-import           Prelude.Luna                 hiding (Num, Swapped, Curry)
-import qualified Prelude.Luna                 as P
+import           Prelude.Luna                 hiding (Num, Swapped)
 
 import           Data.Abstract
 import           Data.Base
 import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
 import qualified Data.Record                  as Record
-import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
-import           Type.Container
+import           Type.Cache.TH                (cacheHelper, cacheType)
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics_OLD, Dynamic, Static, WithDynamics_OLD, SubDynamics, SubSemiDynamics, ByDynamics)
-import qualified Luna.Runtime.Dynamics      as Dynamics
+import           Luna.Runtime.Dynamics      (Dynamics_OLD, Dynamic, Static, WithDynamics_OLD, SubDynamics, SubSemiDynamics)
 import           Luna.Pretty.Styles
-import           Luna.Syntax.Term.Function.Argument
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
 import qualified Old.Luna.Syntax.Term.Expr.Lit     as Lit
 import Old.Luna.Syntax.Term.Atom as X
 
-import Data.Shell               as Shell
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
-import Type.Monoid
-import Type.Applicative
 
 import Prologue.Unsafe (error)
 import Luna.Syntax.Term.Expr (NameByDynamics)

@@ -17,44 +17,30 @@
 
 module Data.Record.Class where
 
-import Prologue hiding (mask, simple, empty, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, Repr, repr, minBound, maxBound, (#), assert, Index)
-import Prologue.Unsafe (fromJustNote, error)
+import Prologue hiding (mask, simple, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, minBound, maxBound, (#), assert, Index, s)
+import Prologue.Unsafe (fromJustNote)
 
 import Type.Container
-
-import Luna.Runtime.Dynamics (Static, Dynamic)
-import qualified Luna.Runtime.Dynamics as Runtime
---import Data.Bits.Mask         (Mask)
-import GHC.Prim            (Any, unsafeCoerce#)
-import Data.Int            (Int64)
-
-import Unsafe.Coerce (unsafeCoerce)
 import Data.Result
-
-import Data.Bits (Bits, FiniteBits, setBit, testBit, zeroBits, finiteBitSize)
-
 import Type.Map
 
-import Data.Foldable (foldl', foldr')
 import Control.Monad.State hiding (when, withState)
 
-import Data.Maybe (isNothing, catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Base
 import Type.Bool
-import Type.List
-import System.Environment (getArgs)
-import Data.List.Split (chunksOf)
+import Type.List ()
 
 import qualified Control.Monad.State.Dependent as State
-import Type.Cache.TH
-import Type.Set
-import Type.Zip
-import Type.Maybe
-import Type.Show
-import Type.Sequence          (Enumerate)
-import Type.Monoid
+import Type.Cache.TH ()
+import Type.Set ()
+import Type.Zip ()
+import Type.Maybe ()
+import Type.Show ()
+import Type.Sequence ()
+import Type.Monoid ()
 import Data.Cover
-import Data.Shell
+import Data.Shell ()
 
 
 -----------------------------------------------------------------
@@ -510,7 +496,7 @@ type family Matches rec lst :: Constraint where
 
 -- === Static-AST matching === --
 
-static :: (rec' ~ To Static rec, Match rec' rec) => (rec' -> out) -> MatchSet rec out
+static :: (Match rec' rec) => (rec' -> out) -> MatchSet rec out
 static = of'
 
 

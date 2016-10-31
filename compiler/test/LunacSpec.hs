@@ -68,7 +68,6 @@ import           Luna.Syntax.Model.Network.Builder.Node
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetNode, NetCluster, runNetworkBuilderT, runNetworkBuilderT2, fmapInputs, inputstmp)
-import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
 import qualified Data.Graph.Backend.NEC as NEC

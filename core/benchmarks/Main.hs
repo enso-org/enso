@@ -19,7 +19,6 @@ import qualified Data.Graph.Builder.Class                        as Graph
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder.Node
 import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph'', NetLayers', NetCluster, runNetworkBuilderT', fmapInputs, inputstmp)
-import           Luna.Syntax.Model.Network.Class                 (Network)
 import           Luna.Syntax.Model.Network.Term
 
 import Data.Container

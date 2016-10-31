@@ -8,15 +8,12 @@ import           Luna.Interpreter.Value
 import           Data.List                               (sort, group)
 import           Data.Maybe                              (catMaybes, fromJust)
 import           Control.Arrow                           ((&&&))
-import           Control.Monad.Fix                       (fix, mfix)
+import           Control.Monad.Fix                       (fix)
 import           Control.Concurrent
 import           Control.Exception                       (finally)
-import           Control.Monad.Except                    (throwError, ExceptT, runExceptT)
 import           Data.Time.Clock.POSIX
 import           Network.Socket                          hiding (Stream)
 import qualified Network.Socket                          as Socket
-import           Control.Concurrent.MVar
-import           Text.Printf                             (printf)
 import           System.Cmd                              (system)
 import           System.Process                          (createProcess, proc)
 import           System.IO
@@ -30,6 +27,7 @@ import           System.Random
 import           Luna.Interpreter.Docker
 import           Luna.Interpreter.Genetic
 
+stdScope :: Scope
 stdScope = Scope $ Map.fromList
     [ ("id",        unsafeToValue (id :: Data -> Data))
     , ("const",     unsafeToValue (const :: Data -> Data -> Data))
@@ -78,17 +76,17 @@ stdScope = Scope $ Map.fromList
 
 indexGenome :: DockerConf -> String -> String -> LunaM String
 indexGenome docker infile outname = do
-    runDocker docker $ "if [ ! -f " ++ outname ++ ".1.bt2 ]; then bowtie2-build " ++ infile ++ " " ++ outname ++ "; fi"
+    _ <- runDocker docker $ "if [ ! -f " ++ outname ++ ".1.bt2 ]; then bowtie2-build " ++ infile ++ " " ++ outname ++ "; fi"
     return outname
 
 mapGenome :: DockerConf -> String -> String -> LunaM String
 mapGenome docker index readPairs = do
-    runDocker docker $ "if [ ! -f tophat_out/accepted_hits.bam ]; then tophat2 " ++ index ++ " " ++ readPairs ++ "; fi"
+    _ <- runDocker docker $ "if [ ! -f tophat_out/accepted_hits.bam ]; then tophat2 " ++ index ++ " " ++ readPairs ++ "; fi"
     return "tophat_out/accepted_hits.bam"
 
 makeTranscript :: DockerConf -> String -> LunaM String
 makeTranscript docker mapping = do
-    runDocker docker $ "if [ ! -f transcripts.gtf ]; then cufflinks " ++ mapping ++ "; fi"
+    _ <- runDocker docker $ "if [ ! -f transcripts.gtf ]; then cufflinks " ++ mapping ++ "; fi"
     return "transcripts.gtf"
 
 time :: LunaM Stream

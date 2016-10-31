@@ -7,12 +7,10 @@ module Luna.Compilation.Pass.Inference.Importing where
 import Prelude.Luna
 
 import Control.Monad.Error                          (throwError, ErrorT, runErrorT, Error)
-import Data.Construction
 import Data.Either                                  (rights)
 import Data.Prop
 import Data.Record.Match
-import Data.Maybe                                   (fromMaybe, maybeToList, isJust, isNothing)
-import Data.List                                    (partition)
+import Data.Maybe                                   (fromMaybe)
 import Luna.Runtime.Dynamics                        (Static)
 import Luna.Library.Symbol                          (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.Syntax.Term.Function                    (Function, Signature)
@@ -21,15 +19,11 @@ import Data.Graph                                   as Graph hiding (add)
 import Data.Graph.Builder                           as Graph hiding (run)
 import qualified Data.Graph.Backend.NEC             as NEC
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (readSuccs, importToCluster, dupCluster, requester, tcErrors, translateSignature, NodeTranslator, originSign, Sign (..), replaceNode)
+import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, requester, tcErrors, translateSignature, originSign, Sign (..), replaceNode)
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster, NetClusterLayers)
+import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster, NetClusterLayers)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Type.Inference
-
-import qualified Data.Map as Map
-import           Data.Map (Map)
 
 import qualified Luna.Syntax.Name.Path     as QualPath
 import qualified Luna.Syntax.Term.Function         as Function

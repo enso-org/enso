@@ -13,19 +13,15 @@ import           Data.Graph.Model.Pointer.Set  (RefSet)
 import           Data.Container                (usedIxes)
 import           Data.Container.SizeTracking   (SizeTracking)
 import           Data.Layer_OLD.Cover_OLD
-import           Data.Construction
 import           Data.Index                    (idx)
 import           Data.Prop
 import           Data.Map                      (Map)
 import           Data.Maybe                    (fromMaybe)
-import           Data.List                     (partition)
 import qualified Data.Map                      as Map
 import qualified Data.IntSet                   as IntSet
 import           Luna.Syntax.Term.Function      (Signature)
 
 import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Term (Draft)
-import           Luna.Runtime.Dynamics        (Static)
 import qualified Luna.Syntax.Term.Function       as Function
 
 #define ImportCtx  ( node  ~ (ls :<: term)                            \
@@ -80,7 +76,7 @@ importStructure nodes' edges' = do
     newEdgeRefs <- forM es $ \e -> connection (e ^. source) (e ^. target)
     let edgeTrans = Map.fromList $ zip foreignEdgeRefs newEdgeRefs
 
-    forM newNodeRefs $ \ref -> do
+    forM_ newNodeRefs $ \ref -> do
         node <- read ref
         let nodeWithFixedEdges = node & over covered     (fmapInputs unsafeTranslateEdge)
                                       & over (prop Type) unsafeTranslateEdge
@@ -105,7 +101,7 @@ importToCluster g = do
     foreignEdges <- mapM (flip readRefM g) foreignEdgeRefs
     trans        <- importStructure (zip foreignNodeRefs foreignNodes) (zip foreignEdgeRefs foreignEdges)
     cls          <- subgraph
-    mapM (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
+    mapM_ (flip include cls) $ filter (/= universe) $ trans <$> foreignNodeRefs
     return (cls, trans)
 
 dupCluster :: ( ImportCtx
@@ -134,7 +130,7 @@ dupCluster cluster name = do
     cl <- subgraph
     withRef cl $ (prop Name   .~ name)
                . (prop Lambda .~ (translateSignature trans <$> fptr))
-    mapM (flip include cl) $ trans <$> nodeRefs
+    mapM_ (flip include cl) $ trans <$> nodeRefs
     return (cl, trans)
 
 universe :: Ref Node n

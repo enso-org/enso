@@ -12,9 +12,7 @@ import Prelude.Luna
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
 import qualified Control.Monad.State            as State
 import           Data.Pool
-import           Data.Tuple (swap)
 import qualified Luna.Syntax.Name.Ident.Class        as Ident
-import           Control.Monad.Primitive
 
 
 -----------------------

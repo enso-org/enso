@@ -6,24 +6,20 @@ module Luna.Compilation.Pass.Inference.Struct where
 
 import Prelude.Luna
 
-import Data.Construction
 import Data.Prop
 import Data.Record
 import Data.Graph.Builder
-import Data.Maybe                                 (catMaybes)
-import Luna.Runtime.Dynamics                      (Static, Dynamic)
+import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder            (requester)
-import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers)
-import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, redirect, originSign, Sign (..))
+import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 import Luna.Syntax.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
-import Type.Inference
 
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Data.Graph.Backend.NEC as NEC
@@ -73,8 +69,8 @@ instance (PassCtx(m, ls, term)) => TypeCheckerPass StructuralInferencePass m whe
             accs  = tcState ^. TypeCheck.untypedAccs
             binds = tcState ^. TypeCheck.untypedBinds
             lams  = tcState ^. TypeCheck.untypedLambdas
-            all   = tcState ^. TypeCheck.allNodes
-        newUnis <- runPass all apps accs binds lams
+            all'   = tcState ^. TypeCheck.allNodes
+        newUnis <- runPass all' apps accs binds lams
         TypeCheck.modify_ $ (TypeCheck.untypedApps    .~ [])
                           . (TypeCheck.untypedAccs    .~ [])
                           . (TypeCheck.untypedBinds   .~ [])
@@ -173,12 +169,13 @@ getTypeSpec ref = do
         return ntp
 
 runPass :: PassCtx(m,ls,term) => [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> [nodeRef] -> m [nodeRef]
-runPass all apps accs binds lams = do
-    mapM getTypeSpec all
+runPass all' apps accs binds lams = do
+    mapM getTypeSpec all'
     accUnis  <- concat <$> mapM buildAccType accs
     appUnis  <- concat <$> mapM buildAppType apps
     lamUnis  <- concat <$> mapM buildLambdaType lams
     bindUnis <- mapM buildBindType binds
     return $ bindUnis <> accUnis <> appUnis <> lamUnis
 
+universe :: forall r (tgt :: Knowledge *). Ptr r tgt
 universe = Ptr 0

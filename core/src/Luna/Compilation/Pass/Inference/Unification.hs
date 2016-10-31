@@ -6,37 +6,27 @@ module Luna.Compilation.Pass.Inference.Unification where
 
 import Prelude.Luna
 
-import Data.Construction
 import Data.Container                               hiding (impossible)
-import Data.List                                    (delete, sort, groupBy)
+import Data.List                                    (sort, groupBy)
 import Data.Prop
-import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
-import Luna.Runtime.Dynamics                      (Static, Dynamic)
-import Data.Index
+import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool, newVarIdent')
-import Type.Inference
+import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool)
 import Data.Graph                                   as Graph hiding (add, remove)
 import qualified Data.Graph.Backend.NEC               as NEC
 
-import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Old.Luna.Syntax.Term.Expr.Lit               as Lit
-import           Luna.Syntax.Term.Function.Argument
 import           Luna.Compilation.Error
-import           Control.Monad.Primitive
-
-import Control.Monad.Fix
-import Control.Monad (liftM, MonadPlus(..))
 
 import Control.Monad.Trans.Either
 import Data.Layer_OLD.Cover_OLD
@@ -118,6 +108,7 @@ instance PrimMonad m => PrimMonad (ResolutionT r m) where
 -- === Pass === --
 ------------------
 
+resolve_ :: MonadResolution [t] m => m ()
 resolve_ = resolve []
 
 resolveUnify :: forall m ls term node edge graph nodeRef n e c. (PassCtx(m,ls,term),

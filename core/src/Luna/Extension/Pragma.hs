@@ -84,25 +84,7 @@ module Luna.Extension.Pragma where
 import           Prelude.Luna           as P hiding (noneOf, lookup)
 import           Luna.Syntax.Name
 import           Data.Map               (Map)
-import qualified Data.Map               as Map
 import           Data.Container.Hetero  (Hetero)
-import qualified Data.HMap.Lazy         as HMap
---import           Data.HMap.Lazy         (HHashMap, H(H), unH)
---import qualified Data.HashMap.Lazy      as HashMap
---import           Data.HashMap.Lazy      (HashMap)
---import           Data.Typeable
---import           Control.Monad.State
---import           Prelude                 ()
---import           Text.Parser.Char        (string, noneOf, CharParsing)
---import           Text.Parser.Token
---import           Text.Parser.Combinators (try)
---import           Data.Proxy.Utils
---import qualified Data.Map                as Map
---import           Data.Map                (Map)
---import           Control.Monad           (join)
---import           Data.Type.Hide          (HideType(hideType, revealType))
---import           Unsafe.Coerce           (unsafeCoerce)
---import qualified Data.Maps               as Maps
 
 ----------------------------------------------------------------------
 -- Lookup & status
@@ -333,6 +315,3 @@ type instance Value Val a = a
 
 --instance PragmaCons Val where
 --    pragmaCons _ = id
-
-
-

@@ -3,15 +3,13 @@
 
 module Luna.Syntax.Model.Network.Builder.Node.Class (module Luna.Syntax.Model.Network.Builder.Node.Class, module X) where
 
-import Prelude.Luna hiding (Curry)
+import Prelude.Luna
 
 import           Data.Graph
 import           Data.Graph.Builders
 import           Data.Record                             (ANY, Matches)
-import           Data.Graph.Builder.Ref
 import           Luna.Syntax.Term.Function.Argument
-import qualified Old.Luna.Syntax.Term.Class                    as Term
-import           Old.Luna.Syntax.Term.Class                    hiding (Val, Lit, Thunk, Expr, Draft, Source)
+import           Old.Luna.Syntax.Term.Class                    hiding (Source)
 import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term
 import           Luna.Syntax.Model.Network.Builder.Term  as X (arg, TermBuilder_OLD)

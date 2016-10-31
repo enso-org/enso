@@ -2,7 +2,7 @@ module Luna.Info.Version where
 
 import Paths_luna_core   as PATHS
 
-import Prelude.Luna hiding (Version)
+import Prelude.Luna
 
 import           Data.Build
 import           Data.Version.Semantic

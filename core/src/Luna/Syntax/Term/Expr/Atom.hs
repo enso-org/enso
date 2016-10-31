@@ -2,9 +2,7 @@
 
 module Luna.Syntax.Term.Expr.Atom where
 
-import Prelude.Luna hiding (String, Integer, Rational, Curry)
-
-import Data.Base
+import Prelude.Luna hiding (String, Integer, Rational)
 
 
 -------------------

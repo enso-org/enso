@@ -6,16 +6,10 @@ module Data.Graph.Builder.Ref where
 import Prelude.Luna
 
 import Control.Monad.Event
-import Data.List                      (delete)
 import Data.Graph.Builders
-import Data.Construction
 import Data.Prop
-import Data.Index
-import Data.Container                 hiding (addM, removeM)
-import qualified Data.Container       as Cont
 import Data.Graph
 import Data.Graph.Builder.Class       hiding (with)
-import Data.Layer_OLD
 
 
 -- === Utils === --
