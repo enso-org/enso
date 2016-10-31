@@ -185,64 +185,6 @@ library
       Paths_luna_core
   default-language: Haskell2010
 
-executable luna
-  main-is: Main.hs
-  hs-source-dirs:
-      exe
-  default-extensions: ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls FlexibleContexts FlexibleInstances FunctionalDependencies GeneralizedNewtypeDeriving InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PackageImports ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies TypeOperators ViewPatterns
-  build-depends:
-      base
-    , bytestring
-    , clock
-    , constraints
-    , container
-    , convert
-    , data-base
-    , data-construction
-    , data-default
-    , data-layer
-    , data-member
-    , data-pool
-    , data-result
-    , data-rtuple
-    , data-shell
-    , deepseq
-    , dependent-state
-    , digits
-    , either
-    , errors
-    , exceptions
-    , extra
-    , ghc
-    , ghc-mtl
-    , ghc-paths
-    , ghc-prim
-    , graphviz >= 2999.17.0.2.2
-    , HTTP
-    , lens
-    , lens-utils
-    , MissingH
-    , mtl
-    , network
-    , OneTuple
-    , placeholders
-    , primitive
-    , process
-    , prologue
-    , random
-    , serialport
-    , split
-    , text
-    , time
-    , transformers
-    , tuple
-    , type-cache
-    , typelevel
-    , vector
-    , visualization-api
-    , luna-core
-  default-language: Haskell2010
-
 benchmark graph-builder
   type: exitcode-stdio-1.0
   main-is: Main.hs

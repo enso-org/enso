@@ -8,12 +8,6 @@ library:
     source-dirs: src
     other-modules: Paths_luna_core
 
-executables:
-    luna:
-        main: Main.hs
-        source-dirs: exe
-        dependencies: luna-core
-
 benchmarks:
     graph-builder:
         main: Main.hs
