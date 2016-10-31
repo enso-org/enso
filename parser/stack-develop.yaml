@@ -1,27 +1,27 @@
 resolver: nightly-2016-07-19
 packages:
-    - ..
-    - ../../core
+    - .
+    - ../core
 
-    - ../../../libs/container
-    - ../../../libs/convert
-    - ../../../libs/data-member
-    - ../../../libs/data-base
-    - ../../../libs/data-construction
-    - ../../../libs/data-layer
-    - ../../../libs/data-pool
-    - ../../../libs/data-repr
-    - ../../../libs/data-result
-    - ../../../libs/dependent-state
-    - ../../../libs/functor-utils
-    - ../../../libs/impossible
-    - ../../../libs/lens-utils
-    - ../../../libs/poly-control
-    - ../../../libs/prologue
-    - ../../../libs/type-cache
-    - ../../../libs/typelevel
-    - ../../../libs/data-rtuple
-    - ../../../libs/data-shell
+    - ../../libs/container
+    - ../../libs/convert
+    - ../../libs/data-member
+    - ../../libs/data-base
+    - ../../libs/data-construction
+    - ../../libs/data-layer
+    - ../../libs/data-pool
+    - ../../libs/data-repr
+    - ../../libs/data-result
+    - ../../libs/dependent-state
+    - ../../libs/functor-utils
+    - ../../libs/impossible
+    - ../../libs/lens-utils
+    - ../../libs/poly-control
+    - ../../libs/prologue
+    - ../../libs/type-cache
+    - ../../libs/typelevel
+    - ../../libs/data-rtuple
+    - ../../libs/data-shell
 
 extra-deps:
     - ghc-session-0.1.2.0
@@ -44,4 +44,4 @@ extra-deps:
 ghc-options:
     "*": -DFastCompilation -threaded -funbox-strict-fields -O0
 
-local-bin-path: ./dist/bin
+local-bin-path: ./bin
