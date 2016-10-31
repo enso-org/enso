@@ -15,7 +15,7 @@
 module Main where
 
 
-import Data.Graph          hiding (Dynamic, Connection)
+import Data.Graph          hiding (Dynamic, Connection, Ref, Referable)
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
 
@@ -157,7 +157,8 @@ defaultMatch = error "wrong match"
 --
 
 
-type NetLayers   = '[Data, Type]
+-- type NetLayers   = '[Data, Type]
+type NetLayers   = '[Data]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
 type MNetwork3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
@@ -303,6 +304,13 @@ star :: ( AnyExprCons t m, Bindable t m
         , Inferable2 TermType  t      m )
       => m (Binding (Expr t (Set Atom Star layout)))
 star = Self.put . anyLayout2 =<<& (expr (wrap' N.star') >>= mkBinding)
+
+star2 :: ( AnyExprCons t m, Referable t m
+        , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
+        , Inferable2 Layout    layout m
+        , Inferable2 TermType  t      m)
+      => m (Ref (Expr t (Set Atom Star layout)))
+star2 = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
 
 
@@ -459,6 +467,7 @@ test_gr :: forall t m .
             -- , Show (Linker' t (UntyppedExpr t layers Star ()))
         ) => m (Binding (UntyppedExpr t Star ()))
 test_gr = layouted @ANT $ do
+    -- s0 <- star2
     (s1 :: Binding (UntyppedExpr t Star            ())) <- star
     (s2 :: Binding (UntyppedExpr t Star            ())) <- star
     (u1 :: Binding (UntyppedExpr t (Unify :> Star) ())) <- unify s1 s2

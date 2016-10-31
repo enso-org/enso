@@ -19,7 +19,7 @@ import           Luna.Syntax.Model.Layer
 import           Luna.Runtime.Dynamics          (Dynamics_OLD)
 import           Luna.Syntax.Term.Function.Argument
 import qualified Luna.Syntax.Term.Expr.Format          as Format
-import           Luna.Syntax.Term               hiding (Layout, Term, Data, Link)
+import           Luna.Syntax.Term               hiding (Layout, Term, Data, Link, Ref)
 import Data.Graph.Model.Edge
 import Data.Graph
 import Old.Data.Prop

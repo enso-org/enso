@@ -11,6 +11,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PolyKinds #-}
+
 
 
 
@@ -23,7 +25,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, VariantMap, variantMap, Match, Cons, Value, cons)
+import           Data.Record                  hiding (Layout, Variants, VariantMap, variantMap, Match, Cons, Value, cons, Group)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container               hiding (Empty, FromJust)
@@ -162,6 +164,14 @@ data TermType = TermType deriving (Show)
 
 
 
+
+
+
+
+
+
+
+
 -------------------------
 -- === Connections === --
 -------------------------
@@ -178,7 +188,7 @@ newtype LinkX    src tgt = LinkX    (Linker' src tgt)
 type    LinkX'   a       = LinkX    a a
 
 type family Linked src tgt
-newtype     Link     src tgt = Link (Linked src tgt)
+-- newtype     Link     src tgt = Link (Linked src tgt)
 makeWrapped ''Binding
 makeWrapped ''LinkX
 
@@ -236,16 +246,133 @@ readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
 type family Content2 a
 
-type family Result (m :: * -> *) where
-    Result ((->) t) = t
-    Result m        = ()
+type Result m a = m (Output m a)
 
-type NoResult m = Result m ~ ()
+type family Output m a where
+    Output ((->) t) () = t
+    Output ((->) t) a  = (t,a)
+    Output m        a  = a
+
+type NoResult m = Output m () ~ ()
 
 
 class Monad m => Connection a m where
     read     :: a -> m (Content2 a)
-    write    :: a -> Content2 a -> m (Result m)
+    write    :: a -> Content2 a -> Result m ()
+
+--
+-- type family Binder    t  :: * -> *
+-- type family Linker  t t' :: * -> * -> *
+--
+--
+-- class RefC t m where
+--     readRef  :: forall a. Ref a -> m a
+--     writeRef :: forall a. Ref a -> a -> m ()
+--
+--
+--
+-- readRef' :: forall a m. RefC (a ^. TermType) m => Ref a -> m a -- FIXME[WD]: rename TermType
+-- readRef' = readRef @(a ^. TermType)
+--
+-- Ref (Elem  a)
+-- Ref (Link  a b)
+-- Ref (Group a)
+--
+-- type family ElemDef  a   :: * -> *
+-- type family GroupDef a   :: * -> *
+-- type family LinkDef  a b :: * -> * -> *
+--
+-- type ElemDef'  a   = ElemDef  (a ^. TermType)                 a
+-- type GroupDef' a   = GroupDef (a ^. TermType)                 a
+-- type LinkDef'  a b = LinkDef  (a ^. TermType) (b ^. TermType) a b
+--
+-- newtype Elem  a   = Elem  (ElemDef'  a  )
+-- newtype Group a   = Group (GroupDef' a  )
+-- newtype Link  a b = Link  (LinkDef'  a b)
+--
+-- type ElemRef  a   = Ref (Elem  a  )
+-- type GroupRef a   = Ref (Group a  )
+-- type LinkRef  a b = Ref (Link  a b)
+--
+--
+-- class Refs where
+--     refs :: m [Ref ]
+--
+-- refs :: m [Ref (Elem (Expr t Draft))]
+--
+--
+-- elements :: m [Expr t Draft]
+--
+--
+--
+--
+--
+
+-- type family Binder    t  :: * -> *
+-- type family Linker  t t' :: * -> * -> *
+--
+--
+-- type family Kind a
+--
+-- data Elem
+-- data Link
+-- data Group
+--
+--
+-- type family Reference t a :: * -> *
+-- type family Value     t a :: * -> *
+--
+-- type Reference' t a = Reference t (a ^. TermType) a
+-- type Value'     t a = Value     t (a ^. TermType) a
+--
+-- newtype Val t a = Val (Value'     t a)
+-- newtype Ref t a = Ref (Reference' t a)
+--
+--
+-- class Monad m => MonadRef t m where
+--     readRef  :: forall a. Ref t a -> m (Val t a)
+--     writeRef :: forall a. Ref t a ->    Val t a  -> m ()
+--
+-- class Monad m => MonadVal t m where
+--     readVal  :: forall a. Val t a -> m a
+--     writeVal :: forall a. Val t a ->   a  -> m ()
+--
+--
+-- class ... r m where
+--     refs :: forall t. m [Ref r (Expr t Draft)]
+--
+--
+-- Ref Elem  a
+-- Ref Group a
+-- Ref Link  (a, b)
+--
+--
+--
+--
+-- Binding (Expr t Draft)
+--
+-- Ref Elem (Expr t Draft)
+-- Val Elem (Expr t Draft)
+--
+--
+-- Ref Elem t Draft
+--
+-- Link  t Draft Draft
+-- Group t Draft
+
+
+
+-- refs :: m [Ref Net HomoLink (Expr Net Draft)]
+--
+-- refs :: m [Ref Net Link     (Expr Net Draft) (Expr Net Draft)]
+--
+--
+
+
+
+
+-- elementsX :: m [Expr t Draft]
+-- bindingsX :: m []
 
 -- dorobic parametryzacje - nodes, edges, clusters, bindings? ...
 class Monad m => XBuilder a m where
@@ -511,6 +638,117 @@ instance HasLayer Data t => Repr HeaderOnly (Expr t layout) where repr expr = va
 
 
 
+-------------------------
+-- === Connections === --
+-------------------------
+
+
+-- Ref (Expr t Draft)
+-- Ref (Link (Expr t Draft) (Expr t Draft))
+-- Ref (Group (Expr t Draft))
+--
+-- sr <- star     ::        Ref $ Expr t Draft
+-- s  <- read sr  ::              Expr t Draft
+-- l  <- link s s ::       Link' (Expr t Draft)
+-- lr <- ref l    :: Ref $ Link' (Expr t Draft)
+
+
+type family Cfg a
+
+type family Binding2  (i :: k) (t :: *) :: * -> *
+type        Binding2' (i :: k) (a :: *) = Binding2 i (Cfg a) a
+
+
+type family RefImpl  t a
+type        RefImpl'   a = RefImpl (Cfg a) a
+
+type family GroupImpl  t a
+type        GroupImpl'   a = GroupImpl (Cfg a) a
+
+type family LinkImpl  t a b
+type        LinkImpl'   a b = LinkImpl (Cfg a) a b
+
+newtype Ref   a   = Ref   (RefImpl'   a)
+newtype Group a   = Group (GroupImpl' a)
+newtype Link  a b = Link  (LinkImpl'  a b)
+type    Link' a   = Link a a
+
+
+
+
+type Referable' a m = Referable (Cfg a) m
+class Monad m => Referable t m where
+    refM'   :: forall a.     a -> m (Ref a)
+    unrefM' :: forall a. Ref a -> m ()
+    readM'  :: forall a. Ref a -> m a
+    writeM' :: forall a. Ref a -> a -> m ()
+
+type Linkable2' a m = Linkable (Cfg a) m
+class Monad m => Linkable2 t m where
+    link'   :: forall a b. (Ref a, Ref b) -> m (Link a b)
+    unlink' :: forall a b. Link a b -> m (Ref a, Ref b)
+
+type Groupable2' a m = Groupable2 (Cfg a) m
+class Monad m => Groupable2 t m where
+    group'   :: forall a. [Ref a] -> m (Group a)
+    ungroup' :: forall a. Group a -> m [Ref a]
+
+
+refM :: forall a m. Referable' a m => a -> m (Ref a)
+refM = refM' @(Cfg a)
+
+type instance Cfg (Expr t layout) = t
+
+-- unref :: forall a m. Referable' a m => a -> m (Ref a)
+-- unref = unref' @(Cfg a)
+
+
+-- class Linkable t m where
+--     link   :: forall a b. a -> b -> m (Link a b)
+--     unlink :: forall a b. Link a b -> m (a,b)
+
+
+class TTT t m where
+    elems  :: m [Ref        (Expr t Draft) ]
+    links  :: m [Ref (Link' (Expr t Draft))]
+    groups :: m [Ref (Group (Expr t Draft))]
+
+
+
+-- class Monad m => Bindable2 t m where
+--     mkBinding2    :: forall a.   a -> m (t a)
+--     rmBinding2    :: forall a. t a -> m ()
+--     readBinding2  :: forall a. t a -> m a
+--     writeBinding2 :: forall a. t a -> a -> m ()
+--
+-- type Refable   t = Bindable2 (Binding2 Ref   t)
+-- type Linkable2 t = Bindable2 (Binding2 Link  t)
+-- type Groupable t = Bindable2 (Binding2 Group t)
+--
+-- type instance Cfg (a,b) = Cfg a -- FIXME[WD]
+--
+-- link :: forall a b m. Linkable2 (Cfg a) m => Ref a -> Ref b -> m (Link a b)
+-- link a b = Link <$> mkBinding2 @(Binding2 Link (Cfg a)) (a,b)
+--
+-- group :: forall a b m. Groupable (Cfg a) m => a -> m (Link a b)
+-- group a b = Link <$> mkBinding2 @(Binding2 Link (Cfg a)) (a,b)
+
+-- type Result_ m   = m (Output_ m)
+-- type Result  m a = m (Output  m a)
+--
+-- type family Output_ (m :: * -> *) where
+--     Output ((->) t) = t
+--     Output m        = ()
+--
+-- type family Output m a where
+--     Output ((->) t) a = (t,a)
+--     Output m        a = a
+
+
+
+
+
+
 ------------------------- something
 
 
@@ -524,6 +762,9 @@ anyLayout = unsafeCoerce
 
 anyLayout2 :: Binding (Expr t layout) -> Binding (Expr t Layout.Any)
 anyLayout2 = unsafeCoerce
+
+anyLayout3 :: Ref (Expr t layout) -> Ref (Expr t Layout.Any)
+anyLayout3 = unsafeCoerce
 
 
 
