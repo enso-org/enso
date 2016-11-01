@@ -23,8 +23,8 @@ import           Control.Monad.Event
 import qualified Control.Monad.Writer     as Writer
 import           Old.Data.Attr                (attr)
 import           Data.Construction
-import           Data.Container           (elems, index_)
-import           Data.Container           hiding (impossible)
+import           Data.Container           (index_)
+import           Data.Container           hiding (impossible, elems, elems')
 import           Data.Graph.Builder       (MonadBuilder)
 import           Data.Graph.Query         hiding (Graph)
 import qualified Data.Graph.Query         as Sort
@@ -157,8 +157,7 @@ defaultMatch = error "wrong match"
 --
 
 
--- type NetLayers   = '[Data, Type]
-type NetLayers   = '[Data]
+type NetLayers   = '[Data, Type]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
 type MNetwork3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
 
@@ -281,12 +280,12 @@ type instance LayerData Type t = SubLink Type t
 
 instance ( expr ~ AnyExpr t
          , ref  ~ Ref expr
-         , Linkable2 t m
+         , Linkable2 (Elem t) m
          , Referable (Link (Elem t) (Elem t)) m
-        --  , Referable ()
+
          , Self.MonadSelfBuilder ref m
          , Type.MonadTypeBuilder ref m
-         , Constructor TermStore m (AnyExprStack t), t ~ Net, Referable (Elem t) m, Linkable2 (Elem t) m, MonadFix m
+         , Constructor TermStore m (AnyExprStack t), Referable (Elem t) m, MonadFix m
          ) => Constructor TermStore m (Layer (AnyExpr t) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
     cons _ = do
         self <- Self.get
@@ -315,51 +314,43 @@ localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 type AnyExprCons t m = Constructor TermStore m (AnyExprStack t)
 
 
+type GraphLike t m = ( Referable (Elem t) m
+                     , Referable (Link (Elem t) (Elem t)) m
+                     , Linkable2 (Elem t) m
+                     )
+
+type ASTBuilder t m = ( MonadFix              m
+                      , AnyExprCons         t m
+                      , GraphLike           t m
+                      , Inferable2 TermType t m
+                      , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
+                      , HasLayer Data t
+                      , TTT t m
+
+                      , Show (AnyExpr t)
+                      , Show (Ref (AnyExpr t))
+                      )
+
+type ASTBuilderIO t m = ( ASTBuilder t m, MonadIO m )
+
+type ASTBuilder' t layout m = ( ASTBuilder t m
+                              , Inferable2 Layout layout m
+                              )
+
 magicStar :: ( AnyExprCons t m, Referable (Elem t) m
              , Self.MonadSelfBuilder (Ref (AnyExpr t)) m)
           => m (Ref (AnyExpr t))
 magicStar = Self.put . anyLayout3 =<<& (expr N.star' >>= refM)
 
---
--- star :: ( AnyExprCons t m, Referable (Elem t) m
---         , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
---         , Inferable2 Layout    layout m
---         , Inferable2 TermType  t      m )
---       => m (Ref (Expr t (Set Atom Star layout)))
--- star = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
-star :: ( AnyExprCons t m, Referable (Elem t) m
-        , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
-        , Inferable2 Layout    layout m
-        , Inferable2 TermType  t      m)
-      => m (Ref (Expr t (Set Atom Star layout)))
+type l <+> r = Merge l r
+type l :>> r = Specialized Atom l r
+
+
+star :: ASTBuilder' t layout m => m (Ref (Expr t (Set Atom Star layout)))
 star = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
-
-
--- unify :: ( MonadFix m
---           , Referable (Elem t) m
---           , Linkable2 (Elem t) m
---           , Linkable' t m
---           , AnyExprCons t m
---           , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
---           )
---         => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Specialized Atom Unify (Merge l1 l2))))
--- unify a b = Self.put . anyLayout3 =<<& mdo
---     n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
---     la <- linkM n (unsafeGeneralize a)
---     lb <- linkM n (unsafeGeneralize b)
---     return n
-
-
-unify :: ( MonadFix m
-         , Referable (Elem t) m
-         , Referable (Link (Elem t) (Elem t)) m
-         , Linkable2 (Elem t) m
-         , AnyExprCons t m
-         , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
-         )
-        => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Specialized Atom Unify (Merge l1 l2))))
+unify :: ASTBuilder t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = Self.put . anyLayout3 =<<& mdo
     n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
     la <- refM =<< linkM n (unsafeGeneralize a)
@@ -368,13 +359,7 @@ unify a b = Self.put . anyLayout3 =<<& mdo
 
 
 instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t m) c where
-    cons = lift . cons
-
-instance {-# INCOHERENT #-} Linkable l l' m => Linkable l l' (KnownTypeT cls t m) where
-    mkLinker    = lift .:  mkLinker    @l @l' ; {-# INLINE mkLinker    #-}
-    rmLinker    = lift .   rmLinker    @l @l' ; {-# INLINE rmLinker    #-}
-    writeLinker = lift .:. writeLinker @l @l' ; {-# INLINE writeLinker #-}
-    readLinker  = lift .   readLinker  @l @l' ; {-# INLINE readLinker  #-}
+    cons = lift . cons ; {-# INLINE cons #-}
 
 instance {-# INCOHERENT #-} Referable r m => Referable r (KnownTypeT cls t m) where
     refM'   = lift .  refM'   @r ; {-# INLINE refM'   #-}
@@ -386,15 +371,10 @@ instance {-# INCOHERENT #-} Linkable2 l m => Linkable2 l (KnownTypeT cls t m) wh
     linkM'   = lift .: linkM'   @l ; {-# INLINE linkM'   #-}
     unlinkM' = lift .  unlinkM' @l ; {-# INLINE unlinkM' #-}
 
-instance {-# INCOHERENT #-} Bindable b m => Bindable b (KnownTypeT cls t m) where
-    mkBinder    = lift .  mkBinder    @b ; {-# INLINE mkBinder    #-}
-    rmBinder    = lift .  rmBinder    @b ; {-# INLINE rmBinder    #-}
-    writeBinder = lift .: writeBinder @b ; {-# INLINE writeBinder #-}
-    readBinder  = lift .  readBinder  @b ; {-# INLINE readBinder  #-}
-
-instance {-# INCOHERENT #-} XBuilder a m => XBuilder a (KnownTypeT cls t m) where
-    bindings = lift bindings ; {-# INLINE bindings #-}
-    elements = lift elements ; {-# INLINE elements #-}
+instance {-# INCOHERENT #-} TTT a m => TTT a (KnownTypeT cls t m) where
+    elems  = lift elems  ; {-# INLINE elems  #-}
+    links  = lift links  ; {-# INLINE links  #-}
+    groups = lift groups ; {-# INLINE groups #-}
 
 
 
@@ -411,20 +391,6 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 nmagicStar :: (AnyExprCons t m, Referable (Elem t) m) => m $ Ref (Expr t layout)
 nmagicStar = refM =<< expr (wrap' N.star')
 
-
-
-data LensM s t a b m = LensM { _lensGetter :: s -> m a
-                             , _lensSetter :: b -> m t
-                             }
-
-type LensM' s a m = LensM s s a a m
-
---
---
---
--- newtype LensM t a m = LensM { _lensGetter :: a -> m (Get t a)
---                             , _lensSetter ::
---                             }
 
 type ANT' a n t = ANTLayout SimpleX a n t
 
@@ -478,6 +444,13 @@ test_g3 = runNewGraphT
         $ test_gr
 
 
+instance Referable2 a ((->) Network3) where
+    ref a = runGraph $ refM a
+
+
+
+-- class Referable2 a m where
+--     ref :: a -> Result2 m (Ref a)
 
 
 -- instance Connection (Ref (Expr Net layout)) ((->) Network3) where
@@ -498,29 +471,19 @@ test_g3 = runNewGraphT
 --     elements = undefined
 
 
--- bindings2 :: (XBuilder a m, a ~ Expr Net Draft) => m [Ref a]
--- bindings2 = bindings
---
--- elements2 :: (XBuilder a m, a ~ Expr Net Draft) => m [a]
--- elements2 = elements
+instance (MonadBuilder g m, ReferableM Node g m, Monad m) => TTT Net m where
+    elems = do
+        g <- GraphBuilder.get
+        fmap (Ref . unsafeRefer) <$> viewPtrs g
 
--- elementsX :: m [Expr t Draft]
--- bindingsX :: m []
+elems' :: (TTT t m, Inferable2 TermType  t m) => m [Ref (Expr t Draft)]
+elems' = elems ; {-# INLINE elems' #-}
+
 
 
 
 test_gr :: forall t m .
-            ( MonadIO m
-            , Referable (Elem t) m
-            , Referable (Link (Elem t) (Elem t)) m
-            , Linkable2 (Elem t) m
-            , AnyExprCons t m
-            , Inferable2 TermType  t      m
-            , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
-            , HasLayer Data t
-            , Show (UntyppedExpr t Star ())
-            -- , Show (Linker' t (UntyppedExpr t layers Star ()))
-        ) => m (Ref (UntyppedExpr t Star ()))
+           ASTBuilderIO t m => m (Ref (UntyppedExpr t Star ()))
 test_gr = layouted @ANT $ do
     (s1 :: Ref (UntyppedExpr t Star            ())) <- star
     (s2 :: Ref (UntyppedExpr t Star            ())) <- star
@@ -543,6 +506,8 @@ test_gr = layouted @ANT $ do
     -- tgt  <- targetM l
     -- src  <- sourceM l
     -- both <- read l
+    es <- elems'
+    es' <- mapM readM es
 
     case' t of
         Unify l r -> print 11
@@ -564,6 +529,8 @@ test_gr = layouted @ANT $ do
     --
     print "!!!"
     print t
+    print es
+    print es'
     -- print s1
     return s1
 

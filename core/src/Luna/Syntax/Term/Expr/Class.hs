@@ -197,8 +197,9 @@ data TermType = TermType deriving (Show)
 -------------------------
 
 
-type family Cfg a
+-- === Definition === --
 
+type family Cfg a
 
 type family Impl (i :: k) t :: k
 type Impl' i a = Impl i (Cfg a) a
@@ -207,28 +208,10 @@ newtype Ref   a   = Ref   (Impl' Ref   a)
 newtype Group a   = Group (Impl' Group a)
 newtype Link  a b = Link  (Impl' Link  a b)
 type    Link' a   = Link a a
+data    Elem  a
 
-data Elem a
 
--- Wrappers
-
-makeWrapped ''Ref
-makeWrapped ''Group
--- makeWrapped ''Link -- FIXME[WD]: TH error, fill the bug
-instance Wrapped (Link a b) where
-    type Unwrapped (Link a b) = Impl' Link a b
-    _Wrapped' = iso (\(Link l) -> l) Link ; {-# INLINE _Wrapped' #-}
-
--- Show
-
-deriving instance Show (Unwrapped (Ref   a))   => Show (Ref   a)
-deriving instance Show (Unwrapped (Group a))   => Show (Group a)
-deriving instance Show (Unwrapped (Link  a b)) => Show (Link  a b)
-
--- Cfg
-
-type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
-
+--- === Operations === --
 
 -- Refs
 
@@ -249,8 +232,8 @@ readM  = readM'  @(Cfg a) . unwrap' ; {-# INLINE readM  #-}
 writeM = writeM' @(Cfg a) . unwrap' ; {-# INLINE writeM #-}
 
 
-
-
+class Referable2 a m where
+    ref :: a -> Result2 m (Ref a)
 
 -- Links
 
@@ -278,252 +261,37 @@ groupM   = Group <∘> groupM' @(Cfg a)   ; {-# INLINE groupM #-}
 ungroupM = ungroupM' @(Cfg a) . unwrap' ; {-# INLINE ungroupM #-}
 
 
+-- === Utils === --
 
-
-
-
-
-
-
-
--------------------------
--- === Connections === --
--------------------------
-
--- === Definitions === --
-
-type family Binder    t  :: * -> *
-type family Linker  t t' :: * -> * -> *
-type        Binder'     tgt = Binder     tgt     tgt
-type        Linker' src tgt = Linker src tgt src tgt
-
-newtype Binding     tgt = Binding (Binder' tgt)
-newtype LinkX    src tgt = LinkX    (Linker' src tgt)
-type    LinkX'   a       = LinkX    a a
-
-type family Linked src tgt
--- newtype     Link     src tgt = Link (Linked src tgt)
-makeWrapped ''Binding
-makeWrapped ''LinkX
-
-
--- === Classes === --
-
-class Monad m => Bindable t m where
-    mkBinder    :: forall a. a -> m (Binder t a)
-    rmBinder    :: forall a. Binder t a      -> m ()
-    writeBinder :: forall a. Binder t a -> a -> m ()
-    readBinder  :: forall a. Binder t a      -> m a
-
-mkBinding    :: forall a m. Bindable a m => a -> m (Binding a)
-rmBinding    :: forall a m. Bindable a m => Binding a      -> m ()
-writeBinding :: forall a m. Bindable a m => Binding a -> a -> m ()
-readBinding  :: forall a m. Bindable a m => Binding a      -> m a
-mkBinding    = wrap' <∘> mkBinder @a    ; {-# INLINE mkBinding    #-}
-rmBinding    = rmBinder    @a . unwrap' ; {-# INLINE rmBinding    #-}
-writeBinding = writeBinder @a . unwrap' ; {-# INLINE writeBinding #-}
-readBinding  = readBinder  @a . unwrap' ; {-# INLINE readBinding  #-}
-
-
-type Linkable' t m = Linkable t t m
-class Monad m => Linkable t t' m where
-    mkLinker    :: forall a b. Binding a -> Binding b -> m (Linker t t' a b)
-    rmLinker    :: forall a b. Linker t t' a b -> m ()
-    writeLinker :: forall a b. Linker t t' a b -> Binding a -> Binding b -> m ()
-    readLinker  :: forall a b. Linker t t' a b -> m (Binding a, Binding b)
-
-mkLink    :: forall a b m. Linkable a b m => Binding a -> Binding b -> m (LinkX a b)
-rmLink    :: forall a b m. Linkable a b m => LinkX a b -> m ()
-writeLink :: forall a b m. Linkable a b m => LinkX a b -> Binding a -> Binding b -> m ()
-readLink  :: forall a b m. Linkable a b m => LinkX a b -> m (Binding a, Binding b)
-mkLink    = wrap' <∘∘> mkLinker @a @b   ; {-# INLINE mkLink    #-}
-rmLink    = rmLinker    @a @b . unwrap' ; {-# INLINE rmLink    #-}
-writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
-readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
+type SubLink    c t = Ref (Link t (Sub c t))
 
 
 -- === Instances === --
 
--- Generalize
+-- Wrappers
 
+makeWrapped ''Ref
+makeWrapped ''Group
+-- makeWrapped ''Link -- FIXME[WD]: TH error, fill the bug
+instance Wrapped (Link a b) where
+    type Unwrapped (Link a b) = Impl' Link a b
+    _Wrapped' = iso (\(Link l) -> l) Link ; {-# INLINE _Wrapped' #-}
+
+-- Show
+deriving instance Show (Unwrapped (Ref   a))   => Show (Ref   a)
+deriving instance Show (Unwrapped (Group a))   => Show (Group a)
+deriving instance Show (Unwrapped (Link  a b)) => Show (Link  a b)
+
+-- Cfg
+type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
+
+-- Generalize
 instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
 instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
 instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
 
--- TODO [WD]: change ^^^ to vvv
--- type Linkable' t m = Linkable t t m
--- class Monad m => Linkable t t' m where
---     mkLinker    :: forall a b. Link a b -> m (Linker t t' a b)
---     rmLinker    :: forall a b. Linker t t' a b -> m ()
---     writeLinker :: forall a b. Linker t t' a b -> Link a b -> m ()
---     readLinker  :: forall a b. Linker t t' a b -> m (Link a b)
---
--- mkLink    :: forall a b m. Linkable a b m => Link a b -> m (LinkX a b)
--- rmLink    :: forall a b m. Linkable a b m => LinkX a b -> m ()
--- writeLink :: forall a b m. Linkable a b m => LinkX a b -> Link a b -> m ()
--- readLink  :: forall a b m. Linkable a b m => LinkX a b -> m (Link a b)
--- mkLink    = wrap' <∘> mkLinker @a @b   ; {-# INLINE mkLink    #-}
--- rmLink    = rmLinker    @a @b . unwrap' ; {-# INLINE rmLink    #-}
--- writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
--- readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
-
-type family Content2 a
 
 
-
-
-class Monad m => Connection a m where
-    read     :: a -> m (Content2 a)
-    write    :: a -> Content2 a -> Result m ()
-
---
--- type family Binder    t  :: * -> *
--- type family Linker  t t' :: * -> * -> *
---
---
--- class RefC t m where
---     readRef  :: forall a. Ref a -> m a
---     writeRef :: forall a. Ref a -> a -> m ()
---
---
---
--- readRef' :: forall a m. RefC (a ^. TermType) m => Ref a -> m a -- FIXME[WD]: rename TermType
--- readRef' = readRef @(a ^. TermType)
---
--- Ref (Elem  a)
--- Ref (Link  a b)
--- Ref (Group a)
---
--- type family ElemDef  a   :: * -> *
--- type family GroupDef a   :: * -> *
--- type family LinkDef  a b :: * -> * -> *
---
--- type ElemDef'  a   = ElemDef  (a ^. TermType)                 a
--- type GroupDef' a   = GroupDef (a ^. TermType)                 a
--- type LinkDef'  a b = LinkDef  (a ^. TermType) (b ^. TermType) a b
---
--- newtype Elem  a   = Elem  (ElemDef'  a  )
--- newtype Group a   = Group (GroupDef' a  )
--- newtype Link  a b = Link  (LinkDef'  a b)
---
--- type ElemRef  a   = Ref (Elem  a  )
--- type GroupRef a   = Ref (Group a  )
--- type LinkRef  a b = Ref (Link  a b)
---
---
--- class Refs where
---     refs :: m [Ref ]
---
--- refs :: m [Ref (Elem (Expr t Draft))]
---
---
--- elements :: m [Expr t Draft]
---
---
---
---
---
-
--- type family Binder    t  :: * -> *
--- type family Linker  t t' :: * -> * -> *
---
---
--- type family Kind a
---
--- data Elem
--- data Link
--- data Group
---
---
--- type family Reference t a :: * -> *
--- type family Value     t a :: * -> *
---
--- type Reference' t a = Reference t (a ^. TermType) a
--- type Value'     t a = Value     t (a ^. TermType) a
---
--- newtype Val t a = Val (Value'     t a)
--- newtype Ref t a = Ref (Reference' t a)
---
---
--- class Monad m => MonadRef t m where
---     readRef  :: forall a. Ref t a -> m (Val t a)
---     writeRef :: forall a. Ref t a ->    Val t a  -> m ()
---
--- class Monad m => MonadVal t m where
---     readVal  :: forall a. Val t a -> m a
---     writeVal :: forall a. Val t a ->   a  -> m ()
---
---
--- class ... r m where
---     refs :: forall t. m [Ref r (Expr t Draft)]
---
---
--- Ref Elem  a
--- Ref Group a
--- Ref Link  (a, b)
---
---
---
---
--- Binding (Expr t Draft)
---
--- Ref Elem (Expr t Draft)
--- Val Elem (Expr t Draft)
---
---
--- Ref Elem t Draft
---
--- Link  t Draft Draft
--- Group t Draft
-
-
-
--- refs :: m [Ref Net HomoLink (Expr Net Draft)]
---
--- refs :: m [Ref Net Link     (Expr Net Draft) (Expr Net Draft)]
---
---
-
-
-
-
--- elementsX :: m [Expr t Draft]
--- bindingsX :: m []
-
--- dorobic parametryzacje - nodes, edges, clusters, bindings? ...
-class Monad m => XBuilder a m where
-    bindings :: m [Binding a]
-    elements :: m [a]
-
-    default elements :: Connection (Binding a) m => m [a]
-    elements = bindings >>= mapM read ; {-# INLINE elements #-}
-
-
-type instance Content2 (Binding a)   = a
-type instance Content2 (LinkX   a b) = (Binding a, Binding b)
-
-instance {-# OVERLAPPABLE #-} (Bindable a m, NoResult m) => Connection (Binding a) m where
-    read  = readBinding  ; {-# INLINE read  #-}
-    write = writeBinding ; {-# INLINE write #-}
-
-
-
-
--- === Utils === --
-
-type SubLink    c t = Ref (Link t (Sub c t))
--- type SubBinding c t = Binding (Sub c t)
-
-
--- === Instances === --
-
-deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
-deriving instance Show (Unwrapped (LinkX   src tgt)) => Show (LinkX   src tgt)
-
--- Generalize
-
--- type instance Get p   (Binding a) = Get p a
--- type instance Set p v (Binding a) = Binding (Set p v a)
 
 
 
@@ -687,20 +455,20 @@ type instance Get Data          (Expr t layout) = Unwrapped (Get Data (Unwrapped
 
 -- === Bindings === --
 
-type instance Binder            (Expr t  _) = Binder t
-type instance Linker (Expr t _) (Expr t' _) = Linker t t'
+-- type instance Binder            (Expr t  _) = Binder t
+-- type instance Linker (Expr t _) (Expr t' _) = Linker t t'
 
-instance Bindable t m => Bindable (Expr t model) m where
-    mkBinder    = mkBinder    @t ; {-# INLINE mkBinder    #-}
-    rmBinder    = rmBinder    @t ; {-# INLINE rmBinder    #-}
-    writeBinder = writeBinder @t ; {-# INLINE writeBinder #-}
-    readBinder  = readBinder  @t ; {-# INLINE readBinder  #-}
-
-instance Linkable t t' m => Linkable (Expr t model) (Expr t' model') m where
-    mkLinker    = mkLinker    @t @t' ; {-# INLINE mkLinker    #-}
-    rmLinker    = rmLinker    @t @t' ; {-# INLINE rmLinker    #-}
-    writeLinker = writeLinker @t @t' ; {-# INLINE writeLinker #-}
-    readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
+-- instance Bindable t m => Bindable (Expr t model) m where
+--     mkBinder    = mkBinder    @t ; {-# INLINE mkBinder    #-}
+--     rmBinder    = rmBinder    @t ; {-# INLINE rmBinder    #-}
+--     writeBinder = writeBinder @t ; {-# INLINE writeBinder #-}
+--     readBinder  = readBinder  @t ; {-# INLINE readBinder  #-}
+--
+-- instance Linkable t t' m => Linkable (Expr t model) (Expr t' model') m where
+--     mkLinker    = mkLinker    @t @t' ; {-# INLINE mkLinker    #-}
+--     rmLinker    = rmLinker    @t @t' ; {-# INLINE rmLinker    #-}
+--     writeLinker = writeLinker @t @t' ; {-# INLINE writeLinker #-}
+--     readLinker  = readLinker  @t @t' ; {-# INLINE readLinker  #-}
 
 
 -- === Variant mapping === --
@@ -733,7 +501,9 @@ instance VariantMap' '[] ctx expr where variantMap' _ _ = impossible
 -- === Instances === --
 
 -- Show
-deriving instance Show (Unwrapped (Expr t layout)) => Show (Expr t layout)
+instance {-# OVERLAPPABLE #-} Show (Unwrapped (AnyExpr t)) => Show (AnyExpr t       ) where show e = "Expr (" <> show (unwrap' e) <> ")" ; {-# INLINE show #-}
+instance {-# OVERLAPPABLE #-} Show (AnyExpr t)             => Show (Expr    t layout) where show   = show . anyLayout                    ; {-# INLINE show #-}
+instance {-# OVERLAPPABLE #-}                                 Show (AnyExpr I       ) where show   = impossible                          ; {-# INLINE show #-}
 
 -- Sub
 type instance Sub s (Expr t layout) = Expr t (Sub s layout)
@@ -757,12 +527,16 @@ instance HasLayer Data t => Repr HeaderOnly (Expr t layout) where repr expr = va
 type instance Cfg (Expr t layout) = Elem t
 
 
-class TTT t m where
+class Monad m => TTT t m where
     elems  :: m [Ref        (Expr t Draft) ]
     links  :: m [Ref (Link' (Expr t Draft))]
     groups :: m [Ref (Group (Expr t Draft))]
 
 
+
+instance {-# OVERLAPPING #-} Show (Ref (AnyExpr t))             => Show (Ref (Expr    t layout)) where show = show . anyLayout3 ; {-# INLINE show #-}
+instance {-# OVERLAPPING #-}                                       Show (Ref (AnyExpr I))        where show = impossible        ; {-# INLINE show #-}
+instance {-# OVERLAPPING #-} Show (Unwrapped (Ref (AnyExpr t))) => Show (Ref (AnyExpr t))        where show r = "Ref (" <> show (unwrap' r) <> ")" ; {-# INLINE show #-}
 
 
 
@@ -774,14 +548,14 @@ class TTT t m where
 
 
 
-specifyLayout2 :: Binding (Expr t Layout.Any) -> Binding (Expr t layout)
-specifyLayout2 = unsafeCoerce
+-- specifyLayout2 :: Binding (Expr t Layout.Any) -> Binding (Expr t layout)
+-- specifyLayout2 = unsafeCoerce
 
 anyLayout :: Expr t layout -> Expr t Layout.Any
 anyLayout = unsafeCoerce
 
-anyLayout2 :: Binding (Expr t layout) -> Binding (Expr t Layout.Any)
-anyLayout2 = unsafeCoerce
+-- anyLayout2 :: Binding (Expr t layout) -> Binding (Expr t Layout.Any)
+-- anyLayout2 = unsafeCoerce
 
 anyLayout3 :: Ref (Expr t layout) -> Ref (Expr t Layout.Any)
 anyLayout3 = unsafeCoerce
