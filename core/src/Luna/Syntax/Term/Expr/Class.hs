@@ -82,6 +82,31 @@ import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize)
 -- type instance Get Dynamics (Layout dyn form) = dyn
 -- type instance Get Format   (Layout dyn form) = form
 
+type family All a :: [*]
+type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
+
+
+
+
+type Result m a = m (Output m a)
+
+type family Output m a where
+    Output ((->) t) () = t
+    Output ((->) t) a  = (t,a)
+    Output m        a  = a
+
+type Result2 m a = m (Output2 m a)
+
+type family Output2 m a where
+    Output2 ((->) t) a  = (a,t)
+    Output2 m        a  = a
+
+
+
+type NoResult m = Output m () ~ ()
+
+
+
 
 type ContentShow a = Show (Content a)
 newtype Content a = Content a deriving (Functor, Traversable, Foldable)
@@ -167,6 +192,95 @@ data TermType = TermType deriving (Show)
 
 
 
+-------------------------
+-- === Connections === --
+-------------------------
+
+
+type family Cfg a
+
+
+type family Impl (i :: k) t :: k
+type Impl' i a = Impl i (Cfg a) a
+
+newtype Ref   a   = Ref   (Impl' Ref   a)
+newtype Group a   = Group (Impl' Group a)
+newtype Link  a b = Link  (Impl' Link  a b)
+type    Link' a   = Link a a
+
+data Elem a
+
+-- Wrappers
+
+makeWrapped ''Ref
+makeWrapped ''Group
+-- makeWrapped ''Link -- FIXME[WD]: TH error, fill the bug
+instance Wrapped (Link a b) where
+    type Unwrapped (Link a b) = Impl' Link a b
+    _Wrapped' = iso (\(Link l) -> l) Link ; {-# INLINE _Wrapped' #-}
+
+-- Show
+
+deriving instance Show (Unwrapped (Ref   a))   => Show (Ref   a)
+deriving instance Show (Unwrapped (Group a))   => Show (Group a)
+deriving instance Show (Unwrapped (Link  a b)) => Show (Link  a b)
+
+-- Cfg
+
+type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
+
+
+-- Refs
+
+type Referable' a m = Referable (Cfg a) m
+class Monad m => Referable t m where
+    refM'   :: forall a.            a -> m (Impl Ref t a)
+    unrefM' :: forall a. Impl Ref t a -> m ()
+    readM'  :: forall a. Impl Ref t a -> m a
+    writeM' :: forall a. Impl Ref t a -> a -> m ()
+
+refM   :: forall a m. Referable' a m =>     a -> m (Ref a)
+unrefM :: forall a m. Referable' a m => Ref a -> m ()
+readM  :: forall a m. Referable' a m => Ref a -> m a
+writeM :: forall a m. Referable' a m => Ref a -> a -> m ()
+refM   = Ref <∘> refM' @(Cfg a)     ; {-# INLINE refM   #-}
+unrefM = unrefM' @(Cfg a) . unwrap' ; {-# INLINE unrefM #-}
+readM  = readM'  @(Cfg a) . unwrap' ; {-# INLINE readM  #-}
+writeM = writeM' @(Cfg a) . unwrap' ; {-# INLINE writeM #-}
+
+
+
+
+
+-- Links
+
+type Linkable2' a m = Linkable2 (Cfg a) m
+class Monad m => Linkable2 t m where
+    linkM'   :: forall a b. Ref a -> Ref b -> m (Impl Link t a b)
+    unlinkM' :: forall a b. Impl Link t a b -> m (Ref a, Ref b)
+
+linkM   :: forall a b m. Linkable2' a m => Ref a -> Ref b -> m (Link a b)
+unlinkM :: forall a b m. Linkable2' a m => Link a b -> m (Ref a, Ref b)
+linkM   = Link <∘∘> linkM' @(Cfg a)   ; {-# INLINE linkM   #-}
+unlinkM = unlinkM' @(Cfg a) . unwrap' ; {-# INLINE unlinkM #-}
+
+
+-- Groups
+
+type Groupable' a m = Groupable (Cfg a) m
+class Monad m => Groupable t m where
+    groupM'   :: forall a. [Ref a] -> m (Impl Group t a)
+    ungroupM' :: forall a. Impl Group t a -> m [Ref a]
+
+groupM   :: forall a b m. Groupable' a m => [Ref a] -> m (Group a)
+ungroupM :: forall a b m. Groupable' a m => Group a -> m [Ref a]
+groupM   = Group <∘> groupM' @(Cfg a)   ; {-# INLINE groupM #-}
+ungroupM = ungroupM' @(Cfg a) . unwrap' ; {-# INLINE ungroupM #-}
+
+
+
+
+
 
 
 
@@ -227,6 +341,15 @@ rmLink    = rmLinker    @a @b . unwrap' ; {-# INLINE rmLink    #-}
 writeLink = writeLinker @a @b . unwrap' ; {-# INLINE writeLink #-}
 readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
+
+-- === Instances === --
+
+-- Generalize
+
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
+instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
+
 -- TODO [WD]: change ^^^ to vvv
 -- type Linkable' t m = Linkable t t m
 -- class Monad m => Linkable t t' m where
@@ -246,14 +369,7 @@ readLink  = readLinker  @a @b . unwrap' ; {-# INLINE readLink  #-}
 
 type family Content2 a
 
-type Result m a = m (Output m a)
 
-type family Output m a where
-    Output ((->) t) () = t
-    Output ((->) t) a  = (t,a)
-    Output m        a  = a
-
-type NoResult m = Output m () ~ ()
 
 
 class Monad m => Connection a m where
@@ -395,8 +511,8 @@ instance {-# OVERLAPPABLE #-} (Bindable a m, NoResult m) => Connection (Binding 
 
 -- === Utils === --
 
-type SubLink    c t = LinkX t  (Sub c t)
-type SubBinding c t = Binding (Sub c t)
+type SubLink    c t = Ref (Link t (Sub c t))
+-- type SubBinding c t = Binding (Sub c t)
 
 
 -- === Instances === --
@@ -405,9 +521,7 @@ deriving instance Show (Unwrapped (Binding     tgt)) => Show (Binding     tgt)
 deriving instance Show (Unwrapped (LinkX   src tgt)) => Show (LinkX   src tgt)
 
 -- Generalize
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Binding b) => Generalize (Binding a) t
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Binding a) => Generalize t (Binding b)
-instance {-# OVERLAPPABLE #-} (Generalize a b)                => Generalize (Binding a) (Binding b)
+
 -- type instance Get p   (Binding a) = Get p a
 -- type instance Set p v (Binding a) = Binding (Set p v a)
 
@@ -638,74 +752,9 @@ instance HasLayer Data t => Repr HeaderOnly (Expr t layout) where repr expr = va
 
 
 
--------------------------
--- === Connections === --
--------------------------
+------- new things
 
-
--- Ref (Expr t Draft)
--- Ref (Link (Expr t Draft) (Expr t Draft))
--- Ref (Group (Expr t Draft))
---
--- sr <- star     ::        Ref $ Expr t Draft
--- s  <- read sr  ::              Expr t Draft
--- l  <- link s s ::       Link' (Expr t Draft)
--- lr <- ref l    :: Ref $ Link' (Expr t Draft)
-
-
-type family Cfg a
-
-type family Binding2  (i :: k) (t :: *) :: * -> *
-type        Binding2' (i :: k) (a :: *) = Binding2 i (Cfg a) a
-
-
-type family RefImpl  t a
-type        RefImpl'   a = RefImpl (Cfg a) a
-
-type family GroupImpl  t a
-type        GroupImpl'   a = GroupImpl (Cfg a) a
-
-type family LinkImpl  t a b
-type        LinkImpl'   a b = LinkImpl (Cfg a) a b
-
-newtype Ref   a   = Ref   (RefImpl'   a)
-newtype Group a   = Group (GroupImpl' a)
-newtype Link  a b = Link  (LinkImpl'  a b)
-type    Link' a   = Link a a
-
-
-
-
-type Referable' a m = Referable (Cfg a) m
-class Monad m => Referable t m where
-    refM'   :: forall a.     a -> m (Ref a)
-    unrefM' :: forall a. Ref a -> m ()
-    readM'  :: forall a. Ref a -> m a
-    writeM' :: forall a. Ref a -> a -> m ()
-
-type Linkable2' a m = Linkable (Cfg a) m
-class Monad m => Linkable2 t m where
-    link'   :: forall a b. (Ref a, Ref b) -> m (Link a b)
-    unlink' :: forall a b. Link a b -> m (Ref a, Ref b)
-
-type Groupable2' a m = Groupable2 (Cfg a) m
-class Monad m => Groupable2 t m where
-    group'   :: forall a. [Ref a] -> m (Group a)
-    ungroup' :: forall a. Group a -> m [Ref a]
-
-
-refM :: forall a m. Referable' a m => a -> m (Ref a)
-refM = refM' @(Cfg a)
-
-type instance Cfg (Expr t layout) = t
-
--- unref :: forall a m. Referable' a m => a -> m (Ref a)
--- unref = unref' @(Cfg a)
-
-
--- class Linkable t m where
---     link   :: forall a b. a -> b -> m (Link a b)
---     unlink :: forall a b. Link a b -> m (a,b)
+type instance Cfg (Expr t layout) = Elem t
 
 
 class TTT t m where
@@ -714,35 +763,6 @@ class TTT t m where
     groups :: m [Ref (Group (Expr t Draft))]
 
 
-
--- class Monad m => Bindable2 t m where
---     mkBinding2    :: forall a.   a -> m (t a)
---     rmBinding2    :: forall a. t a -> m ()
---     readBinding2  :: forall a. t a -> m a
---     writeBinding2 :: forall a. t a -> a -> m ()
---
--- type Refable   t = Bindable2 (Binding2 Ref   t)
--- type Linkable2 t = Bindable2 (Binding2 Link  t)
--- type Groupable t = Bindable2 (Binding2 Group t)
---
--- type instance Cfg (a,b) = Cfg a -- FIXME[WD]
---
--- link :: forall a b m. Linkable2 (Cfg a) m => Ref a -> Ref b -> m (Link a b)
--- link a b = Link <$> mkBinding2 @(Binding2 Link (Cfg a)) (a,b)
---
--- group :: forall a b m. Groupable (Cfg a) m => a -> m (Link a b)
--- group a b = Link <$> mkBinding2 @(Binding2 Link (Cfg a)) (a,b)
-
--- type Result_ m   = m (Output_ m)
--- type Result  m a = m (Output  m a)
---
--- type family Output_ (m :: * -> *) where
---     Output ((->) t) = t
---     Output m        = ()
---
--- type family Output m a where
---     Output ((->) t) a = (t,a)
---     Output m        a = a
 
 
 
@@ -838,8 +858,6 @@ type instance DecodeComponent 17 = Unify
 type instance DecodeComponent 18 = Var
 
 
-type family All a :: [*]
-type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
 -- type instance All Atom = '[Acc, App]
 
 -- class RecordRepr rec where
