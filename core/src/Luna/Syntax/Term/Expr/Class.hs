@@ -25,7 +25,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, VariantMap, variantMap, Match, Cons, Value, cons, Group)
+import           Data.Record                  hiding (Layout, Variants, VariantMap, variantMap, Match, Cons, Value, cons, Group, HasValue, ValueOf, value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container               hiding (Empty, FromJust)
@@ -86,24 +86,35 @@ type family All a :: [*]
 type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
 
 
+newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
+data    Nothing' = Nothing' deriving (Show)
 
 
-type Result m a = m (Output m a)
+-- type Result m a = m (Output m a)
+--
+-- type family Output m a where
+--     Output ((->) t) () = t
+--     Output ((->) t) a  = (t,a)
+--     Output m        a  = a
 
-type family Output m a where
-    Output ((->) t) () = t
-    Output ((->) t) a  = (t,a)
-    Output m        a  = a
+type Result  m a = m (Output2 (OutputDesc m) a)
+type Result_ m   = m (Output2_ (OutputDesc m))
 
-type Result2 m a = m (Output2 m a)
+type family Output2 arg a where
+    Output2 (Just' t) a = (a,t)
+    Output2 Nothing'  a = a
 
-type family Output2 m a where
-    Output2 ((->) t) a  = (a,t)
-    Output2 m        a  = a
+type family Output2_ arg where
+    Output2_ (Just' t) = t
+    Output2_ Nothing'  = ()
 
 
 
-type NoResult m = Output m () ~ ()
+type family OutputDesc m where
+    OutputDesc ((->) t) = Just' t
+    OutputDesc m        = Nothing'
+
+-- type NoResult m = Output m () ~ ()
 
 
 
@@ -216,36 +227,100 @@ data    Elem  a
 -- Refs
 
 type Referable' a m = Referable (Cfg a) m
-class Monad m => Referable t m where
-    refM'   :: forall a.            a -> m (Impl Ref t a)
-    unrefM' :: forall a. Impl Ref t a -> m ()
-    readM'  :: forall a. Impl Ref t a -> m a
-    writeM' :: forall a. Impl Ref t a -> a -> m ()
+class (Monad m, IsResult m) => Referable t m where
+    ref'   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
+    unref' :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
+    read'  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
+    write' :: forall a. (t ~ Cfg a) => Ref a -> a -> ResultDesc_ m
 
-refM   :: forall a m. Referable' a m =>     a -> m (Ref a)
-unrefM :: forall a m. Referable' a m => Ref a -> m ()
-readM  :: forall a m. Referable' a m => Ref a -> m a
-writeM :: forall a m. Referable' a m => Ref a -> a -> m ()
-refM   = Ref <∘> refM' @(Cfg a)     ; {-# INLINE refM   #-}
-unrefM = unrefM' @(Cfg a) . unwrap' ; {-# INLINE unrefM #-}
-readM  = readM'  @(Cfg a) . unwrap' ; {-# INLINE readM  #-}
-writeM = writeM' @(Cfg a) . unwrap' ; {-# INLINE writeM #-}
+refM :: Referable' a m => a ->         m (Ref a)
+ref  :: Referable' a m => a -> Result  m (Ref a)
+ref  = toResult . ref' ; {-# INLINE ref  #-}
+refM = value <∘> ref'  ; {-# INLINE refM #-}
 
+unref  :: Referable' a m => Ref a -> Result_ m
+unrefM :: Referable' a m => Ref a ->         m ()
+unref  = toResult_ . unref' ; {-# INLINE unref  #-}
+unrefM = value <∘> unref'   ; {-# INLINE unrefM #-}
 
-class Referable2 a m where
-    ref :: a -> Result2 m (Ref a)
+readM :: Referable' a m => Ref a -> m a
+read  :: Referable' a m => Ref a -> m a
+read  = read' ; {-# INLINE read  #-}
+readM = read' ; {-# INLINE readM #-}
+
+write  :: Referable' a m => Ref a -> a -> Result_ m
+writeM :: Referable' a m => Ref a -> a ->         m ()
+write  = toResult_ .: write' ; {-# INLINE write  #-}
+writeM = value <∘∘> write'   ; {-# INLINE writeM #-}
+
 
 -- Links
 
-type Linkable2' a m = Linkable2 (Cfg a) m
-class Monad m => Linkable2 t m where
+type Linkable' a m = Linkable (Cfg a) m
+class Monad m => Linkable t m where
     linkM'   :: forall a b. Ref a -> Ref b -> m (Impl Link t a b)
     unlinkM' :: forall a b. Impl Link t a b -> m (Ref a, Ref b)
 
-linkM   :: forall a b m. Linkable2' a m => Ref a -> Ref b -> m (Link a b)
-unlinkM :: forall a b m. Linkable2' a m => Link a b -> m (Ref a, Ref b)
+linkM   :: forall a b m. Linkable' a m => Ref a -> Ref b -> m (Link a b)
+unlinkM :: forall a b m. Linkable' a m => Link a b -> m (Ref a, Ref b)
 linkM   = Link <∘∘> linkM' @(Cfg a)   ; {-# INLINE linkM   #-}
 unlinkM = unlinkM' @(Cfg a) . unwrap' ; {-# INLINE unlinkM #-}
+
+
+
+
+type family ValueOf a
+
+class HasValue a where
+    value :: a -> ValueOf a
+
+type instance ValueOf (Just' a, _) = a
+type instance ValueOf (Nothing',_) = ()
+
+instance HasValue (Just' a , t) where value   = fromJust' . fst
+instance HasValue (Nothing', t) where value _ = ()
+
+type ResultDesc  m a = m (Just' a , OutputDesc m)
+type ResultDesc_ m   = m (Nothing', OutputDesc m)
+
+
+
+type NoOutput m = (OutputDesc m ~ Nothing')
+
+
+
+class IsResult m where
+    toResult  :: forall a. ResultDesc  m a -> Result  m a
+    toResult_ ::           ResultDesc_ m   -> Result_ m
+
+instance {-# OVERLAPPABLE #-} IsResult ((->) t) where
+    toResult desc = do
+        (Just' a, Just' b) <- desc
+        return (a, b)
+
+    toResult_ desc = fromJust' . snd <$> desc
+
+instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m where
+    toResult  desc = fromJust' . fst <$> desc ; {-# INLINE toResult  #-}
+    toResult_ desc = return ()                ; {-# INLINE toResult_ #-}
+
+
+
+
+
+-- type Result m a = m (Output2 (OutputDesc m) a)
+--
+-- type family Output2 arg a where
+--     Output2 ('Just t) a = (a,t)
+--     Output2 'Nothing  a = a
+--
+-- type family OutputDesc m where
+--     OutputDesc ((->) t) = 'Just t
+--     OutputDesc m        = 'Nothing
+--
+-- refM3 ::
+
+
 
 
 -- Groups

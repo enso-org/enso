@@ -181,32 +181,32 @@ instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMo
 
 newtype Graph2    rels         = Graph2  (TMap (MapVals AutoVector      rels))
 newtype MGraph2 s rels         = MGraph2 (TMap (MapVals (MAutoVector s) rels))
-newtype HGraph    (els :: [★]) = HGraph  (TMap (els :=: 'Cycle (Hetero2 AutoVector     )))
-newtype HMGraph s (els :: [★]) = HMGraph (TMap (els :=: 'Cycle (Hetero2 (MAutoVector s))))
+newtype HGraph  (els :: [★])   = HGraph  (TMap (els :=: 'Cycle (Hetero2 AutoVector     )))
+newtype HMGraph (els :: [★]) s = HMGraph (TMap (els :=: 'Cycle (Hetero2 (MAutoVector s))))
 
 
-freeze2 :: PrimMonad m => HMGraph (PrimState m) '[Node, Edge, Cluster] -> m (HGraph '[Node, Edge, Cluster])
+freeze2 :: PrimMonad m => HMGraph '[Node, Edge, Cluster] (PrimState m) -> m (HGraph '[Node, Edge, Cluster])
 freeze2 (HMGraph (TMap (n :-: e :-: c :-: Null))) = do
     n' <- Hetero2 <$> AutoVector.freeze (unwrap' n)
     e' <- Hetero2 <$> AutoVector.freeze (unwrap' e)
     c' <- Hetero2 <$> AutoVector.freeze (unwrap' c)
     return $ HGraph (TMap (n' :-: e' :-: c' :-: Null))
 
-thaw2 :: PrimMonad m => HGraph '[Node, Edge, Cluster] -> m (HMGraph (PrimState m) '[Node, Edge, Cluster])
+thaw2 :: PrimMonad m => HGraph '[Node, Edge, Cluster] -> m (HMGraph '[Node, Edge, Cluster] (PrimState m))
 thaw2 (HGraph (TMap (n :-: e :-: c :-: Null))) = do
     n' <- Hetero2 <$> AutoVector.thaw (unwrap' n)
     e' <- Hetero2 <$> AutoVector.thaw (unwrap' e)
     c' <- Hetero2 <$> AutoVector.thaw (unwrap' c)
     return $ HMGraph (TMap (n' :-: e' :-: c' :-: Null))
 
-unsafeFreeze2 :: PrimMonad m => HMGraph (PrimState m) '[Node, Edge, Cluster] -> m (HGraph '[Node, Edge, Cluster])
+unsafeFreeze2 :: PrimMonad m => HMGraph '[Node, Edge, Cluster] (PrimState m) -> m (HGraph '[Node, Edge, Cluster])
 unsafeFreeze2 (HMGraph (TMap (n :-: e :-: c :-: Null))) = do
     n' <- Hetero2 <$> AutoVector.unsafeFreeze (unwrap' n)
     e' <- Hetero2 <$> AutoVector.unsafeFreeze (unwrap' e)
     c' <- Hetero2 <$> AutoVector.unsafeFreeze (unwrap' c)
     return $ HGraph (TMap (n' :-: e' :-: c' :-: Null))
 
-unsafeThaw2 :: PrimMonad m => HGraph '[Node, Edge, Cluster] -> m (HMGraph (PrimState m) '[Node, Edge, Cluster])
+unsafeThaw2 :: PrimMonad m => HGraph '[Node, Edge, Cluster] -> m (HMGraph '[Node, Edge, Cluster] (PrimState m))
 unsafeThaw2 (HGraph (TMap (n :-: e :-: c :-: Null))) = do
     n' <- Hetero2 <$> AutoVector.unsafeThaw (unwrap' n)
     e' <- Hetero2 <$> AutoVector.unsafeThaw (unwrap' e)
@@ -218,26 +218,26 @@ unsafeThaw2 (HGraph (TMap (n :-: e :-: c :-: Null))) = do
 
 -- Wrapped
 -- makeWrapped ''HMGraph -- ghc8 incompatible
-instance Wrapped (HMGraph s els) where
-    type Unwrapped (HMGraph s els) = TMap (els :=: 'Cycle (Hetero2 (MAutoVector s)))
+instance Wrapped (HMGraph els s) where
+    type Unwrapped (HMGraph els s) = TMap (els :=: 'Cycle (Hetero2 (MAutoVector s)))
     _Wrapped' = iso (\(HMGraph g) -> g) HMGraph ; {-# INLINE _Wrapped' #-}
 
 -- Show
-deriving instance Show (Unwrapped (HMGraph s els)) => Show (HMGraph s els)
+deriving instance Show (Unwrapped (HMGraph els s)) => Show (HMGraph els s)
 
 -- Properties
-type instance Get t                           (HMGraph s els) = Hetero2 (MAutoVector s)
-type instance Set t (Hetero2 (MAutoVector s)) (HMGraph s els) = HMGraph s els
+type instance Get t                           (HMGraph els s) = Hetero2 (MAutoVector s)
+type instance Set t (Hetero2 (MAutoVector s)) (HMGraph els s) = HMGraph els s
 
-instance (g ~ HMGraph s els, g' ~ Unwrapped g, Get t g ~ Get t g', HasProperty2' t g')
-      => Getter t (HMGraph s els) where
+instance (g ~ HMGraph els s, g' ~ Unwrapped g, Get t g ~ Get t g', HasProperty2' t g')
+      => Getter t (HMGraph els s) where
     get = get @t . unwrap' ; {-# INLINE get #-}
 
-instance (g ~ HMGraph s els, g' ~ Unwrapped g, Get t g ~ Get t g', HasProperty2' t g, HasProperty2' t g')
-      => Setter' t (HMGraph s els) where
+instance (g ~ HMGraph els s, g' ~ Unwrapped g, Get t g ~ Get t g', HasProperty2' t g, HasProperty2' t g')
+      => Setter' t (HMGraph els s) where
     set' a = wrapped' %~ set' @t a ; {-# INLINE set' #-}
 
-emptyHMGraph :: PrimMonad m => m (HMGraph (PrimState m) '[Node, Edge, Cluster])
+emptyHMGraph :: PrimMonad m => m (HMGraph '[Node, Edge, Cluster] (PrimState m))
 emptyHMGraph = do
     nn <- Hetero2 <$> AutoVector.unsafeThaw def
     ne <- Hetero2 <$> AutoVector.unsafeThaw def
@@ -269,24 +269,24 @@ emptyHGraph = HGraph
 
 -- GHC BUG - the second constraint makes infinit e compilation times in Main
 instance {-# OVERLAPPABLE #-}
-         (PrimMonad m, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
-        --  (PrimMonad m, HasProperty2' t g, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m)
-      => DynamicM t (HMGraph s rels) m a where
+         (PrimMonad m, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
+        --  (PrimMonad m, HasProperty2' t g, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m)
+      => DynamicM t (HMGraph rels s) m a where
     addM el = nested (prop2' @t . wrapped') $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM = error "o"
 
 
 -- GHC BUG - the second constraint makes infinit e compilation times in Main
 instance {-# OVERLAPPABLE #-}
-         (PrimMonad m, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
-      => DynamicM2 t (HMGraph s rels) m a where
+         (PrimMonad m, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
+      => DynamicM2 t (HMGraph rels s) m a where
     addM2 el = nested (prop2' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM2 = error "o"
 
 
 instance {-# OVERLAPPABLE #-}
-         (PrimMonad m, g ~ HMGraph s rels, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
-      => DynamicM3 t (HMGraph s rels) m where
+         (PrimMonad m, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
+      => DynamicM3 t (HMGraph rels s) m where
     addM3 el = nested (prop2' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM3 = error "o"
 
@@ -294,23 +294,23 @@ instance {-# OVERLAPPABLE #-}
 
 
 -- instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => LocatedM    t (MGraph s n e c) m
--- instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => ReferencedM t (HMGraph s rels) m r where
-instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (MAutoVector s), Getter t g)
-      => ReferencedM t (HMGraph s rels) m r where
+-- instance (g ~ MGraph s n e c, r ~ (g # t), HasStore t g, s ~ PrimState m, PrimMonad m) => ReferencedM t (HMGraph rels s) m r where
+instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph rels s, Get t g ~ Hetero2 (MAutoVector s), Getter t g)
+      => ReferencedM t (HMGraph rels s) m r where
     writeRefM r v = error "x" -- store (p :: P t) $ unchecked inplace Cont.insertM__ (r ^. idx) v ; {-# INLINE writeRefM #-}
     -- readRefM  r g = Cont.indexM__ (r ^. idx) $ (get @t (g :: g) :: Get t g)              ; {-# INLINE readRefM  #-}
     readRefM  r   = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t               ; {-# INLINE readRefM  #-}
 
 
 -- TODO: [WD] it should be refactored together with containers library
-instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph s rels, Get t g ~ Hetero2 (MAutoVector s), Getter t g
+instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph rels s, Get t g ~ Hetero2 (MAutoVector s), Getter t g
          , Get t tassocs ~ Hetero2 (MAutoVector s)
          , Set t (Get t tassocs) tassocs ~ tassocs
          , Getter  t tassocs
          , Setter' t tassocs
          , assocs ~ Assocs rels ('Cycle (Hetero2 (MAutoVector s)))
          , tassocs ~ TMap assocs
-         ) => ReferableM t (HMGraph s rels) m where
+         ) => ReferableM t (HMGraph rels s) m where
     setRefM  r v g = (prop2' @t $ unchecked inplace Cont.insertM__ (r ^. idx) (unsafeCoerce v)) g ; {-# INLINE setRefM   #-}
     viewRefM r     = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t                 ; {-# INLINE viewRefM  #-}
     viewPtrs       = Ptr2 . Ptr <∘∘> Cont.usedIxesM ∘ get @t                                      ; {-# INLINE viewPtrs  #-}

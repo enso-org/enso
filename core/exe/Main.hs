@@ -8,6 +8,7 @@
 {-# LANGUAGE RecursiveDo               #-}
 {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE NoOverloadedStrings       #-} -- https://ghc.haskell.org/trac/ghc/ticket/12797
 {-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
@@ -159,7 +160,8 @@ defaultMatch = error "wrong match"
 
 type NetLayers   = '[Data, Type]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
-type MNetwork3 m = NEC.HMGraph (PrimState m) '[Node, Edge, Cluster]
+type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
+type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
 
 
 
@@ -238,20 +240,59 @@ type instance Impl Link (Elem Net)                   = Arc3
 --     readBinder  = readRef  . unwrap'     ; {-# INLINE readBinder  #-}
 --     writeBinder = writeRef . unwrap'     ; {-# INLINE writeBinder #-}
 
-instance (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m) => Referable (Elem Net) m where
-    refM'   = construct' ; {-# INLINE refM'   #-}
-    readM'  = readRef    ; {-# INLINE readM'  #-}
-    writeM' = writeRef   ; {-# INLINE writeM' #-}
+-- instance (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m) => Referable (Elem Net) m where
+--     refM'   = construct' ; {-# INLINE refM'   #-}
+--     readM'  = readRef    ; {-# INLINE readM'  #-}
+--     writeM' = writeRef   ; {-# INLINE writeM' #-}
+--
+-- instance (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m) => Referable (Link (Elem Net) (Elem Net)) m where
+--     refM'   = construct' ; {-# INLINE refM'   #-}
+--     readM'  = readRef    ; {-# INLINE readM'  #-}
+--     writeM' = writeRef   ; {-# INLINE writeM' #-}
 
-instance (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m) => Referable (Link (Elem Net) (Elem Net)) m where
-    refM'   = construct' ; {-# INLINE refM'   #-}
-    readM'  = readRef    ; {-# INLINE readM'  #-}
-    writeM' = writeRef   ; {-# INLINE writeM' #-}
+
+-- Refs
+
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m)
+      => Referable (Elem Net) m where
+    ref'  = valOnly . Ref <∘> construct'
+    read' = readRef . unwrap'
+
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, NoOutput m)
+      => Referable (Link (Elem Net) (Elem Net)) m where
+    ref'  = valOnly . Ref <∘> construct'
+    read' = readRef . unwrap'
 
 
+instance Referable (Elem Net) ((->) Network3) where
+    ref'  a t = fooe $ runGraph  (refM  a) t ; {-# INLINE ref'  #-}
+    read' a t = evalGraphInplace (readM a) t ; {-# INLINE read' #-}
 
-instance Monad m => Linkable2 (Elem Net) m where
+instance Referable (Link (Elem Net) (Elem Net)) ((->) Network3) where
+    ref'  a t = fooe $ runGraph  (refM  a) t ; {-# INLINE ref'  #-}
+    read' a t = evalGraphInplace (readM a) t ; {-# INLINE read' #-}
+
+-- Links
+
+instance Monad m => Linkable (Elem Net) m where
     linkM' = (return . Arc3) .: Arc2 ; {-# INLINE linkM' #-}
+
+
+valOnly v = (Just' v, Nothing')
+
+fooe (x,y) = (Just' x, Just' y)
+-- class Monad m => Referable t m where
+--     ref'   :: forall a. (t ~ Cfg a) =>     a -> Result3 m (Ref a)
+--     unref' :: forall a. (t ~ Cfg a) => Ref a -> m ()
+--     read'  :: forall a. (t ~ Cfg a) => Ref a -> m a
+--     write' :: forall a. (t ~ Cfg a) => Ref a -> a -> m ()
+--
+
+-- instance Referable2 (Expr Net layout) ((->) Network3) where
+--     ref a = runGraph $ refM a
+
+
+
 
 -- instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
     -- linkM' a b = EdgeRef <$> construct' (Arc2 a b)
@@ -280,7 +321,7 @@ type instance LayerData Type t = SubLink Type t
 
 instance ( expr ~ AnyExpr t
          , ref  ~ Ref expr
-         , Linkable2 (Elem t) m
+         , Linkable (Elem t) m
          , Referable (Link (Elem t) (Elem t)) m
 
          , Self.MonadSelfBuilder ref m
@@ -316,7 +357,7 @@ type AnyExprCons t m = Constructor TermStore m (AnyExprStack t)
 
 type GraphLike t m = ( Referable (Elem t) m
                      , Referable (Link (Elem t) (Elem t)) m
-                     , Linkable2 (Elem t) m
+                     , Linkable (Elem t) m
                      )
 
 type ASTBuilder t m = ( MonadFix              m
@@ -326,6 +367,8 @@ type ASTBuilder t m = ( MonadFix              m
                       , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
                       , HasLayer Data t
                       , TTT t m
+
+                      , NoOutput m
 
                       , Show (AnyExpr t)
                       , Show (Ref (AnyExpr t))
@@ -350,6 +393,9 @@ type l :>> r = Specialized Atom l r
 star :: ASTBuilder' t layout m => m (Ref (Expr t (Set Atom Star layout)))
 star = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
+star2 :: (Referable (Elem t) m, ASTBuilder' t layout m) => m (Ref (Expr t (Set Atom Star layout)))
+star2 = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
+
 unify :: ASTBuilder t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = Self.put . anyLayout3 =<<& mdo
     n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
@@ -361,13 +407,13 @@ unify a b = Self.put . anyLayout3 =<<& mdo
 instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t m) c where
     cons = lift . cons ; {-# INLINE cons #-}
 
-instance {-# INCOHERENT #-} Referable r m => Referable r (KnownTypeT cls t m) where
-    refM'   = lift .  refM'   @r ; {-# INLINE refM'   #-}
-    unrefM' = lift .  unrefM' @r ; {-# INLINE unrefM' #-}
-    readM'  = lift .  readM'  @r ; {-# INLINE readM'  #-}
-    writeM' = lift .: writeM' @r ; {-# INLINE writeM' #-}
+instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (KnownTypeT cls t m) where
+    ref'   = lift .  ref'   @r ; {-# INLINE ref'   #-}
+    unref' = lift .  unref' @r ; {-# INLINE unref' #-}
+    read'  = lift .  read'  @r ; {-# INLINE read'  #-}
+    write' = lift .: write' @r ; {-# INLINE write' #-}
 
-instance {-# INCOHERENT #-} Linkable2 l m => Linkable2 l (KnownTypeT cls t m) where
+instance {-# INCOHERENT #-} Linkable l m => Linkable l (KnownTypeT cls t m) where
     linkM'   = lift .: linkM'   @l ; {-# INLINE linkM'   #-}
     unlinkM' = lift .  unlinkM' @l ; {-# INLINE unlinkM' #-}
 
@@ -419,11 +465,25 @@ runGraphT f g = do
     g'       <- NEC.unsafeFreeze2 mg'
     return (a, g')
 
+runGraphTInplace :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m (a, Network3)
+runGraphTInplace f g = do
+    mg       <- NEC.unsafeThaw2 g
+    (a, mg') <- Graph.Builder.runT f mg
+    g'       <- NEC.unsafeFreeze2 mg'
+    return (a, g')
+
+
 evalGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m a
 evalGraphT f g = fst <$> runGraphT f g
 
 execGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m Network3
 execGraphT f g = snd <$> runGraphT f g
+
+evalGraphTInplace :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m a
+evalGraphTInplace f g = fst <$> runGraphTInplace f g
+
+execGraphTInplace :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m Network3
+execGraphTInplace f g = snd <$> runGraphTInplace f g
 
 evalGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> a
 evalGraph f g = runST $ evalGraphT f g
@@ -434,6 +494,14 @@ execGraph f g = runST $ execGraphT f g
 runGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> (a, Network3)
 runGraph f g = runST $ runGraphT f g
 
+evalGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> a
+evalGraphInplace f g = runST $ evalGraphTInplace f g
+
+execGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> Network3
+execGraphInplace f g = runST $ execGraphTInplace f g
+
+runGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> (a, Network3)
+runGraphInplace f g = runST $ runGraphTInplace f g
 
 test_g3 :: (MonadIO m, PrimMonad m, MonadFix m)
         => m (Ref (UntyppedExpr Net Star ()), Network3)
@@ -444,8 +512,10 @@ test_g3 = runNewGraphT
         $ test_gr
 
 
-instance Referable2 a ((->) Network3) where
-    ref a = runGraph $ refM a
+
+
+-- instance Referable2 a ((->) Network3) where
+--     ref a = undefined
 
 
 
@@ -488,9 +558,9 @@ test_gr = layouted @ANT $ do
     (s1 :: Ref (UntyppedExpr t Star            ())) <- star
     (s2 :: Ref (UntyppedExpr t Star            ())) <- star
     (u1 :: Ref (UntyppedExpr t (Unify :> Star) ())) <- unify s1 s2
-    --
-    t <- readM s1
-    writeM s1 t
+
+    t <- read s1
+    write s1 t
 
     let u1'  = generalize u1 :: Ref (UntyppedExpr t Draft ())
 
@@ -507,10 +577,10 @@ test_gr = layouted @ANT $ do
     -- src  <- sourceM l
     -- both <- read l
     es <- elems'
-    es' <- mapM readM es
+    es' <- mapM read es
 
     case' t of
-        Unify l r -> print 11
+        Unify l r -> print "ppp"
         Star      -> case' t of
             Unify l r -> print "hello"
             Star      -> print "hello3xx"
@@ -544,6 +614,10 @@ main = do
 
     -- let (s,g) = runST test_g3
     (s1,g) <- test_g3
+
+    let x = read s1 g
+    print "----"
+    print x
         --
         -- putStrLn "\n\n---"
         --
