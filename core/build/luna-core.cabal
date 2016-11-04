@@ -69,6 +69,7 @@ Library
                   TypeOperators
                   ViewPatterns
                   TypeApplications
+                  DuplicateRecordFields
 
     exposed-modules: 
         Control.Monad.Delayed,
@@ -140,6 +141,7 @@ Library
         Luna.Library.Symbol,
         Luna.Pass.Scheduler,
         Luna.Pass.Stage,
+        Luna.Pretty.Graph,
         Luna.Pretty.GraphViz,
         Luna.Pretty.GraphViz2,
         Luna.Pretty.Styles,
@@ -247,6 +249,9 @@ Library
                  , data-shell
                  , HTTP
                  , visualization-api
+                 , aeson
+                 , bytestring
+                 , open-browser
 
 
 Executable luna
@@ -280,6 +285,7 @@ Executable luna
                   TupleSections
                   TypeOperators
                   ViewPatterns
+                  DuplicateRecordFields
 
     if !flag(luna-exe)
         buildable: False
@@ -317,6 +323,9 @@ Executable luna
                      , ghc-mtl
                      , data-shell
                      , template-haskell
+                     , aeson
+                     , bytestring
+                     , open-browser
 
 
 benchmark graph-builder

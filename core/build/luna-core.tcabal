@@ -63,6 +63,7 @@ Library
                   TypeOperators
                   ViewPatterns
                   TypeApplications
+                  DuplicateRecordFields
 
     exposed-modules: `findmodules('../src', '.*\.hs')`
 
@@ -112,6 +113,9 @@ Library
                  , data-shell
                  , HTTP
                  , visualization-api
+                 , aeson
+                 , bytestring
+                 , open-browser
 
 
 Executable luna
@@ -145,6 +149,7 @@ Executable luna
                   TupleSections
                   TypeOperators
                   ViewPatterns
+                  DuplicateRecordFields
 
     if !flag(luna-exe)
         buildable: False
@@ -182,6 +187,9 @@ Executable luna
                      , ghc-mtl
                      , data-shell
                      , template-haskell
+                     , aeson
+                     , bytestring
+                     , open-browser
 
 
 benchmark graph-builder

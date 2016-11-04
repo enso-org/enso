@@ -76,6 +76,7 @@ import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
 import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize)
+import Type.Inference
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 --
@@ -97,16 +98,16 @@ data    Nothing' = Nothing' deriving (Show)
 --     Output ((->) t) a  = (t,a)
 --     Output m        a  = a
 
-type Result  m a = m (Output2 (OutputDesc m) a)
-type Result_ m   = m (Output2_ (OutputDesc m))
+type Result  m a = m (Output (OutputDesc m) a)
+type Result_ m   = m (Output_ (OutputDesc m))
 
-type family Output2 arg a where
-    Output2 (Just' t) a = (a,t)
-    Output2 Nothing'  a = a
+type family Output arg a where
+    Output (Just' t) a = (a,t)
+    Output Nothing'  a = a
 
-type family Output2_ arg where
-    Output2_ (Just' t) = t
-    Output2_ Nothing'  = ()
+type family Output_ arg where
+    Output_ (Just' t) = t
+    Output_ Nothing'  = ()
 
 
 
@@ -258,13 +259,13 @@ writeM = value <∘∘> write'   ; {-# INLINE writeM #-}
 
 type Linkable' a m = Linkable (Cfg a) m
 class Monad m => Linkable t m where
-    linkM'   :: forall a b. Ref a -> Ref b -> m (Impl Link t a b)
-    unlinkM' :: forall a b. Impl Link t a b -> m (Ref a, Ref b)
+    linkM'   :: forall a b. (t ~ Cfg a) => Ref a -> Ref b -> m (Link a b)
+    unlinkM' :: forall a b. (t ~ Cfg a) => Link a b -> m (Ref a, Ref b)
 
 linkM   :: forall a b m. Linkable' a m => Ref a -> Ref b -> m (Link a b)
 unlinkM :: forall a b m. Linkable' a m => Link a b -> m (Ref a, Ref b)
-linkM   = Link <∘∘> linkM' @(Cfg a)   ; {-# INLINE linkM   #-}
-unlinkM = unlinkM' @(Cfg a) . unwrap' ; {-# INLINE unlinkM #-}
+linkM   = linkM'   ; {-# INLINE linkM   #-}
+unlinkM = unlinkM' ; {-# INLINE unlinkM #-}
 
 
 
@@ -308,11 +309,11 @@ instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m w
 
 
 
--- type Result m a = m (Output2 (OutputDesc m) a)
+-- type Result m a = m (Output (OutputDesc m) a)
 --
--- type family Output2 arg a where
---     Output2 ('Just t) a = (a,t)
---     Output2 'Nothing  a = a
+-- type family Output arg a where
+--     Output ('Just t) a = (a,t)
+--     Output 'Nothing  a = a
 --
 -- type family OutputDesc m where
 --     OutputDesc ((->) t) = 'Just t
@@ -483,12 +484,20 @@ class HasLayer layer t where
     layer :: forall layout. Stack (Layers t) (Layer (Expr t layout)) -> LayerData layer (Expr t layout)
 
 instance HasLayer' layer (Layers t) => HasLayer layer t where layer = layer' @layer @(Layers t) ; {-# INLINE layer #-} -- TODO[WD]: add impossible instance
+instance {-# OVERLAPPABLE #-}          HasLayer layer I where layer = impossible
 
 class HasLayer' layer layers where
     layer' :: forall layout t. Stack layers (Layer (Expr t layout)) -> LayerData layer (Expr t layout)
 
 instance {-# OVERLAPPABLE #-}                   HasLayer' l (l ': ls) where layer' (SLayer t _) = unwrap' t   ; {-# INLINE layer' #-}
 instance {-# OVERLAPPABLE #-} HasLayer' l ls => HasLayer' l (t ': ls) where layer' (SLayer _ s) = layer' @l s ; {-# INLINE layer' #-}
+
+
+-- === Utils === --
+
+type family HasLayers layers t :: Constraint where
+    HasLayers '[]       t = ()
+    HasLayers (l ': ls) t = (HasLayer l t, HasLayers ls t)
 
 
 
@@ -523,10 +532,14 @@ specifyLayout = unsafeCoerce ; {-# INLINE specifyLayout #-}
 
 -- === Properties === --
 
-type instance Get Layout        (Expr _ layout) = layout
+-- type instance Get Layout        (Expr _ layout) = layout
 type instance Set Layout layout (Expr t  _)     = Expr t layout
-type instance Get Data          (Expr t layout) = Unwrapped (Get Data (Unwrapped (Expr t layout))) -- TODO: simplify
+-- type instance Get Data          (Expr t layout) = Unwrapped (Get Data (Unwrapped (Expr t layout))) -- TODO: simplify
 
+type instance Get p (Expr t layout) = ExprGet p (Expr t layout)
+type family ExprGet p expr where
+    ExprGet Layout (Expr _ layout) = layout
+    ExprGet p      (Expr t layout) = Unwrapped (Get p (Unwrapped (Expr t layout)))
 
 -- === Bindings === --
 
@@ -584,7 +597,7 @@ instance {-# OVERLAPPABLE #-}                                 Show (AnyExpr I   
 type instance Sub s (Expr t layout) = Expr t (Sub s layout)
 
 -- Layers
-instance HasLayer Data t => Getter Data (Expr t layout) where get = layer @Data . unwrap' ; {-# INLINE get #-}
+instance (HasLayer p t, LayerData p (Expr t layout) ~ Get p (Expr t layout)) => Getter p (Expr t layout) where get = layer @p . unwrap' ; {-# INLINE get #-}
 
 -- Scoping
 instance {-# OVERLAPPABLE #-} (t ~ t', Generalize layout layout')                 => Generalize (Expr t layout) (Expr t' layout')
@@ -602,10 +615,28 @@ instance HasLayer Data t => Repr HeaderOnly (Expr t layout) where repr expr = va
 type instance Cfg (Expr t layout) = Elem t
 
 
-class Monad m => TTT t m where
-    elems  :: m [Ref        (Expr t Draft) ]
-    links  :: m [Ref (Link' (Expr t Draft))]
-    groups :: m [Ref (Group (Expr t Draft))]
+class (Monad m, IsResult m, Inferable2 TermType t m) => TTT t m where
+    elems'  :: m [Ref        (Expr t Draft) ]
+    links'  :: m [Ref (Link' (Expr t Draft))]
+    groups' :: m [Ref (Group (Expr t Draft))]
+
+elemsM :: TTT t m => m [Ref (Expr t Draft) ]
+elems  :: TTT t m => m [Ref (Expr t Draft) ]
+elemsM = elems' ; {-# INLINE elemsM #-}
+elems  = elems' ; {-# INLINE elems  #-}
+
+
+-- type Referable' a m = Referable (Cfg a) m
+-- class (Monad m, IsResult m) => Referable t m where
+--     ref'   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
+--     unref' :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
+--     read'  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
+--     write' :: forall a. (t ~ Cfg a) => Ref a -> a -> ResultDesc_ m
+--
+-- refM :: Referable' a m => a ->         m (Ref a)
+-- ref  :: Referable' a m => a -> Result  m (Ref a)
+-- ref  = toResult . ref' ; {-# INLINE ref  #-}
+-- refM = value <∘> ref'  ; {-# INLINE refM #-}
 
 
 

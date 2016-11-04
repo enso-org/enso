@@ -25,7 +25,7 @@ import qualified Control.Monad.Writer     as Writer
 import           Old.Data.Attr                (attr)
 import           Data.Construction
 import           Data.Container           (index_)
-import           Data.Container           hiding (impossible, elems, elems')
+import           Data.Container           hiding (impossible, elems, elems', elemsM)
 import           Data.Graph.Builder       (MonadBuilder)
 import           Data.Graph.Query         hiding (Graph)
 import qualified Data.Graph.Query         as Sort
@@ -33,7 +33,7 @@ import           Data.Index               (idx)
 -- import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                 as Map
 -- import           Old.Data.Prop
-import           Data.Record              hiding (Cons, Layout, cons, Value)
+-- import           Data.Record              hiding (Cons, Layout, cons, Value)
 import           Data.Version.Semantic
 import           Development.Placeholders
 import           Text.Printf              (printf)
@@ -129,6 +129,12 @@ import qualified Luna.Syntax.Model.Network.Builder.Type as Type
 import Control.Monad.ST
 import Data.Reprx
 import Luna.Pretty.Styles  (HeaderOnly(..))
+import Data.Aeson (ToJSON, FromJSON, encode, decode)
+import qualified Control.Monad.State.Dependent as D
+import qualified Data.ByteString.Lazy.Char8 as ByteString
+import Web.Browser (openBrowser)
+
+import qualified Luna.Pretty.Graph as Vis
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -155,10 +161,25 @@ matchx t f = rebind (f . uniExprTypes t) where
 defaultMatch = error "wrong match"
 {-# INLINE defaultMatch #-}
 
+
+
+
+
+-- === UID layer === --
+
+data UID = UID deriving (Show)
+
+type instance LayerData UID t = Int64
+
+instance (D.MonadState UID (LayerData UID expr) m, Monad m)
+      => Constructor a m (Layer expr UID) where
+    cons _ = Layer <$> D.modify UID (\s -> (succ s, s))
+
+
 --
 
 
-type NetLayers   = '[Data, Type]
+type NetLayers   = '[Data, Type, UID]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
 type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
 type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
@@ -210,6 +231,26 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 
+-- FIXME[WD]: refactor ugly Arc3 implementation
+-- === Arc3 === --
+data Arc3 src tgt = Arc3 Int64 (Arc2 (Ref src) (Ref tgt))
+
+type instance Get p (Link (Expr t a) (Expr t b)) = LayerData p t
+instance HasLinkLayer p t => Getter p (Link (Expr t l) (Expr t r)) where
+    get = linkLayer @p;
+
+class HasLinkLayer l t where
+    linkLayer :: forall a b. Link (Expr t a) (Expr t b) -> LayerData l t
+
+instance HasLinkLayer UID Net where
+    linkLayer (Link (Arc3 uid _)) = uid ; {-# INLINE linkLayer #-}
+
+
+deriving instance Show (Arc2 (Ref src) (Ref tgt)) => Show (Arc3 src tgt)
+-- makeWrapped ''Arc3
+
+
+
 -----------------
 -- === Net === --
 -----------------
@@ -217,51 +258,28 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 -- === Definition === --
 
 data Net = Net
-
-type instance Layers Net     = NetLayers
--- type instance Binder Net     = NodeRef
--- type instance Linker Net Net = EdgeRef
-
-newtype Arc3 src tgt = Arc3 (Arc2 (Ref src) (Ref tgt))
-
+type instance Layers Net = NetLayers
 
 type instance Impl Ref  (Elem Net)                   = Ref2 Node
 type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
 type instance Impl Link (Elem Net)                   = Arc3
 
 
--- type instance Linked
-
 -- === Instances === --
---
--- instance (Monad m, MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m)
---       => Bindable Net m where
---     mkBinder    = NodeRef <∘> construct' ; {-# INLINE mkBinder    #-}
---     readBinder  = readRef  . unwrap'     ; {-# INLINE readBinder  #-}
---     writeBinder = writeRef . unwrap'     ; {-# INLINE writeBinder #-}
-
--- instance (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m) => Referable (Elem Net) m where
---     refM'   = construct' ; {-# INLINE refM'   #-}
---     readM'  = readRef    ; {-# INLINE readM'  #-}
---     writeM' = writeRef   ; {-# INLINE writeM' #-}
---
--- instance (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m) => Referable (Link (Elem Net) (Elem Net)) m where
---     refM'   = construct' ; {-# INLINE refM'   #-}
---     readM'  = readRef    ; {-# INLINE readM'  #-}
---     writeM' = writeRef   ; {-# INLINE writeM' #-}
-
 
 -- Refs
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m)
       => Referable (Elem Net) m where
-    ref'  = valOnly . Ref <∘> construct'
-    read' = readRef . unwrap'
+    ref'   = valOnly . Ref <∘> construct'  ; {-# INLINE ref'   #-}
+    read'  = readRef . unwrap'             ; {-# INLINE read'  #-}
+    write' = noVal <∘∘> writeRef . unwrap' ; {-# INLINE write' #-}
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, NoOutput m)
       => Referable (Link (Elem Net) (Elem Net)) m where
-    ref'  = valOnly . Ref <∘> construct'
-    read' = readRef . unwrap'
+    ref'   = valOnly . Ref <∘> construct'  ; {-# INLINE ref'   #-}
+    read'  = readRef . unwrap'             ; {-# INLINE read'  #-}
+    write' = noVal <∘∘> writeRef . unwrap' ; {-# INLINE write' #-}
 
 
 instance Referable (Elem Net) ((->) Network3) where
@@ -272,13 +290,24 @@ instance Referable (Link (Elem Net) (Elem Net)) ((->) Network3) where
     ref'  a t = fooe $ runGraph  (refM  a) t ; {-# INLINE ref'  #-}
     read' a t = evalGraphInplace (readM a) t ; {-# INLINE read' #-}
 
+
 -- Links
 
-instance Monad m => Linkable (Elem Net) m where
-    linkM' = (return . Arc3) .: Arc2 ; {-# INLINE linkM' #-}
+instance (Monad m, D.MonadState UID Int64 m) => Linkable (Elem Net) m where
+    linkM' l r  = do
+        uid <- D.modify UID (\s -> (succ s, s))
+        (return . Link . Arc3 uid) $ Arc2 l r
+    {-# INLINE linkM' #-}
+    unlinkM' (Link (Arc3 _ (Arc2 l r))) = return (l,r) ; {-# INLINE unlinkM' #-}
+
+
+
+
+
 
 
 valOnly v = (Just' v, Nothing')
+noVal   _ = (Nothing', Nothing')
 
 fooe (x,y) = (Just' x, Just' y)
 -- class Monad m => Referable t m where
@@ -308,9 +337,6 @@ fooe (x,y) = (Just' x, Just' y)
 --     viewRefM :: Ref2 r a      -> t -> m a
 
 
--- === UID layer === --
-
-data UID = UID deriving (Show)
 
 
 
@@ -355,28 +381,35 @@ localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 type AnyExprCons t m = Constructor TermStore m (AnyExprStack t)
 
 
-type GraphLike t m = ( Referable (Elem t) m
+type ASTAccess t m = ( Referable (Elem t) m
                      , Referable (Link (Elem t) (Elem t)) m
-                     , Linkable (Elem t) m
+                     , HasLayer Data t
+                     , Show (AnyExpr t)
+                     , Show (Ref (AnyExpr t))
                      )
 
-type ASTBuilder t m = ( MonadFix              m
-                      , AnyExprCons         t m
-                      , GraphLike           t m
+type ASTModify t m = ( Linkable (Elem t) m
+                     , AnyExprCons    t  m
+                     )
+
+type ASTBuilder t m = ( Self.MonadSelfBuilder (Ref (AnyExpr t)) m
                       , Inferable2 TermType t m
-                      , Self.MonadSelfBuilder (Ref (AnyExpr t)) m
-                      , HasLayer Data t
-                      , TTT t m
-
-                      , NoOutput m
-
-                      , Show (AnyExpr t)
-                      , Show (Ref (AnyExpr t))
+                      , MonadFix              m
+                      , NoOutput              m
                       )
 
-type ASTBuilderIO t m = ( ASTBuilder t m, MonadIO m )
 
-type ASTBuilder' t layout m = ( ASTBuilder t m
+type ASTAccessor t ast = ASTAccess t ((->) ast)
+
+type ASTMonad t m = ( ASTAccess  t m
+                    , ASTModify  t m
+                    , ASTBuilder t m
+                    , TTT t m -- move to AST access
+                    )
+
+type ASTMonadIO t m = ( ASTMonad t m, MonadIO m )
+
+type ASTMonad' t layout m = ( ASTMonad t m
                               , Inferable2 Layout layout m
                               )
 
@@ -390,13 +423,13 @@ type l <+> r = Merge l r
 type l :>> r = Specialized Atom l r
 
 
-star :: ASTBuilder' t layout m => m (Ref (Expr t (Set Atom Star layout)))
+star :: ASTMonad' t layout m => m (Ref (Expr t (Set Atom Star layout)))
 star = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
-star2 :: (Referable (Elem t) m, ASTBuilder' t layout m) => m (Ref (Expr t (Set Atom Star layout)))
+star2 :: (Referable (Elem t) m, ASTMonad' t layout m) => m (Ref (Expr t (Set Atom Star layout)))
 star2 = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
-unify :: ASTBuilder t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
+unify :: ASTMonad t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = Self.put . anyLayout3 =<<& mdo
     n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
     la <- refM =<< linkM n (unsafeGeneralize a)
@@ -417,10 +450,10 @@ instance {-# INCOHERENT #-} Linkable l m => Linkable l (KnownTypeT cls t m) wher
     linkM'   = lift .: linkM'   @l ; {-# INLINE linkM'   #-}
     unlinkM' = lift .  unlinkM' @l ; {-# INLINE unlinkM' #-}
 
-instance {-# INCOHERENT #-} TTT a m => TTT a (KnownTypeT cls t m) where
-    elems  = lift elems  ; {-# INLINE elems  #-}
-    links  = lift links  ; {-# INLINE links  #-}
-    groups = lift groups ; {-# INLINE groups #-}
+instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (KnownTypeT cls t m) where
+    elems'  = lift elems'  ; {-# INLINE elems'  #-}
+    links'  = lift links'  ; {-# INLINE links'  #-}
+    groups' = lift groups' ; {-# INLINE groups' #-}
 
 
 
@@ -509,51 +542,34 @@ test_g3 = runNewGraphT
         $ flip Self.evalT undefined
         $ flip Type.evalT Nothing
         $ runInferenceT2 @TermType @Net
+        $ flip (D.evalT UID) (0 :: Int64)
         $ test_gr
 
 
 
 
--- instance Referable2 a ((->) Network3) where
---     ref a = undefined
 
 
 
--- class Referable2 a m where
---     ref :: a -> Result2 m (Ref a)
+
+instance {-# OVERLAPPABLE #-} (Monad m, MonadBuilder g m, ReferableM Node g m, Inferable2 TermType Net m, NoOutput m) => TTT Net m where
+    elems' = (Ref . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get
+
+instance Inferable2 TermType Net ((->) Network3)
+instance TTT Net ((->) Network3) where
+    elems' = evalGraphInplace $ runInferenceT2 @TermType @Net elemsM ; {-# INLINE elems' #-}
 
 
--- instance Connection (Ref (Expr Net layout)) ((->) Network3) where
---     read  a   = evalGraph $ read a    ; {-# INLINE read  #-}
---     write a t = execGraph $ write a t ; {-# INLINE write #-}
 
--- instance {-# OVERLAPPABLE #-} XBuilder (Expr Net Draft) ((->) Network3) where
---     bindings g = runST $ do
---         mg <- NEC.thaw2 g
---         fmap (Ref . NodeRef . unsafeRefer) <$> viewPtrs mg
---     {-# INLINE bindings #-}
-
-
--- instance {-# OVERLAPPABLE #-} (MonadBuilder g m, ReferableM Node g m) => XBuilder (Expr Net Draft) m where
---     bindings = do
---         g <- GraphBuilder.get
---         fmap (Ref . NodeRef . unsafeRefer) <$> viewPtrs g
---     elements = undefined
-
-
-instance (MonadBuilder g m, ReferableM Node g m, Monad m) => TTT Net m where
-    elems = do
-        g <- GraphBuilder.get
-        fmap (Ref . unsafeRefer) <$> viewPtrs g
-
-elems' :: (TTT t m, Inferable2 TermType  t m) => m [Ref (Expr t Draft)]
-elems' = elems ; {-# INLINE elems' #-}
-
+--
+-- instance Referable (Elem Net) ((->) Network3) where
+--     ref'  a t = fooe $ runGraph  (refM  a) t ; {-# INLINE ref'  #-}
+--     read' a t = evalGraphInplace (readM a) t ; {-# INLINE read' #-}
 
 
 
 test_gr :: forall t m .
-           ASTBuilderIO t m => m (Ref (UntyppedExpr t Star ()))
+           ASTMonadIO t m => m (Ref (UntyppedExpr t Star ()))
 test_gr = layouted @ANT $ do
     (s1 :: Ref (UntyppedExpr t Star            ())) <- star
     (s2 :: Ref (UntyppedExpr t Star            ())) <- star
@@ -576,7 +592,7 @@ test_gr = layouted @ANT $ do
     -- tgt  <- targetM l
     -- src  <- sourceM l
     -- both <- read l
-    es <- elems'
+    es <- elems
     es' <- mapM read es
 
     case' t of
@@ -615,9 +631,11 @@ main = do
     -- let (s,g) = runST test_g3
     (s1,g) <- test_g3
 
-    let x = read s1 g
-    print "----"
-    print x
+    let x   = read s1 g
+        res = elems g
+        es  = map (flip read g) res
+
+
         --
         -- putStrLn "\n\n---"
         --
@@ -629,7 +647,27 @@ main = do
         -- putStrLn $ reprStyled HeaderOnly t
         -- print t
         -- -- print os
-        -- print $ map (reprStyled HeaderOnly) os
+    let nodes = ByteString.unpack $ encode $ map visNode es
+
+    putStrLn ">>>>\n"
+    print nodes
+
+    (_, vis) <- Vis.newRunDiffT $ do
+        let vss = map (visNode2 g) es
+            vns = fst <$> vss
+            ves = join $ snd <$> vss
+        Vis.addNodes vns
+        Vis.addEdges ves
+        print "!!!!"
+        print ves
+
+
+    let cfg = ByteString.unpack $ encode $ vis
+    putStrLn cfg
+    openBrowser ("http://localhost:8200?cfg=" <> cfg)
+    -- print $ encode (N 9 8)
+
+
         --
         -- putStrLn "\n\n---"
         --
@@ -641,4 +679,58 @@ main = do
         -- print d
         -- -- print s
         -- print idx
+
+    print "----"
+    print x
+    let tpRef  = get @Type x
+        tpLink = read tpRef g
+    print $ get @UID tpLink
+
     return ()
+
+visNode :: HasLayers '[Data, UID] t => Expr t layout -> Vis.Node
+visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
+    header = fromString $ reprStyled HeaderOnly el
+
+visNode2 :: ( HasLayers '[Data, UID, Type] t
+            , HasLinkLayer UID t
+            , ASTAccessor t g
+
+            , Impl Link (Elem t) ~ Arc3
+            ) => g -> Expr t layout -> (Vis.Node, [Vis.Edge])
+visNode2 g expr = (node, edges) where
+    node   = Vis.Node header (get @UID expr) 0 (fromList [header])
+    header = fromString $ reprStyled HeaderOnly expr
+    tpRef  = get @Type expr
+    tpLink = read tpRef g
+    tpUid  = get @UID tpLink
+
+    Link (Arc3 _ (Arc2 l r)) = tpLink
+    ln     = read l g
+    rn     = read r g
+
+    lnUID = get @UID ln
+    rnUID = get @UID rn
+
+    edges  = [Vis.Edge (fromString "") tpUid 0 lnUID rnUID (fromList [fromString "type"])]
+
+
+--
+-- data Edge = Edge { _edge_name   :: Name
+--                  , _edge_uid    :: EdgeID
+--                  , _edge_id     :: EdgeID
+--                  , _edge_src    :: NodeID
+--                  , _edge_tgt    :: NodeID
+--                  , _edge_styles :: Set Style
+--                  } deriving (Show, Generic)
+
+	-- var nodes = [ { uid:1, id:1, styles: ['draft'  ], name: 'Node 1'  }
+	-- 			, { uid:2, id:2, styles: ['phrase' ], name: 'Node 2'  }
+	-- 			, { uid:3, id:3, styles: ['thunk'  ], name: 'Node 4'  }
+	-- 			, { uid:4, id:4, styles: ['value'  ], name: 'Node 5'  }
+	-- 			, { uid:5, id:1, styles: ['literal'], name: 'Im new!' }
+	-- 			, { uid:6, id:2, styles: ['star'   ]                  }
+	-- 			, { uid:7, id:3, styles: ['unify'  , 'draft']         }
+	-- 			, { uid:8, id:4, styles: ['missing', 'draft']         }
+	-- 			, { uid:9, id:5, styles: ['acc'    , 'draft']         }
+	-- 			]
