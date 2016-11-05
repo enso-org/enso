@@ -258,7 +258,7 @@ deriving instance Show (Arc2 (Ref src) (Ref tgt)) => Show (Arc3 src tgt)
 -- === Definition === --
 
 data Net = Net
-type instance Layers Net = NetLayers
+type instance Layers EXPR Net = NetLayers
 
 type instance Impl Ref  (Elem Net)                   = Ref2 Node
 type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
@@ -383,7 +383,7 @@ type AnyExprCons t m = Constructor TermStore m (AnyExprStack t)
 
 type ASTAccess t m = ( Referable (Elem t) m
                      , Referable (Link (Elem t) (Elem t)) m
-                     , HasLayer Data t
+                     , HasLayer EXPR Data t
                      , Show (AnyExpr t)
                      , Show (Ref (AnyExpr t))
                      )
@@ -688,11 +688,11 @@ main = do
 
     return ()
 
-visNode :: HasLayers '[Data, UID] t => Expr t layout -> Vis.Node
+visNode :: HasLayers EXPR '[Data, UID] t => Expr t layout -> Vis.Node
 visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
     header = fromString $ reprStyled HeaderOnly el
 
-visNode2 :: ( HasLayers '[Data, UID, Type] t
+visNode2 :: ( HasLayers EXPR '[Data, UID, Type] t
             , HasLinkLayer UID t
             , ASTAccessor t g
 
