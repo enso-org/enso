@@ -16,7 +16,7 @@
 module Main where
 
 
-import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link)
+import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link)
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
 
@@ -171,12 +171,20 @@ data UID = UID deriving (Show)
 
 type instance LayerData UID t = Int64
 
+-- FIXME [WD]: Remove when moving out from constructors
 instance (D.MonadState UID (LayerData UID expr) m, Monad m)
       => Constructor a m (Layer expr UID) where
     cons _ = Layer <$> D.modify UID (\s -> (succ s, s))
 
+instance D.MonadState UID (LayerData UID expr) m => LayerCons UID m where
+    consLayer _ = Layer2 <$> D.modify UID (\s -> (succ s, s))
 
---
+
+-- === Data layer === --
+
+instance Monad m => LayerCons Data m where
+    consLayer = return . Layer2 ; {-# INLINE consLayer #-}
+
 
 
 type NetLayers   = '[Data, Type, UID]
@@ -235,15 +243,15 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 -- === Arc3 === --
 data Arc3 src tgt = Arc3 Int64 (Arc2 (Ref src) (Ref tgt))
 
-type instance Get p (Link (Expr t a) (Expr t b)) = LayerData p t
-instance HasLinkLayer p t => Getter p (Link (Expr t l) (Expr t r)) where
-    get = linkLayer @p;
+-- type instance Get p (Link (Expr t a) (Expr t b)) = LayerData p t
+-- instance HasLinkLayer p t => Getter p (Link (Expr t l) (Expr t r)) where
+--     get = linkLayer @p;
+--
+-- class HasLinkLayer l t where
+--     linkLayer :: forall a b. Link (Expr t a) (Expr t b) -> LayerData l t
 
-class HasLinkLayer l t where
-    linkLayer :: forall a b. Link (Expr t a) (Expr t b) -> LayerData l t
-
-instance HasLinkLayer UID Net where
-    linkLayer (Link (Arc3 uid _)) = uid ; {-# INLINE linkLayer #-}
+-- instance HasLinkLayer UID Net where
+--     linkLayer (Link (Arc3 uid _)) = uid ; {-# INLINE linkLayer #-}
 
 
 deriving instance Show (Arc2 (Ref src) (Ref tgt)) => Show (Arc3 src tgt)
@@ -259,10 +267,11 @@ deriving instance Show (Arc2 (Ref src) (Ref tgt)) => Show (Arc3 src tgt)
 
 data Net = Net
 type instance Layers EXPR Net = NetLayers
+type instance Layers LINK Net = '[Data, UID]
 
 type instance Impl Ref  (Elem Net)                   = Ref2 Node
 type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
-type instance Impl Link (Elem Net)                   = Arc3
+-- type instance Impl Link (Elem Net)                   = Arc3
 
 
 -- === Instances === --
@@ -293,12 +302,12 @@ instance Referable (Link (Elem Net) (Elem Net)) ((->) Network3) where
 
 -- Links
 
-instance (Monad m, D.MonadState UID Int64 m) => Linkable (Elem Net) m where
-    linkM' l r  = do
-        uid <- D.modify UID (\s -> (succ s, s))
-        (return . Link . Arc3 uid) $ Arc2 l r
-    {-# INLINE linkM' #-}
-    unlinkM' (Link (Arc3 _ (Arc2 l r))) = return (l,r) ; {-# INLINE unlinkM' #-}
+-- instance (Monad m, D.MonadState UID Int64 m) => Linkable (Elem Net) m where
+--     linkM' l r  = do
+--         uid <- D.modify UID (\s -> (succ s, s))
+--         (return . Link . Arc3 uid) $ Arc2 l r
+--     {-# INLINE linkM' #-}
+--     unlinkM' (Link (Arc3 _ (Arc2 l r))) = return (l,r) ; {-# INLINE unlinkM' #-}
 
 
 
@@ -347,7 +356,7 @@ type instance LayerData Type t = SubLink Type t
 
 instance ( expr ~ AnyExpr t
          , ref  ~ Ref expr
-         , Linkable (Elem t) m
+         , Linkable t m
          , Referable (Link (Elem t) (Elem t)) m
 
          , Self.MonadSelfBuilder ref m
@@ -357,7 +366,7 @@ instance ( expr ~ AnyExpr t
     cons _ = do
         self <- Self.get
         top  <- localTop
-        l    <- refM =<< linkM self top
+        l    <- refM =<< link self top
         return $ Layer l
 
 
@@ -388,8 +397,8 @@ type ASTAccess t m = ( Referable (Elem t) m
                      , Show (Ref (AnyExpr t))
                      )
 
-type ASTModify t m = ( Linkable (Elem t) m
-                     , AnyExprCons    t  m
+type ASTModify t m = ( Linkable    t m
+                     , AnyExprCons t m
                      )
 
 type ASTBuilder t m = ( Self.MonadSelfBuilder (Ref (AnyExpr t)) m
@@ -432,8 +441,8 @@ star2 = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 unify :: ASTMonad t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = Self.put . anyLayout3 =<<& mdo
     n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
-    la <- refM =<< linkM n (unsafeGeneralize a)
-    lb <- refM =<< linkM n (unsafeGeneralize b)
+    la <- refM =<< link n (unsafeGeneralize a)
+    lb <- refM =<< link n (unsafeGeneralize b)
     return n
 
 
@@ -446,14 +455,17 @@ instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (KnownTyp
     read'  = lift .  read'  @r ; {-# INLINE read'  #-}
     write' = lift .: write' @r ; {-# INLINE write' #-}
 
-instance {-# INCOHERENT #-} Linkable l m => Linkable l (KnownTypeT cls t m) where
-    linkM'   = lift .: linkM'   @l ; {-# INLINE linkM'   #-}
-    unlinkM' = lift .  unlinkM' @l ; {-# INLINE unlinkM' #-}
+instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (KnownTypeT cls t m) where
+    consStack = lift . consStack ; {-# INLINE consStack #-}
+
+-- instance {-# INCOHERENT #-} Linkable l m => Linkable l (KnownTypeT cls t m) where
+--     linkM'   = lift .: linkM'   @l ; {-# INLINE linkM'   #-}
+--     unlinkM' = lift .  unlinkM' @l ; {-# INLINE unlinkM' #-}
 
 instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (KnownTypeT cls t m) where
     elems'  = lift elems'  ; {-# INLINE elems'  #-}
     links'  = lift links'  ; {-# INLINE links'  #-}
-    groups' = lift groups' ; {-# INLINE groups' #-}
+    -- groups' = lift groups' ; {-# INLINE groups' #-}
 
 
 
@@ -684,7 +696,7 @@ main = do
     print x
     let tpRef  = get @Type x
         tpLink = read tpRef g
-    print $ get @UID tpLink
+    -- print $ get @UID tpLink
 
     return ()
 
@@ -693,22 +705,21 @@ visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
     header = fromString $ reprStyled HeaderOnly el
 
 visNode2 :: ( HasLayers EXPR '[Data, UID, Type] t
-            , HasLinkLayer UID t
+            , HasLayers2 LINK '[Data, UID]  t
             , ASTAccessor t g
 
-            , Impl Link (Elem t) ~ Arc3
             ) => g -> Expr t layout -> (Vis.Node, [Vis.Edge])
 visNode2 g expr = (node, edges) where
     node   = Vis.Node header (get @UID expr) 0 (fromList [header])
     header = fromString $ reprStyled HeaderOnly expr
     tpRef  = get @Type expr
     tpLink = read tpRef g
-    tpUid  = get @UID tpLink
+    tpUid  = get @UID  tpLink
+    (l,r)  = get @Data tpLink
 
-    Link (Arc3 _ (Arc2 l r)) = tpLink
     ln     = read l g
     rn     = read r g
-
+    --
     lnUID = get @UID ln
     rnUID = get @UID rn
 

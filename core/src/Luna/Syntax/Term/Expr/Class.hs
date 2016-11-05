@@ -11,7 +11,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE PolyKinds #-}
 
 
 
@@ -218,11 +217,11 @@ data TermType = TermType deriving (Show)
 
 type family Cfg a
 
-type family Impl (i :: k) t :: k
+type family Impl (i :: * -> *) t :: * -> *
 type Impl' i a = Impl i (Cfg a) a
 
 newtype Ref   a   = Ref   (Impl' Ref   a)
-newtype Group a   = Group (Impl' Group a)
+-- newtype Group a   = Group (Impl' Group a)
 
 data    Elem  a
 
@@ -320,15 +319,15 @@ instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m w
 
 -- Groups
 
-type Groupable' a m = Groupable (Cfg a) m
-class Monad m => Groupable t m where
-    groupM'   :: forall a. [Ref a] -> m (Impl Group t a)
-    ungroupM' :: forall a. Impl Group t a -> m [Ref a]
-
-groupM   :: forall a b m. Groupable' a m => [Ref a] -> m (Group a)
-ungroupM :: forall a b m. Groupable' a m => Group a -> m [Ref a]
-groupM   = Group <∘> groupM' @(Cfg a)   ; {-# INLINE groupM #-}
-ungroupM = ungroupM' @(Cfg a) . unwrap' ; {-# INLINE ungroupM #-}
+-- type Groupable' a m = Groupable (Cfg a) m
+-- class Monad m => Groupable t m where
+--     groupM'   :: forall a. [Ref a] -> m (Impl Group t a)
+--     ungroupM' :: forall a. Impl Group t a -> m [Ref a]
+--
+-- groupM   :: forall a b m. Groupable' a m => [Ref a] -> m (Group a)
+-- ungroupM :: forall a b m. Groupable' a m => Group a -> m [Ref a]
+-- groupM   = Group <∘> groupM' @(Cfg a)   ; {-# INLINE groupM #-}
+-- ungroupM = ungroupM' @(Cfg a) . unwrap' ; {-# INLINE ungroupM #-}
 
 
 
@@ -339,12 +338,12 @@ ungroupM = ungroupM' @(Cfg a) . unwrap' ; {-# INLINE ungroupM #-}
 -- Wrappers
 
 makeWrapped ''Ref
-makeWrapped ''Group
+-- makeWrapped ''Group
 
 
 -- Show
 deriving instance Show (Unwrapped (Ref   a))   => Show (Ref   a)
-deriving instance Show (Unwrapped (Group a))   => Show (Group a)
+-- deriving instance Show (Unwrapped (Group a))   => Show (Group a)
 
 
 -- Generalize
@@ -361,23 +360,42 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) 
 -- === Stack2 === --
 -------------------
 
+type family LayerData l t
+
 newtype Layer2 l t = Layer2 (LayerData l t)
+makeWrapped ''Layer2
 
 class LayerCons l m where
-    consLayer :: forall t. m (Layer2 l t)
+    consLayer :: forall t. LayerData Data t -> m (Layer2 l t)
 
-
-type InitStack = Stack2 '[]
-data Stack2 layers t a where
-    SLayer2 :: Layer2 l t -> Stack2 ls t a -> Stack2 (l ': ls) t a
-    SNull2  :: a                           -> Stack2 '[]       t a
+data Stack2 layers t where
+    SLayer2 :: Layer2 l t -> Stack2 ls t -> Stack2 (l ': ls) t
+    SNull2  ::                              Stack2 '[]       t
 
 
 type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
-class    Monad m              => StackCons ls        m where consStack :: forall t a. InitStack t a -> m (Stack2 ls t a)
-instance Monad m              => StackCons '[]       m where consStack     = return                                  ; {-# INLINE consStack #-}
-instance StackStepCons l ls m => StackCons (l ': ls) m where consStack ini = SLayer2 <$> consLayer <*> consStack ini ; {-# INLINE consStack #-}
+class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (Stack2 ls t)
+instance Monad m              => StackCons '[]       m where consStack _ = return SNull2                           ; {-# INLINE consStack #-}
+instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer2 <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
 
+
+class                                     HasLayer2 q layer c where layer2 :: forall t. Stack2 (Layers q c) t -> LayerData layer t
+instance HasLayer2' layer (Layers q c) => HasLayer2 q layer c where layer2 = layer2' @layer @(Layers q c) ; {-# INLINE layer2 #-}
+instance                                  HasLayer2 q layer I where layer2 = impossible                   ; {-# INLINE layer2 #-}
+
+class                                            HasLayer2' l ls        where layer2' :: forall t. Stack2 ls t -> LayerData l t
+instance {-# OVERLAPPABLE #-}                    HasLayer2' l (l ': ls) where layer2' (SLayer2 t _) = unwrap' t    ; {-# INLINE layer2' #-}
+instance {-# OVERLAPPABLE #-} HasLayer2' l ls => HasLayer2' l (t ': ls) where layer2' (SLayer2 _ s) = layer2' @l s ; {-# INLINE layer2' #-}
+-- instance {-# OVERLAPPABLE #-}                    HasLayer2' Data '[]    where layer2' (SNull2  a)   = a            ; {-# INLINE layer2' #-}
+
+
+type family HasLayers2 q ls c :: Constraint where
+    HasLayers2 q '[]       c = ()
+    HasLayers2 q (l ': ls) c = (HasLayer2 q l c, HasLayers2 q ls c)
+
+
+-- type instance Get l (Stack2 ls t a) = LayerData l t
+-- instance {-# OVERLAPPABLE #-} Getter l (Stack2 (l : ls))
 
 -- class Monad m => Generator     m a where new         :: m a                      ; default new :: Maker a => Deconstructed a -> m a
 
@@ -418,7 +436,6 @@ instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls)
 -- === Layers === --
 --------------------
 
-type family LayerData l t
 newtype Layer t l = Layer (LayerData l t)
 
 type family Layers q a :: [*]
@@ -467,39 +484,41 @@ type LayerStack2 t = Stack2 (Layers' t) t
 -- === Link === --
 ------------------
 
-type LinkStack src tgt = LayerStack2 (Link2 src tgt) (Ref src, Ref tgt)
+type LinkStack src tgt = LayerStack2 (Link src tgt)
 
-newtype Link2 src tgt = Link2 (LinkStack src tgt)
-makeWrapped ''Link2
+newtype Link src tgt = Link (LinkStack src tgt)
+makeWrapped ''Link
 
 data LINK
-type instance Qual (Link2 src tgt) = LINK
+type instance Qual (Link src tgt) = LINK
 
 -- === Instances === --
 
-type instance LayerData Data (Link2 src tgt) = (Ref src, Ref tgt)
-
--- FIXME[WD]: refactor (TH) and enable vvv
--- type instance Layers LINK (Link2 (Expr t l) (Expr t l')) = Layers LINK t
-
-link :: StackCons (Layers LINK (Link2 src tgt)) m => Ref src -> Ref tgt -> m (Link2 src tgt)
-link = Link2 <∘∘> consStack ∘∘ curry SNull2
+type instance LayerData Data (Link src tgt) = (Ref src, Ref tgt)
 
 
 
+type Linkable t m = StackCons (Layers LINK t) m
 
-newtype Link  a b = Link  (Impl' Link  a b)
+link :: forall src tgt m. Linkable (Link src tgt) m => Ref src -> Ref tgt -> m (Link src tgt)
+link a b = Link <$> consStack (a,b)
+-- link = Link <∘∘> consStack ∘∘ curry SNull2
+
+
+
+
+-- newtype Link  a b = Link  (Impl' Link  a b)
 type    Link' a   = Link a a
 
-type Linkable' a m = Linkable (Cfg a) m
-class Monad m => Linkable t m where
-    linkM'   :: forall a b. (t ~ Cfg a) => Ref a -> Ref b -> m (Link a b)
-    unlinkM' :: forall a b. (t ~ Cfg a) => Link a b -> m (Ref a, Ref b)
+-- type Linkable' a m = Linkable (Cfg a) m
+-- class Monad m => Linkable t m where
+--     linkM'   :: forall a b. (t ~ Cfg a) => Ref a -> Ref b -> m (Link a b)
+--     unlinkM' :: forall a b. (t ~ Cfg a) => Link a b -> m (Ref a, Ref b)
 
-linkM   :: forall a b m. Linkable' a m => Ref a -> Ref b -> m (Link a b)
-unlinkM :: forall a b m. Linkable' a m => Link a b -> m (Ref a, Ref b)
-linkM   = linkM'   ; {-# INLINE linkM   #-}
-unlinkM = unlinkM' ; {-# INLINE unlinkM #-}
+-- linkM   :: forall a b m. Linkable' a m => Ref a -> Ref b -> m (Link a b)
+-- unlinkM :: forall a b m. Linkable' a m => Link a b -> m (Ref a, Ref b)
+-- linkM   = linkM'   ; {-# INLINE linkM   #-}
+-- unlinkM = unlinkM' ; {-# INLINE unlinkM #-}
 
 
 -- === Utils === --
@@ -515,22 +534,12 @@ type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
 
 
 -- makeWrapped ''Link -- FIXME[WD]: TH error, fill the bug
-instance Wrapped (Link a b) where
-    type Unwrapped (Link a b) = Impl' Link a b
-    _Wrapped' = iso (\(Link l) -> l) Link ; {-# INLINE _Wrapped' #-}
+-- instance Wrapped (Link a b) where
+--     type Unwrapped (Link a b) = Impl' Link a b
+--     _Wrapped' = iso (\(Link l) -> l) Link ; {-# INLINE _Wrapped' #-}
 
 
 
-
-
-
-
--- expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr
--- expr a = specifyLayout . Expr <$> cons (encodeSymbol a)
-
---
--- link :: src -> tgt -> m (Link src tgt)
--- link :: Ref (Expr t a) -> Ref (Expr t b) -> m (Link (Expr t a) (Expr t b))
 
 
 
@@ -632,6 +641,10 @@ type family ExprGet p expr where
     ExprGet Layout (Expr _ layout) = layout
     ExprGet p      (Expr t layout) = Unwrapped (Get p (Unwrapped (Expr t layout)))
 
+instance (HasLayer EXPR p t, LayerData p (Expr t layout) ~ Get p (Expr t layout)) => Getter p (Expr t layout) where get = layer @EXPR @p @t . unwrap' ; {-# INLINE get #-}
+instance HasLayer2 LINK p t => Getter p (Link (Expr t l) (Expr t l')) where get = layer2 @LINK @p @t . unwrap' ; {-# INLINE get #-}
+
+type instance Get p (Link src tgt) = LayerData p (Link src tgt)
 
 -- === Variant mapping === --
 
@@ -672,7 +685,10 @@ type instance Sub s (Expr t layout) = Expr t (Sub s layout)
 
 -- Layers
 type instance Layers q (Expr t layout) = Layers q t
-instance (HasLayer EXPR p t, LayerData p (Expr t layout) ~ Get p (Expr t layout)) => Getter p (Expr t layout) where get = layer @EXPR @p @t . unwrap' ; {-# INLINE get #-}
+type instance Layers q (Link (Expr t l) (Expr t l')) = Layers q t
+
+
+
 
 type instance LayerData Data (Expr t layout) = TermStore
 instance Monad m => Constructor TermStore m (Layer (Expr t layout) Data) where cons = return . Layer
@@ -696,7 +712,7 @@ type instance Cfg (Expr t layout) = Elem t
 class (Monad m, IsResult m, Inferable2 TermType t m) => TTT t m where
     elems'  :: m [Ref        (Expr t Draft) ]
     links'  :: m [Ref (Link' (Expr t Draft))]
-    groups' :: m [Ref (Group (Expr t Draft))]
+    -- groups' :: m [Ref (Group (Expr t Draft))]
 
 elemsM :: TTT t m => m [Ref (Expr t Draft) ]
 elems  :: TTT t m => m [Ref (Expr t Draft) ]
