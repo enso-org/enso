@@ -176,14 +176,14 @@ instance (D.MonadState UID (LayerData UID expr) m, Monad m)
       => Constructor a m (Layer expr UID) where
     cons _ = Layer <$> D.modify UID (\s -> (succ s, s))
 
-instance D.MonadState UID (LayerData UID expr) m => LayerCons UID m where
-    consLayer _ = Layer2 <$> D.modify UID (\s -> (succ s, s))
+instance (Monad m, D.MonadState UID (LayerData UID expr) m) => LayerCons UID m where
+    consLayer _ = Layer <$> D.modify UID (\s -> (succ s, s))
 
 
 -- === Data layer === --
 
 instance Monad m => LayerCons Data m where
-    consLayer = return . Layer2 ; {-# INLINE consLayer #-}
+    consLayer = return . Layer ; {-# INLINE consLayer #-}
 
 
 
@@ -705,7 +705,7 @@ visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
     header = fromString $ reprStyled HeaderOnly el
 
 visNode2 :: ( HasLayers EXPR '[Data, UID, Type] t
-            , HasLayers2 LINK '[Data, UID]  t
+            , HasLayers LINK '[Data, UID]  t
             , ASTAccessor t g
 
             ) => g -> Expr t layout -> (Vis.Node, [Vis.Edge])

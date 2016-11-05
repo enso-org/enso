@@ -83,7 +83,6 @@ import Type.Inference
 -- type instance Get Dynamics (Layout dyn form) = dyn
 -- type instance Get Format   (Layout dyn form) = form
 
-type family Qual a
 
 
 
@@ -357,78 +356,33 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) 
 
 
 -------------------
--- === Stack2 === --
--------------------
-
-type family LayerData l t
-
-newtype Layer2 l t = Layer2 (LayerData l t)
-makeWrapped ''Layer2
-
-class LayerCons l m where
-    consLayer :: forall t. LayerData Data t -> m (Layer2 l t)
-
-data Stack2 layers t where
-    SLayer2 :: Layer2 l t -> Stack2 ls t -> Stack2 (l ': ls) t
-    SNull2  ::                              Stack2 '[]       t
-
-
-type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
-class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (Stack2 ls t)
-instance Monad m              => StackCons '[]       m where consStack _ = return SNull2                           ; {-# INLINE consStack #-}
-instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer2 <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
-
-
-class                                     HasLayer2 q layer c where layer2 :: forall t. Stack2 (Layers q c) t -> LayerData layer t
-instance HasLayer2' layer (Layers q c) => HasLayer2 q layer c where layer2 = layer2' @layer @(Layers q c) ; {-# INLINE layer2 #-}
-instance                                  HasLayer2 q layer I where layer2 = impossible                   ; {-# INLINE layer2 #-}
-
-class                                            HasLayer2' l ls        where layer2' :: forall t. Stack2 ls t -> LayerData l t
-instance {-# OVERLAPPABLE #-}                    HasLayer2' l (l ': ls) where layer2' (SLayer2 t _) = unwrap' t    ; {-# INLINE layer2' #-}
-instance {-# OVERLAPPABLE #-} HasLayer2' l ls => HasLayer2' l (t ': ls) where layer2' (SLayer2 _ s) = layer2' @l s ; {-# INLINE layer2' #-}
--- instance {-# OVERLAPPABLE #-}                    HasLayer2' Data '[]    where layer2' (SNull2  a)   = a            ; {-# INLINE layer2' #-}
-
-
-type family HasLayers2 q ls c :: Constraint where
-    HasLayers2 q '[]       c = ()
-    HasLayers2 q (l ': ls) c = (HasLayer2 q l c, HasLayers2 q ls c)
-
-
--- type instance Get l (Stack2 ls t a) = LayerData l t
--- instance {-# OVERLAPPABLE #-} Getter l (Stack2 (l : ls))
-
--- class Monad m => Generator     m a where new         :: m a                      ; default new :: Maker a => Deconstructed a -> m a
-
--------------------
 -- === Stack === --
 -------------------
 
-data Stack layers (t :: ★ -> ★) where
-    SLayer :: t l -> Stack ls t -> Stack (l ': ls) t
-    SNull  :: Stack '[] t
+data Stack (t :: ★ -> ★) layers where
+    SLayer :: t l -> Stack t ls -> Stack t (l ': ls)
+    SNull  :: Stack t '[]
 
 
 -- === Instances === --
 
 -- Show
-instance ContentShow (Stack ls t)               => Show          (Stack ls        t)  where show s                        = "(" <> contentShow s <> ")"      ; {-# INLINE show #-}
-instance                                           Show (Content (Stack '[]       t)) where show _                        = ""                               ; {-# INLINE show #-}
-instance (Show (t l), ContentShow (Stack ls t)) => Show (Content (Stack (l ': ls) t)) where show (unwrap' -> SLayer l ls) = show l <> ", " <> contentShow ls ; {-# INLINE show #-}
-instance {-# OVERLAPPING #-} Show (t l)         => Show (Content (Stack '[l]      t)) where show (unwrap' -> SLayer l ls) = show l                           ; {-# INLINE show #-}
+instance ContentShow (Stack t ls)               => Show          (Stack t ls       )  where show s                        = "(" <> contentShow s <> ")"      ; {-# INLINE show #-}
+instance                                           Show (Content (Stack t '[]      )) where show _                        = ""                               ; {-# INLINE show #-}
+instance (Show (t l), ContentShow (Stack t ls)) => Show (Content (Stack t (l ': ls))) where show (unwrap' -> SLayer l ls) = show l <> ", " <> contentShow ls ; {-# INLINE show #-}
+instance {-# OVERLAPPING #-} Show (t l)         => Show (Content (Stack t '[l]     )) where show (unwrap' -> SLayer l ls) = show l                           ; {-# INLINE show #-}
 
 -- Constructor
 instance ( Constructor a m (t l)
-         , Constructor a m (Stack ls t)) => Constructor a m (Stack (l ': ls) t) where cons a = SLayer <$> cons a <*> cons a ; {-# INLINE cons #-}
-instance Monad m                         => Constructor a m (Stack '[]       t) where cons _ = return SNull                 ; {-# INLINE cons #-}
+         , Constructor a m (Stack t ls)) => Constructor a m (Stack t (l ': ls)) where cons a = SLayer <$> cons a <*> cons a ; {-# INLINE cons #-}
+instance Monad m                         => Constructor a m (Stack t '[]      ) where cons _ = return SNull                 ; {-# INLINE cons #-}
 
 
 -- Properties
-type instance Get p (Stack ls t) = t p
+type instance Get p (Stack t ls) = t p
 
-instance {-# OVERLAPPABLE #-}                          Getter p (Stack (p ': ls) t) where get (SLayer t _) = t        ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls) t) where get (SLayer _ l) = get @p l ; {-# INLINE get #-}
-
-
+instance {-# OVERLAPPABLE #-}                          Getter p (Stack t (p ': ls)) where get (SLayer t _) = t        ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} Getter p (Stack t ls) => Getter p (Stack t (l ': ls)) where get (SLayer _ l) = get @p l ; {-# INLINE get #-}
 
 
 
@@ -436,109 +390,104 @@ instance {-# OVERLAPPABLE #-} Getter p (Stack ls t) => Getter p (Stack (l ': ls)
 -- === Layers === --
 --------------------
 
+-- === Definition === --
+
+type family LayerData l t
+
 newtype Layer t l = Layer (LayerData l t)
+makeWrapped ''Layer
+
+
+-- === Families === --
+
+type family Qual a
 
 type family Layers q a :: [*]
 type        Layers'  a = Layers (Qual a) a
 
 
-deriving instance Show (LayerData l t) => Show (Layer t l)
-
-makeWrapped ''Layer
-
 -- === Classes === --
 
-class HasLayer q layer t where
-    layer :: forall a. Stack (Layers q t) (Layer a) -> LayerData layer a
+class Monad m => LayerCons l m where
+    consLayer :: forall t. LayerData Data t -> m (Layer t l)
 
-instance HasLayer' layer (Layers q t) => HasLayer q layer t where layer = layer' @layer @(Layers q t) ; {-# INLINE layer #-} -- TODO[WD]: add impossible instance
-instance {-# OVERLAPPABLE #-}            HasLayer q layer I where layer = impossible
 
-class HasLayer' layer layers where
-    layer' :: forall a. Stack layers (Layer a) -> LayerData layer a
+-- === Isntances === --
 
-instance {-# OVERLAPPABLE #-}                   HasLayer' l (l ': ls) where layer' (SLayer t _) = unwrap' t   ; {-# INLINE layer' #-}
-instance {-# OVERLAPPABLE #-} HasLayer' l ls => HasLayer' l (t ': ls) where layer' (SLayer _ s) = layer' @l s ; {-# INLINE layer' #-}
+deriving instance Show (Unwrapped (Layer t l)) => Show (Layer t l)
+
+
+
+------------------------
+-- === LayerStack === --
+------------------------
+
+-- === Definition === --
+
+type LayerStack  t = Stack (Layer t)
+type LayerStack' t = LayerStack t (Layers' t)
 
 
 -- === Utils === --
 
-type family HasLayers q layers t :: Constraint where
-    HasLayers q '[]       t = ()
-    HasLayers q (l ': ls) t = (HasLayer q l t, HasLayers q ls t)
+-- StackCons
+type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
+class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStack t ls)
+instance Monad m              => StackCons '[]       m where consStack _ = return SNull                           ; {-# INLINE consStack #-}
+instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
+
+-- HasLayer
+class                                    HasLayer q layer c where layer :: forall t. LayerStack t (Layers q c) -> LayerData layer t
+instance HasLayer' layer (Layers q c) => HasLayer q layer c where layer = layer' @layer @(Layers q c) ; {-# INLINE layer #-}
+instance                                 HasLayer q layer I where layer = impossible                  ; {-# INLINE layer #-}
+
+class                                           HasLayer' l ls        where layer' :: forall t. LayerStack t ls -> LayerData l t
+instance {-# OVERLAPPABLE #-}                   HasLayer' l (l ': ls) where layer' (SLayer t _) = unwrap' t    ; {-# INLINE layer' #-}
+instance {-# OVERLAPPABLE #-} HasLayer' l ls => HasLayer' l (t ': ls) where layer' (SLayer _ s) = layer' @l s ; {-# INLINE layer' #-}
+
+type family HasLayers q ls        c :: Constraint where
+            HasLayers q '[]       c = ()
+            HasLayers q (l ': ls) c = (HasLayer q l c, HasLayers q ls c)
 
 
----------------------
----------------------
----------------------
 
-type LayerStack a = Stack (Layers' a) (Layer a)
-
-type LayerStack2 t = Stack2 (Layers' t) t
-
----------------------
----------------------
----------------------
 
 ------------------
 -- === Link === --
 ------------------
 
-type LinkStack src tgt = LayerStack2 (Link src tgt)
+type LinkStack src tgt = LayerStack' (Link src tgt)
 
-newtype Link src tgt = Link (LinkStack src tgt)
+type    Link' a       = Link a a
+newtype Link  src tgt = Link (LinkStack src tgt)
 makeWrapped ''Link
 
 data LINK
 type instance Qual (Link src tgt) = LINK
+
+type SubLink c t = Ref (Link t (Sub c t))
+
+
+-- === Construction === --
+
+type Linkable t m = StackCons (Layers LINK t) m
+
+link :: forall src tgt m. Linkable (Link src tgt) m => Ref src -> Ref tgt -> m (Link src tgt)
+link a b = Link <$> consStack (a,b)
+
 
 -- === Instances === --
 
 type instance LayerData Data (Link src tgt) = (Ref src, Ref tgt)
 
 
-
-type Linkable t m = StackCons (Layers LINK t) m
-
-link :: forall src tgt m. Linkable (Link src tgt) m => Ref src -> Ref tgt -> m (Link src tgt)
-link a b = Link <$> consStack (a,b)
--- link = Link <∘∘> consStack ∘∘ curry SNull2
-
-
-
-
--- newtype Link  a b = Link  (Impl' Link  a b)
-type    Link' a   = Link a a
-
--- type Linkable' a m = Linkable (Cfg a) m
--- class Monad m => Linkable t m where
---     linkM'   :: forall a b. (t ~ Cfg a) => Ref a -> Ref b -> m (Link a b)
---     unlinkM' :: forall a b. (t ~ Cfg a) => Link a b -> m (Ref a, Ref b)
-
--- linkM   :: forall a b m. Linkable' a m => Ref a -> Ref b -> m (Link a b)
--- unlinkM :: forall a b m. Linkable' a m => Link a b -> m (Ref a, Ref b)
--- linkM   = linkM'   ; {-# INLINE linkM   #-}
--- unlinkM = unlinkM' ; {-# INLINE unlinkM #-}
-
-
--- === Utils === --
-
-type SubLink    c t = Ref (Link t (Sub c t))
-
 -- === Instances === --
 
+-- Show
 deriving instance Show (Unwrapped (Link  a b)) => Show (Link  a b)
 
 -- Cfg
 type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
-
-
--- makeWrapped ''Link -- FIXME[WD]: TH error, fill the bug
--- instance Wrapped (Link a b) where
---     type Unwrapped (Link a b) = Impl' Link a b
---     _Wrapped' = iso (\(Link l) -> l) Link ; {-# INLINE _Wrapped' #-}
-
-
 
 
 
@@ -565,9 +514,6 @@ type instance Get Sym    (ExprSymbol atom t) = ExprSymbol atom t
 
 instance Getter Sym (ExprSymbol atom t) where get = id ; {-# INLINE get #-}
 
--- type instance Get p (ExprSymbol atom t) = Get p (Unwrapped (ExprSymbol atom t))
--- instance Getter p (Unwrapped (ExprSymbol atom t)) => Getter p (ExprSymbol atom t) where
---     get = get @p . unwrap' ; {-# INLINE get #-}
 
 instance ValidateLayout (Get Layout t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
@@ -606,7 +552,7 @@ instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder
 
 -- === Definitions === --
 
-type ExprStack    t layout = LayerStack (Expr t layout)
+type ExprStack    t layout = LayerStack' (Expr t layout)
 type AnyExprStack t        = ExprStack t Layout.Any
 
 newtype Expr    t layout = Expr (ExprStack t layout)
@@ -642,7 +588,7 @@ type family ExprGet p expr where
     ExprGet p      (Expr t layout) = Unwrapped (Get p (Unwrapped (Expr t layout)))
 
 instance (HasLayer EXPR p t, LayerData p (Expr t layout) ~ Get p (Expr t layout)) => Getter p (Expr t layout) where get = layer @EXPR @p @t . unwrap' ; {-# INLINE get #-}
-instance HasLayer2 LINK p t => Getter p (Link (Expr t l) (Expr t l')) where get = layer2 @LINK @p @t . unwrap' ; {-# INLINE get #-}
+instance HasLayer LINK p t => Getter p (Link (Expr t l) (Expr t l')) where get = layer @LINK @p @t . unwrap' ; {-# INLINE get #-}
 
 type instance Get p (Link src tgt) = LayerData p (Link src tgt)
 
