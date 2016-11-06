@@ -25,7 +25,7 @@ import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, VariantMap, variantMap, Match, Cons, Value, cons, Group, HasValue, ValueOf, value)
+import           Data.Record                  hiding (Layout, Variants, SymbolMap, symbolMap, Match, Cons, Value, cons, Group, HasValue, ValueOf, value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container               hiding (Empty, FromJust)
@@ -87,7 +87,7 @@ import Type.Inference
 
 
 type family All a :: [*]
-type instance All Atom = '[Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
+type instance All Atom = '[Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var]
 
 
 newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
@@ -186,7 +186,7 @@ type instance Get t (l ':= v ': ls) = If (t == l) v (Get t ls)
 
 
 
-type PossibleVariants = [Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
+type PossibleVariants = [Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var]
 type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 
 
@@ -215,6 +215,14 @@ data TermType = TermType deriving (Show)
 -- === Definition === --
 
 type family Cfg a
+type family Cfg2 a
+
+type family Cfg2MergeImpl c c'
+type family Cfg2Merge c c' where
+    Cfg2Merge c c  = c
+    Cfg2Merge c c' = Cfg2MergeImpl c c'
+
+
 
 type family Impl (i :: * -> *) t :: * -> *
 type Impl' i a = Impl i (Cfg a) a
@@ -403,7 +411,7 @@ makeWrapped ''Layer
 type family Qual a
 
 type family Layers q a :: [*]
-type        Layers'  a = Layers (Qual a) a
+type        Layers'  a = Layers (Qual a) (Cfg2 a)
 
 
 -- === Classes === --
@@ -424,31 +432,56 @@ deriving instance Show (Unwrapped (Layer t l)) => Show (Layer t l)
 
 -- === Definition === --
 
-type LayerStack  t = Stack (Layer t)
-type LayerStack' t = LayerStack t (Layers' t)
+type    LayerStackBase t = Stack (Layer t)
+newtype LayerStack     t = LayerStack (LayerStackBase t (Layers' t))
+makeWrapped ''LayerStack
 
 
--- === Utils === --
+-- === Lenses === --
 
--- StackCons
+class IsLayerStack a where
+    layerStack :: Iso' a (LayerStack a)
+    default layerStack :: (Wrapped a, Unwrapped a ~ LayerStack a) => Iso' a (LayerStack a)
+    layerStack = wrapped' ; {-# INLINE layerStack #-}
+
+
+-- === StackCons === --
+
 type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
-class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStack t ls)
+class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStackBase t ls)
 instance Monad m              => StackCons '[]       m where consStack _ = return SNull                           ; {-# INLINE consStack #-}
 instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
 
--- HasLayer
-class                                    HasLayer q layer c where layer :: forall t. LayerStack t (Layers q c) -> LayerData layer t
-instance HasLayer' layer (Layers q c) => HasLayer q layer c where layer = layer' @layer @(Layers q c) ; {-# INLINE layer #-}
-instance                                 HasLayer q layer I where layer = impossible                  ; {-# INLINE layer #-}
 
-class                                           HasLayer' l ls        where layer' :: forall t. LayerStack t ls -> LayerData l t
-instance {-# OVERLAPPABLE #-}                   HasLayer' l (l ': ls) where layer' (SLayer t _) = unwrap' t    ; {-# INLINE layer' #-}
-instance {-# OVERLAPPABLE #-} HasLayer' l ls => HasLayer' l (t ': ls) where layer' (SLayer _ s) = layer' @l s ; {-# INLINE layer' #-}
+-- === HasLayer === --
 
-type family HasLayers q ls        c :: Constraint where
-            HasLayers q '[]       c = ()
-            HasLayers q (l ': ls) c = (HasLayer q l c, HasLayers q ls c)
+type HasLayer' a layer = HasLayer (Qual a) (Cfg2 a) layer
 
+layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => a -> LayerData layer a
+layer = layer' @(Qual a) @(Cfg2 a) @layer . view (layerStack . wrapped') ; {-# INLINE layer #-}
+
+
+class                                        HasLayer q c layer where layer' :: forall t. LayerStackBase t (Layers q c) -> LayerData layer t
+instance LayerSelector layer (Layers q c) => HasLayer q c layer where layer' = selectLayer @layer @(Layers q c) ; {-# INLINE layer' #-}
+instance                                     HasLayer q I layer where layer' = impossible                       ; {-# INLINE layer' #-}
+
+class                                               LayerSelector l ls        where selectLayer :: forall t. LayerStackBase t ls -> LayerData l t
+instance {-# OVERLAPPABLE #-}                       LayerSelector l (l ': ls) where selectLayer (SLayer t _) = unwrap' t        ; {-# INLINE selectLayer #-}
+instance {-# OVERLAPPABLE #-} LayerSelector l ls => LayerSelector l (t ': ls) where selectLayer (SLayer _ s) = selectLayer @l s ; {-# INLINE selectLayer #-}
+
+type family HasLayers q c ls :: Constraint where
+            HasLayers q c '[]       = ()
+            HasLayers q c (l ': ls) = (HasLayer q c l, HasLayers q c ls)
+
+
+-- === Instances === --
+
+deriving instance Show (Unwrapped (LayerStack t)) => Show (LayerStack t)
+
+type instance Get l (LayerStack t) = LayerData l t
+
+-- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
+instance (Monad m, Constructor a m (Unwrapped (LayerStack t))) => Constructor a m (LayerStack t) where cons a = wrap' <$> cons a
 
 
 
@@ -456,7 +489,7 @@ type family HasLayers q ls        c :: Constraint where
 -- === Link === --
 ------------------
 
-type LinkStack src tgt = LayerStack' (Link src tgt)
+type LinkStack src tgt = LayerStack (Link src tgt)
 
 type    Link' a       = Link a a
 newtype Link  src tgt = Link (LinkStack src tgt)
@@ -465,15 +498,15 @@ makeWrapped ''Link
 data LINK
 type instance Qual (Link src tgt) = LINK
 
-type SubLink c t = Ref (Link t (Sub c t))
+type SubLink c t = Ref (Link (Sub c t) t)
 
 
 -- === Construction === --
 
 type Linkable t m = StackCons (Layers LINK t) m
 
-link :: forall src tgt m. Linkable (Link src tgt) m => Ref src -> Ref tgt -> m (Link src tgt)
-link a b = Link <$> consStack (a,b)
+link :: forall src tgt m. Linkable (Cfg2 (Link src tgt)) m => Ref src -> Ref tgt -> m (Link src tgt)
+link a b = Link . LayerStack <$> consStack (a,b)
 
 
 -- === Instances === --
@@ -488,7 +521,14 @@ deriving instance Show (Unwrapped (Link  a b)) => Show (Link  a b)
 
 -- Cfg
 type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
+type instance Cfg2 (Link a b) = Cfg2Merge (Cfg2 a) (Cfg2 b)
 
+-- LayerStack
+instance IsLayerStack (Link src tgt)
+
+-- Properties
+type instance Get p (Link src tgt) = Get p (Unwrapped (Link src tgt))
+instance HasLayer' (Link src tgt) p => Getter p (Link src tgt) where get = layer @p ; {-# INLINE get #-}
 
 
 
@@ -500,9 +540,12 @@ newtype ExprSymbol  atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (Su
 type    ExprSymbol' atom   = ExprSymbol atom Layout.Any
 makeWrapped ''ExprSymbol
 
+
 -- === Helpers === --
+
 hideLayout :: ExprSymbol atom t -> ExprSymbol atom Layout.Any
 hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
+
 
 -- === Instances === --
 
@@ -514,7 +557,6 @@ type instance Get Sym    (ExprSymbol atom t) = ExprSymbol atom t
 
 instance Getter Sym (ExprSymbol atom t) where get = id ; {-# INLINE get #-}
 
-
 instance ValidateLayout (Get Layout t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
@@ -522,6 +564,12 @@ instance ValidateLayout (Get Layout t) Atom atom
 -- Repr
 instance Repr s (Unwrapped (ExprSymbol atom t))
       => Repr s (ExprSymbol atom t) where repr = repr . unwrap' ; {-# INLINE repr #-}
+
+-- Fields
+type instance FieldsType (ExprSymbol atom t) = FieldsType (Unwrapped (ExprSymbol atom t))
+instance HasFields (Unwrapped (ExprSymbol atom t)) => HasFields (ExprSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
+
+
 
 ----------------------
 -- === TermData === --
@@ -543,16 +591,13 @@ instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder
 
 
 
-
-
-
 ------------------
 -- === Expr === --
 ------------------
 
 -- === Definitions === --
 
-type ExprStack    t layout = LayerStack' (Expr t layout)
+type ExprStack    t layout = LayerStack (Expr t layout)
 type AnyExprStack t        = ExprStack t Layout.Any
 
 newtype Expr    t layout = Expr (ExprStack t layout)
@@ -568,7 +613,7 @@ type instance Qual (Expr t layout) = EXPR
 expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr
 expr a = specifyLayout . Expr <$> cons (encodeSymbol a)
 
-uniExprTypes :: expr ~ Expr t layout => expr -> ExprSymbol atom expr -> ExprSymbol atom expr
+uniExprTypes :: (expr ~ Expr t layout, sym ~ ExprSymbol atom expr) => expr -> sym -> sym
 uniExprTypes _ = id ; {-# INLINE uniExprTypes #-}
 
 -- TODO: refactor vvv
@@ -576,47 +621,69 @@ specifyLayout :: AnyExpr t -> Expr t layout
 specifyLayout = unsafeCoerce ; {-# INLINE specifyLayout #-}
 
 
--- === Properties === --
 
--- type instance Get Layout        (Expr _ layout) = layout
-type instance Set Layout layout (Expr t  _)     = Expr t layout
--- type instance Get Data          (Expr t layout) = Unwrapped (Get Data (Unwrapped (Expr t layout))) -- TODO: simplify
+-- === Symbol mapping === --
 
-type instance Get p (Expr t layout) = ExprGet p (Expr t layout)
-type family ExprGet p expr where
-    ExprGet Layout (Expr _ layout) = layout
-    ExprGet p      (Expr t layout) = Unwrapped (Get p (Unwrapped (Expr t layout)))
+type  SymbolMap = SymbolMap' (All Atom)
+class SymbolMap' (atoms :: [*]) ctx expr where
+    symbolMap' :: (forall a. ctx a => a -> b) -> expr -> b
 
-instance (HasLayer EXPR p t, LayerData p (Expr t layout) ~ Get p (Expr t layout)) => Getter p (Expr t layout) where get = layer @EXPR @p @t . unwrap' ; {-# INLINE get #-}
-instance HasLayer LINK p t => Getter p (Link (Expr t l) (Expr t l')) where get = layer @LINK @p @t . unwrap' ; {-# INLINE get #-}
+symbolMap :: forall ctx expr b. SymbolMap ctx expr => (forall a. ctx a => a -> b) -> expr -> b
+symbolMap = symbolMap' @(All Atom) @ctx ; {-# INLINE symbolMap #-}
 
-type instance Get p (Link src tgt) = LayerData p (Link src tgt)
-
--- === Variant mapping === --
-
-type  VariantMap = VariantMap' (All Atom)
-class VariantMap' (atoms :: [*]) ctx expr where
-    variantMap' :: expr -> (forall a. ctx a => a -> b) -> b
-
-variantMap :: forall ctx expr b. VariantMap ctx expr => expr -> (forall a. ctx a => a -> b) -> b
-variantMap = variantMap' @(All Atom) @ctx ; {-# INLINE variantMap #-}
-
--- FIXME: [WD]: the following instance bases on the idea that "Data" layer contains all the information
---              we should relax it and maybe introduce distinction between getting a layer and getting a prop
---              then we can get prop Atom, which will scan layers asking them which one provides the Atom information
 instance ( ctx (ExprSymbol a (Expr t layout))
-         , VariantMap' as ctx (Expr t layout)
+         , SymbolMap' as ctx (Expr t layout)
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx, HasLayer EXPR Data t
+         , KnownNat idx, HasLayer EXPR t Data
          )
-      => VariantMap' (a ': as) ctx (Expr t layout) where
-    variantMap' expr f = if (idx == eidx) then f sym else variantMap' @as @ctx expr f where
+      => SymbolMap' (a ': as) ctx (Expr t layout) where
+    symbolMap' f expr = if (idx == eidx) then f sym else symbolMap' @as @ctx f expr where
         d    = unwrap' $ get @Data expr
         eidx = unwrap' $ get @Atom d
         idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
         sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr t layout)
 
-instance VariantMap' '[] ctx expr where variantMap' _ _ = impossible
+instance SymbolMap' '[] ctx expr where symbolMap' _ _ = impossible
+
+
+-- === Symbol mapping === --
+
+type  SymbolMap2 = SymbolMap2' (All Atom)
+class SymbolMap2' (atoms :: [*]) ctx expr b where
+    symbolMap2' :: (forall a. ctx a b => a -> b) -> expr -> b
+
+symbolMap2 :: forall ctx expr b. SymbolMap2 ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
+symbolMap2 = symbolMap2' @(All Atom) @ctx ; {-# INLINE symbolMap2 #-}
+
+instance ( ctx (ExprSymbol a (Expr t layout)) b
+         , SymbolMap2' as ctx (Expr t layout) b
+         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
+         , KnownNat idx, HasLayer EXPR t Data
+         )
+      => SymbolMap2' (a ': as) ctx (Expr t layout) b where
+    symbolMap2' f expr = if (idx == eidx) then f sym else symbolMap2' @as @ctx f expr where
+        d    = unwrap' $ get @Data expr
+        eidx = unwrap' $ get @Atom d
+        idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+        sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr t layout)
+
+instance SymbolMap2' '[] ctx expr b where symbolMap2' _ _ = impossible
+
+
+-- type family FieldsType a
+-- class HasFields a where
+--     fieldList :: a -> [FieldsType a]
+
+class HasFields2 a b where fieldList2 :: a -> b
+instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = fieldList
+
+symbolFields :: SymbolMap2 HasFields2 expr b => expr -> b
+symbolFields = symbolMap2 @HasFields2 fieldList2
+
+-- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
+type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
+symbolFields2 :: (SymbolMap2 HasFields2 expr out, expr ~ Expr t layout, out ~ [Ref (Link expr expr)]) => expr -> out
+symbolFields2 = symbolMap2 @HasFields2 fieldList2
 
 
 -- === Instances === --
@@ -626,14 +693,18 @@ instance {-# OVERLAPPABLE #-} Show (Unwrapped (AnyExpr t)) => Show (AnyExpr t   
 instance {-# OVERLAPPABLE #-} Show (AnyExpr t)             => Show (Expr    t layout) where show   = show . anyLayout                    ; {-# INLINE show #-}
 instance {-# OVERLAPPABLE #-}                                 Show (AnyExpr I       ) where show   = impossible                          ; {-# INLINE show #-}
 
+-- Properties
+
+type instance Get p (Expr t layout) = ExprGet p (Expr t layout)
+type family ExprGet p expr where
+    ExprGet Layout (Expr _ layout) = layout
+    ExprGet p      (Expr t layout) = Get p (Unwrapped (Expr t layout))
+
+instance (HasLayer' (Expr t layout) p, LayerData p (Expr t layout) ~ Get p (Expr t layout))
+      => Getter p (Expr t layout) where get = layer @p ; {-# INLINE get #-}
+
 -- Sub
 type instance Sub s (Expr t layout) = Expr t (Sub s layout)
-
--- Layers
-type instance Layers q (Expr t layout) = Layers q t
-type instance Layers q (Link (Expr t l) (Expr t l')) = Layers q t
-
-
 
 
 type instance LayerData Data (Expr t layout) = TermStore
@@ -645,14 +716,17 @@ instance {-# OVERLAPPABLE #-} (a ~ Expr t' layout', Generalize (Expr t layout) a
 instance {-# OVERLAPPABLE #-} (a ~ Expr t' layout', Generalize a (Expr t layout)) => Generalize a               (Expr t layout)
 
 -- Repr
-instance HasLayer EXPR Data t => Repr HeaderOnly (Expr t layout) where repr expr = variantMap @(Repr HeaderOnly) expr repr
+instance HasLayer EXPR t Data => Repr HeaderOnly (Expr t layout) where repr expr = symbolMap @(Repr HeaderOnly) repr expr
 
+-- IsLayerStack
+instance IsLayerStack (Expr t layout)
 
 
 
 ------- new things
 
 type instance Cfg (Expr t layout) = Elem t
+type instance Cfg2 (Expr t layout) = t
 
 
 class (Monad m, IsResult m, Inferable2 TermType t m) => TTT t m where
@@ -733,14 +807,13 @@ type instance Decode rec Acc     = 7
 type instance Decode rec App     = 8
 type instance Decode rec Blank   = 9
 type instance Decode rec Cons    = 10
-type instance Decode rec Curry   = 11
-type instance Decode rec Lam     = 12
-type instance Decode rec Match   = 13
-type instance Decode rec Missing = 14
-type instance Decode rec Native  = 15
-type instance Decode rec Star    = 16
-type instance Decode rec Unify   = 17
-type instance Decode rec Var     = 18
+type instance Decode rec Lam     = 11
+type instance Decode rec Match   = 12
+type instance Decode rec Missing = 13
+type instance Decode rec Native  = 14
+type instance Decode rec Star    = 15
+type instance Decode rec Unify   = 16
+type instance Decode rec Var     = 17
 
 
 type instance Encode2 Atom    v = Index v PossibleVariants
@@ -768,14 +841,13 @@ type instance DecodeComponent 7  = Acc
 type instance DecodeComponent 8  = App
 type instance DecodeComponent 9  = Blank
 type instance DecodeComponent 10 = Cons
-type instance DecodeComponent 11 = Curry
-type instance DecodeComponent 12 = Lam
-type instance DecodeComponent 13 = Match
-type instance DecodeComponent 14 = Missing
-type instance DecodeComponent 15 = Native
-type instance DecodeComponent 16 = Star
-type instance DecodeComponent 17 = Unify
-type instance DecodeComponent 18 = Var
+type instance DecodeComponent 11 = Lam
+type instance DecodeComponent 12 = Match
+type instance DecodeComponent 13 = Missing
+type instance DecodeComponent 14 = Native
+type instance DecodeComponent 15 = Star
+type instance DecodeComponent 16 = Unify
+type instance DecodeComponent 17 = Var
 
 
 -- type instance All Atom = '[Acc, App]

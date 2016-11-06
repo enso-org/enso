@@ -252,6 +252,7 @@ Library
                  , aeson
                  , bytestring
                  , open-browser
+                 , template-haskell
 
 
 Executable luna
@@ -326,6 +327,7 @@ Executable luna
                      , aeson
                      , bytestring
                      , open-browser
+                     , template-haskell
 
 
 benchmark graph-builder

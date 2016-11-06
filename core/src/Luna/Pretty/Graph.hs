@@ -19,11 +19,15 @@ import qualified Data.Set         as Set
 import           Control.Monad.State.Dependent (MonadState, StateT, modify_)
 import qualified Control.Monad.State.Dependent as State
 
+import Data.Aeson       (GFromJSON, GToJSON, GToEncoding, Zero, Value, Encoding)
+import Data.Aeson.Types (Parser)
+import GHC.Generics     (Rep)
 
 
-----------------------------------
--- === Visualisation graphs === --
-----------------------------------
+
+-----------------------------------
+-- === Visualisatiobn graphs === --
+-----------------------------------
 
 type Name   = Text
 type ID     = Int64
@@ -40,37 +44,37 @@ data Desc a = Desc { _nodes :: Map NodeID Node
                    , _steps :: [a]
                    } deriving (Show, Generic)
 
-data Node = Node { _node_name   :: Name
-                 , _node_uid    :: NodeID
-                 , _node_id     :: NodeID
-                 , _node_styles :: Set Style
+data Node = Node { _name   :: Name
+                 , _uid    :: NodeID
+                 , _id     :: NodeID
+                 , _styles :: Set Style
                  } deriving (Show, Generic)
 
-data Edge = Edge { _edge_name   :: Name
-                 , _edge_uid    :: EdgeID
-                 , _edge_id     :: EdgeID
-                 , _edge_src    :: NodeID
-                 , _edge_tgt    :: NodeID
-                 , _edge_styles :: Set Style
+data Edge = Edge { _name   :: Name
+                 , _uid    :: EdgeID
+                 , _id     :: EdgeID
+                 , _src    :: NodeID
+                 , _tgt    :: NodeID
+                 , _styles :: Set Style
                  } deriving (Show, Generic)
 
-data Step = Step { _step_name  :: Name
+data Step = Step { _name      :: Name
                  , _stepNodes :: Set NodeID
                  , _stepEdges :: Set EdgeID
                  } deriving (Show, Generic)
 
-data StepDiff = StepDiff { _stepDiff_name    :: Name
-                         , _stepDiff_mkNodes :: Set NodeID
-                         , _stepDiff_mkEdges :: Set EdgeID
-                         , _stepDiff_rmNodes :: Set NodeID
-                         , _stepDiff_rmEdges :: Set NodeID
+data StepDiff = StepDiff { _name    :: Name
+                         , _mkNodes :: Set NodeID
+                         , _mkEdges :: Set EdgeID
+                         , _rmNodes :: Set NodeID
+                         , _rmEdges :: Set NodeID
                          } deriving (Show, Generic)
 
 makeLenses ''Desc
-makeLenses ''Node
-makeLenses ''Edge
-makeLenses ''Step
-makeLenses ''StepDiff
+makePfxLenses ''Node
+makePfxLenses ''Edge
+makePfxLenses ''Step
+makePfxLenses ''StepDiff
 
 
 -- === Classes === --
@@ -100,15 +104,18 @@ defStep     name = Step     name def def         ; {-# INLINE defStep     #-}
 defStepDiff :: Name -> StepDiff
 defStepDiff name = StepDiff name def def def def ; {-# INLINE defStepDiff #-}
 
-dropPrefix :: String -> String
-dropPrefix ('_': s) = s ; {-# INLINE dropPrefix #-}
+dropLensPrefix :: String -> String
+dropLensPrefix ('_': s) = s ; {-# INLINE dropLensPrefix #-}
 
-paramName :: String -> String
-paramName = paramName' . dropPrefix where
-    paramName' ('_' : ss) = ss
-    paramName' (s   : ss) = paramName' ss
-    {-# INLINE paramName' #-}
-{-# INLINE paramName #-}
+
+-- FIXME[WD]: refactor vvv
+
+genericLensToJSON     :: (Generic a, GToJSON     Zero (Rep a)) => a -> Value
+genericLensToEncoding :: (Generic a, GToEncoding Zero (Rep a)) => a -> Encoding
+genericLensParseJSON  :: (Generic a, GFromJSON   Zero (Rep a)) => Value -> Parser a
+genericLensToJSON     = genericToJSON     optsPfx
+genericLensToEncoding = genericToEncoding optsPfx
+genericLensParseJSON  = genericParseJSON  optsPfx
 
 
 -- === Instances === --
@@ -146,43 +153,41 @@ type instance Diff Vis    = VisDiff
 
 instance Diffable Vis    where diff = steps %~ (reverse . diff . reverse) ; {-# INLINE diff #-}
 instance Diffable [Step] where diff []       = []
-                               diff [f]      = return $ defStepDiff (f ^. name) & mkNodes .~ (f ^. stepNodes)
-                                                                                & mkEdges .~ (f ^. stepEdges)
+                               diff [f]      = return $ defStepDiff (f ^. name) & mkNodes .~ (f ^. step_stepNodes)
+                                                                                & mkEdges .~ (f ^. step_stepEdges)
                                diff (f:s:ss) = d : diff (s:ss) where
                                    d = defStepDiff (f ^. name)
-                                     & mkNodes .~ Set.difference (s ^. stepNodes) (f ^. stepNodes)
-                                     & rmNodes .~ Set.difference (f ^. stepNodes) (s ^. stepNodes)
-                                     & mkEdges .~ Set.difference (s ^. stepEdges) (f ^. stepEdges)
-                                     & rmEdges .~ Set.difference (f ^. stepEdges) (s ^. stepEdges)
+                                     & mkNodes .~ Set.difference (s ^. step_stepNodes) (f ^. step_stepNodes)
+                                     & rmNodes .~ Set.difference (f ^. step_stepNodes) (s ^. step_stepNodes)
+                                     & mkEdges .~ Set.difference (s ^. step_stepEdges) (f ^. step_stepEdges)
+                                     & rmEdges .~ Set.difference (f ^. step_stepEdges) (s ^. step_stepEdges)
                                {-# INLINE diff #-}
 
 -- JSON
 
-optsParam :: Aeson.Options
-optsParam = defaultOptions { fieldLabelModifier = paramName }
-
 optsPfx :: Aeson.Options
-optsPfx = defaultOptions { fieldLabelModifier = dropPrefix }
+optsPfx = defaultOptions { fieldLabelModifier = dropLensPrefix }
 
-instance ToJSON a   => ToJSON   (Desc a) where toJSON     = genericToJSON     optsPfx   ; {-# INLINE toJSON     #-}
-                                               toEncoding = genericToEncoding optsPfx   ; {-# INLINE toEncoding #-}
-instance FromJSON a => FromJSON (Desc a) where parseJSON  = genericParseJSON  optsPfx   ; {-# INLINE parseJSON  #-}
 
-instance ToJSON   Node     where toJSON     = genericToJSON     optsParam ; {-# INLINE toJSON     #-}
-                                 toEncoding = genericToEncoding optsParam ; {-# INLINE toEncoding #-}
-instance FromJSON Node     where parseJSON  = genericParseJSON  optsParam ; {-# INLINE parseJSON  #-}
+instance ToJSON a   => ToJSON   (Desc a) where toJSON     = genericLensToJSON     ; {-# INLINE toJSON     #-}
+                                               toEncoding = genericLensToEncoding ; {-# INLINE toEncoding #-}
+instance FromJSON a => FromJSON (Desc a) where parseJSON  = genericLensParseJSON  ; {-# INLINE parseJSON  #-}
 
-instance ToJSON   Edge     where toJSON     = genericToJSON     optsParam ; {-# INLINE toJSON     #-}
-                                 toEncoding = genericToEncoding optsParam ; {-# INLINE toEncoding #-}
-instance FromJSON Edge     where parseJSON  = genericParseJSON  optsParam ; {-# INLINE parseJSON  #-}
+instance ToJSON   Node     where toJSON     = genericLensToJSON     ; {-# INLINE toJSON     #-}
+                                 toEncoding = genericLensToEncoding ; {-# INLINE toEncoding #-}
+instance FromJSON Node     where parseJSON  = genericLensParseJSON  ; {-# INLINE parseJSON  #-}
 
-instance ToJSON   Step     where toJSON     = genericToJSON     optsParam ; {-# INLINE toJSON     #-}
-                                 toEncoding = genericToEncoding optsParam ; {-# INLINE toEncoding #-}
-instance FromJSON Step     where parseJSON  = genericParseJSON  optsParam ; {-# INLINE parseJSON  #-}
+instance ToJSON   Edge     where toJSON     = genericLensToJSON     ; {-# INLINE toJSON     #-}
+                                 toEncoding = genericLensToEncoding ; {-# INLINE toEncoding #-}
+instance FromJSON Edge     where parseJSON  = genericLensParseJSON  ; {-# INLINE parseJSON  #-}
 
-instance ToJSON   StepDiff where toJSON     = genericToJSON     optsParam ; {-# INLINE toJSON     #-}
-                                 toEncoding = genericToEncoding optsParam ; {-# INLINE toEncoding #-}
-instance FromJSON StepDiff where parseJSON  = genericParseJSON  optsParam ; {-# INLINE parseJSON  #-}
+instance ToJSON   Step     where toJSON     = genericLensToJSON     ; {-# INLINE toJSON     #-}
+                                 toEncoding = genericLensToEncoding ; {-# INLINE toEncoding #-}
+instance FromJSON Step     where parseJSON  = genericLensParseJSON  ; {-# INLINE parseJSON  #-}
+
+instance ToJSON   StepDiff where toJSON     = genericLensToJSON     ; {-# INLINE toJSON     #-}
+                                 toEncoding = genericLensToEncoding ; {-# INLINE toEncoding #-}
+instance FromJSON StepDiff where parseJSON  = genericLensParseJSON  ; {-# INLINE parseJSON  #-}
 
 
 -- === Styles === --
@@ -255,8 +260,8 @@ newStep' n v = v & vis.steps %~ (<> [v ^. currentStep])
 {-# INLINE newStep' #-}
 
 addNode :: MonadVis m => Node -> m ()
-addNode a = modify_ V $ ((vis.nodes)             %~ Map.insert nid a)
-                      . ((currentStep.stepNodes) %~ Set.insert nid) where
+addNode a = modify_ V $ ((vis.nodes)                  %~ Map.insert nid a)
+                      . ((currentStep.step_stepNodes) %~ Set.insert nid) where
     nid = a ^. uid
 
 addNodes :: (Traversable f, MonadVis m) => f Node -> m ()
@@ -265,28 +270,8 @@ addNodes = mapM_ addNode ; {-# INLINE addNodes #-}
 
 addEdge :: MonadVis m => Edge -> m ()
 addEdge a = modify_ V $ ((vis.edges)             %~ Map.insert nid a)
-                      . ((currentStep.stepEdges) %~ Set.insert nid) where
+                      . ((currentStep.step_stepEdges) %~ Set.insert nid) where
     nid = a ^. uid
 
 addEdges :: (Traversable f, MonadVis m) => f Edge -> m ()
 addEdges = mapM_ addEdge ; {-# INLINE addEdges #-}
-
-
---
--- addStep :: MonadVis m => [Step] -> m ()
--- addStep a = modify_ V (steps %~ (<> a)) ; {-# INLINE addStep #-}
---
--- addNodes :: MonadVis m => [Node] -> m ()
--- addNodes a = modify_ V (nodes %~ (<> a)) ; {-# INLINE addNodes #-}
---
--- addEdges :: MonadVis m => [Edge] -> m ()
--- addEdges a = modify_ V (edges %~ (<> a)) ; {-# INLINE addEdges #-}
---
--- addSteps :: MonadVis m => Step -> m ()
--- addSteps = addStep . (:[]) ; {-# INLINE addSteps #-}
---
--- addNode :: MonadVis m => Node -> m ()
--- addNode = addNodes . (:[]) ; {-# INLINE addNode #-}
---
--- addEdge :: MonadVis m => Edge -> m ()
--- addEdge = addEdges . (:[]) ; {-# INLINE addEdge #-}

@@ -5,7 +5,7 @@ module Luna.Syntax.Term.Expr.Symbol.Class (module Luna.Syntax.Term.Expr.Symbol.C
 import qualified Prelude.Luna as P
 import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Curry, Data)
 
-import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
 import Data.Construction         (Args)

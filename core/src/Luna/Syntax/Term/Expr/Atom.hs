@@ -45,7 +45,6 @@ define Acc
 define App
 define Blank
 define Cons
-define Curry
 define Lam
 define Match
 define Missing

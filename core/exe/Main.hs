@@ -146,7 +146,7 @@ data InfLayers = InfLayers
 
 runCase :: Getter Data (Expr t layout) => Expr t layout -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    d   = unwrap' $ get @Data el
+    d   = get @Data el
     s   = unwrap' $ get @Sym  d
     idx = unwrap' $ get @Atom d
 {-# INLINE runCase #-}
@@ -366,7 +366,7 @@ instance ( expr ~ AnyExpr t
     cons _ = do
         self <- Self.get
         top  <- localTop
-        l    <- refM =<< link self top
+        l    <- refM =<< link top self
         return $ Layer l
 
 
@@ -387,12 +387,13 @@ localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
 
-type AnyExprCons t m = Constructor TermStore m (AnyExprStack t)
+type AnyExprCons t m = ( Constructor TermStore m (AnyExprStack t)
+                       )
 
 
 type ASTAccess t m = ( Referable (Elem t) m
                      , Referable (Link (Elem t) (Elem t)) m
-                     , HasLayer EXPR Data t
+                     , HasLayer EXPR t Data
                      , Show (AnyExpr t)
                      , Show (Ref (AnyExpr t))
                      )
@@ -414,6 +415,7 @@ type ASTMonad t m = ( ASTAccess  t m
                     , ASTModify  t m
                     , ASTBuilder t m
                     , TTT t m -- move to AST access
+                    , Constructor TermStore m (LayerStackBase (AnyExpr t) (Layers' (AnyExpr t))) -- FIXME[WD]: this should not be needed. There is somewhere a bug with this context
                     )
 
 type ASTMonadIO t m = ( ASTMonad t m, MonadIO m )
@@ -435,14 +437,11 @@ type l :>> r = Specialized Atom l r
 star :: ASTMonad' t layout m => m (Ref (Expr t (Set Atom Star layout)))
 star = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
 
-star2 :: (Referable (Elem t) m, ASTMonad' t layout m) => m (Ref (Expr t (Set Atom Star layout)))
-star2 = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
-
 unify :: ASTMonad t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = Self.put . anyLayout3 =<<& mdo
     n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
-    la <- refM =<< link n (unsafeGeneralize a)
-    lb <- refM =<< link n (unsafeGeneralize b)
+    la <- refM =<< link (unsafeGeneralize a) n
+    lb <- refM =<< link (unsafeGeneralize b) n
     return n
 
 
@@ -457,10 +456,6 @@ instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (KnownTyp
 
 instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (KnownTypeT cls t m) where
     consStack = lift . consStack ; {-# INLINE consStack #-}
-
--- instance {-# INCOHERENT #-} Linkable l m => Linkable l (KnownTypeT cls t m) where
---     linkM'   = lift .: linkM'   @l ; {-# INLINE linkM'   #-}
---     unlinkM' = lift .  unlinkM' @l ; {-# INLINE unlinkM' #-}
 
 instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (KnownTypeT cls t m) where
     elems'  = lift elems'  ; {-# INLINE elems'  #-}
@@ -578,19 +573,30 @@ instance TTT Net ((->) Network3) where
 --     ref'  a t = fooe $ runGraph  (refM  a) t ; {-# INLINE ref'  #-}
 --     read' a t = evalGraphInplace (readM a) t ; {-# INLINE read' #-}
 
+--
+-- Constructor TermStore m (AnyExprStack t)
+--
+-- type ExprStack    t layout = LayerStack (Expr t layout)
+-- type AnyExprStack t        = ExprStack t Layout.Any
+--
+
+-- type    LayerStackBase t = Stack (Layer t)
+-- newtype LayerStack     t = LayerStack (LayerStackBase t (Layers' t))
 
 
-test_gr :: forall t m .
-           ASTMonadIO t m => m (Ref (UntyppedExpr t Star ()))
+test_gr :: forall t m . ASTMonadIO t m => m (Ref (UntyppedExpr t Star ()))
 test_gr = layouted @ANT $ do
     (s1 :: Ref (UntyppedExpr t Star            ())) <- star
     (s2 :: Ref (UntyppedExpr t Star            ())) <- star
     (u1 :: Ref (UntyppedExpr t (Unify :> Star) ())) <- unify s1 s2
+    u2 <- unify s1 u1
+    u3 <- unify s2 u1
+    u4 <- unify u2 u3
 
     t <- read s1
     write s1 t
 
-    let u1'  = generalize u1 :: Ref (UntyppedExpr t Draft ())
+    let u1'  = generalize u1 :: Ref (Expr t Draft)
 
     -- let u1'  = generalize u1 :: Ref (UntyppedExpr t layers Draft ())
     -- let u1'  = generalize u1 :: Link    (UntyppedExpr t layers Draft ())
@@ -636,6 +642,7 @@ test_gr = layouted @ANT $ do
 
 -- vis
 
+instance Generalize (Compound SimpleX lst) Draft
 
 main :: IO ()
 main = do
@@ -644,6 +651,7 @@ main = do
     (s1,g) <- test_g3
 
     let x   = read s1 g
+        x'  = generalize x :: Expr Net Draft
         res = elems g
         es  = map (flip read g) res
 
@@ -661,8 +669,8 @@ main = do
         -- -- print os
     let nodes = ByteString.unpack $ encode $ map visNode es
 
-    putStrLn ">>>>\n"
-    print nodes
+    -- putStrLn ">>>>\n"
+    -- print nodes
 
     (_, vis) <- Vis.newRunDiffT $ do
         let vss = map (visNode2 g) es
@@ -670,52 +678,47 @@ main = do
             ves = join $ snd <$> vss
         Vis.addNodes vns
         Vis.addEdges ves
-        print "!!!!"
-        print ves
+        -- print "!!!!"
+        -- print ves
 
 
     let cfg = ByteString.unpack $ encode $ vis
-    putStrLn cfg
+    -- putStrLn cfg
     openBrowser ("http://localhost:8200?cfg=" <> cfg)
-    -- print $ encode (N 9 8)
 
 
-        --
-        -- putStrLn "\n\n---"
-        --
-        -- print t
-        -- let d   = unwrap' $ get @Data t
-        --     s   = unwrap' $ get @Sym  d
-        --     idx = unwrap' $ get @Atom d
-        --
-        -- print d
-        -- -- print s
-        -- print idx
-
-    print "----"
-    print x
+    -- print "----"
+    -- print x
     let tpRef  = get @Type x
         tpLink = read tpRef g
+
+    print "***"
+    print $ get @Sym $ get @Data x
+    print $ symbolFields2 x'
     -- print $ get @UID tpLink
 
     return ()
 
-visNode :: HasLayers EXPR '[Data, UID] t => Expr t layout -> Vis.Node
+visNode :: HasLayers EXPR t '[Data, UID] => Expr t layout -> Vis.Node
 visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
     header = fromString $ reprStyled HeaderOnly el
 
-visNode2 :: ( HasLayers EXPR '[Data, UID, Type] t
-            , HasLayers LINK '[Data, UID]  t
+visNode2 :: forall t g layout b.
+            ( HasLayers EXPR t '[Data, UID, Type]
+            , HasLayers LINK t '[Data, UID]
             , ASTAccessor t g
+
+            , FieldsC t layout
 
             ) => g -> Expr t layout -> (Vis.Node, [Vis.Edge])
 visNode2 g expr = (node, edges) where
-    node   = Vis.Node header (get @UID expr) 0 (fromList [header])
+    node   = Vis.Node (fromString "") (get @UID expr) 0 (fromList [header])
     header = fromString $ reprStyled HeaderOnly expr
     tpRef  = get @Type expr
     tpLink = read tpRef g
     tpUid  = get @UID  tpLink
     (l,r)  = get @Data tpLink
+    ins    = symbolFields2 expr
 
     ln     = read l g
     rn     = read r g
@@ -723,25 +726,18 @@ visNode2 g expr = (node, edges) where
     lnUID = get @UID ln
     rnUID = get @UID rn
 
-    edges  = [Vis.Edge (fromString "") tpUid 0 lnUID rnUID (fromList [fromString "type"])]
+    uss = map getUIDs ins
 
+    getUIDs re = (i, lnUID, rnUID) where
+        e      = read re g
+        i      = get @UID  e
+        (l, r) = get @Data e
+        ln     = read l g
+        rn     = read r g
+        lnUID  = get @UID ln
+        rnUID  = get @UID rn
 
---
--- data Edge = Edge { _edge_name   :: Name
---                  , _edge_uid    :: EdgeID
---                  , _edge_id     :: EdgeID
---                  , _edge_src    :: NodeID
---                  , _edge_tgt    :: NodeID
---                  , _edge_styles :: Set Style
---                  } deriving (Show, Generic)
+    mkEdge (i,l,r) = Vis.Edge (fromString "") i 0 l r mempty
 
-	-- var nodes = [ { uid:1, id:1, styles: ['draft'  ], name: 'Node 1'  }
-	-- 			, { uid:2, id:2, styles: ['phrase' ], name: 'Node 2'  }
-	-- 			, { uid:3, id:3, styles: ['thunk'  ], name: 'Node 4'  }
-	-- 			, { uid:4, id:4, styles: ['value'  ], name: 'Node 5'  }
-	-- 			, { uid:5, id:1, styles: ['literal'], name: 'Im new!' }
-	-- 			, { uid:6, id:2, styles: ['star'   ]                  }
-	-- 			, { uid:7, id:3, styles: ['unify'  , 'draft']         }
-	-- 			, { uid:8, id:4, styles: ['missing', 'draft']         }
-	-- 			, { uid:9, id:5, styles: ['acc'    , 'draft']         }
-	-- 			]
+    tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid 0 lnUID rnUID (fromList [fromString "type"])]
+    edges  = tpVis <> (mkEdge <$> uss)
