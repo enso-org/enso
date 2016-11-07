@@ -36,8 +36,9 @@ type family DefaultLayout (p :: k)
 
 -- === Scoping === --
 
-type family Merge    a b
-type family Simplify l
+type family Merge     a b
+type family Simplify  l
+type family Universal a
 
 class                         Generalize a b
 instance {-# OVERLAPPABLE #-} Generalize a a
@@ -53,6 +54,9 @@ type GeneralizableError a b = Sentence
 
 generalize :: Generalize a b => a -> b
 generalize = unsafeCoerce ; {-# INLINE generalize #-}
+
+universal :: a -> Universal a
+universal = unsafeCoerce ; {-# INLINE universal #-}
 
 
 -- === Instances === --

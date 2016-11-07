@@ -75,7 +75,7 @@ import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
-import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize)
+import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize, Universal)
 import Type.Inference
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
@@ -239,6 +239,9 @@ data    Elem  a
 
 type Referable' a m = Referable (Cfg a) m
 class (Monad m, IsResult m) => Referable t m where
+    newRef' :: forall a. m (Ref a)
+
+    
     ref'   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
     unref' :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
     read'  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
@@ -265,6 +268,9 @@ write  = toResult_ .: write' ; {-# INLINE write  #-}
 writeM = value <∘∘> write'   ; {-# INLINE writeM #-}
 
 
+-- === Instances === --
+
+type instance Universal (Ref a) = Ref (Universal a)
 
 
 
@@ -424,6 +430,7 @@ class Monad m => LayerCons l m where
 
 deriving instance Show (Unwrapped (Layer t l)) => Show (Layer t l)
 
+instance Default (Unwrapped (Layer t l)) => Default (Layer t l) where def = wrap' def ; {-# INLINE def #-}
 
 
 ------------------------
@@ -503,9 +510,10 @@ type SubLink c t = Ref (Link (Sub c t) t)
 
 -- === Construction === --
 
-type Linkable t m = StackCons (Layers LINK t) m
+type Linkable  t       m = StackCons (Layers LINK t) m
+type Linkable' src tgt m = Linkable (Cfg2 (Link src tgt)) m
 
-link :: forall src tgt m. Linkable (Cfg2 (Link src tgt)) m => Ref src -> Ref tgt -> m (Link src tgt)
+link :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
 link a b = Link . LayerStack <$> consStack (a,b)
 
 
@@ -530,6 +538,8 @@ instance IsLayerStack (Link src tgt)
 type instance Get p (Link src tgt) = Get p (Unwrapped (Link src tgt))
 instance HasLayer' (Link src tgt) p => Getter p (Link src tgt) where get = layer @p ; {-# INLINE get #-}
 
+-- Universal
+type instance Universal (Link src tgt) = Link (Universal src) (Universal tgt)
 
 
 ------------------------
@@ -609,6 +619,10 @@ type instance Qual (Expr t layout) = EXPR
 
 
 -- === Utils === --
+
+mkExpr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout, Referable' expr m) => ExprSymbol atom expr -> m (Ref expr)
+mkExpr = refM <=< expr
+
 
 expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr
 expr a = specifyLayout . Expr <$> cons (encodeSymbol a)
@@ -721,6 +735,8 @@ instance HasLayer EXPR t Data => Repr HeaderOnly (Expr t layout) where repr expr
 -- IsLayerStack
 instance IsLayerStack (Expr t layout)
 
+-- Universal
+type instance Universal (Expr t _) = Expr t Draft
 
 
 ------- new things

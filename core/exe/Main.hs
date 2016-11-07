@@ -16,14 +16,14 @@
 module Main where
 
 
-import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link)
+import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION)
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
 
-import           Control.Monad.Event
+import           Control.Monad.Event2     as Event
 import qualified Control.Monad.Writer     as Writer
 import           Old.Data.Attr                (attr)
-import           Data.Construction
+import           Data.Construction        hiding (Register, register)
 import           Data.Container           (index_)
 import           Data.Container           hiding (impossible, elems, elems', elemsM)
 import           Data.Graph.Builder       (MonadBuilder)
@@ -187,7 +187,44 @@ instance Monad m => LayerCons Data m where
 
 
 
-type NetLayers   = '[Data, Type, UID]
+
+-- === Succs layer === --
+
+data Succs = Succs deriving (Show)
+
+type instance LayerData Succs t = [Universal t]
+
+instance Monad m => LayerCons Succs m where
+    consLayer _ = return def ; {-# INLINE consLayer #-}
+
+instance Monad m => Constructor a m (Layer expr Succs) where
+    cons _ = Layer <$> return def ; {-# INLINE cons #-}
+
+instance ( ASTMonadBase t m
+         , MonadIO m
+         , HasLayer EXPR t UID
+         , Show (Expr t Draft)
+         , a ~ Ref (Link (Expr t Draft) (Expr t Draft)))
+      => Handler Succs (New CONNECTION) a m where
+    handle _ rl = do
+        l <- read rl
+        -- let succs = get @Succs l
+        -- return ()
+        let (srcRef, tgtRef) = get @Data l
+        src <- read srcRef
+        tgt <- read tgtRef
+        putStrLn $ show (get @UID src) <> " -> " <> show (get @UID tgt)
+
+        return ()
+
+        -- print b
+        -- write rl (set @Succs )
+        print "there is new CONNECTION!"
+
+
+
+
+type NetLayers   = '[Data, UID, Type, Succs]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
 type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
 type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
@@ -278,8 +315,9 @@ type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
 
 -- Refs
 
-instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m)
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m) -- Generator m (Impl Ref (Cfg a) a))
       => Referable (Elem Net) m where
+    -- newRef' = Ref <$> new
     ref'   = valOnly . Ref <∘> construct'  ; {-# INLINE ref'   #-}
     read'  = readRef . unwrap'             ; {-# INLINE read'  #-}
     write' = noVal <∘∘> writeRef . unwrap' ; {-# INLINE write' #-}
@@ -359,14 +397,15 @@ instance ( expr ~ AnyExpr t
          , Linkable t m
          , Referable (Link (Elem t) (Elem t)) m
 
-         , Self.MonadSelfBuilder ref m
+         , Self.MonadSelfBuilder (Ref (Expr t Draft)) m
          , Type.MonadTypeBuilder ref m
          , Constructor TermStore m (AnyExprStack t), Referable (Elem t) m, MonadFix m
+         , RegisterNew2 CONNECTION (Ref (Link (Expr t Draft) (Expr t Draft))) m
          ) => Constructor TermStore m (Layer (AnyExpr t) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
     cons _ = do
-        self <- Self.get
+        self <- anyLayout3 <$> Self.get
         top  <- localTop
-        l    <- refM =<< link top self
+        l    <- connect top self
         return $ Layer l
 
 
@@ -380,7 +419,7 @@ mfixType f = mfix $ flip Type.with' f . Just
 
 
 localTop :: ( Type.MonadTypeBuilder (Ref (AnyExpr t)) m, Constructor TermStore m (AnyExprStack t)
-            , Self.MonadSelfBuilder (Ref (AnyExpr t)) m, MonadFix m, Referable (Elem t) m)
+            , Self.MonadSelfBuilder (Ref (Expr t Draft)) m, MonadFix m, Referable (Elem t) m)
          => m (Ref (AnyExpr t))
 localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
@@ -394,6 +433,7 @@ type AnyExprCons t m = ( Constructor TermStore m (AnyExprStack t)
 type ASTAccess t m = ( Referable (Elem t) m
                      , Referable (Link (Elem t) (Elem t)) m
                      , HasLayer EXPR t Data
+                     , HasLayer LINK t Data
                      , Show (AnyExpr t)
                      , Show (Ref (AnyExpr t))
                      )
@@ -402,20 +442,28 @@ type ASTModify t m = ( Linkable    t m
                      , AnyExprCons t m
                      )
 
-type ASTBuilder t m = ( Self.MonadSelfBuilder (Ref (AnyExpr t)) m
+type ASTBuilder t m = ( Self.MonadSelfBuilder (Ref (Expr t Draft)) m
                       , Inferable2 TermType t m
                       , MonadFix              m
                       , NoOutput              m
                       )
 
+type ASTRegister t m = ( RegisterNew  EXPR       (Ref (Expr t Draft)) m
+                       , RegisterNew2 CONNECTION (Ref (Link (Expr t Draft) (Expr t Draft))) m
+                       )
+
 
 type ASTAccessor t ast = ASTAccess t ((->) ast)
 
-type ASTMonad t m = ( ASTAccess  t m
-                    , ASTModify  t m
-                    , ASTBuilder t m
-                    , TTT t m -- move to AST access
-                    , Constructor TermStore m (LayerStackBase (AnyExpr t) (Layers' (AnyExpr t))) -- FIXME[WD]: this should not be needed. There is somewhere a bug with this context
+type ASTMonadBase t m = ( ASTAccess  t m
+                        , ASTModify  t m
+                        , ASTBuilder t m
+                        , TTT t m -- move to AST access
+                        , Constructor TermStore m (LayerStackBase (AnyExpr t) (Layers' (AnyExpr t))) -- FIXME[WD]: this should not be needed. There is somewhere a bug with this context
+                        )
+
+type ASTMonad t m = ( ASTMonadBase t m
+                    , ASTRegister  t m
                     )
 
 type ASTMonadIO t m = ( ASTMonad t m, MonadIO m )
@@ -425,23 +473,57 @@ type ASTMonad' t layout m = ( ASTMonad t m
                               )
 
 magicStar :: ( AnyExprCons t m, Referable (Elem t) m
-             , Self.MonadSelfBuilder (Ref (AnyExpr t)) m)
+             , Self.MonadSelfBuilder (Ref (Expr t Draft)) m)
           => m (Ref (AnyExpr t))
-magicStar = Self.put . anyLayout3 =<<& (expr N.star' >>= refM)
+magicStar = Self.put . universal =<<& (expr N.star' >>= refM)
 
 
 type l <+> r = Merge l r
 type l :>> r = Specialized Atom l r
 
 
+data CONNECTION
+
+data New a
+
+type Register    e a m = (Event e m (Universal a), Self.MonadSelfBuilder (Universal a) m)
+type RegisterNew e a m = Register (New e) a m
+
+type Register2    e a m = (Event e m (Universal a))
+type RegisterNew2 e a m = Register2 (New e) a m
+
+register :: forall e a m. Register e a m => a -> m ()
+register = Self.put <=< dispatch @e ∘ universal ; {-# INLINE register #-}
+
+registerNew :: forall e a m. RegisterNew e a m => a -> m ()
+registerNew = register @(New e) ; {-# INLINE registerNew #-}
+
+registerExpr :: RegisterNew EXPR a m => a -> m ()
+registerExpr = registerNew @EXPR
+
+-- connect :: (Linkable' src tgt m, Referable' (Link src tgt) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+-- connect a b = refM =<< link a b ; {-# INLINE connect #-}
+
+connect :: (Linkable' src tgt m, Referable' (Link src tgt) m, RegisterNew2 CONNECTION (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+connect a b = mdo
+    r <- refM =<< link a b
+    -- dispatch @(New CONNECTION) (universal r)
+    return r
+{-# INLINE connect #-}
+
+
+
+
 star :: ASTMonad' t layout m => m (Ref (Expr t (Set Atom Star layout)))
-star = Self.put . anyLayout3 =<<& (expr (wrap' N.star') >>= refM)
+star = registerExpr =<<& (mkExpr (wrap' N.star'))
 
 unify :: ASTMonad t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
-unify a b = Self.put . anyLayout3 =<<& mdo
-    n  <- refM =<< (expr $ wrap' $ N.unify' la lb)
-    la <- refM =<< link (unsafeGeneralize a) n
-    lb <- refM =<< link (unsafeGeneralize b) n
+unify a b = Self.put . universal =<<& mdo
+    n  <- mkExpr (wrap' $ N.unify' la lb)
+    la <- connect (unsafeGeneralize a) n
+    lb <- connect (unsafeGeneralize b) n
+    dispatch @(New CONNECTION) (universal la)
+    dispatch @(New CONNECTION) (universal lb)
     return n
 
 
@@ -449,6 +531,8 @@ instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t
     cons = lift . cons ; {-# INLINE cons #-}
 
 instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (KnownTypeT cls t m) where
+    newRef' = lift $ newRef' @r
+
     ref'   = lift .  ref'   @r ; {-# INLINE ref'   #-}
     unref' = lift .  unref' @r ; {-# INLINE unref' #-}
     read'  = lift .  read'  @r ; {-# INLINE read'  #-}
@@ -475,7 +559,7 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 nmagicStar :: (AnyExprCons t m, Referable (Elem t) m) => m $ Ref (Expr t layout)
-nmagicStar = refM =<< expr (wrap' N.star')
+nmagicStar = mkExpr (wrap' N.star')
 
 
 type ANT' a n t = ANTLayout SimpleX a n t
@@ -546,14 +630,21 @@ runGraphInplace f g = runST $ runGraphTInplace f g
 test_g3 :: (MonadIO m, PrimMonad m, MonadFix m)
         => m (Ref (UntyppedExpr Net Star ()), Network3)
 test_g3 = runNewGraphT
+        $ Event.suppressAll
         $ flip Self.evalT undefined
         $ flip Type.evalT Nothing
         $ runInferenceT2 @TermType @Net
         $ flip (D.evalT UID) (0 :: Int64)
+        $ listenAny @(Handler Data ) (handle @Data )
+        $ listenAny @(Handler UID  ) (handle @UID  )
+        $ listenAny @(Handler Type ) (handle @Type )
+        $ listenAny @(Handler Succs) (handle @Succs)
         $ test_gr
 
 
+class Monad m => Handler layer event a m where handle :: Proxy event -> a -> m ()
 
+instance {-# OVERLAPPABLE #-} Monad m => Handler layer event a m where handle _ _ = return () ; {-# INLINE handle #-}
 
 
 
@@ -635,7 +726,7 @@ test_gr = layouted @ANT $ do
     print t
     print es
     print es'
-    -- print s1
+    print s1
     return s1
 
 
@@ -712,7 +803,7 @@ visNode2 :: forall t g layout b.
 
             ) => g -> Expr t layout -> (Vis.Node, [Vis.Edge])
 visNode2 g expr = (node, edges) where
-    node   = Vis.Node (fromString "") (get @UID expr) 0 (fromList [header])
+    node   = Vis.Node (fromString "") (get @UID expr) (get @UID expr) (fromList [header])
     header = fromString $ reprStyled HeaderOnly expr
     tpRef  = get @Type expr
     tpLink = read tpRef g
@@ -737,7 +828,7 @@ visNode2 g expr = (node, edges) where
         lnUID  = get @UID ln
         rnUID  = get @UID rn
 
-    mkEdge (i,l,r) = Vis.Edge (fromString "") i 0 l r mempty
+    mkEdge (i,l,r) = Vis.Edge (fromString "") i i l r mempty
 
-    tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid 0 lnUID rnUID (fromList [fromString "type"])]
+    tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid tpUid lnUID rnUID (fromList [fromString "type"])]
     edges  = tpVis <> (mkEdge <$> uss)
