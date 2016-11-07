@@ -526,7 +526,7 @@ delayedConnect a b = mdo
 star :: ASTMonad' t layout m => m (Ref (Expr t (Set Atom Star layout)))
 star = Delayed.eval' $ registerExpr =<<& (mkExpr (wrap' N.star'))
 
-unify :: (ASTMonad t (Delayed.Delayed m), ASTMonad m) => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
+unify :: (ASTMonad t (Delayed.Delayed m), ASTMonad t m) => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = Delayed.eval' $ Self.put . universal =<<& mdo
     n  <- mkExpr (wrap' $ N.unify' la lb)
     la <- delayedConnect (unsafeGeneralize a) n
