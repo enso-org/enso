@@ -25,6 +25,9 @@ run (unwrap' -> s) = runStateT s mempty >>= mapM (sequence ∘ reverse)
 eval :: Monad m => Delayed t m a -> m a
 eval = fst <∘> run
 
+eval' :: Monad m => Delayed' m a -> m a
+eval' = fst <∘> run
+
 exec :: Monad m => Delayed t m a -> m [t]
 exec = snd <∘> run
 

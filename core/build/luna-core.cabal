@@ -73,6 +73,7 @@ Library
 
     exposed-modules: 
         Control.Monad.Delayed,
+        Control.Monad.Delayed2,
         Control.Monad.Event,
         Control.Monad.Event2,
         Data.Build,

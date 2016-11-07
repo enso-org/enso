@@ -21,6 +21,7 @@ import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter)
 
 import           Control.Monad.Event2     as Event
+import qualified Control.Monad.Delayed2   as Delayed
 import qualified Control.Monad.Writer     as Writer
 import           Old.Data.Attr                (attr)
 import           Data.Construction        hiding (Register, register)
@@ -406,6 +407,7 @@ instance ( expr ~ AnyExpr t
         self <- anyLayout3 <$> Self.get
         top  <- localTop
         l    <- connect top self
+        -- dispatch @(New CONNECTION) (universal la)
         return $ Layer l
 
 
@@ -511,19 +513,26 @@ connect a b = mdo
     return r
 {-# INLINE connect #-}
 
+delayedConnect :: (Linkable' src tgt m, Referable' (Link src tgt) m, RegisterNew2 CONNECTION (Ref (Link src tgt)) n, Delayed.MonadDelayed n m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+delayedConnect a b = mdo
+    r <- refM =<< link a b
+    Delayed.delay $ dispatch_ @(New CONNECTION) (universal r)
+    return r
+{-# INLINE delayedConnect #-}
+
 
 
 
 star :: ASTMonad' t layout m => m (Ref (Expr t (Set Atom Star layout)))
-star = registerExpr =<<& (mkExpr (wrap' N.star'))
+star = Delayed.eval' $ registerExpr =<<& (mkExpr (wrap' N.star'))
 
-unify :: ASTMonad t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
-unify a b = Self.put . universal =<<& mdo
+unify :: (ASTMonad t (Delayed.Delayed m), ASTMonad m) => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
+unify a b = Delayed.eval' $ Self.put . universal =<<& mdo
     n  <- mkExpr (wrap' $ N.unify' la lb)
-    la <- connect (unsafeGeneralize a) n
-    lb <- connect (unsafeGeneralize b) n
-    dispatch @(New CONNECTION) (universal la)
-    dispatch @(New CONNECTION) (universal lb)
+    la <- delayedConnect (unsafeGeneralize a) n
+    lb <- delayedConnect (unsafeGeneralize b) n
+    -- Delayed.delay $ dispatch_ @(New CONNECTION) (universal la)
+    -- Delayed.delay $ dispatch_ @(New CONNECTION) (universal lb)
     return n
 
 
@@ -544,8 +553,26 @@ instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (KnownTypeT cls t m) 
 instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (KnownTypeT cls t m) where
     elems'  = lift elems'  ; {-# INLINE elems'  #-}
     links'  = lift links'  ; {-# INLINE links'  #-}
-    -- groups' = lift groups' ; {-# INLINE groups' #-}
 
+
+
+instance {-# INCOHERENT #-} Constructor a m c => Constructor a (Delayed.Delayed m) c where
+    cons = lift . cons ; {-# INLINE cons #-}
+
+instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (Delayed.Delayed m) where
+    newRef' = lift $ newRef' @r
+
+    ref'   = lift .  ref'   @r ; {-# INLINE ref'   #-}
+    unref' = lift .  unref' @r ; {-# INLINE unref' #-}
+    read'  = lift .  read'  @r ; {-# INLINE read'  #-}
+    write' = lift .: write' @r ; {-# INLINE write' #-}
+
+instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (Delayed.Delayed m) where
+    consStack = lift . consStack ; {-# INLINE consStack #-}
+
+instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (Delayed.Delayed m) where
+    elems'  = lift elems'  ; {-# INLINE elems'  #-}
+    links'  = lift links'  ; {-# INLINE links'  #-}
 
 
 type family   UnsafeGeneralizable a b :: Constraint
@@ -639,6 +666,7 @@ test_g3 = runNewGraphT
         $ listenAny @(Handler UID  ) (handle @UID  )
         $ listenAny @(Handler Type ) (handle @Type )
         $ listenAny @(Handler Succs) (handle @Succs)
+        -- $ Delayed.eval'
         $ test_gr
 
 
