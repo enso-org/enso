@@ -272,7 +272,7 @@ instance {-# OVERLAPPABLE #-}
          (PrimMonad m, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
         --  (PrimMonad m, HasProperty2' t g, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m)
       => DynamicM t (HMGraph rels s) m a where
-    addM el = nested (prop2' @t . wrapped') $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM (unsafeCoerce el)
+    addM el = nested (prop' @t . wrapped') $ (swap ∘ fmap Ptr) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM = error "o"
 
 
@@ -280,14 +280,14 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-}
          (PrimMonad m, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
       => DynamicM2 t (HMGraph rels s) m a where
-    addM2 el = nested (prop2' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
+    addM2 el = nested (prop' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM2 = error "o"
 
 
 instance {-# OVERLAPPABLE #-}
          (PrimMonad m, g ~ HMGraph rels s, (g ^. t) ~ Hetero2 (MAutoVector s), s ~ PrimState m, HasProperty2' t g)
       => DynamicM3 t (HMGraph rels s) m where
-    addM3 el = nested (prop2' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
+    addM3 el = nested (prop' @t . wrapped') $ (swap ∘ fmap fromIntegral) <∘> ixed Cont.addM (unsafeCoerce el)
     removeM3 = error "o"
 
 
@@ -311,7 +311,7 @@ instance (s ~ PrimState m, PrimMonad m, g ~ HMGraph rels s, Get t g ~ Hetero2 (M
          , assocs ~ Assocs rels ('Cycle (Hetero2 (MAutoVector s)))
          , tassocs ~ TMap assocs
          ) => ReferableM t (HMGraph rels s) m where
-    setRefM  r v g = (prop2' @t $ unchecked inplace Cont.insertM__ (r ^. idx) (unsafeCoerce v)) g ; {-# INLINE setRefM   #-}
+    setRefM  r v g = (prop' @t $ unchecked inplace Cont.insertM__ (r ^. idx) (unsafeCoerce v)) g ; {-# INLINE setRefM   #-}
     viewRefM r     = unsafeCoerce <∘> Cont.indexM__ (r ^. idx) ∘ unwrap' ∘ get @t                 ; {-# INLINE viewRefM  #-}
     viewPtrs       = Ptr2 . Ptr <∘∘> Cont.usedIxesM ∘ get @t                                      ; {-# INLINE viewPtrs  #-}
 

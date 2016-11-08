@@ -20,7 +20,7 @@ module Luna.Syntax.Term.Expr.Class where
 
 
 import           Prelude                      (curry)
-import           Prelude.Luna                 hiding (curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field)
+import           Prelude.Luna                 hiding (head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Setter', set')
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract
@@ -92,6 +92,49 @@ type instance All Atom = '[Acc, App, Blank, Cons, Lam, Match, Missing, Native, S
 
 newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
 data    Nothing' = Nothing' deriving (Show)
+
+
+
+
+
+--------------------------------------------
+
+type family ValueOf a
+
+class HasValue a where
+    value :: a -> ValueOf a
+
+type instance ValueOf (Just' a, _) = a
+type instance ValueOf (Nothing',_) = ()
+
+instance HasValue (Just' a , t) where value   = fromJust' . fst
+instance HasValue (Nothing', t) where value _ = ()
+
+type ResultDesc  m a = m (Just' a , OutputDesc m)
+type ResultDesc_ m   = m (Nothing', OutputDesc m)
+
+
+
+type NoOutput m = (OutputDesc m ~ Nothing')
+
+
+
+class IsResult m where
+    toResult  :: forall a. ResultDesc  m a -> Result  m a
+    toResult_ ::           ResultDesc_ m   -> Result_ m
+
+instance {-# OVERLAPPABLE #-} IsResult ((->) t) where
+    toResult desc = do
+        (Just' a, Just' b) <- desc
+        return (a, b)
+
+    toResult_ desc = fromJust' . snd <$> desc
+
+instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m where
+    toResult  desc = fromJust' . fst <$> desc ; {-# INLINE toResult  #-}
+    toResult_ desc = return ()                ; {-# INLINE toResult_ #-}
+
+--------------------------------------------
 
 
 -- type Result m a = m (Output m a)
@@ -239,77 +282,68 @@ data    Elem  a
 
 type Referable' a m = Referable (Cfg a) m
 class (Monad m, IsResult m) => Referable t m where
-    newRef' :: forall a. m (Ref a)
+    refDesc   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
+    unrefDesc :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
+    readDesc  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
+    writeDesc :: forall a. (t ~ Cfg a) => Ref a -> a -> ResultDesc_ m
 
-    
-    ref'   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
-    unref' :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
-    read'  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
-    write' :: forall a. (t ~ Cfg a) => Ref a -> a -> ResultDesc_ m
+    modifyMDesc :: forall a. (t ~ Cfg a) => Ref a -> (a -> m a) -> ResultDesc_ m
+    modifyMDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyMDesc #-}
 
-refM :: Referable' a m => a ->         m (Ref a)
 ref  :: Referable' a m => a -> Result  m (Ref a)
-ref  = toResult . ref' ; {-# INLINE ref  #-}
-refM = value <∘> ref'  ; {-# INLINE refM #-}
+ref' :: Referable' a m => a ->         m (Ref a)
+ref  = toResult ∘  refDesc ; {-# INLINE ref  #-}
+ref' = value   <∘> refDesc ; {-# INLINE ref' #-}
 
 unref  :: Referable' a m => Ref a -> Result_ m
-unrefM :: Referable' a m => Ref a ->         m ()
-unref  = toResult_ . unref' ; {-# INLINE unref  #-}
-unrefM = value <∘> unref'   ; {-# INLINE unrefM #-}
+unref' :: Referable' a m => Ref a ->         m ()
+unref  = toResult_ ∘  unrefDesc ; {-# INLINE unref  #-}
+unref' = value    <∘> unrefDesc ; {-# INLINE unref' #-}
 
-readM :: Referable' a m => Ref a -> m a
 read  :: Referable' a m => Ref a -> m a
-read  = read' ; {-# INLINE read  #-}
-readM = read' ; {-# INLINE readM #-}
+read' :: Referable' a m => Ref a -> m a
+read  = readDesc ; {-# INLINE read  #-}
+read' = readDesc ; {-# INLINE read' #-}
 
 write  :: Referable' a m => Ref a -> a -> Result_ m
-writeM :: Referable' a m => Ref a -> a ->         m ()
-write  = toResult_ .: write' ; {-# INLINE write  #-}
-writeM = value <∘∘> write'   ; {-# INLINE writeM #-}
+write' :: Referable' a m => Ref a -> a ->         m ()
+write  = toResult_ ∘∘  writeDesc ; {-# INLINE write  #-}
+write' = value    <∘∘> writeDesc ; {-# INLINE write' #-}
+
+modifyM  :: Referable' a m => Ref a -> (a -> m a) -> Result_ m
+modifyM' :: Referable' a m => Ref a -> (a -> m a) ->         m ()
+modifyM  = toResult_ ∘∘  modifyMDesc ; {-# INLINE modifyM  #-}
+modifyM' = value    <∘∘> modifyMDesc ; {-# INLINE modifyM' #-}
+
+modify  :: Referable' a m => Ref a -> (a -> a) -> Result_ m
+modify' :: Referable' a m => Ref a -> (a -> a) ->         m ()
+modify  ref = modifyM  ref ∘ fmap return ; {-# INLINE modify  #-}
+modify' ref = modifyM' ref ∘ fmap return ; {-# INLINE modify' #-}
 
 
 -- === Instances === --
 
+-- Wrappers
+makeWrapped ''Ref
+
+-- Universal
 type instance Universal (Ref a) = Ref (Universal a)
 
+-- Basic
+deriving instance Show (Unwrapped (Ref a)) => Show (Ref a)
+deriving instance Eq   (Unwrapped (Ref a)) => Eq   (Ref a)
+deriving instance Ord  (Unwrapped (Ref a)) => Ord  (Ref a)
+
+-- Generalize
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
+instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
 
 
 
 
-type family ValueOf a
-
-class HasValue a where
-    value :: a -> ValueOf a
-
-type instance ValueOf (Just' a, _) = a
-type instance ValueOf (Nothing',_) = ()
-
-instance HasValue (Just' a , t) where value   = fromJust' . fst
-instance HasValue (Nothing', t) where value _ = ()
-
-type ResultDesc  m a = m (Just' a , OutputDesc m)
-type ResultDesc_ m   = m (Nothing', OutputDesc m)
 
 
-
-type NoOutput m = (OutputDesc m ~ Nothing')
-
-
-
-class IsResult m where
-    toResult  :: forall a. ResultDesc  m a -> Result  m a
-    toResult_ ::           ResultDesc_ m   -> Result_ m
-
-instance {-# OVERLAPPABLE #-} IsResult ((->) t) where
-    toResult desc = do
-        (Just' a, Just' b) <- desc
-        return (a, b)
-
-    toResult_ desc = fromJust' . snd <$> desc
-
-instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m where
-    toResult  desc = fromJust' . fst <$> desc ; {-# INLINE toResult  #-}
-    toResult_ desc = return ()                ; {-# INLINE toResult_ #-}
 
 
 
@@ -325,7 +359,7 @@ instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m w
 --     OutputDesc ((->) t) = 'Just t
 --     OutputDesc m        = 'Nothing
 --
--- refM3 ::
+-- ref'3 ::
 
 
 
@@ -346,23 +380,6 @@ instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m w
 
 
 
--- === Instances === --
-
--- Wrappers
-
-makeWrapped ''Ref
--- makeWrapped ''Group
-
-
--- Show
-deriving instance Show (Unwrapped (Ref   a))   => Show (Ref   a)
--- deriving instance Show (Unwrapped (Group a))   => Show (Group a)
-
-
--- Generalize
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
-instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
 
 
 
@@ -376,6 +393,22 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) 
 data Stack (t :: ★ -> ★) layers where
     SLayer :: t l -> Stack t ls -> Stack t (l ': ls)
     SNull  :: Stack t '[]
+
+
+-- === Utils === --
+
+head :: Lens' (Stack t (l ': ls)) (t l)
+head = lens (\(SLayer a _) -> a) (\(SLayer _ s) a -> SLayer a s) ; {-# INLINE head #-}
+
+tail :: Lens' (Stack t (l ': ls)) (Stack t ls)
+tail = lens (\(SLayer _ s) -> s) (\(SLayer a _) s -> SLayer a s) ; {-# INLINE tail #-}
+
+
+-- === Selectors === --
+
+class                                          Selector l ls        where select :: forall t. Lens' (Stack t ls) (t l)
+instance {-# OVERLAPPABLE #-}                  Selector l (l ': ls) where select = head          ; {-# INLINE select #-}
+instance {-# OVERLAPPABLE #-} Selector l ls => Selector l (t ': ls) where select = tail . select ; {-# INLINE select #-}
 
 
 -- === Instances === --
@@ -395,9 +428,11 @@ instance Monad m                         => Constructor a m (Stack t '[]      ) 
 -- Properties
 type instance Get p (Stack t ls) = t p
 
-instance {-# OVERLAPPABLE #-}                          Getter p (Stack t (p ': ls)) where get (SLayer t _) = t        ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} Getter p (Stack t ls) => Getter p (Stack t (l ': ls)) where get (SLayer _ l) = get @p l ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-}                           Getter  p (Stack t (p ': ls)) where get    (SLayer t _) = t                   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} Getter p (Stack t ls)  => Getter  p (Stack t (l ': ls)) where get    (SLayer _ l) = get @p l            ; {-# INLINE get #-}
 
+instance {-# OVERLAPPABLE #-}                           Setter' p (Stack t (p ': ls)) where set' a (SLayer _ s) = SLayer a s          ; {-# INLINE set' #-}
+instance {-# OVERLAPPABLE #-} Setter' p (Stack t ls) => Setter' p (Stack t (l ': ls)) where set' a (SLayer t s) = SLayer t (set' a s) ; {-# INLINE set' #-}
 
 
 --------------------
@@ -464,17 +499,12 @@ instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLaye
 
 type HasLayer' a layer = HasLayer (Qual a) (Cfg2 a) layer
 
-layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => a -> LayerData layer a
-layer = layer' @(Qual a) @(Cfg2 a) @layer . view (layerStack . wrapped') ; {-# INLINE layer #-}
+layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => Lens' a (LayerData layer a)
+layer = layerStack . wrapped' . layer' @(Qual a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
 
-
-class                                        HasLayer q c layer where layer' :: forall t. LayerStackBase t (Layers q c) -> LayerData layer t
-instance LayerSelector layer (Layers q c) => HasLayer q c layer where layer' = selectLayer @layer @(Layers q c) ; {-# INLINE layer' #-}
-instance                                     HasLayer q I layer where layer' = impossible                       ; {-# INLINE layer' #-}
-
-class                                               LayerSelector l ls        where selectLayer :: forall t. LayerStackBase t ls -> LayerData l t
-instance {-# OVERLAPPABLE #-}                       LayerSelector l (l ': ls) where selectLayer (SLayer t _) = unwrap' t        ; {-# INLINE selectLayer #-}
-instance {-# OVERLAPPABLE #-} LayerSelector l ls => LayerSelector l (t ': ls) where selectLayer (SLayer _ s) = selectLayer @l s ; {-# INLINE selectLayer #-}
+class                                                        HasLayer q c layer where layer' :: forall t. Lens' (LayerStackBase t (Layers q c)) (LayerData layer t)
+instance {-# OVERLAPPABLE #-} Selector layer (Layers q c) => HasLayer q c layer where layer' = select @layer @(Layers q c) . wrapped' ; {-# INLINE layer' #-}
+instance {-# OVERLAPPABLE #-}                                HasLayer q I layer where layer' = impossible                             ; {-# INLINE layer' #-}
 
 type family HasLayers q c ls :: Constraint where
             HasLayers q c '[]       = ()
@@ -485,7 +515,7 @@ type family HasLayers q c ls :: Constraint where
 
 deriving instance Show (Unwrapped (LayerStack t)) => Show (LayerStack t)
 
-type instance Get l (LayerStack t) = LayerData l t
+type instance Get p (LayerStack t) = LayerData p t
 
 -- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
 instance (Monad m, Constructor a m (Unwrapped (LayerStack t))) => Constructor a m (LayerStack t) where cons a = wrap' <$> cons a
@@ -536,7 +566,7 @@ instance IsLayerStack (Link src tgt)
 
 -- Properties
 type instance Get p (Link src tgt) = Get p (Unwrapped (Link src tgt))
-instance HasLayer' (Link src tgt) p => Getter p (Link src tgt) where get = layer @p ; {-# INLINE get #-}
+instance HasLayer' (Link src tgt) p => Getter p (Link src tgt) where get = view $ layer @p ; {-# INLINE get #-}
 
 -- Universal
 type instance Universal (Link src tgt) = Link (Universal src) (Universal tgt)
@@ -621,7 +651,7 @@ type instance Qual (Expr t layout) = EXPR
 -- === Utils === --
 
 mkExpr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout, Referable' expr m) => ExprSymbol atom expr -> m (Ref expr)
-mkExpr = refM <=< expr
+mkExpr = ref' <=< expr
 
 
 expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr
@@ -709,13 +739,22 @@ instance {-# OVERLAPPABLE #-}                                 Show (AnyExpr I   
 
 -- Properties
 
-type instance Get p (Expr t layout) = ExprGet p (Expr t layout)
+type instance Get p   (Expr t layout) = ExprGet p   (Expr t layout)
+type instance Set p a (Expr t layout) = ExprSet p a (Expr t layout)
+
 type family ExprGet p expr where
     ExprGet Layout (Expr _ layout) = layout
     ExprGet p      (Expr t layout) = Get p (Unwrapped (Expr t layout))
 
+type family ExprSet p v expr where
+    ExprSet Layout v (Expr t _)      = Expr t v
+    ExprSet p      v (Expr t layout) = Expr t layout
+
 instance (HasLayer' (Expr t layout) p, LayerData p (Expr t layout) ~ Get p (Expr t layout))
-      => Getter p (Expr t layout) where get = layer @p ; {-# INLINE get #-}
+      => Getter p (Expr t layout) where get = view $ layer @p ; {-# INLINE get #-}
+
+instance (Get p (Expr t layout) ~ LayerData p (Expr t layout), HasLayer EXPR t p)
+      => Setter' p (Expr t layout) where set' el a = a & (layer @p) .~ el ; {-# INLINE set' #-}
 
 -- Sub
 type instance Sub s (Expr t layout) = Expr t (Sub s layout)
@@ -755,18 +794,6 @@ elems  :: TTT t m => m [Ref (Expr t Draft) ]
 elemsM = elems' ; {-# INLINE elemsM #-}
 elems  = elems' ; {-# INLINE elems  #-}
 
-
--- type Referable' a m = Referable (Cfg a) m
--- class (Monad m, IsResult m) => Referable t m where
---     ref'   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
---     unref' :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
---     read'  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
---     write' :: forall a. (t ~ Cfg a) => Ref a -> a -> ResultDesc_ m
---
--- refM :: Referable' a m => a ->         m (Ref a)
--- ref  :: Referable' a m => a -> Result  m (Ref a)
--- ref  = toResult . ref' ; {-# INLINE ref  #-}
--- refM = value <∘> ref'  ; {-# INLINE refM #-}
 
 
 
