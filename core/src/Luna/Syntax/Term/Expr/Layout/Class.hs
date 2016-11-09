@@ -61,6 +61,9 @@ universal = unsafeCoerce ; {-# INLINE universal #-}
 
 -- === Instances === --
 
+-- Universal formats
+type instance Universal (Form a) = Draft
+
 -- Generalize
 
 instance {-# OVERLAPPABLE #-} Assert ((Atomic a) `In` (Atoms (Form f)))

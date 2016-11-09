@@ -22,6 +22,7 @@ import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, r
 
 import           Control.Monad.Event2     as Event
 import qualified Control.Monad.Delayed2   as Delayed
+import           Control.Monad.Delayed2   (Delayed, MonadDelayed)
 import qualified Control.Monad.Writer     as Writer
 import           Old.Data.Attr                (attr)
 import           Data.Construction        hiding (Register, register)
@@ -61,7 +62,7 @@ import           Luna.Runtime.Dynamics                           (Dynamics, Dyna
 import qualified Luna.Runtime.Dynamics                           as Runtime
 import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
 import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
--- import           Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star2, blank, unify)
+-- import           Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star, blank, unify)
 import qualified Luna.Syntax.Model.Network.Builder.Node          as Old
 import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
@@ -81,7 +82,7 @@ import           Data.RTuple (TMap(..), empty, Assoc(..)) -- refactor empty to a
 
 import           Luna.Syntax.Model.Network.Builder.Class ()
 import qualified Luna.Syntax.Model.Network.Builder.Class as XP
--- import           Luna.Syntax.Model.Network.Builder.Term.Class (star2, ExprBuilder)
+-- import           Luna.Syntax.Model.Network.Builder.Term.Class (star, SymbolBuilder)
 
 import qualified Data.Record                  as Record
 import qualified Data.Graph.Builder                      as GraphBuilder
@@ -98,7 +99,6 @@ import qualified Luna.Syntax.Term.Expr.Class as TEST
 import Luna.Syntax.Term.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
-import Luna.Syntax.Model.Network.Builder.Term.Class (ExprBuilder)
 import Prelude (error, undefined)
 import Type.List (In)
 import Data.Container.Hetero (Elems)
@@ -213,7 +213,7 @@ instance ( MonadIO m
          , Ord (Ref (Expr t Draft))
          , Eq  (Ref (Expr t Draft))
          )
-      => Handler Succs (New CONNECTION) a m where
+      => Handler Succs (New (Ref LINK)) a m where
     handle _ linkRef = do
         (srcRef, tgtRef) <- get @Data <$> read linkRef
         modify' srcRef (prop' @Succs %~ S.insert tgtRef)
@@ -244,11 +244,6 @@ type family Specialized t spec layout
 
 
 
--- newtype NodeRef     tgt = NodeRef (Ref2 Node tgt) deriving (Show)
--- newtype EdgeRef src tgt = EdgeRef (Ref2 Edge (Arc2 (Ref src) (Ref tgt))) deriving (Show)
---
--- makeWrapped ''NodeRef
--- makeWrapped ''EdgeRef
 
 
 
@@ -277,26 +272,6 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 
--- FIXME[WD]: refactor ugly Arc3 implementation
--- === Arc3 === --
-data Arc3 src tgt = Arc3 Int64 (Arc2 (Ref src) (Ref tgt))
-
--- type instance Get p (Link (Expr t a) (Expr t b)) = LayerData p t
--- instance HasLinkLayer p t => Getter p (Link (Expr t l) (Expr t r)) where
---     get = linkLayer @p;
---
--- class HasLinkLayer l t where
---     linkLayer :: forall a b. Link (Expr t a) (Expr t b) -> LayerData l t
-
--- instance HasLinkLayer UID Net where
---     linkLayer (Link (Arc3 uid _)) = uid ; {-# INLINE linkLayer #-}
-
-
-deriving instance Show (Arc2 (Ref src) (Ref tgt)) => Show (Arc3 src tgt)
--- makeWrapped ''Arc3
-
-
-
 -----------------
 -- === Net === --
 -----------------
@@ -309,7 +284,6 @@ type instance Layers LINK Net = '[Data, UID]
 
 type instance Impl Ref  (Elem Net)                   = Ref2 Node
 type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
--- type instance Impl Link (Elem Net)                   = Arc3
 
 
 -- === Instances === --
@@ -339,17 +313,6 @@ instance Referable (Link (Elem Net) (Elem Net)) ((->) Network3) where
     readDesc a t = evalGraphInplace (read' a) t ; {-# INLINE readDesc #-}
 
 
--- Links
-
--- instance (Monad m, D.MonadState UID Int64 m) => Linkable (Elem Net) m where
---     linkM' l r  = do
---         uid <- D.modify UID (\s -> (succ s, s))
---         (return . Link . Arc3 uid) $ Arc2 l r
---     {-# INLINE linkM' #-}
---     unlinkM' (Link (Arc3 _ (Arc2 l r))) = return (l,r) ; {-# INLINE unlinkM' #-}
-
-
-
 
 
 
@@ -358,33 +321,6 @@ valOnly v = (Just' v, Nothing')
 noVal   _ = (Nothing', Nothing')
 
 fooe (x,y) = (Just' x, Just' y)
--- class Monad m => Referable t m where
---     ref'   :: forall a. (t ~ Cfg a) =>     a -> Result3 m (Ref a)
---     unref' :: forall a. (t ~ Cfg a) => Ref a -> m ()
---     read'  :: forall a. (t ~ Cfg a) => Ref a -> m a
---     write' :: forall a. (t ~ Cfg a) => Ref a -> a -> m ()
---
-
--- instance Referable2 (Expr Net layout) ((->) Network3) where
---     ref a = runGraph $ ref' a
-
-
-
-
--- instance (Monad m, MonadBuilder g m, DynamicM3 Edge g m)
-    -- linkM' a b = EdgeRef <$> construct' (Arc2 a b)
-
-
-
-
-
-
---
--- class ReferableM r t m where
---     setRefM  :: Ref2 r a -> a -> t -> m t
---     viewRefM :: Ref2 r a      -> t -> m a
-
-
 
 
 
@@ -402,14 +338,14 @@ instance ( expr ~ AnyExpr t
          , Type.MonadTypeBuilder ref m
          , Constructor TermStore m (AnyExprStack t), Referable (Elem t) m, MonadFix m
 
-         , Delayed.MonadDelayed n m
-         , RegisterNew2 CONNECTION (Ref (Link (Expr t Draft) (Expr t Draft))) n
+         , MonadDelayed n m
+         , Register New (Ref (Link (Expr t Draft) (Expr t Draft))) n
 
          ) => Constructor TermStore m (Layer (AnyExpr t) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
     cons _ = do
         self <- anyLayout3 <$> Self.get
         top  <- localTop
-        l    <- delayedConnect top self
+        l    <- delayedLink top self
         -- dispatch @(New CONNECTION) (universal la)
         return $ Layer l
 
@@ -431,59 +367,57 @@ localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
 
+
+type ASTEvents t m = ( Register New (Ref (Expr t Draft)) m
+                     , Register New (Ref (Link (Expr t Draft) (Expr t Draft))) m
+                     )
+
+type ASTCons t m = ( ASTRefs t m
+                   , Self.MonadSelfBuilder (Ref (Expr t Draft)) m  -- TODO: parametrize it for LINK / Expr / ...
+                   , Constructor TermStore m (AnyExprStack t)      -- TODO: remove and replace with linkable-like impl
+                   , Linkable t m
+                   )
+
+type ASTRefs t m = ( Referable (Elem t)                 m
+                   , Referable (Link (Elem t) (Elem t)) m
+                   , TTT t m
+                   )
+
+type ASTBaseData t = ( HasLayer EXPR t Data
+                     , HasLayer LINK t Data
+                     )
+
+
+type ASTBuilder t m = ( MonadFix      m
+                      , NoOutput      m
+                      , ASTBaseData t
+                      , ASTEvents   t m
+                      , ASTRefs     t m
+                      , ASTCons t (Delayed m)
+                      )
+
+type SymbolBuilder t layout m = ( ASTBuilder t m
+                                , Inferable2 Layout layout (Delayed m)
+                                )
+
+
+
+type AST t ast = ( ASTRefs t ((->) ast)
+                 , ASTBaseData t
+                 )
+
+
+
+
 type AnyExprCons t m = ( Constructor TermStore m (AnyExprStack t)
                        )
 
-
-type ASTAccess t m = ( Referable (Elem t) m
-                     , Referable (Link (Elem t) (Elem t)) m
-                     , HasLayer EXPR t Data
-                     , HasLayer LINK t Data
-                     , Show (AnyExpr t)
-                     , Show (Ref (AnyExpr t))
-                     )
-
-type ASTModify t m = ( Linkable    t m
-                     , AnyExprCons t m
-                     )
-
-type ASTBuilder t m = ( Self.MonadSelfBuilder (Ref (Expr t Draft)) m
-                      , Inferable2 TermType t m
-                      , MonadFix              m
-                      , NoOutput              m
-                      )
-
-type ASTRegister t m = ( RegisterNew  EXPR       (Ref (Expr t Draft)) m
-                    --    , RegisterNew2 CONNECTION (Ref (Link (Expr t Draft) (Expr t Draft))) m
-                       )
+type ASTPretty t = ( Show (AnyExpr t)
+                   , Show (Ref (AnyExpr t))
+                   )
 
 
-type ASTAccessor t ast = ASTAccess t ((->) ast)
 
-type ASTMonadBase t m = ( ASTAccess  t m
-                        , ASTModify  t m
-                        , ASTBuilder t m
-                        , TTT t m -- move to AST access
-                        , Constructor TermStore m (LayerStackBase (AnyExpr t) (Layers' (AnyExpr t))) -- FIXME[WD]: this should not be needed. There is somewhere a bug with this context
-                        )
-
-type ASTMonadBase' t m = ( ASTAccess  t m
-                        , ASTModify  t m
-                        -- , ASTBuilder t m
-                        , TTT t m -- move to AST access
-                        -- , Constructor TermStore m (LayerStackBase (AnyExpr t) (Layers' (AnyExpr t))) -- FIXME[WD]: this should not be needed. There is somewhere a bug with this context
-                        )
-
-
-type ASTMonad t m = ( ASTMonadBase t m
-                    , ASTRegister  t m
-                    )
-
-type ASTMonadIO t m = ( ASTMonad t m, MonadIO m )
-
-type ASTMonad' t layout m = ( ASTMonad t m
-                              , Inferable2 Layout layout m
-                              )
 
 magicStar :: ( AnyExprCons t m, Referable (Elem t) m
              , Self.MonadSelfBuilder (Ref (Expr t Draft)) m)
@@ -495,120 +429,54 @@ type l <+> r = Merge l r
 type l :>> r = Specialized Atom l r
 
 
-data CONNECTION
+-- data CONNECTION
 
 data New a
 
-type Register    e a m = (Event e m (Universal a), Self.MonadSelfBuilder (Universal a) m)
-type RegisterNew e a m = Register (New e) a m
+type UniversalEvent e a m = Event e m (Universal a)
 
-type Register2    e a m = (Event e m (Universal a))
-type RegisterNew2 e a m = Register2 (New e) a m
+type Register t a m = UniversalEvent (t (Qual a)) a m
 
-register :: forall e a m. Register e a m => a -> m ()
-register = Self.put <=< dispatch @e ∘ universal ; {-# INLINE register #-}
 
-registerNew :: forall e a m. RegisterNew e a m => a -> m ()
-registerNew = register @(New e) ; {-# INLINE registerNew #-}
-
-registerExpr :: RegisterNew EXPR a m => a -> m ()
-registerExpr = registerNew @EXPR
-
--- connect :: (Linkable' src tgt m, Referable' (Link src tgt) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
--- connect a b = ref' =<< link a b ; {-# INLINE connect #-}
-
-connect :: (Linkable' src tgt m, Referable' (Link src tgt) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
-connect a b = mdo
-    r <- ref' =<< link a b
-    -- dispatch @(New CONNECTION) (universal r)
+link :: (Linkable' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+link a b = mdo
+    r <- ref' =<< link' a b
+    dispatch @(New (Ref LINK)) (universal r)
     return r
-{-# INLINE connect #-}
+{-# INLINE link #-}
 
-delayedConnect :: (Linkable' src tgt m, Referable' (Link src tgt) m, RegisterNew2 CONNECTION (Ref (Link src tgt)) n, Delayed.MonadDelayed n m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
-delayedConnect a b = mdo
-    r <- ref' =<< link a b
-    Delayed.delay $ dispatch_ @(New CONNECTION) (universal r)
+delayedLink :: (Linkable' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) n, MonadDelayed n m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+delayedLink a b = mdo
+    r <- ref' =<< link' a b
+    Delayed.delay $ dispatch_ @(New (Ref LINK)) (universal r)
     return r
-{-# INLINE delayedConnect #-}
+{-# INLINE delayedLink #-}
 
 
 
-
-star :: (Monad m, ASTMonad' t layout (Delayed.Delayed m)) => m (Ref (Expr t (Set Atom Star layout)))
-star = Delayed.eval' $ registerExpr =<<& (mkExpr (wrap' N.star'))
-
-
-type ExprBuilder2 t layout m = ( MonadFix m
-                               , Event (New EXPR) m (Ref (Expr t Draft))
-                               , Self.MonadSelfBuilder (Ref (Expr t Draft)) m
-                               , Constructor TermStore (Delayed.Delayed m) (AnyExprStack t)
-                               , Referable (Elem t)    (Delayed.Delayed m)
-                               , Inferable2 Layout layout m
-                               )
--- star2 :: ExprBuilder2 t layout m => m (Ref (Expr t Draft))
-star2 :: ExprBuilder2 t layout m => m (Ref (Expr t (Set Atom Star layout)))
-star2 = buildExpr $ mkExpr (wrap' N.star')
+star :: SymbolBuilder t layout m => m (Ref (Expr t (Set Atom Star layout)))
+star = build @(New (Ref EXPR)) $ mkExpr (wrap' N.star')
 
 
-build :: forall e m a. (Self.MonadSelfBuilder (Universal a) m, Event e m (Universal a))
-           => Delayed.Delayed m a -> m a
+unify :: ASTBuilder t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
+unify a b = build @(New (Ref EXPR)) $ mdo
+    n  <- mkExpr (wrap' $ N.unify' la lb)
+    la <- delayedLink (unsafeGeneralize a) n
+    lb <- delayedLink (unsafeGeneralize b) n
+    return n
+
+
+build :: forall e m a. (Self.MonadSelfBuilder (Universal a) (Delayed m), Event e m (Universal a), Monad m)
+           => Delayed m a -> m a
 build m = Delayed.eval' $ mdo
     Self.put $ universal ref
     ref <- m
     dispatch @e $ universal ref
     return ref
 
-buildExpr = build @(New EXPR)
-
-unify :: forall m t l1 l2. ( MonadFix m, Linkable t (Delayed.Delayed m)
-         , Event (New CONNECTION) m (Ref (Link (Expr t Draft) (Expr t Draft)))
-         , Event (New EXPR)       m (Ref (Expr t Draft))
-         , Referable (Link (Elem t) (Elem t)) (Delayed.Delayed m)
-         , Referable (Elem t) (Delayed.Delayed m)
-         , Self.MonadSelfBuilder (Ref (Expr t Draft)) m
-         , Constructor TermStore (Delayed.Delayed m) (AnyExprStack t)
-         )
-      => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
-unify a b = build @(New EXPR) $ mdo
-    n  <- mkExpr (wrap' $ N.unify' la lb)
-    la <- delayedConnect (unsafeGeneralize a) n
-    lb <- delayedConnect (unsafeGeneralize b) n
-    return n
+buildExpr = build @(New (Ref EXPR))
 
 
--- instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t m) c where
---     cons = lift . cons ; {-# INLINE cons #-}
---
--- instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (KnownTypeT cls t m) where
---     refDesc   = lift .  refDesc   @r ; {-# INLINE refDesc   #-}
---     unrefDesc = lift .  unrefDesc @r ; {-# INLINE unrefDesc #-}
---     readDesc  = lift .  readDesc  @r ; {-# INLINE readDesc  #-}
---     writeDesc = lift .: writeDesc @r ; {-# INLINE writeDesc #-}
---
--- instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (KnownTypeT cls t m) where
---     consStack = lift . consStack ; {-# INLINE consStack #-}
---
--- instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (KnownTypeT cls t m) where
---     elems'  = lift elems'  ; {-# INLINE elems'  #-}
---     links'  = lift links'  ; {-# INLINE links'  #-}
-
-
-
--- instance {-# INCOHERENT #-} Constructor a m c => Constructor a (Delayed.Delayed m) c where
---     cons = lift . cons ; {-# INLINE cons #-}
---
--- instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (Delayed.Delayed m) where
---     refDesc   = lift .  refDesc   @r ; {-# INLINE refDesc   #-}
---     unrefDesc = lift .  unrefDesc @r ; {-# INLINE unrefDesc #-}
---     readDesc  = lift .  readDesc  @r ; {-# INLINE readDesc  #-}
---     writeDesc = lift .: writeDesc @r ; {-# INLINE writeDesc #-}
---
--- instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (Delayed.Delayed m) where
---     consStack = lift . consStack ; {-# INLINE consStack #-}
---
--- instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (Delayed.Delayed m) where
---     elems'  = lift elems'  ; {-# INLINE elems'  #-}
---     links'  = lift links'  ; {-# INLINE links'  #-}
 
 
 type family   UnsafeGeneralizable a b :: Constraint
@@ -634,7 +502,8 @@ baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
 
 
-layouted :: forall l m a. KnownTypeT Layout (DefaultLayout l) m a -> m a
+type Layouted l = KnownTypeT Layout (DefaultLayout l)
+layouted :: forall l m a. Layouted l m a -> m a
 layouted = baseLayout @(DefaultLayout l)
 
 
@@ -723,98 +592,51 @@ instance TTT Net ((->) Network3) where
 
 
 
---
--- instance Referable (Elem Net) ((->) Network3) where
---     ref'  a t = fooe $ runGraph  (ref'  a) t ; {-# INLINE ref'  #-}
---     read' a t = evalGraphInplace (read' a) t ; {-# INLINE read' #-}
-
---
--- Constructor TermStore m (AnyExprStack t)
---
--- type ExprStack    t layout = LayerStack (Expr t layout)
--- type AnyExprStack t        = ExprStack t Layout.Any
---
-
--- type    LayerStackBase t = Stack (Layer t)
--- newtype LayerStack     t = LayerStack (LayerStackBase t (Layers' t))
 
 
-test_gr :: forall t m n.
-         ( MonadFix m
-         , MonadIO m
-         , Event (New EXPR) m (Ref (Expr t Draft))
-         , Event (New CONNECTION) m (Ref (Link (Expr t Draft) (Expr t Draft)))
-         , Constructor TermStore (Delayed.Delayed m) (LayerStackBase (Expr t Luna.Syntax.Term.Expr.Layout.Any) (Layers EXPR t))
-         , Self.MonadSelfBuilder (Ref (Expr t Draft)) m
-         , Referable (Link (Elem t) (Elem t)) (Delayed.Delayed m)
-         , Referable (Elem t) (Delayed.Delayed m)
-         , Linkable t (Delayed.Delayed m)
-         , m ~ KnownTypeT Layout (ANTLayout SimpleX () () Star) n
-         , Monad n
-         , NoOutput m
-         , Referable (Elem t) m
-         ) => n (Ref (UntyppedExpr t Star ()))
+test_gr :: forall t m. ( MonadIO m
+                       , ASTBuilder t (Layouted ANT m)
+                       , ASTPretty  t
+                       ) => m (Ref (UntyppedExpr t Star ()))
 test_gr =  layouted @ANT $ do
-    -- print "s1"
-    -- (s1 :: Ref (Expr t Draft)) <- star2
-    -- print "s2"
-    -- (s2 :: Ref (Expr t Draft)) <- star2
-    (s1 :: Ref (UntyppedExpr t Star            ())) <- star2
-    (s2 :: Ref (UntyppedExpr t Star            ())) <- star2
+    (s1 :: Ref (UntyppedExpr t Star            ())) <- star
+    (s2 :: Ref (UntyppedExpr t Star            ())) <- star
     (u1 :: Ref (UntyppedExpr t (Unify :> Star) ())) <- unify s1 s2
     u2 <- unify s1 u1
     u3 <- unify s2 u1
     u4 <- unify u2 u3
-    --
+
+
     t <- read s1
-    -- write s1 t
+    write s1 t
+
+    let u1'  = generalize u1 :: Ref (Expr t Draft)
+
+    es <- elems
+    es' <- mapM read es
+
+    case' t of
+        Unify l r -> print "ppp"
+        Star      -> case' t of
+            Unify l r -> print "hello"
+            Star      -> print "hello3xx"
+        _         -> print "not found"
+
     --
-    -- let u1'  = generalize u1 :: Ref (Expr t Draft)
+    -- let { case_expr = t
+    -- ;f1 = matchx case_expr $ \(ExprSymbol (Symbol.Unify l r)) -> print ala where
+    --     ala = 11
+    -- ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)       -> (print "hello3" )
+    --    where ala = 11
+    -- } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
     --
-    -- -- let u1'  = generalize u1 :: Ref (UntyppedExpr t layers Draft ())
-    -- -- let u1'  = generalize u1 :: Link    (UntyppedExpr t layers Draft ())
-    --
-    -- -- let u1'  = generalize u1 :: Ref Node (UntyppedExpr t layers Draft ())
-    -- -- let u1'  = generalize u1 :: Ref Edge (UntyppedExpr t layers Draft ())
-    --     -- u1'' =
-    --
-    -- -- bs <- bindings
-    -- -- Unify l r <- read u1
-    -- -- tgt  <- targetM l
-    -- -- src  <- sourceM l
-    -- -- both <- read l
-    -- es <- elems
-    -- es' <- mapM read es
-    --
-    -- case' t of
-    --     Unify l r -> print "ppp"
-    --     Star      -> case' t of
-    --         Unify l r -> print "hello"
-    --         Star      -> print "hello3xx"
-    --     _         -> print "not found"
-    --
-    -- --
-    -- -- let { case_expr = t
-    -- -- ;f1 = matchx case_expr $ \(ExprSymbol (Symbol.Unify l r)) -> print ala where
-    -- --     ala = 11
-    -- -- ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)       -> (print "hello3" )
-    -- --    where ala = 11
-    -- -- } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
-    -- --
-    -- -- -- es <- elements2
-    -- --
-    -- --
-    -- print "!!!"
-    -- print t
-    -- print es
-    -- print es'
-    -- print s1
+    print "!!!"
+    print t
+    print es
+    print es'
+    print s1
     return s1
-    -- return undefined
 
-
-
--- vis
 
 instance Generalize (Compound SimpleX lst) Draft
 
@@ -826,26 +648,10 @@ main = do
     print s1
 
     let x   = read s1 g
-        -- x'  = generalize x :: Expr Net Draft
         res = elems g
         es  = map (flip read g) res
 
-
-        --
-        -- putStrLn "\n\n---"
-        --
-        -- let t  = read  s1 g
-        --     g' = write s1 t g
-        --     bs = bindings2 g
-        --     os = elements2 g
-        --
-        -- putStrLn $ reprStyled HeaderOnly t
-        -- print t
-        -- -- print os
     let nodes = ByteString.unpack $ encode $ map visNode es
-
-    -- putStrLn ">>>>\n"
-    -- print nodes
 
     (_, vis) <- Vis.newRunDiffT $ do
         let vss = map (visNode2 g) es
@@ -853,24 +659,17 @@ main = do
             ves = join $ snd <$> vss
         Vis.addNodes vns
         Vis.addEdges ves
-        -- print "!!!!"
-        -- print ves
 
 
     let cfg = ByteString.unpack $ encode $ vis
-    -- putStrLn cfg
     openBrowser ("http://localhost:8200?cfg=" <> cfg)
 
 
-    -- print "----"
-    -- print x
     let tpRef  = get @Type x
         tpLink = read tpRef g
 
     print "***"
     print $ get @Sym $ get @Data x
-                -- print $ symbolFields2 x'
-    -- print $ get @UID tpLink
 
     return ()
 
@@ -879,11 +678,11 @@ visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
     header = fromString $ reprStyled HeaderOnly el
 
 visNode2 :: forall t g layout b.
-            ( HasLayers EXPR t '[Data, UID, Type]
-            , HasLayers LINK t '[Data, UID]
-            , ASTAccessor t g
+            ( HasLayers EXPR t '[UID, Type]
+            , HasLayers LINK t '[UID]
+            , AST t g
 
-            , FieldsC t layout
+            , FieldsC t layout -- FIXME[WD]: scratch implementation
 
             ) => g -> Expr t layout -> (Vis.Node, [Vis.Edge])
 visNode2 g expr = (node, edges) where
@@ -916,3 +715,45 @@ visNode2 g expr = (node, edges) where
 
     tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid tpUid lnUID rnUID (fromList [fromString "type"])]
     edges  = tpVis <> (mkEdge <$> uss)
+
+
+
+
+
+
+
+
+
+-- instance {-# INCOHERENT #-} Constructor a m c => Constructor a (KnownTypeT cls t m) c where
+--     cons = lift . cons ; {-# INLINE cons #-}
+--
+-- instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (KnownTypeT cls t m) where
+--     refDesc   = lift .  refDesc   @r ; {-# INLINE refDesc   #-}
+--     unrefDesc = lift .  unrefDesc @r ; {-# INLINE unrefDesc #-}
+--     readDesc  = lift .  readDesc  @r ; {-# INLINE readDesc  #-}
+--     writeDesc = lift .: writeDesc @r ; {-# INLINE writeDesc #-}
+--
+-- instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (KnownTypeT cls t m) where
+--     consStack = lift . consStack ; {-# INLINE consStack #-}
+--
+-- instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (KnownTypeT cls t m) where
+--     elems'  = lift elems'  ; {-# INLINE elems'  #-}
+--     links'  = lift links'  ; {-# INLINE links'  #-}
+
+
+
+-- instance {-# INCOHERENT #-} Constructor a m c => Constructor a (Delayed m) c where
+--     cons = lift . cons ; {-# INLINE cons #-}
+--
+-- instance {-# INCOHERENT #-} (Referable r m, NoOutput m) => Referable r (Delayed m) where
+--     refDesc   = lift .  refDesc   @r ; {-# INLINE refDesc   #-}
+--     unrefDesc = lift .  unrefDesc @r ; {-# INLINE unrefDesc #-}
+--     readDesc  = lift .  readDesc  @r ; {-# INLINE readDesc  #-}
+--     writeDesc = lift .: writeDesc @r ; {-# INLINE writeDesc #-}
+--
+-- instance {-# INCOHERENT #-} StackCons ls m => StackCons ls (Delayed m) where
+--     consStack = lift . consStack ; {-# INLINE consStack #-}
+--
+-- instance {-# INCOHERENT #-} (TTT a m, NoOutput m) => TTT a (Delayed m) where
+--     elems'  = lift elems'  ; {-# INLINE elems'  #-}
+--     links'  = lift links'  ; {-# INLINE links'  #-}

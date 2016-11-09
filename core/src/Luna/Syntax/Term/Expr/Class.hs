@@ -77,12 +77,27 @@ import Type.Relation (SemiSuper)
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
 import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize, Universal)
 import Type.Inference
+
+import qualified Data.Set as Data (Set)
+import qualified Data.Set as Set
+
+import Data.Container.List (ToSet, toSet)
+
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
 --
 -- type instance Get Dynamics (Layout dyn form) = dyn
 -- type instance Get Format   (Layout dyn form) = form
 
+
+----------------------------
+-- === Qualified data === --
+----------------------------
+
+type family Qual a
+
+
+-----------------------------
 
 
 
@@ -326,6 +341,9 @@ modify' ref = modifyM' ref ∘ fmap return ; {-# INLINE modify' #-}
 -- Wrappers
 makeWrapped ''Ref
 
+-- Qual
+type instance Qual (Ref a) = Ref (Qual a)
+
 -- Universal
 type instance Universal (Ref a) = Ref (Universal a)
 
@@ -435,6 +453,9 @@ instance {-# OVERLAPPABLE #-}                           Setter' p (Stack t (p ':
 instance {-# OVERLAPPABLE #-} Setter' p (Stack t ls) => Setter' p (Stack t (l ': ls)) where set' a (SLayer t s) = SLayer t (set' a s) ; {-# INLINE set' #-}
 
 
+
+
+
 --------------------
 -- === Layers === --
 --------------------
@@ -448,8 +469,6 @@ makeWrapped ''Layer
 
 
 -- === Families === --
-
-type family Qual a
 
 type family Layers q a :: [*]
 type        Layers'  a = Layers (Qual a) (Cfg2 a)
@@ -535,6 +554,8 @@ makeWrapped ''Link
 data LINK
 type instance Qual (Link src tgt) = LINK
 
+type instance LayerData Data (Link src tgt) = (Ref src, Ref tgt)
+
 type SubLink c t = Ref (Link (Sub c t) t)
 
 
@@ -543,13 +564,8 @@ type SubLink c t = Ref (Link (Sub c t) t)
 type Linkable  t       m = StackCons (Layers LINK t) m
 type Linkable' src tgt m = Linkable (Cfg2 (Link src tgt)) m
 
-link :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
-link a b = Link . LayerStack <$> consStack (a,b)
-
-
--- === Instances === --
-
-type instance LayerData Data (Link src tgt) = (Ref src, Ref tgt)
+link' :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
+link' a b = Link . LayerStack <$> consStack (a,b)
 
 
 -- === Instances === --
@@ -566,10 +582,58 @@ instance IsLayerStack (Link src tgt)
 
 -- Properties
 type instance Get p (Link src tgt) = Get p (Unwrapped (Link src tgt))
-instance HasLayer' (Link src tgt) p => Getter p (Link src tgt) where get = view $ layer @p ; {-# INLINE get #-}
+instance HasLayer' (Link src tgt) p => Getter  p (Link src tgt) where get    = view $ layer @p ; {-# INLINE get  #-}
+instance HasLayer' (Link src tgt) p => Setter' p (Link src tgt) where set' a = layer @p .~ a   ; {-# INLINE set' #-}
 
 -- Universal
 type instance Universal (Link src tgt) = Link (Universal src) (Universal tgt)
+
+
+
+-------------------
+-- === Group === --
+-------------------
+
+type GroupStack a = LayerStack (Group a)
+
+newtype Group  a = Group (GroupStack a)
+makeWrapped ''Group
+
+data GROUP
+type instance Qual (Group a) = GROUP
+
+type instance LayerData Data (Group a) = Data.Set (Ref a)
+
+
+-- === Construction === --
+
+type Groupable  t m = StackCons (Layers GROUP t) m
+type Groupable' a m = Groupable (Cfg2 (Group a)) m
+
+group' :: (Groupable' a m, ToSet t, Item t ~ Ref a) => t -> m (Group a)
+group' a = Group . LayerStack <$> consStack (toSet a) ; {-# INLINE group' #-}
+
+
+-- === Instances === --
+
+-- Show
+deriving instance Show (Unwrapped (Group a)) => Show (Group a)
+
+-- Cfg
+type instance Cfg (Group a) = Group (Cfg a)
+type instance Cfg2 (Group a) = Cfg2 a
+
+-- LayerStack
+instance IsLayerStack (Group a)
+
+-- Properties
+type instance Get p (Group a) = Get p (Unwrapped (Group a))
+instance HasLayer' (Group a) p => Getter  p (Group a) where get    = view $ layer @p ; {-# INLINE get  #-}
+instance HasLayer' (Group a) p => Setter' p (Group a) where set' a = layer @p .~ a   ; {-# INLINE set' #-}
+
+-- Universal
+type instance Universal (Group a) = Group (Universal a)
+
 
 
 ------------------------
