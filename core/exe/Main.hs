@@ -22,7 +22,7 @@ import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, r
 
 import           Control.Monad.Event2     as Event
 import qualified Control.Monad.Delayed2   as Delayed
-import           Control.Monad.Delayed2   (Delayed, MonadDelayed)
+import           Control.Monad.Delayed2   (Delayed, MonadDelayed, delay)
 import qualified Control.Monad.Writer     as Writer
 import           Old.Data.Attr                (attr)
 import           Data.Construction        hiding (Register, register)
@@ -36,7 +36,7 @@ import           Data.Index               (idx)
 import qualified Data.Map                 as Map
 -- import           Old.Data.Prop
 -- import           Data.Record              hiding (Cons, Layout, cons, Value)
-import           Data.Version.Semantic
+-- import           Data.Version.Semantic
 import           Development.Placeholders
 import           Text.Printf              (printf)
 import           Type.Inference
@@ -137,6 +137,8 @@ import Web.Browser (openBrowser)
 
 import qualified Luna.Pretty.Graph as Vis
 import qualified Data.Set as S
+import Data.Ident
+
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -208,8 +210,8 @@ instance ( MonadIO m
          , HasLayer LINK t Data
          , Show (Expr t Draft)
          , a ~ Ref (Link (Expr t Draft) (Expr t Draft))
-         , Referable (Elem t) m
-         , Referable (Link (Elem t) (Elem t)) m
+         , Referable EXPR t m
+         , Referable LINK t m
          , Ord (Ref (Expr t Draft))
          , Eq  (Ref (Expr t Draft))
          )
@@ -282,8 +284,8 @@ data Net = Net
 type instance Layers EXPR Net = NetLayers
 type instance Layers LINK Net = '[Data, UID]
 
-type instance Impl Ref  (Elem Net)                   = Ref2 Node
-type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
+type instance Impl Ref EXPR Net = Ref2 Node
+type instance Impl Ref LINK Net = Ref2 Edge
 
 
 -- === Instances === --
@@ -291,25 +293,25 @@ type instance Impl Ref  (Link (Elem Net) (Elem Net)) = Ref2 Edge
 -- Refs
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m) -- Generator m (Impl Ref (Cfg a) a))
-      => Referable (Elem Net) m where
+      => Referable EXPR Net m where
     -- newRef' = Ref <$> new
     refDesc   = valOnly . Ref <∘> construct'  ; {-# INLINE refDesc   #-}
     readDesc  = readRef . unwrap'             ; {-# INLINE readDesc  #-}
     writeDesc = noVal <∘∘> writeRef . unwrap' ; {-# INLINE writeDesc #-}
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, NoOutput m)
-      => Referable (Link (Elem Net) (Elem Net)) m where
+      => Referable LINK Net m where
     refDesc   = valOnly . Ref <∘> construct'  ; {-# INLINE refDesc   #-}
     readDesc  = readRef . unwrap'             ; {-# INLINE readDesc  #-}
     writeDesc = noVal <∘∘> writeRef . unwrap' ; {-# INLINE writeDesc #-}
 
 
-instance Referable (Elem Net) ((->) Network3) where
-    refDesc  a t = fooe $ runGraph  (ref'  a) t ; {-# INLINE refDesc  #-}
+instance Referable EXPR Net ((->) Network3) where
+    refDesc  a t = fooe $ runGraph  (silentRef'  a) t ; {-# INLINE refDesc  #-}
     readDesc a t = evalGraphInplace (read' a) t ; {-# INLINE readDesc #-}
 
-instance Referable (Link (Elem Net) (Elem Net)) ((->) Network3) where
-    refDesc  a t = fooe $ runGraph  (ref'  a) t ; {-# INLINE refDesc  #-}
+instance Referable LINK Net ((->) Network3) where
+    refDesc  a t = fooe $ runGraph  (silentRef'  a) t ; {-# INLINE refDesc  #-}
     readDesc a t = evalGraphInplace (read' a) t ; {-# INLINE readDesc #-}
 
 
@@ -332,11 +334,12 @@ type instance LayerData Type t = SubLink Type t
 instance ( expr ~ AnyExpr t
          , ref  ~ Ref expr
          , Linkable t m
-         , Referable (Link (Elem t) (Elem t)) m
+         , Referable LINK t m
+         , Referable EXPR t m
 
          , Self.MonadSelfBuilder (Ref (Expr t Draft)) m
          , Type.MonadTypeBuilder ref m
-         , Constructor TermStore m (AnyExprStack t), Referable (Elem t) m, MonadFix m
+         , Constructor TermStore m (AnyExprStack t), MonadFix m
 
          , MonadDelayed n m
          , Register New (Ref (Link (Expr t Draft) (Expr t Draft))) n
@@ -360,7 +363,7 @@ mfixType f = mfix $ flip Type.with' f . Just
 
 
 localTop :: ( Type.MonadTypeBuilder (Ref (AnyExpr t)) m, Constructor TermStore m (AnyExprStack t)
-            , Self.MonadSelfBuilder (Ref (Expr t Draft)) m, MonadFix m, Referable (Elem t) m)
+            , Self.MonadSelfBuilder (Ref (Expr t Draft)) m, MonadFix m, Referable EXPR t m)
          => m (Ref (AnyExpr t))
 localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
@@ -378,8 +381,8 @@ type ASTCons t m = ( ASTRefs t m
                    , Linkable t m
                    )
 
-type ASTRefs t m = ( Referable (Elem t)                 m
-                   , Referable (Link (Elem t) (Elem t)) m
+type ASTRefs t m = ( Referable EXPR t m
+                   , Referable LINK t m
                    , TTT t m
                    )
 
@@ -419,10 +422,10 @@ type ASTPretty t = ( Show (AnyExpr t)
 
 
 
-magicStar :: ( AnyExprCons t m, Referable (Elem t) m
+magicStar :: ( AnyExprCons t m, Referable EXPR t m
              , Self.MonadSelfBuilder (Ref (Expr t Draft)) m)
           => m (Ref (AnyExpr t))
-magicStar = Self.put . universal =<<& (expr N.star' >>= ref')
+magicStar = Self.put . universal =<<& (expr N.star' >>= silentRef')
 
 
 type l <+> r = Merge l r
@@ -435,20 +438,37 @@ data New a
 
 type UniversalEvent e a m = Event e m (Universal a)
 
-type Register t a m = UniversalEvent (t (Qual a)) a m
+type Register t a m = UniversalEvent (t (Ident a)) a m
 
+register :: forall t m a. Register t a m => a -> m ()
+register a = dispatch_ @(t (Ident a)) (universal a) ; {-# INLINE register #-}
+
+type Referable'' a m = (Referable (Ident a) (Cfg2 a) m, Register New (Ref a) m)
+type DelayedReferable a n m = (Referable (Ident a) (Cfg2 a) m, Register New (Ref a) n, MonadDelayed n m)
+
+ref2' :: Referable'' a m => a -> m (Ref a)
+ref2' a = do
+    r <- silentRef' a
+    register @New r
+    return r
+
+delayedRef' :: DelayedReferable a n m => a -> m (Ref a)
+delayedRef' a = do
+    r <- silentRef' a
+    delay $ register @New r
+    return r
 
 link :: (Linkable' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
-link a b = mdo
-    r <- ref' =<< link' a b
-    dispatch @(New (Ref LINK)) (universal r)
+link a b = do
+    r <- silentRef' =<< link' a b
+    register @New r
     return r
 {-# INLINE link #-}
 
 delayedLink :: (Linkable' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) n, MonadDelayed n m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
 delayedLink a b = mdo
-    r <- ref' =<< link' a b
-    Delayed.delay $ dispatch_ @(New (Ref LINK)) (universal r)
+    r <- silentRef' =<< link' a b
+    delay $ dispatch_ @(New (Ref LINK)) (universal r)
     return r
 {-# INLINE delayedLink #-}
 
@@ -489,7 +509,7 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 
-nmagicStar :: (AnyExprCons t m, Referable (Elem t) m) => m $ Ref (Expr t layout)
+nmagicStar :: (AnyExprCons t m, Referable EXPR t m) => m $ Ref (Expr t layout)
 nmagicStar = mkExpr (wrap' N.star')
 
 

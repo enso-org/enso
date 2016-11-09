@@ -255,6 +255,7 @@ Library
                  , bytestring
                  , open-browser
                  , template-haskell
+                 , data-ident
 
 
 Executable luna
@@ -326,6 +327,7 @@ Executable luna
                      , ghc-mtl
                      , data-shell
                      , template-haskell
+                     , data-ident
                      , aeson
                      , bytestring
                      , open-browser

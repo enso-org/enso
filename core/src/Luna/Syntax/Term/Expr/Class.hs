@@ -82,6 +82,8 @@ import qualified Data.Set as Data (Set)
 import qualified Data.Set as Set
 
 import Data.Container.List (ToSet, toSet)
+import Data.Ident
+
 
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
@@ -90,14 +92,6 @@ import Data.Container.List (ToSet, toSet)
 -- type instance Get Format   (Layout dyn form) = form
 
 
-----------------------------
--- === Qualified data === --
-----------------------------
-
-type family Qual a
-
-
------------------------------
 
 
 
@@ -272,7 +266,6 @@ data TermType = TermType deriving (Show)
 
 -- === Definition === --
 
-type family Cfg a
 type family Cfg2 a
 
 type family Cfg2MergeImpl c c'
@@ -282,33 +275,30 @@ type family Cfg2Merge c c' where
 
 
 
-type family Impl (i :: * -> *) t :: * -> *
-type Impl' i a = Impl i (Cfg a) a
+type family Impl (f :: * -> *) i t :: * -> *
+type Impl' f a = Impl f (Ident a) (Cfg2 a) a
 
 newtype Ref   a   = Ref   (Impl' Ref   a)
--- newtype Group a   = Group (Impl' Group a)
 
-data    Elem  a
 
 
 --- === Operations === --
 
 -- Refs
 
-type Referable' a m = Referable (Cfg a) m
-class (Monad m, IsResult m) => Referable t m where
-    refDesc   :: forall a. (t ~ Cfg a) =>     a      -> ResultDesc  m (Ref a)
-    unrefDesc :: forall a. (t ~ Cfg a) => Ref a      -> ResultDesc_ m
-    readDesc  :: forall a. (t ~ Cfg a) => Ref a      ->             m a
-    writeDesc :: forall a. (t ~ Cfg a) => Ref a -> a -> ResultDesc_ m
-
-    modifyMDesc :: forall a. (t ~ Cfg a) => Ref a -> (a -> m a) -> ResultDesc_ m
+type Referable' a m = Referable (Ident a) (Cfg2 a) m
+class (Monad m, IsResult m) => Referable i t m where
+    refDesc     :: forall a. (i ~ Ident a, t ~ Cfg2 a) =>     a               -> ResultDesc  m (Ref a)
+    unrefDesc   :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a               -> ResultDesc_ m
+    readDesc    :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a               ->             m a
+    writeDesc   :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a -> a          -> ResultDesc_ m
+    modifyMDesc :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a -> (a -> m a) -> ResultDesc_ m
     modifyMDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyMDesc #-}
 
-ref  :: Referable' a m => a -> Result  m (Ref a)
-ref' :: Referable' a m => a ->         m (Ref a)
-ref  = toResult ∘  refDesc ; {-# INLINE ref  #-}
-ref' = value   <∘> refDesc ; {-# INLINE ref' #-}
+silentRef  :: Referable' a m => a -> Result  m (Ref a)
+silentRef' :: Referable' a m => a ->         m (Ref a)
+silentRef  = toResult ∘  refDesc ; {-# INLINE silentRef  #-}
+silentRef' = value   <∘> refDesc ; {-# INLINE silentRef' #-}
 
 unref  :: Referable' a m => Ref a -> Result_ m
 unref' :: Referable' a m => Ref a ->         m ()
@@ -341,8 +331,8 @@ modify' ref = modifyM' ref ∘ fmap return ; {-# INLINE modify' #-}
 -- Wrappers
 makeWrapped ''Ref
 
--- Qual
-type instance Qual (Ref a) = Ref (Qual a)
+-- Ident
+type instance Ident (Ref a) = Ref (Ident a)
 
 -- Universal
 type instance Universal (Ref a) = Ref (Universal a)
@@ -471,7 +461,7 @@ makeWrapped ''Layer
 -- === Families === --
 
 type family Layers q a :: [*]
-type        Layers'  a = Layers (Qual a) (Cfg2 a)
+type        Layers'  a = Layers (Ident a) (Cfg2 a)
 
 
 -- === Classes === --
@@ -516,10 +506,10 @@ instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLaye
 
 -- === HasLayer === --
 
-type HasLayer' a layer = HasLayer (Qual a) (Cfg2 a) layer
+type HasLayer' a layer = HasLayer (Ident a) (Cfg2 a) layer
 
 layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => Lens' a (LayerData layer a)
-layer = layerStack . wrapped' . layer' @(Qual a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
+layer = layerStack . wrapped' . layer' @(Ident a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
 
 class                                                        HasLayer q c layer where layer' :: forall t. Lens' (LayerStackBase t (Layers q c)) (LayerData layer t)
 instance {-# OVERLAPPABLE #-} Selector layer (Layers q c) => HasLayer q c layer where layer' = select @layer @(Layers q c) . wrapped' ; {-# INLINE layer' #-}
@@ -552,7 +542,7 @@ newtype Link  src tgt = Link (LinkStack src tgt)
 makeWrapped ''Link
 
 data LINK
-type instance Qual (Link src tgt) = LINK
+type instance Ident (Link src tgt) = LINK
 
 type instance LayerData Data (Link src tgt) = (Ref src, Ref tgt)
 
@@ -574,7 +564,6 @@ link' a b = Link . LayerStack <$> consStack (a,b)
 deriving instance Show (Unwrapped (Link  a b)) => Show (Link  a b)
 
 -- Cfg
-type instance Cfg (Link a b) = Link (Cfg a) (Cfg b)
 type instance Cfg2 (Link a b) = Cfg2Merge (Cfg2 a) (Cfg2 b)
 
 -- LayerStack
@@ -600,7 +589,7 @@ newtype Group  a = Group (GroupStack a)
 makeWrapped ''Group
 
 data GROUP
-type instance Qual (Group a) = GROUP
+type instance Ident (Group a) = GROUP
 
 type instance LayerData Data (Group a) = Data.Set (Ref a)
 
@@ -620,7 +609,6 @@ group' a = Group . LayerStack <$> consStack (toSet a) ; {-# INLINE group' #-}
 deriving instance Show (Unwrapped (Group a)) => Show (Group a)
 
 -- Cfg
-type instance Cfg (Group a) = Group (Cfg a)
 type instance Cfg2 (Group a) = Cfg2 a
 
 -- LayerStack
@@ -709,13 +697,13 @@ type    AnyExpr t        = Expr t Layout.Any
 makeWrapped ''Expr
 
 data EXPR
-type instance Qual (Expr t layout) = EXPR
+type instance Ident (Expr _ _) = EXPR
 
 
 -- === Utils === --
 
 mkExpr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout, Referable' expr m) => ExprSymbol atom expr -> m (Ref expr)
-mkExpr = ref' <=< expr
+mkExpr = silentRef' <=< expr
 
 
 expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr
@@ -844,7 +832,6 @@ type instance Universal (Expr t _) = Expr t Draft
 
 ------- new things
 
-type instance Cfg (Expr t layout) = Elem t
 type instance Cfg2 (Expr t layout) = t
 
 

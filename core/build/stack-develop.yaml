@@ -22,6 +22,7 @@ packages:
     - ../../../libs/type-cache
     - ../../../libs/typelevel
     - ../../../libs/data-shell
+    - ../../../libs/data-ident
 
     - ../../../libs/visualization-api
 
