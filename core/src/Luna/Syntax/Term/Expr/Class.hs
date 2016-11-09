@@ -82,8 +82,9 @@ import qualified Data.Set as Data (Set)
 import qualified Data.Set as Set
 
 import Data.Container.List (ToSet, toSet)
-import Data.Ident
 
+
+type family Struct a
 
 -- import Data.Graph.Model.Edge (Edge) -- Should be removed as too deep dependency?
 -- data {-kind-} Layout dyn form = Layout dyn form deriving (Show)
@@ -276,7 +277,7 @@ type family Cfg2Merge c c' where
 
 
 type family Impl (f :: * -> *) i t :: * -> *
-type Impl' f a = Impl f (Ident a) (Cfg2 a) a
+type Impl' f a = Impl f (Struct a) (Cfg2 a) a
 
 newtype Ref   a   = Ref   (Impl' Ref   a)
 
@@ -286,13 +287,13 @@ newtype Ref   a   = Ref   (Impl' Ref   a)
 
 -- Refs
 
-type Referable' a m = Referable (Ident a) (Cfg2 a) m
+type Referable' a m = Referable (Struct a) (Cfg2 a) m
 class (Monad m, IsResult m) => Referable i t m where
-    refDesc     :: forall a. (i ~ Ident a, t ~ Cfg2 a) =>     a               -> ResultDesc  m (Ref a)
-    unrefDesc   :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a               -> ResultDesc_ m
-    readDesc    :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a               ->             m a
-    writeDesc   :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a -> a          -> ResultDesc_ m
-    modifyMDesc :: forall a. (i ~ Ident a, t ~ Cfg2 a) => Ref a -> (a -> m a) -> ResultDesc_ m
+    refDesc     :: forall a. (i ~ Struct a, t ~ Cfg2 a) =>     a               -> ResultDesc  m (Ref a)
+    unrefDesc   :: forall a. (i ~ Struct a, t ~ Cfg2 a) => Ref a               -> ResultDesc_ m
+    readDesc    :: forall a. (i ~ Struct a, t ~ Cfg2 a) => Ref a               ->             m a
+    writeDesc   :: forall a. (i ~ Struct a, t ~ Cfg2 a) => Ref a -> a          -> ResultDesc_ m
+    modifyMDesc :: forall a. (i ~ Struct a, t ~ Cfg2 a) => Ref a -> (a -> m a) -> ResultDesc_ m
     modifyMDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyMDesc #-}
 
 silentRef  :: Referable' a m => a -> Result  m (Ref a)
@@ -331,8 +332,8 @@ modify' ref = modifyM' ref ∘ fmap return ; {-# INLINE modify' #-}
 -- Wrappers
 makeWrapped ''Ref
 
--- Ident
-type instance Ident (Ref a) = Ref (Ident a)
+-- Struct
+type instance Struct (Ref a) = Ref (Struct a)
 
 -- Universal
 type instance Universal (Ref a) = Ref (Universal a)
@@ -461,7 +462,7 @@ makeWrapped ''Layer
 -- === Families === --
 
 type family Layers q a :: [*]
-type        Layers'  a = Layers (Ident a) (Cfg2 a)
+type        Layers'  a = Layers (Struct a) (Cfg2 a)
 
 
 -- === Classes === --
@@ -506,10 +507,10 @@ instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLaye
 
 -- === HasLayer === --
 
-type HasLayer' a layer = HasLayer (Ident a) (Cfg2 a) layer
+type HasLayer' a layer = HasLayer (Struct a) (Cfg2 a) layer
 
 layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => Lens' a (LayerData layer a)
-layer = layerStack . wrapped' . layer' @(Ident a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
+layer = layerStack . wrapped' . layer' @(Struct a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
 
 class                                                        HasLayer q c layer where layer' :: forall t. Lens' (LayerStackBase t (Layers q c)) (LayerData layer t)
 instance {-# OVERLAPPABLE #-} Selector layer (Layers q c) => HasLayer q c layer where layer' = select @layer @(Layers q c) . wrapped' ; {-# INLINE layer' #-}
@@ -541,8 +542,7 @@ type    Link' a       = Link a a
 newtype Link  src tgt = Link (LinkStack src tgt)
 makeWrapped ''Link
 
-data LINK
-type instance Ident (Link src tgt) = LINK
+type instance Struct (Link src tgt) = Link (Struct src) (Struct tgt)
 
 type instance LayerData Data (Link src tgt) = (Ref src, Ref tgt)
 
@@ -551,8 +551,8 @@ type SubLink c t = Ref (Link (Sub c t) t)
 
 -- === Construction === --
 
-type Linkable  t       m = StackCons (Layers LINK t) m
-type Linkable' src tgt m = Linkable (Cfg2 (Link src tgt)) m
+type Linkable  struct t m = StackCons (Layers struct t) m
+type Linkable' src tgt  m = Linkable (Struct (Link src tgt)) (Cfg2 (Link src tgt)) m
 
 link' :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
 link' a b = Link . LayerStack <$> consStack (a,b)
@@ -588,16 +588,15 @@ type GroupStack a = LayerStack (Group a)
 newtype Group  a = Group (GroupStack a)
 makeWrapped ''Group
 
-data GROUP
-type instance Ident (Group a) = GROUP
+type instance Struct (Group a) = Group (Struct a)
 
 type instance LayerData Data (Group a) = Data.Set (Ref a)
 
 
 -- === Construction === --
 
-type Groupable  t m = StackCons (Layers GROUP t) m
-type Groupable' a m = Groupable (Cfg2 (Group a)) m
+type Groupable  struct t m = StackCons (Layers struct t) m
+type Groupable' a m        = Groupable (Struct (Group a)) (Cfg2 (Group a)) m
 
 group' :: (Groupable' a m, ToSet t, Item t ~ Ref a) => t -> m (Group a)
 group' a = Group . LayerStack <$> consStack (toSet a) ; {-# INLINE group' #-}
@@ -696,8 +695,10 @@ newtype Expr    t layout = Expr (ExprStack t layout)
 type    AnyExpr t        = Expr t Layout.Any
 makeWrapped ''Expr
 
-data EXPR
-type instance Ident (Expr _ _) = EXPR
+data Elem
+type instance Struct    (Expr _ _) = Elem
+type instance Struct    Elem       = Elem
+type instance Universal Elem       = Elem
 
 
 -- === Utils === --
@@ -730,7 +731,7 @@ symbolMap = symbolMap' @(All Atom) @ctx ; {-# INLINE symbolMap #-}
 instance ( ctx (ExprSymbol a (Expr t layout))
          , SymbolMap' as ctx (Expr t layout)
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx, HasLayer EXPR t Data
+         , KnownNat idx, HasLayer Elem t Data
          )
       => SymbolMap' (a ': as) ctx (Expr t layout) where
     symbolMap' f expr = if (idx == eidx) then f sym else symbolMap' @as @ctx f expr where
@@ -754,7 +755,7 @@ symbolMap2 = symbolMap2' @(All Atom) @ctx ; {-# INLINE symbolMap2 #-}
 instance ( ctx (ExprSymbol a (Expr t layout)) b
          , SymbolMap2' as ctx (Expr t layout) b
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx, HasLayer EXPR t Data
+         , KnownNat idx, HasLayer Elem t Data
          )
       => SymbolMap2' (a ': as) ctx (Expr t layout) b where
     symbolMap2' f expr = if (idx == eidx) then f sym else symbolMap2' @as @ctx f expr where
@@ -805,7 +806,7 @@ type family ExprSet p v expr where
 instance (HasLayer' (Expr t layout) p, LayerData p (Expr t layout) ~ Get p (Expr t layout))
       => Getter p (Expr t layout) where get = view $ layer @p ; {-# INLINE get #-}
 
-instance (Get p (Expr t layout) ~ LayerData p (Expr t layout), HasLayer EXPR t p)
+instance (Get p (Expr t layout) ~ LayerData p (Expr t layout), HasLayer Elem t p)
       => Setter' p (Expr t layout) where set' el a = a & (layer @p) .~ el ; {-# INLINE set' #-}
 
 -- Sub
@@ -821,7 +822,7 @@ instance {-# OVERLAPPABLE #-} (a ~ Expr t' layout', Generalize (Expr t layout) a
 instance {-# OVERLAPPABLE #-} (a ~ Expr t' layout', Generalize a (Expr t layout)) => Generalize a               (Expr t layout)
 
 -- Repr
-instance HasLayer EXPR t Data => Repr HeaderOnly (Expr t layout) where repr expr = symbolMap @(Repr HeaderOnly) repr expr
+instance HasLayer Elem t Data => Repr HeaderOnly (Expr t layout) where repr expr = symbolMap @(Repr HeaderOnly) repr expr
 
 -- IsLayerStack
 instance IsLayerStack (Expr t layout)
