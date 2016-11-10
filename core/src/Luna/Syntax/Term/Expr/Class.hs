@@ -82,7 +82,7 @@ import qualified Data.Set as Data (Set)
 import qualified Data.Set as Set
 
 import Data.Container.List (ToSet, toSet)
-
+import GHC.Prim (Any)
 
 type family Struct a
 
@@ -93,6 +93,13 @@ type family Struct a
 -- type instance Get Format   (Layout dyn form) = form
 
 
+class HasConsName a where
+    consName :: P.String
+
+
+
+unsafeCoerced :: Iso' a b
+unsafeCoerced = iso unsafeCoerce unsafeCoerce ; {-# INLINE unsafeCoerced #-}
 
 
 
@@ -256,6 +263,396 @@ data TermType = TermType deriving (Show)
 
 
 
+type family Cfg2 a
+
+
+
+
+-----------------
+-- === Ast === --
+-----------------
+
+newtype AstT  t m a = AstT (IdentityT m a) deriving (Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
+type    Ast   t     = AstT t Identity
+type    AstMT   m   = AstT (Cfg m) m
+type    AstM    m   = Ast  (Cfg m)
+
+-- === Ast building === --
+
+type family AstElem t a
+
+type  IsAstM m a = (AstMonad m, IsAst a)
+class IsAst    a where
+    ast :: forall t. Iso' (AstElem t a) (Ast t a)
+    default ast :: forall t. Wrapped a => Iso' (AstElem t a) (Ast t a)
+    ast = unsafeCoerced ∘ from wrapped' ∘ unsafeAstIso ; {-# INLINE ast #-}
+
+fromAstElem :: IsAstM m a => AstElem (Cfg m) a -> m a
+fromAstElem = liftAst . view ast ; {-# INLINE fromAstElem #-}
+
+toAstElem :: (AstMonad m, IsAst a) => a -> m (AstElem (Cfg m) a)
+toAstElem = view (from ast) <∘> immerseVal ; {-# INLINE toAstElem #-}
+
+
+-- === AstMonad === ---
+
+-- FIXME[WD]: maybe we should relax a bit the Cfg definition?
+-- type instance Cfg (AstT t m) = t
+type family Cfg (m :: * -> *) where
+    Cfg (AstT t m) = t
+    Cfg (m t)      = Cfg t
+
+class Monad m => AstMonad m where
+    liftAst :: forall a. Ast (Cfg m) a -> m a
+
+instance {-# OVERLAPPABLE #-} (MonadTrans t, AstMonad m, Monad (t m), Cfg m ~ Cfg (t m)) => AstMonad (t m) where
+    liftAst = lift . liftAst ; {-# INLINE liftAst #-}
+
+
+-- === Ast immerse === ---
+
+type family Immersed a where
+    Immersed (AstT m t a) = a
+    Immersed a            = a
+--
+class                         Monad m                               => Immersable m  a            where immerse :: a -> m (AstM m (Immersed a))
+-- instance {-# OVERLAPPABLE #-} (AstMonad m, Immersed m a ~ AstM m a) => Immersable m  a            where immerse = immerseVal ; {-# INLINE immerse #-}
+-- instance {-# OVERLAPPABLE #-} (t ~ Cfg m, Monad m)                  => Immersable m (AstT t m' a) where immerse = runAstT  ; {-# INLINE immerse #-}
+-- instance {-# OVERLAPPABLE #-} (t ~ Cfg m, Monad m)                  => Immersable m (Ast  t    a) where immerse = return   ; {-# INLINE immerse #-}
+
+immerseVal :: AstMonad m => a -> m (AstM m a)
+immerseVal = return . return ; {-# INLINE immerseVal #-}
+
+-- immerseAst :: AstMonad m => AstMT m a -> m (AstM a)
+-- immerseAst =
+
+
+
+-- type family Immersed2 a where
+--     Immersed AstT _ _ a = a
+--     Immersed a          = a
+--
+-- class                         Monad m                               => Immersable m  a            where immerse :: a -> m (AstM m (Immersed2 a))
+-- instance {-# OVERLAPPABLE #-} (AstMonad m, Immersed m a ~ AstM m a) => Immersable m  a            where immerse = immerseVal ; {-# INLINE immerse #-}
+-- instance {-# OVERLAPPABLE #-} (t ~ Cfg m, Monad m)                  => Immersable m (AstT t m' a) where immerse = return   ; {-# INLINE immerse #-}
+
+
+
+-- === Running === --
+
+runAstT :: Functor m => AstT t m a -> m (Ast t a)
+runAstT = return <∘> unsafeRunAstT ; {-# INLINE runAstT #-}
+
+unsafeRunAstT :: AstT t m a -> m a
+unsafeRunAstT (AstT m) = runIdentityT m ; {-# INLINE unsafeRunAstT #-}
+
+unsafeRunAst :: Ast t a -> a
+unsafeRunAst = runIdentity ∘ unsafeRunAstT ; {-# INLINE unsafeRunAst #-}
+
+unsafeAstIso :: Iso' a (Ast t a)
+unsafeAstIso = iso return unsafeRunAst ; {-# INLINE unsafeAstIso #-}
+
+
+-- === Instances === --
+
+-- Show
+instance (Show (AstElem t a), IsAst a, HasConsName a) => Show (Ast t a) where
+    showsPrec d a = showParen (d > app_prec)
+                  $ showString (consName @a <> " ") . showsPrec (succ app_prec) (a ^. from ast)
+        where app_prec = 10
+
+-- AstMonad
+instance {-# OVERLAPPABLE #-} Monad m => AstMonad (AstT t m) where
+    liftAst = return . unsafeRunAst ; {-# INLINE liftAst #-}
+
+-- PrimMonad
+instance PrimMonad m => PrimMonad (AstT t m) where
+    type PrimState (AstT t m) = PrimState m
+    primitive = lift . primitive ; {-# INLINE primitive #-}
+
+-- Properties
+type instance Get p (AstT t m a) = Get p (AstElem t a)
+instance (Getter p (AstElem t a), IsAst a) => Getter p (Ast t a) where
+    get = get @p . view (from ast) ; {-# INLINE get #-}
+
+
+
+-------------------
+-- === Stack === --
+-------------------
+
+data Stack (t :: ★ -> ★) layers where
+    SLayer :: t l -> Stack t ls -> Stack t (l ': ls)
+    SNull  :: Stack t '[]
+
+
+-- === Utils === --
+
+head :: Lens' (Stack t (l ': ls)) (t l)
+head = lens (\(SLayer a _) -> a) (\(SLayer _ s) a -> SLayer a s) ; {-# INLINE head #-}
+
+tail :: Lens' (Stack t (l ': ls)) (Stack t ls)
+tail = lens (\(SLayer _ s) -> s) (\(SLayer a _) s -> SLayer a s) ; {-# INLINE tail #-}
+
+
+-- === StackHasLayers === --
+
+class                                          StackHasLayer l ls        where stackLayer :: forall t. Lens' (Stack t ls) (t l)
+instance {-# OVERLAPPABLE #-}                  StackHasLayer l (l ': ls) where stackLayer = head          ; {-# INLINE stackLayer #-}
+instance {-# OVERLAPPABLE #-} StackHasLayer l ls => StackHasLayer l (t ': ls) where stackLayer = tail . stackLayer ; {-# INLINE stackLayer #-}
+
+
+-- === Instances === --
+
+-- Show
+instance ContentShow (Stack t ls)               => Show          (Stack t ls       )  where show s                        = "(" <> contentShow s <> ")"      ; {-# INLINE show #-}
+instance                                           Show (Content (Stack t '[]      )) where show _                        = ""                               ; {-# INLINE show #-}
+instance (Show (t l), ContentShow (Stack t ls)) => Show (Content (Stack t (l ': ls))) where show (unwrap' -> SLayer l ls) = show l <> ", " <> contentShow ls ; {-# INLINE show #-}
+instance {-# OVERLAPPING #-} Show (t l)         => Show (Content (Stack t '[l]     )) where show (unwrap' -> SLayer l ls) = show l                           ; {-# INLINE show #-}
+
+-- Constructor
+instance ( Constructor a m (t l)
+         , Constructor a m (Stack t ls)) => Constructor a m (Stack t (l ': ls)) where cons a = SLayer <$> cons a <*> cons a ; {-# INLINE cons #-}
+instance Monad m                         => Constructor a m (Stack t '[]      ) where cons _ = return SNull                 ; {-# INLINE cons #-}
+
+
+-- Properties
+type instance Get p (Stack t ls) = t p
+
+instance {-# OVERLAPPABLE #-}                           Getter  p (Stack t (p ': ls)) where get    (SLayer t _) = t                   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} Getter p (Stack t ls)  => Getter  p (Stack t (l ': ls)) where get    (SLayer _ l) = get @p l            ; {-# INLINE get #-}
+
+instance {-# OVERLAPPABLE #-}                           Setter' p (Stack t (p ': ls)) where set' a (SLayer _ s) = SLayer a s          ; {-# INLINE set' #-}
+instance {-# OVERLAPPABLE #-} Setter' p (Stack t ls) => Setter' p (Stack t (l ': ls)) where set' a (SLayer t s) = SLayer t (set' a s) ; {-# INLINE set' #-}
+
+
+
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+-- === Definition === --
+
+type family LayerData l t
+
+newtype Layer t l = Layer (LayerData l t)
+makeWrapped ''Layer
+
+
+-- === Families === --
+
+type family Layers q a :: [*]
+type        Layers'  a = Layers (Struct a) (Cfg2 a)
+
+
+-- === Classes === --
+
+class Monad m => LayerCons l m where
+    consLayer :: forall t. LayerData Data t -> m (Layer t l)
+
+
+-- === Isntances === --
+
+deriving instance Show (Unwrapped (Layer t l)) => Show (Layer t l)
+
+instance Default (Unwrapped (Layer t l)) => Default (Layer t l) where def = wrap' def ; {-# INLINE def #-}
+
+
+------------------------
+-- === LayerStack === --
+------------------------
+
+type    LayerStackBase t = Stack (Layer t)
+newtype LayerStack2    t a = LayerStack2 (LayerStackBase a (Layers (Struct a) t))
+makeWrapped ''LayerStack2
+
+
+-- === Lenses === --
+
+-- class IsLayerStack2 a where
+--     layerStack2 :: Iso' a (LayerStack2 a)
+--     default layerStack2 :: (Wrapped a, Unwrapped a ~ LayerStack2 a) => Iso' a (LayerStack2 a)
+--     layerStack2 = wrapped' ; {-# INLINE layerStack2 #-}
+--
+--
+-- -- === StackCons === --
+--
+-- type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
+-- class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStack2Base t ls)
+-- instance Monad m              => StackCons '[]       m where consStack _ = return SNull                           ; {-# INLINE consStack #-}
+-- instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
+--
+--
+-- -- === HasLayer === --
+--
+-- type HasLayer' a layer = HasLayer (Struct a) (Cfg2 a) layer
+--
+-- layer :: forall layer a. (HasLayer' a layer, IsLayerStack2 a) => Lens' a (LayerData layer a)
+-- layer = layerStack2 . wrapped' . layer' @(Struct a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
+--
+class                                                        HasLayer2 t q layer where layer2' :: forall a. Lens' (LayerStackBase a (Layers q t)) (LayerData layer a)
+instance {-# OVERLAPPABLE #-} StackHasLayer layer (Layers q t) => HasLayer2 t q layer where layer2' = stackLayer @layer @(Layers q t) . wrapped' ; {-# INLINE layer2' #-}
+instance {-# OVERLAPPABLE #-}                                HasLayer2 I q layer where layer2' = impossible                             ; {-# INLINE layer2' #-}
+
+type HasLayers2 t q ls = Constraints (HasLayer2 t q <$> ls)
+
+type HasLayerM  m = HasLayer2 (Cfg m)
+type HasLayersM m = HasLayer2 (Cfg m)
+
+
+-- -- === Instances === --
+
+deriving instance Show (Unwrapped (LayerStack2 t a)) => Show (LayerStack2 t a)
+
+type instance Get p (LayerStack2 t a) = LayerData p a
+instance HasLayer2 t (Struct a) p => Getter p (LayerStack2 t a) where
+    get = view (layer2' @t @(Struct a) @p) . unwrap'
+
+-- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
+instance (Monad m, Constructor v m (Unwrapped (LayerStack2 t a))) => Constructor v m (LayerStack2 t a) where cons a = wrap' <$> cons a
+
+
+------------------------
+-- === LayerStack === --
+------------------------
+
+-- === Definition === --
+
+newtype LayerStack     t = LayerStack (LayerStackBase t (Layers' t))
+makeWrapped ''LayerStack
+
+
+-- === Lenses === --
+
+class IsLayerStack a where
+    layerStack :: Iso' a (LayerStack a)
+    default layerStack :: (Wrapped a, Unwrapped a ~ LayerStack a) => Iso' a (LayerStack a)
+    layerStack = wrapped' ; {-# INLINE layerStack #-}
+
+
+-- === StackCons === --
+
+type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
+class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStackBase t ls)
+instance Monad m              => StackCons '[]       m where consStack _ = return SNull                           ; {-# INLINE consStack #-}
+instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
+
+
+-- === HasLayer === --
+
+type HasLayer' a layer = HasLayer (Struct a) (Cfg2 a) layer
+
+layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => Lens' a (LayerData layer a)
+layer = layerStack . wrapped' . layer' @(Struct a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
+
+class                                                        HasLayer q c layer where layer' :: forall t. Lens' (LayerStackBase t (Layers q c)) (LayerData layer t)
+instance {-# OVERLAPPABLE #-} StackHasLayer layer (Layers q c) => HasLayer q c layer where layer' = stackLayer @layer @(Layers q c) . wrapped' ; {-# INLINE layer' #-}
+instance {-# OVERLAPPABLE #-}                                HasLayer q I layer where layer' = impossible                             ; {-# INLINE layer' #-}
+
+type family HasLayers q c ls :: Constraint where
+            HasLayers q c '[]       = ()
+            HasLayers q c (l ': ls) = (HasLayer q c l, HasLayers q c ls)
+
+
+-- === Instances === --
+
+deriving instance Show (Unwrapped (LayerStack t)) => Show (LayerStack t)
+
+type instance Get p (LayerStack t) = LayerData p t
+
+-- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
+instance (Monad m, Constructor a m (Unwrapped (LayerStack t))) => Constructor a m (LayerStack t) where cons a = wrap' <$> cons a
+
+
+
+
+
+
+------------------------
+-- === References === --
+------------------------
+
+-- === Definition === --
+
+newtype Ref2 a = Ref2 Any
+type family Impl (f :: * -> *) i t :: * -> *
+
+
+--- === Operations === --
+
+-- Refs
+
+type Referable2' a m = Referable2 (Struct a) (Cfg m) m
+class (Monad m, IsResult m) => Referable2 i t m where
+    refDesc2     :: forall a. (i ~ Struct a, t ~ Cfg m) =>      a               -> ResultDesc  m (Ref2 a)
+    unrefDesc2   :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a               -> ResultDesc_ m
+    readDesc2    :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a               ->             m a
+    writeDesc2   :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a -> a          -> ResultDesc_ m
+    modifyMDesc2 :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a -> (a -> m a) -> ResultDesc_ m
+    modifyMDesc2 ref f = writeDesc2 ref =<< f =<< readDesc2 ref ; {-# INLINE modifyMDesc2 #-}
+
+silentRef2  :: Referable2' a m => a -> Result  m (Ref2 a)
+silentRef2' :: Referable2' a m => a ->         m (Ref2 a)
+silentRef2  = toResult ∘  refDesc2 ; {-# INLINE silentRef2  #-}
+silentRef2' = value   <∘> refDesc2 ; {-# INLINE silentRef2' #-}
+
+unref2  :: Referable2' a m => Ref2 a -> Result_ m
+unref2' :: Referable2' a m => Ref2 a ->         m ()
+unref2  = toResult_ ∘  unrefDesc2 ; {-# INLINE unref2  #-}
+unref2' = value    <∘> unrefDesc2 ; {-# INLINE unref2' #-}
+
+read2  :: Referable2' a m => Ref2 a -> m a
+read2' :: Referable2' a m => Ref2 a -> m a
+read2  = readDesc2 ; {-# INLINE read2  #-}
+read2' = readDesc2 ; {-# INLINE read2' #-}
+
+write2  :: Referable2' a m => Ref2 a -> a -> Result_ m
+write2' :: Referable2' a m => Ref2 a -> a ->         m ()
+write2  = toResult_ ∘∘  writeDesc2 ; {-# INLINE write2  #-}
+write2' = value    <∘∘> writeDesc2 ; {-# INLINE write2' #-}
+
+modifyM2  :: Referable2' a m => Ref2 a -> (a -> m a) -> Result_ m
+modifyM2' :: Referable2' a m => Ref2 a -> (a -> m a) ->         m ()
+modifyM2  = toResult_ ∘∘  modifyMDesc2 ; {-# INLINE modifyM2  #-}
+modifyM2' = value    <∘∘> modifyMDesc2 ; {-# INLINE modifyM2' #-}
+
+modify2  :: Referable2' a m => Ref2 a -> (a -> a) -> Result_ m
+modify2' :: Referable2' a m => Ref2 a -> (a -> a) ->         m ()
+modify2  ref = modifyM2  ref ∘ fmap return ; {-# INLINE modify2  #-}
+modify2' ref = modifyM2' ref ∘ fmap return ; {-# INLINE modify2' #-}
+
+
+-- === Instances === --
+
+-- Wrappers
+makeWrapped ''Ref2
+
+-- ConsName
+instance HasConsName (Ref2 a) where consName = "Ref"
+
+-- AST
+type instance AstElem t (Ref2 a) = Impl Ref2 (Struct a) t a
+instance IsAst (Ref2 a)
+
+-- Struct
+type instance Struct (Ref2 a) = Ref2 (Struct a)
+
+-- Universal
+type instance Universal (Ref2 a) = Ref2 (Universal a)
+
+-- Basic
+instance Show (Ref2 a) where show _ = "Ref" ; {-# INLINE show #-}
+deriving instance Eq   (Unwrapped (Ref2 a)) => Eq   (Ref2 a)
+deriving instance Ord  (Unwrapped (Ref2 a)) => Ord  (Ref2 a)
+
+-- Generalize
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref2 b) => Generalize (Ref2 a) t
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref2 a) => Generalize t       (Ref2 b)
+instance {-# OVERLAPPABLE #-} (Generalize a b)             => Generalize (Ref2 a) (Ref2 b)
+
+
 
 
 
@@ -267,7 +664,6 @@ data TermType = TermType deriving (Show)
 
 -- === Definition === --
 
-type family Cfg2 a
 
 type family Cfg2MergeImpl c c'
 type family Cfg2Merge c c' where
@@ -276,7 +672,6 @@ type family Cfg2Merge c c' where
 
 
 
-type family Impl (f :: * -> *) i t :: * -> *
 type Impl' f a = Impl f (Struct a) (Cfg2 a) a
 
 newtype Ref   a   = Ref   (Impl' Ref   a)
@@ -351,184 +746,6 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) 
 
 
 
-
-
-
-
-
-
-
--- type Result m a = m (Output (OutputDesc m) a)
---
--- type family Output arg a where
---     Output ('Just t) a = (a,t)
---     Output 'Nothing  a = a
---
--- type family OutputDesc m where
---     OutputDesc ((->) t) = 'Just t
---     OutputDesc m        = 'Nothing
---
--- ref'3 ::
-
-
-
-
--- Groups
-
--- type Groupable' a m = Groupable (Cfg a) m
--- class Monad m => Groupable t m where
---     groupM'   :: forall a. [Ref a] -> m (Impl Group t a)
---     ungroupM' :: forall a. Impl Group t a -> m [Ref a]
---
--- groupM   :: forall a b m. Groupable' a m => [Ref a] -> m (Group a)
--- ungroupM :: forall a b m. Groupable' a m => Group a -> m [Ref a]
--- groupM   = Group <∘> groupM' @(Cfg a)   ; {-# INLINE groupM #-}
--- ungroupM = ungroupM' @(Cfg a) . unwrap' ; {-# INLINE ungroupM #-}
-
-
-
-
-
-
-
-
-
-
-
--------------------
--- === Stack === --
--------------------
-
-data Stack (t :: ★ -> ★) layers where
-    SLayer :: t l -> Stack t ls -> Stack t (l ': ls)
-    SNull  :: Stack t '[]
-
-
--- === Utils === --
-
-head :: Lens' (Stack t (l ': ls)) (t l)
-head = lens (\(SLayer a _) -> a) (\(SLayer _ s) a -> SLayer a s) ; {-# INLINE head #-}
-
-tail :: Lens' (Stack t (l ': ls)) (Stack t ls)
-tail = lens (\(SLayer _ s) -> s) (\(SLayer a _) s -> SLayer a s) ; {-# INLINE tail #-}
-
-
--- === Selectors === --
-
-class                                          Selector l ls        where select :: forall t. Lens' (Stack t ls) (t l)
-instance {-# OVERLAPPABLE #-}                  Selector l (l ': ls) where select = head          ; {-# INLINE select #-}
-instance {-# OVERLAPPABLE #-} Selector l ls => Selector l (t ': ls) where select = tail . select ; {-# INLINE select #-}
-
-
--- === Instances === --
-
--- Show
-instance ContentShow (Stack t ls)               => Show          (Stack t ls       )  where show s                        = "(" <> contentShow s <> ")"      ; {-# INLINE show #-}
-instance                                           Show (Content (Stack t '[]      )) where show _                        = ""                               ; {-# INLINE show #-}
-instance (Show (t l), ContentShow (Stack t ls)) => Show (Content (Stack t (l ': ls))) where show (unwrap' -> SLayer l ls) = show l <> ", " <> contentShow ls ; {-# INLINE show #-}
-instance {-# OVERLAPPING #-} Show (t l)         => Show (Content (Stack t '[l]     )) where show (unwrap' -> SLayer l ls) = show l                           ; {-# INLINE show #-}
-
--- Constructor
-instance ( Constructor a m (t l)
-         , Constructor a m (Stack t ls)) => Constructor a m (Stack t (l ': ls)) where cons a = SLayer <$> cons a <*> cons a ; {-# INLINE cons #-}
-instance Monad m                         => Constructor a m (Stack t '[]      ) where cons _ = return SNull                 ; {-# INLINE cons #-}
-
-
--- Properties
-type instance Get p (Stack t ls) = t p
-
-instance {-# OVERLAPPABLE #-}                           Getter  p (Stack t (p ': ls)) where get    (SLayer t _) = t                   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} Getter p (Stack t ls)  => Getter  p (Stack t (l ': ls)) where get    (SLayer _ l) = get @p l            ; {-# INLINE get #-}
-
-instance {-# OVERLAPPABLE #-}                           Setter' p (Stack t (p ': ls)) where set' a (SLayer _ s) = SLayer a s          ; {-# INLINE set' #-}
-instance {-# OVERLAPPABLE #-} Setter' p (Stack t ls) => Setter' p (Stack t (l ': ls)) where set' a (SLayer t s) = SLayer t (set' a s) ; {-# INLINE set' #-}
-
-
-
-
-
---------------------
--- === Layers === --
---------------------
-
--- === Definition === --
-
-type family LayerData l t
-
-newtype Layer t l = Layer (LayerData l t)
-makeWrapped ''Layer
-
-
--- === Families === --
-
-type family Layers q a :: [*]
-type        Layers'  a = Layers (Struct a) (Cfg2 a)
-
-
--- === Classes === --
-
-class Monad m => LayerCons l m where
-    consLayer :: forall t. LayerData Data t -> m (Layer t l)
-
-
--- === Isntances === --
-
-deriving instance Show (Unwrapped (Layer t l)) => Show (Layer t l)
-
-instance Default (Unwrapped (Layer t l)) => Default (Layer t l) where def = wrap' def ; {-# INLINE def #-}
-
-
-------------------------
--- === LayerStack === --
-------------------------
-
--- === Definition === --
-
-type    LayerStackBase t = Stack (Layer t)
-newtype LayerStack     t = LayerStack (LayerStackBase t (Layers' t))
-makeWrapped ''LayerStack
-
-
--- === Lenses === --
-
-class IsLayerStack a where
-    layerStack :: Iso' a (LayerStack a)
-    default layerStack :: (Wrapped a, Unwrapped a ~ LayerStack a) => Iso' a (LayerStack a)
-    layerStack = wrapped' ; {-# INLINE layerStack #-}
-
-
--- === StackCons === --
-
-type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
-class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStackBase t ls)
-instance Monad m              => StackCons '[]       m where consStack _ = return SNull                           ; {-# INLINE consStack #-}
-instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
-
-
--- === HasLayer === --
-
-type HasLayer' a layer = HasLayer (Struct a) (Cfg2 a) layer
-
-layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => Lens' a (LayerData layer a)
-layer = layerStack . wrapped' . layer' @(Struct a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
-
-class                                                        HasLayer q c layer where layer' :: forall t. Lens' (LayerStackBase t (Layers q c)) (LayerData layer t)
-instance {-# OVERLAPPABLE #-} Selector layer (Layers q c) => HasLayer q c layer where layer' = select @layer @(Layers q c) . wrapped' ; {-# INLINE layer' #-}
-instance {-# OVERLAPPABLE #-}                                HasLayer q I layer where layer' = impossible                             ; {-# INLINE layer' #-}
-
-type family HasLayers q c ls :: Constraint where
-            HasLayers q c '[]       = ()
-            HasLayers q c (l ': ls) = (HasLayer q c l, HasLayers q c ls)
-
-
--- === Instances === --
-
-deriving instance Show (Unwrapped (LayerStack t)) => Show (LayerStack t)
-
-type instance Get p (LayerStack t) = LayerData p t
-
--- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
-instance (Monad m, Constructor a m (Unwrapped (LayerStack t))) => Constructor a m (LayerStack t) where cons a = wrap' <$> cons a
 
 
 
@@ -680,6 +897,61 @@ instance                                                           SymbolEncoder
 instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
     encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------
+-- === Expr === --
+------------------
+
+type    AnyExpr2     = Expr2 Layout.Any
+newtype Expr2 layout = Expr2 Any
+makeWrapped ''Expr2
+
+type ExprStack2    t layout = LayerStack2 t (Expr2 layout)
+type AnyExprStack2 t        = ExprStack2 t Layout.Any
+
+
+type instance AstElem t (Expr2 layout) = ExprStack2 t layout
+instance      IsAst     (Expr2 layout)
+
+
+-- === Instances === --
+
+type instance Struct (Expr2 _) = AnyExpr2
+
+instance Show (Expr2 layout) where show _ = "Expr" ; {-# INLINE show #-}
+
+
+type instance LayerData Data (Expr2 layout) = TermStore
+instance Monad m => Constructor TermStore m (Layer (Expr2 layout) Data) where cons = return . Layer
+
+
+-- === Utils === --
+
+mkExpr2 :: (AstMonad m, SymbolEncoder atom, Constructor TermStore m (AnyExprStack2 (Cfg m)), expr ~ Expr2 layout, Referable2' expr m)
+        => ExprSymbol atom expr -> m (Ref2 expr)
+mkExpr2 = silentRef2' <=< expr2
+
+expr2 :: (AstMonad m, SymbolEncoder atom, Constructor TermStore m (AnyExprStack2 (Cfg m)), expr ~ Expr2 layout)
+      => ExprSymbol atom expr -> m expr
+expr2 a = fmap unsafeSpecifyLayout . fromAstElem =<< cons (encodeSymbol a)
+
+uniExprTypes2 :: (expr ~ Expr2 layout, sym ~ ExprSymbol atom expr) => Ast t expr -> sym -> sym
+uniExprTypes2 _ = id ; {-# INLINE uniExprTypes2 #-}
+
+unsafeSpecifyLayout :: AnyExpr2 -> Expr2 layout
+unsafeSpecifyLayout = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout #-}
 
 
 ------------------

@@ -16,7 +16,8 @@
 module Main where
 
 
-import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION)
+import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref2, read2)
+import qualified Data.Graph as G
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set)
 
@@ -95,7 +96,7 @@ import Luna.Syntax.Term.Expr hiding (Data, cons, unify, star)
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
-import qualified Luna.Syntax.Term.Expr.Class as TEST
+import qualified Luna.Syntax.Term.Expr.Class as Ast
 import Luna.Syntax.Term.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
@@ -149,7 +150,7 @@ data InfLayers = InfLayers
 type ElemLink = Link Elem Elem
 
 
-runCase :: Getter Data (Expr t layout) => Expr t layout -> [Prim.Any -> out] -> out
+runCase :: Getter Data (Ast t (Expr2 layout)) => Ast t (Expr2 layout) -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     d   = get @Data el
     s   = unwrap' $ get @Sym  d
@@ -157,8 +158,8 @@ runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
 {-# INLINE runCase #-}
 
 
-matchx :: expr ~ Expr t layout => expr -> (ExprSymbol atom expr -> b) -> x -> b
-matchx t f = rebind (f . uniExprTypes t) where
+matchx :: expr ~ Expr2 layout => Ast t expr -> (ExprSymbol atom expr -> b) -> x -> b
+matchx t f = rebind (f . uniExprTypes2 t) where
     rebind :: (a -> b) -> x -> b
     rebind f = f . unsafeCoerce ; {-# INLINE rebind #-}
 
@@ -228,7 +229,6 @@ instance ( MonadIO m
 
 
 
-type NetLayers   = '[Data, UID, Type, Succs]
 type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
 type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
 type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
@@ -282,20 +282,28 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 -- === Definition === --
 
 data Net = Net
-type instance Layers Elem Net = NetLayers
+
+type NetLayers   = '[Data, UID, Type, Succs]
+type instance Layers Elem     Net = NetLayers
 type instance Layers ElemLink Net = '[Data, UID]
 
-type instance Impl Ref Elem Net = Ref2 Node
-type instance Impl Ref ElemLink Net = Ref2 Edge
+type NetLayers2  = '[Data]
+type instance Layers AnyExpr2 Net = NetLayers2
+-- type instance Layers ElemLink Net = '[Data, UID]
+
+type instance Impl Ref Elem Net = G.Ref2 Node
+type instance Impl Ref ElemLink Net = G.Ref2 Edge
+
+type instance Impl Ref2 AnyExpr2 Net = G.Ref2 Node
+-- type instance Impl Ref ElemLink Net = G.Ref2 Edge
 
 
 -- === Instances === --
 
 -- Refs
 
-instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m) -- Generator m (Impl Ref (Cfg a) a))
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m)
       => Referable Elem Net m where
-    -- newRef' = Ref <$> new
     refDesc   = valOnly . Ref <∘> construct'  ; {-# INLINE refDesc   #-}
     readDesc  = readRef . unwrap'             ; {-# INLINE readDesc  #-}
     writeDesc = noVal <∘∘> writeRef . unwrap' ; {-# INLINE writeDesc #-}
@@ -316,6 +324,14 @@ instance Referable ElemLink Net ((->) Network3) where
     readDesc a t = evalGraphInplace (read' a) t ; {-# INLINE readDesc #-}
 
 
+-------
+
+
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m, AstMonad m)
+      => Referable2 AnyExpr2 Net m where
+    refDesc2   = fmap valOnly . fromAstElem <=< construct'           ; {-# INLINE refDesc2   #-}
+    readDesc2  = readRef <=< toAstElem                               ; {-# INLINE readDesc2  #-}
+    writeDesc2 ref a = noVal <$> (flip writeRef a =<< toAstElem ref) ; {-# INLINE writeDesc2 #-}
 
 
 
@@ -369,11 +385,11 @@ localTop :: ( Type.MonadTypeBuilder (Ref (AnyExpr t)) m, Constructor TermStore m
 localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
--- AST t (Expr layer)
--- AST t (Link' (Expr layer))
--- AST t (Group (Expr layer))
+-- ASTFunc t (Expr layer)
+-- ASTFunc t (Link' (Expr layer))
+-- ASTFunc t (Group (Expr layer))
 --
--- AST t (Ref (Expr layer))
+-- ASTFunc t (Ref (Expr layer))
 
 type ASTEvents t m = ( Register New (Ref (Expr t Draft)) m
                      , Register New (Ref (Link (Expr t Draft) (Expr t Draft))) m
@@ -409,7 +425,7 @@ type SymbolBuilder t layout m = ( ASTBuilder t m
 
 
 
-type AST t ast = ( ASTRefs t ((->) ast)
+type ASTFunc t ast = ( ASTRefs t ((->) ast)
                  , ASTBaseData t
                  )
 
@@ -482,12 +498,26 @@ star :: SymbolBuilder t layout m => m (Ref (Expr t (Set Atom Star layout)))
 star = build @(New (Ref Elem)) $ mkExpr (wrap' N.star')
 
 
+-- unify :: ASTBuilder m => Ref (Expr l) -> Ref (Expr l') -> m (Ref (Expr (Unify :>> (l <+> l'))))
 unify :: ASTBuilder t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = build @(New (Ref Elem)) $ mdo
     n  <- mkExpr (wrap' $ N.unify' la lb)
     la <- delayedLink (unsafeGeneralize a) n
     lb <- delayedLink (unsafeGeneralize b) n
     return n
+
+
+star2 :: ( AstMonad (Delayed m)
+         , Constructor TermStore (Delayed m) (AnyExprStack2 (Cfg m))
+         , expr ~ Expr2 (Set Atom Star layout)
+         , ref  ~ Ref2 expr
+         , Referable2' expr (Delayed m)
+         , Self.MonadSelfBuilder (Universal ref) (Delayed m)
+         , Event (New (Ref Elem)) m (Universal ref)
+         , Inferable2 Layout layout (Delayed m)
+         )
+      => m ref
+star2 = build @(New (Ref Elem)) $ mkExpr2 (wrap' N.star')
 
 
 build :: forall e m a. (Self.MonadSelfBuilder (Universal a) (Delayed m), Event e m (Universal a), Monad m)
@@ -521,6 +551,10 @@ type ANT' a n t = ANTLayout SimpleX a n t
 
 type Expr' cls a n t = Expr cls (ANT' a n t)
 type UntyppedExpr cls a n = Expr' cls a n Star
+
+
+type Expr2' a n t = Expr2 (ANT' a n t)
+type UntyppedExpr2 a n = Expr2' a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
@@ -638,13 +672,13 @@ test_gr =  layouted @ANT $ do
 
     es <- elems
     es' <- mapM read es
-
-    case' t of
-        Unify l r -> print "ppp"
-        Star      -> case' t of
-            Unify l r -> print "hello"
-            Star      -> print "hello3xx"
-        _         -> print "not found"
+    --
+    -- case' t of
+    --     Unify l r -> print "ppp"
+    --     Star      -> case' t of
+    --         Unify l r -> print "hello"
+    --         Star      -> print "hello3xx"
+    --     _         -> print "not found"
 
     --
     -- let { case_expr = t
@@ -661,13 +695,83 @@ test_gr =  layouted @ANT $ do
     print s1
     return s1
 
+test_gr2 :: forall t m n expr ref.
+         ( AstMonad (Delayed m)
+         , Constructor TermStore (Delayed m) (AnyExprStack2 (Cfg m))
+         , expr ~ UntyppedExpr2 Star ()
+         , ref  ~ Ref2 expr
+         , Referable2' expr (Delayed m)
+         , Referable2' expr m
+         , Self.MonadSelfBuilder (Universal ref) (Delayed m)
+         , Event (New (Ref Elem)) m (Universal ref)
+         , HasLayerM n AnyExpr2 Data
+         , AstMonad n
+         , m ~ Layouted ANT n
+         , MonadIO n
+         )
+        => n ref
+test_gr2 =  layouted @ANT $ do
+    (s1 :: Ref2 (UntyppedExpr2 Star            ())) <- star2
+    t <- read2 s1
+    s1' <- Ast.immerseVal t
+    -- d <- select @Data t
+    -- print d
+
+    case' s1' of
+        Unify l r -> print "ppp"
+        Star      -> case' s1' of
+            Unify l r -> print "hello"
+            Star      -> print "hello3xx"
+        _         -> print "not found"
+
+    let { case_expr = s1'
+    ;f1 = matchx case_expr $ \(ExprSymbol (Symbol.Unify l r)) -> print ala where
+        ala = 11
+    ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)        -> (print "hello3" )
+    } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
+
+    -- print s1'
+    return s1
+    -- (l,r) <- get @Data l
+-- markAst :: AstMonad m => a -> m (AstM m a)
+
+-- type Select   p m a =  Get    p (Ast.Immersed m a)
+-- type Selector p m a = (Getter p (Ast.Immersed m a), Immersable m a)
+
+-- select :: forall p m a. Selector p m a => a -> m (Select p m a)
+-- select = get @p <∘> Ast.immerseVal ; {-# INLINE select #-}
+
+test_g4 :: (MonadIO m, PrimMonad m, MonadFix m)
+        => m (Ast Net (Ref2 (UntyppedExpr2 Star ())), Network3)
+test_g4 = runNewGraphT
+        $ Event.suppressAll
+        $ flip Self.evalT undefined
+        $ flip Type.evalT Nothing
+        $ runInferenceT2 @TermType @Net
+        $ flip (D.evalT UID) (0 :: Int64)
+        $ listenAny @(Handler Data ) (handle @Data )
+        $ listenAny @(Handler UID  ) (handle @UID  )
+        $ listenAny @(Handler Type ) (handle @Type )
+        $ listenAny @(Handler Succs) (handle @Succs)
+        -- $ Delayed.eval'
+        $ runAstT
+        $ test_gr2
+
+
+
+
 
 instance Generalize (Compound SimpleX lst) Draft
 
 main :: IO ()
 main = do
 
-    -- let (s,g) = runST test_g3
+    (exprRef,g) <- test_g4
+    print exprRef
+
+    -- let expr = read2 exprRef g
+    -- print expr
+
     (s1,g) <- test_g3
     print s1
 
@@ -704,7 +808,7 @@ visNode el = Vis.Node header (get @UID el) 0 (fromList [header]) where
 visNode2 :: forall t g layout b.
             ( HasLayers Elem t '[UID, Type]
             , HasLayers ElemLink t '[UID]
-            , AST t g
+            , ASTFunc t g
 
             , FieldsC t layout -- FIXME[WD]: scratch implementation
 
