@@ -234,6 +234,8 @@ type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
 type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
 
 
+type instance CfgX Network3 = Net -- Fixme, we should always wrap graph in some structure providing the `t` arg (in thos case t = Net)
+
 
 
 
@@ -327,14 +329,16 @@ instance Referable ElemLink Net ((->) Network3) where
 -------
 
 
-instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, NoOutput m, AstMonad m)
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, AstMonad m)
       => Referable2 AnyExpr2 Net m where
-    refDesc2   = fmap valOnly . fromAstElem <=< construct'           ; {-# INLINE refDesc2   #-}
-    readDesc2  = readRef <=< toAstElem                               ; {-# INLINE readDesc2  #-}
-    writeDesc2 ref a = noVal <$> (flip writeRef a =<< toAstElem ref) ; {-# INLINE writeDesc2 #-}
+    refDesc2   = fromAstElem <=< construct' <=< liftAst ; {-# INLINE refDesc2   #-}
+    readDesc2  = readRef  . view astElem                ; {-# INLINE readDesc2  #-}
+    writeDesc2 = writeRef . view astElem                ; {-# INLINE writeDesc2 #-}
 
 
 
+
+type instance CfgX (ST s Int) = Net
 
 valOnly v = (Just' v, Nothing')
 noVal   _ = (Nothing', Nothing')
@@ -499,6 +503,7 @@ star = build @(New (Ref Elem)) $ mkExpr (wrap' N.star')
 
 
 -- unify :: ASTBuilder m => Ref (Expr l) -> Ref (Expr l') -> m (Ref (Expr (Unify :>> (l <+> l'))))
+-- unify :: ASTBuilder m => Ref (Expr l) t -> Ref (Expr l') t -> m (Ref (Expr (Unify :>> (l <+> l'))) t)
 unify :: ASTBuilder t m => Ref (Expr t l1) -> Ref (Expr t l2) -> m (Ref (Expr t (Unify :>> (l1 <+> l2))))
 unify a b = build @(New (Ref Elem)) $ mdo
     n  <- mkExpr (wrap' $ N.unify' la lb)
@@ -713,9 +718,9 @@ test_gr2 :: forall t m n expr ref.
 test_gr2 =  layouted @ANT $ do
     (s1 :: Ref2 (UntyppedExpr2 Star            ())) <- star2
     t <- read2 s1
-    s1' <- Ast.immerseVal t
-    -- d <- select @Data t
-    -- print d
+    s1' <- Ast.mark' t
+    d <- select @Data s1'
+    print d
 
     case' s1' of
         Unify l r -> print "ppp"
@@ -735,11 +740,12 @@ test_gr2 =  layouted @ANT $ do
     -- (l,r) <- get @Data l
 -- markAst :: AstMonad m => a -> m (AstM m a)
 
--- type Select   p m a =  Get    p (Ast.Immersed m a)
--- type Selector p m a = (Getter p (Ast.Immersed m a), Immersable m a)
+type Select   p m a =  Get    p (Ast.Marked m a)
+type Selector p m a = (Getter p (Ast.Marked m a), Markable m a)
 
--- select :: forall p m a. Selector p m a => a -> m (Select p m a)
--- select = get @p <∘> Ast.immerseVal ; {-# INLINE select #-}
+select :: forall p m a. Selector p m a => a -> m (Select p m a)
+select = get @p <∘> Ast.mark ; {-# INLINE select #-}
+
 
 test_g4 :: (MonadIO m, PrimMonad m, MonadFix m)
         => m (Ast Net (Ref2 (UntyppedExpr2 Star ())), Network3)
@@ -769,8 +775,6 @@ main = do
     (exprRef,g) <- test_g4
     print exprRef
 
-    -- let expr = read2 exprRef g
-    -- print expr
 
     (s1,g) <- test_g3
     print s1

@@ -225,7 +225,7 @@ type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
 
 
 
--- TODO: zamiast zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
+-- TODO: zamiastElem zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
 -- expr2 :: (Constructor a m (ExprStack t layers layout), expr ~ Expr t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
 -- expr2 a = Expr <$> cons a
 
@@ -273,7 +273,7 @@ type family Cfg2 a
 -----------------
 
 newtype AstT  t m a = AstT (IdentityT m a) deriving (Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-type    Ast   t     = AstT t Identity
+newtype Ast   t   a = Ast  a               deriving (Functor, Traversable, Foldable)
 type    AstMT   m   = AstT (Cfg m) m
 type    AstM    m   = Ast  (Cfg m)
 
@@ -281,25 +281,29 @@ type    AstM    m   = Ast  (Cfg m)
 
 type family AstElem t a
 
-type  IsAstM m a = (AstMonad m, IsAst a)
-class IsAst    a where
-    ast :: forall t. Iso' (AstElem t a) (Ast t a)
-    default ast :: forall t. Wrapped a => Iso' (AstElem t a) (Ast t a)
-    ast = unsafeCoerced ∘ from wrapped' ∘ unsafeAstIso ; {-# INLINE ast #-}
+type  IsAstElemM m a = (AstMonad m, IsAstElem a)
+class IsAstElem    a where
+    astElem :: forall t. Iso' (Ast t a) (AstElem t a)
+    default astElem :: forall t. Wrapped a => Iso' (Ast t a) (AstElem t a)
+    astElem = unsafeAstWrapped ∘ wrapped' ∘ unsafeCoerced ; {-# INLINE astElem #-}
 
-fromAstElem :: IsAstM m a => AstElem (Cfg m) a -> m a
-fromAstElem = liftAst . view ast ; {-# INLINE fromAstElem #-}
+fromAstElem :: IsAstElemM m a => AstElem (Cfg m) a -> m a
+fromAstElem = liftAst . view (from astElem) ; {-# INLINE fromAstElem #-}
 
-toAstElem :: (AstMonad m, IsAst a) => a -> m (AstElem (Cfg m) a)
-toAstElem = view (from ast) <∘> immerseVal ; {-# INLINE toAstElem #-}
+toAstElem :: (AstMonad m, IsAstElem a) => a -> m (AstElem (Cfg m) a)
+toAstElem = view astElem <∘> mark' ; {-# INLINE toAstElem #-}
 
 
 -- === AstMonad === ---
 
 -- FIXME[WD]: maybe we should relax a bit the Cfg definition?
 -- type instance Cfg (AstT t m) = t
+type family CfgX a
 type family Cfg (m :: * -> *) where
     Cfg (AstT t m) = t
+    Cfg (Ast  t)   = t
+    Cfg ((->) g)   = CfgX g
+    Cfg (ST s)     = CfgX (ST s Int) -- REMOVE ME
     Cfg (m t)      = Cfg t
 
 class Monad m => AstMonad m where
@@ -309,61 +313,51 @@ instance {-# OVERLAPPABLE #-} (MonadTrans t, AstMonad m, Monad (t m), Cfg m ~ Cf
     liftAst = lift . liftAst ; {-# INLINE liftAst #-}
 
 
--- === Ast immerse === ---
+-- === Ast mark === ---
 
-type family Immersed a where
-    Immersed (AstT m t a) = a
-    Immersed a            = a
---
-class                         Monad m                               => Immersable m  a            where immerse :: a -> m (AstM m (Immersed a))
--- instance {-# OVERLAPPABLE #-} (AstMonad m, Immersed m a ~ AstM m a) => Immersable m  a            where immerse = immerseVal ; {-# INLINE immerse #-}
--- instance {-# OVERLAPPABLE #-} (t ~ Cfg m, Monad m)                  => Immersable m (AstT t m' a) where immerse = runAstT  ; {-# INLINE immerse #-}
--- instance {-# OVERLAPPABLE #-} (t ~ Cfg m, Monad m)                  => Immersable m (Ast  t    a) where immerse = return   ; {-# INLINE immerse #-}
+type family AstVal a where
+    AstVal (Ast  _   a) = a
+    AstVal (AstT _ _ a) = a
+    AstVal a            = a
 
-immerseVal :: AstMonad m => a -> m (AstM m a)
-immerseVal = return . return ; {-# INLINE immerseVal #-}
+type Marked m a = AstM m (AstVal a)
 
--- immerseAst :: AstMonad m => AstMT m a -> m (AstM a)
--- immerseAst =
+class                          Monad m                    => Markable m a            where mark :: a -> m (Marked m a)
+instance {-# OVERLAPPABLE #-} (Monad m, AstVal a ~ a)     => Markable m a            where mark = return . Ast ; {-# INLINE mark #-}
+instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (Ast  t   a) where mark = return       ; {-# INLINE mark #-}
+instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (AstT t n a) where mark = runAstT      ; {-# INLINE mark #-}
 
-
-
--- type family Immersed2 a where
---     Immersed AstT _ _ a = a
---     Immersed a          = a
---
--- class                         Monad m                               => Immersable m  a            where immerse :: a -> m (AstM m (Immersed2 a))
--- instance {-# OVERLAPPABLE #-} (AstMonad m, Immersed m a ~ AstM m a) => Immersable m  a            where immerse = immerseVal ; {-# INLINE immerse #-}
--- instance {-# OVERLAPPABLE #-} (t ~ Cfg m, Monad m)                  => Immersable m (AstT t m' a) where immerse = return   ; {-# INLINE immerse #-}
+mark' :: AstMonad m => a -> m (AstM m a)
+mark' = return . Ast ; {-# INLINE mark' #-}
 
 
 
 -- === Running === --
 
+transform :: Monad m => Ast t a -> AstT t m a
+transform = return . unsafeAstUnwrap ; {-# INLINE transform #-}
+
 runAstT :: Functor m => AstT t m a -> m (Ast t a)
-runAstT = return <∘> unsafeRunAstT ; {-# INLINE runAstT #-}
+runAstT (AstT m) = Ast . runIdentityT m ; {-# INLINE runAstT #-}
 
-unsafeRunAstT :: AstT t m a -> m a
-unsafeRunAstT (AstT m) = runIdentityT m ; {-# INLINE unsafeRunAstT #-}
+unsafeAstUnwrap :: Ast t a -> a
+unsafeAstUnwrap (Ast a) = a ; {-# INLINE unsafeAstUnwrap #-}
 
-unsafeRunAst :: Ast t a -> a
-unsafeRunAst = runIdentity ∘ unsafeRunAstT ; {-# INLINE unsafeRunAst #-}
-
-unsafeAstIso :: Iso' a (Ast t a)
-unsafeAstIso = iso return unsafeRunAst ; {-# INLINE unsafeAstIso #-}
+unsafeAstWrapped :: Iso' (Ast t a) a
+unsafeAstWrapped = iso unsafeAstUnwrap Ast ; {-# INLINE unsafeAstWrapped #-}
 
 
 -- === Instances === --
 
 -- Show
-instance (Show (AstElem t a), IsAst a, HasConsName a) => Show (Ast t a) where
+instance (Show (AstElem t a), IsAstElem a, HasConsName a) => Show (Ast t a) where
     showsPrec d a = showParen (d > app_prec)
-                  $ showString (consName @a <> " ") . showsPrec (succ app_prec) (a ^. from ast)
+                  $ showString (consName @a <> " ") . showsPrec (succ app_prec) (a ^. astElem)
         where app_prec = 10
 
 -- AstMonad
 instance {-# OVERLAPPABLE #-} Monad m => AstMonad (AstT t m) where
-    liftAst = return . unsafeRunAst ; {-# INLINE liftAst #-}
+    liftAst = return . unsafeAstUnwrap ; {-# INLINE liftAst #-}
 
 -- PrimMonad
 instance PrimMonad m => PrimMonad (AstT t m) where
@@ -371,9 +365,9 @@ instance PrimMonad m => PrimMonad (AstT t m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 -- Properties
-type instance Get p (AstT t m a) = Get p (AstElem t a)
-instance (Getter p (AstElem t a), IsAst a) => Getter p (Ast t a) where
-    get = get @p . view (from ast) ; {-# INLINE get #-}
+type instance Get p (Ast t a) = Get p (AstElem t a)
+instance (Getter p (AstElem t a), IsAstElem a) => Getter p (Ast t a) where
+    get = get @p . view astElem ; {-# INLINE get #-}
 
 
 
@@ -585,43 +579,25 @@ type family Impl (f :: * -> *) i t :: * -> *
 -- Refs
 
 type Referable2' a m = Referable2 (Struct a) (Cfg m) m
-class (Monad m, IsResult m) => Referable2 i t m where
-    refDesc2     :: forall a. (i ~ Struct a, t ~ Cfg m) =>      a               -> ResultDesc  m (Ref2 a)
-    unrefDesc2   :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a               -> ResultDesc_ m
-    readDesc2    :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a               ->             m a
-    writeDesc2   :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a -> a          -> ResultDesc_ m
-    modifyMDesc2 :: forall a. (i ~ Struct a, t ~ Cfg m) => Ref2 a -> (a -> m a) -> ResultDesc_ m
-    modifyMDesc2 ref f = writeDesc2 ref =<< f =<< readDesc2 ref ; {-# INLINE modifyMDesc2 #-}
+class Monad m => Referable2 i t m where
+    refDesc2    :: forall a. (i ~ Struct a, t ~ Cfg m) => Ast t a                      -> m (Ref2 a)
+    unrefDesc2  :: forall a. (i ~ Struct a, t ~ Cfg m) => Ast t (Ref2 a)               -> m ()
+    readDesc2   :: forall a. (i ~ Struct a, t ~ Cfg m) => Ast t (Ref2 a)               -> m a
+    writeDesc2  :: forall a. (i ~ Struct a, t ~ Cfg m) => Ast t (Ref2 a) -> a          -> m ()
+    modifyDesc2 :: forall a. (i ~ Struct a, t ~ Cfg m) => Ast t (Ref2 a) -> (a -> m a) -> m ()
+    modifyDesc2 ref f = writeDesc2 ref =<< f =<< readDesc2 ref ; {-# INLINE modifyMDesc2 #-}
 
-silentRef2  :: Referable2' a m => a -> Result  m (Ref2 a)
-silentRef2' :: Referable2' a m => a ->         m (Ref2 a)
-silentRef2  = toResult ∘  refDesc2 ; {-# INLINE silentRef2  #-}
-silentRef2' = value   <∘> refDesc2 ; {-# INLINE silentRef2' #-}
+type AstValLike t m a = (Markable m t, AstVal t ~ a)
 
-unref2  :: Referable2' a m => Ref2 a -> Result_ m
-unref2' :: Referable2' a m => Ref2 a ->         m ()
-unref2  = toResult_ ∘  unrefDesc2 ; {-# INLINE unref2  #-}
-unref2' = value    <∘> unrefDesc2 ; {-# INLINE unref2' #-}
+silentRef2 :: (Referable2' a m, AstValLike t m a) => t -> m (Ref2 a)
+silentRef2 = refDesc2 <=< mark ; {-# INLINE silentRef2 #-}
 
-read2  :: Referable2' a m => Ref2 a -> m a
-read2' :: Referable2' a m => Ref2 a -> m a
-read2  = readDesc2 ; {-# INLINE read2  #-}
-read2' = readDesc2 ; {-# INLINE read2' #-}
+silentRef3 :: (Referable2' a m, AstValLike t m a) => t -> m (Ref2 a)
+silentRef3 = refDesc2 <=< mark ; {-# INLINE silentRef3 #-}
 
-write2  :: Referable2' a m => Ref2 a -> a -> Result_ m
-write2' :: Referable2' a m => Ref2 a -> a ->         m ()
-write2  = toResult_ ∘∘  writeDesc2 ; {-# INLINE write2  #-}
-write2' = value    <∘∘> writeDesc2 ; {-# INLINE write2' #-}
+read2  :: (Referable2' a m, AstValLike t m (Ref2 a)) => t -> m a
+read2  = readDesc2 <=< mark ; {-# INLINE read2  #-}
 
-modifyM2  :: Referable2' a m => Ref2 a -> (a -> m a) -> Result_ m
-modifyM2' :: Referable2' a m => Ref2 a -> (a -> m a) ->         m ()
-modifyM2  = toResult_ ∘∘  modifyMDesc2 ; {-# INLINE modifyM2  #-}
-modifyM2' = value    <∘∘> modifyMDesc2 ; {-# INLINE modifyM2' #-}
-
-modify2  :: Referable2' a m => Ref2 a -> (a -> a) -> Result_ m
-modify2' :: Referable2' a m => Ref2 a -> (a -> a) ->         m ()
-modify2  ref = modifyM2  ref ∘ fmap return ; {-# INLINE modify2  #-}
-modify2' ref = modifyM2' ref ∘ fmap return ; {-# INLINE modify2' #-}
 
 
 -- === Instances === --
@@ -634,7 +610,7 @@ instance HasConsName (Ref2 a) where consName = "Ref"
 
 -- AST
 type instance AstElem t (Ref2 a) = Impl Ref2 (Struct a) t a
-instance IsAst (Ref2 a)
+instance IsAstElem (Ref2 a)
 
 -- Struct
 type instance Struct (Ref2 a) = Ref2 (Struct a)
@@ -923,7 +899,7 @@ type AnyExprStack2 t        = ExprStack2 t Layout.Any
 
 
 type instance AstElem t (Expr2 layout) = ExprStack2 t layout
-instance      IsAst     (Expr2 layout)
+instance      IsAstElem     (Expr2 layout)
 
 
 -- === Instances === --
@@ -941,7 +917,7 @@ instance Monad m => Constructor TermStore m (Layer (Expr2 layout) Data) where co
 
 mkExpr2 :: (AstMonad m, SymbolEncoder atom, Constructor TermStore m (AnyExprStack2 (Cfg m)), expr ~ Expr2 layout, Referable2' expr m)
         => ExprSymbol atom expr -> m (Ref2 expr)
-mkExpr2 = silentRef2' <=< expr2
+mkExpr2 = silentRef2 <=< expr2
 
 expr2 :: (AstMonad m, SymbolEncoder atom, Constructor TermStore m (AnyExprStack2 (Cfg m)), expr ~ Expr2 layout)
       => ExprSymbol atom expr -> m expr
