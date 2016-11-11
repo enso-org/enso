@@ -11,11 +11,11 @@ import Data.Reprx
 
 -- === Definition pragmas === --
 
-define name = {{
+define cname name = {{
 
-data Atom_{name}
-type {name} = Atomic Atom_{name}
-type instance TypeRepr Atom_{name} = "{name}"
+data {cname}
+type {name} = Atomic {cname}
+type instance TypeRepr {cname} = "{name}"
 
 }}
 
@@ -38,17 +38,17 @@ type instance TypeRepr (Atomic a) = TypeRepr a
 
 -- === Atoms === --
 
-define Integer
-define Rational
-define String
-define Acc
-define App
-define Blank
-define Cons
-define Lam
-define Match
-define Missing
-define Native
-define Star
-define Unify
-define Var
+define INTEGER  Integer
+define RATIONAL Rational
+define STRING   String
+define ACC      Acc
+define APP      App
+define BLANK    Blank
+define CONS     Cons
+define LAM      Lam
+define MATCH    Match
+define MISSING  Missing
+define NATIVE   Native
+define STAR     Star
+define UNIFY    Unify
+define VAR      Var

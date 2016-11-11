@@ -19,11 +19,11 @@ import Data.Reprx
 
 -- === Definition pragmas === --
 
-define name = {{
+define cname name = {{
 
-data Form_{name}
-type {name} = Form Form_{name}
-type instance TypeRepr Form_{name} = "{name}"
+data {cname}
+type {name} = Form {cname}
+type instance TypeRepr {cname} = "{name}"
 
 }}
 
@@ -33,11 +33,11 @@ type instance TypeRepr Form_{name} = "{name}"
 data Form a
 type Formats = '[Literal, Value, Thunk, Phrase, Draft]
 
-define Literal
-define Value
-define Thunk
-define Phrase
-define Draft
+define LITERAL Literal
+define VALUE   Value
+define THUNK   Thunk
+define PHRASE  Phrase
+define DRAFT   Draft
 
 
 -- === Selectors === --
