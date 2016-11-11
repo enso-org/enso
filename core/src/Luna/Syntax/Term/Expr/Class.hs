@@ -75,7 +75,7 @@ import Data.Phantom
 import Unsafe.Coerce     (unsafeCoerce)
 import Type.Relation (SemiSuper)
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
-import Luna.Syntax.Term.Expr.Layout (Layout, Name, Generalize, Universal)
+import Luna.Syntax.Term.Expr.Layout (Layout, LayoutOf, Name, Generalize, Universal)
 import Type.Inference
 
 import qualified Data.Set as Data (Set)
@@ -223,8 +223,8 @@ type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
 
 
 -- TODO: zamidefinition zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
--- expr2 :: (Constructor a m (ExprStack t layers layout), expr ~ Expr t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
--- expr2 a = Expr <$> cons a
+-- expr :: (Constructor a m (ExprStack t layers layout), expr ~ Expr t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
+-- expr a = Expr <$> cons a
 
 -- | The `expr` type does not force the construction to be checked,
 --   because it has to be already performed in order to deliver ExprSymbol.
@@ -663,7 +663,7 @@ type instance Get Sym    (ExprSymbol atom t) = ExprSymbol atom t
 
 instance Getter Sym (ExprSymbol atom t) where get = id ; {-# INLINE get #-}
 
-instance ValidateLayout (Get Layout t) Atom atom
+instance ValidateLayout (LayoutOf t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
@@ -719,14 +719,16 @@ makeWrapped ''Expr
 -- === Instances === --
 
 -- Struct
-type instance Struct (Expr layout) = Ident (Expr layout)
+type instance Universal (Expr _)      = UniExpr
+type instance Struct    (Expr layout) = Ident (Expr layout)
+type instance Sub     s (Expr layout) = Expr (Sub s layout)
 
 -- Repr
 instance Show (Expr layout) where show = show . unwrap' ; {-# INLINE show #-}
 
-type instance Sub s (Expr layout) = Expr (Sub s layout)
+-- Properties
+type instance LayoutOf (Expr layout) = layout
 
-type instance Universal (Expr _) = UniExpr
 
 -- === Utils === --
 
@@ -738,21 +740,26 @@ unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
 
 
 
+anyLayout3 :: Ref (Expr layout) -> Ref (Expr Layout.Any)
+anyLayout3 = unsafeCoerce
+
+
 --- TO REMOVE
 --- vvvvvvvvv
 
 data EXPR
-type instance Ident (Expr _) = EXPR
+type instance Ident    (Expr _) = EXPR
 type instance TypeRepr (Expr _) = "Expr"
 
 
-mkExpr :: (AsgMonad m, SymbolEncoder atom, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)), expr ~ Expr layout, Referable' expr m)
-        => ExprSymbol atom expr -> m (Ref expr)
-mkExpr = silentRef <=< expr2 ; {-# INLINE mkExpr #-}
+type ExprCons'       m = (AsgMonad m, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)))
+type SilentExprCons  m = (ExprCons' m, Referable EXPR (Cfg m) m)
 
-expr2 :: (AsgMonad m, SymbolEncoder atom, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)), expr ~ Expr layout)
-      => ExprSymbol atom expr -> m expr
-expr2 a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE expr2 #-}
+silentExpr :: (SilentExprCons m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
+silentExpr = silentRef <=< expr' ; {-# INLINE silentExpr #-}
+
+expr' :: (ExprCons' m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
+expr' a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE expr' #-}
 
 --- ^^^^^^^^^
 --- TO REMOVE
@@ -1032,8 +1039,8 @@ expr2 a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ;
 --
 -- -- === Utils === --
 --
--- mkExpr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout, Referable' expr m) => ExprSymbol atom expr -> m (Ref expr)
--- mkExpr = silentRef' <=< expr
+-- silentExpr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout, Referable' expr m) => ExprSymbol atom expr -> m (Ref expr)
+-- silentExpr = silentRef' <=< expr
 --
 --
 -- expr :: (SymbolEncoder atom, Constructor TermStore m (AnyExprStack t), expr ~ Expr t layout) => ExprSymbol atom expr -> m expr

@@ -177,13 +177,15 @@ data UID = UID deriving (Show)
 
 type instance LayerData UID t = Int64
 
+instance (Monad m, D.MonadState UID (LayerData UID expr) m) => LayerCons UID m where
+    consLayer _ = Layer <$> D.modify UID (\s -> (succ s, s))
+
 -- FIXME [WD]: Remove when moving out from constructors
 instance (D.MonadState UID (LayerData UID expr) m, Monad m)
       => Constructor a m (Layer expr UID) where
     cons _ = Layer <$> D.modify UID (\s -> (succ s, s))
 
-instance (Monad m, D.MonadState UID (LayerData UID expr) m) => LayerCons UID m where
-    consLayer _ = Layer <$> D.modify UID (\s -> (succ s, s))
+
 
 
 -- === Data layer === --
@@ -193,18 +195,49 @@ instance Monad m => LayerCons Data m where
 
 
 
+-- === Type layer === --
+
+type instance LayerData Type t = SubLink Type t
+
+
+instance (
+        --  , Linkable ElemLink t m
+        --  , Referable ElemLink t m
+        --  , Referable Elemx t m
+
+           Self.MonadSelfBuilder (Ref UniExpr) m
+         , Type.MonadTypeBuilder (Ref AnyExpr) m
+        --  , Constructor TermStore m (AnyExprStack t)
+         , MonadFix m
+         , SilentExprCons m
+         , MonadDelayed n m
+         , Register New (Ref (Link' UniExpr)) n
+         , StackCons (Layers (Link' EXPR) (Cfg m)) m
+         , Referable (Link' EXPR) (Cfg m) m
+
+         ) => Constructor TermStore m (Layer AnyExpr Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
+    cons _ = do
+        self <- anyLayout3 <$> Self.get
+        top  <- localTop
+        l    <- delayedLink top self
+        -- dispatch @(New CONNECTION) (universal la)
+        return $ Layer l
+
+
+
 
 -- === Succs layer === --
 
 data Succs = Succs deriving (Show)
 
--- type instance LayerData Succs t = S.Set (Ref (Universal t))
---
--- instance Monad m => LayerCons Succs m where
---     consLayer _ = return def ; {-# INLINE consLayer #-}
---
--- instance Monad m => Constructor a m (Layer expr Succs) where
---     cons _ = Layer <$> return def ; {-# INLINE cons #-}
+type instance LayerData Succs t = S.Set (Ref (Universal t))
+
+instance Monad m => LayerCons Succs m where
+    consLayer _ = return def ; {-# INLINE consLayer #-}
+
+instance Monad m => Constructor a m (Layer expr Succs) where
+    cons _ = Layer <$> return def ; {-# INLINE cons #-}
+
 --
 -- instance ( MonadIO m
 --          , HasLayer Elemx t UID
@@ -285,11 +318,8 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 data Net = Net
 
--- type NetLayers   = '[Data, UID, Type, Succs]
-type NetLayers2  = '[Data]
--- type instance Layers AnyExpr Net = NetLayers2 -- FIXME
-type instance Layers EXPR     Net = NetLayers2
-type instance Layers (Link' EXPR) Net = '[Data, UID]
+type instance Layers EXPR      Net = '[Data, UID, Type, Succs]
+type instance Layers (Link' _) Net = '[Data, UID]
 
 type instance Impl Ref EXPR Net = G.Ref2 Node
 type instance Impl Ref (Link' EXPR) Net = G.Ref2 Edge
@@ -333,32 +363,6 @@ fooe (x,y) = (Just' x, Just' y)
 
 
 
--- === Type layer === --
-
-type instance LayerData Type t = SubLink Type t
-
-
--- instance ( expr ~ AnyExpr t
---          , ref  ~ Ref expr
---          , Linkable ElemLink t m
---          , Referable ElemLink t m
---          , Referable Elemx t m
---
---          , Self.MonadSelfBuilder (Ref (Expr t Draft)) m
---          , Type.MonadTypeBuilder ref m
---          , Constructor TermStore m (AnyExprStack t), MonadFix m
---
---          , MonadDelayed n m
---          , Register New (Ref (Link (Expr t Draft) (Expr t Draft))) n
---
---          ) => Constructor TermStore m (Layer (AnyExpr t) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
---     cons _ = do
---         self <- anyLayout3 <$> Self.get
---         top  <- localTop
---         l    <- delayedLink top self
---         -- dispatch @(New CONNECTION) (universal la)
---         return $ Layer l
---
 
 
 
@@ -369,10 +373,9 @@ mfixType :: (Type.MonadTypeBuilder a m, MonadFix m) => m a -> m a
 mfixType f = mfix $ flip Type.with' f . Just
 
 --
--- localTop :: ( Type.MonadTypeBuilder (Ref (AnyExpr t)) m, Constructor TermStore m (AnyExprStack t)
---             , Self.MonadSelfBuilder (Ref (Expr t Draft)) m, MonadFix m, Referable Elemx t m)
---          => m (Ref (AnyExpr t))
--- localTop = Type.get >>= fromMaybeM (mfixType magicStar)
+localTop :: ( Type.MonadTypeBuilder (Ref AnyExpr) m, SilentExprCons m, Self.MonadSelfBuilder (Ref UniExpr) m )
+         => m (Ref AnyExpr)
+localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
 -- ASTFunc t (Expr layer)
@@ -431,11 +434,12 @@ mfixType f = mfix $ flip Type.with' f . Just
 
 
 
+magicStar :: (SilentExprCons m, Self.MonadSelfBuilder (Ref UniExpr) m)
+          => m (Ref AnyExpr)
+magicStar = Self.put . universal =<<& (silentExpr N.star')
 
--- magicStar :: ( AnyExprCons t m, Referable Elemx t m
---              , Self.MonadSelfBuilder (Ref (Expr t Draft)) m)
---           => m (Ref (AnyExpr t))
--- magicStar = Self.put . universal =<<& (expr N.star' >>= silentRef')
+-- expr' :: (ExprCons' m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
+
 
 
 type l <+> r = Merge l r
@@ -496,7 +500,7 @@ unify :: ( Register New (Ref UniExpr) m
           )
        => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
 unify a b = build @(New (Ref EXPR)) $ mdo
-    n  <- mkExpr (wrap' $ N.unify' la lb)
+    n  <- silentExpr (wrap' $ N.unify' la lb)
     la <- delayedLink (unsafeGeneralize a) n
     lb <- delayedLink (unsafeGeneralize b) n
     return n
@@ -512,7 +516,7 @@ star :: ( AsgMonad (Delayed m)
          , Inferable2 Layout layout (Delayed m)
          )
       => m ref
-star = build @(New (Ref EXPR)) $ mkExpr (wrap' N.star')
+star = build @(New (Ref EXPR)) $ silentExpr (wrap' N.star')
 
 
 build :: forall e m a. (Self.MonadSelfBuilder (Universal a) (Delayed m), Event e m (Universal a), Monad m)
@@ -540,7 +544,7 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
     -- nmagicStar :: (AnyExprCons t m, Referable Elemx t m) => m $ Ref (Expr t layout)
-    -- nmagicStar = mkExpr (wrap' N.star')
+    -- nmagicStar = silentExpr (wrap' N.star')
 
 
 type ANT' a n t = ANTLayout SimpleX a n t
@@ -706,6 +710,7 @@ test_gr2 :: forall t m n expr ref.
          , MonadIO n
          , StackCons (Layers (Link' EXPR) (Cfg m)) (Delayed m)
          , Self.MonadSelfBuilder (Ref UniExpr) n
+         , Show (Asg (Cfg m) (UntyppedExpr Star ()))
          )
         => n ref
 test_gr2 =  layouted @ANT $ do
@@ -718,8 +723,8 @@ test_gr2 =  layouted @ANT $ do
 
     t <- read s1
     s1' <- Asg.mark' t
-    -- d <- select @Data s1'
-    -- print d
+    d <- select @Data t
+    print s1'
 
     case' s1' of
         Unify l r -> print "ppp"

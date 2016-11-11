@@ -30,6 +30,7 @@ data Type
 ---------------------
 
 data Layout = Layout deriving (Show)
+type family LayoutOf a
 
 type family DefaultLayout (p :: k)
 
