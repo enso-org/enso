@@ -16,7 +16,7 @@
 module Main where
 
 
-import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref2, read2)
+import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
 import qualified Data.Graph as G
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set)
@@ -150,7 +150,7 @@ data InfLayers = InfLayers
 -- type ElemLink = Link Elemx Elemx
 
 
-runCase :: Getter Data (Asg t (Expr2 layout)) => Asg t (Expr2 layout) -> [Prim.Any -> out] -> out
+runCase :: Getter Data (Asg t (Expr layout)) => Asg t (Expr layout) -> [Prim.Any -> out] -> out
 runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
     d   = get @Data el
     s   = unwrap' $ get @Sym  d
@@ -158,7 +158,7 @@ runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
 {-# INLINE runCase #-}
 
 
-matchx :: expr ~ Expr2 layout => Asg t expr -> (ExprSymbol atom expr -> b) -> x -> b
+matchx :: expr ~ Expr layout => Asg t expr -> (ExprSymbol atom expr -> b) -> x -> b
 matchx t f = rebind (f . uniExprTypes2 t) where
     rebind :: (a -> b) -> x -> b
     rebind f = f . unsafeCoerce ; {-# INLINE rebind #-}
@@ -287,12 +287,12 @@ data Net = Net
 
 -- type NetLayers   = '[Data, UID, Type, Succs]
 type NetLayers2  = '[Data]
--- type instance Layers AnyExpr2 Net = NetLayers2 -- FIXME
+-- type instance Layers AnyExpr Net = NetLayers2 -- FIXME
 type instance Layers EXPR     Net = NetLayers2
-type instance Layers (Link2' EXPR) Net = '[Data, UID]
+type instance Layers (Link' EXPR) Net = '[Data, UID]
 
-type instance Impl Ref2 EXPR Net = G.Ref2 Node
-type instance Impl Ref2 (Link2' EXPR) Net = G.Ref2 Edge
+type instance Impl Ref EXPR Net = G.Ref2 Node
+type instance Impl Ref (Link' EXPR) Net = G.Ref2 Edge
 
 
 -- === Instances === --
@@ -314,16 +314,16 @@ type instance Impl Ref2 (Link2' EXPR) Net = G.Ref2 Edge
 
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, AsgMonad m)
-      => Referable2 EXPR Net m where
-    refDesc2   = fromDefinition <=< construct' <=< liftAsg ; {-# INLINE refDesc2   #-}
-    readDesc2  = readRef  . view definition                ; {-# INLINE readDesc2  #-}
-    writeDesc2 = writeRef . view definition                ; {-# INLINE writeDesc2 #-}
+      => Referable EXPR Net m where
+    refDesc   = fromDefinition <=< construct' <=< liftAsg ; {-# INLINE refDesc   #-}
+    readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
+    writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, AsgMonad m)
-      => Referable2 (Link2' EXPR) Net m where
-    refDesc2   = fromDefinition <=< construct' <=< liftAsg ; {-# INLINE refDesc2   #-}
-    readDesc2  = readRef  . view definition                ; {-# INLINE readDesc2  #-}
-    writeDesc2 = writeRef . view definition                ; {-# INLINE writeDesc2 #-}
+      => Referable (Link' EXPR) Net m where
+    refDesc   = fromDefinition <=< construct' <=< liftAsg ; {-# INLINE refDesc   #-}
+    readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
+    writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
 
 
 valOnly v = (Just' v, Nothing')
@@ -468,51 +468,51 @@ register a = dispatch_ @(t (Struct a)) (universal a) ; {-# INLINE register #-}
     --     delay $ register @New r
     --     return r
 
-link2 :: (Linkable2' src tgt m, Referable2' (Link2 src tgt) m, Register New (Ref2 (Link2 src tgt)) m) => Ref2 src -> Ref2 tgt -> m (Ref2 (Link2 src tgt))
+link2 :: (Linkable2' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
 link2 a b = do
-    r <- silentRef2 =<< link2' a b
+    r <- silentRef =<< link2' a b
     register @New r
     return r
 {-# INLINE link2 #-}
 
-delayedLink2 :: forall src tgt n m. (Linkable2' src tgt m, Referable2' (Link2 src tgt) m, Register New (Ref2 (Link2 src tgt)) n, MonadDelayed n m)
-             => Ref2 src -> Ref2 tgt -> m (Ref2 (Link2 src tgt))
-delayedLink2 a b = mdo
-    r <- silentRef2 =<< link2' a b
+delayedLink :: forall src tgt n m. (Linkable2' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) n, MonadDelayed n m)
+             => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+delayedLink a b = mdo
+    r <- silentRef =<< link2' a b
     delay $ register @New r
     return r
-{-# INLINE delayedLink2 #-}
+{-# INLINE delayedLink #-}
 
 
-unify2 :: ( Register New (Ref2 UniExpr2) m
-          , Register New (Ref2 (Link2' UniExpr2)) m
-          , Self.MonadSelfBuilder (Ref2 UniExpr2) m
-          , Referable2 EXPR (Cfg m) (Delayed m)
-          , Referable2 (Link2' EXPR) (Cfg m) (Delayed m)
+unify :: ( Register New (Ref UniExpr) m
+          , Register New (Ref (Link' UniExpr)) m
+          , Self.MonadSelfBuilder (Ref UniExpr) m
+          , Referable EXPR (Cfg m) (Delayed m)
+          , Referable (Link' EXPR) (Cfg m) (Delayed m)
           , AsgMonad (Delayed m)
-          , Constructor TermStore (Delayed m) (Definition (Cfg m) AnyExpr2)
+          , Constructor TermStore (Delayed m) (Definition (Cfg m) AnyExpr)
           , AsgMonad (Delayed m)
-          , StackCons (Layers (Link2 EXPR EXPR) (Cfg m)) (Delayed m) -- linkable?
+          , StackCons (Layers (Link EXPR EXPR) (Cfg m)) (Delayed m) -- linkable?
           )
-       => Ref2 (Expr2 l) -> Ref2 (Expr2 r) -> m (Ref2 (Expr2 (Unify :>> (l <+> r))))
-unify2 a b = build @(New (Ref2 EXPR)) $ mdo
-    n  <- mkExpr2 (wrap' $ N.unify' la lb)
-    la <- delayedLink2 (unsafeGeneralize a) n
-    lb <- delayedLink2 (unsafeGeneralize b) n
+       => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
+unify a b = build @(New (Ref EXPR)) $ mdo
+    n  <- mkExpr (wrap' $ N.unify' la lb)
+    la <- delayedLink (unsafeGeneralize a) n
+    lb <- delayedLink (unsafeGeneralize b) n
     return n
 
 
-star2 :: ( AsgMonad (Delayed m)
-         , Constructor TermStore (Delayed m) (Definition (Cfg m) AnyExpr2)
-         , expr ~ Expr2 (Set Atom Star layout)
-         , ref  ~ Ref2 expr
-         , Referable2' expr (Delayed m)
+star :: ( AsgMonad (Delayed m)
+         , Constructor TermStore (Delayed m) (Definition (Cfg m) AnyExpr)
+         , expr ~ Expr (Set Atom Star layout)
+         , ref  ~ Ref expr
+         , Referable' expr (Delayed m)
          , Self.MonadSelfBuilder (Universal ref) (Delayed m)
-         , Event (New (Ref2 EXPR)) m (Universal ref)
+         , Event (New (Ref EXPR)) m (Universal ref)
          , Inferable2 Layout layout (Delayed m)
          )
       => m ref
-star2 = build @(New (Ref2 EXPR)) $ mkExpr2 (wrap' N.star')
+star = build @(New (Ref EXPR)) $ mkExpr (wrap' N.star')
 
 
 build :: forall e m a. (Self.MonadSelfBuilder (Universal a) (Delayed m), Event e m (Universal a), Monad m)
@@ -530,8 +530,8 @@ build m = Delayed.eval' $ mdo
 
 type family   UnsafeGeneralizable a b :: Constraint
 
-type instance UnsafeGeneralizable (Ref2 a) (Ref2 b) = UnsafeGeneralizable a b
-type instance UnsafeGeneralizable (Expr2 l) (Expr2 l') = ()
+type instance UnsafeGeneralizable (Ref a) (Ref b) = UnsafeGeneralizable a b
+type instance UnsafeGeneralizable (Expr l) (Expr l') = ()
 
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
 unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
@@ -546,8 +546,8 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 type ANT' a n t = ANTLayout SimpleX a n t
 
 
-type Expr2' a n t = Expr2 (ANT' a n t)
-type UntyppedExpr2 a n = Expr2' a n Star
+type Expr' a n t = Expr (ANT' a n t)
+type UntyppedExpr a n = Expr' a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
@@ -690,33 +690,33 @@ instance {-# OVERLAPPABLE #-} Monad m => Handler layer event a m where handle _ 
 
 test_gr2 :: forall t m n expr ref.
          ( AsgMonad (Delayed m)
-         , Constructor TermStore (Delayed m) (Definition (Cfg m) AnyExpr2)
-         , expr ~ UntyppedExpr2 Star ()
-         , ref  ~ Ref2 expr
-         , Referable2' expr (Delayed m)
-         , Referable2' expr m
-         , Referable2 (Link2' EXPR) (Cfg m) (Delayed m)
+         , Constructor TermStore (Delayed m) (Definition (Cfg m) AnyExpr)
+         , expr ~ UntyppedExpr Star ()
+         , ref  ~ Ref expr
+         , Referable' expr (Delayed m)
+         , Referable' expr m
+         , Referable (Link' EXPR) (Cfg m) (Delayed m)
          , Self.MonadSelfBuilder (Universal ref) (Delayed m)
-         , Register New (Ref2 UniExpr2) m
-         , Register New (Ref2 (Link2' UniExpr2)) m
-         , Event (New (Ref2 EXPR)) m (Universal ref)
-         , HasLayer2 (Cfg n) EXPR Data
+         , Register New (Ref UniExpr) m
+         , Register New (Ref (Link' UniExpr)) m
+         , Event (New (Ref EXPR)) m (Universal ref)
+         , HasLayer (Cfg n) EXPR Data
          , AsgMonad n
          , m ~ Layouted ANT n
          , MonadIO n
-         , StackCons (Layers (Link2' EXPR) (Cfg m)) (Delayed m)
-         , Self.MonadSelfBuilder (Ref2 UniExpr2) n
+         , StackCons (Layers (Link' EXPR) (Cfg m)) (Delayed m)
+         , Self.MonadSelfBuilder (Ref UniExpr) n
          )
         => n ref
 test_gr2 =  layouted @ANT $ do
-    (s1 :: Ref2 (UntyppedExpr2 Star            ())) <- star2
-    (s2 :: Ref2 (UntyppedExpr2 Star            ())) <- star2
-    (u1 :: Ref2 (UntyppedExpr2 (Unify :> Star) ())) <- unify2 s1 s2
-    u2 <- unify2 s1 u1
-    u3 <- unify2 s2 u1
-    u4 <- unify2 u2 u3
+    (s1 :: Ref (UntyppedExpr Star            ())) <- star
+    (s2 :: Ref (UntyppedExpr Star            ())) <- star
+    (u1 :: Ref (UntyppedExpr (Unify :> Star) ())) <- unify s1 s2
+    u2 <- unify s1 u1
+    u3 <- unify s2 u1
+    u4 <- unify u2 u3
 
-    t <- read2 s1
+    t <- read s1
     s1' <- Asg.mark' t
     -- d <- select @Data s1'
     -- print d
@@ -747,7 +747,7 @@ select = get @p <∘> Asg.mark ; {-# INLINE select #-}
 
 
 test_g4 :: (MonadIO m, PrimMonad m, MonadFix m)
-        => m (Asg Net (Ref2 (UntyppedExpr2 Star ())), Network3)
+        => m (Asg Net (Ref (UntyppedExpr Star ())), Network3)
 test_g4 = runNewGraphT
         $ Event.suppressAll
         $ flip Self.evalT undefined

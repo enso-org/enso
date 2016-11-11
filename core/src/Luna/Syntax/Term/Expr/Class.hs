@@ -94,10 +94,6 @@ type family Struct a
 -- type instance Get Format   (Layout dyn form) = form
 
 
-class HasConsName a where
-    consName :: P.String
-
-
 
 unsafeCoerced :: Iso' a b
 unsafeCoerced = iso unsafeCoerce unsafeCoerce ; {-# INLINE unsafeCoerced #-}
@@ -257,14 +253,20 @@ type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
 -- === Properties === --
 
 -- TODO: refactor
-data Data     = Data     deriving (Show)
 data System   = System   deriving (Show)
 data TermType = TermType deriving (Show)
 
 
+------------------------
+-- === Data Layer === --
+------------------------
+
+data Data = Data deriving (Show)
+
+instance {-# OVERLAPPABLE #-} (Monad m, a ~ LayerData Data t) => Constructor a m (Layer t Data) where
+    cons = return . Layer ; {-# INLINE cons #-}
 
 
-type family Cfg2 a
 
 
 
@@ -334,14 +336,10 @@ instance {-# OVERLAPPABLE #-} Setter' p (Stack t ls) => Setter' p (Stack t (l ':
 
 type family LayerData l t
 
-newtype Layer t l = Layer (LayerData l t)
-makeWrapped ''Layer
-
-
--- === Families === --
-
+newtype     Layer  t l = Layer (LayerData l t)
 type family Layers q a :: [*]
-type        Layers'  a = Layers (Struct a) (Cfg2 a)
+
+makeWrapped ''Layer
 
 
 -- === Classes === --
@@ -352,25 +350,27 @@ class Monad m => LayerCons l m where
 
 -- === Isntances === --
 
-deriving instance Show (Unwrapped (Layer t l)) => Show (Layer t l)
+deriving instance Show (Unwrapped (Layer t l))
+      => Show (Layer t l)
 
-instance Default (Unwrapped (Layer t l)) => Default (Layer t l) where def = wrap' def ; {-# INLINE def #-}
+instance Default (Unwrapped (Layer t l))
+      => Default (Layer t l) where def = wrap' def ; {-# INLINE def #-}
 
 
 ------------------------
 -- === LayerStack === --
 ------------------------
 
-type    LayerStackBase t = Stack (Layer t)
-newtype LayerStack2    t a = LayerStack2 (LayerStackBase a (Layers (Struct a) t))
-makeWrapped ''LayerStack2
+type    LayerStackBase t   = Stack (Layer t)
+newtype LayerStack     t a = LayerStack (LayerStackBase a (Layers (Struct a) t))
+makeWrapped ''LayerStack
 
 
 -- === Lenses === --
 
--- class IsLayerStack2 a where
---     layerStack2 :: Iso' a (LayerStack2 a)
---     default layerStack2 :: (Wrapped a, Unwrapped a ~ LayerStack2 a) => Iso' a (LayerStack2 a)
+-- class IsLayerStack a where
+--     layerStack2 :: Iso' a (LayerStack a)
+--     default layerStack2 :: (Wrapped a, Unwrapped a ~ LayerStack a) => Iso' a (LayerStack a)
 --     layerStack2 = wrapped' ; {-# INLINE layerStack2 #-}
 --
 --
@@ -378,8 +378,8 @@ makeWrapped ''LayerStack2
 
 -- type LayerStackCons m a = StackCons (Layers (Struct a) (Cfg m)) m
 --
--- consLayerStack :: LayerStackCons m a => LayerData Data a -> m (LayerStack2 (Cfg m) a)
-consLayerStack a = LayerStack2 <$> consStack a
+-- consLayerStack :: LayerStackCons m a => LayerData Data a -> m (LayerStack (Cfg m) a)
+consLayerStack a = LayerStack <$> consStack a
 
 type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
 class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStackBase t ls)
@@ -391,26 +391,26 @@ instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLaye
 --
 -- type HasLayer' a layer = HasLayer (Struct a) (Cfg2 a) layer
 --
--- layer :: forall layer a. (HasLayer' a layer, IsLayerStack2 a) => Lens' a (LayerData layer a)
+-- layer :: forall layer a. (HasLayer' a layer, IsLayerStack a) => Lens' a (LayerData layer a)
 -- layer = layerStack2 . wrapped' . layer' @(Struct a) @(Cfg2 a) @layer ; {-# INLINE layer #-}
 --
-class                                                        HasLayer2 t q layer where layer2' :: forall a. Lens' (LayerStackBase a (Layers q t)) (LayerData layer a)
-instance {-# OVERLAPPABLE #-} StackHasLayer layer (Layers q t) => HasLayer2 t q layer where layer2' = stackLayer @layer @(Layers q t) . wrapped' ; {-# INLINE layer2' #-}
-instance {-# OVERLAPPABLE #-}                                HasLayer2 I q layer where layer2' = impossible                             ; {-# INLINE layer2' #-}
+class                                                             HasLayer t q layer where layer2' :: forall a. Lens' (LayerStackBase a (Layers q t)) (LayerData layer a)
+instance {-# OVERLAPPABLE #-} StackHasLayer layer (Layers q t) => HasLayer t q layer where layer2' = stackLayer @layer @(Layers q t) . wrapped' ; {-# INLINE layer2' #-}
+instance {-# OVERLAPPABLE #-}                                     HasLayer I q layer where layer2' = impossible                             ; {-# INLINE layer2' #-}
 
-type HasLayers2 t q ls = Constraints (HasLayer2 t q <$> ls)
+type HasLayers t q ls = Constraints (HasLayer t q <$> ls)
 
 
 -- -- === Instances === --
 
-deriving instance Show (Unwrapped (LayerStack2 t a)) => Show (LayerStack2 t a)
+deriving instance Show (Unwrapped (LayerStack t a)) => Show (LayerStack t a)
 
-type instance Get p (LayerStack2 t a) = LayerData p a
-instance HasLayer2 t (Struct a) p => Getter p (LayerStack2 t a) where
+type instance Get p (LayerStack t a) = LayerData p a
+instance HasLayer t (Struct a) p => Getter p (LayerStack t a) where
     get = view (layer2' @t @(Struct a) @p) . unwrap'
 
 -- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
-instance (Monad m, Constructor v m (Unwrapped (LayerStack2 t a))) => Constructor v m (LayerStack2 t a) where cons a = wrap' <$> cons a
+instance (Monad m, Constructor v m (Unwrapped (LayerStack t a))) => Constructor v m (LayerStack t a) where cons a = wrap' <$> cons a
 
 
 
@@ -467,25 +467,20 @@ toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
 
 -- === AsgMonad === ---
 
+class                         Monad m           => AsgMonad m          where liftAsg :: forall a. Asg (Cfg m) a -> m a
+instance {-# OVERLAPPABLE #-} Monad m           => AsgMonad (AsgT t m) where liftAsg = return . unsafeAsgUnwrap ; {-# INLINE liftAsg #-}
+instance {-# OVERLAPPABLE #-} AsgMonadTrans t m => AsgMonad (t      m) where liftAsg = lift . liftAsg           ; {-# INLINE liftAsg #-}
+
+type AsgMonadTrans t m = (AsgMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m))
+
 -- FIXME[WD]: maybe we should relax a bit the Cfg definition?
 type family Cfg (m :: * -> *) where
     Cfg (AsgT t m) = t
     Cfg (Asg  t)   = t
     Cfg (m t)      = Cfg t
 
-class Monad m => AsgMonad m where
-    liftAsg :: forall a. Asg (Cfg m) a -> m a
-
-instance {-# OVERLAPPABLE #-} (MonadTrans t, AsgMonad m, Monad (t m), Cfg m ~ Cfg (t m)) => AsgMonad (t m) where
-    liftAsg = lift . liftAsg ; {-# INLINE liftAsg #-}
-
 
 -- === Asg mark === ---
-
-type family AsgVal a where
-    AsgVal (Asg  _   a) = a
-    AsgVal (AsgT _ _ a) = a
-    AsgVal a            = a
 
 type Marked m a = AsgM m (AsgVal a)
 
@@ -493,6 +488,11 @@ class                          Monad m                    => Markable m a       
 instance {-# OVERLAPPABLE #-} (Monad m, AsgVal a ~ a)     => Markable m a            where mark = return . Asg ; {-# INLINE mark #-}
 instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (Asg  t   a) where mark = return       ; {-# INLINE mark #-}
 instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (AsgT t n a) where mark = runAsgT      ; {-# INLINE mark #-}
+
+type family AsgVal a where
+    AsgVal (Asg  _   a) = a
+    AsgVal (AsgT _ _ a) = a
+    AsgVal a            = a
 
 mark' :: AsgMonad m => a -> m (AsgM m a)
 mark' = return . Asg ; {-# INLINE mark' #-}
@@ -516,14 +516,8 @@ unsafeAsgWrapped = iso unsafeAsgUnwrap Asg ; {-# INLINE unsafeAsgWrapped #-}
 -- === Instances === --
 
 -- Show
-instance (Show (Definition t a), IsElem a, HasConsName a) => Show (Asg t a) where
-    showsPrec d a = showParen (d > app_prec)
-                  $ showString (consName @a <> " ") . showsPrec (succ app_prec) (a ^. definition)
-        where app_prec = 10
-
--- AsgMonad
-instance {-# OVERLAPPABLE #-} Monad m => AsgMonad (AsgT t m) where
-    liftAsg = return . unsafeAsgUnwrap ; {-# INLINE liftAsg #-}
+instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (Asg t a) where
+    showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
 
 -- PrimMonad
 instance PrimMonad m => PrimMonad (AsgT t m) where
@@ -543,58 +537,57 @@ instance (Getter p (Definition t a), IsElem a) => Getter p (Asg t a) where
 
 -- === Definition === --
 
-newtype Ref2 a = Ref2 (Elem (Ref2 a))
+newtype Ref a = Ref (Elem (Ref a))
+
+type instance Definition t (Ref a) = Impl Ref (Struct a) t a
+instance      IsElem       (Ref a)
 
 type family Impl (f :: * -> *) i t :: * -> *
-type instance Definition t (Ref2 a) = Impl Ref2 (Struct a) t a
-instance      IsElem       (Ref2 a)
 
-makeWrapped ''Ref2
+makeWrapped ''Ref
 
 
 --- === Operations === --
 
 -- Refs
 
-type Referable2' a m = Referable2 (Struct a) (Cfg m) m
-class Monad m => Referable2 i t m where
-    refDesc2    :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t a                      -> m (Ref2 a)
-    unrefDesc2  :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref2 a)               -> m ()
-    readDesc2   :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref2 a)               -> m a
-    writeDesc2  :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref2 a) -> a          -> m ()
-    modifyDesc2 :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref2 a) -> (a -> m a) -> m ()
-    modifyDesc2 ref f = writeDesc2 ref =<< f =<< readDesc2 ref ; {-# INLINE modifyDesc2 #-}
+type Referable' a m = Referable (Struct a) (Cfg m) m
+class Monad m => Referable i t m where
+    refDesc    :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t a                     -> m (Ref a)
+    unrefDesc  :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref a)               -> m ()
+    readDesc   :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref a)               -> m a
+    writeDesc  :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref a) -> a          -> m ()
+    modifyDesc :: forall a. (i ~ Struct a, t ~ Cfg m) => Asg t (Ref a) -> (a -> m a) -> m ()
+    modifyDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyDesc #-}
 
 type AsgValLike t m a = (Markable m t, AsgVal t ~ a)
 
-silentRef2 :: (Referable2' a m, AsgValLike t m a) => t -> m (Ref2 a)
-silentRef2 = refDesc2 <=< mark ; {-# INLINE silentRef2 #-}
+silentRef :: (Referable' a m, AsgValLike t m a) => t -> m (Ref a)
+silentRef = refDesc <=< mark ; {-# INLINE silentRef #-}
 
-read2  :: (Referable2' a m, AsgValLike t m (Ref2 a)) => t -> m a
-read2  = readDesc2 <=< mark ; {-# INLINE read2  #-}
-
+read  :: (Referable' a m, AsgValLike t m (Ref a)) => t -> m a
+read  = readDesc <=< mark ; {-# INLINE read  #-}
 
 
 -- === Instances === --
 
--- ConsName
-instance HasConsName (Ref2 a) where consName = "Ref"
+-- Basic
+deriving instance Eq   (Unwrapped (Ref a)) => Eq   (Ref a)
+deriving instance Ord  (Unwrapped (Ref a)) => Ord  (Ref a)
+
+-- Repr
+type instance TypeRepr (Ref _) = "Ref"
+instance      Show     (Ref a) where show = show . unwrap' ; {-# INLINE show #-}
 
 -- Struct
-type instance Struct (Ref2 a) = Ref2 (Struct a)
+type instance Struct    (Ref a) = Ref (Struct    a)
+type instance Universal (Ref a) = Ref (Universal a)
 
--- Universal
-type instance Universal (Ref2 a) = Ref2 (Universal a)
-
--- Basic
-instance Show (Ref2 a) where show _ = "Ref" ; {-# INLINE show #-}
-deriving instance Eq   (Unwrapped (Ref2 a)) => Eq   (Ref2 a)
-deriving instance Ord  (Unwrapped (Ref2 a)) => Ord  (Ref2 a)
 
 -- Generalize
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref2 b) => Generalize (Ref2 a) t
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref2 a) => Generalize t       (Ref2 b)
-instance {-# OVERLAPPABLE #-} (Generalize a b)             => Generalize (Ref2 a) (Ref2 b)
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
+instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
+instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
 
 
 
@@ -602,54 +595,44 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)             => Generalize (Ref2 a
 -- === Link === --
 ------------------
 
-type    Link2' a       = Link2 a a
-newtype Link2  src tgt = Link2 (Elem (Link2 src tgt))
+newtype Link   src tgt = Link (Elem (Link src tgt))
+type    Link'  a       = Link a a
+type    SubLink c t    = Ref (Link (Sub c t) t)
 
-type instance Definition t    (Link2 src tgt) = LayerStack2 t (Link2 src tgt)
-type instance LayerData  Data (Link2 src tgt) = (Ref2 src, Ref2 tgt)
-instance      IsElem          (Link2 src tgt)
+type instance Definition t    (Link src tgt) = LayerStack t (Link src tgt)
+type instance LayerData  Data (Link src tgt) = (Ref src, Ref tgt)
+instance      IsElem          (Link src tgt)
 
-makeWrapped ''Link2
-
-
--- === Instances === --
-
-type instance Struct (Link2 src tgt) = Link2 (Struct src) (Struct tgt)
-
-
-type SubLink c t = Ref2 (Link2 (Sub c t) t)
-type instance Universal (Link2 src tgt) = Link2 (Universal src) (Universal tgt)
+makeWrapped ''Link
 
 
 -- -- === Construction === --
 
 type LayerStackCons m a = StackCons (Layers (Struct a) (Cfg m)) m -- REFACTORME
-type Linkable2' src tgt m = (AsgMonad m, LayerStackCons m (Link2 src tgt))
+type Linkable2' src tgt m = (AsgMonad m, LayerStackCons m (Link src tgt))
 
-link2' :: Linkable2' src tgt m => Ref2 src -> Ref2 tgt -> m (Link2 src tgt)
+link2' :: Linkable2' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
 link2' a b = fromDefinition =<< consLayerStack (a,b) ; {-# INLINE link2' #-}
 
 
--- -- === Instances === --
---
--- -- Show
--- deriving instance Show (Unwrapped (Link2  a b)) => Show (Link2  a b)
---
--- -- Cfg
--- type instance Cfg2 (Link2 a b) = Cfg2Merge (Cfg2 a) (Cfg2 b)
---
+-- === Instances === --
+
+-- Struct
+type instance Struct    (Link src tgt) = Link (Struct    src) (Struct    tgt)
+type instance Universal (Link src tgt) = Link (Universal src) (Universal tgt)
+
+-- Repr
+type instance TypeRepr (Link _ _) = "Link"
+instance      Show     (Link src tgt) where show = show . unwrap' ; {-# INLINE show #-}
+
 -- -- LayerStack
--- instance IsLayerStack (Link2 src tgt)
+-- instance IsLayerStack (Link src tgt)
 --
 -- -- Properties
--- type instance Get p (Link2 src tgt) = Get p (Unwrapped (Link2 src tgt))
--- instance HasLayer' (Link2 src tgt) p => Getter  p (Link2 src tgt) where get    = view $ layer @p ; {-# INLINE get  #-}
--- instance HasLayer' (Link2 src tgt) p => Setter' p (Link2 src tgt) where set' a = layer @p .~ a   ; {-# INLINE set' #-}
+-- type instance Get p (Link src tgt) = Get p (Unwrapped (Link src tgt))
+-- instance HasLayer' (Link src tgt) p => Getter  p (Link src tgt) where get    = view $ layer @p ; {-# INLINE get  #-}
+-- instance HasLayer' (Link src tgt) p => Setter' p (Link src tgt) where set' a = layer @p .~ a   ; {-# INLINE set' #-}
 --
--- -- Universal
--- type instance Universal (Link2 src tgt) = Link2 (Universal src) (Universal tgt)
-
-
 
 
 
@@ -690,7 +673,8 @@ instance Repr s (Unwrapped (ExprSymbol atom t))
 
 -- Fields
 type instance FieldsType (ExprSymbol atom t) = FieldsType (Unwrapped (ExprSymbol atom t))
-instance HasFields (Unwrapped (ExprSymbol atom t)) => HasFields (ExprSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
+instance HasFields (Unwrapped (ExprSymbol atom t))
+      => HasFields (ExprSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
 
 
 
@@ -713,55 +697,43 @@ instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder
     encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
 
-
-
-
-
------------------
-
-instance {-# OVERLAPPABLE #-} (Monad m, a ~ LayerData Data t) => Constructor a m (Layer t Data) where
-    cons = return . Layer ; {-# INLINE cons #-}
-
-
-
-
 ------------------
 -- === Expr === --
 ------------------
 
 -- === Definition === --
 
-newtype Expr2 layout = Expr2 (Elem (Expr2 layout))
-type    UniExpr2     = Expr2 Draft
-type    AnyExpr2     = Expr2 Layout.Any
+newtype Expr layout = Expr (Elem (Expr layout))
+type    UniExpr     = Expr Draft
+type    AnyExpr     = Expr Layout.Any
 
-type instance Definition t    (Expr2 layout) = LayerStack2 t (Expr2 layout)
-type instance LayerData  Data (Expr2 layout) = TermStore
-instance      IsElem          (Expr2 layout)
+type instance Definition t    (Expr layout) = LayerStack t (Expr layout)
+type instance LayerData  Data (Expr layout) = TermStore
+instance      IsElem          (Expr layout)
 
-makeWrapped ''Expr2
--- makeIdent   ''Expr2
--- makeRepr    ''Expr2
+makeWrapped ''Expr
+-- makeIdent   ''Expr
+-- makeRepr    ''Expr
 
 
 -- === Instances === --
 
 -- Struct
-type instance Struct (Expr2 layout) = Ident (Expr2 layout)
+type instance Struct (Expr layout) = Ident (Expr layout)
 
 -- Repr
-instance Show (Expr2 layout) where show = show . unwrap' ; {-# INLINE show #-}
+instance Show (Expr layout) where show = show . unwrap' ; {-# INLINE show #-}
 
-type instance Sub s (Expr2 layout) = Expr2 (Sub s layout)
+type instance Sub s (Expr layout) = Expr (Sub s layout)
 
-type instance Universal (Expr2 _) = UniExpr2
+type instance Universal (Expr _) = UniExpr
 
 -- === Utils === --
 
-uniExprTypes2 :: (expr ~ Expr2 layout, sym ~ ExprSymbol atom expr) => Asg t expr -> sym -> sym
+uniExprTypes2 :: (expr ~ Expr layout, sym ~ ExprSymbol atom expr) => Asg t expr -> sym -> sym
 uniExprTypes2 _ = id ; {-# INLINE uniExprTypes2 #-}
 
-unsafeSpecifyLayout2 :: AnyExpr2 -> Expr2 layout
+unsafeSpecifyLayout2 :: AnyExpr -> Expr layout
 unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
 
 
@@ -770,15 +742,15 @@ unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
 --- vvvvvvvvv
 
 data EXPR
-type instance Ident (Expr2 _) = EXPR
-type instance TypeRepr (Expr2 _) = "Expr"
+type instance Ident (Expr _) = EXPR
+type instance TypeRepr (Expr _) = "Expr"
 
 
-mkExpr2 :: (AsgMonad m, SymbolEncoder atom, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr2)), expr ~ Expr2 layout, Referable2' expr m)
-        => ExprSymbol atom expr -> m (Ref2 expr)
-mkExpr2 = silentRef2 <=< expr2 ; {-# INLINE mkExpr2 #-}
+mkExpr :: (AsgMonad m, SymbolEncoder atom, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)), expr ~ Expr layout, Referable' expr m)
+        => ExprSymbol atom expr -> m (Ref expr)
+mkExpr = silentRef <=< expr2 ; {-# INLINE mkExpr #-}
 
-expr2 :: (AsgMonad m, SymbolEncoder atom, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr2)), expr ~ Expr2 layout)
+expr2 :: (AsgMonad m, SymbolEncoder atom, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)), expr ~ Expr layout)
       => ExprSymbol atom expr -> m expr
 expr2 a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE expr2 #-}
 
