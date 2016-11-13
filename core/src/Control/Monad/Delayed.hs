@@ -8,80 +8,55 @@ import Control.Monad.State (StateT, withState, runStateT)
 import qualified Control.Monad.State as State
 
 
--- === Definitions === --
 
-type    Delayed' = Delayed ()
-newtype Delayed t m a = Delayed (StateT [m t] m a) deriving (Functor, Applicative, Monad)
-makeWrapped ''Delayed
+---------------------
+-- === Delayed === --
+---------------------
 
-class MonadDelayed n t m | m -> n t where
-    delayed :: n t -> m ()
+class                         Monad m          => MonadDelayed m          where delayed :: Delayed m () -> m ()
+instance {-# OVERLAPPABLE #-} (Monad m, n ~ m) => MonadDelayed (Runner m) where delayed = Runner . State.modify . (<*) ; {-# INLINE delayed #-}
+instance {-# OVERLAPPABLE #-} Redelayed t m    => MonadDelayed (t m)      where delayed = redelayed                    ; {-# INLINE delayed #-}
 
--- === Utils === --
+type family Delayed m where
+    Delayed (Runner m) = m
+    Delayed (t m)      = Delayed m
 
-run :: Monad m => Delayed t m a -> m (a, [t])
-run (unwrap' -> s) = runStateT s mempty >>= mapM (sequence ∘ reverse)
+type Redelayed t m = ( MonadDelayed m
+                     , MonadTrans t
+                     , Monad (t m)
+                     , Delayed (t m) ~ Delayed m
+                     )
+redelayed :: Redelayed t m => Delayed m () -> t m ()
+redelayed = lift ∘ delayed ; {-# INLINE redelayed #-}
 
-eval :: Monad m => Delayed t m a -> m a
-eval = fst <∘> run
 
-eval' :: Monad m => Delayed' m a -> m a
-eval' = fst <∘> run
 
-exec :: Monad m => Delayed t m a -> m [t]
-exec = snd <∘> run
+--------------------
+-- === Runner === --
+--------------------
 
-exec_ :: Monad m => Delayed t m a -> m ()
-exec_ = void ∘ exec
+newtype Runner m a = Runner (StateT (m ()) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+makeWrapped ''Runner
 
-run' :: Delayed t m a -> m (a, [m t])
-run' (unwrap' -> s) = runStateT s mempty
+
+-- === Running === --
+
+run :: Monad m => Runner m a -> m a
+run (unwrap' -> s) = do
+    (a, f) <- runStateT s (return ())
+    a <$ f
+
+eval' :: Monad m => Runner m a -> m a
+eval' = run
+
 
 -- === Instances === --
 
-instance Monad m => MonadDelayed m t (Delayed t m) where
-    delayed act = Delayed $ State.modify (act :)
+-- MonadTrans
+instance MonadTrans Runner where
+    lift = Runner ∘ lift ; {-# INLINE lift #-}
 
-
-
-
-instance (MonadDelayed n s m, MonadTrans t, Monad m) => MonadDelayed n s (t m) where
-    delayed = lift ∘ delayed
-
-
-instance MonadTrans (Delayed t) where
-    lift = Delayed ∘ lift
-
-
-
----- === Definitions === --
-
---type    Delayed' t m a = Delayed (m t) m a
---newtype Delayed  t m a = Delayed (StateT [t] m a) deriving (Functor, Applicative, Monad)
---makeWrapped ''Delayed
-
---class MonadDelayed t m | m -> t where
---    delayed :: t -> m ()
-
----- === Utils === --
-
---run :: Monad m => (t -> m v) -> Delayed t m a -> m (a, [v])
---run f (unwrap' -> s) = runStateT s mempty >>= mapM (sequence ∘ fmap f ∘ reverse)
-
---run' :: Monad m => Delayed' v m a -> m (a, [v])
---run' = run id
-
-----eval :: Monad m => Delayed t m a -> m a
-----eval = fst <∘> run
-
-----exec :: Monad m => Delayed t m a -> m [t]
-----exec = snd <∘> run
-
-----exec_ :: Monad m => Delayed t m a -> m ()
-----exec_ = void ∘ exec
-
-
----- === Instances === --
-
---instance Monad m => MonadDelayed t (Delayed t m) where
---    delayed act = Delayed $ State.modify (act :)
+-- PrimMonad
+instance PrimMonad m => PrimMonad (Runner m) where
+    type PrimState (Runner m) = PrimState m
+    primitive = lift . primitive ; {-# INLINE primitive #-}

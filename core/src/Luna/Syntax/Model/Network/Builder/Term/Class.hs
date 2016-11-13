@@ -39,7 +39,6 @@ import           Old.Luna.Syntax.Term.Expr.Lit               (Star(Star))
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
 
-import Control.Monad.Delayed (delayed, MonadDelayed)
 import Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)

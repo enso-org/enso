@@ -14,6 +14,7 @@ import           Control.Monad.State          -- (StateT)
 import           Control.Monad.Trans.Identity
 import           Control.Monad.Primitive
 import           Control.Monad.ST
+import           Control.Monad.Delayed   (MonadDelayed, Delayed, delayed)
 
 
 -------------------
@@ -22,14 +23,34 @@ import           Control.Monad.ST
 
 -- === Definitions === --
 
-type SubEvent e t m a = (Event e m a, MonadTrans t, Monad (t m))
+class Monad m
+   => Event         e m a where dispatch_ :: a -> m ()
+type  DelayedEvent  e m a = (Event e (Delayed m) a, MonadDelayed m)
+type  Event'          m a = Event        a m a
+type  DelayedEvent'   m a = DelayedEvent a m a
 
-class Monad m => Event e m a where
-    dispatch_ :: a -> m ()
+type SubEvent     e t m a = (Event e m a, MonadTrans t, Monad (t m))
 
 
-dispatch :: forall e m a. Event e m a => a -> m a
-dispatch a = a <$ dispatch_ @e a ; {-# INLINE dispatch #-}
+-- === Dispatching === --
+
+dispatch   :: forall e m a. Event  e m a => a -> m a
+dispatch'  :: forall   m a. Event'   m a => a -> m a
+dispatch_' :: forall   m a. Event'   m a => a -> m ()
+dispatch a = a <$ dispatch_ @e a ; {-# INLINE dispatch   #-}
+dispatch'  = dispatch       @a   ; {-# INLINE dispatch'  #-}
+dispatch_' = dispatch_      @a   ; {-# INLINE dispatch_' #-}
+
+delayedDispatch_  :: forall e m a. DelayedEvent  e m a => a -> m ()
+delayedDispatch   :: forall e m a. DelayedEvent  e m a => a -> m a
+delayedDispatch_' :: forall   m a. DelayedEvent'   m a => a -> m ()
+delayedDispatch'  :: forall   m a. DelayedEvent'   m a => a -> m a
+delayedDispatch_  = delayed . dispatch_  @e   ; {-# INLINE delayedDispatch_  #-}
+delayedDispatch a = a <$ delayedDispatch @e a ; {-# INLINE delayedDispatch   #-}
+delayedDispatch_' = delayedDispatch_     @a   ; {-# INLINE delayedDispatch_' #-}
+delayedDispatch'  = delayedDispatch      @a   ; {-# INLINE delayedDispatch'  #-}
+
+--
 
 redispatch_ :: forall e t m a. SubEvent e t m a => a -> t m ()
 redispatch_ = lift ∘ dispatch_ @e ; {-# INLINE redispatch_ #-}
@@ -57,7 +78,7 @@ data Single a
 data OneOf  (ls :: [*])
 
 
--- === Utils === --
+-- === Listening === --
 
 appListenerFunc :: forall e ctx s m. ctx e s m => ListenerFunc ctx m -> s -> m ()
 appListenerFunc (ListenerFunc f) = f (Proxy :: Proxy e) ; {-# INLINE appListenerFunc #-}
@@ -66,15 +87,12 @@ appListenerFuncT :: forall e ctx s t m. (ctx e s m, Monad m, MonadTrans t) => Li
 appListenerFuncT = lift ∘∘ appListenerFunc @e ; {-# INLINE appListenerFuncT #-}
 
 
-
-listen :: forall ev ctx m a. Monad m => ListenerFunc' ctx m -> Listener ev ctx m a -> m a
-listen f l = evalStateT (unwrap' l) (ListenerFunc f) ; {-# INLINE listen #-}
-
+listen       :: forall ev ctx m a. Monad m => ListenerFunc' ctx m -> Listener       ev ctx m a -> m a
 listenSingle :: forall ev ctx m a. Monad m => ListenerFunc' ctx m -> SingleListener ev ctx m a -> m a
-listenSingle = listen @(Single ev) @ctx ; {-# INLINE listenSingle #-}
-
-listenAny :: forall ctx m a. Monad m => ListenerFunc' ctx m -> AnyListener ctx m a -> m a
-listenAny = listen @Any @ctx ; {-# INLINE listenAny #-}
+listenAny    :: forall    ctx m a. Monad m => ListenerFunc' ctx m -> AnyListener       ctx m a -> m a
+listen f l   = evalStateT (unwrap' l) (ListenerFunc f) ; {-# INLINE listen       #-}
+listenSingle = listen @(Single ev) @ctx                ; {-# INLINE listenSingle #-}
+listenAny    = listen @Any @ctx                        ; {-# INLINE listenAny    #-}
 
 
 -- === Instances === --
