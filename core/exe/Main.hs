@@ -20,6 +20,7 @@ import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, li
 import qualified Data.Graph as G
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
+import qualified Prologue as P
 
 import           Control.Monad.Event2     as Event
 import qualified Control.Monad.Delayed    as Delayed
@@ -263,9 +264,6 @@ type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
 type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
 
 
--- type instance CfgX Network3 = Net -- Fixme, we should always wrap graph in some structure providing the `t` arg (in thos case t = Net)
-
-
 
 
 
@@ -323,23 +321,7 @@ type instance Impl Ref Expr' Net = G.Ref2 Node
 type instance Impl Ref ExprLink' Net = G.Ref2 Edge
 
 
--- === Instances === --
-
--- Refs
-
-
-
-    -- instance Referable Elemx Net ((->) Network3) where
-    --     refDesc  a t = fooe $ runGraph  (silentRef'  a) t ; {-# INLINE refDesc  #-}
-    --     readDesc a t = evalGraphInplace (read' a) t ; {-# INLINE readDesc #-}
-    --
-    -- instance Referable ExprLink' Net ((->) Network3) where
-    --     refDesc  a t = fooe $ runGraph  (silentRef'  a) t ; {-# INLINE refDesc  #-}
-    --     readDesc a t = evalGraphInplace (read' a) t ; {-# INLINE readDesc #-}
-
-
--------
-
+------------
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, AsgMonad m)
       => Referable Expr' Net m where
@@ -453,10 +435,6 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 
-    -- nmagicStar :: (AnyExprCons t m, Referable Elemx t m) => m $ Ref (Expr t layout)
-    -- nmagicStar = silentExpr (wrap' N.star')
-
-
 type ANT' a n t = ANTLayout SimpleX a n t
 
 
@@ -524,27 +502,6 @@ execGraphInplace f g = runST $ execGraphTInplace f g
 runGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> (a, Network3)
 runGraphInplace f g = runST $ runGraphTInplace f g
 
--- test_g3 :: (MonadIO m, PrimMonad m, MonadFix m)
---         => m (Ref (UntyppedExpr Net Star ()), Network3)
--- test_g3 = runNewGraphT
---         $ Event.suppressAll
---         $ flip Self.evalT undefined
---         $ flip Type.evalT Nothing
---         $ runInferenceT2 @TermType @Net
---         $ flip (D.evalT UID) (0 :: Int64)
---         $ listenAny @(ProxyHandler Data ) (proxyHandle @Data )
---         $ listenAny @(ProxyHandler UID  ) (proxyHandle @UID  )
---         $ listenAny @(ProxyHandler Type ) (proxyHandle @Type )
---         $ listenAny @(ProxyHandler Succs) (proxyHandle @Succs)
---         -- $ Runner.eval'
---         $ test_gr
-
-
-
-
--- instance {-# OVERLAPPABLE #-} Monad m => ProxyHandler Data event a m where proxyHandle _ _ = return () ; {-# INLINE proxyHandle #-}
--- instance {-# OVERLAPPABLE #-} Monad m => ProxyHandler Type event a m where proxyHandle _ _ = return () ; {-# INLINE proxyHandle #-}
--- instance {-# OVERLAPPABLE #-} Monad m => ProxyHandler Type event a m where proxyHandle _ _ = return () ; {-# INLINE proxyHandle #-}
 
 type ExprStore' m = ExprStore (Cfg m) m
 class Monad m => ExprStore t m where
@@ -557,60 +514,7 @@ exprs = join . fmap (sequence . fmap liftAsg) $ exprs' ; {-# INLINE exprs #-}
 instance (Monad m, MonadBuilder g m, ReferableM Node g m) => ExprStore Net m where
     exprs' = (view (from definition) . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get ; {-# INLINE exprs' #-}
 
---
--- instance {-# OVERLAPPABLE #-} (Monad m, MonadBuilder g m, ReferableM Node g m, Inferable2 TermType Net m, NoOutput m) => TTT Net m where
---     elems' = (Ref . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get
 
--- instance Inferable2 TermType Net ((->) Network3)
--- instance TTT Net ((->) Network3) where
---     elems' = evalGraphInplace $ runInferenceT2 @TermType @Net elemsM ; {-# INLINE elems' #-}
---         --
-
-
-
-
--- test_gr :: forall t m. ( MonadIO m
---                        , ASTBuilder t (Layouted ANT m)
---                        , ASTPretty  t
---                        ) => m (Ref (UntyppedExpr t Star ()))
--- test_gr =  layouted @ANT $ do
---     (s1 :: Ref (UntyppedExpr t Star            ())) <- star
---     (s2 :: Ref (UntyppedExpr t Star            ())) <- star
---     (u1 :: Ref (UntyppedExpr t (Unify :> Star) ())) <- unify s1 s2
---     u2 <- unify s1 u1
---     u3 <- unify s2 u1
---     u4 <- unify u2 u3
---
---
---     t <- read s1
---     write s1 t
---
---     let u1'  = generalize u1 :: Ref (Expr t Draft)
---
---     es <- elems
---     es' <- mapM read es
---     --
---     -- case' t of
---     --     Unify l r -> print "ppp"
---     --     Star      -> case' t of
---     --         Unify l r -> print "hello"
---     --         Star      -> print "hello3xx"
---     --     _         -> print "not found"
---
---     --
---     -- let { case_expr = t
---     -- ;f1 = matchx case_expr $ \(ExprSymbol (Symbol.Unify l r)) -> print ala where
---     --     ala = 11
---     -- ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)       -> (print "hello3" )
---     --    where ala = 11
---     -- } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
---     --
---     print "!!!"
---     print t
---     print es
---     print es'
---     print s1
---     return s1
 
 type AsgShow m a = Show (AsgM m a)
 
@@ -704,6 +608,7 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
             (exprRef, g) <- runNewGraphT $ runNetBuilder test_gr2
             return ()
         let cfg = ByteString.unpack $ encode $ vis
+        putStrLn cfg
         liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
         return ()
 
@@ -718,11 +623,17 @@ test_gr2 :: ( ASG (Layouted ANT m)
          => m (Ref (UntyppedExpr Star ()))
 test_gr2 =  layouted @ANT $ do
     (s1 :: Ref (UntyppedExpr Star            ())) <- star
+    snapshot "s1"
     (s2 :: Ref (UntyppedExpr Star            ())) <- star
+    snapshot "s2"
     (u1 :: Ref (UntyppedExpr (Unify :> Star) ())) <- unify s1 s2
+    snapshot "s3"
     u2 <- unify s1 u1
+    snapshot "s4"
     u3 <- unify s2 u1
+    snapshot "s5"
     u4 <- unify u2 u3
+    snapshot "s6"
 
     t <- read s1
     s1' <- Asg.mark' t
@@ -743,16 +654,17 @@ test_gr2 =  layouted @ANT $ do
     -- ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)        -> (print "hello3" )
     -- } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
 
+
+    return s1
+
+snapshot :: Vis m => P.String -> m()
+snapshot title = do
     res <- exprs
     es  <- mapM read res
     vss <- mapM visNode2 es
     let vns = fst <$> vss
         ves = join $ snd <$> vss
-
-    Vis.addNodes vns
-    Vis.addEdges ves
-
-    return s1
+    Vis.addStep (fromString title) vns ves
 
 
 
@@ -762,11 +674,12 @@ main = do
     return ()
 
 
-visNode2 :: ( ASG m
-            , HasLayersM m Expr'     '[UID, Type]
-            , HasLayerM  m ExprLink' UID
-            )
-         => Expr' -> m (Vis.Node, [Vis.Edge])
+type Vis m = ( ASG m
+             , MonadVis m
+             , HasLayersM m Expr'     '[UID, Type]
+             , HasLayerM  m ExprLink' UID
+             )
+visNode2 :: Vis m => Expr' -> m (Vis.Node, [Vis.Edge])
 visNode2 expr = do
     mexpr  <- mark' expr
     euid   <- select @UID expr
@@ -783,7 +696,7 @@ visNode2 expr = do
 
     let header = fromString $ reprStyled HeaderOnly mexpr
         node   = Vis.Node (fromString "") euid euid (fromList [header])
-        ins    = symbolFields2 mexpr
+        ins    = symbolFields mexpr
         tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid tpUid lnUID rnUID (fromList [fromString "type"])]
         mkEdge (i,l,r) = Vis.Edge (fromString "") i i l r mempty
         getUIDs re = do

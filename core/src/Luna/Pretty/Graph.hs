@@ -157,10 +157,10 @@ instance Diffable [Step] where diff []       = []
                                                                                 & mkEdges .~ (f ^. step_stepEdges)
                                diff (f:s:ss) = d : diff (s:ss) where
                                    d = defStepDiff (f ^. name)
-                                     & mkNodes .~ Set.difference (s ^. step_stepNodes) (f ^. step_stepNodes)
-                                     & rmNodes .~ Set.difference (f ^. step_stepNodes) (s ^. step_stepNodes)
-                                     & mkEdges .~ Set.difference (s ^. step_stepEdges) (f ^. step_stepEdges)
-                                     & rmEdges .~ Set.difference (f ^. step_stepEdges) (s ^. step_stepEdges)
+                                     & mkNodes .~ Set.difference (f ^. step_stepNodes) (s ^. step_stepNodes)
+                                     & rmNodes .~ Set.difference (s ^. step_stepNodes) (f ^. step_stepNodes)
+                                     & mkEdges .~ Set.difference (f ^. step_stepEdges) (s ^. step_stepEdges)
+                                     & rmEdges .~ Set.difference (s ^. step_stepEdges) (f ^. step_stepEdges)
                                {-# INLINE diff #-}
 
 -- JSON
@@ -232,48 +232,58 @@ defVisBuilder = VisBuilder def . defStep ; {-# INLINE defVisBuilder #-}
 
 -- === Definitions === --
 
-type VisStateT   = StateT     V VisBuilder
-type MonadVis  m = MonadState V VisBuilder m
+type VisStateT   = StateT     V Vis
+type MonadVis  m = MonadState V Vis m
 
 
 -- === Running === ---
 
-finish :: VisBuilder -> Vis
-finish = view vis . newStep' "finish" ; {-# INLINE finish #-}
-
-runT :: Functor m => VisStateT m a -> VisBuilder -> m (a, Vis)
-runT = finish <<∘∘>> State.runT V ; {-# INLINE runT #-}
+runT :: Functor m => VisStateT m a -> Vis -> m (a, Vis)
+runT = State.runT V ; {-# INLINE runT #-}
 
 newRunT :: Functor m => VisStateT m a -> m (a, Vis)
-newRunT = flip runT $ defVisBuilder "initial" ; {-# INLINE newRunT #-}
+newRunT = flip runT def ; {-# INLINE newRunT #-}
 
 newRunDiffT :: Functor m => VisStateT m a -> m (a, VisDiff)
 newRunDiffT = diff <<∘>> newRunT ; {-# INLINE newRunDiffT #-}
 
 
--- === Component management === ---
+-- -- === Component management === ---
+--
+-- newStep :: MonadVis m => Name -> m ()
+-- newStep n = modify_ V (newStep' n) ; {-# INLINE newStep #-}
+--
+-- newStep' :: Name -> VisBuilder -> VisBuilder
+-- newStep' n v = v & vis.steps %~ (<> [v ^. currentStep])
+--                  & currentStep .~ defStep n
+-- {-# INLINE newStep' #-}
+--
+-- addNode :: MonadVis m => Node -> m ()
+-- addNode a = modify_ V $ ((vis.nodes)                  %~ Map.insert nid a)
+--                       . ((currentStep.step_stepNodes) %~ Set.insert nid) where
+--     nid = a ^. uid
+--
+-- addNodes :: (Traversable f, MonadVis m) => f Node -> m ()
+-- addNodes = mapM_ addNode ; {-# INLINE addNodes #-}
+--
+--
+-- addEdge :: MonadVis m => Edge -> m ()
+-- addEdge a = modify_ V $ ((vis.edges)             %~ Map.insert nid a)
+--                       . ((currentStep.step_stepEdges) %~ Set.insert nid) where
+--     nid = a ^. uid
+--
+-- addEdges :: (Traversable f, MonadVis m) => f Edge -> m ()
+-- addEdges = mapM_ addEdge ; {-# INLINE addEdges #-}
 
-newStep :: MonadVis m => Name -> m ()
-newStep n = modify_ V (newStep' n) ; {-# INLINE newStep #-}
+addStep :: MonadVis m => Name -> [Node] -> [Edge] -> m ()
+addStep title ns es = do
+    mapM_ registerNode ns
+    mapM_ registerEdge es
+    let newStep = Step title (Set.fromList $ view uid <$> ns) (Set.fromList $ view uid <$> es)
+    modify_ V $ steps %~ (<> [newStep])
 
-newStep' :: Name -> VisBuilder -> VisBuilder
-newStep' n v = v & vis.steps %~ (<> [v ^. currentStep])
-                 & currentStep .~ defStep n
-{-# INLINE newStep' #-}
+registerNode :: MonadVis m => Node -> m ()
+registerNode a = modify_ V $ nodes %~ Map.insert (a ^. id) a ; {-# INLINE registerNode #-}
 
-addNode :: MonadVis m => Node -> m ()
-addNode a = modify_ V $ ((vis.nodes)                  %~ Map.insert nid a)
-                      . ((currentStep.step_stepNodes) %~ Set.insert nid) where
-    nid = a ^. uid
-
-addNodes :: (Traversable f, MonadVis m) => f Node -> m ()
-addNodes = mapM_ addNode ; {-# INLINE addNodes #-}
-
-
-addEdge :: MonadVis m => Edge -> m ()
-addEdge a = modify_ V $ ((vis.edges)             %~ Map.insert nid a)
-                      . ((currentStep.step_stepEdges) %~ Set.insert nid) where
-    nid = a ^. uid
-
-addEdges :: (Traversable f, MonadVis m) => f Edge -> m ()
-addEdges = mapM_ addEdge ; {-# INLINE addEdges #-}
+registerEdge :: MonadVis m => Edge -> m ()
+registerEdge a = modify_ V $ edges %~ Map.insert (a ^. id) a ; {-# INLINE registerEdge #-}
