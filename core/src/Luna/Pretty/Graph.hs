@@ -228,6 +228,8 @@ defVisBuilder = VisBuilder def . defStep ; {-# INLINE defVisBuilder #-}
 -- === Vis monad === --
 -----------------------
 
+--FIXME[WD]: Make a real Vis monad instead of alias for dependent state in order to make beautiful type inference
+
 -- === Definitions === --
 
 type VisStateT   = StateT     V VisBuilder

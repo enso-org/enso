@@ -130,8 +130,8 @@ instance PrimMonad m => PrimMonad (Listener t ctx m) where
 -- === Suppressor === --
 ------------------------
 
-newtype SuppressorT (t :: Maybe *) m a = SuppressorT (IdentityT m a)
-        deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
+newtype SuppressorT (t :: Maybe *) m a = SuppressorT (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
+type    AllSuppressorT = SuppressorT 'Nothing
 makeWrapped ''SuppressorT
 
 

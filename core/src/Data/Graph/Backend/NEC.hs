@@ -257,6 +257,9 @@ emptyHGraph = HGraph
             . List.prepend def
             $ List.empty
 
+instance Default (HGraph '[Node, Edge, Cluster]) where
+    def = emptyHGraph
+
 -- class DynamicM t g m a where
 --     addM    :: a -> g -> m (Ref t a, g)
 --     removeM :: Ref t a -> g -> m g

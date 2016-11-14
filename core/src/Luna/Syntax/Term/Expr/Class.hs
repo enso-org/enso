@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 {-# LANGUAGE GADTs #-}
 
@@ -423,9 +424,29 @@ unsafeAsgWrapped :: Iso' (Asg t a) a
 unsafeAsgWrapped = iso unsafeAsgUnwrap Asg ; {-# INLINE unsafeAsgWrapped #-}
 
 
+-- === Property selectors === --
+
+type Select   p m a =  Get     p (Marked m a)
+type Selector p m a = (Getter  p (Marked m a), Markable m a)
+type Updater  p m a = (Setter' p (Marked m a), Markable m a, AsgMonad m)
+
+select :: forall p m a. Selector p m a => a -> m (Select p m a)
+select = get @p <∘> mark ; {-# INLINE select #-}
+
+update :: forall p m a. Updater p m a => Select p m a -> a -> m (AsgVal a)
+update v a = (liftAsg . set' @p v) =<< mark a ; {-# INLINE update #-}
+
+with :: forall p m a. (Selector p m a, Updater p m a) => (Select p m a -> Select p m a) -> a -> m (AsgVal a)
+with f src = do
+    succs <- select @p src
+    update @p (f succs) src
+{-# INLINE with #-}
+
+
 -- === Instances === --
 
 -- Show
+instance {-# OVERLAPPABLE #-}                              Show (Asg I a) where show = impossible
 instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (Asg t a) where
     showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
 
@@ -443,8 +464,12 @@ instance (Getter p (Definition t a), IsElem a) => Getter p (Asg t a) where
 instance (Setter' p (Definition t a), IsElem a) => Setter' p (Asg t a) where
     set' v = definition %~ set' @p v ; {-# INLINE set' #-}
 
+-- Universal
+type instance Universal (Asg t a) = Asg t (Universal a)
 
-
+-- Ordering
+instance (Ord (Definition t a), IsElem a) => Ord (Asg t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}
+instance (Eq  (Definition t a), IsElem a) => Eq  (Asg t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
 
 
 ------------------------
@@ -491,8 +516,8 @@ instance Default (Unwrapped (Layer t l))
 -- === LayerStack === --
 ------------------------
 
-type    LayerStackBase t   = Stack (Layer t)
-newtype LayerStack     t a = LayerStack (LayerStackBase a (Layers (Universal a) t))
+type    LayerStackBase a   = Stack (Layer a)
+newtype LayerStack     t a = LayerStack (LayerStackBase (Asg t a) (Layers (Universal a) t))
 makeWrapped ''LayerStack
 
 
@@ -533,7 +558,7 @@ instance HasLayer I q layer where layer' = impossible                           
 
 deriving instance Show (Unwrapped (LayerStack t a)) => Show (LayerStack t a)
 
-type instance Get p (LayerStack t a) = LayerData p a
+type instance Get p (LayerStack t a) = LayerData p (Asg t a)
 
 instance HasLayer t (Universal a) p => Getter p (LayerStack t a) where
     get = view (layer' @t @(Universal a) @p) . unwrap' ; {-# INLINE get #-}
@@ -568,7 +593,7 @@ makeWrapped ''Ref
 
 -- Refs
 
-type Referable' a m = Referable (Universal a) (Cfg m) m
+type Referable' m a = Referable (Universal a) (Cfg m) m
 class Monad m => Referable i t m where
     refDesc    :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t a                     -> m (Ref a)
     unrefDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t (Ref a)               -> m ()
@@ -579,26 +604,38 @@ class Monad m => Referable i t m where
 
 type AsgValLike t m a = (Markable m t, AsgVal t ~ a)
 
-silentRef :: (Referable' a m, AsgValLike t m a) => t -> m (Ref a)
+silentRef :: (Referable' m a, AsgValLike t m a) => t -> m (Ref a)
 silentRef = refDesc <=< mark ; {-# INLINE silentRef #-}
 
-ref :: (Referable' a m, AsgValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
+ref :: (Referable' m a, AsgValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
 ref = register @New <=< silentRef ; {-# INLINE ref #-}
 
-delayedRef :: (Referable' a m, AsgValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
+delayedRef :: (Referable' m a, AsgValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
 delayedRef = delayedRegister @New <=< silentRef ; {-# INLINE delayedRef #-}
 
-read :: (Referable' a m, AsgValLike t m (Ref a)) => t -> m a
+read :: (Referable' m a, AsgValLike t m (Ref a)) => t -> m a
 read = readDesc <=< mark ; {-# INLINE read #-}
 
-write :: (Referable' a m, AsgValLike t m (Ref a)) => t -> a -> m ()
+write :: (Referable' m a, AsgValLike t m (Ref a)) => t -> a -> m ()
 write d a = flip writeDesc a =<< mark d ; {-# INLINE write #-}
 
-modify :: (Referable' a m, AsgValLike t m (Ref a)) => t -> (a -> m a) -> m ()
+modify :: (Referable' m a, AsgValLike t m (Ref a)) => t -> (a -> m a) -> m ()
 modify d f = flip modifyDesc f =<< mark d ; {-# INLINE modify #-}
 
-modify' :: (Referable' a m, AsgValLike t m (Ref a)) => t -> (a -> a) -> m ()
+modify' :: (Referable' m a, AsgValLike t m (Ref a)) => t -> (a -> a) -> m ()
 modify' d = modify d . fmap return ; {-# INLINE modify' #-}
+
+
+-- TODO: tak moze wygladac taktyka na pure functions:
+-- Asg t (Ref a) -> (g ->) (Ast t a)
+--       (Ref a) -> m             a
+--
+
+
+-- class Monad m => ExprStore m where
+--     exprs  :: m [Ref Expr']
+--     -- links  :: m [Ref ExprLink']
+
 
 
 -- === Instances === --
@@ -629,10 +666,12 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) 
 newtype Link   src tgt = Link (Elem (Link src tgt))
 type    Link'  a       = Link a a
 type    SubLink c t    = Ref (Link (Sub c t) t)
+type family SubLink2 (a :: *) (b :: *) where SubLink2 c (Asg t a) = Asg t (Ref (Link (Sub c a) a))
+
 
 type instance Definition t    (Link src tgt) = LayerStack t (Link src tgt)
-type instance LayerData  Data (Link src tgt) = (Ref src, Ref tgt)
 instance      IsElem          (Link src tgt)
+type instance LayerData  Data (Asg t (Link src tgt)) = (Asg t (Ref src), Asg t (Ref tgt))
 
 makeWrapped ''Link
 
@@ -643,12 +682,12 @@ type LayerStackCons m a = StackCons (Layers (Universal a) (Cfg m)) m -- REFACTOR
 type Linkable' src tgt m = (AsgMonad m, LayerStackCons m (Link src tgt))
 
 link' :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
-link' a b = fromDefinition =<< consLayerStack (a,b) ; {-# INLINE link' #-}
+link' a b = fromDefinition =<< consLayerStack =<< ((,) <$> mark' a <*> mark' b) ; {-# INLINE link' #-}
 
-link :: (Linkable' src tgt m, Referable' (Link src tgt) m, Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+link :: (Linkable' src tgt m, Referable' m (Link src tgt), Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
 link = ref <=<< link' ; {-# INLINE link #-}
 
-delayedLink :: forall src tgt n m. (Linkable' src tgt m, Referable' (Link src tgt) m, DelayedRegister New (Ref (Link src tgt)) m)
+delayedLink :: forall src tgt n m. (Linkable' src tgt m, Referable' m (Link src tgt), DelayedRegister New (Ref (Link src tgt)) m)
              => Ref src -> Ref tgt -> m (Ref (Link src tgt))
 delayedLink = delayedRef <=<< link' ; {-# INLINE delayedLink #-}
 
@@ -745,8 +784,8 @@ type    Expr'       = Expr Draft
 type    AnyExpr     = Expr Layout.Any
 
 type instance Definition t    (Expr layout) = LayerStack t (Expr layout)
-type instance LayerData  Data (Expr layout) = TermStore
 instance      IsElem          (Expr layout)
+type instance LayerData  Data (Asg t (Expr layout)) = TermStore
 
 makeWrapped ''Expr
 -- makeRepr    ''Expr
@@ -759,6 +798,7 @@ type instance Universal (Expr _)      = Expr'
 type instance Sub     s (Expr layout) = Expr (Sub s layout)
 
 -- Repr
+type instance TypeRepr (Expr _) = "Expr"
 instance Show (Expr layout) where show = show . unwrap' ; {-# INLINE show #-}
 
 -- Properties
@@ -773,37 +813,23 @@ uniExprTypes2 _ = id ; {-# INLINE uniExprTypes2 #-}
 unsafeSpecifyLayout2 :: AnyExpr -> Expr layout
 unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
 
-
-
 anyLayout3 :: Ref (Expr layout) -> Ref (Expr Layout.Any)
 anyLayout3 = unsafeCoerce
 
 
---- TO REMOVE
---- vvvvvvvvv
 
-type instance TypeRepr (Expr _) = "Expr"
+-- === Construction === --
 
 type ExprBuilder      m = (AsgMonad m, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)))
 type SilentExprCons   m = (ExprBuilder m, Referable Expr' (Cfg m) m)
 type ExprMonad        m = (SilentExprCons m, Register        New (Ref Expr') m)
 type DelayedExprMonad m = (SilentExprCons m, DelayedRegister New (Ref Expr') m)
--- ref :: (Referable' a m, AsgValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
-
 
 buildExpr :: (ExprBuilder m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
 buildExpr a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE buildExpr #-}
 
 silentExpr :: (SilentExprCons m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
 silentExpr = silentRef <=< buildExpr ; {-# INLINE silentExpr #-}
-
--- class    ExprMonad m  where expr :: forall atom layout. SymbolEncoder atom => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
--- instance {-# OVERLAPPABLE #-} ExprCons m
---       => ExprMonad m  where expr = ref <=< buildExpr ; {-# INLINE expr #-}
--- instance ExprMonad IM where expr = impossible
--- instance ExprMonad (t1 IM) where expr = impossible
--- instance ExprMonad (t1 (t2 IM)) where expr = impossible
--- ...
 
 expr :: (ExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
 expr = ref <=< buildExpr ; {-# INLINE expr #-}
@@ -812,15 +838,84 @@ delayedExpr :: (DelayedExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr
 delayedExpr = delayedRef <=< buildExpr ; {-# INLINE delayedExpr #-}
 
 
+-- === Symbol mapping === --
 
--- delayedExpr =
+class Monad m => SymbolMapM' (atoms :: [*]) ctx expr m b where
+    symbolMapM' :: (forall a. ctx a m b => a -> m b) -> expr -> m b
 
---- ^^^^^^^^^
---- TO REMOVE
+type SymbolMapM_AMB = SymbolMapM' (All Atom)
+symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
+symbolMapM_AMB = symbolMapM' @(All Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
+
+type SymbolMapM_AB ctx      = SymbolMapM_AMB (DropMonad ctx)
+type SymbolMap_AB  ctx expr = SymbolMapM_AB ctx expr Identity
+symbolMapM_AB :: forall ctx expr m b. SymbolMapM_AB ctx expr m b => (forall a. ctx a b => a -> b) -> expr -> m b
+symbolMapM_AB f = symbolMapM_AMB @(DropMonad ctx) (return <$> f) ; {-# INLINE symbolMapM_AB #-}
+
+symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
+symbolMap_AB f = runIdentity . symbolMapM_AB @ctx f ; {-# INLINE symbolMap_AB #-}
+
+type SymbolMapM_A ctx = SymbolMapM_AB (FreeResult ctx)
+type SymbolMap_A  ctx expr = SymbolMapM_A ctx expr Identity
+symbolMapM_A :: forall ctx expr m b. SymbolMapM_A ctx expr m b => (forall a. ctx a => a -> b) -> expr -> m b
+symbolMapM_A = symbolMapM_AB @(FreeResult ctx) ; {-# INLINE symbolMapM_A #-}
+
+symbolMap_A :: forall ctx expr b. SymbolMap_A ctx expr b => (forall a. ctx a => a -> b) -> expr -> b
+symbolMap_A f = runIdentity . symbolMapM_A @ctx f ; {-# INLINE symbolMap_A #-}
+
+class    (ctx a b, Monad m) => DropMonad ctx a m b
+instance (ctx a b, Monad m) => DropMonad ctx a m b
+
+class    ctx a => FreeResult ctx a b
+instance ctx a => FreeResult ctx a b
+
+instance ( ctx (ExprSymbol a (Expr layout)) m b
+         , SymbolMapM' as ctx (Expr layout) m b
+         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
+         , KnownNat idx
+         , HasLayerM m Expr' Data
+         )
+      => SymbolMapM' (a ': as) ctx (Expr layout) m b where
+    symbolMapM' f expr = do
+        d <- unwrap' <$> select @Data expr
+        let eidx = unwrap' $ get @Atom d
+            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+            sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr layout)
+        if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
+
+instance ( ctx (ExprSymbol a (Expr layout)) m b
+         , SymbolMapM' as ctx (Asg t (Expr layout)) m b
+         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
+         , KnownNat idx
+         , HasLayer t Expr' Data
+         )
+      => SymbolMapM' (a ': as) ctx (Asg t (Expr layout)) m b where
+    symbolMapM' f expr = do
+        let d    = unwrap' $ get @Data expr
+            eidx = unwrap' $ get @Atom d
+            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+            sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr layout)
+        if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
+
+instance Monad m => SymbolMapM' '[] ctx expr m b where symbolMapM' _ _ = impossible
 
 
+instance HasLayer t Expr' Data => Repr HeaderOnly (Asg t (Expr layout)) where repr expr = symbolMap_A @(Repr HeaderOnly) repr expr
 
 
+class HasFields2 a b where fieldList2 :: a -> b
+instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = fieldList
+
+-- symbolFields :: SymbolMap2 HasFields2 expr b => expr -> b
+-- symbolFields = symbolMap2 @HasFields2 fieldList2
+
+-- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
+-- type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
+symbolFields2 :: (SymbolMap_AB HasFields2 (Asg t expr) out, expr ~ Expr layout, out ~ [Ref (Link expr expr)]) => Asg t expr -> out
+symbolFields2 = symbolMap_AB @HasFields2 fieldList2
+
+--
+-- class Repr  s a        where repr  ::       a -> Builder s Tok
 
 -- ------------------------
 -- -- === LayerStack === --
