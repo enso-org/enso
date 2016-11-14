@@ -8,15 +8,13 @@ build:
     email: $$DOCKERHUB_EMAIL
   commands:
     - date
-    - scripts/gencabal
     - mkdir -p .stack
     - export STACK_ROOT=$DRONE_DIR/.stack
     - cd compiler
     - apk update && apk add python3
     - export PATH=$PATH:$DRONE_DIR/tools/HaskellBooster/preprocessor
     - stack build --stack-yaml build/stack-nightly.yaml --only-snapshot
-    - stack build --stack-yaml build/stack-nightly.yaml --copy-bins --fast
-    - stack test  --stack-yaml build/stack-nightly.yaml --fast
+    - stack build --stack-yaml build/stack-nightly.yaml --copy-bins --fast --test --bench
     - date
 cache:
   mount:
