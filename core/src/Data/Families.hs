@@ -295,11 +295,26 @@ data' = def ; {-# INLINE data' #-}
 
 -- | phantom takes number of data parameters and generates a phantom data type
 --   for example `phantom 2 "Foo"` generated `data Foo a b`
-phantom :: Int -> TypeName -> Data
-phantom i n = data' n & params .~ genNames i ; {-# INLINE phantom #-}
+phantomN :: Int -> TypeName -> Data
+phantomN i n = data' n & params .~ genNames i ; {-# INLINE phantomN #-}
+
+phantom :: TypeName -> Data
+phantom = phantomN 0 ; {-# INLINE phantom #-}
 
 phantom' :: TypeName -> Data
-phantom' = phantom 0 ; {-# INLINE phantom' #-}
+phantom' = phantomN 1 ; {-# INLINE phantom' #-}
+
+phantom'' :: TypeName -> Data
+phantom'' = phantomN 2 ; {-# INLINE phantom'' #-}
+
+phantom''' :: TypeName -> Data
+phantom''' = phantomN 3 ; {-# INLINE phantom''' #-}
+
+phantom'''' :: TypeName -> Data
+phantom'''' = phantomN 4 ; {-# INLINE phantom'''' #-}
+
+phantom''''' :: TypeName -> Data
+phantom''''' = phantomN 5 ; {-# INLINE phantom''''' #-}
 
 instance {-# OVERLAPPING #-} n ~ TypeName => Default (n -> Data) where
     def n = Data def n def def def def ; {-# INLINE def #-}
@@ -425,8 +440,8 @@ makeLunaComponents (typeName -> comp) (typeName -> fam) (ZipList -> typeNames) =
     let types  = typeName <$> typeNames
         idents = toUpper  <$> types
 
-    define $ phantom' comp                                     -- data Atom
-    define $ phantom 1 fam                                     -- data Atomic a
+    define $ phantom  comp                                     -- data Atom
+    define $ phantom' fam                                      -- data Atomic a
     define $ data' <$> idents                                  -- data STAR; ...
     define $ alias <$> types <*> (app fam <$> idents)          -- data Star = Atomic STAR; ...
     define $ typeInstance' "TypeRepr" <$> idents <*> typeNames -- type instance TypeRepr STAR = "Star"; ...

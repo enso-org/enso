@@ -45,10 +45,11 @@ class     IsUniSymbol t l where
 
 type AsSymbol s = Symbol (Get Atom s) (Get Layout s)
 
-type  IsSymbol   s s' = (ToSymbol s, FromSymbol s')
-type  IsSymbol'  s    = IsSymbol s s
-class FromSymbol s where fromSymbol :: AsSymbol s -> s
-class ToSymbol   s where toSymbol   :: s -> AsSymbol s
+type  IsSymbol            s s' = (ToSymbol s, FromSymbol s')
+type  IsSymbol'           s    = IsSymbol s s
+class FromSymbol          s where fromSymbol          :: AsSymbol s -> s
+class UncheckedFromSymbol s where uncheckedFromSymbol :: AsSymbol s -> s
+class ToSymbol            s where toSymbol            :: s -> AsSymbol s
 
 instance FromSymbol (Symbol atom layout) where fromSymbol = id ; {-# INLINE fromSymbol #-}
 instance ToSymbol   (Symbol atom layout) where toSymbol   = id ; {-# INLINE toSymbol   #-}

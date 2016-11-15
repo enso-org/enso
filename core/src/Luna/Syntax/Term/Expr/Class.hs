@@ -40,7 +40,7 @@ import           Luna.Syntax.Term.Function.Argument
 import           Data.Reprx
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, FromSymbol, fromSymbol, ToSymbol, toSymbol, UniSymbol, uniSymbol, IsUniSymbol)
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, UncheckedFromSymbol, FromSymbol, uncheckedFromSymbol, fromSymbol, ToSymbol, toSymbol, UniSymbol, uniSymbol, IsUniSymbol)
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
@@ -90,137 +90,25 @@ import qualified Control.Monad.Event2     as Event
 
 import Type.Container (Every)
 
-unsafeCoerced :: Iso' a b
-unsafeCoerced = iso unsafeCoerce unsafeCoerce ; {-# INLINE unsafeCoerced #-}
+
+
+
+import Data.Coerced (unsafeCoerced)
 
 
 
 
 
-newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
-data    Nothing' = Nothing' deriving (Show)
 
-
-
-
-
---------------------------------------------
-
-type family ValueOf a
-
-class HasValue a where
-    value :: a -> ValueOf a
-
-type instance ValueOf (Just' a, _) = a
-type instance ValueOf (Nothing',_) = ()
-
-instance HasValue (Just' a , t) where value   = fromJust' . fst
-instance HasValue (Nothing', t) where value _ = ()
-
-type ResultDesc  m a = m (Just' a , OutputDesc m)
-type ResultDesc_ m   = m (Nothing', OutputDesc m)
-
-
-
-type NoOutput m = (OutputDesc m ~ Nothing')
-
-
-
-class IsResult m where
-    toResult  :: forall a. ResultDesc  m a -> Result  m a
-    toResult_ ::           ResultDesc_ m   -> Result_ m
-
-instance {-# OVERLAPPABLE #-} IsResult ((->) t) where
-    toResult desc = do
-        (Just' a, Just' b) <- desc
-        return (a, b)
-
-    toResult_ desc = fromJust' . snd <$> desc
-
-instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m where
-    toResult  desc = fromJust' . fst <$> desc ; {-# INLINE toResult  #-}
-    toResult_ desc = return ()                ; {-# INLINE toResult_ #-}
-
---------------------------------------------
-
-
--- type Result m a = m (Output m a)
---
--- type family Output m a where
---     Output ((->) t) () = t
---     Output ((->) t) a  = (t,a)
---     Output m        a  = a
-
-type Result  m a = m (Output (OutputDesc m) a)
-type Result_ m   = m (Output_ (OutputDesc m))
-
-type family Output arg a where
-    Output (Just' t) a = (a,t)
-    Output Nothing'  a = a
-
-type family Output_ arg where
-    Output_ (Just' t) = t
-    Output_ Nothing'  = ()
-
-
-
-type family OutputDesc m where
-    OutputDesc ((->) t) = Just' t
-    OutputDesc m        = Nothing'
-
--- type NoResult m = Output m () ~ ()
-
-
-
-
-type ContentShow a = Show (Content a)
-newtype Content a = Content a deriving (Functor, Traversable, Foldable)
-makeWrapped ''Content
-
-contentShow :: ContentShow a => a -> P.String
-contentShow = show . Content
-
+-----------------------------------------------------------------------------------------
+-- DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED --
+-----------------------------------------------------------------------------------------
 
 class Monad m => Constructor a m t where
     cons :: a -> m t
 
-
--- === ValidateLayout === ---
--- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
-
-type InvalidFormat sel a format = 'ShowType sel
-                             :</>: Ticked ('ShowType a)
-                             :</>: 'Text  "is not a valid"
-                             :</>: Ticked ('ShowType format)
-
-
-class                                                       ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
-type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
-
-
-class                                                        ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
-type ValidateLayout_ model sel a = ValidateScope (model ^. sel) sel a
-type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
-
-
-
-
-
-
--- TODO: zamidefinition zahardcodoewanego `a` mozna uzywac polimorficznego, ktorego poszczegolne komponenty jak @Data bylyby wymuszane przez poszczegolne warstwy
--- expr :: (Constructor a m (ExprStack t layers layout), expr ~ Expr t layers layout, a ~ ExprSymbol atom expr) => a -> m expr
--- expr a = Expr <$> cons a
-
--- | The `expr` type does not force the construction to be checked,
---   because it has to be already performed in order to deliver ExprSymbol.
+-----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
 
 
 
@@ -728,6 +616,32 @@ hideLayout :: ExprSymbol atom t -> ExprSymbol atom Layout.Any
 hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
 
 
+-- === Layout validation === ---
+-- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
+
+type InvalidFormat sel a format = 'ShowType sel
+                             :</>: Ticked ('ShowType a)
+                             :</>: 'Text  "is not a valid"
+                             :</>: Ticked ('ShowType format)
+
+
+class                                                       ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
+type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
+
+
+class                                                        ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
+type ValidateLayout_ model sel a = ValidateScope (model ^. sel) sel a
+type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
+
+
 -- === Instances === --
 
 -- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
@@ -737,6 +651,8 @@ type instance Get Format (ExprSymbol atom t) = Get Format atom
 type instance Get Sym    (ExprSymbol atom t) = ExprSymbol atom t
 
 instance Getter Sym (ExprSymbol atom t) where get = id ; {-# INLINE get #-}
+
+instance UncheckedFromSymbol (ExprSymbol atom t) where uncheckedFromSymbol = wrap' ; {-# INLINE uncheckedFromSymbol #-}
 
 instance ValidateLayout (LayoutOf t) Atom atom
       => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
@@ -934,3 +850,83 @@ exprUniSymbol = ExprUniSymbol . symbolMap_AB @IsUniSymbol2 uniSymbol2
 
 type instance Encode2 Atom    v = Index v (Every Atom)
 type instance Encode2 Format  v = Index v (Every Format)
+
+
+
+
+
+
+
+--
+-- newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
+-- data    Nothing' = Nothing' deriving (Show)
+--
+
+
+
+
+--------------------------------------------
+
+-- type family ValueOf a
+--
+-- class HasValue a where
+--     value :: a -> ValueOf a
+--
+-- type instance ValueOf (Just' a, _) = a
+-- type instance ValueOf (Nothing',_) = ()
+--
+-- instance HasValue (Just' a , t) where value   = fromJust' . fst
+-- instance HasValue (Nothing', t) where value _ = ()
+--
+-- type ResultDesc  m a = m (Just' a , OutputDesc m)
+-- type ResultDesc_ m   = m (Nothing', OutputDesc m)
+--
+--
+--
+-- type NoOutput m = (OutputDesc m ~ Nothing')
+--
+--
+--
+-- class IsResult m where
+--     toResult  :: forall a. ResultDesc  m a -> Result  m a
+--     toResult_ ::           ResultDesc_ m   -> Result_ m
+--
+-- instance {-# OVERLAPPABLE #-} IsResult ((->) t) where
+--     toResult desc = do
+--         (Just' a, Just' b) <- desc
+--         return (a, b)
+--
+--     toResult_ desc = fromJust' . snd <$> desc
+--
+-- instance {-# OVERLAPPABLE #-} (OutputDesc m ~ Nothing', Monad m) => IsResult m where
+--     toResult  desc = fromJust' . fst <$> desc ; {-# INLINE toResult  #-}
+--     toResult_ desc = return ()                ; {-# INLINE toResult_ #-}
+--
+-- --------------------------------------------
+--
+--
+-- -- type Result m a = m (Output m a)
+-- --
+-- -- type family Output m a where
+-- --     Output ((->) t) () = t
+-- --     Output ((->) t) a  = (t,a)
+-- --     Output m        a  = a
+--
+-- type Result  m a = m (Output (OutputDesc m) a)
+-- type Result_ m   = m (Output_ (OutputDesc m))
+--
+-- type family Output arg a where
+--     Output (Just' t) a = (a,t)
+--     Output Nothing'  a = a
+--
+-- type family Output_ arg where
+--     Output_ (Just' t) = t
+--     Output_ Nothing'  = ()
+--
+--
+--
+-- type family OutputDesc m where
+--     OutputDesc ((->) t) = Just' t
+--     OutputDesc m        = Nothing'
+--
+-- -- type NoResult m = Output m () ~ ()

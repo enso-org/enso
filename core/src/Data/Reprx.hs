@@ -20,6 +20,26 @@ import Data.Text.CodeBuilder as X ((<+>))
 import GHC.Exts (Constraint)
 import GHC.TypeLits
 
+
+--------------------------
+-- === Content show === --
+--------------------------
+-- | Utilities allowin easy implementation of show instances for structures
+--   which provide content, so we can implement beginning and end sequence
+--   independently from body
+
+newtype Content a = Content a deriving (Functor, Traversable, Foldable)
+makeWrapped ''Content
+
+type ContentShow a = Show (Content a)
+contentShow :: ContentShow a => a -> String
+contentShow = show . Content ; {-# INLINE contentShow #-}
+
+
+
+----------------------
+
+
 type family TypeRepr a :: Symbol
 class Repr  s a        where repr  ::       a -> Builder s Tok
 class ReprT s (a :: k) where reprT :: Proxy a -> Builder s Tok

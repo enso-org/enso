@@ -189,7 +189,8 @@ instance n ~ a => HasFields (NamedSymbol Var      n a) where fieldList (Sym_Var 
 -- === Construction === --
 --------------------------
 
-type Symbolic atom s sym = (sym ~ AsSymbol s, FromSymbol s, Product' sym, atom ~ Get Atom s)
+type Symbolic          atom s sym = (sym ~ AsSymbol s, Product' sym, atom ~ Get Atom s, FromSymbol s)
+type UncheckedSymbolic atom s sym = (sym ~ AsSymbol s, Product' sym, atom ~ Get Atom s, UncheckedFromSymbol s)
 
 
 integer' :: (Symbolic Integer s sym, Fields sym ~ '[t1]) => t1 -> s
@@ -231,6 +232,49 @@ unify' = fromSymbol .: product' ; {-# INLINE unify' #-}
 
 var' :: (Symbolic Var s sym, Fields sym ~ '[t1]) => t1 -> s
 var' = fromSymbol . product' ; {-# INLINE var' #-}
+
+
+
+
+uncheckedInteger :: (UncheckedSymbolic Integer s sym, Fields sym ~ '[t1]) => t1 -> s
+uncheckedInteger = uncheckedFromSymbol . product' ; {-# INLINE uncheckedInteger #-}
+
+uncheckedRational :: (UncheckedSymbolic Rational s sym, Fields sym ~ '[t1]) => t1 -> s
+uncheckedRational = uncheckedFromSymbol . product' ; {-# INLINE uncheckedRational #-}
+
+uncheckedString :: (UncheckedSymbolic String s sym, Fields sym ~ '[t1]) => t1 -> s
+uncheckedString = uncheckedFromSymbol . product' ; {-# INLINE uncheckedString #-}
+
+
+uncheckedAcc :: (UncheckedSymbolic Acc s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+uncheckedAcc = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedAcc #-}
+
+uncheckedApp :: (UncheckedSymbolic App s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+uncheckedApp = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedApp #-}
+
+uncheckedBlank :: (UncheckedSymbolic Blank s sym, Fields sym ~ '[]) => s
+uncheckedBlank = uncheckedFromSymbol product' ; {-# INLINE uncheckedBlank #-}
+
+uncheckedCons :: (UncheckedSymbolic Cons s sym, Fields sym ~ '[t1]) => t1 -> s
+uncheckedCons = uncheckedFromSymbol . product' ; {-# INLINE uncheckedCons #-}
+
+uncheckedLam :: (UncheckedSymbolic Lam s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+uncheckedLam = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedLam #-}
+
+uncheckedMatch :: (UncheckedSymbolic Match s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+uncheckedMatch = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedMatch #-}
+
+uncheckedMissing :: (UncheckedSymbolic Missing s sym, Fields sym ~ '[]) => s
+uncheckedMissing = uncheckedFromSymbol product' ; {-# INLINE uncheckedMissing #-}
+
+uncheckedStar :: (UncheckedSymbolic Star s sym, Fields sym ~ '[]) => s
+uncheckedStar = uncheckedFromSymbol product' ; {-# INLINE uncheckedStar #-}
+
+uncheckedUnify :: (UncheckedSymbolic Unify s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+uncheckedUnify = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedUnify #-}
+
+uncheckedVar :: (UncheckedSymbolic Var s sym, Fields sym ~ '[t1]) => t1 -> s
+uncheckedVar = uncheckedFromSymbol . product' ; {-# INLINE uncheckedVar #-}
 
 
 

@@ -109,7 +109,7 @@ import GHC.TypeLits (ErrorMessage(Text))
 import Luna.Syntax.Term.Expr.Atom (Atoms)
 
 import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
-import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
+import qualified Luna.Syntax.Term.Expr.Symbol.Named as Sym
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
 import Luna.Syntax.Term.Expr.Symbol (Sym)
 import Control.Lens.Property hiding (Constructor)
@@ -309,10 +309,10 @@ instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM 
     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
 
 
-valOnly v = (Just' v, Nothing')
-noVal   _ = (Nothing', Nothing')
+-- valOnly v = (Just' v, Nothing')
+-- noVal   _ = (Nothing', Nothing')
 
-fooe (x,y) = (Just' x, Just' y)
+-- fooe (x,y) = (Just' x, Just' y)
 
 
 
@@ -336,7 +336,7 @@ localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 magicStar :: (SilentExprCons m, Self.MonadSelfBuilder (Ref Expr') m)
           => m (Ref AnyExpr)
-magicStar = Self.put . universal =<<& (silentExpr N.star')
+magicStar = Self.put . universal =<<& (silentExpr Sym.uncheckedStar)
 
 -- expr' :: (ExprCons' m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
 
@@ -378,7 +378,7 @@ type ASG' m layout = (ASG m, Inferable2 Layout layout (Runner m))
 
 unify :: ASG m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
 unify a b = buildElem $ mdo
-    n  <- delayedExpr (wrap' $ N.unify' la lb)
+    n  <- delayedExpr (Sym.uncheckedUnify la lb)
     la <- delayedLink (unsafeGeneralize a) n
     lb <- delayedLink (unsafeGeneralize b) n
     return n
@@ -387,7 +387,7 @@ unify a b = buildElem $ mdo
 type AtomicExpr atom layout = Expr (Set Atom atom layout)
 
 star :: ASG' m layout => m (Ref $ AtomicExpr Star layout)
-star = buildElem $ expr (wrap' N.star')
+star = buildElem $ expr Sym.uncheckedStar
 
 
 buildElem :: forall m a. (Self.MonadSelfBuilder (Universal a) (Runner m), Monad m)
