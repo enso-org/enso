@@ -57,7 +57,6 @@ Library
                   GeneralizedNewtypeDeriving
                   InstanceSigs
                   LambdaCase
-                  MultiParamTypeClasses
                   NoImplicitPrelude
                   OverloadedStrings
                   PackageImports
@@ -70,6 +69,24 @@ Library
                   ViewPatterns
                   TypeApplications
                   DuplicateRecordFields
+                  NegativeLiterals
+                  NumDecimals
+                  BinaryLiterals
+                  RecursiveDo
+                  ApplicativeDo
+                  MonadComprehensions
+                  MonadFailDesugaring
+                  MultiWayIf
+                  OverloadedLabels
+                  TypeFamilyDependencies
+                  AllowAmbiguousTypes
+                  RankNTypes
+                  NamedWildCards
+                  Arrows
+                  BangPatterns
+
+                  LiberalTypeSynonyms
+                  RelaxedPolyRec
 
     exposed-modules: 
         Control.Monad.Delayed,
@@ -280,7 +297,6 @@ Executable luna
                   GeneralizedNewtypeDeriving
                   InstanceSigs
                   LambdaCase
-                  MultiParamTypeClasses
                   NoImplicitPrelude
                   OverloadedStrings
                   PackageImports
@@ -288,9 +304,29 @@ Executable luna
                   StandaloneDeriving
                   TemplateHaskell
                   TupleSections
+                  TypeFamilies
                   TypeOperators
                   ViewPatterns
+                  TypeApplications
                   DuplicateRecordFields
+                  NegativeLiterals
+                  NumDecimals
+                  BinaryLiterals
+                  RecursiveDo
+                  ApplicativeDo
+                  MonadComprehensions
+                  MonadFailDesugaring
+                  MultiWayIf
+                  OverloadedLabels
+                  TypeFamilyDependencies
+                  AllowAmbiguousTypes
+                  RankNTypes
+                  NamedWildCards
+                  Arrows
+                  BangPatterns
+
+                  LiberalTypeSynonyms
+                  RelaxedPolyRec
 
     if !flag(luna-exe)
         buildable: False
@@ -341,32 +377,51 @@ benchmark graph-builder
     hs-source-dirs:   testsuite/benchmarks
     main-is:          Main.hs
     extensions:       ConstraintKinds
-                      DataKinds
-                      DefaultSignatures
-                      DeriveDataTypeable
-                      DeriveFoldable
-                      DeriveFunctor
-                      DeriveGeneric
-                      DeriveTraversable
-                      DoAndIfThenElse
-                      EmptyDataDecls
-                      FlexibleContexts
-                      FlexibleInstances
-                      FunctionalDependencies
-                      GeneralizedNewtypeDeriving
-                      InstanceSigs
-                      LambdaCase
-                      MultiParamTypeClasses
-                      NoImplicitPrelude
-                      OverloadedStrings
-                      PackageImports
-                      ScopedTypeVariables
-                      StandaloneDeriving
-                      TemplateHaskell
-                      TupleSections
-                      TypeFamilies
-                      TypeOperators
-                      ViewPatterns
+                  DataKinds
+                  DefaultSignatures
+                  DeriveDataTypeable
+                  DeriveFoldable
+                  DeriveFunctor
+                  DeriveGeneric
+                  DeriveTraversable
+                  DoAndIfThenElse
+                  EmptyDataDecls
+                  FlexibleContexts
+                  FlexibleInstances
+                  FunctionalDependencies
+                  GeneralizedNewtypeDeriving
+                  InstanceSigs
+                  LambdaCase
+                  NoImplicitPrelude
+                  OverloadedStrings
+                  PackageImports
+                  ScopedTypeVariables
+                  StandaloneDeriving
+                  TemplateHaskell
+                  TupleSections
+                  TypeFamilies
+                  TypeOperators
+                  ViewPatterns
+                  TypeApplications
+                  DuplicateRecordFields
+                  NegativeLiterals
+                  NumDecimals
+                  BinaryLiterals
+                  RecursiveDo
+                  ApplicativeDo
+                  MonadComprehensions
+                  MonadFailDesugaring
+                  MultiWayIf
+                  OverloadedLabels
+                  TypeFamilyDependencies
+                  AllowAmbiguousTypes
+                  RankNTypes
+                  NamedWildCards
+                  Arrows
+                  BangPatterns
+
+                  LiberalTypeSynonyms
+                  RelaxedPolyRec
 
     if !flag(graph-benchmarks)
         buildable: False

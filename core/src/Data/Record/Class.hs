@@ -105,8 +105,8 @@ type family Layout    a :: [*]
 type family EncodeMap a :: Map * [Nat]
 type family DecodeMap a :: Map * Nat
 
-type family Encode rec t :: [Nat] -- new interface
-type family Decode rec t ::  Nat  -- new interface
+type family Encode rrr t :: [Nat] -- new interface
+type family Decode rrr t ::  Nat  -- new interface
 
 type family Encode2 t a :: Maybe Nat -- new interface 2 -- e.g Encode Atom Blank
 
@@ -127,12 +127,12 @@ mkRecord r = view (from asRecord) r
 {-# INLINE mkRecord #-}
 
 -- | `t` is the type of encoder, like Variant or Group
-class Encoder t a m rec | t a rec -> m where encode :: Proxy t -> a -> m rec
+class Encoder t a m rrr | t a rrr -> m where encode :: Proxy t -> a -> m rrr
 
 -- TODO[WD]: Maybe unsafe extract / insert should be some kind of lens?
-class UnsafeExtract t rec m a | t rec a -> m where unsafeExtract :: Proxy t -> rec -> m a
-class UnsafeInsert  t rec m a | t rec a -> m where unsafeInsert  :: Proxy t -> a -> rec -> m rec
-class CheckMatch    t a rec where checkMatch :: Proxy t -> Proxy (a :: *) -> rec -> Bool
+class UnsafeExtract t rrr m a | t rrr a -> m where unsafeExtract :: Proxy t -> rrr -> m a
+class UnsafeInsert  t rrr m a | t rrr a -> m where unsafeInsert  :: Proxy t -> a -> rrr -> m rrr
+class CheckMatch    t a rrr where checkMatch :: Proxy t -> Proxy (a :: *) -> rrr -> Bool
 
 
 -- === Instances === --
@@ -153,16 +153,16 @@ type family ValueOf a
 class HasValue a where value :: Lens' a (ValueOf a)
 
 
-type family ElemType  a rec where ElemType  a rec = ElemType' a (RecordOf rec)
-type family ElemType' a rec where ElemType' a rec = If (a `In` Variants rec) ('Just Variant)
-                                                  ( If (a `In` Groups   rec) ('Just Group) 'Nothing)
+type family ElemType  a rrr where ElemType  a rrr = ElemType' a (RecordOf rrr)
+type family ElemType' a rrr where ElemType' a rrr = If (a `In` Variants rrr) ('Just Variant)
+                                                  ( If (a `In` Groups   rrr) ('Just Group) 'Nothing)
 
 
 ---- === Resolvers === --
 
-type family ResolveGroups   a rec where ResolveGroups   a rec = ResolveAmong a (Groups   (RecordOf rec))
-type family ResolveVariants a rec where ResolveVariants a rec = ResolveAmong a (Variants (RecordOf rec))
-type family ResolveElems    a rec where ResolveElems    a rec = ResolveAmong a (Groups (RecordOf rec) <> Variants (RecordOf rec))
+type family ResolveGroups   a rrr where ResolveGroups   a rrr = ResolveAmong a (Groups   (RecordOf rrr))
+type family ResolveVariants a rrr where ResolveVariants a rrr = ResolveAmong a (Variants (RecordOf rrr))
+type family ResolveElems    a rrr where ResolveElems    a rrr = ResolveAmong a (Groups (RecordOf rrr) <> Variants (RecordOf rrr))
 
 type family ResolveAmong  a els where ResolveAmong  a els = LookupIdx (Index (Base a) (Bases els)) els
 type family LookupIdx (idx :: Maybe Nat) (els :: [*]) where
@@ -173,7 +173,7 @@ type family ResolveConstraint t a :: Constraint where
     ResolveConstraint 'Nothing  a = ()
     ResolveConstraint ('Just t) a = (t ~ a)
 
-type Resolved a rec = ResolveConstraint (ResolveElems a rec) a
+type Resolved a rrr = ResolveConstraint (ResolveElems a rrr) a
 
 
 
@@ -184,14 +184,14 @@ type Resolved a rec = ResolveConstraint (ResolveElems a rec) a
 data Invalid t a
 data InvalidVariant v
 data InvalidGroup   g
-data InvalidSubgroupOf subgroup rec
+data InvalidSubgroupOf subgroup rrr
 data InvalidElement e
 data InvalidPattern p
 
 type Invalid' t a = Error (Invalid t a)
 type InvalidVariant' v = Error (InvalidVariant v)
 type InvalidGroup'   g = Error (InvalidGroup   g)
-type InvalidSubgroupOf' subgroup rec = Error (InvalidSubgroupOf subgroup rec)
+type InvalidSubgroupOf' subgroup rrr = Error (InvalidSubgroupOf subgroup rrr)
 type InvalidElement' e = Error (InvalidElement e)
 type InvalidPattern' p = Error (InvalidPattern p)
 
@@ -204,9 +204,9 @@ type InvalidPattern' p = Error (InvalidPattern p)
 -- === Unchecked and checked constructors === --
 -- | Facilitates construction of records from given variants and groups if they match declared variant options
 
-class UncheckedElemCons    t v m rec |    t v rec -> m where uncheckedElemCons ::                       Proxy t -> v -> m rec
-class CheckedElemCons      t v m rec |    t v rec -> m where checkedElemCons   ::                       Proxy t -> v -> m rec
-class CheckedElemCons'  ok t v m rec | ok t v rec -> m where checkedElemCons'  :: Proxy (ok :: Bool) -> Proxy t -> v -> m rec
+class UncheckedElemCons    t v m rrr |    t v rrr -> m where uncheckedElemCons ::                       Proxy t -> v -> m rrr
+class CheckedElemCons      t v m rrr |    t v rrr -> m where checkedElemCons   ::                       Proxy t -> v -> m rrr
+class CheckedElemCons'  ok t v m rrr | ok t v rrr -> m where checkedElemCons'  :: Proxy (ok :: Bool) -> Proxy t -> v -> m rrr
 
 instance ( IsRecord r, Functor m, Encoder t a m (RecordOf r)
          )      => UncheckedElemCons t a m r where uncheckedElemCons t = mkRecord <∘> encode t ; {-# INLINE uncheckedElemCons #-}
@@ -227,13 +227,13 @@ type CheckedVariantCons   = CheckedElemCons   Variant
 type UncheckedGroupCons   = UncheckedElemCons Group
 type CheckedGroupCons     = CheckedElemCons   Group
 
-uncheckedVariantCons :: UncheckedVariantCons v m rec => v -> m rec
-uncheckedGroupCons   :: UncheckedGroupCons   g m rec => g -> m rec
+uncheckedVariantCons :: UncheckedVariantCons v m rrr => v -> m rrr
+uncheckedGroupCons   :: UncheckedGroupCons   g m rrr => g -> m rrr
 uncheckedVariantCons = uncheckedElemCons (p :: P Variant) ; {-# INLINE uncheckedVariantCons #-}
 uncheckedGroupCons   = uncheckedElemCons (p :: P Group)   ; {-# INLINE uncheckedGroupCons   #-}
 
-checkedVariantCons :: CheckedVariantCons v m rec => v -> m rec
-checkedGroupCons   :: CheckedGroupCons   g m rec => g -> m rec
+checkedVariantCons :: CheckedVariantCons v m rrr => v -> m rrr
+checkedGroupCons   :: CheckedGroupCons   g m rrr => g -> m rrr
 checkedVariantCons = checkedElemCons (p :: P Variant) ; {-# INLINE checkedVariantCons #-}
 checkedGroupCons   = checkedElemCons (p :: P Group)   ; {-# INLINE checkedGroupCons   #-}
 
@@ -241,8 +241,8 @@ checkedGroupCons   = checkedElemCons (p :: P Group)   ; {-# INLINE checkedGroupC
 -- === Automatic constructors === --
 -- | Automatically chooses between Variant- and Group- Cons if the element matches one of variant or group declaration
 
-class AutoCons      e m rec |     e rec -> m where autoCons  ::                           e -> m rec
-class AutoCons' tgt e m rec | tgt e rec -> m where autoCons' :: Proxy (tgt :: Maybe *) -> e -> m rec
+class AutoCons      e m rrr |     e rrr -> m where autoCons  ::                           e -> m rrr
+class AutoCons' tgt e m rrr | tgt e rrr -> m where autoCons' :: Proxy (tgt :: Maybe *) -> e -> m rrr
 
 instance ( tgt ~ ElemType e r
          , AutoCons' tgt e m r
@@ -257,37 +257,37 @@ instance m ~ InvalidElement' e      => AutoCons' 'Nothing        e m r where aut
 
 -- === Resolved automatic constructors === --
 
-class ResolvedAutoCons a m rec | a rec -> m where resolvedCons :: a -> m rec
-instance {-# OVERLAPPABLE #-} ( ResolveConstraint (ResolveElems a rec) a
-                              , AutoCons a m rec ) => ResolvedAutoCons a m rec where resolvedCons = autoCons   ; {-# INLINE resolvedCons #-}
-instance {-# OVERLAPPABLE #-} m ~ IM               => ResolvedAutoCons I m rec where resolvedCons = impossible ; {-# INLINE resolvedCons #-}
+class ResolvedAutoCons a m rrr | a rrr -> m where resolvedCons :: a -> m rrr
+instance {-# OVERLAPPABLE #-} ( ResolveConstraint (ResolveElems a rrr) a
+                              , AutoCons a m rrr ) => ResolvedAutoCons a m rrr where resolvedCons = autoCons   ; {-# INLINE resolvedCons #-}
+instance {-# OVERLAPPABLE #-} m ~ IM               => ResolvedAutoCons I m rrr where resolvedCons = impossible ; {-# INLINE resolvedCons #-}
 instance {-# OVERLAPPABLE #-} m ~ IM               => ResolvedAutoCons a m I   where resolvedCons = impossible ; {-# INLINE resolvedCons #-}
 
-evalResolvedAutoCons :: ResolvedAutoCons a Ok rec => a -> rec
+evalResolvedAutoCons :: ResolvedAutoCons a Ok rrr => a -> rrr
 evalResolvedAutoCons = fromOk ∘ resolvedCons ; {-# INLINE evalResolvedAutoCons #-}
 
-type TryResolvedAutoCons a m rec = (ResolvedAutoCons a m rec, MaybeResult m)
-tryResolvedAutoCons :: TryResolvedAutoCons a m rec => a -> Maybe rec
+type TryResolvedAutoCons a m rrr = (ResolvedAutoCons a m rrr, MaybeResult m)
+tryResolvedAutoCons :: TryResolvedAutoCons a m rrr => a -> Maybe rrr
 tryResolvedAutoCons = maybeResult ∘ resolvedCons ; {-# INLINE tryResolvedAutoCons #-}
 
 
 -- === User friendly constructors === --
 
-class Cons a rec where cons :: a -> rec
-instance ResolvedAutoCons a Ok rec => Cons a rec where cons = evalResolvedAutoCons ; {-# INLINE cons #-}
-instance                              Cons I rec where cons = impossible           ; {-# INLINE cons #-}
+class Cons a rrr where cons :: a -> rrr
+instance ResolvedAutoCons a Ok rrr => Cons a rrr where cons = evalResolvedAutoCons ; {-# INLINE cons #-}
+instance                              Cons I rrr where cons = impossible           ; {-# INLINE cons #-}
 instance                              Cons a I   where cons = impossible           ; {-# INLINE cons #-}
 
-class TryCons a rec where tryCons :: a -> Maybe rec
-instance TryResolvedAutoCons a m rec => TryCons a rec where tryCons = tryResolvedAutoCons ; {-# INLINE tryCons #-}
-instance                                TryCons I rec where tryCons = impossible          ; {-# INLINE tryCons #-}
+class TryCons a rrr where tryCons :: a -> Maybe rrr
+instance TryResolvedAutoCons a m rrr => TryCons a rrr where tryCons = tryResolvedAutoCons ; {-# INLINE tryCons #-}
+instance                                TryCons I rrr where tryCons = impossible          ; {-# INLINE tryCons #-}
 instance                                TryCons a I   where tryCons = impossible          ; {-# INLINE tryCons #-}
 
-class SmartCons a rec where smartCons :: a -> rec
-instance {-# OVERLAPPABLE #-} TryCons a rec => SmartCons a (Maybe rec) where smartCons = tryCons    ; {-# INLINE smartCons #-}
-instance {-# OVERLAPPABLE #-} Cons    a rec => SmartCons a rec         where smartCons = cons       ; {-# INLINE smartCons #-}
+class SmartCons a rrr where smartCons :: a -> rrr
+instance {-# OVERLAPPABLE #-} TryCons a rrr => SmartCons a (Maybe rrr) where smartCons = tryCons    ; {-# INLINE smartCons #-}
+instance {-# OVERLAPPABLE #-} Cons    a rrr => SmartCons a rrr         where smartCons = cons       ; {-# INLINE smartCons #-}
 instance {-# OVERLAPPABLE #-}                  SmartCons a (Maybe I)   where smartCons = impossible ; {-# INLINE smartCons #-}
-instance {-# OVERLAPPABLE #-}                  SmartCons I rec         where smartCons = impossible ; {-# INLINE smartCons #-}
+instance {-# OVERLAPPABLE #-}                  SmartCons I rrr         where smartCons = impossible ; {-# INLINE smartCons #-}
 
 
 
@@ -306,50 +306,50 @@ type instance Base ANY = Proxy ANY
 
 -- === ElemMap === --
 
-class ElemMap       t v m rec |    t v rec -> m where elemMap  :: forall a.                       Proxy t -> (v -> a) -> rec -> m (Maybe a)
-class ElemMap'   ok t v m rec | ok t v rec -> m where elemMap' :: forall a. Proxy (ok :: Bool) -> Proxy t -> (v -> a) -> rec -> m (Maybe a)
-type  ElemMapped    t v   rec = ElemMap t v Ok rec
+class ElemMap       t v m rrr |    t v rrr -> m where elemMap  :: forall a.                       Proxy t -> (v -> a) -> rrr -> m (Maybe a)
+class ElemMap'   ok t v m rrr | ok t v rrr -> m where elemMap' :: forall a. Proxy (ok :: Bool) -> Proxy t -> (v -> a) -> rrr -> m (Maybe a)
+type  ElemMapped    t v   rrr = ElemMap t v Ok rrr
 
 type  UncheckedElemMap            = ElemMap' 'True
-type  UncheckedElemMapped t v rec = ElemMap' 'True t v Ok rec
+type  UncheckedElemMapped t v rrr = ElemMap' 'True t v Ok rrr
 
 instance {-# OVERLAPPABLE #-} ( ok ~ (v `In` (r ##. t)) , ElemMap' ok t v m r )
                                      => ElemMap         t v   m r where elemMap          = elemMap' (p :: P ok) ; {-# INLINE elemMap  #-}
 instance {-# OVERLAPPABLE #-} m ~ Ok => ElemMap         t ANY m r where elemMap  _ f _   = Ok $ Just $ f ANY    ; {-# INLINE elemMap  #-}
 instance {-# OVERLAPPABLE #-} m ~ IM => ElemMap         t v   m I where elemMap  _ _ _   = impossible           ; {-# INLINE elemMap  #-}
 instance m ~ Invalid' t v            => ElemMap' 'False t v   m r where elemMap' _ _ _ _ = Error                ; {-# INLINE elemMap' #-}
-instance ( UnsafeExtract t rec m a
+instance ( UnsafeExtract t rrr m a
          , HasRecord r
-         , rec ~ RecordOf r
+         , rrr ~ RecordOf r
          , Monad m
-         , CheckMatch t a rec
+         , CheckMatch t a rrr
          ) => ElemMap' 'True t a m r where
     elemMap' _ t f r = if match then (Just ∘ (f $) <$> val) else return Nothing where
-        rec      = r ^. record
-        match    = checkMatch t (p :: P a) rec
-        val      = unsafeExtract t rec :: m a
+        rrr      = r ^. record
+        match    = checkMatch t (p :: P a) rrr
+        val      = unsafeExtract t rrr :: m a
     {-# INLINE elemMap' #-}
 
-elemMapped :: ElemMapped t v rec => Proxy t -> (v -> a) -> rec -> Maybe a
+elemMapped :: ElemMapped t v rrr => Proxy t -> (v -> a) -> rrr -> Maybe a
 elemMapped = fromOk ∘∘∘ elemMap ; {-# INLINE elemMapped #-}
 
-uncheckedElemMap :: UncheckedElemMap t v m rec => Proxy t -> (v -> a) -> rec -> m (Maybe a)
+uncheckedElemMap :: UncheckedElemMap t v m rrr => Proxy t -> (v -> a) -> rrr -> m (Maybe a)
 uncheckedElemMap = elemMap' (Proxy :: Proxy 'True) ; {-# INLINE uncheckedElemMap #-}
 
-uncheckedElemMapped :: UncheckedElemMapped t v rec => Proxy t -> (v -> a) -> rec -> Maybe a
+uncheckedElemMapped :: UncheckedElemMapped t v rrr => Proxy t -> (v -> a) -> rrr -> Maybe a
 uncheckedElemMapped = fromOk ∘∘∘ uncheckedElemMap ; {-# INLINE uncheckedElemMapped #-}
 
 -- === VariantMap === --
 
-type          VariantMap    v m rec =          ElemMap    Variant v m rec
-type          VariantMapped v   rec =          ElemMapped Variant v   rec
-type UncheckedVariantMap    v m rec = UncheckedElemMap    Variant v m rec
-type UncheckedVariantMapped v   rec = UncheckedElemMapped Variant v   rec
+type          VariantMap    v m rrr =          ElemMap    Variant v m rrr
+type          VariantMapped v   rrr =          ElemMapped Variant v   rrr
+type UncheckedVariantMap    v m rrr = UncheckedElemMap    Variant v m rrr
+type UncheckedVariantMapped v   rrr = UncheckedElemMapped Variant v   rrr
 
-variantMap             ::          VariantMap    v m rec => (v -> a) -> rec -> m (Maybe a)
-variantMapped          ::          VariantMapped v   rec => (v -> a) -> rec ->    Maybe a
-uncheckedVariantMap    :: UncheckedVariantMap    v m rec => (v -> a) -> rec -> m (Maybe a)
-uncheckedVariantMapped :: UncheckedVariantMapped v   rec => (v -> a) -> rec ->    Maybe a
+variantMap             ::          VariantMap    v m rrr => (v -> a) -> rrr -> m (Maybe a)
+variantMapped          ::          VariantMapped v   rrr => (v -> a) -> rrr ->    Maybe a
+uncheckedVariantMap    :: UncheckedVariantMap    v m rrr => (v -> a) -> rrr -> m (Maybe a)
+uncheckedVariantMapped :: UncheckedVariantMapped v   rrr => (v -> a) -> rrr ->    Maybe a
 
 variantMap             = elemMap             (p :: P Variant) ; {-# INLINE variantMap             #-}
 variantMapped          = elemMapped          (p :: P Variant) ; {-# INLINE variantMapped          #-}
@@ -358,11 +358,11 @@ uncheckedVariantMapped = uncheckedElemMapped (p :: P Variant) ; {-# INLINE unche
 
 -- === GroupMap === --
 
-type GroupMap    v m rec = ElemMap    Group v m rec
-type GroupMapped v   rec = ElemMapped Group v   rec
+type GroupMap    v m rrr = ElemMap    Group v m rrr
+type GroupMapped v   rrr = ElemMapped Group v   rrr
 
-groupMap    :: GroupMap    g m rec => (g -> a) -> rec -> m (Maybe a)
-groupMapped :: GroupMapped g   rec => (g -> a) -> rec ->    Maybe a
+groupMap    :: GroupMap    g m rrr => (g -> a) -> rrr -> m (Maybe a)
+groupMapped :: GroupMapped g   rrr => (g -> a) -> rrr ->    Maybe a
 groupMap    = elemMap    (p :: P Group) ; {-# INLINE groupMap    #-}
 groupMapped = elemMapped (p :: P Group) ; {-# INLINE groupMapped #-}
 
@@ -378,80 +378,80 @@ groupMapped = elemMapped (p :: P Group) ; {-# INLINE groupMapped #-}
 
 --class MyVariantMap where myVariantMap :: Proxy ctx -> (forall )
 
-class WithElement' ctx rec a where withElement' :: Proxy ctx -> (forall v. ctx v a => v -> a) -> rec -> a
-instance (MapTryingElemList els ctx rec a, els ~ Layout_Variants Variant (RecordOf rec)) => WithElement' ctx rec a where withElement' = mapTryingElemList (p :: P els)
+class WithElement' ctx rrr a where withElement' :: Proxy ctx -> (forall v. ctx v a => v -> a) -> rrr -> a
+instance (MapTryingElemList els ctx rrr a, els ~ Layout_Variants Variant (RecordOf rrr)) => WithElement' ctx rrr a where withElement' = mapTryingElemList (p :: P els)
 
-class MapTryingElemList els ctx rec a where mapTryingElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v a => v -> a) -> rec -> a
+class MapTryingElemList els ctx rrr a where mapTryingElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v a => v -> a) -> rrr -> a
 
 instance ( HasRecord r
-         , rec ~ RecordOf r
-         , CheckMatch Variant el rec
-         , UnsafeExtract Variant rec Ok el
+         , rrr ~ RecordOf r
+         , CheckMatch Variant el rrr
+         , UnsafeExtract Variant rrr Ok el
          , ctx el a
          , MapTryingElemList els ctx r a
          ) => MapTryingElemList (el ': els) ctx r a where
     mapTryingElemList _ ctx f r = if match then f el else mapTryingElemList (p :: P els) ctx f r where
-        rec   = r ^. record
+        rrr   = r ^. record
         t     = p :: P Variant
-        match = checkMatch t (p :: P el) rec
-        Ok el = unsafeExtract t rec :: Ok el
+        match = checkMatch t (p :: P el) rrr
+        Ok el = unsafeExtract t rrr :: Ok el
 
 
-instance MapTryingElemList '[] ctx rec a --where mapTryingElemList = error "Data/Record special error"
+instance MapTryingElemList '[] ctx rrr a --where mapTryingElemList = error "Data/Record special error"
 
 
 
 
-class WithElement_ ctx rec where withElement_ :: Proxy ctx -> (forall v. ctx v => v -> a) -> rec -> a
-instance (MapTryingElemList_ els ctx rec, els ~ (RecordOf rec ##. Variant)) => WithElement_ ctx rec where withElement_ = mapTryingElemList_ (p :: P els)
+class WithElement_ ctx rrr where withElement_ :: Proxy ctx -> (forall v. ctx v => v -> a) -> rrr -> a
+instance (MapTryingElemList_ els ctx rrr, els ~ (RecordOf rrr ##. Variant)) => WithElement_ ctx rrr where withElement_ = mapTryingElemList_ (p :: P els)
 
-class MapTryingElemList_ els ctx rec where mapTryingElemList_ :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> a) -> rec -> a
+class MapTryingElemList_ els ctx rrr where mapTryingElemList_ :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> a) -> rrr -> a
 
 instance ( HasRecord r
-         , rec ~ RecordOf r
-         , CheckMatch Variant el rec
-         , UnsafeExtract Variant rec Ok el
+         , rrr ~ RecordOf r
+         , CheckMatch Variant el rrr
+         , UnsafeExtract Variant rrr Ok el
          , ctx el
          , MapTryingElemList_ els ctx r
          ) => MapTryingElemList_ (el ': els) ctx r where
     mapTryingElemList_ _ ctx f r = if match then f el else mapTryingElemList_ (p :: P els) ctx f r where
-        rec   = r ^. record
+        rrr   = r ^. record
         t     = p :: P Variant
-        match = checkMatch t (p :: P el) rec
-        Ok el = unsafeExtract t rec :: Ok el
+        match = checkMatch t (p :: P el) rrr
+        Ok el = unsafeExtract t rrr :: Ok el
 
 
-instance MapTryingElemList_ '[] ctx rec --where mapTryingElemList_ = error "Data/Record special error"
+instance MapTryingElemList_ '[] ctx rrr --where mapTryingElemList_ = error "Data/Record special error"
 
 --class NFunctor n m a a' | n m a -> a' where fmapN :: (n -> m) -> a -> a'
 
 
-class OverElement ctx rec where overElement :: Proxy ctx -> (forall v. ctx v => v -> v) -> rec -> rec
-instance (MapOverElemList els ctx rec, els ~ (RecordOf rec ##. Variant)) => OverElement ctx rec where overElement = mapOverElemList (p :: P els)
+class OverElement ctx rrr where overElement :: Proxy ctx -> (forall v. ctx v => v -> v) -> rrr -> rrr
+instance (MapOverElemList els ctx rrr, els ~ (RecordOf rrr ##. Variant)) => OverElement ctx rrr where overElement = mapOverElemList (p :: P els)
 
-class MapOverElemList els ctx rec where mapOverElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> v) -> rec -> rec
+class MapOverElemList els ctx rrr where mapOverElemList :: Proxy (els :: [*]) -> Proxy ctx -> (forall v. ctx v => v -> v) -> rrr -> rrr
 
 
-instance MapOverElemList '[] ctx rec --where mapOverElemList = error "Data/Record special error"
+instance MapOverElemList '[] ctx rrr --where mapOverElemList = error "Data/Record special error"
 
 
 instance ( HasRecord r
-         , rec ~ RecordOf r
+         , rrr ~ RecordOf r
          , CheckMatch Variant el (RecordOf r)
-         , UnsafeExtract Variant rec Ok el
-         , UnsafeInsert  Variant rec Ok el
+         , UnsafeExtract Variant rrr Ok el
+         , UnsafeInsert  Variant rrr Ok el
          , ctx el
          , MapOverElemList els ctx r
          ) => MapOverElemList (el ': els) ctx r where
     mapOverElemList _ ctx f r = if match then out else mapOverElemList (p :: P els) ctx f r where
-        rec    = r ^. record
+        rrr    = r ^. record
         t      = p :: P Variant
-        match  = checkMatch t (p :: P el) rec
-        Ok el  = unsafeExtract t rec :: Ok el
-        Ok out = flip (set record) r <$> (unsafeInsert  t (f el) rec :: Ok rec) :: Ok r
+        match  = checkMatch t (p :: P el) rrr
+        Ok el  = unsafeExtract t rrr :: Ok el
+        Ok out = flip (set record) r <$> (unsafeInsert  t (f el) rrr :: Ok rrr) :: Ok r
 
 
---class UnsafeInsert  t rec m a | t rec a -> m where unsafeInsert  :: Proxy t -> a -> rec -> m rec
+--class UnsafeInsert  t rrr m a | t rrr a -> m where unsafeInsert  :: Proxy t -> a -> rrr -> m rrr
 
 
 ------------------------------
@@ -462,18 +462,18 @@ instance ( HasRecord r
 
 data PM = PM deriving (Show)
 
-newtype MatchState rec s a = MatchState (State.State PM [rec -> Maybe s] a) deriving (Functor, Applicative, Monad)
-type    MatchSet   rec s   = MatchState rec s ()
+newtype MatchState rrr s a = MatchState (State.State PM [rrr -> Maybe s] a) deriving (Functor, Applicative, Monad)
+type    MatchSet   rrr s   = MatchState rrr s ()
 
 
 -- === Basic matching === --
 
-variantMatch :: VariantMapped a rec => (a -> out) -> MatchSet rec out
-groupMatch   :: GroupMapped   a rec => (a -> out) -> MatchSet rec out
+variantMatch :: VariantMapped a rrr => (a -> out) -> MatchSet rrr out
+groupMatch   :: GroupMapped   a rrr => (a -> out) -> MatchSet rrr out
 variantMatch f = MatchState $ withMatchSet (variantMapped f:) ; {-# INLINE variantMatch #-}
 groupMatch   f = MatchState $ withMatchSet (groupMapped   f:) ; {-# INLINE groupMatch   #-}
 
-uncheckedVariantMatch :: (rec ~ RecordOf r, UnsafeExtract Variant rec Ok v, HasRecord r, CheckMatch Variant v rec) => (v -> a) -> MatchState r a ()
+uncheckedVariantMatch :: (rrr ~ RecordOf r, UnsafeExtract Variant rrr Ok v, HasRecord r, CheckMatch Variant v rrr) => (v -> a) -> MatchState r a ()
 uncheckedVariantMatch f = MatchState $ withMatchSet (uncheckedVariantMapped f:) ; {-# INLINE uncheckedVariantMatch #-}
 
 
@@ -483,10 +483,10 @@ withMatchSet :: State.MonadState PM s m => (s -> s) -> m ()
 withMatchSet = State.withState PM
 {-# INLINE withMatchSet #-}
 
-matchedOptions :: rec -> MatchSet rec s -> [s]
+matchedOptions :: rrr -> MatchSet rrr s -> [s]
 matchedOptions t (MatchState s) = catMaybes ∘ reverse $ ($ t) <$> State.exec PM s [] ; {-# INLINE matchedOptions #-}
 
-runMatches :: rec -> MatchSet rec s -> Maybe s
+runMatches :: rrr -> MatchSet rrr s -> Maybe s
 runMatches = tryHead ∘∘ matchedOptions ; {-# INLINE runMatches #-}
 
 -- TODO [WD]: Add TH case' interface
@@ -501,31 +501,31 @@ caseTest = __case__ "tc-test" "test/Main.hs" 0
 
 -- === Auto matches === --
 
-class AutoMatch      a m rec |     a rec -> m where autoMatch  ::                           forall out. (a -> out) -> m (MatchSet rec out)
-class AutoMatch' tgt a m rec | tgt a rec -> m where autoMatch' :: Proxy (tgt :: Maybe *) -> forall out. (a -> out) -> m (MatchSet rec out)
+class AutoMatch      a m rrr |     a rrr -> m where autoMatch  ::                           forall out. (a -> out) -> m (MatchSet rrr out)
+class AutoMatch' tgt a m rrr | tgt a rrr -> m where autoMatch' :: Proxy (tgt :: Maybe *) -> forall out. (a -> out) -> m (MatchSet rrr out)
 
-instance {-# OVERLAPPABLE #-} (tgt ~ ElemType a rec, AutoMatch' tgt a m rec) => AutoMatch                  a   m rec where autoMatch    = autoMatch' (p :: P tgt) ; {-# INLINE autoMatch  #-}
-instance {-# OVERLAPPABLE #-} (m ~ Ok)                                       => AutoMatch                  ANY m rec where autoMatch    = Ok ∘ variantMatch       ; {-# INLINE autoMatch  #-}
+instance {-# OVERLAPPABLE #-} (tgt ~ ElemType a rrr, AutoMatch' tgt a m rrr) => AutoMatch                  a   m rrr where autoMatch    = autoMatch' (p :: P tgt) ; {-# INLINE autoMatch  #-}
+instance {-# OVERLAPPABLE #-} (m ~ Ok)                                       => AutoMatch                  ANY m rrr where autoMatch    = Ok ∘ variantMatch       ; {-# INLINE autoMatch  #-}
 instance {-# OVERLAPPABLE #-} (m ~ IM)                                       => AutoMatch                  a   m I   where autoMatch    = impossible              ; {-# INLINE autoMatch  #-}
-instance {-# OVERLAPPABLE #-} (m ~ Ok, VariantMapped a rec)                  => AutoMatch' ('Just Variant) a   m rec where autoMatch' _ = Ok ∘ variantMatch       ; {-# INLINE autoMatch' #-}
-instance {-# OVERLAPPABLE #-} (m ~ Ok, GroupMapped   a rec)                  => AutoMatch' ('Just Group)   a   m rec where autoMatch' _ = Ok ∘ groupMatch         ; {-# INLINE autoMatch' #-}
-instance {-# OVERLAPPABLE #-} (m ~ InvalidPattern' a)                        => AutoMatch'  'Nothing       a   m rec where autoMatch' _ = const Error             ; {-# INLINE autoMatch' #-}
+instance {-# OVERLAPPABLE #-} (m ~ Ok, VariantMapped a rrr)                  => AutoMatch' ('Just Variant) a   m rrr where autoMatch' _ = Ok ∘ variantMatch       ; {-# INLINE autoMatch' #-}
+instance {-# OVERLAPPABLE #-} (m ~ Ok, GroupMapped   a rrr)                  => AutoMatch' ('Just Group)   a   m rrr where autoMatch' _ = Ok ∘ groupMatch         ; {-# INLINE autoMatch' #-}
+instance {-# OVERLAPPABLE #-} (m ~ InvalidPattern' a)                        => AutoMatch'  'Nothing       a   m rrr where autoMatch' _ = const Error             ; {-# INLINE autoMatch' #-}
 
 
 -- === General matching interface === --
 
-class                                                                 Match a rec where of' :: forall out. (a -> out) -> MatchSet rec out
-instance {-# OVERLAPPABLE #-} (Resolved a rec, AutoMatch a Ok rec) => Match a rec where of' = fromOk ∘ autoMatch ; {-# INLINE of' #-}
-instance {-# OVERLAPPABLE #-}                                         Match I rec where of' = impossible         ; {-# INLINE of' #-}
+class                                                                 Match a rrr where of' :: forall out. (a -> out) -> MatchSet rrr out
+instance {-# OVERLAPPABLE #-} (Resolved a rrr, AutoMatch a Ok rrr) => Match a rrr where of' = fromOk ∘ autoMatch ; {-# INLINE of' #-}
+instance {-# OVERLAPPABLE #-}                                         Match I rrr where of' = impossible         ; {-# INLINE of' #-}
 instance {-# OVERLAPPABLE #-}                                         Match a I   where of' = impossible         ; {-# INLINE of' #-}
 
-type family Matches rec lst :: Constraint where
-    Matches rec '[]       = ()
-    Matches rec (l ': ls) = (Match l rec, Matches rec ls)
+type family Matches rrr lst :: Constraint where
+    Matches rrr '[]       = ()
+    Matches rrr (l ': ls) = (Match l rrr, Matches rrr ls)
 
 -- === Static-AST matching === --
 
-static :: (rec' ~ To Static rec, Match rec' rec) => (rec' -> out) -> MatchSet rec out
+static :: (rrr' ~ To Static rrr, Match rrr' rrr) => (rrr' -> out) -> MatchSet rrr out
 static = of'
 
 
@@ -538,6 +538,6 @@ static = of'
 
 
 -- FIXME[WD]: Remove the following instances. They are very dangerous and are a anti-pattern in HS.
-instance UncheckedGroupCons rec m a                                                              => UnsafeExtract Group   rec      m  a where unsafeExtract _  = uncheckedGroupCons          ; {-# INLINE unsafeExtract #-}
--- instance {-# OVERLAPPABLE #-} (UnsafeExtract Variant (Unwrapped rec) m a, Wrapped rec)           => UnsafeExtract Variant rec      m  a where unsafeExtract t  = unsafeExtract t ∘ unwrap'   ; {-# INLINE unsafeExtract #-}
--- instance {-# OVERLAPPABLE #-} (UnsafeInsert Variant (Unwrapped rec) m a, Wrapped rec, Functor m) => UnsafeInsert  Variant rec      m  a where unsafeInsert t a = wrapped' $ unsafeInsert t a ; {-# INLINE unsafeInsert  #-}
+instance UncheckedGroupCons rrr m a                                                              => UnsafeExtract Group   rrr      m  a where unsafeExtract _  = uncheckedGroupCons          ; {-# INLINE unsafeExtract #-}
+-- instance {-# OVERLAPPABLE #-} (UnsafeExtract Variant (Unwrapped rrr) m a, Wrapped rrr)           => UnsafeExtract Variant rrr      m  a where unsafeExtract t  = unsafeExtract t ∘ unwrap'   ; {-# INLINE unsafeExtract #-}
+-- instance {-# OVERLAPPABLE #-} (UnsafeInsert Variant (Unwrapped rrr) m a, Wrapped rrr, Functor m) => UnsafeInsert  Variant rrr      m  a where unsafeInsert t a = wrapped' $ unsafeInsert t a ; {-# INLINE unsafeInsert  #-}

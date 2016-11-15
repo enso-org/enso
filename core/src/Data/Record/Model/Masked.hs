@@ -254,27 +254,27 @@ instance MaskRebuilder layout    layout    where rebuildMask _ _ = id ; {-# INLI
 -- Data encoding
 
 instance ( bits ~ MapLookup v emap
-         , emap ~ EncodeMap (rec Data)
+         , emap ~ EncodeMap (rrr Data)
          , KnownNats bits
-         , Wrapped   (rec Data)
-         , Unwrapped (rec Data) ~ Data
-         ) => Encoder Variant v Ok (rec Data) where
+         , Wrapped   (rrr Data)
+         , Unwrapped (rrr Data) ~ Data
+         ) => Encoder Variant v Ok (rrr Data) where
     encode _ v = Ok $ wrap' $ Data mask $ unsafeStore v where
         bits    = fromIntegral <$> natVals (p :: P bits)
         mask    = foldl' setBit zeroBits bits
     {-# INLINE encode #-}
 
 instance ( MaskRebuilder layout layout'
-         , layout  ~ Layout (rec  Data)
-         , layout' ~ Layout (rec' Data)
-         , Unwrapped (rec  Data) ~ Data
-         , Unwrapped (rec' Data) ~ Data
-         , Wrapped   (rec  Data)
-         , Wrapped   (rec' Data)
+         , layout  ~ Layout (rrr  Data)
+         , layout' ~ Layout (rrr' Data)
+         , Unwrapped (rrr  Data) ~ Data
+         , Unwrapped (rrr' Data) ~ Data
+         , Wrapped   (rrr  Data)
+         , Wrapped   (rrr' Data)
 
          , IsRecord r
-         , RecordOf r ~ rec Data
-         ) => Encoder Group r Ok (rec' Data) where
+         , RecordOf r ~ rrr Data
+         ) => Encoder Group r Ok (rrr' Data) where
     encode _ r = Ok $ wrap' $ Data mask' var where
         Data mask var = unwrap' $ view asRecord r
         mask' = rebuildMask (p :: P layout) (p :: P layout') mask
@@ -287,12 +287,12 @@ instance {-# OVERLAPPABLE #-} (Unwrapped (r Data) ~ Data, Wrapped (r Data)) => U
 
 -- Pattern matching
 
-instance ( rec  ~ r Data
-         , dmap ~ DecodeMap rec
+instance ( rrr  ~ r Data
+         , dmap ~ DecodeMap rrr
          , nat  ~ MapLookup g dmap
          , KnownNat  nat
-         , Wrapped   rec
-         , Unwrapped rec ~ Data
+         , Wrapped   rrr
+         , Unwrapped rrr ~ Data
          ) => CheckMatch t g (r Data) where
     checkMatch _ _ (unwrap' -> Data mask _) = match where
         bit   = fromIntegral $ natVal (p :: P nat)
@@ -334,27 +334,27 @@ instance Castable  d (VGRecord2 gs vs d)   where cast    = wrap'   ; {-# INLINE 
 
 -- Data encoding
 
-instance ( bits ~ Encode (rec Data2) v
+instance ( bits ~ Encode (rrr Data2) v
          , KnownNats bits
-         , Wrapped   (rec Data2)
-         , Unwrapped (rec Data2) ~ Data2
-         ) => Encoder Variant v Ok (rec Data2) where
+         , Wrapped   (rrr Data2)
+         , Unwrapped (rrr Data2) ~ Data2
+         ) => Encoder Variant v Ok (rrr Data2) where
     encode _ v = Ok $ wrap' $ Data2 mask $ unsafeStore v where
         bits    = fromIntegral <$> natVals (p :: P bits)
         mask    = foldl' setBit zeroBits bits
     {-# INLINE encode #-}
 
 instance ( -- MaskRebuilder layout layout'
-        --  , layout  ~ Layout (rec  Data)
-        --  , layout' ~ Layout (rec' Data)
-        --  , Unwrapped (rec  Data) ~ Data
-        --  , Unwrapped (rec' Data) ~ Data
-        --  , Wrapped   (rec  Data)
-        --  , Wrapped   (rec' Data)
+        --  , layout  ~ Layout (rrr  Data)
+        --  , layout' ~ Layout (rrr' Data)
+        --  , Unwrapped (rrr  Data) ~ Data
+        --  , Unwrapped (rrr' Data) ~ Data
+        --  , Wrapped   (rrr  Data)
+        --  , Wrapped   (rrr' Data)
          --
         --  , IsRecord r
-        --  , RecordOf r ~ rec Data
-         ) => Encoder Group r Ok (rec' Data2) where
+        --  , RecordOf r ~ rrr Data
+         ) => Encoder Group r Ok (rrr' Data2) where
     encode _ r = error "data error 1" -- Ok $ wrap' $ Data mask' var where
     --     Data mask var = unwrap' $ view asRecord r
     --     mask' = rebuildMask (p :: P layout) (p :: P layout') mask
@@ -367,11 +367,11 @@ instance {-# OVERLAPPABLE #-} (Unwrapped (r Data2) ~ Data2, Wrapped (r Data2)) =
 
 -- Pattern matching
 
-instance ( rec  ~ r Data2
-         , nat ~ Decode rec v
+instance ( rrr  ~ r Data2
+         , nat ~ Decode rrr v
          , KnownNat  nat
-         , Wrapped   rec
-         , Unwrapped rec ~ Data2
+         , Wrapped   rrr
+         , Unwrapped rrr ~ Data2
          ) => CheckMatch t v (r Data2) where
     checkMatch _ _ (unwrap' -> Data2 mask _) = match where
         bit   = fromIntegral $ natVal (p :: P nat)

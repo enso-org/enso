@@ -116,7 +116,7 @@ type family SubTerms' dyn t fmts where
 
 -- === Variant repr === --
 
-type VariantRepr s rec = WithElement' ElemShow rec (Repr.Builder s Repr.Tok)
+type VariantRepr s rrr = WithElement' ElemShow rrr (Repr.Builder s Repr.Tok)
 
 class                                                 ElemShow a out where elemShow :: a -> out
 instance (Repr s a, Repr.Builder s Repr.Tok ~ out) => ElemShow a out where elemShow = repr
@@ -125,7 +125,7 @@ instance {-# OVERLAPPABLE #-}  VariantRepr s (TermRecord gs vs t)               
 instance {-# OVERLAPPABLE #-} (VariantRepr s (Unwrapped (Term t term rt)), Typeable term) => Repr s          (Term      t term rt) where repr t = fromString (showTermType t) <+> repr (unwrap' t) ; {-# INLINE repr #-}
 instance                       VariantRepr HeaderOnly (Unwrapped (Term t term rt))        => Repr HeaderOnly (Term      t term rt) where repr   = repr ∘ unwrap'                                   ; {-# INLINE repr #-}
 
-variantRepr :: VariantRepr s rec => rec -> Repr.Builder s Repr.Tok
+variantRepr :: VariantRepr s rrr => rrr -> Repr.Builder s Repr.Tok
 variantRepr = withElement' (Proxy :: Proxy ElemShow) elemShow
 
 
