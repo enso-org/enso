@@ -49,6 +49,6 @@ extra-deps:
     - aeson-1.0.2.1
 
 ghc-options:
-    "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=10 -F -pgmF preskell -optF --source=../toolchain/ghc/extensions -ddump-cs-trace
+    "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=10 -ddump-cs-trace
 
 local-bin-path: ./dist/bin

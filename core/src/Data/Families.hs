@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoOverloadedStrings       #-}
 
 module Data.Families where
 
@@ -9,10 +10,11 @@ import Data.Monoid
 import Data.String
 import Control.Monad.State
 import Control.Lens.Utils hiding (cons)
+import Control.Applicative
 
 import qualified Language.Haskell.TH as TH
 import           Language.Haskell.TH hiding (Con, Dec)
-
+import qualified Data.Char as Char
 
 
 
@@ -35,6 +37,43 @@ instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t] [a] where
     th = fmap th ; {-# INLINE th #-}
 
 
+-------------------
+-- === Utils === --
+-------------------
+
+class ToUpper a where
+    toUpper :: a -> a
+
+instance ToUpper String where
+    toUpper []     = []
+    toUpper (c:cs) = Char.toUpper c : toUpper cs
+    {-# INLINE toUpper #-}
+
+
+------------------
+-- === Type === --
+------------------
+
+class HasType a where
+    tp :: Lens' a Type
+
+class MayHaveType a where
+    checkTp :: Lens' a (Maybe Type)
+
+type ToType = IsTH Type
+toType :: ToType a => a -> Type
+toType = th
+
+instance IsTH Type String where
+    th = LitT . StrTyLit ; {-# INLINE th #-}
+
+instance ToType a => IsTH Type (ZipList a) where
+    th = toType . getZipList ; {-# INLINE th #-}
+
+instance {-# OVERLAPPABLE #-} ToType a => IsTH Type [a] where
+    th lst = foldr AppT PromotedNilT (AppT PromotedConsT . toType <$> lst) ; {-# INLINE th #-}
+
+
 
 ------------------
 -- === Name === --
@@ -51,6 +90,10 @@ class FromName     a where fromName     :: Name     -> a
 class FromTypeName a where fromTypeName :: TypeName -> a
 class FromVarName  a where fromVarName  :: VarName  -> a
 
+class ToName     a where toName     :: a -> Name
+class ToTypeName a where toTypeName :: a -> TypeName
+class ToVarName  a where toVarName  :: a -> VarName
+
 instance FromName Name where
     fromName = id ; {-# INLINE fromName #-}
 
@@ -65,6 +108,29 @@ instance FromTypeName TypeName where
 
 instance FromVarName VarName where
     fromVarName = id ; {-# INLINE fromVarName #-}
+
+instance IsTH Type TypeName where
+    th = ConT . unwrap' ; {-# INLINE th #-}
+
+instance ToUpper TypeName where
+    toUpper = wrapped' %~ toUpper ; {-# INLINE toUpper #-}
+
+instance ToUpper Name where
+    toUpper = mkName . toUpper . nameBase ; {-# INLINE toUpper #-}
+
+instance ToName     Name     where toName     = id ; {-# INLINE toName     #-}
+instance ToVarName  VarName  where toVarName  = id ; {-# INLINE toVarName  #-}
+instance ToTypeName TypeName where toTypeName = id ; {-# INLINE toTypeName #-}
+
+instance ToVarName  Name     where toVarName  = VarName  ; {-# INLINE toVarName  #-} -- FIXME[WD]: add letter case assertions
+instance ToTypeName Name     where toTypeName = TypeName ; {-# INLINE toTypeName #-} -- FIXME[WD]: add letter case assertions
+
+instance ToName     String   where toName     = mkName              ; {-# INLINE toName     #-}
+instance ToVarName  String   where toVarName  = toVarName  . toName ; {-# INLINE toVarName  #-}
+instance ToTypeName String   where toTypeName = toTypeName . toName ; {-# INLINE toTypeName #-}
+
+instance IsTH Name VarName  where th = unwrap' ; {-# INLINE th #-}
+instance IsTH Name TypeName where th = unwrap' ; {-# INLINE th #-}
 
 
 -- === Generation === --
@@ -92,8 +158,8 @@ newNames = mapM newName . flip take strNameCycle ; {-# INLINE newNames #-}
 mkVarName :: String -> VarName
 mkVarName = fromString ; {-# INLINE mkVarName #-}
 
-mkTypeName :: FromTypeName a => String -> a
-mkTypeName = fromTypeName . fromString ; {-# INLINE mkTypeName #-}
+typeName :: String -> TypeName
+typeName = fromTypeName . fromString ; {-# INLINE typeName #-}
 
 
 -- === Instances === --
@@ -112,8 +178,8 @@ instance IsString TypeName where
 -- === App === --
 -----------------
 
-data App a = App { _app_src :: a
-                 , _app_tgt :: a
+data App a = App { _app_src  :: a
+                 , _app_args :: [a]
                  }
 
 makeLenses ''App
@@ -123,35 +189,16 @@ class FromApp a where
     fromApp :: App a -> a
 
 
+
+apps :: a -> [a] -> App a
+apps = App ; {-# INLINE apps #-}
+
+app :: a -> a -> App a
+app a = apps a . return ; {-# INLINE app #-}
+
+
 instance IsTH TH.Type a => IsTH TH.Type (App a) where
-    th (App src tgt) = AppT (th src) (th tgt) ; {-# INLINE th #-}
-
-app :: FromApp a => a -> a -> a
-app = fromApp .: App ; {-# INLINE app #-}
-
--- ------------------
--- -- === Type === --
--- ------------------
---
--- data Type = AppType (App Type)
---
--- instance IsTH TH.Type Type where
---     th = \case
---         AppType a -> th a
---
--- instance FromApp  Type where fromApp = AppType ; {-# INLINE fromApp #-}
--- -- instance FromName Type where
-
-
-------------------
--- === Args === --
-------------------
-
-class HasType a where
-    tp :: Lens' a Type
-
-class MayHaveType a where
-    checkTp :: Lens' a (Maybe Type)
+    th (App src args) = foldl AppT (th src) (th <$> args) ; {-# INLINE th #-}
 
 
 -----------------
@@ -179,20 +226,7 @@ instance FromName Var where
     fromName = def . fromName ; {-# INLINE fromName #-}
 
 instance IsTH TyVarBndr Var where
-    th a = maybe PlainTV (flip KindedTV) (a ^. checkTp) (a ^. name . wrapped') ; {-# INLINE th #-}
-
-
---
--- ------------------
--- -- === Args === --
--- ------------------
---
--- data Arg = Arg { _arg_name :: Name } deriving (Show)
---
--- makeLenses ''Arg
--- instance HasName Arg where name = arg_name ; {-# INLINE name #-}
---
--- class HasArgs a where args :: Lens' a [Arg]
+    th a = maybe PlainTV (flip KindedTV) (a ^. checkTp) (th $ a ^. name) ; {-# INLINE th #-}
 
 
 
@@ -259,6 +293,14 @@ type instance NameOf Data = TypeName
 data' :: TypeName -> Data
 data' = def ; {-# INLINE data' #-}
 
+-- | phantom takes number of data parameters and generates a phantom data type
+--   for example `phantom 2 "Foo"` generated `data Foo a b`
+phantom :: Int -> TypeName -> Data
+phantom i n = data' n & params .~ genNames i ; {-# INLINE phantom #-}
+
+phantom' :: TypeName -> Data
+phantom' = phantom 0 ; {-# INLINE phantom' #-}
+
 instance {-# OVERLAPPING #-} n ~ TypeName => Default (n -> Data) where
     def n = Data def n def def def def ; {-# INLINE def #-}
 
@@ -266,7 +308,7 @@ instance {-# OVERLAPPING #-} n ~ TypeName => Default (n -> Data) where
 -- === conversions === --
 
 instance IsTH TH.Dec Data where
-    th a = DataD (a ^. ctx) (a ^. name . wrapped') (th $ a ^. params) (a ^. kind) (th $ a ^. cons) (a ^. derivs) ; {-# INLINE th #-}
+    th a = DataD (a ^. ctx) (th $ a ^. name) (th $ a ^. params) (a ^. kind) (th $ a ^. cons) (a ^. derivs) ; {-# INLINE th #-}
 
 
 ---------------------
@@ -287,22 +329,46 @@ type instance NameOf TypeSyn = TypeName
 
 -- === Construction === --
 
-alias :: TypeName -> Type -> TypeSyn
-alias = flip TypeSyn def ; {-# INLINE alias #-}
+alias :: ToType t => TypeName -> t -> TypeSyn
+alias n t = TypeSyn n def (toType t) ; {-# INLINE alias #-}
 
 
 -- === Instances === --
 
 instance IsTH TH.Dec TypeSyn where
-    th a = TySynD (a ^. name . wrapped') (th $ a ^. params) (a ^. tp) ; {-# INLINE th #-}
+    th a = TySynD (th $ a ^. name) (th $ a ^. params) (a ^. tp) ; {-# INLINE th #-}
+
+
+
+---------------------------
+-- === Type Instance === --
+---------------------------
+
+data TypeInstance = TypeInstance { _typeInstance_name   :: TypeName
+                                 , _typeInstance_args   :: [Type]
+                                 , _typeInstance_result :: Type
+                                 }
+
+
+typeInstance :: (ToTypeName n, ToType t, ToType t') => n -> [t] -> t' -> TypeInstance
+typeInstance n args res = TypeInstance (toTypeName n) (toType <$> args) (toType res) ; {-# INLINE typeInstance #-}
+
+typeInstance' :: (ToTypeName n, ToType t, ToType t') => n -> t -> t' -> TypeInstance
+typeInstance' n = typeInstance n . return ; {-# INLINE typeInstance' #-}
+
+
+instance IsTH TH.Dec TypeInstance where
+    th (TypeInstance n as r) = TySynInstD (th n) (TySynEqn as r) ; {-# INLINE th #-}
+
 
 
 -----------------
 -- === Dec === --
 -----------------
 
-data Dec = DataDec    { _dec_dataDec    :: Data    }
-         | TypeSynDec { _dec_typeSynDec :: TypeSyn }
+data Dec = DataDec         { _dec_dataDec         :: Data         }
+         | TypeSynDec      { _dec_typeSynDec      :: TypeSyn      }
+         | TypeInstanceDec { _dec_typeInstanceDec :: TypeInstance }
 
 makeLenses ''Dec
 
@@ -312,18 +378,14 @@ class IsDec a where
 
 instance IsTH TH.Dec Dec where
     th = \case
-        DataDec    a -> th a
-        TypeSynDec a -> th a
+        DataDec         a -> th a
+        TypeSynDec      a -> th a
+        TypeInstanceDec a -> th a
     {-# INLINE th #-}
 
-instance IsDec Data    where toDec = DataDec    ; {-# INLINE toDec #-}
-instance IsDec TypeSyn where toDec = TypeSynDec ; {-# INLINE toDec #-}
-
-
-
-
-
-
+instance IsDec Data         where toDec = DataDec         ; {-# INLINE toDec #-}
+instance IsDec TypeSyn      where toDec = TypeSynDec      ; {-# INLINE toDec #-}
+instance IsDec TypeInstance where toDec = TypeInstanceDec ; {-# INLINE toDec #-}
 
 
 
@@ -342,8 +404,9 @@ makeWrapped ''THBuilderT
 class Monad m => MonadTH a m where
     define :: a -> m ()
 
-instance {-# OVERLAPPABLE #-} (IsDec a, Monad m) => MonadTH  a  (THBuilderT m) where define a = THBuilderT $ modify (<> [toDec a]) ; {-# INLINE define #-}
-instance {-# OVERLAPPABLE #-} (IsDec a, Monad m) => MonadTH [a] (THBuilderT m) where define   = mapM_ define                       ; {-# INLINE define #-}
+instance {-# OVERLAPPABLE #-} (IsDec a, Monad m) => MonadTH  a          (THBuilderT m) where define a = THBuilderT $ modify (<> [toDec a]) ; {-# INLINE define #-}
+instance {-# OVERLAPPABLE #-} (IsDec a, Monad m) => MonadTH [a]         (THBuilderT m) where define   = mapM_ define                       ; {-# INLINE define #-}
+instance {-# OVERLAPPABLE #-} (IsDec a, Monad m) => MonadTH (ZipList a) (THBuilderT m) where define   = define . getZipList                ; {-# INLINE define #-}
 
 
 -- === Execution === --
@@ -357,23 +420,14 @@ build = fmap th . execTHBuilder ; {-# INLINE build #-}
 
 
 
+makeLunaComponents :: String -> String -> [String] -> Q [TH.Dec]
+makeLunaComponents (typeName -> comp) (typeName -> fam) (ZipList -> typeNames) = build $ do
+    let types  = typeName <$> typeNames
+        idents = toUpper  <$> types
 
-
-
-makePhantomFamily fam (fmap mkTypeName -> types) = build $ do
-    let famName = (mkTypeName fam :: forall a. FromTypeName a => a)
-    define $ data' famName & addParam genName
-    define $ alias "foo" (app famName famName)
-    -- define $ alias "foo" (AppT (ConT famName) (ConT $ mkName "ooo"))
-    define $ data' <$> types
-
-    return ()
-    -- let famData   = data' fam & addParam genName
-    --     typeDatas = data' <$> types
-    -- th $ famData : typeDatas
-    -- return [DataD [] n [] Nothing [NormalC (mkName fam) []] []]
-
---
--- strNameCycle1 = ['a' .. 'z']
--- strNameCycle2 = show <$> [1..]
--- [TySynD A_25 [] (AppT (ConT GHC.Base.Maybe) (ConT GHC.Types.Int))][TySynD A_25 [] (AppT (ConT GHC.Base.Maybe) (ConT GHC.Types.Int))]
+    define $ phantom' comp                                     -- data Atom
+    define $ phantom 1 fam                                     -- data Atomic a
+    define $ data' <$> idents                                  -- data STAR; ...
+    define $ alias <$> types <*> (app fam <$> idents)          -- data Star = Atomic STAR; ...
+    define $ typeInstance' "TypeRepr" <$> idents <*> typeNames -- type instance TypeRepr STAR = "Star"; ...
+    define $ typeInstance' "Every" comp types                  -- type instance Every Atom = '[Star, ...]

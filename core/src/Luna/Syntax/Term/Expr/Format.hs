@@ -13,37 +13,25 @@ import Type.Relation              (Super)
 import Type.Bool
 import Data.Reprx
 import Type.Container (Every)
+import Data.Families  (makeLunaComponents)
 
 --------------------------------
 -- === Expression formats === --
 --------------------------------
 
--- === Definition pragmas === --
-
-define cname name = {{
-
-data {cname}
-type {name} = Form {cname}
-type instance TypeRepr {cname} = "{name}"
-
-}}
-
-
 -- === Definitions === --
 
-data Form a
-
-define LITERAL Literal
-define VALUE   Value
-define THUNK   Thunk
-define PHRASE  Phrase
-define DRAFT   Draft
-type instance Every Format = '[Literal, Value, Thunk, Phrase, Draft]
+makeLunaComponents "Format" "Form"
+    [ "Literal"
+    , "Value"
+    , "Thunk"
+    , "Phrase"
+    , "Draft"
+    ]
 
 
 -- === Selectors === --
 
-data Format       = Format       deriving (Show)
 data SuperFormats = SuperFormats deriving (Show)
 
 
