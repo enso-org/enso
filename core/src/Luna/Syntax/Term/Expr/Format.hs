@@ -12,6 +12,7 @@ import Control.Lens.Property
 import Type.Relation              (Super)
 import Type.Bool
 import Data.Reprx
+import Type.Container (Every)
 
 --------------------------------
 -- === Expression formats === --
@@ -31,13 +32,13 @@ type instance TypeRepr {cname} = "{name}"
 -- === Definitions === --
 
 data Form a
-type Formats = '[Literal, Value, Thunk, Phrase, Draft]
 
 define LITERAL Literal
 define VALUE   Value
 define THUNK   Thunk
 define PHRASE  Phrase
 define DRAFT   Draft
+type instance Every Format = '[Literal, Value, Thunk, Phrase, Draft]
 
 
 -- === Selectors === --
@@ -82,7 +83,7 @@ type instance Super Draft   = Phrase  ': Super Phrase
 
 -- === Sub-formats === --
 
-type SubFormats a = TakeUntil a Formats
+type SubFormats a = TakeUntil a (Every Format)
 
 type family   Sub t a
 type instance Sub t (Form   f) = Form   f

@@ -29,7 +29,7 @@ import           Data.Base
 import           Data.Record                  hiding (Layout, Variants, SymbolMap, symbolMap, Match, Cons, Value, cons, Group, HasValue, ValueOf, value)
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
-import           Type.Container               hiding (Empty, FromJust)
+import           Type.Container               hiding (Empty, FromJust, Every)
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
@@ -40,7 +40,7 @@ import           Luna.Syntax.Term.Function.Argument
 import           Data.Reprx
 import           Type.Bool
 import           Luna.Syntax.Term.Expr.Format
-import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, FromSymbol, fromSymbol, ToSymbol, toSymbol)
+import Luna.Syntax.Term.Expr.Symbol (Sym, Symbol, IsSymbol, symbol, FromSymbol, fromSymbol, ToSymbol, toSymbol, UniSymbol, uniSymbol, IsUniSymbol)
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as N
 import Luna.Syntax.Term.Expr.Atom
 
@@ -88,15 +88,13 @@ import GHC.Prim (Any)
 import           Control.Monad.Event2     hiding (Any)
 import qualified Control.Monad.Event2     as Event
 
-
+import Type.Container (Every)
 
 unsafeCoerced :: Iso' a b
 unsafeCoerced = iso unsafeCoerce unsafeCoerce ; {-# INLINE unsafeCoerced #-}
 
 
 
-type family All a :: [*]
-type instance All Atom = '[Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var]
 
 
 newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
@@ -238,8 +236,7 @@ type instance Get t (l ':= v ': ls) = If (t == l) v (Get t ls)
 
 
 
-type PossibleVariants = [Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var]
-type PossibleFormats  = [Literal, Value, Thunk, Phrase, Draft]
+
 
 
 
@@ -718,9 +715,11 @@ instance      Show     (Link src tgt) where show = show . unwrap' ; {-# INLINE s
 -- === ExprSymbol === --
 ------------------------
 
-newtype ExprSymbol  atom t = ExprSymbol (N.NamedSymbol atom (SubLink Name t) (SubLink Atom t))
-type    ExprSymbol' atom   = ExprSymbol atom Layout.Any
+newtype ExprSymbol    atom t = ExprSymbol (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
+type    ExprSymbol'   atom   = ExprSymbol atom Layout.Any
+newtype ExprUniSymbol      t = ExprUniSymbol (N.UniSymbol (Layout.Named (SubLink Name t) (SubLink Atom t)))
 makeWrapped ''ExprSymbol
+makeWrapped ''ExprUniSymbol
 
 
 -- === Helpers === --
@@ -843,9 +842,9 @@ delayedExpr = delayedRef <=< buildExpr ; {-# INLINE delayedExpr #-}
 class Monad m => SymbolMapM' (atoms :: [*]) ctx expr m b where
     symbolMapM' :: (forall a. ctx a m b => a -> m b) -> expr -> m b
 
-type SymbolMapM_AMB = SymbolMapM' (All Atom)
+type SymbolMapM_AMB = SymbolMapM' (Every Atom)
 symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
-symbolMapM_AMB = symbolMapM' @(All Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
+symbolMapM_AMB = symbolMapM' @(Every Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
 
 type SymbolMapM_AB ctx      = SymbolMapM_AMB (DropMonad ctx)
 type SymbolMap_AB  ctx expr = SymbolMapM_AB ctx expr Identity
@@ -912,87 +911,26 @@ symbolFields :: (SymbolMap_AB HasFields2 (Asg t expr) out, expr ~ Expr layout, o
 symbolFields = symbolMap_AB @HasFields2 fieldList2
 
 
+
+-- class     IsUniSymbol t l where
+--     uniSymbol :: Symbol t l -> UniSymbol l
+
+class IsUniSymbol2 a b where uniSymbol2 :: a -> b
+instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
+      => IsUniSymbol2 a b where uniSymbol2 = uniSymbol . unwrap' ; {-# INLINE uniSymbol2 #-}
+
+-- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
+-- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
+
+exprUniSymbol :: HasLayer t Expr' Data => (Asg t (Expr layout)) -> ExprUniSymbol (Expr layout)
+exprUniSymbol = ExprUniSymbol . symbolMap_AB @IsUniSymbol2 uniSymbol2
+
+
+-- symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
+
 -------------------------------------
 -- === Expr Layout type caches === --
 -------------------------------------
 
--- TODO: Refactor to Possible type class and arguments Variants etc.
--- type PossibleElements = [Static, Dynamic, Literal, Value, Thunk, Phrase, Draft, Acc, App, Blank, Cons, Curry, Lam, Match, Missing, Native, Star, Unify, Var]
-type OffsetVariants = 7
-
--- type instance Encode rec (Symbol atom dyn a) = {-dyn-} 0 ': Decode rec atom ': {-formats-} '[6]
-
-
-type instance Decode rec Static  = 0
-type instance Decode rec Dynamic = 1
-
-type instance Decode rec Literal = 2
-type instance Decode rec Value   = 3
-type instance Decode rec Thunk   = 4
-type instance Decode rec Phrase  = 5
-type instance Decode rec Draft   = 6
-
-type instance Decode rec Acc     = 7
-type instance Decode rec App     = 8
-type instance Decode rec Blank   = 9
-type instance Decode rec Cons    = 10
-type instance Decode rec Lam     = 11
-type instance Decode rec Match   = 12
-type instance Decode rec Missing = 13
-type instance Decode rec Native  = 14
-type instance Decode rec Star    = 15
-type instance Decode rec Unify   = 16
-type instance Decode rec Var     = 17
-
-
-type instance Encode2 Atom    v = Index v PossibleVariants
-type instance Encode2 Format  v = Index v PossibleFormats
-
-
--- TODO: refactor, Decode2 should replace Decode. Refactor Decode -> Test
--- TODO: Decode2 should have more params to be more generic
-type family Decode2 (ns :: [Nat]) :: [*] where
-    Decode2 '[] = '[]
-    Decode2 (n ': ns) = DecodeComponent n ': Decode2 ns
-
-type family DecodeComponent (n :: Nat) :: *
-
-type instance DecodeComponent 0 = Static
-type instance DecodeComponent 1 = Dynamic
-
-type instance DecodeComponent 2 = Literal
-type instance DecodeComponent 3 = Value
-type instance DecodeComponent 4 = Thunk
-type instance DecodeComponent 5 = Phrase
-type instance DecodeComponent 6 = Draft
-
-type instance DecodeComponent 7  = Acc
-type instance DecodeComponent 8  = App
-type instance DecodeComponent 9  = Blank
-type instance DecodeComponent 10 = Cons
-type instance DecodeComponent 11 = Lam
-type instance DecodeComponent 12 = Match
-type instance DecodeComponent 13 = Missing
-type instance DecodeComponent 14 = Native
-type instance DecodeComponent 15 = Star
-type instance DecodeComponent 16 = Unify
-type instance DecodeComponent 17 = Var
-
-
--- type instance All Atom = '[Acc, App]
-
--- class RecordRepr rec where
---     recordRepr :: rec -> String
---
--- instance RecordRepr
-
--- class Cons2 v t where
---     cons2 :: v -> t
-
-
-
-
--- === Expressions === --
-
--- star :: (LayersCons layers m, ValidateLayout model Atom Star) => m (Expr t layers model)
--- star = expr N.star'
+type instance Encode2 Atom    v = Index v (Every Atom)
+type instance Encode2 Format  v = Index v (Every Format)

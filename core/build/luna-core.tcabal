@@ -118,6 +118,7 @@ Library
                  , open-browser
                  , template-haskell
                  , data-ident
+                 , functor-utils
 
 
 Executable luna

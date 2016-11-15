@@ -34,26 +34,57 @@ import qualified Data.RTuple as List
 type NamedSymbol t n a = Symbol t (Layout.Named n a)
 
 
-newtype instance Symbol Integer  (Layout.Named n a) = Integer  { _val :: P.Integer  }
-newtype instance Symbol Rational (Layout.Named n a) = Rational { _val :: P.Rational }
-newtype instance Symbol String   (Layout.Named n a) = String   { _val :: P.String   }
+newtype instance Symbol Integer  (Layout.Named n a) = Sym_Integer  { _val :: P.Integer                    }
+newtype instance Symbol Rational (Layout.Named n a) = Sym_Rational { _val :: P.Rational                   }
+newtype instance Symbol String   (Layout.Named n a) = Sym_String   { _val :: P.String                     }
+data    instance Symbol Acc      (Layout.Named n a) = Sym_Acc      { _name :: !n     , _base  :: !a       }
+data    instance Symbol App      (Layout.Named n a) = Sym_App      { _base :: a      , _arg   :: !(Arg a) }
+data    instance Symbol Lam      (Layout.Named n a) = Sym_Lam      { _arg :: !(Arg a), _body  :: !a       }
+data    instance Symbol Match    (Layout.Named n a) = Sym_Match    { _left :: !a     , _right :: !a       }
+data    instance Symbol Unify    (Layout.Named n a) = Sym_Unify    { _left :: !a     , _right :: !a       }
+newtype instance Symbol Cons     (Layout.Named n a) = Sym_Cons     { _name ::  n                          }
+data    instance Symbol Native   (Layout.Named n a) = Sym_Native   { _name :: !n                          }
+newtype instance Symbol Var      (Layout.Named n a) = Sym_Var      { _name ::  n                          }
+data    instance Symbol Blank    (Layout.Named n a) = Sym_Blank
+data    instance Symbol Star     (Layout.Named n a) = Sym_Star
+data    instance Symbol Missing  (Layout.Named n a) = Sym_Missing
 
-data    instance Symbol Acc      (Layout.Named n a) = Acc     { _name :: !n     , _base  :: !a       }
-data    instance Symbol App      (Layout.Named n a) = App     { _base :: a      , _arg   :: !(Arg a) }
-data    instance Symbol Lam      (Layout.Named n a) = Lam     { _arg :: !(Arg a), _body  :: !a       }
-data    instance Symbol Match    (Layout.Named n a) = Match   { _left :: !a     , _right :: !a       }
-data    instance Symbol Unify    (Layout.Named n a) = Unify   { _left :: !a     , _right :: !a       }
-newtype instance Symbol Cons     (Layout.Named n a) = Cons    { _name ::  n                          }
-data    instance Symbol Native   (Layout.Named n a) = Native  { _name :: !n                          }
-newtype instance Symbol Var      (Layout.Named n a) = Var     { _name ::  n                          }
-data    instance Symbol Blank    (Layout.Named n a) = Blank
-data    instance Symbol Star     (Layout.Named n a) = Star
-data    instance Symbol Missing  (Layout.Named n a) = Missing
+data instance UniSymbol (Layout.Named n a) = Integer  P.Integer
+                                           | Rational P.Rational
+                                           | String   P.String
+                                           | Acc      !n       !a
+                                           | App      a        !(Arg a)
+                                           | Lam      !(Arg a) !a
+                                           | Match    !a       !a
+                                           | Unify    !a       !a
+                                           | Cons      n
+                                           | Native   !n
+                                           | Var       n
+                                           | Blank
+                                           | Star
+                                           | Missing
+
+instance IsUniSymbol Integer  (Layout.Named n a) where uniSymbol (Sym_Integer  t1)    = Integer  t1
+instance IsUniSymbol Rational (Layout.Named n a) where uniSymbol (Sym_Rational t1)    = Rational t1
+instance IsUniSymbol String   (Layout.Named n a) where uniSymbol (Sym_String   t1)    = String   t1
+instance IsUniSymbol Acc      (Layout.Named n a) where uniSymbol (Sym_Acc      t1 t2) = Acc      t1 t2
+instance IsUniSymbol App      (Layout.Named n a) where uniSymbol (Sym_App      t1 t2) = App      t1 t2
+instance IsUniSymbol Lam      (Layout.Named n a) where uniSymbol (Sym_Lam      t1 t2) = Lam      t1 t2
+instance IsUniSymbol Match    (Layout.Named n a) where uniSymbol (Sym_Match    t1 t2) = Match    t1 t2
+instance IsUniSymbol Unify    (Layout.Named n a) where uniSymbol (Sym_Unify    t1 t2) = Unify    t1 t2
+instance IsUniSymbol Cons     (Layout.Named n a) where uniSymbol (Sym_Cons     t1)    = Cons     t1
+instance IsUniSymbol Native   (Layout.Named n a) where uniSymbol (Sym_Native   t1)    = Native   t1
+instance IsUniSymbol Var      (Layout.Named n a) where uniSymbol (Sym_Var      t1)    = Var      t1
+instance IsUniSymbol Blank    (Layout.Named n a) where uniSymbol  Sym_Blank           = Blank
+instance IsUniSymbol Star     (Layout.Named n a) where uniSymbol  Sym_Star            = Star
+instance IsUniSymbol Missing  (Layout.Named n a) where uniSymbol  Sym_Missing         = Missing
 
 
 -- === Instances === --
 
 -- Show
+
+deriving instance (Show n, Show a) => Show (UniSymbol (Layout.Named n a))
 
 deriving instance ShowFields (NamedSymbol Acc     n a) => Show (NamedSymbol Acc     n a)
 deriving instance ShowFields (NamedSymbol App     n a) => Show (NamedSymbol App     n a)
@@ -87,20 +118,20 @@ type instance Fields (NamedSymbol Var      n a) = '[n]
 
 -- Products
 
-instance Product (NamedSymbol Integer  n a) (NamedSymbol Integer  n' a') where fields = iso (\(Integer  t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Integer  t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Rational n a) (NamedSymbol Rational n' a') where fields = iso (\(Rational t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Rational t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol String   n a) (NamedSymbol String   n' a') where fields = iso (\(String   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> String   t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Acc      n a) (NamedSymbol Acc      n' a') where fields = iso (\(Acc      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Acc      t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol App      n a) (NamedSymbol App      n' a') where fields = iso (\(App      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> App      t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Blank    n a) (NamedSymbol Blank    n' a') where fields = iso (\ Blank           -> Null              ) (\(Null              ) -> Blank          ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Cons     n a) (NamedSymbol Cons     n' a') where fields = iso (\(Cons     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Cons     t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Lam      n a) (NamedSymbol Lam      n' a') where fields = iso (\(Lam      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Lam      t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Match    n a) (NamedSymbol Match    n' a') where fields = iso (\(Match    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Match    t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Missing  n a) (NamedSymbol Missing  n' a') where fields = iso (\ Missing         -> Null              ) (\(Null              ) -> Missing        ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Native   n a) (NamedSymbol Native   n' a') where fields = iso (\(Native   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Native   t1    ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Star     n a) (NamedSymbol Star     n' a') where fields = iso (\ Star            -> Null              ) (\(Null              ) -> Star           ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Unify    n a) (NamedSymbol Unify    n' a') where fields = iso (\(Unify    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Unify    t1 t2 ) ; {-# INLINE fields #-}
-instance Product (NamedSymbol Var      n a) (NamedSymbol Var      n' a') where fields = iso (\(Var      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Var      t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Integer  n a) (NamedSymbol Integer  n' a') where fields = iso (\(Sym_Integer  t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Integer  t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Rational n a) (NamedSymbol Rational n' a') where fields = iso (\(Sym_Rational t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Rational t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol String   n a) (NamedSymbol String   n' a') where fields = iso (\(Sym_String   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_String   t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Acc      n a) (NamedSymbol Acc      n' a') where fields = iso (\(Sym_Acc      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Acc      t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol App      n a) (NamedSymbol App      n' a') where fields = iso (\(Sym_App      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_App      t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Blank    n a) (NamedSymbol Blank    n' a') where fields = iso (\ Sym_Blank           -> Null              ) (\(Null              ) -> Sym_Blank          ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Cons     n a) (NamedSymbol Cons     n' a') where fields = iso (\(Sym_Cons     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Cons     t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Lam      n a) (NamedSymbol Lam      n' a') where fields = iso (\(Sym_Lam      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Lam      t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Match    n a) (NamedSymbol Match    n' a') where fields = iso (\(Sym_Match    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Match    t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Missing  n a) (NamedSymbol Missing  n' a') where fields = iso (\ Sym_Missing         -> Null              ) (\(Null              ) -> Sym_Missing        ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Native   n a) (NamedSymbol Native   n' a') where fields = iso (\(Sym_Native   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Native   t1    ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Star     n a) (NamedSymbol Star     n' a') where fields = iso (\ Sym_Star            -> Null              ) (\(Null              ) -> Sym_Star           ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Unify    n a) (NamedSymbol Unify    n' a') where fields = iso (\(Sym_Unify    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Unify    t1 t2 ) ; {-# INLINE fields #-}
+instance Product (NamedSymbol Var      n a) (NamedSymbol Var      n' a') where fields = iso (\(Sym_Var      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Var      t1    ) ; {-# INLINE fields #-}
 
 instance Product' (NamedSymbol Integer  n a) where fields' = fields ; {-# INLINE fields' #-}
 instance Product' (NamedSymbol Rational n a) where fields' = fields ; {-# INLINE fields' #-}
@@ -138,20 +169,20 @@ instance HasFieldNames (NamedSymbol Missing  n a) where fieldNames _ = []
 
 type instance FieldsType (NamedSymbol t a a) = a
 
-instance n ~ a => HasFields (NamedSymbol Integer  n a) where fieldList (Integer  t1   ) = []
-instance n ~ a => HasFields (NamedSymbol Rational n a) where fieldList (Rational t1   ) = []
-instance n ~ a => HasFields (NamedSymbol String   n a) where fieldList (String   t1   ) = []
-instance n ~ a => HasFields (NamedSymbol Acc      n a) where fieldList (Acc      t1 t2) = [t1, t2]
-instance n ~ a => HasFields (NamedSymbol App      n a) where fieldList (App      t1 t2) = [t1, t2 ^. Arg._val_]
-instance n ~ a => HasFields (NamedSymbol Blank    n a) where fieldList (Blank         ) = []
-instance n ~ a => HasFields (NamedSymbol Cons     n a) where fieldList (Cons     t1   ) = [t1]
-instance n ~ a => HasFields (NamedSymbol Lam      n a) where fieldList (Lam      t1 t2) = [t1 ^. Arg._val_,t2]
-instance n ~ a => HasFields (NamedSymbol Match    n a) where fieldList (Match    t1 t2) = [t1,t2]
-instance n ~ a => HasFields (NamedSymbol Missing  n a) where fieldList (Missing       ) = []
-instance n ~ a => HasFields (NamedSymbol Native   n a) where fieldList (Native   t1   ) = [t1]
-instance n ~ a => HasFields (NamedSymbol Star     n a) where fieldList (Star          ) = []
-instance n ~ a => HasFields (NamedSymbol Unify    n a) where fieldList (Unify    t1 t2) = [t1, t2]
-instance n ~ a => HasFields (NamedSymbol Var      n a) where fieldList (Var      t1   ) = [t1]
+instance n ~ a => HasFields (NamedSymbol Integer  n a) where fieldList (Sym_Integer  t1   ) = []
+instance n ~ a => HasFields (NamedSymbol Rational n a) where fieldList (Sym_Rational t1   ) = []
+instance n ~ a => HasFields (NamedSymbol String   n a) where fieldList (Sym_String   t1   ) = []
+instance n ~ a => HasFields (NamedSymbol Acc      n a) where fieldList (Sym_Acc      t1 t2) = [t1, t2]
+instance n ~ a => HasFields (NamedSymbol App      n a) where fieldList (Sym_App      t1 t2) = [t1, t2 ^. Arg._val_]
+instance n ~ a => HasFields (NamedSymbol Blank    n a) where fieldList (Sym_Blank         ) = []
+instance n ~ a => HasFields (NamedSymbol Cons     n a) where fieldList (Sym_Cons     t1   ) = [t1]
+instance n ~ a => HasFields (NamedSymbol Lam      n a) where fieldList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_,t2]
+instance n ~ a => HasFields (NamedSymbol Match    n a) where fieldList (Sym_Match    t1 t2) = [t1,t2]
+instance n ~ a => HasFields (NamedSymbol Missing  n a) where fieldList (Sym_Missing       ) = []
+instance n ~ a => HasFields (NamedSymbol Native   n a) where fieldList (Sym_Native   t1   ) = [t1]
+instance n ~ a => HasFields (NamedSymbol Star     n a) where fieldList (Sym_Star          ) = []
+instance n ~ a => HasFields (NamedSymbol Unify    n a) where fieldList (Sym_Unify    t1 t2) = [t1, t2]
+instance n ~ a => HasFields (NamedSymbol Var      n a) where fieldList (Sym_Var      t1   ) = [t1]
 
 
 --------------------------

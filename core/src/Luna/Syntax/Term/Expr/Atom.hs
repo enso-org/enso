@@ -8,6 +8,8 @@ import Data.Base
 import Data.Phantom
 import Control.Lens.Property
 import Data.Reprx
+import Type.Container (Every)
+import Data.Families  (makePhantomFamily)
 
 -- === Definition pragmas === --
 
@@ -27,7 +29,22 @@ type family Atoms a :: [*]
 
 -- === Definitions === --
 
-data Atomic a
+-- data Atomic a
+makePhantomFamily "Atomic" [ "Integer"
+                           , "Rational"
+                           , "String"
+                           , "Acc"
+                           , "App"
+                           , "Blank"
+                           , "Cons"
+                           , "Lam"
+                           , "Match"
+                           , "Missing"
+                           , "Native"
+                           , "Star"
+                           , "Unify"
+                           , "Var"
+                           ]
 
 
 -- === Instances === --
@@ -52,3 +69,5 @@ define NATIVE   Native
 define STAR     Star
 define UNIFY    Unify
 define VAR      Var
+
+type instance Every Atom = '[Integer, Rational, String, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var]

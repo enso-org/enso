@@ -114,7 +114,6 @@ import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
 import Luna.Syntax.Term.Expr.Symbol (Sym)
 import Control.Lens.Property hiding (Constructor)
 import Luna.Syntax.Term.Expr.Format (Format, Sub)
-import TH
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
 import Luna.Syntax.Term.Expr.Layout
@@ -140,6 +139,7 @@ import Web.Browser (openBrowser)
 import qualified Luna.Pretty.Graph as Vis
 import           Luna.Pretty.Graph (MonadVis)
 import qualified Data.Set as S
+import Type.Container (Every)
 -- import Data.Ident
 
 
@@ -150,25 +150,6 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 data InfLayers = InfLayers
 
 type ExprLink' = Link' Expr'
-
-
-runCase :: Getter Data (Asg t (Expr layout)) => Asg t (Expr layout) -> [Prim.Any -> out] -> out
-runCase el ftable = ($ s) $ flip V.unsafeIndex idx $ V.fromList ftable where
-    d   = get @Data el
-    s   = unwrap' $ get @Sym  d
-    idx = unwrap' $ get @Atom d
-{-# INLINE runCase #-}
-
-
-matchx :: expr ~ Expr layout => Asg t expr -> (ExprSymbol atom expr -> b) -> x -> b
-matchx t f = rebind (f . uniExprTypes2 t) where
-    rebind :: (a -> b) -> x -> b
-    rebind f = f . unsafeCoerce ; {-# INLINE rebind #-}
-
-
-defaultMatch = error "wrong match"
-{-# INLINE defaultMatch #-}
-
 
 
 
@@ -202,14 +183,8 @@ instance Monad m => LayerCons Data m where
 type instance LayerData Type t = SubLink2 Type t
 
 
-instance (
-        --  , Linkable ExprLink' t m
-        --  , Referable ExprLink' t m
-        --  , Referable Elemx t m
-
-           Self.MonadSelfBuilder (Ref Expr') m
+instance ( Self.MonadSelfBuilder (Ref Expr') m
          , Type.MonadTypeBuilder (Ref AnyExpr) m
-        --  , Constructor TermStore m (AnyExprStack t)
          , MonadFix m
          , SilentExprCons m
          , MonadDelayed m
@@ -217,14 +192,12 @@ instance (
          , StackCons (Layers ExprLink' (Cfg m)) m
          , Referable ExprLink' (Cfg m) m
          , t ~ Cfg m
-
          ) => Constructor TermStore m (Layer (Asg t AnyExpr) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
     cons _ = do
         self <- anyLayout3 <$> Self.get
         top  <- localTop
         l    <- delayedLink top self
         l'   <- mark' l
-        -- dispatch @(New CONNECTION) (universal la)
         return $ Layer l'
 
 
@@ -640,22 +613,24 @@ test_gr2 =  layouted @ANT $ do
     d <- select @Data t
     print s1'
 
-    case' s1' of
+    matchM t $ \case
         Unify l r -> print "ppp"
-        Star      -> case' s1' of
-            Unify l r -> print "hello"
-            Star      -> print "hello3xx"
-        _         -> print "not found"
-
-    --
-    -- let { case_expr = s1'
-    -- ;f1 = matchx case_expr $ \(ExprSymbol (Symbol.Unify l r)) -> print ala where
-    --     ala = 11
-    -- ;f2 = matchx case_expr $ \(ExprSymbol Symbol.Star)        -> (print "hello3" )
-    -- } in $(testTH2 'case_expr [ [p|Symbol.Unify l r|], [p|Symbol.Star|] ] ['f1, 'f2])
+        Star      -> matchM t $ \case
+            Unify l r -> print "hola"
+            Star      -> print "hellox"
 
 
     return s1
+
+-- matchy :: AsgMonad m => a -> f -> m (AsgM m a)
+-- matchy t f = Asg.mark' t
+-- matchy t f = Asg.mark' t >>= (exprUniSymbol . f)
+
+matchy :: HasLayer t Expr' Data => (Asg t (Expr layout)) -> (Unwrapped (ExprUniSymbol (Expr layout)) -> b) -> b
+matchy a f = f $ unwrap' (exprUniSymbol a)
+
+matchM :: (HasLayerM m Expr' Data, AsgMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
+matchM a f = mark' a >>= flip matchy f
 
 snapshot :: Vis m => P.String -> m()
 snapshot title = do

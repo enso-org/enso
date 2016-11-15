@@ -36,6 +36,10 @@ import Luna.Pretty.Styles  (HeaderOnly)
 data family Symbol  atom  layout
 type        Symbols atoms layout = Symbol <$> atoms <*> '[layout]
 
+data family UniSymbol a
+class     IsUniSymbol t l where
+    uniSymbol :: Symbol t l -> UniSymbol l
+
 
 -- === Symbol isomorphisms === --
 

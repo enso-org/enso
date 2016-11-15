@@ -77,6 +77,7 @@ Library
         Control.Monad.Event2,
         Data.Build,
         Data.Direction,
+        Data.Families,
         Data.Graph,
         Data.Graph.Backend.NEC,
         Data.Graph.Builder,
@@ -255,6 +256,7 @@ Library
                  , open-browser
                  , template-haskell
                  , data-ident
+                 , functor-utils
 
 
 Executable luna
