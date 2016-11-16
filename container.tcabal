@@ -1,5 +1,5 @@
 name:                container
-version:             1.0.9
+version:             1.0.10
 synopsis:            Containers abstraction and utilities.
 -- description:
 license:             Apache-2.0

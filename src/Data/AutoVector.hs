@@ -5,7 +5,7 @@ module Data.AutoVector where
 import Control.DeepSeq          (NFData)
 import Control.Lens.Utils
 import Data.Default
-import Data.Container           (Item, Container, Tup2RTup, IsContainerM(fromContainerM), HasContainerM(setContainerM, viewContainerM))
+import Data.Container           (Item, Container, Tup2RTup, IsContainerM(fromContainerM), HasContainerM(setContainerM, viewContainerM), DataStore)
 import Data.Container.Auto
 import Data.Container.List
 import Data.Container.Resizable (Exponential)
@@ -35,6 +35,14 @@ unsafeThaw = wrappedM' $ mapM V.unsafeThaw ; {-# INLINE unsafeThaw #-}
 -- TODO[WD]: Move to containers as container utility function
 unsafeFreeze :: PrimMonad m => MAutoVector (PrimState m) a -> m (AutoVector a)
 unsafeFreeze = wrappedM' $ mapM V.unsafeFreeze ; {-# INLINE unsafeFreeze #-}
+
+-- TODO[WD]: Move to containers as container utility function
+thaw :: PrimMonad m => AutoVector a -> m (MAutoVector (PrimState m) a)
+thaw = wrappedM' $ mapM V.thaw ; {-# INLINE thaw #-}
+
+-- TODO[WD]: Move to containers as container utility function
+freeze :: PrimMonad m => MAutoVector (PrimState m) a -> m (AutoVector a)
+freeze = wrappedM' $ mapM V.freeze ; {-# INLINE freeze #-}
 
 
 -- === Instances === --
@@ -69,3 +77,7 @@ instance Monad m => HasContainerM m (MAutoVector s a) where viewContainerM = vie
 
 instance Monad m => IsContainerM  m (AutoVector    a) where fromContainerM = fmap  AutoVector . fromContainerM ; {-# INLINE fromContainerM #-}
 instance Monad m => IsContainerM  m (MAutoVector s a) where fromContainerM = fmap MAutoVector . fromContainerM ; {-# INLINE fromContainerM #-}
+
+-- Other
+
+type instance DataStore (MAutoVector s a) = MAutoVector s a

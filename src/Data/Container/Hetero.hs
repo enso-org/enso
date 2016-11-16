@@ -92,6 +92,12 @@ makeWrapped ''Hetero2
 
 -- === Instances === --
 
-type instance Container (Hetero2 t) = Unwrapped (Hetero2 t)
+type instance Container (Hetero2 t) = Container (Unwrapped (Hetero2 t))
 
 deriving instance Show (t Any) => Show (Hetero2 t)
+
+instance Default (Unwrapped (Hetero2 t)) => Default (Hetero2 t) where
+    def = Hetero2 def ; {-# INLINE def #-}
+
+
+instance (Functor m, HasContainerM m (t Any)) => HasContainerM m (Hetero2 t)
