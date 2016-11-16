@@ -13,8 +13,8 @@ build:
     - cd compiler
     - apk update && apk add python3
     - export PATH=$PATH:$DRONE_DIR/tools/HaskellBooster/preprocessor
-    - stack build --stack-yaml build/stack-nightly.yaml --only-snapshot
-    - stack build --stack-yaml build/stack-nightly.yaml --copy-bins --fast --test --bench
+    - stack build --stack-yaml compiler/stack.yaml --only-snapshot
+    - stack build --stack-yaml compiler/stack.yaml --copy-bins --fast --test --bench
     - date
 cache:
   mount:
