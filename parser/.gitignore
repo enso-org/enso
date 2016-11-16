@@ -14,6 +14,7 @@ cabal-dev
 .hsenv
 .cabal-sandbox/
 cabal.sandbox.config
+.cabal
 *.prof
 *.aux
 *.hp
@@ -92,6 +93,8 @@ target/
 # pyenv
 .python-version
 
+# ghc-mod
+.haskell-ghc-mod.json
 
 ############################
 ## Luna compiler specific ##
