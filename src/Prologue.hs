@@ -24,6 +24,7 @@ import Control.Exception.Base     as X (assert)
 import Control.Lens               as X
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils as X
+import Control.Lens.Utils         as X
 import Control.Monad              as X (MonadPlus, mplus, mzero, void, join, (<=<), (>=>), zipWithM, zipWithM_)
 import Control.Monad.Base         as X
 import Control.Monad.Fix          as X (MonadFix)
@@ -57,7 +58,7 @@ import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, error, undefined)
+import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break)
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
@@ -67,6 +68,7 @@ import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throw
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 import Data.Kind                  as X (Type, Constraint, type (★), type (*))
 import Data.Constraints           as X (Constraints)
+import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
 
 -- Tuple handling
 import Prologue.Data.Tuple        as X
@@ -228,3 +230,21 @@ g =<<& f = mdo
     g fa
     fa <- f
     return fa
+
+
+infixr 1 <=<<, >>=>
+
+(>>=>) :: Monad m => (a -> b -> m c) -> (c -> m d) -> (a -> b -> m d)
+f >>=> g = \x y -> f x y >>= g ; {-# INLINE (>>=>) #-}
+
+(<=<<) :: Monad m => (c -> m d) -> (a -> b -> m c) -> (a -> b -> m d)
+(<=<<) = flip (>>=>) ; {-# INLINE (<=<<) #-}
+
+
+-- This is just a garbage-util for dummy Prelude show implementation
+-- For more information look here: https://hackage.haskell.org/package/base-4.9.0.0/docs/Text-Show.html
+app_prec :: Int
+app_prec = 10
+
+showsPrec' = showsPrec (succ app_prec)
+showParen' d = showParen (d > app_prec)
