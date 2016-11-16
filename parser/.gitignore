@@ -14,7 +14,7 @@ cabal-dev
 .hsenv
 .cabal-sandbox/
 cabal.sandbox.config
-.cabal
+*.cabal
 *.prof
 *.aux
 *.hp
