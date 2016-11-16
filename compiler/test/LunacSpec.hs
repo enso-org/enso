@@ -23,7 +23,7 @@ import           Prelude.Luna                                    hiding (curry)
 import           Text.Printf                                     (printf)
 import qualified Control.Monad.Writer                            as Writer
 import           Control.Monad.Event
-import           Data.Attr                                       (attr)
+import           Old.Data.Attr                                   (attr)
 import           Data.Construction
 import           Data.Container                                  (elems, index_)
 import           Data.Container                                  hiding (impossible)
@@ -33,7 +33,7 @@ import qualified Data.Graph.Query                                as Sort
 import           Data.Index                                      (idx)
 import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                                        as Map
-import           Data.Prop
+import           Old.Data.Prop
 import           Data.Record                                     hiding (Layout, Cons, cons)
 import           Data.Version.Semantic
 import           Development.Placeholders
