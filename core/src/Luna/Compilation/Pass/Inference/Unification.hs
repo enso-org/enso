@@ -6,37 +6,28 @@ module Luna.Compilation.Pass.Inference.Unification where
 
 import Prelude.Luna
 
-import Data.Construction
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete, sort, groupBy)
 import Old.Data.Prop
 import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
-import Luna.Runtime.Dynamics                      (Static, Dynamic)
-import Data.Index
+import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, readSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign)
+import Luna.Syntax.Model.Network.Builder            (HasSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool, newVarIdent')
-import Type.Inference
+import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool)
 import Data.Graph                                   as Graph hiding (add, remove)
 import qualified Data.Graph.Backend.NEC               as NEC
 
-import qualified Data.Graph.Builder                     as Graph
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Old.Luna.Syntax.Term.Expr.Lit               as Lit
-import           Luna.Syntax.Term.Function.Argument
 import           Luna.Compilation.Error
-import           Control.Monad.Primitive
-
-import Control.Monad.Fix
-import Control.Monad (liftM, MonadPlus(..))
 
 import Control.Monad.Trans.Either
 import Data.Layer_OLD.Cover_OLD
@@ -68,6 +59,7 @@ import Data.Layer_OLD.Cover_OLD
                            , MonadTypeCheck node (m)               \
                            , ReferencedM Node graph (m) node       \
                            , ReferencedM Edge graph (m) edge       \
+                           , MonadIO (m) \
                            )
 
 -------------------------
@@ -117,6 +109,7 @@ instance PrimMonad m => PrimMonad (ResolutionT r m) where
 -- === Pass === --
 ------------------
 
+resolve_ :: MonadResolution [t] m => m ()
 resolve_ = resolve []
 
 resolveUnify :: forall m ls term node edge graph nodeRef n e c. (PassCtx(m,ls,term),
@@ -163,10 +156,12 @@ resolveUnify uni = do
                               asA <- mapM (follow source . unlayer) argsA
                               asB <- mapM (follow source . unlayer) argsB
                               req <- mapM (follow source) =<< follow (prop TCData . requester) uni
+                              sgn <- follow (prop TCData . originSign) uni
                               newUnis <- zipWithM unify asA asB
                               uniCons <- cons na $ arg <$> newUnis
                               replaceNode uni uniCons
                               mapM (flip (reconnect $ prop TCData . requester) req) newUnis
+                              mapM (flip withRef $ prop TCData . originSign .~ sgn) newUnis
                               resolve newUnis
                           else reportError uni
 
@@ -227,14 +222,6 @@ replaceAny r1 r2 = do
     if size (n1 # Succs) > size (n2 # Succs)
         then replaceNode r2 r1 >> return r1
         else replaceNode r1 r2 >> return r2
-
-replaceNode :: PassCtx(m, ls, term) => nodeRef -> nodeRef -> m ()
-replaceNode oldRef newRef = do
-    oldNode <- read oldRef
-    forM_ (readSuccs oldNode) $ \e -> do
-        withRef e $ source .~ newRef
-        withRef newRef $ prop Succs %~ add (unwrap e)
-    destruct oldRef
 
 whenMatched a f = caseTest a $ do
     of' f
@@ -301,7 +288,7 @@ instance ( PassCtx(ResolutionT [nodeRef] m,ls,term)
         (unis, retry) <- partitionM (fmap ((==) sign) . follow (prop TCData . originSign)) unresolved
         sortedUnis    <- sortByDeps unis
         let (todo, toRetry) = case (singleDepth, sortedUnis) of
-                (True, (x : xs)) -> (x, concat xs ++ retry)
+                (True, (x : xs)) -> (concat sortedUnis, retry) -- JUST ONE PLZ
                 (_, _) -> (concat sortedUnis, retry)
         results <- run todo
         let newUnis = catUnresolved results ++ (concat $ catResolved results) ++ toRetry

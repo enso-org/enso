@@ -12,14 +12,7 @@ import qualified Data.List                               as List
 import           Data.Construction
 import qualified Data.Graph.Backend.NEC                  as VEC
 import           Data.Graph.Model.Pointer.Set            (RefSet)
-import qualified Luna.Syntax.Model.Network.Builder.Type  as Type
-import qualified Luna.Syntax.Model.Network.Builder.Self  as Self
-import           Luna.Syntax.Model.Network.Builder.Self  (MonadSelfBuilder, self)
-import qualified Luna.Syntax.Term.Function                as Func
-import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
-import           Data.Graph.Builder.Ref                  as Ref
-import           Luna.Syntax.Model.Network.Class
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Graph
 import           Luna.Syntax.Model.Network.Builder.Layers.TCData
@@ -61,4 +54,3 @@ instance ( MonadBuilder g m
 
 removeMembers :: t -> Listener t MemberRemove m a -> m a
 removeMembers _ = runListener
-

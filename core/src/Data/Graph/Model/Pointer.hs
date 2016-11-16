@@ -5,7 +5,6 @@ module Data.Graph.Model.Pointer (module Data.Graph.Model.Pointer, module X) wher
 
 import Prelude.Luna
 
-import Data.Construction
 import Data.Direction    as X
 import Data.Index
 import Data.Layer_OLD

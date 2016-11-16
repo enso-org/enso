@@ -5,11 +5,7 @@ module Control.Monad.Event where
 
 import           Prologue
 
-import           Control.Monad.Catch          hiding (Handler)
-import           Control.Monad.Fix
-import           Control.Monad.State          (StateT)
 import           Control.Monad.Trans.Identity
-import           Control.Monad.Primitive
 
 ----------------------
 -- === Listener === --

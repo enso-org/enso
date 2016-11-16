@@ -13,21 +13,20 @@ import Data.Graph
 import Data.Graph.Builder
 import Control.Monad.State                          as State
 
-import Luna.Runtime.Dynamics                      (Static, Dynamic)
-import Luna.Library.Symbol                    (MonadSymbol, SymbolMap)
+import Luna.Runtime.Dynamics                        (Static, Dynamic)
+import Luna.Library.Symbol                          (MonadSymbol, SymbolMap)
 
-import Luna.Syntax.Term.Function                     (Function (..), Signature (..))
+import Luna.Syntax.Term.Function                    (Function (..), Signature (..))
 import Old.Luna.Syntax.Term.Class
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetworkBuilderT, NetLayers, NetGraph)
-import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Old.Luna.Syntax.Term.Expr.Lit         as Lit
-import qualified Data.Map                         as Map
-import qualified Luna.Syntax.Name.Path     as QualPath
-import qualified Luna.Syntax.Term.Function         as Function
+import qualified Old.Luna.Syntax.Term.Expr.Lit      as Lit
+import qualified Data.Map                           as Map
+import qualified Luna.Syntax.Name.Path              as QualPath
+import qualified Luna.Syntax.Term.Function          as Function
 
 #define FunBuilderCtx(m) ( n ~ (NetLayers :<: Draft Static)      \
                          , nodeRef ~ Ref Node  n                 \
@@ -59,6 +58,9 @@ consOfS cons t = TCons cons [t]
 
 listOf :: TPRep -> TPRep
 listOf = consOfS "List"
+
+maybeOf :: TPRep -> TPRep
+maybeOf = consOfS "Maybe"
 
 refOf :: TPRep -> TPRep
 refOf = consOfS "Ref"
@@ -150,19 +152,33 @@ symbolsList = [
 -- === List === --
 ------------------
 
-      makeNativeFun "List.+"        (Just $ listOf $ TVar "#a")    [listOf $ TVar "#a"]                                           (listOf $ TVar "#a")
-    , makeNativeFun "List.append"   (Just $ listOf $ TVar "#a")    [TVar "#a"]                                                    (listOf $ TVar "#a")
-    , makeNativeFun "List.prepend"  (Just $ listOf $ TVar "#a")    [TVar "#a"]                                                    (listOf $ TVar "#a")
-    , makeNativeFun "List.length"   (Just $ listOf $ TVar "#a")    []                                                             (scons "Int")
-    , makeNativeFun "List.reverse"  (Just $ listOf $ TVar "#a")    []                                                             (listOf $ TVar "#a")
-    , makeNativeFun "List.take"     (Just $ listOf $ TVar "#a")    [scons "Int"]                                                  (listOf $ TVar "#a")
-    , makeNativeFun "List.drop"     (Just $ listOf $ TVar "#a")    [scons "Int"]                                                  (listOf $ TVar "#a")
-    , makeNativeFun "List.sort"     (Just $ listOf $ scons "Int")  []                                                             (listOf $ scons "Int")
+      makeNativeFun "List.+"          (Just $ listOf $ TVar "#a")   [listOf $ TVar "#a"]                                           (listOf $ TVar "#a")
+    , makeNativeFun "List.append"     (Just $ listOf $ TVar "#a")   [TVar "#a"]                                                    (listOf $ TVar "#a")
+    , makeNativeFun "List.prepend"    (Just $ listOf $ TVar "#a")   [TVar "#a"]                                                    (listOf $ TVar "#a")
+    , makeNativeFun "List.length"     (Just $ listOf $ TVar "#a")   []                                                             (scons "Int")
+    , makeNativeFun "List.reverse"    (Just $ listOf $ TVar "#a")   []                                                             (listOf $ TVar "#a")
+    , makeNativeFun "List.take"       (Just $ listOf $ TVar "#a")   [scons "Int"]                                                  (listOf $ TVar "#a")
+    , makeNativeFun "List.drop"       (Just $ listOf $ TVar "#a")   [scons "Int"]                                                  (listOf $ TVar "#a")
+    , makeNativeFun "List.sort"       (Just $ listOf $ scons "Int") []                                                             (listOf $ scons "Int")
 
-    , makeNativeFun "List.fold"     (Just $ listOf $ TVar "#a")    [TVar "#b", TLam [TVar "#b", TVar "#a"] (TVar "#b")]           (TVar "#b")
-    , makeNativeFun "List.map"      (Just $ listOf $ TVar "#a")    [TLam [TVar "#a"] (TVar "#b")]                                 (listOf $ TVar "#b")
-    , makeNativeFun "List.zip"      (Just $ listOf $ TVar "#a")    [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]  (listOf $ TVar "#c")
-    , makeNativeFun "List.filter"   (Just $ listOf $ TVar "#a")    [TLam [TVar "#a"] (scons "Bool")]                              (listOf $ TVar "#a")
+    , makeNativeFun "List.fold"       (Just $ listOf $ TVar "#a")   [TVar "#b", TLam [TVar "#b", TVar "#a"] (TVar "#b")]           (TVar "#b")
+    , makeNativeFun "List.map"        (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (TVar "#b")]                                 (listOf $ TVar "#b")
+    , makeNativeFun "List.zip"        (Just $ listOf $ TVar "#a")   [TLam [TVar "#a", TVar "#b"] (TVar "#c"), listOf $ TVar "#b"]  (listOf $ TVar "#c")
+    , makeNativeFun "List.filter"     (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (scons "Bool")]                              (listOf $ TVar "#a")
+    , makeNativeFun "List.sortBy"     (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (scons "Double")]                            (listOf $ TVar "#a")
+    , makeNativeFun "List.selectBy"   (Just $ listOf $ TVar "#a")   [TLam [TVar "#a"] (scons "String"), scons "String"]            (listOf $ TVar "#a")
+    , makeNativeFun "List.head"       (Just $ listOf $ TVar "#a")   []                                                             (maybeOf $ TVar "#a")
+    , makeNativeFun "List.unsafeHead" (Just $ listOf $ TVar "#a")   []                                                             (TVar "#a")
+
+------------------
+-- === Maybe === --
+------------------
+
+    , makeNativeFun "Maybe.fromMaybe"      (Just $ maybeOf $ TVar "#a")  [TVar "#a"] (TVar "#a")
+    , makeNativeFun "Maybe.toList"         (Just $ maybeOf $ TVar "#a")  []          (listOf $ TVar "#a")
+    , makeNativeFun "Maybe.isJust"         (Just $ maybeOf $ TVar "#a")  []          (scons "Bool")
+    , makeNativeFun "Maybe.isNothing"      (Just $ maybeOf $ TVar "#a")  []          (scons "Bool")
+    , makeNativeFun "Maybe.unsafeFromJust" (Just $ maybeOf $ TVar "#a")  []          (TVar "#a")
 
 ------------------
 -- === Int === --
@@ -182,6 +198,7 @@ symbolsList = [
     , makeNativeFun "Int.-"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int./"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.%"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
+    , makeNativeFun "Int.mod"       (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
     , makeNativeFun "Int.^"         (Just $ scons "Int")    [scons "Int"]   (scons "Int" )
 
     , makeNativeFun "Int.negate"    (Just $ scons "Int")    []              (scons "Int" )
@@ -246,8 +263,8 @@ symbolsList = [
     , makeNativeFun "Double.acosh"    (Just $ scons "Double")    []                 (scons "Double")
     , makeNativeFun "Double.atanh"    (Just $ scons "Double")    []                 (scons "Double")
 
-    , makeNativeFun "Double.toString" (Just $ scons "Double")    []                 (scons "String")
-    , makeNativeFun "Double.toStringFormat" (Just $ scons "Double")    [scons "Int", scons "Int"]   (scons "String")
+    , makeNativeFun "Double.toString"       (Just $ scons "Double") []                         (scons "String")
+    , makeNativeFun "Double.toStringFormat" (Just $ scons "Double") [scons "Int", scons "Int"] (scons "String")
 
 ------------------
 -- === Bool === --
@@ -289,6 +306,10 @@ symbolsList = [
     , makeNativeFun "String.words"    (Just $ scons "String") []                        (listOf $ scons "String")
     , makeNativeFun "String.lines"    (Just $ scons "String") []                        (listOf $ scons "String")
     , makeNativeFun "String.join"     (Just $ scons "String") [listOf $ scons "String"] (scons "String")
+    , makeNativeFun "String.isInfixOf"(Just $ scons "String") [scons "String"]          (scons "Bool")
+
+    , makeNativeFun "String.parseInt"     (Just $ scons "String") []                    (scons "Int")
+    , makeNativeFun "String.parseDouble"  (Just $ scons "String") []                    (scons "Double")
 
     , makeNativeFun "String.toString" (Just $ scons "String") []                        (scons "String")
 
@@ -299,6 +320,25 @@ symbolsList = [
     , makeNativeFun "Ref.modify"      (Just $ refOf $ TVar "#a") [TLam [TVar "#a"] $ TVar "#a"] (refOf $ TVar "#a")
     , makeNativeFun "Ref.read"        (Just $ refOf $ TVar "#a") []                             (TVar "#a")
 
+----------------------
+--- === Stream === ---
+----------------------
+
+    , makeNativeFun "Stream.map"      (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (TVar "#b")]    (consOfS "Stream" $ TVar "#b")
+    , makeNativeFun "Stream.filter"   (Just $ consOfS "Stream" $ TVar "#a") [TLam [TVar "#a"] (scons "Bool")] (consOfS "Stream" $ TVar "#a")
+    , makeNativeFun "Stream.fold"     (Just $ consOfS "Stream" $ TVar "#a") [TVar "#b", TLam [TVar "#b", TVar "#a"] (TVar "#b")] (consOfS "Stream" $ TVar "#b")
+    , makeNativeFun "Stream.history"  (Just $ consOfS "Stream" $ TVar "#a") [scons "Int"] (consOfS "Stream" $ listOf $ TVar "#a")
+    , makeNativeFun "Stream.count"    (Just $ consOfS "Stream" $ TVar "#a") [] (consOfS "Stream" $ scons "Int")
+    , makeNativeFun "Stream.zip"      (Just $ consOfS "Stream" $ TVar "#a") [consOfS "Stream" $ TVar "#b", TLam [TVar "#a", TVar "#b"] (TVar "#c")]  (consOfS "Stream" $ TVar "#c")
+    , makeNativeFun "Stream.mean"     (Just $ consOfS "Stream" $ scons "Double") [] (consOfS "Stream" $ scons "Double")
+
+----------------------
+--- === Stream === ---
+----------------------
+
+    , makeNativeFun "Twitter.watchHashtag"  (Just $ scons "Twitter") [scons "String"]    (consOfS "Stream" $ scons "String")
+    , makeNativeFun "Twitter.watchMentions" (Just $ scons "Twitter") [scons "String"]    (consOfS "Stream" $ scons "String")
+
 --------------------
 --- === Misc === ---
 --------------------
@@ -306,22 +346,41 @@ symbolsList = [
     , ("id",         makeId)
     , ("const",      makeConst)
 
-    , makeNativeFun "app"          Nothing [TLam [TVar "#a"] (TVar "#b"),            (TVar "#a")]         (TVar "#b")
+    , makeNativeFun "time"         Nothing []                                                             (consOfS "Stream" $ scons "Int")
+    , makeNativeFun "timePrec"     Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "Int")
+    , makeNativeFun "listen"       Nothing [scons "Int"]                                                  (scons "Socket")
+    , makeNativeFun "listenUDP"    Nothing [scons "Int"]                                                  (consOfS "Stream" $ scons "String")
+    , makeNativeFun "twitter"      Nothing []                                                  (scons "Twitter")
+    , makeNativeFun "sentiment"    Nothing [scons "String"]                                                (scons "Double")
+
+    , makeNativeFun "Socket.data"        (Just $ scons "Socket") []                                       (consOfS "Stream" $ scons "String")
+    , makeNativeFun "Socket.write"       (Just $ scons "Socket") [scons "String"]                         (scons "OK")
+
+    , makeNativeFun "app"          Nothing [TLam [TVar "#a"] (TVar "#b"), TVar "#a"]                      (TVar "#b")
     , makeNativeFun "comp"         Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a"] (TVar "#b")]   (TLam [TVar "#a"] (TVar "#c"))
     , makeNativeFun "flip"         Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c")]                      (TLam [TVar "#b", TVar "#a"] (TVar "#c"))
 
     , makeNativeFun "empty"        Nothing []                                                             (listOf $ TVar "#a")
     , makeNativeFun "singleton"    Nothing [TVar "#a"]                                                    (listOf $ TVar "#a")
 
+    , makeNativeFun "just"         Nothing [TVar "#a"]                                                    (maybeOf $ TVar "#a")
+    , makeNativeFun "nothing"      Nothing []                                                             (maybeOf $ TVar "#a")
+    , makeNativeFun "catMaybes"    Nothing [listOf $ maybeOf $ TVar "#a"]                                 (listOf $ TVar "#a")
+
     , makeNativeFun "switch"       Nothing [scons "Bool", TVar "#a", TVar "#a"]                           (TVar "#a")
 
     , makeNativeFun "readFile"     Nothing [scons "String"]                                               (scons "String")
+    , makeNativeFun "writeFile"    Nothing [scons "String", scons "String"]                               (scons "OK")
+    , makeNativeFun "system"       Nothing [scons "String"]                                               (scons "OK")
 
     , makeNativeFun "mean"         Nothing [listOf $ scons "Double"]                                      (scons "Double")
     , makeNativeFun "differences"  Nothing [listOf $ scons "Int"]                                         (listOf $ scons "Int")
     , makeNativeFun "histogram"    Nothing [listOf $ scons "Int"]                                         (scons "Histogram")
     , makeNativeFun "primes"       Nothing [scons "Int"]                                                  (listOf $ scons "Int")
     , makeNativeFun "pi"           Nothing []                                                             (scons "Double")
+    , makeNativeFun "+"            Nothing [scons "Int", scons "Int"]                                     (scons "Int")
+    , makeNativeFun "*"            Nothing [scons "Int", scons "Int"]                                     (scons "Int")
+    , makeNativeFun "=="           Nothing [scons "Int", scons "Int"]                                     (scons "Bool")
 
 ----------------------
 --- === Shapes === ---
@@ -342,6 +401,8 @@ symbolsList = [
     , makeNativeFun "rectangleGeometry"        Nothing [scons "Double", scons "Double", scons "Material"]               (scons "Geometry")
 
     , makeNativeFun "point"                    Nothing [scons "Double", scons "Double"]                                 (scons "Point")
+    , makeNativeFun "toDoublePairList"         Nothing [listOf $ scons "Point"]                                         (scons "DoublePairList")
+
     , makeNativeFun "initAttributes"           Nothing []                                                               (scons "Attributes")
     , makeNativeFun "color"                    Nothing [scons "Double", scons "Double", scons "Double", scons "Double"] (scons "Material")
 
@@ -361,6 +422,7 @@ symbolsList = [
     , makeNativeFun "Geometry.layer"           (Just $ scons "Geometry")     [listOf $ scons "Transformation"]          (scons "Layer")
     , makeNativeFun "graphics"                 Nothing                       [listOf $ scons "Layer"]                   (scons "Graphics")
     , makeNativeFun "Graphics.layers"          (Just $ scons "Graphics")     []                                         (listOf $ scons "Layer")
+    , makeNativeFun "Graphics.shift"           (Just $ scons "Graphics")     [scons "Point"]                            (scons "Graphics")
 
 ---------------------------
 --- === Drawing API === ---
@@ -373,43 +435,45 @@ symbolsList = [
     , makeNativeFun "grid"         Nothing [scons "Material",              scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
     , makeNativeFun "gridLabeled"  Nothing [scons "Material", scons "Int", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double"]  (listOf $ scons "Layer")
 
-    , makeNativeFun "scatterChart"    Nothing [scons "Material", scons "Figure", scons "Double",
-                                                  scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (scons "Layer")
-    , makeNativeFun "barChart"        Nothing [scons "Material", scons "Double",
-                                                  scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (scons "Layer")
-    , makeNativeFun "barChartLayers"  Nothing [scons "Material", scons "Double",
-                                                  scons "Double", scons "Double", scons "Double", scons "Double",
-                                                  listOf $ scons "Point"]                                 (scons "Graphics")
+    , makeNativeFun "scatterChart"    Nothing [scons "Material", scons "Figure", scons "Double", scons "Double", scons "Double", scons "Double", scons "Double", listOf $ scons "Point"] (scons "Layer")
+    , makeNativeFun "barChart"        Nothing [scons "Material",                 scons "Double", scons "Double", scons "Double", scons "Double", scons "Double", listOf $ scons "Point"] (scons "Graphics")
 
-    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", listOf $ scons "Int"]              (scons "Graphics")
-    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", listOf $ scons "Double"]           (scons "Graphics")
+    , makeNativeFun "autoScatterChartInt"    Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", scons "Double", listOf $ scons "Int"]              (scons "Graphics")
+    , makeNativeFun "autoScatterChartDouble" Nothing [scons "Material", scons "Material", scons "Figure", scons "Double", scons "Double", listOf $ scons "Double"]           (scons "Graphics")
 
 ------------------------
 --- === IoT Demo === ---
 ------------------------
 
-    , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")
-    , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
-    , makeNativeFun "controlPanel"    Nothing []                                  (scons "ControlPanel")
+    , makeNativeFun "ledRing"              Nothing                  []                              (scons "LedRing")
+    , makeNativeFun "LedRing.setColor"     (Just $ scons "LedRing") [scons "Int", scons "RGBColor"] (scons "OK")
+    , makeNativeFun "LedRing.setNextColor" (Just $ scons "LedRing") [             scons "RGBColor"] (scons "OK")
+    , makeNativeFun "rgbColor"             Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
+    , makeNativeFun "colorByName"          Nothing [scons "String"]                                 (scons "RGBColor")
+    , makeNativeFun "cssColor"          Nothing [scons "String"]                                 (maybeOf $ scons "RGBColor")
+    , makeNativeFun "hsvColor"             Nothing [scons "Double", scons "Double", scons "Double"] (scons "RGBColor")
 
-    , makeNativeFun "Temperature.inside"                (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
-    , makeNativeFun "Temperature.outside"               (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.temperatureThreshold" (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
-    , makeNativeFun "ControlPanel.display"              (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
-    , makeNativeFun "Fan.power"                         (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
+    -- , makeNativeFun "temperature"     Nothing []                                  (scons "Temperature")
+    -- , makeNativeFun "fan"             Nothing []                                  (scons "Fan")
+    -- , makeNativeFun "controlPanel"    Nothing []                                  (scons "ControlPanel")
+    --
+    -- , makeNativeFun "Temperature.inside"                (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    -- , makeNativeFun "Temperature.outside"               (Just $ scons "Temperature")  [scons "Double"]                  (scons "Double")
+    -- , makeNativeFun "ControlPanel.temperatureThreshold" (Just $ scons "ControlPanel") [scons "Double"]                  (scons "Double")
+    -- , makeNativeFun "ControlPanel.display"              (Just $ scons "ControlPanel") [scons "String", scons "String"]  (scons "String")
+    -- , makeNativeFun "Fan.power"                         (Just $ scons "Fan")          [scons "Bool" ]                   (scons "String")
 
 --------------------------
 -- === Experimental === --
 --------------------------
 
     , makeNativeFun "fix"          Nothing [TLam [TVar "#a"] (TVar "#a")]                                                              (TVar "#a")
-    , makeNativeFun "app1to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), (TVar "#a")]                                      (TLam [TVar "#b"] (TVar "#c"))
-    , makeNativeFun "app2to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), (TVar "#a"), (TVar "#b")]                         (TVar "#c")
-    , makeNativeFun "app1to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a")]                           (TLam [TVar "#b", TVar "#c"] (TVar "#d"))
-    , makeNativeFun "app2to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b")]              (TLam [TVar "#c"] (TVar "#d"))
-    , makeNativeFun "app3to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), (TVar "#a"), (TVar "#b"), (TVar "#c")] (TVar "#d")
+    , makeNativeFun "prepend"      Nothing [TVar "#a", listOf $ TVar "#a"] (listOf $ TVar "#a")
+    , makeNativeFun "app1to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), TVar "#a"]                                        (TLam [TVar "#b"] (TVar "#c"))
+    , makeNativeFun "app2to2"      Nothing [TLam [TVar "#a", TVar "#b"] (TVar "#c"), TVar "#a", TVar "#b"]                             (TVar "#c")
+    , makeNativeFun "app1to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), TVar "#a"]                             (TLam [TVar "#b", TVar "#c"] (TVar "#d"))
+    , makeNativeFun "app2to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), TVar "#a", TVar "#b"]                  (TLam [TVar "#c"] (TVar "#d"))
+    , makeNativeFun "app3to3"      Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d"), TVar "#a", TVar "#b", TVar "#c"]       (TVar "#d")
     , makeNativeFun "cycle3"       Nothing [TLam [TVar "#a", TVar "#b", TVar "#c"] (TVar "#d")]                                        (TLam [TVar "#b", TVar "#c", TVar "#a"] (TVar "#d"))
     , makeNativeFun "comp2"        Nothing [TLam [TVar "#b"] (TVar "#c"), TLam [TVar "#a", TVar "#a1"] (TVar "#b")]   (TLam [TVar "#a", TVar "#a1"] (TVar "#c"))
     , makeNativeFun "comp2to2"     Nothing [TLam [TVar "#t3", TVar "#t4"] (TVar "#t1"), TLam [TVar "#t3", TVar "#t4"] (TVar "#t2"), TLam [TVar "#t1", TVar "#t2"] (TVar "#t")]   (TLam [TVar "#t3", TVar "#t4"] (TVar "#t"))
@@ -422,6 +486,34 @@ symbolsList = [
 
     , makeNativeFun "testControls"  Nothing [scons "String", scons "Int", scons "Double", scons "Bool"]  (scons "String")
 
+--------------------
+-- === Docker === --
+--------------------
+    , makeNativeFun "docker"        Nothing                 [scons "String"]                 (scons "Docker")
+    , makeNativeFun "Docker.run"    (Just $ scons "Docker") [scons "String"]                 (scons "String")
+    , makeNativeFun "Docker.mount"  (Just $ scons "Docker") [scons "String", scons "String"] (scons "Docker")
+    , makeNativeFun "Docker.setPWD" (Just $ scons "Docker") [scons "String"]                 (scons "Docker")
+    , makeNativeFun "Docker.readFile" (Just $ scons "Docker") [scons "String"]                 (scons "String")
+
+-----------------
+-- === BIO === --
+-----------------
+    , makeNativeFun "indexGenome"    Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
+    , makeNativeFun "mapGenome"      Nothing [scons "Docker", scons "String", scons "String"] (scons "String")
+    , makeNativeFun "makeTranscript" Nothing [scons "Docker", scons "String"]                 (scons "String")
+
+    , makeNativeFun "parseTranscript" Nothing [scons "String"]                 (scons "Transcript")
+    , makeNativeFun "Transcript.feature"      (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.start"        (Just $ scons "Transcript") [] (scons "Int")
+    , makeNativeFun "Transcript.end"          (Just $ scons "Transcript") [] (scons "Int")
+    , makeNativeFun "Transcript.score"        (Just $ scons "Transcript") [] (scons "Int")
+    , makeNativeFun "Transcript.strand"       (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.geneId"       (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.transcriptId" (Just $ scons "Transcript") [] (scons "String")
+    , makeNativeFun "Transcript.fpkm"         (Just $ scons "Transcript") [] (scons "Double")
+    , makeNativeFun "Transcript.confLo"       (Just $ scons "Transcript") [] (scons "Double")
+    , makeNativeFun "Transcript.confHi"       (Just $ scons "Transcript") [] (scons "Double")
+    , makeNativeFun "Transcript.cov"          (Just $ scons "Transcript") [] (scons "Double")
     ]
 
 experimental = [ "fix"
@@ -440,6 +532,18 @@ experimental = [ "fix"
                , "flipConst2"
                , "retFun2"
                , "testControls"
+               , "ref"
+               , "Ref.modify"
+               , "Ref.read"
+               , "ledRing"
+               , "LedRing.setColor"
+               , "LedRing.setNextColor"
+               , "rgbColor"
+               , "cssColor"
+               , "hsvColor"
+               , "List.unsafeHead"
+               , "Maybe.unsafeFromJust"
+               , "timePrec"
                ]
 
 symbolsNames :: [String]

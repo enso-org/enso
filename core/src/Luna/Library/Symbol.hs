@@ -3,7 +3,7 @@
 
 module Luna.Library.Symbol where
 
-import Prologue  hiding (Symbol)
+import Prologue  hiding (Symbol, s, p)
 
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
@@ -13,7 +13,6 @@ import           Luna.Syntax.Term.Function      (Function)
 import           Luna.Syntax.Name.Path          (QualPath)
 import           Data.Graph                     (Ref, Cluster)
 import           Data.Graph.Model.Node
-import           Control.Monad.Primitive
 
 
 -- === Definitions === --

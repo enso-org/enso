@@ -2,8 +2,8 @@
 
 module Control.Monad.Delayed where
 
-import Prologue
-import Control.Monad.State (StateT, withState, runStateT)
+import Prologue hiding (s)
+import Control.Monad.State (StateT, runStateT)
 
 import qualified Control.Monad.State as State
 

@@ -6,8 +6,6 @@ import Prologue
 import Old.Luna.Syntax.Term.Class (TermOf)
 import Data.Shell_OLD as X
 import Data.Construction
-import Data.Convert
-import Data.Record
 import Data.HMap.Lazy (HTMap)
 
 type instance TermOf (ls :< a) = TermOf a

@@ -35,12 +35,9 @@ import qualified Luna.Parser.Indent as Indent
 
 import qualified Data.List as List
 
-import qualified Luna.Parser.Type     as Type
-import qualified Luna.Parser.Pattern  as Pattern
 import qualified Luna.Parser.Literal  as Literal
 import qualified Luna.Parser.Layout   as Layout
 --import qualified Luna.Parser.Expr     as Expr
-import qualified Luna.Parser.Function as Function
 import qualified Luna.Parser.Module   as Module
 
 import qualified Luna.Parser.Token  as Tok

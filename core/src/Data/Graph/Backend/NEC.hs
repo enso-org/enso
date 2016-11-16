@@ -16,8 +16,6 @@ import Old.Data.Prop                hiding (Getter, Setter)
 import Data.Container.Auto      (Auto)
 import Data.Container.Resizable (Exponential)
 import Data.Index
-import Data.Vector              (Vector)
-import Data.Vector.Mutable      (MVector)
 
 import Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)

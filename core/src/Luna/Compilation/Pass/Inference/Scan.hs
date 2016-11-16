@@ -15,12 +15,11 @@ import Old.Luna.Syntax.Term.Class                            hiding (source, tar
 import Luna.Syntax.Model.Layer
 import Luna.Runtime.Dynamics                         (Static)
 import Luna.Syntax.Model.Network.Class                 ()
-import Luna.Syntax.Model.Network.Builder.Node.Inferred
 import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Term
 
 import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, depth, redirect, isLambda)
+import Luna.Syntax.Model.Network.Builder               (TCDataPayload, depth, redirect, replaceNodeNonDestructive, replaceNode, HasSuccs)
 
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
@@ -34,10 +33,15 @@ import           Data.Layer_OLD.Cover_OLD
                    , edge ~ Link node                              \
                    , BiCastable n node                             \
                    , BiCastable e edge                             \
+                   , Covered node                                  \
                    , Destructor m (Ref Edge edge)                  \
+                   , Destructor m (Ref Node node)                  \
                    , Connectible (Ref Node node) (Ref Node node) m \
                    , MonadBuilder (Hetero (NEC.Graph n e c)) m     \
                    , NodeInferable  (m) node                       \
+                   , HasSuccs node                                 \
+                   , TermNode Lam   m (ls :<: term)                \
+                   , TermNode Blank m (ls :<: term)                \
                    , Getter Inputs node                            \
                    , Prop Inputs node ~ [Ref Edge edge]            \
                    , HasProp TCData node                           \
@@ -56,8 +60,8 @@ investigate ref = do
             of' $ \(Var _)          ->  TypeCheck.unresolvedSymbols %~ (ref :)
             of' $ \(App _ _)        -> (TypeCheck.untypedApps       %~ (ref :))
                                      . (TypeCheck.uncalledApps      %~ (ref :))
-            of' $ \(Acc _ _)        -> (TypeCheck.untypedAccs       %~ (ref :))
-                                     . (TypeCheck.unresolvedSymbols %~ (ref :))
+            of' $ \(Acc _ _)        ->  TypeCheck.untypedAccs       %~ (ref :)
+            of' $ \(Lam _ _)        ->  TypeCheck.untypedLambdas    %~ (ref :)
             of' $ \(Lit.String _)   ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Lit.Number _ _) ->  TypeCheck.untypedLits       %~ (ref :)
             of' $ \(Cons _ _)       ->  TypeCheck.untypedLits       %~ (ref :)
@@ -86,22 +90,6 @@ isBlank r = do
         of' $ \Blank -> return True
         of' $ \ANY   -> return False
 
-findLambdaAccessors :: PassCtx(m) => m ()
-findLambdaAccessors = do
-    accs <- view TypeCheck.untypedAccs <$> TypeCheck.get
-    justLambdas <- forM accs $ \accRef -> do
-        acc <- read accRef
-        caseTest (uncover acc) $ do
-            of' $ \(Acc n t) -> do
-                isB <- isBlank =<< follow source t
-                if isB
-                    then do
-                        withRef accRef $ prop TCData . isLambda .~ True
-                        return $ Just accRef
-                    else return Nothing
-            of' $ \ANY -> impossible
-    TypeCheck.modify_ $ TypeCheck.untypedLambdaAccs .~ catMaybes justLambdas
-
 
 -- FIXME[MK]: This does not take pattern matching into account. To implement.
 resolveLocalVars :: forall term node ls edge n e c m . PassCtx(m) => m ()
@@ -118,6 +106,84 @@ resolveLocalVars = do
             of' $ \ANY         -> return Nothing
     TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem vars)
 
+resolveLambdaBinders :: PassCtx(m) => m ()
+resolveLambdaBinders = do
+    lambdas   <- view TypeCheck.untypedLambdas <$> TypeCheck.get
+    boundVars <- fmap concat $ forM lambdas $ \ref -> do
+        n <- read ref
+        caseTest (uncover n) $ do
+            of' $ \(Lam as _) -> mapM (follow source . unlayer) as
+            of' $ \ANY -> impossible
+    TypeCheck.modify_ $ TypeCheck.unresolvedSymbols %~ (filter $ not . flip elem boundVars)
+
+replaceVar :: PassCtx(m) => Ref Node node -> String -> Ref Node node -> m ()
+replaceVar root name replacement = do
+    nroot <- read root
+    forM_ (nroot # Inputs) $ \inp -> do
+        nref <- follow source inp
+        replaceVar nref name replacement
+    caseTest (uncover nroot) $ do
+        of' $ \(Var (Lit.String n)) -> if n == name && root /= replacement
+            then do
+                replaceNode root replacement
+                TypeCheck.modify_ $ (TypeCheck.unresolvedSymbols %~ (filter (/= root)))
+                                  . (TypeCheck.allNodes %~ (filter (/= root)))
+            else return ()
+        of' $ \ANY -> return ()
+
+unifyLambdaArguments :: PassCtx(m) => m ()
+unifyLambdaArguments = do
+    lambdas <- view TypeCheck.untypedLambdas <$> TypeCheck.get
+    forM_ lambdas $ \ref -> do
+        n <- read ref
+        caseTest (uncover n) $ do
+            of' $ \(Lam as o) -> do
+                args <- mapM (follow source . unlayer) as
+                toReplace <- fmap catMaybes $ forM args $ \rv -> do
+                    nv <- read rv
+                    return $ caseTest (uncover nv) $ do
+                        of' $ \(Var (Lit.String name)) -> Just (name, rv)
+                        of' $ \ANY -> Nothing
+                out <- follow source o
+                mapM (uncurry $ replaceVar out) toReplace
+            of' $ \ANY -> impossible
+
+
+desugarLambdas :: PassCtx(m) => m ()
+desugarLambdas = do
+    accs <- view TypeCheck.untypedAccs <$> TypeCheck.get
+    forM_ accs $ \ref -> do
+        acc <- read ref
+        caseTest (uncover acc) $ do
+            of' $ \(Acc _ t) -> do
+                tgt <- follow source t
+                isB <- isBlank tgt
+                when isB $ do
+                    tempBlank <- blank
+                    replaceNodeNonDestructive ref tempBlank
+                    lambda <- lam [arg tgt] ref
+                    replaceNode tempBlank lambda
+                    TypeCheck.modify_ $ (TypeCheck.untypedLambdas %~ (lambda :))
+                                      . (TypeCheck.allNodes %~ (lambda :))
+            of' $ \ANY -> impossible
+
+    apps <- view TypeCheck.untypedApps <$> TypeCheck.get
+    forM_ apps $ \ref -> do
+        node <- read ref
+        caseTest (uncover node) $ do
+            of' $ \(App _ as) -> do
+                args   <- mapM (follow source . unlayer) as
+                blanks <- filterM isBlank args
+                when (not . null $ blanks) $ do
+                    tempBlank <- blank
+                    replaceNodeNonDestructive ref tempBlank
+                    lambda <- lam (arg <$> blanks) ref
+                    replaceNode tempBlank lambda
+                    TypeCheck.modify_ $ (TypeCheck.untypedLambdas %~ (lambda :))
+                                      . (TypeCheck.allNodes %~ (lambda :))
+            of' $ \ANY -> impossible
+
+
 -----------------------------
 -- === TypeCheckerPass === --
 -----------------------------
@@ -131,8 +197,10 @@ instance (Monad m {-ghc8-}, PassCtx(m)) => TypeCheckerPass ScanPass m where
         roots <- view TypeCheck.freshRoots <$> TypeCheck.get
         mapM_ (subtreeWalk investigate) roots
         resolveLocalVars
+        resolveLambdaBinders
+        unifyLambdaArguments
+        desugarLambdas
         mapM_ assignDepths roots
-        findLambdaAccessors
         TypeCheck.modify_ $ TypeCheck.freshRoots .~ []
         case roots of
             [] -> return Stuck

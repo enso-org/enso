@@ -99,7 +99,7 @@ apps = foldl app
 
 ifx :: Builder s Tok -> Builder s Tok -> Builder s Tok -> Builder s Tok
 ifx ma ml mr = do
-    a@(Tok prec d) <- ma
+    Tok prec d <- ma
     l <- ml
     r <- mr
     return . Tok prec $ precParens prec l <> " " <> d <> " " <> precParens prec r

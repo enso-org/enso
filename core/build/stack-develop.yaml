@@ -41,6 +41,7 @@ extra-deps:
     - lens-utils-1.0
     - functor-utils-1.0
     - data-rtuple-1.0
+    - serialport-0.4.7
 
     - placeholders-0.1
     - ghc-mtl-1.2.1.0

@@ -14,7 +14,6 @@ import qualified Luna.Parser.Token       as Tok
 --import Luna.Parser.Builder (label, labeled, withLabeled, nextID)
 import Luna.Parser.Combinators (just, many1, (<??>), applyAll, maybe, (<*?>))
 --import Luna.Parser.Struct (blockBegin)
---import Luna.Parser.Pattern (pattern)
 import           Data.Function                (on)
 import qualified Data.List                    as List
 import           Text.EditDistance            (defaultEditCosts, levenshteinDistance, EditCosts(..), Costs(..))
@@ -34,7 +33,6 @@ import           Data.Maybe                   (isJust, fromJust)
 --import           Luna.Syntax.Name.Pattern     (NamePat(NamePat))
 
 import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser, OperatorTable, Assoc(..))
-import qualified Luna.Parser.Pattern as Pat
 --import           Luna.Parser.Type    (typic, metaBase)
 import           Luna.Parser.Literal (literal)
 --import qualified Luna.Syntax.Name    as Name
@@ -44,7 +42,6 @@ import qualified Data.ByteString.UTF8         as UTF8
 --import qualified Luna.System.Pragma.Store  as Pragma
 --import           Luna.System.Pragma.Store  (MonadPragmaStore)
 --import qualified Luna.System.Pragma        as Pragma (isEnabled)
-import qualified Luna.Parser.Pragma        as Pragma
 
 --import qualified Luna.Syntax.Label         as Label
 

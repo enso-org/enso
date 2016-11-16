@@ -19,7 +19,7 @@ import           GHC.Int (Int64)
 import           Control.Monad.State
 import qualified Data.Text.Lazy         as Text
 import qualified Data.Text.Lazy.Builder as Text
-import           Data.Text.Lazy.Builder   (toLazyText, fromLazyText)
+import           Data.Text.Lazy.Builder   (fromLazyText)
 
 ------------------------------------------------------------------------
 -- Indentation handling
@@ -107,4 +107,3 @@ instance FromText Doc where
 
 instance IsString Doc where
     fromString = fromText . fromString
-

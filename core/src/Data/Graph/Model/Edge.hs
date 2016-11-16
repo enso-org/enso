@@ -8,10 +8,10 @@ import Data.Graph.Model.Pointer
 import Data.Graph.Model.Node
 
 import Data.Container          hiding (Impossible)
-import Data.Direction
-import Data.Index
+import Data.Direction ()
+import Data.Index ()
 import Old.Data.Prop
-import Type.Bool
+import Type.Bool ()
 
 ------------------
 -- === Edge === --

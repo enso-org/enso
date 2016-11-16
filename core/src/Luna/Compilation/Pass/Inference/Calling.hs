@@ -12,28 +12,22 @@ import Data.Construction
 import Data.Either                                  (rights)
 import Old.Data.Prop
 import Data.Record.Match
-import Data.Layer_OLD
 import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph                                   as Graph hiding (add)
 import qualified Data.Graph.Backend.NEC               as NEC
 import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, readSuccs, requester, originSign, Sign (..))
+import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, requester, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetGraph, NetLayers, NetCluster)
+import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Type.Inference
-
-import qualified Data.Map as Map
-import           Data.Map (Map)
 
 import qualified Luna.Syntax.Term.Function as Function
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
-import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import           Data.Layer_OLD.Cover_OLD
 
 
@@ -67,13 +61,20 @@ data CallError = NotAFuncallNode | NotACurryNode | UnresolvedFunction | Malforme
 
 type CallErrorT = ExceptT CallError
 
-{-is :: PassCtx(m) => Ref Node node -> Proxy -}
+-- FIXME[MK]: API3 is supposed to clean this up
 
 isUni :: PassCtx(m) => Ref Node node -> m Bool
 isUni r = do
     n <- read r
     return $ caseTest (uncover n) $ do
         of' $ \(Unify _ _) -> True
+        of' $ \ANY -> False
+
+isBlank :: PassCtx(m) => Ref Node node -> m Bool
+isBlank r = do
+    n <- read r
+    return $ caseTest (uncover n) $ do
+        of' $ \Blank -> True
         of' $ \ANY -> False
 
 unifyArgTypes :: PassCtx(CallErrorT m) => Function.Signature (Ref Node node) -> Ref Node node ->  [Ref Node node] -> CallErrorT m [Ref Node node]
@@ -102,12 +103,15 @@ unifyAppOutType fptr app = do
 setupCall :: (PassCtx(CallErrorT m), Monad m) => Ref Node node -> [Ref Node node] -> Ref Cluster clus -> CallErrorT m (Ref Cluster clus, Function.Signature (Ref Node node))
 setupCall caller args funClus = do
     (cls, _) <- dupCluster funClus $ show caller
-    fptr <- follow (prop Lambda) cls <?!> MalformedFunction
+    fptr     <- follow (prop Lambda) cls <?!> MalformedFunction
     withRef caller $ (prop TCData . replacement ?~ cast cls)
-    let argDefs = fptr ^. Function.args
-    zipWithM (reconnect $ prop TCData . redirect) (unlayer <$> argDefs) (Just <$> args)
-    let outstandingArgs = drop (length args) argDefs
-    let appliedPtr = fptr & Function.args .~ outstandingArgs
+    let argDefs         = fptr ^. Function.args
+    let argsWithDefs    = zip argDefs args
+    (blanks, nonBlanks) <- partitionM (isBlank . snd) argsWithDefs
+    let toRedirect      = map (\(d, a) -> (unlayer d, Just a)) nonBlanks
+    mapM (uncurry $ reconnect $ prop TCData . redirect) toRedirect
+    let outstandingArgs = map fst blanks ++ drop (length args) argDefs
+    let appliedPtr      = fptr & Function.args .~ outstandingArgs
     withRef cls $ prop Lambda ?~ appliedPtr
     return (cls, fptr)
 
@@ -141,16 +145,16 @@ instance ( PassCtx(CallErrorT m)
          , PassCtx(m)
          , MonadTypeCheck (ls :<: term) m
          ) => TypeCheckerPass FunctionCallingPass m where
-    hasJobs _ = do
-        tc <- TypeCheck.get
-        let apps  = tc ^. TypeCheck.uncalledApps
-        return $ not . null $ apps
+    hasJobs _ = return False
+        {-tc <- TypeCheck.get-}
+        {-let apps  = tc ^. TypeCheck.uncalledApps-}
+        {-return $ not . null $ apps-}
 
-    runTCPass _ = do
-        apps    <- view TypeCheck.uncalledApps <$> TypeCheck.get
-        results <- mapM (runExceptT . processApp) apps
-        let withRefs = zip apps results
-            failures = fst <$> filter (isLeft . snd) withRefs
-        TypeCheck.modify_ $ (TypeCheck.unresolvedUnis %~ (++ (concat $ rights results)))
-                          . (TypeCheck.uncalledApps   .~ failures)
-        return $ if length failures == length apps then Stuck else Progressed
+    runTCPass _ = return Stuck
+        {-apps    <- view TypeCheck.uncalledApps <$> TypeCheck.get-}
+        {-results <- mapM (runExceptT . processApp) apps-}
+        {-let withRefs = zip apps results-}
+            {-failures = fst <$> filter (isLeft . snd) withRefs-}
+        {-TypeCheck.modify_ $ (TypeCheck.unresolvedUnis %~ (++ (concat $ rights results)))-}
+                          {-. (TypeCheck.uncalledApps   .~ failures)-}
+        {-return $ if length failures == length apps then Stuck else Progressed-}

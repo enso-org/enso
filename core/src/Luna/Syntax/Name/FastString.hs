@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Name.FastString (module Luna.Syntax.Name.FastString, module X) where
+module Luna.Syntax.Name.FastString (module X) where
 
 import Prelude.Luna
 import FastString   as X

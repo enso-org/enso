@@ -2,12 +2,6 @@ module Data.Graph.Model.Class where
 
 import Prologue
 
-import Data.Graph.Model.Node
-import Data.Graph.Model.Edge
-
-
-
-
 
 -- === Attributes === --
 

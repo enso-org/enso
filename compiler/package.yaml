@@ -1,0 +1,92 @@
+name: lunac
+version: "0.1"
+author: New Byte Order <contact@newbyteorder.com>
+maintainer: New Byte Order <contact@newbyteorder.com>
+build-type: Simple
+
+library:
+    source-dirs:
+        - src
+        - stdlib
+
+executables:
+    lunac:
+        main: Main.hs
+        source-dirs: exe
+
+tests:
+    spec:
+        main: Spec.hs
+        source-dirs: test
+        dependencies:
+            - lunac
+            - hspec
+            - silently
+
+dependencies:
+    - base
+    - constraints
+    - container
+    - convert
+    - data-base
+    - data-construction
+    - data-layer
+    - data-member
+    - data-pool
+    - data-result
+    - dependent-state
+    - either
+    - errors
+    - exceptions
+    - extra
+    - ghc
+    - ghc-mtl
+    - ghc-prim
+    - graphviz >= 2999.17.0.2.2
+    - lens
+    - lens-utils
+    - luna-core
+    - MissingH
+    - mtl
+    - OneTuple
+    - placeholders
+    - process
+    - prologue
+    - serialport
+    - split
+    - text
+    - transformers
+    - tuple
+    - type-cache
+    - typelevel
+    - vector
+    - visualization-api
+
+default-extensions:
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - PackageImports
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeFamilies
+    - TypeOperators
+    - ViewPatterns

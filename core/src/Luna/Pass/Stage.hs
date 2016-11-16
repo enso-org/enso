@@ -1,7 +1,6 @@
 module Luna.Pass.Stage where
 
 import Prelude.Luna
-import Control.Monad.Identity
 
 
 -- === Definitions === --

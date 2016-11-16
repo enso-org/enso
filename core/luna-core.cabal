@@ -1,1 +1,262 @@
-build/luna-core.cabal
+-- This file has been generated from package.yaml by hpack version 0.14.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           luna-core
+version:        0.1
+author:         New Byte Order <contact@newbyteorder.com>
+maintainer:     New Byte Order <contact@newbyteorder.com>
+build-type:     Simple
+cabal-version:  >= 1.10
+
+library
+  hs-source-dirs:
+      src
+  default-extensions: AllowAmbiguousTypes ApplicativeDo Arrows BangPatterns BinaryLiterals ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse DuplicateRecordFields EmptyDataDecls FlexibleContexts FlexibleInstances FunctionalDependencies GeneralizedNewtypeDeriving InstanceSigs LambdaCase MonadComprehensions MultiWayIf NamedWildCards NegativeLiterals NoImplicitPrelude NumDecimals OverloadedLabels OverloadedStrings PackageImports RankNTypes RecursiveDo ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeFamilies TypeFamilyDependencies TypeOperators ViewPatterns LiberalTypeSynonyms RelaxedPolyRec
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , clock
+    , constraints
+    , container
+    , convert
+    , data-base
+    , data-construction
+    , data-default
+    , data-layer
+    , data-member
+    , data-pool
+    , data-result
+    , data-rtuple
+    , data-shell
+    , deepseq
+    , dependent-state
+    , digits
+    , either
+    , errors
+    , exceptions
+    , extra
+    , functor-utils
+    , ghc
+    , ghc-mtl
+    , ghc-paths
+    , ghc-prim
+    , graphviz >= 2999.17.0.2.2
+    , HTTP
+    , lens
+    , lens-utils
+    , MissingH
+    , mtl
+    , network
+    , OneTuple
+    , placeholders
+    , primitive
+    , process
+    , prologue
+    , random
+    , serialport
+    , split
+    , template-haskell
+    , text
+    , time
+    , transformers
+    , tuple
+    , type-cache
+    , typelevel
+    , vector
+    , visualization-api
+  exposed-modules:
+      Control.Monad.Delayed
+      Control.Monad.Event
+      Control.Monad.Event2
+      Data.Build
+      Data.Direction
+      Data.Families
+      Data.Graph
+      Data.Graph.Backend.NEC
+      Data.Graph.Builder
+      Data.Graph.Builder.Class
+      Data.Graph.Builder.Cluster
+      Data.Graph.Builder.Ref
+      Data.Graph.Builders
+      Data.Graph.Model
+      Data.Graph.Model.Class
+      Data.Graph.Model.Cluster
+      Data.Graph.Model.Edge
+      Data.Graph.Model.Events
+      Data.Graph.Model.Node
+      Data.Graph.Model.Pointer
+      Data.Graph.Model.Pointer.Set
+      Data.Graph.Query
+      Data.Graph.Query.Sort
+      Data.Graph.Type
+      Data.Graph.Type.Dynamic
+      Data.Graph.Type.Hetero
+      Data.Index
+      Data.Record
+      Data.Record.Class
+      Data.Record.Match
+      Data.Record.Model.Masked
+      Data.Relation.Order
+      Data.Relation.Order.Partial
+      Data.Reprx
+      Data.Text.CodeBuilder
+      Data.Text.CodeBuilder.Builder
+      Data.Text.CodeBuilder.Doc
+      Data.Text.CodeBuilder.Tok
+      Data.Version.Semantic
+      Luna.Compilation.Error
+      Luna.Compilation.Pass.Inference.Calling
+      Luna.Compilation.Pass.Inference.Importing
+      Luna.Compilation.Pass.Inference.Literals
+      Luna.Compilation.Pass.Inference.Scan
+      Luna.Compilation.Pass.Inference.Struct
+      Luna.Compilation.Pass.Inference.Unification
+      Luna.Compilation.Pass.Utils.Literals
+      Luna.Compilation.Pass.Utils.SubtreeWalk
+      Luna.Compilation.Stage.TypeCheck
+      Luna.Compilation.Stage.TypeCheck.Class
+      Luna.Config.Env
+      Luna.Extension.Pragma
+      Luna.Info.Monitor
+      Luna.Info.System
+      Luna.Info.User
+      Luna.Info.Version
+      Luna.Interpreter.Charts
+      Luna.Interpreter.Class
+      Luna.Interpreter.Docker
+      Luna.Interpreter.Env
+      Luna.Interpreter.Genetic
+      Luna.Interpreter.Interpreter
+      Luna.Interpreter.Layer
+      Luna.Interpreter.StdScope
+      Luna.Interpreter.Value
+      Luna.Library.Symbol
+      Luna.Pass.Scheduler
+      Luna.Pass.Stage
+      Luna.Pretty.Graph
+      Luna.Pretty.GraphViz
+      Luna.Pretty.Styles
+      Luna.Runtime.Dynamics
+      Luna.Syntax.Model.Layer
+      Luna.Syntax.Model.Network
+      Luna.Syntax.Model.Network.Builder
+      Luna.Syntax.Model.Network.Builder.Class
+      Luna.Syntax.Model.Network.Builder.Layer
+      Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking
+      Luna.Syntax.Model.Network.Builder.Layers.SuccTracking
+      Luna.Syntax.Model.Network.Builder.Layers.TCData
+      Luna.Syntax.Model.Network.Builder.Node
+      Luna.Syntax.Model.Network.Builder.Node.Class
+      Luna.Syntax.Model.Network.Builder.Node.Inferred
+      Luna.Syntax.Model.Network.Builder.Self
+      Luna.Syntax.Model.Network.Builder.Structural
+      Luna.Syntax.Model.Network.Builder.Structural.Merging
+      Luna.Syntax.Model.Network.Builder.Structural.Removal
+      Luna.Syntax.Model.Network.Builder.Term
+      Luna.Syntax.Model.Network.Builder.Term.Class
+      Luna.Syntax.Model.Network.Builder.Term.Inferred
+      Luna.Syntax.Model.Network.Builder.Type
+      Luna.Syntax.Model.Network.Class
+      Luna.Syntax.Model.Network.Graph
+      Luna.Syntax.Model.Network.Term
+      Luna.Syntax.Model.Text.Location
+      Luna.Syntax.Name
+      Luna.Syntax.Name.Class
+      Luna.Syntax.Name.FastString
+      Luna.Syntax.Name.Ident
+      Luna.Syntax.Name.Ident.Class
+      Luna.Syntax.Name.Ident.Pool
+      Luna.Syntax.Name.Ident.Type
+      Luna.Syntax.Name.Path
+      Luna.Syntax.Term
+      Luna.Syntax.Term.Data.Strictness
+      Luna.Syntax.Term.Expr
+      Luna.Syntax.Term.Expr.Atom
+      Luna.Syntax.Term.Expr.Class
+      Luna.Syntax.Term.Expr.Format
+      Luna.Syntax.Term.Expr.Layout
+      Luna.Syntax.Term.Expr.Layout.Any
+      Luna.Syntax.Term.Expr.Layout.Class
+      Luna.Syntax.Term.Expr.Layout.Compound
+      Luna.Syntax.Term.Expr.Layout.Nested
+      Luna.Syntax.Term.Expr.Symbol
+      Luna.Syntax.Term.Expr.Symbol.Class
+      Luna.Syntax.Term.Expr.Symbol.Named
+      Luna.Syntax.Term.Function
+      Luna.Syntax.Term.Function.Argument
+      Luna.Syntax.Term.Function.Class
+      Luna.Syntax.Term.Function.Signature
+      Luna.Syntax.Term.Module
+      Old.Luna.Syntax.Term.Atom
+      Old.Luna.Syntax.Term.Class
+      Old.Luna.Syntax.Term.Expr.Lit
+      Prelude.Luna
+      System.Platform
+  other-modules:
+      Paths_luna_core
+  default-language: Haskell2010
+
+benchmark graph-builder
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      benchmarks
+  default-extensions: AllowAmbiguousTypes ApplicativeDo Arrows BangPatterns BinaryLiterals ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse DuplicateRecordFields EmptyDataDecls FlexibleContexts FlexibleInstances FunctionalDependencies GeneralizedNewtypeDeriving InstanceSigs LambdaCase MonadComprehensions MultiWayIf NamedWildCards NegativeLiterals NoImplicitPrelude NumDecimals OverloadedLabels OverloadedStrings PackageImports RankNTypes RecursiveDo ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeFamilies TypeFamilyDependencies TypeOperators ViewPatterns LiberalTypeSynonyms RelaxedPolyRec
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , clock
+    , constraints
+    , container
+    , convert
+    , data-base
+    , data-construction
+    , data-default
+    , data-layer
+    , data-member
+    , data-pool
+    , data-result
+    , data-rtuple
+    , data-shell
+    , deepseq
+    , dependent-state
+    , digits
+    , either
+    , errors
+    , exceptions
+    , extra
+    , functor-utils
+    , ghc
+    , ghc-mtl
+    , ghc-paths
+    , ghc-prim
+    , graphviz >= 2999.17.0.2.2
+    , HTTP
+    , lens
+    , lens-utils
+    , MissingH
+    , mtl
+    , network
+    , OneTuple
+    , placeholders
+    , primitive
+    , process
+    , prologue
+    , random
+    , serialport
+    , split
+    , template-haskell
+    , text
+    , time
+    , transformers
+    , tuple
+    , type-cache
+    , typelevel
+    , vector
+    , visualization-api
+    , criterion
+    , luna-core
+  default-language: Haskell2010

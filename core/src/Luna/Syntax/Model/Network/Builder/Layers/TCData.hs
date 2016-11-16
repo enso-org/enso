@@ -15,11 +15,7 @@ import qualified Luna.Syntax.Model.Network.Builder.Self as Self
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
 import qualified Luna.Syntax.Term.Function               as Func
 import           Luna.Compilation.Error
-import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
-import           Data.Graph.Builder.Ref                 as Ref
-import           Luna.Syntax.Model.Network.Class
-import           Data.Layer_OLD.Cover_OLD
 import           Data.Graph
 
 -- === TCData layer === --
@@ -34,19 +30,18 @@ data TCDataPayload n = TCDataPayload { _redirect      :: Maybe $ Ref Edge (Link 
                                      , _depth         :: Maybe Int
                                      , _seen          :: Bool
                                      , _originSign    :: Sign
-                                     , _isLambda      :: Bool
                                      } deriving (Show, Eq)
 makeLenses ''TCDataPayload
 
 type instance LayerData TCData t = TCDataPayload (ReShelled t)
 instance Monad m => Creator m (Layer TCData a) where
-    create = return $ Layer $ TCDataPayload def def def def def def False Positive False
+    create = return $ Layer $ TCDataPayload def def def def def def False Positive
 
 instance (Monad m, Destructor m (Ref Edge (Link (ReShelled a))))
       => Destructor m (Layer TCData a) where
-    destruct (Layer (TCDataPayload red req _ _ _ _ _ _ _)) = do
+    destruct (Layer (TCDataPayload red req _ _ _ _ _ _)) = do
         mapM_ destruct red
         mapM_ destruct req
 
 instance Castable t t' => Castable (TCDataPayload t) (TCDataPayload t') where
-    cast (TCDataPayload red req tce rep bto dep seen sign islam) = TCDataPayload (cast <$> red) (cast <$> req) (cast <$> tce) rep bto dep seen sign islam
+    cast (TCDataPayload red req tce rep bto dep seen sign) = TCDataPayload (cast <$> red) (cast <$> req) (cast <$> tce) rep bto dep seen sign

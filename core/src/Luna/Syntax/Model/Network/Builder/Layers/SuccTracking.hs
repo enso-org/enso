@@ -5,9 +5,8 @@ module Luna.Syntax.Model.Network.Builder.Layers.SuccTracking where
 import Prelude.Luna
 
 import           Control.Monad.Event
-import           Data.Graph.Builders
 import           Data.Container.SizeTracking            (SizeTracking)
-import           Data.Container                         (Addable, Removable, add, remove, try)
+import           Data.Container                         (add, remove, try)
 import           Data.IntSet                            (IntSet)
 import           Data.Graph                             hiding (add, remove)
 import           Old.Data.Prop
@@ -21,8 +20,6 @@ import qualified Luna.Syntax.Term.Function               as Func
 import           Data.Graph.Builder.Class
 import           Luna.Syntax.Model.Layer
 import           Data.Graph.Builder.Ref                 as Ref
-import           Luna.Syntax.Model.Network.Class
-import           Data.Layer_OLD.Cover_OLD
 
 
 
@@ -34,7 +31,6 @@ data SuccRegister = SuccRegister deriving (Show, Eq)
 instance ( MonadBuilder g m
          , ReferencedM Edge g (Listener t SuccRegister m) (Arc src tgt)
          , ReferencedM Node g (Listener t SuccRegister m) src
-         , Show src
          , Prop Succs src ~ SizeTracking IntSet
          , HasProp Succs src
          ) => Handler t SuccRegister m (Ref Edge (Arc src tgt)) where
@@ -56,7 +52,6 @@ data SuccUnregister = SuccUnregister deriving (Show, Eq)
 instance ( MonadBuilder g m
          , ReferencedM Edge g (Listener t SuccUnregister m) (Arc src tgt)
          , ReferencedM Node g (Listener t SuccUnregister m) src
-         , Show src
          , Prop Succs src ~ SizeTracking IntSet
          , HasProp Succs src
          ) => Handler t SuccUnregister m (Ref Edge (Arc src tgt)) where

@@ -10,8 +10,7 @@ module Data.Reprx ( module Data.Reprx
                  , module X
                  ) where
 
-import Prologue hiding (Repr, repr)
-import Data.Monoid
+import Prologue
 import Data.Text.CodeBuilder
 import Data.Text.CodeBuilder     as X (Builder)
 import Data.Text.CodeBuilder.Tok as X (Tok)

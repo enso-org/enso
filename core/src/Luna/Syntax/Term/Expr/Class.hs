@@ -24,7 +24,7 @@ import           Prelude                      (curry)
 import           Prelude.Luna                 hiding (Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Setter', set')
 import qualified Prelude.Luna                 as P
 
-import           Data.Abstract
+import           Data.Abstract ()
 import           Data.Base
 import           Data.Record                  hiding (Layout, Variants, SymbolMap, symbolMap, Match, Cons, Value, cons, Group, HasValue, ValueOf, value)
 import qualified Data.Record                  as Record
@@ -56,7 +56,6 @@ import qualified Data.RTuple as List
 import Type.Promotion    (KnownNats, natVals)
 import Data.Bits         (setBit, zeroBits)
 
-import Data.Container.Hetero (Elems)
 import Data.RTuple (List, Empty, empty)
 import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library

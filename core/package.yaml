@@ -1,0 +1,119 @@
+name: luna-core
+version: "0.1"
+author: New Byte Order <contact@newbyteorder.com>
+maintainer: New Byte Order <contact@newbyteorder.com>
+build-type: Simple
+
+library:
+    source-dirs: src
+    other-modules: Paths_luna_core
+
+benchmarks:
+    graph-builder:
+        main: Main.hs
+        source-dirs: benchmarks
+        dependencies:
+            - criterion
+            - luna-core
+
+dependencies:
+    - aeson
+    - base
+    - bytestring
+    - clock
+    - constraints
+    - container
+    - convert
+    - data-base
+    - data-construction
+    - data-default
+    - data-layer
+    - data-member
+    - data-pool
+    - data-result
+    - data-rtuple
+    - data-shell
+    - deepseq
+    - dependent-state
+    - digits
+    - either
+    - errors
+    - exceptions
+    - extra
+    - functor-utils
+    - ghc
+    - ghc-mtl
+    - ghc-paths
+    - ghc-prim
+    - graphviz >= 2999.17.0.2.2
+    - HTTP
+    - lens
+    - lens-utils
+    - MissingH
+    - mtl
+    - network
+    - OneTuple
+    - placeholders
+    - primitive
+    - process
+    - prologue
+    - random
+    - serialport
+    - split
+    - template-haskell
+    - text
+    - time
+    - transformers
+    - tuple
+    - type-cache
+    - typelevel
+    - vector
+    - visualization-api
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - OverloadedStrings
+    - PackageImports
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

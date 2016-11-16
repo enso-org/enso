@@ -9,7 +9,6 @@ import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThr
 import qualified Luna.Info.Version           as Info
 import           Data.Build
 import           Data.Version.Semantic
-import           Control.Monad.Primitive
 
 
 -- === Definitions === --

@@ -92,6 +92,8 @@ target/
 # pyenv
 .python-version
 
+# ghc-mod
+.haskell-ghc-mod.json
 
 ############################
 ## Luna compiler specific ##

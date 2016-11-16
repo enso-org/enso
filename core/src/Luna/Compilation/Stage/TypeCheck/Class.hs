@@ -3,12 +3,11 @@
 
 module Luna.Compilation.Stage.TypeCheck.Class where
 
-import Prologue
+import Prologue hiding (s)
 
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
 import           Data.Graph.Model               (Ref, Node)
-import           Control.Monad.Primitive
 
 -- === Definitions === --
 
@@ -18,13 +17,13 @@ data TCState n = TCState { _allNodes            :: ![Ref Node n]
                          , _unresolvedSymbols   :: ![Ref Node n]
                          , _untypedApps         :: ![Ref Node n]
                          , _untypedAccs         :: ![Ref Node n]
+                         , _untypedLambdas      :: ![Ref Node n]
                          , _untypedBinds        :: ![Ref Node n]
                          , _untypedLits         :: ![Ref Node n]
                          , _uncalledApps        :: ![Ref Node n]
                          , _bindings            :: ![Ref Node n]
                          , _freshRoots          :: ![Ref Node n]
-                         , _untypedLambdaAccs   :: ![Ref Node n]
-                         , _unshiftedLambdaAccs :: ![Ref Node n]
+                         , _typelevelAccs       :: ![Ref Node n]
                          } deriving (Show, Eq)
 
 makeLenses ''TCState

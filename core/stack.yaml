@@ -1,45 +1,50 @@
-resolver: nightly-2016-07-19
+extra-deps: [ghc-session-0.1.2.0, error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.1.0,
+  serialport-0.4.7]
+
+ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O0}
+local-bin-path: ./bin
 packages:
-    - .
-
-    - ../../libs/container
-    - ../../libs/convert
-    - ../../libs/data-member
-    - ../../libs/data-base
-    - ../../libs/data-construction
-    - ../../libs/data-layer
-    - ../../libs/data-pool
-    - ../../libs/data-repr
-    - ../../libs/data-rtuple
-    - ../../libs/data-result
-    - ../../libs/dependent-state
-    - ../../libs/functor-utils
-    - ../../libs/impossible
-    - ../../libs/lens-utils
-    - ../../libs/poly-control
-    - ../../libs/prologue
-    - ../../libs/type-cache
-    - ../../libs/typelevel
-    - ../../libs/data-shell
-
-extra-deps:
-    - graphviz-2999.18.0.2
-    - string-qq-0.0.2
-    - cond-0.4.1.1
-    - tuple-0.3.0.2
-    - OneTuple-0.2.1
-    - prologue-1.0.6
-    - typelevel-1.0.3
-    - container-1.0
-    - convert-1.0.1
-    - data-construction-1.0
-    - data-layer-1.0.3
-    - data-repr-1.0
-    - lens-utils-1.0
-    - functor-utils-1.0
-    - data-rtuple-1.0
-
-ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0
-
-local-bin-path: ./dist/bin
+- {location: .}
+- extra-dep: true
+  location: {commit: 1b2f65d6cc55e51e8d222819cd828fdf8af6e25c, git: 'https://github.com/wdanilo/container.git'}
+- extra-dep: true
+  location: {commit: 8ad8bc28bd8ce085772bbc778841b322c6c65673, git: 'https://github.com/wdanilo/data-pool.git'}
+- extra-dep: true
+  location: {commit: c412b09699dc714d8515c24e1fcd19ec8d458c96, git: 'https://github.com/wdanilo/convert.git'}
+- extra-dep: true
+  location: {commit: f53b117fa0b2135d80b3a7ff5318d69aa4aa20cd, git: 'https://github.com/wdanilo/data-base.git'}
+- extra-dep: true
+  location: {commit: c3c7f553815dc8343d7690624b421fe65893324d, git: 'https://github.com/wdanilo/data-construction.git'}
+- extra-dep: true
+  location: {commit: 28444917170c6c1a8e21d807b93849fe265dc804, git: 'https://github.com/wdanilo/data-layer.git'}
+- extra-dep: true
+  location: {commit: 14ecd09499c6709074dd3a79c79628e327f83d9f, git: 'https://github.com/wdanilo/data-repr.git'}
+- extra-dep: true
+  location: {commit: db450f0f50ab7c6d743294a17f4b39c4d640a18b, git: 'https://github.com/wdanilo/data-result.git'}
+- extra-dep: true
+  location: {commit: e72d103e4692de0246a3b6aef9e8c9a33f4a32f2, git: 'https://github.com/wdanilo/dependent-state.git'}
+- extra-dep: true
+  location: {commit: 13b170a8be5b4e3c6004342bcf8b1eaa16f4dc3b, git: 'https://github.com/wdanilo/functor-utils.git'}
+- extra-dep: true
+  location: {commit: a655fc03f0ff9ec883f6846f63aa910684baaa2d, git: 'https://github.com/wdanilo/impossible.git'}
+- extra-dep: true
+  location: {commit: 46e20f7a5a57b16e8d148f8d528e71140b5b9456, git: 'https://github.com/wdanilo/lens-utils.git'}
+- extra-dep: true
+  location: {commit: 1c41d3032b13afaec94c91d2b4459927687e4930, git: 'https://github.com/wdanilo/poly-control.git'}
+- extra-dep: true
+  location: {commit: ebdd4b6cfa7708e50f1ff0f283b947b3af5bd5d6, git: 'https://github.com/wdanilo/prologue.git'}
+- extra-dep: true
+  location: {commit: bb6c4bcf50a4395a393920767b908d1fea517eed, git: 'https://github.com/wdanilo/type-cache.git'}
+- extra-dep: true
+  location: {commit: 76e8501f61af80adc3b76d74bc8cd9f7a07a6b96, git: 'https://github.com/wdanilo/typelevel.git'}
+- extra-dep: true
+  location: {commit: c3c7f553815dc8343d7690624b421fe65893324d, git: 'https://github.com/wdanilo/data-construction.git'}
+- extra-dep: true
+  location: {commit: 9c306106c546db4d89b6757fd53f1d6b35e927c3, git: 'https://github.com/wdanilo/data-member.git'}
+- extra-dep: true
+  location: {commit: 06d2622acba03187325410efd23c051576a80c12, git: 'https://github.com/wdanilo/data-rtuple.git'}
+- extra-dep: true
+  location: {commit: 62a569d633db4832374e1ca1c61fcbfe207de61b, git: 'https://github.com/wdanilo/data-shell.git'}
+- extra-dep: true
+  location: {commit: af5a618f5813ac639a6760836a6d6fa7ef5af1da, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
+resolver: lts-7.7
