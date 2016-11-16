@@ -30,7 +30,7 @@ import Type.List              hiding (Empty)
 -- import Data.Construction
 import Type.Bool              (If, type (==))
 import Data.Proxify
-import Control.Lens.Property
+import Control.Lens.Property hiding (Update)
 import Data.Kind
 
 -- === Definition === --
@@ -476,6 +476,10 @@ type family Values (rels :: [Assoc k v]) :: [v] where
             Values '[] = '[]
             Values (r ': rs) = Value r ': Values rs
 
+type family LookupAssoc k s where
+            LookupAssoc k '[]            = 'Nothing
+            LookupAssoc k (k ':= v ': _) = 'Just v
+            LookupAssoc k (l ':= _ ': s) = LookupAssoc k s
 
 --newtype TMap (keys :: [k]) (vals :: [*]) = TMap (List vals)
 
