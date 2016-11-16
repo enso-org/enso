@@ -5,7 +5,7 @@
 ---------------------------------------------------
 
 name:                convert
-version:             1.0.4
+version:             1.0.5
 synopsis:            Safe and unsafe data conversion utilities with strong type-level operation. checking.
 -- description:         
 license:             Apache-2.0
@@ -46,6 +46,7 @@ library
 
 
   Exposed-Modules: 
+        Data.Coerced,
         Data.Convert,
         Data.Convert.Base,
         Data.Convert.Bound,
