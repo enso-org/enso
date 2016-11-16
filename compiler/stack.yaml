@@ -1,5 +1,5 @@
 extra-deps: [ghc-session-0.1.2.0, error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.1.0,
-  serialport-0.4.7]
+  serialport-0.4.7, aeson-1.0.2.1]
 ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O}
 local-bin-path: ./bin
 packages:
@@ -48,4 +48,4 @@ packages:
   location: {commit: 62a569d633db4832374e1ca1c61fcbfe207de61b, git: 'https://github.com/wdanilo/data-shell.git'}
 - extra-dep: true
   location: {commit: af5a618f5813ac639a6760836a6d6fa7ef5af1da, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
-resolver: lts-7.7
+resolver: lts-7.9

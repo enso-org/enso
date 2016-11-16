@@ -1,8 +1,15 @@
 name: luna-core
 version: "0.1"
-author: New Byte Order <contact@newbyteorder.com>
-maintainer: New Byte Order <contact@newbyteorder.com>
-build-type: Simple
+author: Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+executables:
+  lunac:
+    main: Main.hs
+    source-dirs: exe
+    dependencies:
+      - luna-core
+      - open-browser
 
 library:
     source-dirs: src

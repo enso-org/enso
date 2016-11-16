@@ -1,4 +1,4 @@
-resolver: nightly-2016-07-19
+resolver: lts-7.9
 packages:
     - .
     - ../core
@@ -6,14 +6,15 @@ packages:
 
     - ../../libs/container
     - ../../libs/convert
-    - ../../libs/data-member
     - ../../libs/data-base
     - ../../libs/data-construction
     - ../../libs/data-layer
+    - ../../libs/data-member
     - ../../libs/data-pool
     - ../../libs/data-repr
-    - ../../libs/data-rtuple
     - ../../libs/data-result
+    - ../../libs/data-rtuple
+    - ../../libs/data-shell
     - ../../libs/dependent-state
     - ../../libs/functor-utils
     - ../../libs/impossible
@@ -22,31 +23,31 @@ packages:
     - ../../libs/prologue
     - ../../libs/type-cache
     - ../../libs/typelevel
-    - ../../libs/data-shell
 
     - ../../libs/visualization-api
 
 extra-deps:
-    - string-qq-0.0.2
+    - aeson-1.0.2.1
     - cond-0.4.1.1
-    - tuple-0.3.0.2
-    - OneTuple-0.2.1
-    - prologue-1.0.6
-    - typelevel-1.0.3
     - container-1.0
     - convert-1.0.1
     - data-construction-1.0
     - data-layer-1.0.3
     - data-repr-1.0
-    - lens-utils-1.0
     - functor-utils-1.0
-
-    - placeholders-0.1
     - ghc-mtl-1.2.1.0
     - graphviz-2999.18.1.2
+    - lens-utils-1.0
+    - OneTuple-0.2.1
+    - placeholders-0.1
+    - prologue-1.0.6
+    - serialport-0.4.7
+    - string-qq-0.0.2
     - trifecta-1.6
+    - tuple-0.3.0.2
+    - typelevel-1.0.3
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances -fconstraint-solver-iterations=10
+    "*": -DFastCompilation -threaded -funbox-strict-fields -O0 -fprint-potential-instances
 
 local-bin-path: ./bin
