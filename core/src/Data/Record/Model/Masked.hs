@@ -21,7 +21,7 @@ import Data.Record.Class ( encodeType, MapEncode, Encode, Encode2, Decode, Encod
 import Type.Maybe (FromJust)
 import Data.RTuple (TMap, Assoc(..))
 import qualified Data.RTuple as List
-import Control.Lens.Property as Prop
+import Data.Property as Prop
 import Type.Relation (SemiSuper)
 
 -------------------
@@ -108,10 +108,10 @@ makeWrapped ''Store2
 deriving instance Show (Unwrapped (Store2 slots)) => Show (Store2 slots)
 
 -- Properties
-type instance Get t (Store2 slots) = Get t (Unwrapped (Store2 slots))
+type instance Access t (Store2 slots) = Access t (Unwrapped (Store2 slots))
 
-instance Getter t (Unwrapped (Store2 slots)) => Getter t (Store2 slots) where
-    get = get @t . unwrap' ; {-# INLINE get #-}
+instance Accessor t (Unwrapped (Store2 slots)) => Accessor t (Store2 slots) where
+    access = access @t . unwrap' ; {-# INLINE access #-}
 
 
 
@@ -128,9 +128,9 @@ makeWrapped ''Raw
 
 instance Show Raw where show _ = "Raw" ; {-# INLINE show #-}
 
-instance (Monad m, Getter t a)
+instance (Monad m, Accessor t a)
       => EncodeSlot t a m Raw where
-    encodeSlot a = return $ Raw $ unsafeCoerce $ Prop.get @t a
+    encodeSlot a = return $ Raw $ unsafeCoerce $ access @t a
     {-# INLINE encodeSlot #-}
 
 
@@ -147,7 +147,7 @@ makeWrapped ''Enum
 
 -- === Instances === --
 
-instance (Monad m, x ~ Get t a, KnownNat (FromJust (Encode2 t x)))
+instance (Monad m, x ~ Access t a, KnownNat (FromJust (Encode2 t x)))
       => EncodeSlot t a m Enum where
     encodeSlot a = return $ Enum nat where
         nat = encodeType @t @x
@@ -174,7 +174,7 @@ instance Show Mask where
     show m = show (catMaybes (testBit' m <$> [0 .. finiteBitSize m - 1])) where
         testBit' m b = if testBit m b then Just b else Nothing
 
-instance (Monad m, nats ~ MapEncode t (SemiSuper (Get t a)), KnownNats nats)
+instance (Monad m, nats ~ MapEncode t (SemiSuper (Access t a)), KnownNats nats)
       => EncodeSlot t a m Mask where
     encodeSlot a = return $ foldl' setBit zeroBits bits where
         bits = fromIntegral <$> natVals (Proxy :: Proxy nats)

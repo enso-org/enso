@@ -8,7 +8,7 @@ import Prelude.Luna hiding (String, Integer, Rational)
 import Type.List                  (TakeUntil)
 
 import Luna.Syntax.Term.Expr.Atom
-import Control.Lens.Property
+import Data.Property
 import Type.Relation              (Super)
 import Type.Bool
 import Data.Reprx
@@ -47,20 +47,20 @@ type instance Atoms Thunk   = '[Acc     , App       , Native             ] <> At
 type instance Atoms Phrase  = '[Blank   , Match     , Unify   , Var      ] <> Atoms Thunk
 type instance Atoms Draft   = '[Missing                                  ] <> Atoms Phrase
 
-type instance Get Format Star     = Literal
-type instance Get Format String   = Literal
-type instance Get Format Integer  = Literal
-type instance Get Format Rational = Literal
-type instance Get Format Cons     = Value
-type instance Get Format Lam      = Value
-type instance Get Format Acc      = Thunk
-type instance Get Format App      = Thunk
-type instance Get Format Native   = Thunk
-type instance Get Format Blank    = Phrase
-type instance Get Format Match    = Phrase
-type instance Get Format Unify    = Phrase
-type instance Get Format Var      = Phrase
-type instance Get Format Missing  = Draft
+type instance Access Format Star     = Literal
+type instance Access Format String   = Literal
+type instance Access Format Integer  = Literal
+type instance Access Format Rational = Literal
+type instance Access Format Cons     = Value
+type instance Access Format Lam      = Value
+type instance Access Format Acc      = Thunk
+type instance Access Format App      = Thunk
+type instance Access Format Native   = Thunk
+type instance Access Format Blank    = Phrase
+type instance Access Format Match    = Phrase
+type instance Access Format Unify    = Phrase
+type instance Access Format Var      = Phrase
+type instance Access Format Missing  = Draft
 
 
 type instance Super Literal = '[]

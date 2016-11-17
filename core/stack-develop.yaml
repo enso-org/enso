@@ -8,7 +8,7 @@ packages:
     - ../../libs/data-base
     - ../../libs/data-construction
     - ../../libs/data-layer
-    - ../../libs/data-member
+    - ../../libs/data-prop
     - ../../libs/data-pool
     - ../../libs/data-repr
     - ../../libs/data-result

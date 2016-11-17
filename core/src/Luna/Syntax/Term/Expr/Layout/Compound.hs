@@ -4,11 +4,11 @@ module Luna.Syntax.Term.Expr.Layout.Compound where
 
 import Prelude.Luna
 
-import           Control.Lens.Property
+import           Data.Property
 import           Type.Bool
 import           Data.RTuple (Assoc(..), SetAssoc, LookupAssoc)
 import qualified Data.RTuple as List
-import           Type.Set    as Set hiding (Set)
+import           Type.Set    as Set
 
 import Luna.Syntax.Term.Expr.Atom
 import Luna.Syntax.Term.Expr.Format
@@ -27,8 +27,8 @@ data Compound t (ls :: [Assoc * *])
 
 -- === Instances === --
 
-type instance Get p   (Compound t ls) = Get p ls
-type instance Set p a (Compound t ls) = Compound t (SetAssoc p a ls)
+type instance Access p   (Compound t ls) = Access p ls
+type instance Update p a (Compound t ls) = Compound t (SetAssoc p a ls)
 
 -- Merge
 

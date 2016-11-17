@@ -6,7 +6,7 @@ module Luna.Syntax.Term.Expr.Atom where
 import Prelude.Luna hiding (String, Integer, Rational, Curry)
 import Data.Base
 import Data.Phantom
-import Control.Lens.Property
+import Data.Property
 import Data.Reprx
 import Type.Container (Every)
 import Data.Families  (makeLunaComponents)
@@ -35,6 +35,6 @@ type family Atoms a :: [*]
 
 -- === Instances === --
 
-type instance Atoms    (Atomic a) = '[Atomic a]
-type instance Get Atom (Atomic a) = Atomic a
-type instance TypeRepr (Atomic a) = TypeRepr a
+type instance Atoms       (Atomic a) = '[Atomic a]
+type instance Access Atom (Atomic a) = Atomic a
+type instance TypeRepr    (Atomic a) = TypeRepr a

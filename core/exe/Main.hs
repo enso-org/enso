@@ -110,7 +110,7 @@ import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as Sym
 import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
 import Luna.Syntax.Term.Expr.Symbol (Sym)
-import Control.Lens.Property hiding (Constructor)
+import Data.Property
 import Luna.Syntax.Term.Expr.Format (Format, Sub)
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
@@ -382,7 +382,7 @@ unify a b = buildElem $ mdo
     return n
 
 
-type AtomicExpr atom layout = Expr (Set Atom atom layout)
+type AtomicExpr atom layout = Expr (Update Atom atom layout)
 
 star :: ASG' m layout => m (Ref $ AtomicExpr Star layout)
 star = buildElem $ expr Sym.uncheckedStar

@@ -35,7 +35,7 @@ dependencies:
     - data-construction
     - data-default
     - data-layer
-    - data-member
+    - data-prop
     - data-pool
     - data-result
     - data-rtuple

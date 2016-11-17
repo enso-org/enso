@@ -5,7 +5,7 @@ module Luna.Syntax.Term.Expr.Layout.Class where
 
 
 import Prelude.Luna
-import Control.Lens.Property
+import Data.Property
 import Luna.Syntax.Term.Expr.Format
 import Luna.Syntax.Term.Expr.Atom
 
@@ -80,9 +80,9 @@ instance {-# OVERLAPPABLE #-} Generalize (Atomic a) (Atomic a)
 type instance Merge (Form   a) ()         = Form a
 type instance Merge ()         (Form   b) = Form b
 type instance Merge (Form   a) (Form   b) = If (Form a > Form b) (Form a) (Form b)
-type instance Merge (Form   a) (Atomic b) = Merge (Form a) (Atomic b ^. Format)
-type instance Merge (Atomic a) (Form   b) = Merge (Atomic a ^. Format) (Form b)
+type instance Merge (Form   a) (Atomic b) = Merge (Form a) (Atomic b # Format)
+type instance Merge (Atomic a) (Form   b) = Merge (Atomic a # Format) (Form b)
 
-type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a ^. Format) (Atomic b ^. Format))-- TODO: refactor
+type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a # Format) (Atomic b # Format))-- TODO: refactor
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a

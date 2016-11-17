@@ -14,7 +14,7 @@ import Luna.Runtime.Dynamics     (Dynamics, ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
 import qualified Luna.Syntax.Term.Function.Argument as Arg
 import Type.Applicative
-import Control.Lens.Property
+import Data.Property
 import Data.Phantom
 import Luna.Syntax.Term.Expr.Format
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
@@ -189,8 +189,8 @@ instance n ~ a => HasFields (NamedSymbol Var      n a) where fieldList (Sym_Var 
 -- === Construction === --
 --------------------------
 
-type Symbolic          atom s sym = (sym ~ AsSymbol s, Product' sym, atom ~ Get Atom s, FromSymbol s)
-type UncheckedSymbolic atom s sym = (sym ~ AsSymbol s, Product' sym, atom ~ Get Atom s, UncheckedFromSymbol s)
+type Symbolic          atom s sym = (sym ~ AsSymbol s, Product' sym, atom ~ (s # Atom), FromSymbol s)
+type UncheckedSymbolic atom s sym = (sym ~ AsSymbol s, Product' sym, atom ~ (s # Atom), UncheckedFromSymbol s)
 
 
 integer' :: (Symbolic Integer s sym, Fields sym ~ '[t1]) => t1 -> s

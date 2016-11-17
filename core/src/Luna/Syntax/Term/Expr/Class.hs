@@ -21,7 +21,7 @@ module Luna.Syntax.Term.Expr.Class where
 
 
 import           Prelude                      (curry)
-import           Prelude.Luna                 hiding (Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Setter', set')
+import           Prelude.Luna                 hiding (Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Updater', update')
 import qualified Prelude.Luna                 as P
 
 import           Data.Abstract ()
@@ -63,8 +63,8 @@ import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refa
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
 import Type.Error
 -- import Control.Monad.State
-import Control.Lens.Property hiding (Constructor)
-import qualified Control.Lens.Property as Prop
+import Data.Property
+import qualified Data.Property as Prop
 import GHC.Stack (HasCallStack, callStack, prettyCallStack, withFrozenCallStack)
 import Data.Vector.Mutable (MVector)
 import qualified Data.Vector.Mutable as V
@@ -245,20 +245,20 @@ unsafeAsgWrapped = iso unsafeAsgUnwrap Asg ; {-# INLINE unsafeAsgWrapped #-}
 
 -- === Property selectors === --
 
-type Select   p m a =  Get     p (Marked m a)
-type Selector p m a = (Getter  p (Marked m a), Markable m a)
-type Updater  p m a = (Setter' p (Marked m a), Markable m a, AsgMonad m)
+type Select   p m a =  Access    p (Marked m a)
+type Selector p m a = (Accessor  p (Marked m a), Markable m a)
+type Updaterx p m a = (Updater'  p (Marked m a), Markable m a, AsgMonad m)
 
 select :: forall p m a. Selector p m a => a -> m (Select p m a)
-select = get @p <∘> mark ; {-# INLINE select #-}
+select = access @p <∘> mark ; {-# INLINE select #-}
 
-update :: forall p m a. Updater p m a => Select p m a -> a -> m (AsgVal a)
-update v a = (liftAsg . set' @p v) =<< mark a ; {-# INLINE update #-}
+updatex :: forall p m a. Updaterx p m a => Select p m a -> a -> m (AsgVal a)
+updatex v a = (liftAsg . update' @p v) =<< mark a ; {-# INLINE updatex #-}
 
-with :: forall p m a. (Selector p m a, Updater p m a) => (Select p m a -> Select p m a) -> a -> m (AsgVal a)
+with :: forall p m a. (Selector p m a, Updaterx p m a) => (Select p m a -> Select p m a) -> a -> m (AsgVal a)
 with f src = do
     succs <- select @p src
-    update @p (f succs) src
+    updatex @p (f succs) src
 {-# INLINE with #-}
 
 
@@ -275,13 +275,13 @@ instance PrimMonad m => PrimMonad (AsgT t m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 -- Properties
-type instance Get p (Asg t a) = Get p (Definition t a)
+type instance Access p (Asg t a) = Access p (Definition t a)
 
-instance (Getter p (Definition t a), IsElem a) => Getter p (Asg t a) where
-    get = get @p . view definition ; {-# INLINE get #-}
+instance (Accessor p (Definition t a), IsElem a) => Accessor p (Asg t a) where
+    access = access @p . view definition ; {-# INLINE access #-}
 
-instance (Setter' p (Definition t a), IsElem a) => Setter' p (Asg t a) where
-    set' v = definition %~ set' @p v ; {-# INLINE set' #-}
+instance (Updater' p (Definition t a), IsElem a) => Updater' p (Asg t a) where
+    update' v = definition %~ update' @p v ; {-# INLINE update' #-}
 
 -- Universal
 type instance Universal (Asg t a) = Asg t (Universal a)
@@ -377,13 +377,13 @@ instance HasLayer I q layer where layer' = impossible                           
 
 deriving instance Show (Unwrapped (LayerStack t a)) => Show (LayerStack t a)
 
-type instance Get p (LayerStack t a) = LayerData p (Asg t a)
+type instance Access p (LayerStack t a) = LayerData p (Asg t a)
 
-instance HasLayer t (Universal a) p => Getter p (LayerStack t a) where
-    get = view (layer' @t @(Universal a) @p) . unwrap' ; {-# INLINE get #-}
+instance HasLayer t (Universal a) p => Accessor p (LayerStack t a) where
+    access = view (layer' @t @(Universal a) @p) . unwrap' ; {-# INLINE access #-}
 
-instance HasLayer t (Universal a) p => Setter' p (LayerStack t a) where
-    set' v = (wrapped' . layer' @t @(Universal a) @p) .~ v ; {-# INLINE set' #-}
+instance HasLayer t (Universal a) p => Updater' p (LayerStack t a) where
+    update' v = (wrapped' . layer' @t @(Universal a) @p) .~ v ; {-# INLINE update' #-}
 
 -- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
 instance (Monad m, Constructor v m (Unwrapped (LayerStack t a))) => Constructor v m (LayerStack t a) where cons a = wrap' <$> cons a
@@ -524,9 +524,9 @@ instance      Show     (Link src tgt) where show = show . unwrap' ; {-# INLINE s
 -- instance IsLayerStack (Link src tgt)
 --
 -- -- Properties
--- type instance Get p (Link src tgt) = Get p (Unwrapped (Link src tgt))
--- instance HasLayer' (Link src tgt) p => Getter  p (Link src tgt) where get    = view $ layer @p ; {-# INLINE get  #-}
--- instance HasLayer' (Link src tgt) p => Setter' p (Link src tgt) where set' a = layer @p .~ a   ; {-# INLINE set' #-}
+-- type instance Access p (Link src tgt) = Access p (Unwrapped (Link src tgt))
+-- instance HasLayer' (Link src tgt) p => Accessor  p (Link src tgt) where access    = view $ layer @p ; {-# INLINE access  #-}
+-- instance HasLayer' (Link src tgt) p => Updater' p (Link src tgt) where update' a = layer @p .~ a   ; {-# INLINE update' #-}
 --
 
 
@@ -572,19 +572,19 @@ instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout mode
 instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
 instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
 instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
-type ValidateLayout_ model sel a = ValidateScope (model ^. sel) sel a
-type ValidateLayout' t     sel a = ValidateLayout (t ^. Layout) sel a
+type ValidateLayout_ model sel a = ValidateScope (model # sel) sel a
+type ValidateLayout' t     sel a = ValidateLayout (t # Layout) sel a
 
 
 -- === Instances === --
 
 -- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
-type instance Get Layout (ExprSymbol atom t) = Get Layout (Unwrapped (ExprSymbol atom t))
-type instance Get Atom   (ExprSymbol atom t) = atom
-type instance Get Format (ExprSymbol atom t) = Get Format atom
-type instance Get Sym    (ExprSymbol atom t) = ExprSymbol atom t
+type instance Access Layout (ExprSymbol atom t) = Access Layout (Unwrapped (ExprSymbol atom t))
+type instance Access Atom   (ExprSymbol atom t) = atom
+type instance Access Format (ExprSymbol atom t) = Access Format atom
+type instance Access Sym    (ExprSymbol atom t) = ExprSymbol atom t
 
-instance Getter Sym (ExprSymbol atom t) where get = id ; {-# INLINE get #-}
+instance Accessor Sym (ExprSymbol atom t) where access = id ; {-# INLINE access #-}
 
 instance UncheckedFromSymbol (ExprSymbol atom t) where uncheckedFromSymbol = wrap' ; {-# INLINE uncheckedFromSymbol #-}
 
@@ -727,9 +727,9 @@ instance ( ctx (ExprSymbol a (Expr layout)) m b
       => SymbolMapM' (a ': as) ctx (Expr layout) m b where
     symbolMapM' f expr = do
         d <- unwrap' <$> select @Data expr
-        let eidx = unwrap' $ get @Atom d
+        let eidx = unwrap' $ access @Atom d
             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr layout)
+            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Expr layout)
         if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
 
 instance ( ctx (ExprSymbol a (Expr layout)) m b
@@ -740,10 +740,10 @@ instance ( ctx (ExprSymbol a (Expr layout)) m b
          )
       => SymbolMapM' (a ': as) ctx (Asg t (Expr layout)) m b where
     symbolMapM' f expr = do
-        let d    = unwrap' $ get @Data expr
-            eidx = unwrap' $ get @Atom d
+        let d    = unwrap' $ access @Data expr
+            eidx = unwrap' $ access @Atom d
             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ get @Sym d) :: ExprSymbol a (Expr layout)
+            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Expr layout)
         if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
 
 instance Monad m => SymbolMapM' '[] ctx expr m b where symbolMapM' _ _ = impossible

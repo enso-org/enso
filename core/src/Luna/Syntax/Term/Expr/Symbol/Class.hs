@@ -12,7 +12,7 @@ import Data.Construction         (Args)
 import Luna.Runtime.Dynamics     (Dynamics, ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
 import Type.Applicative
-import Control.Lens.Property
+import Data.Property
 import Data.Phantom
 import Luna.Syntax.Term.Expr.Format
 import qualified Luna.Syntax.Term.Expr.Layout as Layout
@@ -43,7 +43,7 @@ class     IsUniSymbol t l where
 
 -- === Symbol isomorphisms === --
 
-type AsSymbol s = Symbol (Get Atom s) (Get Layout s)
+type AsSymbol s = Symbol (Access Atom s) (Access Layout s)
 
 type  IsSymbol            s s' = (ToSymbol s, FromSymbol s')
 type  IsSymbol'           s    = IsSymbol s s
@@ -66,24 +66,24 @@ symbol' = symbol ; {-# INLINE symbol' #-}
 
 data Sym = Sym deriving (Show)
 
-type instance Get    Sym (Symbol atom layout) = Symbol atom layout
-instance      Getter Sym (Symbol atom layout) where
-    get = id ; {-# INLINE get #-}
+type instance Access   Sym (Symbol atom layout) = Symbol atom layout
+instance      Accessor Sym (Symbol atom layout) where
+    access = id ; {-# INLINE access #-}
 
 
 -- === Instances === --
 
 -- Properties
 
-type instance Get Atom          (Symbol atom _     ) = atom
-type instance Set Atom   atom   (Symbol _    layout) = (Symbol atom layout)
+type instance Access Atom          (Symbol atom _     ) = atom
+type instance Update Atom   atom   (Symbol _    layout) = (Symbol atom layout)
 
-type instance Get Layout        (Symbol _    layout) = layout
-type instance Set Layout layout (Symbol atom _     ) = (Symbol atom layout)
+type instance Access Layout        (Symbol _    layout) = layout
+type instance Update Layout layout (Symbol atom _     ) = (Symbol atom layout)
 
-type instance Get Format        (Symbol atom _     ) = Get Format atom
+type instance Access Format        (Symbol atom _     ) = Access Format atom
 
--- instance Phantom atom => Getter Atom     (Symbol atom layout) where get _ = phantom
+-- instance Phantom atom => Accessor Atom     (Symbol atom layout) where access _ = phantom
 
 
 
