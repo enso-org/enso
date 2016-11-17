@@ -7,7 +7,6 @@ packages:
     - ../../libs/convert
     - ../../libs/data-base
     - ../../libs/data-construction
-    - ../../libs/data-ident
     - ../../libs/data-layer
     - ../../libs/data-member
     - ../../libs/data-pool

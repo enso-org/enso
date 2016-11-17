@@ -4,9 +4,9 @@
 
 module Luna.Compilation.Pass.Inference.Literals where
 
-import           Prelude.Luna                                    hiding (Num, pre)
+import           Prelude.Luna                                    hiding (Num, pre, cons)
 
-import           Data.Construction
+import           Data.Construction hiding (cons)
 import           Old.Data.Prop
 import Data.Record.Match
 import           Data.Graph

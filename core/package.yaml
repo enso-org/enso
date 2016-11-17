@@ -4,7 +4,7 @@ author: Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
 executables:
-  lunac:
+  luna-core:
     main: Main.hs
     source-dirs: exe
     dependencies:

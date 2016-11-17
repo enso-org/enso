@@ -95,7 +95,8 @@ import Type.Container (Every)
 import Data.Coerced (unsafeCoerced)
 
 
-
+import qualified Data.Hetero.Stack as Stack
+import           Data.Hetero.Stack (Stack)
 
 
 
@@ -103,39 +104,10 @@ import Data.Coerced (unsafeCoerced)
 -- DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED --
 -----------------------------------------------------------------------------------------
 
-class Monad m => Constructor a m t where
-    cons :: a -> m t
+
 
 -----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-data a := b
-
-type instance Get t (l  := v ': ls) = If (t == l) v (Get t ls)
-type instance Get t (l ':= v ': ls) = If (t == l) v (Get t ls)
-
-
-
-
-
-
-
-
-
--- === Properties === --
-
--- TODO: refactor
-data System   = System   deriving (Show)
-data TermType = TermType deriving (Show)
-
-
 
 
 
@@ -144,12 +116,13 @@ data TermType = TermType deriving (Show)
 -- === Events === --
 --------------------
 
-
-data New a
-
+-- === Definition === --
 
 type Register        t a m = Event        (t (Universal a)) m (Universal a)
 type DelayedRegister t a m = DelayedEvent (t (Universal a)) m (Universal a)
+
+
+-- === Registration === --
 
 register :: forall t a m. Register t a m => a -> m a
 register a = a <$ dispatch_ @(t (Universal a)) (universal a) ; {-# INLINE register #-}
@@ -158,53 +131,13 @@ delayedRegister :: forall t a m. DelayedRegister t a m => a -> m a
 delayedRegister a = a <$ delayedDispatch_ @(t (Universal a)) (universal a) ; {-# INLINE delayedRegister #-}
 
 
--------------------
--- === Stack === --
--------------------
+-- === Event types === --
 
-data Stack (t :: ★ -> ★) layers where
-    SLayer :: t l -> Stack t ls -> Stack t (l ': ls)
-    SNull  :: Stack t '[]
+data New a
 
 
--- === Utils === --
-
-head :: Lens' (Stack t (l ': ls)) (t l)
-head = lens (\(SLayer a _) -> a) (\(SLayer _ s) a -> SLayer a s) ; {-# INLINE head #-}
-
-tail :: Lens' (Stack t (l ': ls)) (Stack t ls)
-tail = lens (\(SLayer _ s) -> s) (\(SLayer a _) s -> SLayer a s) ; {-# INLINE tail #-}
 
 
--- === StackHasLayers === --
-
-class                                          StackHasLayer l ls        where stackLayer :: forall t. Lens' (Stack t ls) (t l)
-instance {-# OVERLAPPABLE #-}                  StackHasLayer l (l ': ls) where stackLayer = head          ; {-# INLINE stackLayer #-}
-instance {-# OVERLAPPABLE #-} StackHasLayer l ls => StackHasLayer l (t ': ls) where stackLayer = tail . stackLayer ; {-# INLINE stackLayer #-}
-
-
--- === Instances === --
-
--- Show
-instance ContentShow (Stack t ls)               => Show          (Stack t ls       )  where show s                        = "(" <> contentShow s <> ")"      ; {-# INLINE show #-}
-instance                                           Show (Content (Stack t '[]      )) where show _                        = ""                               ; {-# INLINE show #-}
-instance (Show (t l), ContentShow (Stack t ls)) => Show (Content (Stack t (l ': ls))) where show (unwrap' -> SLayer l ls) = show l <> ", " <> contentShow ls ; {-# INLINE show #-}
-instance {-# OVERLAPPING #-} Show (t l)         => Show (Content (Stack t '[l]     )) where show (unwrap' -> SLayer l ls) = show l                           ; {-# INLINE show #-}
-
--- Constructor
-instance ( Constructor a m (t l)
-         , Constructor a m (Stack t ls)) => Constructor a m (Stack t (l ': ls)) where cons a = SLayer <$> cons a <*> cons a ; {-# INLINE cons #-}
-instance Monad m                         => Constructor a m (Stack t '[]      ) where cons _ = return SNull                 ; {-# INLINE cons #-}
-
-
--- Properties
-type instance Get p (Stack t ls) = t p
-
-instance {-# OVERLAPPABLE #-}                           Getter  p (Stack t (p ': ls)) where get    (SLayer t _) = t                   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} Getter p (Stack t ls)  => Getter  p (Stack t (l ': ls)) where get    (SLayer _ l) = get @p l            ; {-# INLINE get #-}
-
-instance {-# OVERLAPPABLE #-}                           Setter' p (Stack t (p ': ls)) where set' a (SLayer _ s) = SLayer a s          ; {-# INLINE set' #-}
-instance {-# OVERLAPPABLE #-} Setter' p (Stack t ls) => Setter' p (Stack t (l ': ls)) where set' a (SLayer t s) = SLayer t (set' a s) ; {-# INLINE set' #-}
 
 
 
@@ -244,6 +177,8 @@ newtype AsgT  t m a = AsgT (IdentityT m a) deriving (Functor, Traversable, Folda
 newtype Asg   t   a = Asg  a               deriving (Functor, Traversable, Foldable)
 type    AsgMT   m   = AsgT (Cfg m) m
 type    AsgM    m   = Asg  (Cfg m)
+
+data AsgType = AsgType deriving (Show)
 
 
 -- === Asg building === --
@@ -422,8 +357,8 @@ consLayerStack a = LayerStack <$> consStack a
 
 type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
 class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Data t -> m (LayerStackBase t ls)
-instance Monad m              => StackCons '[]       m where consStack _ = return SNull                           ; {-# INLINE consStack #-}
-instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = SLayer <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
+instance Monad m              => StackCons '[]       m where consStack _ = return def                                 ; {-# INLINE consStack #-}
+instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = Stack.push <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
 
 
 -- === HasLayer === --
@@ -433,9 +368,9 @@ type  HasLayers  t q layers = Constraints (HasLayer t q <$> layers)
 type  HasLayerM  m q layer  = HasLayer  (Cfg m) q layer
 type  HasLayersM m q layers = HasLayers (Cfg m) q layers
 
-instance {-# OVERLAPPABLE #-} StackHasLayer layer (Layers q t)
-      => HasLayer t q layer where layer' = stackLayer @layer @(Layers q t) . wrapped' ; {-# INLINE layer' #-}
-instance HasLayer I q layer where layer' = impossible                                 ; {-# INLINE layer' #-}
+instance {-# OVERLAPPABLE #-} Stack.HasLayer layer (Layers q t)
+      => HasLayer t q layer where layer' = Stack.layer @layer @(Layers q t) . wrapped' ; {-# INLINE layer' #-}
+instance HasLayer I q layer where layer' = impossible                                  ; {-# INLINE layer' #-}
 
 
 -- -- === Instances === --

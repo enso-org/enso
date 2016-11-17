@@ -9,7 +9,6 @@
 {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE AllowAmbiguousTypes       #-}
 {-# LANGUAGE NoOverloadedStrings       #-} -- https://ghc.haskell.org/trac/ghc/ticket/12797
-{-# BOOSTER  VariantCase               #-}
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
 
@@ -536,7 +535,7 @@ handleLayerEvents = handleEvents @(AllLayers (Cfg m))
 
 -- === AsgBuilder === --
 
-type AsgBuilderCtxStack t m = ( KnownTypeT TermType t
+type AsgBuilderCtxStack t m = ( KnownTypeT AsgType t
                               $ Type.TypeBuilderT (Ref AnyExpr)
                               $ Self.SelfBuilderT (Ref Expr')
                               $ AllSuppressorT
@@ -556,7 +555,7 @@ runAsgBuilder = runAsgT
               . Event.suppressAll
               . flip Self.evalT (undefined :: Ref Expr')
               . flip Type.evalT (Nothing :: Maybe (Ref AnyExpr))
-              . runInferenceT2 @TermType @t
+              . runInferenceT2 @AsgType @t
               . handleLayerEvents
 
 
