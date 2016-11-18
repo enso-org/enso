@@ -1,14 +1,14 @@
-name: luna-core
+name: luna
 version: "0.1"
 author: Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
 executables:
-  luna-core:
-    main: Main.hs
+  luna:
+    main: Console.hs
     source-dirs: exe
     dependencies:
-      - luna-core
+      - luna
       - open-browser
 
 library:
@@ -21,7 +21,7 @@ benchmarks:
         source-dirs: benchmarks
         dependencies:
             - criterion
-            - luna-core
+            - luna
 
 dependencies:
     - aeson

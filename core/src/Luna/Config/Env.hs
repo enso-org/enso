@@ -6,7 +6,7 @@ import Prelude.Luna
 
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
-import qualified Luna.Info.Version           as Info
+import qualified Luna.Diag.Info           as Info
 import           Data.Build
 import           Data.Version.Semantic
 

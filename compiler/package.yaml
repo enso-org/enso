@@ -44,7 +44,7 @@ dependencies:
     - graphviz >= 2999.17.0.2.2
     - lens
     - lens-utils
-    - luna-core
+    - luna
     - MissingH
     - mtl
     - OneTuple

@@ -26,7 +26,7 @@ dependencies:
     - edit-distance
     - exceptions
     - lens
-    - luna-core
+    - luna
     - mtl
     - parsers
     - text
