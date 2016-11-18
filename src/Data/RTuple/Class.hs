@@ -17,7 +17,7 @@ module Data.RTuple.Class where
 import           Prelude hiding (map, init, last, length, take, concat, mapM, head, tail, reverse, drop, zip, zip3, unzip, unzip3)
 import qualified Prelude as P
 
-import Control.Lens.Utils     hiding (Index, cons, uncons, reversed, index, Getter, Setter', set')
+import Control.Lens.Utils     hiding (Index, cons, uncons, reversed, index)
 import Control.Monad.Identity hiding (mapM)
 import Data.Default
 import Data.List              (intercalate)
@@ -30,7 +30,8 @@ import Type.List              hiding (Empty)
 -- import Data.Construction
 import Type.Bool              (If, type (==))
 import Data.Proxify
-import Control.Lens.Property hiding (Update)
+import Data.Property hiding (Update, update)
+import qualified Data.Property as Prop
 import Data.Kind
 
 -- === Definition === --
@@ -523,16 +524,16 @@ insert2 _ val = wrapped %~ prepend val
 --
 -- type instance Access key (TMap (k ': ks) (v ': vs)) = If (key == k) v (Access key (TMap ks vs))
 
-type instance Get (key :: ★)   (TMap (k ':= v ': rels)) = If (key == k) v (Get key (TMap rels))
-type instance Set key a (TMap (k ':= v ': rels)) = If (key == k) (TMap (k ':= a ': rels)) (TMap (k ':= a ': (Relations (Set key a (TMap rels)))))
+type instance Access (key :: ★)   (TMap (k ':= v ': rels)) = If (key == k) v (Access key (TMap rels))
+type instance Prop.Update key a (TMap (k ':= v ': rels)) = If (key == k) (TMap (k ':= a ': rels)) (TMap (k ':= a ': (Relations (Prop.Update key a (TMap rels)))))
 
-instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ':= v ': rels), Getter k (TMap rels))
-                           => Getter k (TMap (l ':= v ': rels)) where get = get @k . view tail2    ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} Getter k (TMap (k ':= v ': rels)) where get = view (wrapped' . head) ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ':= v ': rels), Accessor k (TMap rels))
+                           => Accessor k (TMap (l ':= v ': rels)) where access = access @k . view tail2    ; {-# INLINE access #-}
+instance {-# OVERLAPPABLE #-} Accessor k (TMap (k ':= v ': rels)) where access = view (wrapped' . head) ; {-# INLINE access #-}
 
-instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ':= v ': rels), Setter' k (TMap rels), Set k (Get k (TMap (l ':= v : rels))) (TMap (l ':= v : rels)) ~ TMap (l ':= v : rels), Set k (Get k (TMap rels)) (TMap rels) ~ TMap rels)
-                           => Setter' k (TMap (l ':= v ': rels)) where set' a = tail2 %~ set' @k a     ; {-# INLINE set' #-}
-instance {-# OVERLAPPABLE #-} Setter' k (TMap (k ':= v ': rels)) where set' a = (wrapped' . head) .~ a ; {-# INLINE set' #-}
+instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ':= v ': rels), Updater' k (TMap rels), Prop.Update k (Access k (TMap (l ':= v : rels))) (TMap (l ':= v : rels)) ~ TMap (l ':= v : rels), Prop.Update k (Access k (TMap rels)) (TMap rels) ~ TMap rels)
+                           => Updater' k (TMap (l ':= v ': rels)) where update' a = tail2 %~ update' @k a     ; {-# INLINE update' #-}
+instance {-# OVERLAPPABLE #-} Updater' k (TMap (k ':= v ': rels)) where update' a = (wrapped' . head) .~ a ; {-# INLINE update' #-}
 
 
 -- type family AccessMissmatch k ks vs where
@@ -540,8 +541,8 @@ instance {-# OVERLAPPABLE #-} Setter' k (TMap (k ':= v ': rels)) where set' a = 
 --                                           ~ Access k (TMap       ks        vs)
 
 type family GetMissmatch k rels where
-    GetMissmatch k (l ':= v ': rels) = Get k (TMap (l ':= v ': rels))
-                                     ~ Get k (TMap rels)
+    GetMissmatch k (l ':= v ': rels) = Access k (TMap (l ':= v ': rels))
+                                     ~ Access k (TMap rels)
 
 -- instance {-# OVERLAPPABLE #-} (AccessMissmatch k (l ': ks) (v ': vs), Accessible' k (TMap ks vs))
 --                            => Accessible' k (TMap (l ': ks) (v ': vs)) where accessProxy' k = tail2 . accessProxy' k ; {-# INLINE accessProxy' #-}
@@ -608,11 +609,11 @@ deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
 --
 -- type instance Access key (TMap (k ': ks) (v ': vs)) = If (key == k) v (Access key (TMap ks vs))
 --
--- type instance Get key (TMap (k ': ks) (v ': vs)) = If (key == k) v (Get key (TMap ks vs))
+-- type instance Access key (TMap (k ': ks) (v ': vs)) = If (key == k) v (Access key (TMap ks vs))
 --
--- instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ': ks) (v ': vs), Getter k (TMap ks vs))
---                            => Getter k (TMap (l ': ks) (v ': vs)) where get = get @k . view tail2    ; {-# INLINE get #-}
--- instance {-# OVERLAPPABLE #-} Getter k (TMap (k ': ks) (v ': vs)) where get = view (wrapped' . head) ; {-# INLINE get #-}
+-- instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ': ks) (v ': vs), Accessor k (TMap ks vs))
+--                            => Accessor k (TMap (l ': ks) (v ': vs)) where access = access @k . view tail2    ; {-# INLINE access #-}
+-- instance {-# OVERLAPPABLE #-} Accessor k (TMap (k ': ks) (v ': vs)) where access = view (wrapped' . head) ; {-# INLINE access #-}
 --
 --
 -- type family AccessMissmatch k ks vs where
@@ -620,8 +621,8 @@ deriving instance Show (Unwrapped (TMap rels)) => Show (TMap rels)
 --                                           ~ Access k (TMap       ks        vs)
 --
 -- type family GetMissmatch k ks vs where
---     GetMissmatch k (l ': ks) (v ': vs) = Get k (TMap (l ': ks) (v ': vs))
---                                        ~ Get k (TMap       ks        vs)
+--     GetMissmatch k (l ': ks) (v ': vs) = Access k (TMap (l ': ks) (v ': vs))
+--                                        ~ Access k (TMap       ks        vs)
 --
 -- instance {-# OVERLAPPABLE #-} (AccessMissmatch k (l ': ks) (v ': vs), Accessible' k (TMap ks vs))
 --                            => Accessible' k (TMap (l ': ks) (v ': vs)) where accessProxy' k = tail2 . accessProxy' k ; {-# INLINE accessProxy' #-}
