@@ -71,7 +71,7 @@ import           Luna.Syntax.Model.Network.Class                 (Network)
 import qualified Luna.Syntax.Model.Network.Term                  as Net
 -- import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
-import           Luna.Syntax.Term.Expr.Format
+import           Luna.IR.Expr.Format
 
 import qualified Data.Graph.Backend.NEC       as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
@@ -90,13 +90,13 @@ import qualified Data.Graph.Builder                      as GraphBuilder
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.Syntax.Term.Expr hiding (Data, cons, unify, star)
+import Luna.IR.Expr hiding (Data, cons, unify, star)
 
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
-import qualified Luna.Syntax.Term.Expr.Class as Asg
-import Luna.Syntax.Term.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
+import qualified Luna.IR.Expr.Class as Asg
+import Luna.IR.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Prelude (error, undefined)
@@ -104,17 +104,17 @@ import Type.List (In)
 import Data.Container.Hetero (Elems)
 import GHC.TypeLits hiding (Symbol)
 import GHC.TypeLits (ErrorMessage(Text))
-import Luna.Syntax.Term.Expr.Atom (Atoms)
+import Luna.IR.Expr.Atom (Atoms)
 
-import qualified Luna.Syntax.Term.Expr.Symbol as Symbol
-import qualified Luna.Syntax.Term.Expr.Symbol.Named as Sym
-import qualified Luna.Syntax.Term.Expr.Symbol.Named as Symbol
-import Luna.Syntax.Term.Expr.Symbol (Sym)
+import qualified Luna.IR.Expr.Symbol as Symbol
+import qualified Luna.IR.Expr.Symbol.Named as Sym
+import qualified Luna.IR.Expr.Symbol.Named as Symbol
+import Luna.IR.Expr.Symbol (Sym)
 import Data.Property
-import Luna.Syntax.Term.Expr.Format (Format, Sub)
+import Luna.IR.Expr.Format (Format, Sub)
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
-import Luna.Syntax.Term.Expr.Layout
+import Luna.IR.Expr.Layout
 
 import Unsafe.Coerce (unsafeCoerce)
 import Type.Set as Set hiding (Set)

@@ -9,7 +9,7 @@ import           Data.Graph                                   (ELEMENT (..))
 import           Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)
 import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Old.Luna.Syntax.Term.Class
-import           Luna.Syntax.Term.Function.Argument
+import           Luna.IR.Function.Argument
 import qualified Old.Luna.Syntax.Term.Expr.Lit                         as Lit
 import           Type.Inference
 

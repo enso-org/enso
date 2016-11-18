@@ -21,21 +21,21 @@ import           Text.EditDistance            (defaultEditCosts, levenshteinDist
 import qualified Data.Maps                    as Map
 import           Data.List                    (sortBy)
 --import qualified Luna.Data.StructInfo         as StructInfo
---import qualified Luna.Syntax.Namespace.State    as Namespace
---import           Luna.Syntax.Namespace          (NamespaceMonad)
+--import qualified Luna.IR.Namespace.State    as Namespace
+--import           Luna.IR.Namespace          (NamespaceMonad)
 import qualified Luna.Parser.State            as ParserState
 import           Luna.Parser.State            (MonadParserState)
 --import           Luna.Data.StructInfo         (OriginInfo(OriginInfo))
 import Control.Monad.State (MonadState, get)
 import           Data.Maybe                   (isJust, fromJust)
---import qualified Luna.Syntax.Name.Pattern     as NamePat
+--import qualified Luna.IR.Name.Pattern     as NamePat
 --import           Luna.Syntax.Label  (Label(Label))
---import           Luna.Syntax.Name.Pattern     (NamePat(NamePat))
+--import           Luna.IR.Name.Pattern     (NamePat(NamePat))
 
 import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser, OperatorTable, Assoc(..))
 --import           Luna.Parser.Type    (typic, metaBase)
 import           Luna.Parser.Literal (literal)
---import qualified Luna.Syntax.Name    as Name
+--import qualified Luna.IR.Name    as Name
 import qualified Data.ByteString.UTF8         as UTF8
 --import           Data.Char                    (isSpace)
 --import qualified Luna.System.Session as Session
@@ -58,20 +58,20 @@ import Old.Luna.Syntax.Term.Class (Unify, Var, Cons, App, Unify, Match, Input, N
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
 import Luna.Runtime.Dynamics (Dynamics)
-import Luna.Syntax.Name
-import qualified Luna.Syntax.Term.Function.Argument as AST
-import           Luna.Syntax.Name.Ident (named)
+import Luna.IR.Name
+import qualified Luna.IR.Function.Argument as AST
+import           Luna.IR.Name.Ident (named)
 import           Luna.Parser.Class        (ASTParser)
 
 
-import Luna.Syntax.Term.Function.Class as Function
-import Luna.Syntax.Term.Function.Argument hiding (arg)
---import           Luna.Syntax.Term.Function.Header (Segment(..), Header)
---import qualified Luna.Syntax.Term.Function.Header as Header
---import qualified Luna.Syntax.Term.Function.Signature as Signature
+import Luna.IR.Function.Class as Function
+import Luna.IR.Function.Argument hiding (arg)
+--import           Luna.IR.Function.Header (Segment(..), Header)
+--import qualified Luna.IR.Function.Header as Header
+--import qualified Luna.IR.Function.Signature as Signature
 import Luna.Parser.Token.Ident
 
-import qualified Luna.Syntax.Model.Text.Location as Location
+import qualified Luna.IR.Layers.Loc as Location
 import Luna.Parser.Location (located)
 import qualified Luna.Parser.Layout as Layout
 import qualified Luna.Parser.Token.Operator as Operator

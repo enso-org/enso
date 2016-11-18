@@ -19,10 +19,10 @@ import           Data.Map                      (Map)
 import           Data.Maybe                    (fromMaybe)
 import qualified Data.Map                      as Map
 import qualified Data.IntSet                   as IntSet
-import           Luna.Syntax.Term.Function      (Signature)
+import           Luna.IR.Function      (Signature)
 
 import           Luna.Syntax.Model.Layer
-import qualified Luna.Syntax.Term.Function       as Function
+import qualified Luna.IR.Function       as Function
 
 #define ImportCtx  ( node  ~ (ls :<: term)                            \
                    , edge  ~ Link node                                \

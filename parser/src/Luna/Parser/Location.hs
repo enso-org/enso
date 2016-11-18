@@ -4,11 +4,11 @@ import Prelude.Luna
 
 import Data.Int (Int64)
 
-import qualified Luna.Syntax.Model.Text.Location as Location
+import qualified Luna.IR.Layers.Loc as Location
 import qualified Text.Trifecta.Delta             as Trifecta
 import qualified Text.Trifecta.Combinators       as Trifecta
 
-import Luna.Syntax.Model.Text.Location (MonadLocation)
+import Luna.IR.Layers.Loc (MonadLocation)
 import Text.Trifecta.Combinators       (DeltaParsing)
 
 

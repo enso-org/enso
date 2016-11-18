@@ -32,7 +32,7 @@ import qualified Data.GraphViz.Attributes.HTML           as Html
 import           Luna.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Interpreter.Layer as InterpreterLayer
 import           Luna.Runtime.Dynamics                 (Static)
-import qualified Luna.Syntax.Term.Function                as Function
+import qualified Luna.IR.Function                as Function
 import qualified Old.Luna.Syntax.Term.Class                    as Term
 import           Luna.Syntax.Model.Layer
 import           Luna.Syntax.Model.Network.Builder

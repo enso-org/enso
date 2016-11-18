@@ -13,7 +13,7 @@ executables:
 
 library:
     source-dirs: src
-    other-modules: Paths_luna_core
+    other-modules: Paths_luna
 
 benchmarks:
     graph-builder:

@@ -18,7 +18,7 @@ import Luna.Syntax.Model.Network.Builder            (requester)
 import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, originSign, Sign (..))
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
+import Luna.IR.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
 

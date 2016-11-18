@@ -15,7 +15,7 @@ import           Data.Graph.Model.Pointer.Set         (RefSet)
 import           Old.Data.Prop
 import           Data.Record
 import           Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
-import qualified Luna.Syntax.Term.Function               as Func
+import qualified Luna.IR.Function               as Func
 import           Luna.Syntax.Model.Layer
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Graph

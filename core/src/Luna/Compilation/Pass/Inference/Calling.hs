@@ -24,7 +24,7 @@ import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Luna.Syntax.Term.Function as Function
+import qualified Luna.IR.Function as Function
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)

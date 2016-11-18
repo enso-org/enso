@@ -22,14 +22,14 @@ import           Luna.Runtime.Dynamics      (Dynamics_OLD, Dynamic, Static, With
 import           Luna.Pretty.Styles
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
-import           Luna.Syntax.Term.Expr.Format
+import           Luna.IR.Expr.Format
 import qualified Old.Luna.Syntax.Term.Expr.Lit     as Lit
 import Old.Luna.Syntax.Term.Atom as X
 
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr.Format (SubFormats)
+import Luna.IR.Expr.Format (SubFormats)
 import Luna.Runtime.Dynamics (ByDynamics)
 
 

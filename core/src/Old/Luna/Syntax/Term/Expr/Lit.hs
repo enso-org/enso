@@ -3,8 +3,8 @@ module Old.Luna.Syntax.Term.Expr.Lit (module Old.Luna.Syntax.Term.Expr.Lit) wher
 import           Prelude.Luna            hiding (Rational, Integer, String)
 import qualified Prelude.Luna            as P
 import           Luna.Pretty.Styles (StaticNameOnly)
-import           Luna.Syntax.Name
--- import           Luna.Syntax.Term.Expr.Atom as X (Star)
+import           Luna.IR.Name
+-- import           Luna.IR.Expr.Atom as X (Star)
 
 
 data Star = Star deriving (Show)

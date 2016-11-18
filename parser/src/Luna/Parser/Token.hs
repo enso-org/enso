@@ -37,7 +37,7 @@ import qualified Luna.Parser.Token.Ident as Ident
 import qualified Luna.Parser.Token.Style as Style
 import Text.Parser.Token           (reserve)
 import Luna.Parser.Class (Parser)
-import Luna.Syntax.Name (Segment(..), MultiName(..))
+import Luna.IR.Name (Segment(..), MultiName(..))
 
 isSpaceLine c = isSpace c && c /= '\n' && c /= '\r'
 

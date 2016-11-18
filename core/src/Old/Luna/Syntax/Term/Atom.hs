@@ -5,7 +5,7 @@ module Old.Luna.Syntax.Term.Atom where
 import Prelude.Luna
 
 import Data.Base
-import Luna.Syntax.Term.Function (Arg)
+import Luna.IR.Function (Arg)
 import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit

@@ -20,8 +20,8 @@ import           Old.Data.Prop
 import qualified Data.Record                             as Record
 import           Data.Record                             (RecordOf, HasRecord, record, MapTryingElemList_, withElement_, OverElement, overElement)
 import           Luna.Runtime.Dynamics                 as Runtime
-import           Luna.Syntax.Term.Function.Argument
-import           Luna.Syntax.Term.Function.Argument       as X (arg)
+import           Luna.IR.Function.Argument
+import           Luna.IR.Function.Argument       as X (arg)
 import           Old.Luna.Syntax.Term.Class                    hiding (undefined, Source, Name)
 import qualified Data.Graph.Builder                      as GraphBuilder
 import           Luna.Syntax.Model.Layer                 (Type, TCData, Meta, Name, Lambda, (:<:), (:<))
@@ -44,7 +44,7 @@ import qualified Luna.Syntax.Term as New
 -- import           Luna.Syntax.Term (AtomicExpr, TermOf)
 import           Old.Luna.Syntax.Term.Class (TermOf)
 import           Data.Container.Hetero (Elems)
-import qualified Luna.Syntax.Term.Expr.Atom as Atom
+import qualified Luna.IR.Expr.Atom as Atom
 import GHC.Prim (Any)
 
 

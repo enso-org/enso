@@ -5,7 +5,7 @@ module Luna.Parser.Module where
 import Prelude.Luna hiding (cons, maybe, noneOf)
 
 --import Luna.Parser.Builder (labeled)
---import           Luna.Syntax.Name.Path (QualPath(QualPath))
+--import           Luna.IR.Name.Path (QualPath(QualPath))
 --import           Text.Parser.Combinators
 --import Luna.Parser.Decl (imp, func, cls, typeAlias, typeWrapper, pragma, foreigns)
 --import qualified Luna.Parser.State            as ParserState

@@ -8,7 +8,7 @@ import Prelude.Luna
 import           Data.Graph
 import           Data.Graph.Builders
 import           Data.Record                             (ANY, Matches)
-import           Luna.Syntax.Term.Function.Argument
+import           Luna.IR.Function.Argument
 import           Old.Luna.Syntax.Term.Class                    hiding (Source)
 import           Luna.Syntax.Model.Layer
 import qualified Luna.Syntax.Model.Network.Builder.Term  as Term

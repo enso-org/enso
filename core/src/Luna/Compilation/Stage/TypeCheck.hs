@@ -6,8 +6,8 @@ import Prelude.Luna
 
 import qualified Luna.Pass.Stage as Stage
 import           Luna.Pass.Stage hiding (runT, run)
-import qualified Luna.Syntax.Name.Ident.Pool       as IdentPool
-import           Luna.Syntax.Name.Ident.Pool       (IdentPoolT)
+import qualified Luna.IR.Name.Ident.Pool       as IdentPool
+import           Luna.IR.Name.Ident.Pool       (IdentPoolT)
 
 import           Luna.Compilation.Stage.TypeCheck.Class (TypeCheckT)
 import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck

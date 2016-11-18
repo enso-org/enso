@@ -1,6 +1,6 @@
 module Luna.Diag.Info where
 
-import Paths_luna_core   as PATHS
+import Paths_luna as Paths
 
 import Prelude.Luna
 
@@ -10,6 +10,6 @@ import qualified Data.Version as V
 
 
 version = Version major minor patch (PreRelease (Tag Alpha Nothing) []) []
-    where (major:minor:patch:_) = V.versionBranch (PATHS.version) <> repeat 0
+    where (major:minor:patch:_) = V.versionBranch (Paths.version) <> repeat 0
 
 build = Build $notImplemented $notImplemented $notImplemented $notImplemented

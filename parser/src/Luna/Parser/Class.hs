@@ -4,14 +4,14 @@ module Luna.Parser.Class where
 
 import Prelude.Luna hiding (Curry)
 
-import Luna.Syntax.Name
+import Luna.IR.Name
 import Luna.Parser.Indent                     (MonadIndent)
 import Luna.Parser.State                      (MonadParserState)
 import Old.Luna.Syntax.Term.Class                   hiding (Name)
 import Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)
-import Luna.Syntax.Model.Text.Location        (MonadLocation)
+import Luna.IR.Layers.Loc        (MonadLocation)
 import Text.Parser.Char                       (CharParsing, char)
 import Text.Parser.Combinators                (Parsing)
 

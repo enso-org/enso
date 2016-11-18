@@ -16,7 +16,7 @@ import Control.Monad.State                          as State
 import Luna.Runtime.Dynamics                        (Static, Dynamic)
 import Luna.Library.Symbol                          (MonadSymbol, SymbolMap)
 
-import Luna.Syntax.Term.Function                    (Function (..), Signature (..))
+import Luna.IR.Function                    (Function (..), Signature (..))
 import Old.Luna.Syntax.Term.Class
 import Luna.Syntax.Model.Layer
 import Luna.Syntax.Model.Network.Builder.Node
@@ -25,8 +25,8 @@ import Luna.Syntax.Model.Network.Term
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit      as Lit
 import qualified Data.Map                           as Map
-import qualified Luna.Syntax.Name.Path              as QualPath
-import qualified Luna.Syntax.Term.Function          as Function
+import qualified Luna.IR.Name.Path              as QualPath
+import qualified Luna.IR.Function          as Function
 
 #define FunBuilderCtx(m) ( n ~ (NetLayers :<: Draft Static)      \
                          , nodeRef ~ Ref Node  n                 \

@@ -37,7 +37,7 @@ import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable,
 import           Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                   as Lit
 
-import           Luna.Syntax.Term.Function                       (Arg)
+import           Luna.IR.Function                       (Arg)
 
 import           Control.Monad.Catch                             (handleAll)
 import           Control.Exception                               (SomeException(..), AsyncException(..), throwIO)

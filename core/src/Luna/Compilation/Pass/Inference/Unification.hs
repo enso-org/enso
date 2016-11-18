@@ -19,7 +19,7 @@ import Luna.Syntax.Model.Network.Builder.Node
 import Luna.Syntax.Model.Network.Builder            (HasSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
-import Luna.Syntax.Name.Ident.Pool                  (MonadIdentPool)
+import Luna.IR.Name.Ident.Pool                  (MonadIdentPool)
 import Data.Graph                                   as Graph hiding (add, remove)
 import qualified Data.Graph.Backend.NEC               as NEC
 

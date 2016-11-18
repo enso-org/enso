@@ -13,7 +13,7 @@ import Data.Record.Match
 import Data.Maybe                                   (fromMaybe)
 import Luna.Runtime.Dynamics                        (Static)
 import Luna.Library.Symbol                          (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
-import Luna.Syntax.Term.Function                    (Function, Signature)
+import Luna.IR.Function                    (Function, Signature)
 import Old.Luna.Syntax.Term.Class                   hiding (source)
 import Data.Graph                                   as Graph hiding (add)
 import Data.Graph.Builder                           as Graph hiding (run)
@@ -25,8 +25,8 @@ import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster, NetC
 import Luna.Syntax.Model.Network.Class              ()
 import Luna.Syntax.Model.Network.Term
 
-import qualified Luna.Syntax.Name.Path     as QualPath
-import qualified Luna.Syntax.Term.Function         as Function
+import qualified Luna.IR.Name.Path     as QualPath
+import qualified Luna.IR.Function         as Function
 import qualified Old.Luna.Syntax.Term.Expr.Lit         as Lit
 
 import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
