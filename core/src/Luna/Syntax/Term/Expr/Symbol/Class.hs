@@ -9,7 +9,6 @@ import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, Ap
 
 import Data.Base                 (Base)
 import Data.Construction         (Args)
-import Luna.Runtime.Dynamics     (Dynamics, ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
 import Type.Applicative
 import Data.Property
@@ -90,13 +89,3 @@ type instance Access Format        (Symbol atom _     ) = Access Format atom
 -- Repr
 
 instance KnownRepr a => Repr HeaderOnly (Symbol a l) where repr _ = fromString $ typeRepr @a ; {-# INLINE repr #-}
-
-
-
---
--- ---------------------------------------------------------
--- -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --
--- ---------------------------------------------------------
--- -- DEPRECIATED
-
-type NameByDynamics dyn d = ByDynamics dyn Lit.String d

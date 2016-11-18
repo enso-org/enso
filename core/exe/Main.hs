@@ -359,7 +359,7 @@ type AsgCons m = ( Self.MonadSelfBuilder (Ref Expr') m
                  , Linkable' Expr' Expr' m
                  )
 
-type ASG m = ( AsgMonad      m
+type ASGBuilder m = ( AsgMonad      m
              , AsgReferables m
              , AsgBaseLayers m
              , AsgEvents     (Runner m)
@@ -372,9 +372,9 @@ type AsgBaseLayers m = ( HasLayerM m Expr'     Data
                        )
 
 
-type ASG' m layout = (ASG m, Inferable2 Layout layout (Runner m))
+type ASGBuilder' m layout = (ASGBuilder m, Inferable2 Layout layout (Runner m))
 
-unify :: ASG m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
+unify :: ASGBuilder m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
 unify a b = buildElem $ mdo
     n  <- delayedExpr (Sym.uncheckedUnify la lb)
     la <- delayedLink (unsafeGeneralize a) n
@@ -384,7 +384,7 @@ unify a b = buildElem $ mdo
 
 type AtomicExpr atom layout = Expr (Update Atom atom layout)
 
-star :: ASG' m layout => m (Ref $ AtomicExpr Star layout)
+star :: ASGBuilder' m layout => m (Ref $ AtomicExpr Star layout)
 star = buildElem $ expr Sym.uncheckedStar
 
 
@@ -584,7 +584,7 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
         return ()
 
 
-test_gr2 :: ( ASG (Layouted ANT m)
+test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , HasLayerM  m ExprLink' UID
             , HasLayersM m Expr'     '[Type, UID]
             , AsgShow m (UntyppedExpr Star ())
@@ -647,7 +647,7 @@ main = do
     return ()
 
 
-type Vis m = ( ASG m
+type Vis m = ( ASGBuilder m
              , MonadVis m
              , HasLayersM m Expr'     '[UID, Type]
              , HasLayerM  m ExprLink' UID

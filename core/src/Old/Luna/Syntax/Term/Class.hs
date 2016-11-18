@@ -29,13 +29,15 @@ import Old.Luna.Syntax.Term.Atom as X
 import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 
 import Prologue.Unsafe (error)
-import Luna.Syntax.Term.Expr (NameByDynamics)
 import Luna.Syntax.Term.Expr.Format (SubFormats)
-
+import Luna.Runtime.Dynamics (ByDynamics)
 
 
 type family TermOf     a
 type family LayoutType a
+
+type NameByDynamics dyn d = ByDynamics dyn Lit.String d
+
 
 -----------------------------
 -- === Term definition === --

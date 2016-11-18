@@ -10,7 +10,6 @@ import Luna.Syntax.Term.Expr.Atom as X (Atom, String, Integer, Rational, Acc, Ap
 
 import Data.Base                 (Base)
 import Data.Construction         (Args)
-import Luna.Runtime.Dynamics     (Dynamics, ByDynamics)
 import Luna.Syntax.Term.Function (Arg)
 import qualified Luna.Syntax.Term.Function.Argument as Arg
 import Type.Applicative

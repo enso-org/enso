@@ -23,7 +23,7 @@ import Prologue.Unsafe (fromJustNote, error)
 
 import Type.Container hiding (FromJust)
 
-import Luna.Runtime.Dynamics (Static, Dynamic)
+-- import Luna.Runtime.Dynamics (Static, Dynamic)
 import qualified Luna.Runtime.Dynamics as Runtime
 --import Data.Bits.Mask         (Mask)
 import GHC.Prim            (Any, unsafeCoerce#)
@@ -525,8 +525,8 @@ type family Matches rrr lst :: Constraint where
 
 -- === Static-AST matching === --
 
-static :: (rrr' ~ To Static rrr, Match rrr' rrr) => (rrr' -> out) -> MatchSet rrr out
-static = of'
+-- static :: (rrr' ~ To Static rrr, Match rrr' rrr) => (rrr' -> out) -> MatchSet rrr out
+-- static = of'
 
 
 
