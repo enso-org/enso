@@ -4,9 +4,9 @@
 
 module StdLibMock where
 
-import Prelude.Luna
+import Prelude.Luna hiding (cons)
 
-import Data.Construction
+import Data.Construction hiding (cons)
 import Data.Maybe                                   (maybeToList)
 import Old.Data.Prop
 import Data.Graph

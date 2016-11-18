@@ -30,7 +30,7 @@ dependencies:
     - data-base
     - data-construction
     - data-layer
-    - data-member
+    - data-prop
     - data-pool
     - data-result
     - dependent-state
