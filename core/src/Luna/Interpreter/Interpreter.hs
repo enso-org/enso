@@ -31,10 +31,10 @@ import           Luna.Interpreter.Value
 
 import           Luna.Runtime.Dynamics                           (Static)
 import           Old.Luna.Syntax.Term.Class                      (Lam (..), Acc (..), App (..), Var (..), Cons (..))
-import           Luna.Syntax.Model.Network.Builder               (redirect, readSuccs, tcErrors)
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
-import           Luna.Syntax.Model.Network.Term
+import           Old.Luna.Syntax.Model.Network.Builder               (redirect, readSuccs, tcErrors)
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
+import           Old.Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                   as Lit
 
 import           Luna.IR.Function                       (Arg)
@@ -45,7 +45,7 @@ import           Control.Exception                               (SomeException(
 
 import           Data.Digits                                     (unDigits, digits)
 import           Data.Ratio
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers, NetCluster, NetRawNode, NetRawCluster)
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers, NetCluster, NetRawNode, NetRawCluster)
 
 import           GHC.Exception          (fromException)
 import           Data.Layer_OLD.Cover_OLD

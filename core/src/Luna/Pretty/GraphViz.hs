@@ -34,9 +34,9 @@ import qualified Luna.Interpreter.Layer as InterpreterLayer
 import           Luna.Runtime.Dynamics                 (Static)
 import qualified Luna.IR.Function                as Function
 import qualified Old.Luna.Syntax.Term.Class                    as Term
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder
-import           Luna.Syntax.Model.Network.Term
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder
+import           Old.Luna.Syntax.Model.Network.Term
 import           Luna.Pretty.Styles                 (HeaderOnly (..))
 
 import           System.Platform

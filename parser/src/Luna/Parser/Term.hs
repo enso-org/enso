@@ -29,7 +29,7 @@ import           Luna.Parser.State            (MonadParserState)
 import Control.Monad.State (MonadState, get)
 import           Data.Maybe                   (isJust, fromJust)
 --import qualified Luna.IR.Name.Pattern     as NamePat
---import           Luna.Syntax.Label  (Label(Label))
+--import           Old.Luna.Syntax.Label  (Label(Label))
 --import           Luna.IR.Name.Pattern     (NamePat(NamePat))
 
 import           Text.Parser.Expression (Assoc(AssocLeft), Operator(Infix, Prefix, Postfix), buildExpressionParser, OperatorTable, Assoc(..))
@@ -43,17 +43,17 @@ import qualified Data.ByteString.UTF8         as UTF8
 --import           Luna.System.Pragma.Store  (MonadPragmaStore)
 --import qualified Luna.System.Pragma        as Pragma (isEnabled)
 
---import qualified Luna.Syntax.Label         as Label
+--import qualified Old.Luna.Syntax.Label         as Label
 
 import Text.Trifecta.Rendering (Caret(Caret))
 import Text.Trifecta.Combinators (DeltaParsing, careting)
 import Text.Trifecta.Delta (column)
---import Luna.Syntax.Enum (IDTag)
+--import Old.Luna.Syntax.Enum (IDTag)
 import Text.Parser.Token (TokenParsing, token, natural, parens, reserve)
 import Text.Parser.Token.Style (emptyOps)
 import Luna.Parser.Indent (MonadIndent)
-import qualified Luna.Syntax.Model.Network.Builder.Term.Class as AST
-import           Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
+import qualified Old.Luna.Syntax.Model.Network.Builder.Term.Class as AST
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Old.Luna.Syntax.Term.Class (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)

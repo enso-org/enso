@@ -17,12 +17,12 @@ import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph                                   as Graph hiding (add)
 import qualified Data.Graph.Backend.NEC               as NEC
-import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, requester, originSign, Sign (..))
-import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster)
-import Luna.Syntax.Model.Network.Class              ()
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Layer
+import Old.Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, requester, originSign, Sign (..))
+import Old.Luna.Syntax.Model.Network.Builder.Node
+import Old.Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster)
+import Old.Luna.Syntax.Model.Network.Class              ()
+import Old.Luna.Syntax.Model.Network.Term
 
 import qualified Luna.IR.Function as Function
 

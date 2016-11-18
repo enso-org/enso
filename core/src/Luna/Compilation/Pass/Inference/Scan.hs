@@ -12,14 +12,14 @@ import Data.Maybe                                        (catMaybes)
 import qualified Data.Graph.Backend.NEC                  as NEC
 
 import Old.Luna.Syntax.Term.Class                            hiding (source, target)
-import Luna.Syntax.Model.Layer
+import Old.Luna.Syntax.Model.Layer
 import Luna.Runtime.Dynamics                         (Static)
-import Luna.Syntax.Model.Network.Class                 ()
-import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Network.Class                 ()
+import Old.Luna.Syntax.Model.Network.Builder.Node
+import Old.Luna.Syntax.Model.Network.Term
 
 import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
-import Luna.Syntax.Model.Network.Builder               (TCDataPayload, depth, redirect, replaceNodeNonDestructive, replaceNode, HasSuccs)
+import Old.Luna.Syntax.Model.Network.Builder               (TCDataPayload, depth, redirect, replaceNodeNonDestructive, replaceNode, HasSuccs)
 
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)

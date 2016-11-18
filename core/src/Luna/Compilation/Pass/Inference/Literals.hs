@@ -16,14 +16,14 @@ import qualified Data.Graph.Backend.NEC                  as NEC
 import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode, cons)
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode, cons)
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
 import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
-import           Luna.Syntax.Model.Network.Class                 ()
-import           Luna.Syntax.Model.Network.Term
+import           Old.Luna.Syntax.Model.Network.Class                 ()
+import           Old.Luna.Syntax.Model.Network.Term
 
 
 import           Data.Layer_OLD.Cover_OLD

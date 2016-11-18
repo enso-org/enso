@@ -57,19 +57,19 @@ import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Seq
 import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Luna.Config.Env                                 as Env
-import qualified Luna.Library.Symbol                             as Symbol
+import qualified Luna.IR.Library.Symbol                             as Symbol
 import           Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                           as Runtime
-import           Luna.Syntax.Model.Layer                         ((:<), (:<:))
-import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
--- import           Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star, blank, unify)
-import qualified Luna.Syntax.Model.Network.Builder.Node          as Old
-import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
-import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
-import           Luna.Syntax.Model.Network.Class                 (Network)
-import qualified Luna.Syntax.Model.Network.Term                  as Net
--- import           Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
+import           Old.Luna.Syntax.Model.Layer                         ((:<), (:<:))
+import           Old.Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
+-- import           Old.Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star, blank, unify)
+import qualified Old.Luna.Syntax.Model.Network.Builder.Node          as Old
+import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    ()
+import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
+import           Old.Luna.Syntax.Model.Network.Class                 (Network)
+import qualified Old.Luna.Syntax.Model.Network.Term                  as Net
+-- import           Old.Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.IR.Expr.Format
 
@@ -80,9 +80,9 @@ import qualified Data.RTuple.Examples as E
 import qualified Data.RTuple as List
 import           Data.RTuple (TMap(..), empty, Assoc(..)) -- refactor empty to another library
 
-import           Luna.Syntax.Model.Network.Builder.Class ()
-import qualified Luna.Syntax.Model.Network.Builder.Class as XP
--- import           Luna.Syntax.Model.Network.Builder.Term.Class (star, SymbolBuilder)
+import           Old.Luna.Syntax.Model.Network.Builder.Class ()
+import qualified Old.Luna.Syntax.Model.Network.Builder.Class as XP
+-- import           Old.Luna.Syntax.Model.Network.Builder.Term.Class (star, SymbolBuilder)
 
 import qualified Data.Record                  as Record
 import qualified Data.Graph.Builder                      as GraphBuilder
@@ -123,8 +123,8 @@ import qualified Control.Monad.State as State
 import Control.Monad.State hiding (get, set, modify', modify)
 
 import System.Exit (exitSuccess)
-import qualified Luna.Syntax.Model.Network.Builder.Self as Self
-import qualified Luna.Syntax.Model.Network.Builder.Type as Type
+import qualified Old.Luna.Syntax.Model.Network.Builder.Self as Self
+import qualified Old.Luna.Syntax.Model.Network.Builder.Type as Type
 
 import Control.Monad.ST
 import Data.Reprx

@@ -9,8 +9,8 @@ import Prelude.Luna hiding (cons, maybe, noneOf)
 --import           Text.Parser.Combinators
 --import Luna.Parser.Decl (imp, func, cls, typeAlias, typeWrapper, pragma, foreigns)
 --import qualified Luna.Parser.State            as ParserState
---import           Luna.Syntax.Module (Module(Module))
---import           Luna.Syntax.Unit   (Unit(Unit))
+--import           Old.Luna.Syntax.Module (Module(Module))
+--import           Old.Luna.Syntax.Unit   (Unit(Unit))
 --import           Luna.Parser.Struct (moduleBlock)
 --import qualified Luna.Parser.Indent as Indent
 

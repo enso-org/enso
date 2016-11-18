@@ -15,11 +15,11 @@ import qualified Data.Graph.Backend.NEC                  as NEC
 import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            (Lam, Cons)
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
-import           Luna.Syntax.Model.Network.Class                 ()
-import           Luna.Syntax.Model.Network.Term                  (Draft)
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
+import           Old.Luna.Syntax.Model.Network.Class                 ()
+import           Old.Luna.Syntax.Model.Network.Term                  (Draft)
 import           Data.Layer_OLD.Cover_OLD
 
 

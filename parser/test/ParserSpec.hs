@@ -10,14 +10,14 @@ import Prologue
 import Luna.Parser.Parser
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import qualified Luna.Parser.Literal      as PLit
-import Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
+import Old.Luna.Syntax.Model.Network.Term
 import Luna.Runtime.Dynamics
-import Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
+import Old.Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
 import Data.Graph
-import           Luna.Syntax.Model.Layer        ((:<:))
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
-import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
+import           Old.Luna.Syntax.Model.Layer        ((:<:))
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
+import qualified Old.Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
 import           Luna.Pretty.GraphViz
 import           Control.Monad.Event (Dispatcher)
@@ -31,7 +31,7 @@ import qualified Luna.Parser.Term as Term
 import           Luna.Parser.Class        (ASTParser, ASTParserCore, ASTBuilderCtx)
 import qualified Luna.IR.Layers.Loc as Location
 import Luna.Parser.Class (Parser)
-import Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
+import Old.Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
 --import qualified Luna.Parser.Function as Func
 
 import Test.Hspec (Spec, describe, it)

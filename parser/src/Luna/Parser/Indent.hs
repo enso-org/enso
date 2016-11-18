@@ -31,8 +31,8 @@ import Control.Monad.Event
 import Type.Inference
 
 import Data.Graph.Builder.Class (BuilderT(..))
-import Luna.Syntax.Model.Network.Builder.Type (TypeBuilderT(..))
-import Luna.Syntax.Model.Network.Builder.Self (SelfBuilderT(..))
+import Old.Luna.Syntax.Model.Network.Builder.Type (TypeBuilderT(..))
+import Old.Luna.Syntax.Model.Network.Builder.Self (SelfBuilderT(..))
 
 -------------------------
 -- === IndentState === --

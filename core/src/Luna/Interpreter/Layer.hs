@@ -6,7 +6,7 @@ import           Data.Construction
 import           Old.Data.Prop
 import           Data.Either                     (isRight)
 
-import           Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Layer
 import           Luna.Interpreter.Value
 
 

@@ -28,12 +28,12 @@ import           Old.Luna.Syntax.Term.Class                            hiding (s
 import qualified Old.Luna.Syntax.Term.Class                            as Term
 import           Data.Graph
 import           Data.Graph.Builder
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
-import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
-import           Luna.Syntax.Model.Network.Builder.Node.Inferred
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
-import           Luna.Syntax.Model.Network.Term
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
+import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
+import           Old.Luna.Syntax.Model.Network.Builder.Node.Inferred
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
+import           Old.Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
 import qualified Data.Graph.Builder.Class               as Graph

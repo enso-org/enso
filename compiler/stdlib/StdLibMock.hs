@@ -14,14 +14,14 @@ import Data.Graph.Builder
 import Control.Monad.State                          as State
 
 import Luna.Runtime.Dynamics                        (Static, Dynamic)
-import Luna.Library.Symbol                          (MonadSymbol, SymbolMap)
+import Luna.IR.Library.Symbol                          (MonadSymbol, SymbolMap)
 
 import Luna.IR.Function                    (Function (..), Signature (..))
 import Old.Luna.Syntax.Term.Class
-import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetworkBuilderT, NetLayers, NetGraph)
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Layer
+import Old.Luna.Syntax.Model.Network.Builder.Node
+import Old.Luna.Syntax.Model.Network.Builder.Term.Class (runNetworkBuilderT, NetworkBuilderT, NetLayers, NetGraph)
+import Old.Luna.Syntax.Model.Network.Term
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit      as Lit
 import qualified Data.Map                           as Map

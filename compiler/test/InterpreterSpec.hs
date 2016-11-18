@@ -27,13 +27,13 @@ import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Luna.Pretty.GraphViz
 import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder               (Sign (..), tcErrors)
-import           Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
-import           Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
-import           Luna.Syntax.Model.Network.Builder.Node.Inferred
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
-import           Luna.Syntax.Model.Network.Term
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder               (Sign (..), tcErrors)
+import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
+import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
+import           Old.Luna.Syntax.Model.Network.Builder.Node.Inferred
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
+import           Old.Luna.Syntax.Model.Network.Term
 
 import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
 import qualified Luna.Interpreter.Layer         as Layer
@@ -58,7 +58,7 @@ import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Seq
 import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Control.Monad.Writer                            as Writer
 import qualified StdLibMock                                      as StdLib
-import qualified Luna.Library.Symbol                             as Symbol
+import qualified Luna.IR.Library.Symbol                             as Symbol
 import           Control.Monad.Event                             (Dispatcher)
 
 import           Test.Hspec (Spec, describe, it, shouldBe, shouldThrow, expectationFailure)
@@ -408,16 +408,16 @@ spec = do
 -- import qualified Luna.Interpreter.NodeRunner  as NodeRunner
 -- import qualified Luna.Interpreter.Session     as Session
 -- import           Old.Luna.Syntax.Term.Class
--- import           Luna.Syntax.Builder
--- import qualified Luna.Syntax.Builder          as Builder
--- import qualified Luna.Syntax.Builder.Node     as NodeBuilder
--- import qualified Luna.Syntax.Builder.Star     as StarBuilder
--- import qualified Luna.Syntax.Builder.Symbol   as SymbolBuilder
--- import           Luna.Syntax.Layer.Labeled    (label)
--- import           Luna.Syntax.Repr.Graph
--- import           Luna.Syntax.Symbol.Map       (SymbolMap)
--- import qualified Luna.Syntax.Symbol.Map       as Symbol
--- import           Luna.Syntax.Symbol.Network   (Network)
+-- import           Old.Luna.Syntax.Builder
+-- import qualified Old.Luna.Syntax.Builder          as Builder
+-- import qualified Old.Luna.Syntax.Builder.Node     as NodeBuilder
+-- import qualified Old.Luna.Syntax.Builder.Star     as StarBuilder
+-- import qualified Old.Luna.Syntax.Builder.Symbol   as SymbolBuilder
+-- import           Old.Luna.Syntax.Layer.Labeled    (label)
+-- import           Old.Luna.Syntax.Repr.Graph
+-- import           Old.Luna.Syntax.Symbol.Map       (SymbolMap)
+-- import qualified Old.Luna.Syntax.Symbol.Map       as Symbol
+-- import           Old.Luna.Syntax.Symbol.Network   (Network)
 
 -- -- ====================================
 

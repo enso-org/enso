@@ -10,9 +10,9 @@ import           Data.Graph
 import           Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC                  as NEC
 
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, seen)
-import           Luna.Syntax.Model.Network.Class                 ()
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder.Layer         (TCDataPayload, seen)
+import           Old.Luna.Syntax.Model.Network.Class                 ()
 
 
 #define PassCtx(m) ( node ~ (ls :<: term)                         \

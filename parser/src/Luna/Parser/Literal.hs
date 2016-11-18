@@ -6,8 +6,8 @@ import Prelude.Luna
 import qualified Luna.Parser.Token        as Tok
 import           Text.Parser.Combinators
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
-import           Luna.Syntax.Model.Network.Builder.Term.Class hiding (number)
-import qualified Luna.Syntax.Model.Network.Builder.Term.Class as Term
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class hiding (number)
+import qualified Old.Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Text.Parser.Char (CharParsing)
 import Text.Trifecta.Combinators (DeltaParsing)
 import Luna.Parser.Indent (MonadIndent)

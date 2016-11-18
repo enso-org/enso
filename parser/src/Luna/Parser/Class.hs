@@ -8,7 +8,7 @@ import Luna.IR.Name
 import Luna.Parser.Indent                     (MonadIndent)
 import Luna.Parser.State                      (MonadParserState)
 import Old.Luna.Syntax.Term.Class                   hiding (Name)
-import Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
+import Old.Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)
 import Luna.IR.Layers.Loc        (MonadLocation)

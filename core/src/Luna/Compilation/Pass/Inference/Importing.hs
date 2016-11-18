@@ -12,18 +12,18 @@ import Old.Data.Prop
 import Data.Record.Match
 import Data.Maybe                                   (fromMaybe)
 import Luna.Runtime.Dynamics                        (Static)
-import Luna.Library.Symbol                          (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
+import Luna.IR.Library.Symbol                          (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.IR.Function                    (Function, Signature)
 import Old.Luna.Syntax.Term.Class                   hiding (source)
 import Data.Graph                                   as Graph hiding (add)
 import Data.Graph.Builder                           as Graph hiding (run)
 import qualified Data.Graph.Backend.NEC             as NEC
-import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, requester, tcErrors, translateSignature, originSign, Sign (..), replaceNode)
-import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster, NetClusterLayers)
-import Luna.Syntax.Model.Network.Class              ()
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Layer
+import Old.Luna.Syntax.Model.Network.Builder            (importToCluster, dupCluster, requester, tcErrors, translateSignature, originSign, Sign (..), replaceNode)
+import Old.Luna.Syntax.Model.Network.Builder.Node
+import Old.Luna.Syntax.Model.Network.Builder.Term.Class (NetLayers, NetCluster, NetClusterLayers)
+import Old.Luna.Syntax.Model.Network.Class              ()
+import Old.Luna.Syntax.Model.Network.Term
 
 import qualified Luna.IR.Name.Path     as QualPath
 import qualified Luna.IR.Function         as Function

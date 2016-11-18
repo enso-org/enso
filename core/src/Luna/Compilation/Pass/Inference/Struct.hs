@@ -12,12 +12,12 @@ import Data.Record
 import Data.Graph.Builder
 import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
-import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (requester)
-import Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, originSign, Sign (..))
-import Luna.Syntax.Model.Network.Class              ()
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Layer
+import Old.Luna.Syntax.Model.Network.Builder.Node
+import Old.Luna.Syntax.Model.Network.Builder            (requester)
+import Old.Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, originSign, Sign (..))
+import Old.Luna.Syntax.Model.Network.Class              ()
+import Old.Luna.Syntax.Model.Network.Term
 import Luna.IR.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
 import Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)

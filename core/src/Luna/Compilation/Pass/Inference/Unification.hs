@@ -14,11 +14,11 @@ import Data.Record                                  (caseTest, of', ANY (..))
 import Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
-import Luna.Syntax.Model.Layer
-import Luna.Syntax.Model.Network.Builder.Node
-import Luna.Syntax.Model.Network.Builder            (HasSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
-import Luna.Syntax.Model.Network.Class              ()
-import Luna.Syntax.Model.Network.Term
+import Old.Luna.Syntax.Model.Layer
+import Old.Luna.Syntax.Model.Network.Builder.Node
+import Old.Luna.Syntax.Model.Network.Builder            (HasSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
+import Old.Luna.Syntax.Model.Network.Class              ()
+import Old.Luna.Syntax.Model.Network.Term
 import Luna.IR.Name.Ident.Pool                  (MonadIdentPool)
 import Data.Graph                                   as Graph hiding (add, remove)
 import qualified Data.Graph.Backend.NEC               as NEC

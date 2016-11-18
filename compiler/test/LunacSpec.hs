@@ -56,19 +56,19 @@ import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                         as Runtime
 import qualified Luna.IR.Expr.Format                           as EvalModel
 import qualified StdLibMock                           as StdLib
-import qualified Luna.Library.Symbol                       as Symbol
+import qualified Luna.IR.Library.Symbol                       as Symbol
 import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Old.Luna.Syntax.Term.Class                            as Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph
-import           Luna.Syntax.Model.Layer
-import           Luna.Syntax.Model.Network.Builder               (rebuildNetwork', Sign (..))
-import           Luna.Syntax.Model.Network.Builder.Node
-import           Luna.Syntax.Model.Network.Builder.Node.Class    ()
-import qualified Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetNode, NetCluster, runNetworkBuilderT, runNetworkBuilderT2, fmapInputs, inputstmp)
-import           Luna.Syntax.Model.Network.Term
+import           Old.Luna.Syntax.Model.Layer
+import           Old.Luna.Syntax.Model.Network.Builder               (rebuildNetwork', Sign (..))
+import           Old.Luna.Syntax.Model.Network.Builder.Node
+import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    ()
+import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
+import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetNode, NetCluster, runNetworkBuilderT, runNetworkBuilderT2, fmapInputs, inputstmp)
+import           Old.Luna.Syntax.Model.Network.Term
 
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
