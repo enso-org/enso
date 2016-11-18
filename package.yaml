@@ -1,0 +1,24 @@
+author: Wojciech Danilo
+bug-reports: https://github.com/wdanilo/impossible/issues
+category: Data
+copyright: Copyright (C) 2015 Wojciech Danilo
+default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable,
+  DeriveFoldable, DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse,
+  EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
+  InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, StandaloneDeriving,
+  TemplateHaskell, TupleSections, TypeOperators, ViewPatterns, TypeFamilies]
+dependencies: [base >=4.6 && <4.10, lens]
+ghc-options: [-Wall, -O2]
+homepage: https://github.com/wdanilo/impossible
+library:
+  exposed-modules: [Data.Impossible]
+  source-dirs: src
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: impossible
+stability: experimental
+synopsis: Set of data and type definitions of impossible types. Impossible types are
+  useful when declaring type classes / type families instances that should not be
+  expanded by GHC until a specific type is provided in order to keep the types nice
+  and readable.
+version: 1.0.3
