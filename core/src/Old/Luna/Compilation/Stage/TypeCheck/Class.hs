@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module Luna.Compilation.Stage.TypeCheck.Class where
+module Old.Luna.Compilation.Stage.TypeCheck.Class where
 
 import Prologue hiding (s)
 

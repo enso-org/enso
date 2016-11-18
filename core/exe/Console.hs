@@ -46,16 +46,16 @@ import           Data.Container.Hetero                           (Hetero(..), An
 import qualified Data.Graph.Builder.Class                        as Graph
 import qualified Data.Graph.Builder.Class                        as Graph.Builder
 -- import           Data.Graph.Builder.Ref                          as Ref
-import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
-import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
-import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
-import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
-import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
-import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
-import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
-import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
+import           Luna.Pass.Inference.Calling         (FunctionCallingPass (..))
+import           Luna.Pass.Inference.Importing       (SymbolImportingPass (..))
+import qualified Luna.Pass.Inference.Importing       as Importing
+import           Luna.Pass.Inference.Literals        (LiteralsPass (..))
+import           Luna.Pass.Inference.Scan            (ScanPass (..))
+import           Luna.Pass.Inference.Struct          (StructuralInferencePass (..))
+import           Luna.Pass.Utils.Literals            as LiteralsUtils
+import           Old.Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
+import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Luna.Config.Env                                 as Env
 import qualified Luna.IR.Library.Symbol                             as Symbol
 import           Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
@@ -134,8 +134,8 @@ import qualified Control.Monad.State.Dependent as D
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import Web.Browser (openBrowser)
 
-import qualified Luna.Pretty.Graph as Vis
-import           Luna.Pretty.Graph (MonadVis)
+import qualified Luna.Diag.Vis as Vis
+import           Luna.Diag.Vis (MonadVis)
 import qualified Data.Set as S
 import Type.Container (Every)
 -- import Data.Ident

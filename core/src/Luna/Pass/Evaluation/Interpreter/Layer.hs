@@ -1,4 +1,4 @@
-module Luna.Interpreter.Layer where
+module Luna.Pass.Evaluation.Interpreter.Layer where
 
 import           Prologue                        hiding (Getter, Setter)
 
@@ -7,7 +7,7 @@ import           Old.Data.Prop
 import           Data.Either                     (isRight)
 
 import           Old.Luna.Syntax.Model.Layer
-import           Luna.Interpreter.Value
+import           Luna.Pass.Evaluation.Interpreter.Value
 
 
 

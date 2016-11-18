@@ -1,4 +1,4 @@
-module Luna.Compilation.Error where
+module Old.Luna.Compilation.Error where
 
 import Prelude.Luna
 

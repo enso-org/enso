@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Compilation.Pass.Inference.Literals where
+module Luna.Pass.Inference.Literals where
 
 import           Prelude.Luna                                    hiding (Num, pre, cons)
 
@@ -19,9 +19,9 @@ import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode, cons)
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetLayers)
-import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
-import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
-import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
+import           Old.Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
+import           Old.Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
 import           Old.Luna.Syntax.Model.Network.Class                 ()
 import           Old.Luna.Syntax.Model.Network.Term
 

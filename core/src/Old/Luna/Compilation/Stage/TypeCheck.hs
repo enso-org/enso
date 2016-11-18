@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Compilation.Stage.TypeCheck where
+module Old.Luna.Compilation.Stage.TypeCheck where
 
 import Prelude.Luna
 
@@ -9,8 +9,8 @@ import           Old.Luna.Pass.Stage hiding (runT, run)
 import qualified Luna.IR.Name.Ident.Pool       as IdentPool
 import           Luna.IR.Name.Ident.Pool       (IdentPoolT)
 
-import           Luna.Compilation.Stage.TypeCheck.Class (TypeCheckT)
-import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import           Old.Luna.Compilation.Stage.TypeCheck.Class (TypeCheckT)
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 
 import qualified Luna.IR.Library.Symbol as Symbol
 import           Luna.IR.Library.Symbol (SymbolT)

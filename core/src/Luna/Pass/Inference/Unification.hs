@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Compilation.Pass.Inference.Unification where
+module Luna.Pass.Inference.Unification where
 
 import Prelude.Luna                                 hiding (cons)
 
@@ -23,11 +23,11 @@ import Luna.IR.Name.Ident.Pool                  (MonadIdentPool)
 import Data.Graph                                   as Graph hiding (add, remove)
 import qualified Data.Graph.Backend.NEC               as NEC
 
-import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
-import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
-import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import           Old.Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
+import           Old.Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Old.Luna.Syntax.Term.Expr.Lit               as Lit
-import           Luna.Compilation.Error
+import           Old.Luna.Compilation.Error
 
 import Control.Monad.Trans.Either
 import Data.Layer_OLD.Cover_OLD

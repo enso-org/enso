@@ -19,7 +19,7 @@ import           Old.Luna.Syntax.Model.Layer        ((:<:))
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
 import qualified Old.Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
-import           Luna.Pretty.GraphViz
+import           Luna.Diag.VisViz
 import           Control.Monad.Event (Dispatcher)
 import           Control.Monad.Identity hiding (when)
 import qualified Luna.Parser.Parser     as Parser

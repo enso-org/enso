@@ -14,7 +14,7 @@ import qualified Old.Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Old.Luna.Syntax.Model.Network.Builder.Self as Self
 import           Old.Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
 import qualified Luna.IR.Function               as Func
-import           Luna.Compilation.Error
+import           Old.Luna.Compilation.Error
 import           Old.Luna.Syntax.Model.Layer
 import           Data.Graph
 

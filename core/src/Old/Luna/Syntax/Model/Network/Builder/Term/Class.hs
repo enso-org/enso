@@ -25,7 +25,7 @@ import           Luna.IR.Function.Argument       as X (arg)
 import           Old.Luna.Syntax.Term.Class                    hiding (undefined, Source, Name)
 import qualified Data.Graph.Builder                      as GraphBuilder
 import           Old.Luna.Syntax.Model.Layer                 (Type, TCData, Meta, Name, Lambda, (:<:), (:<))
-import           Luna.Interpreter.Layer (InterpreterData)
+import           Luna.Pass.Evaluation.Interpreter.Layer (InterpreterData)
 import           Old.Luna.Syntax.Model.Network.Builder.Layer
 import qualified Old.Luna.Syntax.Model.Network.Builder.Self  as Self
 import qualified Old.Luna.Syntax.Model.Network.Builder.Type  as Type

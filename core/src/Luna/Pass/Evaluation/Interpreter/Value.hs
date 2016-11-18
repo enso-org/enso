@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Interpreter.Value where
+module Luna.Pass.Evaluation.Interpreter.Value where
 
 import           Prelude.Luna
 import           Text.Read                  (readEither)

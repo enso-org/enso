@@ -1,9 +1,9 @@
-module Luna.Interpreter.Env where
+module Luna.Pass.Evaluation.Interpreter.Env where
 
 import           Prologue hiding (s)
 
-import           Luna.Interpreter.Class
-import           Luna.Interpreter.Value (Value)
+import           Luna.Pass.Evaluation.Interpreter.Class
+import           Luna.Pass.Evaluation.Interpreter.Value (Value)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map

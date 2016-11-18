@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module Luna.Interpreter.Class where
+module Luna.Pass.Evaluation.Interpreter.Class where
 
 import           Prologue
 

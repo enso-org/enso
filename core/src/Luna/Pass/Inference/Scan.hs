@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Compilation.Pass.Inference.Scan where
+module Luna.Pass.Inference.Scan where
 import Prelude.Luna
 import Data.Construction
 import Old.Data.Prop
@@ -18,12 +18,12 @@ import Old.Luna.Syntax.Model.Network.Class                 ()
 import Old.Luna.Syntax.Model.Network.Builder.Node
 import Old.Luna.Syntax.Model.Network.Term
 
-import Luna.Compilation.Pass.Utils.SubtreeWalk         (subtreeWalk)
+import Luna.Pass.Utils.SubtreeWalk         (subtreeWalk)
 import Old.Luna.Syntax.Model.Network.Builder               (TCDataPayload, depth, redirect, replaceNodeNonDestructive, replaceNode, HasSuccs)
 
-import           Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
-import           Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
-import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
+import           Old.Luna.Compilation.Stage.TypeCheck                (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
+import           Old.Luna.Compilation.Stage.TypeCheck.Class          (MonadTypeCheck)
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheck
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Data.Layer_OLD.Cover_OLD
 

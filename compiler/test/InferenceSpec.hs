@@ -17,11 +17,11 @@ import           Data.Version.Semantic                           (showVersion, v
 import           Type.Inference
 
 import qualified Luna.Config.Env                      as Env
-import           Luna.Compilation.Pass.Inference.Literals        as LiteralsAssignement
-import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
-import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Pretty.GraphViz
-import           Luna.Pretty.GraphViz
+import           Luna.Pass.Inference.Literals        as LiteralsAssignement
+import           Luna.Pass.Utils.Literals            as LiteralsUtils
+import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
+import           Luna.Diag.VisViz
+import           Luna.Diag.VisViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)

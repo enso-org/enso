@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Compilation.Pass.Inference.Importing where
+module Luna.Pass.Inference.Importing where
 
 import Prelude.Luna
 
@@ -29,10 +29,10 @@ import qualified Luna.IR.Name.Path     as QualPath
 import qualified Luna.IR.Function         as Function
 import qualified Old.Luna.Syntax.Term.Expr.Lit         as Lit
 
-import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
-import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
-import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import           Luna.Compilation.Error
+import           Old.Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
+import           Old.Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import           Old.Luna.Compilation.Error
 import           Data.Layer_OLD.Cover_OLD
 
 import Data.Graph.Model.Pointer.Set (RefSet)

@@ -1,10 +1,10 @@
 {-# LANGUAGE NoArrows #-}
 
-module Luna.Interpreter.StdScope where
+module Luna.Pass.Evaluation.Interpreter.StdScope where
 
 import           Prelude.Luna
-import           Luna.Interpreter.Env
-import           Luna.Interpreter.Value
+import           Luna.Pass.Evaluation.Interpreter.Env
+import           Luna.Pass.Evaluation.Interpreter.Value
 import           Data.List                               (sort, group)
 import           Data.Maybe                              (catMaybes, fromJust)
 import           Control.Arrow                           ((&&&))
@@ -24,8 +24,8 @@ import           Data.Fixed                              (mod')
 import qualified Data.Map                                as Map
 import           System.Random
 
-import           Luna.Interpreter.Docker
-import           Luna.Interpreter.Genetic
+import           Luna.Pass.Evaluation.Interpreter.Docker
+import           Luna.Pass.Evaluation.Interpreter.Genetic
 
 stdScope :: Scope
 stdScope = Scope $ Map.fromList

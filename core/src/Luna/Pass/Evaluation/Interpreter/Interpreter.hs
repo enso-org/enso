@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns              #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 
-module Luna.Interpreter.Interpreter where
+module Luna.Pass.Evaluation.Interpreter.Interpreter where
 
 import           Prelude.Luna                                    hiding (pre, succ)
 
@@ -21,13 +21,13 @@ import           Data.Record                                     hiding (cons, V
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as Map
 
-import           Luna.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT)
-import           Luna.Interpreter.Env           (Env, enrichScope, lookupVar)
-import qualified Luna.Interpreter.Env           as Env
-import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, ValueErr)
-import           Luna.Interpreter.StdScope      (stdScope)
-import qualified Luna.Interpreter.Layer         as Layer
-import           Luna.Interpreter.Value
+import           Luna.Pass.Evaluation.Interpreter.Class         (InterpreterMonad, InterpreterT, runInterpreterT)
+import           Luna.Pass.Evaluation.Interpreter.Env           (Env, enrichScope, lookupVar)
+import qualified Luna.Pass.Evaluation.Interpreter.Env           as Env
+import           Luna.Pass.Evaluation.Interpreter.Layer         (InterpreterData (..), InterpreterLayer, ValueErr)
+import           Luna.Pass.Evaluation.Interpreter.StdScope      (stdScope)
+import qualified Luna.Pass.Evaluation.Interpreter.Layer         as Layer
+import           Luna.Pass.Evaluation.Interpreter.Value
 
 import           Luna.Runtime.Dynamics                           (Static)
 import           Old.Luna.Syntax.Term.Class                      (Lam (..), Acc (..), App (..), Var (..), Cons (..))

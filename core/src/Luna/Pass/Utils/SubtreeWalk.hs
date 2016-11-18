@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 
-module Luna.Compilation.Pass.Utils.SubtreeWalk where
+module Luna.Pass.Utils.SubtreeWalk where
 
 import Prelude.Luna
 import           Data.Construction

@@ -23,8 +23,8 @@ import           Type.Inference
 import           Data.Graph
 import           Data.Graph.Builder
 import qualified Luna.Config.Env                      as Env
-import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Pretty.GraphViz
+import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
+import           Luna.Diag.VisViz
 import           Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
 import           Old.Luna.Syntax.Model.Layer
@@ -35,10 +35,10 @@ import           Old.Luna.Syntax.Model.Network.Builder.Node.Inferred
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, runNetworkBuilderT)
 import           Old.Luna.Syntax.Model.Network.Term
 
-import           Luna.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
-import qualified Luna.Interpreter.Layer         as Layer
-import qualified Luna.Interpreter.Value         as Value
-import qualified Luna.Interpreter.Interpreter   as Interpreter
+import           Luna.Pass.Evaluation.Interpreter.Layer         (InterpreterData (..), InterpreterLayer)
+import qualified Luna.Pass.Evaluation.Interpreter.Layer         as Layer
+import qualified Luna.Pass.Evaluation.Interpreter.Value         as Value
+import qualified Luna.Pass.Evaluation.Interpreter.Interpreter   as Interpreter
 
 import qualified Data.Graph.Backend.NEC                          as NEC
 import qualified Data.Graph.Builder.Class                        as Graph
@@ -46,16 +46,16 @@ import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
 import           Control.Monad.Catch         (Exception, catchAll)
 
-import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
-import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Inference.Unification     (StrictUnificationPass (..))
-import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
-import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
-import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
-import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
-import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
-import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
+import           Luna.Pass.Inference.Literals        (LiteralsPass (..))
+import           Luna.Pass.Inference.Struct          (StructuralInferencePass (..))
+import           Luna.Pass.Inference.Unification     (StrictUnificationPass (..))
+import           Luna.Pass.Inference.Calling         (FunctionCallingPass (..))
+import           Luna.Pass.Inference.Importing       (SymbolImportingPass (..))
+import           Luna.Pass.Inference.Scan            (ScanPass (..))
+import           Luna.Pass.Utils.Literals            as LiteralsUtils
+import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
+import           Old.Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Control.Monad.Writer                            as Writer
 import qualified StdLibMock                                      as StdLib
 import qualified Luna.IR.Library.Symbol                             as Symbol
@@ -404,9 +404,9 @@ spec = do
 -- import           Data.Vector.Mutable          ()
 -- import           Debug.Trace
 -- import           Luna.Diagnostic.AST          as Diag (open, render, toGraphViz)
--- import           Luna.Interpreter.Label       (Label)
--- import qualified Luna.Interpreter.NodeRunner  as NodeRunner
--- import qualified Luna.Interpreter.Session     as Session
+-- import           Luna.Pass.Evaluation.Interpreter.Label       (Label)
+-- import qualified Luna.Pass.Evaluation.Interpreter.NodeRunner  as NodeRunner
+-- import qualified Luna.Pass.Evaluation.Interpreter.Session     as Session
 -- import           Old.Luna.Syntax.Term.Class
 -- import           Old.Luna.Syntax.Builder
 -- import qualified Old.Luna.Syntax.Builder          as Builder

@@ -40,18 +40,18 @@ import           Development.Placeholders
 import           Type.Inference
 
 import qualified Luna.Config.Env                      as Env
-import           Luna.Compilation.Pass.Inference.Literals        (LiteralsPass (..))
-import           Luna.Compilation.Pass.Inference.Struct          (StructuralInferencePass (..))
-import           Luna.Compilation.Pass.Inference.Unification     (StrictUnificationPass (..))
-import           Luna.Compilation.Pass.Inference.Calling         (FunctionCallingPass (..))
-import qualified Luna.Compilation.Pass.Inference.Importing       as Importing
-import           Luna.Compilation.Pass.Inference.Importing       (SymbolImportingPass (..))
-import           Luna.Compilation.Pass.Inference.Scan            (ScanPass (..))
-import           Luna.Compilation.Pass.Utils.Literals            as LiteralsUtils
-import qualified Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
-import qualified Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
-import           Luna.Pretty.GraphViz
+import           Luna.Pass.Inference.Literals        (LiteralsPass (..))
+import           Luna.Pass.Inference.Struct          (StructuralInferencePass (..))
+import           Luna.Pass.Inference.Unification     (StrictUnificationPass (..))
+import           Luna.Pass.Inference.Calling         (FunctionCallingPass (..))
+import qualified Luna.Pass.Inference.Importing       as Importing
+import           Luna.Pass.Inference.Importing       (SymbolImportingPass (..))
+import           Luna.Pass.Inference.Scan            (ScanPass (..))
+import           Luna.Pass.Utils.Literals            as LiteralsUtils
+import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
+import           Old.Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
+import           Luna.Diag.VisViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import qualified Luna.Runtime.Dynamics                         as Runtime
 import qualified Luna.IR.Expr.Format                           as EvalModel

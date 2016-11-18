@@ -12,7 +12,7 @@ import qualified Data.Graph as Graph
 import           Data.Graph (Ref, Node, ELEMENT(..))
 
 import           Type.Inference
-import           Luna.Pretty.GraphViz
+import           Luna.Diag.VisViz
 import           Luna.Runtime.Dynamics                         (Dynamic, Static)
 import           Data.Graph.Builder.Ref                          as Ref
 import qualified Data.Graph.Builder.Class                        as Graph

@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 
-module Luna.Compilation.Pass.Inference.Calling where
+module Luna.Pass.Inference.Calling where
 
 import Prelude.Luna
 
@@ -26,8 +26,8 @@ import Old.Luna.Syntax.Model.Network.Term
 
 import qualified Luna.IR.Function as Function
 
-import           Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
-import           Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
+import           Old.Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
+import           Old.Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)
 import           Data.Layer_OLD.Cover_OLD
 
 

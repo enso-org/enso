@@ -1,7 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ExtendedDefaultRules  #-}
 
-module Luna.Pretty.Graph where
+module Luna.Diag.Vis where
 
 import Prelude.Luna hiding (id)
 

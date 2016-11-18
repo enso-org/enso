@@ -1,8 +1,8 @@
-module Luna.Interpreter.Genetic where
+module Luna.Pass.Evaluation.Interpreter.Genetic where
 
 import           Prelude (read)
 import           Prelude.Luna
-import           Luna.Interpreter.Value
+import           Luna.Pass.Evaluation.Interpreter.Value
 import qualified Data.Map                                as Map
 import           Unsafe.Coerce
 

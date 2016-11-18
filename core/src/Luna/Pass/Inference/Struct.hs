@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Compilation.Pass.Inference.Struct where
+module Luna.Pass.Inference.Struct where
 
 import Prelude.Luna
 
@@ -19,10 +19,10 @@ import Old.Luna.Syntax.Model.Network.Builder.Layer      (TCDataPayload, originSi
 import Old.Luna.Syntax.Model.Network.Class              ()
 import Old.Luna.Syntax.Model.Network.Term
 import Luna.IR.Name.Ident.Pool                       (MonadIdentPool, newVarIdent')
-import Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
-import Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
+import Old.Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
+import Old.Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
 
-import qualified Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
+import qualified Old.Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
 import qualified Data.Graph.Backend.NEC as NEC
 import           Data.Graph
 import           Data.Layer_OLD.Cover_OLD

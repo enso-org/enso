@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE CPP                       #-}
 
-module Luna.Compilation.Pass.Utils.Literals where
+module Luna.Pass.Utils.Literals where
 
 import           Prelude.Luna                                    hiding (Num, pre)
 
