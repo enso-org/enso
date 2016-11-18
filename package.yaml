@@ -1,0 +1,31 @@
+author: Wojciech Danilo
+bug-reports: https://github.com/wdanilo/prologue/issues
+category: control
+copyright: Copyright (C) 2014 Wojciech Danilo
+default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable,
+  DeriveFoldable, DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse,
+  EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
+  InstanceSigs, LambdaCase, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings,
+  StandaloneDeriving, TemplateHaskell, TupleSections, TypeOperators, ViewPatterns]
+dependencies: [base >=4.6 && <4.10, bifunctors, binary, cond, container, convert,
+  data-default, data-layer, deepseq, errors, exceptions, functor-utils, ghc-prim,
+  impossible, lens, lens-utils, mtl, OneTuple, placeholders, pretty-show, primitive,
+  string-qq, template-haskell, text, transformers, transformers-base, tuple, typelevel,
+  vector]
+description: Replacement for the Haskell's Prelude, exposing more commonly used functions
+  and patching old GHC ones to behave in the newest GHC's way.
+ghc-options: [-Wall, -O2]
+git: git://github.com/wdanilo/prologue.git
+homepage: https://github.com/wdanilo/prologue
+library:
+  exposed-modules: [Data.Default.Instances.Missing, Data.String.Class, Data.Text.Class,
+    Data.Tuple.Curry.Total, Data.Typeable.Proxy.Abbr, Prologue, Prologue.Control.DeepSeq,
+    Prologue.Data.Default, Prologue.Data.Monoid, Prologue.Data.Tuple, Prologue.Placeholders,
+    Prologue.Unsafe]
+  source-dirs: src
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: prologue
+stability: experimental
+synopsis: Better, more general Prelude exporting common utilities.
+version: 1.1.8
