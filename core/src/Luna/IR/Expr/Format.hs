@@ -3,7 +3,7 @@
 
 module Luna.IR.Expr.Format where
 
-import Prelude.Luna hiding (String, Integer, Rational)
+import Luna.Prelude hiding (String, Integer, Rational)
 
 import Type.List                  (TakeUntil)
 

@@ -4,7 +4,7 @@
 
 module Luna.Pass.Inference.Literals where
 
-import           Prelude.Luna                                    hiding (Num, pre, cons)
+import           Luna.Prelude                                    hiding (Num, pre, cons)
 
 import           Data.Construction hiding (cons)
 import           Old.Data.Prop

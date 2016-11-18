@@ -2,7 +2,7 @@
 
 module Data.Graph.Builder.Cluster where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Old.Control.Monad.Event
 import Data.Graph

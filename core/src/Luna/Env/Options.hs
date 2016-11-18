@@ -81,7 +81,7 @@
 
 module Luna.Env.Options where
 --
--- import           Prelude.Luna           as P hiding (noneOf, lookup)
+-- import           Luna.Prelude           as P hiding (noneOf, lookup)
 -- import           Luna.IR.Name
 -- import           Data.Map               (Map)
 -- import           Data.Container.Hetero  (Hetero)

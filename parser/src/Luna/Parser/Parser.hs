@@ -11,7 +11,7 @@
 
 module Luna.Parser.Parser where
 
-import Prelude.Luna hiding (init)
+import Luna.Prelude hiding (init)
 
 import           Text.Parser.Combinators
 import qualified Data.ByteString.UTF8         as UTF8

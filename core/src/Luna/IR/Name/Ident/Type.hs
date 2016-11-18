@@ -1,6 +1,6 @@
 module Luna.IR.Name.Ident.Type where
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 -------------------------

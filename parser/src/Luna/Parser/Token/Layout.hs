@@ -2,7 +2,7 @@
 
 module Luna.Parser.Token.Layout (module Luna.Parser.Token.Layout, module X) where
 
-import Prelude.Luna hiding (noneOf, lex)
+import Luna.Prelude hiding (noneOf, lex)
 
 import qualified Luna.Parser.Indent as Indent
 

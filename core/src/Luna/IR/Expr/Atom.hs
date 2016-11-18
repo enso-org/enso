@@ -3,7 +3,7 @@
 
 module Luna.IR.Expr.Atom where
 
-import Prelude.Luna hiding (String, Integer, Rational, Curry)
+import Luna.Prelude hiding (String, Integer, Rational, Curry)
 import Data.Base
 import Data.Phantom
 import Data.Property

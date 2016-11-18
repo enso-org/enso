@@ -1,7 +1,7 @@
 module Luna.IR.Module where
 
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 -- === Definitions === --

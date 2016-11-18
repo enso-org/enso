@@ -1,6 +1,6 @@
 module Luna.Parser.Token.Style where
 
-import Prelude.Luna hiding (lex)
+import Luna.Prelude hiding (lex)
 
 import Luna.Parser.Combinators
 import Luna.Parser.Lex

@@ -4,7 +4,7 @@
 
 module StdLibMock where
 
-import Prelude.Luna hiding (cons)
+import Luna.Prelude hiding (cons)
 
 import Data.Construction hiding (cons)
 import Data.Maybe                                   (maybeToList)

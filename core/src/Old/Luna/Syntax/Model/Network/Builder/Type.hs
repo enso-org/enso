@@ -8,7 +8,7 @@ import qualified Control.Monad.Catch      as Catch
 import           Control.Monad.Fix
 import qualified Control.Monad.State      as State
 import           Control.Monad.Primitive
-import           Prelude.Luna
+import           Luna.Prelude
 
 -- TODO: template haskellize
 -- >->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->

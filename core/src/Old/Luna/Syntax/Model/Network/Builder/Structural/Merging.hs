@@ -4,7 +4,7 @@ module Old.Luna.Syntax.Model.Network.Builder.Structural.Merging where
 
 import           Old.Luna.Syntax.Model.Network.Builder.Term
 import           Old.Luna.Syntax.Model.Network.Builder.Layer
-import           Prelude.Luna
+import           Luna.Prelude
 import           Control.Monad                 (forM)
 import           Data.Graph
 import           Data.Graph.Builder

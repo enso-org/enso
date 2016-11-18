@@ -4,7 +4,7 @@
 
 module Luna.Pass.Inference.Unification where
 
-import Prelude.Luna                                 hiding (cons)
+import Luna.Prelude                                 hiding (cons)
 
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete, sort, groupBy)

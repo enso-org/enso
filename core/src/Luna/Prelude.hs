@@ -1,4 +1,4 @@
-module Prelude.Luna (module Prelude.Luna, module X) where
+module Luna.Prelude (module Luna.Prelude, module X) where
 
 import           Data.Reprx        as X
 import           Prologue          as X hiding (Type, Curry, Cons, Getter, Repr, Setter, cons, read, repr, (#), universe)

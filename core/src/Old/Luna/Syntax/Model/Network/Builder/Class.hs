@@ -2,7 +2,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Class where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Control.Monad.Trans.Identity
 import Control.Monad.Except

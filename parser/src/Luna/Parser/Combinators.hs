@@ -10,7 +10,7 @@ import qualified Data.ByteString              as B
 import           Data.ByteString.UTF8         as UTF8 hiding (foldr, length)
 import           Data.CharSet.ByteSet         as S
 import qualified Data.HashSet                 as HashSet
-import           Prelude.Luna
+import           Luna.Prelude
 import           System.Environment           (getArgs)
 import           System.IO                    (IOMode (ReadMode), hClose, openFile, stdout)
 import           Text.Parser.Token

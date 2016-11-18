@@ -4,7 +4,7 @@ module Old.Luna.Syntax.Model.Network.Builder.Layer (
       module X
     ) where
 
-import Prelude.Luna hiding (Type)
+import Luna.Prelude hiding (Type)
 
 import Old.Luna.Syntax.Model.Network.Builder.Layers.SuccTracking       as X
 import Old.Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking as X

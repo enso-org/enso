@@ -2,8 +2,8 @@
 
 module Luna.IR.Expr.Symbol.Named (module Luna.IR.Expr.Symbol.Named, module X) where
 
-import qualified Prelude.Luna as P
-import           Prelude.Luna hiding (Symbol, String, Integer, Rational, Data, product, product')
+import qualified Luna.Prelude as P
+import           Luna.Prelude hiding (Symbol, String, Integer, Rational, Data, product, product')
 
 import Luna.IR.Expr.Symbol.Class as X
 import Luna.IR.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only

@@ -8,7 +8,7 @@
 module Old.Luna.Syntax.Term.Class (module Old.Luna.Syntax.Term.Class, module X) where
 
 
-import           Prelude.Luna                 hiding (Num, Swapped)
+import           Luna.Prelude                 hiding (Num, Swapped)
 
 import           Data.Abstract
 import           Data.Base

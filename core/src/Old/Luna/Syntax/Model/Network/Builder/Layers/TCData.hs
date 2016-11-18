@@ -2,7 +2,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Layers.TCData where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Data.Graph.Builders
 import           Old.Control.Monad.Event

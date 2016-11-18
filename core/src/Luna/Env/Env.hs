@@ -2,7 +2,7 @@
 
 module Luna.Env.Env where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)

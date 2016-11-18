@@ -1,6 +1,6 @@
 module Luna.IR.Function.Argument where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Luna.IR.Name.Ident (HasOptIdent, IdentType)
 

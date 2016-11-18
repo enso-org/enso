@@ -2,7 +2,7 @@
 
 module Luna.Pass.Evaluation.Interpreter.Value where
 
-import           Prelude.Luna
+import           Luna.Prelude
 import           Text.Read                  (readEither)
 import           GHC.Prim                   (Any)
 import           Data.Map                   (Map)

@@ -2,7 +2,7 @@
 
 module Luna.Parser.Layout where
 
-import Prelude.Luna hiding (noneOf)
+import Luna.Prelude hiding (noneOf)
 
 import qualified Luna.Parser.Token        as Tok
 import qualified Luna.Parser.Token.Layout as Tok

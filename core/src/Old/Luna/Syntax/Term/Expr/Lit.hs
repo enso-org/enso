@@ -1,7 +1,7 @@
 module Old.Luna.Syntax.Term.Expr.Lit (module Old.Luna.Syntax.Term.Expr.Lit) where
 
-import           Prelude.Luna            hiding (Rational, Integer, String)
-import qualified Prelude.Luna            as P
+import           Luna.Prelude            hiding (Rational, Integer, String)
+import qualified Luna.Prelude            as P
 import           Luna.IR.Repr.Styles (StaticNameOnly)
 import           Luna.IR.Name
 -- import           Luna.IR.Expr.Atom as X (Star)

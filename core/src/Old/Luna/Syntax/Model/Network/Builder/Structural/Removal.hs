@@ -1,6 +1,6 @@
 module Old.Luna.Syntax.Model.Network.Builder.Structural.Removal where
 
-import           Prelude.Luna
+import           Luna.Prelude
 
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Container (add)

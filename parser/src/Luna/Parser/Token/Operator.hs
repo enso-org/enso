@@ -2,7 +2,7 @@
 
 module Luna.Parser.Token.Operator where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Luna.Parser.Combinators
 import Text.Parser.Token           (highlight, reserve, token)

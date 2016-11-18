@@ -1,6 +1,6 @@
 module Old.Luna.Compilation.Error where
 
-import Prelude.Luna
+import Luna.Prelude
 
 data TCError n = UnificationError n
                | ImportError (Maybe n) String

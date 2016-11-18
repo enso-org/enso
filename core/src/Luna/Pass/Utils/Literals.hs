@@ -3,7 +3,7 @@
 
 module Luna.Pass.Utils.Literals where
 
-import           Prelude.Luna                                    hiding (Num, pre)
+import           Luna.Prelude                                    hiding (Num, pre)
 
 import           Data.Construction
 import           Old.Data.Prop

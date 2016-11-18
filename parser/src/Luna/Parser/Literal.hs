@@ -2,7 +2,7 @@
 
 module Luna.Parser.Literal where
 
-import Prelude.Luna
+import Luna.Prelude
 import qualified Luna.Parser.Token        as Tok
 import           Text.Parser.Combinators
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit

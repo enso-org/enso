@@ -1,6 +1,6 @@
 module Old.Luna.Pass.Stage where
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 -- === Definitions === --

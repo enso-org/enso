@@ -4,7 +4,7 @@
 
 module Luna.Pass.Inference.Importing where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Control.Monad.Error                          (throwError, ErrorT, runErrorT, Error)
 import Data.Either                                  (rights)

@@ -2,7 +2,7 @@
 
 module Luna.Pass.Evaluation.Interpreter.StdScope where
 
-import           Prelude.Luna
+import           Luna.Prelude
 import           Luna.Pass.Evaluation.Interpreter.Env
 import           Luna.Pass.Evaluation.Interpreter.Value
 import           Data.List                               (sort, group)

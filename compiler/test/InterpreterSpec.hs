@@ -11,7 +11,7 @@
 
 module InterpreterSpec (spec) where
 
-import           Prelude.Luna                                    hiding (Num)
+import           Luna.Prelude                                    hiding (Num)
 
 import           Control.Monad                                   (forM_)
 import           Data.Construction

@@ -2,7 +2,7 @@
 
 module Old.Luna.Compilation.Stage.TypeCheck where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import qualified Old.Luna.Pass.Stage as Stage
 import           Old.Luna.Pass.Stage hiding (runT, run)

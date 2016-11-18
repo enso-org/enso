@@ -2,7 +2,7 @@
 
 module Luna.Pass.Utils.SubtreeWalk where
 
-import Prelude.Luna
+import Luna.Prelude
 import           Data.Construction
 import           Old.Data.Prop
 import           Data.Record                                     hiding (cons)

@@ -3,7 +3,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Term.Inferred (module Old.Luna.Syntax.Model.Network.Builder.Term.Inferred, module X) where
 
-import Prelude.Luna hiding (Num)
+import Luna.Prelude hiding (Num)
 
 import           Data.Graph                                   (ELEMENT (..))
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class as X (arg)

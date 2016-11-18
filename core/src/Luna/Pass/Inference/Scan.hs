@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Pass.Inference.Scan where
-import Prelude.Luna
+import Luna.Prelude
 import Data.Construction
 import Old.Data.Prop
 import Data.Record.Match

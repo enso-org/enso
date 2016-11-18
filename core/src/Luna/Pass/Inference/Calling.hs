@@ -4,7 +4,7 @@
 
 module Luna.Pass.Inference.Calling where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Control.Monad.Except                         (throwError, ExceptT, runExceptT)
 import Data.Container                               (add)

@@ -4,7 +4,7 @@
 
 module Luna.Pass.Evaluation.Interpreter.Interpreter where
 
-import           Prelude.Luna                                    hiding (pre, succ)
+import           Luna.Prelude                                    hiding (pre, succ)
 
 import           Control.Monad                                   (forM_)
 import           Old.Control.Monad.Event                             (Dispatcher)

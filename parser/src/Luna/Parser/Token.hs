@@ -17,7 +17,7 @@ import Text.Parser.Combinators
 import Text.Parser.Token.Highlight hiding (Comment)
 import Text.Parser.Token hiding (symbol, symbolic, ident)
 import Text.Parser.Token (symbol, ident)
-import Prelude.Luna as Prelude hiding (op, noneOf, lex, use)
+import Luna.Prelude as Prelude hiding (op, noneOf, lex, use)
 import Prelude (read)
 
 import qualified Luna.Parser.Indent as Indent

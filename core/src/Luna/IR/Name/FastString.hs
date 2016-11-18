@@ -2,7 +2,7 @@
 
 module Luna.IR.Name.FastString (module X) where
 
-import Prelude.Luna
+import Luna.Prelude
 import FastString   as X
 
 

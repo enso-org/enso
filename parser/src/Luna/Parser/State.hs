@@ -7,7 +7,7 @@
 
 module Luna.Parser.State where
 
-import           Prelude.Luna
+import           Luna.Prelude
 --import qualified Luna.Data.ASTInfo    as ASTInfo
 --import           Luna.Data.ASTInfo    (ASTInfo)
 --import           Luna.Data.SourceMap  (SourceMap)

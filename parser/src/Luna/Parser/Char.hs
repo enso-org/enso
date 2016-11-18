@@ -1,6 +1,6 @@
 module Luna.Parser.Char (module Luna.Parser.Char, module X) where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Text.Parser.Char         as X hiding (spaces)
 import           Luna.Parser.Combinators

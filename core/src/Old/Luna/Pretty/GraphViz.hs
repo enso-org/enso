@@ -7,7 +7,7 @@
 
 module Old.Luna.Pretty.GraphViz where
 
-import           Prelude.Luna                            hiding (index)
+import           Luna.Prelude                            hiding (index)
 
 import           Data.Container
 import           Data.Index                              (idx)

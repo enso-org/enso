@@ -2,7 +2,7 @@ module Luna.Diag.Info where
 
 import Paths_luna as Paths
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Data.Build
 import           Data.Version.Semantic

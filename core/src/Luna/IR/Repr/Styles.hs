@@ -1,6 +1,6 @@
 module Luna.IR.Repr.Styles where
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 -- === Definitions === --

@@ -2,7 +2,7 @@
 
 module Luna.IR.Name.Class where
 
-import Prelude.Luna
+import Luna.Prelude
 import Luna.IR.Name.FastString
 import Data.Data
 import Outputable (Outputable)

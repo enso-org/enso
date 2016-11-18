@@ -2,7 +2,7 @@
 
 module Old.Luna.Syntax.Term.Atom where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Data.Base
 import Luna.IR.Function (Arg)

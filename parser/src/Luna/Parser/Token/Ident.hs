@@ -2,7 +2,7 @@
 
 module Luna.Parser.Token.Ident where
 
-import Prelude.Luna hiding (lex)
+import Luna.Prelude hiding (lex)
 
 import Luna.Parser.Combinators
 import Luna.Parser.Indent          (MonadIndent)

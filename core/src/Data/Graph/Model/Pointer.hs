@@ -3,7 +3,7 @@
 
 module Data.Graph.Model.Pointer (module Data.Graph.Model.Pointer, module X) where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Data.Direction    as X
 import Data.Index

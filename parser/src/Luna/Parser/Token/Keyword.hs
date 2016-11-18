@@ -2,7 +2,7 @@
 
 module Luna.Parser.Token.Keyword where
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 keywords :: [String]

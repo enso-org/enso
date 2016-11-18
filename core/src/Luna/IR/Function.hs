@@ -10,7 +10,7 @@ import Luna.IR.Function.Argument   as X
 -- OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD --
 ---------------------------------------------------------------------------------------------
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 data Signature a = Signature { _self  :: Maybe a

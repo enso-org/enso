@@ -7,7 +7,7 @@
 
 module Main where
 
-import Prelude.Luna hiding (index)
+import Luna.Prelude hiding (index)
 import qualified Data.Graph as Graph
 import           Data.Graph (Ref, Node, ELEMENT(..))
 

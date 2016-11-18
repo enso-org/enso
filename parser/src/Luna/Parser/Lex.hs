@@ -1,6 +1,6 @@
 module Luna.Parser.Lex where
 
-import           Prelude.Luna            hiding (lex)
+import           Luna.Prelude            hiding (lex)
 import           Text.Parser.Combinators
 import           Text.Parser.Char
 

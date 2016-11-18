@@ -2,7 +2,7 @@
 
 module Luna.IR.Layers.Loc where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Data.Int            (Int64)
 import qualified Control.Monad.State as State

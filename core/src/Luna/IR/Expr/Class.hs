@@ -21,8 +21,8 @@ module Luna.IR.Expr.Class where
 
 
 import           Prelude                      (curry)
-import           Prelude.Luna                 hiding (Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Updater', update')
-import qualified Prelude.Luna                 as P
+import           Luna.Prelude                 hiding (Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Updater', update')
+import qualified Luna.Prelude                 as P
 
 import           Data.Abstract ()
 import           Data.Base

@@ -2,7 +2,7 @@
 
 module Old.Luna.Syntax.Model.Network.Graph (module Old.Luna.Syntax.Model.Network.Graph) where -- , module X) where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Old.Luna.Runtime.Dynamics        (Dynamics_OLD)
 import           Old.Luna.Syntax.Term.Class           (Input)

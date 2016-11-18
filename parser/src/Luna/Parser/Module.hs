@@ -2,7 +2,7 @@
 
 module Luna.Parser.Module where
 
-import Prelude.Luna hiding (cons, maybe, noneOf)
+import Luna.Prelude hiding (cons, maybe, noneOf)
 
 --import Luna.Parser.Builder (labeled)
 --import           Luna.IR.Name.Path (QualPath(QualPath))

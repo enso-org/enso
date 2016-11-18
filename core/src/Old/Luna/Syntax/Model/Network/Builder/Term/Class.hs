@@ -7,8 +7,8 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Term.Class (module Old.Luna.Syntax.Model.Network.Builder.Term.Class, module X) where
 
-import Prelude.Luna    hiding (Num, curry, Curry, Type)
-import qualified Prelude.Luna as P
+import Luna.Prelude    hiding (Num, curry, Curry, Type)
+import qualified Luna.Prelude as P
 import Prologue.Unsafe (error)
 import Data.Typeable.Proxy.Abbr (P, p)
 

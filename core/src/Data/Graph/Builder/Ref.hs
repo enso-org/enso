@@ -3,7 +3,7 @@
 
 module Data.Graph.Builder.Ref where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Old.Control.Monad.Event
 import Data.Graph.Builders

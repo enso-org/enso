@@ -2,7 +2,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Layers.SuccTracking where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Old.Control.Monad.Event
 import           Data.Container.SizeTracking            (SizeTracking)

@@ -2,7 +2,7 @@
 
 module Luna.IR.Expr.Layout.Compound where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Data.Property
 import           Type.Bool

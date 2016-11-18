@@ -4,7 +4,7 @@
 
 module Data.Record.Model.Masked where
 
-import Prelude.Luna    hiding (Enum)
+import Luna.Prelude    hiding (Enum)
 import Prologue.Unsafe (error)
 
 import Data.Bits         (Bits, FiniteBits, finiteBitSize, testBit, setBit, zeroBits)

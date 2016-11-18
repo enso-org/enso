@@ -3,7 +3,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Data.Graph.Builder
 import           Old.Control.Monad.Event

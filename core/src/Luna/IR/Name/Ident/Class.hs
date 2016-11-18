@@ -1,6 +1,6 @@
 module Luna.IR.Name.Ident.Class (module Luna.IR.Name.Ident.Class, module X) where
 
-import Prelude.Luna                hiding (Type)
+import Luna.Prelude                hiding (Type)
 
 import Luna.IR.Name
 

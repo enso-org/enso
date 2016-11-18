@@ -2,7 +2,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder.Node.Inferred where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Class as Node
 import Old.Luna.Syntax.Model.Network.Builder.Term.Inferred (inferNodeM)

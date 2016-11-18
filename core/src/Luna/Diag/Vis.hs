@@ -3,7 +3,7 @@
 
 module Luna.Diag.Vis where
 
-import Prelude.Luna hiding (id)
+import Luna.Prelude hiding (id)
 
 import           Data.Aeson       (ToJSON(toJSON, toEncoding), FromJSON, encode, decode, defaultOptions, genericToJSON, genericToEncoding, genericParseJSON)
 import           Data.Aeson.Types (fieldLabelModifier)

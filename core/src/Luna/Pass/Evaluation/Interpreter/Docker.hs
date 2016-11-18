@@ -1,6 +1,6 @@
 module Luna.Pass.Evaluation.Interpreter.Docker where
 
-import           Prelude.Luna
+import           Luna.Prelude
 import           Luna.Pass.Evaluation.Interpreter.Value
 import           Control.Monad.Except
 import           System.Process                          (readProcessWithExitCode)

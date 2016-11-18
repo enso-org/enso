@@ -1,6 +1,6 @@
 module Luna.IR.Expr.Layout.Any where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Data.Property
 import Luna.IR.Expr.Atom

@@ -3,7 +3,7 @@
 -- FIXME[WD]: refactor me
 module Data.Graph.Builders where
 
-import Prelude.Luna
+import Luna.Prelude
 
 
 import Old.Data.Prop

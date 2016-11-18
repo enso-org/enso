@@ -18,7 +18,7 @@ library:
 benchmarks:
     graph-builder:
         main: Main.hs
-        source-dirs: benchmarks
+        source-dirs: diag/bench
         dependencies:
             - criterion
             - luna

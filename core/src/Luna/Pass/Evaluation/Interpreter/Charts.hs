@@ -1,6 +1,6 @@
 module Luna.Pass.Evaluation.Interpreter.Charts where
 
-import           Prelude.Luna
+import           Luna.Prelude
 import           Data.Maybe         (listToMaybe)
 import           Data.List          (groupBy)
 import           Data.Function      (on)

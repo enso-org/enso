@@ -1,6 +1,6 @@
 module Luna.IR.Function.Class where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Luna.IR.Function.Argument
 

@@ -7,7 +7,7 @@
 
 module Luna.IR.Name.Ident.Pool where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
 import qualified Control.Monad.State            as State

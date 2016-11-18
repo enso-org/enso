@@ -1,6 +1,6 @@
 module Luna.Parser.Location where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Data.Int (Int64)
 

@@ -13,7 +13,7 @@ module Luna.Parser.Indent where
 
 import Control.Lens
 import GHC.Int
-import Prelude.Luna
+import Luna.Prelude
 
 import           Control.Monad.Catch       (MonadMask, MonadCatch, MonadThrow)
 import qualified Control.Monad.State       (State)

@@ -18,7 +18,7 @@ module LunacSpec (spec) where
 
 import           Data.Graph
 import           Data.Graph.Builders
-import           Prelude.Luna                                    hiding (curry)
+import           Luna.Prelude                                    hiding (curry)
 
 import           Text.Printf                                     (printf)
 import qualified Control.Monad.Writer                            as Writer

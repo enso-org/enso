@@ -8,7 +8,7 @@
 
 module InferenceSpec (spec) where
 
-import           Prelude.Luna                                    hiding (Num)
+import           Luna.Prelude                                    hiding (Num)
 
 import           Data.Construction
 import           Old.Data.Prop

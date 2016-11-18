@@ -7,7 +7,7 @@
 
 module Luna.Parser.Term where
 
-import Prelude.Luna hiding (maybe, P)
+import Luna.Prelude hiding (maybe, P)
 
 import           Text.Parser.Combinators
 import qualified Luna.Parser.Token       as Tok

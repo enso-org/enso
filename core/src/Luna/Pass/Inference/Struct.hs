@@ -4,7 +4,7 @@
 
 module Luna.Pass.Inference.Struct where
 
-import Prelude.Luna
+import Luna.Prelude
 
 import Data.Construction
 import Old.Data.Prop

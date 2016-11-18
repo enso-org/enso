@@ -2,7 +2,7 @@
 
 module Luna.Parser.Class where
 
-import Prelude.Luna hiding (Curry)
+import Luna.Prelude hiding (Curry)
 
 import Luna.IR.Name
 import Luna.Parser.Indent                     (MonadIndent)
