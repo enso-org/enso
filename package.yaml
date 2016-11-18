@@ -1,0 +1,22 @@
+author: Wojciech Danilo
+bug-reports: https://github.com/wdanilo/functor-utils/issues
+category: Text
+copyright: Copyright (C) 2015 Wojciech Danilo
+default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable,
+  DeriveFoldable, DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse,
+  EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
+  InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, StandaloneDeriving,
+  TemplateHaskell, TupleSections, TypeOperators, ViewPatterns, TypeFamilies]
+dependencies: [base >=4.6 && <4.10, ghc-prim]
+ghc-options: [-Wall, -O2]
+homepage: https://github.com/wdanilo/functor-utils
+library:
+  exposed-modules: [Data.Functor.Utils]
+  source-dirs: src
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: functor-utils
+stability: stable
+synopsis: Collection of functor utilities, providing handy operators, like generalization
+  of (.).
+version: '1.4'
