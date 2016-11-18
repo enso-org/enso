@@ -39,7 +39,7 @@ packages:
 - extra-dep: true
   location: {commit: 3fceb06c63fb488c8793de71a9fd2bd7e2c6d787, git: 'https://github.com/wdanilo/data-construction.git'}
 - extra-dep: true
-  location: {commit: ff70087030126e9f9f3ed3ec9a382301f8964310, git: 'https://github.com/wdanilo/data-prop.git'}
+  location: {commit: f4da8f18b3af7ed55f8df399e1d3b2be6230f6ac, git: 'https://github.com/wdanilo/data-prop.git'}
 - extra-dep: true
   location: {commit: 0105875782a46e5408c75bd634d279330ca2ed60, git: 'https://github.com/wdanilo/data-rtuple.git'}
 - extra-dep: true
