@@ -5,7 +5,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 -- {-# LANGUAGE PartialTypeSignatures #-}
 
-module Luna.Diag.VisViz where
+module Old.Luna.Pretty.GraphViz where
 
 import           Prelude.Luna                            hiding (index)
 
@@ -31,13 +31,13 @@ import qualified Data.GraphViz.Attributes.HTML           as Html
 
 import           Luna.Pass.Evaluation.Interpreter.Layer (InterpreterData (..))
 import qualified Luna.Pass.Evaluation.Interpreter.Layer as InterpreterLayer
-import           Luna.Runtime.Dynamics                 (Static)
+import           Old.Luna.Runtime.Dynamics                 (Static)
 import qualified Luna.IR.Function                as Function
 import qualified Old.Luna.Syntax.Term.Class                    as Term
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder
 import           Old.Luna.Syntax.Model.Network.Term
-import           Luna.Pretty.Styles                 (HeaderOnly (..))
+import           Luna.IR.Repr.Styles                 (HeaderOnly (..))
 
 import           System.Platform
 import           System.Process                          (createProcess, shell)

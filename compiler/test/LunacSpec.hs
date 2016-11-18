@@ -22,7 +22,7 @@ import           Prelude.Luna                                    hiding (curry)
 
 import           Text.Printf                                     (printf)
 import qualified Control.Monad.Writer                            as Writer
-import           Control.Monad.Event
+import           Old.Control.Monad.Event
 import           Old.Data.Attr                                   (attr)
 import           Data.Construction
 import           Data.Container                                  (elems, index_)
@@ -39,7 +39,7 @@ import           Data.Version.Semantic
 import           Development.Placeholders
 import           Type.Inference
 
-import qualified Luna.Config.Env                      as Env
+import qualified Luna.Env.Env                      as Env
 import           Luna.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Pass.Inference.Struct          (StructuralInferencePass (..))
 import           Luna.Pass.Inference.Unification     (StrictUnificationPass (..))
@@ -51,9 +51,9 @@ import           Luna.Pass.Utils.Literals            as LiteralsUtils
 import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Old.Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
 import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
-import           Luna.Diag.VisViz
-import           Luna.Runtime.Dynamics                         (Dynamic, Static)
-import qualified Luna.Runtime.Dynamics                         as Runtime
+import           Old.Luna.Pretty.GraphViz
+import           Old.Luna.Runtime.Dynamics                         (Dynamic, Static)
+import qualified Old.Luna.Runtime.Dynamics                         as Runtime
 import qualified Luna.IR.Expr.Format                           as EvalModel
 import qualified StdLibMock                           as StdLib
 import qualified Luna.IR.Library.Symbol                       as Symbol

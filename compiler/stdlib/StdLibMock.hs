@@ -13,7 +13,7 @@ import Data.Graph
 import Data.Graph.Builder
 import Control.Monad.State                          as State
 
-import Luna.Runtime.Dynamics                        (Static, Dynamic)
+import Old.Luna.Runtime.Dynamics                        (Static, Dynamic)
 import Luna.IR.Library.Symbol                          (MonadSymbol, SymbolMap)
 
 import Luna.IR.Function                    (Function (..), Signature (..))

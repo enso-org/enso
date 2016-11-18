@@ -12,7 +12,7 @@ import Data.Construction
 import Data.Either                                  (rights)
 import Old.Data.Prop
 import Data.Record.Match
-import Luna.Runtime.Dynamics                      (Static)
+import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Data.Graph.Builder                           as Graph hiding (run)
 import Data.Graph                                   as Graph hiding (add)

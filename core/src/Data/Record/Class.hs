@@ -23,8 +23,8 @@ import Prologue.Unsafe (fromJustNote, error)
 
 import Type.Container hiding (FromJust)
 
--- import Luna.Runtime.Dynamics (Static, Dynamic)
-import qualified Luna.Runtime.Dynamics as Runtime
+-- import Old.Luna.Runtime.Dynamics (Static, Dynamic)
+import qualified Old.Luna.Runtime.Dynamics as Runtime
 --import Data.Bits.Mask         (Mask)
 import GHC.Prim            (Any, unsafeCoerce#)
 import Data.Int            (Int64)

@@ -21,7 +21,7 @@ import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
-import           Control.Monad.Event2     as Event
+import           Control.Monad.Event     as Event
 import qualified Control.Monad.Delayed    as Delayed
 import           Control.Monad.Delayed    (Runner, MonadDelayed, Delayed, delayed)
 import qualified Control.Monad.Writer     as Writer
@@ -56,10 +56,10 @@ import           Luna.Pass.Utils.Literals            as LiteralsUtils
 import           Old.Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
 import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
-import qualified Luna.Config.Env                                 as Env
+import qualified Luna.Env.Env                                 as Env
 import qualified Luna.IR.Library.Symbol                             as Symbol
-import           Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
-import qualified Luna.Runtime.Dynamics                           as Runtime
+import           Old.Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
+import qualified Old.Luna.Runtime.Dynamics                           as Runtime
 import           Old.Luna.Syntax.Model.Layer                         ((:<), (:<:))
 import           Old.Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
 -- import           Old.Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star, blank, unify)
@@ -128,7 +128,7 @@ import qualified Old.Luna.Syntax.Model.Network.Builder.Type as Type
 
 import Control.Monad.ST
 import Data.Reprx
-import Luna.Pretty.Styles  (HeaderOnly(..))
+import Luna.IR.Repr.Styles  (HeaderOnly(..))
 import Data.Aeson (ToJSON, FromJSON, encode, decode)
 import qualified Control.Monad.State.Dependent as D
 import qualified Data.ByteString.Lazy.Char8 as ByteString

@@ -1,4 +1,4 @@
-module Luna.Pretty.Styles where
+module Luna.IR.Repr.Styles where
 
 import Prelude.Luna
 

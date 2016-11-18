@@ -6,7 +6,7 @@ import Prelude.Luna
 
 import Data.Base
 import Luna.IR.Function (Arg)
-import Luna.Pretty.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
+import Luna.IR.Repr.Styles  (HeaderOnly, StaticNameOnly(StaticNameOnly))
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import Type.Applicative ()

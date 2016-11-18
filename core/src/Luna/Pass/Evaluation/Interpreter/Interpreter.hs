@@ -7,7 +7,7 @@ module Luna.Pass.Evaluation.Interpreter.Interpreter where
 import           Prelude.Luna                                    hiding (pre, succ)
 
 import           Control.Monad                                   (forM_)
-import           Control.Monad.Event                             (Dispatcher)
+import           Old.Control.Monad.Event                             (Dispatcher)
 import           Control.Monad.Except                            (runExceptT, ExceptT (..), throwError, MonadError)
 import           Control.Monad.Reader                            (runReaderT, ReaderT, MonadReader, ask, local)
 
@@ -29,7 +29,7 @@ import           Luna.Pass.Evaluation.Interpreter.StdScope      (stdScope)
 import qualified Luna.Pass.Evaluation.Interpreter.Layer         as Layer
 import           Luna.Pass.Evaluation.Interpreter.Value
 
-import           Luna.Runtime.Dynamics                           (Static)
+import           Old.Luna.Runtime.Dynamics                           (Static)
 import           Old.Luna.Syntax.Term.Class                      (Lam (..), Acc (..), App (..), Var (..), Cons (..))
 import           Old.Luna.Syntax.Model.Network.Builder               (redirect, readSuccs, tcErrors)
 import           Old.Luna.Syntax.Model.Layer

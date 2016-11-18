@@ -18,8 +18,8 @@ import           Type.Cache.TH                (cacheHelper, cacheType)
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics_OLD, Dynamic, Static, WithDynamics_OLD, SubDynamics, SubSemiDynamics)
-import           Luna.Pretty.Styles
+import           Old.Luna.Runtime.Dynamics      (Dynamics_OLD, Dynamic, Static, WithDynamics_OLD, SubDynamics, SubSemiDynamics)
+import           Luna.IR.Repr.Styles
 import qualified Data.Reprx                   as Repr
 import           Type.Bool
 import           Luna.IR.Expr.Format
@@ -30,7 +30,7 @@ import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 
 import Prologue.Unsafe (error)
 import Luna.IR.Expr.Format (SubFormats)
-import Luna.Runtime.Dynamics (ByDynamics)
+import Old.Luna.Runtime.Dynamics (ByDynamics)
 
 
 type family TermOf     a

@@ -11,7 +11,7 @@ import Data.List                                    (delete, sort, groupBy)
 import Old.Data.Prop
 import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
-import Luna.Runtime.Dynamics                      (Static)
+import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source, target)
 import Data.Graph.Builder                           hiding (run)
 import Old.Luna.Syntax.Model.Layer

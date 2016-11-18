@@ -13,7 +13,7 @@ import qualified Data.Graph.Backend.NEC                  as NEC
 
 import Old.Luna.Syntax.Term.Class                            hiding (source, target)
 import Old.Luna.Syntax.Model.Layer
-import Luna.Runtime.Dynamics                         (Static)
+import Old.Luna.Runtime.Dynamics                         (Static)
 import Old.Luna.Syntax.Model.Network.Class                 ()
 import Old.Luna.Syntax.Model.Network.Builder.Node
 import Old.Luna.Syntax.Model.Network.Term

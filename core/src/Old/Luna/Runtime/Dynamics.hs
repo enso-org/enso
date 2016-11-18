@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Runtime.Dynamics where
+module Old.Luna.Runtime.Dynamics where
 
 import Prologue
 

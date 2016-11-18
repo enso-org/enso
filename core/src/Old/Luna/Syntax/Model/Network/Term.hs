@@ -8,7 +8,7 @@ module Old.Luna.Syntax.Model.Network.Term where
 import Prologue hiding (Getter, Setter, Cons, Num, cons)
 
 import           Old.Luna.Syntax.Model.Network.Class
-import           Control.Monad.Event
+import           Old.Control.Monad.Event
 import           Old.Data.Prop
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Record                    (HasRecord, RecordOf, IsRecord, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props)
@@ -16,7 +16,7 @@ import qualified Data.Record                    as Record
 import           Data.Reprx                     (Repr, repr)
 import           Old.Luna.Syntax.Term.Class
 import           Old.Luna.Syntax.Model.Layer
-import           Luna.Runtime.Dynamics          (Dynamics_OLD)
+import           Old.Luna.Runtime.Dynamics          (Dynamics_OLD)
 import qualified Luna.IR.Expr.Format          as Format
 import           Old.Luna.Syntax.Term               hiding (Layout, Term, Data, Link, Ref)
 import Data.Graph.Model.Edge

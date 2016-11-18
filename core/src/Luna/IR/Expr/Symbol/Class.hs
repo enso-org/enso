@@ -23,7 +23,7 @@ import Data.Construction
 import           Data.RTuple (List(Null, (:-:)))
 import qualified Data.RTuple as List
 import           Data.Reprx
-import Luna.Pretty.Styles  (HeaderOnly)
+import Luna.IR.Repr.Styles  (HeaderOnly)
 
 
 ---------------------

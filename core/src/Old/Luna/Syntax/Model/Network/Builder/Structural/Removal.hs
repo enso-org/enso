@@ -9,7 +9,7 @@ import           Data.Graph.Builder
 import           Old.Luna.Syntax.Model.Network.Term
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder.Layer (HasSuccs, readSuccs)
-import           Luna.Runtime.Dynamics (Static)
+import           Old.Luna.Runtime.Dynamics (Static)
 import           Data.Graph             hiding (add, remove)
 import qualified Data.Graph.Backend.NEC as NEC
 

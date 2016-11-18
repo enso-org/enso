@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Config.Env where
+module Luna.Env.Env where
 
 import Prelude.Luna
 

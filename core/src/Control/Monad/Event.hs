@@ -1,130 +1,141 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE GADTs                #-}
 
 module Control.Monad.Event where
 
 
 import           Prologue
 
+import           Control.Monad.Catch          hiding (Handler)
+import           Control.Monad.Fix
+import           Control.Monad.State          -- (StateT)
 import           Control.Monad.Trans.Identity
+import           Control.Monad.Primitive
+import           Control.Monad.ST
+import           Control.Monad.Delayed   (MonadDelayed, Delayed, delayed)
+
+
+-------------------
+-- === Event === --
+-------------------
+
+-- === Definitions === --
+
+class Monad m
+   => Event         e m a where dispatch_ :: a -> m ()
+type  DelayedEvent  e m a = (Event e (Delayed m) a, MonadDelayed m)
+type  Event'          m a = Event        a m a
+type  DelayedEvent'   m a = DelayedEvent a m a
+
+type SubEvent     e t m a = (Event e m a, MonadTrans t, Monad (t m))
+
+
+-- === Dispatching === --
+
+dispatch   :: forall e m a. Event  e m a => a -> m a
+dispatch'  :: forall   m a. Event'   m a => a -> m a
+dispatch_' :: forall   m a. Event'   m a => a -> m ()
+dispatch a = a <$ dispatch_ @e a ; {-# INLINE dispatch   #-}
+dispatch'  = dispatch       @a   ; {-# INLINE dispatch'  #-}
+dispatch_' = dispatch_      @a   ; {-# INLINE dispatch_' #-}
+
+delayedDispatch_  :: forall e m a. DelayedEvent  e m a => a -> m ()
+delayedDispatch   :: forall e m a. DelayedEvent  e m a => a -> m a
+delayedDispatch_' :: forall   m a. DelayedEvent'   m a => a -> m ()
+delayedDispatch'  :: forall   m a. DelayedEvent'   m a => a -> m a
+delayedDispatch_  = delayed . dispatch_  @e   ; {-# INLINE delayedDispatch_  #-}
+delayedDispatch a = a <$ delayedDispatch @e a ; {-# INLINE delayedDispatch   #-}
+delayedDispatch_' = delayedDispatch_     @a   ; {-# INLINE delayedDispatch_' #-}
+delayedDispatch'  = delayedDispatch      @a   ; {-# INLINE delayedDispatch'  #-}
+
+--
+
+redispatch_ :: forall e t m a. SubEvent e t m a => a -> t m ()
+redispatch_ = lift ∘ dispatch_ @e ; {-# INLINE redispatch_ #-}
+
+
 
 ----------------------
 -- === Listener === --
 ----------------------
 
--- === Definitions === --
+type    ListenerFunc' ctx m = forall e s. ctx e s m => Proxy e -> s -> m ()
+newtype ListenerFunc  ctx m = ListenerFunc (ListenerFunc' ctx m)
 
-class   Handler  t cfg m a where handler :: a -> Listener t cfg m ()
-newtype Listener t cfg m a = Listener (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
+type    SingleListener t = Listener (Single t)
+type    OneOfListener  t = Listener (OneOf  t)
+type    AnyListener      = Listener Any
+newtype Listener t ctx m a = Listener (StateT (ListenerFunc ctx m) m a)
+        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
+
+
+-- === Filters === --
+
+data Any
+data Single a
+data OneOf  (ls :: [*])
+
+
+-- === Listening === --
+
+appListenerFunc :: forall e ctx s m. ctx e s m => ListenerFunc ctx m -> s -> m ()
+appListenerFunc (ListenerFunc f) = f (Proxy :: Proxy e) ; {-# INLINE appListenerFunc #-}
+
+appListenerFuncT :: forall e ctx s t m. (ctx e s m, Monad m, MonadTrans t) => ListenerFunc ctx m -> s -> t m ()
+appListenerFuncT = lift ∘∘ appListenerFunc @e ; {-# INLINE appListenerFuncT #-}
+
+
+listen       :: forall ev ctx m a. Monad m => ListenerFunc' ctx m -> Listener       ev ctx m a -> m a
+listenSingle :: forall ev ctx m a. Monad m => ListenerFunc' ctx m -> SingleListener ev ctx m a -> m a
+listenAny    :: forall    ctx m a. Monad m => ListenerFunc' ctx m -> AnyListener       ctx m a -> m a
+listen f l   = evalStateT (unwrap' l) (ListenerFunc f) ; {-# INLINE listen       #-}
+listenSingle = listen @(Single ev) @ctx                ; {-# INLINE listenSingle #-}
+listenAny    = listen @Any @ctx                        ; {-# INLINE listenAny    #-}
+
+
+-- === Instances === --
+
+-- Wrappers
+
 makeWrapped ''Listener
 
+-- Events
 
--- === Instances === --
+matchedDispatch_ :: forall e t ctx m a. (Event e m a, ctx e a m) => a -> Listener t ctx m ()
+matchedDispatch_ a = wrap' (flip (appListenerFuncT @e) a =<< get) *> redispatch_ @e a
 
--- Registration time type constraint
-instance {-# OVERLAPPABLE #-} (Monad m, Dispatcher t a m)                    => Dispatcher t a (Listener t' cfg m) where dispatch_     = lift ∘∘ dispatch_
-instance {-# OVERLAPPABLE #-} (Monad m, Dispatcher t a m, Handler t cfg m a) => Dispatcher t a (Listener t  cfg m) where dispatch_ t a = handler a *> (lift $ dispatch_ t a)
-
--- Primitive
-instance PrimMonad m => PrimMonad (Listener t cfg m) where
-    type PrimState (Listener t cfg m) = PrimState m
-    primitive = lift . primitive
-    {-# INLINE primitive #-}
-
-
------------------------------
--- === Type Constraint === --
------------------------------
-
--- === Definitions === ---
-
-data TypeConstraint (ctx :: * -> * -> Constraint) tp -- Depreciated
-data TypeConstraint2 (ctx :: * -> Constraint)
-instance (ctx a tp, Monad m) => Handler t (TypeConstraint ctx tp) m a where handler _ = return () ; {-# INLINE handler #-}
-instance (ctx a, Monad m) => Handler t (TypeConstraint2 ctx) m a where handler _ = return () ; {-# INLINE handler #-}
+instance                                                  Event e Identity                  a where dispatch_ _ = return ()           ; {-# INLINE dispatch_ #-}
+instance                                                  Event e IO                        a where dispatch_ _ = return ()           ; {-# INLINE dispatch_ #-}
+instance                                                  Event e (ST s)                    a where dispatch_ _ = return ()           ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-}  SubEvent e t m a        => Event e (t m)                     a where dispatch_   = redispatch_      @e ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-}  Event e m a             => Event e (SingleListener e' ctx m) a where dispatch_   = redispatch_      @e ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-} (Event e m a, ctx e a m) => Event e (SingleListener e  ctx m) a where dispatch_   = matchedDispatch_ @e ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-} (Event e m a, ctx e a m) => Event e (AnyListener       ctx m) a where dispatch_   = matchedDispatch_ @e ; {-# INLINE dispatch_ #-}
 
 
--- === Constraint rules === ---
+-- Monads
 
-class Equality_Full a b
-instance a ~ b => Equality_Full a b
+instance MonadTrans (Listener e ctx) where
+    lift = wrap' ∘ lift ; {-# INLINE lift #-}
 
-class Equality_M1 a b
-instance (a ~ ma pa, b ~ mb pb, ma ~ mb) => Equality_M1 a b
-
-class Equality_M2 a b
-instance (a ~ m1a (m2a pa), b ~ m1b (m2b pb), m1a ~ m1b, m2a ~ m2b) => Equality_M2 a b
-
-class Equality_M3 a b
-instance (a ~ m1a (m2a (m3a pa)), b ~ m1b (m2b (m3b pb)), m1a ~ m1b, m2a ~ m2b, m3a ~ (m3b :: ([*] -> *) -> *)) => Equality_M3 a b
--- FIXME[WD]: remove the kind constraint above
-
-
--- === Utils === ---
-
-runListener :: Listener t cfg m a -> m a
-runListener = runIdentityT ∘ unwrap'
-
-constrainType :: Proxy ctx -> t -> Proxy tp -> Listener t (TypeConstraint ctx tp) m a -> m a
-constrainType _ _ _ = runListener
-
-constrainTypeEq :: t -> Proxy tp -> Listener t (TypeConstraint Equality_Full tp) m a -> m a
-constrainTypeM1 :: t -> Proxy tp -> Listener t (TypeConstraint Equality_M1   tp) m a -> m a
-constrainTypeM2 :: t -> Proxy tp -> Listener t (TypeConstraint Equality_M2   tp) m a -> m a
-constrainTypeM3 :: t -> Proxy tp -> Listener t (TypeConstraint Equality_M3   tp) m a -> m a
-constrainTypeEq = constrainType (p :: P Equality_Full)
-constrainTypeM1 = constrainType (p :: P Equality_M1)
-constrainTypeM2 = constrainType (p :: P Equality_M2)
-constrainTypeM3 = constrainType (p :: P Equality_M3)
-
-
+instance PrimMonad m => PrimMonad (Listener t ctx m) where
+    type PrimState (Listener t ctx m) = PrimState m
+    primitive = lift ∘ primitive ; {-# INLINE primitive #-}
 
 
 
 ------------------------
--- === Dispatcher === --
-------------------------
--- | The `dispatch` function can be used to indicate that a particular element is "done".
---   It does not provide any general special meaning. In general, this information can be lost when not used explicitly.
---   For a specific usage look at the `Network` builder, where `dispatch` is used to add type constrains on graph nodes and edges.
---   The `t` parameter is the type of registration, like `Node` or `Edge`. Please keep in mind, that `Node` indicates a "kind" of a structure.
---   It does not equals a graph-like node - it can be a "node" in flat AST representation, like just an ordinary term.
-
-type Dispatcher2 t m a = Dispatcher t a m
-class Monad m => Dispatcher t a m where
-    dispatch_ :: t -> a -> m ()
-
-
--- === Utils === --
-
-dispatchM :: Dispatcher t a m => t -> m a -> m a
-dispatchM t ma = do
-    a <- ma
-    dispatch_ t a
-    return a
-{-# INLINE dispatchM #-}
-
-dispatch :: Dispatcher t a m => t -> a -> m a
-dispatch t a = a <$ dispatch_ t a ; {-# INLINE dispatch #-}
-
-
--- === Instances === --
-
-instance {-# OVERLAPPABLE #-}
-         (Dispatcher t a m, MonadTrans f, Monad m, Monad (f m)) => Dispatcher t a (f m)    where dispatch_     = lift ∘∘ dispatch_ ; {-# INLINE dispatch_ #-}
-instance                                                         Dispatcher t a IO       where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
-instance                                                         Dispatcher t a Identity where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
-
-
-------------------------
--- === Dispatcher === --
+-- === Suppressor === --
 ------------------------
 
 newtype SuppressorT (t :: Maybe *) m a = SuppressorT (IdentityT m a) deriving (Show, Functor, Monad, MonadTrans, MonadIO, MonadFix, Applicative, MonadThrow, MonadCatch, MonadMask, MonadPlus, Alternative)
+type    AllSuppressorT = SuppressorT 'Nothing
 makeWrapped ''SuppressorT
 
-instance {-# OVERLAPPABLE #-} Monad m          => Dispatcher t a (SuppressorT 'Nothing   m) where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
-instance {-# OVERLAPPABLE #-} Monad m          => Dispatcher t a (SuppressorT ('Just t)  m) where dispatch_ _ _ = return ()         ; {-# INLINE dispatch_ #-}
-instance {-# OVERLAPPABLE #-} Dispatcher t a m => Dispatcher t a (SuppressorT ('Just t') m) where dispatch_     = lift ∘∘ dispatch_ ; {-# INLINE dispatch_ #-}
+
+-- === Utils === --
 
 runSuppressorT :: SuppressorT t m a -> m a
 runSuppressorT = runIdentityT . unwrap' ; {-# INLINE runSuppressorT #-}
@@ -136,6 +147,16 @@ suppressAll :: SuppressorT 'Nothing m a -> m a
 suppressAll = runSuppressorT ; {-# INLINE suppressAll #-}
 
 
+-- === Instances === --
+
+-- Events
+
+instance {-# OVERLAPPABLE #-} Monad m     => Event e (SuppressorT 'Nothing   m) a where dispatch_ _ = return ()      ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-} Monad m     => Event e (SuppressorT ('Just e ) m) a where dispatch_ _ = return ()      ; {-# INLINE dispatch_ #-}
+instance {-# OVERLAPPABLE #-} Event e m a => Event e (SuppressorT ('Just e') m) a where dispatch_   = redispatch_ @e ; {-# INLINE dispatch_ #-}
+
+-- Monads
+
 instance PrimMonad m => PrimMonad (SuppressorT t m) where
     type PrimState (SuppressorT t m) = PrimState m
-    primitive = lift . primitive
+    primitive = lift . primitive ; {-# INLINE primitive #-}

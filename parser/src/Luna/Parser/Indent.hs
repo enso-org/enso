@@ -27,7 +27,7 @@ import           Text.Parser.LookAhead
 import           Text.Parser.Token         (TokenParsing, nesting, someSpace, semi, highlight, token)
 import qualified Control.Monad.Trans.State.Lazy as Lazy
 
-import Control.Monad.Event
+import Old.Control.Monad.Event
 import Type.Inference
 
 import Data.Graph.Builder.Class (BuilderT(..))

@@ -4,7 +4,7 @@ module Old.Luna.Syntax.Model.Network.Graph (module Old.Luna.Syntax.Model.Network
 
 import Prelude.Luna
 
-import           Luna.Runtime.Dynamics        (Dynamics_OLD)
+import           Old.Luna.Runtime.Dynamics        (Dynamics_OLD)
 import           Old.Luna.Syntax.Term.Class           (Input)
 import           Old.Luna.Syntax.Model.Layer        ((:<:))
 import           Data.Graph

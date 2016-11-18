@@ -10,7 +10,7 @@ import Data.Construction
 import Old.Data.Prop
 import Data.Record
 import Data.Graph.Builder
-import Luna.Runtime.Dynamics                      (Static)
+import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Old.Luna.Syntax.Model.Layer
 import Old.Luna.Syntax.Model.Network.Builder.Node

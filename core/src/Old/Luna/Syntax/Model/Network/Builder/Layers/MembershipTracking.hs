@@ -6,7 +6,7 @@ module Old.Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking where
 import Prelude.Luna
 
 import           Data.Graph.Builder
-import           Control.Monad.Event
+import           Old.Control.Monad.Event
 import           Old.Data.Prop
 import qualified Data.List                               as List
 import           Data.Construction

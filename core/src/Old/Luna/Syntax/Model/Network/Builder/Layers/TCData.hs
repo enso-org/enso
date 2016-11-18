@@ -5,7 +5,7 @@ module Old.Luna.Syntax.Model.Network.Builder.Layers.TCData where
 import Prelude.Luna
 
 import           Data.Graph.Builders
-import           Control.Monad.Event
+import           Old.Control.Monad.Event
 import           Old.Data.Prop
 import           Data.Construction
 import           Data.Graph.Model.Pointer.Set

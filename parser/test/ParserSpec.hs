@@ -12,15 +12,15 @@ import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import qualified Luna.Parser.Literal      as PLit
 import Old.Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
 import Old.Luna.Syntax.Model.Network.Term
-import Luna.Runtime.Dynamics
+import Old.Luna.Runtime.Dynamics
 import Old.Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
 import Data.Graph
 import           Old.Luna.Syntax.Model.Layer        ((:<:))
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
 import qualified Old.Luna.Syntax.Model.Network.Builder.Term.Class as Term
 import           Type.Inference
-import           Luna.Diag.VisViz
-import           Control.Monad.Event (Dispatcher)
+import           Old.Luna.Pretty.GraphViz
+import           Old.Control.Monad.Event (Dispatcher)
 import           Control.Monad.Identity hiding (when)
 import qualified Luna.Parser.Parser     as Parser
 import qualified Luna.Parser.State      as Parser

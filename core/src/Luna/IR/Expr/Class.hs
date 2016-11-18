@@ -33,9 +33,9 @@ import           Type.Container               hiding (Empty, FromJust, Every)
 import           Type.Map
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynamics, SubSemiDynamics, ByDynamics)
-import qualified Luna.Runtime.Dynamics      as Dynamics
-import           Luna.Pretty.Styles
+import           Old.Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynamics, SubSemiDynamics, ByDynamics)
+import qualified Old.Luna.Runtime.Dynamics      as Dynamics
+import           Luna.IR.Repr.Styles
 import           Luna.IR.Function.Argument
 import           Data.Reprx
 import           Type.Bool
@@ -84,8 +84,8 @@ import qualified Data.Set as Set
 import Data.Container.List (ToSet, toSet)
 import GHC.Prim (Any)
 
-import           Control.Monad.Event2     hiding (Any)
-import qualified Control.Monad.Event2     as Event
+import           Control.Monad.Event     hiding (Any)
+import qualified Control.Monad.Event     as Event
 
 import Type.Container (Every)
 

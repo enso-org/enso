@@ -12,7 +12,7 @@ import           Data.Graph
 import           Data.Graph.Builder
 import qualified Data.Graph.Backend.NEC                  as NEC
 
-import           Luna.Runtime.Dynamics                         (Static)
+import           Old.Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            (Lam, Cons)
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 import           Old.Luna.Syntax.Model.Layer

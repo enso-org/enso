@@ -11,7 +11,7 @@ import Data.Either                                  (rights)
 import Old.Data.Prop
 import Data.Record.Match
 import Data.Maybe                                   (fromMaybe)
-import Luna.Runtime.Dynamics                        (Static)
+import Old.Luna.Runtime.Dynamics                        (Static)
 import Luna.IR.Library.Symbol                          (MonadSymbol, lookupFunction, lookupLambda, loadLambda)
 import Luna.IR.Function                    (Function, Signature)
 import Old.Luna.Syntax.Term.Class                   hiding (source)

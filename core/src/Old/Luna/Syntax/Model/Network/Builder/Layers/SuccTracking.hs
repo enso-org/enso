@@ -4,7 +4,7 @@ module Old.Luna.Syntax.Model.Network.Builder.Layers.SuccTracking where
 
 import Prelude.Luna
 
-import           Control.Monad.Event
+import           Old.Control.Monad.Event
 import           Data.Container.SizeTracking            (SizeTracking)
 import           Data.Container                         (add, remove, try)
 import           Data.IntSet                            (IntSet)

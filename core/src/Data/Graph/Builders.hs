@@ -7,10 +7,10 @@ import Prelude.Luna
 
 
 import Old.Data.Prop
-import Control.Monad.Event
+import Old.Control.Monad.Event
 import Data.Direction
 import Data.Container          hiding (Impossible, impossible)
-import Luna.Runtime.Dynamics   (Dynamics_OLD, Static, Dynamic)
+import Old.Luna.Runtime.Dynamics   (Dynamics_OLD, Static, Dynamic)
 import Type.Bool
 import qualified Data.Graph.Backend.NEC as NEC
 import Data.Graph hiding (Dynamic)

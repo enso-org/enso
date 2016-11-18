@@ -5,7 +5,7 @@ module Data.Graph.Builder.Ref where
 
 import Prelude.Luna
 
-import Control.Monad.Event
+import Old.Control.Monad.Event
 import Data.Graph.Builders
 import Data.Construction
 import Old.Data.Prop

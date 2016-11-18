@@ -22,10 +22,10 @@ import           Type.Inference
 
 import           Data.Graph
 import           Data.Graph.Builder
-import qualified Luna.Config.Env                      as Env
+import qualified Luna.Env.Env                      as Env
 import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import           Luna.Diag.VisViz
-import           Luna.Runtime.Dynamics                         (Static)
+import           Old.Luna.Pretty.GraphViz
+import           Old.Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder               (Sign (..), tcErrors)
@@ -59,7 +59,7 @@ import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeChec
 import qualified Control.Monad.Writer                            as Writer
 import qualified StdLibMock                                      as StdLib
 import qualified Luna.IR.Library.Symbol                             as Symbol
-import           Control.Monad.Event                             (Dispatcher)
+import           Old.Control.Monad.Event                             (Dispatcher)
 
 import           Test.Hspec (Spec, describe, it, shouldBe, shouldThrow, expectationFailure)
 import           System.IO.Silently (silence)

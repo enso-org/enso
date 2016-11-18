@@ -57,7 +57,7 @@ import           Old.Luna.Syntax.Model.Network.Builder.Term.Class (TermBuilder)
 import Old.Luna.Syntax.Term.Class (Unify, Var, Cons, App, Unify, Match, Input, NameInput)
 import qualified Old.Luna.Syntax.Term.Expr.Lit as Lit
 import Data.Graph.Builders (nameConnection, ConnectibleName, ConnectibleName', ConnectibleNameH)
-import Luna.Runtime.Dynamics (Dynamics)
+import Old.Luna.Runtime.Dynamics (Dynamics)
 import Luna.IR.Name
 import qualified Luna.IR.Function.Argument as AST
 import           Luna.IR.Name.Ident (named)
