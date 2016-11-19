@@ -95,8 +95,8 @@ import Luna.IR.Expr hiding (Data, cons, unify, star)
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
-import qualified Luna.IR.Expr.Class as IR
-import Luna.IR.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
+import qualified Luna.IR.Model.Internal as IR
+import Luna.IR.Model.Internal hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Prelude (error, undefined)
@@ -138,7 +138,8 @@ import qualified Luna.Diag.Vis as Vis
 import           Luna.Diag.Vis (MonadVis)
 import qualified Data.Set as S
 import Type.Container (Every)
--- import Data.Ident
+import Luna.IR.Model.Layer
+import Luna.IR.Model.Layer.Data
 
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
