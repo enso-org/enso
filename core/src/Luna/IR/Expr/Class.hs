@@ -100,17 +100,6 @@ import           Data.Hetero.Stack (Stack)
 
 
 
------------------------------------------------------------------------------------------
--- DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED DEPRECIATED --
------------------------------------------------------------------------------------------
-
-
-
------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------
-
-
-
 
 --------------------
 -- === Events === --
@@ -170,92 +159,92 @@ instance KnownRepr a => Show (Elem a) where
 
 
 -----------------
--- === Asg === --
+-- === IR === --
 -----------------
 
-newtype AsgT  t m a = AsgT (IdentityT m a) deriving (Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-newtype Asg   t   a = Asg  a               deriving (Functor, Traversable, Foldable)
-type    AsgMT   m   = AsgT (Cfg m) m
-type    AsgM    m   = Asg  (Cfg m)
+newtype IRT  t m a = IRT (IdentityT m a) deriving (Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
+newtype IR   t   a = IR  a               deriving (Functor, Traversable, Foldable)
+type    IRMT   m   = IRT (Cfg m) m
+type    IRM    m   = IR  (Cfg m)
 
-data AsgType = AsgType deriving (Show)
+data IRType = IRType deriving (Show)
 
 
--- === Asg building === --
+-- === IR building === --
 
 type family Definition t a
 
-definition :: IsElem a => Iso' (Asg t a) (Definition t a)
-definition = unsafeAsgWrapped . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
+definition :: IsElem a => Iso' (IR t a) (Definition t a)
+definition = unsafeIRWrapped . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
 
-fromDefinition :: (AsgMonad m, IsElem a) => Definition (Cfg m) a -> m a
-fromDefinition = liftAsg . view (from definition) ; {-# INLINE fromDefinition #-}
+fromDefinition :: (IRMonad m, IsElem a) => Definition (Cfg m) a -> m a
+fromDefinition = liftIR . view (from definition) ; {-# INLINE fromDefinition #-}
 
-toDefinition :: (AsgMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
+toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
 toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
 
 
--- === AsgMonad === ---
+-- === IRMonad === ---
 
-class                         Monad m           => AsgMonad m          where liftAsg :: forall a. Asg (Cfg m) a -> m a
-instance {-# OVERLAPPABLE #-} Monad m           => AsgMonad (AsgT t m) where liftAsg = return . unsafeAsgUnwrap ; {-# INLINE liftAsg #-}
-instance {-# OVERLAPPABLE #-} AsgMonadTrans t m => AsgMonad (t      m) where liftAsg = lift . liftAsg           ; {-# INLINE liftAsg #-}
+class                         Monad m           => IRMonad m          where liftIR :: forall a. IR (Cfg m) a -> m a
+instance {-# OVERLAPPABLE #-} Monad m           => IRMonad (IRT t m) where liftIR = return . unsafeIRUnwrap ; {-# INLINE liftIR #-}
+instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t      m) where liftIR = lift . liftIR           ; {-# INLINE liftIR #-}
 
-type AsgMonadTrans t m = (AsgMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m))
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m))
 
 -- FIXME[WD]: maybe we should relax a bit the Cfg definition?
 type family Cfg (m :: * -> *) where
-    Cfg (AsgT t m) = t
-    Cfg (Asg  t)   = t
+    Cfg (IRT t m) = t
+    Cfg (IR  t)   = t
     Cfg (m t)      = Cfg t
 
 
--- === Asg mark === ---
+-- === IR mark === ---
 
-type Marked m a = AsgM m (AsgVal a)
+type Marked m a = IRM m (IRVal a)
 
 class                          Monad m                    => Markable m a            where mark :: a -> m (Marked m a)
-instance {-# OVERLAPPABLE #-} (Monad m, AsgVal a ~ a)     => Markable m a            where mark = return . Asg ; {-# INLINE mark #-}
-instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (Asg  t   a) where mark = return       ; {-# INLINE mark #-}
-instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (AsgT t n a) where mark = runAsgT      ; {-# INLINE mark #-}
+instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)     => Markable m a            where mark = return . IR ; {-# INLINE mark #-}
+instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (IR  t   a) where mark = return       ; {-# INLINE mark #-}
+instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT      ; {-# INLINE mark #-}
 
-type family AsgVal a where
-    AsgVal (Asg  _   a) = a
-    AsgVal (AsgT _ _ a) = a
-    AsgVal a            = a
+type family IRVal a where
+    IRVal (IR  _   a) = a
+    IRVal (IRT _ _ a) = a
+    IRVal a            = a
 
-mark' :: AsgMonad m => a -> m (AsgM m a)
-mark' = return . Asg ; {-# INLINE mark' #-}
+mark' :: IRMonad m => a -> m (IRM m a)
+mark' = return . IR ; {-# INLINE mark' #-}
 
 
 -- === Running === --
 
-transform :: Monad m => Asg t a -> AsgT t m a
-transform = return . unsafeAsgUnwrap ; {-# INLINE transform #-}
+transform :: Monad m => IR t a -> IRT t m a
+transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
 
-runAsgT :: Functor m => AsgT t m a -> m (Asg t a)
-runAsgT (AsgT m) = Asg . runIdentityT m ; {-# INLINE runAsgT #-}
+runIRT :: Functor m => IRT t m a -> m (IR t a)
+runIRT (IRT m) = IR . runIdentityT m ; {-# INLINE runIRT #-}
 
-unsafeAsgUnwrap :: Asg t a -> a
-unsafeAsgUnwrap (Asg a) = a ; {-# INLINE unsafeAsgUnwrap #-}
+unsafeIRUnwrap :: IR t a -> a
+unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
 
-unsafeAsgWrapped :: Iso' (Asg t a) a
-unsafeAsgWrapped = iso unsafeAsgUnwrap Asg ; {-# INLINE unsafeAsgWrapped #-}
+unsafeIRWrapped :: Iso' (IR t a) a
+unsafeIRWrapped = iso unsafeIRUnwrap IR ; {-# INLINE unsafeIRWrapped #-}
 
 
 -- === Property selectors === --
 
 type Select   p m a =  Access    p (Marked m a)
 type Selector p m a = (Accessor  p (Marked m a), Markable m a)
-type Updaterx p m a = (Updater'  p (Marked m a), Markable m a, AsgMonad m)
+type Updaterx p m a = (Updater'  p (Marked m a), Markable m a, IRMonad m)
 
 select :: forall p m a. Selector p m a => a -> m (Select p m a)
 select = access @p <∘> mark ; {-# INLINE select #-}
 
-updatex :: forall p m a. Updaterx p m a => Select p m a -> a -> m (AsgVal a)
-updatex v a = (liftAsg . update' @p v) =<< mark a ; {-# INLINE updatex #-}
+updatex :: forall p m a. Updaterx p m a => Select p m a -> a -> m (IRVal a)
+updatex v a = (liftIR . update' @p v) =<< mark a ; {-# INLINE updatex #-}
 
-with :: forall p m a. (Selector p m a, Updaterx p m a) => (Select p m a -> Select p m a) -> a -> m (AsgVal a)
+with :: forall p m a. (Selector p m a, Updaterx p m a) => (Select p m a -> Select p m a) -> a -> m (IRVal a)
 with f src = do
     succs <- select @p src
     updatex @p (f succs) src
@@ -265,30 +254,30 @@ with f src = do
 -- === Instances === --
 
 -- Show
-instance {-# OVERLAPPABLE #-}                              Show (Asg I a) where show = impossible
-instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (Asg t a) where
+instance {-# OVERLAPPABLE #-}                              Show (IR I a) where show = impossible
+instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (IR t a) where
     showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
 
 -- PrimMonad
-instance PrimMonad m => PrimMonad (AsgT t m) where
-    type PrimState (AsgT t m) = PrimState m
+instance PrimMonad m => PrimMonad (IRT t m) where
+    type PrimState (IRT t m) = PrimState m
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 -- Properties
-type instance Access p (Asg t a) = Access p (Definition t a)
+type instance Access p (IR t a) = Access p (Definition t a)
 
-instance (Accessor p (Definition t a), IsElem a) => Accessor p (Asg t a) where
+instance (Accessor p (Definition t a), IsElem a) => Accessor p (IR t a) where
     access = access @p . view definition ; {-# INLINE access #-}
 
-instance (Updater' p (Definition t a), IsElem a) => Updater' p (Asg t a) where
+instance (Updater' p (Definition t a), IsElem a) => Updater' p (IR t a) where
     update' v = definition %~ update' @p v ; {-# INLINE update' #-}
 
 -- Universal
-type instance Universal (Asg t a) = Asg t (Universal a)
+type instance Universal (IR t a) = IR t (Universal a)
 
 -- Ordering
-instance (Ord (Definition t a), IsElem a) => Ord (Asg t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}
-instance (Eq  (Definition t a), IsElem a) => Eq  (Asg t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
+instance (Ord (Definition t a), IsElem a) => Ord (IR t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}
+instance (Eq  (Definition t a), IsElem a) => Eq  (IR t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
 
 
 ------------------------
@@ -336,7 +325,7 @@ instance Default (Unwrapped (Layer t l))
 ------------------------
 
 type    LayerStackBase a   = Stack (Layer a)
-newtype LayerStack     t a = LayerStack (LayerStackBase (Asg t a) (Layers (Universal a) t))
+newtype LayerStack     t a = LayerStack (LayerStackBase (IR t a) (Layers (Universal a) t))
 makeWrapped ''LayerStack
 
 
@@ -377,7 +366,7 @@ instance HasLayer I q layer where layer' = impossible                           
 
 deriving instance Show (Unwrapped (LayerStack t a)) => Show (LayerStack t a)
 
-type instance Access p (LayerStack t a) = LayerData p (Asg t a)
+type instance Access p (LayerStack t a) = LayerData p (IR t a)
 
 instance HasLayer t (Universal a) p => Accessor p (LayerStack t a) where
     access = view (layer' @t @(Universal a) @p) . unwrap' ; {-# INLINE access #-}
@@ -414,39 +403,39 @@ makeWrapped ''Ref
 
 type Referable' m a = Referable (Universal a) (Cfg m) m
 class Monad m => Referable i t m where
-    refDesc    :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t a                     -> m (Ref a)
-    unrefDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t (Ref a)               -> m ()
-    readDesc   :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t (Ref a)               -> m a
-    writeDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t (Ref a) -> a          -> m ()
-    modifyDesc :: forall a. (i ~ Universal a, t ~ Cfg m) => Asg t (Ref a) -> (a -> m a) -> m ()
+    refDesc    :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t a                     -> m (Ref a)
+    unrefDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a)               -> m ()
+    readDesc   :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a)               -> m a
+    writeDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a) -> a          -> m ()
+    modifyDesc :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a) -> (a -> m a) -> m ()
     modifyDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyDesc #-}
 
-type AsgValLike t m a = (Markable m t, AsgVal t ~ a)
+type IRValLike t m a = (Markable m t, IRVal t ~ a)
 
-silentRef :: (Referable' m a, AsgValLike t m a) => t -> m (Ref a)
+silentRef :: (Referable' m a, IRValLike t m a) => t -> m (Ref a)
 silentRef = refDesc <=< mark ; {-# INLINE silentRef #-}
 
-ref :: (Referable' m a, AsgValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
+ref :: (Referable' m a, IRValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
 ref = register @New <=< silentRef ; {-# INLINE ref #-}
 
-delayedRef :: (Referable' m a, AsgValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
+delayedRef :: (Referable' m a, IRValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
 delayedRef = delayedRegister @New <=< silentRef ; {-# INLINE delayedRef #-}
 
-read :: (Referable' m a, AsgValLike t m (Ref a)) => t -> m a
+read :: (Referable' m a, IRValLike t m (Ref a)) => t -> m a
 read = readDesc <=< mark ; {-# INLINE read #-}
 
-write :: (Referable' m a, AsgValLike t m (Ref a)) => t -> a -> m ()
+write :: (Referable' m a, IRValLike t m (Ref a)) => t -> a -> m ()
 write d a = flip writeDesc a =<< mark d ; {-# INLINE write #-}
 
-modify :: (Referable' m a, AsgValLike t m (Ref a)) => t -> (a -> m a) -> m ()
+modify :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> m a) -> m ()
 modify d f = flip modifyDesc f =<< mark d ; {-# INLINE modify #-}
 
-modify' :: (Referable' m a, AsgValLike t m (Ref a)) => t -> (a -> a) -> m ()
+modify' :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> a) -> m ()
 modify' d = modify d . fmap return ; {-# INLINE modify' #-}
 
 
 -- TODO: tak moze wygladac taktyka na pure functions:
--- Asg t (Ref a) -> (g ->) (Ast t a)
+-- IR t (Ref a) -> (g ->) (Ast t a)
 --       (Ref a) -> m             a
 --
 
@@ -485,12 +474,12 @@ instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) 
 newtype Link   src tgt = Link (Elem (Link src tgt))
 type    Link'  a       = Link a a
 type    SubLink c t    = Ref (Link (Sub c t) t)
-type family SubLink2 (a :: *) (b :: *) where SubLink2 c (Asg t a) = Asg t (Ref (Link (Sub c a) a))
+type family SubLink2 (a :: *) (b :: *) where SubLink2 c (IR t a) = IR t (Ref (Link (Sub c a) a))
 
 
 type instance Definition t    (Link src tgt) = LayerStack t (Link src tgt)
 instance      IsElem          (Link src tgt)
-type instance LayerData  Data (Asg t (Link src tgt)) = (Asg t (Ref src), Asg t (Ref tgt))
+type instance LayerData  Data (IR t (Link src tgt)) = (IR t (Ref src), IR t (Ref tgt))
 
 makeWrapped ''Link
 
@@ -498,7 +487,7 @@ makeWrapped ''Link
 -- -- === Construction === --
 
 type LayerStackCons m a = StackCons (Layers (Universal a) (Cfg m)) m -- REFACTORME
-type Linkable' src tgt m = (AsgMonad m, LayerStackCons m (Link src tgt))
+type Linkable' src tgt m = (IRMonad m, LayerStackCons m (Link src tgt))
 
 link' :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
 link' a b = fromDefinition =<< consLayerStack =<< ((,) <$> mark' a <*> mark' b) ; {-# INLINE link' #-}
@@ -634,7 +623,7 @@ type    AnyExpr     = Expr Layout.Any
 
 type instance Definition t    (Expr layout) = LayerStack t (Expr layout)
 instance      IsElem          (Expr layout)
-type instance LayerData  Data (Asg t (Expr layout)) = TermStore
+type instance LayerData  Data (IR t (Expr layout)) = TermStore
 
 makeWrapped ''Expr
 -- makeRepr    ''Expr
@@ -656,7 +645,7 @@ type instance LayoutOf (Expr layout) = layout
 
 -- === Utils === --
 
-uniExprTypes2 :: (expr ~ Expr layout, sym ~ ExprSymbol atom expr) => Asg t expr -> sym -> sym
+uniExprTypes2 :: (expr ~ Expr layout, sym ~ ExprSymbol atom expr) => IR t expr -> sym -> sym
 uniExprTypes2 _ = id ; {-# INLINE uniExprTypes2 #-}
 
 unsafeSpecifyLayout2 :: AnyExpr -> Expr layout
@@ -669,7 +658,7 @@ anyLayout3 = unsafeCoerce
 
 -- === Construction === --
 
-type ExprBuilder      m = (AsgMonad m, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)))
+type ExprBuilder      m = (IRMonad m, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)))
 type SilentExprCons   m = (ExprBuilder m, Referable Expr' (Cfg m) m)
 type ExprMonad        m = (SilentExprCons m, Register        New (Ref Expr') m)
 type DelayedExprMonad m = (SilentExprCons m, DelayedRegister New (Ref Expr') m)
@@ -733,12 +722,12 @@ instance ( ctx (ExprSymbol a (Expr layout)) m b
         if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
 
 instance ( ctx (ExprSymbol a (Expr layout)) m b
-         , SymbolMapM' as ctx (Asg t (Expr layout)) m b
+         , SymbolMapM' as ctx (IR t (Expr layout)) m b
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
          , KnownNat idx
          , HasLayer t Expr' Data
          )
-      => SymbolMapM' (a ': as) ctx (Asg t (Expr layout)) m b where
+      => SymbolMapM' (a ': as) ctx (IR t (Expr layout)) m b where
     symbolMapM' f expr = do
         let d    = unwrap' $ access @Data expr
             eidx = unwrap' $ access @Atom d
@@ -749,7 +738,7 @@ instance ( ctx (ExprSymbol a (Expr layout)) m b
 instance Monad m => SymbolMapM' '[] ctx expr m b where symbolMapM' _ _ = impossible
 
 
-instance HasLayer t Expr' Data => Repr HeaderOnly (Asg t (Expr layout)) where repr expr = symbolMap_A @(Repr HeaderOnly) repr expr
+instance HasLayer t Expr' Data => Repr HeaderOnly (IR t (Expr layout)) where repr expr = symbolMap_A @(Repr HeaderOnly) repr expr
 
 
 class HasFields2 a b where fieldList2 :: a -> b
@@ -757,7 +746,7 @@ instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = 
 
 -- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
 -- type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
-symbolFields :: (SymbolMap_AB HasFields2 (Asg t expr) out, expr ~ Expr layout, out ~ [Ref (Link expr expr)]) => Asg t expr -> out
+symbolFields :: (SymbolMap_AB HasFields2 (IR t expr) out, expr ~ Expr layout, out ~ [Ref (Link expr expr)]) => IR t expr -> out
 symbolFields = symbolMap_AB @HasFields2 fieldList2
 
 
@@ -772,7 +761,7 @@ instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
 -- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
 -- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
 
-exprUniSymbol :: HasLayer t Expr' Data => (Asg t (Expr layout)) -> ExprUniSymbol (Expr layout)
+exprUniSymbol :: HasLayer t Expr' Data => (IR t (Expr layout)) -> ExprUniSymbol (Expr layout)
 exprUniSymbol = ExprUniSymbol . symbolMap_AB @IsUniSymbol2 uniSymbol2
 
 

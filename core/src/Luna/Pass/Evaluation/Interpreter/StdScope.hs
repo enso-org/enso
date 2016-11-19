@@ -123,7 +123,7 @@ listenUDP port = liftIO $ do
           callback $ unsafeToData msg
           worker
     th <- forkIO worker
-    addDest $ killThread th >> close sock >> Prelude.Luna.print "close UDP"
+    addDest $ killThread th >> close sock >> Luna.Prelude.print "close UDP"
     return stream
 
 twitter :: LunaM Stream

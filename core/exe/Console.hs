@@ -95,7 +95,7 @@ import Luna.IR.Expr hiding (Data, cons, unify, star)
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
-import qualified Luna.IR.Expr.Class as Asg
+import qualified Luna.IR.Expr.Class as IR
 import Luna.IR.Expr.Class hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
@@ -190,7 +190,7 @@ instance ( Self.MonadSelfBuilder (Ref Expr') m
          , StackCons (Layers ExprLink' (Cfg m)) m
          , Referable ExprLink' (Cfg m) m
          , t ~ Cfg m
-         ) => Constructor TermStore m (Layer (Asg t AnyExpr) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
+         ) => Constructor TermStore m (Layer (IR t AnyExpr) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
     cons _ = do
         self <- anyLayout3 <$> Self.get
         top  <- localTop
@@ -207,7 +207,7 @@ data Succs = Succs deriving (Show)
 
 -- FIXME[WD]: refactorme
 type instance LayerData Succs a = S.Set (XYZ a)
-type family XYZ a where XYZ (Asg t a) = Asg t (Ref (Universal a))
+type family XYZ a where XYZ (IR t a) = IR t (Ref (Universal a))
 
 instance Monad m => LayerCons Succs m where
     consLayer _ = return def ; {-# INLINE consLayer #-}
@@ -216,12 +216,12 @@ instance Monad m => Constructor a m (Layer expr Succs) where
     cons _ = Layer <$> return def ; {-# INLINE cons #-}
 
 
-instance ( AsgMonad m
-         , AsgReferables m
+instance ( IRMonad m
+         , IRReferables m
          , HasLayerM  m ExprLink' Data
          , HasLayersM m Expr' '[UID, Succs]
-         , Ord (AsgM m (Ref (Expr Draft)))
-         , Eq  (AsgM m (Ref (Expr Draft)))
+         , Ord (IRM m (Ref (Expr Draft)))
+         , Eq  (IRM m (Ref (Expr Draft)))
          )
       => Handler Succs New (Ref ExprLink') m where
     handle linkRef = do
@@ -294,15 +294,15 @@ type instance Impl Ref ExprLink' Net = G.Ref2 Edge
 
 ------------
 
-instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, AsgMonad m)
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, IRMonad m)
       => Referable Expr' Net m where
-    refDesc   = fromDefinition <=< construct' <=< liftAsg ; {-# INLINE refDesc   #-}
+    refDesc   = fromDefinition <=< construct' <=< liftIR ; {-# INLINE refDesc   #-}
     readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
 
-instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, AsgMonad m)
+instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, IRMonad m)
       => Referable ExprLink' Net m where
-    refDesc   = fromDefinition <=< construct' <=< liftAsg ; {-# INLINE refDesc   #-}
+    refDesc   = fromDefinition <=< construct' <=< liftIR ; {-# INLINE refDesc   #-}
     readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
 
@@ -345,29 +345,29 @@ type l :>> r = Specialized Atom l r
 
 
 
-type AsgEvents m = ( Register New (Ref Expr')     (Delayed m)
+type IREvents m = ( Register New (Ref Expr')     (Delayed m)
                    , Register New (Ref ExprLink') (Delayed m)
                    )
 
-type AsgReferables m = ( Referable' m Expr'
+type IRReferables m = ( Referable' m Expr'
                        , Referable' m ExprLink'
                        , ExprStore' m
                        )
 
-type AsgCons m = ( Self.MonadSelfBuilder (Ref Expr') m
+type IRCons m = ( Self.MonadSelfBuilder (Ref Expr') m
                  , ExprBuilder m
                  , Linkable' Expr' Expr' m
                  )
 
-type ASGBuilder m = ( AsgMonad      m
-             , AsgReferables m
-             , AsgBaseLayers m
-             , AsgEvents     (Runner m)
-             , AsgCons       (Runner m)
-             , AsgReferables (Runner m)
+type ASGBuilder m = ( IRMonad      m
+             , IRReferables m
+             , IRBaseLayers m
+             , IREvents     (Runner m)
+             , IRCons       (Runner m)
+             , IRReferables (Runner m)
              )
 
-type AsgBaseLayers m = ( HasLayerM m Expr'     Data
+type IRBaseLayers m = ( HasLayerM m Expr'     Data
                        , HasLayerM m ExprLink' Data
                        )
 
@@ -476,18 +476,18 @@ runGraphInplace f g = runST $ runGraphTInplace f g
 
 type ExprStore' m = ExprStore (Cfg m) m
 class Monad m => ExprStore t m where
-    exprs' :: m [Asg t (Ref Expr')]
+    exprs' :: m [IR t (Ref Expr')]
     -- links  :: m [Ref Expr
 
-exprs :: (ExprStore' m, AsgMonad m) => m [Ref Expr']
-exprs = join . fmap (sequence . fmap liftAsg) $ exprs' ; {-# INLINE exprs #-}
+exprs :: (ExprStore' m, IRMonad m) => m [Ref Expr']
+exprs = join . fmap (sequence . fmap liftIR) $ exprs' ; {-# INLINE exprs #-}
 
 instance (Monad m, MonadBuilder g m, ReferableM Node g m) => ExprStore Net m where
     exprs' = (view (from definition) . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get ; {-# INLINE exprs' #-}
 
 
 
-type AsgShow m a = Show (AsgM m a)
+type IRShow m a = Show (IRM m a)
 
 
 
@@ -495,8 +495,8 @@ type AsgShow m a = Show (AsgM m a)
 
 -- class Setter' t a where set' ::           Get t a -> a -> a
 
--- select :: forall p m a. (Selector2 p m (Asg.Marked m a), Markable m a) => a -> m (Select2 p m (Asg.Marked m a))
--- select = select2 @p <=< Asg.mark ; {-# INLINE select #-}
+-- select :: forall p m a. (Selector2 p m (IR.Marked m a), Markable m a) => a -> m (Select2 p m (IR.Marked m a))
+-- select = select2 @p <=< IR.mark ; {-# INLINE select #-}
 
 
 
@@ -533,37 +533,37 @@ handleLayerEvents :: forall m a. LayerEventsHandler m => LayerListeners m a -> m
 handleLayerEvents = handleEvents @(AllLayers (Cfg m))
 
 
--- === AsgBuilder === --
+-- === IRBuilder === --
 
-type AsgBuilderCtxStack t m = ( KnownTypeT AsgType t
+type IRBuilderCtxStack t m = ( KnownTypeT IRType t
                               $ Type.TypeBuilderT (Ref AnyExpr)
                               $ Self.SelfBuilderT (Ref Expr')
                               $ AllSuppressorT
-                              $ AsgT t
+                              $ IRT t
                               $ m
                               )
 
-type MonadAsgBuilder t m = (PrimMonad m, LayerEventsHandler (AsgBuilderCtxStack t m))
-type AsgBuilder      t m = LayerListeners (AsgBuilderCtxStack t m)
+type MonadIRBuilder t m = (PrimMonad m, LayerEventsHandler (IRBuilderCtxStack t m))
+type IRBuilder      t m = LayerListeners (IRBuilderCtxStack t m)
 
 
 
 
-runAsgBuilder :: forall t m a. MonadAsgBuilder t m
-              => AsgBuilder t m a -> m (Asg t a)
-runAsgBuilder = runAsgT
+runIRBuilder :: forall t m a. MonadIRBuilder t m
+              => IRBuilder t m a -> m (IR t a)
+runIRBuilder = runIRT
               . Event.suppressAll
               . flip Self.evalT (undefined :: Ref Expr')
               . flip Type.evalT (Nothing :: Maybe (Ref AnyExpr))
-              . runInferenceT2 @AsgType @t
+              . runInferenceT2 @IRType @t
               . handleLayerEvents
 
 
-type MonadNetBuilder m = MonadAsgBuilder Net m
-type NetBuilder      m = AsgBuilder      Net m
+type MonadNetBuilder m = MonadIRBuilder Net m
+type NetBuilder      m = IRBuilder      Net m
 
-runNetBuilder :: MonadNetBuilder m => NetBuilder m a -> m (Asg Net a)
-runNetBuilder = runAsgBuilder @Net ; {-# INLINE runNetBuilder #-}
+runNetBuilder :: MonadNetBuilder m => NetBuilder m a -> m (IR Net a)
+runNetBuilder = runIRBuilder @Net ; {-# INLINE runNetBuilder #-}
 
 
 instance Generalize (Compound SimpleX lst) Draft
@@ -587,7 +587,7 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
 test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , HasLayerM  m ExprLink' UID
             , HasLayersM m Expr'     '[Type, UID]
-            , AsgShow m (UntyppedExpr Star ())
+            , IRShow m (UntyppedExpr Star ())
             , MonadVis m
             , MonadIO m
             )
@@ -607,7 +607,7 @@ test_gr2 =  layouted @ANT $ do
     snapshot "s6"
 
     t <- read s1
-    s1' <- Asg.mark' t
+    s1' <- IR.mark' t
     d <- select @Data t
     print s1'
 
@@ -620,14 +620,14 @@ test_gr2 =  layouted @ANT $ do
 
     return s1
 
--- matchy :: AsgMonad m => a -> f -> m (AsgM m a)
--- matchy t f = Asg.mark' t
--- matchy t f = Asg.mark' t >>= (exprUniSymbol . f)
+-- matchy :: IRMonad m => a -> f -> m (IRM m a)
+-- matchy t f = IR.mark' t
+-- matchy t f = IR.mark' t >>= (exprUniSymbol . f)
 
-matchy :: HasLayer t Expr' Data => (Asg t (Expr layout)) -> (Unwrapped (ExprUniSymbol (Expr layout)) -> b) -> b
+matchy :: HasLayer t Expr' Data => (IR t (Expr layout)) -> (Unwrapped (ExprUniSymbol (Expr layout)) -> b) -> b
 matchy a f = f $ unwrap' (exprUniSymbol a)
 
-matchM :: (HasLayerM m Expr' Data, AsgMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
+matchM :: (HasLayerM m Expr' Data, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
 matchM a f = mark' a >>= flip matchy f
 
 snapshot :: Vis m => P.String -> m()
