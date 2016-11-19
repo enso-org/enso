@@ -129,9 +129,37 @@ data New a
 
 
 
+----------------------
+-- === IOAccess === --
+----------------------
+
+data IOAccess = R | W | RW deriving (Show)
+
+class Readable (a :: IOAccess)
+class Writable (a :: IOAccess)
+
+instance Readable 'R
+instance Readable 'RW
+instance Writable 'W
+instance Writable 'RW
 
 
 
+------------------
+-- === Keys === --
+------------------
+
+newtype Key (acc :: IOAccess) t layer = Key Int64
+makeWrapped ''Key
+
+
+-- === Instances === --
+
+instance Show (Key acc t l) where show _ = "Key"
+
+
+
+data Store2 = Vector Any
 
 
 
