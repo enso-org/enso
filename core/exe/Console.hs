@@ -560,11 +560,11 @@ runIRBuilder = runIRT reg
              . handleLayerEvents
     where reg = def
               & registerLayer @Expr' @Data
-              & registerLayer @Expr' @UID
-              & registerLayer @Expr' @Type
-              & registerLayer @Expr' @Succs
-              & registerLayer @ExprLink' @Data
-              & registerLayer @ExprLink' @UID
+              -- & registerLayer @Expr' @UID
+              -- & registerLayer @Expr' @Type
+              -- & registerLayer @Expr' @Succs
+              -- & registerLayer @ExprLink' @Data
+              -- & registerLayer @ExprLink' @UID
 
 
 
