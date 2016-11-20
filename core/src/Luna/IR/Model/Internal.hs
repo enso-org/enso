@@ -19,9 +19,9 @@
 
 module Luna.IR.Model.Internal where
 
-
+import qualified Prelude as PP
 import           Prelude                      (curry)
-import           Luna.Prelude                 hiding (Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Updater', update')
+import           Luna.Prelude                 hiding (typeRep, Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Updater', update')
 import qualified Luna.Prelude                 as P
 
 import           Data.Abstract ()
@@ -30,7 +30,9 @@ import           Data.Record                  hiding (Layout, Variants, SymbolMa
 import qualified Data.Record                  as Record
 import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
 import           Type.Container               hiding (Empty, FromJust, Every)
-import           Type.Map
+import           Type.Map                     hiding (Map)
+import qualified Data.Map                     as Map
+import           Data.Map                     (Map)
 
 import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
 import           Old.Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynamics, SubSemiDynamics, ByDynamics)
@@ -100,6 +102,15 @@ import Data.Coerced (unsafeCoerced)
 import qualified Data.Hetero.Stack as Stack
 import           Data.Hetero.Stack (Stack)
 
+import Data.Typeable (Typeable, TypeRep)
+import qualified Data.Typeable as Typeable
+import Control.Monad.State (StateT, runStateT)
+import qualified Control.Monad.State as State
+
+
+typeRep :: forall a. Typeable a => TypeRep
+typeRep = Typeable.typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep #-}
+
 
 
 
@@ -159,8 +170,37 @@ instance Show (Key acc t l) where show _ = "Key"
 
 
 
-data Store2 = Vector Any
+-- data Store2 = Vector Any
 
+
+
+
+type LayerRep = TypeRep
+type ElemRep  = TypeRep
+
+type    LayerMap = Map LayerRep Int64
+data    LayerReg = LayerReg Int64 LayerMap deriving (Show)
+newtype ElemReg  = ElemReg (Map ElemRep LayerReg)      deriving (Show, Monoid)
+makeWrapped ''ElemReg
+
+
+layerMap :: Lens' LayerReg LayerMap
+layerMap = lens (\(LayerReg _ m) -> m) (\(LayerReg i _) m -> LayerReg i m) ; {-# INLINE layerMap #-}
+
+registerElem :: forall el. Typeable el => ElemReg -> ElemReg
+registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
+
+registerElemWith :: forall el. Typeable el => (LayerReg -> LayerReg) -> ElemReg -> ElemReg
+registerElemWith f = wrapped' %~ Map.insertWith (const f) (typeRep @el) (f def) ; {-# INLINE registerElemWith #-}
+
+registerLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> ElemReg
+registerLayer = registerElemWith @el (genLayerID (typeRep @l)) ; {-# INLINE registerLayer #-}
+
+genLayerID :: LayerRep -> LayerReg -> LayerReg
+genLayerID rep (LayerReg i m) = LayerReg (succ i) $ Map.insert rep i m
+
+lookupLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> Maybe Int64
+lookupLayer r = r ^? (wrapped' . ix (typeRep @el) . layerMap . ix (typeRep @l))
 
 
 ------------------
@@ -192,8 +232,8 @@ instance KnownRepr a => Show (Elem a) where
 -- === IR === --
 -----------------
 
-newtype IRT  t m a = IRT (IdentityT m a) deriving (Functor, Traversable, Foldable, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-newtype IR   t   a = IR  a               deriving (Functor, Traversable, Foldable)
+newtype IRT  t m a = IRT (StateT ElemReg m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
+data    IR   t   a = IR  ElemReg a            deriving (Functor, Traversable, Foldable)
 type    IRMT   m   = IRT (Cfg m) m
 type    IRM    m   = IR  (Cfg m)
 
@@ -204,21 +244,38 @@ data IRType = IRType deriving (Show)
 
 type family Definition t a
 
-definition :: IsElem a => Iso' (IR t a) (Definition t a)
-definition = unsafeIRWrapped . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
+definition :: IsElem a => Lens' (IR t a) (Definition t a)
+definition = irElem . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
+
+definitionFake :: IsElem a => Iso' (IR t a) (Definition t a)
+definitionFake = irElemFake . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definitionFake #-}
 
 fromDefinition :: (IRMonad m, IsElem a) => Definition (Cfg m) a -> m a
-fromDefinition = liftIR . view (from definition) ; {-# INLINE fromDefinition #-}
+fromDefinition = liftIR . view (from definitionFake) ; {-# INLINE fromDefinition #-}
 
 toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
 toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
 
+askKey :: forall acc el l m. (IRMonad m, Typeable el, Typeable l) => m (Maybe (Key acc el l))
+askKey = fmap Key . lookupLayer @el @l <$> getReg
 
 -- === IRMonad === ---
 
-class                         Monad m           => IRMonad m          where liftIR :: forall a. IR (Cfg m) a -> m a
-instance {-# OVERLAPPABLE #-} Monad m           => IRMonad (IRT t m) where liftIR = return . unsafeIRUnwrap ; {-# INLINE liftIR #-}
-instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t      m) where liftIR = lift . liftIR           ; {-# INLINE liftIR #-}
+class Monad m => IRMonad m where
+    liftIR :: forall a. IR (Cfg m) a -> m a
+    getReg :: m ElemReg
+    putReg :: ElemReg -> m ()
+
+instance {-# OVERLAPPABLE #-} Monad m => IRMonad (IRT t m) where
+    liftIR = return . unsafeIRUnwrap ; {-# INLINE liftIR #-}
+    getReg = IRT   State.get         ; {-# INLINE getReg #-}
+    putReg = IRT . State.put         ; {-# INLINE putReg #-}
+
+instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
+    liftIR = lift . liftIR ; {-# INLINE liftIR #-}
+    getReg = lift   getReg ; {-# INLINE getReg #-}
+    putReg = lift . putReg ; {-# INLINE putReg #-}
+
 
 type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m))
 
@@ -233,10 +290,10 @@ type family Cfg (m :: * -> *) where
 
 type Marked m a = IRM m (IRVal a)
 
-class                          Monad m                    => Markable m a            where mark :: a -> m (Marked m a)
-instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)     => Markable m a            where mark = return . IR ; {-# INLINE mark #-}
+class                          Monad m                    => Markable m a           where mark :: a -> m (Marked m a)
+instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)      => Markable m a           where mark = return . IR mempty ; {-# INLINE mark #-} -- FIXME
 instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (IR  t   a) where mark = return       ; {-# INLINE mark #-}
-instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT      ; {-# INLINE mark #-}
+instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT def      ; {-# INLINE mark #-} -- FIXME
 
 type family IRVal a where
     IRVal (IR  _   a) = a
@@ -244,22 +301,25 @@ type family IRVal a where
     IRVal a            = a
 
 mark' :: IRMonad m => a -> m (IRM m a)
-mark' = return . IR ; {-# INLINE mark' #-}
+mark' = return . IR mempty ; {-# INLINE mark' #-} -- FIXME
 
 
 -- === Running === --
 
-transform :: Monad m => IR t a -> IRT t m a
-transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
+-- transform :: Monad m => IR t a -> IRT t m a
+-- transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
 
-runIRT :: Functor m => IRT t m a -> m (IR t a)
-runIRT (IRT m) = IR . runIdentityT m ; {-# INLINE runIRT #-}
+runIRT :: forall t m a. Functor m => ElemReg -> IRT t m a -> m (IR t a)
+runIRT reg (IRT m) = uncurry (flip IR) <$> runStateT m reg ; {-# INLINE runIRT #-}
 
 unsafeIRUnwrap :: IR t a -> a
-unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
+unsafeIRUnwrap (IR _ a) = a ; {-# INLINE unsafeIRUnwrap #-}
 
-unsafeIRWrapped :: Iso' (IR t a) a
-unsafeIRWrapped = iso unsafeIRUnwrap IR ; {-# INLINE unsafeIRWrapped #-}
+irElem :: Lens' (IR t a) a
+irElem = lens (\(IR _ a) -> a) (\(IR s _) a -> IR s a) ; {-# INLINE irElem #-}
+
+irElemFake :: Iso' (IR t a) a
+irElemFake = iso unsafeIRUnwrap (IR mempty) ; {-# INLINE irElemFake #-}
 
 
 -- === Property selectors === --
@@ -621,6 +681,8 @@ instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder
 newtype Expr layout = Expr (Elem (Expr layout))
 type    Expr'       = Expr Draft
 type    AnyExpr     = Expr Layout.Any
+type ExprLink' = Link' Expr' -- FIXME[WD]: move to Link section after refactoring deps
+
 
 type instance Definition t    (Expr layout) = LayerStack t (Expr layout)
 instance      IsElem          (Expr layout)
@@ -778,6 +840,15 @@ type instance Encode2 Format  v = Index v (Every Format)
 
 
 
+
+
+
+
+
+instance Default LayerReg where def = LayerReg def def
+instance Default ElemReg  where def = ElemReg  def
+                                    & registerElem @Expr'
+                                    & registerElem @ExprLink'
 
 
 

@@ -148,7 +148,6 @@ title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 data InfLayers = InfLayers
 
-type ExprLink' = Link' Expr'
 
 
 
@@ -484,7 +483,7 @@ exprs :: (ExprStore' m, IRMonad m) => m [Ref Expr']
 exprs = join . fmap (sequence . fmap liftIR) $ exprs' ; {-# INLINE exprs #-}
 
 instance (Monad m, MonadBuilder g m, ReferableM Node g m) => ExprStore Net m where
-    exprs' = (view (from definition) . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get ; {-# INLINE exprs' #-}
+    exprs' = (view (from definitionFake) . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get ; {-# INLINE exprs' #-}
 
 
 
@@ -548,16 +547,25 @@ type MonadIRBuilder t m = (PrimMonad m, LayerEventsHandler (IRBuilderCtxStack t 
 type IRBuilder      t m = LayerListeners (IRBuilderCtxStack t m)
 
 
-
+-- type instance Layers Expr'     Net = '[Data, UID, Type, Succs]
+-- type instance Layers ExprLink' Net = '[Data, UID]
 
 runIRBuilder :: forall t m a. MonadIRBuilder t m
               => IRBuilder t m a -> m (IR t a)
-runIRBuilder = runIRT
-              . Event.suppressAll
-              . flip Self.evalT (undefined :: Ref Expr')
-              . flip Type.evalT (Nothing :: Maybe (Ref AnyExpr))
-              . runInferenceT2 @IRType @t
-              . handleLayerEvents
+runIRBuilder = runIRT reg
+             . Event.suppressAll
+             . flip Self.evalT (undefined :: Ref Expr')
+             . flip Type.evalT (Nothing :: Maybe (Ref AnyExpr))
+             . runInferenceT2 @IRType @t
+             . handleLayerEvents
+    where reg = def
+              & registerLayer @Expr' @Data
+              & registerLayer @Expr' @UID
+              & registerLayer @Expr' @Type
+              & registerLayer @Expr' @Succs
+              & registerLayer @ExprLink' @Data
+              & registerLayer @ExprLink' @UID
+
 
 
 type MonadNetBuilder m = MonadIRBuilder Net m
@@ -609,6 +617,9 @@ test_gr2 =  layouted @ANT $ do
 
     t <- read s1
     s1' <- IR.mark' t
+    Just dkey <- askKey @'RW @Expr' @Succs
+    print "!!!!!!!!----"
+    print (unwrap' dkey)
     d <- select @Data t
     print s1'
 
