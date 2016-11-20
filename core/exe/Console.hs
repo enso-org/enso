@@ -552,19 +552,19 @@ type IRBuilder      t m = LayerListeners (IRBuilderCtxStack t m)
 
 runIRBuilder :: forall t m a. MonadIRBuilder t m
               => IRBuilder t m a -> m (IR t a)
-runIRBuilder = runIRT reg
+runIRBuilder = runIRT
              . Event.suppressAll
              . flip Self.evalT (undefined :: Ref Expr')
              . flip Type.evalT (Nothing :: Maybe (Ref AnyExpr))
              . runInferenceT2 @IRType @t
              . handleLayerEvents
-    where reg = def
-              & registerLayer @Expr' @Data
-              -- & registerLayer @Expr' @UID
-              -- & registerLayer @Expr' @Type
-              -- & registerLayer @Expr' @Succs
-              -- & registerLayer @ExprLink' @Data
-              -- & registerLayer @ExprLink' @UID
+    -- where reg = def
+    --           & registerLayer @Expr' @Data
+    --           -- & registerLayer @Expr' @UID
+    --           -- & registerLayer @Expr' @Type
+    --           -- & registerLayer @Expr' @Succs
+    --           -- & registerLayer @ExprLink' @Data
+    --           -- & registerLayer @ExprLink' @UID
 
 
 
@@ -617,9 +617,9 @@ test_gr2 =  layouted @ANT $ do
 
     t <- read s1
     s1' <- IR.mark' t
-    Just dkey <- askKey @'RW @Expr' @Succs
+    -- Just dkey <- askKey @'RW @Expr' @Data
     print "!!!!!!!!----"
-    print (unwrap' dkey)
+    -- print (unwrap' dkey)
     d <- select @Data t
     print s1'
 

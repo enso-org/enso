@@ -203,6 +203,8 @@ lookupLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> Maybe Int64
 lookupLayer r = r ^? (wrapped' . ix (typeRep @el) . layerMap . ix (typeRep @l))
 
 
+newtype LayerConsMap m = LayerConsMap (Map LayerRep (m Any)) deriving (Default)
+
 ------------------
 -- === Elem === --
 ------------------
@@ -232,8 +234,9 @@ instance KnownRepr a => Show (Elem a) where
 -- === IR === --
 -----------------
 
-newtype IRT  t m a = IRT (StateT ElemReg m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-data    IR   t   a = IR  ElemReg a            deriving (Functor, Traversable, Foldable)
+type IRStore m = (ElemReg, LayerConsMap m)
+newtype IRT  t m a = IRT (StateT (IRStore m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype IR   t   a = IR a                     deriving (Functor, Traversable, Foldable)
 type    IRMT   m   = IRT (Cfg m) m
 type    IRM    m   = IR  (Cfg m)
 
@@ -257,24 +260,24 @@ toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
 toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
 
 askKey :: forall acc el l m. (IRMonad m, Typeable el, Typeable l) => m (Maybe (Key acc el l))
-askKey = fmap Key . lookupLayer @el @l <$> getReg
+askKey = fmap Key . lookupLayer @el @l . fst <$> getReg
 
 -- === IRMonad === ---
 
 class Monad m => IRMonad m where
     liftIR :: forall a. IR (Cfg m) a -> m a
-    getReg :: m ElemReg
-    putReg :: ElemReg -> m ()
+    getReg :: m (IRStore m)
+    putReg :: (IRStore m) -> m ()
 
 instance {-# OVERLAPPABLE #-} Monad m => IRMonad (IRT t m) where
     liftIR = return . unsafeIRUnwrap ; {-# INLINE liftIR #-}
-    getReg = IRT   State.get         ; {-# INLINE getReg #-}
-    putReg = IRT . State.put         ; {-# INLINE putReg #-}
+    -- getReg = IRT   State.get         ; {-# INLINE getReg #-}
+    -- putReg = IRT . State.put         ; {-# INLINE putReg #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
     liftIR = lift . liftIR ; {-# INLINE liftIR #-}
-    getReg = lift   getReg ; {-# INLINE getReg #-}
-    putReg = lift . putReg ; {-# INLINE putReg #-}
+--     getReg = lift   getReg ; {-# INLINE getReg #-}
+--     putReg = lift . putReg ; {-# INLINE putReg #-}
 
 
 type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m))
@@ -291,9 +294,9 @@ type family Cfg (m :: * -> *) where
 type Marked m a = IRM m (IRVal a)
 
 class                          Monad m                    => Markable m a           where mark :: a -> m (Marked m a)
-instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)      => Markable m a           where mark = return . IR mempty ; {-# INLINE mark #-} -- FIXME
+instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)      => Markable m a           where mark = return . IR  ; {-# INLINE mark #-}
 instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (IR  t   a) where mark = return       ; {-# INLINE mark #-}
-instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT def      ; {-# INLINE mark #-} -- FIXME
+-- instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT def   ; {-# INLINE mark #-} -- FIXME
 
 type family IRVal a where
     IRVal (IR  _   a) = a
@@ -301,7 +304,7 @@ type family IRVal a where
     IRVal a            = a
 
 mark' :: IRMonad m => a -> m (IRM m a)
-mark' = return . IR mempty ; {-# INLINE mark' #-} -- FIXME
+mark' = return . IR ; {-# INLINE mark' #-}
 
 
 -- === Running === --
@@ -309,17 +312,17 @@ mark' = return . IR mempty ; {-# INLINE mark' #-} -- FIXME
 -- transform :: Monad m => IR t a -> IRT t m a
 -- transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
 
-runIRT :: forall t m a. Functor m => ElemReg -> IRT t m a -> m (IR t a)
-runIRT reg (IRT m) = uncurry (flip IR) <$> runStateT m reg ; {-# INLINE runIRT #-}
+runIRT :: forall t m a. Monad m => IRT t m a -> m (IR t a)
+runIRT (IRT m) = IR <$> State.evalStateT m (def,def) ; {-# INLINE runIRT #-}
 
 unsafeIRUnwrap :: IR t a -> a
-unsafeIRUnwrap (IR _ a) = a ; {-# INLINE unsafeIRUnwrap #-}
+unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
 
 irElem :: Lens' (IR t a) a
-irElem = lens (\(IR _ a) -> a) (\(IR s _) a -> IR s a) ; {-# INLINE irElem #-}
+irElem = lens (\(IR a) -> a) (\(IR _) a -> IR a) ; {-# INLINE irElem #-} -- FIXME
 
 irElemFake :: Iso' (IR t a) a
-irElemFake = iso unsafeIRUnwrap (IR mempty) ; {-# INLINE irElemFake #-}
+irElemFake = iso unsafeIRUnwrap IR ; {-# INLINE irElemFake #-}
 
 
 -- === Property selectors === --
@@ -347,6 +350,9 @@ with f src = do
 instance {-# OVERLAPPABLE #-}                              Show (IR I a) where show = impossible
 instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (IR t a) where
     showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
+
+instance MonadTrans (IRT t) where
+    lift = IRT . lift ; {-# INLINE lift #-}
 
 -- PrimMonad
 instance PrimMonad m => PrimMonad (IRT t m) where
