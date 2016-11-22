@@ -106,7 +106,8 @@ import Data.Typeable (Typeable, TypeRep)
 import qualified Data.Typeable as Typeable
 import Control.Monad.State (StateT, runStateT)
 import qualified Control.Monad.State as State
-
+import qualified Data.ManagedVectorMap as MV
+import Data.ManagedVectorMap (ManagedVectorMap, ManagedVectorMapM)
 
 typeRep :: forall a. Typeable a => TypeRep
 typeRep = Typeable.typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep #-}
@@ -157,60 +158,13 @@ instance Writable 'RW
 
 
 ------------------
--- === Keys === --
-------------------
-
-newtype Key (acc :: IOAccess) t layer = Key Int64
-makeWrapped ''Key
-
-
--- === Instances === --
-
-instance Show (Key acc t l) where show _ = "Key"
-
-
-
--- data Store2 = Vector Any
-
-
-
-
-type LayerRep = TypeRep
-type ElemRep  = TypeRep
-
-type    LayerMap = Map LayerRep Int64
-data    LayerReg = LayerReg Int64 LayerMap deriving (Show)
-newtype ElemReg  = ElemReg (Map ElemRep LayerReg)      deriving (Show, Monoid)
-makeWrapped ''ElemReg
-
-
-layerMap :: Lens' LayerReg LayerMap
-layerMap = lens (\(LayerReg _ m) -> m) (\(LayerReg i _) m -> LayerReg i m) ; {-# INLINE layerMap #-}
-
-registerElem :: forall el. Typeable el => ElemReg -> ElemReg
-registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
-
-registerElemWith :: forall el. Typeable el => (LayerReg -> LayerReg) -> ElemReg -> ElemReg
-registerElemWith f = wrapped' %~ Map.insertWith (const f) (typeRep @el) (f def) ; {-# INLINE registerElemWith #-}
-
-registerLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> ElemReg
-registerLayer = registerElemWith @el (genLayerID (typeRep @l)) ; {-# INLINE registerLayer #-}
-
-genLayerID :: LayerRep -> LayerReg -> LayerReg
-genLayerID rep (LayerReg i m) = LayerReg (succ i) $ Map.insert rep i m
-
-lookupLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> Maybe Int64
-lookupLayer r = r ^? (wrapped' . ix (typeRep @el) . layerMap . ix (typeRep @l))
-
-
-newtype LayerConsMap m = LayerConsMap (Map LayerRep (m Any)) deriving (Default)
-
-------------------
 -- === Elem === --
 ------------------
 
 newtype Elem a = Elem Any
 makeWrapped '' Elem
+
+type family Definition t a
 
 type instance Definition t (Elem a) = Definition t a
 
@@ -230,13 +184,101 @@ instance KnownRepr a => Show (Elem a) where
 
 
 
+------------------
+-- === Keys === --
+------------------
+
+newtype Key (acc :: IOAccess) t layer = Key Int
+makeWrapped ''Key
+
+
+-- === Instances === --
+
+instance Show (Key acc t l) where show _ = "Key"
+
+
+
+-- data Store2 = Vector Any
+
+
+
+
+type LayerRep = TypeRep
+type ElemRep  = TypeRep
+
+type    LayerMap = Map LayerRep Int
+data    LayerReg = LayerReg Int LayerMap deriving (Show)
+newtype ElemReg  = ElemReg (Map ElemRep LayerReg)      deriving (Show, Monoid)
+makeWrapped ''ElemReg
+
+
+-- layerMap :: Lens' LayerReg LayerMap
+-- layerMap = lens (\(LayerReg _ m) -> m) (\(LayerReg i _) m -> LayerReg i m) ; {-# INLINE layerMap #-}
+--
+-- registerElem :: forall el. Typeable el => ElemReg -> ElemReg
+-- registerElem = modifyElem @el id ; {-# INLINE registerElem #-}
+--
+-- modifyElem :: forall el. Typeable el => (LayerReg -> LayerReg) -> ElemReg -> ElemReg
+-- modifyElem f = wrapped' %~ Map.insertWith (const f) (typeRep @el) (f def) ; {-# INLINE modifyElem #-}
+--
+-- registerLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> ElemReg
+-- registerLayer = modifyElem @el (genLayerID (typeRep @l)) ; {-# INLINE registerLayer #-}
+--
+-- genLayerID :: LayerRep -> LayerReg -> LayerReg
+-- genLayerID rep (LayerReg i m) = LayerReg (succ i) $ Map.insert rep i m
+--
+-- lookupLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> Maybe Int
+-- lookupLayer r = r ^? (wrapped' . ix (typeRep @el) . layerMap . ix (typeRep @l))
+
+newtype AnyCons m = AnyCons (Any -> m Any)
+makeWrapped ''AnyCons
+
+anyCons :: Functor m => (a -> m b) -> AnyCons m
+anyCons = wrap' . unsafeCoerced ; {-# INLINE anyCons #-}
+
+unsafeAppCons :: Functor m => AnyCons m -> (a -> m b)
+unsafeAppCons = unsafeCoerced . unwrap' ; {-# INLINE unsafeAppCons #-}
+
+
+
+data LayerStore m = LayerStore { _consMap :: Map LayerRep (AnyCons m)
+                               }
+makeLenses ''LayerStore
+
+instance Default (LayerStore m) where def = LayerStore def
+
+type IRLayerStore m = ManagedVectorMapM m LayerRep Any
+type IRStore      m = Map ElemRep $ IRLayerStore m
+
+data IRData m = IRData { _store  :: IRStore m
+                       , _layers :: LayerStore m
+                       }
+makeLenses ''IRData
+
+
+type IRDataLift t m = (MonadTrans t, PrimState m ~ PrimState (t m), Monad m)
+
+-- liftIRData :: IRDataLift t m => IRData m -> IRData (t m)
+-- -- liftIRData (IRData store (LayerStore m s)) = IRData store (LayerStore (lift <$> m) (lift <$> s))
+-- liftIRData (IRData store (LayerStore s)) = IRData store (LayerStore (lift <$> s))
+
+instance Default (IRData m) where def = IRData def def
+
+
+
 -----------------
 -- === IR === --
 -----------------
 
-type IRStore m = (ElemReg, LayerConsMap m)
-newtype IRT  t m a = IRT (StateT (IRStore m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
-newtype IR   t   a = IR a                     deriving (Functor, Traversable, Foldable)
+type family GetIRMonad (m :: * -> *) where
+    GetIRMonad (IRT t m) = m
+    GetIRMonad (t m)     = GetIRMonad m
+
+type IRData' m = IRData (GetIRMonad m)
+
+
+newtype IRT  t m a = IRT (StateT (IRData m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype IR   t   a = IR a                        deriving (Functor, Traversable, Foldable)
 type    IRMT   m   = IRT (Cfg m) m
 type    IRM    m   = IR  (Cfg m)
 
@@ -245,7 +287,6 @@ data IRType = IRType deriving (Show)
 
 -- === IR building === --
 
-type family Definition t a
 
 definition :: IsElem a => Lens' (IR t a) (Definition t a)
 definition = irElem . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
@@ -259,28 +300,76 @@ fromDefinition = liftIR . view (from definitionFake) ; {-# INLINE fromDefinition
 toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
 toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
 
-askKey :: forall acc el l m. (IRMonad m, Typeable el, Typeable l) => m (Maybe (Key acc el l))
-askKey = fmap Key . lookupLayer @el @l . fst <$> getReg
+
+
+atElem :: Functor m => ElemRep -> (Maybe (IRLayerStore m) -> m (Maybe (IRLayerStore m))) -> IRData m -> m (IRData m)
+atElem = store .: at  ; {-# INLINE atElem #-}
+
+modifyElem  ::              ElemRep -> (IRLayerStore m ->    IRLayerStore m)  -> IRData m ->    IRData m
+modifyElemM :: Functor m => ElemRep -> (IRLayerStore m -> m (IRLayerStore m)) -> IRData m -> m (IRData m)
+modifyElem  e f = store %~ Map.insertWith (const f) e (f def) ; {-# INLINE modifyElem  #-}
+modifyElemM e f = atElem e $ fmap Just . f . fromMaybe def    ; {-# INLINE modifyElemM #-}
+
+newElem :: forall t m. (IRMonad m, Typeable t, PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m, Functor (GetIRMonad m)) => LayerData Data t -> m Int
+newElem dt = do
+    d <- getIRData
+    let Just layerStore = d ^? store . ix (typeRep @t)
+        Just elemStore  = layerStore ^? ix (typeRep @Data)
+        Just consFunc   = d ^? (layers . consMap . ix (typeRep @Data))
+    (idx, layerStore') <- MV.reserveIdx layerStore
+    MV.unsafeWrite elemStore idx =<< runInIR (unsafeAppCons consFunc dt)
+    putIRData $ d & store . at (typeRep @t) ?~ layerStore'
+    return idx
+
+
+-- === Registration === --
+
+registerElemWith :: forall el m. (Typeable el, IRMonad m) => (IRLayerStore (GetIRMonad m) -> IRLayerStore (GetIRMonad m)) -> m ()
+registerElemWith f = do
+    d <- getIRData
+    putIRData $ modifyElem (typeRep @el) f d
+{-# INLINE registerElemWith #-}
+
+registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
+registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
+
+registerLayer :: forall layer m. (IRMonad m, Typeable layer, Functor (GetIRMonad m), LayerCons layer (GetIRMonad m))
+              => m ()
+registerLayer = do
+    d <- getIRData
+    let d' = d & (layers . consMap) %~ Map.insert (typeRep @layer) (anyCons $ consLayer @layer)
+    putIRData d'
+
+attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
+attachLayer l e = do
+    d  <- getIRData
+    d' <- runInIR $ modifyElemM e (MV.unsafeAddKey l) d
+    putIRData d'
+
+
 
 -- === IRMonad === ---
 
 class Monad m => IRMonad m where
-    liftIR :: forall a. IR (Cfg m) a -> m a
-    getReg :: m (IRStore m)
-    putReg :: (IRStore m) -> m ()
+    liftIR    :: forall a. IR (Cfg m) a -> m a
+    getIRData :: m (IRData' m)
+    putIRData :: (IRData' m) -> m ()
+    runInIR   :: GetIRMonad m a -> m a
 
 instance {-# OVERLAPPABLE #-} Monad m => IRMonad (IRT t m) where
-    liftIR = return . unsafeIRUnwrap ; {-# INLINE liftIR #-}
-    -- getReg = IRT   State.get         ; {-# INLINE getReg #-}
-    -- putReg = IRT . State.put         ; {-# INLINE putReg #-}
+    liftIR    = return . unsafeIRUnwrap ; {-# INLINE liftIR    #-}
+    getIRData = IRT   State.get         ; {-# INLINE getIRData #-}
+    putIRData = IRT . State.put         ; {-# INLINE putIRData #-}
+    runInIR   = lift                    ; {-# INLINE runInIR   #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
-    liftIR = lift . liftIR ; {-# INLINE liftIR #-}
---     getReg = lift   getReg ; {-# INLINE getReg #-}
---     putReg = lift . putReg ; {-# INLINE putReg #-}
+    liftIR    = lift . liftIR    ; {-# INLINE liftIR    #-}
+    getIRData = lift   getIRData ; {-# INLINE getIRData #-}
+    putIRData = lift . putIRData ; {-# INLINE putIRData #-}
+    runInIR   = lift . runInIR   ; {-# INLINE runInIR   #-}
 
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m))
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m), GetIRMonad (t m) ~ GetIRMonad m)
 
 -- FIXME[WD]: maybe we should relax a bit the Cfg definition?
 type family Cfg (m :: * -> *) where
@@ -313,7 +402,7 @@ mark' = return . IR ; {-# INLINE mark' #-}
 -- transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
 
 runIRT :: forall t m a. Monad m => IRT t m a -> m (IR t a)
-runIRT (IRT m) = IR <$> State.evalStateT m (def,def) ; {-# INLINE runIRT #-}
+runIRT (IRT m) = IR <$> State.evalStateT m def ; {-# INLINE runIRT #-}
 
 unsafeIRUnwrap :: IR t a -> a
 unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
@@ -677,6 +766,34 @@ instance                                                           SymbolEncoder
 instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
     encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
+-------------------
+-- === Expr2 === --
+-------------------
+
+newtype Expr2  layout = Expr2 Int deriving (Show)
+type    Expr2'        = Expr2 Draft
+type    AnyExpr2      = Expr2 Layout.Any
+
+type instance LayerData Data (Expr2 _) = TermStore
+
+-- buildExpr2 :: (ExprBuilder m, SymbolEncoder atom) => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
+-- buildExpr2 a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE buildExpr2 #-}
+--
+-- expr2 :: (ExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr2 layout) -> m (Ref (Expr2 layout))
+-- expr2 = ref <=< buildExpr2 ; {-# INLINE expr2 #-}
+
+-- newElem :: forall t m. (IRMonad m, Typeable t, PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m) => LayerData Data t -> m Int
+
+type ExprBuilder2 m = (IRMonad m, PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m, Monad (GetIRMonad m))
+
+expr2 :: (SymbolEncoder atom, ExprBuilder2 m)
+      => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
+expr2 a = Expr2 <$> newElem @AnyExpr2 (encodeSymbol a)
+
+
+
+-- unsafeSpecifyLayout2 :: AnyExpr2 -> Expr2 layout
+-- unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
 
 ------------------
 -- === Expr === --
@@ -850,11 +967,11 @@ type instance Encode2 Format  v = Index v (Every Format)
 
 
 
-
-instance Default LayerReg where def = LayerReg def def
-instance Default ElemReg  where def = ElemReg  def
-                                    & registerElem @Expr'
-                                    & registerElem @ExprLink'
+--
+-- instance Default LayerReg where def = LayerReg def def
+-- instance Default ElemReg  where def = ElemReg  def
+--                                     & registerElem @Expr'
+--                                     & registerElem @ExprLink'
 
 
 

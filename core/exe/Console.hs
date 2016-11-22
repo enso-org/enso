@@ -18,7 +18,7 @@ module Main where
 import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
 import qualified Data.Graph as G
 import Data.Graph.Builders hiding (Linkable)
-import Prologue            hiding (elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
+import Prologue            hiding (typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
 import           Control.Monad.Event     as Event
@@ -375,6 +375,7 @@ type IRBaseLayers m = ( HasLayerM m Expr'     Data
 type ASGBuilder' m layout = (ASGBuilder m, Inferable2 Layout layout (Runner m))
 
 unify :: ASGBuilder m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
+-- unify :: ASGBuilder m => Expr l -> Expr r -> m (Expr (Unify :>> (l <+> r)))
 unify a b = buildElem $ mdo
     n  <- delayedExpr (Sym.uncheckedUnify la lb)
     la <- delayedLink (unsafeGeneralize a) n
@@ -383,10 +384,20 @@ unify a b = buildElem $ mdo
 
 
 type AtomicExpr atom layout = Expr (Update Atom atom layout)
+type AtomicExpr2 atom layout = Expr2 (Update Atom atom layout)
 
 star :: ASGBuilder' m layout => m (Ref $ AtomicExpr Star layout)
 star = buildElem $ expr Sym.uncheckedStar
 
+
+star2 :: (ExprBuilder2 m, Inferable2 Layout layout m) => m (AtomicExpr2 Star layout)
+star2 = expr2 Sym.uncheckedStar
+
+
+
+-- expr2 :: (SymbolEncoder atom, ExprBuilder2 m)
+--       => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
+-- expr2 a = Expr2 <$> newElem @AnyExpr2 (encodeSymbol a)
 
 buildElem :: forall m a. (Self.MonadSelfBuilder (Universal a) (Runner m), Monad m)
           => Runner m a -> m a
@@ -411,6 +422,9 @@ type ANT' a n t = ANTLayout SimpleX a n t
 
 type AntExpr a n t = Expr (ANT' a n t)
 type UntyppedExpr a n = AntExpr a n Star
+
+type AntExpr2 a n t = Expr2 (ANT' a n t)
+type UntyppedExpr2 a n = AntExpr2 a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
@@ -592,6 +606,10 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
         liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
         return ()
 
+        -- star2 :: (ExprBuilder2 m, Inferable2 Layout layout m) => m (AtomicExpr2 Star layout)
+
+dataRep = typeRep @Data
+exprRep = typeRep @AnyExpr2
 
 test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , HasLayerM  m ExprLink' UID
@@ -599,9 +617,22 @@ test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , IRShow m (UntyppedExpr Star ())
             , MonadVis m
             , MonadIO m
+
+            -- from registerLayerM:
+            , PrimState (GetIRMonad m) ~ PrimState m
+            , PrimMonad m
+            , PrimMonad (GetIRMonad m)
+            , Monad (GetIRMonad m)
             )
          => m (Ref (UntyppedExpr Star ()))
 test_gr2 =  layouted @ANT $ do
+    registerElem  @AnyExpr2
+    registerLayer @Data
+    attachLayer   dataRep exprRep
+    (sx1 :: UntyppedExpr2 Star ()) <- star2
+    (sx2 :: UntyppedExpr2 Star ()) <- star2
+    print sx1
+    print sx2
     (s1 :: Ref (UntyppedExpr Star            ())) <- star
     snapshot "s1"
     (s2 :: Ref (UntyppedExpr Star            ())) <- star
