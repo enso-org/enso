@@ -2,7 +2,7 @@
 
 module Luna.Pass.Evaluation.Interpreter.StdScope where
 
-import           Luna.Prelude
+import           Luna.Prelude                            as Luna
 import           Luna.Pass.Evaluation.Interpreter.Env
 import           Luna.Pass.Evaluation.Interpreter.Value
 import           Data.List                               (sort, group)
@@ -123,7 +123,7 @@ listenUDP port = liftIO $ do
           callback $ unsafeToData msg
           worker
     th <- forkIO worker
-    addDest $ killThread th >> close sock >> Prelude.Luna.print "close UDP"
+    addDest $ killThread th >> close sock >> Luna.print "close UDP"
     return stream
 
 twitter :: LunaM Stream
