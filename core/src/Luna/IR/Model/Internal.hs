@@ -184,51 +184,11 @@ instance KnownRepr a => Show (Elem a) where
 
 
 
-------------------
--- === Keys === --
-------------------
-
-newtype Key (acc :: IOAccess) t layer = Key Int
-makeWrapped ''Key
-
-
--- === Instances === --
-
-instance Show (Key acc t l) where show _ = "Key"
 
 
 
--- data Store2 = Vector Any
+---------------------------
 
-
-
-
-type LayerRep = TypeRep
-type ElemRep  = TypeRep
-
-type    LayerMap = Map LayerRep Int
-data    LayerReg = LayerReg Int LayerMap deriving (Show)
-newtype ElemReg  = ElemReg (Map ElemRep LayerReg)      deriving (Show, Monoid)
-makeWrapped ''ElemReg
-
-
--- layerMap :: Lens' LayerReg LayerMap
--- layerMap = lens (\(LayerReg _ m) -> m) (\(LayerReg i _) m -> LayerReg i m) ; {-# INLINE layerMap #-}
---
--- registerElem :: forall el. Typeable el => ElemReg -> ElemReg
--- registerElem = modifyElem @el id ; {-# INLINE registerElem #-}
---
--- modifyElem :: forall el. Typeable el => (LayerReg -> LayerReg) -> ElemReg -> ElemReg
--- modifyElem f = wrapped' %~ Map.insertWith (const f) (typeRep @el) (f def) ; {-# INLINE modifyElem #-}
---
--- registerLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> ElemReg
--- registerLayer = modifyElem @el (genLayerID (typeRep @l)) ; {-# INLINE registerLayer #-}
---
--- genLayerID :: LayerRep -> LayerReg -> LayerReg
--- genLayerID rep (LayerReg i m) = LayerReg (succ i) $ Map.insert rep i m
---
--- lookupLayer :: forall el l. (Typeable el, Typeable l) => ElemReg -> Maybe Int
--- lookupLayer r = r ^? (wrapped' . ix (typeRep @el) . layerMap . ix (typeRep @l))
 
 newtype AnyCons m = AnyCons (Any -> m Any)
 makeWrapped ''AnyCons
@@ -240,6 +200,8 @@ unsafeAppCons :: Functor m => AnyCons m -> (a -> m b)
 unsafeAppCons = unsafeCoerced . unwrap' ; {-# INLINE unsafeAppCons #-}
 
 
+type LayerRep = TypeRep
+type ElemRep  = TypeRep
 
 data LayerStore m = LayerStore { _consMap :: Map LayerRep (AnyCons m)
                                }
@@ -465,6 +427,52 @@ instance (Ord (Definition t a), IsElem a) => Ord (IR t a) where compare = compar
 instance (Eq  (Definition t a), IsElem a) => Eq  (IR t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
 
 
+
+------------------
+-- === Keys === --
+------------------
+
+newtype KeyST m (acc :: IOAccess) el layer = KeyST (MV.VectorRefM (GetIRMonad m) Any) deriving (Show)
+makeWrapped ''KeyST
+
+data Key (acc :: IOAccess) el layer where
+    Key :: KeyST m acc el layer -> Key acc el layer
+
+key :: KeyST m acc el layer -> Key acc el layer
+key = Key
+
+unsafeFromKey :: Key acc el layer -> KeyST m acc el layer
+unsafeFromKey (Key k) = unsafeCoerce k
+
+
+-- === Utils === --
+
+lookupKeyST :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (KeyST m acc el layer))
+lookupKeyST e l = fmap KeyST . (^? (store . ix e . ix l)) <$> getIRData ; {-# INLINE lookupKeyST #-}
+
+lookupKey :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (Key acc el layer))
+lookupKey e l = key .: lookupKeyST e l ; {-# INLINE lookupKey #-}
+
+readST :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
+             , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
+          => KeyST m acc el layer -> t -> m (LayerData layer t)
+readST (KeyST v) (unwrap' -> idx) = unsafeCoerce <$> MV.unsafeRead idx v ; {-# INLINE readST #-}
+
+read :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
+           , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
+        => Key acc el layer -> t -> m (LayerData layer t)
+read k = readST (unsafeFromKey k) ; {-# INLINE read #-}
+
+-- lookupKeyST :: forall acc el layer m. (Maybe (Key m acc el layer))
+-- lookupKey = fmap Key . (^? (store . ix (typeRep @el) . ix (typeRep @layer))) <$> getIRData
+
+
+-- === Instances === --
+
+-- instance Show (Key m acc t l) where show _ = "Key"
+
+
+
 ------------------------
 -- === Data Layer === --
 ------------------------
@@ -577,17 +585,17 @@ ref = register @New <=< silentRef ; {-# INLINE ref #-}
 delayedRef :: (Referable' m a, IRValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
 delayedRef = delayedRegister @New <=< silentRef ; {-# INLINE delayedRef #-}
 
-read :: (Referable' m a, IRValLike t m (Ref a)) => t -> m a
-read = readDesc <=< mark ; {-# INLINE read #-}
+readx :: (Referable' m a, IRValLike t m (Ref a)) => t -> m a
+readx = readDesc <=< mark ; {-# INLINE readx #-}
 
-write :: (Referable' m a, IRValLike t m (Ref a)) => t -> a -> m ()
-write d a = flip writeDesc a =<< mark d ; {-# INLINE write #-}
+writex :: (Referable' m a, IRValLike t m (Ref a)) => t -> a -> m ()
+writex d a = flip writeDesc a =<< mark d ; {-# INLINE writex #-}
 
-modify :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> m a) -> m ()
-modify d f = flip modifyDesc f =<< mark d ; {-# INLINE modify #-}
+modifyx :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> m a) -> m ()
+modifyx d f = flip modifyDesc f =<< mark d ; {-# INLINE modifyx #-}
 
-modify' :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> a) -> m ()
-modify' d = modify d . fmap return ; {-# INLINE modify' #-}
+modifyx' :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> a) -> m ()
+modifyx' d = modifyx d . fmap return ; {-# INLINE modifyx' #-}
 
 
 -- TODO: tak moze wygladac taktyka na pure functions:
@@ -773,6 +781,8 @@ instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder
 newtype Expr2  layout = Expr2 Int deriving (Show)
 type    Expr2'        = Expr2 Draft
 type    AnyExpr2      = Expr2 Layout.Any
+
+makeWrapped ''Expr2
 
 type instance LayerData Data (Expr2 _) = TermStore
 
@@ -965,20 +975,6 @@ type instance Encode2 Format  v = Index v (Every Format)
 
 
 
-
-
---
--- instance Default LayerReg where def = LayerReg def def
--- instance Default ElemReg  where def = ElemReg  def
---                                     & registerElem @Expr'
---                                     & registerElem @ExprLink'
-
-
-
---
--- newtype Just' a  = Just' { fromJust' :: a } deriving (Show, Functor, Foldable, Traversable)
--- data    Nothing' = Nothing' deriving (Show)
---
 
 
 

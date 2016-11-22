@@ -85,6 +85,9 @@ unsafeGrow i = modifyVectorRefM_ (flip MV.unsafeGrow i)
 unsafeWrite :: PrimMonad m => VectorRefM m a -> Idx -> a -> m ()
 unsafeWrite v i a = withVectorRefM (\mv -> MV.unsafeWrite mv i a) v ; {-# INLINE unsafeWrite #-}
 
+unsafeRead :: PrimMonad m => Idx -> VectorRefM m a -> m a
+unsafeRead i (unwrap' -> ref) = readSTRef ref >>= flip MV.unsafeRead i ; {-# INLINE unsafeRead #-}
+
 
 -- === Instances === --
 
@@ -118,7 +121,7 @@ autoGrow :: PrimMonad m => ManagedVectorMapM m k a -> m (Idx, ManagedVectorMapM 
 autoGrow m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
     size' = m ^. size
     grow  = if size' == 0 then 1 else size'
-    nm    = m & size %~ (+ grow) 
+    nm    = m & size %~ (+ grow)
               & free .~ [size' + 1 .. size' + grow - 1]
 {-# INLINE autoGrow #-}
 

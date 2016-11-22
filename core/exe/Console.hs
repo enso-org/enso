@@ -8,6 +8,7 @@
 {-# LANGUAGE RecursiveDo               #-}
 {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE NoOverloadedStrings       #-} -- https://ghc.haskell.org/trac/ghc/ticket/12797
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
@@ -225,8 +226,8 @@ instance ( IRMonad m
          )
       => Handler Succs New (Ref ExprLink') m where
     handle linkRef = do
-        (srcRef, tgtRef) <- select @Data =<< read linkRef
-        modify srcRef $ with @Succs (S.insert tgtRef)
+        (srcRef, tgtRef) <- select @Data =<< readx linkRef
+        modifyx srcRef $ with @Succs (S.insert tgtRef)
 
 
 
@@ -611,6 +612,9 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
 dataRep = typeRep @Data
 exprRep = typeRep @AnyExpr2
 
+
+-- unhide :: Hidden -> a
+
 test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , HasLayerM  m ExprLink' UID
             , HasLayersM m Expr'     '[Type, UID]
@@ -631,8 +635,11 @@ test_gr2 =  layouted @ANT $ do
     attachLayer   dataRep exprRep
     (sx1 :: UntyppedExpr2 Star ()) <- star2
     (sx2 :: UntyppedExpr2 Star ()) <- star2
+    -- Just (data_ :: Key m RW AnyExpr2 Data) <- lookupKey exprRep dataRep
+    Just (data_ :: Key RW AnyExpr2 Data) <- lookupKey exprRep dataRep
     print sx1
     print sx2
+    print =<< read data_ sx1
     (s1 :: Ref (UntyppedExpr Star            ())) <- star
     snapshot "s1"
     (s2 :: Ref (UntyppedExpr Star            ())) <- star
@@ -646,7 +653,7 @@ test_gr2 =  layouted @ANT $ do
     u4 <- unify u2 u3
     snapshot "s6"
 
-    t <- read s1
+    t <- readx s1
     s1' <- IR.mark' t
     -- Just dkey <- askKey @'RW @Expr' @Data
     print "!!!!!!!!----"
@@ -676,7 +683,7 @@ matchM a f = mark' a >>= flip matchy f
 snapshot :: Vis m => P.String -> m()
 snapshot title = do
     res <- exprs
-    es  <- mapM read res
+    es  <- mapM readx res
     vss <- mapM visNode2 es
     let vns = fst <$> vss
         ves = join $ snd <$> vss
@@ -700,12 +707,12 @@ visNode2 expr = do
     mexpr  <- mark' expr
     euid   <- select @UID expr
     tpRef  <- select @Type expr
-    tpLink <- read tpRef
+    tpLink <- readx tpRef
     tpUid  <- select @UID  tpLink
     (l,r)  <- select @Data tpLink
 
-    ln     <- read l
-    rn     <- read r
+    ln     <- readx l
+    rn     <- readx r
     -- --
     lnUID <- select @UID ln
     rnUID <- select @UID rn
@@ -716,11 +723,11 @@ visNode2 expr = do
         tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid tpUid lnUID rnUID (fromList [fromString "type"])]
         mkEdge (i,l,r) = Vis.Edge (fromString "") i i l r mempty
         getUIDs re = do
-            e      <- read re
+            e      <- readx re
             i      <- select @UID  e
             (l, r) <- select @Data e
-            ln     <- read l
-            rn     <- read r
+            ln     <- readx l
+            rn     <- readx r
             lnUID  <- select @UID ln
             rnUID  <- select @UID rn
             return (i, lnUID, rnUID)
