@@ -1,5 +1,5 @@
 extra-deps: [ghc-session-0.1.2.0, error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.1.0,
-  serialport-0.4.7]
+  serialport-0.4.7, aeson-1.0.2.1]
 ghc-options: {'*': -DFastCompilation -threaded -funbox-strict-fields -O0}
 local-bin-path: ./bin
 packages:
