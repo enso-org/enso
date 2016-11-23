@@ -636,7 +636,7 @@ test_gr2 =  layouted @ANT $ do
     (sx1 :: UntyppedExpr2 Star ()) <- star2
     (sx2 :: UntyppedExpr2 Star ()) <- star2
     -- Just (data_ :: Key m RW AnyExpr2 Data) <- lookupKey exprRep dataRep
-    Just (data_ :: Key RW AnyExpr2 Data) <- lookupKey exprRep dataRep
+    Just (data_ :: Key AnyExpr2 Data) <- lookupKey exprRep dataRep
     print sx1
     print sx2
     print =<< read data_ sx1

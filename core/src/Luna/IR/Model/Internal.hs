@@ -432,44 +432,47 @@ instance (Eq  (Definition t a), IsElem a) => Eq  (IR t a) where (==)    = (==)  
 -- === Keys === --
 ------------------
 
-newtype KeyST m (acc :: IOAccess) el layer = KeyST (MV.VectorRefM (GetIRMonad m) Any) deriving (Show)
-makeWrapped ''KeyST
+newtype IRKeyST m (acc :: IOAccess) el layer = IRKeyST (MV.VectorRefM (GetIRMonad m) Any) deriving (Show)
+makeWrapped ''IRKeyST
 
-data Key (acc :: IOAccess) el layer where
-    Key :: KeyST m acc el layer -> Key acc el layer
+data IRKey (acc :: IOAccess) el layer where
+    IRKey :: IRKeyST m acc el layer -> IRKey acc el layer
 
-key :: KeyST m acc el layer -> Key acc el layer
-key = Key
+type Key  = IRKey 'RW
+type Key' = IRKey 'R
 
-unsafeFromKey :: Key acc el layer -> KeyST m acc el layer
-unsafeFromKey (Key k) = unsafeCoerce k
+key :: IRKeyST m acc el layer -> IRKey acc el layer
+key = IRKey
+
+unsafeFromKey :: IRKey acc el layer -> IRKeyST m acc el layer
+unsafeFromKey (IRKey k) = unsafeCoerce k
 
 
 -- === Utils === --
 
-lookupKeyST :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (KeyST m acc el layer))
-lookupKeyST e l = fmap KeyST . (^? (store . ix e . ix l)) <$> getIRData ; {-# INLINE lookupKeyST #-}
+lookupKeyST :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (IRKeyST m acc el layer))
+lookupKeyST e l = fmap IRKeyST . (^? (store . ix e . ix l)) <$> getIRData ; {-# INLINE lookupKeyST #-}
 
-lookupKey :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (Key acc el layer))
+lookupKey :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (IRKey acc el layer))
 lookupKey e l = key .: lookupKeyST e l ; {-# INLINE lookupKey #-}
 
 readST :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
              , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
-          => KeyST m acc el layer -> t -> m (LayerData layer t)
-readST (KeyST v) (unwrap' -> idx) = unsafeCoerce <$> MV.unsafeRead idx v ; {-# INLINE readST #-}
+          => IRKeyST m acc el layer -> t -> m (LayerData layer t)
+readST (IRKeyST v) (unwrap' -> idx) = unsafeCoerce <$> MV.unsafeRead idx v ; {-# INLINE readST #-}
 
 read :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
            , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
-        => Key acc el layer -> t -> m (LayerData layer t)
+        => IRKey acc el layer -> t -> m (LayerData layer t)
 read k = readST (unsafeFromKey k) ; {-# INLINE read #-}
 
--- lookupKeyST :: forall acc el layer m. (Maybe (Key m acc el layer))
--- lookupKey = fmap Key . (^? (store . ix (typeRep @el) . ix (typeRep @layer))) <$> getIRData
 
 
--- === Instances === --
+------------------
+-- === Pass === --
+------------------
 
--- instance Show (Key m acc t l) where show _ = "Key"
+-- newtype PassT m a = Pass (StateT )
 
 
 
