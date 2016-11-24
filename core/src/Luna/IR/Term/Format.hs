@@ -1,13 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# BOOSTER  Templates            #-}
 
-module Luna.IR.Expr.Format where
+module Luna.IR.Term.Format where
 
 import Luna.Prelude hiding (String, Integer, Rational)
 
 import Type.List                  (TakeUntil)
 
-import Luna.IR.Expr.Atom
+import Luna.IR.Term.Atom
 import Data.Property
 import Type.Relation              (Super)
 import Type.Bool

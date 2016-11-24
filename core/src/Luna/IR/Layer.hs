@@ -1,9 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Model.Layer where
+module Luna.IR.Layer where
 
 import Luna.Prelude
-import Luna.IR.Model.Layer.Data
+import Luna.IR.Layer.Model
 
 
 --------------------
@@ -23,7 +23,7 @@ makeWrapped ''Layer
 -- === Classes === --
 
 class Monad m => LayerCons l m where
-    consLayer :: forall t. LayerData Data t -> m (Layer t l)
+    consLayer :: forall t. LayerData Model t -> m (Layer t l)
 
 
 -- === Isntances === --

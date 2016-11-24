@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Model.Layer.Loc where
+module Luna.IR.Layer.Loc where
 
 import Luna.Prelude
 

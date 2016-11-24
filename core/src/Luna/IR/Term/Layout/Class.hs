@@ -1,13 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE PolyKinds            #-}
 
-module Luna.IR.Expr.Layout.Class where
+module Luna.IR.Term.Layout.Class where
 
 
 import Luna.Prelude
 import Data.Property
-import Luna.IR.Expr.Format
-import Luna.IR.Expr.Atom
+import Luna.IR.Term.Format
+import Luna.IR.Term.Atom
 
 import Unsafe.Coerce (unsafeCoerce)
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)), TypeError)
@@ -40,6 +40,7 @@ type family DefaultLayout (p :: k)
 type family Merge     a b
 type family Simplify  l
 type family Universal a
+type family Abstract  a
 
 class                         Generalize a b
 instance {-# OVERLAPPABLE #-} Generalize a a
@@ -58,6 +59,9 @@ generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
 universal :: a -> Universal a
 universal = unsafeCoerce ; {-# INLINE universal #-}
+
+abstract :: a -> Abstract a
+abstract = unsafeCoerce ; {-# INLINE abstract #-}
 
 
 -- === Instances === --

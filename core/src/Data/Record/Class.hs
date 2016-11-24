@@ -46,7 +46,7 @@ import Type.List hiding (FromJust)
 import System.Environment (getArgs)
 import Data.List.Split (chunksOf)
 
-import qualified Control.Monad.State.Dependent as State
+import qualified Control.Monad.State.Dependent.Old as State
 import Type.Cache.TH
 import Type.Set
 import Type.Zip

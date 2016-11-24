@@ -16,8 +16,8 @@ import qualified Data.Map         as Map
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
 
-import           Control.Monad.State.Dependent (MonadState, StateT, modify_)
-import qualified Control.Monad.State.Dependent as State
+import           Control.Monad.State.Dependent.Old (MonadState, StateT, modify_)
+import qualified Control.Monad.State.Dependent.Old as State
 
 import Data.Aeson       (GFromJSON, GToJSON, GToEncoding, Zero, Value, Encoding)
 import Data.Aeson.Types (Parser)

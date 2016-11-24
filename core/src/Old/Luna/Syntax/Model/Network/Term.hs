@@ -17,7 +17,7 @@ import           Data.Reprx                     (Repr, repr)
 import           Old.Luna.Syntax.Term.Class
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Runtime.Dynamics          (Dynamics_OLD)
-import qualified Luna.IR.Expr.Format          as Format
+import qualified Luna.IR.Term.Format          as Format
 import           Old.Luna.Syntax.Term               hiding (Layout, Term, Data, Link, Ref)
 import Data.Graph.Model.Edge
 import Data.Graph

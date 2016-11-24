@@ -69,10 +69,10 @@ import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    ()
 import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
 import           Old.Luna.Syntax.Model.Network.Class                 (Network)
-import qualified Old.Luna.Syntax.Model.Network.Term                  as Net
+import qualified Old.Luna.Syntax.Model.Network.Term                  as Netx
 -- import           Old.Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
 import qualified Old.Luna.Syntax.Term.Class                           as Term
-import           Luna.IR.Expr.Format
+import           Luna.IR.Term.Format
 
 import qualified Data.Graph.Backend.NEC       as NEC
 import           Data.Graph.Model.Pointer.Set (RefSet)
@@ -91,13 +91,13 @@ import qualified Data.Graph.Builder                      as GraphBuilder
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.IR.Expr hiding (Data, cons, unify, star)
+import Luna.IR.Term hiding (Data, cons, unify, star)
 
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
-import qualified Luna.IR.Model.Internal as IR
-import Luna.IR.Model.Internal hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
+import qualified Luna.IR.Internal.IR as IR
+import Luna.IR.Internal.IR hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Prelude (error, undefined)
@@ -105,17 +105,17 @@ import Type.List (In)
 import Data.Container.Hetero (Elems)
 import GHC.TypeLits hiding (Symbol)
 import GHC.TypeLits (ErrorMessage(Text))
-import Luna.IR.Expr.Atom (Atoms)
+import Luna.IR.Term.Atom (Atoms)
 
-import qualified Luna.IR.Expr.Symbol as Symbol
-import qualified Luna.IR.Expr.Symbol.Named as Sym
-import qualified Luna.IR.Expr.Symbol.Named as Symbol
-import Luna.IR.Expr.Symbol (Sym)
+import qualified Luna.IR.Term.Symbol as Symbol
+import qualified Luna.IR.Term.Symbol.Named as Sym
+import qualified Luna.IR.Term.Symbol.Named as Symbol
+import Luna.IR.Term.Symbol (Sym)
 import Data.Property
-import Luna.IR.Expr.Format (Format, Sub)
+import Luna.IR.Term.Format (Format, Sub)
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
-import Luna.IR.Expr.Layout
+import Luna.IR.Term.Layout
 
 import Unsafe.Coerce (unsafeCoerce)
 import Type.Set as Set hiding (Set)
@@ -131,7 +131,7 @@ import Control.Monad.ST
 import Data.Reprx
 import Luna.IR.Repr.Styles  (HeaderOnly(..))
 import Data.Aeson (ToJSON, FromJSON, encode, decode)
-import qualified Control.Monad.State.Dependent as D
+import qualified Control.Monad.State.Dependent.Old as D
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import Web.Browser (openBrowser)
 
@@ -139,9 +139,11 @@ import qualified Luna.Diag.Vis as Vis
 import           Luna.Diag.Vis (MonadVis)
 import qualified Data.Set as S
 import Type.Container (Every)
-import Luna.IR.Model.Layer
-import Luna.IR.Model.Layer.Data
+import Luna.IR.Layer
+import Luna.IR.Layer.Model
 
+import qualified Luna.Pass.Class as Pass
+import Luna.Pass.Class (Keys, Preserves, Pass, read2)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -170,9 +172,9 @@ instance (D.MonadState UID (LayerData UID expr) m, Monad m)
 
 
 
--- === Data layer === --
+-- === Model layer === --
 
-instance Monad m => LayerCons Data m where
+instance Monad m => LayerCons Model m where
     consLayer = return . Layer ; {-# INLINE consLayer #-}
 
 
@@ -219,14 +221,14 @@ instance Monad m => Constructor a m (Layer expr Succs) where
 
 instance ( IRMonad m
          , IRReferables m
-         , HasLayerM  m ExprLink' Data
+         , HasLayerM  m ExprLink' Model
          , HasLayersM m Expr' '[UID, Succs]
          , Ord (IRM m (Ref (Expr Draft)))
          , Eq  (IRM m (Ref (Expr Draft)))
          )
       => Handler Succs New (Ref ExprLink') m where
     handle linkRef = do
-        (srcRef, tgtRef) <- select @Data =<< readx linkRef
+        (srcRef, tgtRef) <- select @Model =<< readx linkRef
         modifyx srcRef $ with @Succs (S.insert tgtRef)
 
 
@@ -277,32 +279,32 @@ type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify 
 
 
 -----------------
--- === Net === --
+-- === Netx === --
 -----------------
 
 -- === Definition === --
 
-data Net = Net
+data Netx = Netx
 
 type family AllLayers a :: [*]
-type instance Layers Expr'     Net = '[Data, UID, Type, Succs]
-type instance Layers ExprLink' Net = '[Data, UID]
-type instance AllLayers Net = '[Data, UID, Type, Succs]
+type instance Layers Expr'     Netx = '[Model, UID, Type, Succs]
+type instance Layers ExprLink' Netx = '[Model, UID]
+type instance AllLayers Netx = '[Model, UID, Type, Succs]
 
-type instance Impl Ref Expr' Net = G.Ref2 Node
-type instance Impl Ref ExprLink' Net = G.Ref2 Edge
+type instance Impl Ref Expr' Netx = G.Ref2 Node
+type instance Impl Ref ExprLink' Netx = G.Ref2 Edge
 
 
 ------------
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, IRMonad m)
-      => Referable Expr' Net m where
+      => Referable Expr' Netx m where
     refDesc   = fromDefinition <=< construct' <=< liftIR ; {-# INLINE refDesc   #-}
     readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
 
 instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, IRMonad m)
-      => Referable ExprLink' Net m where
+      => Referable ExprLink' Netx m where
     refDesc   = fromDefinition <=< construct' <=< liftIR ; {-# INLINE refDesc   #-}
     readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
@@ -368,8 +370,8 @@ type ASGBuilder m = ( IRMonad      m
              , IRReferables (Runner m)
              )
 
-type IRBaseLayers m = ( HasLayerM m Expr'     Data
-                       , HasLayerM m ExprLink' Data
+type IRBaseLayers m = ( HasLayerM m Expr'     Model
+                       , HasLayerM m ExprLink' Model
                        )
 
 
@@ -391,14 +393,14 @@ star :: ASGBuilder' m layout => m (Ref $ AtomicExpr Star layout)
 star = buildElem $ expr Sym.uncheckedStar
 
 
-star2 :: (ExprBuilder2 m, Inferable2 Layout layout m) => m (AtomicExpr2 Star layout)
+star2 :: (IRMonad m, Inferable2 Layout layout m) => m (AtomicExpr2 Star layout)
 star2 = expr2 Sym.uncheckedStar
 
 
 
 -- expr2 :: (SymbolEncoder atom, ExprBuilder2 m)
 --       => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
--- expr2 a = Expr2 <$> newElem @AnyExpr2 (encodeSymbol a)
+-- expr2 a = Expr2 <$> newElem @Expr2_ (encodeSymbol a)
 
 buildElem :: forall m a. (Self.MonadSelfBuilder (Universal a) (Runner m), Monad m)
           => Runner m a -> m a
@@ -497,7 +499,7 @@ class Monad m => ExprStore t m where
 exprs :: (ExprStore' m, IRMonad m) => m [Ref Expr']
 exprs = join . fmap (sequence . fmap liftIR) $ exprs' ; {-# INLINE exprs #-}
 
-instance (Monad m, MonadBuilder g m, ReferableM Node g m) => ExprStore Net m where
+instance (Monad m, MonadBuilder g m, ReferableM Node g m) => ExprStore Netx m where
     exprs' = (view (from definitionFake) . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get ; {-# INLINE exprs' #-}
 
 
@@ -562,8 +564,8 @@ type MonadIRBuilder t m = (PrimMonad m, LayerEventsHandler (IRBuilderCtxStack t 
 type IRBuilder      t m = LayerListeners (IRBuilderCtxStack t m)
 
 
--- type instance Layers Expr'     Net = '[Data, UID, Type, Succs]
--- type instance Layers ExprLink' Net = '[Data, UID]
+-- type instance Layers Expr'     Netx = '[Model, UID, Type, Succs]
+-- type instance Layers ExprLink' Netx = '[Model, UID]
 
 runIRBuilder :: forall t m a. MonadIRBuilder t m
               => IRBuilder t m a -> m (IR t a)
@@ -574,20 +576,20 @@ runIRBuilder = runIRT
              . runInferenceT2 @IRType @t
              . handleLayerEvents
     -- where reg = def
-    --           & registerLayer @Expr' @Data
+    --           & registerLayer @Expr' @Model
     --           -- & registerLayer @Expr' @UID
     --           -- & registerLayer @Expr' @Type
     --           -- & registerLayer @Expr' @Succs
-    --           -- & registerLayer @ExprLink' @Data
+    --           -- & registerLayer @ExprLink' @Model
     --           -- & registerLayer @ExprLink' @UID
 
 
 
-type MonadNetBuilder m = MonadIRBuilder Net m
-type NetBuilder      m = IRBuilder      Net m
+type MonadNetBuilder m = MonadIRBuilder Netx m
+type NetBuilder      m = IRBuilder      Netx m
 
-runNetBuilder :: MonadNetBuilder m => NetBuilder m a -> m (IR Net a)
-runNetBuilder = runIRBuilder @Net ; {-# INLINE runNetBuilder #-}
+runNetBuilder :: MonadNetBuilder m => NetBuilder m a -> m (IR Netx a)
+runNetBuilder = runIRBuilder @Netx ; {-# INLINE runNetBuilder #-}
 
 
 instance Generalize (Compound SimpleX lst) Draft
@@ -609,11 +611,31 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
 
         -- star2 :: (ExprBuilder2 m, Inferable2 Layout layout m) => m (AtomicExpr2 Star layout)
 
-dataRep = typeRep @Data
-exprRep = typeRep @AnyExpr2
+dataRep = typeRep @Model
+exprRep = typeRep @Expr2_
 
 
 -- unhide :: Hidden -> a
+
+
+
+data                    SimpleAA
+type instance Keys      SimpleAA = '[LayerKey 'RW Expr2_ Model, LayerKey 'RW Expr2_ Succs]
+type instance Preserves SimpleAA = '[]
+
+-- pass1 :: Pass SimpleAA m
+-- pass1 e = do
+--     s <- read succs e
+--     ...
+
+-- TODO: data -> model ?
+
+pass1 :: IRMonad m => Pass SimpleAA m
+pass1 = layouted @ANT $ do
+    (sx1 :: UntyppedExpr2 Star ()) <- star2
+    k <- Pass.getKey @(Layer Expr2_ Model)
+    d <- read2 @Model sx1
+    return ()
 
 test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , HasLayerM  m ExprLink' UID
@@ -622,21 +644,19 @@ test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , MonadVis m
             , MonadIO m
 
-            -- from registerLayerM:
-            , PrimState (GetIRMonad m) ~ PrimState m
-            , PrimMonad m
-            , PrimMonad (GetIRMonad m)
-            , Monad (GetIRMonad m)
+            , IRMonad m
+            , PrimState (GetIRMonad m) ~ PrimState m -- FIXME
+            , PrimMonad m -- FIXME
             )
          => m (Ref (UntyppedExpr Star ()))
 test_gr2 =  layouted @ANT $ do
-    registerElem  @AnyExpr2
-    registerLayer @Data
+    registerElem  @Expr2_
+    registerLayer @Model
     attachLayer   dataRep exprRep
     (sx1 :: UntyppedExpr2 Star ()) <- star2
     (sx2 :: UntyppedExpr2 Star ()) <- star2
-    -- Just (data_ :: Key m RW AnyExpr2 Data) <- lookupKey exprRep dataRep
-    Just (data_ :: Key AnyExpr2 Data) <- lookupKey exprRep dataRep
+    -- Just (data_ :: Key m RW Expr2_ Model) <- lookupKey exprRep dataRep
+    Just (data_ :: LayerKey RW Expr2_ Model) <- uncheckedLookupKey
     print sx1
     print sx2
     print =<< read data_ sx1
@@ -655,10 +675,10 @@ test_gr2 =  layouted @ANT $ do
 
     t <- readx s1
     s1' <- IR.mark' t
-    -- Just dkey <- askKey @'RW @Expr' @Data
+    -- Just dkey <- askKey @'RW @Expr' @Model
     print "!!!!!!!!----"
     -- print (unwrap' dkey)
-    d <- select @Data t
+    d <- select @Model t
     print s1'
 
     matchM t $ \case
@@ -674,10 +694,10 @@ test_gr2 =  layouted @ANT $ do
 -- matchy t f = IR.mark' t
 -- matchy t f = IR.mark' t >>= (exprUniSymbol . f)
 
-matchy :: HasLayer t Expr' Data => (IR t (Expr layout)) -> (Unwrapped (ExprUniSymbol (Expr layout)) -> b) -> b
+matchy :: HasLayer t Expr' Model => (IR t (Expr layout)) -> (Unwrapped (ExprUniSymbol (Expr layout)) -> b) -> b
 matchy a f = f $ unwrap' (exprUniSymbol a)
 
-matchM :: (HasLayerM m Expr' Data, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
+matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
 matchM a f = mark' a >>= flip matchy f
 
 snapshot :: Vis m => P.String -> m()
@@ -709,7 +729,7 @@ visNode2 expr = do
     tpRef  <- select @Type expr
     tpLink <- readx tpRef
     tpUid  <- select @UID  tpLink
-    (l,r)  <- select @Data tpLink
+    (l,r)  <- select @Model tpLink
 
     ln     <- readx l
     rn     <- readx r
@@ -725,7 +745,7 @@ visNode2 expr = do
         getUIDs re = do
             e      <- readx re
             i      <- select @UID  e
-            (l, r) <- select @Data e
+            (l, r) <- select @Model e
             ln     <- readx l
             rn     <- readx r
             lnUID  <- select @UID ln

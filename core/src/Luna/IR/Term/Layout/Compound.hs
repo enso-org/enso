@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Expr.Layout.Compound where
+module Luna.IR.Term.Layout.Compound where
 
 import Luna.Prelude
 
@@ -10,9 +10,9 @@ import           Data.RTuple (Assoc(..), SetAssoc, LookupAssoc)
 import qualified Data.RTuple as List
 import           Type.Set    as Set
 
-import Luna.IR.Expr.Atom
-import Luna.IR.Expr.Format
-import Luna.IR.Expr.Layout.Class
+import Luna.IR.Term.Atom
+import Luna.IR.Term.Format
+import Luna.IR.Term.Layout.Class
 
 
 

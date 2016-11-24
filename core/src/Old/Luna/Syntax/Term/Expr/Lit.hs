@@ -4,7 +4,7 @@ import           Luna.Prelude            hiding (Rational, Integer, String)
 import qualified Luna.Prelude            as P
 import           Luna.IR.Repr.Styles (StaticNameOnly)
 import           Luna.IR.Name
--- import           Luna.IR.Expr.Atom as X (Star)
+-- import           Luna.IR.Term.Atom as X (Star)
 
 
 data Star = Star deriving (Show)

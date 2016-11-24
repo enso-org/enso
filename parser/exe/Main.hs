@@ -46,7 +46,7 @@ import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeChec
 import           Old.Luna.Pretty.GraphViz
 import           Old.Luna.Runtime.Dynamics                         (Dynamic, Static)
 import qualified Old.Luna.Runtime.Dynamics                         as Runtime
-import qualified Luna.IR.Expr.Format                           as EvalModel
+import qualified Luna.IR.Term.Format                           as EvalModel
 import qualified StdLibMock                           as StdLib
 import qualified Luna.IR.Library.Symbol                       as Symbol
 import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)

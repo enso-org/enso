@@ -44,7 +44,7 @@ import qualified Old.Luna.Syntax.Term as New
 -- import           Old.Luna.Syntax.Term (AtomicExpr, TermOf)
 import           Old.Luna.Syntax.Term.Class (TermOf)
 import           Data.Container.Hetero (Elems)
-import qualified Luna.IR.Expr.Atom as Atom
+import qualified Luna.IR.Term.Atom as Atom
 import GHC.Prim (Any)
 
 
