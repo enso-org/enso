@@ -2,8 +2,7 @@ author: Wojciech Danilo
 category: Data
 default-extensions: [MultiParamTypeClasses, UndecidableInstances, FlexibleInstances,
   FlexibleContexts, CPP, DefaultSignatures]
-dependencies: [base, old-time, time, bytestring, containers, old-locale,
-  mtl, text, either, template-haskell, lens]
+dependencies: [base, containers, template-haskell, lens]
 github: https://github.com/wdanilo/convert
 library: {ghc-options: -Wall -O2, source-dirs: src}
 license: Apache-2.0
@@ -12,4 +11,4 @@ name: convert
 stability: experimental
 synopsis: Safe and unsafe data conversion utilities with strong type-level operation.
   checking.
-version: 1.0.6
+version: "1.1"
