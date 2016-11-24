@@ -2,8 +2,8 @@ author: Wojciech Danilo
 category: Data
 default-extensions: [MultiParamTypeClasses, UndecidableInstances, FlexibleInstances,
   FlexibleContexts, CPP, DefaultSignatures]
-dependencies: [base, old-time, time >= 1.1.3, bytestring >= 0.10.2, containers, old-locale,
-  mtl, text >= 0.8, either, template-haskell, lens]
+dependencies: [base, old-time, time, bytestring, containers, old-locale,
+  mtl, text, either, template-haskell, lens]
 github: https://github.com/wdanilo/convert
 library: {ghc-options: -Wall -O2, source-dirs: src}
 license: Apache-2.0
