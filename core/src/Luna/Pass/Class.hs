@@ -13,9 +13,10 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, IOAccess(..), readKey, IRMonad, HasIdx, AssertLayerReadable)
+import           Luna.IR.Internal.IR   (Key, IOAccess(..), readKey, IRMonad, HasIdx, AssertLayerReadable, AssertLayerReadable')
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Term.Layout.Class (Abstract)
+import           Type.Maybe                (FromJust)
 
 import Luna.IR.Layer
 
@@ -139,14 +140,16 @@ instance PrimMonad m => PrimMonad (PassT pass m) where
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
-type family KeyAccess key m where
-    KeyAccess key (PassT pass m) = FindKey key (Keys pass)
-    KeyAccess key (t m)          = KeyAccess key m
+-- type family KeyAccess key m where
+--     KeyAccess key (PassT pass m) = FindKey key (Keys pass)
+--     KeyAccess key (t m)          = KeyAccess key m
 
-type FindKey key lst = Key (FindKeyType key lst) key
+type FindKey key lst = Key (FindKeyType' key lst) key
 
+type FindKeyType' key lst = FromJust (FindKeyType key lst)
 type family FindKeyType key lst where
-    FindKeyType k (Key s k ': ls) = s
+    FindKeyType k '[]             = 'Nothing
+    FindKeyType k (Key s k ': ls) = 'Just s
     FindKeyType k (l       ': ls) = FindKeyType k ls
 
 
@@ -169,7 +172,7 @@ instance KeyProvider k (Key s k ': ls) where accessKey = view List.head ; {-# IN
 class Monad m => Readable layer abs m where
     read :: forall t. (abs ~ Abstract t, HasIdx t) => t -> m (LayerData layer t)
 
-instance (IRMonad m, KeyProvider (Layer abs layer) (Keys pass), AssertLayerReadable (FindKeyType (Layer abs layer) (Keys pass)) abs layer)
+instance (IRMonad m, KeyProvider (Layer abs layer) (Keys pass), AssertLayerReadable' (FindKeyType (Layer abs layer) (Keys pass)) abs layer)
       => Readable layer abs (PassT pass m) where
     read t = flip readKey t =<< getKey @(Layer abs layer)
 

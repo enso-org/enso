@@ -206,6 +206,18 @@ instance ( Self.MonadSelfBuilder (Ref Expr') m
 
 -- === Succs layer === --
 
+data Succs2 = Succs2 deriving (Show)
+
+type instance LayerData Succs2 a = S.Set (Universal a)
+
+instance Monad m => LayerCons Succs2 m where
+    consLayer _ = return def ; {-# INLINE consLayer #-}
+
+
+
+
+-- === Succs layer === --
+
 data Succs = Succs deriving (Show)
 
 -- FIXME[WD]: refactorme
@@ -611,22 +623,10 @@ test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
 
         -- star2 :: (ExprBuilder2 m, Inferable2 Layout layout m) => m (AtomicExpr2 Star layout)
 
-dataRep = typeRep @Model
-exprRep = typeRep @Expr2_
+modelRep = typeRep @Model
+exprRep  = typeRep @Expr2_
 
 
--- unhide :: Hidden -> a
-
-
-
-
-
--- pass1 :: Pass SimpleAA m
--- pass1 e = do
---     s <- read succs e
---     ...
-
--- TODO: data -> model ?
 
 instance Readable layer abs m => Readable layer abs (KnownTypeT cls t m) where
     read = lift . read @layer ; {-# INLINE read #-}
@@ -635,31 +635,45 @@ instance Readable layer abs m => Readable layer abs (KnownTypeT cls t m) where
 
 
 data                    SimpleAA
-type instance Keys      SimpleAA = '[LayerKey 'RW Expr2_ Model]
+type instance Keys      SimpleAA = '[LayerKey 'RW Expr2_ Model, LayerKey 'RW Expr2_ Succs2]
 type instance Preserves SimpleAA = '[]
 
-pass1 :: IRMonad m => Pass SimpleAA m
+pass1 :: (MonadIO m, IRMonad m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-pass1_r :: (PrimMonad m, MonadIO m) => m (Either Pass.Err ())
-pass1_r = runIRT2 $ do
+test_pass1 :: (MonadIO m, PrimMonad m) => m (Either Pass.Err ())
+test_pass1 = runIRT2 $ do
     registerElem  @Expr2_
     registerLayer @Model
-    attachLayer   dataRep exprRep
+    registerLayer @Succs2
+    attachLayer   (typeRep @Model)  (typeRep @Expr2_)
+    attachLayer   (typeRep @Succs2) (typeRep @Expr2_)
 
-    test_pass1
+    Pass.eval pass1
 
 
-gen_pass1 :: (IRMonad m, Readable Model Expr2_ m) => m ()
+gen_pass1 :: (MonadIO m, IRMonad m, Readable Model Expr2_ m, Readable Succs2 Expr2_ m) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedExpr2 Star ()) <- star2
     (s2 :: UntyppedExpr2 Star ()) <- star2
-    d <- read @Model s1
+    print "hello"
+    d <- read @Succs2 s1
+    print d
     return ()
 
 
-test_pass1 :: IRMonad m => m (Either Pass.Err ())
-test_pass1 = Pass.eval pass1
+
+
+
+main :: IO ()
+main = do
+    -- test_g4
+    p <- test_pass1
+    print p
+    return ()
+
+
+
 
 
 test_gr2 :: ( ASGBuilder (Layouted ANT m)
@@ -677,11 +691,11 @@ test_gr2 :: ( ASGBuilder (Layouted ANT m)
 test_gr2 =  layouted @ANT $ do
     registerElem  @Expr2_
     registerLayer @Model
-    attachLayer   dataRep exprRep
+    attachLayer   modelRep exprRep
 
     (sx1 :: UntyppedExpr2 Star ()) <- star2
     (sx2 :: UntyppedExpr2 Star ()) <- star2
-    -- Just (data_ :: Key m RW Expr2_ Model) <- lookupKey exprRep dataRep
+    -- Just (data_ :: Key m RW Expr2_ Model) <- lookupKey exprRep modelRep
     Just (data_ :: LayerKey RW Expr2_ Model) <- uncheckedLookupKey
     print sx1
     print sx2
@@ -726,6 +740,7 @@ matchy a f = f $ unwrap' (exprUniSymbol a)
 matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
 matchM a f = mark' a >>= flip matchy f
 
+
 snapshot :: Vis m => P.String -> m()
 snapshot title = do
     res <- exprs
@@ -736,13 +751,6 @@ snapshot title = do
     Vis.addStep (fromString title) vns ves
 
 
-
-main :: IO ()
-main = do
-    test_g4
-    p <- pass1_r
-    print p
-    return ()
 
 
 type Vis m = ( ASGBuilder m

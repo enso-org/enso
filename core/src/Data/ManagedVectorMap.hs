@@ -137,6 +137,18 @@ unsafeAddKey k m = do
     v <- newVectorRef
     return $ m & vec . at k ?~ v
 
+keys :: ManagedVectorMap s k a -> [k]
+keys = Map.keys . view vec ; {-# INLINE keys #-}
+
+assocs :: ManagedVectorMap s k a -> [(k, VectorRef s a)]
+assocs = Map.assocs . view vec ; {-# INLINE assocs #-}
+
+mapWithKey :: (k -> VectorRef s a -> VectorRef s b) -> ManagedVectorMap s k a -> ManagedVectorMap s k b
+mapWithKey f = vec %~ Map.mapWithKey f ; {-# INLINE mapWithKey #-}
+
+traverseWithKey :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> ManagedVectorMap s k a -> m (ManagedVectorMap s k b)
+traverseWithKey = vec . Map.traverseWithKey ; {-# INLINE traverseWithKey #-}
+
 --
 -- add :: PrimMonad m => ManagedVectorMapM m a -> a -> m Idx
 -- add mv a = flip withMeasuredVectorMapM mv $ \v -> do

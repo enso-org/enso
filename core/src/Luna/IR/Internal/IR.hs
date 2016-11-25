@@ -109,6 +109,7 @@ import Control.Monad.State (StateT, runStateT)
 import qualified Control.Monad.State as State
 import qualified Data.ManagedVectorMap as MV
 import Data.ManagedVectorMap (ManagedVectorMap, ManagedVectorMapM)
+import Type.Maybe (FromJust, IsJust)
 
 typeRep :: forall a. Typeable a => TypeRep
 typeRep = Typeable.typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep #-}
@@ -165,12 +166,23 @@ type family Writable a where
 type AssertLayerWritable a t l = Assert (Writable a) (LayerWriteError t l)
 type AssertLayerReadable a t l = Assert (Readable a) (LayerReadError  t l)
 
+type AssertLayerReadable' a t l = ( Assert (IsJust a)              (MissingLayerError t l)
+                                  , Assert (Readable (FromJust a)) (LayerReadError    t l)
+                                  )
+
 type LayerAccessError action t l = Sentence $ 'Text "Layer"
                                         :</>: Ticked ('ShowType l)
                                         :</>: 'Text "of"
                                         :</>: Ticked ('ShowType t)
                                         :</>: 'Text "is not"
                                         :</>: ('Text action :<>: 'Text "able")
+
+type MissingLayerError t l = Sentence $ 'Text "Layer"
+                                  :</>: Ticked ('ShowType l)
+                                  :</>: 'Text "of"
+                                  :</>: Ticked ('ShowType t)
+                                  :</>: 'Text "does not exist"
+
 
 type LayerReadError  t l = LayerAccessError "read"  t l
 type LayerWriteError t l = LayerAccessError "write" t l
@@ -296,12 +308,16 @@ newElem :: forall t m. (IRMonad m, Typeable t,  PrimMonad (GetIRMonad m)) => Lay
 newElem dt = do
     d <- getIRState
     let Just layerStore = d ^? elems  . ix (typeRep @t)
-        Just consFunc   = d ^? layers . ix (typeRep @Model)
-        Just elemStore  = layerStore ^? ix (typeRep @Model)
+        consLayer idx l elemStore = do
+            let Just consFunc = d ^? layers . ix l -- FIXME[WD]: internal error when cons was not registered
+            runInIR $ MV.unsafeWrite elemStore idx =<< unsafeAppCons consFunc dt
     (idx, layerStore') <- runInIR $ MV.reserveIdx layerStore
-    runInIR $ MV.unsafeWrite elemStore idx =<< unsafeAppCons consFunc dt
+    mapM_ (uncurry $ consLayer idx) (MV.assocs layerStore)
     putIRState $ d & elems . at (typeRep @t) ?~ layerStore'
     return idx
+
+
+
 
 
 -- === Registration === --
@@ -914,7 +930,8 @@ expr2 a = Expr2 <$> newElem @Expr2_ (encodeSymbol a)
 instance HasIdx (Expr2 l) where
     idx = wrapped' ; {-# INLINE idx #-}
 
-type instance Abstract (Expr2 _) = Expr2_
+type instance Universal (Expr2 _) = Expr2'
+type instance Abstract  (Expr2 _) = Expr2_
 
 -- unsafeSpecifyLayout2 :: Expr2_ -> Expr2 layout
 -- unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
