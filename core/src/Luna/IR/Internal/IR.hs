@@ -188,30 +188,30 @@ type LayerReadError  t l = LayerAccessError "read"  t l
 type LayerWriteError t l = LayerAccessError "write" t l
 
 
-------------------
--- === Elem === --
-------------------
-
-newtype Elem a = Elem Any
-makeWrapped '' Elem
-
-type family Definition t a
-
-type instance Definition t (Elem a) = Definition t a
-
-
--- === Classes === --
-
-class IsElem a where
-    elem :: Iso' a (Elem a)
-    default elem :: (Wrapped a, Unwrapped a ~ Elem a) => Iso' a (Elem a)
-    elem = wrapped' ; {-# INLINE elem #-}
-
-
--- === Instances === --
-
-instance KnownRepr a => Show (Elem a) where
-    show _ = typeRepr @a ; {-# INLINE show #-}
+-- ------------------
+-- -- === Elem === --
+-- ------------------
+--
+-- newtype Elem a = Elem Any
+-- makeWrapped '' Elem
+--
+-- type family Definition t a
+--
+-- type instance Definition t (Elem a) = Definition t a
+--
+--
+-- -- === Classes === --
+--
+-- class IsElem a where
+--     elem :: Iso' a (Elem a)
+--     default elem :: (Wrapped a, Unwrapped a ~ Elem a) => Iso' a (Elem a)
+--     elem = wrapped' ; {-# INLINE elem #-}
+--
+--
+-- -- === Instances === --
+--
+-- instance KnownRepr a => Show (Elem a) where
+--     show _ = typeRepr @a ; {-# INLINE show #-}
 
 
 
@@ -282,17 +282,17 @@ data IRType = IRType deriving (Show)
 -- === IR building === --
 
 
-definition :: IsElem a => Lens' (IR t a) (Definition t a)
-definition = irElem . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
-
-definitionFake :: IsElem a => Iso' (IR t a) (Definition t a)
-definitionFake = irElemFake . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definitionFake #-}
-
-fromDefinition :: (IRMonad m, IsElem a) => Definition (Cfg m) a -> m a
-fromDefinition = liftIR . view (from definitionFake) ; {-# INLINE fromDefinition #-}
-
-toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
-toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
+-- definition :: IsElem a => Lens' (IR t a) (Definition t a)
+-- definition = irElem . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
+--
+-- definitionFake :: IsElem a => Iso' (IR t a) (Definition t a)
+-- definitionFake = irElemFake . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definitionFake #-}
+--
+-- fromDefinition :: (IRMonad m, IsElem a) => Definition (Cfg m) a -> m a
+-- fromDefinition = liftIR . view (from definitionFake) ; {-# INLINE fromDefinition #-}
+--
+-- toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
+-- toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
 
 
 
@@ -440,9 +440,9 @@ with f src = do
 -- === Instances === --
 
 -- Show
-instance {-# OVERLAPPABLE #-}                              Show (IR I a) where show = impossible
-instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (IR t a) where
-    showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
+-- instance {-# OVERLAPPABLE #-}                              Show (IR I a) where show = impossible
+-- instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (IR t a) where
+--     showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
 
 instance MonadTrans (IRT t) where
     lift = IRT . lift ; {-# INLINE lift #-}
@@ -453,20 +453,20 @@ instance PrimMonad m => PrimMonad (IRT t m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 -- Properties
-type instance Access p (IR t a) = Access p (Definition t a)
-
-instance (Accessor p (Definition t a), IsElem a) => Accessor p (IR t a) where
-    access = access @p . view definition ; {-# INLINE access #-}
-
-instance (Updater' p (Definition t a), IsElem a) => Updater' p (IR t a) where
-    update' v = definition %~ update' @p v ; {-# INLINE update' #-}
+-- type instance Access p (IR t a) = Access p (Definition t a)
+--
+-- instance (Accessor p (Definition t a), IsElem a) => Accessor p (IR t a) where
+--     access = access @p . view definition ; {-# INLINE access #-}
+--
+-- instance (Updater' p (Definition t a), IsElem a) => Updater' p (IR t a) where
+--     update' v = definition %~ update' @p v ; {-# INLINE update' #-}
 
 -- Universal
 type instance Universal (IR t a) = IR t (Universal a)
 
 -- Ordering
-instance (Ord (Definition t a), IsElem a) => Ord (IR t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}
-instance (Eq  (Definition t a), IsElem a) => Eq  (IR t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
+-- instance (Ord (Definition t a), IsElem a) => Ord (IR t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}
+-- instance (Eq  (Definition t a), IsElem a) => Eq  (IR t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
 
 
 
@@ -569,227 +569,228 @@ instance {-# OVERLAPPABLE #-} (Monad m, a ~ LayerData Model t) => Constructor a 
 
 
 
-------------------------
--- === LayerStack === --
-------------------------
-
-type    LayerStackBase a   = Stack (Layer a)
-newtype LayerStack     t a = LayerStack (LayerStackBase (IR t a) (Layers (Universal a) t))
-makeWrapped ''LayerStack
-
-
--- === Lenses === --
-
--- class IsLayerStack a where
---     layerStack2 :: Iso' a (LayerStack a)
---     default layerStack2 :: (Wrapped a, Unwrapped a ~ LayerStack a) => Iso' a (LayerStack a)
---     layerStack2 = wrapped' ; {-# INLINE layerStack2 #-}
+-- ------------------------
+-- -- === LayerStack === --
+-- ------------------------
+--
+-- type    LayerStackBase a   = Stack (Layer a)
+-- newtype LayerStack     t a = LayerStack (LayerStackBase (IR t a) (Layers (Universal a) t))
+-- makeWrapped ''LayerStack
 --
 --
--- === StackCons === --
-
--- type LayerStackCons m a = StackCons (Layers (Struct a) (Cfg m)) m
+-- -- === Lenses === --
 --
--- consLayerStack :: LayerStackCons m a => LayerData Data a -> m (LayerStack (Cfg m) a)
-consLayerStack a = LayerStack <$> consStack a
+-- -- class IsLayerStack a where
+-- --     layerStack2 :: Iso' a (LayerStack a)
+-- --     default layerStack2 :: (Wrapped a, Unwrapped a ~ LayerStack a) => Iso' a (LayerStack a)
+-- --     layerStack2 = wrapped' ; {-# INLINE layerStack2 #-}
+-- --
+-- --
+-- -- === StackCons === --
+--
+-- -- type LayerStackCons m a = StackCons (Layers (Struct a) (Cfg m)) m
+-- --
+-- -- consLayerStack :: LayerStackCons m a => LayerData Data a -> m (LayerStack (Cfg m) a)
+-- consLayerStack a = LayerStack <$> consStack a
+--
+-- type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
+-- class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Model t -> m (LayerStackBase t ls)
+-- instance Monad m              => StackCons '[]       m where consStack _ = return def                                 ; {-# INLINE consStack #-}
+-- instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = Stack.push <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
+--
+--
+-- -- === HasLayer === --
+--
+-- class HasLayer   t q layer where layer' :: forall a. Lens' (LayerStackBase a (Layers q t)) (LayerData layer a)
+-- type  HasLayers  t q layers = Constraints (HasLayer t q <$> layers)
+-- type  HasLayerM  m q layer  = HasLayer  (Cfg m) q layer
+-- type  HasLayersM m q layers = HasLayers (Cfg m) q layers
+--
+-- instance {-# OVERLAPPABLE #-} Stack.HasLayer layer (Layers q t)
+--       => HasLayer t q layer where layer' = Stack.layer @layer @(Layers q t) . wrapped' ; {-# INLINE layer' #-}
+-- instance HasLayer I q layer where layer' = impossible                                  ; {-# INLINE layer' #-}
+--
+--
+-- -- -- === Instances === --
+--
+-- deriving instance Show (Unwrapped (LayerStack t a)) => Show (LayerStack t a)
+--
+-- type instance Access p (LayerStack t a) = LayerData p (IR t a)
+--
+-- instance HasLayer t (Universal a) p => Accessor p (LayerStack t a) where
+--     access = view (layer' @t @(Universal a) @p) . unwrap' ; {-# INLINE access #-}
+--
+-- instance HasLayer t (Universal a) p => Updater' p (LayerStack t a) where
+--     update' v = (wrapped' . layer' @t @(Universal a) @p) .~ v ; {-# INLINE update' #-}
+--
+-- -- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
+-- instance (Monad m, Constructor v m (Unwrapped (LayerStack t a))) => Constructor v m (LayerStack t a) where cons a = wrap' <$> cons a
+--
 
-type StackStepCons l ls m = (StackCons ls m, LayerCons l m)
-class    Monad m              => StackCons ls        m where consStack :: forall t. LayerData Model t -> m (LayerStackBase t ls)
-instance Monad m              => StackCons '[]       m where consStack _ = return def                                 ; {-# INLINE consStack #-}
-instance StackStepCons l ls m => StackCons (l ': ls) m where consStack d = Stack.push <$> consLayer d <*> consStack d ; {-# INLINE consStack #-}
 
 
--- === HasLayer === --
 
-class HasLayer   t q layer where layer' :: forall a. Lens' (LayerStackBase a (Layers q t)) (LayerData layer a)
-type  HasLayers  t q layers = Constraints (HasLayer t q <$> layers)
-type  HasLayerM  m q layer  = HasLayer  (Cfg m) q layer
-type  HasLayersM m q layers = HasLayers (Cfg m) q layers
-
-instance {-# OVERLAPPABLE #-} Stack.HasLayer layer (Layers q t)
-      => HasLayer t q layer where layer' = Stack.layer @layer @(Layers q t) . wrapped' ; {-# INLINE layer' #-}
-instance HasLayer I q layer where layer' = impossible                                  ; {-# INLINE layer' #-}
-
-
+-- ------------------------
+-- -- === References === --
+-- ------------------------
+--
+-- -- === Definition === --
+--
+-- newtype Ref a = Ref (Elem (Ref a))
+--
+-- type instance Definition t (Ref a) = Impl Ref (Universal a) t a
+-- instance      IsElem       (Ref a)
+--
+-- type family Impl (f :: * -> *) i t :: * -> *
+--
+-- makeWrapped ''Ref
+--
+--
+-- --- === Operations === --
+--
+-- -- Refs
+--
+-- type Referable' m a = Referable (Universal a) (Cfg m) m
+-- class Monad m => Referable i t m where
+--     refDesc    :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t a                     -> m (Ref a)
+--     unrefDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a)               -> m ()
+--     readDesc   :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a)               -> m a
+--     writeDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a) -> a          -> m ()
+--     modifyDesc :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a) -> (a -> m a) -> m ()
+--     modifyDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyDesc #-}
+--
+-- type IRValLike t m a = (Markable m t, IRVal t ~ a)
+--
+-- silentRef :: (Referable' m a, IRValLike t m a) => t -> m (Ref a)
+-- silentRef = refDesc <=< mark ; {-# INLINE silentRef #-}
+--
+-- ref :: (Referable' m a, IRValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
+-- ref = register @New <=< silentRef ; {-# INLINE ref #-}
+--
+-- delayedRef :: (Referable' m a, IRValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
+-- delayedRef = delayedRegister @New <=< silentRef ; {-# INLINE delayedRef #-}
+--
+-- readx :: (Referable' m a, IRValLike t m (Ref a)) => t -> m a
+-- readx = readDesc <=< mark ; {-# INLINE readx #-}
+--
+-- writex :: (Referable' m a, IRValLike t m (Ref a)) => t -> a -> m ()
+-- writex d a = flip writeDesc a =<< mark d ; {-# INLINE writex #-}
+--
+-- modifyx :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> m a) -> m ()
+-- modifyx d f = flip modifyDesc f =<< mark d ; {-# INLINE modifyx #-}
+--
+-- modifyx' :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> a) -> m ()
+-- modifyx' d = modifyx d . fmap return ; {-# INLINE modifyx' #-}
+--
+--
+-- -- TODO: tak moze wygladac taktyka na pure functions:
+-- -- IR t (Ref a) -> (g ->) (Ast t a)
+-- --       (Ref a) -> m             a
+-- --
+--
+--
+-- -- class Monad m => ExprStore m where
+-- --     exprs  :: m [Ref Expr']
+-- --     -- links  :: m [Ref ExprLink']
+--
+--
+--
 -- -- === Instances === --
-
-deriving instance Show (Unwrapped (LayerStack t a)) => Show (LayerStack t a)
-
-type instance Access p (LayerStack t a) = LayerData p (IR t a)
-
-instance HasLayer t (Universal a) p => Accessor p (LayerStack t a) where
-    access = view (layer' @t @(Universal a) @p) . unwrap' ; {-# INLINE access #-}
-
-instance HasLayer t (Universal a) p => Updater' p (LayerStack t a) where
-    update' v = (wrapped' . layer' @t @(Universal a) @p) .~ v ; {-# INLINE update' #-}
-
--- FIXME[WD]: after refactoring out the Constructors this could be removed vvv
-instance (Monad m, Constructor v m (Unwrapped (LayerStack t a))) => Constructor v m (LayerStack t a) where cons a = wrap' <$> cons a
-
-
-
-
-
-------------------------
--- === References === --
-------------------------
-
--- === Definition === --
-
-newtype Ref a = Ref (Elem (Ref a))
-
-type instance Definition t (Ref a) = Impl Ref (Universal a) t a
-instance      IsElem       (Ref a)
-
-type family Impl (f :: * -> *) i t :: * -> *
-
-makeWrapped ''Ref
-
-
---- === Operations === --
-
--- Refs
-
-type Referable' m a = Referable (Universal a) (Cfg m) m
-class Monad m => Referable i t m where
-    refDesc    :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t a                     -> m (Ref a)
-    unrefDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a)               -> m ()
-    readDesc   :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a)               -> m a
-    writeDesc  :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a) -> a          -> m ()
-    modifyDesc :: forall a. (i ~ Universal a, t ~ Cfg m) => IR t (Ref a) -> (a -> m a) -> m ()
-    modifyDesc ref f = writeDesc ref =<< f =<< readDesc ref ; {-# INLINE modifyDesc #-}
-
-type IRValLike t m a = (Markable m t, IRVal t ~ a)
-
-silentRef :: (Referable' m a, IRValLike t m a) => t -> m (Ref a)
-silentRef = refDesc <=< mark ; {-# INLINE silentRef #-}
-
-ref :: (Referable' m a, IRValLike t m a, Register New (Ref a) m) => t -> m (Ref a)
-ref = register @New <=< silentRef ; {-# INLINE ref #-}
-
-delayedRef :: (Referable' m a, IRValLike t m a, DelayedRegister New (Ref a) m) => t -> m (Ref a)
-delayedRef = delayedRegister @New <=< silentRef ; {-# INLINE delayedRef #-}
-
-readx :: (Referable' m a, IRValLike t m (Ref a)) => t -> m a
-readx = readDesc <=< mark ; {-# INLINE readx #-}
-
-writex :: (Referable' m a, IRValLike t m (Ref a)) => t -> a -> m ()
-writex d a = flip writeDesc a =<< mark d ; {-# INLINE writex #-}
-
-modifyx :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> m a) -> m ()
-modifyx d f = flip modifyDesc f =<< mark d ; {-# INLINE modifyx #-}
-
-modifyx' :: (Referable' m a, IRValLike t m (Ref a)) => t -> (a -> a) -> m ()
-modifyx' d = modifyx d . fmap return ; {-# INLINE modifyx' #-}
-
-
--- TODO: tak moze wygladac taktyka na pure functions:
--- IR t (Ref a) -> (g ->) (Ast t a)
---       (Ref a) -> m             a
 --
-
-
--- class Monad m => ExprStore m where
---     exprs  :: m [Ref Expr']
---     -- links  :: m [Ref ExprLink']
-
-
-
--- === Instances === --
-
--- Basic
-deriving instance Eq   (Unwrapped (Ref a)) => Eq   (Ref a)
-deriving instance Ord  (Unwrapped (Ref a)) => Ord  (Ref a)
-
--- Repr
-type instance TypeRepr (Ref _) = "Ref"
-instance      Show     (Ref a) where show = show . unwrap' ; {-# INLINE show #-}
-
--- Struct
-type instance Universal (Ref a) = Ref (Universal a)
-
-
--- Generalize
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
-instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
-instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
+-- -- Basic
+-- deriving instance Eq   (Unwrapped (Ref a)) => Eq   (Ref a)
+-- deriving instance Ord  (Unwrapped (Ref a)) => Ord  (Ref a)
+--
+-- -- Repr
+-- type instance TypeRepr (Ref _) = "Ref"
+-- instance      Show     (Ref a) where show = show . unwrap' ; {-# INLINE show #-}
+--
+-- -- Struct
+-- type instance Universal (Ref a) = Ref (Universal a)
+--
+--
+-- -- Generalize
+-- instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref b) => Generalize (Ref a) t
+-- instance {-# OVERLAPPABLE #-} (Generalize a b, t ~ Ref a) => Generalize t       (Ref b)
+-- instance {-# OVERLAPPABLE #-} (Generalize a b)            => Generalize (Ref a) (Ref b)
 
 
 
-------------------
+-- ------------------
+-- -- === Link === --
+-- ------------------
+--
+-- newtype Link   src tgt = Link (Elem (Link src tgt))
+-- type    Link'  a       = Link a a
+-- type    SubLink c t    = Ref (Link (Sub c t) t)
+-- type family SubLink (a :: *) (b :: *) where SubLink c (IR t a) = IR t (Ref (Link (Sub c a) a))
+--
+--
+-- type instance Definition t    (Link src tgt) = LayerStack t (Link src tgt)
+-- instance      IsElem          (Link src tgt)
+-- type instance LayerData  Model (IR t (Link src tgt)) = (IR t (Ref src), IR t (Ref tgt))
+--
+-- makeWrapped ''Link
+--
+--
+-- -- -- === Construction === --
+--
+-- type LayerStackCons m a = StackCons (Layers (Universal a) (Cfg m)) m -- REFACTORME
+-- type Linkable' src tgt m = (IRMonad m, LayerStackCons m (Link src tgt))
+--
+-- link' :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
+-- link' a b = fromDefinition =<< consLayerStack =<< ((,) <$> mark' a <*> mark' b) ; {-# INLINE link' #-}
+--
+-- link :: (Linkable' src tgt m, Referable' m (Link src tgt), Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+-- link = ref <=<< link' ; {-# INLINE link #-}
+--
+-- delayedLink :: forall src tgt n m. (Linkable' src tgt m, Referable' m (Link src tgt), DelayedRegister New (Ref (Link src tgt)) m)
+--              => Ref src -> Ref tgt -> m (Ref (Link src tgt))
+-- delayedLink = delayedRef <=<< link' ; {-# INLINE delayedLink #-}
+--
+--
+-- -- === Instances === --
+--
+-- -- Struct
+-- type instance Universal (Link src tgt) = Link (Universal src) (Universal tgt)
+--
+-- -- Repr
+-- type instance TypeRepr (Link _ _) = "Link"
+-- instance      Show     (Link src tgt) where show = show . unwrap' ; {-# INLINE show #-}
+--
+-- -- -- LayerStack
+-- -- instance IsLayerStack (Link src tgt)
+-- --
+-- -- -- Properties
+-- -- type instance Access p (Link src tgt) = Access p (Unwrapped (Link src tgt))
+-- -- instance HasLayer' (Link src tgt) p => Accessor  p (Link src tgt) where access    = view $ layer @p ; {-# INLINE access  #-}
+-- -- instance HasLayer' (Link src tgt) p => Updater' p (Link src tgt) where update' a = layer @p .~ a   ; {-# INLINE update' #-}
+-- --
+
+
+
+-------------------
 -- === Link === --
-------------------
+-------------------
 
-newtype Link   src tgt = Link (Elem (Link src tgt))
-type    Link'  a       = Link a a
-type    SubLink c t    = Ref (Link (Sub c t) t)
-type family SubLink2 (a :: *) (b :: *) where SubLink2 c (IR t a) = IR t (Ref (Link (Sub c a) a))
-
-
-type instance Definition t    (Link src tgt) = LayerStack t (Link src tgt)
-instance      IsElem          (Link src tgt)
-type instance LayerData  Model (IR t (Link src tgt)) = (IR t (Ref src), IR t (Ref tgt))
-
+newtype Link  a b = Link Int deriving (Show)
+type    Link' a   = Link a a
 makeWrapped ''Link
 
+type SubLink s t = Link (Sub s t) t
 
--- -- === Construction === --
+type instance LayerData Model (Link a b) = (a,b)
 
-type LayerStackCons m a = StackCons (Layers (Universal a) (Cfg m)) m -- REFACTORME
-type Linkable' src tgt m = (IRMonad m, LayerStackCons m (Link src tgt))
-
-link' :: Linkable' src tgt m => Ref src -> Ref tgt -> m (Link src tgt)
-link' a b = fromDefinition =<< consLayerStack =<< ((,) <$> mark' a <*> mark' b) ; {-# INLINE link' #-}
-
-link :: (Linkable' src tgt m, Referable' m (Link src tgt), Register New (Ref (Link src tgt)) m) => Ref src -> Ref tgt -> m (Ref (Link src tgt))
-link = ref <=<< link' ; {-# INLINE link #-}
-
-delayedLink :: forall src tgt n m. (Linkable' src tgt m, Referable' m (Link src tgt), DelayedRegister New (Ref (Link src tgt)) m)
-             => Ref src -> Ref tgt -> m (Ref (Link src tgt))
-delayedLink = delayedRef <=<< link' ; {-# INLINE delayedLink #-}
+link :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
+     => a -> b -> m (Link a b)
+link a b = Link <$> newElem @(Link a b) (a,b) ; {-# INLINE link #-}
 
 
--- === Instances === --
-
--- Struct
-type instance Universal (Link src tgt) = Link (Universal src) (Universal tgt)
-
--- Repr
-type instance TypeRepr (Link _ _) = "Link"
-instance      Show     (Link src tgt) where show = show . unwrap' ; {-# INLINE show #-}
-
--- -- LayerStack
--- instance IsLayerStack (Link src tgt)
---
--- -- Properties
--- type instance Access p (Link src tgt) = Access p (Unwrapped (Link src tgt))
--- instance HasLayer' (Link src tgt) p => Accessor  p (Link src tgt) where access    = view $ layer @p ; {-# INLINE access  #-}
--- instance HasLayer' (Link src tgt) p => Updater' p (Link src tgt) where update' a = layer @p .~ a   ; {-# INLINE update' #-}
---
-
-
-
--------------------
--- === Link2 === --
--------------------
-
-newtype Link2  a b = Link2 Int deriving (Show)
-type    Link2' a   = Link2 a a
-makeWrapped ''Link2
-
-
-type instance LayerData Model (Link2 a b) = (a,b)
-
-link2 :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
-      => a -> b -> m (Link2 a b)
-link2 a b = Link2 <$> newElem @(Link2 a b) (a,b) ; {-# INLINE link2 #-}
-
-
-instance HasIdx (Link2 a b) where
+instance HasIdx (Link a b) where
     idx = wrapped' ; {-# INLINE idx #-}
 
-type instance Universal (Link2 a b) = Link2 (Universal a) (Universal b)
-type instance Abstract  (Link2 a b) = Link2 (Abstract  a) (Abstract  b)
+type instance Universal (Link a b) = Link (Universal a) (Universal b)
+type instance Abstract  (Link a b) = Link (Abstract  a) (Abstract  b)
 
 
 
@@ -882,195 +883,195 @@ instance                                                           SymbolEncoder
 instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
     encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
--------------------
--- === Expr2 === --
--------------------
+------------------
+-- === Term === --
+------------------
 
-newtype Expr2  layout = Expr2 Int deriving (Show)
-type    Expr2'        = Expr2 Draft
-type    Expr2_        = Expr2 Layout.Any
+newtype Term  layout = Term Int deriving (Show)
+type    Term'        = Term Draft
+type    Term_        = Term Layout.Any
 
-makeWrapped ''Expr2
+makeWrapped ''Term
 
-type instance LayerData Model (Expr2 _) = TermStore
-
-
-expr2 :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
-      => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
-expr2 a = Expr2 <$> newElem @(Expr2 layout) (encodeSymbol a) ; {-# INLINE expr2 #-}
+type instance LayerData Model (Term _) = TermStore
 
 
-instance HasIdx (Expr2 l) where
+term :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
+     => ExprSymbol atom (Term layout) -> m (Term layout)
+term a = Term <$> newElem @(Term layout) (encodeSymbol a) ; {-# INLINE term #-}
+
+
+instance HasIdx (Term l) where
     idx = wrapped' ; {-# INLINE idx #-}
 
-type instance Universal (Expr2 _) = Expr2'
-type instance Abstract  (Expr2 _) = Expr2_
+type instance Universal (Term _) = Term'
+type instance Abstract  (Term _) = Term_
 
 
 
 
 
 
-
-------------------
--- === Expr === --
-------------------
-
--- === Definition === --
-
-newtype Expr layout = Expr (Elem (Expr layout))
-type    Expr'       = Expr Draft
-type    AnyExpr     = Expr Layout.Any
-type ExprLink' = Link' Expr' -- FIXME[WD]: move to Link section after refactoring deps
-
-
-type instance Definition t    (Expr layout) = LayerStack t (Expr layout)
-instance      IsElem          (Expr layout)
-type instance LayerData  Model (IR t (Expr layout)) = TermStore
-
-makeWrapped ''Expr
--- makeRepr    ''Expr
-
-
--- === Instances === --
-
--- Struct
-type instance Universal (Expr _)      = Expr'
-type instance Sub     s (Expr layout) = Expr (Sub s layout)
-
--- Repr
-type instance TypeRepr (Expr _) = "Expr"
-instance Show (Expr layout) where show = show . unwrap' ; {-# INLINE show #-}
-
--- Properties
-type instance LayoutOf (Expr layout) = layout
-
-
--- === Utils === --
-
-uniExprTypes2 :: (expr ~ Expr layout, sym ~ ExprSymbol atom expr) => IR t expr -> sym -> sym
-uniExprTypes2 _ = id ; {-# INLINE uniExprTypes2 #-}
-
-unsafeSpecifyLayout2 :: AnyExpr -> Expr layout
-unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
-
-anyLayout3 :: Ref (Expr layout) -> Ref (Expr Layout.Any)
-anyLayout3 = unsafeCoerce
-
-
-
--- === Construction === --
-
-type ExprBuilder      m = (IRMonad m, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)))
-type SilentExprCons   m = (ExprBuilder m, Referable Expr' (Cfg m) m)
-type ExprMonad        m = (SilentExprCons m, Register        New (Ref Expr') m)
-type DelayedExprMonad m = (SilentExprCons m, DelayedRegister New (Ref Expr') m)
-
-buildExpr :: (ExprBuilder m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
-buildExpr a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE buildExpr #-}
-
-silentExpr :: (SilentExprCons m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
-silentExpr = silentRef <=< buildExpr ; {-# INLINE silentExpr #-}
-
-expr :: (ExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
-expr = ref <=< buildExpr ; {-# INLINE expr #-}
-
-delayedExpr :: (DelayedExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
-delayedExpr = delayedRef <=< buildExpr ; {-# INLINE delayedExpr #-}
-
-
--- === Symbol mapping === --
-
-class Monad m => SymbolMapM' (atoms :: [*]) ctx expr m b where
-    symbolMapM' :: (forall a. ctx a m b => a -> m b) -> expr -> m b
-
-type SymbolMapM_AMB = SymbolMapM' (Every Atom)
-symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
-symbolMapM_AMB = symbolMapM' @(Every Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
-
-type SymbolMapM_AB ctx      = SymbolMapM_AMB (DropMonad ctx)
-type SymbolMap_AB  ctx expr = SymbolMapM_AB ctx expr Identity
-symbolMapM_AB :: forall ctx expr m b. SymbolMapM_AB ctx expr m b => (forall a. ctx a b => a -> b) -> expr -> m b
-symbolMapM_AB f = symbolMapM_AMB @(DropMonad ctx) (return <$> f) ; {-# INLINE symbolMapM_AB #-}
-
-symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
-symbolMap_AB f = runIdentity . symbolMapM_AB @ctx f ; {-# INLINE symbolMap_AB #-}
-
-type SymbolMapM_A ctx = SymbolMapM_AB (FreeResult ctx)
-type SymbolMap_A  ctx expr = SymbolMapM_A ctx expr Identity
-symbolMapM_A :: forall ctx expr m b. SymbolMapM_A ctx expr m b => (forall a. ctx a => a -> b) -> expr -> m b
-symbolMapM_A = symbolMapM_AB @(FreeResult ctx) ; {-# INLINE symbolMapM_A #-}
-
-symbolMap_A :: forall ctx expr b. SymbolMap_A ctx expr b => (forall a. ctx a => a -> b) -> expr -> b
-symbolMap_A f = runIdentity . symbolMapM_A @ctx f ; {-# INLINE symbolMap_A #-}
-
-class    (ctx a b, Monad m) => DropMonad ctx a m b
-instance (ctx a b, Monad m) => DropMonad ctx a m b
-
-class    ctx a => FreeResult ctx a b
-instance ctx a => FreeResult ctx a b
-
-instance ( ctx (ExprSymbol a (Expr layout)) m b
-         , SymbolMapM' as ctx (Expr layout) m b
-         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx
-         , HasLayerM m Expr' Model
-         )
-      => SymbolMapM' (a ': as) ctx (Expr layout) m b where
-    symbolMapM' f expr = do
-        d <- unwrap' <$> select @Model expr
-        let eidx = unwrap' $ access @Atom d
-            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Expr layout)
-        if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
-
-instance ( ctx (ExprSymbol a (Expr layout)) m b
-         , SymbolMapM' as ctx (IR t (Expr layout)) m b
-         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx
-         , HasLayer t Expr' Model
-         )
-      => SymbolMapM' (a ': as) ctx (IR t (Expr layout)) m b where
-    symbolMapM' f expr = do
-        let d    = unwrap' $ access @Model expr
-            eidx = unwrap' $ access @Atom d
-            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Expr layout)
-        if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
-
-instance Monad m => SymbolMapM' '[] ctx expr m b where symbolMapM' _ _ = impossible
-
-
-instance HasLayer t Expr' Model => Repr HeaderOnly (IR t (Expr layout)) where repr expr = symbolMap_A @(Repr HeaderOnly) repr expr
-
-
-class HasFields2 a b where fieldList2 :: a -> b
-instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = fieldList
-
--- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
--- type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
-symbolFields :: (SymbolMap_AB HasFields2 (IR t expr) out, expr ~ Expr layout, out ~ [Ref (Link expr expr)]) => IR t expr -> out
-symbolFields = symbolMap_AB @HasFields2 fieldList2
-
-
-
--- class     IsUniSymbol t l where
---     uniSymbol :: Symbol t l -> UniSymbol l
-
-class IsUniSymbol2 a b where uniSymbol2 :: a -> b
-instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
-      => IsUniSymbol2 a b where uniSymbol2 = uniSymbol . unwrap' ; {-# INLINE uniSymbol2 #-}
-
--- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
--- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
-
-exprUniSymbol :: HasLayer t Expr' Model => (IR t (Expr layout)) -> ExprUniSymbol (Expr layout)
-exprUniSymbol = ExprUniSymbol . symbolMap_AB @IsUniSymbol2 uniSymbol2
-
-
+--
+-- ------------------
+-- -- === Expr === --
+-- ------------------
+--
+-- -- === Definition === --
+--
+-- newtype Expr layout = Expr (Elem (Expr layout))
+-- type    Expr'       = Expr Draft
+-- type    AnyExpr     = Expr Layout.Any
+-- type ExprLink' = Link' Expr' -- FIXME[WD]: move to Link section after refactoring deps
+--
+--
+-- type instance Definition t    (Expr layout) = LayerStack t (Expr layout)
+-- instance      IsElem          (Expr layout)
+-- type instance LayerData  Model (IR t (Expr layout)) = TermStore
+--
+-- makeWrapped ''Expr
+-- -- makeRepr    ''Expr
+--
+--
+-- -- === Instances === --
+--
+-- -- Struct
+-- type instance Universal (Expr _)      = Expr'
+-- type instance Sub     s (Expr layout) = Expr (Sub s layout)
+--
+-- -- Repr
+-- type instance TypeRepr (Expr _) = "Expr"
+-- instance Show (Expr layout) where show = show . unwrap' ; {-# INLINE show #-}
+--
+-- -- Properties
+-- type instance LayoutOf (Expr layout) = layout
+--
+--
+-- -- === Utils === --
+--
+-- uniExprTypes2 :: (expr ~ Expr layout, sym ~ ExprSymbol atom expr) => IR t expr -> sym -> sym
+-- uniExprTypes2 _ = id ; {-# INLINE uniExprTypes2 #-}
+--
+-- unsafeSpecifyLayout2 :: AnyExpr -> Expr layout
+-- unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
+--
+-- anyLayout3 :: Ref (Expr layout) -> Ref (Expr Layout.Any)
+-- anyLayout3 = unsafeCoerce
+--
+--
+--
+-- -- === Construction === --
+--
+-- type ExprBuilder      m = (IRMonad m, Constructor TermStore m (Definition (Cfg m) (Elem AnyExpr)))
+-- type SilentExprCons   m = (ExprBuilder m, Referable Expr' (Cfg m) m)
+-- type ExprMonad        m = (SilentExprCons m, Register        New (Ref Expr') m)
+-- type DelayedExprMonad m = (SilentExprCons m, DelayedRegister New (Ref Expr') m)
+--
+-- buildExpr :: (ExprBuilder m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
+-- buildExpr a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE buildExpr #-}
+--
+-- silentExpr :: (SilentExprCons m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
+-- silentExpr = silentRef <=< buildExpr ; {-# INLINE silentExpr #-}
+--
+-- expr :: (ExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
+-- expr = ref <=< buildExpr ; {-# INLINE expr #-}
+--
+-- delayedExpr :: (DelayedExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Ref (Expr layout))
+-- delayedExpr = delayedRef <=< buildExpr ; {-# INLINE delayedExpr #-}
+--
+--
+-- -- === Symbol mapping === --
+--
+-- class Monad m => SymbolMapM' (atoms :: [*]) ctx expr m b where
+--     symbolMapM' :: (forall a. ctx a m b => a -> m b) -> expr -> m b
+--
+-- type SymbolMapM_AMB = SymbolMapM' (Every Atom)
+-- symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
+-- symbolMapM_AMB = symbolMapM' @(Every Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
+--
+-- type SymbolMapM_AB ctx      = SymbolMapM_AMB (DropMonad ctx)
+-- type SymbolMap_AB  ctx expr = SymbolMapM_AB ctx expr Identity
+-- symbolMapM_AB :: forall ctx expr m b. SymbolMapM_AB ctx expr m b => (forall a. ctx a b => a -> b) -> expr -> m b
+-- symbolMapM_AB f = symbolMapM_AMB @(DropMonad ctx) (return <$> f) ; {-# INLINE symbolMapM_AB #-}
+--
 -- symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
-
--------------------------------------
+-- symbolMap_AB f = runIdentity . symbolMapM_AB @ctx f ; {-# INLINE symbolMap_AB #-}
+--
+-- type SymbolMapM_A ctx = SymbolMapM_AB (FreeResult ctx)
+-- type SymbolMap_A  ctx expr = SymbolMapM_A ctx expr Identity
+-- symbolMapM_A :: forall ctx expr m b. SymbolMapM_A ctx expr m b => (forall a. ctx a => a -> b) -> expr -> m b
+-- symbolMapM_A = symbolMapM_AB @(FreeResult ctx) ; {-# INLINE symbolMapM_A #-}
+--
+-- symbolMap_A :: forall ctx expr b. SymbolMap_A ctx expr b => (forall a. ctx a => a -> b) -> expr -> b
+-- symbolMap_A f = runIdentity . symbolMapM_A @ctx f ; {-# INLINE symbolMap_A #-}
+--
+-- class    (ctx a b, Monad m) => DropMonad ctx a m b
+-- instance (ctx a b, Monad m) => DropMonad ctx a m b
+--
+-- class    ctx a => FreeResult ctx a b
+-- instance ctx a => FreeResult ctx a b
+--
+-- instance ( ctx (ExprSymbol a (Expr layout)) m b
+--          , SymbolMapM' as ctx (Expr layout) m b
+--          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
+--          , KnownNat idx
+--          , HasLayerM m Expr' Model
+--          )
+--       => SymbolMapM' (a ': as) ctx (Expr layout) m b where
+--     symbolMapM' f expr = do
+--         d <- unwrap' <$> select @Model expr
+--         let eidx = unwrap' $ access @Atom d
+--             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+--             sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Expr layout)
+--         if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
+--
+-- instance ( ctx (ExprSymbol a (Expr layout)) m b
+--          , SymbolMapM' as ctx (IR t (Expr layout)) m b
+--          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer
+--          , KnownNat idx
+--          , HasLayer t Expr' Model
+--          )
+--       => SymbolMapM' (a ': as) ctx (IR t (Expr layout)) m b where
+--     symbolMapM' f expr = do
+--         let d    = unwrap' $ access @Model expr
+--             eidx = unwrap' $ access @Atom d
+--             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+--             sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Expr layout)
+--         if (idx == eidx) then f sym else symbolMapM' @as @ctx f expr
+--
+-- instance Monad m => SymbolMapM' '[] ctx expr m b where symbolMapM' _ _ = impossible
+--
+--
+-- instance HasLayer t Expr' Model => Repr HeaderOnly (IR t (Expr layout)) where repr expr = symbolMap_A @(Repr HeaderOnly) repr expr
+--
+--
+-- class HasFields2 a b where fieldList2 :: a -> b
+-- instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = fieldList
+--
+-- -- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
+-- -- type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
+-- symbolFields :: (SymbolMap_AB HasFields2 (IR t expr) out, expr ~ Expr layout, out ~ [Ref (Link expr expr)]) => IR t expr -> out
+-- symbolFields = symbolMap_AB @HasFields2 fieldList2
+--
+--
+--
+-- -- class     IsUniSymbol t l where
+-- --     uniSymbol :: Symbol t l -> UniSymbol l
+--
+-- class IsUniSymbol2 a b where uniSymbol2 :: a -> b
+-- instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
+--       => IsUniSymbol2 a b where uniSymbol2 = uniSymbol . unwrap' ; {-# INLINE uniSymbol2 #-}
+--
+-- -- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
+-- -- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
+--
+-- exprUniSymbol :: HasLayer t Expr' Model => (IR t (Expr layout)) -> ExprUniSymbol (Expr layout)
+-- exprUniSymbol = ExprUniSymbol . symbolMap_AB @IsUniSymbol2 uniSymbol2
+--
+--
+-- -- symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
+--
+-- -------------------------------------
 -- === Expr Layout type caches === --
 -------------------------------------
 
