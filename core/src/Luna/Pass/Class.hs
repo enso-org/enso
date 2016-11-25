@@ -24,6 +24,7 @@ import Luna.IR.Layer
 -- === Properties === --
 
 type family Keys      pass :: [*]
+type family Elements  pass :: [*]
 type family Preserves pass :: [*]
 
 

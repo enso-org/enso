@@ -143,7 +143,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, read, Readable)
+import Luna.Pass.Class (Keys, Preserves, Pass, read, Readable, Elements)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -635,6 +635,7 @@ instance Readable layer abs m => Readable layer abs (KnownTypeT cls t m) where
 
 
 data                    SimpleAA
+type instance Elements  SimpleAA = '[Expr2_, Link2' Expr2_]
 type instance Keys      SimpleAA = '[LayerKey 'RW Expr2_ Model, LayerKey 'RW Expr2_ Succs2]
 type instance Preserves SimpleAA = '[]
 
@@ -644,6 +645,7 @@ pass1 = gen_pass1
 test_pass1 :: (MonadIO m, PrimMonad m) => m (Either Pass.Err ())
 test_pass1 = runIRT2 $ do
     registerElem  @Expr2_
+    registerElem  @(Link2' Expr2_)
     registerLayer @Model
     registerLayer @Succs2
     attachLayer   (typeRep @Model)  (typeRep @Expr2_)
@@ -656,9 +658,10 @@ gen_pass1 :: (MonadIO m, IRMonad m, Readable Model Expr2_ m, Readable Succs2 Exp
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedExpr2 Star ()) <- star2
     (s2 :: UntyppedExpr2 Star ()) <- star2
+    l <- link2 s1 s2
     print "hello"
     d <- read @Succs2 s1
-    print d
+    print l
     return ()
 
 

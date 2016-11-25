@@ -304,16 +304,17 @@ modifyElemM :: Functor m => ElemRep -> (IRLayerStore m -> m (IRLayerStore m)) ->
 modifyElem  e f = elems %~ Map.insertWith (const f) e (f def) ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ fmap Just . f . fromMaybe def    ; {-# INLINE modifyElemM #-}
 
-newElem :: forall t m. (IRMonad m, Typeable t,  PrimMonad (GetIRMonad m)) => LayerData Model t -> m Int
+newElem :: forall t m. (IRMonad m, Typeable (Abstract t),  PrimMonad (GetIRMonad m)) => LayerData Model t -> m Int
 newElem dt = do
     d <- getIRState
-    let Just layerStore = d ^? elems  . ix (typeRep @t)
+    let trep = typeRep @(Abstract t)
+        Just layerStore = d ^? elems  . ix trep
         consLayer idx l elemStore = do
             let Just consFunc = d ^? layers . ix l -- FIXME[WD]: internal error when cons was not registered
             runInIR $ MV.unsafeWrite elemStore idx =<< unsafeAppCons consFunc dt
     (idx, layerStore') <- runInIR $ MV.reserveIdx layerStore
     mapM_ (uncurry $ consLayer idx) (MV.assocs layerStore)
-    putIRState $ d & elems . at (typeRep @t) ?~ layerStore'
+    putIRState $ d & elems . at trep ?~ layerStore'
     return idx
 
 
@@ -557,50 +558,6 @@ instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
 
 
 
--- newtype IRKeyST m (acc :: IOAccess) el layer = IRKeyST (MV.VectorRefM (GetIRMonad m) Any) deriving (Show)
--- makeWrapped ''IRKeyST
---
--- data IRKey (acc :: IOAccess) el layer where
---     IRKey :: IRKeyST m acc el layer -> IRKey acc el layer
---
--- type Key  = IRKey 'RW
--- type Key' = IRKey 'R
---
--- key :: IRKeyST m acc el layer -> IRKey acc el layer
--- key = IRKey
---
--- unsafeFromKey :: IRKey acc el layer -> IRKeyST m acc el layer
--- unsafeFromKey (IRKey k) = unsafeCoerce k
---
---
--- -- === Utils === --
---
--- lookupKeyST :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (IRKeyST m acc el layer))
--- lookupKeyST e l = fmap IRKeyST . (^? (elems . ix e . ix l)) <$> getIRState ; {-# INLINE lookupKeyST #-}
---
--- lookupKey :: IRMonad m => ElemRep -> LayerRep -> m (Maybe (IRKey acc el layer))
--- lookupKey e l = key .: lookupKeyST e l ; {-# INLINE lookupKey #-}
---
--- readST :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
---           , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
---        => IRKeyST m acc el layer -> t -> m (LayerData layer t)
--- readST (IRKeyST v) (unwrap' -> idx) = unsafeCoerce <$> MV.unsafeRead idx v ; {-# INLINE readST #-}
---
--- read :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
---         , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
---      => IRKey acc el layer -> t -> m (LayerData layer t)
--- read k = readST (unsafeFromKey k) ; {-# INLINE read #-}
---
-
-
-------------------
--- === Pass === --
-------------------
-
--- newtype PassT m a = Pass (StateT )
-
-
-
 -------------------------
 -- === Model Layer === --
 -------------------------
@@ -812,6 +769,29 @@ instance      Show     (Link src tgt) where show = show . unwrap' ; {-# INLINE s
 
 
 
+-------------------
+-- === Link2 === --
+-------------------
+
+newtype Link2  a b = Link2 Int deriving (Show)
+type    Link2' a   = Link2 a a
+makeWrapped ''Link2
+
+
+type instance LayerData Model (Link2 a b) = (a,b)
+
+link2 :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
+      => a -> b -> m (Link2 a b)
+link2 a b = Link2 <$> newElem @(Link2 a b) (a,b) ; {-# INLINE link2 #-}
+
+
+instance HasIdx (Link2 a b) where
+    idx = wrapped' ; {-# INLINE idx #-}
+
+type instance Universal (Link2 a b) = Link2 (Universal a) (Universal b)
+type instance Abstract  (Link2 a b) = Link2 (Abstract  a) (Abstract  b)
+
+
 
 
 ------------------------
@@ -914,17 +894,10 @@ makeWrapped ''Expr2
 
 type instance LayerData Model (Expr2 _) = TermStore
 
--- buildExpr2 :: (ExprBuilder m, SymbolEncoder atom) => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
--- buildExpr2 a = fmap unsafeSpecifyLayout2 . fromDefinition =<< cons (encodeSymbol a) ; {-# INLINE buildExpr2 #-}
---
--- expr2 :: (ExprMonad m, SymbolEncoder atom) => ExprSymbol atom (Expr2 layout) -> m (Ref (Expr2 layout))
--- expr2 = ref <=< buildExpr2 ; {-# INLINE expr2 #-}
 
--- newElem :: forall t m. (IRMonad m, Typeable t, PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m) => LayerData Data t -> m Int
-
-expr2 :: (SymbolEncoder atom, IRMonad m)
+expr2 :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
       => ExprSymbol atom (Expr2 layout) -> m (Expr2 layout)
-expr2 a = Expr2 <$> newElem @Expr2_ (encodeSymbol a)
+expr2 a = Expr2 <$> newElem @(Expr2 layout) (encodeSymbol a) ; {-# INLINE expr2 #-}
 
 
 instance HasIdx (Expr2 l) where
@@ -933,8 +906,11 @@ instance HasIdx (Expr2 l) where
 type instance Universal (Expr2 _) = Expr2'
 type instance Abstract  (Expr2 _) = Expr2_
 
--- unsafeSpecifyLayout2 :: Expr2_ -> Expr2 layout
--- unsafeSpecifyLayout2 = unsafeCoerce ; {-# INLINE unsafeSpecifyLayout2 #-}
+
+
+
+
+
 
 ------------------
 -- === Expr === --
