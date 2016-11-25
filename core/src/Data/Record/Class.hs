@@ -487,7 +487,7 @@ matchedOptions :: rrr -> MatchSet rrr s -> [s]
 matchedOptions t (MatchState s) = catMaybes ∘ reverse $ ($ t) <$> State.exec PM s [] ; {-# INLINE matchedOptions #-}
 
 runMatches :: rrr -> MatchSet rrr s -> Maybe s
-runMatches = tryHead ∘∘ matchedOptions ; {-# INLINE runMatches #-}
+runMatches = maybeHead ∘∘ matchedOptions ; {-# INLINE runMatches #-}
 
 -- TODO [WD]: Add TH case' interface
 __case__ lib file loc = fromJustNote err ∘∘ runMatches where

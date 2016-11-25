@@ -91,13 +91,13 @@ import qualified Data.Graph.Builder                      as GraphBuilder
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.IR.Term hiding (Data, cons, unify, star)
+import Luna.IR.Term hiding (Data, cons, unify, star, Readable)
 
 -- import GHC.Prim (Any)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.IR.Internal.IR as IR
-import Luna.IR.Internal.IR hiding (Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
+import Luna.IR.Internal.IR hiding (Readable, Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Prelude (error, undefined)
@@ -143,7 +143,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, read2)
+import Luna.Pass.Class (Keys, Preserves, Pass, read, Readable)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -619,9 +619,7 @@ exprRep = typeRep @Expr2_
 
 
 
-data                    SimpleAA
-type instance Keys      SimpleAA = '[LayerKey 'RW Expr2_ Model, LayerKey 'RW Expr2_ Succs]
-type instance Preserves SimpleAA = '[]
+
 
 -- pass1 :: Pass SimpleAA m
 -- pass1 e = do
@@ -630,12 +628,39 @@ type instance Preserves SimpleAA = '[]
 
 -- TODO: data -> model ?
 
+instance Readable layer abs m => Readable layer abs (KnownTypeT cls t m) where
+    read = lift . read @layer ; {-# INLINE read #-}
+
+
+
+
+data                    SimpleAA
+type instance Keys      SimpleAA = '[LayerKey 'RW Expr2_ Model]
+type instance Preserves SimpleAA = '[]
+
 pass1 :: IRMonad m => Pass SimpleAA m
-pass1 = layouted @ANT $ do
-    (sx1 :: UntyppedExpr2 Star ()) <- star2
-    k <- Pass.getKey @(Layer Expr2_ Model)
-    d <- read2 @Model sx1
+pass1 = gen_pass1
+
+pass1_r :: (PrimMonad m, MonadIO m) => m (Either Pass.Err ())
+pass1_r = runIRT2 $ do
+    registerElem  @Expr2_
+    registerLayer @Model
+    attachLayer   dataRep exprRep
+
+    test_pass1
+
+
+gen_pass1 :: (IRMonad m, Readable Model Expr2_ m) => m ()
+gen_pass1 = layouted @ANT $ do
+    (s1 :: UntyppedExpr2 Star ()) <- star2
+    (s2 :: UntyppedExpr2 Star ()) <- star2
+    d <- read @Model s1
     return ()
+
+
+test_pass1 :: IRMonad m => m (Either Pass.Err ())
+test_pass1 = Pass.eval pass1
+
 
 test_gr2 :: ( ASGBuilder (Layouted ANT m)
             , HasLayerM  m ExprLink' UID
@@ -653,13 +678,14 @@ test_gr2 =  layouted @ANT $ do
     registerElem  @Expr2_
     registerLayer @Model
     attachLayer   dataRep exprRep
+
     (sx1 :: UntyppedExpr2 Star ()) <- star2
     (sx2 :: UntyppedExpr2 Star ()) <- star2
     -- Just (data_ :: Key m RW Expr2_ Model) <- lookupKey exprRep dataRep
     Just (data_ :: LayerKey RW Expr2_ Model) <- uncheckedLookupKey
     print sx1
     print sx2
-    print =<< read data_ sx1
+    print =<< readKey data_ sx1
     (s1 :: Ref (UntyppedExpr Star            ())) <- star
     snapshot "s1"
     (s2 :: Ref (UntyppedExpr Star            ())) <- star
@@ -714,6 +740,8 @@ snapshot title = do
 main :: IO ()
 main = do
     test_g4
+    p <- pass1_r
+    print p
     return ()
 
 

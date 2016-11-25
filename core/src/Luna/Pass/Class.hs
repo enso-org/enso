@@ -13,7 +13,8 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, IOAccess(..), read, IRMonad, HasIdx)
+import           Luna.IR.Internal.IR   (Key, IOAccess(..), readKey, IRMonad, HasIdx, AssertLayerReadable)
+import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Term.Layout.Class (Abstract)
 
 import Luna.IR.Layer
@@ -46,8 +47,20 @@ makeWrapped ''PassT
 
 -- === Utils ===
 
-eval :: Monad m => PassT pass m a -> List (Keys pass) -> m a
-eval = State.evalStateT . unwrap' ; {-# INLINE eval #-}
+-- eval :: Monad m => PassT pass m a -> List (Keys pass) -> m a
+-- eval = State.evalStateT . unwrap' ; {-# INLINE eval #-}
+
+-- eval :: Monad m => PassT pass m a -> List (Keys pass) -> m a
+-- eval p = State.evalStateT (unwrap' p) =<< lookupKeys ; {-# INLINE eval #-}
+--
+--          a -> m b        ->   m (f a)  -> m (f b)
+
+initPass :: (LookupKeys n (Keys pass), Monad m) => PassT pass m a -> n (Either Err (m a))
+initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupKeys ; {-# INLINE initPass #-}
+
+eval :: LookupKeys m (Keys pass) => PassT pass m a -> m (Either Err a)
+eval = join . fmap sequence . initPass ; {-# INLINE eval #-}
+
 
 -- eval :: Pass pass a -> List (Keys pass) -> a
 -- eval  = runIdentity .: evalT ; {-# INLINE eval #-}
@@ -72,6 +85,24 @@ modify f = do
 modify_ :: MonadPass m => (GetState m -> GetState m) -> m ()
 modify_ = modify . fmap (,())
 {-# INLINE modify_ #-}
+
+
+-- === Keys lookup === --
+
+
+data Err = Err TypeRep deriving (Show)
+
+type ReLookupKeys k m ks = (IR.KeyMonad k m, LookupKeys m ks, Typeable k)
+class    Monad m             => LookupKeys m keys              where lookupKeys :: m (Either Err (List keys))
+instance Monad m             => LookupKeys m '[]               where lookupKeys = return $ return List.empty
+instance ReLookupKeys k m ks => LookupKeys m (Key acc k ': ks) where lookupKeys = List.prepend <<$>> (justErr (Err $ typeRep (Proxy :: Proxy k)) <$> IR.uncheckedLookupKey)
+                                                                                               <<*>> lookupKeys
+
+
+infixl 4 <<*>>
+(<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
+(<<*>>) = (<*>) . fmap (<*>) ; {-# INLINE (<<*>>) #-}
+
 
 
 -- === MonadPass === --
@@ -135,8 +166,12 @@ instance KeyProvider k (Key s k ': ls) where accessKey = view List.head ; {-# IN
 --      => LayerKey acc el layer -> t -> m (LayerData layer t)
 -- read k = readST (unsafeFromKey k) ; {-# INLINE read #-}
 
-read2 :: forall layer t m. (IRMonad m, HasIdx t, MonadPass m, KeyProvider (Layer (Abstract t) layer) (GetKeys m))
-      => t -> m (LayerData layer t)
-read2 t = flip read t =<< getKey @(Layer (Abstract t) layer)
+class Monad m => Readable layer abs m where
+    read :: forall t. (abs ~ Abstract t, HasIdx t) => t -> m (LayerData layer t)
+
+instance (IRMonad m, KeyProvider (Layer abs layer) (Keys pass), AssertLayerReadable (FindKeyType (Layer abs layer) (Keys pass)) abs layer)
+      => Readable layer abs (PassT pass m) where
+    read t = flip readKey t =<< getKey @(Layer abs layer)
+
 -- Key () key
 -- acc ~ FindKeyType key (GetKeys m)

@@ -153,14 +153,27 @@ data New a
 
 data IOAccess = R | W | RW deriving (Show)
 
-class Readable (a :: IOAccess)
-class Writable (a :: IOAccess)
+type family Readable a where
+    Readable 'W  = 'False
+    Readable _   = 'True
 
-instance Readable 'R
-instance Readable 'RW
-instance Writable 'W
-instance Writable 'RW
+type family Writable a where
+    Writable 'R = 'False
+    Writable _  = 'True
 
+
+type AssertLayerWritable a t l = Assert (Writable a) (LayerWriteError t l)
+type AssertLayerReadable a t l = Assert (Readable a) (LayerReadError  t l)
+
+type LayerAccessError action t l = Sentence $ 'Text "Layer"
+                                        :</>: Ticked ('ShowType l)
+                                        :</>: 'Text "of"
+                                        :</>: Ticked ('ShowType t)
+                                        :</>: 'Text "is not"
+                                        :</>: ('Text action :<>: 'Text "able")
+
+type LayerReadError  t l = LayerAccessError "read"  t l
+type LayerWriteError t l = LayerAccessError "write" t l
 
 
 ------------------
@@ -221,7 +234,7 @@ data IRState m = IRState { _elems  :: Map ElemRep $ IRLayerStore m
 -- data IRState m = IRState { _store  :: IRState m
 --                        , _layers :: LayerStore m
 --                        }
--- makeLenses ''IRState
+-- makeLenses ''IRStatez
 makeLenses ''IRState
 
 
@@ -375,6 +388,9 @@ mark' = return . IR ; {-# INLINE mark' #-}
 runIRT :: forall t m a. Monad m => IRT t m a -> m (IR t a)
 runIRT (IRT m) = IR <$> State.evalStateT m def ; {-# INLINE runIRT #-}
 
+runIRT2 :: forall t m a. Monad m => IRT t m a -> m a
+runIRT2 (IRT m) = State.evalStateT m def ; {-# INLINE runIRT2 #-}
+
 unsafeIRUnwrap :: IR t a -> a
 unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
 
@@ -472,13 +488,13 @@ unsafeFromKey (Key k) = unsafeCoerce k ; {-# INLINE unsafeFromKey #-}
 -- readST :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
 --           , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
 
-readST :: (IRMonad m, HasIdx t)
+readKeyST :: (IRMonad m, HasIdx t, AssertLayerReadable acc (Abstract t) layer)
        => LayerKeyST m acc (Abstract t) layer -> t -> m (LayerData layer t)
-readST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE readST #-}
+readKeyST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE readKeyST #-}
 
-read :: (IRMonad m, HasIdx t)
-     => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
-read k = readST (unsafeFromKey k) ; {-# INLINE read #-}
+readKey :: (IRMonad m, HasIdx t, AssertLayerReadable acc (Abstract t) layer)
+        => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
+readKey k = readKeyST (unsafeFromKey k) ; {-# INLINE readKey #-}
 
 
 -- === Instances === --
