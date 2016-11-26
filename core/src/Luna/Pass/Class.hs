@@ -13,7 +13,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, IOAccess(..), readKey, IRMonad, HasIdx, AssertLayerReadable, AssertLayerReadable')
+import           Luna.IR.Internal.IR   (Key, IOAccess(..), IRMonad, HasIdx, AssertLayerReadable, AssertLayerReadable', AssertKeyReadable, KeyData)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Term.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -141,41 +141,91 @@ instance PrimMonad m => PrimMonad (PassT pass m) where
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
--- type family KeyAccess key m where
---     KeyAccess key (PassT pass m) = FindKey key (Keys pass)
---     KeyAccess key (t m)          = KeyAccess key m
-
-type FindKey key lst = Key (FindKeyType' key lst) key
-
-type FindKeyType' key lst = FromJust (FindKeyType key lst)
-type family FindKeyType key lst where
-    FindKeyType k '[]             = 'Nothing
-    FindKeyType k (Key s k ': ls) = 'Just s
-    FindKeyType k (l       ': ls) = FindKeyType k ls
+-- If we ever think that there should exist more Key providers than passes
+-- or pure functions, we can convert this family to open one and create
+-- Accesible instances for every needed monad. However, this design simplifies
+-- code a lot for now.
+type family KeyAccess k (m :: * -> *) :: IOAccess where
+    KeyAccess k (PassT pass m) = MatchKeyType k (Keys pass)
+    KeyAccess k (t m)          = KeyAccess k m
 
 
-getKey :: forall key m. (MonadPass m, KeyProvider key (GetKeys m)) => m (FindKey key (GetKeys m))
-getKey = accessKey <$> get ; {-# INLINE getKey #-}
+type Key' k m = Key (KeyAccess k m) k
 
 
-class KeyProvider key lst where
-    accessKey :: List lst -> FindKey key lst
-
-instance {-# OVERLAPPABLE #-} (FindKey k ls ~ FindKey k (l ': ls), KeyProvider k ls)
-      => KeyProvider k (l       ': ls) where accessKey = accessKey . view List.tail ; {-# INLINE accessKey #-}
-instance KeyProvider k (Key s k ': ls) where accessKey = view List.head ; {-# INLINE accessKey #-}
+class    Monad m                                  => Accessible k m              where getKey :: m (Key' k m)
+instance (KeyProvider k (Keys pass), Monad m)     => Accessible k (PassT pass m) where getKey = findKey <$> get ; {-# INLINE getKey #-}
+instance {-# OVERLAPPABLE #-} SubAccessible k t m => Accessible k (t m)          where getKey = lift getKey     ; {-# INLINE getKey #-}
+type SubAccessible k t m = (Accessible k m, KeyAccess k (t m) ~ KeyAccess k m, MonadTrans t, Monad (t m))
 
 
--- read :: (IRMonad m, HasIdx t)
---      => LayerKey acc el layer -> t -> m (LayerData layer t)
--- read k = readST (unsafeFromKey k) ; {-# INLINE read #-}
+-- === KeyProvider === --
 
-class Monad m => Readable layer abs m where
-    read :: forall t. (abs ~ Abstract t, HasIdx t) => t -> m (LayerData layer t)
+type        MatchKey     key lst = Key (MatchKeyType key lst) key
+type family MatchKeyType key lst where
+    MatchKeyType k (Key s k ': ls) = s
+    MatchKeyType k (l       ': ls) = MatchKeyType k ls
 
-instance (IRMonad m, KeyProvider (Layer abs layer) (Keys pass), AssertLayerReadable' (FindKeyType (Layer abs layer) (Keys pass)) abs layer)
-      => Readable layer abs (PassT pass m) where
-    read t = flip readKey t =<< getKey @(Layer abs layer)
+type SubAccess k l ls = (MatchKey k ls ~ MatchKey k (l ': ls), KeyProvider k ls)
+
+class                        KeyProvider k ls              where findKey :: List ls -> MatchKey k ls
+instance SubAccess k l ls => KeyProvider k (l       ': ls) where findKey = findKey . view List.tail ; {-# INLINE findKey #-}
+instance {-# OVERLAPPING #-} KeyProvider k (Key s k ': ls) where findKey = view List.head             ; {-# INLINE findKey #-}
+
+
+
+
+------------
+
+
+readLayer :: forall layer t m. (IRMonad m, HasIdx t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
+readLayer t = flip IR.unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
+
+-- IR.unsafeReadLayer - jest zwiazane zz odcyztywaniem layeru, zmienic nazwe
+readKey :: Readable k m => m (Key' k m)
+readKey = getKey ; {-# INLINE readKey #-}
+
+
+class Readable2 k m where
+    read2 :: Key' k m -> m (KeyData m k)
+
+class Writable2 k m where
+    write2 :: Key' k m -> KeyData m k -> m ()
+
+
+-- instance Readable2
+
+
+-- dokonczyc przechdozenie na ladne readkey -> readkey'
+-- dodatkowo Accessible powinno sprawdzac czy klucz istnieje
+-- jak bedzie dobre readKey to zrobic ReadKey dla dowolnego elementu i newElem przeniesc na readKey
+
+
+type Readable k m = (Accessible k m, AssertReadable k m)
+
+class                                                        AssertReadable k (m :: * -> *)
+instance AssertKeyReadable (KeyAccess k (PassT pass m)) k => AssertReadable k (PassT pass m)
+instance {-# OVERLAPPABLE #-} AssertReadable k m          => AssertReadable k (t m)
+
+-- type family AssertReadable key m :: Constraint where
+--     AssertReadable I m  = ()
+--     AssertReadable k IM = ()
+--     AssertReadable k m  = AssertKeyReadable (KeyAccess k m) k
+
+-- read2 :: forall t layer m abs. (IRMonad m, abs ~ Abstract t, AssertLayerReadable (KeyAccess (Layer abs layer) m) abs layer)
+--       => t -> m (LayerData layer t)
+-- read2 t = flip readKey t =<< getKey @(Layer abs layer)
+
+
+-- type AssertLayerReadable a t l = Assert (Readable a) (LayerReadError  t l)
+--
+-- (Type.Error.Assert
+--                           (IR.Readable
+--                              (FromJust (MatchKeyType (Layer abs layer) (Keys pass))))
+--                           (IR.LayerReadError abs layer))
+--
+-- readKey :: (IRMonad m, HasIdx t, AssertLayerReadable acc (Abstract t) layer)
+--         => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
 
 -- Key () key
--- acc ~ FindKeyType key (GetKeys m)
+-- acc ~ MatchKeyType key (GetKeys m)

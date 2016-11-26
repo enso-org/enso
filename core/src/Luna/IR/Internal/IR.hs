@@ -120,6 +120,8 @@ type Typeables ts = Constraints $ Typeable <$> ts
 
 class HasIdx t where
     idx :: Lens' t Int
+    default idx :: (Wrapped t, Unwrapped t ~ Int) => Lens' t Int
+    idx = wrapped' ; {-# INLINE idx #-}
 
 
 --------------------
@@ -177,6 +179,11 @@ type LayerAccessError action t l = Sentence $ 'Text "Layer"
                                         :</>: 'Text "is not"
                                         :</>: ('Text action :<>: 'Text "able")
 
+type KeyAccessError action k = Sentence $ 'Text "Key"
+                                    :</>: Ticked ('ShowType k)
+                                    :</>: 'Text "is not"
+                                    :</>: ('Text action :<>: 'Text "able")
+
 type MissingLayerError t l = Sentence $ 'Text "Layer"
                                   :</>: Ticked ('ShowType l)
                                   :</>: 'Text "of"
@@ -184,8 +191,14 @@ type MissingLayerError t l = Sentence $ 'Text "Layer"
                                   :</>: 'Text "does not exist"
 
 
+
+type AssertKeyReadable s ref = Assert (Readable s) (KeyReadError ref)
+
 type LayerReadError  t l = LayerAccessError "read"  t l
 type LayerWriteError t l = LayerAccessError "write" t l
+
+type KeyReadError  k = KeyAccessError "read"  k
+type KeyWriteError k = KeyAccessError "write" k
 
 
 -- ------------------
@@ -236,9 +249,9 @@ type ElemRep  = TypeRep
 
 type LayerStore m = Map LayerRep (AnyCons m)
 
-type IRLayerStore m = ManagedVectorMapM m LayerRep Any
+type ElemStore m = ManagedVectorMapM m LayerRep Any
 
-data IRState m = IRState { _elems  :: Map ElemRep $ IRLayerStore m
+data IRState m = IRState { _elems  :: Map ElemRep $ ElemStore m
                          , _attrs  :: Map LayerRep Any
                          , _layers :: LayerStore m
                          }
@@ -296,15 +309,15 @@ data IRType = IRType deriving (Show)
 
 
 
-atElem :: Functor m => ElemRep -> (Maybe (IRLayerStore m) -> m (Maybe (IRLayerStore m))) -> IRState m -> m (IRState m)
+atElem :: Functor m => ElemRep -> (Maybe (ElemStore m) -> m (Maybe (ElemStore m))) -> IRState m -> m (IRState m)
 atElem = elems .: at  ; {-# INLINE atElem #-}
 
-modifyElem  ::              ElemRep -> (IRLayerStore m ->    IRLayerStore m)  -> IRState m ->    IRState m
-modifyElemM :: Functor m => ElemRep -> (IRLayerStore m -> m (IRLayerStore m)) -> IRState m -> m (IRState m)
+modifyElem  ::              ElemRep -> (ElemStore m ->    ElemStore m)  -> IRState m ->    IRState m
+modifyElemM :: Functor m => ElemRep -> (ElemStore m -> m (ElemStore m)) -> IRState m -> m (IRState m)
 modifyElem  e f = elems %~ Map.insertWith (const f) e (f def) ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ fmap Just . f . fromMaybe def    ; {-# INLINE modifyElemM #-}
 
-newElem :: forall t m. (IRMonad m, Typeable (Abstract t),  PrimMonad (GetIRMonad m)) => LayerData Model t -> m Int
+newElem :: forall t m. (IRMonad m, Typeable (Abstract t),  PrimMonad (GetIRMonad m)) => Definition t -> m Int
 newElem dt = do
     d <- getIRState
     let trep = typeRep @(Abstract t)
@@ -323,7 +336,7 @@ newElem dt = do
 
 -- === Registration === --
 
-registerElemWith :: forall el m. (Typeable el, IRMonad m) => (IRLayerStore (GetIRMonad m) -> IRLayerStore (GetIRMonad m)) -> m ()
+registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStore (GetIRMonad m) -> ElemStore (GetIRMonad m)) -> m ()
 registerElemWith f = do
     d <- getIRState
     putIRState $ modifyElem (typeRep @el) f d
@@ -513,6 +526,11 @@ readKey :: (IRMonad m, HasIdx t, AssertLayerReadable acc (Abstract t) layer)
         => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
 readKey k = readKeyST (unsafeFromKey k) ; {-# INLINE readKey #-}
 
+unsafeReadLayerST :: (IRMonad m, HasIdx t) => LayerKeyST m acc (Abstract t) layer -> t -> m (LayerData layer t)
+unsafeReadLayerST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE unsafeReadLayerST #-}
+
+unsafeReadLayer :: (IRMonad m, HasIdx t) => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
+unsafeReadLayer k = unsafeReadLayerST (unsafeFromKey k) ; {-# INLINE unsafeReadLayer #-}
 
 -- === Instances === --
 
@@ -526,20 +544,20 @@ deriving instance Show (Unwrapped (KeyST m acc key)) => Show (KeyST m acc key)
 
 -- === Definitions === --
 
-type instance KeyData m (Layer el l) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
+type instance KeyData m (Layer _ _) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
+type instance KeyData m (Elem  _)   = ElemStore (GetIRMonad m)
 
 
 -- === Aliases === --
 
--- FIXME: refactor
-data Net  n
-data Attr a
+data Elem t
+data Attr t
 
 type LayerKeyST m acc el l = KeyST m acc (Layer el l)
 type LayerKey     acc el l = Key     acc (Layer el l)
 
-type NetKeyST   m acc n    = KeyST m acc (Net n)
-type NetKey       acc n    = Key     acc (Net n)
+type ElemKeyST  m acc n    = KeyST m acc (Elem n)
+type ElemKey      acc n    = Key     acc (Elem n)
 
 type AttrKeyST  m acc a    = KeyST m acc (Attr a)
 type AttrKey      acc a    = Key     acc (Attr a)
@@ -550,6 +568,8 @@ type AttrKey      acc a    = Key     acc (Attr a)
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
     uncheckedLookupKeyST = fmap wrap' . (^? (elems . ix (typeRep @e) . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyST #-}
 
+instance (IRMonad m, Typeable e) => KeyMonad (Elem e) m where
+    uncheckedLookupKeyST = fmap wrap' . (^? (elems . ix (typeRep @e))) <$> getIRState ; {-# INLINE uncheckedLookupKeyST #-}
 
 
 
@@ -557,15 +577,149 @@ instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
 
 
 
+-------------------
+-- === Link === --
+-------------------
 
--------------------------
--- === Model Layer === --
--------------------------
+-- === Definition === --
+
+newtype Link  a b = Link Int deriving (Show)
+type    Link' a   = Link a a
+type instance Definition (Link a b) = (a,b)
+makeWrapped ''Link
+
+type SubLink s t = Link (Sub s t) t
+
+-- === Construction === --
+
+link :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
+     => a -> b -> m (Link a b)
+link a b = Link <$> newElem @(Link a b) (a,b) ; {-# INLINE link #-}
 
 
-instance {-# OVERLAPPABLE #-} (Monad m, a ~ LayerData Model t) => Constructor a m (Layer t Model) where
-    cons = return . Layer ; {-# INLINE cons #-}
+-- === Instances === --
 
+instance HasIdx (Link a b)
+
+type instance Universal (Link a b) = Link (Universal a) (Universal b)
+type instance Abstract  (Link a b) = Link (Abstract  a) (Abstract  b)
+
+
+
+
+------------------------
+-- === ExprSymbol === --
+------------------------
+
+newtype ExprSymbol    atom t = ExprSymbol (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
+type    ExprSymbol'   atom   = ExprSymbol atom Layout.Any
+newtype ExprUniSymbol      t = ExprUniSymbol (N.UniSymbol (Layout.Named (SubLink Name t) (SubLink Atom t)))
+makeWrapped ''ExprSymbol
+makeWrapped ''ExprUniSymbol
+
+
+-- === Helpers === --
+
+hideLayout :: ExprSymbol atom t -> ExprSymbol atom Layout.Any
+hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
+
+
+-- === Layout validation === ---
+-- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
+
+type InvalidFormat sel a format = 'ShowType sel
+                             :</>: Ticked ('ShowType a)
+                             :</>: 'Text  "is not a valid"
+                             :</>: Ticked ('ShowType format)
+
+
+class                                                       ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
+type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
+
+
+class                                                        ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
+type ValidateLayout_ model sel a = ValidateScope (model # sel) sel a
+type ValidateLayout' t     sel a = ValidateLayout (t # Layout) sel a
+
+
+-- === Instances === --
+
+-- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
+type instance Access Layout (ExprSymbol atom t) = Access Layout (Unwrapped (ExprSymbol atom t))
+type instance Access Atom   (ExprSymbol atom t) = atom
+type instance Access Format (ExprSymbol atom t) = Access Format atom
+type instance Access Sym    (ExprSymbol atom t) = ExprSymbol atom t
+
+instance Accessor Sym (ExprSymbol atom t) where access = id ; {-# INLINE access #-}
+
+instance UncheckedFromSymbol (ExprSymbol atom t) where uncheckedFromSymbol = wrap' ; {-# INLINE uncheckedFromSymbol #-}
+
+instance ValidateLayout (LayoutOf t) Atom atom
+      => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
+
+
+-- Repr
+instance Repr s (Unwrapped (ExprSymbol atom t))
+      => Repr s (ExprSymbol atom t) where repr = repr . unwrap' ; {-# INLINE repr #-}
+
+-- Fields
+type instance FieldsType (ExprSymbol atom t) = FieldsType (Unwrapped (ExprSymbol atom t))
+instance HasFields (Unwrapped (ExprSymbol atom t))
+      => HasFields (ExprSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
+
+
+
+----------------------
+-- === TermData === --
+----------------------
+
+type TermStoreSlots = '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+type TermStore = Store2 TermStoreSlots
+
+newtype TermData sys model = TermData TermStore deriving (Show)
+makeWrapped ''TermData
+
+
+-- === Encoding === --
+
+class                                                              SymbolEncoder atom where encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
+instance                                                           SymbolEncoder I    where encodeSymbol = impossible
+instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
+    encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
+
+
+
+------------------
+-- === Term === --
+------------------
+
+newtype Term  layout = Term Int deriving (Show)
+type    Term'        = Term Draft
+type    Term_        = Term Layout.Any
+
+makeWrapped ''Term
+
+type instance Definition (Term _) = TermStore
+
+
+term :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
+     => ExprSymbol atom (Term layout) -> m (Term layout)
+term a = Term <$> newElem @(Term layout) (encodeSymbol a) ; {-# INLINE term #-}
+
+
+instance HasIdx (Term l) where
+    idx = wrapped' ; {-# INLINE idx #-}
+
+type instance Universal (Term _) = Term'
+type instance Abstract  (Term _) = Term_
 
 
 
@@ -767,145 +921,6 @@ instance {-# OVERLAPPABLE #-} (Monad m, a ~ LayerData Model t) => Constructor a 
 -- -- instance HasLayer' (Link src tgt) p => Updater' p (Link src tgt) where update' a = layer @p .~ a   ; {-# INLINE update' #-}
 -- --
 
-
-
--------------------
--- === Link === --
--------------------
-
-newtype Link  a b = Link Int deriving (Show)
-type    Link' a   = Link a a
-makeWrapped ''Link
-
-type SubLink s t = Link (Sub s t) t
-
-type instance LayerData Model (Link a b) = (a,b)
-
-link :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
-     => a -> b -> m (Link a b)
-link a b = Link <$> newElem @(Link a b) (a,b) ; {-# INLINE link #-}
-
-
-instance HasIdx (Link a b) where
-    idx = wrapped' ; {-# INLINE idx #-}
-
-type instance Universal (Link a b) = Link (Universal a) (Universal b)
-type instance Abstract  (Link a b) = Link (Abstract  a) (Abstract  b)
-
-
-
-
-------------------------
--- === ExprSymbol === --
-------------------------
-
-newtype ExprSymbol    atom t = ExprSymbol (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
-type    ExprSymbol'   atom   = ExprSymbol atom Layout.Any
-newtype ExprUniSymbol      t = ExprUniSymbol (N.UniSymbol (Layout.Named (SubLink Name t) (SubLink Atom t)))
-makeWrapped ''ExprSymbol
-makeWrapped ''ExprUniSymbol
-
-
--- === Helpers === --
-
-hideLayout :: ExprSymbol atom t -> ExprSymbol atom Layout.Any
-hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
-
-
--- === Layout validation === ---
--- | Layout validation. Type-assertion utility, proving that symbol construction is not ill-typed.
-
-type InvalidFormat sel a format = 'ShowType sel
-                             :</>: Ticked ('ShowType a)
-                             :</>: 'Text  "is not a valid"
-                             :</>: Ticked ('ShowType format)
-
-
-class                                                       ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
-type ValidateScope_ scope sel a = Assert (a `In` Atoms scope) (InvalidFormat sel a scope)
-
-
-class                                                        ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
-type ValidateLayout_ model sel a = ValidateScope (model # sel) sel a
-type ValidateLayout' t     sel a = ValidateLayout (t # Layout) sel a
-
-
--- === Instances === --
-
--- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
-type instance Access Layout (ExprSymbol atom t) = Access Layout (Unwrapped (ExprSymbol atom t))
-type instance Access Atom   (ExprSymbol atom t) = atom
-type instance Access Format (ExprSymbol atom t) = Access Format atom
-type instance Access Sym    (ExprSymbol atom t) = ExprSymbol atom t
-
-instance Accessor Sym (ExprSymbol atom t) where access = id ; {-# INLINE access #-}
-
-instance UncheckedFromSymbol (ExprSymbol atom t) where uncheckedFromSymbol = wrap' ; {-# INLINE uncheckedFromSymbol #-}
-
-instance ValidateLayout (LayoutOf t) Atom atom
-      => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
-
-
--- Repr
-instance Repr s (Unwrapped (ExprSymbol atom t))
-      => Repr s (ExprSymbol atom t) where repr = repr . unwrap' ; {-# INLINE repr #-}
-
--- Fields
-type instance FieldsType (ExprSymbol atom t) = FieldsType (Unwrapped (ExprSymbol atom t))
-instance HasFields (Unwrapped (ExprSymbol atom t))
-      => HasFields (ExprSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
-
-
-
-----------------------
--- === TermData === --
-----------------------
-
-type TermStoreSlots = '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
-type TermStore = Store2 TermStoreSlots
-
-newtype TermData sys model = TermData TermStore deriving (Show)
-makeWrapped ''TermData
-
-
--- === Encoding === --
-
-class                                                              SymbolEncoder atom where encodeSymbol :: forall t. ExprSymbol atom t -> TermStore
-instance                                                           SymbolEncoder I    where encodeSymbol = impossible
-instance EncodeStore TermStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
-    encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
-
-------------------
--- === Term === --
-------------------
-
-newtype Term  layout = Term Int deriving (Show)
-type    Term'        = Term Draft
-type    Term_        = Term Layout.Any
-
-makeWrapped ''Term
-
-type instance LayerData Model (Term _) = TermStore
-
-
-term :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
-     => ExprSymbol atom (Term layout) -> m (Term layout)
-term a = Term <$> newElem @(Term layout) (encodeSymbol a) ; {-# INLINE term #-}
-
-
-instance HasIdx (Term l) where
-    idx = wrapped' ; {-# INLINE idx #-}
-
-type instance Universal (Term _) = Term'
-type instance Abstract  (Term _) = Term_
 
 
 

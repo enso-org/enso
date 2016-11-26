@@ -143,7 +143,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, read, Readable, Elements)
+import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -156,12 +156,6 @@ data InfLayers = InfLayers
 --------------------
 -- === Layers === --
 --------------------
-
-
--- === Model layer === --
-
-instance Monad m => LayerCons Model m where
-    consLayer = return . Layer ; {-# INLINE consLayer #-}
 
 
 
@@ -278,9 +272,6 @@ exprRep  = typeRep @Term_
 
 
 
-instance Readable layer abs m => Readable layer abs (KnownTypeT cls t m) where
-    read = lift . read @layer ; {-# INLINE read #-}
-
 
 
 
@@ -304,14 +295,14 @@ test_pass1 = runIRT2 $ do
     Pass.eval pass1
 
 
-gen_pass1 :: (MonadIO m, IRMonad m, Readable Model Term_ m, Readable Succs Term_ m) => m ()
+gen_pass1 :: (MonadIO m, IRMonad m, Readable (Layer Term_ Model) m) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedTerm Star ()) <- star
     (s2 :: UntyppedTerm Star ()) <- star
     l <- link s1 s2
     print "hello"
-    d <- read @Succs s1
-    print l
+    d <- readLayer @Model s1
+    print d
     return ()
 
 
