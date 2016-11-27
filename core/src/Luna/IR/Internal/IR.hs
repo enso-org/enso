@@ -296,9 +296,36 @@ newElem dt = do
     putIRState $ d & elems . at trep ?~ layerStore'
     return idx
 
+-- newElem2 :: forall t m. (IRMonad m,  PrimMonad (GetIRMonad m)) => Definition2 t -> m Int
+-- newElem2 (Definition2 dt) = do
+--     d <- getIRState
+--     let trep = typeRep @(Abstract t)
+--         Just layerStore = d ^? elems  . ix trep
+--         consLayer idx l elemStore = do
+--             let Just consFunc = d ^? layers . ix l -- FIXME[WD]: internal error when cons was not registered
+--             runInIR $ MV.unsafeWrite elemStore idx =<< unsafeAppCons consFunc dt
+--     (idx, layerStore') <- runInIR $ MV.reserveIdx layerStore
+--     mapM_ (uncurry $ consLayer idx) (MV.assocs layerStore)
+--     putIRState $ d & elems . at trep ?~ layerStore'
+--     return idx
 
 
-
+-- data Definition2 t = Definition2 (Typeable t => t)
+-- data Definition2 t = Typeable t => Definition2 t
+--
+-- -- data A
+--
+-- ttt :: forall t. Definition2 t -> TypeRep
+-- ttt (Definition2 t) = typeRep @t
+--
+-- kazdy (Expr l), (Link a b) etc mozna zamienic na
+--
+-- Elem (Expr l)
+-- Elem (Link a b)
+--
+-- tak ze dla `Elem a`
+--
+-- gwarantowane sa typeable dla a, wtedy stracimy te constrainty chyba
 
 -- === Registration === --
 
@@ -694,6 +721,7 @@ instance HasIdx (Term l) where
 
 type instance Universal (Term _) = Term'
 type instance Abstract  (Term _) = Term_
+type instance Sub s     (Term l) = Term (Sub s l)
 
 
 

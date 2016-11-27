@@ -20,7 +20,6 @@ import Type.Bool
 -- FIXME: remove or refactor
 data Named n a
 data Name = Name deriving (Show)
-data Type
 
 
 

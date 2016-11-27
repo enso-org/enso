@@ -27,6 +27,10 @@ class Monad m => LayerCons l m where
     consLayer :: forall t. Definition t -> m (Layer t l)
 
 
+class Monad m => LayerCons2 l t m where
+    consLayer2 :: Definition t -> m (Layer t l)
+
+
 -- === Isntances === --
 
 deriving instance Show (Unwrapped (Layer t l))

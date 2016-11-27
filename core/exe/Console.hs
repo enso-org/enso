@@ -144,49 +144,16 @@ import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
 import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer, Inputs, Outputs)
+import Luna.IR.Layer.UID (UID, MonadUID)
+import qualified Luna.IR.Layer.UID as UID
+import Luna.IR.Layer.Succs
+import Luna.IR.Layer.Type
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
 
 
 data InfLayers = InfLayers
-
-
-
---------------------
--- === Layers === --
---------------------
-
-
-
--- === UID layer === --
-
-data UID = UID deriving (Show)
-
-type instance LayerData UID t = Int64
-
-instance (Monad m, D.MonadState UID (LayerData UID expr) m) => LayerCons UID m where
-    consLayer _ = Layer <$> D.modify UID (\s -> (succ s, s))
-
--- FIXME [WD]: Remove when moving out from constructors
-instance (D.MonadState UID (LayerData UID expr) m, Monad m)
-      => Constructor a m (Layer expr UID) where
-    cons _ = Layer <$> D.modify UID (\s -> (succ s, s))
-
-
-
-
--- === Succs layer === --
-
-data Succs = Succs deriving (Show)
-
-type instance LayerData Succs a = S.Set (Universal a)
-
-instance Monad m => LayerCons Succs m where
-    consLayer _ = return def ; {-# INLINE consLayer #-}
-
-
-
 
 
 
@@ -233,16 +200,33 @@ type l :>> r = Specialized Atom l r
 
 type AtomicTerm atom layout = Term (Update Atom atom layout)
 
+localTop :: IRMonad m => m (Term layout)
+localTop = term Sym.uncheckedStar
 
 star :: (IRMonad m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
 star = term Sym.uncheckedStar
 
+unify :: (IRMonad m, MonadFix m) => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
+unify a b = mdo
+    n  <- term $ Sym.uncheckedUnify la lb
+    la <- link (unsafeGeneralize a) n
+    lb <- link (unsafeGeneralize b) n
+    return n
+
+
+-- unify :: ASGBuilder m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
+-- -- unify :: ASGBuilder m => Expr l -> Expr r -> m (Expr (Unify :>> (l <+> r)))
+-- unify a b = buildElem $ mdo
+--     n  <- delayedExpr (Sym.uncheckedUnify la lb)
+--     la <- delayedLink (unsafeGeneralize a) n
+--     lb <- delayedLink (unsafeGeneralize b) n
+--     return n
 
 
 type family   UnsafeGeneralizable a b :: Constraint
 
 -- type instance UnsafeGeneralizable (Ref a) (Ref b) = UnsafeGeneralizable a b
--- type instance UnsafeGeneralizable (Expr l) (Expr l') = ()
+type instance UnsafeGeneralizable (Term l) (Term l') = ()
 
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
 unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
@@ -267,9 +251,33 @@ layouted = baseLayout @(DefaultLayout l)
 instance Generalize (Compound SimpleX lst) Draft
 
 
-modelRep = typeRep @Model
-exprRep  = typeRep @Term_
 
+-- instance ( Self.MonadSelfBuilder (Ref Expr') m
+--          , Type.MonadTypeBuilder (Ref AnyExpr) m
+--          , MonadFix m
+--          , SilentExprCons m
+--          , MonadDelayed m
+--          , Register New (Ref ExprLink') (Delayed m)
+--          , StackCons (Layers ExprLink' (Cfg m)) m
+--          , Referable ExprLink' (Cfg m) m
+--          , t ~ Cfg m
+--          ) => Constructor TermStore m (Layer (IR t AnyExpr) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
+--     cons _ = do
+--         self <- anyLayout3 <$> Self.get
+--         top  <- localTop
+--         l    <- delayedLink top self
+--         l'   <- mark' l
+--         return $ Layer l'
+
+
+
+-- instance Monad m => LayerCons Type m where
+--     consLayer _ = do
+--         self <- undefined -- Self.get
+--         top  <- undefined -- localTop
+--         l    <- link top self
+--         return $ Layer l
+--
 
 
 
@@ -277,32 +285,34 @@ exprRep  = typeRep @Term_
 
 data                    SimpleAA
 type instance Elements  SimpleAA = '[Term_, Link' Term_]
-type instance Inputs    SimpleAA = '[]
-type instance Outputs   SimpleAA = '[]
+type instance Inputs    SimpleAA = '[Layer Term_ Model, Layer Term_ UID]
+type instance Outputs   SimpleAA = '[Layer Term_ Model, Layer Term_ UID]
 type instance Preserves SimpleAA = '[]
 
-pass1 :: (MonadIO m, IRMonad m) => Pass SimpleAA m
+pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-test_pass1 :: (MonadIO m, PrimMonad m) => m (Either Pass.Err ())
-test_pass1 = runIRT2 $ do
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
+test_pass1 = UID.evalNewT $ runIRT2 $ do
     registerElem  @Term_
     registerElem  @(Link' Term_)
     registerLayer @Model
     registerLayer @Succs
-    attachLayer   (typeRep @Model)  (typeRep @Term_)
+    registerLayer @UID
+    attachLayer   (typeRep @Model) (typeRep @Term_)
     attachLayer   (typeRep @Succs) (typeRep @Term_)
+    attachLayer   (typeRep @UID)   (typeRep @Term_)
 
     Pass.eval pass1
 
 
-gen_pass1 :: (MonadIO m, IRMonad m, Readable (Layer Term_ Model) m) => m ()
+gen_pass1 :: (MonadFix m, MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ UID) m) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedTerm Star ()) <- star
     (s2 :: UntyppedTerm Star ()) <- star
-    l <- link s1 s2
+    u1 <- unify s1 s2
     print "hello"
-    d <- readLayer @Model s1
+    d <- readLayer @UID s2
     print d
     return ()
 
