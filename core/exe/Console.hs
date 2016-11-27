@@ -16,7 +16,7 @@
 module Main where
 
 
-import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
+-- import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
 import qualified Data.Graph as G
 import Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
@@ -143,7 +143,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer)
+import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer, Inputs, Outputs)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -277,7 +277,8 @@ exprRep  = typeRep @Term_
 
 data                    SimpleAA
 type instance Elements  SimpleAA = '[Term_, Link' Term_]
-type instance Keys      SimpleAA = '[LayerKey 'RW Term_ Model, LayerKey 'RW Term_ Succs]
+type instance Inputs    SimpleAA = '[]
+type instance Outputs   SimpleAA = '[]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadIO m, IRMonad m) => Pass SimpleAA m

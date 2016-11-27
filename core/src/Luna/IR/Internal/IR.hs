@@ -154,48 +154,14 @@ data New a
 -- === IOAccess === --
 ----------------------
 
-data IOAccess = R | W | RW deriving (Show)
-
-type family Readable a where
-    Readable 'W  = 'False
-    Readable _   = 'True
-
-type family Writable a where
-    Writable 'R = 'False
-    Writable _  = 'True
-
-
-type AssertLayerWritable a t l = Assert (Writable a) (LayerWriteError t l)
-type AssertLayerReadable a t l = Assert (Readable a) (LayerReadError  t l)
-
-type AssertLayerReadable' a t l = ( Assert (IsJust a)              (MissingLayerError t l)
-                                  , Assert (Readable (FromJust a)) (LayerReadError    t l)
-                                  )
-
-type LayerAccessError action t l = Sentence $ 'Text "Layer"
-                                        :</>: Ticked ('ShowType l)
-                                        :</>: 'Text "of"
-                                        :</>: Ticked ('ShowType t)
-                                        :</>: 'Text "is not"
-                                        :</>: ('Text action :<>: 'Text "able")
-
 type KeyAccessError action k = Sentence $ 'Text "Key"
                                     :</>: Ticked ('ShowType k)
                                     :</>: 'Text "is not"
                                     :</>: ('Text action :<>: 'Text "able")
 
-type MissingLayerError t l = Sentence $ 'Text "Layer"
-                                  :</>: Ticked ('ShowType l)
-                                  :</>: 'Text "of"
-                                  :</>: Ticked ('ShowType t)
-                                  :</>: 'Text "does not exist"
-
-
-
-type AssertKeyReadable s ref = Assert (Readable s) (KeyReadError ref)
-
-type LayerReadError  t l = LayerAccessError "read"  t l
-type LayerWriteError t l = LayerAccessError "write" t l
+type KeyMissingError k = Sentence $ 'Text "Key"
+                              :</>: Ticked ('ShowType k)
+                              :</>: 'Text "is not accessible"
 
 type KeyReadError  k = KeyAccessError "read"  k
 type KeyWriteError k = KeyAccessError "write" k
@@ -487,30 +453,43 @@ type instance Universal (IR t a) = IR t (Universal a)
 -- === Keys === --
 ------------------
 
-type family KeyData (m :: * -> *) key
+type family KeyTargetST (m :: * -> *) key
 
-newtype KeyST m (acc :: IOAccess) key = KeyST (KeyData m key)
-data    Key     (acc :: IOAccess) key where
-        Key :: KeyST m acc key -> Key acc key
-makeWrapped '' KeyST
+newtype KeyDataST m key = KeyDataST (KeyTargetST m key)
+data    KeyData     key where
+        KeyData :: KeyDataST m key -> KeyData key
+
+newtype Key k = Key (KeyData k)
+
+-- newtype KeyST m key = KeyST (KeyTargetST m key)
+-- data    Key     key where
+--         Key :: KeyST m key -> Key key
+makeWrapped '' KeyDataST
+makeWrapped '' Key
 
 
 -- === Key Monad === --
 
 class Monad m => KeyMonad key m where
-    uncheckedLookupKeyST :: m (Maybe (KeyST m acc key))
-
-uncheckedLookupKey :: KeyMonad key m => m (Maybe (Key acc key))
-uncheckedLookupKey = key .: uncheckedLookupKeyST ; {-# INLINE uncheckedLookupKey #-}
+    uncheckedLookupKeyDataST :: m (Maybe (KeyDataST m key))
+--
+uncheckedLookupKey :: KeyMonad key m => m (Maybe (Key key))
+uncheckedLookupKey = (Key . keyData) .: uncheckedLookupKeyDataST ; {-# INLINE uncheckedLookupKey #-}
 
 
 -- === Construction === --
 
-key :: KeyST m acc key -> Key acc key
-key = Key ; {-# INLINE key #-}
+-- key :: KeyST m key -> Key key
+-- key = Key ; {-# INLINE key #-}
 
-unsafeFromKey :: Key acc key -> KeyST m acc key
-unsafeFromKey (Key k) = unsafeCoerce k ; {-# INLINE unsafeFromKey #-}
+keyData :: KeyDataST m k -> KeyData k
+keyData = KeyData ; {-# INLINE keyData #-}
+
+unsafeeFromKeyData :: KeyData k -> KeyDataST m k
+unsafeeFromKeyData (KeyData d) = unsafeCoerce d ; {-# INLINE unsafeeFromKeyData #-}
+
+-- unsafeFromKey :: Key key -> KeyST m key
+-- unsafeFromKey (Key k) = unsafeCoerce k ; {-# INLINE unsafeFromKey #-}
 
 
 -- === Accessing === --
@@ -518,23 +497,23 @@ unsafeFromKey (Key k) = unsafeCoerce k ; {-# INLINE unsafeFromKey #-}
 -- readST :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
 --           , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
 
-readKeyST :: (IRMonad m, HasIdx t, AssertLayerReadable acc (Abstract t) layer)
-       => LayerKeyST m acc (Abstract t) layer -> t -> m (LayerData layer t)
-readKeyST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE readKeyST #-}
+-- readKeyST :: (IRMonad m, HasIdx t) -- AssertLayerReadable (Abstract t) layer)
+--        => LayerKeyST m (Abstract t) layer -> t -> m (LayerData layer t)
+-- readKeyST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE readKeyST #-}
+--
+-- readKey :: (IRMonad m, HasIdx t) -- AssertLayerReadable (Abstract t) layer)
+--         => LayerKey (Abstract t) layer -> t -> m (LayerData layer t)
+-- readKey k = readKeyST (unsafeFromKey k) ; {-# INLINE readKey #-}
 
-readKey :: (IRMonad m, HasIdx t, AssertLayerReadable acc (Abstract t) layer)
-        => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
-readKey k = readKeyST (unsafeFromKey k) ; {-# INLINE readKey #-}
-
-unsafeReadLayerST :: (IRMonad m, HasIdx t) => LayerKeyST m acc (Abstract t) layer -> t -> m (LayerData layer t)
+unsafeReadLayerST :: (IRMonad m, HasIdx t) => KeyDataST m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
 unsafeReadLayerST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE unsafeReadLayerST #-}
 
-unsafeReadLayer :: (IRMonad m, HasIdx t) => LayerKey acc (Abstract t) layer -> t -> m (LayerData layer t)
-unsafeReadLayer k = unsafeReadLayerST (unsafeFromKey k) ; {-# INLINE unsafeReadLayer #-}
+unsafeReadLayer :: (IRMonad m, HasIdx t) => Key (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+unsafeReadLayer k = unsafeReadLayerST (unsafeeFromKeyData $ unwrap' k) ; {-# INLINE unsafeReadLayer #-}
 
 -- === Instances === --
 
-deriving instance Show (Unwrapped (KeyST m acc key)) => Show (KeyST m acc key)
+-- deriving instance Show (Unwrapped (KeyST m key)) => Show (KeyST m key)
 
 
 
@@ -544,8 +523,8 @@ deriving instance Show (Unwrapped (KeyST m acc key)) => Show (KeyST m acc key)
 
 -- === Definitions === --
 
-type instance KeyData m (Layer _ _) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
-type instance KeyData m (Elem  _)   = ElemStore (GetIRMonad m)
+type instance KeyTargetST m (Layer _ _) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
+type instance KeyTargetST m (Elem  _)   = ElemStore (GetIRMonad m)
 
 
 -- === Aliases === --
@@ -553,23 +532,18 @@ type instance KeyData m (Elem  _)   = ElemStore (GetIRMonad m)
 data Elem t
 data Attr t
 
-type LayerKeyST m acc el l = KeyST m acc (Layer el l)
-type LayerKey     acc el l = Key     acc (Layer el l)
-
-type ElemKeyST  m acc n    = KeyST m acc (Elem n)
-type ElemKey      acc n    = Key     acc (Elem n)
-
-type AttrKeyST  m acc a    = KeyST m acc (Attr a)
-type AttrKey      acc a    = Key     acc (Attr a)
+type LayerKey el l = Key (Layer el l)
+type ElemKey  n    = Key (Elem n)
+type AttrKey  a    = Key (Attr a)
 
 
 -- === Instances === --
 
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
-    uncheckedLookupKeyST = fmap wrap' . (^? (elems . ix (typeRep @e) . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyST #-}
+    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e) . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
 
 instance (IRMonad m, Typeable e) => KeyMonad (Elem e) m where
-    uncheckedLookupKeyST = fmap wrap' . (^? (elems . ix (typeRep @e))) <$> getIRState ; {-# INLINE uncheckedLookupKeyST #-}
+    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
 
 
 
