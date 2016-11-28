@@ -250,17 +250,18 @@ instance Default (IRState   m) where def = IRState   def def def
 -- === IR === --
 -----------------
 
-type family GetIRMonad (m :: * -> *) where
-    GetIRMonad (IRT t m) = m
-    GetIRMonad (t m)     = GetIRMonad m
+type        GetIRMonad    m = IRT (GetIRSubMonad m)
+type family GetIRSubMonad m where
+            GetIRSubMonad (IRT m) = m
+            GetIRSubMonad (t   m) = GetIRSubMonad m
 
 type IRState' m = IRState (GetIRMonad m)
 
 
-newtype IRT  t m a = IRT (StateT (IRState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
-newtype IR   t   a = IR a                         deriving (Functor, Traversable, Foldable)
-type    IRMT   m   = IRT (Cfg m) m
-type    IRM    m   = IR  (Cfg m)
+newtype IRT m a = IRT (StateT (IRState (IRT m)) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype IR    a = IR a                               deriving (Functor, Traversable, Foldable)
+-- type    IRMT   m   = IRT (Cfg m) m
+-- type    IRM    m   = IR  (Cfg m)
 
 data IRType = IRType deriving (Show)
 
@@ -298,10 +299,10 @@ newElem dt = do
         consLayer t i l elemStore = do
             let Just consFunc = lookupLayerCons trep l d -- FIXME[WD]: internal error when cons was not registered
             runInIR $ MV.unsafeWrite elemStore i =<< unsafeAppCons consFunc t dt
-    (i, layerStore') <- runInIR $ MV.reserveIdx layerStore
+    (i, layerStore') <- runInIR $ MV.reserveIdx layerStore -- FIXME[WD]: refactor these lines - they reserve new idx
+    putIRState $ d & elems . ix trep . layerValues .~ layerStore'
     let el = i ^. from idx
     mapM_ (uncurry $ consLayer el i) (MV.assocs layerStore)
-    putIRState $ d & elems . ix trep . layerValues .~ layerStore'
     return el
 
 
@@ -394,19 +395,18 @@ attachLayer l e = do
 
 -- === IRMonad === ---
 
-
-
-class (Monad m, PrimMonad (GetIRMonad m)) => IRMonad m where
-    liftIR     :: forall a. IR (Cfg m) a -> m a
+type  IRMonadInvariants m = (Monad m, PrimMonad (GetIRSubMonad m))
+class IRMonadInvariants m => IRMonad m where
+    liftIR     :: forall a. IR a -> m a
     getIRState :: m (IRState' m)
     putIRState :: (IRState' m) -> m ()
     runInIR    :: GetIRMonad m a -> m a
 
-instance {-# OVERLAPPABLE #-} (Monad m, PrimMonad m) => IRMonad (IRT t m) where
-    liftIR    = return . unsafeIRUnwrap ; {-# INLINE liftIR    #-}
-    getIRState = IRT   State.get        ; {-# INLINE getIRState #-}
-    putIRState = IRT . State.put        ; {-# INLINE putIRState #-}
-    runInIR   = lift                    ; {-# INLINE runInIR   #-}
+instance {-# OVERLAPPABLE #-} (Monad m, PrimMonad m) => IRMonad (IRT m) where
+    liftIR     = return . unsafeIRUnwrap ; {-# INLINE liftIR     #-}
+    getIRState = IRT   State.get         ; {-# INLINE getIRState #-}
+    putIRState = IRT . State.put         ; {-# INLINE putIRState #-}
+    runInIR    = id                      ; {-# INLINE runInIR    #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
     liftIR     = lift . liftIR     ; {-# INLINE liftIR     #-}
@@ -415,31 +415,31 @@ instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
     runInIR    = lift . runInIR    ; {-# INLINE runInIR    #-}
 
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m), GetIRMonad (t m) ~ GetIRMonad m)
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), GetIRMonad (t m) ~ GetIRMonad m)
 
 -- FIXME[WD]: maybe we should relax a bit the Cfg definition?
-type family Cfg (m :: * -> *) where
-    Cfg (IRT t m) = t
-    Cfg (IR  t)   = t
-    Cfg (m t)      = Cfg t
+-- type family Cfg (m :: * -> *) where
+--     Cfg (IRT t m) = t
+--     Cfg (IR  t)   = t
+--     Cfg (m t)      = Cfg t
 
 
 -- === IR mark === ---
 
-type Marked m a = IRM m (IRVal a)
-
-class                          Monad m                    => Markable m a           where mark :: a -> m (Marked m a)
-instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)      => Markable m a           where mark = return . IR  ; {-# INLINE mark #-}
-instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (IR  t   a) where mark = return       ; {-# INLINE mark #-}
+-- type Marked m a = IRM m (IRVal a)
+--
+-- class                          Monad m                    => Markable m a           where mark :: a -> m (Marked m a)
+-- instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)      => Markable m a           where mark = return . IR  ; {-# INLINE mark #-}
+-- instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (IR  t   a) where mark = return       ; {-# INLINE mark #-}
 -- instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT def   ; {-# INLINE mark #-} -- FIXME
 
-type family IRVal a where
-    IRVal (IR  _   a) = a
-    IRVal (IRT _ _ a) = a
-    IRVal a            = a
-
-mark' :: IRMonad m => a -> m (IRM m a)
-mark' = return . IR ; {-# INLINE mark' #-}
+-- type family IRVal a where
+--     IRVal (IR    a) = a
+--     IRVal (IRT _ a) = a
+--     IRVal a         = a
+-- --
+-- mark' :: IRMonad m => a -> m (IRM m a)
+-- mark' = return . IR ; {-# INLINE mark' #-}
 
 
 -- === Running === --
@@ -447,39 +447,39 @@ mark' = return . IR ; {-# INLINE mark' #-}
 -- transform :: Monad m => IR t a -> IRT t m a
 -- transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
 
-runIRT :: forall t m a. Monad m => IRT t m a -> m (IR t a)
+runIRT :: forall t m a. Monad m => IRT m a -> m (IR a)
 runIRT (IRT m) = IR <$> State.evalStateT m def ; {-# INLINE runIRT #-}
 
-runIRT2 :: forall t m a. Monad m => IRT t m a -> m a
+runIRT2 :: forall t m a. Monad m => IRT m a -> m a
 runIRT2 (IRT m) = State.evalStateT m def ; {-# INLINE runIRT2 #-}
 
-unsafeIRUnwrap :: IR t a -> a
+unsafeIRUnwrap :: IR a -> a
 unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
 
-irElem :: Lens' (IR t a) a
+irElem :: Lens' (IR a) a
 irElem = lens (\(IR a) -> a) (\(IR _) a -> IR a) ; {-# INLINE irElem #-} -- FIXME
 
-irElemFake :: Iso' (IR t a) a
+irElemFake :: Iso' (IR a) a
 irElemFake = iso unsafeIRUnwrap IR ; {-# INLINE irElemFake #-}
 
 
 -- === Property selectors === --
 
-type Select   p m a =  Access    p (Marked m a)
-type Selector p m a = (Accessor  p (Marked m a), Markable m a)
-type Updaterx p m a = (Updater'  p (Marked m a), Markable m a, IRMonad m)
-
-select :: forall p m a. Selector p m a => a -> m (Select p m a)
-select = access @p <∘> mark ; {-# INLINE select #-}
-
-updatex :: forall p m a. Updaterx p m a => Select p m a -> a -> m (IRVal a)
-updatex v a = (liftIR . update' @p v) =<< mark a ; {-# INLINE updatex #-}
-
-with :: forall p m a. (Selector p m a, Updaterx p m a) => (Select p m a -> Select p m a) -> a -> m (IRVal a)
-with f src = do
-    succs <- select @p src
-    updatex @p (f succs) src
-{-# INLINE with #-}
+-- type Select   p m a =  Access    p (Marked m a)
+-- type Selector p m a = (Accessor  p (Marked m a), Markable m a)
+-- type Updaterx p m a = (Updater'  p (Marked m a), Markable m a, IRMonad m)
+--
+-- select :: forall p m a. Selector p m a => a -> m (Select p m a)
+-- select = access @p <∘> mark ; {-# INLINE select #-}
+--
+-- updatex :: forall p m a. Updaterx p m a => Select p m a -> a -> m (IRVal a)
+-- updatex v a = (liftIR . update' @p v) =<< mark a ; {-# INLINE updatex #-}
+--
+-- with :: forall p m a. (Selector p m a, Updaterx p m a) => (Select p m a -> Select p m a) -> a -> m (IRVal a)
+-- with f src = do
+--     succs <- select @p src
+--     updatex @p (f succs) src
+-- {-# INLINE with #-}
 
 
 -- === Instances === --
@@ -489,12 +489,12 @@ with f src = do
 -- instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (IR t a) where
 --     showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
 
-instance MonadTrans (IRT t) where
+instance MonadTrans IRT where
     lift = IRT . lift ; {-# INLINE lift #-}
 
 -- PrimMonad
-instance PrimMonad m => PrimMonad (IRT t m) where
-    type PrimState (IRT t m) = PrimState m
+instance PrimMonad m => PrimMonad (IRT m) where
+    type PrimState (IRT m) = PrimState m
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 -- Properties
@@ -507,7 +507,7 @@ instance PrimMonad m => PrimMonad (IRT t m) where
 --     update' v = definition %~ update' @p v ; {-# INLINE update' #-}
 
 -- Universal
-type instance Universal (IR t a) = IR t (Universal a)
+type instance Universal (IR a) = IR (Universal a)
 
 -- Ordering
 -- instance (Ord (Definition t a), IsElem a) => Ord (IR t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}

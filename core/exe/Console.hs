@@ -333,8 +333,8 @@ mfixType f = mfix $ flip Type.with' f . Just
 
 data                    SimpleAA
 type instance Elements  SimpleAA = '[Term_, Link' Term_]
-type instance Inputs    SimpleAA = '[Layer Term_ Model, Layer Term_ UID]
-type instance Outputs   SimpleAA = '[Layer Term_ Model, Layer Term_ UID]
+type instance Inputs    SimpleAA = '[Layer Term_ Model, Layer Term_ UID, Layer Term_ Type]
+type instance Outputs   SimpleAA = '[Layer Term_ Model, Layer Term_ UID, Layer Term_ Type]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
@@ -343,41 +343,57 @@ pass1 = gen_pass1
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
 test_pass1 = runIRT2 $ do
     runRegs
-    -- registerElemLayer @Term_ @Type
+    -- -- registerElemLayer @Term_ @Type
     attachLayer   (typeRep @Model) (typeRep @Term_)
     attachLayer   (typeRep @Succs) (typeRep @Term_)
+    attachLayer   (typeRep @Type)  (typeRep @Term_)
     attachLayer   (typeRep @UID)   (typeRep @Term_)
-
+    --
+    -- print "!!!!!"
     Pass.eval pass1
+    -- print "!!!!!2"
+    -- return undefined
+
+
+gen_pass1 :: (MonadFix m, MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ Type) m) => m ()
+gen_pass1 = layouted @ANT $ do
+    (s1 :: UntyppedTerm Star ()) <- star
+    (s2 :: UntyppedTerm Star ()) <- star
+    u1 <- unify s1 s2
+    print "hello"
+    d <- readLayer @Type u1
+    print d
+    return ()
 
 
 
---
--- consTypeLayer :: (IRMonad m, PrimMonad m)
---               => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (Layer (Term t) Type)
--- consTypeLayer ref self _ = do
---     top  <- view (from magicStar) <$> localTop ref
---     conn <- link top self
---     return $ Layer conn
---
---
--- localTop :: (IRMonad m, PrimMonad m)
---          => MV.STRefM m (Maybe MagicStar) -> m MagicStar
--- localTop ref = MV.readSTRef ref >>= \case
---     Just t  -> return t
---     Nothing -> do
---         s <- newMagicStar
---         MV.writeSTRef ref $ Just s
---         return s
---
---
--- layerReg4 :: IRMonad m => m ()
--- layerReg4 = registerElemLayer2 @Term_ @UID . anyCons . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
---
+
+consTypeLayer :: (IRMonad m, PrimMonad m, MonadFix m)
+              => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (Layer (Term t) Type)
+consTypeLayer ref self _ = do
+    top  <- view (from magicStar) <$> localTop ref
+    conn <- link top self
+    return $ Layer conn
+
+
+localTop :: (IRMonad m, PrimMonad m, MonadFix m)
+         => MV.STRefM m (Maybe MagicStar) -> m MagicStar
+localTop ref = MV.readSTRef ref >>= \case
+    Just t  -> return t
+    Nothing -> mdo
+        MV.writeSTRef ref $ Just s
+        s <- newMagicStar
+        MV.writeSTRef ref Nothing
+        return s
+
+
+layerReg4 :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
+layerReg4 = registerElemLayer2 @Term_ @Type . anyCons . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
 
 
 
-runRegs :: IRMonad m => m ()
+
+runRegs :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
 runRegs = do
     runElemRegs
     runLayerRegs
@@ -399,10 +415,10 @@ elemReg2 = registerElem @(Link' Term_)
 
 -- === Layer reg defs === --
 
-layerRegs :: IRMonad m => [m ()]
-layerRegs = [layerReg1, layerReg2, layerReg3]
+layerRegs :: (IRMonad m, MonadFix (GetIRMonad m)) => [m ()]
+layerRegs = [layerReg1, layerReg2, layerReg3, layerReg4]
 
-runLayerRegs :: IRMonad m => m ()
+runLayerRegs :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
 runLayerRegs = sequence_ layerRegs
 
 
@@ -422,15 +438,7 @@ layerReg3 = registerGenericLayer2 @UID . anyCons . consUIDLayer =<< runInIR (MV.
 
 
 
-gen_pass1 :: (MonadFix m, MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ UID) m) => m ()
-gen_pass1 = layouted @ANT $ do
-    (s1 :: UntyppedTerm Star ()) <- star
-    (s2 :: UntyppedTerm Star ()) <- star
-    u1 <- unify s1 s2
-    print "hello"
-    d <- readLayer @UID s2
-    print d
-    return ()
+
 
 
 
