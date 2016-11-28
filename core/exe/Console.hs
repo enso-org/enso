@@ -248,22 +248,6 @@ instance Generalize (Compound SimpleX lst) Draft
 
 
 
--- instance ( Self.MonadSelfBuilder (Ref Expr') m
---          , Type.MonadTypeBuilder (Ref AnyExpr) m
---          , MonadFix m
---          , SilentExprCons m
---          , MonadDelayed m
---          , Register New (Ref ExprLink') (Delayed m)
---          , StackCons (Layers ExprLink' (Cfg m)) m
---          , Referable ExprLink' (Cfg m) m
---          , t ~ Cfg m
---          ) => Constructor TermStore m (Layer (IR t AnyExpr) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
---     cons _ = do
---         self <- anyLayout3 <$> Self.get
---         top  <- localTop
---         l    <- delayedLink top self
---         l'   <- mark' l
---         return $ Layer l'
 
 
 newtype MagicStar = MagicStar Term_
@@ -278,51 +262,6 @@ magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE mag
 
 
 type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
-
-
-
-
--- instance TermLayerCons l m => LayerConsProxy (Term t) l m where
---     consLayerProxy = consTermLayer ; {-# INLINE consLayerProxy #-}
---
--- class Monad m => TermLayerCons l m where
---     consTermLayer :: forall t. Term t -> Definition (Term t) -> m (Layer (Term t) l)
---
--- instance {-# OVERLAPPABLE #-} (LayerCons l m, Monad m)
---       => TermLayerCons l m where consTermLayer = consLayer ; {-# INLINE consTermLayer #-}
---
---
--- instance (IRMonad m, Accessible (Attr MagicStar) m) => TermLayerCons Type m where
---     consTermLayer self _ = do
---         top  <- view (from magicStar) <$> localTop
---         conn <- link top self
---         return $ Layer conn
-
--- consTermLayer :: Term t -> Definition (Term t) -> m (Layer (Term t) l)
--- consTermLayer self _ = do
---     top  <- view (from magicStar) <$> localTop
---     conn <- link top self
---     return $ Layer conn
---
---
--- localTop :: (IRMonad m, Accessible (Attr MagicStar) m) => m MagicStar
--- localTop = readKey @(Attr MagicStar) >>= \case
---     Just t  -> return t
---     Nothing -> mdo
---         s <- newMagicStar
---         writeKey @(Attr MagicStar) (Just s)
---         return s
-
-
--- | Run a function and use the result as a context type
-mfixType :: (Type.MonadTypeBuilder a m, MonadFix m) => m a -> m a
-mfixType f = mfix $ flip Type.with' f . Just
-
---
--- localTop :: ( Type.MonadTypeBuilder (Ref AnyExpr) m, SilentExprCons m, Self.MonadSelfBuilder (Ref Expr') m )
---          => m (Ref AnyExpr)
--- localTop = Type.get >>= fromMaybeM (mfixType magicStar)
-
 
 
 
@@ -366,15 +305,15 @@ gen_pass1 = layouted @ANT $ do
 
 
 
-consTypeLayer :: (IRMonad m, PrimMonad m, MonadFix m)
-              => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (Layer (Term t) Type)
+consTypeLayer :: IRMonad m
+              => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
 consTypeLayer ref self _ = do
     top  <- view (from magicStar) <$> localTop ref
     conn <- link top self
-    return $ Layer conn
+    return conn
 
 
-localTop :: (IRMonad m, PrimMonad m, MonadFix m)
+localTop :: IRMonad m
          => MV.STRefM m (Maybe MagicStar) -> m MagicStar
 localTop ref = MV.readSTRef ref >>= \case
     Just t  -> return t
@@ -385,13 +324,13 @@ localTop ref = MV.readSTRef ref >>= \case
         return s
 
 
-layerReg4 :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
-layerReg4 = registerElemLayer @Term_ @Type . anyCons . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
+layerReg4 :: IRMonad m => m ()
+layerReg4 = registerElemLayer @Term_ @Type . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
 
 
 
 
-runRegs :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
+runRegs :: IRMonad m => m ()
 runRegs = do
     runElemRegs
     runLayerRegs
@@ -413,23 +352,23 @@ elemReg2 = registerElem @(Link' Term_)
 
 -- === Layer reg defs === --
 
-layerRegs :: (IRMonad m, MonadFix (GetIRMonad m)) => [m ()]
+layerRegs :: IRMonad m => [m ()]
 layerRegs = [layerReg1, layerReg2, layerReg3, layerReg4]
 
-runLayerRegs :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
+runLayerRegs :: IRMonad m => m ()
 runLayerRegs = sequence_ layerRegs
 
 
 layerReg1 :: IRMonad m => m ()
-layerReg1 = registerGenericLayer @Model $ \ _ -> return . Layer
+layerReg1 = registerGenericLayer @Model $ \ _ -> return
 
 layerReg2 :: IRMonad m => m ()
 layerReg2 = registerGenericLayer @Succs $ \ _ _ -> return def
 
 
 
-consUIDLayer :: PrimMonad m => MV.STRefM m ID -> t -> Definition t -> m (Layer t UID)
-consUIDLayer ref _ _ = MV.modifySTRef' ref (\i -> (Layer i, succ i))
+consUIDLayer :: PrimMonad m => MV.STRefM m ID -> t -> Definition t -> m (LayerData UID t)
+consUIDLayer ref _ _ = MV.modifySTRef' ref (\i -> (i, succ i))
 
 layerReg3 :: IRMonad m => m ()
 layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (MV.newSTRef 0)
@@ -512,34 +451,6 @@ exprUniSymbol t = ExprUniSymbol <$> symbolMapM_AB @IsUniSymbol2 uniSymbol2 t
 matchM :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> (Unwrapped (ExprUniSymbol (Term layout)) -> m b) -> m b
 matchM t f = f . unwrap' =<< (exprUniSymbol t)
 
--- matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
--- matchM a f = mark' a >>= flip matchy f
-
-
--- -- === Type layer === --
---
--- type instance LayerData Type t = SubLink Type t
---
---
--- instance ( Self.MonadSelfBuilder (Ref Expr') m
---          , Type.MonadTypeBuilder (Ref AnyExpr) m
---          , MonadFix m
---          , SilentExprCons m
---          , MonadDelayed m
---          , Register New (Ref ExprLink') (Delayed m)
---          , StackCons (Layers ExprLink' (Cfg m)) m
---          , Referable ExprLink' (Cfg m) m
---          , t ~ Cfg m
---          ) => Constructor TermStore m (Layer (IR t AnyExpr) Type) where -- we cannot simplify the type in instance head because of GHC bug https://ghc.haskell.org/trac/ghc/ticket/12734
---     cons _ = do
---         self <- anyLayout3 <$> Self.get
---         top  <- localTop
---         l    <- delayedLink top self
---         l'   <- mark' l
---         return $ Layer l'
-
-
-
 
 
 -- -- === Succs layer === --
@@ -578,206 +489,6 @@ matchM t f = f . unwrap' =<< (exprUniSymbol t)
 
 
 
------------------
--- === Netx === --
------------------
-
--- === Definition === --
-
--- data Netx = Netx
---
--- type family AllLayers a :: [*]
--- type instance Layers Expr'     Netx = '[Model, UID, Type, Succs]
--- type instance Layers ExprLink' Netx = '[Model, UID]
--- type instance AllLayers Netx = '[Model, UID, Type, Succs]
---
--- type instance Impl Ref Expr' Netx = G.Ref2 Node
--- type instance Impl Ref ExprLink' Netx = G.Ref2 Edge
-
-
-------------
-
--- instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Node g m, ReferableM Node g m, IRMonad m)
---       => Referable Expr' Netx m where
---     refDesc   = fromDefinition <=< construct' <=< liftIR ; {-# INLINE refDesc   #-}
---     readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
---     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
---
--- instance {-# OVERLAPPABLE #-} (MonadBuilder g m, DynamicM3 Edge g m, ReferableM Edge g m, IRMonad m)
---       => Referable ExprLink' Netx m where
---     refDesc   = fromDefinition <=< construct' <=< liftIR ; {-# INLINE refDesc   #-}
---     readDesc  = readRef  . view definition                ; {-# INLINE readDesc  #-}
---     writeDesc = writeRef . view definition                ; {-# INLINE writeDesc #-}
-
-
--- valOnly v = (Just' v, Nothing')
--- noVal   _ = (Nothing', Nothing')
-
--- fooe (x,y) = (Just' x, Just' y)
-
-
-
-
-
-
-
-
-
-
-
---
--- magicStar :: (SilentExprCons m, Self.MonadSelfBuilder (Ref Expr') m)
---           => m (Ref AnyExpr)
--- magicStar = Self.put . universal =<<& (silentExpr Sym.uncheckedStar)
-
--- expr' :: (ExprCons' m, SymbolEncoder atom) => ExprSymbol atom (Expr layout) -> m (Expr layout)
-
-
-
---
--- type IREvents m = ( Register New (Ref Expr')     (Delayed m)
---                    , Register New (Ref ExprLink') (Delayed m)
---                    )
---
--- type IRReferables m = ( Referable' m Expr'
---                        , Referable' m ExprLink'
---                        , ExprStore' m
---                        )
---
--- type IRCons m = ( Self.MonadSelfBuilder (Ref Expr') m
---                  , ExprBuilder m
---                  , Linkable' Expr' Expr' m
---                  )
---
--- type ASGBuilder m = ( IRMonad      m
---              , IRReferables m
---              , IRBaseLayers m
---              , IREvents     (Runner m)
---              , IRCons       (Runner m)
---              , IRReferables (Runner m)
---              )
---
--- type IRBaseLayers m = ( HasLayerM m Expr'     Model
---                        , HasLayerM m ExprLink' Model
---                        )
---
---
--- type ASGBuilder' m layout = (ASGBuilder m, Inferable2 Layout layout (Runner m))
---
--- unify :: ASGBuilder m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
--- -- unify :: ASGBuilder m => Expr l -> Expr r -> m (Expr (Unify :>> (l <+> r)))
--- unify a b = buildElem $ mdo
---     n  <- delayedExpr (Sym.uncheckedUnify la lb)
---     la <- delayedLink (unsafeGeneralize a) n
---     lb <- delayedLink (unsafeGeneralize b) n
---     return n
-
-
--- type AtomicExpr atom layout = Expr (Update Atom atom layout)
-
--- star :: ASGBuilder' m layout => m (Ref $ AtomicExpr Star layout)
--- star = buildElem $ expr Sym.uncheckedStar
-
-
-
-
-
-
--- term :: (SymbolEncoder atom, ExprBuilder2 m)
---       => ExprSymbol atom (Term layout) -> m (Term layout)
--- term a = Term <$> newElem @Term_ (encodeSymbol a)
-
--- buildElem :: forall m a. (Self.MonadSelfBuilder (Universal a) (Runner m), Monad m)
---           => Runner m a -> m a
--- buildElem m = Delayed.eval' $ Self.put ∘ universal =<<& m ; {-# INLINE buildElem #-}
-
-
-
-
-
-
--- runNewGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> m (a, Network3)
--- runNewGraphT f = do
---     mg       <- NEC.unsafeThaw2 def
---     (a, mg') <- Graph.Builder.runT f mg
---     g'       <- NEC.unsafeFreeze2 mg'
---     return (a, g')
---
--- runGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m (a, Network3)
--- runGraphT f g = do
---     mg       <- NEC.thaw2 g
---     (a, mg') <- Graph.Builder.runT f mg
---     g'       <- NEC.unsafeFreeze2 mg'
---     return (a, g')
---
--- runGraphTInplace :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m (a, Network3)
--- runGraphTInplace f g = do
---     mg       <- NEC.unsafeThaw2 g
---     (a, mg') <- Graph.Builder.runT f mg
---     g'       <- NEC.unsafeFreeze2 mg'
---     return (a, g')
---
---
--- evalGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m a
--- evalGraphT f g = fst <$> runGraphT f g
---
--- execGraphT :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m Network3
--- execGraphT f g = snd <$> runGraphT f g
---
--- evalGraphTInplace :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m a
--- evalGraphTInplace f g = fst <$> runGraphTInplace f g
---
--- execGraphTInplace :: PrimMonad m => GraphBuilder.BuilderT (MNetwork3 m) m a -> Network3 -> m Network3
--- execGraphTInplace f g = snd <$> runGraphTInplace f g
---
--- evalGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> a
--- evalGraph f g = runST $ evalGraphT f g
---
--- execGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> Network3
--- execGraph f g = runST $ execGraphT f g
---
--- runGraph :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> (a, Network3)
--- runGraph f g = runST $ runGraphT f g
---
--- evalGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> a
--- evalGraphInplace f g = runST $ evalGraphTInplace f g
---
--- execGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> Network3
--- execGraphInplace f g = runST $ execGraphTInplace f g
---
--- runGraphInplace :: (forall s. GraphBuilder.BuilderT (MNetwork3 (ST s)) (ST s) a) -> Network3 -> (a, Network3)
--- runGraphInplace f g = runST $ runGraphTInplace f g
-
-
--- type ExprStore' m = ExprStore (Cfg m) m
--- class Monad m => ExprStore t m where
---     exprs' :: m [IR t (Ref Expr')]
---     -- links  :: m [Ref Expr
---
--- exprs :: (ExprStore' m, IRMonad m) => m [Ref Expr']
--- exprs = join . fmap (sequence . fmap liftIR) $ exprs' ; {-# INLINE exprs #-}
---
--- instance (Monad m, MonadBuilder g m, ReferableM Node g m) => ExprStore Netx m where
---     exprs' = (view (from definitionFake) . unsafeRefer) <<∘>> viewPtrs =<< GraphBuilder.get ; {-# INLINE exprs' #-}
---
---
---
--- type IRShow m a = Show (IRM m a)
-
-
-
-
-
--- class Setter' t a where set' ::           Get t a -> a -> a
-
--- select :: forall p m a. (Selector2 p m (IR.Marked m a), Markable m a) => a -> m (Select2 p m (IR.Marked m a))
--- select = select2 @p <=< IR.mark ; {-# INLINE select #-}
-
-
-
-
-
-
 
         --
         -- -- === Events handler === --
@@ -806,52 +517,6 @@ matchM t f = f . unwrap' =<< (exprUniSymbol t)
         --
         -- handleLayerEvents :: forall m a. LayerEventsHandler m => LayerListeners m a -> m a
         -- handleLayerEvents = handleEvents @(AllLayers (Cfg m))
-
-
--- === IRBuilder === --
---
--- type IRBuilderCtxStack t m = ( KnownTypeT IRType t
---                               $ Type.TypeBuilderT (Ref AnyExpr)
---                               $ Self.SelfBuilderT (Ref Expr')
---                               $ AllSuppressorT
---                               $ IRT t
---                               $ m
---                               )
---
--- type MonadIRBuilder t m = (PrimMonad m, LayerEventsHandler (IRBuilderCtxStack t m))
--- type IRBuilder      t m = LayerListeners (IRBuilderCtxStack t m)
-
-
--- type instance Layers Expr'     Netx = '[Model, UID, Type, Succs]
--- type instance Layers ExprLink' Netx = '[Model, UID]
-
--- runIRBuilder :: forall t m a. MonadIRBuilder t m
---               => IRBuilder t m a -> m (IR t a)
--- runIRBuilder = runIRT
---              . Event.suppressAll
---              . flip Self.evalT (undefined :: Ref Expr')
---              . flip Type.evalT (Nothing :: Maybe (Ref AnyExpr))
---              . runInferenceT2 @IRType @t
---              . handleLayerEvents
---     -- where reg = def
---     --           & registerLayer @Expr' @Model
---     --           -- & registerLayer @Expr' @UID
---     --           -- & registerLayer @Expr' @Type
---     --           -- & registerLayer @Expr' @Succs
---     --           -- & registerLayer @ExprLink' @Model
---     --           -- & registerLayer @ExprLink' @UID
-
-
---
--- type MonadNetBuilder m = MonadIRBuilder Netx m
--- type NetBuilder      m = IRBuilder      Netx m
---
--- runNetBuilder :: MonadNetBuilder m => NetBuilder m a -> m (IR Netx a)
--- runNetBuilder = runIRBuilder @Netx ; {-# INLINE runNetBuilder #-}
-
-
-
-
 
 
 

@@ -204,12 +204,16 @@ newtype AnyCons m = AnyCons (Any -> Any -> m Any)
 makeWrapped ''AnyCons
 
 type LayerCons  l t m = (t -> Definition t -> m (Layer t l))
-type LayerCons'   t m = (t -> Definition t -> m Any)
+type LayerCons' l t m = (t -> Definition t -> m (LayerData l t))
+type LayerCons_   t m = (t -> Definition t -> m Any)
 
-anyCons :: forall l t m. Monad m => LayerCons l t m -> AnyCons m
-anyCons = wrap' . unsafeCoerce ; {-# INLINE anyCons #-}
+layerCons :: forall l t m . Monad m => LayerCons' l t m -> LayerCons l t m
+layerCons = (fmap.fmap.fmap) Layer
 
-unsafeAppCons :: Functor m => AnyCons m -> LayerCons' t m
+anyCons :: forall l t m. Monad m => LayerCons' l t m -> AnyCons m
+anyCons = wrap' . unsafeCoerce . layerCons @l ; {-# INLINE anyCons #-}
+
+unsafeAppCons :: Functor m => AnyCons m -> LayerCons_ t m
 unsafeAppCons = unsafeCoerce . unwrap' ; {-# INLINE unsafeAppCons #-}
 
 
@@ -299,13 +303,13 @@ registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
 registerGenericLayer :: forall layer t m. (IRMonad m, Typeable layer)
-                     => LayerCons layer t (GetIRMonad m) -> m ()
+                     => LayerCons' layer t (GetIRMonad m) -> m ()
 registerGenericLayer f = modifyIRState_ $ genericLayers %~ Map.insert (typeRep @layer) (anyCons @layer f)
 {-# INLINE registerGenericLayer #-}
 
-registerElemLayer :: forall el layer m. (IRMonad m, Typeable el, Typeable layer)
-                  => AnyCons (GetIRMonad m) -> m ()
-registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) f
+registerElemLayer :: forall t layer m. (IRMonad m, Typeable t, Typeable layer)
+                  => LayerCons' layer t (GetIRMonad m) -> m ()
+registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @t) %~ Map.insert (typeRep @layer) (anyCons @layer f)
 {-# INLINE registerElemLayer #-}
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
@@ -318,13 +322,14 @@ attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ MV.un
 
 -- | IRMonad is subclass of MonadFic because many term operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadInvariants m = (MonadFix m, PrimMonad (GetIRSubMonad m))
+type  IRMonadBase       m = (PrimMonad m, MonadFix m)
+type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRSubMonad m), IRMonad (GetIRMonad m))
 class IRMonadInvariants m => IRMonad m where
     getIRState :: m (IRState' m)
-    putIRState :: (IRState' m) -> m ()
+    putIRState :: IRState' m -> m ()
     runInIR    :: GetIRMonad m a -> m a
 
-instance {-# OVERLAPPABLE #-} (Monad m, PrimMonad m) => IRMonad (IRT m) where
+instance {-# OVERLAPPABLE #-} (MonadFix m, PrimMonad m) => IRMonad (IRT m) where
     getIRState = wrap'   State.get ; {-# INLINE getIRState #-}
     putIRState = wrap' . State.put ; {-# INLINE putIRState #-}
     runInIR    = id                ; {-# INLINE runInIR    #-}
@@ -334,7 +339,7 @@ instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
     putIRState = lift . putIRState ; {-# INLINE putIRState #-}
     runInIR    = lift . runInIR    ; {-# INLINE runInIR    #-}
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), GetIRMonad (t m) ~ GetIRMonad m)
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRMonad (t m) ~ GetIRMonad m)
 
 
 modifyIRStateM :: IRMonad m => (IRState' m -> m (a, IRState' m)) -> m a
