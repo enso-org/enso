@@ -295,9 +295,9 @@ gen_pass1 = layouted @ANT $ do
     d <- readLayer @Type u1
     print d
 
-    matchM s1 $ \case
+    match s1 $ \case
         Unify l r -> print "ppp"
-        Star      -> matchM s1 $ \case
+        Star      -> match s1 $ \case
             Unify l r -> print "hola"
             Star      -> print "hellox"
 
@@ -387,69 +387,7 @@ main = do
 
 
 
--- === Symbol mapping === --
 
-class Monad m => SymbolMapM' (atoms :: [*]) ctx expr m b where
-    symbolMapM' :: (forall a. ctx a m b => a -> m b) -> expr -> m b
-
-type SymbolMapM_AMB = SymbolMapM' (Every Atom)
-symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
-symbolMapM_AMB = symbolMapM' @(Every Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
-
-type SymbolMapM_AB ctx      = SymbolMapM_AMB (DropMonad ctx)
-type SymbolMap_AB  ctx expr = SymbolMapM_AB ctx expr Identity
-symbolMapM_AB :: forall ctx expr m b. SymbolMapM_AB ctx expr m b => (forall a. ctx a b => a -> b) -> expr -> m b
-symbolMapM_AB f = symbolMapM_AMB @(DropMonad ctx) (return <$> f) ; {-# INLINE symbolMapM_AB #-}
-
-symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
-symbolMap_AB f = runIdentity . symbolMapM_AB @ctx f ; {-# INLINE symbolMap_AB #-}
-
-type SymbolMapM_A ctx = SymbolMapM_AB (FreeResult ctx)
-type SymbolMap_A  ctx expr = SymbolMapM_A ctx expr Identity
-symbolMapM_A :: forall ctx expr m b. SymbolMapM_A ctx expr m b => (forall a. ctx a => a -> b) -> expr -> m b
-symbolMapM_A = symbolMapM_AB @(FreeResult ctx) ; {-# INLINE symbolMapM_A #-}
-
-symbolMap_A :: forall ctx expr b. SymbolMap_A ctx expr b => (forall a. ctx a => a -> b) -> expr -> b
-symbolMap_A f = runIdentity . symbolMapM_A @ctx f ; {-# INLINE symbolMap_A #-}
-
-class    (ctx a b, Monad m) => DropMonad ctx a m b
-instance (ctx a b, Monad m) => DropMonad ctx a m b
-
-class    ctx a => FreeResult ctx a b
-instance ctx a => FreeResult ctx a b
-
-instance ( ctx (TermSymbol a (Term layout)) m b
-         , SymbolMapM' as ctx (Term layout) m b
-         , idx ~ FromJust (Record.Encode2 Atom a) -- FIXME: make it nicer
-         , KnownNat idx
-         , Readable (Layer TERM Model) m
-         , IRMonad m
-         )
-      => SymbolMapM' (a ': as) ctx (Term layout) m b where
-    symbolMapM' f term = do
-        d <- unwrap' <$> readLayer @Model term
-        let eidx = unwrap' $ access @Atom d
-            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: TermSymbol a (Term layout)
-        if (idx == eidx) then f sym else symbolMapM' @as @ctx f term
-
-instance Monad m => SymbolMapM' '[] ctx term m b where symbolMapM' _ _ = impossible
-
-class IsUniSymbol2 a b where uniSymbol2 :: a -> b
-instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
-      => IsUniSymbol2 a b where uniSymbol2 = uniSymbol . unwrap' ; {-# INLINE uniSymbol2 #-}
-
--- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
--- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
-
-exprUniSymbol :: (IRMonad m, Readable (Layer TERM Model) m) => Term layout -> m (TermUniSymbol (Term layout))
-exprUniSymbol t = TermUniSymbol <$> symbolMapM_AB @IsUniSymbol2 uniSymbol2 t
-
-
-
-
-matchM :: (IRMonad m, Readable (Layer TERM Model) m) => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m b) -> m b
-matchM t f = f . unwrap' =<< (exprUniSymbol t)
 
 
 

@@ -472,9 +472,6 @@ instance (IRMonad m, Typeable e) => KeyMonad (Net e) m where
 
 
 
-
-
-
 -------------------
 -- === Link === --
 -------------------
@@ -516,9 +513,9 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 data XXX -- FIXME
 
-newtype TermSymbol    atom t = TermSymbol (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
+newtype TermSymbol    atom t = TermSymbol    (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
+newtype TermUniSymbol      t = TermUniSymbol (N.UniSymbol   (Layout.Named (SubLink Name t) (SubLink Atom t)))
 type    TermSymbol'   atom   = TermSymbol atom XXX
-newtype TermUniSymbol      t = TermUniSymbol (N.UniSymbol (Layout.Named (SubLink Name t) (SubLink Atom t)))
 makeWrapped ''TermSymbol
 makeWrapped ''TermUniSymbol
 
@@ -614,22 +611,97 @@ makeWrapped ''Term
 
 type instance Definition (Term _) = TermStore
 
+
 -- === Abstract === --
 
 data TERM
 type instance Abstract (Term _) = TERM
 
--- === Construction === --
+
+-- === Utils === --
 
 term :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
      => TermSymbol atom (Term layout) -> m (Term layout)
 term a = newElem (encodeSymbol a) ; {-# INLINE term #-}
+
+-- | Term pattern matching utility
+match :: (IRMonad m, Readable (Layer TERM Model) m)
+      => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m a) -> m a
+match t f = f . unwrap' =<< (exprUniSymbol t) ; {-# INLINE match #-}
+
+-- | Symbol unification
+exprUniSymbol :: (IRMonad m, Readable (Layer TERM Model) m) => Term layout -> m (TermUniSymbol (Term layout))
+exprUniSymbol t = TermUniSymbol <$> symbolMapM_AB @ToUniSymbol toUniSymbol t ; {-# INLINE exprUniSymbol #-}
+
+class ToUniSymbol a b where toUniSymbol :: a -> b
+instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
+      => ToUniSymbol a b where toUniSymbol = uniSymbol . unwrap' ; {-# INLINE toUniSymbol #-}
+
 
 -- === Instances === --
 
 instance      IsElem    (Term l)
 type instance Universal (Term _) = Term'
 type instance Sub s     (Term l) = Term (Sub s l)
+
+
+-- === Symbol mapping === --
+-- | General term symbol mapping utility. It allows mapping over current symbol in any term.
+
+class    IRMonad m => SymbolMapM (atoms :: [*]) ctx expr m b where symbolMapM :: (forall a. ctx a m b => a -> m b) -> expr -> m b
+instance IRMonad m => SymbolMapM '[]            ctx term m b where symbolMapM _ _ = impossible
+instance (  SymbolMapM as ctx term m b
+         , ctx (TermSymbol a term) m b
+         , idx ~ FromJust (Record.Encode2 Atom a) -- FIXME: make it nicer and assert
+         , KnownNat idx
+         , Readable (Layer TERM Model) m
+         , term ~ Term layout
+         )
+      => SymbolMapM (a ': as) ctx term m b where
+    symbolMapM f term = do
+        d <- unwrap' <$> readLayer @Model term
+        let eidx = unwrap' $ access @Atom d
+            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: TermSymbol a (Term layout)
+        if (idx == eidx) then f sym else symbolMapM @as @ctx f term
+    {-# INLINE symbolMapM #-}
+
+
+type SymbolMapM_AMB          = SymbolMapM     (Every Atom)
+type SymbolMapM_AB  ctx      = SymbolMapM_AMB (DropMonad ctx)
+type SymbolMap_AB   ctx expr = SymbolMapM_AB  ctx expr Identity
+type SymbolMapM_A   ctx      = SymbolMapM_AB  (FreeResult ctx)
+type SymbolMap_A    ctx expr = SymbolMapM_A   ctx expr Identity
+
+symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
+symbolMapM_AB  :: forall ctx expr m b. SymbolMapM_AB  ctx expr m b => (forall a. ctx a   b => a ->   b) -> expr -> m b
+symbolMap_AB   :: forall ctx expr   b. SymbolMap_AB   ctx expr   b => (forall a. ctx a   b => a ->   b) -> expr ->   b
+symbolMapM_A   :: forall ctx expr m b. SymbolMapM_A   ctx expr m b => (forall a. ctx a     => a ->   b) -> expr -> m b
+symbolMap_A    :: forall ctx expr   b. SymbolMap_A    ctx expr   b => (forall a. ctx a     => a ->   b) -> expr ->   b
+symbolMapM_AMB   = symbolMapM @(Every Atom) @ctx                  ; {-# INLINE symbolMapM_AMB #-}
+symbolMapM_AB  f = symbolMapM_AMB @(DropMonad ctx) (return <$> f) ; {-# INLINE symbolMapM_AB  #-}
+symbolMap_AB   f = runIdentity . symbolMapM_AB @ctx f             ; {-# INLINE symbolMap_AB   #-}
+symbolMapM_A     = symbolMapM_AB @(FreeResult ctx)                ; {-# INLINE symbolMapM_A   #-}
+symbolMap_A    f = runIdentity . symbolMapM_A @ctx f              ; {-# INLINE symbolMap_A    #-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class    (ctx a b, Monad m) => DropMonad ctx a m b
+instance (ctx a b, Monad m) => DropMonad ctx a m b
+
+class    ctx a => FreeResult ctx a b
+instance ctx a => FreeResult ctx a b
 
 
 
