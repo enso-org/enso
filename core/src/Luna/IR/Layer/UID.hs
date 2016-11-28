@@ -39,7 +39,7 @@ instance {-# OVERLAPPABLE #-} (MonadUID m, Monad (t m), MonadTrans t) => MonadUI
 instance Monad m => MonadUID (UIDStoreT m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
-    
+
 
 evalT :: Monad m => UIDStoreT m a -> ID -> m a
 evalT = State.evalStateT . unwrap' ; {-# INLINE evalT #-}
@@ -94,4 +94,4 @@ data UID = UID deriving (Show)
 type instance LayerData UID t = ID
 
 instance MonadUID m => LayerCons UID m where
-    consLayer _ = Layer <$> genUID ; {-# INLINE consLayer #-}
+    consLayer _ _ = Layer <$> genUID ; {-# INLINE consLayer #-}

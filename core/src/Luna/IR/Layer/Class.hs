@@ -24,11 +24,12 @@ type family Definition a
 -- === Classes === --
 
 class Monad m => LayerCons l m where
-    consLayer :: forall t. Definition t -> m (Layer t l)
+    consLayer :: forall t. t -> Definition t -> m (Layer t l)
 
-
-class Monad m => LayerCons2 l t m where
-    consLayer2 :: Definition t -> m (Layer t l)
+-- | Proxy allows using custom layer constructors for different arguments
+--   with a LayerCons default fallback
+class                         Monad m       => LayerConsProxy t l m where consLayerProxy :: t -> Definition t -> m (Layer t l)
+-- instance {-# OVERLAPPABLE #-} LayerCons l m => LayerConsProxy t l m where consLayerProxy = consLayer ; {-# INLINE consLayerProxy #-}
 
 
 -- === Isntances === --

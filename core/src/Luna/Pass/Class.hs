@@ -13,7 +13,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, IRMonad, HasIdx, KeyReadError, KeyMissingError, KeyData)
+import           Luna.IR.Internal.IR   (Key, IRMonad, IsIdx, KeyReadError, KeyMissingError, KeyData, KeyTargetST, packKey, unpackKey)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Term.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -84,27 +84,6 @@ initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupKeys ; {-# I
 eval :: LookupKeys m (Keys pass) => PassT pass m a -> m (Either Err a)
 eval = join . fmap sequence . initPass ; {-# INLINE eval #-}
 
-with :: MonadPass m => (GetState m -> GetState m) -> m a -> m a
-with f m = do
-    s <- get
-    put $ f s
-    out <- m
-    put s
-    return out
-{-# INLINE with #-}
-
-modify :: MonadPass m => (GetState m -> (GetState m, a)) -> m a
-modify f = do
-    s <- get
-    let (s', a) = f s
-    put $ s'
-    return a
-{-# INLINE modify #-}
-
-modify_ :: MonadPass m => (GetState m -> GetState m) -> m ()
-modify_ = modify . fmap (,())
-{-# INLINE modify_ #-}
-
 
 -- === Keys lookup === --
 
@@ -126,7 +105,6 @@ infixl 4 <<*>>
 
 -- === MonadPass === --
 
-
 class Monad m => MonadPass m where
     get :: m (GetState m)
     put :: GetState m -> m ()
@@ -138,6 +116,33 @@ instance Monad m => MonadPass (PassT pass m) where
 instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m),GetState m ~ GetState (t m)) => MonadPass (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
+
+modifyM :: MonadPass m => (GetState m -> m (a, GetState m)) -> m a
+modifyM f = do
+    s       <- get
+    (a, s') <- f s
+    put s'
+    return a
+{-# INLINE modifyM #-}
+
+modifyM_ :: MonadPass m => (GetState m -> m (GetState m)) -> m ()
+modifyM_ = modifyM . fmap (fmap ((),)) ; {-# INLINE modifyM_ #-}
+
+modify :: MonadPass m => (GetState m -> (a, GetState m)) -> m a
+modify = modifyM . fmap return ; {-# INLINE modify #-}
+
+modify_ :: MonadPass m => (GetState m -> GetState m) -> m ()
+modify_ = modifyM_ . fmap return ; {-# INLINE modify_ #-}
+
+with :: MonadPass m => (GetState m -> GetState m) -> m a -> m a
+with f m = do
+    s <- get
+    put $ f s
+    out <- m
+    put s
+    return out
+{-# INLINE with #-}
+
 
 
 -- === Instances === --
@@ -158,30 +163,51 @@ instance PrimMonad m => PrimMonad (PassT pass m) where
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
+-- === Accessible === --
+
+type Accessible k m = (Readable k m, Writable k m)
 
 -- === Readable === --
 
 class    Monad m                                => Readable k m     where getKey :: m (Key k)
-instance {-# OVERLAPPABLE #-} SubReadable k t m => Readable k (t m) where getKey = lift getKey     ; {-# INLINE getKey #-}
+instance {-# OVERLAPPABLE #-} SubReadable k t m => Readable k (t m) where getKey = lift getKey ; {-# INLINE getKey #-}
 type SubReadable k t m = (Readable k m, MonadTrans t, Monad (t m))
 
 instance ( Monad m
          , ContainsKey k (Keys pass)
          , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Readable k (PassT pass m) where getKey = findKey <$> get ; {-# INLINE getKey #-}
+      => Readable k (PassT pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
+
+
+-- === Writable === --
+
+class    Monad m                                => Writable k m     where putKey :: Key k -> m ()
+instance {-# OVERLAPPABLE #-} SubWritable k t m => Writable k (t m) where putKey = lift . putKey ; {-# INLINE putKey #-}
+type SubWritable k t m = (Writable k m, MonadTrans t, Monad (t m))
+
+instance ( Monad m
+         , ContainsKey k (Keys pass)
+         , Assert (k `In` (Inputs pass)) (KeyReadError k))
+      => Writable k (PassT pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
 
 
 -- === ContainsKey === --
 
-class                                     ContainsKey k ls        where findKey :: KeyList ls -> Key k
-instance {-# OVERLAPPING #-}              ContainsKey k (k ': ls) where findKey = view head           ; {-# INLINE findKey #-}
-instance ContainsKey k ls              => ContainsKey k (l ': ls) where findKey = findKey . view tail ; {-# INLINE findKey #-}
-instance TypeError (KeyMissingError k) => ContainsKey k '[]       where findKey = impossible          ; {-# INLINE findKey #-}
+class                                     ContainsKey k ls        where findKey :: Lens' (KeyList ls) (Key k)
+instance {-# OVERLAPPING #-}              ContainsKey k (k ': ls) where findKey = head           ; {-# INLINE findKey #-}
+instance ContainsKey k ls              => ContainsKey k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
+instance TypeError (KeyMissingError k) => ContainsKey k '[]       where findKey = impossible     ; {-# INLINE findKey #-}
 
 
 
 
 ------------
 
-readLayer :: forall layer t m. (IRMonad m, HasIdx t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
+readLayer :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
 readLayer t = flip IR.unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
+
+readKey :: forall k m. Readable k m => m (KeyTargetST m k)
+readKey = unpackKey =<< getKey @k ; {-# INLINE readKey #-}
+
+writeKey :: forall k m. Writable k m => KeyTargetST m k -> m ()
+writeKey = putKey @k <=< packKey ; {-# INLINE writeKey #-}

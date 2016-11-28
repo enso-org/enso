@@ -16,4 +16,4 @@ data Succs = Succs deriving (Show)
 type instance LayerData Succs a = Set (Universal a)
 
 instance Monad m => LayerCons Succs m where
-    consLayer _ = return def ; {-# INLINE consLayer #-}
+    consLayer _ _ = return def ; {-# INLINE consLayer #-}

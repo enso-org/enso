@@ -143,7 +143,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer, Inputs, Outputs)
+import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer, Inputs, Outputs, getKey, readKey, writeKey, Writable, Accessible)
 import Luna.IR.Layer.UID (UID, MonadUID)
 import qualified Luna.IR.Layer.UID as UID
 import Luna.IR.Layer.Succs
@@ -200,8 +200,7 @@ type l :>> r = Specialized Atom l r
 
 type AtomicTerm atom layout = Term (Update Atom atom layout)
 
-localTop :: IRMonad m => m (Term layout)
-localTop = term Sym.uncheckedStar
+
 
 star :: (IRMonad m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
 star = term Sym.uncheckedStar
@@ -270,15 +269,55 @@ instance Generalize (Compound SimpleX lst) Draft
 --         return $ Layer l'
 
 
+newtype MagicStar = MagicStar Term_
 
--- instance Monad m => LayerCons Type m where
---     consLayer _ = do
---         self <- undefined -- Self.get
---         top  <- undefined -- localTop
---         l    <- link top self
---         return $ Layer l
+makeWrapped ''MagicStar
+
+newMagicStar :: IRMonad m => m MagicStar
+newMagicStar = wrap' <$> term Sym.uncheckedStar ; {-# INLINE newMagicStar #-}
+
+magicStar :: Iso' (Term l) MagicStar
+magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
+
+
+type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
+
+
+
+
+instance TermLayerCons l m => LayerConsProxy (Term t) l m where
+    consLayerProxy = consTermLayer ; {-# INLINE consLayerProxy #-}
+
+class Monad m => TermLayerCons l m where
+    consTermLayer :: forall t. Term t -> Definition (Term t) -> m (Layer (Term t) l)
+
+instance {-# OVERLAPPABLE #-} (LayerCons l m, Monad m)
+      => TermLayerCons l m where consTermLayer = consLayer ; {-# INLINE consTermLayer #-}
+
+
+instance (IRMonad m, Accessible (Attr MagicStar) m) => TermLayerCons Type m where
+    consTermLayer self _ = do
+        top  <- view (from magicStar) <$> localTop
+        conn <- link top self
+        return $ Layer conn
+
+localTop :: (IRMonad m, Accessible (Attr MagicStar) m) => m MagicStar
+localTop = readKey @(Attr MagicStar) >>= \case
+    Just t  -> return t
+    Nothing -> mdo
+        s <- newMagicStar
+        writeKey @(Attr MagicStar) (Just s)
+        return s
+
+
+-- | Run a function and use the result as a context type
+mfixType :: (Type.MonadTypeBuilder a m, MonadFix m) => m a -> m a
+mfixType f = mfix $ flip Type.with' f . Just
+
 --
-
+-- localTop :: ( Type.MonadTypeBuilder (Ref AnyExpr) m, SilentExprCons m, Self.MonadSelfBuilder (Ref Expr') m )
+--          => m (Ref AnyExpr)
+-- localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
 
@@ -296,9 +335,10 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
 test_pass1 = UID.evalNewT $ runIRT2 $ do
     registerElem  @Term_
     registerElem  @(Link' Term_)
-    registerLayer @Model
-    registerLayer @Succs
-    registerLayer @UID
+    registerGenericLayer @Model
+    registerGenericLayer @Succs
+    registerGenericLayer @UID
+    -- registerElemLayer @Term_ @Type
     attachLayer   (typeRep @Model) (typeRep @Term_)
     attachLayer   (typeRep @Succs) (typeRep @Term_)
     attachLayer   (typeRep @UID)   (typeRep @Term_)
@@ -440,15 +480,6 @@ main = do
 
 
 
-
--- | Run a function and use the result as a context type
-mfixType :: (Type.MonadTypeBuilder a m, MonadFix m) => m a -> m a
-mfixType f = mfix $ flip Type.with' f . Just
-
---
--- localTop :: ( Type.MonadTypeBuilder (Ref AnyExpr) m, SilentExprCons m, Self.MonadSelfBuilder (Ref Expr') m )
---          => m (Ref AnyExpr)
--- localTop = Type.get >>= fromMaybeM (mfixType magicStar)
 
 
 

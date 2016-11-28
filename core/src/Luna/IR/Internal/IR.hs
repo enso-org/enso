@@ -118,8 +118,8 @@ type Typeables ts = Constraints $ Typeable <$> ts
 
 
 
-class HasIdx t where
-    idx :: Lens' t Int
+class IsIdx t where
+    idx :: Iso' t Int
     default idx :: (Wrapped t, Unwrapped t ~ Int) => Lens' t Int
     idx = wrapped' ; {-# INLINE idx #-}
 
@@ -200,43 +200,50 @@ type KeyWriteError k = KeyAccessError "write" k
 ---------------------------
 
 
-newtype AnyCons m = AnyCons (Any -> m Any)
+newtype AnyCons m = AnyCons (Any -> Any -> m Any)
 makeWrapped ''AnyCons
 
-anyCons :: Functor m => (a -> m b) -> AnyCons m
-anyCons = wrap' . unsafeCoerced ; {-# INLINE anyCons #-}
+anyCons :: Functor m => (t -> d -> m r) -> AnyCons m
+anyCons = wrap' . unsafeCoerce ; {-# INLINE anyCons #-}
 
-unsafeAppCons :: Functor m => AnyCons m -> (a -> m b)
-unsafeAppCons = unsafeCoerced . unwrap' ; {-# INLINE unsafeAppCons #-}
+unsafeAppCons :: Functor m => AnyCons m -> (t -> d -> m r)
+unsafeAppCons = unsafeCoerce . unwrap' ; {-# INLINE unsafeAppCons #-}
 
 
 type LayerRep = TypeRep
 type ElemRep  = TypeRep
 
-type LayerStore m = Map LayerRep (AnyCons m)
+type LayerConsStore m = Map LayerRep (AnyCons m)
 
-type ElemStore m = ManagedVectorMapM m LayerRep Any
+data ElemStore m = ElemStore { _layerValues :: ManagedVectorMapM m LayerRep Any
+                             , _elemLayers  :: LayerConsStore m
+                             }
 
-data IRState m = IRState { _elems  :: Map ElemRep $ ElemStore m
-                         , _attrs  :: Map LayerRep Any
-                         , _layers :: LayerStore m
+data IRState m = IRState { _elems         :: Map ElemRep $ ElemStore m
+                         , _attrs         :: Map LayerRep Any
+                         , _genericLayers :: LayerConsStore m
                          }
 
 -- data IRState m = IRState { _store  :: IRState m
---                        , _layers :: LayerStore m
+--                        , _layers :: LayerConsStore m
 --                        }
 -- makeLenses ''IRStatez
+makeLenses ''ElemStore
 makeLenses ''IRState
+
+specificLayers :: ElemRep -> Traversal' (IRState m) (LayerConsStore m)
+specificLayers el = elems . ix el . elemLayers ; {-# INLINE specificLayers #-}
 
 
 -- type IRStateLift t m = (MonadTrans t, PrimState m ~ PrimState (t m), Monad m)
 
 -- liftIRState :: IRStateLift t m => IRState m -> IRState (t m)
--- -- liftIRState (IRState store (LayerStore m s)) = IRState store (LayerStore (lift <$> m) (lift <$> s))
--- liftIRState (IRState store (LayerStore s)) = IRState store (LayerStore (lift <$> s))
+-- -- liftIRState (IRState store (LayerConsStore m s)) = IRState store (LayerConsStore (lift <$> m) (lift <$> s))
+-- liftIRState (IRState store (LayerConsStore s)) = IRState store (LayerConsStore (lift <$> s))
 
 -- instance Default (IRState m) where def = IRState def def
-instance Default (IRState m) where def = IRState def def def
+instance Default (ElemStore m) where def = ElemStore def def
+instance Default (IRState   m) where def = IRState   def def def
 
 
 -----------------
@@ -251,7 +258,7 @@ type IRState' m = IRState (GetIRMonad m)
 
 
 newtype IRT  t m a = IRT (StateT (IRState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
-newtype IR   t   a = IR a                        deriving (Functor, Traversable, Foldable)
+newtype IR   t   a = IR a                         deriving (Functor, Traversable, Foldable)
 type    IRMT   m   = IRT (Cfg m) m
 type    IRM    m   = IR  (Cfg m)
 
@@ -283,18 +290,29 @@ modifyElemM :: Functor m => ElemRep -> (ElemStore m -> m (ElemStore m)) -> IRSta
 modifyElem  e f = elems %~ Map.insertWith (const f) e (f def) ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ fmap Just . f . fromMaybe def    ; {-# INLINE modifyElemM #-}
 
-newElem :: forall t m. (IRMonad m, Typeable (Abstract t),  PrimMonad (GetIRMonad m)) => Definition t -> m Int
+newElem :: forall t m. (IRMonad m, Typeable (Abstract t), PrimMonad (GetIRMonad m), IsIdx t) => Definition t -> m t
 newElem dt = do
     d <- getIRState
     let trep = typeRep @(Abstract t)
-        Just layerStore = d ^? elems  . ix trep
-        consLayer idx l elemStore = do
-            let Just consFunc = d ^? layers . ix l -- FIXME[WD]: internal error when cons was not registered
-            runInIR $ MV.unsafeWrite elemStore idx =<< unsafeAppCons consFunc dt
-    (idx, layerStore') <- runInIR $ MV.reserveIdx layerStore
-    mapM_ (uncurry $ consLayer idx) (MV.assocs layerStore)
-    putIRState $ d & elems . at trep ?~ layerStore'
-    return idx
+        Just layerStore = d ^? elems  . ix trep . layerValues
+        consLayer t i l elemStore = do
+            let Just consFunc = lookupLayerCons trep l d -- FIXME[WD]: internal error when cons was not registered
+            runInIR $ MV.unsafeWrite elemStore i =<< unsafeAppCons consFunc t dt
+    (i, layerStore') <- runInIR $ MV.reserveIdx layerStore
+    let el = i ^. from idx
+    mapM_ (uncurry $ consLayer el i) (MV.assocs layerStore)
+    putIRState $ d & elems . ix trep . layerValues .~ layerStore'
+    return el
+
+
+lookupGenericLayerCons :: LayerRep -> IRState m -> Maybe (AnyCons m)
+lookupGenericLayerCons l s = s ^? genericLayers . ix l ; {-# INLINE lookupGenericLayerCons #-}
+
+lookupSpecificLayerCons :: ElemRep -> LayerRep -> IRState m -> Maybe (AnyCons m)
+lookupSpecificLayerCons el l s = s ^? specificLayers el . ix l ; {-# INLINE lookupSpecificLayerCons #-}
+
+lookupLayerCons :: ElemRep -> LayerRep -> IRState m -> Maybe (AnyCons m)
+lookupLayerCons el l s = lookupSpecificLayerCons el l s <|> lookupGenericLayerCons l s ; {-# INLINE lookupLayerCons #-}
 
 -- newElem2 :: forall t m. (IRMonad m,  PrimMonad (GetIRMonad m)) => Definition2 t -> m Int
 -- newElem2 (Definition2 dt) = do
@@ -338,17 +356,24 @@ registerElemWith f = do
 registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-registerLayer :: forall layer m. (IRMonad m, Typeable layer, Functor (GetIRMonad m), LayerCons layer (GetIRMonad m))
-              => m ()
-registerLayer = do
+registerGenericLayer :: forall layer m. (IRMonad m, Typeable layer, Functor (GetIRMonad m), LayerCons layer (GetIRMonad m))
+                     => m ()
+registerGenericLayer = do
     d <- getIRState
-    let d' = d & layers %~ Map.insert (typeRep @layer) (anyCons $ consLayer @layer)
+    let d' = d & genericLayers %~ Map.insert (typeRep @layer) (anyCons $ consLayer @layer)
+    putIRState d'
+
+registerElemLayer :: forall el layer m. (IRMonad m, Typeable el, Typeable layer, Functor (GetIRMonad m), LayerConsProxy el layer (GetIRMonad m))
+                  => m ()
+registerElemLayer = do
+    d <- getIRState
+    let d' = d & specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) (anyCons $ consLayerProxy @el @layer)
     putIRState d'
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
 attachLayer l e = do
     d  <- getIRState
-    d' <- runInIR $ modifyElemM e (MV.unsafeAddKey l) d
+    d' <- runInIR $ modifyElemM e (layerValues $ MV.unsafeAddKey l) d
     putIRState d'
 
 
@@ -524,19 +549,25 @@ unsafeeFromKeyData (KeyData d) = unsafeCoerce d ; {-# INLINE unsafeeFromKeyData 
 -- readST :: ( Wrapped t, Unwrapped t ~ Int -- FIXME
 --           , PrimState (GetIRMonad m) ~ PrimState m, PrimMonad m)
 
--- readKeyST :: (IRMonad m, HasIdx t) -- AssertLayerReadable (Abstract t) layer)
+-- readKeyST :: (IRMonad m, IsIdx t) -- AssertLayerReadable (Abstract t) layer)
 --        => LayerKeyST m (Abstract t) layer -> t -> m (LayerData layer t)
 -- readKeyST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE readKeyST #-}
 --
--- readKey :: (IRMonad m, HasIdx t) -- AssertLayerReadable (Abstract t) layer)
+-- readKey :: (IRMonad m, IsIdx t) -- AssertLayerReadable (Abstract t) layer)
 --         => LayerKey (Abstract t) layer -> t -> m (LayerData layer t)
 -- readKey k = readKeyST (unsafeFromKey k) ; {-# INLINE readKey #-}
 
-unsafeReadLayerST :: (IRMonad m, HasIdx t) => KeyDataST m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+unsafeReadLayerST :: (IRMonad m, IsIdx t) => KeyDataST m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
 unsafeReadLayerST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. idx) (unwrap' key)) ; {-# INLINE unsafeReadLayerST #-}
 
-unsafeReadLayer :: (IRMonad m, HasIdx t) => Key (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+unsafeReadLayer :: (IRMonad m, IsIdx t) => Key (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
 unsafeReadLayer k = unsafeReadLayerST (unsafeeFromKeyData $ unwrap' k) ; {-# INLINE unsafeReadLayer #-}
+
+unpackKey :: forall k m. Monad m => Key k -> m (KeyTargetST m k)
+unpackKey k = return $ unwrap' (unsafeeFromKeyData $ unwrap' k :: KeyDataST m k) ; {-# INLINE unpackKey #-}
+
+packKey :: forall k m. Monad m => KeyTargetST m k -> m (Key k)
+packKey k = return . wrap' . keyData $ (wrap' k :: KeyDataST m k) ; {-# INLINE packKey #-}
 
 -- === Instances === --
 
@@ -551,7 +582,7 @@ unsafeReadLayer k = unsafeReadLayerST (unsafeeFromKeyData $ unwrap' k) ; {-# INL
 -- === Definitions === --
 
 type instance KeyTargetST m (Layer _ _) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
-type instance KeyTargetST m (Elem  _)   = ElemStore (GetIRMonad m)
+type instance KeyTargetST m (Elem  _)   = ElemStore     (GetIRMonad m)
 
 
 -- === Aliases === --
@@ -567,7 +598,7 @@ type AttrKey  a    = Key (Attr a)
 -- === Instances === --
 
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
-    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e) . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
+    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e) . layerValues . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
 
 instance (IRMonad m, Typeable e) => KeyMonad (Elem e) m where
     uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
@@ -595,12 +626,13 @@ type SubLink s t = Link (Sub s t) t
 
 link :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
      => a -> b -> m (Link a b)
-link a b = Link <$> newElem @(Link a b) (a,b) ; {-# INLINE link #-}
+link a b = newElem (a,b) ; {-# INLINE link #-}
 
 
 -- === Instances === --
 
-instance HasIdx (Link a b)
+instance IsIdx (Link a b) where
+    idx = wrapped' ; {-# INLINE idx #-}
 
 type instance Universal (Link a b) = Link (Universal a) (Universal b)
 type instance Abstract  (Link a b) = Link (Abstract  a) (Abstract  b)
@@ -713,10 +745,10 @@ type instance Definition (Term _) = TermStore
 
 term :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
      => ExprSymbol atom (Term layout) -> m (Term layout)
-term a = Term <$> newElem @(Term layout) (encodeSymbol a) ; {-# INLINE term #-}
+term a = newElem (encodeSymbol a) ; {-# INLINE term #-}
 
 
-instance HasIdx (Term l) where
+instance IsIdx (Term l) where
     idx = wrapped' ; {-# INLINE idx #-}
 
 type instance Universal (Term _) = Term'
