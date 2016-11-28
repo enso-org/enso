@@ -249,8 +249,8 @@ instance Generalize (Compound SimpleX lst) Draft
 
 
 
-
-newtype MagicStar = MagicStar Term_
+-- FIXME: moze po prostu Term Star?
+newtype MagicStar = MagicStar Term'
 
 makeWrapped ''MagicStar
 
@@ -266,9 +266,9 @@ type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
 
 
 data                    SimpleAA
-type instance Elements  SimpleAA = '[Term_, Link' Term_]
-type instance Inputs    SimpleAA = '[Layer Term_ Model, Layer Term_ UID, Layer Term_ Type]
-type instance Outputs   SimpleAA = '[Layer Term_ Model, Layer Term_ UID, Layer Term_ Type]
+type instance Elements  SimpleAA = '[TERM, Link' TERM]
+type instance Inputs    SimpleAA = '[Layer TERM Model, Layer TERM UID, Layer TERM Type]
+type instance Outputs   SimpleAA = '[Layer TERM Model, Layer TERM UID, Layer TERM Type]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
@@ -278,15 +278,15 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
 test_pass1 = runIRT $ do
     runRegs
 
-    attachLayer (typeRep @Model) (typeRep @Term_)
-    attachLayer (typeRep @Succs) (typeRep @Term_)
-    attachLayer (typeRep @Type)  (typeRep @Term_)
-    attachLayer (typeRep @UID)   (typeRep @Term_)
+    attachLayer (typeRep @Model) (typeRep @TERM)
+    attachLayer (typeRep @Succs) (typeRep @TERM)
+    attachLayer (typeRep @Type)  (typeRep @TERM)
+    attachLayer (typeRep @UID)   (typeRep @TERM)
 
     Pass.eval pass1
 
 
-gen_pass1 :: (MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ Type) m) => m ()
+gen_pass1 :: (MonadIO m, IRMonad m, Readable (Layer TERM Model) m, Readable (Layer TERM Type) m) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedTerm Star ()) <- star
     (s2 :: UntyppedTerm Star ()) <- star
@@ -325,7 +325,7 @@ localTop ref = MV.readSTRef ref >>= \case
 
 
 layerReg4 :: IRMonad m => m ()
-layerReg4 = registerElemLayer @Term_ @Type . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
+layerReg4 = registerElemLayer @TERM @Type . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
 
 
 
@@ -344,10 +344,10 @@ runElemRegs :: IRMonad m => m ()
 runElemRegs = sequence_ elemRegs
 
 elemReg1 :: IRMonad m => m ()
-elemReg1 = registerElem @Term_
+elemReg1 = registerElem @TERM
 
 elemReg2 :: IRMonad m => m ()
-elemReg2 = registerElem @(Link' Term_)
+elemReg2 = registerElem @(LINK' TERM)
 
 
 -- === Layer reg defs === --
@@ -422,7 +422,7 @@ instance ( ctx (TermSymbol a (Term layout)) m b
          , SymbolMapM' as ctx (Term layout) m b
          , idx ~ FromJust (Record.Encode2 Atom a) -- FIXME: make it nicer
          , KnownNat idx
-         , Readable (Layer Term_ Model) m
+         , Readable (Layer TERM Model) m
          , IRMonad m
          )
       => SymbolMapM' (a ': as) ctx (Term layout) m b where
@@ -442,13 +442,13 @@ instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
 -- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
 -- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
 
-exprUniSymbol :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> m (TermUniSymbol (Term layout))
+exprUniSymbol :: (IRMonad m, Readable (Layer TERM Model) m) => Term layout -> m (TermUniSymbol (Term layout))
 exprUniSymbol t = TermUniSymbol <$> symbolMapM_AB @IsUniSymbol2 uniSymbol2 t
 
 
 
 
-matchM :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m b) -> m b
+matchM :: (IRMonad m, Readable (Layer TERM Model) m) => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m b) -> m b
 matchM t f = f . unwrap' =<< (exprUniSymbol t)
 
 
@@ -552,14 +552,14 @@ matchM t f = f . unwrap' =<< (exprUniSymbol t)
 --             )
 --          => m (Ref (UntyppedExpr Star ()))
 -- test_gr2 =  layouted @ANT $ do
---     registerElem  @Term_
+--     registerElem  @TERM
 --     registerLayer @Model
 --     attachLayer   modelRep exprRep
 --
 --     (sx1 :: UntyppedTerm Star ()) <- star
 --     (sx2 :: UntyppedTerm Star ()) <- star
---     -- Just (data_ :: Key m RW Term_ Model) <- lookupKey exprRep modelRep
---     Just (data_ :: LayerKey RW Term_ Model) <- uncheckedLookupKey
+--     -- Just (data_ :: Key m RW TERM Model) <- lookupKey exprRep modelRep
+--     Just (data_ :: LayerKey RW TERM Model) <- uncheckedLookupKey
 --     print sx1
 --     print sx2
 --     print =<< readKey data_ sx1

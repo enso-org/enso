@@ -278,9 +278,9 @@ registerGenericLayer :: forall layer t m. (IRMonad m, Typeable layer)
 registerGenericLayer f = modifyIRState_ $ genericLayers %~ Map.insert (typeRep @layer) (anyCons @layer f)
 {-# INLINE registerGenericLayer #-}
 
-registerElemLayer :: forall t layer m. (IRMonad m, Typeable t, Typeable layer)
+registerElemLayer :: forall at layer t m. (IRMonad m, Typeable at, Typeable layer)
                   => LayerCons' layer t (GetIRMonad m) -> m ()
-registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @t) %~ Map.insert (typeRep @layer) (anyCons @layer f)
+registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @at) %~ Map.insert (typeRep @layer) (anyCons @layer f)
 {-# INLINE registerElemLayer #-}
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
@@ -488,6 +488,13 @@ makeWrapped ''Link
 
 type SubLink s t = Link (Sub s t) t
 
+-- === Abstract === --
+
+data LINK  a b
+type LINK' a = LINK a a
+type instance Abstract  (Link a b) = LINK (Abstract  a) (Abstract  b)
+
+
 -- === Construction === --
 
 link :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b))
@@ -497,10 +504,8 @@ link a b = newElem (a,b) ; {-# INLINE link #-}
 
 -- === Instances === --
 
-instance IsElem (Link a b)
-
+instance      IsElem    (Link a b)
 type instance Universal (Link a b) = Link (Universal a) (Universal b)
-type instance Abstract  (Link a b) = Link (Abstract  a) (Abstract  b)
 
 
 
@@ -603,12 +608,14 @@ instance EncodeStore TermStoreSlots (TermSymbol' atom) Identity => SymbolEncoder
 
 newtype Term  layout = Term Elem deriving (Show)
 type    Term'        = Term Draft
-type    Term_        = Term Layout.Any
+makeWrapped ''Term
 
 type instance Definition (Term _) = TermStore
 
-makeWrapped ''Term
+-- === Abstract === --
 
+data TERM
+type instance Abstract (Term _) = TERM
 
 -- === Construction === --
 
@@ -616,12 +623,10 @@ term :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
      => TermSymbol atom (Term layout) -> m (Term layout)
 term a = newElem (encodeSymbol a) ; {-# INLINE term #-}
 
-
 -- === Instances === --
 
 instance      IsElem    (Term l)
 type instance Universal (Term _) = Term'
-type instance Abstract  (Term _) = Term_
 type instance Sub s     (Term l) = Term (Sub s l)
 
 
