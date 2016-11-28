@@ -341,7 +341,7 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
-test_pass1 = runIRT2 $ do
+test_pass1 = runIRT $ do
     runRegs
     -- -- registerElemLayer @Term_ @Type
     attachLayer   (typeRep @Model) (typeRep @Term_)
@@ -388,7 +388,7 @@ localTop ref = MV.readSTRef ref >>= \case
 
 
 layerReg4 :: (IRMonad m, MonadFix (GetIRMonad m)) => m ()
-layerReg4 = registerElemLayer2 @Term_ @Type . anyCons . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
+layerReg4 = registerElemLayer @Term_ @Type . anyCons . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
 
 
 
@@ -423,22 +423,18 @@ runLayerRegs = sequence_ layerRegs
 
 
 layerReg1 :: IRMonad m => m ()
-layerReg1 = registerGenericLayer @Model
+layerReg1 = registerGenericLayer @Model $ \ _ -> return . Layer
 
 layerReg2 :: IRMonad m => m ()
-layerReg2 = registerGenericLayer @Succs
+layerReg2 = registerGenericLayer @Succs $ \ _ _ -> return def
+
 
 
 consUIDLayer :: PrimMonad m => MV.STRefM m ID -> t -> Definition t -> m (Layer t UID)
 consUIDLayer ref _ _ = MV.modifySTRef' ref (\i -> (Layer i, succ i))
 
 layerReg3 :: IRMonad m => m ()
-layerReg3 = registerGenericLayer2 @UID . anyCons . consUIDLayer =<< runInIR (MV.newSTRef 0)
-
-
-
-
-
+layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (MV.newSTRef 0)
 
 
 

@@ -15,6 +15,3 @@ import Luna.IR.Internal.IR (SubLink)
 data Type = Type deriving (Show)
 
 type instance LayerData Type t = SubLink Type t
---
--- instance Monad m => LayerCons Type m where
---     consLayer _ = undefined -- return def ; {-# INLINE consLayer #-}

@@ -199,14 +199,17 @@ type KeyWriteError k = KeyAccessError "write" k
 
 ---------------------------
 
-newtype AnyCons2 ctx = AnyCons2 (forall m. ctx m => Any -> Any -> m Any )
+
 newtype AnyCons m = AnyCons (Any -> Any -> m Any)
 makeWrapped ''AnyCons
 
-anyCons :: Functor m => (t -> d -> m r) -> AnyCons m
+type LayerCons  l t m = (t -> Definition t -> m (Layer t l))
+type LayerCons'   t m = (t -> Definition t -> m Any)
+
+anyCons :: forall l t m. Monad m => LayerCons l t m -> AnyCons m
 anyCons = wrap' . unsafeCoerce ; {-# INLINE anyCons #-}
 
-unsafeAppCons :: Functor m => AnyCons m -> (t -> d -> m r)
+unsafeAppCons :: Functor m => AnyCons m -> LayerCons' t m
 unsafeAppCons = unsafeCoerce . unwrap' ; {-# INLINE unsafeAppCons #-}
 
 
@@ -224,10 +227,6 @@ data IRState m = IRState { _elems         :: Map ElemRep $ ElemStore m
                          , _genericLayers :: LayerConsStore m
                          }
 
--- data IRState m = IRState { _store  :: IRState m
---                        , _layers :: LayerConsStore m
---                        }
--- makeLenses ''IRStatez
 makeLenses ''ElemStore
 makeLenses ''IRState
 
@@ -235,13 +234,6 @@ specificLayers :: ElemRep -> Traversal' (IRState m) (LayerConsStore m)
 specificLayers el = elems . ix el . elemLayers ; {-# INLINE specificLayers #-}
 
 
--- type IRStateLift t m = (MonadTrans t, PrimState m ~ PrimState (t m), Monad m)
-
--- liftIRState :: IRStateLift t m => IRState m -> IRState (t m)
--- -- liftIRState (IRState store (LayerConsStore m s)) = IRState store (LayerConsStore (lift <$> m) (lift <$> s))
--- liftIRState (IRState store (LayerConsStore s)) = IRState store (LayerConsStore (lift <$> s))
-
--- instance Default (IRState m) where def = IRState def def
 instance Default (ElemStore m) where def = ElemStore def def
 instance Default (IRState   m) where def = IRState   def def def
 
@@ -250,38 +242,19 @@ instance Default (IRState   m) where def = IRState   def def def
 -- === IR === --
 -----------------
 
+
+newtype IRT m a = IRT (StateT (IRState (IRT m)) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+makeWrapped ''IRT
+
+type IRState' m = IRState (GetIRMonad m)
+
 type        GetIRMonad    m = IRT (GetIRSubMonad m)
 type family GetIRSubMonad m where
             GetIRSubMonad (IRT m) = m
             GetIRSubMonad (t   m) = GetIRSubMonad m
 
-type IRState' m = IRState (GetIRMonad m)
-
-
-newtype IRT m a = IRT (StateT (IRState (IRT m)) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
-newtype IR    a = IR a                               deriving (Functor, Traversable, Foldable)
--- type    IRMT   m   = IRT (Cfg m) m
--- type    IRM    m   = IR  (Cfg m)
-
-data IRType = IRType deriving (Show)
-
 
 -- === IR building === --
-
-
--- definition :: IsElem a => Lens' (IR t a) (Definition t a)
--- definition = irElem . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definition #-}
---
--- definitionFake :: IsElem a => Iso' (IR t a) (Definition t a)
--- definitionFake = irElemFake . elem . wrapped' ∘ unsafeCoerced ; {-# INLINE definitionFake #-}
---
--- fromDefinition :: (IRMonad m, IsElem a) => Definition (Cfg m) a -> m a
--- fromDefinition = liftIR . view (from definitionFake) ; {-# INLINE fromDefinition #-}
---
--- toDefinition :: (IRMonad m, IsElem a) => a -> m (Definition (Cfg m) a)
--- toDefinition = view definition <∘> mark' ; {-# INLINE toDefinition #-}
-
-
 
 atElem :: Functor m => ElemRep -> (Maybe (ElemStore m) -> m (Maybe (ElemStore m))) -> IRState m -> m (IRState m)
 atElem = elems .: at  ; {-# INLINE atElem #-}
@@ -315,81 +288,29 @@ lookupSpecificLayerCons el l s = s ^? specificLayers el . ix l ; {-# INLINE look
 lookupLayerCons :: ElemRep -> LayerRep -> IRState m -> Maybe (AnyCons m)
 lookupLayerCons el l s = lookupSpecificLayerCons el l s <|> lookupGenericLayerCons l s ; {-# INLINE lookupLayerCons #-}
 
--- newElem2 :: forall t m. (IRMonad m,  PrimMonad (GetIRMonad m)) => Definition2 t -> m Int
--- newElem2 (Definition2 dt) = do
---     d <- getIRState
---     let trep = typeRep @(Abstract t)
---         Just layerStore = d ^? elems  . ix trep
---         consLayer idx l elemStore = do
---             let Just consFunc = d ^? layers . ix l -- FIXME[WD]: internal error when cons was not registered
---             runInIR $ MV.unsafeWrite elemStore idx =<< unsafeAppCons consFunc dt
---     (idx, layerStore') <- runInIR $ MV.reserveIdx layerStore
---     mapM_ (uncurry $ consLayer idx) (MV.assocs layerStore)
---     putIRState $ d & elems . at trep ?~ layerStore'
---     return idx
-
-
--- data Definition2 t = Definition2 (Typeable t => t)
--- data Definition2 t = Typeable t => Definition2 t
---
--- -- data A
---
--- ttt :: forall t. Definition2 t -> TypeRep
--- ttt (Definition2 t) = typeRep @t
---
--- kazdy (Expr l), (Link a b) etc mozna zamienic na
---
--- Elem (Expr l)
--- Elem (Link a b)
---
--- tak ze dla `Elem a`
---
--- gwarantowane sa typeable dla a, wtedy stracimy te constrainty chyba
 
 -- === Registration === --
 
 registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStore (GetIRMonad m) -> ElemStore (GetIRMonad m)) -> m ()
-registerElemWith f = do
-    d <- getIRState
-    putIRState $ modifyElem (typeRep @el) f d
+registerElemWith f = modifyIRState_ $ modifyElem (typeRep @el) f
 {-# INLINE registerElemWith #-}
 
 registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-registerGenericLayer :: forall layer m. (IRMonad m, Typeable layer, LayerCons layer (GetIRMonad m))
-                     => m ()
-registerGenericLayer = do
-    d <- getIRState
-    let d' = d & genericLayers %~ Map.insert (typeRep @layer) (anyCons $ consLayer @layer)
-    putIRState d'
+registerGenericLayer :: forall layer t m. (IRMonad m, Typeable layer)
+                     => LayerCons layer t (GetIRMonad m) -> m ()
+registerGenericLayer f = modifyIRState_ $ genericLayers %~ Map.insert (typeRep @layer) (anyCons @layer f)
+{-# INLINE registerGenericLayer #-}
 
-registerGenericLayer2 :: forall layer f m. (IRMonad m, Typeable layer)
-                     => AnyCons (GetIRMonad m) -> m ()
-registerGenericLayer2 f = do
-    d <- getIRState
-    let d' = d & genericLayers %~ Map.insert (typeRep @layer) f
-    putIRState d'
-
-registerElemLayer :: forall el layer m. (IRMonad m, Typeable el, Typeable layer, LayerConsProxy el layer (GetIRMonad m))
-                  => m ()
-registerElemLayer = do
-    d <- getIRState
-    let d' = d & specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) (anyCons $ consLayerProxy @el @layer)
-    putIRState d'
-
-registerElemLayer2 :: forall el layer m. (IRMonad m, Typeable el, Typeable layer)
+registerElemLayer :: forall el layer m. (IRMonad m, Typeable el, Typeable layer)
                   => AnyCons (GetIRMonad m) -> m ()
-registerElemLayer2 f = do
-    d <- getIRState
-    let d' = d & specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) f
-    putIRState d'
+registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) f
+{-# INLINE registerElemLayer #-}
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
-attachLayer l e = do
-    d  <- getIRState
-    d' <- runInIR $ modifyElemM e (layerValues $ MV.unsafeAddKey l) d
-    putIRState d'
+attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ MV.unsafeAddKey l)
+{-# INLINE attachLayer #-}
 
 
 
@@ -397,121 +318,53 @@ attachLayer l e = do
 
 type  IRMonadInvariants m = (Monad m, PrimMonad (GetIRSubMonad m))
 class IRMonadInvariants m => IRMonad m where
-    liftIR     :: forall a. IR a -> m a
     getIRState :: m (IRState' m)
     putIRState :: (IRState' m) -> m ()
     runInIR    :: GetIRMonad m a -> m a
 
 instance {-# OVERLAPPABLE #-} (Monad m, PrimMonad m) => IRMonad (IRT m) where
-    liftIR     = return . unsafeIRUnwrap ; {-# INLINE liftIR     #-}
-    getIRState = IRT   State.get         ; {-# INLINE getIRState #-}
-    putIRState = IRT . State.put         ; {-# INLINE putIRState #-}
-    runInIR    = id                      ; {-# INLINE runInIR    #-}
+    getIRState = wrap'   State.get ; {-# INLINE getIRState #-}
+    putIRState = wrap' . State.put ; {-# INLINE putIRState #-}
+    runInIR    = id                ; {-# INLINE runInIR    #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
-    liftIR     = lift . liftIR     ; {-# INLINE liftIR     #-}
     getIRState = lift   getIRState ; {-# INLINE getIRState #-}
     putIRState = lift . putIRState ; {-# INLINE putIRState #-}
     runInIR    = lift . runInIR    ; {-# INLINE runInIR    #-}
 
-
 type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), GetIRMonad (t m) ~ GetIRMonad m)
 
--- FIXME[WD]: maybe we should relax a bit the Cfg definition?
--- type family Cfg (m :: * -> *) where
---     Cfg (IRT t m) = t
---     Cfg (IR  t)   = t
---     Cfg (m t)      = Cfg t
 
+modifyIRStateM :: IRMonad m => (IRState' m -> m (a, IRState' m)) -> m a
+modifyIRStateM f = do
+    s <- getIRState
+    (a, s') <- f s
+    putIRState s'
+    return a
+{-# INLINE modifyIRStateM #-}
 
--- === IR mark === ---
+modifyIRStateM_ :: IRMonad m => (IRState' m -> m (IRState' m)) -> m ()
+modifyIRStateM_ = modifyIRStateM . fmap (fmap ((),)) ; {-# INLINE modifyIRStateM_ #-}
 
--- type Marked m a = IRM m (IRVal a)
---
--- class                          Monad m                    => Markable m a           where mark :: a -> m (Marked m a)
--- instance {-# OVERLAPPABLE #-} (Monad m, IRVal a ~ a)      => Markable m a           where mark = return . IR  ; {-# INLINE mark #-}
--- instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m)        => Markable m (IR  t   a) where mark = return       ; {-# INLINE mark #-}
--- instance {-# OVERLAPPABLE #-} (Monad m, t ~ Cfg m, m ~ n) => Markable m (IRT t n a) where mark = runIRT def   ; {-# INLINE mark #-} -- FIXME
-
--- type family IRVal a where
---     IRVal (IR    a) = a
---     IRVal (IRT _ a) = a
---     IRVal a         = a
--- --
--- mark' :: IRMonad m => a -> m (IRM m a)
--- mark' = return . IR ; {-# INLINE mark' #-}
+modifyIRState_ :: IRMonad m => (IRState' m -> IRState' m) -> m ()
+modifyIRState_ = modifyIRStateM_ . fmap return ; {-# INLINE modifyIRState_ #-}
 
 
 -- === Running === --
 
--- transform :: Monad m => IR t a -> IRT t m a
--- transform = return . unsafeIRUnwrap ; {-# INLINE transform #-}
-
-runIRT :: forall t m a. Monad m => IRT m a -> m (IR a)
-runIRT (IRT m) = IR <$> State.evalStateT m def ; {-# INLINE runIRT #-}
-
-runIRT2 :: forall t m a. Monad m => IRT m a -> m a
-runIRT2 (IRT m) = State.evalStateT m def ; {-# INLINE runIRT2 #-}
-
-unsafeIRUnwrap :: IR a -> a
-unsafeIRUnwrap (IR a) = a ; {-# INLINE unsafeIRUnwrap #-}
-
-irElem :: Lens' (IR a) a
-irElem = lens (\(IR a) -> a) (\(IR _) a -> IR a) ; {-# INLINE irElem #-} -- FIXME
-
-irElemFake :: Iso' (IR a) a
-irElemFake = iso unsafeIRUnwrap IR ; {-# INLINE irElemFake #-}
-
-
--- === Property selectors === --
-
--- type Select   p m a =  Access    p (Marked m a)
--- type Selector p m a = (Accessor  p (Marked m a), Markable m a)
--- type Updaterx p m a = (Updater'  p (Marked m a), Markable m a, IRMonad m)
---
--- select :: forall p m a. Selector p m a => a -> m (Select p m a)
--- select = access @p <∘> mark ; {-# INLINE select #-}
---
--- updatex :: forall p m a. Updaterx p m a => Select p m a -> a -> m (IRVal a)
--- updatex v a = (liftIR . update' @p v) =<< mark a ; {-# INLINE updatex #-}
---
--- with :: forall p m a. (Selector p m a, Updaterx p m a) => (Select p m a -> Select p m a) -> a -> m (IRVal a)
--- with f src = do
---     succs <- select @p src
---     updatex @p (f succs) src
--- {-# INLINE with #-}
+runIRT :: forall t m a. Monad m => IRT m a -> m a
+runIRT m = State.evalStateT (unwrap' m) def ; {-# INLINE runIRT #-}
 
 
 -- === Instances === --
 
--- Show
--- instance {-# OVERLAPPABLE #-}                              Show (IR I a) where show = impossible
--- instance (Show (Definition t a), IsElem a, KnownRepr a) => Show (IR t a) where
---     showsPrec d a = showParen' d $ showString (typeRepr @a <> " ") . showsPrec' (a ^. definition)
-
 instance MonadTrans IRT where
-    lift = IRT . lift ; {-# INLINE lift #-}
+    lift = wrap' . lift ; {-# INLINE lift #-}
 
 -- PrimMonad
 instance PrimMonad m => PrimMonad (IRT m) where
     type PrimState (IRT m) = PrimState m
     primitive = lift . primitive ; {-# INLINE primitive #-}
-
--- Properties
--- type instance Access p (IR t a) = Access p (Definition t a)
---
--- instance (Accessor p (Definition t a), IsElem a) => Accessor p (IR t a) where
---     access = access @p . view definition ; {-# INLINE access #-}
---
--- instance (Updater' p (Definition t a), IsElem a) => Updater' p (IR t a) where
---     update' v = definition %~ update' @p v ; {-# INLINE update' #-}
-
--- Universal
-type instance Universal (IR a) = IR (Universal a)
-
--- Ordering
--- instance (Ord (Definition t a), IsElem a) => Ord (IR t a) where compare = compare `on` (^. definition) ; {-# INLINE compare #-}
--- instance (Eq  (Definition t a), IsElem a) => Eq  (IR t a) where (==)    = (==)    `on` (^. definition) ; {-# INLINE (==)    #-}
 
 
 
@@ -527,9 +380,6 @@ data    KeyData     key where
 
 newtype Key k = Key (KeyData k)
 
--- newtype KeyST m key = KeyST (KeyTargetST m key)
--- data    Key     key where
---         Key :: KeyST m key -> Key key
 makeWrapped '' KeyDataST
 makeWrapped '' Key
 

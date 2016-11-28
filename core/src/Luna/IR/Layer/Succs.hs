@@ -14,6 +14,3 @@ import Data.Set (Set)
 data Succs = Succs deriving (Show)
 
 type instance LayerData Succs a = Set (Universal a)
-
-instance Monad m => LayerCons Succs m where
-    consLayer _ _ = return def ; {-# INLINE consLayer #-}
