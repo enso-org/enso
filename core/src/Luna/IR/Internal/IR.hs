@@ -514,8 +514,10 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 -- === TermSymbol === --
 ------------------------
 
+data XXX -- FIXME
+
 newtype TermSymbol    atom t = TermSymbol (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
-type    TermSymbol'   atom   = TermSymbol atom Layout.Any
+type    TermSymbol'   atom   = TermSymbol atom XXX
 newtype TermUniSymbol      t = TermUniSymbol (N.UniSymbol (Layout.Named (SubLink Name t) (SubLink Atom t)))
 makeWrapped ''TermSymbol
 makeWrapped ''TermUniSymbol
@@ -523,7 +525,7 @@ makeWrapped ''TermUniSymbol
 
 -- === Helpers === --
 
-hideLayout :: TermSymbol atom t -> TermSymbol atom Layout.Any
+hideLayout :: TermSymbol atom t -> TermSymbol atom XXX
 hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
 
 
