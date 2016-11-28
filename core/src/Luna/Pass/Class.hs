@@ -2,7 +2,7 @@
 
 module Luna.Pass.Class where
 
-import Luna.Prelude hiding (head, tail)
+import Luna.Prelude hiding (head, tail, elem)
 
 import           Data.RTuple (List)
 import qualified Data.RTuple as List
@@ -13,7 +13,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, IRMonad, IsIdx, KeyReadError, KeyMissingError, KeyData, KeyTargetST, packKey, unpackKey)
+import           Luna.IR.Internal.IR   (Key, IRMonad, IsIdx, Readable, Writable, getKey, putKey, KeyReadError, KeyMissingError)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Term.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -163,28 +163,14 @@ instance PrimMonad m => PrimMonad (PassT pass m) where
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
--- === Accessible === --
 
-type Accessible k m = (Readable k m, Writable k m)
-
--- === Readable === --
-
-class    Monad m                                => Readable k m     where getKey :: m (Key k)
-instance {-# OVERLAPPABLE #-} SubReadable k t m => Readable k (t m) where getKey = lift getKey ; {-# INLINE getKey #-}
-type SubReadable k t m = (Readable k m, MonadTrans t, Monad (t m))
-
+-- Readable
 instance ( Monad m
          , ContainsKey k (Keys pass)
          , Assert (k `In` (Inputs pass)) (KeyReadError k))
       => Readable k (PassT pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
 
-
--- === Writable === --
-
-class    Monad m                                => Writable k m     where putKey :: Key k -> m ()
-instance {-# OVERLAPPABLE #-} SubWritable k t m => Writable k (t m) where putKey = lift . putKey ; {-# INLINE putKey #-}
-type SubWritable k t m = (Writable k m, MonadTrans t, Monad (t m))
-
+-- Writable
 instance ( Monad m
          , ContainsKey k (Keys pass)
          , Assert (k `In` (Inputs pass)) (KeyReadError k))
@@ -197,17 +183,3 @@ class                                     ContainsKey k ls        where findKey 
 instance {-# OVERLAPPING #-}              ContainsKey k (k ': ls) where findKey = head           ; {-# INLINE findKey #-}
 instance ContainsKey k ls              => ContainsKey k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
 instance TypeError (KeyMissingError k) => ContainsKey k '[]       where findKey = impossible     ; {-# INLINE findKey #-}
-
-
-
-
-------------
-
-readLayer :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
-readLayer t = flip IR.unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
-
-readKey :: forall k m. Readable k m => m (KeyTargetST m k)
-readKey = unpackKey =<< getKey @k ; {-# INLINE readKey #-}
-
-writeKey :: forall k m. Writable k m => KeyTargetST m k -> m ()
-writeKey = putKey @k <=< packKey ; {-# INLINE writeKey #-}

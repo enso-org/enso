@@ -98,7 +98,7 @@ import Luna.IR.Term hiding (Data, cons, unify, star, Readable)
 
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.IR.Internal.IR as IR
-import Luna.IR.Internal.IR hiding (Readable, Bind, Fields, (:=)) -- (Model, Name, All, cons2, Layout(..), Term, Term3, Data(Data), Network2, NetworkT, consTerm, unsafeConsTerm, term, Term2)
+import Luna.IR.Internal.IR hiding (Bind, Fields, (:=))
 import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Prelude (error, undefined)
@@ -144,7 +144,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer, Inputs, Outputs, getKey, readKey, writeKey, Writable, Accessible)
+import Luna.Pass.Class (Keys, Preserves, Pass, Elements, Inputs, Outputs)
 import Luna.IR.Layer.UID (UID, ID)
 import qualified Luna.IR.Layer.UID as UID
 import Luna.IR.Layer.Succs
@@ -418,7 +418,7 @@ instance (ctx a b, Monad m) => DropMonad ctx a m b
 class    ctx a => FreeResult ctx a b
 instance ctx a => FreeResult ctx a b
 
-instance ( ctx (ExprSymbol a (Term layout)) m b
+instance ( ctx (TermSymbol a (Term layout)) m b
          , SymbolMapM' as ctx (Term layout) m b
          , idx ~ FromJust (Record.Encode2 Atom a) -- FIXME: make it nicer
          , KnownNat idx
@@ -430,7 +430,7 @@ instance ( ctx (ExprSymbol a (Term layout)) m b
         d <- unwrap' <$> readLayer @Model term
         let eidx = unwrap' $ access @Atom d
             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Term layout)
+            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: TermSymbol a (Term layout)
         if (idx == eidx) then f sym else symbolMapM' @as @ctx f term
 
 instance Monad m => SymbolMapM' '[] ctx term m b where symbolMapM' _ _ = impossible
@@ -442,13 +442,13 @@ instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
 -- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
 -- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
 
-exprUniSymbol :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> m (ExprUniSymbol (Term layout))
-exprUniSymbol t = ExprUniSymbol <$> symbolMapM_AB @IsUniSymbol2 uniSymbol2 t
+exprUniSymbol :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> m (TermUniSymbol (Term layout))
+exprUniSymbol t = TermUniSymbol <$> symbolMapM_AB @IsUniSymbol2 uniSymbol2 t
 
 
 
 
-matchM :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> (Unwrapped (ExprUniSymbol (Term layout)) -> m b) -> m b
+matchM :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m b) -> m b
 matchM t f = f . unwrap' =<< (exprUniSymbol t)
 
 
@@ -597,10 +597,10 @@ matchM t f = f . unwrap' =<< (exprUniSymbol t)
 -- -- matchy t f = IR.mark' t
 -- -- matchy t f = IR.mark' t >>= (exprUniSymbol . f)
 --
--- matchy :: HasLayer t Expr' Model => (IR t (Expr layout)) -> (Unwrapped (ExprUniSymbol (Expr layout)) -> b) -> b
+-- matchy :: HasLayer t Expr' Model => (IR t (Expr layout)) -> (Unwrapped (TermUniSymbol (Expr layout)) -> b) -> b
 -- matchy a f = f $ unwrap' (exprUniSymbol a)
 --
--- matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
+-- matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (TermUniSymbol (Expr layout)) -> m b) -> m b
 -- matchM a f = mark' a >>= flip matchy f
 --
 --
