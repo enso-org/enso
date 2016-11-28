@@ -9,6 +9,7 @@
 {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE AllowAmbiguousTypes       #-}
 {-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE UndecidableSuperClasses   #-} -- Only for symbol mapping, to be refactored
 {-# LANGUAGE NoOverloadedStrings       #-} -- https://ghc.haskell.org/trac/ghc/ticket/12797
 
 -- {-# LANGUAGE PartialTypeSignatures     #-}
@@ -149,7 +150,7 @@ import qualified Luna.IR.Layer.UID as UID
 import Luna.IR.Layer.Succs
 import Luna.IR.Layer.Type
 import qualified Data.ManagedVectorMap as MV
-
+import Type.Maybe (FromJust)
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -206,22 +207,16 @@ type AtomicTerm atom layout = Term (Update Atom atom layout)
 
 star :: (IRMonad m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
 star = term Sym.uncheckedStar
+{-# INLINE star #-}
 
-unify :: (IRMonad m, MonadFix m) => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
+unify :: IRMonad m => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
 unify a b = mdo
     n  <- term $ Sym.uncheckedUnify la lb
     la <- link (unsafeGeneralize a) n
     lb <- link (unsafeGeneralize b) n
     return n
+{-# INLINE unify #-}
 
-
--- unify :: ASGBuilder m => Ref (Expr l) -> Ref (Expr r) -> m (Ref (Expr (Unify :>> (l <+> r))))
--- -- unify :: ASGBuilder m => Expr l -> Expr r -> m (Expr (Unify :>> (l <+> r)))
--- unify a b = buildElem $ mdo
---     n  <- delayedExpr (Sym.uncheckedUnify la lb)
---     la <- delayedLink (unsafeGeneralize a) n
---     lb <- delayedLink (unsafeGeneralize b) n
---     return n
 
 
 type family   UnsafeGeneralizable a b :: Constraint
@@ -343,19 +338,16 @@ pass1 = gen_pass1
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
 test_pass1 = runIRT $ do
     runRegs
-    -- -- registerElemLayer @Term_ @Type
-    attachLayer   (typeRep @Model) (typeRep @Term_)
-    attachLayer   (typeRep @Succs) (typeRep @Term_)
-    attachLayer   (typeRep @Type)  (typeRep @Term_)
-    attachLayer   (typeRep @UID)   (typeRep @Term_)
-    --
-    -- print "!!!!!"
+
+    attachLayer (typeRep @Model) (typeRep @Term_)
+    attachLayer (typeRep @Succs) (typeRep @Term_)
+    attachLayer (typeRep @Type)  (typeRep @Term_)
+    attachLayer (typeRep @UID)   (typeRep @Term_)
+
     Pass.eval pass1
-    -- print "!!!!!2"
-    -- return undefined
 
 
-gen_pass1 :: (MonadFix m, MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ Type) m) => m ()
+gen_pass1 :: (MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ Type) m) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedTerm Star ()) <- star
     (s2 :: UntyppedTerm Star ()) <- star
@@ -363,8 +355,14 @@ gen_pass1 = layouted @ANT $ do
     print "hello"
     d <- readLayer @Type u1
     print d
-    return ()
 
+    matchM s1 $ \case
+        Unify l r -> print "ppp"
+        Star      -> matchM s1 $ \case
+            Unify l r -> print "hola"
+            Star      -> print "hellox"
+
+    return ()
 
 
 
@@ -450,9 +448,72 @@ main = do
 
 
 
+-- === Symbol mapping === --
+
+class Monad m => SymbolMapM' (atoms :: [*]) ctx expr m b where
+    symbolMapM' :: (forall a. ctx a m b => a -> m b) -> expr -> m b
+
+type SymbolMapM_AMB = SymbolMapM' (Every Atom)
+symbolMapM_AMB :: forall ctx m expr b. SymbolMapM_AMB ctx expr m b => (forall a. ctx a m b => a -> m b) -> expr -> m b
+symbolMapM_AMB = symbolMapM' @(Every Atom) @ctx ; {-# INLINE symbolMapM_AMB #-}
+
+type SymbolMapM_AB ctx      = SymbolMapM_AMB (DropMonad ctx)
+type SymbolMap_AB  ctx expr = SymbolMapM_AB ctx expr Identity
+symbolMapM_AB :: forall ctx expr m b. SymbolMapM_AB ctx expr m b => (forall a. ctx a b => a -> b) -> expr -> m b
+symbolMapM_AB f = symbolMapM_AMB @(DropMonad ctx) (return <$> f) ; {-# INLINE symbolMapM_AB #-}
+
+symbolMap_AB :: forall ctx expr b. SymbolMap_AB ctx expr b => (forall a. ctx a b => a -> b) -> expr -> b
+symbolMap_AB f = runIdentity . symbolMapM_AB @ctx f ; {-# INLINE symbolMap_AB #-}
+
+type SymbolMapM_A ctx = SymbolMapM_AB (FreeResult ctx)
+type SymbolMap_A  ctx expr = SymbolMapM_A ctx expr Identity
+symbolMapM_A :: forall ctx expr m b. SymbolMapM_A ctx expr m b => (forall a. ctx a => a -> b) -> expr -> m b
+symbolMapM_A = symbolMapM_AB @(FreeResult ctx) ; {-# INLINE symbolMapM_A #-}
+
+symbolMap_A :: forall ctx expr b. SymbolMap_A ctx expr b => (forall a. ctx a => a -> b) -> expr -> b
+symbolMap_A f = runIdentity . symbolMapM_A @ctx f ; {-# INLINE symbolMap_A #-}
+
+class    (ctx a b, Monad m) => DropMonad ctx a m b
+instance (ctx a b, Monad m) => DropMonad ctx a m b
+
+class    ctx a => FreeResult ctx a b
+instance ctx a => FreeResult ctx a b
+
+instance ( ctx (ExprSymbol a (Term layout)) m b
+         , SymbolMapM' as ctx (Term layout) m b
+         , idx ~ FromJust (Record.Encode2 Atom a) -- FIXME: make it nicer
+         , KnownNat idx
+         , Readable (Layer Term_ Model) m
+         , IRMonad m
+         )
+      => SymbolMapM' (a ': as) ctx (Term layout) m b where
+    symbolMapM' f term = do
+        d <- unwrap' <$> readLayer @Model term
+        let eidx = unwrap' $ access @Atom d
+            idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
+            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: ExprSymbol a (Term layout)
+        if (idx == eidx) then f sym else symbolMapM' @as @ctx f term
+
+instance Monad m => SymbolMapM' '[] ctx term m b where symbolMapM' _ _ = impossible
+
+class IsUniSymbol2 a b where uniSymbol2 :: a -> b
+instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
+      => IsUniSymbol2 a b where uniSymbol2 = uniSymbol . unwrap' ; {-# INLINE uniSymbol2 #-}
+
+-- exprUniSymbol :: SymbolMap_AB IsUniSymbol2 expr b => expr -> b
+-- exprUniSymbol = symbolMap_AB @IsUniSymbol2 uniSymbol2
+
+exprUniSymbol :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> m (ExprUniSymbol (Term layout))
+exprUniSymbol t = ExprUniSymbol <$> symbolMapM_AB @IsUniSymbol2 uniSymbol2 t
 
 
 
+
+matchM :: (IRMonad m, Readable (Layer Term_ Model) m) => Term layout -> (Unwrapped (ExprUniSymbol (Term layout)) -> m b) -> m b
+matchM t f = f . unwrap' =<< (exprUniSymbol t)
+
+-- matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m b) -> m b
+-- matchM a f = mark' a >>= flip matchy f
 
 
 -- -- === Type layer === --

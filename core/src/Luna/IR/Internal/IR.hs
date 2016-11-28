@@ -316,7 +316,9 @@ attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ MV.un
 
 -- === IRMonad === ---
 
-type  IRMonadInvariants m = (Monad m, PrimMonad (GetIRSubMonad m))
+-- | IRMonad is subclass of MonadFic because many term operations reuire recursive calls.
+--   It is more convenient to store it as global constraint, so it could be altered easily in the future.
+type  IRMonadInvariants m = (MonadFix m, PrimMonad (GetIRSubMonad m))
 class IRMonadInvariants m => IRMonad m where
     getIRState :: m (IRState' m)
     putIRState :: (IRState' m) -> m ()
@@ -618,6 +620,11 @@ instance IsIdx (Term l) where
 type instance Universal (Term _) = Term'
 type instance Abstract  (Term _) = Term_
 type instance Sub s     (Term l) = Term (Sub s l)
+
+
+
+
+
 
 
 
