@@ -13,8 +13,8 @@ import Prologue.Unsafe (error)
 import Data.Typeable.Proxy.Abbr (P, p)
 
 import           Old.Control.Monad.Event
-import           Data.Graph
-import           Data.Graph.Builders
+import           Old.Data.Graph
+import           Old.Data.Graph.Builders
 import           Data.Layer_OLD.Cover_OLD
 import           Old.Data.Prop
 import qualified Data.Record                             as Record
@@ -23,7 +23,7 @@ import           Old.Luna.Runtime.Dynamics                 as Runtime
 import           Luna.IR.Function.Argument
 import           Luna.IR.Function.Argument       as X (arg)
 import           Old.Luna.Syntax.Term.Class                    hiding (undefined, Source, Name)
-import qualified Data.Graph.Builder                      as GraphBuilder
+import qualified Old.Data.Graph.Builder                      as GraphBuilder
 import           Old.Luna.Syntax.Model.Layer                 (Type, TCData, Meta, Name, Lambda, (:<:), (:<))
 import           Luna.Pass.Evaluation.Interpreter.Layer (InterpreterData)
 import           Old.Luna.Syntax.Model.Network.Builder.Layer
@@ -33,10 +33,10 @@ import           Old.Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 import           Control.Monad.Trans.Identity
 import           Old.Luna.Syntax.Term.Expr.Lit               (Star(Star))
-import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Model.Pointer.Set (RefSet)
+import qualified Old.Data.Graph.Backend.NEC as NEC
+import           Old.Data.Graph.Model.Pointer.Set (RefSet)
 
-import Data.Graph.Builder (write)
+import Old.Data.Graph.Builder (write)
 import qualified Control.Monad.State as State
 import Control.Monad.Primitive (PrimState, PrimMonad, primitive)
 

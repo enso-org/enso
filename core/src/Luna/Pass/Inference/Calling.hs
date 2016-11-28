@@ -14,9 +14,9 @@ import Old.Data.Prop
 import Data.Record.Match
 import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
-import Data.Graph.Builder                           as Graph hiding (run)
-import Data.Graph                                   as Graph hiding (add)
-import qualified Data.Graph.Backend.NEC               as NEC
+import Old.Data.Graph.Builder                           as Graph hiding (run)
+import Old.Data.Graph                                   as Graph hiding (add)
+import qualified Old.Data.Graph.Backend.NEC               as NEC
 import Old.Luna.Syntax.Model.Layer
 import Old.Luna.Syntax.Model.Network.Builder            (dupCluster, replacement, redirect, requester, originSign, Sign (..))
 import Old.Luna.Syntax.Model.Network.Builder.Node

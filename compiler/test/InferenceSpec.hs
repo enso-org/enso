@@ -26,8 +26,8 @@ import           Old.Luna.Runtime.Dynamics                         (Dynamic, Sta
 import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)
 import qualified Old.Luna.Syntax.Term.Class                            as Term
-import           Data.Graph
-import           Data.Graph.Builder
+import           Old.Data.Graph
+import           Old.Data.Graph.Builder
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder.Node          (NodeInferable, TermNode)
 import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    (arg)
@@ -36,8 +36,8 @@ import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, 
 import           Old.Luna.Syntax.Model.Network.Term
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
-import qualified Data.Graph.Builder.Class               as Graph
-import qualified Data.Graph.Backend.NEC                 as NEC
+import qualified Old.Data.Graph.Builder.Class               as Graph
+import qualified Old.Data.Graph.Backend.NEC                 as NEC
 
 import           Test.Hspec (Spec, describe, it)
 import           System.IO.Silently (silence)

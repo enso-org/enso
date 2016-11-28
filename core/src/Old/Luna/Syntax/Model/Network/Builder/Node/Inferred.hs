@@ -6,7 +6,7 @@ import Luna.Prelude
 
 import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Class as Node
 import Old.Luna.Syntax.Model.Network.Builder.Term.Inferred (inferNodeM)
-import Data.Graph
+import Old.Data.Graph
 import Old.Luna.Syntax.Model.Layer
 import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 import           Type.Inference (Inferable)

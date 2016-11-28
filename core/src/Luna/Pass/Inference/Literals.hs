@@ -9,9 +9,9 @@ import           Luna.Prelude                                    hiding (Num, pr
 import           Data.Construction hiding (cons)
 import           Old.Data.Prop
 import Data.Record.Match
-import           Data.Graph
-import           Data.Graph.Builder
-import qualified Data.Graph.Backend.NEC                  as NEC
+import           Old.Data.Graph
+import           Old.Data.Graph.Builder
+import qualified Old.Data.Graph.Backend.NEC                  as NEC
 
 import           Old.Luna.Runtime.Dynamics                         (Static)
 import           Old.Luna.Syntax.Term.Class                            hiding (source)

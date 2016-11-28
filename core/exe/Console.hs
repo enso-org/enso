@@ -17,9 +17,9 @@
 module Main where
 
 
--- import Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
-import qualified Data.Graph as G
-import Data.Graph.Builders hiding (Linkable)
+-- import Old.Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
+import qualified Old.Data.Graph as G
+import Old.Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
@@ -31,9 +31,9 @@ import           Old.Data.Attr                (attr)
 import           Data.Construction        hiding (Register, register)
 import           Data.Container           (index_)
 import           Data.Container           hiding (impossible, elems, elems', elemsM)
-import           Data.Graph.Builder       (MonadBuilder)
-import           Data.Graph.Query         hiding (Graph)
-import qualified Data.Graph.Query         as Sort
+import           Old.Data.Graph.Builder       (MonadBuilder)
+import           Old.Data.Graph.Query         hiding (Graph)
+import qualified Old.Data.Graph.Query         as Sort
 import           Data.Index               (idx)
 -- import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                 as Map
@@ -45,9 +45,9 @@ import           Text.Printf              (printf)
 import           Type.Inference
 
 import           Data.Container.Hetero                           (Hetero(..), Any(..))
-import qualified Data.Graph.Builder.Class                        as Graph
-import qualified Data.Graph.Builder.Class                        as Graph.Builder
--- import           Data.Graph.Builder.Ref                          as Ref
+import qualified Old.Data.Graph.Builder.Class                        as Graph
+import qualified Old.Data.Graph.Builder.Class                        as Graph.Builder
+-- import           Old.Data.Graph.Builder.Ref                          as Ref
 import           Luna.Pass.Inference.Calling         (FunctionCallingPass (..))
 import           Luna.Pass.Inference.Importing       (SymbolImportingPass (..))
 import qualified Luna.Pass.Inference.Importing       as Importing
@@ -75,8 +75,8 @@ import qualified Old.Luna.Syntax.Model.Network.Term                  as Netx
 import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.IR.Term.Format
 
-import qualified Data.Graph.Backend.NEC       as NEC
-import           Data.Graph.Model.Pointer.Set (RefSet)
+import qualified Old.Data.Graph.Backend.NEC       as NEC
+import           Old.Data.Graph.Model.Pointer.Set (RefSet)
 
 import qualified Data.RTuple.Examples as E
 import qualified Data.RTuple as List
@@ -87,7 +87,7 @@ import qualified Old.Luna.Syntax.Model.Network.Builder.Class as XP
 -- import           Old.Luna.Syntax.Model.Network.Builder.Term.Class (star, SymbolBuilder)
 
 import qualified Data.Record                  as Record
-import qualified Data.Graph.Builder                      as GraphBuilder
+import qualified Old.Data.Graph.Builder                      as GraphBuilder
 
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover

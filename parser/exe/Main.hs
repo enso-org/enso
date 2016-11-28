@@ -10,8 +10,8 @@
 
 module Main where
 
-import           Data.Graph
-import           Data.Graph.Builders
+import           Old.Data.Graph
+import           Old.Data.Graph.Builders
 import           Prologue                                        hiding (Version, cons, read, ( # ), Num, Cons)
 
 import           Text.Printf                                     (printf)
@@ -21,9 +21,9 @@ import           Old.Data.Attr                                       (attr)
 import           Data.Construction
 import           Data.Container                                  (elems, index_)
 import           Data.Container                                  hiding (impossible)
-import           Data.Graph.Builder
-import           Data.Graph.Query                                hiding (Graph)
-import qualified Data.Graph.Query                                as Sort
+import           Old.Data.Graph.Builder
+import           Old.Data.Graph.Query                                hiding (Graph)
+import qualified Old.Data.Graph.Query                                as Sort
 import           Data.Index                                      (idx)
 import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                                        as Map
@@ -51,8 +51,8 @@ import qualified StdLibMock                           as StdLib
 import qualified Luna.IR.Library.Symbol                       as Symbol
 import           Old.Luna.Syntax.Term.Class                            hiding (Draft, Expr, Lit, Source, Target, Thunk, Val, source, target, Input)
 import qualified Old.Luna.Syntax.Term.Class                            as Term
-import           Data.Graph.Builder.Ref                          as Ref
-import qualified Data.Graph.Builder.Class                        as Graph
+import           Old.Data.Graph.Builder.Ref                          as Ref
+import qualified Old.Data.Graph.Builder.Class                        as Graph
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
 import           Old.Luna.Syntax.Model.Network.Builder.Node
@@ -61,7 +61,7 @@ import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, runNetworkBuilderT, fmapInputs, inputstmp)
 import           Old.Luna.Syntax.Model.Network.Term
 
-import Data.Graph.Backend.NEC
+import Old.Data.Graph.Backend.NEC
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 

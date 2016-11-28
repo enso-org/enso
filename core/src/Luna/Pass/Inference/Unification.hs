@@ -13,15 +13,15 @@ import qualified Data.Record                        as Record
 import Data.Record                                  (caseTest, of', ANY (..))
 import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source, target)
-import Data.Graph.Builder                           hiding (run)
+import Old.Data.Graph.Builder                           hiding (run)
 import Old.Luna.Syntax.Model.Layer
 import Old.Luna.Syntax.Model.Network.Builder.Node
 import Old.Luna.Syntax.Model.Network.Builder            (HasSuccs, TCData, TCDataPayload, requester, tcErrors, depth, Sign (..), originSign, replaceNode)
 import Old.Luna.Syntax.Model.Network.Class              ()
 import Old.Luna.Syntax.Model.Network.Term
 import Luna.IR.Name.Ident.Pool                  (MonadIdentPool)
-import Data.Graph                                   as Graph hiding (add, remove)
-import qualified Data.Graph.Backend.NEC               as NEC
+import Old.Data.Graph                                   as Graph hiding (add, remove)
+import qualified Old.Data.Graph.Backend.NEC               as NEC
 
 import           Old.Luna.Compilation.Stage.TypeCheck       (ProgressStatus (..), TypeCheckerPass, hasJobs, runTCPass)
 import           Old.Luna.Compilation.Stage.TypeCheck.Class (MonadTypeCheck)

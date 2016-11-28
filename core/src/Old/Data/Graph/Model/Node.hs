@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Model.Node where
+module Old.Data.Graph.Model.Node where
 
 import Prologue hiding (Getter, Setter)
 

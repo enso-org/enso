@@ -14,7 +14,7 @@ import Old.Luna.Syntax.Model.Network.Builder.Term hiding (runNetworkBuilderT)
 import Old.Luna.Syntax.Model.Network.Term
 import Old.Luna.Runtime.Dynamics
 import Old.Luna.Syntax.Model.Network.Builder.Node (NodeInferable, TermNode)
-import Data.Graph
+import Old.Data.Graph
 import           Old.Luna.Syntax.Model.Layer        ((:<:))
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph, NetLayers, NetCluster, fmapInputs, inputstmp)
 import qualified Old.Luna.Syntax.Model.Network.Builder.Term.Class as Term

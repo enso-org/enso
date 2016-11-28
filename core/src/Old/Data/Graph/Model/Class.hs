@@ -1,4 +1,4 @@
-module Data.Graph.Model.Class where
+module Old.Data.Graph.Model.Class where
 
 import Prologue
 

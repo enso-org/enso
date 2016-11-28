@@ -13,9 +13,9 @@ import           Control.Monad.Reader                            (runReaderT, Re
 
 import           Data.IORef                                      (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 
-import           Data.Graph
-import qualified Data.Graph.Backend.NEC                          as NEC
-import           Data.Graph.Builder                              hiding (get)
+import           Old.Data.Graph
+import qualified Old.Data.Graph.Backend.NEC                          as NEC
+import           Old.Data.Graph.Builder                              hiding (get)
 import           Old.Data.Prop
 import           Data.Record                                     hiding (cons, Value)
 import           Data.Map                                        (Map)

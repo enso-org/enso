@@ -11,8 +11,8 @@ import           Data.Map                       (Map)
 import qualified Data.Map                       as Map
 import           Luna.IR.Function      (Function)
 import           Luna.IR.Name.Path          (QualPath)
-import           Data.Graph                     (Ref, Cluster)
-import           Data.Graph.Model.Node
+import           Old.Data.Graph                     (Ref, Cluster)
+import           Old.Data.Graph.Model.Node
 
 
 -- === Definitions === --

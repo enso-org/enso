@@ -1,13 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Type.Hetero (module X) where
+module Old.Data.Graph.Type.Hetero (module X) where
 
 import Prologue hiding (Getter, Setter)
 
 import Data.Container.Hetero as X (Hetero(..))
 import Old.Data.Prop
-import Data.Graph.Model.Pointer
-import Data.Graph.Type.Dynamic
+import Old.Data.Graph.Model.Pointer
+import Old.Data.Graph.Type.Dynamic
 
 
 -- === Instances === --

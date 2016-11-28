@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Data.Graph.Backend.NEC where
+module Old.Data.Graph.Backend.NEC where
 
 import Prologue
 import Prologue.Unsafe
@@ -17,9 +17,9 @@ import Data.Container.Auto      (Auto)
 import Data.Container.Resizable (Exponential)
 import Data.Index
 
-import Data.Graph
+import Old.Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)
-import Data.Graph.Model.Pointer.Set ()
+import Old.Data.Graph.Model.Pointer.Set ()
 
 import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:), MapVals, Cycle(..), List((:-:), Null))
 import qualified Data.RTuple as List

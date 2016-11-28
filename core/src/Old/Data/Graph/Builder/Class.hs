@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 
-module Data.Graph.Builder.Class where
+module Old.Data.Graph.Builder.Class where
 
 import Prologue hiding (Getter, Setter, read, (#), s)
 

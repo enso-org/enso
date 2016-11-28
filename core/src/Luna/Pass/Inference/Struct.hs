@@ -9,7 +9,7 @@ import Luna.Prelude
 import Data.Construction
 import Old.Data.Prop
 import Data.Record
-import Data.Graph.Builder
+import Old.Data.Graph.Builder
 import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Old.Luna.Syntax.Model.Layer
@@ -23,8 +23,8 @@ import Old.Luna.Compilation.Stage.TypeCheck             (ProgressStatus (..), Ty
 import Old.Luna.Compilation.Stage.TypeCheck.Class       (MonadTypeCheck)
 
 import qualified Old.Luna.Compilation.Stage.TypeCheck.Class as TypeCheck
-import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph
+import qualified Old.Data.Graph.Backend.NEC as NEC
+import           Old.Data.Graph
 import           Data.Layer_OLD.Cover_OLD
 
 

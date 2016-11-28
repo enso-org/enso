@@ -19,8 +19,8 @@ import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Runtime.Dynamics          (Dynamics_OLD)
 import qualified Luna.IR.Term.Format          as Format
 import           Old.Luna.Syntax.Term               hiding (Layout, Term, Data, Link, Ref)
-import Data.Graph.Model.Edge
-import Data.Graph
+import Old.Data.Graph.Model.Edge
+import Old.Data.Graph
 import Old.Data.Prop
 
 -- TODO[WD]: refactor the code to some kind of Luna/Evaluation/Model

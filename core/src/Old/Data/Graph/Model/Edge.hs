@@ -1,11 +1,11 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Model.Edge where
+module Old.Data.Graph.Model.Edge where
 
 import Prologue
 
-import Data.Graph.Model.Pointer
-import Data.Graph.Model.Node
+import Old.Data.Graph.Model.Pointer
+import Old.Data.Graph.Model.Node
 
 import Data.Container          hiding (Impossible)
 import Data.Direction ()

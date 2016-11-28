@@ -30,7 +30,7 @@ import qualified Control.Monad.Trans.State.Lazy as Lazy
 import Old.Control.Monad.Event
 import Type.Inference
 
-import Data.Graph.Builder.Class (BuilderT(..))
+import Old.Data.Graph.Builder.Class (BuilderT(..))
 import Old.Luna.Syntax.Model.Network.Builder.Type (TypeBuilderT(..))
 import Old.Luna.Syntax.Model.Network.Builder.Self (SelfBuilderT(..))
 

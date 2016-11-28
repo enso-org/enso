@@ -6,10 +6,10 @@ import           Old.Luna.Syntax.Model.Network.Builder.Term
 import           Old.Luna.Syntax.Model.Network.Builder.Layer
 import           Luna.Prelude
 import           Control.Monad                 (forM)
-import           Data.Graph
-import           Data.Graph.Builder
-import qualified Data.Graph.Backend.NEC as NEC
-import           Data.Graph.Model.Pointer.Set  (RefSet)
+import           Old.Data.Graph
+import           Old.Data.Graph.Builder
+import qualified Old.Data.Graph.Backend.NEC as NEC
+import           Old.Data.Graph.Model.Pointer.Set  (RefSet)
 import           Data.Container                (usedIxes)
 import           Data.Container.SizeTracking   (SizeTracking)
 import           Data.Layer_OLD.Cover_OLD

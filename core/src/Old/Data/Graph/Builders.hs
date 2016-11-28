@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- FIXME[WD]: refactor me
-module Data.Graph.Builders where
+module Old.Data.Graph.Builders where
 
 import Luna.Prelude
 
@@ -12,9 +12,9 @@ import Data.Direction
 import Data.Container          hiding (Impossible, impossible)
 import Old.Luna.Runtime.Dynamics   (Dynamics_OLD, Static, Dynamic)
 import Type.Bool
-import qualified Data.Graph.Backend.NEC as NEC
-import Data.Graph hiding (Dynamic)
-import Data.Graph.Builder.Class (MonadBuilder, modify, modifyM)
+import qualified Old.Data.Graph.Backend.NEC as NEC
+import Old.Data.Graph hiding (Dynamic)
+import Old.Data.Graph.Builder.Class (MonadBuilder, modify, modifyM)
 import Control.Monad.Primitive (PrimState, PrimMonad)
 
 ---------------------------------

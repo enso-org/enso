@@ -8,14 +8,14 @@
 module Main where
 
 import Luna.Prelude hiding (index)
-import qualified Data.Graph as Graph
-import           Data.Graph (Ref, Node, ELEMENT(..))
+import qualified Old.Data.Graph as Graph
+import           Old.Data.Graph (Ref, Node, ELEMENT(..))
 
 import           Type.Inference
 import           Old.Luna.Pretty.GraphViz
 import           Old.Luna.Runtime.Dynamics                         (Dynamic, Static)
-import           Data.Graph.Builder.Ref                          as Ref
-import qualified Data.Graph.Builder.Class                        as Graph
+import           Old.Data.Graph.Builder.Ref                          as Ref
+import qualified Old.Data.Graph.Builder.Class                        as Graph
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder.Node
 import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetGraph'', NetLayers', NetCluster, runNetworkBuilderT', fmapInputs, inputstmp)

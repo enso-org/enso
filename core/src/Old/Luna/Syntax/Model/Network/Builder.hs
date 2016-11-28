@@ -3,7 +3,7 @@
 
 module Old.Luna.Syntax.Model.Network.Builder (module Old.Luna.Syntax.Model.Network.Builder, module X) where
 
-import           Data.Graph.Builder                           as X
+import           Old.Data.Graph.Builder                           as X
 import           Old.Luna.Syntax.Model.Layer                      as X
 import           Old.Luna.Syntax.Model.Network.Builder.Term       as X
 import           Old.Luna.Syntax.Model.Network.Builder.Layer      as X

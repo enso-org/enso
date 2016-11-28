@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Model.Pointer.Set where
+module Old.Data.Graph.Model.Pointer.Set where
 
 import Prologue
 
 import Data.Construction
-import Data.Graph.Model.Cluster
-import Data.Graph.Model.Pointer
+import Old.Data.Graph.Model.Cluster
+import Old.Data.Graph.Model.Pointer
 
 import           Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet

@@ -8,18 +8,18 @@ import           Old.Control.Monad.Event
 import           Data.Container.SizeTracking            (SizeTracking)
 import           Data.Container                         (add, remove, try)
 import           Data.IntSet                            (IntSet)
-import           Data.Graph                             hiding (add, remove)
+import           Old.Data.Graph                             hiding (add, remove)
 import           Old.Data.Prop
 import qualified Data.List                              as List
 import           Data.Construction
-import           Data.Graph.Backend.NEC
+import           Old.Data.Graph.Backend.NEC
 import qualified Old.Luna.Syntax.Model.Network.Builder.Type as Type
 import qualified Old.Luna.Syntax.Model.Network.Builder.Self as Self
 import           Old.Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
 import qualified Luna.IR.Function               as Func
-import           Data.Graph.Builder.Class
+import           Old.Data.Graph.Builder.Class
 import           Old.Luna.Syntax.Model.Layer
-import           Data.Graph.Builder.Ref                 as Ref
+import           Old.Data.Graph.Builder.Ref                 as Ref
 
 
 

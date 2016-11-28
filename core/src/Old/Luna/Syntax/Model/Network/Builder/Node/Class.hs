@@ -5,8 +5,8 @@ module Old.Luna.Syntax.Model.Network.Builder.Node.Class (module Old.Luna.Syntax.
 
 import Luna.Prelude
 
-import           Data.Graph
-import           Data.Graph.Builders
+import           Old.Data.Graph
+import           Old.Data.Graph.Builders
 import           Data.Record                             (ANY, Matches)
 import           Luna.IR.Function.Argument
 import           Old.Luna.Syntax.Term.Class                    hiding (Source)

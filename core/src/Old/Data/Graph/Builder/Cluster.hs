@@ -1,14 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Builder.Cluster where
+module Old.Data.Graph.Builder.Cluster where
 
 import Luna.Prelude
 
 import Old.Control.Monad.Event
-import Data.Graph
+import Old.Data.Graph
 
-import Data.Graph.Builder.Ref
-import Data.Graph.Builder.Class (MonadBuilder)
+import Old.Data.Graph.Builder.Ref
+import Old.Data.Graph.Builder.Class (MonadBuilder)
 
 instance ( Dispatcher SUBGRAPH_INCLUDE (SubgraphElemEvent (Ref r e) (Ref Cluster c)) m
          , RefContainer c (Ref r e) m

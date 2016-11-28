@@ -5,16 +5,16 @@ module Old.Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking where
 
 import Luna.Prelude
 
-import           Data.Graph.Builder
+import           Old.Data.Graph.Builder
 import           Old.Control.Monad.Event
 import           Old.Data.Prop
 import qualified Data.List                               as List
 import           Data.Construction
-import qualified Data.Graph.Backend.NEC                  as VEC
-import           Data.Graph.Model.Pointer.Set            (RefSet)
+import qualified Old.Data.Graph.Backend.NEC                  as VEC
+import           Old.Data.Graph.Model.Pointer.Set            (RefSet)
 import           Old.Luna.Syntax.Model.Layer
 import           Data.Layer_OLD.Cover_OLD
-import           Data.Graph
+import           Old.Data.Graph
 import           Old.Luna.Syntax.Model.Network.Builder.Layers.TCData
 
 ----------------------------------

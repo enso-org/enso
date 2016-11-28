@@ -9,9 +9,9 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Old.Luna.Syntax.Model.Network.Builder.Term.Class (ElemBuilder3, buildElem3, ParamResolver, resolveParams, buildElem2, ElemBuilder2)
 
-import Data.Graph
-import Data.Graph.Builder (MonadBuilder, write)
-import Data.Graph.Builders (rawConnection)
+import Old.Data.Graph
+import Old.Data.Graph.Builder (MonadBuilder, write)
+import Old.Data.Graph.Builders (rawConnection)
 
 import qualified Control.Monad.State.Lazy as State
 import Old.Control.Monad.Event (Dispatcher, dispatch)

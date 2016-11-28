@@ -9,8 +9,8 @@ import Luna.Prelude hiding (cons)
 import Data.Construction hiding (cons)
 import Data.Maybe                                   (maybeToList)
 import Old.Data.Prop
-import Data.Graph
-import Data.Graph.Builder
+import Old.Data.Graph
+import Old.Data.Graph.Builder
 import Control.Monad.State                          as State
 
 import Old.Luna.Runtime.Dynamics                        (Static, Dynamic)

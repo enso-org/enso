@@ -7,7 +7,7 @@ import Prologue hiding (s)
 
 import qualified Control.Monad.State            as State
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
-import           Data.Graph.Model               (Ref, Node)
+import           Old.Data.Graph.Model               (Ref, Node)
 
 -- === Definitions === --
 

@@ -7,7 +7,7 @@ import Luna.Prelude
 import           Old.Luna.Runtime.Dynamics        (Dynamics_OLD)
 import           Old.Luna.Syntax.Term.Class           (Input)
 import           Old.Luna.Syntax.Model.Layer        ((:<:))
-import           Data.Graph
+import           Old.Data.Graph
 import           Data.Layer_OLD.Cover_OLD
 
 

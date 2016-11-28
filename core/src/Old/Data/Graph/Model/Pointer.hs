@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Model.Pointer (module Data.Graph.Model.Pointer, module X) where
+module Old.Data.Graph.Model.Pointer (module Old.Data.Graph.Model.Pointer, module X) where
 
 import Luna.Prelude
 
@@ -13,7 +13,7 @@ import Data.Layer_OLD.Cover_OLD
 
 -- TODO: refactor the import - there is no connection between graph Builder
 --       and this module. In fact the GraphBuilder should be renamed
-import qualified Data.Graph.Builder.Class                        as Graph.Builder
+import qualified Old.Data.Graph.Builder.Class                        as Graph.Builder
 
 
 data Knowledge a = Known a

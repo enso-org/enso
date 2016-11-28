@@ -20,8 +20,8 @@ import           Data.Record                                     hiding (cons)
 import           Data.Version.Semantic                           (showVersion, version)
 import           Type.Inference
 
-import           Data.Graph
-import           Data.Graph.Builder
+import           Old.Data.Graph
+import           Old.Data.Graph.Builder
 import qualified Luna.Env.Env                      as Env
 import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
 import           Old.Luna.Pretty.GraphViz
@@ -40,8 +40,8 @@ import qualified Luna.Pass.Evaluation.Interpreter.Layer         as Layer
 import qualified Luna.Pass.Evaluation.Interpreter.Value         as Value
 import qualified Luna.Pass.Evaluation.Interpreter.Interpreter   as Interpreter
 
-import qualified Data.Graph.Backend.NEC                          as NEC
-import qualified Data.Graph.Builder.Class                        as Graph
+import qualified Old.Data.Graph.Backend.NEC                          as NEC
+import qualified Old.Data.Graph.Builder.Class                        as Graph
 import qualified Old.Luna.Syntax.Term.Expr.Lit                        as Lit
 
 import           Control.Monad.Catch         (Exception, catchAll)

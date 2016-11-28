@@ -19,8 +19,8 @@ import           Data.Maybe                              (maybe, maybeToList, fr
 import           Old.Data.Prop
 import           Data.Record
 
-import           Data.Graph
-import qualified Data.Graph.Model.Pointer.Set as SubGraph
+import           Old.Data.Graph
+import qualified Old.Data.Graph.Model.Pointer.Set as SubGraph
 import           Data.GraphViz
 import qualified Data.GraphViz.Attributes                as GV
 import qualified Data.GraphViz.Attributes.Colors         as GVC

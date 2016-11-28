@@ -1,9 +1,9 @@
-module Data.Graph.Model.Events where
+module Old.Data.Graph.Model.Events where
 
 import Prologue
-import Data.Graph.Model.Node ()
-import Data.Graph.Model.Cluster ()
-import Data.Graph.Model.Pointer ()
+import Old.Data.Graph.Model.Node ()
+import Old.Data.Graph.Model.Cluster ()
+import Old.Data.Graph.Model.Pointer ()
 
 data ELEMENT           = ELEMENT           deriving (Show)
 

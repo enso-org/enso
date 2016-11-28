@@ -1,19 +1,19 @@
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Builder.Ref where
+module Old.Data.Graph.Builder.Ref where
 
 import Luna.Prelude
 
 import Old.Control.Monad.Event
-import Data.Graph.Builders
+import Old.Data.Graph.Builders
 import Data.Construction
 import Old.Data.Prop
 import Data.Index
 import Data.Container                 hiding (addM, removeM)
 import qualified Data.Container       as Cont
-import Data.Graph
-import Data.Graph.Builder.Class       hiding (with)
+import Old.Data.Graph
+import Old.Data.Graph.Builder.Class       hiding (with)
 
 
 -- === Utils === --

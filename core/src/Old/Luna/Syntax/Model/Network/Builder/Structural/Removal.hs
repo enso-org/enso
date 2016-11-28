@@ -5,13 +5,13 @@ import           Luna.Prelude
 import           Data.Layer_OLD.Cover_OLD
 import           Data.Container (add)
 import           Old.Data.Prop
-import           Data.Graph.Builder
+import           Old.Data.Graph.Builder
 import           Old.Luna.Syntax.Model.Network.Term
 import           Old.Luna.Syntax.Model.Layer
 import           Old.Luna.Syntax.Model.Network.Builder.Layer (HasSuccs, readSuccs)
 import           Old.Luna.Runtime.Dynamics (Static)
-import           Data.Graph             hiding (add, remove)
-import qualified Data.Graph.Backend.NEC as NEC
+import           Old.Data.Graph             hiding (add, remove)
+import qualified Old.Data.Graph.Backend.NEC as NEC
 
 replaceNode :: ( term  ~ Draft Static
                , node  ~ (ls :<: term)

@@ -1,9 +1,9 @@
-module Data.Graph.Type.Dynamic where
+module Old.Data.Graph.Type.Dynamic where
 
 import Prologue
 
 import Old.Data.Prop
-import Data.Graph.Model.Pointer
+import Old.Data.Graph.Model.Pointer
 
 
 -----------------------

@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Query.Sort where
+module Old.Data.Graph.Query.Sort where
 
 import           Control.Monad.Extra        (whenJustM)
 import           Control.Monad.Identity

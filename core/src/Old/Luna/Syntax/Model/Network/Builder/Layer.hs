@@ -10,15 +10,15 @@ import Old.Luna.Syntax.Model.Network.Builder.Layers.SuccTracking       as X
 import Old.Luna.Syntax.Model.Network.Builder.Layers.MembershipTracking as X
 import Old.Luna.Syntax.Model.Network.Builder.Layers.TCData             as X
 
-import           Data.Graph.Builders
-import           Data.Graph.Model.Pointer.Set         (RefSet)
+import           Old.Data.Graph.Builders
+import           Old.Data.Graph.Model.Pointer.Set         (RefSet)
 import           Old.Data.Prop
 import           Data.Record
 import           Old.Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
 import qualified Luna.IR.Function               as Func
 import           Old.Luna.Syntax.Model.Layer
 import           Data.Layer_OLD.Cover_OLD
-import           Data.Graph
+import           Old.Data.Graph
 
 
 
