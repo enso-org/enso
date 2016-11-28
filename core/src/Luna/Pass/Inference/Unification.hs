@@ -9,8 +9,8 @@ import Luna.Prelude                                 hiding (cons)
 import Data.Container                               hiding (impossible)
 import Data.List                                    (delete, sort, groupBy)
 import Old.Data.Prop
-import qualified Data.Record                        as Record
-import Data.Record                                  (caseTest, of', ANY (..))
+import qualified Old.Data.Record                        as Record
+import Old.Data.Record                                  (caseTest, of', ANY (..))
 import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source, target)
 import Old.Data.Graph.Builder                           hiding (run)

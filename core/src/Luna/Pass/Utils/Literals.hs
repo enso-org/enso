@@ -7,7 +7,7 @@ import           Luna.Prelude                                    hiding (Num, pr
 
 import           Data.Construction
 import           Old.Data.Prop
-import Data.Record.Match
+import Old.Data.Record.Match
 import           Old.Data.Graph
 import           Old.Data.Graph.Builder
 import qualified Old.Data.Graph.Backend.NEC                  as NEC

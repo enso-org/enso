@@ -2,7 +2,7 @@
 {-# LANGUAGE AllowAmbiguousTypes  #-}
 {-# LANGUAGE TypeApplications     #-}
 
-module Data.Record.Model.Masked where
+module Old.Data.Record.Model.Masked where
 
 import Luna.Prelude    hiding (Enum)
 import Prologue.Unsafe (error)
@@ -14,7 +14,7 @@ import GHC.Prim          (Any)
 import Type.Map          (MapLookup)
 import Type.Promotion    (KnownNats, natVals)
 import Data.Result       (Ok(Ok))
-import Data.Record.Class ( encodeType, MapEncode, Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
+import Old.Data.Record.Class ( encodeType, MapEncode, Encode, Encode2, Decode, Encoder(encode), EncodeMap, UnsafeExtract(unsafeExtract), UnsafeInsert(unsafeInsert), CheckMatch(checkMatch)
                          , Variant, Layout, IsRecord, HasRecord, RecordOf, Group, DecodeMap, Props, asRecord, record
                          )
 

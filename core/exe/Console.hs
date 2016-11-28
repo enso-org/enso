@@ -17,9 +17,6 @@
 module Main where
 
 
--- import Old.Data.Graph          hiding (Dynamic, Connection, Ref, Referable, Link, link, Succs, CONNECTION, Ref, read2)
-import qualified Old.Data.Graph as G
-import Old.Data.Graph.Builders hiding (Linkable)
 import Prologue            hiding (typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
@@ -27,27 +24,17 @@ import           Control.Monad.Event     as Event
 import qualified Control.Monad.Delayed    as Delayed
 import           Control.Monad.Delayed    (Runner, MonadDelayed, Delayed, delayed)
 import qualified Control.Monad.Writer     as Writer
-import           Old.Data.Attr                (attr)
 import           Data.Construction        hiding (Register, register)
 import           Data.Container           (index_)
 import           Data.Container           hiding (impossible, elems, elems', elemsM)
-import           Old.Data.Graph.Builder       (MonadBuilder)
-import           Old.Data.Graph.Query         hiding (Graph)
-import qualified Old.Data.Graph.Query         as Sort
-import           Data.Index               (idx)
 -- import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                 as Map
--- import           Old.Data.Prop
--- import           Data.Record              hiding (Cons, Layout, cons, Value)
 -- import           Data.Version.Semantic
 import           Development.Placeholders
 import           Text.Printf              (printf)
 import           Type.Inference
 
 import           Data.Container.Hetero                           (Hetero(..), Any(..))
-import qualified Old.Data.Graph.Builder.Class                        as Graph
-import qualified Old.Data.Graph.Builder.Class                        as Graph.Builder
--- import           Old.Data.Graph.Builder.Ref                          as Ref
 import           Luna.Pass.Inference.Calling         (FunctionCallingPass (..))
 import           Luna.Pass.Inference.Importing       (SymbolImportingPass (..))
 import qualified Luna.Pass.Inference.Importing       as Importing
@@ -55,39 +42,16 @@ import           Luna.Pass.Inference.Literals        (LiteralsPass (..))
 import           Luna.Pass.Inference.Scan            (ScanPass (..))
 import           Luna.Pass.Inference.Struct          (StructuralInferencePass (..))
 import           Luna.Pass.Utils.Literals            as LiteralsUtils
-import           Old.Luna.Compilation.Stage.TypeCheck                (Loop (..), Sequence (..))
-import qualified Old.Luna.Compilation.Stage.TypeCheck                as TypeCheck
-import qualified Old.Luna.Compilation.Stage.TypeCheck.Class          as TypeCheckState
 import qualified Luna.Env.Env                                 as Env
 import qualified Luna.IR.Library.Symbol                             as Symbol
-import           Old.Luna.Runtime.Dynamics                           (Dynamics, Dynamic, Static)
-import qualified Old.Luna.Runtime.Dynamics                           as Runtime
-import           Old.Luna.Syntax.Model.Layer                         ((:<), (:<:))
-import           Old.Luna.Syntax.Model.Network.Builder               (rebuildNetwork')
--- import           Old.Luna.Syntax.Model.Network.Builder.Node          hiding (curry, star, star, blank, unify)
-import qualified Old.Luna.Syntax.Model.Network.Builder.Node          as Old
-import           Old.Luna.Syntax.Model.Network.Builder.Node.Class    ()
-import qualified Old.Luna.Syntax.Model.Network.Builder.Node.Inferred as Inf
-import           Old.Luna.Syntax.Model.Network.Builder.Term.Class    (NetCluster, NetGraph, NetGraph2, NetNode, fmapInputs, inputstmp, runNetworkBuilderT, runNetworkBuilderT2)
-import           Old.Luna.Syntax.Model.Network.Class                 (Network)
-import qualified Old.Luna.Syntax.Model.Network.Term                  as Netx
--- import           Old.Luna.Syntax.Term                               (OverBuilder, Layout_OLD, ExprRecord, overbuild, AnyExpr)
-import qualified Old.Luna.Syntax.Term.Class                           as Term
 import           Luna.IR.Term.Format
 
-import qualified Old.Data.Graph.Backend.NEC       as NEC
-import           Old.Data.Graph.Model.Pointer.Set (RefSet)
 
 import qualified Data.RTuple.Examples as E
 import qualified Data.RTuple as List
 import           Data.RTuple (TMap(..), empty, Assoc(..)) -- refactor empty to another library
 
-import           Old.Luna.Syntax.Model.Network.Builder.Class ()
-import qualified Old.Luna.Syntax.Model.Network.Builder.Class as XP
--- import           Old.Luna.Syntax.Model.Network.Builder.Term.Class (star, SymbolBuilder)
 
-import qualified Data.Record                  as Record
-import qualified Old.Data.Graph.Builder                      as GraphBuilder
 
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
@@ -99,7 +63,6 @@ import Luna.IR.Term hiding (Data, cons, unify, star, Readable)
 import Type.Promotion    (KnownNats, natVals)
 import qualified Luna.IR.Internal.IR as IR
 import Luna.IR.Internal.IR hiding (Bind, Fields, (:=))
-import Data.Record.Model.Masked (encodeStore, encodeData2, Store2, Slot(Slot), Enum, Raw, Mask)
 
 import Prelude (error, undefined)
 import Type.List (In)
@@ -125,8 +88,6 @@ import qualified Control.Monad.State as State
 import Control.Monad.State hiding (get, set, modify', modify)
 
 import System.Exit (exitSuccess)
-import qualified Old.Luna.Syntax.Model.Network.Builder.Self as Self
-import qualified Old.Luna.Syntax.Model.Network.Builder.Type as Type
 
 import Control.Monad.ST
 import Data.Reprx

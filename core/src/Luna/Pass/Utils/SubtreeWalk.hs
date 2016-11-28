@@ -5,7 +5,7 @@ module Luna.Pass.Utils.SubtreeWalk where
 import Luna.Prelude
 import           Data.Construction
 import           Old.Data.Prop
-import           Data.Record                                     hiding (cons)
+import           Old.Data.Record                                     hiding (cons)
 import           Old.Data.Graph
 import           Old.Data.Graph.Builder
 import qualified Old.Data.Graph.Backend.NEC                  as NEC

@@ -10,14 +10,14 @@ module Old.Luna.Pretty.GraphViz where
 import           Luna.Prelude                            hiding (index)
 
 import           Data.Container
-import           Data.Index                              (idx)
+import           Old.Data.Index                              (idx)
 import           Data.Layer_OLD.Cover_OLD                        (uncover)
 import           Data.List                               (find)
 import           Data.Map.Strict                         (Map)
 import qualified Data.Map.Strict                         as Map
 import           Data.Maybe                              (maybe, maybeToList, fromMaybe)
 import           Old.Data.Prop
-import           Data.Record
+import           Old.Data.Record
 
 import           Old.Data.Graph
 import qualified Old.Data.Graph.Model.Pointer.Set as SubGraph

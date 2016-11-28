@@ -16,7 +16,7 @@ import           Luna.Prelude                                    hiding (Num)
 import           Control.Monad                                   (forM_)
 import           Data.Construction
 import           Old.Data.Prop
-import           Data.Record                                     hiding (cons)
+import           Old.Data.Record                                     hiding (cons)
 import           Data.Version.Semantic                           (showVersion, version)
 import           Type.Inference
 

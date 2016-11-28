@@ -8,7 +8,7 @@ import Luna.Prelude
 
 import Data.Construction
 import Old.Data.Prop
-import Data.Record
+import Old.Data.Record
 import Old.Data.Graph.Builder
 import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)

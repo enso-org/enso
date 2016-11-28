@@ -9,7 +9,7 @@ import Luna.Prelude
 import Control.Monad.Error                          (throwError, ErrorT, runErrorT, Error)
 import Data.Either                                  (rights)
 import Old.Data.Prop
-import Data.Record.Match
+import Old.Data.Record.Match
 import Data.Maybe                                   (fromMaybe)
 import Old.Luna.Runtime.Dynamics                        (Static)
 import Luna.IR.Library.Symbol                          (MonadSymbol, lookupFunction, lookupLambda, loadLambda)

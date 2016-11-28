@@ -9,7 +9,7 @@ import Old.Control.Monad.Event
 import Old.Data.Graph.Builders
 import Data.Construction
 import Old.Data.Prop
-import Data.Index
+import Old.Data.Index
 import Data.Container                 hiding (addM, removeM)
 import qualified Data.Container       as Cont
 import Old.Data.Graph

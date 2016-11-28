@@ -5,7 +5,7 @@ module Luna.Pass.Inference.Scan where
 import Luna.Prelude
 import Data.Construction
 import Old.Data.Prop
-import Data.Record.Match
+import Old.Data.Record.Match
 import Old.Data.Graph
 import Old.Data.Graph.Builder
 import Data.Maybe                                        (catMaybes)

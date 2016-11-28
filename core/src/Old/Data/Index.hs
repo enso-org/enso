@@ -1,4 +1,4 @@
-module Data.Index where
+module Old.Data.Index where
 
 import           Prologue
 

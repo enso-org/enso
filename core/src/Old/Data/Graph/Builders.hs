@@ -8,7 +8,7 @@ import Luna.Prelude
 
 import Old.Data.Prop
 import Old.Control.Monad.Event
-import Data.Direction
+import Old.Data.Direction
 import Data.Container          hiding (Impossible, impossible)
 import Old.Luna.Runtime.Dynamics   (Dynamics_OLD, Static, Dynamic)
 import Type.Bool

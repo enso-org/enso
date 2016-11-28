@@ -1,4 +1,4 @@
-module Data.Direction where
+module Old.Data.Direction where
 
 import Prologue
 

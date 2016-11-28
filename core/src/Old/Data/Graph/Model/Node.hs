@@ -5,9 +5,9 @@ module Old.Data.Graph.Model.Node where
 import Prologue hiding (Getter, Setter)
 
 import Data.Container
-import Data.Index
+import Old.Data.Index
 import Old.Data.Prop
-import Data.Record
+import Old.Data.Record
 
 
 -- === Definitions === --

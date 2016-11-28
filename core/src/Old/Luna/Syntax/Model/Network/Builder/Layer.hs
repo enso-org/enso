@@ -13,7 +13,7 @@ import Old.Luna.Syntax.Model.Network.Builder.Layers.TCData             as X
 import           Old.Data.Graph.Builders
 import           Old.Data.Graph.Model.Pointer.Set         (RefSet)
 import           Old.Data.Prop
-import           Data.Record
+import           Old.Data.Record
 import           Old.Luna.Syntax.Model.Network.Builder.Self (MonadSelfBuilder, self)
 import qualified Luna.IR.Function               as Func
 import           Old.Luna.Syntax.Model.Layer

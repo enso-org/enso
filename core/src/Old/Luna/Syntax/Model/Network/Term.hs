@@ -11,8 +11,8 @@ import           Old.Luna.Syntax.Model.Network.Class
 import           Old.Control.Monad.Event
 import           Old.Data.Prop
 import           Data.Layer_OLD.Cover_OLD
-import           Data.Record                    (HasRecord, RecordOf, IsRecord, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props)
-import qualified Data.Record                    as Record
+import           Old.Data.Record                    (HasRecord, RecordOf, IsRecord, asRecord, SmartCons, Variant, MapTryingElemList_, withElement_, Props)
+import qualified Old.Data.Record                    as Record
 import           Data.Reprx                     (Repr, repr)
 import           Old.Luna.Syntax.Term.Class
 import           Old.Luna.Syntax.Model.Layer

@@ -16,7 +16,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
 
-module Data.Record.Class where
+module Old.Data.Record.Class where
 
 import Prologue hiding (mask, simple, empty, Indexable, Simple, cons, lookup, index, children, Cons, Ixed, Repr, repr, minBound, maxBound, (#), assert, Index)
 import Prologue.Unsafe (fromJustNote, error)

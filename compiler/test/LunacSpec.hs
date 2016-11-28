@@ -30,11 +30,11 @@ import           Data.Container                                  hiding (impossi
 import           Old.Data.Graph.Builder
 import           Old.Data.Graph.Query                                hiding (Graph)
 import qualified Old.Data.Graph.Query                                as Sort
-import           Data.Index                                      (idx)
+import           Old.Data.Index                                      (idx)
 import           Data.Layer_OLD.Cover_OLD
 import qualified Data.Map                                        as Map
 import           Old.Data.Prop
-import           Data.Record                                     hiding (Layout, Cons, cons)
+import           Old.Data.Record                                     hiding (Layout, Cons, cons)
 import           Data.Version.Semantic
 import           Development.Placeholders
 import           Type.Inference

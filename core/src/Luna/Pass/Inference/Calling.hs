@@ -11,7 +11,7 @@ import Data.Container                               (add)
 import Data.Construction
 import Data.Either                                  (rights)
 import Old.Data.Prop
-import Data.Record.Match
+import Old.Data.Record.Match
 import Old.Luna.Runtime.Dynamics                      (Static)
 import Old.Luna.Syntax.Term.Class                         hiding (source)
 import Old.Data.Graph.Builder                           as Graph hiding (run)

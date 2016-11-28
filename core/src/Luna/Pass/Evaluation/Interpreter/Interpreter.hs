@@ -17,7 +17,7 @@ import           Old.Data.Graph
 import qualified Old.Data.Graph.Backend.NEC                          as NEC
 import           Old.Data.Graph.Builder                              hiding (get)
 import           Old.Data.Prop
-import           Data.Record                                     hiding (cons, Value)
+import           Old.Data.Record                                     hiding (cons, Value)
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as Map
 

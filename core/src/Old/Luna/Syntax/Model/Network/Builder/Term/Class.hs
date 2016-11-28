@@ -17,8 +17,8 @@ import           Old.Data.Graph
 import           Old.Data.Graph.Builders
 import           Data.Layer_OLD.Cover_OLD
 import           Old.Data.Prop
-import qualified Data.Record                             as Record
-import           Data.Record                             (RecordOf, HasRecord, record, MapTryingElemList_, withElement_, OverElement, overElement)
+import qualified Old.Data.Record                             as Record
+import           Old.Data.Record                             (RecordOf, HasRecord, record, MapTryingElemList_, withElement_, OverElement, overElement)
 import           Old.Luna.Runtime.Dynamics                 as Runtime
 import           Luna.IR.Function.Argument
 import           Luna.IR.Function.Argument       as X (arg)

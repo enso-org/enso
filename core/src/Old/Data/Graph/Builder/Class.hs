@@ -9,7 +9,7 @@ import           Old.Data.Prop
 import           Control.Monad.Catch            (MonadMask, MonadCatch, MonadThrow)
 import           Data.Construction ()
 import           Data.Container ()
-import           Data.Index ()
+import           Old.Data.Index ()
 import qualified Control.Monad.State            as State
 
 

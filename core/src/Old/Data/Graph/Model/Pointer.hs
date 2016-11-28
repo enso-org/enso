@@ -5,8 +5,8 @@ module Old.Data.Graph.Model.Pointer (module Old.Data.Graph.Model.Pointer, module
 
 import Luna.Prelude
 
-import Data.Direction    as X
-import Data.Index
+import Old.Data.Direction    as X
+import Old.Data.Index
 import Data.Layer_OLD
 import Old.Data.Prop
 import Data.Layer_OLD.Cover_OLD

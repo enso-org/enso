@@ -13,7 +13,7 @@ import           Old.Data.Graph.Model.Pointer.Set  (RefSet)
 import           Data.Container                (usedIxes)
 import           Data.Container.SizeTracking   (SizeTracking)
 import           Data.Layer_OLD.Cover_OLD
-import           Data.Index                    (idx)
+import           Old.Data.Index                    (idx)
 import           Old.Data.Prop
 import           Data.Map                      (Map)
 import           Data.Maybe                    (fromMaybe)

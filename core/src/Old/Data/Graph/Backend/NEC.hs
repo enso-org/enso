@@ -15,7 +15,7 @@ import           Data.AutoVector as AutoVector
 import Old.Data.Prop                hiding (Setter)
 import Data.Container.Auto      (Auto)
 import Data.Container.Resizable (Exponential)
-import Data.Index
+import Old.Data.Index
 
 import Old.Data.Graph
 import Control.Monad.Primitive  (PrimMonad, PrimState)

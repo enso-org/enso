@@ -1,115 +1,45 @@
-{-# LANGUAGE CPP                    #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE FunctionalDependencies #-}
-
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
-
-{-# LANGUAGE GADTs #-}
-
-
-
-
+{-# LANGUAGE GADTs                   #-}
+{-# LANGUAGE UndecidableInstances    #-}
 
 module Luna.IR.Internal.IR where
 
-import qualified Prelude as PP
-import           Prelude                      (curry)
-import           Luna.Prelude                 hiding (typeRep, Register, register, elem, head, tail, curry, Field2, Enum, Num, Swapped, Curry, String, Integer, Rational, Symbol, Index, Data, Field, Updater', update')
-import qualified Luna.Prelude                 as P
+import           Old.Data.Record              (Encode2)
+import           Old.Data.Record.Model.Masked as X (TermRecord, VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
+import           Old.Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 
-import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, SymbolMap, symbolMap, Match, Cons, Value, cons, Group, HasValue, ValueOf, value)
-import qualified Data.Record                  as Record
-import           Type.Cache.TH                (assertTypesEq, cacheHelper, cacheType)
-import           Type.Container               hiding (Empty, FromJust, Every)
-import           Type.Map                     hiding (Map)
-import qualified Data.Map                     as Map
-import           Data.Map                     (Map)
+import           Luna.Prelude                 hiding (Symbol, typeRep, elem {- fix: -} , Enum)
 
-import           Data.Typeable                (splitTyConApp, tyConName, typeRepTyCon)
-import           Old.Luna.Runtime.Dynamics      (Dynamics, Dynamic, Static, SubDynamics, SubSemiDynamics, ByDynamics)
-import qualified Old.Luna.Runtime.Dynamics      as Dynamics
-import           Luna.IR.Repr.Styles
-import           Luna.IR.Function.Argument
-import           Data.Reprx
-import           Type.Bool
-import           Luna.IR.Term.Format
-import Luna.IR.Term.Symbol (Sym, Symbol, IsSymbol, symbol, UncheckedFromSymbol, FromSymbol, uncheckedFromSymbol, fromSymbol, ToSymbol, toSymbol, UniSymbol, uniSymbol, IsUniSymbol)
-import qualified Luna.IR.Term.Symbol.Named as N
-import Luna.IR.Term.Atom
-
--- import Data.Shell               as Shell hiding (Access)
-import Data.Record.Model.Masked as X (TermRecord, VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
-import Type.Monoid
-import Type.Applicative
-
-import Prologue.Unsafe (error)
--- import Luna.IR.Term (NameByDynamics)
-import qualified Luna.IR.Term.Symbol as Symbol
-import qualified Data.RTuple as List
-import Type.Promotion    (KnownNats, natVals)
-import Data.Bits         (setBit, zeroBits)
-
-import Data.RTuple (List, Empty, empty)
-import Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
-import           Data.RTuple (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
-
-import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)))
-import Type.Error
--- import Control.Monad.State
+import Control.Monad.State  (StateT, runStateT)
+import Data.ManagedVectorMap(ManagedVectorMap, ManagedVectorMapM)
+import Data.Map             (Map)
 import Data.Property
-import qualified Data.Property as Prop
-import GHC.Stack (HasCallStack, callStack, prettyCallStack, withFrozenCallStack)
-import Data.Vector.Mutable (MVector)
-import qualified Data.Vector.Mutable as V
-import Control.Monad.ST (ST, runST)
-import Type.List (Size)
-import qualified Type.List as List
-import Type.Maybe (FromJust)
-import Data.Phantom
-import Unsafe.Coerce     (unsafeCoerce)
-import Type.Relation (SemiSuper)
-import qualified Luna.IR.Term.Layout as Layout
-import Luna.IR.Term.Layout (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract)
-import Type.Inference
-
-import qualified Data.Set as Data (Set)
-import qualified Data.Set as Set
-
-import Data.Container.List (ToSet, toSet)
-import GHC.Prim (Any)
-
-import           Control.Monad.Event     hiding (Any)
-import qualified Control.Monad.Event     as Event
-
-import Type.Container (Every)
-
-
+import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
+import Data.Typeable        (Typeable, TypeRep)
+import GHC.Prim             (Any)
 import Luna.IR.Layer
--- import qualified Luna.IR.Layer as Layer
 import Luna.IR.Layer.Model
+import Luna.IR.Term.Atom    (Atom, Atoms)
+import Luna.IR.Term.Format  (Sub, Format, Draft)
+import Luna.IR.Term.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract)
+import Luna.IR.Term.Symbol  (Sym, Symbol, UncheckedFromSymbol, FromSymbol, UniSymbol, IsUniSymbol, uniSymbol)
+import Type.Container       (Every)
+import Type.Container       (In)
+import Type.Maybe           (FromJust)
+import Type.Error
+import Unsafe.Coerce        (unsafeCoerce)
+
+import qualified Control.Monad.State       as State
+import qualified Data.ManagedVectorMap     as MV
+import qualified Data.Map                  as Map
+import qualified Data.Set                  as Data (Set)
+import qualified Data.Set                  as Set
+import qualified Data.Typeable             as Typeable -- FIXME
+import qualified Luna.IR.Term.Layout       as Layout
+import qualified Luna.IR.Term.Symbol.Named as N
+import qualified Type.List                 as List
 
 
-import Data.Coerced (unsafeCoerced)
-
-
-import qualified Data.Hetero.Stack as Stack
-import           Data.Hetero.Stack (Stack)
-
-import Data.Typeable (Typeable, TypeRep)
-import qualified Data.Typeable as Typeable
-import Control.Monad.State (StateT, runStateT)
-import qualified Control.Monad.State as State
-import qualified Data.ManagedVectorMap as MV
-import Data.ManagedVectorMap (ManagedVectorMap, ManagedVectorMapM)
-import Type.Maybe (FromJust, IsJust)
 
 typeRep :: forall a. Typeable a => TypeRep
 typeRep = Typeable.typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep #-}
@@ -123,35 +53,6 @@ class IsIdx t where
     default idx :: (Wrapped t, Unwrapped t ~ Int) => Lens' t Int
     idx = wrapped' ; {-# INLINE idx #-}
 
---
--- --------------------
--- -- === Events === --
--- --------------------
---
--- -- === Definition === --
---
--- type Register        t a m = Event        (t (Universal a)) m (Universal a)
--- type DelayedRegister t a m = DelayedEvent (t (Universal a)) m (Universal a)
---
---
--- -- === Registration === --
---
--- register :: forall t a m. Register t a m => a -> m a
--- register a = a <$ dispatch_ @(t (Universal a)) (universal a) ; {-# INLINE register #-}
---
--- delayedRegister :: forall t a m. DelayedRegister t a m => a -> m a
--- delayedRegister a = a <$ delayedDispatch_ @(t (Universal a)) (universal a) ; {-# INLINE delayedRegister #-}
---
---
--- -- === Event types === --
---
--- data New a
-
-
-
-
-
----------------------------
 
 ------------------
 -- === Elem === --
@@ -427,14 +328,14 @@ writeKey = putKey @k <=< packKey ; {-# INLINE writeKey #-}
 
 -- === Errors === --
 
-type KeyAccessError action k = Sentence $ 'Text "Key"
+type KeyAccessError action k = Sentence $ ErrMsg "Key"
                                     :</>: Ticked ('ShowType k)
-                                    :</>: 'Text "is not"
-                                    :</>: ('Text action :<>: 'Text "able")
+                                    :</>: ErrMsg "is not"
+                                    :</>: (ErrMsg action :<>: ErrMsg "able")
 
-type KeyMissingError k = Sentence $ 'Text "Key"
+type KeyMissingError k = Sentence $ ErrMsg "Key"
                               :</>: Ticked ('ShowType k)
-                              :</>: 'Text "is not accessible"
+                              :</>: ErrMsg "is not accessible"
 
 type KeyReadError  k = KeyAccessError "read"  k
 type KeyWriteError k = KeyAccessError "write" k
@@ -531,7 +432,7 @@ hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
 
 type InvalidFormat sel a format = 'ShowType sel
                              :</>: Ticked ('ShowType a)
-                             :</>: 'Text  "is not a valid"
+                             :</>: ErrMsg "is not a valid"
                              :</>: Ticked ('ShowType format)
 
 
@@ -652,7 +553,7 @@ class    IRMonad m => SymbolMapM (atoms :: [*]) ctx expr m b where symbolMapM ::
 instance IRMonad m => SymbolMapM '[]            ctx term m b where symbolMapM _ _ = impossible
 instance (  SymbolMapM as ctx term m b
          , ctx (TermSymbol a term) m b
-         , idx ~ FromJust (Record.Encode2 Atom a) -- FIXME: make it nicer and assert
+         , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer and assert
          , KnownNat idx
          , Readable (Layer TERM Model) m
          , term ~ Term layout
@@ -713,3 +614,29 @@ instance ctx a => FreeResult ctx a b
 
 type instance Encode2 Atom    v = List.Index v (Every Atom)
 type instance Encode2 Format  v = List.Index v (Every Format)
+
+
+
+--
+-- --------------------
+-- -- === Events === --
+-- --------------------
+--
+-- -- === Definition === --
+--
+-- type Register        t a m = Event        (t (Universal a)) m (Universal a)
+-- type DelayedRegister t a m = DelayedEvent (t (Universal a)) m (Universal a)
+--
+--
+-- -- === Registration === --
+--
+-- register :: forall t a m. Register t a m => a -> m a
+-- register a = a <$ dispatch_ @(t (Universal a)) (universal a) ; {-# INLINE register #-}
+--
+-- delayedRegister :: forall t a m. DelayedRegister t a m => a -> m a
+-- delayedRegister a = a <$ delayedDispatch_ @(t (Universal a)) (universal a) ; {-# INLINE delayedRegister #-}
+--
+--
+-- -- === Event types === --
+--
+-- data New a

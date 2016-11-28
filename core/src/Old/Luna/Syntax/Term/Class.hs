@@ -12,8 +12,8 @@ import           Luna.Prelude                 hiding (Num, Swapped)
 
 import           Data.Abstract
 import           Data.Base
-import           Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
-import qualified Data.Record                  as Record
+import           Old.Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
+import qualified Old.Data.Record                  as Record
 import           Type.Cache.TH                (cacheHelper, cacheType)
 import           Type.Map
 
@@ -26,7 +26,7 @@ import           Luna.IR.Term.Format
 import qualified Old.Luna.Syntax.Term.Expr.Lit     as Lit
 import Old.Luna.Syntax.Term.Atom as X
 
-import Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
+import Old.Data.Record.Model.Masked as X (Data, Data2, TermRecord, VGRecord2)
 
 import Prologue.Unsafe (error)
 import Luna.IR.Term.Format (SubFormats)
