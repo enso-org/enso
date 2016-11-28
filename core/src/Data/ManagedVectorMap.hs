@@ -28,8 +28,11 @@ readSTRef = liftPrim . ST.readSTRef ; {-# INLINE readSTRef #-}
 writeSTRef :: PrimMonad m => STRefM m a -> a -> m ()
 writeSTRef = liftPrim .: ST.writeSTRef ; {-# INLINE writeSTRef #-}
 
-modifySTRef' :: PrimMonad m => STRefM m a -> (a -> a) -> m ()
-modifySTRef' = liftPrim .: ST.modifySTRef' ; {-# INLINE modifySTRef' #-}
+modifySTRef'_ :: PrimMonad m => STRefM m r -> (r -> r) -> m ()
+modifySTRef'_ = liftPrim .: ST.modifySTRef' ; {-# INLINE modifySTRef'_ #-}
+
+modifySTRef' :: PrimMonad m => STRefM m r -> (r -> (a, r)) -> m a
+modifySTRef' s = modifySTRefM' s . fmap return ; {-# INLINE modifySTRef' #-}
 
 modifySTRefM' :: PrimMonad m => STRefM m r -> (r -> m (a, r)) -> m a
 modifySTRefM' ref f = do

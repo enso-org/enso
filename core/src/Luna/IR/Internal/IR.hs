@@ -199,7 +199,7 @@ type KeyWriteError k = KeyAccessError "write" k
 
 ---------------------------
 
-
+newtype AnyCons2 ctx = AnyCons2 (forall m. ctx m => Any -> Any -> m Any )
 newtype AnyCons m = AnyCons (Any -> Any -> m Any)
 makeWrapped ''AnyCons
 
@@ -356,18 +356,32 @@ registerElemWith f = do
 registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-registerGenericLayer :: forall layer m. (IRMonad m, Typeable layer, Functor (GetIRMonad m), LayerCons layer (GetIRMonad m))
+registerGenericLayer :: forall layer m. (IRMonad m, Typeable layer, LayerCons layer (GetIRMonad m))
                      => m ()
 registerGenericLayer = do
     d <- getIRState
     let d' = d & genericLayers %~ Map.insert (typeRep @layer) (anyCons $ consLayer @layer)
     putIRState d'
 
-registerElemLayer :: forall el layer m. (IRMonad m, Typeable el, Typeable layer, Functor (GetIRMonad m), LayerConsProxy el layer (GetIRMonad m))
+registerGenericLayer2 :: forall layer f m. (IRMonad m, Typeable layer)
+                     => AnyCons (GetIRMonad m) -> m ()
+registerGenericLayer2 f = do
+    d <- getIRState
+    let d' = d & genericLayers %~ Map.insert (typeRep @layer) f
+    putIRState d'
+
+registerElemLayer :: forall el layer m. (IRMonad m, Typeable el, Typeable layer, LayerConsProxy el layer (GetIRMonad m))
                   => m ()
 registerElemLayer = do
     d <- getIRState
     let d' = d & specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) (anyCons $ consLayerProxy @el @layer)
+    putIRState d'
+
+registerElemLayer2 :: forall el layer m. (IRMonad m, Typeable el, Typeable layer)
+                  => AnyCons (GetIRMonad m) -> m ()
+registerElemLayer2 f = do
+    d <- getIRState
+    let d' = d & specificLayers (typeRep @el) %~ Map.insert (typeRep @layer) f
     putIRState d'
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
@@ -383,10 +397,10 @@ attachLayer l e = do
 
 
 class (Monad m, PrimMonad (GetIRMonad m)) => IRMonad m where
-    liftIR    :: forall a. IR (Cfg m) a -> m a
+    liftIR     :: forall a. IR (Cfg m) a -> m a
     getIRState :: m (IRState' m)
     putIRState :: (IRState' m) -> m ()
-    runInIR   :: GetIRMonad m a -> m a
+    runInIR    :: GetIRMonad m a -> m a
 
 instance {-# OVERLAPPABLE #-} (Monad m, PrimMonad m) => IRMonad (IRT t m) where
     liftIR    = return . unsafeIRUnwrap ; {-# INLINE liftIR    #-}
@@ -395,10 +409,10 @@ instance {-# OVERLAPPABLE #-} (Monad m, PrimMonad m) => IRMonad (IRT t m) where
     runInIR   = lift                    ; {-# INLINE runInIR   #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
-    liftIR    = lift . liftIR    ; {-# INLINE liftIR    #-}
+    liftIR     = lift . liftIR     ; {-# INLINE liftIR     #-}
     getIRState = lift   getIRState ; {-# INLINE getIRState #-}
     putIRState = lift . putIRState ; {-# INLINE putIRState #-}
-    runInIR   = lift . runInIR   ; {-# INLINE runInIR   #-}
+    runInIR    = lift . runInIR    ; {-# INLINE runInIR    #-}
 
 
 type IRMonadTrans t m = (IRMonad m, MonadTrans t, Monad (t m), Cfg m ~ Cfg (t m), GetIRMonad (t m) ~ GetIRMonad m)

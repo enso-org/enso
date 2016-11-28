@@ -144,10 +144,12 @@ import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
 import Luna.Pass.Class (Keys, Preserves, Pass, Readable, Elements, readLayer, Inputs, Outputs, getKey, readKey, writeKey, Writable, Accessible)
-import Luna.IR.Layer.UID (UID, MonadUID)
+import Luna.IR.Layer.UID (UID, ID)
 import qualified Luna.IR.Layer.UID as UID
 import Luna.IR.Layer.Succs
 import Luna.IR.Layer.Type
+import qualified Data.ManagedVectorMap as MV
+
 
 title s = putStrLn $ "\n" <> "-- " <> s <> " --"
 
@@ -285,29 +287,36 @@ type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
 
 
 
-instance TermLayerCons l m => LayerConsProxy (Term t) l m where
-    consLayerProxy = consTermLayer ; {-# INLINE consLayerProxy #-}
+-- instance TermLayerCons l m => LayerConsProxy (Term t) l m where
+--     consLayerProxy = consTermLayer ; {-# INLINE consLayerProxy #-}
+--
+-- class Monad m => TermLayerCons l m where
+--     consTermLayer :: forall t. Term t -> Definition (Term t) -> m (Layer (Term t) l)
+--
+-- instance {-# OVERLAPPABLE #-} (LayerCons l m, Monad m)
+--       => TermLayerCons l m where consTermLayer = consLayer ; {-# INLINE consTermLayer #-}
+--
+--
+-- instance (IRMonad m, Accessible (Attr MagicStar) m) => TermLayerCons Type m where
+--     consTermLayer self _ = do
+--         top  <- view (from magicStar) <$> localTop
+--         conn <- link top self
+--         return $ Layer conn
 
-class Monad m => TermLayerCons l m where
-    consTermLayer :: forall t. Term t -> Definition (Term t) -> m (Layer (Term t) l)
-
-instance {-# OVERLAPPABLE #-} (LayerCons l m, Monad m)
-      => TermLayerCons l m where consTermLayer = consLayer ; {-# INLINE consTermLayer #-}
-
-
-instance (IRMonad m, Accessible (Attr MagicStar) m) => TermLayerCons Type m where
-    consTermLayer self _ = do
-        top  <- view (from magicStar) <$> localTop
-        conn <- link top self
-        return $ Layer conn
-
-localTop :: (IRMonad m, Accessible (Attr MagicStar) m) => m MagicStar
-localTop = readKey @(Attr MagicStar) >>= \case
-    Just t  -> return t
-    Nothing -> mdo
-        s <- newMagicStar
-        writeKey @(Attr MagicStar) (Just s)
-        return s
+-- consTermLayer :: Term t -> Definition (Term t) -> m (Layer (Term t) l)
+-- consTermLayer self _ = do
+--     top  <- view (from magicStar) <$> localTop
+--     conn <- link top self
+--     return $ Layer conn
+--
+--
+-- localTop :: (IRMonad m, Accessible (Attr MagicStar) m) => m MagicStar
+-- localTop = readKey @(Attr MagicStar) >>= \case
+--     Just t  -> return t
+--     Nothing -> mdo
+--         s <- newMagicStar
+--         writeKey @(Attr MagicStar) (Just s)
+--         return s
 
 
 -- | Run a function and use the result as a context type
@@ -332,18 +341,85 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
-test_pass1 = UID.evalNewT $ runIRT2 $ do
-    registerElem  @Term_
-    registerElem  @(Link' Term_)
-    registerGenericLayer @Model
-    registerGenericLayer @Succs
-    registerGenericLayer @UID
+test_pass1 = runIRT2 $ do
+    runRegs
     -- registerElemLayer @Term_ @Type
     attachLayer   (typeRep @Model) (typeRep @Term_)
     attachLayer   (typeRep @Succs) (typeRep @Term_)
     attachLayer   (typeRep @UID)   (typeRep @Term_)
 
     Pass.eval pass1
+
+
+
+--
+-- consTypeLayer :: (IRMonad m, PrimMonad m)
+--               => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (Layer (Term t) Type)
+-- consTypeLayer ref self _ = do
+--     top  <- view (from magicStar) <$> localTop ref
+--     conn <- link top self
+--     return $ Layer conn
+--
+--
+-- localTop :: (IRMonad m, PrimMonad m)
+--          => MV.STRefM m (Maybe MagicStar) -> m MagicStar
+-- localTop ref = MV.readSTRef ref >>= \case
+--     Just t  -> return t
+--     Nothing -> do
+--         s <- newMagicStar
+--         MV.writeSTRef ref $ Just s
+--         return s
+--
+--
+-- layerReg4 :: IRMonad m => m ()
+-- layerReg4 = registerElemLayer2 @Term_ @UID . anyCons . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
+--
+
+
+
+runRegs :: IRMonad m => m ()
+runRegs = do
+    runElemRegs
+    runLayerRegs
+
+-- === Elem reg defs === --
+
+elemRegs :: IRMonad m => [m ()]
+elemRegs = [elemReg1, elemReg2]
+
+runElemRegs :: IRMonad m => m ()
+runElemRegs = sequence_ elemRegs
+
+elemReg1 :: IRMonad m => m ()
+elemReg1 = registerElem @Term_
+
+elemReg2 :: IRMonad m => m ()
+elemReg2 = registerElem @(Link' Term_)
+
+
+-- === Layer reg defs === --
+
+layerRegs :: IRMonad m => [m ()]
+layerRegs = [layerReg1, layerReg2, layerReg3]
+
+runLayerRegs :: IRMonad m => m ()
+runLayerRegs = sequence_ layerRegs
+
+
+layerReg1 :: IRMonad m => m ()
+layerReg1 = registerGenericLayer @Model
+
+layerReg2 :: IRMonad m => m ()
+layerReg2 = registerGenericLayer @Succs
+
+
+consUIDLayer :: PrimMonad m => MV.STRefM m ID -> t -> Definition t -> m (Layer t UID)
+consUIDLayer ref _ _ = MV.modifySTRef' ref (\i -> (Layer i, succ i))
+
+layerReg3 :: IRMonad m => m ()
+layerReg3 = registerGenericLayer2 @UID . anyCons . consUIDLayer =<< runInIR (MV.newSTRef 0)
+
+
 
 
 gen_pass1 :: (MonadFix m, MonadIO m, IRMonad m, Readable (Layer Term_ Model) m, Readable (Layer Term_ UID) m) => m ()
