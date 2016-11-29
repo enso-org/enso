@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:           container
-version:        0.1
+version:        0.2
 synopsis:       Containers abstraction and utilities.
 category:       Data
 stability:      experimental
