@@ -11,7 +11,7 @@ import           Old.Data.Record.Model.Masked (encode2, EncodeStore, encodeStore
 import           Luna.Prelude                 hiding (Symbol, typeRep, elem {- fix: -} , Enum)
 
 import Control.Monad.State  (StateT, runStateT)
-import Data.ManagedVectorMap(ManagedVectorMap, ManagedVectorMapM)
+import Luna.IR.Internal.LayerStore (LayerStore, LayerStoreM)
 import Data.Map             (Map)
 import Data.Property
 import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
@@ -30,7 +30,7 @@ import Type.Error
 import Unsafe.Coerce        (unsafeCoerce)
 
 import qualified Control.Monad.State       as State
-import qualified Data.ManagedVectorMap     as MV
+import qualified Luna.IR.Internal.LayerStore as Store
 import qualified Data.Map                  as Map
 import qualified Data.Set                  as Data (Set)
 import qualified Data.Set                  as Set
@@ -159,8 +159,8 @@ data ElemStore m = ElemStore { _layerValues   :: NetStoreM m
                              , _elemLayers    :: LayerConsStore m
                              }
 
-type LayerStore s = MV.VectorRef s Any
-type NetStore   s = ManagedVectorMap s LayerRep Any
+type LayerSet   s = Store.VectorRef s Any
+type NetStore   s = LayerStore s LayerRep Any
 type NetStoreM  m = NetStore (PrimState m)
 
 type LayerConsStore m = Map LayerRep (AnyCons m)
@@ -211,7 +211,7 @@ modifyElemM e f = atElem e $ fmap Just . f . fromMaybe def    ; {-# INLINE modif
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
 uncheckedElems :: forall t m. (IRMonad m, IsElem t, Readable (Net (Abstract t)) m) => m [t]
-uncheckedElems = fmap (view (from $ elem . idx)) . MV.ixes <$> readNet @(Abstract t) ; {-# INLINE uncheckedElems #-}
+uncheckedElems = fmap (view (from $ elem . idx)) . Store.ixes <$> readNet @(Abstract t) ; {-# INLINE uncheckedElems #-}
 
 
 -- === Querying === --
@@ -239,15 +239,15 @@ newMagicElem tdef = do
     -- hacky, manual index reservation in order not to use keys for magic star
     let trep = typeRep @(Abstract t)
         Just layerStore = irstate ^? elems  . ix trep . layerValues
-    (newIdx, layerStore') <- runInIR $ MV.reserveIdx layerStore
+    (newIdx, layerStore') <- runInIR $ Store.reserveIdx layerStore
     putIRState $ irstate & elems . ix trep . layerValues .~ layerStore'
 
 
     let el = newIdx ^. from (elem . idx)
         consLayer (layer, store) = runInIR $ do
             let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
-            MV.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
-    mapM_ consLayer (MV.assocs layerStore)
+            Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
+    mapM_ consLayer (Store.assocs layerStore)
     return el
 {-# INLINE newMagicElem #-}
 
@@ -259,8 +259,8 @@ newElem tdef = do
     let el = newIdx ^. from (elem . idx)
         consLayer (layer, store) = runInIR $ do
             let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
-            MV.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
-    mapM_ consLayer (MV.assocs layerStore)
+            Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
+    mapM_ consLayer (Store.assocs layerStore)
     return el
 {-# INLINE newElem #-}
 
@@ -268,12 +268,12 @@ newElem tdef = do
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = do
     layerStore <- readComp @(Net (Abstract t))
-    (i, layerStore') <- runInIR $ MV.reserveIdx layerStore
+    (i, layerStore') <- runInIR $ Store.reserveIdx layerStore
     writeComp @(Net (Abstract t)) layerStore'
     return i
 
 unsafeReadLayer :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-unsafeReadLayer key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. elem . idx) (unwrap' key)) ; {-# INLINE unsafeReadLayer #-}
+unsafeReadLayer key t = unsafeCoerce <$> runInIR (Store.unsafeRead (t ^. elem . idx) (unwrap' key)) ; {-# INLINE unsafeReadLayer #-}
 
 readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
 readLayer t = flip unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
@@ -305,7 +305,7 @@ registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @at) %~ Map.inser
 {-# INLINE registerElemLayer #-}
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
-attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ MV.unsafeAddKey l)
+attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ Store.unsafeAddKey l)
 {-# INLINE attachLayer #-}
 
 setAttr :: forall a m. (IRMonad m, Typeable a) => a -> m ()
@@ -381,8 +381,8 @@ instance PrimMonad m => PrimMonad (IRT m) where
 
 -- === Definitions === --
 
-type instance KeyData s (Layer _ _) = LayerStore s
-type instance KeyData s (Net   _)   = NetStore   s
+type instance KeyData s (Layer _ _) = LayerSet s
+type instance KeyData s (Net   _)   = NetStore s
 type instance KeyData s (Attr  a)   = a
 
 
@@ -557,6 +557,8 @@ type instance Abstract (Term _) = TERM
 
 -- === Utils === --
 
+type AtomicTerm atom layout = Term (Update Atom atom layout)
+
 magicTerm :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
           => TermSymbol atom (Term layout) -> m (Term layout)
 magicTerm a = newMagicElem (encodeSymbol a) ; {-# INLINE magicTerm #-}
@@ -635,6 +637,13 @@ symbolMap_A    f = runIdentity . symbolMapM_A @ctx f              ; {-# INLINE s
 
 
 
+class HasFields2 a b where fieldList2 :: a -> b
+instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = fieldList
+
+-- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
+-- type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
+symbolFields :: (SymbolMapM_AB HasFields2 term m out, term ~ Term layout, out ~ [Link term term]) => term -> m out
+symbolFields = symbolMapM_AB @HasFields2 fieldList2
 
 
 
@@ -662,26 +671,24 @@ type instance Encode2 Format  v = List.Index v (Every Format)
 
 
 
---
--- --------------------
--- -- === Events === --
--- --------------------
---
--- -- === Definition === --
---
--- type Register        t a m = Event        (t (Universal a)) m (Universal a)
--- type DelayedRegister t a m = DelayedEvent (t (Universal a)) m (Universal a)
---
---
--- -- === Registration === --
---
--- register :: forall t a m. Register t a m => a -> m a
--- register a = a <$ dispatch_ @(t (Universal a)) (universal a) ; {-# INLINE register #-}
---
--- delayedRegister :: forall t a m. DelayedRegister t a m => a -> m a
--- delayedRegister a = a <$ delayedDispatch_ @(t (Universal a)) (universal a) ; {-# INLINE delayedRegister #-}
---
---
--- -- === Event types === --
---
--- data New a
+
+-- TO REFACTOR:
+
+
+type TermLayer     = Layer TERM
+type TermLinkLayer = Layer (LINK' TERM)
+type TermNet       = Net   TERM
+type TermLinkNet   = Net   (LINK' TERM)
+
+type TermLayers ls = TermLayer <$> ls
+type Nets       ls = Net       <$> ls
+
+type Accessibles m lst = (Readables m lst, Writables m lst)
+
+type family Readables m lst :: Constraint where
+    Readables m '[]       = ()
+    Readables m (l ': ls) = (Readable l m, Readables m ls)
+
+type family Writables m lst :: Constraint where
+    Writables m '[]       = ()
+    Writables m (l ': ls) = (Writable l m, Writables m ls)

@@ -16,7 +16,7 @@ import qualified Control.Monad.State as State
 -- === UID Layer === --
 -----------------------
 
-newtype ID = ID Word64 deriving (Bounded, Default, Enum, Eq, Integral, Data, Num, Ord, Read, Real, Show)
+type ID = Word64
 
 data UID = UID deriving (Show)
 

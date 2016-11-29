@@ -33,17 +33,17 @@ import qualified Data.RTuple as List
 type NamedSymbol t n a = Symbol t (Layout.Named n a)
 
 
-newtype instance Symbol Integer  (Layout.Named n a) = Sym_Integer  { _val :: P.Integer                    }
-newtype instance Symbol Rational (Layout.Named n a) = Sym_Rational { _val :: P.Rational                   }
-newtype instance Symbol String   (Layout.Named n a) = Sym_String   { _val :: P.String                     }
-data    instance Symbol Acc      (Layout.Named n a) = Sym_Acc      { _name :: !n     , _base  :: !a       }
-data    instance Symbol App      (Layout.Named n a) = Sym_App      { _base :: a      , _arg   :: !(Arg a) }
-data    instance Symbol Lam      (Layout.Named n a) = Sym_Lam      { _arg :: !(Arg a), _body  :: !a       }
-data    instance Symbol Match    (Layout.Named n a) = Sym_Match    { _left :: !a     , _right :: !a       }
-data    instance Symbol Unify    (Layout.Named n a) = Sym_Unify    { _left :: !a     , _right :: !a       }
-newtype instance Symbol Cons     (Layout.Named n a) = Sym_Cons     { _name ::  n                          }
-data    instance Symbol Native   (Layout.Named n a) = Sym_Native   { _name :: !n                          }
-newtype instance Symbol Var      (Layout.Named n a) = Sym_Var      { _name ::  n                          }
+newtype instance Symbol Integer  (Layout.Named n a) = Sym_Integer  { _val :: P.Integer                     }
+newtype instance Symbol Rational (Layout.Named n a) = Sym_Rational { _val :: P.Rational                    }
+newtype instance Symbol String   (Layout.Named n a) = Sym_String   { _val :: P.String                      }
+data    instance Symbol Acc      (Layout.Named n a) = Sym_Acc      { _name :: !n      , _base  :: !a       }
+data    instance Symbol App      (Layout.Named n a) = Sym_App      { _base :: a       , _arg   :: !(Arg a) }
+data    instance Symbol Lam      (Layout.Named n a) = Sym_Lam      { _arg  :: !(Arg a), _body  :: !a       }
+data    instance Symbol Match    (Layout.Named n a) = Sym_Match    { _left :: !a      , _right :: !a       }
+data    instance Symbol Unify    (Layout.Named n a) = Sym_Unify    { _left :: !a      , _right :: !a       }
+newtype instance Symbol Cons     (Layout.Named n a) = Sym_Cons     { _name ::  n                           }
+data    instance Symbol Native   (Layout.Named n a) = Sym_Native   { _name :: !n                           }
+newtype instance Symbol Var      (Layout.Named n a) = Sym_Var      { _name ::  n                           }
 data    instance Symbol Blank    (Layout.Named n a) = Sym_Blank
 data    instance Symbol Star     (Layout.Named n a) = Sym_Star
 data    instance Symbol Missing  (Layout.Named n a) = Sym_Missing

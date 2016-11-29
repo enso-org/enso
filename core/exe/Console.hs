@@ -17,7 +17,7 @@
 module Main where
 
 
-import Prologue            hiding (elem, typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
+import Prologue            hiding (Simple, elem, typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
 import           Control.Monad.Event     as Event
@@ -110,103 +110,34 @@ import Luna.IR.Layer.UID (UID, ID)
 import qualified Luna.IR.Layer.UID as UID
 import Luna.IR.Layer.Succs
 import Luna.IR.Layer.Type
-import qualified Data.ManagedVectorMap as MV
+import qualified Luna.IR.Internal.LayerStore as Store
 import Type.Maybe (FromJust)
-
-title s = putStrLn $ "\n" <> "-- " <> s <> " --"
-
-
-
-data InfLayers = InfLayers
-
-
-
-
-
-data SimpleX
-
-type family Specialized t spec layout
-
-
------------------
--- === ANT === --
------------------
-
--- === Definition === ---
-
-data ANT
-type ANTLayout l a n t = Compound l '[Atom := a, Name := n, Type := t]
-
-
--- === Instances === ---
-
--- DefaultLayout
-type instance DefaultLayout ANT = ANTLayout SimpleX () () Star
-
--- Sub
-type instance Sub Atom (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Atom a) n t
-type instance Sub Name (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Name n) (Sub Name n) (Sub Name n)
-type instance Sub Type (ANTLayout SimpleX a n t) = ANTLayout SimpleX (Sub Type t) (Sub Type t) (Sub Type t)
-
--- Specialized
-type instance Specialized Atom spec (ANTLayout l a n t) = ANTLayout l (Simplify (spec :> a)) n t
+import Luna.IR.Term.Layout.Ant
 
 
 
 
 
 
-type l <+> r = Merge l r
-type l :>> r = Specialized Atom l r
 
 
 
 
-type AtomicTerm atom layout = Term (Update Atom atom layout)
 
-
-
-type TermLayer   = Layer TERM
-type TermNet     = Net   TERM
-type TermLinkNet = Net   (LINK' TERM)
-
-type TermLayers ls = TermLayer <$> ls
-type Nets       ls = Net       <$> ls
-
-type family Accessibles m lst :: Constraint where
-    Accessibles m '[]       = ()
-    Accessibles m (l ': ls) = (Accessible l m, Accessibles m ls)
-
-
-
-star :: (IRMonad m, Accessible TermNet m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
-star = term Sym.uncheckedStar
-{-# INLINE star #-}
-
-unify :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet])
-      => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
-unify a b = mdo
-    n  <- term $ Sym.uncheckedUnify la lb
-    la <- link (unsafeGeneralize a) n
-    lb <- link (unsafeGeneralize b) n
-    return n
-{-# INLINE unify #-}
 
 
 
 type family   UnsafeGeneralizable a b :: Constraint
-
--- type instance UnsafeGeneralizable (Ref a) (Ref b) = UnsafeGeneralizable a b
 type instance UnsafeGeneralizable (Term l) (Term l') = ()
 
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
 unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
-type ANT' a n t = ANTLayout SimpleX a n t
 
 
 
-type AntTerm a n t = Term (ANT' a n t)
+
+type AntTerm a n t = Term (Ant' a n t)
 type UntyppedTerm a n = AntTerm a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
@@ -219,7 +150,7 @@ layouted = baseLayout @(DefaultLayout l)
 
 
 
-instance Generalize (Compound SimpleX lst) Draft
+instance Generalize (Compound Simple lst) Draft
 
 
 
@@ -237,61 +168,47 @@ magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE mag
 
 
 
-data MyData = MyData Int deriving (Show)
-
-
-data                    SimpleAA
-type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
-type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
-type instance Preserves SimpleAA = '[]
-
-pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
-pass1 = gen_pass1
-
-test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
-test_pass1 = runIRT $ do
-    runRegs
-
-    attachLayer (typeRep @Model) (typeRep @TERM)
-    attachLayer (typeRep @Succs) (typeRep @TERM)
-    attachLayer (typeRep @Type)  (typeRep @TERM)
-    attachLayer (typeRep @UID)   (typeRep @TERM)
-    setAttr $ MyData 7
-
-    Pass.eval pass1
-
-
-
-
-
-gen_pass1 :: ( MonadIO m, IRMonad m
-             , Accessibles m '[TermLayer Model, TermLayer Type, TermNet, TermLinkNet, Attr MyData]
-             ) => m ()
-gen_pass1 = layouted @ANT $ do
-    (s1 :: UntyppedTerm Star ()) <- star
-    (s2 :: UntyppedTerm Star ()) <- star
-    u1 <- unify s1 s2
-    print "hello"
-    d <- readLayer @Type u1
-    print d
-    md <- readAttr @MyData
-    print md
-    ts <- terms
-    print ts
-
-    match s1 $ \case
-        Unify l r -> print "ppp"
-        Star      -> match s1 $ \case
-            Unify l r -> print "hola"
-            Star      -> print "hellox"
-
+snapshot :: (IRMonad m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model, TermNet])
+         => P.String -> m ()
+snapshot title = do
+    ts  <- terms
+    vss <- mapM visNode2 ts
+    let vns = fst <$> vss
+        ves = join $ snd <$> vss
     return ()
+    -- Vis.addStep (fromString title) vns ves
 
+
+visNode2 :: (IRMonad m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model])
+         => Term' -> m (Vis.Node, [Vis.Edge])
+visNode2 t = do
+    euid   <- readLayer @UID   t
+    tpLink <- readLayer @Type  t
+    tpUid  <- readLayer @UID   tpLink
+    (l,r)  <- readLayer @Model tpLink
+    lUID   <- readLayer @UID   l
+    rUID   <- readLayer @UID   r
+    ins    <- symbolFields t
+    let header = fromString $ "foo" -- reprStyled HeaderOnly t
+        node   = Vis.Node (fromString "") euid euid (fromList [header])
+        tpVis  = if lUID == rUID then [] else [Vis.Edge (fromString "") tpUid tpUid lUID rUID (fromList [fromString "type"])]
+        mkEdge (i,l,r) = Vis.Edge (fromString "") i i l r mempty
+        getUIDs e = do
+            i      <- readLayer @UID   e
+            (l, r) <- readLayer @Model e
+            lUID   <- readLayer @UID   l
+            rUID   <- readLayer @UID   r
+            return (i, lUID, rUID)
+
+    uss <- mapM getUIDs ins
+
+    let edges = tpVis <> (mkEdge <$> uss)
+    return (node, edges)
 
 
 
 consTypeLayer :: IRMonad m
-              => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
+              => Store.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
 consTypeLayer ref self _ = do
     top  <- view (from magicStar) <$> localTop ref
     conn <- magicLink top self
@@ -299,20 +216,20 @@ consTypeLayer ref self _ = do
 
 
 localTop :: IRMonad m
-         => MV.STRefM m (Maybe MagicStar) -> m MagicStar
-localTop ref = MV.readSTRef ref >>= \case
+         => Store.STRefM m (Maybe MagicStar) -> m MagicStar
+localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
     Nothing -> mdo
-        MV.writeSTRef ref $ Just s
+        Store.writeSTRef ref $ Just s
         s <- newMagicStar
-        MV.writeSTRef ref Nothing
+        Store.writeSTRef ref Nothing
         return s
 
 
 -- TODO[WD]: dont allow here to use registerGenericLayer!
 --           maybe LayerConsPasses will help here?
 layerReg4 :: IRMonad m => m ()
-layerReg4 = registerElemLayer @TERM @Type . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
+layerReg4 = registerElemLayer @TERM @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
 
 
 
@@ -354,13 +271,82 @@ layerReg2 = registerGenericLayer @Succs $ \ _ _ -> return def
 
 
 
-consUIDLayer :: PrimMonad m => MV.STRefM m ID -> t -> Definition t -> m (LayerData UID t)
-consUIDLayer ref _ _ = MV.modifySTRef' ref (\i -> (i, succ i))
+consUIDLayer :: PrimMonad m => Store.STRefM m ID -> t -> Definition t -> m (LayerData UID t)
+consUIDLayer ref _ _ = Store.modifySTRef' ref (\i -> (i, succ i))
 
 layerReg3 :: IRMonad m => m ()
-layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (MV.newSTRef 0)
+layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef 0)
 
 
+
+
+
+
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+
+star :: (IRMonad m, Accessible TermNet m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
+star = term Sym.uncheckedStar
+{-# INLINE star #-}
+
+unify :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet])
+      => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
+unify a b = mdo
+    n  <- term $ Sym.uncheckedUnify la lb
+    la <- link (unsafeGeneralize a) n
+    lb <- link (unsafeGeneralize b) n
+    return n
+{-# INLINE unify #-}
+
+
+data MyData = MyData Int deriving (Show)
+
+
+data                    SimpleAA
+type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
+type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
+type instance Preserves SimpleAA = '[]
+
+pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
+pass1 = gen_pass1
+
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
+test_pass1 = runIRT $ do
+    runRegs
+
+    attachLayer (typeRep @Model) (typeRep @TERM)
+    attachLayer (typeRep @Succs) (typeRep @TERM)
+    attachLayer (typeRep @Type)  (typeRep @TERM)
+    attachLayer (typeRep @UID)   (typeRep @TERM)
+    setAttr $ MyData 7
+
+    Pass.eval pass1
+
+
+gen_pass1 :: ( MonadIO m, IRMonad m
+             , Accessibles m '[TermLayer Model, TermLayer Type, TermNet, TermLinkNet, Attr MyData]
+             ) => m ()
+gen_pass1 = layouted @ANT $ do
+    (s1 :: UntyppedTerm Star ()) <- star
+    (s2 :: UntyppedTerm Star ()) <- star
+    u1 <- unify s1 s2
+    print "hello"
+    d <- readLayer @Type u1
+    print d
+    md <- readAttr @MyData
+    print md
+    ts <- terms
+    print ts
+
+    match s1 $ \case
+        Unify l r -> print "ppp"
+        Star      -> match s1 $ \case
+            Unify l r -> print "hola"
+            Star      -> print "hellox"
+
+    return ()
 
 
 
@@ -370,213 +356,3 @@ main = do
     p <- test_pass1
     print p
     return ()
-
-
-
-
-
-
-
-
--- -- === Succs layer === --
---
--- data Succs = Succs deriving (Show)
---
--- -- FIXME[WD]: refactorme
--- type instance LayerData Succs a = S.Set (XYZ a)
--- type family XYZ a where XYZ (IR t a) = IR t (Ref (Universal a))
---
--- instance Monad m => LayerCons Succs m where
---     consLayer _ = return def ; {-# INLINE consLayer #-}
---
--- instance Monad m => Constructor a m (Layer expr Succs) where
---     cons _ = Layer <$> return def ; {-# INLINE cons #-}
---
---
--- instance ( IRMonad m
---          , IRReferables m
---          , HasLayerM  m ExprLink' Model
---          , HasLayersM m Expr' '[UID, Succs]
---          , Ord (IRM m (Ref (Expr Draft)))
---          , Eq  (IRM m (Ref (Expr Draft)))
---          )
---       => Handler Succs New (Ref ExprLink') m where
---     handle linkRef = do
---         (srcRef, tgtRef) <- select @Model =<< readx linkRef
---         modifyx srcRef $ with @Succs (S.insert tgtRef)
-
---
---
--- type Network3    = NEC.HGraph                '[Node, Edge, Cluster]
--- type MNetwork3 m = NEC.HMGraph  '[Node, Edge, Cluster] (PrimState m)
--- type MNetworkX   = NEC.HMGraph  '[Node, Edge, Cluster]
-
-
-
-
-
-        --
-        -- -- === Events handler === --
-        --
-        -- class    Monad m                     => ProxyHandler layer event a m where proxyHandle :: Proxy event -> a -> m ()
-        -- instance ReHandle layer event op a m => ProxyHandler layer event a m where proxyHandle _ = handle @layer @op ; {-# INLINE proxyHandle #-}
-        -- type     ReHandle layer event op a m = (event ~ op a, Handler layer op a m, Monad m)
-        --
-        -- class                         Monad m => Handler layer (op :: * -> *) a m where handle :: a -> m ()
-        -- instance {-# OVERLAPPABLE #-} Monad m => Handler layer op             a m where handle _ = return () ; {-# INLINE handle #-}
-        --
-        --
-        -- -- === Atomatic listeners discovery === --
-        --
-        -- type family Listeners ls m where
-        --     Listeners '[]       m = m
-        --     Listeners (l ': ls) m = AnyListener (ProxyHandler l) (Listeners ls m)
-        --
-        -- instance (Monad (Listeners ls m), EventsHandler ls m)
-        --       => EventsHandler (l ': ls) m where handleEvents = handleEvents @ls . listenAny @(ProxyHandler l) (proxyHandle @l) ; {-# INLINE handleEvents #-}
-        -- instance EventsHandler '[]       m where handleEvents = id ; {-# INLINE handleEvents #-}
-        -- class    EventsHandler ls        m where handleEvents :: Listeners ls m a -> m a
-        --
-        -- type LayerListeners     m = Listeners     (AllLayers (Cfg m)) m
-        -- type LayerEventsHandler m = EventsHandler (AllLayers (Cfg m)) m
-        --
-        -- handleLayerEvents :: forall m a. LayerEventsHandler m => LayerListeners m a -> m a
-        -- handleLayerEvents = handleEvents @(AllLayers (Cfg m))
-
-
-
--- test_g4 :: (MonadIO m, PrimMonad m, MonadFix m)
---         => m ()
--- test_g4 = flip (D.evalT UID) (0 :: Int64) $ do
---         (_, vis) <- Vis.newRunDiffT $ do
---             (exprRef, g) <- runNewGraphT $ runNetBuilder test_gr2
---             return ()
---         let cfg = ByteString.unpack $ encode $ vis
---         putStrLn cfg
---         liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
---         return ()
---
---         -- star :: (ExprBuilder2 m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
-
-
-
-
-
-
---
--- test_gr2 :: ( ASGBuilder (Layouted ANT m)
---             , HasLayerM  m ExprLink' UID
---             , HasLayersM m Expr'     '[Type, UID]
---             , IRShow m (UntyppedExpr Star ())
---             , MonadVis m
---             , MonadIO m
---
---             , IRMonad m
---             , PrimState (GetIRMonad m) ~ PrimState m -- FIXME
---             , PrimMonad m -- FIXME
---             )
---          => m (Ref (UntyppedExpr Star ()))
--- test_gr2 =  layouted @ANT $ do
---     registerElem  @TERM
---     registerLayer @Model
---     attachLayer   modelRep exprRep
---
---     (sx1 :: UntyppedTerm Star ()) <- star
---     (sx2 :: UntyppedTerm Star ()) <- star
---     -- Just (data_ :: Key m RW TERM Model) <- lookupKey exprRep modelRep
---     Just (data_ :: LayerKey RW TERM Model) <- uncheckedLookupKey
---     print sx1
---     print sx2
---     print =<< readKey data_ sx1
---     (s1 :: Ref (UntyppedExpr Star            ())) <- star
---     snapshot "s1"
---     (s2 :: Ref (UntyppedExpr Star            ())) <- star
---     snapshot "s2"
---     (u1 :: Ref (UntyppedExpr (Unify :> Star) ())) <- unify s1 s2
---     snapshot "s3"
---     u2 <- unify s1 u1
---     snapshot "s4"
---     u3 <- unify s2 u1
---     snapshot "s5"
---     u4 <- unify u2 u3
---     snapshot "s6"
---
---     t <- readx s1
---     s1' <- IR.mark' t
---     -- Just dkey <- askKey @'RW @Expr' @Model
---     print "!!!!!!!!----"
---     -- print (unwrap' dkey)
---     d <- select @Model t
---     print s1'
---
---     matchM t $ \case
---         Unify l r -> print "ppp"
---         Star      -> matchM t $ \case
---             Unify l r -> print "hola"
---             Star      -> print "hellox"
---
---
---     return s1
---
--- -- matchy :: IRMonad m => a -> f -> m (IRM m a)
--- -- matchy t f = IR.mark' t
--- -- matchy t f = IR.mark' t >>= (exprUniSymbol . f)
---
--- matchy :: HasLayer t Expr' Model => (IR t (Expr layout)) -> (Unwrapped (TermUniSymbol (Expr layout)) -> b) -> b
--- matchy a f = f $ unwrap' (exprUniSymbol a)
---
--- matchM :: (HasLayerM m Expr' Model, IRMonad m) => Expr layout -> (Unwrapped (TermUniSymbol (Expr layout)) -> m b) -> m b
--- matchM a f = mark' a >>= flip matchy f
---
---
--- snapshot :: Vis m => P.String -> m()
--- snapshot title = do
---     res <- exprs
---     es  <- mapM readx res
---     vss <- mapM visNode2 es
---     let vns = fst <$> vss
---         ves = join $ snd <$> vss
---     Vis.addStep (fromString title) vns ves
---
---
---
---
--- type Vis m = ( ASGBuilder m
---              , MonadVis m
---              , HasLayersM m Expr'     '[UID, Type]
---              , HasLayerM  m ExprLink' UID
---              )
--- visNode2 :: Vis m => Expr' -> m (Vis.Node, [Vis.Edge])
--- visNode2 expr = do
---     mexpr  <- mark' expr
---     euid   <- select @UID expr
---     tpRef  <- select @Type expr
---     tpLink <- readx tpRef
---     tpUid  <- select @UID  tpLink
---     (l,r)  <- select @Model tpLink
---
---     ln     <- readx l
---     rn     <- readx r
---     -- --
---     lnUID <- select @UID ln
---     rnUID <- select @UID rn
---
---     let header = fromString $ reprStyled HeaderOnly mexpr
---         node   = Vis.Node (fromString "") euid euid (fromList [header])
---         ins    = symbolFields mexpr
---         tpVis  = if lnUID == rnUID then [] else [Vis.Edge (fromString "") tpUid tpUid lnUID rnUID (fromList [fromString "type"])]
---         mkEdge (i,l,r) = Vis.Edge (fromString "") i i l r mempty
---         getUIDs re = do
---             e      <- readx re
---             i      <- select @UID  e
---             (l, r) <- select @Model e
---             ln     <- readx l
---             rn     <- readx r
---             lnUID  <- select @UID ln
---             rnUID  <- select @UID rn
---             return (i, lnUID, rnUID)
---
---     uss <- mapM getUIDs ins
---
---     let edges = tpVis <> (mkEdge <$> uss)
---     return (node, edges)

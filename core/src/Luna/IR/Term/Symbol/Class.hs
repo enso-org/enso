@@ -82,9 +82,6 @@ type instance Update Layout layout (Symbol atom _     ) = (Symbol atom layout)
 
 type instance Access Format        (Symbol atom _     ) = Access Format atom
 
--- instance Phantom atom => Accessor Atom     (Symbol atom layout) where access _ = phantom
-
-
 
 -- Repr
 

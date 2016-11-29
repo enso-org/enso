@@ -1,4 +1,4 @@
-module Data.ManagedVectorMap where
+module Luna.IR.Internal.LayerStore where
 
 import Prelude
 import Data.Default
@@ -15,6 +15,8 @@ import           Data.Map            (Map)
 import qualified Data.Map            as Map
 import           Data.List           (sort)
 
+
+-- FIXME[WD]: refactor vvv
 -- === Utils === --
 
 type STRefM m = STRef (PrimState m)
@@ -99,28 +101,28 @@ instance Show (VectorRef s a) where show _ = "VectorRef"
 
 
 ------------------------------
--- === ManagedVectorMap === --
+-- === LayerStore === --
 ------------------------------
 
 -- === Definition === --
 
-type Idx       = Int
+type Idx = Int
 
-type ManagedVectorMapM m     = ManagedVectorMap (PrimState m)
-data ManagedVectorMap  s k a = ManagedVectorMap { _size :: !Int
-                                                , _free :: ![Idx]
-                                                , _vec  :: !(Map k (VectorRef s a))
-                                                } deriving (Show)
+type LayerStoreM m     = LayerStore (PrimState m)
+data LayerStore  s k a = LayerStore { _size :: !Int
+                                    , _free :: ![Idx]
+                                    , _vec  :: !(Map k (VectorRef s a))
+                                    } deriving (Show)
 
-makeLenses  ''ManagedVectorMap
+makeLenses ''LayerStore
 
 
 -- === Construction === --
 
-instance Default (ManagedVectorMap s k a) where
-    def = ManagedVectorMap 0 def def ; {-# INLINE def #-}
+instance Default (LayerStore s k a) where
+    def = LayerStore 0 def def ; {-# INLINE def #-}
 
-autoGrow :: PrimMonad m => ManagedVectorMapM m k a -> m (Idx, ManagedVectorMapM m k a)
+autoGrow :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
 autoGrow m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
     size' = m ^. size
     grow  = if size' == 0 then 1 else size'
@@ -129,25 +131,25 @@ autoGrow m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
 {-# INLINE autoGrow #-}
 
 -- | If realocation is not needed, performs in O(1).
-reserveIdx :: PrimMonad m => ManagedVectorMapM m k a -> m (Idx, ManagedVectorMapM m k a)
+reserveIdx :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
 reserveIdx m = case m ^. free of
     (i : is) -> return (i, m & free .~ is)
     []       -> autoGrow m
 {-# INLINE reserveIdx #-}
 
 -- | Doesn't initialize created vector.
-unsafeAddKey :: (PrimMonad m, Ord k) => k -> ManagedVectorMapM m k a -> m (ManagedVectorMapM m k a)
+unsafeAddKey :: (PrimMonad m, Ord k) => k -> LayerStoreM m k a -> m (LayerStoreM m k a)
 unsafeAddKey k m = do
     v <- newVectorRef
     return $ m & vec . at k ?~ v
 {-# INLINE unsafeAddKey #-}
 
-keys :: ManagedVectorMap s k a -> [k]
+keys :: LayerStore s k a -> [k]
 keys = Map.keys . view vec ; {-# INLINE keys #-}
 
 -- | Used index access performs in approx. O(n (log n))
 --   in order to make allocating and freeing indexes as fast as possible.
-ixes :: ManagedVectorMap s k a -> [Int]
+ixes :: LayerStore s k a -> [Int]
 ixes m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
     findIxes (i : is) (f : fs) = if i == f then findIxes is fs else i : findIxes is (f : fs)
     findIxes is       []       = is
@@ -155,30 +157,20 @@ ixes m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
     {-# INLINE findIxes #-}
 {-# INLINE ixes #-}
 
-assocs :: ManagedVectorMap s k a -> [(k, VectorRef s a)]
+assocs :: LayerStore s k a -> [(k, VectorRef s a)]
 assocs = Map.assocs . view vec ; {-# INLINE assocs #-}
 
-mapWithKey :: (k -> VectorRef s a -> VectorRef s b) -> ManagedVectorMap s k a -> ManagedVectorMap s k b
+mapWithKey :: (k -> VectorRef s a -> VectorRef s b) -> LayerStore s k a -> LayerStore s k b
 mapWithKey f = vec %~ Map.mapWithKey f ; {-# INLINE mapWithKey #-}
 
-traverseWithKey :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> ManagedVectorMap s k a -> m (ManagedVectorMap s k b)
+traverseWithKey :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> LayerStore s k a -> m (LayerStore s k b)
 traverseWithKey = vec . Map.traverseWithKey ; {-# INLINE traverseWithKey #-}
-
---
--- add :: PrimMonad m => ManagedVectorMapM m a -> a -> m Idx
--- add mv a = flip withMeasuredVectorMapM mv $ \v -> do
---     (idx, nv) <- getNewIdx v
---     unsafeWrite nv idx a
---     return (idx, nv)
--- {-# INLINE add #-}
---
-
 
 
 -- === Instances === --
 
 -- Ixed
-type instance     IxValue (ManagedVectorMap s k a) = VectorRef s a
-type instance     Index   (ManagedVectorMap s k a) = k
-instance Ord k => Ixed    (ManagedVectorMap s k a) where
+type instance     IxValue (LayerStore s k a) = VectorRef s a
+type instance     Index   (LayerStore s k a) = k
+instance Ord k => Ixed    (LayerStore s k a) where
     ix = vec .: ix ; {-# INLINE ix #-}

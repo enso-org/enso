@@ -15,6 +15,7 @@ import           Data.Map         (Map)
 import qualified Data.Map         as Map
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
+import           Luna.IR.Layer.UID (ID)
 
 import           Control.Monad.State.Dependent.Old (MonadState, StateT, modify_)
 import qualified Control.Monad.State.Dependent.Old as State
@@ -30,7 +31,6 @@ import GHC.Generics     (Rep)
 -----------------------------------
 
 type Name   = Text
-type ID     = Int64
 type NodeID = ID
 type EdgeID = ID
 type Style  = Text

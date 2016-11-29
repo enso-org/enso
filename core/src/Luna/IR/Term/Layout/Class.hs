@@ -36,16 +36,22 @@ type family DefaultLayout (p :: k)
 
 -- === Scoping === --
 
-type family Merge     a b
-type family Simplify  l
-type family Universal a
-type family Abstract  a
+type family Merge       a b
+type family Simplify    l
+type family Universal   a
+type family Abstract    a
+type family Specialized t spec layout
+
 
 class                         Generalize a b
 instance {-# OVERLAPPABLE #-} Generalize a a
 
 
 -- === Utils === --
+
+type l <+> r = Merge l r
+type l :>> r = Specialized Atom l r
+
 
 type GeneralizableError a b = Sentence
                             ( 'Text  "Cannot generalize"
