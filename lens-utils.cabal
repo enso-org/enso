@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:           lens-utils
-version:        1.2.2
+version:        1.2.3
 synopsis:       Collection of missing lens utilities.
 category:       Text
 stability:      stable
