@@ -3,8 +3,9 @@ module Data.Coerced (
     , unsafeCoerced
     ) where
 
-import Control.Lens (Iso', iso, coerced)
+import Control.Lens  (Iso', Iso, iso)
 import Unsafe.Coerce (unsafeCoerce)
+import Data.Coerce   (Coercible, coerce)
 
 
 -- safe
