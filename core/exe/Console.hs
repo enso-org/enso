@@ -166,11 +166,24 @@ type AtomicTerm atom layout = Term (Update Atom atom layout)
 
 
 
-star :: (IRMonad m, Accessible (Net TERM) m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
+type TermLayer   = Layer TERM
+type TermNet     = Net   TERM
+type TermLinkNet = Net   (LINK' TERM)
+
+type TermLayers ls = TermLayer <$> ls
+type Nets       ls = Net       <$> ls
+
+type family Accessibles m lst :: Constraint where
+    Accessibles m '[]       = ()
+    Accessibles m (l ': ls) = (Accessible l m, Accessibles m ls)
+
+
+
+star :: (IRMonad m, Accessible TermNet m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
 star = term Sym.uncheckedStar
 {-# INLINE star #-}
 
-unify :: (IRMonad m, Accessible (Net TERM) m, Accessible (Net (LINK' TERM)) m)
+unify :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet])
       => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
 unify a b = mdo
     n  <- term $ Sym.uncheckedUnify la lb
@@ -223,20 +236,13 @@ magicStar :: Iso' (Term l) MagicStar
 magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
 
 
-type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
 
+data MyData = MyData Int deriving (Show)
 
-
-type TermLayer   = Layer TERM
-type TermNet     = Net   TERM
-type TermLinkNet = Net   (LINK' TERM)
-
-type TermLayers ls = TermLayer <$> ls
-type Nets       ls = Net       <$> ls
 
 data                    SimpleAA
-type instance Inputs    SimpleAA = '[TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
-type instance Outputs   SimpleAA = '[TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
+type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
+type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
@@ -250,17 +256,16 @@ test_pass1 = runIRT $ do
     attachLayer (typeRep @Succs) (typeRep @TERM)
     attachLayer (typeRep @Type)  (typeRep @TERM)
     attachLayer (typeRep @UID)   (typeRep @TERM)
+    setAttr $ MyData 7
 
     Pass.eval pass1
 
 
 
-type family Accessibles m lst :: Constraint where
-    Accessibles m '[]       = ()
-    Accessibles m (l ': ls) = (Accessible l m, Accessibles m ls)
+
 
 gen_pass1 :: ( MonadIO m, IRMonad m
-             , Accessibles m '[TermLayer Model, TermLayer Type, TermNet, TermLinkNet]
+             , Accessibles m '[TermLayer Model, TermLayer Type, TermNet, TermLinkNet, Attr MyData]
              ) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedTerm Star ()) <- star
@@ -269,6 +274,8 @@ gen_pass1 = layouted @ANT $ do
     print "hello"
     d <- readLayer @Type u1
     print d
+    md <- readAttr @MyData
+    print md
 
     match s1 $ \case
         Unify l r -> print "ppp"

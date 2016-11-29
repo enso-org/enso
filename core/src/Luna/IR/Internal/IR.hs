@@ -286,6 +286,8 @@ unsafeReadLayer k = unsafeReadLayerST (unsafeeFromKeyData $ unwrap' k) ; {-# INL
 readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
 readLayer t = flip unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
 
+readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m a
+readAttr = unwrap' . unsafeeFromKeyData . unwrap' <$> getKey @(Attr a) ; {-# INLINE readAttr #-} -- FIXME[WD]: make it less hacky
 
 
 -- === Registration === --
@@ -311,7 +313,8 @@ attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m
 attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ MV.unsafeAddKey l)
 {-# INLINE attachLayer #-}
 
-
+setAttr :: forall a m. (IRMonad m, Typeable a) => a -> m ()
+setAttr a = modifyIRState_ $ attrs %~ Map.insert (typeRep @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
 
 ----------------------
 -- === IRMonad === ---
@@ -382,6 +385,7 @@ instance PrimMonad m => PrimMonad (IRT m) where
 
 type instance KeyTargetST m (Layer _ _) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
 type instance KeyTargetST m (Net   _)   = ElemStore     (GetIRMonad m)
+type instance KeyTargetST m (Attr  a)   = a
 
 
 -- === Aliases === --
@@ -399,8 +403,11 @@ type AttrKey  a    = Key (Attr  a)
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
     uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e) . layerValues . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
 
-instance (IRMonad m, Typeable e) => KeyMonad (Net e) m where
-    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
+instance (IRMonad m, Typeable a) => KeyMonad (Net a) m where
+    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @a))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
+
+instance (IRMonad m, Typeable a) => KeyMonad (Attr a) m where
+    uncheckedLookupKeyDataST = fmap unsafeCoerce . (^? (attrs . ix (typeRep @a))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
 
 
 

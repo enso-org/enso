@@ -50,6 +50,6 @@ extra-deps:
     - typelevel-1.0.3
 
 ghc-options:
-    "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0
+    "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100
 
 local-bin-path: ./bin
