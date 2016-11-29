@@ -13,7 +13,7 @@ import qualified Data.Vector         as V
 import           Data.Vector         (unsafeThaw)
 import           Data.Map            (Map)
 import qualified Data.Map            as Map
-
+import           Data.List           (sort)
 
 -- === Utils === --
 
@@ -128,20 +128,32 @@ autoGrow m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
               & free .~ [size' + 1 .. size' + grow - 1]
 {-# INLINE autoGrow #-}
 
+-- | If realocation is not needed, performs in O(1).
 reserveIdx :: PrimMonad m => ManagedVectorMapM m k a -> m (Idx, ManagedVectorMapM m k a)
 reserveIdx m = case m ^. free of
     (i : is) -> return (i, m & free .~ is)
     []       -> autoGrow m
 {-# INLINE reserveIdx #-}
 
--- | unsafeAddKey doesn't create missing fields
+-- | Doesn't initialize created vector.
 unsafeAddKey :: (PrimMonad m, Ord k) => k -> ManagedVectorMapM m k a -> m (ManagedVectorMapM m k a)
 unsafeAddKey k m = do
     v <- newVectorRef
     return $ m & vec . at k ?~ v
+{-# INLINE unsafeAddKey #-}
 
 keys :: ManagedVectorMap s k a -> [k]
 keys = Map.keys . view vec ; {-# INLINE keys #-}
+
+-- | Used index access performs in approx. O(n (log n))
+--   in order to make allocating and freeing indexes as fast as possible.
+ixes :: ManagedVectorMap s k a -> [Int]
+ixes m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
+    findIxes (i : is) (f : fs) = if i == f then findIxes is fs else i : findIxes is (f : fs)
+    findIxes is       []       = is
+    findIxes []       _        = []
+    {-# INLINE findIxes #-}
+{-# INLINE ixes #-}
 
 assocs :: ManagedVectorMap s k a -> [(k, VectorRef s a)]
 assocs = Map.assocs . view vec ; {-# INLINE assocs #-}

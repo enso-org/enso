@@ -209,6 +209,10 @@ modifyElemM :: Functor m => ElemRep -> (ElemStore m -> m (ElemStore m)) -> IRSta
 modifyElem  e f = elems %~ Map.insertWith (const f) e (f def) ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ fmap Just . f . fromMaybe def    ; {-# INLINE modifyElemM #-}
 
+-- | The type `t` is not validated in any way, it is just constructed from index.
+uncheckedElems :: forall t m. (IRMonad m, IsElem t, Readable (Net (Abstract t)) m) => m [t]
+uncheckedElems = fmap (view (from $ elem . idx)) . MV.ixes <$> readNet @(Abstract t) ; {-# INLINE uncheckedElems #-}
+
 
 -- === Querying === --
 
@@ -561,6 +565,9 @@ term :: forall atom layout m. (SymbolEncoder atom, IRMonad m, Accessible (Net TE
      => TermSymbol atom (Term layout) -> m (Term layout)
 term a = newElem (encodeSymbol a) ; {-# INLINE term #-}
 
+terms :: (IRMonad m, Readable (Net TERM) m) => m [Term Draft]
+terms = uncheckedElems ; {-# INLINE terms #-}
+
 -- | Term pattern matching utility
 match :: (IRMonad m, Readable (Layer TERM Model) m)
       => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m a) -> m a
@@ -577,9 +584,11 @@ instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
 
 -- === Instances === --
 
-instance      IsElem    (Term l)
 type instance Universal (Term _) = Term'
 type instance Sub s     (Term l) = Term (Sub s l)
+instance      IsElem    (Term l)
+instance      IsIdx     (Term l) where
+    idx = elem . idx ; {-# INLINE idx #-}
 
 
 -- === Symbol mapping === --

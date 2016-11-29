@@ -17,7 +17,7 @@
 module Main where
 
 
-import Prologue            hiding (typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
+import Prologue            hiding (elem, typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
 import           Control.Monad.Event     as Event
@@ -276,6 +276,8 @@ gen_pass1 = layouted @ANT $ do
     print d
     md <- readAttr @MyData
     print md
+    ts <- terms
+    print ts
 
     match s1 $ \case
         Unify l r -> print "ppp"
@@ -286,8 +288,7 @@ gen_pass1 = layouted @ANT $ do
     return ()
 
 
--- terms :: IRMonad m => m (Term Draft)
--- terms =
+
 
 consTypeLayer :: IRMonad m
               => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
