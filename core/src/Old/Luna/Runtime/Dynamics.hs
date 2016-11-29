@@ -3,7 +3,7 @@
 module Old.Luna.Runtime.Dynamics where
 
 import Prologue
-
+import Data.Convert.Type
 
 
 -------------------
