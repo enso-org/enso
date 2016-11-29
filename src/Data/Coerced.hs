@@ -1,8 +1,10 @@
-module Data.Coerced where
+module Data.Coerced (
+      coerced
+    , unsafeCoerced
+    ) where
 
-import Control.Lens
+import Control.Lens (Iso', iso, coerced)
 import Unsafe.Coerce (unsafeCoerce)
-import Data.Coerce   (coerce, Coercible)
 
 
 -- safe

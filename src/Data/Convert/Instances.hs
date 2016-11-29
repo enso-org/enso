@@ -1,7 +1,9 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Data.Convert.Instances () where
 
-import Data.Convert.Instances.Base    ()
-import Data.Convert.Instances.Map     ()
-import Data.Convert.Instances.Num     ()
-import Data.Convert.Instances.Text    ()
-import Data.Convert.Instances.TH      ()
+import Data.Convert.Base
+import Data.Convert.Bound
+
+
+genConversions numConversions
