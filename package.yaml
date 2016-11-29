@@ -21,4 +21,4 @@ synopsis: Set of data and type definitions of impossible types. Impossible types
   useful when declaring type classes / type families instances that should not be
   expanded by GHC until a specific type is provided in order to keep the types nice
   and readable.
-version: 1.0.3
+version: 1.0.4
