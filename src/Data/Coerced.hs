@@ -9,5 +9,5 @@ import Data.Coerce   (coerce, Coercible)
 coerced :: Coercible a b => Iso' a b
 coerced = iso coerce coerce ; {-# INLINE coerced #-}
 
-unsafeCoerced :: Iso' a b
+unsafeCoerced :: Iso s t a b
 unsafeCoerced = iso unsafeCoerce unsafeCoerce ; {-# INLINE unsafeCoerced #-}

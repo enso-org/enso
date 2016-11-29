@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:           convert
-version:        1.0.5
+version:        1.0.6
 synopsis:       Safe and unsafe data conversion utilities with strong type-level operation. checking.
 category:       Data
 stability:      experimental
