@@ -105,7 +105,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 
 import qualified Luna.Pass.Class as Pass
-import Luna.Pass.Class (Keys, Preserves, Pass, Elements, Inputs, Outputs)
+import Luna.Pass.Class (Keys, Preserves, Pass, Inputs, Outputs)
 import Luna.IR.Layer.UID (UID, ID)
 import qualified Luna.IR.Layer.UID as UID
 import Luna.IR.Layer.Succs
@@ -227,10 +227,16 @@ type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
 
 
 
+type TermLayer   = Layer TERM
+type TermNet     = Net   TERM
+type TermLinkNet = Net   (LINK' TERM)
+
+type TermLayers ls = TermLayer <$> ls
+type Nets       ls = Net       <$> ls
+
 data                    SimpleAA
-type instance Elements  SimpleAA = '[TERM, Link' TERM]
-type instance Inputs    SimpleAA = '[Net TERM, Net (LINK' TERM), Layer TERM Model, Layer TERM UID, Layer TERM Type]
-type instance Outputs   SimpleAA = '[Net TERM, Net (LINK' TERM), Layer TERM Model, Layer TERM UID, Layer TERM Type]
+type instance Inputs    SimpleAA = '[TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
+type instance Outputs   SimpleAA = '[TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
@@ -247,9 +253,7 @@ test_pass1 = runIRT $ do
 
     Pass.eval pass1
 
-type TermLayer   = Layer TERM
-type TermNet     = Net   TERM
-type TermLinkNet = Net   (LINK' TERM)
+
 
 type family Accessibles m lst :: Constraint where
     Accessibles m '[]       = ()

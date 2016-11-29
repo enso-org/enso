@@ -51,7 +51,6 @@ head = wrapped . List.head ; {-# INLINE head #-}
 
 type family Inputs    pass :: [*]
 type family Outputs   pass :: [*]
-type family Elements  pass :: [*]
 type family Preserves pass :: [*]
 
 
