@@ -23,4 +23,4 @@ stability: experimental
 synopsis: Recursive tuple data structure. It is very usefull when implementing some
   lo-level operations, allowing to traverse different elements using Haskell's type
   classes.
-version: 1.1.8
+version: 1.1.9
