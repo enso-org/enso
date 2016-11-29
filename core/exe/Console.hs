@@ -166,11 +166,12 @@ type AtomicTerm atom layout = Term (Update Atom atom layout)
 
 
 
-star :: (IRMonad m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
+star :: (IRMonad m, Accessible (Net TERM) m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
 star = term Sym.uncheckedStar
 {-# INLINE star #-}
 
-unify :: IRMonad m => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
+unify :: (IRMonad m, Accessible (Net TERM) m, Accessible (Net (LINK' TERM)) m)
+      => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
 unify a b = mdo
     n  <- term $ Sym.uncheckedUnify la lb
     la <- link (unsafeGeneralize a) n
@@ -216,7 +217,7 @@ newtype MagicStar = MagicStar Term'
 makeWrapped ''MagicStar
 
 newMagicStar :: IRMonad m => m MagicStar
-newMagicStar = wrap' <$> term Sym.uncheckedStar ; {-# INLINE newMagicStar #-}
+newMagicStar = wrap' <$> magicTerm Sym.uncheckedStar ; {-# INLINE newMagicStar #-}
 
 magicStar :: Iso' (Term l) MagicStar
 magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
@@ -228,8 +229,8 @@ type instance KeyTargetST m (Attr MagicStar) = Maybe MagicStar
 
 data                    SimpleAA
 type instance Elements  SimpleAA = '[TERM, Link' TERM]
-type instance Inputs    SimpleAA = '[Layer TERM Model, Layer TERM UID, Layer TERM Type]
-type instance Outputs   SimpleAA = '[Layer TERM Model, Layer TERM UID, Layer TERM Type]
+type instance Inputs    SimpleAA = '[Net TERM, Net (LINK' TERM), Layer TERM Model, Layer TERM UID, Layer TERM Type]
+type instance Outputs   SimpleAA = '[Net TERM, Net (LINK' TERM), Layer TERM Model, Layer TERM UID, Layer TERM Type]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
@@ -246,8 +247,17 @@ test_pass1 = runIRT $ do
 
     Pass.eval pass1
 
+type TermLayer   = Layer TERM
+type TermNet     = Net   TERM
+type TermLinkNet = Net   (LINK' TERM)
 
-gen_pass1 :: (MonadIO m, IRMonad m, Readable (Layer TERM Model) m, Readable (Layer TERM Type) m) => m ()
+type family Accessibles m lst :: Constraint where
+    Accessibles m '[]       = ()
+    Accessibles m (l ': ls) = (Accessible l m, Accessibles m ls)
+
+gen_pass1 :: ( MonadIO m, IRMonad m
+             , Accessibles m '[TermLayer Model, TermLayer Type, TermNet, TermLinkNet]
+             ) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: UntyppedTerm Star ()) <- star
     (s2 :: UntyppedTerm Star ()) <- star
@@ -270,7 +280,7 @@ consTypeLayer :: IRMonad m
               => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
 consTypeLayer ref self _ = do
     top  <- view (from magicStar) <$> localTop ref
-    conn <- link top self
+    conn <- magicLink top self
     return conn
 
 
