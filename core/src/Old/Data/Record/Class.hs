@@ -490,12 +490,12 @@ runMatches :: rrr -> MatchSet rrr s -> Maybe s
 runMatches = maybeHead ∘∘ matchedOptions ; {-# INLINE runMatches #-}
 
 -- TODO [WD]: Add TH case' interface
-__case__ lib file loc = fromJustNote err ∘∘ runMatches where
-    err = lib <> ": " <> file <> ":" <> show loc <> ": Non-exhaustive patterns in case"
+__case__ = fromJustNote err ∘∘ runMatches where
+    err = "caseTest: non-exhaustive pattern, run with --trace stack option to see full stack trace"
 {-# INLINE __case__ #-}
 
 -- FIXME [WD]: Remove caseTest
-caseTest = __case__ "tc-test" "test/Main.hs" 0
+caseTest = __case__
 {-# INLINE caseTest #-}
 
 
