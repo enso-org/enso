@@ -286,6 +286,8 @@ gen_pass1 = layouted @ANT $ do
     return ()
 
 
+terms :: IRMonad m => m (Term Draft)
+terms =
 
 consTypeLayer :: IRMonad m
               => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
@@ -306,6 +308,8 @@ localTop ref = MV.readSTRef ref >>= \case
         return s
 
 
+-- TODO[WD]: dont allow here to use registerGenericLayer!
+--           maybe LayerConsPasses will help here?
 layerReg4 :: IRMonad m => m ()
 layerReg4 = registerElemLayer @TERM @Type . consTypeLayer =<< runInIR (MV.newSTRef Nothing)
 

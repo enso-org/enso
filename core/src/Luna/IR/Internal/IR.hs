@@ -129,11 +129,11 @@ instance {-# OVERLAPPABLE #-} SubWritable k t m => Writable k (t m) where putKey
 type SubWritable k t m = (Writable k m, MonadTrans t, Monad (t m))
 
 
-read :: forall k m. Readable k m => m (KeyTargetST m k)
-read = unpackKey =<< getKey @k ; {-# INLINE read #-}
+readComp :: forall k m. Readable k m => m (KeyTargetST m k)
+readComp = unpackKey =<< getKey @k ; {-# INLINE readComp #-}
 
-write :: forall k m. Writable k m => KeyTargetST m k -> m ()
-write = putKey @k <=< packKey ; {-# INLINE write #-}
+writeComp :: forall k m. Writable k m => KeyTargetST m k -> m ()
+writeComp = putKey @k <=< packKey ; {-# INLINE writeComp #-}
 
 
 -- === Errors === --
@@ -260,7 +260,7 @@ newElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsElem t, Ty
 newElem tdef = do
     irstate    <- getIRState
     newIdx     <- reserveNewElemIdx @t
-    layerStore <- view layerValues <$> read @(Net (Abstract t))
+    layerStore <- view layerValues <$> readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
         consLayer (layer, store) = runInIR $ do
             let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
@@ -272,9 +272,9 @@ newElem tdef = do
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = do
-    elemStore <- read @(Net (Abstract t))
+    elemStore <- readComp @(Net (Abstract t))
     (i, layerStore) <- runInIR $ MV.reserveIdx (elemStore ^. layerValues)
-    write @(Net (Abstract t)) $ elemStore & layerValues .~ layerStore
+    writeComp @(Net (Abstract t)) $ elemStore & layerValues .~ layerStore
     return i
 
 unsafeReadLayerST :: (IRMonad m, IsElem t) => KeyDataST m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
@@ -288,6 +288,9 @@ readLayer t = flip unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
 
 readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m a
 readAttr = unwrap' . unsafeeFromKeyData . unwrap' <$> getKey @(Attr a) ; {-# INLINE readAttr #-} -- FIXME[WD]: make it less hacky
+
+readNet :: forall a m. (IRMonad m, Readable (Net a) m) => m (ElemStore (GetIRMonad m))
+readNet = unwrap' . unsafeeFromKeyData . unwrap' <$> getKey @(Net a) ; {-# INLINE readNet #-} -- FIXME[WD]: make it less hacky
 
 
 -- === Registration === --

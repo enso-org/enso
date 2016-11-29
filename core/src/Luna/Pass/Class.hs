@@ -56,8 +56,8 @@ type family Preserves pass :: [*]
 
 -- === Data declarations ===
 
-type    Pass  pass m   = PassT pass m ()
-newtype PassT pass m a = PassT (StateT (State pass) m a)
+type    Pass    pass m   = SubPass pass m ()
+newtype SubPass pass m a = SubPass (StateT (State pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, MonadTrans, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
@@ -69,18 +69,18 @@ type State    pass = KeyList (KeyTypes pass)
 
 type        GetState m = State (GetPass m)
 type family GetPass  m where
-    GetPass (PassT pass m) = pass
+    GetPass (SubPass pass m) = pass
     GetPass (t m)          = GetPass m
 
-makeWrapped ''PassT
+makeWrapped ''SubPass
 
 
 -- === Utils ===
 
-initPass :: (LookupKeys n (Keys pass), Monad m) => PassT pass m a -> n (Either Err (m a))
+initPass :: (LookupKeys n (Keys pass), Monad m) => SubPass pass m a -> n (Either Err (m a))
 initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupKeys ; {-# INLINE initPass #-}
 
-eval :: LookupKeys m (Keys pass) => PassT pass m a -> m (Either Err a)
+eval :: LookupKeys m (Keys pass) => SubPass pass m a -> m (Either Err a)
 eval = join . fmap sequence . initPass ; {-# INLINE eval #-}
 
 
@@ -108,7 +108,7 @@ class Monad m => MonadPass m where
     get :: m (GetState m)
     put :: GetState m -> m ()
 
-instance Monad m => MonadPass (PassT pass m) where
+instance Monad m => MonadPass (SubPass pass m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
 
@@ -148,14 +148,14 @@ with f m = do
 
 -- Transformats
 
-instance State.MonadState s m => State.MonadState s (PassT pass m) where
+instance State.MonadState s m => State.MonadState s (SubPass pass m) where
     get = wrap' $ lift   State.get ; {-# INLINE get #-}
     put = wrap' . lift . State.put ; {-# INLINE put #-}
 
 -- Primitive
 
-instance PrimMonad m => PrimMonad (PassT pass m) where
-    type PrimState (PassT pass m) = PrimState m
+instance PrimMonad m => PrimMonad (SubPass pass m) where
+    type PrimState (SubPass pass m) = PrimState m
     primitive = lift . primitive
     {-# INLINE primitive #-}
 
@@ -167,13 +167,13 @@ instance PrimMonad m => PrimMonad (PassT pass m) where
 instance ( Monad m
          , ContainsKey k (Keys pass)
          , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Readable k (PassT pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
+      => Readable k (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
 
 -- Writable
 instance ( Monad m
          , ContainsKey k (Keys pass)
          , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Writable k (PassT pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
+      => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
 
 
 -- === ContainsKey === --
