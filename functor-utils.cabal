@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:           functor-utils
-version:        1.3
+version:        1.4
 synopsis:       Collection of functor utilities, providing handy operators, like generalization of (.).
 category:       Text
 stability:      stable
