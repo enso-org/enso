@@ -8,8 +8,6 @@ import           Luna.Prelude hiding (Symbol, String, Integer, Rational, Curry, 
 import Luna.IR.Term.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
-import Data.Construction         (Args)
-import Luna.IR.Function (Arg)
 import Type.Applicative
 import Data.Property
 import Data.Phantom

@@ -36,7 +36,7 @@ import qualified Data.Set                  as Data (Set)
 import qualified Data.Set                  as Set
 import qualified Data.Typeable             as Typeable -- FIXME
 import qualified Luna.IR.Term.Layout       as Layout
-import qualified Luna.IR.Term.Symbol.Named as N
+import qualified Luna.IR.Term.Symbol.Class as N
 import qualified Type.List                 as List
 
 
