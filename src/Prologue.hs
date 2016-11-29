@@ -20,6 +20,7 @@ import qualified Prelude
 import Control.Applicative        as X hiding (empty)
 import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
 import Control.Error.Util         as X (isLeft, isRight)
+import Control.Error.Safe         as X
 import Control.Exception.Base     as X (assert)
 import Control.Lens               as X
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -53,7 +54,7 @@ import Data.Text.Lazy             as X (Text)
 import Data.Traversable           as X (mapM)
 import Data.Tuple.Curry           as X (Curry)
 import Data.Tuple.Curry.Total     as X (Uncurried', Curry', curry')
-import Data.Typeable              as X (Typeable, Proxy(Proxy), typeOf, typeRep)
+import Data.Typeable              as X (Typeable, Proxy(Proxy), typeOf, typeRep, TypeRep)
 import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
@@ -64,11 +65,13 @@ import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
 import Type.Monoid                as X (type (<>))
 import Type.Applicative           as X (type (<$>), type (<*>))
+import Type.Error                 as X
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 import Data.Kind                  as X (Type, Constraint, type (★), type (*))
 import Data.Constraints           as X (Constraints)
 import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
+import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
 
 -- Tuple handling
 import Prologue.Data.Tuple        as X
@@ -186,10 +189,10 @@ fromMaybeM ma = \case
 
 -- === Safe operations === --
 
-tryHead :: [a] -> Maybe a
-tryHead []      = Nothing
-tryHead (a : _) = Just a
-{-# INLINE tryHead #-}
+maybeHead :: [a] -> Maybe a
+maybeHead []      = Nothing
+maybeHead (a : _) = Just a
+{-# INLINE maybeHead #-}
 
 
 
