@@ -28,18 +28,19 @@ import Type.List (In)
 -- === KeyList === --
 ---------------------
 
-newtype KeyList lst = KeyList (List (Key <$> lst))
+newtype KeyList  s lst = KeyList (List (Key s <$> lst))
+type    KeyListM m     = KeyList (PrimState m)
 makeWrapped ''KeyList
 
 
-prepend :: Key k -> KeyList ks -> KeyList (k ': ks)
+prepend :: Key s k -> KeyList s ks -> KeyList s (k ': ks)
 prepend k = wrapped %~ List.prepend k ; {-# INLINE prepend #-}
 
 -- | FIXME[WD]: tail cannot be constructed as wrapped . List.tail . Why?
-tail :: Lens' (KeyList (k ': ks)) (KeyList ks)
+tail :: Lens' (KeyList s (k ': ks)) (KeyList s ks)
 tail = lens (wrapped %~ (view List.tail)) $ flip (\lst -> wrapped %~ (List.tail .~ unwrap' lst)) ; {-# INLINE tail #-}
 
-head :: Lens' (KeyList (k ': ks)) (Key k)
+head :: Lens' (KeyList s (k ': ks)) (Key s k)
 head = wrapped . List.head ; {-# INLINE head #-}
 
 
@@ -57,17 +58,17 @@ type family Preserves pass :: [*]
 -- === Data declarations ===
 
 type    Pass    pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (State pass) m a)
-        deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, MonadTrans, Alternative
+newtype SubPass pass m a = SubPass (StateT (StateM m pass) m a)
+        deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
 
+type KeyTypes   pass = Inputs pass <> Outputs pass -- FIXME (there are duplicates in the list)
+type Keys       pass = KeyTypes pass
+type State    s pass = KeyList s (KeyTypes pass)
+type StateM   m pass = State (PrimState m) pass
 
-type KeyTypes pass = Inputs pass <> Outputs pass -- FIXME (there are duplicates in the list)
-type Keys     pass = KeyTypes pass
-type State    pass = KeyList (KeyTypes pass)
-
-type        GetState m = State (GetPass m)
+type        GetState m = StateM m (GetPass m)
 type family GetPass  m where
     GetPass (SubPass pass m) = pass
     GetPass (t m)          = GetPass m
@@ -77,7 +78,7 @@ makeWrapped ''SubPass
 
 -- === Utils ===
 
-initPass :: (LookupKeys n (Keys pass), Monad m) => SubPass pass m a -> n (Either Err (m a))
+initPass :: (LookupKeys n (Keys pass), Monad m, PrimState m ~ PrimState n) => SubPass pass m a -> n (Either Err (m a))
 initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupKeys ; {-# INLINE initPass #-}
 
 eval :: LookupKeys m (Keys pass) => SubPass pass m a -> m (Either Err a)
@@ -90,7 +91,7 @@ eval = join . fmap sequence . initPass ; {-# INLINE eval #-}
 data Err = Err TypeRep deriving (Show)
 
 type ReLookupKeys k m ks = (IR.KeyMonad k m, LookupKeys m ks, Typeable k)
-class    Monad m             => LookupKeys m keys      where lookupKeys :: m (Either Err (KeyList keys))
+class    Monad m             => LookupKeys m keys      where lookupKeys :: m (Either Err (KeyListM m keys))
 instance Monad m             => LookupKeys m '[]       where lookupKeys = return $ return (wrap' List.empty)
 instance ReLookupKeys k m ks => LookupKeys m (k ': ks) where lookupKeys = prepend <<$>> (justErr (Err $ typeRep (Proxy :: Proxy k)) <$> IR.uncheckedLookupKey)
                                                                                   <<*>> lookupKeys
@@ -146,14 +147,16 @@ with f m = do
 
 -- === Instances === --
 
--- Transformats
+-- MonadTrans
+instance MonadTrans (SubPass pass) where
+    lift = SubPass . lift ; {-# INLINE lift #-}
 
+-- Transformats
 instance State.MonadState s m => State.MonadState s (SubPass pass m) where
     get = wrap' $ lift   State.get ; {-# INLINE get #-}
     put = wrap' . lift . State.put ; {-# INLINE put #-}
 
 -- Primitive
-
 instance PrimMonad m => PrimMonad (SubPass pass m) where
     type PrimState (SubPass pass m) = PrimState m
     primitive = lift . primitive
@@ -178,7 +181,7 @@ instance ( Monad m
 
 -- === ContainsKey === --
 
-class                                     ContainsKey k ls        where findKey :: Lens' (KeyList ls) (Key k)
+class                                     ContainsKey k ls        where findKey :: Lens' (KeyList s ls) (Key s k)
 instance {-# OVERLAPPING #-}              ContainsKey k (k ': ls) where findKey = head           ; {-# INLINE findKey #-}
 instance ContainsKey k ls              => ContainsKey k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
 instance TypeError (KeyMissingError k) => ContainsKey k '[]       where findKey = impossible     ; {-# INLINE findKey #-}

@@ -286,8 +286,8 @@ gen_pass1 = layouted @ANT $ do
     return ()
 
 
-terms :: IRMonad m => m (Term Draft)
-terms =
+-- terms :: IRMonad m => m (Term Draft)
+-- terms =
 
 consTypeLayer :: IRMonad m
               => MV.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))

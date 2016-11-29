@@ -77,63 +77,51 @@ instance IsIdx Elem where
 
 --- === Definition === --
 
-newtype Key k = Key (KeyData k)
+newtype Key  s k = Key (KeyData s k)
+type    KeyM m   = Key (PrimState m)
 
-newtype KeyDataST m key = KeyDataST (KeyTargetST m key)
-data    KeyData     key where
-        KeyData :: KeyDataST m key -> KeyData key
+type family KeyData  s key
+type        KeyDataM m key = KeyData (PrimState m) key
 
-type family KeyTargetST (m :: * -> *) key
-
-
-makeWrapped '' KeyDataST
 makeWrapped '' Key
 
 
 -- === Key Monad === --
 
 class Monad m => KeyMonad key m where
-    uncheckedLookupKeyDataST :: m (Maybe (KeyDataST m key))
---
-uncheckedLookupKey :: KeyMonad key m => m (Maybe (Key key))
-uncheckedLookupKey = (Key . keyData) .: uncheckedLookupKeyDataST ; {-# INLINE uncheckedLookupKey #-}
+    uncheckedLookupKey :: m (Maybe (KeyM m key))
 
 
 -- === Construction === --
 
-keyData :: KeyDataST m k -> KeyData k
-keyData = KeyData ; {-# INLINE keyData #-}
+readKey :: forall k m. Monad m => KeyM m k -> m (KeyDataM m k)
+readKey = return . unwrap' ; {-# INLINE readKey #-}
 
-unsafeeFromKeyData :: KeyData k -> KeyDataST m k
-unsafeeFromKeyData (KeyData d) = unsafeCoerce d ; {-# INLINE unsafeeFromKeyData #-}
-
-unpackKey :: forall k m. Monad m => Key k -> m (KeyTargetST m k)
-unpackKey k = return $ unwrap' (unsafeeFromKeyData $ unwrap' k :: KeyDataST m k) ; {-# INLINE unpackKey #-}
-
-packKey :: forall k m. Monad m => KeyTargetST m k -> m (Key k)
-packKey k = return . wrap' . keyData $ (wrap' k :: KeyDataST m k) ; {-# INLINE packKey #-}
+writeKey :: forall k m. Monad m => KeyDataM m k -> m (KeyM m k)
+writeKey = return . wrap' ; {-# INLINE writeKey #-}
 
 
 -- === Key access === --
 
 type Accessible k m = (Readable k m, Writable k m)
+type TransST    t m = (MonadTrans t, Monad (t m), PrimState (t m) ~ PrimState m)
 
 -- Readable
-class    Monad m                                => Readable k m     where getKey :: m (Key k)
+class    Monad m                                => Readable k m     where getKey :: m (KeyM m k)
 instance {-# OVERLAPPABLE #-} SubReadable k t m => Readable k (t m) where getKey = lift getKey ; {-# INLINE getKey #-}
-type SubReadable k t m = (Readable k m, MonadTrans t, Monad (t m))
+type SubReadable k t m = (Readable k m, TransST t m)
 
 -- Writable
-class    Monad m                                => Writable k m     where putKey :: Key k -> m ()
+class    Monad m                                => Writable k m     where putKey :: KeyM m k -> m ()
 instance {-# OVERLAPPABLE #-} SubWritable k t m => Writable k (t m) where putKey = lift . putKey ; {-# INLINE putKey #-}
-type SubWritable k t m = (Writable k m, MonadTrans t, Monad (t m))
+type SubWritable k t m = (Writable k m, TransST t m)
 
 
-readComp :: forall k m. Readable k m => m (KeyTargetST m k)
-readComp = unpackKey =<< getKey @k ; {-# INLINE readComp #-}
+readComp :: forall k m. Readable k m => m (KeyDataM m k)
+readComp = readKey =<< getKey @k ; {-# INLINE readComp #-}
 
-writeComp :: forall k m. Writable k m => KeyTargetST m k -> m ()
-writeComp = putKey @k <=< packKey ; {-# INLINE writeComp #-}
+writeComp :: forall k m. Writable k m => KeyDataM m k -> m ()
+writeComp = putKey @k <=< writeKey ; {-# INLINE writeComp #-}
 
 
 -- === Errors === --
@@ -152,7 +140,6 @@ type KeyWriteError k = KeyAccessError "write" k
 
 
 
-
 ---------------------
 -- === IRStore === --
 ---------------------
@@ -168,9 +155,13 @@ data IRState   m = IRState   { _elems         :: Map ElemRep $ ElemStore m
                              , _genericLayers :: LayerConsStore m
                              }
 
-data ElemStore m = ElemStore { _layerValues   :: ManagedVectorMapM m LayerRep Any
+data ElemStore m = ElemStore { _layerValues   :: NetStoreM m
                              , _elemLayers    :: LayerConsStore m
                              }
+
+type LayerStore s = MV.VectorRef s Any
+type NetStore   s = ManagedVectorMap s LayerRep Any
+type NetStoreM  m = NetStore (PrimState m)
 
 type LayerConsStore m = Map LayerRep (AnyCons m)
 
@@ -260,7 +251,7 @@ newElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsElem t, Ty
 newElem tdef = do
     irstate    <- getIRState
     newIdx     <- reserveNewElemIdx @t
-    layerStore <- view layerValues <$> readComp @(Net (Abstract t))
+    layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
         consLayer (layer, store) = runInIR $ do
             let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
@@ -272,25 +263,22 @@ newElem tdef = do
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = do
-    elemStore <- readComp @(Net (Abstract t))
-    (i, layerStore) <- runInIR $ MV.reserveIdx (elemStore ^. layerValues)
-    writeComp @(Net (Abstract t)) $ elemStore & layerValues .~ layerStore
+    layerStore <- readComp @(Net (Abstract t))
+    (i, layerStore') <- runInIR $ MV.reserveIdx layerStore
+    writeComp @(Net (Abstract t)) layerStore'
     return i
 
-unsafeReadLayerST :: (IRMonad m, IsElem t) => KeyDataST m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-unsafeReadLayerST key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. elem . idx) (unwrap' key)) ; {-# INLINE unsafeReadLayerST #-}
-
-unsafeReadLayer :: (IRMonad m, IsElem t) => Key (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-unsafeReadLayer k = unsafeReadLayerST (unsafeeFromKeyData $ unwrap' k) ; {-# INLINE unsafeReadLayer #-}
+unsafeReadLayer :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+unsafeReadLayer key t = unsafeCoerce <$> runInIR (MV.unsafeRead (t ^. elem . idx) (unwrap' key)) ; {-# INLINE unsafeReadLayer #-}
 
 readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
 readLayer t = flip unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
 
-readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m a
-readAttr = unwrap' . unsafeeFromKeyData . unwrap' <$> getKey @(Attr a) ; {-# INLINE readAttr #-} -- FIXME[WD]: make it less hacky
+readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyDataM m (Attr a))
+readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
 
-readNet :: forall a m. (IRMonad m, Readable (Net a) m) => m (ElemStore (GetIRMonad m))
-readNet = unwrap' . unsafeeFromKeyData . unwrap' <$> getKey @(Net a) ; {-# INLINE readNet #-} -- FIXME[WD]: make it less hacky
+readNet :: forall a m. (IRMonad m, Readable (Net a) m) => m (KeyDataM m (Net a))
+readNet = readComp @(Net a) ; {-# INLINE readNet #-}
 
 
 -- === Registration === --
@@ -319,6 +307,9 @@ attachLayer l e = modifyIRStateM_ $ runInIR . modifyElemM e (layerValues $ MV.un
 setAttr :: forall a m. (IRMonad m, Typeable a) => a -> m ()
 setAttr a = modifyIRState_ $ attrs %~ Map.insert (typeRep @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
 
+
+
+
 ----------------------
 -- === IRMonad === ---
 ----------------------
@@ -328,7 +319,7 @@ setAttr a = modifyIRState_ $ attrs %~ Map.insert (typeRep @a) (unsafeCoerce a) ;
 -- | IRMonad is subclass of MonadFic because many term operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
 type  IRMonadBase       m = (PrimMonad m, MonadFix m)
-type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRSubMonad m), IRMonad (GetIRMonad m))
+type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRSubMonad m), IRMonad (GetIRMonad m), PrimState m ~ PrimState (GetIRSubMonad m))
 class IRMonadInvariants m => IRMonad m where
     getIRState :: m (IRState' m)
     putIRState :: IRState' m -> m ()
@@ -344,7 +335,7 @@ instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
     putIRState = lift . putIRState ; {-# INLINE putIRState #-}
     runInIR    = lift . runInIR    ; {-# INLINE runInIR    #-}
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRMonad (t m) ~ GetIRMonad m)
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRMonad (t m) ~ GetIRMonad m, PrimState (t m) ~ PrimState m)
 
 
 -- === Modyfication === --
@@ -386,9 +377,9 @@ instance PrimMonad m => PrimMonad (IRT m) where
 
 -- === Definitions === --
 
-type instance KeyTargetST m (Layer _ _) = MV.VectorRefM (GetIRMonad m) Any -- FIXME: make the type nicer
-type instance KeyTargetST m (Net   _)   = ElemStore     (GetIRMonad m)
-type instance KeyTargetST m (Attr  a)   = a
+type instance KeyData s (Layer _ _) = LayerStore s
+type instance KeyData s (Net   _)   = NetStore   s
+type instance KeyData s (Attr  a)   = a
 
 
 -- === Aliases === --
@@ -396,23 +387,17 @@ type instance KeyTargetST m (Attr  a)   = a
 data Net  t
 data Attr t
 
-type LayerKey el l = Key (Layer el l)
-type NetKey  n     = Key (Net   n)
-type AttrKey  a    = Key (Attr  a)
-
 
 -- === Instances === --
 
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
-    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @e) . layerValues . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
+    uncheckedLookupKey = fmap wrap' . (^? (elems . ix (typeRep @e) . layerValues . ix (typeRep @l))) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
 
 instance (IRMonad m, Typeable a) => KeyMonad (Net a) m where
-    uncheckedLookupKeyDataST = fmap wrap' . (^? (elems . ix (typeRep @a))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
+    uncheckedLookupKey = fmap wrap' . (^? (elems . ix (typeRep @a) . layerValues)) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
 
 instance (IRMonad m, Typeable a) => KeyMonad (Attr a) m where
-    uncheckedLookupKeyDataST = fmap unsafeCoerce . (^? (attrs . ix (typeRep @a))) <$> getIRState ; {-# INLINE uncheckedLookupKeyDataST #-}
-
-
+    uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep @a))) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
 
 
 
