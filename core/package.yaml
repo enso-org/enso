@@ -46,7 +46,6 @@ dependencies:
     - either
     - errors
     - exceptions
-    - extra
     - functor-utils
     - ghc
     - ghc-mtl

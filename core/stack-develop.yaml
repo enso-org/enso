@@ -26,28 +26,11 @@ packages:
     - ../../libs/visualization-api
 
 extra-deps:
-    - lens-4.15.1
-    - aeson-1.0.2.1
+    - error-util-0.0.1.1
     - cond-0.4.1.1
-    - container-1.0
-    - containers-0.5.8.1
-    - convert-1.0.1
-    - data-construction-1.0
-    - data-layer-1.0.3
-    - data-repr-1.0
-    - data-rtuple-1.0
-    - extra-1.5
-    - functor-utils-1.0
     - ghc-mtl-1.2.1.0
-    - graphviz-2999.18.1.2
-    - lens-utils-1.0
-    - OneTuple-0.2.1
-    - placeholders-0.1
-    - prologue-1.0.6
     - serialport-0.4.7
-    - string-qq-0.0.2
-    - tuple-0.3.0.2
-    - typelevel-1.0.3
+    - aeson-1.0.2.1
 
 ghc-options:
     "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100
