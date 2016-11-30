@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# BOOSTER  Templates            #-}
 
-module Luna.IR.Term.Atom where
+module Luna.IR.Expr.Atom where
 
 import Luna.Prelude hiding (String, Integer, Rational, Curry)
 import Data.Base

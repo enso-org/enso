@@ -2,7 +2,7 @@ module Luna.IR.Layer.Succs where
 
 import Luna.Prelude
 import Luna.IR.Layer.Class
-import Luna.IR.Term.Layout.Class (Universal)
+import Luna.IR.Expr.Layout.Class (Universal)
 
 import Data.Set (Set)
 

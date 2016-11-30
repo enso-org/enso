@@ -1,19 +1,19 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Symbol.Class (module Luna.IR.Term.Symbol.Class, module X) where
+module Luna.IR.Expr.Term.Class (module Luna.IR.Expr.Term.Class, module X) where
 
 import qualified Luna.Prelude as P
 import           Luna.Prelude hiding (Symbol, String, Integer, Rational, Curry, Data)
 
-import Luna.IR.Term.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+import Luna.IR.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
 import Type.Applicative
 import Data.Property
 import Data.Phantom
-import Luna.IR.Term.Format
-import qualified Luna.IR.Term.Layout as Layout
-import           Luna.IR.Term.Layout (Layout)
+import Luna.IR.Expr.Format
+import qualified Luna.IR.Expr.Layout as Layout
+import           Luna.IR.Expr.Layout (Layout)
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
 

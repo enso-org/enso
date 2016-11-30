@@ -1,12 +1,12 @@
-module Luna.IR.Term.Layout.Ant where
+module Luna.IR.Expr.Layout.Ant where
 
 import Luna.Prelude hiding (Simple)
 
-import Luna.IR.Term.Layout.Class
-import Luna.IR.Term.Layout.Compound
-import Luna.IR.Term.Layout.Nested
-import Luna.IR.Term.Format
-import Luna.IR.Term.Atom
+import Luna.IR.Expr.Layout.Class
+import Luna.IR.Expr.Layout.Compound
+import Luna.IR.Expr.Layout.Nested
+import Luna.IR.Expr.Format
+import Luna.IR.Expr.Atom
 import Luna.IR.Layer.Type (Type)
 import Data.RTuple        (Assoc ((:=)))
 

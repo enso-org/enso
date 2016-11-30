@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Layout.Class where
+module Luna.IR.Expr.Layout.Class where
 
 
 import Luna.Prelude
 import Data.Property
-import Luna.IR.Term.Format
-import Luna.IR.Term.Atom
+import Luna.IR.Expr.Format
+import Luna.IR.Expr.Atom
 
 import Unsafe.Coerce (unsafeCoerce)
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)), TypeError)

@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Symbol.Named (module Luna.IR.Term.Symbol.Named, module X) where
+module Luna.IR.Expr.Term.Named (module Luna.IR.Expr.Term.Named, module X) where
 
 import qualified Luna.Prelude as P
 import           Luna.Prelude hiding (Symbol, String, Integer, Rational, Data, product, product')
 
-import Luna.IR.Term.Symbol.Class as X
-import Luna.IR.Term.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+import Luna.IR.Expr.Term.Class as X
+import Luna.IR.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
 import Data.Construction         (Args)
@@ -15,9 +15,9 @@ import qualified Luna.IR.Function.Argument as Arg
 import Type.Applicative
 import Data.Property
 import Data.Phantom
-import Luna.IR.Term.Format
-import qualified Luna.IR.Term.Layout as Layout
-import           Luna.IR.Term.Layout (Layout)
+import Luna.IR.Expr.Format
+import qualified Luna.IR.Expr.Layout as Layout
+import           Luna.IR.Expr.Layout (Layout)
 
 import Data.Construction
 import           Data.RTuple (List(Null, (:-:)))

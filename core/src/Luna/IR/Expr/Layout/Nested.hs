@@ -1,10 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Layout.Nested where
+module Luna.IR.Expr.Layout.Nested where
 
-import Luna.IR.Term.Atom
-import Luna.IR.Term.Format
-import Luna.IR.Term.Layout.Class
+import Luna.IR.Expr.Atom
+import Luna.IR.Expr.Format
+import Luna.IR.Expr.Layout.Class
 
 import Type.Bool
 

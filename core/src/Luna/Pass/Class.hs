@@ -15,7 +15,7 @@ import           Control.Monad.Primitive
 
 import           Luna.IR.Internal.IR   (Key, IRMonad, IsIdx, Readable, Writable, getKey, putKey, KeyReadError, KeyMissingError)
 import qualified Luna.IR.Internal.IR   as IR
-import           Luna.IR.Term.Layout.Class (Abstract)
+import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
 
 import Luna.IR.Layer

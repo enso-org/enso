@@ -44,7 +44,7 @@ import           Luna.Pass.Inference.Struct          (StructuralInferencePass (.
 import           Luna.Pass.Utils.Literals            as LiteralsUtils
 import qualified Luna.Env.Env                                 as Env
 import qualified Luna.IR.Library.Symbol                             as Symbol
-import           Luna.IR.Term.Format
+import           Luna.IR.Expr.Format
 
 
 import qualified Data.RTuple.Examples as E
@@ -56,7 +56,7 @@ import           Data.RTuple (TMap(..), empty, Assoc(..)) -- refactor empty to a
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.IR.Term hiding (Data, cons, unify, star, Readable, string, var)
+import Luna.IR.Expr hiding (Data, cons, unify, star, Readable, string, var)
 
 -- import GHC.Prim (Any)
 
@@ -69,18 +69,18 @@ import Type.List (In)
 import Data.Container.Hetero (Elems)
 import GHC.TypeLits hiding (Symbol)
 import GHC.TypeLits (ErrorMessage(Text))
-import Luna.IR.Term.Atom (Atoms)
+import Luna.IR.Expr.Atom (Atoms)
 
-import qualified Luna.IR.Term.Symbol as Symbol
-import qualified Luna.IR.Term.Symbol.Named as Sym
-import qualified Luna.IR.Term.Symbol.Named as Symbol
-import Luna.IR.Term.Symbol.Named (HasName, name)
-import Luna.IR.Term.Symbol (Sym)
+import qualified Luna.IR.Expr.Term as Symbol
+import qualified Luna.IR.Expr.Term.Named as Sym
+import qualified Luna.IR.Expr.Term.Named as Symbol
+import Luna.IR.Expr.Term.Named (HasName, name)
+import Luna.IR.Expr.Term (Sym)
 import Data.Property
-import Luna.IR.Term.Format (Format, Sub)
+import Luna.IR.Expr.Format (Format, Sub)
 import qualified Data.Vector as V
 import qualified GHC.Prim as Prim
-import Luna.IR.Term.Layout
+import Luna.IR.Expr.Layout
 
 import Unsafe.Coerce (unsafeCoerce)
 import Type.Set as Set hiding (Set)
@@ -113,7 +113,7 @@ import Luna.IR.Layer.Succs
 import Luna.IR.Layer.Type
 import qualified Luna.IR.Internal.LayerStore as Store
 import Type.Maybe (FromJust)
-import Luna.IR.Term.Layout.Ant
+import Luna.IR.Expr.Layout.Ant
 
 
 
@@ -129,7 +129,7 @@ import Luna.IR.Term.Layout.Ant
 
 
 type family   UnsafeGeneralizable a b :: Constraint
-type instance UnsafeGeneralizable (Term l) (Term l') = ()
+type instance UnsafeGeneralizable (Expr l) (Expr l') = ()
 
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
 unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
@@ -138,8 +138,8 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 
-type AntTerm a n t = Term (Ant a n t)
-type UntyppedTerm a n = AntTerm a n Star
+type AntExpr a n t = Expr (Ant a n t)
+type UntyppedExpr a n = AntExpr a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
@@ -156,31 +156,31 @@ layouted = baseLayout @(DefaultLayout l)
 
 
 
--- FIXME: moze po prostu Term Star?
-newtype MagicStar = MagicStar Term'
+-- FIXME: moze po prostu Expr Star?
+newtype MagicStar = MagicStar Expr'
 
 makeWrapped ''MagicStar
 
 newMagicStar :: IRMonad m => m MagicStar
-newMagicStar = wrap' <$> magicTerm Sym.uncheckedStar ; {-# INLINE newMagicStar #-}
+newMagicStar = wrap' <$> magicExpr Sym.uncheckedStar ; {-# INLINE newMagicStar #-}
 
-magicStar :: Iso' (Term l) MagicStar
+magicStar :: Iso' (Expr l) MagicStar
 magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
 
 
 
-snapshot :: (IRMonad m, MonadVis m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model, TermNet])
+snapshot :: (IRMonad m, MonadVis m, Readables m '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model, ExprNet])
          => P.String -> m ()
 snapshot title = do
-    ts  <- terms
+    ts  <- exprs
     vss <- mapM visNode2 ts
     let vns = fst <$> vss
         ves = join $ snd <$> vss
     Vis.addStep (fromString title) vns ves
 
 
-visNode2 :: (IRMonad m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model])
-         => Term' -> m (Vis.Node, [Vis.Edge])
+visNode2 :: (IRMonad m, Readables m '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model])
+         => Expr' -> m (Vis.Node, [Vis.Edge])
 visNode2 t = do
     euid   <- readLayer @UID   t
     tpLink <- readLayer @Type  t
@@ -208,7 +208,7 @@ visNode2 t = do
 
 
 consTypeLayer :: IRMonad m
-              => Store.STRefM m (Maybe MagicStar) -> Term t -> Definition (Term t) -> m (LayerData Type (Term t))
+              => Store.STRefM m (Maybe MagicStar) -> Expr t -> Definition (Expr t) -> m (LayerData Type (Expr t))
 consTypeLayer ref self _ = do
     top  <- view (from magicStar) <$> localTop ref
     conn <- magicLink top self
@@ -229,7 +229,7 @@ localTop ref = Store.readSTRef ref >>= \case
 -- TODO[WD]: dont allow here to use registerGenericLayer!
 --           maybe LayerConsPasses will help here?
 layerReg4 :: IRMonad m => m ()
-layerReg4 = registerElemLayer @TERM @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
+layerReg4 = registerElemLayer @EXPR @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
 
 
 
@@ -248,10 +248,10 @@ runElemRegs :: IRMonad m => m ()
 runElemRegs = sequence_ elemRegs
 
 elemReg1 :: IRMonad m => m ()
-elemReg1 = registerElem @TERM
+elemReg1 = registerElem @EXPR
 
 elemReg2 :: IRMonad m => m ()
-elemReg2 = registerElem @(LINK' TERM)
+elemReg2 = registerElem @(LINK' EXPR)
 
 
 -- === Layer reg defs === --
@@ -309,32 +309,32 @@ type instance Simplify (a :> ()) = a
 
 type family   DefListLayout (m :: * -> *) a
 type instance DefListLayout m P.String = String %> Infered Layout m
-type instance DefListLayout m (Term t) = t
+type instance DefListLayout m (Expr t) = t
 
-class                                         LitTerm m a        where litTerm :: a -> m (Term (DefListLayout m a))
-instance (IRMonad m, Accessible TermNet m) => LitTerm m P.String where litTerm = string ; {-# INLINE litTerm #-}
-instance Monad m                           => LitTerm m (Term l) where litTerm = return ; {-# INLINE litTerm #-}
+class                                         LitExpr m a        where litExpr :: a -> m (Expr (DefListLayout m a))
+instance (IRMonad m, Accessible ExprNet m) => LitExpr m P.String where litExpr = string ; {-# INLINE litExpr #-}
+instance Monad m                           => LitExpr m (Expr l) where litExpr = return ; {-# INLINE litExpr #-}
 
 
-var :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet], Inferable2 Layout ldef m, LitTerm m name)
-    => name -> m (Term (DefListLayout m name #> AtomLayout Var ldef))
+var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Inferable2 Layout ldef m, LitExpr m name)
+    => name -> m (Expr (DefListLayout m name #> AtomLayout Var ldef))
 var name = mdo
-    t <- term $ Sym.uncheckedVar l
-    n <- litTerm name
+    t <- expr $ Sym.uncheckedVar l
+    n <- litExpr name
     l <- link (unsafeGeneralize n) t
     return t
 
-string :: (IRMonad m, Accessible TermNet m) => P.String -> m (Term (String %> Infered Layout m))
-string = term . uncheckedString ; {-# INLINE string #-}
+string :: (IRMonad m, Accessible ExprNet m) => P.String -> m (Expr (String %> Infered Layout m))
+string = expr . uncheckedString ; {-# INLINE string #-}
 
-star :: (IRMonad m, Accessible TermNet m, Inferable2 Layout ldef m) => m (Term (AtomLayout Star ldef))
-star = term Sym.uncheckedStar
+star :: (IRMonad m, Accessible ExprNet m, Inferable2 Layout ldef m) => m (Expr (AtomLayout Star ldef))
+star = expr Sym.uncheckedStar
 {-# INLINE star #-}
 
-unify :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet])
-      => Term l -> Term l' -> m (Term (Unify |> (l <+> l')))
+unify :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+      => Expr l -> Expr l' -> m (Expr (Unify |> (l <+> l')))
 unify a b = mdo
-    t  <- term $ Sym.uncheckedUnify la lb
+    t  <- expr $ Sym.uncheckedUnify la lb
     la <- link (unsafeGeneralize a) t
     lb <- link (unsafeGeneralize b) t
     return t
@@ -345,8 +345,8 @@ data MyData = MyData Int deriving (Show)
 
 
 data                    SimpleAA
-type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type] <> TermLinkLayers '[Model, UID]
-type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type] <> TermLinkLayers '[Model, UID]
+type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
+type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
@@ -356,13 +356,13 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass
 test_pass1 = runIRT $ do
     runRegs
 
-    attachLayer (typeRep @Model) (typeRep @TERM)
-    attachLayer (typeRep @Succs) (typeRep @TERM)
-    attachLayer (typeRep @Type)  (typeRep @TERM)
-    attachLayer (typeRep @UID)   (typeRep @TERM)
+    attachLayer (typeRep @Model) (typeRep @EXPR)
+    attachLayer (typeRep @Succs) (typeRep @EXPR)
+    attachLayer (typeRep @Type)  (typeRep @EXPR)
+    attachLayer (typeRep @UID)   (typeRep @EXPR)
 
-    attachLayer (typeRep @Model) (typeRep @(LINK' TERM))
-    attachLayer (typeRep @UID)   (typeRep @(LINK' TERM))
+    attachLayer (typeRep @Model) (typeRep @(LINK' EXPR))
+    attachLayer (typeRep @UID)   (typeRep @(LINK' EXPR))
 
     setAttr $ MyData 7
 
@@ -376,30 +376,30 @@ type instance Access Atom (Ant a _ _) = a
 type instance Head (Atomic a) = Atomic a
 
 type AtomHead l = Head (l # Atom)
-type AtomHeadDef l = TermSymbolDef (AtomHead l) (Term l)
+type AtomHeadDef l = ExprSymbolDef (AtomHead l) (Expr l)
 
--- match' :: forall a l m. (IRMonad m, Readable (TermLayer Model) m, Atomic a ~ AtomHead l) => Term l -> m (TermSymbolDef (Atomic a) (Term l))
--- match' = unsafeToTermSymbolDef @(Atomic a)
+-- match' :: forall a l m. (IRMonad m, Readable (ExprLayer Model) m, Atomic a ~ AtomHead l) => Expr l -> m (ExprSymbolDef (Atomic a) (Expr l))
+-- match' = unsafeToExprSymbolDef @(Atomic a)
 
-type KnownAtom l m = (IRMonad m, Readable (TermLayer Model) m) -- CheckAtomic (AtomHead l))
+type KnownAtom l m = (IRMonad m, Readable (ExprLayer Model) m) -- CheckAtomic (AtomHead l))
 
-match' :: forall l m. KnownAtom l m => Term l -> m (AtomHeadDef l)
-match' = unsafeToTermSymbolDef @(AtomHead l)
+match' :: forall l m. KnownAtom l m => Expr l -> m (AtomHeadDef l)
+match' = unsafeToExprSymbolDef @(AtomHead l)
 
 
 source :: (IRMonad m, Readable (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
-             , Accessibles m '[TermLayer Model, TermLinkLayer Model, TermLayer Type, TermLinkLayer UID, TermLayer UID, TermNet, TermLinkNet, Attr MyData]
+             , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
              ) => m ()
 gen_pass1 = layouted @ANT $ do
-    (s1 :: Term (Ant Star   ()     Star)) <- star
-    (s2 :: Term (Ant Star   ()     Star)) <- star
+    (s1 :: Expr (Ant Star   ()     Star)) <- star
+    (s2 :: Expr (Ant Star   ()     Star)) <- star
     snapshot "s1"
-    (n  :: Term (Ant String ()     Star)) <- string "hello"
-    (v  :: Term (Ant Var    String Star)) <- var n
-    (v2 :: Term (Ant Var    String Star)) <- var "foo"
+    (n  :: Expr (Ant String ()     Star)) <- string "hello"
+    (v  :: Expr (Ant Var    String Star)) <- var n
+    (v2 :: Expr (Ant Var    String Star)) <- var "foo"
     snapshot "s2"
     u1 <- unify s1 s2
     snapshot "s3"
@@ -408,7 +408,7 @@ gen_pass1 = layouted @ANT $ do
     print d
     md <- readAttr @MyData
     print md
-    ts <- terms
+    ts <- exprs
     print ts
 
     match s1 $ \case
@@ -435,9 +435,9 @@ gen_pass1 = layouted @ANT $ do
 -- strName :: _ => _
 strName v = getName v >>= \n -> match' n >>= \ (Sym.Sym_String s) -> return s
 
-type KnownName l m = (KnownAtom l m, HasName (AtomHeadDef l), Readable (TermLinkLayer Model) m)
+type KnownName l m = (KnownAtom l m, HasName (AtomHeadDef l), Readable (ExprLinkLayer Model) m)
 
-getName :: KnownName l m => Term l -> m (Term (Sub Name l))
+getName :: KnownName l m => Expr l -> m (Expr (Sub Name l))
 getName v = match' v >>= \ vv -> source (vv ^. name)
 
 

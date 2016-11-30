@@ -5,7 +5,7 @@
 module Luna.IR.Internal.IR where
 
 import           Old.Data.Record              (Encode2)
-import           Old.Data.Record.Model.Masked as X (TermRecord, VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
+import           Old.Data.Record.Model.Masked as X (VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
 import           Old.Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 
 import           Luna.Prelude                 hiding (Symbol, typeRep, elem {- fix: -} , Enum)
@@ -19,10 +19,10 @@ import Data.Typeable        (Typeable, TypeRep)
 import GHC.Prim             (Any)
 import Luna.IR.Layer
 import Luna.IR.Layer.Model
-import Luna.IR.Term.Atom    (Atom, Atoms)
-import Luna.IR.Term.Format  (Sub, Format, Draft)
-import Luna.IR.Term.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract)
-import Luna.IR.Term.Symbol  (Sym, Symbol, UncheckedFromSymbol, FromSymbol, UniSymbol, IsUniSymbol, uniSymbol)
+import Luna.IR.Expr.Atom    (Atom, Atoms)
+import Luna.IR.Expr.Format  (Sub, Format, Draft)
+import Luna.IR.Expr.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract)
+import Luna.IR.Expr.Term    (Sym, Symbol, UncheckedFromSymbol, FromSymbol, UniSymbol, IsUniSymbol, uniSymbol)
 import Type.Container       (Every)
 import Type.Container       (In)
 import Type.Maybe           (FromJust)
@@ -35,8 +35,8 @@ import qualified Data.Map                  as Map
 import qualified Data.Set                  as Data (Set)
 import qualified Data.Set                  as Set
 import qualified Data.Typeable             as Typeable -- FIXME
-import qualified Luna.IR.Term.Layout       as Layout
-import qualified Luna.IR.Term.Symbol.Class as N
+import qualified Luna.IR.Expr.Layout       as Layout
+import qualified Luna.IR.Expr.Term.Class   as N
 import qualified Type.List                 as List
 
 
@@ -320,7 +320,7 @@ setAttr a = modifyIRState_ $ attrs %~ Map.insert (typeRep @a) (unsafeCoerce a) ;
 
 -- === Definition === --
 
--- | IRMonad is subclass of MonadFic because many term operations reuire recursive calls.
+-- | IRMonad is subclass of MonadFic because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
 type  IRMonadBase       m = (PrimMonad m, MonadFix m)
 type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRSubMonad m), IRMonad (GetIRMonad m), PrimState m ~ PrimState (GetIRSubMonad m))
@@ -445,22 +445,22 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 
 ------------------------
--- === TermSymbol === --
+-- === ExprSymbol === --
 ------------------------
 
 data TMP -- FIXME
 
-type    TermSymbolDef atom t = N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t))
-newtype TermSymbol    atom t = TermSymbol    (TermSymbolDef atom t)
-newtype TermUniSymbol      t = TermUniSymbol (N.UniSymbol   (Layout.Named (SubLink Name t) (SubLink Atom t)))
-type    TermSymbol'   atom   = TermSymbol atom TMP
-makeWrapped ''TermSymbol
-makeWrapped ''TermUniSymbol
+type    ExprSymbolDef atom t = N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t))
+newtype ExprSymbol    atom t = ExprSymbol    (ExprSymbolDef atom t)
+newtype ExprUniSymbol      t = ExprUniSymbol (N.UniSymbol   (Layout.Named (SubLink Name t) (SubLink Atom t)))
+type    ExprSymbol'   atom   = ExprSymbol atom TMP
+makeWrapped ''ExprSymbol
+makeWrapped ''ExprUniSymbol
 
 
 -- === Helpers === --
 
-hideLayout :: TermSymbol atom t -> TermSymbol atom TMP
+hideLayout :: ExprSymbol atom t -> ExprSymbol atom TMP
 hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
 
 
@@ -493,98 +493,98 @@ type ValidateLayout' t     sel a = ValidateLayout (t # Layout) sel a
 -- === Instances === --
 
 -- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
-type instance Access Layout (TermSymbol atom t) = Access Layout (Unwrapped (TermSymbol atom t))
-type instance Access Atom   (TermSymbol atom t) = atom
-type instance Access Format (TermSymbol atom t) = Access Format atom
-type instance Access Sym    (TermSymbol atom t) = TermSymbol atom t
+type instance Access Layout (ExprSymbol atom t) = Access Layout (Unwrapped (ExprSymbol atom t))
+type instance Access Atom   (ExprSymbol atom t) = atom
+type instance Access Format (ExprSymbol atom t) = Access Format atom
+type instance Access Sym    (ExprSymbol atom t) = ExprSymbol atom t
 
-instance Accessor Sym (TermSymbol atom t) where access = id ; {-# INLINE access #-}
+instance Accessor Sym (ExprSymbol atom t) where access = id ; {-# INLINE access #-}
 
-instance UncheckedFromSymbol (TermSymbol atom t) where uncheckedFromSymbol = wrap' ; {-# INLINE uncheckedFromSymbol #-}
+instance UncheckedFromSymbol (ExprSymbol atom t) where uncheckedFromSymbol = wrap' ; {-# INLINE uncheckedFromSymbol #-}
 
 instance ValidateLayout (LayoutOf t) Atom atom
-      => FromSymbol (TermSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
+      => FromSymbol (ExprSymbol atom t) where fromSymbol = wrap' ; {-# INLINE fromSymbol #-}
 
 
 -- Repr
-instance Repr s (Unwrapped (TermSymbol atom t))
-      => Repr s (TermSymbol atom t) where repr = repr . unwrap' ; {-# INLINE repr #-}
+instance Repr s (Unwrapped (ExprSymbol atom t))
+      => Repr s (ExprSymbol atom t) where repr = repr . unwrap' ; {-# INLINE repr #-}
 
 -- Fields
-type instance FieldsType (TermSymbol atom t) = FieldsType (Unwrapped (TermSymbol atom t))
-instance HasFields (Unwrapped (TermSymbol atom t))
-      => HasFields (TermSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
+type instance FieldsType (ExprSymbol atom t) = FieldsType (Unwrapped (ExprSymbol atom t))
+instance HasFields (Unwrapped (ExprSymbol atom t))
+      => HasFields (ExprSymbol atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
 
 
 
 ----------------------
--- === TermData === --
+-- === ExprData === --
 ----------------------
 
-type TermStoreSlots = '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
-type TermStore = Store2 TermStoreSlots
+type ExprStoreSlots = '[ Atom ':= Enum, Format ':= Mask, Sym ':= Raw ]
+type ExprStore = Store2 ExprStoreSlots
 
-newtype TermData sys model = TermData TermStore deriving (Show)
-makeWrapped ''TermData
+newtype ExprData sys model = ExprData ExprStore deriving (Show)
+makeWrapped ''ExprData
 
 
 -- === Encoding === --
 
-class                                                              SymbolEncoder atom where encodeSymbol :: forall t. TermSymbol atom t -> TermStore
+class                                                              SymbolEncoder atom where encodeSymbol :: forall t. ExprSymbol atom t -> ExprStore
 instance                                                           SymbolEncoder I    where encodeSymbol = impossible
-instance EncodeStore TermStoreSlots (TermSymbol' atom) Identity => SymbolEncoder atom where
+instance EncodeStore ExprStoreSlots (ExprSymbol' atom) Identity => SymbolEncoder atom where
     encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
 
 ------------------
--- === Term === --
+-- === Expr === --
 ------------------
 
 -- === Definition === --
 
-newtype Term  layout = Term Elem deriving (Show)
-type    Term'        = Term Draft
-makeWrapped ''Term
+newtype Expr  layout = Expr Elem deriving (Show)
+type    Expr'        = Expr Draft
+makeWrapped ''Expr
 
-type instance Definition (Term _) = TermStore
+type instance Definition (Expr _) = ExprStore
 
 
 -- === Abstract === --
 
-data TERM
-type instance Abstract (Term _) = TERM
+data EXPR
+type instance Abstract (Expr _) = EXPR
 
 
 -- === Utils === --
 
--- type AtomicTerm atom layout = Term (Update Atom atom layout)
+-- type AtomicExpr atom layout = Expr (Update Atom atom layout)
 
-magicTerm :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
-          => TermSymbol atom (Term layout) -> m (Term layout)
-magicTerm a = newMagicElem (encodeSymbol a) ; {-# INLINE magicTerm #-}
+magicExpr :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
+          => ExprSymbol atom (Expr layout) -> m (Expr layout)
+magicExpr a = newMagicElem (encodeSymbol a) ; {-# INLINE magicExpr #-}
 
-term :: forall atom layout m. (SymbolEncoder atom, IRMonad m, Accessible (Net TERM) m)
-     => TermSymbol atom (Term layout) -> m (Term layout)
-term = newElem . encodeSymbol ; {-# INLINE term #-}
+expr :: forall atom layout m. (SymbolEncoder atom, IRMonad m, Accessible (Net EXPR) m)
+     => ExprSymbol atom (Expr layout) -> m (Expr layout)
+expr = newElem . encodeSymbol ; {-# INLINE expr #-}
 
 -- class SomeGeneralEncode a where
---     someGeneralEncode :: a -> TermStore
+--     someGeneralEncode :: a -> ExprStore
 --
--- term2 :: forall a layout m. (IRMonad m, Accessible TermNet m, SomeGeneralEncode a)
---      => a -> m (Term layout)
--- term2 = newElem . someGeneralEncode ; {-# INLINE term2 #-}
+-- expr2 :: forall a layout m. (IRMonad m, Accessible ExprNet m, SomeGeneralEncode a)
+--      => a -> m (Expr layout)
+-- expr2 = newElem . someGeneralEncode ; {-# INLINE expr2 #-}
 
-terms :: (IRMonad m, Readable (Net TERM) m) => m [Term Draft]
-terms = uncheckedElems ; {-# INLINE terms #-}
+exprs :: (IRMonad m, Readable (Net EXPR) m) => m [Expr Draft]
+exprs = uncheckedElems ; {-# INLINE exprs #-}
 
--- | Term pattern matching utility
-match :: (IRMonad m, Readable (Layer TERM Model) m)
-      => Term layout -> (Unwrapped (TermUniSymbol (Term layout)) -> m a) -> m a
+-- | Expr pattern matching utility
+match :: (IRMonad m, Readable (Layer EXPR Model) m)
+      => Expr layout -> (Unwrapped (ExprUniSymbol (Expr layout)) -> m a) -> m a
 match t f = f . unwrap' =<< (exprUniSymbol t) ; {-# INLINE match #-}
 
 -- | Symbol unification
-exprUniSymbol :: (IRMonad m, Readable (Layer TERM Model) m) => Term layout -> m (TermUniSymbol (Term layout))
-exprUniSymbol t = TermUniSymbol <$> symbolMapM_AB @ToUniSymbol toUniSymbol t ; {-# INLINE exprUniSymbol #-}
+exprUniSymbol :: (IRMonad m, Readable (Layer EXPR Model) m) => Expr layout -> m (ExprUniSymbol (Expr layout))
+exprUniSymbol t = ExprUniSymbol <$> symbolMapM_AB @ToUniSymbol toUniSymbol t ; {-# INLINE exprUniSymbol #-}
 
 class ToUniSymbol a b where toUniSymbol :: a -> b
 instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
@@ -593,10 +593,10 @@ instance (Unwrapped a ~ Symbol t l, b ~ UniSymbol l, IsUniSymbol t l, Wrapped a)
 
 -- === Instances === --
 
-type instance Universal (Term _) = Term'
-type instance Sub s     (Term l) = Term (Sub s l)
-instance      IsElem    (Term l)
-instance      IsIdx     (Term l) where
+type instance Universal (Expr _) = Expr'
+type instance Sub s     (Expr l) = Expr (Sub s l)
+instance      IsElem    (Expr l)
+instance      IsIdx     (Expr l) where
     idx = elem . idx ; {-# INLINE idx #-}
 
 
@@ -619,13 +619,13 @@ type instance Encode2 Format  v = List.Index v (Every Format)
 -- TO REFACTOR:
 
 
-type TermLayer     = Layer TERM
-type TermLinkLayer = Layer (LINK' TERM)
-type TermNet       = Net   TERM
-type TermLinkNet   = Net   (LINK' TERM)
+type ExprLayer     = Layer EXPR
+type ExprLinkLayer = Layer (LINK' EXPR)
+type ExprNet       = Net   EXPR
+type ExprLinkNet   = Net   (LINK' EXPR)
 
-type TermLayers     ls = TermLayer     <$> ls
-type TermLinkLayers ls = TermLinkLayer <$> ls
+type ExprLayers     ls = ExprLayer     <$> ls
+type ExprLinkLayers ls = ExprLinkLayer <$> ls
 type Nets           ls = Net           <$> ls
 
 type Accessibles m lst = (Readables m lst, Writables m lst)
@@ -640,11 +640,11 @@ type family Writables m lst :: Constraint where
 
 
 
-unsafeToTermSymbol :: forall atom l m. (IRMonad m, Readable (TermLayer Model) m) => Term l -> m (TermSymbol atom (Term l))
-unsafeToTermSymbol = unsafeCoerce . unwrap' . access @Sym . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToTermSymbol #-}
+unsafeToExprSymbol :: forall atom l m. (IRMonad m, Readable (ExprLayer Model) m) => Expr l -> m (ExprSymbol atom (Expr l))
+unsafeToExprSymbol = unsafeCoerce . unwrap' . access @Sym . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToExprSymbol #-}
 
-unsafeToTermSymbolDef :: forall atom l m. (IRMonad m, Readable (TermLayer Model) m) => Term l -> m (TermSymbolDef atom (Term l))
-unsafeToTermSymbolDef = unwrap' <∘> unsafeToTermSymbol ; {-# INLINE unsafeToTermSymbolDef #-}
+unsafeToExprSymbolDef :: forall atom l m. (IRMonad m, Readable (ExprLayer Model) m) => Expr l -> m (ExprSymbolDef atom (Expr l))
+unsafeToExprSymbolDef = unwrap' <∘> unsafeToExprSymbol ; {-# INLINE unsafeToExprSymbolDef #-}
 
 
 
@@ -653,24 +653,24 @@ unsafeToTermSymbolDef = unwrap' <∘> unsafeToTermSymbol ; {-# INLINE unsafeToTe
 
 
 -- === Symbol mapping === --
--- | General term symbol mapping utility. It allows mapping over current symbol in any term.
+-- | General expr symbol mapping utility. It allows mapping over current symbol in any expr.
 
 class    IRMonad m => SymbolMapM (atoms :: [*]) ctx expr m b where symbolMapM :: (forall a. ctx a m b => a -> m b) -> expr -> m b
-instance IRMonad m => SymbolMapM '[]            ctx term m b where symbolMapM _ _ = impossible
-instance (  SymbolMapM as ctx term m b
-         , ctx (TermSymbol a term) m b
+instance IRMonad m => SymbolMapM '[]            ctx expr m b where symbolMapM _ _ = impossible
+instance (  SymbolMapM as ctx expr m b
+         , ctx (ExprSymbol a expr) m b
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer and assert
          , KnownNat idx
-         , Readable (Layer TERM Model) m
-         , term ~ Term layout
+         , Readable (Layer EXPR Model) m
+         , expr ~ Expr layout
          )
-      => SymbolMapM (a ': as) ctx term m b where
-    symbolMapM f term = do
-        d <- unwrap' <$> readLayer @Model term
-        sym <- unsafeToTermSymbol @a term
+      => SymbolMapM (a ': as) ctx expr m b where
+    symbolMapM f expr = do
+        d <- unwrap' <$> readLayer @Model expr
+        sym <- unsafeToExprSymbol @a expr
         let eidx = unwrap' $ access @Atom d
             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-        if (idx == eidx) then f sym else symbolMapM @as @ctx f term
+        if (idx == eidx) then f sym else symbolMapM @as @ctx f expr
     {-# INLINE symbolMapM #-}
 
 
@@ -701,7 +701,7 @@ instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = 
 
 -- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
 -- type FieldsC t layout = SymbolMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
-symbolFields :: (SymbolMapM_AB HasFields2 term m out, term ~ Term layout, out ~ [Link term term]) => term -> m out
+symbolFields :: (SymbolMapM_AB HasFields2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
 symbolFields = symbolMapM_AB @HasFields2 fieldList2
 
 
