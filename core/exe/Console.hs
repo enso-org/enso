@@ -168,15 +168,14 @@ magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE mag
 
 
 
-snapshot :: (IRMonad m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model, TermNet])
+snapshot :: (IRMonad m, MonadVis m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model, TermNet])
          => P.String -> m ()
 snapshot title = do
     ts  <- terms
     vss <- mapM visNode2 ts
     let vns = fst <$> vss
         ves = join $ snd <$> vss
-    return ()
-    -- Vis.addStep (fromString title) vns ves
+    Vis.addStep (fromString title) vns ves
 
 
 visNode2 :: (IRMonad m, Readables m '[TermLayer UID, TermLayer Type, TermLayer Model, TermLinkLayer UID, TermLinkLayer Model])
@@ -279,8 +278,8 @@ layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef
 
 
 
-type family GeneralizeLayout t l
-type instance GeneralizeLayout Name (Ant a n t) = a <+> n
+type family AsSubLayout t l
+type instance AsSubLayout Name (Ant a n t) = a <+> n
 
 
 type family LiteralLayout t layout
@@ -290,9 +289,9 @@ type instance LiteralLayout p (Ant a n t) = Ant p () Star
 type instance AtomLayout    p (Ant a n t) = Ant p () Star
 
 -- Specialized
-type instance Specialized Atom s (Ant a n t) = Ant (Simplify (GeneralizeLayout Atom s :> a)) n t
-type instance Specialized Name s (Ant a n t) = Ant a (Simplify (GeneralizeLayout Name s :> n)) t
-type instance Specialized Type s (Ant a n t) = Ant a n (Simplify (GeneralizeLayout Type s :> t))
+type instance Specialized Atom s (Ant a n t) = Ant (Simplify (AsSubLayout Atom s :> a)) n t
+type instance Specialized Name s (Ant a n t) = Ant a (Simplify (AsSubLayout Name s :> n)) t
+type instance Specialized Type s (Ant a n t) = Ant a n (Simplify (AsSubLayout Type s :> t))
 
 -- type Ant  l a n t = Compound l '[Atom := a, Name := n, Type := t]
 -----------------------------------------------------------------------
@@ -307,19 +306,17 @@ type l %>  r = LiteralLayout      l r
 
 type instance Simplify (a :> ()) = a
 
-type family   DefaultLiteralLayout (m :: * -> *) a
-type instance DefaultLiteralLayout m P.String = String %> Infered Layout m
-type instance DefaultLiteralLayout m (Term t) = t
+type family   DefListLayout (m :: * -> *) a
+type instance DefListLayout m P.String = String %> Infered Layout m
+type instance DefListLayout m (Term t) = t
 
-class                                         LitTerm m a        where litTerm :: a -> m (Term (DefaultLiteralLayout m a))
+class                                         LitTerm m a        where litTerm :: a -> m (Term (DefListLayout m a))
 instance (IRMonad m, Accessible TermNet m) => LitTerm m P.String where litTerm = string ; {-# INLINE litTerm #-}
 instance Monad m                           => LitTerm m (Term l) where litTerm = return ; {-# INLINE litTerm #-}
 
 
---
 var :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet], Inferable2 Layout ldef m, LitTerm m name)
-    => name -> m (Term (DefaultLiteralLayout m name #> AtomLayout Var ldef))
-    -- => Term l -> m (Term (l #> AtomLayout Var ldef))
+    => name -> m (Term (DefListLayout m name #> AtomLayout Var ldef))
 var name = mdo
     t <- term $ Sym.uncheckedVar l
     n <- litTerm name
@@ -351,10 +348,10 @@ type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermL
 type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type] <> TermLinkLayers '[Model, UID]
 type instance Preserves SimpleAA = '[]
 
-pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
+pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.Err ())
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.Err ())
 test_pass1 = runIRT $ do
     runRegs
 
@@ -371,19 +368,24 @@ test_pass1 = runIRT $ do
     Pass.eval pass1
 
 
+
+
 source :: (IRMonad m, Readable (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
-gen_pass1 :: ( MonadIO m, IRMonad m
-             , Accessibles m '[TermLayer Model, TermLinkLayer Model, TermLayer Type, TermNet, TermLinkNet, Attr MyData]
+gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
+             , Accessibles m '[TermLayer Model, TermLinkLayer Model, TermLayer Type, TermLinkLayer UID, TermLayer UID, TermNet, TermLinkNet, Attr MyData]
              ) => m ()
 gen_pass1 = layouted @ANT $ do
     (s1 :: Term (Ant Star   ()     Star)) <- star
     (s2 :: Term (Ant Star   ()     Star)) <- star
+    snapshot "s1"
     (n  :: Term (Ant String ()     Star)) <- string "hello"
     (v  :: Term (Ant Var    String Star)) <- var n
     (v2 :: Term (Ant Var    String Star)) <- var "foo"
+    snapshot "s2"
     u1 <- unify s1 s2
+    snapshot "s3"
     print "hello"
     d <- readLayer @Type u1
     print d
@@ -415,6 +417,15 @@ gen_pass1 = layouted @ANT $ do
 main :: IO ()
 main = do
     -- test_g4
-    p <- test_pass1
+    (p, vis) <- Vis.newRunDiffT test_pass1
+    case p of
+        Left e -> do
+            print "* INTERNAL ERROR *"
+            print e
+        Right _ -> do
+            let cfg = ByteString.unpack $ encode $ vis
+            putStrLn cfg
+            liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
+            return ()
     print p
     return ()
