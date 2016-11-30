@@ -1,97 +1,24 @@
+dist
+dist-*
+cabal-dev
 *.o
 *.hi
 *.chi
 *.chs.h
-.virthualenv
-*.tix
-*~
-*.swp
-*.imports
-*.dll
-*.dll.a
-out
-a.out
-*.li
-
-# profiling results
-*.hp
-*.prof
-
-# tags file
-tags
-TAGS
-
-# haskell coverage reports
+*.dyn_o
+*.dyn_hi
 .hpc
-
-#generated files
-gen
-
-# patch artifacts
-*.rej
-
-# OS X temp
-.DS_Store
-
-# emacs backup files
-.\#*
-\#*\#
-
-# eclipse files
-.dist-buildwrapper/
-.project
-.settings
-
-# haste compilation files
-*.jsmod
-
-# python files
-*.py[cod]
-
-# jester
-.jester
-
-#IntelliJ IDEA
-.idea
-
-# cabal configs - they should be generated from tcabal files
-libs/*/*.cabal
-libs/*/*/*.cabal
-libs/*/*/*/*.cabal
-tools/*/*.cabal
-tools/*/*/*.cabal
-tools/*/*/*/*.cabal
-
-#general builds
-dist
-DllWrappers
-
-# cabal sandbox
+.hsenv
+.cabal-sandbox/
 cabal.sandbox.config
-.cabal-sandbox
-.build.config
+*.cabal
+*.prof
+*.aux
+*.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+.HTF/
 
-# aws credentials
-aws.config
-
-# generated Std.luna
-stdlib/FlowboxM/Libs/Flowbox/Std.luna
-
-### DEPRECATED ###
-# cabal-dev
-
-# assets for tests
-*.bmp
-*.jpg
-*.jpeg
-*.png
-
-test.html
-report.html
-build_*/**/.stack-work
-.autoenv.zsh
-
-temp
-stack
-
-.stack-work
+# OSX
+.DS_Store
