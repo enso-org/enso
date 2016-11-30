@@ -72,10 +72,10 @@ import GHC.TypeLits (ErrorMessage(Text))
 import Luna.IR.Expr.Atom (Atoms)
 
 import qualified Luna.IR.Expr.Term as Symbol
-import qualified Luna.IR.Expr.Term.Named as Sym
+import qualified Luna.IR.Expr.Term.Named as Term
 import qualified Luna.IR.Expr.Term.Named as Symbol
 import Luna.IR.Expr.Term.Named (HasName, name)
-import Luna.IR.Expr.Term (Sym)
+import Luna.IR.Expr.Term (TERM)
 import Data.Property
 import Luna.IR.Expr.Format (Format, Sub)
 import qualified Data.Vector as V
@@ -113,7 +113,7 @@ import Luna.IR.Layer.Succs
 import Luna.IR.Layer.Type
 import qualified Luna.IR.Internal.LayerStore as Store
 import Type.Maybe (FromJust)
-import Luna.IR.Expr.Layout.Ant
+import Luna.IR.Expr.Layout.ENT
 
 
 
@@ -138,8 +138,8 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 
-type AntExpr a n t = Expr (Ant a n t)
-type UntyppedExpr a n = AntExpr a n Star
+type ENTExpr a n t = Expr (ENT a n t)
+type UntyppedExpr a n = ENTExpr a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
 baseLayout = runInferenceT2 @Layout
@@ -162,7 +162,7 @@ newtype MagicStar = MagicStar Expr'
 makeWrapped ''MagicStar
 
 newMagicStar :: IRMonad m => m MagicStar
-newMagicStar = wrap' <$> magicExpr Sym.uncheckedStar ; {-# INLINE newMagicStar #-}
+newMagicStar = wrap' <$> magicExpr Term.uncheckedStar ; {-# INLINE newMagicStar #-}
 
 magicStar :: Iso' (Expr l) MagicStar
 magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
@@ -280,21 +280,21 @@ layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef
 
 
 type family AsSubLayout t l
-type instance AsSubLayout Name (Ant a n t) = a <+> n
+type instance AsSubLayout Name (ENT a n t) = a <+> n
 
 
 type family LiteralLayout t layout
 type family AtomLayout    t layout
 
-type instance LiteralLayout p (Ant a n t) = Ant p () Star
-type instance AtomLayout    p (Ant a n t) = Ant p () Star
+type instance LiteralLayout p (ENT a n t) = ENT p () Star
+type instance AtomLayout    p (ENT a n t) = ENT p () Star
 
 -- Specialized
-type instance Specialized Atom s (Ant a n t) = Ant (Simplify (AsSubLayout Atom s :> a)) n t
-type instance Specialized Name s (Ant a n t) = Ant a (Simplify (AsSubLayout Name s :> n)) t
-type instance Specialized Type s (Ant a n t) = Ant a n (Simplify (AsSubLayout Type s :> t))
+type instance Specialized Atom s (ENT a n t) = ENT (Simplify (AsSubLayout Atom s :> a)) n t
+type instance Specialized Name s (ENT a n t) = ENT a (Simplify (AsSubLayout Name s :> n)) t
+type instance Specialized Type s (ENT a n t) = ENT a n (Simplify (AsSubLayout Type s :> t))
 
--- type Ant  l a n t = Compound l '[Atom := a, Name := n, Type := t]
+-- type ENT  l a n t = Compound l '[Atom := a, Name := n, Type := t]
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
@@ -319,7 +319,7 @@ instance Monad m                           => LitExpr m (Expr l) where litExpr =
 var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Inferable2 Layout ldef m, LitExpr m name)
     => name -> m (Expr (DefListLayout m name #> AtomLayout Var ldef))
 var name = mdo
-    t <- expr $ Sym.uncheckedVar l
+    t <- expr $ Term.uncheckedVar l
     n <- litExpr name
     l <- link (unsafeGeneralize n) t
     return t
@@ -328,13 +328,13 @@ string :: (IRMonad m, Accessible ExprNet m) => P.String -> m (Expr (String %> In
 string = expr . uncheckedString ; {-# INLINE string #-}
 
 star :: (IRMonad m, Accessible ExprNet m, Inferable2 Layout ldef m) => m (Expr (AtomLayout Star ldef))
-star = expr Sym.uncheckedStar
+star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
 unify :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
       => Expr l -> Expr l' -> m (Expr (Unify |> (l <+> l')))
 unify a b = mdo
-    t  <- expr $ Sym.uncheckedUnify la lb
+    t  <- expr $ Term.uncheckedUnify la lb
     la <- link (unsafeGeneralize a) t
     lb <- link (unsafeGeneralize b) t
     return t
@@ -372,19 +372,16 @@ test_pass1 = runIRT $ do
 
 type family Head a
 
-type instance Access Atom (Ant a _ _) = a
+type instance Access EXPR (ENT e _ _) = e
 type instance Head (Atomic a) = Atomic a
 
-type AtomHead l = Head (l # Atom)
-type AtomHeadDef l = ExprSymbolDef (AtomHead l) (Expr l)
+type ExprHead l = Head (l # EXPR)
+type ExprHeadDef l = ExprTermDef (ExprHead l) (Expr l)
 
--- match' :: forall a l m. (IRMonad m, Readable (ExprLayer Model) m, Atomic a ~ AtomHead l) => Expr l -> m (ExprSymbolDef (Atomic a) (Expr l))
--- match' = unsafeToExprSymbolDef @(Atomic a)
+-- match' :: forall a l m. (IRMonad m, Readable (ExprLayer Model) m, Atomic a ~ ExprHead l) => Expr l -> m (ExprTermDef (Atomic a) (Expr l))
+-- match' = unsafeToExprTermDef @(Atomic a)
 
-type KnownAtom l m = (IRMonad m, Readable (ExprLayer Model) m) -- CheckAtomic (AtomHead l))
 
-match' :: forall l m. KnownAtom l m => Expr l -> m (AtomHeadDef l)
-match' = unsafeToExprSymbolDef @(AtomHead l)
 
 
 source :: (IRMonad m, Readable (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
@@ -393,13 +390,13 @@ source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
              ) => m ()
-gen_pass1 = layouted @ANT $ do
-    (s1 :: Expr (Ant Star   ()     Star)) <- star
-    (s2 :: Expr (Ant Star   ()     Star)) <- star
+gen_pass1 = layouted @Ent $ do
+    (s1 :: Expr (ENT Star   ()     Star)) <- star
+    (s2 :: Expr (ENT Star   ()     Star)) <- star
     snapshot "s1"
-    (n  :: Expr (Ant String ()     Star)) <- string "hello"
-    (v  :: Expr (Ant Var    String Star)) <- var n
-    (v2 :: Expr (Ant Var    String Star)) <- var "foo"
+    (n  :: Expr (ENT String ()     Star)) <- string "hello"
+    (v  :: Expr (ENT Var    String Star)) <- var n
+    (v2 :: Expr (ENT Var    String Star)) <- var "foo"
     snapshot "s2"
     u1 <- unify s1 s2
     snapshot "s3"
@@ -432,13 +429,31 @@ gen_pass1 = layouted @ANT $ do
 
     return ()
 
+
+type ExprLink a b = Link (Expr a) (Expr b)
 -- strName :: _ => _
-strName v = getName v >>= \n -> match' n >>= \ (Sym.Sym_String s) -> return s
+strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 
-type KnownName l m = (KnownAtom l m, HasName (AtomHeadDef l), Readable (ExprLinkLayer Model) m)
 
+
+-- === KnownExpr === --
+
+type KnownExpr l m = (IRMonad m, Readables m '[ExprLayer Model, ExprLinkLayer Model]) -- CheckAtomic (ExprHead l))
+
+match' :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
+match' = unsafeToExprTermDef @(ExprHead l)
+
+getSource :: KnownExpr l m => Lens' (ExprHeadDef l) (ExprLink a b) -> Expr l -> m (Expr a)
+getSource f v = match' v >>= source . view f ; {-# INLINE getSource #-}
+
+
+-- === KnownName === --
+
+type       KnownName l m = (KnownExpr l m, HasName (ExprHeadDef l))
 getName :: KnownName l m => Expr l -> m (Expr (Sub Name l))
-getName v = match' v >>= \ vv -> source (vv ^. name)
+getName = getSource name ; {-# INLINE getName #-}
+
+
 
 
 main :: IO ()
@@ -452,7 +467,7 @@ main = do
         Right _ -> do
             let cfg = ByteString.unpack $ encode $ vis
             -- putStrLn cfg
-            liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
+            -- liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
             return ()
     print p
     return ()
