@@ -1,5 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE PolyKinds            #-}
 
 module Luna.IR.Term.Layout.Class where
 
@@ -31,7 +30,7 @@ data Name = Name deriving (Show)
 data Layout = Layout deriving (Show)
 type family LayoutOf a
 
-type family DefaultLayout (p :: k)
+type family DefaultLayout p
 
 
 -- === Scoping === --
@@ -49,8 +48,7 @@ instance {-# OVERLAPPABLE #-} Generalize a a
 
 -- === Utils === --
 
-type l <+> r = Merge l r
-type l :>> r = Specialized Atom l r
+
 
 
 type GeneralizableError a b = Sentence

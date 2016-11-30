@@ -17,7 +17,7 @@
 module Main where
 
 
-import Prologue            hiding (Simple, elem, typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
+import Prologue            hiding (String, Simple, elem, typeRep, elements, Symbol, Cons, Num, Version, cons, read, ( # ), Enum, Type, Getter, set, Setter', set')
 import qualified Prologue as P
 
 import           Control.Monad.Event     as Event
@@ -56,7 +56,7 @@ import           Data.RTuple (TMap(..), empty, Assoc(..)) -- refactor empty to a
 -- import Data.Shell as Shell hiding (Layers)
 import Data.Cover
 import Type.Applicative
-import Luna.IR.Term hiding (Data, cons, unify, star, Readable)
+import Luna.IR.Term hiding (Data, cons, unify, star, Readable, string, var)
 
 -- import GHC.Prim (Any)
 
@@ -137,7 +137,7 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 
-type AntTerm a n t = Term (Ant' a n t)
+type AntTerm a n t = Term (Ant a n t)
 type UntyppedTerm a n = AntTerm a n Star
 
 baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
@@ -150,7 +150,7 @@ layouted = baseLayout @(DefaultLayout l)
 
 
 
-instance Generalize (Compound Simple lst) Draft
+-- instance Generalize (Compound Simple lst) Draft
 
 
 
@@ -279,25 +279,67 @@ layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef
 
 
 
+type family GeneralizeLayout t l
+type instance GeneralizeLayout Name (Ant a n t) = a <+> n
 
 
+type family LiteralLayout t layout
+type family AtomLayout    t layout
 
+type instance LiteralLayout p (Ant a n t) = Ant p () Star
+type instance AtomLayout    p (Ant a n t) = Ant p () Star
+
+-- Specialized
+type instance Specialized Atom s (Ant a n t) = Ant (Simplify (GeneralizeLayout Atom s :> a)) n t
+type instance Specialized Name s (Ant a n t) = Ant a (Simplify (GeneralizeLayout Name s :> n)) t
+type instance Specialized Type s (Ant a n t) = Ant a n (Simplify (GeneralizeLayout Type s :> t))
+
+-- type Ant  l a n t = Compound l '[Atom := a, Name := n, Type := t]
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 
+type l <+> r = Merge              l r
+type l |>  r = Specialized   Atom l r
+type l #>  r = Specialized   Name l r
+type l >>  r = Specialized   Type l r
+type l %>  r = LiteralLayout      l r
 
-star :: (IRMonad m, Accessible TermNet m, Inferable2 Layout layout m) => m (AtomicTerm Star layout)
+type instance Simplify (a :> ()) = a
+
+type family   DefaultLiteralLayout (m :: * -> *) a
+type instance DefaultLiteralLayout m P.String = String %> Infered Layout m
+type instance DefaultLiteralLayout m (Term t) = t
+
+class                                         LitTerm m a        where litTerm :: a -> m (Term (DefaultLiteralLayout m a))
+instance (IRMonad m, Accessible TermNet m) => LitTerm m P.String where litTerm = string ; {-# INLINE litTerm #-}
+instance Monad m                           => LitTerm m (Term l) where litTerm = return ; {-# INLINE litTerm #-}
+
+
+--
+var :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet], Inferable2 Layout ldef m, LitTerm m name)
+    => name -> m (Term (DefaultLiteralLayout m name #> AtomLayout Var ldef))
+    -- => Term l -> m (Term (l #> AtomLayout Var ldef))
+var name = mdo
+    t <- term $ Sym.uncheckedVar l
+    n <- litTerm name
+    l <- link (unsafeGeneralize n) t
+    return t
+
+string :: (IRMonad m, Accessible TermNet m) => P.String -> m (Term (String %> Infered Layout m))
+string = term . uncheckedString ; {-# INLINE string #-}
+
+star :: (IRMonad m, Accessible TermNet m, Inferable2 Layout ldef m) => m (Term (AtomLayout Star ldef))
 star = term Sym.uncheckedStar
 {-# INLINE star #-}
 
 unify :: (IRMonad m, Accessibles m '[TermNet, TermLinkNet])
-      => Term l -> Term l' -> m (Term (Unify :>> (l <+> l')))
+      => Term l -> Term l' -> m (Term (Unify |> (l <+> l')))
 unify a b = mdo
-    n  <- term $ Sym.uncheckedUnify la lb
-    la <- link (unsafeGeneralize a) n
-    lb <- link (unsafeGeneralize b) n
-    return n
+    t  <- term $ Sym.uncheckedUnify la lb
+    la <- link (unsafeGeneralize a) t
+    lb <- link (unsafeGeneralize b) t
+    return t
 {-# INLINE unify #-}
 
 
@@ -305,8 +347,8 @@ data MyData = MyData Int deriving (Show)
 
 
 data                    SimpleAA
-type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
-type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type]
+type instance Inputs    SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type] <> TermLinkLayers '[Model, UID]
+type instance Outputs   SimpleAA = '[Attr MyData, TermNet, TermLinkNet] <> TermLayers '[Model, UID, Type] <> TermLinkLayers '[Model, UID]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m) => Pass SimpleAA m
@@ -320,17 +362,27 @@ test_pass1 = runIRT $ do
     attachLayer (typeRep @Succs) (typeRep @TERM)
     attachLayer (typeRep @Type)  (typeRep @TERM)
     attachLayer (typeRep @UID)   (typeRep @TERM)
+
+    attachLayer (typeRep @Model) (typeRep @(LINK' TERM))
+    attachLayer (typeRep @UID)   (typeRep @(LINK' TERM))
+
     setAttr $ MyData 7
 
     Pass.eval pass1
 
 
+source :: (IRMonad m, Readable (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
+source = fmap fst . readLayer @Model ; {-# INLINE source #-}
+
 gen_pass1 :: ( MonadIO m, IRMonad m
-             , Accessibles m '[TermLayer Model, TermLayer Type, TermNet, TermLinkNet, Attr MyData]
+             , Accessibles m '[TermLayer Model, TermLinkLayer Model, TermLayer Type, TermNet, TermLinkNet, Attr MyData]
              ) => m ()
 gen_pass1 = layouted @ANT $ do
-    (s1 :: UntyppedTerm Star ()) <- star
-    (s2 :: UntyppedTerm Star ()) <- star
+    (s1 :: Term (Ant Star   ()     Star)) <- star
+    (s2 :: Term (Ant Star   ()     Star)) <- star
+    (n  :: Term (Ant String ()     Star)) <- string "hello"
+    (v  :: Term (Ant Var    String Star)) <- var n
+    (v2 :: Term (Ant Var    String Star)) <- var "foo"
     u1 <- unify s1 s2
     print "hello"
     d <- readLayer @Type u1
@@ -345,6 +397,16 @@ gen_pass1 = layouted @ANT $ do
         Star      -> match s1 $ \case
             Unify l r -> print "hola"
             Star      -> print "hellox"
+
+    print "---"
+
+    v <- var "ala"
+
+    match v $ \ (Var v) -> do
+        n <- source v
+        match n $ \case
+            String s -> print s
+
 
     return ()
 

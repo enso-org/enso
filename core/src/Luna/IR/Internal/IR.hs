@@ -557,7 +557,7 @@ type instance Abstract (Term _) = TERM
 
 -- === Utils === --
 
-type AtomicTerm atom layout = Term (Update Atom atom layout)
+-- type AtomicTerm atom layout = Term (Update Atom atom layout)
 
 magicTerm :: forall atom layout m. (SymbolEncoder atom, IRMonad m)
           => TermSymbol atom (Term layout) -> m (Term layout)
@@ -565,7 +565,14 @@ magicTerm a = newMagicElem (encodeSymbol a) ; {-# INLINE magicTerm #-}
 
 term :: forall atom layout m. (SymbolEncoder atom, IRMonad m, Accessible (Net TERM) m)
      => TermSymbol atom (Term layout) -> m (Term layout)
-term a = newElem (encodeSymbol a) ; {-# INLINE term #-}
+term = newElem . encodeSymbol ; {-# INLINE term #-}
+
+-- class SomeGeneralEncode a where
+--     someGeneralEncode :: a -> TermStore
+--
+-- term2 :: forall a layout m. (IRMonad m, Accessible TermNet m, SomeGeneralEncode a)
+--      => a -> m (Term layout)
+-- term2 = newElem . someGeneralEncode ; {-# INLINE term2 #-}
 
 terms :: (IRMonad m, Readable (Net TERM) m) => m [Term Draft]
 terms = uncheckedElems ; {-# INLINE terms #-}
@@ -680,8 +687,9 @@ type TermLinkLayer = Layer (LINK' TERM)
 type TermNet       = Net   TERM
 type TermLinkNet   = Net   (LINK' TERM)
 
-type TermLayers ls = TermLayer <$> ls
-type Nets       ls = Net       <$> ls
+type TermLayers     ls = TermLayer     <$> ls
+type TermLinkLayers ls = TermLinkLayer <$> ls
+type Nets           ls = Net           <$> ls
 
 type Accessibles m lst = (Readables m lst, Writables m lst)
 

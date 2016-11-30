@@ -16,7 +16,7 @@ import Type.Bool
 -- === Definition === --
 
 data a :> b
-
+type a :>> b = Simplify (a :> b)
 
 -- === Instances === --
 
@@ -28,7 +28,7 @@ instance {-# OVERLAPPABLE #-} (Generalize a b, Generalize sa sb)        => Gener
 instance {-# OVERLAPPABLE #-} (Generalize (a :> sa) (Form b :> Form b)) => Generalize (a :> sa) (Form b)
 
 -- Simplify
-type instance Simplify (a :> b) = If (a == b) a (a :> b)
+-- type instance Simplify (a :> b) = If (a == b) a (a :> b)
 
 -- Merge
 type instance Merge (t :> s)   ()         = t :> s
