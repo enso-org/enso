@@ -11,4 +11,4 @@ name: convert
 stability: experimental
 synopsis: Safe and unsafe data conversion utilities with strong type-level operation.
   checking.
-version: 1.0.8
+version: 1.0.9
