@@ -448,18 +448,19 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 -- === TermSymbol === --
 ------------------------
 
-data XXX -- FIXME
+data TMP -- FIXME
 
-newtype TermSymbol    atom t = TermSymbol    (N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t)))
+type    TermSymbolDef atom t = N.Symbol atom (Layout.Named (SubLink Name t) (SubLink Atom t))
+newtype TermSymbol    atom t = TermSymbol    (TermSymbolDef atom t)
 newtype TermUniSymbol      t = TermUniSymbol (N.UniSymbol   (Layout.Named (SubLink Name t) (SubLink Atom t)))
-type    TermSymbol'   atom   = TermSymbol atom XXX
+type    TermSymbol'   atom   = TermSymbol atom TMP
 makeWrapped ''TermSymbol
 makeWrapped ''TermUniSymbol
 
 
 -- === Helpers === --
 
-hideLayout :: TermSymbol atom t -> TermSymbol atom XXX
+hideLayout :: TermSymbol atom t -> TermSymbol atom TMP
 hideLayout = unsafeCoerce ; {-# INLINE hideLayout #-}
 
 
@@ -535,7 +536,6 @@ instance EncodeStore TermStoreSlots (TermSymbol' atom) Identity => SymbolEncoder
     encodeSymbol = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeSymbol #-} -- magic
 
 
-
 ------------------
 -- === Term === --
 ------------------
@@ -600,6 +600,58 @@ instance      IsIdx     (Term l) where
     idx = elem . idx ; {-# INLINE idx #-}
 
 
+
+
+
+
+
+
+-- -------------------------------------
+-- === Expr Layout type caches === --
+-------------------------------------
+
+type instance Encode2 Atom    v = List.Index v (Every Atom)
+type instance Encode2 Format  v = List.Index v (Every Format)
+
+
+
+
+-- TO REFACTOR:
+
+
+type TermLayer     = Layer TERM
+type TermLinkLayer = Layer (LINK' TERM)
+type TermNet       = Net   TERM
+type TermLinkNet   = Net   (LINK' TERM)
+
+type TermLayers     ls = TermLayer     <$> ls
+type TermLinkLayers ls = TermLinkLayer <$> ls
+type Nets           ls = Net           <$> ls
+
+type Accessibles m lst = (Readables m lst, Writables m lst)
+
+type family Readables m lst :: Constraint where
+    Readables m '[]       = ()
+    Readables m (l ': ls) = (Readable l m, Readables m ls)
+
+type family Writables m lst :: Constraint where
+    Writables m '[]       = ()
+    Writables m (l ': ls) = (Writable l m, Writables m ls)
+
+
+
+unsafeToTermSymbol :: forall atom l m. (IRMonad m, Readable (TermLayer Model) m) => Term l -> m (TermSymbol atom (Term l))
+unsafeToTermSymbol = unsafeCoerce . unwrap' . access @Sym . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToTermSymbol #-}
+
+unsafeToTermSymbolDef :: forall atom l m. (IRMonad m, Readable (TermLayer Model) m) => Term l -> m (TermSymbolDef atom (Term l))
+unsafeToTermSymbolDef = unwrap' <∘> unsafeToTermSymbol ; {-# INLINE unsafeToTermSymbolDef #-}
+
+
+
+
+
+
+
 -- === Symbol mapping === --
 -- | General term symbol mapping utility. It allows mapping over current symbol in any term.
 
@@ -615,9 +667,9 @@ instance (  SymbolMapM as ctx term m b
       => SymbolMapM (a ': as) ctx term m b where
     symbolMapM f term = do
         d <- unwrap' <$> readLayer @Model term
+        sym <- unsafeToTermSymbol @a term
         let eidx = unwrap' $ access @Atom d
             idx  = fromIntegral $ natVal (Proxy :: Proxy idx)
-            sym  = unsafeCoerce (unwrap' $ access @Sym d) :: TermSymbol a (Term layout)
         if (idx == eidx) then f sym else symbolMapM @as @ctx f term
     {-# INLINE symbolMapM #-}
 
@@ -664,39 +716,3 @@ instance (ctx a b, Monad m) => DropMonad ctx a m b
 
 class    ctx a => FreeResult ctx a b
 instance ctx a => FreeResult ctx a b
-
-
-
-
-
--- -------------------------------------
--- === Expr Layout type caches === --
--------------------------------------
-
-type instance Encode2 Atom    v = List.Index v (Every Atom)
-type instance Encode2 Format  v = List.Index v (Every Format)
-
-
-
-
--- TO REFACTOR:
-
-
-type TermLayer     = Layer TERM
-type TermLinkLayer = Layer (LINK' TERM)
-type TermNet       = Net   TERM
-type TermLinkNet   = Net   (LINK' TERM)
-
-type TermLayers     ls = TermLayer     <$> ls
-type TermLinkLayers ls = TermLinkLayer <$> ls
-type Nets           ls = Net           <$> ls
-
-type Accessibles m lst = (Readables m lst, Writables m lst)
-
-type family Readables m lst :: Constraint where
-    Readables m '[]       = ()
-    Readables m (l ': ls) = (Readable l m, Readables m ls)
-
-type family Writables m lst :: Constraint where
-    Writables m '[]       = ()
-    Writables m (l ': ls) = (Writable l m, Writables m ls)

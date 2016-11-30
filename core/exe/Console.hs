@@ -74,6 +74,7 @@ import Luna.IR.Term.Atom (Atoms)
 import qualified Luna.IR.Term.Symbol as Symbol
 import qualified Luna.IR.Term.Symbol.Named as Sym
 import qualified Luna.IR.Term.Symbol.Named as Symbol
+import Luna.IR.Term.Symbol.Named (HasName, name)
 import Luna.IR.Term.Symbol (Sym)
 import Data.Property
 import Luna.IR.Term.Format (Format, Sub)
@@ -369,6 +370,22 @@ test_pass1 = runIRT $ do
 
 
 
+type family Head a
+
+type instance Access Atom (Ant a _ _) = a
+type instance Head (Atomic a) = Atomic a
+
+type AtomHead l = Head (l # Atom)
+type AtomHeadDef l = TermSymbolDef (AtomHead l) (Term l)
+
+-- match' :: forall a l m. (IRMonad m, Readable (TermLayer Model) m, Atomic a ~ AtomHead l) => Term l -> m (TermSymbolDef (Atomic a) (Term l))
+-- match' = unsafeToTermSymbolDef @(Atomic a)
+
+type KnownAtom l m = (IRMonad m, Readable (TermLayer Model) m) -- CheckAtomic (AtomHead l))
+
+match' :: forall l m. KnownAtom l m => Term l -> m (AtomHeadDef l)
+match' = unsafeToTermSymbolDef @(AtomHead l)
+
 
 source :: (IRMonad m, Readable (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
@@ -402,16 +419,26 @@ gen_pass1 = layouted @ANT $ do
 
     print "---"
 
-    v <- var "ala"
 
-    match v $ \ (Var v) -> do
-        n <- source v
+    match v $ \ (Var l) -> do
+        n <- source l
         match n $ \case
             String s -> print s
+
+    v <- var "ala"
+    n <- strName v
+    print n
 
 
     return ()
 
+-- strName :: _ => _
+strName v = getName v >>= \n -> match' n >>= \ (Sym.Sym_String s) -> return s
+
+type KnownName l m = (KnownAtom l m, HasName (AtomHeadDef l), Readable (TermLinkLayer Model) m)
+
+getName :: KnownName l m => Term l -> m (Term (Sub Name l))
+getName v = match' v >>= \ vv -> source (vv ^. name)
 
 
 main :: IO ()
@@ -424,7 +451,7 @@ main = do
             print e
         Right _ -> do
             let cfg = ByteString.unpack $ encode $ vis
-            putStrLn cfg
+            -- putStrLn cfg
             liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
             return ()
     print p

@@ -24,6 +24,10 @@ import           Data.RTuple (List(Null, (:-:)))
 import qualified Data.RTuple as List
 
 
+type family NameOf a -- FIXME[WD] props?
+class HasName a where
+    name :: Lens' a (NameOf a)
+
 ---------------------
 -- === Symbols === --
 ---------------------
@@ -47,6 +51,14 @@ newtype instance Symbol Var      (Layout.Named n a) = Sym_Var      { _name ::  n
 data    instance Symbol Blank    (Layout.Named n a) = Sym_Blank
 data    instance Symbol Star     (Layout.Named n a) = Sym_Star
 data    instance Symbol Missing  (Layout.Named n a) = Sym_Missing
+
+
+
+type instance NameOf (Symbol s (Layout.Named n a)) = n
+instance HasName (Symbol Var (Layout.Named n a)) where name = iso (\(Sym_Var n) -> n) Sym_Var
+
+
+
 
 data instance UniSymbol (Layout.Named n a) = Integer  P.Integer
                                            | Rational P.Rational
@@ -217,8 +229,8 @@ cons' = fromSymbol . product' ; {-# INLINE cons' #-}
 lam' :: (Symbolic Lam s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
 lam' = fromSymbol .: product' ; {-# INLINE lam' #-}
 
-match' :: (Symbolic Match s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
-match' = fromSymbol .: product' ; {-# INLINE match' #-}
+-- match' :: (Symbolic Match s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+-- match' = fromSymbol .: product' ; {-# INLINE match' #-}
 
 missing' :: (Symbolic Missing s sym, Fields sym ~ '[]) => s
 missing' = fromSymbol product' ; {-# INLINE missing' #-}
@@ -260,8 +272,8 @@ uncheckedCons = uncheckedFromSymbol . product' ; {-# INLINE uncheckedCons #-}
 uncheckedLam :: (UncheckedSymbolic Lam s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
 uncheckedLam = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedLam #-}
 
-uncheckedMatch :: (UncheckedSymbolic Match s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
-uncheckedMatch = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedMatch #-}
+-- uncheckedMatch :: (UncheckedSymbolic Match s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+-- uncheckedMatch = uncheckedFromSymbol .: product' ; {-# INLINE uncheckedMatch #-}
 
 uncheckedMissing :: (UncheckedSymbolic Missing s sym, Fields sym ~ '[]) => s
 uncheckedMissing = uncheckedFromSymbol product' ; {-# INLINE uncheckedMissing #-}
