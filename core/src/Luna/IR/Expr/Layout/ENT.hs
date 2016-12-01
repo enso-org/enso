@@ -50,7 +50,8 @@ instance (Generalize e e', Generalize n n', Generalize t t') => Generalize (ENT 
 ---- REFACTOR:
 
 -- To powinno byc generalizowanie per layout:
-instance Generalize () (Form f)
+instance Generalize () (Atomic a)
+instance Generalize () (Form   f)
 
 
 

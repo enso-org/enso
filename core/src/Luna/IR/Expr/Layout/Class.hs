@@ -101,6 +101,8 @@ instance {-# OVERLAPPABLE #-} Generalize (Atomic a) (Atomic a)
 instance {-# OVERLAPPABLE #-} (Assert' (Form b > Form a)) => Generalize (Form a) (Form b)
 instance                                                     Generalize (Form a) (Form a)
 
+
+
 -- Merge
 
 type instance Merge (Form   a) ()         = Form a

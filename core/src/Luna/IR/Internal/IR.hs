@@ -257,17 +257,17 @@ newMagicElem tdef = do
 {-# INLINE newMagicElem #-}
 
 newElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsElem t, Typeable (Abstract t)) => Definition t -> m t
-newElem tdef = do
-    irstate    <- getIRState
-    newIdx     <- reserveNewElemIdx @t
-    layerStore <- readComp @(Net (Abstract t))
-    let el = newIdx ^. from (elem . idx)
-        consLayer (layer, store) = runInIR $ do
-            let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
-            Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
-    mapM_ consLayer (Store.assocs layerStore)
-    return el
-{-# INLINE newElem #-}
+newElem tdef = newMagicElem tdef -- do
+--     irstate    <- getIRState
+--     newIdx     <- reserveNewElemIdx @t
+--     layerStore <- readComp @(Net (Abstract t))
+--     let el = newIdx ^. from (elem . idx)
+--         consLayer (layer, store) = runInIR $ do
+--             let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
+--             Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
+--     mapM_ consLayer (Store.assocs layerStore)
+--     return el
+-- {-# INLINE newElem #-}
 
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int

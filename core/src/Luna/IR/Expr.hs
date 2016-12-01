@@ -30,6 +30,15 @@ star = expr Term.uncheckedStar
 string :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr (String %> Infered Layout m))
 string = expr . Term.uncheckedString ; {-# INLINE string #-}
 
+acc :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], LitExpr m name)
+    => name -> Expr l -> m (Expr (DefListLayout m name #> l))
+acc name arg = mdo
+    t  <- expr $ Term.uncheckedAcc ln la
+    n  <- litExpr name
+    ln <- link (unsafeGeneralize n)   t
+    la <- link (unsafeGeneralize arg) t
+    return t
+
 var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Inferable2 Layout ldef m, LitExpr m name)
     => name -> m (Expr (DefListLayout m name #> AtomLayout Var ldef))
 var name = mdo
