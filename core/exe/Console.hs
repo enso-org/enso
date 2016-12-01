@@ -57,6 +57,7 @@ gen_pass1 = layouted @Ent $ do
     (n  :: Expr (ENT String ()     Star)) <- string "hello"
     (v  :: Expr (ENT Var    String Star)) <- var n
     (v2 :: Expr (ENT Var    String Star)) <- var "foo"
+    let (ng :: Expr (ENT Draft Draft Draft)) = generalize n
     snapshot "s2"
     u1 <- unify s1 s2
     snapshot "s3"

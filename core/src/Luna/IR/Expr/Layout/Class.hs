@@ -42,6 +42,13 @@ type family Universal   a
 type family Abstract    a
 type family Specialized t spec layout
 
+type family AsSubLayout t l
+type family LiteralLayout t layout
+type family AtomLayout    t layout
+
+type l <+> r = Merge              l r
+type l %>  r = LiteralLayout      l r
+
 
 class                         Generalize a b
 instance {-# OVERLAPPABLE #-} Generalize a a
@@ -103,14 +110,3 @@ type instance Merge (Atomic a) (Form   b) = Merge (Atomic a # Format) (Form b)
 type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a # Format) (Atomic b # Format))-- TODO: refactor
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a
-
-
-
--------- REFACTOR:
-
-type family AsSubLayout t l
-type family LiteralLayout t layout
-type family AtomLayout    t layout
-
-type l <+> r = Merge              l r
-type l %>  r = LiteralLayout      l r
