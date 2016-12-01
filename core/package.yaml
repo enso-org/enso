@@ -23,6 +23,14 @@ benchmarks:
             - criterion
             - luna
 
+tests:
+    spec:
+        main: Spec.hs
+        source-dirs: diag/test
+        dependencies:
+            - luna
+            - hspec
+
 dependencies:
     - aeson
     - base

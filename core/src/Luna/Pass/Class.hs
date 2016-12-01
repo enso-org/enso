@@ -88,7 +88,7 @@ eval = join . fmap sequence . initPass ; {-# INLINE eval #-}
 -- === Keys lookup === --
 
 
-data Err = Err TypeRep deriving (Show)
+data Err = Err TypeRep deriving (Show, Eq)
 
 type ReLookupKeys k m ks = (IR.KeyMonad k m, LookupKeys m ks, Typeable k)
 class    Monad m             => LookupKeys m keys      where lookupKeys :: m (Either Err (KeyListM m keys))

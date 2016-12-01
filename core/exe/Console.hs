@@ -17,6 +17,8 @@ import           Luna.Pass        (Pass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
 
 
+import Luna.IR.Expr.Term.Class
+
 
 data MyData = MyData Int deriving (Show)
 
@@ -86,6 +88,15 @@ gen_pass1 = layouted @Ent $ do
 
     v <- var "ala"
     n <- strName v
+    (s3 :: Expr (ENT Draft String Draft)) <- generalize <$> star
+    (v3 :: Expr (ENT Draft String Draft)) <- generalize <$> var "lel"
+    match v3 $ \(Var l) -> do
+        print "IT'S VAR"
+        n' <- source l
+        n  <- match n' $ \case
+            String s -> return s
+        print n
+
     print n
 
     return ()
@@ -103,7 +114,7 @@ main = do
         Right _ -> do
             let cfg = ByteString.unpack $ encode $ vis
             -- putStrLn cfg
-            -- liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)
+            {-liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)-}
             return ()
     print p
     return ()
