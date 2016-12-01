@@ -1,6 +1,7 @@
 extra-deps: [ghc-session-0.1.2.0, error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.1.0,
   serialport-0.4.7, aeson-1.0.2.1]
-ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100}
+ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields
+    -O0 -fconstraint-solver-iterations=100}
 local-bin-path: ./bin
 packages:
 - {location: .}
@@ -35,7 +36,7 @@ packages:
 - extra-dep: true
   location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
-  location: {commit: 8de3a17c1381170e99794e202e8b602f6b305203, git: 'https://github.com/luna/typelevel.git'}
+  location: {commit: 409523b0d7295dcb124f43a78736247783ce5b3a, git: 'https://github.com/luna/typelevel.git'}
 - extra-dep: true
   location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/luna/data-construction.git'}
 - extra-dep: true

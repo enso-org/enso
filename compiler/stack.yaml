@@ -37,7 +37,7 @@ packages:
 - extra-dep: true
   location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
-  location: {commit: 8de3a17c1381170e99794e202e8b602f6b305203, git: 'https://github.com/luna/typelevel.git'}
+  location: {commit: 409523b0d7295dcb124f43a78736247783ce5b3a, git: 'https://github.com/luna/typelevel.git'}
 - extra-dep: true
   location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/luna/data-construction.git'}
 - extra-dep: true
