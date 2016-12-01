@@ -98,6 +98,8 @@ instance {-# OVERLAPPABLE #-} Assert ((Atomic a) `In` (Atoms (Form f)))
 instance {-# OVERLAPPABLE #-} (TypeError (GeneralizableError (Atomic a) (Atomic b)))
                            => Generalize (Atomic a) (Atomic b)
 instance {-# OVERLAPPABLE #-} Generalize (Atomic a) (Atomic a)
+instance {-# OVERLAPPABLE #-} (Assert' (Form b > Form a)) => Generalize (Form a) (Form b)
+instance                                                     Generalize (Form a) (Form a)
 
 -- Merge
 

@@ -43,8 +43,14 @@ type instance Specialized Atom s (ENT a n t) = ENT (Simplify (AsSubLayout Atom s
 type instance Specialized Name s (ENT a n t) = ENT a (Simplify (AsSubLayout Name s :> n)) t
 type instance Specialized Type s (ENT a n t) = ENT a n (Simplify (AsSubLayout Type s :> t))
 
+-- Generalize
+instance (Generalize e e', Generalize n n', Generalize t t') => Generalize (ENT e n t) (ENT e' n' t')
+
 
 ---- REFACTOR:
+
+-- To powinno byc generalizowanie per layout:
+instance Generalize () (Form f)
 
 
 

@@ -605,7 +605,7 @@ instance      IsIdx     (Expr l) where
     idx = elem . idx ; {-# INLINE idx #-}
 
 
-
+instance Generalize l l' => Generalize (Expr l) (Expr l')
 
 
 
