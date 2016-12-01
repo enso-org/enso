@@ -9,6 +9,7 @@ import           Old.Data.Record.Model.Masked as X (VGRecord2, Store2(Store2), S
 import           Old.Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 
 import           Luna.Prelude                 hiding (typeRep, elem {- fix: -} , Enum)
+import qualified Luna.Prelude as Prelude
 
 import Control.Monad.State  (StateT, runStateT)
 import Luna.IR.Internal.LayerStore (LayerStore, LayerStoreM)
@@ -20,8 +21,10 @@ import GHC.Prim             (Any)
 import Luna.IR.Layer
 import Luna.IR.Layer.Model
 import Luna.IR.Expr.Atom    (Atom, Atoms)
+import qualified Luna.IR.Expr.Atom as A
 import Luna.IR.Expr.Format  (Sub, Format, Draft)
 import Luna.IR.Expr.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract)
+import Luna.IR.Expr.Layout.Class  (type (%>))
 import Luna.IR.Expr.Term    (TERM, Term, UncheckedFromTerm, FromTerm, UniTerm, IsUniTerm, uniTerm)
 import Type.Container       (Every)
 import Type.Container       (In)
@@ -40,7 +43,7 @@ import qualified Luna.IR.Expr.Term.Class   as N
 import qualified Type.List                 as List
 
 import Luna.IR.Expr.Term.Uni ()
-
+import Type.Inference
 
 
 typeRep :: forall a. Typeable a => TypeRep
@@ -620,6 +623,14 @@ type instance Encode2 Format  v = List.Index v (Every Format)
 
 -- TO REFACTOR:
 
+type instance UnsafeGeneralizable (Expr l) (Expr l') = ()
+
+type family         UnsafeGeneralizable a b :: Constraint
+unsafeGeneralize :: UnsafeGeneralizable a b => a -> b
+unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
+
+
+
 
 type ExprLayer     = Layer EXPR
 type ExprLinkLayer = Layer (LINK' EXPR)
@@ -718,3 +729,11 @@ instance (ctx a b, Monad m) => DropMonad ctx a m b
 
 class    ctx a => FreeResult ctx a b
 instance ctx a => FreeResult ctx a b
+
+
+
+
+
+type family   DefListLayout (m :: * -> *) a
+type instance DefListLayout m Prelude.String = A.String %> Infered Layout m
+type instance DefListLayout m (Expr t) = t

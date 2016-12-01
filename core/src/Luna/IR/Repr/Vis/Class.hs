@@ -1,7 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ExtendedDefaultRules  #-}
 
-module Luna.Diag.Vis where
+module Luna.IR.Repr.Vis.Class where
 
 import Luna.Prelude hiding (id)
 

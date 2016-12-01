@@ -39,3 +39,10 @@ type instance Merge (t :> s)   (Atomic a) = Simplify (Merge t (Atomic a)   :> Me
 type instance Merge (t :> s)   (Form a)   = Simplify (Merge t (Form   a)   :> Merge s (Form   a))
 type instance Merge (Atomic a) (t :> s)   = Simplify (Merge   (Atomic a) t :> Merge   (Atomic a) s)
 type instance Merge (Form a)   (t :> s)   = Simplify (Merge   (Form   a) t :> Merge   (Form   a) s)
+
+
+--- REFACTOR:
+
+-- type ENT  l a n t = Compound l '[Atom := a, Name := n, Type := t]
+
+type instance Simplify (a :> ()) = a

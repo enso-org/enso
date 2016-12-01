@@ -1,11 +1,11 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Expr.Term.Class (module Luna.IR.Expr.Term.Class, module X) where
+module Luna.IR.Expr.Term.Class (module Luna.IR.Expr.Term.Class) where
 
 import qualified Luna.Prelude as P
 import           Luna.Prelude hiding (String, Integer, Rational, Curry, Data)
 
-import Luna.IR.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Missing, Native, Star, Unify, Var) -- Types only
+import Luna.IR.Expr.Atom (Atom)
 
 import Data.Base                 (Base)
 import Type.Applicative

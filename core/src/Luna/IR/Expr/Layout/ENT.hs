@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.IR.Expr.Layout.ENT where
 
 import Luna.Prelude hiding (Simple)
@@ -31,3 +33,26 @@ type instance DefaultLayout Ent = ENT () () Star
 type instance Sub Atom (ENT a n t) = ENT (Sub Atom a) n t
 type instance Sub Name (ENT a n t) = ENT (Sub Name n) (Sub Name n) (Sub Name n)
 type instance Sub Type (ENT a n t) = ENT (Sub Type t) (Sub Type t) (Sub Type t)
+
+
+type instance LiteralLayout p (ENT a n t) = ENT p () Star
+type instance AtomLayout    p (ENT a n t) = ENT p () Star
+
+
+
+---- REFACTOR:
+
+-- to sa bardzo entowe rzeczy, czy moze bardziej generalne?
+type l |>  r = Specialized   Atom l r
+type l #>  r = Specialized   Name l r
+type l >>  r = Specialized   Type l r
+
+
+
+type instance AsSubLayout Name (ENT a n t) = a <+> n
+
+
+-- Specialized
+type instance Specialized Atom s (ENT a n t) = ENT (Simplify (AsSubLayout Atom s :> a)) n t
+type instance Specialized Name s (ENT a n t) = ENT a (Simplify (AsSubLayout Name s :> n)) t
+type instance Specialized Type s (ENT a n t) = ENT a n (Simplify (AsSubLayout Type s :> t))

@@ -3,7 +3,7 @@
 module Luna.IR.Expr.Layout.Class where
 
 
-import Luna.Prelude
+import Luna.Prelude as Prelude
 import Data.Property
 import Luna.IR.Expr.Format
 import Luna.IR.Expr.Atom
@@ -14,6 +14,7 @@ import Type.Error
 import Type.List (In)
 import Data.Reprx
 import Type.Bool
+import Type.Inference (KnownTypeT, runInferenceT2)
 
 
 -- FIXME: remove or refactor
@@ -67,6 +68,15 @@ abstract :: a -> Abstract a
 abstract = unsafeCoerce ; {-# INLINE abstract #-}
 
 
+baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
+baseLayout = runInferenceT2 @Layout
+
+
+type Layouted l = KnownTypeT Layout (DefaultLayout l)
+layouted :: forall l m a. Layouted l m a -> m a
+layouted = baseLayout @(DefaultLayout l)
+
+
 -- === Instances === --
 
 -- Universal formats
@@ -93,3 +103,14 @@ type instance Merge (Atomic a) (Form   b) = Merge (Atomic a # Format) (Form b)
 type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a # Format) (Atomic b # Format))-- TODO: refactor
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a
+
+
+
+-------- REFACTOR:
+
+type family AsSubLayout t l
+type family LiteralLayout t layout
+type family AtomLayout    t layout
+
+type l <+> r = Merge              l r
+type l %>  r = LiteralLayout      l r

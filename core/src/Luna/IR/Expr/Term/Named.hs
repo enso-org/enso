@@ -7,6 +7,7 @@ import           Luna.Prelude hiding (String, Integer, Rational, Data, product, 
 
 import Luna.IR.Expr.Term.Class as X
 import qualified Luna.IR.Expr.Atom as Atom
+import           Luna.IR.Expr.Atom (Atom)
 
 import Data.Base                 (Base)
 import Data.Construction         (Args)
@@ -37,9 +38,35 @@ class HasName a where
 
 type NamedTerm t n a = Term t (Layout.Named n a)
 
-newtype IN n a = IN (P.Integer)
 
-type instance Term2 Atom.Integer (Layout.Named n a) = IN n a
+
+newtype Integer  n a = Integer  { _val :: P.Integer                     }
+newtype Rational n a = Rational { _val :: P.Rational                    }
+newtype String   n a = String   { _val :: P.String                      }
+data    Acc      n a = Acc      { _name :: !n      , _base  :: !a       }
+data    App      n a = App      { _base :: a       , _arg   :: !(Arg a) }
+data    Lam      n a = Lam      { _arg  :: !(Arg a), _body  :: !a       }
+data    Unify    n a = Unify    { _left :: !a      , _right :: !a       }
+newtype Cons     n a = Cons     { _name ::  n                           }
+data    Native   n a = Native   { _name :: !n                           }
+newtype Var      n a = Var      { _name ::  n                           }
+data    Blank    n a = Blank
+data    Star     n a = Star
+data    Missing  n a = Missing
+
+type instance Term2 Atom.Integer  (Layout.Named n a) = Integer  n a
+type instance Term2 Atom.Rational (Layout.Named n a) = Rational n a
+type instance Term2 Atom.String   (Layout.Named n a) = String   n a
+type instance Term2 Atom.Acc      (Layout.Named n a) = Acc      n a
+type instance Term2 Atom.App      (Layout.Named n a) = App      n a
+type instance Term2 Atom.Lam      (Layout.Named n a) = Lam      n a
+type instance Term2 Atom.Unify    (Layout.Named n a) = Unify    n a
+type instance Term2 Atom.Cons     (Layout.Named n a) = Cons     n a
+type instance Term2 Atom.Native   (Layout.Named n a) = Native   n a
+type instance Term2 Atom.Var      (Layout.Named n a) = Var      n a
+type instance Term2 Atom.Blank    (Layout.Named n a) = Blank    n a
+type instance Term2 Atom.Star     (Layout.Named n a) = Star     n a
+type instance Term2 Atom.Missing  (Layout.Named n a) = Missing  n a
 
 
 newtype instance Term Atom.Integer  (Layout.Named n a) = Sym_Integer  { _val :: P.Integer                     }
@@ -59,7 +86,7 @@ data    instance Term Atom.Missing  (Layout.Named n a) = Sym_Missing
 -- makePfxLenses ''Term
 
 type instance NameOf (Term s (Layout.Named n a)) = n
-instance HasName (Term Var (Layout.Named n a)) where name = iso (\(Sym_Var n) -> n) Sym_Var
+instance HasName (Term Atom.Var (Layout.Named n a)) where name = iso (\(Sym_Var n) -> n) Sym_Var
 
 
 
@@ -74,23 +101,33 @@ instance HasName (Term Var (Layout.Named n a)) where name = iso (\(Sym_Var n) ->
 -- Show
 
 
-deriving instance ShowFields (NamedTerm Acc     n a) => Show (NamedTerm Acc     n a)
-deriving instance ShowFields (NamedTerm App     n a) => Show (NamedTerm App     n a)
-deriving instance ShowFields (NamedTerm Blank   n a) => Show (NamedTerm Blank   n a)
-deriving instance ShowFields (NamedTerm Cons    n a) => Show (NamedTerm Cons    n a)
-deriving instance ShowFields (NamedTerm Lam     n a) => Show (NamedTerm Lam     n a)
-deriving instance ShowFields (NamedTerm Missing n a) => Show (NamedTerm Missing n a)
-deriving instance ShowFields (NamedTerm Native  n a) => Show (NamedTerm Native  n a)
-deriving instance ShowFields (NamedTerm Star    n a) => Show (NamedTerm Star    n a)
-deriving instance ShowFields (NamedTerm Unify   n a) => Show (NamedTerm Unify   n a)
-deriving instance ShowFields (NamedTerm Var     n a) => Show (NamedTerm Var     n a)
+deriving instance ShowFields (NamedTerm Atom.Acc     n a) => Show (NamedTerm Atom.Acc     n a)
+deriving instance ShowFields (NamedTerm Atom.App     n a) => Show (NamedTerm Atom.App     n a)
+deriving instance ShowFields (NamedTerm Atom.Blank   n a) => Show (NamedTerm Atom.Blank   n a)
+deriving instance ShowFields (NamedTerm Atom.Cons    n a) => Show (NamedTerm Atom.Cons    n a)
+deriving instance ShowFields (NamedTerm Atom.Lam     n a) => Show (NamedTerm Atom.Lam     n a)
+deriving instance ShowFields (NamedTerm Atom.Missing n a) => Show (NamedTerm Atom.Missing n a)
+deriving instance ShowFields (NamedTerm Atom.Native  n a) => Show (NamedTerm Atom.Native  n a)
+deriving instance ShowFields (NamedTerm Atom.Star    n a) => Show (NamedTerm Atom.Star    n a)
+deriving instance ShowFields (NamedTerm Atom.Unify   n a) => Show (NamedTerm Atom.Unify   n a)
+deriving instance ShowFields (NamedTerm Atom.Var     n a) => Show (NamedTerm Atom.Var     n a)
+
+deriving instance ShowFields (Acc     n a) => Show (Acc     n a)
+deriving instance ShowFields (App     n a) => Show (App     n a)
+deriving instance ShowFields (Blank   n a) => Show (Blank   n a)
+deriving instance ShowFields (Cons    n a) => Show (Cons    n a)
+deriving instance ShowFields (Lam     n a) => Show (Lam     n a)
+deriving instance ShowFields (Missing n a) => Show (Missing n a)
+deriving instance ShowFields (Native  n a) => Show (Native  n a)
+deriving instance ShowFields (Star    n a) => Show (Star    n a)
+deriving instance ShowFields (Unify   n a) => Show (Unify   n a)
+deriving instance ShowFields (Var     n a) => Show (Var     n a)
 
 -- Args
 
 type instance Fields (NamedTerm Atom.Integer  n a) = '[P.Integer]
 type instance Fields (NamedTerm Atom.Rational n a) = '[P.Rational]
 type instance Fields (NamedTerm Atom.String   n a) = '[P.String]
-
 type instance Fields (NamedTerm Atom.Acc      n a) = '[n, a]
 type instance Fields (NamedTerm Atom.App      n a) = '[a, Arg a]
 type instance Fields (NamedTerm Atom.Blank    n a) = '[]
@@ -101,6 +138,20 @@ type instance Fields (NamedTerm Atom.Native   n a) = '[n]
 type instance Fields (NamedTerm Atom.Star     n a) = '[]
 type instance Fields (NamedTerm Atom.Unify    n a) = '[a, a]
 type instance Fields (NamedTerm Atom.Var      n a) = '[n]
+
+type instance Fields (Integer  n a) = '[P.Integer]
+type instance Fields (Rational n a) = '[P.Rational]
+type instance Fields (String   n a) = '[P.String]
+type instance Fields (Acc      n a) = '[n, a]
+type instance Fields (App      n a) = '[a, Arg a]
+type instance Fields (Blank    n a) = '[]
+type instance Fields (Cons     n a) = '[n]
+type instance Fields (Lam      n a) = '[Arg a, a]
+type instance Fields (Missing  n a) = '[]
+type instance Fields (Native   n a) = '[n]
+type instance Fields (Star     n a) = '[]
+type instance Fields (Unify    n a) = '[a, a]
+type instance Fields (Var      n a) = '[n]
 
 -- Products
 
