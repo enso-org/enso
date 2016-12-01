@@ -75,6 +75,7 @@ import qualified Luna.IR.Expr.Term as Symbol
 import qualified Luna.IR.Expr.Term.Named as Term
 import qualified Luna.IR.Expr.Term.Named as Symbol
 import Luna.IR.Expr.Term.Named (HasName, name)
+import Luna.IR.Expr.Term.Uni
 import Luna.IR.Expr.Term (TERM)
 import Data.Property
 import Luna.IR.Expr.Format (Format, Sub)

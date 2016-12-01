@@ -5,7 +5,7 @@ module Luna.IR.Expr.Term.Class (module Luna.IR.Expr.Term.Class, module X) where
 import qualified Luna.Prelude as P
 import           Luna.Prelude hiding (String, Integer, Rational, Curry, Data)
 
-import Luna.IR.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Match, Missing, Native, Star, Unify, Var) -- Types only
+import Luna.IR.Expr.Atom as X (Atom, String, Integer, Rational, Acc, App, Blank, Cons, Lam, Missing, Native, Star, Unify, Var) -- Types only
 
 import Data.Base                 (Base)
 import Type.Applicative
@@ -30,6 +30,7 @@ import Luna.IR.Repr.Styles  (HeaderOnly)
 
 -- === Definitions === --
 
+type family Term2 atom layout = k | k -> atom layout
 data family Term  atom  layout
 type        Terms atoms layout = Term <$> atoms <*> '[layout]
 

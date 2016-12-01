@@ -39,6 +39,8 @@ import qualified Luna.IR.Expr.Layout       as Layout
 import qualified Luna.IR.Expr.Term.Class   as N
 import qualified Type.List                 as List
 
+import Luna.IR.Expr.Term.Uni ()
+
 
 
 typeRep :: forall a. Typeable a => TypeRep
