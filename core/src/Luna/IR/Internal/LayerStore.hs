@@ -100,71 +100,117 @@ instance Show (VectorRef s a) where show _ = "VectorRef"
 
 
 
-------------------------------
--- === LayerStore === --
-------------------------------
+---------------------------
+-- === LayerStoreRef === --
+---------------------------
 
 -- === Definition === --
 
 type Idx = Int
 
-type LayerStoreM m     = LayerStore (PrimState m)
-data LayerStore  s k a = LayerStore { _size :: !Int
-                                    , _free :: ![Idx]
-                                    , _vec  :: !(Map k (VectorRef s a))
-                                    } deriving (Show)
+type    LayerStoreRefM m     = LayerStoreRef (PrimState m)
+newtype LayerStoreRef  s k a = LayerStoreRef (STRef s (LayerStore s k a))
+type    LayerStoreM    m     = LayerStore    (PrimState m)
+data    LayerStore     s k a = LayerStore { _size :: !Int
+                                          , _free :: ![Idx]
+                                          , _vec  :: !(Map k (VectorRef s a))
+                                          } deriving (Show)
 
-makeLenses ''LayerStore
+makeWrapped ''LayerStoreRef
+makeLenses  ''LayerStore
+
+
+-- === Ref modify === --
+
+readLayerStoreRef :: PrimMonad m => LayerStoreRefM m k a -> m (LayerStoreM m k a)
+readLayerStoreRef = readSTRef . unwrap' ; {-# INLINE readLayerStoreRef #-}
+
+modifyLayerStoreRefM'_ :: PrimMonad m => (LayerStoreM m k a -> m (LayerStoreM m k a)) -> LayerStoreRefM m k a -> m ()
+modifyLayerStoreRefM'_ f = flip modifySTRefM'_ f . unwrap' ; {-# INLINE modifyLayerStoreRefM'_ #-}
+
+modifyLayerStoreRef'_ :: PrimMonad m => (LayerStoreM m k a -> LayerStoreM m k a) -> LayerStoreRefM m k a -> m ()
+modifyLayerStoreRef'_ = modifyLayerStoreRefM'_ . fmap return ; {-# INLINE modifyLayerStoreRef'_ #-}
 
 
 -- === Construction === --
 
+empty :: PrimMonad m => m (LayerStoreRefM m k a)
+empty = LayerStoreRef <$> newSTRef def ; {-# INLINE empty #-}
+
 instance Default (LayerStore s k a) where
     def = LayerStore 0 def def ; {-# INLINE def #-}
 
-autoGrow :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
-autoGrow m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
+
+
+autoGrow :: PrimMonad m => LayerStoreRefM m k a -> m Idx
+autoGrow = flip modifySTRefM' autoGrow' . unwrap' ; {-# INLINE autoGrow #-}
+
+-- | If realocation is not needed, performs in O(1).
+reserveIdx :: PrimMonad m => LayerStoreRefM m k a -> m Idx
+reserveIdx = flip modifySTRefM' reserveIdx' . unwrap' ; {-# INLINE reserveIdx #-}
+
+-- | Doesn't initialize created vector.
+unsafeAddKey :: (PrimMonad m, Ord k) => k -> LayerStoreRefM m k a -> m ()
+unsafeAddKey = modifyLayerStoreRefM'_ . unsafeAddKey' ; {-# INLINE unsafeAddKey #-}
+
+keys :: PrimMonad m => LayerStoreRefM m k a -> m [k]
+keys s = Map.keys . view vec <$> readSTRef (unwrap' s) ; {-# INLINE keys #-}
+
+ixes :: PrimMonad m => LayerStoreRefM m k a -> m [Int]
+ixes = ixes' <∘> readLayerStoreRef ; {-# INLINE ixes #-}
+
+assocs :: PrimMonad m => LayerStoreRefM m k a -> m [(k, VectorRefM m a)]
+assocs = Map.assocs . view vec <∘> readLayerStoreRef ; {-# INLINE assocs #-}
+
+mapWithKey :: PrimMonad m => (k -> VectorRefM m a -> VectorRefM m a) -> LayerStoreRefM m k a -> m ()
+mapWithKey = modifyLayerStoreRef'_ . mapWithKey' ; {-# INLINE mapWithKey #-}
+
+traverseWithKey :: PrimMonad m => (k -> VectorRefM m a -> m (VectorRefM m a)) -> LayerStoreRefM m k a -> m ()
+traverseWithKey = modifyLayerStoreRefM'_ . traverseWithKey' ; {-# INLINE traverseWithKey #-}
+
+readKey :: (PrimMonad m, Ord k) => k -> LayerStoreRefM m k a -> m (Maybe (VectorRefM m a))
+readKey k = (^? (vec . ix k)) <∘> readLayerStoreRef ; {-# INLINE readKey #-}
+
+
+-- === Non-ref API === --
+
+autoGrow' :: PrimMonad m => LayerStore (PrimState m) k a -> m (Idx, LayerStore (PrimState m) k a)
+autoGrow' m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
     size' = m ^. size
     grow  = if size' == 0 then 1 else size'
     nm    = m & size %~ (+ grow)
               & free .~ [size' + 1 .. size' + grow - 1]
-{-# INLINE autoGrow #-}
+{-# INLINE autoGrow' #-}
 
--- | If realocation is not needed, performs in O(1).
-reserveIdx :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
-reserveIdx m = case m ^. free of
+reserveIdx' :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
+reserveIdx' m = case m ^. free of
     (i : is) -> return (i, m & free .~ is)
-    []       -> autoGrow m
-{-# INLINE reserveIdx #-}
+    []       -> autoGrow' m
+{-# INLINE reserveIdx' #-}
 
--- | Doesn't initialize created vector.
-unsafeAddKey :: (PrimMonad m, Ord k) => k -> LayerStoreM m k a -> m (LayerStoreM m k a)
-unsafeAddKey k m = do
+unsafeAddKey' :: (PrimMonad m, Ord k) => k -> LayerStoreM m k a -> m (LayerStoreM m k a)
+unsafeAddKey' k m = do
     v <- newVectorRef
     return $ m & vec . at k ?~ v
-{-# INLINE unsafeAddKey #-}
+{-# INLINE unsafeAddKey' #-}
 
-keys :: LayerStore s k a -> [k]
-keys = Map.keys . view vec ; {-# INLINE keys #-}
 
 -- | Used index access performs in approx. O(n (log n))
 --   in order to make allocating and freeing indexes as fast as possible.
-ixes :: LayerStore s k a -> [Int]
-ixes m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
+ixes' :: LayerStore s k a -> [Int]
+ixes' m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
     findIxes (i : is) (f : fs) = if i == f then findIxes is fs else i : findIxes is (f : fs)
     findIxes is       []       = is
     findIxes []       _        = []
     {-# INLINE findIxes #-}
-{-# INLINE ixes #-}
+{-# INLINE ixes' #-}
 
-assocs :: LayerStore s k a -> [(k, VectorRef s a)]
-assocs = Map.assocs . view vec ; {-# INLINE assocs #-}
 
-mapWithKey :: (k -> VectorRef s a -> VectorRef s b) -> LayerStore s k a -> LayerStore s k b
-mapWithKey f = vec %~ Map.mapWithKey f ; {-# INLINE mapWithKey #-}
+mapWithKey' :: (k -> VectorRef s a -> VectorRef s b) -> LayerStore s k a -> LayerStore s k b
+mapWithKey' f = vec %~ Map.mapWithKey f ; {-# INLINE mapWithKey' #-}
 
-traverseWithKey :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> LayerStore s k a -> m (LayerStore s k b)
-traverseWithKey = vec . Map.traverseWithKey ; {-# INLINE traverseWithKey #-}
+traverseWithKey' :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> LayerStore s k a -> m (LayerStore s k b)
+traverseWithKey' = vec . Map.traverseWithKey ; {-# INLINE traverseWithKey' #-}
 
 
 -- === Instances === --

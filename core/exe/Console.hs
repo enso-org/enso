@@ -78,7 +78,7 @@ gen_pass1 = layouted @Ent $ do
 
     print "---"
 
-    
+
     match v $ \ (Var l) -> do
         n <- source l
         match n $ \case
