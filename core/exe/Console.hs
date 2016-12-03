@@ -53,51 +53,53 @@ gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
              ) => m ()
 gen_pass1 = layouted @Ent $ do
-    (s1 :: Expr (ENT Star   ()     Star)) <- star
-    (s2 :: Expr (ENT Star   ()     Star)) <- star
-    snapshot "s1"
-    (n  :: Expr (ENT String ()     Star)) <- string "hello"
-    (v  :: Expr (ENT Var    String Star)) <- var n
-    (v2 :: Expr (ENT Var    String Star)) <- var "foo"
-    let (ng  :: Expr (ENT Value Draft Draft)) = generalize n
-    let (ng2 :: Expr (ENT Draft Draft Draft)) = generalize ng
-    snapshot "s2"
-    u1 <- unify s1 s2
-    snapshot "s3"
-    print "hello"
-    d <- readLayer @Type u1
-    print d
-    md <- readAttr @MyData
-    print md
-    ts <- exprs
-    print ts
+    -- (s :: Expr (ENT Star   ()     Star)) <- star
+    (aName :: Expr (ENT String String Star)) <- string "a"
+    (a :: Expr Int Star)) <- var aName
+    b <- var "b"
 
-    match s1 $ \case
-        Unify l r -> print "ppp"
-        Star      -> match s1 $ \case
-            Unify l r -> print "hola"
-            Star      -> print "hellox"
-
-    print "---"
-
-
-    match v $ \ (Var l) -> do
-        n <- source l
-        match n $ \case
-            String s -> print s
-
-    v <- var "ala"
-    n <- strName v
-    (s3 :: Expr (ENT Draft String Draft)) <- generalize <$> star
-    (v3 :: Expr (ENT Draft String Draft)) <- generalize <$> var "lel"
-    match v3 $ \(Var l) -> do
-        print "IT'S VAR"
-        n' <- source l
-        n  <- match n' $ \case
-            String s -> return s
-        print n
-
-    print n
+    -- (u :: Expr (ENT _ _ _)) <- unify a b
+    -- -- (f :: Expr (ENT Star Star Star)) <- acc "f" u
+    --
+    --
+    --
+    -- -- snapshot "s3"
+    -- d <- readLayer @Type u
+    -- print d
+    --
+    --
+    -- md <- readAttr @MyData
+    -- print md
+    --
+    -- ts <- exprs
+    -- print ts
+    --
+    -- match s $ \case
+    --     Unify l r -> print "ppp"
+    --     Star      -> match s $ \case
+    --         Unify l r -> print "hola"
+    --         Star      -> print "hellox"
+    --
+    -- print "---"
+    --
+    --
+    -- match a $ \ (Var l) -> do
+    --     n <- source l
+    --     match n $ \case
+    --         String s -> print s
+    --
+    -- v <- var "ala"
+    -- n <- strName v
+    -- (s3 :: Expr (ENT Draft String Draft)) <- generalize <$> star
+    -- (v3 :: Expr (ENT Draft String Draft)) <- generalize <$> var "lel"
+    -- match v3 $ \(Var l) -> do
+    --     print "IT'S VAR"
+    --     n' <- source l
+    --     n  <- match n' $ \case
+    --         String s -> return s
+    --     print n
+    --
+    -- print n
 
     return ()
 
