@@ -20,7 +20,7 @@ type a :>> b = Simplify (a :> b)
 
 -- === Instances === --
 
-type instance Sub t (a :> b) = b
+type instance Sub t (a :> b) = Sub t b
 type instance Atoms (a :> b) = Atoms a
 
 -- Generalize
@@ -46,3 +46,5 @@ type instance Merge (Form a)   (t :> s)   = Simplify (Merge   (Form   a) t :> Me
 -- type ENT  l a n t = Compound l '[Atom := a, Name := n, Type := t]
 
 type instance Simplify (a :> ()) = a
+
+type instance Current (a :> b) = a

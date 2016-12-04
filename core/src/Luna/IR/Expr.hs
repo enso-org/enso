@@ -15,11 +15,12 @@ import Luna.IR.Expr.Layout.ENT (type(#>), type(|>))
 
 import Type.Inference
 import Luna.IR.Expr.Layout
-import Luna.IR.Expr.Layout.ENT (ENT, ET, NT)
+import Luna.IR.Expr.Layout.ENT (ENT, ET, NT, EN, E, N, T)
 
 
 type ET' e = ET e Star
 type NT' n = NT n Star
+type T' = T Star
 
 -- class                                         LitExpr m a              where litExpr :: a -> m (Expr (DefListLayout m a))
 -- instance (IRMonad m, Accessible ExprNet m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
@@ -30,11 +31,11 @@ star :: (IRMonad m, Accessible ExprNet m, Inferable2 Layout ldef m) => m (Expr S
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
-rawString :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr $ ET' String)
+rawString :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr $ String :> T')
 rawString = expr . Term.uncheckedString ; {-# INLINE rawString #-}
 
 -- cons :: (IRMonad m, Accessible ExprNet m) => Expr n -> m (Expr (NT' (Cons :> n)))
-cons :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet]) => Expr n -> m (Expr $ NT' $ Cons :> n)
+cons :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet]) => Expr n -> m (Expr $ Cons :> NT' n)
 cons n = mdo
     t  <- expr $ Term.uncheckedCons ln
     ln <- link (unsafeGeneralize n) t
@@ -53,13 +54,13 @@ cons n = mdo
 --     return t
 --
 
-to powinnimsy zrobic jakos tak
+-- to powinnimsy zrobic jakos tak
 
-var :: Expr n -> m (Expr $ Var :> NT' n)
+-- var :: Expr n -> m (Expr $ Var :> NT' n)
 
-ale tak by bylo to spokjne z Sub'ami!
+-- ale tak by bylo to spokjne z Sub'ami!
 var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
-    => Expr n -> m (Expr $ NT' $ Var :> n)
+    => Expr n -> m (Expr $ Var :> NT' n)
 var n = mdo
     t <- expr $ Term.uncheckedVar l
     l <- link (unsafeGeneralize n) t

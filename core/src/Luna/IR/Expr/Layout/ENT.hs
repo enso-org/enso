@@ -48,6 +48,8 @@ type instance Sub Type (ENT e n t) = t
 type instance Sub Atom (ET e t) = e
 type instance Sub Type (ET e t) = t
 
+type instance Sub Type (T t) = t
+
 type instance AsSubLayout Name (ENT a n t) = a <+> n
 
 -- Specialized
@@ -90,11 +92,12 @@ type l >> r = Specialized Type l r
 -- ENT String () Star
 
 -- c <- cons "String" :: Cons'
--- s <- string "foo"  :: ET String Cons'
+-- s <- string "foo"  :: String :> T Cons'
 -- s <- int    0      :: ET Int    Cons'
 
 type    Cons'  = Cons Star
-newtype Cons t = Cons (ENT Atom.Cons (ET String Cons') t)
+-- newtype Cons t = Cons (ENT Atom.Cons (ET String Cons') t)
+newtype Cons t = Cons (Atom.Cons :> NT (String :> T Cons') t)
 
 
 -- type    L.Cons'  = L.Cons Star

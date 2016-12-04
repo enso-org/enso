@@ -36,6 +36,8 @@ type family DefaultLayout p
 
 -- === Scoping === --
 
+type family Current a
+
 type family Merge       a b
 type family Simplify    l
 type family Universal   a
@@ -52,6 +54,8 @@ type l %>  r = LiteralLayout      l r
 
 class                         Generalize a b
 instance {-# OVERLAPPABLE #-} Generalize a a
+
+type family Merges
 
 
 -- === Utils === --

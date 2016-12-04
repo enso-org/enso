@@ -151,11 +151,11 @@ gen_pass1 = layouted @Ent $ do
 
 
     -- Str constructor
-    (strName :: Expr (ET' String)) <- rawString "String"
-    (strCons :: Expr (NT' (Cons :> ET' String))) <- cons strName
+    (strName :: Expr (String :> T')) <- rawString "String"
+    (strCons :: Expr (Cons :> NT' (String :> T'))) <- cons strName
     snapshot "s1"
     let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
-        strName' = unsafeRelayout strName :: Expr (ET String Layout.Cons')
+        strName' = unsafeRelayout strName :: Expr (String :> T Layout.Cons')
     newTypeLink <- link strCons' strName'
     uncheckedDeleteStarType strName'
     writeLayer @Type newTypeLink strName'
@@ -163,7 +163,7 @@ gen_pass1 = layouted @Ent $ do
 
     let string s = do
             foo <- rawString s
-            let foo' = unsafeRelayout foo :: Expr (ET String Layout.Cons')
+            let foo' = unsafeRelayout foo :: Expr (String :> T Layout.Cons')
             ftlink <- link strCons' foo'
             uncheckedDeleteStarType foo'
             writeLayer @Type ftlink foo'
@@ -173,7 +173,7 @@ gen_pass1 = layouted @Ent $ do
     s2 <- string "s2"
     s3 <- string "s3"
 
-    (v :: Expr (NT' (Var :> ET String Layout.Cons'))) <- var s1
+    (v :: Expr (Var :> NT' (String :> T Layout.Cons'))) <- var s1
 
     print =<< checkCoherence
     snapshot "s4"
