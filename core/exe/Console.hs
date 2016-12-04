@@ -32,10 +32,12 @@ import qualified Control.Monad.State as State
 
 data Incoherence = DeteachedSource (Expr Draft) (Link' (Expr Draft))
                  | OrphanLink      (Link' (Expr Draft))
+                 | OrphanExpr      (Expr Draft)
                  deriving (Show)
 
 data CoherenceCheck = CoherenceCheck { _incoherences   :: [Incoherence]
                                      , _uncheckedLinks :: Set (Link' (Expr Draft))
+                                     , _orphanExprs    :: Set (Expr Draft)
                                      } deriving (Show)
 
 
@@ -43,7 +45,7 @@ data CoherenceCheck = CoherenceCheck { _incoherences   :: [Incoherence]
 makeLenses ''CoherenceCheck
 
 finalize :: CoherenceCheck -> [Incoherence]
-finalize s = s ^. incoherences <> (OrphanLink <$> Set.toList (s ^. uncheckedLinks))
+finalize s = s ^. incoherences <> (OrphanLink <$> Set.toList (s ^. uncheckedLinks)) <> (OrphanExpr <$> Set.toList (s ^. orphanExprs))
 
 
 type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
@@ -53,7 +55,10 @@ reportIncoherence :: MonadCoherenceCheck m => Incoherence -> m ()
 reportIncoherence i = State.modify (incoherences %~ (i:))
 
 markLinkChecked :: MonadCoherenceCheck m => Link' (Expr Draft) -> m ()
-markLinkChecked l = State.modify (uncheckedLinks %~ (Set.delete l))
+markLinkChecked a = State.modify (uncheckedLinks %~ (Set.delete a))
+
+markExprChecked :: MonadCoherenceCheck m => Expr Draft -> m ()
+markExprChecked a = State.modify (orphanExprs %~ (Set.delete a))
 
 
 
@@ -61,7 +66,15 @@ checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
 checkCoherence = do
     es <- exprs
     ls <- links
-    finalize <$> flip execStateT (CoherenceCheck def $ Set.fromList ls) (mapM_ checkExprCoherence es)
+    s <- flip execStateT (CoherenceCheck def (Set.fromList ls) (Set.fromList es)) $ do
+        mapM_ checkExprCoherence es
+        mapM_ checkExprExistence ls
+    return $ finalize s
+
+checkExprExistence :: MonadCoherenceCheck m => Link' (Expr Draft) -> m ()
+checkExprExistence lnk = do
+    (_, tgt) <- readLayer @Model lnk
+    markExprChecked tgt
 
 checkExprCoherence :: MonadCoherenceCheck m => Expr Draft -> m ()
 checkExprCoherence e = do
@@ -114,6 +127,22 @@ test_pass1 = runIRT $ do
     Pass.eval pass1
 
 
+uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
+uncheckedDeleteStar e = do
+    delete =<< readLayer @Type e
+    delete e
+{-# INLINE uncheckedDeleteStar #-}
+
+uncheckedDeleteStarType :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet, ExprLinkLayer Model])
+                        => Expr l -> m ()
+uncheckedDeleteStarType e = do
+    typeLink <- readLayer @Type e
+    (oldStar, _) <- readLayer @Model typeLink
+    uncheckedDeleteStar oldStar
+    delete typeLink
+{-# INLINE uncheckedDeleteStarType #-}
+
+
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
              ) => m ()
@@ -124,20 +153,30 @@ gen_pass1 = layouted @Ent $ do
     -- Str constructor
     (strName :: Expr (ET' String)) <- rawString "String"
     (strCons :: Expr (NT' (Cons :> ET' String))) <- cons strName
-    -- snapshot "s1"
+    snapshot "s1"
     let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
         strName' = unsafeRelayout strName :: Expr (ET String Layout.Cons')
-    tlink <- link strCons' strName'
-    writeLayer @Type tlink strName' -- FIXME[WD]: remove old Link!!!
+    newTypeLink <- link strCons' strName'
+    uncheckedDeleteStarType strName'
+    writeLayer @Type newTypeLink strName'
     snapshot "s2"
 
+    let string s = do
+            foo <- rawString s
+            snapshot "s3"
+            let foo' = unsafeRelayout foo :: Expr (ET String Layout.Cons')
+            ftlink <- link strCons' foo'
+            uncheckedDeleteStarType foo'
+            writeLayer @Type ftlink foo'
+            return foo'
+
+    s <- string "s1"
+    s <- string "s2"
+    s <- string "s3"
+
     print =<< checkCoherence
-    foo <- rawString "foo"
-    -- snapshot "s3"
-    let foo' = unsafeRelayout foo :: Expr (ET String Layout.Cons')
-    ftlink <- link strCons' foo' -- FIXME[WD]: remove old Link!!!
-    writeLayer @Type ftlink foo'
-    -- snapshot "s4"
+    snapshot "s4"
+
 
     -- (a :: Expr Int Star)) <- var aName
     -- b <- var "b"

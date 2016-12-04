@@ -272,6 +272,9 @@ newElem tdef = do
 {-# INLINE newElem #-}
 
 
+delete :: forall t m. (IRMonad m, IsElem t, Accessible (Net (Abstract t)) m) => t -> m ()
+delete t = runInIR . flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = runInIR . Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 

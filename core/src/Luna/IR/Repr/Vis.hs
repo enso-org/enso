@@ -32,12 +32,13 @@ visNode2 t = do
     rUID   <- readLayer @UID   r
     ins    <- symbolFields t
 
-    header <- fromString . renderStr HeaderOnly <$> reprExpr t
+    header <- renderStr HeaderOnly <$> reprExpr t
     value  <- match t $ return . \case
         String s -> "'" <> s <> "'"
-        _        -> ""
+        _        -> header
 
-    let node   = Vis.Node (fromString value) euid euid (fromList [header])
+    -- let node   = Vis.Node (fromString value) euid euid (fromList [header])
+    let node   = Vis.Node (fromString value) euid euid (fromList [fromString header])
         tpVis  = if lUID == rUID then [] else [Vis.Edge (fromString "") tpUid tpUid lUID rUID (fromList [fromString "type"])]
         mkEdge (i,l,r) = Vis.Edge (fromString "") i i l r mempty
         getUIDs e = do

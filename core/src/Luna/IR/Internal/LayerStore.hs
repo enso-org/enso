@@ -149,6 +149,10 @@ autoGrow = flip modifySTRefM' autoGrow' . unwrap' ; {-# INLINE autoGrow #-}
 reserveIdx :: PrimMonad m => LayerStoreRefM m k a -> m Idx
 reserveIdx = flip modifySTRefM' reserveIdx' . unwrap' ; {-# INLINE reserveIdx #-}
 
+-- | Performs in O(1)
+freeIdx :: PrimMonad m => LayerStoreRefM m k a -> Idx -> m ()
+freeIdx s i = modifySTRef'_ (unwrap' s) (free %~ (i:)) ; {-# INLINE freeIdx #-}
+
 -- | Doesn't initialize created vector.
 unsafeAddKey :: (PrimMonad m, Ord k) => k -> LayerStoreRefM m k a -> m ()
 unsafeAddKey = modifyLayerStoreRefM'_ . unsafeAddKey' ; {-# INLINE unsafeAddKey #-}
