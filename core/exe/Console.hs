@@ -7,7 +7,7 @@ module Main where
 
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
-import Luna.Prelude hiding (String, typeRep)
+import Luna.Prelude hiding (String, typeRep, cons, elem)
 import Data.Aeson (encode)
 
 import           Luna.IR
@@ -15,13 +15,79 @@ import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis, snapshot)
 import           Luna.Pass        (Pass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
+import           Luna.IR.Expr.Layout.Nested ((:>))
+import qualified Luna.IR.Expr.Layout.ENT as Layout
 
+import Web.Browser (openBrowser )
 
 import Luna.IR.Expr.Term.Class
+import qualified Data.Set as Set
+import Data.Set (Set)
+
+import Control.Monad.State (MonadState, StateT, execStateT, get, put)
+import qualified Control.Monad.State as State
+
+
+
+
+data Incoherence = DeteachedSource (Expr Draft) (Link' (Expr Draft))
+                 | OrphanLink      (Link' (Expr Draft))
+                 deriving (Show)
+
+data CoherenceCheck = CoherenceCheck { _incoherences   :: [Incoherence]
+                                     , _uncheckedLinks :: Set (Link' (Expr Draft))
+                                     } deriving (Show)
+
+
+
+makeLenses ''CoherenceCheck
+
+finalize :: CoherenceCheck -> [Incoherence]
+finalize s = s ^. incoherences <> (OrphanLink <$> Set.toList (s ^. uncheckedLinks))
+
+
+type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
+type CoherenceCheckCtx   m = (IRMonad m, Readables m '[ExprLayer Model, ExprLayer Type, ExprLinkLayer Model, ExprNet, ExprLinkNet])
+
+reportIncoherence :: MonadCoherenceCheck m => Incoherence -> m ()
+reportIncoherence i = State.modify (incoherences %~ (i:))
+
+markLinkChecked :: MonadCoherenceCheck m => Link' (Expr Draft) -> m ()
+markLinkChecked l = State.modify (uncheckedLinks %~ (Set.delete l))
+
+
+
+checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
+checkCoherence = do
+    es <- exprs
+    ls <- links
+    finalize <$> flip execStateT (CoherenceCheck def $ Set.fromList ls) (mapM_ checkExprCoherence es)
+
+checkExprCoherence :: MonadCoherenceCheck m => Expr Draft -> m ()
+checkExprCoherence e = do
+    tp <- readLayer @Type e
+    checkLinkTarget e tp
+    mapM_ (checkLinkTarget e) =<< symbolFields e
+
+
+checkLinkTarget :: MonadCoherenceCheck m => Expr Draft -> Link' (Expr Draft) -> m ()
+checkLinkTarget e lnk = do
+    markLinkChecked lnk
+    (_, tgt) <- readLayer @Model lnk
+    when (e ^. elem . idx /= tgt ^. elem . idx) $ reportIncoherence (DeteachedSource e lnk)
+
+
+
+
+
+
+
+
+
+
 
 
 data MyData = MyData Int deriving (Show)
-
 
 data                    SimpleAA
 type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
@@ -48,15 +114,33 @@ test_pass1 = runIRT $ do
     Pass.eval pass1
 
 
-
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
              ) => m ()
 gen_pass1 = layouted @Ent $ do
-    -- (s :: Expr (ENT Star   ()     Star)) <- star
-    (aName :: Expr (ENT String String Star)) <- string "a"
-    (a :: Expr Int Star)) <- var aName
-    b <- var "b"
+    -- (s :: Expr Star) <- star
+
+
+    -- Str constructor
+    (strName :: Expr (ET' String)) <- rawString "String"
+    (strCons :: Expr (NT' (Cons :> ET' String))) <- cons strName
+    -- snapshot "s1"
+    let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
+        strName' = unsafeRelayout strName :: Expr (ET String Layout.Cons')
+    tlink <- link strCons' strName'
+    writeLayer @Type tlink strName' -- FIXME[WD]: remove old Link!!!
+    snapshot "s2"
+
+    print =<< checkCoherence
+    foo <- rawString "foo"
+    -- snapshot "s3"
+    let foo' = unsafeRelayout foo :: Expr (ET String Layout.Cons')
+    ftlink <- link strCons' foo' -- FIXME[WD]: remove old Link!!!
+    writeLayer @Type ftlink foo'
+    -- snapshot "s4"
+
+    -- (a :: Expr Int Star)) <- var aName
+    -- b <- var "b"
 
     -- (u :: Expr (ENT _ _ _)) <- unify a b
     -- -- (f :: Expr (ENT Star Star Star)) <- acc "f" u
@@ -106,6 +190,8 @@ gen_pass1 = layouted @Ent $ do
 
 
 
+
+
 main :: IO ()
 main = do
     (p, vis) <- Vis.newRunDiffT test_pass1
@@ -116,7 +202,7 @@ main = do
         Right _ -> do
             let cfg = ByteString.unpack $ encode $ vis
             -- putStrLn cfg
-            {-liftIO $ openBrowser ("http://localhost:8200?cfg=" <> cfg)-}
+            liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
             return ()
     print p
     return ()

@@ -63,7 +63,7 @@ class IsIdx t where
 -- === Elem === --
 ------------------
 
-newtype Elem = Elem Int deriving (Show)
+newtype Elem = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
 
 class IsElem a where
@@ -275,11 +275,17 @@ newElem tdef = do
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = runInIR . Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 
-unsafeReadLayer :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-unsafeReadLayer key t = unsafeCoerce <$> runInIR (Store.unsafeRead (t ^. elem . idx) (unwrap' key)) ; {-# INLINE unsafeReadLayer #-}
+readLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+readLayerByKey key t = unsafeCoerce <$> runInIR (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
+
+writeLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
+writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. elem . idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
 
 readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
-readLayer t = flip unsafeReadLayer t =<< getKey @(Layer (Abstract t) layer)
+readLayer t = flip readLayerByKey t =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
+
+writeLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => LayerData layer t -> t -> m ()
+writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
 readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyDataM m (Attr a))
 readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
@@ -420,7 +426,7 @@ instance (IRMonad m, Typeable a) => KeyMonad (Attr a) m where
 
 -- === Definition === --
 
-newtype Link  a b = Link Elem deriving (Show)
+newtype Link  a b = Link Elem deriving (Show, Ord, Eq)
 type    Link' a   = Link a a
 type instance Definition (Link a b) = (a,b)
 makeWrapped ''Link
@@ -551,7 +557,7 @@ instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder ato
 
 -- === Definition === --
 
-newtype Expr  layout = Expr Elem deriving (Show)
+newtype Expr  layout = Expr Elem deriving (Show, Ord, Eq)
 type    Expr'        = Expr Draft
 makeWrapped ''Expr
 
@@ -566,7 +572,8 @@ type instance Abstract (Expr _) = EXPR
 
 -- === Utils === --
 
--- type AtomicExpr atom layout = Expr (Update Atom atom layout)
+unsafeRelayout :: Expr l -> Expr l'
+unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 
 magicExpr :: forall atom layout m. (TermEncoder atom, IRMonad m)
           => ExprTerm atom (Expr layout) -> m (Expr layout)
@@ -583,8 +590,12 @@ expr = newElem . encodeTerm ; {-# INLINE expr #-}
 --      => a -> m (Expr layout)
 -- expr2 = newElem . someGeneralEncode ; {-# INLINE expr2 #-}
 
-exprs :: (IRMonad m, Readable (Net EXPR) m) => m [Expr Draft]
+exprs :: (IRMonad m, Readable ExprNet m) => m [Expr Draft]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
+
+links :: (IRMonad m, Readable ExprLinkNet m) => m [Link' (Expr Draft)]
+links = uncheckedElems ; {-# INLINE links #-}
+
 
 -- | Expr pattern matching utility
 match :: (IRMonad m, Readable (Layer EXPR Model) m)
@@ -725,6 +736,15 @@ symbolFields = symbolMapM_AB @HasFields2 fieldList2
 
 
 
+
+-- class Repr  s a        where repr  ::       a -> Builder s Tok
+
+
+class ReprExpr a b where reprExpr' :: a -> b
+instance (Repr s a, b ~ Builder s Tok) => ReprExpr a b where reprExpr' = repr
+
+reprExpr :: (TermMapM_AB ReprExpr (Expr l) m out, out ~ Builder s Tok) => Expr l -> m out
+reprExpr = symbolMapM_AB @ReprExpr reprExpr'
 
 
 

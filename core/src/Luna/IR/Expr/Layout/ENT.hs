@@ -7,7 +7,8 @@ import Luna.Prelude hiding (Simple, String)
 import Luna.IR.Expr.Layout.Class
 import Luna.IR.Expr.Layout.Nested
 import Luna.IR.Expr.Format
-import Luna.IR.Expr.Atom
+import Luna.IR.Expr.Atom (Atom, String, Star, Atomic)
+import qualified Luna.IR.Expr.Atom as Atom
 import Luna.IR.Layer.Type (Type)
 import Data.RTuple        (Assoc ((:=)))
 
@@ -19,7 +20,15 @@ import Data.RTuple        (Assoc ((:=)))
 -- === Definition === ---
 
 data Ent
-data ENT a n t
+
+data ENT e n t
+data ET  e   t
+data EN  e n
+data NT    n t
+data E   e
+data N     n
+data T       t
+
 
 
 -- === Simple ENT layout === --
@@ -32,9 +41,12 @@ type instance LiteralLayout p (ENT a n t) = ENT p String Star
 type instance AtomLayout    p (ENT a n t) = ENT p String Star
 
 -- Sub
-type instance Sub Atom (ENT a n t) = ENT (Sub Atom a) n t
-type instance Sub Name (ENT a n t) = Sub Name n
-type instance Sub Type (ENT a n t) = Sub Type t
+type instance Sub Atom (ENT e n t) = e
+type instance Sub Name (ENT e n t) = n
+type instance Sub Type (ENT e n t) = t
+
+type instance Sub Atom (ET e t) = e
+type instance Sub Type (ET e t) = t
 
 type instance AsSubLayout Name (ENT a n t) = a <+> n
 
@@ -67,3 +79,23 @@ type instance Merge (ENT e n t) (ENT e' n' t') = ENT (Merge e e') (Merge n n') (
 type l |> r = Specialized Atom l r
 type l #> r = Specialized Name l r
 type l >> r = Specialized Type l r
+
+
+
+-------------------------
+-- === Cons layout === --
+-------------------------
+
+
+-- ENT String () Star
+
+-- c <- cons "String" :: Cons'
+-- s <- string "foo"  :: ET String Cons'
+-- s <- int    0      :: ET Int    Cons'
+
+type    Cons'  = Cons Star
+newtype Cons t = Cons (ENT Atom.Cons (ET String Cons') t)
+
+
+-- type    L.Cons'  = L.Cons Star
+-- newtype L.Cons t = L.Cons (ENT Cons (ET String L.Cons') t)

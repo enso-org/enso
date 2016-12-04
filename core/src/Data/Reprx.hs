@@ -12,13 +12,12 @@ module Data.Reprx ( module Data.Reprx
 
 import Prologue
 import Data.Text.CodeBuilder
-import Data.Text.CodeBuilder     as X (Builder)
+import Data.Text.CodeBuilder     as X (Builder, renderStr)
 import Data.Text.CodeBuilder.Tok as X (Tok)
 
 import Data.Text.CodeBuilder as X ((<+>))
 import GHC.Exts (Constraint)
 import GHC.TypeLits
-
 
 
 
