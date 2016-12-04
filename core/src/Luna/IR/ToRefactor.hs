@@ -21,7 +21,7 @@ import Data.Property
 import Unsafe.Coerce (unsafeCoerce)
 
 -- FIXME: moze po prostu Expr Star?
-newtype MagicStar = MagicStar Expr'
+newtype MagicStar = MagicStar AnyExpr
 makeWrapped ''MagicStar
 
 newMagicStar :: IRMonad m => m MagicStar

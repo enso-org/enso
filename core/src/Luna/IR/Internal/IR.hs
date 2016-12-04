@@ -22,8 +22,8 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Model
 import Luna.IR.Expr.Atom    (Atom, Atoms)
 import qualified Luna.IR.Expr.Atom as A
-import Luna.IR.Expr.Format  (Sub, Format, Draft)
-import Luna.IR.Expr.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract)
+import Luna.IR.Expr.Format  (Format, Draft)
+import Luna.IR.Expr.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract, Sub)
 import Luna.IR.Expr.Layout.Class  (type (%>))
 import Luna.IR.Expr.Term    (TERM, Term, UncheckedFromTerm, FromTerm, UniTerm, IsUniTerm, uniTerm)
 import Type.Container       (Every)
@@ -561,7 +561,8 @@ instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder ato
 -- === Definition === --
 
 newtype Expr  layout = Expr Elem deriving (Show, Ord, Eq)
-type    Expr'        = Expr Draft
+type    AnyExpr      = Expr Layout.Any
+type    AnyExprLink  = Link' AnyExpr
 makeWrapped ''Expr
 
 type instance Definition (Expr _) = ExprStore
@@ -593,10 +594,10 @@ expr = newElem . encodeTerm ; {-# INLINE expr #-}
 --      => a -> m (Expr layout)
 -- expr2 = newElem . someGeneralEncode ; {-# INLINE expr2 #-}
 
-exprs :: (IRMonad m, Readable ExprNet m) => m [Expr Draft]
+exprs :: (IRMonad m, Readable ExprNet m) => m [AnyExpr]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
 
-links :: (IRMonad m, Readable ExprLinkNet m) => m [Link' (Expr Draft)]
+links :: (IRMonad m, Readable ExprLinkNet m) => m [AnyExprLink]
 links = uncheckedElems ; {-# INLINE links #-}
 
 
@@ -616,7 +617,7 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 -- === Instances === --
 
-type instance Universal (Expr _) = Expr'
+type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)
 instance      IsElem    (Expr l)
 instance      IsIdx     (Expr l) where
@@ -743,11 +744,11 @@ symbolFields = symbolMapM_AB @HasFields2 fieldList2
 -- class Repr  s a        where repr  ::       a -> Builder s Tok
 
 
-class ReprExpr a b where reprExpr' :: a -> b
-instance (Repr s a, b ~ Builder s Tok) => ReprExpr a b where reprExpr' = repr
+class ReprExpr a b where reprAnyExpr :: a -> b
+instance (Repr s a, b ~ Builder s Tok) => ReprExpr a b where reprAnyExpr = repr
 
 reprExpr :: (TermMapM_AB ReprExpr (Expr l) m out, out ~ Builder s Tok) => Expr l -> m out
-reprExpr = symbolMapM_AB @ReprExpr reprExpr'
+reprExpr = symbolMapM_AB @ReprExpr reprAnyExpr
 
 
 

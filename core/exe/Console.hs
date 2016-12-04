@@ -15,7 +15,8 @@ import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis, snapshot)
 import           Luna.Pass        (Pass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
-import           Luna.IR.Expr.Layout.Nested ((:>))
+import           Luna.IR.Expr.Layout.Nested (type (>>))
+import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>))
 import qualified Luna.IR.Expr.Layout.ENT as Layout
 
 import Web.Browser (openBrowser )
@@ -30,14 +31,14 @@ import qualified Control.Monad.State as State
 
 
 
-data Incoherence = DeteachedSource (Expr Draft) (Link' (Expr Draft))
-                 | OrphanLink      (Link' (Expr Draft))
-                 | OrphanExpr      (Expr Draft)
+data Incoherence = DeteachedSource AnyExpr AnyExprLink
+                 | OrphanLink      AnyExprLink
+                 | OrphanExpr      (AnyExpr)
                  deriving (Show)
 
 data CoherenceCheck = CoherenceCheck { _incoherences   :: [Incoherence]
-                                     , _uncheckedLinks :: Set (Link' (Expr Draft))
-                                     , _orphanExprs    :: Set (Expr Draft)
+                                     , _uncheckedLinks :: Set AnyExprLink
+                                     , _orphanExprs    :: Set (AnyExpr)
                                      } deriving (Show)
 
 
@@ -54,10 +55,10 @@ type CoherenceCheckCtx   m = (IRMonad m, Readables m '[ExprLayer Model, ExprLaye
 reportIncoherence :: MonadCoherenceCheck m => Incoherence -> m ()
 reportIncoherence i = State.modify (incoherences %~ (i:))
 
-markLinkChecked :: MonadCoherenceCheck m => Link' (Expr Draft) -> m ()
+markLinkChecked :: MonadCoherenceCheck m => AnyExprLink -> m ()
 markLinkChecked a = State.modify (uncheckedLinks %~ (Set.delete a))
 
-markExprChecked :: MonadCoherenceCheck m => Expr Draft -> m ()
+markExprChecked :: MonadCoherenceCheck m => AnyExpr -> m ()
 markExprChecked a = State.modify (orphanExprs %~ (Set.delete a))
 
 
@@ -71,24 +72,24 @@ checkCoherence = do
         mapM_ checkExprExistence ls
     return $ finalize s
 
-checkExprExistence :: MonadCoherenceCheck m => Link' (Expr Draft) -> m ()
+checkExprExistence :: MonadCoherenceCheck m => AnyExprLink -> m ()
 checkExprExistence lnk = do
     (_, tgt) <- readLayer @Model lnk
     markExprChecked tgt
 
-checkExprCoherence :: MonadCoherenceCheck m => Expr Draft -> m ()
+checkExprCoherence :: MonadCoherenceCheck m => AnyExpr -> m ()
 checkExprCoherence e = do
     tp <- readLayer @Type e
     checkLinkTarget e tp
     mapM_ (checkLinkTarget e) =<< symbolFields e
 
 
-checkLinkTarget :: MonadCoherenceCheck m => Expr Draft -> Link' (Expr Draft) -> m ()
+checkLinkTarget :: MonadCoherenceCheck m => AnyExpr -> AnyExprLink -> m ()
 checkLinkTarget e lnk = do
     markLinkChecked lnk
     (_, tgt) <- readLayer @Model lnk
     when (e ^. elem . idx /= tgt ^. elem . idx) $ reportIncoherence (DeteachedSource e lnk)
-
+--
 
 
 
@@ -151,11 +152,11 @@ gen_pass1 = layouted @Ent $ do
 
 
     -- Str constructor
-    (strName :: Expr (String :> T')) <- rawString "String"
-    (strCons :: Expr (Cons :> NT' (String :> T'))) <- cons strName
+    (strName :: Expr String) <- rawString "String"
+    (strCons :: Expr (Cons #> String)) <- cons strName
     snapshot "s1"
     let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
-        strName' = unsafeRelayout strName :: Expr (String :> T Layout.Cons')
+        strName' = unsafeRelayout strName :: Expr (String :> Layout.Cons')
     newTypeLink <- link strCons' strName'
     uncheckedDeleteStarType strName'
     writeLayer @Type newTypeLink strName'
@@ -163,7 +164,7 @@ gen_pass1 = layouted @Ent $ do
 
     let string s = do
             foo <- rawString s
-            let foo' = unsafeRelayout foo :: Expr (String :> T Layout.Cons')
+            let foo' = unsafeRelayout foo :: Expr (String :> Layout.Cons')
             ftlink <- link strCons' foo'
             uncheckedDeleteStarType foo'
             writeLayer @Type ftlink foo'
@@ -173,10 +174,20 @@ gen_pass1 = layouted @Ent $ do
     s2 <- string "s2"
     s3 <- string "s3"
 
-    (v :: Expr (Var :> NT' (String :> T Layout.Cons'))) <- var s1
+    (v :: Expr $ Var #> String :> Layout.Cons') <- var s1
+
+    -- (u :: Expr (Unify >> Int)) <- unify s2 v
 
     print =<< checkCoherence
     snapshot "s4"
+
+
+    -- Merge (String >> T Layout.Cons') (Var >> N (String >> T Layout.Cons'))
+    --
+    -- Phrase >> Merge (T Layout.Cons') (N (String >> T.Layout.Cons'))
+    -- Phrase >> Merge (T Layout.Cons') (NT (String >> T.Layout.Cons') Star)
+    -- Phrase >> NT (String >> T.Layout.Cons') (Merge Layout.Cons' Star)
+
 
 
     -- (a :: Expr Int Star)) <- var aName

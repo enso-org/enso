@@ -13,6 +13,9 @@ import Luna.IR.Layer.Type (Type)
 import Data.RTuple        (Assoc ((:=)))
 
 
+
+
+
 -----------------
 -- === Ent === --
 -----------------
@@ -53,14 +56,14 @@ type instance Sub Type (T t) = t
 type instance AsSubLayout Name (ENT a n t) = a <+> n
 
 -- Specialized
-type instance Specialized Atom (ENT a' n' t') (ENT a n t) = ENT (a' :>> a) (n' <+> n) (t' <+> t)
-type instance Specialized Name (ENT a' n' t') (ENT a n t) = ENT a (Specialized Atom (ENT a' n' t') n) t
-type instance Specialized Type (ENT a' n' t') (ENT a n t) = ENT a n (Specialized Atom (ENT a' n' t') t)
-
-type instance Specialized Atom (ENT e n t) () = ENT e n t
--- type instance Specialized Atom s (ENT a n t) = ENT (AsSubLayout Atom s :>> a) n t
--- type instance Specialized Name s (ENT a n t) = ENT a (AsSubLayout Name s :>> n) t
--- type instance Specialized Type s (ENT a n t) = ENT a n (AsSubLayout Type s :>> t)
+-- type instance Specialized Atom (ENT a' n' t') (ENT a n t) = ENT (a' >>> a) (n' <+> n) (t' <+> t)
+-- type instance Specialized Name (ENT a' n' t') (ENT a n t) = ENT a (Specialized Atom (ENT a' n' t') n) t
+-- type instance Specialized Type (ENT a' n' t') (ENT a n t) = ENT a n (Specialized Atom (ENT a' n' t') t)
+--
+-- type instance Specialized Atom (ENT e n t) () = ENT e n t
+-- type instance Specialized Atom s (ENT a n t) = ENT (AsSubLayout Atom s >>> a) n t
+-- type instance Specialized Name s (ENT a n t) = ENT a (AsSubLayout Name s >>> n) t
+-- type instance Specialized Type s (ENT a n t) = ENT a n (AsSubLayout Type s >>> t)
 
 -- Generalize
 instance (Generalize e e', Generalize n n', Generalize t t') => Generalize (ENT e n t) (ENT e' n' t')
@@ -78,9 +81,18 @@ instance Generalize () (Form   f)
 type instance Merge (ENT e n t) (ENT e' n' t') = ENT (Merge e e') (Merge n n') (Merge t t')
 
 -- to powinno byc w class ale jest jeszcze cykl Class -> Type -> Ir -> Class
-type l |> r = Specialized Atom l r
-type l #> r = Specialized Name l r
-type l >> r = Specialized Type l r
+-- type l |> r = Specialized Atom l r
+-- type l #> r = Specialized Name l r
+-- type l >> r = Specialized Type l r
+
+infixr 7 #>
+infixr 7 :>
+type a #> n = a >> N n
+type a :> t = a >> T t
+-- type (#:>) a n t = a >> NT n t
+--
+-- type l |> r = Specialized Atom l r
+-- type l >> r = Specialized Type l r
 
 
 
@@ -92,12 +104,11 @@ type l >> r = Specialized Type l r
 -- ENT String () Star
 
 -- c <- cons "String" :: Cons'
--- s <- string "foo"  :: String :> T Cons'
+-- s <- string "foo"  :: String >> T Cons'
 -- s <- int    0      :: ET Int    Cons'
 
 type    Cons'  = Cons Star
--- newtype Cons t = Cons (ENT Atom.Cons (ET String Cons') t)
-newtype Cons t = Cons (Atom.Cons :> NT (String :> T Cons') t)
+newtype Cons t = Cons (Atom.Cons >> NT (String :> Cons') t)
 
 
 -- type    L.Cons'  = L.Cons Star

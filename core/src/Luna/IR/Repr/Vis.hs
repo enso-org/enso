@@ -22,7 +22,7 @@ snapshot title = do
 
 
 visNode2 :: (IRMonad m, Readables m '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model])
-         => Expr' -> m (Vis.Node, [Vis.Edge])
+         => AnyExpr -> m (Vis.Node, [Vis.Edge])
 visNode2 t = do
     euid   <- readLayer @UID   t
     tpLink <- readLayer @Type  t

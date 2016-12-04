@@ -11,11 +11,11 @@ import Luna.Prelude hiding (String)
 import Luna.IR.Expr.Atom   as X
 import Luna.IR.Internal.IR as X
 import qualified Luna.IR.Expr.Term.Named as Term
-import Luna.IR.Expr.Layout.ENT (type(#>), type(|>))
+-- import Luna.IR.Expr.Layout.ENT (type(#>), type(|>))
 
 import Type.Inference
 import Luna.IR.Expr.Layout
-import Luna.IR.Expr.Layout.ENT (ENT, ET, NT, EN, E, N, T)
+import Luna.IR.Expr.Layout.ENT hiding (Cons)
 
 
 type ET' e = ET e Star
@@ -31,14 +31,14 @@ star :: (IRMonad m, Accessible ExprNet m, Inferable2 Layout ldef m) => m (Expr S
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
-rawString :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr $ String :> T')
+rawString :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr String)
 rawString = expr . Term.uncheckedString ; {-# INLINE rawString #-}
 
--- cons :: (IRMonad m, Accessible ExprNet m) => Expr n -> m (Expr (NT' (Cons :> n)))
-cons :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet]) => Expr n -> m (Expr $ Cons :> NT' n)
+-- cons :: (IRMonad m, Accessible ExprNet m) => Expr n -> m (Expr (NT' (Cons >> n)))
+cons :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet]) => Expr n -> m (Expr $ Cons #> n)
 cons n = mdo
     t  <- expr $ Term.uncheckedCons ln
-    ln <- link (unsafeGeneralize n) t
+    ln <- link (unsafeRelayout n) t
     return t
 
 -- string :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr (String %> Infered Layout m))
@@ -49,49 +49,50 @@ cons n = mdo
 -- acc name arg = mdo
 --     t  <- expr $ Term.uncheckedAcc ln la
 --     n  <- litExpr name
---     ln <- link (unsafeGeneralize n)   t
---     la <- link (unsafeGeneralize arg) t
+--     ln <- link (unsafeRelayout n)   t
+--     la <- link (unsafeRelayout arg) t
 --     return t
 --
 
 -- to powinnimsy zrobic jakos tak
 
--- var :: Expr n -> m (Expr $ Var :> NT' n)
+-- var :: Expr n -> m (Expr $ Var >> NT' n)
 
 -- ale tak by bylo to spokjne z Sub'ami!
 var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
-    => Expr n -> m (Expr $ Var :> NT' n)
+    => Expr n -> m (Expr $ Var #> n)
 var n = mdo
     t <- expr $ Term.uncheckedVar l
-    l <- link (unsafeGeneralize n) t
+    l <- link (unsafeRelayout n) t
     return t
---
--- unify :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
---       => Expr l -> Expr l' -> m (Expr (Unify |> (l <+> l')))
--- unify a b = mdo
---     t  <- expr $ Term.uncheckedUnify la lb
---     la <- link (unsafeGeneralize a) t
---     lb <- link (unsafeGeneralize b) t
---     return t
--- {-# INLINE unify #-}
 
--- Var :> ENT . . .
+
+unify :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+      => Expr l -> Expr l' -> m (Expr $ Unify >> (l <+> l'))
+unify a b = mdo
+    t  <- expr $ Term.uncheckedUnify la lb
+    la <- link (unsafeRelayout a) t
+    lb <- link (unsafeRelayout b) t
+    return t
+{-# INLINE unify #-}
+
+-- Var >> ENT . . .
 --
 --
 -- Expr (Ent Star () Star)
 --
--- Var :> NT'
+-- Var >> NT'
 --
 --
--- e :: Expr $ ENT (Unify :> Draft) (Unify :> Draft) (Unify :> Draft)
+-- e :: Expr $ ENT (Unify >> Draft) (Unify >> Draft) (Unify >> Draft)
 --
 -- head e :: Unify
 -- src  e :: Draft
--- nm   e :: Unify :> Draft
--- tp   e :: Unify :> Draft
+-- nm   e :: Unify >> Draft
+-- tp   e :: Unify >> Draft
 --
 --
--- e :: Expr $ Unify :> ENT Val Val Val
+-- e :: Expr $ Unify >> ENT Val Val Val
 --
 -- head e :: Unify
 -- src  e :: Val
@@ -99,4 +100,4 @@ var n = mdo
 -- tp   e :: Val
 --
 --
--- Expr $ ENT (Star :> ENT)
+-- Expr $ ENT (Star >> ENT)

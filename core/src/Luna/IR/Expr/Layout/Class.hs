@@ -42,7 +42,7 @@ type family Merge       a b
 type family Simplify    l
 type family Universal   a
 type family Abstract    a
-type family Specialized t spec layout
+-- type family Specialized t spec layout
 
 type family AsSubLayout t l
 type family LiteralLayout t layout
@@ -118,3 +118,22 @@ type instance Merge (Atomic a) (Form   b) = Merge (Atomic a # Format) (Form b)
 type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a # Format) (Atomic b # Format))-- TODO: refactor
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a
+
+
+
+-- === Sub === --
+
+type family   Sub t a
+-- type instance Sub t (Form   f) = Form   f
+-- type instance Sub t (Atomic a) = Atomic a
+
+
+
+
+
+-----------------
+-- === Any === --
+-----------------
+
+data Any
+type instance Sub t Any = Any

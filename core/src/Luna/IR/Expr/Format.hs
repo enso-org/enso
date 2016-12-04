@@ -72,9 +72,7 @@ type instance Super Draft   = Phrase  ': Super Phrase
 
 type SubFormats a = TakeUntil a (Every Format)
 
-type family   Sub t a
-type instance Sub t (Form   f) = Form   f
-type instance Sub t (Atomic a) = Atomic a
+
 
 -- TODO: automatize:
 
