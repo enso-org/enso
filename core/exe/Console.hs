@@ -136,7 +136,7 @@ uncheckedDeleteStar e = do
 uncheckedDeleteStarType :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet, ExprLinkLayer Model])
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
-    typeLink <- readLayer @Type e
+    typeLink     <- readLayer @Type e
     (oldStar, _) <- readLayer @Model typeLink
     uncheckedDeleteStar oldStar
     delete typeLink
@@ -163,16 +163,17 @@ gen_pass1 = layouted @Ent $ do
 
     let string s = do
             foo <- rawString s
-            snapshot "s3"
             let foo' = unsafeRelayout foo :: Expr (ET String Layout.Cons')
             ftlink <- link strCons' foo'
             uncheckedDeleteStarType foo'
             writeLayer @Type ftlink foo'
             return foo'
 
-    s <- string "s1"
-    s <- string "s2"
-    s <- string "s3"
+    s1 <- string "s1"
+    s2 <- string "s2"
+    s3 <- string "s3"
+
+    (v :: Expr (NT' (Var :> ET String Layout.Cons'))) <- var s1
 
     print =<< checkCoherence
     snapshot "s4"

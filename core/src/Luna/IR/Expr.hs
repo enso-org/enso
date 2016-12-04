@@ -52,13 +52,18 @@ cons n = mdo
 --     la <- link (unsafeGeneralize arg) t
 --     return t
 --
--- var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Inferable2 Layout ldef m, LitExpr m name)
---     => name -> m (Expr (DefListLayout m name #> AtomLayout Var ldef))
--- var name = mdo
---     t <- expr $ Term.uncheckedVar l
---     n <- litExpr name
---     l <- link (unsafeGeneralize n) t
---     return t
+
+to powinnimsy zrobic jakos tak
+
+var :: Expr n -> m (Expr $ Var :> NT' n)
+
+ale tak by bylo to spokjne z Sub'ami!
+var :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+    => Expr n -> m (Expr $ NT' $ Var :> n)
+var n = mdo
+    t <- expr $ Term.uncheckedVar l
+    l <- link (unsafeGeneralize n) t
+    return t
 --
 -- unify :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
 --       => Expr l -> Expr l' -> m (Expr (Unify |> (l <+> l')))
@@ -68,3 +73,29 @@ cons n = mdo
 --     lb <- link (unsafeGeneralize b) t
 --     return t
 -- {-# INLINE unify #-}
+
+-- Var :> ENT . . .
+--
+--
+-- Expr (Ent Star () Star)
+--
+-- Var :> NT'
+--
+--
+-- e :: Expr $ ENT (Unify :> Draft) (Unify :> Draft) (Unify :> Draft)
+--
+-- head e :: Unify
+-- src  e :: Draft
+-- nm   e :: Unify :> Draft
+-- tp   e :: Unify :> Draft
+--
+--
+-- e :: Expr $ Unify :> ENT Val Val Val
+--
+-- head e :: Unify
+-- src  e :: Val
+-- nm   e :: Val
+-- tp   e :: Val
+--
+--
+-- Expr $ ENT (Star :> ENT)
