@@ -40,6 +40,7 @@ import qualified Data.Set                  as Set
 import qualified Data.Typeable             as Typeable -- FIXME
 import qualified Luna.IR.Expr.Layout       as Layout
 import qualified Luna.IR.Expr.Term.Class   as N
+import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
 import qualified Type.List                 as List
 
 import Luna.IR.Expr.Term.Uni ()
@@ -63,7 +64,7 @@ class IsIdx t where
 -- === Elem === --
 ------------------
 
-newtype Elem = Elem Int deriving (Show)
+newtype Elem = Elem Int deriving (Show, Eq)
 makeWrapped '' Elem
 
 class IsElem a where
@@ -524,8 +525,10 @@ type instance FieldsType (ExprTerm atom t) = FieldsType (Unwrapped (ExprTerm ato
 instance HasFields (Unwrapped (ExprTerm atom t))
       => HasFields (ExprTerm atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
 
-
-
+-- Inputs
+type instance InputsType (ExprTerm atom t) = InputsType (Unwrapped (ExprTerm atom t))
+instance HasInputs (Unwrapped (ExprTerm atom t))
+      => HasInputs (ExprTerm atom t) where inputList = inputList . unwrap' ; {-# INLINE inputList #-}
 ----------------------
 -- === ExprData === --
 ----------------------
@@ -551,7 +554,7 @@ instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder ato
 
 -- === Definition === --
 
-newtype Expr  layout = Expr Elem deriving (Show)
+newtype Expr  layout = Expr Elem deriving (Show, Eq)
 type    Expr'        = Expr Draft
 makeWrapped ''Expr
 
@@ -721,10 +724,10 @@ instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = 
 symbolFields :: (TermMapM_AB HasFields2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
 symbolFields = symbolMapM_AB @HasFields2 fieldList2
 
-
-
-
-
+class    (b ~ [InputsType a], HasInputs a) => HasInputs2 a b
+instance (b ~ [InputsType a], HasInputs a) => HasInputs2 a b
+inputs :: (TermMapM_AB HasInputs2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
+inputs = symbolMapM_AB @HasInputs2 inputList
 
 
 

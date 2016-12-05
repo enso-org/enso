@@ -217,6 +217,24 @@ instance n ~ a => HasFields (NamedTerm Atom.Star     n a) where fieldList (Sym_S
 instance n ~ a => HasFields (NamedTerm Atom.Unify    n a) where fieldList (Sym_Unify    t1 t2) = [t1, t2]
 instance n ~ a => HasFields (NamedTerm Atom.Var      n a) where fieldList (Sym_Var      t1   ) = [t1]
 
+-- Inputs
+
+type instance InputsType (NamedTerm t n a) = a
+
+instance HasInputs (NamedTerm Atom.Integer  n a) where inputList (Sym_Integer  t1   ) = []
+instance HasInputs (NamedTerm Atom.Rational n a) where inputList (Sym_Rational t1   ) = []
+instance HasInputs (NamedTerm Atom.String   n a) where inputList (Sym_String   t1   ) = []
+instance HasInputs (NamedTerm Atom.Acc      n a) where inputList (Sym_Acc      t1 t2) = [t2]
+instance HasInputs (NamedTerm Atom.App      n a) where inputList (Sym_App      t1 t2) = [t1, t2 ^. Arg._val_]
+instance HasInputs (NamedTerm Atom.Blank    n a) where inputList (Sym_Blank         ) = []
+instance HasInputs (NamedTerm Atom.Cons     n a) where inputList (Sym_Cons     t1   ) = []
+instance HasInputs (NamedTerm Atom.Lam      n a) where inputList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_,t2]
+instance HasInputs (NamedTerm Atom.Missing  n a) where inputList (Sym_Missing       ) = []
+instance HasInputs (NamedTerm Atom.Native   n a) where inputList (Sym_Native   t1   ) = []
+instance HasInputs (NamedTerm Atom.Star     n a) where inputList (Sym_Star          ) = []
+instance HasInputs (NamedTerm Atom.Unify    n a) where inputList (Sym_Unify    t1 t2) = [t1, t2]
+instance HasInputs (NamedTerm Atom.Var      n a) where inputList (Sym_Var      t1   ) = []
+
 
 --------------------------
 -- === Construction === --
