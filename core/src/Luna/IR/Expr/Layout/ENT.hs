@@ -118,3 +118,8 @@ type instance AddKey '[a,b,c] c = '[a,b,c]
 
 type instance Sub t (Form   f) = If (t == EXPR) (Form   f) (DefaultLayout t)
 type instance Sub t (Atomic a) = If (t == EXPR) (Atomic a) (DefaultLayout t)
+
+
+type instance Generalizable (h >> l)   Any = 'True
+type instance Generalizable (Form   f) Any = 'True
+type instance Generalizable (Atomic a) Any = 'True

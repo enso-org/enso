@@ -38,6 +38,10 @@ data family UniTerm a
 class     IsUniTerm t l where
     uniTerm :: Term t l -> UniTerm l
 
+type family InputsType a
+class HasInputs a where
+    inputList :: a -> [InputsType a]
+
 
 -- === Term isomorphisms === --
 

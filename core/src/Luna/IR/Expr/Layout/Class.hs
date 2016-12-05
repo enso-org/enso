@@ -52,6 +52,8 @@ type GeneralizableError a b = Sentence
 
 -- === Instances === --
 
+type instance Generalizable [a] [b] = Generalizable a b
+
 type instance Generalizable (Layout '[])               a = 'True
 type instance Generalizable (Layout ((k ':= v) ': ls)) a = Generalizable v (Sub k a) && Generalizable (Layout ls) a
 

@@ -16,8 +16,9 @@ type instance Outputs DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[
 type instance Preserves DiscoveryPass ='[]
 
 sanityPass :: SubPass DiscoveryPass (IRT IO) P.String
-sanityPass = layouted @Ent $ do
-    v <- var ("hello" :: P.String)
+sanityPass = do
+    s <- rawString "hello"
+    v <- var s
     match v $ \case
         Var l -> do
             nameNode <- source l
