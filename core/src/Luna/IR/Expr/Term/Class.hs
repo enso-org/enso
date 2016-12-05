@@ -5,7 +5,7 @@ module Luna.IR.Expr.Term.Class (module Luna.IR.Expr.Term.Class) where
 import qualified Luna.Prelude as P
 import           Luna.Prelude hiding (String, Integer, Rational, Curry, Data)
 
-import Luna.IR.Expr.Atom (Atom)
+import Luna.IR.Expr.Atom (Atom, AtomOf)
 
 import Data.Base                 (Base)
 import Type.Applicative
@@ -43,10 +43,6 @@ type family InputsType a
 class HasInputs a where
     inputList :: a -> [InputsType a]
 
-newtype AtomRep = AtomRep TypeRep deriving (Eq)
-class HasAtom a where
-    atomRep :: a -> AtomRep
-
 
 -- === Term isomorphisms === --
 
@@ -81,6 +77,8 @@ instance      Accessor TERM (Term atom layout) where
 -- === Instances === --
 
 -- Properties
+
+type instance AtomOf (Term atom _) = atom
 
 type instance Access Atom          (Term atom _     ) = atom
 type instance Update Atom   atom   (Term _    layout) = (Term atom layout)

@@ -30,10 +30,24 @@ makeLunaComponents "Atom" "Atomic"
     , "Var"
     ]
 
-type family Atoms a :: [*]
+type family AtomOf a ::  *
+type family Atoms  a :: [*]
+
+-- === AtomRep === --
+
+newtype AtomRep = AtomRep TypeRep deriving (Eq)
+makeWrapped ''AtomRep
+
+atomRep' :: forall a. Typeable (AtomOf a) => AtomRep
+atomRep' = wrap' $ typeRep (Proxy :: Proxy (AtomOf a)) ; {-# INLINE atomRep' #-}
+
+atomRep :: forall a. Typeable (AtomOf a) => a -> AtomRep
+atomRep _ = atomRep' @a ; {-# INLINE atomRep #-}
+
 
 -- === Instances === --
 
+type instance AtomOf      (Atomic a) = Atomic a
 type instance Atoms       (Atomic a) = '[Atomic a]
 type instance Access Atom (Atomic a) = Atomic a
 type instance TypeRepr    (Atomic a) = TypeRepr a
