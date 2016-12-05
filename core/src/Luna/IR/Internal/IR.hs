@@ -195,11 +195,11 @@ instance Default (IRState   m) where def = IRState   def def def
 
 -- === Definition === --
 
-newtype IRT m a = IRT (StateT (IRState (IRT m)) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype IRT m a = IRT (StateT (IRTState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+type IRTState m = IRState (IRT m)
 makeWrapped ''IRT
 
 type IRState' m = IRState (GetIRMonad m)
-
 type        GetIRMonad    m = IRT (GetIRSubMonad m)
 type family GetIRSubMonad m where
             GetIRSubMonad (IRT m) = m
@@ -371,6 +371,9 @@ modifyIRStateM_ = modifyIRStateM . fmap (fmap ((),)) ; {-# INLINE modifyIRStateM
 
 modifyIRState_ :: IRMonad m => (IRState' m -> IRState' m) -> m ()
 modifyIRState_ = modifyIRStateM_ . fmap return ; {-# INLINE modifyIRState_ #-}
+
+snapshot :: IRMonad m => m (IRState' m)
+snapshot = elems (mapM (layerValues Store.duplicate)) =<< getIRState ; {-# INLINE snapshot #-}
 
 
 -- === Running === --

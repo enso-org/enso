@@ -12,7 +12,7 @@ import Data.Aeson (encode)
 
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
-import           Luna.IR.Repr.Vis (MonadVis, snapshot)
+import           Luna.IR.Repr.Vis (MonadVis)
 import           Luna.Pass        (Pass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
@@ -154,13 +154,13 @@ gen_pass1 = do
     -- Str constructor
     (strName :: Expr String) <- rawString "String"
     (strCons :: Expr (Cons #> String)) <- cons strName
-    snapshot "s1"
+    Vis.snapshot "s1"
     let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
         strName' = unsafeRelayout strName :: Expr String'
     newTypeLink <- link strCons' strName'
     uncheckedDeleteStarType strName'
     writeLayer @Type newTypeLink strName'
-    snapshot "s2"
+    Vis.snapshot "s2"
 
     let string s = do
             foo <- rawString s
@@ -185,7 +185,7 @@ gen_pass1 = do
     (u' :: Expr (Unify >> Draft)) <- unify v' v'
 
     print =<< checkCoherence
-    snapshot "s4"
+    Vis.snapshot "s4"
 
 
 
@@ -197,7 +197,7 @@ gen_pass1 = do
     --
     --
     --
-    -- -- snapshot "s3"
+    -- -- Vis.snapshot "s3"
     -- d <- readLayer @Type u
     -- print d
     --

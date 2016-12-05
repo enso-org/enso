@@ -3,14 +3,16 @@ module Luna.IR.Internal.LayerStore where
 import Prelude
 import Data.Default
 import Control.Lens.Utils
+import Control.Monad
 import Data.Functor.Utils hiding ((.))
 import Control.Monad.Primitive
 import qualified Data.STRef as ST
 import           Data.STRef (STRef)
 
 import qualified Data.Vector.Mutable as MV
+import           Data.Vector.Mutable (MVector)
 import qualified Data.Vector         as V
-import           Data.Vector         (unsafeThaw)
+import           Data.Vector         (Vector)
 import           Data.Map            (Map)
 import qualified Data.Map            as Map
 import           Data.List           (sort)
@@ -60,10 +62,9 @@ dropResult = (. (((),) .:)) ; {-# INLINE dropResult #-}
 -- === VectorRef === --
 -----------------------
 
-type Vector    = MV.MVector
-type VectorM m = Vector (PrimState m)
+type MVectorM m = MVector (PrimState m)
 
-newtype VectorRef  s a = VectorRef (STRef s (Vector s a))
+newtype VectorRef  s a = VectorRef (STRef s (MVector s a))
 type    VectorRefM m   = VectorRef (PrimState m)
 
 makeLenses  ''VectorRef
@@ -73,15 +74,15 @@ makeWrapped ''VectorRef
 -- === Utils === --
 
 newVectorRef :: PrimMonad m => m (VectorRefM m a)
-newVectorRef = fmap wrap' . newSTRef =<< unsafeThaw mempty ; {-# INLINE newVectorRef #-}
+newVectorRef = fmap wrap' . newSTRef =<< V.unsafeThaw mempty ; {-# INLINE newVectorRef #-}
 
-modifyVectorRefM :: PrimMonad m => (VectorM m a -> m (t, VectorM m a)) -> VectorRefM m a -> m t
+modifyVectorRefM :: PrimMonad m => (MVectorM m a -> m (t, MVectorM m a)) -> VectorRefM m a -> m t
 modifyVectorRefM f (unwrap' -> ref) = modifySTRefM' ref f ; {-# INLINE modifyVectorRefM #-}
 
-modifyVectorRefM_ :: PrimMonad m => (VectorM m a -> m (VectorM m a)) -> VectorRefM m a -> m ()
+modifyVectorRefM_ :: PrimMonad m => (MVectorM m a -> m (MVectorM m a)) -> VectorRefM m a -> m ()
 modifyVectorRefM_ = dropResult modifyVectorRefM ; {-# INLINE modifyVectorRefM_ #-}
 
-withVectorRefM :: PrimMonad m => (VectorM m a -> m t) -> VectorRefM m a -> m t
+withVectorRefM :: PrimMonad m => (MVectorM m a -> m t) -> VectorRefM m a -> m t
 withVectorRefM f (unwrap' -> ref) = f =<< readSTRef ref ; {-# INLINE withVectorRefM #-}
 
 unsafeGrow :: PrimMonad m => Int -> VectorRefM m a -> m ()
@@ -92,6 +93,19 @@ unsafeWrite v i a = withVectorRefM (\mv -> MV.unsafeWrite mv i a) v ; {-# INLINE
 
 unsafeRead :: PrimMonad m => Idx -> VectorRefM m a -> m a
 unsafeRead i (unwrap' -> ref) = readSTRef ref >>= flip MV.unsafeRead i ; {-# INLINE unsafeRead #-}
+
+
+unsafeFreezeVR :: PrimMonad m => VectorRefM m a -> m (Vector a)
+unsafeFreezeVR = V.unsafeFreeze <=< readSTRef . unwrap' ; {-# INLINE unsafeFreezeVR #-}
+
+freezeVR :: PrimMonad m => VectorRefM m a -> m (Vector a)
+freezeVR = V.freeze <=< readSTRef . unwrap' ; {-# INLINE freezeVR #-}
+
+unsafeThawVR :: PrimMonad m => Vector a -> m (VectorRefM m a)
+unsafeThawVR = fmap VectorRef . newSTRef <=< V.unsafeThaw ; {-# INLINE unsafeThawVR #-}
+
+thawVR :: PrimMonad m => Vector a -> m (VectorRefM m a)
+thawVR = fmap VectorRef . newSTRef <=< V.thaw ; {-# INLINE thawVR #-}
 
 
 -- === Instances === --
@@ -108,16 +122,18 @@ instance Show (VectorRef s a) where show _ = "VectorRef"
 
 type Idx = Int
 
-type    LayerStoreRefM m     = LayerStoreRef (PrimState m)
-newtype LayerStoreRef  s k a = LayerStoreRef (STRef s (LayerStore s k a))
-type    LayerStoreM    m     = LayerStore    (PrimState m)
-data    LayerStore     s k a = LayerStore { _size :: !Int
+type    LayerStoreRefM m     = LayerStoreRef  (PrimState m)
+newtype LayerStoreRef  s k a = LayerStoreRef  (STRef s (LayerStoreST s k a))
+type    LayerStoreM    m k a = LayerStoreST   (PrimState m) k a
+type    LayerStoreST   s k a = LayerStoreBase k (VectorRef s a)
+type    LayerStore       k a = LayerStoreBase k (Vector a)
+data    LayerStoreBase   k a = LayerStore { _size :: !Int
                                           , _free :: ![Idx]
-                                          , _vec  :: !(Map k (VectorRef s a))
-                                          } deriving (Show)
+                                          , _vec  :: !(Map k a)
+                                          } deriving (Show, Functor, Foldable, Traversable)
 
 makeWrapped ''LayerStoreRef
-makeLenses  ''LayerStore
+makeLenses  ''LayerStoreBase
 
 
 -- === Ref modify === --
@@ -137,7 +153,7 @@ modifyLayerStoreRef'_ = modifyLayerStoreRefM'_ . fmap return ; {-# INLINE modify
 empty :: PrimMonad m => m (LayerStoreRefM m k a)
 empty = LayerStoreRef <$> newSTRef def ; {-# INLINE empty #-}
 
-instance Default (LayerStore s k a) where
+instance Default (LayerStoreST s k a) where
     def = LayerStore 0 def def ; {-# INLINE def #-}
 
 
@@ -176,9 +192,47 @@ readKey :: (PrimMonad m, Ord k) => k -> LayerStoreRefM m k a -> m (Maybe (Vector
 readKey k = (^? (vec . ix k)) <∘> readLayerStoreRef ; {-# INLINE readKey #-}
 
 
+-- === Mutability === --
+
+unsafeFreeze :: PrimMonad m => LayerStoreRefM m k a -> m (LayerStore k a)
+unsafeFreeze = readLayerStoreRef >=> unsafeFreeze' ; {-# INLINE unsafeFreeze #-}
+
+freeze :: PrimMonad m => LayerStoreRefM m k a -> m (LayerStore k a)
+freeze = readLayerStoreRef >=> freeze' ; {-# INLINE freeze #-}
+
+unsafeThaw :: PrimMonad m => LayerStore k a -> m (LayerStoreRefM m k a)
+unsafeThaw = fmap wrap' . newSTRef <=< unsafeThaw' ; {-# INLINE unsafeThaw #-}
+
+thaw :: PrimMonad m => LayerStore k a -> m (LayerStoreRefM m k a)
+thaw = fmap wrap' . newSTRef <=< thaw' ; {-# INLINE thaw #-}
+
+duplicate :: PrimMonad m => LayerStoreRefM m k a -> m (LayerStoreRefM m k a)
+duplicate = freeze >=> unsafeThaw ; {-# INLINE duplicate #-}
+
+
+
+unsafeFreeze' :: PrimMonad m => LayerStoreM m k a -> m (LayerStore k a)
+unsafeFreeze' = mapM unsafeFreezeVR ; {-# INLINE unsafeFreeze' #-}
+
+freeze' :: PrimMonad m => LayerStoreM m k a -> m (LayerStore k a)
+freeze' = mapM freezeVR ; {-# INLINE freeze' #-}
+
+unsafeThaw' :: PrimMonad m => LayerStore k a -> m (LayerStoreM m k a)
+unsafeThaw' = mapM unsafeThawVR ; {-# INLINE unsafeThaw' #-}
+
+thaw' :: PrimMonad m => LayerStore k a -> m (LayerStoreM m k a)
+thaw' = mapM thawVR ; {-# INLINE thaw' #-}
+
+duplicate' :: PrimMonad m => LayerStoreM m k a -> m (LayerStoreM m k a)
+duplicate' = freeze' >=> unsafeThaw' ; {-# INLINE duplicate' #-}
+
+
+
+
+
 -- === Non-ref API === --
 
-autoGrow' :: PrimMonad m => LayerStore (PrimState m) k a -> m (Idx, LayerStore (PrimState m) k a)
+autoGrow' :: PrimMonad m => LayerStoreST (PrimState m) k a -> m (Idx, LayerStoreST (PrimState m) k a)
 autoGrow' m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
     size' = m ^. size
     grow  = if size' == 0 then 1 else size'
@@ -201,7 +255,7 @@ unsafeAddKey' k m = do
 
 -- | Used index access performs in approx. O(n (log n))
 --   in order to make allocating and freeing indexes as fast as possible.
-ixes' :: LayerStore s k a -> [Int]
+ixes' :: LayerStoreST s k a -> [Int]
 ixes' m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
     findIxes (i : is) (f : fs) = if i == f then findIxes is fs else i : findIxes is (f : fs)
     findIxes is       []       = is
@@ -210,17 +264,17 @@ ixes' m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
 {-# INLINE ixes' #-}
 
 
-mapWithKey' :: (k -> VectorRef s a -> VectorRef s b) -> LayerStore s k a -> LayerStore s k b
+mapWithKey' :: (k -> VectorRef s a -> VectorRef s b) -> LayerStoreST s k a -> LayerStoreST s k b
 mapWithKey' f = vec %~ Map.mapWithKey f ; {-# INLINE mapWithKey' #-}
 
-traverseWithKey' :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> LayerStore s k a -> m (LayerStore s k b)
+traverseWithKey' :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> LayerStoreST s k a -> m (LayerStoreST s k b)
 traverseWithKey' = vec . Map.traverseWithKey ; {-# INLINE traverseWithKey' #-}
 
 
 -- === Instances === --
 
 -- Ixed
-type instance     IxValue (LayerStore s k a) = VectorRef s a
-type instance     Index   (LayerStore s k a) = k
-instance Ord k => Ixed    (LayerStore s k a) where
+type instance     IxValue (LayerStoreST s k a) = VectorRef s a
+type instance     Index   (LayerStoreST s k a) = k
+instance Ord k => Ixed    (LayerStoreST s k a) where
     ix = vec .: ix ; {-# INLINE ix #-}
