@@ -39,7 +39,7 @@ import qualified Data.Set                  as Set
 import qualified Data.Typeable             as Typeable -- FIXME
 import qualified Luna.IR.Expr.Layout       as Layout
 import qualified Luna.IR.Expr.Term.Class   as N
-import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
+import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList, AtomRep, HasAtom, atomRep)
 import qualified Type.List                 as List
 
 import Luna.IR.Expr.Term.Uni ()
@@ -546,6 +546,10 @@ instance HasFields (Unwrapped (ExprTerm atom t))
 type instance InputsType (ExprTerm atom t) = InputsType (Unwrapped (ExprTerm atom t))
 instance HasInputs (Unwrapped (ExprTerm atom t))
       => HasInputs (ExprTerm atom t) where inputList = inputList . unwrap' ; {-# INLINE inputList #-}
+
+-- HasAtom
+instance HasAtom (Unwrapped (ExprTerm atom t))
+      => HasAtom (ExprTerm atom t) where atomRep = atomRep . unwrap' ; {-# INLINE atomRep #-}
 ----------------------
 -- === ExprData === --
 ----------------------
@@ -748,6 +752,13 @@ class    (b ~ [InputsType a], HasInputs a) => HasInputs2 a b
 instance (b ~ [InputsType a], HasInputs a) => HasInputs2 a b
 inputs :: (TermMapM_AB HasInputs2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
 inputs = symbolMapM_AB @HasInputs2 inputList
+
+getAtomRep :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> m out
+getAtomRep = symbolMapM_A @HasAtom atomRep
+
+isSameAtom :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> expr -> m Bool
+isSameAtom a b = (==) <$> getAtomRep a <*> getAtomRep b
+
 
 -- class Repr  s a        where repr  ::       a -> Builder s Tok
 

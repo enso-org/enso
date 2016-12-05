@@ -123,6 +123,22 @@ deriving instance ShowFields (Star    n a) => Show (Star    n a)
 deriving instance ShowFields (Unify   n a) => Show (Unify   n a)
 deriving instance ShowFields (Var     n a) => Show (Var     n a)
 
+-- AtomRep
+
+instance HasAtom (NamedTerm Atom.Integer  n a) where atomRep (Sym_Integer  _  ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Integer)
+instance HasAtom (NamedTerm Atom.Rational n a) where atomRep (Sym_Rational _  ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Rational)
+instance HasAtom (NamedTerm Atom.String   n a) where atomRep (Sym_String   _  ) = AtomRep $ typeRep (Proxy :: Proxy Atom.String)
+instance HasAtom (NamedTerm Atom.Acc      n a) where atomRep (Sym_Acc      _ _) = AtomRep $ typeRep (Proxy :: Proxy Atom.Acc)
+instance HasAtom (NamedTerm Atom.App      n a) where atomRep (Sym_App      _ _) = AtomRep $ typeRep (Proxy :: Proxy Atom.App)
+instance HasAtom (NamedTerm Atom.Blank    n a) where atomRep (Sym_Blank       ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Blank)
+instance HasAtom (NamedTerm Atom.Cons     n a) where atomRep (Sym_Cons     _  ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Cons)
+instance HasAtom (NamedTerm Atom.Lam      n a) where atomRep (Sym_Lam      _ _) = AtomRep $ typeRep (Proxy :: Proxy Atom.Lam)
+instance HasAtom (NamedTerm Atom.Missing  n a) where atomRep (Sym_Missing     ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Missing)
+instance HasAtom (NamedTerm Atom.Native   n a) where atomRep (Sym_Native   _  ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Native)
+instance HasAtom (NamedTerm Atom.Star     n a) where atomRep (Sym_Star        ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Star)
+instance HasAtom (NamedTerm Atom.Unify    n a) where atomRep (Sym_Unify    _ _) = AtomRep $ typeRep (Proxy :: Proxy Atom.Unify)
+instance HasAtom (NamedTerm Atom.Var      n a) where atomRep (Sym_Var      _  ) = AtomRep $ typeRep (Proxy :: Proxy Atom.Var)
+
 -- Args
 
 type instance Fields (NamedTerm Atom.Integer  n a) = '[P.Integer]

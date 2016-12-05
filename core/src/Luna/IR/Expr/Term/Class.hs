@@ -11,6 +11,7 @@ import Data.Base                 (Base)
 import Type.Applicative
 import Data.Property
 import Data.Phantom
+import Data.Typeable             (TypeRep)
 import Luna.IR.Expr.Format
 import qualified Luna.IR.Expr.Layout as Layout
 import           Luna.IR.Expr.Layout (LAYOUT)
@@ -41,6 +42,10 @@ class     IsUniTerm t l where
 type family InputsType a
 class HasInputs a where
     inputList :: a -> [InputsType a]
+
+newtype AtomRep = AtomRep TypeRep deriving (Eq)
+class HasAtom a where
+    atomRep :: a -> AtomRep
 
 
 -- === Term isomorphisms === --
