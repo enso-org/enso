@@ -20,7 +20,7 @@ import Data.Typeable        (Typeable, TypeRep)
 import GHC.Prim             (Any)
 import Luna.IR.Layer
 import Luna.IR.Layer.Model
-import Luna.IR.Expr.Atom    (Atom, Atoms, AtomRep, atomRep)
+import Luna.IR.Expr.Atom    (Atom, Atoms, AtomRep, atomRep, AtomOf)
 import qualified Luna.IR.Expr.Atom as A
 import Luna.IR.Expr.Format  (Format, Draft)
 import Luna.IR.Expr.Layout  (LAYOUT, LayoutOf, NAME, Generalizable, Universal, universal, Abstract, Sub)
@@ -547,9 +547,8 @@ type instance InputsType (ExprTerm atom t) = InputsType (Unwrapped (ExprTerm ato
 instance HasInputs (Unwrapped (ExprTerm atom t))
       => HasInputs (ExprTerm atom t) where inputList = inputList . unwrap' ; {-# INLINE inputList #-}
 
--- HasAtom
--- instance HasAtom (Unwrapped (ExprTerm atom t))
---       => HasAtom (ExprTerm atom t) where atomRep = atomRep . unwrap' ; {-# INLINE atomRep #-}
+-- AtomOf
+type instance AtomOf (ExprTerm atom t) = AtomOf (Unwrapped (ExprTerm atom t))
 
 ----------------------
 -- === ExprData === --
@@ -741,25 +740,26 @@ symbolMap_A    f = runIdentity . symbolMapM_A @ctx f              ; {-# INLINE s
 
 
 
-class HasFields2 a b where fieldList2 :: a -> b
-instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b where fieldList2 = fieldList
+class    (b ~ [FieldsType a], HasFields a) => HasFields2 a b
+instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b
 
 -- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
 -- type FieldsC t layout = TermMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
 symbolFields :: (TermMapM_AB HasFields2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
-symbolFields = symbolMapM_AB @HasFields2 fieldList2
+symbolFields = symbolMapM_AB @HasFields2 fieldList
 
 class    (b ~ [InputsType a], HasInputs a) => HasInputs2 a b
 instance (b ~ [InputsType a], HasInputs a) => HasInputs2 a b
 inputs :: (TermMapM_AB HasInputs2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
 inputs = symbolMapM_AB @HasInputs2 inputList
 
--- getAtomRep :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> m out
--- getAtomRep = symbolMapM_A @HasAtom atomRep
---
--- isSameAtom :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> expr -> m Bool
--- isSameAtom a b = (==) <$> getAtomRep a <*> getAtomRep b
+class    Typeable (AtomOf a) => HasAtom a
+instance Typeable (AtomOf a) => HasAtom a
+getAtomRep :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> m out
+getAtomRep = symbolMapM_A @HasAtom atomRep
 
+isSameAtom :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> expr -> m Bool
+isSameAtom a b = (==) <$> getAtomRep a <*> getAtomRep b
 
 -- class Repr  s a        where repr  ::       a -> Builder s Tok
 
