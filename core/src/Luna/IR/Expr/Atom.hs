@@ -33,6 +33,7 @@ makeLunaComponents "Atom" "Atomic"
 type family AtomOf a ::  *
 type family Atoms  a :: [*]
 
+
 -- === AtomRep === --
 
 newtype AtomRep = AtomRep TypeRep deriving (Eq)

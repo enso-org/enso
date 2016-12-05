@@ -73,7 +73,7 @@ runRegs = do
 -- === Elem reg defs === --
 
 elemRegs :: IRMonad m => [m ()]
-elemRegs = [elemReg1, elemReg2]
+elemRegs = [elemReg1, elemReg2, elemReg3]
 
 runElemRegs :: IRMonad m => m ()
 runElemRegs = sequence_ elemRegs
@@ -83,6 +83,9 @@ elemReg1 = registerElem @EXPR
 
 elemReg2 :: IRMonad m => m ()
 elemReg2 = registerElem @(LINK' EXPR)
+
+elemReg3 :: IRMonad m => m ()
+elemReg3 = registerElem @(GROUP EXPR)
 
 
 -- === Layer reg defs === --

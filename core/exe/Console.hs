@@ -33,12 +33,12 @@ import Data.RTuple (Assoc ((:=)))
 
 data Incoherence = DeteachedSource AnyExpr AnyExprLink
                  | OrphanLink      AnyExprLink
-                 | OrphanExpr      (AnyExpr)
+                 | OrphanExpr      AnyExpr
                  deriving (Show)
 
 data CoherenceCheck = CoherenceCheck { _incoherences   :: [Incoherence]
                                      , _uncheckedLinks :: Set AnyExprLink
-                                     , _orphanExprs    :: Set (AnyExpr)
+                                     , _orphanExprs    :: Set AnyExpr
                                      } deriving (Show)
 
 
@@ -104,8 +104,8 @@ checkLinkTarget e lnk = do
 data MyData = MyData Int deriving (Show)
 
 data                    SimpleAA
-type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
-type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
+type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
+type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
@@ -145,7 +145,7 @@ uncheckedDeleteStarType e = do
 
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
-             , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
+             , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
              ) => m ()
 gen_pass1 = do
     -- (s :: Expr Star) <- star
@@ -173,6 +173,9 @@ gen_pass1 = do
     s1 <- string "s1"
     s2 <- string "s2"
     s3 <- string "s3"
+
+    g <- group [s1,s2,s3]
+    print g
 
     (v :: Expr $ Var #> String') <- var s1
 

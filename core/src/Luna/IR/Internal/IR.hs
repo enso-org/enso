@@ -34,7 +34,7 @@ import Unsafe.Coerce        (unsafeCoerce)
 import qualified Control.Monad.State       as State
 import qualified Luna.IR.Internal.LayerStore as Store
 import qualified Data.Map                  as Map
-import qualified Data.Set                  as Data (Set)
+import           Data.Set                  (Set)
 import qualified Data.Set                  as Set
 import qualified Data.Typeable             as Typeable -- FIXME
 import qualified Luna.IR.Expr.Layout       as Layout
@@ -464,6 +464,37 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 
 
+-------------------
+-- === Link === --
+-------------------
+
+-- === Definition === --
+
+newtype Group a = Group Elem deriving (Show, Ord, Eq)
+type instance Definition (Group a) = Set a
+makeWrapped ''Group
+
+-- === Abstract === --
+
+data GROUP a
+type instance Abstract (Group a) = GROUP (Abstract a)
+
+
+-- === Construction === --
+
+group :: forall f a m. (IRMonad m, Foldable f, Ord a, Typeable (Abstract a), Accessible (Net (Abstract (Group a))) m)
+      => f a -> m (Group a)
+group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
+
+
+-- === Instances === --
+
+instance      IsElem    (Group a)
+type instance Universal (Group a) = Group (Universal a)
+
+
+
+
 
 
 ---------------------
@@ -668,6 +699,8 @@ type ExprLayer     = Layer EXPR
 type ExprLinkLayer = Layer (LINK' EXPR)
 type ExprNet       = Net   EXPR
 type ExprLinkNet   = Net   (LINK' EXPR)
+type ExprGroupNet  = Net   (GROUP EXPR)
+
 
 type ExprLayers     ls = ExprLayer     <$> ls
 type ExprLinkLayers ls = ExprLinkLayer <$> ls
