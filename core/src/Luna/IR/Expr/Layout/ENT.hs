@@ -51,6 +51,10 @@ type    Cons'  = Cons Star
 newtype Cons t = Cons (ConsType t)
 
 
+
+
+
+
 type instance Generalizable (Cons t) (Cons t') = Generalizable t t'
 
 
