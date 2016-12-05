@@ -1,10 +1,12 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Luna.Pass.DiscoverySpec (spec) where
 
+import Control.Exception (PatternMatchFail)
 import qualified Prelude as P
 import Luna.Prelude hiding (String, typeRep)
-import Test.Hspec   (Spec, describe, it, shouldReturn)
+import Test.Hspec   (Selector, Spec, describe, it, shouldReturn, shouldThrow)
 
 import           Luna.IR
 import           Luna.Pass (SubPass, Inputs, Outputs, Preserves)
@@ -25,6 +27,12 @@ sanityPass = do
             match nameNode $ \case
                 String s -> return s
 
+crashingPass :: SubPass DiscoveryPass (IRT IO) Bool
+crashingPass = do
+    s <- rawString "foo"
+    match s $ \case
+        Var s' -> return True
+
 testCase :: IO (Either Pass.Err P.String)
 testCase = runIRT $ do
     runRegs
@@ -32,9 +40,20 @@ testCase = runIRT $ do
     attachLayer (typeRep @Model) (typeRep @(LINK' EXPR))
     Pass.eval sanityPass
 
+test :: _ -> IO (Either Pass.Err a)
+test act = runIRT $ do
+    runRegs
+    attachLayer (typeRep @Model) (typeRep @EXPR)
+    attachLayer (typeRep @Model) (typeRep @(LINK' EXPR))
+    Pass.eval act
+
+patternMatchException :: Selector PatternMatchFail
+patternMatchException = const True
 
 spec :: Spec
 spec = do
     describe "Discovery Pass" $ do
         it "Preserves basic sanity" $ do
             testCase `shouldReturn` (Right "hello")
+        it "crashes gracefully on match error" $
+            test crashingPass `shouldThrow` patternMatchException
