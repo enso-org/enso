@@ -15,6 +15,7 @@ import Type.Bool
 
 -- === Definition === --
 
+infixr 7 >>
 data a >> b
 -- type a >>> b = Simplify (a >> b)
 
@@ -23,9 +24,9 @@ data a >> b
 type instance Sub t (a >> b) = Sub t b
 type instance Atoms (a >> b) = Atoms a
 
--- Generalize
-instance {-# OVERLAPPABLE #-} (Generalize a b, Generalize sa sb)        => Generalize (a >> sa) (b >> sb)
-instance {-# OVERLAPPABLE #-} (Generalize (a >> sa) (Form b >> Form b)) => Generalize (a >> sa) (Form b)
+
+type instance Generalizable (a >> sa) (b >> sb) = Generalizable a b && Generalizable sa sb
+type instance Generalizable (a >> sa) (Form b)  = Generalizable (a >> sa) (Form b >> Form b)
 
 -- Simplify
 -- type instance Simplify (a >> b) = If (a == b) a (a >> b)

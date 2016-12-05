@@ -4,6 +4,7 @@ module Luna.IR.Expr.Layout.ENT where
 
 import Luna.Prelude hiding (Simple, String)
 
+import Luna.IR.Internal.IR (EXPR)
 import Luna.IR.Expr.Layout.Class
 import Luna.IR.Expr.Layout.Nested
 import Luna.IR.Expr.Format
@@ -11,7 +12,7 @@ import Luna.IR.Expr.Atom (Atom, String, Star, Atomic)
 import qualified Luna.IR.Expr.Atom as Atom
 import Luna.IR.Layer.Type (Type)
 import Data.RTuple        (Assoc ((:=)))
-
+import Type.Bool
 
 
 
@@ -24,92 +25,96 @@ import Data.RTuple        (Assoc ((:=)))
 
 data Ent
 
-data ENT e n t
-data ET  e   t
-data EN  e n
-data NT    n t
-data E   e
-data N     n
-data T       t
-
-
-
--- === Simple ENT layout === --
-
--- DefaultLayout
-type instance DefaultLayout Ent = ENT () String Star
-
--- Init layouts
-type instance LiteralLayout p (ENT a n t) = ENT p String Star
-type instance AtomLayout    p (ENT a n t) = ENT p String Star
-
--- Sub
-type instance Sub Atom (ENT e n t) = e
-type instance Sub Name (ENT e n t) = n
-type instance Sub Type (ENT e n t) = t
-
-type instance Sub Atom (ET e t) = e
-type instance Sub Type (ET e t) = t
-
-type instance Sub Type (T t) = t
-
-type instance AsSubLayout Name (ENT a n t) = a <+> n
-
--- Specialized
--- type instance Specialized Atom (ENT a' n' t') (ENT a n t) = ENT (a' >>> a) (n' <+> n) (t' <+> t)
--- type instance Specialized Name (ENT a' n' t') (ENT a n t) = ENT a (Specialized Atom (ENT a' n' t') n) t
--- type instance Specialized Type (ENT a' n' t') (ENT a n t) = ENT a n (Specialized Atom (ENT a' n' t') t)
---
--- type instance Specialized Atom (ENT e n t) () = ENT e n t
--- type instance Specialized Atom s (ENT a n t) = ENT (AsSubLayout Atom s >>> a) n t
--- type instance Specialized Name s (ENT a n t) = ENT a (AsSubLayout Name s >>> n) t
--- type instance Specialized Type s (ENT a n t) = ENT a n (AsSubLayout Type s >>> t)
-
--- Generalize
-instance (Generalize e e', Generalize n n', Generalize t t') => Generalize (ENT e n t) (ENT e' n' t')
-
-
----- REFACTOR:
-
--- To powinno byc generalizowanie per layout:
-instance Generalize () (Atomic a)
-instance Generalize () (Form   f)
-
-
-
-
-type instance Merge (ENT e n t) (ENT e' n' t') = ENT (Merge e e') (Merge n n') (Merge t t')
-
--- to powinno byc w class ale jest jeszcze cykl Class -> Type -> Ir -> Class
--- type l |> r = Specialized Atom l r
--- type l #> r = Specialized Name l r
--- type l >> r = Specialized Type l r
+type ENT e n t = Layout '[EXPR := e, NAME := n, Type := t]
+type ET  e   t = Layout '[EXPR := e,            Type := t]
+type EN  e n   = Layout '[EXPR := e, NAME := n           ]
+type NT    n t = Layout '[           NAME := n, Type := t]
+type E   e     = Layout '[EXPR := e                      ]
+type N     n   = Layout '[           NAME := n           ]
+type T       t = Layout '[                      Type := t]
 
 infixr 7 #>
 infixr 7 :>
 type a #> n = a >> N n
 type a :> t = a >> T t
--- type (#:>) a n t = a >> NT n t
---
--- type l |> r = Specialized Atom l r
--- type l >> r = Specialized Type l r
-
 
 
 -------------------------
 -- === Cons layout === --
 -------------------------
 
+type String' = String :> Cons'
 
--- ENT String () Star
-
--- c <- cons "String" :: Cons'
--- s <- string "foo"  :: String >> T Cons'
--- s <- int    0      :: ET Int    Cons'
+type ConsType t = Atom.Cons >> NT String' t
 
 type    Cons'  = Cons Star
-newtype Cons t = Cons (Atom.Cons >> NT (String :> Cons') t)
+newtype Cons t = Cons (ConsType t)
 
 
--- type    L.Cons'  = L.Cons Star
--- newtype L.Cons t = L.Cons (ENT Cons (ET String L.Cons') t)
+type instance Generalizable (Cons t) (Cons t') = Generalizable t t'
+
+
+
+type instance Merge (h >> l) (h' >> l') = Merge h h' >> Merge l l'
+
+type instance Merge (Cons t) (Cons t') = Cons (Merge t t')
+
+type instance Merge (Cons t) (Atomic a) = Merge (ConsType t) (Atomic a)
+
+type instance DefaultLayout Type = Star
+type instance DefaultLayout NAME = String'
+type instance DefaultLayout EXPR = () -- If it was not mentioned explicitly, it was simply absent.
+
+
+type instance Merge (h >> l) (Atomic a) = Merge h (Atomic a) >> Merge l (Atomic a)
+
+type instance Merge (Layout ls) (Atomic a) = Merge (Layout ls) (E (Atomic a))
+
+
+type instance Merge () (h >> l) = h >> l
+type instance Merge (h >> l) () = h >> l
+
+
+
+
+--- Key Sets
+
+type instance AddKey '[a] a = '[a]
+
+type instance AddKey '[EXPR] NAME = '[EXPR, NAME]
+type instance AddKey '[EXPR] Type = '[EXPR, Type]
+
+type instance AddKey '[NAME] EXPR = '[EXPR, NAME]
+type instance AddKey '[NAME] Type = '[NAME, Type]
+
+type instance AddKey '[Type] NAME = '[NAME, Type]
+type instance AddKey '[Type] EXPR = '[EXPR, Type]
+
+
+
+type instance AddKey '[a,b] a = '[a,b]
+type instance AddKey '[a,b] b = '[a,b]
+type instance AddKey '[NAME, Type] EXPR = '[EXPR, NAME, Type]
+type instance AddKey '[EXPR, Type] NAME = '[EXPR, NAME, Type]
+type instance AddKey '[EXPR, NAME] Type = '[EXPR, NAME, Type]
+
+type instance AddKey '[a,b,c] a = '[a,b,c]
+type instance AddKey '[a,b,c] b = '[a,b,c]
+type instance AddKey '[a,b,c] c = '[a,b,c]
+
+-- FIXME[WD]: change the definition of sets to comparable ones:
+
+-- type instance EXPR > NAME = 'False
+-- type instance NAME > EXPR = 'True
+--
+-- type instance EXPR > Type = 'False
+-- type instance Type > EXPR = 'True
+
+-- with auto eq:
+-- NAME `gt` Expr
+-- Type `gt` Expr
+-- Type `gt` NAME
+
+
+type instance Sub t (Form   f) = If (t == EXPR) (Form   f) (DefaultLayout t)
+type instance Sub t (Atomic a) = If (t == EXPR) (Atomic a) (DefaultLayout t)

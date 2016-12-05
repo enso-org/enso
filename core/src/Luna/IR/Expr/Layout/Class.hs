@@ -12,64 +12,29 @@ import Unsafe.Coerce (unsafeCoerce)
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)), TypeError)
 import Type.Error
 import Type.List (In)
+import           Type.Set    as Set
 import Data.Reprx
 import Type.Bool
 import Type.Inference (KnownTypeT, runInferenceT2)
-
+import           Data.RTuple (Assoc(..), SetAssoc, LookupAssoc)
+import qualified Data.RTuple as List
 
 -- FIXME: remove or refactor
 data Named n a
-data Name = Name deriving (Show)
+data NAME = NAME deriving (Show)
 
 
 
 
----------------------
--- === Layouts === --
----------------------
+---------------------------
+-- === Generalizable === --
+---------------------------
 
-data Layout = Layout deriving (Show)
-type family LayoutOf a
+-- === Definition === --
 
-type family DefaultLayout p
+type family Generalizable a b :: Bool
 
-
--- === Scoping === --
-
-type family Current a
-
-type family Merge       a b
-type family Simplify    l
-type family Universal   a
-type family Abstract    a
--- type family Specialized t spec layout
-
-type family AsSubLayout t l
-type family LiteralLayout t layout
-type family AtomLayout    t layout
-
-type l <+> r = Merge              l r
-type l %>  r = LiteralLayout      l r
-
-
-class                         Generalize a b
-instance {-# OVERLAPPABLE #-} Generalize a a
-
-type family Merges
-
-
--- === Utils === --
-
-
-
-
-type GeneralizableError a b = Sentence
-                            ( 'Text  "Cannot generalize"
-                        :</>: Ticked ('Text (TypeRepr a))
-                        :</>: 'Text  "to"
-                        :</>: Ticked ('Text (TypeRepr b)))
-
-generalize :: Generalize a b => a -> b
+generalize :: Assert (Generalizable a b) (GeneralizableError a b) => a -> b
 generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
 universal :: a -> Universal a
@@ -78,54 +43,104 @@ universal = unsafeCoerce ; {-# INLINE universal #-}
 abstract :: a -> Abstract a
 abstract = unsafeCoerce ; {-# INLINE abstract #-}
 
-
-baseLayout :: forall t m a. KnownTypeT Layout t m a -> m a
-baseLayout = runInferenceT2 @Layout
-
-
-type Layouted l = KnownTypeT Layout (DefaultLayout l)
-layouted :: forall l m a. Layouted l m a -> m a
-layouted = baseLayout @(DefaultLayout l)
+type GeneralizableError a b = Sentence
+                            ( 'Text  "Cannot generalize"
+                        :</>: Ticked ('Text (TypeRepr a))
+                        :</>: 'Text  "to"
+                        :</>: Ticked ('Text (TypeRepr b)))
 
 
 -- === Instances === --
 
--- Universal formats
-type instance Universal (Form a) = Draft
+type instance Generalizable (Layout '[])               a = 'True
+type instance Generalizable (Layout ((k ':= v) ': ls)) a = Generalizable v (Sub k a) && Generalizable (Layout ls) a
 
--- Generalize
-
-instance {-# OVERLAPPABLE #-} Assert ((Atomic a) `In` (Atoms (Form f)))
-                                     (GeneralizableError (Atomic a) (Form f))
-                           => Generalize (Atomic a) (Form f)
-
-instance {-# OVERLAPPABLE #-} (TypeError (GeneralizableError (Atomic a) (Atomic b)))
-                           => Generalize (Atomic a) (Atomic b)
-instance {-# OVERLAPPABLE #-} Generalize (Atomic a) (Atomic a)
-instance {-# OVERLAPPABLE #-} (Assert' (Form b > Form a)) => Generalize (Form a) (Form b)
-instance                                                     Generalize (Form a) (Form a)
+type instance Generalizable (Atomic a) (Form   b) = Atomic a `In` Atoms (Form b)
+type instance Generalizable (Atomic a) (Atomic b) = a == b
+type instance Generalizable (Form   a) (Form   b) = Form b > Form a -- FIXME [WD]: Shouldn't it be >= ?
 
 
 
--- Merge
+---------------------
+-- === Layouts === --
+---------------------
 
-type instance Merge (Form   a) ()         = Form a
-type instance Merge ()         (Form   b) = Form b
-type instance Merge (Form   a) (Form   b) = If (Form a > Form b) (Form a) (Form b)
-type instance Merge (Form   a) (Atomic b) = Merge (Form a) (Atomic b # Format)
-type instance Merge (Atomic a) (Form   b) = Merge (Atomic a # Format) (Form b)
+-- === Abstract === --
 
-type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) (Merge (Atomic a # Format) (Atomic b # Format))-- TODO: refactor
-type instance Merge (Atomic a) ()         = Atomic a
-type instance Merge ()         (Atomic a) = Atomic a
+data LAYOUT
 
+
+-- === Definition === --
+
+data Layout (ls :: [Assoc * *])
+type family LayoutOf a
+
+
+-- === Scoping === --
+
+type family Current       a
+type family Simplify      l
+type family Universal     a
+type family Abstract      a
+type family DefaultLayout p
 
 
 -- === Sub === --
 
-type family   Sub t a
--- type instance Sub t (Form   f) = Form   f
--- type instance Sub t (Atomic a) = Atomic a
+type family Sub t a
+
+type instance Sub t (Layout ls) = SubLayout t ls
+type family SubLayout t (ls :: [Assoc * *]) where
+    SubLayout t ((t ':= v) ': _ ) = v
+    SubLayout t (l         ': ls) = SubLayout t ls
+
+
+
+-------------------
+-- === Merge === --
+-------------------
+
+-- === Definition === --
+
+type family Merge a b
+type a <+> b = Merge a b
+
+
+-- === Layout Merge === --
+
+type KeySet ks = AddKeys '[] ks
+
+type family AddKey (ls :: [*]) k :: [*]
+
+type family AddKeys ls ks where
+    AddKeys ls '[] = ls
+    AddKeys ls (k ': ks) = AddKeys (AddKey ls k) ks
+
+type instance Merge (Layout ls) (Layout ls') = Layout (MergeByKeys (AddKeys (List.Keys ls) (List.Keys ls')) ls ls')
+
+type family MergeByKeys (allKeys :: [*]) (ls :: [Assoc * *]) (ls' :: [Assoc * *]) :: [Assoc * *] where
+    MergeByKeys '[]       ls ls' = '[]
+    MergeByKeys (k ': ks) ls ls' = (k ':= MergeLookup k (LookupAssoc k ls) (LookupAssoc k ls'))
+                                ': MergeByKeys ks ls ls'
+
+type family MergeLookup k l r where
+    MergeLookup k 'Nothing  ('Just a)  = Merge (DefaultLayout k) a
+    MergeLookup k ('Just a) 'Nothing   = Merge a (DefaultLayout k)
+    MergeLookup k ('Just a) ('Just a') = Merge a a'
+
+
+-- === Instances === --
+
+type instance Merge (Form   a) ()         = Form a
+type instance Merge ()         (Form   b) = Form b
+type instance Merge (Form   a) (Form   b) = If (Form a > Form b) (Form a) (Form b)
+type instance Merge (Form   a) (Atomic b) = (Form a) <+> (Atomic b # Format)
+type instance Merge (Atomic a) (Form   b) = (Atomic a # Format) <+> (Form b)
+
+type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) ((Atomic a # Format) <+> (Atomic b # Format))-- TODO: refactor
+type instance Merge (Atomic a) ()         = Atomic a
+type instance Merge ()         (Atomic a) = Atomic a
+
 
 
 

@@ -13,7 +13,7 @@ import Data.Property
 import Data.Phantom
 import Luna.IR.Expr.Format
 import qualified Luna.IR.Expr.Layout as Layout
-import           Luna.IR.Expr.Layout (Layout)
+import           Luna.IR.Expr.Layout (LAYOUT)
 
 import qualified Old.Luna.Syntax.Term.Expr.Lit  as Lit
 
@@ -41,7 +41,7 @@ class     IsUniTerm t l where
 
 -- === Term isomorphisms === --
 
-type AsTerm s = Term (Access Atom s) (Access Layout s)
+type AsTerm s = Term (Access Atom s) (Access LAYOUT s)
 
 type  IsTerm            s s' = (ToTerm s, FromTerm s')
 type  IsTerm'           s    = IsTerm s s
@@ -76,8 +76,8 @@ instance      Accessor TERM (Term atom layout) where
 type instance Access Atom          (Term atom _     ) = atom
 type instance Update Atom   atom   (Term _    layout) = (Term atom layout)
 
-type instance Access Layout        (Term _    layout) = layout
-type instance Update Layout layout (Term atom _     ) = (Term atom layout)
+type instance Access LAYOUT        (Term _    layout) = layout
+type instance Update LAYOUT layout (Term atom _     ) = (Term atom layout)
 
 type instance Access Format        (Term atom _     ) = Access Format atom
 

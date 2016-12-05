@@ -23,8 +23,7 @@ import Luna.IR.Layer.Model
 import Luna.IR.Expr.Atom    (Atom, Atoms)
 import qualified Luna.IR.Expr.Atom as A
 import Luna.IR.Expr.Format  (Format, Draft)
-import Luna.IR.Expr.Layout  (Layout, LayoutOf, Name, Generalize, Universal, universal, Abstract, Sub)
-import Luna.IR.Expr.Layout.Class  (type (%>))
+import Luna.IR.Expr.Layout  (LAYOUT, LayoutOf, NAME, Generalizable, Universal, universal, Abstract, Sub)
 import Luna.IR.Expr.Term    (TERM, Term, UncheckedFromTerm, FromTerm, UniTerm, IsUniTerm, uniTerm)
 import Type.Container       (Every)
 import Type.Container       (In)
@@ -462,15 +461,21 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 
 
+
+---------------------
+
+data EXPR
+
+
 ------------------------
 -- === ExprTerm === --
 ------------------------
 
 data TMP -- FIXME
 
-type    ExprTermDef atom t = N.Term atom (Layout.Named (SubLink Name t) (SubLink Atom t))
+type    ExprTermDef atom t = N.Term atom (Layout.Named (SubLink NAME t) (SubLink EXPR t))
 newtype ExprTerm    atom t = ExprTerm    (ExprTermDef atom t)
-newtype ExprUniTerm      t = ExprUniTerm (N.UniTerm   (Layout.Named (SubLink Name t) (SubLink Atom t)))
+newtype ExprUniTerm      t = ExprUniTerm (N.UniTerm   (Layout.Named (SubLink NAME t) (SubLink EXPR t)))
 type    ExprTerm'   atom   = ExprTerm atom TMP
 makeWrapped ''ExprTerm
 makeWrapped ''ExprUniTerm
@@ -505,13 +510,13 @@ instance {-# OVERLAPPABLE #-}                                ValidateLayout I   
 instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
 instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
 type ValidateLayout_ model sel a = ValidateScope (model # sel) sel a
-type ValidateLayout' t     sel a = ValidateLayout (t # Layout) sel a
+type ValidateLayout' t     sel a = ValidateLayout (t # LAYOUT) sel a
 
 
 -- === Instances === --
 
--- FIXME: [WD]: it seems that Layout in the below declaration is something else than real layout - check it and refactor
-type instance Access Layout (ExprTerm atom t) = Access Layout (Unwrapped (ExprTerm atom t))
+-- FIXME: [WD]: it seems that LAYOUT in the below declaration is something else than real layout - check it and refactor
+type instance Access LAYOUT (ExprTerm atom t) = Access LAYOUT (Unwrapped (ExprTerm atom t))
 type instance Access Atom   (ExprTerm atom t) = atom
 type instance Access Format (ExprTerm atom t) = Access Format atom
 type instance Access TERM    (ExprTerm atom t) = ExprTerm atom t
@@ -570,7 +575,6 @@ type instance Definition (Expr _) = ExprStore
 
 -- === Abstract === --
 
-data EXPR
 type instance Abstract (Expr _) = EXPR
 
 
@@ -624,9 +628,7 @@ instance      IsIdx     (Expr l) where
     idx = elem . idx ; {-# INLINE idx #-}
 
 
-instance Generalize l l' => Generalize (Expr l) (Expr l')
-
-
+type instance Generalizable (Expr l) (Expr l') = Generalizable l l'
 
 
 
@@ -757,11 +759,3 @@ instance (ctx a b, Monad m) => DropMonad ctx a m b
 
 class    ctx a => FreeResult ctx a b
 instance ctx a => FreeResult ctx a b
-
-
-
-
-
-type family   DefListLayout (m :: * -> *) a
-type instance DefListLayout m Prelude.String = A.String %> Infered Layout m
-type instance DefListLayout m (Expr t) = t

@@ -18,7 +18,7 @@ import Data.Property
 import Data.Phantom
 import Luna.IR.Expr.Format
 import qualified Luna.IR.Expr.Layout as Layout
-import           Luna.IR.Expr.Layout (Layout)
+import           Luna.IR.Expr.Layout (LAYOUT)
 
 import Data.Construction
 import           Data.RTuple (List(Null, (:-:)))

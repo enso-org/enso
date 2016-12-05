@@ -141,7 +141,7 @@ getSource f v = match' v >>= source . view f ; {-# INLINE getSource #-}
 -- === KnownName === --
 
 type       KnownName l m = (KnownExpr l m, HasName (ExprHeadDef l))
-getName :: KnownName l m => Expr l -> m (Expr (Sub Name l))
+getName :: KnownName l m => Expr l -> m (Expr (Sub NAME l))
 getName = getSource name ; {-# INLINE getName #-}
 
 

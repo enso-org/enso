@@ -16,7 +16,7 @@ import           Luna.IR.Repr.Vis (MonadVis, snapshot)
 import           Luna.Pass        (Pass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
-import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>))
+import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
 import qualified Luna.IR.Expr.Layout.ENT as Layout
 
 import Web.Browser (openBrowser )
@@ -28,7 +28,7 @@ import Data.Set (Set)
 import Control.Monad.State (MonadState, StateT, execStateT, get, put)
 import qualified Control.Monad.State as State
 
-
+import Data.RTuple (Assoc ((:=)))
 
 
 data Incoherence = DeteachedSource AnyExpr AnyExprLink
@@ -147,7 +147,7 @@ uncheckedDeleteStarType e = do
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, Attr MyData]
              ) => m ()
-gen_pass1 = layouted @Ent $ do
+gen_pass1 = do
     -- (s :: Expr Star) <- star
 
 
@@ -156,7 +156,7 @@ gen_pass1 = layouted @Ent $ do
     (strCons :: Expr (Cons #> String)) <- cons strName
     snapshot "s1"
     let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
-        strName' = unsafeRelayout strName :: Expr (String :> Layout.Cons')
+        strName' = unsafeRelayout strName :: Expr String'
     newTypeLink <- link strCons' strName'
     uncheckedDeleteStarType strName'
     writeLayer @Type newTypeLink strName'
@@ -164,7 +164,7 @@ gen_pass1 = layouted @Ent $ do
 
     let string s = do
             foo <- rawString s
-            let foo' = unsafeRelayout foo :: Expr (String :> Layout.Cons')
+            let foo' = unsafeRelayout foo :: Expr String'
             ftlink <- link strCons' foo'
             uncheckedDeleteStarType foo'
             writeLayer @Type ftlink foo'
@@ -174,19 +174,18 @@ gen_pass1 = layouted @Ent $ do
     s2 <- string "s2"
     s3 <- string "s3"
 
-    (v :: Expr $ Var #> String :> Layout.Cons') <- var s1
+    (v :: Expr $ Var #> String') <- var s1
 
-    -- (u :: Expr (Unify >> Int)) <- unify s2 v
+    let v' :: Expr Draft
+        v' = generalize v
+
+    -- (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Int String' Star))) <- unify s2 v
+    (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Star String' Star))) <- unify s2 v
+
+    (u' :: Expr (Unify >> Draft)) <- unify v' v'
 
     print =<< checkCoherence
     snapshot "s4"
-
-
-    -- Merge (String >> T Layout.Cons') (Var >> N (String >> T Layout.Cons'))
-    --
-    -- Phrase >> Merge (T Layout.Cons') (N (String >> T.Layout.Cons'))
-    -- Phrase >> Merge (T Layout.Cons') (NT (String >> T.Layout.Cons') Star)
-    -- Phrase >> NT (String >> T.Layout.Cons') (Merge Layout.Cons' Star)
 
 
 
@@ -237,9 +236,6 @@ gen_pass1 = layouted @Ent $ do
     -- print n
 
     return ()
-
-
-
 
 
 
