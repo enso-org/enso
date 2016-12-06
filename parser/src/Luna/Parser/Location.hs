@@ -4,11 +4,11 @@ import Luna.Prelude
 
 import Data.Int (Int64)
 
-import qualified Luna.IR.Layers.Loc as Location
+import qualified Luna.IR.Layer.Loc as Location
 import qualified Text.Trifecta.Delta             as Trifecta
 import qualified Text.Trifecta.Combinators       as Trifecta
 
-import Luna.IR.Layers.Loc (MonadLocation)
+import Luna.IR.Layer.Loc (MonadLocation)
 import Text.Trifecta.Combinators       (DeltaParsing)
 
 
@@ -39,5 +39,3 @@ located pf = do
 
 instance Convertible Trifecta.Delta Location.Grid where
     convert d = Location.Grid (deltaLine d) (Trifecta.column d)
-
-

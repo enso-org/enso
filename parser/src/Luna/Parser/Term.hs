@@ -71,7 +71,7 @@ import Luna.IR.Function.Argument hiding (arg)
 --import qualified Luna.IR.Function.Signature as Signature
 import Luna.Parser.Token.Ident
 
-import qualified Luna.IR.Layers.Loc as Location
+import qualified Luna.IR.Layer.Loc as Location
 import Luna.Parser.Location (located)
 import qualified Luna.Parser.Layout as Layout
 import qualified Luna.Parser.Token.Operator as Operator

@@ -5,13 +5,15 @@ packages:
 
     - ../../libs/container
     - ../../libs/convert
-    - ../../libs/data-member
     - ../../libs/data-base
     - ../../libs/data-construction
     - ../../libs/data-layer
+    - ../../libs/data-prop
     - ../../libs/data-pool
     - ../../libs/data-repr
     - ../../libs/data-result
+    - ../../libs/data-rtuple
+    - ../../libs/data-shell
     - ../../libs/dependent-state
     - ../../libs/functor-utils
     - ../../libs/impossible
@@ -20,28 +22,17 @@ packages:
     - ../../libs/prologue
     - ../../libs/type-cache
     - ../../libs/typelevel
-    - ../../libs/data-rtuple
-    - ../../libs/data-shell
+    - ../../libs/visualization-api
 
 extra-deps:
     - ghc-session-0.1.2.0
-    - graphviz-2999.18.0.2
-    - string-qq-0.0.2
     - error-util-0.0.1.1
     - cond-0.4.1.1
-    - tuple-0.3.0.2
-    - OneTuple-0.2.1
-    - prologue-1.0.6
-    - typelevel-1.0.3
-    - container-1.0
-    - convert-1.0.1
-    - data-construction-1.0
-    - data-layer-1.0.3
-    - data-repr-1.0
-    - lens-utils-1.0
-    - functor-utils-1.0
+    - ghc-mtl-1.2.1.0
+    - serialport-0.4.7
+    - aeson-1.0.2.1
 
 ghc-options:
-    "*": -DFastCompilation -threaded -funbox-strict-fields -O0
+    "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100
 
 local-bin-path: ./bin

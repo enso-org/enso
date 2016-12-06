@@ -11,7 +11,7 @@ import Old.Luna.Syntax.Term.Class                   hiding (Name)
 import Old.Luna.Syntax.Model.Network.Builder.Term (TermBuilder_OLD)
 import Text.Parser.Token                      (TokenParsing, token, someSpace)
 import Text.Trifecta.Combinators              (DeltaParsing)
-import Luna.IR.Layers.Loc        (MonadLocation)
+import Luna.IR.Layer.Loc        (MonadLocation)
 import Text.Parser.Char                       (CharParsing, char)
 import Text.Parser.Combinators                (Parsing)
 

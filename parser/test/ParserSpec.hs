@@ -29,7 +29,7 @@ import           Text.Parser.Combinators (eof)
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Luna.Parser.Term as Term
 import           Luna.Parser.Class        (ASTParser, ASTParserCore, ASTBuilderCtx)
-import qualified Luna.IR.Layers.Loc as Location
+import qualified Luna.IR.Layer.Loc as Location
 import Luna.Parser.Class (Parser)
 import Old.Luna.Syntax.Model.Network.Builder.Class (NetworkBuilderT, runNetworkBuilderT)
 --import qualified Luna.Parser.Function as Func
