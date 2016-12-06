@@ -16,7 +16,7 @@ type instance Inputs  DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[
 type instance Outputs DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
 type instance Preserves DiscoveryPass = '[]
 
-sanityPass :: (MonadIO m, MonadFix m, PrimMonad m) => SubPass DiscoveryPass (IRBuilder m) P.String
+sanityPass :: IRMonadBaseIO m => SubPass DiscoveryPass (IRBuilder m) P.String
 sanityPass = do
     s <- rawString "hello"
     v <- var s
@@ -26,7 +26,7 @@ sanityPass = do
             match nameNode $ \case
                 String s -> return s
 
-testCase :: (MonadIO m, MonadFix m, PrimMonad m) => m (Either Pass.InternalError P.String)
+testCase :: IRMonadBaseIO m => m (Either Pass.InternalError P.String)
 testCase = evalIRBuilder' $ do
     runRegs
     attachLayer (typeRep' @Model) (typeRep' @EXPR)

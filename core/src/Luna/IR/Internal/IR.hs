@@ -351,9 +351,10 @@ attachLayer l e = do
 
 -- === Definition === --
 
--- | IRMonad is subclass of MonadFic because many expr operations reuire recursive calls.
+-- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
 type  IRMonadBase       m = (PrimMonad m, MonadFix m)
+type  IRMonadBaseIO     m = (PrimMonad m, MonadFix m, MonadIO m)
 type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRBuilderMonad m), IRMonad (GetIRBuilder m), PrimState m ~ PrimState (GetIRBuilderMonad m))
 class IRMonadInvariants m => IRMonad m where
     getIR          :: m (IRM' m)
@@ -361,14 +362,14 @@ class IRMonadInvariants m => IRMonad m where
     runByIRBuilder :: GetIRBuilder m a -> m a
 
 instance {-# OVERLAPPABLE #-} (MonadFix m, PrimMonad m) => IRMonad (IRBuilder m) where
-    getIR = wrap'   State.get ; {-# INLINE getIR #-}
-    putIR = wrap' . State.put ; {-# INLINE putIR #-}
-    runByIRBuilder    = id                ; {-# INLINE runByIRBuilder    #-}
+    getIR           = wrap'   State.get ; {-# INLINE getIR          #-}
+    putIR           = wrap' . State.put ; {-# INLINE putIR          #-}
+    runByIRBuilder  = id                ; {-# INLINE runByIRBuilder #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
-    getIR = lift   getIR ; {-# INLINE getIR #-}
-    putIR = lift . putIR ; {-# INLINE putIR #-}
-    runByIRBuilder    = lift . runByIRBuilder    ; {-# INLINE runByIRBuilder    #-}
+    getIR          = lift   getIR          ; {-# INLINE getIR          #-}
+    putIR          = lift . putIR          ; {-# INLINE putIR          #-}
+    runByIRBuilder = lift . runByIRBuilder ; {-# INLINE runByIRBuilder #-}
 
 type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRBuilder (t m) ~ GetIRBuilder m, PrimState (t m) ~ PrimState m)
 
