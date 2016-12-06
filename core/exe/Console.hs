@@ -29,6 +29,7 @@ import Control.Monad.State (MonadState, StateT, execStateT, get, put)
 import qualified Control.Monad.State as State
 
 import Data.RTuple (Assoc ((:=)))
+import Luna.Pass.Manager
 
 
 data Incoherence = DeteachedSource AnyExpr AnyExprLink
@@ -114,7 +115,7 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
-test_pass1 = evalIRBuilder' $ do
+test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
 
     -- attachLayer (typeRep' @Model) (typeRep' @EXPR)
