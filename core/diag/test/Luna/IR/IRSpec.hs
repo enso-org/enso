@@ -5,6 +5,7 @@ import           Data.Maybe          (isJust)
 import           Luna.Prelude        hiding (String)
 import qualified Luna.Prelude        as P
 import qualified Luna.Pass           as Pass
+import           Luna.Pass.Utils.Utils
 
 import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, expectationFailure, Expectation, shouldThrow, Selector)
 
@@ -15,13 +16,6 @@ data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
-
-narrowAtom :: forall a m. (IRMonad m, Typeable (AtomOf a), Accessibles m '[ExprLayer Model]) => AnyExpr -> m (Maybe (Expr (AtomOf a)))
-narrowAtom expr = do
-    exprAtomRep <- getAtomRep expr
-    return $ if exprAtomRep == atomRep' @a
-      then Just $ unsafeGeneralize expr
-      else Nothing
 
 testAtomNarrowing :: IO (Either Pass.Err (Pair (Maybe (Expr Var))))
 testAtomNarrowing = graphTestCase $ do

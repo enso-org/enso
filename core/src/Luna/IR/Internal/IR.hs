@@ -293,6 +293,9 @@ writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract 
 readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyDataM m (Attr a))
 readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
 
+writeAttr :: forall a m. (IRMonad m, Writable (Attr a) m) => KeyDataM m (Attr a) -> m ()
+writeAttr a = writeComp @(Attr a) a
+
 readNet :: forall a m. (IRMonad m, Readable (Net a) m) => m (KeyDataM m (Net a))
 readNet = readComp @(Net a) ; {-# INLINE readNet #-}
 

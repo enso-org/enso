@@ -14,7 +14,7 @@ import qualified Luna.Pass as Pass
 data DiscoveryPass
 type instance Inputs  DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
 type instance Outputs DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
-type instance Preserves DiscoveryPass ='[]
+type instance Preserves DiscoveryPass = '[]
 
 sanityPass :: SubPass DiscoveryPass (IRT IO) P.String
 sanityPass = do
