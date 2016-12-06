@@ -8,6 +8,7 @@
 {-# LANGUAGE KindSignatures            #-}
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE RecursiveDo               #-}
+{-# LANGUAGE AllowAmbiguousTypes       #-}
 
 module Prologue (
     module Prologue,
@@ -251,3 +252,16 @@ app_prec = 10
 
 showsPrec' = showsPrec (succ app_prec)
 showParen' d = showParen (d > app_prec)
+
+
+
+----------------------
+-- === Typeable === --
+----------------------
+
+typeRep' :: forall a. Typeable a => TypeRep
+typeRep' = typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep' #-}
+
+class                                  Typeables (ls :: [*]) where typeReps' :: [TypeRep]
+instance (Typeable l, Typeables ls) => Typeables (l ': ls)   where typeReps' = typeRep' @l : typeReps' @ls ; {-# INLINE typeReps' #-}
+instance                               Typeables '[]         where typeReps' = []                          ; {-# INLINE typeReps' #-}
