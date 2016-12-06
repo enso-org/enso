@@ -6,7 +6,7 @@ module Luna.IR.Expr (module Luna.IR.Expr, module X) where
 
 
 import qualified Luna.Prelude as Prelude
-import Luna.Prelude hiding (String)
+import Luna.Prelude hiding (String, Integer, Rational)
 
 import Luna.IR.Expr.Atom   as X
 import Luna.IR.Internal.IR as X
@@ -16,6 +16,7 @@ import qualified Luna.IR.Expr.Term.Named as Term
 import Type.Inference
 import Luna.IR.Expr.Layout
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
+import Luna.IR.Function (Arg)
 
 
 type ET' e = ET e Star
@@ -34,12 +35,21 @@ star = expr Term.uncheckedStar
 rawString :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr String)
 rawString = expr . Term.uncheckedString ; {-# INLINE rawString #-}
 
+integer :: (IRMonad m, Accessible ExprNet m, Integral a) => a -> m (Expr Integer)
+integer = expr . Term.uncheckedInteger . fromIntegral ; {-# INLINE integer #-}
+
+rational :: (IRMonad m, Accessible ExprNet m) => Prelude.Rational -> m (Expr Rational)
+rational = expr . Term.uncheckedRational ; {-# INLINE rational #-}
+
 -- cons :: (IRMonad m, Accessible ExprNet m) => Expr n -> m (Expr (NT' (Cons >> n)))
 cons :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet]) => Expr n -> m (Expr $ Cons #> n)
 cons n = mdo
     t  <- expr $ Term.uncheckedCons ln
     ln <- link (unsafeRelayout n) t
     return t
+
+blank :: (IRMonad m, Accessible ExprNet m) => m (Expr Blank)
+blank = expr Term.uncheckedBlank
 
 -- string :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr (String %> Infered Layout m))
 -- string = expr . Term.uncheckedString ; {-# INLINE string #-}
@@ -66,6 +76,22 @@ var n = mdo
     l <- link (unsafeRelayout n) t
     return t
 
+-- TODO[MK, WD]: I guess at some point it won't be necessary, but for now let's have this helper fun
+rawVar :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+       => Prelude.String -> m (Expr $ Var #> String)
+rawVar name = rawString name >>= var
+
+acc :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+    => Expr n -> Expr t -> m (Expr $ Acc >> t #> n)
+acc n b = mdo
+    t  <- expr $ Term.uncheckedAcc ln lb
+    ln <- link (unsafeRelayout n) t
+    lb <- link (unsafeRelayout b) t
+    return t
+
+rawAcc :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+       => Prelude.String -> Expr t -> m (Expr $ Acc >> t #> String)
+rawAcc name b = rawString name >>= flip acc b
 
 unify :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
       => Expr l -> Expr l' -> m (Expr $ Unify >> (l <+> l'))
@@ -75,6 +101,23 @@ unify a b = mdo
     lb <- link (unsafeRelayout b) t
     return t
 {-# INLINE unify #-}
+
+app :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+    => Expr l -> Arg (Expr l') -> m (Expr $ App >> (l <+> l'))
+app f a = mdo
+    t  <- expr $ Term.uncheckedApp lf la
+    lf <- link (unsafeRelayout f) t
+    la <- mapM (flip link t . unsafeRelayout) a
+    return t
+
+lam :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+    => Arg (Expr l) -> Expr l' -> m (Expr $ Lam >> (l <+> l'))
+lam i o = mdo
+    t  <- expr $ Term.uncheckedLam li lo
+    li <- mapM (flip link t . unsafeRelayout) i
+    lo <- link (unsafeRelayout o) t
+    return t
+
 
 -- Var >> ENT . . .
 --
