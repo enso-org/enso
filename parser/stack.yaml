@@ -6,45 +6,45 @@ packages:
 - {location: .}
 - {extra-dep: true, location: ../core}
 - extra-dep: true
-  location: {commit: 9d451ec9eeb06d4e28bbd66915fe1698bae2f001, git: 'https://github.com/wdanilo/container.git'}
+  location: {commit: 9d451ec9eeb06d4e28bbd66915fe1698bae2f001, git: 'https://github.com/luna/container.git'}
 - extra-dep: true
-  location: {commit: 6b9f0f6ec43e83c88f28e0fe051ac74516c35605, git: 'https://github.com/wdanilo/data-pool.git'}
+  location: {commit: 6b9f0f6ec43e83c88f28e0fe051ac74516c35605, git: 'https://github.com/luna/data-pool.git'}
 - extra-dep: true
-  location: {commit: 3bf6955a5ba5212870467cb49634abe765a59822, git: 'https://github.com/wdanilo/convert.git'}
+  location: {commit: 3bf6955a5ba5212870467cb49634abe765a59822, git: 'https://github.com/luna/convert.git'}
 - extra-dep: true
-  location: {commit: 23a039debfd51a9b7f46b5e106feb30839960e37, git: 'https://github.com/wdanilo/data-base.git'}
+  location: {commit: 23a039debfd51a9b7f46b5e106feb30839960e37, git: 'https://github.com/luna/data-base.git'}
 - extra-dep: true
-  location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/wdanilo/data-construction.git'}
+  location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/luna/data-construction.git'}
 - extra-dep: true
-  location: {commit: 8cd6c328b9d06344ed529bb3bcebbf27e8afbc23, git: 'https://github.com/wdanilo/data-layer.git'}
+  location: {commit: 8cd6c328b9d06344ed529bb3bcebbf27e8afbc23, git: 'https://github.com/luna/data-layer.git'}
 - extra-dep: true
-  location: {commit: c20f35c8e2f25fd84df385e8646b125d9fca8ac4, git: 'https://github.com/wdanilo/data-repr.git'}
+  location: {commit: c20f35c8e2f25fd84df385e8646b125d9fca8ac4, git: 'https://github.com/luna/data-repr.git'}
 - extra-dep: true
-  location: {commit: 604145037427b944050f1959bcdffc375328f72c, git: 'https://github.com/wdanilo/data-result.git'}
+  location: {commit: 604145037427b944050f1959bcdffc375328f72c, git: 'https://github.com/luna/data-result.git'}
 - extra-dep: true
-  location: {commit: 62dca5524c1fadb19339b8257809d6c872b5f82d, git: 'https://github.com/wdanilo/dependent-state.git'}
+  location: {commit: 62dca5524c1fadb19339b8257809d6c872b5f82d, git: 'https://github.com/luna/dependent-state.git'}
 - extra-dep: true
-  location: {commit: 41fb55a6ff9cee8166df86ee71430a7e9b20ed65, git: 'https://github.com/wdanilo/functor-utils.git'}
+  location: {commit: 41fb55a6ff9cee8166df86ee71430a7e9b20ed65, git: 'https://github.com/luna/functor-utils.git'}
 - extra-dep: true
-  location: {commit: 5dc5b731a4313e44d55677ed6b9f38456feb2d56, git: 'https://github.com/wdanilo/impossible.git'}
+  location: {commit: 5dc5b731a4313e44d55677ed6b9f38456feb2d56, git: 'https://github.com/luna/impossible.git'}
 - extra-dep: true
-  location: {commit: 97ba87bafee2839ba4b28ae71c4ab48e65e1ae5e, git: 'https://github.com/wdanilo/lens-utils.git'}
+  location: {commit: 97ba87bafee2839ba4b28ae71c4ab48e65e1ae5e, git: 'https://github.com/luna/lens-utils.git'}
 - extra-dep: true
-  location: {commit: 53538017ad47a0a473233577595d8ac6e3eae9a0, git: 'https://github.com/wdanilo/poly-control.git'}
+  location: {commit: 53538017ad47a0a473233577595d8ac6e3eae9a0, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: 416c0216a3274f064b07a0c9ad66dee2cab2f9bd, git: 'https://github.com/wdanilo/prologue.git'}
+  location: {commit: 416c0216a3274f064b07a0c9ad66dee2cab2f9bd, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
-  location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/wdanilo/type-cache.git'}
+  location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
-  location: {commit: f7c9ef5126c38451b1882317447e2489a21d6cf8, git: 'https://github.com/wdanilo/typelevel.git'}
+  location: {commit: f7c9ef5126c38451b1882317447e2489a21d6cf8, git: 'https://github.com/luna/typelevel.git'}
 - extra-dep: true
-  location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/wdanilo/data-construction.git'}
+  location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/luna/data-construction.git'}
 - extra-dep: true
-  location: {commit: adb894846d34ceaa005961bd8fe676023cf1b036, git: 'https://github.com/wdanilo/data-prop.git'}
+  location: {commit: adb894846d34ceaa005961bd8fe676023cf1b036, git: 'https://github.com/luna/data-prop.git'}
 - extra-dep: true
-  location: {commit: 867bfe8c2a09e30d5fe9aeb7b185e9b559c0f9b7, git: 'https://github.com/wdanilo/data-rtuple.git'}
+  location: {commit: 867bfe8c2a09e30d5fe9aeb7b185e9b559c0f9b7, git: 'https://github.com/luna/data-rtuple.git'}
 - extra-dep: true
-  location: {commit: f7124ecbfa4ce8802e3c1431e54300188616fe64, git: 'https://github.com/wdanilo/data-shell.git'}
+  location: {commit: f7124ecbfa4ce8802e3c1431e54300188616fe64, git: 'https://github.com/luna/data-shell.git'}
 - extra-dep: true
   location: {commit: af5a618f5813ac639a6760836a6d6fa7ef5af1da, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
 resolver: lts-7.9
