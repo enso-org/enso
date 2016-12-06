@@ -13,8 +13,8 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, IRMonad, IsIdx, Readable, Writable, getKey, putKey, KeyReadError, KeyMissingError)
-import qualified Luna.IR.Internal.IR   as IR
+import           Luna.IR.Internal.IR   (Key, Readable(..), Writable(..), KeyReadError, KeyMissingError)
+import qualified Luna.IR.Internal.IR   as IR (KeyMonad, uncheckedLookupKey)
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
 
@@ -91,9 +91,6 @@ makeLenses  ''DynSubPass
 
 -- === Utils ===
 
-initPass :: (LookupData n (Keys pass), Monad m, PrimState m ~ PrimState n) => SubPass pass m a -> n (Either InternalError (m a))
-initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData ; {-# INLINE initPass #-}
-
 type Commit m pass = ( Monad m
                      , LookupData m (Keys pass)
                      , Typeables (Inputs    pass)
@@ -109,6 +106,8 @@ commit p = DynSubPass
            (initPass p)
 {-# INLINE commit #-}
 
+initPass :: (LookupData n (Keys pass), Monad m, PrimState m ~ PrimState n) => SubPass pass m a -> n (Either InternalError (m a))
+initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData ; {-# INLINE initPass #-}
 
 eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
 eval = join . fmap sequence . run ; {-# INLINE eval #-}
@@ -120,8 +119,8 @@ run :: DynSubPass m a -> m (Either InternalError (m a))
 run = view dynEval ; {-# INLINE run #-}
 
 
--- === Keys lookup === --
 
+-- === Keys lookup === --
 
 type ReLookupData k m ks = (IR.KeyMonad k m, LookupData m ks, Typeable k)
 class    Monad m             => LookupData m keys      where lookupData :: m (Either InternalError (DataSetM m keys))

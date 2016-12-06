@@ -104,8 +104,10 @@ checkLinkTarget e lnk = do
 data MyData = MyData Int deriving (Show)
 
 data                    SimpleAA
-type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
-type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
+-- type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
+-- type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
+type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
+type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
@@ -115,15 +117,15 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass
 test_pass1 = runIRT $ do
     runRegs
 
-    attachLayer (typeRep' @Model) (typeRep' @EXPR)
-    attachLayer (typeRep' @Succs) (typeRep' @EXPR)
-    attachLayer (typeRep' @Type)  (typeRep' @EXPR)
-    attachLayer (typeRep' @UID)   (typeRep' @EXPR)
+    -- attachLayer (typeRep' @Model) (typeRep' @EXPR)
+    -- attachLayer (typeRep' @Succs) (typeRep' @EXPR)
+    -- attachLayer (typeRep' @Type)  (typeRep' @EXPR)
+    -- attachLayer (typeRep' @UID)   (typeRep' @EXPR)
 
-    attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
-    attachLayer (typeRep' @UID)   (typeRep' @(LINK' EXPR))
+    -- attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
+    -- attachLayer (typeRep' @UID)   (typeRep' @(LINK' EXPR))
 
-    setAttr $ MyData 7
+    -- setAttr $ MyData 7
 
     Pass.eval' pass1
 
@@ -145,50 +147,52 @@ uncheckedDeleteStarType e = do
 
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
-             , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
+            --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
+             , Accessibles m '[ExprNet]
              ) => m ()
 gen_pass1 = do
-    -- (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
+    print s
 
 
     -- Str constructor
-    (strName :: Expr String) <- rawString "String"
-    (strCons :: Expr (Cons #> String)) <- cons strName
-    Vis.snapshot "s1"
-    let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
-        strName' = unsafeRelayout strName :: Expr String'
-    newTypeLink <- link strCons' strName'
-    uncheckedDeleteStarType strName'
-    writeLayer @Type newTypeLink strName'
-    Vis.snapshot "s2"
-
-    let string s = do
-            foo <- rawString s
-            let foo' = unsafeRelayout foo :: Expr String'
-            ftlink <- link strCons' foo'
-            uncheckedDeleteStarType foo'
-            writeLayer @Type ftlink foo'
-            return foo'
-
-    s1 <- string "s1"
-    s2 <- string "s2"
-    s3 <- string "s3"
-
-    g <- group [s1,s2,s3]
-    print g
-
-    (v :: Expr $ Var #> String') <- var s1
-
-    let v' :: Expr Draft
-        v' = generalize v
-
-    -- (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Int String' Star))) <- unify s2 v
-    (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Star String' Star))) <- unify s2 v
-
-    (u' :: Expr (Unify >> Draft)) <- unify v' v'
-
-    print =<< checkCoherence
-    Vis.snapshot "s4"
+    -- (strName :: Expr String) <- rawString "String"
+    -- (strCons :: Expr (Cons #> String)) <- cons strName
+    -- Vis.snapshot "s1"
+    -- let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
+    --     strName' = unsafeRelayout strName :: Expr String'
+    -- newTypeLink <- link strCons' strName'
+    -- uncheckedDeleteStarType strName'
+    -- writeLayer @Type newTypeLink strName'
+    -- Vis.snapshot "s2"
+    --
+    -- let string s = do
+    --         foo <- rawString s
+    --         let foo' = unsafeRelayout foo :: Expr String'
+    --         ftlink <- link strCons' foo'
+    --         uncheckedDeleteStarType foo'
+    --         writeLayer @Type ftlink foo'
+    --         return foo'
+    --
+    -- s1 <- string "s1"
+    -- s2 <- string "s2"
+    -- s3 <- string "s3"
+    --
+    -- g <- group [s1,s2,s3]
+    -- print g
+    --
+    -- (v :: Expr $ Var #> String') <- var s1
+    --
+    -- let v' :: Expr Draft
+    --     v' = generalize v
+    --
+    -- -- (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Int String' Star))) <- unify s2 v
+    -- (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Star String' Star))) <- unify s2 v
+    --
+    -- (u' :: Expr (Unify >> Draft)) <- unify v' v'
+    --
+    -- print =<< checkCoherence
+    -- Vis.snapshot "s4"
 
 
 
@@ -252,7 +256,7 @@ main = do
         Right _ -> do
             let cfg = ByteString.unpack $ encode $ vis
             -- putStrLn cfg
-            liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+            -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
             return ()
     print p
     return ()

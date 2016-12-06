@@ -38,29 +38,8 @@ magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE mag
 
 
 
-consTypeLayer :: IRMonad m
-              => Store.STRefM m (Maybe MagicStar) -> Expr t -> Definition (Expr t) -> m (LayerData Type (Expr t))
-consTypeLayer ref self _ = do
-    top  <- view (from magicStar) <$> localTop ref
-    conn <- magicLink top self
-    return conn
 
 
-localTop :: IRMonad m
-         => Store.STRefM m (Maybe MagicStar) -> m MagicStar
-localTop ref = Store.readSTRef ref >>= \case
-    Just t  -> return t
-    Nothing -> mdo
-        Store.writeSTRef ref $ Just s
-        s <- newMagicStar
-        Store.writeSTRef ref Nothing
-        return s
-
-
--- TODO[WD]: dont allow here to use registerGenericLayer!
---           maybe LayerConsPasses will help here?
-layerReg4 :: IRMonad m => m ()
-layerReg4 = registerElemLayer @EXPR @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
 
 
 
@@ -68,7 +47,7 @@ layerReg4 = registerElemLayer @EXPR @Type . consTypeLayer =<< runInIR (Store.new
 runRegs :: IRMonad m => m ()
 runRegs = do
     runElemRegs
-    runLayerRegs
+    -- runLayerRegs
 
 -- === Elem reg defs === --
 
@@ -91,28 +70,50 @@ elemReg3 = registerElem @(GROUP EXPR)
 -- === Layer reg defs === --
 
 layerRegs :: IRMonad m => [m ()]
-layerRegs = [layerReg1, layerReg2, layerReg3, layerReg4]
+layerRegs = [] -- [layerReg1, layerReg2, layerReg3, layerReg4]
 
 runLayerRegs :: IRMonad m => m ()
 runLayerRegs = sequence_ layerRegs
 
 
-layerReg1 :: IRMonad m => m ()
-layerReg1 = registerGenericLayer @Model $ \ _ -> return
+-- layerReg1 :: IRMonad m => m ()
+-- layerReg1 = registerGenericLayer @Model $ \ _ -> return
+--
+-- layerReg2 :: IRMonad m => m ()
+-- layerReg2 = registerGenericLayer @Succs $ \ _ _ -> return def
+--
+--
+--
+-- consUIDLayer :: PrimMonad m => Store.STRefM m ID -> t -> Definition t -> m (LayerData UID t)
+-- consUIDLayer ref _ _ = Store.modifySTRef' ref (\i -> (i, succ i))
+--
+-- layerReg3 :: IRMonad m => m ()
+-- layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef 0)
+--
+--
+-- -- TODO[WD]: dont allow here to use registerGenericLayer!
+-- --           maybe LayerConsPasses will help here?
+-- layerReg4 :: IRMonad m => m ()
+-- layerReg4 = registerElemLayer @EXPR @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
+--
 
-layerReg2 :: IRMonad m => m ()
-layerReg2 = registerGenericLayer @Succs $ \ _ _ -> return def
+consTypeLayer :: IRMonad m
+              => Store.STRefM m (Maybe MagicStar) -> Expr t -> Definition (Expr t) -> m (LayerData Type (Expr t))
+consTypeLayer ref self _ = do
+    top  <- view (from magicStar) <$> localTop ref
+    conn <- magicLink top self
+    return conn
 
 
-
-consUIDLayer :: PrimMonad m => Store.STRefM m ID -> t -> Definition t -> m (LayerData UID t)
-consUIDLayer ref _ _ = Store.modifySTRef' ref (\i -> (i, succ i))
-
-layerReg3 :: IRMonad m => m ()
-layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef 0)
-
-
-
+localTop :: IRMonad m
+         => Store.STRefM m (Maybe MagicStar) -> m MagicStar
+localTop ref = Store.readSTRef ref >>= \case
+    Just t  -> return t
+    Nothing -> mdo
+        Store.writeSTRef ref $ Just s
+        s <- newMagicStar
+        Store.writeSTRef ref Nothing
+        return s
 
 ----------------------------------
 ----------------------------------
