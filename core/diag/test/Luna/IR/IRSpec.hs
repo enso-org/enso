@@ -15,7 +15,7 @@ data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
 
-testAtomEquality :: IO (Either Pass.Err [Pair Bool])
+testAtomEquality :: IO (Either Pass.InternalError [Pair Bool])
 testAtomEquality = graphTestCase $ do
     (foo  :: AnyExpr) <- generalize <$> rawString "foo"
     (bar  :: AnyExpr) <- generalize <$> rawString "bar"
@@ -36,7 +36,7 @@ testAtomEquality = graphTestCase $ do
              , Pair sameUniUni   True
              ]
 
-testInputs :: IO (Either Pass.Err (Pair [AnyExpr]))
+testInputs :: IO (Either Pass.InternalError (Pair [AnyExpr]))
 testInputs = graphTestCase $ do
     foo  <- rawString "foo"
     bar  <- rawString "bar"

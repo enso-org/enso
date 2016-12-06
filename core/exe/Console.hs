@@ -7,7 +7,7 @@ module Main where
 
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
-import Luna.Prelude hiding (String, typeRep, cons, elem)
+import Luna.Prelude hiding (String, cons, elem)
 import Data.Aeson (encode)
 
 import           Luna.IR
@@ -111,21 +111,21 @@ type instance Preserves SimpleAA = '[]
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.Err ())
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
 test_pass1 = runIRT $ do
     runRegs
 
-    attachLayer (typeRep @Model) (typeRep @EXPR)
-    attachLayer (typeRep @Succs) (typeRep @EXPR)
-    attachLayer (typeRep @Type)  (typeRep @EXPR)
-    attachLayer (typeRep @UID)   (typeRep @EXPR)
+    attachLayer (typeRep' @Model) (typeRep' @EXPR)
+    attachLayer (typeRep' @Succs) (typeRep' @EXPR)
+    attachLayer (typeRep' @Type)  (typeRep' @EXPR)
+    attachLayer (typeRep' @UID)   (typeRep' @EXPR)
 
-    attachLayer (typeRep @Model) (typeRep @(LINK' EXPR))
-    attachLayer (typeRep @UID)   (typeRep @(LINK' EXPR))
+    attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
+    attachLayer (typeRep' @UID)   (typeRep' @(LINK' EXPR))
 
     setAttr $ MyData 7
 
-    Pass.eval pass1
+    Pass.eval' pass1
 
 
 uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()

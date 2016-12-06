@@ -8,7 +8,7 @@ import           Old.Data.Record              (Encode2)
 import           Old.Data.Record.Model.Masked as X (VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
 import           Old.Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 
-import           Luna.Prelude                 hiding (typeRep, elem {- fix: -} , Enum)
+import           Luna.Prelude                 hiding (elem {- fix: -} , Enum)
 import qualified Luna.Prelude as Prelude
 
 import Control.Monad.State  (StateT, runStateT)
@@ -46,8 +46,7 @@ import Luna.IR.Expr.Term.Uni ()
 import Type.Inference
 
 
-typeRep :: forall a. Typeable a => TypeRep
-typeRep = Typeable.typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep #-}
+
 
 type Typeables ts = Constraints $ Typeable <$> ts
 
@@ -245,14 +244,14 @@ newMagicElem tdef = do
 
     -- FIXME[WD]: how can we design it better?
     -- hacky, manual index reservation in order not to use keys for magic star
-    let trep = typeRep @(Abstract t)
+    let trep = typeRep' @(Abstract t)
         Just layerStore = irstate ^? elems  . ix trep . layerValues
     newIdx <- runInIR $ Store.reserveIdx layerStore
 
 
     let el = newIdx ^. from (elem . idx)
         consLayer (layer, store) = runInIR $ do
-            let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
+            let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
             Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
     mapM_ consLayer =<< Store.assocs layerStore
     return el
@@ -265,7 +264,7 @@ newElem tdef = do
     layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
         consLayer (layer, store) = runInIR $ do
-            let consFunc = lookupLayerCons' (typeRep @(Abstract t)) layer irstate
+            let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
             Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
     mapM_ consLayer =<< Store.assocs layerStore
     return el
@@ -300,19 +299,19 @@ readNet = readComp @(Net a) ; {-# INLINE readNet #-}
 -- === Registration === --
 
 registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStore (GetIRMonad m) -> ElemStore (GetIRMonad m)) -> m ()
-registerElemWith = modifyIRStateM_ . fmap runInIR . modifyElem (typeRep @el) ; {-# INLINE registerElemWith #-}
+registerElemWith = modifyIRStateM_ . fmap runInIR . modifyElem (typeRep' @el) ; {-# INLINE registerElemWith #-}
 
 registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
 registerGenericLayer :: forall layer t m. (IRMonad m, Typeable layer)
                      => LayerCons' layer t (GetIRMonad m) -> m ()
-registerGenericLayer f = modifyIRState_ $ genericLayers %~ Map.insert (typeRep @layer) (anyCons @layer f)
+registerGenericLayer f = modifyIRState_ $ genericLayers %~ Map.insert (typeRep' @layer) (anyCons @layer f)
 {-# INLINE registerGenericLayer #-}
 
 registerElemLayer :: forall at layer t m. (IRMonad m, Typeable at, Typeable layer)
                   => LayerCons' layer t (GetIRMonad m) -> m ()
-registerElemLayer f = modifyIRState_ $ specificLayers (typeRep @at) %~ Map.insert (typeRep @layer) (anyCons @layer f)
+registerElemLayer f = modifyIRState_ $ specificLayers (typeRep' @at) %~ Map.insert (typeRep' @layer) (anyCons @layer f)
 {-# INLINE registerElemLayer #-}
 
 attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
@@ -323,7 +322,7 @@ attachLayer l e = do
 {-# INLINE attachLayer #-}
 
 setAttr :: forall a m. (IRMonad m, Typeable a) => a -> m ()
-setAttr a = modifyIRState_ $ attrs %~ Map.insert (typeRep @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
+setAttr a = modifyIRState_ $ attrs %~ Map.insert (typeRep' @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
 
 
 
@@ -414,16 +413,16 @@ data Attr t
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
     uncheckedLookupKey = do
         s <- getIRState
-        let mlv = s ^? elems . ix (typeRep @e) . layerValues
-        mr <- mapM (Store.readKey (typeRep @l)) mlv
+        let mlv = s ^? elems . ix (typeRep' @e) . layerValues
+        mr <- mapM (Store.readKey (typeRep' @l)) mlv
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupKey #-}
 
 instance (IRMonad m, Typeable a) => KeyMonad (Net a) m where
-    uncheckedLookupKey = fmap wrap' . (^? (elems . ix (typeRep @a) . layerValues)) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
+    uncheckedLookupKey = fmap wrap' . (^? (elems . ix (typeRep' @a) . layerValues)) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
 
 instance (IRMonad m, Typeable a) => KeyMonad (Attr a) m where
-    uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep @a))) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
+    uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> getIRState ; {-# INLINE uncheckedLookupKey #-}
 
 
 -------------------
@@ -465,7 +464,7 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 
 -------------------
--- === Link === --
+-- === Group === --
 -------------------
 
 -- === Definition === --

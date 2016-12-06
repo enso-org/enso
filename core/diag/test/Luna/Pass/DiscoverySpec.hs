@@ -5,7 +5,7 @@ module Luna.Pass.DiscoverySpec (spec) where
 
 import Control.Exception (PatternMatchFail)
 import qualified Prelude as P
-import Luna.Prelude hiding (String, typeRep)
+import Luna.Prelude hiding (String)
 import Test.Hspec   (Selector, Spec, describe, it, shouldReturn, shouldThrow)
 
 import           Luna.IR
@@ -33,19 +33,19 @@ crashingPass = do
     match s $ \case
         Var s' -> return True
 
-testCase :: IO (Either Pass.Err P.String)
+testCase :: IO (Either Pass.InternalError P.String)
 testCase = runIRT $ do
     runRegs
-    attachLayer (typeRep @Model) (typeRep @EXPR)
-    attachLayer (typeRep @Model) (typeRep @(LINK' EXPR))
-    Pass.eval sanityPass
+    attachLayer (typeRep' @Model) (typeRep' @EXPR)
+    attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
+    Pass.eval' sanityPass
 
-test :: _ -> IO (Either Pass.Err a)
+test :: _ -> IO (Either Pass.InternalError a)
 test act = runIRT $ do
     runRegs
-    attachLayer (typeRep @Model) (typeRep @EXPR)
-    attachLayer (typeRep @Model) (typeRep @(LINK' EXPR))
-    Pass.eval act
+    attachLayer (typeRep' @Model) (typeRep' @EXPR)
+    attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
+    Pass.eval' act
 
 patternMatchException :: Selector PatternMatchFail
 patternMatchException = const True

@@ -1,7 +1,8 @@
 module Luna.IR.Internal.LayerStore where
 
-import Prelude
+import Prelude hiding (tail)
 import Data.Default
+import Data.Monoid
 import Control.Lens.Utils
 import Control.Monad
 import Data.Functor.Utils hiding ((.))
@@ -73,8 +74,8 @@ makeWrapped ''VectorRef
 
 -- === Utils === --
 
-newVectorRef :: PrimMonad m => m (VectorRefM m a)
-newVectorRef = fmap wrap' . newSTRef =<< V.unsafeThaw mempty ; {-# INLINE newVectorRef #-}
+newVectorRef :: Int -> PrimMonad m => m (VectorRefM m a)
+newVectorRef = fmap wrap' . newSTRef <=< MV.new ; {-# INLINE newVectorRef #-}
 
 modifyVectorRefM :: PrimMonad m => (MVectorM m a -> m (t, MVectorM m a)) -> VectorRefM m a -> m t
 modifyVectorRefM f (unwrap' -> ref) = modifySTRefM' ref f ; {-# INLINE modifyVectorRefM #-}
@@ -120,7 +121,14 @@ instance Show (VectorRef s a) where show _ = "VectorRef"
 
 -- === Definition === --
 
+defSize :: Int
+defSize = 1024
+
 type Idx = Int
+
+data Block = Block { _blockSize :: !Int
+                   , _blockFree :: ![Idx]
+                   } deriving (Show)
 
 type    LayerStoreRefM m     = LayerStoreRef  (PrimState m)
 newtype LayerStoreRef  s k a = LayerStoreRef  (STRef s (LayerStoreST s k a))
@@ -129,9 +137,11 @@ type    LayerStoreST   s k a = LayerStoreBase k (VectorRef s a)
 type    LayerStore       k a = LayerStoreBase k (Vector a)
 data    LayerStoreBase   k a = LayerStore { _size :: !Int
                                           , _free :: ![Idx]
+                                          , _tail :: !Block -- empty memory block for efficient paste operations
                                           , _vec  :: !(Map k a)
                                           } deriving (Show, Functor, Foldable, Traversable)
 
+makeLenses  ''Block
 makeWrapped ''LayerStoreRef
 makeLenses  ''LayerStoreBase
 
@@ -150,16 +160,23 @@ modifyLayerStoreRef'_ = modifyLayerStoreRefM'_ . fmap return ; {-# INLINE modify
 
 -- === Construction === --
 
+-- append' :: LayerStoreM m k a -> LayerStoreM m k a -> LayerStoreM m k a
+-- append' a s = undefined where
+--     growSize =
+
+
+instance Default Block where
+    def = Block 0 def ; {-# INLINE def #-}
+
+instance Default (LayerStoreST s k a) where
+    def = LayerStore defSize [0 .. defSize - 1] def def ; {-# INLINE def #-}
+
+
 empty :: PrimMonad m => m (LayerStoreRefM m k a)
 empty = LayerStoreRef <$> newSTRef def ; {-# INLINE empty #-}
 
-instance Default (LayerStoreST s k a) where
-    def = LayerStore 0 def def ; {-# INLINE def #-}
-
-
-
-autoGrow :: PrimMonad m => LayerStoreRefM m k a -> m Idx
-autoGrow = flip modifySTRefM' autoGrow' . unwrap' ; {-# INLINE autoGrow #-}
+autoGrowFree :: PrimMonad m => LayerStoreRefM m k a -> m Idx
+autoGrowFree = flip modifySTRefM' autoGrowFree' . unwrap' ; {-# INLINE autoGrowFree #-}
 
 -- | If realocation is not needed, performs in O(1).
 reserveIdx :: PrimMonad m => LayerStoreRefM m k a -> m Idx
@@ -232,23 +249,32 @@ duplicate' = freeze' >=> unsafeThaw' ; {-# INLINE duplicate' #-}
 
 -- === Non-ref API === --
 
-autoGrow' :: PrimMonad m => LayerStoreST (PrimState m) k a -> m (Idx, LayerStoreST (PrimState m) k a)
-autoGrow' m = (size', nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
-    size' = m ^. size
-    grow  = if size' == 0 then 1 else size'
-    nm    = m & size %~ (+ grow)
-              & free .~ [size' + 1 .. size' + grow - 1]
-{-# INLINE autoGrow' #-}
+autoGrowFree' :: PrimMonad m => LayerStoreST (PrimState m) k a -> m (Idx, LayerStoreST (PrimState m) k a)
+autoGrowFree' m = (grow, nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
+    grow = m ^. size
+    nm   = m & size %~ (+ grow)
+             & free .~ [grow + 1 .. grow + grow - 1]
+{-# INLINE autoGrowFree' #-}
+
+autoGrowBlock' :: PrimMonad m => LayerStoreST (PrimState m) k a -> m (Idx, LayerStoreST (PrimState m) k a)
+autoGrowBlock' m = (grow, nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
+    grow = m ^. size
+    nm   = m & size %~ (+ grow)
+             & tail %~ (blockFree %~ (<> [grow + 1 .. grow + grow - 1]))
+                     . (blockSize %~ (+ grow))
+{-# INLINE autoGrowBlock' #-}
 
 reserveIdx' :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
 reserveIdx' m = case m ^. free of
     (i : is) -> return (i, m & free .~ is)
-    []       -> autoGrow' m
+    []       -> case m ^. tail of
+        Block _ (i : is) -> return (i, m & free .~ is & tail .~ def)
+        Block _ []       -> autoGrowFree' m
 {-# INLINE reserveIdx' #-}
 
 unsafeAddKey' :: (PrimMonad m, Ord k) => k -> LayerStoreM m k a -> m (LayerStoreM m k a)
 unsafeAddKey' k m = do
-    v <- newVectorRef
+    v <- newVectorRef (m ^. size)
     return $ m & vec . at k ?~ v
 {-# INLINE unsafeAddKey' #-}
 

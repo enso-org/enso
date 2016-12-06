@@ -4,7 +4,7 @@ module Luna.Pass.Class where
 
 import Luna.Prelude hiding (head, tail, elem)
 
-import           Data.RTuple (List)
+import           Data.RTuple (List ((:-:)))
 import qualified Data.RTuple as List
 
 import qualified Control.Monad.Catch      as Catch
@@ -20,32 +20,36 @@ import           Type.Maybe                (FromJust)
 
 import Luna.IR.Layer
 import Type.List (In)
-
-
+import qualified GHC.Prim as Prim
+import Unsafe.Coerce (unsafeCoerce)
 
 
 ---------------------
--- === KeyList === --
+-- === DataSet === --
 ---------------------
 
-newtype KeyList  s lst = KeyList (List (Key s <$> lst))
-type    KeyListM m     = KeyList (PrimState m)
-makeWrapped ''KeyList
+newtype DataSet  s lst = DataSet (List (Key s <$> lst))
+type    DataSetM m     = DataSet (PrimState m)
+makeWrapped ''DataSet
 
-
-prepend :: Key s k -> KeyList s ks -> KeyList s (k ': ks)
+prepend :: Key s k -> DataSet s ks -> DataSet s (k ': ks)
 prepend k = wrapped %~ List.prepend k ; {-# INLINE prepend #-}
 
 -- | FIXME[WD]: tail cannot be constructed as wrapped . List.tail . Why?
-tail :: Lens' (KeyList s (k ': ks)) (KeyList s ks)
+tail :: Lens' (DataSet s (k ': ks)) (DataSet s ks)
 tail = lens (wrapped %~ (view List.tail)) $ flip (\lst -> wrapped %~ (List.tail .~ unwrap' lst)) ; {-# INLINE tail #-}
 
-head :: Lens' (KeyList s (k ': ks)) (Key s k)
+head :: Lens' (DataSet s (k ': ks)) (Key s k)
 head = wrapped . List.head ; {-# INLINE head #-}
 
 
 
 -------------------------------
+
+-- === Errors === --
+
+data InternalError = MissingData TypeRep deriving (Show, Eq)
+
 
 
 -- === Properties === --
@@ -58,43 +62,72 @@ type family Preserves pass :: [*]
 -- === Data declarations ===
 
 type    Pass    pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (StateM m pass) m a)
+newtype SubPass pass m a = SubPass (StateT (PassDataSetM m pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
 
-type KeyTypes   pass = Inputs pass <> Outputs pass -- FIXME (there are duplicates in the list)
-type Keys       pass = KeyTypes pass
-type State    s pass = KeyList s (KeyTypes pass)
-type StateM   m pass = State (PrimState m) pass
+type DynPass    m   = DynSubPass m ()
+data DynSubPass m a = DynSubPass { _inputs    :: [TypeRep]
+                                 , _outputs   :: [TypeRep]
+                                 , _preserves :: [TypeRep]
+                                 , _dynEval   :: m (Either InternalError (m a))
+                                 }
 
-type        GetState m = StateM m (GetPass m)
+type PassData       pass = Inputs pass <> Outputs pass -- FIXME (there are duplicates in the list)
+type Keys           pass = PassData pass
+type PassDataSet  s pass = DataSet s (PassData pass)
+type PassDataSetM m pass = PassDataSet (PrimState m) pass
+
+type        GetPassData m = PassDataSetM m (GetPass m)
 type family GetPass  m where
     GetPass (SubPass pass m) = pass
-    GetPass (t m)          = GetPass m
+    GetPass (t m)            = GetPass m
+
 
 makeWrapped ''SubPass
+makeLenses  ''DynSubPass
 
 
 -- === Utils ===
 
-initPass :: (LookupKeys n (Keys pass), Monad m, PrimState m ~ PrimState n) => SubPass pass m a -> n (Either Err (m a))
-initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupKeys ; {-# INLINE initPass #-}
+initPass :: (LookupData n (Keys pass), Monad m, PrimState m ~ PrimState n) => SubPass pass m a -> n (Either InternalError (m a))
+initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData ; {-# INLINE initPass #-}
 
-eval :: LookupKeys m (Keys pass) => SubPass pass m a -> m (Either Err a)
-eval = join . fmap sequence . initPass ; {-# INLINE eval #-}
+type Commit m pass = ( Monad m
+                     , LookupData m (Keys pass)
+                     , Typeables (Inputs    pass)
+                     , Typeables (Outputs   pass)
+                     , Typeables (Preserves pass)
+                     )
+
+commit :: forall pass m a. Commit m pass => SubPass pass m a -> DynSubPass m a
+commit p = DynSubPass
+           (typeReps' @(Inputs    pass))
+           (typeReps' @(Outputs   pass))
+           (typeReps' @(Preserves pass))
+           (initPass p)
+{-# INLINE commit #-}
+
+
+eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
+eval = join . fmap sequence . run ; {-# INLINE eval #-}
+
+eval' :: Commit m pass => SubPass pass m a -> m (Either InternalError a)
+eval' = eval . commit ; {-# INLINE eval' #-}
+
+run :: DynSubPass m a -> m (Either InternalError (m a))
+run = view dynEval ; {-# INLINE run #-}
 
 
 -- === Keys lookup === --
 
 
-data Err = Err TypeRep deriving (Show, Eq)
-
-type ReLookupKeys k m ks = (IR.KeyMonad k m, LookupKeys m ks, Typeable k)
-class    Monad m             => LookupKeys m keys      where lookupKeys :: m (Either Err (KeyListM m keys))
-instance Monad m             => LookupKeys m '[]       where lookupKeys = return $ return (wrap' List.empty)
-instance ReLookupKeys k m ks => LookupKeys m (k ': ks) where lookupKeys = prepend <<$>> (justErr (Err $ typeRep (Proxy :: Proxy k)) <$> IR.uncheckedLookupKey)
-                                                                                  <<*>> lookupKeys
+type ReLookupData k m ks = (IR.KeyMonad k m, LookupData m ks, Typeable k)
+class    Monad m             => LookupData m keys      where lookupData :: m (Either InternalError (DataSetM m keys))
+instance Monad m             => LookupData m '[]       where lookupData = return $ return (wrap' List.empty)
+instance ReLookupData k m ks => LookupData m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeRep' @k) <$> IR.uncheckedLookupKey)
+                                                                                  <<*>> lookupData
 
 
 infixl 4 <<*>>
@@ -106,18 +139,18 @@ infixl 4 <<*>>
 -- === MonadPass === --
 
 class Monad m => MonadPass m where
-    get :: m (GetState m)
-    put :: GetState m -> m ()
+    get :: m (GetPassData m)
+    put :: GetPassData m -> m ()
 
 instance Monad m => MonadPass (SubPass pass m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
 
-instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m),GetState m ~ GetState (t m)) => MonadPass (t m) where
+instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m),GetPassData m ~ GetPassData (t m)) => MonadPass (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
 
-modifyM :: MonadPass m => (GetState m -> m (a, GetState m)) -> m a
+modifyM :: MonadPass m => (GetPassData m -> m (a, GetPassData m)) -> m a
 modifyM f = do
     s       <- get
     (a, s') <- f s
@@ -125,16 +158,16 @@ modifyM f = do
     return a
 {-# INLINE modifyM #-}
 
-modifyM_ :: MonadPass m => (GetState m -> m (GetState m)) -> m ()
+modifyM_ :: MonadPass m => (GetPassData m -> m (GetPassData m)) -> m ()
 modifyM_ = modifyM . fmap (fmap ((),)) ; {-# INLINE modifyM_ #-}
 
-modify :: MonadPass m => (GetState m -> (a, GetState m)) -> m a
+modify :: MonadPass m => (GetPassData m -> (a, GetPassData m)) -> m a
 modify = modifyM . fmap return ; {-# INLINE modify #-}
 
-modify_ :: MonadPass m => (GetState m -> GetState m) -> m ()
+modify_ :: MonadPass m => (GetPassData m -> GetPassData m) -> m ()
 modify_ = modifyM_ . fmap return ; {-# INLINE modify_ #-}
 
-with :: MonadPass m => (GetState m -> GetState m) -> m a -> m a
+with :: MonadPass m => (GetPassData m -> GetPassData m) -> m a -> m a
 with f m = do
     s <- get
     put $ f s
@@ -181,7 +214,7 @@ instance ( Monad m
 
 -- === ContainsKey === --
 
-class                                     ContainsKey k ls        where findKey :: Lens' (KeyList s ls) (Key s k)
+class                                     ContainsKey k ls        where findKey :: Lens' (DataSet s ls) (Key s k)
 instance {-# OVERLAPPING #-}              ContainsKey k (k ': ls) where findKey = head           ; {-# INLINE findKey #-}
 instance ContainsKey k ls              => ContainsKey k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
 instance TypeError (KeyMissingError k) => ContainsKey k '[]       where findKey = impossible     ; {-# INLINE findKey #-}
