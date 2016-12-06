@@ -12,7 +12,7 @@ import           Luna.Prelude                 hiding (elem {- fix: -} , Enum)
 import qualified Luna.Prelude as Prelude
 
 import Control.Monad.State  (StateT, runStateT)
-import Luna.IR.Internal.LayerStore (LayerStoreRef, LayerStoreRefM)
+import Luna.IR.Internal.LayerStore (LayerStoreRef, LayerStoreRefM, LayerStore)
 import Data.Map             (Map)
 import Data.Property
 import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
@@ -153,9 +153,10 @@ type KeyWriteError k = KeyAccessError "write" k
 type LayerRep = TypeRep
 type ElemRep  = TypeRep
 
-type    IRData    = IRData'
-type    IRDataM m = IRData' (ElemStoreM m)
-newtype IRData' a = IRData (Map ElemRep a) deriving (Show, Default, Functor, Traversable, Foldable)
+type    IR     = IR'   ElemStore
+type    IRST s = IR'  (ElemStoreST s)
+type    IRM  m = IRST (PrimState   m)
+newtype IR'  a = IR   (Map ElemRep a) deriving (Show, Default, Functor, Traversable, Foldable)
 
                             --  , _attrs :: Map LayerRep Any
                             --  }
@@ -166,18 +167,19 @@ newtype IRData' a = IRData (Map ElemRep a) deriving (Show, Default, Functor, Tra
 --                              }
 
 type LayerSet    s = Store.VectorRef s Any
+type ElemStore     = LayerStore      LayerRep Any
 type ElemStoreST s = LayerStoreRef s LayerRep Any
 type ElemStoreM  m = ElemStoreST (PrimState m)
 
 type LayerConsStore m = Map LayerRep (AnyCons m)
 
 -- makeLenses ''ElemStoreOld
-makeWrapped ''IRData'
+makeWrapped ''IR'
 
 
 -- === Accessors === --
 
--- specificLayers :: ElemRep -> Traversal' (IRDataM m) (LayerConsStore m)
+-- specificLayers :: ElemRep -> Traversal' (IRM m) (LayerConsStore m)
 -- specificLayers el = wrapped' . ix el . elemLayers ; {-# INLINE specificLayers #-}
 
 -- emptyElemStoreOld :: PrimMonad m => m (ElemStoreOld m)
@@ -186,33 +188,45 @@ makeWrapped ''IRData'
 
 -- === Instances === --
 
--- instance Default (IRDataM m) where def = IRDataM def def
+-- instance Default (IRM m) where def = IRM def def
+
+-- === Mutability === --
+
+unsafeFreeze :: PrimMonad m => IRM m -> m IR
+freeze       :: PrimMonad m => IRM m -> m IR
+unsafeFreeze = mapM Store.unsafeFreeze ; {-# INLINE unsafeFreeze #-}
+freeze       = mapM Store.freeze       ; {-# INLINE freeze       #-}
+
+unsafeThaw :: PrimMonad m => IR -> m (IRM m)
+thaw       :: PrimMonad m => IR -> m (IRM m)
+unsafeThaw = mapM Store.unsafeThaw ; {-# INLINE unsafeThaw #-}
+thaw       = mapM Store.thaw       ; {-# INLINE thaw       #-}
 
 
-
------------------
--- === IRT === --
------------------
+-----------------------
+-- === IRBuilder === --
+-----------------------
 
 -- === Definition === --
 
-newtype IRT m a = IRT (StateT (IRDataM (IRT m)) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
-makeWrapped ''IRT
+newtype IRBuilder m a = IRBuilder (StateT (IRBuilderState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+type IRBuilderState m = IRM (IRBuilder m)
+makeWrapped ''IRBuilder
 
-type IRDataM' m = IRDataM (GetIRMonad m)
-type        GetIRMonad    m = IRT (GetIRSubMonad m)
-type family GetIRSubMonad m where
-            GetIRSubMonad (IRT m) = m
-            GetIRSubMonad (t   m) = GetIRSubMonad m
+type IRM' m = IRM (GetIRBuilder m)
+type        GetIRBuilder      m = IRBuilder (GetIRBuilderMonad m)
+type family GetIRBuilderMonad m where
+            GetIRBuilderMonad (IRBuilder m) = m
+            GetIRBuilderMonad (t   m) = GetIRBuilderMonad m
 
 
 -- === Accessors === --
 
-atElem :: Functor m => ElemRep -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRDataM m -> m (IRDataM m)
+atElem :: Functor m => ElemRep -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRM m -> m (IRM m)
 atElem = wrapped' .: at  ; {-# INLINE atElem #-}
 
-modifyElem  :: PrimMonad m => ElemRep -> (ElemStoreM m ->    ElemStoreM m)  -> IRDataM m -> m (IRDataM m)
-modifyElemM :: PrimMonad m => ElemRep -> (ElemStoreM m -> m (ElemStoreM m)) -> IRDataM m -> m (IRDataM m)
+modifyElem  :: PrimMonad m => ElemRep -> (ElemStoreM m ->    ElemStoreM m)  -> IRM m -> m (IRM m)
+modifyElemM :: PrimMonad m => ElemRep -> (ElemStoreM m -> m (ElemStoreM m)) -> IRM m -> m (IRM m)
 modifyElem  e   = modifyElemM e . fmap return                                                  ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (fmap return es) ; {-# INLINE modifyElemM #-}
 
@@ -224,34 +238,34 @@ uncheckedElems = fmap (view (from $ elem . idx)) <$> (Store.ixes =<< readNet @(A
 
 -- === Querying === --
 --
--- lookupGenericLayerCons :: LayerRep -> IRDataM m -> Maybe (AnyCons m)
+-- lookupGenericLayerCons :: LayerRep -> IRM m -> Maybe (AnyCons m)
 -- lookupGenericLayerCons l s = s ^? genericLayers . ix l ; {-# INLINE lookupGenericLayerCons #-}
 --
--- lookupSpecificLayerCons :: ElemRep -> LayerRep -> IRDataM m -> Maybe (AnyCons m)
+-- lookupSpecificLayerCons :: ElemRep -> LayerRep -> IRM m -> Maybe (AnyCons m)
 -- lookupSpecificLayerCons el l s = s ^? specificLayers el . ix l ; {-# INLINE lookupSpecificLayerCons #-}
 --
--- lookupLayerCons :: ElemRep -> LayerRep -> IRDataM m -> Maybe (AnyCons m)
+-- lookupLayerCons :: ElemRep -> LayerRep -> IRM m -> Maybe (AnyCons m)
 -- lookupLayerCons el l s = lookupSpecificLayerCons el l s <|> lookupGenericLayerCons l s ; {-# INLINE lookupLayerCons #-}
 --
--- lookupLayerCons' :: ElemRep -> LayerRep -> IRDataM m -> AnyCons m
+-- lookupLayerCons' :: ElemRep -> LayerRep -> IRM m -> AnyCons m
 -- lookupLayerCons' el l = fromMaybe (error $ "Fatal error " <> show el <> " " <> show l) . lookupLayerCons el l ; {-# INLINE lookupLayerCons' #-}
 
 
 -- === Construction === --
 
-newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), PrimMonad (GetIRMonad m), IsElem t) => Definition t -> m t
+newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), PrimMonad (GetIRBuilder m), IsElem t) => Definition t -> m t
 newMagicElem tdef = do
-    irstate    <- getIRData
+    irstate    <- getIR
 
     -- FIXME[WD]: how can we design it better?
     -- hacky, manual index reservation in order not to use keys for magic star
     let trep = typeRep' @(Abstract t)
         Just layerStore = irstate ^? wrapped'  . ix trep
-    newIdx <- runInIR $ Store.reserveIdx layerStore
+    newIdx <- runByIRBuilder $ Store.reserveIdx layerStore
 
 
     let el = newIdx ^. from (elem . idx)
-    --     consLayer (layer, store) = runInIR $ do
+    --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
     -- mapM_ consLayer =<< Store.assocs layerStore
@@ -260,11 +274,11 @@ newMagicElem tdef = do
 
 newElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsElem t, Typeable (Abstract t)) => Definition t -> m t
 newElem tdef = do
-    irstate    <- getIRData
+    irstate    <- getIR
     newIdx     <- reserveNewElemIdx @t
     layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
-    --     consLayer (layer, store) = runInIR $ do
+    --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
     -- mapM_ consLayer =<< Store.assocs layerStore
@@ -273,13 +287,13 @@ newElem tdef = do
 
 
 delete :: forall t m. (IRMonad m, IsElem t, Accessible (Net (Abstract t)) m) => t -> m ()
-delete t = runInIR . flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+delete t = runByIRBuilder . flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
-reserveNewElemIdx = runInIR . Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
+reserveNewElemIdx = runByIRBuilder . Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 
 readLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-readLayerByKey key t = unsafeCoerce <$> runInIR (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
+readLayerByKey key t = unsafeCoerce <$> runByIRBuilder (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
 
 writeLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
 writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. elem . idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
@@ -302,31 +316,31 @@ readNet = readComp @(Net a) ; {-# INLINE readNet #-}
 
 -- === Registration === --
 
-registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStoreM (GetIRMonad m) -> ElemStoreM (GetIRMonad m)) -> m ()
-registerElemWith = modifyIRDataM_ . fmap runInIR . modifyElem (typeRep' @el) ; {-# INLINE registerElemWith #-}
+registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStoreM (GetIRBuilder m) -> ElemStoreM (GetIRBuilder m)) -> m ()
+registerElemWith = modifyIRM_ . fmap runByIRBuilder . modifyElem (typeRep' @el) ; {-# INLINE registerElemWith #-}
 
 registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
 -- registerGenericLayer :: forall layer t m. (IRMonad m, Typeable layer)
---                      => LayerCons' layer t (GetIRMonad m) -> m ()
--- registerGenericLayer f = modifyIRData_ $ genericLayers %~ Map.insert (typeRep' @layer) (anyCons @layer f)
+--                      => LayerCons' layer t (GetIRBuilder m) -> m ()
+-- registerGenericLayer f = modifyIR_ $ genericLayers %~ Map.insert (typeRep' @layer) (anyCons @layer f)
 -- {-# INLINE registerGenericLayer #-}
 --
 -- registerElemLayer :: forall at layer t m. (IRMonad m, Typeable at, Typeable layer)
---                   => LayerCons' layer t (GetIRMonad m) -> m ()
--- registerElemLayer f = modifyIRData_ $ specificLayers (typeRep' @at) %~ Map.insert (typeRep' @layer) (anyCons @layer f)
+--                   => LayerCons' layer t (GetIRBuilder m) -> m ()
+-- registerElemLayer f = modifyIR_ $ specificLayers (typeRep' @at) %~ Map.insert (typeRep' @layer) (anyCons @layer f)
 -- {-# INLINE registerElemLayer #-}
 
-attachLayer :: (IRMonad m, PrimMonad (GetIRMonad m)) => LayerRep -> ElemRep -> m ()
+attachLayer :: (IRMonad m, PrimMonad (GetIRBuilder m)) => LayerRep -> ElemRep -> m ()
 attachLayer l e = do
-    s <- getIRData
+    s <- getIR
     let Just estore = s ^? wrapped' . ix e -- Internal error if not found (element not registered)
     Store.unsafeAddKey l estore
 {-# INLINE attachLayer #-}
 
 -- setAttr :: forall a m. (IRMonad m, Typeable a) => a -> m ()
--- setAttr a = modifyIRData_ $ attrs %~ Map.insert (typeRep' @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
+-- setAttr a = modifyIR_ $ attrs %~ Map.insert (typeRep' @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
 
 
 
@@ -340,58 +354,64 @@ attachLayer l e = do
 -- | IRMonad is subclass of MonadFic because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
 type  IRMonadBase       m = (PrimMonad m, MonadFix m)
-type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRSubMonad m), IRMonad (GetIRMonad m), PrimState m ~ PrimState (GetIRSubMonad m))
+type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRBuilderMonad m), IRMonad (GetIRBuilder m), PrimState m ~ PrimState (GetIRBuilderMonad m))
 class IRMonadInvariants m => IRMonad m where
-    getIRData :: m (IRDataM' m)
-    putIRData :: IRDataM' m -> m ()
-    runInIR   :: GetIRMonad m a -> m a
+    getIR          :: m (IRM' m)
+    putIR          :: IRM' m -> m ()
+    runByIRBuilder :: GetIRBuilder m a -> m a
 
-instance {-# OVERLAPPABLE #-} (MonadFix m, PrimMonad m) => IRMonad (IRT m) where
-    getIRData = wrap'   State.get ; {-# INLINE getIRData #-}
-    putIRData = wrap' . State.put ; {-# INLINE putIRData #-}
-    runInIR    = id                ; {-# INLINE runInIR    #-}
+instance {-# OVERLAPPABLE #-} (MonadFix m, PrimMonad m) => IRMonad (IRBuilder m) where
+    getIR = wrap'   State.get ; {-# INLINE getIR #-}
+    putIR = wrap' . State.put ; {-# INLINE putIR #-}
+    runByIRBuilder    = id                ; {-# INLINE runByIRBuilder    #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
-    getIRData = lift   getIRData ; {-# INLINE getIRData #-}
-    putIRData = lift . putIRData ; {-# INLINE putIRData #-}
-    runInIR    = lift . runInIR    ; {-# INLINE runInIR    #-}
+    getIR = lift   getIR ; {-# INLINE getIR #-}
+    putIR = lift . putIR ; {-# INLINE putIR #-}
+    runByIRBuilder    = lift . runByIRBuilder    ; {-# INLINE runByIRBuilder    #-}
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRMonad (t m) ~ GetIRMonad m, PrimState (t m) ~ PrimState m)
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRBuilder (t m) ~ GetIRBuilder m, PrimState (t m) ~ PrimState m)
 
 
 -- === Modyfication === --
 
-modifyIRDataM :: IRMonad m => (IRDataM' m -> m (a, IRDataM' m)) -> m a
-modifyIRDataM f = do
-    s <- getIRData
+modifyIRM :: IRMonad m => (IRM' m -> m (a, IRM' m)) -> m a
+modifyIRM f = do
+    s <- getIR
     (a, s') <- f s
-    putIRData s'
+    putIR s'
     return a
-{-# INLINE modifyIRDataM #-}
+{-# INLINE modifyIRM #-}
 
-modifyIRDataM_ :: IRMonad m => (IRDataM' m -> m (IRDataM' m)) -> m ()
-modifyIRDataM_ = modifyIRDataM . fmap (fmap ((),)) ; {-# INLINE modifyIRDataM_ #-}
+modifyIRM_ :: IRMonad m => (IRM' m -> m (IRM' m)) -> m ()
+modifyIRM_ = modifyIRM . fmap (fmap ((),)) ; {-# INLINE modifyIRM_ #-}
 
-modifyIRData_ :: IRMonad m => (IRDataM' m -> IRDataM' m) -> m ()
-modifyIRData_ = modifyIRDataM_ . fmap return ; {-# INLINE modifyIRData_ #-}
+modifyIR_ :: IRMonad m => (IRM' m -> IRM' m) -> m ()
+modifyIR_ = modifyIRM_ . fmap return ; {-# INLINE modifyIR_ #-}
 
-snapshot :: IRMonad m => m (IRDataM' m)
-snapshot = wrapped' (mapM Store.duplicate) =<< getIRData ; {-# INLINE snapshot #-}
+snapshot :: IRMonad m => m IR
+snapshot = freeze =<< getIR ; {-# INLINE snapshot #-}
 
 
 -- === Running === --
 
-runIRT :: forall t m a. Monad m => IRT m a -> m a
-runIRT m = State.evalStateT (unwrap' m) def ; {-# INLINE runIRT #-}
+evalIRBuilderM :: Monad m => IRBuilder m a -> IRBuilderState m -> m a
+evalIRBuilderM = State.evalStateT . unwrap' ; {-# INLINE evalIRBuilderM #-}
+
+evalIRBuilder :: PrimMonad m => IRBuilder m a -> IR -> m a
+evalIRBuilder m = evalIRBuilderM m <=< thaw ; {-# INLINE evalIRBuilder #-}
+
+evalIRBuilder' :: Monad m => IRBuilder m a -> m a
+evalIRBuilder' = flip evalIRBuilderM def ; {-# INLINE evalIRBuilder' #-}
 
 
 -- === Instances === --
 
-instance MonadTrans IRT where
+instance MonadTrans IRBuilder where
     lift = wrap' . lift ; {-# INLINE lift #-}
 
-instance PrimMonad m => PrimMonad (IRT m) where
-    type PrimState (IRT m) = PrimState m
+instance PrimMonad m => PrimMonad (IRBuilder m) where
+    type PrimState (IRBuilder m) = PrimState m
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
@@ -416,17 +436,17 @@ data Attr t
 
 instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
     uncheckedLookupKey = do
-        s <- getIRData
+        s <- getIR
         let mlv = s ^? wrapped' . ix (typeRep' @e)
         mr <- mapM (Store.readKey (typeRep' @l)) mlv
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupKey #-}
 
 instance (IRMonad m, Typeable a) => KeyMonad (Net a) m where
-    uncheckedLookupKey = fmap wrap' . (^? (wrapped' . ix (typeRep' @a))) <$> getIRData ; {-# INLINE uncheckedLookupKey #-}
+    uncheckedLookupKey = fmap wrap' . (^? (wrapped' . ix (typeRep' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
 -- instance (IRMonad m, Typeable a) => KeyMonad (Attr a) m where
---     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> getIRData ; {-# INLINE uncheckedLookupKey #-}
+--     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
 
 -------------------

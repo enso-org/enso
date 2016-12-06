@@ -114,7 +114,7 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
-test_pass1 = runIRT $ do
+test_pass1 = evalIRBuilder' $ do
     runRegs
 
     -- attachLayer (typeRep' @Model) (typeRep' @EXPR)

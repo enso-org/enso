@@ -13,8 +13,8 @@ type instance Inputs  TestPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model
 type instance Outputs TestPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
 type instance Preserves TestPass ='[]
 
-graphTestCase :: SubPass TestPass (IRT IO) a -> IO (Either Pass.InternalError a)
-graphTestCase pass = runIRT $ do
+graphTestCase :: (MonadIO m, MonadFix m, PrimMonad m) => SubPass TestPass (IRBuilder m) a -> m (Either Pass.InternalError a)
+graphTestCase pass = evalIRBuilder' $ do
     runRegs
     attachLayer (typeRep' @Model) (typeRep' @EXPR)
     attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
