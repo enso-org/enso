@@ -194,7 +194,7 @@ instance Default (IRState   m) where def = IRState   def def def
 
 -- === Definition === --
 
-newtype IRT m a = IRT (StateT (IRTState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype IRT m a = IRT (StateT (IRTState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadThrow)
 type IRTState m = IRState (IRT m)
 makeWrapped ''IRT
 
