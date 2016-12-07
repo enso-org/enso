@@ -56,6 +56,7 @@ data InternalError = MissingData TypeRep deriving (Show, Eq)
 
 type family Inputs    pass :: [*]
 type family Outputs   pass :: [*]
+type family Emitters  pass :: [*]
 type family Preserves pass :: [*]
 
 
@@ -74,7 +75,7 @@ data DynSubPass m a = DynSubPass { _inputs    :: [TypeRep]
                                  , _dynEval   :: m (Either InternalError (m a))
                                  }
 
-type PassData       pass = Inputs pass <> Outputs pass -- FIXME (there are duplicates in the list)
+type PassData       pass = Inputs pass <> Outputs pass <> Emitters pass -- FIXME (there are duplicates in the list)
 type Keys           pass = PassData pass
 type PassDataSet  s pass = DataSet s (PassData pass)
 type PassDataSetM m pass = PassDataSet (PrimState m) pass

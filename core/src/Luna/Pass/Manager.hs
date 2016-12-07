@@ -6,22 +6,26 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
+import           Data.Event
 
 import Luna.IR.Internal.IR
 import Luna.Pass.Class
+
 
 
 -------------------
 -- === State === --
 -------------------
 
-data State m = State { _layerCons :: Map LayerRep (DynPass m)
+data State m = State { _layerCons   :: Map LayerRep (DynPass m)
+                     , _listenerHub :: ListenerHub m
                      }
 
 
 -- === instances === --
 
-instance Default (State m) where def = State def ; {-# INLINE def #-}
+instance Default (State m) where
+    def = State def def ; {-# INLINE def #-}
 
 
 --------------------------

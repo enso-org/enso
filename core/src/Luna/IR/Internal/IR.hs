@@ -209,15 +209,8 @@ thaw       = mapM Store.thaw       ; {-# INLINE thaw       #-}
 
 -- === Definition === --
 
-newtype IRBuilder m a = IRBuilder (StateT (IRBuilderState m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
-type IRBuilderState m = IRM (IRBuilder m)
+newtype IRBuilder m a = IRBuilder (StateT (IRM m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
 makeWrapped ''IRBuilder
-
-type IRM' m = IRM (GetIRBuilder m)
-type        GetIRBuilder      m = IRBuilder (GetIRBuilderMonad m)
-type family GetIRBuilderMonad m where
-            GetIRBuilderMonad (IRBuilder m) = m
-            GetIRBuilderMonad (t   m) = GetIRBuilderMonad m
 
 
 -- === Accessors === --
@@ -253,7 +246,7 @@ uncheckedElems = fmap (view (from $ elem . idx)) <$> (Store.ixes =<< readNet @(A
 
 -- === Construction === --
 
-newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), PrimMonad (GetIRBuilder m), IsElem t) => Definition t -> m t
+newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), IsElem t) => Definition t -> m t
 newMagicElem tdef = do
     irstate    <- getIR
 
@@ -261,7 +254,7 @@ newMagicElem tdef = do
     -- hacky, manual index reservation in order not to use keys for magic star
     let trep = typeRep' @(Abstract t)
         Just layerStore = irstate ^? wrapped'  . ix trep
-    newIdx <- runByIRBuilder $ Store.reserveIdx layerStore
+    newIdx <- Store.reserveIdx layerStore
 
 
     let el = newIdx ^. from (elem . idx)
@@ -287,21 +280,21 @@ newElem tdef = do
 
 
 delete :: forall t m. (IRMonad m, IsElem t, Accessible (Net (Abstract t)) m) => t -> m ()
-delete t = runByIRBuilder . flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+delete t = flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
-reserveNewElemIdx = runByIRBuilder . Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
+reserveNewElemIdx = Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 
 readLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-readLayerByKey key t = unsafeCoerce <$> runByIRBuilder (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
+readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
 
 writeLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
 writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. elem . idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
 
-readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => t -> m (LayerData layer t)
+readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
 readLayer t = flip readLayerByKey t =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
-writeLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m ) => LayerData layer t -> t -> m ()
+writeLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
 writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
 readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyDataM m (Attr a))
@@ -316,23 +309,23 @@ readNet = readComp @(Net a) ; {-# INLINE readNet #-}
 
 -- === Registration === --
 
-registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStoreM (GetIRBuilder m) -> ElemStoreM (GetIRBuilder m)) -> m ()
-registerElemWith = modifyIRM_ . fmap runByIRBuilder . modifyElem (typeRep' @el) ; {-# INLINE registerElemWith #-}
+registerElemWith :: forall el m. (Typeable el, IRMonad m) => (ElemStoreM m -> ElemStoreM m) -> m ()
+registerElemWith = modifyIRM_ . modifyElem (typeRep' @el) ; {-# INLINE registerElemWith #-}
 
 registerElem :: forall el m. (Typeable el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
 -- registerGenericLayer :: forall layer t m. (IRMonad m, Typeable layer)
---                      => LayerCons' layer t (GetIRBuilder m) -> m ()
+--                      => LayerCons' layer t m -> m ()
 -- registerGenericLayer f = modifyIR_ $ genericLayers %~ Map.insert (typeRep' @layer) (anyCons @layer f)
 -- {-# INLINE registerGenericLayer #-}
 --
 -- registerElemLayer :: forall at layer t m. (IRMonad m, Typeable at, Typeable layer)
---                   => LayerCons' layer t (GetIRBuilder m) -> m ()
+--                   => LayerCons' layer t m -> m ()
 -- registerElemLayer f = modifyIR_ $ specificLayers (typeRep' @at) %~ Map.insert (typeRep' @layer) (anyCons @layer f)
 -- {-# INLINE registerElemLayer #-}
 
-attachLayer :: (IRMonad m, PrimMonad (GetIRBuilder m)) => LayerRep -> ElemRep -> m ()
+attachLayer :: IRMonad m => LayerRep -> ElemRep -> m ()
 attachLayer l e = do
     s <- getIR
     let Just estore = s ^? wrapped' . ix e -- Internal error if not found (element not registered)
@@ -353,30 +346,26 @@ attachLayer l e = do
 
 -- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadBase       m = (PrimMonad m, MonadFix m)
-type  IRMonadBaseIO     m = (PrimMonad m, MonadFix m, MonadIO m)
-type  IRMonadInvariants m = (IRMonadBase m, IRMonadBase (GetIRBuilderMonad m), IRMonad (GetIRBuilder m), PrimState m ~ PrimState (GetIRBuilderMonad m))
-class IRMonadInvariants m => IRMonad m where
-    getIR          :: m (IRM' m)
-    putIR          :: IRM' m -> m ()
-    runByIRBuilder :: GetIRBuilder m a -> m a
+type  IRMonadBase   m = (PrimMonad   m, MonadFix m)
+type  IRMonadBaseIO m = (IRMonadBase m, MonadIO  m)
+class IRMonadBase m => IRMonad m where
+    getIR :: m (IRM m)
+    putIR :: IRM m -> m ()
 
-instance {-# OVERLAPPABLE #-} (MonadFix m, PrimMonad m) => IRMonad (IRBuilder m) where
-    getIR           = wrap'   State.get ; {-# INLINE getIR          #-}
-    putIR           = wrap' . State.put ; {-# INLINE putIR          #-}
-    runByIRBuilder  = id                ; {-# INLINE runByIRBuilder #-}
+instance {-# OVERLAPPABLE #-} IRMonadBase m => IRMonad (IRBuilder m) where
+    getIR = wrap'   State.get ; {-# INLINE getIR #-}
+    putIR = wrap' . State.put ; {-# INLINE putIR #-}
 
 instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
-    getIR          = lift   getIR          ; {-# INLINE getIR          #-}
-    putIR          = lift . putIR          ; {-# INLINE putIR          #-}
-    runByIRBuilder = lift . runByIRBuilder ; {-# INLINE runByIRBuilder #-}
+    getIR = lift   getIR ; {-# INLINE getIR #-}
+    putIR = lift . putIR ; {-# INLINE putIR #-}
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), GetIRBuilder (t m) ~ GetIRBuilder m, PrimState (t m) ~ PrimState m)
+type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), PrimState (t m) ~ PrimState m)
 
 
 -- === Modyfication === --
 
-modifyIRM :: IRMonad m => (IRM' m -> m (a, IRM' m)) -> m a
+modifyIRM :: IRMonad m => (IRM m -> m (a, IRM m)) -> m a
 modifyIRM f = do
     s <- getIR
     (a, s') <- f s
@@ -384,10 +373,10 @@ modifyIRM f = do
     return a
 {-# INLINE modifyIRM #-}
 
-modifyIRM_ :: IRMonad m => (IRM' m -> m (IRM' m)) -> m ()
+modifyIRM_ :: IRMonad m => (IRM m -> m (IRM m)) -> m ()
 modifyIRM_ = modifyIRM . fmap (fmap ((),)) ; {-# INLINE modifyIRM_ #-}
 
-modifyIR_ :: IRMonad m => (IRM' m -> IRM' m) -> m ()
+modifyIR_ :: IRMonad m => (IRM m -> IRM m) -> m ()
 modifyIR_ = modifyIRM_ . fmap return ; {-# INLINE modifyIR_ #-}
 
 snapshot :: IRMonad m => m IR
@@ -396,7 +385,7 @@ snapshot = freeze =<< getIR ; {-# INLINE snapshot #-}
 
 -- === Running === --
 
-evalIRBuilderM :: Monad m => IRBuilder m a -> IRBuilderState m -> m a
+evalIRBuilderM :: Monad m => IRBuilder m a -> IRM m -> m a
 evalIRBuilderM = State.evalStateT . unwrap' ; {-# INLINE evalIRBuilderM #-}
 
 evalIRBuilder :: PrimMonad m => IRBuilder m a -> IR -> m a

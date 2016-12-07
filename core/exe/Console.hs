@@ -13,7 +13,7 @@ import Data.Aeson (encode)
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
-import           Luna.Pass        (Pass, Inputs, Outputs, Preserves)
+import           Luna.Pass        (Pass, Inputs, Outputs, Emitters, Preserves)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
 import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
@@ -31,6 +31,7 @@ import qualified Control.Monad.State as State
 import Data.RTuple (Assoc ((:=)))
 import Luna.Pass.Manager
 
+import Data.Event
 
 data Incoherence = DeteachedSource AnyExpr AnyExprLink
                  | OrphanLink      AnyExprLink
@@ -98,9 +99,10 @@ checkLinkTarget e lnk = do
 
 
 
+data New a
 
 
-
+type NewExpr = Event (New EXPR)
 
 data MyData = MyData Int deriving (Show)
 
@@ -109,6 +111,7 @@ data                    SimpleAA
 -- type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
 type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
+type instance Emitters  SimpleAA = '[] -- NewExpr]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
@@ -147,6 +150,12 @@ uncheckedDeleteStarType e = do
 {-# INLINE uncheckedDeleteStarType #-}
 
 
+-- class Monad m => KeyMonad key m where
+--     uncheckedLookupKey :: m (Maybe (KeyM m key))
+
+instance Monad m => KeyMonad (Event e) (PassManager m) where
+    uncheckedLookupKey = undefined
+
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
              , Accessibles m '[ExprNet]
@@ -156,6 +165,13 @@ gen_pass1 = do
     print s
 
 
+    let h  = def :: ListenerHub IO
+        h2 = h & space (Tag [typeRep' @Int, typeRep' @Char, typeRep' @Bool]) .~ Just def
+        h3 = h2 & space (Tag [typeRep' @Int, typeRep' @Char]) .~ Nothing
+
+    print h2
+    print "---"
+    print h3
     -- Str constructor
     -- (strName :: Expr String) <- rawString "String"
     -- (strCons :: Expr (Cons #> String)) <- cons strName
