@@ -13,7 +13,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key, Readable(..), Writable(..), KeyReadError, KeyMissingError)
+import           Luna.IR.Internal.IR   (Key(Key), Readable(..), Writable(..), KeyReadError, KeyMissingError, rebaseKey, RebasedKeyData)
 import qualified Luna.IR.Internal.IR   as IR (KeyMonad, uncheckedLookupKey)
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -28,18 +28,18 @@ import Unsafe.Coerce (unsafeCoerce)
 -- === DataSet === --
 ---------------------
 
-newtype DataSet  s lst = DataSet (List (Key s <$> lst))
-type    DataSetM m     = DataSet (PrimState m)
+newtype DataSet  m lst = DataSet (List (Key m <$> lst))
+-- type    DataSetM m     = DataSet (PrimState m)
 makeWrapped ''DataSet
 
-prepend :: Key s k -> DataSet s ks -> DataSet s (k ': ks)
+prepend :: Key m k -> DataSet m ks -> DataSet m (k ': ks)
 prepend k = wrapped %~ List.prepend k ; {-# INLINE prepend #-}
 
 -- | FIXME[WD]: tail cannot be constructed as wrapped . List.tail . Why?
-tail :: Lens' (DataSet s (k ': ks)) (DataSet s ks)
+tail :: Lens' (DataSet m (k ': ks)) (DataSet m ks)
 tail = lens (wrapped %~ (view List.tail)) $ flip (\lst -> wrapped %~ (List.tail .~ unwrap' lst)) ; {-# INLINE tail #-}
 
-head :: Lens' (DataSet s (k ': ks)) (Key s k)
+head :: Lens' (DataSet m (k ': ks)) (Key m k)
 head = wrapped . List.head ; {-# INLINE head #-}
 
 
@@ -63,7 +63,7 @@ type family Preserves pass :: [*]
 -- === Data declarations ===
 
 type    Pass    pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (PassDataSetM m pass) m a)
+newtype SubPass pass m a = SubPass (StateT (PassDataSet m pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
@@ -77,13 +77,17 @@ data DynSubPass m a = DynSubPass { _inputs    :: [TypeRep]
 
 type PassData       pass = Inputs pass <> Outputs pass <> Emitters pass -- FIXME (there are duplicates in the list)
 type Keys           pass = PassData pass
-type PassDataSet  s pass = DataSet s (PassData pass)
-type PassDataSetM m pass = PassDataSet (PrimState m) pass
+type PassDataSet  m pass = DataSet m (PassData pass)
+-- type PassDataSetM m pass = PassDataSet (PrimState m) pass
 
-type        GetPassData m = PassDataSetM m (GetPass m)
+type GetPassData m = PassDataSet (GetPassMonad m) (GetPass m)
 type family GetPass  m where
     GetPass (SubPass pass m) = pass
     GetPass (t m)            = GetPass m
+
+type family GetPassMonad m where
+    GetPassMonad (SubPass pass m) = m
+    GetPassMonad (t m)            = GetPassMonad m
 
 
 makeWrapped ''SubPass
@@ -107,7 +111,7 @@ commit p = DynSubPass
            (initPass p)
 {-# INLINE commit #-}
 
-initPass :: (LookupData n (Keys pass), Monad m, PrimState m ~ PrimState n) => SubPass pass m a -> n (Either InternalError (m a))
+initPass :: (LookupData m (Keys pass), Monad m) => SubPass pass m a -> m (Either InternalError (m a))
 initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData ; {-# INLINE initPass #-}
 
 eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
@@ -124,7 +128,7 @@ run = view dynEval ; {-# INLINE run #-}
 -- === Keys lookup === --
 
 type ReLookupData k m ks = (IR.KeyMonad k m, LookupData m ks, Typeable k)
-class    Monad m             => LookupData m keys      where lookupData :: m (Either InternalError (DataSetM m keys))
+class    Monad m             => LookupData m keys      where lookupData :: m (Either InternalError (DataSet m keys))
 instance Monad m             => LookupData m '[]       where lookupData = return $ return (wrap' List.empty)
 instance ReLookupData k m ks => LookupData m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeRep' @k) <$> IR.uncheckedLookupKey)
                                                                                   <<*>> lookupData
@@ -202,19 +206,22 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- Readable
 instance ( Monad m
          , ContainsKey k (Keys pass)
-         , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Readable k (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
+         , Assert (k `In` (Inputs pass)) (KeyReadError k)
+         , RebasedKeyData (SubPass pass m) m k)
+      => Readable k (SubPass pass m) where getKey = rebaseKey . view findKey <$> get ; {-# INLINE getKey #-}
 
 -- Writable
 instance ( Monad m
          , ContainsKey k (Keys pass)
-         , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
+         , Assert (k `In` (Inputs pass)) (KeyReadError k)
+         , RebasedKeyData (SubPass pass m) m k)
+      => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ rebaseKey k) ; {-# INLINE putKey #-}
 
 
 -- === ContainsKey === --
 
-class                                     ContainsKey k ls        where findKey :: Lens' (DataSet s ls) (Key s k)
+class                                     ContainsKey k ls        where findKey :: Lens' (DataSet m ls) (Key m k)
 instance {-# OVERLAPPING #-}              ContainsKey k (k ': ls) where findKey = head           ; {-# INLINE findKey #-}
 instance ContainsKey k ls              => ContainsKey k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
 instance TypeError (KeyMissingError k) => ContainsKey k '[]       where findKey = impossible     ; {-# INLINE findKey #-}
+-- getKey :: m (Key m k)

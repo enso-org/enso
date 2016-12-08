@@ -48,7 +48,7 @@ import Type.Inference
 
 
 
-type Typeables ts = Constraints $ Typeable <$> ts
+
 
 
 
@@ -81,27 +81,32 @@ instance IsIdx Elem where
 
 --- === Definition === --
 
-newtype Key  s k = Key (KeyData s k)
-type    KeyM m   = Key (PrimState m)
+-- newtype Key  s k = Key (KeyData s k)
+newtype Key m k = Key (KeyData m k)
 
-type family KeyData  s key
-type        KeyDataM m key = KeyData (PrimState m) key
+type family KeyData (m :: * -> *) key
+-- type        KeyData m key = KeyData (PrimState m) key
 
-makeWrapped '' Key
+makeWrapped ''Key
+
+type RebasedKeyData m n k = (KeyData n k ~ KeyData m k)
+
+rebaseKey :: RebasedKeyData m n k => Key m k -> Key n k
+rebaseKey = rewrap ; {-# INLINE rebaseKey #-}
 
 
 -- === Key Monad === --
 
 class Monad m => KeyMonad key m where
-    uncheckedLookupKey :: m (Maybe (KeyM m key))
+    uncheckedLookupKey :: m (Maybe (Key m key))
 
 
 -- === Construction === --
 
-readKey :: forall k m. Monad m => KeyM m k -> m (KeyDataM m k)
+readKey :: forall k m. Monad m => Key m k -> m (KeyData m k)
 readKey = return . unwrap' ; {-# INLINE readKey #-}
 
-writeKey :: forall k m. Monad m => KeyDataM m k -> m (KeyM m k)
+writeKey :: forall k m. Monad m => KeyData m k -> m (Key m k)
 writeKey = return . wrap' ; {-# INLINE writeKey #-}
 
 
@@ -111,20 +116,20 @@ type Accessible k m = (Readable k m, Writable k m)
 type TransST    t m = (MonadTrans t, Monad (t m), PrimState (t m) ~ PrimState m)
 
 -- Readable
-class    Monad m                                => Readable k m     where getKey :: m (KeyM m k)
-instance {-# OVERLAPPABLE #-} SubReadable k t m => Readable k (t m) where getKey = lift getKey ; {-# INLINE getKey #-}
-type SubReadable k t m = (Readable k m, TransST t m)
+class    Monad m                                => Readable k m     where getKey :: m (Key m k)
+instance {-# OVERLAPPABLE #-} SubReadable k t m => Readable k (t m) where getKey = lift (rebaseKey <$> getKey) ; {-# INLINE getKey #-}
+type SubReadable k t m = (Readable k m, TransST t m, RebasedKeyData (t m) m k)
 
 -- Writable
-class    Monad m                                => Writable k m     where putKey :: KeyM m k -> m ()
-instance {-# OVERLAPPABLE #-} SubWritable k t m => Writable k (t m) where putKey = lift . putKey ; {-# INLINE putKey #-}
-type SubWritable k t m = (Writable k m, TransST t m)
+class    Monad m                                => Writable k m     where putKey :: Key m k -> m ()
+instance {-# OVERLAPPABLE #-} SubWritable k t m => Writable k (t m) where putKey = lift . putKey . rebaseKey ; {-# INLINE putKey #-}
+type SubWritable k t m = (Writable k m, TransST t m, RebasedKeyData (t m) m k)
 
 
-readComp :: forall k m. Readable k m => m (KeyDataM m k)
+readComp :: forall k m. Readable k m => m (KeyData m k)
 readComp = readKey =<< getKey @k ; {-# INLINE readComp #-}
 
-writeComp :: forall k m. Writable k m => KeyDataM m k -> m ()
+writeComp :: forall k m. Writable k m => KeyData m k -> m ()
 writeComp = putKey @k <=< writeKey ; {-# INLINE writeComp #-}
 
 
@@ -269,7 +274,7 @@ newElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsElem t, Ty
 newElem tdef = do
     irstate    <- getIR
     newIdx     <- reserveNewElemIdx @t
-    layerStore <- readComp @(Net (Abstract t))
+    -- layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
@@ -285,10 +290,10 @@ delete t = flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t))
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+readLayerByKey :: (IRMonad m, IsElem t) => Key m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
 readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
 
-writeLayerByKey :: (IRMonad m, IsElem t) => KeyM m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
+writeLayerByKey :: (IRMonad m, IsElem t) => Key m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
 writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. elem . idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
 
 readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
@@ -297,13 +302,13 @@ readLayer t = flip readLayerByKey t =<< getKey @(Layer (Abstract t) layer) ; {-#
 writeLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
 writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
-readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyDataM m (Attr a))
+readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyData m (Attr a))
 readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
 
-writeAttr :: forall a m. (IRMonad m, Writable (Attr a) m) => KeyDataM m (Attr a) -> m ()
+writeAttr :: forall a m. (IRMonad m, Writable (Attr a) m) => KeyData m (Attr a) -> m ()
 writeAttr a = writeComp @(Attr a) a
 
-readNet :: forall a m. (IRMonad m, Readable (Net a) m) => m (KeyDataM m (Net a))
+readNet :: forall a m. (IRMonad m, Readable (Net a) m) => m (KeyData m (Net a))
 readNet = readComp @(Net a) ; {-# INLINE readNet #-}
 
 
@@ -411,9 +416,9 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 
 -- === Definitions === --
 
-type instance KeyData s (Layer _ _) = LayerSet s
-type instance KeyData s (Net   _)   = ElemStoreST s
-type instance KeyData s (Attr  a)   = a
+type instance KeyData m (Layer _ _) = LayerSet    (PrimState m)
+type instance KeyData m (Net   _)   = ElemStoreST (PrimState m)
+type instance KeyData _ (Attr  a)   = a
 
 
 -- === Aliases === --

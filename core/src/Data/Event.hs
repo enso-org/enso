@@ -14,13 +14,15 @@ import           Data.Map (Map)
 
 -- === Events === --
 
-type family Payload e
+type family Payload (e :: [*])
 
 newtype Tag      = Tag [EventRep] deriving (Show)
 type    AnyEvent = Event Prim.Any
-data    Event e  = Event { _event :: Tag
-                         , _elem  :: Payload e
-                         }
+
+-- data Tag2 (t :: [*])
+data Event e = Event { _event :: Tag
+                     , _elem  :: Payload e
+                     }
 
 newtype EventRep = EventRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep EventRep
@@ -43,38 +45,32 @@ class EventMonad m where
 
 -- === Functions === --
 
-newtype ListenerFunc m = ListenerFunc (m ())
 newtype ListenerRep    = ListenerRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep ListenerRep
 
 
-data ListenerHeader = ListenerHeader { _rep :: ListenerRep
-                                     , _tag :: Tag
+data ListenerHeader = ListenerHeader { _tag :: Tag
+                                     , _rep :: ListenerRep
                                      } deriving (Show)
 
-data Listener m = Listener { _header :: ListenerHeader
-                           , _func   :: ListenerFunc m
-                           }
+data Listener f = Listener { _header :: ListenerHeader
+                           , _func   :: f
+                           } deriving (Show, Functor, Foldable, Traversable)
 
 makePfxClassy ''ListenerHeader
 makePfxLenses ''Listener
 makeClassy    ''ListenerRep
 makeWrapped   ''ListenerRep
-makeWrapped   ''ListenerFunc
 
 
 -- === Utils === --
 
-eval :: Listener m -> m ()
-eval = unwrap' . _func ; {-# INLINE eval #-}
+eval :: Listener f -> f
+eval = _func ; {-# INLINE eval #-}
+
 
 
 -- === Instances === --
-
--- Show
-deriving instance Show (Listener m)
-instance Show (ListenerFunc m) where
-    show _ = "Function" ; {-# INLINE show #-}
 
 -- Properties
 instance HasListenerRep ListenerHeader where listenerRep = listenerHeader_rep ; {-# INLINE listenerRep #-}

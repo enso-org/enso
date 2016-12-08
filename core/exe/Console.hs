@@ -29,9 +29,9 @@ import Control.Monad.State (MonadState, StateT, execStateT, get, put)
 import qualified Control.Monad.State as State
 
 import Data.RTuple (Assoc ((:=)))
-import Luna.Pass.Manager
+import Luna.Pass.Manager as PM
 
-import Data.Event
+import Data.Event as Event
 
 data Incoherence = DeteachedSource AnyExpr AnyExprLink
                  | OrphanLink      AnyExprLink
@@ -99,10 +99,10 @@ checkLinkTarget e lnk = do
 
 
 
-data New a
+data New
 
 
-type NewExpr = Event (New EXPR)
+type NewExpr = Event '[New, EXPR]
 
 data MyData = MyData Int deriving (Show)
 
@@ -111,7 +111,7 @@ data                    SimpleAA
 -- type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
 type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
-type instance Emitters  SimpleAA = '[] -- NewExpr]
+type instance Emitters  SimpleAA = '[NewExpr]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
@@ -153,8 +153,17 @@ uncheckedDeleteStarType e = do
 -- class Monad m => KeyMonad key m where
 --     uncheckedLookupKey :: m (Maybe (KeyM m key))
 
-instance Monad m => KeyMonad (Event e) (PassManager m) where
-    uncheckedLookupKey = undefined
+type instance KeyData m (Event e) = PM.GetMonad m ()
+
+instance (Monad m, Typeables e) => KeyMonad (Event e) (PassManager m) where
+    uncheckedLookupKey = Just . Key . sequence_ . fmap (Pass.eval . Event.eval) <$> PM.queryListeners (Tag $ typeReps' @e)
+    -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
+
+-- fromRight (Right a) = a
+-- queryListeners :: MonadPassManager m => Event.Tag -> m [Event.Listener (PMPass' m)]
+-- type PMPass m = DynPass (PassManager m)
+-- type PMPass' m = DynPass (PassManager (GetManagerMonad m))
+
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
@@ -165,13 +174,13 @@ gen_pass1 = do
     print s
 
 
-    let h  = def :: ListenerHub IO
-        h2 = h & space (Tag [typeRep' @Int, typeRep' @Char, typeRep' @Bool]) .~ Just def
-        h3 = h2 & space (Tag [typeRep' @Int, typeRep' @Char]) .~ Nothing
-
-    print h2
-    print "---"
-    print h3
+    -- let h  = def :: ListenerHub IO
+    --     h2 = h & space (Tag [typeRep' @Int, typeRep' @Char, typeRep' @Bool]) .~ Just def
+    --     h3 = h2 & space (Tag [typeRep' @Int, typeRep' @Char]) .~ Nothing
+    --
+    -- print h2
+    -- print "---"
+    -- print h3
     -- Str constructor
     -- (strName :: Expr String) <- rawString "String"
     -- (strCons :: Expr (Cons #> String)) <- cons strName
