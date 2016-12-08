@@ -69,11 +69,15 @@ newtype SubPass pass m a = SubPass (StateT (PassDataSet m pass) m a)
                  , Catch.MonadCatch, Catch.MonadThrow)
 
 type DynPass    m   = DynSubPass m ()
-data DynSubPass m a = DynSubPass { _inputs    :: [TypeRep]
+data DynSubPass m a = DynSubPass { _repr      :: TypeRep -- FIXME[WD]: why we need all the data below? maybe we could keep it in some pass registry?
+                                 , _inputs    :: [TypeRep]
                                  , _outputs   :: [TypeRep]
                                  , _preserves :: [TypeRep]
                                  , _dynEval   :: m (Either InternalError (m a))
                                  }
+
+--FIXME[WD]:
+instance Show (DynSubPass m a) where show _ = "DynPass"
 
 type PassData       pass = Inputs pass <> Outputs pass <> Emitters pass -- FIXME (there are duplicates in the list)
 type Keys           pass = PassData pass
@@ -98,6 +102,7 @@ makeLenses  ''DynSubPass
 
 type Commit m pass = ( Monad m
                      , LookupData m (Keys pass)
+                     , Typeable  pass
                      , Typeables (Inputs    pass)
                      , Typeables (Outputs   pass)
                      , Typeables (Preserves pass)
@@ -105,6 +110,7 @@ type Commit m pass = ( Monad m
 
 commit :: forall pass m a. Commit m pass => SubPass pass m a -> DynSubPass m a
 commit p = DynSubPass
+           (typeRep'  @pass)
            (typeReps' @(Inputs    pass))
            (typeReps' @(Outputs   pass))
            (typeReps' @(Preserves pass))
@@ -198,6 +204,9 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
     type PrimState (SubPass pass m) = PrimState m
     primitive = lift . primitive
     {-# INLINE primitive #-}
+
+
+
 
 
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<

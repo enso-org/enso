@@ -41,7 +41,8 @@ import qualified Luna.IR.Expr.Layout       as Layout
 import qualified Luna.IR.Expr.Term.Class   as N
 import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
 import qualified Type.List                 as List
-
+import qualified Data.Event                as Event
+import           Data.Event                (Event(Event), emit)
 import Luna.IR.Expr.Term.Uni ()
 import Type.Inference
 
@@ -56,6 +57,16 @@ class IsIdx t where
     idx :: Iso' t Int
     default idx :: (Wrapped t, Unwrapped t ~ Int) => Lens' t Int
     idx = wrapped' ; {-# INLINE idx #-}
+
+
+
+--------------------
+-- === Events === --
+--------------------
+
+
+data New
+
 
 
 ------------------
@@ -270,12 +281,15 @@ newMagicElem tdef = do
     return el
 {-# INLINE newMagicElem #-}
 
-newElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsElem t, Typeable (Abstract t)) => Definition t -> m t
+type NewElemEvent m t = (Event.Emitter m '[New, Abstract t], Event.Payload '[New, Abstract t] ~ Universal t)
+newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsElem t, Typeable (Abstract t))
+        => Definition t -> m t
 newElem tdef = do
     irstate    <- getIR
     newIdx     <- reserveNewElemIdx @t
     -- layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
+    emit (Event (universal el) :: Event '[New, (Abstract t)])
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
@@ -470,7 +484,7 @@ magicLink :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract
           => a -> b -> m (Link a b)
 magicLink a b = newMagicElem (a,b) ; {-# INLINE magicLink #-}
 
-link :: forall a b m. (IRMonad m, Typeable (Abstract a), Typeable (Abstract b), Accessible (Net (Abstract (Link a b))) m)
+link :: forall a b m. (IRMonad m, Typeable (Abstract a), NewElemEvent m (Link a b), Typeable (Abstract b), Accessible (Net (Abstract (Link a b))) m)
      => a -> b -> m (Link a b)
 link a b = newElem (a,b) ; {-# INLINE link #-}
 
@@ -500,7 +514,7 @@ type instance Abstract (Group a) = GROUP (Abstract a)
 
 -- === Construction === --
 
-group :: forall f a m. (IRMonad m, Foldable f, Ord a, Typeable (Abstract a), Accessible (Net (Abstract (Group a))) m)
+group :: forall f a m. (IRMonad m, Foldable f, Ord a, NewElemEvent m (Group a), Typeable (Abstract a), Accessible (Net (Abstract (Group a))) m)
       => f a -> m (Group a)
 group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
@@ -646,7 +660,7 @@ magicExpr :: forall atom layout m. (TermEncoder atom, IRMonad m)
           => ExprTerm atom (Expr layout) -> m (Expr layout)
 magicExpr a = newMagicElem (encodeTerm a) ; {-# INLINE magicExpr #-}
 
-expr :: forall atom layout m. (TermEncoder atom, IRMonad m, Accessible (Net EXPR) m)
+expr :: forall atom layout m. (TermEncoder atom, IRMonad m, NewElemEvent m (Expr layout), Accessible (Net EXPR) m)
      => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr = newElem . encodeTerm ; {-# INLINE expr #-}
 
@@ -679,6 +693,9 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 
 -- === Instances === --
+
+type instance Event.Payload '[New, EXPR] = AnyExpr
+type instance Event.Payload '[New, LINK' EXPR] = Link' AnyExpr -- FIXME[WD]: refactor
 
 type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)

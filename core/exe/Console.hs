@@ -97,41 +97,34 @@ checkLinkTarget e lnk = do
 
 
 
+data LP1
+type instance Inputs    LP1 = '[]
+type instance Outputs   LP1 = '[]
+type instance Emitters  LP1 = '[]
+type instance Preserves LP1 = '[]
 
-
-data New
+lp1 :: MonadIO m => Pass LP1 m
+lp1 = print "hello"
 
 
 type NewExpr = Event '[New, EXPR]
 
-data MyData = MyData Int deriving (Show)
-
 data                    SimpleAA
--- type instance Inputs    SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
--- type instance Outputs   SimpleAA = '[Attr MyData, ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type] <> ExprLinkLayers '[Model, UID]
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
 type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
 type instance Emitters  SimpleAA = '[NewExpr]
 type instance Preserves SimpleAA = '[]
 
-pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m) => Pass SimpleAA m
+pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
-
-    -- attachLayer (typeRep' @Model) (typeRep' @EXPR)
-    -- attachLayer (typeRep' @Succs) (typeRep' @EXPR)
-    -- attachLayer (typeRep' @Type)  (typeRep' @EXPR)
-    -- attachLayer (typeRep' @UID)   (typeRep' @EXPR)
-
-    -- attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
-    -- attachLayer (typeRep' @UID)   (typeRep' @(LINK' EXPR))
-
-    -- setAttr $ MyData 7
-
+    addEventListener $ Listener (ListenerHeader (Tag $ typeReps' @('[New, EXPR])) (typeRep' @LP1)) (Pass.commit lp1)
     Pass.eval' pass1
+
+
 
 
 uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
@@ -153,13 +146,15 @@ uncheckedDeleteStarType e = do
 -- class Monad m => KeyMonad key m where
 --     uncheckedLookupKey :: m (Maybe (KeyM m key))
 
-type instance KeyData m (Event e) = PM.GetMonad m ()
 
 instance (Monad m, Typeables e) => KeyMonad (Event e) (PassManager m) where
-    uncheckedLookupKey = Just . Key . sequence_ . fmap (Pass.eval . Event.eval) <$> PM.queryListeners (Tag $ typeReps' @e)
+    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap (Pass.eval . Event.eval) <$> PM.queryListeners (Tag $ typeReps' @e)
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
--- fromRight (Right a) = a
+fixme1 :: Monad m => m [Either Pass.InternalError ()] -> m ()
+fixme1 m = fromRight =<< (sequence <$> m)
+fromRight (Right a) = return ()
+fromRight (Left e) = error $ show e
 -- queryListeners :: MonadPassManager m => Event.Tag -> m [Event.Listener (PMPass' m)]
 -- type PMPass m = DynPass (PassManager m)
 -- type PMPass' m = DynPass (PassManager (GetManagerMonad m))
@@ -167,9 +162,11 @@ instance (Monad m, Typeables e) => KeyMonad (Event e) (PassManager m) where
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
-             , Accessibles m '[ExprNet]
+             , Accessibles m '[ExprNet], Emitter m '[New, EXPR]
              ) => m ()
 gen_pass1 = do
+    (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
     (s :: Expr Star) <- star
     print s
 

@@ -14,18 +14,13 @@ import           Data.Map (Map)
 
 -- === Events === --
 
-type family Payload (e :: [*])
-
-newtype Tag      = Tag [EventRep] deriving (Show)
-type    AnyEvent = Event Prim.Any
-
--- data Tag2 (t :: [*])
-data Event e = Event { _event :: Tag
-                     , _elem  :: Payload e
-                     }
-
-newtype EventRep = EventRep TypeRep deriving (Show, Eq, Ord)
+data    Event    e = Event (Payload e)
+type    AnyEvent   = Event Prim.Any
+newtype Tag        = Tag [EventRep]   deriving (Show)
+newtype EventRep   = EventRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep EventRep
+
+type family Payload (e :: [*])
 
 makeClassy  ''Tag
 makeWrapped ''Tag
@@ -34,10 +29,9 @@ makeWrapped ''EventRep
 
 -- === Utils === --
 
-class EventMonad m where
-    emit :: AnyEvent -> m ()
+class Monad m => Emitter m e where
+    emit :: Event e -> m ()
 
--- emit $ event New EXPR a
 
 -----------------------
 -- === Listeners === --
@@ -45,7 +39,7 @@ class EventMonad m where
 
 -- === Functions === --
 
-newtype ListenerRep    = ListenerRep TypeRep deriving (Show, Eq, Ord)
+newtype ListenerRep = ListenerRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep ListenerRep
 
 
@@ -97,13 +91,13 @@ makeLenses ''ListenerHub
 
 -- === Utils === --
 
-addListener :: Listener m -> ListenerHub m -> ListenerHub m
-addListener l = space' (l ^. tag) . listeners %~ Map.insert (l ^. listenerRep) l ; {-# INLINE addListener #-}
+attachListener :: Listener m -> ListenerHub m -> ListenerHub m
+attachListener l = (space' (l ^. tag) . listeners) %~ Map.insert (l ^. listenerRep) l ; {-# INLINE attachListener #-}
 
-removeListener :: HasListenerHeader l => l -> ListenerHub m -> ListenerHub m
-removeListener l = space' (h ^. tag) . listeners %~ Map.delete (h ^. listenerRep) where
+deteachListener :: HasListenerHeader l => l -> ListenerHub m -> ListenerHub m
+deteachListener l = space' (h ^. tag) . listeners %~ Map.delete (h ^. listenerRep) where
     h = l ^. listenerHeader
-{-# INLINE removeListener #-}
+{-# INLINE deteachListener #-}
 
 queryListeners :: Tag -> ListenerHub m -> [Listener m]
 queryListeners e = Map.elems . view (space' e . listeners) ; {-# INLINE queryListeners #-}
