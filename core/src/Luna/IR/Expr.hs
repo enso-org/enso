@@ -28,7 +28,7 @@ type T' = T Star
 -- instance Monad m                           => LitExpr m (Expr l)       where litExpr = return ; {-# INLINE litExpr #-}
 
 
-star :: (IRMonad m, Accessible ExprNet m, Emitter m '[New, EXPR]) => m (Expr Star)
+star :: (IRMonad m, Accessible ExprNet m, Emitter m '[NEW, EXPR]) => m (Expr Star)
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 

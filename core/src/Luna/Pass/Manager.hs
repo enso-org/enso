@@ -8,11 +8,11 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (Event, ListenerHub, Emitter)
+import           Data.Event          (Event, ListenerHub, Emitter, IsTag, Listener(Listener), toTag, attachListener)
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
-import Luna.Pass.Class (DynPass, SubPass)
+import Luna.Pass.Class (IsPass, DynPass, SubPass)
 import qualified Luna.Pass.Class as Pass
 
 
@@ -97,11 +97,13 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 makeLenses ''State -- FIXME [WD]: refactor
 
-queryListeners :: MonadPassManager m => Event.Tag -> m [Event.Listener (PMPass' m)]
+queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
 queryListeners t = Event.queryListeners t . view listenerHub <$> get
 
-addEventListener :: MonadPassManager m => Event.Listener (PMPass' m) -> m ()
-addEventListener l = modify_ $ listenerHub %~ Event.attachListener l
+addEventListener :: (MonadPassManager m, IsPass (GetMonad m) p, IsTag t) => t -> p (GetMonad m) a -> m ()
+addEventListener t p = modify_ $ listenerHub %~ attachListener (Listener (toTag t) $ switchRep $ cp ^. Pass.repr) cp where
+    cp = Pass.commit $ Pass.dropResult p
+{-# INLINE addEventListener #-}
 
 
 -- === Instances === --

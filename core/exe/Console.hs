@@ -107,7 +107,7 @@ lp1 :: MonadIO m => Pass LP1 m
 lp1 = print "hello"
 
 
-type NewExpr = Event '[New, EXPR]
+type NewExpr = Event '[NEW, EXPR]
 
 data                    SimpleAA
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
@@ -118,10 +118,12 @@ type instance Preserves SimpleAA = '[]
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
+
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
-    addEventListener $ Listener (ListenerHeader (Tag $ typeReps' @('[New, EXPR])) (typeRep' @LP1)) (Pass.commit lp1)
+
+    addEventListener (NEW // EXPR) lp1
     Pass.eval' pass1
 
 
@@ -148,7 +150,7 @@ uncheckedDeleteStarType e = do
 
 
 instance (Monad m, Typeables e) => KeyMonad (Event e) (PassManager m) where
-    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap (Pass.eval . Event.eval) <$> PM.queryListeners (Tag $ typeReps' @e)
+    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Tag $ typeReps' @e)
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
 fixme1 :: Monad m => m [Either Pass.InternalError ()] -> m ()
@@ -162,7 +164,7 @@ fromRight (Left e) = error $ show e
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
-             , Accessibles m '[ExprNet], Emitter m '[New, EXPR]
+             , Accessibles m '[ExprNet], Emitter m '[NEW, EXPR]
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star

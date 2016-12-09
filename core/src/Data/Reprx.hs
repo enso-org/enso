@@ -22,6 +22,10 @@ import GHC.TypeLits
 
 
 
+type family RepOf a
+class HasRep a where
+    rep :: Lens' a (RepOf a)
+    
 
 ----------------------
 

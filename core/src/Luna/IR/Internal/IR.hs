@@ -65,7 +65,7 @@ class IsIdx t where
 --------------------
 
 
-data New
+data NEW = NEW deriving (Show)
 
 
 
@@ -281,7 +281,7 @@ newMagicElem tdef = do
     return el
 {-# INLINE newMagicElem #-}
 
-type NewElemEvent m t = (Event.Emitter m '[New, Abstract t], Event.Payload '[New, Abstract t] ~ Universal t)
+type NewElemEvent m t = (Event.Emitter m '[NEW, Abstract t], Event.Payload '[NEW, Abstract t] ~ Universal t)
 newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsElem t, Typeable (Abstract t))
         => Definition t -> m t
 newElem tdef = do
@@ -289,7 +289,7 @@ newElem tdef = do
     newIdx     <- reserveNewElemIdx @t
     -- layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
-    emit (Event (universal el) :: Event '[New, (Abstract t)])
+    emit (Event (universal el) :: Event '[NEW, (Abstract t)])
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
@@ -531,7 +531,7 @@ type instance Universal (Group a) = Group (Universal a)
 
 ---------------------
 
-data EXPR
+data EXPR = EXPR deriving (Show)
 
 
 ------------------------
@@ -694,8 +694,8 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 -- === Instances === --
 
-type instance Event.Payload '[New, EXPR] = AnyExpr
-type instance Event.Payload '[New, LINK' EXPR] = Link' AnyExpr -- FIXME[WD]: refactor
+type instance Event.Payload '[NEW, EXPR] = AnyExpr
+type instance Event.Payload '[NEW, LINK' EXPR] = Link' AnyExpr -- FIXME[WD]: refactor
 
 type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)

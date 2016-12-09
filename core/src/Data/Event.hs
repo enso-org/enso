@@ -1,36 +1,69 @@
 module Data.Event where
 
-import Prologue
+import Prologue hiding (tail)
 
-import qualified GHC.Prim as Prim
-import qualified Data.Map as Map
-import           Data.Map (Map)
+import qualified GHC.Prim   as Prim
+import qualified Data.Map   as Map
+import           Data.Map   (Map)
+import           Data.Reprx (RepOf, HasRep, rep)
 
 
 
---------------------
--- === Events === --
---------------------
+-----------------
+-- === Tag === --
+-----------------
 
--- === Events === --
-
-data    Event    e = Event (Payload e)
-type    AnyEvent   = Event Prim.Any
-newtype Tag        = Tag [EventRep]   deriving (Show)
-newtype EventRep   = EventRep TypeRep deriving (Show, Eq, Ord)
-instance IsTypeRep EventRep
-
-type family Payload (e :: [*])
+newtype Tag    = Tag    [TagRep] deriving (Show, Eq, Ord)
+newtype TagRep = TagRep TypeRep  deriving (Show, Eq, Ord)
+instance IsTypeRep TagRep
 
 makeClassy  ''Tag
 makeWrapped ''Tag
-makeWrapped ''EventRep
+makeWrapped ''TagRep
 
 
--- === Utils === --
+-- === Construction === --
+
+fromType :: forall (ts :: [*]). Typeables ts => Tag
+fromType = Tag $ typeReps' @ts ; {-# INLINE fromType #-}
+
+data a // as = a :// as
+infixr 5 //
+(//) :: a -> as -> a // as
+a // as = a :// as ; {-# INLINE (//) #-}
+
+tail :: a // as -> as
+tail (_ :// as) = as ; {-# INLINE tail #-}
+
+
+-- === IsTag === --
+
+class                                       IsTag a         where toTag :: a -> Tag
+instance {-# OVERLAPPABLE #-} Typeable a => IsTag a         where toTag = const $ wrap' [typeRep' @a]                  ; {-# INLINE toTag #-}
+instance (Typeable a, IsTag as)          => IsTag (a // as) where toTag = (wrapped' %~ (typeRep' @a :)) . toTag . tail ; {-# INLINE toTag #-}
+instance                                    IsTag Tag       where toTag = id                                           ; {-# INLINE toTag #-}
+
+
+
+--------------------
+-- === Events === --
+--------------------
+
+-- === Events === --
+
+data Event e  = Event (Payload e)
+type AnyEvent = Event Prim.Any
+
+type family Payload (e :: [*])
+
+makeWrapped ''Event
+
+
+-- === Emitter === --
 
 class Monad m => Emitter m e where
     emit :: Event e -> m ()
+
 
 
 -----------------------
@@ -39,40 +72,23 @@ class Monad m => Emitter m e where
 
 -- === Functions === --
 
+data Listener = Listener { _tag :: Tag
+                         , _rep :: ListenerRep
+                         } deriving (Show)
+
 newtype ListenerRep = ListenerRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep ListenerRep
 
-
-data ListenerHeader = ListenerHeader { _tag :: Tag
-                                     , _rep :: ListenerRep
-                                     } deriving (Show)
-
-data Listener f = Listener { _header :: ListenerHeader
-                           , _func   :: f
-                           } deriving (Show, Functor, Foldable, Traversable)
-
-makePfxClassy ''ListenerHeader
-makePfxLenses ''Listener
-makeClassy    ''ListenerRep
+makePfxClassy ''Listener
 makeWrapped   ''ListenerRep
-
-
--- === Utils === --
-
-eval :: Listener f -> f
-eval = _func ; {-# INLINE eval #-}
-
 
 
 -- === Instances === --
 
 -- Properties
-instance HasListenerRep ListenerHeader where listenerRep = listenerHeader_rep ; {-# INLINE listenerRep #-}
-instance HasTag         ListenerHeader where tag         = listenerHeader_tag ; {-# INLINE tag         #-}
-
-instance HasListenerHeader (Listener m) where listenerHeader = listener_header              ; {-# INLINE listenerHeader #-}
-instance HasListenerRep    (Listener m) where listenerRep    = listenerHeader . listenerRep ; {-# INLINE listenerRep    #-}
-instance HasTag            (Listener m) where tag            = listenerHeader . tag         ; {-# INLINE tag            #-}
+type instance RepOf Listener = ListenerRep
+instance HasRep Listener where rep = listener_rep ; {-# INLINE rep #-}
+instance HasTag Listener where tag = listener_tag ; {-# INLINE tag #-}
 
 
 
@@ -82,8 +98,8 @@ instance HasTag            (Listener m) where tag            = listenerHeader . 
 
 -- === Definition === --
 
-data ListenerHub m = ListenerHub { _listeners :: Map ListenerRep (Listener    m)
-                                 , _subhubs   :: Map EventRep    (ListenerHub m)
+data ListenerHub f = ListenerHub { _listeners :: Map ListenerRep f
+                                 , _subhubs   :: Map TagRep (ListenerHub f)
                                  } deriving (Show)
 
 makeLenses ''ListenerHub
@@ -91,15 +107,13 @@ makeLenses ''ListenerHub
 
 -- === Utils === --
 
-attachListener :: Listener m -> ListenerHub m -> ListenerHub m
-attachListener l = (space' (l ^. tag) . listeners) %~ Map.insert (l ^. listenerRep) l ; {-# INLINE attachListener #-}
+attachListener :: Listener -> f -> ListenerHub f -> ListenerHub f
+attachListener l f = (space' (l ^. tag) . listeners) %~ Map.insert (l ^. rep) f ; {-# INLINE attachListener #-}
 
-deteachListener :: HasListenerHeader l => l -> ListenerHub m -> ListenerHub m
-deteachListener l = space' (h ^. tag) . listeners %~ Map.delete (h ^. listenerRep) where
-    h = l ^. listenerHeader
-{-# INLINE deteachListener #-}
+deteachListener :: Listener -> ListenerHub f -> ListenerHub f
+deteachListener l = space' (l ^. tag) . listeners %~ Map.delete (l ^. rep) ; {-# INLINE deteachListener #-}
 
-queryListeners :: Tag -> ListenerHub m -> [Listener m]
+queryListeners :: Tag -> ListenerHub f -> [f]
 queryListeners e = Map.elems . view (space' e . listeners) ; {-# INLINE queryListeners #-}
 
 space :: Tag -> Lens' (ListenerHub m) (Maybe (ListenerHub m))
@@ -123,7 +137,7 @@ instance Monoid (ListenerHub m) where
 
 -- Indexed
 type instance IxValue (ListenerHub m) = ListenerHub m
-type instance Index   (ListenerHub m) = EventRep
+type instance Index   (ListenerHub m) = TagRep
 
 instance At   (ListenerHub m) where at i = subhubs . at i ; {-# INLINE at #-}
 instance Ixed (ListenerHub m) where ix i = subhubs . ix i ; {-# INLINE ix #-}

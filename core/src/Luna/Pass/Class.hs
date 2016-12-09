@@ -62,6 +62,11 @@ type family Preserves pass :: [*]
 
 -- === Data declarations ===
 
+newtype PassRep = PassRep TypeRep deriving (Show)
+instance IsTypeRep PassRep
+makeWrapped ''PassRep
+
+
 type    Pass    pass m   = SubPass pass m ()
 newtype SubPass pass m a = SubPass (StateT (PassDataSet m pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
@@ -69,12 +74,14 @@ newtype SubPass pass m a = SubPass (StateT (PassDataSet m pass) m a)
                  , Catch.MonadCatch, Catch.MonadThrow)
 
 type DynPass    m   = DynSubPass m ()
-data DynSubPass m a = DynSubPass { _repr      :: TypeRep -- FIXME[WD]: why we need all the data below? maybe we could keep it in some pass registry?
+data DynSubPass m a = DynSubPass { _repr      :: PassRep -- FIXME[WD]: why we need all the data below? maybe we could keep it in some pass registry?
                                  , _inputs    :: [TypeRep]
                                  , _outputs   :: [TypeRep]
                                  , _preserves :: [TypeRep]
                                  , _dynEval   :: m (Either InternalError (m a))
-                                 }
+                                 } deriving (Functor)
+
+
 
 --FIXME[WD]:
 instance Show (DynSubPass m a) where show _ = "DynPass"
@@ -100,6 +107,7 @@ makeLenses  ''DynSubPass
 
 -- === Utils ===
 
+
 type Commit m pass = ( Monad m
                      , LookupData m (Keys pass)
                      , Typeable  pass
@@ -108,14 +116,19 @@ type Commit m pass = ( Monad m
                      , Typeables (Preserves pass)
                      )
 
-commit :: forall pass m a. Commit m pass => SubPass pass m a -> DynSubPass m a
-commit p = DynSubPass
-           (typeRep'  @pass)
-           (typeReps' @(Inputs    pass))
-           (typeReps' @(Outputs   pass))
-           (typeReps' @(Preserves pass))
-           (initPass p)
-{-# INLINE commit #-}
+class    Functor (p m) => IsPass m p           where commit :: forall a. p m a -> DynSubPass m a
+instance Functor m     => IsPass m DynSubPass  where commit = id ; {-# INLINE commit #-}
+instance Commit m p    => IsPass m (SubPass p) where commit = DynSubPass
+                                                              (typeRep'  @p)
+                                                              (typeReps' @(Inputs    p))
+                                                              (typeReps' @(Outputs   p))
+                                                              (typeReps' @(Preserves p))
+                                                              . initPass
+                                                     {-# INLINE commit #-}
+
+
+dropResult :: Functor p => p a -> p ()
+dropResult = fmap $ const () ; {-# INLINE dropResult #-}
 
 initPass :: (LookupData m (Keys pass), Monad m) => SubPass pass m a -> m (Either InternalError (m a))
 initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData ; {-# INLINE initPass #-}
