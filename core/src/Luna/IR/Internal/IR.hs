@@ -23,7 +23,7 @@ import Luna.IR.Layer.Model
 import Luna.IR.Expr.Atom    (Atom, Atoms, AtomRep, atomRep, AtomOf)
 import qualified Luna.IR.Expr.Atom as A
 import Luna.IR.Expr.Format  (Format, Draft)
-import Luna.IR.Expr.Layout  (LAYOUT, LayoutOf, NAME, Generalizable, Universal, universal, Abstract, Sub)
+import Luna.IR.Expr.Layout  (LAYOUT, LayoutOf, NAME, Generalizable, Universal, universal, Abstract, Sub, abstract)
 import Luna.IR.Expr.Term    (TERM, Term, UncheckedFromTerm, FromTerm, UniTerm, IsUniTerm, uniTerm)
 import Type.Container       (Every)
 import Type.Container       (In)
@@ -42,7 +42,7 @@ import qualified Luna.IR.Expr.Term.Class   as N
 import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
 import qualified Type.List                 as List
 import qualified Data.Event                as Event
-import           Data.Event                (Event(Event), emit)
+import           Data.Event                (Event(Event), emit, (//), type (//))
 import Luna.IR.Expr.Term.Uni ()
 import Type.Inference
 
@@ -281,7 +281,7 @@ newMagicElem tdef = do
     return el
 {-# INLINE newMagicElem #-}
 
-type NewElemEvent m t = (Event.Emitter m '[NEW, Abstract t], Event.Payload '[NEW, Abstract t] ~ Universal t)
+type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ Universal t)
 newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsElem t, Typeable (Abstract t))
         => Definition t -> m t
 newElem tdef = do
@@ -289,7 +289,8 @@ newElem tdef = do
     newIdx     <- reserveNewElemIdx @t
     -- layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
-    emit (Event (universal el) :: Event '[NEW, (Abstract t)])
+    emit (NEW // abstract el) (universal el)
+    -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
@@ -694,8 +695,8 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 -- === Instances === --
 
-type instance Event.Payload '[NEW, EXPR] = AnyExpr
-type instance Event.Payload '[NEW, LINK' EXPR] = Link' AnyExpr -- FIXME[WD]: refactor
+type instance Event.Payload (NEW // EXPR)       = AnyExpr
+type instance Event.Payload (NEW // LINK' EXPR) = Link' AnyExpr -- FIXME[WD]: refactor
 
 type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)

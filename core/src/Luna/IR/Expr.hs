@@ -17,7 +17,7 @@ import Type.Inference
 import Luna.IR.Expr.Layout
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import Luna.IR.Function (Arg)
-import Data.Event (Emitter)
+import Data.Event (Emitter, type (//))
 
 type ET' e = ET e Star
 type NT' n = NT n Star
@@ -28,7 +28,7 @@ type T' = T Star
 -- instance Monad m                           => LitExpr m (Expr l)       where litExpr = return ; {-# INLINE litExpr #-}
 
 
-star :: (IRMonad m, Accessible ExprNet m, Emitter m '[NEW, EXPR]) => m (Expr Star)
+star :: (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR)) => m (Expr Star)
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Data.Event where
 
 import Prologue hiding (tail)
@@ -24,8 +26,13 @@ makeWrapped ''TagRep
 
 -- === Construction === --
 
-fromType :: forall (ts :: [*]). Typeables ts => Tag
-fromType = Tag $ typeReps' @ts ; {-# INLINE fromType #-}
+type family TagPath a where
+    TagPath (a // as) = a ': TagPath as
+    TagPath a         = '[a]
+
+type FromPath path = Typeables (TagPath path)
+fromPath :: forall path. FromPath path => Tag
+fromPath = Tag $ typeReps' @(TagPath path) ; {-# INLINE fromPath #-}
 
 data a // as = a :// as
 infixr 5 //
@@ -38,10 +45,9 @@ tail (_ :// as) = as ; {-# INLINE tail #-}
 
 -- === IsTag === --
 
-class                                       IsTag a         where toTag :: a -> Tag
-instance {-# OVERLAPPABLE #-} Typeable a => IsTag a         where toTag = const $ wrap' [typeRep' @a]                  ; {-# INLINE toTag #-}
-instance (Typeable a, IsTag as)          => IsTag (a // as) where toTag = (wrapped' %~ (typeRep' @a :)) . toTag . tail ; {-# INLINE toTag #-}
-instance                                    IsTag Tag       where toTag = id                                           ; {-# INLINE toTag #-}
+class                             IsTag a   where toTag :: a -> Tag
+instance Typeables (TagPath a) => IsTag a   where toTag _ = Tag $ typeReps' @(TagPath a) ; {-# INLINE toTag #-}
+instance {-# OVERLAPPING #-}      IsTag Tag where toTag   = id                           ; {-# INLINE toTag #-}
 
 
 
@@ -54,7 +60,7 @@ instance                                    IsTag Tag       where toTag = id    
 data Event e  = Event (Payload e)
 type AnyEvent = Event Prim.Any
 
-type family Payload (e :: [*])
+type family Payload e
 
 makeWrapped ''Event
 
@@ -62,7 +68,7 @@ makeWrapped ''Event
 -- === Emitter === --
 
 class Monad m => Emitter m e where
-    emit :: Event e -> m ()
+    emit :: e -> Payload e -> m ()
 
 
 

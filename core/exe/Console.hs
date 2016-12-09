@@ -13,7 +13,7 @@ import Data.Aeson (encode)
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
-import           Luna.Pass        (Pass, Inputs, Outputs, Emitters, Preserves)
+import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
 import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
@@ -100,19 +100,17 @@ checkLinkTarget e lnk = do
 data LP1
 type instance Inputs    LP1 = '[]
 type instance Outputs   LP1 = '[]
-type instance Emitters  LP1 = '[]
+type instance Events    LP1 = '[]
 type instance Preserves LP1 = '[]
 
 lp1 :: MonadIO m => Pass LP1 m
 lp1 = print "hello"
 
 
-type NewExpr = Event '[NEW, EXPR]
-
 data                    SimpleAA
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
 type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
-type instance Emitters  SimpleAA = '[NewExpr]
+type instance Events    SimpleAA = '[NEW // EXPR]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
@@ -145,12 +143,9 @@ uncheckedDeleteStarType e = do
 {-# INLINE uncheckedDeleteStarType #-}
 
 
--- class Monad m => KeyMonad key m where
---     uncheckedLookupKey :: m (Maybe (KeyM m key))
 
-
-instance (Monad m, Typeables e) => KeyMonad (Event e) (PassManager m) where
-    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Tag $ typeReps' @e)
+instance (Monad m, Event.FromPath e) => KeyMonad (Event e) (PassManager m) where
+    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Event.fromPath @e)
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
 fixme1 :: Monad m => m [Either Pass.InternalError ()] -> m ()
@@ -164,7 +159,7 @@ fromRight (Left e) = error $ show e
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
-             , Accessibles m '[ExprNet], Emitter m '[NEW, EXPR]
+             , Accessibles m '[ExprNet], Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star

@@ -22,6 +22,7 @@ import Luna.IR.Layer
 import Type.List (In)
 import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
+import Data.Event (Event)
 
 
 ---------------------
@@ -56,7 +57,7 @@ data InternalError = MissingData TypeRep deriving (Show, Eq)
 
 type family Inputs    pass :: [*]
 type family Outputs   pass :: [*]
-type family Emitters  pass :: [*]
+type family Events    pass :: [*]
 type family Preserves pass :: [*]
 
 
@@ -86,7 +87,8 @@ data DynSubPass m a = DynSubPass { _repr      :: PassRep -- FIXME[WD]: why we ne
 --FIXME[WD]:
 instance Show (DynSubPass m a) where show _ = "DynPass"
 
-type PassData       pass = Inputs pass <> Outputs pass <> Emitters pass -- FIXME (there are duplicates in the list)
+type EventKeys      pass = Event <$> Events pass
+type PassData       pass = Inputs pass <> Outputs pass <> EventKeys pass -- FIXME (there are duplicates in the list)
 type Keys           pass = PassData pass
 type PassDataSet  m pass = DataSet m (PassData pass)
 -- type PassDataSetM m pass = PassDataSet (PrimState m) pass
