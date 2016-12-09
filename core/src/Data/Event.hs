@@ -99,51 +99,51 @@ instance HasTag Listener where tag = listener_tag ; {-# INLINE tag #-}
 
 
 -------------------------
--- === ListenerHub === --
+-- === EventHub === --
 -------------------------
 
 -- === Definition === --
 
-data ListenerHub f = ListenerHub { _listeners :: Map ListenerRep f
-                                 , _subhubs   :: Map TagRep (ListenerHub f)
-                                 } deriving (Show)
+data EventHub f = EventHub { _listeners :: Map ListenerRep f
+                           , _subhubs   :: Map TagRep (EventHub f)
+                           } deriving (Show)
 
-makeLenses ''ListenerHub
+makeLenses ''EventHub
 
 
 -- === Utils === --
 
-attachListener :: Listener -> f -> ListenerHub f -> ListenerHub f
+attachListener :: Listener -> f -> EventHub f -> EventHub f
 attachListener l f = (space' (l ^. tag) . listeners) %~ Map.insert (l ^. rep) f ; {-# INLINE attachListener #-}
 
-deteachListener :: Listener -> ListenerHub f -> ListenerHub f
+deteachListener :: Listener -> EventHub f -> EventHub f
 deteachListener l = space' (l ^. tag) . listeners %~ Map.delete (l ^. rep) ; {-# INLINE deteachListener #-}
 
-queryListeners :: Tag -> ListenerHub f -> [f]
+queryListeners :: Tag -> EventHub f -> [f]
 queryListeners e = Map.elems . view (space' e . listeners) ; {-# INLINE queryListeners #-}
 
-space :: Tag -> Lens' (ListenerHub m) (Maybe (ListenerHub m))
+space :: Tag -> Lens' (EventHub m) (Maybe (EventHub m))
 space = nestedAt . unwrap' ; {-# INLINE space #-}
 
-space' :: Tag -> Lens' (ListenerHub m) (ListenerHub m)
+space' :: Tag -> Lens' (EventHub m) (EventHub m)
 space' = nestedAt' . unwrap' ; {-# INLINE space' #-}
 
 
 -- === Instances === --
 
 -- Default
-instance Default (ListenerHub m) where
-    def = ListenerHub def def ; {-# INLINE def #-}
+instance Default (EventHub m) where
+    def = EventHub def def ; {-# INLINE def #-}
 
 -- Monoid
-instance Monoid (ListenerHub m) where
+instance Monoid (EventHub m) where
     mempty                                        = def                             ; {-# INLINE mempty  #-}
-    mappend (ListenerHub a b) (ListenerHub a' b') = ListenerHub (a <> a') (b <> b') ; {-# INLINE mappend #-}
+    mappend (EventHub a b) (EventHub a' b') = EventHub (a <> a') (b <> b') ; {-# INLINE mappend #-}
 
 
 -- Indexed
-type instance IxValue (ListenerHub m) = ListenerHub m
-type instance Index   (ListenerHub m) = TagRep
+type instance IxValue (EventHub m) = EventHub m
+type instance Index   (EventHub m) = TagRep
 
-instance At   (ListenerHub m) where at i = subhubs . at i ; {-# INLINE at #-}
-instance Ixed (ListenerHub m) where ix i = subhubs . ix i ; {-# INLINE ix #-}
+instance At   (EventHub m) where at i = subhubs . at i ; {-# INLINE at #-}
+instance Ixed (EventHub m) where ix i = subhubs . ix i ; {-# INLINE ix #-}

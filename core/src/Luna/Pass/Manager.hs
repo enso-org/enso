@@ -8,24 +8,35 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (Event, ListenerHub, Emitter, IsTag, Listener(Listener), toTag, attachListener)
+import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener)
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
 import Luna.Pass.Class (IsPass, DynPass, SubPass)
 import qualified Luna.Pass.Class as Pass
 
+import qualified GHC.Prim as Prim
 
+
+
+
+
+
+-- | Constructor functions ::  t        -> Definition t -> m (LayerData UID t)
+-- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMSubPass m Prim.Any)
+newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMPass m)
+makeWrapped ''ConsFunc
 
 -------------------
 -- === State === --
 -------------------
 
-data State m = State { _layerCons   :: Map LayerRep (PMPass m)
-                     , _listenerHub :: ListenerHub  (PMPass m)
+data State m = State { _layerCons :: Map LayerRep (ConsFunc m)
+                     , _eventHub  :: EventHub     (PMPass   m)
                      } deriving (Show)
 
-type PMPass m = DynPass (PassManager m)
+type PMSubPass m = DynSubPass (PassManager m)
+type PMPass    m = PMSubPass m ()
 
 
 -- === instances === --
@@ -43,26 +54,27 @@ instance Default (State m) where
 newtype PassManager m a = PassManager (StateT (State m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
 makeWrapped ''PassManager
 
-type GetMonad m = PassManager (GetMonadBase m)
+type PassManager' m = PassManager (GetBaseMonad m)
 
-type family GetMonadBase m where
-    GetMonadBase (PassManager m) = m
-    GetMonadBase (t m)           = GetMonadBase m
+type family GetBaseMonad m where
+    GetBaseMonad (PassManager m) = m
+    GetBaseMonad (t m)           = GetBaseMonad m
 
-type PMPass' m = PMPass (GetMonadBase m)
-type State' m = State (GetMonadBase m)
+type PMPass' m = PMPass (GetBaseMonad m)
+type State' m = State (GetBaseMonad m)
 
 class Monad m => MonadPassManager m where
     get :: m (State' m)
     put :: State' m -> m ()
-    liftPassManager :: GetMonad m a -> m a
+    liftPassManager :: PassManager' m a -> m a
 
 instance Monad m => MonadPassManager (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
     liftPassManager = id
 
-instance {-# OVERLAPPABLE #-} (MonadPassManager m, MonadTrans t, Monad m, Monad (t m), GetMonadBase m ~ GetMonadBase (t m))
+type TransBaseMonad t m = (GetBaseMonad m ~ GetBaseMonad (t m), Monad m, Monad (t m), MonadTrans t)
+instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m)
       => MonadPassManager (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
@@ -98,12 +110,16 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 makeLenses ''State -- FIXME [WD]: refactor
 
 queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
-queryListeners t = Event.queryListeners t . view listenerHub <$> get
+queryListeners t = Event.queryListeners t . view eventHub <$> get
 
-addEventListener :: (MonadPassManager m, IsPass (GetMonad m) p, IsTag t) => t -> p (GetMonad m) a -> m ()
-addEventListener t p = modify_ $ listenerHub %~ attachListener (Listener (toTag t) $ switchRep $ cp ^. Pass.repr) cp where
+addEventListener :: (MonadPassManager m, IsPass (PassManager' m) p, IsTag t) => t -> p (PassManager' m) a -> m ()
+addEventListener t p = modify_ $ eventHub %~ attachListener (Listener (toTag t) $ switchRep $ cp ^. Pass.repr) cp where
     cp = Pass.commit $ Pass.dropResult p
 {-# INLINE addEventListener #-}
+
+
+-- registerGenericLayer :: l -> (t -> Definition t -> m (LayerData UID t)) -> m ()
+-- registerGenericLayer _
 
 
 -- === Instances === --
@@ -118,7 +134,7 @@ instance MonadTrans PassManager where
 
 
 
-type instance KeyData m (Event e) = GetMonad m ()
+type instance KeyData m (Event e) = PassManager' m ()
 
 -- Emitter
 instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
