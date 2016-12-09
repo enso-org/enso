@@ -112,8 +112,8 @@ makeLenses ''State -- FIXME [WD]: refactor
 queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
 queryListeners t = Event.queryListeners t . view eventHub <$> get
 
-addEventListener :: (MonadPassManager m, IsPass (PassManager' m) p, IsTag t) => t -> p (PassManager' m) a -> m ()
-addEventListener t p = modify_ $ eventHub %~ attachListener (Listener (toTag t) $ switchRep $ cp ^. Pass.repr) cp where
+addEventListener :: (MonadPassManager m, IsPass (PassManager' m) p, IsTag evnt) => evnt -> p (PassManager' m) a -> m ()
+addEventListener evnt p = modify_ $ eventHub %~ attachListener (Listener (toTag evnt) $ switchRep $ cp ^. Pass.repr) cp where
     cp = Pass.commit $ Pass.dropResult p
 {-# INLINE addEventListener #-}
 

@@ -94,17 +94,22 @@ checkLinkTarget e lnk = do
 --
 
 
+class MonadPayload a m | m -> a where
+    getPayload :: m a
 
 
 
-data LP1
-type instance Inputs    LP1 = '[]
-type instance Outputs   LP1 = '[]
-type instance Events    LP1 = '[]
-type instance Preserves LP1 = '[]
+data InitUID
+type instance Inputs    InitUID = '[]
+type instance Outputs   InitUID = '[]
+type instance Events    InitUID = '[]
+type instance Preserves InitUID = '[]
 
-lp1 :: MonadIO m => Pass LP1 m
-lp1 = print "hello"
+-- FIXME[WD]: this should need only Writable, not Accessible
+-- initUID :: (MonadIO m, MonadPayload t m, Show t) => Pass InitUID m
+initUID :: (MonadIO m) => Pass InitUID m
+initUID = print "hello"
+-- initUID = writeLayer @UID 0 =<< getPayload
 
 
 data                    SimpleAA
@@ -123,7 +128,7 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
 
     attachLayer (typeRep' @UID) (typeRep' @EXPR)
 
-    addEventListener (NEW // EXPR) lp1
+    addEventListener (NEW // EXPR) initUID
     Pass.eval' pass1
 
 
@@ -167,8 +172,8 @@ gen_pass1 = do
     (s :: Expr Star) <- star
     print s
 
-    i <- readLayer @UID s
-    print i
+    -- i <- readLayer @UID s
+    -- print i
 
 
     -- let h  = def :: ListenerHub IO
