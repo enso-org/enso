@@ -17,7 +17,7 @@ import Data.Map             (Map)
 import Data.Property
 import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
 import Data.Typeable        (Typeable, TypeRep)
-import GHC.Prim             (Any)
+import qualified GHC.Prim   as Prim
 import Luna.IR.Layer
 import Luna.IR.Layer.Model
 import Luna.IR.Expr.Atom    (Atom, Atoms, AtomRep, atomRep, AtomOf)
@@ -182,9 +182,9 @@ newtype IR'  a = IR   (Map ElemRep a) deriving (Show, Default, Functor, Traversa
 --                             --  , _elemLayers    :: LayerConsStore m
 --                              }
 
-type LayerSet    s = Store.VectorRef s Any
-type ElemStore     = LayerStore      LayerRep Any
-type ElemStoreST s = LayerStoreRef s LayerRep Any
+type LayerSet    s = Store.VectorRef s Prim.Any
+type ElemStore     = LayerStore      LayerRep Prim.Any
+type ElemStoreST s = LayerStoreRef s LayerRep Prim.Any
 type ElemStoreM  m = ElemStoreST (PrimState m)
 
 type LayerConsStore m = Map LayerRep (AnyCons m)
@@ -262,6 +262,13 @@ uncheckedElems = fmap (view (from $ elem . idx)) <$> (Store.ixes =<< readNet @(A
 
 -- === Construction === --
 
+
+-- to zalezne od layeru a tak nie moze chyba byc, bo chcem yto odpalic jako ala-event dla kazdego layeru danego elementu
+-- class Monad m => Cons7 l m a where
+--     cons7 :: forall t. t -> Definition t -> m (LayerData' t)
+    -- cons7 :: forall t. t -> Definition t -> m (LayerData l t)
+    -- cons7 :: forall t. a ~ Abstract t => t -> Definition t -> PMSubPass m (LayerData UID t)
+
 newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), IsElem t) => Definition t -> m t
 newMagicElem tdef = do
     irstate    <- getIR
@@ -281,7 +288,7 @@ newMagicElem tdef = do
     return el
 {-# INLINE newMagicElem #-}
 
-type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ Universal t)
+type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
 newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsElem t, Typeable (Abstract t))
         => Definition t -> m t
 newElem tdef = do
@@ -289,7 +296,7 @@ newElem tdef = do
     newIdx     <- reserveNewElemIdx @t
     -- layerStore <- readComp @(Net (Abstract t))
     let el = newIdx ^. from (elem . idx)
-    emit (NEW // abstract el) (universal el)
+    emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
     -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
@@ -695,8 +702,8 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 -- === Instances === --
 
-type instance Event.Payload (NEW // EXPR)       = AnyExpr
-type instance Event.Payload (NEW // LINK' EXPR) = Link' AnyExpr -- FIXME[WD]: refactor
+type instance Event.Payload (NEW // EXPR)       = (AnyExpr, Prim.Any)
+type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor
 
 type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)

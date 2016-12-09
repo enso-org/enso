@@ -12,7 +12,7 @@ import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
-import Luna.Pass.Class (IsPass, DynPass, SubPass)
+import Luna.Pass.Class (IsPass, DynSubPass, SubPass)
 import qualified Luna.Pass.Class as Pass
 
 import qualified GHC.Prim as Prim
@@ -24,14 +24,14 @@ import qualified GHC.Prim as Prim
 
 -- | Constructor functions ::  t        -> Definition t -> m (LayerData UID t)
 -- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMSubPass m Prim.Any)
-newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMPass m)
-makeWrapped ''ConsFunc
+-- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMPass m)
+-- makeWrapped ''ConsFunc
 
 -------------------
 -- === State === --
 -------------------
 
-data State m = State { _layerCons :: Map LayerRep (ConsFunc m)
+data State m = State { _layerCons :: Map LayerRep (PMPass   m)
                      , _eventHub  :: EventHub     (PMPass   m)
                      } deriving (Show)
 

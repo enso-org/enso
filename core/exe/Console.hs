@@ -108,8 +108,8 @@ lp1 = print "hello"
 
 
 data                    SimpleAA
-type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
-type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[] <> ExprLinkLayers '[]
+type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
+type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
 type instance Events    SimpleAA = '[NEW // EXPR]
 type instance Preserves SimpleAA = '[]
 
@@ -120,6 +120,8 @@ pass1 = gen_pass1
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
+
+    attachLayer (typeRep' @UID) (typeRep' @EXPR)
 
     addEventListener (NEW // EXPR) lp1
     Pass.eval' pass1
@@ -159,13 +161,14 @@ fromRight (Left e) = error $ show e
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
-             , Accessibles m '[ExprNet], Emitter m (NEW // EXPR)
+             , Accessibles m '[ExprNet, ExprLayer UID], Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star
-    (s :: Expr Star) <- star
-    (s :: Expr Star) <- star
     print s
+
+    i <- readLayer @UID s
+    print i
 
 
     -- let h  = def :: ListenerHub IO
