@@ -84,6 +84,8 @@ dependencies:
     - vector
     - visualization-api
 
+    - reflection
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo

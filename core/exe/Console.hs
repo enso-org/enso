@@ -1,5 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoOverloadedStrings  #-}
+{-# LANGUAGE NoMonomorphismRestriction  #-}
 
 
 module Main where
@@ -7,7 +8,7 @@ module Main where
 
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
-import Luna.Prelude hiding (String, cons, elem)
+import Luna.Prelude as Prelude hiding (String, cons, elem)
 import Data.Aeson (encode)
 
 import           Luna.IR
@@ -32,6 +33,44 @@ import Data.RTuple (Assoc ((:=)))
 import Luna.Pass.Manager as PM
 
 import Data.Event as Event
+
+import Data.Reflection
+
+import Data.TypeVal
+data A = A deriving (Show)
+
+
+
+
+
+
+-- main = do
+--     let x = typeVal' @A
+--     print x
+--     print $ reifyKnownType (\p -> typeVal p) x
+--     print "hello"
+--
+
+
+data DynamicElem = DynamicElem { _typeVal :: TypeVal
+                               , _elem    :: Elem
+                               }
+
+makePfxLenses ''DynamicElem
+
+instance KnownType DynamicElem where typeVal = view dynamicElem_typeVal ; {-# INLINE typeVal #-}
+-- instance IsElem    DynamicElem where elem    = dynamicElem_elem         ; {-# INLINE elem    #-}
+
+
+
+foo :: KnownType a => a -> TypeVal
+foo = typeVal
+
+bar :: TypeVal -> TypeVal
+bar = reifyKnownType foo
+
+
+
 
 data Incoherence = DeteachedSource AnyExpr AnyExprLink
                  | OrphanLink      AnyExprLink
@@ -98,19 +137,40 @@ class MonadPayload a m | m -> a where
     getPayload :: m a
 
 
+-- data T a
 
+-- foo :: Typeable =a -> TypeRep
+
+newtype WorkingElem t = WorkingElem t
+makeWrapped ''WorkingElem
+
+data ConsP c t
 data InitUID
-type instance Inputs    InitUID = '[]
-type instance Outputs   InitUID = '[]
-type instance Events    InitUID = '[]
-type instance Preserves InitUID = '[]
+type instance Inputs    (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
+type instance Outputs   (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
+type instance Events    (ConsP InitUID t) = '[]
+type instance Preserves (ConsP InitUID t) = '[]
+-- makePass ''InitUID
 
 -- FIXME[WD]: this should need only Writable, not Accessible
 -- initUID :: (MonadIO m, MonadPayload t m, Show t) => Pass InitUID m
-initUID :: (MonadIO m) => Pass InitUID m
-initUID = print "hello"
--- initUID = writeLayer @UID 0 =<< getPayload
+initUID :: forall t m. (MonadIO m, IRMonad m, IsElem t) => Pass (ConsP InitUID t) m
+initUID = do
+    WorkingElem t <- readAttr @(WorkingElem t)
+    -- t <- readAttr WorkingElem
+    writeLayer @UID 0 t
+    print "hello"
 
+
+
+-- newtype ConsPass m = ConsPass (forall t. IsElem t => Pass (InitUID t) m)
+--
+-- cp :: (MonadIO m, IRMonad m) => ConsPass m
+-- cp = ConsPass initUID
+
+ttt :: forall t m. ( Typeable t, IsElem t, Typeable (Abstract t)
+                   , KeyMonad (Attr (WorkingElem t)) m, IRMonad m, MonadIO m) => Pass.DynPass m
+ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
 
 data                    SimpleAA
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
@@ -128,7 +188,7 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
 
     attachLayer (typeRep' @UID) (typeRep' @EXPR)
 
-    addEventListener (NEW // EXPR) initUID
+    -- addEventListener (NEW // EXPR) $ initUID @(AnyExpr)
     Pass.eval' pass1
 
 
