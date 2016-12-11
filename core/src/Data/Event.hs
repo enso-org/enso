@@ -4,11 +4,11 @@ module Data.Event where
 
 import Prologue hiding (tail)
 
-import qualified GHC.Prim   as Prim
-import qualified Data.Map   as Map
-import           Data.Map   (Map)
-import           Data.Reprx (RepOf, HasRep, rep)
-
+import qualified GHC.Prim     as Prim
+import qualified Data.Map     as Map
+import           Data.Map     (Map)
+import           Data.Reprx   (RepOf, HasRep, rep)
+import           Data.TypeVal
 
 
 -----------------
@@ -45,10 +45,15 @@ tail (_ :// as) = as ; {-# INLINE tail #-}
 
 -- === IsTag === --
 
-class                             IsTag a   where toTag :: a -> Tag
-instance Typeables (TagPath a) => IsTag a   where toTag _ = Tag $ typeReps' @(TagPath a) ; {-# INLINE toTag #-}
-instance {-# OVERLAPPING #-}      IsTag Tag where toTag   = id                           ; {-# INLINE toTag #-}
+-- instance Typeables (TagPath a) => IsTag a   where toTag _ = Tag $ typeReps' @(TagPath a) ; {-# INLINE toTag #-}
+class                                       IsTag a        where toTag :: a -> Tag
+instance {-# OVERLAPPABLE #-} IsTagSeg t => IsTag t        where toTag t         = Tag [toTagSeg t]                     ; {-# INLINE toTag #-}
+instance (IsTagSeg t, IsTag p)           => IsTag (t // p) where toTag (t :// p) = toTag p & wrapped' %~ (toTagSeg t :) ; {-# INLINE toTag #-}
+instance                                    IsTag Tag      where toTag           = id                                   ; {-# INLINE toTag #-}
 
+class                        IsTagSeg a       where toTagSeg :: a -> TagRep
+instance KnownType a      => IsTagSeg a       where toTagSeg _ = typeVal' @a ; {-# INLINE toTagSeg #-}
+instance {-# OVERLAPPING #-} IsTagSeg TypeRep where toTagSeg   = wrap'       ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
 
 
 --------------------

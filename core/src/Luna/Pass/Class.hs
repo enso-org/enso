@@ -2,7 +2,7 @@
 
 module Luna.Pass.Class where
 
-import Luna.Prelude hiding (head, tail, elem)
+import Luna.Prelude hiding (head, tail, elem, repr)
 
 import           Data.RTuple (List ((:-:)))
 import qualified Data.RTuple as List
@@ -64,7 +64,7 @@ type family Preserves pass :: [*]
 
 -- === Data declarations ===
 
-newtype PassRep = PassRep TypeRep deriving (Show)
+newtype PassRep = PassRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep PassRep
 makeWrapped ''PassRep
 
@@ -107,26 +107,28 @@ type family GetPassMonad m where
 makeWrapped ''SubPass
 makeLenses  ''DynSubPass
 
+instance Eq (DynSubPass m a) where (==) = (==) `on` view repr ; {-# INLINE (==) #-}
+
 
 -- === Utils ===
 
 
 type Commit m pass = ( Monad m
-                    --  , LookupData pass m (Keys pass)
+                     , LookupData pass m (Keys pass)
                      , KnownType  (Abstract  pass)
                      , KnownTypes (Inputs    pass)
-                    --  , KnownTypes (Outputs   pass)
-                    --  , KnownTypes (Preserves pass)
+                     , KnownTypes (Outputs   pass)
+                     , KnownTypes (Preserves pass)
                      )
 
 class    Functor (p m) => IsPass m p           where commit :: forall a. p m a -> DynSubPass m a
 instance Functor m     => IsPass m DynSubPass  where commit = id ; {-# INLINE commit #-}
-instance Commit m p    => IsPass m (SubPass p) where commit _ = DynSubPass
-                                                              undefined -- (typeVal'  @(Abstract  p))
-                                                              undefined -- (typeVals' @(Inputs    p))
-                                                              undefined -- (typeVals' @(Outputs   p))
-                                                              undefined -- (typeVals' @(Preserves p))
-                                                              undefined -- . initPass
+instance Commit m p    => IsPass m (SubPass p) where commit = DynSubPass
+                                                              (typeVal'  @(Abstract  p))
+                                                              (typeVals' @(Inputs    p))
+                                                              (typeVals' @(Outputs   p))
+                                                              (typeVals' @(Preserves p))
+                                                            . initPass
                                                      {-# INLINE commit #-}
 
 

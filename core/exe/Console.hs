@@ -132,31 +132,30 @@ class MonadPayload a m | m -> a where
     getPayload :: m a
 
 
--- data T a
 
--- foo :: Typeable =a -> TypeRep
+
 
 data WorkingElem
 
-data CONSP c
-data ConsP c t
-type instance Abstract (ConsP c t) = CONSP (Abstract c)
+data ELEMPASS c
+data ElemPass c t
+type instance Abstract (ElemPass c t) = ELEMPASS (Abstract c)
 data InitUID
 type instance Abstract InitUID = InitUID
--- type instance Inputs    (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
-type instance Inputs    (ConsP InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
-type instance Outputs   (ConsP InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
-type instance Events    (ConsP InitUID t) = '[]
-type instance Preserves (ConsP InitUID t) = '[]
+-- type instance Inputs    (ElemPass InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
+type instance Inputs    (ElemPass InitUID t) = '[Layer (Abstract t) UID]
+type instance Outputs   (ElemPass InitUID t) = '[Layer (Abstract t) UID]
+type instance Events    (ElemPass InitUID t) = '[]
+type instance Preserves (ElemPass InitUID t) = '[]
 -- makePass ''InitUID
 
 -- FIXME[WD]: this should need only Writable, not Accessible
 -- initUID :: (MonadIO m, MonadPayload t m, Show t) => Pass InitUID m
-initUID :: forall t m. (MonadIO m, IRMonad m) => Pass (ConsP InitUID t) m
+initUID :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemPass InitUID t) m
 initUID = do
-    t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
+    -- t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
     -- t <- readAttr WorkingElem
-    writeLayer @UID 0 t
+    -- writeLayer @UID 0 t
     print "hello"
 
 
@@ -165,12 +164,12 @@ type family PassAttr attr pass
 type instance KeyData (Pass.SubPass pass m) (Attr a) = PassAttr a pass
 
 
-type instance PassAttr WorkingElem (ConsP p t) = Elem t
+type instance PassAttr WorkingElem (ElemPass p t) = Elem t
 
--- newtype ConsPass m = ConsPass (forall t. IsElem t => Pass (InitUID t) m)
+-- newtype ElemPassass m = ElemPassass (forall t. IsElem t => Pass (InitUID t) m)
 --
--- cp :: (MonadIO m, IRMonad m) => ConsPass m
--- cp = ConsPass initUID
+-- cp :: (MonadIO m, IRMonad m) => ElemPassass m
+-- cp = ElemPassass initUID
 
 -- type instance Abstract (TypeRef s) = TypeRef s
 
@@ -204,18 +203,18 @@ instance Reifies s a => Reifies (Simplex s) a where
 
 data B = B deriving (Show)
 
-main = do
-    let x = typeVal' @A
-    uu2
-    print $ reifyKnownType (\p -> typeVal_ p) x
-    print "hello"
+-- main = do
+--     let x = typeVal' @A
+--     uu2
+--     print $ reifyKnownType (\p -> typeVal_ p) x
+--     print "hello"
 
 ttt2 :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
 ttt2 = reifyKnownTypeT @Abstracted ttt
 
 ttt :: forall t m. ( KnownType (Abstract t)
                    , IRMonad m, MonadIO m, MonadPassManager m) => Proxy t -> Pass.DynPass m
-ttt _ = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
+ttt _ = Pass.commit (initUID :: Pass (ElemPass InitUID t) m)
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
@@ -228,11 +227,18 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => P
 pass1 = gen_pass1
 
 
+attachLayer l e = attachLayerIR l e >> attachLayerPM l e
+
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
 
-    attachLayer (typeRep' @UID) (typeRep' @EXPR)
+
+    registerLayer (typeVal' @UID) ttt2
+    attachLayer   (typeVal' @UID) (typeVal' @EXPR)
+
+    -- addEventListener (NEW // EXPR) $ (undefined :: Pass.DynPass m)
+    -- print =<< PM.get
 
     -- addEventListener (NEW // EXPR) $ initUID @(AnyExpr)
     Pass.eval' pass1
@@ -276,6 +282,9 @@ gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
     print s
 
     -- i <- readLayer @UID s
@@ -283,8 +292,8 @@ gen_pass1 = do
 
 
     -- let h  = def :: ListenerHub IO
-    --     h2 = h & space (Tag [typeRep' @Int, typeRep' @Char, typeRep' @Bool]) .~ Just def
-    --     h3 = h2 & space (Tag [typeRep' @Int, typeRep' @Char]) .~ Nothing
+    --     h2 = h & space (Tag [typeVal' @Int, typeVal' @Char, typeVal' @Bool]) .~ Just def
+    --     h3 = h2 & space (Tag [typeVal' @Int, typeVal' @Char]) .~ Nothing
     --
     -- print h2
     -- print "---"
@@ -380,17 +389,17 @@ gen_pass1 = do
 
 
 
--- main :: IO ()
--- main = do
---     (p, vis) <- Vis.newRunDiffT test_pass1
---     case p of
---         Left e -> do
---             print "* INTERNAL ERROR *"
---             print e
---         Right _ -> do
---             let cfg = ByteString.unpack $ encode $ vis
---             -- putStrLn cfg
---             -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
---             return ()
---     print p
---     return ()
+main :: IO ()
+main = do
+    (p, vis) <- Vis.newRunDiffT test_pass1
+    case p of
+        Left e -> do
+            print "* INTERNAL ERROR *"
+            print e
+        Right _ -> do
+            let cfg = ByteString.unpack $ encode $ vis
+            -- putStrLn cfg
+            -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+            return ()
+    print p
+    return ()

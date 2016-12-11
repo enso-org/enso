@@ -8,7 +8,7 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener)
+import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener, (//))
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
@@ -27,20 +27,33 @@ import qualified Prologue.Prim as Prim
 -- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMPass m)
 -- makeWrapped ''ConsFunc
 
--------------------
--- === State === --
--------------------
-
-data State m = State { _eventHub  :: EventHub     (PMPass   m)
-                     , _layerCons :: Map LayerRep (PMPass   m)
-                     , _attrs     :: Map AttrRep  Prim.AnyData
-                     } deriving (Show)
 
 type PMSubPass m = DynSubPass (PassManager m)
 type PMPass    m = PMSubPass m ()
 
 
+-------------------
+-- === State === --
+-------------------
+
+newtype LayerCons m = LayerCons { appCons :: ElemRep -> PMPass m }
+instance Show (LayerCons m) where show _ = "LayerCons"
+
+data LayerReg m = LayerReg { _registered :: Map LayerRep (LayerCons m)
+                           , _attached   :: Map ElemRep  (Map LayerRep (PMPass m))
+                           } deriving (Show)
+
+data State m = State { _events :: EventHub (PMPass m)
+                     , _layers :: LayerReg m
+                     , _attrs  :: Map AttrRep Prim.AnyData
+                     } deriving (Show)
+
+
+
 -- === instances === --
+
+instance Default (LayerReg m) where
+    def = LayerReg def def ; {-# INLINE def #-}
 
 instance Default (State m) where
     def = State def def def ; {-# INLINE def #-}
@@ -53,6 +66,9 @@ instance Default (State m) where
 -- === Definition === --
 
 newtype PassManager m a = PassManager (StateT (State m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+
+makeLenses  ''LayerReg
+makeLenses  ''State
 makeWrapped ''PassManager
 
 type PassManager' m = PassManager (GetBaseMonad m)
@@ -62,7 +78,7 @@ type family GetBaseMonad m where
     GetBaseMonad (t m)           = GetBaseMonad m
 
 type PMPass' m = PMPass (GetBaseMonad m)
-type State' m = State (GetBaseMonad m)
+type State'  m = State  (GetBaseMonad m)
 
 class Monad m => MonadPassManager m where
     get :: m (State' m)
@@ -108,13 +124,24 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 -- === Utils === --
 
-makeLenses ''State -- FIXME [WD]: refactor
+attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => LayerRep -> ElemRep -> m ()
+attachLayerPM l e = do
+    s <- get
+    let Just lcons = s ^. layers . registered . at l
+        lpass = appCons lcons e
+        s' = s & layers . attached . at e . non Map.empty . at l ?~ lpass
+    put s'
+    addEventListener (NEW // (e ^. asTypeRep)) lpass
+{-# INLINE attachLayerPM #-}
+
+registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
+registerLayer l f = modify_ $ layers . registered . at l ?~ LayerCons f ; {-# INLINE registerLayer #-}
 
 queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
-queryListeners t = Event.queryListeners t . view eventHub <$> get
+queryListeners t = Event.queryListeners t . view events <$> get
 
 addEventListener :: (MonadPassManager m, IsPass (PassManager' m) p, IsTag evnt) => evnt -> p (PassManager' m) a -> m ()
-addEventListener evnt p = modify_ $ eventHub %~ attachListener (Listener (toTag evnt) $ switchRep $ cp ^. Pass.repr) cp where
+addEventListener evnt p = modify_ $ events %~ attachListener (Listener (toTag evnt) $ switchRep $ cp ^. Pass.repr) cp where
     cp = Pass.commit $ Pass.dropResult p
 {-# INLINE addEventListener #-}
 

@@ -324,6 +324,7 @@ newElem tdef = do
 {-# INLINE newElem #-}
 
 
+
 delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m) => t -> m ()
 delete t = flip Store.freeIdx (t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
 
@@ -373,12 +374,12 @@ registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 -- registerElemLayer f = modifyIR_ $ specificLayers (typeVal' @at) %~ Map.insert (typeVal' @layer) (anyCons @layer f)
 -- {-# INLINE registerElemLayer #-}
 
-attachLayer :: IRMonad m => LayerRep -> ElemRep -> m ()
-attachLayer l e = do
+attachLayerIR :: IRMonad m => LayerRep -> ElemRep -> m ()
+attachLayerIR l e = do
     s <- getIR
     let Just estore = s ^? wrapped' . ix e -- Internal error if not found (element not registered)
     Store.unsafeAddKey l estore
-{-# INLINE attachLayer #-}
+{-# INLINE attachLayerIR #-}
 
 -- setAttr :: forall a m. (IRMonad m, KnownType a) => a -> m ()
 -- setAttr a = modifyIR_ $ attrs %~ Map.insert (typeVal' @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
