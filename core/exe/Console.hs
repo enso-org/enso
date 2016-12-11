@@ -52,8 +52,8 @@ main = do
 
 
 --
-data ElemProxy s = ElemProxy Elem
-makeWrapped ''ElemProxy
+-- data ElemProxy s = ElemProxy Elem
+-- makeWrapped ''ElemProxy
 
 --
 -- makePfxLenses ''DynamicElem
@@ -129,7 +129,7 @@ checkLinkTarget :: MonadCoherenceCheck m => AnyExpr -> AnyExprLink -> m ()
 checkLinkTarget e lnk = do
     markLinkChecked lnk
     (_, tgt) <- readLayer @Model lnk
-    when (e ^. elem . idx /= tgt ^. elem . idx) $ reportIncoherence (DeteachedSource e lnk)
+    when (e ^. idx /= tgt ^. idx) $ reportIncoherence (DeteachedSource e lnk)
 --
 
 
@@ -157,11 +157,11 @@ type instance Preserves (ConsP InitUID t) = '[]
 
 -- FIXME[WD]: this should need only Writable, not Accessible
 -- initUID :: (MonadIO m, MonadPayload t m, Show t) => Pass InitUID m
-initUID :: forall t m. (MonadIO m, IRMonad m, ToElem t) => Pass (ConsP InitUID t) m
+initUID :: forall t m. (MonadIO m, IRMonad m) => Pass (ConsP InitUID t) m
 initUID = do
     t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
     -- t <- readAttr WorkingElem
-    -- writeLayer @UID 0 t
+    writeLayer @UID 0 t
     print "hello"
 
 
@@ -170,7 +170,7 @@ type family PassAttr attr pass
 type instance KeyData (Pass.SubPass pass m) (Attr a) = PassAttr a pass
 
 
-type instance PassAttr WorkingElem (ConsP p t) = t
+type instance PassAttr WorkingElem (ConsP p t) = Elem t
 
 -- newtype ConsPass m = ConsPass (forall t. IsElem t => Pass (InitUID t) m)
 --
@@ -178,7 +178,7 @@ type instance PassAttr WorkingElem (ConsP p t) = t
 -- cp = ConsPass initUID
 
 
-ttt :: forall t m. ( Typeable (Abstract t), ToElem t
+ttt :: forall t m. ( Typeable (Abstract t)
                    , IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
 ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
 

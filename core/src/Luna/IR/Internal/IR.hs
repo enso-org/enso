@@ -73,31 +73,35 @@ data NEW = NEW deriving (Show)
 -- === Elem === --
 ------------------
 
-newtype Elem = Elem Int deriving (Show, Ord, Eq)
+newtype Elem t = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
+
+type instance Definition (Elem t) = Definition t
+type instance Abstract   (Elem t) = Abstract   t
+type instance Universal  (Elem t) = Universal  t
 
 
 -- === Classes === --
 
-class ToElem a where
-    toElem :: a -> Elem
-    default toElem :: (Wrapped a, Unwrapped a ~ Elem) => a -> Elem
-    toElem = unwrap' ; {-# INLINE toElem #-}
-
-class FromElem a where
-    fromElem :: Elem -> a
-    default fromElem :: (Wrapped a, Unwrapped a ~ Elem) => Elem -> a
-    fromElem = wrap' ; {-# INLINE fromElem #-}
-
-type IsElem a = (ToElem a, FromElem a)
-
-elem :: IsElem a => Iso' a Elem
-elem = iso toElem fromElem ; {-# INLINE elem #-}
+-- class ToElem a where
+--     toElem :: a -> Elem
+--     default toElem :: (Wrapped a, Unwrapped a ~ Elem) => a -> Elem
+--     toElem = unwrap' ; {-# INLINE toElem #-}
+--
+-- class FromElem a where
+--     fromElem :: Elem -> a
+--     default fromElem :: (Wrapped a, Unwrapped a ~ Elem) => Elem -> a
+--     fromElem = wrap' ; {-# INLINE fromElem #-}
+--
+-- type IsElem a = (ToElem a, FromElem a)
+--
+-- elem :: IsElem a => Iso' a Elem
+-- elem = iso toElem fromElem ; {-# INLINE elem #-}
 
 
 -- === Instances === --
 
-instance IsIdx Elem where
+instance IsIdx (Elem t) where
     idx = wrapped' ; {-# INLINE idx #-}
 
 
@@ -257,8 +261,8 @@ modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (f
 
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
-uncheckedElems :: forall t m. (IRMonad m, FromElem t, Readable (Net (Abstract t)) m) => m [t]
-uncheckedElems = fmap (fromElem . view (from idx)) <$> (Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
+uncheckedElems :: forall t m. (IRMonad m, IsIdx t, Readable (Net (Abstract t)) m) => m [t]
+uncheckedElems = fmap (view $ from idx) <$> (Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
 
 -- === Querying === --
@@ -285,7 +289,7 @@ uncheckedElems = fmap (fromElem . view (from idx)) <$> (Store.ixes =<< readNet @
     -- cons7 :: forall t. t -> Definition t -> m (LayerData l t)
     -- cons7 :: forall t. a ~ Abstract t => t -> Definition t -> PMSubPass m (LayerData UID t)
 
-newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), FromElem t) => Definition t -> m t
+newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), IsIdx t) => Definition t -> m t
 newMagicElem tdef = do
     irstate    <- getIR
 
@@ -296,7 +300,7 @@ newMagicElem tdef = do
     newIdx <- Store.reserveIdx layerStore
 
 
-    let el = fromElem $ newIdx ^. from idx
+    let el = newIdx ^. from idx
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
@@ -305,13 +309,13 @@ newMagicElem tdef = do
 {-# INLINE newMagicElem #-}
 
 type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
-newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, FromElem t, Typeable (Abstract t))
+newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsIdx t, Typeable (Abstract t))
         => Definition t -> m t
 newElem tdef = do
     irstate    <- getIR
     newIdx     <- reserveNewElemIdx @t
     -- layerStore <- readComp @(Net (Abstract t))
-    let el = fromElem $ newIdx ^. from idx
+    let el = newIdx ^. from idx
     emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
     -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do
@@ -322,22 +326,22 @@ newElem tdef = do
 {-# INLINE newElem #-}
 
 
-delete :: forall t m. (IRMonad m, ToElem t, Accessible (Net (Abstract t)) m) => t -> m ()
-delete t = flip Store.freeIdx (toElem t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m) => t -> m ()
+delete t = flip Store.freeIdx (t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByKey :: (IRMonad m, ToElem t) => Key m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (toElem t ^. idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
+readLayerByKey :: (IRMonad m, IsIdx t) => Key m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
 
-writeLayerByKey :: (IRMonad m, ToElem t) => Key m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
-writeLayerByKey key val t = (\v -> Store.unsafeWrite v (toElem t ^. idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
+writeLayerByKey :: (IRMonad m, IsIdx t) => Key m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
+writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
 
-readLayer :: forall layer t m. (IRMonad m, ToElem t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
+readLayer :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
 readLayer t = flip readLayerByKey t =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
-writeLayer :: forall layer t m. (IRMonad m, ToElem t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
+writeLayer :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
 writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
 -- readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyData m (Attr a))
@@ -492,20 +496,22 @@ instance (IRMonad m, Typeable a, EqPrimStates m n) => KeyMonad (Net a) m n where
 -- === Link === --
 -------------------
 
--- === Definition === --
-
-newtype Link  a b = Link Elem deriving (Show, Ord, Eq)
-type    Link' a   = Link a a
-type instance Definition (Link a b) = (a,b)
-makeWrapped ''Link
-
-type SubLink s t = Link (Sub s t) t
-
 -- === Abstract === --
 
 data LINK  a b
 type LINK' a = LINK a a
-type instance Abstract  (Link a b) = LINK (Abstract  a) (Abstract  b)
+type instance Abstract   (LINK a b) = LINK (Abstract a) (Abstract b)
+type instance Definition (LINK a b) = (a,b)
+type instance Universal  (LINK a b) = LINK (Universal a) (Universal b)
+
+
+-- === Elem === --
+
+type Link  a b = Elem (LINK a b)
+type Link' a   = Link a a
+
+type SubLink s t = Link (Sub s t) t
+
 
 
 -- === Construction === --
@@ -519,11 +525,6 @@ link :: forall a b m. (IRMonad m, Typeable (Abstract a), NewElemEvent m (Link a 
 link a b = newElem (a,b) ; {-# INLINE link #-}
 
 
--- === Instances === --
-
-instance      ToElem    (Link a b)
-instance      FromElem  (Link a b)
-type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 
 
@@ -531,16 +532,14 @@ type instance Universal (Link a b) = Link (Universal a) (Universal b)
 -- === Group === --
 -------------------
 
--- === Definition === --
-
-newtype Group a = Group Elem deriving (Show, Ord, Eq)
-type instance Definition (Group a) = Set a
-makeWrapped ''Group
-
 -- === Abstract === --
 
 data GROUP a
-type instance Abstract (Group a) = GROUP (Abstract a)
+type instance Abstract   (GROUP a) = GROUP (Abstract a)
+type instance Definition (GROUP a) = Set a
+type instance Universal  (GROUP a) = GROUP (Universal a)
+
+type Group a = Elem (GROUP a)
 
 
 -- === Construction === --
@@ -548,15 +547,6 @@ type instance Abstract (Group a) = GROUP (Abstract a)
 group :: forall f a m. (IRMonad m, Foldable f, Ord a, NewElemEvent m (Group a), Typeable (Abstract a), Accessible (Net (Abstract (Group a))) m)
       => f a -> m (Group a)
 group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
-
-
--- === Instances === --
-
-instance      ToElem    (Group a)
-instance      FromElem  (Group a)
-type instance Universal (Group a) = Group (Universal a)
-
-
 
 
 
@@ -668,19 +658,17 @@ instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder ato
 -- === Expr === --
 ------------------
 
+data EXPRESSION layout
+type instance Definition (EXPRESSION _) = ExprStore
+type instance Abstract   (EXPRESSION _) = EXPR
+type instance Universal  (EXPRESSION _) = AnyExpr
+
+
 -- === Definition === --
 
-newtype Expr  layout = Expr Elem deriving (Show, Ord, Eq)
-type    AnyExpr      = Expr Layout.Any
-type    AnyExprLink  = Link' AnyExpr
-makeWrapped ''Expr
-
-type instance Definition (Expr _) = ExprStore
-
-
--- === Abstract === --
-
-type instance Abstract (Expr _) = EXPR
+type Expr layout = Elem (EXPRESSION layout)
+type AnyExpr     = Expr Layout.Any
+type AnyExprLink = Link' AnyExpr
 
 
 -- === Utils === --
@@ -729,12 +717,7 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 type instance Event.Payload (NEW // EXPR)       = (AnyExpr, Prim.Any)
 type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor
 
-type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)
-instance      ToElem    (Expr l)
-instance      FromElem  (Expr l)
-instance      IsIdx     (Expr l) where
-    idx = elem . idx ; {-# INLINE idx #-}
 
 
 type instance Generalizable (Expr l) (Expr l') = Generalizable l l'
