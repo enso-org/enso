@@ -23,6 +23,7 @@ import Type.List (In)
 import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Event (Event)
+import Data.TypeVal
 
 
 ---------------------
@@ -111,21 +112,21 @@ makeLenses  ''DynSubPass
 
 
 type Commit m pass = ( Monad m
-                     , LookupData pass m (Keys pass)
-                     , Typeable  (Abstract  pass)
-                     , Typeables (Inputs    pass)
-                     , Typeables (Outputs   pass)
-                     , Typeables (Preserves pass)
+                    --  , LookupData pass m (Keys pass)
+                     , KnownType  (Abstract  pass)
+                     , KnownTypes (Inputs    pass)
+                    --  , KnownTypes (Outputs   pass)
+                    --  , KnownTypes (Preserves pass)
                      )
 
 class    Functor (p m) => IsPass m p           where commit :: forall a. p m a -> DynSubPass m a
 instance Functor m     => IsPass m DynSubPass  where commit = id ; {-# INLINE commit #-}
-instance Commit m p    => IsPass m (SubPass p) where commit = DynSubPass
-                                                              (typeRep'  @(Abstract  p))
-                                                              (typeReps' @(Inputs    p))
-                                                              (typeReps' @(Outputs   p))
-                                                              (typeReps' @(Preserves p))
-                                                              . initPass
+instance Commit m p    => IsPass m (SubPass p) where commit _ = DynSubPass
+                                                              undefined -- (typeVal'  @(Abstract  p))
+                                                              undefined -- (typeVals' @(Inputs    p))
+                                                              undefined -- (typeVals' @(Outputs   p))
+                                                              undefined -- (typeVals' @(Preserves p))
+                                                              undefined -- . initPass
                                                      {-# INLINE commit #-}
 
 
@@ -148,10 +149,10 @@ run = view dynEval ; {-# INLINE run #-}
 
 -- === Keys lookup === --
 
-type ReLookupData pass k m ks = (IR.KeyMonad k m (SubPass pass m), LookupData pass m ks, Typeable k)
+type ReLookupData pass k m ks = (IR.KeyMonad k m (SubPass pass m), LookupData pass m ks, KnownType k)
 class    Monad m             => LookupData pass m keys      where lookupData :: m (Either InternalError (DataSet (SubPass pass m) keys))
 instance Monad m             => LookupData pass m '[]       where lookupData = return $ return (wrap' List.empty)
-instance ReLookupData pass k m ks => LookupData pass m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeRep' @k) <$> IR.uncheckedLookupKey)
+instance ReLookupData pass k m ks => LookupData pass m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeVal' @k) <$> IR.uncheckedLookupKey)
                                                                                        <<*>> lookupData @pass
 
 

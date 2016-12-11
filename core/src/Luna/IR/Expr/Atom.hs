@@ -10,6 +10,7 @@ import Data.Property
 import Data.Reprx
 import Type.Container (Every)
 import Data.Families  (makeLunaComponents)
+import Data.TypeVal
 
 
 -- === Definition pragmas === --
@@ -39,10 +40,10 @@ type family Atoms  a :: [*]
 newtype AtomRep = AtomRep TypeRep deriving (Eq)
 makeWrapped ''AtomRep
 
-atomRep' :: forall a. Typeable (AtomOf a) => AtomRep
-atomRep' = wrap' $ typeRep (Proxy :: Proxy (AtomOf a)) ; {-# INLINE atomRep' #-}
+atomRep' :: forall a. KnownType (AtomOf a) => AtomRep
+atomRep' = wrap' $ typeVal' @(AtomOf a) ; {-# INLINE atomRep' #-}
 
-atomRep :: forall a. Typeable (AtomOf a) => a -> AtomRep
+atomRep :: forall a. KnownType (AtomOf a) => a -> AtomRep
 atomRep _ = atomRep' @a ; {-# INLINE atomRep #-}
 
 

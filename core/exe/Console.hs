@@ -44,11 +44,6 @@ data A = A deriving (Show)
 
 
 
-main = do
-    let x = typeVal' @A
-    print x
-    print $ reifyKnownType (\p -> typeVal p) x
-    print "hello"
 
 
 --
@@ -177,10 +172,50 @@ type instance PassAttr WorkingElem (ConsP p t) = Elem t
 -- cp :: (MonadIO m, IRMonad m) => ConsPass m
 -- cp = ConsPass initUID
 
+-- type instance Abstract (TypeRef s) = TypeRef s
 
-ttt :: forall t m. ( Typeable (Abstract t)
-                   , IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
-ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
+data Abstracted a
+
+-- reifyKnownTypeT :: forall r. (forall s. TypeReify (Abstracted s) => TypeProxy s -> r) -> TypeVal -> r
+-- reifyKnownTypeT f a = reify a $ f . reproxyTypeRef ; {-# INLINE reifyKnownTypeT #-}
+
+
+
+-- type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
+
+type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
+uu2 :: MonadIO m => m ()
+uu2 = reifyKnownTypeT @Abstracted uu (typeVal' @A)
+
+uu :: forall t m proxy. proxy t -> (KnownType (Abstract t), MonadIO m) => m ()
+uu p = do
+    print $ typeVal'_ @(Abstract t)
+
+
+data Simplex a
+instance Reifies s a => Reifies (Simplex s) a where
+    reflect _ = reflect (Proxy :: Proxy s) ; {-# INLINE reflect #-}
+
+-- class Reifies s a | s -> a where
+--   -- | Recover a value inside a 'reify' context, given a proxy for its
+--   -- reified type.
+--   reflect :: proxy s -> a
+
+
+data B = B deriving (Show)
+
+main = do
+    let x = typeVal' @A
+    uu2
+    print $ reifyKnownType (\p -> typeVal_ p) x
+    print "hello"
+
+ttt2 :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+ttt2 = reifyKnownTypeT @Abstracted ttt
+
+ttt :: forall t m. ( KnownType (Abstract t)
+                   , IRMonad m, MonadIO m, MonadPassManager m) => Proxy t -> Pass.DynPass m
+ttt _ = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
