@@ -8,6 +8,12 @@ import Data.Typeable as X
 
 
 
+-- === Reflection utils === --
+
+reflect' :: forall s a. Reifies s a => a
+reflect' = reflect (Proxy :: Proxy s) ; {-# INLINE reflect' #-}
+
+
 -- === TypeVal === --
 
 newtype TypeVal = TypeVal TypeRep deriving (Show, Eq, Ord)
@@ -17,23 +23,24 @@ makeWrapped ''TypeVal
 
 -- === Reifying === --
 
-newtype TypeProxy s = TypeProxy (Proxy s)
-type    TypeReify s = Reifies s TypeVal
-makeWrapped ''TypeProxy
+data TypeRef   s
+type TypeProxy s = Proxy (TypeRef s)
+type TypeReify s = Reifies s TypeVal
+
+reproxyTypeRef :: Proxy s -> TypeProxy s
+reproxyTypeRef _ = Proxy ; {-# INLINE reproxyTypeRef #-}
 
 reifyKnownType :: forall r. (forall s. TypeReify s => TypeProxy s -> r) -> TypeVal -> r
-reifyKnownType f a = reify a $ f . TypeProxy ; {-# INLINE reifyKnownType #-}
+reifyKnownType f a = reify a $ f . reproxyTypeRef ; {-# INLINE reifyKnownType #-}
 
 
 -- === KnownType === --
 
-class KnownType a where typeVal :: a -> TypeVal
+class KnownType a where typeVal' :: TypeVal
 
 instance {-# OVERLAPPABLE #-}
-         Typeable  a => KnownType a             where typeVal = const $ typeRep' @a ; {-# INLINE typeVal #-}
-instance Typeable  s => KnownType (Proxy     s) where typeVal = const $ typeRep' @s ; {-# INLINE typeVal #-}
-instance TypeReify s => KnownType (TypeProxy s) where typeVal = reflect . unwrap'   ; {-# INLINE typeVal #-}
-instance                KnownType TypeVal       where typeVal = id                  ; {-# INLINE typeVal #-}
+         Typeable  a => KnownType a           where typeVal' = typeRep' @a ; {-# INLINE typeVal' #-}
+instance TypeReify s => KnownType (TypeRef s) where typeVal' = reflect' @s ; {-# INLINE typeVal' #-}
 
-typeVal' :: forall a. Typeable a => TypeVal
-typeVal' = typeVal (Proxy :: Proxy a) ; {-# INLINE typeVal' #-}
+typeVal :: forall a proxy. KnownType a => proxy a -> TypeVal
+typeVal _ = typeVal' @a ; {-# INLINE typeVal #-}

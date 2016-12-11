@@ -44,31 +44,31 @@ data A = A deriving (Show)
 
 
 
--- main = do
---     let x = typeVal' @A
---     print x
---     print $ reifyKnownType (\p -> typeVal p) x
---     print "hello"
+main = do
+    let x = typeVal' @A
+    print x
+    print $ reifyKnownType (\p -> typeVal p) x
+    print "hello"
+
+
 --
+data ElemProxy s = ElemProxy Elem
+makeWrapped ''ElemProxy
 
-
-data DynamicElem = DynamicElem { _typeVal :: TypeVal
-                               , _elem    :: Elem
-                               }
-
-makePfxLenses ''DynamicElem
-
-instance KnownType DynamicElem where typeVal = view dynamicElem_typeVal ; {-# INLINE typeVal #-}
--- instance IsElem    DynamicElem where elem    = dynamicElem_elem         ; {-# INLINE elem    #-}
+--
+-- makePfxLenses ''DynamicElem
+--
+-- instance KnownType DynamicElem where typeVal = view dynamicElem_typeVal ; {-# INLINE typeVal #-}
+-- -- instance IsElem    DynamicElem where elem    = dynamicElem_elem         ; {-# INLINE elem    #-}
 
 
 
-foo :: KnownType a => a -> TypeVal
-foo = typeVal
-
-bar :: TypeVal -> TypeVal
-bar = reifyKnownType foo
-
+-- foo :: KnownType a => a -> TypeVal
+-- foo = typeVal
+--
+-- bar :: TypeVal -> TypeVal
+-- bar = reifyKnownType foo
+--
 
 
 
@@ -141,38 +141,46 @@ class MonadPayload a m | m -> a where
 
 -- foo :: Typeable =a -> TypeRep
 
-newtype WorkingElem t = WorkingElem t
-makeWrapped ''WorkingElem
+data WorkingElem
+
 
 data ConsP c t
 data InitUID
-type instance Inputs    (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
-type instance Outputs   (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
+-- type instance Inputs    (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
+type instance Inputs    (ConsP InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
+type instance Outputs   (ConsP InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
 type instance Events    (ConsP InitUID t) = '[]
 type instance Preserves (ConsP InitUID t) = '[]
 -- makePass ''InitUID
 
 -- FIXME[WD]: this should need only Writable, not Accessible
 -- initUID :: (MonadIO m, MonadPayload t m, Show t) => Pass InitUID m
-initUID :: forall t m. (MonadIO m, IRMonad m, IsElem t) => Pass (ConsP InitUID t) m
+initUID :: forall t m. (MonadIO m, IRMonad m, ToElem t) => Pass (ConsP InitUID t) m
 initUID = do
-    WorkingElem t <- readAttr @(WorkingElem t)
+    t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
     -- t <- readAttr WorkingElem
-    writeLayer @UID 0 t
+    -- writeLayer @UID 0 t
     print "hello"
 
 
+type family PassAttr attr pass
+
+type instance KeyData (Pass.SubPass pass m) (Attr a) = PassAttr a pass
+
+
+type instance PassAttr WorkingElem (ConsP p t) = t
 
 -- newtype ConsPass m = ConsPass (forall t. IsElem t => Pass (InitUID t) m)
 --
 -- cp :: (MonadIO m, IRMonad m) => ConsPass m
 -- cp = ConsPass initUID
 
-ttt :: forall t m. ( Typeable t, IsElem t, Typeable (Abstract t)
-                   , KeyMonad (Attr (WorkingElem t)) m, IRMonad m, MonadIO m) => Pass.DynPass m
-ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
+-- ttt :: forall t m. ( Typeable (Abstract t), ToElem t
+--                    , KeyMonad (Attr (WorkingElem t)) m, IRMonad m, MonadIO m) => Pass.DynPass m
+-- ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
 
 data                    SimpleAA
+type instance Abstract  SimpleAA = SimpleAA
 type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
 type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
 type instance Events    SimpleAA = '[NEW // EXPR]
@@ -211,7 +219,7 @@ uncheckedDeleteStarType e = do
 
 
 
-instance (Monad m, Event.FromPath e) => KeyMonad (Event e) (PassManager m) where
+instance (Monad m, Event.FromPath e, m ~ GetBaseMonad n) => KeyMonad (Event e) (PassManager m) n where
     uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Event.fromPath @e)
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
@@ -334,17 +342,17 @@ gen_pass1 = do
 
 
 
-main :: IO ()
-main = do
-    (p, vis) <- Vis.newRunDiffT test_pass1
-    case p of
-        Left e -> do
-            print "* INTERNAL ERROR *"
-            print e
-        Right _ -> do
-            let cfg = ByteString.unpack $ encode $ vis
-            -- putStrLn cfg
-            -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
-            return ()
-    print p
-    return ()
+-- main :: IO ()
+-- main = do
+--     (p, vis) <- Vis.newRunDiffT test_pass1
+--     case p of
+--         Left e -> do
+--             print "* INTERNAL ERROR *"
+--             print e
+--         Right _ -> do
+--             let cfg = ByteString.unpack $ encode $ vis
+--             -- putStrLn cfg
+--             -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+--             return ()
+--     print p
+--     return ()

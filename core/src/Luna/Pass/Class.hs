@@ -69,7 +69,7 @@ makeWrapped ''PassRep
 
 
 type    Pass    pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (PassDataSet m pass) m a)
+newtype SubPass pass m a = SubPass (StateT (PassDataSet (SubPass pass m) pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
@@ -99,7 +99,7 @@ type family GetPass  m where
     GetPass (t m)            = GetPass m
 
 type family GetPassMonad m where
-    GetPassMonad (SubPass pass m) = m
+    GetPassMonad (SubPass pass m) = SubPass pass m
     GetPassMonad (t m)            = GetPassMonad m
 
 
@@ -111,8 +111,8 @@ makeLenses  ''DynSubPass
 
 
 type Commit m pass = ( Monad m
-                     , LookupData m (Keys pass)
-                     , Typeable  pass
+                     , LookupData pass m (Keys pass)
+                     , Typeable  (Abstract  pass)
                      , Typeables (Inputs    pass)
                      , Typeables (Outputs   pass)
                      , Typeables (Preserves pass)
@@ -121,7 +121,7 @@ type Commit m pass = ( Monad m
 class    Functor (p m) => IsPass m p           where commit :: forall a. p m a -> DynSubPass m a
 instance Functor m     => IsPass m DynSubPass  where commit = id ; {-# INLINE commit #-}
 instance Commit m p    => IsPass m (SubPass p) where commit = DynSubPass
-                                                              (typeRep'  @p)
+                                                              (typeRep'  @(Abstract  p))
                                                               (typeReps' @(Inputs    p))
                                                               (typeReps' @(Outputs   p))
                                                               (typeReps' @(Preserves p))
@@ -132,8 +132,8 @@ instance Commit m p    => IsPass m (SubPass p) where commit = DynSubPass
 dropResult :: Functor p => p a -> p ()
 dropResult = fmap $ const () ; {-# INLINE dropResult #-}
 
-initPass :: (LookupData m (Keys pass), Monad m) => SubPass pass m a -> m (Either InternalError (m a))
-initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData ; {-# INLINE initPass #-}
+initPass :: forall pass m a. (LookupData pass m (Keys pass), Monad m) => SubPass pass m a -> m (Either InternalError (m a))
+initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData @pass ; {-# INLINE initPass #-}
 
 eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
 eval = join . fmap sequence . run ; {-# INLINE eval #-}
@@ -148,11 +148,11 @@ run = view dynEval ; {-# INLINE run #-}
 
 -- === Keys lookup === --
 
-type ReLookupData k m ks = (IR.KeyMonad k m, LookupData m ks, Typeable k)
-class    Monad m             => LookupData m keys      where lookupData :: m (Either InternalError (DataSet m keys))
-instance Monad m             => LookupData m '[]       where lookupData = return $ return (wrap' List.empty)
-instance ReLookupData k m ks => LookupData m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeRep' @k) <$> IR.uncheckedLookupKey)
-                                                                                  <<*>> lookupData
+type ReLookupData pass k m ks = (IR.KeyMonad k m (SubPass pass m), LookupData pass m ks, Typeable k)
+class    Monad m             => LookupData pass m keys      where lookupData :: m (Either InternalError (DataSet (SubPass pass m) keys))
+instance Monad m             => LookupData pass m '[]       where lookupData = return $ return (wrap' List.empty)
+instance ReLookupData pass k m ks => LookupData pass m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeRep' @k) <$> IR.uncheckedLookupKey)
+                                                                                       <<*>> lookupData @pass
 
 
 infixl 4 <<*>>
@@ -230,17 +230,19 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- Readable
 instance ( Monad m
          , ContainsKey k (Keys pass)
-         , Assert (k `In` (Inputs pass)) (KeyReadError k)
-         , RebasedKeyData (SubPass pass m) m k)
-      => Readable k (SubPass pass m) where getKey = rebaseKey . view findKey <$> get ; {-# INLINE getKey #-}
+         , Assert (k `In` (Inputs pass)) (KeyReadError k))
+        --  , RebasedKeyData (SubPass pass m) m k)
+      => Readable k (SubPass pass m) where getKey = {- rebaseKey . -} view findKey <$> get ; {-# INLINE getKey #-}
+--
+-- -- Writable
+-- instance ( Monad m
+--          , ContainsKey k (Keys pass)
+--          , Assert (k `In` (Inputs pass)) (KeyReadError k)
+--          , RebasedKeyData (SubPass pass m) m k)
+--       => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ rebaseKey k) ; {-# INLINE putKey #-}
 
--- Writable
-instance ( Monad m
-         , ContainsKey k (Keys pass)
-         , Assert (k `In` (Inputs pass)) (KeyReadError k)
-         , RebasedKeyData (SubPass pass m) m k)
-      => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ rebaseKey k) ; {-# INLINE putKey #-}
-
+-- instance Monad m => Readable k (SubPass pass m) where getKey = undefined
+instance Monad m => Writable k (SubPass pass m) where putKey = undefined
 
 -- === ContainsKey === --
 

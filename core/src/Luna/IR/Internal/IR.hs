@@ -51,7 +51,7 @@ import Type.Inference
 
 
 
-
+type EqPrimStates m n = (PrimState m ~ PrimState n)
 
 class IsIdx t where
     idx :: Iso' t Int
@@ -76,10 +76,26 @@ data NEW = NEW deriving (Show)
 newtype Elem = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
 
-class IsElem a where
-    elem :: Iso' a Elem
-    default elem :: (Wrapped a, Unwrapped a ~ Elem) => Iso' a Elem
-    elem = wrapped' ; {-# INLINE elem #-}
+
+-- === Classes === --
+
+class ToElem a where
+    toElem :: a -> Elem
+    default toElem :: (Wrapped a, Unwrapped a ~ Elem) => a -> Elem
+    toElem = unwrap' ; {-# INLINE toElem #-}
+
+class FromElem a where
+    fromElem :: Elem -> a
+    default fromElem :: (Wrapped a, Unwrapped a ~ Elem) => Elem -> a
+    fromElem = wrap' ; {-# INLINE fromElem #-}
+
+type IsElem a = (ToElem a, FromElem a)
+
+elem :: IsElem a => Iso' a Elem
+elem = iso toElem fromElem ; {-# INLINE elem #-}
+
+
+-- === Instances === --
 
 instance IsIdx Elem where
     idx = wrapped' ; {-# INLINE idx #-}
@@ -108,8 +124,8 @@ rebaseKey = rewrap ; {-# INLINE rebaseKey #-}
 
 -- === Key Monad === --
 
-class Monad m => KeyMonad key m where
-    uncheckedLookupKey :: m (Maybe (Key m key))
+class Monad m => KeyMonad key m n where
+    uncheckedLookupKey :: m (Maybe (Key n key))
 
 
 -- === Construction === --
@@ -241,8 +257,8 @@ modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (f
 
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
-uncheckedElems :: forall t m. (IRMonad m, IsElem t, Readable (Net (Abstract t)) m) => m [t]
-uncheckedElems = fmap (view (from $ elem . idx)) <$> (Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
+uncheckedElems :: forall t m. (IRMonad m, FromElem t, Readable (Net (Abstract t)) m) => m [t]
+uncheckedElems = fmap (fromElem . view (from idx)) <$> (Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
 
 -- === Querying === --
@@ -269,7 +285,7 @@ uncheckedElems = fmap (view (from $ elem . idx)) <$> (Store.ixes =<< readNet @(A
     -- cons7 :: forall t. t -> Definition t -> m (LayerData l t)
     -- cons7 :: forall t. a ~ Abstract t => t -> Definition t -> PMSubPass m (LayerData UID t)
 
-newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), IsElem t) => Definition t -> m t
+newMagicElem :: forall t m. (IRMonad m, Typeable (Abstract t), FromElem t) => Definition t -> m t
 newMagicElem tdef = do
     irstate    <- getIR
 
@@ -280,7 +296,7 @@ newMagicElem tdef = do
     newIdx <- Store.reserveIdx layerStore
 
 
-    let el = newIdx ^. from (elem . idx)
+    let el = fromElem $ newIdx ^. from idx
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeRep' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
@@ -289,13 +305,13 @@ newMagicElem tdef = do
 {-# INLINE newMagicElem #-}
 
 type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
-newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsElem t, Typeable (Abstract t))
+newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, FromElem t, Typeable (Abstract t))
         => Definition t -> m t
 newElem tdef = do
     irstate    <- getIR
     newIdx     <- reserveNewElemIdx @t
     -- layerStore <- readComp @(Net (Abstract t))
-    let el = newIdx ^. from (elem . idx)
+    let el = fromElem $ newIdx ^. from idx
     emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
     -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do
@@ -306,26 +322,29 @@ newElem tdef = do
 {-# INLINE newElem #-}
 
 
-delete :: forall t m. (IRMonad m, IsElem t, Accessible (Net (Abstract t)) m) => t -> m ()
-delete t = flip Store.freeIdx (t ^. elem . idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+delete :: forall t m. (IRMonad m, ToElem t, Accessible (Net (Abstract t)) m) => t -> m ()
+delete t = flip Store.freeIdx (toElem t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByKey :: (IRMonad m, IsElem t) => Key m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
-readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (t ^. elem . idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
+readLayerByKey :: (IRMonad m, ToElem t) => Key m (Layer (Abstract t) layer) -> t -> m (LayerData layer t)
+readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (toElem t ^. idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
 
-writeLayerByKey :: (IRMonad m, IsElem t) => Key m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
-writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. elem . idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
+writeLayerByKey :: (IRMonad m, ToElem t) => Key m (Layer (Abstract t) layer) -> LayerData layer t -> t -> m ()
+writeLayerByKey key val t = (\v -> Store.unsafeWrite v (toElem t ^. idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
 
-readLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
+readLayer :: forall layer t m. (IRMonad m, ToElem t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
 readLayer t = flip readLayerByKey t =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
-writeLayer :: forall layer t m. (IRMonad m, IsElem t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
+writeLayer :: forall layer t m. (IRMonad m, ToElem t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
 writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
+-- readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyData m (Attr a))
+-- readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
+
 readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyData m (Attr a))
-readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
+readAttr = undefined -- readComp @(Attr a) ; {-# INLINE readAttr #-}
 
 writeAttr :: forall a m. (IRMonad m, Writable (Attr a) m) => KeyData m (Attr a) -> m ()
 writeAttr a = writeComp @(Attr a) a
@@ -440,7 +459,7 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 
 type instance KeyData m (Layer _ _) = LayerSet    (PrimState m)
 type instance KeyData m (Net   _)   = ElemStoreST (PrimState m)
-type instance KeyData _ (Attr  a)   = a
+-- type instance KeyData _ (Attr  a)   = a
 
 
 -- === Aliases === --
@@ -451,7 +470,7 @@ data Attr t
 
 -- === Instances === --
 
-instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
+instance (IRMonad m, Typeable e, Typeable l, EqPrimStates m n) => KeyMonad (Layer e l) m n where
     uncheckedLookupKey = do
         s <- getIR
         let mlv = s ^? wrapped' . ix (typeRep' @e)
@@ -459,7 +478,7 @@ instance (IRMonad m, Typeable e, Typeable l) => KeyMonad (Layer e l) m where
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupKey #-}
 
-instance (IRMonad m, Typeable a) => KeyMonad (Net a) m where
+instance (IRMonad m, Typeable a, EqPrimStates m n) => KeyMonad (Net a) m n where
     uncheckedLookupKey = fmap wrap' . (^? (wrapped' . ix (typeRep' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
 -- instance (IRMonad m, Typeable a) => KeyMonad (Attr a) m where
@@ -499,7 +518,8 @@ link a b = newElem (a,b) ; {-# INLINE link #-}
 
 -- === Instances === --
 
-instance      IsElem    (Link a b)
+instance      ToElem    (Link a b)
+instance      FromElem  (Link a b)
 type instance Universal (Link a b) = Link (Universal a) (Universal b)
 
 
@@ -529,7 +549,8 @@ group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
 -- === Instances === --
 
-instance      IsElem    (Group a)
+instance      ToElem    (Group a)
+instance      FromElem  (Group a)
 type instance Universal (Group a) = Group (Universal a)
 
 
@@ -707,7 +728,8 @@ type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- F
 
 type instance Universal (Expr _) = AnyExpr
 type instance Sub s     (Expr l) = Expr (Sub s l)
-instance      IsElem    (Expr l)
+instance      ToElem    (Expr l)
+instance      FromElem  (Expr l)
 instance      IsIdx     (Expr l) where
     idx = elem . idx ; {-# INLINE idx #-}
 

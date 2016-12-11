@@ -136,6 +136,7 @@ instance MonadTrans PassManager where
 
 type instance KeyData m (Event e) = PassManager' m ()
 
+
 -- Emitter
 instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
     emit _ _ = liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
