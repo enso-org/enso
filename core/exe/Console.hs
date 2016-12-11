@@ -143,9 +143,11 @@ class MonadPayload a m | m -> a where
 
 data WorkingElem
 
-
+data CONSP c
 data ConsP c t
+type instance Abstract (ConsP c t) = CONSP (Abstract c)
 data InitUID
+type instance Abstract InitUID = InitUID
 -- type instance Inputs    (ConsP InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
 type instance Inputs    (ConsP InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
 type instance Outputs   (ConsP InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
@@ -175,9 +177,10 @@ type instance PassAttr WorkingElem (ConsP p t) = t
 -- cp :: (MonadIO m, IRMonad m) => ConsPass m
 -- cp = ConsPass initUID
 
--- ttt :: forall t m. ( Typeable (Abstract t), ToElem t
---                    , KeyMonad (Attr (WorkingElem t)) m, IRMonad m, MonadIO m) => Pass.DynPass m
--- ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
+
+ttt :: forall t m. ( Typeable (Abstract t), ToElem t
+                   , IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
+ttt = Pass.commit (initUID :: Pass (ConsP InitUID t) m)
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA

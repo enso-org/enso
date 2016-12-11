@@ -15,7 +15,7 @@ import Luna.IR.Internal.IR
 import Luna.Pass.Class (IsPass, DynSubPass, SubPass)
 import qualified Luna.Pass.Class as Pass
 
-import qualified GHC.Prim as Prim
+import qualified Prologue.Prim as Prim
 
 
 
@@ -31,8 +31,9 @@ import qualified GHC.Prim as Prim
 -- === State === --
 -------------------
 
-data State m = State { _layerCons :: Map LayerRep (PMPass   m)
-                     , _eventHub  :: EventHub     (PMPass   m)
+data State m = State { _eventHub  :: EventHub     (PMPass   m)
+                     , _layerCons :: Map LayerRep (PMPass   m)
+                     , _attrs     :: Map AttrRep  Prim.AnyData
                      } deriving (Show)
 
 type PMSubPass m = DynSubPass (PassManager m)
@@ -42,7 +43,7 @@ type PMPass    m = PMSubPass m ()
 -- === instances === --
 
 instance Default (State m) where
-    def = State def def ; {-# INLINE def #-}
+    def = State def def def ; {-# INLINE def #-}
 
 
 --------------------------
@@ -140,3 +141,7 @@ type instance KeyData m (Event e) = PassManager' m ()
 -- Emitter
 instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
     emit _ _ = liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
+
+
+instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
+    uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}

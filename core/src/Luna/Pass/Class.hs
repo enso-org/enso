@@ -231,18 +231,16 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 instance ( Monad m
          , ContainsKey k (Keys pass)
          , Assert (k `In` (Inputs pass)) (KeyReadError k))
-        --  , RebasedKeyData (SubPass pass m) m k)
-      => Readable k (SubPass pass m) where getKey = {- rebaseKey . -} view findKey <$> get ; {-# INLINE getKey #-}
---
--- -- Writable
--- instance ( Monad m
---          , ContainsKey k (Keys pass)
---          , Assert (k `In` (Inputs pass)) (KeyReadError k)
---          , RebasedKeyData (SubPass pass m) m k)
---       => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ rebaseKey k) ; {-# INLINE putKey #-}
+      => Readable k (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
+
+-- Writable
+instance ( Monad m
+         , ContainsKey k (Keys pass)
+         , Assert (k `In` (Inputs pass)) (KeyReadError k))
+      => Writable k (SubPass pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
 
 -- instance Monad m => Readable k (SubPass pass m) where getKey = undefined
-instance Monad m => Writable k (SubPass pass m) where putKey = undefined
+-- instance Monad m => Writable k (SubPass pass m) where putKey = undefined
 
 -- === ContainsKey === --
 

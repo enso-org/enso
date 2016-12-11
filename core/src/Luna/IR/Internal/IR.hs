@@ -467,6 +467,9 @@ type instance KeyData m (Net   _)   = ElemStoreST (PrimState m)
 data Net  t
 data Attr t
 
+newtype AttrRep = AttrRep TypeRep deriving (Show, Eq, Ord)
+instance IsTypeRep AttrRep
+makeWrapped '' AttrRep
 
 -- === Instances === --
 
