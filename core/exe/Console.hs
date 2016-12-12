@@ -135,28 +135,32 @@ class MonadPayload a m | m -> a where
 
 
 
-data WorkingElem
+data WorkingElem = WorkingElem deriving (Show)
 
-data ELEMPASS c
+data ELEMPASS c t
 data ElemPass c t
-type instance Abstract (ElemPass c t) = ELEMPASS (Abstract c)
+type instance Abstract (ElemPass c t) = ELEMPASS (Abstract c) (Abstract t)
+
 data InitUID
 type instance Abstract InitUID = InitUID
--- type instance Inputs    (ElemPass InitUID t) = '[Attr (WorkingElem t), Layer (Abstract t) UID]
-type instance Inputs    (ElemPass InitUID t) = '[Layer (Abstract t) UID]
-type instance Outputs   (ElemPass InitUID t) = '[Layer (Abstract t) UID]
+type instance Args      (ElemPass p t) = Elem t
+type instance Inputs    (ElemPass InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
+type instance Outputs   (ElemPass InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
 type instance Events    (ElemPass InitUID t) = '[]
 type instance Preserves (ElemPass InitUID t) = '[]
--- makePass ''InitUID
-
--- FIXME[WD]: this should need only Writable, not Accessible
--- initUID :: (MonadIO m, MonadPayload t m, Show t) => Pass InitUID m
 initUID :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemPass InitUID t) m
 initUID = do
-    -- t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
-    -- t <- readAttr WorkingElem
-    -- writeLayer @UID 0 t
+    t <- readAttr @WorkingElem
+    print t
+    -- flip (writeLayer @UID) t =<< getNewUID
     print "hello"
+
+-- initUID2 :: forall t m. (MonadIO m, IRMonad m) => ArgPass (ElemPass InitUID t) m
+-- initUID2 t = do
+--     -- t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
+--     -- print t
+--     -- writeLayer @UID 0 t
+--     print "hello"
 
 
 type family PassAttr attr pass
@@ -214,7 +218,7 @@ ttt2 = reifyKnownTypeT @Abstracted ttt
 
 ttt :: forall t m. ( KnownType (Abstract t)
                    , IRMonad m, MonadIO m, MonadPassManager m) => Proxy t -> Pass.DynPass m
-ttt _ = Pass.commit (initUID :: Pass (ElemPass InitUID t) m)
+ttt _ = Pass.compile (initUID :: Pass (ElemPass InitUID t) m)
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
@@ -233,7 +237,7 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
 
-
+    -- writeAttr @WorkingElem (unsafeCoerce (0 :: Int))
     registerLayer (typeVal' @UID) ttt2
     attachLayer   (typeVal' @UID) (typeVal' @EXPR)
 
@@ -241,7 +245,13 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     -- print =<< PM.get
 
     -- addEventListener (NEW // EXPR) $ initUID @(AnyExpr)
+    hackySetAttr (typeVal' @WorkingElem) (unsafeCoerce (1 :: Int))
     Pass.eval' pass1
+
+-- hackySetAttr :: MonadPassManager m => AttrRep -> Prim.AnyData -> m ()
+
+
+-- registerLayer :: MonadPassManager m => LayerRep -> (forall t. Pass (ElemPass pass t) m') -> m ()
 
 
 

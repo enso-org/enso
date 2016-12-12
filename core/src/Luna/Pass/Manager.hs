@@ -12,7 +12,7 @@ import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
-import Luna.Pass.Class (IsPass, DynSubPass, SubPass)
+import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -28,6 +28,9 @@ import qualified Prologue.Prim as Prim
 -- makeWrapped ''ConsFunc
 
 
+-- type PMArgSubPass m = DynArgSubPass (PassManager m)
+-- type PMArgPass    m = PMArgSubPass m ()
+
 type PMSubPass m = DynSubPass (PassManager m)
 type PMPass    m = PMSubPass m ()
 
@@ -36,18 +39,21 @@ type PMPass    m = PMSubPass m ()
 -- === State === --
 -------------------
 
-newtype LayerCons m = LayerCons { appCons :: ElemRep -> PMPass m }
-instance Show (LayerCons m) where show _ = "LayerCons"
+-- TODO: refactor -> Passes
+-- VVV --
+newtype PassProto m = PassProto { appCons :: ElemRep -> PMPass m } -- FIXME: should not refer to PMPass
+instance Show (PassProto m) where show _ = "PassProto"
+-- ^^^ --
 
-data LayerReg m = LayerReg { _registered :: Map LayerRep (LayerCons m)
-                           , _attached   :: Map ElemRep  (Map LayerRep (PMPass m))
+data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ PassProto m
+                           , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
                            } deriving (Show)
 
-data State m = State { _events :: EventHub (PMPass m)
+data State m = State { _passes :: Map PassRep $ PMPass m
                      , _layers :: LayerReg m
+                     , _events :: EventHub PassRep
                      , _attrs  :: Map AttrRep Prim.AnyData
                      } deriving (Show)
-
 
 
 -- === instances === --
@@ -56,7 +62,7 @@ instance Default (LayerReg m) where
     def = LayerReg def def ; {-# INLINE def #-}
 
 instance Default (State m) where
-    def = State def def def ; {-# INLINE def #-}
+    def = State def def def def ; {-# INLINE def #-}
 
 
 --------------------------
@@ -127,22 +133,33 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => LayerRep -> ElemRep -> m ()
 attachLayerPM l e = do
     s <- get
-    let Just lcons = s ^. layers . registered . at l
+    let Just lcons = s ^. layers . prototypes . at l
         lpass = appCons lcons e
-        s' = s & layers . attached . at e . non Map.empty . at l ?~ lpass
+        s' = s & layers . attached . at e . non Map.empty . at l ?~ (lpass ^. Pass.desc . Pass.repr)
     put s'
-    addEventListener (NEW // (e ^. asTypeRep)) lpass
+    addEventListener (NEW // (e ^. asTypeRep)) lpass -- TODO
+    -- TODO: register new available pass!
 {-# INLINE attachLayerPM #-}
 
+-- FIXME[WD]: make forall t. like security check for layers registration
 registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
-registerLayer l f = modify_ $ layers . registered . at l ?~ LayerCons f ; {-# INLINE registerLayer #-}
+registerLayer l f = modify_ $ layers . prototypes . at l ?~ PassProto f ; {-# INLINE registerLayer #-}
 
 queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
-queryListeners t = Event.queryListeners t . view events <$> get
+queryListeners t = do
+    s <- get
+    let pss  = s ^. passes
+        evs  = Event.queryListeners t $ s ^. events
+        lsts = map (fromJust . flip Map.lookup pss) evs
+        fromJust (Just a) = a
+    return lsts
 
-addEventListener :: (MonadPassManager m, IsPass (PassManager' m) p, IsTag evnt) => evnt -> p (PassManager' m) a -> m ()
-addEventListener evnt p = modify_ $ events %~ attachListener (Listener (toTag evnt) $ switchRep $ cp ^. Pass.repr) cp where
-    cp = Pass.commit $ Pass.dropResult p
+--
+addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (PassManager' m) p) => evnt -> p (PassManager' m) a -> m ()
+addEventListener evnt p = modify_ $ (events %~ attachListener (Listener (toTag evnt) $ switchRep $ rep) rep)
+                                  . (passes %~ Map.insert rep cp)
+    where cp  = Pass.compile $ Pass.dropResult p
+          rep = cp ^. Pass.desc . Pass.repr
 {-# INLINE addEventListener #-}
 
 
@@ -172,3 +189,7 @@ instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Em
 
 instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
+
+
+hackySetAttr :: MonadPassManager m => AttrRep -> Prim.AnyData -> m ()
+hackySetAttr r a = modify_ $ attrs %~ (Map.insert r a)

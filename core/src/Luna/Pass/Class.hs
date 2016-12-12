@@ -2,7 +2,7 @@
 
 module Luna.Pass.Class where
 
-import Luna.Prelude hiding (head, tail, elem, repr)
+import Luna.Prelude hiding (head, tail, elem, repr, Args)
 
 import           Data.RTuple (List ((:-:)))
 import qualified Data.RTuple as List
@@ -56,6 +56,7 @@ data InternalError = MissingData TypeRep deriving (Show, Eq)
 
 -- === Properties === --
 
+type family Args      pass ::  *
 type family Inputs    pass :: [*]
 type family Outputs   pass :: [*]
 type family Events    pass :: [*]
@@ -75,18 +76,47 @@ newtype SubPass pass m a = SubPass (StateT (PassDataSet (SubPass pass m) pass) m
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
 
+-- type ArgSubPass pass m a = Args pass -> SubPass pass m a
+-- type ArgPass    pass m   = ArgSubPass pass m ()
+
+-- type DynPassFunc    m   = DynSubPassFunc m ()
+-- data DynSubPassFunc m a = DynSubPassFunc { _repr      :: PassRep
+--                                  , _rels      :: Description
+--                                  , _dynEval   :: m (Either InternalError (m a))
+--                                  } deriving (Functor)
+
+-- newtype DynArgs = DynArgs (Prim.Any)
+
+type    DynPassFunc    m   = DynSubPassFunc m ()
+newtype DynSubPassFunc m a = DynSubPassFunc (m (Either InternalError (m a))) deriving (Functor)
+
+-- type    DynArgPass    m   = DynArgSubPass m ()
+-- newtype DynArgSubPass m a = DynArgSubPass (DynArgs -> DynSubPassFunc m a)
+
+-- instance Show (DynArgSubPass m a) where show _ = "DynArgSubPass"
+--
 type DynPass    m   = DynSubPass m ()
-data DynSubPass m a = DynSubPass { _repr      :: PassRep -- FIXME[WD]: why we need all the data below? maybe we could keep it in some pass registry?
-                                 , _inputs    :: [TypeRep]
-                                 , _outputs   :: [TypeRep]
-                                 , _preserves :: [TypeRep]
-                                 , _dynEval   :: m (Either InternalError (m a))
-                                 } deriving (Functor)
+data DynSubPass m a = DynSubPass { _desc :: !Description
+                                 , _func :: !(DynSubPassFunc m a)
+                                 } deriving (Show, Functor)
 
+-- data Tagged a = Tagged { _tag  :: !PassRep
+--                        , _elm  :: !a
+--                        } deriving (Show, Functor, Foldable, Traversable)
 
+data Description = Description { _repr      :: !PassRep
+                               , _inputs    :: ![TypeRep]
+                               , _outputs   :: ![TypeRep]
+                               , _preserves :: ![TypeRep]
+                               } deriving (Show)
+
+-- class HasRep a where
+--     rep :: a -> PassRep
+
+-- instance HasRep
 
 --FIXME[WD]:
-instance Show (DynSubPass m a) where show _ = "DynPass"
+instance Show (DynSubPassFunc m a) where show _ = "DynPassFunc"
 
 type EventKeys      pass = Event <$> Events pass
 type PassData       pass = Inputs pass <> Outputs pass <> EventKeys pass -- FIXME (there are duplicates in the list)
@@ -106,46 +136,71 @@ type family GetPassMonad m where
 
 makeWrapped ''SubPass
 makeLenses  ''DynSubPass
+-- makeLenses  ''Tagged
+makeLenses  ''Description
+makeLenses  ''DynSubPassFunc
+makeWrapped ''DynSubPassFunc
 
-instance Eq (DynSubPass m a) where (==) = (==) `on` view repr ; {-# INLINE (==) #-}
+-- instance Eq (Desc a) where (==) = (==) `on` view repr ; {-# INLINE (==) #-}
 
+emptyDescription r = Description r def def def
 
 -- === Utils ===
+
+type KnownDescription pass = ( KnownType  (Abstract  pass)
+                             , KnownTypes (Inputs    pass)
+                             , KnownTypes (Outputs   pass)
+                             , KnownTypes (Preserves pass)
+                             )
+
+passDescription :: forall pass. KnownDescription pass => Description
+passDescription = emptyDescription (typeVal' @(Abstract pass))
+                & inputs    .~ typeVals' @(Inputs   pass)
+                & outputs   .~ typeVals' @(Outputs  pass)
+                & preserves .~ typeVals' @(Outputs  pass)
+{-# INLINE passDescription #-}
+
+class                      HasDescription a               where description :: a -> Description
+-- instance                   HasDescription (Desc a) where description   = view rels      ; {-# INLINE description #-}
+instance KnownDescription p => HasDescription (SubPass p m a) where description _ = passDescription @p ; {-# INLINE description #-}
 
 
 type Commit m pass = ( Monad m
                      , LookupData pass m (Keys pass)
                      , KnownType  (Abstract  pass)
-                     , KnownTypes (Inputs    pass)
-                     , KnownTypes (Outputs   pass)
-                     , KnownTypes (Preserves pass)
+                     , KnownDescription pass
                      )
 
-class    Functor (p m) => IsPass m p           where commit :: forall a. p m a -> DynSubPass m a
-instance Functor m     => IsPass m DynSubPass  where commit = id ; {-# INLINE commit #-}
-instance Commit m p    => IsPass m (SubPass p) where commit = DynSubPass
-                                                              (typeVal'  @(Abstract  p))
-                                                              (typeVals' @(Inputs    p))
-                                                              (typeVals' @(Outputs   p))
-                                                              (typeVals' @(Preserves p))
-                                                            . initPass
-                                                     {-# INLINE commit #-}
+class    Functor (p m) => IsPass m p          where compile :: forall a. p m a -> DynSubPass m a
+instance Functor m     => IsPass m DynSubPass where compile = id                    ; {-# INLINE compile #-}
+instance (PassInit p m, KnownDescription p) => IsPass m (SubPass p)    where compile = DynSubPass (passDescription @p) . DynSubPassFunc . initPass ; {-# INLINE compile #-}
 
 
 dropResult :: Functor p => p a -> p ()
 dropResult = fmap $ const () ; {-# INLINE dropResult #-}
 
-initPass :: forall pass m a. (LookupData pass m (Keys pass), Monad m) => SubPass pass m a -> m (Either InternalError (m a))
-initPass p = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData @pass ; {-# INLINE initPass #-}
+type PassInit pass m = LookupData pass m (Keys pass)
+
+initPass    :: forall pass m a. PassInit pass m => SubPass pass m a  -> m (Either InternalError (m a))
+initPass p  = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData @pass ; {-# INLINE initPass    #-}
+-- initArgPass :: forall pass m a. PassInit pass m => (Args pass -> SubPass pass m a) -> (Args pass -> m (Either InternalError (m a)))
+-- initArgPass = fmap initPass                                                     ; {-# INLINE initArgPass #-}
+
+
+-- describe :: forall pass m a. (KnownType (Abstract pass), KnownDescription pass, PassInit pass m) => SubPass pass m a -> Desc (DynSubPassFunc m a)
+-- describe = Desc (typeVal' @(Abstract pass)) (passDescription @pass) . compile
+
+-- describeA :: forall pass m a. (KnownType (Abstract pass), KnownDescription pass, PassInit pass m) => ArgSubPass pass m a -> Desc (DynArgSubPass m a)
+-- describeA f = Desc (typeVal' @(Abstract pass)) (passDescription @pass) $ (\a -> compile (f $ unsafeCoerce a)) -- FIXME[make this unsafecoerce nicer]
 
 eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
 eval = join . fmap sequence . run ; {-# INLINE eval #-}
 
-eval' :: Commit m pass => SubPass pass m a -> m (Either InternalError a)
-eval' = eval . commit ; {-# INLINE eval' #-}
+eval' :: (PassInit pass m, KnownDescription pass) => SubPass pass m a -> m (Either InternalError a)
+eval' = eval . compile ; {-# INLINE eval' #-}
 
 run :: DynSubPass m a -> m (Either InternalError (m a))
-run = view dynEval ; {-# INLINE run #-}
+run = unwrap' . view func ; {-# INLINE run #-}
 
 
 
