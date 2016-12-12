@@ -11,6 +11,7 @@ import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, ex
 
 import Luna.IR.Runner
 import Luna.IR
+import Luna.TestUtils
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 

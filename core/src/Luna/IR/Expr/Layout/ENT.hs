@@ -66,7 +66,7 @@ type instance Merge (Cons t) (Cons t') = Cons (Merge t t')
 type instance Merge (Cons t) (Atomic a) = Merge (ConsType t) (Atomic a)
 
 type instance DefaultLayout Type = Star
-type instance DefaultLayout NAME = String'
+type instance DefaultLayout NAME = String
 type instance DefaultLayout EXPR = () -- If it was not mentioned explicitly, it was simply absent.
 
 

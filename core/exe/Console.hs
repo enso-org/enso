@@ -152,43 +152,43 @@ gen_pass1 = do
 
 
     -- Str constructor
-    (strName :: Expr String) <- rawString "String"
-    (strCons :: Expr (Cons #> String)) <- cons strName
-    Vis.snapshot "s1"
-    let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'
-        strName' = unsafeRelayout strName :: Expr String'
-    newTypeLink <- link strCons' strName'
-    uncheckedDeleteStarType strName'
-    writeLayer @Type newTypeLink strName'
-    Vis.snapshot "s2"
+    {-(strName :: Expr String) <- rawString "String"-}
+    {-(strCons :: Expr (Cons #> String)) <- cons strName-}
+    {-Vis.snapshot "s1"-}
+    {-let strCons' = unsafeRelayout strCons :: Expr Layout.Cons'-}
+        {-strName' = unsafeRelayout strName :: Expr String'-}
+    {-newTypeLink <- link strCons' strName'-}
+    {-uncheckedDeleteStarType strName'-}
+    {-writeLayer @Type newTypeLink strName'-}
+    {-Vis.snapshot "s2"-}
 
-    let string s = do
-            foo <- rawString s
-            let foo' = unsafeRelayout foo :: Expr String'
-            ftlink <- link strCons' foo'
-            uncheckedDeleteStarType foo'
-            writeLayer @Type ftlink foo'
-            return foo'
+    {-let string s = do-}
+            {-foo <- rawString s-}
+            {-let foo' = unsafeRelayout foo :: Expr String'-}
+            {-ftlink <- link strCons' foo'-}
+            {-uncheckedDeleteStarType foo'-}
+            {-writeLayer @Type ftlink foo'-}
+            {-return foo'-}
 
-    s1 <- string "s1"
-    s2 <- string "s2"
-    s3 <- string "s3"
+    {-s1 <- string "s1"-}
+    {-s2 <- string "s2"-}
+    {-s3 <- string "s3"-}
 
-    g <- group [s1,s2,s3]
-    print g
+    {-g <- group [s1,s2,s3]-}
+    {-print g-}
 
-    (v :: Expr $ Var #> String') <- var s1
+    {-(v :: Expr $ Var #> String') <- var s1-}
 
-    let v' :: Expr Draft
-        v' = generalize v
+    {-let v' :: Expr Draft-}
+        {-v' = generalize v-}
 
-    -- (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Int String' Star))) <- unify s2 v
-    (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Star String' Star))) <- unify s2 v
+    {--- (u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Int String' Star))) <- unify s2 v-}
+    {-{-(u :: Expr (Unify >> Phrase >> NT String' (Value >> ENT Star String' Star))) <- unify s2 v-}-}
 
-    (u' :: Expr (Unify >> Draft)) <- unify v' v'
+    {-(u' :: Expr (Unify >> Draft)) <- unify v' v'-}
 
-    print =<< checkCoherence
-    Vis.snapshot "s4"
+    {-print =<< checkCoherence-}
+    {-Vis.snapshot "s4"-}
 
 
 
