@@ -16,9 +16,10 @@ import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
+import Data.TypeVal
 
 
-
+data WorkingElem = WorkingElem deriving (Show)
 
 
 
@@ -184,12 +185,22 @@ type instance KeyData m (Event e) = PassManager' m ()
 
 -- Emitter
 instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
-    emit _ _ = liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
+    emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
 
 
 instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
 
-hackySetAttr :: MonadPassManager m => AttrRep -> Prim.AnyData -> m ()
-hackySetAttr r a = modify_ $ attrs %~ (Map.insert r a)
+unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()
+unsafeWriteAttr r a = modify_ $ attrs %~ Map.insert r (unsafeCoerce a)
+
+unsafeDeleteAttr :: MonadPassManager m => AttrRep -> m ()
+unsafeDeleteAttr r = modify_ $ attrs %~ Map.delete r
+
+unsafeWithAttr :: MonadPassManager m => AttrRep -> a -> m t -> m t
+unsafeWithAttr r a f = do
+    unsafeWriteAttr r a
+    out <- f
+    unsafeDeleteAttr r
+    return out

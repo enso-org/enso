@@ -14,7 +14,7 @@ import Data.Aeson (encode)
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
-import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves)
+import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves, SubPass)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
 import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
@@ -37,6 +37,10 @@ import Data.Event as Event
 import Data.Reflection
 
 import Data.TypeVal
+import qualified Luna.IR.Internal.LayerStore as Store
+import Luna.IR.Internal.LayerStore (STRefM)
+import Luna.IR.Layer.UID (ID)
+
 data A = A deriving (Show)
 
 
@@ -133,34 +137,48 @@ class MonadPayload a m | m -> a where
 
 
 
+type ElemSubPass p elem   = SubPass (ElemScope p elem)
+type ElemPass    p elem m = ElemSubPass p elem m ()
 
 
-data WorkingElem = WorkingElem deriving (Show)
+data ELEMSCOPE p elem
+data ElemScope p elem
+type instance Abstract (ElemScope c t) = ELEMSCOPE (Abstract c) (Abstract t)
 
-data ELEMPASS c t
-data ElemPass c t
-type instance Abstract (ElemPass c t) = ELEMPASS (Abstract c) (Abstract t)
+
+proxifyElemPass :: (forall elem. ElemSubPass p elem m a) -> (forall elem. Proxy elem -> ElemSubPass p elem m a)
+proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
+
+
+---------------------
+-- === InitUID === --
+---------------------
 
 data InitUID
 type instance Abstract InitUID = InitUID
-type instance Args      (ElemPass p t) = Elem t
-type instance Inputs    (ElemPass InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
-type instance Outputs   (ElemPass InitUID t) = '[Attr WorkingElem, Layer (Abstract t) UID]
-type instance Events    (ElemPass InitUID t) = '[]
-type instance Preserves (ElemPass InitUID t) = '[]
-initUID :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemPass InitUID t) m
-initUID = do
-    t <- readAttr @WorkingElem
-    print t
-    -- flip (writeLayer @UID) t =<< getNewUID
-    print "hello"
+type instance Args      (ElemScope p t) = Elem t
+type instance Inputs    (ElemScope InitUID t) = '[Attr WorkingElem]
+type instance Outputs   (ElemScope InitUID t) = '[Layer (Abstract t) UID]
+type instance Events    (ElemScope InitUID t) = '[]
+type instance Preserves (ElemScope InitUID t) = '[]
 
--- initUID2 :: forall t m. (MonadIO m, IRMonad m) => ArgPass (ElemPass InitUID t) m
--- initUID2 t = do
---     -- t <- readAttr @WorkingElem -- FIXME[WD]: parametr z Passu!
---     -- print t
---     -- writeLayer @UID 0 t
---     print "hello"
+initUID :: forall t m. (MonadIO m, IRMonad m) => STRefM m ID -> Pass (ElemScope InitUID t) m
+initUID ref = do
+    (t, tdef) <- readAttr @WorkingElem
+    flip (writeLayer @UID) t =<< Store.modifySTRef' ref (\i -> (i, succ i))
+    print "new UID created"
+
+
+initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
+initUID_dyn = do
+    r <- Store.newSTRef 0
+    return $ reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass (initUID r)
+
+initUID_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initUID_reg = registerLayer (typeVal' @UID) =<< initUID_dyn
+
+
+
 
 
 type family PassAttr attr pass
@@ -168,12 +186,12 @@ type family PassAttr attr pass
 type instance KeyData (Pass.SubPass pass m) (Attr a) = PassAttr a pass
 
 
-type instance PassAttr WorkingElem (ElemPass p t) = Elem t
+type instance PassAttr WorkingElem (ElemScope p t) = (Elem t, Definition (Elem t))
 
--- newtype ElemPassass m = ElemPassass (forall t. IsElem t => Pass (InitUID t) m)
+-- newtype ElemScopeass m = ElemScopeass (forall t. IsElem t => Pass (InitUID t) m)
 --
--- cp :: (MonadIO m, IRMonad m) => ElemPassass m
--- cp = ElemPassass initUID
+-- cp :: (MonadIO m, IRMonad m) => ElemScopeass m
+-- cp = ElemScopeass initUID
 
 -- type instance Abstract (TypeRef s) = TypeRef s
 
@@ -213,12 +231,14 @@ data B = B deriving (Show)
 --     print $ reifyKnownType (\p -> typeVal_ p) x
 --     print "hello"
 
-ttt2 :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
-ttt2 = reifyKnownTypeT @Abstracted ttt
+    --
 
-ttt :: forall t m. ( KnownType (Abstract t)
-                   , IRMonad m, MonadIO m, MonadPassManager m) => Proxy t -> Pass.DynPass m
-ttt _ = Pass.compile (initUID :: Pass (ElemPass InitUID t) m)
+
+
+
+
+
+
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
@@ -238,20 +258,21 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
 
     -- writeAttr @WorkingElem (unsafeCoerce (0 :: Int))
-    registerLayer (typeVal' @UID) ttt2
-    attachLayer   (typeVal' @UID) (typeVal' @EXPR)
+    initUID_reg
+    attachLayer (typeVal' @UID) (typeVal' @EXPR)
+    attachLayer (typeVal' @UID) (typeVal' @(LINK' EXPR))
 
     -- addEventListener (NEW // EXPR) $ (undefined :: Pass.DynPass m)
     -- print =<< PM.get
 
     -- addEventListener (NEW // EXPR) $ initUID @(AnyExpr)
-    hackySetAttr (typeVal' @WorkingElem) (unsafeCoerce (1 :: Int))
+    -- unsafeWithAttr (typeVal' @WorkingElem) (1 :: Int) $
     Pass.eval' pass1
 
 -- hackySetAttr :: MonadPassManager m => AttrRep -> Prim.AnyData -> m ()
 
 
--- registerLayer :: MonadPassManager m => LayerRep -> (forall t. Pass (ElemPass pass t) m') -> m ()
+-- registerLayer :: MonadPassManager m => LayerRep -> (forall t. Pass (ElemScope pass t) m') -> m ()
 
 
 
