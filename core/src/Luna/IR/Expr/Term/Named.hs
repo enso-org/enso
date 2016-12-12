@@ -48,7 +48,6 @@ data    App      n a = App      { _base :: a       , _arg   :: !(Arg a) }
 data    Lam      n a = Lam      { _arg  :: !(Arg a), _body  :: !a       }
 data    Unify    n a = Unify    { _left :: !a      , _right :: !a       }
 newtype Cons     n a = Cons     { _name ::  n                           }
-data    Native   n a = Native   { _name :: !n                           }
 newtype Var      n a = Var      { _name ::  n                           }
 data    Blank    n a = Blank
 data    Star     n a = Star
@@ -62,7 +61,6 @@ type instance Term2 Atom.App      (Layout.Named n a) = App      n a
 type instance Term2 Atom.Lam      (Layout.Named n a) = Lam      n a
 type instance Term2 Atom.Unify    (Layout.Named n a) = Unify    n a
 type instance Term2 Atom.Cons     (Layout.Named n a) = Cons     n a
-type instance Term2 Atom.Native   (Layout.Named n a) = Native   n a
 type instance Term2 Atom.Var      (Layout.Named n a) = Var      n a
 type instance Term2 Atom.Blank    (Layout.Named n a) = Blank    n a
 type instance Term2 Atom.Star     (Layout.Named n a) = Star     n a
@@ -77,7 +75,6 @@ data    instance Term Atom.App      (Layout.Named n a) = Sym_App      { _base ::
 data    instance Term Atom.Lam      (Layout.Named n a) = Sym_Lam      { _arg  :: !(Arg a), _body  :: !a       }
 data    instance Term Atom.Unify    (Layout.Named n a) = Sym_Unify    { _left :: !a      , _right :: !a       }
 newtype instance Term Atom.Cons     (Layout.Named n a) = Sym_Cons     { _name ::  n                           }
-data    instance Term Atom.Native   (Layout.Named n a) = Sym_Native   { _name :: !n                           }
 newtype instance Term Atom.Var      (Layout.Named n a) = Sym_Var      { _name ::  n                           }
 data    instance Term Atom.Blank    (Layout.Named n a) = Sym_Blank
 data    instance Term Atom.Star     (Layout.Named n a) = Sym_Star
@@ -107,7 +104,6 @@ deriving instance ShowFields (NamedTerm Atom.Blank   n a) => Show (NamedTerm Ato
 deriving instance ShowFields (NamedTerm Atom.Cons    n a) => Show (NamedTerm Atom.Cons    n a)
 deriving instance ShowFields (NamedTerm Atom.Lam     n a) => Show (NamedTerm Atom.Lam     n a)
 deriving instance ShowFields (NamedTerm Atom.Missing n a) => Show (NamedTerm Atom.Missing n a)
-deriving instance ShowFields (NamedTerm Atom.Native  n a) => Show (NamedTerm Atom.Native  n a)
 deriving instance ShowFields (NamedTerm Atom.Star    n a) => Show (NamedTerm Atom.Star    n a)
 deriving instance ShowFields (NamedTerm Atom.Unify   n a) => Show (NamedTerm Atom.Unify   n a)
 deriving instance ShowFields (NamedTerm Atom.Var     n a) => Show (NamedTerm Atom.Var     n a)
@@ -118,7 +114,6 @@ deriving instance ShowFields (Blank   n a) => Show (Blank   n a)
 deriving instance ShowFields (Cons    n a) => Show (Cons    n a)
 deriving instance ShowFields (Lam     n a) => Show (Lam     n a)
 deriving instance ShowFields (Missing n a) => Show (Missing n a)
-deriving instance ShowFields (Native  n a) => Show (Native  n a)
 deriving instance ShowFields (Star    n a) => Show (Star    n a)
 deriving instance ShowFields (Unify   n a) => Show (Unify   n a)
 deriving instance ShowFields (Var     n a) => Show (Var     n a)
@@ -134,7 +129,6 @@ type instance Fields (NamedTerm Atom.Blank    n a) = '[]
 type instance Fields (NamedTerm Atom.Cons     n a) = '[n]
 type instance Fields (NamedTerm Atom.Lam      n a) = '[Arg a, a]
 type instance Fields (NamedTerm Atom.Missing  n a) = '[]
-type instance Fields (NamedTerm Atom.Native   n a) = '[n]
 type instance Fields (NamedTerm Atom.Star     n a) = '[]
 type instance Fields (NamedTerm Atom.Unify    n a) = '[a, a]
 type instance Fields (NamedTerm Atom.Var      n a) = '[n]
@@ -148,7 +142,6 @@ type instance Fields (Blank    n a) = '[]
 type instance Fields (Cons     n a) = '[n]
 type instance Fields (Lam      n a) = '[Arg a, a]
 type instance Fields (Missing  n a) = '[]
-type instance Fields (Native   n a) = '[n]
 type instance Fields (Star     n a) = '[]
 type instance Fields (Unify    n a) = '[a, a]
 type instance Fields (Var      n a) = '[n]
@@ -164,7 +157,6 @@ instance Product (NamedTerm Atom.Blank    n a) (NamedTerm Atom.Blank    n' a') w
 instance Product (NamedTerm Atom.Cons     n a) (NamedTerm Atom.Cons     n' a') where fields = iso (\(Sym_Cons     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Cons     t1    ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Lam      n a) (NamedTerm Atom.Lam      n' a') where fields = iso (\(Sym_Lam      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Lam      t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Missing  n a) (NamedTerm Atom.Missing  n' a') where fields = iso (\ Sym_Missing         -> Null              ) (\(Null              ) -> Sym_Missing        ) ; {-# INLINE fields #-}
-instance Product (NamedTerm Atom.Native   n a) (NamedTerm Atom.Native   n' a') where fields = iso (\(Sym_Native   t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Native   t1    ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Star     n a) (NamedTerm Atom.Star     n' a') where fields = iso (\ Sym_Star            -> Null              ) (\(Null              ) -> Sym_Star           ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Unify    n a) (NamedTerm Atom.Unify    n' a') where fields = iso (\(Sym_Unify    t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Unify    t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Var      n a) (NamedTerm Atom.Var      n' a') where fields = iso (\(Sym_Var      t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Var      t1    ) ; {-# INLINE fields #-}
@@ -178,7 +170,6 @@ instance Product' (NamedTerm Atom.Blank    n a) where fields' = fields ; {-# INL
 instance Product' (NamedTerm Atom.Cons     n a) where fields' = fields ; {-# INLINE fields' #-}
 instance Product' (NamedTerm Atom.Lam      n a) where fields' = fields ; {-# INLINE fields' #-}
 instance Product' (NamedTerm Atom.Missing  n a) where fields' = fields ; {-# INLINE fields' #-}
-instance Product' (NamedTerm Atom.Native   n a) where fields' = fields ; {-# INLINE fields' #-}
 instance Product' (NamedTerm Atom.Star     n a) where fields' = fields ; {-# INLINE fields' #-}
 instance Product' (NamedTerm Atom.Unify    n a) where fields' = fields ; {-# INLINE fields' #-}
 instance Product' (NamedTerm Atom.Var      n a) where fields' = fields ; {-# INLINE fields' #-}
@@ -193,7 +184,6 @@ instance HasFieldNames (NamedTerm Atom.App      n a) where fieldNames _ = [ "bas
 instance HasFieldNames (NamedTerm Atom.Lam      n a) where fieldNames _ = [ "arg"  , "body"  ]
 instance HasFieldNames (NamedTerm Atom.Unify    n a) where fieldNames _ = [ "left" , "right" ]
 instance HasFieldNames (NamedTerm Atom.Cons     n a) where fieldNames _ = [ "name"           ]
-instance HasFieldNames (NamedTerm Atom.Native   n a) where fieldNames _ = [ "name"           ]
 instance HasFieldNames (NamedTerm Atom.Var      n a) where fieldNames _ = [ "name"           ]
 instance HasFieldNames (NamedTerm Atom.Blank    n a) where fieldNames _ = []
 instance HasFieldNames (NamedTerm Atom.Star     n a) where fieldNames _ = []
@@ -212,7 +202,6 @@ instance n ~ a => HasFields (NamedTerm Atom.Blank    n a) where fieldList (Sym_B
 instance n ~ a => HasFields (NamedTerm Atom.Cons     n a) where fieldList (Sym_Cons     t1   ) = [t1]
 instance n ~ a => HasFields (NamedTerm Atom.Lam      n a) where fieldList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_,t2]
 instance n ~ a => HasFields (NamedTerm Atom.Missing  n a) where fieldList (Sym_Missing       ) = []
-instance n ~ a => HasFields (NamedTerm Atom.Native   n a) where fieldList (Sym_Native   t1   ) = [t1]
 instance n ~ a => HasFields (NamedTerm Atom.Star     n a) where fieldList (Sym_Star          ) = []
 instance n ~ a => HasFields (NamedTerm Atom.Unify    n a) where fieldList (Sym_Unify    t1 t2) = [t1, t2]
 instance n ~ a => HasFields (NamedTerm Atom.Var      n a) where fieldList (Sym_Var      t1   ) = [t1]
@@ -230,7 +219,6 @@ instance HasInputs (NamedTerm Atom.Blank    n a) where inputList (Sym_Blank     
 instance HasInputs (NamedTerm Atom.Cons     n a) where inputList (Sym_Cons     t1   ) = []
 instance HasInputs (NamedTerm Atom.Lam      n a) where inputList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_,t2]
 instance HasInputs (NamedTerm Atom.Missing  n a) where inputList (Sym_Missing       ) = []
-instance HasInputs (NamedTerm Atom.Native   n a) where inputList (Sym_Native   t1   ) = []
 instance HasInputs (NamedTerm Atom.Star     n a) where inputList (Sym_Star          ) = []
 instance HasInputs (NamedTerm Atom.Unify    n a) where inputList (Sym_Unify    t1 t2) = [t1, t2]
 instance HasInputs (NamedTerm Atom.Var      n a) where inputList (Sym_Var      t1   ) = []

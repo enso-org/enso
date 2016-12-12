@@ -43,7 +43,7 @@ type instance TypeRepr (Form a) = TypeRepr a
 
 type instance Atoms Literal = '[Star    , String , Integer , Rational ]
 type instance Atoms Value   = '[Cons    , Lam                         ] <> Atoms Literal
-type instance Atoms Thunk   = '[Acc     , App    , Native             ] <> Atoms Value
+type instance Atoms Thunk   = '[Acc     , App                         ] <> Atoms Value
 type instance Atoms Phrase  = '[Blank   , Unify  , Var                ] <> Atoms Thunk
 type instance Atoms Draft   = '[Missing                               ] <> Atoms Phrase
 
@@ -55,7 +55,6 @@ type instance Access Format Cons     = Value
 type instance Access Format Lam      = Value
 type instance Access Format Acc      = Thunk
 type instance Access Format App      = Thunk
-type instance Access Format Native   = Thunk
 type instance Access Format Blank    = Phrase
 type instance Access Format Unify    = Phrase
 type instance Access Format Var      = Phrase
