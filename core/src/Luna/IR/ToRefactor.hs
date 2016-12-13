@@ -137,6 +137,9 @@ type KnownExpr l m = (IRMonad m, Readables m '[ExprLayer Model, ExprLinkLayer Mo
 match' :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
 match' = unsafeToExprTermDef @(ExprHead l)
 
+modifyExprTerm :: forall l m. (KnownExpr l m, Writable (ExprLayer Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
+modifyExprTerm = unsafeModifyExprTermDef @(ExprHead l)
+
 getSource :: KnownExpr l m => Lens' (ExprHeadDef l) (ExprLink a b) -> Expr l -> m (Expr a)
 getSource f v = match' v >>= source . view f ; {-# INLINE getSource #-}
 
@@ -156,6 +159,7 @@ getName = getSource name ; {-# INLINE getName #-}
 type family Head a
 
 type instance Access EXPR (ENT e _ _) = e
+type instance Access EXPR (E   e    ) = e
 type instance Head (Atomic a) = Atomic a
 
 type ExprHead l = Head (l # EXPR)

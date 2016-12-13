@@ -12,11 +12,28 @@ import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, ex
 import Luna.IR.Runner
 import Luna.IR
 import Luna.TestUtils
+import Luna.IR.Expr.Term (Term(Sym_String))
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
+
+changeStringLiteral s (Sym_String _) = Sym_String s
+
+testVarRenaming :: IO (Either Pass.InternalError P.String)
+testVarRenaming = graphTestCase $ do
+    (v :: Expr Draft) <- generalize <$> rawVar "foo"
+    match v $ \case
+        Var n -> do
+            (name :: Expr (E String)) <- unsafeGeneralize <$> source n
+            modifyExprTerm name $ changeStringLiteral "bar"
+    match v $ \case
+        Var n -> do
+            name <- source n
+            match name $ \case
+                String s -> return s
+
 
 testAtomNarrowing :: IO (Either Pass.InternalError (Pair (Maybe (Expr Var))))
 testAtomNarrowing = graphTestCase $ do
@@ -87,3 +104,6 @@ spec = do
             answer <- testAtomNarrowing
             withRight answer $ \(Pair notVar _  ) -> notVar `shouldBe`      Nothing
             withRight answer $ \(Pair _      var) -> var    `shouldSatisfy` isJust
+    describe "var renaming" $ do
+        it "changes the variable name in place" $ do
+            testVarRenaming `shouldReturn` Right "bar"

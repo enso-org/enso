@@ -722,6 +722,15 @@ type family Writables m lst :: Constraint where
 unsafeToExprTerm :: forall atom l m. (IRMonad m, Readable (ExprLayer Model) m) => Expr l -> m (ExprTerm atom (Expr l))
 unsafeToExprTerm = unsafeCoerce . unwrap' . access @TERM . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToExprTerm #-}
 
+unsafeModifyExprTermDef :: forall atom l m. (IRMonad m, Accessible (ExprLayer Model) m)
+                        => Expr l -> (ExprTermDef atom (Expr l) -> ExprTermDef atom (Expr l)) -> m ()
+unsafeModifyExprTermDef expr f = do
+    oldModel <- readLayer @Model expr
+    let oldTerm :: ExprTerm atom (Expr l) = unsafeCoerce $ unwrap' $ access @TERM $ unwrap' oldModel
+    let oldDef   = unwrap' oldTerm
+    let newModel = wrap' $ update' @TERM (wrap' $ unsafeCoerce $ (wrap' $ f oldDef :: ExprTerm atom (Expr l))) $ unwrap' oldModel
+    writeLayer @Model newModel expr
+
 unsafeToExprTermDef :: forall atom l m. (IRMonad m, Readable (ExprLayer Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
 unsafeToExprTermDef = unwrap' <∘> unsafeToExprTerm ; {-# INLINE unsafeToExprTermDef #-}
 
