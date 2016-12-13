@@ -3,7 +3,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ < 710
@@ -14,10 +13,6 @@ module Data.Convert.Base where
 
 import Prelude
 import Control.Lens
-import qualified Data.Map as Map
-import Data.Word
-import Data.Bits (shiftR)
-
 
 ----------------------------------------------------------------------
 -- Conversions
@@ -82,30 +77,3 @@ instance {-# OVERLAPPABLE #-} Castable    a a where cast    = id ; {-# INLINE ca
 -- instance {-# OVERLAPPABLE #-} Convertible a a where convert = id ; {-# INLINE convert #-}
 
 instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Maybe a) (Maybe b) where convert = fmap convert ; {-# INLINE convert #-}
-
-
-instance {-# OVERLAPPABLE #-}                  Castable [a] [a]  where cast = id        ; {-# INLINE cast #-}
-instance {-# OVERLAPPABLE #-} Castable a a' => Castable [a] [a'] where cast = fmap cast ; {-# INLINE cast #-}
-
-
-instance Ord k => Convertible [(k, a)] (Map.Map k a) where
-    convert = Map.fromList
-
-instance Convertible (Map.Map k a) [(k, a)] where
-    convert = Map.toList
-
-instance Convertible ()                  [t] where convert _                            = []
-instance Convertible (t,t)               [t] where convert (t1,t2)                      = [t1,t2]
-instance Convertible (t,t,t)             [t] where convert (t1,t2,t3)                   = [t1,t2,t3]
-instance Convertible (t,t,t,t)           [t] where convert (t1,t2,t3,t4)                = [t1,t2,t3,t4]
-instance Convertible (t,t,t,t,t)         [t] where convert (t1,t2,t3,t4,t5)             = [t1,t2,t3,t4,t5]
-instance Convertible (t,t,t,t,t,t)       [t] where convert (t1,t2,t3,t4,t5,t6)          = [t1,t2,t3,t4,t5,t6]
-instance Convertible (t,t,t,t,t,t,t)     [t] where convert (t1,t2,t3,t4,t5,t6,t7)       = [t1,t2,t3,t4,t5,t6,t7]
-instance Convertible (t,t,t,t,t,t,t,t)   [t] where convert (t1,t2,t3,t4,t5,t6,t7,t8)    = [t1,t2,t3,t4,t5,t6,t7,t8]
-instance Convertible (t,t,t,t,t,t,t,t,t) [t] where convert (t1,t2,t3,t4,t5,t6,t7,t8,t9) = [t1,t2,t3,t4,t5,t6,t7,t8,t9]
-
-
--- TODO: http://stackoverflow.com/questions/8350814/converting-64-bit-double-to-bytestring-efficiently
-instance Convertible Word64 (Word8,Word8,Word8,Word8,Word8,Word8,Word8,Word8) where
-    convert word = (unpack 56, unpack 48, unpack 40, unpack 32, unpack 24, unpack 16, unpack 8, unpack 0)
-        where unpack = fromIntegral . shiftR word

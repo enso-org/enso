@@ -1,0 +1,40 @@
+-- This file has been generated from package.yaml by hpack version 0.14.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           convert
+version:        1.0.9
+synopsis:       Safe and unsafe data conversion utilities with strong type-level operation. checking.
+category:       Data
+stability:      experimental
+homepage:       https://github.com/https://github.com/wdanilo/convert#readme
+bug-reports:    https://github.com/https://github.com/wdanilo/convert/issues
+author:         Wojciech Danilo
+maintainer:     Wojciech Danilo <wojciech.danilo@gmail.com>
+license:        Apache-2.0
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+source-repository head
+  type: git
+  location: https://github.com/https://github.com/wdanilo/convert
+
+library
+  hs-source-dirs:
+      src
+  default-extensions: MultiParamTypeClasses UndecidableInstances FlexibleInstances FlexibleContexts CPP DefaultSignatures
+  ghc-options: -Wall -O2
+  build-depends:
+      base
+    , containers
+    , template-haskell
+    , lens
+  exposed-modules:
+      Data.Coerced
+      Data.Convert
+      Data.Convert.Base
+      Data.Convert.Bound
+      Data.Convert.Instances
+      Data.Convert.Type
+  default-language: Haskell2010

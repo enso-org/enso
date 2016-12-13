@@ -12,11 +12,11 @@
 module Data.Convert.Bound where
 
 import Data.Convert.Base
+import Data.Typeable
 import Control.Applicative
 import Language.Haskell.TH hiding (Type, Safety, Safe, Unsafe)
 import Data.Monoid
-import Data.Word
-import GHC.Int
+import GHC.TypeLits
 import Prelude hiding (Bounded, maxBound, minBound)
 import qualified Prelude as Prelude
 
@@ -30,7 +30,7 @@ import qualified Prelude as Prelude
 --            - neither can we safely convert Char to Int 8 nor vice versa.
 --            We can though make typeclasses that will find the smallest super-type for a given type pair
 --            and convert both values to that super-type
-boundedConversion :: (Bounded b, Convertible a Rational, Convertible (Bounds b) (Bounds Rational))
+boundedConversion :: (Bounded b, Ord a, Convertible a Rational, Convertible (Bounds b) (Bounds Rational))
                   => (a -> b) -> (a -> Either BoundError b)
 boundedConversion (func :: a -> b) inp = if (convert inp) `boundedBy` (convert (bounds :: Bounds b) :: Bounds Rational)
     then Right $ func inp
@@ -54,9 +54,9 @@ class Conversions a b where
 -- utils
 
 genConversion :: Conversion -> Q Dec
-genConversion (Conversion qexp (Type name bounds) (Type name' bounds')) = do
-    exp' <- qexp :: Q Exp
-    let convf name' fmod = [ValD (VarP $ mkName name') (NormalB $ fmod exp') []]
+genConversion c@(Conversion qexp (Type name bounds) (Type name' bounds')) = do
+    exp <- qexp :: Q Exp
+    let convf name fmod = [ValD (VarP $ mkName name) (NormalB $ fmod exp) []]
     return $ if bounds `isSubBound` bounds'
 #if __GLASGOW_HASKELL__ >= 800
         then InstanceD Nothing [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id
@@ -76,11 +76,19 @@ instance Conversions Type   [Type] where conversions f a b = Conversion f a <$> 
 instance Conversions [Type] Type   where conversions f a b = flip (Conversion f) b <$> a
 instance Conversions Type   Type   where conversions f a b = [Conversion f a b]
 
+instance Show Conversion where
+    show (Conversion _ a b) = "Conversion " -- <> " " <> name a <> " " <> name b
+
+
+
+
 -- === Type ===
 
 data Type = Type { name    :: Name
                  , tbounds :: (Bounds Integer)
                  } deriving (Show, Eq)
+
+
 
 -- === Layout ===
 data Layout = IntLayout Sign Integer
@@ -99,6 +107,8 @@ layoutBounds = \case
                                    Signed   -> 2 ^ (i - 1)
                                    Unsigned -> 2 ^ i
 
+
+
 -- === Value ===
 
 data Value a = MinusInfinity
@@ -113,16 +123,14 @@ instance Num a => Num (Value a) where
 
 instance Convertible a b => Convertible (Value a) (Value b) where
     convert (Value a) = Value $ convert a
-    convert MinusInfinity = MinusInfinity
-    convert Infinity = Infinity
 
 instance Ord a => Ord (Value a) where
     compare MinusInfinity MinusInfinity = EQ
-    compare MinusInfinity _             = LT
-    compare _             MinusInfinity = GT
+    compare MinusInfinity a             = LT
+    compare a             MinusInfinity = GT
     compare Infinity      Infinity      = EQ
-    compare Infinity      _             = GT
-    compare _             Infinity      = LT
+    compare Infinity      a             = GT
+    compare a             Infinity      = LT
     compare (Value a)     (Value a')    = compare a a'
 
 
@@ -141,10 +149,10 @@ infiniteBounds :: Bounds a
 infiniteBounds = Bounds MinusInfinity Infinity
 
 isSubBound :: Ord a => Bounds a -> Bounds a -> Bool
-isSubBound (Bounds min' max') (Bounds min'' max'') = min' >= min'' && max' <= max''
+isSubBound (Bounds min max) (Bounds min' max') = min >= min' && max <= max'
 
 boundedBy :: Ord a => a -> Bounds a -> Bool
-boundedBy (Value -> a) (Bounds min' max') = a >= min' && a <= max'
+boundedBy (Value -> a) (Bounds min max) = a >= min && a <= max
 
 -- instances
 instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Bounds a) (Bounds b) where
@@ -158,36 +166,3 @@ instance {-# OVERLAPPABLE #-} Bounded Float    where bounds = infiniteBounds
 instance {-# OVERLAPPABLE #-} Bounded Double   where bounds = infiniteBounds
 instance {-# OVERLAPPABLE #-} Bounded Rational where bounds = infiniteBounds
 instance {-# OVERLAPPABLE #-} Bounded Integer  where bounds = infiniteBounds
-
-intTypes, wordTypes, floatTypes, integralTypes :: [Type]
-intTypes   = [ Type ''Int      $ layoutBounds $ IntLayout Signed 30 -- according to: https://hackage.haskell.org/package/base-4.8.0.0/docs/Data-Int.html#t:Int
-             , Type ''Integer  $ layoutBounds $ InfiniteLayout
-             , Type ''Int8     $ layoutBounds $ IntLayout Signed 8
-             , Type ''Int16    $ layoutBounds $ IntLayout Signed 16
-             , Type ''Int32    $ layoutBounds $ IntLayout Signed 32
-             , Type ''Int64    $ layoutBounds $ IntLayout Signed 64
-             ]
-
-wordTypes  = [ Type ''Word     $ layoutBounds $ IntLayout Signed 30 -- according to: https://hackage.haskell.org/package/base-4.8.0.0/docs/Data-Int.html#t:Int
-             , Type ''Word8    $ layoutBounds $ IntLayout Signed 8
-             , Type ''Word16   $ layoutBounds $ IntLayout Signed 16
-             , Type ''Word32   $ layoutBounds $ IntLayout Signed 32
-             , Type ''Word64   $ layoutBounds $ IntLayout Signed 64
-             ]
-
-floatTypes = [ Type ''Float    $ layoutBounds $ InfiniteLayout
-             , Type ''Double   $ layoutBounds $ InfiniteLayout
-             , Type ''Rational $ layoutBounds $ InfiniteLayout
-             ]
-
-integralTypes = intTypes <> wordTypes
-
-charType :: Type
-charType = Type ''Char $ Bounds 0 1114111 -- max char enum is 1114111
-
-numConversions :: [Conversion]
-numConversions =  conversions [| fromIntegral            |] integralTypes (integralTypes <> floatTypes)
-               <> conversions [| truncate                |] floatTypes    integralTypes
-               <> conversions [| realToFrac              |] floatTypes    floatTypes
-               <> conversions [| fromIntegral . fromEnum |] charType      (integralTypes <> floatTypes)
-               <> conversions [| toEnum . fromIntegral   |] integralTypes charType
