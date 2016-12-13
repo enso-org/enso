@@ -41,6 +41,8 @@ import qualified Luna.IR.Internal.LayerStore as Store
 import Luna.IR.Internal.LayerStore (STRefM)
 import Luna.IR.Layer.UID (ID)
 
+import qualified Luna.IR.Expr.Term.Named as Term
+
 data A = A deriving (Show)
 
 
@@ -146,18 +148,49 @@ data ElemScope p elem
 type instance Abstract (ElemScope c t) = ELEMSCOPE (Abstract c) (Abstract t)
 
 
-proxifyElemPass :: (forall elem. ElemSubPass p elem m a) -> (forall elem. Proxy elem -> ElemSubPass p elem m a)
+proxifyElemPass :: ElemSubPass p elem m a -> (Proxy elem -> ElemSubPass p elem m a)
 proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
 
 
----------------------
--- === InitUID === --
----------------------
+
+
+
+data Abstracted a
+
+
+
+-------------------
+-- === Model === --
+-------------------
+
+data InitModel
+type instance Abstract InitModel = InitModel
+type instance Inputs    (ElemScope InitModel t) = '[Layer (Abstract t) Model, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitModel t) = '[Layer (Abstract t) Model]
+type instance Events    (ElemScope InitModel t) = '[]
+type instance Preserves (ElemScope InitModel t) = '[]
+
+initModel :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemScope InitModel t) m
+initModel = do
+    (t, tdef) <- readAttr @WorkingElem
+    flip (writeLayer @Model) t tdef
+    print "new Model created"
+
+initModel_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initModel
+
+initModel_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initModel_reg = registerLayer (typeVal' @Model) initModel_dyn
+
+
+
+-----------------
+-- === UID === --
+-----------------
 
 data InitUID
 type instance Abstract InitUID = InitUID
-type instance Args      (ElemScope p t) = Elem t
-type instance Inputs    (ElemScope InitUID t) = '[Attr WorkingElem]
+type instance Inputs    (ElemScope InitUID t) = '[Layer (Abstract t) UID, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
 type instance Outputs   (ElemScope InitUID t) = '[Layer (Abstract t) UID]
 type instance Events    (ElemScope InitUID t) = '[]
 type instance Preserves (ElemScope InitUID t) = '[]
@@ -168,7 +201,6 @@ initUID ref = do
     flip (writeLayer @UID) t =<< Store.modifySTRef' ref (\i -> (i, succ i))
     print "new UID created"
 
-
 initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
 initUID_dyn = do
     r <- Store.newSTRef 0
@@ -176,6 +208,91 @@ initUID_dyn = do
 
 initUID_reg :: (IRMonad m, MonadIO m) => PassManager m ()
 initUID_reg = registerLayer (typeVal' @UID) =<< initUID_dyn
+
+
+
+-------------------
+-- === Succs === --
+-------------------
+
+data InitSuccs
+type instance Abstract InitSuccs = InitSuccs
+type instance Inputs    (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs]
+type instance Events    (ElemScope InitSuccs t) = '[]
+type instance Preserves (ElemScope InitSuccs t) = '[]
+
+initSuccs :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemScope InitSuccs t) m
+initSuccs = do
+    (t, _) <- readAttr @WorkingElem
+    flip (writeLayer @Succs) t mempty
+    print "new Succs created"
+
+initSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+initSuccs_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initSuccs
+
+initSuccs_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initSuccs_reg = registerLayer (typeVal' @Succs) initSuccs_dyn
+
+
+
+------------------
+-- === Type === --
+------------------
+
+-- FIXME: moze po prostu Expr Star?
+newtype MagicStar = MagicStar AnyExpr
+makeWrapped ''MagicStar
+
+newMagicStar :: IRMonad m => m MagicStar
+newMagicStar = wrap' <$> magicExpr Term.uncheckedStar ; {-# INLINE newMagicStar #-}
+
+magicStar :: Iso' (Expr l) MagicStar
+magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
+
+
+consTypeLayer :: (IRMonad m, Accessible ExprLinkNet m, Emitter m (NEW // LINK' EXPR))
+              => Store.STRefM m (Maybe MagicStar) -> Expr t -> m (LayerData Type (Expr t))
+consTypeLayer ref self = do
+    top  <- view (from magicStar) <$> localTop ref
+    conn <- link top self
+    return conn
+
+
+localTop :: IRMonad m
+         => Store.STRefM m (Maybe MagicStar) -> m MagicStar
+localTop ref = Store.readSTRef ref >>= \case
+    Just t  -> return t
+    Nothing -> mdo
+        Store.writeSTRef ref $ Just s
+        s <- newMagicStar
+        Store.writeSTRef ref Nothing
+        return s
+
+
+data InitType
+type instance Abstract InitType = InitType
+type instance Inputs    (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprLinkNet, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprLinkNet]
+type instance Events    (ElemScope InitType t) = '[NEW // LINK' EXPR]
+type instance Preserves (ElemScope InitType t) = '[]
+
+initType :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Store.STRefM m (Maybe MagicStar) -> Pass (ElemScope InitType (EXPRESSION l)) m
+initType ref = do
+    (el, _) <- readAttr @WorkingElem
+    t <- consTypeLayer ref el
+    flip (writeLayer @Type) el t
+    print "new Type created"
+
+-- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
+--   because it only works for Expressions
+-- initType_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+initType_dyn = do
+    r <- Store.newSTRef Nothing
+    return $ \ _ -> Pass.compile $ initType r
+
+-- initType_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initType_reg = registerLayer (typeVal' @Type) =<< initType_dyn
 
 
 
@@ -195,7 +312,6 @@ type instance PassAttr WorkingElem (ElemScope p t) = (Elem t, Definition (Elem t
 
 -- type instance Abstract (TypeRef s) = TypeRef s
 
-data Abstracted a
 
 -- reifyKnownTypeT :: forall r. (forall s. TypeReify (Abstracted s) => TypeProxy s -> r) -> TypeVal -> r
 -- reifyKnownTypeT f a = reify a $ f . reproxyTypeRef ; {-# INLINE reifyKnownTypeT #-}
@@ -242,8 +358,8 @@ data B = B deriving (Show)
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
-type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
-type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[UID] <> ExprLinkLayers '[]
+type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[Model, UID] <> ExprLinkLayers '[Model]
+type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[Model, UID] <> ExprLinkLayers '[Model]
 type instance Events    SimpleAA = '[NEW // EXPR]
 type instance Preserves SimpleAA = '[]
 
@@ -257,16 +373,27 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
 
-    -- writeAttr @WorkingElem (unsafeCoerce (0 :: Int))
+    -- writeAttr @WorkingElem (error "Uninitialized working elem")
+    -- unsafeWithAttr (typeVal' @WorkingElem) (error "Uninitialized working elem")
+
+    initModel_reg
+    attachLayer (typeVal' @Model) (typeVal' @EXPR)
+    attachLayer (typeVal' @Model) (typeVal' @(LINK' EXPR))
+
     initUID_reg
     attachLayer (typeVal' @UID) (typeVal' @EXPR)
     attachLayer (typeVal' @UID) (typeVal' @(LINK' EXPR))
+
+    initSuccs_reg
+    attachLayer (typeVal' @Succs) (typeVal' @EXPR)
+
+    initType_reg
+    attachLayer (typeVal' @Type) (typeVal' @EXPR)
 
     -- addEventListener (NEW // EXPR) $ (undefined :: Pass.DynPass m)
     -- print =<< PM.get
 
     -- addEventListener (NEW // EXPR) $ initUID @(AnyExpr)
-    -- unsafeWithAttr (typeVal' @WorkingElem) (1 :: Int) $
     Pass.eval' pass1
 
 -- hackySetAttr :: MonadPassManager m => AttrRep -> Prim.AnyData -> m ()
@@ -309,13 +436,14 @@ fromRight (Left e) = error $ show e
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
-             , Accessibles m '[ExprNet, ExprLayer UID], Emitter m (NEW // EXPR)
+             , Accessibles m '[ExprNet, ExprLayer UID, ExprLayer Model], Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star
     (s :: Expr Star) <- star
     (s :: Expr Star) <- star
     (s :: Expr Star) <- star
+    print =<< readLayer @Model s
     print s
 
     -- i <- readLayer @UID s

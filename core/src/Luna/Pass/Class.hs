@@ -56,7 +56,6 @@ data InternalError = MissingData TypeRep deriving (Show, Eq)
 
 -- === Properties === --
 
-type family Args      pass ::  *
 type family Inputs    pass :: [*]
 type family Outputs   pass :: [*]
 type family Events    pass :: [*]

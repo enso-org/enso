@@ -20,15 +20,7 @@ import Data.Property
 
 import Unsafe.Coerce (unsafeCoerce)
 
--- FIXME: moze po prostu Expr Star?
-newtype MagicStar = MagicStar AnyExpr
-makeWrapped ''MagicStar
 
-newMagicStar :: IRMonad m => m MagicStar
-newMagicStar = wrap' <$> magicExpr Term.uncheckedStar ; {-# INLINE newMagicStar #-}
-
-magicStar :: Iso' (Expr l) MagicStar
-magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
 
 
 
@@ -97,23 +89,23 @@ runLayerRegs = sequence_ layerRegs
 -- layerReg4 = registerElemLayer @EXPR @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
 --
 
-consTypeLayer :: IRMonad m
-              => Store.STRefM m (Maybe MagicStar) -> Expr t -> Definition (Expr t) -> m (LayerData Type (Expr t))
-consTypeLayer ref self _ = do
-    top  <- view (from magicStar) <$> localTop ref
-    conn <- magicLink top self
-    return conn
-
-
-localTop :: IRMonad m
-         => Store.STRefM m (Maybe MagicStar) -> m MagicStar
-localTop ref = Store.readSTRef ref >>= \case
-    Just t  -> return t
-    Nothing -> mdo
-        Store.writeSTRef ref $ Just s
-        s <- newMagicStar
-        Store.writeSTRef ref Nothing
-        return s
+-- consTypeLayer :: IRMonad m
+--               => Store.STRefM m (Maybe MagicStar) -> Expr t -> Definition (Expr t) -> m (LayerData Type (Expr t))
+-- consTypeLayer ref self _ = do
+--     top  <- view (from magicStar) <$> localTop ref
+--     conn <- magicLink top self
+--     return conn
+--
+--
+-- localTop :: IRMonad m
+--          => Store.STRefM m (Maybe MagicStar) -> m MagicStar
+-- localTop ref = Store.readSTRef ref >>= \case
+--     Just t  -> return t
+--     Nothing -> mdo
+--         Store.writeSTRef ref $ Just s
+--         s <- newMagicStar
+--         Store.writeSTRef ref Nothing
+--         return s
 
 ----------------------------------
 ----------------------------------

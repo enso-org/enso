@@ -75,8 +75,8 @@ newtype Elem t = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
 
 type instance Definition (Elem t) = Definition t
-type instance Abstract   (Elem t) = Abstract   t
-type instance Universal  (Elem t) = Universal  t
+type instance Abstract   (Elem t) = Abstract   t -- FIXME[WD]: to make everything more consistent, shouldnt we here return Elem (Abstract t) ?
+type instance Universal  (Elem t) = Elem (Universal t)
 
 
 -- === Classes === --
@@ -499,8 +499,8 @@ instance (IRMonad m, KnownType a, EqPrimStates m n) => KeyMonad (Net a) m n wher
 
 data LINK  a b
 type LINK' a = LINK a a
-type instance Abstract   (LINK a b) = LINK (Abstract a) (Abstract b)
 type instance Definition (LINK a b) = (a,b)
+type instance Abstract   (LINK a b) = LINK (Abstract  a) (Abstract  b)
 type instance Universal  (LINK a b) = LINK (Universal a) (Universal b)
 
 
@@ -535,8 +535,8 @@ link a b = newElem (a,b) ; {-# INLINE link #-}
 -- === Abstract === --
 
 data GROUP a
-type instance Abstract   (GROUP a) = GROUP (Abstract a)
 type instance Definition (GROUP a) = Set a
+type instance Abstract   (GROUP a) = GROUP (Abstract  a)
 type instance Universal  (GROUP a) = GROUP (Universal a)
 
 type Group a = Elem (GROUP a)
@@ -661,7 +661,7 @@ instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder ato
 data EXPRESSION layout
 type instance Definition (EXPRESSION _) = ExprStore
 type instance Abstract   (EXPRESSION _) = EXPR
-type instance Universal  (EXPRESSION _) = AnyExpr
+type instance Universal  (EXPRESSION _) = EXPRESSION Layout.Any
 
 
 -- === Definition === --
