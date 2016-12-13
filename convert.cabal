@@ -3,7 +3,11 @@
 -- see: https://github.com/sol/hpack
 
 name:           convert
+<<<<<<< HEAD
 version:        1.0.9
+=======
+version:        1.0.6
+>>>>>>> parent of 049234b... Remove dependencies
 synopsis:       Safe and unsafe data conversion utilities with strong type-level operation. checking.
 category:       Data
 stability:      experimental
@@ -27,7 +31,14 @@ library
   ghc-options: -Wall -O2
   build-depends:
       base
+    , old-time
+    , time
+    , bytestring
     , containers
+    , old-locale
+    , mtl
+    , text
+    , either
     , template-haskell
     , lens
   exposed-modules:
