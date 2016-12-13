@@ -9,7 +9,6 @@ import           Data.Aeson       (ToJSON(toJSON, toEncoding), FromJSON, encode,
 import           Data.Aeson.Types (fieldLabelModifier)
 import qualified Data.Aeson.Types as Aeson
 import           Data.Int         (Int64)
-import           Data.Text.Lazy   (Text)
 import           Data.Char        (toLower, isUpper)
 import           Data.Map         (Map)
 import qualified Data.Map         as Map

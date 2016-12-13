@@ -52,9 +52,14 @@ data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ PassProto m
 
 data State m = State { _passes :: Map PassRep $ PMPass m
                      , _layers :: LayerReg m
-                     , _events :: EventHub PassRep
+                     , _events :: EventHub SortedListenerRep PassRep
                      , _attrs  :: Map AttrRep Prim.AnyData
                      } deriving (Show)
+
+
+data SortedListenerRep = SortedListenerRep Int Event.ListenerRep deriving (Show, Eq)
+instance Ord SortedListenerRep where
+    compare (SortedListenerRep i r) (SortedListenerRep i' r') = if i == i' then compare r r' else compare i i'
 
 
 -- === instances === --
@@ -131,14 +136,15 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 -- === Utils === --
 
-attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => LayerRep -> ElemRep -> m ()
-attachLayerPM l e = do
+-- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
+attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => Int -> LayerRep -> ElemRep -> m ()
+attachLayerPM priority l e = do
     s <- get
     let Just lcons = s ^. layers . prototypes . at l
         lpass = appCons lcons e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (lpass ^. Pass.desc . Pass.repr)
     put s'
-    addEventListener (NEW // (e ^. asTypeRep)) lpass -- TODO
+    addEventListener priority (NEW // (e ^. asTypeRep)) lpass -- TODO
     -- TODO: register new available pass!
 {-# INLINE attachLayerPM #-}
 
@@ -156,9 +162,11 @@ queryListeners t = do
     return lsts
 
 --
-addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (PassManager' m) p) => evnt -> p (PassManager' m) a -> m ()
-addEventListener evnt p = modify_ $ (events %~ attachListener (Listener (toTag evnt) $ switchRep $ rep) rep)
-                                  . (passes %~ Map.insert rep cp)
+
+-- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
+addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (PassManager' m) p) => Int -> evnt -> p (PassManager' m) a -> m ()
+addEventListener priority evnt p = modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) rep)
+                                           . (passes %~ Map.insert rep cp)
     where cp  = Pass.compile $ Pass.dropResult p
           rep = cp ^. Pass.desc . Pass.repr
 {-# INLINE addEventListener #-}

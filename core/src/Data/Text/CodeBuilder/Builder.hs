@@ -2,15 +2,6 @@
 {-# LANGUAGE FunctionalDependencies    #-}
 {-# LANGUAGE GADTs                     #-}
 
------------------------------------------------------------------------------
--- |
--- Module      :  Data.Text.CodeBuilder.Builder
--- Copyright   :  (C) 2014 Flowbox
--- License     :  AllRightsReserved
--- Maintainer  :  Wojciech Daniło <wojciech.danilo@gmail.com>
--- Stability   :  stable
--- Portability :  portable
------------------------------------------------------------------------------
 
 module Data.Text.CodeBuilder.Builder where
 
@@ -23,7 +14,6 @@ import qualified Data.Text.CodeBuilder.Doc as Doc
 import           Data.Text.CodeBuilder.Doc (Doc)
 import qualified Data.Text.Lazy            as Text
 import qualified Data.Text.Lazy.Builder    as Text
-import           Data.Text.Lazy.Builder    (toLazyText)
 
 import Control.Monad.State hiding (join)
 
@@ -121,8 +111,8 @@ instance MonadTokBuilder s (Builder s) where
 instance IsString a => IsString (Builder s a) where
     fromString = pure . fromString
 
-instance FromText a => FromText (Builder s a) where
-    fromText = pure . fromText
+instance Convertible t a => Convertible t (Builder s a) where
+    convert = pure . convert
 
 instance Monoid a => Monoid (Builder s a) where
     mempty        = return mempty

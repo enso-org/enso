@@ -83,23 +83,24 @@ class Monad m => Emitter m e where
 
 -- === Functions === --
 
-data Listener = Listener { _tag :: Tag
-                         , _rep :: ListenerRep
-                         } deriving (Show)
+data Listener l = Listener { _tag :: Tag
+                           , _rep :: l
+                           } deriving (Show)
 
+type    Listener'   = Listener ListenerRep
 newtype ListenerRep = ListenerRep TypeRep deriving (Show, Eq, Ord)
 instance IsTypeRep ListenerRep
 
-makePfxClassy ''Listener
+makePfxLenses ''Listener
 makeWrapped   ''ListenerRep
 
 
 -- === Instances === --
 
 -- Properties
-type instance RepOf Listener = ListenerRep
-instance HasRep Listener where rep = listener_rep ; {-# INLINE rep #-}
-instance HasTag Listener where tag = listener_tag ; {-# INLINE tag #-}
+type instance RepOf  (Listener l) = l
+instance      HasRep (Listener l) where rep = listener_rep ; {-# INLINE rep #-}
+instance      HasTag (Listener l) where tag = listener_tag ; {-# INLINE tag #-}
 
 
 
@@ -109,46 +110,46 @@ instance HasTag Listener where tag = listener_tag ; {-# INLINE tag #-}
 
 -- === Definition === --
 
-data EventHub f = EventHub { _listeners :: Map ListenerRep f
-                           , _subhubs   :: Map TagRep (EventHub f)
-                           } deriving (Show)
+data EventHub l f = EventHub { _listeners :: Map l f
+                             , _subhubs   :: Map TagRep (EventHub l f)
+                             } deriving (Show)
 
 makeLenses ''EventHub
 
 
 -- === Utils === --
 
-attachListener :: Listener -> f -> EventHub f -> EventHub f
+attachListener :: Ord l => Listener l -> f -> EventHub l f -> EventHub l f
 attachListener l f = (space' (l ^. tag) . listeners) %~ Map.insert (l ^. rep) f ; {-# INLINE attachListener #-}
 
-deteachListener :: Listener -> EventHub f -> EventHub f
+deteachListener :: Ord l => Listener l -> EventHub l f -> EventHub l f
 deteachListener l = space' (l ^. tag) . listeners %~ Map.delete (l ^. rep) ; {-# INLINE deteachListener #-}
 
-queryListeners :: Tag -> EventHub f -> [f]
+queryListeners :: Ord l => Tag -> EventHub l f -> [f]
 queryListeners e = Map.elems . view (space' e . listeners) ; {-# INLINE queryListeners #-}
 
-space :: Tag -> Lens' (EventHub m) (Maybe (EventHub m))
+space :: Ord l => Tag -> Lens' (EventHub l f) (Maybe (EventHub l f))
 space = nestedAt . unwrap' ; {-# INLINE space #-}
 
-space' :: Tag -> Lens' (EventHub m) (EventHub m)
+space' :: Ord l => Tag -> Lens' (EventHub l f) (EventHub l f)
 space' = nestedAt' . unwrap' ; {-# INLINE space' #-}
 
 
 -- === Instances === --
 
 -- Default
-instance Default (EventHub m) where
+instance Default (EventHub l f) where
     def = EventHub def def ; {-# INLINE def #-}
 
 -- Monoid
-instance Monoid (EventHub m) where
-    mempty                                        = def                             ; {-# INLINE mempty  #-}
+instance Ord l => Monoid (EventHub l f) where
+    mempty                                  = def                          ; {-# INLINE mempty  #-}
     mappend (EventHub a b) (EventHub a' b') = EventHub (a <> a') (b <> b') ; {-# INLINE mappend #-}
 
 
 -- Indexed
-type instance IxValue (EventHub m) = EventHub m
-type instance Index   (EventHub m) = TagRep
+type instance IxValue (EventHub l f) = EventHub l f
+type instance Index   (EventHub l f) = TagRep
 
-instance At   (EventHub m) where at i = subhubs . at i ; {-# INLINE at #-}
-instance Ixed (EventHub m) where ix i = subhubs . ix i ; {-# INLINE ix #-}
+instance At   (EventHub l f) where at i = subhubs . at i ; {-# INLINE at #-}
+instance Ixed (EventHub l f) where ix i = subhubs . ix i ; {-# INLINE ix #-}

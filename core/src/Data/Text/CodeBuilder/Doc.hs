@@ -13,13 +13,14 @@
 
 module Data.Text.CodeBuilder.Doc where
 
-import Prologue hiding (Empty)
+import Prologue hiding (Empty, Text)
 
 import           GHC.Int (Int64)
 import           Control.Monad.State
 import qualified Data.Text.Lazy         as Text
 import qualified Data.Text.Lazy.Builder as Text
-import           Data.Text.Lazy.Builder   (fromLazyText)
+import           Data.Text.Lazy (Text)
+
 
 ------------------------------------------------------------------------
 -- Indentation handling
@@ -77,7 +78,7 @@ render :: Doc -> Text.Builder
 render = flip evalState (def :: IndentState) . go where
     go = \case
         Empty    -> pure $ ""
-        Text l t -> fromLazyText t <$ modCol (+l)
+        Text l t -> Text.fromLazyText t <$ modCol (+l)
         Line     -> do
             ind <- view indent <$> get
             modCol (const ind)
@@ -102,8 +103,8 @@ instance Monoid Doc where
             Empty -> a
             _ -> Cat a b
 
-instance FromText Doc where
-    fromText t = Text (Text.length t) t
+instance Convertible Text Doc where
+    convert t = Text (Text.length t) t
 
 instance IsString Doc where
-    fromString = fromText . fromString
+    fromString = fromLazyText . fromString

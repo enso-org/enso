@@ -43,8 +43,13 @@ import Luna.IR.Layer.UID (ID)
 
 import qualified Luna.IR.Expr.Term.Named as Term
 
-data A = A deriving (Show)
 
+import qualified Data.RTuple.Class as RT
+import Data.Property
+
+import System.Log
+
+data A = A deriving (Show)
 
 
 
@@ -381,7 +386,7 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => P
 pass1 = gen_pass1
 
 
-attachLayer l e = attachLayerIR l e >> attachLayerPM l e
+attachLayer priority l e = attachLayerIR l e >> attachLayerPM priority l e
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
@@ -391,20 +396,20 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     -- unsafeWithAttr (typeVal' @WorkingElem) (error "Uninitialized working elem")
 
     initModel_reg
-    attachLayer (typeVal' @Model) (typeVal' @EXPR)
-    attachLayer (typeVal' @Model) (typeVal' @(LINK' EXPR))
+    attachLayer 0 (typeVal' @Model) (typeVal' @EXPR)
+    attachLayer 0 (typeVal' @Model) (typeVal' @(LINK' EXPR))
     --
     initUID_reg
-    attachLayer (typeVal' @UID) (typeVal' @EXPR)
-    attachLayer (typeVal' @UID) (typeVal' @(LINK' EXPR))
+    attachLayer 5 (typeVal' @UID) (typeVal' @EXPR)
+    attachLayer 5 (typeVal' @UID) (typeVal' @(LINK' EXPR))
 
     initSuccs_reg
-    attachLayer (typeVal' @Succs) (typeVal' @EXPR)
+    attachLayer 5 (typeVal' @Succs) (typeVal' @EXPR)
     --
     initType_reg
-    attachLayer (typeVal' @Type) (typeVal' @EXPR)
+    attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
 
-    addEventListener (NEW // LINK EXPR EXPR) watchSuccs
+    addEventListener 10 (NEW // LINK EXPR EXPR) watchSuccs
 
 
     -- addEventListener (NEW // EXPR) $ (undefined :: Pass.DynPass m)
@@ -565,6 +570,14 @@ gen_pass1 = do
 
 
 
+
+
+
+-- spec = describe "foo" $ do
+--     it "bars" $ 1 + 1 `shouldBe` 2
+
+
+
 main :: IO ()
 main = do
     (p, vis) <- Vis.newRunDiffT test_pass1
@@ -579,3 +592,4 @@ main = do
             return ()
     print p
     return ()
+    -- lmain
