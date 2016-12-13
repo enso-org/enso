@@ -133,9 +133,12 @@ instance                     LookupData d '[]       where lookupData _          
 
 class    Monad m                                   => MonadLogger m              where submitLog :: DataStore' m -> m ()
 instance Monad m                                   => MonadLogger (Logger req m) where submitLog _ = return ()      ; {-# INLINE submitLog #-}
-instance {-# OVERLAPPABLE #-} MonadLoggerTrans t m => MonadLogger (t m)          where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
+-- instance {-# OVERLAPPABLE #-} MonadLoggerTrans t m => MonadLogger (t m)          where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
 type MonadLoggerTrans t m = (Monad m, Monad (t m), MonadTrans t, MonadLogger m, RequiredData m ~ RequiredData (t m))
 
+instance MonadLogger m => MonadLogger (DataProvider d m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
+instance MonadLogger m => MonadLogger (IdentityT      m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
+instance MonadLogger m => MonadLogger (StateT       s m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
 
 -- === Running === --
 
@@ -309,13 +312,13 @@ instance (MonadIO m, RequiredLookups m '[Msg, Nesting]) => MonadLogger (EchoLogg
 -------------------
 
 
-
--- 
+--
+--
 --
 -- -- logMsg ::
 --
--- tst :: Logging m => m ()
--- tst = do
+-- tst :: Logging (IdentityT m) => m ()
+-- tst = runIdentityT $ do
 --     withDebug "foo" $ do
 --         debug "bar"
 --     debug "baz"
