@@ -180,13 +180,21 @@ instance MonadTrans PassManager where
 
 
 
-type instance KeyData m (Event e) = PassManager' m ()
 
 
+-- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 -- | Emitter
 -- FIXME[WD]: Is there any more performant way to evaluate events than having to set @WorkingElem before each emit?
+type instance KeyData m (Event e) = PassManager' m ()
 instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
     emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
+
+-- Here is an example stup of fixing implementation:
+-- type instance KeyData m (Event e) = Event.Payload e -> PassManager' m ()
+-- instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
+--     emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . ($ d) . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
+-- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+
 
 
 instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where

@@ -32,6 +32,12 @@ star :: (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR)) => m (Expr St
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
+reserveStar :: (IRMonad m, Accessible ExprNet m) => m (Expr Star)
+reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
+
+registerStar :: Emitter m (NEW // EXPR) => Expr Star -> m ()
+registerStar = dispatchNewExpr Term.uncheckedStar
+
     -- rawString :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr String)
     -- rawString = expr . Term.uncheckedString ; {-# INLINE rawString #-}
     --

@@ -34,7 +34,7 @@ type FromPath path = Typeables (TagPath path)
 fromPath :: forall path. FromPath path => Tag
 fromPath = Tag $ typeReps' @(TagPath path) ; {-# INLINE fromPath #-}
 
-data a // as = a :// as
+data a // as = a :// as deriving (Show)
 infixr 5 //
 (//) :: a -> as -> a // as
 a // as = a :// as ; {-# INLINE (//) #-}

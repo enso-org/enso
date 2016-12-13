@@ -133,10 +133,10 @@ checkLinkTarget e lnk = do
     when (e ^. idx /= tgt ^. idx) $ reportIncoherence (DeteachedSource e lnk)
 --
 
-
-class MonadPayload a m | m -> a where
-    getPayload :: m a
-
+--
+-- class MonadPayload a m | m -> a where
+--     getPayload :: m a
+--
 
 
 type ElemSubPass p elem   = SubPass (ElemScope p elem)
@@ -170,11 +170,11 @@ type instance Outputs   (ElemScope InitModel t) = '[Layer (Abstract t) Model]
 type instance Events    (ElemScope InitModel t) = '[]
 type instance Preserves (ElemScope InitModel t) = '[]
 
-initModel :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemScope InitModel t) m
+initModel :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass (ElemScope InitModel t) m
 initModel = do
     (t, tdef) <- readAttr @WorkingElem
     flip (writeLayer @Model) t tdef
-    print "new Model created"
+    putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract t) :: TypeRep) <> ": New Model"
 
 initModel_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
 initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initModel
@@ -195,11 +195,13 @@ type instance Outputs   (ElemScope InitUID t) = '[Layer (Abstract t) UID]
 type instance Events    (ElemScope InitUID t) = '[]
 type instance Preserves (ElemScope InitUID t) = '[]
 
-initUID :: forall t m. (MonadIO m, IRMonad m) => STRefM m ID -> Pass (ElemScope InitUID t) m
+initUID :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => STRefM m ID -> Pass (ElemScope InitUID t) m
 initUID ref = do
     (t, tdef) <- readAttr @WorkingElem
-    flip (writeLayer @UID) t =<< Store.modifySTRef' ref (\i -> (i, succ i))
-    print "new UID created"
+    nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
+    flip (writeLayer @UID) t nuid
+    putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract t) :: TypeRep) <> ": New UID " <> show nuid
+
 
 initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
 initUID_dyn = do
@@ -226,7 +228,7 @@ initSuccs :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemScope InitSuccs t) 
 initSuccs = do
     (t, _) <- readAttr @WorkingElem
     flip (writeLayer @Succs) t mempty
-    print "new Succs created"
+    putStrLn $ "[" <> show t <> "] New Succs"
 
 initSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
 initSuccs_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initSuccs
@@ -235,54 +237,66 @@ initSuccs_reg :: (IRMonad m, MonadIO m) => PassManager m ()
 initSuccs_reg = registerLayer (typeVal' @Succs) initSuccs_dyn
 
 
+data WatchSuccs
+type instance Abstract WatchSuccs = WatchSuccs
+type instance Inputs    (ElemScope WatchSuccs t) = '[ExprLayer Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
+type instance Events    (ElemScope WatchSuccs t) = '[]
+type instance Preserves (ElemScope WatchSuccs t) = '[]
+
+watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
+watchSuccs = do
+    (t, (src, tgt)) <- readAttr @WorkingElem
+    -- putStrLn $ "[" <> show t <> "] " <> "on new link: (?, " <> show tgt <> ")"
+    putStrLn $ "[" <> show t <> "] " <> "on new link: (" <> show src <>", " <> show tgt <> ")"
+    -- scss <- readLayer @Succs src
+    return ()
+    -- print scss
+    -- flip (writeLayer @Succs) t mempty
+    -- putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract (Link' (Expr l))) :: TypeRep) <> ": New Link: " <> show (src,tgt)
+
+watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
+watchSuccs_dyn = Pass.compile $ watchSuccs
+
+
 
 ------------------
 -- === Type === --
 ------------------
 
--- FIXME: moze po prostu Expr Star?
-newtype MagicStar = MagicStar AnyExpr
-makeWrapped ''MagicStar
-
-newMagicStar :: IRMonad m => m MagicStar
-newMagicStar = wrap' <$> magicExpr Term.uncheckedStar ; {-# INLINE newMagicStar #-}
-
-magicStar :: Iso' (Expr l) MagicStar
-magicStar = iso (wrap' . unsafeCoerce) (unsafeCoerce . unwrap') ; {-# INLINE magicStar #-}
-
-
-consTypeLayer :: (IRMonad m, Accessible ExprLinkNet m, Emitter m (NEW // LINK' EXPR))
-              => Store.STRefM m (Maybe MagicStar) -> Expr t -> m (LayerData Type (Expr t))
+consTypeLayer :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // LINK' EXPR), Emitter m (NEW // EXPR))
+              => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
 consTypeLayer ref self = do
-    top  <- view (from magicStar) <$> localTop ref
-    conn <- link top self
-    return conn
+    top  <- unsafeRelayout <$> localTop ref
+    link top self
 
 
-localTop :: IRMonad m
-         => Store.STRefM m (Maybe MagicStar) -> m MagicStar
+localTop :: (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR))
+         => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
 localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
-    Nothing -> mdo
+    Nothing -> do
+        s <- reserveStar
         Store.writeSTRef ref $ Just s
-        s <- newMagicStar
+        registerStar s
         Store.writeSTRef ref Nothing
         return s
 
 
 data InitType
 type instance Abstract InitType = InitType
-type instance Inputs    (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprLinkNet, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs   (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprLinkNet]
-type instance Events    (ElemScope InitType t) = '[NEW // LINK' EXPR]
+type instance Inputs    (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet]
+type instance Events    (ElemScope InitType t) = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves (ElemScope InitType t) = '[]
 
-initType :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Store.STRefM m (Maybe MagicStar) -> Pass (ElemScope InitType (EXPRESSION l)) m
+initType :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Store.STRefM m (Maybe (Expr Star)) -> Pass (ElemScope InitType (EXPRESSION l)) m
 initType ref = do
+    putStrLn ">>> Type"
     (el, _) <- readAttr @WorkingElem
     t <- consTypeLayer ref el
     flip (writeLayer @Type) el t
-    print "new Type created"
+    putStrLn $ "[" <> show el <> "] New Type"
 
 -- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
 --   because it only works for Expressions
@@ -358,8 +372,8 @@ data B = B deriving (Show)
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
-type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[Model, UID] <> ExprLinkLayers '[Model]
-type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[Model, UID] <> ExprLinkLayers '[Model]
+type instance Inputs    SimpleAA = '[ExprNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
+type instance Outputs   SimpleAA = '[ExprNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
 type instance Events    SimpleAA = '[NEW // EXPR]
 type instance Preserves SimpleAA = '[]
 
@@ -379,16 +393,19 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     initModel_reg
     attachLayer (typeVal' @Model) (typeVal' @EXPR)
     attachLayer (typeVal' @Model) (typeVal' @(LINK' EXPR))
-
+    --
     initUID_reg
     attachLayer (typeVal' @UID) (typeVal' @EXPR)
     attachLayer (typeVal' @UID) (typeVal' @(LINK' EXPR))
 
     initSuccs_reg
     attachLayer (typeVal' @Succs) (typeVal' @EXPR)
-
+    --
     initType_reg
     attachLayer (typeVal' @Type) (typeVal' @EXPR)
+
+    addEventListener (NEW // LINK EXPR EXPR) watchSuccs
+
 
     -- addEventListener (NEW // EXPR) $ (undefined :: Pass.DynPass m)
     -- print =<< PM.get
@@ -436,14 +453,14 @@ fromRight (Left e) = error $ show e
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet, Attr MyData]
-             , Accessibles m '[ExprNet, ExprLayer UID, ExprLayer Model], Emitter m (NEW // EXPR)
+             , Accessibles m '[ExprNet], Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star
-    (s :: Expr Star) <- star
-    (s :: Expr Star) <- star
-    (s :: Expr Star) <- star
-    print =<< readLayer @Model s
+    -- (s :: Expr Star) <- star
+    -- (s :: Expr Star) <- star
+    -- (s :: Expr Star) <- star
+    -- print =<< readLayer @Model s
     print s
 
     -- i <- readLayer @UID s

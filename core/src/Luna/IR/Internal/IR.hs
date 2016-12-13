@@ -307,22 +307,30 @@ newMagicElem tdef = do
 {-# INLINE newMagicElem #-}
 
 type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
-newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t))
+newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t)
+              , Show (Definition t))
         => Definition t -> m t
 newElem tdef = do
-    irstate    <- getIR
-    newIdx     <- reserveNewElemIdx @t
-    -- layerStore <- readComp @(Net (Abstract t))
-    let el = newIdx ^. from idx
-    emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
+    el <- reserveElem
+    putStrLn $ "EMIT >>> NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " idx " <> show (el ^. idx)
+    -- putStrLn $ "Definition: " <> show tdef
+    dispatchNewElem tdef el
+    putStrLn $ "AFTER <<< NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " idx " <> show (el ^. idx)
+    return el
     -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do
     --         let consFunc = lookupLayerCons' (typeVal' @(Abstract t)) layer irstate
     --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
     -- mapM_ consLayer =<< Store.assocs layerStore
-    return el
+
 {-# INLINE newElem #-}
 
+reserveElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsIdx t) => m t
+reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
+
+dispatchNewElem :: (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
+                => Definition t -> t -> m ()
+dispatchNewElem tdef el = emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
 
 
 delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m) => t -> m ()
@@ -395,7 +403,7 @@ attachLayerIR l e = do
 
 -- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadBase   m = (PrimMonad   m, MonadFix m)
+type  IRMonadBase   m = (PrimMonad   m, MonadFix m, MonadIO m) -- FIXME: remove IO
 type  IRMonadBaseIO m = (IRMonadBase m, MonadIO  m)
 class IRMonadBase m => IRMonad m where
     getIR :: m (IRM m)
@@ -497,8 +505,8 @@ instance (IRMonad m, KnownType a, EqPrimStates m n) => KeyMonad (Net a) m n wher
 
 -- === Abstract === --
 
-data LINK  a b
-type LINK' a = LINK a a
+data LINK  a b = LINK a b deriving (Show)
+type LINK' a   = LINK a a
 type instance Definition (LINK a b) = (a,b)
 type instance Abstract   (LINK a b) = LINK (Abstract  a) (Abstract  b)
 type instance Universal  (LINK a b) = LINK (Universal a) (Universal b)
@@ -520,7 +528,7 @@ magicLink :: forall a b m. (IRMonad m, KnownType (Abstract (Link a b)))
           => a -> b -> m (Link a b)
 magicLink a b = newMagicElem (a,b) ; {-# INLINE magicLink #-}
 
-link :: forall a b m. (IRMonad m, KnownType (Abstract (Link a b)), NewElemEvent m (Link a b), Accessible (Net (Abstract (Link a b))) m)
+link :: forall a b m. (Show a, Show b, IRMonad m, KnownType (Abstract (Link a b)), NewElemEvent m (Link a b), Accessible (Net (Abstract (Link a b))) m)
      => a -> b -> m (Link a b)
 link a b = newElem (a,b) ; {-# INLINE link #-}
 
@@ -534,7 +542,7 @@ link a b = newElem (a,b) ; {-# INLINE link #-}
 
 -- === Abstract === --
 
-data GROUP a
+data GROUP a = Group a deriving (Show)
 type instance Definition (GROUP a) = Set a
 type instance Abstract   (GROUP a) = GROUP (Abstract  a)
 type instance Universal  (GROUP a) = GROUP (Universal a)
@@ -544,7 +552,7 @@ type Group a = Elem (GROUP a)
 
 -- === Construction === --
 
-group :: forall f a m. (IRMonad m, Foldable f, Ord a, NewElemEvent m (Group a), KnownType (Abstract (Group a)), Accessible (Net (Abstract (Group a))) m)
+group :: forall f a m. (Show a, IRMonad m, Foldable f, Ord a, NewElemEvent m (Group a), KnownType (Abstract (Group a)), Accessible (Net (Abstract (Group a))) m)
       => f a -> m (Group a)
 group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
@@ -680,9 +688,18 @@ magicExpr :: forall atom layout m. (TermEncoder atom, IRMonad m)
           => ExprTerm atom (Expr layout) -> m (Expr layout)
 magicExpr a = newMagicElem (encodeTerm a) ; {-# INLINE magicExpr #-}
 
-expr :: forall atom layout m. (TermEncoder atom, IRMonad m, NewElemEvent m (Expr layout), Accessible (Net EXPR) m)
+expr :: forall atom layout m. (TermEncoder atom, IRMonad m, NewElemEvent m (Expr layout), Accessible ExprNet m)
      => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr = newElem . encodeTerm ; {-# INLINE expr #-}
+
+reserveExpr :: (IRMonad m, Accessible ExprNet m)
+            => m (Expr layout)
+reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
+
+dispatchNewExpr :: (TermEncoder atom, NewElemEvent m (Expr layout))
+                => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr = dispatchNewElem . encodeTerm
+
 
 -- class SomeGeneralEncode a where
 --     someGeneralEncode :: a -> ExprStore
@@ -715,7 +732,7 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 -- === Instances === --
 
 type instance Event.Payload (NEW // EXPR)       = (AnyExpr, Prim.Any)
-type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor
+type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor + maybe make something like ... NEW // t = (Universal t, AnyDefinition) ?
 
 type instance Sub s     (Expr l) = Expr (Sub s l)
 
