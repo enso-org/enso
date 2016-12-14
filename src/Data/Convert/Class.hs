@@ -9,7 +9,7 @@
 {-# LANGUAGE OverlappingInstances #-}
 #endif
 
-module Data.Convert.Base where
+module Data.Convert.Class where
 
 import Prelude
 import Control.Lens

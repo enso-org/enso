@@ -11,7 +11,7 @@
 
 module Data.Convert.Bound where
 
-import Data.Convert.Base
+import Data.Convert.Class
 import Data.Typeable
 import Control.Applicative
 import Language.Haskell.TH hiding (Type, Safety, Safe, Unsafe)

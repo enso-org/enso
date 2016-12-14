@@ -1,7 +1,7 @@
-module Data.Convert.Instances () where
+module Data.Convert.Instances (module X) where
 
-import Data.Convert.Instances.Base    ()
-import Data.Convert.Instances.Map     ()
-import Data.Convert.Instances.Num     ()
-import Data.Convert.Instances.Text    ()
-import Data.Convert.Instances.TH      ()
+import Data.Convert.Instances.Base ()
+import Data.Convert.Instances.Map  ()
+import Data.Convert.Instances.Num  ()
+import Data.Convert.Instances.Text as X
+import Data.Convert.Instances.TH   ()

@@ -4,15 +4,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
 
-
-module Data.Convert.Instances.Text()
-where
+module Data.Convert.Instances.Text where
 
 import Prelude
 
-import Data.Convert.Base
+import Data.Convert.Class
 import qualified Data.Text as TS
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
@@ -25,211 +23,79 @@ import Data.Word (Word8)
 import Data.Foldable
 
 
-instance Convertible TS.Text TS.Text where
-    {-# INLINE convert #-}
-    convert = id
+-- === Utils === --
 
-instance Convertible TS.Text [Char] where
-    {-# INLINE convert #-}
-    convert = TS.unpack
+type ToLazyText   a = Convertible a TL.Text
+type ToText       a = Convertible a TS.Text
+type FromLazyText a = Convertible TL.Text a
+type FromText     a = Convertible TS.Text a
 
-instance Convertible TS.Text TL.Text where
-    {-# INLINE convert #-}
-    convert = TL.fromStrict
+toText :: ToText a => a -> TS.Text
+toText = convert ; {-# INLINE toText #-}
 
-instance Convertible TS.Text TLB.Builder where
-    {-# INLINE convert #-}
-    convert = TLB.fromText
+toLazyText :: ToLazyText a => a -> TL.Text
+toLazyText = convert ; {-# INLINE toLazyText #-}
 
-instance Convertible TS.Text BS.ByteString where
-    {-# INLINE convert #-}
-    convert = TE.encodeUtf8
+fromText :: FromText a => TS.Text -> a
+fromText = convert ; {-# INLINE fromText #-}
 
-instance Convertible TS.Text BL.ByteString where
-    {-# INLINE convert #-}
-    convert = BL.fromStrict . TE.encodeUtf8
-
-instance Convertible TS.Text BB.Builder where
-    {-# INLINE convert #-}
--- FIXME: doesnt work on OSX
--- #if MIN_VERSION_text(1,2,0)
-    convert = TE.encodeUtf8Builder
--- #else
---     convert = convert . TE.encodeUtf8
--- #endif
+fromLazyText :: FromLazyText a => TL.Text -> a
+fromLazyText = convert ; {-# INLINE fromLazyText #-}
 
 
+-- === Intances === --
 
-instance Convertible TL.Text TL.Text where
-    {-# INLINE convert #-}
-    convert = id
+instance Convertible TS.Text TS.Text       where convert = id                            ; {-# INLINE convert #-}
+instance Convertible TS.Text String        where convert = TS.unpack                     ; {-# INLINE convert #-}
+instance Convertible TS.Text TL.Text       where convert = TL.fromStrict                 ; {-# INLINE convert #-}
+instance Convertible TS.Text TLB.Builder   where convert = TLB.fromText                  ; {-# INLINE convert #-}
+instance Convertible TS.Text BS.ByteString where convert = TE.encodeUtf8                 ; {-# INLINE convert #-}
+instance Convertible TS.Text BL.ByteString where convert = BL.fromStrict . TE.encodeUtf8 ; {-# INLINE convert #-}
+instance Convertible TS.Text BB.Builder    where convert = TE.encodeUtf8Builder          ; {-# INLINE convert #-}
 
-instance Convertible TL.Text [Char] where
-    {-# INLINE convert #-}
-    convert = TL.unpack
+instance Convertible TL.Text TL.Text       where convert = id                            ; {-# INLINE convert #-}
+instance Convertible TL.Text String        where convert = TL.unpack                     ; {-# INLINE convert #-}
+instance Convertible TL.Text TS.Text       where convert = TL.toStrict                   ; {-# INLINE convert #-}
+instance Convertible TL.Text TLB.Builder   where convert = TLB.fromLazyText              ; {-# INLINE convert #-}
+instance Convertible TL.Text BS.ByteString where convert = convert . TLE.encodeUtf8      ; {-# INLINE convert #-}
+instance Convertible TL.Text BL.ByteString where convert = TLE.encodeUtf8                ; {-# INLINE convert #-}
+instance Convertible TL.Text BB.Builder    where convert = TLE.encodeUtf8Builder         ; {-# INLINE convert #-}
 
-instance Convertible TL.Text TS.Text where
-    {-# INLINE convert #-}
-    convert = TL.toStrict
+instance Convertible TLB.Builder TLB.Builder   where convert = id                        ; {-# INLINE convert #-}
+instance Convertible TLB.Builder String        where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
+instance Convertible TLB.Builder TS.Text       where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
+instance Convertible TLB.Builder TL.Text       where convert = TLB.toLazyText            ; {-# INLINE convert #-}
+instance Convertible TLB.Builder BS.ByteString where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
+instance Convertible TLB.Builder BL.ByteString where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
+instance Convertible TLB.Builder BB.Builder    where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
 
-instance Convertible TL.Text TLB.Builder where
-    {-# INLINE convert #-}
-    convert = TLB.fromLazyText
+instance Convertible BS.ByteString BS.ByteString where convert = id                      ; {-# INLINE convert #-}
+instance Convertible BS.ByteString [Word8]       where convert = BS.unpack               ; {-# INLINE convert #-}
+instance Convertible BS.ByteString TS.Text       where convert = TE.decodeUtf8           ; {-# INLINE convert #-}
+instance Convertible BS.ByteString TL.Text       where convert = TL.fromStrict . convert ; {-# INLINE convert #-}
+instance Convertible BS.ByteString TLB.Builder   where convert = TLB.fromText . convert  ; {-# INLINE convert #-}
+instance Convertible BS.ByteString BL.ByteString where convert = BL.fromStrict           ; {-# INLINE convert #-}
+instance Convertible BS.ByteString BB.Builder    where convert = BB.byteString           ; {-# INLINE convert #-}
 
-instance Convertible TL.Text BS.ByteString where
-    {-# INLINE convert #-}
-    convert = convert . TLE.encodeUtf8
+instance Convertible BL.ByteString [Word8]       where convert = BL.unpack                  ; {-# INLINE convert #-}
+instance Convertible BL.ByteString TS.Text       where convert = TL.toStrict . convert      ; {-# INLINE convert #-}
+instance Convertible BL.ByteString TL.Text       where convert = TLE.decodeUtf8             ; {-# INLINE convert #-}
+instance Convertible BL.ByteString TLB.Builder   where convert = TLB.fromLazyText . convert ; {-# INLINE convert #-}
+instance Convertible BL.ByteString BS.ByteString where convert = BL.toStrict                ; {-# INLINE convert #-}
+instance Convertible BL.ByteString BB.Builder    where convert = BB.lazyByteString          ; {-# INLINE convert #-}
 
-instance Convertible TL.Text BL.ByteString where
-    {-# INLINE convert #-}
-    convert = TLE.encodeUtf8
+instance Convertible String TS.Text     where convert = TS.pack        ; {-# INLINE convert #-}
+instance Convertible String TL.Text     where convert = TL.pack        ; {-# INLINE convert #-}
+instance Convertible String TLB.Builder where convert = TLB.fromString ; {-# INLINE convert #-}
 
-instance Convertible TL.Text BB.Builder where
-    {-# INLINE convert #-}
--- FIXME: doesnt work on OSX
--- #if MIN_VERSION_text(1,2,0)
-    convert = TLE.encodeUtf8Builder
--- #else
---     convert = convert . TLE.encodeUtf8
--- #endif
+instance Convertible [Word8] BS.ByteString where convert = BS.pack          ; {-# INLINE convert #-}
+instance Convertible [Word8] BL.ByteString where convert = BL.pack          ; {-# INLINE convert #-}
+instance Convertible [Word8] BB.Builder    where convert = foldMap BB.word8 ; {-# INLINE convert #-}
 
+instance Convertible Char TS.Text     where convert = TS.singleton  ; {-# INLINE convert #-}
+instance Convertible Char TL.Text     where convert = TL.singleton  ; {-# INLINE convert #-}
+instance Convertible Char TLB.Builder where convert = TLB.singleton ; {-# INLINE convert #-}
 
-
-instance Convertible TLB.Builder TLB.Builder where
-    {-# INLINE convert #-}
-    convert = id
-
-instance Convertible TLB.Builder [Char] where
-    {-# INLINE convert #-}
-    convert = convert . TLB.toLazyText
-
-instance Convertible TLB.Builder TS.Text where
-    {-# INLINE convert #-}
-    convert = convert . TLB.toLazyText
-
-instance Convertible TLB.Builder TL.Text where
-    {-# INLINE convert #-}
-    convert = TLB.toLazyText
-
-instance Convertible TLB.Builder BS.ByteString where
-    {-# INLINE convert #-}
-    convert = convert . TLB.toLazyText
-
-instance Convertible TLB.Builder BL.ByteString where
-    {-# INLINE convert #-}
-    convert = convert . TLB.toLazyText
-
-instance Convertible TLB.Builder BB.Builder where
-    {-# INLINE convert #-}
-    convert = convert . TLB.toLazyText
-
-
-instance Convertible BS.ByteString BS.ByteString where
-    {-# INLINE convert #-}
-    convert = id
-
-instance Convertible BS.ByteString [Word8] where
-    {-# INLINE convert #-}
-    convert = BS.unpack
-
-instance Convertible BS.ByteString TS.Text where
-    {-# INLINE convert #-}
-    convert = TE.decodeUtf8
-
-instance Convertible BS.ByteString TL.Text where
-    {-# INLINE convert #-}
-    convert = TL.fromStrict . convert
-
-instance Convertible BS.ByteString TLB.Builder where
-    {-# INLINE convert #-}
-    convert = TLB.fromText . convert
-
-instance Convertible BS.ByteString BL.ByteString where
-    {-# INLINE convert #-}
-    convert = BL.fromStrict
-
-instance Convertible BS.ByteString BB.Builder where
-    {-# INLINE convert #-}
-    convert = BB.byteString
-
-
-
-instance Convertible BL.ByteString [Word8] where
-    {-# INLINE convert #-}
-    convert = BL.unpack
-
-instance Convertible BL.ByteString TS.Text where
-    {-# INLINE convert #-}
-    convert = TL.toStrict . convert
-
-instance Convertible BL.ByteString TL.Text where
-    {-# INLINE convert #-}
-    convert = TLE.decodeUtf8
-
-instance Convertible BL.ByteString TLB.Builder where
-    {-# INLINE convert #-}
-    convert = TLB.fromLazyText . convert
-
-instance Convertible BL.ByteString BS.ByteString where
-    {-# INLINE convert #-}
-    convert = BL.toStrict
-
-instance Convertible BL.ByteString BB.Builder where
-    {-# INLINE convert #-}
-    convert = BB.lazyByteString
-
-
-
-instance Convertible [Char] TS.Text where
-    {-# INLINE convert #-}
-    convert = TS.pack
-
-instance Convertible [Char] TL.Text where
-    {-# INLINE convert #-}
-    convert = TL.pack
-
-instance Convertible [Char] TLB.Builder where
-    {-# INLINE convert #-}
-    convert = TLB.fromString
-
-
-
-instance Convertible [Word8] BS.ByteString where
-    {-# INLINE convert #-}
-    convert = BS.pack
-
-instance Convertible [Word8] BL.ByteString where
-    {-# INLINE convert #-}
-    convert = BL.pack
-
-instance Convertible [Word8] BB.Builder where
-    {-# INLINE convert #-}
-    convert = foldMap BB.word8
-
-
-
-instance Convertible Char TS.Text where
-    {-# INLINE convert #-}
-    convert = TS.singleton
-
-instance Convertible Char TL.Text where
-    {-# INLINE convert #-}
-    convert = TL.singleton
-
-instance Convertible Char TLB.Builder where
-    {-# INLINE convert #-}
-    convert = TLB.singleton
-
-
-
-instance Convertible Word8 BS.ByteString where
-    {-# INLINE convert #-}
-    convert = BS.singleton
-
-instance Convertible Word8 BL.ByteString where
-    {-# INLINE convert #-}
-    convert = BL.singleton
-
-instance Convertible Word8 BB.Builder where
-    {-# INLINE convert #-}
-    convert = BB.word8
+instance Convertible Word8 BS.ByteString where convert = BS.singleton ; {-# INLINE convert #-}
+instance Convertible Word8 BL.ByteString where convert = BL.singleton ; {-# INLINE convert #-}
+instance Convertible Word8 BB.Builder    where convert = BB.word8     ; {-# INLINE convert #-}

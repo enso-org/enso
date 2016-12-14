@@ -7,8 +7,8 @@ module Data.Convert.Instances.Num where
 
 import Prelude
 
+import Data.Convert.Class
 import Data.Convert.Bound
-import Data.Convert.Base
 import Data.Monoid
 import qualified Data.ByteString as BS
 import GHC.Int
