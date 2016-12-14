@@ -50,8 +50,7 @@ import Data.Layer_OLD                 as X
 import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
 import Data.String.QQ             as X (s)
-import Data.Text.Class            as X (FromText (fromText), IsText, ToText (toText))
-import Data.Text.Lazy             as X (Text)
+import Data.Text                  as X (Text)
 import Data.Traversable           as X (mapM)
 import Data.Tuple.Curry           as X (Curry)
 import Data.Tuple.Curry.Total     as X (Uncurried', Curry', curry')
@@ -73,6 +72,8 @@ import Data.Kind                  as X (Type, Constraint, type (★), type (*))
 import Data.Constraints           as X (Constraints)
 import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
 import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
+import Unsafe.Coerce              as X (unsafeCoerce)
+import Prologue.Data.Typeable     as X
 
 -- Tuple handling
 import Prologue.Data.Tuple        as X
@@ -252,16 +253,3 @@ app_prec = 10
 
 showsPrec' = showsPrec (succ app_prec)
 showParen' d = showParen (d > app_prec)
-
-
-
-----------------------
--- === Typeable === --
-----------------------
-
-typeRep' :: forall a. Typeable a => TypeRep
-typeRep' = typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep' #-}
-
-class                                  Typeables (ls :: [*]) where typeReps' :: [TypeRep]
-instance (Typeable l, Typeables ls) => Typeables (l ': ls)   where typeReps' = typeRep' @l : typeReps' @ls ; {-# INLINE typeReps' #-}
-instance                               Typeables '[]         where typeReps' = []                          ; {-# INLINE typeReps' #-}
