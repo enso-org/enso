@@ -124,7 +124,6 @@ checkLinkTarget e lnk = do
 
 
 
-
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
 type instance Inputs    SimpleAA = '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
@@ -135,12 +134,12 @@ type instance Preserves SimpleAA = '[]
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m) => m (Either Pass.InternalError ())
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())
 test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder m)))
+test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder m)))
             => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
 test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
     runRegs
@@ -199,7 +198,7 @@ gen_pass1 = do
 
 
 main :: IO ()
-main = do
+main = runNestedLogger $ runStdLogging' $ runEchoLogger $ do
     (p, vis) <- Vis.newRunDiffT test_pass1
     case p of
         Left e -> do
@@ -208,11 +207,11 @@ main = do
         Right _ -> do
             let cfg = ByteString.unpack $ encode $ vis
             -- putStrLn cfg
-            liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+            -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
             return ()
     print p
     return ()
-
+    -- lmain
 
 
 

@@ -8,7 +8,7 @@ import           Old.Data.Record              (Encode2)
 import           Old.Data.Record.Model.Masked as X (VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
 import           Old.Data.Record.Model.Masked (encode2, EncodeStore, encodeStore, Mask, encodeNat, encodeData2, checkData2, decodeData2, Raw(Raw), unsafeRestore, decodeNat)
 
-import           Luna.Prelude                 hiding (elem {- fix: -} , Enum)
+import           Luna.Prelude                 hiding (elem {- fix: -} , Enum, log)
 import qualified Luna.Prelude as Prelude
 
 import Control.Monad.State  (StateT, runStateT)
@@ -45,7 +45,7 @@ import Luna.IR.Expr.Term.Uni ()
 -- import Type.Inference
 import Data.TypeVal
 
-
+import System.Log
 
 
 
@@ -312,10 +312,8 @@ newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEven
         => Definition t -> m t
 newElem tdef = do
     el <- reserveElem
-    putStrLn $ "EMIT >>> NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " idx " <> show (el ^. idx)
-    -- putStrLn $ "Definition: " <> show tdef
-    dispatchNewElem tdef el
-    putStrLn $ "AFTER <<< NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " idx " <> show (el ^. idx)
+    withDebug ("Emit: NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (el ^. idx) <> "]") $ do
+        dispatchNewElem tdef el
     return el
     -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do
@@ -406,6 +404,9 @@ attachLayerIR l e = do
 -- setAttr a = modifyIR_ $ attrs %~ Map.insert (typeVal' @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
 
 
+-- === Instances === --
+
+instance MonadLogging ls m => MonadLogging ls (IRBuilder m)
 
 
 ----------------------
@@ -416,13 +417,13 @@ attachLayerIR l e = do
 
 -- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadBase   m = (PrimMonad   m, MonadFix m, MonadIO m) -- FIXME: remove IO
+type  IRMonadBase   m = (PrimMonad   m, MonadFix m, MonadIO m, Logging m) -- FIXME: remove IO
 type  IRMonadBaseIO m = (IRMonadBase m, MonadIO  m)
 class IRMonadBase m => IRMonad m where
     getIR :: m (IRM m)
     putIR :: IRM m -> m ()
 
-instance {-# OVERLAPPABLE #-} IRMonadBase m => IRMonad (IRBuilder m) where
+instance {-# OVERLAPPABLE #-} (IRMonadBase m) => IRMonad (IRBuilder m) where
     getIR = wrap'   State.get ; {-# INLINE getIR #-}
     putIR = wrap' . State.put ; {-# INLINE putIR #-}
 
