@@ -1,3 +1,5 @@
+{-# LANGUAGE NoMonomorphismRestriction #-}
+
 module Luna.IR.ToRefactor where
 
 import Luna.Prelude hiding (String)
@@ -13,12 +15,211 @@ import Luna.IR.Layer.Type
 import Luna.IR.Layer.Model
 import Luna.IR.Layer.UID
 import Luna.IR.Layer.Succs
-import Luna.IR.Expr.Term.Named
+import Luna.IR.Expr.Term.Named (HasName, name)
 import Luna.IR.Expr.Format
 import Luna.IR.Expr.Atom
 import Data.Property
-
+import qualified Luna.Pass        as Pass
+import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves, SubPass)
+import Data.TypeVal
+import Data.Event (Emitter, type (//))
+import qualified Data.Set as Set
+import Luna.IR.Internal.LayerStore (STRefM)
+import Luna.IR.Expr
 import Unsafe.Coerce (unsafeCoerce)
+import Luna.Pass.Manager as PM
+import Data.Event
+
+
+
+---------------------------------------
+-- Some important utils
+
+
+
+type family PassAttr attr pass
+
+type instance KeyData (Pass.SubPass pass m) (Attr a) = PassAttr a pass
+
+
+
+
+
+data Abstracted a
+type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
+
+
+
+
+data ELEMSCOPE p elem
+data ElemScope p elem
+type instance Abstract (ElemScope c t) = ELEMSCOPE (Abstract c) (Abstract t)
+type instance PassAttr WorkingElem (ElemScope p t) = (Elem t, Definition (Elem t))
+
+type ElemSubPass p elem   = SubPass (ElemScope p elem)
+type ElemPass    p elem m = ElemSubPass p elem m ()
+
+proxifyElemPass :: ElemSubPass p elem m a -> (Proxy elem -> ElemSubPass p elem m a)
+proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
+
+
+
+
+
+
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-- Layer passes
+
+
+
+
+
+-------------------
+-- === Model === --
+-------------------
+
+data InitModel
+type instance Abstract InitModel = InitModel
+type instance Inputs    (ElemScope InitModel t) = '[Layer (Abstract t) Model, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitModel t) = '[Layer (Abstract t) Model]
+type instance Events    (ElemScope InitModel t) = '[]
+type instance Preserves (ElemScope InitModel t) = '[]
+
+initModel :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass (ElemScope InitModel t) m
+initModel = do
+    (t, tdef) <- readAttr @WorkingElem
+    flip (writeLayer @Model) t tdef
+    putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract t) :: TypeRep) <> ": New Model"
+
+initModel_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initModel
+
+initModel_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initModel_reg = registerLayer (typeVal' @Model) initModel_dyn
+
+
+
+-----------------
+-- === UID === --
+-----------------
+
+data InitUID
+type instance Abstract InitUID = InitUID
+type instance Inputs    (ElemScope InitUID t) = '[Layer (Abstract t) UID, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitUID t) = '[Layer (Abstract t) UID]
+type instance Events    (ElemScope InitUID t) = '[]
+type instance Preserves (ElemScope InitUID t) = '[]
+
+initUID :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => STRefM m ID -> Pass (ElemScope InitUID t) m
+initUID ref = do
+    (t, tdef) <- readAttr @WorkingElem
+    nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
+    flip (writeLayer @UID) t nuid
+    putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract t) :: TypeRep) <> ": New UID " <> show nuid
+
+
+initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
+initUID_dyn = do
+    r <- Store.newSTRef 0
+    return $ reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass (initUID r)
+
+initUID_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initUID_reg = registerLayer (typeVal' @UID) =<< initUID_dyn
+
+
+
+-------------------
+-- === Succs === --
+-------------------
+
+data InitSuccs
+type instance Abstract InitSuccs = InitSuccs
+type instance Inputs    (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs]
+type instance Events    (ElemScope InitSuccs t) = '[]
+type instance Preserves (ElemScope InitSuccs t) = '[]
+
+initSuccs :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemScope InitSuccs t) m
+initSuccs = do
+    (t, _) <- readAttr @WorkingElem
+    flip (writeLayer @Succs) t mempty
+    putStrLn $ "[" <> show t <> "] New Succs"
+
+initSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+initSuccs_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initSuccs
+
+initSuccs_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initSuccs_reg = registerLayer (typeVal' @Succs) initSuccs_dyn
+
+
+data WatchSuccs
+type instance Abstract WatchSuccs = WatchSuccs
+type instance Inputs    (ElemScope WatchSuccs t) = '[ExprLayer Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
+type instance Events    (ElemScope WatchSuccs t) = '[]
+type instance Preserves (ElemScope WatchSuccs t) = '[]
+
+watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
+watchSuccs = do
+    (t, (src, tgt)) <- readAttr @WorkingElem
+    putStrLn $ "[" <> show t <> "] " <> "on new link: (" <> show src <>", " <> show tgt <> ")"
+    modifyLayer_ @Succs (Set.insert $ generalize tgt) src
+
+watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
+watchSuccs_dyn = Pass.compile $ watchSuccs
+
+
+
+------------------
+-- === Type === --
+------------------
+
+consTypeLayer :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // LINK' EXPR), Emitter m (NEW // EXPR))
+              => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
+consTypeLayer ref self = do
+    top  <- unsafeRelayout <$> localTop ref
+    link top self
+
+
+localTop :: (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR))
+         => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
+localTop ref = Store.readSTRef ref >>= \case
+    Just t  -> return t
+    Nothing -> do
+        s <- reserveStar
+        Store.writeSTRef ref $ Just s
+        registerStar s
+        Store.writeSTRef ref Nothing
+        return s
+
+
+data InitType
+type instance Abstract InitType = InitType
+type instance Inputs    (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet]
+type instance Events    (ElemScope InitType t) = '[NEW // EXPR, NEW // LINK' EXPR]
+type instance Preserves (ElemScope InitType t) = '[]
+
+initType :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Store.STRefM m (Maybe (Expr Star)) -> Pass (ElemScope InitType (EXPRESSION l)) m
+initType ref = do
+    putStrLn ">>> Type"
+    (el, _) <- readAttr @WorkingElem
+    t <- consTypeLayer ref el
+    flip (writeLayer @Type) el t
+    putStrLn $ "[" <> show el <> "] New Type"
+
+-- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
+--   because it only works for Expressions
+-- initType_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+initType_dyn = do
+    r <- Store.newSTRef Nothing
+    return $ \ _ -> Pass.compile $ initType r
+
+-- initType_reg :: (IRMonad m, MonadIO m) => PassManager m ()
+initType_reg = registerLayer (typeVal' @Type) =<< initType_dyn
 
 
 
@@ -27,27 +228,40 @@ import Unsafe.Coerce (unsafeCoerce)
 
 
 
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+
+attachLayer priority l e = attachLayerIR l e >> attachLayerPM priority l e
 
 
-
-
-
-
-
-
-
-runRegs :: IRMonad m => m ()
+-- FIXME [WD]: is the type ugly here?
+-- runRegs :: _ => _
 runRegs = do
     runElemRegs
-    -- runLayerRegs
+
+    initModel_reg
+    attachLayer 0 (typeVal' @Model) (typeVal' @EXPR)
+    attachLayer 0 (typeVal' @Model) (typeVal' @(LINK' EXPR))
+    --
+    initUID_reg
+    attachLayer 5 (typeVal' @UID) (typeVal' @EXPR)
+    attachLayer 5 (typeVal' @UID) (typeVal' @(LINK' EXPR))
+
+    initSuccs_reg
+    attachLayer 5 (typeVal' @Succs) (typeVal' @EXPR)
+    --
+    initType_reg
+    attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
+
+    addEventListener 100 (NEW // LINK EXPR EXPR) watchSuccs
+
 
 -- === Elem reg defs === --
 
-elemRegs :: IRMonad m => [m ()]
-elemRegs = [elemReg1, elemReg2, elemReg3]
-
 runElemRegs :: IRMonad m => m ()
-runElemRegs = sequence_ elemRegs
+runElemRegs = sequence_ [elemReg1, elemReg2, elemReg3]
 
 elemReg1 :: IRMonad m => m ()
 elemReg1 = registerElem @EXPR
@@ -68,44 +282,8 @@ runLayerRegs :: IRMonad m => m ()
 runLayerRegs = sequence_ layerRegs
 
 
--- layerReg1 :: IRMonad m => m ()
--- layerReg1 = registerGenericLayer @Model $ \ _ -> return
---
--- layerReg2 :: IRMonad m => m ()
--- layerReg2 = registerGenericLayer @Succs $ \ _ _ -> return def
---
---
---
--- consUIDLayer :: PrimMonad m => Store.STRefM m ID -> t -> Definition t -> m (LayerData UID t)
--- consUIDLayer ref _ _ = Store.modifySTRef' ref (\i -> (i, succ i))
---
--- layerReg3 :: IRMonad m => m ()
--- layerReg3 = registerGenericLayer @UID . consUIDLayer =<< runInIR (Store.newSTRef 0)
---
---
--- -- TODO[WD]: dont allow here to use registerGenericLayer!
--- --           maybe LayerConsPasses will help here?
--- layerReg4 :: IRMonad m => m ()
--- layerReg4 = registerElemLayer @EXPR @Type . consTypeLayer =<< runInIR (Store.newSTRef Nothing)
---
 
--- consTypeLayer :: IRMonad m
---               => Store.STRefM m (Maybe MagicStar) -> Expr t -> Definition (Expr t) -> m (LayerData Type (Expr t))
--- consTypeLayer ref self _ = do
---     top  <- view (from magicStar) <$> localTop ref
---     conn <- magicLink top self
---     return conn
---
---
--- localTop :: IRMonad m
---          => Store.STRefM m (Maybe MagicStar) -> m MagicStar
--- localTop ref = Store.readSTRef ref >>= \case
---     Just t  -> return t
---     Nothing -> mdo
---         Store.writeSTRef ref $ Just s
---         s <- newMagicStar
---         Store.writeSTRef ref Nothing
---         return s
+
 
 ----------------------------------
 ----------------------------------

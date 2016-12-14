@@ -348,11 +348,24 @@ writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce
 readLayer :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
 readLayer t = flip readLayerByKey t =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
+-- FIXME[WD]: writeLayer should need writable
 writeLayer :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
 writeLayer val t = (\k -> writeLayerByKey k val t) =<< getKey @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
--- readAttr :: forall a m. (IRMonad m, Readable (Attr a) m) => m (KeyData m (Attr a))
--- readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
+modifyLayerM :: forall layer t m a. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
+modifyLayerM f t = do
+    l      <- readLayer @layer t
+    (a,l') <- f l
+    writeLayer @layer l' t
+    return a
+{-# INLINE modifyLayerM #-}
+
+modifyLayerM_ :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
+modifyLayerM_ = modifyLayerM @layer . (fmap.fmap) ((),) ; {-# INLINE modifyLayerM_ #-}
+
+modifyLayer_ :: forall layer t m. (IRMonad m, IsIdx t, Readable (Layer (Abstract t) layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
+modifyLayer_ = modifyLayerM_ @layer . fmap return ; {-# INLINE modifyLayer_ #-}
+
 
 readAttr :: forall a m. Readable (Attr a) m => m (KeyData m (Attr a))
 readAttr = readComp @(Attr a) ; {-# INLINE readAttr #-}
@@ -737,8 +750,11 @@ type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- F
 type instance Sub s     (Expr l) = Expr (Sub s l)
 
 
-type instance Generalizable (Expr l) (Expr l') = Generalizable l l'
+type instance Generalizable (Expr l) (Expr l') = ExprGeneralizable l l'
 
+type family ExprGeneralizable l l' where
+    ExprGeneralizable l Layout.Any = 'True -- FIXME[WD]: shouldn't we introduce `Layoyut` newtype wrapper to indicate that layouts could be always generalized to Any?
+    ExprGeneralizable l l'         = Generalizable l l'
 
 
 -- -------------------------------------
