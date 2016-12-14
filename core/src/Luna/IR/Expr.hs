@@ -120,6 +120,12 @@ lam i o = mdo
     lo <- link (unsafeRelayout o) t
     return t
 
+grouped :: NewExpr' m => Expr l -> m (Expr $ Grouped >> E l)
+grouped e = mdo
+    t  <- expr $ Term.uncheckedGrouped le
+    le <- link e t
+    return t
+
 
 -- Var >> ENT . . .
 --

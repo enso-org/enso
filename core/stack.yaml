@@ -42,7 +42,7 @@ packages:
 - extra-dep: true
   location: {commit: adb894846d34ceaa005961bd8fe676023cf1b036, git: 'https://github.com/luna/data-prop.git'}
 - extra-dep: true
-  location: {commit: 867bfe8c2a09e30d5fe9aeb7b185e9b559c0f9b7, git: 'https://github.com/luna/data-rtuple.git'}
+  location: {commit: 37fc477fef73bb6511535d4ec2bf14a459763a12, git: 'https://github.com/luna/data-rtuple.git'}
 - extra-dep: true
   location: {commit: f7124ecbfa4ce8802e3c1431e54300188616fe64, git: 'https://github.com/luna/data-shell.git'}
 - extra-dep: true

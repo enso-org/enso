@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Runner where
+module Luna.IR.Runner (SubPass, TestPass, graphTestCase) where
 
 import           Luna.Prelude
 import           Luna.IR

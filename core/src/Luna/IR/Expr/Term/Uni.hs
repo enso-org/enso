@@ -18,8 +18,8 @@ data instance UniTerm (Layout.Named n a) = Integer  Prelude.Integer
                                          | Match    !a       !a
                                          | Unify    !a       !a
                                          | Cons      n
-                                         | Native   !n
                                          | Var       n
+                                         | Grouped   a
                                          | Blank
                                          | Star
                                          | Missing
@@ -36,8 +36,8 @@ instance IsUniTerm Atom.App      (Layout.Named n a) where uniTerm (Term.Sym_App 
 instance IsUniTerm Atom.Lam      (Layout.Named n a) where uniTerm (Term.Sym_Lam      t1 t2) = Lam      t1 t2
 instance IsUniTerm Atom.Unify    (Layout.Named n a) where uniTerm (Term.Sym_Unify    t1 t2) = Unify    t1 t2
 instance IsUniTerm Atom.Cons     (Layout.Named n a) where uniTerm (Term.Sym_Cons     t1)    = Cons     t1
-instance IsUniTerm Atom.Native   (Layout.Named n a) where uniTerm (Term.Sym_Native   t1)    = Native   t1
 instance IsUniTerm Atom.Var      (Layout.Named n a) where uniTerm (Term.Sym_Var      t1)    = Var      t1
+instance IsUniTerm Atom.Grouped  (Layout.Named n a) where uniTerm (Term.Sym_Grouped  t1)    = Grouped  t1
 instance IsUniTerm Atom.Blank    (Layout.Named n a) where uniTerm  Term.Sym_Blank           = Blank
 instance IsUniTerm Atom.Star     (Layout.Named n a) where uniTerm  Term.Sym_Star            = Star
 instance IsUniTerm Atom.Missing  (Layout.Named n a) where uniTerm  Term.Sym_Missing         = Missing

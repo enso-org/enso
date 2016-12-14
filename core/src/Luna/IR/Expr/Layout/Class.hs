@@ -143,10 +143,8 @@ type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) ((Atomic a # 
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a
 
-
-
-
-
+type instance Merge Any        (Atomic a) = Any
+type instance Merge (Atomic a) Any        = Any
 
 -----------------
 -- === Any === --
