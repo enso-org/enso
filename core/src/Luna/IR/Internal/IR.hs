@@ -243,7 +243,7 @@ thaw       = mapM Store.thaw       ; {-# INLINE thaw       #-}
 
 -- === Definition === --
 
-newtype IRBuilder m a = IRBuilder (StateT (IRM m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype IRBuilder m a = IRBuilder (StateT (IRM m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadThrow)
 makeWrapped ''IRBuilder
 
 

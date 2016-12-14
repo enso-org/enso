@@ -23,7 +23,7 @@ changeStringLiteral s (Sym_String _) = Sym_String s
 
 testVarRenaming :: IO (Either Pass.InternalError P.String)
 testVarRenaming = graphTestCase $ do
-    (v :: Expr Draft) <- generalize <$> rawVar "foo"
+    (v :: Expr Draft) <- generalize <$> strVar "foo"
     match v $ \case
         Var n -> do
             (name :: Expr (E String)) <- unsafeGeneralize <$> source n
@@ -37,7 +37,7 @@ testVarRenaming = graphTestCase $ do
 
 testAtomNarrowing :: IO (Either Pass.InternalError (Pair (Maybe (Expr Var))))
 testAtomNarrowing = graphTestCase $ do
-    (foo  :: AnyExpr) <- generalize <$> rawString "foo"
+    (foo  :: AnyExpr) <- generalize <$> string "foo"
     (vfoo :: AnyExpr) <- generalize <$> var foo
     narrowFoo <- narrowAtom @Var foo
     narrowVar <- narrowAtom @Var vfoo
@@ -45,8 +45,8 @@ testAtomNarrowing = graphTestCase $ do
 
 testAtomEquality :: IO (Either Pass.InternalError [Pair Bool])
 testAtomEquality = graphTestCase $ do
-    (foo  :: AnyExpr) <- generalize <$> rawString "foo"
-    (bar  :: AnyExpr) <- generalize <$> rawString "bar"
+    (foo  :: AnyExpr) <- generalize <$> string "foo"
+    (bar  :: AnyExpr) <- generalize <$> string "bar"
     (vfoo :: AnyExpr) <- generalize <$> var foo
     (vbar :: AnyExpr) <- generalize <$> var bar
     (uni  :: AnyExpr) <- generalize <$> unify vfoo vbar
@@ -66,8 +66,8 @@ testAtomEquality = graphTestCase $ do
 
 testInputs :: IO (Either Pass.InternalError (Pair [AnyExpr]))
 testInputs = graphTestCase $ do
-    foo  <- rawString "foo"
-    bar  <- rawString "bar"
+    foo  <- string "foo"
+    bar  <- string "bar"
     i1   <- var foo
     i2   <- var bar
     (a :: AnyExpr) <- generalize <$> unify i1 i2
@@ -76,7 +76,7 @@ testInputs = graphTestCase $ do
 
 crashingPass :: IO (Either Pass.InternalError ())
 crashingPass = graphTestCase $ do
-    s <- rawString "foo"
+    s <- string "foo"
     match s $ \case
         Var s' -> return ()
 

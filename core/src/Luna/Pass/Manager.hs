@@ -77,7 +77,7 @@ instance Default (State m) where
 
 -- === Definition === --
 
-newtype PassManager m a = PassManager (StateT (State m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+newtype PassManager m a = PassManager (StateT (State m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadThrow)
 
 makeLenses  ''LayerReg
 makeLenses  ''State

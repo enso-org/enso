@@ -16,7 +16,10 @@ import Luna.IR.Layer.Succs as X
 import Luna.IR.Expr.Term.Uni as X
 import Luna.IR.Expr.Format as X
 import Luna.IR.Expr.Atom as X
+import Luna.Pass.Manager as X
 import Data.Property as X
+
 
 import Luna.IR.ToRefactor as X
 import Luna.IR.Expr as X
+import Data.Event as X (Emitter, type (//), (//))

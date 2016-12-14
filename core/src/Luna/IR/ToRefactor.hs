@@ -28,7 +28,7 @@ import Luna.IR.Internal.LayerStore (STRefM)
 import Luna.IR.Expr
 import Unsafe.Coerce (unsafeCoerce)
 import Luna.Pass.Manager as PM
-import Data.Event
+import Data.Event as Event
 
 
 
@@ -65,6 +65,14 @@ proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
 
 
 
+instance (Monad m, Event.FromPath e, m ~ GetBaseMonad n) => KeyMonad (Event e) (PassManager m) n where
+    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Event.fromPath @e)
+    -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
+
+fixme1 :: Monad m => m [Either Pass.InternalError ()] -> m ()
+fixme1 m = fromRight =<< (sequence <$> m)
+fromRight (Right a) = return ()
+fromRight (Left e) = error $ show e
 
 
 -------------------------------------------

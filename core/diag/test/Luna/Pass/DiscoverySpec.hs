@@ -8,17 +8,19 @@ import Luna.Prelude hiding (String)
 import Test.Hspec   (Spec, describe, it, shouldReturn)
 
 import           Luna.IR
-import           Luna.Pass (SubPass, Inputs, Outputs, Preserves)
+import           Luna.Pass (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass as Pass
 
 data DiscoveryPass
-type instance Inputs  DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
-type instance Outputs DiscoveryPass   = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
+type instance Abstract  DiscoveryPass = DiscoveryPass
+type instance Inputs    DiscoveryPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
+type instance Outputs   DiscoveryPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
+type instance Events    DiscoveryPass = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves DiscoveryPass = '[]
 
-sanityPass :: IRMonadBaseIO m => SubPass DiscoveryPass (IRBuilder m) P.String
+sanityPass :: (IRMonad m, MonadIO m, MonadPassManager m) => SubPass DiscoveryPass m P.String
 sanityPass = do
-    s <- rawString "hello"
+    s <- string "hello"
     v <- var s
     match v $ \case
         Var l -> do
@@ -27,10 +29,8 @@ sanityPass = do
                 String s -> return s
 
 testCase :: IRMonadBaseIO m => m (Either Pass.InternalError P.String)
-testCase = evalIRBuilder' $ do
+testCase = evalIRBuilder' $ evalPassManager' $ do
     runRegs
-    attachLayer (typeRep' @Model) (typeRep' @EXPR)
-    attachLayer (typeRep' @Model) (typeRep' @(LINK' EXPR))
     Pass.eval' sanityPass
 
 spec :: Spec

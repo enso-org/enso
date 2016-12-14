@@ -37,7 +37,7 @@ isBlank expr = match expr $ \case
     Blank{} -> return True
     _       -> return False
 
-checksLambda :: SubPass TestPass (IRT IO) Bool
+-- checksLambda :: SubPass TestPass (IRT IO) Bool
 checksLambda = do
     b <- blank
     c <- blank
@@ -67,8 +67,8 @@ dumpArguments expr = match expr $ \case
 
 checksArguments :: _
 checksArguments = do
-    v <- rawVar "foo"
-    b <- rawVar "bar"
+    v <- strVar "foo"
+    b <- strVar "bar"
     a <- app v (arg b)
     dumpArguments (generalize a :: AnyExpr)
 
@@ -77,7 +77,10 @@ data NotAppException = NotAppException deriving (Show, Exception)
 removeArg :: ( IRMonad m
              , Accessibles m '[ExprNet, ExprLinkNet]
              , Readables   m '[ExprLayer Model, ExprLinkLayer Model]
-             , MonadThrow m) => AnyExpr -> Int -> m AnyExpr
+             , Emitter     m  (NEW // EXPR)
+             , Emitter     m  (NEW // LINK' EXPR)
+             , MonadThrow m
+             ) => AnyExpr -> Int -> m AnyExpr
 removeArg expr i = match expr $ \case
     App a (Arg _ c) -> do
         nextApp <- source a
@@ -90,19 +93,19 @@ removeArg expr i = match expr $ \case
             generalize <$> app f (arg d)
     _       -> throwM NotAppException
 
-apps :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet]) => Expr f -> [AnyExpr] -> m AnyExpr
+apps :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR)) => Expr f -> [AnyExpr] -> m AnyExpr
 apps fun exprs = unsafeRelayout <$> foldM f (unsafeRelayout fun) (unsafeRelayout <$> exprs)
     where
         f fun' arg' = appAny fun' (arg arg')
 
-appAny :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet])
+appAny :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR))
           => AnyExpr -> Arg (AnyExpr) -> m AnyExpr
 appAny = fmap generalize .: app
 
 removesArg :: _ => m Bool
 removesArg = do
-    x  <- rawVar "foldl"
-    y  <- generalize <$> rawVar "+"
+    x  <- strVar "foldl"
+    y  <- generalize <$> strVar "+"
     z  <- generalize <$> integer (0 :: Int)
     e  <- apps x [y, z]
     e' <- removeArg e 0
@@ -145,7 +148,7 @@ nodeMarkerKey = HMap.TypeKey
 
 -- makeNodeRep :: _ => NodeMarkerMock -> Luna.Prelude.String -> AnyExpr -> m AnyExpr
 -- makeNodeRep marker name node = do
---     (nameVar :: AnyExpr) <- generalize <$> rawVar name
+--     (nameVar :: AnyExpr) <- generalize <$> strVar name
 --     hmap <- readLayer @Meta nameVar
 --     writeLayer @Meta (HMap.insert nodeMarkerKey marker hmap) nameVar
 --     generalize <$> unify nameVar node
@@ -159,6 +162,6 @@ spec = describe "playground" $ do
     it "checks blank" $
         graphTestCase checksBlank `shouldReturn` Right True
     it "dumps arguments" $
-        graphTestCase checksArguments `shouldReturn` Right [Expr (Elem 3)]
+        graphTestCase checksArguments `shouldReturn` Right [Elem 3]
     it "removes arg" $
         graphTestCase removesArg `shouldReturn` Right True

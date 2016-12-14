@@ -140,6 +140,12 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
+test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder m)))
+            => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
+test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
+    runRegs
+    Pass.eval' p
+
 uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
 uncheckedDeleteStar e = do
     delete =<< readLayer @Type e
@@ -157,14 +163,7 @@ uncheckedDeleteStarType e = do
 
 
 
-instance (Monad m, Event.FromPath e, m ~ GetBaseMonad n) => KeyMonad (Event e) (PassManager m) n where
-    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Event.fromPath @e)
-    -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
-fixme1 :: Monad m => m [Either Pass.InternalError ()] -> m ()
-fixme1 m = fromRight =<< (sequence <$> m)
-fromRight (Right a) = return ()
-fromRight (Left e) = error $ show e
 
 
 
@@ -173,6 +172,7 @@ gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
              , Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do
+    ss <- string "hello"
     (s :: Expr Star) <- star
     tlink   <- readLayer @Type s
     (src,_) <- readLayer @Model tlink
