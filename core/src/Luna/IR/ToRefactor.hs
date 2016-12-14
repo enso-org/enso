@@ -100,7 +100,6 @@ initModel :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass 
 initModel = do
     (t, tdef) <- readAttr @WorkingElem
     flip (writeLayer @Model) t tdef
-    putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract t) :: TypeRep) <> ": New Model"
 
 initModel_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
 initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initModel
@@ -126,7 +125,6 @@ initUID ref = do
     (t, tdef) <- readAttr @WorkingElem
     nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
     flip (writeLayer @UID) t nuid
-    putStrLn $ "[" <> show t <> "] " <> show (typeVal' @(Abstract t) :: TypeRep) <> ": New UID " <> show nuid
 
 
 initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
@@ -154,7 +152,6 @@ initSuccs :: forall t m. (MonadIO m, IRMonad m) => Pass (ElemScope InitSuccs t) 
 initSuccs = do
     (t, _) <- readAttr @WorkingElem
     flip (writeLayer @Succs) t mempty
-    putStrLn $ "[" <> show t <> "] New Succs"
 
 initSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
 initSuccs_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initSuccs
@@ -173,7 +170,6 @@ type instance Preserves (ElemScope WatchSuccs t) = '[]
 watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
 watchSuccs = do
     (t, (src, tgt)) <- readAttr @WorkingElem
-    putStrLn $ "[" <> show t <> "] " <> "on new link: (" <> show src <>", " <> show tgt <> ")"
     modifyLayer_ @Succs (Set.insert $ generalize tgt) src
 
 watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
@@ -213,11 +209,9 @@ type instance Preserves (ElemScope InitType t) = '[]
 
 initType :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Store.STRefM m (Maybe (Expr Star)) -> Pass (ElemScope InitType (EXPRESSION l)) m
 initType ref = do
-    putStrLn ">>> Type"
     (el, _) <- readAttr @WorkingElem
     t <- consTypeLayer ref el
     flip (writeLayer @Type) el t
-    putStrLn $ "[" <> show el <> "] New Type"
 
 -- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
 --   because it only works for Expressions

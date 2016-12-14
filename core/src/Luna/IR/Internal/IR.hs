@@ -312,10 +312,8 @@ newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEven
         => Definition t -> m t
 newElem tdef = do
     el <- reserveElem
-    putStrLn $ "EMIT >>> NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " idx " <> show (el ^. idx)
     -- putStrLn $ "Definition: " <> show tdef
     dispatchNewElem tdef el
-    putStrLn $ "AFTER <<< NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " idx " <> show (el ^. idx)
     return el
     -- emit (NEW // abstract el) (universal el)
     --     consLayer (layer, store) = runByIRBuilder $ do

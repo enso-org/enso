@@ -83,9 +83,6 @@ crashingPass = graphTestCase $ do
 patternMatchException :: Selector PatternMatchFail
 patternMatchException = const True
 
-withRight :: Show (Either a b) => Either a b -> (b -> Expectation) -> Expectation
-withRight e exp = either (const $ expectationFailure $ "Expected a Right, got: (" <> show e <> ")") exp e
-
 spec :: Spec
 spec = do
     describe "inputs" $ do

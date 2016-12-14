@@ -4,8 +4,13 @@ import           Luna.Prelude
 import           Luna.IR
 import           Luna.IR.Function.Argument (Arg (..))
 import           Control.Monad.Trans.Maybe
-import           Control.Monad (guard)
-import           Data.Maybe (isJust)
+import           Control.Monad             (guard)
+import           Data.Maybe                (isJust)
+import           Test.Hspec                (expectationFailure, Expectation)
+
+withRight :: Show (Either a b) => Either a b -> (b -> Expectation) -> Expectation
+withRight e exp = either (const $ expectationFailure $ "Expected a Right, got: (" <> show e <> ")") exp e
+
 
 match2 :: (IRMonad m, Readable (Layer EXPR Model) m, uniTerm ~ Unwrapped (ExprUniTerm (Expr layout)))
        => Expr layout -> Expr layout -> (uniTerm -> uniTerm -> m a) -> m a

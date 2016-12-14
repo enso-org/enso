@@ -21,6 +21,7 @@ import qualified Data.HMap.Lazy                     as HMap
 import qualified Luna.IR.Expr.Atom as Atom
 
 import Test.Hspec hiding (Arg)
+import Luna.TestUtils
 
 isLambda :: (IRMonad m, Readable (ExprLayer Model) m) => Expr l -> m Bool
 isLambda expr = match expr $ \case
@@ -70,7 +71,8 @@ checksArguments = do
     v <- strVar "foo"
     b <- strVar "bar"
     a <- app v (arg b)
-    dumpArguments (generalize a :: AnyExpr)
+    ans <- dumpArguments (generalize a :: AnyExpr)
+    return (ans, [generalize b :: AnyExpr])
 
 data NotAppException = NotAppException deriving (Show, Exception)
 
@@ -161,7 +163,8 @@ spec = describe "playground" $ do
         graphTestCase checksApp `shouldReturn` Right True
     it "checks blank" $
         graphTestCase checksBlank `shouldReturn` Right True
-    it "dumps arguments" $
-        graphTestCase checksArguments `shouldReturn` Right [Elem 3]
+    it "dumps arguments" $ do
+        ans <- graphTestCase checksArguments
+        withRight ans $ flip shouldSatisfy $ uncurry (==)
     it "removes arg" $
         graphTestCase removesArg `shouldReturn` Right True
