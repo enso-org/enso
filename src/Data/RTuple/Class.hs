@@ -525,7 +525,7 @@ insert2 _ val = wrapped %~ prepend val
 -- type instance Access key (TMap (k ': ks) (v ': vs)) = If (key == k) v (Access key (TMap ks vs))
 
 type instance Access (key :: ★)   (TMap (k ':= v ': rels)) = If (key == k) v (Access key (TMap rels))
-type instance Prop.Update key a (TMap (k ':= v ': rels)) = If (key == k) (TMap (k ':= a ': rels)) (TMap (k ':= a ': (Relations (Prop.Update key a (TMap rels)))))
+type instance Prop.Update key a (TMap (k ':= v ': rels)) = If (key == k) (TMap (k ':= a ': rels)) (TMap (k ':= v ': (Relations (Prop.Update key a (TMap rels)))))
 
 instance {-# OVERLAPPABLE #-} (GetMissmatch k (l ':= v ': rels), Accessor k (TMap rels))
                            => Accessor k (TMap (l ':= v ': rels)) where access = access @k . view tail2    ; {-# INLINE access #-}
