@@ -188,6 +188,20 @@ watchRemoveEdge = do
     (src, tgt) <- readLayer @Model l
     modifyLayer_ @Succs (Set.delete $ unsafeGeneralize l) src
 
+data WatchRemoveNode
+type instance Abstract  WatchRemoveNode               = WatchRemoveNode
+type instance Inputs    (ElemScope WatchRemoveNode t) = '[ExprLayer Succs, Attr WorkingElem, ExprLinkNet]
+type instance Outputs   (ElemScope WatchRemoveNode t) = '[ExprLayer Succs, ExprLinkNet]
+type instance Events    (ElemScope WatchRemoveNode t) = '[DELETE // LINK' EXPR]
+type instance Preserves (ElemScope WatchRemoveNode t) = '[]
+
+watchRemoveNode :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPRESSION l)) m
+watchRemoveNode = do
+    (e, _) <- readAttr @WorkingElem
+    succs  <- readLayer @Succs e
+    mapM_ delete $ Set.toList succs
+
+
 ------------------
 -- === Type === --
 ------------------
@@ -270,6 +284,7 @@ runRegs = do
 
     addEventListener 100 (NEW    // LINK EXPR EXPR) watchSuccs
     addEventListener 100 (DELETE // LINK EXPR EXPR) watchRemoveEdge
+    addEventListener 100 (DELETE // EXPR)           watchRemoveNode
 
 
 -- === Elem reg defs === --
