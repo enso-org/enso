@@ -148,8 +148,8 @@ test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
 
 uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
 uncheckedDeleteStar e = do
-    delete =<< readLayer @Type e
-    delete e
+    freeElem =<< readLayer @Type e
+    freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
 uncheckedDeleteStarType :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet, ExprLinkLayer Model])
@@ -158,7 +158,7 @@ uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
     (oldStar, _) <- readLayer @Model typeLink
     uncheckedDeleteStar oldStar
-    delete typeLink
+    freeElem typeLink
 {-# INLINE uncheckedDeleteStarType #-}
 
 

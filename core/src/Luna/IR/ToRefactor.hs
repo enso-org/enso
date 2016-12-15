@@ -167,15 +167,26 @@ type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
 type instance Events    (ElemScope WatchSuccs t) = '[]
 type instance Preserves (ElemScope WatchSuccs t) = '[]
 
-watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
+watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (LINK' (Expr l))) m
 watchSuccs = do
     (t, (src, tgt)) <- readAttr @WorkingElem
-    modifyLayer_ @Succs (Set.insert $ generalize tgt) src
+    modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
 
 watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
 watchSuccs_dyn = Pass.compile $ watchSuccs
 
+data WatchRemoveEdge
+type instance Abstract  WatchRemoveEdge               = WatchRemoveEdge
+type instance Inputs    (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs, ExprLinkLayer Model, Attr WorkingElem]
+type instance Outputs   (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs]
+type instance Events    (ElemScope WatchRemoveEdge t) = '[]
+type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
 
+{-watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (Link' (Expr l))) m-}
+{-watchRemoveEdge = do-}
+    {-l <- readAttr @WorkingElem-}
+    {-(src, tgt) <- readLayer @Model l-}
+    {-modifyLayer_ @Succs (Set.delete $ universal l) src-}
 
 ------------------
 -- === Type === --
