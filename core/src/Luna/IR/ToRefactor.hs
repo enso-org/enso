@@ -182,11 +182,11 @@ type instance Outputs   (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs]
 type instance Events    (ElemScope WatchRemoveEdge t) = '[]
 type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
 
-{-watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (Link' (Expr l))) m-}
-{-watchRemoveEdge = do-}
-    {-l <- readAttr @WorkingElem-}
-    {-(src, tgt) <- readLayer @Model l-}
-    {-modifyLayer_ @Succs (Set.delete $ universal l) src-}
+watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (LINK' (Expr l))) m
+watchRemoveEdge = do
+    (l, _)     <- readAttr @WorkingElem
+    (src, tgt) <- readLayer @Model l
+    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize l) src
 
 ------------------
 -- === Type === --
@@ -268,7 +268,8 @@ runRegs = do
     initType_reg
     attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
 
-    addEventListener 100 (NEW // LINK EXPR EXPR) watchSuccs
+    addEventListener 100 (NEW    // LINK EXPR EXPR) watchSuccs
+    addEventListener 100 (DELETE // LINK EXPR EXPR) watchRemoveEdge
 
 
 -- === Elem reg defs === --

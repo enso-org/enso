@@ -336,9 +336,10 @@ dispatchNewElem tdef el = emit (NEW // abstract el) (universal el, unsafeCoerce 
 freeElem :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m) => t -> m ()
 freeElem t = flip Store.freeIdx (t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
 
-delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ Universal t)
+-- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
+delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
        => t -> m ()
-delete t = emit (DELETE // abstract t) (universal t) >> freeElem t
+delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
@@ -753,8 +754,10 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 type instance Event.Payload (NEW // EXPR)       = (AnyExpr, Prim.Any)
 type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor + maybe make something like ... NEW // t = (Universal t, AnyDefinition) ?
-type instance Event.Payload (DELETE // EXPR)       = AnyExpr
-type instance Event.Payload (DELETE // LINK' EXPR) = Link' AnyExpr
+
+--FIXME[MK->WD]: I don't care for the second part of the tuple, it's necessary to make pass manager magic work, but should be removed ASAP
+type instance Event.Payload (DELETE // EXPR)       = (AnyExpr, Prim.Any)
+type instance Event.Payload (DELETE // LINK' EXPR) = (Link' AnyExpr, Prim.Any)
 
 type instance Sub s     (Expr l) = Expr (Sub s l)
 
