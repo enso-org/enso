@@ -183,7 +183,7 @@ type instance Preserves (ElemScope WatchSuccs t) = '[]
 watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
 watchSuccs = do
     (t, (src, tgt)) <- readAttr @WorkingElem
-    debug $ "[" <> show t <> "] " <> "on new link: (" <> show src <>", " <> show tgt <> ")"
+    debugElem t $ "Updating successor: " <> show (src ^. idx) <>" -> " <> show (tgt ^. idx)
     modifyLayer_ @Succs (Set.insert $ generalize tgt) src
 
 watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m

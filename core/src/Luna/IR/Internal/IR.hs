@@ -44,6 +44,7 @@ import           Data.Event                (Event(Event), emit, (//), type (//))
 import Luna.IR.Expr.Term.Uni ()
 -- import Type.Inference
 import Data.TypeVal
+import Type.Bool (And)
 
 import System.Log
 
@@ -547,6 +548,9 @@ link :: forall a b m. (Show a, Show b, IRMonad m, KnownType (Abstract (Link a b)
 link a b = newElem (a,b) ; {-# INLINE link #-}
 
 
+-- === Instances === ---
+
+type instance Generalizable (Link a b) (Link a' b') = Generalizable a a' `And` Generalizable b b'
 
 
 

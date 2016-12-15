@@ -24,6 +24,7 @@ import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Event (Event)
 import Data.TypeVal
+import System.Log hiding (LookupData, lookupData)
 
 
 ---------------------
@@ -170,18 +171,22 @@ type Commit m pass = ( Monad m
                      , KnownDescription pass
                      )
 
-class    Functor (p m) => IsPass m p          where compile :: forall a. p m a -> DynSubPass m a
-instance Functor m     => IsPass m DynSubPass where compile = id                    ; {-# INLINE compile #-}
-instance (PassInit p m, KnownDescription p) => IsPass m (SubPass p)    where compile = DynSubPass (passDescription @p) . DynSubPassFunc . initPass ; {-# INLINE compile #-}
+class    Functor (p m)                      => IsPass m p           where compile :: forall a. p m a -> DynSubPass m a
+instance Functor m                          => IsPass m DynSubPass  where compile = id                                                          ; {-# INLINE compile #-}
+instance (PassInit p m, KnownDescription p) => IsPass m (SubPass p) where compile = DynSubPass (passDescription @p) . DynSubPassFunc . initPass ; {-# INLINE compile #-}
 
 
 dropResult :: Functor p => p a -> p ()
 dropResult = fmap $ const () ; {-# INLINE dropResult #-}
 
-type PassInit pass m = LookupData pass m (Keys pass)
+type PassInit pass m = (LookupData pass m (Keys pass), KnownType (Abstract pass), Logging m)
 
-initPass    :: forall pass m a. PassInit pass m => SubPass pass m a  -> m (Either InternalError (m a))
-initPass p  = return . fmap (State.evalStateT (unwrap' p)) =<< lookupData @pass ; {-# INLINE initPass    #-}
+initPass :: forall pass m a. PassInit pass m => SubPass pass m a -> m (Either InternalError (m a))
+initPass p = do
+    withDebug ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]: Initialzation") $
+        fmap (\d -> withDebug ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]: Running") $ State.evalStateT (unwrap' p) d) <$> lookupData @pass
+{-# INLINE initPass #-}
+
 -- initArgPass :: forall pass m a. PassInit pass m => (Args pass -> SubPass pass m a) -> (Args pass -> m (Either InternalError (m a)))
 -- initArgPass = fmap initPass                                                     ; {-# INLINE initArgPass #-}
 

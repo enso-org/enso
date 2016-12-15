@@ -13,18 +13,21 @@ import           Control.Monad.Identity       (Identity)
 import qualified Control.Monad.Trans.Identity as Identity
 import           Control.Monad.Trans.Identity (IdentityT, runIdentityT)
 import           Data.List                    (elemIndex)
+import           Data.Map                     (Map)
+import qualified Data.Map                     as Map
+import qualified GHC.Prim                     as Prim
 
 
--- === Priority === --
 
-newtype Pri  = Pri TypeRep deriving (Show, Eq, Ord)
-makeWrapped ''Pri
-type    Pris = [Pri]
 
-instance IsTypeRep Pri
 
-pris :: forall (ps :: [*]). Typeables ps => Pris
-pris = typeReps' @ps ; {-# INLINE pris #-}
+
+
+
+
+
+
+
 
 
 -- === BaseLogger Data === --
@@ -36,29 +39,6 @@ makeWrapped ''LogData
 
 instance Default (DataOf d) => Default (LogData d) where
     def = wrap' def ; {-# INLINE def #-}
-
-
-----------------------------
--- === PriorityLogger === --
-----------------------------
-
-newtype PriorityLogger m a = PriorityLogger (StateT Pris m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-makeWrapped ''PriorityLogger
-
-class    Monad m                                       => PriorityLogging m                  where getPris :: m Pris
-instance Monad m                                       => PriorityLogging (PriorityLogger m) where getPris = wrap' State.get ; {-# INLINE getPris #-}
-instance {-# OVERLAPPABLE #-} PriorityLoggingTrans t m => PriorityLogging (t m)              where getPris = lift getPris    ; {-# INLINE getPris #-}
-type     PriorityLoggingTrans t m = (Monad m, Monad (t m), MonadTrans t, PriorityLogging m)
-
-runPriorityLogger :: Monad m => Pris -> PriorityLogger m a -> m a
-runPriorityLogger pris l = State.evalStateT (unwrap' l) pris ; {-# INLINE runPriorityLogger #-}
-
-
--- === Instances === --
-
-instance PrimMonad m => PrimMonad (PriorityLogger m) where
-    type PrimState (PriorityLogger m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
 ----------------------------
@@ -112,6 +92,11 @@ instance PrimMonad m => PrimMonad (NestedLogger m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
+
+
+
+
+
 ------------------------
 -- === BaseLogger === --
 ------------------------
@@ -158,18 +143,20 @@ instance                     LookupData d '[]       where lookupData _          
 
 -- === MonadLogger === --
 
-class    Monad m                                   => MonadLogger m              where submitLog :: DataStore' m -> m ()
+class    Monad m                                   => MonadLogger m                  where submitLog :: DataStore' m -> m ()
 instance Monad m                                   => MonadLogger (BaseLogger req m) where submitLog _ = return ()      ; {-# INLINE submitLog #-}
-instance {-# OVERLAPPABLE #-} MonadLoggerTrans t m => MonadLogger (t m)          where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
+instance {-# OVERLAPPABLE #-} MonadLoggerTrans t m => MonadLogger (t m)              where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
 type MonadLoggerTrans t m = (Monad m, Monad (t m), MonadTrans t, MonadLogger m, RequiredData m ~ RequiredData (t m))
 
 instance MonadLogger m => MonadLogger (DataProvider d m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
 instance MonadLogger m => MonadLogger (IdentityT      m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
 instance MonadLogger m => MonadLogger (StateT       s m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
 
+
+
 -- === Running === --
 
-runLogger :: Monad m => BaseLogger req m a -> m a
+runLogger :: forall req m a. Monad m => BaseLogger req m a -> m a
 runLogger = runIdentityT . unwrap' ; {-# INLINE runLogger #-}
 
 
@@ -184,7 +171,7 @@ provideData = flip (State.evalStateT . unwrap') ; {-# INLINE provideData #-}
 
 class     Monad m                   => ProvidedData d m                  where getData :: m (LogData d)
 instance  Monad m                   => ProvidedData d (DataProvider d m) where getData = wrap' State.get  ; {-# INLINE getData #-}
-instance (Monad m, DefaultData m d) => ProvidedData d (BaseLogger req m)     where getData = lift defaultData ; {-# INLINE getData #-}
+instance (Monad m, DefaultData m d) => ProvidedData d (BaseLogger req m) where getData = lift defaultData ; {-# INLINE getData #-}
 instance {-# OVERLAPPABLE #-}
          ProvidedDataTrans d t m    => ProvidedData d (t m)              where getData = lift getData     ; {-# INLINE getData #-}
 type     ProvidedDataTrans d t m = (Monad m, MonadTrans t, Monad (t m), ProvidedData d m)
@@ -217,54 +204,49 @@ class Monad m => MonadLogging ls m where
     log = lift . log ; {-# INLINE log #-}
 
 
-
 instance MonadLogging ls m => MonadLogging ls (StateT s m)
 instance MonadLogging ls m => MonadLogging ls (IdentityT m)
 
 
 
+type StdLogging      m = MonadLogging '[Priority, Msg]           m
+type ReportedLogging m = MonadLogging '[Priority, Reporter, Msg] m
 
-type Logging m = (MonadLogging '[Priority, Msg] m, PriorityLogging m, NestedLogging m)
 
-
-stdLog :: (Logging m, Typeable p, ToText t) => p -> t -> m ()
-stdLog p m = do
-    pri <- priority p
-    log $ pri :-: msg m :-: Null
+stdLog :: (StdLogging m, Enum p, ToText t) => p -> t -> m ()
+stdLog p m = log $ priority p :-: msg m :-: Null
 {-# INLINE stdLog #-}
 
-runLogging :: forall req m a. Monad m => Pris -> PriorityLogger (BaseLogger req m) a -> m a
-runLogging pris = runLogger . runPriorityLogger pris ; {-# INLINE runLogging #-}
+reportedLog :: (ReportedLogging m, Enum p, ToText r, ToText t) => p -> r -> t -> m ()
+reportedLog p r m = log $ priority p :-: reporter r :-: msg m :-: Null
+{-# INLINE reportedLog #-}
 
-runStdLogging :: forall req m a. Monad m => PriorityLogger (BaseLogger req m) a -> m a
-runStdLogging = runLogging stdPris ; {-# INLINE runStdLogging #-}
 
-runStdLogging' :: forall m a req. (Monad m, req ~ [Priority, Nesting, Msg]) => PriorityLogger (BaseLogger req m) a -> m a
-runStdLogging' = runStdLogging @req ; {-# INLINE runStdLogging' #-}
+runStdLogger :: forall m a req. (Monad m, req ~ [Priority, Nesting, Msg]) => BaseLogger req m a -> m a
+runStdLogger = runLogger @req ; {-# INLINE runStdLogger #-}
 
 
 -------------------------------------
 -- === Standard logging levels === --
 -------------------------------------
 
-data Debug    = Debug    deriving (Show) -- Debug Logs
-data Info     = Info     deriving (Show) -- Information
-data Notice   = Notice   deriving (Show) -- Normal runtime conditions
-data Warning  = Warning  deriving (Show) -- General Warnings
-data Error    = Error    deriving (Show) -- General Errors
-data Critical = Critical deriving (Show) -- Severe situations
-data Alert    = Alert    deriving (Show) -- Take immediate action
-data Panic    = Panic    deriving (Show) -- System is unusable
-
-stdPris :: Pris
-stdPris = pris @'[Debug, Info, Notice, Warning, Error, Critical, Alert, Panic]
+data StdLvl = Debug    -- Debug Logs
+            | Info     -- Information
+            | Notice   -- Normal runtime conditions
+            | Warning  -- General Warnings
+            | Error    -- General Errors
+            | Critical -- Severe situations
+            | Alert    -- Take immediate action
+            | Panic    -- System is unusable
+            deriving (Show, Ord, Eq, Enum)
 
 
 ------------------------------------
 -- === Standard logging utils === --
 ------------------------------------
 
-debug, info, notice, warning, err, critical, alert, panic :: (Logging m, ToText t) => t -> m ()
+debug, info, notice, warning, err, critical, alert, panic
+    :: (StdLogging m, ToText t) => t -> m ()
 debug    = stdLog Debug    ; {-# INLINE debug    #-}
 info     = stdLog Info     ; {-# INLINE info     #-}
 notice   = stdLog Notice   ; {-# INLINE notice   #-}
@@ -274,7 +256,8 @@ critical = stdLog Critical ; {-# INLINE critical #-}
 alert    = stdLog Alert    ; {-# INLINE alert    #-}
 panic    = stdLog Panic    ; {-# INLINE panic    #-}
 
-withDebug, withInfo, withNotice, withWarning, withError, withCritical, withAlert, withPanic :: (Logging m, ToText t) => t -> m a -> m a
+withDebug, withInfo, withNotice, withWarning, withError, withCritical, withAlert, withPanic
+    :: (StdLogging m, NestedLogging m, ToText t) => t -> m a -> m a
 withDebug    s f = debug    s >> nested f ; {-# INLINE withDebug    #-}
 withInfo     s f = info     s >> nested f ; {-# INLINE withInfo     #-}
 withNotice   s f = notice   s >> nested f ; {-# INLINE withNotice   #-}
@@ -285,9 +268,9 @@ withAlert    s f = alert    s >> nested f ; {-# INLINE withAlert    #-}
 withPanic    s f = panic    s >> nested f ; {-# INLINE withPanic    #-}
 
 
---------------------------
+------------------------------
 -- === BaseLogger datas === --
---------------------------
+------------------------------
 
 -- === Msg === --
 
@@ -298,17 +281,22 @@ msg :: ToText t => t -> LogData Msg
 msg = wrap' . convert ; {-# INLINE msg #-}
 
 
+-- === Reporter === --
+
+data Reporter
+type instance DataOf Reporter = Text
+
+reporter :: ToText t => t -> LogData Reporter
+reporter = wrap' . convert ; {-# INLINE reporter #-}
+
+
 -- === Priority === --
 
 data Priority
 type instance DataOf Priority = Int
 
-priority :: (Typeable p, PriorityLogging m) => p -> m (LogData Priority)
-priority p = do
-    pris <- getPris
-    let Just idx = elemIndex (Pri $ typeOf p) pris -- FIXME[WD]: what to do when the priority is not found?
-    return $ wrap' idx
-{-# INLINE priority #-}
+priority :: Enum p => p -> LogData Priority
+priority = wrap' . fromEnum ; {-# INLINE priority #-}
 
 
 -- === Nesting === --
@@ -380,9 +368,6 @@ instance PrimMonad m => PrimMonad (DropLogger m) where
 imp :: a
 imp = error "impossible happened."
 
-instance Monad m => PriorityLogging (DropLogger m) where
-    getPris = return imp
-
 instance Monad m => NestedLogging (DropLogger m) where
     getNesting   = return imp
     putNesting _ = return imp
@@ -392,11 +377,15 @@ instance Monad m => NestedLogging (DropLogger m) where
 -------------------
 
 
+
 --
 --
 --
 -- -- logMsg ::
 --
+
+type Logging m = (StdLogging m, NestedLogging m)
+
 tst :: Logging (IdentityT m) => m ()
 tst = runIdentityT $ do
     withDebug "foo" $ do
@@ -406,7 +395,7 @@ tst = runIdentityT $ do
 --
 lmain :: IO ()
 lmain = do
-    runNestedLogger $ runStdLogging' $ runEchoLogger tst
+    runNestedLogger $ runStdLogger $ runEchoLogger tst
     dropLogs tst
     -- dropLogs tst
     print "hello"

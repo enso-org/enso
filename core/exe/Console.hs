@@ -198,7 +198,7 @@ gen_pass1 = do
 
 
 main :: IO ()
-main = runNestedLogger $ runStdLogging' $ runEchoLogger $ do
+main = runNestedLogger $ runStdLogger $ runEchoLogger $ do
     (p, vis) <- Vis.newRunDiffT test_pass1
     case p of
         Left e -> do
