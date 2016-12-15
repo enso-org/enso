@@ -407,7 +407,7 @@ attachLayerIR l e = do
 
 -- === Instances === --
 
-instance MonadLogging ls m => MonadLogging ls (IRBuilder m)
+instance MonadLogging m => MonadLogging (IRBuilder m)
 
 
 ----------------------

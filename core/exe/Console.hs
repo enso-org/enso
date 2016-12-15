@@ -198,20 +198,20 @@ gen_pass1 = do
 
 
 main :: IO ()
-main = runNestedLogger $ runStdLogger $ runEchoLogger $ do
-    (p, vis) <- Vis.newRunDiffT test_pass1
-    case p of
-        Left e -> do
-            print "* INTERNAL ERROR *"
-            print e
-        Right _ -> do
-            let cfg = ByteString.unpack $ encode $ vis
-            -- putStrLn cfg
-            -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
-            return ()
-    print p
-    return ()
-    -- lmain
+main = do
+    runLogging $ do
+        (p, vis) <- Vis.newRunDiffT test_pass1
+        case p of
+            Left e -> do
+                print "* INTERNAL ERROR *"
+                print e
+            Right _ -> do
+                let cfg = ByteString.unpack $ encode $ vis
+                -- putStrLn cfg
+                -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+                return ()
+        print p
+    lmain
 
 
 

@@ -116,8 +116,8 @@ initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass i
 initModel_reg :: (IRMonad m, MonadIO m) => PassManager m ()
 initModel_reg = registerLayer (typeVal' @Model) initModel_dyn
 
-instance MonadLogging ls m => MonadLogging ls (SubPass pass m)
-instance MonadLogging ls m => MonadLogging ls (PassManager  m)
+instance MonadLogging m => MonadLogging (SubPass pass m)
+instance MonadLogging m => MonadLogging (PassManager  m)
 
 
 -----------------
@@ -360,4 +360,4 @@ type ExprHeadDef l = ExprTermDef (ExprHead l) (Expr l)
 ---------- TRASH
 ------ TO BE DELETED WHEN POSSIBLE
 
-instance MonadLogging ls m => MonadLogging ls (DepState.StateT a b m)
+instance MonadLogging m => MonadLogging (DepState.StateT a b m)
