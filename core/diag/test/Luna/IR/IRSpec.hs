@@ -83,6 +83,18 @@ crashingPass = graphTestCase $ do
 patternMatchException :: Selector PatternMatchFail
 patternMatchException = const True
 
+testNodeRemovalCoherence :: IO (Either Pass.InternalError [Incoherence])
+testNodeRemovalCoherence = graphTestCase $ do
+    foo   <- string "foo"
+    bar   <- string "bar"
+    vfoo  <- var foo
+    vbar  <- var bar
+    vbar' <- var bar
+    uni   <- unify vfoo vbar
+    delete vbar'
+    delete uni
+    checkCoherence
+
 spec :: Spec
 spec = do
     describe "inputs" $ do
@@ -99,8 +111,11 @@ spec = do
     describe "atom narrowing" $ do
         it "correctly detects the type of an expression" $ do
             answer <- testAtomNarrowing
-            withRight answer $ \(Pair notVar _  ) -> notVar `shouldBe`      Nothing
-            withRight answer $ \(Pair _      var) -> var    `shouldSatisfy` isJust
+            withRight answer $ flip shouldBe      Nothing . fst . pair
+            withRight answer $ flip shouldSatisfy isJust  . snd . pair
     describe "var renaming" $ do
         it "changes the variable name in place" $ do
             testVarRenaming `shouldReturn` Right "bar"
+    describe "node removal" $ do
+        it "preserves graph coherence" $
+            testNodeRemovalCoherence `shouldReturn` Right []

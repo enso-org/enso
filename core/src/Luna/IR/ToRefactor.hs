@@ -190,16 +190,18 @@ watchRemoveEdge = do
 
 data WatchRemoveNode
 type instance Abstract  WatchRemoveNode               = WatchRemoveNode
-type instance Inputs    (ElemScope WatchRemoveNode t) = '[ExprLayer Succs, Attr WorkingElem, ExprLinkNet]
-type instance Outputs   (ElemScope WatchRemoveNode t) = '[ExprLayer Succs, ExprLinkNet]
+type instance Inputs    (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLayer Type, Attr WorkingElem, ExprLinkNet]
+type instance Outputs   (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLinkNet]
 type instance Events    (ElemScope WatchRemoveNode t) = '[DELETE // LINK' EXPR]
 type instance Preserves (ElemScope WatchRemoveNode t) = '[]
 
 watchRemoveNode :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPRESSION l)) m
 watchRemoveNode = do
     (e, _) <- readAttr @WorkingElem
-    succs  <- readLayer @Succs e
-    mapM_ delete $ Set.toList succs
+    inps   <- symbolFields (generalize e :: AnyExpr)
+    tp     <- readLayer @Type e
+    delete tp
+    mapM_ delete inps
 
 
 ------------------

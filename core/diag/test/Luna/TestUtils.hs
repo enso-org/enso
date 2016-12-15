@@ -4,20 +4,29 @@ import           Luna.Prelude
 import           Luna.IR
 import           Luna.IR.Function.Argument (Arg (..))
 import           Control.Monad.Trans.Maybe
+import           Control.Monad.State       as State   hiding (when)
 import           Control.Monad             (guard)
 import           Data.Maybe                (isJust)
 import           Test.Hspec                (expectationFailure, Expectation)
+import qualified Data.Set                  as Set
+import           Data.Set                  (Set)
+
+---------------------------
+-- === HSpec helpers === --
+---------------------------
 
 withRight :: Show (Either a b) => Either a b -> (b -> Expectation) -> Expectation
 withRight e exp = either (const $ expectationFailure $ "Expected a Right, got: (" <> show e <> ")") exp e
 
+-------------------------------
+-- === Isomorphism check === --
+-------------------------------
 
 match2 :: (IRMonad m, Readable (Layer EXPR Model) m, uniTerm ~ Unwrapped (ExprUniTerm (Expr layout)))
        => Expr layout -> Expr layout -> (uniTerm -> uniTerm -> m a) -> m a
 match2 e1 e2 l = do
     firstMatched <- match e1 $ return . l
     match e2 firstMatched
-
 
 newtype ExprIsomorphism l = ExprIsomorphism [(Expr l, Expr l)]
 makeWrapped ''ExprIsomorphism
@@ -88,3 +97,76 @@ areExpressionsIsomorphic :: (IRMonad m, Readables m ('[ExprNet, ExprLinkNet] <> 
 areExpressionsIsomorphic l r = do
     iso <- runMaybeT $ exprsIsomorphic def l r
     return $ isJust iso
+
+-----------------------------
+-- === Coherence check === --
+-----------------------------
+
+data IncoherenceType = DanglingSource
+                     | DanglingTarget
+                     | OrphanedSuccessor
+                     | OrphanedInput
+                     deriving (Show, Eq)
+
+data Incoherence = Incoherence IncoherenceType AnyExpr AnyExprLink deriving (Show, Eq)
+
+data CoherenceCheck = CoherenceCheck { _incoherences :: [Incoherence]
+                                     , _allExprs     :: [AnyExpr]
+                                     , _allLinks     :: [AnyExprLink]
+                                     } deriving (Show)
+makeLenses ''CoherenceCheck
+
+type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
+type CoherenceCheckCtx   m = (IRMonad m, Readables m '[ExprLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer Model, ExprNet, ExprLinkNet])
+
+checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
+checkCoherence = do
+    es <- exprs
+    ls <- links
+    s <- flip execStateT (CoherenceCheck def es ls) $ do
+        mapM_ checkExprCoherence es
+        mapM_ checkLinkCoherence ls
+    return $ s ^. incoherences
+
+reportIncoherence :: MonadCoherenceCheck m => Incoherence -> m ()
+reportIncoherence i = State.modify (incoherences %~ (i:))
+
+checkExprCoherence :: MonadCoherenceCheck m => AnyExpr -> m ()
+checkExprCoherence e = checkInputs e >> checkSuccs e
+
+checkInputs :: MonadCoherenceCheck m => AnyExpr -> m ()
+checkInputs e = do
+    tp     <- readLayer @Type e
+    fields <- symbolFields e
+    links  <- use allLinks
+    forM_ (tp : fields) $ \l -> do
+        (_, tgt) <- readLayer @Model l
+        when (tgt /= e || not (elem l links)) $ reportIncoherence $ Incoherence OrphanedInput e l
+
+checkSuccs :: MonadCoherenceCheck m => AnyExpr -> m ()
+checkSuccs e = do
+    succs <- readLayer @Succs e
+    links <- use allLinks
+    forM_ (Set.toList succs) $ \l -> do
+        (src, _) <- readLayer @Model l
+        when (src /= e || not (elem l links)) $ reportIncoherence $ Incoherence OrphanedSuccessor e l
+
+checkLinkCoherence :: MonadCoherenceCheck m => AnyExprLink -> m ()
+checkLinkCoherence l = do
+    (src, tgt) <- readLayer @Model l
+    exprs <- use allExprs
+    when (not $ elem src exprs) $ reportIncoherence $ Incoherence DanglingSource src l
+    when (not $ elem tgt exprs) $ reportIncoherence $ Incoherence DanglingTarget tgt l
+    checkIsSuccessor l src
+    checkIsInput     l tgt
+
+checkIsSuccessor :: MonadCoherenceCheck m => AnyExprLink -> AnyExpr -> m ()
+checkIsSuccessor l e = do
+    succs <- readLayer @Succs e
+    when (Set.notMember l succs) $ reportIncoherence $ Incoherence DanglingSource e l
+
+checkIsInput :: MonadCoherenceCheck m => AnyExprLink -> AnyExpr -> m ()
+checkIsInput l e = do
+    tp <- readLayer @Type e
+    fs <- symbolFields e
+    when (tp /= l && not (elem l fs)) $ reportIncoherence $ Incoherence DanglingTarget e l
