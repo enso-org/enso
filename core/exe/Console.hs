@@ -199,7 +199,7 @@ gen_pass1 = do
 
 main :: IO ()
 main = do
-    runLogging $ runEchoLogger $ do
+    runLogging $ runEchoLogger $ runFormatLogger nestedReportedFormatter $ do
         (p, vis) <- Vis.newRunDiffT test_pass1
         case p of
             Left e -> do
