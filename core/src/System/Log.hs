@@ -20,118 +20,24 @@ import qualified GHC.Prim                     as Prim
 
 
 
+-------------------------
+-- === Logger Data === --
+-------------------------
 
-
-
-
-
-
-
-
-
-
-
--- === BaseLogger Data === --
+-- === Definitions === --
 
 type family DataOf  a
-
-newtype LogData d = LogData (DataOf d)
+newtype     LogData a = LogData (DataOf a)
 makeWrapped ''LogData
 
-instance Default (DataOf d) => Default (LogData d) where
-    def = wrap' def ; {-# INLINE def #-}
-
-deriving instance Eq   (DataOf a) => Eq   (LogData a)
-deriving instance Ord  (DataOf a) => Ord  (LogData a)
-deriving instance Enum (DataOf a) => Enum (LogData a)
-deriving instance Show (DataOf a) => Show (LogData a)
+deriving instance Eq      (DataOf a) => Eq      (LogData a)
+deriving instance Ord     (DataOf a) => Ord     (LogData a)
+deriving instance Enum    (DataOf a) => Enum    (LogData a)
+deriving instance Show    (DataOf a) => Show    (LogData a)
+deriving instance Default (DataOf a) => Default (LogData a)
 
 
-----------------------------
--- === NestedLogger === --
-----------------------------
-
--- newtype NestedLogger m a = NestedLogger (StateT Int m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
--- makeWrapped ''NestedLogger
---
--- class Monad m => NestedLogging m where
---     getNesting :: m Int
---     putNesting :: Int -> m ()
---
--- instance Monad m => NestedLogging (NestedLogger m) where
---     getNesting = wrap' State.get   ; {-# INLINE getNesting #-}
---     putNesting = wrap' . State.put ; {-# INLINE putNesting #-}
---
--- type NestedLoggingTrans t m = (Monad m, Monad (t m), MonadTrans t, NestedLogging m)
--- instance {-# OVERLAPPABLE #-} NestedLoggingTrans t m => NestedLogging (t m) where
---     getNesting = lift getNesting   ; {-# INLINE getNesting #-}
---     putNesting = lift . putNesting ; {-# INLINE putNesting #-}
---
---
--- runNestedLogger :: Monad m => NestedLogger m a -> m a
--- runNestedLogger = flip State.evalStateT def . unwrap' ; {-# INLINE runNestedLogger #-}
---
--- modifyNesting :: NestedLogging m => (Int -> Int) -> m ()
--- modifyNesting f = do
---     n <- getNesting
---     putNesting $ f n
--- {-# INLINE modifyNesting #-}
---
--- incNesting :: NestedLogging m => m ()
--- incNesting = modifyNesting succ ; {-# INLINE incNesting #-}
---
--- decNesting :: NestedLogging m => m ()
--- decNesting = modifyNesting pred ; {-# INLINE decNesting #-}
---
--- nested :: NestedLogging m => m a -> m a
--- nested f = do
---     incNesting
---     out <- f
---     decNesting
---     return out
--- {-# INLINE nested #-}
-
--- === Instances === --
-
--- instance PrimMonad m => PrimMonad (NestedLogger m) where
---     type PrimState (NestedLogger m) = PrimState m
---     primitive = lift . primitive ; {-# INLINE primitive #-}
---
-
---------------------
--- === Logger === --
---------------------
-
-type family LoggerDefinition l :: (* -> *) -> * -> *
-newtype Logger (req :: [*]) l m a = Logger (LoggerDefinition l m a)
-makeWrapped ''Logger
-
-deriving instance Functor     (LoggerDefinition l m) => Functor     (Logger req l m)
-deriving instance Applicative (LoggerDefinition l m) => Applicative (Logger req l m)
-deriving instance Monad       (LoggerDefinition l m) => Monad       (Logger req l m)
-deriving instance MonadIO     (LoggerDefinition l m) => MonadIO     (Logger req l m)
-deriving instance MonadFix    (LoggerDefinition l m) => MonadFix    (Logger req l m)
-deriving instance MonadTrans  (LoggerDefinition l)   => MonadTrans  (Logger req l)
-
-
-------------------------
--- === BaseLogger === --
-------------------------
-
--- === Definition === --
-
-newtype BaseLogger (req :: [*]) m a = BaseLogger (IdentityT m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-makeWrapped ''BaseLogger
-
-
--- === Instances === --
-
-instance PrimMonad m => PrimMonad (BaseLogger req m) where
-    type PrimState (BaseLogger req m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
-
-
--- === Type Dependencies === --
+-- === DataStore === --
 
 type DataStore' m = DataStore (RequiredData m)
 data DataStore ds where
@@ -139,15 +45,18 @@ data DataStore ds where
     (:-:) :: LogData d -> DataStore ds -> DataStore (d ': ds)
 infixr 5 :-:
 
+
+-- === Data lookup === --
+
+lookupData' :: forall d ds. LookupData d ds => DataStore ds -> Maybe (DataOf d)
+lookupData' = fmap unwrap' . lookupData @d ; {-# INLINE lookupData' #-}
+
 type family RequiredData (m :: * -> *) :: [*] where
     RequiredData (BaseLogger req _) = req
     RequiredData IO                 = '[]
     RequiredData (t m)              = RequiredData m
 
-lookupData' :: forall d ds. LookupData d ds => DataStore ds -> Maybe (DataOf d)
-lookupData' = fmap unwrap' . lookupData @d ; {-# INLINE lookupData' #-}
-
-type RequiredLookup m d = LookupData d (RequiredData m)
+type        RequiredLookup  m d = LookupData d (RequiredData m)
 type family RequiredLookups m ds :: Constraint where
     RequiredLookups m '[] = ()
     RequiredLookups m (d ': ds) = (RequiredLookup m d, RequiredLookups m ds)
@@ -158,54 +67,79 @@ instance LookupData t ds  => LookupData t (d ': ds) where lookupData (_ :-: ds) 
 instance                     LookupData d '[]       where lookupData _          = Nothing       ; {-# INLINE lookupData #-}
 
 
--- === MonadLogger === --
 
-class    Monad m                                   => MonadLogger m                  where submitLog :: DataStore' m -> m ()
-instance {-# OVERLAPPABLE #-} MonadLoggerTrans t m => MonadLogger (t m)              where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
-type MonadLoggerTrans t m = (Monad m, Monad (t m), MonadTrans t, MonadLogger m, RequiredData m ~ RequiredData (t m))
+-- | BaseLogger is hack, which provides required data information.
+--   We should discover it automatically, but there is no easy solution which doesn't involve
+--   very complex TF transformations and DataStore transformations (which could eventually be optimized away).
+------------------------
+-- === BaseLogger === --
+------------------------
 
-instance MonadLogger m => MonadLogger (DataProvider d m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
-instance MonadLogger m => MonadLogger (IdentityT      m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
-instance MonadLogger m => MonadLogger (StateT       s m) where submitLog = lift . submitLog ; {-# INLINE submitLog #-}
-
-
-instance Monad m => MonadLogger (BaseLogger req m) where submitLog _ = return () ; {-# INLINE submitLog #-}
-
--- === Running === --
+data Base (req :: [*])
+type BaseLogger req = Logger (Base req)
+type instance LoggerDefinition (Base req) = IdentityT
 
 runLogger :: forall req m a. Monad m => BaseLogger req m a -> m a
 runLogger = runIdentityT . unwrap' ; {-# INLINE runLogger #-}
 
 
+
+--------------------
+-- === Logger === --
+--------------------
+
+type family LoggerDefinition l :: (* -> *) -> * -> *
+newtype Logger l m a = Logger (LoggerDefinition l m a)
+makeWrapped ''Logger
+
+deriving instance Functor     (LoggerDefinition l m) => Functor     (Logger l m)
+deriving instance Applicative (LoggerDefinition l m) => Applicative (Logger l m)
+deriving instance Monad       (LoggerDefinition l m) => Monad       (Logger l m)
+deriving instance MonadIO     (LoggerDefinition l m) => MonadIO     (Logger l m)
+deriving instance MonadFix    (LoggerDefinition l m) => MonadFix    (Logger l m)
+deriving instance MonadTrans  (LoggerDefinition l)   => MonadTrans  (Logger l)
+
+instance (MonadTrans (Logger l), Monad (Logger l m), PrimMonad m)
+      => PrimMonad (Logger l m) where
+    type PrimState (Logger l m) = PrimState m
+    primitive = lift . primitive ; {-# INLINE primitive #-}
+
+
+-- === Logger classes === --
+
+class IsLogger l m where
+    submitLog :: DataStore' m -> Logger l m ()
+
+-- | Passing log data to all found loggers down the monad transformers line
+class    Monad m                                   => MonadLogger m            where passLog :: DataStore' m -> m ()
+instance {-# OVERLAPPABLE #-} MonadLoggerFound l m => MonadLogger (Logger l m) where passLog d = submitLog d >> lift (passLog d) ; {-# INLINE passLog #-}
+instance {-# OVERLAPPABLE #-} MonadLoggerTrans t m => MonadLogger (t m)        where passLog = lift . passLog                    ; {-# INLINE passLog #-}
+type MonadLoggerFound l m = (MonadLoggerTrans (Logger l) m, IsLogger l m, MonadLogger m)
+type MonadLoggerTrans t m = (Monad m, Monad (t m), MonadTrans t, MonadLogger m, RequiredData m ~ RequiredData (t m))
+
+-- BaseLogger hack (read more in BaseLogger description)
+instance Monad m => MonadLogger (BaseLogger req m) where
+    passLog _ = return () ; {-# INLINE passLog #-}
+
+
+
+---------------------------
 -- === Data Provider === --
+---------------------------
+
+-- === Definition === --
 
 newtype DataProvider d m a = DataProvider (StateT (LogData d) m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
 makeWrapped ''DataProvider
+
+
+-- === Management === --
 
 provideData :: forall d m a. Monad m => LogData d -> DataProvider d m a -> m a
 provideData = flip (State.evalStateT . unwrap') ; {-# INLINE provideData #-}
 
 provideData' :: forall d m a. (Monad m, Default (LogData d)) => DataProvider d m a -> m a
 provideData' = provideData def ; {-# INLINE provideData' #-}
-
-
-type family DataSetLogging ds m :: Constraint where
-    DataSetLogging '[] m = ()
-    DataSetLogging (d ': ds) m = (DataLogging d m, DataSetLogging ds m)
-
-class Monad m => DataLogging d m where
-    getData :: m (LogData d)
-    putData :: LogData d -> m ()
-
-instance Monad m => DataLogging d (DataProvider d m) where
-    getData = wrap'   State.get ; {-# INLINE getData #-}
-    putData = wrap' . State.put ; {-# INLINE putData #-}
-
-type DataLoggingTrans d t m = (Monad m, MonadTrans t, Monad (t m), DataLogging d m)
-instance {-# OVERLAPPABLE #-} DataLoggingTrans d t m => DataLogging d (t m) where
-    getData = lift   getData ; {-# INLINE getData #-}
-    putData = lift . putData ; {-# INLINE putData #-}
-
 
 modifyDataM :: forall d a m. DataLogging d m => (LogData d -> m (a, LogData d)) -> m a
 modifyDataM f = do
@@ -237,34 +171,27 @@ withModData df f = do
 {-# INLINE withModData #-}
 
 
--- === Instances === --
+-- === Data Logging === ---
 
-instance PrimMonad m => PrimMonad (DataProvider d m) where
-    type PrimState (DataProvider d m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
+class Monad m => DataLogging d m where
+    getData :: m (LogData d)
+    putData :: LogData d -> m ()
 
+instance Monad m => DataLogging d (DataProvider d m) where
+    getData = wrap'   State.get ; {-# INLINE getData #-}
+    putData = wrap' . State.put ; {-# INLINE putData #-}
 
+type DataLoggingTrans d t m = (Monad m, MonadTrans t, Monad (t m), DataLogging d m)
+instance {-# OVERLAPPABLE #-} DataLoggingTrans d t m => DataLogging d (t m) where
+    getData = lift   getData ; {-# INLINE getData #-}
+    putData = lift . putData ; {-# INLINE putData #-}
 
-
-
-
-
-
-
-
-
-
-
-
-
+type family DataSetLogging ds m :: Constraint where
+    DataSetLogging '[] m = ()
+    DataSetLogging (d ': ds) m = (DataLogging d m, DataSetLogging ds m)
 
 
-
-instance {-# OVERLAPPABLE #-}
-         (Monad m, Default (LogData d)) => DefaultData m d where defaultData = return def
-class     Monad m                       => DefaultData m d where defaultData :: m (LogData d)
-
-
+-- === Data Gathering === --
 
 type RequiredDataGather m = DataGather (RequiredData m) m
 gatherRequiredData :: RequiredDataGather m => m (DataStore' m)
@@ -275,64 +202,56 @@ class    Monad m              => DataGather ds        m where gatherData :: m (D
 instance Monad m              => DataGather '[]       m where gatherData = return Null                      ; {-# INLINE gatherData #-}
 instance DataSubGather d ds m => DataGather (d ': ds) m where gatherData = (:-:) <$> getData <*> gatherData ; {-# INLINE gatherData #-}
 type     DataSubGather d ds m = (DataGather ds m, DataLogging d m)
---
--- class     Monad m                                       => MonadLogging' ls        m where log' :: DataStore ls -> m ()
--- instance (Monad m, MonadLogging' ls (DataProvider l m)) => MonadLogging' (l ': ls) m where log' (l :-: ls) = provideData l $ log' ls ; {-# INLINE log' #-}
--- instance (RequiredDataGather m, MonadLogger m)          => MonadLogging' '[]       m where log' _ = gatherRequiredData >>= submitLog ; {-# INLINE log' #-}
---
--- class Monad m => MonadLogging ls m where
---     log :: DataStore ls -> m ()
---     default log :: (MonadTrans t, MonadLogging ls m) => DataStore ls -> t m ()
---     log = lift . log ; {-# INLINE log #-}
---
---
-instance MonadLogging m => MonadLogging (StateT s m)
-instance MonadLogging m => MonadLogging (IdentityT m)
---
---
---
--- type StdLogging      m = MonadLogging '[Priority, Msg]           m
--- type ReportedLogging m = MonadLogging '[Priority, Reporter, Msg] m
 
 
--- stdLog :: (StdLogging m, Enum p, ToText t) => p -> t -> m ()
--- stdLog p m = log $ priority p :-: msg m :-: Null
--- {-# INLINE stdLog #-}
+-- === Instances === --
 
--- reportedLog :: (ReportedLogging m, Enum p, ToText r, ToText t) => p -> r -> t -> m ()
--- reportedLog p r m = log $ priority p :-: reporter r :-: msg m :-: Null
--- {-# INLINE reportedLog #-}
---
---
-runStdLogger :: forall m a req. (Monad m, req ~ [Priority, Nesting, Msg]) => BaseLogger req m a -> m a
-runStdLogger = runLogger @req ; {-# INLINE runStdLogger #-}
+instance PrimMonad m => PrimMonad (DataProvider d m) where
+    type PrimState (DataProvider d m) = PrimState m
+    primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
------------------------------
 
-type NewLog m = (RequiredDataGather m, MonadLogger m)
-newLog :: NewLog m => m ()
-newLog = gatherRequiredData >>= submitLog
 
+--------------------------
+-- === MonadLogging === --
+--------------------------
+
+-- | The whle purpose of MonadLogging is to give nice compilation errors.
+--   After Logger is seen, we fire data discovery and logger execution.
+
+-- === Definition === --
 
 class Monad m => MonadLogging m where
-    log2 :: m ()
-    default log2 :: (MonadTrans t, MonadLogging m) => t m ()
-    log2 = lift log2 ; {-# INLINE log2 #-}
+    log :: m ()
+    default log :: (MonadTrans t, MonadLogging m) => t m ()
+    log = lift log ; {-# INLINE log #-}
 
-instance (Monad m, NewLog (DataProvider d m)) => MonadLogging (DataProvider d m) where log2 = newLog
-instance (Monad m, NewLog (EchoLogger m)) => MonadLogging (EchoLogger m) where log2 = newLog
-
-type Logging m = (MonadLogging m, DataSetLogging '[Priority, Msg, Nesting] m)
-
-tst2 :: Logging m => m ()
-tst2 = do
-    withData (msg "foo") $ log2
+type DefaultLogging m = (RequiredDataGather m, MonadLogger m)
+defaultLogging :: DefaultLogging m => m ()
+defaultLogging = gatherRequiredData >>= passLog
 
 
+-- === Instances === --
 
-stdLog :: (Logging m, Enum p, ToText t) => p -> t -> m ()
-stdLog p t = withData (priority p) $ withData (msg t) log2
+instance (Monad m, DefaultLogging (DataProvider d m))
+      => MonadLogging (DataProvider d m) where
+    log = defaultLogging ; {-# INLINE log #-}
+
+instance (Monad m, Monad (Logger l m), DefaultLogging (Logger l m))
+      => MonadLogging (Logger l m) where
+    log = defaultLogging ; {-# INLINE log #-}
+
+-- Standard monads
+instance MonadLogging m => MonadLogging (StateT s m)
+instance MonadLogging m => MonadLogging (IdentityT m)
+
+
+
+
+--------------------------------------------------------
+--------------------------------------------------------
+
 
 
 
@@ -350,32 +269,6 @@ data StdLvl = Debug    -- Debug Logs
             | Panic    -- System is unusable
             deriving (Show, Ord, Eq, Enum)
 
-
-------------------------------------
--- === Standard logging utils === --
-------------------------------------
-
-debug, info, notice, warning, err, critical, alert, panic
-    :: (Logging m, ToText t) => t -> m ()
-debug    = stdLog Debug    ; {-# INLINE debug    #-}
-info     = stdLog Info     ; {-# INLINE info     #-}
-notice   = stdLog Notice   ; {-# INLINE notice   #-}
-warning  = stdLog Warning  ; {-# INLINE warning  #-}
-err      = stdLog Error    ; {-# INLINE err      #-}
-critical = stdLog Critical ; {-# INLINE critical #-}
-alert    = stdLog Alert    ; {-# INLINE alert    #-}
-panic    = stdLog Panic    ; {-# INLINE panic    #-}
-
-withDebug, withInfo, withNotice, withWarning, withError, withCritical, withAlert, withPanic
-    :: (Logging m, ToText t) => t -> m a -> m a
-withDebug    s f = debug    s >> nested f ; {-# INLINE withDebug    #-}
-withInfo     s f = info     s >> nested f ; {-# INLINE withInfo     #-}
-withNotice   s f = notice   s >> nested f ; {-# INLINE withNotice   #-}
-withWarning  s f = warning  s >> nested f ; {-# INLINE withWarning  #-}
-withError    s f = err      s >> nested f ; {-# INLINE withError    #-}
-withCritical s f = critical s >> nested f ; {-# INLINE withCritical #-}
-withAlert    s f = alert    s >> nested f ; {-# INLINE withAlert    #-}
-withPanic    s f = panic    s >> nested f ; {-# INLINE withPanic    #-}
 
 
 ------------------------------
@@ -396,8 +289,11 @@ msg = wrap' . convert ; {-# INLINE msg #-}
 data Reporter
 type instance DataOf Reporter = Text
 
-reporter :: ToText t => t -> LogData Reporter
+reporter :: ToText r => r -> LogData Reporter
 reporter = wrap' . convert ; {-# INLINE reporter #-}
+
+reported :: (DataLogging Reporter m, ToText r) => r -> m a -> m a
+reported = withData . reporter ; {-# INLINE reported #-}
 
 
 -- === Priority === --
@@ -413,19 +309,134 @@ priority = wrap' . fromEnum ; {-# INLINE priority #-}
 
 data Nesting
 type instance DataOf Nesting = Int
-type NestedLogging = DataLogging Nesting
 
 nesting :: Int -> LogData Nesting
 nesting = wrap' ; {-# INLINE nesting #-}
 
-incNesting :: NestedLogging m => m ()
-incNesting = modifyData_ @Nesting succ ; {-# INLINE incNesting #-}
+withNesting :: DataLogging Nesting m => (LogData Nesting -> LogData Nesting) -> m ()
+withNesting = modifyData_ @Nesting ; {-# INLINE withNesting #-}
 
-decNesting :: NestedLogging m => m ()
-decNesting = modifyData_ @Nesting pred ; {-# INLINE decNesting #-}
+incNesting :: DataLogging Nesting m => m ()
+incNesting = withNesting succ ; {-# INLINE incNesting #-}
 
-nested :: NestedLogging m => m a -> m a
+decNesting :: DataLogging Nesting m => m ()
+decNesting = withNesting pred ; {-# INLINE decNesting #-}
+
+nested :: DataLogging Nesting m => m a -> m a
 nested = withModData @Nesting succ ; {-# INLINE nested #-}
+
+
+
+------------------------------------
+-- === Standard logging utils === --
+------------------------------------
+
+-- === Types === --
+
+type MultiLogging ls m = (MonadLogging m, DataSetLogging ls    m)
+type MsgLogging      m = (MonadLogging m, DataLogging Msg      m)
+type PriorityLogging m = (MsgLogging   m, DataLogging Priority m)
+type ReportedLogging m = (MsgLogging   m, DataLogging Reporter m)
+type NestedLogging   m = (MsgLogging   m, DataLogging Nesting  m)
+
+type Logging         m = (PriorityLogging m, ReportedLogging m, NestedLogging m)
+
+
+-- === Generic logging === --
+
+priLog :: (MultiLogging '[Priority, Msg] m, Enum priority, ToText msg)
+       => priority -> msg -> m ()
+priLog p m = withData (priority p) $ withData (msg m) log
+
+priLogBy :: (MultiLogging '[Priority, Reporter, Msg] m, Enum priority, ToText reporter, ToText msg)
+         => priority -> reporter -> msg -> m ()
+priLogBy p r m = reported r $ priLog p m ; {-# INLINE priLogBy #-}
+
+withPriLog :: (MultiLogging '[Nesting, Priority, Msg] m, Enum priority, ToText msg)
+           => priority -> msg -> m a -> m a
+withPriLog p m f = priLog p m >> nested f ; {-# INLINE withPriLog #-}
+
+withPriLogBy :: (MultiLogging '[Nesting, Priority, Reporter, Msg] m, Enum priority, ToText reporter, ToText msg)
+             => priority -> reporter -> msg -> m a -> m a
+withPriLogBy p r m f = priLogBy p r m >> nested f ; {-# INLINE withPriLogBy #-}
+
+
+-- === Loggign utils === --
+
+debug, info, notice, warning, err, critical, alert, panic
+    :: (MultiLogging '[Priority, Msg] m, ToText msg) => msg -> m ()
+debug    = priLog Debug    ; {-# INLINE debug    #-}
+info     = priLog Info     ; {-# INLINE info     #-}
+notice   = priLog Notice   ; {-# INLINE notice   #-}
+warning  = priLog Warning  ; {-# INLINE warning  #-}
+err      = priLog Error    ; {-# INLINE err      #-}
+critical = priLog Critical ; {-# INLINE critical #-}
+alert    = priLog Alert    ; {-# INLINE alert    #-}
+panic    = priLog Panic    ; {-# INLINE panic    #-}
+
+debugBy, infoBy, noticeBy, warningBy, errBy, criticalBy, alertBy, panicBy
+    :: (Logging m, ToText reporter, ToText msg) => reporter -> msg -> m ()
+debugBy    = priLogBy Debug    ; {-# INLINE debugBy    #-}
+infoBy     = priLogBy Info     ; {-# INLINE infoBy     #-}
+noticeBy   = priLogBy Notice   ; {-# INLINE noticeBy   #-}
+warningBy  = priLogBy Warning  ; {-# INLINE warningBy  #-}
+errBy      = priLogBy Error    ; {-# INLINE errBy      #-}
+criticalBy = priLogBy Critical ; {-# INLINE criticalBy #-}
+alertBy    = priLogBy Alert    ; {-# INLINE alertBy    #-}
+panicBy    = priLogBy Panic    ; {-# INLINE panicBy    #-}
+
+withDebug, withInfo, withNotice, withWarning, withError, withCritical, withAlert, withPanic
+    :: (Logging m, ToText msg) => msg -> m a -> m a
+withDebug    = withPriLog Debug    ; {-# INLINE withDebug    #-}
+withInfo     = withPriLog Info     ; {-# INLINE withInfo     #-}
+withNotice   = withPriLog Notice   ; {-# INLINE withNotice   #-}
+withWarning  = withPriLog Warning  ; {-# INLINE withWarning  #-}
+withError    = withPriLog Error    ; {-# INLINE withError    #-}
+withCritical = withPriLog Critical ; {-# INLINE withCritical #-}
+withAlert    = withPriLog Alert    ; {-# INLINE withAlert    #-}
+withPanic    = withPriLog Panic    ; {-# INLINE withPanic    #-}
+
+withDebugBy, withInfoBy, withNoticeBy, withWarningBy, withErrorBy, withCriticalBy, withAlertBy, withPanicBy
+    :: (Logging m, ToText reporter, ToText msg) => reporter -> msg -> m a -> m a
+withDebugBy    = withPriLogBy Debug    ; {-# INLINE withDebugBy    #-}
+withInfoBy     = withPriLogBy Info     ; {-# INLINE withInfoBy     #-}
+withNoticeBy   = withPriLogBy Notice   ; {-# INLINE withNoticeBy   #-}
+withWarningBy  = withPriLogBy Warning  ; {-# INLINE withWarningBy  #-}
+withErrorBy    = withPriLogBy Error    ; {-# INLINE withErrorBy    #-}
+withCriticalBy = withPriLogBy Critical ; {-# INLINE withCriticalBy #-}
+withAlertBy    = withPriLogBy Alert    ; {-# INLINE withAlertBy    #-}
+withPanicBy    = withPriLogBy Panic    ; {-# INLINE withPanicBy    #-}
+
+
+-- === Running utils === --
+
+runStdLogger :: forall m a req. (Monad m, req ~ '[Priority, Nesting, Msg]) => BaseLogger req m a -> m a
+runStdLogger = runLogger @req ; {-# INLINE runStdLogger #-}
+
+runLogging :: forall req m a. (Monad m, req ~ '[Priority, Nesting, Reporter, Msg])
+           => DataProvider Msg
+            ( DataProvider Reporter
+            $ DataProvider Nesting
+            $ DataProvider Priority
+            $ BaseLogger req m
+            ) a -> m a
+runLogging = runLogger @req
+           . provideData (priority Debug)
+           . provideData' @Nesting
+           . provideData (reporter "")
+           . provideData (msg "")
+{-# INLINE runLogging #-}
+
+
+
+
+
+
+--------------------------------------------------------
+-- Loggers
+--------------------------------------------------------
+
+
 
 
 
@@ -435,94 +446,80 @@ nested = withModData @Nesting succ ; {-# INLINE nested #-}
 
 data Echo
 type instance LoggerDefinition Echo = IdentityT
-type EchoLogger = Logger '[] Echo
+type EchoLogger = Logger Echo
 
 runEchoLogger :: EchoLogger m a -> m a
 runEchoLogger = runIdentityT . unwrap' ; {-# INLINE runEchoLogger #-}
 
 
-
 -- === Instances === --
 
--- instance (MonadLogging' ls (EchoLogger m), Monad m) => MonadLogging ls (EchoLogger m)
---     where log = log' ; {-# INLINE log #-}
-
-instance (MonadIO m, MonadLogger m, RequiredLookups m '[Msg, Nesting]) => MonadLogger (EchoLogger m) where
-    submitLog ds = putStrLn (ident <> msg) *> lift (submitLog ds) where
+instance (MonadIO m, RequiredLookups m '[Msg, Nesting]) => IsLogger Echo m where
+    submitLog ds = putStrLn (ident <> msg) where
         space = replicate 2 ' '
         ident = concat $ replicate nest space
         msg   = convert $ fromJust $ lookupData' @Msg     ds -- FIXME [WD]: unsafe
         nest  =           fromJust $ lookupData' @Nesting ds -- FIXME [WD]: unsafe
         fromJust (Just a) = a
 
-instance PrimMonad m => PrimMonad (EchoLogger m) where
-    type PrimState (EchoLogger m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
 ------------------------
 -- === DropLogger === --
 ------------------------
 
-newtype DropLogger m a = DropLogger (IdentityT m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-makeWrapped ''DropLogger
+data Drop
+type instance LoggerDefinition Drop = IdentityT
+type DropLogger = Logger Drop
 
 dropLogs :: DropLogger m a -> m a
 dropLogs = runIdentityT . unwrap' ; {-# INLINE dropLogs #-}
 
 
 -- === Instances === --
---
--- instance (MonadLogging' ls (DropLogger m), Monad m) => MonadLogging ls (DropLogger m)
---     where log _ = return () ; {-# INLINE log #-}
 
-instance MonadIO m => MonadLogger (DropLogger m) where
-    submitLog _ = return () ; {-# INLINE submitLog #-}
+instance {-# OVERLAPPING #-}
+         Monad   m => MonadLogging (DropLogger m) where log       = return () ; {-# INLINE log     #-}
+instance MonadIO m => MonadLogger  (DropLogger m) where passLog _ = return () ; {-# INLINE passLog #-}
 
-instance PrimMonad m => PrimMonad (DropLogger m) where
-    type PrimState (DropLogger m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
+-- This is hacky, but because Drop logger is guaranteed to drop all logs,
+-- we can be sure the information will not be needed.
+instance Monad m => DataLogging d (DropLogger m) where
+    getData = return (error "impossible")
+    putData = const $ return (error "impossible")
 
--- hacky logs dropping
 
--- imp :: a
--- imp = error "impossible happened."
---
--- instance Monad m => NestedLogging (DropLogger m) where
---     getNesting   = return imp
---     putNesting _ = return imp
+
+
+
+
+
+
+
+
+
+
+
+
 
 -------------------
 -- === Tests === --
 -------------------
 
-
-
---
---
---
--- -- logMsg ::
---
-
--- type Logging m = (StdLogging m, NestedLogging m)
-
-
-
-tst :: Logging (IdentityT m) => m ()
+tst :: Logging m => m ()
 tst = runIdentityT $ do
     withDebug "foo" $ do
         debug "bar"
     debug "baz"
     return ()
 
+
 lmain :: IO ()
 lmain = do
-    runLogging $ runEchoLogger tst
+    dropLogs tst
+    runLogging $ runEchoLogger $ dropLogs tst
     -- dropLogs tst
 
     -- runNestedLogger $ runStdLogger $ runEchoLogger tst2
     -- dropLogs tst
     print "hello"
-
-
-runLogging = runStdLogger . provideData' @Nesting . provideData (priority Debug) . provideData (msg "")
