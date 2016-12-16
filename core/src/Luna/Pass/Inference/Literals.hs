@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE UndecidableInstances      #-}

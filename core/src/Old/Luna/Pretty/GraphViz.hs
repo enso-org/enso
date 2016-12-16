@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables       #-}

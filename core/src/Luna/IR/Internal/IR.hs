@@ -313,7 +313,7 @@ newElem :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, NewElemEven
         => Definition t -> m t
 newElem tdef = do
     el <- reserveElem
-    withDebug ("Emit: NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (el ^. idx) <> "]") $ do
+    withDebugBy "Emitter" ("NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (el ^. idx) <> "]") $ do
         dispatchNewElem tdef el
     return el
     -- emit (NEW // abstract el) (universal el)

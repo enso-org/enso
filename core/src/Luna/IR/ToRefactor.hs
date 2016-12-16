@@ -84,7 +84,7 @@ fromRight (Left e) = error $ show e
 
 
 debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
-debugElem t msg = debug $ show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]: " <> msg
+debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]")
 
 debugLayerCreation :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> Prelude.String -> m ()
 debugLayerCreation t layer post = debugElem t $ layer <> " layer created" <> post

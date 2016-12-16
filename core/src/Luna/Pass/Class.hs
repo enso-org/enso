@@ -1,3 +1,4 @@
+{-# LANGUAGE NoOverloadedStrings  #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Class where
@@ -183,8 +184,8 @@ type PassInit pass m = (LookupData pass m (Keys pass), KnownType (Abstract pass)
 
 initPass :: forall pass m a. PassInit pass m => SubPass pass m a -> m (Either InternalError (m a))
 initPass p = do
-    withDebug ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]: Initialzation") $
-        fmap (\d -> withDebug ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]: Running") $ State.evalStateT (unwrap' p) d) <$> lookupData @pass
+    withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Initialzation" $
+        fmap (\d -> withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Running" $ State.evalStateT (unwrap' p) d) <$> lookupData @pass
 {-# INLINE initPass #-}
 
 -- initArgPass :: forall pass m a. PassInit pass m => (Args pass -> SubPass pass m a) -> (Args pass -> m (Either InternalError (m a)))

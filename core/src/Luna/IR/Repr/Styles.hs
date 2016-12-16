@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Luna.IR.Repr.Styles where
 
 import Luna.Prelude

@@ -485,8 +485,8 @@ instance MonadIO m => MonadLogger  (DropLogger m) where passLog _ = return () ; 
 -- This is hacky, but because Drop logger is guaranteed to drop all logs,
 -- we can be sure the information will not be needed.
 instance Monad m => DataLogging d (DropLogger m) where
-    getData = return (error "impossible")
-    putData = const $ return (error "impossible")
+    getData   = return (error "impossible") ; {-# INLINE getData #-}
+    putData _ = return (error "impossible") ; {-# INLINE putData #-}
 
 
 

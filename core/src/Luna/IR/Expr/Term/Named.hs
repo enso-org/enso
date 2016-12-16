@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Expr.Term.Named (module Luna.IR.Expr.Term.Named, module X) where
