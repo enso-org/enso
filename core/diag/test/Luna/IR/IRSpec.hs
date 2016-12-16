@@ -12,7 +12,7 @@ import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, ex
 import Luna.IR.Runner
 import Luna.IR
 import Luna.TestUtils
-import Luna.IR.Expr.Term (Term(Sym_String))
+import Luna.IR.Expr.Term (Term(Sym_String, Sym_Unify))
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
@@ -95,6 +95,21 @@ testNodeRemovalCoherence = graphTestCase $ do
     delete uni
     checkCoherence
 
+testSubtreeRemoval :: IO (Either Pass.InternalError (Int, [Incoherence]))
+testSubtreeRemoval = graphTestCase $ do
+    foo   <- string "foo"
+    bar   <- string "bar"
+    vfoo  <- var foo
+    vbar  <- var bar
+    vbar' <- var bar
+    uni   <- unify vfoo vbar
+    deleteSubtree $ generalize uni
+    -- Here we expect the graph to be coherent and contain only vbar' and bar and their types
+    coh <- checkCoherence
+    exs <- length <$> exprs
+    return (exs, coh)
+
+
 spec :: Spec
 spec = do
     describe "inputs" $ do
@@ -119,3 +134,6 @@ spec = do
     describe "node removal" $ do
         it "preserves graph coherence" $
             testNodeRemovalCoherence `shouldReturn` Right []
+    describe "subtree removal" $ do
+        it "removes a subgraph while preserving coherence" $
+            testSubtreeRemoval `shouldReturn` Right (4, [])

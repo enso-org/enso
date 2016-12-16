@@ -75,7 +75,9 @@ makeWrapped ''Event
 class Monad m => Emitter m e where
     emit :: e -> Payload e -> m ()
 
-
+type family Emitters m ems :: Constraint where
+    Emitters m '[]       = ()
+    Emitters m (e ': es) = (Emitter m e, Emitters m es)
 
 -----------------------
 -- === Listeners === --
