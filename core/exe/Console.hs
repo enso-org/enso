@@ -49,7 +49,7 @@ import Data.Property
 
 import System.Log
 
-
+import GHC.Stack
 
 
 -- BEGIN == WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP ===
@@ -196,8 +196,13 @@ gen_pass1 = do
 
 
 
+ttt :: HasCallStack => IO ()
+ttt = print $ getCallStack callStack
 
-main :: IO ()
+fff :: IO ()
+fff = ttt
+
+main :: HasCallStack => IO ()
 main = do
     runLogging $ runEchoLogger $ runFormatLogger nestedReportedFormatter $ do
         (p, vis) <- Vis.newRunDiffT test_pass1
@@ -212,7 +217,7 @@ main = do
                 return ()
         print p
     lmain
-
+    ttt
 
 
 ------ Old Notes
