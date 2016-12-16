@@ -46,7 +46,7 @@ import Luna.IR.Expr.Term.Uni ()
 import Data.TypeVal
 import Type.Bool (And)
 
-import System.Log
+import System.Log (MonadLogging, Logging, withDebugBy)
 
 
 

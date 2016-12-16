@@ -83,8 +83,9 @@ dependencies:
     - typelevel
     - vector
     - visualization-api
-
     - reflection
+    - time-locale-compat
+    - ansi-wl-pprint
 
 default-extensions:
     - AllowAmbiguousTypes
