@@ -426,6 +426,65 @@ instance (MonadIO m, DataStore Msg m) => IsLogger Echo m where
 
 
 
+--------------------------
+-- === WriterLogger === --
+--------------------------
+
+-- === Definition === --
+
+data Writer t
+type WriterLogger t = Logger (Writer t)
+
+newtype instance Logger (Writer t) m a = WriterLogger { fromWriterLogger :: StateT [LogData t] m a}
+        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
+
+execWriterLogger :: forall t m a. Monad m => WriterLogger t m a -> m [DataOf t]
+execWriterLogger = (fmap.fmap) unwrap' . flip State.execStateT mempty . fromWriterLogger ; {-# INLINE execWriterLogger #-}
+
+
+-- === MonadWriterLoger === --
+
+class Monad m => MonadWriterLoger t m where
+    getLogs :: m [LogData t]
+    putLogs :: [LogData t] -> m ()
+
+instance Monad m => MonadWriterLoger d (WriterLogger d m) where
+    getLogs = WriterLogger   State.get ; {-# INLINE getLogs #-}
+    putLogs = WriterLogger . State.put ; {-# INLINE putLogs #-}
+
+instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadWriterLoger d m)
+      => MonadWriterLoger d (t m) where
+    getLogs = lift   getLogs ; {-# INLINE getLogs #-}
+    putLogs = lift . putLogs ; {-# INLINE putLogs #-}
+
+
+-- === Modifications === --
+
+modifyLogsM :: forall d a m. MonadWriterLoger d m => ([LogData d] -> m (a, [LogData d])) -> m a
+modifyLogsM f = do
+    d <- getLogs
+    (a, d') <- f d
+    putLogs d'
+    return a
+{-# INLINE modifyLogsM #-}
+
+modifyLogsM_ :: forall d m. MonadWriterLoger d m => ([LogData d] -> m ([LogData d])) -> m ()
+modifyLogsM_ = modifyLogsM . (fmap.fmap) ((),) ; {-# INLINE modifyLogsM_ #-}
+
+modifyLogs :: forall d a m. MonadWriterLoger d m => ([LogData d] -> (a, [LogData d])) -> m a
+modifyLogs = modifyLogsM . fmap return ; {-# INLINE modifyLogs #-}
+
+modifyLogs_ :: forall d m. MonadWriterLoger d m => ([LogData d] -> [LogData d]) -> m ()
+modifyLogs_ = modifyLogsM_ . fmap return ; {-# INLINE modifyLogs_ #-}
+
+
+-- === Instances === --
+
+instance DataStore t m => IsLogger (Writer t) m where
+    runLogger = modifyLogs_ . (:) =<< getData @t ; {-# INLINE runLogger #-}
+
+
+
 ------------------------
 -- === DropLogger === --
 ------------------------
@@ -443,8 +502,8 @@ dropLogs = runIdentityT . fromDropLogger ; {-# INLINE dropLogs #-}
 -- === Instances === --
 
 instance {-# OVERLAPPING #-}
-         Monad   m => MonadLogging  (DropLogger m) where log         = return () ; {-# INLINE log         #-}
-instance MonadIO m => LoggersFinder (DropLogger m) where findLoggers = return () ; {-# INLINE findLoggers #-}
+         Monad m => MonadLogging  (DropLogger m) where log         = return () ; {-# INLINE log         #-}
+instance Monad m => LoggersFinder (DropLogger m) where findLoggers = return () ; {-# INLINE findLoggers #-}
 
 -- This is hacky, but because Drop logger is guaranteed to drop all logs,
 -- we can be sure the information will not be needed.
@@ -457,9 +516,9 @@ instance Monad m => DataStore d (DropLogger m) where
 
 
 
------------------------------
+--------------------------
 -- === FormatLogger === --
------------------------------
+--------------------------
 
 -- | Formats the log and puts the result into Msg field.
 
@@ -565,11 +624,11 @@ instance {-# OVERLAPPABLE #-} (Pretty a, Monad m) => PrettyT a m where
 defaultFormatter :: DataStores '[Msg, Priority] m => Formatter m
 defaultFormatter = colorLvlFormatter ("[" <:> Priority <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
 
-nestedReportedFormatter :: DataStores '[Loc, Priority, Nesting, Reporter, Msg] m => Formatter m
-nestedReportedFormatter = Loc <:> colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
+nestedReportedFormatter :: DataStores '[Priority, Nesting, Reporter, Msg] m => Formatter m
+nestedReportedFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
 
-defaultTimeFormatter :: DataStores '[Priority, Time, Msg] m => Formatter m
-defaultTimeFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Time <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE defaultTimeFormatter #-}
+defaultTimeFormatter :: DataStores '[Time, Loc, Priority, Msg] m => Formatter m
+defaultTimeFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Time <:> ": " <:> Loc <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE defaultTimeFormatter #-}
 
 colorLvlFormatter :: DataStore Priority m => Formatter m -> Formatter m
 colorLvlFormatter f = Formatter ((lvlColor . toEnum <$> getData' @Priority) <*> runFormatter f)
@@ -604,7 +663,7 @@ instance Pretty (LogData Time) where
     pretty = text . formatTime defaultTimeLocale "%c" . unwrap' ; {-# INLINE pretty #-}
 
 instance Pretty (LogData Loc) where
-    pretty (LogData loc) = text $ srcLocFile loc <> ":" <> show (srcLocStartLine loc) <> ": " ; {-# INLINE pretty #-}
+    pretty (LogData loc) = text $ srcLocFile loc <> ":" <> show (srcLocStartLine loc) ; {-# INLINE pretty #-}
 
 instance Pretty Text where pretty = text . convert ; {-# INLINE pretty #-} -- FIXME: Text -> String -> Doc is not the optimal path.
 
@@ -615,14 +674,39 @@ instance Pretty Text where pretty = text . convert ; {-# INLINE pretty #-} -- FI
 
 
 
+-------------------------
+-- === PlainLogger === --
+-------------------------
+
+data Plain
+type PlainLogger = Logger Plain
+
+newtype instance Logger Plain m a = PlainLogger { fromPlainLogger :: IdentityT m a}
+        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
+
+clearStyles :: DataStore Msg m => m ()
+clearStyles = modifyData_ @Msg (wrapped %~ Doc.plain) ; {-# INLINE clearStyles #-}
+
+plain :: PlainLogger m a -> m a
+plain = runIdentityT . fromPlainLogger ; {-# INLINE plain #-}
+
+
+-- === Instances === --
+
+instance DataStore Msg m => IsLogger Plain m where
+    runLogger = clearStyles ; {-# INLINE runLogger #-}
+
+
+
 -- TODO
--- [ ] Global no-colors options
+-- [x] Plain logger
+-- [ ] Logger tags
 -- [ ] Safe Levels declaration
 -- [ ] Distribute to modules
--- [ ] Threading loggers
--- [ ] WriterLogger (getLogs, clearLogs, etc.)
+-- [x] WriterLogger (getLogs, clearLogs, etc.)
 -- [x] Loction logging
 -- [ ] FilterLogger - filtering messages at ocmpile time without computing everything (!)
+-- [ ] Threading loggers
 
 
 
@@ -646,7 +730,9 @@ lmain :: IO ()
 lmain = do
     dropLogs tst
     runLogging $ runEchoLogger $ runFormatLogger defaultTimeFormatter $ tst
-    runLogging $ runEchoLogger $ tst
+    let logs = runIdentity $ runLogging $ execWriterLogger @Msg $ tst
+    print "---"
+    print logs
     -- dropLogs tst
 
     -- runNestedLogger $ runStdLogger $ runEchoLogger tst2
