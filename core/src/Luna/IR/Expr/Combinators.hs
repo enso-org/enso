@@ -1,12 +1,10 @@
-module Luna.Pass.Utils.Utils where
+module Luna.IR.Expr.Combinators where
 
 import           Luna.Prelude
 import qualified Luna.Pass    as Pass
 import           Luna.IR
 import           Data.TypeVal
 import qualified Data.Set     as Set
-
--- TODO: This is certainly a wrong place for operations like these. Waiting for WD input on where to put them
 
 narrowAtom :: forall a m. (IRMonad m, KnownType (AtomOf a), Readable (ExprLayer Model) m)
            => AnyExpr -> m (Maybe (Expr (AtomOf a)))
@@ -31,3 +29,11 @@ deleteSubtree expr = do
         delete expr
         mapM_ deleteSubtree $ filter (/= expr) toRemove
     else return ()
+
+changeSource :: forall l m. (IRMonad m, Accessibles m '[ExprLinkNet, ExprLayer Succs, ExprLinkLayer Model])
+             => AnyExprLink -> AnyExpr -> m ()
+changeSource link newSource = do
+    (src, tgt) <- readLayer @Model link
+    modifyLayer_ @Succs (Set.delete link) src
+    modifyLayer_ @Succs (Set.insert link) newSource
+    writeLayer   @Model (newSource, tgt) link

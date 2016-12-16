@@ -5,14 +5,14 @@ import           Data.Maybe          (isJust)
 import           Luna.Prelude        hiding (String)
 import qualified Luna.Prelude        as P
 import qualified Luna.Pass           as Pass
-import           Luna.Pass.Utils.Utils
 
 import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, expectationFailure, Expectation, shouldThrow, Selector)
 
 import Luna.IR.Runner
 import Luna.IR
 import Luna.TestUtils
-import Luna.IR.Expr.Term (Term(Sym_String, Sym_Unify))
+import Luna.IR.Expr.Term        (Term(Sym_String, Sym_Unify))
+import Luna.IR.Expr.Combinators
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
@@ -109,6 +109,17 @@ testSubtreeRemoval = graphTestCase $ do
     exs <- length <$> exprs
     return (exs, coh)
 
+testChangeSource :: IO (Either Pass.InternalError (Bool, [Incoherence]))
+testChangeSource = graphTestCase $ do
+    foo <- string "foo"
+    bar <- string "bar"
+    baz <- string "baz"
+    uni <- unify foo bar
+    match uni $ \(Unify l r) -> changeSource (generalize r) (generalize baz)
+    rightOperand :: AnyExpr <- fmap generalize $ match uni $ \(Unify l r) -> source r
+    coh <- checkCoherence
+    return (rightOperand == generalize baz, coh)
+
 
 spec :: Spec
 spec = do
@@ -137,3 +148,6 @@ spec = do
     describe "subtree removal" $ do
         it "removes a subgraph while preserving coherence" $
             testSubtreeRemoval `shouldReturn` Right (4, [])
+    describe "changing edge source" $ do
+        it "changes the source and preserves coherence" $
+            testChangeSource `shouldReturn` Right (True, [])
