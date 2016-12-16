@@ -19,12 +19,11 @@ import           Data.Map                     (Map)
 import qualified Data.Map                     as Map
 import qualified GHC.Prim                     as Prim
 
-import Data.Time.Clock              (UTCTime)
+import Data.Time.Clock              (getCurrentTime, UTCTime)
 import Data.Time.Format             (formatTime)
 import Data.Time.Locale.Compat      (defaultTimeLocale)
 import Text.PrettyPrint.ANSI.Leijen (Doc, Pretty, text, pretty, putDoc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Doc
-
 
 
 -------------------------
@@ -220,6 +219,20 @@ instance Convertible String Doc where
 ------------------------------
 -- === BaseLogger datas === --
 ------------------------------
+
+
+-- === Msg === --
+
+data Time = Time deriving (Show)
+type instance DataOf Time = UTCTime
+
+time :: UTCTime -> LogData Time
+time = wrap' ; {-# INLINE time #-}
+
+instance DataStore Time IO where
+    getData = time <$> getCurrentTime ; {-# INLINE getData #-}
+    putData = error "impossible"      ; {-# INLINE putData #-}
+
 
 -- === Msg === --
 
@@ -486,15 +499,34 @@ class FormatterTBuilder d m where
 
 
 
+
+
+data Styled s a = Styled a deriving (Show)
+makeWrapped ''Styled
+
+infixl 6 %
+(%) :: forall a s. a -> s -> Styled s a
+a % _ = Styled a
+
+data Compact = Compact
+
+
+
+
+
 instance {-# OVERLAPPABLE #-} (Pretty (LogData d), DataStore d m)
-                 => FormatterBuilder d             m where buildFormatter _ = Formatter $ pretty <$> getData @d ; {-# INLINE buildFormatter #-}
-instance (m ~ n) => FormatterBuilder (Formatter n) m where buildFormatter   = id                                ; {-# INLINE buildFormatter #-}
-instance Monad m => FormatterBuilder String        m where buildFormatter   = Formatter . return . text         ; {-# INLINE buildFormatter #-}
-instance Monad m => FormatterBuilder Doc           m where buildFormatter   = Formatter . return                ; {-# INLINE buildFormatter #-}
+                 => FormatterBuilder d             m where buildFormatter _ = Formatter $ pretty <$> getData @d             ; {-# INLINE buildFormatter #-}
+instance (Monad m, Pretty (Styled s (LogData d)), DataStore d m)
+                 => FormatterBuilder (Styled s d)  m where buildFormatter _ = Formatter $ pretty . Styled @s <$> getData @d ; {-# INLINE buildFormatter #-}
+instance (m ~ n) => FormatterBuilder (Formatter n) m where buildFormatter   = id                                            ; {-# INLINE buildFormatter #-}
+instance Monad m => FormatterBuilder String        m where buildFormatter   = Formatter . return . text                     ; {-# INLINE buildFormatter #-}
+instance Monad m => FormatterBuilder Doc           m where buildFormatter   = Formatter . return                            ; {-# INLINE buildFormatter #-}
 
 
 instance {-# OVERLAPPABLE #-} (PrettyT (LogData d) m, DataStore d m)
                           => FormatterTBuilder d             m where buildFormatterT _ = FormatterT $ \d -> flip prettyT d =<< getData @d      ; {-# INLINE buildFormatterT #-}
+instance {-# OVERLAPPABLE #-} (PrettyT (Styled s (LogData d)) m, DataStore d m)
+                          => FormatterTBuilder (Styled s d)  m where buildFormatterT _ = FormatterT $ \d -> flip prettyT d . Styled @s =<< getData @d      ; {-# INLINE buildFormatterT #-}
 instance (m ~ n, Monad m) => FormatterTBuilder (Formatter n) m where buildFormatterT a = FormatterT $ \d -> (<>) <$> runFormatter a <*> pure d ; {-# INLINE buildFormatterT #-}
 instance         Monad m  => FormatterTBuilder String        m where buildFormatterT a = FormatterT $ return . (text a <>)                     ; {-# INLINE buildFormatterT #-}
 instance         Monad m  => FormatterTBuilder Doc           m where buildFormatterT a = FormatterT $ return . (a <>)                          ; {-# INLINE buildFormatterT #-}
@@ -510,24 +542,21 @@ instance {-# OVERLAPPABLE #-} (Pretty a, Monad m) => PrettyT a m where
 -- === Basic formatters === --
 
 defaultFormatter :: DataStores '[Msg, Priority] m => Formatter m
-defaultFormatter = "[" <:> Priority <:> "] " <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
+defaultFormatter = colorLvlFormatter ("[" <:> Priority <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
 
-nestedReportedFormatter :: DataStores '[Nesting, Reporter, Msg] m => Formatter m
-nestedReportedFormatter = Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
+nestedReportedFormatter :: DataStores '[Priority, Nesting, Reporter, Msg] m => Formatter m
+nestedReportedFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
 
--- defaultTimeFormatter = colorLvlFormatter ("[" <:> Lvl <:> "] ") <:> Time <:> ": " <:> Msg
--- defaultFormatterTH   = colorLvlFormatter ("[" <:> Lvl <:> "] ") <:> Loc <:> ": " <:> Msg
+defaultTimeFormatter :: DataStores '[Priority, Time, Msg] m => Formatter m
+defaultTimeFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Time <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE defaultTimeFormatter #-}
 
--- Color formatter
-
-
-
--- colorLvlFormatter f = Formatter (\s -> let (LevelData pr _) = readData Lvl s in lvlColor pr $ runFormatter f s)
+colorLvlFormatter :: DataStore Priority m => Formatter m -> Formatter m
+colorLvlFormatter f = Formatter ((lvlColor . toEnum <$> getData' @Priority) <*> runFormatter f)
 
 
 lvlColor :: LogLvl -> Doc -> Doc
 lvlColor lvl
-    | lvl == Debug   = id
+    | lvl == Debug   = Doc.blue
     | lvl <= Notice  = Doc.green
     | lvl <= Warning = Doc.yellow
     | otherwise = Doc.red
@@ -566,6 +595,12 @@ instance Pretty (LogData Reporter) where
 instance Pretty (LogData Priority) where
     pretty = text . show . toEnum @LogLvl . unwrap' ; {-# INLINE pretty #-}
 
+instance Pretty (Styled Compact (LogData Priority)) where
+    pretty = text . pure . head . show . toEnum @LogLvl . unwrap' . unwrap' ; {-# INLINE pretty #-}
+
+instance Pretty (LogData Time) where
+    pretty = text . formatTime defaultTimeLocale "%c" . unwrap' ; {-# INLINE pretty #-}
+
 
 
 instance Pretty Text where pretty = text . convert ; {-# INLINE pretty #-} -- FIXME: Text -> String -> Doc is not the optimal path.
@@ -596,7 +631,15 @@ instance Pretty Text where pretty = text . convert ; {-# INLINE pretty #-} -- FI
 
 
 
-
+-- TODO
+-- [ ] Global no-colors options
+-- [ ] Safe Levels declaration
+-- [ ] Distribute to modules
+-- [ ] Threading loggers
+-- [ ] WriterLogger (getLogs, clearLogs, etc.)
+-- [ ] Loction logging
+-- [ ] FilterLogger - filtering messages at ocmpile time without computing everything (!)
+-- [ ]
 
 
 
@@ -619,7 +662,7 @@ tst = runIdentityT $ do
 lmain :: IO ()
 lmain = do
     dropLogs tst
-    -- runLogging $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
+    runLogging $ runEchoLogger $ runFormatLogger defaultTimeFormatter $ tst
     runLogging $ runEchoLogger $ tst
     -- dropLogs tst
 
