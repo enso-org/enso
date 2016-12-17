@@ -39,6 +39,7 @@ import System.Log.Level  as X
 import System.Log.Logger.Echo as X
 import System.Log.Logger.Drop as X
 import System.Log.Logger.Priority as X
+import System.Log.Logger.Writer as X
 
 
 
@@ -55,245 +56,9 @@ import System.Log.Logger.Priority as X
 
 
 
-------------------------------------
--- === Standard logging utils === --
-------------------------------------
-
--- === Types === --
-
-type MultiLogging ls m = (MonadLogging m, DataStores ls      m)
-type LocLogging      m = (MonadLogging m, DataStore Loc      m)
-type MsgLogging      m = (MonadLogging m, DataStore Msg      m)
-type PriorityLogging m = (MsgLogging   m, DataStore Priority m)
-type ReportedLogging m = (MsgLogging   m, DataStore Reporter m)
-type NestedLogging   m = (MsgLogging   m, DataStore Nesting  m)
-
-
-type Logging        m = (LocLogging m, ReportedLogging m, NestedLogging m, MonadTags StdLevels m)
-
-
--- === Generic logging === --
-
-addCallStackInfo :: (HasCallStack, DataStore Loc m) => m a -> m a
-addCallStackInfo = withData (loc . snd . head . drop 1 $ getCallStack callStack)
-
--- priLog' :: (HasCallStack, MultiLogging '[Priority, Msg] m, Enum priority, IsDoc msg)
---        => priority -> msg -> m ()
--- priLog' p m = withData (priority p) $ withData (msg m) log
-
-
-
-
-type LocLog m = (HasCallStack, DataStore Loc m)
-
-type     MsgLog'              msg m = (MonadLogging      m, DataStore Msg      m, IsDoc msg)
-type     TagLog'   t          msg m = (MsgLog'       msg m, MonadTag  t        m)
-type     TagLogBy' t reporter msg m = (TagLog'     t msg m, DataStore Reporter m, ToText reporter)
-type WithTagLog'   t          msg m = (TagLog'     t msg m, DataStore Nesting  m)
-type WithTagLogBy' t reporter msg m = (WithTagLog' t msg m, DataStore Reporter m, ToText reporter)
-
-type     TagLog    t          msg m = (LocLog m,     TagLog'   t          msg m)
-type     TagLogBy  t reporter msg m = (LocLog m,     TagLogBy' t reporter msg m)
-type WithTagLog    t          msg m = (LocLog m, WithTagLog'   t          msg m)
-type WithTagLogBy  t reporter msg m = (LocLog m, WithTagLogBy' t reporter msg m)
-
-
-msgLog' :: forall msg m. MsgLog' msg m
-        => msg -> m ()
-msgLog' m = withData (msg m) runLoggers ; {-# INLINE msgLog' #-}
-
-tagLog' :: forall t msg m. TagLog' t msg m
-        => msg -> m ()
-tagLog' = tagged @t . msgLog' ; {-# INLINE tagLog' #-}
-
-tagLogBy' :: forall t reporter msg m. TagLogBy' t reporter msg m
-          => reporter -> msg -> m ()
-tagLogBy' r = reported r . tagLog' @t ; {-# INLINE tagLogBy' #-}
-
-withTagLog' :: forall t msg m a. WithTagLog' t msg m
-            => msg -> m a -> m a
-withTagLog' m f = tagLog' @t m >> nested f ; {-# INLINE withTagLog' #-}
-
-withTagLogBy' :: forall t reporter msg m a. WithTagLogBy' t reporter msg m
-              => reporter -> msg -> m a -> m a
-withTagLogBy' r m f = tagLogBy' @t r m >> nested f ; {-# INLINE withTagLogBy' #-}
-
-
--- === Loggign utils === --
-
-debug    :: TagLog Debug    msg m => msg -> m ()
-info     :: TagLog Info     msg m => msg -> m ()
-notice   :: TagLog Notice   msg m => msg -> m ()
-warning  :: TagLog Warning  msg m => msg -> m ()
-err      :: TagLog Error    msg m => msg -> m ()
-critical :: TagLog Critical msg m => msg -> m ()
-alert    :: TagLog Alert    msg m => msg -> m ()
-panic    :: TagLog Panic    msg m => msg -> m ()
-
-debug    = addCallStackInfo . tagLog' @Debug    ; {-# INLINE debug    #-}
-info     = addCallStackInfo . tagLog' @Info     ; {-# INLINE info     #-}
-notice   = addCallStackInfo . tagLog' @Notice   ; {-# INLINE notice   #-}
-warning  = addCallStackInfo . tagLog' @Warning  ; {-# INLINE warning  #-}
-err      = addCallStackInfo . tagLog' @Error    ; {-# INLINE err      #-}
-critical = addCallStackInfo . tagLog' @Critical ; {-# INLINE critical #-}
-alert    = addCallStackInfo . tagLog' @Alert    ; {-# INLINE alert    #-}
-panic    = addCallStackInfo . tagLog' @Panic    ; {-# INLINE panic    #-}
-
-
-debugBy    :: TagLogBy Debug    reporter msg m => reporter -> msg -> m ()
-infoBy     :: TagLogBy Info     reporter msg m => reporter -> msg -> m ()
-noticeBy   :: TagLogBy Notice   reporter msg m => reporter -> msg -> m ()
-warningBy  :: TagLogBy Warning  reporter msg m => reporter -> msg -> m ()
-errBy      :: TagLogBy Error    reporter msg m => reporter -> msg -> m ()
-criticalBy :: TagLogBy Critical reporter msg m => reporter -> msg -> m ()
-alertBy    :: TagLogBy Alert    reporter msg m => reporter -> msg -> m ()
-panicBy    :: TagLogBy Panic    reporter msg m => reporter -> msg -> m ()
-
-debugBy    = addCallStackInfo .: tagLogBy' @Debug    ; {-# INLINE debugBy    #-}
-infoBy     = addCallStackInfo .: tagLogBy' @Info     ; {-# INLINE infoBy     #-}
-noticeBy   = addCallStackInfo .: tagLogBy' @Notice   ; {-# INLINE noticeBy   #-}
-warningBy  = addCallStackInfo .: tagLogBy' @Warning  ; {-# INLINE warningBy  #-}
-errBy      = addCallStackInfo .: tagLogBy' @Error    ; {-# INLINE errBy      #-}
-criticalBy = addCallStackInfo .: tagLogBy' @Critical ; {-# INLINE criticalBy #-}
-alertBy    = addCallStackInfo .: tagLogBy' @Alert    ; {-# INLINE alertBy    #-}
-panicBy    = addCallStackInfo .: tagLogBy' @Panic    ; {-# INLINE panicBy    #-}
-
-
-withDebug    :: WithTagLog Debug    msg m => msg -> m a -> m a
-withInfo     :: WithTagLog Info     msg m => msg -> m a -> m a
-withNotice   :: WithTagLog Notice   msg m => msg -> m a -> m a
-withWarning  :: WithTagLog Warning  msg m => msg -> m a -> m a
-withErr      :: WithTagLog Error    msg m => msg -> m a -> m a
-withCritical :: WithTagLog Critical msg m => msg -> m a -> m a
-withAlert    :: WithTagLog Alert    msg m => msg -> m a -> m a
-withPanic    :: WithTagLog Panic    msg m => msg -> m a -> m a
-
-withDebug    = addCallStackInfo .: withTagLog' @Debug    ; {-# INLINE withDebug    #-}
-withInfo     = addCallStackInfo .: withTagLog' @Info     ; {-# INLINE withInfo     #-}
-withNotice   = addCallStackInfo .: withTagLog' @Notice   ; {-# INLINE withNotice   #-}
-withWarning  = addCallStackInfo .: withTagLog' @Warning  ; {-# INLINE withWarning  #-}
-withErr      = addCallStackInfo .: withTagLog' @Error    ; {-# INLINE withErr      #-}
-withCritical = addCallStackInfo .: withTagLog' @Critical ; {-# INLINE withCritical #-}
-withAlert    = addCallStackInfo .: withTagLog' @Alert    ; {-# INLINE withAlert    #-}
-withPanic    = addCallStackInfo .: withTagLog' @Panic    ; {-# INLINE withPanic    #-}
-
-
-withDebugBy    :: WithTagLogBy Debug    reporter msg m => reporter -> msg -> m a -> m a
-withInfoBy     :: WithTagLogBy Info     reporter msg m => reporter -> msg -> m a -> m a
-withNoticeBy   :: WithTagLogBy Notice   reporter msg m => reporter -> msg -> m a -> m a
-withWarningBy  :: WithTagLogBy Warning  reporter msg m => reporter -> msg -> m a -> m a
-withErrBy      :: WithTagLogBy Error    reporter msg m => reporter -> msg -> m a -> m a
-withCriticalBy :: WithTagLogBy Critical reporter msg m => reporter -> msg -> m a -> m a
-withAlertBy    :: WithTagLogBy Alert    reporter msg m => reporter -> msg -> m a -> m a
-withPanicBy    :: WithTagLogBy Panic    reporter msg m => reporter -> msg -> m a -> m a
-
-withDebugBy    = addCallStackInfo .:. withTagLogBy' @Debug    ; {-# INLINE withDebugBy    #-}
-withInfoBy     = addCallStackInfo .:. withTagLogBy' @Info     ; {-# INLINE withInfoBy     #-}
-withNoticeBy   = addCallStackInfo .:. withTagLogBy' @Notice   ; {-# INLINE withNoticeBy   #-}
-withWarningBy  = addCallStackInfo .:. withTagLogBy' @Warning  ; {-# INLINE withWarningBy  #-}
-withErrBy      = addCallStackInfo .:. withTagLogBy' @Error    ; {-# INLINE withErrBy      #-}
-withCriticalBy = addCallStackInfo .:. withTagLogBy' @Critical ; {-# INLINE withCriticalBy #-}
-withAlertBy    = addCallStackInfo .:. withTagLogBy' @Alert    ; {-# INLINE withAlertBy    #-}
-withPanicBy    = addCallStackInfo .:. withTagLogBy' @Panic    ; {-# INLINE withPanicBy    #-}
 
 
 -- #ifdef IgnoreDebug
-
--- === Running utils === --
-
-runPriorityLogging :: forall req m a. Monad m
-           => DataProvider Loc
-            ( DataProvider Msg
-            $ DataProvider Reporter
-            $ DataProvider Nesting
-            $ DataProvider Priority m
-            ) a -> m a
-runPriorityLogging = provideData 0 -- FIXME: Is there any better way to provide non-yet-set priority?
-           . provideData' @Nesting
-           . provideData (reporter "")
-           . provideData (msg "")
-           . provideData (loc $ error "No source location provided")
-{-# INLINE runPriorityLogging #-}
-
-runTaggedLogging = provideData  (dynTags mempty)
-                 . provideData' @Nesting
-                 . provideData  (reporter "")
-                 . provideData  (msg "")
-                 . provideData  (loc $ error "No source location provided")
-
-
-
-
-
-
-
-
-
-
-
---------------------------
--- === WriterLogger === --
---------------------------
-
--- === Definition === --
-
-data Writer t
-type WriterLogger t = Logger (Writer t)
-
-newtype instance Logger (Writer t) m a = WriterLogger { fromWriterLogger :: StateT [LogData t] m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
-
-execWriterLogger :: forall t m a. Monad m => WriterLogger t m a -> m [DataOf t]
-execWriterLogger = (fmap.fmap) unwrap' . flip State.execStateT mempty . fromWriterLogger ; {-# INLINE execWriterLogger #-}
-
-
--- === MonadWriterLoger === --
-
-class Monad m => MonadWriterLoger t m where
-    getLogs :: m [LogData t]
-    putLogs :: [LogData t] -> m ()
-
-instance Monad m => MonadWriterLoger d (WriterLogger d m) where
-    getLogs = WriterLogger   State.get ; {-# INLINE getLogs #-}
-    putLogs = WriterLogger . State.put ; {-# INLINE putLogs #-}
-
-instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadWriterLoger d m)
-      => MonadWriterLoger d (t m) where
-    getLogs = lift   getLogs ; {-# INLINE getLogs #-}
-    putLogs = lift . putLogs ; {-# INLINE putLogs #-}
-
-
--- === Modifications === --
-
-modifyLogsM :: forall d a m. MonadWriterLoger d m => ([LogData d] -> m (a, [LogData d])) -> m a
-modifyLogsM f = do
-    d <- getLogs
-    (a, d') <- f d
-    putLogs d'
-    return a
-{-# INLINE modifyLogsM #-}
-
-modifyLogsM_ :: forall d m. MonadWriterLoger d m => ([LogData d] -> m ([LogData d])) -> m ()
-modifyLogsM_ = modifyLogsM . (fmap.fmap) ((),) ; {-# INLINE modifyLogsM_ #-}
-
-modifyLogs :: forall d a m. MonadWriterLoger d m => ([LogData d] -> (a, [LogData d])) -> m a
-modifyLogs = modifyLogsM . fmap return ; {-# INLINE modifyLogs #-}
-
-modifyLogs_ :: forall d m. MonadWriterLoger d m => ([LogData d] -> [LogData d]) -> m ()
-modifyLogs_ = modifyLogsM_ . fmap return ; {-# INLINE modifyLogs_ #-}
-
-
--- === Instances === --
-
-instance DataStore t m => IsLogger (Writer t) m where
-    runLogger = modifyLogs_ . (:) =<< getData @t ; {-# INLINE runLogger #-}
-
-
-
-
-
-
-
 
 
 
@@ -481,23 +246,27 @@ instance Pretty Text where pretty = text . convert ; {-# INLINE pretty #-} -- FI
 -- === PlainLogger === --
 -------------------------
 
-data Plain
-type PlainLogger = Logger Plain
+-- === Definition === --
 
-newtype instance Logger Plain m a = PlainLogger { fromPlainLogger :: IdentityT m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
+data PLAIN
+type PlainLogger = IdentityLogger PLAIN
+
+
+-- === Utils === --
 
 clearStyles :: DataStore Msg m => m ()
 clearStyles = modifyData_ @Msg (wrapped %~ Doc.plain) ; {-# INLINE clearStyles #-}
 
-plain :: PlainLogger m a -> m a
-plain = runIdentityT . fromPlainLogger ; {-# INLINE plain #-}
+plain :: Logger PlainLogger m a -> m a
+plain = runIdentityLogger ; {-# INLINE plain #-}
 
 
 -- === Instances === --
 
-instance DataStore Msg m => IsLogger Plain m where
+instance DataStore Msg m => IsLogger PlainLogger m where
     runLogger = clearStyles ; {-# INLINE runLogger #-}
+
+
 
 
 

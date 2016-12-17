@@ -4,8 +4,9 @@ module System.Log.Logger.Class where
 
 import Prologue
 
-import Control.Monad.State          (StateT)
-import Control.Monad.Trans.Identity (IdentityT)
+import           Control.Monad.State          (StateT, runStateT, evalStateT, execStateT)
+import qualified Control.Monad.State          as State
+import           Control.Monad.Trans.Identity (IdentityT)
 
 
 --------------------
@@ -53,20 +54,96 @@ instance MonadLogging m => MonadLogging (StateT s m)
 instance MonadLogging m => MonadLogging (IdentityT m)
 
 
-------------------------------
--- === Logger templates === --
-------------------------------
 
+----------------------------
 -- === IdentityLogger === --
+----------------------------
+
+-- === Definition === --
 
 data IdentityLogger l
 newtype instance Logger (IdentityLogger l) m a = IdentityLogger { fromIdentityLogger :: IdentityT m a}
         deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
 
-instance {-# OVERLAPPABLE #-} Monad m => IsLogger (IdentityLogger l) m
+
+-- === Running === --
 
 runIdentityLogger :: Logger (IdentityLogger l) m a -> m a
 runIdentityLogger = runIdentityT . fromIdentityLogger ; {-# INLINE runIdentityLogger #-}
+
+
+-- === Instances === --
+
+instance {-# OVERLAPPABLE #-} Monad m => IsLogger (IdentityLogger l) m
+
+
+
+-------------------------
+-- === StateLogger === --
+-------------------------
+
+-- === Definition === --
+
+data StateLogger l
+type family StateOf l (m :: * -> *)
+
+newtype instance Logger (StateLogger l) m a = StateLogger { fromStateLogger :: StateT (StateOf l m) m a}
+        deriving (Functor, Applicative, Monad, MonadIO, MonadFix) -- MonadTrans)
+
+
+runStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> StateOf l m -> m (a, StateOf l m)
+runStateLogger = runStateT . fromStateLogger ; {-# INLINE runStateLogger #-}
+
+evalStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> StateOf l m -> m a
+evalStateLogger = evalStateT . fromStateLogger ; {-# INLINE evalStateLogger #-}
+
+execStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> StateOf l m -> m (StateOf l m)
+execStateLogger = execStateT . fromStateLogger ; {-# INLINE execStateLogger #-}
+
+
+-- === MonadStateLogger === --
+
+class Monad m => MonadLoggerState l m where
+    getLoggerState :: m (StateOf l m)
+    putLoggerState :: StateOf l m -> m ()
+
+instance (Monad m, StateOf l m ~ StateOf l (Logger (StateLogger l) m))
+      => MonadLoggerState l (Logger (StateLogger l) m) where
+    getLoggerState = StateLogger   State.get ; {-# INLINE getLoggerState #-}
+    putLoggerState = StateLogger . State.put ; {-# INLINE putLoggerState #-}
+
+instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, StateOf l m ~ StateOf l (t m), MonadLoggerState l m)
+      => MonadLoggerState l (t m) where
+    getLoggerState = lift $ getLoggerState @l ; {-# INLINE getLoggerState #-}
+    putLoggerState = lift . putLoggerState @l ; {-# INLINE putLoggerState #-}
+
+
+-- === Modifications === --
+
+modifyLoggerStateM :: forall l a m. MonadLoggerState l m => (StateOf l m -> m (a, StateOf l m)) -> m a
+modifyLoggerStateM f = do
+    d <- getLoggerState @l
+    (a, d') <- f d
+    putLoggerState @l d'
+    return a
+{-# INLINE modifyLoggerStateM #-}
+
+modifyLoggerStateM_ :: forall l m. MonadLoggerState l m => (StateOf l m -> m (StateOf l m)) -> m ()
+modifyLoggerStateM_ = modifyLoggerStateM @l . (fmap.fmap) ((),) ; {-# INLINE modifyLoggerStateM_ #-}
+
+modifyLoggerState :: forall l a m. MonadLoggerState l m => (StateOf l m -> (a, StateOf l m)) -> m a
+modifyLoggerState = modifyLoggerStateM @l . fmap return ; {-# INLINE modifyLoggerState #-}
+
+modifyLoggerState_ :: forall l m. MonadLoggerState l m => (StateOf l m -> StateOf l m) -> m ()
+modifyLoggerState_ = modifyLoggerStateM_ @l . fmap return ; {-# INLINE modifyLoggerState_ #-}
+
+
+-- === Instances === --
+
+instance {-# OVERLAPPABLE #-} Monad m => IsLogger (StateLogger l) m
+
+instance MonadTrans (Logger (StateLogger l)) where
+    lift = StateLogger . lift ; {-# INLINE lift #-}
 
 
 
