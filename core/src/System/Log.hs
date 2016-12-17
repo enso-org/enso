@@ -25,7 +25,12 @@ import Data.Time.Locale.Compat      (defaultTimeLocale)
 import Text.PrettyPrint.ANSI.Leijen (Doc, Pretty, text, pretty, putDoc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Doc
 
+import qualified Data.Set as Set
+import           Data.Set (Set)
+
+import qualified Data.Typeable as Typeable
 import GHC.Stack
+import qualified Type.List as List
 
 
 -------------------------
@@ -41,6 +46,7 @@ makeWrapped ''LogData
 deriving instance Eq      (DataOf a) => Eq      (LogData a)
 deriving instance Ord     (DataOf a) => Ord     (LogData a)
 deriving instance Enum    (DataOf a) => Enum    (LogData a)
+deriving instance Num     (DataOf a) => Num     (LogData a)
 deriving instance Show    (DataOf a) => Show    (LogData a)
 deriving instance Default (DataOf a) => Default (LogData a)
 
@@ -59,6 +65,8 @@ instance (MonadTrans (Logger l), Monad (Logger l m), PrimMonad m)
 
 class IsLogger l m where
     runLogger :: Logger l m ()
+    default runLogger :: Monad (Logger l m) => Logger l m ()
+    runLogger = return ()
 
 
 -- === LoggersFinder === --
@@ -197,25 +205,26 @@ instance MonadLogging m => MonadLogging (IdentityT m)
 
 
 
+type IsDoc t = Convertible t Doc -- FIXME: refactor
+
+instance Convertible String Doc where
+    convert s = Doc.text s ; {-# INLINE convert #-}
+
 
 -------------------------------------
 -- === Standard logging levels === --
 -------------------------------------
 
-data LogLvl = Debug    -- Debug Logs
-            | Info     -- Information
-            | Notice   -- Normal runtime conditions
-            | Warning  -- General Warnings
-            | Error    -- General Errors
-            | Critical -- Severe situations
-            | Alert    -- Take immediate action
-            | Panic    -- System is unusable
-            deriving (Show, Ord, Eq, Enum)
+data Debug    = Debug    deriving (Show) -- Debug Logs
+data Info     = Info     deriving (Show) -- Information
+data Notice   = Notice   deriving (Show) -- Normal runtime conditions
+data Warning  = Warning  deriving (Show) -- General Warnings
+data Error    = Error    deriving (Show) -- General Errors
+data Critical = Critical deriving (Show) -- Severe situations
+data Alert    = Alert    deriving (Show) -- Take immediate action
+data Panic    = Panic    deriving (Show) -- System is unusable
 
-type IsDoc t = Convertible t Doc -- FIXME: refactor
-
-instance Convertible String Doc where
-    convert s = Doc.text s ; {-# INLINE convert #-}
+type StdLogLevels = '[Debug, Info, Notice, Warning, Error, Critical, Alert, Panic]
 
 
 ------------------------------
@@ -266,6 +275,25 @@ reported :: (DataStore Reporter m, ToText r) => r -> m a -> m a
 reported = withData . reporter ; {-# INLINE reported #-}
 
 
+-- === DynTags === --
+
+type DynTag = TypeRep
+
+data DynTags = DynTags deriving (Show)
+type instance DataOf DynTags = Set DynTag
+
+dynTag :: Typeable p => p -> DynTag
+dynTag = typeOf ; {-# INLINE dynTag #-}
+
+dynTags :: Set DynTag -> LogData DynTags
+dynTags = wrap' ; {-# INLINE dynTags #-}
+
+
+instance (Monad m, Typeable tag) => MonadTag tag (DataProvider DynTags m) where
+    setTag   = modifyData_ @DynTags $ wrapped' %~ Set.insert (typeRep' @tag) ; {-# INLINE setTag   #-}
+    unsetTag = modifyData_ @DynTags $ wrapped' %~ Set.delete (typeRep' @tag) ; {-# INLINE unsetTag #-}
+
+
 -- === Priority === --
 
 data Priority = Priority deriving (Show)
@@ -310,7 +338,8 @@ type PriorityLogging m = (MsgLogging   m, DataStore Priority m)
 type ReportedLogging m = (MsgLogging   m, DataStore Reporter m)
 type NestedLogging   m = (MsgLogging   m, DataStore Nesting  m)
 
-type Logging         m = (LocLogging m, PriorityLogging m, ReportedLogging m, NestedLogging m)
+
+type Logging        m = (LocLogging m, ReportedLogging m, NestedLogging m, MonadTags StdLogLevels m)
 
 
 -- === Generic logging === --
@@ -318,89 +347,186 @@ type Logging         m = (LocLogging m, PriorityLogging m, ReportedLogging m, Ne
 addCallStackInfo :: (HasCallStack, DataStore Loc m) => m a -> m a
 addCallStackInfo = withData (loc . snd . head . drop 1 $ getCallStack callStack)
 
-priLog' :: (HasCallStack, MultiLogging '[Loc, Priority, Msg] m, Enum priority, IsDoc msg)
-       => priority -> msg -> m ()
-priLog' p m = withData (priority p) $ withData (msg m) log
+-- priLog' :: (HasCallStack, MultiLogging '[Priority, Msg] m, Enum priority, IsDoc msg)
+--        => priority -> msg -> m ()
+-- priLog' p m = withData (priority p) $ withData (msg m) log
 
-priLogBy' :: (HasCallStack, MultiLogging '[Loc, Priority, Reporter, Msg] m, Enum priority, ToText reporter, IsDoc msg)
-         => priority -> reporter -> msg -> m ()
-priLogBy' p r m = reported r $ priLog' p m ; {-# INLINE priLogBy' #-}
 
-withPriLog' :: (HasCallStack, MultiLogging '[Loc, Nesting, Priority, Msg] m, Enum priority, IsDoc msg)
-           => priority -> msg -> m a -> m a
-withPriLog' p m f = priLog' p m >> nested f ; {-# INLINE withPriLog' #-}
 
-withPriLogBy' :: (HasCallStack, MultiLogging '[Loc, Nesting, Priority, Reporter, Msg] m, Enum priority, ToText reporter, IsDoc msg)
-             => priority -> reporter -> msg -> m a -> m a
-withPriLogBy' p r m f = priLogBy' p r m >> nested f ; {-# INLINE withPriLogBy' #-}
+
+type LocLog m = (HasCallStack, DataStore Loc m)
+
+type     MsgLog'              msg m = (MonadLogging      m, DataStore Msg      m, IsDoc msg)
+type     TagLog'   t          msg m = (MsgLog'       msg m, MonadTag  t        m)
+type     TagLogBy' t reporter msg m = (TagLog'     t msg m, DataStore Reporter m, ToText reporter)
+type WithTagLog'   t          msg m = (TagLog'     t msg m, DataStore Nesting  m)
+type WithTagLogBy' t reporter msg m = (WithTagLog' t msg m, DataStore Reporter m, ToText reporter)
+
+type     TagLog    t          msg m = (LocLog m,     TagLog'   t          msg m)
+type     TagLogBy  t reporter msg m = (LocLog m,     TagLogBy' t reporter msg m)
+type WithTagLog    t          msg m = (LocLog m, WithTagLog'   t          msg m)
+type WithTagLogBy  t reporter msg m = (LocLog m, WithTagLogBy' t reporter msg m)
+
+
+msgLog' :: forall msg m. MsgLog' msg m
+        => msg -> m ()
+msgLog' m = withData (msg m) log ; {-# INLINE msgLog' #-}
+
+tagLog' :: forall t msg m. TagLog' t msg m
+        => msg -> m ()
+tagLog' = tagged @t . msgLog' ; {-# INLINE tagLog' #-}
+
+tagLogBy' :: forall t reporter msg m. TagLogBy' t reporter msg m
+          => reporter -> msg -> m ()
+tagLogBy' r = reported r . tagLog' @t ; {-# INLINE tagLogBy' #-}
+
+withTagLog' :: forall t msg m a. WithTagLog' t msg m
+            => msg -> m a -> m a
+withTagLog' m f = tagLog' @t m >> nested f ; {-# INLINE withTagLog' #-}
+
+withTagLogBy' :: forall t reporter msg m a. WithTagLogBy' t reporter msg m
+              => reporter -> msg -> m a -> m a
+withTagLogBy' r m f = tagLogBy' @t r m >> nested f ; {-# INLINE withTagLogBy' #-}
 
 
 -- === Loggign utils === --
 
-debug, info, notice, warning, err, critical, alert, panic
-    :: (HasCallStack, MultiLogging '[Loc, Priority, Msg] m, IsDoc msg)
-    => msg -> m ()
-debug    = addCallStackInfo . priLog' Debug    ; {-# INLINE debug    #-}
-info     = addCallStackInfo . priLog' Info     ; {-# INLINE info     #-}
-notice   = addCallStackInfo . priLog' Notice   ; {-# INLINE notice   #-}
-warning  = addCallStackInfo . priLog' Warning  ; {-# INLINE warning  #-}
-err      = addCallStackInfo . priLog' Error    ; {-# INLINE err      #-}
-critical = addCallStackInfo . priLog' Critical ; {-# INLINE critical #-}
-alert    = addCallStackInfo . priLog' Alert    ; {-# INLINE alert    #-}
-panic    = addCallStackInfo . priLog' Panic    ; {-# INLINE panic    #-}
+debug    :: TagLog Debug    msg m => msg -> m ()
+info     :: TagLog Info     msg m => msg -> m ()
+notice   :: TagLog Notice   msg m => msg -> m ()
+warning  :: TagLog Warning  msg m => msg -> m ()
+err      :: TagLog Error    msg m => msg -> m ()
+critical :: TagLog Critical msg m => msg -> m ()
+alert    :: TagLog Alert    msg m => msg -> m ()
+panic    :: TagLog Panic    msg m => msg -> m ()
 
-debugBy, infoBy, noticeBy, warningBy, errBy, criticalBy, alertBy, panicBy
-    :: (HasCallStack, MultiLogging '[Loc, Priority, Reporter, Msg] m, ToText reporter, IsDoc msg)
-    => reporter -> msg -> m ()
-debugBy    = addCallStackInfo .: priLogBy' Debug    ; {-# INLINE debugBy    #-}
-infoBy     = addCallStackInfo .: priLogBy' Info     ; {-# INLINE infoBy     #-}
-noticeBy   = addCallStackInfo .: priLogBy' Notice   ; {-# INLINE noticeBy   #-}
-warningBy  = addCallStackInfo .: priLogBy' Warning  ; {-# INLINE warningBy  #-}
-errBy      = addCallStackInfo .: priLogBy' Error    ; {-# INLINE errBy      #-}
-criticalBy = addCallStackInfo .: priLogBy' Critical ; {-# INLINE criticalBy #-}
-alertBy    = addCallStackInfo .: priLogBy' Alert    ; {-# INLINE alertBy    #-}
-panicBy    = addCallStackInfo .: priLogBy' Panic    ; {-# INLINE panicBy    #-}
+debug    = addCallStackInfo . tagLog' @Debug    ; {-# INLINE debug    #-}
+info     = addCallStackInfo . tagLog' @Info     ; {-# INLINE info     #-}
+notice   = addCallStackInfo . tagLog' @Notice   ; {-# INLINE notice   #-}
+warning  = addCallStackInfo . tagLog' @Warning  ; {-# INLINE warning  #-}
+err      = addCallStackInfo . tagLog' @Error    ; {-# INLINE err      #-}
+critical = addCallStackInfo . tagLog' @Critical ; {-# INLINE critical #-}
+alert    = addCallStackInfo . tagLog' @Alert    ; {-# INLINE alert    #-}
+panic    = addCallStackInfo . tagLog' @Panic    ; {-# INLINE panic    #-}
 
-withDebug, withInfo, withNotice, withWarning, withError, withCritical, withAlert, withPanic
-    :: (HasCallStack, MultiLogging '[Loc, Nesting, Priority, Msg] m, IsDoc msg)
-    => msg -> m a -> m a
-withDebug    = addCallStackInfo .: withPriLog' Debug    ; {-# INLINE withDebug    #-}
-withInfo     = addCallStackInfo .: withPriLog' Info     ; {-# INLINE withInfo     #-}
-withNotice   = addCallStackInfo .: withPriLog' Notice   ; {-# INLINE withNotice   #-}
-withWarning  = addCallStackInfo .: withPriLog' Warning  ; {-# INLINE withWarning  #-}
-withError    = addCallStackInfo .: withPriLog' Error    ; {-# INLINE withError    #-}
-withCritical = addCallStackInfo .: withPriLog' Critical ; {-# INLINE withCritical #-}
-withAlert    = addCallStackInfo .: withPriLog' Alert    ; {-# INLINE withAlert    #-}
-withPanic    = addCallStackInfo .: withPriLog' Panic    ; {-# INLINE withPanic    #-}
 
-withDebugBy, withInfoBy, withNoticeBy, withWarningBy, withErrorBy, withCriticalBy, withAlertBy, withPanicBy
-    :: (HasCallStack, MultiLogging '[Loc, Nesting, Priority, Reporter, Msg] m, ToText reporter, IsDoc msg)
-    => reporter -> msg -> m a -> m a
-withDebugBy    = addCallStackInfo .:. withPriLogBy' Debug    ; {-# INLINE withDebugBy    #-}
-withInfoBy     = addCallStackInfo .:. withPriLogBy' Info     ; {-# INLINE withInfoBy     #-}
-withNoticeBy   = addCallStackInfo .:. withPriLogBy' Notice   ; {-# INLINE withNoticeBy   #-}
-withWarningBy  = addCallStackInfo .:. withPriLogBy' Warning  ; {-# INLINE withWarningBy  #-}
-withErrorBy    = addCallStackInfo .:. withPriLogBy' Error    ; {-# INLINE withErrorBy    #-}
-withCriticalBy = addCallStackInfo .:. withPriLogBy' Critical ; {-# INLINE withCriticalBy #-}
-withAlertBy    = addCallStackInfo .:. withPriLogBy' Alert    ; {-# INLINE withAlertBy    #-}
-withPanicBy    = addCallStackInfo .:. withPriLogBy' Panic    ; {-# INLINE withPanicBy    #-}
+debugBy    :: TagLogBy Debug    reporter msg m => reporter -> msg -> m ()
+infoBy     :: TagLogBy Info     reporter msg m => reporter -> msg -> m ()
+noticeBy   :: TagLogBy Notice   reporter msg m => reporter -> msg -> m ()
+warningBy  :: TagLogBy Warning  reporter msg m => reporter -> msg -> m ()
+errBy      :: TagLogBy Error    reporter msg m => reporter -> msg -> m ()
+criticalBy :: TagLogBy Critical reporter msg m => reporter -> msg -> m ()
+alertBy    :: TagLogBy Alert    reporter msg m => reporter -> msg -> m ()
+panicBy    :: TagLogBy Panic    reporter msg m => reporter -> msg -> m ()
 
+debugBy    = addCallStackInfo .: tagLogBy' @Debug    ; {-# INLINE debugBy    #-}
+infoBy     = addCallStackInfo .: tagLogBy' @Info     ; {-# INLINE infoBy     #-}
+noticeBy   = addCallStackInfo .: tagLogBy' @Notice   ; {-# INLINE noticeBy   #-}
+warningBy  = addCallStackInfo .: tagLogBy' @Warning  ; {-# INLINE warningBy  #-}
+errBy      = addCallStackInfo .: tagLogBy' @Error    ; {-# INLINE errBy      #-}
+criticalBy = addCallStackInfo .: tagLogBy' @Critical ; {-# INLINE criticalBy #-}
+alertBy    = addCallStackInfo .: tagLogBy' @Alert    ; {-# INLINE alertBy    #-}
+panicBy    = addCallStackInfo .: tagLogBy' @Panic    ; {-# INLINE panicBy    #-}
+
+
+withDebug    :: WithTagLog Debug    msg m => msg -> m a -> m a
+withInfo     :: WithTagLog Info     msg m => msg -> m a -> m a
+withNotice   :: WithTagLog Notice   msg m => msg -> m a -> m a
+withWarning  :: WithTagLog Warning  msg m => msg -> m a -> m a
+withErr      :: WithTagLog Error    msg m => msg -> m a -> m a
+withCritical :: WithTagLog Critical msg m => msg -> m a -> m a
+withAlert    :: WithTagLog Alert    msg m => msg -> m a -> m a
+withPanic    :: WithTagLog Panic    msg m => msg -> m a -> m a
+
+withDebug    = addCallStackInfo .: withTagLog' @Debug    ; {-# INLINE withDebug    #-}
+withInfo     = addCallStackInfo .: withTagLog' @Info     ; {-# INLINE withInfo     #-}
+withNotice   = addCallStackInfo .: withTagLog' @Notice   ; {-# INLINE withNotice   #-}
+withWarning  = addCallStackInfo .: withTagLog' @Warning  ; {-# INLINE withWarning  #-}
+withErr      = addCallStackInfo .: withTagLog' @Error    ; {-# INLINE withErr      #-}
+withCritical = addCallStackInfo .: withTagLog' @Critical ; {-# INLINE withCritical #-}
+withAlert    = addCallStackInfo .: withTagLog' @Alert    ; {-# INLINE withAlert    #-}
+withPanic    = addCallStackInfo .: withTagLog' @Panic    ; {-# INLINE withPanic    #-}
+
+
+withDebugBy    :: WithTagLogBy Debug    reporter msg m => reporter -> msg -> m a -> m a
+withInfoBy     :: WithTagLogBy Info     reporter msg m => reporter -> msg -> m a -> m a
+withNoticeBy   :: WithTagLogBy Notice   reporter msg m => reporter -> msg -> m a -> m a
+withWarningBy  :: WithTagLogBy Warning  reporter msg m => reporter -> msg -> m a -> m a
+withErrBy      :: WithTagLogBy Error    reporter msg m => reporter -> msg -> m a -> m a
+withCriticalBy :: WithTagLogBy Critical reporter msg m => reporter -> msg -> m a -> m a
+withAlertBy    :: WithTagLogBy Alert    reporter msg m => reporter -> msg -> m a -> m a
+withPanicBy    :: WithTagLogBy Panic    reporter msg m => reporter -> msg -> m a -> m a
+
+withDebugBy    = addCallStackInfo .:. withTagLogBy' @Debug    ; {-# INLINE withDebugBy    #-}
+withInfoBy     = addCallStackInfo .:. withTagLogBy' @Info     ; {-# INLINE withInfoBy     #-}
+withNoticeBy   = addCallStackInfo .:. withTagLogBy' @Notice   ; {-# INLINE withNoticeBy   #-}
+withWarningBy  = addCallStackInfo .:. withTagLogBy' @Warning  ; {-# INLINE withWarningBy  #-}
+withErrBy      = addCallStackInfo .:. withTagLogBy' @Error    ; {-# INLINE withErrBy      #-}
+withCriticalBy = addCallStackInfo .:. withTagLogBy' @Critical ; {-# INLINE withCriticalBy #-}
+withAlertBy    = addCallStackInfo .:. withTagLogBy' @Alert    ; {-# INLINE withAlertBy    #-}
+withPanicBy    = addCallStackInfo .:. withTagLogBy' @Panic    ; {-# INLINE withPanicBy    #-}
+
+
+-- #ifdef IgnoreDebug
 
 -- === Running utils === --
 
-runLogging :: forall req m a. Monad m
+runPriorityLogging :: forall req m a. Monad m
            => DataProvider Loc
             ( DataProvider Msg
             $ DataProvider Reporter
             $ DataProvider Nesting
             $ DataProvider Priority m
             ) a -> m a
-runLogging = provideData (priority Debug)
+runPriorityLogging = provideData 0 -- FIXME: Is there any better way to provide non-yet-set priority?
            . provideData' @Nesting
            . provideData (reporter "")
            . provideData (msg "")
            . provideData (loc $ error "No source location provided")
-{-# INLINE runLogging #-}
+{-# INLINE runPriorityLogging #-}
+
+runTaggedLogging = provideData  (dynTags mempty)
+                 . provideData' @Nesting
+                 . provideData  (reporter "")
+                 . provideData  (msg "")
+                 . provideData  (loc $ error "No source location provided")
+
+
+-----------------------
+-- === MonadTags === --
+-----------------------
+
+-- === Definition === --
+
+class Monad m => MonadTag tag m where
+    setTag   :: m ()
+    unsetTag :: m ()
+
+type family MonadTags ts m :: Constraint where
+    MonadTags '[]       m = ()
+    MonadTags (t ': ts) m = (MonadTag t m, MonadTags ts m)
+
+
+-- === Utils === --
+
+tagged :: forall t m a. MonadTag t m => m a -> m a
+tagged f = setTag @t *> f <* unsetTag @t ; {-# INLINE tagged #-}
+
+
+-- === Instances === --
+
+instance {-# OVERLAPPABLE #-} (MonadTag tag m, Monad m, Monad (t m), MonadTrans t)
+      => MonadTag tag (t m) where
+    setTag   = lift $ setTag   @tag ; {-# INLINE setTag   #-}
+    unsetTag = lift $ unsetTag @tag ; {-# INLINE unsetTag #-}
+
+instance MonadTag tag IO where
+    setTag   = return () ; {-# INLINE setTag   #-}
+    unsetTag = return () ; {-# INLINE unsetTag #-}
+
+instance MonadTag tag Identity where
+    setTag   = return () ; {-# INLINE setTag   #-}
+    unsetTag = return () ; {-# INLINE unsetTag #-}
 
 
 
@@ -423,6 +549,39 @@ runEchoLogger = runIdentityT . fromEchoLogger ; {-# INLINE runEchoLogger #-}
 
 instance (MonadIO m, DataStore Msg m) => IsLogger Echo m where
     runLogger = liftIO . putDoc =<< getData' @Msg ; {-# INLINE runLogger #-}
+
+
+
+----------------------------
+-- === PriorityLogger === --
+----------------------------
+
+data PRIORITY (prs :: [*])
+type PriorityLogger prs = Logger (PRIORITY prs)
+instance Monad m => IsLogger (PRIORITY prs) m
+
+newtype instance Logger (PRIORITY prs) m a = PriorityLogger { fromPriorityLogger :: IdentityT m a}
+        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
+
+runPriorityLogger :: forall prs m a. (PriorityLogger prs) m a -> m a
+runPriorityLogger = runIdentityT . fromPriorityLogger ; {-# INLINE runPriorityLogger #-}
+
+
+-- === Tag priority handling === --
+
+instance (maybeIdx ~ List.Index tag prs, HandlePriorityTag maybeIdx m)
+      => MonadTag tag (PriorityLogger prs m) where
+    setTag   = handlePriorityTag @maybeIdx ; {-# INLINE setTag   #-}
+    unsetTag = return ()                   ; {-# INLINE unsetTag #-}
+
+class Monad m => HandlePriorityTag (idx :: Maybe Nat) m where
+    handlePriorityTag :: forall prs. PriorityLogger prs m ()
+
+instance Monad m => HandlePriorityTag 'Nothing m where
+    handlePriorityTag = return () ; {-# INLINE handlePriorityTag #-}
+
+instance (DataStore Priority m, KnownNat n) => HandlePriorityTag ('Just n) m where
+    handlePriorityTag = putData $ priority $ natVal (Proxy :: Proxy n) ; {-# INLINE handlePriorityTag #-}
 
 
 
@@ -620,27 +779,31 @@ instance {-# OVERLAPPABLE #-} (Pretty a, Monad m) => PrettyT a m where
 
 
 -- === Basic formatters === --
+--
+-- defaultFormatter :: DataStores '[Msg, Priority] m => Formatter m
+-- defaultFormatter = colorLvlFormatter ("[" <:> Priority <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
 
-defaultFormatter :: DataStores '[Msg, Priority] m => Formatter m
-defaultFormatter = colorLvlFormatter ("[" <:> Priority <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
+defaultFormatter :: DataStores '[DynTags, Msg] m => Formatter m
+defaultFormatter = ("[" <:> DynTags <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
 
-nestedReportedFormatter :: DataStores '[Priority, Nesting, Reporter, Msg] m => Formatter m
-nestedReportedFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
+nestedReportedFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m
+nestedReportedFormatter = ("[" <:> DynTags <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
+-- nestedReportedFormatter = ("[" <:> Priority % Compact <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
 
-defaultTimeFormatter :: DataStores '[Time, Loc, Priority, Msg] m => Formatter m
-defaultTimeFormatter = colorLvlFormatter ("[" <:> Priority % Compact <:> "] ") <:> Time <:> ": " <:> Loc <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE defaultTimeFormatter #-}
+-- defaultTimeFormatter :: DataStores '[Time, Loc, Priority, Msg] m => Formatter m
+-- defaultTimeFormatter = ("[" <:> Priority % Compact <:> "] ") <:> Time <:> ": " <:> Loc <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE defaultTimeFormatter #-}
 
-colorLvlFormatter :: DataStore Priority m => Formatter m -> Formatter m
-colorLvlFormatter f = Formatter ((lvlColor . toEnum <$> getData' @Priority) <*> runFormatter f)
+-- colorLvlFormatter :: DataStore Priority m => Formatter m -> Formatter m
+-- colorLvlFormatter f = Formatter ((lvlColor . toEnum <$> getData' @Priority) <*> runFormatter f)
 
 
-lvlColor :: LogLvl -> Doc -> Doc
-lvlColor lvl
-    | lvl == Debug   = Doc.blue
-    | lvl <= Notice  = Doc.green
-    | lvl <= Warning = Doc.yellow
-    | otherwise = Doc.red
-{-# INLINE lvlColor #-}
+-- lvlColor :: LogLvl -> Doc -> Doc
+-- lvlColor lvl
+--     | lvl == Debug   = Doc.blue
+--     | lvl <= Notice  = Doc.green
+--     | lvl <= Warning = Doc.yellow
+--     | otherwise = Doc.red
+-- {-# INLINE lvlColor #-}
 
 
 
@@ -653,17 +816,21 @@ instance Pretty (LogData Msg) where
 instance Pretty (LogData Reporter) where
     pretty = pretty . unwrap' ; {-# INLINE pretty #-}
 
-instance Pretty (LogData Priority) where
-    pretty = text . show . toEnum @LogLvl . unwrap' ; {-# INLINE pretty #-}
+-- instance Pretty (LogData Priority) where
+--     pretty = text . show . toEnum @LogLvl . unwrap' ; {-# INLINE pretty #-}
 
-instance Pretty (Styled Compact (LogData Priority)) where
-    pretty = text . pure . head . show . toEnum @LogLvl . unwrap' . unwrap' ; {-# INLINE pretty #-}
+-- instance Pretty (Styled Compact (LogData Priority)) where
+--     pretty = text . pure . head . show . toEnum @LogLvl . unwrap' . unwrap' ; {-# INLINE pretty #-}
 
 instance Pretty (LogData Time) where
     pretty = text . formatTime defaultTimeLocale "%c" . unwrap' ; {-# INLINE pretty #-}
 
 instance Pretty (LogData Loc) where
     pretty (LogData loc) = text $ srcLocFile loc <> ":" <> show (srcLocStartLine loc) ; {-# INLINE pretty #-}
+
+instance Pretty (LogData DynTags) where
+    pretty = text . intercalate ", " . fmap (Typeable.tyConName . Typeable.typeRepTyCon) . convert . unwrap' ; {-# INLINE pretty #-}
+
 
 instance Pretty Text where pretty = text . convert ; {-# INLINE pretty #-} -- FIXME: Text -> String -> Doc is not the optimal path.
 
@@ -700,11 +867,11 @@ instance DataStore Msg m => IsLogger Plain m where
 
 -- TODO
 -- [x] Plain logger
--- [ ] Logger tags
--- [ ] Safe Levels declaration
--- [ ] Distribute to modules
+-- [x] Logger tags
+-- [x] Safe Levels declaration
 -- [x] WriterLogger (getLogs, clearLogs, etc.)
 -- [x] Loction logging
+-- [ ] Distribute to modules
 -- [ ] FilterLogger - filtering messages at ocmpile time without computing everything (!)
 -- [ ] Threading loggers
 
@@ -720,21 +887,23 @@ instance DataStore Msg m => IsLogger Plain m where
 
 tst :: Logging m => m ()
 tst = runIdentityT $ do
-    withDebug "foo" $ do
-        debug "bar"
+    -- withDebug "foo" $ do
+    --     debug "bar"
     debug "baz"
     return ()
 
 
 lmain :: IO ()
 lmain = do
-    dropLogs tst
-    runLogging $ runEchoLogger $ runFormatLogger defaultTimeFormatter $ tst
-    let logs = runIdentity $ runLogging $ execWriterLogger @Msg $ tst
-    print "---"
-    print logs
+    -- dropLogs tst
+    -- runTaggedLogging $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
+    runTaggedLogging $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
+    -- runTaggedLogging $ runPriorityLogger @StdLogLevels $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
+    -- let logs = runIdentity $ runPriorityLogging $ execWriterLogger @Msg $ tst
+    -- print "---"
+    -- print logs
     -- dropLogs tst
 
-    -- runNestedLogger $ runStdLogger $ runEchoLogger tst2
+    -- runNestedLogger $ runStdLogger $ runEchoLogger tst
     -- dropLogs tst
     print "hello"

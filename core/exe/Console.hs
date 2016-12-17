@@ -204,7 +204,7 @@ fff = ttt
 
 main :: HasCallStack => IO ()
 main = do
-    runLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
+    runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
         (p, vis) <- Vis.newRunDiffT test_pass1
         case p of
             Left e -> do
@@ -217,7 +217,7 @@ main = do
                 return ()
         print p
     lmain
-    ttt
+    -- ttt
 
 
 ------ Old Notes
