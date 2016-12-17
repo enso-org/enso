@@ -780,14 +780,14 @@ instance {-# OVERLAPPABLE #-} (Pretty a, Monad m) => PrettyT a m where
 
 -- === Basic formatters === --
 --
--- defaultFormatter :: DataStores '[Msg, Priority] m => Formatter m
--- defaultFormatter = colorLvlFormatter ("[" <:> Priority <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
+defPriorityFormatter :: DataStores '[Msg, Priority] m => Formatter m
+defPriorityFormatter = "[" <:> Priority <:> "] " <:> Msg <:> Doc.hardline ; {-# INLINE defPriorityFormatter #-}
 
-defaultFormatter :: DataStores '[DynTags, Msg] m => Formatter m
-defaultFormatter = ("[" <:> DynTags <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defaultFormatter #-}
+defTagFormatter :: DataStores '[DynTags, Msg] m => Formatter m
+defTagFormatter = ("[" <:> DynTags <:> "] ") <:> Msg <:> Doc.hardline ; {-# INLINE defTagFormatter #-}
 
 nestedReportedFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m
-nestedReportedFormatter = ("[" <:> DynTags <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
+nestedReportedFormatter = tagColorFormatter (buildFormatter "• ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
 -- nestedReportedFormatter = ("[" <:> Priority % Compact <:> "] ") <:> Nesting <:> Reporter <:> ": " <:> Msg <:> Doc.hardline ; {-# INLINE nestedReportedFormatter #-}
 
 -- defaultTimeFormatter :: DataStores '[Time, Loc, Priority, Msg] m => Formatter m
@@ -796,14 +796,31 @@ nestedReportedFormatter = ("[" <:> DynTags <:> "] ") <:> Nesting <:> Reporter <:
 -- colorLvlFormatter :: DataStore Priority m => Formatter m -> Formatter m
 -- colorLvlFormatter f = Formatter ((lvlColor . toEnum <$> getData' @Priority) <*> runFormatter f)
 
+tagColorFormatter :: DataStore DynTags m => Formatter m -> Formatter m
+tagColorFormatter f = Formatter ((checkTagsColor stdColorPalette <$> getData' @DynTags) <*> runFormatter f)
 
--- lvlColor :: LogLvl -> Doc -> Doc
--- lvlColor lvl
---     | lvl == Debug   = Doc.blue
---     | lvl <= Notice  = Doc.green
---     | lvl <= Warning = Doc.yellow
---     | otherwise = Doc.red
--- {-# INLINE lvlColor #-}
+
+type Color = Doc -> Doc
+
+type ColorPalette = Map DynTag Color
+
+stdColorPalette :: ColorPalette
+stdColorPalette = Map.insert (dynTag Debug)    Doc.blue
+                $ Map.insert (dynTag Info)     Doc.green
+                $ Map.insert (dynTag Notice)   Doc.green
+                $ Map.insert (dynTag Warning)  Doc.yellow
+                $ Map.insert (dynTag Error)    Doc.red
+                $ Map.insert (dynTag Critical) Doc.red
+                $ Map.insert (dynTag Alert)    Doc.red
+                $ Map.insert (dynTag Panic)    Doc.red
+                $ mempty
+
+checkTagsColor :: ColorPalette -> Set DynTag -> Color
+checkTagsColor p ts = case catMaybes $ map (flip Map.lookup p) $ convert ts of
+    []    -> id
+    (c:_) -> c
+{-# INLINE checkTagsColor #-}
+
 
 
 
@@ -816,11 +833,8 @@ instance Pretty (LogData Msg) where
 instance Pretty (LogData Reporter) where
     pretty = pretty . unwrap' ; {-# INLINE pretty #-}
 
--- instance Pretty (LogData Priority) where
---     pretty = text . show . toEnum @LogLvl . unwrap' ; {-# INLINE pretty #-}
-
--- instance Pretty (Styled Compact (LogData Priority)) where
---     pretty = text . pure . head . show . toEnum @LogLvl . unwrap' . unwrap' ; {-# INLINE pretty #-}
+instance Pretty (LogData Priority) where
+    pretty = text . show . unwrap' ; {-# INLINE pretty #-}
 
 instance Pretty (LogData Time) where
     pretty = text . formatTime defaultTimeLocale "%c" . unwrap' ; {-# INLINE pretty #-}
@@ -896,9 +910,9 @@ tst = runIdentityT $ do
 lmain :: IO ()
 lmain = do
     -- dropLogs tst
-    -- runTaggedLogging $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
-    runTaggedLogging $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
-    -- runTaggedLogging $ runPriorityLogger @StdLogLevels $ runEchoLogger $ runFormatLogger defaultFormatter $ tst
+    -- runTaggedLogging $ runEchoLogger $ runFormatLogger defTagFormatter $ tst
+    runTaggedLogging $ runEchoLogger $ runFormatLogger defTagFormatter $ tst
+    runPriorityLogging $ runPriorityLogger @StdLogLevels $ runEchoLogger $ runFormatLogger defPriorityFormatter $ tst
     -- let logs = runIdentity $ runPriorityLogging $ execWriterLogger @Msg $ tst
     -- print "---"
     -- print logs
