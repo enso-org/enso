@@ -16,6 +16,7 @@ import System.Log.Data   as X (nested)
 
 import Prologue
 import System.Log.Logger.Format
+import System.Log.Data
 
 
 -------------------
@@ -25,24 +26,24 @@ import System.Log.Logger.Format
 tst :: Logging m => m ()
 tst = runIdentityT $ do
     withDebug "foo" $ do
-        debug "bar"
+        warning "bar"
     debug "baz"
     return ()
 
 
 lmain :: IO ()
 lmain = do
+    putStrLn "-- 1 --"
     dropLogs tst
-    -- runTaggedLogging $ runEchoLogger $ runFormatLogger bulletNestingFormatter $ tst
+    putStrLn "-- 2 --"
     runTaggedLogging $ runEchoLogger $ runFormatLogger bulletNestingFormatter $ tst
+    putStrLn "-- 3 --"
     runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger bulletNestingFormatter $ tst
-    runPriorityLogging $ runPriorityLogger @StdLevels $ runEchoLogger $ runFormatLogger examplePriorityFormatter $ tst
-    -- let logs = runIdentity $ runPriorityLogging $ execWriterLogger @Msg $ tst
-    -- print "---"
-    -- print logs
-    -- dropLogs tst
-
-    -- runNestedLogger $ runStdLogger $ runEchoLogger tst
-    -- dropLogs tst
-    putStrLn ""
-    print "hello"
+    putStrLn "-- 4 --"
+    runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger bulletNestingFormatter $ runStaticTagFilterLogger @(StdPriorities Warning) tst
+    putStrLn "-- 5 --"
+    runPriorityLogging @StdLevels $ runEchoLogger $ runFormatLogger examplePriorityFormatter $ tst
+    putStrLn "-- 6 --"
+    let logs = runIdentity $ runTaggedLogging $ execWriterLogger @Msg $ tst
+    print logs
+    

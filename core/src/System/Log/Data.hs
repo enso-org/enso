@@ -190,9 +190,10 @@ dynTags :: Set DynTag -> LogData DynTags
 dynTags = wrap' ; {-# INLINE dynTags #-}
 
 
-instance (Monad m, Typeable tag) => MonadTag tag (DataProvider DynTags m) where
-    setTag   = modifyData_ @DynTags $ wrapped' %~ Set.insert (typeRep' @tag) ; {-# INLINE setTag   #-}
-    unsetTag = modifyData_ @DynTags $ wrapped' %~ Set.delete (typeRep' @tag) ; {-# INLINE unsetTag #-}
+instance (MonadTagged tag m, Typeable tag) => MonadTagged tag (DataProvider DynTags m) where
+    preTagged  = modifyData_ @DynTags (wrapped' %~ Set.insert (typeRep' @tag)) >> lift (preTagged  @tag) ; {-# INLINE preTagged  #-}
+    postTagged = modifyData_ @DynTags (wrapped' %~ Set.delete (typeRep' @tag)) >> lift (postTagged @tag) ; {-# INLINE postTagged #-}
+    inTagged   = lift . inTagged @tag                                                                    ; {-# INLINE inTagged   #-}
 
 
 -- === Priority === --

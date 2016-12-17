@@ -22,10 +22,11 @@ runPriorityLogger = runIdentityLogger ; {-# INLINE runPriorityLogger #-}
 
 -- === Tag priority handling === --
 
-instance (maybeIdx ~ List.Index tag prs, HandlePriorityTag maybeIdx m)
-      => MonadTag tag (Logger (PriorityLogger prs) m) where
-    setTag   = handlePriorityTag @maybeIdx ; {-# INLINE setTag   #-}
-    unsetTag = return ()                   ; {-# INLINE unsetTag #-}
+instance (maybeIdx ~ List.Index tag prs, HandlePriorityTag maybeIdx m, MonadTagged tag m)
+      => MonadTagged tag (Logger (PriorityLogger prs) m) where
+    preTagged  = handlePriorityTag @maybeIdx >> lift (preTagged  @tag) ; {-# INLINE preTagged  #-}
+    postTagged = return ()                   >> lift (postTagged @tag) ; {-# INLINE postTagged #-}
+    inTagged   = lift . inTagged @tag                                  ; {-# INLINE inTagged   #-}
 
 class Monad m => HandlePriorityTag (idx :: Maybe Nat) m where
     handlePriorityTag :: forall prs. Logger (PriorityLogger prs) m ()

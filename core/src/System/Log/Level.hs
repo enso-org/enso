@@ -7,6 +7,7 @@ import GHC.Stack (HasCallStack, callStack, getCallStack)
 
 import System.Log.Data
 import System.Log.Logger.Class
+import System.Log.Logger.Priority (PriorityLogger, runPriorityLogger)
 
 
 -------------------------------------
@@ -24,6 +25,12 @@ data Panic    = Panic    deriving (Show) -- System is unusable
 
 type StdLevels = '[Debug, Info, Notice, Warning, Error, Critical, Alert, Panic]
 
+type family Priorities (lvls :: [*]) (lvl :: *) :: [*] where
+    Priorities '[]       l = '[]
+    Priorities (l ': ls) l = l ': ls
+    Priorities (l ': ls) k = Priorities ls k
+
+type StdPriorities p = Priorities StdLevels p
 
 
 ------------------------------------
@@ -48,7 +55,7 @@ type Logging        m = (LocLogging m, ReportedLogging m, NestedLogging m, Monad
 type LocLog m = (HasCallStack, DataStore Loc m)
 
 type     MsgLog'              msg m = (MonadLogging      m, DataStore Msg      m, IsDoc msg)
-type     TagLog'   t          msg m = (MsgLog'       msg m, MonadTag  t        m)
+type     TagLog'   t          msg m = (MsgLog'       msg m, MonadTagged t      m)
 type     TagLogBy' t reporter msg m = (TagLog'     t msg m, DataStore Reporter m, ToText reporter)
 type WithTagLog'   t          msg m = (TagLog'     t msg m, DataStore Nesting  m)
 type WithTagLogBy' t reporter msg m = (WithTagLog' t msg m, DataStore Reporter m, ToText reporter)
@@ -164,9 +171,10 @@ withPanicBy    = addCallStackInfo .:. withTagLogBy' @Panic    ; {-# INLINE withP
 
 -- === Running utils === --
 
-runPriorityLogging :: forall req m a. Monad m
-           => DataProvider Loc
-            ( DataProvider Msg
+runPriorityLogging :: forall prs m a. Monad m
+           => Logger (PriorityLogger prs)
+            ( DataProvider Loc
+            $ DataProvider Msg
             $ DataProvider Reporter
             $ DataProvider Nesting
             $ DataProvider Priority m
@@ -176,7 +184,9 @@ runPriorityLogging = provideData 0 -- FIXME: Is there any better way to provide 
            . provideData (reporter "")
            . provideData (msg "")
            . provideData (loc $ error "No source location provided")
+           . runPriorityLogger @prs
 {-# INLINE runPriorityLogging #-}
+
 
 runTaggedLogging = provideData  (dynTags mempty)
                  . provideData' @Nesting

@@ -153,32 +153,36 @@ instance MonadTrans (Logger (StateLogger l)) where
 
 -- === Definition === --
 
-class Monad m => MonadTag tag m where
-    setTag   :: m ()
-    unsetTag :: m ()
+-- | MonadTagged is an internal class giving the fine detailed control over tagged functionality.
+--   When using `tagged @tag foo`, the following functions fill be executed in order: preTagged *> join (inTagged foo) <* postTagged.
+--   Such design gives the ability to cancel `foo` when needed, no matter what the exact type of `foo` is.
+class Monad m => MonadTagged tag m where
+    preTagged  :: m ()
+    postTagged :: m ()
+    inTagged   :: forall n. Monad n => n () -> m (n ())
 
 type family MonadTags ts m :: Constraint where
     MonadTags '[]       m = ()
-    MonadTags (t ': ts) m = (MonadTag t m, MonadTags ts m)
+    MonadTags (t ': ts) m = (MonadTagged t m, MonadTags ts m)
+
+instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadTagged tag m)
+      => MonadTagged tag (t m) where
+    preTagged  = lift $ preTagged  @tag ; {-# INLINE preTagged  #-}
+    postTagged = lift $ postTagged @tag ; {-# INLINE postTagged #-}
+    inTagged   = lift . inTagged   @tag ; {-# INLINE inTagged   #-}
+
+instance MonadTagged tag IO where
+    preTagged  = return () ; {-# INLINE preTagged  #-}
+    postTagged = return () ; {-# INLINE postTagged #-}
+    inTagged   = return    ; {-# INLINE inTagged   #-}
+
+instance MonadTagged tag Identity where
+    preTagged  = return () ; {-# INLINE preTagged  #-}
+    postTagged = return () ; {-# INLINE postTagged #-}
+    inTagged   = return    ; {-# INLINE inTagged   #-}
 
 
 -- === Utils === --
 
-tagged :: forall t m a. MonadTag t m => m a -> m a
-tagged f = setTag @t *> f <* unsetTag @t ; {-# INLINE tagged #-}
-
-
--- === Instances === --
-
-instance {-# OVERLAPPABLE #-} (MonadTag tag m, Monad m, Monad (t m), MonadTrans t)
-      => MonadTag tag (t m) where
-    setTag   = lift $ setTag   @tag ; {-# INLINE setTag   #-}
-    unsetTag = lift $ unsetTag @tag ; {-# INLINE unsetTag #-}
-
-instance MonadTag tag IO where
-    setTag   = return () ; {-# INLINE setTag   #-}
-    unsetTag = return () ; {-# INLINE unsetTag #-}
-
-instance MonadTag tag Identity where
-    setTag   = return () ; {-# INLINE setTag   #-}
-    unsetTag = return () ; {-# INLINE unsetTag #-}
+tagged :: forall tag m. MonadTagged tag m => m () -> m ()
+tagged m = preTagged @tag *> join (inTagged @tag m) <* postTagged @tag ; {-# INLINE tagged #-}
