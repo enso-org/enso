@@ -48,6 +48,7 @@ import qualified Data.RTuple.Class as RT
 import Data.Property
 
 import System.Log
+import System.Log.Logger.Format (bulletNestingFormatter)
 
 import GHC.Stack
 
@@ -205,7 +206,7 @@ fff = ttt
 main :: HasCallStack => IO ()
 main = do
     -- runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
-    runTaggedLogging $ runEchoLogger $ runFormatLogger nestedReportedFormatter $ do
+    runTaggedLogging $ runEchoLogger $ runFormatLogger bulletNestingFormatter $ do
         (p, vis) <- Vis.newRunDiffT test_pass1
         case p of
             Left e -> do

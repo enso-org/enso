@@ -30,7 +30,7 @@ class Monad m => MonadLogging m where
     default runLoggers :: MonadLoggingTrans t m => t m ()
     runLoggers = lift runLoggers ; {-# INLINE runLoggers #-}
 
-instance MonadLoggingFound l m
+instance {-# OVERLAPPABLE #-} MonadLoggingFound l m
       => MonadLogging (Logger l m) where runLoggers = runLogger >> lift runLoggers ; {-# INLINE runLoggers #-}
 instance MonadLogging IO           where runLoggers = return ()                    ; {-# INLINE runLoggers #-}
 instance MonadLogging Identity     where runLoggers = return ()                    ; {-# INLINE runLoggers #-}
@@ -87,17 +87,18 @@ instance {-# OVERLAPPABLE #-} Monad m => IsLogger (IdentityLogger l) m
 data StateLogger l
 type family StateOf l (m :: * -> *)
 
-newtype instance Logger (StateLogger l) m a = StateLogger { fromStateLogger :: StateT (StateOf l m) m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix) -- MonadTrans)
+type CataStateOf l m = StateOf l (Logger (StateLogger l) m)
+newtype instance Logger (StateLogger l) m a = StateLogger { fromStateLogger :: StateT (CataStateOf l m) m a}
+        deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
 
 
-runStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> StateOf l m -> m (a, StateOf l m)
+runStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> CataStateOf l m -> m (a, CataStateOf l m)
 runStateLogger = runStateT . fromStateLogger ; {-# INLINE runStateLogger #-}
 
-evalStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> StateOf l m -> m a
+evalStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> CataStateOf l m -> m a
 evalStateLogger = evalStateT . fromStateLogger ; {-# INLINE evalStateLogger #-}
 
-execStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> StateOf l m -> m (StateOf l m)
+execStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> CataStateOf l m -> m (CataStateOf l m)
 execStateLogger = execStateT . fromStateLogger ; {-# INLINE execStateLogger #-}
 
 
@@ -107,8 +108,7 @@ class Monad m => MonadLoggerState l m where
     getLoggerState :: m (StateOf l m)
     putLoggerState :: StateOf l m -> m ()
 
-instance (Monad m, StateOf l m ~ StateOf l (Logger (StateLogger l) m))
-      => MonadLoggerState l (Logger (StateLogger l) m) where
+instance Monad m => MonadLoggerState l (Logger (StateLogger l) m) where
     getLoggerState = StateLogger   State.get ; {-# INLINE getLoggerState #-}
     putLoggerState = StateLogger . State.put ; {-# INLINE putLoggerState #-}
 
