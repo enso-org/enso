@@ -3,7 +3,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE GADTs                #-}
 
-module System.Log where
+module System.Log (module System.Log, module X) where
 
 import Data.Foldable (fold)
 
@@ -33,170 +33,12 @@ import GHC.Stack
 import qualified Type.List as List
 
 
--------------------------
--- === Logger Data === --
--------------------------
-
--- === Definitions === --
-
-type family DataOf  a
-newtype     LogData a = LogData (DataOf a)
-makeWrapped ''LogData
-
-deriving instance Eq      (DataOf a) => Eq      (LogData a)
-deriving instance Ord     (DataOf a) => Ord     (LogData a)
-deriving instance Enum    (DataOf a) => Enum    (LogData a)
-deriving instance Num     (DataOf a) => Num     (LogData a)
-deriving instance Show    (DataOf a) => Show    (LogData a)
-deriving instance Default (DataOf a) => Default (LogData a)
-
-
-
---------------------
--- === Logger === --
---------------------
-
-data family Logger l (m :: * -> *) a
-
-instance (MonadTrans (Logger l), Monad (Logger l m), PrimMonad m)
-      => PrimMonad (Logger l m) where
-    type PrimState (Logger l m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
-
-class IsLogger l m where
-    runLogger :: Logger l m ()
-    default runLogger :: Monad (Logger l m) => Logger l m ()
-    runLogger = return ()
-
-
--- === LoggersFinder === --
-
-class Monad m => LoggersFinder m where
-    findLoggers :: m ()
-
-instance {-# OVERLAPPABLE #-}
-         LoggersFinderTrans t m => LoggersFinder (t m)        where findLoggers = lift findLoggers              ; {-# INLINE findLoggers #-}
-instance LoggersFinderFound l m => LoggersFinder (Logger l m) where findLoggers = runLogger >> lift findLoggers ; {-# INLINE findLoggers #-}
-instance                           LoggersFinder IO           where findLoggers = return ()                     ; {-# INLINE findLoggers #-}
-instance                           LoggersFinder Identity     where findLoggers = return ()                     ; {-# INLINE findLoggers #-}
-type LoggersFinderFound l m = (LoggersFinderTrans (Logger l) m, IsLogger l m, LoggersFinder m)
-type LoggersFinderTrans t m = (Monad m, Monad (t m), MonadTrans t, LoggersFinder m)
-
-
-
----------------------------
--- === Data handling === --
----------------------------
-
--- === Definition === --
-
-newtype DataProvider d m a = DataProvider (StateT (LogData d) m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
-makeWrapped ''DataProvider
-
-
--- === Management === --
-
-provideData :: forall d m a. Monad m => LogData d -> DataProvider d m a -> m a
-provideData = flip (State.evalStateT . unwrap') ; {-# INLINE provideData #-}
-
-provideData' :: forall d m a. (Monad m, Default (LogData d)) => DataProvider d m a -> m a
-provideData' = provideData def ; {-# INLINE provideData' #-}
-
-modifyDataM :: forall d a m. DataStore d m => (LogData d -> m (a, LogData d)) -> m a
-modifyDataM f = do
-    d <- getData
-    (a, d') <- f d
-    putData d'
-    return a
-{-# INLINE modifyDataM #-}
-
-modifyDataM_ :: forall d m. DataStore d m => (LogData d -> m (LogData d)) -> m ()
-modifyDataM_ = modifyDataM . (fmap.fmap) ((),) ; {-# INLINE modifyDataM_ #-}
-
-modifyData :: forall d a m. DataStore d m => (LogData d -> (a, LogData d)) -> m a
-modifyData = modifyDataM . fmap return ; {-# INLINE modifyData #-}
-
-modifyData_ :: forall d m. DataStore d m => (LogData d -> LogData d) -> m ()
-modifyData_ = modifyDataM_ . fmap return ; {-# INLINE modifyData_ #-}
-
-withData :: forall d m a. DataStore d m => LogData d -> m a -> m a
-withData = withModData . const ; {-# INLINE withData #-}
-
-withModData :: forall d m a. DataStore d m => (LogData d -> LogData d) -> m a -> m a
-withModData df f = do
-    old <- getData @d
-    putData $ df old
-    out <- f
-    putData old
-    return out
-{-# INLINE withModData #-}
-
-
--- === DataStore === ---
-
-class Monad m => DataStore d m where
-    getData :: m (LogData d)
-    putData :: LogData d -> m ()
-
-instance Monad m => DataStore d (DataProvider d m) where
-    getData = wrap'   State.get ; {-# INLINE getData #-}
-    putData = wrap' . State.put ; {-# INLINE putData #-}
-
-type DataStoreTrans d t m = (Monad m, MonadTrans t, Monad (t m), DataStore d m)
-instance {-# OVERLAPPABLE #-} DataStoreTrans d t m => DataStore d (t m) where
-    getData = lift   getData ; {-# INLINE getData #-}
-    putData = lift . putData ; {-# INLINE putData #-}
-
-type family DataStores ds   m :: Constraint where
-    DataStores '[  ] m = ()
-    DataStores (d   ': ds) m = (DataStore d m, DataStores ds   m)
-
-
-getData' :: forall d m. DataStore d m => m (DataOf d)
-getData' = unwrap' <$> getData @d ; {-# INLINE getData' #-}
-
-putData' :: forall d m. DataStore d m => DataOf d -> m ()
-putData' = putData @d . wrap' ; {-# INLINE putData' #-}
-
-
--- === Instances === --
-
-instance PrimMonad m => PrimMonad (DataProvider d m) where
-    type PrimState (DataProvider d m) = PrimState m
-    primitive = lift . primitive ; {-# INLINE primitive #-}
-
-
-
-
---------------------------
--- === MonadLogging === --
---------------------------
-
--- | The whle purpose of MonadLogging is to give nice compilation errors.
---   After Logger is seen, we fire data discovery and logger execution.
-
--- === Definition === --
-
-class Monad m => MonadLogging m where
-    log :: m ()
-    default log :: (MonadTrans t, MonadLogging m) => t m ()
-    log = lift log ; {-# INLINE log #-}
-
-
--- === Instances === --
-
-instance (Monad m, LoggersFinder (DataProvider d m))
-      => MonadLogging (DataProvider d m) where
-    log = findLoggers ; {-# INLINE log #-}
-
-instance (Monad m, Monad (Logger l m), LoggersFinder (Logger l m))
-      => MonadLogging (Logger l m) where
-    log = findLoggers ; {-# INLINE log #-}
-
--- Standard monads
-instance MonadLogging m => MonadLogging (StateT s m)
-instance MonadLogging m => MonadLogging (IdentityT m)
-
+import System.Log.Data   as X
+import System.Log.Logger.Class as X
+import System.Log.Level  as X
+import System.Log.Logger.Echo as X
+import System.Log.Logger.Drop as X
+import System.Log.Logger.Priority as X
 
 
 
@@ -205,123 +47,11 @@ instance MonadLogging m => MonadLogging (IdentityT m)
 
 
 
-type IsDoc t = Convertible t Doc -- FIXME: refactor
-
-instance Convertible String Doc where
-    convert s = Doc.text s ; {-# INLINE convert #-}
 
 
--------------------------------------
--- === Standard logging levels === --
--------------------------------------
-
-data Debug    = Debug    deriving (Show) -- Debug Logs
-data Info     = Info     deriving (Show) -- Information
-data Notice   = Notice   deriving (Show) -- Normal runtime conditions
-data Warning  = Warning  deriving (Show) -- General Warnings
-data Error    = Error    deriving (Show) -- General Errors
-data Critical = Critical deriving (Show) -- Severe situations
-data Alert    = Alert    deriving (Show) -- Take immediate action
-data Panic    = Panic    deriving (Show) -- System is unusable
-
-type StdLogLevels = '[Debug, Info, Notice, Warning, Error, Critical, Alert, Panic]
 
 
-------------------------------
--- === BaseLogger datas === --
-------------------------------
 
-
--- === Loc === --
-
-data Loc = Loc deriving (Show)
-type instance DataOf Loc = SrcLoc
-
-loc :: SrcLoc -> LogData Loc
-loc = wrap' ; {-# INLINE loc #-}
-
-
--- === Time === --
-
-data Time = Time deriving (Show)
-type instance DataOf Time = UTCTime
-
-time :: UTCTime -> LogData Time
-time = wrap' ; {-# INLINE time #-}
-
-instance DataStore Time IO where
-    getData = time <$> getCurrentTime ; {-# INLINE getData #-}
-    putData = error "impossible"      ; {-# INLINE putData #-}
-
-
--- === Msg === --
-
-data Msg = Msg deriving (Show)
-type instance DataOf Msg = Doc
-
-msg :: IsDoc t => t -> LogData Msg
-msg = wrap' . convert ; {-# INLINE msg #-}
-
-
--- === Reporter === --
-
-data Reporter = Reporter deriving (Show)
-type instance DataOf Reporter = Text
-
-reporter :: ToText r => r -> LogData Reporter
-reporter = wrap' . convert ; {-# INLINE reporter #-}
-
-reported :: (DataStore Reporter m, ToText r) => r -> m a -> m a
-reported = withData . reporter ; {-# INLINE reported #-}
-
-
--- === DynTags === --
-
-type DynTag = TypeRep
-
-data DynTags = DynTags deriving (Show)
-type instance DataOf DynTags = Set DynTag
-
-dynTag :: Typeable p => p -> DynTag
-dynTag = typeOf ; {-# INLINE dynTag #-}
-
-dynTags :: Set DynTag -> LogData DynTags
-dynTags = wrap' ; {-# INLINE dynTags #-}
-
-
-instance (Monad m, Typeable tag) => MonadTag tag (DataProvider DynTags m) where
-    setTag   = modifyData_ @DynTags $ wrapped' %~ Set.insert (typeRep' @tag) ; {-# INLINE setTag   #-}
-    unsetTag = modifyData_ @DynTags $ wrapped' %~ Set.delete (typeRep' @tag) ; {-# INLINE unsetTag #-}
-
-
--- === Priority === --
-
-data Priority = Priority deriving (Show)
-type instance DataOf Priority = Int
-
-priority :: Enum p => p -> LogData Priority
-priority = wrap' . fromEnum ; {-# INLINE priority #-}
-
-
--- === Nesting === --
-
-data Nesting = Nesting deriving (Show)
-type instance DataOf Nesting = Int
-
-nesting :: Int -> LogData Nesting
-nesting = wrap' ; {-# INLINE nesting #-}
-
-withNesting :: DataStore Nesting m => (LogData Nesting -> LogData Nesting) -> m ()
-withNesting = modifyData_ @Nesting ; {-# INLINE withNesting #-}
-
-incNesting :: DataStore Nesting m => m ()
-incNesting = withNesting succ ; {-# INLINE incNesting #-}
-
-decNesting :: DataStore Nesting m => m ()
-decNesting = withNesting pred ; {-# INLINE decNesting #-}
-
-nested :: DataStore Nesting m => m a -> m a
-nested = withModData @Nesting succ ; {-# INLINE nested #-}
 
 
 
@@ -339,7 +69,7 @@ type ReportedLogging m = (MsgLogging   m, DataStore Reporter m)
 type NestedLogging   m = (MsgLogging   m, DataStore Nesting  m)
 
 
-type Logging        m = (LocLogging m, ReportedLogging m, NestedLogging m, MonadTags StdLogLevels m)
+type Logging        m = (LocLogging m, ReportedLogging m, NestedLogging m, MonadTags StdLevels m)
 
 
 -- === Generic logging === --
@@ -370,7 +100,7 @@ type WithTagLogBy  t reporter msg m = (LocLog m, WithTagLogBy' t reporter msg m)
 
 msgLog' :: forall msg m. MsgLog' msg m
         => msg -> m ()
-msgLog' m = withData (msg m) log ; {-# INLINE msgLog' #-}
+msgLog' m = withData (msg m) runLoggers ; {-# INLINE msgLog' #-}
 
 tagLog' :: forall t msg m. TagLog' t msg m
         => msg -> m ()
@@ -492,96 +222,12 @@ runTaggedLogging = provideData  (dynTags mempty)
                  . provideData  (loc $ error "No source location provided")
 
 
------------------------
--- === MonadTags === --
------------------------
-
--- === Definition === --
-
-class Monad m => MonadTag tag m where
-    setTag   :: m ()
-    unsetTag :: m ()
-
-type family MonadTags ts m :: Constraint where
-    MonadTags '[]       m = ()
-    MonadTags (t ': ts) m = (MonadTag t m, MonadTags ts m)
-
-
--- === Utils === --
-
-tagged :: forall t m a. MonadTag t m => m a -> m a
-tagged f = setTag @t *> f <* unsetTag @t ; {-# INLINE tagged #-}
-
-
--- === Instances === --
-
-instance {-# OVERLAPPABLE #-} (MonadTag tag m, Monad m, Monad (t m), MonadTrans t)
-      => MonadTag tag (t m) where
-    setTag   = lift $ setTag   @tag ; {-# INLINE setTag   #-}
-    unsetTag = lift $ unsetTag @tag ; {-# INLINE unsetTag #-}
-
-instance MonadTag tag IO where
-    setTag   = return () ; {-# INLINE setTag   #-}
-    unsetTag = return () ; {-# INLINE unsetTag #-}
-
-instance MonadTag tag Identity where
-    setTag   = return () ; {-# INLINE setTag   #-}
-    unsetTag = return () ; {-# INLINE unsetTag #-}
 
 
 
 
-------------------------
--- === EchoLogger === --
-------------------------
-
-data Echo
-type EchoLogger = Logger Echo
-
-newtype instance Logger Echo m a = EchoLogger { fromEchoLogger :: IdentityT m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
-
-runEchoLogger :: EchoLogger m a -> m a
-runEchoLogger = runIdentityT . fromEchoLogger ; {-# INLINE runEchoLogger #-}
 
 
--- === Instances === --
-
-instance (MonadIO m, DataStore Msg m) => IsLogger Echo m where
-    runLogger = liftIO . putDoc =<< getData' @Msg ; {-# INLINE runLogger #-}
-
-
-
-----------------------------
--- === PriorityLogger === --
-----------------------------
-
-data PRIORITY (prs :: [*])
-type PriorityLogger prs = Logger (PRIORITY prs)
-instance Monad m => IsLogger (PRIORITY prs) m
-
-newtype instance Logger (PRIORITY prs) m a = PriorityLogger { fromPriorityLogger :: IdentityT m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
-
-runPriorityLogger :: forall prs m a. (PriorityLogger prs) m a -> m a
-runPriorityLogger = runIdentityT . fromPriorityLogger ; {-# INLINE runPriorityLogger #-}
-
-
--- === Tag priority handling === --
-
-instance (maybeIdx ~ List.Index tag prs, HandlePriorityTag maybeIdx m)
-      => MonadTag tag (PriorityLogger prs m) where
-    setTag   = handlePriorityTag @maybeIdx ; {-# INLINE setTag   #-}
-    unsetTag = return ()                   ; {-# INLINE unsetTag #-}
-
-class Monad m => HandlePriorityTag (idx :: Maybe Nat) m where
-    handlePriorityTag :: forall prs. PriorityLogger prs m ()
-
-instance Monad m => HandlePriorityTag 'Nothing m where
-    handlePriorityTag = return () ; {-# INLINE handlePriorityTag #-}
-
-instance (DataStore Priority m, KnownNat n) => HandlePriorityTag ('Just n) m where
-    handlePriorityTag = putData $ priority $ natVal (Proxy :: Proxy n) ; {-# INLINE handlePriorityTag #-}
 
 
 
@@ -644,31 +290,7 @@ instance DataStore t m => IsLogger (Writer t) m where
 
 
 
-------------------------
--- === DropLogger === --
-------------------------
 
-data Drop
-type DropLogger = Logger Drop
-
-newtype instance Logger Drop m a = DropLogger { fromDropLogger :: IdentityT m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
-
-dropLogs :: DropLogger m a -> m a
-dropLogs = runIdentityT . fromDropLogger ; {-# INLINE dropLogs #-}
-
-
--- === Instances === --
-
-instance {-# OVERLAPPING #-}
-         Monad m => MonadLogging  (DropLogger m) where log         = return () ; {-# INLINE log         #-}
-instance Monad m => LoggersFinder (DropLogger m) where findLoggers = return () ; {-# INLINE findLoggers #-}
-
--- This is hacky, but because Drop logger is guaranteed to drop all logs,
--- we can be sure the information will not be needed.
-instance Monad m => DataStore d (DropLogger m) where
-    getData   = return (error "impossible") ; {-# INLINE getData #-}
-    putData _ = return (error "impossible") ; {-# INLINE putData #-}
 
 
 
@@ -912,7 +534,7 @@ lmain = do
     -- dropLogs tst
     -- runTaggedLogging $ runEchoLogger $ runFormatLogger defTagFormatter $ tst
     runTaggedLogging $ runEchoLogger $ runFormatLogger defTagFormatter $ tst
-    runPriorityLogging $ runPriorityLogger @StdLogLevels $ runEchoLogger $ runFormatLogger defPriorityFormatter $ tst
+    runPriorityLogging $ runPriorityLogger @StdLevels $ runEchoLogger $ runFormatLogger defPriorityFormatter $ tst
     -- let logs = runIdentity $ runPriorityLogging $ execWriterLogger @Msg $ tst
     -- print "---"
     -- print logs
