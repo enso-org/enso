@@ -9,18 +9,19 @@
 module Data.Convert.Instances.Text where
 
 import Prelude
-
 import Data.Convert.Class
-import qualified Data.Text as TS
-import qualified Data.Text.Encoding as TE
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Builder as TLB
+
+import           Data.Default
+import qualified Data.Text               as TS
+import qualified Data.Text.Encoding      as TE
+import qualified Data.Text.Lazy          as TL
+import qualified Data.Text.Lazy.Builder  as TLB
 import qualified Data.Text.Lazy.Encoding as TLE
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString         as BS
+import qualified Data.ByteString.Lazy    as BL
 import qualified Data.ByteString.Builder as BB
-import Data.Word (Word8)
-import Data.Foldable
+import           Data.Word               (Word8)
+import           Data.Foldable
 
 
 -- === Utils === --
@@ -44,6 +45,10 @@ fromLazyText = convert ; {-# INLINE fromLazyText #-}
 
 
 -- === Intances === --
+
+instance Default TS.Text     where def = convert "" ; {-# INLINE def #-}
+instance Default TL.Text     where def = convert "" ; {-# INLINE def #-}
+instance Default TLB.Builder where def = convert "" ; {-# INLINE def #-}
 
 instance Convertible TS.Text TS.Text       where convert = id                            ; {-# INLINE convert #-}
 instance Convertible TS.Text String        where convert = TS.unpack                     ; {-# INLINE convert #-}
