@@ -7,6 +7,7 @@ import Prologue
 import           Control.Monad.State                  (StateT, evalStateT)
 import           Control.Monad.Error.Class            (MonadError)
 import           Control.Monad.Cont.Class             (MonadCont)
+import           Control.Monad.Catch                  (MonadThrow, MonadCatch)
 import qualified Data.Set                             as Set
 import           Data.Set                             (Set)
 import qualified Control.Monad.State                  as State
@@ -43,7 +44,9 @@ deriving instance Default (DataOf a) => Default (LogData a)
 
 -- === Definition === --
 
-newtype DataProvider d m a = DataProvider (StateT (LogData d) m a) deriving (Functor, Applicative, Alternative, Monad, MonadTrans, MonadIO, MonadFix, MonadError e, MonadPlus, MonadCont)
+newtype DataProvider d m a = DataProvider (StateT (LogData d) m a)
+                             deriving ( Functor, Applicative, Alternative, Monad, MonadTrans, MonadIO, MonadFix
+                                      , MonadError e, MonadPlus, MonadCont, MonadThrow, MonadCatch)
 makeWrapped ''DataProvider
 
 type family DataProviderStack ps m where

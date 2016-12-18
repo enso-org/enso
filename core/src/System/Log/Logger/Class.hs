@@ -9,6 +9,8 @@ import qualified Control.Monad.State          as State
 import           Control.Monad.Trans.Identity (IdentityT)
 import           Control.Monad.Error.Class    (MonadError)
 import           Control.Monad.Cont.Class     (MonadCont)
+import           Control.Monad.Catch          (MonadThrow, MonadCatch)
+import Control.Monad.Trans.Maybe (MaybeT)
 
 
 --------------------
@@ -52,8 +54,9 @@ instance (MonadTrans (Logger l), Monad (Logger l m), PrimMonad m)
 -- | We should NOT make a generic overlappable transformer instance here
 --   if we want to have any control over GHC type-inferencer errors.
 
-instance MonadLogging m => MonadLogging (StateT s m)
+instance MonadLogging m => MonadLogging (StateT s  m)
 instance MonadLogging m => MonadLogging (IdentityT m)
+instance MonadLogging m => MonadLogging (MaybeT    m)
 
 
 
@@ -65,7 +68,8 @@ instance MonadLogging m => MonadLogging (IdentityT m)
 
 data IdentityLogger l
 newtype instance Logger (IdentityLogger l) m a = IdentityLogger { fromIdentityLogger :: IdentityT m a}
-        deriving (Functor, Applicative, Alternative, Monad, MonadIO, MonadFix, MonadTrans, MonadError e, MonadPlus, MonadCont)
+        deriving ( Functor, Applicative, Alternative, Monad, MonadIO, MonadFix, MonadTrans
+                 , MonadError e, MonadPlus, MonadCont, MonadThrow, MonadCatch )
 
 
 -- === Running === --
@@ -91,7 +95,8 @@ type family StateOf l (m :: * -> *)
 
 type CataStateOf l m = StateOf l (Logger (StateLogger l) m)
 newtype instance Logger (StateLogger l) m a = StateLogger { fromStateLogger :: StateT (CataStateOf l m) m a}
-        deriving (Functor, Applicative, Alternative, Monad, MonadIO, MonadFix, MonadError e, MonadPlus, MonadCont)
+        deriving ( Functor, Applicative, Alternative, Monad, MonadIO, MonadFix
+                 , MonadError e, MonadPlus, MonadCont, MonadThrow, MonadCatch )
 
 
 runStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> CataStateOf l m -> m (a, CataStateOf l m)

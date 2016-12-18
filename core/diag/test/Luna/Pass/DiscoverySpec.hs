@@ -10,6 +10,8 @@ import Test.Hspec   (Spec, describe, it, shouldReturn)
 import           Luna.IR
 import           Luna.Pass (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass as Pass
+import           System.Log
+
 
 data DiscoveryPass
 type instance Abstract  DiscoveryPass = DiscoveryPass
@@ -28,8 +30,8 @@ sanityPass = do
             match nameNode $ \case
                 String s -> return s
 
-testCase :: IRMonadBaseIO m => m (Either Pass.InternalError P.String)
-testCase = evalIRBuilder' $ evalPassManager' $ do
+testCase :: (PrimMonad m, MonadFix m, MonadIO m) => m (Either Pass.InternalError P.String)
+testCase = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' sanityPass
 

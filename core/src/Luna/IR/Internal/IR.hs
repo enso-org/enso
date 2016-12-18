@@ -418,7 +418,7 @@ instance MonadLogging m => MonadLogging (IRBuilder m)
 
 -- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadBase   m = (PrimMonad   m, MonadFix m, MonadIO m, Logging m) -- FIXME: remove IO
+type  IRMonadBase   m = (PrimMonad   m, MonadFix m, Logging m)
 type  IRMonadBaseIO m = (IRMonadBase m, MonadIO  m)
 class IRMonadBase m => IRMonad m where
     getIR :: m (IRM m)
