@@ -156,8 +156,8 @@ instance Monad m => Applicative (Formatter m) where
 
 -- TODO: make it easier for the end-user to overwrite colors and define custom palettes.
 
-dynTagsColorFormatter :: DataStore DynTags m => Formatter m Doc -> Formatter m Doc
-dynTagsColorFormatter f = Formatter $ \doc -> ((checkTagsColor stdColorPalette <$> getData' @DynTags) <*> runFormatter f doc)
+dynTagsColorFormatter :: (DataStore DynTags m, IsFormatter f m) => f -> Formatter m Doc
+dynTagsColorFormatter f = Formatter $ \doc -> ((checkTagsColor stdColorPalette <$> getData' @DynTags) <*> runFormatter (formatter f) doc)
 
 type Color = Doc -> Doc
 
@@ -214,6 +214,9 @@ instance DataStore Msg m => IsLogger FormatLogger m where
 --------------------------------
 -- === Example formatters === --
 --------------------------------
+
+nestedColorFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc
+nestedColorFormatter = line $ Nesting <:> Reporter <:> ":" <+> dynTagsColorFormatter Msg ; {-# INLINE nestedColorFormatter #-}
 
 bulletNestingFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc
 bulletNestingFormatter = line $ dynTagsColorFormatter (formatter "•") <+> Nesting <:> Reporter <:> ":" <+> Msg ; {-# INLINE bulletNestingFormatter #-}

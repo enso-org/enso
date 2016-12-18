@@ -48,7 +48,7 @@ import qualified Data.RTuple.Class as RT
 import Data.Property
 
 import System.Log
-import System.Log.Logger.Format (bulletNestingFormatter)
+import System.Log.Logger.Format (nestedColorFormatter)
 
 import GHC.Stack
 
@@ -125,17 +125,10 @@ gen_pass1 = do
     return ()
 
 
-
-ttt :: HasCallStack => IO ()
-ttt = print $ getCallStack callStack
-
-fff :: IO ()
-fff = ttt
-
 main :: HasCallStack => IO ()
 main = do
     -- runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
-    runTaggedLogging $ runEchoLogger $ runFormatLogger bulletNestingFormatter $ do
+    runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
         (p, vis) <- Vis.newRunDiffT test_pass1
         case p of
             Left e -> do
@@ -148,7 +141,6 @@ main = do
                 return ()
         print p
     lmain
-    -- ttt
 
 
 ------ Old Notes

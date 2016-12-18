@@ -244,8 +244,8 @@ toGraphViz name net = DotGraph { strictGraph     = False
           nodeInEdges   n   = zip3 ([0..] :: [Int]) (genInEdges net $ (cast $ index n ng :: NetLayers :<: Draft Static)) (repeat n)
           mkEdge  (n,(a,attrs),b) = DotEdge (nodeRef a) (nodeRef b) $ HeadPort (LabelledPort (inPortName n) Nothing) : TailPort (LabelledPort "label" Nothing) : attrs
 
-          draftNodeByIx ix   = cast $ index_ ix ng :: (NetLayers :<: Draft Static)
-          clusterByIx   ix   = cast $ index_ ix cg :: NetCluster
+          draftNodeByIx ix   = (error "not used anymore, if used, contact WD" {- cast $ index_ ix ng -}) :: (NetLayers :<: Draft Static)
+          clusterByIx   ix   = (error "not used anymore, if used, contact WD" {- cast $ index_ ix cg -}) :: NetCluster
           genNodeLabel  node = reprStyled HeaderOnly $ uncover node
 
           matchCluster :: Int -> Int -> Maybe Int
@@ -317,7 +317,7 @@ genInEdges (g :: NetGraph) (n :: NetLayers :<: Draft Static) = displayEdges wher
     addColor (idx, attrs) = (idx, GV.color arrClr : attrs)
     getTgtIdx             = view idx ∘ getTgt
     getTgt    inp         = view source $ index (inp ^. idx) es
-    clusterByIx ix        = cast $ index_ ix cg :: NetCluster
+    clusterByIx ix        = (error "not used anymore, if used, contact WD" {- cast $ index_ ix cg -}) :: NetCluster
     cg                    = g ^. wrapped . clusterStore
 
 
