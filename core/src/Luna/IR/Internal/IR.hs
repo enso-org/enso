@@ -24,6 +24,7 @@ import qualified Luna.IR.Expr.Atom as A
 import Luna.IR.Expr.Format  (Format, Draft)
 import Luna.IR.Expr.Layout  (LAYOUT, LayoutOf, NAME, Generalizable, Universal, universal, Abstract, Sub, abstract)
 import Luna.IR.Expr.Term    (TERM, Term, UncheckedFromTerm, FromTerm, UniTerm, IsUniTerm, uniTerm)
+import Type.Bool            (And)
 import Type.Container       (Every)
 import Type.Container       (In)
 import Type.Maybe           (FromJust)
@@ -64,7 +65,8 @@ class IsIdx t where
 --------------------
 
 
-data NEW = NEW deriving (Show)
+data NEW    = NEW    deriving (Show)
+data DELETE = DELETE deriving (Show)
 
 
 
@@ -332,8 +334,13 @@ dispatchNewElem :: (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // A
 dispatchNewElem tdef el = emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
 
 
-delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m) => t -> m ()
-delete t = flip Store.freeIdx (t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+freeElem :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m) => t -> m ()
+freeElem t = flip Store.freeIdx (t ^. idx) =<< readComp @(Net (Abstract t)) ; {-# INLINE delete #-}
+
+-- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
+delete :: forall t m. (IRMonad m, IsIdx t, Accessible (Net (Abstract t)) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
+       => t -> m ()
+delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t
 
 reserveNewElemIdx :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m) => m Int
 reserveNewElemIdx = Store.reserveIdx =<< readComp @(Net (Abstract t)) ; {-# INLINE reserveNewElemIdx #-}
@@ -752,6 +759,10 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 type instance Event.Payload (NEW // EXPR)       = (AnyExpr, Prim.Any)
 type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor + maybe make something like ... NEW // t = (Universal t, AnyDefinition) ?
 
+--FIXME[MK->WD]: I don't care for the second part of the tuple, it's necessary to make pass manager magic work, but should be removed ASAP
+type instance Event.Payload (DELETE // EXPR)       = (AnyExpr, Prim.Any)
+type instance Event.Payload (DELETE // LINK' EXPR) = (Link' AnyExpr, Prim.Any)
+
 type instance Sub s     (Expr l) = Expr (Sub s l)
 
 
@@ -775,6 +786,7 @@ type instance Encode2 Format  v = List.Index v (Every Format)
 -- TO REFACTOR:
 
 type instance UnsafeGeneralizable (Expr l) (Expr l') = ()
+type instance UnsafeGeneralizable (Link (Expr l) (Expr r)) (Link (Expr l') (Expr r')) = ()
 
 type family         UnsafeGeneralizable a b :: Constraint
 unsafeGeneralize :: UnsafeGeneralizable a b => a -> b

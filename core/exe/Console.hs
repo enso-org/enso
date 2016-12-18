@@ -53,77 +53,6 @@ import System.Log.Logger.Format (bulletNestingFormatter)
 import GHC.Stack
 
 
--- BEGIN == WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP ===
-
---------------------------------
--- === IR coherence check === --
---------------------------------
-
-data Incoherence = DeteachedSource AnyExpr AnyExprLink
-                 | OrphanLink      AnyExprLink
-                 | OrphanExpr      AnyExpr
-                 deriving (Show)
-
-data CoherenceCheck = CoherenceCheck { _incoherences   :: [Incoherence]
-                                     , _uncheckedLinks :: Set AnyExprLink
-                                     , _orphanExprs    :: Set AnyExpr
-                                     } deriving (Show)
-
-
-
-makeLenses ''CoherenceCheck
-
-finalize :: CoherenceCheck -> [Incoherence]
-finalize s = s ^. incoherences <> (OrphanLink <$> Set.toList (s ^. uncheckedLinks)) <> (OrphanExpr <$> Set.toList (s ^. orphanExprs))
-
-
-type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
-type CoherenceCheckCtx   m = (IRMonad m, Readables m '[ExprLayer Model, ExprLayer Type, ExprLinkLayer Model, ExprNet, ExprLinkNet])
-
-reportIncoherence :: MonadCoherenceCheck m => Incoherence -> m ()
-reportIncoherence i = State.modify (incoherences %~ (i:))
-
-markLinkChecked :: MonadCoherenceCheck m => AnyExprLink -> m ()
-markLinkChecked a = State.modify (uncheckedLinks %~ (Set.delete a))
-
-markExprChecked :: MonadCoherenceCheck m => AnyExpr -> m ()
-markExprChecked a = State.modify (orphanExprs %~ (Set.delete a))
-
-
-
-checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
-checkCoherence = do
-    es <- exprs
-    ls <- links
-    s <- flip execStateT (CoherenceCheck def (Set.fromList ls) (Set.fromList es)) $ do
-        mapM_ checkExprCoherence es
-        mapM_ checkExprExistence ls
-    return $ finalize s
-
-checkExprExistence :: MonadCoherenceCheck m => AnyExprLink -> m ()
-checkExprExistence lnk = do
-    (_, tgt) <- readLayer @Model lnk
-    markExprChecked tgt
-
-checkExprCoherence :: MonadCoherenceCheck m => AnyExpr -> m ()
-checkExprCoherence e = do
-    tp <- readLayer @Type e
-    checkLinkTarget e tp
-    mapM_ (checkLinkTarget e) =<< symbolFields e
-
-
-checkLinkTarget :: MonadCoherenceCheck m => AnyExpr -> AnyExprLink -> m ()
-checkLinkTarget e lnk = do
-    markLinkChecked lnk
-    (_, tgt) <- readLayer @Model lnk
-    when (e ^. idx /= tgt ^. idx) $ reportIncoherence (DeteachedSource e lnk)
-
-
--- END == WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP ===
-
-
-
-
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
@@ -148,8 +77,8 @@ test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
 
 uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
 uncheckedDeleteStar e = do
-    delete =<< readLayer @Type e
-    delete e
+    freeElem =<< readLayer @Type e
+    freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
 uncheckedDeleteStarType :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet, ExprLinkLayer Model])
@@ -158,7 +87,7 @@ uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
     (oldStar, _) <- readLayer @Model typeLink
     uncheckedDeleteStar oldStar
-    delete typeLink
+    freeElem typeLink
 {-# INLINE uncheckedDeleteStarType #-}
 
 

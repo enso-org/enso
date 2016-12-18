@@ -180,15 +180,42 @@ type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
 type instance Events    (ElemScope WatchSuccs t) = '[]
 type instance Preserves (ElemScope WatchSuccs t) = '[]
 
-watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
+watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (LINK' (Expr l))) m
 watchSuccs = do
     (t, (src, tgt)) <- readAttr @WorkingElem
     debugElem t $ "Updating successor: " <> show (src ^. idx) <>" -> " <> show (tgt ^. idx)
-    modifyLayer_ @Succs (Set.insert $ generalize tgt) src
+    modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
 
 watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
 watchSuccs_dyn = Pass.compile $ watchSuccs
 
+data WatchRemoveEdge
+type instance Abstract  WatchRemoveEdge               = WatchRemoveEdge
+type instance Inputs    (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs, ExprLinkLayer Model, Attr WorkingElem]
+type instance Outputs   (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs]
+type instance Events    (ElemScope WatchRemoveEdge t) = '[]
+type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
+
+watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (LINK' (Expr l))) m
+watchRemoveEdge = do
+    (l, _)     <- readAttr @WorkingElem
+    (src, tgt) <- readLayer @Model l
+    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize l) src
+
+data WatchRemoveNode
+type instance Abstract  WatchRemoveNode               = WatchRemoveNode
+type instance Inputs    (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLayer Type, Attr WorkingElem, ExprLinkNet]
+type instance Outputs   (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLinkNet]
+type instance Events    (ElemScope WatchRemoveNode t) = '[DELETE // LINK' EXPR]
+type instance Preserves (ElemScope WatchRemoveNode t) = '[]
+
+watchRemoveNode :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPRESSION l)) m
+watchRemoveNode = do
+    (e, _) <- readAttr @WorkingElem
+    inps   <- symbolFields (generalize e :: AnyExpr)
+    tp     <- readLayer @Type e
+    delete tp
+    mapM_ delete inps
 
 
 ------------------
@@ -274,7 +301,9 @@ runRegs = do
     initType_reg
     attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
 
-    addEventListener 100 (NEW // LINK EXPR EXPR) watchSuccs
+    addEventListener 100 (NEW    // LINK EXPR EXPR) watchSuccs
+    addEventListener 100 (DELETE // LINK EXPR EXPR) watchRemoveEdge
+    addEventListener 100 (DELETE // EXPR)           watchRemoveNode
 
 
 -- === Elem reg defs === --
