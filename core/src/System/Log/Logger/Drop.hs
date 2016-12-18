@@ -21,6 +21,12 @@ dropLogs = runIdentityLogger ; {-# INLINE dropLogs #-}
 instance Monad m => MonadLogging (Logger DropLogger m) where
     runLoggers = return () ; {-# INLINE runLoggers #-}
 
+-- | If we use Tag logging, we just discard every action.
+instance Monad m => MonadTagged tag (Logger DropLogger m) where
+    preTagged  = return ()          ; {-# INLINE preTagged  #-}
+    postTagged = return ()          ; {-# INLINE postTagged #-}
+    inTagged _ = return $ return () ; {-# INLINE inTagged   #-}
+
 -- This is hacky, but because Drop logger is guaranteed to drop all logs,
 -- we can be sure the information will not be needed.
 instance Monad m => DataStore d (Logger DropLogger m) where

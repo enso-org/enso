@@ -7,6 +7,8 @@ import Prologue
 import           Control.Monad.State          (StateT, runStateT, evalStateT, execStateT)
 import qualified Control.Monad.State          as State
 import           Control.Monad.Trans.Identity (IdentityT)
+import           Control.Monad.Error.Class    (MonadError)
+import           Control.Monad.Cont.Class     (MonadCont)
 
 
 --------------------
@@ -46,8 +48,8 @@ instance (MonadTrans (Logger l), Monad (Logger l m), PrimMonad m)
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
--- | Standard monad instances
---   We should NOT make a generic overlappable transformer instance here
+-- === Standard monad instances === --
+-- | We should NOT make a generic overlappable transformer instance here
 --   if we want to have any control over GHC type-inferencer errors.
 
 instance MonadLogging m => MonadLogging (StateT s m)
@@ -63,7 +65,7 @@ instance MonadLogging m => MonadLogging (IdentityT m)
 
 data IdentityLogger l
 newtype instance Logger (IdentityLogger l) m a = IdentityLogger { fromIdentityLogger :: IdentityT m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadTrans)
+        deriving (Functor, Applicative, Alternative, Monad, MonadIO, MonadFix, MonadTrans, MonadError e, MonadPlus, MonadCont)
 
 
 -- === Running === --
@@ -89,7 +91,7 @@ type family StateOf l (m :: * -> *)
 
 type CataStateOf l m = StateOf l (Logger (StateLogger l) m)
 newtype instance Logger (StateLogger l) m a = StateLogger { fromStateLogger :: StateT (CataStateOf l m) m a}
-        deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+        deriving (Functor, Applicative, Alternative, Monad, MonadIO, MonadFix, MonadError e, MonadPlus, MonadCont)
 
 
 runStateLogger :: forall l m a. Monad m => Logger (StateLogger l) m a -> CataStateOf l m -> m (a, CataStateOf l m)

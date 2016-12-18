@@ -10,13 +10,13 @@ import System.Log.Data   as X (nested)
 -- [ ] Tests
 -- [ ] Docs + Examples
 -- [ ] Threading loggers
--- [ ] FilterLogger
-
 
 
 import Prologue
 import System.Log.Logger.Format
 import System.Log.Data
+import GHC.Stack
+
 
 
 -------------------
@@ -42,8 +42,9 @@ lmain = do
     putStrLn "-- 4 --"
     runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger bulletNestingFormatter $ runStaticTagFilterLogger @(StdPriorities Warning) tst
     putStrLn "-- 5 --"
-    runPriorityLogging @StdLevels $ runEchoLogger $ runFormatLogger examplePriorityFormatter $ tst
+    runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger bulletNestingFormatter $ runDynamicTagFilterLogger (stdPriorities Warning) tst
     putStrLn "-- 6 --"
+    runPriorityLogging @StdLevels $ runEchoLogger $ runFormatLogger examplePriorityFormatter $ tst
+    putStrLn "-- 7 --"
     let logs = runIdentity $ runTaggedLogging $ execWriterLogger @Msg $ tst
     print logs
-    

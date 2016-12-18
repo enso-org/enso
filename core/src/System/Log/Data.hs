@@ -4,23 +4,17 @@ module System.Log.Data where
 
 import Prologue
 
-import           Control.Monad.State          (StateT, evalStateT)
-import qualified Data.Set                     as Set
-import           Data.Set                     (Set)
-import qualified Control.Monad.State          as State
-import           Data.Time.Clock              (UTCTime, getCurrentTime)
-import qualified GHC.Stack                    as Stack
-import           Text.PrettyPrint.ANSI.Leijen (Doc, text) -- FIXME after refactor remove text import
-
+import           Control.Monad.State                  (StateT, evalStateT)
+import           Control.Monad.Error.Class            (MonadError)
+import           Control.Monad.Cont.Class             (MonadCont)
+import qualified Data.Set                             as Set
+import           Data.Set                             (Set)
+import qualified Control.Monad.State                  as State
+import           Data.Time.Clock                      (UTCTime, getCurrentTime)
+import qualified GHC.Stack                            as Stack
+import           Text.PrettyPrint.ANSI.Leijen         (Doc)
+import           Text.PrettyPrint.ANSI.Leijen.Convert
 import System.Log.Logger.Class
-
-
-
-type IsDoc t = Convertible t Doc -- FIXME: refactor
-
-instance Convertible String Doc where
-    convert s = text s ; {-# INLINE convert #-}
-
 
 
 
@@ -49,8 +43,12 @@ deriving instance Default (DataOf a) => Default (LogData a)
 
 -- === Definition === --
 
-newtype DataProvider d m a = DataProvider (StateT (LogData d) m a) deriving (Functor, Applicative, Monad, MonadTrans, MonadIO, MonadFix)
+newtype DataProvider d m a = DataProvider (StateT (LogData d) m a) deriving (Functor, Applicative, Alternative, Monad, MonadTrans, MonadIO, MonadFix, MonadError e, MonadPlus, MonadCont)
 makeWrapped ''DataProvider
+
+type family DataProviderStack ps m where
+    DataProviderStack (p ': ps) m = DataProvider p (DataProviderStack ps m)
+    DataProviderStack '[]       m = m
 
 
 -- === Management === --
@@ -58,8 +56,8 @@ makeWrapped ''DataProvider
 provideData :: forall d m a. Monad m => LogData d -> DataProvider d m a -> m a
 provideData = flip (evalStateT . unwrap') ; {-# INLINE provideData #-}
 
-provideData' :: forall d m a. (Monad m, Default (LogData d)) => DataProvider d m a -> m a
-provideData' = provideData def ; {-# INLINE provideData' #-}
+provideDefData :: forall d m a. (Monad m, Default (LogData d)) => DataProvider d m a -> m a
+provideDefData = provideData def ; {-# INLINE provideDefData #-}
 
 modifyDataM :: forall d a m. DataStore d m => (LogData d -> m (a, LogData d)) -> m a
 modifyDataM f = do

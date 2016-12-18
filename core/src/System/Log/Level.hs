@@ -3,11 +3,14 @@
 module System.Log.Level where
 
 import Prologue  hiding (nested)
-import GHC.Stack (HasCallStack, callStack, getCallStack)
+import qualified GHC.Stack as Stack
+import           GHC.Stack (HasCallStack, callStack, getCallStack)
 
 import System.Log.Data
 import System.Log.Logger.Class
-import System.Log.Logger.Priority (PriorityLogger, runPriorityLogger)
+import System.Log.Logger.Priority           (PriorityLogger, runPriorityLogger)
+import Text.PrettyPrint.ANSI.Leijen.Convert (IsDoc)
+
 
 
 -------------------------------------
@@ -32,6 +35,13 @@ type family Priorities (lvls :: [*]) (lvl :: *) :: [*] where
 
 type StdPriorities p = Priorities StdLevels p
 
+stdLevels :: [TypeRep]
+stdLevels = typeReps' @StdLevels ; {-# INLINE stdLevels #-}
+
+stdPriorities :: Typeable p => p -> [TypeRep]
+stdPriorities p = dropWhile (/= (typeOf p)) stdLevels ; {-# INLINE stdPriorities #-}
+
+
 
 ------------------------------------
 -- === Standard logging utils === --
@@ -47,12 +57,9 @@ type ReportedLogging m = (MsgLogging   m, DataStore Reporter m)
 type NestedLogging   m = (MsgLogging   m, DataStore Nesting  m)
 
 
-type Logging        m = (LocLogging m, ReportedLogging m, NestedLogging m, MonadTags StdLevels m)
-
-
 -- === Generic logging === --
 
-type LocLog m = (HasCallStack, DataStore Loc m)
+type LocLog m = (DataStore Loc m) -- , HasCallStack -- WARNING: GHC confuses HasCallStack here
 
 type     MsgLog'              msg m = (MonadLogging      m, DataStore Msg      m, IsDoc msg)
 type     TagLog'   t          msg m = (MsgLog'       msg m, MonadTagged t      m)
@@ -67,7 +74,7 @@ type WithTagLogBy  t reporter msg m = (LocLog m, WithTagLogBy' t reporter msg m)
 
 
 addCallStackInfo :: (HasCallStack, DataStore Loc m) => m a -> m a
-addCallStackInfo = withData (loc . snd . head . drop 1 $ getCallStack callStack)
+addCallStackInfo = withData (loc . snd . head . tail $ getCallStack callStack)
 
 
 msgLog' :: forall msg m. MsgLog' msg m
@@ -93,14 +100,14 @@ withTagLogBy' r m f = tagLogBy' @t r m >> nested f ; {-# INLINE withTagLogBy' #-
 
 -- === Loggign utils === --
 
-debug    :: TagLog Debug    msg m => msg -> m ()
-info     :: TagLog Info     msg m => msg -> m ()
-notice   :: TagLog Notice   msg m => msg -> m ()
-warning  :: TagLog Warning  msg m => msg -> m ()
-err      :: TagLog Error    msg m => msg -> m ()
-critical :: TagLog Critical msg m => msg -> m ()
-alert    :: TagLog Alert    msg m => msg -> m ()
-panic    :: TagLog Panic    msg m => msg -> m ()
+debug    :: (HasCallStack, TagLog Debug    msg m) => msg -> m ()
+info     :: (HasCallStack, TagLog Info     msg m) => msg -> m ()
+notice   :: (HasCallStack, TagLog Notice   msg m) => msg -> m ()
+warning  :: (HasCallStack, TagLog Warning  msg m) => msg -> m ()
+err      :: (HasCallStack, TagLog Error    msg m) => msg -> m ()
+critical :: (HasCallStack, TagLog Critical msg m) => msg -> m ()
+alert    :: (HasCallStack, TagLog Alert    msg m) => msg -> m ()
+panic    :: (HasCallStack, TagLog Panic    msg m) => msg -> m ()
 
 debug    = addCallStackInfo . tagLog' @Debug    ; {-# INLINE debug    #-}
 info     = addCallStackInfo . tagLog' @Info     ; {-# INLINE info     #-}
@@ -112,14 +119,14 @@ alert    = addCallStackInfo . tagLog' @Alert    ; {-# INLINE alert    #-}
 panic    = addCallStackInfo . tagLog' @Panic    ; {-# INLINE panic    #-}
 
 
-debugBy    :: TagLogBy Debug    reporter msg m => reporter -> msg -> m ()
-infoBy     :: TagLogBy Info     reporter msg m => reporter -> msg -> m ()
-noticeBy   :: TagLogBy Notice   reporter msg m => reporter -> msg -> m ()
-warningBy  :: TagLogBy Warning  reporter msg m => reporter -> msg -> m ()
-errBy      :: TagLogBy Error    reporter msg m => reporter -> msg -> m ()
-criticalBy :: TagLogBy Critical reporter msg m => reporter -> msg -> m ()
-alertBy    :: TagLogBy Alert    reporter msg m => reporter -> msg -> m ()
-panicBy    :: TagLogBy Panic    reporter msg m => reporter -> msg -> m ()
+debugBy    :: (HasCallStack, TagLogBy Debug    reporter msg m) => reporter -> msg -> m ()
+infoBy     :: (HasCallStack, TagLogBy Info     reporter msg m) => reporter -> msg -> m ()
+noticeBy   :: (HasCallStack, TagLogBy Notice   reporter msg m) => reporter -> msg -> m ()
+warningBy  :: (HasCallStack, TagLogBy Warning  reporter msg m) => reporter -> msg -> m ()
+errBy      :: (HasCallStack, TagLogBy Error    reporter msg m) => reporter -> msg -> m ()
+criticalBy :: (HasCallStack, TagLogBy Critical reporter msg m) => reporter -> msg -> m ()
+alertBy    :: (HasCallStack, TagLogBy Alert    reporter msg m) => reporter -> msg -> m ()
+panicBy    :: (HasCallStack, TagLogBy Panic    reporter msg m) => reporter -> msg -> m ()
 
 debugBy    = addCallStackInfo .: tagLogBy' @Debug    ; {-# INLINE debugBy    #-}
 infoBy     = addCallStackInfo .: tagLogBy' @Info     ; {-# INLINE infoBy     #-}
@@ -131,14 +138,14 @@ alertBy    = addCallStackInfo .: tagLogBy' @Alert    ; {-# INLINE alertBy    #-}
 panicBy    = addCallStackInfo .: tagLogBy' @Panic    ; {-# INLINE panicBy    #-}
 
 
-withDebug    :: WithTagLog Debug    msg m => msg -> m a -> m a
-withInfo     :: WithTagLog Info     msg m => msg -> m a -> m a
-withNotice   :: WithTagLog Notice   msg m => msg -> m a -> m a
-withWarning  :: WithTagLog Warning  msg m => msg -> m a -> m a
-withErr      :: WithTagLog Error    msg m => msg -> m a -> m a
-withCritical :: WithTagLog Critical msg m => msg -> m a -> m a
-withAlert    :: WithTagLog Alert    msg m => msg -> m a -> m a
-withPanic    :: WithTagLog Panic    msg m => msg -> m a -> m a
+withDebug    :: (HasCallStack, WithTagLog Debug    msg m) => msg -> m a -> m a
+withInfo     :: (HasCallStack, WithTagLog Info     msg m) => msg -> m a -> m a
+withNotice   :: (HasCallStack, WithTagLog Notice   msg m) => msg -> m a -> m a
+withWarning  :: (HasCallStack, WithTagLog Warning  msg m) => msg -> m a -> m a
+withErr      :: (HasCallStack, WithTagLog Error    msg m) => msg -> m a -> m a
+withCritical :: (HasCallStack, WithTagLog Critical msg m) => msg -> m a -> m a
+withAlert    :: (HasCallStack, WithTagLog Alert    msg m) => msg -> m a -> m a
+withPanic    :: (HasCallStack, WithTagLog Panic    msg m) => msg -> m a -> m a
 
 withDebug    = addCallStackInfo .: withTagLog' @Debug    ; {-# INLINE withDebug    #-}
 withInfo     = addCallStackInfo .: withTagLog' @Info     ; {-# INLINE withInfo     #-}
@@ -150,14 +157,14 @@ withAlert    = addCallStackInfo .: withTagLog' @Alert    ; {-# INLINE withAlert 
 withPanic    = addCallStackInfo .: withTagLog' @Panic    ; {-# INLINE withPanic    #-}
 
 
-withDebugBy    :: WithTagLogBy Debug    reporter msg m => reporter -> msg -> m a -> m a
-withInfoBy     :: WithTagLogBy Info     reporter msg m => reporter -> msg -> m a -> m a
-withNoticeBy   :: WithTagLogBy Notice   reporter msg m => reporter -> msg -> m a -> m a
-withWarningBy  :: WithTagLogBy Warning  reporter msg m => reporter -> msg -> m a -> m a
-withErrBy      :: WithTagLogBy Error    reporter msg m => reporter -> msg -> m a -> m a
-withCriticalBy :: WithTagLogBy Critical reporter msg m => reporter -> msg -> m a -> m a
-withAlertBy    :: WithTagLogBy Alert    reporter msg m => reporter -> msg -> m a -> m a
-withPanicBy    :: WithTagLogBy Panic    reporter msg m => reporter -> msg -> m a -> m a
+withDebugBy    :: (HasCallStack, WithTagLogBy Debug    reporter msg m) => reporter -> msg -> m a -> m a
+withInfoBy     :: (HasCallStack, WithTagLogBy Info     reporter msg m) => reporter -> msg -> m a -> m a
+withNoticeBy   :: (HasCallStack, WithTagLogBy Notice   reporter msg m) => reporter -> msg -> m a -> m a
+withWarningBy  :: (HasCallStack, WithTagLogBy Warning  reporter msg m) => reporter -> msg -> m a -> m a
+withErrBy      :: (HasCallStack, WithTagLogBy Error    reporter msg m) => reporter -> msg -> m a -> m a
+withCriticalBy :: (HasCallStack, WithTagLogBy Critical reporter msg m) => reporter -> msg -> m a -> m a
+withAlertBy    :: (HasCallStack, WithTagLogBy Alert    reporter msg m) => reporter -> msg -> m a -> m a
+withPanicBy    :: (HasCallStack, WithTagLogBy Panic    reporter msg m) => reporter -> msg -> m a -> m a
 
 withDebugBy    = addCallStackInfo .:. withTagLogBy' @Debug    ; {-# INLINE withDebugBy    #-}
 withInfoBy     = addCallStackInfo .:. withTagLogBy' @Info     ; {-# INLINE withInfoBy     #-}
@@ -171,25 +178,26 @@ withPanicBy    = addCallStackInfo .:. withTagLogBy' @Panic    ; {-# INLINE withP
 
 -- === Running utils === --
 
+type Logging m = (LocLogging m, ReportedLogging m, NestedLogging m, MonadTags StdLevels m)
+
 runPriorityLogging :: forall prs m a. Monad m
-           => Logger (PriorityLogger prs)
-            ( DataProvider Loc
-            $ DataProvider Msg
-            $ DataProvider Reporter
-            $ DataProvider Nesting
-            $ DataProvider Priority m
-            ) a -> m a
+                   => Logger (PriorityLogger prs) (DataProviderStack '[Loc, Msg, Reporter, Nesting, Priority] m) a -> m a
 runPriorityLogging = provideData 0 -- FIXME: Is there any better way to provide non-yet-set priority?
-           . provideData' @Nesting
-           . provideData (reporter "")
-           . provideData (msg "")
-           . provideData (loc $ error "No source location provided")
+           . provideDefData @Nesting
+           . provideDefData @Reporter
+           . provideDefData @Msg
+           . provideData    (loc unknownSrcLoc)
            . runPriorityLogger @prs
 {-# INLINE runPriorityLogging #-}
 
+runTaggedLogging :: Monad m
+                 => DataProviderStack '[Loc, Msg, Reporter, Nesting, DynTags] m a -> m a
+runTaggedLogging = provideDefData @DynTags
+                 . provideDefData @Nesting
+                 . provideDefData @Reporter
+                 . provideDefData @Msg
+                 . provideData  (loc unknownSrcLoc)
+{-# INLINE runTaggedLogging #-}
 
-runTaggedLogging = provideData  (dynTags mempty)
-                 . provideData' @Nesting
-                 . provideData  (reporter "")
-                 . provideData  (msg "")
-                 . provideData  (loc $ error "No source location provided")
+unknownSrcLoc :: Stack.SrcLoc
+unknownSrcLoc = Stack.SrcLoc unknown unknown unknown 0 0 0 0 where unknown = "Unknown"

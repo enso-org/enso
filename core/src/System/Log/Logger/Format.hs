@@ -118,9 +118,19 @@ instance (m ~ n)               => IsFormatter (Formatter n Doc) m where formatte
 
 -- === Combinators === --
 
+infixr 5 <:>
+(<:>) :: (Monad m, IsFormatter a m, IsFormatter b m) => a -> b -> Formatter m Doc
+a <:> b = liftA2 mappend (formatter a) (formatter b) ; {-# INLINE (<:>) #-}
+
 infixr 5 <+>
 (<+>) :: (Monad m, IsFormatter a m, IsFormatter b m) => a -> b -> Formatter m Doc
-a <+> b = liftA2 mappend (formatter a) (formatter b) ; {-# INLINE (<+>) #-}
+a <+> b = a <:> " " <:> b
+
+between :: (Monad m, IsFormatter l m, IsFormatter r m, IsFormatter a m) => l -> r -> a -> Formatter m Doc
+between l r a = l <:> a <:> r ; {-# INLINE between #-}
+
+bracked :: (Monad m, IsFormatter a m) => a -> Formatter m Doc
+bracked = between "[" "]" ; {-# INLINE bracked #-}
 
 space :: Monad m => Formatter m Doc
 space = formatter " " ; {-# INLINE space #-}
@@ -129,7 +139,7 @@ eol :: Monad m => Formatter m Doc
 eol = formatter Doc.hardline ; {-# INLINE eol #-}
 
 line :: (Monad m, IsFormatter a m) => a -> Formatter m Doc
-line = (<+> eol) ; {-# INLINE line #-}
+line = (<:> eol) ; {-# INLINE line #-}
 
 
 -- === Instances === --
@@ -206,7 +216,7 @@ instance DataStore Msg m => IsLogger FormatLogger m where
 --------------------------------
 
 bulletNestingFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc
-bulletNestingFormatter = line $ dynTagsColorFormatter (formatter "• ") <+> Nesting <+> Reporter <+> ": " <+> Msg ; {-# INLINE bulletNestingFormatter #-}
+bulletNestingFormatter = line $ dynTagsColorFormatter (formatter "•") <+> Nesting <:> Reporter <:> ":" <+> Msg ; {-# INLINE bulletNestingFormatter #-}
 
 examplePriorityFormatter :: DataStores '[Priority, Loc, Msg] m => Formatter m Doc
-examplePriorityFormatter = line $ "[" <+> Priority <+> "] " <+> Loc <+> ": " <+> Msg ; {-# INLINE examplePriorityFormatter #-}
+examplePriorityFormatter = line $ bracked Priority <+> Loc <:> ":" <+> Msg ; {-# INLINE examplePriorityFormatter #-}
