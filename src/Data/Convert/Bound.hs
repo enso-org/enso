@@ -22,9 +22,9 @@ import qualified Prelude as Prelude
 --            - neither can we safely convert Char to Int 8 nor vice versa.
 --            We can though make typeclasses that will find the smallest super-type for a given type pair
 --            and convert both values to that super-type
-boundedConversion :: (Bounded b, Ord a, Convertible a Rational, Convertible (Bounds b) (Bounds Rational))
+boundedConversion :: (Bounded b, Ord a, Convertible' a Rational, Convertible' (Bounds b) (Bounds Rational))
                   => (a -> b) -> (a -> Either BoundError b)
-boundedConversion (func :: a -> b) inp = if (convert inp) `boundedBy` (convert (bounds :: Bounds b) :: Bounds Rational)
+boundedConversion (func :: a -> b) inp = if (convert' inp) `boundedBy` (convert' (bounds :: Bounds b) :: Bounds Rational)
     then Right $ func inp
     else Left BoundError
 
@@ -45,21 +45,27 @@ class Conversions a b where
 
 -- utils
 
-genConversion :: Conversion -> Q Dec
+genConversion :: Conversion -> Q [Dec]
 genConversion c@(Conversion qexp (Type name bounds) (Type name' bounds')) = do
-    exp <- qexp :: Q Exp
-    let convf name fmod = [ValD (VarP $ mkName name) (NormalB $ fmod exp) []]
-    return $ if bounds `isSubBound` bounds'
+    if nameBase name == nameBase name' then return [] else do
+        exp <- qexp :: Q Exp
+        let convf name fmod = [ValD (VarP $ mkName name) (NormalB $ fmod exp) []]
+        -- runIO $ print $ "gen conversion: " <> nameBase name <> " and " <> nameBase name'
+        return $ if bounds `isSubBound` bounds'
 #if __GLASGOW_HASKELL__ >= 800
-        then InstanceD Nothing [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id
-        else InstanceD Nothing [] (AppT (AppT (AppT (ConT $ mkName "MaybeConvertible") (ConT name)) (ConT $ mkName "BoundError")) (ConT name')) $ convf "tryConvert" $ AppE (VarE $ mkName "boundedConversion")
+            then [ InstanceD Nothing [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id ]
+            else [ InstanceD Nothing [] (AppT (AppT (ConT $ mkName "PartialConvertible") (ConT name)) (ConT name')) $ convf "tryConvert" $ AppE (VarE $ mkName "boundedConversion")
+                 , TySynInstD (mkName "ConversionError") (TySynEqn [ConT name, ConT name'] (ConT $ mkName "BoundError"))
+                 ]
 #else
-        then InstanceD [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id
-        else InstanceD [] (AppT (AppT (AppT (ConT $ mkName "MaybeConvertible") (ConT name)) (ConT $ mkName "BoundError")) (ConT name')) $ convf "tryConvert" $ AppE (VarE $ mkName "boundedConversion")
+            then [ InstanceD [] (AppT (AppT (ConT $ mkName "Convertible") (ConT name)) (ConT name')) $ convf "convert" id ]
+            else [ InstanceD [] (AppT (AppT (ConT $ mkName "PartialConvertible") (ConT name)) (ConT name')) $ convf "tryConvert" $ AppE (VarE $ mkName "boundedConversion")
+                 , TySynInstD (mkName "ConversionError") (TySynEqn [ConT name, ConT name'] (ConT $ mkName "BoundError"))
+                 ]
 #endif
 
 genConversions :: [Conversion] -> Q [Dec]
-genConversions = mapM genConversion
+genConversions cs = concat <$> mapM genConversion cs
 
 -- instances
 

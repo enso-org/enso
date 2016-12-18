@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:           convert
-version:        1.0.9
+version:        1.0.10
 synopsis:       Safe and unsafe data conversion utilities with strong type-level operation. checking.
 category:       Data
 stability:      experimental
@@ -23,7 +23,7 @@ source-repository head
 library
   hs-source-dirs:
       src
-  default-extensions: MultiParamTypeClasses UndecidableInstances FlexibleInstances FlexibleContexts DefaultSignatures ConstraintKinds LambdaCase ViewPatterns ScopedTypeVariables DeriveFunctor
+  default-extensions: MultiParamTypeClasses UndecidableInstances FlexibleInstances FlexibleContexts DefaultSignatures ConstraintKinds LambdaCase ViewPatterns ScopedTypeVariables DeriveFunctor TypeFamilies TypeOperators DataKinds
   ghc-options: -Wall -O2
   build-depends:
       base

@@ -50,7 +50,6 @@ instance Default TS.Text     where def = convert "" ; {-# INLINE def #-}
 instance Default TL.Text     where def = convert "" ; {-# INLINE def #-}
 instance Default TLB.Builder where def = convert "" ; {-# INLINE def #-}
 
-instance Convertible TS.Text TS.Text       where convert = id                            ; {-# INLINE convert #-}
 instance Convertible TS.Text String        where convert = TS.unpack                     ; {-# INLINE convert #-}
 instance Convertible TS.Text TL.Text       where convert = TL.fromStrict                 ; {-# INLINE convert #-}
 instance Convertible TS.Text TLB.Builder   where convert = TLB.fromText                  ; {-# INLINE convert #-}
@@ -58,7 +57,6 @@ instance Convertible TS.Text BS.ByteString where convert = TE.encodeUtf8        
 instance Convertible TS.Text BL.ByteString where convert = BL.fromStrict . TE.encodeUtf8 ; {-# INLINE convert #-}
 instance Convertible TS.Text BB.Builder    where convert = TE.encodeUtf8Builder          ; {-# INLINE convert #-}
 
-instance Convertible TL.Text TL.Text       where convert = id                            ; {-# INLINE convert #-}
 instance Convertible TL.Text String        where convert = TL.unpack                     ; {-# INLINE convert #-}
 instance Convertible TL.Text TS.Text       where convert = TL.toStrict                   ; {-# INLINE convert #-}
 instance Convertible TL.Text TLB.Builder   where convert = TLB.fromLazyText              ; {-# INLINE convert #-}
@@ -66,7 +64,6 @@ instance Convertible TL.Text BS.ByteString where convert = convert . TLE.encodeU
 instance Convertible TL.Text BL.ByteString where convert = TLE.encodeUtf8                ; {-# INLINE convert #-}
 instance Convertible TL.Text BB.Builder    where convert = TLE.encodeUtf8Builder         ; {-# INLINE convert #-}
 
-instance Convertible TLB.Builder TLB.Builder   where convert = id                        ; {-# INLINE convert #-}
 instance Convertible TLB.Builder String        where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
 instance Convertible TLB.Builder TS.Text       where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
 instance Convertible TLB.Builder TL.Text       where convert = TLB.toLazyText            ; {-# INLINE convert #-}
@@ -74,7 +71,6 @@ instance Convertible TLB.Builder BS.ByteString where convert = convert . TLB.toL
 instance Convertible TLB.Builder BL.ByteString where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
 instance Convertible TLB.Builder BB.Builder    where convert = convert . TLB.toLazyText  ; {-# INLINE convert #-}
 
-instance Convertible BS.ByteString BS.ByteString where convert = id                      ; {-# INLINE convert #-}
 instance Convertible BS.ByteString [Word8]       where convert = BS.unpack               ; {-# INLINE convert #-}
 instance Convertible BS.ByteString TS.Text       where convert = TE.decodeUtf8           ; {-# INLINE convert #-}
 instance Convertible BS.ByteString TL.Text       where convert = TL.fromStrict . convert ; {-# INLINE convert #-}

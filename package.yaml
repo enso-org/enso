@@ -2,7 +2,7 @@ author: Wojciech Danilo
 category: Data
 default-extensions: [MultiParamTypeClasses, UndecidableInstances, FlexibleInstances,
   FlexibleContexts, DefaultSignatures, ConstraintKinds, LambdaCase, ViewPatterns,
-  ScopedTypeVariables, DeriveFunctor]
+  ScopedTypeVariables, DeriveFunctor, TypeFamilies, TypeOperators, DataKinds]
 dependencies: [base, data-default, old-time, time >= 1.1.3, bytestring >= 0.10.2,
   containers, old-locale, mtl, text >= 0.8, either, template-haskell, lens, ansi-wl-pprint]
 github: https://github.com/wdanilo/convert
@@ -13,4 +13,4 @@ name: convert
 stability: experimental
 synopsis: Safe and unsafe data conversion utilities with strong type-level operation.
   checking.
-version: 1.0.10
+version: 1.0.11
