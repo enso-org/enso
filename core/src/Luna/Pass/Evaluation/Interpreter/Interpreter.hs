@@ -78,9 +78,9 @@ tryGetBool boolStr
                                     , c ~ NetRawCluster                               \
                                     , graph ~ Hetero (NEC.Graph n e c)                \
                                     , clus  ~ NetCluster                              \
-                                    , BiCastable e edge                               \
-                                    , BiCastable n node                               \
-                                    , BiCastable c clus                               \
+                                    , IsoCastable e edge                               \
+                                    , IsoCastable n node                               \
+                                    , IsoCastable c clus                               \
                                     , MonadIO (m)                                     \
                                     , MonadBuilder graph (m)                          \
                                     , NodeInferable (m) node                          \

@@ -169,8 +169,8 @@ instance Castable    Data (Unwrapped (Term t term rt)) => Castable    Data (Term
 
 -- Abstractions
 type instance                                                       Abstract    (Term t term rt) = Data
-instance BiCastable (Abstract (Term t term rt)) (Term t term rt) => IsAbstract  (Term t term rt) where abstracted = iso cast cast
-instance BiCastable (Abstract (Term t term rt)) (Term t term rt) => HasAbstract (Term t term rt)
+instance IsoCastable (Abstract (Term t term rt)) (Term t term rt) => IsAbstract  (Term t term rt) where abstracted = iso cast cast
+instance IsoCastable (Abstract (Term t term rt)) (Term t term rt) => HasAbstract (Term t term rt)
 
 
 

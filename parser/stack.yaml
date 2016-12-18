@@ -11,7 +11,7 @@ packages:
 - extra-dep: true
   location: {commit: 6b9f0f6ec43e83c88f28e0fe051ac74516c35605, git: 'https://github.com/luna/data-pool.git'}
 - extra-dep: true
-  location: {commit: 95e1433bc2e0bd8d9fbbc48d899b2c83ffd7808e, git: 'https://github.com/luna/convert.git'}
+  location: {commit: 9da7fb274ec4f35e9ac9e72b00b0c0d90cd40408, git: 'https://github.com/luna/convert.git'}
 - extra-dep: true
   location: {commit: 23a039debfd51a9b7f46b5e106feb30839960e37, git: 'https://github.com/luna/data-base.git'}
 - extra-dep: true

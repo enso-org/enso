@@ -24,7 +24,7 @@ import Old.Data.Graph.Type.Dynamic
 --instance  Referred r (Hetero I) n where focus   = impossible
 
 
-instance (LocatedM t g m, BiCastable a (g # t), Functor m) => ReferencedM t (Hetero g) m a where
+instance (LocatedM t g m, IsoCastable a (g # t), Functor m) => ReferencedM t (Hetero g) m a where
     writeRefM ptr val = wrapped' $ writeLocM (retarget ptr) (cast val) ; {-# INLINE writeRefM #-}
     readRefM  ptr     = cast <∘> readLocM (retarget ptr) ∘ unwrap'     ; {-# INLINE readRefM  #-}
 

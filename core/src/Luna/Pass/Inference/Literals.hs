@@ -35,8 +35,8 @@ import           Data.Layer_OLD.Cover_OLD
                              , node  ~ (ls :<: term)             \
                              , edge  ~ Link node                 \
                              , graph ~ Hetero (NEC.Graph n e c)  \
-                             , BiCastable    e edge              \
-                             , BiCastable    n node              \
+                             , IsoCastable    e edge              \
+                             , IsoCastable    n node              \
                              , MonadIO       (m)                 \
                              , MonadBuilder  graph (m)           \
                              , NodeInferable (m) node            \
