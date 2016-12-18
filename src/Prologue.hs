@@ -41,13 +41,13 @@ import Data.List                  as X (intersperse)
 import Data.Container.Class       as X (Container, Index, Item, intercalate)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
 import Data.Convert               as X
-import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_, mapM_)
+import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_, mapM_, fold)
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
 import Data.Impossible            as X
 import Data.Layer_OLD                 as X
 --import Data.Layer_OLD.Cover_OLD           as X
-import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust)
+import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
 import Data.String.QQ             as X (s)
 import Data.Text                  as X (Text)
@@ -253,3 +253,8 @@ app_prec = 10
 
 showsPrec' = showsPrec (succ app_prec)
 showParen' d = showParen (d > app_prec)
+
+
+-- === MonadTrans === --
+
+type MonadTransInvariants t m = (Monad m, Monad (t m), MonadTrans t)
