@@ -326,6 +326,29 @@ newElem tdef = do
 
 {-# INLINE newElem #-}
 
+
+
+data NEW2 = NEW2 deriving (Show)
+
+newElem2 :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, Event.Emitter2 m (NEW2 // Abstract t), IsIdx t)
+        => Definition t -> m t
+newElem2 tdef = do
+    t <- reserveElem
+    Event.emit2 $ Event @(NEW2 // t) (t,tdef)
+    return t
+{-# INLINE newElem2 #-}
+
+
+
+type instance Event.Payload (NEW2 // t) = (t, Definition t)
+
+type instance Abstract (a // b) = Abstract a // Abstract b
+type instance Abstract NEW2 = NEW2
+-- class Monad m => Emitter2 m a where
+--     emit2 :: forall e. a ~ Abstract e => Proxy e -> Payload e -> m ()
+
+
+
 reserveElem :: forall t m. (IRMonad m, Accessible (Net (Abstract t)) m, IsIdx t) => m t
 reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
 
@@ -716,6 +739,10 @@ magicExpr a = newMagicElem (encodeTerm a) ; {-# INLINE magicExpr #-}
 expr :: forall atom layout m. (TermEncoder atom, IRMonad m, NewElemEvent m (Expr layout), Accessible ExprNet m)
      => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr = newElem . encodeTerm ; {-# INLINE expr #-}
+
+expr2 :: forall atom layout m. (TermEncoder atom, IRMonad m, Accessible ExprNet m, Event.Emitter2 m (NEW2 // EXPR))
+      => ExprTerm atom (Expr layout) -> m (Expr layout)
+expr2 = newElem2 . encodeTerm ; {-# INLINE expr2 #-}
 
 reserveExpr :: (IRMonad m, Accessible ExprNet m)
             => m (Expr layout)

@@ -33,6 +33,9 @@ import Data.Event as Event
 import System.Log
 import qualified Control.Monad.State.Dependent.Old as DepState
 
+import qualified GHC.Prim as Prim
+
+
 ---------------------------------------
 -- Some important utils
 
@@ -120,6 +123,53 @@ instance MonadLogging m => MonadLogging (SubPass pass m)
 instance MonadLogging m => MonadLogging (PassManager  m)
 
 
+-------------------
+-- === Model2 === --
+-------------------
+
+proxifyElemPass2 :: Pass.Template (ElemSubPass p elem m a) -> (Proxy elem -> Pass.Template (ElemSubPass p elem m a))
+proxifyElemPass2 = const ; {-# INLINE proxifyElemPass2 #-}
+
+data InitModel2
+type instance Abstract InitModel2 = InitModel2
+type instance Inputs    (ElemScope InitModel2 t) = '[Layer (Abstract t) Model] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs   (ElemScope InitModel2 t) = '[Layer (Abstract t) Model]
+type instance Events    (ElemScope InitModel2 t) = '[]
+type instance Preserves (ElemScope InitModel2 t) = '[]
+
+-- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Any -> Pass (ElemScope InitModel2 t) m
+-- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Any -> Pass (ElemScope InitModel2 t) m
+-- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Listener (NEW // Abstract t) (ElemScope InitModel2 t) m
+-- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => EventPass (NEW // t) (ElemScope InitModel2 t) m
+-- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => TypeRep -> Pass.Desc (Prim.Any -> DynPass m)
+-- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => TypeRep -> Pass.Desc (DynEventPass m)
+initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => (Elem t, Definition t) -> Pass (ElemScope InitModel2 t) m
+initModel2 (t, tdef) = do
+    flip (writeLayer @Model) t tdef
+    debugLayerCreation' t "Model"
+
+initModel3 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass.PassTemplate (ElemScope InitModel2 t) m
+initModel3 = Pass.template initModel2
+
+initModel4 :: (MonadIO m, IRMonad m, KnownType (Abstract t)) => Proxy t -> Pass.PassTemplate (ElemScope InitModel2 t) m
+initModel4 = proxifyElemPass2 initModel3
+
+initModel5 :: (MonadIO m, IRMonad m, KnownType (Abstract t)) => Proxy t -> Pass.DynSubPassTemplate m ()
+initModel5 = (fmap.fmap) Pass.compile2 initModel4
+
+initModel6 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Proxy t -> Pass.Describbed (Pass.DynSubPassTemplate m ())
+initModel6 = fmap (Pass.describbed @(ElemScope InitModel2 t)) initModel5
+
+initModel7 :: (MonadIO m, IRMonad m) => Pass.Proto (Pass.Describbed (Pass.DynSubPassTemplate m ()))
+initModel7 = Pass.Proto $ reifyKnownTypeT @Abstracted initModel6
+
+initModel_reg' :: (IRMonad m, MonadIO m) => PassManager m ()
+initModel_reg' = uncheckedAddLayerProto (typeVal' @Model) initModel7
+
+newtype LayerConsPass pass m = LayerConsPass (forall t. KnownType (Abstract t) => Event (NEW2 // Elem t) -> Pass (ElemScope pass t) m)
+
+
+
 -----------------
 -- === UID === --
 -----------------
@@ -183,7 +233,7 @@ type instance Preserves (ElemScope WatchSuccs t) = '[]
 watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (LINK' (Expr l))) m
 watchSuccs = do
     (t, (src, tgt)) <- readAttr @WorkingElem
-    debugElem t $ "Updating successor: " <> show (src ^. idx) <>" -> " <> show (tgt ^. idx)
+    debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
     modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
 
 watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
@@ -198,9 +248,10 @@ type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
 
 watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (LINK' (Expr l))) m
 watchRemoveEdge = do
-    (l, _)     <- readAttr @WorkingElem
-    (src, tgt) <- readLayer @Model l
-    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize l) src
+    (t, _)     <- readAttr @WorkingElem
+    (src, tgt) <- readLayer @Model t
+    debugElem t $ "Delete successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
+    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
 
 data WatchRemoveNode
 type instance Abstract  WatchRemoveNode               = WatchRemoveNode

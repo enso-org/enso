@@ -12,7 +12,7 @@ import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
-import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep)
+import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep, DynPassTemplate, Proto)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -42,18 +42,20 @@ type PMPass    m = PMSubPass m ()
 
 -- TODO: refactor -> Passes
 -- VVV --
-newtype PassProto m = PassProto { appCons :: ElemRep -> PMPass m } -- FIXME: should not refer to PMPass
-instance Show (PassProto m) where show _ = "PassProto"
+newtype PassProto_old m = PassProto_old { appCons :: ElemRep -> PMPass m } -- FIXME: should not refer to PMPass
+instance Show (PassProto_old m) where show _ = "PassProto_old"
 -- ^^^ --
 
-data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ PassProto m
-                           , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
+data LayerReg m = LayerReg { _prototypes_old :: Map LayerRep $ PassProto_old m
+                           , _prototypes     :: Map LayerRep $ Proto (Pass.Describbed (DynPassTemplate (PassManager m)))
+                           , _attached       :: Map ElemRep  $ Map LayerRep $ PassRep
                            } deriving (Show)
 
 data State m = State { _passes :: Map PassRep $ PMPass m
                      , _layers :: LayerReg m
-                     , _events :: EventHub SortedListenerRep PassRep
+                     , _events :: EventHub SortedListenerRep (Pass.Describbed (DynPassTemplate (PassManager m)))
                      , _attrs  :: Map AttrRep Prim.AnyData
+                     , _events_old :: EventHub SortedListenerRep PassRep
                      } deriving (Show)
 
 
@@ -65,10 +67,10 @@ instance Ord SortedListenerRep where
 -- === instances === --
 
 instance Default (LayerReg m) where
-    def = LayerReg def def ; {-# INLINE def #-}
+    def = LayerReg def def def ; {-# INLINE def #-}
 
 instance Default (State m) where
-    def = State def def def def ; {-# INLINE def #-}
+    def = State def def def def def ; {-# INLINE def #-}
 
 
 --------------------------
@@ -83,7 +85,7 @@ makeLenses  ''LayerReg
 makeLenses  ''State
 makeWrapped ''PassManager
 
-type PassManager' m = PassManager (GetBaseMonad m)
+type GetPassManager m = PassManager (GetBaseMonad m)
 
 type family GetBaseMonad m where
     GetBaseMonad (PassManager m) = m
@@ -95,7 +97,7 @@ type State'  m = State  (GetBaseMonad m)
 class Monad m => MonadPassManager m where
     get :: m (State' m)
     put :: State' m -> m ()
-    liftPassManager :: PassManager' m a -> m a
+    liftPassManager :: GetPassManager m a -> m a
 
 instance Monad m => MonadPassManager (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
@@ -140,7 +142,7 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => Int -> LayerRep -> ElemRep -> m ()
 attachLayerPM priority l e = do
     s <- get
-    let Just lcons = s ^. layers . prototypes . at l
+    let Just lcons = s ^. layers . prototypes_old . at l
         lpass = appCons lcons e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (lpass ^. Pass.desc . Pass.repr)
     put s'
@@ -150,13 +152,29 @@ attachLayerPM priority l e = do
 
 -- FIXME[WD]: make forall t. like security check for layers registration
 registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
-registerLayer l f = modify_ $ layers . prototypes . at l ?~ PassProto f ; {-# INLINE registerLayer #-}
+registerLayer l f = modify_ $ layers . prototypes_old . at l ?~ PassProto_old f ; {-# INLINE registerLayer #-}
+
+uncheckedAddLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (DynPassTemplate (GetPassManager m))) -> m ()
+uncheckedAddLayerProto l f = modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE uncheckedAddLayerProto #-}
+
+-- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
+attachLayerPM2 :: (MonadPassManager m, Functor (GetBaseMonad m))
+               => Int -> LayerRep -> ElemRep -> m ()
+attachLayerPM2 priority l e = do
+    s <- get
+    let Just pproto = s ^. layers . prototypes . at l
+        dpass = Pass.specialize pproto e
+        s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc2 . Pass.repr)
+    put s'
+    addEventListener2 priority (NEW2 // (e ^. asTypeRep)) dpass -- TODO
+    -- TODO: register new available pass!
+{-# INLINE attachLayerPM2 #-}
 
 queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
 queryListeners t = do
     s <- get
     let pss  = s ^. passes
-        evs  = Event.queryListeners t $ s ^. events
+        evs  = Event.queryListeners t $ s ^. events_old
         lsts = map (fromJust . flip Map.lookup pss) evs
         fromJust (Just a) = a
     return lsts
@@ -164,12 +182,19 @@ queryListeners t = do
 --
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (PassManager' m) p) => Int -> evnt -> p (PassManager' m) a -> m ()
-addEventListener priority evnt p = modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) rep)
+addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (GetPassManager m) p) => Int -> evnt -> p (GetPassManager m) a -> m ()
+addEventListener priority evnt p = modify_ $ (events_old %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) rep)
                                            . (passes %~ Map.insert rep cp)
     where cp  = Pass.compile $ Pass.dropResult p
           rep = cp ^. Pass.desc . Pass.repr
 {-# INLINE addEventListener #-}
+
+addEventListener2 :: (MonadPassManager m, IsTag evnt)
+                  => Int -> evnt -> Pass.Describbed (DynPassTemplate (GetPassManager m)) -> m ()
+addEventListener2 priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) cp)
+    where cp  = p -- Pass.compile $ Pass.dropResult p
+          rep = cp ^. Pass.desc2 . Pass.repr
+{-# INLINE addEventListener2 #-}
 
 
 -- registerGenericLayer :: l -> (t -> Definition t -> m (LayerData UID t)) -> m ()
@@ -192,18 +217,22 @@ instance MonadTrans PassManager where
 
 -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 -- | Emitter
--- FIXME[WD]: Is there any more performant way to evaluate events than having to set @WorkingElem before each emit?
-type instance KeyData m (Event e) = PassManager' m ()
+-- FIXME[WD]: Is there any more performant way to evaluate events_old than having to set @WorkingElem before each emit?
+type instance KeyData m (Event e) = GetPassManager m ()
 instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
     emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
 
 -- Here is an example stup of fixing implementation:
--- type instance KeyData m (Event e) = Event.Payload e -> PassManager' m ()
+-- type instance KeyData m (Event e) = Event.Payload e -> GetPassManager m ()
 -- instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
 --     emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . ($ d) . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
 -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 
-
+-- class Monad m => Emitter2 m a where
+--     emit2 :: forall e. a ~ Abstract e => Proxy e -> Payload e -> m ()
+--
+-- instance Emitter2 (SubPass pass m) e where
+--     emit2 _ p =
 
 instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}

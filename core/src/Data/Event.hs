@@ -10,6 +10,8 @@ import           Data.Map     (Map)
 import           Data.Reprx   (RepOf, HasRep, rep)
 import           Data.TypeVal
 
+-- WIP:
+import           Luna.IR.Expr.Layout.Class (Abstract)
 
 -----------------
 -- === Tag === --
@@ -74,6 +76,9 @@ makeWrapped ''Event
 
 class Monad m => Emitter m e where
     emit :: e -> Payload e -> m ()
+
+class Monad m => Emitter2 m a where
+    emit2 :: forall e. a ~ Abstract e => Event e -> m ()
 
 type family Emitters m ems :: Constraint where
     Emitters m '[]       = ()
