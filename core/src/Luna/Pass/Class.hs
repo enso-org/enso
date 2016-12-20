@@ -187,44 +187,63 @@ emptyDescription r = Description r def def def
 
 -- === Utils ===
 
+data ElemScope2 pass t = ElemScope2
+
+type instance Abstract (ElemScope2 pass t) = ElemScope2 (Abstract pass) (Abstract t)
+
+class KnownElemPass pass where
+    elemPassDescription :: forall t. KnownType (Abstract t) => ElemScope2 pass t -> Description
+
+class KnownPass pass where
+    passDescription :: Description
+
+instance {-# OVERLAPPABLE #-} KnownDescription pass => KnownPass pass where
+    passDescription = genericDescription @pass ; {-# INLINE passDescription #-}
+
+instance (KnownElemPass pass, KnownType (Abstract t)) => KnownPass (ElemScope2 pass t) where
+    passDescription = elemPassDescription (ElemScope2 :: ElemScope2 pass t)
+
 type KnownDescription pass = ( KnownType  (Abstract  pass)
                              , KnownTypes (Inputs    pass)
                              , KnownTypes (Outputs   pass)
                              , KnownTypes (Preserves pass)
                              )
 
-passDescription :: forall pass. KnownDescription pass => Description
-passDescription = emptyDescription (typeVal' @(Abstract pass))
+genericDescription :: forall pass. KnownDescription pass => Description
+genericDescription = emptyDescription (typeVal' @(Abstract pass))
                 & inputs    .~ typeVals' @(Inputs   pass)
                 & outputs   .~ typeVals' @(Outputs  pass)
                 & preserves .~ typeVals' @(Outputs  pass)
-{-# INLINE passDescription #-}
+{-# INLINE genericDescription #-}
 
-describbed :: forall pass a. KnownDescription pass => a -> Describbed a
+genericDescription' :: forall pass. KnownDescription pass => Proxy pass -> Description
+genericDescription' _ = genericDescription @pass ; {-# INLINE genericDescription' #-}
+
+describbed :: forall pass a. KnownPass pass => a -> Describbed a
 describbed = Describbed (passDescription @pass) ; {-# INLINE describbed #-}
 
-describbedProxy :: forall pass a. KnownDescription pass => Proxy pass -> a -> Describbed a
+describbedProxy :: forall pass a. KnownPass pass => Proxy pass -> a -> Describbed a
 describbedProxy _ = describbed @pass ; {-# INLINE describbedProxy #-}
 
 
 class                      HasDescription a               where description :: a -> Description
 -- instance                   HasDescription (Desc a) where description   = view rels      ; {-# INLINE description #-}
-instance KnownDescription p => HasDescription (SubPass p m a) where description _ = passDescription @p ; {-# INLINE description #-}
+instance KnownPass p => HasDescription (SubPass p m a) where description _ = passDescription @p ; {-# INLINE description #-}
 
 
 type Commit m pass = ( Monad m
                      , LookupData pass m (Keys pass)
                      , KnownType  (Abstract  pass)
-                     , KnownDescription pass
+                     , KnownPass pass
                      )
 
-class    Functor (p m)                      => IsPass m p           where compile :: forall a. p m a -> DynSubPass m a
-instance Functor m                          => IsPass m DynSubPass  where compile = id                                                          ; {-# INLINE compile #-}
-instance (PassInit p m, KnownDescription p) => IsPass m (SubPass p) where compile = DynSubPass (passDescription @p) . DynSubPass2 . initPass ; {-# INLINE compile #-}
+class    Functor (p m)                      => Copilable m p           where compile :: forall a. p m a -> DynSubPass m a
+instance Functor m                          => Copilable m DynSubPass  where compile = id                                                          ; {-# INLINE compile #-}
+instance (PassInit p m, KnownPass p) => Copilable m (SubPass p) where compile = DynSubPass (passDescription @p) . DynSubPass2 . initPass ; {-# INLINE compile #-}
 
-class    Functor (p m)  => IsPass2 m p           where compile2 :: forall a. p m a -> DynSubPass2 m a
--- instance Functor m      => IsPass2 m DynSubPass  where compile2 = id                        ; {-# INLINE compile2 #-}
-instance (PassInit p m) => IsPass2 m (SubPass p) where compile2 = DynSubPass2 . initPass ; {-# INLINE compile2 #-}
+class    Functor (p m)  => Copilable2 m p           where compile2 :: forall a. p m a -> DynSubPass2 m a
+-- instance Functor m      => Copilable2 m DynSubPass  where compile2 = id                        ; {-# INLINE compile2 #-}
+instance (PassInit p m) => Copilable2 m (SubPass p) where compile2 = DynSubPass2 . initPass ; {-# INLINE compile2 #-}
 
 
 dropResult :: Functor p => p a -> p ()
@@ -249,15 +268,15 @@ initialize (Template t) = Initializer $ do
 
 
 -- describe :: forall pass m a. (KnownType (Abstract pass), KnownDescription pass, PassInit pass m) => SubPass pass m a -> Desc (DynSubPass2 m a)
--- describe = Desc (typeVal' @(Abstract pass)) (passDescription @pass) . compile
+-- describe = Desc (typeVal' @(Abstract pass)) (genericDescription @pass) . compile
 
 -- describeA :: forall pass m a. (KnownType (Abstract pass), KnownDescription pass, PassInit pass m) => ArgSubPass pass m a -> Desc (DynArgSubPass m a)
--- describeA f = Desc (typeVal' @(Abstract pass)) (passDescription @pass) $ (\a -> compile (f $ unsafeCoerce a)) -- FIXME[make this unsafecoerce nicer]
+-- describeA f = Desc (typeVal' @(Abstract pass)) (genericDescription @pass) $ (\a -> compile (f $ unsafeCoerce a)) -- FIXME[make this unsafecoerce nicer]
 
 eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
 eval = join . fmap sequence . run ; {-# INLINE eval #-}
 
-eval' :: (PassInit pass m, KnownDescription pass) => SubPass pass m a -> m (Either InternalError a)
+eval' :: (PassInit pass m, KnownPass pass) => SubPass pass m a -> m (Either InternalError a)
 eval' = eval . compile ; {-# INLINE eval' #-}
 
 run :: DynSubPass m a -> m (Either InternalError (m a))

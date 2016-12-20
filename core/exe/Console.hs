@@ -69,7 +69,7 @@ test_pass1 = evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder m)))
+test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownPass pass, Pass.PassInit pass (PassManager (IRBuilder m)))
             => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
 test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
     runRegs

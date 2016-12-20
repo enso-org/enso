@@ -12,7 +12,7 @@ import           Data.Event          (Event(Event), EventHub, Emitter, Emitter2,
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
-import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep, DynPassTemplate, Proto, DynPass3, Template, Initializer)
+import Luna.Pass.Class (DynSubPass, SubPass, PassRep, DynPassTemplate, Proto, DynPass3, Template, Initializer)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
