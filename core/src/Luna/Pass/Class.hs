@@ -1,4 +1,5 @@
 {-# LANGUAGE NoOverloadedStrings  #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Class where
@@ -292,6 +293,16 @@ instance Monad m                  => LookupData pass m '[]       where lookupDat
 instance ReLookupData pass k m ks => LookupData pass m (k ': ks) where lookupData = prepend <<$>> (justErr (MissingData $ typeVal' @k) <$> IR.uncheckedLookupKey)
                                                                                             <<*>> lookupData @pass
 
+
+-- class Monad m => LookupData2 m where
+--     lookupData2 :: forall pass. Typeable (Abstract pass) => m (Either InternalError (DataSet (SubPass pass m) (Keys pass)))
+
+-- instance Monad m => LookupData2 m where
+--     lookupData2 = lookupData3
+--
+-- class Monad m => LookupData3 m keys where
+--     lookupData3 :: forall pass. Typeable (Abstract pass) => m (Either InternalError (DataSet (SubPass pass m) keys))
+--
 
 infixl 4 <<*>>
 (<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
