@@ -168,6 +168,12 @@ passT3 = Pass.template passT2
 
 passT4 :: forall p t m. Proxy t -> Pass.PassTemplate (ElemScope2 p t) m
 passT4 = proxifyElemPass3 passT3
+--
+--
+-- ∀ k in (Keys (ElemScope2 p t)) => KeyMonad k m
+--
+-- class Monad m => KeyMonad key m n where
+--     uncheckedLookupKey :: m (Maybe (Key n key))
 
 -- passT5 :: forall p t m. (Logging m, KnownType (Abstract p), KnownType (Abstract t))
 --        => Proxy t -> Initializer m (Template (Pass.DynPass3 m))
