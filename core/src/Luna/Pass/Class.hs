@@ -65,7 +65,7 @@ type family Preserves pass :: [*]
 
 -- === Template === --
 
-newtype Template a = Template (Prim.Any -> a) deriving (Functor)
+newtype Template a = Template (Prim.Any -> a) deriving (Functor, Applicative, Monad)
 makeWrapped ''Template
 
 template :: (t -> a) -> Template a
@@ -110,6 +110,13 @@ newtype SubPass pass m a = SubPass (StateT (PassDataSet (SubPass pass m) pass) m
 
 type    DynPass2    m   = DynSubPass2 m ()
 newtype DynSubPass2 m a = DynSubPass2 (m (Either InternalError (m a))) deriving (Functor)
+
+type    DynPass3    m   = DynSubPass3 m ()
+newtype DynSubPass3 m a = DynSubPass3 { runDynPass :: m a } deriving (Show, Functor, Applicative, Monad)
+
+newtype Initializer m a = Initializer { runInitializer :: m (Either InternalError a) } deriving (Functor)
+
+instance Show (Initializer m a) where show _ = "Initializer" ; {-# INLINE show #-}
 
 type DynSubPassTemplate m a = Template (DynSubPass2 m a)
 type DynPassTemplate    m   = Template (DynPass2    m)
@@ -231,6 +238,12 @@ initPass p = do
         fmap (\d -> withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Running" $ State.evalStateT (unwrap' p) d) <$> lookupData @pass
 {-# INLINE initPass #-}
 
+initialize :: forall pass m a. PassInit pass m => Template (SubPass pass m a) -> Initializer m (Template (DynSubPass3 m a))
+initialize (Template t) = Initializer $ do
+    withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Initialzation" $
+        fmap (\d -> Template $ \arg -> DynSubPass3 $ State.evalStateT (unwrap' $ t arg) d) <$> lookupData @pass
+
+-- State.evalStateT (unwrap' p)
 -- initArgPass :: forall pass m a. PassInit pass m => (Args pass -> SubPass pass m a) -> (Args pass -> m (Either InternalError (m a)))
 -- initArgPass = fmap initPass                                                     ; {-# INLINE initArgPass #-}
 

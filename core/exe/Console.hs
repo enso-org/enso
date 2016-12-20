@@ -56,9 +56,9 @@ import GHC.Stack
 
 data                    SimpleAA
 type instance Abstract  SimpleAA = SimpleAA
-type instance Inputs    SimpleAA = '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
-type instance Outputs   SimpleAA = '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
-type instance Events    SimpleAA = '[NEW // EXPR]
+type instance Inputs    SimpleAA = '[ExprNet] -- '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
+type instance Outputs   SimpleAA = '[ExprNet] -- '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
+type instance Events    SimpleAA = '[NEW2 // EXPR]
 type instance Preserves SimpleAA = '[]
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
@@ -97,29 +97,34 @@ uncheckedDeleteStarType e = do
 
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
-             , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
-             , Emitter m (NEW // EXPR)
+             , Accessibles m '[ExprNet]
+             , Emitter2 m (NEW2 // EXPR)
+            --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
+            --  , Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do
-    ss <- string "hello"
-    (s :: Expr Star) <- star
-    tlink   <- readLayer @Type s
-    (src,_) <- readLayer @Model tlink
-    scss    <- readLayer @Succs src
-    print src
-    print scss
-
-    i <- readLayer @UID s
-    print i
-
-    Vis.snapshot "s1"
-
-
-    match s $ \case
-        Unify l r -> print "ppp"
-        Star      -> match s $ \case
-            Unify l r -> print "hola"
-            Star      -> print "hellox"
+    (s :: Expr Star) <- star2
+    (s :: Expr Star) <- star2
+    (s :: Expr Star) <- star2
+    -- ss <- string "hello"
+    -- (s :: Expr Star) <- star
+    -- tlink   <- readLayer @Type s
+    -- (src,_) <- readLayer @Model tlink
+    -- scss    <- readLayer @Succs src
+    -- print src
+    -- print scss
+    --
+    -- i <- readLayer @UID s
+    -- print i
+    --
+    -- Vis.snapshot "s1"
+    --
+    --
+    -- match s $ \case
+    --     Unify l r -> print "ppp"
+    --     Star      -> match s $ \case
+    --         Unify l r -> print "hola"
+    --         Star      -> print "hellox"
 
 
     return ()

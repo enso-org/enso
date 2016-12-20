@@ -8,11 +8,11 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener, (//))
+import           Data.Event          (Event(Event), EventHub, Emitter, Emitter2, IsTag, Listener(Listener), toTag, attachListener, (//))
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
-import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep, DynPassTemplate, Proto)
+import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep, DynPassTemplate, Proto, DynPass3, Template, Initializer)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -47,15 +47,15 @@ instance Show (PassProto_old m) where show _ = "PassProto_old"
 -- ^^^ --
 
 data LayerReg m = LayerReg { _prototypes_old :: Map LayerRep $ PassProto_old m
-                           , _prototypes     :: Map LayerRep $ Proto (Pass.Describbed (DynPassTemplate (PassManager m)))
+                           , _prototypes     :: Map LayerRep $ Proto (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
                            , _attached       :: Map ElemRep  $ Map LayerRep $ PassRep
                            } deriving (Show)
 
 data State m = State { _passes :: Map PassRep $ PMPass m
                      , _layers :: LayerReg m
-                     , _events :: EventHub SortedListenerRep (Pass.Describbed (DynPassTemplate (PassManager m)))
+                     , _events :: EventHub SortedListenerRep (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
                      , _attrs  :: Map AttrRep Prim.AnyData
-                     , _events_old :: EventHub SortedListenerRep PassRep
+                    --  , _events_old :: EventHub SortedListenerRep PassRep
                      } deriving (Show)
 
 
@@ -70,7 +70,7 @@ instance Default (LayerReg m) where
     def = LayerReg def def def ; {-# INLINE def #-}
 
 instance Default (State m) where
-    def = State def def def def def ; {-# INLINE def #-}
+    def = State def def def def ; {-# INLINE def #-}
 
 
 --------------------------
@@ -139,22 +139,22 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 -- === Utils === --
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => Int -> LayerRep -> ElemRep -> m ()
-attachLayerPM priority l e = do
-    s <- get
-    let Just lcons = s ^. layers . prototypes_old . at l
-        lpass = appCons lcons e
-        s' = s & layers . attached . at e . non Map.empty . at l ?~ (lpass ^. Pass.desc . Pass.repr)
-    put s'
-    addEventListener priority (NEW // (e ^. asTypeRep)) lpass -- TODO
-    -- TODO: register new available pass!
-{-# INLINE attachLayerPM #-}
+-- attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => Int -> LayerRep -> ElemRep -> m ()
+-- attachLayerPM priority l e = do
+--     s <- get
+--     let Just lcons = s ^. layers . prototypes_old . at l
+--         lpass = appCons lcons e
+--         s' = s & layers . attached . at e . non Map.empty . at l ?~ (lpass ^. Pass.desc . Pass.repr)
+--     put s'
+--     addEventListener priority (NEW // (e ^. asTypeRep)) lpass -- TODO
+--     -- TODO: register new available pass!
+-- {-# INLINE attachLayerPM #-}
 
 -- FIXME[WD]: make forall t. like security check for layers registration
 registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
 registerLayer l f = modify_ $ layers . prototypes_old . at l ?~ PassProto_old f ; {-# INLINE registerLayer #-}
 
-uncheckedAddLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (DynPassTemplate (GetPassManager m))) -> m ()
+uncheckedAddLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
 uncheckedAddLayerProto l f = modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE uncheckedAddLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
@@ -170,27 +170,36 @@ attachLayerPM2 priority l e = do
     -- TODO: register new available pass!
 {-# INLINE attachLayerPM2 #-}
 
-queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
-queryListeners t = do
+-- (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
+
+-- queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
+-- queryListeners t = do
+--     s <- get
+--     let pss  = s ^. passes
+--         evs  = Event.queryListeners t $ s ^. events_old
+--         lsts = map (fromJust . flip Map.lookup pss) evs
+--         fromJust (Just a) = a
+--     return lsts
+
+queryListeners2 :: MonadPassManager m => Event.Tag -> m [Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m)))]
+queryListeners2 t = do
     s <- get
     let pss  = s ^. passes
-        evs  = Event.queryListeners t $ s ^. events_old
-        lsts = map (fromJust . flip Map.lookup pss) evs
-        fromJust (Just a) = a
-    return lsts
+        evs  = Event.queryListeners t $ s ^. events
+    return (view Pass.content <$> evs)
 
 --
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (GetPassManager m) p) => Int -> evnt -> p (GetPassManager m) a -> m ()
-addEventListener priority evnt p = modify_ $ (events_old %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) rep)
-                                           . (passes %~ Map.insert rep cp)
-    where cp  = Pass.compile $ Pass.dropResult p
-          rep = cp ^. Pass.desc . Pass.repr
-{-# INLINE addEventListener #-}
+-- addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (GetPassManager m) p) => Int -> evnt -> p (GetPassManager m) a -> m ()
+-- addEventListener priority evnt p = modify_ $ (events_old %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) rep)
+--                                            . (passes %~ Map.insert rep cp)
+--     where cp  = Pass.compile $ Pass.dropResult p
+--           rep = cp ^. Pass.desc . Pass.repr
+-- {-# INLINE addEventListener #-}
 
 addEventListener2 :: (MonadPassManager m, IsTag evnt)
-                  => Int -> evnt -> Pass.Describbed (DynPassTemplate (GetPassManager m)) -> m ()
+                  => Int -> evnt -> (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
 addEventListener2 priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) cp)
     where cp  = p -- Pass.compile $ Pass.dropResult p
           rep = cp ^. Pass.desc2 . Pass.repr
@@ -215,18 +224,18 @@ instance MonadTrans PassManager where
 
 
 
--- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
--- | Emitter
--- FIXME[WD]: Is there any more performant way to evaluate events_old than having to set @WorkingElem before each emit?
-type instance KeyData m (Event e) = GetPassManager m ()
-instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
-    emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
+type instance KeyData m (Event e) = Template (DynPass3 (GetPassManager m))
 
--- Here is an example stup of fixing implementation:
--- type instance KeyData m (Event e) = Event.Payload e -> GetPassManager m ()
--- instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
---     emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . ($ d) . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
--- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass))
+      => Emitter2 (SubPass pass m) e where
+    emit2 (Event p) = do
+        tmpl <- unwrap' . view (Pass.findKey @(Event e)) <$> Pass.get
+        liftPassManager $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
+        -- liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
+--
+--
+-- class Monad m => Emitter2 m a where
+--     emit2 :: forall e. a ~ Abstract e => Event e -> m ()
 
 -- class Monad m => Emitter2 m a where
 --     emit2 :: forall e. a ~ Abstract e => Proxy e -> Payload e -> m ()

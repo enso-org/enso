@@ -330,11 +330,12 @@ newElem tdef = do
 
 data NEW2 = NEW2 deriving (Show)
 
-newElem2 :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, Event.Emitter2 m (NEW2 // Abstract t), IsIdx t)
+newElem2 :: forall t m. ( IRMonad m, Accessible (Net (Abstract t)) m, Event.Emitter2 m (NEW2 // Abstract t), IsIdx t, KnownType (Abstract t))
         => Definition t -> m t
 newElem2 tdef = do
     t <- reserveElem
-    Event.emit2 $ Event @(NEW2 // t) (t,tdef)
+    withDebugBy "Emitter" ("NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]") $ do
+        Event.emit2 $ Event @(NEW2 // t) (t,tdef)
     return t
 {-# INLINE newElem2 #-}
 
