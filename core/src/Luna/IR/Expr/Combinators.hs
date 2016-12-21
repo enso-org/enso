@@ -6,7 +6,7 @@ import           Luna.IR
 import           Data.TypeVal
 import qualified Data.Set     as Set
 
-narrowAtom :: forall a m. (IRMonad m, KnownType (AtomOf a), Readable (ExprLayer Model) m)
+narrowAtom :: forall a m. (IRMonad m, KnownType (AtomOf a), Reader LAYER (ExprLayer Model) m)
            => AnyExpr -> m (Maybe (Expr (AtomOf a)))
 narrowAtom expr = do
     exprAtomRep <- getAtomRep expr
@@ -14,7 +14,9 @@ narrowAtom expr = do
       then Just $ unsafeGeneralize expr
       else Nothing
 
-deleteSubtree :: forall l m. (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet, ExprLayer Succs, ExprLayer Type, ExprLayer Model, ExprLinkLayer Model], Emitters m '[DELETE // LINK' EXPR, DELETE // EXPR])
+deleteSubtree :: forall l m. ( IRMonad m, Editors NET '[EXPR, LINK' EXPR] m
+                             , Editors LAYER '[ExprLayer Succs, ExprLayer Type, ExprLayer Model, ExprLinkLayer Model] m
+                             , Emitters m '[DELETE // LINK' EXPR, DELETE // EXPR])
                  => AnyExpr -> m ()
 deleteSubtree expr = do
     succs     <- readLayer @Succs expr
@@ -30,7 +32,7 @@ deleteSubtree expr = do
         mapM_ deleteSubtree $ filter (/= expr) toRemove
     else return ()
 
-changeSource :: forall l m. (IRMonad m, Accessibles m '[ExprLinkNet, ExprLayer Succs, ExprLinkLayer Model])
+changeSource :: forall l m. (IRMonad m, Editors NET '[LINK' EXPR] m, Editors LAYER '[ExprLayer Succs, ExprLinkLayer Model] m)
              => AnyExprLink -> AnyExpr -> m ()
 changeSource link newSource = do
     (src, tgt) <- readLayer @Model link

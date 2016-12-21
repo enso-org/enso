@@ -14,7 +14,7 @@ import Data.Aeson (encode)
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
-import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves, SubPass)
+import           Luna.Pass        (Pass, PRESERVE, SubPass, Desc, R, W, RW)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
 import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
@@ -54,12 +54,14 @@ import GHC.Stack
 
 
 
-data                    SimpleAA
-type instance Abstract  SimpleAA = SimpleAA
-type instance Inputs    SimpleAA = '[ExprNet] -- '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
-type instance Outputs   SimpleAA = '[ExprNet] -- '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
-type instance Events    SimpleAA = '[NEW2 // EXPR]
-type instance Preserves SimpleAA = '[]
+data SimpleAA
+type instance Abstract SimpleAA = SimpleAA
+type instance Desc NET      SimpleAA = '[RW EXPR]
+type instance Desc LAYER    SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
+type instance Desc ATTR     SimpleAA = '[]
+type instance Desc EVENT    SimpleAA = '[]
+type instance Desc PRESERVE SimpleAA = '[]
+
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
@@ -75,13 +77,13 @@ test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 
-uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
+uncheckedDeleteStar :: (IRMonad m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
     freeElem =<< readLayer @Type e
     freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
-uncheckedDeleteStarType :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet, ExprLinkLayer Model])
+uncheckedDeleteStarType :: (IRMonad m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m, Editors LAYER '[ExprLinkLayer Model] m)
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
@@ -97,7 +99,7 @@ uncheckedDeleteStarType e = do
 
 
 gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
-             , Accessibles m '[ExprNet]
+             , Editors NET '[EXPR] m
              , Emitter2 m (NEW2 // EXPR)
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (NEW // EXPR)

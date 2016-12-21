@@ -8,7 +8,7 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (Event(Event), EventHub, Emitter, Emitter2, IsTag, Listener(Listener), toTag, attachListener, (//))
+import           Data.Event          (EVENT, Event(Event), EventHub, Emitter, Emitter2, IsTag, Listener(Listener), toTag, attachListener, (//))
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR
@@ -19,7 +19,6 @@ import qualified Prologue.Prim as Prim
 import Data.TypeVal
 
 
-data WorkingElem = WorkingElem deriving (Show)
 
 
 
@@ -222,16 +221,17 @@ instance MonadTrans PassManager where
 
 
 
+-- class ContainsKey pass k a m where findKey :: Lens' (DataSet m pass) (Key k a m)
 
 
-type instance KeyData m (Event e) = Template (DynPass3 (GetPassManager m))
+type instance KeyData EVENT _ m = Template (DynPass3 (GetPassManager m))
 
-instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass))
+
+instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (SubPass pass m))
       => Emitter2 (SubPass pass m) e where
     emit2 (Event p) = do
-        tmpl <- unwrap' . view (Pass.findKey @(Event e)) <$> Pass.get
+        tmpl <- unwrap' . view (Pass.findKey @pass @EVENT @e) <$> Pass.get
         liftPassManager $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
-        -- liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
 --
 --
 -- class Monad m => Emitter2 m a where
@@ -243,8 +243,8 @@ instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass))
 -- instance Emitter2 (SubPass pass m) e where
 --     emit2 _ p =
 
-instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
-    uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
+instance MonadPassManager m => KeyMonad ATTR m n where
+    uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (typeVal a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
 
 unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()

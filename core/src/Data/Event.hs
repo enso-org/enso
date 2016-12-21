@@ -13,6 +13,10 @@ import           Data.TypeVal
 -- WIP:
 import           Luna.IR.Expr.Layout.Class (Abstract)
 
+
+
+data EVENT
+
 -----------------
 -- === Tag === --
 -----------------

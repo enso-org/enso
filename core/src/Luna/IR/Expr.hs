@@ -24,21 +24,21 @@ type NT' n = NT n Star
 type T' = T Star
 
 -- class                                         LitExpr m a              where litExpr :: a -> m (Expr (DefListLayout m a))
--- instance (IRMonad m, Accessible ExprNet m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
+-- instance (IRMonad m, Editor NET EXPR m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
 -- instance Monad m                           => LitExpr m (Expr l)       where litExpr = return ; {-# INLINE litExpr #-}
 
-type NewExpr  m = (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR))
-type NewExpr' m = (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR))
+type NewExpr  m = (IRMonad m, Editor NET EXPR m, Emitter m (NEW // EXPR))
+type NewExpr' m = (IRMonad m, Editors NET '[EXPR, LINK' EXPR] m, Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR))
 
 star :: NewExpr m => m (Expr Star)
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
-star2 :: (IRMonad m, Accessible ExprNet m, Emitter2 m (NEW2 // EXPR)) => m (Expr Star)
+star2 :: (IRMonad m, Editor NET EXPR m, Emitter2 m (NEW2 // EXPR)) => m (Expr Star)
 star2 = expr2 Term.uncheckedStar
 {-# INLINE star2 #-}
 
-reserveStar :: (IRMonad m, Accessible ExprNet m) => m (Expr Star)
+reserveStar :: (IRMonad m, Editor NET EXPR m) => m (Expr Star)
 reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
 
 registerStar :: Emitter m (NEW // EXPR) => Expr Star -> m ()
@@ -64,10 +64,10 @@ cons n = mdo
 blank :: NewExpr m => m (Expr Blank)
 blank = expr Term.uncheckedBlank
 
--- string :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr (String %> Infered Layout m))
+-- string :: (IRMonad m, Editor NET EXPR m) => Prelude.String -> m (Expr (String %> Infered Layout m))
 -- string = expr . Term.uncheckedString ; {-# INLINE string #-}
 --
--- acc :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], LitExpr m name)
+-- acc :: (IRMonad m, Editors m '[NET EXPR, ExprLinkNet], LitExpr m name)
 --     => name -> Expr l -> m (Expr (DefListLayout m name #> l))
 -- acc name arg = mdo
 --     t  <- expr $ Term.uncheckedAcc ln la
