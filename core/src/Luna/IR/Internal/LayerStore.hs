@@ -3,6 +3,7 @@ module Luna.IR.Internal.LayerStore where
 import Prelude hiding (tail)
 import Data.Default
 import Data.Monoid
+import Data.Maybe     (fromJust)
 import Control.Lens.Utils
 import Control.Monad
 import Data.Functor.Utils hiding ((.))
@@ -16,7 +17,7 @@ import qualified Data.Vector         as V
 import           Data.Vector         (Vector)
 import           Data.Map            (Map)
 import qualified Data.Map            as Map
-import           Data.List           (sort)
+import qualified Data.List           as List
 
 
 -- FIXME[WD]: refactor vvv
@@ -126,10 +127,6 @@ defSize = 1024
 
 type Idx = Int
 
-data Block = Block { _blockSize :: !Int
-                   , _blockFree :: ![Idx]
-                   } deriving (Show)
-
 type    LayerStoreRefM m     = LayerStoreRef  (PrimState m)
 newtype LayerStoreRef  s k a = LayerStoreRef  (STRef s (LayerStoreST s k a))
 type    LayerStoreM    m k a = LayerStoreST   (PrimState m) k a
@@ -137,11 +134,9 @@ type    LayerStoreST   s k a = LayerStoreBase k (VectorRef s a)
 type    LayerStore       k a = LayerStoreBase k (Vector a)
 data    LayerStoreBase   k a = LayerStore { _size :: !Int
                                           , _free :: ![Idx]
-                                          , _tail :: !Block -- empty memory block for efficient paste operations
                                           , _vec  :: !(Map k a)
                                           } deriving (Show, Functor, Foldable, Traversable)
 
-makeLenses  ''Block
 makeWrapped ''LayerStoreRef
 makeLenses  ''LayerStoreBase
 
@@ -165,11 +160,8 @@ modifyLayerStoreRef'_ = modifyLayerStoreRefM'_ . fmap return ; {-# INLINE modify
 --     growSize =
 
 
-instance Default Block where
-    def = Block 0 def ; {-# INLINE def #-}
-
 instance Default (LayerStoreST s k a) where
-    def = LayerStore defSize [0 .. defSize - 1] def def ; {-# INLINE def #-}
+    def = LayerStore defSize [0 .. defSize - 1] def ; {-# INLINE def #-}
 
 
 empty :: PrimMonad m => m (LayerStoreRefM m k a)
@@ -245,8 +237,6 @@ duplicate' = freeze' >=> unsafeThaw' ; {-# INLINE duplicate' #-}
 
 
 
-
-
 -- === Non-ref API === --
 
 autoGrowFree' :: PrimMonad m => LayerStoreST (PrimState m) k a -> m (Idx, LayerStoreST (PrimState m) k a)
@@ -256,20 +246,10 @@ autoGrowFree' m = (grow, nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
              & free .~ [grow + 1 .. grow + grow - 1]
 {-# INLINE autoGrowFree' #-}
 
-autoGrowBlock' :: PrimMonad m => LayerStoreST (PrimState m) k a -> m (Idx, LayerStoreST (PrimState m) k a)
-autoGrowBlock' m = (grow, nm) <$ mapM_ (unsafeGrow grow) (m ^. vec) where
-    grow = m ^. size
-    nm   = m & size %~ (+ grow)
-             & tail %~ (blockFree %~ (<> [grow + 1 .. grow + grow - 1]))
-                     . (blockSize %~ (+ grow))
-{-# INLINE autoGrowBlock' #-}
-
 reserveIdx' :: PrimMonad m => LayerStoreM m k a -> m (Idx, LayerStoreM m k a)
 reserveIdx' m = case m ^. free of
     (i : is) -> return (i, m & free .~ is)
-    []       -> case m ^. tail of
-        Block _ (i : is) -> return (i, m & free .~ is & tail .~ def)
-        Block _ []       -> autoGrowFree' m
+    []       -> autoGrowFree' m
 {-# INLINE reserveIdx' #-}
 
 unsafeAddKey' :: (PrimMonad m, Ord k) => k -> LayerStoreM m k a -> m (LayerStoreM m k a)
@@ -281,8 +261,8 @@ unsafeAddKey' k m = do
 
 -- | Used index access performs in approx. O(n (log n))
 --   in order to make allocating and freeing indexes as fast as possible.
-ixes' :: LayerStoreST s k a -> [Int]
-ixes' m = findIxes [0 .. m ^. size - 1] (sort $ m ^. free) where
+ixes' :: LayerStoreBase k a -> [Int]
+ixes' m = findIxes [0 .. m ^. size - 1] (List.sort $ m ^. free) where
     findIxes (i : is) (f : fs) = if i == f then findIxes is fs else i : findIxes is (f : fs)
     findIxes is       []       = is
     findIxes []       _        = []
@@ -295,6 +275,24 @@ mapWithKey' f = vec %~ Map.mapWithKey f ; {-# INLINE mapWithKey' #-}
 
 traverseWithKey' :: Applicative m => (k -> VectorRef s a -> m (VectorRef s b)) -> LayerStoreST s k a -> m (LayerStoreST s k b)
 traverseWithKey' = vec . Map.traverseWithKey ; {-# INLINE traverseWithKey' #-}
+
+-- === Structural operations === --
+
+-- This operation may leave some keys uninitialized, if they are not present in the imported structure
+unsafeMerge :: (Ord k, PrimMonad m) => LayerStore k a -> LayerStoreRefM m k a -> m [(Idx, Idx)]
+unsafeMerge st@(LayerStore _ _ m) store = do
+    localKeys <- keys store
+    let foreignKeys  = Map.keys m
+    let importedKeys = List.intersect localKeys foreignKeys
+    let ixesToImport = ixes' st
+    newIxes <- mapM reserveIdx $ store <$ ixesToImport
+    let ixMapping = zip ixesToImport newIxes
+    forM_ importedKeys $ \k -> do
+        targetVec <- fromJust <$> readKey k store -- this fromJust is guaranteed not to fail by construction of importedKeys
+        forM_ ixMapping $ \(oldIx, newIx) ->
+            unsafeWrite targetVec newIx $ V.unsafeIndex (fromJust $ Map.lookup k m) oldIx -- again, fromJust safety guaraneed by construction of importedKeys
+    return ixMapping
+
 
 
 -- === Instances === --

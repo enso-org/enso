@@ -45,6 +45,9 @@ import           System.Process                          (createProcess, shell)
 import           Data.Tuple.Select                       (sel1)
 import qualified Old.Luna.Syntax.Term.Expr.Lit                as Lit
 
+instance Castable String String where
+    cast = id
+
 
 --instance Repr HeaderOnly Data where repr _ = "Data"
 --instance Repr HeaderOnly (Draft l v) where repr _ = "Draft"
