@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoOverloadedStrings  #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
@@ -9,12 +10,13 @@ module Main where
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
 import Luna.Prelude as Prelude hiding (String, cons, elem)
+import qualified Luna.Prelude as Prelude
 import Data.Aeson (encode)
 
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
-import           Luna.Pass        (Pass, PRESERVE, SubPass, Desc, R, W, RW)
+import           Luna.Pass        (Pass, SubPass, Preserves, Events, Inputs, Outputs)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
 import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
@@ -52,15 +54,20 @@ import System.Log.Logger.Format (nestedColorFormatter)
 
 import GHC.Stack
 
+import Data.TList (TList)
+import qualified Data.TList as TList
 
 
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
-type instance Desc NET      SimpleAA = '[RW EXPR]
-type instance Desc LAYER    SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
-type instance Desc ATTR     SimpleAA = '[]
-type instance Desc EVENT    SimpleAA = '[]
-type instance Desc PRESERVE SimpleAA = '[]
+type instance Inputs  NET   SimpleAA = '[EXPR]
+type instance Outputs NET   SimpleAA = '[EXPR]
+type instance Inputs  LAYER SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs LAYER SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  ATTR  SimpleAA = '[]
+type instance Outputs ATTR  SimpleAA = '[]
+type instance Events        SimpleAA = '[]
+type instance Preserves     SimpleAA = '[]
 
 
 pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
@@ -130,6 +137,8 @@ gen_pass1 = do
 
 
     return ()
+
+
 
 
 main :: HasCallStack => IO ()

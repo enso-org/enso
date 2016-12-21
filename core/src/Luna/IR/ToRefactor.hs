@@ -21,7 +21,7 @@ import Luna.IR.Expr.Format
 import Luna.IR.Expr.Atom
 import Data.Property
 import qualified Luna.Pass        as Pass
-import           Luna.Pass        (Pass, PRESERVE, Desc, R, W, RW, SubPass, Initializer, Template, DynPass3, ElemScope2, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
+import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Initializer, Template, DynPass3, ElemScope2, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
 import Data.TypeVal
 import Data.Event (Emitter, type (//))
 import qualified Data.Set as Set
@@ -124,13 +124,25 @@ proxifyElemPass3 = const ; {-# INLINE proxifyElemPass3 #-}
 -- type instance Preserves (ElemScope2 InitModel2 t) = '[]
 
 
+-- data InitModel2
+-- type instance Abstract InitModel2 = InitModel2
+-- type instance Desc NET      (ElemScope2 InitModel2 t) = '[RW EXPR, RW $ LINK' EXPR]
+-- type instance Desc LAYER    (ElemScope2 InitModel2 t) = '[RW $ Abstract t // Model] -- FIXME[bug: unnecessary inputs needed]
+-- type instance Desc ATTR     (ElemScope2 InitModel2 t) = '[]
+-- type instance Desc EVENT    (ElemScope2 InitModel2 t) = '[]
+-- type instance Desc PRESERVE (ElemScope2 InitModel2 t) = '[]
+
+
 data InitModel2
 type instance Abstract InitModel2 = InitModel2
-type instance Desc NET      (ElemScope2 InitModel2 t) = '[RW EXPR, RW $ LINK' EXPR]
-type instance Desc LAYER    (ElemScope2 InitModel2 t) = '[RW $ Abstract t // Model] -- FIXME[bug: unnecessary inputs needed]
-type instance Desc ATTR     (ElemScope2 InitModel2 t) = '[]
-type instance Desc EVENT    (ElemScope2 InitModel2 t) = '[]
-type instance Desc PRESERVE (ElemScope2 InitModel2 t) = '[]
+type instance Inputs  NET      (ElemScope2 InitModel2 t) = '[EXPR, LINK' EXPR]
+type instance Outputs NET      (ElemScope2 InitModel2 t) = '[EXPR, LINK' EXPR]
+type instance Inputs  LAYER    (ElemScope2 InitModel2 t) = '[Abstract t // Model] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs LAYER    (ElemScope2 InitModel2 t) = '[Abstract t // Model] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  ATTR     (ElemScope2 InitModel2 t) = '[]
+type instance Outputs ATTR     (ElemScope2 InitModel2 t) = '[]
+type instance Events           (ElemScope2 InitModel2 t) = '[]
+type instance Preserves        (ElemScope2 InitModel2 t) = '[]
 
 
     -- instance KnownElemPass InitModel2 where

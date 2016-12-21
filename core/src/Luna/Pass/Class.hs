@@ -5,9 +5,9 @@
 module Luna.Pass.Class where
 
 import Luna.Prelude hiding (head, tail, elem, repr, Args)
-
-import           Data.RTuple (List ((:-:)))
-import qualified Data.RTuple as List
+--
+-- import           Data.RTuple (List ((:-:)))
+-- import qualified Data.RTuple as List
 
 import qualified Control.Monad.Catch      as Catch
 import           Control.Monad.Fix
@@ -15,7 +15,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, rebaseKey, RebasedKeyData)
+import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Keys, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, rebaseKey, RebasedKeyData)
 import qualified Luna.IR.Internal.IR   as IR (KeyMonad, uncheckedLookupKey)
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -27,62 +27,51 @@ import Unsafe.Coerce (unsafeCoerce)
 import Data.Event (EVENT, Event)
 import Data.TypeVal
 import System.Log hiding (LookupData, lookupData)
-
+import Data.TList (TList)
+import qualified Data.TList as TList
 import qualified Data.Map as Map
 import           Data.Map (Map)
 
 
-data PRESERVE
+-- data PRESERVE
 
-type family Desc t pass :: [*]
+-- type family Desc t pass :: [*]
 -- type family Networks  pass :: [*]
 -- type family Layers    pass :: [*]
 -- type family Attribs   pass :: [*]
--- type family Events    pass :: [*]
--- type family Preserves pass :: [*]
 
-type family Inputs    pass :: [*]
-type family Outputs   pass :: [*]
+type family Inputs  t pass :: [*]
+type family Outputs t pass :: [*]
+type family Events    pass :: [*]
+type family Preserves pass :: [*]
+
+type Elements t pass = (Inputs t pass <> Outputs t pass)
 
 
+type DataStore k pass m = Keys k (Elements k pass) m
 
-
-data R a
-data W a
-data RW a
-
-type family RemoveAccessTag a where
-    RemoveAccessTag (R  a) = a
-    RemoveAccessTag (W  a) = a
-    RemoveAccessTag (RW a) = a
-
-type family AppRWKeys m k as where
-    AppRWKeys m k (a ': as) = Key k (RemoveAccessTag a) m ': AppRWKeys m k as
-    AppRWKeys m k '[]       = '[]
-
-type DataStore t pass m = AppRWKeys m t (Desc t pass)
 ---------------------
 -- === DataSet === --
 ---------------------
 
 data DataSet m pass
-   = DataSet { _netStore   :: List ( DataStore NET   pass m )
-             , _layerStore :: List ( DataStore LAYER pass m )
-             , _attrStore  :: List ( DataStore ATTR  pass m )
-             , _eventStore :: List ( DataStore EVENT pass m )
+   = DataSet { _netStore   :: TList ( DataStore NET   pass m )
+             , _layerStore :: TList ( DataStore LAYER pass m )
+             , _attrStore  :: TList ( DataStore ATTR  pass m )
+             , _eventStore :: TList ( DataStore EVENT pass m )
              }
 -- type    DataSetM m     = DataSet (PrimState m)
 makeLenses ''DataSet
 
 -- prepend :: Key m k -> DataSet m ks -> DataSet m (k ': ks)
--- prepend k = wrapped %~ List.prepend k ; {-# INLINE prepend #-}
+-- prepend k = wrapped %~ TList.prepend k ; {-# INLINE prepend #-}
 
--- | FIXME[WD]: tail cannot be constructed as wrapped . List.tail . Why?
+-- | FIXME[WD]: tail cannot be constructed as wrapped . TList.tail . Why?
 -- tail :: Lens' (DataSet m (k ': ks)) (DataSet m ks)
--- tail = lens (wrapped %~ (view List.tail)) $ flip (\lst -> wrapped %~ (List.tail .~ unwrap' lst)) ; {-# INLINE tail #-}
+-- tail = lens (wrapped %~ (view TList.tail)) $ flip (\lst -> wrapped %~ (TList.tail .~ unwrap' lst)) ; {-# INLINE tail #-}
 --
 -- head :: Lens' (DataSet m (k ': ks)) (Key m k)
--- head = wrapped . List.head ; {-# INLINE head #-}
+-- head = wrapped . TList.head ; {-# INLINE head #-}
 
 
 
@@ -319,11 +308,14 @@ run = unwrap' . view func ; {-# INLINE run #-}
 
 -- type ReLookupData pass k m ks = (IR.KeyMonad k m (SubPass pass m), LookupData pass m ks, KnownType k)
 class    Monad m                  => LookupData pass m      where lookupData :: m (Either InternalError (DataSet (SubPass pass m) pass))
--- instance Monad m                  => LookupData pass m '[]       where lookupData = undefined --return $ return (wrap' List.empty)
+-- instance Monad m                  => LookupData pass m '[]       where lookupData = undefined --return $ return (wrap' TList.empty)
 -- instance ReLookupData pass k m ks => LookupData pass m (k ': ks) where lookupData = undefined -- prepend <<$>> (justErr (MissingData $ typeVal' @k) <$> IR.uncheckedLookupKey)
                                                                                         --    <<*>> lookupData @pass
 
 
+
+
+-- buildStore :: Store ks
 -- class Monad m => LookupData2 m where
 --     lookupData2 :: forall pass. Typeable (Abstract pass) => m (Either InternalError (DataSet (SubPass pass m) (Keys pass)))
 
@@ -424,11 +416,11 @@ instance ( Monad m )
 -- === ContainsKey === --
 
 class ContainsKey pass k a m where findKey :: Lens' (DataSet m pass) (Key k a m)
-instance {-# OVERLAPPING #-} List.Focus (DataStore NET pass m) (Key NET a m)
-      => ContainsKey pass NET a m where findKey = netStore . List.focus ; {-# INLINE findKey #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore NET pass m) (Key NET a m)
+      => ContainsKey pass NET a m where findKey = netStore . TList.focus ; {-# INLINE findKey #-}
 
 instance {-# OVERLAPPING #-} ()
-      => ContainsKey pass EVENT a m where findKey = undefined --  netStore . List.focus ; {-# INLINE findKey #-}
+      => ContainsKey pass EVENT a m where findKey = undefined --  netStore . TList.focus ; {-# INLINE findKey #-}
 -- instance ContainsKey k ls              => ContainsKey pass k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
 -- instance TypeError (KeyMissingError k) => ContainsKey pass k '[]       where findKey = impossible     ; {-# INLINE findKey #-}
 -- getKey :: m (Key m k)

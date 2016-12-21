@@ -124,6 +124,11 @@ instance IsIdx (Elem t) where
 newtype Key k a m = Key (KeyData k a m)
 
 type family KeyData k a (m :: * -> *)
+
+type family Keys k as m where
+    Keys k '[]       m = '[]
+    Keys k (a ': as) m = Key k a m ': Keys k as m
+
 -- type        KeyData k a mey = KeyData (PrimState m) key
 
 makeWrapped ''Key
