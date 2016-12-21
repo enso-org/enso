@@ -294,7 +294,6 @@ unsafeMerge st@(LayerStore _ _ m) store = do
     return ixMapping
 
 
-
 -- === Instances === --
 
 -- Ixed

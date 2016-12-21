@@ -218,6 +218,23 @@ instance n ~ a => HasFields (NamedTerm Atom.Star     n a) where fieldList (Sym_S
 instance n ~ a => HasFields (NamedTerm Atom.Unify    n a) where fieldList (Sym_Unify    t1 t2) = [t1, t2]
 instance n ~ a => HasFields (NamedTerm Atom.Var      n a) where fieldList (Sym_Var      t1   ) = [t1]
 
+-- ModifiesFields
+
+instance n ~ a => ModifiesFields (NamedTerm Atom.Integer  n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Rational n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.String   n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Acc      n a) where modifyFields f (Sym_Acc   t1 t2) = Sym_Acc (f t1) (f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.App      n a) where modifyFields f (Sym_App   t1 t2) = Sym_App (f t1) (fmap f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Blank    n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Cons     n a) where modifyFields f (Sym_Cons  t1   ) = Sym_Cons (f t1)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Lam      n a) where modifyFields f (Sym_Lam   t1 t2) = Sym_Lam  (fmap f t1) (f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Missing  n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Grouped  n a) where modifyFields f (Sym_Grouped  t1) = Sym_Grouped (f t1)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Star     n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Unify    n a) where modifyFields f (Sym_Unify t1 t2) = Sym_Unify (f t1) (f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Var      n a) where modifyFields f (Sym_Var   t1)    = Sym_Var (f t1)
+
+
 -- Inputs
 
 type instance InputsType (NamedTerm t n a) = a

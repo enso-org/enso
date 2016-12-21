@@ -13,11 +13,31 @@ import Luna.IR
 import Luna.TestUtils
 import Luna.IR.Expr.Term        (Term(Sym_String, Sym_Unify))
 import Luna.IR.Expr.Combinators
+import Luna.IR.Function.Class
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
+
+testCompile :: IO (Either Pass.InternalError CompiledFunction)
+testCompile = graphTestCase $ do
+    t <- string "foobar"
+    v <- var t
+    a <- acc t v
+    compile (generalize a)
+
+testImport :: IO (Either Pass.InternalError (Int, [Incoherence]))
+testImport = do
+    Right f <- testCompile
+    graphTestCase $ do
+        string "foo"
+        string "baz"
+        importFunction f
+        size <- length <$> exprs
+        coh  <- checkCoherence
+        -- TODO: CHECK AND FIX COHERENCE
+        return (size)
 
 changeStringLiteral s (Sym_String _) = Sym_String s
 
@@ -151,3 +171,6 @@ spec = do
     describe "changing edge source" $ do
         it "changes the source and preserves coherence" $
             testChangeSource `shouldReturn` Right (True, [])
+    describe "function importing" $ do
+        it "imports function into current grpah" $
+            testImport `shouldReturn` Right (10)

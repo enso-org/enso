@@ -43,6 +43,9 @@ type family InputsType a
 class HasInputs a where
     inputList :: a -> [InputsType a]
 
+class ModifiesFields a where
+    modifyFields :: (FieldsType a -> FieldsType a) -> a -> a
+
 
 -- === Term isomorphisms === --
 
