@@ -146,8 +146,8 @@ type instance Outputs EVENT    (ElemScope2 InitModel2 t) = '[]
 type instance Preserves        (ElemScope2 InitModel2 t) = '[]
 
 
-    -- instance KnownElemPass InitModel2 where
-    --     elemPassDescription = genericDescription' . proxify
+instance KnownElemPass InitModel2 where
+    elemPassDescription = genericDescription' . proxify
     -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Any -> Pass (ElemScope InitModel2 t) m
     -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Any -> Pass (ElemScope InitModel2 t) m
     -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Listener (NEW // Abstract t) (ElemScope InitModel2 t) m
@@ -180,14 +180,26 @@ type instance Preserves        (ElemScope2 InitModel2 t) = '[]
     -- newtype LayerConsPass pass m = LayerConsPass (forall t. KnownType (Abstract t) => Event (NEW2 // Elem t) -> Pass (ElemScope pass t) m)
     --
     --
-    -- passT2 :: (Elem t, Definition t) -> Pass (ElemScope2 p t) m
-    -- passT2 = undefined
-    --
-    -- passT3 :: Pass.PassTemplate (ElemScope2 p t) m
-    -- passT3 = Pass.template passT2
-    --
-    -- passT4 :: forall p t m. Proxy t -> Pass.PassTemplate (ElemScope2 p t) m
-    -- passT4 = proxifyElemPass3 passT3
+-- passT2 :: (Elem t, Definition t) -> Pass (ElemScope2 p t) m
+-- passT2 = undefined
+
+passT3 :: (cons -> Pass (ElemScope2 p t) m) -> Pass.PassTemplate (ElemScope2 p t) m
+passT3 = Pass.template
+
+-- passT4 :: forall p t m. Proxy t -> Pass.PassTemplate (ElemScope2 p t) m
+-- passT4 = proxifyElemPass3
+
+passT5 :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p)
+       => Pass.PassTemplate (ElemScope2 p t) m -> Initializer m (Template (Pass.DynPass3 m))
+passT5 = Pass.initialize
+
+passT6 :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p)
+       => Proxy t -> Pass.PassTemplate (ElemScope2 p t) m -> Pass.Describbed (Initializer m (Template (Pass.DynPass3 m)))
+passT6 _ = Pass.describbed @(ElemScope2 p t) . passT5
+
+passT7 :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p)
+       => (forall s. Pass.PassTemplate (ElemScope2 p (TypeRef s)) m) -> Pass.Proto (Pass.Describbed (Initializer m (Template (Pass.DynPass3 m))))
+passT7 p = Pass.Proto $ reifyKnownTypeT @Abstracted (flip passT6 p)
     -- --
 --
 -- ∀ k in (Keys (ElemScope2 p t)) => KeyMonad k m
