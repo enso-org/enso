@@ -4,12 +4,11 @@ module Data.Event where
 
 import Prologue hiding (tail)
 
-import qualified GHC.Prim     as Prim
-import qualified Data.Map     as Map
-import           Data.Map     (Map)
-import           Data.Reprx   (RepOf, HasRep, rep)
+import qualified GHC.Prim      as Prim
+import qualified Data.Map      as Map
+import           Data.Map      (Map)
+import           Data.Reprx    (RepOf, HasRep, rep)
 import           Data.TypeVal
-
 -- WIP:
 import           Luna.IR.Expr.Layout.Class (Abstract)
 
@@ -39,6 +38,13 @@ type family TagPath a where
 type FromPath path = Typeables (TagPath path)
 fromPath :: forall path. FromPath path => Tag
 fromPath = Tag $ typeReps' @(TagPath path) ; {-# INLINE fromPath #-}
+
+fromPathDyn :: TypeRep -> Tag
+fromPathDyn t = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' l :) $ fromPathDyn r
+                                  else Tag [wrap' t]
+    where sepType     = typeRepTyCon $ typeVal' @(//)
+          (con, args) = splitTyConApp t
+{-# INLINE fromPathDyn #-}
 
 data a // as = a :// as deriving (Show)
 infixr 5 //

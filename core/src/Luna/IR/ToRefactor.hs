@@ -68,7 +68,7 @@ proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
 -- m (m [Template (DynPass3 (GetPassManager m))])
 
 instance MonadIO m => KeyMonad EVENT (PassManager m) where -- Event.FromPath e
-    uncheckedLookupKey a = undefined -- Just . Key <$> (fmap (fmap sequence_ . sequence) . fixme1 . sequence . fmap Pass.runInitializer =<< PM.queryListeners2 (Event.fromPath @e))
+    uncheckedLookupKey a = Just . Key <$> (fmap (fmap sequence_ . sequence) . fixme1 . sequence . fmap Pass.runInitializer =<< PM.queryListeners2 (Event.fromPathDyn a))
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
 fixme1 :: Monad m => m [Either Pass.InternalError a] -> m [a]
