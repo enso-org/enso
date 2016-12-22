@@ -163,7 +163,7 @@ attachLayerPM2 priority l e = do
     s <- get
     let Just pproto = s ^. layers . prototypes . at l
         dpass = Pass.specialize pproto e
-        s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc2 . Pass.repr)
+        s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc2 . Pass.passRep)
     put s'
     addEventListener2 priority (NEW2 // (e ^. asTypeRep)) dpass -- TODO
     -- TODO: register new available pass!
@@ -201,7 +201,7 @@ addEventListener2 :: (MonadPassManager m, IsTag evnt)
                   => Int -> evnt -> (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
 addEventListener2 priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) cp)
     where cp  = p -- Pass.compile $ Pass.dropResult p
-          rep = cp ^. Pass.desc2 . Pass.repr
+          rep = cp ^. Pass.desc2 . Pass.passRep
 {-# INLINE addEventListener2 #-}
 
 
@@ -243,8 +243,8 @@ instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (SubPass pass m))
 -- instance Emitter2 (SubPass pass m) e where
 --     emit2 _ p =
 
-instance MonadPassManager m => KeyMonad ATTR m n where
-    uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (typeVal a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
+instance MonadPassManager m => KeyMonad ATTR m where
+    uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
 
 unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()

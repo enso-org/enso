@@ -84,13 +84,13 @@ test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 
-uncheckedDeleteStar :: (IRMonad m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
+uncheckedDeleteStar :: (MonadPass m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
     freeElem =<< readLayer @Type e
     freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
-uncheckedDeleteStarType :: (IRMonad m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m, Editors LAYER '[ExprLinkLayer Model] m)
+uncheckedDeleteStarType :: (MonadPass m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m, Editors LAYER '[ExprLinkLayer Model] m)
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
@@ -105,7 +105,7 @@ uncheckedDeleteStarType e = do
 
 
 
-gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
+gen_pass1 :: ( MonadIO m, MonadPass m, MonadVis m
              , Editors NET '[EXPR] m
              , Emitter2 m (NEW2 // EXPR)
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]

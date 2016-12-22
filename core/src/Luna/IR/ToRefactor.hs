@@ -67,7 +67,7 @@ proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
 
 -- m (m [Template (DynPass3 (GetPassManager m))])
 
-instance (MonadIO m, Event.FromPath e, m ~ GetBaseMonad n) => KeyMonad (Event e) (PassManager m) n where
+instance MonadIO m => KeyMonad (Event e) (PassManager m) where -- Event.FromPath e
     uncheckedLookupKey a = undefined -- Just . Key <$> (fmap (fmap sequence_ . sequence) . fixme1 . sequence . fmap Pass.runInitializer =<< PM.queryListeners2 (Event.fromPath @e))
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
@@ -84,7 +84,7 @@ fromRight (Left e) = error $ show e
 -- Layer passes
 
 
-instance MonadLogging m => MonadLogging (SubPass pass m)
+
 instance MonadLogging m => MonadLogging (PassManager  m)
 
 debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
@@ -451,7 +451,7 @@ runLayerRegs = sequence_ layerRegs
 ----------------------------------
 
 
-source :: (IRMonad m, Reader LAYER (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
+source :: (MonadPass m, Reader LAYER (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
 
@@ -464,7 +464,7 @@ strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 
 -- === KnownExpr === --
 
-type KnownExpr l m = (IRMonad m, Readers LAYER '[ExprLayer Model, ExprLinkLayer Model] m) -- CheckAtomic (ExprHead l))
+type KnownExpr l m = (MonadPass m, Readers LAYER '[ExprLayer Model, ExprLinkLayer Model] m) -- CheckAtomic (ExprHead l))
 
 match' :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
 match' = unsafeToExprTermDef @(ExprHead l)

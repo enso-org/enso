@@ -15,8 +15,8 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Keys, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, rebaseKey, RebasedKeyData)
-import qualified Luna.IR.Internal.IR   as IR (KeyMonad, uncheckedLookupKey)
+import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Keys, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, GetPassMonad)
+import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
 
@@ -115,7 +115,7 @@ makeWrapped ''PassRep
 
 
 type    Pass    pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (DataSet (SubPass pass m) pass) m a)
+newtype SubPass pass m a = SubPass (StateT (DataSet m pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
@@ -162,8 +162,11 @@ data DynSubPass m a = DynSubPass { _desc :: !Description
 --                        , _elm  :: !a
 --                        } deriving (Show, Functor, Foldable, Traversable)
 
-data Description = Description { _repr      :: !PassRep
-                               , _descMap   :: !(Map TypeRep [TypeRep])
+data Description = Description { _passRep   :: !PassRep
+                               , _inputs    :: !(Map TypeRep [TypeRep])
+                               , _outputs   :: !(Map TypeRep [TypeRep])
+                               , _events    :: ![TypeRep]
+                               , _preserves :: ![TypeRep]
                                } deriving (Show)
 
 data Describbed a = Describbed { _desc2   :: !Description
@@ -187,10 +190,20 @@ type family GetPass  m where
     GetPass (SubPass pass m) = pass
     GetPass (t m)            = GetPass m
 
-type family GetPassMonad m where
-    GetPassMonad (SubPass pass m) = SubPass pass m
-    GetPassMonad (t m)            = GetPassMonad m
 
+
+-- FIXME[WD]: after refactoring keys here, merge def with instance
+type instance GetPassMonad m = GetPassMonad' m
+type family GetPassMonad' m where
+    GetPassMonad' (SubPass pass m) = m
+    GetPassMonad' (t m)            = GetPassMonad' m
+
+-- FIXME[WD]: merge with real MonadPass
+instance IR.IRMonad m => IR.MonadPass (SubPass pass m) where
+    liftPass = lift ; {-# INLINE liftPass #-}
+
+
+instance MonadLogging m => MonadLogging (SubPass pass m)
 
 makeWrapped ''SubPass
 makeLenses  ''DynSubPass
@@ -202,7 +215,7 @@ makeWrapped ''DynSubPass2
 
 -- instance Eq (Desc a) where (==) = (==) `on` view repr ; {-# INLINE (==) #-}
 
-emptyDescription r = Description r def
+emptyDescription r = Description r def def def def
 
 -- === Utils ===
 
@@ -222,17 +235,27 @@ instance {-# OVERLAPPABLE #-} KnownDescription pass => KnownPass pass where
 instance (KnownElemPass pass, KnownType (Abstract t)) => KnownPass (ElemScope2 pass t) where
     passDescription = elemPassDescription (ElemScope2 :: ElemScope2 pass t)
 
-type KnownDescription pass = ( KnownType  (Abstract  pass)
-                            --  , KnownTypes (Inputs    pass)
-                            --  , KnownTypes (Outputs   pass)
-                            --  , KnownTypes (Preserves pass)
+type KnownDescription pass = ( KnownType  (Abstract      pass)
+                             , KnownTypes (Inputs  NET   pass)
+                             , KnownTypes (Outputs NET   pass)
+                             , KnownTypes (Inputs  LAYER pass)
+                             , KnownTypes (Outputs LAYER pass)
+                             , KnownTypes (Inputs  ATTR  pass)
+                             , KnownTypes (Outputs ATTR  pass)
+                             , KnownTypes (Events        pass)
+                             , KnownTypes (Preserves     pass)
                              )
 
 genericDescription :: forall pass. KnownDescription pass => Description
-genericDescription = undefined -- emptyDescription (typeVal' @(Abstract pass))
-                -- & inputs    .~ typeVals' @(Inputs   pass)
-                -- & outputs   .~ typeVals' @(Outputs  pass)
-                -- & preserves .~ typeVals' @(Outputs  pass)
+genericDescription = emptyDescription (typeVal' @(Abstract pass))
+                   & inputs    %~ Map.insert (typeVal' @NET)   (typeVals' @(Inputs  NET   pass))
+                   & outputs   %~ Map.insert (typeVal' @NET)   (typeVals' @(Outputs NET   pass))
+                   & inputs    %~ Map.insert (typeVal' @LAYER) (typeVals' @(Inputs  LAYER pass))
+                   & outputs   %~ Map.insert (typeVal' @LAYER) (typeVals' @(Outputs LAYER pass))
+                   & inputs    %~ Map.insert (typeVal' @ATTR)  (typeVals' @(Inputs  ATTR  pass))
+                   & outputs   %~ Map.insert (typeVal' @ATTR)  (typeVals' @(Outputs ATTR  pass))
+                   & events    .~ typeVals' @(Events    pass)
+                   & preserves .~ typeVals' @(Preserves pass)
 {-# INLINE genericDescription #-}
 
 genericDescription' :: forall pass. KnownDescription pass => Proxy pass -> Description
@@ -245,9 +268,35 @@ describbedProxy :: forall pass a. KnownPass pass => Proxy pass -> a -> Describbe
 describbedProxy _ = describbed @pass ; {-# INLINE describbedProxy #-}
 
 
-class                      HasDescription a               where description :: a -> Description
--- instance                   HasDescription (Desc a) where description   = view rels      ; {-# INLINE description #-}
-instance KnownPass p => HasDescription (SubPass p m a) where description _ = passDescription @p ; {-# INLINE description #-}
+type DataLookup m = (IR.KeyMonad NET m, IR.KeyMonad LAYER m, IR.KeyMonad ATTR m, IR.KeyMonad EVENT m)
+
+lookupDataSet :: forall pass m. DataLookup m
+              => Description -> m (Maybe (DataSet m pass))
+lookupDataSet desc = DataSet <<$>> lookupDataStore @NET   @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @NET))   <> (fromJust $ desc ^. outputs . at (typeVal' @NET)))
+                             <<*>> lookupDataStore @LAYER @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @LAYER)) <> (fromJust $ desc ^. outputs . at (typeVal' @LAYER)))
+                             <<*>> lookupDataStore @ATTR  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @ATTR))  <> (fromJust $ desc ^. outputs . at (typeVal' @ATTR)))
+                             <<*>> lookupDataStore @EVENT @pass @m (desc ^. events)
+    where fromJust (Just a) = a
+          lookupDataStore :: forall k pass m. IR.KeyMonad k m => [TypeRep] -> m (Maybe (TList (DataStore k pass m)))
+          lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
+
+          unsafeLookupData :: forall k m. IR.KeyMonad k m => [TypeRep] -> m (Maybe Prim.Any)
+          unsafeLookupData []       = return $ return $ unsafeCoerce ()
+          unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupKey @k t <<*>> unsafeLookupData @k ts
+
+
+--
+-- data DataSet m pass
+--    = DataSet { _netStore   :: TList ( DataStore NET   pass m )
+--              , _layerStore :: TList ( DataStore LAYER pass m )
+--              , _attrStore  :: TList ( DataStore ATTR  pass m )
+--              , _eventStore :: TList ( DataStore EVENT pass m )
+--              }
+
+
+-- class                      HasDescription a               where description :: a -> Description
+-- -- instance                   HasDescription (Desc a) where description   = view rels      ; {-# INLINE description #-}
+-- instance KnownPass p => HasDescription (SubPass p m a) where description _ = passDescription @p ; {-# INLINE description #-}
 
 
 -- type Commit m pass = ( Monad m
@@ -268,7 +317,7 @@ instance KnownPass p => HasDescription (SubPass p m a) where description _ = pas
 -- dropResult :: Functor p => p a -> p ()
 -- dropResult = fmap $ const () ; {-# INLINE dropResult #-}
 --
-type PassInit pass m = (Logging m, KnownType (Abstract pass), LookupData pass m)  -- LookupData pass m (Keys pass), KnownType (Abstract pass), Logging m)
+type PassInit pass m = (Logging m, KnownPass pass, DataLookup m)  -- LookupData pass m (Keys pass), KnownType (Abstract pass), Logging m)
 --
 -- initPass :: forall pass m a. PassInit pass m => SubPass pass m a -> m (Either InternalError (m a))
 -- initPass p = do
@@ -279,8 +328,12 @@ type PassInit pass m = (Logging m, KnownType (Abstract pass), LookupData pass m)
 initialize :: forall pass m a. PassInit pass m
            => Template (SubPass pass m a) -> Initializer m (Template (DynSubPass3 m a))
 initialize (Template t) = Initializer $ do
-    withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Initialzation" $
-        fmap (\d -> Template $ \arg -> DynSubPass3 $ State.evalStateT (unwrap' $ t arg) d) <$> lookupData @pass
+    withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
+        fmap (\d -> Template $ \arg -> DynSubPass3 $ State.evalStateT (unwrap' $ t arg) d) <$> (fromJust <$> lookupDataSet @pass desc)
+    where fromJust (Just a) = Right a
+          desc = passDescription @pass
+
+
 
 -- State.evalStateT (unwrap' p)
 -- initArgPass :: forall pass m a. PassInit pass m => (Args pass -> SubPass pass m a) -> (Args pass -> m (Either InternalError (m a)))
