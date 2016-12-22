@@ -42,8 +42,10 @@ import           Data.Map (Map)
 
 type family Inputs  t pass :: [*]
 type family Outputs t pass :: [*]
-type family Events    pass :: [*]
+-- type family Events    pass :: [*]
 type family Preserves pass :: [*]
+
+type Events pass = Outputs EVENT pass
 
 type Elements t pass = (Inputs t pass <> Outputs t pass)
 
@@ -325,11 +327,20 @@ type PassInit pass m = (Logging m, KnownPass pass, DataLookup m)  -- LookupData 
 --         fmap (\d -> withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Running" $ State.evalStateT (unwrap' p) d) <$> lookupData @pass
 -- {-# INLINE initPass #-}
 
+-- FIXME[WD]: merge initialize and initialize'
 initialize :: forall pass m a. PassInit pass m
            => Template (SubPass pass m a) -> Initializer m (Template (DynSubPass3 m a))
 initialize (Template t) = Initializer $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
         fmap (\d -> Template $ \arg -> DynSubPass3 $ State.evalStateT (unwrap' $ t arg) d) <$> (fromJust <$> lookupDataSet @pass desc)
+    where fromJust (Just a) = Right a
+          desc = passDescription @pass
+
+initialize' :: forall pass m a. PassInit pass m
+            => SubPass pass m a -> Initializer m (DynSubPass3 m a)
+initialize' t = Initializer $ do
+    withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
+        fmap (\d -> DynSubPass3 $ State.evalStateT (unwrap' t) d) <$> (fromJust <$> lookupDataSet @pass desc)
     where fromJust (Just a) = Right a
           desc = passDescription @pass
 
@@ -346,11 +357,13 @@ initialize (Template t) = Initializer $ do
 -- describeA :: forall pass m a. (KnownType (Abstract pass), KnownDescription pass, PassInit pass m) => ArgSubPass pass m a -> Desc (DynArgSubPass m a)
 -- describeA f = Desc (typeVal' @(Abstract pass)) (genericDescription @pass) $ (\a -> compile (f $ unsafeCoerce a)) -- FIXME[make this unsafecoerce nicer]
 
-eval :: Monad m => DynSubPass m a -> m (Either InternalError a)
-eval = join . fmap sequence . run ; {-# INLINE eval #-}
 
-eval' :: (KnownPass pass) => SubPass pass m a -> m (Either InternalError a)
-eval' = undefined -- eval . compile ; {-# INLINE eval' #-}
+
+eval :: Monad m => Initializer m (DynSubPass3 m a) -> m (Either InternalError a)
+eval = join . fmap (sequence . fmap runDynPass) . runInitializer ; {-# INLINE eval #-}
+
+eval' :: PassInit pass m => SubPass pass m a -> m (Either InternalError a)
+eval' = eval . initialize' ; {-# INLINE eval' #-}
 
 run :: DynSubPass m a -> m (Either InternalError (m a))
 run = unwrap' . view func ; {-# INLINE run #-}
@@ -451,11 +464,12 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
 
+-- FIXME[WD]: add asserts
 -- Reader
-instance ( Monad m )
-        --  , ContainsKey k (Keys pass)
+instance ( Monad m
+         , ContainsKey pass k a m)
         --  , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Reader k a (SubPass pass m) where -- getKey = view findKey <$> get ; {-# INLINE getKey #-}
+      => Reader k a (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
 
 -- Writer
 instance ( Monad m )
@@ -468,19 +482,16 @@ instance ( Monad m )
 
 -- === ContainsKey === --
 
+-- FIXME[WD]: make it generic
 class ContainsKey pass k a m where findKey :: Lens' (DataSet m pass) (Key k a m)
-instance {-# OVERLAPPING #-} TList.Focus (DataStore NET pass m) (Key NET a m)
-      => ContainsKey pass NET a m where findKey = netStore . TList.focus ; {-# INLINE findKey #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore NET   pass m) (Key NET   a m) => ContainsKey pass NET   a m where findKey = netStore   . TList.focus ; {-# INLINE findKey #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore LAYER pass m) (Key LAYER a m) => ContainsKey pass LAYER a m where findKey = layerStore . TList.focus ; {-# INLINE findKey #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore ATTR  pass m) (Key ATTR  a m) => ContainsKey pass ATTR  a m where findKey = attrStore  . TList.focus ; {-# INLINE findKey #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore EVENT pass m) (Key EVENT a m) => ContainsKey pass EVENT a m where findKey = eventStore . TList.focus ; {-# INLINE findKey #-}
 
-instance {-# OVERLAPPING #-} ()
-      => ContainsKey pass EVENT a m where findKey = undefined --  netStore . TList.focus ; {-# INLINE findKey #-}
+-- instance {-# OVERLAPPING #-} ()
+--       => ContainsKey pass EVENT a m where findKey = netStore . TList.focus --  netStore . TList.focus ; {-# INLINE findKey #-}
 -- instance ContainsKey k ls              => ContainsKey pass k (l ': ls) where findKey = tail . findKey ; {-# INLINE findKey #-}
 -- instance TypeError (KeyMissingError k) => ContainsKey pass k '[]       where findKey = impossible     ; {-# INLINE findKey #-}
 -- getKey :: m (Key m k)
 --
--- data DataSet m pass
---    = DataSet { _netStore   :: List ( AppRWKeys m NET   (Networks pass) )
---              , _layerStore :: List ( AppRWKeys m LAYER (Layers   pass) )
---              , _attrStore  :: List ( AppRWKeys m ATTR  (Attribs  pass) )
---              , _eventStore :: List ( AppRWKeys m EVENT (Events   pass) )
---              }

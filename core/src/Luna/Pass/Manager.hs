@@ -227,7 +227,7 @@ instance MonadTrans PassManager where
 type instance KeyData EVENT _ m = Template (DynPass3 (GetPassManager m))
 
 
-instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (SubPass pass m))
+instance (MonadPassManager m, Pass.ContainsKey pass EVENT e m)
       => Emitter2 (SubPass pass m) e where
     emit2 (Event p) = do
         tmpl <- unwrap' . view (Pass.findKey @pass @EVENT @e) <$> Pass.get

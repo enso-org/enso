@@ -67,7 +67,7 @@ proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
 
 -- m (m [Template (DynPass3 (GetPassManager m))])
 
-instance MonadIO m => KeyMonad (Event e) (PassManager m) where -- Event.FromPath e
+instance MonadIO m => KeyMonad EVENT (PassManager m) where -- Event.FromPath e
     uncheckedLookupKey a = undefined -- Just . Key <$> (fmap (fmap sequence_ . sequence) . fixme1 . sequence . fmap Pass.runInitializer =<< PM.queryListeners2 (Event.fromPath @e))
     -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
@@ -141,7 +141,8 @@ type instance Inputs  LAYER    (ElemScope2 InitModel2 t) = '[Abstract t // Model
 type instance Outputs LAYER    (ElemScope2 InitModel2 t) = '[Abstract t // Model] -- FIXME[bug: unnecessary inputs needed]
 type instance Inputs  ATTR     (ElemScope2 InitModel2 t) = '[]
 type instance Outputs ATTR     (ElemScope2 InitModel2 t) = '[]
-type instance Events           (ElemScope2 InitModel2 t) = '[]
+type instance Inputs  EVENT    (ElemScope2 InitModel2 t) = '[]
+type instance Outputs EVENT    (ElemScope2 InitModel2 t) = '[]
 type instance Preserves        (ElemScope2 InitModel2 t) = '[]
 
 

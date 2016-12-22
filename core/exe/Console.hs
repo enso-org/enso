@@ -66,7 +66,9 @@ type instance Inputs  LAYER SimpleAA = '[] -- FIXME[bug: unnecessary inputs need
 type instance Outputs LAYER SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
 type instance Inputs  ATTR  SimpleAA = '[]
 type instance Outputs ATTR  SimpleAA = '[]
-type instance Events        SimpleAA = '[]
+type instance Inputs  EVENT SimpleAA = '[] -- will never be used
+type instance Outputs EVENT SimpleAA = '[NEW2 // EXPR]
+-- type instance Events        SimpleAA = '[]
 type instance Preserves     SimpleAA = '[]
 
 
