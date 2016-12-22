@@ -16,6 +16,7 @@ import Luna.IR.Layer.Succs as X
 import Luna.IR.Expr.Term.Uni as X
 import Luna.IR.Expr.Format as X
 import Luna.IR.Expr.Atom as X
+import Luna.IR.Expr.Term.Class as X (HasValue, value)
 import Luna.Pass.Manager as X
 import Data.Property as X
 

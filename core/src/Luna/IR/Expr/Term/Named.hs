@@ -254,6 +254,16 @@ instance HasInputs (NamedTerm Atom.Unify    n a) where inputList (Sym_Unify    t
 instance HasInputs (NamedTerm Atom.Var      n a) where inputList (Sym_Var      t1   ) = []
 
 
+-- HasValue
+
+type instance ValueOf (NamedTerm Atom.String   n a) = P.String
+type instance ValueOf (NamedTerm Atom.Integer  n a) = P.Integer
+type instance ValueOf (NamedTerm Atom.Rational n a) = P.Rational
+
+instance HasValue (NamedTerm Atom.String   n a) where value = lens (\(Sym_String   s) -> s) (const Sym_String)
+instance HasValue (NamedTerm Atom.Integer  n a) where value = lens (\(Sym_Integer  i) -> i) (const Sym_Integer)
+instance HasValue (NamedTerm Atom.Rational n a) where value = lens (\(Sym_Rational r) -> r) (const Sym_Rational)
+
 --------------------------
 -- === Construction === --
 --------------------------

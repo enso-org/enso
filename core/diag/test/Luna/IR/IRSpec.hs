@@ -11,7 +11,6 @@ import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, ex
 import Luna.IR.Runner
 import Luna.IR
 import Luna.TestUtils
-import Luna.IR.Expr.Term        (Term(Sym_String, Sym_Unify))
 import Luna.IR.Expr.Combinators
 import Luna.IR.Function.Class
 
@@ -38,15 +37,13 @@ testImport = do
         coh  <- checkCoherence
         return (size, coh)
 
-changeStringLiteral s (Sym_String _) = Sym_String s
-
 testVarRenaming :: IO (Either Pass.InternalError P.String)
 testVarRenaming = graphTestCase $ do
     (v :: Expr Draft) <- generalize <$> strVar "foo"
     match v $ \case
         Var n -> do
             (name :: Expr (E String)) <- unsafeGeneralize <$> source n
-            modifyExprTerm name $ changeStringLiteral "bar"
+            modifyExprTerm name $ value .~ "bar"
     match v $ \case
         Var n -> do
             name <- source n

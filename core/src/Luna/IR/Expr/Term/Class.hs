@@ -46,6 +46,10 @@ class HasInputs a where
 class ModifiesFields a where
     modifyFields :: (FieldsType a -> FieldsType a) -> a -> a
 
+type family ValueOf a
+class HasValue a where
+    value :: Lens' a (ValueOf a)
+
 
 -- === Term isomorphisms === --
 
