@@ -36,8 +36,7 @@ testImport = do
         importFunction f
         size <- length <$> exprs
         coh  <- checkCoherence
-        -- TODO: CHECK AND FIX COHERENCE
-        return (size)
+        return (size, coh)
 
 changeStringLiteral s (Sym_String _) = Sym_String s
 
@@ -173,4 +172,4 @@ spec = do
             testChangeSource `shouldReturn` Right (True, [])
     describe "function importing" $ do
         it "imports function into current grpah" $
-            testImport `shouldReturn` Right (10)
+            testImport `shouldReturn` Right (10, [])
