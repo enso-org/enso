@@ -43,7 +43,7 @@ testVarRenaming = graphTestCase $ do
     match v $ \case
         Var n -> do
             (name :: Expr (E String)) <- unsafeGeneralize <$> source n
-            modifyExprTerm name $ value .~ "bar"
+            modifyExprTerm name $ lit .~ "bar"
     match v $ \case
         Var n -> do
             name <- source n

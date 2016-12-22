@@ -256,13 +256,13 @@ instance HasInputs (NamedTerm Atom.Var      n a) where inputList (Sym_Var      t
 
 -- HasValue
 
-type instance ValueOf (NamedTerm Atom.String   n a) = P.String
-type instance ValueOf (NamedTerm Atom.Integer  n a) = P.Integer
-type instance ValueOf (NamedTerm Atom.Rational n a) = P.Rational
+type instance LiteralOf (NamedTerm Atom.String   n a) = P.String
+type instance LiteralOf (NamedTerm Atom.Integer  n a) = P.Integer
+type instance LiteralOf (NamedTerm Atom.Rational n a) = P.Rational
 
-instance HasValue (NamedTerm Atom.String   n a) where value = lens (\(Sym_String   s) -> s) (const Sym_String)
-instance HasValue (NamedTerm Atom.Integer  n a) where value = lens (\(Sym_Integer  i) -> i) (const Sym_Integer)
-instance HasValue (NamedTerm Atom.Rational n a) where value = lens (\(Sym_Rational r) -> r) (const Sym_Rational)
+instance HasLiteral (NamedTerm Atom.String   n a) where lit = lens (\(Sym_String   s) -> s) (const Sym_String)
+instance HasLiteral (NamedTerm Atom.Integer  n a) where lit = lens (\(Sym_Integer  i) -> i) (const Sym_Integer)
+instance HasLiteral (NamedTerm Atom.Rational n a) where lit = lens (\(Sym_Rational r) -> r) (const Sym_Rational)
 
 --------------------------
 -- === Construction === --
