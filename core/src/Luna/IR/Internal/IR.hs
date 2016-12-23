@@ -195,17 +195,18 @@ writeComp = putKey @k @a <=< writeKey ; {-# INLINE writeComp #-}
 
 -- === Errors === --
 
-type KeyAccessError action k = Sentence $ ErrMsg "Key"
-                                    :</>: Ticked ('ShowType k)
-                                    :</>: ErrMsg "is not"
-                                    :</>: (ErrMsg action :<>: ErrMsg "able")
+type KeyAccessError action k a = Sentence $ ErrMsg "Key"
+                                      :</>: 'ShowType k
+                                      :</>: Parensed ('ShowType a)
+                                      :</>: ErrMsg "is not"
+                                      :</>: (ErrMsg action :<>: ErrMsg "able")
 
 type KeyMissingError k = Sentence $ ErrMsg "Key"
                               :</>: Ticked ('ShowType k)
                               :</>: ErrMsg "is not accessible"
 
-type KeyReadError  k = KeyAccessError "read"  k
-type KeyWriteError k = KeyAccessError "write" k
+type KeyReadError  k a = KeyAccessError "read"  k a
+type KeyWriteError k a = KeyAccessError "write" k a
 
 
 
@@ -563,13 +564,13 @@ makeWrapped '' AttrRep
 
 -- === Instances === --
 
-instance IRMonad m => KeyMonad LAYER m where -- (Layer e l)
+instance IRMonad m => KeyMonad LAYER m where
     uncheckedLookupKey a = do
-        -- s <- getIR
-        -- let mlv = s ^? wrapped' . ix (typeVal' @e)
-        -- mr <- mapM (Store.readKey (typeVal' @l)) mlv
-        -- return $ wrap' <$> join mr
-        undefined
+        s <- getIR
+        let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
+            mlv = s ^? wrapped' . ix e
+        mr <- mapM (Store.readKey l) mlv
+        return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupKey #-}
 
 instance IRMonad m => KeyMonad NET m where

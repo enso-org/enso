@@ -29,7 +29,7 @@ reflect' = reflect (p :: P s) ; {-# INLINE reflect' #-}
 -- === Reifying === --
 
 data TypeRef   (s :: *)
-type TypeProxy s = P (TypeRef s)
+type TypeProxy s = Proxy (TypeRef s)
 type TypeReify s = Reifies s TypeRep
 
 reifyKnownType :: forall r. (forall (s :: *). TypeReify s => TypeProxy s -> r) -> TypeRep -> r

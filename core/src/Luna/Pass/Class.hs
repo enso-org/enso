@@ -467,18 +467,16 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- FIXME[WD]: add asserts
 -- Reader
 instance ( Monad m
-         , ContainsKey pass k a m)
-        --  , Assert (k `In` (Inputs pass)) (KeyReadError k))
+         , ContainsKey pass k a m
+         , Assert (a `In` (Inputs k pass)) (KeyReadError k a))
       => Reader k a (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
 
 -- Writer
-instance ( Monad m )
-        --  , ContainsKey k (Keys pass)
-        --  , Assert (k `In` (Inputs pass)) (KeyReadError k))
-      => Writer k a (SubPass pass m) where -- putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
+instance ( Monad m
+         , ContainsKey pass k a m
+         , Assert (a `In` (Inputs k pass)) (KeyReadError k a))
+      => Writer k a (SubPass pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
 
--- instance Monad m => Reader k (SubPass pass m) where getKey = undefined
--- instance Monad m => Writer k (SubPass pass m) where putKey = undefined
 
 -- === ContainsKey === --
 

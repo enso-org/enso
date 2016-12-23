@@ -62,8 +62,8 @@ data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
 type instance Inputs  NET   SimpleAA = '[EXPR]
 type instance Outputs NET   SimpleAA = '[EXPR]
-type instance Inputs  LAYER SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs LAYER SimpleAA = '[] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  LAYER SimpleAA = '[ExprLayer Model] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs LAYER SimpleAA = '[ExprLayer Model] -- FIXME[bug: unnecessary inputs needed]
 type instance Inputs  ATTR  SimpleAA = '[]
 type instance Outputs ATTR  SimpleAA = '[]
 type instance Inputs  EVENT SimpleAA = '[] -- will never be used
@@ -110,6 +110,7 @@ uncheckedDeleteStarType e = do
 gen_pass1 :: ( MonadIO m, MonadPass m, MonadVis m
              , Editors NET '[EXPR] m
              , Emitter2 m (NEW2 // EXPR)
+             , Reader LAYER (ExprLayer Model) m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (NEW // EXPR)
              ) => m ()
@@ -131,11 +132,11 @@ gen_pass1 = do
     -- Vis.snapshot "s1"
     --
     --
-    -- match s $ \case
-    --     Unify l r -> print "ppp"
-    --     Star      -> match s $ \case
-    --         Unify l r -> print "hola"
-    --         Star      -> print "hellox"
+    match s $ \case
+        Unify l r -> print "ppp"
+        Star      -> match s $ \case
+            Unify l r -> print "hola"
+            Star      -> print "hellox"
 
 
     return ()

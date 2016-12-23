@@ -1,4 +1,5 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE UndecidableInstances    #-}
 
 module Luna.Pass.Manager where
 
@@ -18,7 +19,7 @@ import qualified Luna.Pass.Class as Pass
 import qualified Prologue.Prim as Prim
 import Data.TypeVal
 
-
+import System.Log (MonadLogging)
 
 
 
@@ -45,16 +46,14 @@ newtype PassProto_old m = PassProto_old { appCons :: ElemRep -> PMPass m } -- FI
 instance Show (PassProto_old m) where show _ = "PassProto_old"
 -- ^^^ --
 
-data LayerReg m = LayerReg { _prototypes_old :: Map LayerRep $ PassProto_old m
-                           , _prototypes     :: Map LayerRep $ Proto (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
-                           , _attached       :: Map ElemRep  $ Map LayerRep $ PassRep
+data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ Proto (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
+                           , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
                            } deriving (Show)
 
 data State m = State { _passes :: Map PassRep $ PMPass m
                      , _layers :: LayerReg m
                      , _events :: EventHub SortedListenerRep (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
                      , _attrs  :: Map AttrRep Prim.AnyData
-                    --  , _events_old :: EventHub SortedListenerRep PassRep
                      } deriving (Show)
 
 
@@ -66,7 +65,7 @@ instance Ord SortedListenerRep where
 -- === instances === --
 
 instance Default (LayerReg m) where
-    def = LayerReg def def def ; {-# INLINE def #-}
+    def = LayerReg def def ; {-# INLINE def #-}
 
 instance Default (State m) where
     def = State def def def def ; {-# INLINE def #-}
@@ -93,17 +92,17 @@ type family GetBaseMonad m where
 type PMPass' m = PMPass (GetBaseMonad m)
 type State'  m = State  (GetBaseMonad m)
 
-class Monad m => MonadPassManager m where
+class IRMonad m => MonadPassManager m where
     get :: m (State' m)
     put :: State' m -> m ()
     liftPassManager :: GetPassManager m a -> m a
 
-instance Monad m => MonadPassManager (PassManager m) where
+instance IRMonad m => MonadPassManager (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
     liftPassManager = id
 
-type TransBaseMonad t m = (GetBaseMonad m ~ GetBaseMonad (t m), Monad m, Monad (t m), MonadTrans t)
+type TransBaseMonad t m = (GetBaseMonad m ~ GetBaseMonad (t m), MonadTransInvariants' t m, IRMonad (t m))
 instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m)
       => MonadPassManager (t m) where
     get = lift   get ; {-# INLINE get #-}
@@ -150,11 +149,11 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 -- {-# INLINE attachLayerPM #-}
 
 -- FIXME[WD]: make forall t. like security check for layers registration
-registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
-registerLayer l f = modify_ $ layers . prototypes_old . at l ?~ PassProto_old f ; {-# INLINE registerLayer #-}
+-- registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
+-- registerLayer l f = modify_ $ layers . prototypes_old . at l ?~ PassProto_old f ; {-# INLINE registerLayer #-}
 
-uncheckedAddLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
-uncheckedAddLayerProto l f = modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE uncheckedAddLayerProto #-}
+registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
+registerLayerProto l f = modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayerPM2 :: (MonadPassManager m, Functor (GetBaseMonad m))
@@ -210,6 +209,11 @@ addEventListener2 priority evnt p =  modify_ $ (events %~ attachListener (Listen
 
 
 -- === Instances === --
+
+-- Logging
+
+instance MonadLogging m => MonadLogging (PassManager  m)
+
 
 -- Primitive
 instance PrimMonad m => PrimMonad (PassManager m) where
