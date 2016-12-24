@@ -95,7 +95,7 @@ withTagLog' m f = tagLog' @t m >> nested f ; {-# INLINE withTagLog' #-}
 
 withTagLogBy' :: forall t reporter msg m a. WithTagLogBy' t reporter msg m
               => reporter -> msg -> m a -> m a
-withTagLogBy' r m f = tagLogBy' @t r m >> nested f ; {-# INLINE withTagLogBy' #-}
+withTagLogBy' r m f = tagLogBy' @t r m >> nested (reported r f) ; {-# INLINE withTagLogBy' #-}
 
 
 -- === Loggign utils === --

@@ -85,52 +85,54 @@ fromRight (Left e) = error $ show e
 -- Layer passes
 
 
+elemDesc (t :: t) = show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]"
+layerCreated = ("Running pass " <>)
 
-
-debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
-debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]")
-
-debugLayerCreation :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> Prelude.String -> m ()
-debugLayerCreation t layer post = debugElem t $ layer <> " layer created" <> post
-
-debugLayerCreation' :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
+debugLayerCreation t layer s = withDebugBy (elemDesc t) (layerCreated layer <> s)
 debugLayerCreation' t layer = debugLayerCreation t layer ""
+
+--
+-- debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
+-- debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]")
+--
+-- debugLayerCreation :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> Prelude.String -> m ()
+-- debugLayerCreation t layer post = debugElem t $ layer <> " layer created" <> post
+--
+-- debugLayerCreation' :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
+-- debugLayerCreation' t layer = debugLayerCreation t layer ""
 
 
 proxify :: a -> Proxy a
 proxify _ = Proxy
 
 
+
+
+newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope2 p t) m)
+type    GenLayerConsM p m = GenLayerCons p (PrimState m)
+
+runGenLayerCons :: forall p m. KnownType p => GenLayerConsM p m -> forall t. (KnownType (Abstract t), MonadPassManager m) => (Elem t, Definition t) -> Pass (ElemScope2 p t) m
+runGenLayerCons (GenLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
+
+
+registerLayer :: (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> GenLayerConsM p (GetBaseMonad m) -> m ()
+registerLayer l p = registerLayerProto l $ prepareProto $ Pass.template $ runGenLayerCons p ; {-# INLINE registerLayer #-}
+
+
+registerLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> m (GenLayerConsM p (GetBaseMonad m)) -> m ()
+registerLayerM l p = registerLayer l =<< p ; {-# INLINE registerLayerM #-}
+
+
+prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Pass.PassTemplate (ElemScope2 p (TypeRef s)) m) -> Pass.Proto (Pass.Describbed (Initializer m (Template (Pass.DynPass3 m))))
+prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) where
+    prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Pass.PassTemplate (ElemScope2 p t) m -> Proxy t -> Pass.Describbed (Initializer m (Template (Pass.DynPass3 m)))
+    prepareProto' = const . Pass.describbed @(ElemScope2 p t) . Pass.initialize
+
+
+
 -------------------
 -- === Model2 === --
 -------------------
-
--- proxifyElemPass2 :: Pass.Template (ElemSubPass p elem m a) -> (Proxy elem -> Pass.Template (ElemSubPass p elem m a))
--- proxifyElemPass2 = const ; {-# INLINE proxifyElemPass2 #-}
-
--- proxifyElemPass3 :: Pass.Template (SubPass (ElemScope2 p elem) m a) -> (Proxy elem -> Pass.Template (SubPass (ElemScope2 p elem) m a))
--- proxifyElemPass3 = const ; {-# INLINE proxifyElemPass3 #-}
-
--- type instance Abstract InitModel2 = InitModel2
--- type instance Inputs    (ElemScope InitModel2 t) = '[Layer (Abstract t) Model] -- FIXME[bug: unnecessary inputs needed]
--- type instance Outputs   (ElemScope InitModel2 t) = '[Layer (Abstract t) Model]
--- type instance Events    (ElemScope InitModel2 t) = '[]
--- type instance Preserves (ElemScope InitModel2 t) = '[]
---
--- type instance Abstract InitModel2 = InitModel2
--- type instance Inputs    (ElemScope2 InitModel2 t) = '[Layer (Abstract t) Model] -- FIXME[bug: unnecessary inputs needed]
--- type instance Outputs   (ElemScope2 InitModel2 t) = '[Layer (Abstract t) Model]
--- type instance Events    (ElemScope2 InitModel2 t) = '[]
--- type instance Preserves (ElemScope2 InitModel2 t) = '[]
-
-
--- data InitModel2
--- type instance Abstract InitModel2 = InitModel2
--- type instance Desc NET      (ElemScope2 InitModel2 t) = '[RW EXPR, RW $ LINK' EXPR]
--- type instance Desc LAYER    (ElemScope2 InitModel2 t) = '[RW $ Abstract t // Model] -- FIXME[bug: unnecessary inputs needed]
--- type instance Desc ATTR     (ElemScope2 InitModel2 t) = '[]
--- type instance Desc EVENT    (ElemScope2 InitModel2 t) = '[]
--- type instance Desc PRESERVE (ElemScope2 InitModel2 t) = '[]
 
 
 data InitModel2
@@ -144,145 +146,41 @@ type instance Outputs ATTR     (ElemScope2 InitModel2 t) = '[]
 type instance Inputs  EVENT    (ElemScope2 InitModel2 t) = '[]
 type instance Outputs EVENT    (ElemScope2 InitModel2 t) = '[]
 type instance Preserves        (ElemScope2 InitModel2 t) = '[]
-
-
 instance KnownElemPass InitModel2 where
     elemPassDescription = genericDescription' . proxify
-    -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Any -> Pass (ElemScope InitModel2 t) m
-    -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Any -> Pass (ElemScope InitModel2 t) m
-    -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Listener (NEW // Abstract t) (ElemScope InitModel2 t) m
-    -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => EventPass (NEW // t) (ElemScope InitModel2 t) m
-    -- -- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => TypeRep -> Pass.Desc (Prim.Any -> DynPass m)
--- initModel2 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => TypeRep -> Pass.Desc (DynEventPass m)
+
+initModel2 :: GenLayerCons InitModel2 s
+initModel2 = GenLayerCons $ uncurry $ flip $ writeLayer @Model ; {-# INLINE initModel2 #-}
 
 
 
-initModel2 :: forall t m. (IRMonad m, KnownType (Abstract t)) => (Elem t, Definition t) -> Pass (ElemScope2 InitModel2 t) m
-initModel2 (t, tdef) = do
-    flip (writeLayer @Model) t tdef
-    debugLayerCreation' t "Model"
+-----------------
+-- === UID === --
+-----------------
 
-initModel2p :: (MonadPassManager m, KeyMonad EVENT m) => Pass.Proto (Pass.Describbed (Initializer m (Template (Pass.DynPass3 m))))
-initModel2p = passT7 $ Pass.template initModel2
-    --
-    -- initModel3 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass.PassTemplate (ElemScope InitModel2 t) m
-    -- initModel3 = Pass.template initModel2
-    --
-    -- initModel4 :: (MonadIO m, IRMonad m, KnownType (Abstract t)) => Proxy t -> Pass.PassTemplate (ElemScope InitModel2 t) m
-    -- initModel4 = proxifyElemPass2 initModel3
-    --
-    -- initModel5 :: (MonadIO m, IRMonad m, KnownType (Abstract t)) => Proxy t -> Initializer m (Template (DynPass3 m))
-    -- initModel5 = fmap Pass.initialize initModel4
-    --
-    -- initModel6 :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Proxy t -> Pass.Describbed (Initializer m (Template (DynPass3 m)))
-    -- initModel6 = fmap (Pass.describbed @(ElemScope InitModel2 t)) initModel5
-    --
-    -- initModel7 :: (MonadIO m, IRMonad m) => Pass.Proto (Pass.Describbed (Initializer m (Template (DynPass3 m))))
-    -- initModel7 = Pass.Proto $ reifyKnownTypeT @Abstracted initModel6
-    --
-initModel_reg' :: IRMonad m => PassManager m ()
-initModel_reg' = registerLayerProto (typeVal' @Model) initModel2p
-    --
-    -- newtype LayerConsPass pass m = LayerConsPass (forall t. KnownType (Abstract t) => Event (NEW2 // Elem t) -> Pass (ElemScope pass t) m)
-    --
-    --
--- passT2 :: (Elem t, Definition t) -> Pass (ElemScope2 p t) m
--- passT2 = undefined
-
-passT3 :: (cons -> Pass (ElemScope2 p t) m) -> Pass.PassTemplate (ElemScope2 p t) m
-passT3 = Pass.template
-
--- passT4 :: forall p t m. Proxy t -> Pass.PassTemplate (ElemScope2 p t) m
--- passT4 = proxifyElemPass3
-
-passT5 :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p)
-       => Pass.PassTemplate (ElemScope2 p t) m -> Initializer m (Template (Pass.DynPass3 m))
-passT5 = Pass.initialize
-
-passT6 :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p)
-       => Proxy t -> Pass.PassTemplate (ElemScope2 p t) m -> Pass.Describbed (Initializer m (Template (Pass.DynPass3 m)))
-passT6 _ = Pass.describbed @(ElemScope2 p t) . passT5
-
-passT7 :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p)
-       => (forall s. TypeReify (Abstracted s) => Pass.PassTemplate (ElemScope2 p (TypeRef s)) m) -> Pass.Proto (Pass.Describbed (Initializer m (Template (Pass.DynPass3 m))))
-passT7 p = Pass.Proto $ reifyKnownTypeT @Abstracted (flip passT6 p)
-    -- --
+data InitUID
+type instance Abstract InitUID = InitUID
+type instance Inputs  NET      (ElemScope2 InitUID t) = '[EXPR, LINK' EXPR]
+type instance Outputs NET      (ElemScope2 InitUID t) = '[EXPR, LINK' EXPR]
+type instance Inputs  LAYER    (ElemScope2 InitUID t) = '[Layer (Abstract t) UID] -- FIXME[bug: unnecessary inputs needed]
+type instance Outputs LAYER    (ElemScope2 InitUID t) = '[Layer (Abstract t) UID] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  ATTR     (ElemScope2 InitUID t) = '[]
+type instance Outputs ATTR     (ElemScope2 InitUID t) = '[]
+type instance Inputs  EVENT    (ElemScope2 InitUID t) = '[]
+type instance Outputs EVENT    (ElemScope2 InitUID t) = '[]
+type instance Preserves        (ElemScope2 InitUID t) = '[]
+instance KnownElemPass InitUID where
+    elemPassDescription = genericDescription' . proxify
 
 
--- reifyKnownType :: forall r. (forall (s :: *). TypeReify s => TypeProxy s -> r) -> TypeRep -> r
-
---
--- ∀ k in (Keys (ElemScope2 p t)) => KeyMonad k m
---
--- class Monad m => KeyMonad key m n where
---     uncheckedLookupKey :: m (Maybe (Key n key))
-
--- passT5 :: forall p t m. (Logging m, KnownType (Abstract p), KnownType (Abstract t))
---        => Proxy t -> Initializer m (Template (Pass.DynPass3 m))
--- passT5 = fmap Pass.initialize (passT4 @p)
+initUID :: PrimMonad m => m (GenLayerConsM InitUID m)
+initUID = do
+    ref <- Store.newSTRef (def :: ID)
+    return $ GenLayerCons $ \(t, tdef) -> do --  (" (" <> show nuid <> ")")
+        nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
+        writeLayer @UID nuid t
 
 
--- passT2 =
-
---
---
--- -------------------
--- -- === Model === --
--- -------------------
---
--- data InitModel
--- type instance Abstract InitModel = InitModel
--- type instance Inputs    (ElemScope InitModel t) = '[Layer (Abstract t) Model, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
--- type instance Outputs   (ElemScope InitModel t) = '[Layer (Abstract t) Model]
--- type instance Events    (ElemScope InitModel t) = '[]
--- type instance Preserves (ElemScope InitModel t) = '[]
---
--- initModel :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass (ElemScope InitModel t) m
--- initModel = do
---     (t, tdef) <- readAttr @WorkingElem
---     flip (writeLayer @Model) t tdef
---     debugLayerCreation' t "Model"
---
--- initModel_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
--- initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initModel
---
--- initModel_reg :: (IRMonad m, MonadIO m) => PassManager m ()
--- initModel_reg = registerLayer (typeVal' @Model) initModel_dyn
---
-
---
---
---
---
--- -----------------
--- -- === UID === --
--- -----------------
---
--- data InitUID
--- type instance Abstract InitUID = InitUID
--- type instance Inputs    (ElemScope InitUID t) = '[Layer (Abstract t) UID, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
--- type instance Outputs   (ElemScope InitUID t) = '[Layer (Abstract t) UID]
--- type instance Events    (ElemScope InitUID t) = '[]
--- type instance Preserves (ElemScope InitUID t) = '[]
---
--- initUID :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => STRefM m ID -> Pass (ElemScope InitUID t) m
--- initUID ref = do
---     (t, tdef) <- readAttr @WorkingElem
---     nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
---     flip (writeLayer @UID) t nuid
---     debugLayerCreation t "UID" $ " (" <> show nuid <> ")"
---
---
--- initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
--- initUID_dyn = do
---     r <- Store.newSTRef 0
---     return $ reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass (initUID r)
---
--- initUID_reg :: (IRMonad m, MonadIO m) => PassManager m ()
--- initUID_reg = registerLayer (typeVal' @UID) =<< initUID_dyn
---
---
---
 -- -------------------
 -- -- === Succs === --
 -- -------------------
@@ -408,7 +306,7 @@ passT7 p = Pass.Proto $ reifyKnownTypeT @Abstracted (flip passT6 p)
 
 
 
-
+-- ff = initUID' <$> Store.newSTRef 0
 -------------------------------------------
 -------------------------------------------
 -------------------------------------------
@@ -422,8 +320,12 @@ attachLayer priority l e = attachLayerIR l e >> attachLayerPM2 priority l e
 runRegs = do
     runElemRegs
 
-    initModel_reg'
+    -- f <- ff
+    registerLayer  (typeVal' @Model) initModel2
+    registerLayerM (typeVal' @UID)   initUID
+
     attachLayer 0 (typeVal' @Model) (typeVal' @EXPR)
+    attachLayer 0 (typeVal' @UID)   (typeVal' @EXPR)
 
     -- attachLayer 0 (typeVal' @Model) (typeVal' @(LINK' EXPR))
     -- --

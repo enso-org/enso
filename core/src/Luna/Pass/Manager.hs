@@ -19,7 +19,7 @@ import qualified Luna.Pass.Class as Pass
 import qualified Prologue.Prim as Prim
 import Data.TypeVal
 
-import System.Log (MonadLogging)
+import System.Log
 
 
 
@@ -92,7 +92,7 @@ type family GetBaseMonad m where
 type PMPass' m = PMPass (GetBaseMonad m)
 type State'  m = State  (GetBaseMonad m)
 
-class IRMonad m => MonadPassManager m where
+class (IRMonad m, IRMonad (GetBaseMonad m)) => MonadPassManager m where
     get :: m (State' m)
     put :: State' m -> m ()
     liftPassManager :: GetPassManager m a -> m a
@@ -127,10 +127,10 @@ modify_ = modifyM_ . fmap return ; {-# INLINE modify_ #-}
 
 -- === Running === --
 
-evalPassManager :: Monad m => PassManager m a -> State m -> m a
-evalPassManager = evalStateT . unwrap' ; {-# INLINE evalPassManager #-}
+evalPassManager :: Logging m => PassManager m a -> State m -> m a
+evalPassManager = withDebugBy "PassManager" "Running PassManager" .: evalStateT . unwrap' ; {-# INLINE evalPassManager #-}
 
-evalPassManager' :: Monad m => PassManager m a -> m a
+evalPassManager' :: Logging m => PassManager m a -> m a
 evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 
@@ -153,12 +153,12 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 -- registerLayer l f = modify_ $ layers . prototypes_old . at l ?~ PassProto_old f ; {-# INLINE registerLayer #-}
 
 registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
-registerLayerProto l f = modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
+registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayerPM2 :: (MonadPassManager m, Functor (GetBaseMonad m))
                => Int -> LayerRep -> ElemRep -> m ()
-attachLayerPM2 priority l e = do
+attachLayerPM2 priority l e = withDebug ("Attaching " <> show e <> " layer " <> show l) $ do
     s <- get
     let Just pproto = s ^. layers . prototypes . at l
         dpass = Pass.specialize pproto e

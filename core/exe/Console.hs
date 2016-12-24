@@ -159,7 +159,7 @@ main = do
                 -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
                 return ()
         print p
-    lmain
+    -- lmain
 
 
 ------ Old Notes
