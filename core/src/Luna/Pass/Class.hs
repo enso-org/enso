@@ -33,16 +33,8 @@ import qualified Data.Map as Map
 import           Data.Map (Map)
 
 
--- data PRESERVE
-
--- type family Desc t pass :: [*]
--- type family Networks  pass :: [*]
--- type family Layers    pass :: [*]
--- type family Attribs   pass :: [*]
-
 type family Inputs  t pass :: [*]
 type family Outputs t pass :: [*]
--- type family Events    pass :: [*]
 type family Preserves pass :: [*]
 
 type Events pass = Outputs EVENT pass

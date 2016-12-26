@@ -32,25 +32,15 @@ class Monad m => MonadRefCache m where
 
 
 
-type PMSubPass m = DynSubPass (PassManager m)
-type PMPass    m = PMSubPass m ()
-
-
 -------------------
 -- === State === --
 -------------------
-
--- TODO: refactor -> Passes
--- VVV --
-newtype PassProto_old m = PassProto_old { appCons :: ElemRep -> PMPass m } -- FIXME: should not refer to PMPass
-instance Show (PassProto_old m) where show _ = "PassProto_old"
--- ^^^ --
 
 data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ Proto (Pass.Describbed (Uninitialized (PassManager m) (Template (DynPass3 (PassManager m)))))
                            , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
                            } deriving (Show)
 
-data State m = State { _passes :: Map PassRep $ PMPass m
+data State m = State { _passes :: Map Int Int -- Map PassRep $ PMPass m
                      , _layers :: LayerReg m
                      , _events :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized (PassManager m) (Template (DynPass3 (PassManager m)))))
                      , _attrs  :: Map AttrRep Prim.AnyData
@@ -89,7 +79,6 @@ type family GetBaseMonad m where
     GetBaseMonad (PassManager m) = m
     GetBaseMonad (t m)           = GetBaseMonad m
 
-type PMPass' m = PMPass (GetBaseMonad m)
 type State'  m = State  (GetBaseMonad m)
 
 class (IRMonad m, IRMonad (GetBaseMonad m), MonadRefCache (GetBaseMonad m)) => MonadPassManager m where
@@ -248,8 +237,7 @@ instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (GetPassHandler m)
 -- instance Emitter2 (SubPass pass m) e where
 --     emit2 _ p =
 
-instance (IRMonad m, MonadRefCache m) => KeyMonad ATTR (PassManager m) where
-    uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
+
 
 
 unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()
@@ -346,7 +334,8 @@ instance MonadLogging m => MonadLogging (RefCache m)
 --
 -- initialize -> initialize
 
-
+instance (IRMonad m, MonadRefCache m) => KeyMonad ATTR (PassManager m) where
+    uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
 
 instance IRMonad m => KeyMonad LAYER (PassManager m) where
@@ -360,9 +349,6 @@ instance IRMonad m => KeyMonad LAYER (PassManager m) where
 
 instance IRMonad m => KeyMonad NET (PassManager m) where
     uncheckedLookupKey a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftPassHandler getIR ; {-# INLINE uncheckedLookupKey #-}
-
--- instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m where
---     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
 
 instance (IRMonad m, MonadRefCache m) => KeyMonad EVENT (PassManager m) where -- Event.FromPath e
