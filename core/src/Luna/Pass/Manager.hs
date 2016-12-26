@@ -12,7 +12,7 @@ import           Data.Map            (Map)
 import           Data.Event          (EVENT, Event(Event), EventHub, Emitter, Emitter2, IsTag, Listener(Listener), toTag, attachListener, (//))
 import qualified Data.Event          as Event
 
-import Luna.IR.Internal.IR
+import Luna.IR.Internal.IR as IR
 import Luna.Pass.Class (DynSubPass, SubPass, PassRep, DynPassTemplate, Proto, DynPass3, Template, Initializer)
 import qualified Luna.Pass.Class as Pass
 
@@ -231,7 +231,8 @@ instance MonadTrans PassManager where
 type instance KeyData EVENT _ m = Template (DynPass3 (GetPassManager m))
 
 
-instance (MonadPassManager m, Pass.ContainsKey pass EVENT e m)
+instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (GetPassHandler m)
+         , GetBaseMonad (GetPassHandler m) ~ GetBaseMonad m) -- FIXME[WD]: this should not be needed
       => Emitter2 (SubPass pass m) e where
     emit2 (Event p) = do
         tmpl <- unwrap' . view (Pass.findKey @pass @EVENT @e) <$> Pass.get
@@ -270,3 +271,48 @@ unsafeWithAttr r a f = do
     out <- f
     unsafeSetAttr r oldAttr
     return out
+
+
+----------------------
+-- === KeyCache === --
+----------------------
+
+newtype KeyCache m a = KeyCache (StateT [Int] m a) deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadFix, MonadThrow)
+makeWrapped ''KeyCache
+
+runKeyCache :: Monad m => KeyCache m a -> m a
+runKeyCache = flip evalStateT [] . unwrap' ; {-# INLINE runKeyCache #-}
+
+
+-- === Instances === --
+
+-- Primitive
+instance PrimMonad m => PrimMonad (KeyCache m) where
+    type PrimState (KeyCache m) = PrimState m
+    primitive = lift . primitive ; {-# INLINE primitive #-}
+
+
+instance KeyMonad k m => KeyMonad k (KeyCache m) where
+    uncheckedLookupKey keyRep = (fmap.fmap) coerce $ lift $ uncheckedLookupKey keyRep where
+        coerce :: Key k a m -> Key k a m'
+        coerce = unsafeCoerce
+
+-- class Monad m => KeyMonad k m where
+--     uncheckedLookupKey :: forall a. TypeRep {- the type of `a` -}
+--                        -> m (Maybe (Key k a m))
+
+
+-- Key nie powinien byc zalezny od m - w ogole, tylko od PrimState s = to jest gwarancja dla PassManagera
+-- trzebaby zrobic poza tym listeners, tak by listener zalezny byl od monady passmanagera, a nie tak jak teraz klucz od monady pod monada passu.
+-- Wtedy mozna robic Cache dla eventlsitenerow, teraz sie nie da.
+--
+-- + renaming
+-- Initializer -> Uninitialized
+-- initialize -> compile / compileTemplate
+--
+-- runInitializer -> initialize
+
+
+type instance GetPassHandler (PassManager m) = PassManager m
+instance IRMonad m => MonadPass (PassManager m) where
+    liftPassHandler = id

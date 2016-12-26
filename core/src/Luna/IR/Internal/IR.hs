@@ -162,8 +162,8 @@ writeKey = return . wrap' ; {-# INLINE writeKey #-}
 
 -- FIXME: To refactor
 -- Keys should be moved to Pass, because they internal monad ALWAYS defaults to pass
-type family GetPassMonad (m :: * -> *) :: * -> *
-type KeyData' k a m = KeyData k a (GetPassMonad m)
+type family GetPassHandler (m :: * -> *) :: * -> *
+type KeyData' k a m = KeyData k a (GetPassHandler m)
 
 
 
@@ -176,14 +176,14 @@ type Editor k a m = (Reader k a m, Writer k a m)
 type TransST    t m   = (MonadTrans t, Monad (t m), PrimState (t m) ~ PrimState m)
 
 -- Reader
-class    Monad m                                => Reader k a m     where getKey :: m (Key k a (GetPassMonad m))
+class    Monad m                                => Reader k a m     where getKey :: m (Key k a (GetPassHandler m))
 instance {-# OVERLAPPABLE #-} SubReader k a t m => Reader k a (t m) where getKey = lift getKey ; {-# INLINE getKey #-}
-type SubReader k a t m = (Reader k a m, TransST t m, GetPassMonad (t m) ~ GetPassMonad m)
+type SubReader k a t m = (Reader k a m, TransST t m, GetPassHandler (t m) ~ GetPassHandler m)
 
 -- Writer
-class    Monad m                                => Writer k a m     where putKey :: Key k a (GetPassMonad m) -> m ()
+class    Monad m                                => Writer k a m     where putKey :: Key k a (GetPassHandler m) -> m ()
 instance {-# OVERLAPPABLE #-} SubWriter k a t m => Writer k a (t m) where putKey = lift . putKey ; {-# INLINE putKey #-}
-type SubWriter k a t m = (Writer k a m, TransST t m, GetPassMonad (t m) ~ GetPassMonad m)
+type SubWriter k a t m = (Writer k a m, TransST t m, GetPassHandler (t m) ~ GetPassHandler m)
 
 
 readComp :: forall k a m. Reader k a m => m (KeyData' k a m)
@@ -292,8 +292,12 @@ modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (f
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
 uncheckedElems :: forall t m. (MonadPass m, IsIdx t, Reader NET (Abstract t) m) => m [t]
-uncheckedElems = fmap (view $ from idx) <$> (Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
+uncheckedElems = fmap (view $ from idx) <$> (liftPassHandler . Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
+-- readNet :: forall a m. (Reader NET a m) => m (KeyData' NET a m)
+-- type KeyData' k a m = KeyData k a (GetPassHandler m)
+--
+-- ixes :: PrimMonad m => LayerStoreRefM m k a -> m [Int]
 
 -- === Querying === --
 --
@@ -392,7 +396,7 @@ dispatchNewElem2 t tdef = Event.emit2 $ Event @(NEW2 // t) (t, tdef)
 
 
 freeElem :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m) => t -> m ()
-freeElem t = liftPass . flip Store.freeIdx (t ^. idx) =<< readComp @NET @(Abstract t) ; {-# INLINE freeElem #-}
+freeElem t = liftPassHandler . flip Store.freeIdx (t ^. idx) =<< readComp @NET @(Abstract t) ; {-# INLINE freeElem #-}
 
 -- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
 delete :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
@@ -400,7 +404,7 @@ delete :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m, Event.Em
 delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (MonadPass m, Editor NET (Abstract t) m) => m Int
-reserveNewElemIdx = liftPass . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
+reserveNewElemIdx = liftPassHandler . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
 readLayerByKey :: (IRMonad m, IsIdx t) => Key LAYER (Layer (Abstract t) layer) m -> t -> m (LayerData layer t)
 readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
@@ -409,11 +413,11 @@ writeLayerByKey :: (IRMonad m, IsIdx t) => Key LAYER (Layer (Abstract t) layer) 
 writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
 
 readLayer :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
-readLayer t = liftPass . flip readLayerByKey t =<< getKey @LAYER @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
+readLayer t = liftPassHandler . flip readLayerByKey t =<< getKey @LAYER @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
 -- FIXME[WD]: writeLayer should need writable
 writeLayer :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
-writeLayer val t = (\k -> liftPass $ writeLayerByKey k val t) =<< getKey @LAYER @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
+writeLayer val t = (\k -> liftPassHandler $ writeLayerByKey k val t) =<< getKey @LAYER @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
 modifyLayerM :: forall layer t m a. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
 modifyLayerM f t = do
@@ -436,7 +440,7 @@ readAttr = readComp @ATTR @a ; {-# INLINE readAttr #-}
 writeAttr :: forall a m. Writer ATTR a m => KeyData' ATTR a m -> m ()
 writeAttr a = writeComp @ATTR @a a
 
-readNet :: forall a m. (MonadPass m, Reader NET a m) => m (KeyData' NET a m)
+readNet :: forall a m. (Reader NET a m) => m (KeyData' NET a m)
 readNet = readComp @NET @a ; {-# INLINE readNet #-}
 
 
@@ -501,11 +505,11 @@ type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), PrimState (
 
 
 --FIXME: REFACTOR
-type MonadPassInvariants m = (PrimState m ~ PrimState (GetPassMonad m))
+type MonadPassInvariants m = (PrimState m ~ PrimState (GetPassHandler m))
 type MonadPassBase       m = (IRMonad m, PrimMonad m)
-type MonadPassCtx        m = (MonadPassBase m, MonadPassBase (GetPassMonad m), MonadPassInvariants m)
+type MonadPassCtx        m = (MonadPassBase m, MonadPassBase (GetPassHandler m), MonadPassInvariants m)
 class MonadPassCtx m => MonadPass m where
-    liftPass :: forall a. GetPassMonad m a -> m a
+    liftPassHandler :: forall a. GetPassHandler m a -> m a
 
 
 -- === Modyfication === --

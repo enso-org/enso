@@ -72,7 +72,7 @@ type instance Outputs EVENT SimpleAA = '[NEW2 // EXPR]
 type instance Preserves     SimpleAA = '[]
 
 
-pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
+pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m, EqPrims m (GetPassHandler m) {- rm -}, GetBaseMonad (GetPassHandler m) ~ GetBaseMonad m {- rm -}, MonadPass m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())

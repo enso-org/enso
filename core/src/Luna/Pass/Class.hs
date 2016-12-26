@@ -15,7 +15,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Keys, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, GetPassMonad)
+import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Keys, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, GetPassHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -64,6 +64,9 @@ data DataSet m pass
              }
 -- type    DataSetM m     = DataSet (PrimState m)
 makeLenses ''DataSet
+
+
+type DataSet' m pass = DataSet (GetPassHandler m) pass
 
 -- prepend :: Key m k -> DataSet m ks -> DataSet m (k ': ks)
 -- prepend k = wrapped %~ TList.prepend k ; {-# INLINE prepend #-}
@@ -117,7 +120,7 @@ makeWrapped ''PassRep
 
 
 type    Pass    pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (DataSet m pass) m a)
+newtype SubPass pass m a = SubPass (StateT (DataSet' m pass) m a)
         deriving ( Functor, Monad, Applicative, MonadIO, MonadPlus, Alternative
                  , MonadFix, Catch.MonadMask
                  , Catch.MonadCatch, Catch.MonadThrow)
@@ -187,23 +190,20 @@ instance Show (DynSubPass2 m a) where show _ = "DynPass2"
 -- type PassData       pass = Inputs pass <> Outputs pass <> EventKeys pass -- FIXME (there are duplicates in the list)
 -- type Keys           pass = PassData pass
 
-type GetPassData m = DataSet (GetPassMonad m) (GetPass m)
+type GetPassData m = DataSet (GetPassHandler m) (GetPass m)
 type family GetPass  m where
     GetPass (SubPass pass m) = pass
     GetPass (t m)            = GetPass m
 
 
+-- type family GetPassMonad m where
+--     GetPassMonad (SubPass pass m) = m
+--     GetPassMonad (t m)            = GetPassMonad m
 
--- FIXME[WD]: after refactoring keys here, merge def with instance
-type instance GetPassMonad m = GetPassMonad' m
-type family GetPassMonad' m where
-    GetPassMonad' (SubPass pass m) = m
-    GetPassMonad' (t m)            = GetPassMonad' m
 
--- FIXME[WD]: merge with real MonadPass
-instance IR.IRMonad m => IR.MonadPass (SubPass pass m) where
-    liftPass = lift ; {-# INLINE liftPass #-}
-
+type instance GetPassHandler (SubPass pass m) = GetPassHandler m
+instance (EqPrims m (GetPassHandler m), IR.MonadPass m) => IR.MonadPass (SubPass p m) where
+    liftPassHandler = lift . IR.liftPassHandler ; {-# INLINE liftPassHandler #-}
 
 instance MonadLogging m => MonadLogging (SubPass pass m)
 
@@ -273,13 +273,13 @@ describbedProxy _ = describbed @pass ; {-# INLINE describbedProxy #-}
 type DataLookup m = (IR.KeyMonad NET m, IR.KeyMonad LAYER m, IR.KeyMonad ATTR m, IR.KeyMonad EVENT m)
 
 lookupDataSet :: forall pass m. DataLookup m
-              => Description -> m (Maybe (DataSet m pass))
+              => Description -> m (Maybe (DataSet' m pass))
 lookupDataSet desc = DataSet <<$>> lookupDataStore @NET   @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @NET))   <> (fromJust $ desc ^. outputs . at (typeVal' @NET)))
                              <<*>> lookupDataStore @LAYER @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @LAYER)) <> (fromJust $ desc ^. outputs . at (typeVal' @LAYER)))
                              <<*>> lookupDataStore @ATTR  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @ATTR))  <> (fromJust $ desc ^. outputs . at (typeVal' @ATTR)))
                              <<*>> lookupDataStore @EVENT @pass @m (desc ^. events)
     where fromJust (Just a) = a
-          lookupDataStore :: forall k pass m. IR.KeyMonad k m => [TypeRep] -> m (Maybe (TList (DataStore k pass m)))
+          lookupDataStore :: forall k pass m. IR.KeyMonad k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetPassHandler m))))
           lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
 
           unsafeLookupData :: forall k m. IR.KeyMonad k m => [TypeRep] -> m (Maybe Prim.Any)
@@ -405,10 +405,10 @@ class Monad m => MonadPass m where
     put :: GetPassData m -> m ()
 
 instance Monad m => MonadPass (SubPass pass m) where
-    get = wrap'   State.get ; {-# INLINE get #-}
-    put = wrap' . State.put ; {-# INLINE put #-}
+    get = wrap   State.get ; {-# INLINE get #-}
+    put = wrap . State.put ; {-# INLINE put #-}
 
-instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m),GetPassData m ~ GetPassData (t m)) => MonadPass (t m) where
+instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m), GetPassData m ~ GetPassData (t m)) => MonadPass (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
 
@@ -467,13 +467,13 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- FIXME[WD]: add asserts
 -- Reader
 instance ( Monad m
-         , ContainsKey pass k a m
+         , ContainsKey pass k a (GetPassHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
          , Assert (a `In` (Inputs k pass)) (KeyReadError k a))
       => Reader k a (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
 
 -- Writer
 instance ( Monad m
-         , ContainsKey pass k a m
+         , ContainsKey pass k a (GetPassHandler m)
          , Assert (a `In` (Inputs k pass)) (KeyReadError k a))
       => Writer k a (SubPass pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
 

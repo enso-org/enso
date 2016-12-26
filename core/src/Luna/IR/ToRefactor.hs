@@ -108,16 +108,16 @@ proxify _ = Proxy
 
 
 
-newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope p t) m)
+newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, MonadPass m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope p t) m)
 type    GenLayerConsM p m = GenLayerCons p (PrimState m)
 
-newtype ExprLayerCons  p s = ExprLayerCons (forall l m. (MonadPassManager m, s ~ PrimState m) => (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m)
+newtype ExprLayerCons  p s = ExprLayerCons (forall l m. (MonadPassManager m, MonadPass m, s ~ PrimState m, GetBaseMonad m ~ GetBaseMonad (GetPassHandler m)) => (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m)
 type    ExprLayerConsM p m = ExprLayerCons p (PrimState m)
 
-runGenLayerCons :: forall p m. (KnownType p, MonadPassManager m) => GenLayerConsM p m -> forall t. KnownType (Abstract t) => (Elem t, Definition t) -> Pass (ElemScope p t) m
+runGenLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadPass m) => GenLayerConsM p m -> forall t. KnownType (Abstract t) => (Elem t, Definition t) -> Pass (ElemScope p t) m
 runGenLayerCons (GenLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
 
-runExprLayerCons :: forall p m. (KnownType p, MonadPassManager m) => ExprLayerConsM p m -> forall l. (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m
+runExprLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadPass m, GetBaseMonad m ~ GetBaseMonad (GetPassHandler m)) => ExprLayerConsM p m -> forall l. (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m
 runExprLayerCons (ExprLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
 
 
@@ -369,7 +369,7 @@ runRegs = do
 
     attachLayer 5 (typeVal' @UID)   (typeVal' @(LINK' EXPR))
 
-    attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
+    -- attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
 
 
     -- attachLayer 0 (typeVal' @Model) (typeVal' @(LINK' EXPR))
