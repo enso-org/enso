@@ -221,12 +221,12 @@ emptyDescription r = Description r def def def def
 
 -- === Utils ===
 
-data ElemScope2 pass t = ElemScope2
+data ElemScope pass t = ElemScope
 
-type instance Abstract (ElemScope2 pass t) = ElemScope2 (Abstract pass) (Abstract t)
+type instance Abstract (ElemScope pass t) = ElemScope (Abstract pass) (Abstract t)
 
 class KnownElemPass pass where
-    elemPassDescription :: forall t. KnownType (Abstract t) => ElemScope2 pass t -> Description
+    elemPassDescription :: forall t. KnownType (Abstract t) => ElemScope pass t -> Description
 
 class KnownPass pass where
     passDescription :: Description
@@ -234,8 +234,8 @@ class KnownPass pass where
 instance {-# OVERLAPPABLE #-} KnownDescription pass => KnownPass pass where
     passDescription = genericDescription @pass ; {-# INLINE passDescription #-}
 
-instance (KnownElemPass pass, KnownType (Abstract t)) => KnownPass (ElemScope2 pass t) where
-    passDescription = elemPassDescription (ElemScope2 :: ElemScope2 pass t)
+instance (KnownElemPass pass, KnownType (Abstract t)) => KnownPass (ElemScope pass t) where
+    passDescription = elemPassDescription (ElemScope :: ElemScope pass t)
 
 type KnownDescription pass = ( KnownType  (Abstract      pass)
                              , KnownTypes (Inputs  NET   pass)

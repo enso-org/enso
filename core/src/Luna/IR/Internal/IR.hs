@@ -359,12 +359,13 @@ newElem tdef = do
 
 data NEW2 = NEW2 deriving (Show)
 
-newElem2 :: forall t m. ( MonadPass m, Editor NET (Abstract t) m, Event.Emitter2 m (NEW2 // Abstract t), IsIdx t, KnownType (Abstract t))
+type NewElemEvent2 m t = Event.Emitter2 m (NEW2 // Abstract t)
+newElem2 :: forall t m. ( MonadPass m, Editor NET (Abstract t) m, NewElemEvent2 m t, IsIdx t, KnownType (Abstract t))
         => Definition t -> m t
 newElem2 tdef = do
     t <- reserveElem
     withDebugBy "Emitter" ("NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]") $ do
-        Event.emit2 $ Event @(NEW2 // t) (t,tdef)
+        dispatchNewElem2 t tdef
     return t
 {-# INLINE newElem2 #-}
 
@@ -385,6 +386,9 @@ reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem 
 dispatchNewElem :: (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
                 => Definition t -> t -> m ()
 dispatchNewElem tdef el = emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
+
+dispatchNewElem2 :: forall t m. NewElemEvent2 m t => t -> Definition t -> m ()
+dispatchNewElem2 t tdef = Event.emit2 $ Event @(NEW2 // t) (t, tdef)
 
 
 freeElem :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m) => t -> m ()
@@ -609,9 +613,9 @@ magicLink :: forall a b m. (IRMonad m, KnownType (Abstract (Link a b)))
           => a -> b -> m (Link a b)
 magicLink a b = newMagicElem (a,b) ; {-# INLINE magicLink #-}
 
-link :: forall a b m. (Show a, Show b, MonadPass m, KnownType (Abstract (Link a b)), NewElemEvent m (Link a b), Editor NET (Abstract (Link a b)) m)
+link :: forall a b m. (Show a, Show b, MonadPass m, KnownType (Abstract (Link a b)), NewElemEvent2 m (Link a b), Editor NET (Abstract (Link a b)) m)
      => a -> b -> m (Link a b)
-link a b = newElem (a,b) ; {-# INLINE link #-}
+link a b = newElem2 (a,b) ; {-# INLINE link #-}
 
 
 -- === Instances === ---
@@ -787,6 +791,9 @@ reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 dispatchNewExpr :: (TermEncoder atom, NewElemEvent m (Expr layout))
                 => ExprTerm atom (Expr layout) -> Expr layout -> m ()
 dispatchNewExpr = dispatchNewElem . encodeTerm
+
+dispatchNewExpr2 :: (Event.Emitter2 m (NEW2 // EXPR), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr2 = flip dispatchNewElem2 . encodeTerm
 
 
 -- class SomeGeneralEncode a where
