@@ -57,6 +57,9 @@ import GHC.Stack
 import Data.TList (TList)
 import qualified Data.TList as TList
 
+import Control.Concurrent
+import System.Exit
+
 
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
@@ -76,15 +79,15 @@ pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m, EqPr
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())
-test_pass1 = evalIRBuilder' $ evalPassManager' $ do
+test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownPass pass, Pass.PassInit pass (PassManager (IRBuilder m)))
-            => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
-test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
-    runRegs
-    Pass.eval' p
+-- test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownPass pass, Pass.PassInit pass (PassManager (IRBuilder m)))
+--             => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
+-- test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
+--     runRegs
+--     Pass.eval' p
 
 uncheckedDeleteStar :: (MonadPass m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
@@ -146,19 +149,27 @@ gen_pass1 = do
 
 main :: HasCallStack => IO ()
 main = do
+
+
+
     -- runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
-    runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
-        (p, vis) <- Vis.newRunDiffT test_pass1
-        case p of
-            Left e -> do
-                print "* INTERNAL ERROR *"
-                print e
-            Right _ -> do
-                let cfg = ByteString.unpack $ encode $ vis
-                -- putStrLn cfg
-                -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
-                return ()
-        print p
+    -- forkIO $ do
+        runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
+            (p, vis) <- Vis.newRunDiffT test_pass1
+            case p of
+                Left e -> do
+                    print "* INTERNAL ERROR *"
+                    print e
+                Right _ -> do
+                    let cfg = ByteString.unpack $ encode $ vis
+                    -- putStrLn cfg
+                    -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+                    return ()
+            print p
+
+    -- threadDelay 1000
+    -- die "die"
+
     -- lmain
 
 

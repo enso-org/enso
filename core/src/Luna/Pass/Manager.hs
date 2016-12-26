@@ -20,17 +20,17 @@ import qualified Prologue.Prim as Prim
 import Data.TypeVal
 
 import System.Log
+import qualified Luna.IR.Internal.LayerStore as Store
 
 
 
--- | Constructor functions ::  t        -> Definition t -> m (LayerData UID t)
--- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMSubPass m Prim.Any)
--- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMPass m)
--- makeWrapped ''ConsFunc
+
+type Cache = Map (TypeRep,TypeRep) Prim.Any
+class Monad m => MonadRefCache m where
+    getCache :: m Cache
+    putCache :: Cache -> m ()
 
 
--- type PMArgSubPass m = DynArgSubPass (PassManager m)
--- type PMArgPass    m = PMArgSubPass m ()
 
 type PMSubPass m = DynSubPass (PassManager m)
 type PMPass    m = PMSubPass m ()
@@ -92,12 +92,12 @@ type family GetBaseMonad m where
 type PMPass' m = PMPass (GetBaseMonad m)
 type State'  m = State  (GetBaseMonad m)
 
-class (IRMonad m, IRMonad (GetBaseMonad m)) => MonadPassManager m where
+class (IRMonad m, IRMonad (GetBaseMonad m), MonadRefCache (GetBaseMonad m)) => MonadPassManager m where
     get :: m (State' m)
     put :: State' m -> m ()
     liftPassManager :: GetPassManager m a -> m a
 
-instance IRMonad m => MonadPassManager (PassManager m) where
+instance (IRMonad m, MonadRefCache m) => MonadPassManager (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
     liftPassManager = id
@@ -248,7 +248,7 @@ instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (GetPassHandler m)
 -- instance Emitter2 (SubPass pass m) e where
 --     emit2 _ p =
 
-instance MonadPassManager m => KeyMonad ATTR m where
+instance (IRMonad m, MonadRefCache m) => KeyMonad ATTR (PassManager m) where
     uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
 
@@ -273,29 +273,63 @@ unsafeWithAttr r a f = do
     return out
 
 
+
+
+type instance GetPassHandler (PassManager m) = PassManager m
+instance IRMonad m => MonadPass (PassManager m) where
+    liftPassHandler = id
+
+
+
+
 ----------------------
--- === KeyCache === --
+-- === RefCache === --
 ----------------------
 
-newtype KeyCache m a = KeyCache (StateT [Int] m a) deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadFix, MonadThrow)
-makeWrapped ''KeyCache
+newtype RefCache m a = RefCache (StateT Cache m a) deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadFix, MonadThrow)
+makeWrapped ''RefCache
 
-runKeyCache :: Monad m => KeyCache m a -> m a
-runKeyCache = flip evalStateT [] . unwrap' ; {-# INLINE runKeyCache #-}
+runRefCache :: Monad m => RefCache m a -> m a
+runRefCache = flip evalStateT mempty . unwrap' ; {-# INLINE runRefCache #-}
+
+
+
+
+instance Monad m => MonadRefCache (RefCache m) where
+    getCache = wrap'   State.get
+    putCache = wrap' . State.put
+
+instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadRefCache m) => MonadRefCache (t m) where
+    getCache = lift   getCache
+    putCache = lift . putCache
 
 
 -- === Instances === --
 
 -- Primitive
-instance PrimMonad m => PrimMonad (KeyCache m) where
-    type PrimState (KeyCache m) = PrimState m
+instance PrimMonad m => PrimMonad (RefCache m) where
+    type PrimState (RefCache m) = PrimState m
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
-instance KeyMonad k m => KeyMonad k (KeyCache m) where
-    uncheckedLookupKey keyRep = (fmap.fmap) coerce $ lift $ uncheckedLookupKey keyRep where
-        coerce :: Key k a m -> Key k a m'
-        coerce = unsafeCoerce
+type instance GetPassHandler (RefCache m) = GetPassHandler m
+instance MonadPass m => MonadPass (RefCache m) where
+    liftPassHandler = lift . liftPassHandler ; {-# INLINE liftPassHandler #-}
+
+instance MonadLogging m => MonadLogging (RefCache m)
+
+instance (KeyMonad k m, KnownType k, MonadFix m, MonadIO m) => KeyMonad k (RefCache m) where
+    uncheckedLookupKey keyRep = mdo
+        let ckey = (typeVal' @k, keyRep)
+        print ("caching " <> show ckey)
+        c <- getCache
+        case c ^. at ckey of
+            Just v  -> return (unsafeCoerce v)
+            Nothing -> mdo
+                putCache $ c & at ckey .~ Just (unsafeCoerce out)
+                out <- lift $ uncheckedLookupKey keyRep
+                return out
+        -- lift $ uncheckedLookupKey keyRep
 
 -- class Monad m => KeyMonad k m where
 --     uncheckedLookupKey :: forall a. TypeRep {- the type of `a` -}
@@ -313,6 +347,37 @@ instance KeyMonad k m => KeyMonad k (KeyCache m) where
 -- runInitializer -> initialize
 
 
-type instance GetPassHandler (PassManager m) = PassManager m
-instance IRMonad m => MonadPass (PassManager m) where
-    liftPassHandler = id
+
+
+instance IRMonad m => KeyMonad LAYER (PassManager m) where
+    uncheckedLookupKey a = do
+        s <- getIR
+        let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
+            mlv = s ^? wrapped' . ix e
+        mr <- liftPassHandler $ mapM (Store.readKey l) mlv
+        return $ wrap' <$> join mr
+    {-# INLINE uncheckedLookupKey #-}
+
+instance IRMonad m => KeyMonad NET (PassManager m) where
+    uncheckedLookupKey a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftPassHandler getIR ; {-# INLINE uncheckedLookupKey #-}
+
+-- instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m where
+--     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
+
+
+instance (IRMonad m, MonadRefCache m) => KeyMonad EVENT (PassManager m) where -- Event.FromPath e
+    uncheckedLookupKey a = do
+        let ckey = (typeVal' @EVENT, a)
+        c <- getCache
+        case c ^. at ckey of
+            Just v  -> do
+                return $ Just $ unsafeCoerce v
+            Nothing -> mdo
+                putCache $ c & at ckey .~ Just (unsafeCoerce $ fromJust out) -- this fromJust is safe. It will be used as a cache only if everything else succeeds
+                out <- (fmap . fmap) (Key . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.runInitializer =<< queryListeners2 (Event.fromPathDyn a)
+                return out
+
+
+fimxe2 = \case
+    Left e -> Nothing
+    Right a -> Just a

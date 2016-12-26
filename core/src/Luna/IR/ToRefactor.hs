@@ -68,14 +68,7 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 
 -- m (m [Template (DynPass3 (GetPassManager m))])
 
-instance IRMonad m => KeyMonad EVENT (PassManager m) where -- Event.FromPath e
-    uncheckedLookupKey a = Just . Key <$> (fmap (fmap sequence_ . sequence) . fixme1 . sequence . fmap Pass.runInitializer =<< PM.queryListeners2 (Event.fromPathDyn a))
-    -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
 
-fixme1 :: Monad m => m [Either Pass.InternalError a] -> m [a]
-fixme1 m = fromRight =<< (sequence <$> m)
-fromRight (Right a) = return a
-fromRight (Left e) = error $ show e
 
 
 -------------------------------------------
@@ -369,7 +362,7 @@ runRegs = do
 
     attachLayer 5 (typeVal' @UID)   (typeVal' @(LINK' EXPR))
 
-    -- attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
+    attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
 
 
     -- attachLayer 0 (typeVal' @Model) (typeVal' @(LINK' EXPR))

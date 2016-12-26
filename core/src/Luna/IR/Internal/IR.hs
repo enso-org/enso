@@ -133,6 +133,7 @@ type family Keys k as m where
 
 makeWrapped ''Key
 
+type Key' k a m = Key k a (GetPassHandler m)
 -- type RebasedKeyData k a m n = (KeyData k a n ~ KeyData k a m)
 --
 -- rebaseKey :: RebasedKeyData k a m n => Key k a m -> Key k a n
@@ -146,7 +147,7 @@ makeWrapped ''Key
 
 class Monad m => KeyMonad k m where
     uncheckedLookupKey :: forall a. TypeRep {- the type of `a` -}
-                       -> m (Maybe (Key k a m))
+                       -> m (Maybe (Key' k a m))
 
 
 -- === Construction === --
@@ -486,7 +487,7 @@ instance MonadLogging m => MonadLogging (IRBuilder m)
 
 -- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadBase   m = (PrimMonad   m, MonadFix m, Logging m)
+type  IRMonadBase   m = (PrimMonad   m, MonadFix m, Logging m, MonadIO m) -- FIXME[WD]: remove io
 type  IRMonadBaseIO m = (IRMonadBase m, MonadIO  m)
 class IRMonadBase m => IRMonad m where
     getIR :: m (IRM m)
@@ -571,21 +572,6 @@ instance IsTypeRep AttrRep
 makeWrapped '' AttrRep
 
 -- === Instances === --
-
-instance IRMonad m => KeyMonad LAYER m where
-    uncheckedLookupKey a = do
-        s <- getIR
-        let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
-            mlv = s ^? wrapped' . ix e
-        mr <- mapM (Store.readKey l) mlv
-        return $ wrap' <$> join mr
-    {-# INLINE uncheckedLookupKey #-}
-
-instance IRMonad m => KeyMonad NET m where
-    uncheckedLookupKey a = fmap wrap' . (^? (wrapped' . ix a)) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
-
--- instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m where
---     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
 
 -------------------
