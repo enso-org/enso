@@ -21,7 +21,7 @@ import Luna.IR.Expr.Format
 import Luna.IR.Expr.Atom
 import Data.Property
 import qualified Luna.Pass        as Pass
-import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Initializer, Template, DynPass3, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
+import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass3, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
 import Data.TypeVal
 import Data.Event (Emitter, type (//))
 import qualified Data.Set as Set
@@ -123,17 +123,17 @@ registerGenLayerM l p = registerGenLayer l =<< p ; {-# INLINE registerGenLayerM 
 
 
 registerExprLayer :: forall p l m. (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> ExprLayerConsM p (GetBaseMonad m) -> m ()
-registerExprLayer l p = registerLayerProto l $ Pass.Proto $ \_ -> Pass.describbed @(ElemScope p (EXPRESSION l)) . Pass.initialize $ Pass.template $ runExprLayerCons p ; {-# INLINE registerExprLayer #-}
+registerExprLayer l p = registerLayerProto l $ Pass.Proto $ \_ -> Pass.describbed @(ElemScope p (EXPRESSION l)) . Pass.compileTemplate $ Pass.template $ runExprLayerCons p ; {-# INLINE registerExprLayer #-}
 
 registerExprLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> m (ExprLayerConsM p (GetBaseMonad m)) -> m ()
 registerExprLayerM l p = registerExprLayer l =<< p ; {-# INLINE registerExprLayerM #-}
 
 
 
-prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Pass.PassTemplate (ElemScope p (TypeRef s)) m) -> Pass.Proto (Pass.Describbed (Initializer m (Template (Pass.DynPass3 m))))
+prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Pass.PassTemplate (ElemScope p (TypeRef s)) m) -> Pass.Proto (Pass.Describbed (Uninitialized m (Template (Pass.DynPass3 m))))
 prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) where
-    prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Pass.PassTemplate (ElemScope p t) m -> Proxy t -> Pass.Describbed (Initializer m (Template (Pass.DynPass3 m)))
-    prepareProto' = const . Pass.describbed @(ElemScope p t) . Pass.initialize
+    prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Pass.PassTemplate (ElemScope p t) m -> Proxy t -> Pass.Describbed (Uninitialized m (Template (Pass.DynPass3 m)))
+    prepareProto' = const . Pass.describbed @(ElemScope p t) . Pass.compileTemplate
 
 
 

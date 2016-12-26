@@ -13,7 +13,7 @@ import           Data.Event          (EVENT, Event(Event), EventHub, Emitter, Em
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR as IR
-import Luna.Pass.Class (DynSubPass, SubPass, PassRep, DynPassTemplate, Proto, DynPass3, Template, Initializer)
+import Luna.Pass.Class (DynSubPass, SubPass, PassRep, DynPassTemplate, Proto, DynPass3, Template, Uninitialized)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -46,13 +46,13 @@ newtype PassProto_old m = PassProto_old { appCons :: ElemRep -> PMPass m } -- FI
 instance Show (PassProto_old m) where show _ = "PassProto_old"
 -- ^^^ --
 
-data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ Proto (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
+data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ Proto (Pass.Describbed (Uninitialized (PassManager m) (Template (DynPass3 (PassManager m)))))
                            , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
                            } deriving (Show)
 
 data State m = State { _passes :: Map PassRep $ PMPass m
                      , _layers :: LayerReg m
-                     , _events :: EventHub SortedListenerRep (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
+                     , _events :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized (PassManager m) (Template (DynPass3 (PassManager m)))))
                      , _attrs  :: Map AttrRep Prim.AnyData
                      } deriving (Show)
 
@@ -152,7 +152,7 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 -- registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
 -- registerLayer l f = modify_ $ layers . prototypes_old . at l ?~ PassProto_old f ; {-# INLINE registerLayer #-}
 
-registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
+registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
 registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
@@ -168,7 +168,7 @@ attachLayerPM2 priority l e = withDebug ("Attaching " <> show e <> " layer " <> 
     -- TODO: register new available pass!
 {-# INLINE attachLayerPM2 #-}
 
--- (Pass.Describbed (Initializer (PassManager m) (Template (DynPass3 (PassManager m)))))
+-- (Pass.Describbed (Uninitialized (PassManager m) (Template (DynPass3 (PassManager m)))))
 
 -- queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
 -- queryListeners t = do
@@ -179,7 +179,7 @@ attachLayerPM2 priority l e = withDebug ("Attaching " <> show e <> " layer " <> 
 --         fromJust (Just a) = a
 --     return lsts
 
-queryListeners2 :: MonadPassManager m => Event.Tag -> m [Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m)))]
+queryListeners2 :: MonadPassManager m => Event.Tag -> m [Uninitialized (GetPassManager m) (Template (DynPass3 (GetPassManager m)))]
 queryListeners2 t = do
     s <- get
     let pss  = s ^. passes
@@ -197,7 +197,7 @@ queryListeners2 t = do
 -- {-# INLINE addEventListener #-}
 
 addEventListener2 :: (MonadPassManager m, IsTag evnt)
-                  => Int -> evnt -> (Pass.Describbed (Initializer (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
+                  => Int -> evnt -> (Pass.Describbed (Uninitialized (GetPassManager m) (Template (DynPass3 (GetPassManager m))))) -> m ()
 addEventListener2 priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) cp)
     where cp  = p -- Pass.compile $ Pass.dropResult p
           rep = cp ^. Pass.desc2 . Pass.passRep
@@ -312,23 +312,23 @@ instance PrimMonad m => PrimMonad (RefCache m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
-type instance GetPassHandler (RefCache m) = GetPassHandler m
-instance MonadPass m => MonadPass (RefCache m) where
-    liftPassHandler = lift . liftPassHandler ; {-# INLINE liftPassHandler #-}
+-- type instance GetPassHandler (RefCache m) = GetPassHandler m
+-- instance MonadPass m => MonadPass (RefCache m) where
+--     liftPassHandler = lift . liftPassHandler ; {-# INLINE liftPassHandler #-}
 
 instance MonadLogging m => MonadLogging (RefCache m)
-
-instance (KeyMonad k m, KnownType k, MonadFix m, MonadIO m) => KeyMonad k (RefCache m) where
-    uncheckedLookupKey keyRep = mdo
-        let ckey = (typeVal' @k, keyRep)
-        print ("caching " <> show ckey)
-        c <- getCache
-        case c ^. at ckey of
-            Just v  -> return (unsafeCoerce v)
-            Nothing -> mdo
-                putCache $ c & at ckey .~ Just (unsafeCoerce out)
-                out <- lift $ uncheckedLookupKey keyRep
-                return out
+--
+-- instance (KeyMonad k m, KnownType k, MonadFix m, MonadIO m) => KeyMonad k (RefCache m) where
+--     uncheckedLookupKey keyRep = mdo
+--         let ckey = (typeVal' @k, keyRep)
+--         print ("caching " <> show ckey)
+--         c <- getCache
+--         case c ^. at ckey of
+--             Just v  -> return (unsafeCoerce v)
+--             Nothing -> mdo
+--                 putCache $ c & at ckey .~ Just (unsafeCoerce out)
+--                 out <- lift $ uncheckedLookupKey keyRep
+--                 return out
         -- lift $ uncheckedLookupKey keyRep
 
 -- class Monad m => KeyMonad k m where
@@ -341,10 +341,10 @@ instance (KeyMonad k m, KnownType k, MonadFix m, MonadIO m) => KeyMonad k (RefCa
 -- Wtedy mozna robic Cache dla eventlsitenerow, teraz sie nie da.
 --
 -- + renaming
--- Initializer -> Uninitialized
+-- Uninitialized -> Uninitialized
 -- initialize -> compile / compileTemplate
 --
--- runInitializer -> initialize
+-- initialize -> initialize
 
 
 
@@ -374,7 +374,7 @@ instance (IRMonad m, MonadRefCache m) => KeyMonad EVENT (PassManager m) where --
                 return $ Just $ unsafeCoerce v
             Nothing -> mdo
                 putCache $ c & at ckey .~ Just (unsafeCoerce $ fromJust out) -- this fromJust is safe. It will be used as a cache only if everything else succeeds
-                out <- (fmap . fmap) (Key . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.runInitializer =<< queryListeners2 (Event.fromPathDyn a)
+                out <- (fmap . fmap) (Key . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.initialize =<< queryListeners2 (Event.fromPathDyn a)
                 return out
 
 

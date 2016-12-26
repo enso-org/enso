@@ -142,9 +142,9 @@ newtype DynSubPass2 m a = DynSubPass2 (m (Either InternalError (m a))) deriving 
 type    DynPass3    m   = DynSubPass3 m ()
 newtype DynSubPass3 m a = DynSubPass3 { runDynPass :: m a } deriving (Show, Functor, Applicative, Monad)
 
-newtype Initializer m a = Initializer { runInitializer :: m (Either InternalError a) } deriving (Functor)
+newtype Uninitialized m a = Uninitialized { initialize :: m (Either InternalError a) } deriving (Functor)
 
-instance Show (Initializer m a) where show _ = "Initializer" ; {-# INLINE show #-}
+instance Show (Uninitialized m a) where show _ = "Uninitialized" ; {-# INLINE show #-}
 
 type DynSubPassTemplate m a = Template (DynSubPass2 m a)
 type DynPassTemplate    m   = Template (DynPass2    m)
@@ -287,62 +287,26 @@ lookupDataSet desc = DataSet <<$>> lookupDataStore @NET   @pass @m ((fromJust $ 
           unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupKey @k t <<*>> unsafeLookupData @k ts
 
 
---
--- data DataSet m pass
---    = DataSet { _netStore   :: TList ( DataStore NET   pass m )
---              , _layerStore :: TList ( DataStore LAYER pass m )
---              , _attrStore  :: TList ( DataStore ATTR  pass m )
---              , _eventStore :: TList ( DataStore EVENT pass m )
---              }
-
-
--- class                      HasDescription a               where description :: a -> Description
--- -- instance                   HasDescription (Desc a) where description   = view rels      ; {-# INLINE description #-}
--- instance KnownPass p => HasDescription (SubPass p m a) where description _ = passDescription @p ; {-# INLINE description #-}
-
-
--- type Commit m pass = ( Monad m
---                     --  , LookupData pass m (Keys pass)
---                      , KnownType  (Abstract  pass)
---                      , KnownPass pass
---                      )
-
--- class    Functor (p m)                      => Copilable m p           where compile :: forall a. p m a -> DynSubPass m a
--- instance Functor m                          => Copilable m DynSubPass  where compile = id                                                          ; {-# INLINE compile #-}
--- instance (PassInit p m, KnownPass p) => Copilable m (SubPass p) where compile = DynSubPass (passDescription @p) . DynSubPass2 . initPass ; {-# INLINE compile #-}
---
--- class    Functor (p m)  => Copilable2 m p           where compile2 :: forall a. p m a -> DynSubPass2 m a
--- -- instance Functor m      => Copilable2 m DynSubPass  where compile2 = id                        ; {-# INLINE compile2 #-}
--- instance (PassInit p m) => Copilable2 m (SubPass p) where compile2 = DynSubPass2 . initPass ; {-# INLINE compile2 #-}
---
---
--- dropResult :: Functor p => p a -> p ()
--- dropResult = fmap $ const () ; {-# INLINE dropResult #-}
---
 type PassInit pass m = (Logging m, KnownPass pass, DataLookup m)  -- LookupData pass m (Keys pass), KnownType (Abstract pass), Logging m)
---
--- initPass :: forall pass m a. PassInit pass m => SubPass pass m a -> m (Either InternalError (m a))
--- initPass p = do
---     withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Initialzation" $
---         fmap (\d -> withDebugBy ("Pass [" <> show (typeVal' @(Abstract pass) :: TypeRep) <> "]") "Running" $ State.evalStateT (unwrap' p) d) <$> lookupData @pass
--- {-# INLINE initPass #-}
 
--- FIXME[WD]: merge initialize and initialize'
-initialize :: forall pass m a. PassInit pass m
-           => Template (SubPass pass m a) -> Initializer m (Template (DynSubPass3 m a))
-initialize (Template t) = Initializer $ do
+
+compileTemplate :: forall pass m a. PassInit pass m
+                => Template (SubPass pass m a) -> Uninitialized m (Template (DynSubPass3 m a))
+compileTemplate (Template t) = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
         fmap (\d -> Template $ \arg -> DynSubPass3 $ State.evalStateT (unwrap' $ t arg) d) <$> (fromJust <$> lookupDataSet @pass desc)
     where fromJust (Just a) = Right a
           desc = passDescription @pass
+{-# INLINE compileTemplate #-}
 
-initialize' :: forall pass m a. PassInit pass m
-            => SubPass pass m a -> Initializer m (DynSubPass3 m a)
-initialize' t = Initializer $ do
+compile :: forall pass m a. PassInit pass m
+        => SubPass pass m a -> Uninitialized m (DynSubPass3 m a)
+compile t = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
         fmap (\d -> DynSubPass3 $ State.evalStateT (unwrap' t) d) <$> (fromJust <$> lookupDataSet @pass desc)
     where fromJust (Just a) = Right a
           desc = passDescription @pass
+{-# INLINE compile #-}
 
 
 
@@ -359,11 +323,11 @@ initialize' t = Initializer $ do
 
 
 
-eval :: Monad m => Initializer m (DynSubPass3 m a) -> m (Either InternalError a)
-eval = join . fmap (sequence . fmap runDynPass) . runInitializer ; {-# INLINE eval #-}
+eval :: Monad m => Uninitialized m (DynSubPass3 m a) -> m (Either InternalError a)
+eval = join . fmap (sequence . fmap runDynPass) . initialize ; {-# INLINE eval #-}
 
 eval' :: PassInit pass m => SubPass pass m a -> m (Either InternalError a)
-eval' = eval . initialize' ; {-# INLINE eval' #-}
+eval' = eval . compile ; {-# INLINE eval' #-}
 
 run :: DynSubPass m a -> m (Either InternalError (m a))
 run = unwrap' . view func ; {-# INLINE run #-}
