@@ -43,7 +43,7 @@ import Data.Reflection (Reifies)
 
 
 
-type instance RefData ATTR a _ = a
+type instance RefData Attr a _ = a
 
 
 
@@ -144,12 +144,12 @@ prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (h
 
 data InitModel
 type instance Abstract InitModel = InitModel
-type instance Inputs  NET   (ElemScope InitModel t) = '[]
-type instance Outputs NET   (ElemScope InitModel t) = '[]
+type instance Inputs  Net   (ElemScope InitModel t) = '[]
+type instance Outputs Net   (ElemScope InitModel t) = '[]
 type instance Inputs  LAYER (ElemScope InitModel t) = '[]
 type instance Outputs LAYER (ElemScope InitModel t) = '[Abstract t // Model]
-type instance Inputs  ATTR  (ElemScope InitModel t) = '[]
-type instance Outputs ATTR  (ElemScope InitModel t) = '[]
+type instance Inputs  Attr  (ElemScope InitModel t) = '[]
+type instance Outputs Attr  (ElemScope InitModel t) = '[]
 type instance Inputs  EVENT (ElemScope InitModel t) = '[]
 type instance Outputs EVENT (ElemScope InitModel t) = '[]
 type instance Preserves     (ElemScope InitModel t) = '[]
@@ -167,12 +167,12 @@ initModel = GenLayerCons $ uncurry $ flip $ writeLayer @Model ; {-# INLINE initM
 
 data InitUID
 type instance Abstract InitUID = InitUID
-type instance Inputs  NET   (ElemScope InitUID t) = '[]
-type instance Outputs NET   (ElemScope InitUID t) = '[]
+type instance Inputs  Net   (ElemScope InitUID t) = '[]
+type instance Outputs Net   (ElemScope InitUID t) = '[]
 type instance Inputs  LAYER (ElemScope InitUID t) = '[]
 type instance Outputs LAYER (ElemScope InitUID t) = '[Abstract t // UID]
-type instance Inputs  ATTR  (ElemScope InitUID t) = '[]
-type instance Outputs ATTR  (ElemScope InitUID t) = '[]
+type instance Inputs  Attr  (ElemScope InitUID t) = '[]
+type instance Outputs Attr  (ElemScope InitUID t) = '[]
 type instance Inputs  EVENT (ElemScope InitUID t) = '[]
 type instance Outputs EVENT (ElemScope InitUID t) = '[]
 type instance Preserves     (ElemScope InitUID t) = '[]
@@ -195,12 +195,12 @@ initUID = do
 
 data InitSuccs
 type instance Abstract InitSuccs = InitSuccs
-type instance Inputs  NET   (ElemScope InitSuccs t) = '[]
-type instance Outputs NET   (ElemScope InitSuccs t) = '[]
+type instance Inputs  Net   (ElemScope InitSuccs t) = '[]
+type instance Outputs Net   (ElemScope InitSuccs t) = '[]
 type instance Inputs  LAYER (ElemScope InitSuccs t) = '[]
 type instance Outputs LAYER (ElemScope InitSuccs t) = '[Abstract t // Succs]
-type instance Inputs  ATTR  (ElemScope InitSuccs t) = '[]
-type instance Outputs ATTR  (ElemScope InitSuccs t) = '[]
+type instance Inputs  Attr  (ElemScope InitSuccs t) = '[]
+type instance Outputs Attr  (ElemScope InitSuccs t) = '[]
 type instance Inputs  EVENT (ElemScope InitSuccs t) = '[]
 type instance Outputs EVENT (ElemScope InitSuccs t) = '[]
 type instance Preserves     (ElemScope InitSuccs t) = '[]
@@ -262,12 +262,12 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 -- === Type === --
 ------------------
 
-consTypeLayer :: (MonadRef m, Writers NET '[AnyExpr, Link' AnyExpr] m, Emitter m (NEW // Link' AnyExpr), Emitter m (NEW // AnyExpr))
+consTypeLayer :: (MonadRef m, Writers Net '[AnyExpr, Link' AnyExpr] m, Emitter m (New // Link' AnyExpr), Emitter m (New // AnyExpr))
               => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
 consTypeLayer ref self = (`link` self) =<< unsafeRelayout <$> localTop ref ; {-# INLINE consTypeLayer #-}
 
 
-localTop :: (MonadRef m, Writer NET AnyExpr m, Emitter m (NEW // AnyExpr))
+localTop :: (MonadRef m, Writer Net AnyExpr m, Emitter m (New // AnyExpr))
          => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
 localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
@@ -282,14 +282,14 @@ localTop ref = Store.readSTRef ref >>= \case
 
 data InitType
 type instance Abstract InitType = InitType
-type instance Inputs  NET   (ElemScope InitType t) = '[]
-type instance Outputs NET   (ElemScope InitType t) = '[AnyExpr, Link' AnyExpr]
+type instance Inputs  Net   (ElemScope InitType t) = '[]
+type instance Outputs Net   (ElemScope InitType t) = '[AnyExpr, Link' AnyExpr]
 type instance Inputs  LAYER (ElemScope InitType t) = '[]
 type instance Outputs LAYER (ElemScope InitType t) = '[Abstract t // Type]
-type instance Inputs  ATTR  (ElemScope InitType t) = '[]
-type instance Outputs ATTR  (ElemScope InitType t) = '[]
+type instance Inputs  Attr  (ElemScope InitType t) = '[]
+type instance Outputs Attr  (ElemScope InitType t) = '[]
 type instance Inputs  EVENT (ElemScope InitType t) = '[]
-type instance Outputs EVENT (ElemScope InitType t) = '[NEW // AnyExpr, NEW // Link' AnyExpr]
+type instance Outputs EVENT (ElemScope InitType t) = '[New // AnyExpr, New // Link' AnyExpr]
 type instance Preserves     (ElemScope InitType t) = '[]
 instance KnownElemPass InitType where
     elemPassDescription = genericDescription' . proxify
@@ -359,7 +359,7 @@ runRegs = do
     -- initType_reg
     -- attachLayer 10 (typeVal' @Type) (typeVal' @AnyExpr)
     --
-    -- addEventListener 100 (NEW    // LINK AnyExpr AnyExpr) watchSuccs
+    -- addEventListener 100 (New    // LINK AnyExpr AnyExpr) watchSuccs
     -- addEventListener 100 (DELETE // LINK AnyExpr AnyExpr) watchRemoveEdge
     -- addEventListener 100 (DELETE // AnyExpr)           watchRemoveNode
 

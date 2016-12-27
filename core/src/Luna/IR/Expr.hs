@@ -24,24 +24,24 @@ type NT' n = NT n Star
 type T' = T Star
 
 -- class                                         LitExpr m a              where litExpr :: a -> m (Expr (DefListLayout m a))
--- instance (IRMonad m, Editor NET AnyExpr m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
+-- instance (IRMonad m, Editor Net AnyExpr m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
 -- instance Monad m                           => LitExpr m (Expr l)       where litExpr = return ; {-# INLINE litExpr #-}
 
--- type NewExpr  m = (MonadRef m, Editor NET AnyExpr m, Emitter m (NEW // AnyExpr))
--- type NewExpr' m = (MonadRef m, Editors NET '[AnyExpr, LINK' AnyExpr] m, Emitter m (NEW // AnyExpr), Emitter m (NEW // LINK' AnyExpr))
+-- type NewExpr  m = (MonadRef m, Editor Net AnyExpr m, Emitter m (New // AnyExpr))
+-- type NewExpr' m = (MonadRef m, Editors Net '[AnyExpr, LINK' AnyExpr] m, Emitter m (New // AnyExpr), Emitter m (New // LINK' AnyExpr))
 
 -- star :: NewExpr m => m (Expr Star)
 -- star = expr Term.uncheckedStar
 -- {-# INLINE star #-}
 
-star2 :: (MonadRef m, Writer NET AnyExpr m, Emitter m (NEW // AnyExpr)) => m (Expr Star)
+star2 :: (MonadRef m, Writer Net AnyExpr m, Emitter m (New // AnyExpr)) => m (Expr Star)
 star2 = expr2 Term.uncheckedStar
 {-# INLINE star2 #-}
 
-reserveStar :: (MonadRef m, Writer NET AnyExpr m) => m (Expr Star)
+reserveStar :: (MonadRef m, Writer Net AnyExpr m) => m (Expr Star)
 reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
 
-registerStar :: Emitter m (NEW // AnyExpr) => Expr Star -> m ()
+registerStar :: Emitter m (New // AnyExpr) => Expr Star -> m ()
 registerStar = dispatchNewExpr2 Term.uncheckedStar
 
 --
@@ -64,10 +64,10 @@ registerStar = dispatchNewExpr2 Term.uncheckedStar
 -- blank :: NewExpr m => m (Expr Blank)
 -- blank = expr Term.uncheckedBlank
 --
--- -- string :: (IRMonad m, Editor NET AnyExpr m) => Prelude.String -> m (Expr (String %> Infered Layout m))
+-- -- string :: (IRMonad m, Editor Net AnyExpr m) => Prelude.String -> m (Expr (String %> Infered Layout m))
 -- -- string = expr . Term.uncheckedString ; {-# INLINE string #-}
 -- --
--- -- acc :: (IRMonad m, Editors m '[NET AnyExpr, ExprLinkNet], LitExpr m name)
+-- -- acc :: (IRMonad m, Editors m '[Net AnyExpr, ExprLinkNet], LitExpr m name)
 -- --     => name -> Expr l -> m (Expr (DefListLayout m name #> l))
 -- -- acc name arg = mdo
 -- --     t  <- expr $ Term.uncheckedAcc ln la

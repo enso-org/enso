@@ -11,7 +11,7 @@ import Luna.IR.Repr.Styles
 import Luna.IR
 
 
-snapshot :: (MonadRef m, MonadVis m, Editors LAYER '[AnyExpr // UID, AnyExpr // Type, AnyExpr // Model, Link' AnyExpr // UID, Link' AnyExpr // Model] m, Editor NET AnyExpr m)
+snapshot :: (MonadRef m, MonadVis m, Editors LAYER '[AnyExpr // UID, AnyExpr // Type, AnyExpr // Model, Link' AnyExpr // UID, Link' AnyExpr // Model] m, Editor Net AnyExpr m)
          => Prelude.String -> m ()
 snapshot title = do
     ts  <- exprs

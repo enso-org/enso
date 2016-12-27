@@ -130,7 +130,7 @@ attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> sho
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
     put s'
     print $ ">>> " <> show dpass
-    addEventListener priority (NEW // (e ^. asTypeRep)) dpass -- TODO
+    addEventListener priority (New // (e ^. asTypeRep)) dpass -- TODO
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
 
@@ -280,7 +280,7 @@ instance MonadLogging m => MonadLogging (RefCache m)
 --
 -- initialize -> initialize
 
-instance (IRMonad m, MonadRefCache m) => MonadRefLookup ATTR (PassManager m) where
+instance (IRMonad m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) where
     uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
 
@@ -293,7 +293,7 @@ instance IRMonad m => MonadRefLookup LAYER (PassManager m) where
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupRef #-}
 
-instance IRMonad m => MonadRefLookup NET (PassManager m) where
+instance IRMonad m => MonadRefLookup Net (PassManager m) where
     uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 

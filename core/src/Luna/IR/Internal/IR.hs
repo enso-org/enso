@@ -61,8 +61,8 @@ class IsIdx t where
 
 
 data LAYER = LAYER deriving (Show)
-data NET   = NET   deriving (Show)
-data ATTR  = ATTR  deriving (Show)
+data Net   = Net   deriving (Show)
+data Attr  = Attr  deriving (Show)
 
 -- data Net  t
 -- data Attr t
@@ -72,8 +72,8 @@ data ATTR  = ATTR  deriving (Show)
 --------------------
 
 
-data NEW    = NEW    deriving (Show)
-data DELETE = DELETE deriving (Show)
+data New    = New    deriving (Show)
+data Delete = Delete deriving (Show)
 
 
 
@@ -282,7 +282,7 @@ modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (f
 
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
-uncheckedElems :: forall t m. (MonadRef m, IsIdx t, Reader NET (Abstract t) m) => m [t]
+uncheckedElems :: forall t m. (MonadRef m, IsIdx t, Reader Net (Abstract t) m) => m [t]
 uncheckedElems = fmap (view $ from idx) <$> (liftRefHandler . Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
 
@@ -301,42 +301,42 @@ uncheckedElems = fmap (view $ from idx) <$> (liftRefHandler . Store.ixes =<< rea
 
 
 
-type NewElemEvent m t = Emitter m (NEW // Abstract t)
-newElem2 :: forall t m. ( MonadRef m, Writer NET (Abstract t) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t))
+type NewElemEvent m t = Emitter m (New // Abstract t)
+newElem2 :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t))
         => Definition t -> m t
 newElem2 tdef = do
     t <- reserveElem
-    withDebugBy "Emitter" ("NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]") $ do
+    withDebugBy "Emitter" ("New // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]") $ do
         dispatchNewElem t tdef
     return t
 {-# INLINE newElem2 #-}
 
 
 
-type instance Event.Payload (NEW // t) = (t, Definition t)
+type instance Event.Payload (New // t) = (t, Definition t)
 
 type instance Abstract (a // b) = Abstract a // Abstract b
-type instance Abstract NEW = NEW
+type instance Abstract New = New
 
 
 
-reserveElem :: forall t m. (MonadRef m, Writer NET (Abstract t) m, IsIdx t) => m t
+reserveElem :: forall t m. (MonadRef m, Writer Net (Abstract t) m, IsIdx t) => m t
 reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
 
 dispatchNewElem :: forall t m. NewElemEvent m t => t -> Definition t -> m ()
-dispatchNewElem t tdef = emit $ Event @(NEW // t) (t, tdef)
+dispatchNewElem t tdef = emit $ Event @(New // t) (t, tdef)
 
 
-freeElem :: forall t m. (MonadRef m, IsIdx t, Writer NET (Abstract t) m) => t -> m ()
-freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @NET @(Abstract t) ; {-# INLINE freeElem #-}
+freeElem :: forall t m. (MonadRef m, IsIdx t, Writer Net (Abstract t) m) => t -> m ()
+freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @Net @(Abstract t) ; {-# INLINE freeElem #-}
 
     -- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
-    -- delete :: forall t m. (MonadRef m, IsIdx t, Editor NET (Abstract t) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
+    -- delete :: forall t m. (MonadRef m, IsIdx t, Editor Net (Abstract t) m, Event.Emitter m (Delete // Abstract t), Event.Payload (Delete // Abstract t) ~ (Universal t, Prim.Any))
     --        => t -> m ()
-    -- delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
+    -- delete t = emit (Delete // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
 
-reserveNewElemIdx :: forall t m. (MonadRef m, Writer NET (Abstract t) m) => m Int
-reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
+reserveNewElemIdx :: forall t m. (MonadRef m, Writer Net (Abstract t) m) => m Int
+reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @Net @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
 readLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Abstract t // layer) m -> t -> m (LayerData layer t)
 readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) $ unwrap' key) ; {-# INLINE readLayerByRef #-}
@@ -365,14 +365,14 @@ modifyLayer_ :: forall layer t m. (MonadRef m, IsIdx t, Editor LAYER (Abstract t
 modifyLayer_ = modifyLayerM_ @layer . fmap return ; {-# INLINE modifyLayer_ #-}
 
 
-readAttr :: forall a m. Reader ATTR a m => m (RefData' ATTR a m)
-readAttr = readComp @ATTR @a ; {-# INLINE readAttr #-}
+readAttr :: forall a m. Reader Attr a m => m (RefData' Attr a m)
+readAttr = readComp @Attr @a ; {-# INLINE readAttr #-}
 
-writeAttr :: forall a m. Writer ATTR a m => RefData' ATTR a m -> m ()
-writeAttr a = writeComp @ATTR @a a
+writeAttr :: forall a m. Writer Attr a m => RefData' Attr a m -> m ()
+writeAttr a = writeComp @Attr @a a
 
-readNet :: forall a m. Reader NET a m => m (RefData' NET a m)
-readNet = readComp @NET @a ; {-# INLINE readNet #-}
+readNet :: forall a m. Reader Net a m => m (RefData' Net a m)
+readNet = readComp @Net @a ; {-# INLINE readNet #-}
 
 
 -- === Registration === --
@@ -479,7 +479,7 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 -- === Definitions === --
 
 type instance RefData LAYER _ m = LayerSet    (PrimState m)
-type instance RefData NET   _ m = ElemStoreST (PrimState m)
+type instance RefData Net   _ m = ElemStoreST (PrimState m)
 
 
 -- === Aliases === --
@@ -515,7 +515,7 @@ type SubLink s t = Link (Sub s t) t
 
 -- === Construction === --
 
-link :: forall a b m. (Show a, Show b, MonadRef m, KnownType (Abstract (Link a b)), NewElemEvent m (Link a b), Writer NET (Abstract (Link a b)) m)
+link :: forall a b m. (Show a, Show b, MonadRef m, KnownType (Abstract (Link a b)), NewElemEvent m (Link a b), Writer Net (Abstract (Link a b)) m)
      => a -> b -> m (Link a b)
 link a b = newElem2 (a,b) ; {-# INLINE link #-}
 
@@ -542,7 +542,7 @@ type Group a = Elem (GROUP a)
 
 -- === Construction === --
 
-group :: forall f a m. (Show a, MonadRef m, Foldable f, Ord a, NewElemEvent m (Group a), KnownType (Abstract (Group a)), Writer NET (Abstract (Group a)) m)
+group :: forall f a m. (Show a, MonadRef m, Foldable f, Ord a, NewElemEvent m (Group a), KnownType (Abstract (Group a)), Writer Net (Abstract (Group a)) m)
       => f a -> m (Group a)
 group = newElem2 . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
@@ -677,22 +677,22 @@ type SomeExprLink = Link' SomeExpr
 unsafeRelayout :: Expr l -> Expr l'
 unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 
-expr2 :: forall atom layout m. (TermEncoder atom, MonadRef m, Writer NET AnyExpr m, Emitter m (NEW // AnyExpr))
+expr2 :: forall atom layout m. (TermEncoder atom, MonadRef m, Writer Net AnyExpr m, Emitter m (New // AnyExpr))
       => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr2 = newElem2 . encodeTerm ; {-# INLINE expr2 #-}
 
-reserveExpr :: (MonadRef m, Writer NET AnyExpr m)
+reserveExpr :: (MonadRef m, Writer Net AnyExpr m)
             => m (Expr layout)
 reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 
-dispatchNewExpr2 :: (Emitter m (NEW // AnyExpr), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr2 :: (Emitter m (New // AnyExpr), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
 dispatchNewExpr2 = flip dispatchNewElem . encodeTerm
 
 
-exprs :: (MonadRef m, Reader NET AnyExpr m) => m [SomeExpr]
+exprs :: (MonadRef m, Reader Net AnyExpr m) => m [SomeExpr]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
 
-links :: (MonadRef m, Reader NET (Link' AnyExpr) m) => m [SomeExprLink]
+links :: (MonadRef m, Reader Net (Link' AnyExpr) m) => m [SomeExprLink]
 links = uncheckedElems ; {-# INLINE links #-}
 
 
@@ -713,8 +713,8 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 -- === Instances === --
 
 --FIXME[MK->WD]: I don't care for the second part of the tuple, it's necessary to make pass manager magic work, but should be removed ASAP
-type instance Event.Payload (DELETE // AnyExpr)       = (SomeExpr, Prim.Any)
-type instance Event.Payload (DELETE // Link' AnyExpr) = (Link' SomeExpr, Prim.Any)
+type instance Event.Payload (Delete // AnyExpr)       = (SomeExpr, Prim.Any)
+type instance Event.Payload (Delete // Link' AnyExpr) = (Link' SomeExpr, Prim.Any)
 
 type instance Sub s     (Expr l) = Expr (Sub s l)
 
