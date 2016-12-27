@@ -65,8 +65,8 @@ data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
 type instance Inputs  Net   SimpleAA = '[]
 type instance Outputs Net   SimpleAA = '[AnyExpr]
-type instance Inputs  LAYER SimpleAA = '[AnyExpr // Model]
-type instance Outputs LAYER SimpleAA = '[]
+type instance Inputs  Layer SimpleAA = '[AnyExpr // Model]
+type instance Outputs Layer SimpleAA = '[]
 type instance Inputs  Attr  SimpleAA = '[]
 type instance Outputs Attr  SimpleAA = '[]
 type instance Inputs  EVENT SimpleAA = '[] -- will never be used
@@ -82,13 +82,13 @@ test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-uncheckedDeleteStar :: (MonadRef m, Reader LAYER (AnyExpr // Type) m, Editors Net '[Link' AnyExpr, AnyExpr] m) => Expr l -> m ()
+uncheckedDeleteStar :: (MonadRef m, Reader Layer (AnyExpr // Type) m, Editors Net '[Link' AnyExpr, AnyExpr] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
     freeElem =<< readLayer @Type e
     freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
-uncheckedDeleteStarType :: (MonadRef m, Reader LAYER (AnyExpr // Type) m, Editors Net '[Link' AnyExpr, AnyExpr] m, Editors LAYER '[Link' AnyExpr // Model] m)
+uncheckedDeleteStarType :: (MonadRef m, Reader Layer (AnyExpr // Type) m, Editors Net '[Link' AnyExpr, AnyExpr] m, Editors Layer '[Link' AnyExpr // Model] m)
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
@@ -106,7 +106,7 @@ uncheckedDeleteStarType e = do
 gen_pass1 :: ( MonadIO m, MonadRef m, MonadVis m
              , Writers Net '[AnyExpr] m
              , Emitter m (New // AnyExpr)
-             , Reader LAYER (AnyExpr // Model) m
+             , Reader Layer (AnyExpr // Model) m
             --  , Accessibles m '[AnyExpr // Model, Link' AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, Link' AnyExpr // UID, AnyExpr // UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (New // AnyExpr)
              ) => m ()

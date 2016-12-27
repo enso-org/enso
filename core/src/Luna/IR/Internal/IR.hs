@@ -60,7 +60,6 @@ class IsIdx t where
 
 
 
-data LAYER = LAYER deriving (Show)
 data Net   = Net   deriving (Show)
 data Attr  = Attr  deriving (Show)
 
@@ -242,8 +241,6 @@ type ElemStore     = LayerStore      LayerRep Prim.Any
 type ElemStoreST s = LayerStoreRef s LayerRep Prim.Any
 type ElemStoreM  m = ElemStoreST (PrimState m)
 
-type LayerConsStore m = Map LayerRep (AnyCons m)
-
 makeWrapped ''IR'
 
 
@@ -338,19 +335,19 @@ freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @Net @(
 reserveNewElemIdx :: forall t m. (MonadRef m, Writer Net (Abstract t) m) => m Int
 reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @Net @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Abstract t // layer) m -> t -> m (LayerData layer t)
+readLayerByRef :: (IRMonad m, IsIdx t) => Ref Layer (Abstract t // layer) m -> t -> m (LayerData layer t)
 readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) $ unwrap' key) ; {-# INLINE readLayerByRef #-}
 
-writeLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Abstract t // layer) m -> LayerData layer t -> t -> m ()
+writeLayerByRef :: (IRMonad m, IsIdx t) => Ref Layer (Abstract t // layer) m -> LayerData layer t -> t -> m ()
 writeLayerByRef key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) $ unwrap' key ; {-# INLINE writeLayerByRef #-}
 
-readLayer :: forall layer t m. (MonadRef m, IsIdx t, Reader LAYER (Abstract t // layer) m) => t -> m (LayerData layer t)
-readLayer t = liftRefHandler . flip readLayerByRef t =<< getRef @LAYER @(Abstract t // layer) ; {-# INLINE readLayer #-}
+readLayer :: forall layer t m. (MonadRef m, IsIdx t, Reader Layer (Abstract t // layer) m) => t -> m (LayerData layer t)
+readLayer t = liftRefHandler . flip readLayerByRef t =<< getRef @Layer @(Abstract t // layer) ; {-# INLINE readLayer #-}
 
-writeLayer :: forall layer t m. (MonadRef m, IsIdx t, Writer LAYER (Abstract t // layer) m) => LayerData layer t -> t -> m ()
-writeLayer val t = (\k -> liftRefHandler $ writeLayerByRef k val t) =<< getRef @LAYER @(Abstract t // layer) ; {-# INLINE writeLayer #-}
+writeLayer :: forall layer t m. (MonadRef m, IsIdx t, Writer Layer (Abstract t // layer) m) => LayerData layer t -> t -> m ()
+writeLayer val t = (\k -> liftRefHandler $ writeLayerByRef k val t) =<< getRef @Layer @(Abstract t // layer) ; {-# INLINE writeLayer #-}
 
-modifyLayerM :: forall layer t m a. (MonadRef m, IsIdx t, Editor LAYER (Abstract t // layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
+modifyLayerM :: forall layer t m a. (MonadRef m, IsIdx t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
 modifyLayerM f t = do
     l      <- readLayer @layer t
     (a,l') <- f l
@@ -358,10 +355,10 @@ modifyLayerM f t = do
     return a
 {-# INLINE modifyLayerM #-}
 
-modifyLayerM_ :: forall layer t m. (MonadRef m, IsIdx t, Editor LAYER (Abstract t // layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
+modifyLayerM_ :: forall layer t m. (MonadRef m, IsIdx t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
 modifyLayerM_ = modifyLayerM @layer . (fmap.fmap) ((),) ; {-# INLINE modifyLayerM_ #-}
 
-modifyLayer_ :: forall layer t m. (MonadRef m, IsIdx t, Editor LAYER (Abstract t // layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
+modifyLayer_ :: forall layer t m. (MonadRef m, IsIdx t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
 modifyLayer_ = modifyLayerM_ @layer . fmap return ; {-# INLINE modifyLayer_ #-}
 
 
@@ -478,7 +475,7 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 
 -- === Definitions === --
 
-type instance RefData LAYER _ m = LayerSet    (PrimState m)
+type instance RefData Layer _ m = LayerSet    (PrimState m)
 type instance RefData Net   _ m = ElemStoreST (PrimState m)
 
 
@@ -697,12 +694,12 @@ links = uncheckedElems ; {-# INLINE links #-}
 
 
 -- | Expr pattern matching utility
-match :: (MonadRef m, Reader LAYER (AnyExpr // Model) m)
+match :: (MonadRef m, Reader Layer (AnyExpr // Model) m)
       => Expr layout -> (Unwrapped (ExprUniTerm (Expr layout)) -> m a) -> m a
 match t f = f . unwrap' =<< (exprUniTerm t) ; {-# INLINE match #-}
 
 -- | Term unification
-exprUniTerm :: (MonadRef m, Reader LAYER (AnyExpr // Model) m) => Expr layout -> m (ExprUniTerm (Expr layout))
+exprUniTerm :: (MonadRef m, Reader Layer (AnyExpr // Model) m) => Expr layout -> m (ExprUniTerm (Expr layout))
 exprUniTerm t = ExprUniTerm <$> symbolMapM_AB @ToUniTerm toUniTerm t ; {-# INLINE exprUniTerm #-}
 
 class ToUniTerm a b where toUniTerm :: a -> b
@@ -768,10 +765,10 @@ type family MonadRefStates k as m :: Constraint where
 
 
 
-unsafeToExprTerm :: forall atom l m. (MonadRef m, Reader LAYER (AnyExpr // Model) m) => Expr l -> m (ExprTerm atom (Expr l))
+unsafeToExprTerm :: forall atom l m. (MonadRef m, Reader Layer (AnyExpr // Model) m) => Expr l -> m (ExprTerm atom (Expr l))
 unsafeToExprTerm = unsafeCoerce . unwrap' . access @TERM . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToExprTerm #-}
 
-unsafeModifyExprTermDef :: forall atom l m. (MonadRef m, Editor LAYER (AnyExpr // Model) m)
+unsafeModifyExprTermDef :: forall atom l m. (MonadRef m, Editor Layer (AnyExpr // Model) m)
                         => Expr l -> (ExprTermDef atom (Expr l) -> ExprTermDef atom (Expr l)) -> m ()
 unsafeModifyExprTermDef expr f = do
     oldModel <- readLayer @Model expr
@@ -780,7 +777,7 @@ unsafeModifyExprTermDef expr f = do
     let newModel = wrap' $ update' @TERM (wrap' $ unsafeCoerce $ (wrap' $ f oldDef :: ExprTerm atom (Expr l))) $ unwrap' oldModel
     writeLayer @Model newModel expr
 
-unsafeToExprTermDef :: forall atom l m. (MonadRef m, Reader LAYER (AnyExpr // Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
+unsafeToExprTermDef :: forall atom l m. (MonadRef m, Reader Layer (AnyExpr // Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
 unsafeToExprTermDef = unwrap' <∘> unsafeToExprTerm ; {-# INLINE unsafeToExprTermDef #-}
 
 
@@ -798,7 +795,7 @@ instance (  TermMapM as ctx expr m b
          , ctx (ExprTerm a expr) m b
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer and assert
          , KnownNat idx
-         , Reader LAYER (AnyExpr // Model) m
+         , Reader Layer (AnyExpr // Model) m
          , expr ~ Expr layout
          )
       => TermMapM (a ': as) ctx expr m b where

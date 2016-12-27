@@ -146,8 +146,8 @@ data InitModel
 type instance Abstract InitModel = InitModel
 type instance Inputs  Net   (ElemScope InitModel t) = '[]
 type instance Outputs Net   (ElemScope InitModel t) = '[]
-type instance Inputs  LAYER (ElemScope InitModel t) = '[]
-type instance Outputs LAYER (ElemScope InitModel t) = '[Abstract t // Model]
+type instance Inputs  Layer (ElemScope InitModel t) = '[]
+type instance Outputs Layer (ElemScope InitModel t) = '[Abstract t // Model]
 type instance Inputs  Attr  (ElemScope InitModel t) = '[]
 type instance Outputs Attr  (ElemScope InitModel t) = '[]
 type instance Inputs  EVENT (ElemScope InitModel t) = '[]
@@ -169,8 +169,8 @@ data InitUID
 type instance Abstract InitUID = InitUID
 type instance Inputs  Net   (ElemScope InitUID t) = '[]
 type instance Outputs Net   (ElemScope InitUID t) = '[]
-type instance Inputs  LAYER (ElemScope InitUID t) = '[]
-type instance Outputs LAYER (ElemScope InitUID t) = '[Abstract t // UID]
+type instance Inputs  Layer (ElemScope InitUID t) = '[]
+type instance Outputs Layer (ElemScope InitUID t) = '[Abstract t // UID]
 type instance Inputs  Attr  (ElemScope InitUID t) = '[]
 type instance Outputs Attr  (ElemScope InitUID t) = '[]
 type instance Inputs  EVENT (ElemScope InitUID t) = '[]
@@ -197,8 +197,8 @@ data InitSuccs
 type instance Abstract InitSuccs = InitSuccs
 type instance Inputs  Net   (ElemScope InitSuccs t) = '[]
 type instance Outputs Net   (ElemScope InitSuccs t) = '[]
-type instance Inputs  LAYER (ElemScope InitSuccs t) = '[]
-type instance Outputs LAYER (ElemScope InitSuccs t) = '[Abstract t // Succs]
+type instance Inputs  Layer (ElemScope InitSuccs t) = '[]
+type instance Outputs Layer (ElemScope InitSuccs t) = '[Abstract t // Succs]
 type instance Inputs  Attr  (ElemScope InitSuccs t) = '[]
 type instance Outputs Attr  (ElemScope InitSuccs t) = '[]
 type instance Inputs  EVENT (ElemScope InitSuccs t) = '[]
@@ -284,8 +284,8 @@ data InitType
 type instance Abstract InitType = InitType
 type instance Inputs  Net   (ElemScope InitType t) = '[]
 type instance Outputs Net   (ElemScope InitType t) = '[AnyExpr, Link' AnyExpr]
-type instance Inputs  LAYER (ElemScope InitType t) = '[]
-type instance Outputs LAYER (ElemScope InitType t) = '[Abstract t // Type]
+type instance Inputs  Layer (ElemScope InitType t) = '[]
+type instance Outputs Layer (ElemScope InitType t) = '[Abstract t // Type]
 type instance Inputs  Attr  (ElemScope InitType t) = '[]
 type instance Outputs Attr  (ElemScope InitType t) = '[]
 type instance Inputs  EVENT (ElemScope InitType t) = '[]
@@ -396,7 +396,7 @@ runLayerRegs = sequence_ layerRegs
 ----------------------------------
 
 
-source :: (MonadRef m, Reader LAYER (Abstract (Link a b) // Model) m) => Link a b -> m a
+source :: (MonadRef m, Reader Layer (Abstract (Link a b) // Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
 
@@ -409,12 +409,12 @@ strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 
 -- === KnownExpr === --
 
-type KnownExpr l m = (MonadRef m, Readers LAYER '[AnyExpr // Model, Link' AnyExpr // Model] m) -- CheckAtomic (ExprHead l))
+type KnownExpr l m = (MonadRef m, Readers Layer '[AnyExpr // Model, Link' AnyExpr // Model] m) -- CheckAtomic (ExprHead l))
 
 match' :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
 match' = unsafeToExprTermDef @(ExprHead l)
 
-modifyExprTerm :: forall l m. (KnownExpr l m, Writer LAYER (AnyExpr // Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
+modifyExprTerm :: forall l m. (KnownExpr l m, Writer Layer (AnyExpr // Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
 modifyExprTerm = unsafeModifyExprTermDef @(ExprHead l)
 
 getSource :: KnownExpr l m => Lens' (ExprHeadDef l) (ExprLink a b) -> Expr l -> m (Expr a)

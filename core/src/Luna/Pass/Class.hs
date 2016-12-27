@@ -16,12 +16,12 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Net, LAYER, Attr, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
+import           Luna.IR.Internal.IR   (Net, Attr, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
 
-import Luna.IR.Layer hiding (Layers)
+import Luna.IR.Layer
 import Type.List (In)
 import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
@@ -102,8 +102,8 @@ instance {-# OVERLAPPABLE #-} KnownDescription pass => KnownPass pass where
 type KnownDescription pass = ( KnownType  (Abstract      pass)
                              , KnownTypes (Inputs  Net   pass)
                              , KnownTypes (Outputs Net   pass)
-                             , KnownTypes (Inputs  LAYER pass)
-                             , KnownTypes (Outputs LAYER pass)
+                             , KnownTypes (Inputs  Layer pass)
+                             , KnownTypes (Outputs Layer pass)
                              , KnownTypes (Inputs  Attr  pass)
                              , KnownTypes (Outputs Attr  pass)
                              , KnownTypes (Events        pass)
@@ -114,8 +114,8 @@ genericDescription :: forall pass. KnownDescription pass => Description
 genericDescription = emptyDescription (typeVal' @(Abstract pass))
                    & inputs    %~ Map.insert (typeVal' @Net)   (typeVals' @(Inputs  Net   pass))
                    & outputs   %~ Map.insert (typeVal' @Net)   (typeVals' @(Outputs Net   pass))
-                   & inputs    %~ Map.insert (typeVal' @LAYER) (typeVals' @(Inputs  LAYER pass))
-                   & outputs   %~ Map.insert (typeVal' @LAYER) (typeVals' @(Outputs LAYER pass))
+                   & inputs    %~ Map.insert (typeVal' @Layer) (typeVals' @(Inputs  Layer pass))
+                   & outputs   %~ Map.insert (typeVal' @Layer) (typeVals' @(Outputs Layer pass))
                    & inputs    %~ Map.insert (typeVal' @Attr)  (typeVals' @(Inputs  Attr  pass))
                    & outputs   %~ Map.insert (typeVal' @Attr)  (typeVals' @(Outputs Attr  pass))
                    & events    .~ typeVals' @(Events    pass)
@@ -143,7 +143,7 @@ describbedProxy _ = describbed @pass ; {-# INLINE describbedProxy #-}
 type RefStore' m pass = RefStore (GetRefHandler m) pass
 data RefStore  m pass
    = RefStore { _netStore   :: TList ( DataStore Net   pass m )
-              , _layerStore :: TList ( DataStore LAYER pass m )
+              , _layerStore :: TList ( DataStore Layer pass m )
               , _attrStore  :: TList ( DataStore Attr  pass m )
               , _eventStore :: TList ( DataStore EVENT pass m )
               }
@@ -155,12 +155,12 @@ makeLenses ''RefStore
 
 -- === RefStore preparation === --
 
-type DataLookup m = (MonadRefLookup Net m, MonadRefLookup LAYER m, MonadRefLookup Attr m, MonadRefLookup EVENT m)
+type DataLookup m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLookup Attr m, MonadRefLookup EVENT m)
 
 lookupRefStore :: forall pass m. DataLookup m
                => Description -> m (Maybe (RefStore' m pass))
 lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Net))   <> (fromJust $ desc ^. outputs . at (typeVal' @Net)))
-                               <<*>> lookupDataStore @LAYER @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @LAYER)) <> (fromJust $ desc ^. outputs . at (typeVal' @LAYER)))
+                               <<*>> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Layer)) <> (fromJust $ desc ^. outputs . at (typeVal' @Layer)))
                                <<*>> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Attr))  <> (fromJust $ desc ^. outputs . at (typeVal' @Attr)))
                                <<*>> lookupDataStore @EVENT @pass @m (desc ^. events)
     where fromJust (Just a) = a
@@ -177,7 +177,7 @@ lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust 
 -- FIXME[WD]: make it generic
 class ContainsRef pass k a m where findRef :: Lens' (RefStore m pass) (Ref k a m)
 instance {-# OVERLAPPING #-} TList.Focus (DataStore Net   pass m) (Ref Net   a m) => ContainsRef pass Net   a m where findRef = netStore   . TList.focus ; {-# INLINE findRef #-}
-instance {-# OVERLAPPING #-} TList.Focus (DataStore LAYER pass m) (Ref LAYER a m) => ContainsRef pass LAYER a m where findRef = layerStore . TList.focus ; {-# INLINE findRef #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore Layer pass m) (Ref Layer a m) => ContainsRef pass Layer a m where findRef = layerStore . TList.focus ; {-# INLINE findRef #-}
 instance {-# OVERLAPPING #-} TList.Focus (DataStore Attr  pass m) (Ref Attr  a m) => ContainsRef pass Attr  a m where findRef = attrStore  . TList.focus ; {-# INLINE findRef #-}
 instance {-# OVERLAPPING #-} TList.Focus (DataStore EVENT pass m) (Ref EVENT a m) => ContainsRef pass EVENT a m where findRef = eventStore . TList.focus ; {-# INLINE findRef #-}
 

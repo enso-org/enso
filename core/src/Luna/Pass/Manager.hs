@@ -21,7 +21,7 @@ import Data.TypeVal
 
 import System.Log
 import qualified Luna.IR.Internal.LayerStore as Store
-
+import Luna.IR.Layer
 
 
 
@@ -129,7 +129,6 @@ attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> sho
         dpass = Pass.specialize pproto e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
     put s'
-    print $ ">>> " <> show dpass
     addEventListener priority (New // (e ^. asTypeRep)) dpass -- TODO
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
@@ -284,7 +283,7 @@ instance (IRMonad m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) whe
     uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance IRMonad m => MonadRefLookup LAYER (PassManager m) where
+instance IRMonad m => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef a = do
         s <- getIR
         let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
