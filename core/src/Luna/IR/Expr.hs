@@ -34,11 +34,11 @@ type T' = T Star
 -- star = expr Term.uncheckedStar
 -- {-# INLINE star #-}
 
-star2 :: (MonadRef m, Editor NET EXPR m, Emitter m (NEW // EXPR)) => m (Expr Star)
+star2 :: (MonadRef m, Writer NET EXPR m, Emitter m (NEW // EXPR)) => m (Expr Star)
 star2 = expr2 Term.uncheckedStar
 {-# INLINE star2 #-}
 
-reserveStar :: (MonadRef m, Editor NET EXPR m) => m (Expr Star)
+reserveStar :: (MonadRef m, Writer NET EXPR m) => m (Expr Star)
 reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
 
 registerStar :: Emitter m (NEW // EXPR) => Expr Star -> m ()

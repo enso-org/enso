@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefMissingError, GetRefHandler, MonadRef, MonadRefLookup, liftRefHandler)
+import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -397,17 +397,20 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
 
--- FIXME[WD]: add asserts
--- Reader
 instance ( Monad m
          , ContainsRef pass k a (GetRefHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
-         , Assert (a `In` (Inputs k pass)) (RefReadError k a)
          , MonadPassManager_Boot (SubPass pass m))
-      => Reader k a (SubPass pass m) where getRef = view findRef <$> get ; {-# INLINE getRef #-}
+      => MonadRefState k a (SubPass pass m) where
+    getRef = view findRef <$> get    ; {-# INLINE getRef #-}
+    putRef = modify_ . (set findRef) ; {-# INLINE putRef #-}
 
--- Writer
-instance ( Monad m
-         , ContainsRef pass k a (GetRefHandler m)
+
+instance ( Monad m, MonadPassManager_Boot (SubPass pass m)
+         , MonadRefState k a (SubPass pass m)
          , Assert (a `In` (Inputs k pass)) (RefReadError k a)
-         , MonadPassManager_Boot (SubPass pass m))
-      => Writer k a (SubPass pass m) where putRef k = modify_ (findRef .~ k) ; {-# INLINE putRef #-}
+         ) => Reader k a (SubPass pass m)
+
+instance ( Monad m, MonadPassManager_Boot (SubPass pass m)
+         , MonadRefState k a (SubPass pass m)
+         , Assert (a `In` (Outputs k pass)) (RefWriteError k a)
+         ) => Writer k a (SubPass pass m)

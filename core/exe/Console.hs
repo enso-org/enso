@@ -63,10 +63,10 @@ import System.Exit
 
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
-type instance Inputs  NET   SimpleAA = '[EXPR]
+type instance Inputs  NET   SimpleAA = '[]
 type instance Outputs NET   SimpleAA = '[EXPR]
-type instance Inputs  LAYER SimpleAA = '[ExprLayer Model] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs LAYER SimpleAA = '[ExprLayer Model] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  LAYER SimpleAA = '[EXPR // Model]
+type instance Outputs LAYER SimpleAA = '[]
 type instance Inputs  ATTR  SimpleAA = '[]
 type instance Outputs ATTR  SimpleAA = '[]
 type instance Inputs  EVENT SimpleAA = '[] -- will never be used
@@ -82,13 +82,13 @@ test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-uncheckedDeleteStar :: (MonadRef m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
+uncheckedDeleteStar :: (MonadRef m, Reader LAYER (EXPR // Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
     freeElem =<< readLayer @Type e
     freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
-uncheckedDeleteStarType :: (MonadRef m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m, Editors LAYER '[ExprLinkLayer Model] m)
+uncheckedDeleteStarType :: (MonadRef m, Reader LAYER (EXPR // Type) m, Editors NET '[LINK' EXPR, EXPR] m, Editors LAYER '[LINK' EXPR // Model] m)
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
@@ -104,10 +104,10 @@ uncheckedDeleteStarType e = do
 
 
 gen_pass1 :: ( MonadIO m, MonadRef m, MonadVis m
-             , Editors NET '[EXPR] m
+             , Writers NET '[EXPR] m
              , Emitter m (NEW // EXPR)
-             , Reader LAYER (ExprLayer Model) m
-            --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
+             , Reader LAYER (EXPR // Model) m
+            --  , Accessibles m '[EXPR // Model, LINK' EXPR // Model, EXPR // Type, EXPR // Succs, LINK' EXPR // UID, EXPR // UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (NEW // EXPR)
              ) => m ()
 gen_pass1 = do

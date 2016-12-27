@@ -146,8 +146,8 @@ data InitModel
 type instance Abstract InitModel = InitModel
 type instance Inputs  NET   (ElemScope InitModel t) = '[]
 type instance Outputs NET   (ElemScope InitModel t) = '[]
-type instance Inputs  LAYER (ElemScope InitModel t) = '[Layer (Abstract t) Model] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs LAYER (ElemScope InitModel t) = '[Layer (Abstract t) Model] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  LAYER (ElemScope InitModel t) = '[]
+type instance Outputs LAYER (ElemScope InitModel t) = '[Abstract t // Model]
 type instance Inputs  ATTR  (ElemScope InitModel t) = '[]
 type instance Outputs ATTR  (ElemScope InitModel t) = '[]
 type instance Inputs  EVENT (ElemScope InitModel t) = '[]
@@ -169,8 +169,8 @@ data InitUID
 type instance Abstract InitUID = InitUID
 type instance Inputs  NET   (ElemScope InitUID t) = '[]
 type instance Outputs NET   (ElemScope InitUID t) = '[]
-type instance Inputs  LAYER (ElemScope InitUID t) = '[Layer (Abstract t) UID] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs LAYER (ElemScope InitUID t) = '[Layer (Abstract t) UID] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  LAYER (ElemScope InitUID t) = '[]
+type instance Outputs LAYER (ElemScope InitUID t) = '[Abstract t // UID]
 type instance Inputs  ATTR  (ElemScope InitUID t) = '[]
 type instance Outputs ATTR  (ElemScope InitUID t) = '[]
 type instance Inputs  EVENT (ElemScope InitUID t) = '[]
@@ -183,9 +183,10 @@ instance KnownElemPass InitUID where
 initUID :: PrimMonad m => m (GenLayerConsM InitUID m)
 initUID = do
     ref <- Store.newSTRef (def :: ID)
-    return $ GenLayerCons $ \(t, tdef) -> do --  (" (" <> show nuid <> ")")
+    return $ GenLayerCons $ \(t, tdef) -> do
         nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
         writeLayer @UID nuid t
+{-# INLINE initUID #-}
 
 
 -------------------
@@ -196,8 +197,8 @@ data InitSuccs
 type instance Abstract InitSuccs = InitSuccs
 type instance Inputs  NET   (ElemScope InitSuccs t) = '[]
 type instance Outputs NET   (ElemScope InitSuccs t) = '[]
-type instance Inputs  LAYER (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs LAYER (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  LAYER (ElemScope InitSuccs t) = '[]
+type instance Outputs LAYER (ElemScope InitSuccs t) = '[Abstract t // Succs]
 type instance Inputs  ATTR  (ElemScope InitSuccs t) = '[]
 type instance Outputs ATTR  (ElemScope InitSuccs t) = '[]
 type instance Inputs  EVENT (ElemScope InitSuccs t) = '[]
@@ -213,7 +214,7 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 
 -- data WatchSuccs
 -- type instance Abstract WatchSuccs = WatchSuccs
--- type instance Inputs    (ElemScope WatchSuccs t) = '[ExprLayer Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
+-- type instance Inputs    (ElemScope WatchSuccs t) = '[ExprLayer Succs, Attr WorkingElem]
 -- type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
 -- type instance Events    (ElemScope WatchSuccs t) = '[]
 -- type instance Preserves (ElemScope WatchSuccs t) = '[]
@@ -261,14 +262,12 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 -- === Type === --
 ------------------
 
-consTypeLayer :: (MonadRef m, Editors NET '[EXPR, LINK' EXPR] m, Emitter m (NEW // LINK' EXPR), Emitter m (NEW // EXPR))
+consTypeLayer :: (MonadRef m, Writers NET '[EXPR, LINK' EXPR] m, Emitter m (NEW // LINK' EXPR), Emitter m (NEW // EXPR))
               => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
-consTypeLayer ref self = do
-    top  <- unsafeRelayout <$> localTop ref
-    link top self
+consTypeLayer ref self = (`link` self) =<< unsafeRelayout <$> localTop ref ; {-# INLINE consTypeLayer #-}
 
 
-localTop :: (MonadRef m, Editor NET EXPR m, Emitter m (NEW // EXPR))
+localTop :: (MonadRef m, Writer NET EXPR m, Emitter m (NEW // EXPR))
          => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
 localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
@@ -278,14 +277,15 @@ localTop ref = Store.readSTRef ref >>= \case
         registerStar s
         Store.writeSTRef ref Nothing
         return s
+{-# INLINE localTop #-}
 
 
 data InitType
 type instance Abstract InitType = InitType
-type instance Inputs  NET   (ElemScope InitType t) = '[EXPR, LINK' EXPR]
-type instance Outputs NET   (ElemScope InitType t) = '[]
-type instance Inputs  LAYER (ElemScope InitType t) = '[Layer (Abstract t) Type] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs LAYER (ElemScope InitType t) = '[Layer (Abstract t) Type] -- FIXME[bug: unnecessary inputs needed]
+type instance Inputs  NET   (ElemScope InitType t) = '[]
+type instance Outputs NET   (ElemScope InitType t) = '[EXPR, LINK' EXPR]
+type instance Inputs  LAYER (ElemScope InitType t) = '[]
+type instance Outputs LAYER (ElemScope InitType t) = '[Abstract t // Type]
 type instance Inputs  ATTR  (ElemScope InitType t) = '[]
 type instance Outputs ATTR  (ElemScope InitType t) = '[]
 type instance Inputs  EVENT (ElemScope InitType t) = '[]
@@ -294,30 +294,14 @@ type instance Preserves     (ElemScope InitType t) = '[]
 instance KnownElemPass InitType where
     elemPassDescription = genericDescription' . proxify
 
-
--- initSuccs :: GenLayerCons InitType s
--- initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE initSuccs #-}
-
---
---
--- data InitType
--- type instance Abstract InitType = InitType
--- type instance Inputs    (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
--- type instance Outputs   (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet]
--- type instance Events    (ElemScope InitType t) = '[NEW // EXPR, NEW // LINK' EXPR]
--- type instance Preserves (ElemScope InitType t) = '[]
-
--- initType :: forall l m. (MonadIO m, MonadPassManager m) => Store.STRefM m (Maybe (Expr Star)) -> (Elem (EXPRESSION l), Definition (EXPRESSION l)) -> Pass (ElemScope InitType (EXPRESSION l)) m
--- initType :: forall l m. (MonadIO m, MonadPassManager m) => Store.STRefM m (Maybe (Expr Star)) -> ExprLayerConsM InitType m
 initType :: PrimMonad m => m (ExprLayerConsM InitType m)
 initType = do
     ref <- Store.newSTRef (Nothing :: Maybe (Expr Star))
     return $ ExprLayerCons $ \(el, _) -> do
-        -- debugElem el "Type construction"
         t <- consTypeLayer ref el
         flip (writeLayer @Type) el t
-        -- debugLayerCreation' el "Type"
---
+{-# INLINE initType #-}
+
 
 -- -- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
 -- --   because it only works for Expressions
@@ -412,7 +396,7 @@ runLayerRegs = sequence_ layerRegs
 ----------------------------------
 
 
-source :: (MonadRef m, Reader LAYER (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
+source :: (MonadRef m, Reader LAYER (Abstract (Link a b) // Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
 
@@ -425,12 +409,12 @@ strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 
 -- === KnownExpr === --
 
-type KnownExpr l m = (MonadRef m, Readers LAYER '[ExprLayer Model, ExprLinkLayer Model] m) -- CheckAtomic (ExprHead l))
+type KnownExpr l m = (MonadRef m, Readers LAYER '[EXPR // Model, LINK' EXPR // Model] m) -- CheckAtomic (ExprHead l))
 
 match' :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
 match' = unsafeToExprTermDef @(ExprHead l)
 
-modifyExprTerm :: forall l m. (KnownExpr l m, Writer LAYER (ExprLayer Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
+modifyExprTerm :: forall l m. (KnownExpr l m, Writer LAYER (EXPR // Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
 modifyExprTerm = unsafeModifyExprTermDef @(ExprHead l)
 
 getSource :: KnownExpr l m => Lens' (ExprHeadDef l) (ExprLink a b) -> Expr l -> m (Expr a)

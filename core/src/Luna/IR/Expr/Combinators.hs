@@ -6,7 +6,7 @@ import           Luna.IR
 import           Data.TypeVal
 import qualified Data.Set     as Set
 
-narrowAtom :: forall a m. (MonadRef m, KnownType (AtomOf a), Reader LAYER (ExprLayer Model) m)
+narrowAtom :: forall a m. (MonadRef m, KnownType (AtomOf a), Reader LAYER (EXPR // Model) m)
            => AnyExpr -> m (Maybe (Expr (AtomOf a)))
 narrowAtom expr = do
     exprAtomRep <- getAtomRep expr
