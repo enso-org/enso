@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefMissingError, GetPassHandler)
+import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefMissingError, GetRefHandler, MonadRef, MonadRefLookup, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -140,7 +140,7 @@ describbedProxy _ = describbed @pass ; {-# INLINE describbedProxy #-}
 -- === RefStore === --
 ----------------------
 
-type RefStore' m pass = RefStore (GetPassHandler m) pass
+type RefStore' m pass = RefStore (GetRefHandler m) pass
 data RefStore  m pass
    = RefStore { _netStore   :: TList ( DataStore NET   pass m )
               , _layerStore :: TList ( DataStore LAYER pass m )
@@ -155,7 +155,7 @@ makeLenses ''RefStore
 
 -- === RefStore preparation === --
 
-type DataLookup m = (IR.RefMonad NET m, IR.RefMonad LAYER m, IR.RefMonad ATTR m, IR.RefMonad EVENT m)
+type DataLookup m = (MonadRefLookup NET m, MonadRefLookup LAYER m, MonadRefLookup ATTR m, MonadRefLookup EVENT m)
 
 lookupRefStore :: forall pass m. DataLookup m
                => Description -> m (Maybe (RefStore' m pass))
@@ -164,10 +164,10 @@ lookupRefStore desc = RefStore <<$>> lookupDataStore @NET   @pass @m ((fromJust 
                                <<*>> lookupDataStore @ATTR  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @ATTR))  <> (fromJust $ desc ^. outputs . at (typeVal' @ATTR)))
                                <<*>> lookupDataStore @EVENT @pass @m (desc ^. events)
     where fromJust (Just a) = a
-          lookupDataStore :: forall k pass m. IR.RefMonad k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetPassHandler m))))
+          lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetRefHandler m))))
           lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
 
-          unsafeLookupData :: forall k m. IR.RefMonad k m => [TypeRep] -> m (Maybe Prim.Any)
+          unsafeLookupData :: forall k m. MonadRefLookup k m => [TypeRep] -> m (Maybe Prim.Any)
           unsafeLookupData []       = return $ return $ unsafeCoerce ()
           unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupRef @k t <<*>> unsafeLookupData @k ts
 
@@ -201,9 +201,9 @@ makeWrapped ''SubPass
 
 instance MonadLogging m => MonadLogging (SubPass pass m)
 
-type instance GetPassHandler (SubPass pass m) = GetPassHandler m
-instance (EqPrims m (GetPassHandler m), IR.MonadPass m) => IR.MonadPass (SubPass p m) where
-    liftPassHandler = lift . IR.liftPassHandler ; {-# INLINE liftPassHandler #-}
+type instance GetRefHandler (SubPass pass m) = GetRefHandler m
+instance (EqPrims m (GetRefHandler m), MonadRef m) => MonadRef (SubPass p m) where
+    liftRefHandler = lift . liftRefHandler ; {-# INLINE liftRefHandler #-}
 
 
 
@@ -326,7 +326,7 @@ class (Monad m, MonadPassManager_Boot m) => MonadPass m where
     get :: m (GetPassData m)
     put :: GetPassData m -> m ()
 
-type GetPassData m = RefStore (GetPassHandler m) (GetPass m)
+type GetPassData m = RefStore (GetRefHandler m) (GetPass m)
 type family GetPass  m where
     GetPass (SubPass pass m) = pass
     GetPass (t m)            = GetPass m
@@ -400,14 +400,14 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- FIXME[WD]: add asserts
 -- Reader
 instance ( Monad m
-         , ContainsRef pass k a (GetPassHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
+         , ContainsRef pass k a (GetRefHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
          , Assert (a `In` (Inputs k pass)) (RefReadError k a)
          , MonadPassManager_Boot (SubPass pass m))
       => Reader k a (SubPass pass m) where getRef = view findRef <$> get ; {-# INLINE getRef #-}
 
 -- Writer
 instance ( Monad m
-         , ContainsRef pass k a (GetPassHandler m)
+         , ContainsRef pass k a (GetRefHandler m)
          , Assert (a `In` (Inputs k pass)) (RefReadError k a)
          , MonadPassManager_Boot (SubPass pass m))
       => Writer k a (SubPass pass m) where putRef k = modify_ (findRef .~ k) ; {-# INLINE putRef #-}

@@ -133,7 +133,7 @@ type family Refs k as m where
 
 makeWrapped ''Ref
 
-type Ref' k a m = Ref k a (GetPassHandler m)
+type Ref' k a m = Ref k a (GetRefHandler m)
 -- type RebasedRefData k a m n = (RefData k a n ~ RefData k a m)
 --
 -- rebaseRef :: RebasedRefData k a m n => Ref k a m -> Ref k a n
@@ -142,10 +142,7 @@ type Ref' k a m = Ref k a (GetPassHandler m)
 
 -- === Ref Monad === --
 
--- class Monad m => RefMonad key m n where
---     uncheckedLookupRef :: m (Maybe (Ref n key))
-
-class Monad m => RefMonad k m where
+class Monad m => MonadRefLookup k m where
     uncheckedLookupRef :: forall a. TypeRep {- the type of `a` -}
                        -> m (Maybe (Ref' k a m))
 
@@ -163,8 +160,8 @@ writeRef = return . wrap' ; {-# INLINE writeRef #-}
 
 -- FIXME: To refactor
 -- Refs should be moved to Pass, because they internal monad ALWAYS defaults to pass
-type family GetPassHandler (m :: * -> *) :: * -> *
-type RefData' k a m = RefData k a (GetPassHandler m)
+type family GetRefHandler (m :: * -> *) :: * -> *
+type RefData' k a m = RefData k a (GetRefHandler m)
 
 
 
@@ -177,14 +174,14 @@ type Editor k a m = (Reader k a m, Writer k a m)
 type TransST    t m   = (MonadTrans t, Monad (t m), PrimState (t m) ~ PrimState m)
 
 -- Reader
-class    Monad m                                => Reader k a m     where getRef :: m (Ref k a (GetPassHandler m))
+class    Monad m                                => Reader k a m     where getRef :: m (Ref' k a m)
 instance {-# OVERLAPPABLE #-} SubReader k a t m => Reader k a (t m) where getRef = lift getRef ; {-# INLINE getRef #-}
-type SubReader k a t m = (Reader k a m, TransST t m, GetPassHandler (t m) ~ GetPassHandler m)
+type SubReader k a t m = (Reader k a m, TransST t m, GetRefHandler (t m) ~ GetRefHandler m)
 
 -- Writer
-class    Monad m                                => Writer k a m     where putRef :: Ref k a (GetPassHandler m) -> m ()
+class    Monad m                                => Writer k a m     where putRef :: Ref' k a m -> m ()
 instance {-# OVERLAPPABLE #-} SubWriter k a t m => Writer k a (t m) where putRef = lift . putRef ; {-# INLINE putRef #-}
-type SubWriter k a t m = (Writer k a m, TransST t m, GetPassHandler (t m) ~ GetPassHandler m)
+type SubWriter k a t m = (Writer k a m, TransST t m, GetRefHandler (t m) ~ GetRefHandler m)
 
 
 readComp :: forall k a m. Reader k a m => m (RefData' k a m)
@@ -292,8 +289,8 @@ modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (f
 
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
-uncheckedElems :: forall t m. (MonadPass m, IsIdx t, Reader NET (Abstract t) m) => m [t]
-uncheckedElems = fmap (view $ from idx) <$> (liftPassHandler . Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
+uncheckedElems :: forall t m. (MonadRef m, IsIdx t, Reader NET (Abstract t) m) => m [t]
+uncheckedElems = fmap (view $ from idx) <$> (liftRefHandler . Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
 
 -- === Construction === --
@@ -312,7 +309,7 @@ uncheckedElems = fmap (view $ from idx) <$> (liftPassHandler . Store.ixes =<< re
 
 
 type NewElemEvent2 m t = Emitter m (NEW // Abstract t)
-newElem2 :: forall t m. ( MonadPass m, Editor NET (Abstract t) m, NewElemEvent2 m t, IsIdx t, KnownType (Abstract t))
+newElem2 :: forall t m. ( MonadRef m, Editor NET (Abstract t) m, NewElemEvent2 m t, IsIdx t, KnownType (Abstract t))
         => Definition t -> m t
 newElem2 tdef = do
     t <- reserveElem
@@ -330,23 +327,23 @@ type instance Abstract NEW = NEW
 
 
 
-reserveElem :: forall t m. (MonadPass m, Editor NET (Abstract t) m, IsIdx t) => m t
+reserveElem :: forall t m. (MonadRef m, Editor NET (Abstract t) m, IsIdx t) => m t
 reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
 
 dispatchNewElem2 :: forall t m. NewElemEvent2 m t => t -> Definition t -> m ()
 dispatchNewElem2 t tdef = emit $ Event @(NEW // t) (t, tdef)
 
 
-freeElem :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m) => t -> m ()
-freeElem t = liftPassHandler . flip Store.freeIdx (t ^. idx) =<< readComp @NET @(Abstract t) ; {-# INLINE freeElem #-}
+freeElem :: forall t m. (MonadRef m, IsIdx t, Editor NET (Abstract t) m) => t -> m ()
+freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @NET @(Abstract t) ; {-# INLINE freeElem #-}
 
     -- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
-    -- delete :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
+    -- delete :: forall t m. (MonadRef m, IsIdx t, Editor NET (Abstract t) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
     --        => t -> m ()
     -- delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
 
-reserveNewElemIdx :: forall t m. (MonadPass m, Editor NET (Abstract t) m) => m Int
-reserveNewElemIdx = liftPassHandler . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
+reserveNewElemIdx :: forall t m. (MonadRef m, Editor NET (Abstract t) m) => m Int
+reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
 readLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Layer (Abstract t) layer) m -> t -> m (LayerData layer t)
 readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) =<< readRef key) ; {-# INLINE readLayerByRef #-}
@@ -354,14 +351,14 @@ readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) =<< readRef
 writeLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Layer (Abstract t) layer) m -> LayerData layer t -> t -> m ()
 writeLayerByRef key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) =<< readRef key ; {-# INLINE writeLayerByRef #-}
 
-readLayer :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
-readLayer t = liftPassHandler . flip readLayerByRef t =<< getRef @LAYER @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
+readLayer :: forall layer t m. (MonadRef m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
+readLayer t = liftRefHandler . flip readLayerByRef t =<< getRef @LAYER @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
 -- FIXME[WD]: writeLayer should need writable
-writeLayer :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
-writeLayer val t = (\k -> liftPassHandler $ writeLayerByRef k val t) =<< getRef @LAYER @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
+writeLayer :: forall layer t m. (MonadRef m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
+writeLayer val t = (\k -> liftRefHandler $ writeLayerByRef k val t) =<< getRef @LAYER @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
-modifyLayerM :: forall layer t m a. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
+modifyLayerM :: forall layer t m a. (MonadRef m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
 modifyLayerM f t = do
     l      <- readLayer @layer t
     (a,l') <- f l
@@ -369,10 +366,10 @@ modifyLayerM f t = do
     return a
 {-# INLINE modifyLayerM #-}
 
-modifyLayerM_ :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
+modifyLayerM_ :: forall layer t m. (MonadRef m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
 modifyLayerM_ = modifyLayerM @layer . (fmap.fmap) ((),) ; {-# INLINE modifyLayerM_ #-}
 
-modifyLayer_ :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
+modifyLayer_ :: forall layer t m. (MonadRef m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
 modifyLayer_ = modifyLayerM_ @layer . fmap return ; {-# INLINE modifyLayer_ #-}
 
 
@@ -434,11 +431,11 @@ type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), PrimState (
 
 
 --FIXME: REFACTOR
-type MonadPassInvariants m = (PrimState m ~ PrimState (GetPassHandler m))
-type MonadPassBase       m = (IRMonad m, PrimMonad m)
-type MonadPassCtx        m = (MonadPassBase m, MonadPassBase (GetPassHandler m), MonadPassInvariants m)
-class MonadPassCtx m => MonadPass m where
-    liftPassHandler :: forall a. GetPassHandler m a -> m a
+type RefHandlerInvariants m = (PrimState m ~ PrimState (GetRefHandler m))
+type RefHandlerBase       m = (IRMonad m, PrimMonad m)
+type RefHandlerCtx        m = (RefHandlerBase m, RefHandlerBase (GetRefHandler m), RefHandlerInvariants m)
+class RefHandlerCtx m => MonadRef m where
+    liftRefHandler :: forall a. GetRefHandler m a -> m a
 
 
 -- === Modyfication === --
@@ -526,7 +523,7 @@ type SubLink s t = Link (Sub s t) t
 
 -- === Construction === --
 
-link :: forall a b m. (Show a, Show b, MonadPass m, KnownType (Abstract (Link a b)), NewElemEvent2 m (Link a b), Editor NET (Abstract (Link a b)) m)
+link :: forall a b m. (Show a, Show b, MonadRef m, KnownType (Abstract (Link a b)), NewElemEvent2 m (Link a b), Editor NET (Abstract (Link a b)) m)
      => a -> b -> m (Link a b)
 link a b = newElem2 (a,b) ; {-# INLINE link #-}
 
@@ -553,7 +550,7 @@ type Group a = Elem (GROUP a)
 
 -- === Construction === --
 
-group :: forall f a m. (Show a, MonadPass m, Foldable f, Ord a, NewElemEvent2 m (Group a), KnownType (Abstract (Group a)), Editor NET (Abstract (Group a)) m)
+group :: forall f a m. (Show a, MonadRef m, Foldable f, Ord a, NewElemEvent2 m (Group a), KnownType (Abstract (Group a)), Editor NET (Abstract (Group a)) m)
       => f a -> m (Group a)
 group = newElem2 . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
@@ -685,11 +682,11 @@ type AnyExprLink = Link' AnyExpr
 unsafeRelayout :: Expr l -> Expr l'
 unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 
-expr2 :: forall atom layout m. (TermEncoder atom, MonadPass m, Editor NET EXPR m, Emitter m (NEW // EXPR))
+expr2 :: forall atom layout m. (TermEncoder atom, MonadRef m, Editor NET EXPR m, Emitter m (NEW // EXPR))
       => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr2 = newElem2 . encodeTerm ; {-# INLINE expr2 #-}
 
-reserveExpr :: (MonadPass m, Editor NET EXPR m)
+reserveExpr :: (MonadRef m, Editor NET EXPR m)
             => m (Expr layout)
 reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 
@@ -697,20 +694,20 @@ dispatchNewExpr2 :: (Emitter m (NEW // EXPR), TermEncoder atom) => ExprTerm atom
 dispatchNewExpr2 = flip dispatchNewElem2 . encodeTerm
 
 
-exprs :: (MonadPass m, Reader NET EXPR m) => m [AnyExpr]
+exprs :: (MonadRef m, Reader NET EXPR m) => m [AnyExpr]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
 
-links :: (MonadPass m, Reader NET (LINK' EXPR) m) => m [AnyExprLink]
+links :: (MonadRef m, Reader NET (LINK' EXPR) m) => m [AnyExprLink]
 links = uncheckedElems ; {-# INLINE links #-}
 
 
 -- | Expr pattern matching utility
-match :: (MonadPass m, Reader LAYER (Layer EXPR Model) m)
+match :: (MonadRef m, Reader LAYER (Layer EXPR Model) m)
       => Expr layout -> (Unwrapped (ExprUniTerm (Expr layout)) -> m a) -> m a
 match t f = f . unwrap' =<< (exprUniTerm t) ; {-# INLINE match #-}
 
 -- | Term unification
-exprUniTerm :: (MonadPass m, Reader LAYER (Layer EXPR Model) m) => Expr layout -> m (ExprUniTerm (Expr layout))
+exprUniTerm :: (MonadRef m, Reader LAYER (Layer EXPR Model) m) => Expr layout -> m (ExprUniTerm (Expr layout))
 exprUniTerm t = ExprUniTerm <$> symbolMapM_AB @ToUniTerm toUniTerm t ; {-# INLINE exprUniTerm #-}
 
 class ToUniTerm a b where toUniTerm :: a -> b
@@ -779,10 +776,10 @@ type family Writers k as m :: Constraint where
 
 
 
-unsafeToExprTerm :: forall atom l m. (MonadPass m, Reader LAYER (ExprLayer Model) m) => Expr l -> m (ExprTerm atom (Expr l))
+unsafeToExprTerm :: forall atom l m. (MonadRef m, Reader LAYER (ExprLayer Model) m) => Expr l -> m (ExprTerm atom (Expr l))
 unsafeToExprTerm = unsafeCoerce . unwrap' . access @TERM . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToExprTerm #-}
 
-unsafeModifyExprTermDef :: forall atom l m. (MonadPass m, Editor LAYER (ExprLayer Model) m)
+unsafeModifyExprTermDef :: forall atom l m. (MonadRef m, Editor LAYER (ExprLayer Model) m)
                         => Expr l -> (ExprTermDef atom (Expr l) -> ExprTermDef atom (Expr l)) -> m ()
 unsafeModifyExprTermDef expr f = do
     oldModel <- readLayer @Model expr
@@ -791,7 +788,7 @@ unsafeModifyExprTermDef expr f = do
     let newModel = wrap' $ update' @TERM (wrap' $ unsafeCoerce $ (wrap' $ f oldDef :: ExprTerm atom (Expr l))) $ unwrap' oldModel
     writeLayer @Model newModel expr
 
-unsafeToExprTermDef :: forall atom l m. (MonadPass m, Reader LAYER (ExprLayer Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
+unsafeToExprTermDef :: forall atom l m. (MonadRef m, Reader LAYER (ExprLayer Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
 unsafeToExprTermDef = unwrap' <∘> unsafeToExprTerm ; {-# INLINE unsafeToExprTermDef #-}
 
 
@@ -803,8 +800,8 @@ unsafeToExprTermDef = unwrap' <∘> unsafeToExprTerm ; {-# INLINE unsafeToExprTe
 -- === Term mapping === --
 -- | General expr symbol mapping utility. It allows mapping over current symbol in any expr.
 
-class    MonadPass m => TermMapM (atoms :: [*]) ctx expr m b where symbolMapM :: (forall a. ctx a m b => a -> m b) -> expr -> m b
-instance MonadPass m => TermMapM '[]            ctx expr m b where symbolMapM _ _ = impossible
+class    MonadRef m => TermMapM (atoms :: [*]) ctx expr m b where symbolMapM :: (forall a. ctx a m b => a -> m b) -> expr -> m b
+instance MonadRef m => TermMapM '[]            ctx expr m b where symbolMapM _ _ = impossible
 instance (  TermMapM as ctx expr m b
          , ctx (ExprTerm a expr) m b
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer and assert

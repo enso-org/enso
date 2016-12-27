@@ -27,18 +27,18 @@ type T' = T Star
 -- instance (IRMonad m, Editor NET EXPR m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
 -- instance Monad m                           => LitExpr m (Expr l)       where litExpr = return ; {-# INLINE litExpr #-}
 
--- type NewExpr  m = (MonadPass m, Editor NET EXPR m, Emitter m (NEW // EXPR))
--- type NewExpr' m = (MonadPass m, Editors NET '[EXPR, LINK' EXPR] m, Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR))
+-- type NewExpr  m = (MonadRef m, Editor NET EXPR m, Emitter m (NEW // EXPR))
+-- type NewExpr' m = (MonadRef m, Editors NET '[EXPR, LINK' EXPR] m, Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR))
 
 -- star :: NewExpr m => m (Expr Star)
 -- star = expr Term.uncheckedStar
 -- {-# INLINE star #-}
 
-star2 :: (MonadPass m, Editor NET EXPR m, Emitter m (NEW // EXPR)) => m (Expr Star)
+star2 :: (MonadRef m, Editor NET EXPR m, Emitter m (NEW // EXPR)) => m (Expr Star)
 star2 = expr2 Term.uncheckedStar
 {-# INLINE star2 #-}
 
-reserveStar :: (MonadPass m, Editor NET EXPR m) => m (Expr Star)
+reserveStar :: (MonadRef m, Editor NET EXPR m) => m (Expr Star)
 reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
 
 registerStar :: Emitter m (NEW // EXPR) => Expr Star -> m ()

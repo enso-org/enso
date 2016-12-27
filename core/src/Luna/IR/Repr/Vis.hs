@@ -11,7 +11,7 @@ import Luna.IR.Repr.Styles
 import Luna.IR
 
 
-snapshot :: (MonadPass m, MonadVis m, Editors LAYER '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model] m, Editor NET EXPR m)
+snapshot :: (MonadRef m, MonadVis m, Editors LAYER '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model] m, Editor NET EXPR m)
          => Prelude.String -> m ()
 snapshot title = do
     ts  <- exprs
@@ -21,7 +21,7 @@ snapshot title = do
     Vis.addStep (fromString title) vns ves
 
 
-visNode2 :: (MonadPass m, Editors LAYER '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model] m)
+visNode2 :: (MonadRef m, Editors LAYER '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model] m)
          => AnyExpr -> m (Vis.Node, [Vis.Edge])
 visNode2 t = do
     euid   <- readLayer @UID   t

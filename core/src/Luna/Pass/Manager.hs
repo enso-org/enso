@@ -51,7 +51,7 @@ data State m = State { _passes :: Map PassRep (Pass.Describbed (Uninitialized m 
                      , _attrs  :: Map AttrRep Prim.AnyData
                      } deriving (Show)
 
-type RefState m = State (GetPassHandler m)
+type RefState m = State (GetRefHandler m)
 
 makeLenses ''State
 makeLenses ''LayerReg
@@ -77,7 +77,7 @@ makeWrapped ''PassManager
 -- === MonadPassManager === --
 
 type instance MonadPassManager_Boot m = MonadPassManager m
-class (IRMonad m, IR.MonadPass m) => MonadPassManager m where
+class (IRMonad m, MonadRef m) => MonadPassManager m where
     get :: m (RefState m)
     put :: RefState m -> m ()
 
@@ -85,7 +85,7 @@ instance IRMonad m => MonadPassManager (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
 
-type TransBaseMonad t m = (MonadTransInvariants' t m, IRMonad (t m), IR.MonadPass (t m), GetPassHandler m ~ GetPassHandler (t m))
+type TransBaseMonad t m = (MonadTransInvariants' t m, IRMonad (t m), MonadRef (t m), GetRefHandler m ~ GetRefHandler (t m))
 instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m)
       => MonadPassManager (t m) where
     get = lift   get ; {-# INLINE get #-}
@@ -117,7 +117,7 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 -- === Utils === --
 
-registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetPassHandler m) (Template (DynPass (GetPassHandler m))))) -> m ()
+registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
 registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
@@ -133,12 +133,12 @@ attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> sho
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
 
-queryListeners :: MonadPassManager m => Event.Tag -> m [Uninitialized (GetPassHandler m) (Template (DynPass (GetPassHandler m)))]
+queryListeners :: MonadPassManager m => Event.Tag -> m [Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))]
 queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view events <$> get ; {-# INLINE queryListeners #-}
 
 
 addEventListener :: (MonadPassManager m, IsTag evnt)
-                  => Int -> evnt -> (Pass.Describbed (Uninitialized (GetPassHandler m) (Template (DynPass (GetPassHandler m))))) -> m ()
+                  => Int -> evnt -> (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
 addEventListener priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) p)
     where rep = p ^. Pass.desc . Pass.passRep
 {-# INLINE addEventListener #-}
@@ -166,11 +166,11 @@ instance MonadTrans PassManager where
 type instance RefData EVENT _ m = Template (DynPass m)
 
 
-instance (MonadPassManager m, Pass.ContainsRef pass EVENT e (GetPassHandler m))
+instance (MonadPassManager m, Pass.ContainsRef pass EVENT e (GetRefHandler m))
       => Emitter (SubPass pass m) e where
     emit (Event p) = do
         tmpl <- unwrap' . view (Pass.findRef @pass @EVENT @e) <$> Pass.get
-        liftPassHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
+        liftRefHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
 --
 --
 -- class Monad m => Emitter m a where
@@ -208,9 +208,9 @@ unsafeWithAttr r a f = do
 
 
 
-type instance GetPassHandler (PassManager m) = PassManager m
-instance IRMonad m => MonadPass (PassManager m) where
-    liftPassHandler = id
+type instance GetRefHandler (PassManager m) = PassManager m
+instance IRMonad m => MonadRef (PassManager m) where
+    liftRefHandler = id ; {-# INLINE liftRefHandler #-}
 
 
 
@@ -245,13 +245,13 @@ instance PrimMonad m => PrimMonad (RefCache m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
--- type instance GetPassHandler (RefCache m) = GetPassHandler m
+-- type instance GetRefHandler (RefCache m) = GetRefHandler m
 -- instance MonadPass m => MonadPass (RefCache m) where
---     liftPassHandler = lift . liftPassHandler ; {-# INLINE liftPassHandler #-}
+--     liftRefHandler = lift . liftRefHandler ; {-# INLINE liftRefHandler #-}
 
 instance MonadLogging m => MonadLogging (RefCache m)
 --
--- instance (RefMonad k m, KnownType k, MonadFix m, MonadIO m) => RefMonad k (RefCache m) where
+-- instance (MonadRefLookup k m, KnownType k, MonadFix m, MonadIO m) => MonadRefLookup k (RefCache m) where
 --     uncheckedLookupRef keyRep = mdo
 --         let ckey = (typeVal' @k, keyRep)
 --         print ("caching " <> show ckey)
@@ -264,7 +264,7 @@ instance MonadLogging m => MonadLogging (RefCache m)
 --                 return out
         -- lift $ uncheckedLookupRef keyRep
 
--- class Monad m => RefMonad k m where
+-- class Monad m => MonadRefLookup k m where
 --     uncheckedLookupRef :: forall a. TypeRep {- the type of `a` -}
 --                        -> m (Maybe (Ref k a m))
 
@@ -279,24 +279,24 @@ instance MonadLogging m => MonadLogging (RefCache m)
 --
 -- initialize -> initialize
 
-instance (IRMonad m, MonadRefCache m) => RefMonad ATTR (PassManager m) where
+instance (IRMonad m, MonadRefCache m) => MonadRefLookup ATTR (PassManager m) where
     uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance IRMonad m => RefMonad LAYER (PassManager m) where
+instance IRMonad m => MonadRefLookup LAYER (PassManager m) where
     uncheckedLookupRef a = do
         s <- getIR
         let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
             mlv = s ^? wrapped' . ix e
-        mr <- liftPassHandler $ mapM (Store.readKey l) mlv
+        mr <- liftRefHandler $ mapM (Store.readKey l) mlv
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupRef #-}
 
-instance IRMonad m => RefMonad NET (PassManager m) where
-    uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftPassHandler getIR ; {-# INLINE uncheckedLookupRef #-}
+instance IRMonad m => MonadRefLookup NET (PassManager m) where
+    uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance (IRMonad m, MonadRefCache m) => RefMonad EVENT (PassManager m) where -- Event.FromPath e
+instance (IRMonad m, MonadRefCache m) => MonadRefLookup EVENT (PassManager m) where -- Event.FromPath e
     uncheckedLookupRef a = do
         let ckey = (typeVal' @EVENT, a)
         c <- getCache
