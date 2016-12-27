@@ -41,7 +41,7 @@ import qualified Luna.IR.Expr.Term.Class   as N
 import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
 import qualified Type.List                 as List
 import qualified Data.Event                as Event
-import           Data.Event                (Event(Event), emit, (//), type (//))
+import           Data.Event                (Event(Event), Emitter, emit, (//), type (//))
 import Luna.IR.Expr.Term.Uni ()
 -- import Type.Inference
 import Data.TypeVal
@@ -295,76 +295,23 @@ modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (f
 uncheckedElems :: forall t m. (MonadPass m, IsIdx t, Reader NET (Abstract t) m) => m [t]
 uncheckedElems = fmap (view $ from idx) <$> (liftPassHandler . Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
--- readNet :: forall a m. (Reader NET a m) => m (KeyData' NET a m)
--- type KeyData' k a m = KeyData k a (GetPassHandler m)
---
--- ixes :: PrimMonad m => LayerStoreRefM m k a -> m [Int]
-
--- === Querying === --
---
--- lookupGenericLayerCons :: LayerRep -> IRM m -> Maybe (AnyCons m)
--- lookupGenericLayerCons l s = s ^? genericLayers . ix l ; {-# INLINE lookupGenericLayerCons #-}
---
--- lookupSpecificLayerCons :: ElemRep -> LayerRep -> IRM m -> Maybe (AnyCons m)
--- lookupSpecificLayerCons el l s = s ^? specificLayers el . ix l ; {-# INLINE lookupSpecificLayerCons #-}
---
--- lookupLayerCons :: ElemRep -> LayerRep -> IRM m -> Maybe (AnyCons m)
--- lookupLayerCons el l s = lookupSpecificLayerCons el l s <|> lookupGenericLayerCons l s ; {-# INLINE lookupLayerCons #-}
---
--- lookupLayerCons' :: ElemRep -> LayerRep -> IRM m -> AnyCons m
--- lookupLayerCons' el l = fromMaybe (error $ "Fatal error " <> show el <> " " <> show l) . lookupLayerCons el l ; {-# INLINE lookupLayerCons' #-}
-
 
 -- === Construction === --
 
 
--- to zalezne od layeru a tak nie moze chyba byc, bo chcem yto odpalic jako ala-event dla kazdego layeru danego elementu
--- class Monad m => Cons7 l m a where
---     cons7 :: forall t. t -> Definition t -> m (LayerData' t)
-    -- cons7 :: forall t. t -> Definition t -> m (LayerData l t)
-    -- cons7 :: forall t. a ~ Abstract t => t -> Definition t -> PMSubPass m (LayerData UID t)
-
-newMagicElem :: forall t m. (IRMonad m, KnownType (Abstract t), IsIdx t) => Definition t -> m t
-newMagicElem tdef = do
-    irstate    <- getIR
-
-    -- FIXME[WD]: how can we design it better?
-    -- hacky, manual index reservation in order not to use keys for magic star
-    let trep = typeVal' @(Abstract t)
-        Just layerStore = irstate ^? wrapped'  . ix trep
-    newIdx <- Store.reserveIdx layerStore
-
-
-    let el = newIdx ^. from idx
-    --     consLayer (layer, store) = runByIRBuilder $ do
-    --         let consFunc = lookupLayerCons' (typeVal' @(Abstract t)) layer irstate
-    --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
-    -- mapM_ consLayer =<< Store.assocs layerStore
-    return el
-{-# INLINE newMagicElem #-}
-
-type NewElemEvent m t = (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
-newElem :: forall t m. ( MonadPass m, Editor NET (Abstract t) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t)
-              , Show (Definition t))
-        => Definition t -> m t
-newElem tdef = do
-    el <- reserveElem
-    withDebugBy "Emitter" ("NEW // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (el ^. idx) <> "]") $ do
-        dispatchNewElem tdef el
-    return el
-    -- emit (NEW // abstract el) (universal el)
-    --     consLayer (layer, store) = runByIRBuilder $ do
-    --         let consFunc = lookupLayerCons' (typeVal' @(Abstract t)) layer irstate
-    --         Store.unsafeWrite store newIdx =<< unsafeAppCons consFunc el tdef
-    -- mapM_ consLayer =<< Store.assocs layerStore
-
-{-# INLINE newElem #-}
+-- newMagicElem :: forall t m. (IRMonad m, KnownType (Abstract t), IsIdx t) => Definition t -> m t
+-- newMagicElem tdef = do
+--     irstate    <- getIR
+--     let trep = typeVal' @(Abstract t)
+--         Just layerStore = irstate ^? wrapped' . ix trep
+--     newIdx <- Store.reserveIdx layerStore
+--     let el = newIdx ^. from idx
+--     return el
+-- {-# INLINE newMagicElem #-}
 
 
 
-data NEW2 = NEW2 deriving (Show)
-
-type NewElemEvent2 m t = Event.Emitter2 m (NEW2 // Abstract t)
+type NewElemEvent2 m t = Emitter m (NEW // Abstract t)
 newElem2 :: forall t m. ( MonadPass m, Editor NET (Abstract t) m, NewElemEvent2 m t, IsIdx t, KnownType (Abstract t))
         => Definition t -> m t
 newElem2 tdef = do
@@ -376,33 +323,27 @@ newElem2 tdef = do
 
 
 
-type instance Event.Payload (NEW2 // t) = (t, Definition t)
+type instance Event.Payload (NEW // t) = (t, Definition t)
 
 type instance Abstract (a // b) = Abstract a // Abstract b
-type instance Abstract NEW2 = NEW2
--- class Monad m => Emitter2 m a where
---     emit2 :: forall e. a ~ Abstract e => Proxy e -> Payload e -> m ()
+type instance Abstract NEW = NEW
 
 
 
 reserveElem :: forall t m. (MonadPass m, Editor NET (Abstract t) m, IsIdx t) => m t
 reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
 
-dispatchNewElem :: (Event.Emitter m (NEW // Abstract t), Event.Payload (NEW // Abstract t) ~ (Universal t, Prim.Any))
-                => Definition t -> t -> m ()
-dispatchNewElem tdef el = emit (NEW // abstract el) (universal el, unsafeCoerce tdef :: Prim.Any)
-
 dispatchNewElem2 :: forall t m. NewElemEvent2 m t => t -> Definition t -> m ()
-dispatchNewElem2 t tdef = Event.emit2 $ Event @(NEW2 // t) (t, tdef)
+dispatchNewElem2 t tdef = emit $ Event @(NEW // t) (t, tdef)
 
 
 freeElem :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m) => t -> m ()
 freeElem t = liftPassHandler . flip Store.freeIdx (t ^. idx) =<< readComp @NET @(Abstract t) ; {-# INLINE freeElem #-}
 
--- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
-delete :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
-       => t -> m ()
-delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
+    -- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
+    -- delete :: forall t m. (MonadPass m, IsIdx t, Editor NET (Abstract t) m, Event.Emitter m (DELETE // Abstract t), Event.Payload (DELETE // Abstract t) ~ (Universal t, Prim.Any))
+    --        => t -> m ()
+    -- delete t = emit (DELETE // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (MonadPass m, Editor NET (Abstract t) m) => m Int
 reserveNewElemIdx = liftPassHandler . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
@@ -453,25 +394,12 @@ registerElemWith = modifyIRM_ . modifyElem (typeVal' @el) ; {-# INLINE registerE
 registerElem :: forall el m. (KnownType el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
--- registerGenericLayer :: forall layer t m. (IRMonad m, KnownType layer)
---                      => LayerCons' layer t m -> m ()
--- registerGenericLayer f = modifyIR_ $ genericLayers %~ Map.insert (typeVal' @layer) (anyCons @layer f)
--- {-# INLINE registerGenericLayer #-}
---
--- registerElemLayer :: forall at layer t m. (IRMonad m, KnownType at, KnownType layer)
---                   => LayerCons' layer t m -> m ()
--- registerElemLayer f = modifyIR_ $ specificLayers (typeVal' @at) %~ Map.insert (typeVal' @layer) (anyCons @layer f)
--- {-# INLINE registerElemLayer #-}
-
 attachLayerIR :: IRMonad m => LayerRep -> ElemRep -> m ()
 attachLayerIR l e = do
     s <- getIR
     let Just estore = s ^? wrapped' . ix e -- Internal error if not found (element not registered)
     Store.unsafeAddKey l estore
 {-# INLINE attachLayerIR #-}
-
--- setAttr :: forall a m. (IRMonad m, KnownType a) => a -> m ()
--- setAttr a = modifyIR_ $ attrs %~ Map.insert (typeVal' @a) (unsafeCoerce a) ; {-# INLINE setAttr #-}
 
 
 -- === Instances === --
@@ -598,11 +526,6 @@ type SubLink s t = Link (Sub s t) t
 
 -- === Construction === --
 
-
-magicLink :: forall a b m. (IRMonad m, KnownType (Abstract (Link a b)))
-          => a -> b -> m (Link a b)
-magicLink a b = newMagicElem (a,b) ; {-# INLINE magicLink #-}
-
 link :: forall a b m. (Show a, Show b, MonadPass m, KnownType (Abstract (Link a b)), NewElemEvent2 m (Link a b), Editor NET (Abstract (Link a b)) m)
      => a -> b -> m (Link a b)
 link a b = newElem2 (a,b) ; {-# INLINE link #-}
@@ -630,9 +553,9 @@ type Group a = Elem (GROUP a)
 
 -- === Construction === --
 
-group :: forall f a m. (Show a, MonadPass m, Foldable f, Ord a, NewElemEvent m (Group a), KnownType (Abstract (Group a)), Editor NET (Abstract (Group a)) m)
+group :: forall f a m. (Show a, MonadPass m, Foldable f, Ord a, NewElemEvent2 m (Group a), KnownType (Abstract (Group a)), Editor NET (Abstract (Group a)) m)
       => f a -> m (Group a)
-group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
+group = newElem2 . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
 
 
@@ -734,8 +657,8 @@ makeWrapped ''ExprData
 
 -- === Encoding === --
 
-class                                                              TermEncoder atom where encodeTerm :: forall t. ExprTerm atom t -> ExprStore
-instance                                                           TermEncoder I    where encodeTerm = impossible
+class                                                            TermEncoder atom where encodeTerm :: forall t. ExprTerm atom t -> ExprStore
+instance                                                         TermEncoder I    where encodeTerm = impossible
 instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder atom where
     encodeTerm = runIdentity . encodeStore . hideLayout ; {-# INLINE encodeTerm #-} -- magic
 
@@ -762,15 +685,7 @@ type AnyExprLink = Link' AnyExpr
 unsafeRelayout :: Expr l -> Expr l'
 unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 
-magicExpr :: forall atom layout m. (TermEncoder atom, IRMonad m)
-          => ExprTerm atom (Expr layout) -> m (Expr layout)
-magicExpr a = newMagicElem (encodeTerm a) ; {-# INLINE magicExpr #-}
-
-expr :: forall atom layout m. (TermEncoder atom, MonadPass m, NewElemEvent m (Expr layout), Editor NET EXPR m)
-     => ExprTerm atom (Expr layout) -> m (Expr layout)
-expr = newElem . encodeTerm ; {-# INLINE expr #-}
-
-expr2 :: forall atom layout m. (TermEncoder atom, MonadPass m, Editor NET EXPR m, Event.Emitter2 m (NEW2 // EXPR))
+expr2 :: forall atom layout m. (TermEncoder atom, MonadPass m, Editor NET EXPR m, Emitter m (NEW // EXPR))
       => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr2 = newElem2 . encodeTerm ; {-# INLINE expr2 #-}
 
@@ -778,20 +693,9 @@ reserveExpr :: (MonadPass m, Editor NET EXPR m)
             => m (Expr layout)
 reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 
-dispatchNewExpr :: (TermEncoder atom, NewElemEvent m (Expr layout))
-                => ExprTerm atom (Expr layout) -> Expr layout -> m ()
-dispatchNewExpr = dispatchNewElem . encodeTerm
-
-dispatchNewExpr2 :: (Event.Emitter2 m (NEW2 // EXPR), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr2 :: (Emitter m (NEW // EXPR), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
 dispatchNewExpr2 = flip dispatchNewElem2 . encodeTerm
 
-
--- class SomeGeneralEncode a where
---     someGeneralEncode :: a -> ExprStore
---
--- expr2 :: forall a layout m. (IRMonad m, Editor NET EXPR m, SomeGeneralEncode a)
---      => a -> m (Expr layout)
--- expr2 = newElem . someGeneralEncode ; {-# INLINE expr2 #-}
 
 exprs :: (MonadPass m, Reader NET EXPR m) => m [AnyExpr]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
@@ -815,9 +719,6 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 
 -- === Instances === --
-
-type instance Event.Payload (NEW // EXPR)       = (AnyExpr, Prim.Any)
-type instance Event.Payload (NEW // LINK' EXPR) = (Link' AnyExpr, Prim.Any) -- FIXME[WD]: refactor + maybe make something like ... NEW // t = (Universal t, AnyDefinition) ?
 
 --FIXME[MK->WD]: I don't care for the second part of the tuple, it's necessary to make pass manager magic work, but should be removed ASAP
 type instance Event.Payload (DELETE // EXPR)       = (AnyExpr, Prim.Any)

@@ -23,7 +23,7 @@ import Data.Property
 import qualified Luna.Pass        as Pass
 import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass3, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
 import Data.TypeVal
-import Data.Event (Emitter, type (//))
+import Data.Event (type (//))
 import qualified Data.Set as Set
 import Luna.IR.Internal.LayerStore (STRefM)
 import Luna.IR.Expr
@@ -104,28 +104,28 @@ proxify _ = Proxy
 newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, MonadPass m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope p t) m)
 type    GenLayerConsM p m = GenLayerCons p (PrimState m)
 
-newtype ExprLayerCons  p s = ExprLayerCons (forall l m. (MonadPassManager m, MonadPass m, s ~ PrimState m, GetBaseMonad m ~ GetBaseMonad (GetPassHandler m)) => (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m)
+newtype ExprLayerCons  p s = ExprLayerCons (forall l m. (MonadPassManager m, MonadPass m, s ~ PrimState m) => (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m)
 type    ExprLayerConsM p m = ExprLayerCons p (PrimState m)
 
 runGenLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadPass m) => GenLayerConsM p m -> forall t. KnownType (Abstract t) => (Elem t, Definition t) -> Pass (ElemScope p t) m
 runGenLayerCons (GenLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
 
-runExprLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadPass m, GetBaseMonad m ~ GetBaseMonad (GetPassHandler m)) => ExprLayerConsM p m -> forall l. (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m
+runExprLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadPass m) => ExprLayerConsM p m -> forall l. (Expr l, Definition (EXPRESSION l)) -> Pass (ElemScope p (EXPRESSION l)) m
 runExprLayerCons (ExprLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
 
 
-registerGenLayer :: (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> GenLayerConsM p (GetBaseMonad m) -> m ()
+registerGenLayer :: (MonadPassManager m, MonadPassManager (GetPassHandler m), Pass.DataLookup (GetPassHandler m), KnownElemPass p, KnownType p) => LayerRep -> GenLayerConsM p (GetPassHandler m) -> m ()
 registerGenLayer l p = registerLayerProto l $ prepareProto $ Pass.template $ runGenLayerCons p ; {-# INLINE registerGenLayer #-}
 
 
-registerGenLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> m (GenLayerConsM p (GetBaseMonad m)) -> m ()
+registerGenLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetPassHandler m), Pass.DataLookup (GetPassHandler m)) => LayerRep -> m (GenLayerConsM p (GetPassHandler m)) -> m ()
 registerGenLayerM l p = registerGenLayer l =<< p ; {-# INLINE registerGenLayerM #-}
 
 
-registerExprLayer :: forall p l m. (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> ExprLayerConsM p (GetBaseMonad m) -> m ()
+registerExprLayer :: forall p l m. (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetPassHandler m), Pass.DataLookup (GetPassHandler m)) => LayerRep -> ExprLayerConsM p (GetPassHandler m) -> m ()
 registerExprLayer l p = registerLayerProto l $ Pass.Proto $ \_ -> Pass.describbed @(ElemScope p (EXPRESSION l)) . Pass.compileTemplate $ Pass.template $ runExprLayerCons p ; {-# INLINE registerExprLayer #-}
 
-registerExprLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p) => LayerRep -> m (ExprLayerConsM p (GetBaseMonad m)) -> m ()
+registerExprLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetPassHandler m), Pass.DataLookup (GetPassHandler m)) => LayerRep -> m (ExprLayerConsM p (GetPassHandler m)) -> m ()
 registerExprLayerM l p = registerExprLayer l =<< p ; {-# INLINE registerExprLayerM #-}
 
 
@@ -261,14 +261,14 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 -- === Type === --
 ------------------
 
-consTypeLayer :: (MonadPass m, Editors NET '[EXPR, LINK' EXPR] m, Emitter2 m (NEW2 // LINK' EXPR), Emitter2 m (NEW2 // EXPR))
+consTypeLayer :: (MonadPass m, Editors NET '[EXPR, LINK' EXPR] m, Emitter m (NEW // LINK' EXPR), Emitter m (NEW // EXPR))
               => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
 consTypeLayer ref self = do
     top  <- unsafeRelayout <$> localTop ref
     link top self
 
 
-localTop :: (MonadPass m, Editor NET EXPR m, Emitter2 m (NEW2 // EXPR))
+localTop :: (MonadPass m, Editor NET EXPR m, Emitter m (NEW // EXPR))
          => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
 localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
@@ -289,7 +289,7 @@ type instance Outputs LAYER (ElemScope InitType t) = '[Layer (Abstract t) Type] 
 type instance Inputs  ATTR  (ElemScope InitType t) = '[]
 type instance Outputs ATTR  (ElemScope InitType t) = '[]
 type instance Inputs  EVENT (ElemScope InitType t) = '[]
-type instance Outputs EVENT (ElemScope InitType t) = '[NEW2 // EXPR, NEW2 // LINK' EXPR]
+type instance Outputs EVENT (ElemScope InitType t) = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves     (ElemScope InitType t) = '[]
 instance KnownElemPass InitType where
     elemPassDescription = genericDescription' . proxify

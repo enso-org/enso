@@ -70,12 +70,12 @@ type instance Outputs LAYER SimpleAA = '[ExprLayer Model] -- FIXME[bug: unnecess
 type instance Inputs  ATTR  SimpleAA = '[]
 type instance Outputs ATTR  SimpleAA = '[]
 type instance Inputs  EVENT SimpleAA = '[] -- will never be used
-type instance Outputs EVENT SimpleAA = '[NEW2 // EXPR]
+type instance Outputs EVENT SimpleAA = '[NEW // EXPR]
 -- type instance Events        SimpleAA = '[]
 type instance Preserves     SimpleAA = '[]
 
 
-pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m, EqPrims m (GetPassHandler m) {- rm -}, GetBaseMonad (GetPassHandler m) ~ GetBaseMonad m {- rm -}, MonadPass m) => Pass SimpleAA m
+pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m, EqPrims m (GetPassHandler m) {- rm -}, MonadPass m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())
@@ -112,7 +112,7 @@ uncheckedDeleteStarType e = do
 
 gen_pass1 :: ( MonadIO m, MonadPass m, MonadVis m
              , Editors NET '[EXPR] m
-             , Emitter2 m (NEW2 // EXPR)
+             , Emitter m (NEW // EXPR)
              , Reader LAYER (ExprLayer Model) m
             --  , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (NEW // EXPR)

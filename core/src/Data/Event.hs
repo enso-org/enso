@@ -84,15 +84,13 @@ makeWrapped ''Event
 
 -- === Emitter === --
 
-class Monad m => Emitter m e where
-    emit :: e -> Payload e -> m ()
-
-class Monad m => Emitter2 m a where
-    emit2 :: forall e. a ~ Abstract e => Event e -> m ()
+class Monad m => Emitter m a where
+    emit :: forall e. a ~ Abstract e => Event e -> m ()
 
 type family Emitters m ems :: Constraint where
     Emitters m '[]       = ()
     Emitters m (e ': es) = (Emitter m e, Emitters m es)
+
 
 -----------------------
 -- === Listeners === --
