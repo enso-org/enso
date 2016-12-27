@@ -394,12 +394,12 @@ registerElemWith = modifyIRM_ . modifyElem (typeVal' @el) ; {-# INLINE registerE
 registerElem :: forall el m. (KnownType el, IRMonad m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-attachLayerIR :: IRMonad m => LayerRep -> ElemRep -> m ()
-attachLayerIR l e = do
+unsafeCreateNewLayer :: IRMonad m => LayerRep -> ElemRep -> m ()
+unsafeCreateNewLayer l e = do
     s <- getIR
-    let Just estore = s ^? wrapped' . ix e -- Internal error if not found (element not registered)
+    let Just estore = s ^? wrapped' . ix e -- FIXME[WD]: Internal error if not found (element not registered)
     Store.unsafeAddKey l estore
-{-# INLINE attachLayerIR #-}
+{-# INLINE unsafeCreateNewLayer #-}
 
 
 -- === Instances === --

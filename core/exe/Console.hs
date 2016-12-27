@@ -71,7 +71,6 @@ type instance Inputs  ATTR  SimpleAA = '[]
 type instance Outputs ATTR  SimpleAA = '[]
 type instance Inputs  EVENT SimpleAA = '[] -- will never be used
 type instance Outputs EVENT SimpleAA = '[NEW // EXPR]
--- type instance Events        SimpleAA = '[]
 type instance Preserves     SimpleAA = '[]
 
 
@@ -82,12 +81,6 @@ test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (
 test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
-
--- test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownPass pass, Pass.PassInit pass (PassManager (IRBuilder m)))
---             => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
--- test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
---     runRegs
---     Pass.eval' p
 
 uncheckedDeleteStar :: (MonadPass m, Reader LAYER (ExprLayer Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
 uncheckedDeleteStar e = do

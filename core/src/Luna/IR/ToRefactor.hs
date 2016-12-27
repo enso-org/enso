@@ -21,7 +21,7 @@ import Luna.IR.Expr.Format
 import Luna.IR.Expr.Atom
 import Data.Property
 import qualified Luna.Pass        as Pass
-import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass3, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
+import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
 import Data.TypeVal
 import Data.Event (type (//))
 import qualified Data.Set as Set
@@ -66,7 +66,7 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 -- proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
 
 
--- m (m [Template (DynPass3 (GetPassManager m))])
+-- m (m [Template (DynPass (GetPassManager m))])
 
 
 
@@ -130,9 +130,9 @@ registerExprLayerM l p = registerExprLayer l =<< p ; {-# INLINE registerExprLaye
 
 
 
-prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Pass.PassTemplate (ElemScope p (TypeRef s)) m) -> Pass.Proto (Pass.Describbed (Uninitialized m (Template (Pass.DynPass3 m))))
+prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Template (Pass (ElemScope p (TypeRef s)) m)) -> Pass.Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
 prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) where
-    prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Pass.PassTemplate (ElemScope p t) m -> Proxy t -> Pass.Describbed (Uninitialized m (Template (Pass.DynPass3 m)))
+    prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Template (Pass (ElemScope p t) m) -> Proxy t -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
     prepareProto' = const . Pass.describbed @(ElemScope p t) . Pass.compileTemplate
 
 
@@ -224,7 +224,7 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 --     debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
 --     modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
 --
--- watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
+-- watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => DynPass m
 -- watchSuccs_dyn = Pass.compile $ watchSuccs
 --
 -- data WatchRemoveEdge
@@ -321,7 +321,7 @@ initType = do
 
 -- -- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
 -- --   because it only works for Expressions
--- -- initType_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
+-- -- initType_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> DynPass m
 -- initType_dyn = do
 --     r <- Store.newSTRef Nothing
 --     return $ \ _ -> Pass.compile $ initType r
@@ -340,8 +340,6 @@ initType = do
 -------------------------------------------
 -------------------------------------------
 -------------------------------------------
-
-attachLayer priority l e = attachLayerIR l e >> attachLayerPM2 priority l e
 
 
 -- FIXME [WD]: is the type ugly here?
