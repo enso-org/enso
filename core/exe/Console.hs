@@ -74,7 +74,7 @@ type instance Outputs Event SimpleAA = '[New // AnyExpr]
 type instance Preserves     SimpleAA = '[]
 
 
-pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
+pass1 :: (MonadFix m, MonadIO m, MonadIR m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())
@@ -111,9 +111,9 @@ gen_pass1 :: ( MonadIO m, MonadRef m, MonadVis m
             --  , Emitter m (New // AnyExpr)
              ) => m ()
 gen_pass1 = do
-    (s :: Expr Star) <- star2
-    (s :: Expr Star) <- star2
-    (s :: Expr Star) <- star2
+    (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
+    (s :: Expr Star) <- star
     -- ss <- string "hello"
     -- (s :: Expr Star) <- star
     -- tlink   <- readLayer @Type s

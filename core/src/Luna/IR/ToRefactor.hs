@@ -99,7 +99,8 @@ proxify :: a -> Proxy a
 proxify _ = Proxy
 
 
-
+newtype LayerCons  p t s = LayerCons (forall m. (MonadPassManager m, MonadRef m, s ~ PrimState m) => (t, Definition t) -> Pass (ElemScope p t) m)
+type    LayerConsM p t m = LayerCons p t (PrimState m)
 
 newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, MonadRef m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope p (Elem t)) m)
 type    GenLayerConsM p m = GenLayerCons p (PrimState m)
@@ -215,20 +216,30 @@ initSuccs :: GenLayerCons InitSuccs s
 initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE initSuccs #-}
 
 
--- data WatchSuccs
--- type instance Abstract WatchSuccs = WatchSuccs
--- type instance Inputs    (ElemScope WatchSuccs t) = '[ExprLayer Succs, Attr WorkingElem]
--- type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
--- type instance Events    (ElemScope WatchSuccs t) = '[]
--- type instance Preserves (ElemScope WatchSuccs t) = '[]
+data WatchSuccs
+instance TypeShow WatchSuccs
+type instance Abstract WatchSuccs = WatchSuccs
+type instance Inputs  Net   (ElemScope WatchSuccs t) = '[]
+type instance Outputs Net   (ElemScope WatchSuccs t) = '[]
+type instance Inputs  Layer (ElemScope WatchSuccs t) = '[AnyExpr // Succs]
+type instance Outputs Layer (ElemScope WatchSuccs t) = '[AnyExpr // Succs]
+type instance Inputs  Attr  (ElemScope WatchSuccs t) = '[]
+type instance Outputs Attr  (ElemScope WatchSuccs t) = '[]
+type instance Inputs  Event (ElemScope WatchSuccs t) = '[]
+type instance Outputs Event (ElemScope WatchSuccs t) = '[]
+type instance Preserves     (ElemScope WatchSuccs t) = '[]
+instance KnownElemPass WatchSuccs where
+    elemPassDescription = genericDescription' . proxify
+
+-- newtype LayerCons  p t s = LayerCons (forall m. (MonadPassManager m, MonadRef m, s ~ PrimState m) => (t, Definition t) -> Pass (ElemScope p t) m)
+
+-- watchSuccs :: forall l m. (MonadIO m, MonadIR m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
+watchSuccs :: LayerCons WatchSuccs (Link' (Expr l)) s
+watchSuccs = LayerCons $ \(t, (src, tgt)) -> do
+    -- debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
+    modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
 --
--- watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
--- watchSuccs = do
---     (t, (src, tgt)) <- readAttr @WorkingElem
---     debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
---     modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
---
--- watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => DynPass m
+-- watchSuccs_dyn :: (MonadIR m, MonadIO m, MonadPassManager m) => DynPass m
 -- watchSuccs_dyn = Pass.compile $ watchSuccs
 --
 -- data WatchRemoveEdge
@@ -238,7 +249,7 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 -- type instance Events    (ElemScope WatchRemoveEdge t) = '[]
 -- type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
 --
--- watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (Link' (Expr l))) m
+-- watchRemoveEdge :: forall l m. (MonadIO m, MonadIR m) => Pass (ElemScope WatchRemoveEdge (Link' (Expr l))) m
 -- watchRemoveEdge = do
 --     (t, _)     <- readAttr @WorkingElem
 --     (src, tgt) <- readLayer @Model t
@@ -252,7 +263,7 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 -- type instance Events    (ElemScope WatchRemoveNode t) = '[DELETE // Link' AnyExpr]
 -- type instance Preserves (ElemScope WatchRemoveNode t) = '[]
 --
--- watchRemoveNode :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPR l)) m
+-- watchRemoveNode :: forall l m. (MonadIO m, MonadIR m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPR l)) m
 -- watchRemoveNode = do
 --     (e, _) <- readAttr @WorkingElem
 --     inps   <- symbolFields (generalize e :: AnyExpr)
@@ -307,23 +318,9 @@ initType = do
 {-# INLINE initType #-}
 
 
--- -- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
--- --   because it only works for Expressions
--- -- initType_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> DynPass m
--- initType_dyn = do
---     r <- Store.newSTRef Nothing
---     return $ \ _ -> Pass.compile $ initType r
---
--- -- initType_reg :: (IRMonad m, MonadIO m) => PassManager m ()
--- initType_reg = registerGenLayer (typeVal' @Type) =<< initType_dyn
---
---
---
---
 
 
 
--- ff = initUID' <$> Store.newSTRef 0
 -------------------------------------------
 -------------------------------------------
 -------------------------------------------
@@ -370,25 +367,25 @@ runRegs = do
 
 -- === Elem reg defs === --
 
-runElemRegs :: IRMonad m => m ()
+runElemRegs :: MonadIR m => m ()
 runElemRegs = sequence_ [elemReg1, elemReg2, elemReg3]
 
-elemReg1 :: IRMonad m => m ()
+elemReg1 :: MonadIR m => m ()
 elemReg1 = registerElem @AnyExpr
 
-elemReg2 :: IRMonad m => m ()
+elemReg2 :: MonadIR m => m ()
 elemReg2 = registerElem @(Link' AnyExpr)
 
-elemReg3 :: IRMonad m => m ()
+elemReg3 :: MonadIR m => m ()
 elemReg3 = registerElem @(GROUP AnyExpr)
 
 
 -- === Layer reg defs === --
 
-layerRegs :: IRMonad m => [m ()]
+layerRegs :: MonadIR m => [m ()]
 layerRegs = [] -- [layerReg1, layerReg2, layerReg3, layerReg4]
 
-runLayerRegs :: IRMonad m => m ()
+runLayerRegs :: MonadIR m => m ()
 runLayerRegs = sequence_ layerRegs
 
 

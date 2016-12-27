@@ -320,10 +320,7 @@ instance (TypeShow pass, TypeShow t) => TypeShow (ElemScope pass t) where
 
 -- === Definitions === --
 
--- | MonadPassManager_Boot is a hack allowing cross-module recursive dependencies with MonadPassManager
-type family MonadPassManager_Boot (m :: * -> *) :: Constraint
-
-class (Monad m, MonadPassManager_Boot m) => MonadPass m where
+class Monad m => MonadPass m where
     get :: m (GetPassData m)
     put :: GetPassData m -> m ()
 
@@ -335,11 +332,11 @@ type family GetPass  m where
 
 -- === Default instances === --
 
-instance (Monad m, MonadPassManager_Boot (SubPass pass m)) => MonadPass (SubPass pass m) where
+instance Monad m => MonadPass (SubPass pass m) where
     get = wrap   State.get ; {-# INLINE get #-}
     put = wrap . State.put ; {-# INLINE put #-}
 
-instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m), GetPassData m ~ GetPassData (t m), MonadPassManager_Boot (t m))
+instance {-# OVERLAPPABLE #-} (MonadPass m, MonadTrans t, Monad (t m), GetPassData m ~ GetPassData (t m))
       => MonadPass (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
@@ -398,20 +395,15 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
 
-instance ( Monad m
-         , ContainsRef pass k a (GetRefHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
-         , MonadPassManager_Boot (SubPass pass m))
+instance ( Monad m, ContainsRef pass k a (GetRefHandler m) ) -- FIXME[WD]: we can hopefully remove some args from this constraint
       => MonadRefState k a (SubPass pass m) where
     getRef = view findRef <$> get    ; {-# INLINE getRef #-}
     putRef = modify_ . (set findRef) ; {-# INLINE putRef #-}
 
-
-instance ( Monad m, MonadPassManager_Boot (SubPass pass m)
-         , MonadRefState k a (SubPass pass m)
+instance ( Monad m, MonadRefState k a (SubPass pass m)
          , Assert (a `In` (Inputs k pass)) (RefReadError k a)
          ) => Reader k a (SubPass pass m)
 
-instance ( Monad m, MonadPassManager_Boot (SubPass pass m)
-         , MonadRefState k a (SubPass pass m)
+instance ( Monad m, MonadRefState k a (SubPass pass m)
          , Assert (a `In` (Outputs k pass)) (RefWriteError k a)
          ) => Writer k a (SubPass pass m)

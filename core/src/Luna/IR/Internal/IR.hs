@@ -290,27 +290,15 @@ uncheckedElems = fmap (view $ from idx) <$> (liftRefHandler . Store.ixes =<< rea
 -- === Construction === --
 
 
--- newMagicElem :: forall t m. (IRMonad m, KnownType (Abstract t), IsIdx t) => Definition t -> m t
--- newMagicElem tdef = do
---     irstate    <- getIR
---     let trep = typeVal' @(Abstract t)
---         Just layerStore = irstate ^? wrapped' . ix trep
---     newIdx <- Store.reserveIdx layerStore
---     let el = newIdx ^. from idx
---     return el
--- {-# INLINE newMagicElem #-}
-
-
-
 type NewElemEvent m t = Emitter (New // Abstract t) m
-newElem2 :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t))
+newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t))
         => Definition t -> m t
-newElem2 tdef = do
+newElem tdef = do
     t <- reserveElem
     withDebugBy "Emitter" ("New // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]") $ do
         dispatchNewElem t tdef
     return t
-{-# INLINE newElem2 #-}
+{-# INLINE newElem #-}
 
 
 
@@ -339,10 +327,10 @@ freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @Net @(
 reserveNewElemIdx :: forall t m. (MonadRef m, Writer Net (Abstract t) m) => m Int
 reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @Net @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByRef :: (IRMonad m, IsIdx t) => Ref Layer (Abstract t // layer) m -> t -> m (LayerData layer t)
+readLayerByRef :: (MonadIR m, IsIdx t) => Ref Layer (Abstract t // layer) m -> t -> m (LayerData layer t)
 readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) $ unwrap' key) ; {-# INLINE readLayerByRef #-}
 
-writeLayerByRef :: (IRMonad m, IsIdx t) => Ref Layer (Abstract t // layer) m -> LayerData layer t -> t -> m ()
+writeLayerByRef :: (MonadIR m, IsIdx t) => Ref Layer (Abstract t // layer) m -> LayerData layer t -> t -> m ()
 writeLayerByRef key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) $ unwrap' key ; {-# INLINE writeLayerByRef #-}
 
 readLayer :: forall layer t m. (MonadRef m, IsIdx t, Reader Layer (Abstract t // layer) m) => t -> m (LayerData layer t)
@@ -378,13 +366,13 @@ readNet = readComp @Net @a ; {-# INLINE readNet #-}
 
 -- === Registration === --
 
-registerElemWith :: forall el m. (KnownType el, IRMonad m) => (ElemStoreM m -> ElemStoreM m) -> m ()
+registerElemWith :: forall el m. (KnownType el, MonadIR m) => (ElemStoreM m -> ElemStoreM m) -> m ()
 registerElemWith = modifyIRM_ . modifyElem (typeVal' @el) ; {-# INLINE registerElemWith #-}
 
-registerElem :: forall el m. (KnownType el, IRMonad m) => m ()
+registerElem :: forall el m. (KnownType el, MonadIR m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-unsafeCreateNewLayer :: IRMonad m => LayerRep -> ElemRep -> m ()
+unsafeCreateNewLayer :: MonadIR m => LayerRep -> ElemRep -> m ()
 unsafeCreateNewLayer l e = do
     s <- getIR
     let Just estore = s ^? wrapped' . ix e -- FIXME[WD]: Internal error if not found (element not registered)
@@ -397,35 +385,36 @@ unsafeCreateNewLayer l e = do
 instance MonadLogging m => MonadLogging (IRBuilder m)
 
 
+
 ----------------------
--- === IRMonad === ---
+-- === MonadIR === ---
 ----------------------
 
 -- === Definition === --
 
--- | IRMonad is subclass of MonadFix because many expr operations reuire recursive calls.
+-- | MonadIR is subclass of MonadFix because many expr operations reuire recursive calls.
 --   It is more convenient to store it as global constraint, so it could be altered easily in the future.
-type  IRMonadBase   m = (PrimMonad   m, MonadFix m, Logging m, MonadIO m) -- FIXME[WD]: remove io
-type  IRMonadBaseIO m = (IRMonadBase m, MonadIO  m)
-class IRMonadBase m => IRMonad m where
+type  MonadIRBase   m = (PrimMonad   m, MonadFix m, Logging m, MonadIO m) -- FIXME[WD]: remove io
+type  MonadIRBaseIO m = (MonadIRBase m, MonadIO  m)
+class MonadIRBase m => MonadIR m where
     getIR :: m (IRM m)
     putIR :: IRM m -> m ()
 
-instance {-# OVERLAPPABLE #-} (IRMonadBase m) => IRMonad (IRBuilder m) where
+instance {-# OVERLAPPABLE #-} (MonadIRBase m) => MonadIR (IRBuilder m) where
     getIR = wrap'   State.get ; {-# INLINE getIR #-}
     putIR = wrap' . State.put ; {-# INLINE putIR #-}
 
-instance {-# OVERLAPPABLE #-} IRMonadTrans t m => IRMonad (t m) where
+instance {-# OVERLAPPABLE #-} MonadIRTrans t m => MonadIR (t m) where
     getIR = lift   getIR ; {-# INLINE getIR #-}
     putIR = lift . putIR ; {-# INLINE putIR #-}
 
-type IRMonadTrans t m = (IRMonad m, MonadTrans t, IRMonadBase (t m), PrimState (t m) ~ PrimState m)
+type MonadIRTrans t m = (MonadIR m, MonadTrans t, MonadIRBase (t m), PrimState (t m) ~ PrimState m)
 
 
 
 --FIXME: REFACTOR
 type RefHandlerInvariants m = (PrimState m ~ PrimState (GetRefHandler m))
-type RefHandlerBase       m = (IRMonad m, PrimMonad m)
+type RefHandlerBase       m = (MonadIR m, PrimMonad m)
 type RefHandlerCtx        m = (RefHandlerBase m, RefHandlerBase (GetRefHandler m), RefHandlerInvariants m)
 class RefHandlerCtx m => MonadRef m where
     liftRefHandler :: forall a. GetRefHandler m a -> m a
@@ -433,7 +422,7 @@ class RefHandlerCtx m => MonadRef m where
 
 -- === Modyfication === --
 
-modifyIRM :: IRMonad m => (IRM m -> m (a, IRM m)) -> m a
+modifyIRM :: MonadIR m => (IRM m -> m (a, IRM m)) -> m a
 modifyIRM f = do
     s <- getIR
     (a, s') <- f s
@@ -441,13 +430,13 @@ modifyIRM f = do
     return a
 {-# INLINE modifyIRM #-}
 
-modifyIRM_ :: IRMonad m => (IRM m -> m (IRM m)) -> m ()
+modifyIRM_ :: MonadIR m => (IRM m -> m (IRM m)) -> m ()
 modifyIRM_ = modifyIRM . fmap (fmap ((),)) ; {-# INLINE modifyIRM_ #-}
 
-modifyIR_ :: IRMonad m => (IRM m -> IRM m) -> m ()
+modifyIR_ :: MonadIR m => (IRM m -> IRM m) -> m ()
 modifyIR_ = modifyIRM_ . fmap return ; {-# INLINE modifyIR_ #-}
 
-snapshot :: IRMonad m => m IR
+snapshot :: MonadIR m => m IR
 snapshot = freeze =<< getIR ; {-# INLINE snapshot #-}
 
 
@@ -518,7 +507,7 @@ type SubLink s t = Link (Sub s t) t
 
 link :: forall a b m. (Show a, Show b, MonadRef m, KnownType (Abstract (Link a b)), NewElemEvent m (Link a b), Writer Net (Abstract (Link a b)) m)
      => a -> b -> m (Link a b)
-link a b = newElem2 (a,b) ; {-# INLINE link #-}
+link a b = newElem (a,b) ; {-# INLINE link #-}
 
 
 -- === Instances === ---
@@ -545,7 +534,7 @@ type Group a = Elem (GROUP a)
 
 group :: forall f a m. (Show a, MonadRef m, Foldable f, Ord a, NewElemEvent m (Group a), KnownType (Abstract (Group a)), Writer Net (Abstract (Group a)) m)
       => f a -> m (Group a)
-group = newElem2 . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
+group = newElem . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
 
 
@@ -678,16 +667,16 @@ type SomeExprLink = Link' SomeExpr
 unsafeRelayout :: Expr l -> Expr l'
 unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 
-expr2 :: forall atom layout m. (TermEncoder atom, MonadRef m, Writer Net AnyExpr m, Emitter (New // AnyExpr) m)
-      => ExprTerm atom (Expr layout) -> m (Expr layout)
-expr2 = newElem2 . encodeTerm ; {-# INLINE expr2 #-}
+expr :: forall atom layout m. (TermEncoder atom, MonadRef m, Writer Net AnyExpr m, Emitter (New // AnyExpr) m)
+     => ExprTerm atom (Expr layout) -> m (Expr layout)
+expr = newElem . encodeTerm ; {-# INLINE expr #-}
 
 reserveExpr :: (MonadRef m, Writer Net AnyExpr m)
             => m (Expr layout)
 reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 
-dispatchNewExpr2 :: (Emitter (New // AnyExpr) m, TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
-dispatchNewExpr2 = flip dispatchNewElem . encodeTerm
+dispatchNewExpr :: (Emitter (New // AnyExpr) m, TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr = flip dispatchNewElem . encodeTerm
 
 
 exprs :: (MonadRef m, Reader Net AnyExpr m) => m [SomeExpr]

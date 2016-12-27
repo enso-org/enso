@@ -13,7 +13,7 @@ import           Data.Event          (Event, Payload(Payload), EventHub, Emitter
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR as IR
-import Luna.Pass.Class (MonadPassManager_Boot, SubPass, PassRep, Proto, DynPass, Template, Uninitialized)
+import Luna.Pass.Class (SubPass, PassRep, Proto, DynPass, Template, Uninitialized)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -76,16 +76,15 @@ makeWrapped ''PassManager
 
 -- === MonadPassManager === --
 
-type instance MonadPassManager_Boot m = MonadPassManager m
-class (IRMonad m, MonadRef m) => MonadPassManager m where
+class (MonadIR m, MonadRef m) => MonadPassManager m where
     get :: m (RefState m)
     put :: RefState m -> m ()
 
-instance IRMonad m => MonadPassManager (PassManager m) where
+instance MonadIR m => MonadPassManager (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
 
-type TransBaseMonad t m = (MonadTransInvariants' t m, IRMonad (t m), MonadRef (t m), GetRefHandler m ~ GetRefHandler (t m))
+type TransBaseMonad t m = (MonadTransInvariants' t m, MonadIR (t m), MonadRef (t m), GetRefHandler m ~ GetRefHandler (t m))
 instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m)
       => MonadPassManager (t m) where
     get = lift   get ; {-# INLINE get #-}
@@ -160,8 +159,6 @@ instance MonadTrans PassManager where
 
 
 
--- class ContainsRef pass k a m where findRef :: Lens' (DataSet m pass) (Ref k a m)
-
 
 type instance RefData Event _ m = Template (DynPass m)
 
@@ -171,17 +168,6 @@ instance (MonadPassManager m, Pass.ContainsRef pass Event e (GetRefHandler m))
     emit (Payload p) = do
         tmpl <- unwrap' . view (Pass.findRef @pass @Event @e) <$> Pass.get
         liftRefHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
---
---
--- class Monad m => Emitter m a where
---     emit :: forall e. a ~ Abstract e => Event e -> m ()
-
--- class Monad m => Emitter m a where
---     emit :: forall e. a ~ Abstract e => Proxy e -> Payload e -> m ()
---
--- instance Emitter (SubPass pass m) e where
---     emit _ p =
-
 
 
 
@@ -209,7 +195,7 @@ unsafeWithAttr r a f = do
 
 
 type instance GetRefHandler (PassManager m) = PassManager m
-instance IRMonad m => MonadRef (PassManager m) where
+instance MonadIR m => MonadRef (PassManager m) where
     liftRefHandler = id ; {-# INLINE liftRefHandler #-}
 
 
@@ -245,45 +231,13 @@ instance PrimMonad m => PrimMonad (RefCache m) where
     primitive = lift . primitive ; {-# INLINE primitive #-}
 
 
--- type instance GetRefHandler (RefCache m) = GetRefHandler m
--- instance MonadPass m => MonadPass (RefCache m) where
---     liftRefHandler = lift . liftRefHandler ; {-# INLINE liftRefHandler #-}
-
 instance MonadLogging m => MonadLogging (RefCache m)
---
--- instance (MonadRefLookup k m, KnownType k, MonadFix m, MonadIO m) => MonadRefLookup k (RefCache m) where
---     uncheckedLookupRef keyRep = mdo
---         let ckey = (typeVal' @k, keyRep)
---         print ("caching " <> show ckey)
---         c <- getCache
---         case c ^. at ckey of
---             Just v  -> return (unsafeCoerce v)
---             Nothing -> mdo
---                 putCache $ c & at ckey .~ Just (unsafeCoerce out)
---                 out <- lift $ uncheckedLookupRef keyRep
---                 return out
-        -- lift $ uncheckedLookupRef keyRep
 
--- class Monad m => MonadRefLookup k m where
---     uncheckedLookupRef :: forall a. TypeRep {- the type of `a` -}
---                        -> m (Maybe (Ref k a m))
-
-
--- Ref nie powinien byc zalezny od m - w ogole, tylko od PrimState s = to jest gwarancja dla PassManagera
--- trzebaby zrobic poza tym listeners, tak by listener zalezny byl od monady passmanagera, a nie tak jak teraz klucz od monady pod monada passu.
--- Wtedy mozna robic Cache dla eventlsitenerow, teraz sie nie da.
---
--- + renaming
--- Uninitialized -> Uninitialized
--- initialize -> compile / compileTemplate
---
--- initialize -> initialize
-
-instance (IRMonad m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) where
+instance (MonadIR m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) where
     uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance IRMonad m => MonadRefLookup Layer (PassManager m) where
+instance MonadIR m => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef a = do
         s <- getIR
         let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
@@ -292,11 +246,11 @@ instance IRMonad m => MonadRefLookup Layer (PassManager m) where
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupRef #-}
 
-instance IRMonad m => MonadRefLookup Net (PassManager m) where
+instance MonadIR m => MonadRefLookup Net (PassManager m) where
     uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance (IRMonad m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where -- Event.FromPath e
+instance (MonadIR m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where -- Event.FromPath e
     uncheckedLookupRef a = do
         let ckey = (typeVal' @Event, a)
         c <- getCache
