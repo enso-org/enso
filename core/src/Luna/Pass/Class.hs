@@ -268,8 +268,9 @@ compileTemplate :: forall pass m a. PassInit pass m
                 => Template (SubPass pass m a) -> Uninitialized m (Template (DynSubPass m a))
 compileTemplate (Template t) = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
-        fmap (\d -> Template $ \arg -> DynSubPass $ State.evalStateT (unwrap' $ t arg) d) <$> (fromJust <$> lookupRefStore @pass desc)
-    where fromJust (Just a) = Right a
+        fmap (\d -> Template $ \arg -> DynSubPass $ State.evalStateT (unwrap' $ t arg) d) <$> (fromJust desc <$> lookupRefStore @pass desc)
+    where fromJust t (Just a) = Right a
+          fromJust t Nothing = error $ "!!!" <> show t
           desc = passDescription @pass
 {-# INLINE compileTemplate #-}
 

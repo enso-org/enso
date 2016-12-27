@@ -129,6 +129,7 @@ attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> sho
         dpass = Pass.specialize pproto e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
     put s'
+    print $ ">>> " <> show dpass
     addEventListener priority (NEW // (e ^. asTypeRep)) dpass -- TODO
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}

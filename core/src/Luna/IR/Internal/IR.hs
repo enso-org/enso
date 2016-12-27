@@ -85,7 +85,7 @@ newtype Elem t = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
 
 type instance Definition (Elem t) = Definition t
-type instance Abstract   (Elem t) = Abstract   t -- FIXME[WD]: to make everything more consistent, shouldnt we here return Elem (Abstract t) ?
+type instance Abstract   (Elem t) = Elem (Abstract  t)
 type instance Universal  (Elem t) = Elem (Universal t)
 
 
@@ -551,18 +551,20 @@ group = newElem2 . foldl' (flip Set.insert) mempty ; {-# INLINE group #-}
 
 ---------------------
 
-data EXPR = EXPR deriving (Show)
+-- data EXPR = EXPR deriving (Show)
 
+data ANY
 
+data EXPR layout
 ------------------------
 -- === ExprTerm === --
 ------------------------
 
 data TMP -- FIXME
 
-type    ExprTermDef atom t = N.Term atom (Layout.Named (SubLink NAME t) (SubLink EXPR t))
+type    ExprTermDef atom t = N.Term atom (Layout.Named (SubLink NAME t) (SubLink (Elem (EXPR ANY)) t))
 newtype ExprTerm    atom t = ExprTerm    (ExprTermDef atom t)
-newtype ExprUniTerm      t = ExprUniTerm (N.UniTerm   (Layout.Named (SubLink NAME t) (SubLink EXPR t)))
+newtype ExprUniTerm      t = ExprUniTerm (N.UniTerm   (Layout.Named (SubLink NAME t) (SubLink (Elem (EXPR ANY)) t)))
 type    ExprTerm'   atom   = ExprTerm atom TMP
 makeWrapped ''ExprTerm
 makeWrapped ''ExprUniTerm
@@ -656,17 +658,18 @@ instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder ato
 -- === Expr === --
 ------------------
 
-data EXPRESSION layout
-type instance Definition (EXPRESSION _) = ExprStore
-type instance Abstract   (EXPRESSION _) = EXPR
-type instance Universal  (EXPRESSION _) = EXPRESSION Layout.Any
+
+type instance Definition (EXPR _) = ExprStore
+type instance Abstract   (EXPR _) = EXPR ANY
+type instance Universal  (EXPR _) = EXPR Layout.Bottom
 
 
 -- === Definition === --
 
-type Expr layout = Elem (EXPRESSION layout)
-type AnyExpr     = Expr Layout.Any
-type AnyExprLink = Link' AnyExpr
+type Expr layout  = Elem (EXPR layout)
+type AnyExpr      = Expr ANY
+type SomeExpr     = Expr Layout.Bottom
+type SomeExprLink = Link' SomeExpr
 
 
 -- === Utils === --
@@ -674,32 +677,32 @@ type AnyExprLink = Link' AnyExpr
 unsafeRelayout :: Expr l -> Expr l'
 unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 
-expr2 :: forall atom layout m. (TermEncoder atom, MonadRef m, Writer NET EXPR m, Emitter m (NEW // EXPR))
+expr2 :: forall atom layout m. (TermEncoder atom, MonadRef m, Writer NET AnyExpr m, Emitter m (NEW // AnyExpr))
       => ExprTerm atom (Expr layout) -> m (Expr layout)
 expr2 = newElem2 . encodeTerm ; {-# INLINE expr2 #-}
 
-reserveExpr :: (MonadRef m, Writer NET EXPR m)
+reserveExpr :: (MonadRef m, Writer NET AnyExpr m)
             => m (Expr layout)
 reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 
-dispatchNewExpr2 :: (Emitter m (NEW // EXPR), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr2 :: (Emitter m (NEW // AnyExpr), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
 dispatchNewExpr2 = flip dispatchNewElem . encodeTerm
 
 
-exprs :: (MonadRef m, Reader NET EXPR m) => m [AnyExpr]
+exprs :: (MonadRef m, Reader NET AnyExpr m) => m [SomeExpr]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
 
-links :: (MonadRef m, Reader NET (LINK' EXPR) m) => m [AnyExprLink]
+links :: (MonadRef m, Reader NET (Link' AnyExpr) m) => m [SomeExprLink]
 links = uncheckedElems ; {-# INLINE links #-}
 
 
 -- | Expr pattern matching utility
-match :: (MonadRef m, Reader LAYER (EXPR // Model) m)
+match :: (MonadRef m, Reader LAYER (AnyExpr // Model) m)
       => Expr layout -> (Unwrapped (ExprUniTerm (Expr layout)) -> m a) -> m a
 match t f = f . unwrap' =<< (exprUniTerm t) ; {-# INLINE match #-}
 
 -- | Term unification
-exprUniTerm :: (MonadRef m, Reader LAYER (EXPR // Model) m) => Expr layout -> m (ExprUniTerm (Expr layout))
+exprUniTerm :: (MonadRef m, Reader LAYER (AnyExpr // Model) m) => Expr layout -> m (ExprUniTerm (Expr layout))
 exprUniTerm t = ExprUniTerm <$> symbolMapM_AB @ToUniTerm toUniTerm t ; {-# INLINE exprUniTerm #-}
 
 class ToUniTerm a b where toUniTerm :: a -> b
@@ -710,8 +713,8 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 -- === Instances === --
 
 --FIXME[MK->WD]: I don't care for the second part of the tuple, it's necessary to make pass manager magic work, but should be removed ASAP
-type instance Event.Payload (DELETE // EXPR)       = (AnyExpr, Prim.Any)
-type instance Event.Payload (DELETE // LINK' EXPR) = (Link' AnyExpr, Prim.Any)
+type instance Event.Payload (DELETE // AnyExpr)       = (SomeExpr, Prim.Any)
+type instance Event.Payload (DELETE // Link' AnyExpr) = (Link' SomeExpr, Prim.Any)
 
 type instance Sub s     (Expr l) = Expr (Sub s l)
 
@@ -719,7 +722,7 @@ type instance Sub s     (Expr l) = Expr (Sub s l)
 type instance Generalizable (Expr l) (Expr l') = ExprGeneralizable l l'
 
 type family ExprGeneralizable l l' where
-    ExprGeneralizable l Layout.Any = 'True -- FIXME[WD]: shouldn't we introduce `Layoyut` newtype wrapper to indicate that layouts could be always generalized to Any?
+    ExprGeneralizable l Layout.Bottom = 'True -- FIXME[WD]: shouldn't we introduce `Layoyut` newtype wrapper to indicate that layouts could be always generalized to Any?
     ExprGeneralizable l l'         = Generalizable l l'
 
 
@@ -746,9 +749,9 @@ unsafeGeneralize = unsafeCoerce ; {-# INLINE unsafeGeneralize #-}
 
 
 -- type ExprLayer     = Layer EXPR
--- type ExprLinkLayer = Layer (LINK' EXPR)
+-- type ExprLinkLayer = Layer (Link' AnyExpr)
 -- type ExprNet       = Net   EXPR
--- type ExprLinkNet   = Net   (LINK' EXPR)
+-- type ExprLinkNet   = Net   (Link' AnyExpr)
 -- type ExprGroupNet  = Net   (GROUP EXPR)
 
 
@@ -765,10 +768,10 @@ type family MonadRefStates k as m :: Constraint where
 
 
 
-unsafeToExprTerm :: forall atom l m. (MonadRef m, Reader LAYER (EXPR // Model) m) => Expr l -> m (ExprTerm atom (Expr l))
+unsafeToExprTerm :: forall atom l m. (MonadRef m, Reader LAYER (AnyExpr // Model) m) => Expr l -> m (ExprTerm atom (Expr l))
 unsafeToExprTerm = unsafeCoerce . unwrap' . access @TERM . unwrap' <∘> readLayer @Model ; {-# INLINE unsafeToExprTerm #-}
 
-unsafeModifyExprTermDef :: forall atom l m. (MonadRef m, Editor LAYER (EXPR // Model) m)
+unsafeModifyExprTermDef :: forall atom l m. (MonadRef m, Editor LAYER (AnyExpr // Model) m)
                         => Expr l -> (ExprTermDef atom (Expr l) -> ExprTermDef atom (Expr l)) -> m ()
 unsafeModifyExprTermDef expr f = do
     oldModel <- readLayer @Model expr
@@ -777,7 +780,7 @@ unsafeModifyExprTermDef expr f = do
     let newModel = wrap' $ update' @TERM (wrap' $ unsafeCoerce $ (wrap' $ f oldDef :: ExprTerm atom (Expr l))) $ unwrap' oldModel
     writeLayer @Model newModel expr
 
-unsafeToExprTermDef :: forall atom l m. (MonadRef m, Reader LAYER (EXPR // Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
+unsafeToExprTermDef :: forall atom l m. (MonadRef m, Reader LAYER (AnyExpr // Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
 unsafeToExprTermDef = unwrap' <∘> unsafeToExprTerm ; {-# INLINE unsafeToExprTermDef #-}
 
 
@@ -795,7 +798,7 @@ instance (  TermMapM as ctx expr m b
          , ctx (ExprTerm a expr) m b
          , idx ~ FromJust (Encode2 Atom a) -- FIXME: make it nicer and assert
          , KnownNat idx
-         , Reader LAYER (EXPR // Model) m
+         , Reader LAYER (AnyExpr // Model) m
          , expr ~ Expr layout
          )
       => TermMapM (a ': as) ctx expr m b where
@@ -854,11 +857,11 @@ isSameAtom a b = (==) <$> getAtomRep a <*> getAtomRep b
 -- class Repr  s a        where repr  ::       a -> Builder s Tok
 
 
-class ReprExpr a b where reprAnyExpr :: a -> b
-instance (Repr s a, b ~ Builder s Tok) => ReprExpr a b where reprAnyExpr = repr
+class ReprExpr a b where reprSomeExpr :: a -> b
+instance (Repr s a, b ~ Builder s Tok) => ReprExpr a b where reprSomeExpr = repr
 
 reprExpr :: (TermMapM_AB ReprExpr (Expr l) m out, out ~ Builder s Tok) => Expr l -> m out
-reprExpr = symbolMapM_AB @ReprExpr reprAnyExpr
+reprExpr = symbolMapM_AB @ReprExpr reprSomeExpr
 
 
 

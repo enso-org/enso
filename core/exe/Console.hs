@@ -64,13 +64,13 @@ import System.Exit
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
 type instance Inputs  NET   SimpleAA = '[]
-type instance Outputs NET   SimpleAA = '[EXPR]
-type instance Inputs  LAYER SimpleAA = '[EXPR // Model]
+type instance Outputs NET   SimpleAA = '[AnyExpr]
+type instance Inputs  LAYER SimpleAA = '[AnyExpr // Model]
 type instance Outputs LAYER SimpleAA = '[]
 type instance Inputs  ATTR  SimpleAA = '[]
 type instance Outputs ATTR  SimpleAA = '[]
 type instance Inputs  EVENT SimpleAA = '[] -- will never be used
-type instance Outputs EVENT SimpleAA = '[NEW // EXPR]
+type instance Outputs EVENT SimpleAA = '[NEW // AnyExpr]
 type instance Preserves     SimpleAA = '[]
 
 
@@ -82,13 +82,13 @@ test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-uncheckedDeleteStar :: (MonadRef m, Reader LAYER (EXPR // Type) m, Editors NET '[LINK' EXPR, EXPR] m) => Expr l -> m ()
+uncheckedDeleteStar :: (MonadRef m, Reader LAYER (AnyExpr // Type) m, Editors NET '[Link' AnyExpr, AnyExpr] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
     freeElem =<< readLayer @Type e
     freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
-uncheckedDeleteStarType :: (MonadRef m, Reader LAYER (EXPR // Type) m, Editors NET '[LINK' EXPR, EXPR] m, Editors LAYER '[LINK' EXPR // Model] m)
+uncheckedDeleteStarType :: (MonadRef m, Reader LAYER (AnyExpr // Type) m, Editors NET '[Link' AnyExpr, AnyExpr] m, Editors LAYER '[Link' AnyExpr // Model] m)
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
@@ -104,11 +104,11 @@ uncheckedDeleteStarType e = do
 
 
 gen_pass1 :: ( MonadIO m, MonadRef m, MonadVis m
-             , Writers NET '[EXPR] m
-             , Emitter m (NEW // EXPR)
-             , Reader LAYER (EXPR // Model) m
-            --  , Accessibles m '[EXPR // Model, LINK' EXPR // Model, EXPR // Type, EXPR // Succs, LINK' EXPR // UID, EXPR // UID, ExprNet, ExprLinkNet, ExprGroupNet]
-            --  , Emitter m (NEW // EXPR)
+             , Writers NET '[AnyExpr] m
+             , Emitter m (NEW // AnyExpr)
+             , Reader LAYER (AnyExpr // Model) m
+            --  , Accessibles m '[AnyExpr // Model, Link' AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, Link' AnyExpr // UID, AnyExpr // UID, ExprNet, ExprLinkNet, ExprGroupNet]
+            --  , Emitter m (NEW // AnyExpr)
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star2

@@ -4,7 +4,7 @@ module Luna.IR.Expr.Layout.ENT where
 
 import Luna.Prelude hiding (Simple, String)
 
-import Luna.IR.Internal.IR (EXPR)
+import Luna.IR.Internal.IR (AnyExpr)
 import Luna.IR.Expr.Layout.Class
 import Luna.IR.Expr.Layout.Nested
 import Luna.IR.Expr.Format
@@ -25,11 +25,11 @@ import Type.Bool
 
 data Ent
 
-type ENT e n t = Layout '[EXPR := e, NAME := n, Type := t]
-type ET  e   t = Layout '[EXPR := e,            Type := t]
-type EN  e n   = Layout '[EXPR := e, NAME := n           ]
+type ENT e n t = Layout '[AnyExpr := e, NAME := n, Type := t]
+type ET  e   t = Layout '[AnyExpr := e,            Type := t]
+type EN  e n   = Layout '[AnyExpr := e, NAME := n           ]
 type NT    n t = Layout '[           NAME := n, Type := t]
-type E   e     = Layout '[EXPR := e                      ]
+type E   e     = Layout '[AnyExpr := e                      ]
 type N     n   = Layout '[           NAME := n           ]
 type T       t = Layout '[                      Type := t]
 
@@ -67,7 +67,7 @@ type instance Merge (Cons t) (Atomic a) = Merge (ConsType t) (Atomic a)
 
 type instance DefaultLayout Type = Star
 type instance DefaultLayout NAME = String
-type instance DefaultLayout EXPR = () -- If it was not mentioned explicitly, it was simply absent.
+type instance DefaultLayout AnyExpr = () -- If it was not mentioned explicitly, it was simply absent.
 
 
 type instance Merge (h >> l) (Atomic a) = Merge h (Atomic a) >> Merge l (Atomic a)
@@ -85,22 +85,22 @@ type instance Merge (h >> l) () = h >> l
 
 type instance AddKey '[a] a = '[a]
 
-type instance AddKey '[EXPR] NAME = '[EXPR, NAME]
-type instance AddKey '[EXPR] Type = '[EXPR, Type]
+type instance AddKey '[AnyExpr] NAME = '[AnyExpr, NAME]
+type instance AddKey '[AnyExpr] Type = '[AnyExpr, Type]
 
-type instance AddKey '[NAME] EXPR = '[EXPR, NAME]
+type instance AddKey '[NAME] AnyExpr = '[AnyExpr, NAME]
 type instance AddKey '[NAME] Type = '[NAME, Type]
 
 type instance AddKey '[Type] NAME = '[NAME, Type]
-type instance AddKey '[Type] EXPR = '[EXPR, Type]
+type instance AddKey '[Type] AnyExpr = '[AnyExpr, Type]
 
 
 
 type instance AddKey '[a,b] a = '[a,b]
 type instance AddKey '[a,b] b = '[a,b]
-type instance AddKey '[NAME, Type] EXPR = '[EXPR, NAME, Type]
-type instance AddKey '[EXPR, Type] NAME = '[EXPR, NAME, Type]
-type instance AddKey '[EXPR, NAME] Type = '[EXPR, NAME, Type]
+type instance AddKey '[NAME, Type] AnyExpr = '[AnyExpr, NAME, Type]
+type instance AddKey '[AnyExpr, Type] NAME = '[AnyExpr, NAME, Type]
+type instance AddKey '[AnyExpr, NAME] Type = '[AnyExpr, NAME, Type]
 
 type instance AddKey '[a,b,c] a = '[a,b,c]
 type instance AddKey '[a,b,c] b = '[a,b,c]
@@ -108,11 +108,11 @@ type instance AddKey '[a,b,c] c = '[a,b,c]
 
 -- FIXME[WD]: change the definition of sets to comparable ones:
 
--- type instance EXPR > NAME = 'False
--- type instance NAME > EXPR = 'True
+-- type instance AnyExpr > NAME = 'False
+-- type instance NAME > AnyExpr = 'True
 --
--- type instance EXPR > Type = 'False
--- type instance Type > EXPR = 'True
+-- type instance AnyExpr > Type = 'False
+-- type instance Type > AnyExpr = 'True
 
 -- with auto eq:
 -- NAME `gt` Expr
@@ -120,10 +120,10 @@ type instance AddKey '[a,b,c] c = '[a,b,c]
 -- Type `gt` NAME
 
 
-type instance Sub t (Form   f) = If (t == EXPR) (Form   f) (DefaultLayout t)
-type instance Sub t (Atomic a) = If (t == EXPR) (Atomic a) (DefaultLayout t)
+type instance Sub t (Form   f) = If (t == AnyExpr) (Form   f) (DefaultLayout t)
+type instance Sub t (Atomic a) = If (t == AnyExpr) (Atomic a) (DefaultLayout t)
 
 
-type instance Generalizable (h >> l)   Any = 'True
-type instance Generalizable (Form   f) Any = 'True
-type instance Generalizable (Atomic a) Any = 'True
+type instance Generalizable (h >> l)   Bottom = 'True
+type instance Generalizable (Form   f) Bottom = 'True
+type instance Generalizable (Atomic a) Bottom = 'True
