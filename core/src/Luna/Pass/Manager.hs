@@ -240,7 +240,7 @@ instance (MonadIR m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) whe
 instance MonadIR m => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef a = do
         s <- getIR
-        let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
+        let (_,[e,l]) = splitTyConApp a -- dirty typrep of (e // l) extraction
             mlv = s ^? wrapped' . ix e
         mr <- liftRefHandler $ mapM (Store.readKey l) mlv
         return $ wrap' <$> join mr
@@ -250,7 +250,7 @@ instance MonadIR m => MonadRefLookup Net (PassManager m) where
     uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance (MonadIR m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where -- Event.FromPath e
+instance (MonadIR m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where
     uncheckedLookupRef a = do
         let ckey = (typeVal' @Event, a)
         c <- getCache
