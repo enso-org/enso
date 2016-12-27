@@ -1,4 +1,4 @@
-module Luna.IR.Function.Class where
+module Luna.IR.Function.Definition where
 
 import           Luna.Prelude
 import           Luna.IR

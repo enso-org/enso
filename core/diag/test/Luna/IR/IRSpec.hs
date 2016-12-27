@@ -12,7 +12,7 @@ import Luna.IR.Runner
 import Luna.IR
 import Luna.TestUtils
 import Luna.IR.Expr.Combinators
-import Luna.IR.Function.Class
+import Luna.IR.Function.Definition
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
