@@ -115,56 +115,56 @@ instance IsIdx (Elem t) where
 
 
 ------------------
--- === Keys === --
+-- === Refs === --
 ------------------
 
 --- === Definition === --
 
--- newtype Key  s k = Key (KeyData s k)
-newtype Key k a m = Key (KeyData k a m)
+-- newtype Ref  s k = Ref (RefData s k)
+newtype Ref k a m = Ref (RefData k a m)
 
-type family KeyData k a (m :: * -> *)
+type family RefData k a (m :: * -> *)
 
-type family Keys k as m where
-    Keys k '[]       m = '[]
-    Keys k (a ': as) m = Key k a m ': Keys k as m
+type family Refs k as m where
+    Refs k '[]       m = '[]
+    Refs k (a ': as) m = Ref k a m ': Refs k as m
 
--- type        KeyData k a mey = KeyData (PrimState m) key
+-- type        RefData k a mey = RefData (PrimState m) key
 
-makeWrapped ''Key
+makeWrapped ''Ref
 
-type Key' k a m = Key k a (GetPassHandler m)
--- type RebasedKeyData k a m n = (KeyData k a n ~ KeyData k a m)
+type Ref' k a m = Ref k a (GetPassHandler m)
+-- type RebasedRefData k a m n = (RefData k a n ~ RefData k a m)
 --
--- rebaseKey :: RebasedKeyData k a m n => Key k a m -> Key k a n
--- rebaseKey = rewrap ; {-# INLINE rebaseKey #-}
+-- rebaseRef :: RebasedRefData k a m n => Ref k a m -> Ref k a n
+-- rebaseRef = rewrap ; {-# INLINE rebaseRef #-}
 
 
--- === Key Monad === --
+-- === Ref Monad === --
 
--- class Monad m => KeyMonad key m n where
---     uncheckedLookupKey :: m (Maybe (Key n key))
+-- class Monad m => RefMonad key m n where
+--     uncheckedLookupRef :: m (Maybe (Ref n key))
 
-class Monad m => KeyMonad k m where
-    uncheckedLookupKey :: forall a. TypeRep {- the type of `a` -}
-                       -> m (Maybe (Key' k a m))
+class Monad m => RefMonad k m where
+    uncheckedLookupRef :: forall a. TypeRep {- the type of `a` -}
+                       -> m (Maybe (Ref' k a m))
 
 
 -- === Construction === --
 
-readKey :: forall k a m n. Monad m => Key k a n -> m (KeyData k a n)
-readKey = return . unwrap' ; {-# INLINE readKey #-}
+readRef :: forall k a m n. Monad m => Ref k a n -> m (RefData k a n)
+readRef = return . unwrap' ; {-# INLINE readRef #-}
 
-writeKey :: forall k a m n. Monad m => KeyData k a n -> m (Key k a n)
-writeKey = return . wrap' ; {-# INLINE writeKey #-}
+writeRef :: forall k a m n. Monad m => RefData k a n -> m (Ref k a n)
+writeRef = return . wrap' ; {-# INLINE writeRef #-}
 
 
--- === Key access === --
+-- === Ref access === --
 
 -- FIXME: To refactor
--- Keys should be moved to Pass, because they internal monad ALWAYS defaults to pass
+-- Refs should be moved to Pass, because they internal monad ALWAYS defaults to pass
 type family GetPassHandler (m :: * -> *) :: * -> *
-type KeyData' k a m = KeyData k a (GetPassHandler m)
+type RefData' k a m = RefData k a (GetPassHandler m)
 
 
 
@@ -177,37 +177,37 @@ type Editor k a m = (Reader k a m, Writer k a m)
 type TransST    t m   = (MonadTrans t, Monad (t m), PrimState (t m) ~ PrimState m)
 
 -- Reader
-class    Monad m                                => Reader k a m     where getKey :: m (Key k a (GetPassHandler m))
-instance {-# OVERLAPPABLE #-} SubReader k a t m => Reader k a (t m) where getKey = lift getKey ; {-# INLINE getKey #-}
+class    Monad m                                => Reader k a m     where getRef :: m (Ref k a (GetPassHandler m))
+instance {-# OVERLAPPABLE #-} SubReader k a t m => Reader k a (t m) where getRef = lift getRef ; {-# INLINE getRef #-}
 type SubReader k a t m = (Reader k a m, TransST t m, GetPassHandler (t m) ~ GetPassHandler m)
 
 -- Writer
-class    Monad m                                => Writer k a m     where putKey :: Key k a (GetPassHandler m) -> m ()
-instance {-# OVERLAPPABLE #-} SubWriter k a t m => Writer k a (t m) where putKey = lift . putKey ; {-# INLINE putKey #-}
+class    Monad m                                => Writer k a m     where putRef :: Ref k a (GetPassHandler m) -> m ()
+instance {-# OVERLAPPABLE #-} SubWriter k a t m => Writer k a (t m) where putRef = lift . putRef ; {-# INLINE putRef #-}
 type SubWriter k a t m = (Writer k a m, TransST t m, GetPassHandler (t m) ~ GetPassHandler m)
 
 
-readComp :: forall k a m. Reader k a m => m (KeyData' k a m)
-readComp = readKey =<< getKey @k @a ; {-# INLINE readComp #-}
+readComp :: forall k a m. Reader k a m => m (RefData' k a m)
+readComp = readRef =<< getRef @k @a ; {-# INLINE readComp #-}
 
-writeComp :: forall k a m. Writer k a m => KeyData' k a m -> m ()
-writeComp = putKey @k @a <=< writeKey ; {-# INLINE writeComp #-}
+writeComp :: forall k a m. Writer k a m => RefData' k a m -> m ()
+writeComp = putRef @k @a <=< writeRef ; {-# INLINE writeComp #-}
 
 
 -- === Errors === --
 
-type KeyAccessError action k a = Sentence $ ErrMsg "Key"
+type RefAccessError action k a = Sentence $ ErrMsg "Ref"
                                       :</>: 'ShowType k
                                       :</>: Parensed ('ShowType a)
                                       :</>: ErrMsg "is not"
                                       :</>: (ErrMsg action :<>: ErrMsg "able")
 
-type KeyMissingError k = Sentence $ ErrMsg "Key"
+type RefMissingError k = Sentence $ ErrMsg "Ref"
                               :</>: Ticked ('ShowType k)
                               :</>: ErrMsg "is not accessible"
 
-type KeyReadError  k a = KeyAccessError "read"  k a
-type KeyWriteError k a = KeyAccessError "write" k a
+type RefReadError  k a = RefAccessError "read"  k a
+type RefWriteError k a = RefAccessError "write" k a
 
 
 
@@ -348,18 +348,18 @@ freeElem t = liftPassHandler . flip Store.freeIdx (t ^. idx) =<< readComp @NET @
 reserveNewElemIdx :: forall t m. (MonadPass m, Editor NET (Abstract t) m) => m Int
 reserveNewElemIdx = liftPassHandler . Store.reserveIdx =<< readComp @NET @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByKey :: (IRMonad m, IsIdx t) => Key LAYER (Layer (Abstract t) layer) m -> t -> m (LayerData layer t)
-readLayerByKey key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) =<< readKey key) ; {-# INLINE readLayerByKey #-}
+readLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Layer (Abstract t) layer) m -> t -> m (LayerData layer t)
+readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) =<< readRef key) ; {-# INLINE readLayerByRef #-}
 
-writeLayerByKey :: (IRMonad m, IsIdx t) => Key LAYER (Layer (Abstract t) layer) m -> LayerData layer t -> t -> m ()
-writeLayerByKey key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) =<< readKey key ; {-# INLINE writeLayerByKey #-}
+writeLayerByRef :: (IRMonad m, IsIdx t) => Ref LAYER (Layer (Abstract t) layer) m -> LayerData layer t -> t -> m ()
+writeLayerByRef key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) =<< readRef key ; {-# INLINE writeLayerByRef #-}
 
 readLayer :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => t -> m (LayerData layer t)
-readLayer t = liftPassHandler . flip readLayerByKey t =<< getKey @LAYER @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
+readLayer t = liftPassHandler . flip readLayerByRef t =<< getRef @LAYER @(Layer (Abstract t) layer) ; {-# INLINE readLayer #-}
 
 -- FIXME[WD]: writeLayer should need writable
 writeLayer :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => LayerData layer t -> t -> m ()
-writeLayer val t = (\k -> liftPassHandler $ writeLayerByKey k val t) =<< getKey @LAYER @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
+writeLayer val t = (\k -> liftPassHandler $ writeLayerByRef k val t) =<< getRef @LAYER @(Layer (Abstract t) layer) ; {-# INLINE writeLayer #-}
 
 modifyLayerM :: forall layer t m a. (MonadPass m, IsIdx t, Reader LAYER (Layer (Abstract t) layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
 modifyLayerM f t = do
@@ -376,13 +376,13 @@ modifyLayer_ :: forall layer t m. (MonadPass m, IsIdx t, Reader LAYER (Layer (Ab
 modifyLayer_ = modifyLayerM_ @layer . fmap return ; {-# INLINE modifyLayer_ #-}
 
 
-readAttr :: forall a m. Reader ATTR a m => m (KeyData' ATTR a m)
+readAttr :: forall a m. Reader ATTR a m => m (RefData' ATTR a m)
 readAttr = readComp @ATTR @a ; {-# INLINE readAttr #-}
 
-writeAttr :: forall a m. Writer ATTR a m => KeyData' ATTR a m -> m ()
+writeAttr :: forall a m. Writer ATTR a m => RefData' ATTR a m -> m ()
 writeAttr a = writeComp @ATTR @a a
 
-readNet :: forall a m. (Reader NET a m) => m (KeyData' NET a m)
+readNet :: forall a m. (Reader NET a m) => m (RefData' NET a m)
 readNet = readComp @NET @a ; {-# INLINE readNet #-}
 
 
@@ -484,13 +484,13 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 
 
 -----------------------
--- === Key types === --
+-- === Ref types === --
 -----------------------
 
 -- === Definitions === --
 
-type instance KeyData LAYER _ m = LayerSet    (PrimState m)
-type instance KeyData NET   _ m = ElemStoreST (PrimState m)
+type instance RefData LAYER _ m = LayerSet    (PrimState m)
+type instance RefData NET   _ m = ElemStoreST (PrimState m)
 
 
 -- === Aliases === --

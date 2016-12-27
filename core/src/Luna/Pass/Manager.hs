@@ -160,16 +160,16 @@ instance MonadTrans PassManager where
 
 
 
--- class ContainsKey pass k a m where findKey :: Lens' (DataSet m pass) (Key k a m)
+-- class ContainsRef pass k a m where findRef :: Lens' (DataSet m pass) (Ref k a m)
 
 
-type instance KeyData EVENT _ m = Template (DynPass m)
+type instance RefData EVENT _ m = Template (DynPass m)
 
 
-instance (MonadPassManager m, Pass.ContainsKey pass EVENT e (GetPassHandler m))
+instance (MonadPassManager m, Pass.ContainsRef pass EVENT e (GetPassHandler m))
       => Emitter (SubPass pass m) e where
     emit (Event p) = do
-        tmpl <- unwrap' . view (Pass.findKey @pass @EVENT @e) <$> Pass.get
+        tmpl <- unwrap' . view (Pass.findRef @pass @EVENT @e) <$> Pass.get
         liftPassHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
 --
 --
@@ -251,8 +251,8 @@ instance PrimMonad m => PrimMonad (RefCache m) where
 
 instance MonadLogging m => MonadLogging (RefCache m)
 --
--- instance (KeyMonad k m, KnownType k, MonadFix m, MonadIO m) => KeyMonad k (RefCache m) where
---     uncheckedLookupKey keyRep = mdo
+-- instance (RefMonad k m, KnownType k, MonadFix m, MonadIO m) => RefMonad k (RefCache m) where
+--     uncheckedLookupRef keyRep = mdo
 --         let ckey = (typeVal' @k, keyRep)
 --         print ("caching " <> show ckey)
 --         c <- getCache
@@ -260,16 +260,16 @@ instance MonadLogging m => MonadLogging (RefCache m)
 --             Just v  -> return (unsafeCoerce v)
 --             Nothing -> mdo
 --                 putCache $ c & at ckey .~ Just (unsafeCoerce out)
---                 out <- lift $ uncheckedLookupKey keyRep
+--                 out <- lift $ uncheckedLookupRef keyRep
 --                 return out
-        -- lift $ uncheckedLookupKey keyRep
+        -- lift $ uncheckedLookupRef keyRep
 
--- class Monad m => KeyMonad k m where
---     uncheckedLookupKey :: forall a. TypeRep {- the type of `a` -}
---                        -> m (Maybe (Key k a m))
+-- class Monad m => RefMonad k m where
+--     uncheckedLookupRef :: forall a. TypeRep {- the type of `a` -}
+--                        -> m (Maybe (Ref k a m))
 
 
--- Key nie powinien byc zalezny od m - w ogole, tylko od PrimState s = to jest gwarancja dla PassManagera
+-- Ref nie powinien byc zalezny od m - w ogole, tylko od PrimState s = to jest gwarancja dla PassManagera
 -- trzebaby zrobic poza tym listeners, tak by listener zalezny byl od monady passmanagera, a nie tak jak teraz klucz od monady pod monada passu.
 -- Wtedy mozna robic Cache dla eventlsitenerow, teraz sie nie da.
 --
@@ -279,25 +279,25 @@ instance MonadLogging m => MonadLogging (RefCache m)
 --
 -- initialize -> initialize
 
-instance (IRMonad m, MonadRefCache m) => KeyMonad ATTR (PassManager m) where
-    uncheckedLookupKey a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
+instance (IRMonad m, MonadRefCache m) => RefMonad ATTR (PassManager m) where
+    uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance IRMonad m => KeyMonad LAYER (PassManager m) where
-    uncheckedLookupKey a = do
+instance IRMonad m => RefMonad LAYER (PassManager m) where
+    uncheckedLookupRef a = do
         s <- getIR
         let (_,[e,l]) = splitTyConApp a -- dirty typrep of (Layer e l) extraction
             mlv = s ^? wrapped' . ix e
         mr <- liftPassHandler $ mapM (Store.readKey l) mlv
         return $ wrap' <$> join mr
-    {-# INLINE uncheckedLookupKey #-}
+    {-# INLINE uncheckedLookupRef #-}
 
-instance IRMonad m => KeyMonad NET (PassManager m) where
-    uncheckedLookupKey a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftPassHandler getIR ; {-# INLINE uncheckedLookupKey #-}
+instance IRMonad m => RefMonad NET (PassManager m) where
+    uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftPassHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance (IRMonad m, MonadRefCache m) => KeyMonad EVENT (PassManager m) where -- Event.FromPath e
-    uncheckedLookupKey a = do
+instance (IRMonad m, MonadRefCache m) => RefMonad EVENT (PassManager m) where -- Event.FromPath e
+    uncheckedLookupRef a = do
         let ckey = (typeVal' @EVENT, a)
         c <- getCache
         case c ^. at ckey of
@@ -305,7 +305,7 @@ instance (IRMonad m, MonadRefCache m) => KeyMonad EVENT (PassManager m) where --
                 return $ Just $ unsafeCoerce v
             Nothing -> mdo
                 putCache $ c & at ckey .~ Just (unsafeCoerce $ fromJust out) -- this fromJust is safe. It will be used as a cache only if everything else succeeds
-                out <- (fmap . fmap) (Key . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.initialize =<< queryListeners (Event.fromPathDyn a)
+                out <- (fmap . fmap) (Ref . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.initialize =<< queryListeners (Event.fromPathDyn a)
                 return out
 
 

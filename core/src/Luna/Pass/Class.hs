@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Keys, Key(Key), Reader(..), Writer(..), KeyReadError, KeyMissingError, GetPassHandler)
+import           Luna.IR.Internal.IR   (NET, LAYER, ATTR, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefMissingError, GetPassHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -148,14 +148,14 @@ data RefStore  m pass
               , _eventStore :: TList ( DataStore EVENT pass m )
               }
 
-type DataStore k pass m = Keys k (Elements k pass) m
+type DataStore k pass m = Refs k (Elements k pass) m
 
 makeLenses ''RefStore
 
 
 -- === RefStore preparation === --
 
-type DataLookup m = (IR.KeyMonad NET m, IR.KeyMonad LAYER m, IR.KeyMonad ATTR m, IR.KeyMonad EVENT m)
+type DataLookup m = (IR.RefMonad NET m, IR.RefMonad LAYER m, IR.RefMonad ATTR m, IR.RefMonad EVENT m)
 
 lookupRefStore :: forall pass m. DataLookup m
                => Description -> m (Maybe (RefStore' m pass))
@@ -164,22 +164,22 @@ lookupRefStore desc = RefStore <<$>> lookupDataStore @NET   @pass @m ((fromJust 
                                <<*>> lookupDataStore @ATTR  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @ATTR))  <> (fromJust $ desc ^. outputs . at (typeVal' @ATTR)))
                                <<*>> lookupDataStore @EVENT @pass @m (desc ^. events)
     where fromJust (Just a) = a
-          lookupDataStore :: forall k pass m. IR.KeyMonad k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetPassHandler m))))
+          lookupDataStore :: forall k pass m. IR.RefMonad k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetPassHandler m))))
           lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
 
-          unsafeLookupData :: forall k m. IR.KeyMonad k m => [TypeRep] -> m (Maybe Prim.Any)
+          unsafeLookupData :: forall k m. IR.RefMonad k m => [TypeRep] -> m (Maybe Prim.Any)
           unsafeLookupData []       = return $ return $ unsafeCoerce ()
-          unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupKey @k t <<*>> unsafeLookupData @k ts
+          unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupRef @k t <<*>> unsafeLookupData @k ts
 
 
--- === Key lookup === --
+-- === Ref lookup === --
 
 -- FIXME[WD]: make it generic
-class ContainsKey pass k a m where findKey :: Lens' (RefStore m pass) (Key k a m)
-instance {-# OVERLAPPING #-} TList.Focus (DataStore NET   pass m) (Key NET   a m) => ContainsKey pass NET   a m where findKey = netStore   . TList.focus ; {-# INLINE findKey #-}
-instance {-# OVERLAPPING #-} TList.Focus (DataStore LAYER pass m) (Key LAYER a m) => ContainsKey pass LAYER a m where findKey = layerStore . TList.focus ; {-# INLINE findKey #-}
-instance {-# OVERLAPPING #-} TList.Focus (DataStore ATTR  pass m) (Key ATTR  a m) => ContainsKey pass ATTR  a m where findKey = attrStore  . TList.focus ; {-# INLINE findKey #-}
-instance {-# OVERLAPPING #-} TList.Focus (DataStore EVENT pass m) (Key EVENT a m) => ContainsKey pass EVENT a m where findKey = eventStore . TList.focus ; {-# INLINE findKey #-}
+class ContainsRef pass k a m where findRef :: Lens' (RefStore m pass) (Ref k a m)
+instance {-# OVERLAPPING #-} TList.Focus (DataStore NET   pass m) (Ref NET   a m) => ContainsRef pass NET   a m where findRef = netStore   . TList.focus ; {-# INLINE findRef #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore LAYER pass m) (Ref LAYER a m) => ContainsRef pass LAYER a m where findRef = layerStore . TList.focus ; {-# INLINE findRef #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore ATTR  pass m) (Ref ATTR  a m) => ContainsRef pass ATTR  a m where findRef = attrStore  . TList.focus ; {-# INLINE findRef #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore EVENT pass m) (Ref EVENT a m) => ContainsRef pass EVENT a m where findRef = eventStore . TList.focus ; {-# INLINE findRef #-}
 
 
 
@@ -400,14 +400,14 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
 -- FIXME[WD]: add asserts
 -- Reader
 instance ( Monad m
-         , ContainsKey pass k a (GetPassHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
-         , Assert (a `In` (Inputs k pass)) (KeyReadError k a)
+         , ContainsRef pass k a (GetPassHandler m) -- FIXME[WD]: we can hopefully remove some args from this constraint
+         , Assert (a `In` (Inputs k pass)) (RefReadError k a)
          , MonadPassManager_Boot (SubPass pass m))
-      => Reader k a (SubPass pass m) where getKey = view findKey <$> get ; {-# INLINE getKey #-}
+      => Reader k a (SubPass pass m) where getRef = view findRef <$> get ; {-# INLINE getRef #-}
 
 -- Writer
 instance ( Monad m
-         , ContainsKey pass k a (GetPassHandler m)
-         , Assert (a `In` (Inputs k pass)) (KeyReadError k a)
+         , ContainsRef pass k a (GetPassHandler m)
+         , Assert (a `In` (Inputs k pass)) (RefReadError k a)
          , MonadPassManager_Boot (SubPass pass m))
-      => Writer k a (SubPass pass m) where putKey k = modify_ (findKey .~ k) ; {-# INLINE putKey #-}
+      => Writer k a (SubPass pass m) where putRef k = modify_ (findRef .~ k) ; {-# INLINE putRef #-}

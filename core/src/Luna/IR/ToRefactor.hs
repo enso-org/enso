@@ -43,7 +43,7 @@ import Data.Reflection (Reifies)
 
 
 
-type instance KeyData ATTR a _ = a
+type instance RefData ATTR a _ = a
 
 
 
