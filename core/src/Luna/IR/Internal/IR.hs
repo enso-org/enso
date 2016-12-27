@@ -46,6 +46,7 @@ import Luna.IR.Expr.Term.Uni ()
 -- import Type.Inference
 import Data.TypeVal
 import Type.Bool (And)
+import Type.Show
 
 import System.Log (MonadLogging, Logging, withDebugBy)
 
@@ -110,6 +111,9 @@ type instance Universal  (Elem t) = Elem (Universal t)
 
 instance IsIdx (Elem t) where
     idx = wrapped' ; {-# INLINE idx #-}
+
+instance TypeShow t => TypeShow (Elem t) where
+    showType _ = showType' @t ; {-# INLINE showType #-}
 
 
 

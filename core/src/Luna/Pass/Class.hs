@@ -33,9 +33,7 @@ import qualified Data.TList as TList
 import qualified Data.Map as Map
 import           Data.Map (Map)
 
-
-
-
+import Type.Show
 
 -------------------------------
 
@@ -312,6 +310,8 @@ type instance Abstract (ElemScope pass t) = ElemScope (Abstract pass) (Abstract 
 instance (KnownElemPass pass, KnownType (Abstract t)) => KnownPass (ElemScope pass t) where
     passDescription = elemPassDescription (ElemScope :: ElemScope pass t) ; {-# INLINE passDescription #-}
 
+instance (TypeShow pass, TypeShow t) => TypeShow (ElemScope pass t) where
+    showType _ = "ElemScope " <> showType' @pass <> " " <> showType' @t
 
 
 -----------------------

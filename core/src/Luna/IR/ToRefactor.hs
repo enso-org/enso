@@ -143,6 +143,7 @@ prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (h
 
 
 data InitModel
+instance TypeShow InitModel
 type instance Abstract InitModel = InitModel
 type instance Inputs  Net   (ElemScope InitModel t) = '[]
 type instance Outputs Net   (ElemScope InitModel t) = '[]
@@ -166,6 +167,7 @@ initModel = GenLayerCons $ uncurry $ flip $ writeLayer @Model ; {-# INLINE initM
 -----------------
 
 data InitUID
+instance TypeShow InitUID
 type instance Abstract InitUID = InitUID
 type instance Inputs  Net   (ElemScope InitUID t) = '[]
 type instance Outputs Net   (ElemScope InitUID t) = '[]
@@ -194,6 +196,7 @@ initUID = do
 -------------------
 
 data InitSuccs
+instance TypeShow InitSuccs
 type instance Abstract InitSuccs = InitSuccs
 type instance Inputs  Net   (ElemScope InitSuccs t) = '[]
 type instance Outputs Net   (ElemScope InitSuccs t) = '[]
@@ -281,6 +284,7 @@ localTop ref = Store.readSTRef ref >>= \case
 
 
 data InitType
+instance TypeShow InitType
 type instance Abstract InitType = InitType
 type instance Inputs  Net   (ElemScope InitType t) = '[]
 type instance Outputs Net   (ElemScope InitType t) = '[AnyExpr, Link' AnyExpr]
