@@ -25,7 +25,7 @@ import Luna.IR.Layer
 import Type.List (In)
 import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
-import Data.Event (EVENT, Event)
+import Data.Event (Event)
 import Data.TypeVal
 import System.Log hiding (LookupData, lookupData)
 import Data.TList (TList)
@@ -58,7 +58,7 @@ data InternalError = MissingData TypeRep deriving (Show, Eq)
 type family Inputs    t pass :: [*]
 type family Outputs   t pass :: [*]
 type family Preserves   pass :: [*]
-type        Events      pass = Outputs EVENT pass
+type        Events      pass = Outputs Event pass
 type        Elements  t pass = (Inputs t pass <> Outputs t pass)
 
 
@@ -145,7 +145,7 @@ data RefStore  m pass
    = RefStore { _netStore   :: TList ( DataStore Net   pass m )
               , _layerStore :: TList ( DataStore Layer pass m )
               , _attrStore  :: TList ( DataStore Attr  pass m )
-              , _eventStore :: TList ( DataStore EVENT pass m )
+              , _eventStore :: TList ( DataStore Event pass m )
               }
 
 type DataStore k pass m = Refs k (Elements k pass) m
@@ -155,14 +155,14 @@ makeLenses ''RefStore
 
 -- === RefStore preparation === --
 
-type DataLookup m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLookup Attr m, MonadRefLookup EVENT m)
+type DataLookup m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLookup Attr m, MonadRefLookup Event m)
 
 lookupRefStore :: forall pass m. DataLookup m
                => Description -> m (Maybe (RefStore' m pass))
 lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Net))   <> (fromJust $ desc ^. outputs . at (typeVal' @Net)))
                                <<*>> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Layer)) <> (fromJust $ desc ^. outputs . at (typeVal' @Layer)))
                                <<*>> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Attr))  <> (fromJust $ desc ^. outputs . at (typeVal' @Attr)))
-                               <<*>> lookupDataStore @EVENT @pass @m (desc ^. events)
+                               <<*>> lookupDataStore @Event @pass @m (desc ^. events)
     where fromJust (Just a) = a
           lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetRefHandler m))))
           lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
@@ -179,7 +179,7 @@ class ContainsRef pass k a m where findRef :: Lens' (RefStore m pass) (Ref k a m
 instance {-# OVERLAPPING #-} TList.Focus (DataStore Net   pass m) (Ref Net   a m) => ContainsRef pass Net   a m where findRef = netStore   . TList.focus ; {-# INLINE findRef #-}
 instance {-# OVERLAPPING #-} TList.Focus (DataStore Layer pass m) (Ref Layer a m) => ContainsRef pass Layer a m where findRef = layerStore . TList.focus ; {-# INLINE findRef #-}
 instance {-# OVERLAPPING #-} TList.Focus (DataStore Attr  pass m) (Ref Attr  a m) => ContainsRef pass Attr  a m where findRef = attrStore  . TList.focus ; {-# INLINE findRef #-}
-instance {-# OVERLAPPING #-} TList.Focus (DataStore EVENT pass m) (Ref EVENT a m) => ContainsRef pass EVENT a m where findRef = eventStore . TList.focus ; {-# INLINE findRef #-}
+instance {-# OVERLAPPING #-} TList.Focus (DataStore Event pass m) (Ref Event a m) => ContainsRef pass Event a m where findRef = eventStore . TList.focus ; {-# INLINE findRef #-}
 
 
 

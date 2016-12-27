@@ -9,7 +9,7 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (EVENT, Event(Event), EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener, (//))
+import           Data.Event          (Event, Payload(Payload), EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener, (//))
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR as IR
@@ -163,13 +163,13 @@ instance MonadTrans PassManager where
 -- class ContainsRef pass k a m where findRef :: Lens' (DataSet m pass) (Ref k a m)
 
 
-type instance RefData EVENT _ m = Template (DynPass m)
+type instance RefData Event _ m = Template (DynPass m)
 
 
-instance (MonadPassManager m, Pass.ContainsRef pass EVENT e (GetRefHandler m))
-      => Emitter (SubPass pass m) e where
-    emit (Event p) = do
-        tmpl <- unwrap' . view (Pass.findRef @pass @EVENT @e) <$> Pass.get
+instance (MonadPassManager m, Pass.ContainsRef pass Event e (GetRefHandler m))
+      => Emitter e (SubPass pass m) where
+    emit (Payload p) = do
+        tmpl <- unwrap' . view (Pass.findRef @pass @Event @e) <$> Pass.get
         liftRefHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
 --
 --
@@ -296,9 +296,9 @@ instance IRMonad m => MonadRefLookup Net (PassManager m) where
     uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance (IRMonad m, MonadRefCache m) => MonadRefLookup EVENT (PassManager m) where -- Event.FromPath e
+instance (IRMonad m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where -- Event.FromPath e
     uncheckedLookupRef a = do
-        let ckey = (typeVal' @EVENT, a)
+        let ckey = (typeVal' @Event, a)
         c <- getCache
         case c ^. at ckey of
             Just v  -> do

@@ -150,8 +150,8 @@ type instance Inputs  Layer (ElemScope InitModel t) = '[]
 type instance Outputs Layer (ElemScope InitModel t) = '[Abstract t // Model]
 type instance Inputs  Attr  (ElemScope InitModel t) = '[]
 type instance Outputs Attr  (ElemScope InitModel t) = '[]
-type instance Inputs  EVENT (ElemScope InitModel t) = '[]
-type instance Outputs EVENT (ElemScope InitModel t) = '[]
+type instance Inputs  Event (ElemScope InitModel t) = '[]
+type instance Outputs Event (ElemScope InitModel t) = '[]
 type instance Preserves     (ElemScope InitModel t) = '[]
 instance KnownElemPass InitModel where
     elemPassDescription = genericDescription' . proxify
@@ -173,8 +173,8 @@ type instance Inputs  Layer (ElemScope InitUID t) = '[]
 type instance Outputs Layer (ElemScope InitUID t) = '[Abstract t // UID]
 type instance Inputs  Attr  (ElemScope InitUID t) = '[]
 type instance Outputs Attr  (ElemScope InitUID t) = '[]
-type instance Inputs  EVENT (ElemScope InitUID t) = '[]
-type instance Outputs EVENT (ElemScope InitUID t) = '[]
+type instance Inputs  Event (ElemScope InitUID t) = '[]
+type instance Outputs Event (ElemScope InitUID t) = '[]
 type instance Preserves     (ElemScope InitUID t) = '[]
 instance KnownElemPass InitUID where
     elemPassDescription = genericDescription' . proxify
@@ -201,8 +201,8 @@ type instance Inputs  Layer (ElemScope InitSuccs t) = '[]
 type instance Outputs Layer (ElemScope InitSuccs t) = '[Abstract t // Succs]
 type instance Inputs  Attr  (ElemScope InitSuccs t) = '[]
 type instance Outputs Attr  (ElemScope InitSuccs t) = '[]
-type instance Inputs  EVENT (ElemScope InitSuccs t) = '[]
-type instance Outputs EVENT (ElemScope InitSuccs t) = '[]
+type instance Inputs  Event (ElemScope InitSuccs t) = '[]
+type instance Outputs Event (ElemScope InitSuccs t) = '[]
 type instance Preserves     (ElemScope InitSuccs t) = '[]
 instance KnownElemPass InitSuccs where
     elemPassDescription = genericDescription' . proxify
@@ -262,12 +262,12 @@ initSuccs = GenLayerCons $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE in
 -- === Type === --
 ------------------
 
-consTypeLayer :: (MonadRef m, Writers Net '[AnyExpr, Link' AnyExpr] m, Emitter m (New // Link' AnyExpr), Emitter m (New // AnyExpr))
+consTypeLayer :: (MonadRef m, Writers Net '[AnyExpr, Link' AnyExpr] m, Emitters '[New // Link' AnyExpr, New // AnyExpr] m)
               => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
 consTypeLayer ref self = (`link` self) =<< unsafeRelayout <$> localTop ref ; {-# INLINE consTypeLayer #-}
 
 
-localTop :: (MonadRef m, Writer Net AnyExpr m, Emitter m (New // AnyExpr))
+localTop :: (MonadRef m, Writer Net AnyExpr m, Emitter (New // AnyExpr) m)
          => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
 localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
@@ -288,8 +288,8 @@ type instance Inputs  Layer (ElemScope InitType t) = '[]
 type instance Outputs Layer (ElemScope InitType t) = '[Abstract t // Type]
 type instance Inputs  Attr  (ElemScope InitType t) = '[]
 type instance Outputs Attr  (ElemScope InitType t) = '[]
-type instance Inputs  EVENT (ElemScope InitType t) = '[]
-type instance Outputs EVENT (ElemScope InitType t) = '[New // AnyExpr, New // Link' AnyExpr]
+type instance Inputs  Event (ElemScope InitType t) = '[]
+type instance Outputs Event (ElemScope InitType t) = '[New // AnyExpr, New // Link' AnyExpr]
 type instance Preserves     (ElemScope InitType t) = '[]
 instance KnownElemPass InitType where
     elemPassDescription = genericDescription' . proxify

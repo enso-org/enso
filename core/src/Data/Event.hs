@@ -14,7 +14,7 @@ import           Luna.IR.Expr.Layout.Class (Abstract)
 
 
 
-data EVENT
+data Event
 
 -----------------
 -- === Tag === --
@@ -74,22 +74,22 @@ instance {-# OVERLAPPING #-} IsTagSeg TypeRep where toTagSeg   = wrap'       ; {
 
 -- === Events === --
 
-data Event e  = Event (Payload e)
-type AnyEvent = Event Prim.Any
+data Payload e = Payload (PayloadData e)
+type AnyEvent  = Payload Prim.Any
 
-type family Payload e
+type family PayloadData e
 
-makeWrapped ''Event
+makeWrapped ''Payload
 
 
 -- === Emitter === --
 
-class Monad m => Emitter m a where
-    emit :: forall e. a ~ Abstract e => Event e -> m ()
+class Monad m => Emitter a m where
+    emit :: forall e. a ~ Abstract e => Payload e -> m ()
 
-type family Emitters m ems :: Constraint where
-    Emitters m '[]       = ()
-    Emitters m (e ': es) = (Emitter m e, Emitters m es)
+type family Emitters as m :: Constraint where
+    Emitters '[]       m = ()
+    Emitters (a ': as) m = (Emitter a m, Emitters as m)
 
 
 -----------------------

@@ -69,8 +69,8 @@ type instance Inputs  Layer SimpleAA = '[AnyExpr // Model]
 type instance Outputs Layer SimpleAA = '[]
 type instance Inputs  Attr  SimpleAA = '[]
 type instance Outputs Attr  SimpleAA = '[]
-type instance Inputs  EVENT SimpleAA = '[] -- will never be used
-type instance Outputs EVENT SimpleAA = '[New // AnyExpr]
+type instance Inputs  Event SimpleAA = '[] -- will never be used
+type instance Outputs Event SimpleAA = '[New // AnyExpr]
 type instance Preserves     SimpleAA = '[]
 
 
@@ -105,7 +105,7 @@ uncheckedDeleteStarType e = do
 
 gen_pass1 :: ( MonadIO m, MonadRef m, MonadVis m
              , Writers Net '[AnyExpr] m
-             , Emitter m (New // AnyExpr)
+             , Emitter (New // AnyExpr) m
              , Reader Layer (AnyExpr // Model) m
             --  , Accessibles m '[AnyExpr // Model, Link' AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, Link' AnyExpr // UID, AnyExpr // UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (New // AnyExpr)
