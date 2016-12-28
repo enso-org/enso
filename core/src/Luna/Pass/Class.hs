@@ -45,6 +45,7 @@ data InternalError = MissingData TypeDesc deriving (Show, Eq)
 -- === Properties === --
 
 
+data PASS = PASS deriving (Show)
 
 
 
@@ -67,13 +68,9 @@ type        Elements  t pass = (Inputs t pass <> Outputs t pass)
 
 -- === Definitions === --
 
-newtype PassRep = PassRep TypeDesc deriving (Eq, Ord)
-instance IsTypeDesc PassRep
-makeWrapped ''PassRep
+type PassDesc = TypeDescT PASS
 
-instance Show PassRep where show = show . unwrap'
-
-data Description = Description { _passRep   :: !PassRep
+data Description = Description { _passRep   :: !PassDesc
                                , _inputs    :: !(Map TypeDesc [TypeDesc])
                                , _outputs   :: !(Map TypeDesc [TypeDesc])
                                , _events    :: ![TypeDesc]
@@ -112,21 +109,21 @@ type KnownDescription pass = ( KnownType  (Abstract      pass)
                              )
 
 genericDescription :: forall pass. KnownDescription pass => Description
-genericDescription = emptyDescription (typeVal' @(Abstract pass))
-                   & inputs    %~ Map.insert (typeVal' @Net)   (typeVals' @(Inputs  Net   pass))
-                   & outputs   %~ Map.insert (typeVal' @Net)   (typeVals' @(Outputs Net   pass))
-                   & inputs    %~ Map.insert (typeVal' @Layer) (typeVals' @(Inputs  Layer pass))
-                   & outputs   %~ Map.insert (typeVal' @Layer) (typeVals' @(Outputs Layer pass))
-                   & inputs    %~ Map.insert (typeVal' @Attr)  (typeVals' @(Inputs  Attr  pass))
-                   & outputs   %~ Map.insert (typeVal' @Attr)  (typeVals' @(Outputs Attr  pass))
-                   & events    .~ typeVals' @(Events    pass)
-                   & preserves .~ typeVals' @(Preserves pass)
+genericDescription = emptyDescription (getTypeDesc @(Abstract pass))
+                   & inputs    %~ Map.insert (getTypeDesc @Net)   (getTypeDescs @(Inputs  Net   pass))
+                   & outputs   %~ Map.insert (getTypeDesc @Net)   (getTypeDescs @(Outputs Net   pass))
+                   & inputs    %~ Map.insert (getTypeDesc @Layer) (getTypeDescs @(Inputs  Layer pass))
+                   & outputs   %~ Map.insert (getTypeDesc @Layer) (getTypeDescs @(Outputs Layer pass))
+                   & inputs    %~ Map.insert (getTypeDesc @Attr)  (getTypeDescs @(Inputs  Attr  pass))
+                   & outputs   %~ Map.insert (getTypeDesc @Attr)  (getTypeDescs @(Outputs Attr  pass))
+                   & events    .~ getTypeDescs @(Events    pass)
+                   & preserves .~ getTypeDescs @(Preserves pass)
 {-# INLINE genericDescription #-}
 
 genericDescription' :: forall pass. KnownDescription pass => Proxy pass -> Description
 genericDescription' _ = genericDescription @pass ; {-# INLINE genericDescription' #-}
 
-emptyDescription :: PassRep -> Description
+emptyDescription :: PassDesc -> Description
 emptyDescription r = Description r def def def def ; {-# INLINE emptyDescription #-}
 
 describbed :: forall pass a. KnownPass pass => a -> Describbed a
@@ -160,9 +157,9 @@ type DataLookup m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLooku
 
 lookupRefStore :: forall pass m. DataLookup m
                => Description -> m (Maybe (RefStore' m pass))
-lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Net))   <> (fromJust $ desc ^. outputs . at (typeVal' @Net)))
-                               <<*>> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Layer)) <> (fromJust $ desc ^. outputs . at (typeVal' @Layer)))
-                               <<*>> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Attr))  <> (fromJust $ desc ^. outputs . at (typeVal' @Attr)))
+lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. outputs . at (getTypeDesc @Net)))
+                               <<*>> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. outputs . at (getTypeDesc @Layer)))
+                               <<*>> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. outputs . at (getTypeDesc @Attr)))
                                <<*>> lookupDataStore @Event @pass @m (desc ^. events)
     where fromJust (Just a) = a
           lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeDesc] -> m (Maybe (TList (DataStore k pass (GetRefHandler m))))
@@ -233,7 +230,17 @@ instance Show (Template a) where show _ = "Template" ; {-# INLINE show #-}
 -- === Pass prototype === --
 ----------------------------
 
-newtype Proto a = Proto { specialize :: TypeDesc -> a } deriving (Functor, Applicative, Monad)
+-- === Definition === --
+
+newtype Proto a = Proto (TypeDesc -> a) deriving (Functor, Applicative, Monad)
+makeWrapped ''Proto
+
+
+-- === Utils === --
+
+specialize :: IsTypeDesc t => Proto a -> t -> a
+specialize p = unwrap' p . view typeDesc ; {-# INLINE specialize #-}
+
 
 -- === Instances === --
 
@@ -414,5 +421,5 @@ instance ( Monad m, MonadRefState k a (SubPass pass m)
 
 
 
-instance TypeShow2 PassRep where
-    showTypeComponents _ = (show (typeRep'_ @(Unwrapped PassRep)) :)
+instance TypeShow2 PassDesc where
+    showTypeComponents _ = (show (typeRep'_ @(Unwrapped PassDesc)) :)

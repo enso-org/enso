@@ -8,11 +8,7 @@ import qualified Data.Set     as Set
 
 narrowAtom :: forall a m. (MonadRef m, KnownType (AtomOf a), Reader Layer (AnyExpr // Model) m)
            => SomeExpr -> m (Maybe (Expr (AtomOf a)))
-narrowAtom expr = do
-    exprAtomRep <- getAtomRep expr
-    return $ if exprAtomRep == atomRep' @a
-      then Just $ unsafeGeneralize expr
-      else Nothing
+narrowAtom expr = fromBoolMaybe (unsafeGeneralize expr) . (getAtomDesc @a ==) <$> termAtomDesc expr ; {-# INLINE narrowAtom #-}
 
 -- deleteSubtree :: forall l m. ( MonadRef m, Editors NET '[AnyExpr, Link' AnyExpr] m
 --                              , Editors Layer '[ExprLayer Succs, ExprLayer Type, ExprLayer Model, ExprLinkLayer Model] m

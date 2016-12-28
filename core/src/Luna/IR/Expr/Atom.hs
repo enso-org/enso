@@ -35,17 +35,15 @@ type family AtomOf a ::  *
 type family Atoms  a :: [*]
 
 
--- === AtomRep === --
+-- === AtomDesc === --
 
-newtype AtomRep = AtomRep TypeDesc deriving (Eq)
-instance IsTypeDesc AtomRep
-makeWrapped ''AtomRep
+type AtomDesc = TypeDescT Atom
 
-atomRep' :: forall a. KnownType (AtomOf a) => AtomRep
-atomRep' = typeVal' @(AtomOf a) ; {-# INLINE atomRep' #-}
+getAtomDesc :: forall a. KnownType (AtomOf a) => AtomDesc
+getAtomDesc = getTypeDesc @(AtomOf a) ; {-# INLINE getAtomDesc #-}
 
-atomRep :: forall a. KnownType (AtomOf a) => a -> AtomRep
-atomRep _ = atomRep' @a ; {-# INLINE atomRep #-}
+atomDescOf :: forall a. KnownType (AtomOf a) => a -> AtomDesc
+atomDescOf _ = getAtomDesc @a ; {-# INLINE atomDescOf #-}
 
 
 -- === Instances === --

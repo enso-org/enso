@@ -78,7 +78,7 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 -- Layer passes
 
 
-elemDesc (t :: t) = show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]"
+elemDesc (t :: t) = show (getTypeDesc @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]"
 layerCreated = ("Running pass " <>)
 
 debugLayerCreation t layer s = withDebugBy ("Pass [" <> layer <> "]") ("Running on " <> elemDesc t)
@@ -86,7 +86,7 @@ debugLayerCreation' t layer = debugLayerCreation t layer ""
 
 --
 -- debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
--- debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]")
+-- debugElem t = debugBy (show (getTypeDesc @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]")
 --
 -- debugLayerCreation :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> Prelude.String -> m ()
 -- debugLayerCreation t layer post = debugElem t $ layer <> " layer created" <> post
@@ -109,24 +109,24 @@ newtype ExprLayerCons  p s = ExprLayerCons (forall l m. (MonadPassManager m, Mon
 type    ExprLayerConsM p m = ExprLayerCons p (PrimState m)
 
 runGenLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadRef m) => GenLayerConsM p m -> forall t. KnownType (Abstract t) => (Elem t, Definition t) -> Pass (ElemScope p (Elem t)) m
-runGenLayerCons (GenLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
+runGenLayerCons (GenLayerCons f) (t, tdef) = debugLayerCreation' t (show $ getTypeDesc_ @p) $ f (t, tdef)
 
 runExprLayerCons :: forall p m. (KnownType p, MonadPassManager m, MonadRef m) => ExprLayerConsM p m -> forall l. (Expr l, Definition (Expr l)) -> Pass (ElemScope p (Expr l)) m
-runExprLayerCons (ExprLayerCons f) (t, tdef) = debugLayerCreation' t (show $ typeVal'_ @p) $ f (t, tdef)
+runExprLayerCons (ExprLayerCons f) (t, tdef) = debugLayerCreation' t (show $ getTypeDesc_ @p) $ f (t, tdef)
 
 
-registerGenLayer :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p) => LayerRep -> GenLayerConsM p (GetRefHandler m) -> m ()
+registerGenLayer :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p) => LayerDesc -> GenLayerConsM p (GetRefHandler m) -> m ()
 registerGenLayer l p = registerLayerProto l $ prepareProto $ Pass.template $ runGenLayerCons p ; {-# INLINE registerGenLayer #-}
 
 
-registerGenLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => LayerRep -> m (GenLayerConsM p (GetRefHandler m)) -> m ()
+registerGenLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => LayerDesc -> m (GenLayerConsM p (GetRefHandler m)) -> m ()
 registerGenLayerM l p = registerGenLayer l =<< p ; {-# INLINE registerGenLayerM #-}
 
 
-registerExprLayer :: forall p l m. (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => LayerRep -> ExprLayerConsM p (GetRefHandler m) -> m ()
+registerExprLayer :: forall p l m. (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => LayerDesc -> ExprLayerConsM p (GetRefHandler m) -> m ()
 registerExprLayer l p = registerLayerProto l $ Pass.Proto $ \_ -> Pass.describbed @(ElemScope p (Expr l)) . Pass.compileTemplate $ Pass.template $ runExprLayerCons p ; {-# INLINE registerExprLayer #-}
 
-registerExprLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => LayerRep -> m (ExprLayerConsM p (GetRefHandler m)) -> m ()
+registerExprLayerM :: (MonadPassManager m, KnownElemPass p, KnownType p, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => LayerDesc -> m (ExprLayerConsM p (GetRefHandler m)) -> m ()
 registerExprLayerM l p = registerExprLayer l =<< p ; {-# INLINE registerExprLayerM #-}
 
 
@@ -333,32 +333,32 @@ runRegs = do
     runElemRegs
 
     -- f <- ff
-    registerGenLayer  (typeVal' @Model) initModel
-    registerGenLayerM (typeVal' @UID)   initUID
-    registerGenLayer  (typeVal' @Succs) initSuccs
+    registerGenLayer  (getTypeDesc @Model) initModel
+    registerGenLayerM (getTypeDesc @UID)   initUID
+    registerGenLayer  (getTypeDesc @Succs) initSuccs
 
-    registerExprLayerM (typeVal' @Type) initType
+    registerExprLayerM (getTypeDesc @Type) initType
 
-    attachLayer 0 (typeVal' @Model) (typeVal' @AnyExpr)
-    attachLayer 5 (typeVal' @UID)   (typeVal' @AnyExpr)
-    attachLayer 5 (typeVal' @Succs) (typeVal' @AnyExpr)
+    attachLayer 0 (getTypeDesc @Model) (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @UID)   (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @Succs) (getTypeDesc @AnyExpr)
 
-    attachLayer 5 (typeVal' @UID)   (typeVal' @(Link' AnyExpr))
+    attachLayer 5 (getTypeDesc @UID)   (getTypeDesc @(Link' AnyExpr))
 
-    attachLayer 10 (typeVal' @Type) (typeVal' @AnyExpr)
+    attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
 
 
-    -- attachLayer 0 (typeVal' @Model) (typeVal' @(Link' AnyExpr))
+    -- attachLayer 0 (getTypeDesc @Model) (getTypeDesc @(Link' AnyExpr))
     -- --
     -- initUID_reg
-    -- attachLayer 5 (typeVal' @UID) (typeVal' @AnyExpr)
-    -- attachLayer 5 (typeVal' @UID) (typeVal' @(Link' AnyExpr))
+    -- attachLayer 5 (getTypeDesc @UID) (getTypeDesc @AnyExpr)
+    -- attachLayer 5 (getTypeDesc @UID) (getTypeDesc @(Link' AnyExpr))
     --
     -- initSuccs_reg
-    -- attachLayer 5 (typeVal' @Succs) (typeVal' @AnyExpr)
+    -- attachLayer 5 (getTypeDesc @Succs) (getTypeDesc @AnyExpr)
     -- --
     -- initType_reg
-    -- attachLayer 10 (typeVal' @Type) (typeVal' @AnyExpr)
+    -- attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
     --
     -- addEventListener 100 (New    // LINK AnyExpr AnyExpr) watchSuccs
     -- addEventListener 100 (DELETE // LINK AnyExpr AnyExpr) watchRemoveEdge

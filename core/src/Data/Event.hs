@@ -20,13 +20,11 @@ data Event
 -- === Tag === --
 -----------------
 
-newtype Tag    = Tag    [TagRep] deriving (Show, Eq, Ord)
-newtype TagRep = TagRep TypeDesc deriving (Show, Eq, Ord)
-instance IsTypeDesc TagRep
+newtype Tag     = Tag [TagDesc] deriving (Show, Eq, Ord)
+type    TagDesc = TypeDescT Tag
 
 makeClassy  ''Tag
 makeWrapped ''Tag
-makeWrapped ''TagRep
 
 
 -- === Construction === --
@@ -37,7 +35,7 @@ type family TagPath a where
 
 type FromPath path = KnownTypes (TagPath path)
 fromPath :: forall path. FromPath path => Tag
-fromPath = Tag $ typeVals' @(TagPath path) ; {-# INLINE fromPath #-}
+fromPath = Tag $ getTypeDescs @(TagPath path) ; {-# INLINE fromPath #-}
 
 -- FIXME[WD]
 fromPathDyn :: TypeDesc -> Tag
@@ -64,9 +62,9 @@ instance {-# OVERLAPPABLE #-} IsTagSeg t => IsTag t        where toTag t        
 instance (IsTagSeg t, IsTag p)           => IsTag (t // p) where toTag (t :// p) = toTag p & wrapped' %~ (toTagSeg t :) ; {-# INLINE toTag #-}
 instance                                    IsTag Tag      where toTag           = id                                   ; {-# INLINE toTag #-}
 
-class                        IsTagSeg a        where toTagSeg :: a -> TagRep
-instance KnownType a      => IsTagSeg a        where toTagSeg _ = typeVal' @a ; {-# INLINE toTagSeg #-}
-instance {-# OVERLAPPING #-} IsTagSeg TypeDesc where toTagSeg   = wrap'       ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
+class                        IsTagSeg a        where toTagSeg :: a -> TagDesc
+instance KnownType a      => IsTagSeg a        where toTagSeg _ = getTypeDesc @a ; {-# INLINE toTagSeg #-}
+instance {-# OVERLAPPING #-} IsTagSeg TypeDesc where toTagSeg   = wrap'          ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
 
 
 --------------------
@@ -127,7 +125,7 @@ instance      HasTag (Listener l) where tag = listener_tag ; {-# INLINE tag #-}
 -- === Definition === --
 
 data EventHub l f = EventHub { _listeners :: Map l f
-                             , _subhubs   :: Map TagRep (EventHub l f)
+                             , _subhubs   :: Map TagDesc (EventHub l f)
                              } deriving (Show)
 
 makeLenses ''EventHub
@@ -165,7 +163,7 @@ instance Ord l => Monoid (EventHub l f) where
 
 -- Indexed
 type instance IxValue (EventHub l f) = EventHub l f
-type instance Index   (EventHub l f) = TagRep
+type instance Index   (EventHub l f) = TagDesc
 
 instance At   (EventHub l f) where at i = subhubs . at i ; {-# INLINE at #-}
 instance Ixed (EventHub l f) where ix i = subhubs . ix i ; {-# INLINE ix #-}

@@ -13,7 +13,7 @@ import           Data.Event          (Event, Payload(Payload), EventHub, Emitter
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR as IR
-import Luna.Pass.Class (SubPass, PassRep, Proto, DynPass, Template, Uninitialized)
+import Luna.Pass.Class (SubPass, PassDesc, Proto, DynPass, Template, Uninitialized)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -41,11 +41,11 @@ instance Ord SortedListenerRep where
 -- === State === --
 -------------------
 
-data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
-                           , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
+data LayerReg m = LayerReg { _prototypes :: Map LayerDesc $ Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
+                           , _attached   :: Map ElemDesc  $ Map LayerDesc $ PassDesc
                            } deriving (Show)
 
-data State m = State { _passes :: Map PassRep (Pass.Describbed (Uninitialized m (DynPass m)))
+data State m = State { _passes :: Map PassDesc (Pass.Describbed (Uninitialized m (DynPass m)))
                      , _layers :: LayerReg m
                      , _events :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized m (Template (DynPass m))))
                      , _attrs  :: Map AttrRep Prim.AnyData
@@ -116,11 +116,11 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 -- === Utils === --
 
-registerLayerProto :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+registerLayerProto :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
 registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-attachLayer :: MonadPassManager m => Int -> LayerRep -> ElemRep -> m ()
+attachLayer :: MonadPassManager m => Int -> LayerDesc -> ElemDesc -> m ()
 attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> show l) $ do
     IR.unsafeCreateNewLayer l e
     s <- get
@@ -128,7 +128,7 @@ attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> sho
         dpass = Pass.specialize pproto e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
     put s'
-    addEventListener priority (New // (e ^. asTypeDesc)) dpass -- TODO
+    addEventListener priority (New // (e ^. typeDesc)) dpass -- TODO
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
 
@@ -241,18 +241,18 @@ instance MonadIR m => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef (TypeDesc a s) = do
         ir <- getIR
         let (_,[e,l]) = splitTyConApp a -- dirty typrep of (e // l) extraction
-            mlv = ir ^? wrapped' . ix (TypeDesc e s)
-        mr <- liftRefHandler $ mapM (Store.readKey (TypeDesc l s)) mlv
+            mlv = ir ^? wrapped' . ix (fromTypeDesc $ TypeDesc e s)
+        mr <- liftRefHandler $ mapM (Store.readKey (fromTypeDesc $ TypeDesc l s)) mlv
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupRef #-}
 
 instance MonadIR m => MonadRefLookup Net (PassManager m) where
-    uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix a)) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
+    uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix (fromTypeDesc a))) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
 instance (MonadIR m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where
     uncheckedLookupRef a = do
-        let ckey = (typeVal' @Event, a)
+        let ckey = (getTypeDesc @Event, a)
         c <- getCache
         case c ^. at ckey of
             Just v  -> do

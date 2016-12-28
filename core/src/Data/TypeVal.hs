@@ -11,6 +11,20 @@ import Data.Kind
 
 
 
+newtype TypeRepT t = TypeRepT TypeRep deriving (Ord, Eq)
+makeWrapped ''TypeRepT
+
+instance IsTypeRep (TypeRepT t)
+instance Show (TypeRepT t) where
+    show = show . unwrap' ; {-# INLINE show #-}
+
+
+
+
+
+
+------------
+
 
 type family BaseType a where
     BaseType (Proxy (t a)) = BaseType (Proxy t)
@@ -46,9 +60,11 @@ reflect' :: forall s a. Reifies s a => a
 reflect' = reflect (p :: P s) ; {-# INLINE reflect' #-}
 
 
----------------------
+----------------------
 -- === TypeDesc === --
----------------------
+----------------------
+
+-- === TypeDesc === --
 
 data TypeDesc = TypeDesc { _descTypeRep :: TypeRep
                          , _descStrRep  :: String
@@ -58,19 +74,36 @@ makeLenses ''TypeDesc
 instance Show TypeDesc where
     show = view descStrRep
 
-class IsTypeDesc a where
-    asTypeDesc :: Iso' a TypeDesc
-    default asTypeDesc :: (Wrapped a, Unwrapped a ~ TypeDesc) => Iso' a TypeDesc
-    asTypeDesc = wrapped' ; {-# INLINE asTypeDesc #-}
-
-instance IsTypeDesc TypeDesc where
-    asTypeDesc = id ; {-# INLINE asTypeDesc #-}
 
 instance Eq TypeDesc where
     (==) = (==) `on` view descTypeRep ; {-# INLINE (==) #-}
 
 instance Ord TypeDesc where
     compare = compare `on` view descTypeRep ; {-# INLINE compare #-}
+
+
+
+-- === TypeDescT === --
+
+newtype TypeDescT t = TypeDescT TypeDesc deriving (Ord, Eq)
+makeWrapped ''TypeDescT
+
+instance Show (TypeDescT t) where
+    show = show . unwrap' ; {-# INLINE show #-}
+
+
+-- === IsTypeDesc === --
+
+class IsTypeDesc a where
+    typeDesc :: Iso' a TypeDesc
+    default typeDesc :: (Wrapped a, Unwrapped a ~ TypeDesc) => Iso' a TypeDesc
+    typeDesc = wrapped' ; {-# INLINE typeDesc #-}
+
+instance IsTypeDesc TypeDesc where
+    typeDesc = id ; {-# INLINE typeDesc #-}
+
+instance IsTypeDesc (TypeDescT t)
+
 
 
 -- === Reifying === --
@@ -94,52 +127,65 @@ reproxyTypeRef _ = p ; {-# INLINE reproxyTypeRef #-}
 
 -- tyConVals
 
-tyConVals :: KnownDType a => Proxy a -> (TyCon, [TypeDesc])
-tyConVals = fmap reverse . tyConValsR ; {-# INLINE tyConVals #-}
+tyConDescs :: KnownDType a => Proxy a -> (TyCon, [TypeDesc])
+tyConDescs = fmap reverse . tyConDescsR ; {-# INLINE tyConDescs #-}
 
-class                                       KnownDType (a :: k) where tyConValsR :: Proxy a -> (TyCon, [TypeDesc])
-instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a        where tyConValsR   = (,[]) . typeRepTyCon . typeRep            ; {-# INLINE tyConValsR #-}
-instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConValsR _ = (typeVal' @a :) <$> tyConValsR (p :: P t) ; {-# INLINE tyConValsR #-}
+class                                       KnownDType (a :: k) where tyConDescsR :: Proxy a -> (TyCon, [TypeDesc])
+instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a        where tyConDescsR   = (,[]) . typeRepTyCon . typeRep               ; {-# INLINE tyConDescsR #-}
+instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConDescsR _ = (getTypeDesc @a :) <$> tyConDescsR (p :: P t) ; {-# INLINE tyConDescsR #-}
 
 -- KnownType
 
-class                                         KnownType a           where typeVal_ :: Proxy a -> TypeDesc
-instance                      TypeReify  s => KnownType (TypeRef s) where typeVal_ _ = reflect (p :: P s)             ; {-# INLINE typeVal_ #-}
+class                                                        KnownType a           where getTypeDesc'_ :: Proxy a -> TypeDesc
+instance                      TypeReify s                 => KnownType (TypeRef s) where getTypeDesc'_ _ = reflect (p :: P s) ; {-# INLINE getTypeDesc'_ #-}
 instance {-# OVERLAPPABLE #-} (KnownDType a, TypeShow2 a) => KnownType a where
-    typeVal_ p = TypeDesc (mkTyConApp t $ view descTypeRep <$> ds) (showType2 (Proxy :: Proxy a) $ view descStrRep <$> ds) where
-        (t, ds) = tyConVals p
+    getTypeDesc'_ p = TypeDesc (mkTyConApp t $ view descTypeRep <$> ds) (showType2 (Proxy :: Proxy a) $ view descStrRep <$> ds) where
+        (t, ds) = tyConDescs p
 
 
-        -- TypeDesc (uncurry mkTyConApp $ tyConVals p) (showType p) ; {-# INLINE typeVal_ #-}
+        -- TypeDesc (uncurry mkTyConApp $ tyConDescs p) (showType p) ; {-# INLINE getTypeDesc_ #-}
 
-typeVal'_ :: forall a. KnownType a => TypeDesc
-typeVal'_ = typeVal_ (Proxy :: Proxy a) ; {-# INLINE typeVal'_ #-}
+getTypeDesc_ :: forall a. KnownType a => TypeDesc
+getTypeDesc_ = getTypeDesc'_ (Proxy :: Proxy a) ; {-# INLINE getTypeDesc_ #-}
 
-typeVal :: (KnownType a, IsTypeDesc t) => Proxy a -> t
-typeVal = view (from asTypeDesc) . typeVal_ ; {-# INLINE typeVal #-}
+getTypeDesc' :: (KnownType a, IsTypeDesc t) => Proxy a -> t
+getTypeDesc' = view (from typeDesc) . getTypeDesc'_ ; {-# INLINE getTypeDesc' #-}
 
-typeVal' :: forall a t. (KnownType a, IsTypeDesc t) => t
-typeVal' = typeVal (Proxy :: Proxy a) ; {-# INLINE typeVal' #-}
+getTypeDesc :: forall a t. (KnownType a, IsTypeDesc t) => t
+getTypeDesc = getTypeDesc' (Proxy :: Proxy a) ; {-# INLINE getTypeDesc #-}
 
 -- KnownTypes
 
-class                                    KnownTypes ls        where typeVals_ :: [TypeDesc]
-instance (KnownType l, KnownTypes ls) => KnownTypes (l ': ls) where typeVals_ = typeVal' @l : typeVals_ @ls ; {-# INLINE typeVals_ #-}
-instance                                 KnownTypes '[]       where typeVals_ = []                            ; {-# INLINE typeVals_ #-}
+class                                    KnownTypes ls        where getTypeDescs_ :: [TypeDesc]
+instance (KnownType l, KnownTypes ls) => KnownTypes (l ': ls) where getTypeDescs_ = getTypeDesc @l : getTypeDescs_ @ls ; {-# INLINE getTypeDescs_ #-}
+instance                                 KnownTypes '[]       where getTypeDescs_ = []                                 ; {-# INLINE getTypeDescs_ #-}
 
-typeVals' :: forall ls t. (KnownTypes ls, IsTypeDesc t) => [t]
-typeVals' = view (from asTypeDesc) <$> typeVals_ @ls ; {-# INLINE typeVals' #-}
+getTypeDescs :: forall ls t. (KnownTypes ls, IsTypeDesc t) => [t]
+getTypeDescs = view (from typeDesc) <$> getTypeDescs_ @ls ; {-# INLINE getTypeDescs #-}
 
 
 
 fromTypeDesc :: IsTypeDesc a => TypeDesc -> a
-fromTypeDesc = view $ from asTypeDesc ; {-# INLINE fromTypeDesc #-}
+fromTypeDesc = view $ from typeDesc ; {-# INLINE fromTypeDesc #-}
 
 switchedTypeDesc :: (IsTypeDesc a, IsTypeDesc b) => Lens' a b
-switchedTypeDesc = asTypeDesc . from asTypeDesc ; {-# INLINE switchedTypeDesc #-}
+switchedTypeDesc = typeDesc . from typeDesc ; {-# INLINE switchedTypeDesc #-}
 
 switchTypeDesc :: (IsTypeDesc a, IsTypeDesc b) => a -> b
 switchTypeDesc = view switchedTypeDesc ; {-# INLINE switchTypeDesc #-}
+
+
+getTypeVal'_ :: KnownType a => Proxy a -> TypeRep
+getTypeVal'_ = view descTypeRep . getTypeDesc'_ ; {-# INLINE getTypeVal'_ #-}
+
+getTypeVal_ :: forall a. KnownType a => TypeRep
+getTypeVal_ = getTypeVal'_ (Proxy :: Proxy a) ; {-# INLINE getTypeVal_ #-}
+
+getTypeVal' :: (KnownType a, IsTypeRep t) => Proxy a -> t
+getTypeVal' = view (from asTypeRep) . getTypeVal'_ ; {-# INLINE getTypeVal' #-}
+
+getTypeVal :: forall a t. (KnownType a, IsTypeRep t) => t
+getTypeVal = getTypeVal' (Proxy :: Proxy a) ; {-# INLINE getTypeVal #-}
 
 
 
@@ -186,28 +232,28 @@ switchTypeDesc = view switchedTypeDesc ; {-# INLINE switchTypeDesc #-}
 --
 -- class                                       KnownDType (a :: k) where tyConValsR :: Proxy a -> (TyCon, [TypeRep])
 -- instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a        where tyConValsR   = (,[]) . typeRepTyCon . typeRep            ; {-# INLINE tyConValsR #-}
--- instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConValsR _ = (typeVal' @a :) <$> tyConValsR (p :: P t) ; {-# INLINE tyConValsR #-}
+-- instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConValsR _ = (getTypeVal' @a :) <$> tyConValsR (p :: P t) ; {-# INLINE tyConValsR #-}
 --
 -- -- KnownType
 --
--- class                                         KnownType a           where typeVal_ :: Proxy a -> TypeRep
--- instance {-# OVERLAPPABLE #-} KnownDType a => KnownType a           where typeVal_   = uncurry mkTyConApp . tyConVals ; {-# INLINE typeVal_ #-}
--- instance                      TypeReify  s => KnownType (TypeRef s) where typeVal_ _ = reflect (p :: P s)             ; {-# INLINE typeVal_ #-}
+-- class                                         KnownType a           where getTypeVal_ :: Proxy a -> TypeRep
+-- instance {-# OVERLAPPABLE #-} KnownDType a => KnownType a           where getTypeVal_   = uncurry mkTyConApp . tyConVals ; {-# INLINE getTypeVal_ #-}
+-- instance                      TypeReify  s => KnownType (TypeRef s) where getTypeVal_ _ = reflect (p :: P s)             ; {-# INLINE getTypeVal_ #-}
 --
--- typeVal'_ :: forall a. KnownType a => TypeRep
--- typeVal'_ = typeVal_ (Proxy :: Proxy a) ; {-# INLINE typeVal'_ #-}
+-- getTypeVal'_ :: forall a. KnownType a => TypeRep
+-- getTypeVal'_ = getTypeVal_ (Proxy :: Proxy a) ; {-# INLINE getTypeVal'_ #-}
 --
--- typeVal :: (KnownType a, IsTypeRep t) => Proxy a -> t
--- typeVal = view (from asTypeRep) . typeVal_ ; {-# INLINE typeVal #-}
+-- getTypeVal :: (KnownType a, IsTypeRep t) => Proxy a -> t
+-- getTypeVal = view (from asTypeRep) . getTypeVal_ ; {-# INLINE getTypeVal #-}
 --
--- typeVal' :: forall a t. (KnownType a, IsTypeRep t) => t
--- typeVal' = typeVal (Proxy :: Proxy a) ; {-# INLINE typeVal' #-}
+-- getTypeVal' :: forall a t. (KnownType a, IsTypeRep t) => t
+-- getTypeVal' = getTypeVal (Proxy :: Proxy a) ; {-# INLINE getTypeVal' #-}
 --
 -- -- KnownTypes
 --
--- class                                    KnownTypes ls        where typeVals_ :: [TypeRep]
--- instance (KnownType l, KnownTypes ls) => KnownTypes (l ': ls) where typeVals_ = typeVal' @l : typeVals_ @ls ; {-# INLINE typeVals_ #-}
--- instance                                 KnownTypes '[]       where typeVals_ = []                            ; {-# INLINE typeVals_ #-}
+-- class                                    KnownTypes ls        where typeValsOf_ :: [TypeRep]
+-- instance (KnownType l, KnownTypes ls) => KnownTypes (l ': ls) where typeValsOf_ = getTypeVal' @l : typeValsOf_ @ls ; {-# INLINE typeValsOf_ #-}
+-- instance                                 KnownTypes '[]       where typeValsOf_ = []                            ; {-# INLINE typeValsOf_ #-}
 --
--- typeVals' :: forall ls t. (KnownTypes ls, IsTypeRep t) => [t]
--- typeVals' = view (from asTypeRep) <$> typeVals_ @ls ; {-# INLINE typeVals' #-}
+-- typeValsOf' :: forall ls t. (KnownTypes ls, IsTypeRep t) => [t]
+-- typeValsOf' = view (from asTypeRep) <$> typeValsOf_ @ls ; {-# INLINE typeValsOf' #-}

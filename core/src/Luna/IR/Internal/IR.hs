@@ -19,7 +19,7 @@ import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refac
 import qualified GHC.Prim   as Prim
 import Luna.IR.Layer
 import Luna.IR.Layer.Model
-import Luna.IR.Expr.Atom    (Atom, Atoms, AtomRep, atomRep, AtomOf)
+import Luna.IR.Expr.Atom    (Atom, Atoms, AtomDesc, atomDescOf, AtomOf)
 import qualified Luna.IR.Expr.Atom as A
 import Luna.IR.Expr.Format  (Format, Draft)
 import Luna.IR.Expr.Layout  (LAYOUT, LayoutOf, NAME, Generalizable, Universal, universal, Abstract, Sub, abstract)
@@ -80,6 +80,8 @@ data Delete = Delete deriving (Show)
 ------------------
 -- === Elem === --
 ------------------
+
+data Element = Element deriving (Show)
 
 newtype Elem t = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
@@ -230,19 +232,20 @@ type RefWriteError k a = RefAccessError "write" k a
 
 -- === Definition === --
 
-type LayerRep = TypeDesc
-type ElemRep  = TypeDesc
+type LayerDesc = TypeDescT Layer
+type ElemDesc  = TypeDescT Element
+
 
 type    IR     = IR'   ElemStore
 type    IRST s = IR'  (ElemStoreST s)
 type    IRM  m = IRST (PrimState   m)
-newtype IR'  a = IR   (Map ElemRep a) deriving (Show, Default, Functor, Traversable, Foldable)
+newtype IR'  a = IR   (Map ElemDesc a) deriving (Show, Default, Functor, Traversable, Foldable)
 
 
 
 type LayerSet    s = Store.VectorRef s Prim.Any
-type ElemStore     = LayerStore      LayerRep Prim.Any
-type ElemStoreST s = LayerStoreRef s LayerRep Prim.Any
+type ElemStore     = LayerStore      LayerDesc Prim.Any
+type ElemStoreST s = LayerStoreRef s LayerDesc Prim.Any
 type ElemStoreM  m = ElemStoreST (PrimState m)
 
 makeWrapped ''IR'
@@ -273,11 +276,11 @@ makeWrapped ''IRBuilder
 
 -- === Accessors === --
 
-atElem :: Functor m => ElemRep -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRM m -> m (IRM m)
+atElem :: Functor m => ElemDesc -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRM m -> m (IRM m)
 atElem = wrapped' .: at  ; {-# INLINE atElem #-}
 
-modifyElem  :: PrimMonad m => ElemRep -> (ElemStoreM m ->    ElemStoreM m)  -> IRM m -> m (IRM m)
-modifyElemM :: PrimMonad m => ElemRep -> (ElemStoreM m -> m (ElemStoreM m)) -> IRM m -> m (IRM m)
+modifyElem  :: PrimMonad m => ElemDesc -> (ElemStoreM m ->    ElemStoreM m)  -> IRM m -> m (IRM m)
+modifyElemM :: PrimMonad m => ElemDesc -> (ElemStoreM m -> m (ElemStoreM m)) -> IRM m -> m (IRM m)
 modifyElem  e   = modifyElemM e . fmap return                                                  ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (fmap return es) ; {-# INLINE modifyElemM #-}
 
@@ -295,7 +298,7 @@ newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t
         => Definition t -> m t
 newElem tdef = do
     t <- reserveElem
-    withDebugBy "Emitter" ("Event New // " <> show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]") $ do
+    withDebugBy "Emitter" ("Event New // " <> show (getTypeDesc @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]") $ do
         dispatchNewElem t tdef
     return t
 {-# INLINE newElem #-}
@@ -367,12 +370,12 @@ readNet = readComp @Net @a ; {-# INLINE readNet #-}
 -- === Registration === --
 
 registerElemWith :: forall el m. (KnownType el, MonadIR m) => (ElemStoreM m -> ElemStoreM m) -> m ()
-registerElemWith = modifyIRM_ . modifyElem (typeVal' @el) ; {-# INLINE registerElemWith #-}
+registerElemWith = modifyIRM_ . modifyElem (getTypeDesc @el) ; {-# INLINE registerElemWith #-}
 
 registerElem :: forall el m. (KnownType el, MonadIR m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-unsafeCreateNewLayer :: MonadIR m => LayerRep -> ElemRep -> m ()
+unsafeCreateNewLayer :: MonadIR m => LayerDesc -> ElemDesc -> m ()
 unsafeCreateNewLayer l e = do
     s <- getIR
     let Just estore = s ^? wrapped' . ix e -- FIXME[WD]: Internal error if not found (element not registered)
@@ -838,11 +841,11 @@ inputs = symbolMapM_AB @HasInputs2 inputList
 
 class    KnownType (AtomOf a) => HasAtom a
 instance KnownType (AtomOf a) => HasAtom a
-getAtomRep :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> m out
-getAtomRep = symbolMapM_A @HasAtom atomRep
+termAtomDesc :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomDesc) => expr -> m out
+termAtomDesc = symbolMapM_A @HasAtom atomDescOf
 
-isSameAtom :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomRep) => expr -> expr -> m Bool
-isSameAtom a b = (==) <$> getAtomRep a <*> getAtomRep b
+isSameAtom :: (TermMapM_A HasAtom expr m out, expr ~ Expr layout, out ~ AtomDesc) => expr -> expr -> m Bool
+isSameAtom a b = (==) <$> termAtomDesc a <*> termAtomDesc b
 
 -- class Repr  s a        where repr  ::       a -> Builder s Tok
 
