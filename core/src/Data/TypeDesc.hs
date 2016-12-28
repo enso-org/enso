@@ -12,6 +12,7 @@ import GHC.Fingerprint (Fingerprint, fingerprintFingerprints)
 import Data.Typeable.Internal (TypeRep(TypeRep))
 
 
+
 ---------------------------------
 -- === Type pretty printer === --
 ---------------------------------
@@ -109,12 +110,12 @@ instance IsTypeDesc (TypeDescT t)
 
 -- === KnownType === --
 
-tyConDescs :: KnownDType a => Proxy a -> (TyCon, [TypeDesc])
-tyConDescs = fmap reverse . tyConDescsR ; {-# INLINE tyConDescs #-}
+tyConDescs :: forall a. KnownDType a => Proxy a -> (TyCon, [TypeDesc])
+tyConDescs _ = fmap reverse $ tyConDescsR @a ; {-# INLINE tyConDescs #-}
 
-class                                       KnownDType (a :: k) where tyConDescsR :: Proxy a -> (TyCon, [TypeDesc])
-instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a        where tyConDescsR   = (,[]) . typeRepTyCon . typeRep               ; {-# INLINE tyConDescsR #-}
-instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConDescsR _ = (getTypeDesc @a :) <$> tyConDescsR (p :: P t) ; {-# INLINE tyConDescsR #-}
+class                                       KnownDType a     where tyConDescsR :: (TyCon, [TypeDesc])
+instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a     where tyConDescsR = (,[]) . typeRepTyCon $ typeRep' @a    ; {-# INLINE tyConDescsR #-}
+instance (KnownType a, KnownDType t)     => KnownDType (t a) where tyConDescsR = (getTypeDesc @a :) <$> tyConDescsR @t ; {-# INLINE tyConDescsR #-}
 
 class                                        KnownType a           where getTypeDesc'_ :: Proxy a -> TypeDesc
 instance {-# OVERLAPPING #-} TypeReify s  => KnownType (TypeRef s) where getTypeDesc'_ _ = reflect (p :: P s) ; {-# INLINE getTypeDesc'_ #-}
@@ -162,7 +163,6 @@ getTypeVal' = view (from asTypeRep) . getTypeVal'_ ; {-# INLINE getTypeVal' #-}
 
 getTypeVal :: forall a t. (KnownType a, IsTypeRep t) => t
 getTypeVal = getTypeVal' (Proxy :: Proxy a) ; {-# INLINE getTypeVal #-}
-
 
 
 
