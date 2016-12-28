@@ -35,8 +35,8 @@ translateWith :: IsIdx t => Vector Int -> t -> t
 translateWith v = idx %~ Vector.unsafeIndex v
 
 importFunction :: forall l m. (IRMonad m, Accessibles m '[ExprLinkNet, ExprNet, ExprLayer Succs, ExprLayer Type, ExprLayer Model, ExprLinkLayer Model])
-               => CompiledFunction -> m ()
-importFunction (CompiledFunction (IR map) _) = do
+               => CompiledFunction -> m AnyExpr
+importFunction (CompiledFunction (IR map) r) = do
     ir      <- getIR
     exprNet <- readNet @EXPR
     linkNet <- readNet @(LINK' EXPR)
@@ -55,4 +55,4 @@ importFunction (CompiledFunction (IR map) _) = do
          inplaceModifyFieldsWith linkTranslator           e
          modifyLayer_ @Type      linkTranslator           e
          modifyLayer_ @Succs     (Set.map linkTranslator) e
-    return ()
+    return $ exprTranslator r

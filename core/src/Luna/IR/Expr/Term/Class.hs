@@ -50,6 +50,10 @@ type family LiteralOf a
 class HasLiteral a where
     lit :: Lens' a (LiteralOf a)
 
+type family NameOf a
+class HasName a where
+    name :: Lens' a (NameOf a)
+
 
 -- === Term isomorphisms === --
 

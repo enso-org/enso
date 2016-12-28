@@ -1,12 +1,16 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Runner (SubPass, TestPass, graphTestCase) where
+module Luna.IR.Runner where
 
 import           Luna.Prelude
 import           Luna.IR
-import           Luna.Pass    (SubPass, Inputs, Outputs, Preserves, Events)
-import qualified Luna.Pass    as Pass
+import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, Events)
+import qualified Luna.Pass        as Pass
 import           System.Log
+import qualified Luna.IR.Repr.Vis           as Vis
+import           Web.Browser                (openBrowser)
+import qualified Data.ByteString.Lazy.Char8 as ByteString
+import Data.Aeson                           (encode)
 
 
 data TestPass
@@ -22,3 +26,10 @@ graphTestCase :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.Know
 graphTestCase p = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
+
+withVis m = do
+    (p, vis) <- Vis.newRunDiffT m
+    putStrLn $ ByteString.unpack $ encode vis
+    let cfg = ByteString.unpack $ encode vis
+    liftIO $ openBrowser $ "http://localhost:8000?cfg=" <> cfg
+    return p

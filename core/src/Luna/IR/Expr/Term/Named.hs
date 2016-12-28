@@ -26,11 +26,6 @@ import           Data.RTuple (List(Null, (:-:)))
 import qualified Data.RTuple as List
 import Control.Lens.Utils (makePfxLenses)
 
-
-type family NameOf a -- FIXME[WD] props?
-class HasName a where
-    name :: Lens' a (NameOf a)
-
 ---------------------
 -- === Terms === --
 ---------------------
@@ -85,17 +80,6 @@ data    instance Term Atom.Star     (Layout.Named n a) = Sym_Star
 data    instance Term Atom.Missing  (Layout.Named n a) = Sym_Missing
 
 -- makePfxLenses ''Term
-
-type instance NameOf (Term s (Layout.Named n a)) = n
-instance HasName (Term Atom.Var (Layout.Named n a)) where name = iso (\(Sym_Var n) -> n) Sym_Var
-
-
-
-
-
-
-
-
 
 -- === Instances === --
 
@@ -254,7 +238,7 @@ instance HasInputs (NamedTerm Atom.Unify    n a) where inputList (Sym_Unify    t
 instance HasInputs (NamedTerm Atom.Var      n a) where inputList (Sym_Var      t1   ) = []
 
 
--- HasValue
+-- HasLiteral
 
 type instance LiteralOf (NamedTerm Atom.String   n a) = P.String
 type instance LiteralOf (NamedTerm Atom.Integer  n a) = P.Integer
@@ -263,6 +247,14 @@ type instance LiteralOf (NamedTerm Atom.Rational n a) = P.Rational
 instance HasLiteral (NamedTerm Atom.String   n a) where lit = lens (\(Sym_String   s) -> s) (const Sym_String)
 instance HasLiteral (NamedTerm Atom.Integer  n a) where lit = lens (\(Sym_Integer  i) -> i) (const Sym_Integer)
 instance HasLiteral (NamedTerm Atom.Rational n a) where lit = lens (\(Sym_Rational r) -> r) (const Sym_Rational)
+
+-- HasName
+
+type instance NameOf (Term s (Layout.Named n a)) = n
+
+instance HasName (Term Atom.Var  (Layout.Named n a)) where name = iso  (\(Sym_Var  n)   -> n) Sym_Var
+instance HasName (Term Atom.Acc  (Layout.Named n a)) where name = lens (\(Sym_Acc  n _) -> n) (\(Sym_Acc _ t) n -> Sym_Acc n t)
+instance HasName (Term Atom.Cons (Layout.Named n a)) where name = iso  (\(Sym_Cons n)   -> n) Sym_Cons
 
 --------------------------
 -- === Construction === --
