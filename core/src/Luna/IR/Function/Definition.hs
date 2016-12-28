@@ -56,5 +56,3 @@ importFunction (CompiledFunction (IR map) _) = do
          modifyLayer_ @Type      linkTranslator           e
          modifyLayer_ @Succs     (Set.map linkTranslator) e
     return ()
-
-

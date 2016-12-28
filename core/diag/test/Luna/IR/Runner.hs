@@ -11,8 +11,8 @@ import           System.Log
 
 data TestPass
 type instance Abstract  TestPass = TestPass
-type instance Inputs    TestPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Type, Succs] <> ExprLinkLayers '[Model]
-type instance Outputs   TestPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
+type instance Inputs    TestPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Type, Succs, UID] <> ExprLinkLayers '[Model, UID]
+type instance Outputs   TestPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID]              <> ExprLinkLayers '[Model, UID]
 type instance Events    TestPass = '[NEW // EXPR, NEW // LINK' EXPR, DELETE // EXPR, DELETE // LINK' EXPR]
 type instance Preserves TestPass ='[]
 

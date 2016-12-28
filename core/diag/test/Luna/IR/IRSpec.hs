@@ -5,6 +5,7 @@ import           Data.Maybe          (isJust)
 import           Luna.Prelude        hiding (String)
 import qualified Luna.Prelude        as P
 import qualified Luna.Pass           as Pass
+import qualified Luna.IR.Repr.Vis    as Vis
 
 import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, expectationFailure, Expectation, shouldThrow, Selector)
 
