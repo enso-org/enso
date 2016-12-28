@@ -25,7 +25,7 @@ import Luna.IR.Layer
 
 
 
-type Cache = Map (TypeRep,TypeRep) Prim.Any
+type Cache = Map (TypeDesc,TypeDesc) Prim.Any
 class Monad m => MonadRefCache m where
     getCache :: m Cache
     putCache :: Cache -> m ()
@@ -128,7 +128,7 @@ attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> sho
         dpass = Pass.specialize pproto e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
     put s'
-    addEventListener priority (New // (e ^. asTypeRep)) dpass -- TODO
+    addEventListener priority (New // (e ^. asTypeDesc)) dpass -- TODO
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
 
@@ -138,7 +138,7 @@ queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view even
 
 addEventListener :: (MonadPassManager m, IsTag evnt)
                   => Int -> evnt -> (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
-addEventListener priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) p)
+addEventListener priority evnt p =  modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchTypeDesc rep) p)
     where rep = p ^. Pass.desc . Pass.passRep
 {-# INLINE addEventListener #-}
 
@@ -234,15 +234,15 @@ instance PrimMonad m => PrimMonad (RefCache m) where
 instance MonadLogging m => MonadLogging (RefCache m)
 
 instance (MonadIR m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) where
-    uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeRep a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
+    uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
-
+-- FIXME[WD]: dirty TypeDesc management. Maybe we should not index with TypeDesc at all?
 instance MonadIR m => MonadRefLookup Layer (PassManager m) where
-    uncheckedLookupRef a = do
-        s <- getIR
+    uncheckedLookupRef (TypeDesc a s) = do
+        ir <- getIR
         let (_,[e,l]) = splitTyConApp a -- dirty typrep of (e // l) extraction
-            mlv = s ^? wrapped' . ix e
-        mr <- liftRefHandler $ mapM (Store.readKey l) mlv
+            mlv = ir ^? wrapped' . ix (TypeDesc e s)
+        mr <- liftRefHandler $ mapM (Store.readKey (TypeDesc l s)) mlv
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupRef #-}
 

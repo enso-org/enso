@@ -37,11 +37,12 @@ type family Atoms  a :: [*]
 
 -- === AtomRep === --
 
-newtype AtomRep = AtomRep TypeRep deriving (Eq)
+newtype AtomRep = AtomRep TypeDesc deriving (Eq)
+instance IsTypeDesc AtomRep
 makeWrapped ''AtomRep
 
 atomRep' :: forall a. KnownType (AtomOf a) => AtomRep
-atomRep' = wrap' $ typeVal' @(AtomOf a) ; {-# INLINE atomRep' #-}
+atomRep' = typeVal' @(AtomOf a) ; {-# INLINE atomRep' #-}
 
 atomRep :: forall a. KnownType (AtomOf a) => a -> AtomRep
 atomRep _ = atomRep' @a ; {-# INLINE atomRep #-}

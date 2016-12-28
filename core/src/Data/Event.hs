@@ -21,8 +21,8 @@ data Event
 -----------------
 
 newtype Tag    = Tag    [TagRep] deriving (Show, Eq, Ord)
-newtype TagRep = TagRep TypeRep  deriving (Show, Eq, Ord)
-instance IsTypeRep TagRep
+newtype TagRep = TagRep TypeDesc deriving (Show, Eq, Ord)
+instance IsTypeDesc TagRep
 
 makeClassy  ''Tag
 makeWrapped ''Tag
@@ -35,14 +35,15 @@ type family TagPath a where
     TagPath (a // as) = a ': TagPath as
     TagPath a         = '[a]
 
-type FromPath path = Typeables (TagPath path)
+type FromPath path = KnownTypes (TagPath path)
 fromPath :: forall path. FromPath path => Tag
-fromPath = Tag $ typeReps' @(TagPath path) ; {-# INLINE fromPath #-}
+fromPath = Tag $ typeVals' @(TagPath path) ; {-# INLINE fromPath #-}
 
-fromPathDyn :: TypeRep -> Tag
-fromPathDyn t = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' l :) $ fromPathDyn r
-                                  else Tag [wrap' t]
-    where sepType     = typeRepTyCon $ typeVal' @(//)
+-- FIXME[WD]
+fromPathDyn :: TypeDesc -> Tag
+fromPathDyn (TypeDesc t s) = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' (TypeDesc l "???") :) $ fromPathDyn (TypeDesc r "???3")
+                                               else Tag [wrap' (TypeDesc t "???2")]
+    where sepType     = typeRepTyCon $ typeRep (Proxy :: Proxy (//)) -- FIXME[WD]: why @-app doesnt work here?
           (con, args) = splitTyConApp t
 {-# INLINE fromPathDyn #-}
 
@@ -63,9 +64,9 @@ instance {-# OVERLAPPABLE #-} IsTagSeg t => IsTag t        where toTag t        
 instance (IsTagSeg t, IsTag p)           => IsTag (t // p) where toTag (t :// p) = toTag p & wrapped' %~ (toTagSeg t :) ; {-# INLINE toTag #-}
 instance                                    IsTag Tag      where toTag           = id                                   ; {-# INLINE toTag #-}
 
-class                        IsTagSeg a       where toTagSeg :: a -> TagRep
-instance KnownType a      => IsTagSeg a       where toTagSeg _ = typeVal' @a ; {-# INLINE toTagSeg #-}
-instance {-# OVERLAPPING #-} IsTagSeg TypeRep where toTagSeg   = wrap'       ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
+class                        IsTagSeg a        where toTagSeg :: a -> TagRep
+instance KnownType a      => IsTagSeg a        where toTagSeg _ = typeVal' @a ; {-# INLINE toTagSeg #-}
+instance {-# OVERLAPPING #-} IsTagSeg TypeDesc where toTagSeg   = wrap'       ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
 
 
 --------------------
@@ -103,8 +104,8 @@ data Listener l = Listener { _tag :: Tag
                            } deriving (Show)
 
 type    Listener'   = Listener ListenerRep
-newtype ListenerRep = ListenerRep TypeRep deriving (Show, Eq, Ord)
-instance IsTypeRep ListenerRep
+newtype ListenerRep = ListenerRep TypeDesc deriving (Show, Eq, Ord)
+instance IsTypeDesc ListenerRep
 
 makePfxLenses ''Listener
 makeWrapped   ''ListenerRep

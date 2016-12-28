@@ -39,7 +39,7 @@ import Type.Show
 
 -- === Errors === --
 
-data InternalError = MissingData TypeRep deriving (Show, Eq)
+data InternalError = MissingData TypeDesc deriving (Show, Eq)
 
 
 -- === Properties === --
@@ -67,15 +67,17 @@ type        Elements  t pass = (Inputs t pass <> Outputs t pass)
 
 -- === Definitions === --
 
-newtype PassRep = PassRep TypeRep deriving (Show, Eq, Ord)
-instance IsTypeRep PassRep
+newtype PassRep = PassRep TypeDesc deriving (Eq, Ord)
+instance IsTypeDesc PassRep
 makeWrapped ''PassRep
 
+instance Show PassRep where show = show . unwrap'
+
 data Description = Description { _passRep   :: !PassRep
-                               , _inputs    :: !(Map TypeRep [TypeRep])
-                               , _outputs   :: !(Map TypeRep [TypeRep])
-                               , _events    :: ![TypeRep]
-                               , _preserves :: ![TypeRep]
+                               , _inputs    :: !(Map TypeDesc [TypeDesc])
+                               , _outputs   :: !(Map TypeDesc [TypeDesc])
+                               , _events    :: ![TypeDesc]
+                               , _preserves :: ![TypeDesc]
                                } deriving (Show)
 
 data Describbed a = Describbed { _desc    :: !Description
@@ -84,6 +86,7 @@ data Describbed a = Describbed { _desc    :: !Description
 
 makeLenses  ''Describbed
 makeLenses  ''Description
+
 
 
 -- === KnownPass === --
@@ -162,10 +165,10 @@ lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust 
                                <<*>> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (typeVal' @Attr))  <> (fromJust $ desc ^. outputs . at (typeVal' @Attr)))
                                <<*>> lookupDataStore @Event @pass @m (desc ^. events)
     where fromJust (Just a) = a
-          lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeRep] -> m (Maybe (TList (DataStore k pass (GetRefHandler m))))
+          lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeDesc] -> m (Maybe (TList (DataStore k pass (GetRefHandler m))))
           lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
 
-          unsafeLookupData :: forall k m. MonadRefLookup k m => [TypeRep] -> m (Maybe Prim.Any)
+          unsafeLookupData :: forall k m. MonadRefLookup k m => [TypeDesc] -> m (Maybe Prim.Any)
           unsafeLookupData []       = return $ return $ unsafeCoerce ()
           unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupRef @k t <<*>> unsafeLookupData @k ts
 
@@ -230,7 +233,7 @@ instance Show (Template a) where show _ = "Template" ; {-# INLINE show #-}
 -- === Pass prototype === --
 ----------------------------
 
-newtype Proto a = Proto { specialize :: TypeRep -> a } deriving (Functor, Applicative, Monad)
+newtype Proto a = Proto { specialize :: TypeDesc -> a } deriving (Functor, Applicative, Monad)
 
 -- === Instances === --
 
@@ -407,3 +410,9 @@ instance ( Monad m, MonadRefState k a (SubPass pass m)
 instance ( Monad m, MonadRefState k a (SubPass pass m)
          , Assert (a `In` (Outputs k pass)) (RefWriteError k a)
          ) => Writer k a (SubPass pass m)
+
+
+
+
+instance TypeShow2 PassRep where
+    showTypeComponents _ = (show (typeRep'_ @(Unwrapped PassRep)) :)

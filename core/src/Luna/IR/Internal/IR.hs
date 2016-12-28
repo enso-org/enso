@@ -146,7 +146,7 @@ type Ref' k a m = Ref k a (GetRefHandler m)
 -- === Ref Monad === --
 
 class Monad m => MonadRefLookup k m where
-    uncheckedLookupRef :: forall a. TypeRep {- the type of `a` -}
+    uncheckedLookupRef :: forall a. TypeDesc {- the type of `a` -}
                        -> m (Maybe (Ref' k a m))
 
 
@@ -230,8 +230,8 @@ type RefWriteError k a = RefAccessError "write" k a
 
 -- === Definition === --
 
-type LayerRep = TypeRep
-type ElemRep  = TypeRep
+type LayerRep = TypeDesc
+type ElemRep  = TypeDesc
 
 type    IR     = IR'   ElemStore
 type    IRST s = IR'  (ElemStoreST s)
@@ -295,7 +295,7 @@ newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t
         => Definition t -> m t
 newElem tdef = do
     t <- reserveElem
-    withDebugBy "Emitter" ("New // " <> show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]") $ do
+    withDebugBy "Emitter" ("New // " <> show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]") $ do
         dispatchNewElem t tdef
     return t
 {-# INLINE newElem #-}
@@ -474,8 +474,8 @@ type instance RefData Net   _ m = ElemStoreST (PrimState m)
 
 -- === Aliases === --
 
-newtype AttrRep = AttrRep TypeRep deriving (Show, Eq, Ord)
-instance IsTypeRep AttrRep
+newtype AttrRep = AttrRep TypeDesc deriving (Show, Eq, Ord)
+instance IsTypeDesc AttrRep
 makeWrapped '' AttrRep
 
 -- === Instances === --
@@ -860,3 +860,22 @@ instance (ctx a b, Monad m) => DropMonad ctx a m b
 
 class    ctx a => FreeResult ctx a b
 instance ctx a => FreeResult ctx a b
+
+
+
+instance {-# OVERLAPPABLE #-} TypeShow2 (Elem e) where
+    showTypeComponents = flip const
+
+instance {-# OVERLAPPABLE #-}
+         TypeShow2 (EXPR l)   where showTypeComponents _   = ("Expr" :)
+instance TypeShow2 (EXPR ANY) where showTypeComponents _ _ = ["AnyExpr"]
+
+
+instance {-# OVERLAPPABLE #-} TypeShow2 (LINK  a b)     where showTypeComponents _       = ("Link" :)
+instance {-# OVERLAPPABLE #-} TypeShow2 (LINK' a)       where showTypeComponents _ [a,_] = ["Link'" , a]
+instance                      TypeShow2 (LINK' AnyExpr) where showTypeComponents _ _     = ["AnyExprLink"]
+
+
+
+instance TypeShow2 ANY where
+    showTypeComponents _ = ("Any" :)

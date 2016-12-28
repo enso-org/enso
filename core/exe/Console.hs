@@ -62,6 +62,7 @@ import Control.Concurrent
 import System.Exit
 
 
+
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
 type instance Inputs  Net   SimpleAA = '[]

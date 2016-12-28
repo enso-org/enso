@@ -78,7 +78,7 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 -- Layer passes
 
 
-elemDesc (t :: t) = show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]"
+elemDesc (t :: t) = show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]"
 layerCreated = ("Running pass " <>)
 
 debugLayerCreation t layer s = withDebugBy (elemDesc t) (layerCreated layer <> s)
@@ -86,7 +86,7 @@ debugLayerCreation' t layer = debugLayerCreation t layer ""
 
 --
 -- debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
--- debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]")
+-- debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]")
 --
 -- debugLayerCreation :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> Prelude.String -> m ()
 -- debugLayerCreation t layer post = debugElem t $ layer <> " layer created" <> post
@@ -132,7 +132,7 @@ registerExprLayerM l p = registerExprLayer l =<< p ; {-# INLINE registerExprLaye
 
 
 prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Template (Pass (ElemScope p (Elem (TypeRef s))) m)) -> Pass.Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
-prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (head . typeRepArgs) {- we take type args here, cause we need only `t` instead of `Elem t` -} where
+prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (descTypeRep %~ head . typeRepArgs) {- we take type args here, cause we need only `t` instead of `Elem t` -} where
     prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Template (Pass (ElemScope p (Elem t)) m) -> Proxy t -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
     prepareProto' = const . Pass.describbed @(ElemScope p (Elem t)) . Pass.compileTemplate
 
