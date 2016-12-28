@@ -8,7 +8,7 @@ import qualified GHC.Prim      as Prim
 import qualified Data.Map      as Map
 import           Data.Map      (Map)
 import           Data.Reprx    (RepOf, HasRep, rep)
-import           Data.TypeVal
+import           Data.TypeDesc
 -- WIP:
 import           Luna.IR.Expr.Layout.Class (Abstract)
 
@@ -39,9 +39,9 @@ fromPath = Tag $ getTypeDescs @(TagPath path) ; {-# INLINE fromPath #-}
 
 -- FIXME[WD]
 fromPathDyn :: TypeDesc -> Tag
-fromPathDyn (TypeDesc t s) = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' (TypeDesc l "???") :) $ fromPathDyn (TypeDesc r "???3")
-                                               else Tag [wrap' (TypeDesc t "???2")]
-    where sepType     = typeRepTyCon $ typeRep (Proxy :: Proxy (//)) -- FIXME[WD]: why @-app doesnt work here?
+fromPathDyn t = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' l :) $ fromPathDyn r
+                                  else Tag [wrap' t]
+    where sepType     = getTypeDesc @(//) ^. tyCon
           (con, args) = splitTyConApp t
 {-# INLINE fromPathDyn #-}
 

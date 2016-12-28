@@ -44,9 +44,8 @@ import qualified Data.Event                as Event
 import           Data.Event                (Payload(Payload), Emitter, PayloadData, emit, (//), type (//))
 import Luna.IR.Expr.Term.Uni ()
 -- import Type.Inference
-import Data.TypeVal
+import Data.TypeDesc
 import Type.Bool (And)
-import Type.Show
 
 import System.Log (MonadLogging, Logging, withDebugBy)
 
@@ -113,10 +112,6 @@ type instance Universal  (Elem t) = Elem (Universal t)
 
 instance IsIdx (Elem t) where
     idx = wrapped' ; {-# INLINE idx #-}
-
-instance TypeShow t => TypeShow (Elem t) where
-    showType _ = showType' @t ; {-# INLINE showType #-}
-
 
 
 ------------------
@@ -866,19 +861,19 @@ instance ctx a => FreeResult ctx a b
 
 
 
-instance {-# OVERLAPPABLE #-} TypeShow2 (Elem e) where
-    showTypeComponents = flip const
+instance {-# OVERLAPPABLE #-} TypePretty (Elem e) where
+    formatType = id
 
 instance {-# OVERLAPPABLE #-}
-         TypeShow2 (EXPR l)   where showTypeComponents _   = ("Expr" :)
-instance TypeShow2 (EXPR ANY) where showTypeComponents _ _ = ["AnyExpr"]
+         TypePretty (EXPR l)   where formatType   = ("Expr" :)
+instance TypePretty (EXPR ANY) where formatType _ = ["AnyExpr"]
 
 
-instance {-# OVERLAPPABLE #-} TypeShow2 (LINK  a b)     where showTypeComponents _       = ("Link" :)
-instance {-# OVERLAPPABLE #-} TypeShow2 (LINK' a)       where showTypeComponents _ [a,_] = ["Link'" , a]
-instance                      TypeShow2 (LINK' AnyExpr) where showTypeComponents _ _     = ["AnyExprLink"]
+instance {-# OVERLAPPABLE #-} TypePretty (LINK  a b)     where formatType       = ("Link" :)
+instance {-# OVERLAPPABLE #-} TypePretty (LINK' a)       where formatType [a,_] = ["Link'" , a]
+instance                      TypePretty (LINK' AnyExpr) where formatType _     = ["AnyExprLink"]
 
 
 
-instance TypeShow2 ANY where
-    showTypeComponents _ = ("Any" :)
+instance TypePretty ANY where
+    formatType = ("Any" :)

@@ -10,7 +10,7 @@ import Data.Property
 import Data.Reprx
 import Type.Container (Every)
 import Data.Families  (makeLunaComponents)
-import Data.TypeVal
+import Data.TypeDesc
 
 
 -- === Definition pragmas === --

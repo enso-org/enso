@@ -3,7 +3,7 @@ module Luna.IR.Expr.Combinators where
 import           Luna.Prelude
 import qualified Luna.Pass    as Pass
 import           Luna.IR
-import           Data.TypeVal
+import           Data.TypeDesc
 import qualified Data.Set     as Set
 
 narrowAtom :: forall a m. (MonadRef m, KnownType (AtomOf a), Reader Layer (AnyExpr // Model) m)

@@ -6,23 +6,171 @@ module Data.TypeDesc (module Data.TypeDesc, module X) where
 import Data.Typeable.Proxy.Abbr
 import Prologue hiding (Simple)
 import Data.Reflection
-import Data.Typeable as X
+import Data.Typeable as X (TypeRep, TyCon, tyConFingerprint, typeRepTyCon)
 import Data.Kind
+import GHC.Fingerprint (Fingerprint, fingerprintFingerprints)
+import Data.Typeable.Internal (TypeRep(TypeRep))
+
+
+---------------------------------
+-- === Type pretty printer === --
+---------------------------------
+
+-- === Definition === --
+
+class TypePretty a where
+    formatType :: [String] -> [String]
+
+instance {-# OVERLAPPABLE #-} (Typeable t, BaseType (Proxy a) ~ Proxy t) => TypePretty a where
+    formatType = (show (typeRep $ baseType (Proxy :: Proxy a)) :) ; {-# INLINE formatType #-}
+
+type family BaseType a where
+    BaseType (Proxy (t a)) = BaseType (Proxy t)
+    BaseType (Proxy a)     = Proxy a
+
+
+-- === Utils === --
+
+baseType :: (BaseType (Proxy a) ~ Proxy t) => Proxy a -> Proxy t
+baseType _ = Proxy
+
+showFormattedType :: forall a. TypePretty a => [String] -> String
+showFormattedType cs = fmt $ intercalate " " ccs where
+    ccs = formatType @a cs
+    fmt = if length ccs > 1 then (\s -> "(" <> s <> ")")
+                            else id
 
 
 
-class TypeShow2 a where
-    showTypeComponents :: Proxy a -> [String] -> [String]
+----------------------
+-- === TypeDesc === --
+----------------------
 
--- instance {-# OVERLAPPABLE #-} Typeable a => TypeShow2 a where
---     showTypeComponents a = (show (typeRep a) :)
+-- === Definition === --
 
-showType2 :: TypeShow2 a => Proxy a -> [String] -> String
-showType2 = undefined
+-- | TypeDesc is extended version of Data.Typeable.TypeRep, keeping additional pretty type representation.
 
-----------------------------------
+type Pretty   = String
+type KindDesc = TypeDesc
+
+data TypeDesc = TypeDesc { _fingerprint :: !Fingerprint
+                         , _tyCon       :: TyCon
+                         , _kindReps    :: [KindDesc]
+                         , _subDescs    :: [TypeDesc]
+                         , _pretty      :: Pretty
+                         }
+makeLenses ''TypeDesc
+
+instance Show TypeDesc where show = view pretty                ; {-# INLINE show #-}
+instance Eq   TypeDesc where (==) = (==) `on` view fingerprint ; {-# INLINE (==) #-}
+instance Ord  TypeDesc where (<=) = (<=) `on` view fingerprint ; {-# INLINE (<=) #-}
+
+
+-- === Utils === --
+
+toTypeRep :: TypeDesc -> TypeRep
+toTypeRep (TypeDesc f t k s _) = TypeRep f t (toTypeRep <$> k) (toTypeRep <$> s) ; {-# INLINE toTypeRep #-}
+
+mkPolyTyConApp :: TyCon -> [KindDesc] -> [TypeDesc] -> Pretty -> TypeDesc
+{-# INLINE mkPolyTyConApp #-}
+mkPolyTyConApp tc kinds types pr = TypeDesc (fingerprintFingerprints sub_fps) tc kinds types pr
+  where !kt_fps = typeRepFingerprints kinds types
+        sub_fps = tyConFingerprint tc : kt_fps
+        typeRepFingerprints ks ts = (view fingerprint <$> ks) <> (view fingerprint <$> ts)
+
+mkTyConApp  :: TyCon -> [TypeDesc] -> Pretty -> TypeDesc
+mkTyConApp tc = mkPolyTyConApp tc [] ; {-# INLINE mkTyConApp #-}
+
+splitTyConApp :: TypeDesc -> (TyCon,[TypeDesc])
+splitTyConApp t = (t ^. tyCon, t ^. subDescs) ; {-# INLINE splitTyConApp #-}
+
+
+-- === TypeDescT === --
+
+newtype TypeDescT t = TypeDescT TypeDesc deriving (Ord, Eq)
+makeWrapped ''TypeDescT
+
+instance Show (TypeDescT t) where
+    show = show . unwrap' ; {-# INLINE show #-}
+
+
+-- === IsTypeDesc === --
+
+class IsTypeDesc a where
+    typeDesc :: Iso' a TypeDesc
+    default typeDesc :: (Wrapped a, Unwrapped a ~ TypeDesc) => Iso' a TypeDesc
+    typeDesc = wrapped' ; {-# INLINE typeDesc #-}
+
+instance IsTypeDesc TypeDesc where
+    typeDesc = id ; {-# INLINE typeDesc #-}
+
+instance IsTypeDesc (TypeDescT t)
+
+
+-- === KnownType === --
+
+tyConDescs :: KnownDType a => Proxy a -> (TyCon, [TypeDesc])
+tyConDescs = fmap reverse . tyConDescsR ; {-# INLINE tyConDescs #-}
+
+class                                       KnownDType (a :: k) where tyConDescsR :: Proxy a -> (TyCon, [TypeDesc])
+instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a        where tyConDescsR   = (,[]) . typeRepTyCon . typeRep               ; {-# INLINE tyConDescsR #-}
+instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConDescsR _ = (getTypeDesc @a :) <$> tyConDescsR (p :: P t) ; {-# INLINE tyConDescsR #-}
+
+class                                        KnownType a           where getTypeDesc'_ :: Proxy a -> TypeDesc
+instance {-# OVERLAPPING #-} TypeReify s  => KnownType (TypeRef s) where getTypeDesc'_ _ = reflect (p :: P s) ; {-# INLINE getTypeDesc'_ #-}
+instance (KnownDType a, TypePretty a)     => KnownType a           where getTypeDesc'_ p = mkTyConApp t ds . showFormattedType @a $ view pretty <$> ds
+                                                                                           where (t, ds) = tyConDescs p
+                                                                         {-# INLINE getTypeDesc'_ #-}
+
+
+-- === Utils === --
+
+getTypeDesc_ :: forall a. KnownType a => TypeDesc
+getTypeDesc_ = getTypeDesc'_ (Proxy :: Proxy a) ; {-# INLINE getTypeDesc_ #-}
+
+getTypeDesc' :: (KnownType a, IsTypeDesc t) => Proxy a -> t
+getTypeDesc' = view (from typeDesc) . getTypeDesc'_ ; {-# INLINE getTypeDesc' #-}
+
+getTypeDesc :: forall a t. (KnownType a, IsTypeDesc t) => t
+getTypeDesc = getTypeDesc' (Proxy :: Proxy a) ; {-# INLINE getTypeDesc #-}
+
+class                                    KnownTypes ls        where getTypeDescs_ :: [TypeDesc]
+instance (KnownType l, KnownTypes ls) => KnownTypes (l ': ls) where getTypeDescs_ = getTypeDesc @l : getTypeDescs_ @ls ; {-# INLINE getTypeDescs_ #-}
+instance                                 KnownTypes '[]       where getTypeDescs_ = []                                 ; {-# INLINE getTypeDescs_ #-}
+
+getTypeDescs :: forall ls t. (KnownTypes ls, IsTypeDesc t) => [t]
+getTypeDescs = view (from typeDesc) <$> getTypeDescs_ @ls ; {-# INLINE getTypeDescs #-}
+
+fromTypeDesc :: IsTypeDesc a => TypeDesc -> a
+fromTypeDesc = view $ from typeDesc ; {-# INLINE fromTypeDesc #-}
+
+switchedTypeDesc :: (IsTypeDesc a, IsTypeDesc b) => Lens' a b
+switchedTypeDesc = typeDesc . from typeDesc ; {-# INLINE switchedTypeDesc #-}
+
+switchTypeDesc :: (IsTypeDesc a, IsTypeDesc b) => a -> b
+switchTypeDesc = view switchedTypeDesc ; {-# INLINE switchTypeDesc #-}
+
+
+getTypeVal'_ :: KnownType a => Proxy a -> TypeRep
+getTypeVal'_ = toTypeRep . getTypeDesc'_ ; {-# INLINE getTypeVal'_ #-}
+
+getTypeVal_ :: forall a. KnownType a => TypeRep
+getTypeVal_ = getTypeVal'_ (Proxy :: Proxy a) ; {-# INLINE getTypeVal_ #-}
+
+getTypeVal' :: (KnownType a, IsTypeRep t) => Proxy a -> t
+getTypeVal' = view (from asTypeRep) . getTypeVal'_ ; {-# INLINE getTypeVal' #-}
+
+getTypeVal :: forall a t. (KnownType a, IsTypeRep t) => t
+getTypeVal = getTypeVal' (Proxy :: Proxy a) ; {-# INLINE getTypeVal #-}
+
+
+
+
+-------------------------
+-- === Reification === --
+-------------------------
+
 -- === Reflection etensions === --
-----------------------------------
 
 newtype MagicT t a r = MagicT (forall (s :: *). Reifies (t s) a => Proxy s -> r)
 
@@ -33,26 +181,7 @@ reflect' :: forall s a. Reifies s a => a
 reflect' = reflect (p :: P s) ; {-# INLINE reflect' #-}
 
 
----------------------
--- === TypeDesc === --
----------------------
-
-data TypeDesc = TypeDesc { _rep  :: TypeRep
-                         , _desc :: String
-                         }
-makeLenses ''TypeDesc
-
-instance Show TypeDesc where
-    show = show . view rep
-
-class IsTypeDesc a where
-    asTypeDesc :: Iso' a TypeDesc
-
-instance IsTypeDesc TypeDesc where
-    asTypeDesc = id ; {-# INLINE asTypeDesc #-}
-
-
--- === Reifying === --
+-- === Definitions === --
 
 data TypeRef   (s :: *)
 type TypeProxy s = Proxy (TypeRef s)
@@ -66,44 +195,3 @@ reifyKnownTypeT f a = reifyT @t a $ f . reproxyTypeRef ; {-# INLINE reifyKnownTy
 
 reproxyTypeRef :: P s -> TypeProxy s
 reproxyTypeRef _ = p ; {-# INLINE reproxyTypeRef #-}
-
-
--- === KnownType === --
-
-
--- tyConVals
-
-tyConVals :: KnownDType a => Proxy a -> (TyCon, [TypeDesc])
-tyConVals = fmap reverse . tyConValsR ; {-# INLINE tyConVals #-}
-
-class                                       KnownDType (a :: k) where tyConValsR :: Proxy a -> (TyCon, [TypeDesc])
-instance {-# OVERLAPPABLE #-} Typeable a => KnownDType a        where tyConValsR   = (,[]) . typeRepTyCon . typeRep            ; {-# INLINE tyConValsR #-}
-instance (KnownType a, KnownDType t)     => KnownDType (t a)    where tyConValsR _ = (typeDesc' @a :) <$> tyConValsR (p :: P t) ; {-# INLINE tyConValsR #-}
-
--- KnownType
-
-class                                         KnownType a           where typeDesc_ :: Proxy a -> TypeDesc
-instance                      TypeReify  s => KnownType (TypeRef s) where typeDesc_ _ = reflect (p :: P s)             ; {-# INLINE typeDesc_ #-}
-instance {-# OVERLAPPABLE #-} (KnownDType a, TypeShow2 a) => KnownType a where
-    typeDesc_ p = TypeDesc (mkTyConApp t $ view rep <$> ds) (showType2 (Proxy :: Proxy a) $ view desc <$> ds) where
-        (t, ds) = tyConVals p
-
-        -- TypeDesc (uncurry mkTyConApp $ tyConVals p) (showType p) ; {-# INLINE typeDesc_ #-}
-
-typeDesc'_ :: forall a. KnownType a => TypeDesc
-typeDesc'_ = typeDesc_ (Proxy :: Proxy a) ; {-# INLINE typeDesc'_ #-}
-
-typeDesc :: (KnownType a, IsTypeDesc t) => Proxy a -> t
-typeDesc = view (from asTypeDesc) . typeDesc_ ; {-# INLINE typeDesc #-}
-
-typeDesc' :: forall a t. (KnownType a, IsTypeDesc t) => t
-typeDesc' = typeDesc (Proxy :: Proxy a) ; {-# INLINE typeDesc' #-}
-
--- KnownTypes
-
-class                                    KnownTypes ls        where typeDescs_ :: [TypeDesc]
-instance (KnownType l, KnownTypes ls) => KnownTypes (l ': ls) where typeDescs_ = typeDesc' @l : typeDescs_ @ls ; {-# INLINE typeDescs_ #-}
-instance                                 KnownTypes '[]       where typeDescs_ = []                            ; {-# INLINE typeDescs_ #-}
-
-typeDescs' :: forall ls t. (KnownTypes ls, IsTypeDesc t) => [t]
-typeDescs' = view (from asTypeDesc) <$> typeDescs_ @ls ; {-# INLINE typeDescs' #-}

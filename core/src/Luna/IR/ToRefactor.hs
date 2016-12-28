@@ -22,7 +22,7 @@ import Luna.IR.Expr.Atom
 import Data.Property
 import qualified Luna.Pass        as Pass
 import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
-import Data.TypeVal
+import Data.TypeDesc
 import Data.Event (type (//))
 import qualified Data.Set as Set
 import Luna.IR.Internal.LayerStore (STRefM)
@@ -132,7 +132,7 @@ registerExprLayerM l p = registerExprLayer l =<< p ; {-# INLINE registerExprLaye
 
 
 prepareProto :: forall p m. (Logging m, Pass.DataLookup m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Template (Pass (ElemScope p (Elem (TypeRef s))) m)) -> Pass.Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
-prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (descTypeRep %~ head . typeRepArgs) {- we take type args here, cause we need only `t` instead of `Elem t` -} where
+prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (head . view subDescs) {- we take type args here, cause we need only `t` instead of `Elem t` -} where
     prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.DataLookup m, KnownElemPass p) => Template (Pass (ElemScope p (Elem t)) m) -> Proxy t -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
     prepareProto' = const . Pass.describbed @(ElemScope p (Elem t)) . Pass.compileTemplate
 

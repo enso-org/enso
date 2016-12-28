@@ -17,7 +17,7 @@ import Luna.Pass.Class (SubPass, PassDesc, Proto, DynPass, Template, Uninitializ
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
-import Data.TypeVal
+import Data.TypeDesc
 
 import System.Log
 import qualified Luna.IR.Internal.LayerStore as Store
@@ -238,11 +238,11 @@ instance (MonadIR m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) whe
 
 -- FIXME[WD]: dirty TypeDesc management. Maybe we should not index with TypeDesc at all?
 instance MonadIR m => MonadRefLookup Layer (PassManager m) where
-    uncheckedLookupRef (TypeDesc a s) = do
+    uncheckedLookupRef t = do
         ir <- getIR
-        let (_,[e,l]) = splitTyConApp a -- dirty typrep of (e // l) extraction
-            mlv = ir ^? wrapped' . ix (fromTypeDesc $ TypeDesc e s)
-        mr <- liftRefHandler $ mapM (Store.readKey (fromTypeDesc $ TypeDesc l s)) mlv
+        let (_,[e,l]) = splitTyConApp t -- dirty typrep of (e // l) extraction
+            mlv = ir ^? wrapped' . ix (fromTypeDesc e)
+        mr <- liftRefHandler $ mapM (Store.readKey (fromTypeDesc l)) mlv
         return $ wrap' <$> join mr
     {-# INLINE uncheckedLookupRef #-}
 
