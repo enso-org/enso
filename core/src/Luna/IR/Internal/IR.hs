@@ -295,7 +295,7 @@ newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t
         => Definition t -> m t
 newElem tdef = do
     t <- reserveElem
-    withDebugBy "Emitter" ("New // " <> show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]") $ do
+    withDebugBy "Emitter" ("Event New // " <> show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]") $ do
         dispatchNewElem t tdef
     return t
 {-# INLINE newElem #-}

@@ -132,6 +132,9 @@ between l r a = l <:> a <:> r ; {-# INLINE between #-}
 bracked :: (Monad m, IsFormatter a m) => a -> Formatter m Doc
 bracked = between "[" "]" ; {-# INLINE bracked #-}
 
+parensed :: (Monad m, IsFormatter a m) => a -> Formatter m Doc
+parensed = between "(" ")" ; {-# INLINE parensed #-}
+
 space :: Monad m => Formatter m Doc
 space = formatter " " ; {-# INLINE space #-}
 
@@ -216,6 +219,7 @@ instance DataStore Msg m => IsLogger FormatLogger m where
 --------------------------------
 
 nestedColorFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc
+-- nestedColorFormatter = line $ Nesting <:> dynTagsColorFormatter Msg <+> parensed Reporter ; {-# INLINE nestedColorFormatter #-}
 nestedColorFormatter = line $ Nesting <:> Reporter <:> ":" <+> dynTagsColorFormatter Msg ; {-# INLINE nestedColorFormatter #-}
 
 bulletNestingFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc

@@ -81,7 +81,7 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 elemDesc (t :: t) = show (typeVal' @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]"
 layerCreated = ("Running pass " <>)
 
-debugLayerCreation t layer s = withDebugBy (elemDesc t) (layerCreated layer <> s)
+debugLayerCreation t layer s = withDebugBy ("Pass [" <> layer <> "]") ("Running on " <> elemDesc t)
 debugLayerCreation' t layer = debugLayerCreation t layer ""
 
 --
