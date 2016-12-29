@@ -654,10 +654,12 @@ type instance Universal  (EXPR _) = EXPR Layout.Bottom
 
 -- === Definition === --
 
-type Expr layout  = Elem (EXPR layout)
-type AnyExpr      = Expr ANY
-type SomeExpr     = Expr Layout.Bottom
-type SomeExprLink = Link' SomeExpr
+type Expr layout   = Elem (EXPR layout)
+type AnyExpr       = Expr ANY
+type SomeExpr      = Expr Layout.Bottom
+type SomeExprLink  = Link' SomeExpr
+type ExprLink l l' = Link (Expr l) (Expr l')
+type ExprLink'  l  = ExprLink l l
 
 
 -- === Utils === --

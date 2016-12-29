@@ -98,9 +98,18 @@ debugLayerCreation' t layer = debugLayerCreation t layer ""
 proxify :: a -> Proxy a
 proxify _ = Proxy
 
+newtype EventPass  p e t s = EventPass (forall m. (MonadPassManager m, MonadRef m, s ~ PrimState m) => PayloadData (e // t) -> Pass (ElemScope p t) m)
+type    EventPassM p e t m = EventPass p e t (PrimState m)
 
-newtype LayerCons  p t s = LayerCons (forall m. (MonadPassManager m, MonadRef m, s ~ PrimState m) => (t, Definition t) -> Pass (ElemScope p t) m)
-type    LayerConsM p t m = LayerCons p t (PrimState m)
+runEventPass :: forall p e t m. (KnownType p, MonadPassManager m, MonadRef m) => EventPassM p e t m -> PayloadData (e // t) -> Pass (ElemScope p t) m
+runEventPass (EventPass f) pload = withDebug "ooo" $ {- debugLayerCreation' "foo" (show $ getTypeDesc_ @p) $ -} f pload
+
+foo :: forall p e t m. (KnownType p, MonadPassManager m, MonadRef m, Pass.PassInit (ElemScope p t) m) => EventPassM p e t m -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
+foo = Pass.describbed @(ElemScope p t) . Pass.compileTemplate . Pass.template . runEventPass
+
+
+                -- => Template (SubPass pass m a) -> Uninitialized m (Template (DynSubPass m a))
+
 
 newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, MonadRef m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope p (Elem t)) m)
 type    GenLayerConsM p m = GenLayerCons p (PrimState m)
@@ -233,11 +242,14 @@ instance KnownElemPass WatchSuccs where
 
 -- newtype LayerCons  p t s = LayerCons (forall m. (MonadPassManager m, MonadRef m, s ~ PrimState m) => (t, Definition t) -> Pass (ElemScope p t) m)
 
+
+
+
+
 -- watchSuccs :: forall l m. (MonadIO m, MonadIR m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
-watchSuccs :: LayerCons WatchSuccs (Link' (Expr l)) s
-watchSuccs = LayerCons $ \(t, (src, tgt)) -> do
+watchSuccs :: EventPass WatchSuccs New (ExprLink' l) s
+watchSuccs = EventPass $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
     -- debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
-    modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
 --
 -- watchSuccs_dyn :: (MonadIR m, MonadIO m, MonadPassManager m) => DynPass m
 -- watchSuccs_dyn = Pass.compile $ watchSuccs
@@ -360,7 +372,7 @@ runRegs = do
     -- initType_reg
     -- attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
     --
-    -- addEventListener 100 (New    // LINK AnyExpr AnyExpr) watchSuccs
+    addEventListener 100 (New // getTypeDesc_ @(Link' AnyExpr)) (foo watchSuccs)
     -- addEventListener 100 (DELETE // LINK AnyExpr AnyExpr) watchRemoveEdge
     -- addEventListener 100 (DELETE // AnyExpr)           watchRemoveNode
 
@@ -400,9 +412,6 @@ runLayerRegs = sequence_ layerRegs
 source :: (MonadRef m, Reader Layer (Abstract (Link a b) // Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
-
-
-type ExprLink a b = Link (Expr a) (Expr b)
 -- strName :: _ => _
 strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 

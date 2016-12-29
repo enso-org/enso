@@ -121,7 +121,7 @@ registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ 
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayer :: MonadPassManager m => Int -> LayerDesc -> ElemDesc -> m ()
-attachLayer priority l e = withDebug ("Attaching " <> show e <> " layer " <> show l) $ do
+attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to " <> show e) $ do
     IR.unsafeCreateNewLayer l e
     s <- get
     let Just pproto = s ^. layers . prototypes . at l
