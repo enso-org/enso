@@ -32,19 +32,21 @@ import           Data.Maybe        (isJust)
 
 newtype Imports = Imports (Map Name Module)
 makeWrapped ''Imports
-
 type instance PassAttr Imports t = Imports
+
+data CurrentVar
+type instance PassAttr CurrentVar FunctionResolution = Expr (ENT Var (E String) Draft)
+
 
 data    ImportError = SymbolNotFound | SymbolAmbiguous [Name] deriving (Show, Eq)
 
 data FunctionResolution
 type instance Abstract  FunctionResolution = FunctionResolution
-type instance Inputs    FunctionResolution = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Type, Succs, UID] <> ExprLinkLayers '[Model, UID]  <> '[Attr Int]-- <> '[Attr Imports]--'[Attr WorkingElem]--, Attr Imports]
+type instance Inputs    FunctionResolution = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Type, Succs, UID] <> ExprLinkLayers '[Model, UID]  <> '[Attr CurrentVar, Attr Imports]
 type instance Outputs   FunctionResolution = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID]              <> ExprLinkLayers '[Model, UID]
 type instance Events    FunctionResolution = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves FunctionResolution = '[]
 
-type instance PassAttr WorkingElem FunctionResolution = Expr (ENT Var (E String) Draft)
 
 lookupSym :: Name -> Imports -> Either ImportError CompiledFunction
 lookupSym n imps = let modulesWithMatchInfo = (over _2 $ flip Module.lookupFunction n) <$> Map.assocs (unwrap imps)
@@ -56,13 +58,12 @@ lookupSym n imps = let modulesWithMatchInfo = (over _2 $ flip Module.lookupFunct
 
 importVar :: (IRMonad m, MonadIO m, MonadPassManager m) => SubPass FunctionResolution m (Either ImportError AnyExpr)
 importVar = do
-    {-var      <- readAttr @WorkingElem-}
-    let var = undefined :: Expr (ENT Var (E String) Draft)
+    var      <- readAttr @CurrentVar
+    print var
     nameLink <- view name <$> match' var
     nameNode <- source nameLink
     name     <- view lit  <$> match' nameNode
-    {-imports  <- readAttr @Imports-}
-    let imports = undefined :: Imports
+    imports  <- readAttr @Imports
     let fun  =  lookupSym (fromString name) imports
     case fun of
         Left  err  -> return $ Left err
@@ -72,7 +73,7 @@ importVar = do
 
 -- spec
 
-snapshotVis :: (IRMonad m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => P.String -> Pass FunctionResolution m
+snapshotVis :: (IRMonad m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => P.String -> Pass TestPass m
 snapshotVis = Vis.snapshot
 
 testImports :: IO Imports
@@ -90,36 +91,25 @@ testImports = do
     let mod = Module Map.empty $ Map.fromList [("id", id'), ("const", const')]
     return $ Imports $ Map.singleton "Stdlib" mod
 
-initialize :: (IRMonad m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => SubPass FunctionResolution m (Expr (ENT Var (E String) Draft))
+initialize :: (IRMonad m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => SubPass TestPass m (Expr (ENT Var (E String) Draft))
 initialize = do
-    print "TUJESTEM"
     n   <- string "id"
-    ret <- var n
-    print "PUPAAAAAAA"
-    Vis.snapshot "s1"
-    print =<< S.get Vis.V
-    print "DUPAAAAAAA"
-    return undefined
+    unsafeRelayout <$> var n
 
 runTest = do
-    {-imps <- testImports-}
-    withVis $ runGraph' initialize
-    {-withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do-}
-        {-runRegs-}
-        {-setAttr (typeVal' @Imports) imps-}
-        {-v <- -}
-        {-Pass.eval' initialize-}
-        {-Pass.eval' $ snapshotVis "s1"-}
-        {-setAttr (typeVal' @WorkingElem) v-}
-        {-Pass.eval' importVar-}
-        {-Pass.eval' $ snapshotVis "s2"-}
+    imps <- testImports
+    withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+        runRegs
+        Right v <- Pass.eval' initialize
+        Pass.eval' $ snapshotVis "s1"
+        setAttr (typeVal' @Imports) imps
+        setAttr (typeVal' @CurrentVar) v
+        print v
+        Pass.eval' importVar
+        Pass.eval' $ snapshotVis "s2"
 
 
 spec :: Spec
 spec = describe "nothing" $ it "nothings" $ do
-    {-runTest-}
-    {-withVis $ runGraph $ do-}
-        {-n <- string "id"-}
-        {-v <- var n-}
-        {-Vis.snapshot "s1"-}
+    runTest
     1 `shouldBe` 1
