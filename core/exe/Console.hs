@@ -65,9 +65,9 @@ import System.Exit
 
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
-type instance Inputs  Net   SimpleAA = '[]
+type instance Inputs  Net   SimpleAA = '[AnyExpr]
 type instance Outputs Net   SimpleAA = '[AnyExpr]
-type instance Inputs  Layer SimpleAA = '[AnyExpr // Model]
+type instance Inputs  Layer SimpleAA = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, Link' AnyExpr // UID, Link' AnyExpr // Model, AnyExpr // Succs]
 type instance Outputs Layer SimpleAA = '[]
 type instance Inputs  Attr  SimpleAA = '[]
 type instance Outputs Attr  SimpleAA = '[]
@@ -105,29 +105,32 @@ uncheckedDeleteStarType e = do
 
 
 
-gen_pass1 :: ( MonadIO m, MonadRef m, MonadVis m
+gen_pass1 :: ( MonadIO m, MonadRef m
              , Writers Net '[AnyExpr] m
              , Emitter (New // AnyExpr) m
-             , Reader Layer (AnyExpr // Model) m
+             , Readers Layer '[AnyExpr // Model, AnyExpr // Succs] m
+             , Vis.Snapshot m
             --  , Accessibles m '[AnyExpr // Model, Link' AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, Link' AnyExpr // UID, AnyExpr // UID, ExprNet, ExprLinkNet, ExprGroupNet]
             --  , Emitter m (New // AnyExpr)
              ) => m ()
 gen_pass1 = do
     (s :: Expr Star) <- star
+    Vis.snapshot "s1"
     (s :: Expr Star) <- star
+    Vis.snapshot "s2"
     (s :: Expr Star) <- star
     -- ss <- string "hello"
     -- (s :: Expr Star) <- star
-    -- tlink   <- readLayer @Type s
-    -- (src,_) <- readLayer @Model tlink
-    -- scss    <- readLayer @Succs src
-    -- print src
-    -- print scss
+    tlink   <- readLayer @Type s
+    (src,_) <- readLayer @Model tlink
+    scss    <- readLayer @Succs src
+    print src
+    print scss
     --
     -- i <- readLayer @UID s
     -- print i
     --
-    -- Vis.snapshot "s1"
+    Vis.snapshot "s3"
     --
     --
     match s $ \case

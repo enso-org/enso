@@ -42,10 +42,10 @@ instance Ord SortedListenerRep where
 -------------------
 
 data LayerReg m = LayerReg { _prototypes :: Map LayerDesc $ Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
-                           , _attached   :: Map ElemDesc  $ Map LayerDesc $ PassDesc
+                           , _attached   :: Map ElemDesc  $ Map LayerDesc PassDesc
                            } deriving (Show)
 
-data State m = State { _passes :: Map PassDesc (Pass.Describbed (Uninitialized m (DynPass m)))
+data State m = State { _passes :: Map PassDesc (Pass.Describbed (Uninitialized m (DynPass m))) -- not used yet
                      , _layers :: LayerReg m
                      , _events :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized m (Template (DynPass m))))
                      , _attrs  :: Map AttrRep Prim.AnyData

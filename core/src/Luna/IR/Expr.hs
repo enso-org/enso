@@ -34,15 +34,15 @@ type T' = T Star
 -- star = expr Term.uncheckedStar
 -- {-# INLINE star #-}
 
-star :: (MonadRef m, Writer Net AnyExpr m, Emitter (New // AnyExpr) m) => m (Expr Star)
+star :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Star)) => m (Expr Star)
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
 reserveStar :: (MonadRef m, Writer Net AnyExpr m) => m (Expr Star)
 reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
 
-registerStar :: Emitter (New // AnyExpr) m => Expr Star -> m ()
-registerStar = dispatchNewExpr Term.uncheckedStar
+registerStar :: NewElemEvent m (Expr Star) => Expr Star -> m ()
+registerStar = dispatchNewExpr Term.uncheckedStar ; {-# INLINE registerStar #-}
 
 --
 -- string :: NewExpr m => Prelude.String -> m (Expr String)

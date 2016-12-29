@@ -288,14 +288,12 @@ uncheckedElems = fmap (view $ from idx) <$> (liftRefHandler . Store.ixes =<< rea
 -- === Construction === --
 
 
-type NewElemEvent m t = Emitter (New // Abstract t) m
-newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t, IsIdx t, KnownType (Abstract t))
+type NewElemEvent m t = (Emitter (New // Abstract t) m, Logging m, KnownType (Abstract t), IsIdx t)
+newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t)
         => Definition t -> m t
 newElem tdef = do
     t <- reserveElem
-    withDebugBy "Emitter" ("Event New // " <> show (getTypeDesc @(Abstract t) :: TypeDesc) <> " [" <> show (t ^. idx) <> "]") $ do
-        dispatchNewElem t tdef
-    return t
+    t <$ dispatchNewElem t tdef
 {-# INLINE newElem #-}
 
 
@@ -311,7 +309,9 @@ reserveElem :: forall t m. (MonadRef m, Writer Net (Abstract t) m, IsIdx t) => m
 reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
 
 dispatchNewElem :: forall t m. NewElemEvent m t => t -> Definition t -> m ()
-dispatchNewElem t tdef = emit $ Payload @(New // t) (t, tdef)
+dispatchNewElem t tdef = withDebugBy "Emitter" ("Event New // " <> show (getTypeDesc_ @(Abstract t)) <> " [" <> show (t ^. idx) <> "]")
+                       $ emit $ Payload @(New // t) (t, tdef)
+{-# INLINE dispatchNewElem #-}
 
 
 freeElem :: forall t m. (MonadRef m, IsIdx t, Writer Net (Abstract t) m) => t -> m ()
@@ -675,9 +675,8 @@ reserveExpr :: (MonadRef m, Writer Net AnyExpr m)
             => m (Expr layout)
 reserveExpr = reserveElem ; {-# INLINE reserveExpr #-}
 
-dispatchNewExpr :: (Emitter (New // AnyExpr) m, TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
+dispatchNewExpr :: (NewElemEvent m (Expr layout), TermEncoder atom) => ExprTerm atom (Expr layout) -> Expr layout -> m ()
 dispatchNewExpr = flip dispatchNewElem . encodeTerm
-
 
 exprs :: (MonadRef m, Reader Net AnyExpr m) => m [SomeExpr]
 exprs = uncheckedElems ; {-# INLINE exprs #-}
