@@ -21,9 +21,15 @@ type instance Events    TestPass = '[NEW // EXPR, NEW // LINK' EXPR, DELETE // E
 type instance Preserves TestPass ='[]
 
 
-graphTestCase :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger m))))
+runGraph :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger m))))
               => SubPass pass (PassManager (IRBuilder (Logger DropLogger m))) a -> m (Either Pass.InternalError a)
-graphTestCase p = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+runGraph p = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+    runRegs
+    Pass.eval' p
+
+runGraph' :: (MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger m))))
+              => SubPass pass (PassManager (IRBuilder (Logger DropLogger m))) a -> m (Either Pass.InternalError a)
+runGraph' p = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 

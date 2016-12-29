@@ -21,7 +21,7 @@ pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
 
 testCompile :: IO (Either Pass.InternalError CompiledFunction)
-testCompile = graphTestCase $ do
+testCompile = runGraph $ do
     t <- string "foobar"
     v <- var t
     a <- acc t v
@@ -30,7 +30,7 @@ testCompile = graphTestCase $ do
 testImport :: IO (Either Pass.InternalError (Int, [Incoherence]))
 testImport = do
     Right f <- testCompile
-    graphTestCase $ do
+    runGraph $ do
         string "foo"
         string "baz"
         importFunction f
@@ -39,7 +39,7 @@ testImport = do
         return (size, coh)
 
 testVarRenaming :: IO (Either Pass.InternalError P.String)
-testVarRenaming = graphTestCase $ do
+testVarRenaming = runGraph $ do
     (v :: Expr Draft) <- generalize <$> strVar "foo"
     match v $ \case
         Var n -> do
@@ -53,7 +53,7 @@ testVarRenaming = graphTestCase $ do
 
 
 testAtomNarrowing :: IO (Either Pass.InternalError (Pair (Maybe (Expr Var))))
-testAtomNarrowing = graphTestCase $ do
+testAtomNarrowing = runGraph $ do
     (foo  :: AnyExpr) <- generalize <$> string "foo"
     (vfoo :: AnyExpr) <- generalize <$> var foo
     narrowFoo <- narrowAtom @Var foo
@@ -61,7 +61,7 @@ testAtomNarrowing = graphTestCase $ do
     return $ Pair narrowFoo narrowVar
 
 testAtomEquality :: IO (Either Pass.InternalError [Pair Bool])
-testAtomEquality = graphTestCase $ do
+testAtomEquality = runGraph $ do
     (foo  :: AnyExpr) <- generalize <$> string "foo"
     (bar  :: AnyExpr) <- generalize <$> string "bar"
     (vfoo :: AnyExpr) <- generalize <$> var foo
@@ -82,7 +82,7 @@ testAtomEquality = graphTestCase $ do
              ]
 
 testInputs :: IO (Either Pass.InternalError (Pair [AnyExpr]))
-testInputs = graphTestCase $ do
+testInputs = runGraph $ do
     foo  <- string "foo"
     bar  <- string "bar"
     i1   <- var foo
@@ -92,7 +92,7 @@ testInputs = graphTestCase $ do
     return $ Pair (generalize [i1, i2]) inps
 
 crashingPass :: IO (Either Pass.InternalError ())
-crashingPass = graphTestCase $ do
+crashingPass = runGraph $ do
     s <- string "foo"
     match s $ \case
         Var s' -> return ()
@@ -101,7 +101,7 @@ patternMatchException :: Selector PatternMatchFail
 patternMatchException = const True
 
 testNodeRemovalCoherence :: IO (Either Pass.InternalError [Incoherence])
-testNodeRemovalCoherence = graphTestCase $ do
+testNodeRemovalCoherence = runGraph $ do
     foo   <- string "foo"
     bar   <- string "bar"
     vfoo  <- var foo
@@ -113,7 +113,7 @@ testNodeRemovalCoherence = graphTestCase $ do
     checkCoherence
 
 testSubtreeRemoval :: IO (Either Pass.InternalError (Int, [Incoherence]))
-testSubtreeRemoval = graphTestCase $ do
+testSubtreeRemoval = runGraph $ do
     foo   <- string "foo"
     bar   <- string "bar"
     vfoo  <- var foo
@@ -127,7 +127,7 @@ testSubtreeRemoval = graphTestCase $ do
     return (exs, coh)
 
 testChangeSource :: IO (Either Pass.InternalError (Bool, [Incoherence]))
-testChangeSource = graphTestCase $ do
+testChangeSource = runGraph $ do
     foo <- string "foo"
     bar <- string "bar"
     baz <- string "baz"

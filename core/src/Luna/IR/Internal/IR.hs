@@ -517,8 +517,8 @@ instance (IRMonad m, KnownType e, KnownType l, EqPrimStates m n) => KeyMonad (La
 instance (IRMonad m, KnownType a, EqPrimStates m n) => KeyMonad (Net a) m n where
     uncheckedLookupKey = fmap wrap' . (^? (wrapped' . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
--- instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m where
---     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
+{-instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m n where-}
+    {-uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}-}
 
 
 -------------------
