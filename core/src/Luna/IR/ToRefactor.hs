@@ -1,5 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE NoOverloadedStrings       #-}
+{-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.IR.ToRefactor where
 
@@ -23,7 +24,7 @@ import Data.Property
 import qualified Luna.Pass        as Pass
 import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescription')
 import Data.TypeDesc
-import Data.Event (type (//))
+import Data.Event (type (//), Tag(Tag))
 import qualified Data.Set as Set
 import Luna.IR.Internal.LayerStore (STRefM)
 import Luna.IR.Expr
@@ -36,9 +37,136 @@ import qualified Control.Monad.State.Dependent.Old as DepState
 import qualified GHC.Prim as Prim
 
 import Data.Reflection (Reifies)
+import Luna.Pass.TH
+
+import Type.Any (AnyType)
 
 ---------------------------------------
 -- Some important utils
+
+
+
+
+
+type family RTC (c :: Constraint) :: Constraint where
+    RTC () = ()
+    RTC (t1,t2) = (RTC t1, (RTC t2, ()))
+    RTC (t1,t2,t3) = (RTC t1, (RTC t2, (RTC t3, ())))
+    RTC (t1,t2,t3,t4) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, ()))))
+    RTC (t1,t2,t3,t4,t5) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, ())))))
+    RTC (t1,t2,t3,t4,t5,t6) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, ()))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, ())))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, ()))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, ())))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, ()))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, ())))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, ()))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, ())))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, ()))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, ())))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, ()))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, ())))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, ()))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, ())))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, ()))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, ())))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, ()))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, ())))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, ()))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, ())))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, ()))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, ())))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, ()))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, ())))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, ()))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, ())))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, ()))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, ())))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, ()))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, ())))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, ()))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, ())))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, ()))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, ())))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, ()))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, ())))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, ()))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, ())))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, ()))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, ())))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, ()))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, ())))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, ()))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, ())))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, ()))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, ())))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, ()))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, ())))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, ()))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, ())))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, ()))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56,t57) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, (RTC t57, ())))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56,t57,t58) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, (RTC t57, (RTC t58, ()))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56,t57,t58,t59) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, (RTC t57, (RTC t58, (RTC t59, ())))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56,t57,t58,t59,t60) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, (RTC t57, (RTC t58, (RTC t59, (RTC t60, ()))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56,t57,t58,t59,t60,t61) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, (RTC t57, (RTC t58, (RTC t59, (RTC t60, (RTC t61, ())))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC (t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26,t27,t28,t29,t30,t31,t32,t33,t34,t35,t36,t37,t38,t39,t40,t41,t42,t43,t44,t45,t46,t47,t48,t49,t50,t51,t52,t53,t54,t55,t56,t57,t58,t59,t60,t61,t62) = (RTC t1, (RTC t2, (RTC t3, (RTC t4, (RTC t5, (RTC t6, (RTC t7, (RTC t8, (RTC t9, (RTC t10, (RTC t11, (RTC t12, (RTC t13, (RTC t14, (RTC t15, (RTC t16, (RTC t17, (RTC t18, (RTC t19, (RTC t20, (RTC t21, (RTC t22, (RTC t23, (RTC t24, (RTC t25, (RTC t26, (RTC t27, (RTC t28, (RTC t29, (RTC t30, (RTC t31, (RTC t32, (RTC t33, (RTC t34, (RTC t35, (RTC t36, (RTC t37, (RTC t38, (RTC t39, (RTC t40, (RTC t41, (RTC t42, (RTC t43, (RTC t44, (RTC t45, (RTC t46, (RTC t47, (RTC t48, (RTC t49, (RTC t50, (RTC t51, (RTC t52, (RTC t53, (RTC t54, (RTC t55, (RTC t56, (RTC t57, (RTC t58, (RTC t59, (RTC t60, (RTC t61, (RTC t62, ()))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    RTC t1 = (t1, ())
+
+
+type family FilterInputs t (a :: Constraint) :: [*] where
+    FilterInputs t (a,as)         = FilterInputs t a <> FilterInputs t as
+    FilterInputs t (Reader t a m) = '[a]
+    FilterInputs t a              = '[]
+
+type family FilterOutputs t (a :: Constraint) :: [*] where
+    FilterOutputs t (a,as)         = FilterOutputs t a <> FilterOutputs t as
+    FilterOutputs t (Reader t a m) = '[a]
+    FilterOutputs t a              = '[]
+
+type family FilterEmitters (a :: Constraint) :: [*] where
+    FilterEmitters (a,as)        = FilterEmitters a <> FilterEmitters as
+    FilterEmitters (Emitter e m) = '[e]
+    FilterEmitters a             = '[]
+
+type GetInputs   t c = FilterInputs   t (RTC c)
+type GetOutputs  t c = FilterOutputs  t (RTC c)
+type GetEmitters e   = FilterEmitters   (RTC e)
+
+-- type Foo m = ( Readers Layer '[AnyExpr // Model, AnyExpr // Type] m
+--              , Editors Net   '[AnyExprLink] m
+--              , Emitter (Delete // AnyExprLink) m
+--              , MonadRef m
+--              )
+
+
+
+
+-- type Foo m = Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
+--                     , Reader  // Net    // AnyExprLink
+--                     , Emitter // Delete // AnyExprLink
+--                     ]
+
+type Req m (rs :: [*]) = (DescConstr m (Expands (Proxy rs)), MonadRef m)
+
+-- type family Expand es ls where
+--     Expand es ((l :: [k]) // ls) = es
+--     Expand es ((l :: *)   // ls) = es
+
+
+
+type family DescConstr m ls :: Constraint where
+    DescConstr m '[] = ()
+    DescConstr m ((Reader  // t // s) ': rs) = (Reader  t s m, DescConstr m rs)
+    DescConstr m ((Writer  // t // s) ': rs) = (Writer  t s m, DescConstr m rs)
+    DescConstr m ((Editor  // t // s) ': rs) = (Editor  t s m, DescConstr m rs)
+    DescConstr m ((Emitter // e)      ': rs) = (Emitter e   m, DescConstr m rs)
+
+
+
+
+
+-----------------------------------------------
 
 
 
@@ -96,7 +224,26 @@ foo :: forall p e t m. (KnownType p, MonadPassManager m, Pass.PassInit (ElemScop
 foo = Pass.describbed @(ElemScope p t) . Pass.compileTemplate . Pass.template . runEventPass
 
 
+
+newtype EventPassDef e t m = EventPassDef (PayloadData (e // t) -> m ())
+
+
+
                 -- => Template (SubPass pass m a) -> Uninitialized m (Template (DynSubPass m a))
+
+-- newtype NewElemPassDef p m = NewElemPassDef (forall t. KnownType (Abstract t) => (Elem t, Definition t) -> Pass (ElemScope p (Elem t)) m)
+newtype NewElemPassDef t m = NewElemPassDef (EventPassDef New (Elem t) m)
+newtype NewElemPass p s = NewElemPass (forall t m. (KnownType (Abstract t), MonadPassManager m, s ~ PrimState m) => NewElemPassDef t (SubPass (ElemScope p t) m))
+
+
+runNewElemPassDef :: NewElemPassDef t m -> PayloadData (New // Elem t) -> m ()
+runNewElemPassDef (NewElemPassDef (EventPassDef f)) p = f p
+
+newElemPassDef :: (PayloadData (New // Elem t) -> m ()) -> NewElemPassDef t m
+newElemPassDef f = NewElemPassDef $ EventPassDef f ; {-# INLINE newElemPassDef #-}
+
+-- registerGenLayer2 :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p) => LayerDesc -> NewElemPassDef (Pass (ElemScope p) ) -> m ()
+-- registerGenLayer2 l p = registerLayerProto l $ prepareProto $ Pass.template $ runNewElemPassDef p ; {-# INLINE registerGenLayer2 #-}
 
 
 newtype GenLayerCons  p s = GenLayerCons (forall t m. (KnownType (Abstract t), MonadPassManager m, s ~ PrimState m) => (Elem t, Definition t) -> Pass (ElemScope p (Elem t)) m)
@@ -157,6 +304,48 @@ instance KnownElemPass InitModel where
 initModel :: GenLayerCons InitModel s
 initModel = GenLayerCons $ uncurry $ flip $ writeLayer @Model ; {-# INLINE initModel #-}
 
+
+
+
+type family PassType p d
+type instance PassType p (NewElemPassDef t _) = ElemScope p t
+
+data InitModel2
+type instance Abstract InitModel2 = InitModel2
+type instance Inputs  Net   (ElemScope InitModel2 t) = '[]
+type instance Outputs Net   (ElemScope InitModel2 t) = '[]
+type instance Inputs  Layer (ElemScope InitModel2 t) = '[]
+type instance Outputs Layer (ElemScope InitModel2 t) = '[Elem (Abstract t) // Model]
+type instance Inputs  Attr  (ElemScope InitModel2 t) = '[]
+type instance Outputs Attr  (ElemScope InitModel2 t) = '[]
+type instance Inputs  Event (ElemScope InitModel2 t) = '[]
+type instance Outputs Event (ElemScope InitModel2 t) = '[]
+type instance Preserves     (ElemScope InitModel2 t) = '[]
+instance KnownElemPass InitModel2 where
+    elemPassDescription = genericDescription' . proxify
+
+
+initModel2 :: Req m '[Writer // Layer // Elem (Abstract t) // Model] => NewElemPassDef t m
+initModel2 = newElemPassDef . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel2 #-}
+
+-- initModel3 :: (Writer Layer (Elem (Abstract t) // Model) m, MonadRef m) => PayloadData (New // Elem t) -> m ()
+-- initModel3 = runNewElemPassDef initModel2
+--
+-- initModel4 :: (EqPrims m (GetRefHandler m), MonadRef m) => PayloadData (New // Elem t) -> Pass (ElemScope InitModel2 t) m
+-- initModel4 = initModel3
+--
+-- initmodel5 :: NewElemPass InitModel2 s
+-- initmodel5 = NewElemPass initModel4
+
+initmodelPass :: NewElemPass InitModel2 s
+initmodelPass = NewElemPass initModel2
+
+
+
+
+-- initModel :: Req m '[Writer // Layer // Elem (Abstract t) // Model] => NewElemPassDef t m
+-- initModel = newElemPassDef . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel #-}
+-- makePass 'initModel
 
 
 -----------------
@@ -224,50 +413,125 @@ type instance Preserves     (ElemScope WatchSuccs t) = '[]
 instance KnownElemPass WatchSuccs where
     elemPassDescription = genericDescription' . proxify
 
--- newtype LayerCons  p t s = LayerCons (forall m. MonadPassManagerST m s => (t, Definition t) -> Pass (ElemScope p t) m)
-
-
-
-
-
--- watchSuccs :: forall l m. (MonadIO m, MonadIR m) => Pass (ElemScope WatchSuccs (Link' (Expr l))) m
 watchSuccs :: EventPass WatchSuccs New (ExprLink' l) s
 watchSuccs = EventPass $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
     -- debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
+
+
+data WatchRemoveEdge
+type instance Abstract WatchRemoveEdge = WatchRemoveEdge
+type instance Inputs  Net   (ElemScope WatchRemoveEdge t) = '[]
+type instance Outputs Net   (ElemScope WatchRemoveEdge t) = '[]
+type instance Inputs  Layer (ElemScope WatchRemoveEdge t) = '[AnyExpr // Succs, AnyExprLink // Model]
+type instance Outputs Layer (ElemScope WatchRemoveEdge t) = '[AnyExpr // Succs]
+type instance Inputs  Attr  (ElemScope WatchRemoveEdge t) = '[]
+type instance Outputs Attr  (ElemScope WatchRemoveEdge t) = '[]
+type instance Inputs  Event (ElemScope WatchRemoveEdge t) = '[]
+type instance Outputs Event (ElemScope WatchRemoveEdge t) = '[]
+type instance Preserves     (ElemScope WatchRemoveEdge t) = '[]
+instance KnownElemPass WatchRemoveEdge where
+    elemPassDescription = genericDescription' . proxify
+
+watchRemoveEdge :: EventPass WatchRemoveEdge Delete (ExprLink' l) s
+watchRemoveEdge = EventPass $ \t -> do
+    (src, tgt) <- readLayer @Model t
+    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
+    -- debugElem t $ "Delete successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
+
+
+
 --
--- watchSuccs_dyn :: (MonadIR m, MonadIO m, MonadPassManager m) => DynPass m
--- watchSuccs_dyn = Pass.compile $ watchSuccs
---
--- data WatchRemoveEdge
--- type instance Abstract  WatchRemoveEdge               = WatchRemoveEdge
--- type instance Inputs    (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs, ExprLinkLayer Model, Attr WorkingElem]
--- type instance Outputs   (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs]
--- type instance Events    (ElemScope WatchRemoveEdge t) = '[]
--- type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
---
--- watchRemoveEdge :: forall l m. (MonadIO m, MonadIR m) => Pass (ElemScope WatchRemoveEdge (Link' (Expr l))) m
--- watchRemoveEdge = do
---     (t, _)     <- readAttr @WorkingElem
---     (src, tgt) <- readLayer @Model t
---     debugElem t $ "Delete successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
---     modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
 --
 -- data WatchRemoveNode
--- type instance Abstract  WatchRemoveNode               = WatchRemoveNode
--- type instance Inputs    (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLayer Type, Attr WorkingElem, ExprLinkNet]
--- type instance Outputs   (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLinkNet]
--- type instance Events    (ElemScope WatchRemoveNode t) = '[DELETE // Link' AnyExpr]
--- type instance Preserves (ElemScope WatchRemoveNode t) = '[]
+-- type instance Inputs  Net   (ElemScope WatchRemoveNode t) = '[AnyExprLink]
+-- type instance Outputs Net   (ElemScope WatchRemoveNode t) = '[AnyExprLink]
+-- type instance Inputs  Layer (ElemScope WatchRemoveNode t) = '[AnyExpr // Model, AnyExpr // Type]
+-- type instance Outputs Event (ElemScope WatchRemoveNode t) = '[Delete // AnyExprLink]
+-- makeEventPass ''WatchRemoveNode
+
 --
--- watchRemoveNode :: forall l m. (MonadIO m, MonadIR m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPR l)) m
--- watchRemoveNode = do
---     (e, _) <- readAttr @WorkingElem
---     inps   <- symbolFields (generalize e :: AnyExpr)
---     tp     <- readLayer @Type e
+--
+--
+-- data WatchRemoveNode
+-- type instance Req (ElemScope WatchRemoveNode t) = '[ Editor // Net // AnyExprLink
+--                                                    , Input // Layer // '[Model, Type]
+--                                                    , Event // Delete // AnyExprLink
+--                                                    ]
+-- makeEventPass ''WatchRemoveNode
+--
+-- watchRemoveNode :: EventPass WatchRemoveNode Delete (Expr l) s
+-- watchRemoveNode = EventPass $ \t -> do
+--     inps   <- symbolFields (generalize t :: SomeExpr)
+--     tp     <- readLayer @Type t
 --     delete tp
 --     mapM_ delete inps
 --
 --
+--
+-- watchRemoveNode :: Req m '[ Editor // Net    // AnyExprLink
+--                           , Input  // Layer  // '[Model, Type]
+--                           , Event  // Delete // AnyExprLink
+--                           ]
+--                 => EventPass Delete (Expr l) m
+-- watchRemoveNode = EventPass $ \t -> do
+--     inps   <- symbolFields (generalize t :: SomeExpr)
+--     tp     <- readLayer @Type t
+--     delete tp
+--     mapM_ delete inps
+--
+-- makeEventPass ''watchRemoveNode
+
+
+
+
+
+watchRemoveNode2 :: ( Readers Layer '[AnyExpr // Model, AnyExpr // Type] m
+                    , Editors Net   '[AnyExprLink] m
+                    , Emitter (Delete // AnyExprLink) m
+                    , MonadRef m
+                    )
+                 => EventPassDef Delete (Expr l) m
+watchRemoveNode2 = EventPassDef $ \t -> do
+    inps   <- symbolFields (generalize t :: SomeExpr)
+    tp     <- readLayer @Type t
+    delete tp
+    mapM_ delete inps
+
+
+
+data WatchRemoveNode
+type instance Abstract WatchRemoveNode = WatchRemoveNode
+type instance Inputs  Net   (ElemScope WatchRemoveNode t) = GetInputs  Net   (Foo AnyType)
+type instance Outputs Net   (ElemScope WatchRemoveNode t) = GetOutputs Net   (Foo AnyType)
+type instance Inputs  Layer (ElemScope WatchRemoveNode t) = GetInputs  Layer (Foo AnyType)
+type instance Outputs Layer (ElemScope WatchRemoveNode t) = GetOutputs Layer (Foo AnyType)
+type instance Inputs  Attr  (ElemScope WatchRemoveNode t) = GetInputs  Attr  (Foo AnyType)
+type instance Outputs Attr  (ElemScope WatchRemoveNode t) = GetOutputs Attr  (Foo AnyType)
+type instance Inputs  Event (ElemScope WatchRemoveNode t) = '[]
+type instance Outputs Event (ElemScope WatchRemoveNode t) = GetEmitters (Foo AnyType)
+type instance Preserves     (ElemScope WatchRemoveNode t) = '[]
+instance KnownElemPass WatchRemoveNode where
+    elemPassDescription = genericDescription' . proxify
+
+
+
+
+
+type Foo m = Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
+                    , Editor  // Net    // AnyExprLink
+                    , Emitter // Delete // AnyExprLink
+                    ]
+
+watchRemoveNode :: Foo m => EventPassDef Delete (Expr l) m
+watchRemoveNode = EventPassDef $ \t -> do
+    inps   <- symbolFields (generalize t :: SomeExpr)
+    tp     <- readLayer @Type t
+    delete tp
+    mapM_ delete inps
+
+-- makePass 'watchRemoveNode
+
+
 ------------------
 -- === Type === --
 ------------------
@@ -322,8 +586,7 @@ initType = do
 -------------------------------------------
 
 
--- FIXME [WD]: is the type ugly here?
--- runRegs :: _ => _
+runRegs :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => m ()
 runRegs = do
     runElemRegs
 
@@ -344,23 +607,9 @@ runRegs = do
     attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
 
 
-    -- registerEventListener @'[Succs] @(New // AnyExprLink) watchSuccs
-
-    -- attachLayer 0 (getTypeDesc @Model) (getTypeDesc @(Link' AnyExpr))
-    -- --
-    -- initUID_reg
-    -- attachLayer 5 (getTypeDesc @UID) (getTypeDesc @AnyExpr)
-    -- attachLayer 5 (getTypeDesc @UID) (getTypeDesc @(Link' AnyExpr))
-    --
-    -- initSuccs_reg
-    -- attachLayer 5 (getTypeDesc @Succs) (getTypeDesc @AnyExpr)
-    -- --
-    -- initType_reg
-    -- attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
-    --
-    addEventListener 100 (New // getTypeDesc_ @(Link' AnyExpr)) (foo watchSuccs)
-    -- addEventListener 100 (DELETE // LINK AnyExpr AnyExpr) watchRemoveEdge
-    -- addEventListener 100 (DELETE // AnyExpr)           watchRemoveNode
+    addEventListener 100 (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo watchSuccs
+    addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveEdge
+    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveNode
 
 
 -- === Elem reg defs === --

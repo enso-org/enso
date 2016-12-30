@@ -41,7 +41,7 @@ import qualified Luna.IR.Expr.Term.Class   as N
 import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
 import qualified Type.List                 as List
 import qualified Data.Event                as Event
-import           Data.Event                (Payload(Payload), Emitter, PayloadData, emit, (//), type (//))
+import           Data.Event                (Payload(Payload), Emitter, PayloadData, emit, type (//))
 import Luna.IR.Expr.Term.Uni ()
 -- import Type.Inference
 import Data.TypeDesc
@@ -179,7 +179,9 @@ instance {-# OVERLAPPABLE #-} SubMonadRefState k a t m
     putRef = lift . putRef ; {-# INLINE putRef #-}
 
 
-type Editor k a m = (Reader k a m, Writer k a m)
+-- type Editor k a m = (Reader k a m, Writer k a m)
+class    (Reader k a m, Writer k a m) => Editor k a m
+instance (Reader k a m, Writer k a m) => Editor k a m
 class MonadRefState k a m => Reader k a m
 class MonadRefState k a m => Writer k a m
 
@@ -298,10 +300,12 @@ newElem tdef = do
 
 
 
-type instance PayloadData (New // t) = (t, Definition t)
+type instance PayloadData (New    // t) = (t, Definition t)
+type instance PayloadData (Delete // t) = t
 
 type instance Abstract (a // b) = Abstract a // Abstract b
 type instance Abstract New = New
+type instance Abstract Delete = Delete
 
 
 
@@ -317,10 +321,9 @@ dispatchNewElem t tdef = withDebugBy "Emitter" ("Event New // " <> show (getType
 freeElem :: forall t m. (MonadRef m, IsIdx t, Writer Net (Abstract t) m) => t -> m ()
 freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @Net @(Abstract t) ; {-# INLINE freeElem #-}
 
-    -- FIXME[MK->WD]: Yes. It's an undefined. Un. De. Fi. Ned. You know what to do :P
-    -- delete :: forall t m. (MonadRef m, IsIdx t, Editor Net (Abstract t) m, Event.Emitter m (Delete // Abstract t), PayloadData (Delete // Abstract t) ~ (Universal t, Prim.Any))
-    --        => t -> m ()
-    -- delete t = emit (Delete // abstract t) (universal t, undefined) >> freeElem t ; {-# INLINE delete #-}
+delete :: forall t m. (MonadRef m, IsIdx t, Editor Net (Abstract t) m, Event.Emitter (Delete // Abstract t) m)
+       => t -> m ()
+delete t = emit (Payload @(Delete // t) t) >> freeElem t ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (MonadRef m, Writer Net (Abstract t) m) => m Int
 reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @Net @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
@@ -658,6 +661,7 @@ type Expr layout   = Elem (EXPR layout)
 type AnyExpr       = Expr ANY
 type SomeExpr      = Expr Layout.Bottom
 type SomeExprLink  = Link' SomeExpr
+type AnyExprLink   = Link' AnyExpr
 type ExprLink l l' = Link (Expr l) (Expr l')
 type ExprLink'  l  = ExprLink l l
 
@@ -700,10 +704,6 @@ instance (Unwrapped a ~ Term t l, b ~ UniTerm l, IsUniTerm t l, Wrapped a)
 
 
 -- === Instances === --
-
---FIXME[MK->WD]: I don't care for the second part of the tuple, it's necessary to make pass manager magic work, but should be removed ASAP
-type instance PayloadData (Delete // AnyExpr)       = (SomeExpr, Prim.Any)
-type instance PayloadData (Delete // Link' AnyExpr) = (Link' SomeExpr, Prim.Any)
 
 type instance Sub s     (Expr l) = Expr (Sub s l)
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Event where
+module Data.Event (module Data.Event, module X) where
 
 import Prologue hiding (tail)
 
@@ -9,6 +9,7 @@ import qualified Data.Map      as Map
 import           Data.Map      (Map)
 import           Data.Reprx    (RepOf, HasRep, rep)
 import           Data.TypeDesc
+import           Data.Path     as X
 -- WIP:
 import           Luna.IR.Expr.Layout.Class (Abstract)
 
@@ -41,30 +42,18 @@ fromPath = Tag $ getTypeDescs @(TagPath path) ; {-# INLINE fromPath #-}
 fromPathDyn :: TypeDesc -> Tag
 fromPathDyn t = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' l :) $ fromPathDyn r
                                   else Tag [wrap' t]
-    where sepType     = getTypeDesc @(//) ^. tyCon
+    where sepType     = getTypeDesc @TypeSep ^. tyCon
           (con, args) = splitTyConApp t
 {-# INLINE fromPathDyn #-}
 
-data a // as = a :// as deriving (Show)
-infixr 5 //
-(//) :: a -> as -> a // as
-a // as = a :// as ; {-# INLINE (//) #-}
 
-tail :: a // as -> as
-tail (_ :// as) = as ; {-# INLINE tail #-}
+-- = a :/// as deriving (Show)
+-- (//) :: a -> as -> a // as
+-- a // as = a :/// as ; {-# INLINE (//) #-}
 
+-- tail :: a // as -> as
+-- tail (_ :/// as) = as ; {-# INLINE tail #-}
 
--- === IsTag === --
-
--- instance Typeables (TagPath a) => IsTag a   where toTag _ = Tag $ typeReps' @(TagPath a) ; {-# INLINE toTag #-}
-class                                       IsTag a        where toTag :: a -> Tag
-instance {-# OVERLAPPABLE #-} IsTagSeg t => IsTag t        where toTag t         = Tag [toTagSeg t]                     ; {-# INLINE toTag #-}
-instance (IsTagSeg t, IsTag p)           => IsTag (t // p) where toTag (t :// p) = toTag p & wrapped' %~ (toTagSeg t :) ; {-# INLINE toTag #-}
-instance                                    IsTag Tag      where toTag           = id                                   ; {-# INLINE toTag #-}
-
-class                        IsTagSeg a        where toTagSeg :: a -> TagDesc
-instance KnownType a      => IsTagSeg a        where toTagSeg _ = getTypeDesc @a ; {-# INLINE toTagSeg #-}
-instance {-# OVERLAPPING #-} IsTagSeg TypeDesc where toTagSeg   = wrap'          ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
 
 
 --------------------
