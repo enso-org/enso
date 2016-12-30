@@ -54,19 +54,19 @@ testVarRenaming = runGraph $ do
 
 testAtomNarrowing :: IO (Either Pass.InternalError (Pair (Maybe (Expr Var))))
 testAtomNarrowing = runGraph $ do
-    (foo  :: AnyExpr) <- generalize <$> string "foo"
-    (vfoo :: AnyExpr) <- generalize <$> var foo
+    (foo  :: SomeExpr) <- generalize <$> string "foo"
+    (vfoo :: SomeExpr) <- generalize <$> var foo
     narrowFoo <- narrowAtom @Var foo
     narrowVar <- narrowAtom @Var vfoo
     return $ Pair narrowFoo narrowVar
 
 testAtomEquality :: IO (Either Pass.InternalError [Pair Bool])
 testAtomEquality = runGraph $ do
-    (foo  :: AnyExpr) <- generalize <$> string "foo"
-    (bar  :: AnyExpr) <- generalize <$> string "bar"
-    (vfoo :: AnyExpr) <- generalize <$> var foo
-    (vbar :: AnyExpr) <- generalize <$> var bar
-    (uni  :: AnyExpr) <- generalize <$> unify vfoo vbar
+    (foo  :: SomeExpr) <- generalize <$> string "foo"
+    (bar  :: SomeExpr) <- generalize <$> string "bar"
+    (vfoo :: SomeExpr) <- generalize <$> var foo
+    (vbar :: SomeExpr) <- generalize <$> var bar
+    (uni  :: SomeExpr) <- generalize <$> unify vfoo vbar
     sameFooBar   <- isSameAtom foo  bar
     sameFooFoo   <- isSameAtom foo  foo
     sameFooUni   <- isSameAtom foo  uni
@@ -81,13 +81,13 @@ testAtomEquality = runGraph $ do
              , Pair sameUniUni   True
              ]
 
-testInputs :: IO (Either Pass.InternalError (Pair [AnyExpr]))
+testInputs :: IO (Either Pass.InternalError (Pair [SomeExpr]))
 testInputs = runGraph $ do
     foo  <- string "foo"
     bar  <- string "bar"
     i1   <- var foo
     i2   <- var bar
-    (a :: AnyExpr) <- generalize <$> unify i1 i2
+    (a :: SomeExpr) <- generalize <$> unify i1 i2
     inps <- inputs a >>= mapM source
     return $ Pair (generalize [i1, i2]) inps
 
@@ -133,7 +133,7 @@ testChangeSource = runGraph $ do
     baz <- string "baz"
     uni <- unify foo bar
     match uni $ \(Unify l r) -> changeSource (generalize r) (generalize baz)
-    rightOperand :: AnyExpr <- fmap generalize $ match uni $ \(Unify l r) -> source r
+    rightOperand :: SomeExpr <- fmap generalize $ match uni $ \(Unify l r) -> source r
     coh <- checkCoherence
     return (rightOperand == generalize baz, coh)
 

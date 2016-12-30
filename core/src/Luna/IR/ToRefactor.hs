@@ -439,6 +439,28 @@ watchRemoveEdge = EventPass $ \t -> do
     -- debugElem t $ "Delete successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
 
 
+data WatchRemoveNode
+type instance Abstract WatchRemoveNode = WatchRemoveNode
+type instance Inputs  Net   (ElemScope WatchRemoveNode t) = '[AnyExprLink]
+type instance Outputs Net   (ElemScope WatchRemoveNode t) = '[AnyExprLink]
+type instance Inputs  Layer (ElemScope WatchRemoveNode t) = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model]
+type instance Outputs Layer (ElemScope WatchRemoveNode t) = '[AnyExprLink // Model]
+type instance Inputs  Attr  (ElemScope WatchRemoveNode t) = '[]
+type instance Outputs Attr  (ElemScope WatchRemoveNode t) = '[]
+type instance Inputs  Event (ElemScope WatchRemoveNode t) = '[]
+type instance Outputs Event (ElemScope WatchRemoveNode t) = '[Delete // AnyExprLink]
+type instance Preserves     (ElemScope WatchRemoveNode t) = '[]
+instance KnownElemPass WatchRemoveNode where
+    elemPassDescription = genericDescription' . proxify
+
+
+
+watchRemoveNode :: EventPass WatchRemoveNode Delete (Expr l) m
+watchRemoveNode = EventPass $ \t -> do
+    inps   <- symbolFields (generalize t :: SomeExpr)
+    tp     <- readLayer @Type t
+    delete tp
+    mapM_ delete inps
 
 --
 --
@@ -499,35 +521,6 @@ watchRemoveNode2 = EventPassDef $ \t -> do
 
 
 
-data WatchRemoveNode
-type instance Abstract WatchRemoveNode = WatchRemoveNode
-type instance Inputs  Net   (ElemScope WatchRemoveNode t) = GetInputs  Net   (Foo AnyType)
-type instance Outputs Net   (ElemScope WatchRemoveNode t) = GetOutputs Net   (Foo AnyType)
-type instance Inputs  Layer (ElemScope WatchRemoveNode t) = GetInputs  Layer (Foo AnyType)
-type instance Outputs Layer (ElemScope WatchRemoveNode t) = GetOutputs Layer (Foo AnyType)
-type instance Inputs  Attr  (ElemScope WatchRemoveNode t) = GetInputs  Attr  (Foo AnyType)
-type instance Outputs Attr  (ElemScope WatchRemoveNode t) = GetOutputs Attr  (Foo AnyType)
-type instance Inputs  Event (ElemScope WatchRemoveNode t) = '[]
-type instance Outputs Event (ElemScope WatchRemoveNode t) = GetEmitters (Foo AnyType)
-type instance Preserves     (ElemScope WatchRemoveNode t) = '[]
-instance KnownElemPass WatchRemoveNode where
-    elemPassDescription = genericDescription' . proxify
-
-
-
-
-
-type Foo m = Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
-                    , Editor  // Net    // AnyExprLink
-                    , Emitter // Delete // AnyExprLink
-                    ]
-
-watchRemoveNode :: Foo m => EventPassDef Delete (Expr l) m
-watchRemoveNode = EventPassDef $ \t -> do
-    inps   <- symbolFields (generalize t :: SomeExpr)
-    tp     <- readLayer @Type t
-    delete tp
-    mapM_ delete inps
 
 -- makePass 'watchRemoveNode
 
@@ -609,7 +602,7 @@ runRegs = do
 
     addEventListener 100 (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo watchSuccs
     addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveEdge
-    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveNode
+    addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @AnyExpr])         $ foo watchRemoveNode
 
 
 -- === Elem reg defs === --
