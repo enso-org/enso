@@ -171,6 +171,8 @@ instance (MonadPassManager m, Pass.ContainsRef pass Event e (GetRefHandler m))
         liftRefHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
 
 
+setAttr :: MonadPassManager m => AttrRep -> a -> m ()
+setAttr = unsafeWriteAttr
 
 unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()
 unsafeWriteAttr r a = modify_ $ attrs %~ Map.insert r (unsafeCoerce a)

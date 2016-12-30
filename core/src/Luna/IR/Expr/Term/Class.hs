@@ -43,6 +43,17 @@ type family InputsType a
 class HasInputs a where
     inputList :: a -> [InputsType a]
 
+class ModifiesFields a where
+    modifyFields :: (FieldsType a -> FieldsType a) -> a -> a
+
+type family LiteralOf a
+class HasLiteral a where
+    lit :: Lens' a (LiteralOf a)
+
+type family NameOf a
+class HasName a where
+    name :: Lens' a (NameOf a)
+
 
 -- === Term isomorphisms === --
 

@@ -9,7 +9,7 @@ import Test.Hspec   (Spec, describe, it, shouldReturn)
 
 import           Luna.IR
 import           Luna.Pass (SubPass, Inputs, Outputs, Preserves, Events)
-import qualified Luna.Pass as Pass
+import qualified Luna.Pass        as Pass
 import           System.Log
 
 

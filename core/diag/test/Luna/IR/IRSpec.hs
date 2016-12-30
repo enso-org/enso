@@ -5,29 +5,46 @@ import           Data.Maybe          (isJust)
 import           Luna.Prelude        hiding (String)
 import qualified Luna.Prelude        as P
 import qualified Luna.Pass           as Pass
+import qualified Luna.IR.Repr.Vis    as Vis
 
 import Test.Hspec (Spec, describe, it, shouldReturn, shouldBe, shouldSatisfy, expectationFailure, Expectation, shouldThrow, Selector)
 
 import Luna.IR.Runner
 import Luna.IR
 import Luna.TestUtils
-import Luna.IR.Expr.Term        (Term(Sym_String, Sym_Unify))
 import Luna.IR.Expr.Combinators
+import Luna.IR.Function.Definition
 
 data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
 
-changeStringLiteral s (Sym_String _) = Sym_String s
+testCompile :: IO (Either Pass.InternalError CompiledFunction)
+testCompile = runGraph $ do
+    t <- string "foobar"
+    v <- var t
+    a <- acc t v
+    compile (generalize a)
+
+testImport :: IO (Either Pass.InternalError (Int, [Incoherence]))
+testImport = do
+    Right f <- testCompile
+    runGraph $ do
+        string "foo"
+        string "baz"
+        importFunction f
+        size <- length <$> exprs
+        coh  <- checkCoherence
+        return (size, coh)
 
 testVarRenaming :: IO (Either Pass.InternalError P.String)
-testVarRenaming = graphTestCase $ do
+testVarRenaming = runGraph $ do
     (v :: Expr Draft) <- generalize <$> strVar "foo"
     match v $ \case
         Var n -> do
             (name :: Expr (E String)) <- unsafeGeneralize <$> source n
-            modifyExprTerm name $ changeStringLiteral "bar"
+            modifyExprTerm name $ lit .~ "bar"
     match v $ \case
         Var n -> do
             name <- source n
@@ -36,7 +53,7 @@ testVarRenaming = graphTestCase $ do
 
 
 testAtomNarrowing :: IO (Either Pass.InternalError (Pair (Maybe (Expr Var))))
-testAtomNarrowing = graphTestCase $ do
+testAtomNarrowing = runGraph $ do
     (foo  :: AnyExpr) <- generalize <$> string "foo"
     (vfoo :: AnyExpr) <- generalize <$> var foo
     narrowFoo <- narrowAtom @Var foo
@@ -44,7 +61,7 @@ testAtomNarrowing = graphTestCase $ do
     return $ Pair narrowFoo narrowVar
 
 testAtomEquality :: IO (Either Pass.InternalError [Pair Bool])
-testAtomEquality = graphTestCase $ do
+testAtomEquality = runGraph $ do
     (foo  :: AnyExpr) <- generalize <$> string "foo"
     (bar  :: AnyExpr) <- generalize <$> string "bar"
     (vfoo :: AnyExpr) <- generalize <$> var foo
@@ -65,7 +82,7 @@ testAtomEquality = graphTestCase $ do
              ]
 
 testInputs :: IO (Either Pass.InternalError (Pair [AnyExpr]))
-testInputs = graphTestCase $ do
+testInputs = runGraph $ do
     foo  <- string "foo"
     bar  <- string "bar"
     i1   <- var foo
@@ -75,7 +92,7 @@ testInputs = graphTestCase $ do
     return $ Pair (generalize [i1, i2]) inps
 
 crashingPass :: IO (Either Pass.InternalError ())
-crashingPass = graphTestCase $ do
+crashingPass = runGraph $ do
     s <- string "foo"
     match s $ \case
         Var s' -> return ()
@@ -84,7 +101,7 @@ patternMatchException :: Selector PatternMatchFail
 patternMatchException = const True
 
 testNodeRemovalCoherence :: IO (Either Pass.InternalError [Incoherence])
-testNodeRemovalCoherence = graphTestCase $ do
+testNodeRemovalCoherence = runGraph $ do
     foo   <- string "foo"
     bar   <- string "bar"
     vfoo  <- var foo
@@ -96,7 +113,7 @@ testNodeRemovalCoherence = graphTestCase $ do
     checkCoherence
 
 testSubtreeRemoval :: IO (Either Pass.InternalError (Int, [Incoherence]))
-testSubtreeRemoval = graphTestCase $ do
+testSubtreeRemoval = runGraph $ do
     foo   <- string "foo"
     bar   <- string "bar"
     vfoo  <- var foo
@@ -110,7 +127,7 @@ testSubtreeRemoval = graphTestCase $ do
     return (exs, coh)
 
 testChangeSource :: IO (Either Pass.InternalError (Bool, [Incoherence]))
-testChangeSource = graphTestCase $ do
+testChangeSource = runGraph $ do
     foo <- string "foo"
     bar <- string "bar"
     baz <- string "baz"
@@ -151,3 +168,6 @@ spec = do
     describe "changing edge source" $ do
         it "changes the source and preserves coherence" $
             testChangeSource `shouldReturn` Right (True, [])
+    describe "function importing" $ do
+        it "imports function into current grpah" $
+            testImport `shouldReturn` Right (10, [])
