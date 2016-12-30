@@ -22,7 +22,7 @@ withRight e exp = either (const $ expectationFailure $ "Expected a Right, got: (
 -- === Isomorphism check === --
 -------------------------------
 
-match2 :: (IRMonad m, Readable (Layer EXPR Model) m, uniTerm ~ Unwrapped (ExprUniTerm (Expr layout)))
+match2 :: (MonadIR m, Reader (Layer EXPR Model) m, uniTerm ~ Unwrapped (ExprUniTerm (Expr layout)))
        => Expr layout -> Expr layout -> (uniTerm -> uniTerm -> m a) -> m a
 match2 e1 e2 l = do
     firstMatched <- match e1 $ return . l
@@ -45,18 +45,18 @@ assumeIsomorphism e1 e2 (ExprIsomorphism lst) = if nowhere e1 lst && nowhere e2 
 enrichIsomorphism :: Expr l -> Expr l -> ExprIsomorphism l -> Maybe (ExprIsomorphism l)
 enrichIsomorphism e1 e2 iso = if areIsomorphic e1 e2 iso then Just iso else assumeIsomorphism e1 e2 iso
 
-targetsIsomorphic :: (IRMonad m, Readables m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+targetsIsomorphic :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
                   => ExprIsomorphism Draft -> Link' (Expr Draft) -> Link' (Expr Draft) -> MaybeT m (ExprIsomorphism Draft)
 targetsIsomorphic iso le re = do
     l <- source le
     r <- source re
     exprsIsomorphic iso l r
 
-exprsIsomorphic :: (IRMonad m, Readables m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+exprsIsomorphic :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
                 => ExprIsomorphism Draft -> Expr Draft -> Expr Draft -> MaybeT m (ExprIsomorphism Draft)
 exprsIsomorphic iso l r = if areIsomorphic l r iso then return iso else exprsIsomorphic' iso l r
 
-exprsIsomorphic' :: (IRMonad m, Readables m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+exprsIsomorphic' :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
                  => ExprIsomorphism Draft -> Expr Draft -> Expr Draft -> MaybeT m (ExprIsomorphism Draft)
 exprsIsomorphic' iso l r = do
     assumption <- MaybeT $ return $ assumeIsomorphism l r iso
@@ -92,7 +92,7 @@ exprsIsomorphic' iso l r = do
             exprsIsomorphic assumption n' m'
         (_, _) -> mzero
 
-areExpressionsIsomorphic :: (IRMonad m, Readables m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+areExpressionsIsomorphic :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
                          => Expr Draft -> Expr Draft -> m Bool
 areExpressionsIsomorphic l r = do
     iso <- runMaybeT $ exprsIsomorphic def l r
@@ -117,7 +117,7 @@ data CoherenceCheck = CoherenceCheck { _incoherences :: [Incoherence]
 makeLenses ''CoherenceCheck
 
 type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
-type CoherenceCheckCtx   m = (IRMonad m, Readables m '[ExprLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer Model, ExprNet, ExprLinkNet])
+type CoherenceCheckCtx   m = (MonadIR m, Readers m '[ExprLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer Model, ExprNet, ExprLinkNet])
 
 checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
 checkCoherence = do
