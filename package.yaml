@@ -12,10 +12,7 @@ dependencies: [base >=4.6 && <4.10, typelevel, lens, lens-utils, ghc-prim, data-
   data-default, mtl]
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/rtuple
-library:
-  exposed-modules: [Data.HFList, Data.RTuple, Data.RTuple.Class, Data.RTuple.Curry,
-    Data.RTuple.Examples]
-  source-dirs: src
+library: {source-dirs: src}
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: data-rtuple
@@ -23,4 +20,4 @@ stability: experimental
 synopsis: Recursive tuple data structure. It is very usefull when implementing some
   lo-level operations, allowing to traverse different elements using Haskell's type
   classes.
-version: 1.1.10
+version: 1.1.11

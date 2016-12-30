@@ -366,6 +366,11 @@ zip5 _             _             _             _             Null     = Null
 --                           in (Cons x1 xs1, Cons x2 xs2)
 
 
+class                        Focus lst       a where focus :: Lens' (List lst) a
+instance {-# OVERLAPPING #-} Focus (a ': ls) a where focus = head         ; {-# INLINE focus #-}
+instance Focus ls a       => Focus (l ': ls) a where focus = tail . focus ; {-# INLINE focus #-}
+
+
 -- === Instances === --
 
 -- Show
