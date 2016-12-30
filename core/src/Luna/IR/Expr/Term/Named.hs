@@ -26,11 +26,6 @@ import           Data.RTuple (List(Null, (:-:)))
 import qualified Data.RTuple as List
 import Control.Lens.Utils (makePfxLenses)
 
-
-type family NameOf a -- FIXME[WD] props?
-class HasName a where
-    name :: Lens' a (NameOf a)
-
 ---------------------
 -- === Terms === --
 ---------------------
@@ -85,17 +80,6 @@ data    instance Term Atom.Star     (Layout.Named n a) = Sym_Star
 data    instance Term Atom.Missing  (Layout.Named n a) = Sym_Missing
 
 -- makePfxLenses ''Term
-
-type instance NameOf (Term s (Layout.Named n a)) = n
-instance HasName (Term Atom.Var (Layout.Named n a)) where name = iso (\(Sym_Var n) -> n) Sym_Var
-
-
-
-
-
-
-
-
 
 -- === Instances === --
 
@@ -218,6 +202,23 @@ instance n ~ a => HasFields (NamedTerm Atom.Star     n a) where fieldList (Sym_S
 instance n ~ a => HasFields (NamedTerm Atom.Unify    n a) where fieldList (Sym_Unify    t1 t2) = [t1, t2]
 instance n ~ a => HasFields (NamedTerm Atom.Var      n a) where fieldList (Sym_Var      t1   ) = [t1]
 
+-- ModifiesFields
+
+instance n ~ a => ModifiesFields (NamedTerm Atom.Integer  n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Rational n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.String   n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Acc      n a) where modifyFields f (Sym_Acc   t1 t2) = Sym_Acc (f t1) (f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.App      n a) where modifyFields f (Sym_App   t1 t2) = Sym_App (f t1) (fmap f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Blank    n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Cons     n a) where modifyFields f (Sym_Cons  t1   ) = Sym_Cons (f t1)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Lam      n a) where modifyFields f (Sym_Lam   t1 t2) = Sym_Lam  (fmap f t1) (f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Missing  n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Grouped  n a) where modifyFields f (Sym_Grouped  t1) = Sym_Grouped (f t1)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Star     n a) where modifyFields f a                 = a
+instance n ~ a => ModifiesFields (NamedTerm Atom.Unify    n a) where modifyFields f (Sym_Unify t1 t2) = Sym_Unify (f t1) (f t2)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Var      n a) where modifyFields f (Sym_Var   t1)    = Sym_Var (f t1)
+
+
 -- Inputs
 
 type instance InputsType (NamedTerm t n a) = a
@@ -236,6 +237,24 @@ instance HasInputs (NamedTerm Atom.Star     n a) where inputList (Sym_Star      
 instance HasInputs (NamedTerm Atom.Unify    n a) where inputList (Sym_Unify    t1 t2) = [t1, t2]
 instance HasInputs (NamedTerm Atom.Var      n a) where inputList (Sym_Var      t1   ) = []
 
+
+-- HasLiteral
+
+type instance LiteralOf (NamedTerm Atom.String   n a) = P.String
+type instance LiteralOf (NamedTerm Atom.Integer  n a) = P.Integer
+type instance LiteralOf (NamedTerm Atom.Rational n a) = P.Rational
+
+instance HasLiteral (NamedTerm Atom.String   n a) where lit = lens (\(Sym_String   s) -> s) (const Sym_String)
+instance HasLiteral (NamedTerm Atom.Integer  n a) where lit = lens (\(Sym_Integer  i) -> i) (const Sym_Integer)
+instance HasLiteral (NamedTerm Atom.Rational n a) where lit = lens (\(Sym_Rational r) -> r) (const Sym_Rational)
+
+-- HasName
+
+type instance NameOf (Term s (Layout.Named n a)) = n
+
+instance HasName (Term Atom.Var  (Layout.Named n a)) where name = iso  (\(Sym_Var  n)   -> n) Sym_Var
+instance HasName (Term Atom.Acc  (Layout.Named n a)) where name = lens (\(Sym_Acc  n _) -> n) (\(Sym_Acc _ t) n -> Sym_Acc n t)
+instance HasName (Term Atom.Cons (Layout.Named n a)) where name = iso  (\(Sym_Cons n)   -> n) Sym_Cons
 
 --------------------------
 -- === Construction === --

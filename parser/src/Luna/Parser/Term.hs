@@ -64,7 +64,7 @@ import           Luna.IR.Name.Ident (named)
 import           Luna.Parser.Class        (ASTParser)
 
 
-import Luna.IR.Function.Class as Function
+import Luna.IR.Function.Definition as Function
 import Luna.IR.Function.Argument hiding (arg)
 --import           Luna.IR.Function.Header (Segment(..), Header)
 --import qualified Luna.IR.Function.Header as Header

@@ -208,6 +208,8 @@ instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Em
 instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
+setAttr :: MonadPassManager m => AttrRep -> a -> m ()
+setAttr = unsafeWriteAttr
 
 unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()
 unsafeWriteAttr r a = modify_ $ attrs %~ Map.insert r (unsafeCoerce a)

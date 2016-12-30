@@ -37,3 +37,9 @@ changeSource link newSource = do
     modifyLayer_ @Succs (Set.delete link) src
     modifyLayer_ @Succs (Set.insert link) newSource
     writeLayer   @Model (newSource, tgt) link
+
+replaceNode :: forall l m. (IRMonad m, Accessibles m '[ExprLinkNet, ExprLayer Succs, ExprLinkLayer Model])
+            => AnyExpr -> AnyExpr -> m ()
+replaceNode old new = do
+    succs <- readLayer @Succs old
+    mapM_ (flip changeSource new) $ Set.toList succs

@@ -38,7 +38,7 @@ import           Data.Set                  (Set)
 import qualified Data.Set                  as Set
 import qualified Luna.IR.Expr.Layout       as Layout
 import qualified Luna.IR.Expr.Term.Class   as N
-import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList)
+import           Luna.IR.Expr.Term.Class   (InputsType, HasInputs, inputList, ModifiesFields, modifyFields)
 import qualified Type.List                 as List
 import qualified Data.Event                as Event
 import           Data.Event                (Event(Event), emit, (//), type (//))
@@ -517,8 +517,8 @@ instance (IRMonad m, KnownType e, KnownType l, EqPrimStates m n) => KeyMonad (La
 instance (IRMonad m, KnownType a, EqPrimStates m n) => KeyMonad (Net a) m n where
     uncheckedLookupKey = fmap wrap' . (^? (wrapped' . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
 
--- instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m where
---     uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}
+{-instance (IRMonad m, KnownType a) => KeyMonad (Attr a) m n where-}
+    {-uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeVal' @a))) <$> getIR ; {-# INLINE uncheckedLookupKey #-}-}
 
 
 -------------------
@@ -659,6 +659,12 @@ instance Repr s (Unwrapped (ExprTerm atom t))
 type instance FieldsType (ExprTerm atom t) = FieldsType (Unwrapped (ExprTerm atom t))
 instance HasFields (Unwrapped (ExprTerm atom t))
       => HasFields (ExprTerm atom t) where fieldList = fieldList . unwrap' ; {-# INLINE fieldList #-}
+
+-- ModifyFields
+
+instance ModifiesFields (Unwrapped (ExprTerm atom t))
+      => ModifiesFields (ExprTerm atom t) where modifyFields f = wrap' . modifyFields f . unwrap' ; {-# INLINE modifyFields #-}
+
 
 -- Inputs
 type instance InputsType (ExprTerm atom t) = InputsType (Unwrapped (ExprTerm atom t))
@@ -879,8 +885,19 @@ symbolMapM_A     = symbolMapM_AB @(FreeResult ctx)                ; {-# INLINE s
 symbolMap_A    f = runIdentity . symbolMapM_A @ctx f              ; {-# INLINE symbolMap_A    #-}
 
 
+class ModifiesFields2 a b where
+    modifyFields2 :: (Link' AnyExpr -> Link' AnyExpr) -> a -> b
 
+instance (ModifiesFields a, FieldsType a ~ Link' AnyExpr) => ModifiesFields2 a Raw where
+    modifyFields2 f = wrap' . unsafeCoerce . modifyFields f
 
+withFields :: (TermMapM_AB ModifiesFields2 expr m Raw, expr ~ Expr layout) => (Link' AnyExpr -> Link' AnyExpr) -> expr -> m Raw
+withFields f = symbolMapM_AB @ModifiesFields2 (modifyFields2 f)
+
+inplaceModifyFieldsWith :: (Accessible (ExprLayer Model) m, TermMapM_AB ModifiesFields2 expr m Raw, expr ~ Expr layout) => (Link' AnyExpr -> Link' AnyExpr) -> expr -> m ()
+inplaceModifyFieldsWith f expr = do
+    newModel <- withFields f expr
+    modifyLayer_ @Model (wrap' . update' @TERM newModel . unwrap') expr
 
 
 class    (b ~ [FieldsType a], HasFields a) => HasFields2 a b

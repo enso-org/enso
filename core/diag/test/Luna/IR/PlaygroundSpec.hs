@@ -158,13 +158,13 @@ nodeMarkerKey = HMap.TypeKey
 spec :: Spec
 spec = describe "playground" $ do
     it "checks lambda" $
-        graphTestCase checksLambda `shouldReturn` Right True
+        runGraph checksLambda `shouldReturn` Right True
     it "checks app" $
-        graphTestCase checksApp `shouldReturn` Right True
+        runGraph checksApp `shouldReturn` Right True
     it "checks blank" $
-        graphTestCase checksBlank `shouldReturn` Right True
+        runGraph checksBlank `shouldReturn` Right True
     it "dumps arguments" $ do
-        ans <- graphTestCase checksArguments
+        ans <- runGraph checksArguments
         withRight ans $ flip shouldSatisfy $ uncurry (==)
     it "removes arg" $
-        graphTestCase removesArg `shouldReturn` Right True
+        runGraph removesArg `shouldReturn` Right True
