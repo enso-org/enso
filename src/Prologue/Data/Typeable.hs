@@ -1,3 +1,4 @@
+{-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -14,8 +15,11 @@ import Control.Lens.Utils
 -- === Typeable === --
 ----------------------
 
+typeRep'_ :: forall a t. Typeable a => TypeRep
+typeRep'_ = typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep'_ #-}
+
 typeRep' :: forall a t. (Typeable a, IsTypeRep t) => t
-typeRep' = typeRep (Proxy :: Proxy a) ^. from asTypeRep ; {-# INLINE typeRep' #-}
+typeRep' = typeRep'_ @a ^. from asTypeRep ; {-# INLINE typeRep' #-}
 
 typeReps' :: forall (ls :: [*]) t. (Typeables ls, IsTypeRep t) => [t]
 typeReps' = view (from asTypeRep) <$> typeReps'_ @ls ; {-# INLINE typeReps' #-}
@@ -32,6 +36,8 @@ class IsTypeRep a where
 
 instance IsTypeRep TypeRep where asTypeRep = id ; {-# INLINE asTypeRep #-}
 
+fromTypeRep :: IsTypeRep a => TypeRep -> a
+fromTypeRep = view $ from asTypeRep ; {-# INLINE fromTypeRep #-}
 
 switchedRep :: (IsTypeRep a, IsTypeRep b) => Lens' a b
 switchedRep = asTypeRep . from asTypeRep ; {-# INLINE switchedRep #-}

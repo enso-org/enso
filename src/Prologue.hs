@@ -187,6 +187,8 @@ fromMaybeM ma = \case
     Just a  -> return a
     Nothing -> ma
 
+fromBoolMaybe :: a -> Bool -> Maybe a
+fromBoolMaybe a b = if b then Just a else Nothing
 
 
 -- === Safe operations === --
@@ -257,4 +259,7 @@ showParen' d = showParen (d > app_prec)
 
 -- === MonadTrans === --
 
-type MonadTransInvariants t m = (Monad m, Monad (t m), MonadTrans t)
+type MonadTransInvariants  t m = (Monad m, Monad (t m), MonadTrans t)
+type MonadTransInvariants' t m = (Monad m, Monad (t m), MonadTrans t, PrimState m ~ PrimState (t m))
+
+type EqPrims m n = (PrimState m ~ PrimState n)
