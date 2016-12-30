@@ -48,7 +48,7 @@ import Data.TypeDesc
 import Type.Bool (And)
 
 import System.Log (MonadLogging, Logging, withDebugBy)
-
+import           Control.Monad.Trans.Maybe (MaybeT)
 
 
 type EqPrimStates m n = (PrimState m ~ PrimState n)
@@ -161,6 +161,9 @@ class Monad m => MonadRefLookup k m where
 -- FIXME: To refactor
 -- Refs should be moved to Pass, because they internal monad ALWAYS defaults to pass
 type family GetRefHandler (m :: * -> *) :: * -> *
+type instance GetRefHandler (MaybeT m) = GetRefHandler m
+type instance GetRefHandler (StateT s m) = GetRefHandler m
+
 type RefData' k a m = RefData k a (GetRefHandler m)
 
 
@@ -420,6 +423,9 @@ type RefHandlerCtx        m = (RefHandlerBase m, RefHandlerBase (GetRefHandler m
 class RefHandlerCtx m => MonadRef m where
     liftRefHandler :: forall a. GetRefHandler m a -> m a
 
+instance {-# OVERLAPPABLE #-} (MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m, RefHandlerCtx (t m), MonadRef m)
+      => MonadRef (t m) where
+    liftRefHandler = lift . liftRefHandler
 
 -- === Modyfication === --
 

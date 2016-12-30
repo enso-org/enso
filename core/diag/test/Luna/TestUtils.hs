@@ -22,7 +22,7 @@ withRight e exp = either (const $ expectationFailure $ "Expected a Right, got: (
 -- === Isomorphism check === --
 -------------------------------
 
-match2 :: (MonadIR m, Reader (Layer EXPR Model) m, uniTerm ~ Unwrapped (ExprUniTerm (Expr layout)))
+match2 :: (MonadRef m, Reader Layer (AnyExpr // Model) m, uniTerm ~ Unwrapped (ExprUniTerm (Expr layout)))
        => Expr layout -> Expr layout -> (uniTerm -> uniTerm -> m a) -> m a
 match2 e1 e2 l = do
     firstMatched <- match e1 $ return . l
@@ -45,18 +45,18 @@ assumeIsomorphism e1 e2 (ExprIsomorphism lst) = if nowhere e1 lst && nowhere e2 
 enrichIsomorphism :: Expr l -> Expr l -> ExprIsomorphism l -> Maybe (ExprIsomorphism l)
 enrichIsomorphism e1 e2 iso = if areIsomorphic e1 e2 iso then Just iso else assumeIsomorphism e1 e2 iso
 
-targetsIsomorphic :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+targetsIsomorphic :: (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExprLink // Model] m)
                   => ExprIsomorphism Draft -> Link' (Expr Draft) -> Link' (Expr Draft) -> MaybeT m (ExprIsomorphism Draft)
 targetsIsomorphic iso le re = do
     l <- source le
     r <- source re
     exprsIsomorphic iso l r
 
-exprsIsomorphic :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+exprsIsomorphic :: (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExprLink // Model] m)
                 => ExprIsomorphism Draft -> Expr Draft -> Expr Draft -> MaybeT m (ExprIsomorphism Draft)
 exprsIsomorphic iso l r = if areIsomorphic l r iso then return iso else exprsIsomorphic' iso l r
 
-exprsIsomorphic' :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+exprsIsomorphic' :: (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExprLink // Model] m)
                  => ExprIsomorphism Draft -> Expr Draft -> Expr Draft -> MaybeT m (ExprIsomorphism Draft)
 exprsIsomorphic' iso l r = do
     assumption <- MaybeT $ return $ assumeIsomorphism l r iso
@@ -92,7 +92,7 @@ exprsIsomorphic' iso l r = do
             exprsIsomorphic assumption n' m'
         (_, _) -> mzero
 
-areExpressionsIsomorphic :: (MonadIR m, Readers m ('[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]))
+areExpressionsIsomorphic :: (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExprLink // Model] m)
                          => Expr Draft -> Expr Draft -> m Bool
 areExpressionsIsomorphic l r = do
     iso <- runMaybeT $ exprsIsomorphic def l r
@@ -108,16 +108,17 @@ data IncoherenceType = DanglingSource
                      | OrphanedInput
                      deriving (Show, Eq)
 
-data Incoherence = Incoherence IncoherenceType AnyExpr AnyExprLink deriving (Show, Eq)
+data Incoherence = Incoherence IncoherenceType SomeExpr SomeExprLink deriving (Show, Eq)
 
 data CoherenceCheck = CoherenceCheck { _incoherences :: [Incoherence]
-                                     , _allExprs     :: [AnyExpr]
-                                     , _allLinks     :: [AnyExprLink]
+                                     , _allExprs     :: [SomeExpr]
+                                     , _allLinks     :: [SomeExprLink]
                                      } deriving (Show)
 makeLenses ''CoherenceCheck
 
 type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
-type CoherenceCheckCtx   m = (MonadIR m, Readers m '[ExprLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer Model, ExprNet, ExprLinkNet])
+type CoherenceCheckCtx   m = (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // Model] m)
+
 
 checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
 checkCoherence = do
@@ -131,10 +132,10 @@ checkCoherence = do
 reportIncoherence :: MonadCoherenceCheck m => Incoherence -> m ()
 reportIncoherence i = State.modify (incoherences %~ (i:))
 
-checkExprCoherence :: MonadCoherenceCheck m => AnyExpr -> m ()
+checkExprCoherence :: MonadCoherenceCheck m => SomeExpr -> m ()
 checkExprCoherence e = checkInputs e >> checkSuccs e
 
-checkInputs :: MonadCoherenceCheck m => AnyExpr -> m ()
+checkInputs :: MonadCoherenceCheck m => SomeExpr -> m ()
 checkInputs e = do
     tp     <- readLayer @Type e
     fields <- symbolFields e
@@ -143,7 +144,7 @@ checkInputs e = do
         (_, tgt) <- readLayer @Model l
         when (tgt /= e || not (elem l links)) $ reportIncoherence $ Incoherence OrphanedInput e l
 
-checkSuccs :: MonadCoherenceCheck m => AnyExpr -> m ()
+checkSuccs :: MonadCoherenceCheck m => SomeExpr -> m ()
 checkSuccs e = do
     succs <- readLayer @Succs e
     links <- use allLinks
@@ -151,7 +152,7 @@ checkSuccs e = do
         (src, _) <- readLayer @Model l
         when (src /= e || not (elem l links)) $ reportIncoherence $ Incoherence OrphanedSuccessor e l
 
-checkLinkCoherence :: MonadCoherenceCheck m => AnyExprLink -> m ()
+checkLinkCoherence :: MonadCoherenceCheck m => SomeExprLink -> m ()
 checkLinkCoherence l = do
     (src, tgt) <- readLayer @Model l
     exprs <- use allExprs
@@ -160,12 +161,12 @@ checkLinkCoherence l = do
     checkIsSuccessor l src
     checkIsInput     l tgt
 
-checkIsSuccessor :: MonadCoherenceCheck m => AnyExprLink -> AnyExpr -> m ()
+checkIsSuccessor :: MonadCoherenceCheck m => SomeExprLink -> SomeExpr -> m ()
 checkIsSuccessor l e = do
     succs <- readLayer @Succs e
     when (Set.notMember l succs) $ reportIncoherence $ Incoherence DanglingSource e l
 
-checkIsInput :: MonadCoherenceCheck m => AnyExprLink -> AnyExpr -> m ()
+checkIsInput :: MonadCoherenceCheck m => SomeExprLink -> SomeExpr -> m ()
 checkIsInput l e = do
     tp <- readLayer @Type e
     fs <- symbolFields e
