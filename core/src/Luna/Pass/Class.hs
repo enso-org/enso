@@ -218,10 +218,6 @@ instance ReLookupData pass k m ks => LookupData pass m (k ': ks) where lookupDat
                                                                                        <<*>> lookupData @pass
 
 
-infixl 4 <<*>>
-(<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
-(<<*>>) = (<*>) . fmap (<*>) ; {-# INLINE (<<*>>) #-}
-
 
 
 -- === MonadPass === --
