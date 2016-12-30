@@ -83,6 +83,9 @@ f <<∘∘>> a = fmap2 f ∘∘ a ; {-# INLINE (<<∘∘>>) #-}
 infixl 4 <<$>>
 f <<$>> a = fmap f <$> a ; {-# INLINE (<<$>>) #-}
 
+infixl 4 <<*>>
+(<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
+(<<*>>) = (<*>) . fmap (<*>) ; {-# INLINE (<<*>>) #-}
 
 -- nested lenses
 -- | following functions are usefull when operating on nested structures with lenses, for example
