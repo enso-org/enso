@@ -34,6 +34,10 @@ import qualified Data.Map as Map
 import           Data.Map (Map)
 
 
+
+proxify :: a -> Proxy a
+proxify _ = Proxy
+
 -------------------------------
 
 -- === Errors === --
@@ -121,6 +125,9 @@ genericDescription = emptyDescription (getTypeDesc @(Abstract pass))
 
 genericDescription' :: forall pass. KnownDescription pass => Proxy pass -> Description
 genericDescription' _ = genericDescription @pass ; {-# INLINE genericDescription' #-}
+
+genericDescriptionP :: KnownDescription pass => pass -> Description
+genericDescriptionP = genericDescription' . proxify ; {-# INLINE genericDescriptionP #-}
 
 emptyDescription :: PassDesc -> Description
 emptyDescription r = Description r def def def def ; {-# INLINE emptyDescription #-}
