@@ -34,7 +34,7 @@ mkTranslationVector size knownIxes = Vector.fromList reixed where
 translateWith :: IsIdx t => Vector Int -> t -> t
 translateWith v = idx %~ Vector.unsafeIndex v
 
-importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
+importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
                => CompiledFunction -> m SomeExpr
 importFunction (CompiledFunction (IR map) r) = do
     ir      <- getIR

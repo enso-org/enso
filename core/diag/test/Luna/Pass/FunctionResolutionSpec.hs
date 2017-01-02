@@ -6,79 +6,20 @@ module Luna.Pass.FunctionResolutionSpec where
 import qualified Control.Monad.State.Dependent.Old as S
 import Luna.Prelude hiding (String)
 import qualified Luna.Prelude as P
-import Test.Hspec   (Spec, describe, it, shouldBe)
+import Test.Hspec   (Spec, describe, it, shouldBe, shouldReturn)
 import Luna.TestUtils
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.Pass        (Pass, SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass        as Pass
 import Data.TypeDesc
 import System.Log
-
--- impl imports, to refactor
-
+import Luna.IR.Runner
+import Luna.IR
+import Luna.Pass.Inference.FunctionResolution
+import qualified Data.Map          as Map
 import Luna.IR.Function.Definition as Function
 import Luna.IR.Function
 import Luna.IR.Module.Definition   as Module
-import Luna.IR.Runner
-import Luna.IR
-import Luna.IR.Expr.Combinators
-import Luna.IR.Name                (Name)
-import qualified Data.Map          as Map
-import           Data.Map          (Map)
-import           Data.Maybe        (isJust)
-
-
--- impl
-
-newtype Imports = Imports (Map Name Module)
-makeWrapped ''Imports
-
-newtype CurrentVar = CurrentVar (Expr (ENT Var (E String) Draft))
-
-data    ImportError = SymbolNotFound | SymbolAmbiguous [Name] deriving (Show, Eq)
-
-data FunctionResolution
-type instance Abstract  FunctionResolution = FunctionResolution
-
-type instance Inputs     Net   FunctionResolution = '[AnyExpr, AnyExprLink]
-type instance Inputs     Layer FunctionResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExprLink // Model, AnyExprLink // UID]
-type instance Inputs     Attr  FunctionResolution = '[CurrentVar, Imports]
-type instance Inputs     Event FunctionResolution = '[]
-
-type instance Outputs    Net   FunctionResolution = '[AnyExpr, AnyExprLink]
-type instance Outputs    Layer FunctionResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExprLink // Model, AnyExprLink // UID]
-type instance Outputs    Attr  FunctionResolution = '[]
-type instance Outputs    Event FunctionResolution = '[New // AnyExpr, New // AnyExprLink, Import // AnyExpr, Import // AnyExprLink]
-
-type instance Preserves        FunctionResolution = '[]
-
-
-lookupSym :: Name -> Imports -> Either ImportError CompiledFunction
-lookupSym n imps = let modulesWithMatchInfo = (over _2 $ flip Module.lookupFunction n) <$> Map.assocs (unwrap imps)
-                       matchedModules       = filter (isJust . snd) modulesWithMatchInfo
-                   in case matchedModules of
-                      []            -> Left  SymbolNotFound
-                      [(_, Just f)] -> Right f
-                      matches       -> Left . SymbolAmbiguous . fmap fst $ matches
-
-importVar :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass FunctionResolution m (Either ImportError SomeExpr)
-importVar = do
-    (CurrentVar var) <- readAttr @CurrentVar
-    nameLink <- view name <$> match' var
-    nameNode <- source nameLink
-    name     <- view lit  <$> match' nameNode
-    imports  <- readAttr @Imports
-    let fun  =  lookupSym (fromString name) imports
-    case fun of
-        Left  err  -> return $ Left err
-        Right sym  -> do
-            newExpr <- importFunction sym
-            return $ Right newExpr
-
--- spec
-
-snapshotVis :: (MonadRef m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => P.String -> Pass TestPass m
-snapshotVis = Vis.snapshot
 
 testImports :: IO Imports
 testImports = do
@@ -95,25 +36,32 @@ testImports = do
     let mod = Module Map.empty $ Map.fromList [("id", id'), ("const", const')]
     return $ Imports $ Map.singleton "Stdlib" mod
 
-initialize :: (MonadRef m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => SubPass TestPass m (Expr (ENT Var (E String) Draft))
-initialize = do
-    n   <- string "id"
+sizeAndCoherence :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass TestPass m (Int, [Incoherence])
+sizeAndCoherence = (,) <$> (length <$> exprs) <*> checkCoherence
+
+initialize :: (MonadRef m, MonadIO m, MonadPassManager m) => P.String -> SubPass TestPass m (Expr (ENT Var (E String) Draft))
+initialize name = do
+    n   <- string name
     unsafeRelayout <$> var n
 
-runTest = do
+runTest m = do
     imps <- testImports
-    withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
-        Right v <- Pass.eval' initialize
-        Pass.eval' $ snapshotVis "s1"
+        Right v <- Pass.eval' m
         setAttr (getTypeDesc @Imports) imps
         setAttr (getTypeDesc @CurrentVar) v
-        print v
-        Pass.eval' importVar
-        Pass.eval' $ snapshotVis "s2"
+        Right res    <- Pass.eval' importVar
+        Right (s, c) <- Pass.eval' sizeAndCoherence
+        return (res, s, c)
 
 
 spec :: Spec
-spec = describe "nothing" $ it "nothings" $ do
-    runTest
-    1 `shouldBe` 1
+spec = do
+    describe "successful import" $ do
+        it "preserves graph coherence" $ do
+            (_, s, c) <- runTest $ initialize "id"
+            (s, c) `shouldBe` (8, [])
+    describe "unsuccessful import" $ do
+        it "returns error and does not change the graph" $ do
+            runTest (initialize "foo") `shouldReturn` (Left SymbolNotFound, 4, [])
