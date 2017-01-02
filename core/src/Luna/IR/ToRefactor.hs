@@ -307,7 +307,25 @@ initModel :: GenLayerCons InitModel s
 initModel = GenLayerCons $ uncurry $ flip $ writeLayer @Model ; {-# INLINE initModel #-}
 
 
+data WatchModel
+type instance Abstract WatchModel = WatchModel
+type instance Inputs  Net   (ElemScope WatchModel t) = '[]
+type instance Outputs Net   (ElemScope WatchModel t) = '[]
+type instance Inputs  Layer (ElemScope WatchModel t) = '[Abstract t // Model]
+type instance Outputs Layer (ElemScope WatchModel t) = '[Abstract t // Model]
+type instance Inputs  Attr  (ElemScope WatchModel t) = '[]
+type instance Outputs Attr  (ElemScope WatchModel t) = '[]
+type instance Inputs  Event (ElemScope WatchModel t) = '[]
+type instance Outputs Event (ElemScope WatchModel t) = '[]
+type instance Preserves     (ElemScope WatchModel t) = '[]
+instance KnownElemPass WatchModel where
+    elemPassDescription = genericDescription' . proxify
 
+watchLinksImport :: EventPass WatchModel Import SomeExprLink s
+watchLinksImport = EventPass $ \(t, exprTrans, _) -> modifyLayer_ @Model (over both exprTrans) t
+
+watchExprsImport :: EventPass WatchModel Import SomeExpr s
+watchExprsImport = EventPass $ \(t, _, linkTrans) -> inplaceModifyFieldsWith linkTrans t
 
 type family PassType p d
 type instance PassType p (NewElemPassDef t _) = ElemScope p t
@@ -392,8 +410,8 @@ type instance Preserves     (ElemScope WatchUID t) = '[]
 instance KnownElemPass WatchUID where
     elemPassDescription = genericDescription' . proxify
 
-watchUID :: forall t s. IsIdx t => STRef s ID -> EventPass WatchUID Import t s
-watchUID ref = EventPass $ \t -> do
+watchUIDImport :: forall t s. IsIdx t => STRef s ID -> EventPass WatchUID Import t s
+watchUIDImport ref = EventPass $ \(t, _, _) -> do
     nuid <- nextUID ref
     writeLayer @UID nuid t
 
@@ -437,6 +455,9 @@ instance KnownElemPass WatchSuccs where
 watchSuccs :: EventPass WatchSuccs New (ExprLink' l) s
 watchSuccs = EventPass $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
     -- debugElem t $ "New successor: " <> show (src ^. idx) <> " -> " <> show (tgt ^. idx)
+
+watchSuccsImport :: EventPass WatchSuccs Import SomeExpr s
+watchSuccsImport = EventPass $ \(t, _, linkTrans) -> modifyLayer_ @Succs (Set.map linkTrans) t
 
 
 data WatchRemoveEdge
@@ -590,7 +611,22 @@ initType = do
         flip (writeLayer @Type) el t
 {-# INLINE initType #-}
 
+data WatchType
+type instance Abstract WatchType = WatchType
+type instance Inputs  Net   (ElemScope WatchType t) = '[]
+type instance Outputs Net   (ElemScope WatchType t) = '[]
+type instance Inputs  Layer (ElemScope WatchType t) = '[Abstract t // Type]
+type instance Outputs Layer (ElemScope WatchType t) = '[Abstract t // Type]
+type instance Inputs  Attr  (ElemScope WatchType t) = '[]
+type instance Outputs Attr  (ElemScope WatchType t) = '[]
+type instance Inputs  Event (ElemScope WatchType t) = '[]
+type instance Outputs Event (ElemScope WatchType t) = '[]
+type instance Preserves     (ElemScope WatchType t) = '[]
+instance KnownElemPass WatchType where
+    elemPassDescription = genericDescription' . proxify
 
+watchTypeImport :: EventPass WatchType Import SomeExpr s
+watchTypeImport = EventPass $ \(t, _, linkTrans) -> modifyLayer_ @Type linkTrans t
 
 
 
@@ -625,8 +661,12 @@ runRegs = do
     addEventListener 100 (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo watchSuccs
     addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveEdge
     addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @AnyExpr])         $ foo watchRemoveNode
-    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo $ watchUID @AnyExpr         uidRef
-    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo $ watchUID @(Link' AnyExpr) uidRef
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo $ watchUIDImport @(Link' AnyExpr) uidRef
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo watchLinksImport
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo $ watchUIDImport @AnyExpr         uidRef
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchTypeImport
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchSuccsImport
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchExprsImport
 
 
 -- === Elem reg defs === --

@@ -306,7 +306,6 @@ newElem tdef = do
 
 type instance PayloadData (New    // t) = (t, Definition t)
 type instance PayloadData (Delete // t) = t
-type instance PayloadData (Import // t) = t
 
 type instance Abstract (a // b) = Abstract a // Abstract b
 type instance Abstract New    = New
@@ -903,3 +902,6 @@ instance                      TypePretty (LINK' AnyExpr) where formatType _     
 
 instance TypePretty ANY where
     formatType = ("Any" :)
+
+-- FIXME: This should be together with other Payloads, but uses SomeExpr and SomeExprLink which are not visible at that place in the file
+type instance PayloadData (Import // t) = (t, SomeExpr -> SomeExpr, SomeExprLink -> SomeExprLink)
