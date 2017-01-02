@@ -130,7 +130,7 @@ attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to " <> 
         dpass = Pass.specialize pproto e
         s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
     put s'
-    addEventListener priority (Tag [getTypeDesc @New, switchTypeDesc e]) dpass
+    addEventListener_byPri priority (Tag [getTypeDesc @New, switchTypeDesc e]) dpass
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
 
@@ -138,11 +138,13 @@ queryListeners :: MonadPassManager m => Event.Tag -> m [Uninitialized (GetRefHan
 queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view listeners <$> get ; {-# INLINE queryListeners #-}
 
 
-addEventListener :: MonadPassManager m => Int -> Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
-addEventListener priority tag p =  modify_ $ (listeners %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
+addEventListener_byPri :: MonadPassManager m => Int -> Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListener_byPri priority tag p =  modify_ $ (listeners %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
     where rep = p ^. Pass.desc . Pass.passRep
-{-# INLINE addEventListener #-}
+{-# INLINE addEventListener_byPri #-}
 
+addEventListener :: MonadPassManager m => Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListener = addEventListener_byPri 100 ; {-# INLINE addEventListener #-}
 
 
 -- === Instances === --

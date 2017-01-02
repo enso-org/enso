@@ -1,4 +1,4 @@
-module Luna.IR.Internal.LayerStore where
+module Luna.IR.Internal.LayerStore (module Luna.IR.Internal.LayerStore, module X) where
 
 import Prelude hiding (tail)
 import Data.Default
@@ -9,7 +9,7 @@ import Control.Monad
 import Data.Functor.Utils hiding ((.))
 import Control.Monad.Primitive
 import qualified Data.STRef as ST
-import           Data.STRef (STRef)
+import           Data.STRef as X (STRef)
 
 import qualified Data.Vector.Mutable as MV
 import           Data.Vector.Mutable (MVector)
