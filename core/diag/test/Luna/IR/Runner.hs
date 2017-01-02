@@ -37,5 +37,5 @@ withVis m = do
     (p, vis) <- Vis.newRunDiffT m
     putStrLn $ ByteString.unpack $ encode vis
     let cfg = ByteString.unpack $ encode vis
-    liftIO $ openBrowser $ "http://localhost:8000?cfg=" <> cfg
+    -- liftIO $ openBrowser $ "http://localhost:8000?cfg=" <> cfg
     return p

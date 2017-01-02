@@ -14,7 +14,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Key(Key), Readable(..), Writable(..), KeyReadError, KeyMissingError, rebaseKey, RebasedKeyData)
+import           Luna.IR.Internal.IR   (Attr, Key(Key), KeyData, Readable(..), Writable(..), KeyReadError, KeyMissingError, rebaseKey, RebasedKeyData)
 import qualified Luna.IR.Internal.IR   as IR (KeyMonad, uncheckedLookupKey)
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -284,9 +284,11 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
     {-# INLINE primitive #-}
 
 
+setAttrKey :: forall k m. (MonadPass m, ContainsKey k (PassData (GetPass m))) => Key (GetPassMonad m) k -> m ()
+setAttrKey k = modify_ (findKey .~ k)
 
-
-
+setAttr3 :: forall k m. (MonadPass m, ContainsKey (Attr k) (PassData (GetPass m))) => KeyData (GetPassMonad m) (Attr k) -> m ()
+setAttr3 = setAttrKey @(Attr k) . wrap'
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
 
