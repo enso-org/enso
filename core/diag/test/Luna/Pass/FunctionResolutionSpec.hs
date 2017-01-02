@@ -48,7 +48,7 @@ type instance Inputs     Event FunctionResolution = '[]
 type instance Outputs    Net   FunctionResolution = '[AnyExpr, AnyExprLink]
 type instance Outputs    Layer FunctionResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExprLink // Model, AnyExprLink // UID]
 type instance Outputs    Attr  FunctionResolution = '[]
-type instance Outputs    Event FunctionResolution = '[New // AnyExpr, New // AnyExprLink]
+type instance Outputs    Event FunctionResolution = '[New // AnyExpr, New // AnyExprLink, Import // AnyExpr, Import // AnyExprLink]
 
 type instance Preserves        FunctionResolution = '[]
 

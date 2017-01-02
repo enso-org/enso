@@ -23,4 +23,4 @@ import Data.Property             as X
 
 import Luna.IR.ToRefactor as X
 import Luna.IR.Expr as X
-import Data.Event as X (Event, Emitter, Emitters, type (//))
+import Data.Event as X (Event, Emitter, Emitters, type (//), emit, Payload (Payload))

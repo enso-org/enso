@@ -6,6 +6,8 @@ module Luna.IR.ToRefactor where
 
 import Luna.Prelude hiding (String, log, nested)
 import qualified Luna.Prelude as Prelude
+import Control.Arrow ((&&&))
+import Data.STRef    (STRef)
 
 import Luna.IR.Internal.IR
 import qualified Luna.IR.Expr.Term.Named as Term
@@ -352,6 +354,9 @@ initmodelPass = NewElemPass initModel2
 -- === UID === --
 -----------------
 
+nextUID :: PrimMonad m => STRefM m ID -> m ID
+nextUID ref = Store.modifySTRef' ref $ id &&& succ
+
 data InitUID
 type instance Abstract InitUID = InitUID
 type instance Inputs  Net   (ElemScope InitUID t) = '[]
@@ -367,14 +372,30 @@ instance KnownElemPass InitUID where
     elemPassDescription = genericDescription' . proxify
 
 
-initUID :: PrimMonad m => m (GenLayerConsM InitUID m)
-initUID = do
-    ref <- Store.newSTRef (def :: ID)
-    return $ GenLayerCons $ \(t, tdef) -> do
-        nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
-        writeLayer @UID nuid t
+initUID :: STRef s ID -> GenLayerCons InitUID s
+initUID ref = GenLayerCons $ \(t, tdef) -> do
+    nuid <- nextUID ref
+    writeLayer @UID nuid t
 {-# INLINE initUID #-}
 
+data WatchUID
+type instance Abstract WatchUID = WatchUID
+type instance Inputs  Net   (ElemScope WatchUID t) = '[]
+type instance Outputs Net   (ElemScope WatchUID t) = '[]
+type instance Inputs  Layer (ElemScope WatchUID t) = '[]
+type instance Outputs Layer (ElemScope WatchUID t) = '[Abstract t // UID]
+type instance Inputs  Attr  (ElemScope WatchUID t) = '[]
+type instance Outputs Attr  (ElemScope WatchUID t) = '[]
+type instance Inputs  Event (ElemScope WatchUID t) = '[]
+type instance Outputs Event (ElemScope WatchUID t) = '[]
+type instance Preserves     (ElemScope WatchUID t) = '[]
+instance KnownElemPass WatchUID where
+    elemPassDescription = genericDescription' . proxify
+
+watchUID :: forall t s. IsIdx t => STRef s ID -> EventPass WatchUID Import t s
+watchUID ref = EventPass $ \t -> do
+    nuid <- nextUID ref
+    writeLayer @UID nuid t
 
 -------------------
 -- === Succs === --
@@ -584,8 +605,9 @@ runRegs = do
     runElemRegs
 
     -- f <- ff
+    uidRef <- Store.newSTRef def
     registerGenLayer  (getTypeDesc @Model) initModel
-    registerGenLayerM (getTypeDesc @UID)   initUID
+    registerGenLayer  (getTypeDesc @UID)   (initUID uidRef)
     registerGenLayer  (getTypeDesc @Succs) initSuccs
 
     registerExprLayerM (getTypeDesc @Type) initType
@@ -603,6 +625,8 @@ runRegs = do
     addEventListener 100 (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo watchSuccs
     addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveEdge
     addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @AnyExpr])         $ foo watchRemoveNode
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo $ watchUID @AnyExpr         uidRef
+    addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo $ watchUID @(Link' AnyExpr) uidRef
 
 
 -- === Elem reg defs === --

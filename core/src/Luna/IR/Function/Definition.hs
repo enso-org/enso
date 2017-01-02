@@ -34,7 +34,7 @@ mkTranslationVector size knownIxes = Vector.fromList reixed where
 translateWith :: IsIdx t => Vector Int -> t -> t
 translateWith v = idx %~ Vector.unsafeIndex v
 
-importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m)
+importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
                => CompiledFunction -> m SomeExpr
 importFunction (CompiledFunction (IR map) r) = do
     ir      <- getIR
@@ -51,8 +51,10 @@ importFunction (CompiledFunction (IR map) r) = do
         linksToFix :: [SomeExprLink] = Elem . snd <$> linkTrans
 
     forM_ linksToFix $ modifyLayer_ @Model $ over both exprTranslator
+    forM_ linksToFix $ emit . Payload @(Import // AnyExprLink) . unsafeGeneralize
     forM_ exprsToFix $ \e -> do
          inplaceModifyFieldsWith linkTranslator           e
          modifyLayer_ @Type      linkTranslator           e
          modifyLayer_ @Succs     (Set.map linkTranslator) e
+    forM_ exprsToFix $ emit . Payload @(Import // AnyExpr) . unsafeGeneralize
     return $ exprTranslator r

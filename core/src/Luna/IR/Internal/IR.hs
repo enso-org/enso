@@ -73,6 +73,7 @@ data Attr  = Attr  deriving (Show)
 
 data New    = New    deriving (Show)
 data Delete = Delete deriving (Show)
+data Import = Import deriving (Show)
 
 
 
@@ -305,10 +306,12 @@ newElem tdef = do
 
 type instance PayloadData (New    // t) = (t, Definition t)
 type instance PayloadData (Delete // t) = t
+type instance PayloadData (Import // t) = t
 
 type instance Abstract (a // b) = Abstract a // Abstract b
-type instance Abstract New = New
+type instance Abstract New    = New
 type instance Abstract Delete = Delete
+type instance Abstract Import = Import
 
 
 
