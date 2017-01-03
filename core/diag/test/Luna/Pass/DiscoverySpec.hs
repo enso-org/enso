@@ -14,13 +14,21 @@ import           System.Log
 
 
 data DiscoveryPass
-type instance Abstract  DiscoveryPass = DiscoveryPass
-type instance Inputs    DiscoveryPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
-type instance Outputs   DiscoveryPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model]
-type instance Events    DiscoveryPass = '[NEW // EXPR, NEW // LINK' EXPR]
-type instance Preserves DiscoveryPass = '[]
+type instance Abstract         DiscoveryPass = DiscoveryPass
 
-sanityPass :: (IRMonad m, MonadIO m, MonadPassManager m) => SubPass DiscoveryPass m P.String
+type instance Inputs     Net   DiscoveryPass = '[AnyExpr, AnyExprLink]
+type instance Inputs     Layer DiscoveryPass = '[AnyExpr // Model, AnyExprLink // Model]
+type instance Inputs     Attr  DiscoveryPass = '[]
+type instance Inputs     Event DiscoveryPass = '[]
+
+type instance Outputs    Net   DiscoveryPass = '[AnyExpr, AnyExprLink]
+type instance Outputs    Layer DiscoveryPass = '[AnyExpr // Model, AnyExprLink // Model]
+type instance Outputs    Attr  DiscoveryPass = '[]
+type instance Outputs    Event DiscoveryPass = '[New // AnyExpr, New // AnyExprLink]
+
+type instance Preserves        DiscoveryPass = '[]
+
+sanityPass :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass DiscoveryPass m P.String
 sanityPass = do
     s <- string "hello"
     v <- var s
@@ -31,7 +39,7 @@ sanityPass = do
                 String s -> return s
 
 testCase :: (PrimMonad m, MonadFix m, MonadIO m) => m (Either Pass.InternalError P.String)
-testCase = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+testCase = dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' sanityPass
 
