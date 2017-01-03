@@ -155,15 +155,9 @@ desugar e = do
     traceM "DESUGARING:"
     traceM =<< printExpr e
     traceM "-----------"
-    blankArgs <- countBlankInside e
-    -- names <- do
-    --     st <- readAttr @UniqueNameGen
-    --     ns <- replicateM blankArgs genName
-    --     setAttr3 @UniqueNameGen st
-    --     return ns
-    e' <- replaceBlanks e
+    e'    <- replaceBlanks e
     names <- readAttr @UsedVars
-    vars <- mapM strVar names
+    vars  <- mapM strVar names
     lams (map unsafeRelayout vars) e'
 
 
@@ -177,7 +171,9 @@ desugarsTo test expected = do
         Right desugared <- Pass.eval' $ desugar $ generalize x
         Right s <- Pass.eval' $ printExpr desugared
         Right expected <- Pass.eval' $ expected
-        Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected) (unsafeRelayout desugared)
+        Right expectedS <- Pass.eval' $ printExpr $ generalize expected
+        traceM $ show $ s == expectedS
+        Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass BlankDesugaring _) (unsafeRelayout expected) (unsafeRelayout desugared)
         return (s, result)
     putStrLn s
     res `shouldBe` True
@@ -326,7 +322,8 @@ blankDotFooGroupedBlankBarExpected = do
     a <- app v1 (arg bar)
     ac <- rawAcc "foo" v0
     l <- lam (arg v0) ac
-    a' <- app l (arg a)
+    g <- grouped l
+    a' <- app g (arg a)
     lam (arg v1) a'
 
 fooBarBlankBaz :: _ => SubPass TestPass m _
