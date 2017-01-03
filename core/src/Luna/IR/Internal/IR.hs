@@ -417,13 +417,14 @@ type MonadIRTrans t m = (MonadIR m, MonadTrans t, MonadIRBase (t m), PrimState (
 
 
 --FIXME: REFACTOR
-type RefHandlerInvariants m = (PrimState m ~ PrimState (GetRefHandler m))
-type RefHandlerBase       m = (MonadIR m, PrimMonad m)
-type RefHandlerCtx        m = (RefHandlerBase m, RefHandlerBase (GetRefHandler m), RefHandlerInvariants m)
-class RefHandlerCtx m => MonadRef m where
-    liftRefHandler :: forall a. GetRefHandler m a -> m a
+-- type RefHandlerInvariants m = (PrimState m ~ PrimState (GetRefHandler m))
+-- type RefHandlerBase       m = (MonadIR m, PrimMonad m)
+-- type RefHandlerCtx        m = (RefHandlerBase m, RefHandlerBase (GetRefHandler m), RefHandlerInvariants m)
+class (MonadIR m, MonadIR (GetRefHandler m), EqPrims m (GetRefHandler m), GetRefHandler (GetRefHandler m) ~ GetRefHandler m)
+   => MonadRef m where liftRefHandler :: forall a. GetRefHandler m a -> m a
 
-instance {-# OVERLAPPABLE #-} (MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m, RefHandlerCtx (t m), MonadRef m)
+-- instance {-# OVERLAPPABLE #-} (MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m, RefHandlerCtx (t m), MonadRef m)
+instance {-# OVERLAPPABLE #-} (MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m, MonadRef m, MonadIR (t m))
       => MonadRef (t m) where
     liftRefHandler = lift . liftRefHandler
 
@@ -477,6 +478,7 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 
 type instance RefData Layer _ m = LayerSet    (PrimState m)
 type instance RefData Net   _ m = ElemStoreST (PrimState m)
+type instance RefData Attr  a _ = a
 
 
 -- === Aliases === --

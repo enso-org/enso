@@ -4,37 +4,28 @@
 -- {-# LANGUAGE NoMonomorphismRestriction #-}
 -- {-# LANGUAGE NoRecursiveDo #-}
 
-module Luna.Pass.TH where
+module Luna.Pass.Sugar.TH where
 
 import Prologue hiding (pprint, Type)
+
+import Luna.IR.Internal.IR
+
+
 import Data.Path
 import Type.List (type(<>))
 import Data.Families
 import qualified Data.Char as Char
 import qualified Language.Haskell.TH as TH
 
-import qualified Data.Set as Set
-import           Data.Set (Set)
--- import Control.Monad
--- import Data.Monoid
--- import Prelude
+
+
 
 upperHead :: String -> String
 upperHead (c:cs) = Char.toUpper c : cs
 
 
 makePass :: Name -> Q [TH.Dec]
-makePass n = do
-    out <- makePass' n
-    -- runIO $ print "-----"
-    -- runIO $ putStrLn $ pprint out
-    return out
-
-
-
-
-makePass' :: Name -> Q [TH.Dec]
-makePass' name = build $ do
+makePass name = build $ do
     let passName = typeName . upperHead $ nameBase name
     VarI _ (ForallT _ ctx (AppT (AppT (AppT (AppT (ConT _) _) _) (AppT _ (VarT elemt))) (VarT m))) Nothing <- lift $ reify name
     let f a = case a of
@@ -182,19 +173,3 @@ singleFold1 f = simpleFold $ runSingleFold1 f ; {-# INLINE singleFold1 #-}
 
 
 ----------------------------------
-
-
-type family Prep a (ls :: [*]) :: [*] where
-    Prep (Proxy a) '[]       = '[]
-    Prep (Proxy a) (l ': ls) = (a // l) ': Prep (Proxy a) ls
-
-type family Expand ls :: [*] where
-    Expand (Proxy (l // ls))   = Prep (Proxy l) (Expand (Proxy ls))
-    -- Expand (l // ls) = Permute l (Expand ls)
-    Expand (Proxy (ls :: [k])) = Expands (Proxy ls)
-    Expand (Proxy (ls ::  *))  = '[ls]
-
-
-type family Expands (ls :: *) :: [*] where
-    Expands (Proxy '[])       = '[]
-    Expands (Proxy (l ': ls)) = Expand (Proxy l) <> Expands (Proxy ls)

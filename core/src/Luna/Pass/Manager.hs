@@ -15,7 +15,7 @@ import           Data.Event          (Event, Payload(Payload), EventHub, Emitter
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR as IR
-import Luna.Pass.Class (SubPass, PassDesc, Proto, DynPass, Template, Uninitialized)
+import Luna.Pass.Class (SubPass, PassDesc, Proto, DynPass, DynSubPass(DynSubPass), Template, Uninitialized, PassConstruction)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -77,18 +77,19 @@ makeWrapped ''PassManager
 
 
 -- === MonadPassManager === --
+type MonadPassManager m = (MonadPassManager' m, MonadPassManager' (GetRefHandler m))
 
-class (MonadIR m, MonadRef m) => MonadPassManager m where
+class (MonadIR m, MonadRef m, PassConstruction m) => MonadPassManager' m where
     get :: m (RefState m)
     put :: RefState m -> m ()
 
-instance MonadIR m => MonadPassManager (PassManager m) where
+instance (MonadIR m, MonadRefCache m) => MonadPassManager' (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
 
-type TransBaseMonad t m = (MonadTransInvariants' t m, MonadIR (t m), MonadRef (t m), GetRefHandler m ~ GetRefHandler (t m))
-instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m)
-      => MonadPassManager (t m) where
+type TransBaseMonad t m = (MonadTransInvariants' t m, MonadRef (t m), GetRefHandler m ~ GetRefHandler (t m))
+instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m, PassConstruction (t m))
+      => MonadPassManager' (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
 
@@ -122,6 +123,12 @@ registerLayerProto :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed 
 registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
 {-# INLINE registerLayerProto #-}
+
+
+registerLayerProto2 :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+registerLayerProto2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
+    where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (\(DynSubPass p) -> withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running" (DynSubPass p)) df
+{-# INLINE registerLayerProto2 #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayer :: MonadPassManager m => Int -> LayerDesc -> ElemDesc -> m ()

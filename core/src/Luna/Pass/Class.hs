@@ -159,9 +159,9 @@ makeLenses ''RefStore
 
 -- === RefStore preparation === --
 
-type DataLookup m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLookup Attr m, MonadRefLookup Event m)
+type PassConstruction m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLookup Attr m, MonadRefLookup Event m)
 
-lookupRefStore :: forall pass m. DataLookup m
+lookupRefStore :: forall pass m. PassConstruction m
                => Description -> m (Maybe (RefStore' m pass))
 lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. outputs . at (getTypeDesc @Net)))
                                <<*>> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. outputs . at (getTypeDesc @Layer)))
@@ -206,7 +206,7 @@ makeWrapped ''SubPass
 instance MonadLogging m => MonadLogging (SubPass pass m)
 
 type instance GetRefHandler (SubPass pass m) = GetRefHandler m
-instance (EqPrims m (GetRefHandler m), MonadRef m) => MonadRef (SubPass p m) where
+instance MonadRef m => MonadRef (SubPass p m) where
     liftRefHandler = lift . liftRefHandler ; {-# INLINE liftRefHandler #-}
 
 
@@ -283,7 +283,7 @@ instance MonadLogging m => MonadLogging (DynSubPass m)
 
 -- === Utils === --
 
-type PassInit pass m = (Logging m, KnownPass pass, DataLookup m)
+type PassInit pass m = (Logging m, KnownPass pass, PassConstruction m)
 
 compileTemplate :: forall pass m a. PassInit pass m
                 => Template (SubPass pass m a) -> Uninitialized m (Template (DynSubPass m a))
