@@ -119,7 +119,9 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 -- === Utils === --
 
 registerLayerProto :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
-registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f ; {-# INLINE registerLayerProto #-}
+registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
+    where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
+{-# INLINE registerLayerProto #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayer :: MonadPassManager m => Int -> LayerDesc -> ElemDesc -> m ()
@@ -143,8 +145,11 @@ addEventListener_byPri priority tag p =  modify_ $ (listeners %~ attachListener 
     where rep = p ^. Pass.desc . Pass.passRep
 {-# INLINE addEventListener_byPri #-}
 
-addEventListener :: MonadPassManager m => Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
-addEventListener = addEventListener_byPri 100 ; {-# INLINE addEventListener #-}
+addEventListenerDyn :: MonadPassManager m => Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListenerDyn = addEventListener_byPri 100 ; {-# INLINE addEventListenerDyn #-}
+
+addEventListener :: forall path m. (Event.KnownPath path, MonadPassManager m) => Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListener = addEventListenerDyn (Event.fromPath @path) ; {-# INLINE addEventListener #-}
 
 
 -- === Instances === --

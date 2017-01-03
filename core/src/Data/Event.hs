@@ -34,8 +34,8 @@ type family TagPath a where
     TagPath (a // as) = a ': TagPath as
     TagPath a         = '[a]
 
-type FromPath path = KnownTypes (TagPath path)
-fromPath :: forall path. FromPath path => Tag
+type KnownPath path = KnownTypes (TagPath path)
+fromPath :: forall path. KnownPath path => Tag
 fromPath = Tag $ getTypeDescs @(TagPath path) ; {-# INLINE fromPath #-}
 
 -- FIXME[WD]

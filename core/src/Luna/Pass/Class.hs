@@ -82,7 +82,7 @@ data Description = Description { _passRep   :: !PassDesc
 
 data Describbed a = Describbed { _desc    :: !Description
                                , _content :: !a
-                               } deriving (Show)
+                               } deriving (Show, Functor)
 
 makeLenses  ''Describbed
 makeLenses  ''Description
@@ -244,6 +244,9 @@ makeWrapped ''Proto
 
 -- === Utils === --
 
+constProto :: a -> Proto a
+constProto = wrap' . const ; {-# INLINE constProto #-}
+
 specialize :: IsTypeDesc t => Proto a -> t -> a
 specialize p = unwrap' p . view typeDesc ; {-# INLINE specialize #-}
 
@@ -273,6 +276,10 @@ instance Show (Uninitialized m a) where show _ = "Uninitialized" ; {-# INLINE sh
 type    DynPass    m   = DynSubPass m ()
 newtype DynSubPass m a = DynSubPass { runDynPass :: m a } deriving (Show, Functor, Applicative, Monad)
 
+instance MonadTrans DynSubPass where
+    lift = DynSubPass ; {-# INLINE lift #-}
+
+instance MonadLogging m => MonadLogging (DynSubPass m)
 
 -- === Utils === --
 
