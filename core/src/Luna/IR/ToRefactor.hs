@@ -216,17 +216,18 @@ debugPassRunning layer = withDebugBy ("Pass [" <> layer <> "]") "Running"
 proxify :: a -> Proxy a
 proxify _ = Proxy
 
-newtype EventPass p e t m = EventPass (MonadPassManager m => PayloadData (e // t) -> Pass (ElemScope p t) m)
--- type    EventPass p e t m = EventPass p e t (PrimState m)
+-- newtype EventPass p e t m = EventPass (MonadPassManager m => PayloadData (e // t) -> Pass (ElemScope p t) m)
+-- -- type    EventPass p e t m = EventPass p e t (PrimState m)
+--
+-- runEventPass :: forall p e t m. (KnownType p, MonadPassManager m) => EventPass p e t m -> PayloadData (e // t) -> Pass (ElemScope p t) m
+-- runEventPass (EventPass f) pload = debugPassRunning (show $ getTypeDesc_ @p) $ f pload
+--
+-- foo :: forall p e t m. (KnownType p, MonadPassManager m, Pass.PassInit (ElemScope p t) m) => EventPass p e t m -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
+-- foo = Pass.describbed @(ElemScope p t) . Pass.compileTemplate . Pass.template . runEventPass
 
-runEventPass :: forall p e t m. (KnownType p, MonadPassManager m) => EventPass p e t m -> PayloadData (e // t) -> Pass (ElemScope p t) m
-runEventPass (EventPass f) pload = debugPassRunning (show $ getTypeDesc_ @p) $ f pload
 
-foo :: forall p e t m. (KnownType p, MonadPassManager m, Pass.PassInit (ElemScope p t) m) => EventPass p e t m -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
-foo = Pass.describbed @(ElemScope p t) . Pass.compileTemplate . Pass.template . runEventPass
-
-
-
+newtype EventPassDef2 p e t m = EventPassDef2 (PayloadData (e // t) -> m ())
+makeWrapped ''EventPassDef2
 
 
 newtype EventPassDef e t m = EventPassDef (PayloadData (e // t) -> m ())
@@ -238,6 +239,10 @@ eventPassDef = wrap' ; {-# INLINE eventPassDef #-}
 runEventPassDef :: EventPassDef e t m -> (PayloadData (e // t) -> m ())
 runEventPassDef = unwrap' ; {-# INLINE runEventPassDef #-}
 
+runEventPassDef2 :: EventPassDef2 p e t m -> (PayloadData (e // t) -> m ())
+runEventPassDef2 = unwrap' ; {-# INLINE runEventPassDef2 #-}
+
+
 
 foo2 :: forall p e t m. (KnownType p, MonadPassManager m, Pass.PassInit (ElemScope p t) m)
      => EventPassDef e t (SubPass (ElemScope p t) m) -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
@@ -245,31 +250,37 @@ foo2 = Pass.describbed @(ElemScope p t) . Pass.compileTemplate . Pass.template .
 
 
 type ElemEventPassDef e t m = EventPassDef e (Elem t) m
+type ElemEventPassDef2 p e t m = EventPassDef2 p e (Elem t) m
 -- makeWrapped ''ElemEventPassDef
 
 
 
+newtype ElemEventPass p e t m = EventPass (EventPassDef e (Elem t) (SubPass (ElemScope p t) m))
 
-
--- type    ElemEventPass e p m = ElemEventPass e p (PrimState m)
--- newtype ElemEventPass p e m = ElemEventPass ( forall t. MonadPassManager m
---                                            => EventPassDef e (Elem t) (SubPass (ElemScope p t) m)
---                                             )
+-- type    AnyElemEventPass e p m = AnyElemEventPass e p (PrimState m)
+newtype AnyElemEventPass p e m = AnyElemEventPass ( forall t. (MonadPassManager m, KnownType (Abstract t))
+                                                 => EventPassDef e (Elem t) (SubPass (ElemScope p t) m)
+                                                  )
+--
+-- newtype AnyElemEventPass p e m = AnyElemEventPass ( forall t. (MonadPassManager m, KnownType (Abstract t))
+--                                                  => ElemEventPass p e t m
+--                                                   )
 
 type    ElemEventPass2M e t p m = ElemEventPass2 e t p (PrimState m)
 newtype ElemEventPass2  e t p s = ElemEventPass2 (forall m. (MonadPassManager m, s ~ PrimState m) => ElemEventPassDef e t (SubPass (ElemScope p t) m))
 
--- runElemEventPass :: forall e p t m. (KnownType p, MonadPassManager m) => ElemEventPass p e m -> PayloadData (e // Elem t) -> Pass (ElemScope p t) m
--- runElemEventPass (ElemEventPass p) pld = debugPassRunning (show $ getTypeDesc_ @p) $ runEventPassDef p pld ; {-# INLINE runElemEventPass #-}
---
---
--- registerGenLayer :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p)
---                       => LayerDesc -> ElemEventPass p New (GetRefHandler m) -> m ()
--- registerGenLayer l p = registerLayerProto l $ prepareProto2 $ Pass.template $ runElemEventPass p ; {-# INLINE registerGenLayer #-}
+runElemEventPass :: forall e p t m. (KnownType p, MonadPassManager m, KnownType (Abstract t))
+                 => AnyElemEventPass p e m -> PayloadData (e // Elem t) -> Pass (ElemScope p t) m
+runElemEventPass (AnyElemEventPass p) pld = debugPassRunning (show $ getTypeDesc_ @p) $ runEventPassDef p pld ; {-# INLINE runElemEventPass #-}
+
+
+registerGenLayer :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p)
+                      => LayerDesc -> AnyElemEventPass p New (GetRefHandler m) -> m ()
+registerGenLayer l p = registerLayerProto l $ prepareProto2 $ Pass.template $ runElemEventPass p ; {-# INLINE registerGenLayer #-}
 
 registerGenLayer2 :: forall p e t m. (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p)
-                      => LayerDesc -> (forall t. KnownType (Abstract t) => ElemEventPassDef e t (SubPass (ElemScope p t) (GetRefHandler m))) -> m ()
-registerGenLayer2 l p = registerLayerProto l $ prepareProto2 $ Pass.template $ runEventPassDef p ; {-# INLINE registerGenLayer2 #-}
+                      => LayerDesc -> (forall t. KnownType (Abstract t) => ElemEventPassDef2 p e t (SubPass (ElemScope p t) (GetRefHandler m))) -> m ()
+registerGenLayer2 l p = registerLayerProto l $ prepareProto2 $ Pass.template $ runEventPassDef2 p ; {-# INLINE registerGenLayer2 #-}
 
 -- registerLayerDef :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m), KnownElemPass p, KnownType p)
 --                          => LayerDesc -> (forall t. KnownType (Abstract t) => ElemEventPassDef e t (SubPass (ElemScope p t) (GetRefHandler m))) -> m ()
@@ -329,13 +340,34 @@ prepareProto2 p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto2' p) . 
 -- === Model === --
 -------------------
 
+
 initModel :: Req m '[Writer // Layer // Abstract (Elem t) // Model] => EventPassDef New (Elem t) m
 initModel = eventPassDef . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel #-}
 makePass 'initModel
 
-init1 :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => m ()
-init1 = registerGenLayer2 @InitModel (getTypeDesc @Model) initModel
+data InitModel2
+initModel2 :: Req m '[Writer // Layer // Abstract (Elem t) // Model] => EventPassDef2 InitModel2 New (Elem t) m
+initModel2 = wrap' . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel2 #-}
+makePass2 'initModel2
 
+init1 :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => m ()
+-- init1 = registerGenLayer (getTypeDesc @Model) initModelPass
+init1 = registerGenLayer2 (getTypeDesc @Model) initModel2
+
+initModelPass :: AnyElemEventPass InitModel New s
+initModelPass = AnyElemEventPass initModel ; {-# INLINE initModelPass #-}
+
+
+
+
+
+
+-- initModel :: Req m '[Writer // Layer // Abstract (Elem t) // Model] => ElemEventPassDef InitModel New t m
+-- initModel = eventPassDef . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel #-}
+-- makePass 'initModel
+--
+-- init1 :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => m ()
+-- init1 = registerGenLayer (getTypeDesc @Model) initModel
 
 
 -----------------
@@ -352,7 +384,11 @@ makePass1 'initUID
 init2 :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => m ()
 init2 = do
     ref <- Store.newSTRef (def :: ID)
-    registerGenLayer2 @InitUID (getTypeDesc @UID) (initUID ref)
+    registerGenLayer (getTypeDesc @UID) (initUIDPass ref)
+
+initUIDPass :: STRefM m ID -> AnyElemEventPass InitUID New m
+initUIDPass p = AnyElemEventPass $ initUID p ; {-# INLINE initUIDPass #-}
+
 
 
 
@@ -363,6 +399,9 @@ init2 = do
 initSuccs :: Req m '[Writer // Layer // Abstract (Elem t) // Succs] => EventPassDef New (Elem t) m
 initSuccs = eventPassDef $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE initSuccs #-}
 makePass 'initSuccs
+
+initSuccsPass :: AnyElemEventPass InitSuccs New m
+initSuccsPass = AnyElemEventPass initSuccs ; {-# INLINE initSuccsPass #-}
 
 watchSuccs :: Req m '[Editor // Layer // AnyExpr // Succs] => EventPassDef New (ExprLink' l) m
 watchSuccs = EventPassDef $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
@@ -379,7 +418,7 @@ makePass 'watchRemoveEdge
 
 init3 :: (MonadPassManager m, MonadPassManager (GetRefHandler m), Pass.DataLookup (GetRefHandler m)) => m ()
 init3 = do
-    registerGenLayer2 @InitSuccs (getTypeDesc @Succs) initSuccs
+    registerGenLayer (getTypeDesc @Succs) initSuccsPass
     addEventListener (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo2 @WatchSuccs watchSuccs
     addEventListener (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo2 @WatchRemoveEdge watchRemoveEdge
 

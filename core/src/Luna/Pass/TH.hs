@@ -59,6 +59,32 @@ makePass' name = build $ do
     define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription" (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]
     return []
 
+makePass2 :: Name -> Q [TH.Dec]
+makePass2 name = build $ do
+    let passName = typeName . upperHead $ nameBase name
+    VarI _ (ForallT _ ctx (AppT (AppT (AppT (AppT (ConT _) _) _) (AppT _ (VarT elemt))) (VarT m))) Nothing <- lift $ reify name
+    let f a = case a of
+            VarT v -> if v /= elemt then (ConT $ mkName "AnyType") else ctxfold (singleFold1 f) a
+            _      -> ctxfold (singleFold1 f) a
+        ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
+        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT elemt]
+        defReq r t = define $ typeInstance r
+                 [ toType $ typeName t
+                 , passHeader
+                 ]
+                 $ apps (th . typeName $ "Get" <> r) [th $ typeName t, ctx']
+        defInputs  = defReq "Inputs"
+        defOutputs = defReq "Outputs"
+        defIOs lst = defInputs lst >> defOutputs lst
+    -- define $ phantom passName                                     -- data InitModel
+    define $ typeInstance' "Abstract" passName passName           -- type instance Abstract InitModel = InitModel
+    mapM_ defIOs ["Net", "Layer", "Attr", "Event"]                -- type instance Inputs  Net   (ElemScope InitModel t) = GetInputs  Net   (InitModelCtx t AnyType)
+                                                                  -- type instance Outputs Net   (ElemScope InitModel t) = GetOutputs Net   (InitModelCtx t AnyType)
+                                                                  -- ...
+    define $ typeInstance' "Preserves" passHeader ([] :: [Type])  -- type instance Preserves     (ElemScope InitModel t) = '[]
+    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription" (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]
+    return []
+
 
 makePass1 :: Name -> Q [TH.Dec]
 makePass1 name = build $ do
