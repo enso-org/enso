@@ -6,6 +6,8 @@ module Luna.IR.ToRefactor where
 
 import Luna.Prelude hiding (String, log, nested)
 import qualified Luna.Prelude as Prelude
+import Control.Arrow ((&&&))
+import Data.STRef    (STRef)
 
 import Luna.IR.Internal.IR
 import qualified Luna.IR.Expr.Term.Named as Term
@@ -153,14 +155,37 @@ init1 :: MonadPassManager m => m ()
 init1 = registerGenLayer @Model initModel
 
 
+-- data WatchModel
+-- type instance Abstract WatchModel = WatchModel
+-- type instance Inputs  Net   (ElemScope WatchModel t) = '[]
+-- type instance Outputs Net   (ElemScope WatchModel t) = '[]
+-- type instance Inputs  Layer (ElemScope WatchModel t) = '[Abstract t // Model]
+-- type instance Outputs Layer (ElemScope WatchModel t) = '[Abstract t // Model]
+-- type instance Inputs  Attr  (ElemScope WatchModel t) = '[]
+-- type instance Outputs Attr  (ElemScope WatchModel t) = '[]
+-- type instance Inputs  Event (ElemScope WatchModel t) = '[]
+-- type instance Outputs Event (ElemScope WatchModel t) = '[]
+-- type instance Preserves     (ElemScope WatchModel t) = '[]
+-- instance KnownElemPass WatchModel where
+--     elemPassDescription = genericDescription' . proxify
+--
+-- watchLinksImport :: EventPass WatchModel Import SomeExprLink s
+-- watchLinksImport = EventPass $ \(t, exprTrans, _) -> modifyLayer_ @Model (over both exprTrans) t
+--
+-- watchExprsImport :: EventPass WatchModel Import SomeExpr s
+-- watchExprsImport = EventPass $ \(t, _, linkTrans) -> inplaceModifyFieldsWith linkTrans t
+
 
 -----------------
 -- === UID === --
 -----------------
 
+nextUID :: PrimMonad m => STRefM m ID -> m ID
+nextUID ref = Store.modifySTRef' ref $ id &&& succ ; {-# INLINE nextUID #-}
+
 initUID :: Req m '[Writer // Layer // Abstract (Elem t) // UID] => STRefM m ID -> GenInitializer UID t m
 initUID ref = listenerPassDef $ \(t, tdef) -> do
-    nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
+    nuid <- nextUID ref
     writeLayer @UID nuid t
 {-# INLINE initUID #-}
 makeLayerGen ''UID 'initUID
@@ -170,6 +195,25 @@ init2 = do
     ref <- Store.newSTRef (def :: ID)
     registerGenLayer @UID (initUID ref)
 
+
+-- data WatchUID
+-- type instance Abstract WatchUID = WatchUID
+-- type instance Inputs  Net   (ElemScope WatchUID t) = '[]
+-- type instance Outputs Net   (ElemScope WatchUID t) = '[]
+-- type instance Inputs  Layer (ElemScope WatchUID t) = '[]
+-- type instance Outputs Layer (ElemScope WatchUID t) = '[Abstract t // UID]
+-- type instance Inputs  Attr  (ElemScope WatchUID t) = '[]
+-- type instance Outputs Attr  (ElemScope WatchUID t) = '[]
+-- type instance Inputs  Event (ElemScope WatchUID t) = '[]
+-- type instance Outputs Event (ElemScope WatchUID t) = '[]
+-- type instance Preserves     (ElemScope WatchUID t) = '[]
+-- instance KnownElemPass WatchUID where
+--     elemPassDescription = genericDescription' . proxify
+--
+-- watchUIDImport :: forall t s. IsIdx t => STRef s ID -> EventPass WatchUID Import t s
+-- watchUIDImport ref = EventPass $ \(t, _, _) -> do
+--     nuid <- nextUID ref
+--     writeLayer @UID nuid t
 
 
 -------------------
@@ -184,6 +228,11 @@ data WatchSuccs
 watchSuccs :: Req m '[Editor // Layer // AnyExpr // Succs] => ListenerPassDef WatchSuccs New (ExprLink' l) m
 watchSuccs = listenerPassDef $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
 makePass 'watchSuccs
+
+-- watchSuccsImport :: EventPass WatchSuccs Import SomeExpr s
+-- watchSuccsImport = EventPass $ \(t, _, linkTrans) -> modifyLayer_ @Succs (Set.map linkTrans) t
+
+
 
 data WatchRemoveEdge
 watchRemoveEdge :: Req m '[ Reader // Layer // AnyExprLink // Model
@@ -255,7 +304,22 @@ init4 = do
     ref <- Store.newSTRef (Nothing :: Maybe (Expr Star))
     registerSpecLayer @Type $ initType ref
 
+-- data WatchType
+-- type instance Abstract WatchType = WatchType
+-- type instance Inputs  Net   (ElemScope WatchType t) = '[]
+-- type instance Outputs Net   (ElemScope WatchType t) = '[]
+-- type instance Inputs  Layer (ElemScope WatchType t) = '[Abstract t // Type]
+-- type instance Outputs Layer (ElemScope WatchType t) = '[Abstract t // Type]
+-- type instance Inputs  Attr  (ElemScope WatchType t) = '[]
+-- type instance Outputs Attr  (ElemScope WatchType t) = '[]
+-- type instance Inputs  Event (ElemScope WatchType t) = '[]
+-- type instance Outputs Event (ElemScope WatchType t) = '[]
+-- type instance Preserves     (ElemScope WatchType t) = '[]
+-- instance KnownElemPass WatchType where
+--     elemPassDescription = genericDescription' . proxify
 
+-- watchTypeImport :: EventPass WatchType Import SomeExpr s
+-- watchTypeImport = EventPass $ \(t, _, linkTrans) -> modifyLayer_ @Type linkTrans t
 
 
 
@@ -283,8 +347,15 @@ runRegs = do
     attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
 
 
-
-    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveNode
+    -- addEventListener 100 (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo watchSuccs
+    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveEdge
+    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @AnyExpr])         $ foo watchRemoveNode
+    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo $ watchUIDImport @(Link' AnyExpr) uidRef
+    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo watchLinksImport
+    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo $ watchUIDImport @AnyExpr         uidRef
+    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchTypeImport
+    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchSuccsImport
+    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchExprsImport
 
 
 -- === Elem reg defs === --

@@ -22,7 +22,7 @@ type instance Outputs Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyEx
 type instance Inputs  Attr  TestPass = '[]
 type instance Outputs Attr  TestPass = '[]
 type instance Inputs  Event TestPass = '[] -- will never be used
-type instance Outputs Event TestPass = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink]
+type instance Outputs Event TestPass = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink, Import // AnyExpr, Import // AnyExprLink]
 type instance Preserves     TestPass = '[]
 
 

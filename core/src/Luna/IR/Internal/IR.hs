@@ -73,6 +73,7 @@ data Attr  = Attr  deriving (Show)
 
 data New    = New    deriving (Show)
 data Delete = Delete deriving (Show)
+data Import = Import deriving (Show)
 
 
 
@@ -307,8 +308,9 @@ type instance PayloadData (New    // t) = (t, Definition t)
 type instance PayloadData (Delete // t) = t
 
 type instance Abstract (a // b) = Abstract a // Abstract b
-type instance Abstract New = New
+type instance Abstract New    = New
 type instance Abstract Delete = Delete
+type instance Abstract Import = Import
 
 
 
@@ -902,3 +904,6 @@ instance                      TypePretty (LINK' AnyExpr) where formatType _     
 
 instance TypePretty ANY where
     formatType = ("Any" :)
+
+-- FIXME: This should be together with other Payloads, but uses SomeExpr and SomeExprLink which are not visible at that place in the file
+type instance PayloadData (Import // t) = (t, SomeExpr -> SomeExpr, SomeExprLink -> SomeExprLink)

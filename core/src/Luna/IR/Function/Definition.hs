@@ -34,7 +34,7 @@ mkTranslationVector size knownIxes = Vector.fromList reixed where
 translateWith :: IsIdx t => Vector Int -> t -> t
 translateWith v = idx %~ Vector.unsafeIndex v
 
-importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m)
+importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
                => CompiledFunction -> m SomeExpr
 importFunction (CompiledFunction (IR map) r) = do
     ir      <- getIR
@@ -45,14 +45,11 @@ importFunction (CompiledFunction (IR map) r) = do
     exprTrans <- Store.unsafeMerge foreignExprs exprNet
     linkTrans <- Store.unsafeMerge foreignLinks linkNet
 
-    let exprTranslator               = translateWith $ mkTranslationVector (foreignExprs ^. Store.size) exprTrans
-        linkTranslator               = translateWith $ mkTranslationVector (foreignLinks ^. Store.size) linkTrans
-        exprsToFix :: [SomeExpr]     = Elem . snd <$> exprTrans
-        linksToFix :: [SomeExprLink] = Elem . snd <$> linkTrans
+    let exprTranslator                  = translateWith $ mkTranslationVector (foreignExprs ^. Store.size) exprTrans
+        linkTranslator                  = translateWith $ mkTranslationVector (foreignLinks ^. Store.size) linkTrans
+        importedExprs :: [SomeExpr]     = Elem . snd <$> exprTrans
+        importedLinks :: [SomeExprLink] = Elem . snd <$> linkTrans
 
-    forM_ linksToFix $ modifyLayer_ @Model $ over both exprTranslator
-    forM_ exprsToFix $ \e -> do
-         inplaceModifyFieldsWith linkTranslator           e
-         modifyLayer_ @Type      linkTranslator           e
-         modifyLayer_ @Succs     (Set.map linkTranslator) e
+    forM_ importedLinks $ emit . Payload @(Import // AnyExprLink) . (, exprTranslator, linkTranslator) . unsafeGeneralize
+    forM_ importedExprs $ emit . Payload @(Import // AnyExpr)     . (, exprTranslator, linkTranslator) . unsafeGeneralize
     return $ exprTranslator r
