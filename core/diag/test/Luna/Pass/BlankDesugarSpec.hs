@@ -12,7 +12,7 @@ import Luna.Prelude hiding (String)
 import qualified Luna.Prelude as P
 import Data.TypeVal
 import Luna.TestUtils
-
+import Control.Monad.Writer (WriterT, runWriterT, tell)
 import Luna.IR.Function.Definition as Function
 import Luna.IR.Function
 import Luna.IR.Module.Definition   as Module
@@ -29,6 +29,9 @@ import Debug.Trace (traceM)
 data UniqueNameGen
 type instance PassAttr UniqueNameGen BlankDesugaring = (P.String, Int)
 
+data UsedVars
+type instance PassAttr UsedVars BlankDesugaring = [P.String]
+
 genName :: (IRMonad m, MonadPassManager m) => SubPass BlankDesugaring m P.String
 genName = do
     (base, number) <- readAttr @UniqueNameGen
@@ -40,8 +43,8 @@ obscureName = "#obscureName0"
 
 data BlankDesugaring
 type instance Abstract  BlankDesugaring = BlankDesugaring
-type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen]
-type instance Outputs   BlankDesugaring = '[Attr UniqueNameGen]
+type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars]
+type instance Outputs   BlankDesugaring = '[Attr UniqueNameGen, Attr UsedVars]
 type instance Events    BlankDesugaring = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves BlankDesugaring = '[]
 
@@ -88,7 +91,8 @@ countBlankInside' i e = match e $ \case
     Blank -> return $ i+1
     _ -> return i
 
-replaceBlanks :: (IRMonad m, MonadPassManager m, _) => AnyExpr -> SubPass BlankDesugaring m AnyExpr
+replaceBlanks :: forall m. (IRMonad m, MonadPassManager m)
+              => AnyExpr -> SubPass BlankDesugaring m AnyExpr
 replaceBlanks e = match e $ \case
     App f (Arg _ a) -> do
         f' <- source f >>= replaceBlanks
@@ -96,16 +100,23 @@ replaceBlanks e = match e $ \case
         unsafeRelayout <$> app f' (arg a')
     Blank -> do
         n <- genName
-        -- traceM $ show n
+        st <- readAttr @UsedVars
+        setAttr3 @UsedVars (st ++ [n])
         unsafeRelayout <$> strVar n
     Acc n v -> do
         n' <- source n >>= replaceBlanks
         v' <- source v >>= replaceBlanks
         unsafeRelayout <$> acc n' v'
-    -- Grouped e' -> source e' >>= desugar
+    Grouped g -> do
+        g' <- source g
+        st <- readAttr @UsedVars
+        setAttr3 @UsedVars []
+        desu <- desugar g'
+        setAttr3 @UsedVars st
+        unsafeRelayout <$> grouped desu
     _ -> return e
 
-printExpr :: _ => AnyExpr -> SubPass TestPass m P.String
+printExpr :: _ => AnyExpr -> SubPass BlankDesugaring m P.String
 printExpr e = match e $ \case
     App f (Arg _ a) -> do
         f' <- source f >>= printExpr
@@ -138,15 +149,20 @@ lams args output = unsafeRelayout <$> foldM f (unsafeRelayout output) (unsafeRel
 lamAny :: _ => Arg AnyExpr -> AnyExpr -> m AnyExpr
 lamAny a b = fmap generalize $ lam a b
 
-desugar :: (IRMonad m, MonadPassManager m, _) => AnyExpr -> SubPass BlankDesugaring m (AnyExpr)
+desugar :: forall m. (IRMonad m, MonadPassManager m, _)
+        => AnyExpr -> SubPass BlankDesugaring m (AnyExpr)
 desugar e = do
+    traceM "DESUGARING:"
+    traceM =<< printExpr e
+    traceM "-----------"
     blankArgs <- countBlankInside e
-    names <- do
-        st <- readAttr @UniqueNameGen
-        ns <- replicateM blankArgs genName
-        setAttr3 @UniqueNameGen st
-        return ns
+    -- names <- do
+    --     st <- readAttr @UniqueNameGen
+    --     ns <- replicateM blankArgs genName
+    --     setAttr3 @UniqueNameGen st
+    --     return ns
     e' <- replaceBlanks e
+    names <- readAttr @UsedVars
     vars <- mapM strVar names
     lams (map unsafeRelayout vars) e'
 
@@ -157,6 +173,7 @@ desugarsTo test expected = do
         runRegs
         Right x <- Pass.eval' test
         setAttr (typeVal' @UniqueNameGen) ("obscureName", 0)
+        setAttr (typeVal' @UsedVars) []
         Right desugared <- Pass.eval' $ desugar $ generalize x
         Right s <- Pass.eval' $ printExpr desugared
         Right expected <- Pass.eval' $ expected
@@ -165,23 +182,25 @@ desugarsTo test expected = do
     putStrLn s
     res `shouldBe` True
 
-replacesTo :: _ => _ -> _ -> Expectation
-replacesTo test expected = do
-    res <- dropLogs $ evalIRBuilder' $ evalPassManager' $ do
-        runRegs
-        Right x <- Pass.eval' test
-        setAttr (typeVal' @UniqueNameGen) ("obscureName", 0)
-        Right desugared <- Pass.eval' $ replaceBlanks $ generalize x
-        Right expected' <- Pass.eval' $ expected
-        Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected') (unsafeRelayout desugared)
-        return result
-    res `shouldBe` True
+-- replacesTo :: _ => _ -> _ -> Expectation
+-- replacesTo test expected = do
+--     res <- dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+--         runRegs
+--         Right x <- Pass.eval' test
+--         setAttr (typeVal' @UniqueNameGen) ("obscureName", 0)
+--         Right desugared <- fst <$> Pass.eval' $ runWriterT $ replaceBlanks $ generalize x
+--         Right expected' <- Pass.eval' $ expected
+--         Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected') (unsafeRelayout desugared)
+--         return result
+--     res `shouldBe` True
 
 prints :: _ => _ -> Expectation
 prints test = do
     s <- dropLogs $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         Right x <- Pass.eval' test
+        setAttr (typeVal' @UniqueNameGen) ("obscureName", 0)
+        setAttr (typeVal' @UsedVars) []
         Right s <- Pass.eval' $ printExpr $ generalize x
         return s
     putStrLn s
@@ -290,12 +309,53 @@ blankDotFooBlankBarExpected = do
     l <- lam (arg v1) a'
     lam (arg v0) l
 
+blankDotFooGroupedBlankBar :: _ => SubPass TestPass m _
+blankDotFooGroupedBlankBar = do
+    bDotFoo <- blankDotFoo
+    b <- blank
+    bar <- strVar "bar"
+    a <- app b (arg bar)
+    g <- grouped bDotFoo
+    app g (arg a)
+
+blankDotFooGroupedBlankBarExpected :: _ => SubPass TestPass m _
+blankDotFooGroupedBlankBarExpected = do
+    v0 <- strVar obscureName
+    v1 <- strVar "#obscureName1"
+    bar <- strVar "bar"
+    a <- app v1 (arg bar)
+    ac <- rawAcc "foo" v0
+    l <- lam (arg v0) ac
+    a' <- app l (arg a)
+    lam (arg v1) a'
+
+fooBarBlankBaz :: _ => SubPass TestPass m _
+fooBarBlankBaz = do
+    foo <- strVar "foo"
+    bar <- strVar "bar"
+    baz <- strVar "baz"
+    b <- blank
+    a <- app b (arg baz)
+    a' <- app bar (arg a)
+    app foo (arg a')
+
+fooBarBlankBazExpected :: _ => SubPass TestPass m _
+fooBarBlankBazExpected = do
+    v0 <- strVar obscureName
+    foo <- strVar "foo"
+    bar <- strVar "bar"
+    baz <- strVar "baz"
+    a <- app v0 (arg baz)
+    a' <- app bar (arg a)
+    a'' <- app foo (arg a')
+    lam (arg v0) a''
+
 spec :: Spec
 spec = do
-  describe "replace blanks" $ do
-    it "foo _ => foo #obscureName0" $ fooBlank `replacesTo` fooBlankReplaced
-    it "foo _ 7 => foo #obscureName0 7" $ fooBlank7 `replacesTo` fooBlank7Replaced
-    it "_.foo _ bar => #obscureName0.foo #obscureName1 bar" $ blankDotFooBlankBar `replacesTo` blankDotFooBlankBarReplaced
+  -- describe "replace blanks" $ do
+  --   it "foo _ => foo #obscureName0" $ fooBlank `replacesTo` fooBlankReplaced
+  --   it "foo _ 7 => foo #obscureName0 7" $ fooBlank7 `replacesTo` fooBlank7Replaced
+  --   it "_.foo _ bar => #obscureName0.foo #obscureName1 bar" $ blankDotFooBlankBar `replacesTo` blankDotFooBlankBarReplaced
   describe "blank desugaring" $ do
     it "_.foo => (\\x -> x.foo)" $ do
       prints blankDotFoo
@@ -321,7 +381,11 @@ spec = do
       prints blankDotFooBlankBar
       prints blankDotFooBlankBarExpected
       blankDotFooBlankBar `desugarsTo` blankDotFooBlankBarExpected
-    it "(_.foo) _ bar => (\\y -> (\\x -> foo x) y bar)" $ pending
-    it "foo bar _ baz => (\\x -> foo bar x baz)" $ pending
-  describe "prints" $ do
-    it "_.foo" $ prints blankDotFoo
+    it "(_.foo) _ bar => (\\y -> (\\x -> x.foo) y bar)" $ do
+      prints blankDotFooGroupedBlankBar
+      prints blankDotFooGroupedBlankBarExpected
+      blankDotFooGroupedBlankBar `desugarsTo` blankDotFooGroupedBlankBarExpected
+    it "foo bar _ baz => (\\x -> foo bar x baz)" $ do
+      prints fooBarBlankBaz
+      prints fooBarBlankBazExpected
+      fooBarBlankBaz `desugarsTo` fooBarBlankBazExpected
