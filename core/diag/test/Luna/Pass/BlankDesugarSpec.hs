@@ -8,7 +8,7 @@ module Luna.Pass.BlankDesugarSpec (spec) where
 import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, Events, setAttr3)
 import qualified Luna.Pass        as Pass
 
-import Test.Hspec   (Spec, Expectation, describe, it, shouldBe)
+import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
 import Luna.Prelude hiding (String, s)
 import qualified Luna.Prelude as P
 import Data.TypeVal
@@ -40,7 +40,7 @@ obscureName = "^obscureName0"
 
 data BlankDesugaring
 type instance Abstract  BlankDesugaring = BlankDesugaring
-type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Succs, UID] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars]
+type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Succs, Type, UID] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars]
 type instance Outputs   BlankDesugaring = '[Attr UniqueNameGen, Attr UsedVars]
 type instance Events    BlankDesugaring = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves BlankDesugaring = '[]
@@ -129,19 +129,21 @@ snapshotVis = Vis.snapshot
 
 desugarsTo :: _ => _ -> _ -> Expectation
 desugarsTo test expected = do
-    res <- withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+    (res, coherence) <- withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         Right x <- Pass.eval' test
         void $ Pass.eval' $ snapshotVis "start"
         setAttr (typeVal' @UniqueNameGen) ("obscureName", (0::Int))
         setAttr (typeVal' @UsedVars) []
         Right desugared <- Pass.eval' $ desugar $ generalize x
+        Right coherence <- Pass.eval' @BlankDesugaring checkCoherence
         void $ Pass.eval' $ snapshotVis "desugar"
         Right expected' <- Pass.eval' $ expected
         void $ Pass.eval' $ snapshotVis "expected"
         Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass BlankDesugaring _) (unsafeRelayout expected') (unsafeRelayout desugared)
-        return result
+        return (result, coherence)
     res `shouldBe` True
+    coherence `shouldSatisfy` null
 
 replacesTo :: _ => _ -> _ -> Expectation
 replacesTo test expected = do
