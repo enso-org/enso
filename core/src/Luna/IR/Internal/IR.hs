@@ -86,6 +86,8 @@ data Element = Element deriving (Show)
 newtype Elem t = Elem Int deriving (Show, Ord, Eq)
 makeWrapped '' Elem
 
+type family FromElem t where FromElem (Elem t) = t
+
 type instance Definition (Elem t) = Definition t
 type instance Abstract   (Elem t) = Elem (Abstract  t)
 type instance Universal  (Elem t) = Elem (Universal t)
@@ -905,5 +907,6 @@ instance                      TypePretty (LINK' AnyExpr) where formatType _     
 instance TypePretty ANY where
     formatType = ("Any" :)
 
+-- FIXME[WD -> MK]: This should be implemented for any element accessible in the graph, not only for exprs and links.
 -- FIXME: This should be together with other Payloads, but uses SomeExpr and SomeExprLink which are not visible at that place in the file
 type instance PayloadData (Import // t) = (t, SomeExpr -> SomeExpr, SomeExprLink -> SomeExprLink)

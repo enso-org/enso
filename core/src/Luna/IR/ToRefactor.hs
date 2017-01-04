@@ -151,29 +151,24 @@ initModel :: Req m '[Writer // Layer // Abstract (Elem t) // Model] => GenInitia
 initModel = listenerPassDef . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel #-}
 makeLayerGen ''Model 'initModel
 
+
+-- FIXME[WD -> MK]: it should not be defined for SomeExprLink, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchLinkImport
+watchLinkImport :: ListenerPassDef WatchLinkImport Import (ExprLink a b) m
+watchLinkImport = listenerPassDef $ \(t, exprTrans, _) -> undefined -- modifyLayer_ @Model (over both exprTrans) t
+makePass 'watchLinkImport
+
+-- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchExprImport
+watchExprImport :: ListenerPassDef WatchExprImport Import (Expr l) m
+watchExprImport = listenerPassDef $ \(t, _, linkTrans) -> undefined -- inplaceModifyFieldsWith linkTrans t
+makePass 'watchExprImport
+
 init1 :: MonadPassManager m => m ()
-init1 = registerGenLayer @Model initModel
-
-
--- data WatchModel
--- type instance Abstract WatchModel = WatchModel
--- type instance Inputs  Net   (ElemScope WatchModel t) = '[]
--- type instance Outputs Net   (ElemScope WatchModel t) = '[]
--- type instance Inputs  Layer (ElemScope WatchModel t) = '[Abstract t // Model]
--- type instance Outputs Layer (ElemScope WatchModel t) = '[Abstract t // Model]
--- type instance Inputs  Attr  (ElemScope WatchModel t) = '[]
--- type instance Outputs Attr  (ElemScope WatchModel t) = '[]
--- type instance Inputs  Event (ElemScope WatchModel t) = '[]
--- type instance Outputs Event (ElemScope WatchModel t) = '[]
--- type instance Preserves     (ElemScope WatchModel t) = '[]
--- instance KnownElemPass WatchModel where
---     elemPassDescription = genericDescription' . proxify
---
--- watchLinksImport :: EventPass WatchModel Import SomeExprLink s
--- watchLinksImport = EventPass $ \(t, exprTrans, _) -> modifyLayer_ @Model (over both exprTrans) t
---
--- watchExprsImport :: EventPass WatchModel Import SomeExpr s
--- watchExprsImport = EventPass $ \(t, _, linkTrans) -> inplaceModifyFieldsWith linkTrans t
+init1 = do
+    registerGenLayer @Model initModel
+    addEventListener @(Import // AnyExprLink) $ compileListener watchLinkImport
+    addEventListener @(Import // AnyExpr)     $ compileListener watchExprImport
 
 
 -----------------
@@ -184,36 +179,22 @@ nextUID :: PrimMonad m => STRefM m ID -> m ID
 nextUID ref = Store.modifySTRef' ref $ id &&& succ ; {-# INLINE nextUID #-}
 
 initUID :: Req m '[Writer // Layer // Abstract (Elem t) // UID] => STRefM m ID -> GenInitializer UID t m
-initUID ref = listenerPassDef $ \(t, tdef) -> do
-    nuid <- nextUID ref
-    writeLayer @UID nuid t
-{-# INLINE initUID #-}
+initUID ref = listenerPassDef $ \(t, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE initUID #-}
 makeLayerGen ''UID 'initUID
+
+data WatchUIDImport
+watchUIDImport :: forall t' t m. (t ~ FromElem t', PrimMonad m, Req m '[Writer // Layer // Abstract (Elem t) // UID])
+               => STRefM m ID -> ListenerPassDef WatchUIDImport Import (Elem t) m
+watchUIDImport ref = listenerPassDef $ \(t, _, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE watchUIDImport #-}
+makePass1 'watchUIDImport
 
 init2 :: MonadPassManager m => m ()
 init2 = do
     ref <- Store.newSTRef (def :: ID)
     registerGenLayer @UID (initUID ref)
+    addEventListener @(Import // AnyExprLink) $ compileListener (watchUIDImport @AnyExprLink ref)
+    addEventListener @(Import // AnyExpr)     $ compileListener (watchUIDImport @AnyExpr     ref)
 
-
--- data WatchUID
--- type instance Abstract WatchUID = WatchUID
--- type instance Inputs  Net   (ElemScope WatchUID t) = '[]
--- type instance Outputs Net   (ElemScope WatchUID t) = '[]
--- type instance Inputs  Layer (ElemScope WatchUID t) = '[]
--- type instance Outputs Layer (ElemScope WatchUID t) = '[Abstract t // UID]
--- type instance Inputs  Attr  (ElemScope WatchUID t) = '[]
--- type instance Outputs Attr  (ElemScope WatchUID t) = '[]
--- type instance Inputs  Event (ElemScope WatchUID t) = '[]
--- type instance Outputs Event (ElemScope WatchUID t) = '[]
--- type instance Preserves     (ElemScope WatchUID t) = '[]
--- instance KnownElemPass WatchUID where
---     elemPassDescription = genericDescription' . proxify
---
--- watchUIDImport :: forall t s. IsIdx t => STRef s ID -> EventPass WatchUID Import t s
--- watchUIDImport ref = EventPass $ \(t, _, _) -> do
---     nuid <- nextUID ref
---     writeLayer @UID nuid t
 
 
 -------------------
@@ -225,19 +206,20 @@ initSuccs = listenerPassDef $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE
 makeLayerGen ''Succs 'initSuccs
 
 data WatchSuccs
-watchSuccs :: Req m '[Editor // Layer // AnyExpr // Succs] => ListenerPassDef WatchSuccs New (ExprLink' l) m
+watchSuccs :: Req m '[Editor // Layer // AnyExpr // Succs] => ListenerPassDef WatchSuccs New (ExprLink a b) m
 watchSuccs = listenerPassDef $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
 makePass 'watchSuccs
 
--- watchSuccsImport :: EventPass WatchSuccs Import SomeExpr s
--- watchSuccsImport = EventPass $ \(t, _, linkTrans) -> modifyLayer_ @Succs (Set.map linkTrans) t
-
-
+-- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchSuccsImport
+watchSuccsImport :: ListenerPassDef WatchSuccsImport Import (Expr l) m
+watchSuccsImport = listenerPassDef $ \(t, _, linkTrans) -> undefined -- modifyLayer_ @Succs (Set.map linkTrans) t ; {-# INLINE watchSuccsImport #-}
+makePass 'watchSuccsImport
 
 data WatchRemoveEdge
 watchRemoveEdge :: Req m '[ Reader // Layer // AnyExprLink // Model
                           , Editor // Layer // AnyExpr // Succs]
-                => ListenerPassDef WatchRemoveEdge Delete (ExprLink' l) m
+                => ListenerPassDef WatchRemoveEdge Delete (ExprLink a b) m
 watchRemoveEdge = listenerPassDef $ \t -> do
     (src, tgt) <- readLayer @Model t
     modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
@@ -262,6 +244,7 @@ init3 :: MonadPassManager m => m ()
 init3 = do
     registerGenLayer @Succs initSuccs
     addEventListener @(New    // AnyExprLink) $ compileListener watchSuccs
+    addEventListener @(Import // AnyExpr)     $ compileListener watchSuccsImport
     addEventListener @(Delete // AnyExprLink) $ compileListener watchRemoveEdge
     addEventListener @(Delete // AnyExpr)     $ compileListener watchRemoveNode
 
@@ -299,27 +282,20 @@ initType ref = listenerPassDef $ \(el, _) -> flip (writeLayer @Type) el =<< cons
 {-# INLINE initType #-}
 makeLayerGen ''Type 'initType
 
+-- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchTypeImport
+watchTypeImport :: ListenerPassDef WatchTypeImport Import (Expr l) m
+watchTypeImport = listenerPassDef $ \(t, _, linkTrans) -> undefined -- modifyLayer_ @Type linkTrans t ; {-# INLINE watchTypeImport #-}
+makePass 'watchTypeImport
+
+
 init4 :: MonadPassManager m => m ()
 init4 = do
     ref <- Store.newSTRef (Nothing :: Maybe (Expr Star))
     registerSpecLayer @Type $ initType ref
+    addEventListener @(Import // AnyExpr) $ compileListener watchTypeImport
 
--- data WatchType
--- type instance Abstract WatchType = WatchType
--- type instance Inputs  Net   (ElemScope WatchType t) = '[]
--- type instance Outputs Net   (ElemScope WatchType t) = '[]
--- type instance Inputs  Layer (ElemScope WatchType t) = '[Abstract t // Type]
--- type instance Outputs Layer (ElemScope WatchType t) = '[Abstract t // Type]
--- type instance Inputs  Attr  (ElemScope WatchType t) = '[]
--- type instance Outputs Attr  (ElemScope WatchType t) = '[]
--- type instance Inputs  Event (ElemScope WatchType t) = '[]
--- type instance Outputs Event (ElemScope WatchType t) = '[]
--- type instance Preserves     (ElemScope WatchType t) = '[]
--- instance KnownElemPass WatchType where
---     elemPassDescription = genericDescription' . proxify
 
--- watchTypeImport :: EventPass WatchType Import SomeExpr s
--- watchTypeImport = EventPass $ \(t, _, linkTrans) -> modifyLayer_ @Type linkTrans t
 
 
 
@@ -343,19 +319,10 @@ runRegs = do
     attachLayer 5 (getTypeDesc @UID)   (getTypeDesc @AnyExprLink)
     attachLayer 5 (getTypeDesc @Succs) (getTypeDesc @AnyExpr)
 
-
     attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
 
 
-    -- addEventListener 100 (Tag [getTypeDesc @New   , getTypeDesc @(Link' AnyExpr)]) $ foo watchSuccs
-    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @(Link' AnyExpr)]) $ foo watchRemoveEdge
-    -- addEventListener 100 (Tag [getTypeDesc @Delete, getTypeDesc @AnyExpr])         $ foo watchRemoveNode
-    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo $ watchUIDImport @(Link' AnyExpr) uidRef
-    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @(Link' AnyExpr)]) $ foo watchLinksImport
-    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo $ watchUIDImport @AnyExpr         uidRef
-    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchTypeImport
-    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchSuccsImport
-    -- addEventListener 100 (Tag [getTypeDesc @Import, getTypeDesc @AnyExpr])         $ foo watchExprsImport
+
 
 
 -- === Elem reg defs === --
