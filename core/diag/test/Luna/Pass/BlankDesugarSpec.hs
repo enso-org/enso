@@ -28,9 +28,6 @@ type instance PassAttr UniqueNameGen BlankDesugaring = (P.String, Int)
 data UsedVars
 type instance PassAttr UsedVars BlankDesugaring = [Expr $ Var #> String]
 
-data BlanksToDelete
-type instance PassAttr BlanksToDelete BlankDesugaring = [Expr Blank]
-
 genName :: (IRMonad m) => SubPass BlankDesugaring m P.String
 genName = do
     (base, number) <- readAttr @UniqueNameGen
@@ -42,8 +39,8 @@ obscureName = "^obscureName0"
 
 data BlankDesugaring
 type instance Abstract  BlankDesugaring = BlankDesugaring
-type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Succs, Type, UID] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars, Attr BlanksToDelete]
-type instance Outputs   BlankDesugaring = '[Attr UniqueNameGen, Attr UsedVars, Attr BlanksToDelete]
+type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Succs, Type, UID] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars]
+type instance Outputs   BlankDesugaring = '[Attr UniqueNameGen, Attr UsedVars]
 type instance Events    BlankDesugaring = '[NEW // EXPR, NEW // LINK' EXPR, DELETE // EXPR, DELETE // LINK' EXPR]
 type instance Preserves BlankDesugaring = '[]
 
@@ -80,8 +77,6 @@ desugar e = do
     vars    <- readAttr @UsedVars
     newExpr <- lams (map unsafeRelayout $ reverse vars) e'
     safeReplaceNode e newExpr
-    toDelete <- readAttr @BlanksToDelete
-    mapM_ (deleteSubtree . generalize) toDelete
     return newExpr
 
 modifyAttr :: forall attr pass m. _ => (PassAttr attr pass -> PassAttr attr pass) -> SubPass pass m ()
@@ -101,7 +96,7 @@ replaceBlanks e = match e $ \case
         v <- strVar n
         safeReplaceNode e $ generalize v
         modifyAttr @UsedVars (v:)
-        modifyAttr @BlanksToDelete (unsafeRelayout e :)
+        deleteSubtree e
         return $ unsafeRelayout v
     -- grouped starts new desugaring environment
     Grouped g -> do
@@ -157,7 +152,6 @@ desugarsTo test expected = do
         void $ Pass.eval' $ snapshotVis "start"
         setAttr (typeVal' @UniqueNameGen) ("obscureName", (0::Int))
         setAttr (typeVal' @UsedVars) []
-        setAttr (typeVal' @BlanksToDelete) []
         Right desugared <- Pass.eval' $ desugar $ generalize x
         Right coherence <- Pass.eval' @BlankDesugaring checkCoherence
         Right blanks    <- Pass.eval' noBlankLeftBehind
@@ -177,7 +171,6 @@ replacesTo test expected = do
         Right x <- Pass.eval' test
         setAttr (typeVal' @UniqueNameGen) ("obscureName", (0::Int))
         setAttr (typeVal' @UsedVars) []
-        setAttr (typeVal' @BlanksToDelete) []
         Right desugared <- Pass.eval' $ replaceBlanks $ generalize x
         Right expected' <- Pass.eval' $ expected
         Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected') (unsafeRelayout desugared)
