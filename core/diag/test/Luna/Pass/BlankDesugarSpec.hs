@@ -9,7 +9,7 @@ import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, Events, 
 import qualified Luna.Pass        as Pass
 
 import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
-import Luna.Prelude hiding (String, s)
+import Luna.Prelude hiding (String, s, new)
 import qualified Luna.Prelude as P
 import Data.TypeVal
 import qualified Luna.IR.Repr.Vis as Vis
@@ -21,7 +21,6 @@ import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import Luna.IR
 import System.Log
 import Control.Monad (foldM)
-
 
 data UniqueNameGen
 type instance PassAttr UniqueNameGen BlankDesugaring = (P.String, Int)
@@ -67,15 +66,20 @@ localAttr newAttr act = do
     setAttr3 @attr st
     return res
 
+safeReplaceNode :: _ => AnyExpr -> AnyExpr -> SubPass BlankDesugaring m ()
+safeReplaceNode old new = do
+    b <- generalize <$> blank
+    replaceNode old b
+    replaceNode b new
+    deleteSubtree b
+
 desugar :: forall m. (IRMonad m, MonadPassManager m, _)
         => AnyExpr -> SubPass BlankDesugaring m AnyExpr
 desugar e = do
     e'      <- replaceBlanks e
     vars    <- readAttr @UsedVars
     newExpr <- lams (map unsafeRelayout $ reverse vars) e'
-    b       <- generalize <$> blank
-    replaceNode e b
-    replaceNode b newExpr
+    safeReplaceNode e newExpr
     toDelete <- readAttr @BlanksToDelete
     mapM_ (deleteSubtree . generalize) toDelete
     return newExpr
@@ -95,6 +99,7 @@ replaceBlanks e = match e $ \case
     Blank -> do
         n <- genName
         v <- strVar n
+        safeReplaceNode e $ generalize v
         modifyAttr @UsedVars (v:)
         modifyAttr @BlanksToDelete (unsafeRelayout e :)
         return $ unsafeRelayout v
@@ -137,9 +142,16 @@ lamAny a b = fmap generalize $ lam a b
 snapshotVis :: (IRMonad m, Vis.MonadVis m) => P.String -> Pass.Pass TestPass m
 snapshotVis = Vis.snapshot
 
+noBlankLeftBehind :: _ => SubPass BlankDesugaring m Bool
+noBlankLeftBehind = do
+    es <- exprs
+    or <$> forM es (flip match $ \case
+        Blank -> return True
+        _     -> return False)
+
 desugarsTo :: _ => _ -> _ -> Expectation
 desugarsTo test expected = do
-    (res, coherence) <- withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+    (res, coherence, blanks) <- withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         Right x <- Pass.eval' test
         void $ Pass.eval' $ snapshotVis "start"
@@ -148,13 +160,15 @@ desugarsTo test expected = do
         setAttr (typeVal' @BlanksToDelete) []
         Right desugared <- Pass.eval' $ desugar $ generalize x
         Right coherence <- Pass.eval' @BlankDesugaring checkCoherence
+        Right blanks    <- Pass.eval' noBlankLeftBehind
         void $ Pass.eval' $ snapshotVis "desugar"
         Right expected' <- Pass.eval' $ expected
         void $ Pass.eval' $ snapshotVis "expected"
         Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass BlankDesugaring _) (unsafeRelayout expected') (unsafeRelayout desugared)
-        return (result, coherence)
+        return (result, coherence, blanks)
     res `shouldBe` True
     coherence `shouldSatisfy` null
+    blanks `shouldBe` False
 
 replacesTo :: _ => _ -> _ -> Expectation
 replacesTo test expected = do
