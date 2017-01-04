@@ -14,6 +14,7 @@ import qualified Luna.Prelude as P
 import Data.TypeVal
 import qualified Luna.IR.Repr.Vis as Vis
 import Luna.TestUtils
+import Luna.IR.Expr.Combinators
 import Luna.IR.Function hiding (args)
 import Luna.IR.Runner
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
@@ -39,7 +40,7 @@ obscureName = "^obscureName0"
 
 data BlankDesugaring
 type instance Abstract  BlankDesugaring = BlankDesugaring
-type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars]
+type instance Inputs    BlankDesugaring = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Succs, UID] <> ExprLinkLayers '[Model] <> '[Attr UniqueNameGen, Attr UsedVars]
 type instance Outputs   BlankDesugaring = '[Attr UniqueNameGen, Attr UsedVars]
 type instance Events    BlankDesugaring = '[NEW // EXPR, NEW // LINK' EXPR]
 type instance Preserves BlankDesugaring = '[]
@@ -66,9 +67,13 @@ localAttr newAttr act = do
 desugar :: forall m. (IRMonad m, MonadPassManager m, _)
         => AnyExpr -> SubPass BlankDesugaring m AnyExpr
 desugar e = do
-    e'    <- replaceBlanks e
-    vars  <- readAttr @UsedVars
-    lams (map unsafeRelayout $ reverse vars) e'
+    e'      <- replaceBlanks e
+    vars    <- readAttr @UsedVars
+    newExpr <- lams (map unsafeRelayout $ reverse vars) e'
+    b       <- generalize <$> blank
+    replaceNode e b
+    replaceNode b newExpr
+    return newExpr
 
 replaceBlanks :: forall m. (IRMonad m, MonadPassManager m)
               => AnyExpr -> SubPass BlankDesugaring m AnyExpr
