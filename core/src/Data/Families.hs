@@ -1,7 +1,8 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE NoOverloadedStrings       #-}
 
-module Data.Families where
+module Data.Families (module Data.Families, module X) where
 
 import Prelude
 import Data.Default
@@ -13,7 +14,7 @@ import Control.Lens.Utils hiding (cons)
 import Control.Applicative
 
 import qualified Language.Haskell.TH as TH
-import           Language.Haskell.TH hiding (Con, Dec)
+import           Language.Haskell.TH as X hiding (Con, Dec)
 import qualified Data.Char as Char
 
 
@@ -30,12 +31,15 @@ class IsTH t a where
 instance IsTH t a => IsTH (Q t) a where
     th = return . th ; {-# INLINE th #-}
 
-instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t] a where
-    th = return . th ; {-# INLINE th #-}
+-- instance {-# OVERLAPPABLE #-}             IsTH a    a  where th = id          ; {-# INLINE th #-}
+instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t]  a  where th = return . th ; {-# INLINE th #-}
+instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t] [a] where th = fmap th     ; {-# INLINE th #-}
+instance {-# OVERLAPPABLE #-} (IsTH a b', b ~ Maybe b')
+      => IsTH (Maybe a) b  where th = fmap th ; {-# INLINE th #-}
 
-instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t] [a] where
-    th = fmap th ; {-# INLINE th #-}
 
+type ToOverlap = IsTH Overlap
+type ToCxt     = IsTH Cxt
 
 -------------------
 -- === Utils === --
@@ -64,6 +68,7 @@ type ToType = IsTH Type
 toType :: ToType a => a -> Type
 toType = th
 
+instance IsTH Type Type   where th=  id ; {-# INLINE th #-}
 instance IsTH Type String where
     th = LitT . StrTyLit ; {-# INLINE th #-}
 
@@ -197,7 +202,7 @@ app :: a -> a -> App a
 app a = apps a . return ; {-# INLINE app #-}
 
 
-instance IsTH TH.Type a => IsTH TH.Type (App a) where
+instance ToType a => IsTH TH.Type (App a) where
     th (App src args) = foldl AppT (th src) (th <$> args) ; {-# INLINE th #-}
 
 
@@ -376,16 +381,62 @@ instance IsTH TH.Dec TypeInstance where
     th (TypeInstance n as r) = TySynInstD (th n) (TySynEqn as r) ; {-# INLINE th #-}
 
 
+----------------------------
+-- === Class Instance === --
+----------------------------
+
+data ClassInstance = ClassInstance { _classInstance_overlap :: Maybe Overlap
+                                   , _classInstance_ctx     :: Cxt
+                                   , _classInstance_name    :: TypeName
+                                   , _classInstance_tp      :: [Type]
+                                   , _classInstance_decs    :: [Dec]
+                                   }
+
+
+classInstance :: (ToCxt ctx, ToTypeName n, ToType t, IsDec dec)
+              => ctx -> n -> [t] -> [dec] -> ClassInstance
+classInstance ctx n ts desc = ClassInstance Nothing (th ctx) (toTypeName n) (th <$> ts) (toDec <$> desc) ; {-# INLINE classInstance #-}
+
+classInstance' :: (ToTypeName n, ToType t, IsDec dec)
+              => n -> [t] -> [dec] -> ClassInstance
+classInstance' = classInstance ([] :: Cxt) ; {-# INLINE classInstance' #-}
+
+
+instance IsTH TH.Dec ClassInstance where
+    th (ClassInstance olap cxt n ts decs) = InstanceD olap cxt (th $ apps (th n) ts) (th decs) ; {-# INLINE th #-}
+
+
+----------------------
+-- === Function === --
+----------------------
+
+data Function = Function { _function_name   :: VarName
+                         , _function_clause :: [Clause]
+                         }
+
+
+function :: ToVarName n => n -> [Clause] -> Function
+function n = Function (toVarName n) ; {-# INLINE function #-}
+
+function' :: ToVarName n => n -> Clause -> Function
+function' n = function n . return ; {-# INLINE function' #-}
+
+
+instance IsTH TH.Dec Function where
+    th (Function n cs) = FunD (th n) cs ; {-# INLINE th #-}
+
+
 
 -----------------
 -- === Dec === --
 -----------------
 
-data Dec = DataDec         { _dec_dataDec         :: Data         }
-         | TypeSynDec      { _dec_typeSynDec      :: TypeSyn      }
-         | TypeInstanceDec { _dec_typeInstanceDec :: TypeInstance }
+data Dec = DataDec          { _dec_dataDec          :: Data          }
+         | TypeSynDec       { _dec_typeSynDec       :: TypeSyn       }
+         | TypeInstanceDec  { _dec_typeInstanceDec  :: TypeInstance  }
+         | ClassInstanceDec { _dec_classInstanceDec :: ClassInstance }
+         | FunctionDec      { _dec_functionDec      :: Function      }
 
-makeLenses ''Dec
 
 class IsDec a where
     toDec :: a -> Dec
@@ -393,18 +444,21 @@ class IsDec a where
 
 instance IsTH TH.Dec Dec where
     th = \case
-        DataDec         a -> th a
-        TypeSynDec      a -> th a
-        TypeInstanceDec a -> th a
+        DataDec          a -> th a
+        TypeSynDec       a -> th a
+        TypeInstanceDec  a -> th a
+        ClassInstanceDec a -> th a
+        FunctionDec      a -> th a
     {-# INLINE th #-}
 
-instance IsDec Data         where toDec = DataDec         ; {-# INLINE toDec #-}
-instance IsDec TypeSyn      where toDec = TypeSynDec      ; {-# INLINE toDec #-}
-instance IsDec TypeInstance where toDec = TypeInstanceDec ; {-# INLINE toDec #-}
+instance IsDec Data          where toDec = DataDec          ; {-# INLINE toDec #-}
+instance IsDec TypeSyn       where toDec = TypeSynDec       ; {-# INLINE toDec #-}
+instance IsDec TypeInstance  where toDec = TypeInstanceDec  ; {-# INLINE toDec #-}
+instance IsDec ClassInstance where toDec = ClassInstanceDec ; {-# INLINE toDec #-}
+instance IsDec Function      where toDec = FunctionDec      ; {-# INLINE toDec #-}
 
 
-
-
+makeLenses ''Dec
 
 
 

@@ -1,10 +1,13 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE NoOverloadedStrings       #-}
+{-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.IR.ToRefactor where
 
 import Luna.Prelude hiding (String, log, nested)
 import qualified Luna.Prelude as Prelude
+import Control.Arrow ((&&&))
+import Data.STRef    (STRef)
 
 import Luna.IR.Internal.IR
 import qualified Luna.IR.Expr.Term.Named as Term
@@ -21,26 +24,51 @@ import Luna.IR.Expr.Format
 import Luna.IR.Expr.Atom
 import Data.Property
 import qualified Luna.Pass        as Pass
-import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves, SubPass)
-import Data.TypeVal
-import Data.Event (Emitter, type (//))
+import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, DynPass, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescriptionP)
+import Data.TypeDesc
+import Data.Event (type (//), Tag(Tag), Emitter, PayloadData, Event, Emitters)
 import qualified Data.Set as Set
-import Luna.IR.Internal.LayerStore (STRefM)
+import Luna.IR.Internal.LayerStore (STRef, STRefM)
 import Luna.IR.Expr
 import Unsafe.Coerce (unsafeCoerce)
 import Luna.Pass.Manager as PM
-import Data.Event as Event
+-- import Data.Event as Event
 import System.Log
 import qualified Control.Monad.State.Dependent.Old as DepState
+
+import qualified GHC.Prim as Prim
+
+import Data.Reflection (Reifies)
+import Luna.Pass.Sugar
+
+import Type.Any (AnyType)
 
 ---------------------------------------
 -- Some important utils
 
 
+type GraphElems = '[AnyExpr, AnyExprLink]
 
-type family PassAttr attr pass
 
-type instance KeyData (Pass.SubPass pass m) (Attr a) = PassAttr a pass
+
+
+
+
+
+
+
+
+
+
+
+-----------------------------------------------
+
+
+
+instance {-# OVERLAPPABLE #-} TypePretty (ElemScope p t) where formatType [p,_] = [p]
+
+
+
 
 
 
@@ -52,100 +80,120 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 
 
 
-data ELEMSCOPE p elem
-data ElemScope p elem
-type instance Abstract (ElemScope c t) = ELEMSCOPE (Abstract c) (Abstract t)
-type instance PassAttr WorkingElem (ElemScope p t) = (Elem t, Definition (Elem t))
-
-type ElemSubPass p elem   = SubPass (ElemScope p elem)
-type ElemPass    p elem m = ElemSubPass p elem m ()
-
-proxifyElemPass :: ElemSubPass p elem m a -> (Proxy elem -> ElemSubPass p elem m a)
-proxifyElemPass = const ; {-# INLINE proxifyElemPass #-}
-
-
-
-
-instance (Monad m, Event.FromPath e, m ~ GetBaseMonad n) => KeyMonad (Event e) (PassManager m) n where
-    uncheckedLookupKey = Just . Key . fixme1 . sequence . fmap Pass.eval <$> PM.queryListeners (Event.fromPath @e)
-    -- FIXME[WD]: Pass.eval and sequence_ just hide error if some keys were not found
-
-fixme1 :: Monad m => m [Either Pass.InternalError ()] -> m ()
-fixme1 m = fromRight =<< (sequence <$> m)
-fromRight (Right a) = return ()
-fromRight (Left e) = error $ show e
-
-
 -------------------------------------------
 -------------------------------------------
 -------------------------------------------
 -------------------------------------------
 -- Layer passes
 
+data Init a
 
-debugElem :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
-debugElem t = debugBy (show (typeVal' @(Abstract t) :: TypeRep) <> " [" <> show (t ^. idx) <> "]")
 
-debugLayerCreation :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> Prelude.String -> m ()
-debugLayerCreation t layer post = debugElem t $ layer <> " layer created" <> post
 
-debugLayerCreation' :: forall t m. (IsIdx t, KnownType (Abstract t)) => Logging m => t -> Prelude.String -> m ()
-debugLayerCreation' t layer = debugLayerCreation t layer ""
+newtype SubPassDef p m a = SubPassDef (m a) deriving (Functor, Applicative, Monad)
+type       PassDef p m   = SubPassDef p m ()
+makeWrapped ''SubPassDef
+
+subPassDef :: m a -> SubPassDef p m a
+subPassDef = wrap' ; {-# INLINE subPassDef #-}
+
+runSubPassdef :: SubPassDef p m a -> m a
+runSubPassdef = unwrap' ; {-# INLINE runSubPassdef #-}
+
+
+newtype ListenerPassDef p e t m = ListenerPassDef (PayloadData (e // t) -> PassDef p m)
+makeWrapped ''ListenerPassDef
+
+type SpecInitializer p t m = ListenerPassDef (Init p) New t m
+type GenInitializer  p t m = SpecInitializer p (Elem t) m
+
+listenerPassDef :: (PayloadData (e // t) -> m ()) -> ListenerPassDef p e t m
+listenerPassDef = wrap' . fmap subPassDef ; {-# INLINE listenerPassDef #-}
+
+runListenerPassDef :: ListenerPassDef p e t m -> (PayloadData (e // t) -> m ())
+runListenerPassDef = fmap runSubPassdef . unwrap' ; {-# INLINE runListenerPassDef #-}
+
+
+
+
+compileListener :: forall p e t m. (KnownType (Abstract t), KnownElemPass p, Pass.PassInit (ElemScope p (Elem t)) m)
+                => ListenerPassDef p e (Elem t) (SubPass (ElemScope p t) m) -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
+compileListener = Pass.describbed @(ElemScope p (Elem t)) . Pass.compileTemplate . Pass.template . runListenerPassDef
+
+
+
+
+registerSpecLayer :: forall p e t m. (MonadPassManager m, KnownElemPass (Init p), KnownType p, KnownType (Abstract t))
+                  => ListenerPassDef (Init p) e (Elem t) (SubPass (ElemScope (Init p) t) (GetRefHandler m)) -> m ()
+registerSpecLayer p = registerLayerProto (getTypeDesc @p) $ Pass.constProto $ compileListener p ; {-# INLINE registerSpecLayer #-}
+
+
+
+prepareProto :: forall p m. (Logging m, Pass.PassConstruction m, KnownElemPass p) => (forall s. TypeReify (Abstracted s) => Template (Pass (ElemScope p (TypeRef s)) m)) -> Pass.Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
+prepareProto p = Pass.Proto $ reifyKnownTypeT @Abstracted (prepareProto' p) . (head . view subDescs) {- we take type args here, cause we need only `t` instead of `Elem t` -} where
+    prepareProto' :: forall p t m. (Logging m, KnownType (Abstract t), Pass.PassConstruction m, KnownElemPass p) => Template (Pass (ElemScope p t) m) -> Proxy t -> Pass.Describbed (Uninitialized m (Template (DynPass m)))
+    prepareProto' = const . Pass.describbed @(ElemScope p (Elem t)) . Pass.compileTemplate
+
+
+registerGenLayer :: forall p e m. (MonadPassManager m, KnownElemPass (Init p), KnownType p)
+                  => (forall t. KnownType (Abstract t) => ListenerPassDef (Init p) e (Elem t) (SubPass (ElemScope (Init p) t) (GetRefHandler m)))
+                  -> m ()
+registerGenLayer p = registerLayerProto (getTypeDesc @p) $ prepareProto $ Pass.template $ runListenerPassDef p
+
+
 
 
 -------------------
 -- === Model === --
 -------------------
 
-data InitModel
-type instance Abstract InitModel = InitModel
-type instance Inputs    (ElemScope InitModel t) = '[Layer (Abstract t) Model, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs   (ElemScope InitModel t) = '[Layer (Abstract t) Model]
-type instance Events    (ElemScope InitModel t) = '[]
-type instance Preserves (ElemScope InitModel t) = '[]
+initModel :: Req m '[Writer // Layer // Abstract (Elem t) // Model] => GenInitializer Model t m
+initModel = listenerPassDef . uncurry . flip $ writeLayer @Model ; {-# INLINE initModel #-}
+makeLayerGen ''Model 'initModel
 
-initModel :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass (ElemScope InitModel t) m
-initModel = do
-    (t, tdef) <- readAttr @WorkingElem
-    flip (writeLayer @Model) t tdef
-    debugLayerCreation' t "Model"
 
-initModel_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
-initModel_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initModel
+-- FIXME[WD -> MK]: it should not be defined for SomeExprLink, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchLinkImport
+watchLinkImport :: ListenerPassDef WatchLinkImport Import (ExprLink a b) m
+watchLinkImport = listenerPassDef $ \(t, exprTrans, _) -> undefined -- modifyLayer_ @Model (over both exprTrans) t
+makePass 'watchLinkImport
 
-initModel_reg :: (IRMonad m, MonadIO m) => PassManager m ()
-initModel_reg = registerLayer (typeVal' @Model) initModel_dyn
+-- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchExprImport
+watchExprImport :: ListenerPassDef WatchExprImport Import (Expr l) m
+watchExprImport = listenerPassDef $ \(t, _, linkTrans) -> undefined -- inplaceModifyFieldsWith linkTrans t
+makePass 'watchExprImport
 
-instance MonadLogging m => MonadLogging (SubPass pass m)
-instance MonadLogging m => MonadLogging (PassManager  m)
+init1 :: MonadPassManager m => m ()
+init1 = do
+    registerGenLayer @Model initModel
+    addEventListener @(Import // AnyExprLink) $ compileListener watchLinkImport
+    addEventListener @(Import // AnyExpr)     $ compileListener watchExprImport
 
 
 -----------------
 -- === UID === --
 -----------------
 
-data InitUID
-type instance Abstract InitUID = InitUID
-type instance Inputs    (ElemScope InitUID t) = '[Layer (Abstract t) UID, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs   (ElemScope InitUID t) = '[Layer (Abstract t) UID]
-type instance Events    (ElemScope InitUID t) = '[]
-type instance Preserves (ElemScope InitUID t) = '[]
+nextUID :: PrimMonad m => STRefM m ID -> m ID
+nextUID ref = Store.modifySTRef' ref $ id &&& succ ; {-# INLINE nextUID #-}
 
-initUID :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => STRefM m ID -> Pass (ElemScope InitUID t) m
-initUID ref = do
-    (t, tdef) <- readAttr @WorkingElem
-    nuid <- Store.modifySTRef' ref (\i -> (i, succ i))
-    flip (writeLayer @UID) t nuid
-    debugLayerCreation t "UID" $ " (" <> show nuid <> ")"
+initUID :: Req m '[Writer // Layer // Abstract (Elem t) // UID] => STRefM m ID -> GenInitializer UID t m
+initUID ref = listenerPassDef $ \(t, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE initUID #-}
+makeLayerGen ''UID 'initUID
 
+data WatchUIDImport
+watchUIDImport :: forall t' t m. (t ~ FromElem t', PrimMonad m, Req m '[Writer // Layer // Abstract (Elem t) // UID])
+               => STRefM m ID -> ListenerPassDef WatchUIDImport Import (Elem t) m
+watchUIDImport ref = listenerPassDef $ \(t, _, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE watchUIDImport #-}
+makePass1 'watchUIDImport
 
-initUID_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => m (TypeRep -> Pass.DynPass m)
-initUID_dyn = do
-    r <- Store.newSTRef 0
-    return $ reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass (initUID r)
-
-initUID_reg :: (IRMonad m, MonadIO m) => PassManager m ()
-initUID_reg = registerLayer (typeVal' @UID) =<< initUID_dyn
+init2 :: MonadPassManager m => m ()
+init2 = do
+    ref <- Store.newSTRef (def :: ID)
+    registerGenLayer @UID (initUID ref)
+    addEventListener @(Import // AnyExprLink) $ compileListener (watchUIDImport @AnyExprLink ref)
+    addEventListener @(Import // AnyExpr)     $ compileListener (watchUIDImport @AnyExpr     ref)
 
 
 
@@ -153,83 +201,67 @@ initUID_reg = registerLayer (typeVal' @UID) =<< initUID_dyn
 -- === Succs === --
 -------------------
 
-data InitSuccs
-type instance Abstract InitSuccs = InitSuccs
-type instance Inputs    (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs   (ElemScope InitSuccs t) = '[Layer (Abstract t) Succs]
-type instance Events    (ElemScope InitSuccs t) = '[]
-type instance Preserves (ElemScope InitSuccs t) = '[]
-
-initSuccs :: forall t m. (MonadIO m, IRMonad m, KnownType (Abstract t)) => Pass (ElemScope InitSuccs t) m
-initSuccs = do
-    (t, _) <- readAttr @WorkingElem
-    flip (writeLayer @Succs) t mempty
-    debugLayerCreation' t "Succs"
-
-initSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
-initSuccs_dyn = reifyKnownTypeT @Abstracted $ Pass.compile <$> proxifyElemPass initSuccs
-
-initSuccs_reg :: (IRMonad m, MonadIO m) => PassManager m ()
-initSuccs_reg = registerLayer (typeVal' @Succs) initSuccs_dyn
-
+initSuccs :: Req m '[Writer // Layer // Abstract (Elem t) // Succs] => GenInitializer Succs t m
+initSuccs = listenerPassDef $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE initSuccs #-}
+makeLayerGen ''Succs 'initSuccs
 
 data WatchSuccs
-type instance Abstract WatchSuccs = WatchSuccs
-type instance Inputs    (ElemScope WatchSuccs t) = '[ExprLayer Succs, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs   (ElemScope WatchSuccs t) = '[ExprLayer Succs]
-type instance Events    (ElemScope WatchSuccs t) = '[]
-type instance Preserves (ElemScope WatchSuccs t) = '[]
+watchSuccs :: Req m '[Editor // Layer // AnyExpr // Succs] => ListenerPassDef WatchSuccs New (ExprLink a b) m
+watchSuccs = listenerPassDef $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
+makePass 'watchSuccs
 
-watchSuccs :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchSuccs (LINK' (Expr l))) m
-watchSuccs = do
-    (t, (src, tgt)) <- readAttr @WorkingElem
-    debugElem t $ "Updating successor: " <> show (src ^. idx) <>" -> " <> show (tgt ^. idx)
-    modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src
-
-watchSuccs_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => Pass.DynPass m
-watchSuccs_dyn = Pass.compile $ watchSuccs
+-- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchSuccsImport
+watchSuccsImport :: ListenerPassDef WatchSuccsImport Import (Expr l) m
+watchSuccsImport = listenerPassDef $ \(t, _, linkTrans) -> undefined -- modifyLayer_ @Succs (Set.map linkTrans) t ; {-# INLINE watchSuccsImport #-}
+makePass 'watchSuccsImport
 
 data WatchRemoveEdge
-type instance Abstract  WatchRemoveEdge               = WatchRemoveEdge
-type instance Inputs    (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs, ExprLinkLayer Model, Attr WorkingElem]
-type instance Outputs   (ElemScope WatchRemoveEdge t) = '[ExprLayer Succs]
-type instance Events    (ElemScope WatchRemoveEdge t) = '[]
-type instance Preserves (ElemScope WatchRemoveEdge t) = '[]
-
-watchRemoveEdge :: forall l m. (MonadIO m, IRMonad m) => Pass (ElemScope WatchRemoveEdge (LINK' (Expr l))) m
-watchRemoveEdge = do
-    (l, _)     <- readAttr @WorkingElem
-    (src, tgt) <- readLayer @Model l
-    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize l) src
+watchRemoveEdge :: Req m '[ Reader // Layer // AnyExprLink // Model
+                          , Editor // Layer // AnyExpr // Succs]
+                => ListenerPassDef WatchRemoveEdge Delete (ExprLink a b) m
+watchRemoveEdge = listenerPassDef $ \t -> do
+    (src, tgt) <- readLayer @Model t
+    modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
+{-# INLINE watchRemoveEdge #-}
+makePass 'watchRemoveEdge
 
 data WatchRemoveNode
-type instance Abstract  WatchRemoveNode               = WatchRemoveNode
-type instance Inputs    (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLayer Type, Attr WorkingElem, ExprLinkNet]
-type instance Outputs   (ElemScope WatchRemoveNode t) = '[ExprLayer Model, ExprLinkNet]
-type instance Events    (ElemScope WatchRemoveNode t) = '[DELETE // LINK' EXPR]
-type instance Preserves (ElemScope WatchRemoveNode t) = '[]
-
-watchRemoveNode :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Pass (ElemScope WatchRemoveNode (EXPRESSION l)) m
-watchRemoveNode = do
-    (e, _) <- readAttr @WorkingElem
-    inps   <- symbolFields (generalize e :: AnyExpr)
-    tp     <- readLayer @Type e
+watchRemoveNode :: Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
+                          , Editor  // Net    // AnyExprLink
+                          , Emitter // Delete // AnyExprLink
+                          ]
+                 => ListenerPassDef WatchRemoveNode Delete (Expr l) m
+watchRemoveNode = listenerPassDef $ \t -> do
+    inps   <- symbolFields (generalize t :: SomeExpr)
+    tp     <- readLayer @Type t
     delete tp
     mapM_ delete inps
+{-# INLINE watchRemoveNode #-}
+makePass 'watchRemoveNode
+
+init3 :: MonadPassManager m => m ()
+init3 = do
+    registerGenLayer @Succs initSuccs
+    addEventListener @(New    // AnyExprLink) $ compileListener watchSuccs
+    addEventListener @(Import // AnyExpr)     $ compileListener watchSuccsImport
+    addEventListener @(Delete // AnyExprLink) $ compileListener watchRemoveEdge
+    addEventListener @(Delete // AnyExpr)     $ compileListener watchRemoveNode
+
 
 
 ------------------
 -- === Type === --
 ------------------
 
-consTypeLayer :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // LINK' EXPR), Emitter m (NEW // EXPR))
+
+consTypeLayer :: Req m '[ Writer  // Net // GraphElems
+                        , Emitter // New // GraphElems]
               => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
-consTypeLayer ref self = do
-    top  <- unsafeRelayout <$> localTop ref
-    link top self
+consTypeLayer ref self = (`link` self) =<< unsafeRelayout <$> localTop ref ; {-# INLINE consTypeLayer #-}
 
 
-localTop :: (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR))
+localTop :: Req m '[Writer // Net // AnyExpr, Emitter // New // AnyExpr]
          => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
 localTop ref = Store.readSTRef ref >>= \case
     Just t  -> return t
@@ -239,36 +271,29 @@ localTop ref = Store.readSTRef ref >>= \case
         registerStar s
         Store.writeSTRef ref Nothing
         return s
+{-# INLINE localTop #-}
+
+initType :: Req m '[ Writer  // Layer // AnyExpr // Type
+                   , Writer  // Net   // '[AnyExpr, AnyExprLink]
+                   , Emitter // New   // '[AnyExpr, AnyExprLink]
+                   ]
+         => STRefM m (Maybe (Expr Star)) -> SpecInitializer Type (Expr l) m
+initType ref = listenerPassDef $ \(el, _) -> flip (writeLayer @Type) el =<< consTypeLayer ref el
+{-# INLINE initType #-}
+makeLayerGen ''Type 'initType
+
+-- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
+data WatchTypeImport
+watchTypeImport :: ListenerPassDef WatchTypeImport Import (Expr l) m
+watchTypeImport = listenerPassDef $ \(t, _, linkTrans) -> undefined -- modifyLayer_ @Type linkTrans t ; {-# INLINE watchTypeImport #-}
+makePass 'watchTypeImport
 
 
-data InitType
-type instance Abstract InitType = InitType
-type instance Inputs    (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet, Attr WorkingElem] -- FIXME[bug: unnecessary inputs needed]
-type instance Outputs   (ElemScope InitType t) = '[Layer (Abstract t) Type, ExprNet, ExprLinkNet]
-type instance Events    (ElemScope InitType t) = '[NEW // EXPR, NEW // LINK' EXPR]
-type instance Preserves (ElemScope InitType t) = '[]
-
-initType :: forall l m. (MonadIO m, IRMonad m, MonadPassManager m) => Store.STRefM m (Maybe (Expr Star)) -> Pass (ElemScope InitType (EXPRESSION l)) m
-initType ref = do
-    (el, _) <- readAttr @WorkingElem
-    debugElem el "Type construction"
-    nested $ do
-        t <- consTypeLayer ref el
-        flip (writeLayer @Type) el t
-    debugLayerCreation' el "Type"
-
--- | Notice! This pass mimics signature needed by proto and the input TypeRep is not used
---   because it only works for Expressions
--- initType_dyn :: (IRMonad m, MonadIO m, MonadPassManager m) => TypeRep -> Pass.DynPass m
-initType_dyn = do
-    r <- Store.newSTRef Nothing
-    return $ \ _ -> Pass.compile $ initType r
-
--- initType_reg :: (IRMonad m, MonadIO m) => PassManager m ()
-initType_reg = registerLayer (typeVal' @Type) =<< initType_dyn
-
-
-
+init4 :: MonadPassManager m => m ()
+init4 = do
+    ref <- Store.newSTRef (Nothing :: Maybe (Expr Star))
+    registerSpecLayer @Type $ initType ref
+    addEventListener @(Import // AnyExpr) $ compileListener watchTypeImport
 
 
 
@@ -279,55 +304,49 @@ initType_reg = registerLayer (typeVal' @Type) =<< initType_dyn
 -------------------------------------------
 -------------------------------------------
 
-attachLayer priority l e = attachLayerIR l e >> attachLayerPM priority l e
-
-
--- FIXME [WD]: is the type ugly here?
--- runRegs :: _ => _
+runRegs :: MonadPassManager m => m ()
 runRegs = do
     runElemRegs
 
-    initModel_reg
-    attachLayer 0 (typeVal' @Model) (typeVal' @EXPR)
-    attachLayer 0 (typeVal' @Model) (typeVal' @(LINK' EXPR))
-    --
-    initUID_reg
-    attachLayer 5 (typeVal' @UID) (typeVal' @EXPR)
-    attachLayer 5 (typeVal' @UID) (typeVal' @(LINK' EXPR))
+    init1
+    init2
+    init3
+    init4
 
-    initSuccs_reg
-    attachLayer 5 (typeVal' @Succs) (typeVal' @EXPR)
-    --
-    initType_reg
-    attachLayer 10 (typeVal' @Type) (typeVal' @EXPR)
+    attachLayer 0 (getTypeDesc @Model) (getTypeDesc @AnyExpr)
+    attachLayer 0 (getTypeDesc @Model) (getTypeDesc @AnyExprLink)
+    attachLayer 5 (getTypeDesc @UID)   (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @UID)   (getTypeDesc @AnyExprLink)
+    attachLayer 5 (getTypeDesc @Succs) (getTypeDesc @AnyExpr)
 
-    addEventListener 100 (NEW    // LINK EXPR EXPR) watchSuccs
-    addEventListener 100 (DELETE // LINK EXPR EXPR) watchRemoveEdge
-    addEventListener 100 (DELETE // EXPR)           watchRemoveNode
+    attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
+
+
+
 
 
 -- === Elem reg defs === --
 
-runElemRegs :: IRMonad m => m ()
+runElemRegs :: MonadIR m => m ()
 runElemRegs = sequence_ [elemReg1, elemReg2, elemReg3]
 
-elemReg1 :: IRMonad m => m ()
-elemReg1 = registerElem @EXPR
+elemReg1 :: MonadIR m => m ()
+elemReg1 = registerElem @AnyExpr
 
-elemReg2 :: IRMonad m => m ()
-elemReg2 = registerElem @(LINK' EXPR)
+elemReg2 :: MonadIR m => m ()
+elemReg2 = registerElem @(Link' AnyExpr)
 
-elemReg3 :: IRMonad m => m ()
-elemReg3 = registerElem @(GROUP EXPR)
+elemReg3 :: MonadIR m => m ()
+elemReg3 = registerElem @(GROUP AnyExpr)
 
 
 -- === Layer reg defs === --
 
-layerRegs :: IRMonad m => [m ()]
-layerRegs = [] -- [layerReg1, layerReg2, layerReg3, layerReg4]
-
-runLayerRegs :: IRMonad m => m ()
-runLayerRegs = sequence_ layerRegs
+-- layerRegs :: MonadIR m => [m ()]
+-- layerRegs = [] -- [layerReg1, layerReg2, layerReg3, layerReg4]
+--
+-- runLayerRegs :: MonadIR m => m ()
+-- runLayerRegs = sequence_ layerRegs
 
 
 
@@ -338,12 +357,9 @@ runLayerRegs = sequence_ layerRegs
 ----------------------------------
 
 
-source :: (IRMonad m, Readable (Layer (Abstract (Link a b)) Model) m) => Link a b -> m a
+source :: (MonadRef m, Reader Layer (Abstract (Link a b) // Model) m) => Link a b -> m a
 source = fmap fst . readLayer @Model ; {-# INLINE source #-}
 
-
-
-type ExprLink a b = Link (Expr a) (Expr b)
 -- strName :: _ => _
 strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 
@@ -351,12 +367,12 @@ strName v = getName v >>= \n -> match' n >>= \ (Term.Sym_String s) -> return s
 
 -- === KnownExpr === --
 
-type KnownExpr l m = (IRMonad m, Readables m '[ExprLayer Model, ExprLinkLayer Model]) -- CheckAtomic (ExprHead l))
+type KnownExpr l m = (MonadRef m, Readers Layer '[AnyExpr // Model, Link' AnyExpr // Model] m) -- CheckAtomic (ExprHead l))
 
 match' :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
 match' = unsafeToExprTermDef @(ExprHead l)
 
-modifyExprTerm :: forall l m. (KnownExpr l m, Writable (ExprLayer Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
+modifyExprTerm :: forall l m. (KnownExpr l m, Writer Layer (AnyExpr // Model) m) => Expr l -> (ExprHeadDef l -> ExprHeadDef l) -> m ()
 modifyExprTerm = unsafeModifyExprTermDef @(ExprHead l)
 
 getSource :: KnownExpr l m => Lens' (ExprHeadDef l) (ExprLink a b) -> Expr l -> m (Expr a)
@@ -377,11 +393,11 @@ getName = getSource name ; {-# INLINE getName #-}
 
 type family Head a
 
-type instance Access EXPR (ENT e _ _) = e
-type instance Access EXPR (E   e    ) = e
+type instance Access AnyExpr (ENT e _ _) = e
+type instance Access AnyExpr (E   e    ) = e
 type instance Head (Atomic a) = Atomic a
 
-type ExprHead l = Head (l # EXPR)
+type ExprHead l = Head (l # AnyExpr)
 type ExprHeadDef l = ExprTermDef (ExprHead l) (Expr l)
 
 

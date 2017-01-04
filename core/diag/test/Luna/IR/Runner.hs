@@ -14,22 +14,27 @@ import Data.Aeson                           (encode)
 
 
 data TestPass
-type instance Abstract  TestPass = TestPass
-type instance Inputs    TestPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Type, Succs, UID] <> ExprLinkLayers '[Model, UID]
-type instance Outputs   TestPass = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID]              <> ExprLinkLayers '[Model, UID]
-type instance Events    TestPass = '[NEW // EXPR, NEW // LINK' EXPR, DELETE // EXPR, DELETE // LINK' EXPR]
-type instance Preserves TestPass ='[]
+type instance Abstract TestPass = TestPass
+type instance Inputs  Net   TestPass = '[AnyExpr, AnyExprLink]
+type instance Outputs Net   TestPass = '[AnyExpr, AnyExprLink]
+type instance Inputs  Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
+type instance Outputs Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
+type instance Inputs  Attr  TestPass = '[]
+type instance Outputs Attr  TestPass = '[]
+type instance Inputs  Event TestPass = '[] -- will never be used
+type instance Outputs Event TestPass = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink, Import // AnyExpr, Import // AnyExprLink]
+type instance Preserves     TestPass = '[]
 
 
-runGraph :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger m))))
-              => SubPass pass (PassManager (IRBuilder (Logger DropLogger m))) a -> m (Either Pass.InternalError a)
-runGraph p = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+runGraph :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (RefCache (Logger DropLogger m)))))
+              => SubPass pass (PassManager (IRBuilder (RefCache (Logger DropLogger m)))) a -> m (Either Pass.InternalError a)
+runGraph p = dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 
 runGraph' :: (MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger m))))
-              => SubPass pass (PassManager (IRBuilder (Logger DropLogger m))) a -> m (Either Pass.InternalError a)
-runGraph' p = dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+              => SubPass pass (PassManager (IRBuilder (RefCache (Logger DropLogger m)))) a -> m (Either Pass.InternalError a)
+runGraph' p = dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 

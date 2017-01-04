@@ -1,27 +1,34 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Event where
+module Data.Event (module Data.Event, module X) where
 
 import Prologue hiding (tail)
 
-import qualified GHC.Prim     as Prim
-import qualified Data.Map     as Map
-import           Data.Map     (Map)
-import           Data.Reprx   (RepOf, HasRep, rep)
-import           Data.TypeVal
+import qualified GHC.Prim      as Prim
+import qualified Data.Map      as Map
+import           Data.Map      (Map)
+import           Data.Reprx    (RepOf, HasRep, rep)
+import           Data.TypeDesc
+import           Data.Path     as X
+-- WIP:
+import           Luna.IR.Expr.Layout.Class (Abstract)
 
+
+
+data Event
 
 -----------------
 -- === Tag === --
 -----------------
 
-newtype Tag    = Tag    [TagRep] deriving (Show, Eq, Ord)
-newtype TagRep = TagRep TypeRep  deriving (Show, Eq, Ord)
-instance IsTypeRep TagRep
+newtype Tag     = Tag [TagDesc] deriving (Eq, Ord)
+type    TagDesc = TypeDescT Tag
 
 makeClassy  ''Tag
 makeWrapped ''Tag
-makeWrapped ''TagRep
+
+instance Show Tag where
+    show (Tag ts) = intercalate " // " $ show <$> ts
 
 
 -- === Construction === --
@@ -30,30 +37,26 @@ type family TagPath a where
     TagPath (a // as) = a ': TagPath as
     TagPath a         = '[a]
 
-type FromPath path = Typeables (TagPath path)
-fromPath :: forall path. FromPath path => Tag
-fromPath = Tag $ typeReps' @(TagPath path) ; {-# INLINE fromPath #-}
+type KnownPath path = KnownTypes (TagPath path)
+fromPath :: forall path. KnownPath path => Tag
+fromPath = Tag $ getTypeDescs @(TagPath path) ; {-# INLINE fromPath #-}
 
-data a // as = a :// as deriving (Show)
-infixr 5 //
-(//) :: a -> as -> a // as
-a // as = a :// as ; {-# INLINE (//) #-}
+-- FIXME[WD]
+fromPathDyn :: TypeDesc -> Tag
+fromPathDyn t = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' l :) $ fromPathDyn r
+                                  else Tag [wrap' t]
+    where sepType     = getTypeDesc @TypeSep ^. tyCon
+          (con, args) = splitTyConApp t
+{-# INLINE fromPathDyn #-}
 
-tail :: a // as -> as
-tail (_ :// as) = as ; {-# INLINE tail #-}
 
+-- = a :/// as deriving (Show)
+-- (//) :: a -> as -> a // as
+-- a // as = a :/// as ; {-# INLINE (//) #-}
 
--- === IsTag === --
+-- tail :: a // as -> as
+-- tail (_ :/// as) = as ; {-# INLINE tail #-}
 
--- instance Typeables (TagPath a) => IsTag a   where toTag _ = Tag $ typeReps' @(TagPath a) ; {-# INLINE toTag #-}
-class                                       IsTag a        where toTag :: a -> Tag
-instance {-# OVERLAPPABLE #-} IsTagSeg t => IsTag t        where toTag t         = Tag [toTagSeg t]                     ; {-# INLINE toTag #-}
-instance (IsTagSeg t, IsTag p)           => IsTag (t // p) where toTag (t :// p) = toTag p & wrapped' %~ (toTagSeg t :) ; {-# INLINE toTag #-}
-instance                                    IsTag Tag      where toTag           = id                                   ; {-# INLINE toTag #-}
-
-class                        IsTagSeg a       where toTagSeg :: a -> TagRep
-instance KnownType a      => IsTagSeg a       where toTagSeg _ = typeVal' @a ; {-# INLINE toTagSeg #-}
-instance {-# OVERLAPPING #-} IsTagSeg TypeRep where toTagSeg   = wrap'       ; {-# INLINE toTagSeg #-} -- FIXME[WD]: in order not to accidentally pass here some Rep like structure (like LayerRep), there should be some data RepBase aroundd
 
 
 --------------------
@@ -62,22 +65,23 @@ instance {-# OVERLAPPING #-} IsTagSeg TypeRep where toTagSeg   = wrap'       ; {
 
 -- === Events === --
 
-data Event e  = Event (Payload e)
-type AnyEvent = Event Prim.Any
+data Payload e = Payload (PayloadData e)
+type AnyEvent  = Payload Prim.Any
 
-type family Payload e
+type family PayloadData e
 
-makeWrapped ''Event
+makeWrapped ''Payload
 
 
 -- === Emitter === --
 
-class Monad m => Emitter m e where
-    emit :: e -> Payload e -> m ()
+class Monad m => Emitter a m where
+    emit :: forall e. a ~ Abstract e => Payload e -> m ()
 
-type family Emitters m ems :: Constraint where
-    Emitters m '[]       = ()
-    Emitters m (e ': es) = (Emitter m e, Emitters m es)
+type family Emitters as m :: Constraint where
+    Emitters '[]       m = ()
+    Emitters (a ': as) m = (Emitter a m, Emitters as m)
+
 
 -----------------------
 -- === Listeners === --
@@ -90,8 +94,8 @@ data Listener l = Listener { _tag :: Tag
                            } deriving (Show)
 
 type    Listener'   = Listener ListenerRep
-newtype ListenerRep = ListenerRep TypeRep deriving (Show, Eq, Ord)
-instance IsTypeRep ListenerRep
+newtype ListenerRep = ListenerRep TypeDesc deriving (Show, Eq, Ord)
+instance IsTypeDesc ListenerRep
 
 makePfxLenses ''Listener
 makeWrapped   ''ListenerRep
@@ -113,7 +117,7 @@ instance      HasTag (Listener l) where tag = listener_tag ; {-# INLINE tag #-}
 -- === Definition === --
 
 data EventHub l f = EventHub { _listeners :: Map l f
-                             , _subhubs   :: Map TagRep (EventHub l f)
+                             , _subhubs   :: Map TagDesc (EventHub l f)
                              } deriving (Show)
 
 makeLenses ''EventHub
@@ -151,7 +155,7 @@ instance Ord l => Monoid (EventHub l f) where
 
 -- Indexed
 type instance IxValue (EventHub l f) = EventHub l f
-type instance Index   (EventHub l f) = TagRep
+type instance Index   (EventHub l f) = TagDesc
 
 instance At   (EventHub l f) where at i = subhubs . at i ; {-# INLINE at #-}
 instance Ixed (EventHub l f) where ix i = subhubs . ix i ; {-# INLINE ix #-}

@@ -1,3 +1,5 @@
+
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoOverloadedStrings  #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
@@ -9,12 +11,13 @@ module Main where
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
 import Luna.Prelude as Prelude hiding (String, cons, elem)
+import qualified Luna.Prelude as Prelude
 import Data.Aeson (encode)
 
 import           Luna.IR
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
-import           Luna.Pass        (Pass, Inputs, Outputs, Events, Preserves, SubPass)
+import           Luna.Pass        (Pass, SubPass, Preserves, Events, Inputs, Outputs)
 import qualified Luna.Pass        as Pass
 import           Luna.IR.Expr.Layout.Nested (type (>>))
 import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
@@ -52,36 +55,42 @@ import System.Log.Logger.Format (nestedColorFormatter)
 
 import GHC.Stack
 
+import Data.TList (TList)
+import qualified Data.TList as TList
+
+import Control.Concurrent
+import System.Exit
 
 
-data                    SimpleAA
-type instance Abstract  SimpleAA = SimpleAA
-type instance Inputs    SimpleAA = '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
-type instance Outputs   SimpleAA = '[ExprNet, ExprLinkNet, ExprGroupNet] <> ExprLayers '[Model, UID, Type, Succs] <> ExprLinkLayers '[Model, UID]
-type instance Events    SimpleAA = '[NEW // EXPR]
-type instance Preserves SimpleAA = '[]
 
-pass1 :: (MonadFix m, MonadIO m, IRMonad m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
+data SimpleAA
+type instance Abstract SimpleAA = SimpleAA
+type instance Inputs  Net   SimpleAA = '[AnyExpr]
+type instance Outputs Net   SimpleAA = '[AnyExpr]
+type instance Inputs  Layer SimpleAA = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, Link' AnyExpr // UID, Link' AnyExpr // Model, AnyExpr // Succs]
+type instance Outputs Layer SimpleAA = '[]
+type instance Inputs  Attr  SimpleAA = '[]
+type instance Outputs Attr  SimpleAA = '[]
+type instance Inputs  Event SimpleAA = '[] -- will never be used
+type instance Outputs Event SimpleAA = '[New // AnyExpr]
+type instance Preserves     SimpleAA = '[]
+
+
+pass1 :: (MonadFix m, MonadIO m, MonadIR m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())
-test_pass1 = evalIRBuilder' $ evalPassManager' $ do
+test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
 
-test_pass1x :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder m)))
-            => Pass pass (PassManager (IRBuilder m)) -> m (Either Pass.InternalError ())
-test_pass1x p = evalIRBuilder' $ evalPassManager' $ do
-    runRegs
-    Pass.eval' p
-
-uncheckedDeleteStar :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet]) => Expr l -> m ()
+uncheckedDeleteStar :: (MonadRef m, Reader Layer (AnyExpr // Type) m, Editors Net '[Link' AnyExpr, AnyExpr] m) => Expr l -> m ()
 uncheckedDeleteStar e = do
     freeElem =<< readLayer @Type e
     freeElem e
 {-# INLINE uncheckedDeleteStar #-}
 
-uncheckedDeleteStarType :: (IRMonad m, Readable (ExprLayer Type) m, Accessibles m '[ExprLinkNet, ExprNet, ExprLinkLayer Model])
+uncheckedDeleteStarType :: (MonadRef m, Reader Layer (AnyExpr // Type) m, Editors Net '[Link' AnyExpr, AnyExpr] m, Editors Layer '[Link' AnyExpr // Model] m)
                         => Expr l -> m ()
 uncheckedDeleteStarType e = do
     typeLink     <- readLayer @Type e
@@ -96,25 +105,34 @@ uncheckedDeleteStarType e = do
 
 
 
-gen_pass1 :: ( MonadIO m, IRMonad m, MonadVis m
-             , Accessibles m '[ExprLayer Model, ExprLinkLayer Model, ExprLayer Type, ExprLayer Succs, ExprLinkLayer UID, ExprLayer UID, ExprNet, ExprLinkNet, ExprGroupNet]
-             , Emitter m (NEW // EXPR)
+gen_pass1 :: ( MonadIO m, MonadRef m
+             , Writers Net '[AnyExpr] m
+             , Emitter (New // AnyExpr) m
+             , Readers Layer '[AnyExpr // Model, AnyExpr // Succs] m
+             , Vis.Snapshot m
+            --  , Accessibles m '[AnyExpr // Model, Link' AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, Link' AnyExpr // UID, AnyExpr // UID, ExprNet, ExprLinkNet, ExprGroupNet]
+            --  , Emitter m (New // AnyExpr)
              ) => m ()
 gen_pass1 = do
-    ss <- string "hello"
     (s :: Expr Star) <- star
+    Vis.snapshot "s1"
+    (s :: Expr Star) <- star
+    Vis.snapshot "s2"
+    (s :: Expr Star) <- star
+    -- ss <- string "hello"
+    -- (s :: Expr Star) <- star
     tlink   <- readLayer @Type s
     (src,_) <- readLayer @Model tlink
     scss    <- readLayer @Succs src
     print src
     print scss
-
-    i <- readLayer @UID s
-    print i
-
-    Vis.snapshot "s1"
-
-
+    --
+    -- i <- readLayer @UID s
+    -- print i
+    --
+    Vis.snapshot "s3"
+    --
+    --
     match s $ \case
         Unify l r -> print "ppp"
         Star      -> match s $ \case
@@ -125,22 +143,32 @@ gen_pass1 = do
     return ()
 
 
+
+
 main :: HasCallStack => IO ()
 main = do
+
+
+
     -- runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
-    runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
-        (p, vis) <- Vis.newRunDiffT test_pass1
-        case p of
-            Left e -> do
-                print "* INTERNAL ERROR *"
-                print e
-            Right _ -> do
-                let cfg = ByteString.unpack $ encode $ vis
-                -- putStrLn cfg
-                -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
-                return ()
-        print p
-    lmain
+    -- forkIO $ do
+        runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
+            (p, vis) <- Vis.newRunDiffT test_pass1
+            case p of
+                Left e -> do
+                    print "* INTERNAL ERROR *"
+                    print e
+                Right _ -> do
+                    let cfg = ByteString.unpack $ encode $ vis
+                    -- putStrLn cfg
+                    -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+                    return ()
+            print p
+
+    -- threadDelay 1000
+    -- die "die"
+
+    -- lmain
 
 
 ------ Old Notes

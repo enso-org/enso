@@ -143,12 +143,12 @@ type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) ((Atomic a # 
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a
 
-type instance Merge Any        (Atomic a) = Any
-type instance Merge (Atomic a) Any        = Any
+type instance Merge Bottom        (Atomic a) = Bottom
+type instance Merge (Atomic a) Bottom        = Bottom
 
 -----------------
--- === Any === --
+-- === Bottom === --
 -----------------
 
-data Any
-type instance Sub t Any = Any
+data Bottom
+type instance Sub t Bottom = Bottom

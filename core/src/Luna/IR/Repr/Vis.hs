@@ -11,19 +11,19 @@ import Luna.IR.Repr.Styles
 import Luna.IR
 
 
-snapshot :: (IRMonad m, MonadVis m, Readables m '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model, ExprNet])
-         => Prelude.String -> m ()
+type Snapshot m = (MonadRef m, MonadVis m, Readers Layer '[AnyExpr // UID, AnyExpr // Type, AnyExpr // Model, Link' AnyExpr // UID, Link' AnyExpr // Model] m, Reader Net AnyExpr m)
+snapshot :: Snapshot m => Prelude.String -> m ()
 snapshot title = do
     ts  <- exprs
-    vss <- mapM visNode2 ts
+    vss <- mapM visNode ts
     let vns = fst <$> vss
         ves = join $ snd <$> vss
     Vis.addStep (fromString title) vns ves
 
 
-visNode2 :: (IRMonad m, Readables m '[ExprLayer UID, ExprLayer Type, ExprLayer Model, ExprLinkLayer UID, ExprLinkLayer Model])
-         => AnyExpr -> m (Vis.Node, [Vis.Edge])
-visNode2 t = do
+visNode :: (MonadRef m, Readers Layer '[AnyExpr // UID, AnyExpr // Type, AnyExpr // Model, Link' AnyExpr // UID, Link' AnyExpr // Model] m)
+        => SomeExpr -> m (Vis.Node, [Vis.Edge])
+visNode t = do
     euid   <- readLayer @UID   t
     tpLink <- readLayer @Type  t
     tpUid  <- readLayer @UID   tpLink

@@ -6,75 +6,20 @@ module Luna.Pass.FunctionResolutionSpec where
 import qualified Control.Monad.State.Dependent.Old as S
 import Luna.Prelude hiding (String)
 import qualified Luna.Prelude as P
-import Test.Hspec   (Spec, describe, it, shouldBe)
+import Test.Hspec   (Spec, describe, it, shouldBe, shouldReturn)
 import Luna.TestUtils
 import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.Pass        (Pass, SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass        as Pass
-import Data.TypeVal
+import Data.TypeDesc
 import System.Log
-
--- impl imports, to refactor
-
+import Luna.IR.Runner
+import Luna.IR
+import Luna.Pass.Inference.FunctionResolution
+import qualified Data.Map          as Map
 import Luna.IR.Function.Definition as Function
 import Luna.IR.Function
 import Luna.IR.Module.Definition   as Module
-import Luna.IR.Runner
-import Luna.IR
-import Luna.IR.Expr.Combinators
-import Luna.IR.Name                (Name)
-import qualified Data.Map          as Map
-import           Data.Map          (Map)
-import           Data.Maybe        (isJust)
-
-
--- impl
-
-newtype Imports = Imports (Map Name Module)
-makeWrapped ''Imports
-type instance PassAttr Imports t = Imports
-
-data CurrentVar
-type instance PassAttr CurrentVar FunctionResolution = Expr (ENT Var (E String) Draft)
-
-
-data    ImportError = SymbolNotFound | SymbolAmbiguous [Name] deriving (Show, Eq)
-
-data FunctionResolution
-type instance Abstract  FunctionResolution = FunctionResolution
-type instance Inputs    FunctionResolution = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, Type, Succs, UID] <> ExprLinkLayers '[Model, UID]  <> '[Attr CurrentVar, Attr Imports]
-type instance Outputs   FunctionResolution = '[ExprNet, ExprLinkNet] <> ExprLayers '[Model, UID]              <> ExprLinkLayers '[Model, UID]
-type instance Events    FunctionResolution = '[NEW // EXPR, NEW // LINK' EXPR]
-type instance Preserves FunctionResolution = '[]
-
-
-lookupSym :: Name -> Imports -> Either ImportError CompiledFunction
-lookupSym n imps = let modulesWithMatchInfo = (over _2 $ flip Module.lookupFunction n) <$> Map.assocs (unwrap imps)
-                       matchedModules       = filter (isJust . snd) modulesWithMatchInfo
-                   in case matchedModules of
-                      []            -> Left  SymbolNotFound
-                      [(_, Just f)] -> Right f
-                      matches       -> Left . SymbolAmbiguous . fmap fst $ matches
-
-importVar :: (IRMonad m, MonadIO m, MonadPassManager m) => SubPass FunctionResolution m (Either ImportError AnyExpr)
-importVar = do
-    var      <- readAttr @CurrentVar
-    print var
-    nameLink <- view name <$> match' var
-    nameNode <- source nameLink
-    name     <- view lit  <$> match' nameNode
-    imports  <- readAttr @Imports
-    let fun  =  lookupSym (fromString name) imports
-    case fun of
-        Left  err  -> return $ Left err
-        Right sym  -> do
-            newExpr <- importFunction sym
-            return $ Right newExpr
-
--- spec
-
-snapshotVis :: (IRMonad m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => P.String -> Pass TestPass m
-snapshotVis = Vis.snapshot
 
 testImports :: IO Imports
 testImports = do
@@ -91,25 +36,32 @@ testImports = do
     let mod = Module Map.empty $ Map.fromList [("id", id'), ("const", const')]
     return $ Imports $ Map.singleton "Stdlib" mod
 
-initialize :: (IRMonad m, MonadIO m, MonadPassManager m, Vis.MonadVis m) => SubPass TestPass m (Expr (ENT Var (E String) Draft))
-initialize = do
-    n   <- string "id"
+sizeAndCoherence :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass TestPass m (Int, [Incoherence])
+sizeAndCoherence = (,) <$> (length <$> exprs) <*> checkCoherence
+
+initialize :: (MonadRef m, MonadIO m, MonadPassManager m) => P.String -> SubPass TestPass m (Expr (ENT Var (E String) Draft))
+initialize name = do
+    n   <- string name
     unsafeRelayout <$> var n
 
-runTest = do
+runTest m = do
     imps <- testImports
-    withVis $ dropLogs $ evalIRBuilder' $ evalPassManager' $ do
+    dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
-        Right v <- Pass.eval' initialize
-        Pass.eval' $ snapshotVis "s1"
-        setAttr (typeVal' @Imports) imps
-        setAttr (typeVal' @CurrentVar) v
-        print v
-        Pass.eval' importVar
-        Pass.eval' $ snapshotVis "s2"
+        Right v <- Pass.eval' m
+        setAttr (getTypeDesc @Imports) imps
+        setAttr (getTypeDesc @CurrentVar) v
+        Right res    <- Pass.eval' importVar
+        Right (s, c) <- Pass.eval' sizeAndCoherence
+        return (res, s, c)
 
 
 spec :: Spec
-spec = describe "nothing" $ it "nothings" $ do
-    runTest
-    1 `shouldBe` 1
+spec = do
+    describe "successful import" $ do
+        it "preserves graph coherence" $ do
+            (_, s, c) <- runTest $ initialize "id"
+            (s, c) `shouldBe` (8, [])
+    describe "unsuccessful import" $ do
+        it "returns error and does not change the graph" $ do
+            runTest (initialize "foo") `shouldReturn` (Left SymbolNotFound, 4, [])
