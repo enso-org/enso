@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Net, Attr, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
+import           Luna.IR.Internal.IR   (Net, Attr, RefData, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -428,3 +428,13 @@ instance ( Monad m, MonadRefState k a (SubPass pass m)
 instance ( Monad m, MonadRefState k a (SubPass pass m)
          , Assert (a `In` (Outputs k pass)) (RefWriteError k a)
          ) => Writer k a (SubPass pass m)
+
+
+
+
+
+setAttrKey :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => Ref Attr a (GetRefHandler m) -> m ()
+setAttrKey k = modify_ (findRef .~ k)
+
+setAttr3 :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => RefData Attr a (GetRefHandler m) -> m ()
+setAttr3 = setAttrKey @a . wrap'

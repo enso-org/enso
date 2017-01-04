@@ -125,14 +125,14 @@ registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ 
 {-# INLINE registerLayerProto #-}
 
 
-registerLayerProto2 :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
-registerLayerProto2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
-    where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (\(DynSubPass p) -> withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running" (DynSubPass p)) df
-{-# INLINE registerLayerProto2 #-}
+-- registerLayerProto2 :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+-- registerLayerProto2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
+--     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (\(DynSubPass p) -> withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running" (DynSubPass p)) df
+-- {-# INLINE registerLayerProto2 #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayer :: MonadPassManager m => Int -> LayerDesc -> ElemDesc -> m ()
-attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to " <> show e) $ do
+attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to (" <> show e <> ")") $ do
     IR.unsafeCreateNewLayer l e
     s <- get
     let Just pproto = s ^. layers . prototypes . at l
@@ -148,9 +148,11 @@ queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view list
 
 
 addEventListener_byPri :: MonadPassManager m => Int -> Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
-addEventListener_byPri priority tag p =  modify_ $ (listeners %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
+addEventListener_byPri priority tag p = withDebug ("Attaching event listener " <> show rep <> " to " <> show tag)
+                                      $ modify_ $ (listeners %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
     where rep = p ^. Pass.desc . Pass.passRep
 {-# INLINE addEventListener_byPri #-}
+
 
 addEventListenerDyn :: MonadPassManager m => Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
 addEventListenerDyn = addEventListener_byPri 100 ; {-# INLINE addEventListenerDyn #-}

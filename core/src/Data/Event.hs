@@ -21,11 +21,14 @@ data Event
 -- === Tag === --
 -----------------
 
-newtype Tag     = Tag [TagDesc] deriving (Show, Eq, Ord)
+newtype Tag     = Tag [TagDesc] deriving (Eq, Ord)
 type    TagDesc = TypeDescT Tag
 
 makeClassy  ''Tag
 makeWrapped ''Tag
+
+instance Show Tag where
+    show (Tag ts) = intercalate " // " $ show <$> ts
 
 
 -- === Construction === --
