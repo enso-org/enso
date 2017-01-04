@@ -89,7 +89,7 @@ replaceBlanks e = match e $ \case
         desu <- localAttr @UsedVars [] $ desugar g'
         unsafeRelayout <$> grouped desu
     Lam (Arg _ v) f -> do
-        v' <- source v >>= replaceBlanks
+        v' <- source v
         f' <- source f >>= localAttr @UsedVars [] . desugar
         unsafeRelayout <$> lam (arg v') f'
 
@@ -99,7 +99,7 @@ replaceBlanks e = match e $ \case
         a' <- source a >>= replaceBlanks
         unsafeRelayout <$> app f' (arg a')
     Acc n v -> do
-        n' <- source n >>= replaceBlanks
+        n' <- source n
         v' <- source v >>= replaceBlanks
         unsafeRelayout <$> acc n' v'
     Integer{} -> return e
