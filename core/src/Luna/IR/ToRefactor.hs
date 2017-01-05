@@ -228,6 +228,7 @@ watchRemoveEdge :: Req m '[ Reader // Layer // AnyExprLink // Model
                           , Editor // Layer // AnyExpr // Succs]
                 => Listener Delete (ExprLink a b) m
 watchRemoveEdge = listener $ \t -> do
+    -- print "EDGE REMOVE"
     (src, tgt) <- readLayer @Model t
     modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
 {-# INLINE watchRemoveEdge #-}
@@ -240,6 +241,7 @@ watchRemoveNode :: Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
                           ]
                  => Listener Delete (Expr l) m
 watchRemoveNode = listener $ \t -> do
+    -- print "NODE REMOVE"
     inps   <- symbolFields (generalize t :: SomeExpr)
     tp     <- readLayer @Type t
     delete tp
@@ -250,11 +252,13 @@ watchRemoveNodePass = tpElemPass @WatchRemoveNode watchRemoveNode
 
 init3 :: MonadPassManager m => m ()
 init3 = do
+    -- print "vvv"
     addElemEventListener     @Succs initSuccsPass
     addExprEventListener     @Succs watchSuccsImportPass
     addExprEventListener     @Succs watchRemoveNodePass
-    addExprLinkEventListener @Succs watchSuccsPass
-    addExprLinkEventListener @Succs watchRemoveEdgePass
+    addExprLinkEventListener @Model watchSuccsPass
+    addExprLinkEventListener @Model watchRemoveEdgePass
+    -- print "^^^"
 
 
 

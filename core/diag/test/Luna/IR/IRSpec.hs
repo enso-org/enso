@@ -160,7 +160,7 @@ spec = do
         it "changes the variable name in place" $ do
             testVarRenaming `shouldReturn` Right "bar"
     describe "node removal" $ do
-        it "preserves graph coherence" $
+        it "preserves graph coherence" $ do
             testNodeRemovalCoherence `shouldReturn` Right []
     describe "subtree removal" $ do
         it "removes a subgraph while preserving coherence" $
