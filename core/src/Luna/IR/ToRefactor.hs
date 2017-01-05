@@ -149,29 +149,20 @@ modelInit = listener . uncurry . flip $ writeLayer @Model ; {-# INLINE modelInit
 makeLayerGen2 'modelInit
 modelInitPass = tpElemPass @ModelInit modelInit
 
-modelImport :: Listener Import (Elem t) m
-modelImport = listener $ undefined
-makeLayerGen2 'modelImport
-modelImportPass = tpElemPass @ModelImport modelImport
-
-
--- FIXME[WD -> MK]: it should not be defined for SomeExprLink, cause it just brokes type assumptions. It should be for (forall l. Expr l)
-watchLinkImport :: Listener Import (ExprLink a b) m
-watchLinkImport = listener $ \(t, exprTrans, _) -> undefined -- modifyLayer_ @Model (over both exprTrans) t
+watchLinkImport :: Req m '[Editor // Layer // AnyExprLink // Model] => Listener Import (ExprLink a b) m
+watchLinkImport = listener $ \(t, trans) -> modifyLayer_ @Model ((_1 %~ trans ^. exprTranslator) . (_2 %~ trans ^. exprTranslator)) t
 makeLayerGen2 'watchLinkImport
 watchLinkImportPass = tpElemPass @WatchLinkImport watchLinkImport
 
 
--- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
-watchExprImport :: Listener Import (Expr l) m
-watchExprImport = listener $ \(t, _, linkTrans) -> undefined -- inplaceModifyFieldsWith linkTrans t
+watchExprImport :: Req m '[Editor // Layer // AnyExpr // Model] => Listener Import (Expr t) m
+watchExprImport = listener $ \(t, trans) -> inplaceModifyFieldsWith (trans ^. linkTranslator) (generalize t :: SomeExpr)
 makeLayerGen2 'watchExprImport
 watchExprImportPass = tpElemPass @WatchExprImport watchExprImport
 
 init1 :: MonadPassManager m => m ()
 init1 = do
     addElemEventListener     @Model modelInitPass
-    addElemEventListener     @Model modelImportPass
     addExprEventListener     @Model watchExprImportPass
     addExprLinkEventListener @Model watchLinkImportPass
 
@@ -191,7 +182,7 @@ initUIDPass = tpElemPass @InitUID . initUID
 
 watchUIDImport :: Req m '[Writer // Layer // Abstract (Elem t) // UID]
                => STRefM m ID -> Listener Import (Elem t) m
-watchUIDImport ref = listener $ \(t, _, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE watchUIDImport #-}
+watchUIDImport ref = listener $ \(t, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE watchUIDImport #-}
 makeLayerGen2 'watchUIDImport
 watchUIDImportPass = tpElemPass @WatchUIDImport . watchUIDImport
 
@@ -218,9 +209,8 @@ watchSuccs = listener $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ un
 makeLayerGen2 'watchSuccs
 watchSuccsPass = tpElemPass @WatchSuccs watchSuccs
 
--- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
-watchSuccsImport :: Listener Import (Expr l) m
-watchSuccsImport = listener $ \(t, _, linkTrans) -> undefined -- modifyLayer_ @Succs (Set.map linkTrans) t ; {-# INLINE watchSuccsImport #-}
+watchSuccsImport :: Req m '[Editor // Layer // AnyExpr // Succs] => Listener Import (Expr l) m
+watchSuccsImport = listener $ \(t, trans) -> modifyLayer_ @Succs (Set.map $ trans ^. linkTranslator) t ; {-# INLINE watchSuccsImport #-}
 makeLayerGen2 'watchSuccsImport
 watchSuccsImportPass = tpElemPass @WatchSuccsImport watchSuccsImport
 
@@ -295,9 +285,8 @@ initType ref = listener $ \(el, _) -> flip (writeLayer @Type) el =<< consTypeLay
 makeLayerGen2 'initType
 initTypePass = tpElemPass @InitType . initType
 
--- FIXME[WD -> MK]: it should not be defined for SomeExpr, cause it just brokes type assumptions. It should be for (forall l. Expr l)
-watchTypeImport :: Listener Import (Expr l) m
-watchTypeImport = listener $ \(t, _, linkTrans) -> undefined -- modifyLayer_ @Type linkTrans t ; {-# INLINE watchTypeImport #-}
+watchTypeImport :: Req m '[Editor // Layer // AnyExpr // Type] => Listener Import (Expr l) m
+watchTypeImport = listener $ \(t, trans) -> modifyLayer_ @Type (trans ^. linkTranslator) t ; {-# INLINE watchTypeImport #-}
 makeLayerGen2 'watchTypeImport
 watchTypeImportPass = tpElemPass @WatchTypeImport watchTypeImport
 
