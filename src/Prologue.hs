@@ -18,7 +18,7 @@ module Prologue (
 import qualified Prelude
 
 
-import Control.Applicative        as X hiding (empty)
+import Control.Applicative        as X
 import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
 import Control.Error.Util         as X (isLeft, isRight)
 import Control.Error.Safe         as X
@@ -27,7 +27,7 @@ import Control.Lens               as X
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils as X
 import Control.Lens.Utils         as X
-import Control.Monad              as X (MonadPlus, mplus, mzero, void, join, (<=<), (>=>), zipWithM, zipWithM_)
+import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_)
 import Control.Monad.Base         as X
 import Control.Monad.Fix          as X (MonadFix)
 import Control.Monad.IO.Class     as X (MonadIO, liftIO)
@@ -189,6 +189,13 @@ fromMaybeM ma = \case
 
 fromBoolMaybe :: a -> Bool -> Maybe a
 fromBoolMaybe a b = if b then Just a else Nothing
+
+
+guarded :: Alternative f => Bool -> a -> f a
+guarded b a = case b of True  -> pure a
+                        False -> empty
+{-# INLINE guarded #-}
+
 
 
 -- === Safe operations === --
