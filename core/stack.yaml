@@ -32,7 +32,7 @@ packages:
 - extra-dep: true
   location: {commit: 53538017ad47a0a473233577595d8ac6e3eae9a0, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: 47f8d2aebe39f249e19f6a7cfd103c0dc40a26b8, git: 'https://github.com/luna/prologue.git'}
+  location: {commit: b5eb5acaa91daf5f2a31c377169d69e2e81db78d, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
   location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true

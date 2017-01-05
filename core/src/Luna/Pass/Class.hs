@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Net, Attr, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
+import           Luna.IR.Internal.IR   (Net, Attr, RefData, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -26,6 +26,7 @@ import Type.List (In)
 import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Event (Event)
+import qualified Data.Event as Event
 import Data.TypeDesc
 import System.Log hiding (LookupData, lookupData)
 import Data.TList (TList)
@@ -71,9 +72,9 @@ type        Elements  t pass = (Inputs t pass <> Outputs t pass)
 
 -- === Definitions === --
 
-type PassDesc = TypeDescT PASS
+type PassRep = TypeDescT PASS
 
-data Description = Description { _passRep   :: !PassDesc
+data Description = Description { _passRep   :: !PassRep
                                , _inputs    :: !(Map TypeDesc [TypeDesc])
                                , _outputs   :: !(Map TypeDesc [TypeDesc])
                                , _events    :: ![TypeDesc]
@@ -129,7 +130,7 @@ genericDescription' _ = genericDescription @pass ; {-# INLINE genericDescription
 genericDescriptionP :: KnownDescription pass => pass -> Description
 genericDescriptionP = genericDescription' . proxify ; {-# INLINE genericDescriptionP #-}
 
-emptyDescription :: PassDesc -> Description
+emptyDescription :: PassRep -> Description
 emptyDescription r = Description r def def def def ; {-# INLINE emptyDescription #-}
 
 describbed :: forall pass a. KnownPass pass => a -> Describbed a
@@ -430,3 +431,13 @@ instance ( Monad m, MonadRefState k a (SubPass pass m)
 instance ( Monad m, MonadRefState k a (SubPass pass m)
          , Assert (a `In` (Outputs k pass)) (RefWriteError k a)
          ) => Writer k a (SubPass pass m)
+
+
+
+
+
+setAttrKey :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => Ref Attr a (GetRefHandler m) -> m ()
+setAttrKey k = modify_ (findRef .~ k)
+
+setAttr3 :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => RefData Attr a (GetRefHandler m) -> m ()
+setAttr3 = setAttrKey @a . wrap'

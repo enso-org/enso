@@ -235,20 +235,20 @@ type RefWriteError k a = RefAccessError "write" k a
 
 -- === Definition === --
 
-type LayerDesc = TypeDescT Layer
-type ElemDesc  = TypeDescT Element
+type LayerRep = TypeDescT Layer
+type ElemRep  = TypeDescT Element
 
 
 type    IR     = IR'   ElemStore
 type    IRST s = IR'  (ElemStoreST s)
 type    IRM  m = IRST (PrimState   m)
-newtype IR'  a = IR   (Map ElemDesc a) deriving (Show, Default, Functor, Traversable, Foldable)
+newtype IR'  a = IR   (Map ElemRep a) deriving (Show, Default, Functor, Traversable, Foldable)
 
 
 
 type LayerSet    s = Store.VectorRef s Prim.Any
-type ElemStore     = LayerStore      LayerDesc Prim.Any
-type ElemStoreST s = LayerStoreRef s LayerDesc Prim.Any
+type ElemStore     = LayerStore      LayerRep Prim.Any
+type ElemStoreST s = LayerStoreRef s LayerRep Prim.Any
 type ElemStoreM  m = ElemStoreST (PrimState m)
 
 makeWrapped ''IR'
@@ -279,11 +279,11 @@ makeWrapped ''IRBuilder
 
 -- === Accessors === --
 
-atElem :: Functor m => ElemDesc -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRM m -> m (IRM m)
+atElem :: Functor m => ElemRep -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRM m -> m (IRM m)
 atElem = wrapped' .: at  ; {-# INLINE atElem #-}
 
-modifyElem  :: PrimMonad m => ElemDesc -> (ElemStoreM m ->    ElemStoreM m)  -> IRM m -> m (IRM m)
-modifyElemM :: PrimMonad m => ElemDesc -> (ElemStoreM m -> m (ElemStoreM m)) -> IRM m -> m (IRM m)
+modifyElem  :: PrimMonad m => ElemRep -> (ElemStoreM m ->    ElemStoreM m)  -> IRM m -> m (IRM m)
+modifyElemM :: PrimMonad m => ElemRep -> (ElemStoreM m -> m (ElemStoreM m)) -> IRM m -> m (IRM m)
 modifyElem  e   = modifyElemM e . fmap return                                                  ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (fmap return es) ; {-# INLINE modifyElemM #-}
 
@@ -380,7 +380,7 @@ registerElemWith = modifyIRM_ . modifyElem (getTypeDesc @el) ; {-# INLINE regist
 registerElem :: forall el m. (KnownType el, MonadIR m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-unsafeCreateNewLayer :: MonadIR m => LayerDesc -> ElemDesc -> m ()
+unsafeCreateNewLayer :: MonadIR m => LayerRep -> ElemRep -> m ()
 unsafeCreateNewLayer l e = do
     s <- getIR
     let Just estore = s ^? wrapped' . ix e -- FIXME[WD]: Internal error if not found (element not registered)

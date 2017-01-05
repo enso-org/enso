@@ -84,6 +84,37 @@ makeLayerGen p name = build $ do
     return []
 
 
+makeLayerGen2 :: Name -> Q [TH.Dec]
+makeLayerGen2 name = build $ do
+    let passName = typeName . upperHead $ nameBase name
+    -- let passName = app (typeName "Init") (toTypeName p)
+    VarI _ (ForallT _ ctx _) Nothing <- lift $ reify name
+    let f a = case a of
+            VarT v -> if (nameBase v) /= "t" then (ConT $ mkName "AnyType") else (VarT $ mkName "t")-- ctxfold (singleFold1 f) a
+            _      -> ctxfold (singleFold1 f) a
+        ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
+        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT $ mkName "t"]
+        defReqOf r t f = define $ typeInstance r
+                       [ toType $ typeName t
+                       , passHeader
+                       ] f
+        defReq r t = defReqOf r t $ apps (th . typeName $ "Get" <> r) [th $ typeName t, ctx']
+        defInputs  = defReq "Inputs"
+        defOutputs = defReq "Outputs"
+        defIOs lst = defInputs lst >> defOutputs lst
+    define $ phantom passName                                                            -- data InitModel
+    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitModel = InitModel
+    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitModel t) = GetInputs  Net   (InitModelCtx t AnyType)
+                                                                                         -- type instance Outputs Net   (ElemScope InitModel t) = GetOutputs Net   (InitModelCtx t AnyType)
+                                                                                         -- ...
+    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitModel t) = GetEmitters      (InitModelCtx t AnyType)
+    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitModel t) = '[]
+    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitModel t) = '[]
+    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitModel where
+             (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
+    return []
+
+
 
 makePass1 :: Name -> Q [TH.Dec]
 makePass1 name = build $ do
