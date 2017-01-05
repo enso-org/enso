@@ -15,7 +15,6 @@ data instance UniTerm (Layout.Named n a) = Integer  Prelude.Integer
                                          | Acc      !n       !a
                                          | App      a        !(Arg a)
                                          | Lam      !(Arg a) !a
-                                         | Match    !a       !a
                                          | Unify    !a       !a
                                          | Cons      n
                                          | Var       n
