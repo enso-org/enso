@@ -410,9 +410,11 @@ instance PrimMonad m => PrimMonad (SubPass pass m) where
     {-# INLINE primitive #-}
 
 
+setAttrKey :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => Ref Attr a (GetRefHandler m) -> m ()
+setAttrKey k = modify_ (findRef .~ k)
 
-
-
+setAttr3 :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => IR.RefData Attr a (GetRefHandler m) -> m ()
+setAttr3 = setAttrKey @a . wrap'
 -- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
 
 
