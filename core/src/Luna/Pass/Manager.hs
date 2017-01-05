@@ -290,7 +290,6 @@ instance MonadLogging m => MonadLogging (RefCache m)
 instance (MonadIR m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) where
     uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
 
--- FIXME[WD]: dirty TypeDesc management. Maybe we should not index with TypeDesc at all?
 instance MonadIR m => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef t = do
         ir <- getIR

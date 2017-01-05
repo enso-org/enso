@@ -143,6 +143,19 @@ gen_pass1 = do
     return ()
 
 
+--
+-- testNodeRemovalCoherence :: IO (Either Pass.InternalError [Incoherence])
+-- testNodeRemovalCoherence = runGraph $ do
+--     foo   <- string "foo"
+--     bar   <- string "bar"
+--     vfoo  <- var foo
+--     vbar  <- var bar
+--     vbar' <- var bar
+--     uni   <- unify vfoo vbar
+--     delete vbar'
+--     delete uni
+--     checkCoherence
+--
 
 
 main :: HasCallStack => IO ()
