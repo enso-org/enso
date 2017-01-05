@@ -5,7 +5,7 @@
 
 module Luna.Pass.BlankDesugarSpec (spec) where
 
-import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, Events, setAttr3)
+import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, setAttr3)
 import qualified Luna.Pass        as Pass
 
 import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
