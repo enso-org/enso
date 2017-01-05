@@ -196,36 +196,5 @@ reachableExprs seeds = Set.unions <$> mapM reachableExprs' seeds
                           Reader Layer (Elem (EXPR ANY) // Type) m) => SomeExpr -> m (Set SomeExpr)
         reachableExprs' e = do
             t <- readLayer @Type e >>= source
-            set <- match e $ \case
-                Acc n v -> do
-                    n' <- source n >>= reachableExprs'
-                    v' <- source v >>= reachableExprs'
-                    return $ Set.insert e $ Set.union n' v'
-                App f (Arg _ a) -> do
-                    f' <- source f >>= reachableExprs'
-                    a' <- source a >>= reachableExprs'
-                    return $ Set.insert e $ Set.union f' a'
-                Lam (Arg _ a) f -> do
-                    a' <- source a >>= reachableExprs'
-                    f' <- source f >>= reachableExprs'
-                    return $ Set.insert e $ Set.union a' f'
-                Unify l r -> do
-                    l' <- source l >>= reachableExprs'
-                    r' <- source r >>= reachableExprs'
-                    return $ Set.insert e $ Set.union l' r'
-                Cons n -> do
-                    n' <- source n >>= reachableExprs'
-                    return n'
-                Var n -> do
-                    n' <- source n >>= reachableExprs'
-                    return n'
-                Grouped g -> do
-                    g' <- source g >>= reachableExprs'
-                    return g'
-                Blank{}    -> return $ Set.singleton e
-                Star{}     -> return $ Set.singleton e
-                Missing{}  -> return $ Set.singleton e
-                Integer{}  -> return $ Set.singleton e
-                String{}   -> return $ Set.singleton e
-                Rational{} -> return $ Set.singleton e
-            return $ Set.insert t set
+            set <- symbolFields e >>= mapM source >>= reachableExprs
+            return $ Set.insert t $ Set.insert e $ set
