@@ -171,3 +171,55 @@ checkIsInput l e = do
     tp <- readLayer @Type e
     fs <- symbolFields e
     when (tp /= l && not (elem l fs)) $ reportIncoherence $ Incoherence DanglingTarget e l
+
+checkUnreachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m,
+                          Reader Layer (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model) m,
+                          Reader Net AnyExpr m)
+                      => [SomeExpr] -> m [SomeExpr]
+checkUnreachableExprs seeds = do
+    allExprs <- Set.fromList <$> exprs
+    reachable <- reachableExprs seeds
+    return $ Set.toList $ Set.difference allExprs reachable
+
+reachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m, Reader
+                          Layer
+                          (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model)
+                          m) => [SomeExpr] -> m (Set SomeExpr)
+reachableExprs seeds = Set.unions <$> mapM reachableExprs' seeds
+    where
+        reachableExprs' :: (MonadRef m, Reader Layer (AnyExpr // Model) m, Reader
+                          Layer
+                          (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model)
+                          m) => SomeExpr -> m (Set SomeExpr)
+        reachableExprs' e = match e $ \case
+            Acc n v -> do
+                n' <- source n >>= reachableExprs'
+                v' <- source v >>= reachableExprs'
+                return $ Set.insert e $ Set.union n' v'
+            App f (Arg _ a) -> do
+                f' <- source f >>= reachableExprs'
+                a' <- source a >>= reachableExprs'
+                return $ Set.insert e $ Set.union f' a'
+            Lam (Arg _ a) f -> do
+                a' <- source a >>= reachableExprs'
+                f' <- source f >>= reachableExprs'
+                return $ Set.insert e $ Set.union a' f'
+            Unify l r -> do
+                l' <- source l >>= reachableExprs'
+                r' <- source r >>= reachableExprs'
+                return $ Set.insert e $ Set.union l' r'
+            Cons n -> do
+                n' <- source n >>= reachableExprs'
+                return n'
+            Var n -> do
+                n' <- source n >>= reachableExprs'
+                return n'
+            Grouped g -> do
+                g' <- source g >>= reachableExprs'
+                return g'
+            Blank{}    -> return $ Set.singleton e
+            Star{}     -> return $ Set.singleton e
+            Missing{}  -> return $ Set.singleton e
+            Integer{}  -> return $ Set.singleton e
+            String{}   -> return $ Set.singleton e
+            Rational{} -> return $ Set.singleton e
