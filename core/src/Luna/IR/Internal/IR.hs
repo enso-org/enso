@@ -908,5 +908,10 @@ instance TypePretty ANY where
     formatType = ("Any" :)
 
 -- FIXME[WD -> MK]: This should be implemented for any element accessible in the graph, not only for exprs and links.
--- FIXME: This should be together with other Payloads, but uses SomeExpr and SomeExprLink which are not visible at that place in the file
-type instance PayloadData (Import // t) = (t, SomeExpr -> SomeExpr, SomeExprLink -> SomeExprLink)
+-- FIXME: This should be together with other Payloads, but uses Expr and ExprLink which are not visible at that place in the file
+
+data ElemTranslations = ElemTranslations { _exprTranslator :: forall l.   Expr l       -> Expr l
+                                         , _linkTranslator :: forall a b. ExprLink a b -> ExprLink a b
+                                         }
+makeLenses ''ElemTranslations
+type instance PayloadData (Import // t) = (t, ElemTranslations)

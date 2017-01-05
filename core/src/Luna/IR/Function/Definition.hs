@@ -1,3 +1,5 @@
+{-# NoMonomorphismRestriction #-}
+
 module Luna.IR.Function.Definition where
 
 import           Luna.Prelude
@@ -31,7 +33,7 @@ mkTranslationVector size knownIxes = Vector.fromList reixed where
         | (size - i) == j = v : go (i - 1) es
         | otherwise       = 0 : go (i - 1) l
 
-translateWith :: IsIdx t => Vector Int -> t -> t
+translateWith :: Vector Int -> (forall t. Elem t -> Elem t)
 translateWith v = idx %~ Vector.unsafeIndex v
 
 importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
@@ -45,11 +47,13 @@ importFunction (CompiledFunction (IR map) r) = do
     exprTrans <- Store.unsafeMerge foreignExprs exprNet
     linkTrans <- Store.unsafeMerge foreignLinks linkNet
 
-    let exprTranslator                  = translateWith $ mkTranslationVector (foreignExprs ^. Store.size) exprTrans
-        linkTranslator                  = translateWith $ mkTranslationVector (foreignLinks ^. Store.size) linkTrans
-        importedExprs :: [SomeExpr]     = Elem . snd <$> exprTrans
+    let exprTranslator :: forall t.   Expr t -> Expr t
+        exprTranslator =  translateWith $ mkTranslationVector (foreignExprs ^. Store.size) exprTrans
+        linkTranslator :: forall a b. ExprLink a b -> ExprLink a b
+        linkTranslator =  translateWith $ mkTranslationVector (foreignLinks ^. Store.size) linkTrans
+    let importedExprs :: [SomeExpr]     = Elem . snd <$> exprTrans
         importedLinks :: [SomeExprLink] = Elem . snd <$> linkTrans
 
-    forM_ importedLinks $ emit . Payload @(Import // AnyExprLink) . (, exprTranslator, linkTranslator) . unsafeGeneralize
-    forM_ importedExprs $ emit . Payload @(Import // AnyExpr)     . (, exprTranslator, linkTranslator) . unsafeGeneralize
+    forM_ importedLinks $ emit . Payload @(Import // AnyExprLink) . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize
+    forM_ importedExprs $ emit . Payload @(Import // AnyExpr)     . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize
     return $ exprTranslator r
