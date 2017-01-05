@@ -26,6 +26,7 @@ import Type.List (In)
 import qualified GHC.Prim as Prim
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Event (Event)
+import qualified Data.Event as Event
 import Data.TypeDesc
 import System.Log hiding (LookupData, lookupData)
 import Data.TList (TList)
@@ -71,9 +72,9 @@ type        Elements  t pass = (Inputs t pass <> Outputs t pass)
 
 -- === Definitions === --
 
-type PassDesc = TypeDescT PASS
+type PassRep = TypeDescT PASS
 
-data Description = Description { _passRep   :: !PassDesc
+data Description = Description { _passRep   :: !PassRep
                                , _inputs    :: !(Map TypeDesc [TypeDesc])
                                , _outputs   :: !(Map TypeDesc [TypeDesc])
                                , _events    :: ![TypeDesc]
@@ -129,7 +130,7 @@ genericDescription' _ = genericDescription @pass ; {-# INLINE genericDescription
 genericDescriptionP :: KnownDescription pass => pass -> Description
 genericDescriptionP = genericDescription' . proxify ; {-# INLINE genericDescriptionP #-}
 
-emptyDescription :: PassDesc -> Description
+emptyDescription :: PassRep -> Description
 emptyDescription r = Description r def def def def ; {-# INLINE emptyDescription #-}
 
 describbed :: forall pass a. KnownPass pass => a -> Describbed a

@@ -15,7 +15,7 @@ import           Data.Event          (Event, Payload(Payload), EventHub, Emitter
 import qualified Data.Event          as Event
 
 import Luna.IR.Internal.IR as IR
-import Luna.Pass.Class (SubPass, PassDesc, Proto, DynPass, DynSubPass(DynSubPass), Template, Uninitialized, PassConstruction)
+import Luna.Pass.Class (SubPass, PassRep, Proto, DynPass, DynSubPass(DynSubPass), Template, Uninitialized, PassConstruction)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
@@ -43,26 +43,40 @@ instance Ord SortedListenerRep where
 -- === State === --
 -------------------
 
-data LayerReg m = LayerReg { _prototypes :: Map LayerDesc $ Proto (Pass.Describbed (Uninitialized m (Template (DynPass m))))
-                           , _attached   :: Map ElemDesc  $ Map LayerDesc PassDesc
-                           } deriving (Show)
 
-data State m = State { _passes    :: Map PassDesc (Pass.Describbed (Uninitialized m (DynPass m))) -- not used yet
-                     , _layers    :: LayerReg m
-                     , _listeners :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized m (Template (DynPass m))))
+data State m = State { _passes    :: Map PassRep (Pass.Describbed (Uninitialized m (DynPass m))) -- not used yet
+                     , _layers    :: Map ElemRep  $ Map LayerRep PassRep                         -- not used yet
+                     , _listeners :: ListenerState m
                      , _attrs     :: Map AttrRep Prim.AnyData
                      } deriving (Show)
+
+data ListenerState m = ListenerState { _decls :: Map LayerRep $ Map PassRep $ ListenerDecl m
+                                     , _hub   :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized m (Template (DynPass m))))
+                                     } deriving (Show)
+
+data ListenerDecl m = GenericListener  (Proto $ Event.Tagged (Pass.Describbed (Uninitialized m (Template (DynPass m)))))
+                    | SpecificListener ElemRep (Event.Tagged (Pass.Describbed (Uninitialized m (Template (DynPass m)))))
+                    deriving (Show)
 
 type RefState m = State (GetRefHandler m)
 
 makeLenses ''State
-makeLenses ''LayerReg
+makeLenses ''ListenerState
+
+
+-- === Utils === --
+
+specializeListener :: ElemRep -> ListenerDecl m -> Maybe (Event.Tagged (Pass.Describbed (Uninitialized m (Template (DynPass m)))))
+specializeListener e = \case
+    GenericListener  p    -> Just $ Pass.specialize p e
+    SpecificListener le p -> guarded (le == e) p
+{-# INLINE specializeListener #-}
 
 
 -- === instances === --
 
-instance Default (LayerReg m) where def = LayerReg def def         ; {-# INLINE def #-}
-instance Default (State    m) where def = State    def def def def ; {-# INLINE def #-}
+instance Default (ListenerState m) where def = ListenerState def def         ; {-# INLINE def #-}
+instance Default (State         m) where def = State         def def def def ; {-# INLINE def #-}
 
 
 
@@ -119,37 +133,58 @@ evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 -- === Utils === --
 
-registerLayerProto :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
-registerLayerProto l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
+-- FIXME[WD]: torefactor
+emptyMap :: Prism' (Map k a) ()
+emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
+{-# INLINE emptyMap #-}
+
+-- FIXME[WD]: torefactor
+subMapAt t = non' emptyMap . at t
+
+
+registerElemEventListener :: MonadPassManager m => LayerRep -> PassRep -> ListenerDecl (GetRefHandler m) -> m ()
+registerElemEventListener l p f = modify_ $ listeners . decls . at l . subMapAt p ?~ f
+    -- where f' = flip (fmap . fmap) f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
+{-# INLINE registerElemEventListener #-}
+
+registerGenericElemEventListener :: MonadPassManager m => LayerRep -> PassRep -> Proto (Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))))) -> m ()
+registerGenericElemEventListener l p f = withDebug ("Registering event listener " <> show p <> " (* // " <> show l <> ")") $ registerElemEventListener l p (GenericListener f')
+    where f' = flip (fmap . fmap) f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
+{-# INLINE registerGenericElemEventListener #-}
+
+registerSpecificElemEventListener :: MonadPassManager m => ElemRep -> LayerRep -> PassRep -> Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+registerSpecificElemEventListener e l p f = withDebug ("Registering event listener " <> show p <> " (" <> show e <> " // " <> show l <> ")") $ registerElemEventListener l p (SpecificListener e f')
     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
-{-# INLINE registerLayerProto #-}
+{-# INLINE registerSpecificElemEventListener #-}
 
+-- registerElemEventListener' :: MonadPassManager m => LayerRep -> PassRep -> Proto (Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))))) -> m ()
+-- registerElemEventListener' = registerElemEventListener Nothing ; {-# INLINE registerElemEventListener' #-}
 
--- registerLayerProto2 :: MonadPassManager m => LayerDesc -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
--- registerLayerProto2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
+-- registerElemEventListener2 :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+-- registerElemEventListener2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
 --     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (\(DynSubPass p) -> withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running" (DynSubPass p)) df
--- {-# INLINE registerLayerProto2 #-}
+-- {-# INLINE registerElemEventListener2 #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-attachLayer :: MonadPassManager m => Int -> LayerDesc -> ElemDesc -> m ()
+attachLayer :: MonadPassManager m => Int -> LayerRep -> ElemRep -> m ()
 attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to (" <> show e <> ")") $ do
     IR.unsafeCreateNewLayer l e
     s <- get
-    let Just pproto = s ^. layers . prototypes . at l
-        dpass = Pass.specialize pproto e
-        s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
-    put s'
-    addEventListener_byPri priority (Tag [getTypeDesc @New, switchTypeDesc e]) dpass
+    let Just layerDecls = Map.elems <$> s ^. listeners . decls . at l
+        dpasses = catMaybes $ specializeListener e <$> layerDecls
+        -- s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
+    -- put s'
+    mapM_ (\(Event.Tagged (Tag es) p) -> addEventListener_byPri priority (Tag $ es <> [switchTypeDesc e]) p) dpasses
     -- TODO: register new available pass!
 {-# INLINE attachLayer #-}
 
 queryListeners :: MonadPassManager m => Event.Tag -> m [Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))]
-queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view listeners <$> get ; {-# INLINE queryListeners #-}
+queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view (listeners . hub) <$> get ; {-# INLINE queryListeners #-}
 
 
 addEventListener_byPri :: MonadPassManager m => Int -> Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
 addEventListener_byPri priority tag p = withDebug ("Attaching event listener " <> show rep <> " to " <> show tag)
-                                      $ modify_ $ (listeners %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
+                                      $ modify_ $ (listeners . hub %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
     where rep = p ^. Pass.desc . Pass.passRep
 {-# INLINE addEventListener_byPri #-}
 
@@ -157,8 +192,8 @@ addEventListener_byPri priority tag p = withDebug ("Attaching event listener " <
 addEventListenerDyn :: MonadPassManager m => Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
 addEventListenerDyn = addEventListener_byPri 100 ; {-# INLINE addEventListenerDyn #-}
 
-addEventListener :: forall path m. (Event.KnownPath path, MonadPassManager m) => Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
-addEventListener = addEventListenerDyn (Event.fromPath @path) ; {-# INLINE addEventListener #-}
+addEventListener :: forall tag m. (Event.KnownTag tag, MonadPassManager m) => Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListener = addEventListenerDyn (Event.fromPath @tag) ; {-# INLINE addEventListener #-}
 
 
 -- === Instances === --

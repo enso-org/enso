@@ -37,9 +37,9 @@ type family TagPath a where
     TagPath (a // as) = a ': TagPath as
     TagPath a         = '[a]
 
-type KnownPath path = KnownTypes (TagPath path)
-fromPath :: forall path. KnownPath path => Tag
-fromPath = Tag $ getTypeDescs @(TagPath path) ; {-# INLINE fromPath #-}
+type KnownTag tag = KnownTypes (TagPath tag)
+fromPath :: forall tag. KnownTag tag => Tag
+fromPath = Tag $ getTypeDescs @(TagPath tag) ; {-# INLINE fromPath #-}
 
 -- FIXME[WD]
 fromPathDyn :: TypeDesc -> Tag
@@ -50,12 +50,12 @@ fromPathDyn t = if con == sepType then let [l,r] = args in wrapped' %~ (wrap' l 
 {-# INLINE fromPathDyn #-}
 
 
--- = a :/// as deriving (Show)
--- (//) :: a -> as -> a // as
--- a // as = a :/// as ; {-# INLINE (//) #-}
+data Tagged a = Tagged { _eventTag :: !Tag
+                       , _content  :: !a
+                       } deriving (Show, Functor)
+makeLenses ''Tagged
 
--- tail :: a // as -> as
--- tail (_ :/// as) = as ; {-# INLINE tail #-}
+
 
 
 
