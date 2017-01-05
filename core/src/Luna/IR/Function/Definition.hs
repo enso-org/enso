@@ -54,6 +54,6 @@ importFunction (CompiledFunction (IR map) r) = do
     let importedExprs :: [SomeExpr]     = Elem . snd <$> exprTrans
         importedLinks :: [SomeExprLink] = Elem . snd <$> linkTrans
 
-    {-forM_ importedLinks $ emit . Payload @(Import // AnyExprLink) . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize-}
-    {-forM_ importedExprs $ emit . Payload @(Import // AnyExpr)     . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize-}
-    return $ r -- exprTranslator r
+    forM_ importedLinks $ emit . Payload @(Import // AnyExprLink) . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize
+    forM_ importedExprs $ emit . Payload @(Import // AnyExpr)     . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize
+    return $ exprTranslator r
