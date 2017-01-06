@@ -34,18 +34,18 @@ makePass :: Name -> Q [TH.Dec]
 makePass name = build $ do
     let passName = typeName . upperHead $ nameBase name
     VarI _ (ForallT _ ctx header) Nothing <- lift $ reify name
-    let (depth, tp) = getFuncResultAndLvl header
+    let (depth, tp)         = getFuncResultAndLvl header
+        notListenerErr      = fail $ "Function `" <> nameBase name <> "` result is not a Listener"
     base <- case tp of
         AppT (AppT (AppT (ConT n) _) base) _ -> if nameBase n == "Listener"
-                                                then return base else fail $ "Function `" <> nameBase name <> "` result is not a Listener"
-        _                                    -> fail $ "Function `" <> nameBase name <> "` result is not a Listener"
+                                                then return base else notListenerErr
+        _                                    -> notListenerErr
 
     t <- case base of
         AppT (ConT c) (VarT t) -> if nameBase c == "Elem" then return t else lift $ newName "t"
         _                      -> lift $ newName "t"
-    let aliasCheck = (== t)
-        f a = case a of
-            VarT v -> if aliasCheck v then VarT t else ConT (mkName "AnyType")
+    let f a = case a of
+            VarT v -> if t == v then VarT t else ConT (mkName "AnyType")
             _      -> ctxfold (singleFold1 f) a
         ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
         passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT t]
@@ -57,7 +57,6 @@ makePass name = build $ do
         defInputs  = defReq "Inputs"
         defOutputs = defReq "Outputs"
         defIOs lst = defInputs lst >> defOutputs lst
-    -- lift $ runIO $ print $ "!!! " <> show base
     define $ phantom passName                                                            -- data InitX
     define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitX = InitX
     mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitX t) = GetInputs  Net   (InitXCtx t AnyType)

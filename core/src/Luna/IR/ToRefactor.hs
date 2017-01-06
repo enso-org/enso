@@ -50,33 +50,12 @@ import Type.Any (AnyType)
 type GraphElems = '[AnyExpr, AnyExprLink]
 
 
-
-
-
-
-
-
-
-
-
-
-
------------------------------------------------
-
-
-
 instance {-# OVERLAPPABLE #-} TypePretty (ElemScope p t) where formatType [p,_] = [p]
-
-
-
-
-
 
 
 
 data Abstracted a
 type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
-
 
 
 
@@ -265,8 +244,7 @@ initType :: Req m '[ Writer  // Layer // AnyExpr // Type
                    , Emitter // New   // '[AnyExpr, AnyExprLink]
                    ]
          => STRefM m (Maybe (Expr Star)) -> Listener New (Expr l) m
-initType ref = listener $ \(el, _) -> flip (writeLayer @Type) el =<< consTypeLayer ref el
-{-# INLINE initType #-}
+initType ref = listener $ \(el, _) -> flip (writeLayer @Type) el =<< consTypeLayer ref el ; {-# INLINE initType #-}
 makePass 'initType
 
 watchTypeImport :: Req m '[Editor // Layer // AnyExpr // Type] => Listener Import (Expr l) m
