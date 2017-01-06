@@ -3,7 +3,6 @@
 
 module Luna.Pass.FunctionResolutionSpec where
 
-import qualified Control.Monad.State.Dependent.Old as S
 import Luna.Prelude hiding (String)
 import qualified Luna.Prelude as P
 import Test.Hspec   (Spec, describe, it, shouldBe, shouldReturn)
