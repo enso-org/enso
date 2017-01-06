@@ -83,12 +83,70 @@ makeLayerGen p name = build $ do
              (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
     return []
 
+getFuncResultAndLvl :: Type -> (Int,Type)
+getFuncResultAndLvl = getFuncResultAndLvl' 0 ; {-# INLINE getFuncResultAndLvl #-}
+
+getFuncResultAndLvl' :: Int -> Type -> (Int, Type)
+getFuncResultAndLvl' depth = \case
+    AppT (AppT ArrowT _) t -> getFuncResultAndLvl' (succ depth) t
+    t                      -> (depth, t)
+{-# INLINE getFuncResultAndLvl' #-}
+
+makeLayerGen3 :: Name -> Q [TH.Dec]
+makeLayerGen3 name = build $ do
+    let passName = typeName . upperHead $ nameBase name
+    VarI _ (ForallT _ ctx header) Nothing <- lift $ reify name
+    let (depth, tp) = getFuncResultAndLvl header
+    base <- case tp of
+        AppT (AppT (AppT (ConT n) _) base) _ -> if nameBase n == "Listener"
+                                                then return base else fail $ "Function `" <> nameBase name <> "` result is not a Listener"
+        _                                    -> fail $ "Function `" <> nameBase name <> "` result is not a Listener"
+
+    t <- case base of
+        AppT (ConT c) (VarT t) -> if nameBase c == "Elem" then return t else lift $ newName "t"
+        _                      -> lift $ newName "t"
+    let aliasCheck = (== t)
+        f a = case a of
+            VarT v -> if aliasCheck v then VarT t else ConT (mkName "AnyType")
+            _      -> ctxfold (singleFold1 f) a
+        ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
+        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT t]
+        defReqOf r t f = define $ typeInstance r
+                       [ toType $ typeName t
+                       , passHeader
+                       ] f
+        defReq r t = defReqOf r t $ apps (th . typeName $ "Get" <> r) [th $ typeName t, ctx']
+        defInputs  = defReq "Inputs"
+        defOutputs = defReq "Outputs"
+        defIOs lst = defInputs lst >> defOutputs lst
+    -- lift $ runIO $ print $ "!!! " <> show base
+    define $ phantom passName                                                            -- data InitX
+    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitX = InitX
+    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitX t) = GetInputs  Net   (InitXCtx t AnyType)
+                                                                                         -- type instance Outputs Net   (ElemScope InitX t) = GetOutputs Net   (InitXCtx t AnyType)
+                                                                                         -- ...
+    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitX t) = GetEmitters      (InitXCtx t AnyType)
+    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitX t) = '[]
+    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitX t) = '[]
+    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitX where
+             (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
+    define $ function' (nameBase name <> "Pass") $ Clause []                             -- initXPass = fmap (fmap (... [depth] tpElemPass (Proxy :: Proxy InitX))) initX
+             (NormalB (th $ app (fmapsE depth $ th $ app (th $ varName "tpElemPass") (proxyE $ th passName)) (VarE name) ))
+             []
+    return []
+
+
+fmapsE :: Int -> Exp -> Exp
+fmapsE 0 e = e
+fmapsE n e = AppE (VarE $ mkName "fmap") (fmapsE (pred n) e)
+
+proxyE t = SigE (ConE $ mkName "Proxy") $ AppT (ConT $ mkName "Proxy") (ConT t)
 
 makeLayerGen2 :: Name -> Q [TH.Dec]
 makeLayerGen2 name = build $ do
     let passName = typeName . upperHead $ nameBase name
     -- let passName = app (typeName "Init") (toTypeName p)
-    VarI _ (ForallT _ ctx _) Nothing <- lift $ reify name
+    VarI _ (ForallT _ ctx header) Nothing <- lift $ reify name
     let f a = case a of
             VarT v -> if (nameBase v) /= "t" then (ConT $ mkName "AnyType") else (VarT $ mkName "t")-- ctxfold (singleFold1 f) a
             _      -> ctxfold (singleFold1 f) a
