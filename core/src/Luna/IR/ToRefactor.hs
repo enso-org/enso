@@ -11,7 +11,7 @@ import Data.STRef    (STRef)
 
 import Luna.IR.Internal.IR
 import qualified Luna.IR.Expr.Term.Named as Term
-import qualified Luna.IR.Internal.LayerStore as Store
+import qualified Data.ManagedVectorMap as Store
 import Luna.IR.Expr.Layout.Class
 import Luna.IR.Expr.Layout.ENT
 import Luna.IR.Layer
@@ -28,7 +28,7 @@ import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, Sub
 import Data.TypeDesc
 import Data.Event (type (//), Tag(Tag), Emitter, PayloadData, Event, Emitters)
 import qualified Data.Set as Set
-import Luna.IR.Internal.LayerStore (STRef, STRefM, modifySTRef', newSTRef, readSTRef, writeSTRef)
+import Data.ManagedVectorMap (STRef, STRefM, modifySTRef', newSTRef, readSTRef, writeSTRef)
 import Luna.IR.Expr
 import Unsafe.Coerce (unsafeCoerce)
 import Luna.Pass.Manager as PM

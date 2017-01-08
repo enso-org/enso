@@ -40,8 +40,8 @@ import Data.Event as Event
 import Data.Reflection
 
 import Data.TypeVal
-import qualified Luna.IR.Internal.LayerStore as Store
-import Luna.IR.Internal.LayerStore (STRefM)
+import qualified Data.ManagedVectorMap as Store
+import Data.ManagedVectorMap (STRefM)
 import Luna.IR.Layer.UID (ID)
 
 import qualified Luna.IR.Expr.Term.Named as Term

@@ -14,8 +14,8 @@ import qualified Data.Map                  as Map
 import           Data.Map                  (Map)
 import qualified Data.Set                  as Set
 import           Data.Set                  (Set)
-import qualified Luna.IR.Internal.LayerStore as Store
-import           Luna.IR.Internal.LayerStore (LayerStoreRef, LayerStoreRefM, LayerStore)
+import qualified Data.ManagedVectorMap as Store
+import           Data.ManagedVectorMap (ManagedVectorMapRef, ManagedVectorMapRefM, ManagedVectorMap)
 import qualified GHC.Prim                    as Prim
 
 import Luna.IR.Layer
@@ -119,8 +119,8 @@ type    TypeRepGraphM  m = TypeRepGraphST (PrimState   m)
 
 
 -- type LayerSet    s = Store.VectorRef s AnyData
-type ElemStore     = LayerStore      LayerRep AnyData
-type ElemStoreST s = LayerStoreRef s LayerRep AnyData
+type ElemStore     = ManagedVectorMap      LayerRep AnyData
+type ElemStoreST s = ManagedVectorMapRef s LayerRep AnyData
 type ElemStoreM  m = ElemStoreST (PrimState m)
 
 makeWrapped ''TypeRepGraph'
@@ -332,7 +332,7 @@ xmain = do
 
 
 
--- class LayerStoreX layer s el m where
+-- class ManagedVectorMapX layer s el m where
 --     readLayerOf  :: s -> Elem el -> m (LayerData layer el)
 --     writeLayerOf :: LayerData layer el -> Elem el -> s -> m ()
 

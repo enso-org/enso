@@ -22,7 +22,7 @@ import qualified Prologue.Prim as Prim
 import Data.TypeDesc
 
 import System.Log
-import qualified Luna.IR.Internal.LayerStore as Store
+import qualified Data.ManagedVectorMap as Store
 import Luna.IR.Layer
 
 

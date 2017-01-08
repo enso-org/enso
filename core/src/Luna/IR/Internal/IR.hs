@@ -12,7 +12,6 @@ import           Luna.Prelude                 hiding (elem {- fix: -} , Enum, lo
 import qualified Luna.Prelude as Prelude
 
 import Control.Monad.State  (StateT, runStateT)
-import Luna.IR.Internal.LayerStore (LayerStoreRef, LayerStoreRefM, LayerStore)
 import Data.Map             (Map)
 import Data.Property
 import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
@@ -32,7 +31,7 @@ import Type.Error
 import Unsafe.Coerce        (unsafeCoerce)
 
 import qualified Control.Monad.State       as State
-import qualified Luna.IR.Internal.LayerStore as Store
+import qualified Data.ManagedVectorMap     as Store
 import qualified Data.Map                  as Map
 import           Data.Set                  (Set)
 import qualified Data.Set                  as Set

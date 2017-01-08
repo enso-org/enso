@@ -8,9 +8,9 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import           Data.Maybe (isJust, fromJust)
 import           Data.TypeDesc
-import qualified Luna.IR.Internal.LayerStore as Store
-import qualified Data.Vector.Unboxed         as Vector
-import           Data.Vector.Unboxed         (Vector)
+import qualified Data.ManagedVectorMap as Store
+import qualified Data.Vector.Unboxed   as Vector
+import           Data.Vector.Unboxed   (Vector)
 
 data CompiledFunction = CompiledFunction { _ir   :: IR
                                          , _root :: SomeExpr
