@@ -60,6 +60,7 @@ import qualified Data.TList as TList
 
 import Control.Concurrent
 import System.Exit
+import qualified Data.Graph.Class as Graph
 
 
 
@@ -165,18 +166,20 @@ main = do
 
     -- runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
     -- forkIO $ do
-        runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
-            (p, vis) <- Vis.newRunDiffT test_pass1
-            case p of
-                Left e -> do
-                    print "* INTERNAL ERROR *"
-                    print e
-                Right _ -> do
-                    let cfg = ByteString.unpack $ encode $ vis
-                    -- putStrLn cfg
-                    -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
-                    return ()
-            print p
+    runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
+        (p, vis) <- Vis.newRunDiffT test_pass1
+        case p of
+            Left e -> do
+                print "* INTERNAL ERROR *"
+                print e
+            Right _ -> do
+                let cfg = ByteString.unpack $ encode $ vis
+                -- putStrLn cfg
+                -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+                return ()
+        print p
+    putStrLn "\n------------\n"
+    Graph.xmain
 
     -- threadDelay 1000
     -- die "die"

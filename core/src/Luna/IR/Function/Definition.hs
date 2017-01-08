@@ -38,7 +38,7 @@ translateWith v = idx %~ Vector.unsafeIndex v
 
 importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
                => CompiledFunction -> m SomeExpr
-importFunction (CompiledFunction (IR map) r) = do
+importFunction (CompiledFunction (unwrap' -> map) r) = do
     ir      <- getIR
     exprNet <- readNet @AnyExpr
     linkNet <- readNet @AnyExprLink

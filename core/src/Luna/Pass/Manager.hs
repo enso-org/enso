@@ -315,7 +315,16 @@ instance (MonadIR m, MonadRefCache m) => MonadRefLookup Event (PassManager m) wh
                 out <- (fmap . fmap) (Ref . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.initialize =<< queryListeners (Event.fromPathDyn a)
                 return out
 
-
 fimxe2 = \case
     Left e -> Nothing
     Right a -> Just a
+
+--
+--
+-- -----------------------
+-- -- === BuildPlan === --
+-- -----------------------
+--
+-- newtype BuildPlan = BuildPlan [BuildStep]
+--
+-- data BuildStep = PassEvel
