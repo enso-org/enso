@@ -68,20 +68,13 @@ localAttr newAttr act = do
     writeAttr @attr st
     return res
 
-safeReplaceNode :: _ => SomeExpr -> SomeExpr -> SubPass BlankDesugaring m ()
-safeReplaceNode old new = do
-    b <- generalize <$> blank
-    replaceNode old b
-    replaceNode b new
-    deleteSubtree b
-
 desugar :: forall m. (MonadIR m, MonadPassManager m, _)
         => SomeExpr -> SubPass BlankDesugaring m SomeExpr
 desugar e = do
     e'      <- replaceBlanks e
     UsedVars vars    <- readAttr @UsedVars
     newExpr <- lams (map unsafeRelayout $ reverse vars) e'
-    safeReplaceNode e newExpr
+    replaceNode e newExpr
     deleteSubtree e
     return newExpr
 
@@ -100,7 +93,7 @@ replaceBlanks e = match e $ \case
     Blank -> do
         n <- genName
         v <- strVar n
-        safeReplaceNode e $ generalize v
+        replaceNode e $ generalize v
         modifyAttr $ \(UsedVars s) -> UsedVars (v:s)
         deleteSubtree e
         return $ unsafeRelayout v
