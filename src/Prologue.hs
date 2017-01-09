@@ -21,7 +21,7 @@ import qualified Prelude
 import Control.Applicative        as X
 import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
 import Control.Error.Util         as X (isLeft, isRight)
-import Control.Error.Safe         as X
+import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
 import Control.Exception.Base     as X (assert)
 import Control.Lens               as X
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -45,7 +45,7 @@ import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, fol
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
 import Data.Impossible            as X
-import Data.Layer_OLD                 as X
+import Data.Layer_OLD             as X
 --import Data.Layer_OLD.Cover_OLD           as X
 import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
@@ -74,7 +74,7 @@ import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
 import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
 import Unsafe.Coerce              as X (unsafeCoerce)
 import Prologue.Data.Typeable     as X
-
+import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
 -- Tuple handling
 import Prologue.Data.Tuple        as X
 
