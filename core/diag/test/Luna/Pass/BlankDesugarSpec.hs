@@ -82,6 +82,7 @@ desugar e = do
     UsedVars vars    <- readAttr @UsedVars
     newExpr <- lams (map unsafeRelayout $ reverse vars) e'
     safeReplaceNode e newExpr
+    deleteSubtree e
     return newExpr
 
 modifyAttr :: forall attr pass m. _ => (_ -> _) -> SubPass pass m ()
@@ -151,23 +152,23 @@ noBlankLeftBehind = do
 
 desugarsTo :: _ => _ -> _ -> Expectation
 desugarsTo test expected = do
-    (res, coherence, blanks) <- withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    (res, coherence, blanks, orphans) <- withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         setAttr (getTypeDesc @UniqueNameGen) $ UniqueNameGen ("obscureName", (0::Int))
         setAttr (getTypeDesc @UsedVars) $ UsedVars []
         Right x <- Pass.eval' test
-        void $ Pass.eval' $ snapshotVis "start"
         Right desugared <- Pass.eval' $ desugar $ generalize x
+        void $ Pass.eval' $ snapshotVis "desugar"
+        Right orphans   <- Pass.eval' @BlankDesugaring $ checkUnreachableExprs [desugared]
         Right coherence <- Pass.eval' @BlankDesugaring checkCoherence
         Right blanks    <- Pass.eval' noBlankLeftBehind
-        void $ Pass.eval' $ snapshotVis "desugar"
         Right expected' <- Pass.eval' expected
-        void $ Pass.eval' $ snapshotVis "expected"
         Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass BlankDesugaring _) (unsafeRelayout expected') (unsafeRelayout desugared)
-        return (result, coherence, blanks)
+        return (result, coherence, blanks, orphans)
     res `shouldBe` True
     coherence `shouldSatisfy` null
     blanks `shouldBe` False
+    orphans `shouldSatisfy` null
 
 replacesTo :: _ => _ -> _ -> Expectation
 replacesTo test expected = do
