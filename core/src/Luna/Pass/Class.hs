@@ -33,7 +33,7 @@ import Data.TList (TList)
 import qualified Data.TList as TList
 import qualified Data.Map as Map
 import           Data.Map (Map)
-
+import Control.Monad.Raise
 
 
 proxify :: a -> Proxy a

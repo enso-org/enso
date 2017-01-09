@@ -64,6 +64,7 @@ import qualified Data.Graph.Class as Graph
 
 
 
+
 data SimpleAA
 type instance Abstract SimpleAA = SimpleAA
 type instance Inputs  Net   SimpleAA = '[AnyExpr]
@@ -180,6 +181,7 @@ main = do
         print p
     putStrLn "\n------------\n"
     Graph.xmain
+
 
     -- threadDelay 1000
     -- die "die"
