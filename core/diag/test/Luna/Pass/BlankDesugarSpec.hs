@@ -188,24 +188,24 @@ fooBlank7 = do
     foo <- strVar "foo"
     b <- blank
     seven <- integer (7::Int)
-    app1 <- app b (arg seven)
-    app foo (arg app1)
+    app1 <- app foo (arg b)
+    app app1 (arg seven)
 
 fooBlank7Replaced :: _ => SubPass BlankDesugaring _ _
 fooBlank7Replaced = do
     foo <- strVar "foo"
     v <- strVar obscureName
     seven <- integer (7::Int)
-    app1 <- app v (arg seven)
-    app foo (arg app1)
+    app1 <- app foo (arg v)
+    app app1 (arg seven)
 
 fooBlank7Expected :: _ => SubPass BlankDesugaring _ _
 fooBlank7Expected = do
     foo <- strVar "foo"
     v <- strVar obscureName
     seven <- integer (7::Int)
-    app1 <- app v (arg seven)
-    app2 <- app foo (arg app1)
+    app1 <- app foo (arg v)
+    app2 <- app app1 (arg seven)
     lam (arg v) app2
 
 fooBlank :: _ => SubPass BlankDesugaring _ _
