@@ -5,13 +5,14 @@ module Luna.Pass.DiscoverySpec (spec) where
 
 import qualified Prelude as P
 import Luna.Prelude hiding (String)
-import Test.Hspec   (Spec, describe, it, shouldReturn)
+import Test.Hspec
 
 import           Luna.IR
 import           Luna.Pass (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass        as Pass
 import           System.Log
-
+import           Luna.TestUtils
+import Control.Monad.Raise
 
 data DiscoveryPass
 type instance Abstract         DiscoveryPass = DiscoveryPass
@@ -38,8 +39,8 @@ sanityPass = do
             match nameNode $ \case
                 String s -> return s
 
-testCase :: (PrimMonad m, MonadFix m, MonadIO m) => m (Either Pass.InternalError P.String)
-testCase = dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+testCase :: (PrimMonad m, MonadFix m, MonadIO m) => m (Either SomeException P.String)
+testCase = tryAll $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' sanityPass
 
@@ -47,4 +48,4 @@ spec :: Spec
 spec = do
     describe "Discovery Pass" $ do
         it "Preserves basic sanity" $ do
-            testCase `shouldReturn` (Right "hello")
+            flip withRight (`shouldBe` "hello") =<< testCase

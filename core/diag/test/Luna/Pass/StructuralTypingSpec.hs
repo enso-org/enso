@@ -14,6 +14,7 @@ import Luna.IR
 import Luna.IR.Function
 import Luna.IR.Expr.Combinators
 import System.Log
+import Control.Monad.Raise
 
 data StructuralTyping
 type instance Abstract StructuralTyping = StructuralTyping
@@ -78,6 +79,7 @@ attachStructuralType expr = do
 assignStructuralType :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass StructuralTyping m ()
 assignStructuralType = (unwrap <$> readAttr @CurrentRoot) >>= getStructuralType >> return ()
 
+-- test1 :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass TestPass m SomeExpr
 test1 = do
     vfoo <- strVar "foo"
     bar  <- string "bar"
@@ -86,6 +88,7 @@ test1 = do
     ap   <- app ac (arg vbaz)
     return $ unsafeGeneralize ap
 
+-- result1 :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass TestPass m SomeExpr
 result1 = do
     a0 <- strVar "a0"
     a1 <- strVar "a1"
@@ -96,16 +99,16 @@ result1 = do
 
 typesAs :: _ => _ -> _ -> Expectation
 typesAs test expect = do
-    (res, coh) <- dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    Right (res, coh) <- tryAll $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
-        Right (root :: SomeExpr) <- Pass.eval' @TestPass test
+        (root :: SomeExpr) <- Pass.eval' @TestPass test
         setAttr (getTypeDesc @FreshVars)   $ FreshVars "a" 0
         setAttr (getTypeDesc @CurrentRoot) $ root
         Pass.eval' assignStructuralType
-        Right resTp  <- Pass.eval' @TestPass $ fmap unsafeGeneralize $ readLayer @Type root >>= source
-        Right exRoot <- Pass.eval' @TestPass expect
-        Right res    <- Pass.eval' @TestPass $ areExpressionsIsomorphic resTp exRoot
-        Right coh    <- Pass.eval' @TestPass $ checkCoherence
+        resTp  <- Pass.eval' @TestPass $ fmap unsafeGeneralize $ readLayer @Type root >>= source
+        exRoot <- Pass.eval' @TestPass expect
+        res    <- Pass.eval' @TestPass $ areExpressionsIsomorphic resTp exRoot
+        coh    <- Pass.eval' @TestPass $ checkCoherence
         return (res, coh)
     res `shouldBe` True
     coh `shouldBe` []

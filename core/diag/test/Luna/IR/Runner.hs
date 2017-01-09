@@ -12,6 +12,7 @@ import           Web.Browser                (openBrowser)
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 import Data.Aeson                           (encode)
 import System.Log.Logger.Format (nestedColorFormatter)
+import Control.Monad.Raise
 
 
 data TestPass
@@ -27,24 +28,24 @@ type instance Outputs Event TestPass = '[New // AnyExpr, New // AnyExprLink, Del
 type instance Preserves     TestPass = '[]
 
 
-runGraph :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (RefCache (Logger DropLogger m)))))
-              => SubPass pass (PassManager (IRBuilder (RefCache (Logger DropLogger m)))) a -> m (Either Pass.InternalError a)
-runGraph p = dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+runGraph :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (RefCache (Logger DropLogger (ExceptT' m))))))
+              => SubPass pass (PassManager (IRBuilder (RefCache (Logger DropLogger (ExceptT' m))))) a -> m (Either SomeException a)
+runGraph p = tryAll $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 
 -- runLoggedGraph :: (pass ~ TestPass, MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass)
---                => SubPass pass (PassManager (IRBuilder (RefCache _))) a -> m (Either Pass.InternalError a)
-runLoggedGraph (eqTTestPass -> p) = runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+--                => SubPass pass (PassManager (IRBuilder (RefCache _))) a -> m (Either SomeException a)
+runLoggedGraph (eqTTestPass -> p) = tryAll $ runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 
 eqTTestPass :: SubPass TestPass m a -> SubPass TestPass m a
 eqTTestPass = id
 
-runGraph' :: (MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger m))))
-              => SubPass pass (PassManager (IRBuilder (RefCache (Logger DropLogger m)))) a -> m (Either Pass.InternalError a)
-runGraph' p = dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+runGraph' :: (MonadIO m, MonadFix m, PrimMonad m, Pass.KnownDescription pass, Pass.PassInit pass (PassManager (IRBuilder (Logger DropLogger (ExceptT' m)))))
+              => SubPass pass (PassManager (IRBuilder (RefCache (Logger DropLogger (ExceptT' m))))) a -> m (Either SomeException a)
+runGraph' p = tryAll $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' p
 
