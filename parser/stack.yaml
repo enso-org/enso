@@ -17,7 +17,7 @@ packages:
 - extra-dep: true
   location: {commit: 211164cbb214790b26fb5bac7f2771d18c1b9574, git: 'https://github.com/luna/data-construction.git'}
 - extra-dep: true
-  location: {commit: 8cd6c328b9d06344ed529bb3bcebbf27e8afbc23, git: 'https://github.com/luna/data-layer.git'}
+  location: {commit: 62aebd5ecb6ea873ce8db4cc230d156126cd82ee, git: 'https://github.com/luna/data-layer.git'}
 - extra-dep: true
   location: {commit: c20f35c8e2f25fd84df385e8646b125d9fca8ac4, git: 'https://github.com/luna/data-repr.git'}
 - extra-dep: true
@@ -33,7 +33,7 @@ packages:
 - extra-dep: true
   location: {commit: 53538017ad47a0a473233577595d8ac6e3eae9a0, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: b5eb5acaa91daf5f2a31c377169d69e2e81db78d, git: 'https://github.com/luna/prologue.git'}
+  location: {commit: 773179796be933097e3c1468c16307f8015e6a1d, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
   location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
