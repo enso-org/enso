@@ -5,7 +5,7 @@
 
 module Luna.Pass.BlankDesugarSpec (spec) where
 
-import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, setAttr3)
+import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
 
 import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
@@ -29,7 +29,7 @@ newtype UsedVars = UsedVars [Expr $ Var #> String]
 genName :: (MonadIR m) => SubPass BlankDesugaring m P.String
 genName = do
     UniqueNameGen (base, number) <- readAttr
-    setAttr3 $ UniqueNameGen (base, number + 1)
+    writeAttr $ UniqueNameGen (base, number + 1)
     return $ '^' : base ++ show number
 
 obscureName :: P.String
@@ -63,9 +63,9 @@ blankDotFooExpected = do
 localAttr :: forall attr pass m a. _ => _ -> SubPass pass m a -> SubPass pass m a
 localAttr newAttr act = do
     st <- readAttr @attr
-    setAttr3 @attr newAttr
+    writeAttr @attr newAttr
     res <- act
-    setAttr3 @attr st
+    writeAttr @attr st
     return res
 
 safeReplaceNode :: _ => SomeExpr -> SomeExpr -> SubPass BlankDesugaring m ()
@@ -87,7 +87,7 @@ desugar e = do
 modifyAttr :: forall attr pass m. _ => (_ -> _) -> SubPass pass m ()
 modifyAttr f = do
     st <- readAttr @attr
-    setAttr3 @attr $ f st
+    writeAttr @attr $ f st
 
 replaceBlanks :: forall m. (MonadIR m, MonadPassManager m)
               => SomeExpr -> SubPass BlankDesugaring m SomeExpr
@@ -153,10 +153,10 @@ desugarsTo :: _ => _ -> _ -> Expectation
 desugarsTo test expected = do
     (res, coherence, blanks) <- withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
-        Right x <- Pass.eval' test
-        void $ Pass.eval' $ snapshotVis "start"
         setAttr (getTypeDesc @UniqueNameGen) $ UniqueNameGen ("obscureName", (0::Int))
         setAttr (getTypeDesc @UsedVars) $ UsedVars []
+        Right x <- Pass.eval' test
+        void $ Pass.eval' $ snapshotVis "start"
         Right desugared <- Pass.eval' $ desugar $ generalize x
         Right coherence <- Pass.eval' @BlankDesugaring checkCoherence
         Right blanks    <- Pass.eval' noBlankLeftBehind
@@ -173,9 +173,9 @@ replacesTo :: _ => _ -> _ -> Expectation
 replacesTo test expected = do
     res <- dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
-        Right x <- Pass.eval' test
         setAttr (getTypeDesc @UniqueNameGen) $ UniqueNameGen ("obscureName", (0::Int))
         setAttr (getTypeDesc @UsedVars) $ UsedVars []
+        Right x <- Pass.eval' test
         Right desugared <- Pass.eval' $ replaceBlanks $ generalize x
         Right expected' <- Pass.eval' $ expected
         Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected') (unsafeRelayout desugared)
