@@ -163,18 +163,18 @@ makeLenses ''RefStore
 type PassConstruction m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRefLookup Attr m, MonadRefLookup Event m)
 
 lookupRefStore :: forall pass m. PassConstruction m
-               => Description -> m (Maybe (RefStore' m pass))
-lookupRefStore desc = RefStore <<$>> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. outputs . at (getTypeDesc @Net)))
-                               <<*>> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. outputs . at (getTypeDesc @Layer)))
-                               <<*>> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. outputs . at (getTypeDesc @Attr)))
-                               <<*>> lookupDataStore @Event @pass @m (desc ^. events)
+               => Description -> m (RefStore' m pass)
+lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. outputs . at (getTypeDesc @Net)))
+                               <*> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. outputs . at (getTypeDesc @Layer)))
+                               <*> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. outputs . at (getTypeDesc @Attr)))
+                               <*> lookupDataStore @Event @pass @m (desc ^. events)
     where fromJust (Just a) = a
-          lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeDesc] -> m (Maybe (TList (DataStore k pass (GetRefHandler m))))
-          lookupDataStore ts = unsafeCoerce <<$>> unsafeLookupData @k @m ts
+          lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeDesc] -> m (TList (DataStore k pass (GetRefHandler m)))
+          lookupDataStore ts = unsafeCoerce <$> unsafeLookupData @k @m ts
 
-          unsafeLookupData :: forall k m. MonadRefLookup k m => [TypeDesc] -> m (Maybe Prim.Any)
-          unsafeLookupData []       = return $ return $ unsafeCoerce ()
-          unsafeLookupData (t : ts) = unsafeCoerce .: (,) <<$>> IR.uncheckedLookupRef @k t <<*>> unsafeLookupData @k ts
+          unsafeLookupData :: forall k m. MonadRefLookup k m => [TypeDesc] -> m Prim.Any
+          unsafeLookupData []       = return $ unsafeCoerce ()
+          unsafeLookupData (t : ts) = unsafeCoerce .: (,) <$> IR.uncheckedLookupRef @k t <*> unsafeLookupData @k ts
 
 
 -- === Ref lookup === --
@@ -262,7 +262,7 @@ instance Show (Proto a) where show _ = "Proto" ; {-# INLINE show #-}
 -- === Uninitialized passes === --
 ----------------------------------
 
-newtype Uninitialized m a = Uninitialized { initialize :: m (Either InternalError a) } deriving (Functor)
+newtype Uninitialized m a = Uninitialized { initialize :: m a } deriving (Functor)
 
 instance Show (Uninitialized m a) where show _ = "Uninitialized" ; {-# INLINE show #-}
 
@@ -290,26 +290,23 @@ compileTemplate :: forall pass m a. PassInit pass m
                 => Template (SubPass pass m a) -> Uninitialized m (Template (DynSubPass m a))
 compileTemplate (Template t) = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
-        fmap (\d -> Template $ \arg -> DynSubPass $ State.evalStateT (unwrap' $ t arg) d) <$> (fromJust desc <$> lookupRefStore @pass desc)
-    where fromJust t (Just a) = Right a
-          fromJust t Nothing = error $ "!!!" <> show t
-          desc = passDescription @pass
+        (\d -> Template $ \arg -> DynSubPass $ State.evalStateT (unwrap' $ t arg) d) <$> lookupRefStore @pass desc
+    where desc = passDescription @pass
 {-# INLINE compileTemplate #-}
 
 compile :: forall pass m a. PassInit pass m
         => SubPass pass m a -> Uninitialized m (DynSubPass m a)
 compile t = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
-        fmap (\d -> DynSubPass $ State.evalStateT (unwrap' t) d) <$> (fromJust <$> lookupRefStore @pass desc)
-    where fromJust (Just a) = Right a
-          desc = passDescription @pass
+        (\d -> DynSubPass $ State.evalStateT (unwrap' t) d) <$> lookupRefStore @pass desc
+    where desc = passDescription @pass
 {-# INLINE compile #-}
 
 
-eval :: Monad m => Uninitialized m (DynSubPass m a) -> m (Either InternalError a)
-eval = join . fmap (sequence . fmap runDynPass) . initialize ; {-# INLINE eval #-}
+eval :: Monad m => Uninitialized m (DynSubPass m a) -> m a
+eval = join . fmap runDynPass . initialize ; {-# INLINE eval #-}
 
-eval' :: PassInit pass m => SubPass pass m a -> m (Either InternalError a)
+eval' :: PassInit pass m => SubPass pass m a -> m a
 eval' = eval . compile ; {-# INLINE eval' #-}
 
 

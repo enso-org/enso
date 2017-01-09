@@ -62,7 +62,7 @@ import Control.Concurrent
 import System.Exit
 import qualified Data.Graph.Class as Graph
 
-
+import Control.Monad.Raise
 
 
 data SimpleAA
@@ -81,7 +81,7 @@ type instance Preserves     SimpleAA = '[]
 pass1 :: (MonadFix m, MonadIO m, MonadIR m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m) => m (Either Pass.InternalError ())
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Throws RefLookupError m) => m ()
 test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1
@@ -160,6 +160,7 @@ gen_pass1 = do
 --
 
 
+
 main :: HasCallStack => IO ()
 main = do
 
@@ -168,7 +169,7 @@ main = do
     -- runTaggedLogging $ runEchoLogger $ plain $ runFormatLogger nestedReportedFormatter $ do
     -- forkIO $ do
     runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
-        (p, vis) <- Vis.newRunDiffT test_pass1
+        (p, vis) <- Vis.newRunDiffT $ tryAll test_pass1
         case p of
             Left e -> do
                 print "* INTERNAL ERROR *"
@@ -178,7 +179,7 @@ main = do
                 -- putStrLn cfg
                 -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
                 return ()
-        print p
+        -- print p
     putStrLn "\n------------\n"
     Graph.xmain
 

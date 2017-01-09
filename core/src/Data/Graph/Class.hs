@@ -310,7 +310,7 @@ type family Refs k as m where
 
 class Monad m => MonadRefLookup k m where
     uncheckedLookupRef :: forall a. TypeDesc {- the type of `a` -}
-                       -> m (Maybe (Ref' k a m))
+                       -> m (Ref' k a m)
 
 
 

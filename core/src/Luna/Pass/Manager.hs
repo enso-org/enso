@@ -25,6 +25,7 @@ import System.Log
 import qualified Data.ManagedVectorMap as Store
 import Luna.IR.Layer
 
+import Control.Monad.Raise
 
 
 type Cache = Map (TypeDesc,TypeDesc) Prim.Any
@@ -93,11 +94,12 @@ makeWrapped ''PassManager
 -- === MonadPassManager === --
 type MonadPassManager m = (MonadPassManager' m, MonadPassManager' (GetRefHandler m))
 
-class (MonadIR m, MonadRef m, PassConstruction m) => MonadPassManager' m where
+type MonadPassManagerCtx m = (MonadIR m, MonadRef m, PassConstruction m)
+class MonadPassManagerCtx m => MonadPassManager' m where
     get :: m (RefState m)
     put :: RefState m -> m ()
 
-instance (MonadIR m, MonadRefCache m) => MonadPassManager' (PassManager m) where
+instance (MonadPassManagerCtx (PassManager m), Monad m) => MonadPassManager' (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
 
@@ -277,6 +279,10 @@ instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadRefCache
     putCache = lift . putCache
 
 
+
+data RefLookupError = RefLookupError deriving (Show)
+instance Exception RefLookupError
+
 -- === Instances === --
 
 -- Primitive
@@ -287,37 +293,33 @@ instance PrimMonad m => PrimMonad (RefCache m) where
 
 instance MonadLogging m => MonadLogging (RefCache m)
 
-instance (MonadIR m, MonadRefCache m) => MonadRefLookup Attr (PassManager m) where
-    uncheckedLookupRef a = fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) <$> get ; {-# INLINE uncheckedLookupRef #-}
+instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Attr (PassManager m) where
+    uncheckedLookupRef a = tryJust RefLookupError . fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) =<< get ; {-# INLINE uncheckedLookupRef #-}
 
-instance MonadIR m => MonadRefLookup Layer (PassManager m) where
+instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef t = do
         ir <- getIR
         let (_,[e,l]) = splitTyConApp t -- dirty typrep of (e // l) extraction
             mlv = ir ^? wrapped' . ix (fromTypeDesc e)
         mr <- liftRefHandler $ mapM (Store.readKey (fromTypeDesc l)) mlv
-        return $ wrap' <$> join mr
+        wrap' <$> tryJust RefLookupError (join mr)
     {-# INLINE uncheckedLookupRef #-}
 
-instance MonadIR m => MonadRefLookup Net (PassManager m) where
-    uncheckedLookupRef a = fmap wrap' . (^? (wrapped' . ix (fromTypeDesc a))) <$> liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
+instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Net (PassManager m) where
+    uncheckedLookupRef a = tryJust RefLookupError . fmap wrap' . (^? (wrapped' . ix (fromTypeDesc a))) =<< liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
-instance (MonadIR m, MonadRefCache m) => MonadRefLookup Event (PassManager m) where
+instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Event (PassManager m) where
     uncheckedLookupRef a = do
         let ckey = (getTypeDesc @Event, a)
         c <- getCache
         case c ^. at ckey of
             Just v  -> do
-                return $ Just $ unsafeCoerce v
+                return $ unsafeCoerce v
             Nothing -> mdo
-                putCache $ c & at ckey .~ Just (unsafeCoerce $ fromJust out) -- this fromJust is safe. It will be used as a cache only if everything else succeeds
-                out <- (fmap . fmap) (Ref . fmap sequence_ . sequence) . fmap (fimxe2 . sequence) . sequence . fmap Pass.initialize =<< queryListeners (Event.fromPathDyn a)
+                putCache $ c & at ckey .~ Just (unsafeCoerce out)
+                out <- fmap (Ref . fmap sequence_) . fmap sequence . sequence . fmap Pass.initialize =<< queryListeners (Event.fromPathDyn a)
                 return out
-
-fimxe2 = \case
-    Left e -> Nothing
-    Right a -> Just a
 
 
 -- -----------------------

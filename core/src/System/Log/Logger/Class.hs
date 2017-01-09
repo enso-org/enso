@@ -10,8 +10,8 @@ import           Control.Monad.Trans.Identity (IdentityT)
 import           Control.Monad.Error.Class    (MonadError)
 import           Control.Monad.Cont.Class     (MonadCont)
 import           Control.Monad.Catch          (MonadThrow, MonadCatch)
-import Control.Monad.Trans.Maybe (MaybeT)
-
+import           Control.Monad.Trans.Maybe    (MaybeT)
+import           Control.Monad.Trans.Except   (ExceptT)
 
 --------------------
 -- === Logger === --
@@ -57,6 +57,7 @@ instance (MonadTrans (Logger l), Monad (Logger l m), PrimMonad m)
 instance MonadLogging m => MonadLogging (StateT s  m)
 instance MonadLogging m => MonadLogging (IdentityT m)
 instance MonadLogging m => MonadLogging (MaybeT    m)
+instance MonadLogging m => MonadLogging (ExceptT e m)
 
 
 

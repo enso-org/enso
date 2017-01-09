@@ -45,6 +45,9 @@ rethrow = handle throwM ; {-# INLINE rethrow #-}
 rethrowAll :: MonadThrow m => ExceptT' m a -> m a
 rethrowAll = rethrow ; {-# INLINE rethrowAll #-}
 
+tryAll :: ExceptT' m a -> m (Either SomeException a)
+tryAll = runExceptT ; {-# INLINE tryAll #-}
+
 
 -- === Throws === --
 
