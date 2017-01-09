@@ -42,6 +42,8 @@ import Data.Reflection (Reifies)
 import Luna.Pass.Sugar
 
 import Type.Any (AnyType)
+import Control.Monad.Raise
+
 
 ---------------------------------------
 -- Some important utils
@@ -266,7 +268,7 @@ init4 = do
 -------------------------------------------
 -------------------------------------------
 
-runRegs :: MonadPassManager m => m ()
+runRegs :: (MonadPassManager m, Throws IRError m) => m ()
 runRegs = do
     runElemRegs
 

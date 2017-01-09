@@ -81,7 +81,7 @@ type instance Preserves     SimpleAA = '[]
 pass1 :: (MonadFix m, MonadIO m, MonadIR m, MonadVis m, MonadPassManager m) => Pass SimpleAA m
 pass1 = gen_pass1
 
-test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Throws RefLookupError m) => m ()
+test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Throws '[RefLookupError, IRError] m) => m ()
 test_pass1 = runRefCache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs
     Pass.eval' pass1

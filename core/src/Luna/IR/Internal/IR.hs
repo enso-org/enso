@@ -49,6 +49,8 @@ import Type.Bool (And)
 import System.Log (MonadLogging, Logging, withDebugBy)
 import           Control.Monad.Trans.Maybe (MaybeT)
 import Data.Graph.Class as X (Net, TypeRepGraph, GetRefHandler, Elem(Elem), TypeRepGraphM, MonadRefState, TypeRepVectorMapST, RefData, ElemRep, TypeRepVectorMapM, GraphElem, RefData', Ref(Ref), Refs, MonadRefLookup, uncheckedLookupRef, putRef, freeze, thaw, idx, getRefData, getRef, putRefData)
+import Control.Monad.Raise
+
 
 type EqPrimStates m n = (PrimState m ~ PrimState n)
 
@@ -136,6 +138,12 @@ type IRM m = TypeRepGraphM m
 type IR    = TypeRepGraph
 
 type LayerSet    s = Store.VectorRef s AnyData
+
+
+-- === Errors === --
+
+data IRError = ElemLookupError ElemRep deriving (Show)
+instance Exception IRError
 
 
 -----------------------
@@ -251,10 +259,10 @@ registerElemWith = modifyIRM_ . modifyElem (getTypeDesc @el) ; {-# INLINE regist
 registerElem :: forall el m. (KnownType el, MonadIR m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-unsafeCreateNewLayer :: MonadIR m => LayerRep -> ElemRep -> m ()
+unsafeCreateNewLayer :: (MonadIR m, Throws IRError m) => LayerRep -> ElemRep -> m ()
 unsafeCreateNewLayer l e = do
     s <- getIR
-    let Just estore = s ^? wrapped' . ix e -- FIXME[WD]: Internal error if not found (element not registered)
+    estore <- tryJust (ElemLookupError e) $ s ^? wrapped' . ix e
     Store.unsafeAddKey l estore
 {-# INLINE unsafeCreateNewLayer #-}
 
@@ -262,6 +270,7 @@ unsafeCreateNewLayer l e = do
 -- === Instances === --
 
 instance MonadLogging m => MonadLogging (IRBuilder m)
+
 
 
 

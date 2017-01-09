@@ -168,7 +168,7 @@ registerSpecificElemEventListener e l p f = withDebug ("Registering event listen
 -- {-# INLINE registerElemEventListener2 #-}
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-attachLayer :: MonadPassManager m => Int -> LayerRep -> ElemRep -> m ()
+attachLayer :: (MonadPassManager m, Throws IRError m) => Int -> LayerRep -> ElemRep -> m ()
 attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to (" <> show e <> ")") $ do
     IR.unsafeCreateNewLayer l e
     s <- get
@@ -280,8 +280,11 @@ instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadRefCache
 
 
 
-data RefLookupError = RefLookupError deriving (Show)
+-- FIXME: Refactor errors vvv
+
+data RefLookupError = RefLookupError TypeDesc TypeDesc deriving (Show)
 instance Exception RefLookupError
+
 
 -- === Instances === --
 
@@ -294,7 +297,7 @@ instance PrimMonad m => PrimMonad (RefCache m) where
 instance MonadLogging m => MonadLogging (RefCache m)
 
 instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Attr (PassManager m) where
-    uncheckedLookupRef a = tryJust RefLookupError . fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) =<< get ; {-# INLINE uncheckedLookupRef #-}
+    uncheckedLookupRef a = tryJust (RefLookupError (getTypeDesc @Attr) a) . fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) =<< get ; {-# INLINE uncheckedLookupRef #-}
 
 instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef t = do
@@ -302,11 +305,11 @@ instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Layer (PassManag
         let (_,[e,l]) = splitTyConApp t -- dirty typrep of (e // l) extraction
             mlv = ir ^? wrapped' . ix (fromTypeDesc e)
         mr <- liftRefHandler $ mapM (Store.readKey (fromTypeDesc l)) mlv
-        wrap' <$> tryJust RefLookupError (join mr)
+        wrap' <$> tryJust (RefLookupError (getTypeDesc @Layer) t) (join mr)
     {-# INLINE uncheckedLookupRef #-}
 
 instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Net (PassManager m) where
-    uncheckedLookupRef a = tryJust RefLookupError . fmap wrap' . (^? (wrapped' . ix (fromTypeDesc a))) =<< liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
+    uncheckedLookupRef a = tryJust (RefLookupError (getTypeDesc @Net) a) . fmap wrap' . (^? (wrapped' . ix (fromTypeDesc a))) =<< liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
 
 
 instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Event (PassManager m) where
