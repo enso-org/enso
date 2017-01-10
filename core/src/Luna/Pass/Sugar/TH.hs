@@ -1,8 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeInType #-}
--- {-# LANGUAGE CPP #-}
--- {-# LANGUAGE NoMonomorphismRestriction #-}
--- {-# LANGUAGE NoRecursiveDo #-}
 
 module Luna.Pass.Sugar.TH where
 
@@ -24,15 +21,34 @@ upperHead :: String -> String
 upperHead (c:cs) = Char.toUpper c : cs
 
 
+getFuncResultAndLvl :: Type -> (Int,Type)
+getFuncResultAndLvl = getFuncResultAndLvl' 0 ; {-# INLINE getFuncResultAndLvl #-}
+
+getFuncResultAndLvl' :: Int -> Type -> (Int, Type)
+getFuncResultAndLvl' depth = \case
+    AppT (AppT ArrowT _) t -> getFuncResultAndLvl' (succ depth) t
+    t                      -> (depth, t)
+{-# INLINE getFuncResultAndLvl' #-}
+
 makePass :: Name -> Q [TH.Dec]
 makePass name = build $ do
     let passName = typeName . upperHead $ nameBase name
-    VarI _ (ForallT _ ctx (AppT (AppT (AppT (AppT (ConT _) _) _) (AppT _ (VarT elemt))) (VarT m))) Nothing <- lift $ reify name
+    VarI _ (ForallT _ ctx header) Nothing <- lift $ reify name
+    let (depth, tp)         = getFuncResultAndLvl header
+        notListenerErr      = fail $ "Function `" <> nameBase name <> "` result is not a Listener"
+    base <- case tp of
+        AppT (AppT (AppT (ConT n) _) base) _ -> if nameBase n == "Listener"
+                                                then return base else notListenerErr
+        _                                    -> notListenerErr
+
+    t <- case base of
+        AppT (ConT c) (VarT t) -> if nameBase c == "Elem" then return t else lift $ newName "t"
+        _                      -> lift $ newName "t"
     let f a = case a of
-            VarT v -> if v /= elemt then (ConT $ mkName "AnyType") else ctxfold (singleFold1 f) a
+            VarT v -> if t == v then VarT t else ConT (mkName "AnyType")
             _      -> ctxfold (singleFold1 f) a
         ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
-        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT elemt]
+        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT t]
         defReqOf r t f = define $ typeInstance r
                        [ toType $ typeName t
                        , passHeader
@@ -41,109 +57,28 @@ makePass name = build $ do
         defInputs  = defReq "Inputs"
         defOutputs = defReq "Outputs"
         defIOs lst = defInputs lst >> defOutputs lst
-    -- define $ phantom passName                                                            -- data InitModel
-    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitModel = InitModel
-    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitModel t) = GetInputs  Net   (InitModelCtx t AnyType)
-                                                                                         -- type instance Outputs Net   (ElemScope InitModel t) = GetOutputs Net   (InitModelCtx t AnyType)
+    define $ phantom passName                                                            -- data InitX
+    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitX = InitX
+    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitX t) = GetInputs  Net   (InitXCtx t AnyType)
+                                                                                         -- type instance Outputs Net   (ElemScope InitX t) = GetOutputs Net   (InitXCtx t AnyType)
                                                                                          -- ...
-    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitModel t) = GetEmitters      (InitModelCtx t AnyType)
-    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitModel t) = '[]
-    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitModel t) = '[]
-    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitModel where
+    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitX t) = GetEmitters      (InitXCtx t AnyType)
+    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitX t) = '[]
+    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitX t) = '[]
+    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitX where
              (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
-    return []
-
-makeLayerGen :: Name -> Name -> Q [TH.Dec]
-makeLayerGen p name = build $ do
-    -- let passName = typeName . upperHead $ nameBase name
-    let passName = app (typeName "Init") (toTypeName p)
-    VarI _ (ForallT _ ctx _) Nothing <- lift $ reify name
-    let f a = case a of
-            VarT v -> if (nameBase v) /= "t" then (ConT $ mkName "AnyType") else (VarT $ mkName "t")-- ctxfold (singleFold1 f) a
-            _      -> ctxfold (singleFold1 f) a
-        ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
-        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT $ mkName "t"]
-        defReqOf r t f = define $ typeInstance r
-                       [ toType $ typeName t
-                       , passHeader
-                       ] f
-        defReq r t = defReqOf r t $ apps (th . typeName $ "Get" <> r) [th $ typeName t, ctx']
-        defInputs  = defReq "Inputs"
-        defOutputs = defReq "Outputs"
-        defIOs lst = defInputs lst >> defOutputs lst
-    -- define $ phantom passName                                                            -- data InitModel
-    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitModel = InitModel
-    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitModel t) = GetInputs  Net   (InitModelCtx t AnyType)
-                                                                                         -- type instance Outputs Net   (ElemScope InitModel t) = GetOutputs Net   (InitModelCtx t AnyType)
-                                                                                         -- ...
-    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitModel t) = GetEmitters      (InitModelCtx t AnyType)
-    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitModel t) = '[]
-    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitModel t) = '[]
-    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitModel where
-             (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
+    define $ function' (nameBase name <> "Pass") $ Clause []                             -- initXPass = fmap (fmap (... [depth] tpElemPass (Proxy :: Proxy InitX))) initX
+             (NormalB (th $ app (fmapsE depth $ th $ app (th $ varName "tpElemPass") (proxyE $ th passName)) (VarE name) ))
+             []
     return []
 
 
-makeLayerGen2 :: Name -> Q [TH.Dec]
-makeLayerGen2 name = build $ do
-    let passName = typeName . upperHead $ nameBase name
-    -- let passName = app (typeName "Init") (toTypeName p)
-    VarI _ (ForallT _ ctx _) Nothing <- lift $ reify name
-    let f a = case a of
-            VarT v -> if (nameBase v) /= "t" then (ConT $ mkName "AnyType") else (VarT $ mkName "t")-- ctxfold (singleFold1 f) a
-            _      -> ctxfold (singleFold1 f) a
-        ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
-        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT $ mkName "t"]
-        defReqOf r t f = define $ typeInstance r
-                       [ toType $ typeName t
-                       , passHeader
-                       ] f
-        defReq r t = defReqOf r t $ apps (th . typeName $ "Get" <> r) [th $ typeName t, ctx']
-        defInputs  = defReq "Inputs"
-        defOutputs = defReq "Outputs"
-        defIOs lst = defInputs lst >> defOutputs lst
-    define $ phantom passName                                                            -- data InitModel
-    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitModel = InitModel
-    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitModel t) = GetInputs  Net   (InitModelCtx t AnyType)
-                                                                                         -- type instance Outputs Net   (ElemScope InitModel t) = GetOutputs Net   (InitModelCtx t AnyType)
-                                                                                         -- ...
-    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitModel t) = GetEmitters      (InitModelCtx t AnyType)
-    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitModel t) = '[]
-    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitModel t) = '[]
-    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitModel where
-             (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
-    return []
+fmapsE :: Int -> Exp -> Exp
+fmapsE 0 e = e
+fmapsE n e = AppE (VarE $ mkName "fmap") (fmapsE (pred n) e)
 
+proxyE t = SigE (ConE $ mkName "Proxy") $ AppT (ConT $ mkName "Proxy") (ConT t)
 
-
-makePass1 :: Name -> Q [TH.Dec]
-makePass1 name = build $ do
-    let passName = typeName . upperHead $ nameBase name
-    VarI _ (ForallT _ ctx   (AppT (AppT ArrowT _)  (AppT (AppT (AppT (AppT (ConT _) _) _) (AppT _ (VarT elemt))) (VarT m)) )   ) Nothing <- lift $ reify name
-    let f a = case a of
-            VarT v -> if v /= elemt then (ConT $ mkName "AnyType") else ctxfold (singleFold1 f) a
-            _      -> ctxfold (singleFold1 f) a
-        ctx' = tuples $ ctxfold (singleFold1 f) <$> ctx
-        passHeader = toType $ apps (ConT $ mkName "ElemScope") [th passName, VarT elemt]
-        defReqOf r t f = define $ typeInstance r
-                       [ toType $ typeName t
-                       , passHeader
-                       ] f
-        defReq r t = defReqOf r t $ apps (th . typeName $ "Get" <> r) [th $ typeName t, ctx']
-        defInputs  = defReq "Inputs"
-        defOutputs = defReq "Outputs"
-        defIOs lst = defInputs lst >> defOutputs lst
-    -- define $ phantom passName                                                            -- data InitModel
-    define $ typeInstance' "Abstract" passName passName                                  -- type instance Abstract InitModel = InitModel
-    mapM_ defIOs ["Net", "Layer", "Attr"]                                                -- type instance Inputs  Net   (ElemScope InitModel t) = GetInputs  Net   (InitModelCtx t AnyType)
-                                                                                         -- type instance Outputs Net   (ElemScope InitModel t) = GetOutputs Net   (InitModelCtx t AnyType)
-                                                                                         -- ...
-    defReqOf "Outputs" "Event" $ app (th $ typeName "GetEmitters") ctx'                  -- type instance Outputs Event (ElemScope InitModel t) = GetEmitters      (InitModelCtx t AnyType)
-    define $ typeInstance "Inputs" [th (typeName "Event"), passHeader] ([] :: [Type])    -- type instance Inputs  Event (ElemScope InitModel t) = '[]
-    define $ typeInstance' "Preserves" passHeader ([] :: [Type])                         -- type instance Preserves     (ElemScope InitModel t) = '[]
-    define $ classInstance' "KnownElemPass" [passName] [function' "elemPassDescription"  -- instance KnownElemPass InitModel where
-             (Clause [] (NormalB (VarE $ mkName "genericDescriptionP")) [])]             --     elemPassDescription = genericDescriptionP
-    return []
 
 
 
@@ -155,9 +90,6 @@ newtype IsoCtxFold ctx = IsoCtxFold (forall a. ctx a => a -> a)
 
 subFold :: ctx a => IsoCtxFold ctx -> a -> a
 subFold (IsoCtxFold f) a = f a ; {-# INLINE subFold #-}
-
--- subReFold :: ctx a => IsoCtxFold ctx -> a -> a
--- subReFold (IsoCtxFold f) a =
 
 -- | folding over 1-st Type level (no Kinds and higher level types)
 ctxfold :: (ctx Type, ctx TyVarBndr, ctx Cxt, ctx Name, ctx TyLit)
@@ -184,23 +116,6 @@ simpleFold = IsoCtxFold ; {-# INLINE simpleFold #-}
 
 singleFold1 :: (a -> a) -> IsoCtxFold (SingleFold1 a)
 singleFold1 f = simpleFold $ runSingleFold1 f ; {-# INLINE singleFold1 #-}
-
--- data Type Source #
-
-
-
-
---
---
---
--- VarI Luna.IR.ToRefactor.initModel
---     (ForallT [KindedTV t StarT,KindedTV m (AppT (AppT ArrowT StarT) StarT)]
---              [AppT (AppT (ConT InitModelCtx) (VarT t)) (VarT m)]
---              (AppT (AppT (ConT NewElemPassDef) (VarT t)) (VarT m))
---     ) Nothing
-
-
-
 
 
 ----------------------------------

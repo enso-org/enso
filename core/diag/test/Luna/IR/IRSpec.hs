@@ -20,14 +20,14 @@ data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
 
-testCompile :: IO (Either Pass.InternalError CompiledFunction)
+testCompile :: IO (Either SomeException CompiledFunction)
 testCompile = runGraph $ do
     t <- string "foobar"
     v <- var t
     a <- acc t v
     compile (generalize a)
 
-testImport :: IO (Either Pass.InternalError (Int, [Incoherence]))
+testImport :: IO (Either SomeException (Int, [Incoherence]))
 testImport = do
     Right f <- testCompile
     runGraph $ do
@@ -38,7 +38,7 @@ testImport = do
         coh  <- checkCoherence
         return (size, coh)
 
-testVarRenaming :: IO (Either Pass.InternalError P.String)
+testVarRenaming :: IO (Either SomeException P.String)
 testVarRenaming = runGraph $ do
     (v :: Expr Draft) <- generalize <$> strVar "foo"
     match v $ \case
@@ -52,7 +52,7 @@ testVarRenaming = runGraph $ do
                 String s -> return s
 
 
-testAtomNarrowing :: IO (Either Pass.InternalError (Pair (Maybe (Expr Var))))
+testAtomNarrowing :: IO (Either SomeException (Pair (Maybe (Expr Var))))
 testAtomNarrowing = runGraph $ do
     (foo  :: SomeExpr) <- generalize <$> string "foo"
     (vfoo :: SomeExpr) <- generalize <$> var foo
@@ -60,7 +60,7 @@ testAtomNarrowing = runGraph $ do
     narrowVar <- narrowAtom @Var vfoo
     return $ Pair narrowFoo narrowVar
 
-testAtomEquality :: IO (Either Pass.InternalError [Pair Bool])
+testAtomEquality :: IO (Either SomeException [Pair Bool])
 testAtomEquality = runGraph $ do
     (foo  :: SomeExpr) <- generalize <$> string "foo"
     (bar  :: SomeExpr) <- generalize <$> string "bar"
@@ -81,7 +81,7 @@ testAtomEquality = runGraph $ do
              , Pair sameUniUni   True
              ]
 
-testInputs :: IO (Either Pass.InternalError (Pair [SomeExpr]))
+testInputs :: IO (Either SomeException (Pair [SomeExpr]))
 testInputs = runGraph $ do
     foo  <- string "foo"
     bar  <- string "bar"
@@ -91,7 +91,7 @@ testInputs = runGraph $ do
     inps <- inputs a >>= mapM source
     return $ Pair (generalize [i1, i2]) inps
 
-crashingPass :: IO (Either Pass.InternalError ())
+crashingPass :: IO (Either SomeException ())
 crashingPass = runGraph $ do
     s <- string "foo"
     match s $ \case
@@ -100,19 +100,14 @@ crashingPass = runGraph $ do
 patternMatchException :: Selector PatternMatchFail
 patternMatchException = const True
 
-testNodeRemovalCoherence :: IO (Either Pass.InternalError [Incoherence])
+testNodeRemovalCoherence :: IO (Either SomeException [Incoherence])
 testNodeRemovalCoherence = runGraph $ do
     foo   <- string "foo"
-    bar   <- string "bar"
     vfoo  <- var foo
-    vbar  <- var bar
-    vbar' <- var bar
-    uni   <- unify vfoo vbar
-    delete vbar'
-    delete uni
+    delete vfoo
     checkCoherence
 
-testSubtreeRemoval :: IO (Either Pass.InternalError (Int, [Incoherence]))
+testSubtreeRemoval :: IO (Either SomeException (Int, [Incoherence]))
 testSubtreeRemoval = runGraph $ do
     foo   <- string "foo"
     bar   <- string "bar"
@@ -126,7 +121,7 @@ testSubtreeRemoval = runGraph $ do
     exs <- length <$> exprs
     return (exs, coh)
 
-testChangeSource :: IO (Either Pass.InternalError (Bool, [Incoherence]))
+testChangeSource :: IO (Either SomeException (Bool, [Incoherence]))
 testChangeSource = runGraph $ do
     foo <- string "foo"
     bar <- string "bar"
@@ -158,16 +153,16 @@ spec = do
             withRight answer $ flip shouldSatisfy isJust  . snd . pair
     describe "var renaming" $ do
         it "changes the variable name in place" $ do
-            testVarRenaming `shouldReturn` Right "bar"
+            flip withRight (`shouldBe` "bar") =<< testVarRenaming
     describe "node removal" $ do
         it "preserves graph coherence" $ do
-            testNodeRemovalCoherence `shouldReturn` Right []
+            flip withRight (`shouldBe` []) =<< testNodeRemovalCoherence
     describe "subtree removal" $ do
         it "removes a subgraph while preserving coherence" $
-            testSubtreeRemoval `shouldReturn` Right (4, [])
+            flip withRight (`shouldBe` (4, [])) =<< testSubtreeRemoval
     describe "changing edge source" $ do
         it "changes the source and preserves coherence" $
-            testChangeSource `shouldReturn` Right (True, [])
+            flip withRight (`shouldBe` (True, [])) =<< testChangeSource
     describe "function importing" $ do
         it "imports function into current grpah" $
-            testImport `shouldReturn` Right (10, [])
+            flip withRight (`shouldBe` (10, [])) =<< testImport

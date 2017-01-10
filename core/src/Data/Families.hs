@@ -68,7 +68,12 @@ type ToType = IsTH Type
 toType :: ToType a => a -> Type
 toType = th
 
-instance IsTH Type Type   where th=  id ; {-# INLINE th #-}
+type ToExp = IsTH Exp
+toExp :: ToExp a => a -> Exp
+toExp = th
+
+instance IsTH Type Type where th = id ; {-# INLINE th #-}
+instance IsTH Exp  Exp  where th = id ; {-# INLINE th #-}
 instance IsTH Type String where
     th = LitT . StrTyLit ; {-# INLINE th #-}
 
@@ -137,6 +142,7 @@ instance ToTypeName String   where toTypeName = toTypeName . toName ; {-# INLINE
 instance IsTH Name VarName  where th = unwrap' ; {-# INLINE th #-}
 instance IsTH Name TypeName where th = unwrap' ; {-# INLINE th #-}
 
+instance IsTH Exp VarName where th = VarE . unwrap' ; {-# INLINE th #-}
 
 -- === Generation === --
 
@@ -160,8 +166,8 @@ genName = head nameCycle ; {-# INLINE genName #-}
 newNames :: Int -> Q [Name]
 newNames = mapM newName . flip take strNameCycle ; {-# INLINE newNames #-}
 
-mkVarName :: String -> VarName
-mkVarName = fromString ; {-# INLINE mkVarName #-}
+varName :: String -> VarName
+varName = fromString ; {-# INLINE varName #-}
 
 typeName :: String -> TypeName
 typeName = fromTypeName . fromString ; {-# INLINE typeName #-}
@@ -204,6 +210,9 @@ app a = apps a . return ; {-# INLINE app #-}
 
 instance ToType a => IsTH TH.Type (App a) where
     th (App src args) = foldl AppT (th src) (th <$> args) ; {-# INLINE th #-}
+
+instance ToExp a => IsTH TH.Exp (App a) where
+    th (App src args) = foldl AppE (th src) (th <$> args) ; {-# INLINE th #-}
 
 
 -----------------

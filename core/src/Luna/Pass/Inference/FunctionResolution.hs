@@ -13,11 +13,25 @@ import           Data.Maybe        (isJust)
 import           Luna.Pass        (Pass, SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass        as Pass
 
+
+
+-- === Definitions === --
+
 newtype Imports = Imports (Map Name Module)
 makeWrapped ''Imports
 
-newtype CurrentVar  = CurrentVar (Expr (ENT Var (E String) Draft))
-data    ImportError = SymbolNotFound | SymbolAmbiguous [Name] deriving (Show, Eq)
+newtype CurrentVar = CurrentVar (Expr (ENT Var (E String) Draft))
+makeWrapped ''CurrentVar
+
+
+-- === Errors === --
+
+data ImportError = SymbolNotFound
+                 | SymbolAmbiguous [Name]
+                 deriving (Show, Eq)
+
+
+-- === Pass === --
 
 data FunctionResolution
 type instance Abstract  FunctionResolution = FunctionResolution
@@ -36,24 +50,18 @@ type instance Preserves        FunctionResolution = '[]
 
 
 lookupSym :: Name -> Imports -> Either ImportError CompiledFunction
-lookupSym n imps = let modulesWithMatchInfo = (over _2 $ flip Module.lookupFunction n) <$> Map.assocs (unwrap imps)
-                       matchedModules       = filter (isJust . snd) modulesWithMatchInfo
-                   in case matchedModules of
-                      []            -> Left  SymbolNotFound
-                      [(_, Just f)] -> Right f
-                      matches       -> Left . SymbolAmbiguous . fmap fst $ matches
+lookupSym n imps = case matchedModules of
+    []            -> Left  SymbolNotFound
+    [(_, Just f)] -> Right f
+    matches       -> Left . SymbolAmbiguous $ fst <$> matches
+    where modulesWithMatchInfo = (over _2 $ flip Module.lookupFunction n) <$> Map.assocs (unwrap imps)
+          matchedModules       = filter (isJust . snd) modulesWithMatchInfo
 
-importVar :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass FunctionResolution m (Either ImportError SomeExpr)
+importVar :: (MonadRef m, MonadPassManager m) => SubPass FunctionResolution m (Either ImportError SomeExpr)
 importVar = do
-    (CurrentVar var) <- readAttr @CurrentVar
+    var      <- unwrap'   <$> readAttr @CurrentVar
     nameLink <- view name <$> match' var
     nameNode <- source nameLink
     name     <- view lit  <$> match' nameNode
-    imports  <- readAttr @Imports
-    let fun  =  lookupSym (fromString name) imports
-    case fun of
-        Left  err  -> return $ Left err
-        Right sym  -> do
-            newExpr <- importFunction sym
-            return $ Right newExpr
-
+    fun      <- lookupSym (fromString name) <$> readAttr @Imports
+    mapM importFunction fun

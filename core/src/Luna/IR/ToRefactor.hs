@@ -11,7 +11,7 @@ import Data.STRef    (STRef)
 
 import Luna.IR.Internal.IR
 import qualified Luna.IR.Expr.Term.Named as Term
-import qualified Luna.IR.Internal.LayerStore as Store
+import qualified Data.ManagedVectorMap as Store
 import Luna.IR.Expr.Layout.Class
 import Luna.IR.Expr.Layout.ENT
 import Luna.IR.Layer
@@ -28,7 +28,7 @@ import           Luna.Pass        (Pass, Preserves, Inputs, Outputs, Events, Sub
 import Data.TypeDesc
 import Data.Event (type (//), Tag(Tag), Emitter, PayloadData, Event, Emitters)
 import qualified Data.Set as Set
-import Luna.IR.Internal.LayerStore (STRef, STRefM)
+import Data.ManagedVectorMap (STRef, STRefM, modifySTRef', newSTRef, readSTRef, writeSTRef)
 import Luna.IR.Expr
 import Unsafe.Coerce (unsafeCoerce)
 import Luna.Pass.Manager as PM
@@ -42,6 +42,8 @@ import Data.Reflection (Reifies)
 import Luna.Pass.Sugar
 
 import Type.Any (AnyType)
+import Control.Monad.Raise
+
 
 ---------------------------------------
 -- Some important utils
@@ -50,33 +52,12 @@ import Type.Any (AnyType)
 type GraphElems = '[AnyExpr, AnyExprLink]
 
 
-
-
-
-
-
-
-
-
-
-
-
------------------------------------------------
-
-
-
 instance {-# OVERLAPPABLE #-} TypePretty (ElemScope p t) where formatType [p,_] = [p]
-
-
-
-
-
 
 
 
 data Abstracted a
 type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
-
 
 
 
@@ -133,8 +114,8 @@ compileListener = Event.Tagged (Event.fromPath @e) . Pass.describbed @(ElemScope
 
 
 
-tpElemPass :: forall p t e m a. a ~ Listener e (Elem t) (SubPass (ElemScope p t) m) => a -> a
-tpElemPass = id ; {-# INLINE tpElemPass #-}
+tpElemPass :: forall p t e m a. a ~ Listener e (Elem t) (SubPass (ElemScope p t) m) => Proxy p -> a -> a
+tpElemPass _ = id ; {-# INLINE tpElemPass #-}
 
 
 
@@ -146,19 +127,16 @@ tpElemPass = id ; {-# INLINE tpElemPass #-}
 
 modelInit :: Req m '[Writer // Layer // Abstract (Elem t) // Model] => Listener New (Elem t) m
 modelInit = listener . uncurry . flip $ writeLayer @Model ; {-# INLINE modelInit #-}
-makeLayerGen2 'modelInit
-modelInitPass = tpElemPass @ModelInit modelInit
+makePass 'modelInit
 
 watchLinkImport :: Req m '[Editor // Layer // AnyExprLink // Model] => Listener Import (ExprLink a b) m
 watchLinkImport = listener $ \(t, trans) -> modifyLayer_ @Model ((_1 %~ trans ^. exprTranslator) . (_2 %~ trans ^. exprTranslator)) t
-makeLayerGen2 'watchLinkImport
-watchLinkImportPass = tpElemPass @WatchLinkImport watchLinkImport
-
+{-# INLINE watchLinkImport #-}
+makePass 'watchLinkImport
 
 watchExprImport :: Req m '[Editor // Layer // AnyExpr // Model] => Listener Import (Expr t) m
-watchExprImport = listener $ \(t, trans) -> inplaceModifyFieldsWith (trans ^. linkTranslator) (generalize t :: SomeExpr)
-makeLayerGen2 'watchExprImport
-watchExprImportPass = tpElemPass @WatchExprImport watchExprImport
+watchExprImport = listener $ \(t, trans) -> inplaceModifyFieldsWith (trans ^. linkTranslator) (generalize t :: SomeExpr) ; {-# INLINE watchExprImport #-}
+makePass 'watchExprImport
 
 init1 :: MonadPassManager m => m ()
 init1 = do
@@ -173,22 +151,20 @@ init1 = do
 -----------------
 
 nextUID :: PrimMonad m => STRefM m ID -> m ID
-nextUID ref = Store.modifySTRef' ref $ id &&& succ ; {-# INLINE nextUID #-}
+nextUID ref = modifySTRef' ref $ id &&& succ ; {-# INLINE nextUID #-}
 
 initUID :: Req m '[Writer // Layer // Abstract (Elem t) // UID] => STRefM m ID -> Listener New (Elem t) m
 initUID ref = listener $ \(t, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE initUID #-}
-makeLayerGen2 'initUID
-initUIDPass = tpElemPass @InitUID . initUID
+makePass 'initUID
 
 watchUIDImport :: Req m '[Writer // Layer // Abstract (Elem t) // UID]
                => STRefM m ID -> Listener Import (Elem t) m
 watchUIDImport ref = listener $ \(t, _) -> flip (writeLayer @UID) t =<< nextUID ref ; {-# INLINE watchUIDImport #-}
-makeLayerGen2 'watchUIDImport
-watchUIDImportPass = tpElemPass @WatchUIDImport . watchUIDImport
+makePass 'watchUIDImport
 
 init2 :: MonadPassManager m => m ()
 init2 = do
-    ref <- Store.newSTRef (def :: ID)
+    ref <- newSTRef (def :: ID)
     addElemEventListener @UID (initUIDPass        ref)
     addElemEventListener @UID (watchUIDImportPass ref)
 
@@ -200,30 +176,24 @@ init2 = do
 
 initSuccs :: Req m '[Writer // Layer // Abstract (Elem t) // Succs] => Listener New (Elem t) m
 initSuccs = listener $ \(t, _) -> writeLayer @Succs mempty t ; {-# INLINE initSuccs #-}
-makeLayerGen2 'initSuccs
-initSuccsPass = tpElemPass @InitSuccs initSuccs
-
+makePass 'initSuccs
 
 watchSuccs :: Req m '[Editor // Layer // AnyExpr // Succs] => Listener New (ExprLink a b) m
 watchSuccs = listener $ \(t, (src, tgt)) -> modifyLayer_ @Succs (Set.insert $ unsafeGeneralize t) src ; {-# INLINE watchSuccs #-}
-makeLayerGen2 'watchSuccs
-watchSuccsPass = tpElemPass @WatchSuccs watchSuccs
+makePass 'watchSuccs
 
 watchSuccsImport :: Req m '[Editor // Layer // AnyExpr // Succs] => Listener Import (Expr l) m
 watchSuccsImport = listener $ \(t, trans) -> modifyLayer_ @Succs (Set.map $ trans ^. linkTranslator) t ; {-# INLINE watchSuccsImport #-}
-makeLayerGen2 'watchSuccsImport
-watchSuccsImportPass = tpElemPass @WatchSuccsImport watchSuccsImport
+makePass 'watchSuccsImport
 
 watchRemoveEdge :: Req m '[ Reader // Layer // AnyExprLink // Model
                           , Editor // Layer // AnyExpr // Succs]
                 => Listener Delete (ExprLink a b) m
 watchRemoveEdge = listener $ \t -> do
-    -- print "EDGE REMOVE"
     (src, tgt) <- readLayer @Model t
     modifyLayer_ @Succs (Set.delete $ unsafeGeneralize t) src
 {-# INLINE watchRemoveEdge #-}
-makeLayerGen2 'watchRemoveEdge
-watchRemoveEdgePass = tpElemPass @WatchRemoveEdge watchRemoveEdge
+makePass 'watchRemoveEdge
 
 watchRemoveNode :: Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
                           , Editor  // Net    // AnyExprLink
@@ -231,24 +201,20 @@ watchRemoveNode :: Req m '[ Reader  // Layer  // AnyExpr // '[Model, Type]
                           ]
                  => Listener Delete (Expr l) m
 watchRemoveNode = listener $ \t -> do
-    -- print "NODE REMOVE"
     inps   <- symbolFields (generalize t :: SomeExpr)
     tp     <- readLayer @Type t
     delete tp
     mapM_ delete inps
 {-# INLINE watchRemoveNode #-}
-makeLayerGen2 'watchRemoveNode
-watchRemoveNodePass = tpElemPass @WatchRemoveNode watchRemoveNode
+makePass 'watchRemoveNode
 
 init3 :: MonadPassManager m => m ()
 init3 = do
-    -- print "vvv"
     addElemEventListener     @Succs initSuccsPass
     addExprEventListener     @Succs watchSuccsImportPass
     addExprEventListener     @Succs watchRemoveNodePass
     addExprLinkEventListener @Model watchSuccsPass
     addExprLinkEventListener @Model watchRemoveEdgePass
-    -- print "^^^"
 
 
 
@@ -259,19 +225,19 @@ init3 = do
 
 consTypeLayer :: Req m '[ Writer  // Net // GraphElems
                         , Emitter // New // GraphElems]
-              => Store.STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
+              => STRefM m (Maybe (Expr Star)) -> Expr t -> m (LayerData Type (Expr t))
 consTypeLayer ref self = (`link` self) =<< unsafeRelayout <$> localTop ref ; {-# INLINE consTypeLayer #-}
 
 
 localTop :: Req m '[Writer // Net // AnyExpr, Emitter // New // AnyExpr]
-         => Store.STRefM m (Maybe (Expr Star)) -> m (Expr Star)
-localTop ref = Store.readSTRef ref >>= \case
+         => STRefM m (Maybe (Expr Star)) -> m (Expr Star)
+localTop ref = readSTRef ref >>= \case
     Just t  -> return t
     Nothing -> do
         s <- reserveStar
-        Store.writeSTRef ref $ Just s
+        writeSTRef ref $ Just s
         registerStar s
-        Store.writeSTRef ref Nothing
+        writeSTRef ref Nothing
         return s
 {-# INLINE localTop #-}
 
@@ -280,19 +246,16 @@ initType :: Req m '[ Writer  // Layer // AnyExpr // Type
                    , Emitter // New   // '[AnyExpr, AnyExprLink]
                    ]
          => STRefM m (Maybe (Expr Star)) -> Listener New (Expr l) m
-initType ref = listener $ \(el, _) -> flip (writeLayer @Type) el =<< consTypeLayer ref el
-{-# INLINE initType #-}
-makeLayerGen2 'initType
-initTypePass = tpElemPass @InitType . initType
+initType ref = listener $ \(el, _) -> flip (writeLayer @Type) el =<< consTypeLayer ref el ; {-# INLINE initType #-}
+makePass 'initType
 
 watchTypeImport :: Req m '[Editor // Layer // AnyExpr // Type] => Listener Import (Expr l) m
 watchTypeImport = listener $ \(t, trans) -> modifyLayer_ @Type (trans ^. linkTranslator) t ; {-# INLINE watchTypeImport #-}
-makeLayerGen2 'watchTypeImport
-watchTypeImportPass = tpElemPass @WatchTypeImport watchTypeImport
+makePass 'watchTypeImport
 
 init4 :: MonadPassManager m => m ()
 init4 = do
-    ref <- Store.newSTRef (Nothing :: Maybe (Expr Star))
+    ref <- newSTRef (Nothing :: Maybe (Expr Star))
     addExprEventListener @Type (initTypePass ref)
     addExprEventListener @Type watchTypeImportPass
 
@@ -305,7 +268,7 @@ init4 = do
 -------------------------------------------
 -------------------------------------------
 
-runRegs :: MonadPassManager m => m ()
+runRegs :: (MonadPassManager m, Throws IRError m) => m ()
 runRegs = do
     runElemRegs
 
@@ -340,14 +303,6 @@ elemReg2 = registerElem @(Link' AnyExpr)
 elemReg3 :: MonadIR m => m ()
 elemReg3 = registerElem @(GROUP AnyExpr)
 
-
--- === Layer reg defs === --
-
--- layerRegs :: MonadIR m => [m ()]
--- layerRegs = [] -- [layerReg1, layerReg2, layerReg3, layerReg4]
---
--- runLayerRegs :: MonadIR m => m ()
--- runLayerRegs = sequence_ layerRegs
 
 
 

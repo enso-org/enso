@@ -3,7 +3,6 @@
 
 module Luna.Pass.FunctionResolutionSpec where
 
-import qualified Control.Monad.State.Dependent.Old as S
 import Luna.Prelude hiding (String)
 import qualified Luna.Prelude as P
 import Test.Hspec   (Spec, describe, it, shouldBe, shouldReturn)
@@ -20,6 +19,7 @@ import qualified Data.Map          as Map
 import Luna.IR.Function.Definition as Function
 import Luna.IR.Function
 import Luna.IR.Module.Definition   as Module
+import Control.Monad.Raise
 
 testImports :: IO Imports
 testImports = do
@@ -46,14 +46,15 @@ initialize name = do
 
 runTest m = do
     imps <- testImports
-    dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    Right out <- tryAll $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
-        Right v <- Pass.eval' m
+        v <- Pass.eval' m
         setAttr (getTypeDesc @Imports) imps
         setAttr (getTypeDesc @CurrentVar) v
-        Right res    <- Pass.eval' importVar
-        Right (s, c) <- Pass.eval' sizeAndCoherence
+        res    <- Pass.eval' importVar
+        (s, c) <- Pass.eval' sizeAndCoherence
         return (res, s, c)
+    return out
 
 
 spec :: Spec

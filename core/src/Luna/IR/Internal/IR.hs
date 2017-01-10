@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs                   #-}
 {-# LANGUAGE UndecidableInstances    #-}
 
-module Luna.IR.Internal.IR where
+module Luna.IR.Internal.IR (module Luna.IR.Internal.IR, module X) where
 
 import           Old.Data.Record              (Encode2)
 import           Old.Data.Record.Model.Masked as X (VGRecord2, Store2(Store2), Slot(Slot), Enum(Enum))
@@ -12,11 +12,10 @@ import           Luna.Prelude                 hiding (elem {- fix: -} , Enum, lo
 import qualified Luna.Prelude as Prelude
 
 import Control.Monad.State  (StateT, runStateT)
-import Luna.IR.Internal.LayerStore (LayerStoreRef, LayerStoreRefM, LayerStore)
 import Data.Map             (Map)
 import Data.Property
 import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
-import qualified GHC.Prim   as Prim
+import Prologue.Prim (AnyData)
 import Luna.IR.Layer
 import Luna.IR.Layer.Model
 import Luna.IR.Expr.Atom    (Atom, Atoms, AtomDesc, atomDescOf, AtomOf)
@@ -32,7 +31,7 @@ import Type.Error
 import Unsafe.Coerce        (unsafeCoerce)
 
 import qualified Control.Monad.State       as State
-import qualified Luna.IR.Internal.LayerStore as Store
+import qualified Data.ManagedVectorMap     as Store
 import qualified Data.Map                  as Map
 import           Data.Set                  (Set)
 import qualified Data.Set                  as Set
@@ -49,18 +48,16 @@ import Type.Bool (And)
 
 import System.Log (MonadLogging, Logging, withDebugBy)
 import           Control.Monad.Trans.Maybe (MaybeT)
+import Data.Graph.Class as X (Net, TypeRepGraph, GetRefHandler, Elem(Elem), TypeRepGraphM, MonadRefState, TypeRepVectorMapST, RefData, ElemRep, TypeRepVectorMapM, GraphElem, RefData', Ref(Ref), Refs, MonadRefLookup, uncheckedLookupRef, putRef, freeze, thaw, idx, getRefData, getRef, putRefData)
+import Control.Monad.Raise
 
 
 type EqPrimStates m n = (PrimState m ~ PrimState n)
 
-class IsIdx t where
-    idx :: Iso' t Int
-    default idx :: (Wrapped t, Unwrapped t ~ Int) => Lens' t Int
-    idx = wrapped' ; {-# INLINE idx #-}
 
 
 
-data Net   = Net   deriving (Show)
+
 data Attr  = Attr  deriving (Show)
 
 -- data Net  t
@@ -81,111 +78,20 @@ data Import = Import deriving (Show)
 -- === Elem === --
 ------------------
 
-data Element = Element deriving (Show)
 
-newtype Elem t = Elem Int deriving (Show, Ord, Eq)
-makeWrapped '' Elem
-
-type family FromElem t where FromElem (Elem t) = t
+-- type family FromElem t where FromElem (Elem t) = t
 
 type instance Definition (Elem t) = Definition t
 type instance Abstract   (Elem t) = Elem (Abstract  t)
 type instance Universal  (Elem t) = Elem (Universal t)
 
 
--- === Classes === --
-
--- class ToElem a where
---     toElem :: a -> Elem
---     default toElem :: (Wrapped a, Unwrapped a ~ Elem) => a -> Elem
---     toElem = unwrap' ; {-# INLINE toElem #-}
---
--- class FromElem a where
---     fromElem :: Elem -> a
---     default fromElem :: (Wrapped a, Unwrapped a ~ Elem) => Elem -> a
---     fromElem = wrap' ; {-# INLINE fromElem #-}
---
--- type IsElem a = (ToElem a, FromElem a)
---
--- elem :: IsElem a => Iso' a Elem
--- elem = iso toElem fromElem ; {-# INLINE elem #-}
 
 
--- === Instances === --
+--------------------------------------
+-- === Reader / Writer / Editor === --
+--------------------------------------
 
-instance IsIdx (Elem t) where
-    idx = wrapped' ; {-# INLINE idx #-}
-
-
-------------------
--- === Refs === --
-------------------
-
---- === Definition === --
-
--- newtype Ref  s k = Ref (RefData s k)
-newtype Ref k a m = Ref (RefData k a m)
-
-type family RefData k a (m :: * -> *)
-
-type family Refs k as m where
-    Refs k '[]       m = '[]
-    Refs k (a ': as) m = Ref k a m ': Refs k as m
-
--- type        RefData k a mey = RefData (PrimState m) key
-
-makeWrapped ''Ref
-
-type Ref' k a m = Ref k a (GetRefHandler m)
--- type RebasedRefData k a m n = (RefData k a n ~ RefData k a m)
---
--- rebaseRef :: RebasedRefData k a m n => Ref k a m -> Ref k a n
--- rebaseRef = rewrap ; {-# INLINE rebaseRef #-}
-
-
--- === Ref Monad === --
-
-class Monad m => MonadRefLookup k m where
-    uncheckedLookupRef :: forall a. TypeDesc {- the type of `a` -}
-                       -> m (Maybe (Ref' k a m))
-
-
--- === Construction === --
-
--- readRef :: forall k a m n. Monad m => Ref k a n -> m (RefData k a n)
--- readRef = return . unwrap' ; {-# INLINE readRef #-}
---
--- writeRef :: forall k a m n. Monad m => RefData k a n -> m (Ref k a n)
--- writeRef = return . wrap' ; {-# INLINE writeRef #-}
-
-
--- === Ref access === --
-
--- FIXME: To refactor
--- Refs should be moved to Pass, because they internal monad ALWAYS defaults to pass
-type family GetRefHandler (m :: * -> *) :: * -> *
-type instance GetRefHandler (MaybeT m) = GetRefHandler m
-type instance GetRefHandler (StateT s m) = GetRefHandler m
-
-type RefData' k a m = RefData k a (GetRefHandler m)
-
-
-
-
--- MonadRefState
-class Monad m => MonadRefState k a m where
-    getRef :: m (Ref' k a m)
-    putRef :: Ref' k a m -> m ()
-
-
-type SubMonadRefState k a t m = (MonadRefState k a m, MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m)
-instance {-# OVERLAPPABLE #-} SubMonadRefState k a t m
-      => MonadRefState k a (t m) where
-    getRef = lift   getRef ; {-# INLINE getRef #-}
-    putRef = lift . putRef ; {-# INLINE putRef #-}
-
-
--- type Editor k a m = (Reader k a m, Writer k a m)
 class    (Reader k a m, Writer k a m) => Editor k a m
 instance (Reader k a m, Writer k a m) => Editor k a m
 class MonadRefState k a m => Reader k a m
@@ -203,13 +109,6 @@ type family Writers k as m :: Constraint where
     Writers k '[]       m = ()
     Writers k (a ': as) m = (Writer k a m, Writers k as m)
 
-
-
-readComp :: forall k a m. MonadRefState k a m => m (RefData' k a m)
-readComp = unwrap' <$> getRef @k @a ; {-# INLINE readComp #-}
-
-writeComp :: forall k a m. MonadRefState k a m => RefData' k a m -> m ()
-writeComp = putRef @k @a . wrap' ; {-# INLINE writeComp #-}
 
 
 -- === Errors === --
@@ -235,36 +134,16 @@ type RefWriteError k a = RefAccessError "write" k a
 
 -- === Definition === --
 
-type LayerRep = TypeDescT Layer
-type ElemRep  = TypeDescT Element
+type IRM m = TypeRepGraphM m
+type IR    = TypeRepGraph
+
+type LayerSet    s = Store.VectorRef s AnyData
 
 
-type    IR     = IR'   ElemStore
-type    IRST s = IR'  (ElemStoreST s)
-type    IRM  m = IRST (PrimState   m)
-newtype IR'  a = IR   (Map ElemRep a) deriving (Show, Default, Functor, Traversable, Foldable)
+-- === Errors === --
 
-
-
-type LayerSet    s = Store.VectorRef s Prim.Any
-type ElemStore     = LayerStore      LayerRep Prim.Any
-type ElemStoreST s = LayerStoreRef s LayerRep Prim.Any
-type ElemStoreM  m = ElemStoreST (PrimState m)
-
-makeWrapped ''IR'
-
-
--- === Mutability === --
-
-unsafeFreeze :: PrimMonad m => IRM m -> m IR
-freeze       :: PrimMonad m => IRM m -> m IR
-unsafeFreeze = mapM Store.unsafeFreeze ; {-# INLINE unsafeFreeze #-}
-freeze       = mapM Store.freeze       ; {-# INLINE freeze       #-}
-
-unsafeThaw :: PrimMonad m => IR -> m (IRM m)
-thaw       :: PrimMonad m => IR -> m (IRM m)
-unsafeThaw = mapM Store.unsafeThaw ; {-# INLINE unsafeThaw #-}
-thaw       = mapM Store.thaw       ; {-# INLINE thaw       #-}
+data IRError = ElemLookupError ElemRep deriving (Show)
+instance Exception IRError
 
 
 -----------------------
@@ -279,24 +158,24 @@ makeWrapped ''IRBuilder
 
 -- === Accessors === --
 
-atElem :: Functor m => ElemRep -> (Maybe (ElemStoreM m) -> m (Maybe (ElemStoreM m))) -> IRM m -> m (IRM m)
+atElem :: Functor m => ElemRep -> (Maybe (TypeRepVectorMapM m) -> m (Maybe (TypeRepVectorMapM m))) -> IRM m -> m (IRM m)
 atElem = wrapped' .: at  ; {-# INLINE atElem #-}
 
-modifyElem  :: PrimMonad m => ElemRep -> (ElemStoreM m ->    ElemStoreM m)  -> IRM m -> m (IRM m)
-modifyElemM :: PrimMonad m => ElemRep -> (ElemStoreM m -> m (ElemStoreM m)) -> IRM m -> m (IRM m)
+modifyElem  :: PrimMonad m => ElemRep -> (TypeRepVectorMapM m ->    TypeRepVectorMapM m)  -> IRM m -> m (IRM m)
+modifyElemM :: PrimMonad m => ElemRep -> (TypeRepVectorMapM m -> m (TypeRepVectorMapM m)) -> IRM m -> m (IRM m)
 modifyElem  e   = modifyElemM e . fmap return                                                  ; {-# INLINE modifyElem  #-}
 modifyElemM e f = atElem e $ \es -> fmap Just $ f =<< fromMaybe (Store.empty) (fmap return es) ; {-# INLINE modifyElemM #-}
 
 
 -- | The type `t` is not validated in any way, it is just constructed from index.
-uncheckedElems :: forall t m. (MonadRef m, IsIdx t, Reader Net (Abstract t) m) => m [t]
+uncheckedElems :: forall t m. (MonadRef m, GraphElem t, Reader Net (Abstract t) m) => m [t]
 uncheckedElems = fmap (view $ from idx) <$> (liftRefHandler . Store.ixes =<< readNet @(Abstract t)) ; {-# INLINE uncheckedElems #-}
 
 
 -- === Construction === --
 
 
-type NewElemEvent m t = (Emitter (New // Abstract t) m, Logging m, KnownType (Abstract t), IsIdx t)
+type NewElemEvent m t = (Emitter (New // Abstract t) m, Logging m, KnownType (Abstract t), GraphElem t)
 newElem :: forall t m. ( MonadRef m, Writer Net (Abstract t) m, NewElemEvent m t)
         => Definition t -> m t
 newElem tdef = do
@@ -316,7 +195,7 @@ type instance Abstract Import = Import
 
 
 
-reserveElem :: forall t m. (MonadRef m, Writer Net (Abstract t) m, IsIdx t) => m t
+reserveElem :: forall t m. (MonadRef m, Writer Net (Abstract t) m, GraphElem t) => m t
 reserveElem = view (from idx) <$> reserveNewElemIdx @t ; {-# INLINE reserveElem #-}
 
 dispatchNewElem :: forall t m. NewElemEvent m t => t -> Definition t -> m ()
@@ -325,29 +204,29 @@ dispatchNewElem t tdef = withDebugBy "Emitter" ("Event New // " <> show (getType
 {-# INLINE dispatchNewElem #-}
 
 
-freeElem :: forall t m. (MonadRef m, IsIdx t, Writer Net (Abstract t) m) => t -> m ()
-freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< readComp @Net @(Abstract t) ; {-# INLINE freeElem #-}
+freeElem :: forall t m. (MonadRef m, GraphElem t, Writer Net (Abstract t) m) => t -> m ()
+freeElem t = liftRefHandler . flip Store.freeIdx (t ^. idx) =<< getRefData @Net @(Abstract t) ; {-# INLINE freeElem #-}
 
-delete :: forall t m. (MonadRef m, IsIdx t, Editor Net (Abstract t) m, Event.Emitter (Delete // Abstract t) m)
+delete :: forall t m. (MonadRef m, GraphElem t, Editor Net (Abstract t) m, Event.Emitter (Delete // Abstract t) m)
        => t -> m ()
 delete t = emit (Payload @(Delete // t) t) >> freeElem t ; {-# INLINE delete #-}
 
 reserveNewElemIdx :: forall t m. (MonadRef m, Writer Net (Abstract t) m) => m Int
-reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< readComp @Net @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
+reserveNewElemIdx = liftRefHandler . Store.reserveIdx =<< getRefData @Net @(Abstract t) ; {-# INLINE reserveNewElemIdx #-}
 
-readLayerByRef :: (MonadIR m, IsIdx t) => Ref Layer (Abstract t // layer) m -> t -> m (LayerData layer t)
+readLayerByRef :: (MonadIR m, GraphElem t) => Ref Layer (Abstract t // layer) m -> t -> m (LayerData layer t)
 readLayerByRef key t = unsafeCoerce <$> (Store.unsafeRead (t ^. idx) $ unwrap' key) ; {-# INLINE readLayerByRef #-}
 
-writeLayerByRef :: (MonadIR m, IsIdx t) => Ref Layer (Abstract t // layer) m -> LayerData layer t -> t -> m ()
+writeLayerByRef :: (MonadIR m, GraphElem t) => Ref Layer (Abstract t // layer) m -> LayerData layer t -> t -> m ()
 writeLayerByRef key val t = (\v -> Store.unsafeWrite v (t ^. idx) $ unsafeCoerce val) $ unwrap' key ; {-# INLINE writeLayerByRef #-}
 
-readLayer :: forall layer t m. (MonadRef m, IsIdx t, Reader Layer (Abstract t // layer) m) => t -> m (LayerData layer t)
+readLayer :: forall layer t m. (MonadRef m, GraphElem t, Reader Layer (Abstract t // layer) m) => t -> m (LayerData layer t)
 readLayer t = liftRefHandler . flip readLayerByRef t =<< getRef @Layer @(Abstract t // layer) ; {-# INLINE readLayer #-}
 
-writeLayer :: forall layer t m. (MonadRef m, IsIdx t, Writer Layer (Abstract t // layer) m) => LayerData layer t -> t -> m ()
+writeLayer :: forall layer t m. (MonadRef m, GraphElem t, Writer Layer (Abstract t // layer) m) => LayerData layer t -> t -> m ()
 writeLayer val t = (\k -> liftRefHandler $ writeLayerByRef k val t) =<< getRef @Layer @(Abstract t // layer) ; {-# INLINE writeLayer #-}
 
-modifyLayerM :: forall layer t m a. (MonadRef m, IsIdx t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
+modifyLayerM :: forall layer t m a. (MonadRef m, GraphElem t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> m (a, LayerData layer t)) -> t -> m a
 modifyLayerM f t = do
     l      <- readLayer @layer t
     (a,l') <- f l
@@ -355,35 +234,35 @@ modifyLayerM f t = do
     return a
 {-# INLINE modifyLayerM #-}
 
-modifyLayerM_ :: forall layer t m. (MonadRef m, IsIdx t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
+modifyLayerM_ :: forall layer t m. (MonadRef m, GraphElem t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> m (LayerData layer t)) -> t -> m ()
 modifyLayerM_ = modifyLayerM @layer . (fmap.fmap) ((),) ; {-# INLINE modifyLayerM_ #-}
 
-modifyLayer_ :: forall layer t m. (MonadRef m, IsIdx t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
+modifyLayer_ :: forall layer t m. (MonadRef m, GraphElem t, Editor Layer (Abstract t // layer) m) => (LayerData layer t -> LayerData layer t) -> t -> m ()
 modifyLayer_ = modifyLayerM_ @layer . fmap return ; {-# INLINE modifyLayer_ #-}
 
 
 readAttr :: forall a m. Reader Attr a m => m (RefData' Attr a m)
-readAttr = readComp @Attr @a ; {-# INLINE readAttr #-}
+readAttr = getRefData @Attr @a ; {-# INLINE readAttr #-}
 
 writeAttr :: forall a m. Writer Attr a m => RefData' Attr a m -> m ()
-writeAttr a = writeComp @Attr @a a
+writeAttr a = putRefData @Attr @a a
 
 readNet :: forall a m. Reader Net a m => m (RefData' Net a m)
-readNet = readComp @Net @a ; {-# INLINE readNet #-}
+readNet = getRefData @Net @a ; {-# INLINE readNet #-}
 
 
 -- === Registration === --
 
-registerElemWith :: forall el m. (KnownType el, MonadIR m) => (ElemStoreM m -> ElemStoreM m) -> m ()
+registerElemWith :: forall el m. (KnownType el, MonadIR m) => (TypeRepVectorMapM m -> TypeRepVectorMapM m) -> m ()
 registerElemWith = modifyIRM_ . modifyElem (getTypeDesc @el) ; {-# INLINE registerElemWith #-}
 
 registerElem :: forall el m. (KnownType el, MonadIR m) => m ()
 registerElem = registerElemWith @el id ; {-# INLINE registerElem #-}
 
-unsafeCreateNewLayer :: MonadIR m => LayerRep -> ElemRep -> m ()
+unsafeCreateNewLayer :: (MonadIR m, Throws IRError m) => LayerRep -> ElemRep -> m ()
 unsafeCreateNewLayer l e = do
     s <- getIR
-    let Just estore = s ^? wrapped' . ix e -- FIXME[WD]: Internal error if not found (element not registered)
+    estore <- tryJust (ElemLookupError e) $ s ^? wrapped' . ix e
     Store.unsafeAddKey l estore
 {-# INLINE unsafeCreateNewLayer #-}
 
@@ -391,6 +270,7 @@ unsafeCreateNewLayer l e = do
 -- === Instances === --
 
 instance MonadLogging m => MonadLogging (IRBuilder m)
+
 
 
 
@@ -481,7 +361,7 @@ instance PrimMonad m => PrimMonad (IRBuilder m) where
 -- === Definitions === --
 
 type instance RefData Layer _ m = LayerSet    (PrimState m)
-type instance RefData Net   _ m = ElemStoreST (PrimState m)
+type instance RefData Net   _ m = TypeRepVectorMapST (PrimState m)
 type instance RefData Attr  a _ = a
 
 

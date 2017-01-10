@@ -10,7 +10,7 @@ module Old.Luna.Syntax.Term.Class (module Old.Luna.Syntax.Term.Class, module X) 
 
 import           Luna.Prelude                 hiding (Num, Swapped)
 
-import           Data.Abstract
+import           Data.Abstract_OLD
 import           Data.Base
 import           Old.Data.Record                  hiding (Layout, Variants, Match, Cons, Value)
 import qualified Old.Data.Record                  as Record
