@@ -171,3 +171,30 @@ checkIsInput l e = do
     tp <- readLayer @Type e
     fs <- symbolFields e
     when (tp /= l && not (elem l fs)) $ reportIncoherence $ Incoherence DanglingTarget e l
+
+checkUnreachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m,
+                          Reader Layer (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model) m,
+                          Reader Net AnyExpr m,
+                          Reader Layer (Elem (EXPR ANY) // Type) m)
+                      => [SomeExpr] -> m [SomeExpr]
+checkUnreachableExprs seeds = do
+    allExprs <- Set.fromList <$> exprs
+    reachable <- reachableExprs seeds
+    return $ Set.toList $ Set.difference allExprs reachable
+
+reachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m, Reader
+                  Layer
+                  (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model)
+                  m,
+                  Reader Layer (Elem (EXPR ANY) // Type) m) => [SomeExpr] -> m (Set SomeExpr)
+reachableExprs seeds = Set.unions <$> mapM reachableExprs' seeds
+    where
+        reachableExprs' :: (MonadRef m, Reader Layer (AnyExpr // Model) m, Reader
+                          Layer
+                          (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model)
+                          m,
+                          Reader Layer (Elem (EXPR ANY) // Type) m) => SomeExpr -> m (Set SomeExpr)
+        reachableExprs' e = do
+            t <- readLayer @Type e >>= source
+            set <- symbolFields e >>= mapM source >>= reachableExprs
+            return $ Set.insert t $ Set.insert e $ set
