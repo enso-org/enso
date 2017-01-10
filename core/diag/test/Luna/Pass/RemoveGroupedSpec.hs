@@ -35,37 +35,15 @@ type instance Pass.Preserves        RemoveGrouped = '[]
 
 removeGrouped :: _ => SomeExpr -> SubPass RemoveGrouped _ SomeExpr
 removeGrouped e = do
-    t <- match e $ \case
-        App f (Arg n a) -> do
-            f' <- source f >>= removeGrouped
-            a' <- source a >>= removeGrouped
-            generalize <$> app f' (Arg n a')
-        Acc n v -> do
-            n' <- source n >>= removeGrouped
-            v' <- source v >>= removeGrouped
-            generalize <$> acc n' v'
-        Lam (Arg n v) f -> do
-            v' <- source v >>= removeGrouped
-            f' <- source f >>= removeGrouped
-            generalize <$> lam (Arg n v') f'
+    f <- symbolFields e
+    mapM_ (removeGrouped <=< source) f
+    match e $ \case
         Grouped g -> do
-            g' <- source g >>= removeGrouped
+            g' <- source g
+            replaceNode e g'
+            deleteSubtree e
             return g'
-        Unify l r -> do
-            l' <- source l >>= removeGrouped
-            r' <- source r >>= removeGrouped
-            generalize <$> unify l' r'
-        Integer{}  -> return e
-        String{}   -> return e
-        Var{}      -> return e
-        Rational{} -> return e
-        Blank{}    -> return e
-        Missing{}  -> return e
-        Star{}     -> return e
-        Cons{}     -> return e
-    replaceNode e t
-    deleteSubtree e
-    return t
+        _ -> return e
 
 noGroupedLeftBehind :: _ => SubPass RemoveGrouped m Bool
 noGroupedLeftBehind = do
