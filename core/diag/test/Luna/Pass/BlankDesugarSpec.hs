@@ -5,6 +5,7 @@
 
 module Luna.Pass.BlankDesugarSpec (spec) where
 
+import           Control.Monad.Raise (tryAll)
 import           Luna.Pass        (SubPass)
 import qualified Luna.Pass        as Pass
 
@@ -46,18 +47,18 @@ noBlankLeftBehind = do
 
 desugarsTo :: _ => _ -> _ -> Expectation
 desugarsTo test expected = do
-    (res, coherence, blanks, orphans) <- withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    Right (res, coherence, blanks, orphans) <- tryAll $ withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         setAttr (getTypeDesc @UniqueNameGen) $ UniqueNameGen ("obscureName", (0::Int))
         setAttr (getTypeDesc @UsedVars) $ UsedVars []
-        Right x <- Pass.eval' test
-        Right desugared <- Pass.eval' $ desugar $ generalize x
+        x <- Pass.eval' test
+        desugared <- Pass.eval' $ desugar $ generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
-        Right orphans   <- Pass.eval' @BlankDesugaring $ checkUnreachableExprs [desugared]
-        Right coherence <- Pass.eval' @BlankDesugaring checkCoherence
-        Right blanks    <- Pass.eval' noBlankLeftBehind
-        Right expected' <- Pass.eval' expected
-        Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass BlankDesugaring _) (unsafeRelayout expected') (unsafeRelayout desugared)
+        orphans   <- Pass.eval' @BlankDesugaring $ checkUnreachableExprs [desugared]
+        coherence <- Pass.eval' @BlankDesugaring checkCoherence
+        blanks    <- Pass.eval' noBlankLeftBehind
+        expected' <- Pass.eval' expected
+        result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass BlankDesugaring _) (unsafeRelayout expected') (unsafeRelayout desugared)
         return (result, coherence, blanks, orphans)
     res `shouldBe` True
     coherence `shouldSatisfy` null
@@ -66,14 +67,14 @@ desugarsTo test expected = do
 
 replacesTo :: _ => _ -> _ -> Expectation
 replacesTo test expected = do
-    res <- dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    Right res <- tryAll $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         setAttr (getTypeDesc @UniqueNameGen) $ UniqueNameGen ("obscureName", (0::Int))
         setAttr (getTypeDesc @UsedVars) $ UsedVars []
-        Right x <- Pass.eval' test
-        Right desugared <- Pass.eval' $ replaceBlanks $ generalize x
-        Right expected' <- Pass.eval' $ expected
-        Right result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected') (unsafeRelayout desugared)
+        x <- Pass.eval' test
+        desugared <- Pass.eval' $ replaceBlanks $ generalize x
+        expected' <- Pass.eval' $ expected
+        result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass TestPass _) (unsafeRelayout expected') (unsafeRelayout desugared)
         return result
     res `shouldBe` True
 
