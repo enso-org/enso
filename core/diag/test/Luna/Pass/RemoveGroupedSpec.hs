@@ -131,6 +131,18 @@ unifyExpected = do
     ac <- rawAcc "succ" two
     unify n1 ac
 
+fooOneGrouped :: _ => SubPass RemoveGrouped _ _
+fooOneGrouped = do
+    foo <- strVar "foo"
+    one <- integer (1::Int) >>= grouped
+    app foo (arg one)
+
+fooOne :: _ => SubPass RemoveGrouped _ _
+fooOne = do
+    foo <- strVar "foo"
+    one <- integer (1::Int)
+    app foo (arg one)
+
 snapshotVis :: (MonadIR m, Vis.MonadVis m, MonadRef m) => P.String -> Pass.Pass TestPass m
 snapshotVis = Vis.snapshot
 
@@ -163,3 +175,5 @@ spec = describe "remove grouped" $ do
         accOnGrouped `desugarsTo` accOnGroupedExpected
     it "node1 = g(2.succ) ==> node1 = 2.succ" $
         unifyExample `desugarsTo` unifyExpected
+    it "foo g(1) ==> foo 1" $
+        fooOneGrouped `desugarsTo` fooOne
