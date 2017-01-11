@@ -12,38 +12,13 @@ import Luna.Prelude hiding (String, s, new)
 import qualified Luna.Prelude as P
 import qualified Luna.IR.Repr.Vis as Vis
 import Luna.TestUtils
-import Luna.IR.Expr.Combinators
 import Luna.IR.Function hiding (args)
 import Luna.IR.Runner
 import Luna.IR
+import Luna.Pass.Desugaring.RemoveGrouped
 import System.Log
 
 
-data RemoveGrouped
-type instance Abstract   RemoveGrouped = RemoveGrouped
-type instance Pass.Inputs     Net   RemoveGrouped = '[AnyExpr, AnyExprLink]
-type instance Pass.Inputs     Layer RemoveGrouped = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model]
-type instance Pass.Inputs     Attr  RemoveGrouped = '[]
-type instance Pass.Inputs     Event RemoveGrouped = '[]
-
-type instance Pass.Outputs    Net   RemoveGrouped = '[AnyExpr, AnyExprLink]
-type instance Pass.Outputs    Layer RemoveGrouped = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Succs]
-type instance Pass.Outputs    Attr  RemoveGrouped = '[]
-type instance Pass.Outputs    Event RemoveGrouped = '[New // AnyExpr, Delete // AnyExpr, Delete // AnyExprLink, New // AnyExprLink]
-
-type instance Pass.Preserves        RemoveGrouped = '[]
-
-removeGrouped :: _ => SomeExpr -> SubPass RemoveGrouped _ SomeExpr
-removeGrouped e = do
-    f <- symbolFields e
-    mapM_ (removeGrouped <=< source) f
-    match e $ \case
-        Grouped g -> do
-            g' <- source g
-            replaceNode e g'
-            deleteWithoutInputs e
-            return g'
-        _ -> return e
 
 noGroupedLeftBehind :: _ => SubPass RemoveGrouped m Bool
 noGroupedLeftBehind = do
