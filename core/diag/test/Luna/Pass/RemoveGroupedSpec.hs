@@ -41,7 +41,7 @@ removeGrouped e = do
         Grouped g -> do
             g' <- source g
             replaceNode e g'
-            deleteSubtree e
+            deleteWithoutInputs e
             return g'
         _ -> return e
 

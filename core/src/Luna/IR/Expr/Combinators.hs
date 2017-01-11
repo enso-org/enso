@@ -10,21 +10,39 @@ narrowAtom :: forall a m. (MonadRef m, KnownType (AtomOf a), Reader Layer (AnyEx
            => SomeExpr -> m (Maybe (Expr (AtomOf a)))
 narrowAtom expr = fromBoolMaybe (unsafeGeneralize expr) . (getAtomDesc @a ==) <$> termAtomDesc expr ; {-# INLINE narrowAtom #-}
 
-deleteSubtree :: forall l m. (MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m, Emitters '[Delete // AnyExpr, Delete // AnyExprLink] m)
-                 => SomeExpr -> m ()
-deleteSubtree expr = do
+safeToRemove :: forall m. (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m,
+                           Readers Layer '[AnyExpr // Succs, AnyExpr // Model, AnyExprLink // Model] m)
+             => SomeExpr -> m Bool
+safeToRemove expr = do
     succs     <- readLayer @Succs expr
-    removable <- case Set.toList succs of
+    case Set.toList succs of
         []  -> return True
         [l] -> uncurry (==) <$> readLayer @Model l -- Detect a loop, occuring e.g. with Stars
         _   -> return False
-    if removable then do
+
+deleteSubtree :: forall l m. (MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m, Emitters '[Delete // AnyExpr, Delete // AnyExprLink] m)
+                 => SomeExpr -> m ()
+deleteSubtree expr = do
+    removable <- safeToRemove expr
+    when removable $ do
         inps       <- symbolFields expr
         tp         <- readLayer @Type expr
         toRemove   <- mapM source $ tp : inps
         delete expr
         mapM_ deleteSubtree $ filter (/= expr) toRemove
-    else return ()
+
+deleteWithoutInputs :: forall m. (MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m,
+                                  Editors Layer '[AnyExpr // Succs, AnyExpr // Type,
+                                                  AnyExpr // Model, AnyExprLink // Model] m,
+                                  Emitters '[Delete // AnyExpr, Delete // AnyExprLink] m)
+                 => SomeExpr -> m ()
+deleteWithoutInputs expr = do
+    removable <- safeToRemove expr
+    when removable $ do
+        tp         <- readLayer @Type expr
+        toRemove   <- source tp
+        delete expr
+        deleteSubtree toRemove
 
 changeSource :: forall l m. (MonadRef m, Editors Net '[AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExprLink // Model] m)
              => SomeExprLink -> SomeExpr -> m ()
