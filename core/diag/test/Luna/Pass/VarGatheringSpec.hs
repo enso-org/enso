@@ -3,6 +3,8 @@
 
 module Luna.Pass.VarGatheringSpec (spec) where
 
+import qualified Data.Set as Set
+
 import           Control.Monad.Raise (tryAll)
 import           Luna.Pass        (SubPass)
 import qualified Luna.Pass        as Pass
@@ -11,36 +13,74 @@ import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
 import Luna.Prelude hiding (String, s, new)
 import qualified Luna.Prelude as P
 import qualified Luna.IR.Repr.Vis as Vis
+import Data.TypeDesc
 import Luna.TestUtils
 import Luna.IR.Expr.Combinators
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import Luna.IR.Function hiding (args)
 import Luna.IR.Runner
-import Luna.IR
+import Luna.IR hiding (expr)
 import Luna.Pass.Desugaring.RemoveGrouped
 import System.Log
 
+
+newtype UsedVars = UsedVars (Set.Set SomeExpr)
 
 data VarGathering
 type instance Abstract   VarGathering = VarGathering
 type instance Pass.Inputs     Net   VarGathering = '[AnyExpr, AnyExprLink]
 type instance Pass.Inputs     Layer VarGathering = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
-type instance Pass.Inputs     Attr  VarGathering = '[]
+type instance Pass.Inputs     Attr  VarGathering = '[UsedVars]
 type instance Pass.Inputs     Event VarGathering = '[]
 
 type instance Pass.Outputs    Net   VarGathering = '[AnyExpr, AnyExprLink]
 type instance Pass.Outputs    Layer VarGathering = '[AnyExpr // Model,  AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
-type instance Pass.Outputs    Attr  VarGathering = '[]
+type instance Pass.Outputs    Attr  VarGathering = '[UsedVars]
 type instance Pass.Outputs    Event VarGathering = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink]
 
 type instance Pass.Preserves        VarGathering = '[]
 
 
-gatherVar :: _ => SomeExpr -> SomeExpr -> m ()
+varsInside :: _ => SomeExpr -> SubPass VarGathering m [SomeExpr]
+varsInside e = do
+    f <- symbolFields e
+    vars <- mapM (varsInside <=< source) f
+    v <- match e $ \case
+        Var{} -> return [e]
+        _ -> return []
+    return $ v ++ concat vars
+
+varsNamesInside :: _ => SomeExpr -> SubPass VarGathering m [P.String]
+varsNamesInside = varsInside >=> mapM varName
+
+varName :: _ => SomeExpr -> SubPass VarGathering m P.String
+varName e = match e $ \case
+    Var n -> do
+        n' <- source n
+        match n' $ \case
+            String s -> return s
+
+gatherVars :: _ => [SomeExpr] -> SubPass VarGathering m _
+gatherVars es = do
+    varsNames <- mapM varsNamesInside es
+    let uniqueVars = Set.toList $ Set.fromList $ concat varsNames
+    vars <- mapM strVar uniqueVars
+    forM_ vars $ \v ->
+        forM_ es $ \e -> gatherVar (generalize v) e
+    UsedVars s <- readAttr
+    mapM_ deleteSubtree $ Set.toList $ Set.difference (Set.fromList $ map generalize vars) s
+
+modifyAttr :: forall attr pass m. _ => (_ -> _) -> SubPass pass m ()
+modifyAttr f = do
+    st <- readAttr @attr
+    writeAttr @attr $ f st
+
+gatherVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m ()
 gatherVar properVar expr = match expr $ \case
     Var n -> do
         sameVar <- sameNameVar properVar expr
         when sameVar $ do
+            modifyAttr $ \(UsedVars s) -> UsedVars $ Set.insert properVar s
             replaceNode expr properVar
             deleteSubtree expr
     Acc n v -> do
@@ -64,7 +104,7 @@ gatherVar properVar expr = match expr $ \case
     Rational{} -> return ()
 
 
-sameNameVar :: _ => SomeExpr -> SomeExpr -> m Bool
+sameNameVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m Bool
 sameNameVar v1 v2 = match2 v1 v2 $ \x y -> case (x, y) of
     (Var n1, Var n2) -> do
         n1' <- source n1
@@ -81,11 +121,10 @@ desugarsTo :: _ => _ -> _ -> Expectation
 desugarsTo test expected = do
     Right (res, coherence, orphans) <- tryAll $ withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
+        setAttr (getTypeDesc @UsedVars) $ UsedVars Set.empty
         x <- Pass.eval' test
         () <- Pass.eval' @VarGathering $ do
-            v <- generalize <$> strVar "quux"
-            gatherVar v $ generalize x
-            deleteSubtree v
+            gatherVars [generalize x]
         void $ Pass.eval' $ snapshotVis "desugar"
         orphans   <- Pass.eval' @RemoveGrouped $ checkUnreachableExprs [generalize x]
         coherence <- Pass.eval' @RemoveGrouped checkCoherence
