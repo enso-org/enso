@@ -99,6 +99,9 @@ gatherVar properVar expr = match expr $ \case
         sameVar <- sameNameVar properVar v'
         when (not sameVar) $ gatherVar properVar f'
     Grouped g -> source g >>= gatherVar properVar
+    Unify l r -> do
+        source l >>= gatherVar properVar
+        source r >>= gatherVar properVar
     String{} -> return ()
     Integer{} -> return ()
     Rational{} -> return ()
@@ -189,8 +192,8 @@ lamFooABExpected = do
     l1 <- lam (arg a) l
     return [l1]
 
-foo1BarE :: _ => SubPass VarGathering _ _
-foo1BarE = do
+nEqFoo1BarE :: _ => SubPass VarGathering _ _
+nEqFoo1BarE = do
     foo <- strVar "foo"
     one <- integer (1::Int)
     a1 <- app foo (arg one)
@@ -198,7 +201,9 @@ foo1BarE = do
     a2 <- app a1 (arg bar)
     e <- rational 2.718
     a3 <- app a2 (arg e)
-    return [a3]
+    n <- strVar "n"
+    u <- unify n a3
+    return [u]
 
 groupedFooAAppA :: _ => SubPass VarGathering _ _
 groupedFooAAppA = do
@@ -218,10 +223,11 @@ groupedFooAAppAExpected = do
     return [a1]
 
 
+
 spec :: Spec
 spec = describe "remove grouped" $ do
     it "\\x -> x.foo" $ lamXFoo `desugarsTo` lamXFooExpected
     it "\\a -> a" $ idLam `desugarsTo` idLamExpected
     it "\\a b -> foo a b" $ lamFooAB `desugarsTo` lamFooABExpected
-    it "foo 1 \"bar\" 2.718" $ foo1BarE `desugarsTo` foo1BarE
+    it "n = foo 1 \"bar\" 2.718" $ nEqFoo1BarE `desugarsTo` nEqFoo1BarE
     it "(foo a) a" $ groupedFooAAppA `desugarsTo` groupedFooAAppAExpected
