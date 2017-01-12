@@ -123,13 +123,15 @@ desugarsTo test expected = do
         runRegs
         setAttr (getTypeDesc @UsedVars) $ UsedVars Set.empty
         x <- Pass.eval' test
-        () <- Pass.eval' @VarGathering $ do
-            gatherVars [generalize x]
+        () <- Pass.eval' @VarGathering $ gatherVars $ map generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
-        orphans   <- Pass.eval' @RemoveGrouped $ checkUnreachableExprs [generalize x]
+        orphans   <- Pass.eval' @RemoveGrouped $ checkUnreachableExprs $ map generalize x
         coherence <- Pass.eval' @RemoveGrouped checkCoherence
         expected' <- Pass.eval' expected
-        result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass RemoveGrouped _) (unsafeRelayout expected') (unsafeRelayout x)
+        result <- Pass.eval' $ fmap and $
+            zipWithM (areExpressionsIsomorphic @(SubPass RemoveGrouped _))
+                     (map unsafeRelayout expected')
+                     (map unsafeRelayout x)
         return (result, coherence, orphans)
     res `shouldBe` True
     coherence `shouldSatisfy` null
@@ -140,24 +142,28 @@ lamXFoo = do
     x' <- strVar "x"
     ac <- rawAcc "foo" x'
     x <- strVar "x"
-    lam (arg x) ac
+    l <- lam (arg x) ac
+    return [l]
 
 lamXFooExpected :: _ => SubPass VarGathering _ _
 lamXFooExpected = do
     x <- strVar "x"
     ac <- rawAcc "foo" x
-    lam (arg x) ac
+    l <- lam (arg x) ac
+    return [l]
 
 idLam :: _ => SubPass VarGathering _ _
 idLam = do
     a <- strVar "a"
     a' <- strVar "a"
-    lam (arg a) a'
+    l <- lam (arg a) a'
+    return [l]
 
 idLamExpected :: _ => SubPass VarGathering _ _
 idLamExpected = do
     a <- strVar "a"
-    lam (arg a) a
+    l <- lam (arg a) a
+    return [l]
 
 lamFooAB :: _ => SubPass VarGathering _ _
 lamFooAB = do
@@ -169,7 +175,8 @@ lamFooAB = do
     a' <- strVar "a"
     b' <- strVar "b"
     l <- lam (arg b') a2
-    lam (arg a') l
+    l1 <- lam (arg a') l
+    return [l1]
 
 lamFooABExpected :: _ => SubPass VarGathering _ _
 lamFooABExpected = do
@@ -179,7 +186,8 @@ lamFooABExpected = do
     a1 <- app foo (arg a)
     a2 <- app a1 (arg b)
     l <- lam (arg b) a2
-    lam (arg a) l
+    l1 <- lam (arg a) l
+    return [l1]
 
 foo1BarE :: _ => SubPass VarGathering _ _
 foo1BarE = do
@@ -189,7 +197,8 @@ foo1BarE = do
     bar <- string "bar"
     a2 <- app a1 (arg bar)
     e <- rational 2.718
-    app a2 (arg e)
+    a3 <- app a2 (arg e)
+    return [a3]
 
 groupedFooAAppA :: _ => SubPass VarGathering _ _
 groupedFooAAppA = do
@@ -197,14 +206,16 @@ groupedFooAAppA = do
     a <- strVar "quux"
     g <- app foo (arg a) >>= grouped
     a' <- strVar "quux"
-    app g (arg a')
+    a1 <- app g (arg a')
+    return [a1]
 
 groupedFooAAppAExpected :: _ => SubPass VarGathering _ _
 groupedFooAAppAExpected = do
     foo <- strVar "foo"
     a <- strVar "quux"
     g <- app foo (arg a) >>= grouped
-    app g (arg a)
+    a1 <- app g (arg a)
+    return [a1]
 
 
 spec :: Spec
