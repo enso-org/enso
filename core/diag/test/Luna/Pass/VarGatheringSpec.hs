@@ -210,20 +210,86 @@ nEqFoo1BarE = do
 groupedFooAAppA :: _ => SubPass VarGathering _ _
 groupedFooAAppA = do
     foo <- strVar "foo"
-    a <- strVar "quux"
+    a <- strVar "a"
     g <- app foo (arg a) >>= grouped
-    a' <- strVar "quux"
+    a' <- strVar "a"
     a1 <- app g (arg a')
     return [a1]
 
 groupedFooAAppAExpected :: _ => SubPass VarGathering _ _
 groupedFooAAppAExpected = do
     foo <- strVar "foo"
-    a <- strVar "quux"
+    a <- strVar "a"
     g <- app foo (arg a) >>= grouped
     a1 <- app g (arg a)
     return [a1]
 
+allAbove :: _ => SubPass VarGathering m [SomeExpr]
+allAbove = do
+    (t1 :: [SomeExpr]) <- map unsafeRelayout <$> lamXFoo
+    (t2 :: [SomeExpr]) <- map unsafeRelayout <$> idLam
+    (t3 :: [SomeExpr]) <- map unsafeRelayout <$> lamFooAB
+    (t4 :: [SomeExpr]) <- map unsafeRelayout <$> nEqFoo1BarE
+    (t5 :: [SomeExpr]) <- map unsafeRelayout <$> groupedFooAAppA
+    return $ concat [t1, t2, t3, t4, t5]
+
+allAboveExpected :: _ => SubPass VarGathering m [SomeExpr]
+allAboveExpected = do
+    (t1 :: [SomeExpr]) <- map unsafeRelayout <$> lamXFooExpected
+    (t2 :: [SomeExpr]) <- map unsafeRelayout <$> idLamExpected
+    (t3 :: [SomeExpr]) <- map unsafeRelayout <$> lamFooABExpected
+    (t4 :: [SomeExpr]) <- map unsafeRelayout <$> nEqFoo1BarE
+    (t5 :: [SomeExpr]) <- map unsafeRelayout <$> groupedFooAAppAExpected
+    return $ concat [t1, t2, t3, t4, t5]
+
+manyApps :: _ => SubPass VarGathering _ _
+manyApps = do
+    u1 <- unsafeRelayout <$> do
+        foo <- strVar "foo"
+        a <- strVar "a"
+        n1 <- strVar "n1"
+        unify n1 =<< app foo (arg a)
+    u2 <- unsafeRelayout <$> do
+        bar <- strVar "bar"
+        a <- strVar "a"
+        b <- strVar "b"
+        ap1 <- app bar (arg a)
+        n2 <- strVar "n2"
+        unify n2 =<< app ap1 (arg b)
+    u3 <- unsafeRelayout <$> do
+        baz <- strVar "baz"
+        a <- strVar "a"
+        b <- strVar "b"
+        c <- strVar "c"
+        ap1 <- app baz (arg a)
+        ap2 <- app ap1 (arg b)
+        ap3 <- app ap2 (arg c)
+        n3 <- strVar "n3"
+        unify n3 ap3
+    return [u1, u2, u3]
+
+manyAppsExpected :: _ => SubPass VarGathering _ _
+manyAppsExpected = do
+    a <- strVar "a"
+    b <- strVar "b"
+    u1 <- unsafeRelayout <$> do
+        foo <- strVar "foo"
+        n1 <- strVar "n1"
+        unify n1 =<< app foo (arg a)
+    u2 <- unsafeRelayout <$> do
+        bar <- strVar "bar"
+        ap1 <- app bar (arg a)
+        n2 <- strVar "n2"
+        unify n2 =<< app ap1 (arg b)
+    u3 <- unsafeRelayout <$> do
+        baz <- strVar "baz"
+        c <- strVar "c"
+        ap1 <- app baz (arg a)
+        ap2 <- app ap1 (arg b)
+        ap3 <- app ap2 (arg c)
+        n3 <- strVar "n3"
+        unify n3 ap3
+    return [u1, u2, u3]
 
 
 spec :: Spec
@@ -233,3 +299,5 @@ spec = describe "remove grouped" $ do
     it "\\a b -> foo a b" $ lamFooAB `desugarsTo` lamFooABExpected
     it "n = foo 1 \"bar\" 2.718" $ nEqFoo1BarE `desugarsTo` nEqFoo1BarE
     it "(foo a) a" $ groupedFooAAppA `desugarsTo` groupedFooAAppAExpected
+    it "all of the above" $ allAbove `desugarsTo` allAboveExpected
+    it "n1 = foo a; n2 = bar a b; n3 = baz a b c" $ manyApps `desugarsTo` manyAppsExpected
