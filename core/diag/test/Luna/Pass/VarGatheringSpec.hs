@@ -16,7 +16,6 @@ import qualified Luna.IR.Repr.Vis as Vis
 import Data.TypeDesc
 import Luna.TestUtils
 import Luna.IR.Expr.Combinators
-import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import Luna.IR.Function hiding (args)
 import Luna.IR.Runner
 import Luna.IR hiding (expr)
@@ -77,22 +76,21 @@ modifyAttr f = do
 
 gatherVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m ()
 gatherVar properVar expr = match expr $ \case
-    Var n -> do
+    Var{} -> do
         sameVar <- sameNameVar properVar expr
         when sameVar $ do
             modifyAttr $ \(UsedVars s) -> UsedVars $ Set.insert properVar s
             replaceNode expr properVar
             deleteSubtree expr
-    Acc n v -> do
-        n' <- source n
+    Acc _ v -> do
         v' <- source v
         gatherVar properVar v'
-    App f (Arg n v) -> do
+    App f (Arg _ v) -> do
         f' <- source f
         v' <- source v
         gatherVar properVar f'
         gatherVar properVar v'
-    Lam (Arg n v) f -> do
+    Lam (Arg _ v) f -> do
         v' <- source v
         f' <- source f
         gatherVar v' f'
@@ -102,9 +100,13 @@ gatherVar properVar expr = match expr $ \case
     Unify l r -> do
         source l >>= gatherVar properVar
         source r >>= gatherVar properVar
+    Cons n -> source n >>= gatherVar properVar
     String{} -> return ()
     Integer{} -> return ()
     Rational{} -> return ()
+    Blank{} -> return ()
+    Star{} -> return ()
+    Missing{} -> return ()
 
 
 sameNameVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m Bool
@@ -112,7 +114,7 @@ sameNameVar v1 v2 = match2 v1 v2 $ \x y -> case (x, y) of
     (Var n1, Var n2) -> do
         n1' <- source n1
         n2' <- source n2
-        match2 n1' n2' $ \x y -> case (x, y) of
+        match2 n1' n2' $ \x' y' -> case (x', y') of
             (String s1, String s2) -> return $ s1 == s2
     _ -> return False
 
