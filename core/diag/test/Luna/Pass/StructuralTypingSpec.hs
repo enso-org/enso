@@ -48,9 +48,9 @@ getStructuralType expr = do
 attachStructuralType :: (MonadRef m, MonadIO m, MonadPassManager m) => SomeExpr -> SubPass StructuralTyping m SomeExpr
 attachStructuralType expr = do
     tp <- match expr $ \case
-        Integer {}      -> string "Int"    >>= fmap generalize . cons
-        Rational{}      -> string "Double" >>= fmap generalize . cons --TODO type as rational
-        String  {}      -> string "String" >>= fmap generalize . cons
+        Integer {}      -> string "Int"    >>= fmap generalize . cons_
+        Rational{}      -> string "Double" >>= fmap generalize . cons_ --TODO type as rational
+        String  {}      -> string "String" >>= fmap generalize . cons_
         Acc n a         -> do
             name <- source n
             source a >>= getStructuralType >>= fmap generalize . acc name
