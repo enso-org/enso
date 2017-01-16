@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Expr.Layout.Class where
+module Luna.IR.Expr.Layout.Class (module Luna.IR.Expr.Layout.Class, module X) where
 
 
 import Luna.Prelude as Prelude
@@ -18,6 +18,7 @@ import Type.Bool
 import Type.Inference (KnownTypeT, runInferenceT2)
 import           Data.RTuple (Assoc(..), SetAssoc, LookupAssoc)
 import qualified Data.RTuple as List
+import Data.Abstract as X -- TODO[WD]: Consider removing the re-export
 
 -- FIXME: remove or refactor
 data Named n a
@@ -83,7 +84,6 @@ type family LayoutOf a
 type family Current       a
 type family Simplify      l
 type family Universal     a
-type family Abstract      a
 type family DefaultLayout p
 
 
@@ -143,12 +143,12 @@ type instance Merge (Atomic a) (Atomic b) = If (a == b) (Atomic a) ((Atomic a # 
 type instance Merge (Atomic a) ()         = Atomic a
 type instance Merge ()         (Atomic a) = Atomic a
 
-type instance Merge Any        (Atomic a) = Any
-type instance Merge (Atomic a) Any        = Any
+type instance Merge Bottom        (Atomic a) = Bottom
+type instance Merge (Atomic a) Bottom        = Bottom
 
 -----------------
--- === Any === --
+-- === Bottom === --
 -----------------
 
-data Any
-type instance Sub t Any = Any
+data Bottom
+type instance Sub t Bottom = Bottom

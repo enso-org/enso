@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Old.Luna.Syntax.Term.Atom where

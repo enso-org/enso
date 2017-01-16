@@ -19,8 +19,8 @@ replaceNode :: ( term  ~ Draft Static
                , graph ~ Hetero (NEC.Graph n e c)
                , Covered node
                , HasSuccs node
-               , BiCastable e edge
-               , BiCastable n node
+               , IsoCastable e edge
+               , IsoCastable n node
                , MonadBuilder graph m
                , Destructor m (Ref Node node)
                , Destructor m (Ref Edge edge)
@@ -40,8 +40,8 @@ replaceNodeNonDestructive :: ( term  ~ Draft Static
                              , graph ~ Hetero (NEC.Graph n e c)
                              , Covered node
                              , HasSuccs node
-                             , BiCastable e edge
-                             , BiCastable n node
+                             , IsoCastable e edge
+                             , IsoCastable n node
                              , MonadBuilder graph m
                              , Destructor m (Ref Node node)
                              , Destructor m (Ref Edge edge)

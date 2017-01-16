@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Name.Class where
@@ -62,4 +63,3 @@ instance ToString Segment   where toString (Segment   anum name) = replicate anu
 
 -- Repr
 instance Repr s MultiName where repr = const "<multiname repr>" ; {-# INLINE repr #-}
-

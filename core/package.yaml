@@ -25,11 +25,13 @@ benchmarks:
 
 tests:
     spec:
-        main: Spec.hs
+        main: Main.hs
         source-dirs: diag/test
         dependencies:
             - luna
             - hspec
+            - hspec-jenkins
+            - open-browser
 
 dependencies:
     - aeson
@@ -83,8 +85,9 @@ dependencies:
     - typelevel
     - vector
     - visualization-api
-
     - reflection
+    - time-locale-compat
+    - ansi-wl-pprint
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -117,7 +120,6 @@ default-extensions:
     - NoImplicitPrelude
     - NumDecimals
     - OverloadedLabels
-    - OverloadedStrings
     - PackageImports
     - RankNTypes
     - RecursiveDo

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Luna.IR.Function.Argument where
 
 import Luna.Prelude

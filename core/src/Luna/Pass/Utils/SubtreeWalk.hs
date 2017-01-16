@@ -17,8 +17,8 @@ import           Old.Luna.Syntax.Model.Network.Class                 ()
 
 #define PassCtx(m) ( node ~ (ls :<: term)                         \
                    , edge ~ Link node                             \
-                   , BiCastable n node                            \
-                   , BiCastable e edge                            \
+                   , IsoCastable n node                            \
+                   , IsoCastable e edge                            \
                    , MonadBuilder (Hetero (NEC.Graph n e c)) m    \
                    , Getter Inputs node                           \
                    , Prop Inputs node ~ [Ref Edge edge]           \

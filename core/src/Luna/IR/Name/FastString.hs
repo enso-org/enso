@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Name.FastString (module X) where

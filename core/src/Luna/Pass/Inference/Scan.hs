@@ -31,8 +31,8 @@ import           Data.Layer_OLD.Cover_OLD
                    , Covered node                                  \
                    , node ~ (ls :<: term)                          \
                    , edge ~ Link node                              \
-                   , BiCastable n node                             \
-                   , BiCastable e edge                             \
+                   , IsoCastable n node                             \
+                   , IsoCastable e edge                             \
                    , Covered node                                  \
                    , Destructor m (Ref Edge edge)                  \
                    , Destructor m (Ref Node node)                  \

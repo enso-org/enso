@@ -1,4 +1,5 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE UndecidableInstances    #-}
 
 module Luna.Pass.Manager where
 
@@ -8,53 +9,29 @@ import qualified Control.Monad.State as State
 import           Control.Monad.State (StateT, evalStateT, runStateT)
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
-import           Data.Event          (Event, EventHub, Emitter, IsTag, Listener(Listener), toTag, attachListener, (//))
+import qualified Data.Set            as Set
+import           Data.Set            (Set)
+import           Data.Event          (Event, Payload(Payload), EventHub, Emitter, Listener(Listener), Tag(Tag), attachListener)
 import qualified Data.Event          as Event
 
-import Luna.IR.Internal.IR
-import Luna.Pass.Class (IsPass, DynSubPass, SubPass, PassRep)
+import Luna.IR.Internal.IR as IR
+import Luna.Pass.Class (SubPass, PassRep, Proto, DynPass, DynSubPass(DynSubPass), Template, Uninitialized, PassConstruction)
 import qualified Luna.Pass.Class as Pass
 
 import qualified Prologue.Prim as Prim
-import Data.TypeVal
+import Data.TypeDesc
+
+import System.Log
+import qualified Data.ManagedVectorMap as Store
+import Luna.IR.Layer
+
+import Control.Monad.Raise
 
 
-data WorkingElem = WorkingElem deriving (Show)
-
-
-
--- | Constructor functions ::  t        -> Definition t -> m (LayerData UID t)
--- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMSubPass m Prim.Any)
--- newtype ConsFunc m = ConsFunc (Prim.Any -> Prim.Any -> PMPass m)
--- makeWrapped ''ConsFunc
-
-
--- type PMArgSubPass m = DynArgSubPass (PassManager m)
--- type PMArgPass    m = PMArgSubPass m ()
-
-type PMSubPass m = DynSubPass (PassManager m)
-type PMPass    m = PMSubPass m ()
-
-
--------------------
--- === State === --
--------------------
-
--- TODO: refactor -> Passes
--- VVV --
-newtype PassProto m = PassProto { appCons :: ElemRep -> PMPass m } -- FIXME: should not refer to PMPass
-instance Show (PassProto m) where show _ = "PassProto"
--- ^^^ --
-
-data LayerReg m = LayerReg { _prototypes :: Map LayerRep $ PassProto m
-                           , _attached   :: Map ElemRep  $ Map LayerRep $ PassRep
-                           } deriving (Show)
-
-data State m = State { _passes :: Map PassRep $ PMPass m
-                     , _layers :: LayerReg m
-                     , _events :: EventHub SortedListenerRep PassRep
-                     , _attrs  :: Map AttrRep Prim.AnyData
-                     } deriving (Show)
+type Cache = Map (TypeDesc,TypeDesc) Prim.Any
+class Monad m => MonadRefCache m where
+    getCache :: m Cache
+    putCache :: Cache -> m ()
 
 
 data SortedListenerRep = SortedListenerRep Int Event.ListenerRep deriving (Show, Eq)
@@ -62,13 +39,46 @@ instance Ord SortedListenerRep where
     compare (SortedListenerRep i r) (SortedListenerRep i' r') = if i == i' then compare r r' else compare i i'
 
 
+
+-------------------
+-- === State === --
+-------------------
+
+
+data State m = State { _passes    :: Map PassRep (Pass.Describbed (Uninitialized m (DynPass m))) -- not used yet
+                     , _layers    :: Map ElemRep  $ Map LayerRep PassRep                         -- not used yet
+                     , _listeners :: ListenerState m
+                     , _attrs     :: Map AttrRep Prim.AnyData
+                     } deriving (Show)
+
+data ListenerState m = ListenerState { _decls :: Map LayerRep $ Map PassRep $ ListenerDecl m
+                                     , _hub   :: EventHub SortedListenerRep (Pass.Describbed (Uninitialized m (Template (DynPass m))))
+                                     } deriving (Show)
+
+data ListenerDecl m = GenericListener  (Proto $ Event.Tagged (Pass.Describbed (Uninitialized m (Template (DynPass m)))))
+                    | SpecificListener ElemRep (Event.Tagged (Pass.Describbed (Uninitialized m (Template (DynPass m)))))
+                    deriving (Show)
+
+type RefState m = State (GetRefHandler m)
+
+makeLenses ''State
+makeLenses ''ListenerState
+
+
+-- === Utils === --
+
+specializeListener :: ElemRep -> ListenerDecl m -> Maybe (Event.Tagged (Pass.Describbed (Uninitialized m (Template (DynPass m)))))
+specializeListener e = \case
+    GenericListener  p    -> Just $ Pass.specialize p e
+    SpecificListener le p -> guarded (le == e) p
+{-# INLINE specializeListener #-}
+
+
 -- === instances === --
 
-instance Default (LayerReg m) where
-    def = LayerReg def def ; {-# INLINE def #-}
+instance Default (ListenerState m) where def = ListenerState def def         ; {-# INLINE def #-}
+instance Default (State         m) where def = State         def def def def ; {-# INLINE def #-}
 
-instance Default (State m) where
-    def = State def def def def ; {-# INLINE def #-}
 
 
 --------------------------
@@ -77,40 +87,29 @@ instance Default (State m) where
 
 -- === Definition === --
 
-newtype PassManager m a = PassManager (StateT (State m) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadThrow)
-
-makeLenses  ''LayerReg
-makeLenses  ''State
+newtype PassManager m a = PassManager (StateT (State (PassManager m)) m a) deriving (Functor, Applicative, Monad, MonadIO, MonadFix, MonadThrow)
 makeWrapped ''PassManager
 
-type PassManager' m = PassManager (GetBaseMonad m)
 
-type family GetBaseMonad m where
-    GetBaseMonad (PassManager m) = m
-    GetBaseMonad (t m)           = GetBaseMonad m
+-- === MonadPassManager === --
+type MonadPassManager m = (MonadPassManager' m, MonadPassManager' (GetRefHandler m))
 
-type PMPass' m = PMPass (GetBaseMonad m)
-type State'  m = State  (GetBaseMonad m)
+type MonadPassManagerCtx m = (MonadIR m, MonadRef m, PassConstruction m)
+class MonadPassManagerCtx m => MonadPassManager' m where
+    get :: m (RefState m)
+    put :: RefState m -> m ()
 
-class Monad m => MonadPassManager m where
-    get :: m (State' m)
-    put :: State' m -> m ()
-    liftPassManager :: PassManager' m a -> m a
-
-instance Monad m => MonadPassManager (PassManager m) where
+instance (MonadPassManagerCtx (PassManager m), Monad m) => MonadPassManager' (PassManager m) where
     get = wrap'   State.get ; {-# INLINE get #-}
     put = wrap' . State.put ; {-# INLINE put #-}
-    liftPassManager = id
 
-type TransBaseMonad t m = (GetBaseMonad m ~ GetBaseMonad (t m), Monad m, Monad (t m), MonadTrans t)
-instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m)
-      => MonadPassManager (t m) where
+type TransBaseMonad t m = (MonadTransInvariants' t m, MonadRef (t m), GetRefHandler m ~ GetRefHandler (t m))
+instance {-# OVERLAPPABLE #-} (MonadPassManager m, TransBaseMonad t m, PassConstruction (t m))
+      => MonadPassManager' (t m) where
     get = lift   get ; {-# INLINE get #-}
     put = lift . put ; {-# INLINE put #-}
-    liftPassManager = lift . liftPassManager
 
-
-modifyM :: MonadPassManager m => (State' m -> m (a, State' m)) -> m a
+modifyM :: MonadPassManager m => (RefState m -> m (a, RefState m)) -> m a
 modifyM f = do
     s <- get
     (a, s') <- f s
@@ -118,65 +117,91 @@ modifyM f = do
     return a
 {-# INLINE modifyM #-}
 
-modifyM_ :: MonadPassManager m => (State' m -> m (State' m)) -> m ()
+modifyM_ :: MonadPassManager m => (RefState m -> m (RefState m)) -> m ()
 modifyM_ = modifyM . fmap (fmap ((),)) ; {-# INLINE modifyM_ #-}
 
-modify_ :: MonadPassManager m => (State' m -> State' m) -> m ()
+modify_ :: MonadPassManager m => (RefState m -> RefState m) -> m ()
 modify_ = modifyM_ . fmap return ; {-# INLINE modify_ #-}
 
 
 -- === Running === --
 
-evalPassManager :: Monad m => PassManager m a -> State m -> m a
-evalPassManager = evalStateT . unwrap' ; {-# INLINE evalPassManager #-}
+evalPassManager :: Logging m => PassManager m a -> State (PassManager m) -> m a
+evalPassManager = withDebugBy "PassManager" "Running PassManager" .: evalStateT . unwrap' ; {-# INLINE evalPassManager #-}
 
-evalPassManager' :: Monad m => PassManager m a -> m a
+evalPassManager' :: Logging m => PassManager m a -> m a
 evalPassManager' = flip evalPassManager def ; {-# INLINE evalPassManager' #-}
 
 
 -- === Utils === --
 
+-- FIXME[WD]: torefactor
+emptyMap :: Prism' (Map k a) ()
+emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
+{-# INLINE emptyMap #-}
+
+-- FIXME[WD]: torefactor
+subMapAt t = non' emptyMap . at t
+
+
+registerElemEventListener :: MonadPassManager m => LayerRep -> PassRep -> ListenerDecl (GetRefHandler m) -> m ()
+registerElemEventListener l p f = modify_ $ listeners . decls . at l . subMapAt p ?~ f
+    -- where f' = flip (fmap . fmap) f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
+{-# INLINE registerElemEventListener #-}
+
+registerGenericElemEventListener :: MonadPassManager m => LayerRep -> PassRep -> Proto (Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))))) -> m ()
+registerGenericElemEventListener l p f = withDebug ("Registering event listener " <> show p <> " (* // " <> show l <> ")") $ registerElemEventListener l p (GenericListener f')
+    where f' = flip (fmap . fmap) f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
+{-# INLINE registerGenericElemEventListener #-}
+
+registerSpecificElemEventListener :: MonadPassManager m => ElemRep -> LayerRep -> PassRep -> Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+registerSpecificElemEventListener e l p f = withDebug ("Registering event listener " <> show p <> " (" <> show e <> " // " <> show l <> ")") $ registerElemEventListener l p (SpecificListener e f')
+    where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running") df
+{-# INLINE registerSpecificElemEventListener #-}
+
+-- registerElemEventListener' :: MonadPassManager m => LayerRep -> PassRep -> Proto (Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))))) -> m ()
+-- registerElemEventListener' = registerElemEventListener Nothing ; {-# INLINE registerElemEventListener' #-}
+
+-- registerElemEventListener2 :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m))))) -> m ()
+-- registerElemEventListener2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
+--     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (\(DynSubPass p) -> withDebugBy ("Pass [" <> show (df ^. Pass.desc . Pass.passRep) <> "]") "Running" (DynSubPass p)) df
+-- {-# INLINE registerElemEventListener2 #-}
+
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-attachLayerPM :: (MonadPassManager m, Functor (GetBaseMonad m)) => Int -> LayerRep -> ElemRep -> m ()
-attachLayerPM priority l e = do
+attachLayer :: (MonadPassManager m, Throws IRError m) => Int -> LayerRep -> ElemRep -> m ()
+attachLayer priority l e = withDebug ("Attaching layer " <> show l <> " to (" <> show e <> ")") $ do
+    IR.unsafeCreateNewLayer l e
     s <- get
-    let Just lcons = s ^. layers . prototypes . at l
-        lpass = appCons lcons e
-        s' = s & layers . attached . at e . non Map.empty . at l ?~ (lpass ^. Pass.desc . Pass.repr)
-    put s'
-    addEventListener priority (NEW // (e ^. asTypeRep)) lpass -- TODO
+    let Just layerDecls = Map.elems <$> s ^. listeners . decls . at l
+        dpasses = catMaybes $ specializeListener e <$> layerDecls
+        -- s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.desc . Pass.passRep)
+    -- put s'
+    mapM_ (\(Event.Tagged (Tag es) p) -> addEventListener_byPri priority (Tag $ es <> [switchTypeDesc e]) p) dpasses
     -- TODO: register new available pass!
-{-# INLINE attachLayerPM #-}
+{-# INLINE attachLayer #-}
 
--- FIXME[WD]: make forall t. like security check for layers registration
-registerLayer :: MonadPassManager m => LayerRep -> (TypeRep -> PMPass' m) -> m ()
-registerLayer l f = modify_ $ layers . prototypes . at l ?~ PassProto f ; {-# INLINE registerLayer #-}
-
-queryListeners :: MonadPassManager m => Event.Tag -> m [PMPass' m]
-queryListeners t = do
-    s <- get
-    let pss  = s ^. passes
-        evs  = Event.queryListeners t $ s ^. events
-        lsts = map (fromJust . flip Map.lookup pss) evs
-        fromJust (Just a) = a
-    return lsts
-
---
-
--- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
-addEventListener :: (MonadPassManager m, IsTag evnt, IsPass (PassManager' m) p) => Int -> evnt -> p (PassManager' m) a -> m ()
-addEventListener priority evnt p = modify_ $ (events %~ attachListener (Listener (toTag evnt) $ SortedListenerRep priority $ switchRep rep) rep)
-                                           . (passes %~ Map.insert rep cp)
-    where cp  = Pass.compile $ Pass.dropResult p
-          rep = cp ^. Pass.desc . Pass.repr
-{-# INLINE addEventListener #-}
+queryListeners :: MonadPassManager m => Event.Tag -> m [Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))]
+queryListeners t = fmap (view Pass.content) . Event.queryListeners t . view (listeners . hub) <$> get ; {-# INLINE queryListeners #-}
 
 
--- registerGenericLayer :: l -> (t -> Definition t -> m (LayerData UID t)) -> m ()
--- registerGenericLayer _
+addEventListener_byPri :: MonadPassManager m => Int -> Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListener_byPri priority tag p = withDebug ("Attaching event listener " <> show rep <> " to " <> show tag)
+                                      $ modify_ $ (listeners . hub %~ attachListener (Listener tag $ SortedListenerRep priority $ switchTypeDesc rep) p)
+    where rep = p ^. Pass.desc . Pass.passRep
+{-# INLINE addEventListener_byPri #-}
+
+
+addEventListenerDyn :: MonadPassManager m => Tag -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListenerDyn = addEventListener_byPri 100 ; {-# INLINE addEventListenerDyn #-}
+
+addEventListener :: forall tag m. (Event.KnownTag tag, MonadPassManager m) => Pass.Describbed (Uninitialized (GetRefHandler m) (Template (DynPass (GetRefHandler m)))) -> m ()
+addEventListener = addEventListenerDyn (Event.fromPath @tag) ; {-# INLINE addEventListener #-}
 
 
 -- === Instances === --
+
+-- Logging
+instance MonadLogging m => MonadLogging (PassManager  m)
 
 -- Primitive
 instance PrimMonad m => PrimMonad (PassManager m) where
@@ -189,25 +214,18 @@ instance MonadTrans PassManager where
 
 
 
-
--- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
--- | Emitter
--- FIXME[WD]: Is there any more performant way to evaluate events than having to set @WorkingElem before each emit?
-type instance KeyData m (Event e) = PassManager' m ()
-instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
-    emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
-
--- Here is an example stup of fixing implementation:
--- type instance KeyData m (Event e) = Event.Payload e -> PassManager' m ()
--- instance (MonadPassManager m, Pass.ContainsKey (Event e) (Pass.Keys pass)) => Emitter (SubPass pass m) e where
---     emit _ d = unsafeWithAttr (typeVal' @WorkingElem) d $ liftPassManager . ($ d) . unwrap' . view (Pass.findKey @(Event e)) =<< Pass.get
--- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+type instance RefData Event _ m = Template (DynPass m)
 
 
+instance (MonadPassManager m, Pass.ContainsRef pass Event e (GetRefHandler m))
+      => Emitter e (SubPass pass m) where
+    emit (Payload p) = do
+        tmpl <- unwrap' . view (Pass.findRef @pass @Event @e) <$> Pass.get
+        liftRefHandler $ Pass.runDynPass $ Pass.unsafeInstantiate p tmpl
 
-instance (MonadPassManager m, Typeable a) => KeyMonad (Attr a) m n where
-    uncheckedLookupKey = fmap unsafeCoerce . (^? (attrs . ix (typeRep' @a))) <$> get ; {-# INLINE uncheckedLookupKey #-}
 
+setAttr :: MonadPassManager m => AttrRep -> a -> m ()
+setAttr = unsafeWriteAttr
 
 unsafeWriteAttr :: MonadPassManager m => AttrRep -> a -> m ()
 unsafeWriteAttr r a = modify_ $ attrs %~ Map.insert r (unsafeCoerce a)
@@ -228,3 +246,89 @@ unsafeWithAttr r a f = do
     out <- f
     unsafeSetAttr r oldAttr
     return out
+
+
+
+
+type instance GetRefHandler (PassManager m) = PassManager m
+instance MonadIR m => MonadRef (PassManager m) where
+    liftRefHandler = id ; {-# INLINE liftRefHandler #-}
+
+
+
+
+----------------------
+-- === RefCache === --
+----------------------
+
+newtype RefCache m a = RefCache (StateT Cache m a) deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadFix, MonadThrow)
+makeWrapped ''RefCache
+
+runRefCache :: Monad m => RefCache m a -> m a
+runRefCache = flip evalStateT mempty . unwrap' ; {-# INLINE runRefCache #-}
+
+
+
+
+instance Monad m => MonadRefCache (RefCache m) where
+    getCache = wrap'   State.get
+    putCache = wrap' . State.put
+
+instance {-# OVERLAPPABLE #-} (Monad m, Monad (t m), MonadTrans t, MonadRefCache m) => MonadRefCache (t m) where
+    getCache = lift   getCache
+    putCache = lift . putCache
+
+
+
+-- FIXME: Refactor errors vvv
+
+data RefLookupError = RefLookupError TypeDesc TypeDesc deriving (Show)
+instance Exception RefLookupError
+
+
+-- === Instances === --
+
+-- Primitive
+instance PrimMonad m => PrimMonad (RefCache m) where
+    type PrimState (RefCache m) = PrimState m
+    primitive = lift . primitive ; {-# INLINE primitive #-}
+
+
+instance MonadLogging m => MonadLogging (RefCache m)
+
+instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Attr (PassManager m) where
+    uncheckedLookupRef a = tryJust (RefLookupError (getTypeDesc @Attr) a) . fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) =<< get ; {-# INLINE uncheckedLookupRef #-}
+
+instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Layer (PassManager m) where
+    uncheckedLookupRef t = do
+        ir <- getIR
+        let (_,[e,l]) = splitTyConApp t -- dirty typrep of (e // l) extraction
+            mlv = ir ^? wrapped' . ix (fromTypeDesc e)
+        mr <- liftRefHandler $ mapM (Store.readKey (fromTypeDesc l)) mlv
+        wrap' <$> tryJust (RefLookupError (getTypeDesc @Layer) t) (join mr)
+    {-# INLINE uncheckedLookupRef #-}
+
+instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Net (PassManager m) where
+    uncheckedLookupRef a = tryJust (RefLookupError (getTypeDesc @Net) a) . fmap wrap' . (^? (wrapped' . ix (fromTypeDesc a))) =<< liftRefHandler getIR ; {-# INLINE uncheckedLookupRef #-}
+
+
+instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Event (PassManager m) where
+    uncheckedLookupRef a = do
+        let ckey = (getTypeDesc @Event, a)
+        c <- getCache
+        case c ^. at ckey of
+            Just v  -> do
+                return $ unsafeCoerce v
+            Nothing -> mdo
+                putCache $ c & at ckey .~ Just (unsafeCoerce out)
+                out <- fmap (Ref . fmap sequence_) . fmap sequence . sequence . fmap Pass.initialize =<< queryListeners (Event.fromPathDyn a)
+                return out
+
+
+-- -----------------------
+-- -- === BuildPlan === --
+-- -----------------------
+--
+-- newtype BuildPlan = BuildPlan [BuildStep]
+--
+-- data BuildStep = PassEvel

@@ -27,8 +27,8 @@ import qualified Luna.IR.Function       as Function
 #define ImportCtx  ( node  ~ (ls :<: term)                            \
                    , edge  ~ Link node                                \
                    , graph ~ Hetero (NEC.Graph n e c)                 \
-                   , BiCastable e edge                                \
-                   , BiCastable n node                                \
+                   , IsoCastable e edge                                \
+                   , IsoCastable n node                                \
                    , MonadBuilder graph m                             \
                    , Covered node                                     \
                    , Constructor' m (Ref Node node)                    \
@@ -92,7 +92,7 @@ importToCluster :: ( ImportCtx
                    , clus ~ (NetClusterLayers :< RefSet Node node)
                    , Covered clus
                    , Clusterable Node node clus m
-                   , BiCastable clus c
+                   , IsoCastable clus c
                    ) => graph -> m (Ref Cluster clus, NodeTranslator node)
 importToCluster g = do
     let foreignNodeRefs = Ptr <$> usedIxes (g ^. wrapped . nodeStore)
@@ -114,7 +114,7 @@ dupCluster :: ( ImportCtx
               , Prop Name   clus ~ String
               , Prop Lambda clus ~ Maybe (Signature (Ref Node node))
               , Clusterable Node node clus m
-              , BiCastable clus c
+              , IsoCastable clus c
               ) => Ref Cluster clus -> String -> m (Ref Cluster clus, NodeTranslator node)
 dupCluster cluster name = do
     nodeRefs <- members cluster

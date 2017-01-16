@@ -33,8 +33,8 @@ import           Data.Layer_OLD.Cover_OLD
                            , nodeRef ~ Ref Node (ls :<: term)                        \
                            , Prop Type   (ls :<: term) ~ Ref Edge ne                 \
                            , Prop TCData (ls :<: term) ~ TCDataPayload (ls :<: term) \
-                           , BiCastable     e ne                                     \
-                           , BiCastable     n (ls :<: term)                          \
+                           , IsoCastable     e ne                                     \
+                           , IsoCastable     n (ls :<: term)                          \
                            , MonadBuilder  (Hetero (NEC.Graph n e c)) m              \
                            , HasProp Type     (ls :<: term)                          \
                            , HasProp TCData   (ls :<: term)                          \

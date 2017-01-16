@@ -31,8 +31,8 @@ type instance Generalizable (a >> sa) (Form b)  = Generalizable (a >> sa) (Form 
 -- Simplify
 -- type instance Simplify (a >> b) = If (a == b) a (a >> b)
 
-type instance Merge (l >> r)   Any        = Any
-type instance Merge Any        (l >> r)   = Any
+type instance Merge (l >> r)   Bottom        = Bottom
+type instance Merge Bottom        (l >> r)   = Bottom
 
 -- Merge
 -- type instance Merge (t >> s)   ()         = t >> s

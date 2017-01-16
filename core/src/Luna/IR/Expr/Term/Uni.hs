@@ -15,9 +15,8 @@ data instance UniTerm (Layout.Named n a) = Integer  Prelude.Integer
                                          | Acc      !n       !a
                                          | App      a        !(Arg a)
                                          | Lam      !(Arg a) !a
-                                         | Match    !a       !a
                                          | Unify    !a       !a
-                                         | Cons      n
+                                         | Cons      n       ![Arg a]
                                          | Var       n
                                          | Grouped   a
                                          | Blank
@@ -35,7 +34,7 @@ instance IsUniTerm Atom.Acc      (Layout.Named n a) where uniTerm (Term.Sym_Acc 
 instance IsUniTerm Atom.App      (Layout.Named n a) where uniTerm (Term.Sym_App      t1 t2) = App      t1 t2
 instance IsUniTerm Atom.Lam      (Layout.Named n a) where uniTerm (Term.Sym_Lam      t1 t2) = Lam      t1 t2
 instance IsUniTerm Atom.Unify    (Layout.Named n a) where uniTerm (Term.Sym_Unify    t1 t2) = Unify    t1 t2
-instance IsUniTerm Atom.Cons     (Layout.Named n a) where uniTerm (Term.Sym_Cons     t1)    = Cons     t1
+instance IsUniTerm Atom.Cons     (Layout.Named n a) where uniTerm (Term.Sym_Cons     t1 t2) = Cons     t1 t2
 instance IsUniTerm Atom.Var      (Layout.Named n a) where uniTerm (Term.Sym_Var      t1)    = Var      t1
 instance IsUniTerm Atom.Grouped  (Layout.Named n a) where uniTerm (Term.Sym_Grouped  t1)    = Grouped  t1
 instance IsUniTerm Atom.Blank    (Layout.Named n a) where uniTerm  Term.Sym_Blank           = Blank

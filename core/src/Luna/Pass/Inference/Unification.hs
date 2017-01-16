@@ -42,8 +42,8 @@ import Data.Layer_OLD.Cover_OLD
                            , Prop Type   node ~ Ref Edge edge      \
                            , Prop TCData node ~ TCDataPayload node \
                            , HasSuccs node                         \
-                           , BiCastable     e edge                 \
-                           , BiCastable     n node                 \
+                           , IsoCastable     e edge                 \
+                           , IsoCastable     n node                 \
                            , MonadBuilder graph (m)                \
                            , HasProp Type       node               \
                            , HasProp TCData     node               \

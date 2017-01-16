@@ -39,9 +39,9 @@ import           Data.Layer_OLD.Cover_OLD
                    , node  ~ (ls :<: term)                        \
                    , clus  ~ NetCluster                           \
                    , graph ~ Hetero (NEC.Graph n e c)             \
-                   , BiCastable     e edge                        \
-                   , BiCastable     n node                        \
-                   , BiCastable     c clus                        \
+                   , IsoCastable     e edge                        \
+                   , IsoCastable     n node                        \
+                   , IsoCastable     c clus                        \
                    , MonadBuilder graph (m)                       \
                    , NodeInferable  (m) (ls :<: term)             \
                    , TermNode Var   (m) (ls :<: term)             \

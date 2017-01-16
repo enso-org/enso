@@ -6,7 +6,7 @@ module Luna.IR.Expr (module Luna.IR.Expr, module X) where
 
 
 import qualified Luna.Prelude as Prelude
-import Luna.Prelude hiding (String, Integer, Rational)
+import Luna.Prelude hiding (String, Integer, Rational, cons)
 
 import Luna.IR.Expr.Atom   as X
 import Luna.IR.Internal.IR as X
@@ -24,46 +24,54 @@ type NT' n = NT n Star
 type T' = T Star
 
 -- class                                         LitExpr m a              where litExpr :: a -> m (Expr (DefListLayout m a))
--- instance (IRMonad m, Accessible ExprNet m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
+-- instance (IRMonad m, Editor Net AnyExpr m) => LitExpr m Prelude.String where litExpr = string ; {-# INLINE litExpr #-}
 -- instance Monad m                           => LitExpr m (Expr l)       where litExpr = return ; {-# INLINE litExpr #-}
 
-type NewExpr  m = (IRMonad m, Accessible ExprNet m, Emitter m (NEW // EXPR))
-type NewExpr' m = (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], Emitter m (NEW // EXPR), Emitter m (NEW // LINK' EXPR))
+-- type NewExpr  m = (MonadRef m, Editor Net AnyExpr m, Emitter m (New // AnyExpr))
+-- type NewExpr' m = (MonadRef m, Editors Net '[AnyExpr, LINK' AnyExpr] m, Emitter m (New // AnyExpr), Emitter m (New // LINK' AnyExpr))
 
-star :: NewExpr m => m (Expr Star)
+-- star :: NewExpr m => m (Expr Star)
+-- star = expr Term.uncheckedStar
+-- {-# INLINE star #-}
+
+star :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Star)) => m (Expr Star)
 star = expr Term.uncheckedStar
 {-# INLINE star #-}
 
-reserveStar :: (IRMonad m, Accessible ExprNet m) => m (Expr Star)
+reserveStar :: (MonadRef m, Writer Net AnyExpr m) => m (Expr Star)
 reserveStar = reserveExpr ; {-# INLINE reserveStar #-}
 
-registerStar :: Emitter m (NEW // EXPR) => Expr Star -> m ()
-registerStar = dispatchNewExpr Term.uncheckedStar
+registerStar :: NewElemEvent m (Expr Star) => Expr Star -> m ()
+registerStar = dispatchNewExpr Term.uncheckedStar ; {-# INLINE registerStar #-}
 
 
-string :: NewExpr m => Prelude.String -> m (Expr String)
+string :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr String)) => Prelude.String -> m (Expr String)
 string = expr . Term.uncheckedString ; {-# INLINE string #-}
 
-integer :: (NewExpr m, Integral a) => a -> m (Expr Integer)
+integer :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Integer), Integral a) => a -> m (Expr Integer)
 integer = expr . Term.uncheckedInteger . fromIntegral ; {-# INLINE integer #-}
 
-rational :: NewExpr m => Prelude.Rational -> m (Expr Rational)
+rational :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Rational)) => Prelude.Rational -> m (Expr Rational)
 rational = expr . Term.uncheckedRational ; {-# INLINE rational #-}
 
 -- cons :: NewExpr m => Expr n -> m (Expr (NT' (Cons >> n)))
-cons :: NewExpr' m => Expr n -> m (Expr $ Cons #> n)
-cons n = mdo
-    t  <- expr $ Term.uncheckedCons ln
+cons :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> [Arg (Expr t)] -> m (Expr $ Cons >> t #> n)
+cons n fs = mdo
+    t  <- expr $ Term.uncheckedCons ln fn
     ln <- link (unsafeRelayout n) t
+    fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
     return t
 
-blank :: NewExpr m => m (Expr Blank)
+cons_ :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> m (Expr $ Cons >> t #> n)
+cons_ = flip cons []
+
+blank :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Blank)) => m (Expr Blank)
 blank = expr Term.uncheckedBlank
 
--- string :: (IRMonad m, Accessible ExprNet m) => Prelude.String -> m (Expr (String %> Infered Layout m))
+-- string :: (IRMonad m, Editor Net AnyExpr m) => Prelude.String -> m (Expr (String %> Infered Layout m))
 -- string = expr . Term.uncheckedString ; {-# INLINE string #-}
 --
--- acc :: (IRMonad m, Accessibles m '[ExprNet, ExprLinkNet], LitExpr m name)
+-- acc :: (IRMonad m, Editors m '[Net AnyExpr, ExprLinkNet], LitExpr m name)
 --     => name -> Expr l -> m (Expr (DefListLayout m name #> l))
 -- acc name arg = mdo
 --     t  <- expr $ Term.uncheckedAcc ln la
@@ -78,27 +86,27 @@ blank = expr Term.uncheckedBlank
 -- var :: Expr n -> m (Expr $ Var >> NT' n)
 
 -- ale tak by bylo to spokjne z Sub'ami!
-var :: NewExpr' m => Expr n -> m (Expr $ Var #> n)
+var :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Var), NewElemEvent m SomeExprLink) => Expr n -> m (Expr $ Var #> n)
 var n = mdo
     t <- expr $ Term.uncheckedVar l
     l <- link (unsafeRelayout n) t
     return t
 
 -- TODO[MK, WD]: I guess at some point it won't be necessary, but for now let's have this helper fun
-strVar :: NewExpr' m => Prelude.String -> m (Expr $ Var #> String)
+strVar :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Var), NewElemEvent m SomeExprLink) => Prelude.String -> m (Expr $ Var #> String)
 strVar name = string name >>= var
 
-acc :: NewExpr' m => Expr n -> Expr t -> m (Expr $ Acc >> t #> n)
+acc :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Acc), NewElemEvent m SomeExprLink) => Expr n -> Expr t -> m (Expr $ Acc >> t #> n)
 acc n b = mdo
     t  <- expr $ Term.uncheckedAcc ln lb
     ln <- link (unsafeRelayout n) t
     lb <- link (unsafeRelayout b) t
     return t
 
-rawAcc :: NewExpr' m => Prelude.String -> Expr t -> m (Expr $ Acc >> t #> String)
+rawAcc :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Acc), NewElemEvent m SomeExprLink) => Prelude.String -> Expr t -> m (Expr $ Acc >> t #> String)
 rawAcc name b = string name >>= flip acc b
 
-unify :: NewExpr' m => Expr l -> Expr l' -> m (Expr $ Unify >> (l <+> l'))
+unify :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Unify), NewElemEvent m SomeExprLink) => Expr l -> Expr l' -> m (Expr $ Unify >> (l <+> l'))
 unify a b = mdo
     t  <- expr $ Term.uncheckedUnify la lb
     la <- link (unsafeRelayout a) t
@@ -106,21 +114,21 @@ unify a b = mdo
     return t
 {-# INLINE unify #-}
 
-app :: NewExpr' m => Expr l -> Arg (Expr l') -> m (Expr $ App >> (l <+> l'))
+app :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr App), NewElemEvent m SomeExprLink) => Expr l -> Arg (Expr l') -> m (Expr $ App >> (l <+> l'))
 app f a = mdo
     t  <- expr $ Term.uncheckedApp lf la
     lf <- link (unsafeRelayout f) t
     la <- mapM (flip link t . unsafeRelayout) a
     return t
 
-lam :: NewExpr' m => Arg (Expr l) -> Expr l' -> m (Expr $ Lam >> (l <+> l'))
+lam :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Lam), NewElemEvent m SomeExprLink) => Arg (Expr l) -> Expr l' -> m (Expr $ Lam >> (l <+> l'))
 lam i o = mdo
     t  <- expr $ Term.uncheckedLam li lo
     li <- mapM (flip link t . unsafeRelayout) i
     lo <- link (unsafeRelayout o) t
     return t
 
-grouped :: NewExpr' m => Expr l -> m (Expr $ Grouped >> E l)
+grouped :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Grouped), NewElemEvent m SomeExprLink) => Expr l -> m (Expr $ Grouped >> E l)
 grouped e = mdo
     t  <- expr $ Term.uncheckedGrouped le
     le <- link e t
