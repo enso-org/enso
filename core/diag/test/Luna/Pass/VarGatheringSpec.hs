@@ -293,7 +293,7 @@ manyAppsExpected = do
 
 
 spec :: Spec
-spec = describe "remove grouped" $ do
+spec = describe "gather vars" $ do
     it "\\x -> x.foo" $ lamXFoo `desugarsTo` lamXFooExpected
     it "\\a -> a" $ idLam `desugarsTo` idLamExpected
     it "\\a b -> foo a b" $ lamFooAB `desugarsTo` lamFooABExpected
