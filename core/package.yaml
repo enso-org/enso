@@ -29,6 +29,8 @@ tests:
         source-dirs: diag/test
         dependencies:
             - luna
+            - directory
+            - filepath
             - hspec
             - hspec-jenkins
             - open-browser
