@@ -8,7 +8,7 @@ dependencies:
         - sudo mv /tmp/stack-1.3.0-linux-x86_64/stack /usr/bin
     override:
         - stack setup
-        - stack build --stack-yaml=core/stack.yaml --only-snapshot
+        - stack build --stack-yaml=core/stack.yaml --only-snapshot --fast
     cache_directories:
         - "~/.stack"
         - ".stack-work"
