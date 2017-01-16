@@ -3,6 +3,7 @@ module Luna.Pass.Inference.FunctionResolution where
 import Luna.Prelude hiding (String)
 import Luna.IR.Function.Definition as Function
 import Luna.IR.Function
+import Luna.IR.Imports
 import Luna.IR.Module.Definition   as Module
 import Luna.IR
 import Luna.IR.Expr.Combinators
@@ -16,9 +17,6 @@ import qualified Luna.Pass        as Pass
 
 
 -- === Definitions === --
-
-newtype Imports = Imports (Map Name Module)
-makeWrapped ''Imports
 
 newtype CurrentVar = CurrentVar (Expr (ENT Var (E String) Draft))
 makeWrapped ''CurrentVar

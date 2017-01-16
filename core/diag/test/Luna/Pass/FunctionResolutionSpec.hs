@@ -18,6 +18,7 @@ import Luna.Pass.Inference.FunctionResolution
 import qualified Data.Map          as Map
 import Luna.IR.Function.Definition as Function
 import Luna.IR.Function
+import Luna.IR.Imports
 import Luna.IR.Module.Definition   as Module
 import Control.Monad.Raise
 
