@@ -25,11 +25,12 @@ benchmarks:
 
 tests:
     spec:
-        main: Spec.hs
+        main: Main.hs
         source-dirs: diag/test
         dependencies:
             - luna
             - hspec
+            - hspec-jenkins
             - open-browser
 
 dependencies:
