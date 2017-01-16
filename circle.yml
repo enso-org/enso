@@ -8,17 +8,16 @@ dependencies:
         - sudo mv /tmp/stack-1.3.0-linux-x86_64/stack /usr/bin
     override:
         - stack setup
-        - rm -fr $(stack path --dist-dir) $(stack path --local-install-root)
+        - stack build --stack-yaml=core/stack.yaml --only-snapshot
+    cache_directories:
+        - "~/.stack"
+        - ".stack-work"
 
 compile:
     override:
         - stack build --stack-yaml core/stack.yaml --fast
-        - stack build --stack-yaml compiler/stack.yaml --fast
-        - stack build --stack-yaml parser/stack.yaml --fast
 
 test:
     override:
         - stack build --stack-yaml core/stack.yaml --fast --test --bench
-        - stack build --stack-yaml compiler/stack.yaml --fast --test --bench
-        - stack build --stack-yaml parser/stack.yaml --fast --test --bench
 
