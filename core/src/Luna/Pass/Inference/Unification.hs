@@ -216,12 +216,12 @@ resolveUnify uni = do
 
 
 replaceAny :: forall m ls term node edge graph nodeRef n e c. PassCtx(m,ls,term) => nodeRef -> nodeRef -> m nodeRef
-replaceAny r1 r2 = do
-    n1 <- read r1
-    n2 <- read r2
-    if size (n1 # Succs) > size (n2 # Succs)
-        then replaceNode r2 r1 >> return r1
-        else replaceNode r1 r2 >> return r2
+replaceAny r1 r2 = undefined
+    {-n1 <- read r1-}
+    {-n2 <- read r2-}
+    {-if size (n1 # Succs) > size (n2 # Succs)-}
+        {-then replaceNode r2 r1 >> return r1-}
+        {-else replaceNode r1 r2 >> return r2-}
 
 whenMatched a f = caseTest a $ do
     of' f
