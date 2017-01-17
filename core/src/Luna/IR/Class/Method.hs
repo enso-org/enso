@@ -5,9 +5,8 @@ import Luna.IR
 import Luna.IR.Function.Definition (CompiledFunction)
 import Luna.IR.Name                (Name)
 
-data Method = Method { _self :: AnyExpr
+data Method = Method { _self :: SomeExpr
                      , _body :: CompiledFunction
                      }
 
 makeLenses ''Method
-

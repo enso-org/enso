@@ -1,5 +1,3 @@
-{-# NoMonomorphismRestriction #-}
-
 module Luna.IR.Function.Definition where
 
 import           Luna.Prelude
@@ -36,9 +34,9 @@ mkTranslationVector size knownIxes = Vector.fromList reixed where
 translateWith :: Vector Int -> (forall t. Elem t -> Elem t)
 translateWith v = idx %~ Vector.unsafeIndex v
 
-importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
-               => CompiledFunction -> m SomeExpr
-importFunction (CompiledFunction (unwrap' -> map) r) = do
+importTranslator :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
+               => CompiledFunction -> m (SomeExpr -> SomeExpr)
+importTranslator (CompiledFunction (unwrap' -> map) _) = do
     ir      <- getIR
     exprNet <- readNet @AnyExpr
     linkNet <- readNet @AnyExprLink
@@ -56,4 +54,9 @@ importFunction (CompiledFunction (unwrap' -> map) r) = do
 
     forM_ importedLinks $ emit . Payload @(Import // AnyExprLink) . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize
     forM_ importedExprs $ emit . Payload @(Import // AnyExpr)     . (, ElemTranslations exprTranslator linkTranslator) . unsafeGeneralize
-    return $ exprTranslator r
+
+    return exprTranslator
+
+importFunction :: forall l m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
+               => CompiledFunction -> m SomeExpr
+importFunction cf = importTranslator cf >>= \f -> return $ f (cf ^. root)

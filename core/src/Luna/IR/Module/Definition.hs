@@ -17,3 +17,6 @@ makeLenses ''Module
 
 lookupFunction :: Module -> Name -> Maybe CompiledFunction
 lookupFunction m n = Map.lookup n $ m ^. functions
+
+lookupClass :: Module -> Name -> Maybe Class
+lookupClass m n = Map.lookup n $ m ^. classes
