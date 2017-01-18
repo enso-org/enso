@@ -53,7 +53,10 @@ type instance Preserves        AccessorFunction = '[]
 data Redirect
 type instance LayerData Redirect t = SomeExpr
 
-importAccessor :: _ => SubPass AccessorFunction m (Either ImportError SomeExpr)
+data AccessorError = MethodNotFound P.String
+                   | AmbiguousType
+
+importAccessor :: _ => SubPass AccessorFunction m (Maybe AccessorError)
 importAccessor = do
     CurrentAcc acc <- readAttr
     match acc $ \case
@@ -63,17 +66,20 @@ importAccessor = do
             t <- source tl
             match t $ \case
                 Cons cls _args -> do
-                    className  <- source cls
-                    methodName <- source n
-                    method     <- importMethod className methodName
+                    classNameExpr  <- source cls
+                    methodNameExpr <- source n
+                    method         <- importMethod classNameExpr methodNameExpr
                     case method of
-                        Left err -> return $ Left err
+                        Left SymbolNotFound -> do
+                            methodName <- view lit <$> match' methodNameExpr
+                            return $ Just $ MethodNotFound methodName
                         Right (ImportedMethod self body) -> do
                             replaceNode (generalize self) (generalize v')
                             writeLayer @Redirect (generalize body) acc
                             unifyTypes acc body
                             unifyTypes self v'
-                            return $ Right body
+                            return Nothing
+                _ -> return $ Just AmbiguousType
 
 unifyTypes :: _ => Expr _ -> Expr _ -> SubPass AccessorFunction m (Expr _)
 unifyTypes e1 e2 = do
