@@ -4,6 +4,8 @@ module Luna.Pass.AccessorFunctionSpec (spec) where
 
 import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves)
 import qualified Luna.Pass        as Pass
+import           Control.Monad.Raise (tryAll)
+import qualified Luna.IR.Repr.Vis as Vis
 
 import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
 import Luna.Prelude hiding (String, s, new)
@@ -22,47 +24,56 @@ import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import           Luna.IR.Name                (Name)
 import Luna.IR.Class.Method        (Method(..))
 import Luna.IR.Class.Definition
+import Luna.IR.Runner
 import Luna.IR
+import Luna.TestUtils
 import Luna.Pass.Inference.FunctionResolution (ImportError(..), lookupSym)
 import System.Log
 import Control.Monad (foldM)
 
 
 
+newtype CurrentAcc = CurrentAcc (Expr Acc)
+
+
 data AccessorFunction
 type instance Abstract   AccessorFunction = AccessorFunction
 type instance Inputs     Net   AccessorFunction = '[AnyExpr, AnyExprLink]
 type instance Inputs     Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExprLink // Type, AnyExpr // Succs]
-type instance Inputs     Attr  AccessorFunction = '[Imports]
+type instance Inputs     Attr  AccessorFunction = '[CurrentAcc, Imports]
 type instance Inputs     Event AccessorFunction = '[]
 
 type instance Outputs    Net   AccessorFunction = '[AnyExpr, AnyExprLink]
-type instance Outputs    Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Succs, AnyExpr // Type]
+type instance Outputs    Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Succs, AnyExpr // Type, AnyExpr // Redirect]
 type instance Outputs    Attr  AccessorFunction = '[]
 type instance Outputs    Event AccessorFunction = '[New // AnyExpr, New // AnyExprLink, Import // AnyExpr, Import // AnyExprLink]
 
 type instance Preserves        AccessorFunction = '[]
 
-importAccessor :: _ => Expr _ -> SubPass AccessorFunction m (Either ImportError SomeExpr)
-importAccessor e = match e $ \case
-    Acc n v -> do
-        v' <- source v
-        tl <- readLayer @Type v'
-        t <- source tl
-        match t $ \case
-            Cons cls _args -> do
-                className  <- source cls
-                methodName <- source n
-                method     <- importMethod className methodName
-                case method of
-                    Left err -> return $ Left err
-                    Right (ImportedMethod self body) -> do
-                        -- replaceNode self v'
-                        -- add Redirect layer to body from e
-                        unifyTypes e body
-                        unifyTypes self v'
-                        return $ Right body
-    _ -> return $ Right $ generalize e
+data Redirect
+type instance LayerData Redirect t = SomeExpr
+
+importAccessor :: _ => SubPass AccessorFunction m (Either ImportError SomeExpr)
+importAccessor = do
+    CurrentAcc acc <- readAttr
+    match acc $ \case
+        Acc n v -> do
+            v' <- source v
+            tl <- readLayer @Type v'
+            t <- source tl
+            match t $ \case
+                Cons cls _args -> do
+                    className  <- source cls
+                    methodName <- source n
+                    method     <- importMethod className methodName
+                    case method of
+                        Left err -> return $ Left err
+                        Right (ImportedMethod self body) -> do
+                            replaceNode (generalize self) (generalize v')
+                            writeLayer @Redirect (generalize body) acc
+                            unifyTypes acc body
+                            unifyTypes self v'
+                            return $ Right body
 
 unifyTypes :: _ => Expr _ -> Expr _ -> SubPass AccessorFunction m (Expr _)
 unifyTypes e1 e2 = do
@@ -84,7 +95,6 @@ importMethod classExpr methodNameExpr = do
             translator <- importTranslator body
             bodyExpr   <- importFunction body
             return $ Right $ ImportedMethod (translator self) bodyExpr
-
 
 lookupClass :: Name -> Imports -> Either ImportError Class
 lookupClass n imps = case matchedModules of
