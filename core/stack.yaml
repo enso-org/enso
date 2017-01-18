@@ -4,24 +4,7 @@ ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-st
     -O0 -fconstraint-solver-iterations=100}
 local-bin-path: ./bin
 compiler-check: match-exact
-compiler: ghc-8.0.1.20161117
-setup-info:
-  ghc:
-    linux64:
-      8.0.1.20161117:
-        url: http://downloads.haskell.org/~ghc/8.0.2-rc1/ghc-8.0.1.20161117-x86_64-deb8-linux.tar.xz
-        content-length: 112047972
-        sha1: 6a6e4c9c53c71cc84b6966a9f61948542fd2f15a
-    macosx:
-      8.0.1.20161117:
-        url: https://downloads.haskell.org/~ghc/8.0.2-rc1/ghc-8.0.1.20161117-x86_64-apple-darwin.tar.xz
-        content-length: 113379688
-        sha1: 53ed03d986a49ea680c291540ce44ce469514d7c
-    windows64:
-      8.0.1.20161117:
-        url: https://downloads.haskell.org/~ghc/8.0.2-rc1/ghc-8.0.1.20161117-x86_64-unknown-mingw32.tar.xz
-        content-length: 155652048
-        sha1: 74118dd8fd8b5e4c69b25df1644273fbe13177c7
+compiler: ghc-8.0.2
 packages:
 - {location: .}
 - extra-dep: true
