@@ -18,7 +18,7 @@ import qualified Luna.Pass        as Pass
 
 -- === Definitions === --
 
-newtype CurrentVar = CurrentVar (Expr (ENT Var (E String) Draft))
+newtype CurrentVar = CurrentVar (Expr Var)
 makeWrapped ''CurrentVar
 
 
@@ -57,9 +57,7 @@ lookupSym n imps = case matchedModules of
 
 importVar :: (MonadRef m, MonadPassManager m) => SubPass FunctionResolution m (Either ImportError SomeExpr)
 importVar = do
-    var      <- unwrap'   <$> readAttr @CurrentVar
-    nameLink <- view name <$> match' var
-    nameNode <- source nameLink
-    name     <- view lit  <$> match' nameNode
-    fun      <- lookupSym (fromString name) <$> readAttr @Imports
+    var  <- unwrap' <$> readAttr @CurrentVar
+    name <- fmap (view lit) . match' =<< source =<< view name <$> match' var
+    fun  <- lookupSym (fromString name) <$> readAttr @Imports
     mapM importFunction fun

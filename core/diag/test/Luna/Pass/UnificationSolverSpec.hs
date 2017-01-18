@@ -29,7 +29,7 @@ type instance Inputs  Event UnificationSolver = '[]
 type instance Outputs Event UnificationSolver = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink]
 type instance Preserves     UnificationSolver = '[]
 
-data WorkingUni = WorkingUni (Expr $ E Unify)
+data WorkingUni = WorkingUni (Expr Unify)
 
 type SubPassReq k t m = (Readers k (Inputs k t) m, Writers k (Outputs k t) m)
 
@@ -81,7 +81,7 @@ lambda uni a b = match2 a b $ \x y -> case (x, y) of
         resolve $ generalize <$> [uniA, uniO]
     _ -> return ()
 
-solveUnification :: (MonadRef m, MonadPassManager m, MonadSubPass UnificationSolver m, MonadResolution [SomeExpr] m) => Expr (E Unify) -> m ()
+solveUnification :: (MonadRef m, MonadPassManager m, MonadSubPass UnificationSolver m, MonadResolution [SomeExpr] m) => Expr Unify -> m ()
 solveUnification uni = do
     let uni' = generalize uni
     Sym_Unify l' r' <- match' uni

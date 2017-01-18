@@ -3,6 +3,8 @@ extra-deps: [ghc-session-0.1.2.0, error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.
 ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields
     -O0 -fconstraint-solver-iterations=100}
 local-bin-path: ./bin
+compiler-check: match-exact
+compiler: ghc-8.0.2
 packages:
 - {location: .}
 - extra-dep: true
