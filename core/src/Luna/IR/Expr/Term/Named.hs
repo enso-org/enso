@@ -65,16 +65,16 @@ type instance Term2 Atom.Grouped  (Layout.Named n a) = Grouped  n a
 type instance Term2 Atom.Missing  (Layout.Named n a) = Missing  n a
 
 
-newtype instance Term Atom.Integer  (Layout.Named n a) = Sym_Integer  { _val :: P.Integer                     }
-newtype instance Term Atom.Rational (Layout.Named n a) = Sym_Rational { _val :: P.Rational                    }
-newtype instance Term Atom.String   (Layout.Named n a) = Sym_String   { _val :: P.String                      }
-data    instance Term Atom.Acc      (Layout.Named n a) = Sym_Acc      { _name :: !n      , _base  :: !a       }
-data    instance Term Atom.App      (Layout.Named n a) = Sym_App      { _base :: a       , _arg   :: !(Arg a) }
-data    instance Term Atom.Lam      (Layout.Named n a) = Sym_Lam      { _arg  :: !(Arg a), _body  :: !a       }
-data    instance Term Atom.Unify    (Layout.Named n a) = Sym_Unify    { _left :: !a      , _right :: !a       }
-newtype instance Term Atom.Cons     (Layout.Named n a) = Sym_Cons     { _name ::  n                           }
-newtype instance Term Atom.Var      (Layout.Named n a) = Sym_Var      { _name ::  n                           }
-data    instance Term Atom.Grouped  (Layout.Named n a) = Sym_Grouped  { _base ::  a                           }
+newtype instance Term Atom.Integer  (Layout.Named n a) = Sym_Integer  { _val :: P.Integer                      }
+newtype instance Term Atom.Rational (Layout.Named n a) = Sym_Rational { _val :: P.Rational                     }
+newtype instance Term Atom.String   (Layout.Named n a) = Sym_String   { _val :: P.String                       }
+data    instance Term Atom.Acc      (Layout.Named n a) = Sym_Acc      { _name :: !n      , _base   :: !a       }
+data    instance Term Atom.App      (Layout.Named n a) = Sym_App      { _base :: a       , _arg    :: !(Arg a) }
+data    instance Term Atom.Lam      (Layout.Named n a) = Sym_Lam      { _arg  :: !(Arg a), _body   :: !a       }
+data    instance Term Atom.Unify    (Layout.Named n a) = Sym_Unify    { _left :: !a      , _right  :: !a       }
+data    instance Term Atom.Cons     (Layout.Named n a) = Sym_Cons     { _name ::  n      , _fields :: ![Arg a] }
+newtype instance Term Atom.Var      (Layout.Named n a) = Sym_Var      { _name ::  n                            }
+data    instance Term Atom.Grouped  (Layout.Named n a) = Sym_Grouped  { _base ::  a                            }
 data    instance Term Atom.Blank    (Layout.Named n a) = Sym_Blank
 data    instance Term Atom.Star     (Layout.Named n a) = Sym_Star
 data    instance Term Atom.Missing  (Layout.Named n a) = Sym_Missing
@@ -85,11 +85,10 @@ data    instance Term Atom.Missing  (Layout.Named n a) = Sym_Missing
 
 -- Show
 
-
 deriving instance ShowFields (NamedTerm Atom.Acc     n a) => Show (NamedTerm Atom.Acc     n a)
 deriving instance ShowFields (NamedTerm Atom.App     n a) => Show (NamedTerm Atom.App     n a)
 deriving instance ShowFields (NamedTerm Atom.Blank   n a) => Show (NamedTerm Atom.Blank   n a)
-deriving instance ShowFields (NamedTerm Atom.Cons    n a) => Show (NamedTerm Atom.Cons    n a)
+deriving instance (Show n, Show [Arg a])                  => Show (NamedTerm Atom.Cons    n a) -- FIXME[MK->WD]: This ctx is equivalent to expanded version of ShowFields, but because of mysterious GHC bug the non-expanded version does not work
 deriving instance ShowFields (NamedTerm Atom.Lam     n a) => Show (NamedTerm Atom.Lam     n a)
 deriving instance ShowFields (NamedTerm Atom.Missing n a) => Show (NamedTerm Atom.Missing n a)
 deriving instance ShowFields (NamedTerm Atom.Grouped n a) => Show (NamedTerm Atom.Grouped n a)
@@ -116,7 +115,7 @@ type instance Fields (NamedTerm Atom.String   n a) = '[P.String]
 type instance Fields (NamedTerm Atom.Acc      n a) = '[n, a]
 type instance Fields (NamedTerm Atom.App      n a) = '[a, Arg a]
 type instance Fields (NamedTerm Atom.Blank    n a) = '[]
-type instance Fields (NamedTerm Atom.Cons     n a) = '[n]
+type instance Fields (NamedTerm Atom.Cons     n a) = '[n, [Arg a]]
 type instance Fields (NamedTerm Atom.Lam      n a) = '[Arg a, a]
 type instance Fields (NamedTerm Atom.Grouped  n a) = '[a]
 type instance Fields (NamedTerm Atom.Missing  n a) = '[]
@@ -146,7 +145,7 @@ instance Product (NamedTerm Atom.String   n a) (NamedTerm Atom.String   n' a') w
 instance Product (NamedTerm Atom.Acc      n a) (NamedTerm Atom.Acc      n' a') where fields = iso (\(Sym_Acc      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Acc      t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.App      n a) (NamedTerm Atom.App      n' a') where fields = iso (\(Sym_App      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_App      t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Blank    n a) (NamedTerm Atom.Blank    n' a') where fields = iso (\ Sym_Blank           -> Null              ) (\(Null              ) -> Sym_Blank          ) ; {-# INLINE fields #-}
-instance Product (NamedTerm Atom.Cons     n a) (NamedTerm Atom.Cons     n' a') where fields = iso (\(Sym_Cons     t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Cons     t1    ) ; {-# INLINE fields #-}
+instance Product (NamedTerm Atom.Cons     n a) (NamedTerm Atom.Cons     n' a') where fields = iso (\(Sym_Cons     t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Cons     t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Lam      n a) (NamedTerm Atom.Lam      n' a') where fields = iso (\(Sym_Lam      t1 t2) -> t1 :-: t2 :-: Null) (\(t1 :-: t2 :-: Null) -> Sym_Lam      t1 t2 ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Missing  n a) (NamedTerm Atom.Missing  n' a') where fields = iso (\ Sym_Missing         -> Null              ) (\(Null              ) -> Sym_Missing        ) ; {-# INLINE fields #-}
 instance Product (NamedTerm Atom.Grouped  n a) (NamedTerm Atom.Grouped  n' a') where fields = iso (\(Sym_Grouped  t1   ) -> t1 :-: Null       ) (\(t1 :-: Null       ) -> Sym_Grouped  t1    ) ; {-# INLINE fields #-}
@@ -177,7 +176,7 @@ instance HasFieldNames (NamedTerm Atom.Acc      n a) where fieldNames _ = [ "nam
 instance HasFieldNames (NamedTerm Atom.App      n a) where fieldNames _ = [ "base" , "arg"   ]
 instance HasFieldNames (NamedTerm Atom.Lam      n a) where fieldNames _ = [ "arg"  , "body"  ]
 instance HasFieldNames (NamedTerm Atom.Unify    n a) where fieldNames _ = [ "left" , "right" ]
-instance HasFieldNames (NamedTerm Atom.Cons     n a) where fieldNames _ = [ "name"           ]
+instance HasFieldNames (NamedTerm Atom.Cons     n a) where fieldNames _ = [ "name" , "fields"]
 instance HasFieldNames (NamedTerm Atom.Var      n a) where fieldNames _ = [ "name"           ]
 instance HasFieldNames (NamedTerm Atom.Grouped  n a) where fieldNames _ = [ "base"           ]
 instance HasFieldNames (NamedTerm Atom.Blank    n a) where fieldNames _ = []
@@ -194,7 +193,7 @@ instance n ~ a => HasFields (NamedTerm Atom.String   n a) where fieldList (Sym_S
 instance n ~ a => HasFields (NamedTerm Atom.Acc      n a) where fieldList (Sym_Acc      t1 t2) = [t1, t2]
 instance n ~ a => HasFields (NamedTerm Atom.App      n a) where fieldList (Sym_App      t1 t2) = [t1, t2 ^. Arg._val_]
 instance n ~ a => HasFields (NamedTerm Atom.Blank    n a) where fieldList (Sym_Blank         ) = []
-instance n ~ a => HasFields (NamedTerm Atom.Cons     n a) where fieldList (Sym_Cons     t1   ) = [t1]
+instance n ~ a => HasFields (NamedTerm Atom.Cons     n a) where fieldList (Sym_Cons     t1 t2) = t1 : fmap (view Arg._val_) t2
 instance n ~ a => HasFields (NamedTerm Atom.Lam      n a) where fieldList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_,t2]
 instance n ~ a => HasFields (NamedTerm Atom.Missing  n a) where fieldList (Sym_Missing       ) = []
 instance n ~ a => HasFields (NamedTerm Atom.Grouped  n a) where fieldList (Sym_Grouped  t1   ) = [t1]
@@ -210,7 +209,7 @@ instance n ~ a => ModifiesFields (NamedTerm Atom.String   n a) where modifyField
 instance n ~ a => ModifiesFields (NamedTerm Atom.Acc      n a) where modifyFields f (Sym_Acc   t1 t2) = Sym_Acc (f t1) (f t2)
 instance n ~ a => ModifiesFields (NamedTerm Atom.App      n a) where modifyFields f (Sym_App   t1 t2) = Sym_App (f t1) (fmap f t2)
 instance n ~ a => ModifiesFields (NamedTerm Atom.Blank    n a) where modifyFields f a                 = a
-instance n ~ a => ModifiesFields (NamedTerm Atom.Cons     n a) where modifyFields f (Sym_Cons  t1   ) = Sym_Cons (f t1)
+instance n ~ a => ModifiesFields (NamedTerm Atom.Cons     n a) where modifyFields f (Sym_Cons  t1 t2) = Sym_Cons (f t1) ((fmap . fmap) f t2)
 instance n ~ a => ModifiesFields (NamedTerm Atom.Lam      n a) where modifyFields f (Sym_Lam   t1 t2) = Sym_Lam  (fmap f t1) (f t2)
 instance n ~ a => ModifiesFields (NamedTerm Atom.Missing  n a) where modifyFields f a                 = a
 instance n ~ a => ModifiesFields (NamedTerm Atom.Grouped  n a) where modifyFields f (Sym_Grouped  t1) = Sym_Grouped (f t1)
@@ -229,8 +228,8 @@ instance HasInputs (NamedTerm Atom.String   n a) where inputList (Sym_String   t
 instance HasInputs (NamedTerm Atom.Acc      n a) where inputList (Sym_Acc      t1 t2) = [t2]
 instance HasInputs (NamedTerm Atom.App      n a) where inputList (Sym_App      t1 t2) = [t1, t2 ^. Arg._val_]
 instance HasInputs (NamedTerm Atom.Blank    n a) where inputList (Sym_Blank         ) = []
-instance HasInputs (NamedTerm Atom.Cons     n a) where inputList (Sym_Cons     t1   ) = []
-instance HasInputs (NamedTerm Atom.Lam      n a) where inputList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_,t2]
+instance HasInputs (NamedTerm Atom.Cons     n a) where inputList (Sym_Cons     t1 t2) = fmap (view Arg._val_) t2
+instance HasInputs (NamedTerm Atom.Lam      n a) where inputList (Sym_Lam      t1 t2) = [t1 ^. Arg._val_, t2]
 instance HasInputs (NamedTerm Atom.Missing  n a) where inputList (Sym_Missing       ) = []
 instance HasInputs (NamedTerm Atom.Grouped  n a) where inputList (Sym_Grouped  t1   ) = [t1]
 instance HasInputs (NamedTerm Atom.Star     n a) where inputList (Sym_Star          ) = []
@@ -253,8 +252,8 @@ instance HasLiteral (NamedTerm Atom.Rational n a) where lit = lens (\(Sym_Ration
 type instance NameOf (Term s (Layout.Named n a)) = n
 
 instance HasName (Term Atom.Var  (Layout.Named n a)) where name = iso  (\(Sym_Var  n)   -> n) Sym_Var
-instance HasName (Term Atom.Acc  (Layout.Named n a)) where name = lens (\(Sym_Acc  n _) -> n) (\(Sym_Acc _ t) n -> Sym_Acc n t)
-instance HasName (Term Atom.Cons (Layout.Named n a)) where name = iso  (\(Sym_Cons n)   -> n) Sym_Cons
+instance HasName (Term Atom.Acc  (Layout.Named n a)) where name = lens (\(Sym_Acc  n _) -> n) (\(Sym_Acc  _ t) n -> Sym_Acc  n t)
+instance HasName (Term Atom.Cons (Layout.Named n a)) where name = lens (\(Sym_Cons n _) -> n) (\(Sym_Cons _ t) n -> Sym_Cons n t)
 
 --------------------------
 -- === Construction === --
@@ -283,8 +282,8 @@ app' = fromTerm .: product' ; {-# INLINE app' #-}
 blank' :: (TermLike Atom.Blank s sym, Fields sym ~ '[]) => s
 blank' = fromTerm product' ; {-# INLINE blank' #-}
 
-cons' :: (TermLike Atom.Cons s sym, Fields sym ~ '[t1]) => t1 -> s
-cons' = fromTerm . product' ; {-# INLINE cons' #-}
+cons' :: (TermLike Atom.Cons s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
+cons' = fromTerm .: product' ; {-# INLINE cons' #-}
 
 lam' :: (TermLike Atom.Lam s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
 lam' = fromTerm .: product' ; {-# INLINE lam' #-}
@@ -326,8 +325,8 @@ uncheckedApp = uncheckedFromTerm .: product' ; {-# INLINE uncheckedApp #-}
 uncheckedBlank :: (UncheckedTermLike Atom.Blank s sym, Fields sym ~ '[]) => s
 uncheckedBlank = uncheckedFromTerm product' ; {-# INLINE uncheckedBlank #-}
 
-uncheckedCons :: (UncheckedTermLike Atom.Cons s sym, Fields sym ~ '[t1]) => t1 -> s
-uncheckedCons = uncheckedFromTerm . product' ; {-# INLINE uncheckedCons #-}
+uncheckedCons :: (UncheckedTermLike Atom.Cons s sym, Fields sym ~ '[t1, t2]) => t1 -> t2 -> s
+uncheckedCons = uncheckedFromTerm .: product' ; {-# INLINE uncheckedCons #-}
 
 uncheckedLam :: (UncheckedTermLike Atom.Lam s sym, Fields sym ~ '[t1,t2]) => t1 -> t2 -> s
 uncheckedLam = uncheckedFromTerm .: product' ; {-# INLINE uncheckedLam #-}
@@ -370,7 +369,7 @@ app = product' ; {-# INLINE app #-}
 blank :: NamedTerm Atom.Blank n a
 blank = product' ; {-# INLINE blank #-}
 
-cons :: n -> NamedTerm Atom.Cons n a
+cons :: n -> [Arg a] -> NamedTerm Atom.Cons n a
 cons = product' ; {-# INLINE cons #-}
 
 lam :: Arg a -> a -> NamedTerm Atom.Lam n a

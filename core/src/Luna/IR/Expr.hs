@@ -6,7 +6,7 @@ module Luna.IR.Expr (module Luna.IR.Expr, module X) where
 
 
 import qualified Luna.Prelude as Prelude
-import Luna.Prelude hiding (String, Integer, Rational)
+import Luna.Prelude hiding (String, Integer, Rational, cons)
 
 import Luna.IR.Expr.Atom   as X
 import Luna.IR.Internal.IR as X
@@ -55,11 +55,15 @@ rational :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Rational)) =
 rational = expr . Term.uncheckedRational ; {-# INLINE rational #-}
 
 -- cons :: NewExpr m => Expr n -> m (Expr (NT' (Cons >> n)))
-cons :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> m (Expr $ Cons #> n)
-cons n = mdo
-    t  <- expr $ Term.uncheckedCons ln
+cons :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> [Arg (Expr t)] -> m (Expr $ Cons >> t #> n)
+cons n fs = mdo
+    t  <- expr $ Term.uncheckedCons ln fn
     ln <- link (unsafeRelayout n) t
+    fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
     return t
+
+cons_ :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> m (Expr $ Cons >> t #> n)
+cons_ = flip cons []
 
 blank :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Blank)) => m (Expr Blank)
 blank = expr Term.uncheckedBlank

@@ -52,6 +52,10 @@ targetsIsomorphic iso le re = do
     r <- source re
     exprsIsomorphic iso l r
 
+rollIsomorphism :: (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExprLink // Model] m)
+                  => ExprIsomorphism Draft -> [(Link' (Expr Draft), Link' (Expr Draft))] -> MaybeT m (ExprIsomorphism Draft)
+rollIsomorphism = foldM (uncurry . targetsIsomorphic)
+
 exprsIsomorphic :: (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExprLink // Model] m)
                 => ExprIsomorphism Draft -> Expr Draft -> Expr Draft -> MaybeT m (ExprIsomorphism Draft)
 exprsIsomorphic iso l r = if areIsomorphic l r iso then return iso else exprsIsomorphic' iso l r
@@ -65,8 +69,8 @@ exprsIsomorphic' iso l r = do
         (Rational   a, Rational   b) -> guard (a == b) >> return assumption
         (String     a, String     b) -> guard (a == b) >> return assumption
         (Acc      n a, Acc      m b) -> do
-            n' <- generalize <$> source n
-            m' <- generalize <$> source m
+            n' <- unsafeGeneralize <$> source n
+            m' <- unsafeGeneralize <$> source m
             isoWithNames <- exprsIsomorphic assumption n' m'
             targetsIsomorphic isoWithNames a b
         (App f1 (Arg _ a1), App f2 (Arg _ a2)) -> do
@@ -76,10 +80,9 @@ exprsIsomorphic' iso l r = do
             isoLeft <- targetsIsomorphic assumption l1 l2
             targetsIsomorphic isoLeft r1 r2
         (Blank, Blank)   -> return assumption
-        (Cons n, Cons m) -> do
-            n' <- generalize <$> source n
-            m' <- generalize <$> source m
-            exprsIsomorphic assumption n' m'
+        (Cons n t, Cons m s) -> do
+            let inps = zip (unlayer <$> t) (unlayer <$> s)
+            rollIsomorphism assumption $ (unsafeGeneralize n, unsafeGeneralize m) : inps
         (Grouped a, Grouped b) -> targetsIsomorphic assumption a b
         (Lam (Arg _ a1) o1, Lam (Arg _ a2) o2) -> do
             isoArgs <- targetsIsomorphic assumption a1 a2
@@ -87,8 +90,8 @@ exprsIsomorphic' iso l r = do
         (Missing, Missing) -> return assumption
         (Star, Star) -> return assumption
         (Var n, Var m) -> do
-            n' <- generalize <$> source n
-            m' <- generalize <$> source m
+            n' <- unsafeGeneralize <$> source n
+            m' <- unsafeGeneralize <$> source m
             exprsIsomorphic assumption n' m'
         (_, _) -> mzero
 
