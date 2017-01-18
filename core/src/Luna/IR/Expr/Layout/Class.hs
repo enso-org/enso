@@ -60,7 +60,7 @@ type instance Generalizable (Layout ((k ':= v) ': ls)) a = Generalizable v (Sub 
 
 type instance Generalizable (Atomic a) (Form   b) = Atomic a `In` Atoms (Form b)
 type instance Generalizable (Atomic a) (Atomic b) = a == b
-type instance Generalizable (Form   a) (Form   b) = Form b > Form a -- FIXME [WD]: Shouldn't it be >= ?
+type instance Generalizable (Form   a) (Form   b) = (Form b > Form a) `Or` (Form a == Form b)
 
 
 
