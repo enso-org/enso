@@ -351,6 +351,9 @@ type family Head a
 
 type instance Access AnyExpr (ENT e _ _) = e
 type instance Access AnyExpr (E   e    ) = e
+
+type instance Access AnyExpr (Atomic a) = Atomic a
+
 type instance Head (Atomic a) = Atomic a
 
 type ExprHead l = Head (l # AnyExpr)
