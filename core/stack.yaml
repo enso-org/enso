@@ -48,5 +48,5 @@ packages:
 - extra-dep: true
   location: {commit: f7124ecbfa4ce8802e3c1431e54300188616fe64, git: 'https://github.com/luna/data-shell.git'}
 - extra-dep: true
-  location: {commit: af5a618f5813ac639a6760836a6d6fa7ef5af1da, git: 'https://bitbucket.org/NewByteOrder/visualization-api.git'}
+  location: {commit: 03b31eb5994a8d3ac9f70c3914360bf5263936db, git: 'https://github.com/luna/visualization-api.git'}
 resolver: lts-7.9
