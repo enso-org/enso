@@ -40,24 +40,18 @@ type instance Pass.Outputs    Event VarGathering = '[New // AnyExpr, New // AnyE
 type instance Pass.Preserves        VarGathering = '[]
 
 
-varsInside :: _ => SomeExpr -> SubPass VarGathering m [SomeExpr]
+varsInside :: _ => SomeExpr -> SubPass VarGathering m [Expr Var]
 varsInside e = do
     f <- symbolFields e
     vars <- mapM (varsInside <=< source) f
-    v <- match e $ \case
-        Var{} -> return [e]
-        _ -> return []
+    v <- maybeToList <$> narrowAtom @Var e
     return $ v ++ concat vars
 
 varsNamesInside :: _ => SomeExpr -> SubPass VarGathering m [P.String]
 varsNamesInside = varsInside >=> mapM varName
 
-varName :: _ => SomeExpr -> SubPass VarGathering m P.String
-varName e = match e $ \case
-    Var n -> do
-        n' <- source n
-        match n' $ \case
-            String s -> return s
+varName :: _ => Expr Var -> SubPass VarGathering m P.String
+varName e = fmap (view lit) . match' =<< source =<< view name <$> match' e
 
 gatherVars :: _ => [SomeExpr] -> SubPass VarGathering m _
 gatherVars es = do
@@ -77,7 +71,7 @@ modifyAttr f = do
 gatherVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m ()
 gatherVar properVar expr = match expr $ \case
     Var{} -> do
-        sameVar <- sameNameVar properVar expr
+        sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout expr)
         when sameVar $ do
             modifyAttr $ \(UsedVars s) -> UsedVars $ Set.insert properVar s
             replaceNode expr properVar
@@ -94,13 +88,13 @@ gatherVar properVar expr = match expr $ \case
         v' <- source v
         f' <- source f
         gatherVar v' f'
-        sameVar <- sameNameVar properVar v'
+        sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout v')
         when (not sameVar) $ gatherVar properVar f'
     Grouped g -> source g >>= gatherVar properVar
     Unify l r -> do
         source l >>= gatherVar properVar
         source r >>= gatherVar properVar
-    Cons n -> source n >>= gatherVar properVar
+    Cons n _args -> source n >>= gatherVar properVar
     String{} -> return ()
     Integer{} -> return ()
     Rational{} -> return ()
@@ -109,14 +103,11 @@ gatherVar properVar expr = match expr $ \case
     Missing{} -> return ()
 
 
-sameNameVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m Bool
-sameNameVar v1 v2 = match2 v1 v2 $ \x y -> case (x, y) of
-    (Var n1, Var n2) -> do
-        n1' <- source n1
-        n2' <- source n2
-        match2 n1' n2' $ \x' y' -> case (x', y') of
-            (String s1, String s2) -> return $ s1 == s2
-    _ -> return False
+sameNameVar :: _ => Expr Var -> Expr Var -> SubPass VarGathering m Bool
+sameNameVar v1 v2 = do
+    n1 <- varName v1
+    n2 <- varName v2
+    return $ n1 == n2
 
 
 snapshotVis :: (MonadIR m, Vis.MonadVis m, MonadRef m) => P.String -> Pass.Pass TestPass m
