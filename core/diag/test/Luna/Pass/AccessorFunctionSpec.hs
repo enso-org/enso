@@ -1,13 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.AccessorFunctionSpec (spec) where
 
-import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves)
+import           Luna.Pass hiding (compile)
 import qualified Luna.Pass        as Pass
-import           Control.Monad.Raise (tryAll)
+import           Control.Monad.Raise (MonadException(..), tryAll)
 import qualified Luna.IR.Repr.Vis as Vis
 
-import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
+import Test.Hspec   (Spec, Expectation, describe, expectationFailure, it, shouldBe, shouldSatisfy)
 import Luna.Prelude hiding (String, s, new)
 import qualified Luna.Prelude as P
 import Data.Maybe (isJust)
@@ -20,16 +22,19 @@ import qualified Data.Map          as Map
 import Luna.IR.Function hiding (args)
 import Luna.IR.Function.Definition
 import Luna.IR.Expr.Layout
+import Luna.Pass.Sugar.TH (makePass)
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import           Luna.IR.Name                (Name)
 import Luna.IR.Class.Method        (Method(..))
 import Luna.IR.Class.Definition
 import Luna.IR.Runner
+import Luna.Pass.Sugar.Construction
 import Luna.IR
 import Luna.TestUtils
 import Luna.Pass.Inference.FunctionResolution (ImportError(..), lookupSym)
 import System.Log
 import Control.Monad (foldM)
+import Type.Any (AnyType)
 
 
 
@@ -39,7 +44,7 @@ newtype CurrentAcc = CurrentAcc (Expr Acc)
 data AccessorFunction
 type instance Abstract   AccessorFunction = AccessorFunction
 type instance Inputs     Net   AccessorFunction = '[AnyExpr, AnyExprLink]
-type instance Inputs     Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExprLink // Type, AnyExpr // Succs]
+type instance Inputs     Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
 type instance Inputs     Attr  AccessorFunction = '[CurrentAcc, Imports]
 type instance Inputs     Event AccessorFunction = '[]
 
@@ -51,10 +56,11 @@ type instance Outputs    Event AccessorFunction = '[New // AnyExpr, New // AnyEx
 type instance Preserves        AccessorFunction = '[]
 
 data Redirect
-type instance LayerData Redirect t = SomeExpr
+type instance LayerData Redirect t = Maybe SomeExpr
 
 data AccessorError = MethodNotFound P.String
                    | AmbiguousType
+    deriving (Eq, Show)
 
 importAccessor :: _ => SubPass AccessorFunction m (Maybe AccessorError)
 importAccessor = do
@@ -75,7 +81,7 @@ importAccessor = do
                             return $ Just $ MethodNotFound methodName
                         Right (ImportedMethod self body) -> do
                             replaceNode (generalize self) (generalize v')
-                            writeLayer @Redirect (generalize body) acc
+                            writeLayer @Redirect (Just $ generalize body) acc
                             unifyTypes acc body
                             unifyTypes self v'
                             return Nothing
@@ -115,15 +121,54 @@ lookupMethod n cls = case Map.lookup n (cls ^. methods) of
     Just m -> Right m
     _      -> Left SymbolNotFound
 
--- test :: _ => SubPass AccessorFunction _ _
--- test = do
---     one <- integer (1::Int)
---     int <- string "Int"
---     c <- cons_ int
---     l <- link int one
---     writeLayer @Type l one
---
---     rawAcc "succ" one
+test :: _ => SubPass TestPass _ _
+test = do
+    one <- integer (1::Int)
+    int <- string "Int"
+    c <- cons_ int
+    l <- unsafeGeneralize <$> link c one
+    writeLayer @Type l one
+
+    rawAcc "succ" one
+
+testImports :: IO Imports
+testImports = do
+    Right succ' <- runGraph $ do
+        self <- strVar "self"
+        one <- integer (1::Int)
+        plus <- strVar "+"
+        a1 <- app plus (arg self)
+        a2 <- app a1 (arg one)
+        c <- compile $ generalize a2
+        return $ Method (generalize self) c
+    let klass = Class Map.empty $ Map.fromList [("succ", succ')]
+    let mod = Module.Module (Map.fromList [("Int", klass)]) Map.empty
+    return $ Imports $ Map.singleton "Stdlib" mod
+
+instance Exception e => MonadException e IO where
+    raise = throwM
+
+initRedirect :: Req m '[Editor // Layer // AnyExpr // Redirect] => Listener New (Expr l) m
+initRedirect = listener $ \(t, _) -> (writeLayer @Redirect) Nothing t
+makePass 'initRedirect
+
+runTest m = do
+    imps <- testImports
+    out <- dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+        runRegs
+        addExprEventListener @Redirect initRedirectPass
+        attachLayer 20 (getTypeDesc @Redirect) (getTypeDesc @AnyExpr)
+        v <- Pass.eval' m
+        setAttr (getTypeDesc @Imports) imps
+        setAttr (getTypeDesc @CurrentAcc) v
+        res    <- Pass.eval' importAccessor
+        c      <- Pass.eval' @AccessorFunction checkCoherence
+        return (res, c)
+    return out
 
 spec :: Spec
-spec = return ()
+spec = describe "accessor function importer" $ do
+    it "imports" $ do
+        (res, coherence) <- runTest test
+        res `shouldBe` Nothing
+        coherence `shouldSatisfy` null
