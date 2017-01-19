@@ -10,7 +10,7 @@ import           Luna.Pass        (SubPass)
 import qualified Luna.Pass        as Pass
 
 import Test.Hspec   (Spec, Expectation, describe, it, shouldBe, shouldSatisfy)
-import Luna.Prelude hiding (String, s, new)
+import Luna.Prelude hiding (String, s, new, cons)
 import qualified Luna.Prelude as P
 import qualified Luna.IR.Repr.Vis as Vis
 import Data.TypeDesc
@@ -61,7 +61,11 @@ gatherVars es = do
     forM_ vars $ \v ->
         forM_ es $ \e -> gatherVar (generalize v) e
     UsedVars s <- readAttr
-    mapM_ deleteSubtree $ Set.toList $ Set.difference (Set.fromList $ map generalize vars) s
+    let newVarsSet = Set.fromList $ map generalize vars
+        unusedVars = Set.difference newVarsSet s
+    mapM_ deleteSubtree $ Set.toList unusedVars
+    return $ Set.toList $ Set.difference newVarsSet unusedVars
+
 
 modifyAttr :: forall attr pass m. _ => (_ -> _) -> SubPass pass m ()
 modifyAttr f = do
@@ -87,9 +91,18 @@ gatherVar properVar expr = match expr $ \case
     Lam (Arg _ v) f -> do
         v' <- source v
         f' <- source f
-        gatherVar v' f'
-        sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout v')
-        when (not sameVar) $ gatherVar properVar f'
+        match v' $ \case
+            Var{} -> do
+                gatherVar v' f'
+                sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout v')
+                when (not sameVar) $ gatherVar properVar f'
+            Cons _n args -> do
+                atLeastOneIsEqual <- forM args $ \(Arg _ n) -> do
+                    n' <- source n
+                    gatherVar n' f'
+                    sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout n')
+                    return sameVar
+                when (and $ map not atLeastOneIsEqual) $ gatherVar properVar f'
     Grouped g -> source g >>= gatherVar properVar
     Unify l r -> do
         source l >>= gatherVar properVar
@@ -119,13 +132,15 @@ desugarsTo test expected = do
         runRegs
         setAttr (getTypeDesc @UsedVars) $ UsedVars Set.empty
         x <- Pass.eval' test
-        () <- Pass.eval' @VarGathering $ gatherVars $ map generalize x
+        -- void $ Pass.eval' $ snapshotVis "test"
+        newReachables <- Pass.eval' @VarGathering $ gatherVars $ map generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
-        orphans   <- Pass.eval' @RemoveGrouped $ checkUnreachableExprs $ map generalize x
-        coherence <- Pass.eval' @RemoveGrouped checkCoherence
+        orphans   <- Pass.eval' @VarGathering $ checkUnreachableExprs $ newReachables ++ map generalize x
+        coherence <- Pass.eval' @VarGathering checkCoherence
         expected' <- Pass.eval' expected
+        -- void $ Pass.eval' $ snapshotVis "expected"
         result <- Pass.eval' $ fmap and $
-            zipWithM (areExpressionsIsomorphic @(SubPass RemoveGrouped _))
+            zipWithM (areExpressionsIsomorphic @(SubPass VarGathering _))
                      (map unsafeRelayout expected')
                      (map unsafeRelayout x)
         return (result, coherence, orphans)
@@ -282,6 +297,65 @@ manyAppsExpected = do
         unify n3 ap3
     return [u1, u2, u3]
 
+lamPattern :: _ => SubPass VarGathering _ _
+lamPattern = do
+    topA <- strVar "a"
+    list <- string "Tuple3"
+    a <- strVar "a"
+    b <- strVar "b"
+    c <- strVar "c"
+    pat <- cons list $ map arg [a,b,c]
+    b' <- strVar "b"
+    l <- lam (arg pat) b'
+    return [unsafeRelayout topA, unsafeRelayout l]
+
+lamPatternExpected :: _ => SubPass VarGathering _ _
+lamPatternExpected = do
+    topA <- strVar "a"
+    list <- string "Tuple3"
+    a <- strVar "a"
+    b <- strVar "b"
+    c <- strVar "c"
+    pat <- cons list $ map arg [a,b,c]
+    l <- lam (arg pat) b
+    return [unsafeRelayout topA, unsafeRelayout l]
+
+simpleLamPattern :: _ => SubPass VarGathering _ _
+simpleLamPattern = do
+    box <- string "Box"
+    a <- strVar "a"
+    pat <- cons box [arg a]
+    a' <- strVar "a"
+    l <- lam (arg pat) a'
+    return [l]
+
+simpleLamPatternExpected :: _ => SubPass VarGathering _ _
+simpleLamPatternExpected = do
+    box <- string "Box"
+    a <- strVar "a"
+    pat <- cons box [arg a]
+    l <- lam (arg pat) a
+    return [l]
+
+aWithSimpleLamPattern :: _ => SubPass VarGathering _ _
+aWithSimpleLamPattern = do
+    topA <- strVar "a"
+    box <- string "Box"
+    a <- strVar "a"
+    pat <- cons box [arg a]
+    a' <- strVar "a"
+    l <- lam (arg pat) a'
+    return [unsafeRelayout topA, unsafeRelayout l]
+
+aWithSimpleLamPatternExpected :: _ => SubPass VarGathering _ _
+aWithSimpleLamPatternExpected = do
+    topA <- strVar "a"
+    box <- string "Box"
+    a <- strVar "a"
+    pat <- cons box [arg a]
+    l <- lam (arg pat) a
+    return [unsafeRelayout topA, unsafeRelayout l]
+
 
 spec :: Spec
 spec = describe "gather vars" $ do
@@ -292,3 +366,6 @@ spec = describe "gather vars" $ do
     it "(foo a) a" $ groupedFooAAppA `desugarsTo` groupedFooAAppAExpected
     it "all of the above" $ allAbove `desugarsTo` allAboveExpected
     it "n1 = foo a; n2 = bar a b; n3 = baz a b c" $ manyApps `desugarsTo` manyAppsExpected
+    it "\\(Box a) -> a" $ simpleLamPattern `desugarsTo` simpleLamPatternExpected
+    it "a; \\(Box a) -> a" $ aWithSimpleLamPattern `desugarsTo` aWithSimpleLamPatternExpected
+    it "a; \\(Tuple3 a b c) -> b" $ lamPattern `desugarsTo` lamPatternExpected
