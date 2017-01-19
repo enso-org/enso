@@ -48,7 +48,7 @@ import Type.Bool (And)
 
 import System.Log (MonadLogging, Logging, withDebugBy)
 import           Control.Monad.Trans.Maybe (MaybeT)
-import Data.Graph.Class as X (Net, TypeRepGraph, GetRefHandler, Elem(Elem), TypeRepGraphM, MonadRefState, TypeRepVectorMapST, RefData, ElemRep, TypeRepVectorMapM, GraphElem, RefData', Ref(Ref), Refs, MonadRefLookup, uncheckedLookupRef, putRef, freeze, thaw, idx, getRefData, getRef, putRefData)
+import Data.Graph.Class as X (Net, TypeRepGraph, GetRefHandler, Elem(Elem), TypeRepGraphM, MonadRefState, TypeRepVectorMapST, RefData, ElemRep, TypeRepVectorMapM, GraphElem, RefData', Ref(Ref), Refs, MonadRefLookup, uncheckedLookupRef, MonadRefStore, uncheckedStoreRef, putRef, freeze, thaw, idx, getRefData, getRef, putRefData)
 import Control.Monad.Raise
 
 

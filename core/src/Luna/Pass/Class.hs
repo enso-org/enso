@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Net, Attr, RefData, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
+import           Luna.IR.Internal.IR   (Net, Attr, RefData, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefStore, MonadRefState, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -176,6 +176,21 @@ lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ 
           unsafeLookupData []       = return $ unsafeCoerce ()
           unsafeLookupData (t : ts) = unsafeCoerce .: (,) <$> IR.uncheckedLookupRef @k t <*> unsafeLookupData @k ts
 
+-- === RefStore finalization === --
+
+-- TODO[MK]: This only copies input arguments, as the structure is really weird (duplicated fields in the RefStore when something is both an input and an output). What do we do with that?
+restoreAttrs :: forall pass m. (MonadRefStore Attr m) => Description -> RefStore' m pass -> m ()
+restoreAttrs desc store = importAttrs (store ^. attrStore)
+                                      (fromJust $ desc ^. inputs  . at (getTypeDesc @Attr))
+                                      (fromJust $ desc ^. outputs . at (getTypeDesc @Attr))
+    where fromJust (Just a) = a
+
+          importAttrs :: TList (DataStore Attr pass (GetRefHandler m)) -> [TypeDesc] -> [TypeDesc] -> m ()
+          importAttrs stores ins outs = storeAttrs ins (unsafeCoerce stores)
+
+          storeAttrs :: [TypeDesc] -> Prim.Any -> m ()
+          storeAttrs []       _ = return ()
+          storeAttrs (d : ds) x = let (a, as) = unsafeCoerce x in IR.uncheckedStoreRef @Attr d a >> storeAttrs ds as
 
 -- === Ref lookup === --
 
@@ -295,18 +310,22 @@ compileTemplate (Template t) = Uninitialized $ do
 {-# INLINE compileTemplate #-}
 
 compile :: forall pass m a. PassInit pass m
-        => SubPass pass m a -> Uninitialized m (DynSubPass m a)
+        => SubPass pass m a -> Uninitialized m (DynSubPass m (a, RefStore' m pass))
 compile t = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
-        (\d -> DynSubPass $ State.evalStateT (unwrap' t) d) <$> lookupRefStore @pass desc
+        (\d -> DynSubPass $ State.runStateT (unwrap' t) d) <$> lookupRefStore @pass desc
     where desc = passDescription @pass
 {-# INLINE compile #-}
 
 
-eval :: Monad m => Uninitialized m (DynSubPass m a) -> m a
-eval = join . fmap runDynPass . initialize ; {-# INLINE eval #-}
+eval :: forall pass m a. (Monad m, KnownPass pass, MonadRefStore Attr m) => Uninitialized m (DynSubPass m (a, RefStore' m pass)) -> m a
+eval p = do
+    (res, store) <- join $ fmap runDynPass $ initialize p
+    restoreAttrs (passDescription @pass) store
+    return res
+{-# INLINE eval #-}
 
-eval' :: PassInit pass m => SubPass pass m a -> m a
+eval' :: forall pass m a. (PassInit pass m, MonadRefStore Attr m) => SubPass pass m a -> m a
 eval' = eval . compile ; {-# INLINE eval' #-}
 
 
