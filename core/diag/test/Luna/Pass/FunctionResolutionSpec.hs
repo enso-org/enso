@@ -39,7 +39,7 @@ testImports = do
 sizeAndCoherence :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass TestPass m (Int, [Incoherence])
 sizeAndCoherence = (,) <$> (length <$> exprs) <*> checkCoherence
 
-initialize :: (MonadRef m, MonadIO m, MonadPassManager m) => P.String -> SubPass TestPass m (Expr (ENT Var (E String) Draft))
+initialize :: (MonadRef m, MonadIO m, MonadPassManager m) => P.String -> SubPass TestPass m (Expr Var)
 initialize name = do
     n   <- string name
     unsafeRelayout <$> var n

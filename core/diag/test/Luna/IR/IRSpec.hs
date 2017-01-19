@@ -40,10 +40,10 @@ testImport = do
 
 testVarRenaming :: IO (Either SomeException P.String)
 testVarRenaming = runGraph $ do
-    (v :: Expr Draft) <- generalize <$> strVar "foo"
+    v :: Expr Draft <- generalize <$> strVar "foo"
     match v $ \case
         Var n -> do
-            (name :: Expr (E String)) <- unsafeGeneralize <$> source n
+            name :: Expr String <- unsafeGeneralize <$> source n
             modifyExprTerm name $ lit .~ "bar"
     match v $ \case
         Var n -> do

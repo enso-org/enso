@@ -31,7 +31,7 @@ class IsLogger l m where
 
 class Monad m => MonadLogging m where
     runLoggers :: m ()
-    default runLoggers :: MonadLoggingTrans t m => t m ()
+    default runLoggers :: (MonadLoggingTrans t m', m ~ t m') => m ()
     runLoggers = lift runLoggers ; {-# INLINE runLoggers #-}
 
 instance {-# OVERLAPPABLE #-} MonadLoggingFound l m

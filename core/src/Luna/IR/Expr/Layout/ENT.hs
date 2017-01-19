@@ -65,7 +65,7 @@ type instance Merge (Cons t) (Cons t') = Cons (Merge t t')
 
 type instance Merge (Cons t) (Atomic a) = Merge (ConsType t) (Atomic a)
 
-type instance DefaultLayout Type = Star
+type instance DefaultLayout Type = Draft -- This instance works fine when the layout is Draft or Atomic. We need to figure out how to handle Thunks, Values and other specific layouts
 type instance DefaultLayout NAME = String
 type instance DefaultLayout AnyExpr = () -- If it was not mentioned explicitly, it was simply absent.
 
