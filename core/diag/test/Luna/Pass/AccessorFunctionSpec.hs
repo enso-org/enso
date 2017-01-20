@@ -88,7 +88,7 @@ importAccessor' = do
                             methodName <- view lit <$> match' methodNameExpr
                             return $ Left $ MethodNotFound methodName
                         Right (ImportedMethod self body) -> do
-                            replaceNode (generalize self) (generalize v')
+                            replaceNode self v'
                             writeLayer @Redirect (Just $ generalize body) acc
                             unifyTypes acc body
                             unifyTypes self v'
