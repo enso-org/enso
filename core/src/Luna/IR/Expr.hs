@@ -55,14 +55,14 @@ rational :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Rational)) =
 rational = expr . Term.uncheckedRational ; {-# INLINE rational #-}
 
 -- cons :: NewExpr m => Expr n -> m (Expr (NT' (Cons >> n)))
-cons :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> [Arg (Expr t)] -> m (Expr $ Cons >> t #> n)
+cons :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> [Arg (Expr t)] -> m (Expr $ Cons >> EN t n)
 cons n fs = mdo
     t  <- expr $ Term.uncheckedCons ln fn
     ln <- link (unsafeRelayout n) t
     fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
     return t
 
-cons_ :: (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> m (Expr $ Cons >> t #> n)
+cons_ :: forall t n m. (MonadRef m, Writer Net AnyExpr m, Writer Net AnyExprLink m, NewElemEvent m (Expr Cons), NewElemEvent m SomeExprLink) => Expr n -> m (Expr $ Cons >> EN t n)
 cons_ = flip cons []
 
 blank :: (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr Blank)) => m (Expr Blank)

@@ -8,378 +8,379 @@ import           Text.Printf        (printf)
 
 import           Graphics.API       as API
 
--- helpers
-
-mkLayerTransl :: Geometry -> [Point] -> Layer
-mkLayerTransl geo transl = Layer geo (Translations transl) (Labels [])
-
-mkLayerTransf :: Geometry -> [Transformation] -> Layer
-mkLayerTransf geo transf = Layer geo (Transformations transf) (Labels [])
-
-mkLayerWithLabels :: Geometry -> [Point] -> [Label] -> Layer
-mkLayerWithLabels geo transl labels = Layer geo (Translations transl) (Labels labels)
-
-withLabels :: Layer -> Labels -> Layer
-withLabels (Layer geo placement _) = Layer geo placement
-
-toTransformation :: Point -> Transformation
-toTransformation (Point x y) = translate def x y
-
-transformToViewPoint :: Double -> Double -> Double -> Double -> Double -> Double -> Point -> Point
-transformToViewPoint sx sy rx ry viewX viewY = scaleToViewPoint viewX viewY . offsetPoint rx ry . normalizePoint sx sy
-
-scaleToViewPoint :: Double -> Double -> Point -> Point
-scaleToViewPoint viewX viewY = offsetPoint offX offY . scalePoint viewX viewY . flipPointY where
-    offX = 0.5 * (1.0 - viewX)
-    offY = 0.5 * (1.0 - viewY)
-
-scalePoint :: Double -> Double -> Point -> Point
-scalePoint px py (Point x y) = Point (x * px) (y * py)
-
-normalizePoint :: Double -> Double -> Point -> Point
-normalizePoint sx sy (Point x y) = Point (x / sx) (y / sy)
-
-offsetPoint :: Double -> Double -> Point -> Point
-offsetPoint rx ry (Point x y) = Point (x + rx) (y + ry)
-
-flipPointY :: Point -> Point
-flipPointY (Point x y) = Point x (1.0 - y)
-
-toDoublePairList :: [Point] -> [(Double, Double)]
-toDoublePairList = fmap toDoublePair where
-    toDoublePair (Point x y) = (x, y)
-
-initialOffset :: Double -> Double -> Double
-initialOffset p1 p2 = -p1 / (p2 - p1)
-
-getOffset :: Double -> Double -> Double
-getOffset w p = p / w
-
-sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
-sampleData f x1 x2 res = do
-    let resNorm = if res < 2 then 2 else res
-        nums = [0 .. (resNorm - 1)]
-        range = x2 - x1
-        resPrec = fromIntegral (resNorm - 1)
-        xs = (\n -> x1 + range * (fromIntegral n / resPrec)) <$> nums
-        ys = f <$> xs
-        toPointF x = do
-            y <- f x
-            return $ Point x y
-    mapM toPointF xs
-
-
--- drawing
-
-figureToGeo :: Figure -> Material -> Geometry
-figureToGeo figure mat = Geometry geoComp def (Just mat) where
-    geoComp = GeoElem [ShapeSurface $ Shape $ Primitive figure def def]
-
-circleToGeo :: Double -> Material -> Geometry
-circleToGeo = figureToGeo . Circle
-
-squareToGeo :: Double -> Material -> Geometry
-squareToGeo = figureToGeo . Square
-
-rectangleToGeo :: Double -> Double -> Material -> Geometry
-rectangleToGeo = figureToGeo .: Rectangle
-
--- axes
-
-axisWidth :: Double
-axisWidth = 0.008
-
-axisLength :: Double -> Double
-axisLength viewSize = viewSize + axisWidth
-
-maxSteps :: Int
-maxSteps  = 12
-
-labelFontSize :: Double
-labelFontSize = 10.0
-
-edgePoints :: Double -> Double -> Double -> (Double, Double)
-edgePoints step p1 p2 = (p1t, p2t) where
-    p1t = (* step) . fromIntegral . floor   $ p1 / step
-    p2t = (* step) . fromIntegral . ceiling $ p2 / step
-
-calculateTick :: Int -> Double -> Double
-calculateTick maxTicks range = tick where
-    minTick   = range / fromIntegral (maxTicks - 2)
-    magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
-    residual  = minTick / magnitude
-    tick | residual > 5.0 = 10.0 * magnitude
-         | residual > 2.0 =  5.0 * magnitude
-         | residual > 1.0 =  2.0 * magnitude
-         | otherwise      =        magnitude
-
-axisPoint :: Double -> Double -> Double
-axisPoint p1 p2 = mp where
-    step       = calculateTick maxSteps (p2 - p1)
-    (p1t, p2t) = edgePoints step p1 p2
-    mp         = initialOffset p1t p2t
-
-axisH :: Material -> Double -> Double -> Double -> Layer
-axisH mat viewSize y1 y2 = mkLayerTransl geometry [point] where
-    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
-    point      = scaleToViewPoint viewSize viewSize $ Point 0.5 my
-    my         = axisPoint y1 y2
-
-axisV :: Material -> Double -> Double -> Double -> Layer
-axisV mat viewSize x1 x2 = mkLayerTransl geometry [point] where
-    geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
-    point      = scaleToViewPoint viewSize viewSize $ Point mx 0.5
-    mx         = axisPoint x1 x2
-
-axes :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
-    aH = axisH mat viewSize y1 y2
-    aV = axisV mat viewSize x1 x2
-
-gridHStep1 :: Material -> Double -> Double -> Double -> Layer
-gridHStep1 mat viewSize y1 y2 = mkLayerTransl geometry points where
-    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    y1i      = truncate y1
-    y2i      = truncate y2
-    yis      = fromIntegral <$> [y1i..y2i]
-    myst     = getOffset (y2 - y1) <$> yis
-    mys      = (+ initialOffset y1 y2) <$> myst
-
-gridPoints :: Double -> Double -> [Double]
-gridPoints p1 p2 = mps where
-    step       = calculateTick maxSteps (p2 - p1)
-    (p1t, p2t) = edgePoints step p1 p2
-    actSteps   = (p2t - p1t) / step
-    steps      = (* step) <$> [0..actSteps]
-    pis        = (+ p1t) <$> steps
-    mpst       = getOffset (p2t - p1t) <$> pis
-    mps        = (+ initialOffset p1t p2t) <$> mpst
-
-gridH :: Material -> Double -> Double -> Double -> Layer
-gridH mat viewSize y1 y2 = mkLayerTransl geometry points where
-    geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
-    points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
-    mys      = gridPoints y1 y2
-
-gridV :: Material -> Double -> Double -> Double -> Layer
-gridV mat viewSize x1 x2 = mkLayerTransl geometry points where
-    geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
-    points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
-    mxs      = gridPoints x1 x2
-
-grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
-grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
-    gH = gridH mat viewSize y1 y2
-    gV = gridV mat viewSize x1 x2
-
-labelOff :: Double -> Double
-labelOff viewSize = 0.5 * (1.0 - viewSize)
-
-labelOffX, labelOffY :: Double
-labelOffX = -0.04
-labelOffY = -0.025
-
-labelAdjustX, labelAdjustY :: Double
-labelAdjustX = 0.0
-labelAdjustY = 0.035
-
-compact :: String -> String
-compact str | length str > limit = take limit str <> ".."
-            | otherwise          = str
-            where limit = 7
-
-showLabel :: Int -> Double -> String
-showLabel decim val = compact label where
-    label  = if val < 0 && trVal == 0 then "" else label'
-    label' = printf (sign <> "%0." <> show decim <> "f") $ abs trVal
-    trVal  = fromIntegral (truncate $ val * den) / den
-    den    = 10.0 ** fromIntegral decim
-    sign   = if val < 0 then "-" else ""
-
-skipSecond :: [Label] -> [Label]
-skipSecond (x:y:xs) = x : rest where
-    rest = if isZero y then y : skipped else skipped
-    skipped = skipSecond xs
-    isZero p = _text p == "0" || _text p == "0.0"
-skipSecond [x]      = [x]
-skipSecond []       = []
-
-filterDupLabels :: [Label] -> [Label]
-filterDupLabels = fmap takeElem . groupBy ((==) `on` _text) . filter (not . null . _text) where
-    takeElem ls@(l:_) = if listToMaybe (_text l) == Just '-' then last ls else l
-
-gridLabeledHV :: Geometry -> Int -> Double -> Double -> Double -> (Double -> Point) -> (Double -> Point) -> TextAlignment -> Layer
-gridLabeledHV geometry decim viewSize p1 p2 posLine posLabel labelAlign = mkLayerWithLabels geometry points labels where
-    points     = scaleToViewPoint viewSize viewSize . posLine <$> mps
-    labels'    = filterDupLabels $ mkLabel <$> mps
-    labels     = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
-    mps        = gridPoints p1 p2
-    stepP      = calculateTick maxSteps (p2 - p1)
-    (p1t, p2t) = edgePoints stepP p1 p2
-    mkLabel p  = Label pos (labelFontSize * viewSize) labelAlign $ showLabel decim ap where
-        ap     = p1t + p * (p2t - p1t)
-        pos    = scaleToViewPoint viewSize viewSize $ posLabel p
-
-gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
-gridLabeledH mat decim viewSize y1 y2 = gridLabeledHV geometry decim viewSize y1 y2 posLine posLabel API.Right where
-    geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
-    posLabel y = Point labelOffX (y + labelAdjustY)
-    posLine  y = Point 0.5 y
-
-gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
-gridLabeledV mat decim viewSize x1 x2 = gridLabeledHV geometry decim viewSize x1 x2 posLine posLabel API.Center where
-    geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
-    posLabel x = Point (x + labelAdjustX) labelOffY
-    posLine  x = Point x 0.5
-
-gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> [Layer]
-gridLabeled mat decim viewSize x1 x2 y1 y2 = [gV, gH] where
-    gH = gridLabeledH mat decim viewSize y1 y2
-    gV = gridLabeledV mat decim viewSize x1 x2
-
-shiftPoint :: Double -> Double -> Double -> Double -> Point
-shiftPoint viewX viewY x y = Point (viewX * x) (viewY * y)
-
-shiftGraphics :: Point -> Graphics -> Graphics
-shiftGraphics point (Graphics layers) = Graphics layers' where
-    layers'  = shiftLayer point <$> layers
-
-shiftLabel :: Point -> Label -> Label
-shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly - y)) fontSize alignment text
-
-shiftTransl :: Point -> Point -> Point
-shiftTransl (Point x y) (Point xt yt) = Point (xt + x) (yt - y)
-
-shiftTransf :: Point -> Transformation -> Transformation
-shiftTransf (Point x y) transformation = translate transformation x (-y)
-
-shiftLayer :: Point -> Layer -> Layer
-shiftLayer point (Layer geo (Translations transl) (Labels labels)) = Layer geo (Translations transl') (Labels labels') where
-    transl' = shiftTransl point <$> transl
-    labels' = shiftLabel  point <$> labels
-shiftLayer point (Layer geo (Transformations transf) (Labels labels)) = Layer geo (Transformations transf') (Labels labels') where
-    transf' = shiftTransf point <$> transf
-    labels' = shiftLabel  point <$> labels
-
--- auto charts
-
-autoScatterChartInt :: Material -> Material -> Figure -> Double -> Double -> [Int] -> Graphics
-autoScatterChartInt gridMat mat figure viewSize viewShift ints = chart where
-    chart = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize viewShift $ fromIntegral <$> ints
-
-autoScatterChartDouble :: Material -> Material -> Figure -> Double -> Double -> [Double] -> Graphics
-autoScatterChartDouble gridMat mat figure viewSize viewShift doubles =  chart where
-    chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize viewShift doubles
-
-autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> Double -> [(Int, Int)] -> Graphics
-autoScatterChartIntTuple gridMat mat figure viewSize viewShift intTuples = chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 0 viewSize viewShift $ toDoubleTuple <$> intTuples
-    toDoubleTuple :: (Int, Int) -> (Double, Double)
-    toDoubleTuple (int1, int2) = (fromIntegral int1, fromIntegral int2)
-
-autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTuple gridMat mat figure viewSize viewShift doubleTuples = chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure 1 viewSize viewShift doubleTuples
-
-autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [Double] -> Graphics
-autoScatterChartDoubleImpl gridMat mat figure decim viewSize viewShift doublesY = chart where
-    chart = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift $ zip [0.0..] doublesY
-
-autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [(Double, Double)] -> Graphics
-autoScatterChartDoubleTupleImpl _gridMat _mat _figure _decim _viewSize _viewShift []  = Graphics []
-autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift doublesXY = shiftGraphics shift chart where
-    chart      = Graphics $ gridLayers <> [chartLayer]
-    shift      = shiftPoint viewSize' viewSize' viewShift viewShift
-    chartLayer = scatterChart mat figure viewSize' x1 x2 y1 y2 points
-    gridLayers = gridLabeled gridMat decim viewSize' x1 x2 y1 y2
-    doublesX   = fst <$> doublesXY
-    doublesY   = snd <$> doublesXY
-    x1'  = min 0.0 $ minimum doublesX
-    x2c' = max 0.0 $ maximum doublesX
-    x2'  = if x2c' == x1' then x2c' + 1.0 else x2c'
-    y1'  = min 0.0 $ minimum doublesY
-    y2c' = max 0.0 $ maximum doublesY
-    y2'  = if y2c' == y1' then y2c' + 1.0 else y2c'
-    (x1, x2) = if x1' <= x2' then (x1', x2') else (x2', x1')
-    (y1, y2) = if y1' <= y2' then (y1', y2') else (y2', y1')
-    points = uncurry Point <$> doublesXY
-    labelLen  = longestLabelSize decim x1 x2 y1 y2
-    labelLenBase = 3
-    labelFactor = 1.0 + 0.035 * fromIntegral (max 0 $ labelLen - labelLenBase)
-    viewSize' = viewSize / labelFactor
-
-longestLabelSize :: Int -> Double -> Double -> Double -> Double -> Int
-longestLabelSize decim x1 x2 y1 y2 = max labelLenX labelLenY where
-    labelX1 = showLabel decim x1
-    labelX2 = showLabel decim x2
-    labelY1 = showLabel decim y1
-    labelY2 = showLabel decim y2
-    labelLenX = max (length labelX1) (length labelX2)
-    labelLenY = max (length labelY1) (length labelY2)
-
--- charts
-
-scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
-scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
-    geometry   = figureToGeo figure mat
-    viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize viewSize <$> points
-    rx         = initialOffset x1t x2t
-    ry         = initialOffset y1t y2t
-    stepX      = calculateTick maxSteps (x2 - x1)
-    stepY      = calculateTick maxSteps (y2 - y1)
-    (x1t, x2t) = edgePoints stepX x1 x2
-    (y1t, y2t) = edgePoints stepY y1 y2
-
--- TODO: fix
-barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
-barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
-    viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize viewSize <$> points
-    rx         = initialOffset x1 x2
-    ry         = initialOffset y1 y2
-
-barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
-barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
-    layers     = toLayer <$> viewPoints
-    viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize viewSize <$> points
-    rx         = initialOffset x1t x2t
-    ry         = initialOffset y1t y2t
-    stepX      = calculateTick maxSteps (x2 - x1)
-    stepY      = calculateTick maxSteps (y2 - y1)
-    (x1t, x2t) = edgePoints stepX x1 x2
-    (y1t, y2t) = edgePoints stepY y1 y2
-    w          = 0.5 / fromIntegral (length points)
-    toLayer (Point dx dy) = mkLayerTransl geometry [point] where
-        rdy       = dy - ry
-        point     = Point dx (ry + rdy * 0.5)
-        geometry  = Geometry geoComp def (Just mat)
-        geoComp   = convert figure :: GeoComponent
-        figure    = Rectangle w h
-        h         = abs rdy
-
--- charts helpers
-
-scatterChartImpl :: Geometry -> [Point] -> Layer
-scatterChartImpl geometry points = mkLayerTransl geometry points
-
-barChartImpl = barChartGeometriesImpl
-
--- TODO: barChartShapes :: Material -> [Transformation] -> Layer
--- rewrite to new2 API with composable list of shapes with transformations
-
--- TODO: check why this hangs
--- TODO: check why composing geometries does not work with translations
-barChartGeometriesImpl :: Material -> [Point] -> Layer
-barChartGeometriesImpl mat points = layer where
-    pointsX          = transformX <$> points
-    pointsY          = transformY <$> points
-    geoComponent     = GeoElem  $ toSurface  <$> pointsY
-    geoComponentMain = GeoGroup $ toGeometry <$> pointsX
-    geometry         = Geometry geoComponentMain def $ Just mat
-    layer            = mkLayerTransl geometry [def]
-    toGeometry :: Point -> Geometry
-    toGeometry point = Geometry geoComponent (toTransformation point) $ Just mat
-    toSurface :: Point -> Surface
-    toSurface  (Point _  dy) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 (abs dy)) def def
-    transformX (Point dx dy) = Point dx  0.0
-    transformY (Point dx dy) = Point 0.0 dy
+--TODO use newer visualization-api
+-- -- helpers
+--
+-- mkLayerTransl :: Geometry -> [Point] -> Layer
+-- mkLayerTransl geo transl = Layer geo (Translations transl) (Labels [])
+--
+-- mkLayerTransf :: Geometry -> [Transformation] -> Layer
+-- mkLayerTransf geo transf = Layer geo (Transformations transf) (Labels [])
+--
+-- mkLayerWithLabels :: Geometry -> [Point] -> [Label] -> Layer
+-- mkLayerWithLabels geo transl labels = Layer geo (Translations transl) (Labels labels)
+--
+-- withLabels :: Layer -> Labels -> Layer
+-- withLabels (Layer geo placement _) = Layer geo placement
+--
+-- toTransformation :: Point -> Transformation
+-- toTransformation (Point x y) = translate def x y
+--
+-- transformToViewPoint :: Double -> Double -> Double -> Double -> Double -> Double -> Point -> Point
+-- transformToViewPoint sx sy rx ry viewX viewY = scaleToViewPoint viewX viewY . offsetPoint rx ry . normalizePoint sx sy
+--
+-- scaleToViewPoint :: Double -> Double -> Point -> Point
+-- scaleToViewPoint viewX viewY = offsetPoint offX offY . scalePoint viewX viewY . flipPointY where
+--     offX = 0.5 * (1.0 - viewX)
+--     offY = 0.5 * (1.0 - viewY)
+--
+-- scalePoint :: Double -> Double -> Point -> Point
+-- scalePoint px py (Point x y) = Point (x * px) (y * py)
+--
+-- normalizePoint :: Double -> Double -> Point -> Point
+-- normalizePoint sx sy (Point x y) = Point (x / sx) (y / sy)
+--
+-- offsetPoint :: Double -> Double -> Point -> Point
+-- offsetPoint rx ry (Point x y) = Point (x + rx) (y + ry)
+--
+-- flipPointY :: Point -> Point
+-- flipPointY (Point x y) = Point x (1.0 - y)
+--
+-- toDoublePairList :: [Point] -> [(Double, Double)]
+-- toDoublePairList = fmap toDoublePair where
+--     toDoublePair (Point x y) = (x, y)
+--
+-- initialOffset :: Double -> Double -> Double
+-- initialOffset p1 p2 = -p1 / (p2 - p1)
+--
+-- getOffset :: Double -> Double -> Double
+-- getOffset w p = p / w
+--
+-- sampleData :: (Double -> IO Double) -> Double -> Double -> Int -> IO [Point]
+-- sampleData f x1 x2 res = do
+--     let resNorm = if res < 2 then 2 else res
+--         nums = [0 .. (resNorm - 1)]
+--         range = x2 - x1
+--         resPrec = fromIntegral (resNorm - 1)
+--         xs = (\n -> x1 + range * (fromIntegral n / resPrec)) <$> nums
+--         ys = f <$> xs
+--         toPointF x = do
+--             y <- f x
+--             return $ Point x y
+--     mapM toPointF xs
+--
+--
+-- -- drawing
+--
+-- figureToGeo :: Figure -> Material -> Geometry
+-- figureToGeo figure mat = Geometry geoComp def (Just mat) where
+--     geoComp = GeoElem [ShapeSurface $ Shape $ Primitive figure def def]
+--
+-- circleToGeo :: Double -> Material -> Geometry
+-- circleToGeo = figureToGeo . Circle
+--
+-- squareToGeo :: Double -> Material -> Geometry
+-- squareToGeo = figureToGeo . Square
+--
+-- rectangleToGeo :: Double -> Double -> Material -> Geometry
+-- rectangleToGeo = figureToGeo .: Rectangle
+--
+-- -- axes
+--
+-- axisWidth :: Double
+-- axisWidth = 0.008
+--
+-- axisLength :: Double -> Double
+-- axisLength viewSize = viewSize + axisWidth
+--
+-- maxSteps :: Int
+-- maxSteps  = 12
+--
+-- labelFontSize :: Double
+-- labelFontSize = 10.0
+--
+-- edgePoints :: Double -> Double -> Double -> (Double, Double)
+-- edgePoints step p1 p2 = (p1t, p2t) where
+--     p1t = (* step) . fromIntegral . floor   $ p1 / step
+--     p2t = (* step) . fromIntegral . ceiling $ p2 / step
+--
+-- calculateTick :: Int -> Double -> Double
+-- calculateTick maxTicks range = tick where
+--     minTick   = range / fromIntegral (maxTicks - 2)
+--     magnitude = 10.0 ** (fromIntegral . floor $ logBase 10.0 minTick)
+--     residual  = minTick / magnitude
+--     tick | residual > 5.0 = 10.0 * magnitude
+--          | residual > 2.0 =  5.0 * magnitude
+--          | residual > 1.0 =  2.0 * magnitude
+--          | otherwise      =        magnitude
+--
+-- axisPoint :: Double -> Double -> Double
+-- axisPoint p1 p2 = mp where
+--     step       = calculateTick maxSteps (p2 - p1)
+--     (p1t, p2t) = edgePoints step p1 p2
+--     mp         = initialOffset p1t p2t
+--
+-- axisH :: Material -> Double -> Double -> Double -> Layer
+-- axisH mat viewSize y1 y2 = mkLayerTransl geometry [point] where
+--     geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
+--     point      = scaleToViewPoint viewSize viewSize $ Point 0.5 my
+--     my         = axisPoint y1 y2
+--
+-- axisV :: Material -> Double -> Double -> Double -> Layer
+-- axisV mat viewSize x1 x2 = mkLayerTransl geometry [point] where
+--     geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
+--     point      = scaleToViewPoint viewSize viewSize $ Point mx 0.5
+--     mx         = axisPoint x1 x2
+--
+-- axes :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+-- axes mat viewSize x1 x2 y1 y2 = [aH, aV] where
+--     aH = axisH mat viewSize y1 y2
+--     aV = axisV mat viewSize x1 x2
+--
+-- gridHStep1 :: Material -> Double -> Double -> Double -> Layer
+-- gridHStep1 mat viewSize y1 y2 = mkLayerTransl geometry points where
+--     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
+--     points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
+--     y1i      = truncate y1
+--     y2i      = truncate y2
+--     yis      = fromIntegral <$> [y1i..y2i]
+--     myst     = getOffset (y2 - y1) <$> yis
+--     mys      = (+ initialOffset y1 y2) <$> myst
+--
+-- gridPoints :: Double -> Double -> [Double]
+-- gridPoints p1 p2 = mps where
+--     step       = calculateTick maxSteps (p2 - p1)
+--     (p1t, p2t) = edgePoints step p1 p2
+--     actSteps   = (p2t - p1t) / step
+--     steps      = (* step) <$> [0..actSteps]
+--     pis        = (+ p1t) <$> steps
+--     mpst       = getOffset (p2t - p1t) <$> pis
+--     mps        = (+ initialOffset p1t p2t) <$> mpst
+--
+-- gridH :: Material -> Double -> Double -> Double -> Layer
+-- gridH mat viewSize y1 y2 = mkLayerTransl geometry points where
+--     geometry = rectangleToGeo (axisLength viewSize) axisWidth mat
+--     points   = scaleToViewPoint viewSize viewSize . Point 0.5 <$> mys
+--     mys      = gridPoints y1 y2
+--
+-- gridV :: Material -> Double -> Double -> Double -> Layer
+-- gridV mat viewSize x1 x2 = mkLayerTransl geometry points where
+--     geometry = rectangleToGeo axisWidth (axisLength viewSize) mat
+--     points   = scaleToViewPoint viewSize viewSize . flip Point 0.5 <$> mxs
+--     mxs      = gridPoints x1 x2
+--
+-- grid :: Material -> Double -> Double -> Double -> Double -> Double -> [Layer]
+-- grid mat viewSize x1 x2 y1 y2 = [gH, gV] where
+--     gH = gridH mat viewSize y1 y2
+--     gV = gridV mat viewSize x1 x2
+--
+-- labelOff :: Double -> Double
+-- labelOff viewSize = 0.5 * (1.0 - viewSize)
+--
+-- labelOffX, labelOffY :: Double
+-- labelOffX = -0.04
+-- labelOffY = -0.025
+--
+-- labelAdjustX, labelAdjustY :: Double
+-- labelAdjustX = 0.0
+-- labelAdjustY = 0.035
+--
+-- compact :: String -> String
+-- compact str | length str > limit = take limit str <> ".."
+--             | otherwise          = str
+--             where limit = 7
+--
+-- showLabel :: Int -> Double -> String
+-- showLabel decim val = compact label where
+--     label  = if val < 0 && trVal == 0 then "" else label'
+--     label' = printf (sign <> "%0." <> show decim <> "f") $ abs trVal
+--     trVal  = fromIntegral (truncate $ val * den) / den
+--     den    = 10.0 ** fromIntegral decim
+--     sign   = if val < 0 then "-" else ""
+--
+-- skipSecond :: [Label] -> [Label]
+-- skipSecond (x:y:xs) = x : rest where
+--     rest = if isZero y then y : skipped else skipped
+--     skipped = skipSecond xs
+--     isZero p = _text p == "0" || _text p == "0.0"
+-- skipSecond [x]      = [x]
+-- skipSecond []       = []
+--
+-- filterDupLabels :: [Label] -> [Label]
+-- filterDupLabels = fmap takeElem . groupBy ((==) `on` _text) . filter (not . null . _text) where
+--     takeElem ls@(l:_) = if listToMaybe (_text l) == Just '-' then last ls else l
+--
+-- gridLabeledHV :: Geometry -> Int -> Double -> Double -> Double -> (Double -> Point) -> (Double -> Point) -> TextAlignment -> Layer
+-- gridLabeledHV geometry decim viewSize p1 p2 posLine posLabel labelAlign = mkLayerWithLabels geometry points labels where
+--     points     = scaleToViewPoint viewSize viewSize . posLine <$> mps
+--     labels'    = filterDupLabels $ mkLabel <$> mps
+--     labels     = if length labels' > maxSteps `div` 2 then skipSecond labels' else labels'
+--     mps        = gridPoints p1 p2
+--     stepP      = calculateTick maxSteps (p2 - p1)
+--     (p1t, p2t) = edgePoints stepP p1 p2
+--     mkLabel p  = Label pos (labelFontSize * viewSize) labelAlign $ showLabel decim ap where
+--         ap     = p1t + p * (p2t - p1t)
+--         pos    = scaleToViewPoint viewSize viewSize $ posLabel p
+--
+-- gridLabeledH :: Material -> Int -> Double -> Double -> Double -> Layer
+-- gridLabeledH mat decim viewSize y1 y2 = gridLabeledHV geometry decim viewSize y1 y2 posLine posLabel API.Right where
+--     geometry   = rectangleToGeo (axisLength viewSize) axisWidth mat
+--     posLabel y = Point labelOffX (y + labelAdjustY)
+--     posLine  y = Point 0.5 y
+--
+-- gridLabeledV :: Material -> Int -> Double -> Double -> Double -> Layer
+-- gridLabeledV mat decim viewSize x1 x2 = gridLabeledHV geometry decim viewSize x1 x2 posLine posLabel API.Center where
+--     geometry   = rectangleToGeo axisWidth (axisLength viewSize) mat
+--     posLabel x = Point (x + labelAdjustX) labelOffY
+--     posLine  x = Point x 0.5
+--
+-- gridLabeled :: Material -> Int -> Double -> Double -> Double -> Double -> Double -> [Layer]
+-- gridLabeled mat decim viewSize x1 x2 y1 y2 = [gV, gH] where
+--     gH = gridLabeledH mat decim viewSize y1 y2
+--     gV = gridLabeledV mat decim viewSize x1 x2
+--
+-- shiftPoint :: Double -> Double -> Double -> Double -> Point
+-- shiftPoint viewX viewY x y = Point (viewX * x) (viewY * y)
+--
+-- shiftGraphics :: Point -> Graphics -> Graphics
+-- shiftGraphics point (Graphics layers) = Graphics layers' where
+--     layers'  = shiftLayer point <$> layers
+--
+-- shiftLabel :: Point -> Label -> Label
+-- shiftLabel (Point x y) (Label (Point lx ly) fontSize alignment text) = Label (Point (lx + x) (ly - y)) fontSize alignment text
+--
+-- shiftTransl :: Point -> Point -> Point
+-- shiftTransl (Point x y) (Point xt yt) = Point (xt + x) (yt - y)
+--
+-- shiftTransf :: Point -> Transformation -> Transformation
+-- shiftTransf (Point x y) transformation = translate transformation x (-y)
+--
+-- shiftLayer :: Point -> Layer -> Layer
+-- shiftLayer point (Layer geo (Translations transl) (Labels labels)) = Layer geo (Translations transl') (Labels labels') where
+--     transl' = shiftTransl point <$> transl
+--     labels' = shiftLabel  point <$> labels
+-- shiftLayer point (Layer geo (Transformations transf) (Labels labels)) = Layer geo (Transformations transf') (Labels labels') where
+--     transf' = shiftTransf point <$> transf
+--     labels' = shiftLabel  point <$> labels
+--
+-- -- auto charts
+--
+-- autoScatterChartInt :: Material -> Material -> Figure -> Double -> Double -> [Int] -> Graphics
+-- autoScatterChartInt gridMat mat figure viewSize viewShift ints = chart where
+--     chart = autoScatterChartDoubleImpl gridMat mat figure 0 viewSize viewShift $ fromIntegral <$> ints
+--
+-- autoScatterChartDouble :: Material -> Material -> Figure -> Double -> Double -> [Double] -> Graphics
+-- autoScatterChartDouble gridMat mat figure viewSize viewShift doubles =  chart where
+--     chart = autoScatterChartDoubleImpl gridMat mat figure 1 viewSize viewShift doubles
+--
+-- autoScatterChartIntTuple :: Material -> Material -> Figure -> Double -> Double -> [(Int, Int)] -> Graphics
+-- autoScatterChartIntTuple gridMat mat figure viewSize viewShift intTuples = chart where
+--     chart = autoScatterChartDoubleTupleImpl gridMat mat figure 0 viewSize viewShift $ toDoubleTuple <$> intTuples
+--     toDoubleTuple :: (Int, Int) -> (Double, Double)
+--     toDoubleTuple (int1, int2) = (fromIntegral int1, fromIntegral int2)
+--
+-- autoScatterChartDoubleTuple :: Material -> Material -> Figure -> Double -> Double -> [(Double, Double)] -> Graphics
+-- autoScatterChartDoubleTuple gridMat mat figure viewSize viewShift doubleTuples = chart where
+--     chart = autoScatterChartDoubleTupleImpl gridMat mat figure 1 viewSize viewShift doubleTuples
+--
+-- autoScatterChartDoubleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [Double] -> Graphics
+-- autoScatterChartDoubleImpl gridMat mat figure decim viewSize viewShift doublesY = chart where
+--     chart = autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift $ zip [0.0..] doublesY
+--
+-- autoScatterChartDoubleTupleImpl :: Material -> Material -> Figure -> Int -> Double -> Double -> [(Double, Double)] -> Graphics
+-- autoScatterChartDoubleTupleImpl _gridMat _mat _figure _decim _viewSize _viewShift []  = Graphics []
+-- autoScatterChartDoubleTupleImpl gridMat mat figure decim viewSize viewShift doublesXY = shiftGraphics shift chart where
+--     chart      = Graphics $ gridLayers <> [chartLayer]
+--     shift      = shiftPoint viewSize' viewSize' viewShift viewShift
+--     chartLayer = scatterChart mat figure viewSize' x1 x2 y1 y2 points
+--     gridLayers = gridLabeled gridMat decim viewSize' x1 x2 y1 y2
+--     doublesX   = fst <$> doublesXY
+--     doublesY   = snd <$> doublesXY
+--     x1'  = min 0.0 $ minimum doublesX
+--     x2c' = max 0.0 $ maximum doublesX
+--     x2'  = if x2c' == x1' then x2c' + 1.0 else x2c'
+--     y1'  = min 0.0 $ minimum doublesY
+--     y2c' = max 0.0 $ maximum doublesY
+--     y2'  = if y2c' == y1' then y2c' + 1.0 else y2c'
+--     (x1, x2) = if x1' <= x2' then (x1', x2') else (x2', x1')
+--     (y1, y2) = if y1' <= y2' then (y1', y2') else (y2', y1')
+--     points = uncurry Point <$> doublesXY
+--     labelLen  = longestLabelSize decim x1 x2 y1 y2
+--     labelLenBase = 3
+--     labelFactor = 1.0 + 0.035 * fromIntegral (max 0 $ labelLen - labelLenBase)
+--     viewSize' = viewSize / labelFactor
+--
+-- longestLabelSize :: Int -> Double -> Double -> Double -> Double -> Int
+-- longestLabelSize decim x1 x2 y1 y2 = max labelLenX labelLenY where
+--     labelX1 = showLabel decim x1
+--     labelX2 = showLabel decim x2
+--     labelY1 = showLabel decim y1
+--     labelY2 = showLabel decim y2
+--     labelLenX = max (length labelX1) (length labelX2)
+--     labelLenY = max (length labelY1) (length labelY2)
+--
+-- -- charts
+--
+-- scatterChart :: Material -> Figure -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
+-- scatterChart mat figure viewSize x1 x2 y1 y2 points = scatterChartImpl geometry viewPoints where
+--     geometry   = figureToGeo figure mat
+--     viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize viewSize <$> points
+--     rx         = initialOffset x1t x2t
+--     ry         = initialOffset y1t y2t
+--     stepX      = calculateTick maxSteps (x2 - x1)
+--     stepY      = calculateTick maxSteps (y2 - y1)
+--     (x1t, x2t) = edgePoints stepX x1 x2
+--     (y1t, y2t) = edgePoints stepY y1 y2
+--
+-- -- TODO: fix
+-- barChart :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Layer
+-- barChart mat viewSize x1 x2 y1 y2 points = barChartImpl mat viewPoints where
+--     viewPoints = transformToViewPoint (x2 - x1) (y2 - y1) rx ry viewSize viewSize <$> points
+--     rx         = initialOffset x1 x2
+--     ry         = initialOffset y1 y2
+--
+-- barChartLayers :: Material -> Double -> Double -> Double -> Double -> Double -> [Point] -> Graphics
+-- barChartLayers mat viewSize x1 x2 y1 y2 points = Graphics layers where
+--     layers     = toLayer <$> viewPoints
+--     viewPoints = transformToViewPoint (x2t - x1t) (y2t - y1t) rx ry viewSize viewSize <$> points
+--     rx         = initialOffset x1t x2t
+--     ry         = initialOffset y1t y2t
+--     stepX      = calculateTick maxSteps (x2 - x1)
+--     stepY      = calculateTick maxSteps (y2 - y1)
+--     (x1t, x2t) = edgePoints stepX x1 x2
+--     (y1t, y2t) = edgePoints stepY y1 y2
+--     w          = 0.5 / fromIntegral (length points)
+--     toLayer (Point dx dy) = mkLayerTransl geometry [point] where
+--         rdy       = dy - ry
+--         point     = Point dx (ry + rdy * 0.5)
+--         geometry  = Geometry geoComp def (Just mat)
+--         geoComp   = convert figure :: GeoComponent
+--         figure    = Rectangle w h
+--         h         = abs rdy
+--
+-- -- charts helpers
+--
+-- scatterChartImpl :: Geometry -> [Point] -> Layer
+-- scatterChartImpl geometry points = mkLayerTransl geometry points
+--
+-- barChartImpl = barChartGeometriesImpl
+--
+-- -- TODO: barChartShapes :: Material -> [Transformation] -> Layer
+-- -- rewrite to new2 API with composable list of shapes with transformations
+--
+-- -- TODO: check why this hangs
+-- -- TODO: check why composing geometries does not work with translations
+-- barChartGeometriesImpl :: Material -> [Point] -> Layer
+-- barChartGeometriesImpl mat points = layer where
+--     pointsX          = transformX <$> points
+--     pointsY          = transformY <$> points
+--     geoComponent     = GeoElem  $ toSurface  <$> pointsY
+--     geoComponentMain = GeoGroup $ toGeometry <$> pointsX
+--     geometry         = Geometry geoComponentMain def $ Just mat
+--     layer            = mkLayerTransl geometry [def]
+--     toGeometry :: Point -> Geometry
+--     toGeometry point = Geometry geoComponent (toTransformation point) $ Just mat
+--     toSurface :: Point -> Surface
+--     toSurface  (Point _  dy) = ShapeSurface $ Shape $ Primitive (Rectangle 0.02 (abs dy)) def def
+--     transformX (Point dx dy) = Point dx  0.0
+--     transformY (Point dx dy) = Point 0.0 dy

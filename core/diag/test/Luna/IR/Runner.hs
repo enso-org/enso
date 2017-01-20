@@ -14,7 +14,6 @@ import Data.Aeson                           (encode)
 import System.Log.Logger.Format (nestedColorFormatter)
 import Control.Monad.Raise
 
-
 data TestPass
 type instance Abstract TestPass = TestPass
 type instance Inputs  Net   TestPass = '[AnyExpr, AnyExprLink]

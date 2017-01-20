@@ -299,6 +299,10 @@ instance MonadLogging m => MonadLogging (RefCache m)
 instance (MonadIR m, MonadRefCache m, Throws RefLookupError m) => MonadRefLookup Attr (PassManager m) where
     uncheckedLookupRef a = tryJust (RefLookupError (getTypeDesc @Attr) a) . fmap unsafeCoerce . (^? (attrs . ix (fromTypeDesc a))) =<< get ; {-# INLINE uncheckedLookupRef #-}
 
+-- TODO[MK]: Possibly MonadRefStore and MonadRefLookup should be merged, but for now only one instance of the former is needed.
+instance (MonadIR m, Throws RefLookupError m, MonadRefCache m) => MonadRefStore Attr (PassManager m) where
+    uncheckedStoreRef a d = modify_ $ attrs . at (fromTypeDesc a) ?~ unsafeCoerce d
+
 instance (MonadIR m, Throws RefLookupError m) => MonadRefLookup Layer (PassManager m) where
     uncheckedLookupRef t = do
         ir <- getIR
