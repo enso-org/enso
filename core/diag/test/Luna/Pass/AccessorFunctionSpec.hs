@@ -125,9 +125,8 @@ test :: _ => SubPass TestPass _ _
 test = do
     one <- integer (1::Int)
     int <- string "Int"
-    c <- cons_ int
-    l <- unsafeGeneralize <$> link c one
-    writeLayer @Type l one
+    c <- cons_ @Draft int
+    reconnectLayer @Type c one
 
     rawAcc "succ" one
 
