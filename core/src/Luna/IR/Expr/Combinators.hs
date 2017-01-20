@@ -59,8 +59,8 @@ replaceNode old new = do
     mapM_ (flip changeSource new) $ Set.toList succs
 
 reconnectLayer :: forall l m a b b'. (MonadRef m, Editors Net '[AnyExprLink] m, Editors Layer '[AnyExpr // l] m, Emitters '[Delete // AnyExprLink, New // AnyExprLink] m, LayerData l (Expr a) ~ ExprLink b a, Generalizable (Expr b') (Expr b) ~ 'True)
-               => Expr a -> Expr b' -> m ()
-reconnectLayer tgt src = do
+               => Expr b' -> Expr a -> m ()
+reconnectLayer src tgt = do
     old  <- readLayer @l tgt
     delete old
     link <- link (generalize src) tgt
