@@ -7,7 +7,7 @@ dependencies:
         - curl -L https://github.com/commercialhaskell/stack/releases/download/v1.3.0/stack-1.3.0-linux-x86_64.tar.gz | tar zx -C /tmp
         - sudo mv /tmp/stack-1.3.0-linux-x86_64/stack /usr/bin
     override:
-        - stack build --stack-yaml=core/stack.yaml --only-snapshot --fast --install-ghc --test --bench
+        - stack build --stack-yaml=core/stack.yaml --only-dependencies --fast --install-ghc --test --bench
     cache_directories:
         - "~/.stack"
         - "core/.stack-work"
