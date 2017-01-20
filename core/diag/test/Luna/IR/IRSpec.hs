@@ -125,7 +125,7 @@ testSubtreeRemoval = runGraph $ do
     vbar  <- var bar
     vbar' <- var bar
     uni   <- unify vfoo vbar
-    deleteSubtree $ generalize uni
+    deleteSubtree uni
     -- Here we expect the graph to be coherent and contain only vbar' and bar and their types
     coh <- checkCoherence
     exs <- length <$> exprs
@@ -137,7 +137,7 @@ testChangeSource = runGraph $ do
     bar <- string "bar"
     baz <- string "baz"
     uni <- unify foo bar
-    match uni $ \(Unify l r) -> changeSource (generalize r) (generalize baz)
+    match uni $ \(Unify l r) -> changeSource r baz
     rightOperand :: SomeExpr <- fmap generalize $ match uni $ \(Unify l r) -> source r
     coh <- checkCoherence
     return (rightOperand == generalize baz, coh)

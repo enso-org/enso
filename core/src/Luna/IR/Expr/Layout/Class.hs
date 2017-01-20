@@ -35,6 +35,8 @@ data NAME = NAME deriving (Show)
 
 type family Generalizable a b :: Bool
 
+type Generalizable' a b = Generalizable a b ~ 'True
+
 generalize :: Assert (Generalizable a b) (GeneralizableError a b) => a -> b
 generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
@@ -152,3 +154,4 @@ type instance Merge (Atomic a) Bottom        = Bottom
 
 data Bottom
 type instance Sub t Bottom = Bottom
+type instance Generalizable Bottom Bottom = 'True
