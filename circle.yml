@@ -14,5 +14,9 @@ dependencies:
 
 compile:
     override:
-        - stack build --stack-yaml core/stack.yaml --fast --test --bench
+        - stack build --stack-yaml=core/stack.yaml --fast --test --bench --no-run-tests --no-run-benchmarks
+
+test:
+    override:
+        - stack build --stack-yaml=core/stack.yaml --fast --test --bench
 
