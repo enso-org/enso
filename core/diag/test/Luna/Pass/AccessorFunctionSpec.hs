@@ -9,7 +9,8 @@ import qualified Luna.Pass        as Pass
 import           Control.Monad.Raise (MonadException(..), tryAll)
 import qualified Luna.IR.Repr.Vis as Vis
 
-import Test.Hspec   (Spec, Expectation, describe, expectationFailure, it, shouldBe, shouldSatisfy)
+import qualified Data.Set as Set (null)
+import Test.Hspec   (Spec, Expectation, describe, expectationFailure, it, shouldBe, shouldSatisfy, shouldMatchList)
 import Luna.Prelude hiding (String, s, new)
 import qualified Luna.Prelude as P
 import Data.Maybe (isJust)
@@ -67,9 +68,9 @@ importAccessor = do
     res <- importAccessor'
     case res of
         Left  err   -> return $ Just err
-        Right _body -> return Nothing
+        Right (_self, _body) -> return Nothing
 
-importAccessor' :: _ => SubPass AccessorFunction m (Either AccessorError SomeExpr)
+importAccessor' :: _ => SubPass AccessorFunction m (Either AccessorError (SomeExpr, SomeExpr))
 importAccessor' = do
     CurrentAcc acc <- readAttr
     match acc $ \case
@@ -91,7 +92,7 @@ importAccessor' = do
                             writeLayer @Redirect (Just $ generalize body) acc
                             unifyTypes acc body
                             unifyTypes self v'
-                            return $ Right body
+                            return $ Right (self, body)
                 _ -> return $ Left AmbiguousType
 
 unifyTypes :: _ => Expr _ -> Expr _ -> SubPass AccessorFunction m (Expr _)
@@ -128,14 +129,30 @@ lookupMethod n cls = case Map.lookup n (cls ^. methods) of
     Just m -> Right m
     _      -> Left SymbolNotFound
 
-test :: _ => SubPass TestPass _ _
-test = do
+testSuccess :: _ => SubPass TestPass _ _
+testSuccess = do
     one <- integer (1::Int)
     int <- string "Int"
     c <- cons_ @Draft int
     reconnectLayer @Type c one
 
     rawAcc "succ" one
+
+testUnknownMethod :: _ => SubPass TestPass _ _
+testUnknownMethod = do
+    one <- integer (1::Int)
+    int <- string "Int"
+    c <- cons_ @Draft int
+    reconnectLayer @Type c one
+
+    rawAcc "isLetter" one
+
+testAmbiguousType :: _ => SubPass TestPass _ _
+testAmbiguousType = do
+    one <- integer (1::Int)
+    int <- string "Int"
+
+    rawAcc "isLetter" one
 
 testImports :: IO Imports
 testImports = do
@@ -180,22 +197,39 @@ runTest m = do
         res    <- Pass.eval' importAccessor'
         c      <- Pass.eval' @AccessorFunction checkCoherence
         redirect <- Pass.eval' @AccessorFunction $ readLayer @Redirect v
-        unisExist <- forM res $ \body -> Pass.eval' @AccessorFunction $ do
+        allUnifies  <- Pass.eval' @AccessorFunction unifies
+        unifiesAndSuccs <- forM res $ \(self, body) -> Pass.eval' @AccessorFunction $ do
             accType  <- readLayer @Type v    >>= source
             bodyType <- readLayer @Type body >>= source
-            allUnifies  <- unifies
             let accBodyUnify :: (SomeExpr, SomeExpr)
                 accBodyUnify = (generalize accType, generalize bodyType)
-            return $ accBodyUnify `elem` allUnifies
 
-        return (res, c, redirect, unisExist)
+            selfType <- readLayer @Type self >>= source
+            accTargetType <- match v $ \case
+                Acc _ target -> source target >>= readLayer @Type >>= source
+            let accSelfUnify :: (SomeExpr, SomeExpr)
+                accSelfUnify = (generalize selfType, generalize accTargetType)
+            selfSuccs <- readLayer @Succs self
+            return $ (selfSuccs, [accBodyUnify, accSelfUnify])
+
+        return (res, c, redirect, allUnifies, unifiesAndSuccs)
     return out
 
 spec :: Spec
 spec = describe "accessor function importer" $ do
     it "imports" $ do
-        (res, coherence, redirect, unisExist) <- runTest test
-        withRight res $ \body -> do
+        (res, coherence, redirect, allUnifies, unifiesAndSuccs) <- runTest testSuccess
+        withRight res $ \(_self, body) -> do
             redirect `shouldBe` Just body
         coherence `shouldSatisfy` null
-        withRight unisExist $ \a -> a `shouldBe` True
+        withRight unifiesAndSuccs $ \(selfSuccs, unifies) -> do
+            selfSuccs `shouldSatisfy` Set.null
+            unifies `shouldMatchList` allUnifies
+    it "does not import unknown method" $ do
+        (res, coherence, redirect, allUnifies, unifiesAndSuccs) <- runTest testUnknownMethod
+        res `shouldBe` Left (MethodNotFound "isLetter")
+        coherence `shouldSatisfy` null
+    it "does not import when type is ambiguous" $ do
+        (res, coherence, redirect, allUnifies, unifiesAndSuccs) <- runTest testAmbiguousType
+        res `shouldBe` Left AmbiguousType
+        coherence `shouldSatisfy` null
