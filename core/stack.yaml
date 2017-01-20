@@ -49,4 +49,4 @@ packages:
   location: {commit: f7124ecbfa4ce8802e3c1431e54300188616fe64, git: 'https://github.com/luna/data-shell.git'}
 - extra-dep: true
   location: {commit: 03b31eb5994a8d3ac9f70c3914360bf5263936db, git: 'https://github.com/luna/visualization-api.git'}
-resolver: lts-7.9
+resolver: lts-7.16
