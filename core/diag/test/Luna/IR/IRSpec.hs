@@ -25,7 +25,7 @@ testReconnectLayer = runGraph $ do
     one <- integer (1::Int)
     int <- string "Int"
     c   <- cons_ @Draft int
-    reconnectLayer @Type one c
+    reconnectLayer @Type c one
     coh <- checkCoherence
     tp  <- readLayer @Type one >>= source
     return (tp == generalize c, coh)
