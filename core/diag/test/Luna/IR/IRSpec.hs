@@ -20,6 +20,16 @@ data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
 
+testReconnectLayer :: IO (Either SomeException (Bool, [Incoherence]))
+testReconnectLayer = runGraph $ do
+    one <- integer (1::Int)
+    int <- string "Int"
+    c   <- cons_ @Draft int
+    reconnectLayer @Type one c
+    coh <- checkCoherence
+    tp  <- readLayer @Type one >>= source
+    return (tp == generalize c, coh)
+
 testCompile :: IO (Either SomeException CompiledFunction)
 testCompile = runGraph $ do
     t <- string "foobar"
@@ -166,3 +176,6 @@ spec = do
     describe "function importing" $ do
         it "imports function into current grpah" $
             flip withRight (`shouldBe` (10, [])) =<< testImport
+    describe "layer reconnect" $
+        it "changes the layer pointer and preserves coherence" $
+            flip withRight (`shouldBe` (True, [])) =<< testReconnectLayer
