@@ -158,6 +158,16 @@ initRedirect :: Req m '[Editor // Layer // AnyExpr // Redirect] => Listener New 
 initRedirect = listener $ \(t, _) -> (writeLayer @Redirect) Nothing t
 makePass 'initRedirect
 
+unifies :: _ => SubPass AccessorFunction _ [(SomeExpr, SomeExpr)]
+unifies = do
+    es <- exprs
+    maybeUnifies <- mapM (narrowAtom @Unify) es
+    let unifies = catMaybes maybeUnifies
+    forM unifies $ flip match $ \case
+        Unify l r -> do
+            t <- (,) <$> source l <*> source r
+            return $ over each generalize t
+
 runTest m = do
     imps <- testImports
     out <- dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
@@ -170,13 +180,22 @@ runTest m = do
         res    <- Pass.eval' importAccessor'
         c      <- Pass.eval' @AccessorFunction checkCoherence
         redirect <- Pass.eval' @AccessorFunction $ readLayer @Redirect v
-        return (res, c, redirect)
+        unisExist <- forM res $ \body -> Pass.eval' @AccessorFunction $ do
+            accType  <- readLayer @Type v    >>= source
+            bodyType <- readLayer @Type body >>= source
+            allUnifies  <- unifies
+            let accBodyUnify :: (SomeExpr, SomeExpr)
+                accBodyUnify = (generalize accType, generalize bodyType)
+            return $ accBodyUnify `elem` allUnifies
+
+        return (res, c, redirect, unisExist)
     return out
 
 spec :: Spec
 spec = describe "accessor function importer" $ do
     it "imports" $ do
-        (res, coherence, redirect) <- runTest test
+        (res, coherence, redirect, unisExist) <- runTest test
         withRight res $ \body -> do
             redirect `shouldBe` Just body
         coherence `shouldSatisfy` null
+        withRight unisExist $ \a -> a `shouldBe` True
