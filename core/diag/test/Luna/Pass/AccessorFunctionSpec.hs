@@ -44,7 +44,7 @@ newtype CurrentAcc = CurrentAcc (Expr Acc)
 data AccessorFunction
 type instance Abstract   AccessorFunction = AccessorFunction
 type instance Inputs     Net   AccessorFunction = '[AnyExpr, AnyExprLink]
-type instance Inputs     Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
+type instance Inputs     Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // Redirect]
 type instance Inputs     Attr  AccessorFunction = '[CurrentAcc, Imports]
 type instance Inputs     Event AccessorFunction = '[]
 
@@ -64,6 +64,13 @@ data AccessorError = MethodNotFound P.String
 
 importAccessor :: _ => SubPass AccessorFunction m (Maybe AccessorError)
 importAccessor = do
+    res <- importAccessor'
+    case res of
+        Left  err   -> return $ Just err
+        Right _body -> return Nothing
+
+importAccessor' :: _ => SubPass AccessorFunction m (Either AccessorError SomeExpr)
+importAccessor' = do
     CurrentAcc acc <- readAttr
     match acc $ \case
         Acc n v -> do
@@ -78,14 +85,14 @@ importAccessor = do
                     case method of
                         Left SymbolNotFound -> do
                             methodName <- view lit <$> match' methodNameExpr
-                            return $ Just $ MethodNotFound methodName
+                            return $ Left $ MethodNotFound methodName
                         Right (ImportedMethod self body) -> do
                             replaceNode (generalize self) (generalize v')
                             writeLayer @Redirect (Just $ generalize body) acc
                             unifyTypes acc body
                             unifyTypes self v'
-                            return Nothing
-                _ -> return $ Just AmbiguousType
+                            return $ Right body
+                _ -> return $ Left AmbiguousType
 
 unifyTypes :: _ => Expr _ -> Expr _ -> SubPass AccessorFunction m (Expr _)
 unifyTypes e1 e2 = do
@@ -160,14 +167,16 @@ runTest m = do
         v <- Pass.eval' m
         setAttr (getTypeDesc @Imports) imps
         setAttr (getTypeDesc @CurrentAcc) v
-        res    <- Pass.eval' importAccessor
+        res    <- Pass.eval' importAccessor'
         c      <- Pass.eval' @AccessorFunction checkCoherence
-        return (res, c)
+        redirect <- Pass.eval' @AccessorFunction $ readLayer @Redirect v
+        return (res, c, redirect)
     return out
 
 spec :: Spec
 spec = describe "accessor function importer" $ do
     it "imports" $ do
-        (res, coherence) <- runTest test
-        res `shouldBe` Nothing
+        (res, coherence, redirect) <- runTest test
+        withRight res $ \body -> do
+            redirect `shouldBe` Just body
         coherence `shouldSatisfy` null
