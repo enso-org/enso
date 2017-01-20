@@ -10,7 +10,7 @@ dependencies:
         - stack build --stack-yaml=core/stack.yaml --only-snapshot --fast --install-ghc --test --bench
     cache_directories:
         - "~/.stack"
-        - ".stack-work"
+        - "core/.stack-work"
 
 compile:
     override:
