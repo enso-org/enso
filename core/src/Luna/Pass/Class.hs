@@ -16,7 +16,7 @@ import qualified Control.Monad.State      as State
 import           Control.Monad.State      (StateT)
 import           Control.Monad.Primitive
 
-import           Luna.IR.Internal.IR   (Net, Attr, RefData, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefState, liftRefHandler)
+import           Luna.IR.Internal.IR   (Net, Attr, RefData, Refs, Ref(Ref), Reader(..), Writer(..), RefReadError, RefWriteError, GetRefHandler, MonadRef, MonadRefLookup, MonadRefStore, MonadRefState, liftRefHandler)
 import qualified Luna.IR.Internal.IR   as IR
 import           Luna.IR.Expr.Layout.Class (Abstract)
 import           Type.Maybe                (FromJust)
@@ -62,7 +62,7 @@ type family Inputs    t pass :: [*]
 type family Outputs   t pass :: [*]
 type family Preserves   pass :: [*]
 type        Events      pass = Outputs Event pass
-type        Elements  t pass = (Inputs t pass <> Outputs t pass)
+type        Elements  t pass = (Outputs t pass <> Inputs t pass)
 
 
 
@@ -164,9 +164,9 @@ type PassConstruction m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRe
 
 lookupRefStore :: forall pass m. PassConstruction m
                => Description -> m (RefStore' m pass)
-lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. outputs . at (getTypeDesc @Net)))
-                               <*> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. outputs . at (getTypeDesc @Layer)))
-                               <*> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. outputs . at (getTypeDesc @Attr)))
+lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. outputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. inputs . at (getTypeDesc @Net)))
+                               <*> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. outputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. inputs . at (getTypeDesc @Layer)))
+                               <*> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. outputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. inputs . at (getTypeDesc @Attr)))
                                <*> lookupDataStore @Event @pass @m (desc ^. events)
     where fromJust (Just a) = a
           lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeDesc] -> m (TList (DataStore k pass (GetRefHandler m)))
@@ -176,6 +176,24 @@ lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ 
           unsafeLookupData []       = return $ unsafeCoerce ()
           unsafeLookupData (t : ts) = unsafeCoerce .: (,) <$> IR.uncheckedLookupRef @k t <*> unsafeLookupData @k ts
 
+-- === RefStore finalization === --
+
+-- TODO[MK, WD]: This is based on a rather undocumented assumption: we need to make sure that the outputs part inside
+-- the data store comes before the inputs.Only this way we can efficiently handle copying outputs that are not inputs
+-- with current implementation of RefStore. The perfect solution would be to make the implementation perform a typelevel
+-- value deduplication. However, we are not sure whether this won't break the GHC typechecker (resulting in an insane
+-- amount of coercions, like in the previous API). This needs some input from WD.
+restoreAttrs :: forall pass m. (MonadRefStore Attr m) => Description -> RefStore' m pass -> m ()
+restoreAttrs desc store = importAttrs (store ^. attrStore)
+                                      (fromJust $ desc ^. outputs . at (getTypeDesc @Attr))
+    where fromJust (Just a) = a
+
+          importAttrs :: TList (DataStore Attr pass (GetRefHandler m)) -> [TypeDesc] -> m ()
+          importAttrs stores outs = storeAttrs outs (unsafeCoerce stores)
+
+          storeAttrs :: [TypeDesc] -> Prim.Any -> m ()
+          storeAttrs []       _ = return ()
+          storeAttrs (d : ds) x = let (a, as) = unsafeCoerce x in IR.uncheckedStoreRef @Attr d a >> storeAttrs ds as
 
 -- === Ref lookup === --
 
@@ -295,18 +313,22 @@ compileTemplate (Template t) = Uninitialized $ do
 {-# INLINE compileTemplate #-}
 
 compile :: forall pass m a. PassInit pass m
-        => SubPass pass m a -> Uninitialized m (DynSubPass m a)
+        => SubPass pass m a -> Uninitialized m (DynSubPass m (a, RefStore' m pass))
 compile t = Uninitialized $ do
     withDebugBy ("Pass [" <> show (desc ^. passRep) <> "]") "Initialzation" $
-        (\d -> DynSubPass $ State.evalStateT (unwrap' t) d) <$> lookupRefStore @pass desc
+        (\d -> DynSubPass $ State.runStateT (unwrap' t) d) <$> lookupRefStore @pass desc
     where desc = passDescription @pass
 {-# INLINE compile #-}
 
 
-eval :: Monad m => Uninitialized m (DynSubPass m a) -> m a
-eval = join . fmap runDynPass . initialize ; {-# INLINE eval #-}
+eval :: forall pass m a. (Monad m, KnownPass pass, MonadRefStore Attr m) => Uninitialized m (DynSubPass m (a, RefStore' m pass)) -> m a
+eval p = do
+    (res, store) <- join $ fmap runDynPass $ initialize p
+    restoreAttrs (passDescription @pass) store
+    return res
+{-# INLINE eval #-}
 
-eval' :: PassInit pass m => SubPass pass m a -> m a
+eval' :: forall pass m a. (PassInit pass m, MonadRefStore Attr m) => SubPass pass m a -> m a
 eval' = eval . compile ; {-# INLINE eval' #-}
 
 

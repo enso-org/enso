@@ -35,6 +35,8 @@ data NAME = NAME deriving (Show)
 
 type family Generalizable a b :: Bool
 
+type Generalizable' a b = Generalizable a b ~ 'True
+
 generalize :: Assert (Generalizable a b) (GeneralizableError a b) => a -> b
 generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
@@ -60,7 +62,7 @@ type instance Generalizable (Layout ((k ':= v) ': ls)) a = Generalizable v (Sub 
 
 type instance Generalizable (Atomic a) (Form   b) = Atomic a `In` Atoms (Form b)
 type instance Generalizable (Atomic a) (Atomic b) = a == b
-type instance Generalizable (Form   a) (Form   b) = Form b > Form a -- FIXME [WD]: Shouldn't it be >= ?
+type instance Generalizable (Form   a) (Form   b) = (Form b > Form a) `Or` (Form a == Form b)
 
 
 
@@ -152,3 +154,4 @@ type instance Merge (Atomic a) Bottom        = Bottom
 
 data Bottom
 type instance Sub t Bottom = Bottom
+type instance Generalizable Bottom Bottom = 'True

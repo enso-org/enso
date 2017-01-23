@@ -80,7 +80,7 @@ replaceBlanks e = match e $ \case
     Blank -> do
         n <- genName
         v <- strVar n
-        replaceNode e $ generalize v
+        replaceNode e v
         modifyAttr $ \(UsedVars s) -> UsedVars (v:s)
         deleteSubtree e
         return $ unsafeRelayout v

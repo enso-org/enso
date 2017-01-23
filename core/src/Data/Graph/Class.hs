@@ -312,6 +312,11 @@ class Monad m => MonadRefLookup k m where
     uncheckedLookupRef :: forall a. TypeDesc {- the type of `a` -}
                        -> m (Ref' k a m)
 
+-- === Ref store === --
+
+class Monad m => MonadRefStore k m where
+    uncheckedStoreRef  :: forall a. TypeDesc -> Ref' k a m -> m ()
+
 
 
 -- === RefHandler === --

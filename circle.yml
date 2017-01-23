@@ -1,0 +1,22 @@
+machine:
+    python:
+        version: 3.5.2
+
+dependencies:
+    pre:
+        - curl -L https://github.com/commercialhaskell/stack/releases/download/v1.3.0/stack-1.3.0-linux-x86_64.tar.gz | tar zx -C /tmp
+        - sudo mv /tmp/stack-1.3.0-linux-x86_64/stack /usr/bin
+    override:
+        - stack build --stack-yaml=core/stack.yaml --only-dependencies --fast --install-ghc --test --bench
+    cache_directories:
+        - "~/.stack"
+        - "core/.stack-work"
+
+compile:
+    override:
+        - stack build --stack-yaml=core/stack.yaml --fast --test --bench --no-run-tests --no-run-benchmarks --ghc-options=-j2
+
+test:
+    override:
+        - stack build --stack-yaml=core/stack.yaml --fast --test --bench
+

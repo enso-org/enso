@@ -20,6 +20,16 @@ data Pair a = Pair a a deriving (Show, Functor, Traversable, Foldable)
 pair :: Pair a -> (a,a)
 pair (Pair a b) = (a,b)
 
+testReconnectLayer :: IO (Either SomeException (Bool, [Incoherence]))
+testReconnectLayer = runGraph $ do
+    one <- integer (1::Int)
+    int <- string "Int"
+    c   <- cons_ @Draft int
+    reconnectLayer @Type c one
+    coh <- checkCoherence
+    tp  <- readLayer @Type one >>= source
+    return (tp == generalize c, coh)
+
 testCompile :: IO (Either SomeException CompiledFunction)
 testCompile = runGraph $ do
     t <- string "foobar"
@@ -115,7 +125,7 @@ testSubtreeRemoval = runGraph $ do
     vbar  <- var bar
     vbar' <- var bar
     uni   <- unify vfoo vbar
-    deleteSubtree $ generalize uni
+    deleteSubtree uni
     -- Here we expect the graph to be coherent and contain only vbar' and bar and their types
     coh <- checkCoherence
     exs <- length <$> exprs
@@ -127,7 +137,7 @@ testChangeSource = runGraph $ do
     bar <- string "bar"
     baz <- string "baz"
     uni <- unify foo bar
-    match uni $ \(Unify l r) -> changeSource (generalize r) (generalize baz)
+    match uni $ \(Unify l r) -> changeSource r baz
     rightOperand :: SomeExpr <- fmap generalize $ match uni $ \(Unify l r) -> source r
     coh <- checkCoherence
     return (rightOperand == generalize baz, coh)
@@ -166,3 +176,6 @@ spec = do
     describe "function importing" $ do
         it "imports function into current grpah" $
             flip withRight (`shouldBe` (10, [])) =<< testImport
+    describe "layer reconnect" $
+        it "changes the layer pointer and preserves coherence" $
+            flip withRight (`shouldBe` (True, [])) =<< testReconnectLayer
