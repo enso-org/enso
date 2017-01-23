@@ -14,7 +14,7 @@ dependencies:
 
 compile:
     override:
-        - stack build --stack-yaml=core/stack.yaml --fast --test --bench --no-run-tests --no-run-benchmarks --ghc-options=-j16
+        - stack build --stack-yaml=core/stack.yaml --fast --test --bench --no-run-tests --no-run-benchmarks --ghc-options=-j2
 
 test:
     override:
