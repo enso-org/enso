@@ -23,7 +23,7 @@ import Luna.Pass.Desugaring.RemoveGrouped
 import System.Log
 
 
-newtype UsedVars = UsedVars (Set.Set SomeExpr)
+newtype UsedVars = UsedVars (Set.Set (Expr Var))
 
 data VarGathering
 type instance Abstract   VarGathering = VarGathering
@@ -53,7 +53,7 @@ varsNamesInside = varsInside >=> mapM varName
 varName :: _ => Expr Var -> SubPass VarGathering m P.String
 varName e = fmap (view lit) . match' =<< source =<< view name <$> match' e
 
-gatherVars :: _ => [SomeExpr] -> SubPass VarGathering m _
+gatherVars :: _ => [SomeExpr] -> SubPass VarGathering m [Expr Var]
 gatherVars es = do
     varsNames <- mapM varsNamesInside es
     let uniqueVars = Set.toList $ Set.fromList $ concat varsNames
@@ -61,7 +61,8 @@ gatherVars es = do
     forM_ vars $ \v ->
         forM_ es $ \e -> gatherVar (generalize v) e
     UsedVars s <- readAttr
-    let newVarsSet = Set.fromList $ map generalize vars
+    let newVarsSet :: Set.Set (Expr Var)
+        newVarsSet = Set.fromList $ map unsafeGeneralize vars
         unusedVars = Set.difference newVarsSet s
     mapM_ deleteSubtree $ Set.toList unusedVars
     return $ Set.toList $ Set.difference newVarsSet unusedVars
@@ -77,7 +78,7 @@ gatherVar properVar expr = match expr $ \case
     Var{} -> do
         sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout expr)
         when sameVar $ do
-            modifyAttr $ \(UsedVars s) -> UsedVars $ Set.insert properVar s
+            modifyAttr $ \(UsedVars s) -> UsedVars $ Set.insert (unsafeRelayout properVar) s
             replaceNode expr properVar
             deleteSubtree expr
     Acc _ v -> do
@@ -135,7 +136,7 @@ desugarsTo test expected = do
         -- void $ Pass.eval' $ snapshotVis "test"
         newReachables <- Pass.eval' @VarGathering $ gatherVars $ map generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
-        orphans   <- Pass.eval' @VarGathering $ checkUnreachableExprs $ newReachables ++ map generalize x
+        orphans   <- Pass.eval' @VarGathering $ checkUnreachableExprs $ map generalize newReachables ++ map generalize x
         coherence <- Pass.eval' @VarGathering checkCoherence
         expected' <- Pass.eval' expected
         -- void $ Pass.eval' $ snapshotVis "expected"
