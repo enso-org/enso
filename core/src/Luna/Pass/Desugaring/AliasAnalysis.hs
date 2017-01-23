@@ -41,7 +41,7 @@ gatherVars es = do
         forM_ es $ \e -> gatherVar (generalize v) e
     UsedVars s <- readAttr
     let newVarsSet :: Set.Set (Expr Var)
-        newVarsSet = Set.fromList $ map unsafeGeneralize vars
+        newVarsSet = Set.fromList $ map generalize vars
         unusedVars = Set.difference newVarsSet s
     mapM_ deleteSubtree $ Set.toList unusedVars
     return $ Set.toList $ Set.difference newVarsSet unusedVars
