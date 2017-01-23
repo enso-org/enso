@@ -1,7 +1,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# OPTIONS_GHC -Wall -Wno-partial-type-signatures #-}
 
-module Luna.Pass.VarGatheringSpec (spec) where
+module Luna.Pass.AliasAnalysisSpec (spec) where
 
 import qualified Data.Set as Set
 
@@ -19,41 +19,40 @@ import Luna.IR.Expr.Combinators
 import Luna.IR.Function hiding (args)
 import Luna.IR.Runner
 import Luna.IR hiding (expr)
-import Luna.Pass.Desugaring.RemoveGrouped
 import System.Log
 
 
 newtype UsedVars = UsedVars (Set.Set (Expr Var))
 
-data VarGathering
-type instance Abstract   VarGathering = VarGathering
-type instance Pass.Inputs     Net   VarGathering = '[AnyExpr, AnyExprLink]
-type instance Pass.Inputs     Layer VarGathering = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
-type instance Pass.Inputs     Attr  VarGathering = '[UsedVars]
-type instance Pass.Inputs     Event VarGathering = '[]
+data AliasAnalysis
+type instance Abstract   AliasAnalysis = AliasAnalysis
+type instance Pass.Inputs     Net   AliasAnalysis = '[AnyExpr, AnyExprLink]
+type instance Pass.Inputs     Layer AliasAnalysis = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
+type instance Pass.Inputs     Attr  AliasAnalysis = '[UsedVars]
+type instance Pass.Inputs     Event AliasAnalysis = '[]
 
-type instance Pass.Outputs    Net   VarGathering = '[AnyExpr, AnyExprLink]
-type instance Pass.Outputs    Layer VarGathering = '[AnyExpr // Model,  AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
-type instance Pass.Outputs    Attr  VarGathering = '[UsedVars]
-type instance Pass.Outputs    Event VarGathering = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink]
+type instance Pass.Outputs    Net   AliasAnalysis = '[AnyExpr, AnyExprLink]
+type instance Pass.Outputs    Layer AliasAnalysis = '[AnyExpr // Model,  AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
+type instance Pass.Outputs    Attr  AliasAnalysis = '[UsedVars]
+type instance Pass.Outputs    Event AliasAnalysis = '[New // AnyExpr, New // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink]
 
-type instance Pass.Preserves        VarGathering = '[]
+type instance Pass.Preserves        AliasAnalysis = '[]
 
 
-varsInside :: _ => SomeExpr -> SubPass VarGathering m [Expr Var]
+varsInside :: _ => SomeExpr -> SubPass AliasAnalysis m [Expr Var]
 varsInside e = do
     f <- symbolFields e
     vars <- mapM (varsInside <=< source) f
     v <- maybeToList <$> narrowAtom @Var e
     return $ v ++ concat vars
 
-varsNamesInside :: _ => SomeExpr -> SubPass VarGathering m [P.String]
+varsNamesInside :: _ => SomeExpr -> SubPass AliasAnalysis m [P.String]
 varsNamesInside = varsInside >=> mapM varName
 
-varName :: _ => Expr Var -> SubPass VarGathering m P.String
+varName :: _ => Expr Var -> SubPass AliasAnalysis m P.String
 varName e = fmap (view lit) . match' =<< source =<< view name <$> match' e
 
-gatherVars :: _ => [SomeExpr] -> SubPass VarGathering m [Expr Var]
+gatherVars :: _ => [SomeExpr] -> SubPass AliasAnalysis m [Expr Var]
 gatherVars es = do
     varsNames <- mapM varsNamesInside es
     let uniqueVars = Set.toList $ Set.fromList $ concat varsNames
@@ -73,7 +72,7 @@ modifyAttr f = do
     st <- readAttr @attr
     writeAttr @attr $ f st
 
-gatherVar :: _ => SomeExpr -> SomeExpr -> SubPass VarGathering m ()
+gatherVar :: _ => SomeExpr -> SomeExpr -> SubPass AliasAnalysis m ()
 gatherVar properVar expr = match expr $ \case
     Var{} -> do
         sameVar <- sameNameVar (unsafeRelayout properVar) (unsafeRelayout expr)
@@ -117,7 +116,7 @@ gatherVar properVar expr = match expr $ \case
     Missing{} -> return ()
 
 
-sameNameVar :: _ => Expr Var -> Expr Var -> SubPass VarGathering m Bool
+sameNameVar :: _ => Expr Var -> Expr Var -> SubPass AliasAnalysis m Bool
 sameNameVar v1 v2 = do
     n1 <- varName v1
     n2 <- varName v2
@@ -134,14 +133,14 @@ desugarsTo test expected = do
         setAttr (getTypeDesc @UsedVars) $ UsedVars Set.empty
         x <- Pass.eval' test
         -- void $ Pass.eval' $ snapshotVis "test"
-        newReachables <- Pass.eval' @VarGathering $ gatherVars $ map generalize x
+        newReachables <- Pass.eval' @AliasAnalysis $ gatherVars $ map generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
-        orphans   <- Pass.eval' @VarGathering $ checkUnreachableExprs $ map generalize newReachables ++ map generalize x
-        coherence <- Pass.eval' @VarGathering checkCoherence
+        orphans   <- Pass.eval' @AliasAnalysis $ checkUnreachableExprs $ map generalize newReachables ++ map generalize x
+        coherence <- Pass.eval' @AliasAnalysis checkCoherence
         expected' <- Pass.eval' expected
         -- void $ Pass.eval' $ snapshotVis "expected"
         result <- Pass.eval' $ fmap and $
-            zipWithM (areExpressionsIsomorphic @(SubPass VarGathering _))
+            zipWithM (areExpressionsIsomorphic @(SubPass AliasAnalysis _))
                      (map unsafeRelayout expected')
                      (map unsafeRelayout x)
         return (result, coherence, orphans)
@@ -149,7 +148,7 @@ desugarsTo test expected = do
     coherence `shouldSatisfy` null
     orphans `shouldSatisfy` null
 
-lamXFoo :: _ => SubPass VarGathering _ _
+lamXFoo :: _ => SubPass AliasAnalysis _ _
 lamXFoo = do
     x' <- strVar "x"
     ac <- rawAcc "foo" x'
@@ -157,27 +156,27 @@ lamXFoo = do
     l <- lam (arg x) ac
     return [l]
 
-lamXFooExpected :: _ => SubPass VarGathering _ _
+lamXFooExpected :: _ => SubPass AliasAnalysis _ _
 lamXFooExpected = do
     x <- strVar "x"
     ac <- rawAcc "foo" x
     l <- lam (arg x) ac
     return [l]
 
-idLam :: _ => SubPass VarGathering _ _
+idLam :: _ => SubPass AliasAnalysis _ _
 idLam = do
     a <- strVar "a"
     a' <- strVar "a"
     l <- lam (arg a) a'
     return [l]
 
-idLamExpected :: _ => SubPass VarGathering _ _
+idLamExpected :: _ => SubPass AliasAnalysis _ _
 idLamExpected = do
     a <- strVar "a"
     l <- lam (arg a) a
     return [l]
 
-lamFooAB :: _ => SubPass VarGathering _ _
+lamFooAB :: _ => SubPass AliasAnalysis _ _
 lamFooAB = do
     a <- strVar "a"
     b <- strVar "b"
@@ -190,7 +189,7 @@ lamFooAB = do
     l1 <- lam (arg a') l
     return [l1]
 
-lamFooABExpected :: _ => SubPass VarGathering _ _
+lamFooABExpected :: _ => SubPass AliasAnalysis _ _
 lamFooABExpected = do
     a <- strVar "a"
     b <- strVar "b"
@@ -201,7 +200,7 @@ lamFooABExpected = do
     l1 <- lam (arg a) l
     return [l1]
 
-nEqFoo1BarE :: _ => SubPass VarGathering _ _
+nEqFoo1BarE :: _ => SubPass AliasAnalysis _ _
 nEqFoo1BarE = do
     foo <- strVar "foo"
     one <- integer (1::Int)
@@ -214,7 +213,7 @@ nEqFoo1BarE = do
     u <- unify n a3
     return [u]
 
-groupedFooAAppA :: _ => SubPass VarGathering _ _
+groupedFooAAppA :: _ => SubPass AliasAnalysis _ _
 groupedFooAAppA = do
     foo <- strVar "foo"
     a <- strVar "a"
@@ -223,7 +222,7 @@ groupedFooAAppA = do
     a1 <- app g (arg a')
     return [a1]
 
-groupedFooAAppAExpected :: _ => SubPass VarGathering _ _
+groupedFooAAppAExpected :: _ => SubPass AliasAnalysis _ _
 groupedFooAAppAExpected = do
     foo <- strVar "foo"
     a <- strVar "a"
@@ -231,7 +230,7 @@ groupedFooAAppAExpected = do
     a1 <- app g (arg a)
     return [a1]
 
-allAbove :: _ => SubPass VarGathering m [SomeExpr]
+allAbove :: _ => SubPass AliasAnalysis m [SomeExpr]
 allAbove = do
     (t1 :: [SomeExpr]) <- map unsafeRelayout <$> lamXFoo
     (t2 :: [SomeExpr]) <- map unsafeRelayout <$> idLam
@@ -240,7 +239,7 @@ allAbove = do
     (t5 :: [SomeExpr]) <- map unsafeRelayout <$> groupedFooAAppA
     return $ concat [t1, t2, t3, t4, t5]
 
-allAboveExpected :: _ => SubPass VarGathering m [SomeExpr]
+allAboveExpected :: _ => SubPass AliasAnalysis m [SomeExpr]
 allAboveExpected = do
     (t1 :: [SomeExpr]) <- map unsafeRelayout <$> lamXFooExpected
     (t2 :: [SomeExpr]) <- map unsafeRelayout <$> idLamExpected
@@ -249,7 +248,7 @@ allAboveExpected = do
     (t5 :: [SomeExpr]) <- map unsafeRelayout <$> groupedFooAAppAExpected
     return $ concat [t1, t2, t3, t4, t5]
 
-manyApps :: _ => SubPass VarGathering _ _
+manyApps :: _ => SubPass AliasAnalysis _ _
 manyApps = do
     u1 <- unsafeRelayout <$> do
         foo <- strVar "foo"
@@ -275,7 +274,7 @@ manyApps = do
         unify n3 ap3
     return [u1, u2, u3]
 
-manyAppsExpected :: _ => SubPass VarGathering _ _
+manyAppsExpected :: _ => SubPass AliasAnalysis _ _
 manyAppsExpected = do
     a <- strVar "a"
     b <- strVar "b"
@@ -298,7 +297,7 @@ manyAppsExpected = do
         unify n3 ap3
     return [u1, u2, u3]
 
-lamPattern :: _ => SubPass VarGathering _ _
+lamPattern :: _ => SubPass AliasAnalysis _ _
 lamPattern = do
     list <- string "Tuple3"
     a <- strVar "a"
@@ -309,7 +308,7 @@ lamPattern = do
     l <- lam (arg pat) b'
     return [unsafeRelayout l]
 
-lamPatternExpected :: _ => SubPass VarGathering _ _
+lamPatternExpected :: _ => SubPass AliasAnalysis _ _
 lamPatternExpected = do
     list <- string "Tuple3"
     a <- strVar "a"
@@ -319,7 +318,7 @@ lamPatternExpected = do
     l <- lam (arg pat) b
     return [unsafeRelayout l]
 
-simpleLamPattern :: _ => SubPass VarGathering _ _
+simpleLamPattern :: _ => SubPass AliasAnalysis _ _
 simpleLamPattern = do
     box <- string "Box"
     a <- strVar "a"
@@ -328,7 +327,7 @@ simpleLamPattern = do
     l <- lam (arg pat) a'
     return [l]
 
-simpleLamPatternExpected :: _ => SubPass VarGathering _ _
+simpleLamPatternExpected :: _ => SubPass AliasAnalysis _ _
 simpleLamPatternExpected = do
     box <- string "Box"
     a <- strVar "a"
