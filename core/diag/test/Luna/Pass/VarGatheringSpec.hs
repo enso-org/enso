@@ -299,7 +299,6 @@ manyAppsExpected = do
 
 lamPattern :: _ => SubPass VarGathering _ _
 lamPattern = do
-    topA <- strVar "a"
     list <- string "Tuple3"
     a <- strVar "a"
     b <- strVar "b"
@@ -307,18 +306,17 @@ lamPattern = do
     pat <- cons list $ map arg [a,b,c]
     b' <- strVar "b"
     l <- lam (arg pat) b'
-    return [unsafeRelayout topA, unsafeRelayout l]
+    return [unsafeRelayout l]
 
 lamPatternExpected :: _ => SubPass VarGathering _ _
 lamPatternExpected = do
-    topA <- strVar "a"
     list <- string "Tuple3"
     a <- strVar "a"
     b <- strVar "b"
     c <- strVar "c"
     pat <- cons list $ map arg [a,b,c]
     l <- lam (arg pat) b
-    return [unsafeRelayout topA, unsafeRelayout l]
+    return [unsafeRelayout l]
 
 simpleLamPattern :: _ => SubPass VarGathering _ _
 simpleLamPattern = do
@@ -337,26 +335,6 @@ simpleLamPatternExpected = do
     l <- lam (arg pat) a
     return [l]
 
-aWithSimpleLamPattern :: _ => SubPass VarGathering _ _
-aWithSimpleLamPattern = do
-    topA <- strVar "a"
-    box <- string "Box"
-    a <- strVar "a"
-    pat <- cons box [arg a]
-    a' <- strVar "a"
-    l <- lam (arg pat) a'
-    return [unsafeRelayout topA, unsafeRelayout l]
-
-aWithSimpleLamPatternExpected :: _ => SubPass VarGathering _ _
-aWithSimpleLamPatternExpected = do
-    topA <- strVar "a"
-    box <- string "Box"
-    a <- strVar "a"
-    pat <- cons box [arg a]
-    l <- lam (arg pat) a
-    return [unsafeRelayout topA, unsafeRelayout l]
-
-
 spec :: Spec
 spec = describe "gather vars" $ do
     it "\\x -> x.foo" $ lamXFoo `desugarsTo` lamXFooExpected
@@ -367,5 +345,4 @@ spec = describe "gather vars" $ do
     it "all of the above" $ allAbove `desugarsTo` allAboveExpected
     it "n1 = foo a; n2 = bar a b; n3 = baz a b c" $ manyApps `desugarsTo` manyAppsExpected
     it "\\(Box a) -> a" $ simpleLamPattern `desugarsTo` simpleLamPatternExpected
-    it "a; \\(Box a) -> a" $ aWithSimpleLamPattern `desugarsTo` aWithSimpleLamPatternExpected
-    it "a; \\(Tuple3 a b c) -> b" $ lamPattern `desugarsTo` lamPatternExpected
+    it "\\(Tuple3 a b c) -> b" $ lamPattern `desugarsTo` lamPatternExpected
