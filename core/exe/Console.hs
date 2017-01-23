@@ -19,8 +19,7 @@ import qualified Luna.IR.Repr.Vis as Vis
 import           Luna.IR.Repr.Vis (MonadVis)
 import           Luna.Pass        (Pass, SubPass, Preserves, Events, Inputs, Outputs)
 import qualified Luna.Pass        as Pass
-import           Luna.IR.Expr.Layout.Nested (type (>>))
-import           Luna.IR.Expr.Layout.ENT (type (:>), type (#>), String')
+import           Luna.IR.Expr.Layout.ENT (type (>>), type (:>), type (#>), String')
 import qualified Luna.IR.Expr.Layout.ENT as Layout
 
 import Web.Browser (openBrowser )

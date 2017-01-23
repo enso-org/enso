@@ -15,24 +15,25 @@ import Type.Bool
 
 -- === Definition === --
 
-infixr 7 >>
-data a >> b
+infixr 7 >>>
+data a >>> b
+
 -- type a >>> b = Simplify (a >> b)
 
 -- === Instances === --
 
-type instance Sub t (a >> b) = Sub t b
-type instance Atoms (a >> b) = Atoms a
+type instance Sub t (a >>> b) = Sub t b
+type instance Atoms (a >>> b) = Atoms a
 
 
-type instance Generalizable (a >> sa) (b >> sb) = Generalizable a b && Generalizable sa sb
-type instance Generalizable (a >> sa) (Form b)  = Generalizable (a >> sa) (Form b >> Form b)
+type instance Generalizable (a >>> sa) (b >>> sb) = Generalizable a b && Generalizable sa sb
+type instance Generalizable (a >>> sa) (Form b)  = Generalizable (a >>> sa) (Form b >>> Form b)
 
 -- Simplify
 -- type instance Simplify (a >> b) = If (a == b) a (a >> b)
 
-type instance Merge (l >> r)   Bottom        = Bottom
-type instance Merge Bottom        (l >> r)   = Bottom
+type instance Merge (l >>> r)   Bottom        = Bottom
+type instance Merge Bottom        (l >>> r)   = Bottom
 
 -- Merge
 -- type instance Merge (t >> s)   ()         = t >> s
@@ -49,6 +50,6 @@ type instance Merge Bottom        (l >> r)   = Bottom
 
 -- type ENT  l a n t = Compound l '[Atom := a, Name := n, Type := t]
 
-type instance Simplify (a >> ()) = a
+type instance Simplify (a >>> ()) = a
 
-type instance Current (a >> b) = a
+type instance Current (a >>> b) = a
