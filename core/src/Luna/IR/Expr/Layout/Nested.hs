@@ -25,9 +25,7 @@ data a >>> b
 type instance Sub t (a >>> b) = Sub t b
 type instance Atoms (a >>> b) = Atoms a
 
-
 type instance Generalizable (a >>> sa) (b >>> sb) = Generalizable a b && Generalizable sa sb
-type instance Generalizable (a >>> sa) (Form b)  = Generalizable (a >>> sa) (Form b >>> Form b)
 
 -- Simplify
 -- type instance Simplify (a >> b) = If (a == b) a (a >> b)

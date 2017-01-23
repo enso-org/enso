@@ -41,6 +41,8 @@ type a :> t = a >>> T t
 infixr 7 >>
 type a >> b = a >>> E b
 
+type ToENT a = a >>> ENT (Sub AnyExpr a) (Sub NAME a) (Sub Type a)
+
 -------------------------
 -- === Cons layout === --
 -------------------------
@@ -81,6 +83,8 @@ type instance Merge () (h >>> l) = h >>> l
 type instance Merge (h >>> l) () = h >>> l
 
 
+type instance Generalizable (a >>> sa) (Form b)   = Generalizable (a >>> sa) (ToENT $ Form b)
+type instance Generalizable (a >>> sa) (Atomic b) = Generalizable (a >>> sa) (ToENT $ Atomic b)
 
 
 --- Key Sets
