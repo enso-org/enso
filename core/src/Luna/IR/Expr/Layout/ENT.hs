@@ -35,9 +35,13 @@ type T       t = Layout '[                      Type := t]
 
 infixr 7 #>
 infixr 7 :>
-type a #> n = a >> N n
-type a :> t = a >> T t
+type a #> n = a >>> N n
+type a :> t = a >>> T t
 
+infixr 7 >>
+type a >> b = a >>> E b
+
+type ToENT a = a >>> ENT (Sub AnyExpr a) (Sub NAME a) (Sub Type a)
 
 -------------------------
 -- === Cons layout === --
@@ -45,7 +49,7 @@ type a :> t = a >> T t
 
 type String' = String :> Cons'
 
-type ConsType t = Atom.Cons >> NT String' t
+type ConsType t = Atom.Cons >>> NT String' t
 
 type    Cons'  = Cons Star
 newtype Cons t = Cons (ConsType t)
@@ -59,26 +63,28 @@ type instance Generalizable (Cons t) (Cons t') = Generalizable t t'
 
 
 
-type instance Merge (h >> l) (h' >> l') = Merge h h' >> Merge l l'
+type instance Merge (h >>> l) (h' >>> l') = Merge h h' >>> Merge l l'
 
 type instance Merge (Cons t) (Cons t') = Cons (Merge t t')
 
 type instance Merge (Cons t) (Atomic a) = Merge (ConsType t) (Atomic a)
 
-type instance DefaultLayout Type = Draft -- This instance works fine when the layout is Draft or Atomic. We need to figure out how to handle Thunks, Values and other specific layouts
-type instance DefaultLayout NAME = String
-type instance DefaultLayout AnyExpr = () -- If it was not mentioned explicitly, it was simply absent.
+type instance DefaultLayout Type    = Draft -- This instance works fine when the layout is Draft or Atomic. We need to figure out how to handle Thunks, Values and other specific layouts
+type instance DefaultLayout NAME    = String
+type instance DefaultLayout AnyExpr = Draft
 
 
-type instance Merge (h >> l) (Atomic a) = Merge h (Atomic a) >> Merge l (Atomic a)
+type instance Merge (h >>> l) (Atomic a) = Merge h (Atomic a) >>> Merge l (Atomic a)
 
 type instance Merge (Layout ls) (Atomic a) = Merge (Layout ls) (E (Atomic a))
 
 
-type instance Merge () (h >> l) = h >> l
-type instance Merge (h >> l) () = h >> l
+type instance Merge () (h >>> l) = h >>> l
+type instance Merge (h >>> l) () = h >>> l
 
 
+type instance Generalizable (a >>> sa) (Form b)   = Generalizable (a >>> sa) (ToENT $ Form b)
+type instance Generalizable (a >>> sa) (Atomic b) = Generalizable (a >>> sa) (ToENT $ Atomic b)
 
 
 --- Key Sets
@@ -121,9 +127,9 @@ type instance AddKey '[a,b,c] c = '[a,b,c]
 
 
 type instance Sub t (Form   f) = If (t == AnyExpr) (Form   f) (DefaultLayout t)
-type instance Sub t (Atomic a) = If (t == AnyExpr) (Atomic a) (DefaultLayout t)
+type instance Sub t (Atomic a) = DefaultLayout t
 
 
-type instance Generalizable (h >> l)   Bottom = 'True
+type instance Generalizable (h >>> l)  Bottom = 'True
 type instance Generalizable (Form   f) Bottom = 'True
 type instance Generalizable (Atomic a) Bottom = 'True

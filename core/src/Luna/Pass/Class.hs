@@ -62,7 +62,7 @@ type family Inputs    t pass :: [*]
 type family Outputs   t pass :: [*]
 type family Preserves   pass :: [*]
 type        Events      pass = Outputs Event pass
-type        Elements  t pass = (Inputs t pass <> Outputs t pass)
+type        Elements  t pass = (Outputs t pass <> Inputs t pass)
 
 
 
@@ -164,9 +164,9 @@ type PassConstruction m = (MonadRefLookup Net m, MonadRefLookup Layer m, MonadRe
 
 lookupRefStore :: forall pass m. PassConstruction m
                => Description -> m (RefStore' m pass)
-lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. outputs . at (getTypeDesc @Net)))
-                               <*> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. outputs . at (getTypeDesc @Layer)))
-                               <*> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. inputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. outputs . at (getTypeDesc @Attr)))
+lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ desc ^. outputs . at (getTypeDesc @Net))   <> (fromJust $ desc ^. inputs . at (getTypeDesc @Net)))
+                               <*> lookupDataStore @Layer @pass @m ((fromJust $ desc ^. outputs . at (getTypeDesc @Layer)) <> (fromJust $ desc ^. inputs . at (getTypeDesc @Layer)))
+                               <*> lookupDataStore @Attr  @pass @m ((fromJust $ desc ^. outputs . at (getTypeDesc @Attr))  <> (fromJust $ desc ^. inputs . at (getTypeDesc @Attr)))
                                <*> lookupDataStore @Event @pass @m (desc ^. events)
     where fromJust (Just a) = a
           lookupDataStore :: forall k pass m. MonadRefLookup k m => [TypeDesc] -> m (TList (DataStore k pass (GetRefHandler m)))
@@ -178,15 +178,18 @@ lookupRefStore desc = RefStore <$> lookupDataStore @Net   @pass @m ((fromJust $ 
 
 -- === RefStore finalization === --
 
--- TODO[MK]: This only copies input arguments, as the structure is really weird (duplicated fields in the RefStore when something is both an input and an output). What do we do with that?
+-- TODO[MK, WD]: This is based on a rather undocumented assumption: we need to make sure that the outputs part inside
+-- the data store comes before the inputs.Only this way we can efficiently handle copying outputs that are not inputs
+-- with current implementation of RefStore. The perfect solution would be to make the implementation perform a typelevel
+-- value deduplication. However, we are not sure whether this won't break the GHC typechecker (resulting in an insane
+-- amount of coercions, like in the previous API). This needs some input from WD.
 restoreAttrs :: forall pass m. (MonadRefStore Attr m) => Description -> RefStore' m pass -> m ()
 restoreAttrs desc store = importAttrs (store ^. attrStore)
-                                      (fromJust $ desc ^. inputs  . at (getTypeDesc @Attr))
                                       (fromJust $ desc ^. outputs . at (getTypeDesc @Attr))
     where fromJust (Just a) = a
 
-          importAttrs :: TList (DataStore Attr pass (GetRefHandler m)) -> [TypeDesc] -> [TypeDesc] -> m ()
-          importAttrs stores ins outs = storeAttrs ins (unsafeCoerce stores)
+          importAttrs :: TList (DataStore Attr pass (GetRefHandler m)) -> [TypeDesc] -> m ()
+          importAttrs stores outs = storeAttrs outs (unsafeCoerce stores)
 
           storeAttrs :: [TypeDesc] -> Prim.Any -> m ()
           storeAttrs []       _ = return ()
