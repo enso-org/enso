@@ -23,6 +23,7 @@ import qualified Data.Map          as Map
 import Luna.IR.Function hiding (args)
 import Luna.IR.Function.Definition
 import Luna.IR.Expr.Layout
+import Luna.IR.Layer.Redirect
 import Luna.Pass.Sugar.TH (makePass)
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import           Luna.IR.Name                (Name)
@@ -56,8 +57,6 @@ type instance Outputs    Event AccessorFunction = '[New // AnyExpr, New // AnyEx
 
 type instance Preserves        AccessorFunction = '[]
 
-data Redirect
-type instance LayerData Redirect t = Maybe SomeExpr
 
 data AccessorError = MethodNotFound P.String
                    | AmbiguousType
@@ -170,10 +169,6 @@ testImports = do
 
 instance Exception e => MonadException e IO where
     raise = throwM
-
-initRedirect :: Req m '[Editor // Layer // AnyExpr // Redirect] => Listener New (Expr l) m
-initRedirect = listener $ \(t, _) -> (writeLayer @Redirect) Nothing t
-makePass 'initRedirect
 
 unifies :: _ => SubPass AccessorFunction _ [(SomeExpr, SomeExpr)]
 unifies = do

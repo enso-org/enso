@@ -18,6 +18,7 @@ import Luna.IR.Layer
 import Luna.IR.Layer.Type
 import Luna.IR.Layer.Model
 import Luna.IR.Layer.UID
+import Luna.IR.Layer.Redirect
 import Luna.IR.Layer.Succs
 import Luna.IR.Expr.Term.Named (HasName, name)
 import Luna.IR.Expr.Format
@@ -260,6 +261,9 @@ init4 = do
     addExprEventListener @Type watchTypeImportPass
 
 
+initRedirect :: Req m '[Editor // Layer // AnyExpr // Redirect] => Listener New (Expr l) m
+initRedirect = listener $ \(t, _) -> (writeLayer @Redirect) Nothing t
+makePass 'initRedirect
 
 
 
@@ -276,6 +280,7 @@ runRegs = do
     init2
     init3
     init4
+    addExprEventListener @Redirect initRedirectPass
 
     attachLayer 0 (getTypeDesc @Model) (getTypeDesc @AnyExpr)
     attachLayer 0 (getTypeDesc @Model) (getTypeDesc @AnyExprLink)
@@ -284,6 +289,7 @@ runRegs = do
     attachLayer 5 (getTypeDesc @Succs) (getTypeDesc @AnyExpr)
 
     attachLayer 10 (getTypeDesc @Type) (getTypeDesc @AnyExpr)
+    attachLayer 10 (getTypeDesc @Redirect) (getTypeDesc @AnyExpr)
 
 
 
