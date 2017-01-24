@@ -4,6 +4,7 @@ module Luna.IR.Runner where
 
 import           Luna.Prelude
 import           Luna.IR
+import           Luna.IR.Layer.Redirect
 import           Luna.Pass        (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified Luna.Pass        as Pass
 import           System.Log
@@ -18,7 +19,7 @@ data TestPass
 type instance Abstract TestPass = TestPass
 type instance Inputs  Net   TestPass = '[AnyExpr, AnyExprLink]
 type instance Outputs Net   TestPass = '[AnyExpr, AnyExprLink]
-type instance Inputs  Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
+type instance Inputs  Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model, AnyExpr // Redirect]
 type instance Outputs Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
 type instance Inputs  Attr  TestPass = '[]
 type instance Outputs Attr  TestPass = '[]

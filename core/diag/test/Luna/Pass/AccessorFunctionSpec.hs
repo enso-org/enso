@@ -53,7 +53,7 @@ type instance Inputs     Event AccessorFunction = '[]
 type instance Outputs    Net   AccessorFunction = '[AnyExpr, AnyExprLink]
 type instance Outputs    Layer AccessorFunction = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Succs, AnyExpr // Type, AnyExpr // Redirect]
 type instance Outputs    Attr  AccessorFunction = '[]
-type instance Outputs    Event AccessorFunction = '[New // AnyExpr, New // AnyExprLink, Import // AnyExpr, Import // AnyExprLink]
+type instance Outputs    Event AccessorFunction = '[New // AnyExpr, New // AnyExprLink, Import // AnyExpr, Import // AnyExprLink, Delete // AnyExprLink]
 
 type instance Preserves        AccessorFunction = '[]
 
@@ -88,7 +88,7 @@ importAccessor' = do
                             return $ Left $ MethodNotFound methodName
                         Right (ImportedMethod self body) -> do
                             replaceNode self v'
-                            writeLayer @Redirect (Just $ generalize body) acc
+                            reconnectLayer' @Redirect (Just (unsafeGeneralize body :: Expr Draft)) acc
                             unifyTypes acc body
                             unifyTypes self v'
                             return $ Right (self, body)
@@ -180,9 +180,12 @@ unifies = do
             t <- (,) <$> source l <*> source r
             return $ over each generalize t
 
+snapshotVis :: (MonadIR m, Vis.MonadVis m, MonadRef m) => P.String -> Pass.Pass TestPass m
+snapshotVis = Vis.snapshot
+
 runTest m = do
     imps <- testImports
-    out <- dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
+    out <- withVis $ dropLogs $ runRefCache $ evalIRBuilder' $ evalPassManager' $ do
         runRegs
         addExprEventListener @Redirect initRedirectPass
         attachLayer 20 (getTypeDesc @Redirect) (getTypeDesc @AnyExpr)
@@ -190,8 +193,15 @@ runTest m = do
         setAttr (getTypeDesc @Imports) imps
         setAttr (getTypeDesc @CurrentAcc) v
         res    <- Pass.eval' importAccessor'
+        void $ Pass.eval' $ snapshotVis "import"
         c      <- Pass.eval' @AccessorFunction checkCoherence
-        redirect <- Pass.eval' @AccessorFunction $ readLayer @Redirect v
+        (redirect :: Maybe SomeExpr) <- Pass.eval' @AccessorFunction $ do
+            l <- readLayer @Redirect v
+            case l of
+                Just l' -> do
+                    src <- source l'
+                    return $ Just $ generalize src
+                _       -> return Nothing
         allUnifies  <- Pass.eval' @AccessorFunction unifies
         unifiesAndSuccs <- forM res $ \(self, body) -> Pass.eval' @AccessorFunction $ do
             accType  <- readLayer @Type v    >>= source

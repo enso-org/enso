@@ -10,6 +10,7 @@ import qualified Luna.Prelude as P
 import Data.TypeDesc
 import qualified Luna.IR.Repr.Vis as Vis
 import Luna.IR.Expr.Combinators
+import Luna.IR.Layer.Redirect
 import Luna.IR.Function hiding (args)
 import Luna.IR.Expr.Layout.ENT hiding (Cons)
 import Luna.IR
@@ -21,7 +22,7 @@ import Control.Monad (foldM)
 data BlankDesugaring
 type instance Abstract   BlankDesugaring = BlankDesugaring
 type instance Inputs     Net   BlankDesugaring = '[AnyExpr, AnyExprLink]
-type instance Inputs     Layer BlankDesugaring = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs]
+type instance Inputs     Layer BlankDesugaring = '[AnyExpr // Model, AnyExprLink // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // Redirect]
 type instance Inputs     Attr  BlankDesugaring = '[UniqueNameGen, UsedVars]
 type instance Inputs     Event BlankDesugaring = '[]
 

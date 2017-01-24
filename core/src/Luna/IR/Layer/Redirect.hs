@@ -8,4 +8,4 @@ import Luna.IR.Internal.IR
 
 
 data Redirect
-type instance LayerData Redirect t = Maybe SomeExpr
+type instance LayerData Redirect t = Maybe (SubLink AnyExpr t)

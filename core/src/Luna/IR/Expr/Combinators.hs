@@ -70,3 +70,11 @@ reconnectLayer src tgt = do
     delete old
     link <- link (generalize src) tgt
     writeLayer @l link tgt
+
+reconnectLayer' :: forall l m a b b' t. (MonadRef m, Editors Net '[AnyExprLink] m, Editors Layer '[AnyExpr // l] m, Emitters '[Delete // AnyExprLink, New // AnyExprLink] m, Traversable t, LayerData l (Expr a) ~  t (ExprLink b a), Generalizable' (Expr b') (Expr b))
+                => t (Expr b') -> Expr a -> m ()
+reconnectLayer' srcs tgt = do
+    old  <- readLayer @l tgt
+    mapM delete old
+    links <- forM srcs $ \src -> link (generalize src) tgt
+    writeLayer @l links tgt

@@ -129,7 +129,7 @@ desugarsTo test expected = do
         desugared <- Pass.eval' $ removeGrouped $ generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
         orphans   <- Pass.eval' @RemoveGrouped $ checkUnreachableExprs [desugared]
-        coherence <- Pass.eval' @RemoveGrouped checkCoherence
+        coherence <- Pass.eval' @TestPass checkCoherence
         groups    <- Pass.eval' noGroupedLeftBehind
         expected' <- Pass.eval' expected
         result <- Pass.eval' $ areExpressionsIsomorphic @(SubPass RemoveGrouped _) (unsafeRelayout expected') (unsafeRelayout desugared)

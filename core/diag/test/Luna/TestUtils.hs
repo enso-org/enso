@@ -3,6 +3,7 @@ module Luna.TestUtils where
 import           Luna.Prelude
 import           Luna.IR
 import           Luna.IR.Function.Argument (Arg (..))
+import           Luna.IR.Layer.Redirect
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.State       as State   hiding (when)
 import           Control.Monad             (guard)
@@ -120,7 +121,7 @@ data CoherenceCheck = CoherenceCheck { _incoherences :: [Incoherence]
 makeLenses ''CoherenceCheck
 
 type MonadCoherenceCheck m = (MonadState CoherenceCheck m, CoherenceCheckCtx m)
-type CoherenceCheckCtx   m = (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // Model] m)
+type CoherenceCheckCtx   m = (MonadRef m, Readers Net '[AnyExpr, AnyExprLink] m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExprLink // Model, AnyExpr // Redirect] m)
 
 
 checkCoherence :: CoherenceCheckCtx m => m [Incoherence]
@@ -172,8 +173,9 @@ checkIsSuccessor l e = do
 checkIsInput :: MonadCoherenceCheck m => SomeExprLink -> SomeExpr -> m ()
 checkIsInput l e = do
     tp <- readLayer @Type e
+    redirection <- readLayer @Redirect e
     fs <- symbolFields e
-    when (tp /= l && not (elem l fs)) $ reportIncoherence $ Incoherence DanglingTarget e l
+    when (tp /= l && not (elem l fs) && redirection /= Just l) $ reportIncoherence $ Incoherence DanglingTarget e l
 
 checkUnreachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m,
                           Reader Layer (Elem (LINK (Elem (EXPR ANY)) (Elem (EXPR ANY))) // Model) m,

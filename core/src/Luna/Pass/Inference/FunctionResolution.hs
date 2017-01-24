@@ -7,6 +7,7 @@ import Luna.IR.Imports
 import Luna.IR.Module.Definition   as Module
 import Luna.IR
 import Luna.IR.Expr.Combinators
+import Luna.IR.Layer.Redirect
 import Luna.IR.Name                (Name)
 import qualified Data.Map          as Map
 import           Data.Map          (Map)
@@ -35,7 +36,7 @@ data FunctionResolution
 type instance Abstract  FunctionResolution = FunctionResolution
 
 type instance Inputs     Net   FunctionResolution = '[AnyExpr, AnyExprLink]
-type instance Inputs     Layer FunctionResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExprLink // Model, AnyExprLink // UID]
+type instance Inputs     Layer FunctionResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExprLink // Model, AnyExprLink // UID, AnyExpr // Redirect]
 type instance Inputs     Attr  FunctionResolution = '[CurrentVar, Imports]
 type instance Inputs     Event FunctionResolution = '[]
 
