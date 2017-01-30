@@ -27,7 +27,7 @@ import Control.Lens               as X
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils as X
 import Control.Lens.Utils         as X
-import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_)
+import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_, foldM, foldM_)
 import Control.Monad.Base         as X
 import Control.Monad.Fix          as X (MonadFix)
 import Control.Monad.IO.Class     as X (MonadIO, liftIO)
@@ -75,6 +75,7 @@ import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
 import Unsafe.Coerce              as X (unsafeCoerce)
 import Prologue.Data.Typeable     as X
 import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
+import Data.Data                  as X (Data)
 -- Tuple handling
 import Prologue.Data.Tuple        as X
 
@@ -91,6 +92,7 @@ import Data.Default.Instances.Missing ()
 import Data.Functor.Compose
 
 import qualified Data.Traversable                   as Traversable
+import Debug.Trace as X (trace, traceShow)
 
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
