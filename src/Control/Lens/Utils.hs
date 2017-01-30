@@ -12,7 +12,9 @@ import Control.Lens.TH     (LensRules)
 import Language.Haskell.TH (Name, DecsQ, nameBase, mkName)
 import Data.Char           (toLower)
 import Control.Lens.Internal.FieldTH (_fieldToDef)
-
+import qualified Data.Map as Map
+import           Data.Map (Map)
+import           Control.Monad (guard)
 
 makePfxLenses :: Name -> DecsQ
 makePfxLenses = makeLensesWith (lensRules {_fieldToDef = typePrefixNamer})
@@ -46,3 +48,10 @@ nestedAt (e : es) = lens (join . fmap (view (nestedAt es)) . view (at e))
 nestedAt' :: (At a, Monoid a, IxValue a ~ a) => [Index a] -> Lens' a a
 nestedAt' ixs = lens (fromMaybe mempty . view (nestedAt ixs)) (\a -> flip (set (nestedAt ixs)) a . Just)
 {-# INLINE nestedAt' #-}
+
+
+emptyMap :: Prism' (Map k a) ()
+emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
+{-# INLINE emptyMap #-}
+
+subMapAt t = non' emptyMap . at t

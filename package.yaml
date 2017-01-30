@@ -7,15 +7,13 @@ default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTy
   EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
   InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, StandaloneDeriving,
   TemplateHaskell, TupleSections, TypeOperators, ViewPatterns, TypeFamilies]
-dependencies: [base >=4.6 && <4.10, lens, template-haskell]
+dependencies: [base >=4.6 && <4.10, lens, template-haskell, containers]
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/lens-utils
-library:
-  exposed-modules: [Control.Lens.Utils, Control.Lens.Wrapped.Utils]
-  source-dirs: src
+library: {source-dirs: src}
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: lens-utils
 stability: stable
 synopsis: Collection of missing lens utilities.
-version: 1.2.7
+version: 1.2.8
