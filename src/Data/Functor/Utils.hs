@@ -51,7 +51,7 @@ infixr 9 .:::
 infixr 9 .:::.
 infixr 9 .::::
 infixr 9 .::::.
-(.) :: (Functor f) => (a -> b) -> f a -> f b
+(.) :: Functor f => (a -> b) -> f a -> f b
 (.)      = fmap ; {-# INLINE (.)      #-}
 (.:)     = dot2 ; {-# INLINE (.:)     #-}
 (.:.)    = dot3 ; {-# INLINE (.:.)    #-}
