@@ -3,6 +3,8 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Data.Convert.Class where
 
@@ -90,6 +92,13 @@ instance {-# OVERLAPPABLE #-} Castable a a where
 instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Maybe a) (Maybe b)where
     convert = fmap convert ; {-# INLINE convert #-}
 
+
+-- === ConvertBy === --
+
+type ConvertBy p a b = (Convertible a p, Convertible p b)
+
+convertVia :: forall p a b. ConvertBy p a b => a -> b
+convertVia a = convert (convert a :: p)
 
 --
 
