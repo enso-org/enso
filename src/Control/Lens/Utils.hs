@@ -1,3 +1,4 @@
+{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Control.Lens.Utils (module Control.Lens.Utils, module X) where
@@ -55,3 +56,5 @@ emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
 {-# INLINE emptyMap #-}
 
 subMapAt t = non' emptyMap . at t
+
+at' = subMapAt -- FIXME[WD]: make an abstraction with `Empty` class which do not have to be monoid
