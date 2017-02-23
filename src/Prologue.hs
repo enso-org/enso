@@ -20,7 +20,6 @@ import qualified Prelude
 
 import Control.Applicative        as X
 import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
-import Control.Error.Util         as X (isLeft, isRight)
 import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
 import Control.Exception.Base     as X (assert)
 import Control.Lens               as X
@@ -34,11 +33,15 @@ import Control.Monad.IO.Class     as X (MonadIO, liftIO)
 import Control.Monad.Trans        as X (MonadTrans, lift)
 import Control.Monad.Trans.Identity as X (IdentityT, runIdentityT)
 import Control.Monad.Primitive    as X (PrimState, PrimMonad, primitive)
+import Control.Comonad            as X (Comonad, extract, duplicate, extend, (=>=), (=<=), (<<=), (=>>))
+import Control.Comonad            as X (ComonadApply, (<@>), (<@), (@>), (<@@>), liftW2, liftW3)
 
+import Data.Ix                    as X (Ix, range, inRange, rangeSize)
+import qualified Data.Ix          as Ix
 import Data.Bifunctor             as X (Bifunctor, bimap)
 import Data.Bool                  as X (bool)
 import Data.List                  as X (intersperse)
-import Data.Container.Class       as X (Container, Index, Item, intercalate)
+import Data.Container.Class       as X (Container, Index, Item)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
 import Data.Convert               as X
 import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_, mapM_, fold)
@@ -50,6 +53,7 @@ import Data.Layer_OLD             as X
 import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
 import Data.String.QQ             as X (s)
+import Text.RawString.QQ          as X (r)
 import Data.Text                  as X (Text)
 import Data.Traversable           as X (mapM)
 import Data.Tuple.Curry           as X (Curry)
@@ -59,10 +63,10 @@ import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break)
+import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat)
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
-import Type.Show                  as X (TypeShow, showType, printType, ppPrintType, ppShowType)
+import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
 import Type.Monoid                as X (type (<>))
 import Type.Applicative           as X (type (<$>), type (<*>))
 import Type.Error                 as X
@@ -76,15 +80,17 @@ import Unsafe.Coerce              as X (unsafeCoerce)
 import Prologue.Data.Typeable     as X
 import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
 import Data.Data                  as X (Data)
+import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
+import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
 -- Tuple handling
 import Prologue.Data.Tuple        as X
 
 -- Data description
-import Prologue.Data.Default        as X
-import Prologue.Data.Monoid         as X
+import Prologue.Data.Default      as X
+import Data.Monoids               as X
 
 -- Normal Forms
-import Prologue.Control.DeepSeq     as X
+import Prologue.Control.DeepSeq   as X
 
 -- Missing instances
 import Data.Default.Instances.Missing ()
@@ -96,6 +102,12 @@ import Debug.Trace as X (trace, traceShow)
 
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
+
+
+-- Ix
+
+rangeIndex :: Ix a => (a, a) -> a -> Int
+rangeIndex = Ix.index
 
 -- IO
 
@@ -116,6 +128,14 @@ pprint = putStrLn . ppShow
 
 --
 
+infixr 1 <<
+(<<) = flip (>>)
+
+replicate :: (Num a, Eq a, Enum a) => a -> t -> [t]
+replicate 0 _ = []
+replicate i c = c : replicate (pred i) c
+
+
 swap :: (a,b) -> (b,a)
 swap (a,b) = (b,a)
 
@@ -124,21 +144,8 @@ fromJustM Nothing  = fail "Prelude.fromJustM: Nothing"
 fromJustM (Just x) = return x
 
 
-whenLeft :: (Monad m) => Either a b -> (a -> m ()) -> m ()
-whenLeft e f = case e of
-    Left  v -> f v
-    Right _ -> return ()
-
-
 whenLeft' :: (Monad m) => Either a b -> m () -> m ()
 whenLeft' e f = whenLeft e (const f)
-
-
-whenRight :: (Monad m) => Either a b -> (b -> m ()) -> m ()
-whenRight e f = case e of
-    Left  _ -> return ()
-    Right v -> f v
-
 
 whenRight' :: (Monad m) => Either a b -> m () -> m ()
 whenRight' e f = whenRight e $ const f
@@ -207,6 +214,12 @@ maybeHead []      = Nothing
 maybeHead (a : _) = Just a
 {-# INLINE maybeHead #-}
 
+maybeTail :: [a] -> Maybe a
+maybeTail []       = Nothing
+maybeTail [a]      = Just a
+maybeTail (_ : as) = maybeTail as
+{-# INLINE maybeTail #-}
+
 
 
 -- === MapM === ---
@@ -272,3 +285,8 @@ type MonadTransInvariants  t m = (Monad m, Monad (t m), MonadTrans t)
 type MonadTransInvariants' t m = (Monad m, Monad (t m), MonadTrans t, PrimState m ~ PrimState (t m))
 
 type EqPrims m n = (PrimState m ~ PrimState n)
+
+
+
+class Injectable t where
+    injected :: forall a b. Lens (t a) (t b) a b
