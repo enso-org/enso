@@ -31,12 +31,18 @@ instance TypeError ( 'Text "Conversion of the same type (`"
                 :<>: 'Text "`) is disabled by default. Please use convert' if you want to enable it.")
       => Convertible a a where convert = id ; {-# INLINE convert #-}
 
+convertTo :: forall b a. Convertible a b => a -> b
+convertTo = convert
+
 
 -- === Conversion allowing the same types === --
 
 class                        Convertible' a b where convert' :: a -> b
 instance {-# OVERLAPPING #-} Convertible' a a where convert' = id      ; {-# INLINE convert' #-}
 instance Convertible a b =>  Convertible' a b where convert' = convert ; {-# INLINE convert' #-}
+
+convertTo' :: forall b a. Convertible' a b => a -> b
+convertTo' = convert'
 
 
 -- === Partial conversions === --
@@ -82,6 +88,13 @@ casted     :: IsoCastable     a b => Iso' a b
 converted  = iso convert  convert  ; {-# INLINE converted  #-}
 converted' = iso convert' convert' ; {-# INLINE converted' #-}
 casted     = iso cast     cast     ; {-# INLINE casted     #-}
+
+convertedTo  :: forall b a. IsoConvertible  a b => Iso' a b
+convertedTo' :: forall b a. IsoConvertible' a b => Iso' a b
+castedTo     :: forall b a. IsoCastable     a b => Iso' a b
+convertedTo  = converted
+convertedTo' = converted'
+castedTo     = casted
 
 
 -- === Basic instances === --
