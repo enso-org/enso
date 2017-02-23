@@ -14,6 +14,8 @@ import           Data.Text      (Text)
 import qualified Data.Text.Lazy as LazyText
 import           Data.Set       (Set)
 import qualified Data.Set       as Set
+import           Data.Map       (Map)
+import qualified Data.Map       as Map
 
 type LazyText = LazyText.Text
 
@@ -56,6 +58,9 @@ instance FromList  LazyText where fromList = LazyText.pack
 
 type instance Item (Set a) = a
 instance Ord a => FromList (Set a) where fromList = Set.fromList ; {-# INLINE fromList #-}
+
+type instance Item (Map k a) = (k ,a)
+instance Ord k => FromList (Map k a) where fromList = Map.fromList ; {-# INLINE fromList #-}
 
 
 
