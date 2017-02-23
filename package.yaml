@@ -1,0 +1,20 @@
+author: Wojciech Danilo
+bug-reports: https://github.com/luna/monoid/issues
+category: Data
+copyright: Copyright (C) 2017 Wojciech Danilo
+default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable,
+  DeriveFoldable, DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse,
+  EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
+  InstanceSigs, LambdaCase, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings,
+  StandaloneDeriving, TemplateHaskell, TupleSections, TypeOperators, ViewPatterns,
+  TypeFamilies]
+dependencies: [base >=4.6 && <4.10, lens, mtl, containers]
+ghc-options: [-Wall, -O2]
+homepage: https://github.com/luna/monoid
+library: {source-dirs: src}
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: monoid
+stability: stable
+synopsis: Monoid type classes, designed in modular way, distinguish Monoid from Mempty and Semigroup. This design allows mempty operation don't bring Semigroups related constraints until (<>) is used.
+version: "0.1"
