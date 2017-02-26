@@ -82,6 +82,10 @@ import Control.Exception          as X (Exception, SomeException, toException, f
 import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
+
+import Data.Copointed             as X (Copointed, copoint)
+import Data.Pointed               as X (Pointed, point)
+
 -- Tuple handling
 import Prologue.Data.Tuple        as X
 
@@ -288,5 +292,11 @@ type EqPrims m n = (PrimState m ~ PrimState n)
 
 
 
-class Injectable t where
-    injected :: forall a b. Lens (t a) (t b) a b
+copointed :: (Pointed t, Copointed t) => Iso (t a) (t b) a b
+copointed = iso copoint point
+
+pointed :: (Pointed t, Copointed t) => Iso a b (t a) (t b)
+pointed = from copointed
+
+copointed' :: (Copointed t, Functor t) => Lens (t a) (t b) a b
+copointed' = lens copoint (\ta b -> fmap (const b) ta)

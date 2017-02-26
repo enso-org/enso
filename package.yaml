@@ -12,7 +12,7 @@ dependencies: [base >=4.6 && <4.10, bifunctors, binary, cond, container, convert
   data-default, data-layer, deepseq, errors, exceptions, functor-utils, ghc-prim,
   impossible, lens, lens-utils, mtl, OneTuple, placeholders, pretty-show, primitive,
   string-qq, raw-strings-qq, template-haskell, text, transformers, transformers-base,
-  tuple, typelevel, vector, comonad, either, monoid]
+  tuple, typelevel, vector, comonad, either, monoid, pointed]
 description: Replacement for the Haskell's Prelude, exposing more commonly used functions
   and patching old GHC ones to behave in the newest GHC's way.
 ghc-options: [-Wall, -O2]
@@ -24,4 +24,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: prologue
 stability: experimental
 synopsis: Better, more general Prelude exporting common utilities.
-version: 1.1.19
+version: 1.1.20
