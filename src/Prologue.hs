@@ -82,6 +82,7 @@ import Control.Exception          as X (Exception, SomeException, toException, f
 import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
+import Control.Monad.Trans.Either as X (EitherT, runEitherT, eitherT, hoistEither, left, right, swapEitherT)
 
 import Data.Copointed             as X (Copointed, copoint)
 import Data.Pointed               as X (Pointed, point)
