@@ -19,7 +19,7 @@ import qualified Prelude
 
 
 import Control.Applicative        as X
-import Control.Conditional        as X (if', ifM, unless, unlessM, when, whenM, notM, xorM)
+import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, ToBool, toBool)
 import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
 import Control.Exception.Base     as X (assert)
 import Control.Lens               as X
@@ -301,3 +301,18 @@ pointed = from copointed
 
 copointed' :: (Copointed t, Functor t) => Lens (t a) (t b) a b
 copointed' = lens copoint (\ta b -> fmap (const b) ta)
+
+
+
+
+if_ :: (ToBool cond, Mempty a) => cond -> a -> a
+if_ p s = if toBool p then s else mempty
+
+when   :: (Applicative f, ToBool cond)           =>   cond -> f a -> f ()
+whenM  :: (Monad m      , ToBool cond)           => m cond -> m a -> m ()
+when'  :: (Applicative f, ToBool cond, Mempty a) =>   cond -> f a -> f a
+whenM' :: (Monad m      , ToBool cond, Mempty a) => m cond -> m a -> m a
+when   p s = if toBool  p then void s else pure ()
+when'  p s = if toBool  p then s      else pure mempty
+whenM  p s = flip when  s =<< p
+whenM' p s = flip when' s =<< p
