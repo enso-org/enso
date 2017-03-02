@@ -86,5 +86,6 @@ instance {-# OVERLAPPABLE #-} M.Monoid a => Mempty a
 -- === Buil-in types handling === --
 ------------------------------------
 
+instance Mempty [a]       where mempty = []
 instance Mempty (Maybe a) where mempty = Nothing
 instance Mempty (Map k a) where mempty = Map.empty
