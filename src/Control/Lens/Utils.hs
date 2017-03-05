@@ -19,40 +19,22 @@ import qualified Data.Map as Map
 import           Data.Map (Map)
 import           Control.Monad (guard)
 
-makePfxLenses :: Name -> DecsQ
-makePfxLenses = makeLensesWith (lensRules {_fieldToDef = typePrefixNamer})
 
 
+makeLenses' :: Name -> DecsQ
+makeLenses  :: Name -> DecsQ
+makeLenses'     = makeLensesWith (lensRules {_fieldToDef = autoPrefixNamer})
+makeLenses name = (<>) <$> makeAutoWrapped name <*> makeLenses' name
 
-makePfxClassy :: Name -> DecsQ
-makePfxClassy = makeLensesWith (classyRules {_fieldToDef = typePrefixNamer})
-
-typePrefixNamer :: FieldNamer
-typePrefixNamer tn _ n = case nb of
-    '_':_ -> [TopName . mkName $ ltn <> nb]
-    _     -> []
-    where nb     = nameBase n
-          (s:ss) = nameBase tn
-          ltn    = toLower s : ss
-
-
-makeLenses :: Name -> DecsQ
-makeLenses name = (<>) <$> makeAutoWrapped name <*> makeAutoLenses name
-
-makeClassy :: Name -> DecsQ
-makeClassy name = (<>) <$> makeAutoWrapped name <*> makeAutoClassy name
+makeClassy' :: Name -> DecsQ
+makeClassy  :: Name -> DecsQ
+makeClassy'     = makeLensesWith (classyRules {_fieldToDef = autoPrefixNamer})
+makeClassy name = (<>) <$> makeAutoWrapped name <*> makeClassy' name
 
 makeAutoWrapped :: Name -> DecsQ
 makeAutoWrapped name = reify name >>= \case
     TyConI (NewtypeD {}) -> makeWrapped name
     _                    -> return mempty
-
-
-makeAutoLenses :: Name -> DecsQ
-makeAutoLenses = makeLensesWith (lensRules {_fieldToDef = autoPrefixNamer})
-
-makeAutoClassy :: Name -> DecsQ
-makeAutoClassy = makeLensesWith (classyRules {_fieldToDef = autoPrefixNamer})
 
 autoPrefixNamer :: FieldNamer
 autoPrefixNamer tn _ n = case nameBase n of
