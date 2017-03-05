@@ -5,14 +5,14 @@ module Control.Lens.Utils (module Control.Lens.Utils, module X) where
 
 import Prelude hiding (mempty)
 
-import Control.Lens               as X
+import Control.Lens               as X hiding (makeLenses, makeClassy)
 import Control.Lens.Wrapped.Utils as X
 
 import Data.Maybe          (fromMaybe)
 import Control.Monad       (join)
 import Data.Monoids
 import Control.Lens.TH     (LensRules)
-import Language.Haskell.TH (Name, DecsQ, nameBase, mkName)
+import Language.Haskell.TH (Name, DecsQ, nameBase, mkName, Dec(NewtypeD), Info(TyConI), reify)
 import Data.Char           (toLower)
 import Control.Lens.Internal.FieldTH (_fieldToDef)
 import qualified Data.Map as Map
@@ -21,6 +21,8 @@ import           Control.Monad (guard)
 
 makePfxLenses :: Name -> DecsQ
 makePfxLenses = makeLensesWith (lensRules {_fieldToDef = typePrefixNamer})
+
+
 
 makePfxClassy :: Name -> DecsQ
 makePfxClassy = makeLensesWith (classyRules {_fieldToDef = typePrefixNamer})
@@ -32,6 +34,32 @@ typePrefixNamer tn _ n = case nb of
     where nb     = nameBase n
           (s:ss) = nameBase tn
           ltn    = toLower s : ss
+
+
+makeLenses :: Name -> DecsQ
+makeLenses name = (<>) <$> makeAutoWrapped name <*> makeAutoLenses name
+
+makeClassy :: Name -> DecsQ
+makeClassy name = (<>) <$> makeAutoWrapped name <*> makeAutoClassy name
+
+makeAutoWrapped :: Name -> DecsQ
+makeAutoWrapped name = reify name >>= \case
+    TyConI (NewtypeD {}) -> makeWrapped name
+    _                    -> return mempty
+
+
+makeAutoLenses :: Name -> DecsQ
+makeAutoLenses = makeLensesWith (lensRules {_fieldToDef = autoPrefixNamer})
+
+makeAutoClassy :: Name -> DecsQ
+makeAutoClassy = makeLensesWith (classyRules {_fieldToDef = autoPrefixNamer})
+
+autoPrefixNamer :: FieldNamer
+autoPrefixNamer tn _ n = case nameBase n of
+    '_' : '_' : xs -> [TopName . mkName $ toLower t : ts <> ('_' : xs)]
+    '_' :  x  : xs -> [TopName . mkName $ toLower x : xs]
+    _              -> []
+    where (t:ts) = nameBase tn
 
 
 nestedAt :: (At a, Mempty a, IxValue a ~ a) => [Index a] -> Lens' a (Maybe a)
