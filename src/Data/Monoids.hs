@@ -51,6 +51,12 @@ instance {-# OVERLAPPABLE #-} (Mempty a, Semigroup a) => Monoid a
 mappend :: Semigroup a => a -> a -> a
 mappend = (<>)
 
+mappendWith :: Semigroup a => a -> a -> a -> a
+mappendWith m l r = l <> m <> r
+
+mappendBetween :: Semigroup a => a -> a -> a -> a
+mappendBetween l r m = l <> m <> r
+
 type family Semigroups lst :: Constraint where
     Semigroups '[]       = ()
     Semigroups (a ': as) = (Semigroup a, Semigroups as)
