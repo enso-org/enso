@@ -25,7 +25,7 @@ import Control.Exception.Base     as X (assert)
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils as X
 import Control.Lens.Utils         as X
-import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_, foldM, foldM_)
+import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_, foldM, foldM_, forever)
 import Control.Monad.Base         as X
 import Control.Monad.Fix          as X (MonadFix)
 import Control.Monad.IO.Class     as X (MonadIO, liftIO)
