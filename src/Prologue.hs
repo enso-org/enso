@@ -19,13 +19,9 @@ import qualified Prelude
 
 
 import Control.Applicative        as X
-import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, ToBool, toBool)
 import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
-import Control.Error.Util         as X (hoistMaybe, hush, hushT, note, isJustT, isNothingT, nothing, just, maybeT, isLeftT, isRightT)
+import Control.Error.Util         as X (hush, hushT, note, isJustT, isNothingT, nothing, just, isLeftT, isRightT)
 import Control.Exception.Base     as X (assert)
-import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
-import Control.Lens.Wrapped.Utils as X
-import Control.Lens.Utils         as X
 import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_, foldM, foldM_, forever)
 import Control.Monad.Base         as X
 import Control.Monad.Fix          as X (MonadFix)
@@ -39,7 +35,6 @@ import Control.Comonad            as X (ComonadApply, (<@>), (<@), (@>), (<@@>),
 import Data.Ix                    as X (Ix, range, inRange, rangeSize)
 import qualified Data.Ix          as Ix
 import Data.Bifunctor             as X (Bifunctor, bimap)
-import Data.Bool                  as X (bool)
 import Data.List                  as X (intersperse)
 import Data.Container.Class       as X (Container, Index, Item)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
@@ -50,11 +45,8 @@ import Data.Functor.Utils         as X
 import Data.Impossible            as X
 import Data.Layer_OLD             as X
 --import Data.Layer_OLD.Cover_OLD           as X
-import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe)
 import Data.String.Class          as X (IsString (fromString), ToString (toString))
-import Data.String.QQ             as X (s)
-import Text.RawString.QQ          as X (r)
-import Data.Text                  as X (Text)
+
 import Data.Traversable           as X (mapM)
 import Data.Tuple.Curry           as X (Curry)
 import Data.Tuple.Curry.Total     as X (Uncurried', Curry', curry')
@@ -74,15 +66,40 @@ import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throw
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 import Data.Kind                  as X (Type, Constraint, type (★), type (*))
 import Data.Constraints           as X (Constraints)
-import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
-import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
 import Unsafe.Coerce              as X (unsafeCoerce)
 import Prologue.Data.Typeable     as X
 import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
 import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
-import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
+
+-- === Lenses === --
+import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
+import Control.Lens.Wrapped.Utils as X
+import Control.Lens.Utils         as X
+
+-- === Data types === --
+import Data.Text                  as X (Text)
+import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
+import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
+
+-- === Bool === --
+import Data.Bool                  as X (bool)
+import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, ToBool, toBool)
+
+-- === Maybe === --
+import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe, isJust, isNothing)
+import Control.Error.Util         as X (maybeT)
+import Data.Either.Combinators    as X (leftToMaybe, rightToMaybe)
+import Control.Monad.Trans.Maybe  as X (MaybeT, runMaybeT, mapMaybeT, maybeToExceptT, exceptToMaybeT)
+
+-- === Either === --
 import Control.Monad.Trans.Either as X (EitherT, runEitherT, eitherT, hoistEither, left, right, swapEitherT)
+import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
+
+-- === Quasi Quoters == --
+import Data.String.QQ             as X (s)
+import Text.RawString.QQ          as X (r)
+
 
 import Data.Copointed             as X (Copointed, copoint)
 import Data.Pointed               as X (Pointed, point)
@@ -108,6 +125,9 @@ import Debug.Trace as X (trace, traceShow)
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
+
+hoistMaybe :: MonadPlus m => Maybe a -> m a
+hoistMaybe = maybe mzero return
 
 -- Ix
 
