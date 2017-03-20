@@ -21,6 +21,7 @@ import qualified Prelude
 import Control.Applicative        as X
 import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, ToBool, toBool)
 import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
+import Control.Error.Util         as X (hoistMaybe, hush, hushT, note, isJustT, isNothingT, nothing, just, maybeT, isLeftT, isRightT)
 import Control.Exception.Base     as X (assert)
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils as X
