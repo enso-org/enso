@@ -89,12 +89,12 @@ import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, T
 -- === Maybe === --
 import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe, isJust, isNothing)
 import Control.Error.Util         as X (maybeT)
-import Data.Either.Combinators    as X (leftToMaybe, rightToMaybe)
 import Control.Monad.Trans.Maybe  as X (MaybeT, runMaybeT, mapMaybeT, maybeToExceptT, exceptToMaybeT)
 
 -- === Either === --
 import Control.Monad.Trans.Either as X (EitherT, runEitherT, eitherT, hoistEither, left, right, swapEitherT)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
+import Data.Either                as X (either)
 
 -- === Quasi Quoters == --
 import Data.String.QQ             as X (s)
@@ -169,11 +169,11 @@ fromJustM Nothing  = fail "Prelude.fromJustM: Nothing"
 fromJustM (Just x) = return x
 
 
-whenLeft' :: (Monad m) => Either a b -> m () -> m ()
-whenLeft' e f = whenLeft e (const f)
+whenLeft_ :: (Monad m) => Either a b -> m () -> m ()
+whenLeft_ e f = whenLeft e (const f)
 
-whenRight' :: (Monad m) => Either a b -> m () -> m ()
-whenRight' e f = whenRight e $ const f
+whenRight_ :: (Monad m) => Either a b -> m () -> m ()
+whenRight_ e f = whenRight e $ const f
 
 
 ($>) :: (Functor f) => a -> f b -> f b
@@ -220,6 +220,40 @@ fromMaybeM :: Monad m => m a -> Maybe a -> m a
 fromMaybeM ma = \case
     Just a  -> return a
     Nothing -> ma
+
+fromMaybeWith :: Monad m => (a -> b) -> b -> Maybe a -> b
+fromMaybeWith f b = \case
+    Just  a -> f a
+    Nothing -> b
+
+evalWhenLeft :: Monad m => m (Either l r) -> m () -> m (Either l r)
+evalWhenLeft me f = do
+    e <- me
+    case e of
+        Left  _ -> e <$ f
+        Right _ -> return e
+
+evalWhenRight :: Monad m => m (Either l r) -> m () -> m (Either l r)
+evalWhenRight me f = do
+    e <- me
+    case e of
+        Left  _ -> e <$ f
+        Right _ -> return e
+
+
+infixl 1 <!>
+evalWhenWrong, (<!>) :: (Monad m, CanBeWrong a) => m a -> m () -> m a
+(<!>) = evalWhenWrong
+evalWhenWrong ma f = do
+    a <- ma
+    if isWrong a then a <$ f
+                 else return a
+
+class CanBeWrong a where
+    isWrong :: a -> Bool
+
+instance CanBeWrong (Maybe  a)   where isWrong = isNothing
+instance CanBeWrong (Either l r) where isWrong = isLeft
 
 fromBoolMaybe :: a -> Bool -> Maybe a
 fromBoolMaybe a b = if b then Just a else Nothing
