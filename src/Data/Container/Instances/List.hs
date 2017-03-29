@@ -33,8 +33,8 @@ instance Monad m => HasContainerM m [a] where
     viewContainerM = return       ; {-# INLINE viewContainerM #-}
     setContainerM  = const.return ; {-# INLINE setContainerM  #-}
 
-instance ToList   [a] where toList = id   ; {-# INLINE toList   #-}
-instance FromList [a] where fromList = id ; {-# INLINE fromList #-}
+-- instance ToList   [a] where toList = id   ; {-# INLINE toList   #-}
+-- instance FromList [a] where fromList = id ; {-# INLINE fromList #-}
 
 ----------------------------------
 -- === Operations instances === --

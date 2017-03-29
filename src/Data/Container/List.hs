@@ -45,10 +45,13 @@ asList = iso toList fromList
 
 -- === Instances ===
 
+type instance Item [a] = a
+instance ToList    [a] where toList   = id
+instance FromList  [a] where fromList = id
+
 type instance Item Text = Char
 instance ToList    Text where toList   = Text.unpack
 instance FromList  Text where fromList = Text.pack
-
 
 type instance Item LazyText = Char
 instance ToList    LazyText where toList   = LazyText.unpack
