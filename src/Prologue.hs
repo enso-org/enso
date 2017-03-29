@@ -37,7 +37,7 @@ import qualified Data.Ix          as Ix
 import Data.Bifunctor             as X (Bifunctor, bimap)
 import Data.List                  as X (intersperse)
 import Data.Container.Class       as X (Container, Index, Item)
-import Data.Container.List        as X (FromList, fromList, ToList, toList, asList)
+import Data.Container.List        as X (FromList, fromList, ToList, toList, asList, IsList)
 import Data.Convert               as X
 import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_, mapM_, fold)
 import Data.Function              as X (on)
@@ -125,6 +125,7 @@ import Debug.Trace as X (trace, traceShow)
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
+import qualified Data.List as List
 
 hoistMaybe :: MonadPlus m => Maybe a -> m a
 hoistMaybe = maybe mzero return
@@ -182,6 +183,11 @@ whenRight_ e f = whenRight e $ const f
 
 withJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
 withJust = forM_
+
+withJustM :: Monad m => m (Maybe a) -> (a -> m ()) -> m ()
+withJustM ma f = do
+    a <- ma
+    withJust a f
 
 
 lift2 :: (Monad (t1 m), Monad m, MonadTrans t, MonadTrans t1)
@@ -262,23 +268,27 @@ fromBoolMaybe a b = if b then Just a else Nothing
 guarded :: Alternative f => Bool -> a -> f a
 guarded b a = case b of True  -> pure a
                         False -> empty
-{-# INLINE guarded #-}
 
 
 
 -- === Safe operations === --
 
-maybeHead :: [a] -> Maybe a
-maybeHead []      = Nothing
-maybeHead (a : _) = Just a
-{-# INLINE maybeHead #-}
+maybeHead :: ToList a => a -> Maybe (Item a)
+maybeHead a = case toList a of
+    []      -> Nothing
+    (a : _) -> Just a
 
-maybeTail :: [a] -> Maybe a
-maybeTail []       = Nothing
-maybeTail [a]      = Just a
-maybeTail (_ : as) = maybeTail as
-{-# INLINE maybeTail #-}
+maybeTail :: ToList a => a -> Maybe (Item a)
+maybeTail a = go $ toList a where
+    go = \case []       -> Nothing
+               [a]      -> Just a
+               (_ : as) -> go as
 
+splitHead :: forall a. IsList a => a -> (Maybe (Item a), a)
+splitHead ps = (val, fromList rest) where
+    pair = List.uncons $ toList ps
+    val  = fmap fst pair
+    rest = fromMaybe mempty $ fmap snd pair
 
 
 -- === MapM === ---
@@ -288,16 +298,16 @@ type family Traversables (lst :: [* -> *]) :: Constraint where
     Traversables (t ': ts) = (Traversable t, Traversables ts)
 
 mapM2 :: (Monad m, Traversables '[t1, t2]) => (a -> m b) -> t1 (t2 a) -> m (t1 (t2 b))
-mapM2 = mapM ∘ mapM ; {-# INLINE mapM2 #-}
+mapM2 = mapM ∘ mapM
 
 mapM3 :: (Monad m, Traversables [t1, t2, t3]) => (a -> m b) -> t1 (t2 (t3 a)) -> m (t1 (t2 (t3 b)))
-mapM3 = mapM ∘ mapM2 ; {-# INLINE mapM3 #-}
+mapM3 = mapM ∘ mapM2
 
 mapM4 :: (Monad m, Traversables [t1, t2, t3, t4]) => (a -> m b) -> t1 (t2 (t3 (t4 a))) -> m (t1 (t2 (t3 (t4 b))))
-mapM4 = mapM ∘ mapM3 ; {-# INLINE mapM4 #-}
+mapM4 = mapM ∘ mapM3
 
 mapM5 :: (Monad m, Traversables [t1, t2, t3, t4, t5]) => (a -> m b) -> t1 (t2 (t3 (t4 (t5 a)))) -> m (t1 (t2 (t3 (t4 (t5 b)))))
-mapM5 = mapM ∘ mapM4 ; {-# INLINE mapM5 #-}
+mapM5 = mapM ∘ mapM4
 
 
 composed :: Iso' (f (g a)) (Compose f g a)
@@ -323,10 +333,10 @@ g =<<& f = mdo
 infixr 1 <=<<, >>=>
 
 (>>=>) :: Monad m => (a -> b -> m c) -> (c -> m d) -> (a -> b -> m d)
-f >>=> g = \x y -> f x y >>= g ; {-# INLINE (>>=>) #-}
+f >>=> g = \x y -> f x y >>= g
 
 (<=<<) :: Monad m => (c -> m d) -> (a -> b -> m c) -> (a -> b -> m d)
-(<=<<) = flip (>>=>) ; {-# INLINE (<=<<) #-}
+(<=<<) = flip (>>=>)
 
 
 -- This is just a garbage-util for dummy Prelude show implementation
