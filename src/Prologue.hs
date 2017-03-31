@@ -35,7 +35,6 @@ import Control.Comonad            as X (ComonadApply, (<@>), (<@), (@>), (<@@>),
 import Data.Ix                    as X (Ix, range, inRange, rangeSize)
 import qualified Data.Ix          as Ix
 import Data.Bifunctor             as X (Bifunctor, bimap)
-import Data.List                  as X (intersperse)
 import Data.Container.Class       as X (Container, Index, Item)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList, IsList)
 import Data.Convert               as X
@@ -55,7 +54,7 @@ import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import Prelude                    as X hiding (mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat)
+import Prelude                    as X hiding (unlines, mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat)
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
@@ -126,6 +125,9 @@ import Debug.Trace as X (trace, traceShow)
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 import qualified Data.List as List
+
+unlines :: (IsString a, Monoid a, Foldable f) => f a -> a
+unlines = intercalate "\n"
 
 hoistMaybe :: MonadPlus m => Maybe a -> m a
 hoistMaybe = maybe mzero return
@@ -227,8 +229,8 @@ fromMaybeM ma = \case
     Just a  -> return a
     Nothing -> ma
 
-fromMaybeWith :: Monad m => (a -> b) -> b -> Maybe a -> b
-fromMaybeWith f b = \case
+fromMaybeWith :: b -> (a -> b) -> Maybe a -> b
+fromMaybeWith b f = \case
     Just  a -> f a
     Nothing -> b
 
@@ -261,8 +263,8 @@ class CanBeWrong a where
 instance CanBeWrong (Maybe  a)   where isWrong = isNothing
 instance CanBeWrong (Either l r) where isWrong = isLeft
 
-fromBoolMaybe :: a -> Bool -> Maybe a
-fromBoolMaybe a b = if b then Just a else Nothing
+justIf :: Bool -> a -> Maybe a
+justIf b a = if b then Just a else Nothing
 
 
 guarded :: Alternative f => Bool -> a -> f a
@@ -298,16 +300,22 @@ type family Traversables (lst :: [* -> *]) :: Constraint where
     Traversables (t ': ts) = (Traversable t, Traversables ts)
 
 mapM2 :: (Monad m, Traversables '[t1, t2]) => (a -> m b) -> t1 (t2 a) -> m (t1 (t2 b))
-mapM2 = mapM ∘ mapM
-
 mapM3 :: (Monad m, Traversables [t1, t2, t3]) => (a -> m b) -> t1 (t2 (t3 a)) -> m (t1 (t2 (t3 b)))
-mapM3 = mapM ∘ mapM2
-
 mapM4 :: (Monad m, Traversables [t1, t2, t3, t4]) => (a -> m b) -> t1 (t2 (t3 (t4 a))) -> m (t1 (t2 (t3 (t4 b))))
-mapM4 = mapM ∘ mapM3
-
 mapM5 :: (Monad m, Traversables [t1, t2, t3, t4, t5]) => (a -> m b) -> t1 (t2 (t3 (t4 (t5 a)))) -> m (t1 (t2 (t3 (t4 (t5 b)))))
+mapM2 = mapM ∘ mapM
+mapM3 = mapM ∘ mapM2
+mapM4 = mapM ∘ mapM3
 mapM5 = mapM ∘ mapM4
+
+mapM2_ :: (Monad m, Traversables '[t1, t2]) => (a -> m b) -> t1 (t2 a) -> m ()
+mapM3_ :: (Monad m, Traversables [t1, t2, t3]) => (a -> m b) -> t1 (t2 (t3 a)) -> m ()
+mapM4_ :: (Monad m, Traversables [t1, t2, t3, t4]) => (a -> m b) -> t1 (t2 (t3 (t4 a))) -> m ()
+mapM5_ :: (Monad m, Traversables [t1, t2, t3, t4, t5]) => (a -> m b) -> t1 (t2 (t3 (t4 (t5 a)))) -> m ()
+mapM2_ = void ∘∘ mapM2
+mapM3_ = void ∘∘ mapM3
+mapM4_ = void ∘∘ mapM4
+mapM5_ = void ∘∘ mapM5
 
 
 composed :: Iso' (f (g a)) (Compose f g a)
@@ -380,3 +388,20 @@ when   p s = if toBool  p then void s else pure ()
 when'  p s = if toBool  p then s      else pure mempty
 whenM  p s = flip when  s =<< p
 whenM' p s = flip when' s =<< p
+
+
+infixl 4 |$
+(|$) :: (a -> b) -> a -> (a, b)
+f |$ a = (a, f a)
+
+infixl 4 $|
+($|) :: (a -> b) -> a -> (b, a)
+f $| a = (f a, a)
+
+infixl 4 <|$>
+(<|$>) :: Functor f => (a -> b) -> f a -> f (a, b)
+f <|$> a = (f |$) <$> a
+
+infixl 4 <$|>
+(<$|>) :: Functor f => (a -> b) -> f a -> f (b, a)
+f <$|> a = (f $|) <$> a
