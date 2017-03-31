@@ -8,11 +8,10 @@ import GHC.Exts (Constraint)
 
 import qualified Data.Monoid    as M
 import           Data.Semigroup as X (Semigroup, (<>), sconcat, stimes)
-import           Data.List      (intersperse)
 
 import           Data.Map.Lazy   (Map)
 import qualified Data.Map.Lazy   as Map
-
+import qualified Data.Foldable   as Foldable
 
 --------------------
 -- === Monoid === --
@@ -27,9 +26,20 @@ class (Mempty a, Semigroup a) => Monoid a where
 
 -- === Utils === --
 
-intercalate :: Monoid a => a -> [a] -> a
+
+intersperse :: Foldable f => a -> f a -> [a]
+intersperse sep a = case Foldable.toList a of
+    []      -> []
+    (x:xs)  -> x : prependToAll sep xs where
+        prependToAll sep = \case
+            []     -> []
+            (x:xs) -> sep : x : prependToAll sep xs
+
+intercalate :: (Monoid a, Foldable f) => a -> f a -> a
 intercalate delim l = mconcat (intersperse delim l)
-{-# INLINE intercalate #-}
+
+intercalate' :: Monoid a => a -> [a] -> a
+intercalate' = intercalate
 
 
 -- === Instances === --
