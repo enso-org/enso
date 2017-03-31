@@ -43,6 +43,11 @@ asList :: IsList a => Iso' a [Item a]
 asList = iso toList fromList
 
 
+-- instance {-# OVERLAPPABLE #-} IsList a => GHC.IsList a where
+--     type Item a = Item a
+--     fromList = fromList
+--     toList   = toList
+
 -- === Instances ===
 
 type instance Item [a] = a
