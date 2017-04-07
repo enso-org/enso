@@ -5,12 +5,27 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Data.Convert.Class where
 
 import Prelude
 import Control.Lens
 import GHC.TypeLits
+
+
+
+--------------------
+-- === Errors === --
+--------------------
+
+
+newtype SimpleConversionError = SimpleConversionError String
+makeWrapped ''SimpleConversionError
+
+instance Show SimpleConversionError where show = view _Wrapped
+
+simpleConversionError = SimpleConversionError "ConversionError"
 
 
 

@@ -1,5 +1,4 @@
-module Data.Convert.Instances.Map()
-where
+module Data.Convert.Instances.Map where
 
 import Prelude
 import Data.Convert.Class
