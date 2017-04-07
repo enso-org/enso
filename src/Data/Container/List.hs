@@ -62,13 +62,14 @@ type instance Item LazyText = Char
 instance ToList    LazyText where toList   = LazyText.unpack
 instance FromList  LazyText where fromList = LazyText.pack
 
-
+type instance Item (Map k a) = (k,a)
+instance          ToList    (Map k a) where toList   = Map.toList
+instance Ord k => FromList  (Map k a) where fromList = Map.fromList
 
 type instance Item (Set a) = a
-instance Ord a => FromList (Set a) where fromList = Set.fromList ; {-# INLINE fromList #-}
+instance          ToList   (Set a) where toList   = Set.toList
+instance Ord a => FromList (Set a) where fromList = Set.fromList
 
-type instance Item (Map k a) = (k ,a)
-instance Ord k => FromList (Map k a) where fromList = Map.fromList ; {-# INLINE fromList #-}
 
 
 
