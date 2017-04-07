@@ -70,6 +70,7 @@ import Prologue.Data.Typeable     as X
 import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
 import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
+import Data.List.NonEmpty         as X (NonEmpty ((:|)))
 
 -- === Lenses === --
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -93,7 +94,7 @@ import Control.Monad.Trans.Maybe  as X (MaybeT, runMaybeT, mapMaybeT, maybeToExc
 -- === Either === --
 import Control.Monad.Trans.Either as X (EitherT, runEitherT, eitherT, hoistEither, left, right, swapEitherT)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
-import Data.Either                as X (either)
+import Data.Either                as X (either, partitionEithers)
 
 -- === Quasi Quoters == --
 import Data.String.QQ             as X (s)
@@ -405,3 +406,33 @@ f <|$> a = (f |$) <$> a
 infixl 4 <$|>
 (<$|>) :: Functor f => (a -> b) -> f a -> f (b, a)
 f <$|> a = (f $|) <$> a
+
+
+
+infixl 4 <|$$>
+infixl 4 <$$|>
+(<|$$>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t (a, b))
+(<$$|>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t (b, a))
+f <|$$> ta = (\a -> (a,) <$> f a) <$$> ta
+f <$$|> ta = (\a -> (,a) <$> f a) <$$> ta
+
+
+
+const1 :: a -> (t1 -> a)
+const2 :: a -> (t1 -> t2 -> a)
+const3 :: a -> (t1 -> t2 -> t3 -> a)
+const4 :: a -> (t1 -> t2 -> t3 -> t4 -> a)
+const5 :: a -> (t1 -> t2 -> t3 -> t4 -> t5 -> a)
+const6 :: a -> (t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> a)
+const7 :: a -> (t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t7 -> a)
+const8 :: a -> (t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t7 -> t8 -> a)
+const9 :: a -> (t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t7 -> t8 -> t9 -> a)
+const1 a _ = a
+const2 a _ _ = a
+const3 a _ _ _ = a
+const4 a _ _ _ _ = a
+const5 a _ _ _ _ _ = a
+const6 a _ _ _ _ _ _ = a
+const7 a _ _ _ _ _ _ _ = a
+const8 a _ _ _ _ _ _ _ _ = a
+const9 a _ _ _ _ _ _ _ _ _ = a
