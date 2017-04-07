@@ -18,6 +18,7 @@ import Control.Lens.Internal.FieldTH (_fieldToDef)
 import qualified Data.Map as Map
 import           Data.Map (Map)
 import           Control.Monad (guard)
+import           Data.List.NonEmpty (NonEmpty ((:|)))
 
 
 
@@ -44,28 +45,36 @@ autoPrefixNamer tn _ n = case nameBase n of
     where (t:ts) = nameBase tn
 
 
-nestedAt :: (At a, Mempty a, IxValue a ~ a) => [Index a] -> Lens' a (Maybe a)
-nestedAt []       = lens Just const
-nestedAt [e]      = at e
-nestedAt (e : es) = lens (join . fmap (view (nestedAt es)) . view (at e))
-                       $ \h mv -> h & case h ^. at e of
-                                      Just _  -> ix e %~ (nestedAt es .~ mv)
-                                      Nothing -> maybe id (insertNewNested (e:es)) mv
-    where insertNewNested :: (At a, Mempty a, IxValue a ~ a) => [Index a] -> a -> (a -> a)
-          insertNewNested [e]      v = at e .~ Just v
-          insertNewNested (e : es) v = at e .~ Just (insertNewNested es v mempty)
-          {-# INLINE insertNewNested #-}
-{-# INLINE nestedAt #-}
+type NestedCtx     a = (Index a ~ Index (IxValue a), IxValue a ~ IxValue (IxValue a))
+type NestedAtCtx   a = (NestedCtx a, At   a, At   (IxValue a))
+type NestedIxedCtx a = (NestedCtx a, Ixed a, Ixed (IxValue a))
+
+nestedAt :: (NestedAtCtx a, Mempty (IxValue a)) => NonEmpty (Index a) -> Lens' a (Maybe (IxValue a))
+nestedAt = nestedDefAt mempty
+
+nestedDefAt :: NestedAtCtx a => IxValue a -> NonEmpty (Index a) -> Lens' a (Maybe (IxValue a))
+nestedDefAt def p = case p of
+    (t :| [])       -> at t
+    (t :| (e : es)) -> lens (join . fmap (view (nestedDefAt def $ e :| es)) . view (at t))
+                     $ \h mv -> h & case h ^. at t of
+                                    Just _  -> ix t %~ (nestedDefAt def (e :| es) .~ mv)
+                                    Nothing -> maybe id (insertNewNested def p) mv
+    where insertNewNested :: NestedAtCtx a => IxValue a -> NonEmpty (Index a) -> IxValue a -> (a -> a)
+          insertNewNested def (t :| [])       v = at t .~ Just v
+          insertNewNested def (t :| (e : es)) v = at t .~ Just (insertNewNested def (e :| es) v def)
 
 
-nestedAt' :: (At a, Mempty a, IxValue a ~ a) => [Index a] -> Lens' a a
+nestedAt' :: (NestedAtCtx a, Mempty (IxValue a)) => NonEmpty (Index a) -> Lens' a (IxValue a)
 nestedAt' ixs = lens (fromMaybe mempty . view (nestedAt ixs)) (\a -> flip (set (nestedAt ixs)) a . Just)
-{-# INLINE nestedAt' #-}
 
+
+nestedIx :: NestedIxedCtx a => NonEmpty (Index a) -> Traversal' a (IxValue a)
+nestedIx = \case
+    (t :| [])     -> ix t
+    (t :| (i:is)) -> ix t . nestedIx (i :| is)
 
 emptyMap :: Prism' (Map k a) ()
 emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
-{-# INLINE emptyMap #-}
 
 subMapAt t = non' emptyMap . at t
 
