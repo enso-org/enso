@@ -71,6 +71,7 @@ import Control.Exception          as X (Exception, SomeException, toException, f
 import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.List.NonEmpty         as X (NonEmpty ((:|)))
+import GHC.Stack                  as X (CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack, getCallStack, popCallStack, prettyCallStack, pushCallStack, withFrozenCallStack, currentCallStack)
 
 -- === Lenses === --
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -436,3 +437,12 @@ const6 a _ _ _ _ _ _ = a
 const7 a _ _ _ _ _ _ _ = a
 const8 a _ _ _ _ _ _ _ _ = a
 const9 a _ _ _ _ _ _ _ _ _ = a
+
+
+
+partitionMaybeTaggedList :: [(a, Maybe b)] -> ([a], [(a,b)])
+partitionMaybeTaggedList = \case
+    []             -> ([], [])
+    ((a, mb) : ls) -> partitionMaybeTaggedList ls & case mb of
+        Nothing -> _1 %~ (a:)
+        Just b  -> _2 %~ ((a,b):)
