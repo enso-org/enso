@@ -161,9 +161,9 @@ pprint = putStrLn . ppShow
 infixr 1 <<
 (<<) = flip (>>)
 
-replicate :: (Num a, Eq a, Enum a) => a -> t -> [t]
+replicate :: (Num a, Eq a, Enum a, Ord a) => a -> t -> [t]
 replicate 0 _ = []
-replicate i c = c : replicate (pred i) c
+replicate i c = if (i < 0) then [] else c : replicate (pred i) c
 
 
 swap :: (a,b) -> (b,a)
@@ -446,3 +446,18 @@ partitionMaybeTaggedList = \case
     ((a, mb) : ls) -> partitionMaybeTaggedList ls & case mb of
         Nothing -> _1 %~ (a:)
         Just b  -> _2 %~ ((a,b):)
+
+
+-- | Here is a script fo generating Functor instances for tuples if somebody will need bigger ones
+--     mkts i = ("t"<>) . show <$> [1..i]mkts i = ("t"<>) . show <$> [1..i]
+--     mki i = "deriving instance Functor ((" <> replicate (i-1) ',' <> ") " <> intercalate " " (mkts (i-1)) <> ")"
+--     mapM putStrLn $ mki <$> [3..10]
+
+deriving instance Functor ((,,) t1 t2)
+deriving instance Functor ((,,,) t1 t2 t3)
+deriving instance Functor ((,,,,) t1 t2 t3 t4)
+deriving instance Functor ((,,,,,) t1 t2 t3 t4 t5)
+deriving instance Functor ((,,,,,,) t1 t2 t3 t4 t5 t6)
+deriving instance Functor ((,,,,,,,) t1 t2 t3 t4 t5 t6 t7)
+deriving instance Functor ((,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8)
+deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
