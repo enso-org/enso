@@ -54,7 +54,7 @@ import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import Prelude                    as X hiding (unlines, mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat)
+import Prelude                    as X hiding (unlines, mapM, mapM_, print, putStr, putStrLn, (.), curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat, fail)
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
@@ -72,6 +72,7 @@ import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.List.NonEmpty         as X (NonEmpty ((:|)))
 import GHC.Stack                  as X (CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack, getCallStack, popCallStack, prettyCallStack, pushCallStack, withFrozenCallStack, currentCallStack)
+import Control.Monad.Fail         as X (MonadFail, fail)
 
 -- === Lenses === --
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -169,7 +170,7 @@ replicate i c = if (i < 0) then [] else c : replicate (pred i) c
 swap :: (a,b) -> (b,a)
 swap (a,b) = (b,a)
 
-fromJustM :: Monad m => Maybe a -> m a
+fromJustM :: (Monad m, MonadFail m) => Maybe a -> m a
 fromJustM Nothing  = fail "Prelude.fromJustM: Nothing"
 fromJustM (Just x) = return x
 
@@ -185,10 +186,12 @@ whenRight_ e f = whenRight e $ const f
 ($>) =  fmap . flip const
 
 
-withJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
-withJust = forM_
+withJust :: (Monad m, Mempty out) => Maybe a -> (a -> m out) -> m out
+withJust ma f = case ma of
+    Nothing -> return mempty
+    Just a  -> f a
 
-withJustM :: Monad m => m (Maybe a) -> (a -> m ()) -> m ()
+withJustM :: (Monad m, Mempty out) => m (Maybe a) -> (a -> m out) -> m out
 withJustM ma f = do
     a <- ma
     withJust a f
