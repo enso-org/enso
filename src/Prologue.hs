@@ -175,12 +175,11 @@ fromJustM Nothing  = fail "Prelude.fromJustM: Nothing"
 fromJustM (Just x) = return x
 
 
-whenLeft_ :: (Monad m) => Either a b -> m () -> m ()
+whenLeft_ :: Monad m => Either a b -> m () -> m ()
 whenLeft_ e f = whenLeft e (const f)
 
-whenRight_ :: (Monad m) => Either a b -> m () -> m ()
+whenRight_ :: Monad m => Either a b -> m () -> m ()
 whenRight_ e f = whenRight e $ const f
-
 
 ($>) :: (Functor f) => a -> f b -> f b
 ($>) =  fmap . flip const
@@ -191,11 +190,20 @@ withJust ma f = case ma of
     Nothing -> return mempty
     Just a  -> f a
 
+withJust_ :: Monad m => Maybe a -> (a -> m b) -> m ()
+withJust_ ma f = case ma of
+    Nothing -> return ()
+    Just a  -> void $ f a
+
 withJustM :: (Monad m, Mempty out) => m (Maybe a) -> (a -> m out) -> m out
 withJustM ma f = do
     a <- ma
     withJust a f
 
+withJustM_ :: Monad m => m (Maybe a) -> (a -> m b) -> m ()
+withJustM_ ma f = do
+    a <- ma
+    withJust_ a f
 
 lift2 :: (Monad (t1 m), Monad m, MonadTrans t, MonadTrans t1)
       => m a -> t (t1 m) a
@@ -464,3 +472,8 @@ deriving instance Functor ((,,,,,,) t1 t2 t3 t4 t5 t6)
 deriving instance Functor ((,,,,,,,) t1 t2 t3 t4 t5 t6 t7)
 deriving instance Functor ((,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8)
 deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
+
+
+
+elem' :: Eq a => a -> [a] -> Bool
+elem' = elem
