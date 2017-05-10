@@ -8,6 +8,7 @@ import Data.Traversable (mapM)
 
 -- Nested fmaps
 
+fmap0 = ($)
 fmap1 = fmap
 fmap2 = fmap.fmap
 fmap3 = fmap.fmap2

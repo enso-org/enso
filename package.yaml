@@ -19,4 +19,4 @@ name: functor-utils
 stability: stable
 synopsis: Collection of functor utilities, providing handy operators, like generalization
   of (.).
-version: '1.10'
+version: '1.11'
