@@ -24,7 +24,7 @@ import Control.Error.Util         as X (hush, hushT, note, isJustT, isNothingT, 
 import Control.Exception.Base     as X (assert)
 import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_, foldM, foldM_, forever)
 import Control.Monad.Base         as X
-import Control.Monad.Fix          as X (MonadFix)
+import Control.Monad.Fix          as X (MonadFix, mfix)
 import Control.Monad.IO.Class     as X (MonadIO, liftIO)
 import Control.Monad.Trans        as X (MonadTrans, lift)
 import Control.Monad.Trans.Identity as X (IdentityT, runIdentityT)
@@ -477,3 +477,19 @@ deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
 
 elem' :: Eq a => a -> [a] -> Bool
 elem' = elem
+
+maybeRead :: Read a => String -> Maybe a
+maybeRead s = case reads s of
+    [a] -> Just $ fst a
+    _   -> Nothing
+
+
+fromLeft :: (r -> l) -> Either l r -> l
+fromLeft f = \case
+    Right r -> f r
+    Left  l -> l
+
+fromRight :: (l -> r) -> Either l r -> r
+fromRight f = \case
+    Right r -> r
+    Left  l -> f l
