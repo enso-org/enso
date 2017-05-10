@@ -19,7 +19,7 @@ import qualified Data.Map as Map
 import           Data.Map (Map)
 import           Control.Monad (guard)
 import           Data.List.NonEmpty (NonEmpty ((:|)))
-
+import           Data.Default
 
 
 makeLenses' :: Name -> DecsQ
@@ -79,3 +79,11 @@ emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
 subMapAt t = non' emptyMap . at t
 
 at' = subMapAt -- FIXME[WD]: make an abstraction with `Empty` class which do not have to be monoid
+
+-- | Warning! This function does not hold lens laws: deleting and re-adding a key destroys everything appart of `a`,
+--            so `set l (Just x) (set l Nothing s) /= set l (Just x) s`
+unsafeLensedMapAt :: (Ord k, Default v) => k -> Lens' v a -> Lens' (Map k v) (Maybe a)
+unsafeLensedMapAt k l f m = f ma <&> \r -> case r of
+    Nothing -> maybe m (const (Map.delete k m)) ma
+    Just a' -> Map.alter (Just . set l a' . fromMaybe def) k m
+    where ma = view l <$> Map.lookup k m
