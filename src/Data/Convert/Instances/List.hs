@@ -11,3 +11,7 @@ instance PartialConvertible   [a] (NonEmpty a) where
     tryConvert = \case
         []     -> Left simpleConversionError
         (e:es) -> Right $ e :| es
+
+
+instance Convertible a b => Convertible [a] [b] where
+    convert = fmap convert
