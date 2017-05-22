@@ -123,11 +123,16 @@ import Data.Functor.Compose
 
 import qualified Data.Traversable                   as Traversable
 import Debug.Trace as X (trace, traceShow)
+import qualified NeatInterpolation as NeatInterpolation
 
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 import qualified Data.List as List
+import Language.Haskell.TH.Quote (QuasiQuoter)
+
+txt :: QuasiQuoter
+txt = NeatInterpolation.text
 
 unlines :: (IsString a, Monoid a, Foldable f) => f a -> a
 unlines = intercalate "\n"
