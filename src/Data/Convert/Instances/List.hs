@@ -12,6 +12,8 @@ instance PartialConvertible   [a] (NonEmpty a) where
         []     -> Left simpleConversionError
         (e:es) -> Right $ e :| es
 
+instance Convertible' a b => Convertible (NonEmpty a) [b] where
+    convert (a:|as) = convert' a : fmap convert' as
 
 instance Convertible a b => Convertible [a] [b] where
     convert = fmap convert
