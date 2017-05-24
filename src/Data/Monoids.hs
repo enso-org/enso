@@ -26,6 +26,8 @@ class (Mempty a, Semigroup a) => Monoid a where
 
 -- === Utils === --
 
+mconcat' :: (Foldable t, Monoid a) => t a -> a
+mconcat' = foldr (<>) mempty
 
 intersperse :: Foldable f => a -> f a -> [a]
 intersperse sep a = case Foldable.toList a of

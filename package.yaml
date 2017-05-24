@@ -19,4 +19,4 @@ stability: stable
 synopsis: Monoid type classes, designed in modular way, distinguish Monoid from Mempty
   and Semigroup. This design allows mempty operation don't bring Semigroups related
   constraints until (<>) is used.
-version: 0.1.3
+version: 0.1.4
