@@ -94,7 +94,7 @@ import Control.Error.Util         as X (maybeT)
 import Control.Monad.Trans.Maybe  as X (MaybeT, runMaybeT, mapMaybeT, maybeToExceptT, exceptToMaybeT)
 
 -- === Either === --
-import Control.Monad.Trans.Either as X (EitherT, runEitherT, eitherT, hoistEither, left, right, swapEitherT)
+import Control.Monad.Trans.Either as X (EitherT(EitherT), runEitherT, eitherT, hoistEither, left, right, swapEitherT)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, whenLeft, whenRight, leftToMaybe, rightToMaybe, swapEither)
 import Data.Either                as X (either, partitionEithers)
 
@@ -186,6 +186,16 @@ whenLeft_ e f = whenLeft e (const f)
 whenRight_ :: Monad m => Either a b -> m () -> m ()
 whenRight_ e f = whenRight e $ const f
 
+whenRightM :: Monad m => m (Either a b) -> (b -> m ()) -> m ()
+whenRightM a f = do
+    a' <- a
+    whenRight a' f
+
+withRightM :: Monad m => (r -> m (Either l r')) -> Either l r -> m (Either l r')
+withRightM f = \case
+    Left  l -> return $ Left l
+    Right r -> f r
+    
 ($>) :: (Functor f) => a -> f b -> f b
 ($>) =  fmap . flip const
 
