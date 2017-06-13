@@ -195,7 +195,7 @@ withRightM :: Monad m => (r -> m (Either l r')) -> Either l r -> m (Either l r')
 withRightM f = \case
     Left  l -> return $ Left l
     Right r -> f r
-    
+
 ($>) :: (Functor f) => a -> f b -> f b
 ($>) =  fmap . flip const
 
@@ -229,9 +229,11 @@ lift3 :: (Monad (t1 (t2 m)), Monad (t2 m), Monad m, MonadTrans t, MonadTrans t1,
       => m a -> t (t1 (t2 m)) a
 lift3 = lift . lift2
 
+switch :: Bool -> a -> a -> a
+switch cond ok fail = if cond then ok else fail
 
-switch :: Monad m => m Bool -> a -> a -> m a
-switch cond fail ok = do
+switchM :: Monad m => m Bool -> a -> a -> m a
+switchM cond fail ok = do
   c <- cond
   return $ if c then ok else fail
 
