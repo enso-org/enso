@@ -14,6 +14,8 @@ import qualified System.Console.ANSI.Types as ANSI
 import qualified System.IO                 as System
 import           System.IO                 (Handle, stdout)
 
+import Data.Container.Class hiding (intercalate)
+import Data.Container.Sequence
 
 
 -------------------
@@ -251,6 +253,11 @@ class Stylable a where
     cleanStyles :: a -> a
     withStyle   :: [StyleChange] -> a -> a
 
+    default cleanStyles :: (a ~ f a', Stylable a', Functor f) => f a' -> f a'
+    default withStyle   :: (a ~ f a', Stylable a', Functor f) => [StyleChange] -> f a' -> f a'
+    cleanStyles = fmap   cleanStyles
+    withStyle   = fmap . withStyle
+
 instance Stylable TermText where
     cleanStyles (TermText l s) = go s where
         go = \case StyledSegment _ t -> cleanStyles t
@@ -344,3 +351,6 @@ instance Convertible TermText Text     where
             PlainSegment    t -> convert t
             StyledSegment _ t -> go t
             CatSegments   l r -> go l <> go r
+
+-- Container
+type instance Item TermText = Char
