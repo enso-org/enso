@@ -5,18 +5,48 @@
 
 module Data.Layout where
 
-import qualified Prologue as P
-import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop, nested)
+import qualified Prelude as P
+import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop, nested, lines)
 
+import Control.Monad.State.Layered
 import qualified Data.Text                 as Text
 import qualified Data.Text.IO              as Text
 import qualified Data.Text.Lazy            as LazyText
 import qualified Data.Text.Lazy.Builder    as Text
 import           Data.Text.Terminal        hiding (plain) -- FIXME[WD]: TerminalText instances might not suit this module well
 
+import Data.Container.Sequence
 
-instance Default a => Default (NonEmpty a) where def    = def    :| mempty
-instance Mempty  a => Mempty  (NonEmpty a) where mempty = mempty :| mempty
+
+
+-- === Concatenation utils === --
+
+betweenWith :: (a -> a -> a) -> a -> a -> a -> a
+betweenWith f l r m = l `f` m `f` r
+
+surroundedWith :: (a -> a -> a) -> a -> a -> a -> a
+surroundedWith f m l r = betweenWith f l r m
+
+between :: Semigroup a => a -> a -> a -> a
+between = betweenWith (<>)
+
+between' :: Semigroup a => a -> a -> a
+between' a = between a a
+
+-- === Text combinators === --
+
+space :: IsString a => a
+space = " "
+
+parensed, bracked, braced, chevroned, spaced, quoted, squoted, backticked :: (Semigroup a, IsString a) => a -> a
+parensed   = between "(" ")"
+bracked    = between "[" "]"
+braced     = between "{" "}"
+chevroned  = between "<" ">"
+spaced     = between' " "
+quoted     = between' "\""
+squoted    = between' "'"
+backticked = between' "`"
 
 
 
@@ -32,6 +62,40 @@ instance Convertible' Word64 a => Convertible Delta a where convert = convert' .
 instance Default   Delta where def    = 0
 instance Mempty    Delta where mempty = def
 instance Semigroup Delta where (<>)   = (+)
+
+
+
+----------------------
+-- === Builders === --
+----------------------
+
+-- === Definition === --
+
+class ElemBuilderT t m a where plainT :: m a -> t m a
+class ElemBuilder    m a where plain  ::   a ->   m a
+
+instance {-# OVERLAPPABLE #-} (ElemBuilder m a, ElemBuilderT t m a)
+      => ElemBuilder (t m)    a where plain = plainT . plain
+instance ElemBuilder Identity a where plain = return
+
+
+-- === Rendering === --
+
+class RenderT t m a where renderT :: t m a -> m a
+class Render    m a where render  ::   m a ->   a
+                          nested  ::   m a -> m a
+
+instance {-# OVERLAPPABLE #-} (RenderT t m a, Render m a, ElemBuilderT t m a)
+      => Render (t m)    a where render = render . renderT
+                                 nested = plainT . renderT
+instance Render Identity a where render = runIdentity
+                                 nested = id
+
+
+-- === Utils === --
+
+phantom :: (ElemBuilder t a, Mempty a) => t a
+phantom = plain mempty
 
 
 
@@ -62,16 +126,6 @@ instance Measurable (Bounded a) where
     measure = view bounds
 
 
--- === Concatenation === --
-
-class Concatenable a where
-    concat :: Dir -> a -> a -> a
-
-data Dir = Vertical
-         | Horizontal
-         deriving (Show)
-
-
 -- === Utils === --
 
 bounded :: Lens (Bounded a) (Bounded b) a b
@@ -96,142 +150,144 @@ instance Concatenable Bounds where
 
 
 
--------------------
--- === Block === --
--------------------
+-----------------------------
+-- === Cartesian space === --
+-----------------------------
 
--- === Definition === --
+-- === Definition == --
 
-data Block a = Block { __bounds   :: Bounds
-                     , _blockBody :: BlockBody a
-                     } deriving (Show, Functor, Traversable, Foldable)
+data Dir = Vertical
+         | Horizontal
+         deriving (Show)
 
-data BlockBody a = Phantom
-                 | Plain  !a
-                 | Concat !Dir !(Block a) !(Block a)
-                 deriving (Show, Functor, Traversable, Foldable)
-
-makeLenses ''Block
+data CartTree t m a = Empty
+                    | Plain  !(m a)
+                    | Concat !Dir !(t m a) !(t m a)
+                    deriving (Show, Functor, Traversable, Foldable)
 
 
--- === Rendering === --
+-- === Concatenation === --
 
-class ElemRenderer a out where
-    renderElem    :: Bounds -> a -> out
-    renderPhantom :: Bounds      -> out
+class Concatenable a where
+    concat :: Dir -> a -> a -> a
 
-render :: forall a b. (ElemRenderer a b, Concatenable b, Mempty b) => Block a -> b
-render (Block s t) = case t of
-    Phantom      -> renderPhantom @a s
-    Plain  a     -> renderElem s a
-    Concat d l r -> concat d (render l) (render r)
-
--- | Renders anything that is similar to Text by rendering line by line. It is useful when implementic horizontal and vertical block concatenation.
-renderText :: (ElemRenderer a (Bounded [a]), Concatenable (Bounded [a]), IsString a, Monoid a) => Block a -> a
-renderText block = mconcat (intersperse "\n" $ renderLines block)
-
--- | Renders anything that is similar to Text by rendering line by line. It is useful when implementic horizontal and vertical block concatenation.
-renderLines :: (ElemRenderer a (Bounded [a]), Concatenable (Bounded [a])) => Block a -> [a]
-renderLines = unbound . render
+instance Concatenable a => Concatenable (Identity a) where
+    concat d l r = Identity $ concat d (runIdentity l) (runIdentity r)
 
 
--- === Block modification === --
-
-type FromBlock t = Convertible1' Block t
-fromBlock :: FromBlock t => forall a. Block a -> t a
-fromBlock = convert1'
-
-append :: Block a -> Block a -> Block a
-append a block@(Block s b) = case b of
-    Concat d l r -> Block s $ Concat d l (append a r)
-    _            -> block <> a
-
-prepend :: Block a -> Block a -> Block a
-prepend a block@(Block s b) = case b of
-    Concat d l r -> Block s $ Concat d (prepend a l) r
-    _            -> a <> block
-
-
--- === Concatenation utils === --
-
-betweenWith :: (a -> a -> a) -> a -> a -> a -> a
-betweenWith f l r m = l `f` m `f` r
-
-surroundedWith :: (a -> a -> a) -> a -> a -> a -> a
-surroundedWith f m l r = betweenWith f l r m
-
-between :: Semigroup a => a -> a -> a -> a
-between = betweenWith (<>)
-
-between' :: Semigroup a => a -> a -> a
-between' a = between a a
-
-
--- === Combinators === --
-
-phantom :: FromBlock t => t a
-phantom = fromBlock $ Block mempty Phantom
-
-plain :: (Measurable a, FromBlock t) => a -> t a
-plain a = fromBlock $ Block (measure a) (Plain a)
-
-text :: (FromBlock t, FromText s, Measurable s) => Text -> t s
-text = plain . fromText
+-- === Utils === --
 
 hcat, vcat :: Concatenable a => a -> a -> a
 hcat = concat Horizontal
 vcat = concat Vertical
 
-hspacing, vspacing :: FromBlock t => Delta -> t a
-hspacing d = fromBlock $ Block (Bounds d 1) Phantom
-vspacing d = fromBlock $ Block (Bounds 1 d) Phantom
-
-indented :: (FromBlock t, Semigroup (t a)) => t a -> t a
-indented a = hspacing 4 <> a
-
 infixr 6 </>
 (</>) :: Concatenable a => a -> a -> a
 (</>) = vcat
 
+
+-- === Instances === --
+
+instance Mempty (CartTree t m a) where
+    mempty = Empty
+
+instance Convertible2' (CartTree t) t => Semigroup (CartTree t m a) where
+    Empty <> a = a
+    a <> Empty = a
+    a <> b = Concat Horizontal (convert2' a) (convert2' b)
+
+instance Convertible2' (CartTree t) t => Concatenable (CartTree t m a) where
+    concat d a b = Concat d (convert2' a) (convert2' b)
+
+instance Convertible2' (CartTree t) t => P.Monoid (CartTree t m a) where
+    mempty  = mempty
+    mappend = (<>)
+
+
+
+---------------------
+-- === Spacing === --
+---------------------
+
+-- === Definition === --
+
+class Spacing a where
+    spacing :: Bounds -> a
+
+
+-- === Utils === --
+
+hspacing, vspacing :: (ElemBuilder t a, Spacing a) => Delta -> t a
+hspacing = plain . spacing . flip Bounds 1
+vspacing = plain . spacing .      Bounds 1
+
 infixr 6 <+>
-(<+>) :: (FromBlock t, Semigroup (t a)) => t a -> t a -> t a
+(<+>) :: (ElemBuilder t a, Semigroup (t a), Spacing a) => t a -> t a -> t a
 (<+>) = mappendWith $ hspacing 1
 
 
--- === Text combinators === --
 
-space :: IsString a => a
-space = " "
+-----------------------
+-- === LineBlock === --
+-----------------------
 
-parensed, bracked, braced, chevroned, spaced, quoted, squoted, backticked :: (Semigroup a, IsString a) => a -> a
-parensed   = between "(" ")"
-bracked    = between "[" "]"
-braced     = between "{" "}"
-chevroned  = between "<" ">"
-spaced     = between' " "
-quoted     = between' "\""
-squoted    = between' "'"
-backticked = between' "`"
+-- === Definition === --
+
+data LineBlock a = LineBlock { __bounds :: Bounds, _lines :: [a] } deriving (Show, Functor, Foldable, Traversable)
+makeLenses ''LineBlock
+
+
+-- === Running === --
+
+renderLineBlock :: (IsString a, Monoid a, Item a ~ Char, FiniteSequence a) => LineBlock a -> a
+renderLineBlock = intercalate "\n" . fmap stripEnd . view lines
+
+concatLineBlock :: (IsString a, Monoid a) => LineBlock a -> a
+concatLineBlock = intercalate "\n" . view lines
 
 
 -- === Instances === --
 
-instance Mempty    (Block a) where mempty = Block mempty Phantom
-instance Semigroup (Block a) where
-    Block (Bounds 0 0) Phantom <> a = a
-    a <> Block (Bounds 0 0) Phantom = a
-    a <> b = concat Horizontal a b
+-- Measurements
+instance HasBounds  (LineBlock a) where bounds = lineBlock_bounds
+instance Measurable (LineBlock a) where measure = view bounds
 
-instance Measurable   (Block a) where measure = view bounds
-instance HasBounds    (Block a) where bounds  = block_bounds
-instance Concatenable (Block a) where
-    concat d a b = Block bounds $ Concat d a b where
-        bounds = concat d (measure a) (measure b)
+-- Monoids
+instance                            Mempty    (LineBlock a) where mempty = LineBlock mempty mempty
+instance GenLineBlockConcatCtx a => Semigroup (LineBlock a) where (<>)   = concat Horizontal
+instance GenLineBlockConcatCtx a => P.Monoid  (LineBlock a) where
+    mempty  = mempty
+    mappend = (<>)
 
-instance (Measurable a, IsString a)          => IsString           (Block a) where fromString = plain . fromString
-instance (Measurable a, Convertible' Text a) => Convertible Text   (Block a) where convert    = plain . convert'
-instance (Measurable a, Convertible' Text a) => Convertible String (Block a) where convert    = convertVia @Text
-instance (Measurable a, Convertible' Text a) => Convertible Char   (Block a) where convert    = convertVia @String
+-- Concatenation
+type GenLineBlockConcatCtx a = (Convertible String a, Monoid a)
+instance GenLineBlockConcatCtx a => Concatenable (LineBlock a) where
+    concat d l r = LineBlock nbs newtb where
+        lbs   = measure l
+        rbs   = measure r
+        maxw  = max (lbs ^. width)  (rbs ^. width)
+        maxh  = max (lbs ^. height) (rbs ^. height)
+        relw  = width  %~ (maxw -)
+        relh  = height %~ (maxh -)
+        eqw t = zipWith (<>) (t ^. lines) (spacing (relw $ t ^. bounds) ^. lines)
+        eqh t = t ^. lines <> spacing (relh $ t ^. bounds) ^. lines
+        nbs   = concat d lbs rbs
+        newtb = case d of
+            Horizontal -> zipWith (<>) (eqh l) (eqh r)
+            Vertical   -> eqw l <> eqw r
+
+-- Conversions
+instance (IsString a, Measurable a) => IsString (LineBlock a) where
+    fromString s = LineBlock (measure a) $ pure a where a = fromString s
+
+-- Spacing
+instance (Convertible String a, Mempty a) => Spacing (LineBlock a) where
+    spacing b@(Bounds w h) = LineBlock b lines where
+        lines = replicate h $ convert (replicate w ' ')
+
+-- Conversions
+instance {-# OVERLAPPABLE #-} Measurable a => Convertible a (LineBlock a) where
+    convert a = LineBlock (measure a) [a]
 
 
 
@@ -241,53 +297,111 @@ instance (Measurable a, Convertible' Text a) => Convertible Char   (Block a) whe
 
 -- === Definition === --
 
-data BlockBuilder a = PhantomBuilder
-                    | PlainBuilder  !(Block a)
-                    | ConcatBuilder !Dir !(BlockBuilder a) !(BlockBuilder a)
-                    | SubBuilder    !(BlockBuilder a)
-                    deriving (Show)
+type    BlockBuilder      = BlockBuilderT Identity
+newtype BlockBuilderT m a = BlockBuilderT (CartTree BlockBuilderT m a) deriving (Functor, Traversable, Foldable, Mempty, Semigroup, P.Monoid, Concatenable)
 
 
--- === Constructors === --
+-- === Running === --
 
-nested :: BlockBuilder a -> BlockBuilder a
-nested = SubBuilder
+instance ElemBuilderT BlockBuilderT m a where
+    plainT = BlockBuilderT . Plain
+
+instance (Mempty (m a), Concatenable (m a)) => RenderT BlockBuilderT m a where
+    renderT (BlockBuilderT t) = case t of
+        Plain  a     -> a
+        Empty        -> mempty
+        Concat d l r -> concat d (renderT l) (renderT r)
 
 
--- === Builders === --
+-- -- === BlockBuilder modification === --
 
-runLineBuilder :: BlockBuilder a -> Block a
-runLineBuilder bb = foldl (</>) mempty $ (mconcat <$> lines) where
-    lines  = reverse $ reverse <$> rlines
-    rlines = uncurry (flip (:)) $ runLineBuilder' mempty mempty bb
+append :: BlockBuilder a -> BlockBuilder a -> BlockBuilder a
+append a block@(BlockBuilderT b) = case b of
+    Concat d l r -> BlockBuilderT $ Concat d l (append a r)
+    _            -> block <> a
 
-runLineBuilder' :: [[Block a]] -> [Block a] -> BlockBuilder a -> ([[Block a]], [Block a])
-runLineBuilder' lines line = \case
-    PhantomBuilder       -> (lines, line)
-    PlainBuilder   a     -> (lines, a:line)
-    SubBuilder     b     -> (lines, runLineBuilder b:line)
-    ConcatBuilder  d l r -> case d of
-        Horizontal -> uncurry runLineBuilder' (runLineBuilder' lines line l) r
-        Vertical   -> runLineBuilder' (uncurry (flip (:)) (runLineBuilder' lines line l)) mempty r
+prepend :: BlockBuilder a -> BlockBuilder a -> BlockBuilder a
+prepend a block@(BlockBuilderT b) = case b of
+    Concat d l r -> BlockBuilderT $ Concat d (prepend a l) r
+    _            -> a <> block
 
 
 -- === Instances === --
 
-instance Mempty    (BlockBuilder a) where mempty = PhantomBuilder
-instance Semigroup (BlockBuilder a) where
-    PhantomBuilder <> a = a
-    a <> PhantomBuilder = a
-    a <> b = concat Horizontal a b
+-- Conversions
+instance Convertible2 (CartTree BlockBuilderT) BlockBuilderT where convert2 = wrap
+instance (ElemBuilder m a, IsString a)          => IsString           (BlockBuilderT m a) where fromString = plain . fromString
+instance (ElemBuilder m a, Convertible' Text a) => Convertible Text   (BlockBuilderT m a) where convert    = plain . convert'
+instance (ElemBuilder m a, Convertible' Text a) => Convertible String (BlockBuilderT m a) where convert    = convertVia @Text
+instance (ElemBuilder m a, Convertible' Text a) => Convertible Char   (BlockBuilderT m a) where convert    = convertVia @String
 
-instance Concatenable (BlockBuilder a) where
-    concat d a b = ConcatBuilder d a b
-
-
-instance Convertible1 Block BlockBuilder where convert1 = PlainBuilder
-instance (Measurable a, IsString a) => IsString (BlockBuilder a) where fromString = plain . fromString
+-- Lenses
+makeLenses ''BlockBuilderT
 
 
 
+-------------------------
+-- === LineBuilder === --
+-------------------------
+
+-- === Definition === --
+
+type    LineBuilder      = LineBuilderT Identity
+newtype LineBuilderT m a = LineBuilderT (CartTree LineBuilderT m a) deriving (Functor, Traversable, Foldable, Mempty, Semigroup, P.Monoid, Concatenable)
+
+
+-- === Running === --
+
+instance ElemBuilderT LineBuilderT m a where
+    plainT = LineBuilderT . Plain
+
+instance (Concatenable (m a), Monoid (m a)) => RenderT LineBuilderT m a where
+    renderT bb = foldl (</>) mempty $ (mconcat <$> lines) where
+        lines  = reverse $ reverse <$> rlines
+        rlines = uncurry (flip (:)) $ rndr mempty mempty bb
+        rndr :: [[m a]] -> [m a] -> LineBuilderT m a -> ([[m a]], [m a])
+        rndr lines line (LineBuilderT t) = case t of
+            Empty        -> (lines, line)
+            Plain  a     -> (lines, a:line)
+            Concat d l r -> case d of
+                Horizontal -> uncurry rndr (rndr lines line l) r
+                Vertical   -> rndr (uncurry (flip (:)) (rndr lines line l)) mempty r
+
+
+-- === Utils === --
+
+block :: (Render t a, Concatenable (t a), ElemBuilder t a, Mempty a) => t a -> t a
+block t = nested t </> phantom
+
+indented :: (ElemBuilder t a, Spacing a, Semigroup (t a)) => t a -> t a
+indented t = hspacing 4 <> t
+
+
+-- === Instances === --
+
+-- Conversions
+
+instance Convertible2 (CartTree LineBuilderT) LineBuilderT where convert2 = wrap
+instance (ElemBuilder m a, IsString a)          => IsString           (LineBuilderT m a) where fromString = plain . fromString
+instance (ElemBuilder m a, Convertible' Text a) => Convertible Text   (LineBuilderT m a) where convert    = plain . convert'
+instance (ElemBuilder m a, Convertible' Text a) => Convertible String (LineBuilderT m a) where convert    = convertVia @Text
+instance (ElemBuilder m a, Convertible' Text a) => Convertible Char   (LineBuilderT m a) where convert    = convertVia @String
+
+-- Lenses
+makeLenses ''LineBuilderT
+
+
+
+-----------------
+-- === Doc === --
+-----------------
+
+-- | The `Doc` type is just an alias to predefined layouting transformers. It is unified type allowing many fancy utils, like inserting indented code blocks.
+type Doc a = LineBuilderT BlockBuilder (LineBlock a)
+
+
+
+-- FIXME [WD]: we might need to refactor it out somewhere
 -----------------------------
 -- === Basic renderers === --
 -----------------------------
@@ -297,72 +411,21 @@ instance (Measurable a, IsString a) => IsString (BlockBuilder a) where fromStrin
 instance Measurable Text where
     measure t = Bounds (convert $ Text.length t) 1
 
-instance ElemRenderer Text (Bounded [Text]) where
-    renderPhantom b@(Bounds w h)   = Bounded b . replicate h . convert $ replicate w ' '
-    renderElem    b@(Bounds w h) t = Bounded b . pure $ if
-        | tlen > w -> Text.take (unsafeConvert $ unwrap w) t
-        | tlen < w  -> t <> convert (replicate (w - tlen) ' ')
-        | otherwise -> t
-        where tlen = convert $ Text.length t
-
-instance Concatenable (Bounded [Text]) where
-    concat d (Bounded (Bounds w h) b) (Bounded (Bounds w' h') b') = newtb where
-        unih    = max h h'
-        uniw    = max w w'
-        eqh w b = b <> replicate (unih - convert (P.length b)) (convert $ replicate w ' ')
-        eqw b   = fmap (\t -> t <> convert (replicate (uniw - convert (Text.length t)) ' ')) b
-        newtb = case d of
-            Horizontal -> Bounded (Bounds (w <> w') unih) $ zipWith (<>) (eqh w b) (eqh w' b')
-            Vertical   -> Bounded (Bounds uniw (h <> h')) $ eqw b <> eqw b'
-
-
--- === TermText rendering === --
--- FIXME[WD]: The implementation for TermText rendering is VERY similar to Text rendering. We need some wise refactor here.
-
-instance Stylable a => Stylable (Block a) where
-    cleanStyles = fmap cleanStyles
-    withStyle   = fmap . withStyle
+instance Stylable a => Stylable (LineBlock a)
+instance (Stylable a, Functor m) => Stylable (BlockBuilderT m a)
+instance (Stylable a, Functor m) => Stylable (LineBuilderT  m a)
 
 instance Measurable TermText where
     measure t = Bounds (convert $ length t) 1
 
-instance ElemRenderer TermText (Bounded [TermText]) where
-    renderPhantom b@(Bounds w h)   = Bounded b . replicate h . convert $ replicate w ' '
-    renderElem    b@(Bounds w h) t = Bounded b . pure $ if
-        | tlen > w -> take (convert w) t
-        | tlen < w  -> t <> convert (replicate (w - tlen) ' ')
-        | otherwise -> t
-        where tlen = convert $ length t
-
-instance Concatenable (Bounded [TermText]) where
-    concat d (Bounded (Bounds w h) b) (Bounded (Bounds w' h') b') = newtb where
-        unih    = max h h'
-        uniw    = max w w'
-        eqh w b = b <> replicate (unih - convert (P.length b)) (convert $ replicate w ' ')
-        eqw b   = fmap (\t -> t <> convert (replicate (uniw - convert (length t)) ' ')) b
-        newtb = case d of
-            Horizontal -> Bounded (Bounds (w <> w') unih) $ zipWith (<>) (eqh w b) (eqh w' b')
-            Vertical   -> Bounded (Bounds uniw (h <> h')) $ eqw b <> eqw b'
 
 
 
--- === Examples
 
-main :: IO ()
-main = do
-    let b1  = "foo" :: Block TermText
-        b2  = "foo" </> vspacing 1 </> "a" :: Block TermText
-        b'  = b1 <+> b2
-        out = renderText (b' <> styled [fg $ dark green, blinking] b' <> b')
-    putStrLn out
-    main2
-    print "end"
-
-
-main2 :: IO ()
-main2 = do
-    let t1 = "hello" :: BlockBuilder TermText
-        tx = t1 <> (t1 </> t1)
-    putStrLn $ renderText (runLineBuilder $ nested tx <> tx)
-    -- print tx
-    putStrLn ""
+-- main :: IO ()
+-- main = do
+--     let b1  = "foo1" :: Doc TermText
+--         b2  = b1 </> styled [fg $ dark green] (indented (block $ b1 </> b1)) <> b1
+--         out = render $ nested b2 <> nested b2 </> nested b2 <> nested b2
+--     putStrLn $ concatLineBlock out
+--     print "end"
