@@ -229,13 +229,13 @@ lift3 :: (Monad (t1 (t2 m)), Monad (t2 m), Monad m, MonadTrans t, MonadTrans t1,
       => m a -> t (t1 (t2 m)) a
 lift3 = lift . lift2
 
-switch :: Bool -> a -> a -> a
-switch cond ok fail = if cond then ok else fail
-
-switchM :: Monad m => m Bool -> a -> a -> m a
-switchM cond fail ok = do
-  c <- cond
-  return $ if c then ok else fail
+switch :: a -> a -> Bool -> a
+switch ok fail cond = if cond then ok else fail
+--
+-- switchM :: Monad m => m Bool -> a -> a -> m a
+-- switchM cond fail ok = do
+--   c <- cond
+--   return $ if c then ok else fail
 
 
 
