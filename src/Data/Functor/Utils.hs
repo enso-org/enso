@@ -45,14 +45,14 @@ infixr 9 ∘∘∘∘∘
 (∘∘∘∘∘)  = dot5
 
 infixr 9 .
-infixr 9 .:
-infixr 9 .:.
-infixr 9 .::
-infixr 9 .::.
-infixr 9 .:::
-infixr 9 .:::.
-infixr 9 .::::
-infixr 9 .::::.
+infixr 8 .:
+infixr 8 .:.
+infixr 8 .::
+infixr 8 .::.
+infixr 8 .:::
+infixr 8 .:::.
+infixr 8 .::::
+infixr 8 .::::.
 (.) :: Functor f => (a -> b) -> f a -> f b
 (.)      = fmap
 (.:)     = dot2
