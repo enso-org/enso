@@ -310,8 +310,8 @@ maybeHead a = case toList a of
     []      -> Nothing
     (a : _) -> Just a
 
-maybeTail :: ToList a => a -> Maybe (Item a)
-maybeTail a = go $ toList a where
+maybeLast :: ToList a => a -> Maybe (Item a)
+maybeLast a = go $ toList a where
     go = \case []       -> Nothing
                [a]      -> Just a
                (_ : as) -> go as
