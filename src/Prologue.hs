@@ -511,7 +511,7 @@ fromRight f = \case
     Right r -> r
     Left  l -> f l
 
-tryReads :: forall s' s a. (Read a, Convertible' s String, Convertible' String s') => s -> Either s' a
+tryReads :: forall s' s a. (Read a, Convertible' s String) => s -> Either String a
 tryReads s = case reads (convert' s) of
     [(a,[])]  -> Right a
-    ((_,s):_) -> Left $ convert' s
+    ((_,s):_) -> Left  s
