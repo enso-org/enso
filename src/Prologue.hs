@@ -129,6 +129,7 @@ import qualified NeatInterpolation as NeatInterpolation
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 import qualified Data.List as List
+import           Data.List as X (sort)
 import Language.Haskell.TH.Quote (QuasiQuoter)
 
 txt :: QuasiQuoter
@@ -514,4 +515,4 @@ fromRight f = \case
 tryReads :: forall s' s a. (Read a, Convertible' s String) => s -> Either String a
 tryReads s = case reads (convert' s) of
     [(a,[])]  -> Right a
-    ((_,s):_) -> Left  s
+    ((_,s):_) -> Left  ss
