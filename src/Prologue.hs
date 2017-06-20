@@ -511,7 +511,7 @@ fromRight f = \case
     Right r -> r
     Left  l -> f l
 
-tryReads :: Read a => String -> Either String a
-tryReads s = case reads s of
+tryReads :: (Read a, Convertible' s String) => s -> Either String a
+tryReads s = case reads (convert' s) of
     [(a,[])]  -> Right a
     ((_,s):_) -> Left s
