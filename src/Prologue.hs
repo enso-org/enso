@@ -510,3 +510,8 @@ fromRight :: (l -> r) -> Either l r -> r
 fromRight f = \case
     Right r -> r
     Left  l -> f l
+
+tryReads :: Read a => String -> Either String a
+tryReads s = case reads s of
+    [(a,[])]  -> Right a
+    ((_,s):_) -> Left s
