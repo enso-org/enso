@@ -126,6 +126,10 @@ slice idx len t = if lenDiff > 0 then unsafeSlice idx' len'' t else mempty where
 unsafeSlice :: Int -> Int -> VectorText -> VectorText
 unsafeSlice idx len = wrapped %~ Vector.unsafeSlice idx len
 
+-- | O(1)
+splitAt :: Int -> VectorText -> (VectorText, VectorText)
+splitAt i = over both wrap . Vector.splitAt i . unwrap
+
 
 -- === Mutable conversions === --
 
