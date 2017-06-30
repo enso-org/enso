@@ -84,6 +84,7 @@ f <<∘∘>> a = fmap2 f ∘∘ a
 
 infixl 4 <<$>>
 f <<$>> a = fmap f <$> a
+f <<<$>>> a = fmap f <<$>> a
 
 infixl 4 <<*>>
 (<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
