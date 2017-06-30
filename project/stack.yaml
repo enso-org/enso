@@ -23,9 +23,9 @@ packages:
 - extra-dep: true
   location: {commit: 604145037427b944050f1959bcdffc375328f72c, git: 'https://github.com/luna/data-result.git'}
 - extra-dep: true
-  location: {commit: 233e327c33439c6a65e52679dfd66f1f9b2a5c52, git: 'https://github.com/luna/dependent-state.git'}
+  location: {commit: 896f4472b64ab23e610db74991de0af3b1ec0e17, git: 'https://github.com/luna/dependent-state.git'}
 - extra-dep: true
-  location: {commit: dad02796ecbb504f4b6e41f4a4ef7faa6dda3c5d, git: 'https://github.com/luna/functor-utils.git'}
+  location: {commit: 7a0eb39c82acb212a50c028143458ae7ce93745c, git: 'https://github.com/luna/functor-utils.git'}
 - extra-dep: true
   location: {commit: 5dc5b731a4313e44d55677ed6b9f38456feb2d56, git: 'https://github.com/luna/impossible.git'}
 - extra-dep: true
@@ -33,7 +33,7 @@ packages:
 - extra-dep: true
   location: {commit: 53538017ad47a0a473233577595d8ac6e3eae9a0, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: e8dbc8b8796f1db5750b45a6e1e010097c1d6ebb, git: 'https://github.com/luna/prologue.git'}
+  location: {commit: 64179d2492e68016fb34d09b6faf966f3b9f91bd, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
   location: {commit: 7c9eab45f65ab98290282e11d19e39401830ab9c, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
