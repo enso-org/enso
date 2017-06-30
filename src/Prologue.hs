@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE RecursiveDo               #-}
 {-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE MultiWayIf                #-}
 
 module Prologue (
     module Prologue,
@@ -323,6 +324,25 @@ splitHead ps = (val, fromList rest) where
     val  = fmap fst pair
     rest = fromMaybe mempty $ fmap snd pair
 
+maybeTake :: Int -> [a] -> Maybe [a]
+maybeTake i a = if
+    | i < 0     -> Nothing
+    | i == 0    -> Just mempty
+    | otherwise -> case a of
+        (l:ls) -> (l :) <$> maybeTake (pred i) ls
+        []     -> Nothing
+
+maybeDrop :: Int -> [a] -> Maybe [a]
+maybeDrop i a = if
+    | i < 0     -> Nothing
+    | i == 0    -> Just a
+    | otherwise -> case a of
+        (l:ls) -> maybeDrop (pred i) ls
+        []     -> Nothing
+
+maybeSplitAt :: Int -> [a] -> Maybe ([a], [a])
+maybeSplitAt i a = (,) <$> maybeTake i a <*> maybeDrop i a
+
 
 -- === MapM === ---
 
@@ -516,3 +536,4 @@ tryReads :: forall s' s a. (Read a, Convertible' s String) => s -> Either String
 tryReads s = case reads (convert' s) of
     [(a,[])]  -> Right a
     ((_,s):_) -> Left  s
+    _         -> Left "No read"
