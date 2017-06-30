@@ -280,14 +280,17 @@ instance GenLineBlockConcatCtx a => Concatenable (LineBlock a) where
 instance (IsString a, Measurable a) => IsString (LineBlock a) where
     fromString s = LineBlock (measure a) $ pure a where a = fromString s
 
+instance (Convertible' Text a, Measurable a) => Convertible Text (LineBlock a) where
+    convert s = LineBlock (measure a) $ pure a where a = convert' s
+    
+
 -- Spacing
 instance (Convertible String a, Mempty a) => Spacing (LineBlock a) where
     spacing b@(Bounds w h) = LineBlock b lines where
         lines = replicate h $ convert (replicate w ' ')
 
 -- Conversions
-instance {-# OVERLAPPABLE #-} Measurable a => Convertible a (LineBlock a) where
-    convert a = LineBlock (measure a) [a]
+
 
 
 
@@ -298,7 +301,7 @@ instance {-# OVERLAPPABLE #-} Measurable a => Convertible a (LineBlock a) where
 -- === Definition === --
 
 type    BlockBuilder      = BlockBuilderT Identity
-newtype BlockBuilderT m a = BlockBuilderT (CartTree BlockBuilderT m a) deriving (Functor, Traversable, Foldable, Mempty, Semigroup, P.Monoid, Concatenable)
+newtype BlockBuilderT m a = BlockBuilderT (CartTree BlockBuilderT m a) deriving (Show, Functor, Traversable, Foldable, Mempty, Semigroup, P.Monoid, Concatenable)
 
 
 -- === Running === --
@@ -347,7 +350,7 @@ makeLenses ''BlockBuilderT
 -- === Definition === --
 
 type    LineBuilder      = LineBuilderT Identity
-newtype LineBuilderT m a = LineBuilderT (CartTree LineBuilderT m a) deriving (Functor, Traversable, Foldable, Mempty, Semigroup, P.Monoid, Concatenable)
+newtype LineBuilderT m a = LineBuilderT (CartTree LineBuilderT m a) deriving (Show, Functor, Traversable, Foldable, Mempty, Semigroup, P.Monoid, Concatenable)
 
 
 -- === Running === --
