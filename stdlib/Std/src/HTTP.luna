@@ -1,0 +1,52 @@
+import Std.Base
+
+class HttpMethod:
+    POST
+    GET
+    PUT
+    DELETE
+
+    def toText: case self of
+        POST:   "POST"
+        GET:    "GET"
+        PUT:    "PUT"
+        DELETE: "DELETE"
+
+class HttpResponse:
+    HttpResponse Int Binary
+
+    def body: case self of
+        HttpResponse code body: body
+
+    def responseCode: case self of
+        HttpResponse code body: code
+
+class HttpRequest:
+    HttpRequest Text HttpMethod Binary
+
+    def method: case self of
+        HttpRequest uri method body: method
+
+    def setMethod m: case self of
+        HttpRequest uri method body: HttpRequest uri m body
+
+    def body: case self of
+        HttpRequest uri method body: body
+
+    def setBody b: case self of
+        HttpRequest uri method body: HttpRequest uri method b
+
+    def uri: case self of
+        HttpRequest uri method body: uri
+
+    def setUri u: case self of
+        HttpRequest uri method body: HttpRequest u method body
+
+    def perform: primPerformHttp self.uri (self.method.toText) self.body
+
+class Http:
+    Http
+
+    def getJSON uri:
+        HttpResponse code body = HttpRequest uri GET "".toBinary . perform
+        parseJSON body.toText

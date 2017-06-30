@@ -1,0 +1,83 @@
+name:       luna-shell
+version:    "0.1"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+executables:
+  luna:
+    main: Main.hs
+    source-dirs: src
+    dependencies:
+      - base
+      - luna-core
+      - luna-project
+      - luna-syntax-text-lexer
+      - luna-syntax-text-parser
+      - luna-passes
+      - luna-stdlib
+      - open-browser
+      - containers
+      - unordered-containers
+      - aeson
+      - data-rtuple
+      - MissingH
+      - bytestring
+      - mtl
+      - reflection
+      - data-prop
+      - dependent-state
+      - directory
+      - path
+      - bimap
+      - optparse-applicative
+      - text
+      - ansi-wl-pprint
+      - cmd
+      
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

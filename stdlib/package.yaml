@@ -1,0 +1,76 @@
+name:       luna-stdlib
+version:    "0.1"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    other-modules: Paths_luna_stdlib
+
+dependencies:
+    - base
+    - bytestring
+    - containers
+    - dependent-state
+    - luna-core
+    - luna-syntax-text-parser
+    - mtl
+    - transformers
+    - exceptions
+    - typelevel
+    - luna-passes
+    - text
+    - scientific
+    - unordered-containers
+    - aeson
+    - http-conduit
+    - uuid
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

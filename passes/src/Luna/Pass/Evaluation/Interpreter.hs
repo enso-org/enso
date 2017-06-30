@@ -1,0 +1,212 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+module Luna.Pass.Evaluation.Interpreter where
+
+import Prelude as P (read)
+import Luna.Prelude   as P hiding (seq, force, Constructor, Text)
+import GHC.Exts (Any)
+import Unsafe.Coerce (unsafeCoerce)
+
+import Data.Text.Lazy (Text)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Ratio (numerator)
+import Data.Maybe (fromMaybe)
+import Luna.IR.Term.Literal (isInteger, toDouble, toInt)
+
+import           Luna.IR   hiding (get, put)
+import           OCI.Pass (SubPass, Inputs, Outputs, Preserves, Events)
+import qualified OCI.Pass        as Pass
+import           Control.Monad.Trans.State.Lazy (StateT, runStateT, evalStateT, get, gets, put, modify)
+
+import Luna.Builtin.Data.LunaValue
+import Luna.Builtin.Prim
+import Luna.Builtin.Data.Module    as Module
+import Luna.Builtin.Data.Function  as Function
+import Luna.Builtin.Data.LunaEff    (runError, throw, runIO, performIO, LunaEff)
+
+data Interpreter
+type instance Abstract Interpreter = Interpreter
+type instance Inputs  Net   Interpreter = '[AnyExpr, AnyExprLink]
+type instance Outputs Net   Interpreter = '[AnyExpr, AnyExprLink]
+type instance Inputs  Layer Interpreter = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors]
+type instance Outputs Layer Interpreter = '[]
+type instance Inputs  Attr  Interpreter = '[]
+type instance Outputs Attr  Interpreter = '[]
+type instance Inputs  Event Interpreter = '[]
+type instance Outputs Event Interpreter = '[]
+type instance Preserves     Interpreter = '[]
+
+data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
+                              , _localDefs   :: Map Name LunaValue
+                              , _localConses :: Map Name (Map Name LunaValue)
+                              }
+makeLenses ''LocalScope
+
+instance Default LocalScope where
+    def = LocalScope def def def
+
+localLookup :: Expr Draft -> LocalScope -> Maybe LunaData
+localLookup e = Map.lookup e . view localVars
+
+localLookupCons :: Name -> LocalScope -> Maybe (Map Name LunaValue)
+localLookupCons e = Map.lookup e . view localConses
+
+localDefLookup :: Name -> LocalScope -> Maybe LunaValue
+localDefLookup e = Map.lookup e . view localDefs
+
+localInsert :: Expr Draft -> LunaData -> LocalScope -> LocalScope
+localInsert e d = localVars %~ Map.insert e d
+
+mergeScopes :: Map (Expr Draft) LunaData -> LocalScope -> LocalScope
+mergeScopes m = localVars %~ Map.union m
+
+globalLookup :: Name -> Imports -> Maybe LunaValue
+globalLookup n imps = imps ^? importedFunctions . ix n . value
+
+mkInt :: Imports -> Int -> LunaData
+mkInt = toLunaData
+
+mkDouble :: Imports -> Double -> LunaData
+mkDouble = toLunaData
+
+mkString :: Imports -> Text -> LunaData
+mkString = toLunaData
+
+mkNothing :: Imports -> LunaData
+mkNothing imps = toLunaData imps ()
+
+interpret :: MonadRef m => Imports -> Expr Draft -> SubPass Interpreter m (StateT LocalScope LunaEff LunaData)
+interpret = interpret'
+
+interpret' :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors] m, Editors Net '[AnyExpr, AnyExprLink] m)
+           => Imports -> Expr Draft -> m (StateT LocalScope LunaEff LunaData)
+interpret' glob expr = do
+    errors <- getLayer @Errors expr
+    hasErrors <- not . null <$> getLayer @Errors expr
+    if hasErrors then return $ lift $ throw $ show errors else matchExpr expr $ \case
+        String s  -> let res = mkString glob (convert s) in return $ return res
+        Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
+        Var name  -> do
+            let globSym = globalLookup name glob
+            return $ do
+                localDef <- gets (localDefLookup name)
+                local    <- gets (localLookup expr)
+                case (local, localDef, globSym) of
+                    (Just v, _, _) -> return v
+                    (_, Just v, _) -> lift $ v
+                    (_, _, Just v) -> lift $ v
+                    _              -> return LunaNoValue
+        Lam i' o' -> do
+            bodyVal    <- interpret' glob    =<< source o'
+            inpMatcher <- irrefutableMatcher =<< source i'
+            return $ do
+                env <- get
+                return $ LunaFunction $ \d -> do
+                    newBinds <- inpMatcher $ LunaThunk d
+                    evalStateT bodyVal $ mergeScopes newBinds env
+        App f' a' -> do
+            f   <- source f'
+            a   <- source a'
+            fun <- interpret' glob f
+            arg <- interpret' glob a
+            return $ do
+                env  <- get
+                let fun' = evalStateT fun env
+                    arg' = evalStateT arg env
+                lift $ force $ applyFun fun' arg'
+
+        Acc a' name -> do
+            a <- source a' >>= interpret' glob
+            return $ do
+                arg <- a
+                lift $ force $ dispatchMethod name arg
+        Unify l' r' -> do
+            l    <- source l'
+            r    <- source r'
+            rhs  <- interpret' glob r
+            lpat <- irrefutableMatcher l
+            return $ do
+                env  <- get
+                let rhs' = evalStateT rhs (localInsert l (LunaThunk rhs') env)
+                rhsV <- lift $ runError $ force rhs'
+                case rhsV of
+                    Left e  -> modify $ localInsert l $ LunaError e
+                    Right v -> lift (lpat v) >>= modify . mergeScopes
+                return $ mkNothing glob
+        Seq l' r'  -> do
+            l   <- source l'
+            r   <- source r'
+            lhs <- interpret' glob l
+            rhs <- interpret' glob r
+            return $ do
+                lV <- lhs
+                lift $ force' lV
+                rhs
+        Cons n fs -> do
+            fields <- mapM (interpret' glob <=< source) fs
+            let mets = getConstructorMethodMap n glob
+            return $ do
+                fs        <- sequence fields
+                localMets <- gets $ localLookupCons n
+                let ms = fromMaybe mets localMets
+                return $ LunaObject $ Object (Constructor n fs) ms
+        Match t' cls' -> do
+            t       <- source t'
+            cls     <- mapM source cls'
+            target  <- interpret' glob t
+            clauses <- forM cls $ \clause -> matchExpr clause $ \case
+                Lam pat res -> (,) <$> (matcher =<< source pat) <*> (interpret' glob =<< source res)
+            return $ do
+                env <- get
+                let tgt' = evalStateT target env
+                tgt <- lift $ force tgt'
+                (scope, cl) <- lift $ runMatch clauses tgt
+                lift $ evalStateT cl (mergeScopes scope env)
+        Marked _ b -> interpret' glob =<< source b
+        s -> error $ "unexpected " ++ show s
+
+type MatchRes  = (Maybe (Map (Expr Draft) LunaData), LunaData)
+type MatchResM = LunaEff MatchRes
+type Matcher   = LunaData -> MatchResM
+
+runMatch :: [(Matcher, a)] -> LunaData -> LunaEff (Map (Expr Draft) LunaData, a)
+runMatch [] _ = throw "Inexhaustive Luna pattern match"
+runMatch ((m, p) : ms) d = do
+    (res, nextObj) <- m d
+    case res of
+        Just newScope -> return (newScope, p)
+        Nothing       -> runMatch ms nextObj
+
+tryMatch :: Name -> [Matcher] -> Matcher
+tryMatch name fieldMatchers d@(LunaObject (Object (Constructor n fs) ms)) = if n == name then matchFields else return (Nothing, d) where
+    matchFields :: MatchResM
+    matchFields = do
+        results <- zipWithM ($) fieldMatchers fs
+        let binds  = fmap Map.unions $ sequence $ fst <$> results
+            newObj = LunaObject (Object (Constructor n (snd <$> results)) ms)
+        return (binds, newObj)
+tryMatch name fields (LunaThunk v) = v >>= tryMatch name fields
+tryMatch _ _ d = return (Nothing, d)
+
+matcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
+        => Expr Draft -> m Matcher
+matcher expr = matchExpr expr $ \case
+    Var  _    -> return $ \d -> return (Just $ Map.fromList [(expr, d)], d)
+    Grouped g -> matcher =<< source g
+    Cons n as -> do
+        argMatchers <- mapM (matcher <=< source) as
+        return $ tryMatch n argMatchers
+
+matchIrrefutably :: Name -> [LunaData -> LunaEff (Map (Expr Draft) LunaData)] -> LunaData -> LunaEff (Map (Expr Draft) LunaData)
+matchIrrefutably name fieldMatchers d@(LunaObject (Object (Constructor n fs) _)) = if n /= name then throw "Irrefutable pattern match failed" else matchFields where
+    matchFields = Map.unions <$> zipWithM ($) fieldMatchers fs
+matchIrrefutably name fieldMatchers (LunaThunk v) = v >>= matchIrrefutably name fieldMatchers
+
+irrefutableMatcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
+                   => Expr Draft -> m (LunaData -> LunaEff (Map (Expr Draft) LunaData))
+irrefutableMatcher expr = matchExpr expr $ \case
+    Var _     -> return $ \d -> return $ Map.singleton expr d
+    Cons n as -> do
+        args <- mapM (irrefutableMatcher <=< source) as
+        return $ matchIrrefutably n args

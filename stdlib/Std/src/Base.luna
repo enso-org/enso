@@ -1,0 +1,245 @@
+class Bool:
+    True
+    False
+
+    def toString: case self of
+        True:  "True"
+        False: "False"
+
+    def toJSON: JSONBool self
+
+def if_then_else pred ifTrue ifFalse: case pred of
+    True:  ifTrue
+    False: ifFalse
+
+def switch: if_then_else
+
+def id a: a
+
+def const a b: a
+
+def seq a b:
+    a
+    b
+
+class None:
+    None
+
+    def toString: "None"
+
+    def toJSON: JSONNull
+
+class Pair a b:
+    Pair a b
+
+    def toJSON: case self of
+        Pair a b: JSONArray (Prepend a.toJSON (Prepend b.toJSON Empty))
+
+class Maybe a:
+    Nothing
+    Just a
+
+    def toJSON: case (self) of
+        Just a:  "Just " + a.toJSON
+        Nothing: "Nothing"
+
+    def toList: case (self) of
+        Just a: Prepend a Empty
+        Nothing: Empty
+
+    def fromJust: case self of
+        Just a: a
+
+class List a:
+    Empty
+    Prepend a (List a)
+
+    def head: case (self) of
+        Empty: Nothing
+        Prepend x xs: Just x
+
+    def prepend a: Prepend a self
+
+    def map f: case (self) of
+        Empty: Empty
+        Prepend x xs: Prepend (f x) (xs.map f)
+
+    def sequence: case (self) of
+        Empty: None
+        Prepend x xs: seq x xs.sequence
+
+    def each f: self . map f . sequence
+
+    def take i: case (self) of
+        Empty: Empty
+        Prepend x xs: switch (0.equals i) Empty (Prepend x (xs.take i.pred))
+
+    def drop i: case (self) of
+        Empty: Empty
+        Prepend x xs: if 0.equals i then self else xs . drop i.pred
+
+    def fold a f: case (self) of
+        Empty: a
+        Prepend x xs: f x (xs.fold a f)
+
+    def plus that: case (self) of
+        Empty: that
+        Prepend x xs: Prepend x (xs.plus that)
+
+    def length: case (self) of
+        Empty: 0
+        Prepend x xs: xs.length.succ
+
+    def shortRep: "List<" + self.length.shortRep + ">"
+
+    def prependAll it: case (self) of
+        Empty: Empty
+        Prepend x xs: xs . prependAll it . prepend x . prepend it
+
+    def intersperse sep: case (self) of
+        Empty: Empty
+        Prepend x xs: xs . prependAll sep . prepend x
+
+    def toJSON: JSONArray (self . map (.toJSON))
+
+    def filter f: case (self) of
+         Empty: Empty
+         Prepend x xs: switch (f x) (Prepend x (xs.filter f)) (xs.filter f)
+
+    def _merge that: case Pair self that of
+        Pair (Prepend x xs) (Prepend y ys): if y < x then self . _merge ys . prepend y else xs . _merge that . prepend x
+        Pair x Empty: x
+        Pair Empty y: y
+
+    def sort:
+        halfLen = self.length.div 2
+        case 0.equals halfLen of
+            True: self
+            False:
+                fstHalf = self . take halfLen . sort
+                sndHalf = self . drop halfLen . sort
+                fstHalf._merge sndHalf
+
+    def _prefixes i: Prepend (self.take i) (self._prefixes i.succ)
+
+    def prefixes: self._prefixes 1
+
+class Map k v:
+    Tip
+    Bin Int k v (Map k v) (Map k v)
+
+    def isEmpty: case self of
+        Tip: True
+        Bin s k v l r: False
+
+    def size: case self of
+        Tip: 0
+        Bin s k v l r: s
+
+    def toList: case self of
+        Tip: Empty
+        Bin s k v l r:
+            l . toList . plus (Empty . prepend (Pair k v)) . plus r.toList
+
+    def map f: case self of
+        Tip: Tip
+        Bin s k v l r: Bin s k (f v) (l . map f) (r . map f)
+
+    def toJSON: JSONObject (self . map (x : x.toJSON))
+
+    def lookup k: case self of
+        Tip: Nothing
+        Bin s kx x l r:
+            if kx.equals k then Just x else (if kx < k then r.lookup k else l.lookup k)
+
+    def insert k v: case self of
+        Tip: Bin 1 k v Tip Tip
+        Bin s kx x l r:
+            case kx.equals k of
+                True: Bin s kx v l r
+                False: case kx < k of
+                    True:
+                        newR = r.insert k v
+                        Bin (l.size + newR.size) kx x l newR
+                    False:
+                        newL = l.insert k v
+                        Bin (newL.size + r.size) kx x newL r
+
+class JSON:
+    JSONNumber Real
+    JSONString Text
+    JSONBool   Bool
+    JSONArray  (List JSON)
+    JSONObject (Map Text JSON)
+    JSONNull
+
+    def toJSON: self
+
+    def shortRep: self.render
+
+    def render: case self of
+        JSONNumber d: d.shortRep
+        JSONString s: s.escapeJSON
+        JSONArray  l: "[" + (l . map (x : x.render) . intersperse "," . fold "" (+)) + "]"
+        JSONBool   b: case b of
+            True:  "true"
+            False: "false"
+        JSONNull: "null"
+        JSONObject m: "{" + (m . toList . map ((Pair k v): k.escapeJSON + ": " + v.render) . intersperse "," . fold "" (+)) + "}"
+
+    def lookup key: case self of
+        JSONObject m: m.lookup key
+        other: Nothing
+
+    def toReal: case self of
+        JSONNumber a: a
+
+def newMVar:
+    primNewMVar
+
+def fork:
+    primFork
+
+class MVar:
+    BogusConstructorForParser
+
+    def take:  primTakeMVar self
+    def read:  primReadMVar self
+    def put v: primPutMVar  self v
+
+class Stream a:
+    Stream a (Stream a)
+
+    def isStream: True
+
+    def each f: case self of
+        Stream elt s:
+            f elt
+            s.each f
+
+    def foldFrom a f: case self of
+        Stream elt s:
+            new = f elt a
+            Stream new (s.foldFrom new f)
+
+    def fold f: case self of
+        Stream elt s: s.foldFrom elt f
+
+    def map f: case self of
+        Stream elt s: Stream (f elt) (s.map f)
+
+def bitcoinPrice currency:
+    putStr "pricing bitcoin!"
+    uri = "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=" + currency
+    res = Http.getJSON uri
+    res . lookup currency . fromJust . toReal
+
+def delayAsync time act:
+    var = newMVar
+    fork (seq (sleep time) (var.put act))
+    var
+
+def computeEvery time act:
+    current = act
+    future  = delayAsync time (computeEvery time act)
+    Stream current future.read

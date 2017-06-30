@@ -1,0 +1,79 @@
+name:       luna-syntax-text-lexer
+version:    "0.2"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    other-modules: Paths_luna_syntax_text_lexer
+
+dependencies:
+    - base
+    - prologue
+    - dependent-state
+    - lens
+    - containers
+    - mtl
+    - vector
+    - text-processing
+    - parsert
+    - vector-text
+    - fingertree
+
+    # remove:
+    - lens-utils
+    - exceptions
+    - primitive
+    - data-default
+    - typelevel
+    - transformers
+    - constraints
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

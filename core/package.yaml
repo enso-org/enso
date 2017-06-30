@@ -1,0 +1,127 @@
+name:       luna-core
+version:    "0.1"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+        - src-libs
+    other-modules: Paths_luna_core
+
+flags:
+    debug:
+        manual: false
+        default: false
+
+when:
+    - condition: flag(debug)
+      cpp-options: -DDEBUG
+
+benchmarks:
+    graph-builder:
+        main: Main.hs
+        source-dirs: test/bench
+        dependencies:
+            - criterion
+            - luna-core
+
+tests:
+    spec:
+        main: Main.hs
+        source-dirs: test/spec
+        dependencies:
+            - luna-core
+            - directory
+            - filepath
+            - hspec
+            - hspec-jenkins
+            - open-browser
+
+dependencies:
+    - aeson
+    - base
+    - binary
+    - data-base
+    - data-construction
+    - dependent-state
+    - ghc
+    - mtl
+    - prologue
+    - transformers
+    - ansi-wl-pprint # from now on src-libs deps vvv
+    - bytestring
+    - constraints
+    - container
+    - convert
+    - data-default
+    - data-prop
+    - data-rtuple
+    - either
+    - exceptions
+    - functor-utils
+    - hspec
+    - lens
+    - lens-utils
+    - open-browser
+    - primitive
+    - reflection
+    - template-haskell
+    - text
+    - time
+    - time-locale-compat
+    - typelevel
+    - vector
+    - ansi-terminal
+    - text-processing
+    - vector-text
+    - ansi-terminal
+    - terminal-text
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec
