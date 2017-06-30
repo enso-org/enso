@@ -13,7 +13,7 @@ import qualified Data.Text as Text
 import qualified System.Environment as System
 import qualified Text.PrettyPrint.ANSI.Leijen as Doc
 
-import qualified System.Console.Options as O
+-- import qualified System.Console.Options as O
 
 class Pretty a where
     showPretty :: a -> Text
@@ -104,7 +104,7 @@ configTreeValParser = (,)
 -- stats   = +pass.**.stats
 -- verbose = +pass.**.verbose
 
- 
+
 
 -- === Build === --
 
@@ -256,15 +256,15 @@ rootCmd = subparser (mconcat [ commandGroup "Compilation:", metavar "command"
 
 main :: IO ()
 main = do
-    O.main
-    -- args <- System.getArgs
-    -- opts <- handleParseResult $ execParserPure prefs pinfo (preprocessArgs args)
-    -- print opts
-    -- return ()
-    -- where prefs = defaultPrefs {prefShowHelpOnEmpty = True}
-    --       pinfo = info rootCmd
-    --             $ fullDesc <> header "Luna compiler and ecosystem toolkit."
-    --                        <> footer "Use `luna [topic] help` for more information about that topic."
+    -- O.main
+    args <- System.getArgs
+    opts <- handleParseResult $ execParserPure prefs pinfo (preprocessArgs args)
+    print opts
+    return ()
+    where prefs = defaultPrefs {prefShowHelpOnEmpty = True}
+          pinfo = info rootCmd
+                $ fullDesc <> header "Luna compiler and ecosystem toolkit."
+                           <> footer "Use `luna [topic] help` for more information about that topic."
 
 
 preprocessArgs :: [String] -> [String]
