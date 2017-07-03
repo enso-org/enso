@@ -1,0 +1,6 @@
+import Std.Base
+
+class Command:
+    Command Text (List Text)
+
+    def run: runProcess self

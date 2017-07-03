@@ -26,6 +26,7 @@ dependencies:
     - aeson
     - http-conduit
     - uuid
+    - process
 
 default-extensions:
     - AllowAmbiguousTypes

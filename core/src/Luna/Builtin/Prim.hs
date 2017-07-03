@@ -106,6 +106,14 @@ instance FromLunaData Bool where
         LunaObject obj -> return $ obj ^. constructor . tag == "True"
         _              -> throw "Expected a bool luna value, got unexpected constructor"
 
+instance FromLunaData a => FromLunaData [a] where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> if obj ^. constructor . tag == "Empty"
+            then return []
+            else let [x, t] = obj ^. constructor . fields in (:) <$> fromLunaData x <*> fromLunaData t
+        _              -> throw "Expected a List luna value, got unexpected constructor"
+
+
 class ToLunaValue a where
     toLunaValue :: Imports -> a -> LunaValue
 

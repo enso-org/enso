@@ -17,7 +17,7 @@ import           Data.Map (Map)
 import OCI.Pass (SubPass)
 import OCI.IR.Combinators
 import qualified OCI.Pass        as Pass
-import Luna.Builtin.Data.LunaValue  (LunaValue, LunaData (..), Constructor (..), Object (..), force')
+import Luna.Builtin.Data.LunaValue  (LunaValue, LunaData (..), Constructor (..), Object (..), force', constructor, fields)
 import Luna.Builtin.Data.LunaEff    (runError, throw, runIO, performIO, LunaEff)
 import Luna.Pass.Evaluation.Interpreter
 import Luna.Pass.Typechecking.Typecheck
@@ -47,6 +47,8 @@ import qualified Data.Map.Base     as IMap
 import qualified Data.HashMap.Lazy as HM
 import           Data.UUID         (UUID)
 import qualified Data.UUID.V4      as UUID
+import System.Process (CreateProcess)
+import qualified System.Process as Process
 
 import Data.IORef
 import Control.Concurrent
@@ -631,6 +633,10 @@ systemStd imps = do
         writeFileVal p c = withExceptions $ writeFile (convert p) (convert c)
     writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [LCons "Text" [], LCons "Text" []] (LCons "None" [])
 
+    let runProcess :: CreateProcess -> LunaEff ()
+        runProcess p = withExceptions . void $ Process.createProcess p
+    runProcess' <- typeRepForIO (toLunaValue std runProcess) [LCons "Command" []] (LCons "None" [])
+
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
                                     , ("readFile", readFileF)
@@ -643,6 +649,7 @@ systemStd imps = do
                                     , ("primPutMVar", putMVar')
                                     , ("primTakeMVar", takeMVar')
                                     , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
+                                    , ("runProcess", runProcess')
                                     ]
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
@@ -663,3 +670,11 @@ instance ToLunaData Aeson.Value where
         constructorOf (Aeson.Bool   a) = Constructor "JSONBool"   [toLunaData imps a]
         constructorOf  Aeson.Null      = Constructor "JSONNull"   []
         constructorOf (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
+
+instance FromLunaData CreateProcess where
+    fromLunaData v = let errorMsg = "Expected a Command luna object, got unexpected constructor" in
+        force' v >>= \case
+            LunaObject obj -> case obj ^. constructor . fields of
+                [processPath, args] -> Process.proc <$> fmap Text.unpack (fromLunaData processPath) <*> fmap (map Text.unpack) (fromLunaData args)
+                _                   -> throw errorMsg
+            _              -> throw errorMsg
