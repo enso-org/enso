@@ -11,7 +11,6 @@ import qualified OCI.IR.Repr.Vis    as Vis
 import qualified Data.Map            as Map
 import           System.IO.Unsafe  (unsafePerformIO)
 
-import Text.Format.Doc
 import Luna.Test.IR.Runner
 import Luna.IR
 import Luna.Builtin.Data.Module
