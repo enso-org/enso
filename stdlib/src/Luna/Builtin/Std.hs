@@ -627,20 +627,25 @@ systemStd imps = do
         readMVarVal = performIO . readMVar
     takeMVar' <- typeRepForIO (toLunaValue std takeMVarVal) [LCons "MVar" [LVar "a"]] (LVar "a")
 
-    let toyModule = Map.fromList [ ("putStr", printLn)
-                                 , ("errorStr", err)
-                                 , ("readFile", readFileF)
-                                 , ("parseJSON", parseJSON)
-                                 , ("primPerformHttp", primPerformHttp)
-                                 , ("primFork", fork)
-                                 , ("sleep", sleep)
-                                 , ("primNewMVar", newEmptyMVar')
-                                 , ("primPutMVar", putMVar')
-                                 , ("primTakeMVar", takeMVar')
-                                 , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
-                                 ]
+    let writeFileVal :: Text -> Text -> LunaEff ()
+        writeFileVal p c = withExceptions $ writeFile (convert p) (convert c)
+    writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [LCons "Text" [], LCons "Text" []] (LCons "None" [])
 
-    return $ (cleanup, std & importedFunctions %~ Map.union toyModule)
+    let systemModule = Map.fromList [ ("putStr", printLn)
+                                    , ("errorStr", err)
+                                    , ("readFile", readFileF)
+                                    , ("writeFile", writeFile')
+                                    , ("parseJSON", parseJSON)
+                                    , ("primPerformHttp", primPerformHttp)
+                                    , ("primFork", fork)
+                                    , ("sleep", sleep)
+                                    , ("primNewMVar", newEmptyMVar')
+                                    , ("primPutMVar", putMVar')
+                                    , ("primTakeMVar", takeMVar')
+                                    , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
+                                    ]
+
+    return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
 
 instance ToLunaData (HTTP.Response ByteString) where
     toLunaData imps v = LunaObject $ Object (Constructor "HttpResponse" [toLunaData imps $ HTTP.getResponseStatusCode v, toLunaData imps $ HTTP.getResponseBody v]) $ getObjectMethodMap "HttpResponse" imps
