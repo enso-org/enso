@@ -347,6 +347,7 @@ stringClass imps = do
         cmp <- compile r
         return (assu, cmp)
     let plusVal       = toLunaValue tmpImps ((<>) :: Text -> Text -> Text)
+        shortRepVal   = toLunaValue tmpImps (Text.take 100 :: Text -> Text)
         idVal         = toLunaValue tmpImps (id   :: Text -> Text)
         eqVal         = toLunaValue tmpImps ((==) :: Text -> Text -> Bool)
         gtVal         = toLunaValue tmpImps ((>)  :: Text -> Text -> Bool)
@@ -371,7 +372,7 @@ stringClass imps = do
                                                        , ("lowercase",  Function textIr     lowercaseVal  textAssu)
                                                        , ("uppercase",  Function textIr     uppercaseVal  textAssu)
                                                        , ("reverse",    Function textIr     reverseVal    textAssu)
-                                                       , ("shortRep",   Function textIr     idVal         textAssu)
+                                                       , ("shortRep",   Function textIr     shortRepVal   textAssu)
                                                        , ("toText",     Function textIr     idVal         textAssu)
                                                        , ("escapeJSON", Function textIr     escapeJSONVal textAssu)
                                                        , ("toJSON",     Function toJSONIr   toJSONVal     toJSONAssu)
