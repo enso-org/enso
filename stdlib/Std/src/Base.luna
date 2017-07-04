@@ -94,7 +94,7 @@ class Maybe a:
         Just a: a
         Nothing: defVal
 
-    def maybe f defVal: case self of
+    def maybe defVal f: case self of
         Just a: f a
         Nothing: defVal
 
@@ -331,22 +331,3 @@ def every time act:
     current = act
     future  = delayAsync time (every time act)
     Stream current future.read
-
-class Point:
-    Point Real Real
-
-    def toJSON: case self of
-        Point x y: JSONObject (Tip . insert "x" (JSONNumber x) . insert "y" (JSONNumber y))
-
-    def move _x _y: case self of
-        Point x y: Point (x + _x) (y + _y)
-
-class Circle:
-    Circle Point Real Text
-    def toJSON: case self of
-        Circle center radius color: JSONObject (Tip . insert "center" center.toJSON . insert "radius" radius.toJSON . insert "color" color.toJSON)
-
-    def move x y: case self of
-        Circle c r col: Circle (c . move x y) r col
-
-    def shortRep: "Circle"

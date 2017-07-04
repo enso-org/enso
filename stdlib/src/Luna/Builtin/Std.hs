@@ -641,8 +641,8 @@ systemStd imps = do
         runProcessVal = withExceptions . void . Process.createProcess
     runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [LCons "CommandDescription" []] (LCons "None" [])
 
-    let readCommandWithExitCodeVal :: CreateProcess -> Text -> LunaEff LunaData
-        readCommandWithExitCodeVal p stdin = let convertResult (ec, stdin, stdout) = toLunaData std (ec, Text.pack stdin, Text.pack stdout) in
+    let readCommandWithExitCodeVal :: CreateProcess -> Text -> LunaEff (ExitCode, Text, Text)
+        readCommandWithExitCodeVal p stdin = let convertResult (ec, stdin, stdout) = (ec, Text.pack stdin, Text.pack stdout) in
             fmap convertResult . withExceptions . Process.readCreateProcessWithExitCode p $ convert stdin
     readCommandWithExitCode' <- typeRepForIO (toLunaValue std readCommandWithExitCodeVal) [LCons "CommandDescription" [], LCons "Text" []] (LCons "Triple" [LCons "ExitCode" [], LCons "Text" [], LCons "Text" []])
 
