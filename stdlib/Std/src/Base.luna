@@ -2,11 +2,13 @@ class Bool:
     True
     False
 
-    def toString: case self of
+    def toText: case self of
         True:  "True"
         False: "False"
 
     def toJSON: JSONBool self
+
+    def shortRep: self . toText
 
 def if_then_else pred ifTrue ifFalse: case pred of
     True:  ifTrue
@@ -25,7 +27,7 @@ def seq a b:
 class None:
     None
 
-    def toString: "None"
+    def toText: "None"
 
     def toJSON: JSONNull
 
@@ -35,13 +37,51 @@ class Pair a b:
     def toJSON: case self of
         Pair a b: JSONArray (Prepend a.toJSON (Prepend b.toJSON Empty))
 
+    def first: case self of
+        Pair a b: a
+
+    def second: case self of
+        Pair a b: b
+
+    def map f: Pair (f self.first) (f self.second)
+
+    def toText: case self of
+        Pair a b: "Pair " + a.toText + " " + b.toText
+
+    def shortRep: case self of
+        Pair a b: "(" + a.shortRep + ", " + b.shortRep + ")"
+
+class Triple a b c:
+    Triple a b c
+
+    def toJSON: case self of
+        Triple a b c: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON Empty)))
+
+    def first: case self of
+        Triple a b c: a
+
+    def second: case self of
+        Triple a b c: b
+
+    def third: case self of
+        Triple a b c: c
+
+    def map f: Triple (f self.first) (f self.second) (f self.third)
+
+    def toText: case self of
+        Triple a b c: "Triple " + a.toText + " " + b.toText + " " + c.toText
+
+    def shortRep: case self of
+        Triple a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
+
+
 class Maybe a:
     Nothing
     Just a
 
     def toJSON: case (self) of
-        Just a:  "Just " + a.toJSON
-        Nothing: "Nothing"
+        Just a: a.toJSON
+        Nothing: JSONNull
 
     def toList: case (self) of
         Just a: Prepend a Empty
@@ -49,6 +89,26 @@ class Maybe a:
 
     def fromJust: case self of
         Just a: a
+
+    def fromMaybe defVal: case self of
+        Just a: a
+        Nothing: defVal
+
+    def maybe f defVal: case self of
+        Just a: f a
+        Nothing: defVal
+
+    def isJust: case self of
+        Just a: True
+        Nothing: False
+
+    def isNothing: case self of
+        Nothing: True
+        Just a: False
+
+    def shortRep: case self of
+        Just a: "Just " + a.shortRep
+        Nothing: "Nothing"
 
 class List a:
     Empty
@@ -60,6 +120,10 @@ class List a:
 
     def prepend a: Prepend a self
 
+    def isEmpty: case self of
+        Empty: True
+        Prepend x xs: False
+
     def map f: case (self) of
         Empty: Empty
         Prepend x xs: Prepend (f x) (xs.map f)
@@ -68,7 +132,12 @@ class List a:
         Empty: None
         Prepend x xs: seq x xs.sequence
 
-    def each f: self . map f . sequence
+    def each f: case (self) of
+        Empty: Empty
+        Prepend x xs:
+            fst  = f x
+            rest = xs . each f
+            Prepend fst rest
 
     def take i: case (self) of
         Empty: Empty
@@ -100,7 +169,7 @@ class List a:
         Empty: Empty
         Prepend x xs: xs . prependAll sep . prepend x
 
-    def toJSON: JSONArray (self . map (.toJSON))
+    def toJSON: JSONArray (self . map (x: x.toJSON))
 
     def filter f: case (self) of
          Empty: Empty
@@ -123,6 +192,20 @@ class List a:
     def _prefixes i: Prepend (self.take i) (self._prefixes i.succ)
 
     def prefixes: self._prefixes 1
+
+    def zipWith f that: case Pair self that of
+        Pair (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
+        Pair x y: Empty
+
+    def zip l: self . zipWith Pair l
+
+    def _all f: case self of
+        Empty: True
+        Prepend x xs: if f x then xs . _all f else False
+
+    def _any f: case self of
+        Empty: False
+        Prepend x xs: if f x then True else xs . _any f
 
 class Map k v:
     Tip
@@ -175,8 +258,6 @@ class JSON:
 
     def toJSON: self
 
-    def shortRep: self.render
-
     def render: case self of
         JSONNumber d: d.shortRep
         JSONString s: s.escapeJSON
@@ -187,12 +268,21 @@ class JSON:
         JSONNull: "null"
         JSONObject m: "{" + (m . toList . map ((Pair k v): k.escapeJSON + ": " + v.render) . intersperse "," . fold "" (+)) + "}"
 
+    def shortRep: self.render
+
     def lookup key: case self of
         JSONObject m: m.lookup key
         other: Nothing
 
     def toReal: case self of
         JSONNumber a: a
+
+    def toText: case self of
+        JSONString s: s
+
+    def lookupReal key: self . lookup key . fromJust . toReal
+
+    def lookupText key: self . lookup key . fromJust . toText
 
 def newMVar:
     primNewMVar
@@ -228,18 +318,35 @@ class Stream a:
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
-def bitcoinPrice currency:
-    putStr "pricing bitcoin!"
-    uri = "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=" + currency
-    res = Http.getJSON uri
-    res . lookup currency . fromJust . toReal
+def average stream:
+    folder = el: (Pair count sum): Pair count.succ (sum + el)
+    stream . foldFrom (Pair 0 0.0) folder . map ((Pair count sum): sum./ count.toReal)
 
 def delayAsync time act:
     var = newMVar
     fork (seq (sleep time) (var.put act))
     var
 
-def computeEvery time act:
+def every time act:
     current = act
-    future  = delayAsync time (computeEvery time act)
+    future  = delayAsync time (every time act)
     Stream current future.read
+
+class Point:
+    Point Real Real
+
+    def toJSON: case self of
+        Point x y: JSONObject (Tip . insert "x" (JSONNumber x) . insert "y" (JSONNumber y))
+
+    def move _x _y: case self of
+        Point x y: Point (x + _x) (y + _y)
+
+class Circle:
+    Circle Point Real Text
+    def toJSON: case self of
+        Circle center radius color: JSONObject (Tip . insert "center" center.toJSON . insert "radius" radius.toJSON . insert "color" color.toJSON)
+
+    def move x y: case self of
+        Circle c r col: Circle (c . move x y) r col
+
+    def shortRep: "Circle"

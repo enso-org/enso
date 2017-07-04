@@ -1,0 +1,29 @@
+import Std.Base
+
+class CommandDescription:
+    CommandDescription Text (List Text)
+
+    def run: primRunProcess self
+    def runWithExitCode stdin: primReadCommandWithExitCode self stdin
+
+class ExitCode:
+    ExitSuccess
+    ExitFailure Int
+
+    def toInt: case self of
+        ExitSuccess: 0
+        ExitFailure e: e
+
+    def exitSuccess: case self of
+        ExitSuccess: True
+        ExitFailure e: False
+
+    def exitFailure: case self of
+        ExitFailure e: True
+        ExitSuccess: False
+
+    def toText: case self of
+        ExitSuccess: "ExitSuccess"
+        ExitFailure e: "ExitFailure " + e.toText
+
+    def shortRep: self . toText

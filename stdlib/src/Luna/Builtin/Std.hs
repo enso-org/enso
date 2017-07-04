@@ -17,7 +17,7 @@ import           Data.Map (Map)
 import OCI.Pass (SubPass)
 import OCI.IR.Combinators
 import qualified OCI.Pass        as Pass
-import Luna.Builtin.Data.LunaValue  (LunaValue, LunaData (..), Constructor (..), Object (..), force', constructor, fields)
+import Luna.Builtin.Data.LunaValue  (LunaValue, LunaData (..), Constructor (..), Object (..), force', constructor, fields, tag)
 import Luna.Builtin.Data.LunaEff    (runError, throw, runIO, performIO, LunaEff)
 import Luna.Pass.Evaluation.Interpreter
 import Luna.Pass.Typechecking.Typecheck
@@ -47,7 +47,8 @@ import qualified Data.Map.Base     as IMap
 import qualified Data.HashMap.Lazy as HM
 import           Data.UUID         (UUID)
 import qualified Data.UUID.V4      as UUID
-import System.Process (CreateProcess)
+import System.Process (CreateProcess, StdStream (CreatePipe))
+import System.Exit (ExitCode (ExitSuccess, ExitFailure))
 import qualified System.Process as Process
 
 import Data.IORef
@@ -58,7 +59,7 @@ import Control.Concurrent
 import qualified Network.HTTP.Simple as HTTP
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"] ]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"] ]
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -168,7 +169,7 @@ doubleClass imps = do
         cmp <- compile r
         return (assu, cmp)
 
-    Right (double2StringAssumptions, double2string) <- runGraph $ do
+    Right (double2TextAssumptions, double2text) <- runGraph $ do
         tDouble <- cons_ @Draft "Real"
         tStr <- cons_ @Draft "Text"
         l    <- lam tDouble tStr
@@ -195,8 +196,8 @@ doubleClass imps = do
                                                      , ("*",        Function boxed3Doubles timeVal  boxed3DoublesAssumptions)
                                                      , ("-",        Function boxed3Doubles minusVal boxed3DoublesAssumptions)
                                                      , ("/",        Function boxed3Doubles divVal   boxed3DoublesAssumptions)
-                                                     , ("shortRep", Function double2string showVal  double2StringAssumptions)
-                                                     , ("toString", Function double2string showVal  double2StringAssumptions)
+                                                     , ("shortRep", Function double2text   showVal  double2TextAssumptions)
+                                                     , ("toText",   Function double2text   showVal  double2TextAssumptions)
                                                      , ("toJSON",   Function double2JSON   toJSVal  double2JSONAssumptions)
                                                      ]
     return klass
@@ -227,7 +228,7 @@ intClass imps = do
         cmp <- compile r
         return (assu, cmp)
 
-    Right (int2StringAssumptions, int2string) <- runGraph $ do
+    Right (int2TextAssumptions, int2text) <- runGraph $ do
         tInt <- cons_ @Draft "Int"
         tStr <- cons_ @Draft "Text"
         l    <- lam tInt tStr
@@ -276,7 +277,8 @@ intClass imps = do
                                                         , ("succ",        Function boxed2Ints succVal        boxed2IntsAssumptions)
                                                         , ("seconds",     Function boxed2Ints secondsVal     boxed2IntsAssumptions)
                                                         , ("miliseconds", Function boxed2Ints milisecondsVal boxed2IntsAssumptions)
-                                                        , ("shortRep",    Function int2string showVal        int2StringAssumptions)
+                                                        , ("shortRep",    Function int2text   showVal        int2TextAssumptions)
+                                                        , ("toText",      Function int2text   showVal        int2TextAssumptions)
                                                         , ("toJSON",      Function int2JSON   toJSVal        int2JSONAssumptions)
                                                         , ("toReal",      Function int2Real   toRealVal      int2RealAssumptions)
                                                         , ("equals",      Function ints2Bool  eqVal          ints2BoolAssumptions)
@@ -317,7 +319,7 @@ stringClass imps = do
         (assu, r) <- mkMonadProofFun $ generalize l2
         cmp <- compile r
         return (assu, cmp)
-    Right (shortRepAssu, shortRepIr) <- runGraph $ do
+    Right (textAssu, textIr) <- runGraph $ do
         tText <- cons_ @Draft "Text"
         l       <- lam tText tText
         (assu, r) <- mkMonadProofFun $ generalize l
@@ -345,7 +347,7 @@ stringClass imps = do
         cmp <- compile r
         return (assu, cmp)
     let plusVal       = toLunaValue tmpImps ((<>) :: Text -> Text -> Text)
-        shortRepVal   = toLunaValue tmpImps (id   :: Text -> Text)
+        idVal         = toLunaValue tmpImps (id   :: Text -> Text)
         eqVal         = toLunaValue tmpImps ((==) :: Text -> Text -> Bool)
         gtVal         = toLunaValue tmpImps ((>)  :: Text -> Text -> Bool)
         ltVal         = toLunaValue tmpImps ((<)  :: Text -> Text -> Bool)
@@ -366,11 +368,12 @@ stringClass imps = do
                                                        , ("words",      Function wordsIr    wordsVal      wordsAssu)
                                                        , ("lines",      Function wordsIr    linesVal      wordsAssu)
                                                        , ("characters", Function wordsIr    charsVal      wordsAssu)
-                                                       , ("lowercase",  Function shortRepIr lowercaseVal  shortRepAssu)
-                                                       , ("uppercase",  Function shortRepIr uppercaseVal  shortRepAssu)
-                                                       , ("reverse",    Function shortRepIr reverseVal    shortRepAssu)
-                                                       , ("shortRep",   Function shortRepIr shortRepVal   shortRepAssu)
-                                                       , ("escapeJSON", Function shortRepIr escapeJSONVal shortRepAssu)
+                                                       , ("lowercase",  Function textIr     lowercaseVal  textAssu)
+                                                       , ("uppercase",  Function textIr     uppercaseVal  textAssu)
+                                                       , ("reverse",    Function textIr     reverseVal    textAssu)
+                                                       , ("shortRep",   Function textIr     idVal         textAssu)
+                                                       , ("toText",     Function textIr     idVal         textAssu)
+                                                       , ("escapeJSON", Function textIr     escapeJSONVal textAssu)
                                                        , ("toJSON",     Function toJSONIr   toJSONVal     toJSONAssu)
                                                        , ("toBinary",   Function toBinaryIr toBinaryVal   toBinaryAssu)
                                                        ]
@@ -633,9 +636,15 @@ systemStd imps = do
         writeFileVal p c = withExceptions $ writeFile (convert p) (convert c)
     writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [LCons "Text" [], LCons "Text" []] (LCons "None" [])
 
-    let runProcess :: CreateProcess -> LunaEff ()
-        runProcess p = withExceptions . void $ Process.createProcess p
-    runProcess' <- typeRepForIO (toLunaValue std runProcess) [LCons "Command" []] (LCons "None" [])
+    let runProcessVal :: CreateProcess -> LunaEff ()
+        runProcessVal = withExceptions . void . Process.createProcess
+    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [LCons "CommandDescription" []] (LCons "None" [])
+
+    let readCommandWithExitCodeVal :: CreateProcess -> Text -> LunaEff LunaData
+        readCommandWithExitCodeVal p stdin = let convertResult (ec, stdin, stdout) = toLunaData std (ec, Text.pack stdin, Text.pack stdout) in
+            fmap convertResult . withExceptions . Process.readCreateProcessWithExitCode p $ convert stdin
+    readCommandWithExitCode' <- typeRepForIO (toLunaValue std readCommandWithExitCodeVal) [LCons "CommandDescription" [], LCons "Text" []] (LCons "Triple" [LCons "ExitCode" [], LCons "Text" [], LCons "Text" []])
+
 
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
@@ -649,7 +658,8 @@ systemStd imps = do
                                     , ("primPutMVar", putMVar')
                                     , ("primTakeMVar", takeMVar')
                                     , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
-                                    , ("runProcess", runProcess')
+                                    , ("primRunProcess", runProcess')
+                                    , ("primReadCommandWithExitCode", readCommandWithExitCode')
                                     ]
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
@@ -672,9 +682,22 @@ instance ToLunaData Aeson.Value where
         constructorOf (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
 
 instance FromLunaData CreateProcess where
-    fromLunaData v = let errorMsg = "Expected a Command luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a CommandDescription luna object, got unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . fields of
                 [processPath, args] -> Process.proc <$> fmap Text.unpack (fromLunaData processPath) <*> fmap (map Text.unpack) (fromLunaData args)
                 _                   -> throw errorMsg
             _              -> throw errorMsg
+
+instance FromLunaData ExitCode where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> case obj ^. constructor . tag of
+            "ExitSuccess" -> return ExitSuccess
+            "ExitFailure" -> fmap ExitFailure . fromLunaData . head $ obj ^. constructor . fields
+        _ -> throw "Expected a ExitCode luna object, got unexpected constructor"
+
+instance ToLunaData ExitCode where
+    toLunaData imps ec =
+        let makeConstructor ExitSuccess     = Constructor "ExitSuccess" []
+            makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps c] in
+        LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
