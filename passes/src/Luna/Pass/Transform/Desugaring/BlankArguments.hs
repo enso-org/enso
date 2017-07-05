@@ -2,20 +2,20 @@
 
 module Luna.Pass.Transform.Desugaring.BlankArguments where
 
-import           OCI.Pass        (Pass, SubPass, Inputs, Outputs, Preserves)
-import qualified OCI.Pass        as Pass
+import           Control.Monad               (foldM)
+import           Data.TypeDesc
+import           Luna.IR
+import           Luna.Pass.Data.ExprRoots
+import           Luna.Pass.Data.UniqueNameGen
+import           Luna.Prelude                 hiding (new, s, String)
+import qualified Luna.Prelude                 as P
+import           OCI.IR.Combinators
+import           OCI.IR.Layout.Typed          hiding (Cons)
+import qualified OCI.IR.Repr.Vis              as Vis
+import           OCI.Pass                     (Inputs, Outputs, Pass, Preserves, SubPass)
+import qualified OCI.Pass                     as Pass
+import           System.Log
 
-import Luna.Prelude hiding (String, s, new)
-import qualified Luna.Prelude as P
-import Data.TypeDesc
-import qualified OCI.IR.Repr.Vis as Vis
-import OCI.IR.Combinators
-import OCI.IR.Layout.Typed hiding (Cons)
-import Luna.IR
-import System.Log
-import Control.Monad (foldM)
-import Luna.Pass.Data.UniqueNameGen
-import Luna.Pass.Data.ExprRoots
 
 data BlankDesugaring
 type instance Abstract   BlankDesugaring = BlankDesugaring
@@ -99,6 +99,10 @@ replaceBlanks e = matchExpr e $ \case
         runReplaceBlanks body
         ap <- app op body
         replace ap e
+        return []
+    Match t cls      -> do
+        runReplaceBlanks =<< source t
+        mapM (runReplaceBlanks <=< source) cls
         return []
     _             -> return []
 
