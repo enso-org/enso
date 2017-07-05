@@ -9,12 +9,12 @@ import qualified Prelude as P
 import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop, nested, lines)
 
 import Control.Monad.State.Layered
+import qualified Data.Foldable             as Foldable
 import qualified Data.Text                 as Text
 import qualified Data.Text.IO              as Text
 import qualified Data.Text.Lazy            as LazyText
 import qualified Data.Text.Lazy.Builder    as Text
 import           Data.Text.Terminal        hiding (plain) -- FIXME[WD]: TerminalText instances might not suit this module well
-
 import Data.Container.Sequence
 
 
@@ -33,6 +33,7 @@ between = betweenWith (<>)
 between' :: Semigroup a => a -> a -> a
 between' a = between a a
 
+
 -- === Text combinators === --
 
 space :: IsString a => a
@@ -48,6 +49,17 @@ quoted     = between' "\""
 squoted    = between' "'"
 backticked = between' "`"
 
+
+-- === Text layouting === --
+
+enumerateWith :: (Monoid a, Foldable f) => a -> a -> f a -> a
+enumerateWith sep lastSep els = case Foldable.toList els of
+    [] -> mempty
+    ss -> intercalate sep (init ss) <> lastSep <> last ss
+
+enumerateAlt, enumerateSeq :: (Monoid a, IsString a, Foldable f) => f a -> a
+enumerateAlt = enumerateWith ", " " or "
+enumerateSeq = enumerateWith ", " " and "
 
 
 -------------------
@@ -182,7 +194,7 @@ hcat = concat Horizontal
 vcat = concat Vertical
 
 infixr 6 </>
-(</>) :: Concatenable a => a -> a -> a
+(</>)  :: Concatenable a => a -> a -> a
 (</>) = vcat
 
 
@@ -225,6 +237,13 @@ infixr 6 <+>
 (<+>) :: (ElemBuilder t a, Semigroup (t a), Spacing a) => t a -> t a -> t a
 (<+>) = mappendWith $ hspacing 1
 
+infixr 6 <//>
+infixr 6 <///>
+infixr 6 <////>
+(<//>), (<///>), (<////>) :: (Concatenable (t a), ElemBuilder t a, Spacing a) => t a -> t a -> t a
+a <//>   b = vcat a (vcat (vspacing 1) b)
+a <///>  b = vcat a (vcat (vspacing 2) b)
+a <////> b = vcat a (vcat (vspacing 3) b)
 
 
 -----------------------
@@ -282,7 +301,7 @@ instance (IsString a, Measurable a) => IsString (LineBlock a) where
 
 instance (Convertible' Text a, Measurable a) => Convertible Text (LineBlock a) where
     convert s = LineBlock (measure a) $ pure a where a = convert' s
-    
+
 
 -- Spacing
 instance (Convertible String a, Mempty a) => Spacing (LineBlock a) where
