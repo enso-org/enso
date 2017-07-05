@@ -231,11 +231,11 @@ take _ = id
 
 -- === Outputting === --
 
-hPutStr, hPutStrLn :: Handle -> TermText -> IO ()
-hPutStr = evalDefStateT @Style .: hRenderStr
-hPutStrLn h t = hPutStr h t >> System.hPutChar h '\n'
+hPutStr, hPutStrLn :: MonadIO m => Handle -> TermText -> m ()
+hPutStr   h t = liftIO $ evalDefStateT @Style $ hRenderStr h t
+hPutStrLn h t = liftIO $ hPutStr h t >> System.hPutChar h '\n'
 
-putStr, putStrLn :: TermText -> IO ()
+putStr, putStrLn :: MonadIO m => TermText -> m ()
 putStr   = hPutStr   stdout
 putStrLn = hPutStrLn stdout
 
