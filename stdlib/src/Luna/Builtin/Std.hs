@@ -3,60 +3,65 @@
 
 module Luna.Builtin.Std where
 
-import Luna.Prelude  as P hiding (cons, Constructor, nothing, Text, toList)
-import Data.Foldable (toList)
-import Luna.IR       hiding (Function)
-import Luna.Test.Utils
-import Luna.Test.IR.Runner
-import Luna.Builtin.Data.Class (Class (..))
-import Luna.Builtin.Prim
-import Luna.Builtin.Data.Module   as Module
-import Luna.Builtin.Data.Function as Function
-import qualified Data.Map as Map
-import           Data.Map (Map)
-import OCI.Pass (SubPass)
-import OCI.IR.Combinators
-import qualified OCI.Pass        as Pass
-import Luna.Builtin.Data.LunaValue  (LunaValue, LunaData (..), Constructor (..), Object (..), force', constructor, fields, tag)
-import Luna.Builtin.Data.LunaEff    (runError, throw, runIO, performIO, LunaEff)
-import Luna.Pass.Evaluation.Interpreter
-import Luna.Pass.Typechecking.Typecheck
-import Control.Monad.Trans.State             (evalStateT, get)
-import Control.Monad.Except
-import Luna.Pass.Inference.Data.Unifications    (Unifications)
-import Luna.Pass.Inference.Data.SimplifierQueue (SimplifierQueue)
-import Luna.Pass.Inference.Data.MergeQueue      (MergeQueue)
-import Luna.Pass.Resolution.Data.UnresolvedAccs (UnresolvedAccs, getAccs)
-import Luna.Pass.Resolution.Data.CurrentTarget
-import Luna.Pass.Data.UniqueNameGen
-import Luna.Pass.Data.ExprRoots
-import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped  as RemoveGrouped
-import qualified Luna.Pass.UnitCompilation.ClassProcessing     as ClassProcessing
-import Data.TypeDesc
-import qualified Data.Set as Set
-import           Data.Set (Set)
-import OCI.IR.Name.Qualified
-import           Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as Text
-import qualified Data.Text.Lazy.Encoding as Text
-import           Data.ByteString.Lazy (ByteString)
-import qualified Data.ByteString.Lazy as ByteString
-import qualified Data.Aeson as Aeson
-import           Data.Scientific (toRealFloat)
-import qualified Data.Map.Base     as IMap
-import qualified Data.HashMap.Lazy as HM
-import           Data.UUID         (UUID)
-import qualified Data.UUID.V4      as UUID
-import System.Process (CreateProcess, StdStream (CreatePipe))
-import System.Exit (ExitCode (ExitSuccess, ExitFailure))
-import qualified System.Process as Process
+import           Control.Concurrent
+import           Control.Monad.Except
+import           Control.Monad.Trans.State                    (evalStateT, get)
 
-import Data.IORef
-import Control.Concurrent
+import qualified Data.Aeson                                   as Aeson
+import           Data.ByteString.Lazy                         (ByteString)
+import qualified Data.ByteString.Lazy                         as ByteString
+import           Data.Foldable                                (toList)
+import qualified Data.HashMap.Lazy                            as HM
+import           Data.IORef
+import           Data.Map                                     (Map)
+import qualified Data.Map                                     as Map
+import qualified Data.Map.Base                                as IMap
+import           Data.Scientific                              (toRealFloat)
+import           Data.Set                                     (Set)
+import qualified Data.Set                                     as Set
+import           Data.Text.Lazy                               (Text)
+import qualified Data.Text.Lazy                               as Text
+import qualified Data.Text.Lazy.Encoding                      as Text
+import           Data.TypeDesc
+import           Data.UUID                                    (UUID)
+import qualified Data.UUID.V4                                 as UUID
 
--- http
+import           GHC.IO.Handle                                (Handle)
+import qualified GHC.IO.Handle                                as Handle
 
-import qualified Network.HTTP.Simple as HTTP
+import           Luna.Builtin.Data.Class                      (Class (..))
+import           Luna.Builtin.Data.Function                   as Function
+import           Luna.Builtin.Data.LunaEff                    (LunaEff, performIO, runError, runIO, throw)
+import           Luna.Builtin.Data.LunaValue                  (constructor, Constructor (..), fields, force', LunaData (..), LunaValue, Object (..), tag)
+import           Luna.Builtin.Data.Module                     as Module
+import           Luna.Builtin.Prim
+import           Luna.IR                                      hiding (Function)
+import           Luna.Pass.Data.ExprRoots
+import           Luna.Pass.Data.UniqueNameGen
+import           Luna.Pass.Evaluation.Interpreter
+import           Luna.Pass.Inference.Data.MergeQueue          (MergeQueue)
+import           Luna.Pass.Inference.Data.SimplifierQueue     (SimplifierQueue)
+import           Luna.Pass.Inference.Data.Unifications        (Unifications)
+import           Luna.Pass.Resolution.Data.CurrentTarget
+import           Luna.Pass.Resolution.Data.UnresolvedAccs     (getAccs, UnresolvedAccs)
+import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped as RemoveGrouped
+import           Luna.Pass.Typechecking.Typecheck
+import qualified Luna.Pass.UnitCompilation.ClassProcessing    as ClassProcessing
+import           Luna.Prelude                                 as P hiding (cons, Constructor, nothing, Text, toList)
+import           Luna.Test.IR.Runner
+import           Luna.Test.Utils
+
+import qualified Network.HTTP.Simple                          as HTTP
+
+import           OCI.IR.Combinators
+import           OCI.IR.Name.Qualified
+import           OCI.Pass                                     (SubPass)
+import qualified OCI.Pass                                     as Pass
+
+import           System.Exit                                  (ExitCode (ExitFailure, ExitSuccess))
+import           System.Process                               (CreateProcess, ProcessHandle, StdStream (CreatePipe, Inherit, NoStream, UseHandle))
+import qualified System.Process                               as Process
+
 
 stdlibImports :: [QualName]
 stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"] ]
@@ -637,15 +642,41 @@ systemStd imps = do
         writeFileVal p c = withExceptions $ writeFile (convert p) (convert c)
     writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [LCons "Text" [], LCons "Text" []] (LCons "None" [])
 
-    let runProcessVal :: CreateProcess -> LunaEff ()
-        runProcessVal = withExceptions . void . Process.createProcess
-    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [LCons "CommandDescription" []] (LCons "None" [])
+    let runProcessVal :: CreateProcess -> LunaEff (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
+        runProcessVal = withExceptions . Process.createProcess
+    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "CommandDescription" [] ] ( LCons "ProcessHandles" [ LCons "Maybe" [ LCons "Handle" [] ]
+                                                                                                                           , LCons "Maybe" [ LCons "Handle" [] ]
+                                                                                                                           , LCons "Maybe" [ LCons "Handle" [] ]
+                                                                                                                           , LCons "ProcessHandle" [] ] )
 
     let readCommandWithExitCodeVal :: CreateProcess -> Text -> LunaEff (ExitCode, Text, Text)
         readCommandWithExitCodeVal p stdin = let convertResult (ec, stdin, stdout) = (ec, Text.pack stdin, Text.pack stdout) in
             fmap convertResult . withExceptions . Process.readCreateProcessWithExitCode p $ convert stdin
     readCommandWithExitCode' <- typeRepForIO (toLunaValue std readCommandWithExitCodeVal) [LCons "CommandDescription" [], LCons "Text" []] (LCons "Triple" [LCons "ExitCode" [], LCons "Text" [], LCons "Text" []])
 
+    let hIsOpenVal :: Handle -> LunaEff Bool
+        hIsOpenVal = withExceptions . Handle.hIsOpen
+    hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [LCons "Handle" []] (LCons "Bool" [])
+
+    let hIsClosedVal :: Handle -> LunaEff Bool
+        hIsClosedVal = withExceptions . Handle.hIsClosed
+    hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [LCons "Handle" []] (LCons "Bool" [])
+
+    let hCloseVal :: Handle -> LunaEff ()
+        hCloseVal = withExceptions . Handle.hClose
+    hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "Handle" []] (LCons "None" [])
+
+    let hGetContentsVal :: Handle -> LunaEff Text
+        hGetContentsVal = fmap Text.pack . withExceptions . Handle.hGetContents
+    hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [LCons "Handle" []] (LCons "Text" [])
+
+    let hGetLineVal :: Handle -> LunaEff Text
+        hGetLineVal = fmap Text.pack . withExceptions . Handle.hGetLine
+    hGetLine' <- typeRepForIO (toLunaValue std hGetLineVal) [LCons "Handle" []] (LCons "Text" [])
+
+    let hPutTextVal :: Handle -> Text -> LunaEff ()
+        hPutTextVal h = withExceptions . Handle.hPutStr h . Text.unpack
+    hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [LCons "Handle" [], LCons "Text" []] (LCons "None" [])
 
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
@@ -661,6 +692,12 @@ systemStd imps = do
                                     , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
                                     , ("primRunProcess", runProcess')
                                     , ("primReadCommandWithExitCode", readCommandWithExitCode')
+                                    , ("primHIsOpen", hIsOpen')
+                                    , ("primHIsClosed", hIsClosed')
+                                    , ("primHClose", hClose')
+                                    , ("primHGetContents", hGetContents')
+                                    , ("primHGetLine", hGetLine')
+                                    , ("primHPutText", hPutText')
                                     ]
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
@@ -686,9 +723,25 @@ instance FromLunaData CreateProcess where
     fromLunaData v = let errorMsg = "Expected a CommandDescription luna object, got unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . fields of
-                [processPath, args] -> Process.proc <$> fmap Text.unpack (fromLunaData processPath) <*> fmap (map Text.unpack) (fromLunaData args)
-                _                   -> throw errorMsg
-            _              -> throw errorMsg
+                [processPath, args, mayStdIn, mayStdOut, mayStdErr] -> do
+                    p      <- Process.proc <$> fmap Text.unpack (fromLunaData processPath) <*> fmap (map Text.unpack) (fromLunaData args)
+                    stdIn  <- fromMaybe Inherit <$> fromLunaData mayStdIn
+                    stdOut <- fromMaybe Inherit <$> fromLunaData mayStdOut
+                    stdErr <- fromMaybe Inherit <$> fromLunaData mayStdErr
+                    return $ p { Process.std_in = stdIn, Process.std_out = stdOut, Process.std_err = stdErr }
+                _ -> throw errorMsg
+            _ -> throw errorMsg
+
+instance FromLunaData StdStream where
+    fromLunaData v = let errorMsg = "Expected a StdStream luna object, got unexpected constructor" in
+        force' v >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "Inherit"    -> return Inherit
+                "UseHandle"  -> UseHandle <$> (fromLunaData . head $ obj ^. constructor . fields)
+                "CreatePipe" -> return CreatePipe
+                "NoStream"   -> return NoStream
+                _            -> throw errorMsg
+            _ -> throw errorMsg
 
 instance FromLunaData ExitCode where
     fromLunaData v = force' v >>= \case
@@ -702,3 +755,15 @@ instance ToLunaData ExitCode where
         let makeConstructor ExitSuccess     = Constructor "ExitSuccess" []
             makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps c] in
         LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
+
+instance ToBoxed Handle where
+    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "Handle" imps
+
+instance FromBoxed Handle where
+    fromBoxed (Object s _) = unsafeCoerce s
+
+instance ToBoxed ProcessHandle where
+    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "ProcessHandle" imps
+
+instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
+    toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessHandles" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessHandles" imps

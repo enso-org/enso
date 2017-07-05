@@ -106,6 +106,10 @@ class Maybe a:
         Nothing: True
         Just a: False
 
+    def map f: case self of
+        Nothing: Nothing
+        Just a: Just (f a)
+
     def shortRep: case self of
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"

@@ -4,20 +4,20 @@
 
 module Luna.Builtin.Prim where
 
-import Prologue hiding (Text, force)
+import Prologue                    hiding (force, Text)
 
+import Control.Concurrent
+import Control.Concurrent.MVar
+import Data.ByteString.Lazy        hiding (head)
+import Data.Maybe                  (fromMaybe, maybeToList)
+import Data.Text.Lazy              hiding (head)
+import GHC.Exts                    (Any)
+import Luna.Builtin.Data.LunaEff   (LunaEff, performIO, runError, runIO, throw)
 import Luna.Builtin.Data.LunaValue
 import Luna.Builtin.Data.Module
-
+import Luna.Builtin.Data.Stream    (Stream)
 import Unsafe.Coerce
-import GHC.Exts       (Any)
-import Luna.Builtin.Data.LunaEff    (runError, throw, runIO, performIO, LunaEff)
-import Luna.Builtin.Data.Stream     (Stream)
-import Data.Text.Lazy
-import Data.ByteString.Lazy
-import Control.Concurrent.MVar
-import Control.Concurrent
-import Data.Maybe (fromMaybe, maybeToList)
+
 
 class FromBoxed a where
     fromBoxed :: Object Any -> a
@@ -98,6 +98,11 @@ instance ToLunaData Text where
 instance (ToLunaData a, ToLunaData b, ToLunaData c) => ToLunaData (a, b, c) where
     toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Triple" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Triple" imps
 
+instance ToLunaData a => ToLunaData (Maybe a) where
+    toLunaData imps Nothing  = LunaObject $ Object (Constructor "Nothing" [])               $ getObjectMethodMap "Maybe" imps
+    toLunaData imps (Just a) = LunaObject $ Object (Constructor "Just" [toLunaData imps a]) $ getObjectMethodMap "Maybe" imps
+
+
 instance ToLunaData () where
     toLunaData imps _ = LunaObject $ Object (Constructor "None" []) $ getObjectMethodMap "None" imps
 
@@ -116,6 +121,12 @@ instance FromLunaData a => FromLunaData [a] where
             else let [x, t] = obj ^. constructor . fields in (:) <$> fromLunaData x <*> fromLunaData t
         _              -> throw "Expected a List luna value, got unexpected constructor"
 
+instance FromLunaData a => FromLunaData (Maybe a) where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> if obj ^. constructor . tag == "Nothing"
+            then return Nothing
+            else Just <$> (fromLunaData . head $ obj ^. constructor . fields)
+        _              -> throw "Expected a Maybe luna value, got unexpected constructor"
 
 class ToLunaValue a where
     toLunaValue :: Imports -> a -> LunaValue
