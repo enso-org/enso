@@ -537,3 +537,12 @@ tryReads s = case reads (convert' s) of
     [(a,[])]  -> Right a
     ((_,s):_) -> Left  s
     _         -> Left "No read"
+
+
+infixr 2 ||.
+(||.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
+f ||. g = \s -> f s || g s
+
+infixr 2 &&.
+(&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
+f &&. g = \s -> f s && g s
