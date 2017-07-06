@@ -44,12 +44,12 @@ type instance Outputs    Event AccessorFunction = '[New // AnyExpr, New // AnyEx
 type instance Preserves        AccessorFunction = '[]
 
 
-data AccessorError = MethodNotFound Name
+data AccessorError = MethodNotFound Name Name
                    | AmbiguousType
     deriving (Eq, Show)
 
-importErrorDoc :: Name -> Text
-importErrorDoc n = "Can't find method: " <> convert (show n)
+importErrorDoc :: Name -> Name -> Text
+importErrorDoc n cl = "Can't find method " <> convert (show n) <> " of " <> convert (show cl)
 
 runMethodResolution :: MonadPassManager m => SubPass AccessorFunction m Bool
 runMethodResolution = do
@@ -58,11 +58,11 @@ runMethodResolution = do
         result <- importAccessor acc
         case result of
             Left AmbiguousType      -> return $ Just acc
-            Left (MethodNotFound m) -> do
+            Left (MethodNotFound m cl) -> do
                 req <- getLayer @Requester acc
                 forM_ req $ \r -> do
                     requester <- source r
-                    modifyLayer_ @Errors requester (importErrorDoc m :)
+                    modifyLayer_ @Errors requester (importErrorDoc m cl :)
                 reconnectLayer' @Requester (Nothing :: Maybe (Expr Draft)) acc
                 return Nothing
             _                       -> return Nothing
@@ -84,7 +84,7 @@ importAccessor tacc = do
             (tgtT, _) <- destructMonad tv'
             matchExpr tgtT $ \case
                 Cons cls _args -> getLayer @Requester tacc >>= mapM source >>= importMethod cls n >>= \case
-                    Left SymbolNotFound -> return $ Left $ MethodNotFound n
+                    Left SymbolNotFound -> return $ Left $ MethodNotFound n cls
                     Right root          -> do
                         tap <- app root tv'
                         replace tap ac
