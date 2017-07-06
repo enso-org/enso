@@ -23,6 +23,8 @@ import qualified Data.ByteString.Builder as BB
 import           Data.Word               (Word8)
 import           Data.Foldable
 
+import Data.Convert.Instances.ByteString ()
+
 
 -- === Utils === --
 
@@ -75,14 +77,12 @@ instance Convertible BS.ByteString [Word8]       where convert = BS.unpack      
 instance Convertible BS.ByteString TS.Text       where convert = TE.decodeUtf8           ; {-# INLINE convert #-}
 instance Convertible BS.ByteString TL.Text       where convert = TL.fromStrict . convert ; {-# INLINE convert #-}
 instance Convertible BS.ByteString TLB.Builder   where convert = TLB.fromText . convert  ; {-# INLINE convert #-}
-instance Convertible BS.ByteString BL.ByteString where convert = BL.fromStrict           ; {-# INLINE convert #-}
 instance Convertible BS.ByteString BB.Builder    where convert = BB.byteString           ; {-# INLINE convert #-}
 
 instance Convertible BL.ByteString [Word8]       where convert = BL.unpack                  ; {-# INLINE convert #-}
 instance Convertible BL.ByteString TS.Text       where convert = TL.toStrict . convert      ; {-# INLINE convert #-}
 instance Convertible BL.ByteString TL.Text       where convert = TLE.decodeUtf8             ; {-# INLINE convert #-}
 instance Convertible BL.ByteString TLB.Builder   where convert = TLB.fromLazyText . convert ; {-# INLINE convert #-}
-instance Convertible BL.ByteString BS.ByteString where convert = BL.toStrict                ; {-# INLINE convert #-}
 instance Convertible BL.ByteString BB.Builder    where convert = BB.lazyByteString          ; {-# INLINE convert #-}
 
 instance Convertible String TS.Text     where convert = TS.pack        ; {-# INLINE convert #-}
