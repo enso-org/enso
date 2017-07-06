@@ -644,39 +644,39 @@ systemStd imps = do
 
     let runProcessVal :: CreateProcess -> LunaEff (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
         runProcessVal = withExceptions . Process.createProcess
-    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "CommandDescription" [] ] ( LCons "ProcessHandles" [ LCons "Maybe" [ LCons "Handle" [] ]
-                                                                                                                           , LCons "Maybe" [ LCons "Handle" [] ]
-                                                                                                                           , LCons "Maybe" [ LCons "Handle" [] ]
+    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "ProcessDescription" [] ] ( LCons "ProcessResults" [ LCons "Maybe" [ LCons "FileHandle" [] ]
+                                                                                                                           , LCons "Maybe" [ LCons "FileHandle" [] ]
+                                                                                                                           , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                            , LCons "ProcessHandle" [] ] )
 
     let readCommandWithExitCodeVal :: CreateProcess -> Text -> LunaEff (ExitCode, Text, Text)
         readCommandWithExitCodeVal p stdin = let convertResult (ec, stdin, stdout) = (ec, Text.pack stdin, Text.pack stdout) in
             fmap convertResult . withExceptions . Process.readCreateProcessWithExitCode p $ convert stdin
-    readCommandWithExitCode' <- typeRepForIO (toLunaValue std readCommandWithExitCodeVal) [LCons "CommandDescription" [], LCons "Text" []] (LCons "Triple" [LCons "ExitCode" [], LCons "Text" [], LCons "Text" []])
+    readCommandWithExitCode' <- typeRepForIO (toLunaValue std readCommandWithExitCodeVal) [LCons "ProcessDescription" [], LCons "Text" []] (LCons "Triple" [LCons "ExitCode" [], LCons "Text" [], LCons "Text" []])
 
     let hIsOpenVal :: Handle -> LunaEff Bool
         hIsOpenVal = withExceptions . Handle.hIsOpen
-    hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [LCons "Handle" []] (LCons "Bool" [])
+    hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [LCons "FileHandle" []] (LCons "Bool" [])
 
     let hIsClosedVal :: Handle -> LunaEff Bool
         hIsClosedVal = withExceptions . Handle.hIsClosed
-    hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [LCons "Handle" []] (LCons "Bool" [])
+    hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [LCons "FileHandle" []] (LCons "Bool" [])
 
     let hCloseVal :: Handle -> LunaEff ()
         hCloseVal = withExceptions . Handle.hClose
-    hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "Handle" []] (LCons "None" [])
+    hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "FileHandle" []] (LCons "None" [])
 
     let hGetContentsVal :: Handle -> LunaEff Text
         hGetContentsVal = fmap Text.pack . withExceptions . Handle.hGetContents
-    hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [LCons "Handle" []] (LCons "Text" [])
+    hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [LCons "FileHandle" []] (LCons "Text" [])
 
     let hGetLineVal :: Handle -> LunaEff Text
         hGetLineVal = fmap Text.pack . withExceptions . Handle.hGetLine
-    hGetLine' <- typeRepForIO (toLunaValue std hGetLineVal) [LCons "Handle" []] (LCons "Text" [])
+    hGetLine' <- typeRepForIO (toLunaValue std hGetLineVal) [LCons "FileHandle" []] (LCons "Text" [])
 
     let hPutTextVal :: Handle -> Text -> LunaEff ()
         hPutTextVal h = withExceptions . Handle.hPutStr h . Text.unpack
-    hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [LCons "Handle" [], LCons "Text" []] (LCons "None" [])
+    hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [LCons "FileHandle" [], LCons "Text" []] (LCons "None" [])
 
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
@@ -720,7 +720,7 @@ instance ToLunaData Aeson.Value where
         constructorOf (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
 
 instance FromLunaData CreateProcess where
-    fromLunaData v = let errorMsg = "Expected a CommandDescription luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . fields of
                 [processPath, args, mayStdIn, mayStdOut, mayStdErr] -> do
@@ -733,7 +733,7 @@ instance FromLunaData CreateProcess where
             _ -> throw errorMsg
 
 instance FromLunaData StdStream where
-    fromLunaData v = let errorMsg = "Expected a StdStream luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
                 "Inherit"    -> return Inherit
@@ -757,7 +757,7 @@ instance ToLunaData ExitCode where
         LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
 
 instance ToBoxed Handle where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "Handle" imps
+    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "FileHandle" imps
 
 instance FromBoxed Handle where
     fromBoxed (Object s _) = unsafeCoerce s
@@ -766,4 +766,4 @@ instance ToBoxed ProcessHandle where
     toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "ProcessHandle" imps
 
 instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
-    toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessHandles" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessHandles" imps
+    toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps

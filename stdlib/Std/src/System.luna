@@ -1,12 +1,12 @@
 import Std.Base
 
-class StdStream:
+class PipeRequest:
     Inherit
-    UseHandle Handle
+    UseHandle FileHandle
     CreatePipe
     NoStream
 
-class Handle:
+class FileHandle:
     def isOpen: primHIsOpen self
     def isClosed: primHIsClosed self
     def close: primHClose self
@@ -16,20 +16,20 @@ class Handle:
 
 class ProcessHandle:
 
-class ProcessHandles:
-    ProcessHandles (Maybe Handle) (Maybe Handle) (Maybe Handle) ProcessHandle
+class ProcessResults:
+    ProcessResults (Maybe FileHandle) (Maybe FileHandle) (Maybe FileHandle) ProcessHandle
 
     def getContentsFromStdOut: case self of
-        ProcessHandles hin hout herr ph: hout . map .getContents
+        ProcessResults hin hout herr ph: hout . map .getContents
 
     def getContentsFromStdErr: case self of
-        ProcessHandles hin hout herr ph: herr . map .getContents
+        ProcessResults hin hout herr ph: herr . map .getContents
 
     def putTextToStdIn: case self of
-        ProcessHandles hin hout herr ph: hin . maybe None .putText
+        ProcessResults hin hout herr ph: hin . maybe None .putText
 
-class CommandDescription:
-    CommandDescription Text (List Text) (Maybe StdStream) (Maybe StdStream) (Maybe StdStream)
+class ProcessDescription:
+    ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
 
     def run: primRunProcess self
     def runWithExitCode stdin: primReadCommandWithExitCode self stdin
