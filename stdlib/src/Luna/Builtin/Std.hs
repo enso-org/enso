@@ -648,12 +648,6 @@ systemStd imps = do
                                                                                                                            , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                            , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                            , LCons "ProcessHandle" [] ] )
-
-    let readCommandWithExitCodeVal :: CreateProcess -> Text -> LunaEff (ExitCode, Text, Text)
-        readCommandWithExitCodeVal p stdin = let convertResult (ec, stdin, stdout) = (ec, Text.pack stdin, Text.pack stdout) in
-            fmap convertResult . withExceptions . Process.readCreateProcessWithExitCode p $ convert stdin
-    readCommandWithExitCode' <- typeRepForIO (toLunaValue std readCommandWithExitCodeVal) [LCons "ProcessDescription" [], LCons "Text" []] (LCons "Triple" [LCons "ExitCode" [], LCons "Text" [], LCons "Text" []])
-
     let hIsOpenVal :: Handle -> LunaEff Bool
         hIsOpenVal = withExceptions . Handle.hIsOpen
     hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [LCons "FileHandle" []] (LCons "Bool" [])
@@ -678,6 +672,10 @@ systemStd imps = do
         hPutTextVal h = withExceptions . Handle.hPutStr h . Text.unpack
     hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [LCons "FileHandle" [], LCons "Text" []] (LCons "None" [])
 
+    let waitForProcessVal :: ProcessHandle -> LunaEff ExitCode
+        waitForProcessVal = withExceptions . Process.waitForProcess
+    waitForProcess' <- typeRepForIO (toLunaValue std waitForProcessVal) [LCons "ProcessHandle" []] (LCons "ExitCode" [])
+
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
                                     , ("readFile", readFileF)
@@ -691,13 +689,13 @@ systemStd imps = do
                                     , ("primTakeMVar", takeMVar')
                                     , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
                                     , ("primRunProcess", runProcess')
-                                    , ("primReadCommandWithExitCode", readCommandWithExitCode')
                                     , ("primHIsOpen", hIsOpen')
                                     , ("primHIsClosed", hIsClosed')
                                     , ("primHClose", hClose')
                                     , ("primHGetContents", hGetContents')
                                     , ("primHGetLine", hGetLine')
                                     , ("primHPutText", hPutText')
+                                    , ("primWaitForProcess", waitForProcess')
                                     ]
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
@@ -759,11 +757,14 @@ instance ToLunaData ExitCode where
 instance ToBoxed Handle where
     toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "FileHandle" imps
 
+instance ToBoxed ProcessHandle where
+    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "ProcessHandle" imps
+
 instance FromBoxed Handle where
     fromBoxed (Object s _) = unsafeCoerce s
 
-instance ToBoxed ProcessHandle where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "ProcessHandle" imps
+instance FromBoxed ProcessHandle where
+    fromBoxed (Object s _) = unsafeCoerce s
 
 instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps

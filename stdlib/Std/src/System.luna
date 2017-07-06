@@ -15,6 +15,7 @@ class FileHandle:
     def putText t: primHPutText self t
 
 class ProcessHandle:
+    def waitForProcess: primWaitForProcess self
 
 class ProcessResults:
     ProcessResults (Maybe FileHandle) (Maybe FileHandle) (Maybe FileHandle) ProcessHandle
@@ -28,11 +29,25 @@ class ProcessResults:
     def putTextToStdIn: case self of
         ProcessResults hin hout herr ph: hin . maybe None .putText
 
+    def waitForProcess: case self of
+        ProcessResults hin hout herr ph: ph . waitForProcess
+
 class ProcessDescription:
     ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
 
     def run: primRunProcess self
-    def runWithExitCode stdin: primReadCommandWithExitCode self stdin
+
+class Process:
+    Process
+
+    def readProcessWithExitCode path args stdin:
+        cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
+        pr = cp . run
+        out = pr . getContentsFromStdOut
+        err = pr . getContentsFromStdErr
+        ex  = pr . waitForProcess
+        Triple out err ex
+
 
 class ExitCode:
     ExitSuccess

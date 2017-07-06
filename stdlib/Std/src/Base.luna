@@ -110,6 +110,10 @@ class Maybe a:
         Nothing: Nothing
         Just a: Just (f a)
 
+    def toText: case self of
+        Just a: "Just " + a.toText
+        Nothing: "Nothing"
+
     def shortRep: case self of
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"
