@@ -17,4 +17,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: lens-utils
 stability: stable
 synopsis: Collection of missing lens utilities.
-version: 1.2.15
+version: 1.2.16
