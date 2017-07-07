@@ -1,0 +1,20 @@
+author: Wojciech Danilo
+category: Data
+default-extensions: [AllowAmbiguousTypes, ApplicativeDo, Arrows, BangPatterns, BinaryLiterals,
+  ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable, DeriveFoldable,
+  DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse, DuplicateRecordFields,
+  EmptyDataDecls, FlexibleContexts, FlexibleInstances, FunctionalDependencies, GeneralizedNewtypeDeriving,
+  InstanceSigs, LambdaCase, MonadComprehensions, MultiWayIf, NamedWildCards, NegativeLiterals,
+  NoImplicitPrelude, NumDecimals, OverloadedLabels, PackageImports, QuasiQuotes, RankNTypes,
+  RecursiveDo, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TupleSections,
+  TypeApplications, TypeFamilies, TypeFamilyDependencies, TypeOperators, ViewPatterns,
+  LiberalTypeSynonyms, RelaxedPolyRec]
+dependencies: [base, mtl, transformers]
+github: https://github.com/luna/monad-branch
+library: {ghc-options: -Wall -O2, source-dirs: src}
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: monad-branch
+stability: experimental
+synopsis: Monadic abstraction for computations that can be branched and run independently.
+version: 1.0.0
