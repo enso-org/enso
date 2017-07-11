@@ -80,7 +80,7 @@ class ToLunaData a where
     toLunaData :: Imports -> a -> LunaData
 
 instance {-# OVERLAPPABLE #-} ToBoxed a => ToLunaData a where
-    toLunaData imps a = LunaBoxed $ toBoxed imps a
+    toLunaData = LunaBoxed .: toBoxed
 
 instance ToLunaData LunaData where
     toLunaData _ = id
@@ -93,7 +93,7 @@ instance {-# OVERLAPPABLE #-} ToLunaData a => ToLunaData [a] where
     toLunaData imps (a : as) = LunaObject $ Object (Constructor "Prepend" [toLunaData imps a, toLunaData imps as]) $ getObjectMethodMap "List" imps
 
 instance ToLunaData Text where
-    toLunaData imps a = LunaBoxed $ toBoxed imps a
+    toLunaData = LunaBoxed .: toBoxed
 
 instance (ToLunaData a, ToLunaData b, ToLunaData c) => ToLunaData (a, b, c) where
     toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Triple" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Triple" imps
@@ -132,7 +132,7 @@ class ToLunaValue a where
     toLunaValue :: Imports -> a -> LunaValue
 
 instance {-# OVERLAPPABLE #-} ToLunaData a => ToLunaValue a where
-    toLunaValue imps a = return $ toLunaData imps a
+    toLunaValue = return .: toLunaData
 
 instance {-# OVERLAPPABLE #-} (FromLunaData a, ToLunaValue b) => ToLunaData (a -> b) where
     toLunaData imps f = mkPrimFun $ \d -> fromLunaData d >>= toLunaValue imps . f

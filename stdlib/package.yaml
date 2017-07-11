@@ -27,6 +27,7 @@ dependencies:
     - http-conduit
     - uuid
     - process
+    - data-msgpack
 
 default-extensions:
     - AllowAmbiguousTypes
