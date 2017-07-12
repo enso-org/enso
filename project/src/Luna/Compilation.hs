@@ -82,11 +82,15 @@ importAll :: MonadPassManager m => Map QualName (Expr Unit) -> [QualName] -> Sub
 importAll modules moduleNames = fmap unionsImports . sequence <$> mapM (importWholeModule modules) moduleNames
 
 createStdlib :: FilePath -> IO (IO (), Imports)
-createStdlib stdPath = fmap (\(Right x) -> x) $ runPM False $ do
-    (world, modules, std, cleanup) <- compileProject' [("Std", stdPath)] []
-    Pass.eval' @ProjectCompilation $ do
-        maker <- importAll modules (Map.keys modules)
-        return $ (cleanup, unionImports std $ maker world)
+createStdlib stdPath = do
+    res <- runPM False $ do
+        (world, modules, std, cleanup) <- compileProject' [("Std", stdPath)] []
+        Pass.eval' @ProjectCompilation $ do
+            maker <- importAll modules (Map.keys modules)
+            return $ (cleanup, unionImports std $ maker world)
+    case res of
+        Left e  -> throwM e
+        Right r -> return r
 
 compileProject :: (MonadPassManager m, Throws IRError m, Throws PassEvalError m) => Map Name FilePath -> [QualName] -> m (CompiledWorld, Map QualName (Expr Unit), Imports)
 compileProject libs forceModules = do
