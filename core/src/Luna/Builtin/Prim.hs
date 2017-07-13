@@ -31,7 +31,6 @@ instance IsBoxed "Int"    Int
 instance IsBoxed "Double" Double
 instance IsBoxed "Text"   Text
 instance IsBoxed "Binary" ByteString
-instance IsBoxed "Stream" (Stream LunaValue)
 instance IsBoxed "MVar"   (MVar LunaData)
 
 class FromLunaData a where
