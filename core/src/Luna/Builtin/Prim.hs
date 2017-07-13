@@ -28,7 +28,7 @@ class KnownSymbol n => IsBoxed n a | a -> n, n -> a where
     fromBoxed (Object s _) = unsafeCoerce s
 
 instance IsBoxed "Int"    Int
-instance IsBoxed "Double" Double
+instance IsBoxed "Real"   Double
 instance IsBoxed "Text"   Text
 instance IsBoxed "Binary" ByteString
 instance IsBoxed "MVar"   (MVar LunaData)
