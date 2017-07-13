@@ -776,23 +776,12 @@ instance ToLunaData ExitCode where
             makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps c] in
         LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
 
-instance ToBoxed Handle where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "FileHandle" imps
-
-instance ToBoxed ProcessHandle where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "ProcessHandle" imps
-
-instance FromBoxed Handle where
-    fromBoxed (Object s _) = unsafeCoerce s
-
-instance FromBoxed ProcessHandle where
-    fromBoxed (Object s _) = unsafeCoerce s
+instance IsBoxed "FileHandle"    Handle
+instance IsBoxed "ProcessHandle" ProcessHandle
+instance IsBoxed "StrictText"    AnyText.Text
 
 instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
-
-instance ToBoxed AnyText.Text where
-    toBoxed imps t = Object (unsafeCoerce t) $ getObjectMethodMap "Text" imps
 
 instance ToLunaData MsgPack.Object where
     toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "JSONNull"   []) (getObjectMethodMap "JSON" imps)

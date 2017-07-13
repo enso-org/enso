@@ -16,16 +16,28 @@ import Luna.Builtin.Data.LunaEff   (LunaEff, performIO, runError, runIO, throw)
 import Luna.Builtin.Data.LunaValue
 import Luna.Builtin.Data.Module
 import Luna.Builtin.Data.Stream    (Stream)
+import GHC.TypeLits
+import Data.Proxy
 import Unsafe.Coerce
 
+class KnownSymbol n => IsBoxed n a | a -> n, n -> a where
+    toBoxed :: Imports -> a -> Object Any
+    toBoxed imps i = Object (unsafeCoerce i) $ getObjectMethodMap (convert $ symbolVal $ Proxy @n) imps
 
-class FromBoxed a where
     fromBoxed :: Object Any -> a
+    fromBoxed (Object s _) = unsafeCoerce s
+
+instance IsBoxed "Int"    Int
+instance IsBoxed "Double" Double
+instance IsBoxed "Text"   Text
+instance IsBoxed "Binary" ByteString
+instance IsBoxed "Stream" (Stream LunaValue)
+instance IsBoxed "MVar"   (MVar LunaData)
 
 class FromLunaData a where
     fromLunaData :: LunaData -> LunaEff a
 
-instance {-# OVERLAPPABLE #-} FromBoxed a => FromLunaData a where
+instance {-# OVERLAPPABLE #-} IsBoxed n a => FromLunaData a where
     fromLunaData (LunaBoxed a)    = return $ fromBoxed a
     fromLunaData (LunaThunk a)    = a >>= fromLunaData
     fromLunaData (LunaObject _)   = throw "Expected a Boxed value, got an Object"
@@ -37,49 +49,10 @@ instance {-# OVERLAPPABLE #-} FromBoxed a => FromLunaData a where
 instance FromLunaData LunaData where
     fromLunaData = return
 
-instance FromBoxed Int where
-    fromBoxed (Object i _) = unsafeCoerce i
-
-instance FromBoxed Double where
-    fromBoxed (Object i _) = unsafeCoerce i
-
-instance FromBoxed Text where
-    fromBoxed (Object s _) = unsafeCoerce s
-
-instance FromBoxed ByteString where
-    fromBoxed (Object s _) = unsafeCoerce s
-
-instance FromBoxed (Stream LunaValue) where
-    fromBoxed (Object s _) = unsafeCoerce s
-
-instance FromBoxed (MVar LunaData) where
-    fromBoxed (Object s _) = unsafeCoerce s
-
-class ToBoxed a where
-    toBoxed :: Imports -> a -> Object Any
-
-instance ToBoxed Int where
-    toBoxed imps i = Object (unsafeCoerce i) $ getObjectMethodMap "Int" imps
-
-instance ToBoxed Double where
-    toBoxed imps i = Object (unsafeCoerce i) $ getObjectMethodMap "Real" imps
-
-instance ToBoxed Text where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "Text" imps
-
-instance ToBoxed ByteString where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "Binary" imps
-
-instance ToBoxed (Stream LunaValue) where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "Stream" imps
-
-instance ToBoxed (MVar LunaData) where
-    toBoxed imps s = Object (unsafeCoerce s) $ getObjectMethodMap "MVar" imps
-
 class ToLunaData a where
     toLunaData :: Imports -> a -> LunaData
 
-instance {-# OVERLAPPABLE #-} ToBoxed a => ToLunaData a where
+instance {-# OVERLAPPABLE #-} IsBoxed n a => ToLunaData a where
     toLunaData = LunaBoxed .: toBoxed
 
 instance ToLunaData LunaData where
