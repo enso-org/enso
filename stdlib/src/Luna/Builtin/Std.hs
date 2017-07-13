@@ -8,6 +8,7 @@ import           Control.Monad.Except
 import           Control.Monad.Trans.State                    (evalStateT, get)
 
 import qualified Data.Aeson                                   as Aeson
+import           Data.ByteString.Char8                        (pack)
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
 import           Data.Foldable                                (toList)
@@ -55,6 +56,7 @@ import           Luna.Test.IR.Runner
 import           Luna.Test.Utils
 
 import qualified Network.HTTP.Simple                          as HTTP
+import qualified Network.HTTP.Types.Header                    as HTTP
 
 import           OCI.IR.Combinators
 import           OCI.IR.Name.Qualified
@@ -298,16 +300,19 @@ intClass imps = do
 binaryClass :: Imports -> IO Class
 binaryClass imps = do
     Right (toTextAssu, toTextIr) <- runGraph $ do
-        tText   <- cons_ @Draft "Binary"
-        tJSON   <- cons_ @Draft "Text"
-        l       <- lam tText tJSON
+        tText     <- cons_ @Draft "Binary"
+        tJSON     <- cons_ @Draft "Text"
+        l         <- lam tText tJSON
         (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
+        cmp       <- compile r
         return (assu, cmp)
-    let toTextVal = toLunaValue tmpImps Text.decodeUtf8
-        tmpImps       = imps & importedClasses . at "Binary" ?~ klass
-        klass         = Class Map.empty $ Map.fromList [ ("toText", Function toTextIr toTextVal toTextAssu)
-                                                       ]
+    let toTextVal  = toLunaValue tmpImps Text.decodeUtf8
+        bStrLen    = Text.pack . show . ByteString.length :: ByteString -> Text
+        toShortRep = toLunaValue tmpImps $ \bs -> "Binary<" <> bStrLen bs <> ">"
+        tmpImps    = imps & importedClasses . at "Binary" ?~ klass
+        klass      = Class Map.empty $ Map.fromList [ ("toText",   Function toTextIr toTextVal  toTextAssu)
+                                                    , ("shortRep", Function toTextIr toShortRep toTextAssu)
+                                                    ]
     return klass
 
 stringClass :: Imports -> IO Class
@@ -593,6 +598,10 @@ systemStd imps = do
         readFileVal = withExceptions . fmap convert . readFile . convert
     readFileF <- typeRepForIO (toLunaValue std readFileVal) [LCons "Text" []] $ LCons "Text" []
 
+    let readBinaryVal :: Text -> LunaEff ByteString
+        readBinaryVal = withExceptions . ByteString.readFile . convert
+    readBinaryF <- typeRepForIO (toLunaValue std readBinaryVal) [LCons "Text"[]] $ LCons "Binary" []
+
     let parseJSONVal :: Text -> LunaEff Aeson.Value
         parseJSONVal t = case Aeson.eitherDecode $ Text.encodeUtf8 t of
             Left e  -> throw e
@@ -611,28 +620,16 @@ systemStd imps = do
         return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
 
     let parseMsgPackVal :: ByteString -> LunaEff MsgPack.Object
-        parseMsgPackVal bs = case MsgPack.unpack bs of
-            Nothing -> throw "Unable to parse MessagePack"
-            Just a  -> return a
-    Right parseMsgPack <- runGraph $ do
-        mA     <- var "a"
-        pure   <- cons_ @Draft "Pure"
-        comm   <- unify mA pure
-        tpInt  <- cons_ @Draft "Binary"
-        tpIntM <- monadic tpInt mA
-        tpNo   <- cons_ @Draft "JSON"
-        tpNoM  <- monadic tpNo comm
-        intl   <- lam tpIntM tpNoM
-        lamP   <- monadic intl pure
-        res    <- compile $ generalize lamP
-        return $ Function res (toLunaValue std parseMsgPackVal) $ Assumptions def [generalize comm] def def
+        parseMsgPackVal = withExceptions . MsgPack.unpack
 
+    parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
     let primPerformHttpVal :: Text -> Text -> ByteString -> LunaEff (HTTP.Response ByteString)
         primPerformHttpVal uri method body = performIO $ do
             baseReq <- HTTP.parseRequest (convert uri)
             HTTP.httpLBS $ baseReq & HTTP.setRequestBodyLBS body
                                    & HTTP.setRequestMethod (convert method)
+                                   & HTTP.addRequestHeader HTTP.hAccept (pack "*/*")
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [LCons "Text" [], LCons "Text" [], LCons "Binary" []] $ LCons "HttpResponse" []
 
     let sleepVal = performIO . threadDelay
@@ -700,6 +697,7 @@ systemStd imps = do
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
                                     , ("readFile", readFileF)
+                                    , ("readBinary", readBinaryF)
                                     , ("writeFile", writeFile')
                                     , ("parseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
@@ -784,13 +782,14 @@ instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) wh
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
 
 instance ToLunaData MsgPack.Object where
-    toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "JSONNull"   []) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectBool   b) = LunaObject $ Object (Constructor "JSONBool"   [toLunaData imps b]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectInt    i) = LunaObject $ Object (Constructor "JSONNumber" [toLunaData imps $ (fromIntegral i :: Double)]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectFloat  f) = LunaObject $ Object (Constructor "JSONNumber" [toLunaData imps $ (realToFrac   f :: Double)]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectDouble d) = LunaObject $ Object (Constructor "JSONNumber" [toLunaData imps d]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectStr    s) = LunaObject $ Object (Constructor "JSONString" [toLunaData imps s]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectBin    b) = LunaObject $ Object (Constructor "JSONString" [toLunaData imps $ T.decodeUtf8 b]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectArray  l) = LunaObject $ Object (Constructor "JSONArray"  [toLunaData imps l]) (getObjectMethodMap "JSON" imps)
-    toLunaData imps (MsgPack.ObjectMap    m) = LunaObject $ Object (Constructor "JSONObject" [toLunaData imps $ Map.fromList m]) (getObjectMethodMap "JSON" imps)
+    toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "MPNull"   [])                                             (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectBool   b) = LunaObject $ Object (Constructor "MPBool"   [toLunaData imps b])                            (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectInt    i) = LunaObject $ Object (Constructor "MPInt"    [toLunaData imps $ (fromIntegral i :: Int)])    (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectWord   w) = LunaObject $ Object (Constructor "MPInt"    [toLunaData imps $ (fromIntegral w :: Int)])    (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectFloat  f) = LunaObject $ Object (Constructor "MPReal"   [toLunaData imps $ (realToFrac   f :: Double)]) (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectDouble d) = LunaObject $ Object (Constructor "MPReal"   [toLunaData imps d])                            (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectStr    s) = LunaObject $ Object (Constructor "MPString" [toLunaData imps $ Text.fromStrict s])          (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectBin    b) = LunaObject $ Object (Constructor "MPBinary" [toLunaData imps $ ByteString.fromStrict b])    (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectArray  l) = LunaObject $ Object (Constructor "MPArray"  [toLunaData imps l])                            (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectMap    m) = LunaObject $ Object (Constructor "MPMap"    [toLunaData imps m])                            (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectExt  _ _) = LunaError "MessagePack ObjectExt is not supported."

@@ -47,6 +47,10 @@ class HttpRequest:
 class Http:
     Http
 
-    def getJSON uri:
+    def getBinary uri:
         HttpResponse code body = HttpRequest uri GET "".toBinary . perform
+        body
+
+    def getJSON uri:
+        body = self.getBinary uri
         parseJSON body.toText

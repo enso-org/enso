@@ -25,6 +25,7 @@ dependencies:
     - unordered-containers
     - aeson
     - http-conduit
+    - http-types
     - uuid
     - process
     - data-msgpack

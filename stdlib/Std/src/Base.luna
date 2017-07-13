@@ -29,10 +29,14 @@ class None:
 
     def toText: "None"
 
+    def shortRep: self.toString
+
     def toJSON: JSONNull
 
 class Pair a b:
     Pair a b
+
+    def shortRep: "Pair " + a.shortRep + " " + b.shortRep
 
     def toJSON: case self of
         Pair a b: JSONArray (Prepend a.toJSON (Prepend b.toJSON Empty))
@@ -118,6 +122,8 @@ class Maybe a:
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"
 
+    def toText: self.shortRep
+
 class List a:
     Empty
     Prepend a (List a)
@@ -168,6 +174,8 @@ class List a:
         Prepend x xs: xs.length.succ
 
     def shortRep: "List<" + self.length.shortRep + ">"
+
+    def toText: self.shortRep
 
     def prependAll it: case (self) of
         Empty: Empty
@@ -288,9 +296,51 @@ class JSON:
     def toText: case self of
         JSONString s: s
 
+    def toList: case self of
+        JSONArray a: a
+
     def lookupReal key: self . lookup key . fromJust . toReal
 
     def lookupText key: self . lookup key . fromJust . toText
+
+class MsgPack:
+    MPNull
+    MPBool   Bool
+    MPInt    Int
+    MPReal   Real
+    MPString Text
+    MPBinary Binary
+    MPArray  (List MsgPack)
+    MPMap    (List (Pair MsgPack MsgPack))
+
+    def toText: case self of
+        MPNull:     "MPNull"
+        MPBool b:   "MPBool " + b.shortRep
+        MPInt i:    "MPInt " + i.shortRep
+        MPReal r:   "MPReal" + r.shortRep
+        MPString s: "MPString " + s
+        MPBinary b: "MPBinary " + b.shortRep
+        MPArray a:  "MPArray " + a.shortRep
+        MPMap m:    "MPMap " + m.shortRep
+
+    def toJSON: case self of
+        MPNil:      JSONNull
+        MPBool b:   JSONBool b
+        MPInt i:    JSONNumber i.toReal
+        MPReal r:   JSONNumber r
+        MPString s: JSONString s
+        MPBinary b: JSONString b.toText
+        MPArray a:  a.toJSON
+        MPMap   m:  m.toJSON
+
+    def shortRep: self.toText
+
+    def toReal: case self of
+        MPInt i: i.toReal
+        MPReal r: r
+
+    def toList: case self of
+        MPArray a: a
 
 def newMVar:
     primNewMVar

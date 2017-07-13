@@ -67,6 +67,9 @@ instance {-# OVERLAPPABLE #-} ToLunaData a => ToLunaData [a] where
 instance ToLunaData Text where
     toLunaData = LunaBoxed .: toBoxed
 
+instance (ToLunaData a, ToLunaData b) => ToLunaData (a, b) where
+    toLunaData imps (a, b) = LunaObject $ Object (Constructor "Pair" [toLunaData imps a, toLunaData imps b]) $ getObjectMethodMap "Pair" imps
+
 instance (ToLunaData a, ToLunaData b, ToLunaData c) => ToLunaData (a, b, c) where
     toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Triple" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Triple" imps
 
