@@ -265,6 +265,12 @@ class List a:
         Pair (Prepend x xs) (Prepend y ys): if x.equals y then xs.equals ys else False
         other: False
 
+    def sum:
+        self.fold 0.0 (x: y: x.toReal . + y.toReal)
+
+    def average:
+        self.sum . / (self.length.toReal)
+
 class Map k v:
     Tip
     Bin Int k v (Map k v) (Map k v)
@@ -413,6 +419,23 @@ class MsgPack:
 
     def toList: case self of
         MPArray a: a
+
+    def _lookup_list_key key pairList: case pairList of
+        Empty: Nothing
+        Prepend x xs: case x of
+            Pair a b: if a.equals key then Just b else self._lookup_list_key key xs
+
+    def lookup key: case self of
+        MPMap m: self._lookup_list_key key m
+        other:   Nothing
+
+    def lookupText key: self.lookup (MPString key)
+
+    def sum: case self of
+        MPArray a: a.sum
+
+    def average: case self of
+        MPArray a: a.average
 
 def newMVar:
     primNewMVar

@@ -204,6 +204,14 @@ doubleClass imps = do
         cmp <- compile r
         return (assu, cmp)
 
+    Right (double2DoubleAssumptions, double2Double) <- runGraph $ do
+        tDouble   <- cons_ @Draft "Real"
+        l1        <- lam tDouble tDouble
+        l2        <- lam tDouble l1
+        (assu, r) <- mkMonadProofFun $ generalize l2
+        cmp       <- compile r
+        return (assu, cmp)
+
     let plusVal     = toLunaValue tmpImps ((+)  :: Double -> Double -> Double)
         timeVal     = toLunaValue tmpImps ((*)  :: Double -> Double -> Double)
         minusVal    = toLunaValue tmpImps ((-)  :: Double -> Double -> Double)
@@ -211,15 +219,17 @@ doubleClass imps = do
         eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
         showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
         toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
+        toRealVal   = toLunaValue tmpImps (id   :: Double -> Double)
         tmpImps     = imps & importedClasses . at "Real" ?~ klass
-        klass       = Class Map.empty $ Map.fromList [ ("+",        Function boxed3Doubles plusVal  boxed3DoublesAssumptions)
-                                                     , ("*",        Function boxed3Doubles timeVal  boxed3DoublesAssumptions)
-                                                     , ("-",        Function boxed3Doubles minusVal boxed3DoublesAssumptions)
-                                                     , ("/",        Function boxed3Doubles divVal   boxed3DoublesAssumptions)
-                                                     , ("equals",   Function double2Bool   eqVal    double2BoolAssumptions)
-                                                     , ("shortRep", Function double2text   showVal  double2TextAssumptions)
-                                                     , ("toText",   Function double2text   showVal  double2TextAssumptions)
-                                                     , ("toJSON",   Function double2JSON   toJSVal  double2JSONAssumptions)
+        klass       = Class Map.empty $ Map.fromList [ ("+",        Function boxed3Doubles plusVal   boxed3DoublesAssumptions)
+                                                     , ("*",        Function boxed3Doubles timeVal   boxed3DoublesAssumptions)
+                                                     , ("-",        Function boxed3Doubles minusVal  boxed3DoublesAssumptions)
+                                                     , ("/",        Function boxed3Doubles divVal    boxed3DoublesAssumptions)
+                                                     , ("equals",   Function double2Bool   eqVal     double2BoolAssumptions)
+                                                     , ("shortRep", Function double2text   showVal   double2TextAssumptions)
+                                                     , ("toText",   Function double2text   showVal   double2TextAssumptions)
+                                                     , ("toJSON",   Function double2JSON   toJSVal   double2JSONAssumptions)
+                                                     , ("toReal",   Function double2Double toRealVal double2DoubleAssumptions)
                                                      ]
     return klass
 
