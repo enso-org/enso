@@ -179,6 +179,15 @@ doubleClass imps = do
         cmp <- compile r
         return (assu, cmp)
 
+    Right (double2BoolAssumptions, double2Bool) <- runGraph $ do
+        tDouble   <- cons_ @Draft "Real"
+        tBool     <- cons_ @Draft "Bool"
+        l1        <- lam tDouble tBool
+        l2        <- lam tDouble l1
+        (assu, r) <- mkMonadProofFun $ generalize l2
+        cmp       <- compile r
+        return (assu, cmp)
+
     Right (double2TextAssumptions, double2text) <- runGraph $ do
         tDouble <- cons_ @Draft "Real"
         tStr <- cons_ @Draft "Text"
@@ -199,6 +208,7 @@ doubleClass imps = do
         timeVal     = toLunaValue tmpImps ((*)  :: Double -> Double -> Double)
         minusVal    = toLunaValue tmpImps ((-)  :: Double -> Double -> Double)
         divVal      = toLunaValue tmpImps ((/)  :: Double -> Double -> Double)
+        eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
         showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
         toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
         tmpImps     = imps & importedClasses . at "Real" ?~ klass
@@ -206,6 +216,7 @@ doubleClass imps = do
                                                      , ("*",        Function boxed3Doubles timeVal  boxed3DoublesAssumptions)
                                                      , ("-",        Function boxed3Doubles minusVal boxed3DoublesAssumptions)
                                                      , ("/",        Function boxed3Doubles divVal   boxed3DoublesAssumptions)
+                                                     , ("equals",   Function double2Bool   eqVal    double2BoolAssumptions)
                                                      , ("shortRep", Function double2text   showVal  double2TextAssumptions)
                                                      , ("toText",   Function double2text   showVal  double2TextAssumptions)
                                                      , ("toJSON",   Function double2JSON   toJSVal  double2JSONAssumptions)
