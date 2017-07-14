@@ -10,6 +10,30 @@ class Bool:
 
     def shortRep: self . toText
 
+    def and that: case self of
+        True: case that of
+            True: True
+            False: False
+        False: False
+
+    def or that: case self of
+        True: True
+        False: case that of
+            True:  True
+            False: False
+
+    def equals that: case self of
+        True: case that of
+            True:  True
+            False: False
+        False: case that of
+            True:  False
+            False: True
+
+    def not: case self of
+        True:  False
+        False: True
+
 def if_then_else pred ifTrue ifFalse: case pred of
     True:  ifTrue
     False: ifFalse
@@ -55,6 +79,9 @@ class Pair a b:
     def shortRep: case self of
         Pair a b: "(" + a.shortRep + ", " + b.shortRep + ")"
 
+    def equals that:
+        self.first.equals that.first . and (self.second.equals that.second)
+
 class Triple a b c:
     Triple a b c
 
@@ -78,6 +105,8 @@ class Triple a b c:
     def shortRep: case self of
         Triple a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
 
+    def equals that:
+        self.first.equals that.first . and (self.second.equals that.second) . and (self.third.equals that.third)
 
 class Maybe a:
     Nothing
@@ -123,6 +152,14 @@ class Maybe a:
         Nothing: "Nothing"
 
     def toText: self.shortRep
+
+    def equals that: case self of
+        Just a: case that of
+            Just b:  a.equals b
+            Nothing: False
+        Nothing: case that of
+            Nothing: True
+            other:   False
 
 class List a:
     Empty
@@ -223,6 +260,11 @@ class List a:
         Empty: False
         Prepend x xs: if f x then True else xs . _any f
 
+    def equals that: case Pair self that of
+        Pair Empty Empty: True
+        Pair (Prepend x xs) (Prepend y ys): if x.equals y then xs.equals ys else False
+        other: False
+
 class Map k v:
     Tip
     Bin Int k v (Map k v) (Map k v)
@@ -263,6 +305,12 @@ class Map k v:
                     False:
                         newL = l.insert k v
                         Bin (newL.size + r.size) kx x newL r
+
+    def equals that: case Pair self that of
+        Pair Tip Tip: True
+        Pair (Bin s1 k1 v1 l1 r1) (Bin s2 k2 v2 l2 r2):
+            if s1.equals s2 . and (k1.equals k2) . and (v1.equals v2) then l1.equals l2 . and (r1.equals r2) else False
+        other: False
 
 class JSON:
     JSONNumber Real
@@ -332,6 +380,30 @@ class MsgPack:
         MPBinary b: JSONString b.toText
         MPArray a:  a.toJSON
         MPMap   m:  m.toJSON
+
+    def equals that: case self of
+        MPNil: case that of
+            MPNil:       True
+            other:       False
+        MPBool b: case that of
+            MPBool b1:   b.equals b1
+            other:       False
+        MPInt i: case that of
+            MPInt i1:    i.equals i1
+            other:       False
+        MPReal r: case that of
+            MPReal r1:   r.equals r1
+            other:       False
+        MPString s: case that of
+            MPString s1: s.equals s1
+            other:       False
+        MPBinary b:      False
+        MPArray a: case that of
+            MPArray a1:  a.equals a1
+            other:       False
+        MPMap m: case that of
+            MPMap m1:    m.equals m1
+            other:       False
 
     def shortRep: self.toText
 
