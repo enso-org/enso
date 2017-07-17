@@ -40,12 +40,14 @@ type instance Pass.Outputs    Event ModuleProcessing = '[New // AnyExpr, Delete 
 
 type instance Pass.Preserves        ModuleProcessing = '[]
 
-processModule :: (MonadPassManager m, MonadIO m) => Imports -> CompiledWorld -> Expr Unit -> m CompiledWorld
-processModule baseImports world root = do
+processModule' :: (MonadPassManager m, MonadIO m) => Imports -> CompiledWorld -> Expr Unit -> m (CompiledWorld, Imports)
+processModule' baseImports world root = do
     (imports, definedClasses, definedFunctions) <- Pass.eval' @ModuleProcessing $ do
         Term (Term.Unit imports _ cls) <- readTerm root
-        importHub :: Expr ImportHub    <- unsafeGeneralize <$> source imports
-        Term (Term.ImportHub imps)     <- readTerm importHub
+        importHub <- source imports
+        imps <- matchExpr importHub $ \case
+            ImportHub imps -> return imps
+            _              -> return def
         let addImport name imports i = do
               imp :: Expr Import <- unsafeGeneralize <$> source i
               Term (Term.Import _ tgt') <- readTerm imp
@@ -74,4 +76,7 @@ processModule baseImports world root = do
             functionsByIR   = Map.fromList $ zip (generalize . fst . snd <$> definedFunctions) defs
             allImports      = imports & importedClasses   %~ Map.union classesByName
                                       & importedFunctions %~ Map.union functionsByName
-        return $ CompiledWorld classesByIR functionsByIR
+        return (CompiledWorld classesByIR functionsByIR, Imports classesByName functionsByName)
+
+processModule :: (MonadPassManager m, MonadIO m) => Imports -> CompiledWorld -> Expr Unit -> m CompiledWorld
+processModule = fmap fst .:. processModule'
