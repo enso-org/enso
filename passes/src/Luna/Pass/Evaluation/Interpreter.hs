@@ -197,6 +197,8 @@ matcher expr = matchExpr expr $ \case
     Cons n as -> do
         argMatchers <- mapM (matcher <=< source) as
         return $ tryMatch n argMatchers
+    Blank -> return $ \d -> return (Just def, d)
+    s -> error $ "unexpected pattern: " ++ show s
 
 matchIrrefutably :: Name -> [LunaData -> LunaEff (Map (Expr Draft) LunaData)] -> LunaData -> LunaEff (Map (Expr Draft) LunaData)
 matchIrrefutably name fieldMatchers d@(LunaObject (Object (Constructor n fs) _)) = if n /= name then throw "Irrefutable pattern match failed" else matchFields where
@@ -210,3 +212,5 @@ irrefutableMatcher expr = matchExpr expr $ \case
     Cons n as -> do
         args <- mapM (irrefutableMatcher <=< source) as
         return $ matchIrrefutably n args
+    Blank -> return $ \d -> return def
+    s -> error $ "unexpected pattern: " ++ show s
