@@ -271,6 +271,11 @@ class List a:
     def average:
         self.sum . / (self.length.toReal)
 
+    def collect: case self of
+        Empty: Empty
+        Prepend (Just x) xs: Prepend x xs.collect
+        Prepend Nothing xs:  xs.collect
+
 class Map k v:
     Tip
     Bin Int k v (Map k v) (Map k v)
@@ -429,13 +434,30 @@ class MsgPack:
         MPMap m: self._lookup_list_key key m
         other:   Nothing
 
-    def lookupText key: self.lookup (MPString key)
+    def hasKey key: case self.lookup key of
+        Just v:  True
+        Nothing: False
+
+    def hasText key: self.hasKey (MPString key)
+
+    def safeLookupText key: self.lookup (MPString key)
+
+    def lookupText key: self.safeLookupText key . fromJust
 
     def sum: case self of
         MPArray a: a.sum
 
     def average: case self of
         MPArray a: a.average
+
+    def map f: case self of
+        MPArray a: a.map f
+
+    def filter f: case self of
+        MPArray a: a.filter f
+
+    def each f: case self of
+        MPArray a: a.each f
 
 def newMVar:
     primNewMVar
@@ -471,9 +493,9 @@ class Stream a:
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
-def average stream:
-    folder = el: (Pair count sum): Pair count.succ (sum + el)
-    stream . foldFrom (Pair 0 0.0) folder . map ((Pair count sum): sum./ count.toReal)
+    def average:
+        folder = el: (Pair count sum): Pair count.succ (sum + el)
+        self . foldFrom (Pair 0 0.0) folder . map ((Pair count sum): sum./ count.toReal)
 
 def delayAsync time act:
     var = newMVar
