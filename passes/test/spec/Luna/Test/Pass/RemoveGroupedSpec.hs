@@ -135,7 +135,7 @@ desugarsTo test expected = do
         runRegs
         setAttr (getTypeDesc @ExprRoots) $ ExprRoots []
         x <- Pass.eval' test
-        desugared <- Pass.eval' $ removeGrouped $ generalize x
+        desugared <- Pass.eval' $ flip evalStateT def $ removeGrouped $ generalize x
         void $ Pass.eval' $ snapshotVis "desugar"
         orphans   <- Pass.eval' @RemoveGrouped $ checkUnreachableExprs [desugared]
         coherence <- Pass.eval' @TestPass checkCoherence
