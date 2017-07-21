@@ -12,6 +12,7 @@ import           Data.TypeDesc
 import           Data.Path     as X
 -- WIP:
 import           OCI.IR.Layout.Class (Abstract)
+import           Control.Monad.State.Dependent (StateT)
 
 
 
@@ -85,6 +86,7 @@ type family Emitters as m :: Constraint where
     Emitters '[]       m = ()
     Emitters (a ': as) m = (Emitter a m, Emitters as m)
 
+instance Emitter e m => Emitter e (StateT s m)
 
 -----------------------
 -- === Listeners === --

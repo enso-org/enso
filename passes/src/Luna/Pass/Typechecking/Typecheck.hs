@@ -46,9 +46,9 @@ typecheck tgt imports roots = do
     setAttr (getTypeDesc @Imports)       $ imports
 
     initNameGen
-    Pass.eval' BlankDesugaring.runBlankDesugaring
-    Pass.eval' RemoveGrouped.runRemoveGrouped
-    Pass.eval' PatternTransformation.runPatternTransformation
+    {-# SCC runBlankDesugaring #-} Pass.eval' BlankDesugaring.runBlankDesugaring
+    {-# SCC runRemoveGrouped #-} Pass.eval' RemoveGrouped.runRemoveGrouped
+    {-# SCC runPatternTransformation #-} Pass.eval' PatternTransformation.runPatternTransformation
 
     initUnresolvedVars
     initUnresolvedConses
@@ -58,16 +58,16 @@ typecheck tgt imports roots = do
     initUnresolvedAccs
     initMergeQueue
     initExprMapping
-    Pass.eval' AliasAnalysis.runAliasAnalysis
-    Pass.eval' ConstructorResolution.runConstructorResolution
+    {-# SCC runAliasAnalysis #-} Pass.eval' AliasAnalysis.runAliasAnalysis
+    {-# SCC runConstructorResolution #-} Pass.eval' ConstructorResolution.runConstructorResolution
 
-    Pass.eval' StructuralTyping.runStructuralTyping
-    Pass.eval' FunctionResolution.runFunctionResolution
-    Pass.eval' DeconstructorResolution.runDeconstructorResolution
+    {-# SCC runStructuralTyping #-} Pass.eval' StructuralTyping.runStructuralTyping
+    {-# SCC runFunctionResolution #-} Pass.eval' FunctionResolution.runFunctionResolution
+    {-# SCC runDeconstructorResolution #-} Pass.eval' DeconstructorResolution.runDeconstructorResolution
 
     runTCWhileProgress
 
-    Pass.eval' ErrorPropagation.run
+    {-# SCC errorPropagation #-} Pass.eval' ErrorPropagation.run
 
     Just (ExprRoots newRoots) <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @ExprRoots)
 
@@ -75,10 +75,10 @@ typecheck tgt imports roots = do
 
 runTCWhileProgress :: (MonadState Cache m, MonadPassManager m, MonadIO m) => m ()
 runTCWhileProgress = do
-    uniRes  <- Pass.eval' UniSolver.runUnificationSolver
-    tsRes   <- Pass.eval' Simplification.runTypeSimplification
-    uniRes2 <- Pass.eval' UniSolver.runUnificationSolver
-    mrRes   <- Pass.eval' MethodResolution.runMethodResolution
-    Pass.eval' MergeSolver.runMergeSolver
+    uniRes  <- {-# SCC runUnificationSolver #-} Pass.eval' UniSolver.runUnificationSolver
+    tsRes   <- {-# SCC runTypeSimplification #-} Pass.eval' Simplification.runTypeSimplification
+    uniRes2 <- {-# SCC runUnificationSolver #-} Pass.eval' UniSolver.runUnificationSolver
+    mrRes   <- {-# SCC runMethodResolution  #-} Pass.eval' MethodResolution.runMethodResolution
+    {-# SCC runMergeSolver #-} Pass.eval' MergeSolver.runMergeSolver
     if or [tsRes, uniRes, uniRes2, mrRes] then runTCWhileProgress else return ()
 

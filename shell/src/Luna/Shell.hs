@@ -85,8 +85,6 @@ main = void $ runPM True $ do
           Just m  -> world ^. functions . at m
           Nothing -> Nothing
 
-    Pass.eval' @ShellTest $ Vis.snapshotNoType "yoyo"
-
     putStrLn "Running main..."
 
     case mainFun of

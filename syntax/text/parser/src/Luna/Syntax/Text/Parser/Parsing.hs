@@ -871,13 +871,6 @@ breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmpty
 -- === Parser === --
 --------------------
 
--- vv vv vvv REFACTOR vvv vv vv --
-
-type instance GetRefHandler (StateT s m) = GetRefHandler m
-instance Emitter e m => Emitter e (StateT s m)
-
--- ^^ ^^ ^^^ REFACTOR ^^^ ^^ ^^ --
-
 type FileName = Literal.String
 
 
