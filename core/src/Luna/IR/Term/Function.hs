@@ -21,7 +21,7 @@ import Data.Families (makeLensedTerm)
 
 -- === Definition === --
 
-data TermASGFunction a = ASGFunction { __name :: !Name
+data TermASGFunction a = ASGFunction { __name :: !a
                                      , __args :: ![a]
                                      , __body :: !a
                                      } deriving (Functor, Foldable, Traversable)
@@ -56,7 +56,7 @@ instance Show (TermASGFunction a) where show _ = "Function"
 
 -- === Definition === --
 
-data TermFunctionSig a = FunctionSig { __name :: !Name
+data TermFunctionSig a = FunctionSig { __name :: !a
                                      , __sig  :: !a
                                      } deriving (Functor, Foldable, Traversable)
 makeLensedTerm ''TermFunctionSig

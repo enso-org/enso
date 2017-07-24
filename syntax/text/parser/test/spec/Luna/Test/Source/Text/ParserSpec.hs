@@ -253,15 +253,15 @@ spec = do
             it "lambda as $-argument"                       $ shouldParseItself' expr "foo $ x: x + 1"                            [(0,3),(1,1),(0,5),(0,1),(0,1),(1,1),(0,3),(1,1),(2,5),(1,8),(0,14)]
 
         describe "function definition expressions" $ do
-            it "no argument function definition"            $ shouldParseItself' expr "def foo: bar"                              [(9,3),(0,12)]
-            it "simple function definition"                 $ shouldParseItself' expr "def foo a b: a + b"                        [(8,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
+            it "no argument function definition"            $ shouldParseItself' expr "def foo: bar"                              [(4,3),(2,3),(0,12)]
+            it "simple function definition"                 $ shouldParseItself' expr "def foo a b: a + b"                        [(4,3),(1,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
 
         describe "top level definitions" $ do
             it "value definition"                           $ shouldParseAs''     unit' "def pi: 3.14"       "<function 'pi'>"       [(0,12),(0,12),(0,12)]
             it "expression definition"                      $ shouldParseAs''     unit' "def foo: a + b"     "<function 'foo'>"      [(0,14),(0,14),(0,14)]
             it "function definition"                        $ shouldParseAs''     unit' "def foo a b: a + b" "<function 'foo'>"      [(0,18),(0,18),(0,18)]
             it "operator definition"                        $ shouldParseAs''     unit' "def + a b: a.+ b"   "<function '+'>"        [(0,16),(0,16),(0,16)]
-            it "function signature definition"              $ shouldParseItself'' unit' "def foo :: a -> Vector a"                   [(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(11,13),(0,24),(0,24),(0,24)]
+            it "function signature definition"              $ shouldParseItself'' unit' "def foo :: a -> Vector a"                   [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
 
         describe "case expression" $ do
             it "simple case expression"                     $ shouldParseItself' expr "case v of\n    A a: b" [(5,1),(0,1),(1,1),(0,3),(2,1),(8,6),(0,20)]

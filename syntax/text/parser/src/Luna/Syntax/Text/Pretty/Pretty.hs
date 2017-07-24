@@ -225,8 +225,8 @@ instance ( MonadIO m -- DEBUG ONLY
         Marked       m a       -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
         Marker         a       -> return . unnamed . atom $ convert markerBegin <> convert (show a) <> convert markerEnd
         ASGRootedFunction  n _ -> return . unnamed . atom $ "<function '" <> convert n <> "'>"
-        ASGFunction  n as body -> unnamed . atom .: (\as' body' -> "def" <+> convert n <> arglist as' <> body') <$> mapM subgenBody as <*> smartBlock body
-        FunctionSig  n tp      -> unnamed . atom . (("def" <+> convert n <+> typedName) <+>) <$> subgenBody tp
+        ASGFunction  n as body -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
+        FunctionSig  n tp      -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
         Match        a cs      -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
         ClsASG   n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
                                       go args conss decls = "class" <+> convert n <> arglist args <> body where

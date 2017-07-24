@@ -4,7 +4,7 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
-import Prologue hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span)
+import Prologue hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
 import qualified Prologue as P
 
 import qualified Text.Megaparsec as Parser
@@ -739,10 +739,10 @@ topLvlDecl = rootedFunc <|> cls <|> metadata
 
 func :: AsgParser SomeExpr
 func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
-    funcDef, funcSig :: SymParser (Name -> IRB SomeExpr)
-    funcHdr = symbol Lexer.KwDef *> funcName
-    funcSig = (\tp name -> liftAstApp1 (IR.functionSig' name) tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftAstApp2 (IR.asgFunction' name) (sequence args) (uncurry seqs body))
+    funcDef, funcSig :: SymParser (AsgBldr SomeExpr -> IRB SomeExpr)
+    funcHdr = symbol Lexer.KwDef *> (var <|> op)
+    funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
+    funcDef = (\args body name -> liftAstApp3 IR.asgFunction' name (sequence args) (uncurry seqs body))
         <$> many nonSpacedPattern
         <*  symbol Lexer.BlockStart
         <*> discover (nonEmptyBlock lineExpr)
@@ -752,10 +752,10 @@ rootedFunc = marked <*> rootedRawFunc
 
 rootedRawFunc :: AsgParser SomeExpr
 rootedRawFunc = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
-    funcDef, funcSig :: SymParser (Name -> IRB SomeExpr)
-    funcHdr = symbol Lexer.KwDef *> funcName
-    funcSig = (\tp name -> liftAstApp1 (IR.functionSig' name) tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftAstApp1 (IR.asgRootedFunction name) $ snapshotRooted $ nestedLam args $ uncurry seqs body)
+    funcDef, funcSig :: SymParser ((Name, AsgBldr SomeExpr) -> IRB SomeExpr)
+    funcHdr = symbol Lexer.KwDef *> (namedVar <|> namedOp)
+    funcSig = (\tp (_, var) -> liftAstApp2 IR.functionSig' var tp) <$ symbol Lexer.Typed <*> valExpr
+    funcDef = (\args body (name, var) -> liftAstApp1 (IR.asgRootedFunction name) $ snapshotRooted $ nestedLam args $ uncurry seqs body)
         <$> many nonSpacedPattern
         <*  symbol Lexer.BlockStart
         <*> discover (nonEmptyBlock lineExpr)

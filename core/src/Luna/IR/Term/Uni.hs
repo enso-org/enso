@@ -52,8 +52,8 @@ data instance UniTerm a = Number    !Literal.Number
                         | Missing
 
                         -- | Function            !a
-                        | ASGFunction         !Name ![a] !a
-                        | FunctionSig         !Name !a
+                        | ASGFunction         !a ![a] !a
+                        | FunctionSig         !a !a
                         | RootedFunction      !(IR.Rooted SomeExpr)
                         | ASGRootedFunction   !Name !(IR.Rooted SomeExpr)
                         | ClsASG              !Name ![a] ![a] ![a]
