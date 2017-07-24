@@ -87,6 +87,22 @@ attachStructuralType knownMonad expr = do
             modifyAttr_ @Unifications $ wrap . (generalize uT :) . unwrap
             mon <- source =<< (view (wrapped . termMonadic_monad)) <$> readTerm rM
             return uT `inMonadM` return mon
+        ASGFunction n as o -> do
+            asM <- forM as $ \a -> do
+                freshVar <- fmap generalize $ var =<< genName
+                (aM, aT) <- getStructuralType (Just freshVar) =<< source a
+                return aM
+            (oM, oT) <- getStructuralType Nothing =<< source o
+            (nM, _)  <- getStructuralType Nothing =<< source n
+            let lamsInPure []       b = return b
+                lamsInPure (a : as) b = do
+                    (restM, _) <- lamsInPure as b
+                    lam a restM `inMonadM` cons_ @Draft "Pure"
+            res@(resM, _) <- lamsInPure asM (oM, oT)
+            uni <- unify nM resM
+            reconnectLayer' @Requester (Just expr) (unsafeGeneralize uni :: Expr Draft)
+            modifyAttr_ @Unifications $ wrap . (generalize uni :) . unwrap
+            return res
         Grouped a  -> getStructuralType knownMonad =<< source a
         Marked _ b -> getStructuralType knownMonad =<< source b
         Seq a b   -> do
