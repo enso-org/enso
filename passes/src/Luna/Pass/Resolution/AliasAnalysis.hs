@@ -48,7 +48,7 @@ runAliasAnalysis = do
     roots       <- unwrap <$> getAttr @ExprRoots
     mapM_ (resolveAliases def) roots
 
-discoverVars :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass AliasAnalysis m [(Name, Expr Draft)]
+discoverVars :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass AliasAnalysis m [(Name, Expr Var)]
 discoverVars e = matchExpr e $ \case
     Cons    _ args -> do
         reportNegativeCons $ unsafeRelayout e
@@ -57,7 +57,7 @@ discoverVars e = matchExpr e $ \case
     Grouped x      -> discoverVars =<< source x
     _              -> return []
 
-resolveAliases :: (MonadRef m, MonadPassManager m) => Map Name (Expr Draft) -> Expr Draft -> SubPass AliasAnalysis m (Map Name (Expr Draft))
+resolveAliases :: (MonadRef m, MonadPassManager m) => Map Name (Expr Var) -> Expr Draft -> SubPass AliasAnalysis m (Map Name (Expr Var))
 resolveAliases baseAliases expr = matchExpr expr $ \case
     Cons name children -> do
         reportPositiveCons $ unsafeRelayout expr
@@ -79,9 +79,11 @@ resolveAliases baseAliases expr = matchExpr expr $ \case
         let newAliases = Map.union (Map.fromList newVars) baseAliases
         resolveAliases newAliases =<< source o
         return baseAliases
-    {-ASGFunction n as b -> do-}
-        {-newVars <- Map.fromList . concat <$> mapM (discoverVars <=< source) as-}
-        
+    ASGFunction n as b -> do
+        selfVar <- Map.fromList <$> (discoverVars =<< source n)
+        newVars <- Map.fromList . concat <$> mapM (discoverVars <=< source) as
+        resolveAliases (Map.unions [selfVar, newVars, baseAliases]) =<< source b
+        return $ Map.union selfVar baseAliases
     Seq l r -> do
         leftRes <- resolveAliases baseAliases =<< source l
         resolveAliases leftRes =<< source r

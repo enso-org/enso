@@ -134,6 +134,19 @@ interpret' glob expr = do
                     Left e  -> modify $ localInsert l $ LunaError e
                     Right v -> lift (lpat v) >>= modify . mergeScopes
                 return $ mkNothing glob
+        ASGFunction n' as' b' -> do
+            n   <- source n'
+            as  <- mapM (irrefutableMatcher <=< source) as'
+            rhs <- interpret' glob =<< source b'
+            let makeFuns []       e = evalStateT rhs e
+                makeFuns (m : ms) e = return $ LunaFunction $ \d -> do
+                    newBinds <- m $ LunaThunk d
+                    makeFuns ms (mergeScopes newBinds e)
+            return $ do
+                env <- get
+                let rhs' = makeFuns as (localInsert n (LunaThunk rhs') env)
+                modify $ localInsert n (LunaThunk rhs')
+                return $ mkNothing glob
         Seq l' r'  -> do
             l   <- source l'
             r   <- source r'
