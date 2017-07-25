@@ -74,7 +74,7 @@ instance Show (TermFunctionSig a) where show _ = "FunctionSig"
 
 -- === Definition === --
 
-data TermASGRootedFunction a = ASGRootedFunction { __name :: !Name
+data TermASGRootedFunction a = ASGRootedFunction { __name :: !a
                                                  , __body :: !(IR.Rooted SomeExpr)
                                                  } deriving (Functor, Foldable, Traversable)
 makeLensedTerm ''TermASGRootedFunction

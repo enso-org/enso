@@ -47,7 +47,10 @@ processClass imports root = do
             _     -> error "Unexpected class parameter type"
         decls <- mapM source ds
         resolvedDecls <- fmap catMaybes $ forM decls $ \decl -> matchExpr decl $ \case
-            ASGRootedFunction n r -> return $ Just (n, r)
+            ASGRootedFunction n r -> do
+                n'   <- source n
+                name <- matchExpr n' $ \(Var n) -> return n
+                return $ Just (name, r)
             _                     -> return $ Nothing
         conses <- mapM source cs
         resolvedConses <- fmap catMaybes $ forM conses $ \cons -> matchExpr cons $ \case

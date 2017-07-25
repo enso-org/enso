@@ -257,10 +257,10 @@ spec = do
             it "simple function definition"                 $ shouldParseItself' expr "def foo a b: a + b"                        [(4,3),(1,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
 
         describe "top level definitions" $ do
-            it "value definition"                           $ shouldParseAs''     unit' "def pi: 3.14"       "<function 'pi'>"       [(0,12),(0,12),(0,12)]
-            it "expression definition"                      $ shouldParseAs''     unit' "def foo: a + b"     "<function 'foo'>"      [(0,14),(0,14),(0,14)]
-            it "function definition"                        $ shouldParseAs''     unit' "def foo a b: a + b" "<function 'foo'>"      [(0,18),(0,18),(0,18)]
-            it "operator definition"                        $ shouldParseAs''     unit' "def + a b: a.+ b"   "<function '+'>"        [(0,16),(0,16),(0,16)]
+            it "value definition"                           $ shouldParseAs''     unit' "def pi: 3.14"       "<function 'pi'>"       [(4,2),(0,12),(0,12),(0,12)]
+            it "expression definition"                      $ shouldParseAs''     unit' "def foo: a + b"     "<function 'foo'>"      [(4,3),(0,14),(0,14),(0,14)]
+            it "function definition"                        $ shouldParseAs''     unit' "def foo a b: a + b" "<function 'foo'>"      [(4,3),(0,18),(0,18),(0,18)]
+            it "operator definition"                        $ shouldParseAs''     unit' "def + a b: a.+ b"   "<function '+'>"        [(4,1),(0,16),(0,16),(0,16)]
             it "function signature definition"              $ shouldParseItself'' unit' "def foo :: a -> Vector a"                   [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
 
         describe "case expression" $ do
@@ -278,12 +278,12 @@ spec = do
 
         describe "units" $ do
             it "empty unit"                                 $ shouldParseItself' unit' ""                                        []
-            it "unit with newlines on the end"              $ shouldParseAs'     unit' "def foo: bar\n\n\n" "\n<function 'foo'>" [(0,12),(0,12),(0,12)]
-            it "unit with newlines on the beginning"        $ shouldParseAs'     unit' "\n\n\ndef foo: bar" "\n<function 'foo'>" [(0,12),(3,12),(0,15)]
+            it "unit with newlines on the end"              $ shouldParseAs'     unit' "def foo: bar\n\n\n" "\n<function 'foo'>" [(4,3),(0,12),(0,12),(0,12)]
+            it "unit with newlines on the beginning"        $ shouldParseAs'     unit' "\n\n\ndef foo: bar" "\n<function 'foo'>" [(4,3),(0,12),(3,12),(0,15)]
 
         describe "classes" $ do
             it "phantom class"                              $ shouldParseItself'' unit' "class Phantom"                                               [(0,13),(0,13),(0,13)]
-            it "no cons and fields class"                   $ shouldParseAs'      unit' "class C:\n    def foo: a" "\nclass C:\n    <function 'foo'>" [(13,10),(0,23),(0,23),(0,23)]
+            it "no cons and fields class"                   $ shouldParseAs'      unit' "class C:\n    def foo: a" "\nclass C:\n    <function 'foo'>" [(4,3),(13,10),(0,23),(0,23),(0,23)]
             it "constructor-only class"                     $ shouldParseItself'' unit' ("class Bool:"
                                                                                      </> "    True"
                                                                                      </> "    False"
@@ -298,7 +298,7 @@ spec = do
                                                                                      </> "    V a a a"
                                                                                      </> "    X: fld :: a"
                                                                                      </> "    def foo: 0"
-                                                                                        ) [(13,1),(0,1),(2,1),(0,1),(1,1),(0,1),(1,1),(6,7),(7,1),(3,8),(5,11),(5,10),(0,58),(0,58),(0,58)]
+                                                                                        ) [(13,1),(0,1),(2,1),(0,1),(1,1),(0,1),(1,1),(6,7),(7,1),(3,8),(5,11),(4,3),(5,10),(0,58),(0,58),(0,58)]
         describe "block layout" $ do
           -- TODO: prawdziwe bloki
             let lam1  = "lam: foo"

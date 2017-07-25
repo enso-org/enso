@@ -189,8 +189,14 @@ grouped e = mdo
 rootedFunction :: ExprCons m RootedFunction => IR.Rooted SomeExpr -> m SomeExpr
 rootedFunction body = expr $ Term.uncheckedRootedFunction body
 
-asgRootedFunction :: ExprCons m ASGRootedFunction => Name -> IR.Rooted SomeExpr -> m SomeExpr
-asgRootedFunction n body = expr $ Term.uncheckedASGRootedFunction n body
+
+asgRootedFunction' :: ExprCons m ASGRootedFunction => Expr a -> IR.Rooted SomeExpr -> m SomeExpr
+asgRootedFunction  :: ExprCons m ASGRootedFunction => Expr a -> IR.Rooted SomeExpr -> m (Expr $ ASGRootedFunction >> a)
+asgRootedFunction' = fmap generalize .: asgRootedFunction
+asgRootedFunction name body = mdo
+    t     <- expr $ Term.uncheckedASGRootedFunction lname body
+    lname <- link (unsafeRelayout name) t
+    return t
 
 asgFunction' :: ExprCons m ASGFunction => Expr a -> [Expr b] -> Expr c -> m SomeExpr
 asgFunction  :: ExprCons m ASGFunction => Expr a -> [Expr b] -> Expr c -> m (Expr $ ASGFunction >> (a <+> b <+> c))
