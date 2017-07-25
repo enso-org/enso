@@ -509,6 +509,7 @@ partitionASGDecl :: MonadPassRunner m => Expr a -> SubPass UnitLoader m (Cls.Ter
 partitionASGDecl decl = matchExpr decl $ \case
     ASGRootedFunction name body -> set (Cls.methods . at name) . Just <$> rootedFunction body
     cls@(ClsASG name _ _ _)     -> return $ Cls.classes . at name ?~ unsafeGeneralize decl
+    _                           -> return id
 
 
 
