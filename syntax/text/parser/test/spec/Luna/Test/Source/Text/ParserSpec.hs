@@ -131,10 +131,13 @@ spec = do
             it "empty list"                                 $ shouldParseItself' expr "[]"                                       [(0,2)]
             it "singleton list"                             $ shouldParseItself' expr "[a]"                                      [(1,1),(0,3)]
             it "few elems list"                             $ shouldParseItself' expr "[a, b, c]"                                [(1,1),(2,1),(2,1),(0,9)]
-            it "list with comma operator"                   $ shouldParseItself' expr "[(,)]"                                    [(1,1),(1,3),(0,5)]
+            it "list with tuple section"                    $ shouldParseItself' expr "[(, )]"                                   [(1,4),(0,6)]
             it "nested lists"                               $ shouldParseItself' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
             it "list sections"                              $ shouldParseItself' expr "[, a, , b, ]"                             [(3,1),(4,1),(0,12)]
             it "nested section list"                        $ shouldParseItself' expr "[[, ]]"                                   [(1,4),(0,6)]
+        describe "tuples" $ do
+            it "3-tuple"         $ shouldParseItself' expr "(a, 30, \"ala\")" [(1,1),(2,2),(2,5),(0,14)]
+            it "2-tuple section" $ shouldParseItself' expr "(, 30)"           [(3,2),(0,6)]
 
     describe "identifiers" $ do
             it "one letter variable"                        $ shouldParseItself' expr "a"                                        [(0,1)]

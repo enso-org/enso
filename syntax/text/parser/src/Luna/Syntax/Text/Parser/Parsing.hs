@@ -17,7 +17,7 @@ import qualified Text.Megaparsec.Lexer as Lex
 import qualified Text.Megaparsec.Char  as Charhiding (eol)
 
 import qualified Luna.IR as IR
-import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled)
+import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled)
 import Luna.IR.ToRefactor
 import OCI.Pass.Class hiding (get, put, modify_)
 import OCI.Pass.Definition
@@ -446,7 +446,17 @@ list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 
     optElem   = option Nothing elem
     elems     = option mempty $ (:) <$> elem <*> many (separator *> optElem)
     braced p  = braceBegin *> p <* braceEnd
-    separator = specificOp ","
+    separator = symbol sep
+
+-- FIXME[WD]: This `try` should be refactored out
+tuple :: AsgParser SomeExpr -> AsgParser SomeExpr
+tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> liftAstApp1 IR.tuple' $ sequence $ fmap sequence g) <$> elems where
+    sep        = Lexer.Operator ","
+    elem       = option Nothing $ Just <$> withLocalReservedSymbol sep p
+    optElem    = option Nothing elem
+    elems      = (:) <$> elem <*> some (separator *> optElem)
+    parensed p = groupBegin *> p <* groupEnd
+    separator  = symbol sep
 
 str :: AsgParser SomeExpr
 str = buildAsg $ do
@@ -578,14 +588,14 @@ exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
 exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = withNewLocal exprFreeSegmentsLocal
-exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some' $ choice [mfixVarSeg, consSeg, wildSeg, numSeg, strSeg, opSeg, accSeg, grpSeg, listSeg, lamSeg, matchseg, typedSeg, funcSeg]
+exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some' $ choice [mfixVarSeg, consSeg, wildSeg, numSeg, strSeg, opSeg, accSeg, tupleSeg, grpSeg, listSeg, lamSeg, matchseg, typedSeg, funcSeg]
 
 exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
 exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: SymParser ExprSegmentBuilder
 exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
 exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpaced      = withNewLocal exprFreeSegmentsNonSpacedLocal
-exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg]
+exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg, strSeg, tupleSeg, grpSeg, listSeg]
 
 
 -- === Components === --
@@ -599,14 +609,15 @@ unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
 unlabeledAtom = labeled (spaced "#unnamed#") . atom
 
 -- Possible tokens
-varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg, matchseg, lamSeg, funcSeg :: SymParser ExprSegmentBuilder
+varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg, tupleSeg, matchseg, lamSeg, funcSeg :: SymParser ExprSegmentBuilder
 varSeg   = posIndependent . unlabeledAtom <$> var
 consSeg  = posIndependent . unlabeledAtom <$> cons
 wildSeg  = posIndependent . unlabeledAtom <$> wildcard
 numSeg   = posIndependent . unlabeledAtom <$> num
 strSeg   = posIndependent . unlabeledAtom <$> str
 grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
-listSeg  = posIndependent . unlabeledAtom <$> list nonemptyValExprLocal
+listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
+tupleSeg = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
 matchseg = posIndependent . unlabeledAtom <$> match
 lamSeg   = posIndependent . labeled (unspaced lamName) . suffix <$> lamBldr
 funcSeg  = posIndependent . unlabeledAtom <$> func

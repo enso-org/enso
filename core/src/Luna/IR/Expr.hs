@@ -75,6 +75,14 @@ list fs = mdo
     fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
     return t
 
+tuple' :: ExprCons m Tuple => [Maybe (Expr t)] -> m SomeExpr
+tuple  :: ExprCons m Tuple => [Maybe (Expr t)] -> m (Expr $ Tuple >> t)
+tuple' = fmap generalize . tuple
+tuple fs = mdo
+    t  <- expr $ Term.uncheckedTuple fn
+    fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
+    return t
+
 
 -- === Prims === --
 

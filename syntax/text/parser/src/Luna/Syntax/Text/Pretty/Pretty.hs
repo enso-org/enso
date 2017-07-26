@@ -218,6 +218,7 @@ instance ( MonadIO m -- DEBUG ONLY
         Grouped   expr         -> unnamed . atom . parensed <$> subgenBody expr
         Typed     expr tp      -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
         List      elems        -> unnamed . atom . bracked . (intercalate ", ") <$> mapM (maybe (return mempty) subgenBody) elems
+        Tuple      elems       -> unnamed . atom . parensed . (intercalate ", ") <$> mapM (maybe (return mempty) subgenBody) elems
         Seq       a b          -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
         Lam       arg body     -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
         LeftSection  op a      -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a

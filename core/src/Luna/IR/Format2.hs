@@ -34,7 +34,7 @@ type instance TermTypesOf Value      = '[ Cons    , Lam    , Match, Monadic ] <>
 type instance TermTypesOf Thunk      = '[ Acc     , App                ] <> TermTypesOf Value
 type instance TermTypesOf Phrase     = '[ Blank   , Unify  , Var , Seq ] <> TermTypesOf Thunk
 type instance TermTypesOf Draft      = '[ Missing , Grouped, FmtString, FieldLens, World, Unit, UnitProxy, ClsASG, ASGFunction, FunctionSig, RootedFunction, ASGRootedFunction
-                                        , List, LeftSection, RightSection, AccSection] <> TermTypesOf Phrase -- TODO: move World, Unit, Class, etc to separate layout
+                                        , List, Tuple, LeftSection, RightSection, AccSection] <> TermTypesOf Phrase -- TODO: move World, Unit, Class, etc to separate layout
 
 
 type instance Access Format Star         = Literal
@@ -55,6 +55,7 @@ type instance Access Format Missing      = Draft
 type instance Access Format FmtString    = Draft
 type instance Access Format FieldLens    = Draft
 type instance Access Format List         = Draft
+type instance Access Format Tuple        = Draft
 type instance Access Format AccSection   = Draft
 type instance Access Format LeftSection  = Draft
 type instance Access Format RightSection = Draft

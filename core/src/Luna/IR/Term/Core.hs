@@ -54,6 +54,7 @@ data    TermTyped    a = Typed    { __base  :: !a     , __type   :: !a          
 
 data    TermInvalid   a = Invalid { __desc  :: Text       } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: Text -> Doc
 data    TermList      a = List    { __items :: ![Maybe a] } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermTuple     a = Tuple   { __items :: ![Maybe a] } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermAccSection   a = AccSection   { __name     :: ![Name]             } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermLeftSection  a = LeftSection  { __operator :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermRightSection a = RightSection { __operator :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
@@ -64,7 +65,7 @@ newtype TermMetadata     a = Metadata     { __content  :: Text                } 
 
 makeLensedTerms "CoreTerms" [ ''TermNumber, ''TermString, ''TermFmtString, ''TermAcc, ''TermApp, ''TermLam, ''TermSeq, ''TermUnify
                             , ''TermCons, ''TermMatch, ''TermMonadic, ''TermVar, ''TermFieldLens, ''TermGrouped, ''TermBlank, ''TermStar, ''TermMissing, ''TermClsASG
-                            , ''TermRecASG, ''TermFieldASG, ''TermTyped, ''TermInvalid, ''TermList, ''TermLeftSection, ''TermRightSection, ''TermAccSection
+                            , ''TermRecASG, ''TermFieldASG, ''TermTyped, ''TermInvalid, ''TermList, ''TermTuple, ''TermLeftSection, ''TermRightSection, ''TermAccSection
                             , ''TermDisabled, ''TermMarker, ''TermMarked, ''TermMetadata
                             ]
 
