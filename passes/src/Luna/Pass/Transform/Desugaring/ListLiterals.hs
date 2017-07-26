@@ -28,45 +28,78 @@ type instance Pass.Preserves        DesugarLists = '[]
 runDesugarLists :: (MonadRef m, MonadPassManager m) => Pass DesugarLists m
 runDesugarLists = do
     roots    <- getAttr @ExprRoots
-    newRoots <- forM (generalize <$> unwrap roots) desugarLists
+    newRoots <- forM (generalize <$> unwrap roots) (desugarLists False)
     putAttr @ExprRoots $ wrap $ unsafeGeneralize <$> newRoots
 
-desugarLists :: (MonadRef m, MonadPassManager m) => SomeExpr -> SubPass DesugarLists m SomeExpr
-desugarLists e = do
+desugarLists :: (MonadRef m, MonadPassManager m) => Bool -> SomeExpr -> SubPass DesugarLists m SomeExpr
+desugarLists isPattern e = do
     f <- inputs e
-    mapM_ (desugarLists <=< source) f
     matchExpr e $ \case
         List elts -> do
-            properList <- properListRep =<< (mapM . mapM) source elts
+            mapM_ (desugarLists isPattern <=< source) =<< inputs e
+            properList <- properListRep isPattern =<< (mapM . mapM) source elts
             replace properList e
-            return properList
-        _ -> return e
+            return  properList
+        Tuple elts -> do
+            mapM_ (desugarLists isPattern <=< source) =<< inputs e
+            properTuple <- properTupleRep isPattern =<< (mapM . mapM) source elts
+            replace properTuple e
+            return  properTuple
+        Unify l r -> do
+            desugarLists True      =<< source l
+            desugarLists isPattern =<< source r
+            return e
+        Lam i o -> do
+            desugarLists True      =<< source i
+            desugarLists isPattern =<< source o
+            return e
+        ASGFunction _ as b -> do
+            mapM_ (desugarLists True <=< source) as
+            desugarLists isPattern =<< source b
+            return e
+        _ -> do
+            mapM_ (desugarLists isPattern <=< source) =<< inputs e
+            return e
 
-properListRep :: (MonadRef m, MonadPassManager m) => [Maybe SomeExpr] -> SubPass DesugarLists m SomeExpr
-properListRep lsts = uncurry makeLams =<< buildRep lsts where
-    buildRep []     = ([],) <$> cons'_ "Empty"
-    buildRep (e:es) = do
-        (binds, rep) <- buildRep es
-        case e of
-            Nothing -> do
-                v <- var' =<< genName
-                r <- prepend v rep
-                return (v : binds, r)
-            Just elt -> do
-                matchExpr elt $ \case
-                    Blank -> do
-                        v <- var' =<< genName
-                        r <- prepend v rep
-                        return (v : binds, r)
-                    _     -> (binds,) <$> prepend elt rep
+properListRep :: (MonadRef m, MonadPassManager m) => Bool -> [Maybe SomeExpr] -> SubPass DesugarLists m SomeExpr
+properListRep isPattern elts = do
+    (binds, elems) <- prepareBinders elts
+    list           <- mkListOf elems
+    if isPattern then return list else makeLams binds list
 
+mkListOf :: (MonadRef m, MonadPassManager m) => [SomeExpr] -> SubPass DesugarLists m SomeExpr
+mkListOf []         = cons'_ "Empty"
+mkListOf (e : elts) = prepend e =<< mkListOf elts where
     prepend e rest = do
         prep  <- cons'_ "Prepend"
         withE <- app' prep e
         app' withE rest
 
-    makeLams []     o = return o
-    makeLams (a:as) o = do
-        newO <- makeLams as o
-        lam' a newO
+properTupleRep :: (MonadRef m, MonadPassManager m) => Bool -> [Maybe SomeExpr] -> SubPass DesugarLists m SomeExpr
+properTupleRep isPattern elts = do
+    (binds, elems) <- prepareBinders elts
+    tuple          <- mkTupleOf elems
+    if isPattern then return tuple else makeLams binds tuple
 
+mkTupleOf :: (MonadRef m, MonadPassManager m) => [SomeExpr] -> SubPass DesugarLists m SomeExpr
+mkTupleOf elts = go elts where
+    size     = length elts
+    consName = convert $ "Tuple" <> show size
+    go []         = cons'_ consName
+    go (e : elts) = flip app' e =<< go elts
+
+prepareBinders :: (MonadRef m, MonadPassManager m) => [Maybe SomeExpr] -> SubPass DesugarLists m ([SomeExpr], [SomeExpr])
+prepareBinders []               = return ([], [])
+prepareBinders (Just e : elts)  = matchExpr e $ \case
+    Blank -> prepareBinders $ Nothing : elts
+    _     -> (_2 %~ (e:)) <$> prepareBinders elts
+prepareBinders (Nothing : elts) = do
+    (binds, es) <- prepareBinders elts
+    v           <- var' =<< genName
+    return (v : binds, v : es)
+
+makeLams :: (MonadRef m, MonadPassManager m) => [SomeExpr] -> SomeExpr -> SubPass DesugarLists m SomeExpr
+makeLams []     o = return o
+makeLams (a:as) o = do
+    newO <- makeLams as o
+    lam' a newO

@@ -57,53 +57,53 @@ class None:
 
     def toJSON: JSONNull
 
-class Pair a b:
-    Pair a b
+class Tuple2 a b:
+    Tuple2 a b
 
-    def shortRep: "Pair " + a.shortRep + " " + b.shortRep
+    def shortRep: "(" + a.shortRep + ", " + b.shortRep + ")"
 
     def toJSON: case self of
-        Pair a b: JSONArray (Prepend a.toJSON (Prepend b.toJSON Empty))
+        Tuple2 a b: JSONArray (Prepend a.toJSON (Prepend b.toJSON Empty))
 
     def first: case self of
-        Pair a b: a
+        Tuple2 a b: a
 
     def second: case self of
-        Pair a b: b
+        Tuple2 a b: b
 
-    def map f: Pair (f self.first) (f self.second)
+    def map f: Tuple2 (f self.first) (f self.second)
 
     def toText: case self of
-        Pair a b: "Pair " + a.toText + " " + b.toText
+        Tuple2 a b: "Tuple2 " + a.toText + " " + b.toText
 
     def shortRep: case self of
-        Pair a b: "(" + a.shortRep + ", " + b.shortRep + ")"
+        Tuple2 a b: "(" + a.shortRep + ", " + b.shortRep + ")"
 
     def equals that:
         self.first.equals that.first . and (self.second.equals that.second)
 
-class Triple a b c:
-    Triple a b c
+class Tuple3 a b c:
+    Tuple3 a b c
 
     def toJSON: case self of
-        Triple a b c: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON Empty)))
+        Tuple3 a b c: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON Empty)))
 
     def first: case self of
-        Triple a b c: a
+        Tuple3 a b c: a
 
     def second: case self of
-        Triple a b c: b
+        Tuple3 a b c: b
 
     def third: case self of
-        Triple a b c: c
+        Tuple3 a b c: c
 
-    def map f: Triple (f self.first) (f self.second) (f self.third)
+    def map f: Tuple3 (f self.first) (f self.second) (f self.third)
 
     def toText: case self of
-        Triple a b c: "Triple " + a.toText + " " + b.toText + " " + c.toText
+        Tuple3 a b c: "Tuple3 " + a.toText + " " + b.toText + " " + c.toText
 
     def shortRep: case self of
-        Triple a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
+        Tuple3 a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
 
     def equals that:
         self.first.equals that.first . and (self.second.equals that.second) . and (self.third.equals that.third)
@@ -228,10 +228,10 @@ class List a:
          Empty: Empty
          Prepend x xs: switch (f x) (Prepend x (xs.filter f)) (xs.filter f)
 
-    def _merge that: case Pair self that of
-        Pair (Prepend x xs) (Prepend y ys): if y < x then self . _merge ys . prepend y else xs . _merge that . prepend x
-        Pair x Empty: x
-        Pair Empty y: y
+    def _merge that: case Tuple2 self that of
+        Tuple2 (Prepend x xs) (Prepend y ys): if y < x then self . _merge ys . prepend y else xs . _merge that . prepend x
+        Tuple2 x Empty: x
+        Tuple2 Empty y: y
 
     def sort:
         halfLen = self.length.div 2
@@ -246,11 +246,11 @@ class List a:
 
     def prefixes: self._prefixes 1
 
-    def zipWith f that: case Pair self that of
-        Pair (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
-        Pair x y: Empty
+    def zipWith f that: case Tuple2 self that of
+        Tuple2 (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
+        Tuple2 x y: Empty
 
-    def zip l: self . zipWith Pair l
+    def zip l: self . zipWith Tuple2 l
 
     def _all f: case self of
         Empty: True
@@ -260,9 +260,9 @@ class List a:
         Empty: False
         Prepend x xs: if f x then True else xs . _any f
 
-    def equals that: case Pair self that of
-        Pair Empty Empty: True
-        Pair (Prepend x xs) (Prepend y ys): if x.equals y then xs.equals ys else False
+    def equals that: case Tuple2 self that of
+        Tuple2 Empty Empty: True
+        Tuple2 (Prepend x xs) (Prepend y ys): if x.equals y then xs.equals ys else False
         other: False
 
     def sum:
@@ -291,7 +291,7 @@ class Map k v:
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
-            l . toList . plus (Empty . prepend (Pair k v)) . plus r.toList
+            l . toList . plus (Empty . prepend (Tuple2 k v)) . plus r.toList
 
     def map f: case self of
         Tip: Tip
@@ -317,9 +317,9 @@ class Map k v:
                         newL = l.insert k v
                         Bin (newL.size + r.size) kx x newL r
 
-    def equals that: case Pair self that of
-        Pair Tip Tip: True
-        Pair (Bin s1 k1 v1 l1 r1) (Bin s2 k2 v2 l2 r2):
+    def equals that: case Tuple2 self that of
+        Tuple2 Tip Tip: True
+        Tuple2 (Bin s1 k1 v1 l1 r1) (Bin s2 k2 v2 l2 r2):
             if s1.equals s2 . and (k1.equals k2) . and (v1.equals v2) then l1.equals l2 . and (r1.equals r2) else False
         other: False
 
@@ -341,7 +341,7 @@ class JSON:
             True:  "true"
             False: "false"
         JSONNull: "null"
-        JSONObject m: "{" + (m . toList . map ((Pair k v): k.escapeJSON + ": " + v.render) . intersperse "," . fold "" (+)) + "}"
+        JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.render) . intersperse "," . fold "" (+)) + "}"
 
     def shortRep: self.render
 
@@ -370,7 +370,7 @@ class MsgPack:
     MPString Text
     MPBinary Binary
     MPArray  (List MsgPack)
-    MPMap    (List (Pair MsgPack MsgPack))
+    MPMap    (List (Tuple2 MsgPack MsgPack))
 
     def toText: case self of
         MPNull:     "MPNull"
@@ -428,7 +428,7 @@ class MsgPack:
     def _lookup_list_key key pairList: case pairList of
         Empty: Nothing
         Prepend x xs: case x of
-            Pair a b: if a.equals key then Just b else self._lookup_list_key key xs
+            Tuple2 a b: if a.equals key then Just b else self._lookup_list_key key xs
 
     def lookup key: case self of
         MPMap m: self._lookup_list_key key m
@@ -494,8 +494,8 @@ class Stream a:
         Stream elt s: Stream (f elt) (s.map f)
 
     def average:
-        folder = el: (Pair count sum): Pair count.succ (sum + el)
-        self . foldFrom (Pair 0 0.0) folder . map ((Pair count sum): sum./ count.toReal)
+        folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
+        self . foldFrom (Tuple2 0 0.0) folder . map ((Tuple2 count sum): sum./ count.toReal)
 
 def delayAsync time act:
     var = newMVar
