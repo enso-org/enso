@@ -14,6 +14,7 @@ import Luna.Pass.Inference.Data.SimplifierQueue
 import Luna.Pass.Inference.Data.MergeQueue
 import Luna.Pass.Inference.Data.Unifications
 
+import qualified Luna.Pass.Transform.Desugaring.ListLiterals          as ListLiterals
 import qualified Luna.Pass.Transform.Desugaring.BlankArguments        as BlankDesugaring
 import qualified Luna.Pass.Transform.Desugaring.PatternTransformation as PatternTransformation
 import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped         as RemoveGrouped
@@ -46,6 +47,7 @@ typecheck tgt imports roots = do
     setAttr (getTypeDesc @Imports)       $ imports
 
     initNameGen
+    {-# SCC runListLiterals #-} Pass.eval' ListLiterals.runDesugarLists
     {-# SCC runBlankDesugaring #-} Pass.eval' BlankDesugaring.runBlankDesugaring
     {-# SCC runRemoveGrouped #-} Pass.eval' RemoveGrouped.runRemoveGrouped
     {-# SCC runPatternTransformation #-} Pass.eval' PatternTransformation.runPatternTransformation
