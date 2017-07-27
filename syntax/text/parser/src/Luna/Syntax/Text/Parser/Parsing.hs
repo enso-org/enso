@@ -229,14 +229,16 @@ phantomSpan p = do
     let end       = foEnd   - sfxOff
         off       = foStart - range
         emptySpan = leftSpacedSpan mempty mempty
-        -- TODO[WD]: Can we remove the if cond (vvv)? It looks bad, is not easy understandable and is connected to a situation when module has empty header.
-        (rs,vs)   = if (end - foStart) < 0 then (emptySpan, emptySpan) else (realSpan, viewSpan)
-        -- (rs,vs)   = (realSpan, viewSpan)
-        realSpan  = leftSpacedSpan off (end - foStart)
+        (rs,vs)   = (realSpan, viewSpan)
+        -- FIXME[WD]: The `foo` and `bar` helpers are here just to make it work with empty spans in list sections / empty module headers.
+        --            We should think how to refactor them and describe better where they originate from.
+        foo       = max 0 (end - foStart)
+        bar       = max end foStart
+        realSpan  = leftSpacedSpan off foo
         viewSpan  = case marker of
             Nothing -> realSpan
-            Just m  -> leftSpacedSpan (off - m ^. Lexer.span - m ^. Lexer.offset) (end - foStart)
-    put @CodeSpanRange $ wrap end
+            Just m  -> leftSpacedSpan (off - m ^. Lexer.span - m ^. Lexer.offset) foo
+    put @CodeSpanRange $ wrap bar
     return (CodeSpan.CodeSpan rs vs, out)
 
 spanOf :: SymParser a -> SymParser a
@@ -455,13 +457,19 @@ list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 
     separator = symbol sep
 
 -- FIXME[WD]: This `try` should be refactored out
+-- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
 tuple :: AsgParser SomeExpr -> AsgParser SomeExpr
 tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> liftAstApp1 IR.tuple' $ sequence g) <$> elems where
+    missing :: AsgParser SomeExpr
+    missing    = buildAsg . pure $ liftIRB0 IR.missing'
     sep        = Lexer.Operator ","
     elem       = withLocalReservedSymbol sep p
-    elems      = (:) <$> elem <*> some (separator *> elem)
+    optElem    = elem <|> missing
+    body       = (:) <$> optElem <*> some (separator *> optElem)
+    elems      = option mempty $ body
     parensed p = groupBegin *> p <* groupEnd
     separator  = symbol sep
+
 
 str :: AsgParser SomeExpr
 str = buildAsg $ do

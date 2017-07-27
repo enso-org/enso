@@ -142,11 +142,11 @@ spec = do
             it "list section"                               $ shouldParseAs_raw'     expr "[,]" "[, ]"                               [(1,0),(1,0),(0,3)]
             -- it "list with tuple section"                    $ shouldParseItself_raw' expr "[(, )]"                                   [(1,4),(0,6)]
             it "nested lists"                               $ shouldParseItself_raw' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
-            it "list sections"                              $ shouldParseItself_raw' expr "[, a, , b, ]"                             [(1,0),(2,1),(0,0),(3,1)]
+            it "list sections"                              $ shouldParseItself_raw' expr "[, a, , b, ]"                             [(1,0),(2,1),(2,0),(2,1),(2,0),(0,12)]
             -- it "nested section list"                        $ shouldParseItself_raw' expr "[[, ]]"                                   [(1,4),(0,6)]
         describe "tuples" $ do
             it "3-tuple"         $ shouldParseItself' expr "(a, 30, \"ala\")" [(1,1),(2,2),(2,5),(0,14)]
-            it "2-tuple section" $ shouldParseItself' expr "(, 30)"           [(3,2),(0,6)]
+            it "2-tuple section" $ shouldParseItself' expr "(, 30)"           [(1,0),(2,2),(0,6)]
 
     describe "identifiers" $ do
             it "one letter variable"                        $ shouldParseItself' expr "a"                                        [(0,1)]
@@ -291,7 +291,7 @@ spec = do
         describe "units" $ do
             it "empty unit"                                 $ shouldParseItself' unit' ""                                        []
             it "unit with newlines on the end"              $ shouldParseAs'     unit' "def foo: bar\n\n\n" "\n<function 'foo'>" [(4,3),(0,12),(0,12),(0,12)]
-            it "unit with newlines on the beginning"        $ shouldParseAs'     unit' "\n\n\ndef foo: bar" "\n<function 'foo'>" [(4,3),(0,12),(3,12),(0,15)]
+            it "unit with newlines on the beginning"        $ shouldParseAs'     unit' "\n\n\ndef foo: bar" "\n<function 'foo'>" [(3,0),(4,3),(0,12),(0,12),(0,15)]
 
         describe "classes" $ do
             it "phantom class"                              $ shouldParseItself'' unit' "class Phantom"                                               [(0,13),(0,13),(0,13)]
