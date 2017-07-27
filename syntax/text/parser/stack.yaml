@@ -57,4 +57,8 @@ packages:
   location: {commit: 23d11542f1c58bd56feeed9c799c5f6b705b11fd, git: 'https://github.com/luna/parsert'}
 - extra-dep: true
   location: {commit: 7d4a9ffb222961a7f3aae064d478762c2a45e7b9, git: 'https://github.com/luna/layouting'}
+- extra-dep: true
+  location: {commit: cf0899b87e026c4a424af05d714eec155d8f8ae9, git: 'https://github.com/luna/vector-text'}
+- extra-dep: true
+  location: {commit: 4be3226e81cae6a46ae52d2756cfe6ccc11f2b2f, git: 'https://github.com/luna/terminal-text'}
 resolver: lts-8.19

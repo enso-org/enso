@@ -51,8 +51,8 @@ type instance Inputs  Event ParsingTest = '[] -- will never be used
 type instance Outputs Event ParsingTest = '[New // AnyExpr, New // AnyExprLink]
 type instance Preserves     ParsingTest = '[]
 
-testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
-testParsing p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
+testParsing_raw :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
+testParsing_raw p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs' False
 
     Loc.init
@@ -72,7 +72,10 @@ testParsing p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ 
         ls <- getLayer @CodeSpan <$$> es
         return $ (convert . view CodeSpan.realSpan) <$> ls
     code <- Pass.eval' @ParsingTest $ CodeGen.subpass CodeGen.SimpleStyle . unsafeGeneralize . unwrap =<< getAttr @ParsedExpr
-    return (convert code, dropNulls $ convert (spans :: [(Delta, Delta)]))
+    return (convert code, convert (spans :: [(Delta, Delta)]))
+
+testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
+testParsing = fmap3 dropNulls .: testParsing_raw
 
 dropNulls :: [(Int,Int)] -> [(Int,Int)]
 dropNulls = filter (/= (0,0))
@@ -88,11 +91,16 @@ shouldParseAs' p s out spans = do
     r <- mapLeft displayException <$> testParsing p s
     shouldBe r (Right (out, spans))
 
+shouldParseAs_raw' p s out spans = do
+    r <- mapLeft displayException <$> testParsing_raw p s
+    shouldBe r (Right (out, spans))
+
 shouldParseAsx p s spans = do
     r <- mapLeft displayException . fmap snd <$> testParsing p s
     shouldBe r (Right spans)
 
 shouldParseItself' p s = shouldParseAs' p s s
+shouldParseItself_raw' p s = shouldParseAs_raw' p s s
 shouldParseItself'' p s = shouldParseAs' p s ('\n':s)
 shouldParseAs''     p s s' = shouldParseAs' p s ('\n':s')
 shouldParse          p s = shouldParseAsx p s
@@ -128,13 +136,14 @@ spec = do
             --     it "multiline string with newline start"        $ do shouldParseAs expr     "'\nThe quick\nbrown fox jumps over the lazy dog\n'"   "'The quick\nbrown fox jumps over the lazy dog'"
             --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
         describe "lists" $ do
-            it "empty list"                                 $ shouldParseItself' expr "[]"                                       [(0,2)]
-            it "singleton list"                             $ shouldParseItself' expr "[a]"                                      [(1,1),(0,3)]
-            it "few elems list"                             $ shouldParseItself' expr "[a, b, c]"                                [(1,1),(2,1),(2,1),(0,9)]
-            it "list with tuple section"                    $ shouldParseItself' expr "[(, )]"                                   [(1,4),(0,6)]
-            it "nested lists"                               $ shouldParseItself' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
-            it "list sections"                              $ shouldParseItself' expr "[, a, , b, ]"                             [(3,1),(4,1),(0,12)]
-            it "nested section list"                        $ shouldParseItself' expr "[[, ]]"                                   [(1,4),(0,6)]
+            it "empty list"                                 $ shouldParseItself_raw' expr "[]"                                       [(0,2)]
+            it "singleton list"                             $ shouldParseItself_raw' expr "[a]"                                      [(1,1),(0,3)]
+            it "few elems list"                             $ shouldParseItself_raw' expr "[a, b, c]"                                [(1,1),(2,1),(2,1),(0,9)]
+            it "list section"                               $ shouldParseAs_raw'     expr "[,]" "[, ]"                               [(1,0),(1,0),(0,3)]
+            -- it "list with tuple section"                    $ shouldParseItself_raw' expr "[(, )]"                                   [(1,4),(0,6)]
+            it "nested lists"                               $ shouldParseItself_raw' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
+            it "list sections"                              $ shouldParseItself_raw' expr "[, a, , b, ]"                             [(1,0),(2,1),(0,0),(3,1)]
+            -- it "nested section list"                        $ shouldParseItself_raw' expr "[[, ]]"                                   [(1,4),(0,6)]
         describe "tuples" $ do
             it "3-tuple"         $ shouldParseItself' expr "(a, 30, \"ala\")" [(1,1),(2,2),(2,5),(0,14)]
             it "2-tuple section" $ shouldParseItself' expr "(, 30)"           [(3,2),(0,6)]

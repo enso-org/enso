@@ -71,8 +71,8 @@ data instance UniTerm a = Number    !Literal.Number
                         | UnresolvedImportSrc !ImportSource
                         | World               !(Map QualName a)
                         | Invalid             !Text
-                        | List                ![Maybe a]
-                        | Tuple               ![Maybe a]
+                        | List                ![a]
+                        | Tuple               ![a]
                         | AccSection          ![Name]
                         | LeftSection         !a !a
                         | RightSection        !a !a

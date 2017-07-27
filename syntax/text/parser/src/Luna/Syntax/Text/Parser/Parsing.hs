@@ -229,7 +229,9 @@ phantomSpan p = do
     let end       = foEnd   - sfxOff
         off       = foStart - range
         emptySpan = leftSpacedSpan mempty mempty
-        (rs,vs)   = if foEnd == foStart then (emptySpan, emptySpan) else (realSpan, viewSpan)
+        -- TODO[WD]: Can we remove the if cond (vvv)? It looks bad, is not easy understandable and is connected to a situation when module has empty header.
+        (rs,vs)   = if (end - foStart) < 0 then (emptySpan, emptySpan) else (realSpan, viewSpan)
+        -- (rs,vs)   = (realSpan, viewSpan)
         realSpan  = leftSpacedSpan off (end - foStart)
         viewSpan  = case marker of
             Nothing -> realSpan
@@ -440,21 +442,24 @@ num :: AsgParser SomeExpr
 num = buildAsg $ (\n -> liftIRBApp0 $ IR.number' (convert n)) <$> satisfy Lexer.matchNumber
 
 list :: AsgParser SomeExpr -> AsgParser SomeExpr
-list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence $ fmap sequence g) <$> elems where
+list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence g) <$> elems where
+    missing :: AsgParser SomeExpr
+    missing   = buildAsg . pure $ liftIRB0 IR.missing'
     sep       = Lexer.Operator ","
-    elem      = option Nothing $ Just <$> withLocalReservedSymbol sep p
-    optElem   = option Nothing elem
-    elems     = option mempty $ (:) <$> elem <*> many (separator *> optElem)
+    elem      = withLocalReservedSymbol sep p
+    optElem   = elem <|> missing
+    bodyH     = (:) <$> elem    <*> many (separator *> optElem)
+    bodyT     = (:) <$> missing <*> some (separator *> optElem)
+    elems     = option mempty $ bodyH <|> bodyT
     braced p  = braceBegin *> p <* braceEnd
     separator = symbol sep
 
 -- FIXME[WD]: This `try` should be refactored out
 tuple :: AsgParser SomeExpr -> AsgParser SomeExpr
-tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> liftAstApp1 IR.tuple' $ sequence $ fmap sequence g) <$> elems where
+tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> liftAstApp1 IR.tuple' $ sequence g) <$> elems where
     sep        = Lexer.Operator ","
-    elem       = option Nothing $ Just <$> withLocalReservedSymbol sep p
-    optElem    = option Nothing elem
-    elems      = (:) <$> elem <*> some (separator *> optElem)
+    elem       = withLocalReservedSymbol sep p
+    elems      = (:) <$> elem <*> some (separator *> elem)
     parensed p = groupBegin *> p <* groupEnd
     separator  = symbol sep
 

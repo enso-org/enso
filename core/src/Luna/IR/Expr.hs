@@ -67,21 +67,26 @@ string' :: ExprCons' m String => Literal.String -> m SomeExpr
 number' = fmap generalize . number
 string' = fmap generalize . string
 
-list' :: ExprCons m List => [Maybe (Expr t)] -> m SomeExpr
-list  :: ExprCons m List => [Maybe (Expr t)] -> m (Expr $ List >> t)
+list' :: ExprCons m List => [Expr t] -> m SomeExpr
+list  :: ExprCons m List => [Expr t] -> m (Expr $ List >> t)
 list' = fmap generalize . list
 list fs = mdo
     t  <- expr $ Term.uncheckedList fn
-    fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
+    fn <- mapM (flip link t . unsafeRelayout) fs
     return t
 
-tuple' :: ExprCons m Tuple => [Maybe (Expr t)] -> m SomeExpr
-tuple  :: ExprCons m Tuple => [Maybe (Expr t)] -> m (Expr $ Tuple >> t)
+tuple' :: ExprCons m Tuple => [Expr t] -> m SomeExpr
+tuple  :: ExprCons m Tuple => [Expr t] -> m (Expr $ Tuple >> t)
 tuple' = fmap generalize . tuple
 tuple fs = mdo
     t  <- expr $ Term.uncheckedTuple fn
-    fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
+    fn <- mapM (flip link t . unsafeRelayout) fs
     return t
+
+missing' :: ExprCons' m Missing => m SomeExpr
+missing  :: ExprCons' m Missing => m (Expr Missing)
+missing' = fmap generalize missing
+missing  = expr Term.uncheckedMissing
 
 
 -- === Prims === --

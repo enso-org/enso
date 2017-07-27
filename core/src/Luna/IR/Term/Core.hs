@@ -52,9 +52,9 @@ data    TermRecASG   a = RecASG   { __name  :: !Name  , __fields :: ![a]        
 data    TermFieldASG a = FieldASG { __names :: ![Name], __type   :: !a                                     } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermTyped    a = Typed    { __base  :: !a     , __type   :: !a                                     } deriving (Show, Eq, Functor, Foldable, Traversable)
 
-data    TermInvalid   a = Invalid { __desc  :: Text       } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: Text -> Doc
-data    TermList      a = List    { __items :: ![Maybe a] } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermTuple     a = Tuple   { __items :: ![Maybe a] } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermInvalid   a = Invalid { __desc  :: Text                           } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: Text -> Doc
+data    TermList      a = List    { __items :: ![a]                           } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermTuple     a = Tuple   { __items :: ![a]                           } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermAccSection   a = AccSection   { __name     :: ![Name]             } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermLeftSection  a = LeftSection  { __operator :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermRightSection a = RightSection { __operator :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)

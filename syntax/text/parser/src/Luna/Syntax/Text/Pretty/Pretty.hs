@@ -202,6 +202,7 @@ instance ( MonadIO m -- DEBUG ONLY
          ) => ChainedPrettyPrinter SimpleStyle t m where
     chainedPrettyShow style subStyle root = matchExpr root $ \case
         Blank                  -> return . unnamed $ atom wildcardName
+        Missing                -> return . unnamed $ atom mempty
         String    str          -> return . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
         Number    num          -> return . unnamed $ atom (convert $ show num)
         Acc       a name       -> named (spaced accName)   . atom . (\an -> convert an <+> accName <+> convert name) <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
@@ -217,8 +218,8 @@ instance ( MonadIO m -- DEBUG ONLY
                                                     | otherwise          -> unnamed                $ atom   (convert name)
         Grouped   expr         -> unnamed . atom . parensed <$> subgenBody expr
         Typed     expr tp      -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
-        List      elems        -> unnamed . atom . bracked . (intercalate ", ") <$> mapM (maybe (return mempty) subgenBody) elems
-        Tuple      elems       -> unnamed . atom . parensed . (intercalate ", ") <$> mapM (maybe (return mempty) subgenBody) elems
+        List      elems        -> unnamed . atom . bracked  . (intercalate ", ") <$> mapM subgenBody elems
+        Tuple      elems       -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
         Seq       a b          -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
         Lam       arg body     -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
         LeftSection  op a      -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
