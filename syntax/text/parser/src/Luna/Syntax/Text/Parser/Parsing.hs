@@ -774,15 +774,31 @@ func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
 rootedFunc :: AsgParser SomeExpr
 rootedFunc = marked <*> rootedRawFunc
 
-rootedRawFunc :: AsgParser SomeExpr
-rootedRawFunc = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
+-- ======================================================
+-- !!! Very hacky implementation of rooted function, which duplicates its name inside rooted IR's function definition
+--     Moreover, function signature is not in rooted IR.
+--     To be removed as soon as possible
+-- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+funcBase :: SymParser (AsgBldr SomeExpr, (Int, AsgBldr SomeExpr))
+funcBase = buildAsgF2 $ do
+    hdr <- funcHdr
+    (\f -> (hdr, f hdr)) <$> (fmap2 (0,) funcDef <|> fmap2 (1,) funcSig)
+    where
     funcDef, funcSig :: SymParser (AsgBldr SomeExpr -> IRB SomeExpr)
     funcHdr = symbol Lexer.KwDef *> (var <|> op)
     funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftAstApp2 IR.asgRootedFunction' name $ snapshotRooted $ nestedLam args $ uncurry seqs body)
+    funcDef = (\args body name -> liftAstApp3 IR.asgFunction' name (sequence args) (uncurry seqs body))
         <$> many nonSpacedPattern
         <*  symbol Lexer.BlockStart
         <*> discover (nonEmptyBlock lineExpr)
+
+rootedRawFunc :: AsgParser SomeExpr
+rootedRawFunc = buildAsg $ funcBase >>= \case
+    (n,(0,bldr))         -> return $ liftAstApp2 IR.asgRootedFunction' n (snapshotRooted bldr)
+    (_,(1,AsgBldr bldr)) -> return bldr
+
+-- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 -- === Classes == --
