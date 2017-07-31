@@ -386,6 +386,8 @@ stringClass imps = do
         eqVal         = toLunaValue tmpImps ((==) :: Text -> Text -> Bool)
         gtVal         = toLunaValue tmpImps ((>)  :: Text -> Text -> Bool)
         ltVal         = toLunaValue tmpImps ((<)  :: Text -> Text -> Bool)
+        isPrefixOfVal = toLunaValue tmpImps Text.isPrefixOf
+        hasPrefixVal  = toLunaValue tmpImps (flip Text.isPrefixOf)
         wordsVal      = toLunaValue tmpImps Text.words
         linesVal      = toLunaValue tmpImps Text.lines
         lowercaseVal  = toLunaValue tmpImps Text.toLower
@@ -400,6 +402,8 @@ stringClass imps = do
                                                        , ("equals",     Function eqIr       eqVal         eqAssu)
                                                        , (">",          Function eqIr       gtVal         eqAssu)
                                                        , ("<",          Function eqIr       ltVal         eqAssu)
+                                                       , ("isPrefixOf", Function eqIr       isPrefixOfVal eqAssu)
+                                                       , ("hasPrefix",  Function eqIr       hasPrefixVal  eqAssu)
                                                        , ("words",      Function wordsIr    wordsVal      wordsAssu)
                                                        , ("lines",      Function wordsIr    linesVal      wordsAssu)
                                                        , ("characters", Function wordsIr    charsVal      wordsAssu)

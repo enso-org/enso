@@ -53,7 +53,7 @@ class None:
 
     def toText: "None"
 
-    def shortRep: self.toString
+    def shortRep: self.toText
 
     def toJSON: JSONNull
 
@@ -197,6 +197,9 @@ class List a:
     def drop i: case (self) of
         Empty: Empty
         Prepend x xs: if 0.equals i then self else xs . drop i.pred
+
+    def at n: case (self) of
+        Prepend x xs: if 0.equals n then Just x else xs . at n.pred
 
     def fold a f: case (self) of
         Empty: a
@@ -443,6 +446,9 @@ class MsgPack:
     def safeLookupText key: self.lookup (MPString key)
 
     def lookupText key: self.safeLookupText key . fromJust
+
+    def at n: case self of
+        MPArray a: a.at n
 
     def sum: case self of
         MPArray a: a.sum
