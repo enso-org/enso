@@ -146,7 +146,7 @@ interpret' glob expr = do
                 env <- get
                 let rhs' = makeFuns as (localInsert n (LunaThunk rhs') env)
                 modify $ localInsert n (LunaThunk rhs')
-                return $ mkNothing glob
+                return $ LunaThunk rhs'
         Seq l' r'  -> do
             l   <- source l'
             r   <- source r'

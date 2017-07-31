@@ -37,12 +37,12 @@ desugarLists isPattern e = do
     matchExpr e $ \case
         List elts -> do
             mapM_ (desugarLists isPattern <=< source) =<< inputs e
-            properList <- properListRep isPattern =<< (mapM . mapM) source elts
+            properList <- properListRep isPattern =<< (fmap Just <$> mapM source elts)
             replace properList e
             return  properList
         Tuple elts -> do
             mapM_ (desugarLists isPattern <=< source) =<< inputs e
-            properTuple <- properTupleRep isPattern =<< (mapM . mapM) source elts
+            properTuple <- properTupleRep isPattern =<< (fmap Just <$> mapM source elts)
             replace properTuple e
             return  properTuple
         Unify l r -> do
@@ -91,7 +91,8 @@ mkTupleOf elts = go elts where
 prepareBinders :: (MonadRef m, MonadPassManager m) => [Maybe SomeExpr] -> SubPass DesugarLists m ([SomeExpr], [SomeExpr])
 prepareBinders []               = return ([], [])
 prepareBinders (Just e : elts)  = matchExpr e $ \case
-    Blank -> prepareBinders $ Nothing : elts
+    Blank   -> prepareBinders $ Nothing : elts
+    Missing -> prepareBinders $ Nothing : elts
     _     -> (_2 %~ (e:)) <$> prepareBinders elts
 prepareBinders (Nothing : elts) = do
     (binds, es) <- prepareBinders elts
