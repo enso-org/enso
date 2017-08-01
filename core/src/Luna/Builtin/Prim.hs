@@ -68,10 +68,10 @@ instance ToLunaData Text where
     toLunaData = LunaBoxed .: toBoxed
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (a, b) where
-    toLunaData imps (a, b) = LunaObject $ Object (Constructor "Pair" [toLunaData imps a, toLunaData imps b]) $ getObjectMethodMap "Pair" imps
+    toLunaData imps (a, b) = LunaObject $ Object (Constructor "Tuple2" [toLunaData imps a, toLunaData imps b]) $ getObjectMethodMap "Tuple2" imps
 
 instance (ToLunaData a, ToLunaData b, ToLunaData c) => ToLunaData (a, b, c) where
-    toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Triple" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Triple" imps
+    toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Tuple3" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Tuple3" imps
 
 instance ToLunaData a => ToLunaData (Maybe a) where
     toLunaData imps Nothing  = LunaObject $ Object (Constructor "Nothing" [])               $ getObjectMethodMap "Maybe" imps
