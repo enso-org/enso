@@ -3,7 +3,8 @@ module Control.Monad.Branch where
 import Prelude
 import Control.Monad.Identity
 import Control.Monad.Trans.Identity
-import Control.Monad.Trans.State
+import qualified Control.Monad.Trans.State        as Lazy
+import qualified Control.Monad.Trans.State.Strict as Strict
 
 
 -------------------------
@@ -24,5 +25,8 @@ instance MonadBranch Identity where
 instance MonadBranch m => MonadBranch (IdentityT m) where
     branched = mapIdentityT branched
 
-instance MonadBranch m => MonadBranch (StateT s m) where
-    branched (StateT m) = StateT $ \s -> (,s) . fst <$> branched (m s)
+instance MonadBranch m => MonadBranch (Lazy.StateT s m) where
+    branched (Lazy.StateT m) = Lazy.StateT $ \s -> (,s) . fst <$> branched (m s)
+
+instance MonadBranch m => MonadBranch (Strict.StateT s m) where
+    branched (Strict.StateT m) = Strict.StateT $ \s -> (,s) . fst <$> branched (m s)

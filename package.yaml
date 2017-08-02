@@ -17,4 +17,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: monad-branch
 stability: experimental
 synopsis: Monadic abstraction for computations that can be branched and run independently.
-version: 1.0.1
+version: 1.0.2
