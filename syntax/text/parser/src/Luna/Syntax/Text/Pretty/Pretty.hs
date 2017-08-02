@@ -317,11 +317,17 @@ instance ( MonadIO m -- DEBUG ONLY
                   ]
          ) => ChainedPrettyPrinter CompactStyle t m where
     chainedPrettyShow style subStyle root = matchExpr root $ \case
-        String str  -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
-        Var    name -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
-        Lam{}       -> return . unnamed $ atom "Ⓕ"
-        Marked m b  -> chainedPrettyShow style subStyle =<< source b
-        _           -> defGen
+        String str    -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
+        Var    name   -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
+        Lam{}         -> return . unnamed $ atom "Ⓕ"
+        ASGFunction{} -> return . unnamed $ atom "Ⓕ"
+        Marked m b    -> chainedPrettyShow style subStyle =<< source b
+        Grouped g     -> do
+            body <- chainedPrettyShow style subStyle =<< source g
+            return $ case unlabel body of
+                Atom{} -> body
+                _      -> unnamed . atom . parensed . getBody $ body
+        _             -> defGen
         where simpleGen = chainedPrettyShow SimpleStyle subStyle
               defGen    = simpleGen root
 
