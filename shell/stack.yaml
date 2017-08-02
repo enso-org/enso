@@ -65,4 +65,6 @@ packages:
   location: {commit: c028e7939bf79853e63bc40f2576d9280dffbb4c, git: 'https://github.com/luna/terminal-text'}
 - extra-dep: true
   location: {commit: 5c7ab0f3f2b0f95dd1848067ed94d29613800d3f, git: 'https://github.com/luna/layouting'}
+- extra-dep: true
+  location: {commit: 7c7a6d657e7db8c3dcd80fbed0a7e02e02f43ae3, git: 'https://github.com/luna/monad-branch'}
 resolver: lts-8.16
