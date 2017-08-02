@@ -2,34 +2,34 @@
 
 module Data.Functor.Utils where
 
-import Prelude hiding ((.))
+import Prelude -- hiding ((.))
 import GHC.Exts (Constraint)
 import Data.Traversable (mapM)
 
 -- Nested fmaps
 
-fmap0 = ($)
-fmap1 = fmap
-fmap2 = fmap.fmap
-fmap3 = fmap.fmap2
-fmap4 = fmap.fmap3
-fmap5 = fmap.fmap4
-fmap6 = fmap.fmap5
-fmap7 = fmap.fmap6
-fmap8 = fmap.fmap7
-fmap9 = fmap.fmap8
+fmap0 = ($)        ; {-# INLINE fmap0 #-}
+fmap1 = fmap       ; {-# INLINE fmap1 #-}
+fmap2 = fmap.fmap  ; {-# INLINE fmap2 #-}
+fmap3 = fmap.fmap2 ; {-# INLINE fmap3 #-}
+fmap4 = fmap.fmap3 ; {-# INLINE fmap4 #-}
+fmap5 = fmap.fmap4 ; {-# INLINE fmap5 #-}
+fmap6 = fmap.fmap5 ; {-# INLINE fmap6 #-}
+fmap7 = fmap.fmap6 ; {-# INLINE fmap7 #-}
+fmap8 = fmap.fmap7 ; {-# INLINE fmap8 #-}
+fmap9 = fmap.fmap8 ; {-# INLINE fmap9 #-}
 
 -- Dots
 
-dot1 = (.)
-dot2 = dot1 . dot1
-dot3 = dot1 . dot2
-dot4 = dot1 . dot3
-dot5 = dot1 . dot4
-dot6 = dot1 . dot5
-dot7 = dot1 . dot6
-dot8 = dot1 . dot7
-dot9 = dot1 . dot8
+dot1 = (.)         ; {-# INLINE dot1 #-}
+dot2 = dot1 . dot1 ; {-# INLINE dot2 #-}
+dot3 = dot1 . dot2 ; {-# INLINE dot3 #-}
+dot4 = dot1 . dot3 ; {-# INLINE dot4 #-}
+dot5 = dot1 . dot4 ; {-# INLINE dot5 #-}
+dot6 = dot1 . dot5 ; {-# INLINE dot6 #-}
+dot7 = dot1 . dot6 ; {-# INLINE dot7 #-}
+dot8 = dot1 . dot7 ; {-# INLINE dot8 #-}
+dot9 = dot1 . dot8 ; {-# INLINE dot9 #-}
 
 -- Operators
 
@@ -44,7 +44,7 @@ infixr 9 ∘∘∘∘∘
 (∘∘∘∘)   = dot4
 (∘∘∘∘∘)  = dot5
 
-infixr 9 .
+-- infixr 9 .
 infixr 8 .:
 infixr 8 .:.
 infixr 8 .::
@@ -53,17 +53,19 @@ infixr 8 .:::
 infixr 8 .:::.
 infixr 8 .::::
 infixr 8 .::::.
-(.) :: Functor f => (a -> b) -> f a -> f b
-(.)      = fmap
-(.:)     = dot2
-(.:.)    = dot3
-(.::)    = dot4
-(.::.)   = dot5
-(.:::)   = dot6
-(.:::.)  = dot7
-(.::::)  = dot8
-(.::::.) = dot9
-
+-- (.) :: Functor f => (a -> b) -> f a -> f b
+-- (.)      = fmap ; {-# INLINE (.)      #-}
+(.:)     = dot2 ; {-# INLINE (.:)     #-}
+(.:.)    = dot3 ; {-# INLINE (.:.)    #-}
+(.::)    = dot4 ; {-# INLINE (.::)    #-}
+(.::.)   = dot5 ; {-# INLINE (.::.)   #-}
+(.:::)   = dot6 ; {-# INLINE (.:::)   #-}
+(.:::.)  = dot7 ; {-# INLINE (.:::.)  #-}
+(.::::)  = dot8 ; {-# INLINE (.::::)  #-}
+(.::::.) = dot9 ; {-# INLINE (.::::.) #-}
+-- (.) :: (b -> c) -> (a -> b) -> a -> c
+-- (.) f g = \x -> f (g x)
+-- {-# INLINE (.) #-}
 
 
 infixl 4 <∘>
