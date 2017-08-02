@@ -39,8 +39,8 @@ keys   :: TreeSet t k -> [k]
 elems  :: TreeSet t k -> [TreeSet t k]
 assocs :: TreeSet t k -> [(k, TreeSet t k)]
 keys   = TreeMap.keys . unwrap
-elems  = wrap . view TreeMap.subtree <∘>  TreeMap.elems  . unwrap
-assocs = wrap . view TreeMap.subtree <∘∘> TreeMap.assocs . unwrap
+elems  t = fmap  (wrap . view TreeMap.subtree) $ TreeMap.elems  (unwrap t)
+assocs t = fmap2 (wrap . view TreeMap.subtree) $ TreeMap.assocs (unwrap t)
 
 paths :: IsValue t => TreeSet t k -> [NonEmpty k]
 paths = TreeMap.paths_ . unwrap

@@ -1,4 +1,4 @@
-resolver: lts-8.15
+resolver: lts-8.23
 
 packages:
     - .
@@ -24,6 +24,9 @@ packages:
     - ../../../../libs/typelevel
     - ../../../../libs/monoid
     - ../../../../libs/text-processing
+    - ../../../../libs/monad-branch
+    - ../../../../libs/parsert
+    - ../../../../libs/vector-text
 
 extra-deps:
     - error-util-0.0.1.1
@@ -32,4 +35,5 @@ extra-deps:
     - serialport-0.4.7
 
 ghc-options:
-    "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100
+    "*": -fenable-rewrite-rules -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+    # "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100

@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE DeriveAnyClass            #-}
 {-# LANGUAGE PartialTypeSignatures     #-}
+{-# LANGUAGE Strict                    #-}
 
 module Luna.Syntax.Text.Lexer where
 
@@ -123,17 +125,17 @@ data Symbol s -- Layout
               -- Other
               | Unknown String
               | Incorrect String
-              deriving (Show, Eq, Ord)
+              deriving (Generic, NFData, Show, Eq, Ord)
 
-data Bound      = Begin | End              deriving (Show, Eq, Ord)
-data QuoteType  = RawStr | FmtStr | Native deriving (Show, Eq, Ord)
-data StrEscType = CharStrEsc | NumStrEsc   deriving (Show, Eq, Ord)
-data Numbase    = Dec | Bin | Oct | Hex    deriving (Show, Eq, Ord)
+data Bound      = Begin | End              deriving (Generic, NFData, Show, Eq, Ord)
+data QuoteType  = RawStr | FmtStr | Native deriving (Generic, NFData, Show, Eq, Ord)
+data StrEscType = CharStrEsc | NumStrEsc   deriving (Generic, NFData, Show, Eq, Ord)
+data Numbase    = Dec | Bin | Oct | Hex    deriving (Generic, NFData, Show, Eq, Ord)
 data Number     = NumRep { _base     :: Numbase
                          , _intPart  :: String
                          , _fracPart :: String
                          , _expPart  :: String
-                         } deriving (Show, Eq, Ord)
+                         } deriving (Generic, NFData, Show, Eq, Ord)
 makeLenses ''Number
 
 
@@ -558,7 +560,7 @@ lexNextChar = anyToken >>= lexSymChar
 
 
 type Lexing         m = (MonadProgressParser m, MonadErrorParser SatisfyError m, MonadErrorParser EmptyStreamError m, MonadTokenParser m, MonadCatchParser m, Alternative m, MonadGetter Offset m, Token m ~ Char, Error m ~ LexerError)
-type SymbolLexing s m = (Eq s, IsString s, IsoConvertible' String s,MonadResultParser (Symbol s) m, Lexing m)
+type SymbolLexing s m = (Eq s, IsString s, IsoConvertible' String s, MonadResultParser (Symbol s) m, Lexing m)
 type SymbolCtx    s   = (Eq s, IsString s, IsoConvertible' String s)
 
 
@@ -598,8 +600,8 @@ succLine = modify_ @Position $ (Position.column .~ 0) . (Position.line %~ succ)
 
 -- === Helper states === --
 
-newtype LastOffset     = LastOffset     Delta       deriving (Show, Default)
-newtype DisabledBlocks = DisabledBlocks (Set Delta) deriving (Show, Default)
+newtype LastOffset     = LastOffset     Delta       deriving (Generic, NFData, Show, Default)
+newtype DisabledBlocks = DisabledBlocks (Set Delta) deriving (Generic, NFData, Show, Default)
 makeLenses ''LastOffset
 makeLenses ''DisabledBlocks
 
@@ -623,7 +625,7 @@ data LexerToken s = LexerToken
     { _span    :: !Delta
     , _offset  :: !Delta
     , _element :: !s
-    } deriving (Show, Eq, Ord, Functor, Foldable, Traversable) -- FIXME[WD]: Ord is needed by some weird Megaparsec fundep. Remove it when possible.
+    } deriving (Generic, Show, Eq, Ord, Functor, Foldable, Traversable) -- FIXME[WD]: Ord is needed by some weird Megaparsec fundep. Remove it when possible.
 makeLenses ''LexerToken
 
 
@@ -661,7 +663,7 @@ runLexer s = fromRight (error "Lexer error")
            . evalDefStateT @LastOffset
            . evalDefStateT @DisabledBlocks
            . evalStreamProvider (textStream s)
-           . evalHistoryRegister
+        --    . evalHistoryRegister
            . evalOffsetRegister
            . execResultRegister @(LexerToken (Symbol s))
            $ tokenizer
@@ -675,9 +677,10 @@ runLexer s = fromRight (error "Lexer error")
 --         (span, off) <- (,) <$> get @Offset <* many (token ' ') <*> get @Offset
 --         return $ LexerToken (convert span) (convert off) sym
 
+instance NFData s => NFData (LexerToken s)
 
 instance ( MonadGetter Offset m, Token m ~ Char, MonadTokenParser m, MonadProgressParser m, Alternative m, MonadErrorParser SatisfyError m
-         , MonadErrorParser EmptyStreamError m, MonadState LastOffset m, MonadGetter History m, StateData History m ~ History (Token m)
+         , MonadErrorParser EmptyStreamError m, MonadState LastOffset m
          , MonadState Position m, MonadState DisabledBlocks m, s ~ s', Eq s)
       => MonadResultBuilder (Symbol s) m (LexerToken (Symbol s')) where
     buildResult sym = do
@@ -691,10 +694,11 @@ instance ( MonadGetter Offset m, Token m ~ Char, MonadTokenParser m, MonadProgre
             spacDiff = spacOff - textOff
 
         -- Computing real parsed text
-        history <- unwrap  <$> get @History
-        let src = reverse $ take (convert textDiff)
-                          $ drop (convert spacDiff)
-                          $ history
+        -- history <- unwrap  <$> get @History
+        -- let src = reverse $ take (convert textDiff)
+        --                   $ drop (convert spacDiff)
+        --                   $ history
+
 
         -- Position (row/col) update
         pos <- get @Position
@@ -711,7 +715,7 @@ instance ( MonadGetter Offset m, Token m ~ Char, MonadTokenParser m, MonadProgre
 
         -- Finitialization
         return $ LexerToken textDiff spacDiff sym
-
+    -- {-# INLINE buildResult #-}
 
 
 
@@ -802,10 +806,10 @@ instance ( MonadGetter Offset m, Token m ~ Char, MonadTokenParser m, MonadProgre
 instance Convertible Offset Delta where
     convert = convert . unwrap
 
-main :: IO ()
-main = do
-    print "LEXER:"
-    pprint $ runGUILexer "1"
-    -- pprint $ getTags <$> runGUILexer "foo bar 1.3 baz"
-    print "---"
-    -- Parsert.main
+-- main :: IO ()
+-- main = do
+--     print "LEXER:"
+--     pprint $ runGUILexer "1"
+--     -- pprint $ getTags <$> runGUILexer "foo bar 1.3 baz"
+--     print "---"
+--     -- Parsert.main

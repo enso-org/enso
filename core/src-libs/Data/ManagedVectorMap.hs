@@ -56,7 +56,8 @@ modifySTRefM'_ = dropResult . modifySTRefM' ; {-# INLINE modifySTRefM'_ #-}
 ---
 
 dropResult :: (Functor m, Functor f) => (f (m ((), t)) -> a) -> (f (m t) -> a)
-dropResult = (. (((),) .:)) ; {-# INLINE dropResult #-}
+dropResult f x = f (fmap2 ((),) x)
+-- dropResult = (. (((),) .:)) ; {-# INLINE dropResult #-}
 
 
 

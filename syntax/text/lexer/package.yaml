@@ -8,6 +8,21 @@ library:
         - src
     other-modules: Paths_luna_syntax_text_lexer
 
+benchmarks:
+    lexer-benchmark:
+        main:        Main.hs
+        source-dirs: test/bench
+        dependencies:
+            - criterion
+            - luna-syntax-text-lexer
+            - random
+            - timeit
+
+build:
+    benchmark-opts:
+        benchmark-arguments: "--output=$benchmark.html"
+
+
 dependencies:
     - base
     - prologue
