@@ -25,7 +25,7 @@ import GHC.Generics    (Generic)
 import Control.DeepSeq (NFData)
 import Old.Data.Prop
 import Data.Convert
-import qualified GHC.Prim    as Prim
+import qualified GHC.Exts    as Prim
 
 -- === Definitions === --
 

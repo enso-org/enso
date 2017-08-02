@@ -5,7 +5,7 @@
 
 module Data.Container.Reusable where
 
-import Prelude hiding ((.))
+import Prelude 
 
 import Control.Lens         hiding (Indexable, Ixed, index)
 import Data.Container.Class

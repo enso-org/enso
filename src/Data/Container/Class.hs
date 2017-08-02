@@ -15,7 +15,7 @@
 module Data.Container.Class (module Data.Container.Class, module X) where
 
 --import Prologue hiding (Indexable, index, Bounded, Ixed, Simple, Indexed)
-import Prelude hiding ((.))
+import Prelude 
 
 import Control.Lens as X (Index)
 
