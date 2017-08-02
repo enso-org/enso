@@ -4,6 +4,7 @@ module Prologue.Control.DeepSeq (module Prologue.Control.DeepSeq, module X) wher
 
 import GHC.Exts        (Constraint)
 import Control.DeepSeq as X (NFData, rnf, force)
+import GHC.IO          as X (evaluate)
 
 type family NFDatas lst :: Constraint where
     NFDatas '[]       = ()
