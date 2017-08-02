@@ -12,14 +12,20 @@ import GHC.Generics (Generic, Rep)
 -- === JSON / Yaml conversion utils === --
 ------------------------------------------
 
-lensJSONOptions :: JSON.Options
-lensJSONOptions = JSON.defaultOptions { JSON.fieldLabelModifier = List.dropWhile (== '_')
-                                      , JSON.unwrapUnaryRecords = True
-                                      }
+options, optionsDropUnary :: JSON.Options
+options          = JSON.defaultOptions { JSON.fieldLabelModifier = List.dropWhile (== '_')}
+optionsDropUnary = options { JSON.unwrapUnaryRecords = True }
 
-lensJSONParse      :: (Generic a, JSON.GFromJSON   JSON.Zero (Rep a)) => JSON.Value -> JSON.Parser a
-lensJSONToEncoding :: (Generic a, JSON.GToEncoding JSON.Zero (Rep a)) => a -> JSON.Encoding
-lensJSONToJSON     :: (Generic a, JSON.GToJSON     JSON.Zero (Rep a)) => a -> JSON.Value
-lensJSONParse      = JSON.genericParseJSON  lensJSONOptions
-lensJSONToEncoding = JSON.genericToEncoding lensJSONOptions
-lensJSONToJSON     = JSON.genericToJSON     lensJSONOptions
+parse      :: (Generic a, JSON.GFromJSON   JSON.Zero (Rep a)) => JSON.Value -> JSON.Parser a
+toEncoding :: (Generic a, JSON.GToEncoding JSON.Zero (Rep a)) => a -> JSON.Encoding
+toJSON     :: (Generic a, JSON.GToJSON     JSON.Zero (Rep a)) => a -> JSON.Value
+parse      = JSON.genericParseJSON  options
+toEncoding = JSON.genericToEncoding options
+toJSON     = JSON.genericToJSON     options
+
+parseDropUnary      :: (Generic a, JSON.GFromJSON   JSON.Zero (Rep a)) => JSON.Value -> JSON.Parser a
+toEncodingDropUnary :: (Generic a, JSON.GToEncoding JSON.Zero (Rep a)) => a -> JSON.Encoding
+toJSONDropUnary     :: (Generic a, JSON.GToJSON     JSON.Zero (Rep a)) => a -> JSON.Value
+parseDropUnary      = JSON.genericParseJSON  optionsDropUnary
+toEncodingDropUnary = JSON.genericToEncoding optionsDropUnary
+toJSONDropUnary     = JSON.genericToJSON     optionsDropUnary

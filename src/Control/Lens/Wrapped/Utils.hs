@@ -6,20 +6,20 @@ import Prelude
 import Control.Lens
 
 
-wrapped'    = _Wrapped'
-unwrapped'  = _Unwrapped'
-wrapping'   = _Wrapping'
-unwrapping' = _Unwrapping'
-unwrap'     = view wrapped'
-wrap'       = view unwrapped'
+wrapped'    = _Wrapped'       ; {-# INLINE wrapped'    #-}
+unwrapped'  = _Unwrapped'     ; {-# INLINE unwrapped'  #-}
+wrapping'   = _Wrapping'      ; {-# INLINE wrapping'   #-}
+unwrapping' = _Unwrapping'    ; {-# INLINE unwrapping' #-}
+unwrap'     = view wrapped'   ; {-# INLINE unwrap'     #-}
+wrap'       = view unwrapped' ; {-# INLINE wrap'       #-}
 
-wrapped    = _Wrapped
-unwrapped  = _Unwrapped
-wrapping   = _Wrapping
-unwrapping = _Unwrapping
-unwrap     = view wrapped
-wrap       = view unwrapped
+wrapped    = _Wrapped         ; {-# INLINE wrapped    #-}
+unwrapped  = _Unwrapped       ; {-# INLINE unwrapped  #-}
+wrapping   = _Wrapping        ; {-# INLINE wrapping   #-}
+unwrapping = _Unwrapping      ; {-# INLINE unwrapping #-}
+unwrap     = view wrapped     ; {-# INLINE unwrap     #-}
+wrap       = view unwrapped   ; {-# INLINE wrap       #-}
 
-rewrap     = _Wrapped %~ id
+rewrap     = _Wrapped %~ id ; {-#INLINE rewrap #-}
 
-wrappedM' f = fmap wrap' . f . unwrap'
+wrappedM' f = fmap wrap' . f . unwrap' ; {-# INLINE wrappedM' #-}
