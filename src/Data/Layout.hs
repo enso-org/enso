@@ -66,11 +66,12 @@ enumerateSeq = enumerateWith ", " " and "
 -- === Delta === --
 -------------------
 
-newtype Delta = Delta Word64 deriving (Show, Num, Ord, Eq, Enum)
+newtype Delta = Delta Word64 deriving (Generic, Show, Num, Ord, Eq, Enum)
 makeLenses ''Delta
 
 instance Convertible' a Word64 => Convertible a Delta where convert = wrap . convert'
 instance Convertible' Word64 a => Convertible Delta a where convert = convert' . unwrap
+instance NFData    Delta
 instance Default   Delta where def    = 0
 instance Mempty    Delta where mempty = def
 instance Semigroup Delta where (<>)   = (+)
