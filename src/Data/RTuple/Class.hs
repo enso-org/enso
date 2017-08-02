@@ -22,7 +22,7 @@ import Control.Monad.Identity hiding (mapM)
 import Data.Default
 import Data.List              (intercalate)
 import Data.Typeable
-import GHC.Prim               (Any, unsafeCoerce#)
+import GHC.Exts               (Any, unsafeCoerce#)
 import GHC.TypeLits
 import Type.Container         (Append, Index, Index2, Reverse)
 import Type.Monoid
