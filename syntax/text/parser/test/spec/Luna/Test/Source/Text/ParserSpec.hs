@@ -51,8 +51,8 @@ type instance Inputs  Event ParsingTest = '[] -- will never be used
 type instance Outputs Event ParsingTest = '[New // AnyExpr, New // AnyExprLink]
 type instance Preserves     ParsingTest = '[]
 
-testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
-testParsing p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
+testParsing_raw :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
+testParsing_raw p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
     runRegs' False
 
     Loc.init
@@ -72,7 +72,10 @@ testParsing p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ 
         ls <- getLayer @CodeSpan <$$> es
         return $ (convert . view CodeSpan.realSpan) <$> ls
     code <- Pass.eval' @ParsingTest $ CodeGen.subpass CodeGen.SimpleStyle . unsafeGeneralize . unwrap =<< getAttr @ParsedExpr
-    return (convert code, dropNulls $ convert (spans :: [(Delta, Delta)]))
+    return (convert code, convert (spans :: [(Delta, Delta)]))
+
+testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
+testParsing = fmap3 dropNulls .: testParsing_raw
 
 dropNulls :: [(Int,Int)] -> [(Int,Int)]
 dropNulls = filter (/= (0,0))
@@ -88,11 +91,16 @@ shouldParseAs' p s out spans = do
     r <- mapLeft displayException <$> testParsing p s
     shouldBe r (Right (out, spans))
 
+shouldParseAs_raw' p s out spans = do
+    r <- mapLeft displayException <$> testParsing_raw p s
+    shouldBe r (Right (out, spans))
+
 shouldParseAsx p s spans = do
     r <- mapLeft displayException . fmap snd <$> testParsing p s
     shouldBe r (Right spans)
 
 shouldParseItself' p s = shouldParseAs' p s s
+shouldParseItself_raw' p s = shouldParseAs_raw' p s s
 shouldParseItself'' p s = shouldParseAs' p s ('\n':s)
 shouldParseAs''     p s s' = shouldParseAs' p s ('\n':s')
 shouldParse          p s = shouldParseAsx p s
@@ -128,13 +136,17 @@ spec = do
             --     it "multiline string with newline start"        $ do shouldParseAs expr     "'\nThe quick\nbrown fox jumps over the lazy dog\n'"   "'The quick\nbrown fox jumps over the lazy dog'"
             --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
         describe "lists" $ do
-            it "empty list"                                 $ shouldParseItself' expr "[]"                                       [(0,2)]
-            it "singleton list"                             $ shouldParseItself' expr "[a]"                                      [(1,1),(0,3)]
-            it "few elems list"                             $ shouldParseItself' expr "[a, b, c]"                                [(1,1),(2,1),(2,1),(0,9)]
-            it "list with comma operator"                   $ shouldParseItself' expr "[(,)]"                                    [(1,1),(1,3),(0,5)]
-            it "nested lists"                               $ shouldParseItself' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
-            it "list sections"                              $ shouldParseItself' expr "[, a, , b, ]"                             [(3,1),(4,1),(0,12)]
-            it "nested section list"                        $ shouldParseItself' expr "[[, ]]"                                   [(1,4),(0,6)]
+            it "empty list"                                 $ shouldParseItself_raw' expr "[]"                                       [(0,2)]
+            it "singleton list"                             $ shouldParseItself_raw' expr "[a]"                                      [(1,1),(0,3)]
+            it "few elems list"                             $ shouldParseItself_raw' expr "[a, b, c]"                                [(1,1),(2,1),(2,1),(0,9)]
+            it "list section"                               $ shouldParseAs_raw'     expr "[,]" "[, ]"                               [(1,0),(1,0),(0,3)]
+            -- it "list with tuple section"                    $ shouldParseItself_raw' expr "[(, )]"                                   [(1,4),(0,6)]
+            it "nested lists"                               $ shouldParseItself_raw' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
+            it "list sections"                              $ shouldParseItself_raw' expr "[, a, , b, ]"                             [(1,0),(2,1),(2,0),(2,1),(2,0),(0,12)]
+            -- it "nested section list"                        $ shouldParseItself_raw' expr "[[, ]]"                                   [(1,4),(0,6)]
+        describe "tuples" $ do
+            it "3-tuple"         $ shouldParseItself' expr "(a, 30, \"ala\")" [(1,1),(2,2),(2,5),(0,14)]
+            it "2-tuple section" $ shouldParseItself' expr "(, 30)"           [(1,0),(2,2),(0,6)]
 
     describe "identifiers" $ do
             it "one letter variable"                        $ shouldParseItself' expr "a"                                        [(0,1)]
@@ -253,15 +265,15 @@ spec = do
             it "lambda as $-argument"                       $ shouldParseItself' expr "foo $ x: x + 1"                            [(0,3),(1,1),(0,5),(0,1),(0,1),(1,1),(0,3),(1,1),(2,5),(1,8),(0,14)]
 
         describe "function definition expressions" $ do
-            it "no argument function definition"            $ shouldParseItself' expr "def foo: bar"                              [(9,3),(0,12)]
-            it "simple function definition"                 $ shouldParseItself' expr "def foo a b: a + b"                        [(8,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
+            it "no argument function definition"            $ shouldParseItself' expr "def foo: bar"                              [(4,3),(2,3),(0,12)]
+            it "simple function definition"                 $ shouldParseItself' expr "def foo a b: a + b"                        [(4,3),(1,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
 
         describe "top level definitions" $ do
-            it "value definition"                           $ shouldParseAs''     unit' "def pi: 3.14"       "<function 'pi'>"       [(0,12),(0,12),(0,12)]
-            it "expression definition"                      $ shouldParseAs''     unit' "def foo: a + b"     "<function 'foo'>"      [(0,14),(0,14),(0,14)]
-            it "function definition"                        $ shouldParseAs''     unit' "def foo a b: a + b" "<function 'foo'>"      [(0,18),(0,18),(0,18)]
-            it "operator definition"                        $ shouldParseAs''     unit' "def + a b: a.+ b"   "<function '+'>"        [(0,16),(0,16),(0,16)]
-            it "function signature definition"              $ shouldParseItself'' unit' "def foo :: a -> Vector a"                   [(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(11,13),(0,24),(0,24),(0,24)]
+            it "value definition"                           $ shouldParseAs''     unit' "def pi: 3.14"       "<function 'pi'>"       [(4,2),(0,12),(0,12),(0,12)]
+            it "expression definition"                      $ shouldParseAs''     unit' "def foo: a + b"     "<function 'foo'>"      [(4,3),(0,14),(0,14),(0,14)]
+            it "function definition"                        $ shouldParseAs''     unit' "def foo a b: a + b" "<function 'foo'>"      [(4,3),(0,18),(0,18),(0,18)]
+            it "operator definition"                        $ shouldParseAs''     unit' "def + a b: a.+ b"   "<function '+'>"        [(4,1),(0,16),(0,16),(0,16)]
+            it "function signature definition"              $ shouldParseItself'' unit' "def foo :: a -> Vector a"                   [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
 
         describe "case expression" $ do
             it "simple case expression"                     $ shouldParseItself' expr "case v of\n    A a: b" [(5,1),(0,1),(1,1),(0,3),(2,1),(8,6),(0,20)]
@@ -278,12 +290,12 @@ spec = do
 
         describe "units" $ do
             it "empty unit"                                 $ shouldParseItself' unit' ""                                        []
-            it "unit with newlines on the end"              $ shouldParseAs'     unit' "def foo: bar\n\n\n" "\n<function 'foo'>" [(0,12),(0,12),(0,12)]
-            it "unit with newlines on the beginning"        $ shouldParseAs'     unit' "\n\n\ndef foo: bar" "\n<function 'foo'>" [(0,12),(3,12),(0,15)]
+            it "unit with newlines on the end"              $ shouldParseAs'     unit' "def foo: bar\n\n\n" "\n<function 'foo'>" [(4,3),(0,12),(0,12),(0,12)]
+            it "unit with newlines on the beginning"        $ shouldParseAs'     unit' "\n\n\ndef foo: bar" "\n<function 'foo'>" [(3,0),(4,3),(0,12),(0,12),(0,15)]
 
         describe "classes" $ do
             it "phantom class"                              $ shouldParseItself'' unit' "class Phantom"                                               [(0,13),(0,13),(0,13)]
-            it "no cons and fields class"                   $ shouldParseAs'      unit' "class C:\n    def foo: a" "\nclass C:\n    <function 'foo'>" [(13,10),(0,23),(0,23),(0,23)]
+            it "no cons and fields class"                   $ shouldParseAs'      unit' "class C:\n    def foo: a" "\nclass C:\n    <function 'foo'>" [(4,3),(13,10),(0,23),(0,23),(0,23)]
             it "constructor-only class"                     $ shouldParseItself'' unit' ("class Bool:"
                                                                                      </> "    True"
                                                                                      </> "    False"
@@ -298,7 +310,7 @@ spec = do
                                                                                      </> "    V a a a"
                                                                                      </> "    X: fld :: a"
                                                                                      </> "    def foo: 0"
-                                                                                        ) [(13,1),(0,1),(2,1),(0,1),(1,1),(0,1),(1,1),(6,7),(7,1),(3,8),(5,11),(5,10),(0,58),(0,58),(0,58)]
+                                                                                        ) [(13,1),(0,1),(2,1),(0,1),(1,1),(0,1),(1,1),(6,7),(7,1),(3,8),(5,11),(4,3),(5,10),(0,58),(0,58),(0,58)]
         describe "block layout" $ do
           -- TODO: prawdziwe bloki
             let lam1  = "lam: foo"

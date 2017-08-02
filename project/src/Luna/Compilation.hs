@@ -117,6 +117,7 @@ compileProject' libs forceModules = do
     setAttr (getTypeDesc @Invalids)               $ (mempty :: Invalids)
     Pass.eval' initWorld
 
+    putStrLn "Units"
     let mkUnitTree srcMap = foldl (\t n -> TreeSet.insert (convert n) t) def (fmap snd . Bimap.toList $ srcMap)
     setAttr (getTypeDesc @UnitSet) (wrap $ mkUnitTree <$> sources :: UnitSet)
     Pass.eval' @UL.UnitInitializer UL.runUnitInitializer
@@ -128,6 +129,7 @@ compileProject' libs forceModules = do
     let mkSourcesMap libName sources = foldl (\m (p, n) -> Map.insert (fromList $ (libName :) $ toList n) (UL.Source (Path.toFilePath p) "") m) def (Bimap.toList sources)
 
     setAttr (getTypeDesc @UL.SourcesManager) (UL.fsSourceManager $ Map.unions $ uncurry mkSourcesMap <$> Map.toList sources)
+
     Pass.eval' @UL.UnitLoader      UL.unitLoader
     Pass.eval' @UL.ImportsResolver UL.importsResolver
 
@@ -135,9 +137,10 @@ compileProject' libs forceModules = do
     Just (WorldExpr root) <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @WorldExpr)
 
     setAttr (getTypeDesc @ExprRoots) $ ExprRoots [unsafeGeneralize root]
+    putStrLn "remove grouped"
+    {-# SCC removeGrouped_world #-} Pass.eval' RemoveGrouped.runRemoveGrouped
 
-    Pass.eval' RemoveGrouped.runRemoveGrouped
-
+    putStrLn "first block"
     (modules, stdImportsMaker) <- Pass.eval' @ProjectCompilation $ do
         allModules <- fmap (Map.mapMaybe id) $ matchExpr root $ \case
             World m -> forM m $ \u -> do
@@ -149,6 +152,7 @@ compileProject' libs forceModules = do
         stdImps <- importAll allModules stdlibImports
         return (allModules, stdImps)
 
+    putStrLn "second block"
     (world, clean, std) <- mdo
         (clean, std) <- liftIO $ systemStd $ stdImportsMaker world
         results      <- forM modules $ ModuleProcessing.processModule std world

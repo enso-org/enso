@@ -9,6 +9,10 @@ import OCI.IR.Combinators
 import Luna.IR
 import Luna.Pass.Data.ExprRoots
 
+import           Control.Monad.State.Dependent (evalStateT, StateT, get', modify'_)
+import           Data.Set (Set)
+import qualified Data.Set as Set
+
 data RemoveGrouped
 type instance Abstract   RemoveGrouped = RemoveGrouped
 type instance Pass.Inputs     Net   RemoveGrouped = '[AnyExpr, AnyExprLink]
@@ -26,17 +30,20 @@ type instance Pass.Preserves        RemoveGrouped = '[]
 runRemoveGrouped :: (MonadRef m, MonadPassManager m) => Pass RemoveGrouped m
 runRemoveGrouped = do
     roots    <- getAttr @ExprRoots
-    newRoots <- forM (generalize <$> unwrap roots) removeGrouped
+    newRoots <- flip evalStateT def $ forM (generalize <$> unwrap roots) removeGrouped
     putAttr @ExprRoots $ wrap $ unsafeGeneralize <$> newRoots
 
-removeGrouped :: (MonadRef m, MonadPassManager m) => SomeExpr -> SubPass RemoveGrouped m SomeExpr
+removeGrouped :: (MonadRef m, MonadPassManager m) => SomeExpr -> StateT (Set SomeExpr) (SubPass RemoveGrouped m) SomeExpr
 removeGrouped e = do
-    f <- inputs e
-    mapM_ (removeGrouped <=< source) f
-    matchExpr e $ \case
-        Grouped g -> do
-            g' <- source g
-            substitute g' e
-            deleteWithoutInputs e
-            return g'
-        _ -> return e
+    visited <- get'
+    if Set.member e visited then return e else do
+        modify'_ $ Set.insert e
+        f <- inputs e
+        mapM_ (removeGrouped <=< source) f
+        matchExpr e $ \case
+            Grouped g -> do
+                g' <- source g
+                substitute g' e
+                deepDeleteWithWhitelist e $ Set.singleton g'
+                return g'
+            _ -> return e

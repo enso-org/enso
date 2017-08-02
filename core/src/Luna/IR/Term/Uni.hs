@@ -52,10 +52,10 @@ data instance UniTerm a = Number    !Literal.Number
                         | Missing
 
                         -- | Function            !a
-                        | ASGFunction         !Name ![a] !a
-                        | FunctionSig         !Name !a
+                        | ASGFunction         !a ![a] !a
+                        | FunctionSig         !a !a
                         | RootedFunction      !(IR.Rooted SomeExpr)
-                        | ASGRootedFunction   !Name !(IR.Rooted SomeExpr)
+                        | ASGRootedFunction   !a !(IR.Rooted SomeExpr)
                         | ClsASG              !Name ![a] ![a] ![a]
                         | RecASG              !Name ![a]
                         | FieldASG            ![Name] !a
@@ -71,7 +71,8 @@ data instance UniTerm a = Number    !Literal.Number
                         | UnresolvedImportSrc !ImportSource
                         | World               !(Map QualName a)
                         | Invalid             !Text
-                        | List                ![Maybe a]
+                        | List                ![a]
+                        | Tuple               ![a]
                         | AccSection          ![Name]
                         | LeftSection         !a !a
                         | RightSection        !a !a
@@ -124,6 +125,7 @@ instance IsUniTerm Term.TermUnresolvedImportSrc where uniTerm (Term.UnresolvedIm
 instance IsUniTerm Term.TermWorld               where uniTerm (Term.World               t1)          = World               t1
 instance IsUniTerm Term.TermInvalid             where uniTerm (Term.Invalid             t1)          = Invalid             t1
 instance IsUniTerm Term.TermList                where uniTerm (Term.List                t1)          = List                t1
+instance IsUniTerm Term.TermTuple                where uniTerm (Term.Tuple              t1)          = Tuple               t1
 instance IsUniTerm Term.TermAccSection          where uniTerm (Term.AccSection          t1)          = AccSection          t1
 instance IsUniTerm Term.TermLeftSection         where uniTerm (Term.LeftSection         t1 t2)       = LeftSection         t1 t2
 instance IsUniTerm Term.TermRightSection        where uniTerm (Term.RightSection        t1 t2)       = RightSection        t1 t2

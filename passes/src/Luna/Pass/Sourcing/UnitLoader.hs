@@ -507,8 +507,13 @@ partitionASGCls t = do
 
 partitionASGDecl :: MonadPassRunner m => Expr a -> SubPass UnitLoader m (Cls.TermCls SomeExpr -> Cls.TermCls SomeExpr)
 partitionASGDecl decl = matchExpr decl $ \case
-    ASGRootedFunction name body -> set (Cls.methods . at name) . Just <$> rootedFunction body
+    ASGRootedFunction n body -> do
+        n'   <- source n
+        name <- matchExpr n' $ \case
+            Var n -> return n
+        set (Cls.methods . at name) . Just <$> rootedFunction body
     cls@(ClsASG name _ _ _)     -> return $ Cls.classes . at name ?~ unsafeGeneralize decl
+    _                           -> return id
 
 
 

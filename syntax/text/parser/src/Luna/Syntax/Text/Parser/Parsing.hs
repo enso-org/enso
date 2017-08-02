@@ -4,7 +4,7 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
-import Prologue hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span)
+import Prologue hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
 import qualified Prologue as P
 
 import qualified Text.Megaparsec as Parser
@@ -17,7 +17,7 @@ import qualified Text.Megaparsec.Lexer as Lex
 import qualified Text.Megaparsec.Char  as Charhiding (eol)
 
 import qualified Luna.IR as IR
-import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled)
+import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled)
 import Luna.IR.ToRefactor
 import OCI.Pass.Class hiding (get, put, modify_)
 import OCI.Pass.Definition
@@ -229,12 +229,16 @@ phantomSpan p = do
     let end       = foEnd   - sfxOff
         off       = foStart - range
         emptySpan = leftSpacedSpan mempty mempty
-        (rs,vs)   = if foEnd == foStart then (emptySpan, emptySpan) else (realSpan, viewSpan)
-        realSpan  = leftSpacedSpan off (end - foStart)
+        (rs,vs)   = (realSpan, viewSpan)
+        -- FIXME[WD]: The `foo` and `bar` helpers are here just to make it work with empty spans in list sections / empty module headers.
+        --            We should think how to refactor them and describe better where they originate from.
+        foo       = max 0 (end - foStart)
+        bar       = max end foStart
+        realSpan  = leftSpacedSpan off foo
         viewSpan  = case marker of
             Nothing -> realSpan
-            Just m  -> leftSpacedSpan (off - m ^. Lexer.span - m ^. Lexer.offset) (end - foStart)
-    put @CodeSpanRange $ wrap end
+            Just m  -> leftSpacedSpan (off - m ^. Lexer.span - m ^. Lexer.offset) foo
+    put @CodeSpanRange $ wrap bar
     return (CodeSpan.CodeSpan rs vs, out)
 
 spanOf :: SymParser a -> SymParser a
@@ -440,13 +444,32 @@ num :: AsgParser SomeExpr
 num = buildAsg $ (\n -> liftIRBApp0 $ IR.number' (convert n)) <$> satisfy Lexer.matchNumber
 
 list :: AsgParser SomeExpr -> AsgParser SomeExpr
-list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence $ fmap sequence g) <$> elems where
+list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence g) <$> elems where
+    missing :: AsgParser SomeExpr
+    missing   = buildAsg . pure $ liftIRB0 IR.missing'
     sep       = Lexer.Operator ","
-    elem      = option Nothing $ Just <$> withLocalReservedSymbol sep p
-    optElem   = option Nothing elem
-    elems     = option mempty $ (:) <$> elem <*> many (separator *> optElem)
+    elem      = withLocalReservedSymbol sep p
+    optElem   = elem <|> missing
+    bodyH     = (:) <$> elem    <*> many (separator *> optElem)
+    bodyT     = (:) <$> missing <*> some (separator *> optElem)
+    elems     = option mempty $ bodyH <|> bodyT
     braced p  = braceBegin *> p <* braceEnd
-    separator = specificOp ","
+    separator = symbol sep
+
+-- FIXME[WD]: This `try` should be refactored out
+-- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
+tuple :: AsgParser SomeExpr -> AsgParser SomeExpr
+tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> liftAstApp1 IR.tuple' $ sequence g) <$> elems where
+    missing :: AsgParser SomeExpr
+    missing    = buildAsg . pure $ liftIRB0 IR.missing'
+    sep        = Lexer.Operator ","
+    elem       = withLocalReservedSymbol sep p
+    optElem    = elem <|> missing
+    body       = (:) <$> optElem <*> some (separator *> optElem)
+    elems      = option mempty $ body
+    parensed p = groupBegin *> p <* groupEnd
+    separator  = symbol sep
+
 
 str :: AsgParser SomeExpr
 str = buildAsg $ do
@@ -578,14 +601,14 @@ exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
 exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = withNewLocal exprFreeSegmentsLocal
-exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some' $ choice [mfixVarSeg, consSeg, wildSeg, numSeg, strSeg, opSeg, accSeg, grpSeg, listSeg, lamSeg, matchseg, typedSeg, funcSeg]
+exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some' $ choice [mfixVarSeg, consSeg, wildSeg, numSeg, strSeg, opSeg, accSeg, tupleSeg, grpSeg, listSeg, lamSeg, matchseg, typedSeg, funcSeg]
 
 exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
 exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: SymParser ExprSegmentBuilder
 exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
 exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpaced      = withNewLocal exprFreeSegmentsNonSpacedLocal
-exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg]
+exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg, strSeg, tupleSeg, grpSeg, listSeg]
 
 
 -- === Components === --
@@ -599,14 +622,15 @@ unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
 unlabeledAtom = labeled (spaced "#unnamed#") . atom
 
 -- Possible tokens
-varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg, matchseg, lamSeg, funcSeg :: SymParser ExprSegmentBuilder
+varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg, tupleSeg, matchseg, lamSeg, funcSeg :: SymParser ExprSegmentBuilder
 varSeg   = posIndependent . unlabeledAtom <$> var
 consSeg  = posIndependent . unlabeledAtom <$> cons
 wildSeg  = posIndependent . unlabeledAtom <$> wildcard
 numSeg   = posIndependent . unlabeledAtom <$> num
 strSeg   = posIndependent . unlabeledAtom <$> str
 grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
-listSeg  = posIndependent . unlabeledAtom <$> list nonemptyValExprLocal
+listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
+tupleSeg = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
 matchseg = posIndependent . unlabeledAtom <$> match
 lamSeg   = posIndependent . labeled (unspaced lamName) . suffix <$> lamBldr
 funcSeg  = posIndependent . unlabeledAtom <$> func
@@ -739,10 +763,10 @@ topLvlDecl = rootedFunc <|> cls <|> metadata
 
 func :: AsgParser SomeExpr
 func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
-    funcDef, funcSig :: SymParser (Name -> IRB SomeExpr)
-    funcHdr = symbol Lexer.KwDef *> funcName
-    funcSig = (\tp name -> liftAstApp1 (IR.functionSig' name) tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftAstApp2 (IR.asgFunction' name) (sequence args) (uncurry seqs body))
+    funcDef, funcSig :: SymParser (AsgBldr SomeExpr -> IRB SomeExpr)
+    funcHdr = symbol Lexer.KwDef *> (var <|> op)
+    funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
+    funcDef = (\args body name -> liftAstApp3 IR.asgFunction' name (sequence args) (uncurry seqs body))
         <$> many nonSpacedPattern
         <*  symbol Lexer.BlockStart
         <*> discover (nonEmptyBlock lineExpr)
@@ -750,15 +774,31 @@ func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
 rootedFunc :: AsgParser SomeExpr
 rootedFunc = marked <*> rootedRawFunc
 
-rootedRawFunc :: AsgParser SomeExpr
-rootedRawFunc = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
-    funcDef, funcSig :: SymParser (Name -> IRB SomeExpr)
-    funcHdr = symbol Lexer.KwDef *> funcName
-    funcSig = (\tp name -> liftAstApp1 (IR.functionSig' name) tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftAstApp1 (IR.asgRootedFunction name) $ snapshotRooted $ nestedLam args $ uncurry seqs body)
+-- ======================================================
+-- !!! Very hacky implementation of rooted function, which duplicates its name inside rooted IR's function definition
+--     Moreover, function signature is not in rooted IR.
+--     To be removed as soon as possible
+-- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+funcBase :: SymParser (AsgBldr SomeExpr, (Int, AsgBldr SomeExpr))
+funcBase = buildAsgF2 $ do
+    hdr <- funcHdr
+    (\f -> (hdr, f hdr)) <$> (fmap2 (0,) funcDef <|> fmap2 (1,) funcSig)
+    where
+    funcDef, funcSig :: SymParser (AsgBldr SomeExpr -> IRB SomeExpr)
+    funcHdr = symbol Lexer.KwDef *> (var <|> op)
+    funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
+    funcDef = (\args body name -> liftAstApp3 IR.asgFunction' name (sequence args) (uncurry seqs body))
         <$> many nonSpacedPattern
         <*  symbol Lexer.BlockStart
         <*> discover (nonEmptyBlock lineExpr)
+
+rootedRawFunc :: AsgParser SomeExpr
+rootedRawFunc = buildAsg $ funcBase >>= \case
+    (n,(0,bldr))         -> return $ liftAstApp2 IR.asgRootedFunction' n (snapshotRooted bldr)
+    (_,(1,AsgBldr bldr)) -> return bldr
+
+-- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 -- === Classes == --
@@ -870,13 +910,6 @@ breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmpty
 --------------------
 -- === Parser === --
 --------------------
-
--- vv vv vvv REFACTOR vvv vv vv --
-
-type instance GetRefHandler (StateT s m) = GetRefHandler m
-instance Emitter e m => Emitter e (StateT s m)
-
--- ^^ ^^ ^^^ REFACTOR ^^^ ^^ ^^ --
 
 type FileName = Literal.String
 

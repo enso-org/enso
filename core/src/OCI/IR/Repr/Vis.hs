@@ -106,7 +106,6 @@ visNodeNoType t = do
         UnitProxy u _ -> "UnitProxy '" <> show u <> "'"
         UnresolvedImport _ s -> "UnresolvedImport " <> show s
         UnresolvedImportSrc s -> "UnresolvedImportSrc " <> show s
-        ASGRootedFunction n _ -> "ASGFunction '" <> convert n <> "'"
         _             -> header
 
     let node   = Vis.Node (fromString value) euid (convert $ t ^. idx) (fromList [fromString header]) Nothing

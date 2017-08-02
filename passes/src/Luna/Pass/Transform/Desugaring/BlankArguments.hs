@@ -66,16 +66,17 @@ replaceBlanks e = matchExpr e $ \case
         v <- var =<< genName
         replace v e
         return [v]
-    Grouped g     -> runReplaceBlanks =<< source g
-    Marked _ b    -> runReplaceBlanks =<< source b
-    Lam _ o       -> runReplaceBlanks =<< source o
-    Unify _ r     -> runReplaceBlanks =<< source r
-    Seq l r       -> do
+    Grouped g         -> runReplaceBlanks =<< source g
+    Marked _ b        -> runReplaceBlanks =<< source b
+    Lam _ o           -> runReplaceBlanks =<< source o
+    ASGFunction _ _ b -> runReplaceBlanks =<< source b
+    Unify _ r         -> runReplaceBlanks =<< source r
+    Seq l r           -> do
         runReplaceBlanks =<< source l
         runReplaceBlanks =<< source r
-    App f a       -> (++) <$> (replaceBlanks =<< source f) <*> (replaceBlanks =<< source a)
-    Acc v _       -> replaceBlanks =<< source v
-    AccSection ns -> do
+    App f a           -> (++) <$> (replaceBlanks =<< source f) <*> (replaceBlanks =<< source a)
+    Acc v _           -> replaceBlanks =<< source v
+    AccSection ns     -> do
         x    <- var =<< genName
         accs <- foldM (fmap generalize .: acc) (generalize x :: Expr Draft) ns
         l    <- lam x accs

@@ -202,6 +202,7 @@ instance ( MonadIO m -- DEBUG ONLY
          ) => ChainedPrettyPrinter SimpleStyle t m where
     chainedPrettyShow style subStyle root = matchExpr root $ \case
         Blank                  -> return . unnamed $ atom wildcardName
+        Missing                -> return . unnamed $ atom mempty
         String    str          -> return . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
         Number    num          -> return . unnamed $ atom (convert $ show num)
         Acc       a name       -> named (spaced accName)   . atom . (\an -> convert an <+> accName <+> convert name) <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
@@ -217,16 +218,17 @@ instance ( MonadIO m -- DEBUG ONLY
                                                     | otherwise          -> unnamed                $ atom   (convert name)
         Grouped   expr         -> unnamed . atom . parensed <$> subgenBody expr
         Typed     expr tp      -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
-        List      elems        -> unnamed . atom . bracked . (intercalate ", ") <$> mapM (maybe (return mempty) subgenBody) elems
+        List      elems        -> unnamed . atom . bracked  . (intercalate ", ") <$> mapM subgenBody elems
+        Tuple      elems       -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
         Seq       a b          -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
         Lam       arg body     -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
         LeftSection  op a      -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
         RightSection op a      -> unnamed . atom . parensed .: flip (<+>) <$> subgenBody op  <*> subgenBody a
         Marked       m a       -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
         Marker         a       -> return . unnamed . atom $ convert markerBegin <> convert (show a) <> convert markerEnd
-        ASGRootedFunction  n _ -> return . unnamed . atom $ "<function '" <> convert n <> "'>"
-        ASGFunction  n as body -> unnamed . atom .: (\as' body' -> "def" <+> convert n <> arglist as' <> body') <$> mapM subgenBody as <*> smartBlock body
-        FunctionSig  n tp      -> unnamed . atom . (("def" <+> convert n <+> typedName) <+>) <$> subgenBody tp
+        ASGRootedFunction  n _ -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
+        ASGFunction  n as body -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
+        FunctionSig  n tp      -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
         Match        a cs      -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
         ClsASG   n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
                                       go args conss decls = "class" <+> convert n <> arglist args <> body where
@@ -315,11 +317,17 @@ instance ( MonadIO m -- DEBUG ONLY
                   ]
          ) => ChainedPrettyPrinter CompactStyle t m where
     chainedPrettyShow style subStyle root = matchExpr root $ \case
-        String str  -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
-        Var    name -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
-        Lam{}       -> return . unnamed $ atom "Ⓕ"
-        Marked m b  -> chainedPrettyShow style subStyle =<< source b
-        _           -> defGen
+        String str    -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
+        Var    name   -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
+        Lam{}         -> return . unnamed $ atom "Ⓕ"
+        ASGFunction{} -> return . unnamed $ atom "Ⓕ"
+        Marked m b    -> chainedPrettyShow style subStyle =<< source b
+        Grouped g     -> do
+            body <- chainedPrettyShow style subStyle =<< source g
+            return $ case unlabel body of
+                Atom{} -> body
+                _      -> unnamed . atom . parensed . getBody $ body
+        _             -> defGen
         where simpleGen = chainedPrettyShow SimpleStyle subStyle
               defGen    = simpleGen root
 

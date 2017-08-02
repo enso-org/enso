@@ -68,4 +68,10 @@ transformPatterns expr = matchExpr expr $ \case
         res  <- flattenPattern left
         replace res left
         transformPatterns =<< source r
+    ASGFunction n as b -> do
+        forM_ as $ \a' -> do
+            a   <- source a'
+            res <- flattenPattern a
+            replace res a
+        transformPatterns =<< source b
     _ -> mapM_ (transformPatterns <=< source) =<< inputs expr

@@ -19,11 +19,12 @@ import Luna.IR
 import Luna.IR.Term.Unit (UnitSet)
 import Luna.IR.Term.Cls  (Cls)
 import Luna.Syntax.Text.Parser.Errors (Invalids)
-import qualified Luna.IR.Term.Unit as Term
-import qualified Luna.IR.Term.Cls  as Term
+import qualified Luna.IR.Term.Unit  as Term
+import qualified Luna.IR.Term.Cls   as Term
 import Luna.Builtin.Data.Module     as Module
 import Luna.Builtin.Data.Class
 import Luna.Builtin.Data.LunaEff
+import Luna.Builtin.Data.LunaValue  as LunaValue
 import qualified Luna.Builtin.Data.Function   as Function
 
 import Luna.Pass.Data.UniqueNameGen
@@ -85,13 +86,11 @@ main = void $ runPM True $ do
           Just m  -> world ^. functions . at m
           Nothing -> Nothing
 
-    Pass.eval' @ShellTest $ Vis.snapshotNoType "yoyo"
-
     putStrLn "Running main..."
 
     case mainFun of
         Just f  -> do
-            res <- liftIO $ runIO $ runError $ f ^. Function.value
+            res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
             case res of
                 Left err -> error $ "Luna encountered runtime error: " ++ err
                 _        -> return ()

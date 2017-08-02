@@ -67,13 +67,26 @@ string' :: ExprCons' m String => Literal.String -> m SomeExpr
 number' = fmap generalize . number
 string' = fmap generalize . string
 
-list' :: ExprCons m List => [Maybe (Expr t)] -> m SomeExpr
-list  :: ExprCons m List => [Maybe (Expr t)] -> m (Expr $ List >> t)
+list' :: ExprCons m List => [Expr t] -> m SomeExpr
+list  :: ExprCons m List => [Expr t] -> m (Expr $ List >> t)
 list' = fmap generalize . list
 list fs = mdo
     t  <- expr $ Term.uncheckedList fn
-    fn <- (mapM . mapM) (flip link t . unsafeRelayout) fs
+    fn <- mapM (flip link t . unsafeRelayout) fs
     return t
+
+tuple' :: ExprCons m Tuple => [Expr t] -> m SomeExpr
+tuple  :: ExprCons m Tuple => [Expr t] -> m (Expr $ Tuple >> t)
+tuple' = fmap generalize . tuple
+tuple fs = mdo
+    t  <- expr $ Term.uncheckedTuple fn
+    fn <- mapM (flip link t . unsafeRelayout) fs
+    return t
+
+missing' :: ExprCons' m Missing => m SomeExpr
+missing  :: ExprCons' m Missing => m (Expr Missing)
+missing' = fmap generalize missing
+missing  = expr Term.uncheckedMissing
 
 
 -- === Prims === --
@@ -189,24 +202,32 @@ grouped e = mdo
 rootedFunction :: ExprCons m RootedFunction => IR.Rooted SomeExpr -> m SomeExpr
 rootedFunction body = expr $ Term.uncheckedRootedFunction body
 
-asgRootedFunction :: ExprCons m ASGRootedFunction => Name -> IR.Rooted SomeExpr -> m SomeExpr
-asgRootedFunction n body = expr $ Term.uncheckedASGRootedFunction n body
 
-asgFunction' :: ExprCons m ASGFunction => Name -> [Expr a] -> Expr b -> m SomeExpr
-asgFunction  :: ExprCons m ASGFunction => Name -> [Expr a] -> Expr b -> m (Expr $ ASGFunction >> (a <+> b))
+asgRootedFunction' :: ExprCons m ASGRootedFunction => Expr a -> IR.Rooted SomeExpr -> m SomeExpr
+asgRootedFunction  :: ExprCons m ASGRootedFunction => Expr a -> IR.Rooted SomeExpr -> m (Expr $ ASGRootedFunction >> a)
+asgRootedFunction' = fmap generalize .: asgRootedFunction
+asgRootedFunction name body = mdo
+    t     <- expr $ Term.uncheckedASGRootedFunction lname body
+    lname <- link (unsafeRelayout name) t
+    return t
+
+asgFunction' :: ExprCons m ASGFunction => Expr a -> [Expr b] -> Expr c -> m SomeExpr
+asgFunction  :: ExprCons m ASGFunction => Expr a -> [Expr b] -> Expr c -> m (Expr $ ASGFunction >> (a <+> b <+> c))
 asgFunction' = fmap generalize .:. asgFunction
 asgFunction name args body = mdo
-    t     <- expr $ Term.uncheckedASGFunction name largs lbody
+    t     <- expr $ Term.uncheckedASGFunction lname largs lbody
+    lname <- link (unsafeRelayout name) t
     largs <- mapM (flip link t . unsafeRelayout) args
     lbody <- link (unsafeRelayout body) t
     return t
 
-functionSig' :: ExprCons m FunctionSig => Name -> Expr a -> m SomeExpr
-functionSig  :: ExprCons m FunctionSig => Name -> Expr a -> m (Expr $ FunctionSig >> a)
+functionSig' :: ExprCons m FunctionSig => Expr a -> Expr b -> m SomeExpr
+functionSig  :: ExprCons m FunctionSig => Expr a -> Expr b -> m (Expr $ FunctionSig >> (a <+> b))
 functionSig' = fmap generalize .: functionSig
 functionSig name sig = mdo
-    t    <- expr $ Term.uncheckedFunctionSig name lsig
-    lsig <- link (unsafeRelayout sig) t
+    t     <- expr $ Term.uncheckedFunctionSig lname lsig
+    lname <- link (unsafeRelayout name) t
+    lsig  <- link (unsafeRelayout sig)  t
     return t
 
 clsASG' :: ExprCons m ClsASG => Name -> [Expr a] -> [Expr b] -> [Expr c] -> m SomeExpr

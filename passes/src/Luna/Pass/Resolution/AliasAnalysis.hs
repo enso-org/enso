@@ -79,6 +79,11 @@ resolveAliases baseAliases expr = matchExpr expr $ \case
         let newAliases = Map.union (Map.fromList newVars) baseAliases
         resolveAliases newAliases =<< source o
         return baseAliases
+    ASGFunction n as b -> do
+        selfVar <- Map.fromList <$> (discoverVars =<< source n)
+        newVars <- Map.fromList . concat <$> mapM (discoverVars <=< source) as
+        resolveAliases (Map.unions [selfVar, newVars, baseAliases]) =<< source b
+        return $ Map.union selfVar baseAliases
     Seq l r -> do
         leftRes <- resolveAliases baseAliases =<< source l
         resolveAliases leftRes =<< source r

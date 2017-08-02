@@ -46,7 +46,7 @@ class Process:
         out = pr . getContentsFromStdOut
         err = pr . getContentsFromStdErr
         ex  = pr . waitForProcess
-        Triple out err ex
+        Tuple3 out err ex
 
 
 class ExitCode:
