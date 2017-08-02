@@ -253,8 +253,8 @@ class Stylable a where
     cleanStyles :: a -> a
     withStyle   :: [StyleChange] -> a -> a
 
-    default cleanStyles :: (a ~ f a', Stylable a', Functor f) => f a' -> f a'
-    default withStyle   :: (a ~ f a', Stylable a', Functor f) => [StyleChange] -> f a' -> f a'
+    default cleanStyles :: (a ~ f a', Stylable a', Functor f) => a -> a
+    default withStyle   :: (a ~ f a', Stylable a', Functor f) => [StyleChange] -> a -> a
     cleanStyles = fmap   cleanStyles
     withStyle   = fmap . withStyle
 
