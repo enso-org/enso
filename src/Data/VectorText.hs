@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Strict            #-}
 
 module Data.VectorText where
 
@@ -25,7 +26,7 @@ instance MVector.Unbox a => Semigroup (Vector a) where (<>) = P.mappend
 
 -- === Definition === --
 
-newtype VectorText = VectorText (Vector Char) deriving (Mempty, Semigroup, P.Monoid, Eq, Ord, Binary)
+newtype VectorText = VectorText (Vector Char) deriving (Generic, Mempty, NFData, Semigroup, P.Monoid, Eq, Ord, Binary)
 makeLenses ''VectorText
 
 
@@ -33,76 +34,103 @@ makeLenses ''VectorText
 
 -- | O(1)
 length :: VectorText -> Int
-length = Vector.length . unwrap
+length = Vector.length . unwrap ; {-# INLINE length #-}
 
 
 -- === Construction === --
 
 -- | O(1)
 singleton :: Char -> VectorText
-singleton = wrap . Vector.singleton
+singleton = wrap . Vector.singleton ; {-# INLINE singleton #-}
 
 -- | O(1)
 uninitialized :: Int -> VectorText
-uninitialized i = runST $ unsafeFreeze =<< Mutable.new i
+uninitialized i = runST $ unsafeFreeze =<< Mutable.new i ; {-# INLINE uninitialized #-}
 
 -- | O(n)
 replicate :: Int -> Char -> VectorText
-replicate = wrap .: Vector.replicate
+replicate = wrap .: Vector.replicate ; {-# INLINE replicate #-}
 
 -- | O(n)
 generate :: Int -> (Int -> Char) -> VectorText
-generate = wrap .: Vector.generate
+generate = wrap .: Vector.generate ; {-# INLINE generate #-}
 
 -- | O(n)
 concat :: [VectorText] -> VectorText
-concat ts = wrap $ Vector.concat (unwrap <$> ts)
+concat ts = wrap $ Vector.concat (unwrap <$> ts) ; {-# INLINE concat #-}
 
 
 -- === Deconstruction === --
 
 -- | O(1)
-splitHead :: VectorText -> Maybe (Char, VectorText)
-splitHead t = justIf (length t > 0) (Vector.unsafeHead v, wrap $ Vector.unsafeTail v) where
-    v = unwrap t
+index :: VectorText -> Int -> Maybe Char
+index = (Vector.!?) . unwrap ; {-# INLINE index #-}
 
 -- | O(1)
 head :: VectorText -> Maybe Char
-head = fmap2 fst splitHead
+head = fmap2 fst splitHead ; {-# INLINE head #-}
+
+-- | O(1)
+tail :: VectorText -> Maybe VectorText
+tail t = justIf (length t > 0) $ unsafeTail t ; {-# INLINE tail #-}
+
+-- | O(1)
+splitHead :: VectorText -> Maybe (Char, VectorText)
+splitHead t = justIf (length t > 0) $ unsafeSplitHead t ; {-# INLINE splitHead #-}
+
+-- | O(1)
+unsafeIndex :: VectorText -> Int -> Char
+unsafeIndex = Vector.unsafeIndex . unwrap ; {-# INLINE unsafeIndex #-}
+
+-- | O(1)
+unsafeHead :: VectorText -> Char
+unsafeHead = Vector.unsafeHead . unwrap ; {-# INLINE unsafeHead #-}
+
+-- | O(1)
+unsafeTail :: VectorText -> VectorText
+unsafeTail = wrap . Vector.unsafeTail . unwrap ; {-# INLINE unsafeTail #-}
+
+-- | O(1)
+unsafeSplitHead :: VectorText -> (Char, VectorText)
+unsafeSplitHead t = (unsafeHead t, unsafeTail t) ; {-# INLINE unsafeSplitHead #-}
+
+-- | O(s)
+takeWhile :: (Char -> Bool) -> VectorText -> VectorText
+takeWhile f = wrap . Vector.takeWhile f . unwrap ; {-# INLINE takeWhile #-}
+
+-- | O(s)
+dropWhile :: (Char -> Bool) -> VectorText -> VectorText
+dropWhile f = wrap . Vector.dropWhile f . unwrap ; {-# INLINE dropWhile #-}
 
 
 -- === Modification === --
 
 -- | O(1)
 init :: VectorText -> VectorText
-init = wrapped %~ Vector.init
-
--- | O(1)
-tail :: VectorText -> VectorText
-tail = wrapped %~ Vector.tail
+init = wrapped %~ Vector.init ; {-# INLINE init #-}
 
 -- | O(1)
 take :: Int -> VectorText -> VectorText
-take i = wrapped %~ Vector.take i
+take i = wrapped %~ Vector.take i ; {-# INLINE take #-}
 
 -- | O(1)
 drop :: Int -> VectorText -> VectorText
-drop i = wrapped %~ Vector.drop i
+drop i = wrapped %~ Vector.drop i ; {-# INLINE drop #-}
 
 -- | O(n)
 map :: (Char -> Char) -> VectorText -> VectorText
-map f = wrapped %~ Vector.map f
+map f = wrapped %~ Vector.map f ; {-# INLINE map #-}
 
 -- | O(n)
 imap :: (Int -> Char -> Char) -> VectorText -> VectorText
-imap f = wrapped %~ Vector.imap f
+imap f = wrapped %~ Vector.imap f ; {-# INLINE imap #-}
 
 -- | O(n)
 concatMap :: (Char -> VectorText) -> VectorText -> VectorText
-concatMap f = wrapped %~ Vector.concatMap (unwrap . f)
+concatMap f = wrapped %~ Vector.concatMap (unwrap . f) ; {-# INLINE concatMap #-}
 
 replace :: Int -> Int -> VectorText -> (VectorText -> VectorText)
-replace begin end new t = concat [take begin t, new, drop end t]
+replace begin end new t = concat [take begin t, new, drop end t] ; {-# INLINE replace #-}
 
 
 -- === Indexing === --
@@ -110,7 +138,7 @@ replace begin end new t = concat [take begin t, new, drop end t]
 -- | O(1)
 type instance Index   VectorText = Int
 type instance IxValue VectorText = Char
-instance Ixed VectorText where ix = wrapped .: ix
+instance Ixed VectorText where ix = wrapped .: ix ; {-# INLINE ix #-}
 
 
 -- === Slicing === --
@@ -121,14 +149,15 @@ slice idx len t = if lenDiff > 0 then unsafeSlice idx' len'' t else mempty where
     (idx', len') = if idx < 0 then (0,len + idx) else (idx,len)
     lenDiff      = length t - idx'
     len''        = min len' lenDiff
+{-# INLINE slice #-}
 
 -- | O(1)
 unsafeSlice :: Int -> Int -> VectorText -> VectorText
-unsafeSlice idx len = wrapped %~ Vector.unsafeSlice idx len
+unsafeSlice idx len = wrapped %~ Vector.unsafeSlice idx len ; {-# INLINE unsafeSlice #-}
 
 -- | O(1)
 splitAt :: Int -> VectorText -> (VectorText, VectorText)
-splitAt i = over both wrap . Vector.splitAt i . unwrap
+splitAt i = over both wrap . Vector.splitAt i . unwrap ; {-# INLINE splitAt #-}
 
 
 -- === Mutable conversions === --
@@ -136,37 +165,37 @@ splitAt i = over both wrap . Vector.splitAt i . unwrap
 -- | O(n)
 freeze :: PrimMonad m => MVectorText (PrimState m) -> m VectorText
 thaw   :: PrimMonad m => VectorText -> m (MVectorText (PrimState m))
-freeze t = wrap <$> Vector.freeze (unwrap t)
-thaw   t = wrap <$> Vector.thaw   (unwrap t)
+freeze t = wrap <$> Vector.freeze (unwrap t) ; {-# INLINE freeze #-}
+thaw   t = wrap <$> Vector.thaw   (unwrap t) ; {-# INLINE thaw   #-}
 
 -- | O(1)
 unsafeFreeze :: PrimMonad m => MVectorText (PrimState m) -> m VectorText
 unsafeThaw   :: PrimMonad m => VectorText -> m (MVectorText (PrimState m))
-unsafeFreeze t = wrap <$> Vector.unsafeFreeze (unwrap t)
-unsafeThaw   t = wrap <$> Vector.unsafeThaw   (unwrap t)
+unsafeFreeze t = wrap <$> Vector.unsafeFreeze (unwrap t) ; {-# INLINE unsafeFreeze #-}
+unsafeThaw   t = wrap <$> Vector.unsafeThaw   (unwrap t) ; {-# INLINE unsafeThaw   #-}
 
 
 -- === Memory management === --
 
 -- | O(n)
 force :: VectorText -> VectorText
-force = wrapped %~ Vector.force
+force = wrapped %~ Vector.force ; {-# INLINE force #-}
 
 
 -- === Conversions === --
 
 type instance Item VectorText = Char
 
-instance Convertible Char   VectorText   where convert = singleton
-instance Convertible [Char] VectorText   where convert = wrap . Vector.fromList
-instance Convertible VectorText   [Char] where convert = Vector.toList . unwrap
+instance Convertible Char   VectorText   where convert = singleton              ; {-# INLINE convert #-}
+instance Convertible [Char] VectorText   where convert = wrap . Vector.fromList ; {-# INLINE convert #-}
+instance Convertible VectorText   [Char] where convert = Vector.toList . unwrap ; {-# INLINE convert #-}
 
-instance FromList VectorText where fromList   = convert
-instance ToList   VectorText where toList     = convert
-instance IsString VectorText where fromString = convert
+instance FromList VectorText where fromList   = convert ; {-# INLINE fromList   #-}
+instance ToList   VectorText where toList     = convert ; {-# INLINE toList     #-}
+instance IsString VectorText where fromString = convert ; {-# INLINE fromString #-}
 
 
 
 -- === Instances === --
 
-instance Show VectorText where show = show . toList
+instance Show VectorText where show = show . toList ; {-# INLINE show #-}
