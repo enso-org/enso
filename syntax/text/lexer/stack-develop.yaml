@@ -33,6 +33,7 @@ extra-deps:
     - cond-0.4.1.1
     - ghc-mtl-1.2.1.0
     - serialport-0.4.7
+    - attoparsec-0.13.2.0
 
 ghc-options:
     "*": -fenable-rewrite-rules -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100

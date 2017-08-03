@@ -17,10 +17,10 @@ benchmarks:
             - luna-syntax-text-lexer
             - random
             - timeit
-
-build:
-    benchmark-opts:
-        benchmark-arguments: "--output=$benchmark.html"
+            - conduit
+            - conduit-combinators
+            - conduit-extra
+            - attoparsec
 
 
 dependencies:
@@ -35,6 +35,11 @@ dependencies:
     - parsert
     - vector-text
     - fingertree
+    - attoparsec
+    - text
+    - conduit
+    - bytestring
+    - resourcet
 
     # remove:
     - lens-utils

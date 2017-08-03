@@ -2,21 +2,26 @@
 
 module Main where
 
-import Prologue as P
+import Prologue as P hiding (Symbol)
 import Criterion.Main
 import Luna.Syntax.Text.Lexer
 import System.Random
 import System.IO (hFlush, hSetBuffering, stdout, BufferMode(NoBuffering))
-import Data.VectorText (VectorText)
+import Data.Text (Text)
+import qualified Data.Text as Text
 import System.TimeIt
 
 import qualified Data.Char as Char
 
+import Conduit
+import Data.Char (toUpper)
+import Data.Attoparsec.Text as Parser
+import Luna.Syntax.Text.Lexer.Stream
+import Luna.Syntax.Text.Lexer (Symbol)
+import System.IO (FilePath)
+
 eval :: NFData a => a -> IO a
 eval = evaluate . force
-
-env' :: NFData env => env -> (env -> Benchmark) -> Benchmark
-env' = env . return
 
 liftExp :: (Int -> a) -> (Int -> a)
 liftExp f = f . (10^)
@@ -29,33 +34,73 @@ expCodeGen f i = do
     return out
 
 maxExpCodeLen :: Int
-maxExpCodeLen = 4
+maxExpCodeLen = 6
 
-expCodeGenBench  :: (Int -> VectorText) -> Int -> Benchmark
-expCodeGenBenchs :: (Int -> VectorText) -> [Benchmark]
-expCodeGenBench  f i = env (expCodeGen f i) $ bench ("10e" <> show i) . nf (runLexer @String)
-expCodeGenBenchs f   = expCodeGenBench f <$> [4..maxExpCodeLen]
+-- expCodeGenBench  :: (Int -> Text) -> Int -> Benchmark
+-- expCodeGenBenchs :: (Int -> Text) -> [Benchmark]
+expCodeGenBench  p f i = env (expCodeGen f i) $ bench ("10e" <> show i) . nf p
+expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
+--
+--
+-- mkCodeRandom :: Int -> VectorText
+-- mkCodeRandom i = convert . P.take i $ Char.chr <$> randomRs (32,100) (mkStdGen 0)
+--
+mkCodeNumbers :: Int -> Text
+mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
 
-
-mkCodeRandom :: Int -> VectorText
-mkCodeRandom i = convert . P.take i $ Char.chr <$> randomRs (32,100) (mkStdGen 0)
-
-mkCodeTerminators :: Int -> VectorText
-mkCodeTerminators i = convert $ replicate i ';'
+mkCodeTerminators :: Int -> Text
+mkCodeTerminators i = Text.replicate i ";" ; {-# INLINE mkCodeTerminators #-}
 
 
 main = do
-    hSetBuffering stdout NoBuffering
-    -- putStrLn "Preparing code samples"
-    -- rcodes <- expCodes maxExpSize mkCodeRandom
-    -- rcodes <- eval $ mkCodeRandom . (10^) <|$> [1..maxExpSize] :: IO [(Int, VectorText)]
-    -- rc <- eval $ mkCodeRandom 100000
-    -- putStrLn "xxxx---"
-    -- timeIt $ eval $ runLexer @String rc
-    -- timeIt $ eval $ runLexer @String rc
-    -- timeIt $ eval $ runLexer @String rc
-    -- timeIt $ eval $ runLexer @String rc
+    return ()
     defaultMain
-        [ bgroup "terminators" $ expCodeGenBenchs mkCodeTerminators
+        -- [ bgroup "numbers" $ expCodeGenBenchs mkCodeNumbers
+        [ bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
+        -- , bgroup "terminators hack"         $ expCodeGenBenchs runLexerPureHack       mkCodeTerminators
+        , bgroup "terminators"              $ expCodeGenBenchs runLexerPure           mkCodeTerminators
         -- , bgroup "random code" $ expCodeGenBenchs mkCodeRandom
         ]
+
+manualTerminatorParser :: Text -> Either String [Char]
+manualTerminatorParser = parseOnly $ many (char ';') ; {-# INLINE manualTerminatorParser #-}
+
+runLexerPure :: Text -> Either ParseError [(Span, Symbol)]
+runLexerPure t = sequence
+               $ runConduitPure
+               $ yield t
+              .| conduitParserEither lexer
+              .| sinkList
+{-# INLINE runLexerPure #-}
+
+runLexerPureHack :: Text -> [(Symbol, Int)]
+runLexerPureHack t = case Parser.parse lexer t of
+    Fail {} -> undefined
+    Partial f -> case f mempty of
+        Done rest a -> if Text.null rest then [a] else error "not all parsed"
+        _           -> undefined
+    Done rest a -> if Text.null rest then [a] else a : runLexerPureHack rest
+{-# INLINE runLexerPureHack #-}
+
+
+runLexerFromFile :: MonadIO m => FilePath -> m (Either ParseError [(Span, Symbol)])
+runLexerFromFile p = liftIO
+                   $ fmap sequence
+                   $ runConduitRes
+                   $ sourceFile p
+                  .| decodeUtf8C
+                  .| conduitParserEither lexer
+                  .| sinkList
+{-# INLINE runLexerFromFile #-}
+
+--
+-- main :: IO ()
+-- main = do
+--     hSetBuffering stdout NoBuffering
+--     out <- runConduitRes
+--          $ sourceFile "/tmp/input.txt"
+--         .| decodeUtf8C
+--         .| conduitParserEither lexer
+--         .| sinkList
+--     print $ sequence out
+--     -- .| printC

@@ -199,7 +199,7 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b
 
 -- === Spantree construction === --
 
-buildSpanTree :: VectorText -> [Lexer.LexerToken (Lexer.Symbol a)] -> Spantree VectorText
+buildSpanTree :: VectorText -> [Lexer.LexerToken Lexer.Symbol] -> Spantree VectorText
 buildSpanTree src = \case
     []     -> empty
     (t:ts) -> tailTree & case t ^. Lexer.element of
