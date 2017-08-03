@@ -30,12 +30,26 @@ import qualified Data.Set as Set
 -- import Text.Parsert as Parsert
 import Type.Inference
 
-import qualified Data.Attoparsec.Text as Parser
-import           Data.Attoparsec.Text (Parser, satisfy, takeWhile, takeWhile1, option, choice, char, anyChar)
+import qualified Data.Attoparsec.Text as Parsec
+-- import           Data.Attoparsec.Text (satisfy, takeWhile, takeWhile1, option, choice, char, anyChar)
+
+import Data.Parser
+import Data.Parser.Instances.Attoparsec ()
+
+type Parser = StateT EntryPoint Parsec.Parser
+-- type Parser = Parsec.Parser
 
 -- FIXME[WD]: TO REFACTOR
 class ShowCons a where
     showCons :: a -> String
+
+
+
+data EntryPoint = GlobalEntry
+                | Something
+                deriving (Show)
+
+instance Default EntryPoint where def = GlobalEntry ; {-# INLINE def #-}
 
 
 ------------------
@@ -363,8 +377,8 @@ lexNumber digit = Number <$> topLvl digit <* checkNoSfx
           lexHex      = takeWhile1 isHexDigitChar
           lexOct      = takeWhile1 isOctDigitChar
           lexBin      = takeWhile1 isBinDigitChar
-          lexFrac     = option mempty $ char '.' *> lexDec
-          lexExp      = option mempty $ char 'e' *> lexDecM
+          lexFrac     = option mempty $ token '.' *> lexDec
+          lexExp      = option mempty $ token 'e' *> lexDecM
           checkNoSfx  = pure () -- option'_ $ (\s -> descibedError' $ "Unexpected characters '" <> s <> "' found on the end of number literal") =<< some (satisfy Char.isAlphaNum)
           topLvl      = \case '0' -> choice [hexNum, octNum, binNum, lexDecNum digit]
                               c   -> lexDecNum c
@@ -564,7 +578,7 @@ lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else u
 {-# INLINE lexSymChar #-}
 
 lexNextChar :: Parser Symbol
-lexNextChar = anyChar >>= lexSymChar ; {-# INLINE lexNextChar #-}
+lexNextChar = anyToken >>= lexSymChar ; {-# INLINE lexNextChar #-}
 --
 --
 --

@@ -20,6 +20,8 @@ import Luna.Syntax.Text.Lexer.Stream
 import Luna.Syntax.Text.Lexer (Symbol)
 import System.IO (FilePath)
 
+import Control.Monad.State.Layered
+
 eval :: NFData a => a -> IO a
 eval = evaluate . force
 
@@ -69,29 +71,29 @@ runLexerPure :: Text -> Either ParseError [(Span, Symbol)]
 runLexerPure t = sequence
                $ runConduitPure
                $ yield t
-              .| conduitParserEither lexer
+              .| conduitParserEither (runStateT @EntryPoint lexer)
               .| sinkList
 {-# INLINE runLexerPure #-}
 
-runLexerPureHack :: Text -> [(Symbol, Int)]
-runLexerPureHack t = case Parser.parse lexer t of
-    Fail {} -> undefined
-    Partial f -> case f mempty of
-        Done rest a -> if Text.null rest then [a] else error "not all parsed"
-        _           -> undefined
-    Done rest a -> if Text.null rest then [a] else a : runLexerPureHack rest
-{-# INLINE runLexerPureHack #-}
-
-
-runLexerFromFile :: MonadIO m => FilePath -> m (Either ParseError [(Span, Symbol)])
-runLexerFromFile p = liftIO
-                   $ fmap sequence
-                   $ runConduitRes
-                   $ sourceFile p
-                  .| decodeUtf8C
-                  .| conduitParserEither lexer
-                  .| sinkList
-{-# INLINE runLexerFromFile #-}
+-- runLexerPureHack :: Text -> [(Symbol, Int)]
+-- runLexerPureHack t = case Parser.parse (runStateT @EntryPoint lexer) t of
+--     Fail {} -> undefined
+--     Partial f -> case f mempty of
+--         Done rest a -> if Text.null rest then [a] else error "not all parsed"
+--         _           -> undefined
+--     Done rest a -> if Text.null rest then [a] else a : runLexerPureHack rest
+-- {-# INLINE runLexerPureHack #-}
+--
+--
+-- runLexerFromFile :: MonadIO m => FilePath -> m (Either ParseError [(Span, Symbol)])
+-- runLexerFromFile p = liftIO
+--                    $ fmap sequence
+--                    $ runConduitRes
+--                    $ sourceFile p
+--                   .| decodeUtf8C
+--                   .| conduitParserEither (runStateT @EntryPoint lexer)
+--                   .| sinkList
+-- {-# INLINE runLexerFromFile #-}
 
 --
 -- main :: IO ()

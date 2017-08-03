@@ -12,14 +12,31 @@ import           Data.Typeable              (Typeable)
 
 import qualified Data.Attoparsec.ByteString
 import qualified Data.Attoparsec.Text
-import qualified Data.Attoparsec.Types      as A
+import qualified Data.Attoparsec.Types      as Parser
 import           Data.Attoparsec.Types (Parser, IResult)
 import           Data.Conduit
 import Control.Monad.Trans.Resource (MonadThrow, monadThrow)
 
 
 
+---------------------------
+-- === Conduit utils === --
+---------------------------
 
+awaitJust :: Monad m => (a -> ConduitM a o m ()) -> ConduitM a o m ()
+awaitJust f = await >>= maybe (return ()) f ; {-# INLINE awaitJust #-}
+
+withPeek :: Monad m => (a -> ConduitM a o m ()) -> ConduitM a o m ()
+withPeek f = awaitJust $ \x -> leftover x >> f x ; {-# INLINE withPeek #-}
+
+whenNonEmpty :: Monad m => ConduitM a o m () -> ConduitM a o m ()
+whenNonEmpty = withPeek . const ; {-# INLINE whenNonEmpty #-}
+
+useRight :: Monad m => (t -> ConduitM i (Either a b) m ()) -> Either a t -> ConduitM i (Either a b) m ()
+useRight f = \case
+    Left  e -> yield $ Left e
+    Right v -> f v
+{-# INLINE useRight #-}
 
 
 
@@ -78,16 +95,16 @@ instance Show Span where
     show (Span len off) = "(" <> show len <> "," <> show off <> ")" ; {-# INLINE show #-}
 
 
+-----------------------------------------
+-- === Attoparsec Conduit bindings === --
+-----------------------------------------
 
-
-
--- | A class of types which may be consumed by an Attoparsec parser.
 class AttoparsecInput a where
-    runParser     :: Parser  a b -> a -> IResult a b
-    feed          :: IResult a b -> a -> IResult a b
-    empty         :: a
-    isNull        :: a -> Bool
-    notEmpty      :: [a] -> [a]
+    runParser :: Parser  a b -> a -> IResult a b
+    feed      :: IResult a b -> a -> IResult a b
+    empty     :: a
+    isNull    :: a -> Bool
+    notEmpty  :: [a] -> [a]
     getLength :: a -> Delta
     stripEnd  :: a -> a -> a
 
@@ -110,35 +127,31 @@ instance AttoparsecInput T.Text where
     stripEnd (TI.Text arr1 off1 len1) (TI.Text _ _ len2) = TI.text arr1 off1 (len1 - len2) ; {-# INLINE stripEnd #-}
 
 
-conduitParserEither :: (Monad m, AttoparsecInput a) => Parser a (b, Int) -> ConduitM a (Either ParseError (Span, b)) m ()
-conduitParserEither parser = conduit mempty where
-    conduit !pos = await >>= maybe (return ()) go where
-        go x = leftover x >> sinkParserPos pos parser >>= \case
-            Left e -> yield $ Left e
-            Right (!pos', !off, !res) -> do
-                yield $ Right (Span (pos' - pos) off, res)
-                conduit pos'
-{-# SPECIALIZE conduitParserEither :: Monad m => Parser T.Text       (b, Int) -> Conduit T.Text       m (Either ParseError (Span, b)) #-}
-{-# SPECIALIZE conduitParserEither :: Monad m => Parser B.ByteString (b, Int) -> Conduit B.ByteString m (Either ParseError (Span, b)) #-}
+conduitParserEither :: (Monad m, AttoparsecInput a, Default cfg) => (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Span, b)) m ()
+conduitParserEither parser = loop def mempty where
+    loop !cfg !pos = whenNonEmpty $ sinkPosParser pos (parser cfg) >>= useRight go where
+        go (!pos', !off, !cfg', !res) = yield (Right (Span (pos' - pos) off, res)) >> loop cfg' pos'
+{-# INLINE conduitParserEither #-}
+-- {-# SPECIALIZE conduitParserEither :: Monad m => Parser T.Text       (b, Int) -> Conduit T.Text       m (Either ParseError (Span, b)) #-}
+-- {-# SPECIALIZE conduitParserEither :: Monad m => Parser B.ByteString (b, Int) -> Conduit B.ByteString m (Either ParseError (Span, b)) #-}
 
-
-sinkParserPos :: forall a b m any. (AttoparsecInput a, Monad m) => Delta -> Parser a (b, Int) -> ConduitM a any m (Either ParseError (Delta, Delta, b))
-sinkParserPos pos0 p = sink empty pos0 (runParser p) where
-    sink :: a -> Delta -> (a -> IResult a (b, Int)) -> ConduitM a any m (Either ParseError (Delta, Delta, b))
+sinkPosParser :: forall a b cfg m any. (AttoparsecInput a, Monad m) => Delta -> Parser a ((b, Int), cfg) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
+sinkPosParser pos0 p = sink empty pos0 (runParser p) where
+    sink :: a -> Delta -> (a -> IResult a ((b, Int), cfg)) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
     sink prev pos parse = await >>= maybe close push where
 
         close    = go True prev $ feed (parse empty) empty
         push str = if isNull str then sink prev pos parse
                                  else go False str (parse str)
         go isEnd str = \case
-            A.Done    rest (out, off)   -> (Right . (, convert off, out) $! npos rest) <$ unless (isNull rest) (leftover rest)
-            A.Fail    rest contexts msg -> return . Left . ParseError contexts msg $! npos rest
-            A.Partial parse'            -> if isEnd then return $ Left DivergentParser else sink str cpos parse'
+            Parser.Done    rest ((out, off), cfg) -> (Right . (, convert off, cfg, out) $! npos rest) <$ unless (isNull rest) (leftover rest)
+            Parser.Fail    rest contexts msg -> return . Left . ParseError contexts msg $! npos rest
+            Parser.Partial parse'            -> if isEnd then return $ Left DivergentParser else sink str cpos parse'
             where !pos' = if isEnd then pos else cpos
                   !cpos = updateOffset pos prev
                   !npos = updateOffset pos' . stripEnd str
 
     updateOffset :: AttoparsecInput a => Delta -> a -> Delta
     updateOffset s x = s + getLength x ; {-# INLINE updateOffset #-}
-{-# INLINE sinkParserPos #-}
-{-# SPECIALIZE sinkParserPos :: Monad m => Delta -> Parser T.Text (b, Int) -> ConduitM T.Text any m (Either ParseError (Delta, Delta, b)) #-}
+{-# INLINE sinkPosParser #-}
+-- {-# SPECIALIZE sinkPosParser :: Monad m => Delta -> Parser T.Text (b, Int) -> ConduitM T.Text any m (Either ParseError (Delta, Delta, b)) #-}
