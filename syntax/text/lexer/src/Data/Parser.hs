@@ -47,16 +47,20 @@ class TokenParserCtx m => TokenParser m where
     anyToken   :: m (Token m)
     token_     :: Token  m -> m ()
     tokens_    :: Tokens m -> m ()
+    peekToken  :: m (Token m)
+    peekToken' :: m (Maybe (Token m))
 
-    default takeWhile  :: MonadPlus m  => (Token m -> Bool) -> m (Tokens m)
-    default takeWhile1 :: MonadPlus m  => (Token m -> Bool) -> m (Tokens m)
-    default token_     :: Eq (Token m) => Token  m -> m ()
-    default tokens_    :: Eq (Token m) => Tokens m -> m ()
-    takeWhile  f = fromList <$> many'  (satisfy f) ; {-# INLINE takeWhile  #-}
-    takeWhile1 f = fromList <$> many1' (satisfy f) ; {-# INLINE takeWhile1 #-}
-    anyToken     = satisfy $ const True            ; {-# INLINE anyToken   #-}
-    token_     t = void $ satisfy (== t)           ; {-# INLINE token_     #-}
-    tokens_    t = traverse_ token_ (toList t)     ; {-# INLINE tokens_    #-}
+    default takeWhile  :: MonadPlus m   => (Token m -> Bool) -> m (Tokens m)
+    default takeWhile1 :: MonadPlus m   => (Token m -> Bool) -> m (Tokens m)
+    default token_     :: Eq (Token m)  => Token  m -> m ()
+    default tokens_    :: Eq (Token m)  => Tokens m -> m ()
+    default peekToken' :: Alternative m => m (Maybe (Token m))
+    takeWhile  f = fromList <$> many'  (satisfy f)     ; {-# INLINE takeWhile  #-}
+    takeWhile1 f = fromList <$> many1' (satisfy f)     ; {-# INLINE takeWhile1 #-}
+    anyToken     = satisfy $ const True                ; {-# INLINE anyToken   #-}
+    token_     t = void $ satisfy (== t)               ; {-# INLINE token_     #-}
+    tokens_    t = traverse_ token_ (toList t)         ; {-# INLINE tokens_    #-}
+    peekToken'   = option Nothing $ Just <$> peekToken ; {-# INLINE peekToken' #-}
 
 instance (TokenParserCtx (t m), TokenParser m, TokenTrans t m, MonadTrans t, Monad m)
       => TokenParser (t m) where
@@ -66,6 +70,8 @@ instance (TokenParserCtx (t m), TokenParser m, TokenTrans t m, MonadTrans t, Mon
     anyToken   = lift anyToken     ; {-# INLINE anyToken   #-}
     token_     = lift . token_     ; {-# INLINE token_     #-}
     tokens_    = lift . tokens_    ; {-# INLINE tokens_    #-}
+    peekToken  = lift peekToken    ; {-# INLINE peekToken  #-}
+    peekToken' = lift peekToken'   ; {-# INLINE peekToken' #-}
 
 
 -- === Utils === --
@@ -74,6 +80,9 @@ token  :: TokenParser m => Token  m -> m (Token  m)
 tokens :: TokenParser m => Tokens m -> m (Tokens m)
 token  t = t <$ token_  t ; {-# INLINE token  #-}
 tokens t = t <$ tokens_ t ; {-# INLINE tokens #-}
+
+dropToken :: TokenParser m => m ()
+dropToken = void anyToken ; {-# INLINE dropToken #-}
 
 
 -- === Combinators === --

@@ -163,16 +163,16 @@ checkSpecialOp = \case
     name -> Left name
 {-# INLINE checkSpecialOp #-}
 
-checkSpecialVar :: Text -> Either Text Symbol
+checkSpecialVar :: Text -> Symbol
 checkSpecialVar = \case
-    "all"    -> Right KwAll
-    "case"   -> Right KwCase
-    "class"  -> Right KwClass
-    "def"    -> Right KwDef
-    "import" -> Right KwImport
-    "of"     -> Right KwOf
-    "_"      -> Right Wildcard
-    name     -> Left  name
+    "all"    -> KwAll
+    "case"   -> KwCase
+    "class"  -> KwClass
+    "def"    -> KwDef
+    "import" -> KwImport
+    "of"     -> KwOf
+    "_"      -> Wildcard
+    name     -> Var name
 {-# INLINE checkSpecialVar #-}
 
 isDecDigitChar   :: Char -> Bool
@@ -362,26 +362,25 @@ instance IsTagged Symbol where
 
 -- === Numbers === --
 
-lexNumber :: Char -> Parser Symbol
-lexNumber digit = Number <$> topLvl digit <* checkNoSfx
-    where hexNum      = satisfy (\s -> s == 'x' || s == 'X') *> lexHexNum
-          octNum      = satisfy (\s -> s == 'o' || s == 'O') *> lexOctNum
-          binNum      = satisfy (\s -> s == 'b' || s == 'B') *> lexBinNum
-          lexDecNum c = NumRep Dec . (Text.cons c) <$> lexDec' <*> pure mempty <*> pure mempty -- lexFrac <*> lexExp
-          lexHexNum   = NumRep Hex <$> lexHex <*> pure mempty <*> pure mempty
-          lexOctNum   = NumRep Oct <$> lexOct <*> pure mempty <*> pure mempty
-          lexBinNum   = NumRep Bin <$> lexBin <*> pure mempty <*> pure mempty
-          lexDecM     = maybe id Text.cons <$> optional (satisfy (\s -> s == '-' || s == '+')) <*> lexDec
-          lexDec'     = takeWhile  isDecDigitChar
-          lexDec      = takeWhile1 isDecDigitChar
-          lexHex      = takeWhile1 isHexDigitChar
-          lexOct      = takeWhile1 isOctDigitChar
-          lexBin      = takeWhile1 isBinDigitChar
-          lexFrac     = option mempty $ token '.' *> lexDec
-          lexExp      = option mempty $ token 'e' *> lexDecM
-          checkNoSfx  = pure () -- option'_ $ (\s -> descibedError' $ "Unexpected characters '" <> s <> "' found on the end of number literal") =<< some (satisfy Char.isAlphaNum)
-          topLvl      = \case '0' -> choice [hexNum, octNum, binNum, lexDecNum digit]
-                              c   -> lexDecNum c
+lexNumber :: Parser Symbol
+lexNumber = check =<< number
+    where number  = (token '0' *> choice [hex, oct, bin]) <|> dec
+          dec     = NumRep Dec           <$> decBody <*> fracSfx     <*> expSfx
+          hex     = NumRep Hex <$ hexPfx <*> hexBody <*> pure mempty <*> pure mempty
+          oct     = NumRep Oct <$ octPfx <*> octBody <*> pure mempty <*> pure mempty
+          bin     = NumRep Bin <$ binPfx <*> binBody <*> pure mempty <*> pure mempty
+          hexPfx  = satisfy (\s -> s == 'x' || s == 'X')
+          octPfx  = satisfy (\s -> s == 'o' || s == 'O')
+          binPfx  = satisfy (\s -> s == 'b' || s == 'B')
+          decBody = takeWhile1 isDecDigitChar
+          hexBody = takeWhile1 isHexDigitChar
+          octBody = takeWhile1 isOctDigitChar
+          binBody = takeWhile1 isBinDigitChar
+          expBody = maybe id Text.cons <$> optional sign <*> decBody
+          fracSfx = option mempty $ token '.' *> decBody
+          expSfx  = option mempty $ token 'e' *> expBody
+          sign    = satisfy (\s -> s == '-' || s == '+')
+          check n = option (Number n) $ (\s -> Incorrect $ "Unexpected characters '" <> s <> "' found on the end of number literal") <$> takeWhile1 Char.isAlphaNum
 {-# INLINE lexNumber #-}
 
 -- option'_ p = void p <|> pure ()
@@ -504,7 +503,7 @@ symmap :: Vector (Parser Symbol)
 symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 
     -- -- Layouting
-    | c == ';'          -> pure Terminator
+    | c == ';'          -> Terminator <$ dropToken
     -- | c == ':'          -> addResult =<< handleColons . (c:) =<< many (token ':')
     -- | c == '{'          -> addResult $ Block Begin
     -- | c == '}'          -> addResult $ Block End
@@ -515,8 +514,8 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     -- | c == '\r'         -> addResult =<< EOL <$ option_ (token '\n')
     --
     -- Identifiers & Keywords
-    | varHead  c        -> prepareVar  . Text.cons c <$> indentBody
-    -- | consHead c        -> addResult =<< prepareCons . (c:) <$> indentBody
+    | varHead  c        -> checkSpecialVar <$> varBody
+    | consHead c        -> Cons            <$> consBody
     --
     -- -- Operators
     -- | c == '@'          -> addResult TypeApp
@@ -532,29 +531,29 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     -- | c == '"'          -> lexRawStr =<< succ <$> counted_ (many (token '"')  <* addResult (Quote RawStr Begin))
     -- | c == '\''         -> lexFmtStr =<< succ <$> counted_ (many (token '\'') <* addResult (Quote FmtStr Begin))
     -- | c == '`'          -> addResult (Quote Native Begin) *> lexNatStr
-    | decHead c         -> lexNumber c
-    --
-    -- -- Meta
-    | c == '#'          -> Terminator <$ put @EntryPoint Something --addResult =<< handleHash . (c:) =<< many (token '#')
-    --
-    -- -- Utils
+    | decHead c         -> lexNumber
+
+    -- Meta
+    | c == '#'          -> handleHash . Text.cons c =<< takeWhile (== '#')
+
+    -- Utils
     | otherwise         -> unknownCharSym c
-    --
+
     where between  a l r    = a >= l && a <= r
-        --   decChars          = ['0' .. '9']
           decHead  c        = between c '0' '9'
           varHead  c        = between c 'a' 'z' || c == '_'
           consHead c        = between c 'A' 'Z'
-          indentBody        = (<>) <$> takeWhile isIndentBodyChar <*> takeWhile (== '\'')
-    --       prepareCons       = Cons . convert'
-          prepareVar        = either Var              id . checkSpecialVar
+          consBody          = indentBaseBody
+          varBody           = indentBaseBody <**> (option id $ flip Text.snoc <$> (token '?' <|> token '!'))
+                                             <**> (option id $ flip (<>)      <$> takeWhile1 (== '\''))
+          indentBaseBody    = takeWhile isIndentBodyChar
     --       handleOp   op eqs = either (checkModOp eqs) id . checkSpecialOp  $ convert' op
     --       handleColons      = handleReps  [BlockStart, Typed]
     --       handleDots        = handleReps  [Accessor  , Range, Anything]
     --       handleEqs         = handleReps  [Assignment, Operator "=="]
-    --       handleHash        = handleRepsM [pure Disable, lexComment, lexConfig]
+          handleHash        = handleRepsM [pure Disable] --, lexComment, lexConfig]
     --       handleReps        = handleRepsM . fmap return
-    --       handleRepsM ts s  = fromMaybe (return $ Unknown s) $ ts ^? ix (length s - 1)
+          handleRepsM ts s  = fromMaybe (return $ Unknown s) $ ts ^? ix (Text.length s - 1)
     --       checkModOp eqs op = case eqs of
     --                               "="  -> Modifier op
     --                               []   -> Operator op
@@ -580,7 +579,7 @@ lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else u
 
 lexEntryPoint :: Parser Symbol
 lexEntryPoint = get @EntryPoint >>= \case
-    GlobalEntry -> anyToken >>= lexSymChar
+    GlobalEntry -> peekToken >>= lexSymChar
 {-# INLINE lexEntryPoint #-}
 
 lexer :: Parser (Symbol, Int)

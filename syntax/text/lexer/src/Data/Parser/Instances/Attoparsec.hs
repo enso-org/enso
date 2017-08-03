@@ -20,3 +20,5 @@ instance TokenParser (Parser Strict.Text) where
     anyToken   = SText.anyChar       ; {-# INLINE anyToken   #-}
     token_     = void . SText.char   ; {-# INLINE token_     #-}
     tokens_    = void . SText.string ; {-# INLINE tokens_    #-}
+    peekToken  = SText.peekChar'     ; {-# INLINE peekToken  #-}
+    peekToken' = SText.peekChar      ; {-# INLINE peekToken' #-}

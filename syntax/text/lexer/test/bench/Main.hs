@@ -50,26 +50,20 @@ expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
 mkCodeNumbers :: Int -> Text
 mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
 
-mkCodeTerminators :: Int -> Text
+mkCodeTerminators, mkBigVariable :: Int -> Text
 mkCodeTerminators i = Text.replicate i ";" ; {-# INLINE mkCodeTerminators #-}
+mkBigVariable     i = Text.replicate i "a" ; {-# INLINE mkBigVariable     #-}
 
-mkBigVariable :: Int -> Text
-mkBigVariable i = Text.replicate i "a" ; {-# INLINE mkBigVariable #-}
-
-mkVariablesL1 :: Int -> Text
-mkVariablesL1 i = Text.replicate i "a " ; {-# INLINE mkVariablesL1 #-}
-
-mkVariablesL5 :: Int -> Text
-mkVariablesL5 i = Text.replicate i "abcde " ; {-# INLINE mkVariablesL5 #-}
-
-mkVariablesL10 :: Int -> Text
+mkVariablesL1, mkVariablesL5, mkVariablesL10 :: Int -> Text
+mkVariablesL1  i = Text.replicate i "a "          ; {-# INLINE mkVariablesL1  #-}
+mkVariablesL5  i = Text.replicate i "abcde "      ; {-# INLINE mkVariablesL5  #-}
 mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
 
 
 main = do
     return ()
     defaultMain
-        -- [ bgroup "numbers" $ expCodeGenBenchs mkCodeNumbers
+        --[ bgroup "big variablexx"           $ [bench "big file" $ nfIO (runLexerFromFile "/tmp/input.txt")]
         [ bgroup "big variable"             $ expCodeGenBenchs runLexerPure           mkBigVariable
         , bgroup "variables L1"             $ expCodeGenBenchs runLexerPure           mkVariablesL1
         , bgroup "variables L5"             $ expCodeGenBenchs runLexerPure           mkVariablesL5
@@ -100,15 +94,15 @@ runLexerPure t = sequence
 -- {-# INLINE runLexerPureHack #-}
 --
 --
--- runLexerFromFile :: MonadIO m => FilePath -> m (Either ParseError [(Span, Symbol)])
--- runLexerFromFile p = liftIO
---                    $ fmap sequence
---                    $ runConduitRes
---                    $ sourceFile p
---                   .| decodeUtf8C
---                   .| conduitParserEither (runStateT @EntryPoint lexer)
---                   .| sinkList
--- {-# INLINE runLexerFromFile #-}
+runLexerFromFile :: MonadIO m => FilePath -> m (Either ParseError [(Span, Symbol)])
+runLexerFromFile p = liftIO
+                   $ fmap sequence
+                   $ runConduitRes
+                   $ sourceFile p
+                  .| decodeUtf8C
+                  .| conduitParserEither (runStateT @EntryPoint lexer)
+                  .| sinkList
+{-# INLINE runLexerFromFile #-}
 
 --
 -- main :: IO ()
