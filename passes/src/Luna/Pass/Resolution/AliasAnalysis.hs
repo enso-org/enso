@@ -2,7 +2,7 @@ module Luna.Pass.Resolution.AliasAnalysis where
 
 import           OCI.Pass        (SubPass, Pass, Inputs, Outputs, Preserves)
 
-import Luna.Prelude hiding (String, s, new, cons)
+import Luna.Prelude hiding (String, s, new, cons, List)
 import qualified Luna.Prelude as P
 import qualified OCI.IR.Repr.Vis as Vis
 import Data.TypeDesc
@@ -55,6 +55,8 @@ discoverVars e = matchExpr e $ \case
         concat <$> mapM (source >=> discoverVars) args
     Var     n      -> return [(n, unsafeRelayout e)]
     Grouped x      -> discoverVars =<< source x
+    Tuple args     -> concat <$> mapM (discoverVars <=< source) args
+    List  args     -> concat <$> mapM (discoverVars <=< source) args
     _              -> return []
 
 resolveAliases :: (MonadRef m, MonadPassManager m) => Map Name (Expr Var) -> Expr Draft -> SubPass AliasAnalysis m (Map Name (Expr Var))
