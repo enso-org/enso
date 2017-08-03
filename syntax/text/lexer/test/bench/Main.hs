@@ -30,9 +30,9 @@ liftExp f = f . (10^)
 
 expCodeGen :: (NFData a, Show a) => (Int -> a) -> (Int -> IO a)
 expCodeGen f i = do
-    putStrLn $ "generating input code (10e" <> show i <> " chars)"
+    -- putStrLn $ "generating input code (10e" <> show i <> " chars)"
     out <- eval $ liftExp f i
-    putStrLn "code generated sucessfully"
+    -- putStrLn "code generated sucessfully"
     return out
 
 maxExpCodeLen :: Int
@@ -53,14 +53,29 @@ mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
 mkCodeTerminators :: Int -> Text
 mkCodeTerminators i = Text.replicate i ";" ; {-# INLINE mkCodeTerminators #-}
 
+mkBigVariable :: Int -> Text
+mkBigVariable i = Text.replicate i "a" ; {-# INLINE mkBigVariable #-}
+
+mkVariablesL1 :: Int -> Text
+mkVariablesL1 i = Text.replicate i "a " ; {-# INLINE mkVariablesL1 #-}
+
+mkVariablesL5 :: Int -> Text
+mkVariablesL5 i = Text.replicate i "abcde " ; {-# INLINE mkVariablesL5 #-}
+
+mkVariablesL10 :: Int -> Text
+mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
+
 
 main = do
     return ()
     defaultMain
         -- [ bgroup "numbers" $ expCodeGenBenchs mkCodeNumbers
-        [ bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
-        -- , bgroup "terminators hack"         $ expCodeGenBenchs runLexerPureHack       mkCodeTerminators
+        [ bgroup "big variable"             $ expCodeGenBenchs runLexerPure           mkBigVariable
+        , bgroup "variables L1"             $ expCodeGenBenchs runLexerPure           mkVariablesL1
+        , bgroup "variables L5"             $ expCodeGenBenchs runLexerPure           mkVariablesL5
+        , bgroup "variables L10"            $ expCodeGenBenchs runLexerPure           mkVariablesL10
         , bgroup "terminators"              $ expCodeGenBenchs runLexerPure           mkCodeTerminators
+        , bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
         -- , bgroup "random code" $ expCodeGenBenchs mkCodeRandom
         ]
 

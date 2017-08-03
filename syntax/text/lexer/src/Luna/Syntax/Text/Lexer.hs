@@ -453,7 +453,7 @@ lexNumber digit = Number <$> topLvl digit <* checkNoSfx
 --     n -> choice [blockEnd, subBlock, other] where
 --              blockEnd = token '}' *> addResult (Block End)   *> parseStrBlock i (pred n)
 --              subBlock = token '{' *> addResult (Block Begin) *> parseStrBlock i (succ n)
---              other    = lexNextChar *> parseStrBlock i n
+--              other    = lexEntryPoint *> parseStrBlock i n
 --
 --
 -- -- Escape maps
@@ -514,8 +514,8 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     -- | c == '\n'         -> addResult EOL
     -- | c == '\r'         -> addResult =<< EOL <$ option_ (token '\n')
     --
-    -- -- Identifiers & Keywords
-    -- | varHead  c        -> addResult =<< prepareVar  . (c:) <$> indentBody
+    -- Identifiers & Keywords
+    | varHead  c        -> prepareVar  . Text.cons c <$> indentBody
     -- | consHead c        -> addResult =<< prepareCons . (c:) <$> indentBody
     --
     -- -- Operators
@@ -532,21 +532,22 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     -- | c == '"'          -> lexRawStr =<< succ <$> counted_ (many (token '"')  <* addResult (Quote RawStr Begin))
     -- | c == '\''         -> lexFmtStr =<< succ <$> counted_ (many (token '\'') <* addResult (Quote FmtStr Begin))
     -- | c == '`'          -> addResult (Quote Native Begin) *> lexNatStr
-    | c >= '0' && c <= '9' -> lexNumber c
+    | decHead c         -> lexNumber c
     --
     -- -- Meta
-    -- | c == '#'          -> addResult =<< handleHash . (c:) =<< many (token '#')
+    | c == '#'          -> Terminator <$ put @EntryPoint Something --addResult =<< handleHash . (c:) =<< many (token '#')
     --
     -- -- Utils
     | otherwise         -> unknownCharSym c
     --
     where between  a l r    = a >= l && a <= r
         --   decChars          = ['0' .. '9']
-    --       varHead  c        = between c 'a' 'z' || c == '_'
-    --       consHead c        = between c 'A' 'Z'
-    --       indentBody        = (<>) <$> many (satisfy isIndentBodyChar) <*> many (token '\'')
+          decHead  c        = between c '0' '9'
+          varHead  c        = between c 'a' 'z' || c == '_'
+          consHead c        = between c 'A' 'Z'
+          indentBody        = (<>) <$> takeWhile isIndentBodyChar <*> takeWhile (== '\'')
     --       prepareCons       = Cons . convert'
-    --       prepareVar        = either Var              id . checkSpecialVar . convert'
+          prepareVar        = either Var              id . checkSpecialVar
     --       handleOp   op eqs = either (checkModOp eqs) id . checkSpecialOp  $ convert' op
     --       handleColons      = handleReps  [BlockStart, Typed]
     --       handleDots        = handleReps  [Accessor  , Range, Anything]
@@ -577,20 +578,13 @@ lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else u
     where chord = Char.ord c
 {-# INLINE lexSymChar #-}
 
-lexNextChar :: Parser Symbol
-lexNextChar = anyToken >>= lexSymChar ; {-# INLINE lexNextChar #-}
---
---
---
--- type Lexing         m = (MonadProgressParser m, MonadErrorParser SatisfyError m, MonadErrorParser EmptyStreamError m, MonadTokenParser m, MonadCatchParser m, Alternative m, MonadGetter Offset m, Token m ~ Char, Error m ~ LexerError)
--- type SymbolLexing s m = (Eq s, IsString s, IsoConvertible' String s, MonadResultParser Symbol m, Lexing m)
--- type SymbolCtx    s   = (Eq s, IsString s, IsoConvertible' String s)
---
---
---
---
+lexEntryPoint :: Parser Symbol
+lexEntryPoint = get @EntryPoint >>= \case
+    GlobalEntry -> anyToken >>= lexSymChar
+{-# INLINE lexEntryPoint #-}
+
 lexer :: Parser (Symbol, Int)
-lexer = lexeme lexNextChar ; {-# INLINE lexer #-}
+lexer = lexeme lexEntryPoint ; {-# INLINE lexer #-}
 
 lexeme :: Parser a -> Parser (a, Int)
 lexeme p = (,) <$> p <*> spacing ; {-# INLINE lexeme #-}
