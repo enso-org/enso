@@ -13,16 +13,19 @@ minCapabilityNumber = unsafePerformIO $ newIORef 0
 availableCapabilities :: IORef [Int]
 availableCapabilities = unsafePerformIO $ do
     caps <- getNumCapabilities
-    let maxCap = caps - 1
-    newIORef $ cycle [0..maxCap]
+    newIORef $ capsList 0 caps
 {-# NOINLINE availableCapabilities #-}
 
 updateCapabilities :: IO ()
 updateCapabilities = do
     caps   <- getNumCapabilities
     minCap <- readIORef minCapabilityNumber
-    let maxCap = caps - 1
-    writeIORef availableCapabilities $ cycle [minCap..maxCap]
+    writeIORef availableCapabilities $ capsList minCap caps
+
+capsList :: Int -> Int -> [Int]
+capsList minCap caps | caps <= 1      = repeat 0
+                     | minCap >= caps = let maxCap = caps - 1 in cycle [0..maxCap]
+                     | otherwise      = let maxCap = caps - 1 in cycle [minCap..maxCap]
 
 mkFuture :: IO (a, a -> IO ())
 mkFuture = do
