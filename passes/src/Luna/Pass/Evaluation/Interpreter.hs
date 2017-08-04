@@ -64,7 +64,7 @@ mergeScopes m = localVars %~ Map.union m
 globalLookup :: Name -> Imports -> Maybe LunaValue
 globalLookup n imps = imps ^? importedFunctions . ix n . value
 
-mkInt :: Imports -> Int -> LunaData
+mkInt :: Imports -> Integer -> LunaData
 mkInt = toLunaData
 
 mkDouble :: Imports -> Double -> LunaData

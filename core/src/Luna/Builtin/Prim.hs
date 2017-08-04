@@ -27,7 +27,7 @@ class KnownSymbol n => IsBoxed n a | a -> n, n -> a where
     fromBoxed :: Object Any -> a
     fromBoxed (Object s _) = unsafeCoerce s
 
-instance IsBoxed "Int"    Int
+instance IsBoxed "Int"    Integer
 instance IsBoxed "Real"   Double
 instance IsBoxed "Text"   Text
 instance IsBoxed "Binary" ByteString

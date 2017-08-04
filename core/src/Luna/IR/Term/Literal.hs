@@ -47,7 +47,7 @@ frac i = Number Dec mempty i mempty
 isInteger :: Number -> Bool
 isInteger n = n ^. fracPart == ""
 
-toInt :: Number -> Int
+toInt :: Number -> Integer
 toInt = read . view intPart
 
 toDouble :: Number -> Double
