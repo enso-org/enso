@@ -78,7 +78,7 @@ shouldBeLunaString _             _ = expectationFailure "Expected a LunaString"
 shouldReturnLunaString :: LunaValue -> Text -> Expectation
 shouldReturnLunaString v s = LunaThunk v `shouldBeLunaString` s
 
-shouldBeLunaInt :: LunaData -> Int -> Expectation
+shouldBeLunaInt :: LunaData -> Integer -> Expectation
 shouldBeLunaInt (LunaBoxed a) b = (fromBoxed a) `shouldBe` b
 shouldBeLunaInt (LunaThunk a) b = do
     new <- runIO $ runError a
@@ -87,7 +87,7 @@ shouldBeLunaInt (LunaThunk a) b = do
         Right n  -> n `shouldBeLunaInt` b
 shouldBeLunaInt _             _ = expectationFailure "Expected a LunaInt"
 
-shouldReturnLunaInt :: LunaValue -> Int -> Expectation
+shouldReturnLunaInt :: LunaValue -> Integer -> Expectation
 shouldReturnLunaInt v i = LunaThunk v `shouldBeLunaInt` i
 
 printingFact :: SubPass TestPass (PMStack IO) (Expr Var, Expr Unify)
