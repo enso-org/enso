@@ -8,6 +8,7 @@ import Control.Monad
 import Control.Monad.Trans
 import Data.Foldable hiding (toList)
 import GHC.Exts (IsList, Item, toList, fromList)
+import Data.Convert
 
 -- General utils -- to refactor
 import qualified Control.Monad.State.Layered as Layered
@@ -74,6 +75,11 @@ instance (TokenParserCtx (t m), TokenParser m, TokenTrans t m, MonadTrans t, Mon
     peekToken' = lift peekToken'   ; {-# INLINE peekToken' #-}
 
 
+-- === Aliases === --
+
+type CharParser m = (TokenParser m, Token m ~ Char, Convertible' Char (Tokens m), Convertible' Char (Token m))
+
+
 -- === Utils === --
 
 token  :: TokenParser m => Token  m -> m (Token  m)
@@ -84,11 +90,19 @@ tokens t = t <$ tokens_ t ; {-# INLINE tokens #-}
 dropToken :: TokenParser m => m ()
 dropToken = void anyToken ; {-# INLINE dropToken #-}
 
+takeTill  :: TokenParser m => (Token m -> Bool) -> m (Tokens m)
+takeTill1 :: TokenParser m => (Token m -> Bool) -> m (Tokens m)
+takeTill  f = takeWhile  (not . f) ; {-# INLINE takeTill  #-}
+takeTill1 f = takeWhile1 (not . f) ; {-# INLINE takeTill1 #-}
+
 
 -- === Combinators === --
 
 option :: Alternative f => a -> f a -> f a
 option x p = p <|> pure x ; {-# INLINE option #-}
+
+option_ :: Alternative f => f a -> f ()
+option_ p = void p <|> pure () ; {-# INLINE option_ #-}
 
 choice :: Alternative f => [f a] -> f a
 choice = foldr (<|>) empty ; {-# INLINE choice #-}
@@ -102,5 +116,17 @@ many' p = many_p where
 many1 :: Alternative f => f a -> f [a]
 many1 p = liftA2 (:) p (many p) ; {-# INLINE many1 #-}
 
-many1' :: (MonadPlus m) => m a -> m [a]
+many1' :: MonadPlus m => m a -> m [a]
 many1' p = liftM2' (:) p (many' p) ; {-# INLINE many1' #-}
+
+
+-- === Parsing utils === --
+
+takeLine :: CharParser m => m (Tokens m)
+takeLine = takeWhile (\c -> c /= '\n' && c /= '\r') ; {-# INLINE takeLine #-}
+
+newline :: (CharParser m, Alternative m) => m (Tokens m)
+newline = escape_n <|> escape_rn where
+    escape_n  = convert' <$> token '\n'
+    escape_rn = token '\r' <**> option convert' ((\b a -> fromList [a,b]) <$> token '\n')
+{-# INLINE newline #-}

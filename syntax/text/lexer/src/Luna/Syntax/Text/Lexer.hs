@@ -41,15 +41,38 @@ type Parser = StateT EntryPoint Parsec.Parser
 
 -- FIXME[WD]: TO REFACTOR
 class ShowCons a where
-    showCons :: a -> String
+    showCons :: a -> Text
 
 
+------------------------
+-- === EntryPoint === --
+------------------------
 
-data EntryPoint = GlobalEntry
-                | Something
+-- === Definition === --
+
+data EntryType  = RawStringEntry !Int
                 deriving (Show)
 
+data EntryPoint = GlobalEntry
+                | LiftedEntry EntryType EntryPoint
+                deriving (Show)
+
+
+-- === Utils === --
+
+liftEntry :: MonadState EntryPoint m => EntryType -> m ()
+liftEntry = modify_ @EntryPoint . LiftedEntry ; {-# INLINE liftEntry #-}
+
+unliftEntry :: MonadState EntryPoint m => m ()
+unliftEntry = modify_ @EntryPoint $ \(LiftedEntry _ p) -> p ; {-# INLINE unliftEntry #-}
+
+
+-- === Instances === --
+
 instance Default EntryPoint where def = GlobalEntry ; {-# INLINE def #-}
+
+
+
 
 
 ------------------
@@ -58,21 +81,21 @@ instance Default EntryPoint where def = GlobalEntry ; {-# INLINE def #-}
 
 -- === Definition === --
 
-type Tags = [String]
+type Tags = [Text]
 
 class IsTagged a where
     getTags :: a -> Tags
     default getTags :: Show a => a -> Tags
-    getTags = tagFromShow
+    getTags = tagFromShow ; {-# INLINE getTags #-}
 
 
 -- === Utils === --
 
-singleTag :: String -> Tags
-singleTag = pure
+singleTag :: Text -> Tags
+singleTag = pure ; {-# INLINE singleTag #-}
 
 tagFromShow :: Show a => a -> Tags
-tagFromShow = singleTag . show
+tagFromShow = singleTag . convert . show ; {-# INLINE tagFromShow #-}
 
 
 -- === Instances === --
@@ -87,19 +110,21 @@ data Tagged a = Tagged Tags a deriving (Show, Functor, Foldable, Traversable)
 
 -- === Definitions === --
 
+type Lexer = Parser Symbol
+
 data Symbol -- Layout
             = BOF
             | EOF
             | EOL
             | Terminator
             | BlockStart
-            | Block  !Bound
-            | Group  !Bound
-            | Marker {-# UNPACK #-} !Word64
+            | Block       !Bound
+            | Group       !Bound
+            | Marker      !Word64
 
             -- Ident
-            | Var    {-# UNPACK #-} !Text
-            | Cons   {-# UNPACK #-} !Text
+            | Var         !Text
+            | Cons        !Text
             | Wildcard
 
             -- Keyword
@@ -111,8 +136,8 @@ data Symbol -- Layout
             | KwOf
 
             -- Operator
-            | Operator {-# UNPACK #-} !Text
-            | Modifier {-# UNPACK #-} !Text
+            | Operator    !Text
+            | Modifier    !Text
             | Accessor
             -- | Arrow
             | Assignment
@@ -123,29 +148,35 @@ data Symbol -- Layout
             | Anything
 
             -- Literal
-            | Number {-# UNPACK #-} !Number
-            | Quote  !QuoteType !Bound
-            | Str    {-# UNPACK #-} !Text
-            | StrEsc !StrEscType {-# UNPACK #-} !Int
-            | List   !Bound
-            | StrWrongEsc {-# UNPACK #-} !Int
+            | Number      !Number
+            | Quote       !QuoteType  !Bound
+            | Str         !Text
+            | StrEsc      !StrEscType
+            | List        !Bound
+            | StrWrongEsc !Int
 
             -- Comment
             | Disable
-            | Doc      {-# UNPACK #-} !Text
+            | Doc         !Text
 
             -- Config
-            | Metadata {-# UNPACK #-} !Text
+            | Metadata    !Text
             -- | Pragma ...
 
             -- Other
-            | Unknown   {-# UNPACK #-} !Text
-            | Incorrect {-# UNPACK #-} !Text
+            | Unknown     !Text
+            | Incorrect   !Text
             deriving (Generic, NFData, Show, Eq, Ord)
+
+data StrEscType = CharStrEsc  !Int
+                | NumStrEsc   !Int
+                | QuoteEscape !QuoteType !Int
+                | SlashEsc
+                deriving (Generic, NFData, Show, Eq, Ord)
+
 
 data Bound      = Begin | End              deriving (Generic, NFData, Show, Eq, Ord)
 data QuoteType  = RawStr | FmtStr | Native deriving (Generic, NFData, Show, Eq, Ord)
-data StrEscType = CharStrEsc | NumStrEsc   deriving (Generic, NFData, Show, Eq, Ord)
 data Numbase    = Dec | Bin | Oct | Hex    deriving (Generic, NFData, Show, Eq, Ord)
 data Number     = NumRep { _base     :: Numbase
                          , _intPart  :: Text
@@ -242,7 +273,7 @@ pretty = \case
     Disable     {} -> "Disable block"
     Doc         {} -> "Documentation"
     Metadata    {} -> "Metadata"
-    Unknown     s  -> "Unknown symbol " <> convert (show s)
+    Unknown     s  -> "Unknown symbol " <> s
     Incorrect   s  -> "Incorrect " <> s
 {-# INLINE pretty #-}
 
@@ -330,60 +361,34 @@ instance IsTagged Symbol where
         Incorrect   {} -> ["Error"]
 
 
---
--- -----------------------------
--- -- === Errors handling === --
--- -----------------------------
---
--- data LexerError = LexerError { _errOffset :: Offset
---                              , _errDesc   :: String
---                              } deriving (Show)
--- makeLenses ''LexerError
---
---
--- dropRecover :: (Error m ~ LexerError, MonadCatchParser m, MonadTokenParser m, MonadErrorParser SatisfyError m, MonadProgressParser m, MonadErrorParser EmptyStreamError m, MonadGetter Offset m)
---             => (NonEmpty (Error m) -> m a) -> m a -> m a
--- dropRecover onerr = recover go where
---     go es = do
---         let e = head $ convert es
---         off <- get @Offset
---         sequence_ (replicate (e ^. errOffset - off - 1) anyToken)
---         onerr es
---
--- dropRecover' :: (Error m ~ LexerError, MonadCatchParser m, MonadTokenParser m, MonadErrorParser SatisfyError m, MonadProgressParser m, MonadErrorParser EmptyStreamError m, MonadGetter Offset m)
---              => m a -> m a -> m a
--- dropRecover' = dropRecover . const
---
---
---
+
 ----------------------
 -- === Literals === --
 ----------------------
 
 -- === Numbers === --
 
-lexNumber :: Parser Symbol
-lexNumber = check =<< number
-    where number  = (token '0' *> choice [hex, oct, bin]) <|> dec
-          dec     = NumRep Dec           <$> decBody <*> fracSfx     <*> expSfx
-          hex     = NumRep Hex <$ hexPfx <*> hexBody <*> pure mempty <*> pure mempty
-          oct     = NumRep Oct <$ octPfx <*> octBody <*> pure mempty <*> pure mempty
-          bin     = NumRep Bin <$ binPfx <*> binBody <*> pure mempty <*> pure mempty
-          hexPfx  = satisfy (\s -> s == 'x' || s == 'X')
-          octPfx  = satisfy (\s -> s == 'o' || s == 'O')
-          binPfx  = satisfy (\s -> s == 'b' || s == 'B')
-          decBody = takeWhile1 isDecDigitChar
-          hexBody = takeWhile1 isHexDigitChar
-          octBody = takeWhile1 isOctDigitChar
-          binBody = takeWhile1 isBinDigitChar
-          expBody = maybe id Text.cons <$> optional sign <*> decBody
-          fracSfx = option mempty $ token '.' *> decBody
-          expSfx  = option mempty $ token 'e' *> expBody
-          sign    = satisfy (\s -> s == '-' || s == '+')
-          check n = option (Number n) $ (\s -> Incorrect $ "Unexpected characters '" <> s <> "' found on the end of number literal") <$> takeWhile1 Char.isAlphaNum
+lexNumber :: Lexer
+lexNumber = check =<< number where
+    number  = (token '0' *> choice [hex, oct, bin]) <|> dec
+    dec     = NumRep Dec           <$> decBody <*> fracSfx     <*> expSfx
+    hex     = NumRep Hex <$ hexPfx <*> hexBody <*> pure mempty <*> pure mempty
+    oct     = NumRep Oct <$ octPfx <*> octBody <*> pure mempty <*> pure mempty
+    bin     = NumRep Bin <$ binPfx <*> binBody <*> pure mempty <*> pure mempty
+    hexPfx  = satisfy (\s -> s == 'x' || s == 'X')
+    octPfx  = satisfy (\s -> s == 'o' || s == 'O')
+    binPfx  = satisfy (\s -> s == 'b' || s == 'B')
+    decBody = takeWhile1 isDecDigitChar
+    hexBody = takeWhile1 isHexDigitChar
+    octBody = takeWhile1 isOctDigitChar
+    binBody = takeWhile1 isBinDigitChar
+    expBody = maybe id Text.cons <$> optional sign <*> decBody
+    fracSfx = option mempty $ token '.' *> decBody
+    expSfx  = option mempty $ token 'e' *> expBody
+    sign    = satisfy (\s -> s == '-' || s == '+')
+    check n = option (Number n) $ (\s -> Incorrect $ "Unexpected characters '" <> s <> "' found on the end of number literal") <$> takeWhile1 Char.isAlphaNum
 {-# INLINE lexNumber #-}
 
--- option'_ p = void p <|> pure ()
 
 --
 -- -- === Native String === --
@@ -394,28 +399,51 @@ lexNumber = check =<< number
 --     ending = option_ $ token '`' *> addResult (Quote Native End)
 --
 --
--- -- === Raw String === --
+-- === Raw String === --
 --
--- lexRawStr :: SymbolLexing s m => Int -> m ()
--- lexRawStr hlen = if hlen == 2
---     then addResult $ Quote RawStr End
---     else many (choice [seg, linebreak]) >> option_ ending
+
+beginQuotes :: Char -> Parser Int
+beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c) ; {-# INLINE beginQuotes #-}
+
+beginMultiQuotes :: Char -> Parser Int
+beginMultiQuotes !c = do
+    !len <- Text.length <$> takeWhile1 (== c)
+    when (len == 2) $ fail "Empty string"
+    return len
+{-# INLINE beginMultiQuotes #-}
+
+rawStr :: Lexer
+rawStr = Quote RawStr Begin <$ (liftEntry . RawStringEntry =<< beginQuotes '"') ; {-# INLINE rawStr #-}
+
+rawStrBody :: Int -> Lexer
+rawStrBody hlen = choice [body, escape, quotes, linebr] where
+    body   = Str <$> takeWhile1 (\c -> c /= '"' && c /= '\n' && c /= '\r' && c /= '\\')
+    linebr = EOL <$  newline
+    escape = StrEsc <$ token '\\' <*> esct
+    esct   = (SlashEsc <$ token '\\')
+         <|> (QuoteEscape RawStr . Text.length <$> takeWhile1 (== '\"'))
+         <|> (QuoteEscape FmtStr . Text.length <$> takeWhile1 (== '\''))
+    quotes = do
+        qs <- takeWhile1 (== '"')
+        if Text.length qs == hlen
+            then Quote RawStr End <$ unliftEntry 
+            else return $ Str qs
+
 --     where segQuotes = try $ do
 --               qs <- many (token '"')
 --               qs <$ when (length qs == hlen) (raise SatisfyError)
 --           seg  = addResult =<< Str . concat <$> some seg'
 --           seg' = do
---               s <- lexRawStrSeg
+--               s <- rawStrSeg
 --               q <- option mempty segQuotes
 --               let s' = s <> q
 --               when (null s') $ raise SatisfyError
 --               return s'
 --           ending = some (token '"') >> addResult (Quote RawStr End)
---           linebreak = newline >> addResult EOL
 --
 --
--- lexRawStrSeg :: SymbolLexing s m => m String
--- lexRawStrSeg = many $ choice [escape, strChar] where
+-- rawStrSeg :: SymbolLexing s m => m String
+-- rawStrSeg = many $ choice [escape, strChar] where
 --     escape  = token ('\\') *> option '\\' (satisfy (`elem` ['\\', '"', '\'']))
 --     strChar = satisfy (not . (`elem` ['\n', '"']))
 --
@@ -476,19 +504,22 @@ lexNumber = check =<< number
 --         Nothing -> raise SatisfyError
 --
 --
--- --------------------
--- -- === Config === --
--- --------------------
---
--- lexConfig :: SymbolLexing s m => m Symbol
--- lexConfig = many (token ' ') *> (lexMetadata {- <|> lexPragma -})
---
--- lexMetadata :: SymbolLexing s m => m Symbol
--- lexMetadata = Metadata . convert <$ tokens metadataHeader <* many (token ' ') <*> many (satisfy (/= '\n'))
---
--- lexComment :: SymbolLexing s m => m Symbol
--- lexComment = Doc <$> many (satisfy (/= '\n'))
---
+
+
+
+--------------------
+-- === Config === --
+--------------------
+
+lexConfig :: Lexer
+lexConfig = takeWhile (== ' ') *> (lexMetadata {- <|> lexPragma -})
+
+lexMetadata :: Lexer
+lexMetadata = Metadata <$ tokens metadataHeader <* takeWhile1 (== ' ') <*> takeLine
+
+lexComment :: Lexer
+lexComment = Doc <$> takeLine ; {-# INLINE lexComment #-}
+
 
 -------------------
 -- === Lexer === --
@@ -497,38 +528,38 @@ lexNumber = check =<< number
 -- === Symbol head char map === --
 
 symmapSize :: Int
-symmapSize = 200
+symmapSize = 200 ; {-# INLINE symmapSize #-}
 
-symmap :: Vector (Parser Symbol)
+symmap :: Vector (Lexer)
 symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 
-    -- -- Layouting
-    | c == ';'          -> Terminator <$ dropToken
-    -- | c == ':'          -> addResult =<< handleColons . (c:) =<< many (token ':')
-    -- | c == '{'          -> addResult $ Block Begin
-    -- | c == '}'          -> addResult $ Block End
-    -- | c == '('          -> addResult $ Group Begin
-    -- | c == ')'          -> addResult $ Group End
+    -- Layouting
+    | c == ';'          -> Terminator  <$ dropToken
+    | c == '{'          -> Block Begin <$ dropToken
+    | c == '}'          -> Block End   <$ dropToken
+    | c == '('          -> Group Begin <$ dropToken
+    | c == ')'          -> Group End   <$ dropToken
+    | c == '\n'         -> EOL         <$ dropToken
+    | c == '\r'         -> EOL         <$ dropToken <* option_ (token '\n')
+    | c == ':'          -> handleColons =<< takeWhile (== ':')
     -- | c == markerBegin  -> addResult =<< (dropRecover' (pure $ Incorrect "Marker") $ Marker . read <$> some (satisfy isDecDigitChar) <* token markerEnd)
-    -- | c == '\n'         -> addResult EOL
-    -- | c == '\r'         -> addResult =<< EOL <$ option_ (token '\n')
-    --
+
     -- Identifiers & Keywords
     | varHead  c        -> checkSpecialVar <$> varBody
     | consHead c        -> Cons            <$> consBody
-    --
-    -- -- Operators
-    -- | c == '@'          -> addResult TypeApp
-    -- | c == '|'          -> addResult Merge
-    -- | c == '.'          -> addResult =<< handleDots . (c:) =<< many (token '.')
-    -- | c == '='          -> addResult =<< handleEqs  . (c:) =<< many (token '=')
+
+    -- Operators
+    | c == '@'          -> TypeApp <$ dropToken
+    | c == '|'          -> Merge   <$ dropToken
+    | c == '.'          -> handleDots =<< takeWhile (== '.')
+    | c == '='          -> handleEqs  =<< takeWhile (== '=')
     -- | c `elem` opChars  -> addResult =<< handleOp   . (c:) <$> many (satisfy isRegularOperatorChar) <*> many (token '=')
-    --
-    -- -- Literals
-    -- | c == '['          -> addResult $ List Begin
-    -- | c == ']'          -> addResult $ List End
-    -- | c == ','          -> addResult $ Operator ","
-    -- | c == '"'          -> lexRawStr =<< succ <$> counted_ (many (token '"')  <* addResult (Quote RawStr Begin))
+
+    -- Literals
+    | c == '['          -> List Begin   <$ dropToken
+    | c == ']'          -> List End     <$ dropToken
+    | c == ','          -> Operator "," <$ dropToken
+    | c == '"'          -> rawStr -- rawStr =<< succ <$> counted_ (many (token '"')  <* addResult (Quote RawStr Begin))
     -- | c == '\''         -> lexFmtStr =<< succ <$> counted_ (many (token '\'') <* addResult (Quote FmtStr Begin))
     -- | c == '`'          -> addResult (Quote Native Begin) *> lexNatStr
     | decHead c         -> lexNumber
@@ -548,11 +579,11 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
                                              <**> (option id $ flip (<>)      <$> takeWhile1 (== '\''))
           indentBaseBody    = takeWhile isIndentBodyChar
     --       handleOp   op eqs = either (checkModOp eqs) id . checkSpecialOp  $ convert' op
-    --       handleColons      = handleReps  [BlockStart, Typed]
-    --       handleDots        = handleReps  [Accessor  , Range, Anything]
-    --       handleEqs         = handleReps  [Assignment, Operator "=="]
-          handleHash        = handleRepsM [pure Disable] --, lexComment, lexConfig]
-    --       handleReps        = handleRepsM . fmap return
+          handleColons      = handleReps  [BlockStart, Typed]
+          handleDots        = handleReps  [Accessor  , Range, Anything]
+          handleEqs         = handleReps  [Assignment, Operator "=="]
+          handleHash        = handleRepsM [pure Disable, lexComment, lexConfig]
+          handleReps        = handleRepsM . fmap pure
           handleRepsM ts s  = fromMaybe (return $ Unknown s) $ ts ^? ix (Text.length s - 1)
     --       checkModOp eqs op = case eqs of
     --                               "="  -> Modifier op
@@ -564,7 +595,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 -- -- === Utils === --
 --
 --
-unknownCharSym :: Char -> Parser Symbol
+unknownCharSym :: Char -> Lexer
 unknownCharSym = pure . Unknown . convert ; {-# INLINE unknownCharSym #-}
 
 
@@ -572,15 +603,26 @@ unknownCharSym = pure . Unknown . convert ; {-# INLINE unknownCharSym #-}
 -- ----------------------------------
 --
 --
-lexSymChar :: Char -> Parser Symbol
+lexSymChar :: Char -> Lexer
 lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else unknownCharSym c
     where chord = Char.ord c
 {-# INLINE lexSymChar #-}
 
-lexEntryPoint :: Parser Symbol
+lexEntryPoint :: Lexer
 lexEntryPoint = get @EntryPoint >>= \case
-    GlobalEntry -> peekToken >>= lexSymChar
+    GlobalEntry     -> peekToken >>= lexSymChar
+    LiftedEntry t p -> case t of
+         RawStringEntry i -> rawStrBody i
 {-# INLINE lexEntryPoint #-}
+
+--
+-- data EntryType  = RawStringEntry !Int
+--                 deriving (Show)
+--
+-- data EntryPoint = GlobalEntry
+--                 | LiftedEntry EntryType EntryPoint
+--                 deriving (Show)
+
 
 lexer :: Parser (Symbol, Int)
 lexer = lexeme lexEntryPoint ; {-# INLINE lexer #-}

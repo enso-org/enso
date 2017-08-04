@@ -62,6 +62,7 @@ mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-
 
 main = do
     return ()
+    print $ runLexerPure "ala \"foo\" ola"
     defaultMain
         --[ bgroup "big variablexx"           $ [bench "big file" $ nfIO (runLexerFromFile "/tmp/input.txt")]
         [ bgroup "big variable"             $ expCodeGenBenchs runLexerPure           mkBigVariable

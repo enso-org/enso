@@ -144,7 +144,7 @@ sinkPosParser pos0 p = sink empty pos0 (runParser p) where
         push str = if isNull str then sink prev pos parse
                                  else go False str (parse str)
         go isEnd str = \case
-            Parser.Done    rest ((out, off), cfg) -> (Right . (, convert off, cfg, out) $! npos rest) <$ unless (isNull rest) (leftover rest)
+            Parser.Done    rest ((out, off), cfg) -> (Right . (, convert off, cfg, out) $! npos rest - convert off) <$ unless (isNull rest) (leftover rest)
             Parser.Fail    rest contexts msg -> return . Left . ParseError contexts msg $! npos rest
             Parser.Partial parse'            -> if isEnd then return $ Left DivergentParser else sink str cpos parse'
             where !pos' = if isEnd then pos else cpos
