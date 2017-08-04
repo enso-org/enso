@@ -25,7 +25,8 @@ import qualified Data.VectorText              as VectorText
 import           Luna.Syntax.Text.Lexer.Name  (isRegularOperatorChar, markerBegin, markerEnd, metadataHeader)
 import qualified Data.Text                    as Text
 import           Data.Set (Set)
-import qualified Data.Set as Set
+import qualified Data.Set                     as Set
+import qualified Data.List.NonEmpty           as NonEmpty
 
 -- import Text.Parsert as Parsert
 import Type.Inference
@@ -50,31 +51,31 @@ class ShowCons a where
 
 -- === Definition === --
 
-data EntryType  = NatStrEntry !Int
-                | RawStrEntry !Int
-                | FmtStrEntry !Int
+data EntryType  = TopLevelEntry
+                | StrEntry !StrType !Int
                 deriving (Show)
 
-data EntryPoint = GlobalEntry
-                | LiftedEntry EntryType EntryPoint
-                deriving (Show)
+type EntryPoint = NonEmpty EntryType
+-- data EntryPoint = RootEntry   !EntryType
+--                 | LiftedEntry !EntryType !EntryPoint
+--                 deriving (Show)
 
 
 -- === Utils === --
 
 liftEntry :: MonadState EntryPoint m => EntryType -> m ()
-liftEntry = modify_ @EntryPoint . LiftedEntry ; {-# INLINE liftEntry #-}
+liftEntry = modify_ @EntryPoint . NonEmpty.cons ; {-# INLINE liftEntry #-}
 
 unliftEntry :: MonadState EntryPoint m => m ()
-unliftEntry = modify_ @EntryPoint $ \case
-    LiftedEntry _ p -> p
-    GlobalEntry     -> error "Impossible happened: trying to unlift global lexer entry. Please report this issue to Luna developers."
+unliftEntry = modify_ @EntryPoint $ \lst -> case snd (NonEmpty.uncons lst) of
+    Just p  -> p
+    Nothing -> error "Impossible happened: trying to unlift global lexer entry. Please report this issue to Luna developers."
 {-# INLINE unliftEntry #-}
 
 
 -- === Instances === --
 
-instance Default EntryPoint where def = GlobalEntry ; {-# INLINE def #-}
+instance Default EntryPoint where def = pure TopLevelEntry ; {-# INLINE def #-}
 
 
 
@@ -154,7 +155,7 @@ data Symbol -- Layout
 
             -- Literal
             | Number      !Number
-            | Quote       !QuoteType  !Bound
+            | Quote       !StrType  !Bound
             | Str         !Text
             | StrEsc      !StrEscType
             | List        !Bound
@@ -175,19 +176,19 @@ data Symbol -- Layout
 
 data StrEscType = CharStrEsc  !Int
                 | NumStrEsc   !Int
-                | QuoteEscape !QuoteType !Int
+                | QuoteEscape !StrType !Int
                 | SlashEsc
                 deriving (Generic, NFData, Show, Eq, Ord)
 
 
-data Bound      = Begin | End              deriving (Generic, NFData, Show, Eq, Ord)
-data QuoteType  = RawStr | FmtStr | Native deriving (Generic, NFData, Show, Eq, Ord)
-data Numbase    = Dec | Bin | Oct | Hex    deriving (Generic, NFData, Show, Eq, Ord)
-data Number     = NumRep { _base     :: Numbase
-                         , _intPart  :: Text
-                         , _fracPart :: Text
-                         , _expPart  :: Text
-                         } deriving (Generic, NFData, Show, Eq, Ord)
+data Bound   = Begin | End              deriving (Generic, NFData, Show, Eq, Ord)
+data StrType = RawStr | FmtStr | Native deriving (Generic, NFData, Show, Eq, Ord)
+data Numbase = Dec | Bin | Oct | Hex    deriving (Generic, NFData, Show, Eq, Ord)
+data Number  = NumRep { _base     :: Numbase
+                      , _intPart  :: Text
+                      , _fracPart :: Text
+                      , _expPart  :: Text
+                      } deriving (Generic, NFData, Show, Eq, Ord)
 makeLenses ''Number
 
 
@@ -400,7 +401,7 @@ beginMultiQuotes !c = do
 -- -- === Native String === --
 
 natStr :: Lexer
-natStr = Quote Native Begin <$ (liftEntry . NatStrEntry =<< beginQuotes '`') ; {-# INLINE natStr #-}
+natStr = Quote Native Begin <$ (liftEntry . StrEntry Native =<< beginQuotes '`') ; {-# INLINE natStr #-}
 
 natStrBody :: Int -> Lexer
 natStrBody hlen = code <|> quotes where
@@ -416,7 +417,7 @@ natStrBody hlen = code <|> quotes where
 -- === Raw String === --
 
 rawStr :: Lexer
-rawStr = Quote RawStr Begin <$ (liftEntry . RawStrEntry =<< beginQuotes '"') ; {-# INLINE rawStr #-}
+rawStr = Quote RawStr Begin <$ (liftEntry . StrEntry RawStr =<< beginQuotes '"') ; {-# INLINE rawStr #-}
 
 rawStrBody :: Int -> Lexer
 rawStrBody hlen = choice [body, escape, quotes, linebr] where
@@ -432,8 +433,12 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
             then Quote RawStr End <$ unliftEntry
             else return $ Str qs
 
--- -- === Fmt String === --
+
+-- === Fmt String === --
 --
+-- fmtStr :: Lexer
+-- fmtStr = Quote FmtStr Begin <$ (liftEntry . FmtStrEntry =<< beginQuotes '`') ; {-# INLINE natStr #-}
+
 -- lexFmtStr :: SymbolLexing s m => Int -> m ()
 -- lexFmtStr hlen = if hlen == 2
 --     then addResult $ Quote FmtStr End
@@ -496,13 +501,19 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
 --------------------
 
 lexConfig :: Lexer
-lexConfig = takeMany ' ' *> (lexMetadata {- <|> lexPragma -})
+lexConfig = takeMany ' ' *> (lexMetadata {- <|> lexPragma -}) ; {-# INLINE lexConfig #-}
 
 lexMetadata :: Lexer
-lexMetadata = Metadata <$ tokens metadataHeader <* takeMany1 ' ' <*> takeLine
+lexMetadata = Metadata <$ tokens metadataHeader <* takeMany1 ' ' <*> takeLine ; {-# INLINE lexMetadata #-}
 
 lexComment :: Lexer
 lexComment = Doc <$> takeLine ; {-# INLINE lexComment #-}
+
+lexMarker :: Lexer
+lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd where
+    incorrect = Incorrect . ("Marker " <>) <$> takeTill (== markerEnd)
+    correct   = Marker . read . convert <$> takeWhile1 isDecDigitChar
+{-# INLINE lexMarker #-}
 
 
 -------------------
@@ -526,7 +537,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '\n'         -> EOL         <$ dropToken
     | c == '\r'         -> EOL         <$ dropToken <* option_ (token '\n')
     | c == ':'          -> handleColons =<< takeMany ':'
-    -- | c == markerBegin  -> addResult =<< (dropRecover' (pure $ Incorrect "Marker") $ Marker . read <$> some (satisfy isDecDigitChar) <* token markerEnd)
+    | c == markerBegin  -> lexMarker
 
     -- Identifiers & Keywords
     | varHead  c        -> checkSpecialVar <$> varBody
@@ -572,39 +583,30 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
                                     ""   -> Operator op
                                     s    -> Unknown (op <> s)
 {-# NOINLINE symmap #-}
---
---
+
+
 -- -- === Utils === --
---
---
+
 unknownCharSym :: Char -> Lexer
 unknownCharSym = pure . Unknown . convert ; {-# INLINE unknownCharSym #-}
 
 
--- ----------------------------------
--- ----------------------------------
---
---
+----------------------------------
+----------------------------------
+
+
 lexSymChar :: Char -> Lexer
 lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else unknownCharSym c
     where chord = Char.ord c
 {-# INLINE lexSymChar #-}
 
 lexEntryPoint :: Lexer
-lexEntryPoint = get @EntryPoint >>= \case
-    GlobalEntry     -> peekToken >>= lexSymChar
-    LiftedEntry t p -> case t of
-         RawStrEntry i -> rawStrBody i
-         NatStrEntry i -> natStrBody i
+lexEntryPoint = get @EntryPoint >>= \ep -> case NonEmpty.head ep of
+    TopLevelEntry     -> peekToken >>= lexSymChar
+    StrEntry RawStr i -> rawStrBody i
+    StrEntry Native i -> natStrBody i
 {-# INLINE lexEntryPoint #-}
 
---
--- data EntryType  = RawStrEntry !Int
---                 deriving (Show)
---
--- data EntryPoint = GlobalEntry
---                 | LiftedEntry EntryType EntryPoint
---                 deriving (Show)
 
 
 lexer :: Parser (Symbol, Int)
