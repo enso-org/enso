@@ -80,6 +80,12 @@ varNamesFromType (LCons n s) = varNamesFromTypes s
 varNamesFromTypes :: [LTp] -> Set Name
 varNamesFromTypes = Set.unions . fmap varNamesFromType
 
+int :: Integer -> Int
+int = fromIntegral
+
+integer :: Int -> Integer
+integer = fromIntegral
+
 mkType :: (MonadRef m, MonadPassManager m) => Map Name (Expr Draft) -> LTp -> SubPass TestPass m (Expr Draft, Expr Draft)
 mkType vars (LVar n)         = do
     let v = fromJust $ Map.lookup n vars
@@ -161,6 +167,13 @@ mkMonadProofFun tp = do
     (merges, transTp) <- mkMonadProofFun' Nothing tp
     deleteSubtree tp
     return (Assumptions def merges def def, generalize transTp)
+
+withExceptions :: IO a -> LunaEff a
+withExceptions a = do
+    res <- performIO $ catchAll (Right <$> a) (return . Left . show)
+    case res of
+        Left a  -> throw a
+        Right r -> return r
 
 doubleClass :: Imports -> IO Class
 doubleClass imps = do
@@ -283,21 +296,21 @@ intClass imps = do
         cmp <- compile r
         return (assu, cmp)
 
-    let plusVal        = toLunaValue tmpImps ((+)  :: Int -> Int -> Int)
-        timeVal        = toLunaValue tmpImps ((*)  :: Int -> Int -> Int)
-        minusVal       = toLunaValue tmpImps ((-)  :: Int -> Int -> Int)
-        divVal         = toLunaValue tmpImps (div  :: Int -> Int -> Int)
-        eqVal          = toLunaValue tmpImps ((==) :: Int -> Int -> Bool)
-        gtVal          = toLunaValue tmpImps ((>)  :: Int -> Int -> Bool)
-        ltVal          = toLunaValue tmpImps ((<)  :: Int -> Int -> Bool)
-        modVal         = toLunaValue tmpImps (mod  :: Int -> Int -> Int)
-        predVal        = toLunaValue tmpImps (pred :: Int -> Int)
-        succVal        = toLunaValue tmpImps (succ :: Int -> Int)
-        showVal        = toLunaValue tmpImps (convert . show :: Int -> Text)
-        toJSVal        = toLunaValue tmpImps (Aeson.toJSON :: Int -> Aeson.Value)
-        toRealVal      = toLunaValue tmpImps (fromIntegral :: Int -> Double)
-        secondsVal     = toLunaValue tmpImps ((* 1000000) :: Int -> Int)
-        milisecondsVal = toLunaValue tmpImps ((* 1000)    :: Int -> Int)
+    let plusVal        = toLunaValue tmpImps ((+)  :: Integer -> Integer -> Integer)
+        timeVal        = toLunaValue tmpImps ((*)  :: Integer -> Integer -> Integer)
+        minusVal       = toLunaValue tmpImps ((-)  :: Integer -> Integer -> Integer)
+        divVal         = toLunaValue tmpImps (div  :: Integer -> Integer -> Integer)
+        eqVal          = toLunaValue tmpImps ((==) :: Integer -> Integer -> Bool)
+        gtVal          = toLunaValue tmpImps ((>)  :: Integer -> Integer -> Bool)
+        ltVal          = toLunaValue tmpImps ((<)  :: Integer -> Integer -> Bool)
+        modVal         = toLunaValue tmpImps (mod  :: Integer -> Integer -> Integer)
+        predVal        = toLunaValue tmpImps (pred :: Integer -> Integer)
+        succVal        = toLunaValue tmpImps (succ :: Integer -> Integer)
+        showVal        = toLunaValue tmpImps (convert . show :: Integer -> Text)
+        toJSVal        = toLunaValue tmpImps (Aeson.toJSON :: Integer -> Aeson.Value)
+        toRealVal      = toLunaValue tmpImps (fromIntegral :: Integer -> Double)
+        secondsVal     = toLunaValue tmpImps ((* 1000000) ::  Integer -> Integer)
+        milisecondsVal = toLunaValue tmpImps ((* 1000)    ::  Integer -> Integer)
         tmpImps        = imps & importedClasses . at "Int" ?~ klass
         klass          = Class Map.empty $ Map.fromList [ ("+",           Function boxed3Ints plusVal        boxed3IntsAssumptions)
                                                         , ("*",           Function boxed3Ints timeVal        boxed3IntsAssumptions)
@@ -569,13 +582,6 @@ instance Default GCState where
 cleanupGC :: GCState -> IO GCState
 cleanupGC st = sequence (unwrap st) >> return def
 
-withExceptions :: IO a -> LunaEff a
-withExceptions a = do
-    res <- performIO $ catchAll (Right <$> a) (return . Left . show)
-    case res of
-        Left a  -> throw a
-        Right r -> return r
-
 systemStd :: Imports -> IO (IO (), Imports)
 systemStd imps = do
     std     <- stdlib imps
@@ -657,7 +663,7 @@ systemStd imps = do
                                    & HTTP.addRequestHeader HTTP.hAccept (pack "*/*")
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [LCons "Text" [], LCons "Text" [], LCons "Binary" []] $ LCons "HttpResponse" []
 
-    let sleepVal = performIO . threadDelay
+    let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
 
     let forkVal :: LunaEff () -> LunaEff ()
@@ -746,12 +752,12 @@ systemStd imps = do
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
 
 instance ToLunaData (HTTP.Response ByteString) where
-    toLunaData imps v = LunaObject $ Object (Constructor "HttpResponse" [toLunaData imps $ HTTP.getResponseStatusCode v, toLunaData imps $ HTTP.getResponseBody v]) $ getObjectMethodMap "HttpResponse" imps
+    toLunaData imps v = LunaObject $ Object (Constructor "HttpResponse" [toLunaData imps . integer $ HTTP.getResponseStatusCode v, toLunaData imps $ HTTP.getResponseBody v]) $ getObjectMethodMap "HttpResponse" imps
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
         constructorOf IMap.Tip             = Constructor "Tip" []
-        constructorOf (IMap.Bin s k v l r) = Constructor "Bin" [toLunaData imps s, toLunaData imps k, toLunaData imps v, toLunaData imps l, toLunaData imps r]
+        constructorOf (IMap.Bin s k v l r) = Constructor "Bin" [toLunaData imps $ integer s, toLunaData imps k, toLunaData imps v, toLunaData imps l, toLunaData imps r]
 
 instance ToLunaData Aeson.Value where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "JSON" imps where
@@ -790,13 +796,13 @@ instance FromLunaData ExitCode where
     fromLunaData v = force' v >>= \case
         LunaObject obj -> case obj ^. constructor . tag of
             "ExitSuccess" -> return ExitSuccess
-            "ExitFailure" -> fmap ExitFailure . fromLunaData . head $ obj ^. constructor . fields
+            "ExitFailure" -> fmap (ExitFailure . int) . fromLunaData . head $ obj ^. constructor . fields
         _ -> throw "Expected a ExitCode luna object, got unexpected constructor"
 
 instance ToLunaData ExitCode where
     toLunaData imps ec =
         let makeConstructor ExitSuccess     = Constructor "ExitSuccess" []
-            makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps c] in
+            makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps $ integer c] in
         LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
 
 instance IsBoxed "FileHandle"    Handle
@@ -807,14 +813,14 @@ instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) wh
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
 
 instance ToLunaData MsgPack.Object where
-    toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "MPNull"   [])                                             (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectBool   b) = LunaObject $ Object (Constructor "MPBool"   [toLunaData imps b])                            (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectInt    i) = LunaObject $ Object (Constructor "MPInt"    [toLunaData imps $ (fromIntegral i :: Int)])    (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectWord   w) = LunaObject $ Object (Constructor "MPInt"    [toLunaData imps $ (fromIntegral w :: Int)])    (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectFloat  f) = LunaObject $ Object (Constructor "MPReal"   [toLunaData imps $ (realToFrac   f :: Double)]) (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectDouble d) = LunaObject $ Object (Constructor "MPReal"   [toLunaData imps d])                            (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectStr    s) = LunaObject $ Object (Constructor "MPString" [toLunaData imps $ Text.fromStrict s])          (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectBin    b) = LunaObject $ Object (Constructor "MPBinary" [toLunaData imps $ ByteString.fromStrict b])    (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectArray  l) = LunaObject $ Object (Constructor "MPArray"  [toLunaData imps l])                            (getObjectMethodMap "MsgPack" imps)
-    toLunaData imps (MsgPack.ObjectMap    m) = LunaObject $ Object (Constructor "MPMap"    [toLunaData imps m])                            (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "MPNull"   [])                                              (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectBool   b) = LunaObject $ Object (Constructor "MPBool"   [toLunaData imps b])                             (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectInt    i) = LunaObject $ Object (Constructor "MPInt"    [toLunaData imps $ (fromIntegral i :: Integer)]) (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectWord   w) = LunaObject $ Object (Constructor "MPInt"    [toLunaData imps $ (fromIntegral w :: Integer)]) (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectFloat  f) = LunaObject $ Object (Constructor "MPReal"   [toLunaData imps $ (realToFrac   f :: Double)])  (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectDouble d) = LunaObject $ Object (Constructor "MPReal"   [toLunaData imps d])                             (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectStr    s) = LunaObject $ Object (Constructor "MPString" [toLunaData imps $ Text.fromStrict s])           (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectBin    b) = LunaObject $ Object (Constructor "MPBinary" [toLunaData imps $ ByteString.fromStrict b])     (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectArray  l) = LunaObject $ Object (Constructor "MPArray"  [toLunaData imps l])                             (getObjectMethodMap "MsgPack" imps)
+    toLunaData imps (MsgPack.ObjectMap    m) = LunaObject $ Object (Constructor "MPMap"    [toLunaData imps m])                             (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectExt  _ _) = LunaError "MessagePack ObjectExt is not supported."
