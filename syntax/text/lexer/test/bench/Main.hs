@@ -81,12 +81,12 @@ runLexerPure :: Text -> Either ParseError [(Span, Symbol)]
 runLexerPure t = sequence
                $ runConduitPure
                $ yield t
-              .| conduitParserEither (runStateT @EntryPoint lexer)
+              .| conduitParserEither (runStateT @EntryStack lexer)
               .| sinkList
 {-# INLINE runLexerPure #-}
 
 -- runLexerPureHack :: Text -> [(Symbol, Int)]
--- runLexerPureHack t = case Parser.parse (runStateT @EntryPoint lexer) t of
+-- runLexerPureHack t = case Parser.parse (runStateT @EntryStack lexer) t of
 --     Fail {} -> undefined
 --     Partial f -> case f mempty of
 --         Done rest a -> if Text.null rest then [a] else error "not all parsed"
@@ -101,7 +101,7 @@ runLexerFromFile p = liftIO
                    $ runConduitRes
                    $ sourceFile p
                   .| decodeUtf8C
-                  .| conduitParserEither (runStateT @EntryPoint lexer)
+                  .| conduitParserEither (runStateT @EntryStack lexer)
                   .| sinkList
 {-# INLINE runLexerFromFile #-}
 

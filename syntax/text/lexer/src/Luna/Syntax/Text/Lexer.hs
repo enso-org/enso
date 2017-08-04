@@ -26,7 +26,6 @@ import           Luna.Syntax.Text.Lexer.Name  (isRegularOperatorChar, markerBegi
 import qualified Data.Text                    as Text
 import           Data.Set (Set)
 import qualified Data.Set                     as Set
-import qualified Data.List.NonEmpty           as NonEmpty
 
 -- import Text.Parsert as Parsert
 import Type.Inference
@@ -37,7 +36,7 @@ import qualified Data.Attoparsec.Text as Parsec
 import Data.Parser
 import Data.Parser.Instances.Attoparsec ()
 
-type Parser = StateT EntryPoint Parsec.Parser
+type Parser = StateT EntryStack Parsec.Parser
 -- type Parser = Parsec.Parser
 
 -- FIXME[WD]: TO REFACTOR
@@ -46,37 +45,36 @@ class ShowCons a where
 
 
 ------------------------
--- === EntryPoint === --
+-- === EntryStack === --
 ------------------------
 
 -- === Definition === --
 
-data EntryType  = TopLevelEntry
+data EntryPoint = TopLevelEntry
                 | StrEntry !StrType !Int
                 deriving (Show)
 
-type EntryPoint = NonEmpty EntryType
--- data EntryPoint = RootEntry   !EntryType
---                 | LiftedEntry !EntryType !EntryPoint
---                 deriving (Show)
+type EntryStack = [EntryPoint]
 
 
 -- === Utils === --
 
-liftEntry :: MonadState EntryPoint m => EntryType -> m ()
-liftEntry = modify_ @EntryPoint . NonEmpty.cons ; {-# INLINE liftEntry #-}
+liftEntry :: MonadState EntryStack m => EntryPoint -> m ()
+liftEntry = modify_ @EntryStack . (:) ; {-# INLINE liftEntry #-}
 
-unliftEntry :: MonadState EntryPoint m => m ()
-unliftEntry = modify_ @EntryPoint $ \lst -> case snd (NonEmpty.uncons lst) of
+unliftEntry :: MonadState EntryStack m => m ()
+unliftEntry = modify_ @EntryStack $ \lst -> case maybeTail lst of
     Just p  -> p
     Nothing -> error "Impossible happened: trying to unlift global lexer entry. Please report this issue to Luna developers."
 {-# INLINE unliftEntry #-}
 
+getEntryPoint :: MonadState EntryStack m => m EntryPoint
+getEntryPoint = maybe def id . maybeHead <$> get @EntryStack ; {-# INLINE getEntryPoint #-}
+
 
 -- === Instances === --
 
-instance Default EntryPoint where def = pure TopLevelEntry ; {-# INLINE def #-}
-
+instance Default EntryPoint where def = TopLevelEntry ; {-# INLINE def #-}
 
 
 
@@ -182,7 +180,7 @@ data StrEscType = CharStrEsc  !Int
 
 
 data Bound   = Begin | End              deriving (Generic, NFData, Show, Eq, Ord)
-data StrType = RawStr | FmtStr | Native deriving (Generic, NFData, Show, Eq, Ord)
+data StrType = RawStr | FmtStr | NatStr deriving (Generic, NFData, Show, Eq, Ord)
 data Numbase = Dec | Bin | Oct | Hex    deriving (Generic, NFData, Show, Eq, Ord)
 data Number  = NumRep { _base     :: Numbase
                       , _intPart  :: Text
@@ -387,6 +385,9 @@ lexNumber = check =<< number where
 
 -- === String parsing utils === --
 
+beginStr :: StrType -> Char -> Lexer
+beginStr t c = Quote t Begin <$ (liftEntry . StrEntry t =<< beginQuotes c) ; {-# INLINE beginStr #-}
+
 beginQuotes :: Char -> Parser Int
 beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c) ; {-# INLINE beginQuotes #-}
 
@@ -401,7 +402,7 @@ beginMultiQuotes !c = do
 -- -- === Native String === --
 
 natStr :: Lexer
-natStr = Quote Native Begin <$ (liftEntry . StrEntry Native =<< beginQuotes '`') ; {-# INLINE natStr #-}
+natStr = beginStr NatStr '`' ; {-# INLINE natStr #-}
 
 natStrBody :: Int -> Lexer
 natStrBody hlen = code <|> quotes where
@@ -409,7 +410,7 @@ natStrBody hlen = code <|> quotes where
     quotes = do
         qs <- takeMany1 '`'
         if Text.length qs == hlen
-            then Quote Native End <$ unliftEntry
+            then Quote NatStr End <$ unliftEntry
             else return $ Str qs
 {-# INLINE natStrBody #-}
 
@@ -417,7 +418,7 @@ natStrBody hlen = code <|> quotes where
 -- === Raw String === --
 
 rawStr :: Lexer
-rawStr = Quote RawStr Begin <$ (liftEntry . StrEntry RawStr =<< beginQuotes '"') ; {-# INLINE rawStr #-}
+rawStr = beginStr RawStr '"' ; {-# INLINE rawStr #-}
 
 rawStrBody :: Int -> Lexer
 rawStrBody hlen = choice [body, escape, quotes, linebr] where
@@ -435,11 +436,14 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
 
 
 -- === Fmt String === --
---
--- fmtStr :: Lexer
--- fmtStr = Quote FmtStr Begin <$ (liftEntry . FmtStrEntry =<< beginQuotes '`') ; {-# INLINE natStr #-}
 
--- lexFmtStr :: SymbolLexing s m => Int -> m ()
+fmtStr :: Lexer
+fmtStr = beginStr FmtStr '`' ; {-# INLINE fmtStr #-}
+
+-- fmtStrBody :: Int -> Lexer
+-- fmtStrBody hlen = choice [body, escape, quotes, linebr] where
+--     body   = Str <$> takeWhile1 (\c -> c /= '"' && c /= '\n' && c /= '\r' && c /= '\\')
+--
 -- lexFmtStr hlen = if hlen == 2
 --     then addResult $ Quote FmtStr End
 --     else many (choice [seg, linebreak, escape, embeded]) >> option_ ending
@@ -601,10 +605,10 @@ lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else u
 {-# INLINE lexSymChar #-}
 
 lexEntryPoint :: Lexer
-lexEntryPoint = get @EntryPoint >>= \ep -> case NonEmpty.head ep of
+lexEntryPoint = getEntryPoint >>= \case
     TopLevelEntry     -> peekToken >>= lexSymChar
     StrEntry RawStr i -> rawStrBody i
-    StrEntry Native i -> natStrBody i
+    StrEntry NatStr i -> natStrBody i
 {-# INLINE lexEntryPoint #-}
 
 
