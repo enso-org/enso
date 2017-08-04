@@ -119,6 +119,12 @@ many1 p = liftA2 (:) p (many p) ; {-# INLINE many1 #-}
 many1' :: MonadPlus m => m a -> m [a]
 many1' p = liftM2' (:) p (many' p) ; {-# INLINE many1' #-}
 
+takeMany :: (TokenParser m, Eq (Token m)) => Token m -> m (Tokens m)
+takeMany = takeWhile . (==) ; {-# INLINE takeMany #-}
+
+takeMany1 :: (TokenParser m, Eq (Token m)) => Token m -> m (Tokens m)
+takeMany1 = takeWhile1 . (==) ; {-# INLINE takeMany1 #-}
+
 
 -- === Parsing utils === --
 
