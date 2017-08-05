@@ -11,7 +11,7 @@ import           Data.Text.Position     (Delta)
 import           Data.VectorText        (VectorText)
 import qualified Data.VectorText        as VectorText
 import qualified Luna.Syntax.Text.Lexer as Lexer
-
+import qualified Luna.Syntax.Text.Lexer.Stream as Lexer
 
 
 -- vvv Missing instances vvv --
@@ -46,20 +46,20 @@ makeLenses ''SpanGroup
 -- === Utils === --
 
 textSpan, offSpan, markerSpan :: Delta -> Span
-textSpan   = Span TextSpan
-offSpan    = Span OffSpan
-markerSpan = Span MarkerSpan
+textSpan   = Span TextSpan   ; {-# INLINE textSpan   #-}
+offSpan    = Span OffSpan    ; {-# INLINE offSpan    #-}
+markerSpan = Span MarkerSpan ; {-# INLINE markerSpan #-}
 
 spanGroup :: Delta -> Delta -> SpanGroup
-spanGroup = SpanGroup
+spanGroup = SpanGroup ; {-# INLINE spanGroup #-}
 
 isSpanType :: SpanType -> Span -> Bool
-isSpanType t = (== t) . view spanType
+isSpanType t = (== t) . view spanType ; {-# INLINE isSpanType #-}
 
 isTextSpan, isOffSpan, isMarkerSpan :: Span -> Bool
-isTextSpan   = isSpanType TextSpan
-isOffSpan    = isSpanType OffSpan
-isMarkerSpan = isSpanType MarkerSpan
+isTextSpan   = isSpanType TextSpan   ; {-# INLINE isTextSpan   #-}
+isOffSpan    = isSpanType OffSpan    ; {-# INLINE isOffSpan    #-}
+isMarkerSpan = isSpanType MarkerSpan ; {-# INLINE isMarkerSpan #-}
 
 
 -- === Conversions === --
@@ -73,14 +73,14 @@ instance Convertible Span SpanGroup where
 
 -- === Instances === --
 
-instance (a ~ Delta, b ~ Delta) => Convertible SpanGroup  (a,b) where convert (SpanGroup rl ml) = (rl, ml)
-instance (a ~ Delta, b ~ Delta) => Convertible (a,b) SpanGroup  where convert (rl, ml) = SpanGroup rl ml
+instance (a ~ Delta, b ~ Delta) => Convertible SpanGroup  (a,b) where convert (SpanGroup rl ml) = (rl, ml) ; {-# INLINE convert #-}
+instance (a ~ Delta, b ~ Delta) => Convertible (a,b) SpanGroup  where convert (rl, ml) = SpanGroup rl ml   ; {-# INLINE convert #-}
 
-instance Mempty    SpanGroup where mempty = SpanGroup mempty mempty
-instance Semigroup SpanGroup where SpanGroup rl ml <> SpanGroup rl' ml' = SpanGroup (rl <> rl') (ml <> ml')
+instance Mempty    SpanGroup where mempty = SpanGroup mempty mempty ; {-# INLINE mempty #-}
+instance Semigroup SpanGroup where SpanGroup rl ml <> SpanGroup rl' ml' = SpanGroup (rl <> rl') (ml <> ml') ; {-# INLINE (<>) #-}
 instance P.Monoid  SpanGroup where
-    mempty  = mempty
-    mappend = (<>)
+    mempty  = mempty ; {-# INLINE mempty  #-}
+    mappend = (<>)   ; {-# INLINE mappend #-}
 
 
 
@@ -199,10 +199,10 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b
 
 -- === Spantree construction === --
 
-buildSpanTree :: VectorText -> [Lexer.LexerToken Lexer.Symbol] -> Spantree VectorText
+buildSpanTree :: VectorText -> [Lexer.Token Lexer.Symbol] -> Spantree VectorText
 buildSpanTree src = \case
     []     -> empty
-    (t:ts) -> tailTree & case t ^. Lexer.element of
+    (t:ts) -> tailTree & case t ^. Lexer.symbol of
         Lexer.Marker _ -> preprendSpan span $ flip markerSpanned txtSrc
         _              -> preprendSpan span $ flip textSpanned   txtSrc
         where span             = t ^. Lexer.span

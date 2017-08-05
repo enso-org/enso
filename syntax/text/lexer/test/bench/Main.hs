@@ -61,64 +61,15 @@ mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-
 
 
 main = do
-    return ()
-    pprint $ runLexerPure "ala ' fo`x"
-    pprint $ runLexerPure "ala ' fo`x +"
-    -- pprint $ runLexerPure "ala ' fo`x + y"
-    -- pprint $ runLexerPure "ala ' fo`x + y`"
-    -- pprint $ runLexerPure "ala ' fo`x + y` o"
-    -- pprint $ runLexerPure "ala ' fo`x + y` o'"
     pprint $ runLexerPure "ala ' fo` x + y ` o' ola"
     defaultMain
-        --[ bgroup "big variablexx"           $ [bench "big file" $ nfIO (runLexerFromFile "/tmp/input.txt")]
         [ bgroup "big variable"             $ expCodeGenBenchs runLexerPure           mkBigVariable
         , bgroup "variables L1"             $ expCodeGenBenchs runLexerPure           mkVariablesL1
         , bgroup "variables L5"             $ expCodeGenBenchs runLexerPure           mkVariablesL5
         , bgroup "variables L10"            $ expCodeGenBenchs runLexerPure           mkVariablesL10
         , bgroup "terminators"              $ expCodeGenBenchs runLexerPure           mkCodeTerminators
         , bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
-        -- , bgroup "random code" $ expCodeGenBenchs mkCodeRandom
         ]
 
 manualTerminatorParser :: Text -> Either String [Char]
 manualTerminatorParser = parseOnly $ many (char ';') ; {-# INLINE manualTerminatorParser #-}
-
-runLexerPure :: Text -> Either ParseError [(Span, Symbol)]
-runLexerPure t = sequence
-               $ runConduitPure
-               $ yield t
-              .| conduitParserEither (runStateT @EntryStack lexer)
-              .| sinkList
-{-# INLINE runLexerPure #-}
-
--- runLexerPureHack :: Text -> [(Symbol, Int)]
--- runLexerPureHack t = case Parser.parse (runStateT @EntryStack lexer) t of
---     Fail {} -> undefined
---     Partial f -> case f mempty of
---         Done rest a -> if Text.null rest then [a] else error "not all parsed"
---         _           -> undefined
---     Done rest a -> if Text.null rest then [a] else a : runLexerPureHack rest
--- {-# INLINE runLexerPureHack #-}
---
---
-runLexerFromFile :: MonadIO m => FilePath -> m (Either ParseError [(Span, Symbol)])
-runLexerFromFile p = liftIO
-                   $ fmap sequence
-                   $ runConduitRes
-                   $ sourceFile p
-                  .| decodeUtf8C
-                  .| conduitParserEither (runStateT @EntryStack lexer)
-                  .| sinkList
-{-# INLINE runLexerFromFile #-}
-
---
--- main :: IO ()
--- main = do
---     hSetBuffering stdout NoBuffering
---     out <- runConduitRes
---          $ sourceFile "/tmp/input.txt"
---         .| decodeUtf8C
---         .| conduitParserEither lexer
---         .| sinkList
---     print $ sequence out
---     -- .| printC

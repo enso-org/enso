@@ -38,6 +38,7 @@ dependencies:
     - attoparsec
     - text
     - conduit
+    - conduit-combinators
     - bytestring
     - resourcet
     - convert

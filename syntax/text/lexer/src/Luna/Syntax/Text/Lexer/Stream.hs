@@ -1,6 +1,6 @@
 module Luna.Syntax.Text.Lexer.Stream where
 
-import Prologue hiding (empty, unless)
+import Prologue hiding (empty, unless, span)
 
 
 import           Control.Exception          (Exception)
@@ -17,6 +17,7 @@ import           Data.Attoparsec.Types (Parser, IResult)
 import           Data.Conduit
 import Control.Monad.Trans.Resource (MonadThrow, monadThrow)
 
+import Data.Text.Position (Delta)
 
 
 ---------------------------
@@ -38,25 +39,26 @@ useRight f = \case
     Right v -> f v
 {-# INLINE useRight #-}
 
-
-
--------------------
--- === Delta === --
--------------------
-
--- === Definition === --
-
-newtype Delta = Delta Int deriving (Eq, NFData, Num, Ord)
-makeLenses ''Delta
-
-
--- === Instances === --
-
-instance Show   Delta where show   = show . unwrap ; {-# INLINE show   #-}
-instance Mempty Delta where mempty = Delta 0       ; {-# INLINE mempty #-}
-
-instance Convertible Int Delta where convert = coerce ; {-# INLINE convert #-}
-instance Convertible Delta Int where convert = coerce ; {-# INLINE convert #-}
+--
+--
+-- -------------------
+-- -- === Delta === --
+-- -------------------
+--
+-- -- === Definition === --
+--
+-- newtype Delta = Delta Int deriving (Eq, NFData, Num, Ord)
+-- makeLenses ''Delta
+--
+--
+-- -- === Instances === --
+--
+-- instance Show   Delta where show   = show . unwrap ; {-# INLINE show   #-}
+-- instance Mempty Delta where mempty = Delta 0       ; {-# INLINE mempty #-}
+--
+-- instance Convertible Int Delta where convert = coerce ; {-# INLINE convert #-}
+-- instance Convertible Delta Int where convert = coerce ; {-# INLINE convert #-}
+--
 
 
 ---------------------
@@ -81,18 +83,26 @@ instance NFData ParseError
 
 -- === Definition === --
 
-data Span = Span
-    { _len :: {-# UNPACK #-} !Delta
-    , _off :: {-# UNPACK #-} !Delta
-    } deriving (Eq, Generic, Ord)
-makeLenses ''Span
+data Token a = Token
+    { _span   :: !Delta
+    , _offset :: !Delta
+    , _symbol :: !a
+    } deriving (Eq, Generic)
+makeLenses ''Token
 
 
 -- === Instances === --
 
-instance NFData Span
-instance Show Span where
-    show (Span len off) = "(" <> show len <> "," <> show off <> ")" ; {-# INLINE show #-}
+instance NFData a => NFData (Token a)
+instance Show a => Show (Token a) where
+    showsPrec d t = showParen' d
+        $ showString "Token "
+        . showsPrec' (t ^. span)
+        . showString " "
+        . showsPrec' (t ^. offset)
+        . showString " "
+        . showsPrec' (t ^. symbol)
+
 
 
 -----------------------------------------
@@ -104,7 +114,6 @@ class AttoparsecInput a where
     feed      :: IResult a b -> a -> IResult a b
     empty     :: a
     isNull    :: a -> Bool
-    notEmpty  :: [a] -> [a]
     getLength :: a -> Delta
     stripEnd  :: a -> a -> a
 
@@ -113,8 +122,7 @@ instance AttoparsecInput B.ByteString where
     feed           = Data.Attoparsec.ByteString.feed       ; {-# INLINE feed      #-}
     empty          = B.empty                               ; {-# INLINE empty     #-}
     isNull         = B.null                                ; {-# INLINE isNull    #-}
-    notEmpty       = filter (not . B.null)                 ; {-# INLINE notEmpty  #-}
-    getLength      = Delta . B.length                      ; {-# INLINE getLength #-}
+    getLength      = convert . B.length                    ; {-# INLINE getLength #-}
     stripEnd b1 b2 = B.take (B.length b1 - B.length b2) b1 ; {-# INLINE stripEnd  #-}
 
 instance AttoparsecInput T.Text where
@@ -122,15 +130,14 @@ instance AttoparsecInput T.Text where
     feed      = Data.Attoparsec.Text.feed  ; {-# INLINE feed      #-}
     empty     = T.empty                    ; {-# INLINE empty     #-}
     isNull    = T.null                     ; {-# INLINE isNull    #-}
-    notEmpty  = filter (not . T.null)      ; {-# INLINE notEmpty  #-}
-    getLength = Delta . T.length           ; {-# INLINE getLength #-}
+    getLength = convert . T.length         ; {-# INLINE getLength #-}
     stripEnd (TI.Text arr1 off1 len1) (TI.Text _ _ len2) = TI.text arr1 off1 (len1 - len2) ; {-# INLINE stripEnd #-}
 
 
-conduitParserEither :: (Monad m, AttoparsecInput a, Default cfg) => (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Span, b)) m ()
+conduitParserEither :: (Monad m, AttoparsecInput a, Default cfg) => (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Token b)) m ()
 conduitParserEither parser = loop def mempty where
     loop !cfg !pos = whenNonEmpty $ sinkPosParser pos (parser cfg) >>= useRight go where
-        go (!pos', !off, !cfg', !res) = yield (Right (Span (pos' - pos) off, res)) >> loop cfg' pos'
+        go (!pos', !off, !cfg', !res) = yield (Right $ Token (pos' - pos) off res) >> loop cfg' pos'
 {-# INLINE conduitParserEither #-}
 -- {-# SPECIALIZE conduitParserEither :: Monad m => Parser T.Text       (b, Int) -> Conduit T.Text       m (Either ParseError (Span, b)) #-}
 -- {-# SPECIALIZE conduitParserEither :: Monad m => Parser B.ByteString (b, Int) -> Conduit B.ByteString m (Either ParseError (Span, b)) #-}

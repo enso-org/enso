@@ -24,20 +24,16 @@ import           Data.VectorText              (VectorText)
 import qualified Data.VectorText              as VectorText
 import           Luna.Syntax.Text.Lexer.Name  (isRegularOperatorChar, markerBegin, markerEnd, metadataHeader)
 import qualified Data.Text                    as Text
-import           Data.Set (Set)
-import qualified Data.Set                     as Set
-
--- import Text.Parsert as Parsert
-import Type.Inference
-
+import           Luna.Syntax.Text.Lexer.Stream (Token, ParseError, conduitParserEither)
+import           Conduit
 import qualified Data.Attoparsec.Text as Parsec
--- import           Data.Attoparsec.Text (satisfy, takeWhile, takeWhile1, option, choice, char, anyChar)
 
-import Data.Parser
+import Data.Parser hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
 
+
 type Parser = StateT EntryStack Parsec.Parser
--- type Parser = Parsec.Parser
+
 
 -- FIXME[WD]: TO REFACTOR
 class ShowCons a where
@@ -71,9 +67,6 @@ unliftEntry = modify_ @EntryStack $ \lst -> case maybeTail lst of
 
 getEntryPoint :: MonadState EntryStack m => m EntryPoint
 getEntryPoint = maybe def id . maybeHead <$> get @EntryStack ; {-# INLINE getEntryPoint #-}
-
-subEntryStack :: MonadState EntryStack m => m a -> m a
-subEntryStack = with @EntryStack def ; {-# INLINE subEntryStack #-}
 
 
 -- === Instances === --
@@ -316,6 +309,7 @@ instance ShowCons Symbol where
         Metadata    {} -> "Metadata"
         Unknown     {} -> "Unknown"
         Incorrect   {} -> "Incorrect"
+    {-# INLINE showCons #-}
 
 -- Tags
 instance IsTagged Symbol where
@@ -356,7 +350,7 @@ instance IsTagged Symbol where
         Metadata    {} -> ["Config"]
         Unknown     {} -> ["Error"]
         Incorrect   {} -> ["Error"]
-
+    {-# INLINE getTags #-}
 
 
 ----------------------
@@ -437,6 +431,7 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
         if Text.length qs == hlen
             then Quote RawStr End <$ unliftEntry
             else return $ Str qs
+{-# INLINE rawStrBody #-}
 
 
 -- === Fmt String === --
@@ -469,14 +464,6 @@ fmtStrCode hlen = ending <|> topEntryPoint where
         Block End <$ unliftEntry
 {-# INLINE fmtStrCode #-}
 
--- parseStrBlock :: SymbolLexing s m => Int -> Int -> m ()
--- parseStrBlock i = \case
---     0 -> lexFmtStr i
---     n -> choice [blockEnd, subBlock, other] where
---              blockEnd = token '}' *> addResult (Block End)   *> parseStrBlock i (pred n)
---              subBlock = token '{' *> addResult (Block Begin) *> parseStrBlock i (succ n)
---              other    = lexEntryPoint *> parseStrBlock i n
-
 
 -- Escape maps
 
@@ -500,8 +487,6 @@ parseEsc n m = do
 
 
 
-
-
 --------------------
 -- === Config === --
 --------------------
@@ -520,6 +505,7 @@ lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd wher
     incorrect = Incorrect . ("Marker " <>) <$> takeTill (== markerEnd)
     correct   = Marker . read . convert <$> takeWhile1 isDecDigitChar
 {-# INLINE lexMarker #-}
+
 
 
 -------------------
@@ -637,6 +623,37 @@ spacing = sum <$> many (spaces <|> tabs) where
     tabs   = (4*) . Text.length <$> takeMany1 '\t'
 {-# INLINE spacing #-}
 
+
+
+---------------------
+-- === Running === --
+---------------------
+
+fromLexerResult :: Either ParseError a -> a
+fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
+
+runLexerPure  :: Text -> [Token Symbol]
+runLexerPure' :: Text -> Either ParseError [Token Symbol]
+runLexerPure    = fromLexerResult . runLexerPure' ; {-# INLINE runLexerPure #-}
+runLexerPure' t = sequence
+                $ runConduitPure
+                $ yield t
+               .| conduitParserEither (runStateT @EntryStack lexer)
+               .| sinkList
+{-# INLINE runLexerPure' #-}
+
+runLexerFromFile  :: MonadIO m => FilePath -> m [Token Symbol]
+runLexerFromFile' :: MonadIO m => FilePath -> m (Either ParseError [Token Symbol])
+runLexerFromFile    = fromLexerResult <∘> runLexerFromFile' ; {-# INLINE runLexerFromFile #-}
+runLexerFromFile' p = liftIO
+                    $ fmap sequence
+                    $ runConduitRes
+                    $ sourceFile p
+                   .| decodeUtf8C
+                   .| conduitParserEither (runStateT @EntryStack lexer)
+                   .| sinkList
+{-# INLINE runLexerFromFile' #-}
+
  -- {-# SPECIALIZE conduitParserEither
  --                    :: Monad m
  --                    => A.Parser T.Text b
@@ -690,14 +707,17 @@ spacing = sum <$> many (spaces <|> tabs) where
 -- === LexerToken === --
 ---------------------------
 
+
+
+
 -- === Definition === --
 
-data LexerToken s = LexerToken
-    { _span    :: !Delta
-    , _offset  :: !Delta
-    , _element :: !s
-    } deriving (Generic, Show, Eq, Ord, Functor, Foldable, Traversable) -- FIXME[WD]: Ord is needed by some weird Megaparsec fundep. Remove it when possible.
-makeLenses ''LexerToken
+-- data LexerToken s = LexerToken
+--     { _span    :: !Delta
+--     , _offset  :: !Delta
+--     , _element :: !s
+--     } deriving (Generic, Show, Eq, Ord, Functor, Foldable, Traversable) -- FIXME[WD]: Ord is needed by some weird Megaparsec fundep. Remove it when possible.
+-- makeLenses ''LexerToken
 
 
 -- -- === Running === --
