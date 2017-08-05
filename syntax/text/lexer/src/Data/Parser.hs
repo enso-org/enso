@@ -125,6 +125,26 @@ takeMany = takeWhile . (==) ; {-# INLINE takeMany #-}
 takeMany1 :: (TokenParser m, Eq (Token m)) => Token m -> m (Tokens m)
 takeMany1 = takeWhile1 . (==) ; {-# INLINE takeMany1 #-}
 
+count :: Monad m => Int -> m a -> m [a]
+count n p = sequence (replicate n p) ; {-# INLINE count #-}
+
+
+
+-----------------------------
+-- === BacktrackParser === --
+-----------------------------
+
+-- === Definition === --
+
+class BacktrackParser m where
+    try :: forall a. m a -> m a
+
+
+-- === Combinators === --
+
+notFollowedBy :: (BacktrackParser m, Alternative m, Monad m) => m a -> m ()
+notFollowedBy p = option () $ try p >> fail "" ; {-# INLINE notFollowedBy #-}
+
 
 -- === Parsing utils === --
 

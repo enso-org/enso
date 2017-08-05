@@ -22,3 +22,6 @@ instance TokenParser (Parser Strict.Text) where
     tokens_    = void . SText.string ; {-# INLINE tokens_    #-}
     peekToken  = SText.peekChar'     ; {-# INLINE peekToken  #-}
     peekToken' = SText.peekChar      ; {-# INLINE peekToken' #-}
+
+instance BacktrackParser (Parser a) where
+    try = id ; {-# INLINE try #-}

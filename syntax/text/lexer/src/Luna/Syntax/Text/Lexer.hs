@@ -13,8 +13,8 @@ import qualified Prologue as P
 import           Control.Monad.State.Layered
 import qualified Data.Char                    as Char
 import qualified Data.List                    as List
-import qualified Data.Map                     as Map
-import           Data.Map                     (Map)
+import qualified Data.Map.Strict              as Map
+import           Data.Map.Strict              (Map)
 import qualified Data.Text.Span               as Span
 import           Data.Text.Position           (Delta, Position, Offset)
 import qualified Data.Text.Position           as Position
@@ -52,6 +52,7 @@ class ShowCons a where
 
 data EntryPoint = TopLevelEntry
                 | StrEntry !StrType !Int
+                | StrCodeEntry !Int
                 deriving (Show)
 
 type EntryStack = [EntryPoint]
@@ -70,6 +71,9 @@ unliftEntry = modify_ @EntryStack $ \lst -> case maybeTail lst of
 
 getEntryPoint :: MonadState EntryStack m => m EntryPoint
 getEntryPoint = maybe def id . maybeHead <$> get @EntryStack ; {-# INLINE getEntryPoint #-}
+
+subEntryStack :: MonadState EntryStack m => m a -> m a
+subEntryStack = with @EntryStack def ; {-# INLINE subEntryStack #-}
 
 
 -- === Instances === --
@@ -438,35 +442,33 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
 -- === Fmt String === --
 
 fmtStr :: Lexer
-fmtStr = beginStr FmtStr '`' ; {-# INLINE fmtStr #-}
+fmtStr = beginStr FmtStr '\'' ; {-# INLINE fmtStr #-}
 
--- fmtStrBody :: Int -> Lexer
--- fmtStrBody hlen = choice [body, escape, quotes, linebr] where
---     body   = Str <$> takeWhile1 (\c -> c /= '"' && c /= '\n' && c /= '\r' && c /= '\\')
---
--- lexFmtStr hlen = if hlen == 2
---     then addResult $ Quote FmtStr End
---     else many (choice [seg, linebreak, escape, embeded]) >> option_ ending
---     where segQuotes = try $ do
---               qs <- many (token '\'')
---               qs <$ when (length qs == hlen) (raise SatisfyError)
---           seg  = addResult =<< Str . concat <$> some seg'
---           seg' = do
---               s <- lexFmtStrSeg
---               q <- option mempty segQuotes
---               let s' = s <> q
---               when (null s') $ raise SatisfyError
---               return s'
---           ending    = some (token '\'') >> addResult (Quote FmtStr End)
---           linebreak = newline >> addResult EOL
---           escape    = token '\\' *> lexEscSeq
---           embeded   = token '{'  *> addResult (Block Begin) *> parseStrBlock hlen 1
---
---
--- lexFmtStrSeg :: SymbolLexing s m => m String
--- lexFmtStrSeg = many strChar where
---     strChar = satisfy (not . (`elem` ['\n', '\'', '\\', '{']))
---
+fmtStrBody :: Int -> Lexer
+fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
+    body   = Str <$> takeWhile1 (\c -> c /= '\'' && c /= '`' && c /= '\n' && c /= '\r' && c /= '\\')
+    linebr = EOL <$  newline
+    escape = token '\\' *> esct
+    esct   = (StrEsc   SlashEsc <$ token '\\')
+         <|> (StrEsc . QuoteEscape RawStr . Text.length <$> takeMany1 '\"')
+         <|> (StrEsc . QuoteEscape FmtStr . Text.length <$> takeMany1 '\'')
+         <|> lexEscSeq
+    quotes = do
+        qs <- takeMany1 '\''
+        if Text.length qs == hlen
+            then Quote FmtStr End <$ unliftEntry
+            else return $ Str qs
+    code   = Block Begin <$ (liftEntry . StrCodeEntry =<< beginQuotes '`')
+{-# INLINE fmtStrBody #-}
+
+fmtStrCode :: Int -> Lexer
+fmtStrCode hlen = ending <|> topEntryPoint where
+    ending = do
+        qs <- takeMany1 '`'
+        when (Text.length qs /= hlen) $ fail "Not an ending"
+        Block End <$ unliftEntry
+{-# INLINE fmtStrCode #-}
+
 -- parseStrBlock :: SymbolLexing s m => Int -> Int -> m ()
 -- parseStrBlock i = \case
 --     0 -> lexFmtStr i
@@ -474,29 +476,29 @@ fmtStr = beginStr FmtStr '`' ; {-# INLINE fmtStr #-}
 --              blockEnd = token '}' *> addResult (Block End)   *> parseStrBlock i (pred n)
 --              subBlock = token '{' *> addResult (Block Begin) *> parseStrBlock i (succ n)
 --              other    = lexEntryPoint *> parseStrBlock i n
---
---
--- -- Escape maps
---
--- esc1Map, esc2Map, esc3Map :: Map String Int
--- esc1Map = Char.ord <$> fromList [ ("a", '\a'), ("b", '\b'), ("f", '\f'), ("n", '\n'), ("r", '\r'), ("t", '\t'), ("v", '\v'), ("'", '\''), ("\"" , '"') ]
--- esc2Map = Char.ord <$> fromList [ ("BS", '\BS'), ("HT", '\HT'), ("LF", '\LF'), ("VT", '\VT'), ("FF", '\FF'), ("CR", '\CR'), ("SO", '\SO'), ("SI", '\SI'), ("EM", '\EM'), ("FS", '\FS'), ("GS", '\GS'), ("RS", '\RS'), ("US", '\US'), ("SP", '\SP') ]
--- esc3Map = Char.ord <$> fromList [ ("NUL", '\NUL'), ("SOH", '\SOH'), ("STX", '\STX'), ("ETX", '\ETX'), ("EOT", '\EOT'), ("ENQ", '\ENQ'), ("ACK", '\ACK'), ("BEL", '\BEL'), ("DLE", '\DLE'), ("DC1", '\DC1'), ("DC2", '\DC2'), ("DC3", '\DC3'), ("DC4", '\DC4'), ("NAK", '\NAK'), ("SYN", '\SYN'), ("ETB", '\ETB'), ("CAN", '\CAN'), ("SUB", '\SUB'), ("ESC", '\ESC'), ("DEL", '\DEL') ]
---
--- lexEscSeq :: SymbolLexing s m => m ()
--- lexEscSeq = numEsc <|> chrEcs <|> wrongEsc where
---     numEsc   = addResult =<< StrEsc NumStrEsc . read <$> some (satisfy isDecDigitChar)
---     chrEcs   = choice $ uncurry parseEsc <$> zip [1..] [esc1Map, esc2Map, esc3Map]
---     wrongEsc = addResult =<< StrWrongEsc . Char.ord <$> anyToken
---
--- parseEsc :: SymbolLexing s m => Int -> Map String Int -> m ()
--- parseEsc n m = do
---     s <- count n anyToken
---     case Map.lookup s m of
---         Just i  -> addResult $ StrEsc CharStrEsc i
---         Nothing -> raise SatisfyError
---
---
+
+
+-- Escape maps
+
+esc1Map, esc2Map, esc3Map :: Map String Int
+esc1Map = Char.ord <$> fromList [ ("a", '\a'), ("b", '\b'), ("f", '\f'), ("n", '\n'), ("r", '\r'), ("t", '\t'), ("v", '\v'), ("'", '\''), ("\"" , '"') ]
+esc2Map = Char.ord <$> fromList [ ("BS", '\BS'), ("HT", '\HT'), ("LF", '\LF'), ("VT", '\VT'), ("FF", '\FF'), ("CR", '\CR'), ("SO", '\SO'), ("SI", '\SI'), ("EM", '\EM'), ("FS", '\FS'), ("GS", '\GS'), ("RS", '\RS'), ("US", '\US'), ("SP", '\SP') ]
+esc3Map = Char.ord <$> fromList [ ("NUL", '\NUL'), ("SOH", '\SOH'), ("STX", '\STX'), ("ETX", '\ETX'), ("EOT", '\EOT'), ("ENQ", '\ENQ'), ("ACK", '\ACK'), ("BEL", '\BEL'), ("DLE", '\DLE'), ("DC1", '\DC1'), ("DC2", '\DC2'), ("DC3", '\DC3'), ("DC4", '\DC4'), ("NAK", '\NAK'), ("SYN", '\SYN'), ("ETB", '\ETB'), ("CAN", '\CAN'), ("SUB", '\SUB'), ("ESC", '\ESC'), ("DEL", '\DEL') ]
+
+lexEscSeq :: Lexer
+lexEscSeq = numEsc <|> chrEcs <|> wrongEsc where
+    numEsc   = StrEsc . NumStrEsc . read . convert <$> takeWhile1 isDecDigitChar
+    chrEcs   = choice $ uncurry parseEsc <$> zip [1..] [esc1Map, esc2Map, esc3Map]
+    wrongEsc = StrWrongEsc . Char.ord <$> anyToken
+
+parseEsc :: Int -> Map String Int -> Lexer
+parseEsc n m = do
+    s <- count n anyToken
+    case Map.lookup s m of
+        Just i  -> return . StrEsc $ CharStrEsc i
+        Nothing -> fail "Escape not matched"
+
+
 
 
 
@@ -552,14 +554,14 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '|'          -> Merge   <$ dropToken
     | c == '.'          -> handleDots =<< takeMany '.'
     | c == '='          -> handleEqs  =<< takeMany '='
-    | c `elem` opChars  -> handleOp <$> takeWhile1 isRegularOperatorChar <*> takeMany1 '='
+    | c `elem` opChars  -> handleOp <$> takeWhile1 isRegularOperatorChar <*> takeMany '='
 
     -- Literals
     | c == '['          -> List Begin   <$ dropToken
     | c == ']'          -> List End     <$ dropToken
     | c == ','          -> Operator "," <$ dropToken
     | c == '"'          -> rawStr
-    -- | c == '\''         -> lexFmtStr =<< succ <$> counted_ (many (token '\'') <* addResult (Quote FmtStr Begin))
+    | c == '\''         -> fmtStr
     | c == '`'          -> natStr
     | decHead c         -> lexNumber
 
@@ -606,12 +608,16 @@ lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else u
 
 lexEntryPoint :: Lexer
 lexEntryPoint = getEntryPoint >>= \case
-    TopLevelEntry     -> peekToken >>= lexSymChar
-    StrEntry RawStr i -> rawStrBody i
-    StrEntry NatStr i -> natStrBody i
+    TopLevelEntry  -> topEntryPoint
+    StrCodeEntry i -> fmtStrCode i
+    StrEntry   t i -> case t of
+        RawStr -> rawStrBody i
+        FmtStr -> fmtStrBody i
+        NatStr -> natStrBody i
 {-# INLINE lexEntryPoint #-}
 
-
+topEntryPoint :: Lexer
+topEntryPoint = peekToken >>= lexSymChar ; {-# INLINE topEntryPoint #-}
 
 lexer :: Parser (Symbol, Int)
 lexer = lexeme lexEntryPoint ; {-# INLINE lexer #-}
