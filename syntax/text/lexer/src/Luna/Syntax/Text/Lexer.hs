@@ -622,8 +622,14 @@ topEntryPoint = peekToken >>= lexSymChar ; {-# INLINE topEntryPoint #-}
 lexer :: Parser (Symbol, Int)
 lexer = lexeme lexEntryPoint ; {-# INLINE lexer #-}
 
-lexeme :: Parser a -> Parser (a, Int)
-lexeme p = (,) <$> p <*> spacing ; {-# INLINE lexeme #-}
+lexeme :: Parser Symbol -> Parser (Symbol, Int)
+lexeme p = do
+    !a <- p
+    case a of
+        Quote _ Begin -> return (a, 0) -- do not include string whitespaces as offsets
+        Block End     -> return (a, 0) -- exiting back to string body
+        _             -> (a,) <$> spacing
+{-# INLINE lexeme #-}
 
 spacing :: Parser Int
 spacing = sum <$> many (spaces <|> tabs) where
