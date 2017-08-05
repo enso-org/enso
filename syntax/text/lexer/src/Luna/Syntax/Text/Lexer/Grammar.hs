@@ -134,16 +134,26 @@ beginMultiQuotes !c = do
 {-# INLINE beginMultiQuotes #-}
 
 
--- -- === Native String === --
+-- === Top level string parsers === --
 
-natStr :: Lexer
-natStr = beginStr NatStr '`' ; {-# INLINE natStr #-}
+natStrQuote, rawStrQuote, fmtStrQuote :: Char
+natStrQuote = '`'  ; {-# INLINE natStrQuote #-}
+rawStrQuote = '"'  ; {-# INLINE rawStrQuote #-}
+fmtStrQuote = '\'' ; {-# INLINE fmtStrQuote #-}
+
+natStr, rawStr, fmtStr :: Lexer
+natStr = beginStr NatStr natStrQuote ; {-# INLINE natStr #-}
+rawStr = beginStr RawStr rawStrQuote ; {-# INLINE rawStr #-}
+fmtStr = beginStr FmtStr fmtStrQuote ; {-# INLINE fmtStr #-}
+
+
+-- === Native String === --
 
 natStrBody :: Int -> Lexer
 natStrBody hlen = code <|> quotes where
-    code   = Str <$> takeWhile1 (/= '`')
+    code   = Str <$> takeWhile1 (/= natStrQuote)
     quotes = do
-        qs <- takeMany1 '`'
+        qs <- takeMany1 natStrQuote
         if Text.length qs == hlen
             then Quote NatStr End <$ unliftEntry
             else return $ Str qs
@@ -152,19 +162,16 @@ natStrBody hlen = code <|> quotes where
 
 -- === Raw String === --
 
-rawStr :: Lexer
-rawStr = beginStr RawStr '"' ; {-# INLINE rawStr #-}
-
 rawStrBody :: Int -> Lexer
 rawStrBody hlen = choice [body, escape, quotes, linebr] where
-    body   = Str <$> takeWhile1 (\c -> c /= '"' && c /= '\n' && c /= '\r' && c /= '\\')
+    body   = Str <$> takeWhile1 (\c -> c /= rawStrQuote && c /= '\n' && c /= '\r' && c /= '\\')
     linebr = EOL <$  newline
     escape = StrEsc <$ token '\\' <*> esct
     esct   = (SlashEsc <$ token '\\')
-         <|> (QuoteEscape RawStr . Text.length <$> takeMany1 '\"')
-         <|> (QuoteEscape FmtStr . Text.length <$> takeMany1 '\'')
+         <|> (QuoteEscape RawStr . Text.length <$> takeMany1 rawStrQuote)
+         <|> (QuoteEscape FmtStr . Text.length <$> takeMany1 fmtStrQuote)
     quotes = do
-        qs <- takeMany1 '"'
+        qs <- takeMany1 rawStrQuote
         if Text.length qs == hlen
             then Quote RawStr End <$ unliftEntry
             else return $ Str qs
@@ -173,30 +180,27 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
 
 -- === Fmt String === --
 
-fmtStr :: Lexer
-fmtStr = beginStr FmtStr '\'' ; {-# INLINE fmtStr #-}
-
 fmtStrBody :: Int -> Lexer
 fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
-    body   = Str <$> takeWhile1 (\c -> c /= '\'' && c /= '`' && c /= '\n' && c /= '\r' && c /= '\\')
+    body   = Str <$> takeWhile1 (\c -> c /= fmtStrQuote && c /= natStrQuote && c /= '\n' && c /= '\r' && c /= '\\')
     linebr = EOL <$  newline
     escape = token '\\' *> esct
     esct   = (StrEsc   SlashEsc <$ token '\\')
-         <|> (StrEsc . QuoteEscape RawStr . Text.length <$> takeMany1 '\"')
-         <|> (StrEsc . QuoteEscape FmtStr . Text.length <$> takeMany1 '\'')
+         <|> (StrEsc . QuoteEscape RawStr . Text.length <$> takeMany1 rawStrQuote)
+         <|> (StrEsc . QuoteEscape FmtStr . Text.length <$> takeMany1 fmtStrQuote)
          <|> lexEscSeq
     quotes = do
-        qs <- takeMany1 '\''
+        qs <- takeMany1 fmtStrQuote
         if Text.length qs == hlen
             then Quote FmtStr End <$ unliftEntry
             else return $ Str qs
-    code   = Block Begin <$ (liftEntry . StrCodeEntry =<< beginQuotes '`')
+    code   = Block Begin <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
 {-# INLINE fmtStrBody #-}
 
 fmtStrCode :: Int -> Lexer
 fmtStrCode hlen = ending <|> topEntryPoint where
     ending = do
-        qs <- takeMany1 '`'
+        qs <- takeMany1 natStrQuote
         when (Text.length qs /= hlen) $ fail "Not an ending"
         Block End <$ unliftEntry
 {-# INLINE fmtStrCode #-}
@@ -205,7 +209,7 @@ fmtStrCode hlen = ending <|> topEntryPoint where
 -- Escape maps
 
 esc1Map, esc2Map, esc3Map :: Map String Int
-esc1Map = Char.ord <$> fromList [ ("a", '\a'), ("b", '\b'), ("f", '\f'), ("n", '\n'), ("r", '\r'), ("t", '\t'), ("v", '\v'), ("'", '\''), ("\"" , '"') ]
+esc1Map = Char.ord <$> fromList [ ("a", '\a'), ("b", '\b'), ("f", '\f'), ("n", '\n'), ("r", '\r'), ("t", '\t'), ("v", '\v') ]
 esc2Map = Char.ord <$> fromList [ ("BS", '\BS'), ("HT", '\HT'), ("LF", '\LF'), ("VT", '\VT'), ("FF", '\FF'), ("CR", '\CR'), ("SO", '\SO'), ("SI", '\SI'), ("EM", '\EM'), ("FS", '\FS'), ("GS", '\GS'), ("RS", '\RS'), ("US", '\US'), ("SP", '\SP') ]
 esc3Map = Char.ord <$> fromList [ ("NUL", '\NUL'), ("SOH", '\SOH'), ("STX", '\STX'), ("ETX", '\ETX'), ("EOT", '\EOT'), ("ENQ", '\ENQ'), ("ACK", '\ACK'), ("BEL", '\BEL'), ("DLE", '\DLE'), ("DC1", '\DC1'), ("DC2", '\DC2'), ("DC3", '\DC3'), ("DC4", '\DC4'), ("NAK", '\NAK'), ("SYN", '\SYN'), ("ETB", '\ETB'), ("CAN", '\CAN'), ("SUB", '\SUB'), ("ESC", '\ESC'), ("DEL", '\DEL') ]
 
@@ -284,9 +288,9 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '['          -> List Begin   <$ dropToken
     | c == ']'          -> List End     <$ dropToken
     | c == ','          -> Operator "," <$ dropToken
-    | c == '"'          -> rawStr
-    | c == '\''         -> fmtStr
-    | c == '`'          -> natStr
+    | c == rawStrQuote          -> rawStr
+    | c == fmtStrQuote         -> fmtStr
+    | c == natStrQuote          -> natStr
     | decHead c         -> lexNumber
 
     -- Meta
