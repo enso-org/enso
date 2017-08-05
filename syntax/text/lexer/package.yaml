@@ -42,6 +42,7 @@ dependencies:
     - bytestring
     - resourcet
     - convert
+    - functor-utils
 
     # remove:
     - lens-utils

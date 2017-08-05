@@ -61,13 +61,13 @@ mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-
 
 
 main = do
-    pprint $ runLexerPure "ala ' fo` x + y ` o' ola"
+    pprint $ evalDefLexer "ala ' fo` x + y ` o' ola"
     defaultMain
-        [ bgroup "big variable"             $ expCodeGenBenchs runLexerPure           mkBigVariable
-        , bgroup "variables L1"             $ expCodeGenBenchs runLexerPure           mkVariablesL1
-        , bgroup "variables L5"             $ expCodeGenBenchs runLexerPure           mkVariablesL5
-        , bgroup "variables L10"            $ expCodeGenBenchs runLexerPure           mkVariablesL10
-        , bgroup "terminators"              $ expCodeGenBenchs runLexerPure           mkCodeTerminators
+        [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable
+        , bgroup "variables L1"             $ expCodeGenBenchs evalDefLexer           mkVariablesL1
+        , bgroup "variables L5"             $ expCodeGenBenchs evalDefLexer           mkVariablesL5
+        , bgroup "variables L10"            $ expCodeGenBenchs evalDefLexer           mkVariablesL10
+        , bgroup "terminators"              $ expCodeGenBenchs evalDefLexer           mkCodeTerminators
         , bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
         ]
 

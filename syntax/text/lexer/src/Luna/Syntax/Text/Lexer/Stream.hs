@@ -1,6 +1,6 @@
 module Luna.Syntax.Text.Lexer.Stream where
 
-import Prologue hiding (empty, unless, span)
+import Prologue hiding (unless, span)
 
 
 import           Control.Exception          (Exception)
@@ -18,6 +18,8 @@ import           Data.Conduit
 import Control.Monad.Trans.Resource (MonadThrow, monadThrow)
 
 import Data.Text.Position (Delta)
+import Data.Parser hiding (Token)
+import Data.Parser.Instances.Attoparsec ()
 
 
 ---------------------------
@@ -39,31 +41,11 @@ useRight f = \case
     Right v -> f v
 {-# INLINE useRight #-}
 
---
---
--- -------------------
--- -- === Delta === --
--- -------------------
---
--- -- === Definition === --
---
--- newtype Delta = Delta Int deriving (Eq, NFData, Num, Ord)
--- makeLenses ''Delta
---
---
--- -- === Instances === --
---
--- instance Show   Delta where show   = show . unwrap ; {-# INLINE show   #-}
--- instance Mempty Delta where mempty = Delta 0       ; {-# INLINE mempty #-}
---
--- instance Convertible Int Delta where convert = coerce ; {-# INLINE convert #-}
--- instance Convertible Delta Int where convert = coerce ; {-# INLINE convert #-}
---
 
 
----------------------
--- === Error ? === --
----------------------
+-------------------
+-- === Error === --
+-------------------
 
 -- | The context and message from a 'A.Fail' value.
 data ParseError = ParseError
@@ -110,44 +92,37 @@ instance Show a => Show (Token a) where
 -----------------------------------------
 
 class AttoparsecInput a where
-    runParser :: Parser  a b -> a -> IResult a b
-    feed      :: IResult a b -> a -> IResult a b
-    empty     :: a
     isNull    :: a -> Bool
     getLength :: a -> Delta
     stripEnd  :: a -> a -> a
 
 instance AttoparsecInput B.ByteString where
-    runParser      = Data.Attoparsec.ByteString.parse      ; {-# INLINE runParser #-}
-    feed           = Data.Attoparsec.ByteString.feed       ; {-# INLINE feed      #-}
-    empty          = B.empty                               ; {-# INLINE empty     #-}
     isNull         = B.null                                ; {-# INLINE isNull    #-}
     getLength      = convert . B.length                    ; {-# INLINE getLength #-}
     stripEnd b1 b2 = B.take (B.length b1 - B.length b2) b1 ; {-# INLINE stripEnd  #-}
 
 instance AttoparsecInput T.Text where
-    runParser = Data.Attoparsec.Text.parse ; {-# INLINE runParser #-}
-    feed      = Data.Attoparsec.Text.feed  ; {-# INLINE feed      #-}
-    empty     = T.empty                    ; {-# INLINE empty     #-}
     isNull    = T.null                     ; {-# INLINE isNull    #-}
     getLength = convert . T.length         ; {-# INLINE getLength #-}
     stripEnd (TI.Text arr1 off1 len1) (TI.Text _ _ len2) = TI.text arr1 off1 (len1 - len2) ; {-# INLINE stripEnd #-}
 
 
-conduitParserEither :: (Monad m, AttoparsecInput a, Default cfg) => (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Token b)) m ()
-conduitParserEither parser = loop def mempty where
+conduitParserEither :: (AttoparsecInput a, PartialParser (Parser a), Default cfg, Monad m, Mempty a)
+                    => cfg -> (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Token b)) m ()
+conduitParserEither cfg parser = loop cfg mempty where
     loop !cfg !pos = whenNonEmpty $ sinkPosParser pos (parser cfg) >>= useRight go where
         go (!pos', !off, !cfg', !res) = yield (Right $ Token (pos' - pos) off res) >> loop cfg' pos'
 {-# INLINE conduitParserEither #-}
 -- {-# SPECIALIZE conduitParserEither :: Monad m => Parser T.Text       (b, Int) -> Conduit T.Text       m (Either ParseError (Span, b)) #-}
 -- {-# SPECIALIZE conduitParserEither :: Monad m => Parser B.ByteString (b, Int) -> Conduit B.ByteString m (Either ParseError (Span, b)) #-}
 
-sinkPosParser :: forall a b cfg m any. (AttoparsecInput a, Monad m) => Delta -> Parser a ((b, Int), cfg) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
-sinkPosParser pos0 p = sink empty pos0 (runParser p) where
+sinkPosParser :: forall a b cfg m any. (AttoparsecInput a, PartialParser (Parser a), Monad m, Mempty a)
+              => Delta -> Parser a ((b, Int), cfg) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
+sinkPosParser pos0 p = sink mempty pos0 (parsePartial p) where
     sink :: a -> Delta -> (a -> IResult a ((b, Int), cfg)) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
     sink prev pos parse = await >>= maybe close push where
 
-        close    = go True prev $ feed (parse empty) empty
+        close    = go True prev $ closePartial (parse mempty)
         push str = if isNull str then sink prev pos parse
                                  else go False str (parse str)
         go isEnd str = \case

@@ -6,9 +6,11 @@ import Prelude hiding (takeWhile)
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
+import Control.Monad.Identity
 import Data.Foldable hiding (toList)
 import GHC.Exts (IsList, Item, toList, fromList)
 import Data.Convert
+import Data.Functor.Utils
 
 -- General utils -- to refactor
 import qualified Control.Monad.State.Layered as Layered
@@ -156,3 +158,37 @@ newline = escape_n <|> escape_rn where
     escape_n  = convert' <$> token '\n'
     escape_rn = token '\r' <**> option convert' ((\b a -> fromList [a,b]) <$> token '\n')
 {-# INLINE newline #-}
+
+
+
+---------------------------
+-- === PartialParser === --
+---------------------------
+
+-- data PartialResult e s a
+--    = Fail    !s !e
+--    | Done    !s !a
+--    | Partial !(s -> PartialResult e s a)
+--    deriving (Functor)
+
+type family BaseMonad (m :: * -> *) :: * -> *
+
+
+type family PartialResult (m :: * -> *) = (r :: * -> *) | r -> m
+type family Result        (m :: * -> *) = (r :: * -> *) | r -> m
+
+type  PartialParser' m = (PartialParser m, BaseMonad m ~ Identity)
+class PartialParser  m where
+    parsePartialT :: forall a.               m a -> Tokens m -> BaseMonad m (PartialResult m a)
+    feedPartialT  :: forall a. PartialResult m a -> Tokens m -> BaseMonad m (PartialResult m a)
+    closePartialT :: forall a. PartialResult m a             -> BaseMonad m        (Result m a)
+
+
+-- === Utils === --
+
+parsePartial :: PartialParser' m =>               m a -> Tokens m -> PartialResult m a
+feedPartial  :: PartialParser' m => PartialResult m a -> Tokens m -> PartialResult m a
+closePartial :: PartialParser' m => PartialResult m a -> Result m a
+parsePartial = runIdentity .: parsePartialT ; {-# INLINE parsePartial #-}
+feedPartial  = runIdentity .: feedPartialT  ; {-# INLINE feedPartial  #-}
+closePartial = runIdentity .  closePartialT ; {-# INLINE closePartial #-}

@@ -514,6 +514,7 @@ lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd wher
 
 -- === Symbol head char map === --
 
+-- | The size of `symmap` - Vector-based map from head Char to related parser.
 symmapSize :: Int
 symmapSize = 200 ; {-# INLINE symmapSize #-}
 
@@ -605,16 +606,20 @@ lexEntryPoint = getEntryPoint >>= \case
 topEntryPoint :: Lexer
 topEntryPoint = peekToken >>= lexSymChar ; {-# INLINE topEntryPoint #-}
 
-lexer :: Parser (Symbol, Int)
-lexer = lexeme lexEntryPoint ; {-# INLINE lexer #-}
+lexer     :: Parser (Symbol, Int)
+lexerCont :: Parser ((Symbol, EntryStack), Int)
+lexer     = lexeme =<< lexEntryPoint ; {-# INLINE lexer #-}
+lexerCont = do
+    s         <- lexEntryPoint
+    (s', off) <- lexeme s
+    es        <- get @EntryStack
+    return ((s', es), off)
 
-lexeme :: Parser Symbol -> Parser (Symbol, Int)
-lexeme p = do
-    !a <- p
-    case a of
-        Quote _ Begin -> return (a, 0) -- do not include string whitespaces as offsets
-        Block End     -> return (a, 0) -- exiting back to string body
-        _             -> (a,) <$> spacing
+lexeme :: Symbol -> Parser (Symbol, Int)
+lexeme s = case s of
+    Quote _ Begin -> return (s, 0) -- Do not include whitespaces as offset inside text.
+    Block End     -> return (s, 0) -- Do not include whitespaces as offset after inline text code.
+    _             -> (s,) <$> spacing
 {-# INLINE lexeme #-}
 
 spacing :: Parser Int
@@ -632,27 +637,26 @@ spacing = sum <$> many (spaces <|> tabs) where
 fromLexerResult :: Either ParseError a -> a
 fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
 
-runLexerPure  :: Text -> [Token Symbol]
-runLexerPure' :: Text -> Either ParseError [Token Symbol]
-runLexerPure    = fromLexerResult . runLexerPure' ; {-# INLINE runLexerPure #-}
-runLexerPure' t = sequence
-                $ runConduitPure
-                $ yield t
-               .| conduitParserEither (runStateT @EntryStack lexer)
-               .| sinkList
-{-# INLINE runLexerPure' #-}
+parseBase :: Monad m => Parser (t, Int) -> EntryStack -> ConduitM a Text m () -> ConduitM a c0 m [Either ParseError (Token t)]
+parseBase p s f = f .| conduitParserEither s (runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
-runLexerFromFile  :: MonadIO m => FilePath -> m [Token Symbol]
-runLexerFromFile' :: MonadIO m => FilePath -> m (Either ParseError [Token Symbol])
-runLexerFromFile    = fromLexerResult <∘> runLexerFromFile' ; {-# INLINE runLexerFromFile #-}
-runLexerFromFile' p = liftIO
-                    $ fmap sequence
-                    $ runConduitRes
-                    $ sourceFile p
-                   .| decodeUtf8C
-                   .| conduitParserEither (runStateT @EntryStack lexer)
-                   .| sinkList
-{-# INLINE runLexerFromFile' #-}
+parse        ::              Parser (a, Int) -> EntryStack -> Text     ->   [Token a]
+tryParse     ::              Parser (a, Int) -> EntryStack -> Text     ->   Either ParseError [Token a]
+parseFile    :: MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
+tryParseFile :: MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
+parse              = fromLexerResult .:.   tryParse                                                       ; {-# INLINE parse        #-}
+parseFile          = fromLexerResult <∘∘∘> tryParseFile                                                   ; {-# INLINE parseFile    #-}
+tryParse     p s t = sequence . runConduitPure $ parseBase p s (yield t)                                  ; {-# INLINE tryParse     #-}
+tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceFile t .| decodeUtf8C) ; {-# INLINE tryParseFile #-}
+
+runLexer     :: EntryStack -> Text -> [Token (Symbol, EntryStack)]
+evalLexer    :: EntryStack -> Text -> [Token Symbol]
+evalDefLexer ::               Text -> [Token Symbol]
+runLexer     = parse lexerCont ; {-# INLINE runLexer     #-}
+evalLexer    = parse lexer     ; {-# INLINE evalLexer    #-}
+evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
+
+
 
  -- {-# SPECIALIZE conduitParserEither
  --                    :: Monad m
