@@ -76,6 +76,13 @@ getEntryPoint = maybe def id . maybeHead <$> get @EntryStack ; {-# INLINE getEnt
 instance Default EntryPoint where def = TopLevelEntry ; {-# INLINE def #-}
 
 
+-----------------------
+-- === Layouting === --
+-----------------------
+
+notNewlineStart :: Char -> Bool
+notNewlineStart c = c /= '\n' && c /= '\r' ; {-# INLINE notNewlineStart #-}
+
 
 ----------------------
 -- === Literals === --
@@ -140,6 +147,7 @@ natStrQuote, rawStrQuote, fmtStrQuote :: Char
 natStrQuote = '`'  ; {-# INLINE natStrQuote #-}
 rawStrQuote = '"'  ; {-# INLINE rawStrQuote #-}
 fmtStrQuote = '\'' ; {-# INLINE fmtStrQuote #-}
+escapeChar  = '\\' ; {-# INLINE escapeChar  #-}
 
 natStr, rawStr, fmtStr :: Lexer
 natStr = beginStr NatStr natStrQuote ; {-# INLINE natStr #-}
@@ -164,10 +172,10 @@ natStrBody hlen = code <|> quotes where
 
 rawStrBody :: Int -> Lexer
 rawStrBody hlen = choice [body, escape, quotes, linebr] where
-    body   = Str <$> takeWhile1 (\c -> c /= rawStrQuote && c /= '\n' && c /= '\r' && c /= '\\')
+    body   = Str <$> takeWhile1 (\c -> c /= rawStrQuote && notNewlineStart c && c /= escapeChar)
     linebr = EOL <$  newline
-    escape = StrEsc <$ token '\\' <*> esct
-    esct   = (SlashEsc <$ token '\\')
+    escape = StrEsc <$ token escapeChar <*> esct
+    esct   = (SlashEsc <$ token escapeChar)
          <|> (QuoteEscape RawStr . Text.length <$> takeMany1 rawStrQuote)
          <|> (QuoteEscape FmtStr . Text.length <$> takeMany1 fmtStrQuote)
     quotes = do
@@ -182,10 +190,10 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
 
 fmtStrBody :: Int -> Lexer
 fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
-    body   = Str <$> takeWhile1 (\c -> c /= fmtStrQuote && c /= natStrQuote && c /= '\n' && c /= '\r' && c /= '\\')
+    body   = Str <$> takeWhile1 (\c -> c /= fmtStrQuote && c /= natStrQuote && notNewlineStart c && c /= escapeChar)
     linebr = EOL <$  newline
-    escape = token '\\' *> esct
-    esct   = (StrEsc   SlashEsc <$ token '\\')
+    escape = token escapeChar *> esct
+    esct   = (StrEsc   SlashEsc <$ token escapeChar)
          <|> (StrEsc . QuoteEscape RawStr . Text.length <$> takeMany1 rawStrQuote)
          <|> (StrEsc . QuoteEscape FmtStr . Text.length <$> takeMany1 fmtStrQuote)
          <|> lexEscSeq
@@ -288,9 +296,9 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '['          -> List Begin   <$ dropToken
     | c == ']'          -> List End     <$ dropToken
     | c == ','          -> Operator "," <$ dropToken
-    | c == rawStrQuote          -> rawStr
-    | c == fmtStrQuote         -> fmtStr
-    | c == natStrQuote          -> natStr
+    | c == rawStrQuote  -> rawStr
+    | c == fmtStrQuote  -> fmtStr
+    | c == natStrQuote  -> natStr
     | decHead c         -> lexNumber
 
     -- Meta
