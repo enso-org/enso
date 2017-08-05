@@ -20,6 +20,7 @@ import Control.Monad.Trans.Resource (MonadThrow, monadThrow)
 import Data.Text.Position (Delta)
 import Data.Parser hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
+import Luna.Syntax.Text.Lexer.Token
 
 
 ---------------------------
@@ -56,34 +57,6 @@ data ParseError = ParseError
     deriving (Generic, Show, Typeable)
 instance Exception ParseError
 instance NFData ParseError
-
-
-
-------------------
--- === Span === --
-------------------
-
--- === Definition === --
-
-data Token a = Token
-    { _span   :: !Delta
-    , _offset :: !Delta
-    , _symbol :: !a
-    } deriving (Eq, Generic)
-makeLenses ''Token
-
-
--- === Instances === --
-
-instance NFData a => NFData (Token a)
-instance Show a => Show (Token a) where
-    showsPrec d t = showParen' d
-        $ showString "Token "
-        . showsPrec' (t ^. span)
-        . showString " "
-        . showsPrec' (t ^. offset)
-        . showString " "
-        . showsPrec' (t ^. symbol)
 
 
 
