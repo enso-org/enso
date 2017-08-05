@@ -1,6 +1,6 @@
 module Luna.Syntax.Text.Lexer.Token where
 
-import Prologue hiding (span)
+import Prologue hiding (span, element)
 import Data.Text.Position (Delta)
 
 
@@ -11,9 +11,9 @@ import Data.Text.Position (Delta)
 -- === Definition === --
 
 data Token a = Token
-    { _span   :: !Delta
-    , _offset :: !Delta
-    , _symbol :: !a
+    { _span    :: !Delta
+    , _offset  :: !Delta
+    , _element :: !a
     } deriving (Eq, Generic)
 makeLenses ''Token
 
@@ -28,4 +28,5 @@ instance Show a => Show (Token a) where
         . showString " "
         . showsPrec' (t ^. offset)
         . showString " "
-        . showsPrec' (t ^. symbol)
+        . showsPrec' (t ^. element)
+    {-# INLINE showsPrec #-}

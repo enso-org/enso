@@ -22,6 +22,8 @@ import System.IO (FilePath)
 
 import Control.Monad.State.Layered
 
+import Luna.Syntax.Text.Lexer.Analysis
+
 eval :: NFData a => a -> IO a
 eval = evaluate . force
 
@@ -60,8 +62,10 @@ mkVariablesL5  i = Text.replicate i "abcde "      ; {-# INLINE mkVariablesL5  #-
 mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
 
 
+
 main = do
-    pprint $ evalDefLexer "ala ' fo` x + y ` o' ola"
+    -- pprint $ tagWithColumn 0 $ evalDefLexer "ala ' fo` x + y `\n o' ola"
+    pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
     defaultMain
         [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable
         , bgroup "variables L1"             $ expCodeGenBenchs evalDefLexer           mkVariablesL1

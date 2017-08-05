@@ -2,8 +2,8 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue hiding (Symbol, List)
-
+import Prologue hiding (Symbol, List, element)
+import Luna.Syntax.Text.Lexer.Token
 
 
 -- FIXME[WD]: TO REFACTOR
@@ -123,6 +123,7 @@ instance NFData Bound
 instance NFData StrType
 instance NFData Numbase
 instance NFData Number
+makeClassy ''Symbol
 makeLenses ''Number
 
 
@@ -139,16 +140,6 @@ checkSpecialVar = \case
     "_"      -> Wildcard
     name     -> Var name
 {-# INLINE checkSpecialVar #-}
-
-isDecDigitChar, isOctDigitChar, isBinDigitChar, isHexDigitChar, isIndentBodyChar :: Char -> Bool
-isDecDigitChar   c = (c >= '0' && c <= '9')                                                           ; {-# INLINE isDecDigitChar   #-}
-isOctDigitChar   c = (c >= '0' && c <= '7')                                                           ; {-# INLINE isOctDigitChar   #-}
-isBinDigitChar   c = (c == '0' || c == '1')                                                           ; {-# INLINE isBinDigitChar   #-}
-isHexDigitChar   c = isDecDigitChar c || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')             ; {-# INLINE isHexDigitChar   #-}
-isIndentBodyChar c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || isDecDigitChar c || c == '_' ; {-# INLINE isIndentBodyChar #-}
-
-opChars :: [Char]
-opChars = "!$%&*+-/<>?^~\\" ; {-# INLINE opChars #-}
 
 matchVar, matchCons, matchOperator, matchModifier, matchStr, matchMetadata :: Symbol -> Maybe Text
 matchNumber   :: Symbol -> Maybe Number
@@ -289,3 +280,10 @@ instance IsTagged Symbol where
         Unknown     {} -> ["Error"]
         Incorrect   {} -> ["Error"]
     {-# INLINE getTags #-}
+
+
+-- === Accessors === --
+
+instance  HasSymbol (Symbol, a) where symbol = _1 ; {-# INLINE symbol #-}
+instance  HasSymbol (a, Symbol) where symbol = _2 ; {-# INLINE symbol #-}
+instance HasSymbol a => HasSymbol (Token a) where symbol = element . symbol ; {-# INLINE symbol #-}
