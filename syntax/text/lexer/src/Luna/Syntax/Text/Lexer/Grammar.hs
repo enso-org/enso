@@ -4,7 +4,7 @@
 {-# LANGUAGE PartialTypeSignatures     #-}
 {-# LANGUAGE Strict                    #-}
 
-module Luna.Syntax.Text.Lexer.Rules where
+module Luna.Syntax.Text.Lexer.Grammar where
 
 import Prologue hiding (List, Type, Symbol, cons, span, range, catch, takeWhile)
 import qualified Prologue as P
