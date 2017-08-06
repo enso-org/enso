@@ -298,6 +298,14 @@ intClass imps = do
         cmp <- compile r
         return (assu, cmp)
 
+    Right (int2TIAssumptions, int2TI) <- runGraph $ do
+        tInt <- cons_ @Draft "Int"
+        tTI  <- cons_ @Draft "TimeInterval"
+        l    <- lam tInt tTI
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp  <- compile r
+        return (assu, cmp)
+
     let plusVal        = toLunaValue tmpImps ((+)  :: Integer -> Integer -> Integer)
         timeVal        = toLunaValue tmpImps ((*)  :: Integer -> Integer -> Integer)
         minusVal       = toLunaValue tmpImps ((-)  :: Integer -> Integer -> Integer)
@@ -309,10 +317,11 @@ intClass imps = do
         predVal        = toLunaValue tmpImps (pred :: Integer -> Integer)
         succVal        = toLunaValue tmpImps (succ :: Integer -> Integer)
         showVal        = toLunaValue tmpImps (convert . show :: Integer -> Text)
-        toJSVal        = toLunaValue tmpImps (Aeson.toJSON :: Integer -> Aeson.Value)
-        toRealVal      = toLunaValue tmpImps (fromIntegral :: Integer -> Double)
-        secondsVal     = toLunaValue tmpImps ((* 1000000) ::  Integer -> Integer)
-        milisecondsVal = toLunaValue tmpImps ((* 1000)    ::  Integer -> Integer)
+        toJSVal        = toLunaValue tmpImps (Aeson.toJSON   :: Integer -> Aeson.Value)
+        toRealVal      = toLunaValue tmpImps (fromIntegral   :: Integer -> Double)
+        secondsVal     = toLunaValue tmpImps (realToFrac            ::  Integer -> Time.DiffTime)
+        minutesVal     = toLunaValue tmpImps ((* 60)   . realToFrac :: Integer -> Time.DiffTime)
+        milisecondsVal = toLunaValue tmpImps ((/ 1000) . realToFrac :: Integer -> Time.DiffTime)
         tmpImps        = imps & importedClasses . at "Int" ?~ klass
         klass          = Class Map.empty $ Map.fromList [ ("+",           Function boxed3Ints plusVal        boxed3IntsAssumptions)
                                                         , ("*",           Function boxed3Ints timeVal        boxed3IntsAssumptions)
@@ -321,8 +330,9 @@ intClass imps = do
                                                         , ("%",           Function boxed3Ints modVal         boxed3IntsAssumptions)
                                                         , ("pred",        Function boxed2Ints predVal        boxed2IntsAssumptions)
                                                         , ("succ",        Function boxed2Ints succVal        boxed2IntsAssumptions)
-                                                        , ("seconds",     Function boxed2Ints secondsVal     boxed2IntsAssumptions)
-                                                        , ("miliseconds", Function boxed2Ints milisecondsVal boxed2IntsAssumptions)
+                                                        , ("seconds",     Function int2TI     secondsVal     int2TIAssumptions)
+                                                        , ("minutes",     Function int2TI     minutesVal     int2TIAssumptions)
+                                                        , ("miliseconds", Function int2TI     milisecondsVal int2TIAssumptions)
                                                         , ("shortRep",    Function int2text   showVal        int2TextAssumptions)
                                                         , ("toText",      Function int2text   showVal        int2TextAssumptions)
                                                         , ("toJSON",      Function int2JSON   toJSVal        int2JSONAssumptions)
@@ -670,15 +680,51 @@ systemStd imps = do
     primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
 
     Right (times2IntervalAssu, times2IntervalIr) <- runGraph $ do
-        tTime  <- cons_ @Draft "Time"
-        tTI <- cons_ @Draft "TimeInterval"
+        tTime <- cons_ @Draft "Time"
+        tTI   <- cons_ @Draft "TimeInterval"
         l1    <- lam tTime tTI
         l2    <- lam tTime l1
         (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp <- compile r
+        cmp   <- compile r
         return (assu, cmp)
     let primDiffTimesVal = toLunaValue std Time.diffUTCTime
         primDiffTimes    = Function times2IntervalIr primDiffTimesVal times2IntervalAssu
+
+    Right (time2TextAssu, time2TextIr) <- runGraph $ do
+        tTime <- cons_ @Draft "Time"
+        tText <- cons_ @Draft "Text"
+        l     <- lam tTime tText
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp   <- compile r
+        return (assu, cmp)
+    let primShowTimeVal = toLunaValue std (convert . show :: Time.UTCTime -> Text)
+        primShowTime    = Function time2TextIr primShowTimeVal time2TextAssu
+
+    Right (ti2TextAssu, ti2TextIr) <- runGraph $ do
+        tTI   <- cons_ @Draft "TimeInterval"
+        tText <- cons_ @Draft "Text"
+        l     <- lam tTI tText
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp   <- compile r
+        return (assu, cmp)
+    let primShowTimeIntervalVal = toLunaValue std (convert . show :: Time.DiffTime -> Text)
+        primShowTimeInterval    = Function ti2TextIr primShowTimeIntervalVal ti2TextAssu
+
+    Right (addTIAssu, addTIIr) <- runGraph $ do
+        tTI   <- cons_ @Draft "TimeInterval"
+        tTime <- cons_ @Draft "Time"
+        l1    <- lam tTime tTime
+        l2    <- lam tTI l1
+        (assu, r) <- mkMonadProofFun $ generalize l2
+        cmp   <- compile r
+        return (assu, cmp)
+    let addTime :: Time.DiffTime -> Time.UTCTime -> Time.UTCTime
+        addTime = \ti t -> Time.addUTCTime (realToFrac ti) t
+        subTime = addTime . negate
+        primAddTimeIntervalVal = toLunaValue std addTime
+        primAddTimeInterval    = Function addTIIr primAddTimeIntervalVal addTIAssu
+        primSubTimeIntervalVal = toLunaValue std subTime
+        primSubTimeInterval    = Function addTIIr primSubTimeIntervalVal addTIAssu
 
     let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
@@ -752,6 +798,10 @@ systemStd imps = do
                                     , ("primPerformHttp", primPerformHttp)
                                     , ("primGetCurrentTime", primGetCurrentTime)
                                     , ("primDiffTimes", primDiffTimes)
+                                    , ("primShowTime", primShowTime)
+                                    , ("primShowTimeInterval", primShowTimeInterval)
+                                    , ("primAddTimeInterval", primAddTimeInterval)
+                                    , ("primSubTimeInterval", primSubTimeInterval)
                                     , ("primFork", fork)
                                     , ("sleep", sleep)
                                     , ("primNewMVar", newEmptyMVar')
@@ -853,7 +903,7 @@ instance FromLunaData Time.DiffTime where
             _  -> throw errorMsg
 
 instance FromLunaData Time.NominalDiffTime where
-    fromLunaData dt = unsafeCoerce <$> (fromLunaData dt :: LunaEff Time.DiffTime)
+    fromLunaData dt = realToFrac <$> (fromLunaData dt :: LunaEff Time.DiffTime)
 
 instance FromLunaData Time.UTCTime where
     fromLunaData t = let errorMsg = "Expected a Time luna object, got unexpected constructor" in
@@ -867,7 +917,7 @@ instance ToLunaData Time.DiffTime where
     toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps) 
 
 instance ToLunaData Time.NominalDiffTime where
-    toLunaData imps nDiffTime = toLunaData imps (unsafeCoerce nDiffTime :: Time.DiffTime)
+    toLunaData imps nDiffTime = toLunaData imps (realToFrac nDiffTime :: Time.DiffTime)
 
 instance ToLunaData Time.UTCTime where
     toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "Time" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)

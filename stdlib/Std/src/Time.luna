@@ -1,3 +1,4 @@
+import Std.System
 
 class Time:
     Time
@@ -5,4 +6,19 @@ class Time:
     def now: primGetCurrentTime
 
     def minus other: primDiffTime self other
+
+    def toText: primShowTime self
+
+    def shortRep: self.toText
+
+class TimeInterval:
+    TimeInterval
+
+    def toText: primShowTimeInterval self
+
+    def shortRep: self.toText
+
+    def ago: primSubTimeInterval self Time.now
+
+    def fromNow: primAddTimeInterval self Time.now
 
