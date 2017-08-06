@@ -31,6 +31,7 @@ import           Luna.Syntax.Text.Lexer.Token
 import Data.Parser hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
 import Luna.Syntax.Text.Lexer.Symbol
+import Luna.Syntax.Text.IO
 
 
 -------------------------
@@ -373,10 +374,7 @@ lexeme s = case s of
 {-# INLINE lexeme #-}
 
 spacing :: Parser Int
-spacing = sum <$> many (spaces <|> tabs) where
-    spaces = Text.length        <$> takeMany1 ' '
-    tabs   = (4*) . Text.length <$> takeMany1 '\t'
-{-# INLINE spacing #-}
+spacing = Text.length <$> takeMany ' ' ; {-# INLINE spacing #-}
 
 
 
@@ -394,10 +392,10 @@ parse        ::              Parser (a, Int) -> EntryStack -> Text     ->   [Tok
 tryParse     ::              Parser (a, Int) -> EntryStack -> Text     ->   Either ParseError [Token a]
 parseFile    :: MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
 tryParseFile :: MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
-parse              = fromLexerResult .:.   tryParse                                                       ; {-# INLINE parse        #-}
-parseFile          = fromLexerResult <∘∘∘> tryParseFile                                                   ; {-# INLINE parseFile    #-}
-tryParse     p s t = sequence . runConduitPure $ parseBase p s (yield t)                                  ; {-# INLINE tryParse     #-}
-tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceFile t .| decodeUtf8C) ; {-# INLINE tryParseFile #-}
+parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}
+parseFile          = fromLexerResult <∘∘∘> tryParseFile                                      ; {-# INLINE parseFile    #-}
+tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
+tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 
 runLexer     :: EntryStack -> Text -> [Token (Symbol, EntryStack)]
 evalLexer    :: EntryStack -> Text -> [Token Symbol]

@@ -23,8 +23,8 @@ isOperator = test . convertTo' @String where
 -- === Special names === --
 
 markerBegin, markerEnd :: Char
-markerBegin = '«'
-markerEnd   = '»'
+markerBegin = '«' ; {-# INLINE markerBegin #-}
+markerEnd   = '»' ; {-# INLINE markerEnd   #-}
 
 metadataHeader :: IsString s => s
 metadataHeader = "META"
