@@ -21,7 +21,7 @@ import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 import           Data.VectorText              (VectorText)
 import qualified Data.VectorText              as VectorText
-import           Luna.Syntax.Text.Lexer.Name  (isRegularOperatorChar, markerBegin, markerEnd, metadataHeader)
+-- import           Luna.Syntax.Text.Lexer.Name  (isRegularOperatorChar, markerBeginChar, markerEndChar, metadataHeader)
 import qualified Data.Text                    as Text
 import           Luna.Syntax.Text.Lexer.Stream (ParseError, conduitParserEither)
 import           Conduit
@@ -241,6 +241,16 @@ parseEsc n m = do
 -- === Config === --
 --------------------
 
+markerBeginChar, markerEndChar :: Char
+markerBeginChar = '«' ; {-# INLINE markerBeginChar #-}
+markerEndChar   = '»' ; {-# INLINE markerEndChar   #-}
+
+metadataHeader :: IsString s => s
+metadataHeader = "META" ; {-# INLINE metadataHeader #-}
+
+mkMetadata :: (IsString s, Semigroup s) => s -> s
+mkMetadata s = "### " <> metadataHeader <> s ; {-# INLINE mkMetadata #-}
+
 lexConfig :: Lexer
 lexConfig = takeMany ' ' *> (lexMetadata {- <|> lexPragma -}) ; {-# INLINE lexConfig #-}
 
@@ -251,10 +261,29 @@ lexComment :: Lexer
 lexComment = Doc <$> takeLine ; {-# INLINE lexComment #-}
 
 lexMarker :: Lexer
-lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd where
-    incorrect = Incorrect . ("Marker " <>) <$> takeTill (== markerEnd)
+lexMarker = token markerBeginChar *> (correct <|> incorrect) <* token markerEndChar where
+    incorrect = Incorrect . ("Marker " <>) <$> takeTill (== markerEndChar)
     correct   = Marker . read . convert <$> takeWhile1 isDecDigitChar
 {-# INLINE lexMarker #-}
+
+
+
+-----------------------
+-- === Operators === --
+-----------------------
+
+regularOperatorChars :: [Char]
+regularOperatorChars = "!$%&*+-/<>?^~\\" ; {-# INLINE regularOperatorChars #-}
+
+isRegularOperatorChar :: Char -> Bool
+isRegularOperatorChar = (`elem` regularOperatorChars) ; {-# INLINE isRegularOperatorChar #-}
+
+isOperator :: Convertible' s String => s -> Bool
+isOperator = test . convertTo' @String where
+    test s = all isRegularOperatorChar s
+          || s `elem` [",", "..", "...", "=="]
+          || (maybeLast s == Just '=') && isOperator (init s)
+{-# INLINE isOperator #-}
 
 
 
@@ -280,7 +309,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '\n'         -> EOL         <$ dropToken
     | c == '\r'         -> EOL         <$ dropToken <* option_ (token '\n')
     | c == ':'          -> handleColons =<< takeMany ':'
-    | c == markerBegin  -> lexMarker
+    | c == markerBeginChar  -> lexMarker
 
     -- Identifiers & Keywords
     | varHead  c        -> checkSpecialVar <$> varBody

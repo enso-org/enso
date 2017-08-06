@@ -11,6 +11,7 @@ import qualified Data.Text                    as Text
 import           Data.Text                    (Text)
 import           Control.Monad.Trans.Resource (MonadResource)
 
+
 sourceReader :: MonadResource m => FilePath -> ConduitM any Text m ()
 sourceReader t = sourcePreprocessor $ sourceFile t .| decodeUtf8C ; {-# INLINE sourceReader #-}
 
