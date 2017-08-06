@@ -1,0 +1,8 @@
+
+class Time:
+    Time
+
+    def now: primGetCurrentTime
+
+    def minus other: primDiffTime self other
+

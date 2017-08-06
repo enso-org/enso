@@ -21,6 +21,8 @@ import qualified Data.MessagePack                             as MsgPack
 import           Data.Scientific                              (toRealFloat)
 import           Data.Set                                     (Set)
 import qualified Data.Set                                     as Set
+import           Data.Time                                    (DiffTime)
+import qualified Data.Time                                    as Time
 import           Data.Text.Lazy                               (Text)
 import qualified Data.Text                                    as AnyText
 import qualified Data.Text.Lazy                               as Text
@@ -69,7 +71,7 @@ import qualified System.Process                               as Process
 
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"] ]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"]]
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -663,6 +665,21 @@ systemStd imps = do
                                    & HTTP.addRequestHeader HTTP.hAccept (pack "*/*")
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [LCons "Text" [], LCons "Text" [], LCons "Binary" []] $ LCons "HttpResponse" []
 
+    let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
+        primGetCurrentTimeVal = performIO Time.getCurrentTime
+    primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
+
+    Right (times2IntervalAssu, times2IntervalIr) <- runGraph $ do
+        tTime  <- cons_ @Draft "Time"
+        tTI <- cons_ @Draft "TimeInterval"
+        l1    <- lam tTime tTI
+        l2    <- lam tTime l1
+        (assu, r) <- mkMonadProofFun $ generalize l2
+        cmp <- compile r
+        return (assu, cmp)
+    let primDiffTimesVal = toLunaValue std Time.diffUTCTime
+        primDiffTimes    = Function times2IntervalIr primDiffTimesVal times2IntervalAssu
+
     let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
 
@@ -733,6 +750,8 @@ systemStd imps = do
                                     , ("parseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
                                     , ("primPerformHttp", primPerformHttp)
+                                    , ("primGetCurrentTime", primGetCurrentTime)
+                                    , ("primDiffTimes", primDiffTimes)
                                     , ("primFork", fork)
                                     , ("sleep", sleep)
                                     , ("primNewMVar", newEmptyMVar')
@@ -824,3 +843,31 @@ instance ToLunaData MsgPack.Object where
     toLunaData imps (MsgPack.ObjectArray  l) = LunaObject $ Object (Constructor "MPArray"  [toLunaData imps l])                             (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectMap    m) = LunaObject $ Object (Constructor "MPMap"    [toLunaData imps m])                             (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectExt  _ _) = LunaError "MessagePack ObjectExt is not supported."
+
+instance FromLunaData Time.DiffTime where
+    fromLunaData dt = let errorMsg = "Expected a TimeInterval luna object, got unexpected constructor" in
+        force' dt >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeInterval" -> fmap Time.picosecondsToDiffTime . fromLunaData . head $ obj ^. constructor . fields
+                _              -> throw errorMsg
+            _  -> throw errorMsg
+
+instance FromLunaData Time.NominalDiffTime where
+    fromLunaData dt = unsafeCoerce <$> (fromLunaData dt :: LunaEff Time.DiffTime)
+
+instance FromLunaData Time.UTCTime where
+    fromLunaData t = let errorMsg = "Expected a Time luna object, got unexpected constructor" in
+        force' t >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "Time" -> Time.UTCTime <$> (Time.ModifiedJulianDay <$> fromLunaData days) <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
+                _      -> throw errorMsg
+            _ -> throw errorMsg
+
+instance ToLunaData Time.DiffTime where
+    toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps) 
+
+instance ToLunaData Time.NominalDiffTime where
+    toLunaData imps nDiffTime = toLunaData imps (unsafeCoerce nDiffTime :: Time.DiffTime)
+
+instance ToLunaData Time.UTCTime where
+    toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "Time" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
