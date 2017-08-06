@@ -30,3 +30,6 @@ instance Show a => Show (Token a) where
         . showString " "
         . showsPrec' (t ^. element)
     {-# INLINE showsPrec #-}
+
+-- FIXME: Required by Megaparsec, it sould not be.
+deriving instance Ord a => Ord (Token a)

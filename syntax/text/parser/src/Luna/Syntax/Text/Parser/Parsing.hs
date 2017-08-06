@@ -98,7 +98,7 @@ import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
 import           Data.VectorText (VectorText)
 import qualified Data.VectorText as VectorText
-
+import qualified Data.Text as Text
 
 
 some' :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
@@ -355,7 +355,7 @@ groupEnd   = symbol $ Lexer.Group Lexer.End
 -- === Instances === --
 
 instance Convertible Lexer.Number Literal.Number where
-    convert (Lexer.NumRep base i f e) = Literal.Number (convert base) i f e
+    convert (Lexer.NumRep base i f e) = Literal.Number (convert base) (convert i) (convert f) (convert e)
 
 instance Convertible Lexer.Numbase Num.Base where
     convert = \case Lexer.Dec -> Num.Dec
@@ -396,18 +396,18 @@ namedOp    = mkNamedAsg IR.var'   opName
 namedIdent = namedVar <|> namedCons <|> namedOp
 
 consName, varName, opName, identName :: SymParser Name
-consName  = satisfy Lexer.matchCons
-varName   = satisfy Lexer.matchVar
-opName    = satisfy Lexer.matchOperator
+consName  = convert <$> satisfy Lexer.matchCons
+varName   = convert <$> satisfy Lexer.matchVar
+opName    = convert <$> satisfy Lexer.matchOperator
 identName = varName <|> consName <|> opName
 funcName  = varName <|> opName
 
 previewVarName :: SymParser Name
 previewVarName = do
     s <- previewNextSymbol
-    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) return $ Lexer.matchVar =<< s
+    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (return . convert) $ Lexer.matchVar =<< s
 
-specificVar, specificCons, specificOp :: Name -> SymParser ()
+specificVar, specificCons, specificOp :: Text -> SymParser ()
 specificVar  = symbol . Lexer.Var
 specificCons = symbol . Lexer.Cons
 specificOp   = symbol . Lexer.Operator
@@ -475,20 +475,20 @@ str :: AsgParser SomeExpr
 str = buildAsg $ do
     rawQuoteBegin
     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-                 $ (\s -> liftIRBApp0 $ IR.string' s) <$> Indent.withCurrent strBody
+                 $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent strBody -- FIXME[WD]: We're converting Text -> String here.
 
-strBody :: SymParser P.String
+strBody :: SymParser Text
 strBody = segStr <|> end <|> nl where
     segStr = (<>) <$> strContent <*> strBody
     end    = mempty <$ rawQuoteEnd
-    nl     = ('\n':) <$ eol <*> (line <|> nl)
+    nl     = Text.cons '\n' <$ eol <*> (line <|> nl)
     line   = do Indent.indentedOrEq
-                (<>) . flip replicate ' ' <$> indentation <*> strBody
+                (<>) . convert . flip replicate ' ' <$> indentation <*> strBody
 
-strContent :: SymParser P.String
+strContent :: SymParser Text
 strContent = satisfy Lexer.matchStr
 
-inlineStr :: SymParser P.String
+inlineStr :: SymParser Text
 inlineStr = Indent.withCurrent $ do
     strContent <* rawQuoteEnd
 
@@ -644,7 +644,7 @@ mfixVarSeg  = do
     if TreeSet.null nameSet
         then return cvar
         else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
-           {-$-} withReservedSymbols (Lexer.Var <$> TreeSet.keys nameSet)
+           {-$-} withReservedSymbols (Lexer.Var . convert <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
            $ do segmentToks <- exprFreeSegmentsLocal
                 namedSegs   <- option mempty (parseMixfixSegments nameSet)
                 if null namedSegs then return (cvar <> segmentToks) else do
@@ -740,7 +740,7 @@ parseMixfixSegments nameSet = do
         Just nameSet' -> do
             let possiblePaths = TreeSet.keys nameSet'
             dropNextToken
-            segment <- withReservedSymbols (Lexer.Var <$> possiblePaths) nonemptyValExpr
+            segment <- withReservedSymbols (Lexer.Var . convert <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
             let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
             ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
 
@@ -952,11 +952,11 @@ parsingPassM p = do
 
 parsingBase :: ( MonadPassManager m, ParsingPassReq_2 m
                , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
-               ) => AsgParser a -> VectorText -> m (a, MarkedExprMap)
+               ) => AsgParser a -> Text -> m (a, MarkedExprMap)
 parsingBase p src = do
-    let stream = Lexer.runLexer src
-    -- pprint stream
-    result <- runParserT (bof *> p <* eof) stream
+    let stream = Lexer.evalDefLexer src
+    result <- runParserT p stream
+    -- result <- runParserT (bof *> p <* eof) stream
     case result of
         Left e -> putStrLn (parseErrorPretty e) >> error "Parser error" -- FIXME[WD]: handle it the proper way
         Right (AsgBldr (IRB irb)) -> do
@@ -965,7 +965,7 @@ parsingBase p src = do
 
 parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
                 , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
-                ) => AsgParser a -> VectorText -> m a
+                ) => AsgParser a -> Text -> m a
 parsingBase_ = view _1 <∘∘> parsingBase
 
 parserPassX  :: MonadPassManager m => AsgParser SomeExpr -> Pass Parsing   m

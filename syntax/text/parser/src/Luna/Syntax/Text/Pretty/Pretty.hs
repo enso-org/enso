@@ -18,7 +18,7 @@ import qualified Language.Symbol.Operator.Assoc as Assoc
 import Luna.Syntax.Text.Scope (Scope, lookupMultipartName)
 import qualified Luna.Syntax.Text.Scope as Scope
 import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
-import Luna.Syntax.Text.Lexer.Name  (isOperator, markerBegin, markerEnd, metadataHeader)
+import Luna.Syntax.Text.Lexer.Grammar  (isOperator, markerBeginChar, markerEndChar, metadataHeader)
 import Language.Symbol (HasLabel, LabelOf, label)
 import System.Log
 import qualified OCI.IR.Name.Multipart as Name
@@ -225,7 +225,7 @@ instance ( MonadIO m -- DEBUG ONLY
         LeftSection  op a      -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
         RightSection op a      -> unnamed . atom . parensed .: flip (<+>) <$> subgenBody op  <*> subgenBody a
         Marked       m a       -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
-        Marker         a       -> return . unnamed . atom $ convert markerBegin <> convert (show a) <> convert markerEnd
+        Marker         a       -> return . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
         ASGRootedFunction  n _ -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
         ASGFunction  n as body -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
         FunctionSig  n tp      -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp

@@ -48,7 +48,7 @@ addUnmarkedExpr expr = modify_ @UnmarkedExprs $ wrapped %~ (expr :)
 
 -- === Definition === --
 
-type MarkerToken = Lexer.LexerToken MarkerId
+type MarkerToken = Lexer.Token MarkerId
 data MarkerState = MarkerState { _lastTokenMarker :: Maybe MarkerToken
                                , _allMarkers      :: [MarkerId]
                                } deriving (Show)

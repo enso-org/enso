@@ -169,7 +169,7 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
         begin <- CodeSpan.viewToRealOffsetWithMarkers_ 1 result
         end   <- CodeSpan.viewToRealOffset_            4 result
         print (begin, end)
-        putStrLn $ "\"" <> convert (VectorText.replace (convert begin) (convert end) "foo" src) <> "\""
+        -- putStrLn $ "\"" <> convert (VectorText.replace (convert begin) (convert end) "foo" src) <> "\""
 
         putStrLn "\n--- === Codegen === ---\n"
         putStrLn . convert =<< CodeGen.subpass CodeGen.SimpleStyle (unsafeGeneralize result)
@@ -218,12 +218,12 @@ uncheckedDeleteStarType e = do
 
 main :: IO ()
 main = do
-    let input :: VectorText
+    let input :: Text
         -- input = "«0»Vector x y z = v\n«1»Scalar a = t"
         input = "«0»Vector x y z = v"
         -- input = "«0"
-    let stream = Lexer.runLexer input :: [Lexer.LexerToken (Lexer.Symbol Name)]
-        st     = buildSpanTree input stream
+    let stream = Lexer.evalDefLexer input :: [Lexer.Token Lexer.Symbol]
+        st     = buildSpanTree (convert input) stream
     -- pprint stream
     -- pprint st
     -- -- putStrLn $ convert (convert stream :: Text)
