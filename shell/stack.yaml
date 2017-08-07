@@ -34,7 +34,7 @@ packages:
 - extra-dep: true
   location: {commit: 9f64b89d26d6064580669538e51c24c50320c2fd, git: 'https://github.com/luna/impossible.git'}
 - extra-dep: true
-  location: {commit: 003c17dd5fc7934869f373ce4c0907d776f0e118, git: 'https://github.com/luna/lens-utils.git'}
+  location: {commit: b45aacbf536194bee5a3c6041231fde1dabdc8fe, git: 'https://github.com/luna/lens-utils.git'}
 - extra-dep: true
   location: {commit: 965e23539a001517994398ae02421334bf77c6e6, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
@@ -60,7 +60,7 @@ packages:
 - extra-dep: true
   location: {commit: 685084ab9a24b4e1a61b88b2591661f86a2d303b, git: 'https://github.com/luna/parsert'}
 - extra-dep: true
-  location: {commit: 458feedd986bb1d495bb61e2b9edcc053470a633, git: 'https://github.com/luna/vector-text'}
+  location: {commit: 4a601893b4d9244be6865026c2de2ef0d4bb3561, git: 'https://github.com/luna/vector-text'}
 - extra-dep: true
   location: {commit: c028e7939bf79853e63bc40f2576d9280dffbb4c, git: 'https://github.com/luna/terminal-text'}
 - extra-dep: true

@@ -25,6 +25,7 @@ import Control.Monad.State.Layered
 
 import Luna.Syntax.Text.Lexer.Analysis
 import qualified Data.Attoparsec.Text32 as T32
+import           Data.VectorText (VectorText)
 import qualified Data.VectorText as VectorText
 
 eval :: NFData a => a -> IO a
@@ -52,17 +53,17 @@ expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
 -- mkCodeRandom :: Int -> VectorText
 -- mkCodeRandom i = convert . P.take i $ Char.chr <$> randomRs (32,100) (mkStdGen 0)
 --
-mkCodeNumbers :: Int -> Text
-mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
+-- mkCodeNumbers :: Int -> Text
+-- mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
 
-mkCodeTerminators, mkBigVariable :: Int -> Text
-mkCodeTerminators i = Text.replicate i ";" ; {-# INLINE mkCodeTerminators #-}
-mkBigVariable     i = Text.replicate i "a" ; {-# INLINE mkBigVariable     #-}
+mkCodeTerminators, mkBigVariable :: IsString s => Int -> s
+mkCodeTerminators i = fromString $ replicate i ';' ; {-# INLINE mkCodeTerminators #-}
+mkBigVariable     i = fromString $ replicate i 'a' ; {-# INLINE mkBigVariable     #-}
 
-mkVariablesL1, mkVariablesL5, mkVariablesL10 :: Int -> Text
-mkVariablesL1  i = Text.replicate i "a "          ; {-# INLINE mkVariablesL1  #-}
-mkVariablesL5  i = Text.replicate i "abcde "      ; {-# INLINE mkVariablesL5  #-}
-mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
+mkVariablesL1, mkVariablesL5, mkVariablesL10 :: IsString s => Int -> s
+mkVariablesL1  i = fromString . mconcat $ replicate i "a "          ; {-# INLINE mkVariablesL1  #-}
+mkVariablesL5  i = fromString . mconcat $ replicate i "abcde "      ; {-# INLINE mkVariablesL5  #-}
+mkVariablesL10 i = fromString . mconcat $ replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
 
 
 
@@ -79,13 +80,20 @@ main = do
     pprint $ tagDisabled $ evalDefLexer ""
     pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
     defaultMain
-        [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable
-        , bgroup "variables L1"             $ expCodeGenBenchs evalDefLexer           mkVariablesL1
-        , bgroup "variables L5"             $ expCodeGenBenchs evalDefLexer           mkVariablesL5
-        , bgroup "variables L10"            $ expCodeGenBenchs evalDefLexer           mkVariablesL10
-        , bgroup "terminators"              $ expCodeGenBenchs evalDefLexer           mkCodeTerminators
-        -- , bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
+        [ bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
+        , bgroup "manual terminator parser"    $ expCodeGenBenchs manualTerminatorParser   mkCodeTerminators
         ]
+        --
+        -- [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable
+        -- , bgroup "variables L1"             $ expCodeGenBenchs evalDefLexer           mkVariablesL1
+        -- , bgroup "variables L5"             $ expCodeGenBenchs evalDefLexer           mkVariablesL5
+        -- , bgroup "variables L10"            $ expCodeGenBenchs evalDefLexer           mkVariablesL10
+        -- , bgroup "terminators"              $ expCodeGenBenchs evalDefLexer           mkCodeTerminators
+        -- -- , bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
+        -- ]
 
--- manualTerminatorParser :: Text -> Either String [Char]
--- manualTerminatorParser = parseOnly $ many (char ';') ; {-# INLINE manualTerminatorParser #-}
+manualTerminatorParser :: Text -> Either String [Char]
+manualTerminatorParser = parseOnly $ many (char ';') ; {-# INLINE manualTerminatorParser #-}
+
+manualTerminatorParser32 :: VectorText -> Either String [Char]
+manualTerminatorParser32 = T32.parseOnly $ many (T32.char ';') ; {-# INLINE manualTerminatorParser32 #-}

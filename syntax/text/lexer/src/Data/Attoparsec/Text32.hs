@@ -410,13 +410,13 @@ parse m s = runParser m (buffer s) 0 Incomplete failK successK ; {-# INLINE pars
 -- -- @
 -- --'parseOnly' (myParser 'Control.Applicative.<*' 'endOfInput')
 -- -- @
--- parseOnly :: Parser a -> Text -> Either String a
--- parseOnly m s = case runParser m (buffer s) 0 Complete failK successK of
---                   Fail _ [] err   -> Left err
---                   Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
---                   Done _ a        -> Right a
---                   _               -> error "parseOnly: impossible error!"
--- {-# INLINE parseOnly #-}
+parseOnly :: Parser a -> VectorText -> Either String a
+parseOnly m s = case runParser m (buffer s) 0 Complete failK successK of
+                  Fail _ [] err   -> Left err
+                  Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
+                  Done _ a        -> Right a
+                  _               -> error "parseOnly: impossible error!"
+{-# INLINE parseOnly #-}
 --
 get :: Parser VectorText
 get = T.Parser $ \t pos more _lose succ -> succ t pos more (VectorText.drop (fromPos pos) $ t ^. txt) ; {-# INLINE get #-}

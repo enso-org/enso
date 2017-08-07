@@ -28,7 +28,7 @@ packages:
 - extra-dep: true
   location: {commit: 9f64b89d26d6064580669538e51c24c50320c2fd, git: 'https://github.com/luna/impossible.git'}
 - extra-dep: true
-  location: {commit: 003c17dd5fc7934869f373ce4c0907d776f0e118, git: 'https://github.com/luna/lens-utils.git'}
+  location: {commit: b45aacbf536194bee5a3c6041231fde1dabdc8fe, git: 'https://github.com/luna/lens-utils.git'}
 - extra-dep: true
   location: {commit: 965e23539a001517994398ae02421334bf77c6e6, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
