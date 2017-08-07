@@ -12,6 +12,7 @@ dependencies:
     - base
     - bytestring
     - containers
+    - deepseq
     - dependent-state
     - luna-core
     - luna-syntax-text-parser

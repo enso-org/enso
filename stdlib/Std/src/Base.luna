@@ -44,6 +44,10 @@ def id a: a
 
 def const a b: a
 
+def when p f: if p then f else None
+
+def unless p f: if p then None else f
+
 def seq a b:
     a
     b

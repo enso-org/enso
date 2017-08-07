@@ -26,16 +26,29 @@ class ProcessResults:
     def getContentsFromStdErr: case self of
         ProcessResults hin hout herr ph: herr . map .getContents
 
-    def putTextToStdIn: case self of
-        ProcessResults hin hout herr ph: hin . maybe None .putText
+    def putTextToStdIn input: case self of
+        ProcessResults hin hout herr ph: hin . maybe None (_ . putText input)
 
     def waitForProcess: case self of
         ProcessResults hin hout herr ph: ph . waitForProcess
+
+    def closeHandles: case self of
+        ProcessResults hin hout herr _:
+            [hin, hout, herr] . map (_ . maybe None (_ . close))
 
 class ProcessDescription:
     ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
 
     def run: primRunProcess self
+
+def withForkWait async body:
+    mVar = newMVar
+    def forkB:
+        res = async
+        mVar.put res
+    fork forkB
+    body mVar.take
+
 
 class Process:
     Process
@@ -45,7 +58,13 @@ class Process:
         pr = cp . run
         out = pr . getContentsFromStdOut
         err = pr . getContentsFromStdErr
-        ex  = pr . waitForProcess
+        def action waitOut waitErr:
+            unless (stdin . isEmpty) (pr . putTextToStdIn stdin)
+            waitOut
+            waitErr
+        def forkAction out err: withForkWait (primEvaluate out) (o: withForkWait (primEvaluate err) (action o))
+        out . map (o: err . map (forkAction o))
+        ex = pr . waitForProcess
         Tuple3 out err ex
 
 

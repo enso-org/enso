@@ -11,6 +11,8 @@ import qualified Data.Aeson                                   as Aeson
 import           Data.ByteString.Char8                        (pack)
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
+import           Control.DeepSeq                              (rnf)
+import           Control.Exception                            (evaluate)
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
@@ -366,6 +368,20 @@ stringClass imps = do
         (assu, r) <- mkMonadProofFun $ generalize l2
         cmp <- compile r
         return (assu, cmp)
+    Right (isEmptyAssu, isEmptyIr) <- runGraph $ do
+        tText     <- cons_ @Draft "Text"
+        tBool     <- cons_ @Draft "Bool"
+        l         <- lam tText tBool
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp       <- compile r
+        return (assu, cmp)
+    Right (lengthAssu, lengthIr) <- runGraph $ do
+        tText     <- cons_ @Draft "Text"
+        tInt      <- cons_ @Draft "Int"
+        l         <- lam tText tInt
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp       <- compile r
+        return (assu, cmp)
     Right (textAssu, textIr) <- runGraph $ do
         tText <- cons_ @Draft "Text"
         l       <- lam tText tText
@@ -395,10 +411,12 @@ stringClass imps = do
         return (assu, cmp)
     let plusVal       = toLunaValue tmpImps ((<>) :: Text -> Text -> Text)
         shortRepVal   = toLunaValue tmpImps (Text.take 100 :: Text -> Text)
-        idVal         = toLunaValue tmpImps (id   :: Text -> Text)
+        idVal         = toLunaValue tmpImps (id :: Text -> Text)
         eqVal         = toLunaValue tmpImps ((==) :: Text -> Text -> Bool)
         gtVal         = toLunaValue tmpImps ((>)  :: Text -> Text -> Bool)
         ltVal         = toLunaValue tmpImps ((<)  :: Text -> Text -> Bool)
+        isEmptyVal    = toLunaValue tmpImps (Text.null :: Text -> Bool)
+        lengthVal     = toLunaValue tmpImps (fromIntegral . Text.length :: Text -> Integer)
         isPrefixOfVal = toLunaValue tmpImps Text.isPrefixOf
         hasPrefixVal  = toLunaValue tmpImps (flip Text.isPrefixOf)
         wordsVal      = toLunaValue tmpImps Text.words
@@ -413,6 +431,8 @@ stringClass imps = do
         tmpImps       = imps & importedClasses . at "Text" ?~ klass
         klass         = Class Map.empty $ Map.fromList [ ("+",          Function plusIr     plusVal       plusAssu)
                                                        , ("equals",     Function eqIr       eqVal         eqAssu)
+                                                       , ("isEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)
+                                                       , ("length",     Function lengthIr   lengthVal     lengthAssu)
                                                        , (">",          Function eqIr       gtVal         eqAssu)
                                                        , ("<",          Function eqIr       ltVal         eqAssu)
                                                        , ("isPrefixOf", Function eqIr       isPrefixOfVal eqAssu)
@@ -709,6 +729,12 @@ systemStd imps = do
         hCloseVal = withExceptions . Handle.hClose
     hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "FileHandle" []] (LCons "None" [])
 
+    let evaluateVal :: Text -> LunaEff Text
+        evaluateVal t = withExceptions $ do
+            evaluate $ rnf t
+            return t
+    evaluate' <- typeRepForIO (toLunaValue std evaluateVal) [LCons "Text" []] (LCons "Text" [])
+
     let hGetContentsVal :: Handle -> LunaEff Text
         hGetContentsVal = fmap Text.pack . withExceptions . Handle.hGetContents
     hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [LCons "FileHandle" []] (LCons "Text" [])
@@ -747,6 +773,7 @@ systemStd imps = do
                                     , ("primHGetLine", hGetLine')
                                     , ("primHPutText", hPutText')
                                     , ("primWaitForProcess", waitForProcess')
+                                    , ("primEvaluate", evaluate')
                                     ]
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
