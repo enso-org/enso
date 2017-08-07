@@ -6,7 +6,7 @@
 
 module Luna.Syntax.Text.Lexer.Grammar where
 
-import Prologue hiding (List, Type, Symbol, cons, span, range, catch, takeWhile, Text)
+import Prologue hiding (List, Type, Symbol, cons, span, range, catch, takeWhile)
 import qualified Prologue as P
 
 import           Control.Monad.State.Layered
@@ -21,10 +21,10 @@ import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 import           Data.VectorText              (VectorText)
 import qualified Data.VectorText              as VectorText
-import qualified Data.VectorText              as Text
+import qualified Data.Text                    as Text
 import           Luna.Syntax.Text.Lexer.Stream (ParseError, conduitParserEither)
 import           Conduit
-import qualified Data.Attoparsec.Text32 as Parsec
+import qualified Data.Attoparsec.Text as Parsec
 import           Luna.Syntax.Text.Lexer.Token
 
 import Data.Parser hiding (Token)
@@ -341,7 +341,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           varHead  c        = between c 'a' 'z' || c == '_'
           consHead c        = between c 'A' 'Z'
           consBody          = indentBaseBody
-          varBody           = indentBaseBody <**> (option id $ Text.snoc <$> (token '?' <|> token '!'))
+          varBody           = indentBaseBody <**> (option id $ flip Text.snoc <$> (token '?' <|> token '!'))
                                              <**> (option id $ flip (<>)      <$> takeMany1 '\'')
           indentBaseBody    = takeWhile isIndentBodyChar
           handleColons      = handleReps  [BlockStart, Typed]
@@ -423,8 +423,8 @@ parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -
 tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
 parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}
 parseFile          = fromLexerResult <∘∘∘> tryParseFile                                      ; {-# INLINE parseFile    #-}
-tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer2 t)            ; {-# INLINE tryParse     #-}
-tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader2 t) ; {-# INLINE tryParseFile #-}
+tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
+tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 
 runLexer     :: EntryStack -> Text -> [Token (Symbol, EntryStack)]
 evalLexer    :: EntryStack -> Text -> [Token Symbol]

@@ -2,14 +2,14 @@
 
 module Main where
 
-import Prologue as P hiding (Symbol, Text)
+import Prologue as P hiding (Symbol)
 import Criterion.Main
 import Luna.Syntax.Text.Lexer
 import System.Random
 import System.IO (hFlush, hSetBuffering, stdout, BufferMode(NoBuffering))
 -- import Data.Text (Text)
 -- import qualified Data.Text as Text
-import qualified Data.VectorText as Text
+import qualified Data.Text as Text
 import System.TimeIt
 
 import qualified Data.Char as Char
@@ -41,28 +41,28 @@ expCodeGen f i = do
     return out
 
 maxExpCodeLen :: Int
-maxExpCodeLen = 4
+maxExpCodeLen = 6
 
 -- expCodeGenBench  :: (Int -> Text) -> Int -> Benchmark
 -- expCodeGenBenchs :: (Int -> Text) -> [Benchmark]
 expCodeGenBench  p f i = env (expCodeGen f i) $ bench ("10e" <> show i) . nf p
-expCodeGenBenchs p f   = expCodeGenBench p f <$> [4..maxExpCodeLen]
+expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
 --
 --
 -- mkCodeRandom :: Int -> VectorText
 -- mkCodeRandom i = convert . P.take i $ Char.chr <$> randomRs (32,100) (mkStdGen 0)
 --
 mkCodeNumbers :: Int -> Text
-mkCodeNumbers i = Text.replicate' i $ convert ['0'..'9']
+mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
 
 mkCodeTerminators, mkBigVariable :: Int -> Text
-mkCodeTerminators i = Text.replicate' i ";" ; {-# INLINE mkCodeTerminators #-}
-mkBigVariable     i = Text.replicate' i "a" ; {-# INLINE mkBigVariable     #-}
+mkCodeTerminators i = Text.replicate i ";" ; {-# INLINE mkCodeTerminators #-}
+mkBigVariable     i = Text.replicate i "a" ; {-# INLINE mkBigVariable     #-}
 
 mkVariablesL1, mkVariablesL5, mkVariablesL10 :: Int -> Text
-mkVariablesL1  i = Text.replicate' i "a "          ; {-# INLINE mkVariablesL1  #-}
-mkVariablesL5  i = Text.replicate' i "abcde "      ; {-# INLINE mkVariablesL5  #-}
-mkVariablesL10 i = Text.replicate' i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
+mkVariablesL1  i = Text.replicate i "a "          ; {-# INLINE mkVariablesL1  #-}
+mkVariablesL5  i = Text.replicate i "abcde "      ; {-# INLINE mkVariablesL5  #-}
+mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
 
 
 

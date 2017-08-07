@@ -2,11 +2,10 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue hiding (Symbol, List, element, Text)
+import Prologue hiding (Symbol, List, element)
 import Luna.Syntax.Text.Lexer.Token
 
 import Data.VectorText (VectorText)
-type Text = VectorText
 
 -- FIXME[WD]: TO REFACTOR
 class ShowCons a where
