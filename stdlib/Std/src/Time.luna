@@ -11,6 +11,9 @@ class Time:
 
     def shortRep: self.toText
 
+    def equals other: primTimesEq self other
+
+
 class TimeInterval:
     TimeInterval
 
@@ -21,4 +24,6 @@ class TimeInterval:
     def ago: primSubTimeInterval self Time.now
 
     def fromNow: primAddTimeInterval self Time.now
+
+    def equals other: primTIEq self other
 
