@@ -25,8 +25,8 @@ import Control.Monad.State.Layered
 
 import Luna.Syntax.Text.Lexer.Analysis
 import qualified Data.Attoparsec.Text32 as T32
-import           Data.VectorText (VectorText)
-import qualified Data.VectorText as VectorText
+import           Data.Container.Text32 (Text32)
+import qualified Data.Container.Text32 as Text32
 
 eval :: NFData a => a -> IO a
 eval = evaluate . force
@@ -50,7 +50,7 @@ expCodeGenBench  p f i = env (expCodeGen f i) $ bench ("10e" <> show i) . nf p
 expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
 --
 --
--- mkCodeRandom :: Int -> VectorText
+-- mkCodeRandom :: Int -> Text32
 -- mkCodeRandom i = convert . P.take i $ Char.chr <$> randomRs (32,100) (mkStdGen 0)
 --
 -- mkCodeNumbers :: Int -> Text
@@ -68,9 +68,10 @@ mkVariablesL10 i = fromString . mconcat $ replicate i "abcdefghij " ; {-# INLINE
 
 
 main = do
-
-    -- (txt0 :: VectorText) <- eval $ mkCodeTerminators (10^7)
-    -- (txt1 :: VectorText) <- eval $ mkVariablesL1     (10^6)
+    print $ Text32.breakAll (== 'a') ("abcadefaga" :: Text32)
+    print $ Text32.takeWhile (<= 'c') ("abcde" :: Text32)
+    -- (txt0 :: Text32) <- eval $ mkCodeTerminators (10^7)
+    -- (txt1 :: Text32) <- eval $ mkVariablesL1     (10^6)
     -- print "start 0"
     -- out <- eval $ manualTerminatorParser32 txt0
     -- print "start 1"
@@ -78,7 +79,7 @@ main = do
     -- -- out <- eval $ evalDefLexer txt1
     -- print "end"
 
--- parsePrim :: VectorText -> Either String [(Symbol, Int)]
+-- parsePrim :: Text32 -> Either String [(Symbol, Int)]
 
     -- -- pprint $ tagWithColumn 0 $ evalDefLexer "ala ' fo` x + y `\n o' ola"
     -- print $ T32.parse (T32.satisfy (== 'a')) "abcdefgh"
@@ -86,7 +87,7 @@ main = do
     -- print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b') >> T32.satisfy (== 'c')) "abcdefgh"
     -- print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b') >> T32.satisfy (== 'd')) "abcdefgh"
     --
-    -- print $ VectorText.commonPrefixes "x" "fooquux"
+    -- print $ Text32.commonPrefixes "x" "fooquux"
     --
     --
     -- pprint $ tagDisabled $ evalDefLexer ""
@@ -95,7 +96,10 @@ main = do
         -- [ bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
         -- , bgroup "manual terminator parser"    $ expCodeGenBenchs manualTerminatorParser   mkCodeTerminators
         -- ]
-        --
+        -- --
+        -- [ bgroup "t32"             $ expCodeGenBenchs (Text32.takeWhile (== 'a')) mkBigVariable
+        -- , bgroup "t16"             $ expCodeGenBenchs (Text.takeWhile (== 'a'))   mkBigVariable
+        -- ]
         [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable
         , bgroup "variables L1"             $ expCodeGenBenchs evalDefLexer           mkVariablesL1
         , bgroup "variables L5"             $ expCodeGenBenchs evalDefLexer           mkVariablesL5
@@ -107,5 +111,5 @@ main = do
 manualTerminatorParser :: Text -> Either String [Char]
 manualTerminatorParser = parseOnly $ many (char ';') ; {-# INLINE manualTerminatorParser #-}
 
-manualTerminatorParser32 :: VectorText -> Either String [Char]
+manualTerminatorParser32 :: Text32 -> Either String [Char]
 manualTerminatorParser32 = T32.parseOnly $ many (T32.char ';') ; {-# INLINE manualTerminatorParser32 #-}

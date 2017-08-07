@@ -19,8 +19,8 @@ import           Data.Text.Position           (Delta, Position, Offset)
 import qualified Data.Text.Position           as Position
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
-import           Data.VectorText              (VectorText)
-import qualified Data.VectorText              as Text
+import           Data.Container.Text32        (Text32)
+import qualified Data.Container.Text32        as Text
 -- import qualified Data.Text                    as Text
 import           Luna.Syntax.Text.Lexer.Stream (ParseError, conduitParserEither)
 import           Conduit
@@ -433,10 +433,10 @@ runLexer     = parse lexerCont ; {-# INLINE runLexer     #-}
 evalLexer    = parse lexer     ; {-# INLINE evalLexer    #-}
 evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
 
-parsePrim :: VectorText -> Either String [(Symbol, Int)]
+parsePrim :: Text32 -> Either String [(Symbol, Int)]
 parsePrim t = Parsec.parseOnly (flip (evalStateT @EntryStack) def (many lexer)) t ; {-# INLINE parsePrim #-}
 
--- parseOnly :: Parser a -> VectorText -> Either String a
+-- parseOnly :: Parser a -> Text32 -> Either String a
 
 -- === STX / ETX handling === --
 

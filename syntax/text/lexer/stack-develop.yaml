@@ -35,6 +35,6 @@ extra-deps:
     - serialport-0.4.7
     - attoparsec-0.13.2.0
 
-ghc-options:
-    "*": -fenable-rewrite-rules -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+# ghc-options:
+    # "*": -fenable-rewrite-rules -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
     # "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100

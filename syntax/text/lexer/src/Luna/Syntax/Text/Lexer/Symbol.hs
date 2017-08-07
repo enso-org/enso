@@ -5,9 +5,9 @@ module Luna.Syntax.Text.Lexer.Symbol where
 import Prologue hiding (Symbol, List, element, Text)
 import Luna.Syntax.Text.Lexer.Token
 
-import Data.VectorText (VectorText)
+import Data.Container.Text32 (Text32)
 
-type Text = VectorText
+type Text = Text32
 -- FIXME[WD]: TO REFACTOR
 class ShowCons a where
     showCons :: a -> Text

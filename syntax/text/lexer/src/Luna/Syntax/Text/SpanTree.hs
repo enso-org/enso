@@ -8,8 +8,8 @@ import qualified Prelude                as P
 import qualified Data.FingerTree        as FT
 import           Data.FingerTree        (Measured, FingerTree, takeUntil, dropUntil, measure)
 import           Data.Text.Position     (Delta)
-import           Data.VectorText        (VectorText)
-import qualified Data.VectorText        as VectorText
+import           Data.Container.Text32  (Text32)
+import qualified Data.Container.Text32  as Text32
 import qualified Luna.Syntax.Text.Lexer as Lexer
 import qualified Luna.Syntax.Text.Lexer.Stream as Lexer
 
@@ -103,18 +103,18 @@ textSpanned   = Spanned . textSpan
 offSpanned    = Spanned . offSpan
 markerSpanned = Spanned . markerSpan
 
-spannedText :: VectorText -> Spanned VectorText
-spannedText t = textSpanned (convert $ VectorText.length t) t
+spannedText :: Text32 -> Spanned Text32
+spannedText t = textSpanned (convert $ Text32.length t) t
 
-splitSpannedText :: Int -> Spanned VectorText -> (Spanned VectorText, Spanned VectorText)
-splitSpannedText i st = over both spannedText $ VectorText.splitAt i (st ^. value)
+splitSpannedText :: Int -> Spanned Text32 -> (Spanned Text32, Spanned Text32)
+splitSpannedText i st = over both spannedText $ Text32.splitAt i (st ^. value)
 
-insertIntoSpannedText :: Int -> VectorText -> Spanned VectorText -> Spanned VectorText
+insertIntoSpannedText :: Int -> Text32 -> Spanned Text32 -> Spanned Text32
 insertIntoSpannedText i t st = spannedText $ pfx <> t <> sfx where
-    (pfx,sfx) = VectorText.splitAt i (st ^. value)
+    (pfx,sfx) = Text32.splitAt i (st ^. value)
 
-initSpannedText :: Spanned VectorText -> Spanned VectorText
-initSpannedText st = spannedText . VectorText.init $ st ^. value
+initSpannedText :: Spanned Text32 -> Spanned Text32
+initSpannedText st = spannedText . Text32.unsafeInit $ st ^. value
 
 
 -- === Instances === --
@@ -199,7 +199,7 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b
 
 -- === Spantree construction === --
 
-buildSpanTree :: VectorText -> [Lexer.Token Lexer.Symbol] -> Spantree VectorText
+buildSpanTree :: Text32 -> [Lexer.Token Lexer.Symbol] -> Spantree Text32
 buildSpanTree src = \case
     []     -> empty
     (t:ts) -> tailTree & case t ^. Lexer.symbol of
@@ -209,8 +209,8 @@ buildSpanTree src = \case
               off              = t ^. Lexer.offset
               tailTree         = addOffSpan $ buildSpanTree src'' ts
               addOffSpan       = preprendSpan off $ flip offSpanned offSrc
-              (txtSrc, src')   = VectorText.splitAt (convert span) src
-              (offSrc, src'')  = VectorText.splitAt (convert off)  src'
+              (txtSrc, src')   = Text32.splitAt (convert span) src
+              (offSrc, src'')  = Text32.splitAt (convert off)  src'
               preprendSpan d f = if d > 0 then (f d <|) else id
 
 
@@ -242,9 +242,9 @@ viewToRealBlock st (left, right) = (len, r' + len - shift) where
 
 -- === Text modification === --
 
-insertText             ::         Delta -> VectorText -> Spantree VectorText -> Spantree VectorText
-insertTextBeforeMarker ::         Delta -> VectorText -> Spantree VectorText -> Spantree VectorText
-insertTextByMarker     :: Bool -> Delta -> VectorText -> Spantree VectorText -> Spantree VectorText
+insertText             ::         Delta -> Text32 -> Spantree Text32 -> Spantree Text32
+insertTextBeforeMarker ::         Delta -> Text32 -> Spantree Text32 -> Spantree Text32
+insertTextByMarker     :: Bool -> Delta -> Text32 -> Spantree Text32 -> Spantree Text32
 insertText             = insertTextByMarker True
 insertTextBeforeMarker = insertTextByMarker False
 insertTextByMarker skipMarkers d t st = pre <> if betweenSegments then simplePost else complexPost where
@@ -255,5 +255,5 @@ insertTextByMarker skipMarkers d t st = pre <> if betweenSegments then simplePos
         Just (head, tail) -> insertIntoSpannedText (convert shift) t head <| tail
         Nothing           -> singleton $ spannedText t
 
-breakLine :: Delta -> Spantree VectorText -> Spantree VectorText
+breakLine :: Delta -> Spantree Text32 -> Spantree Text32
 breakLine = flip (insertTextByMarker False) "\n"

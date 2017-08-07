@@ -21,39 +21,41 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Unsafe as T
 
-import Data.VectorText (VectorText)
-import qualified Data.VectorText as VectorText
+import           Data.Container.Text32 (Text32)
+import qualified Data.Container.Text32 as Text32
+-- import Data.Text32 (Text32)
+-- import qualified Data.Text32 as Text32
 import Control.Lens hiding (lengthOf)
 
-type Parser = T.Parser VectorText
-type Result = IResult VectorText
+type Parser = T.Parser Text32
+type Result = IResult Text32
 
 -- data Buffer = Buffer
---     { _txt :: {-# UNPACK #-} !VectorText
+--     { _txt :: {-# UNPACK #-} !Text32
 --     , _off :: {-# UNPACK #-} !Int
 --     }
 -- makeLenses ''Buffer
 
-buffer :: VectorText -> Buffer
+buffer :: Text32 -> Buffer
 buffer = id ; {-# INLINE buffer #-}
 -- buffer t = Buffer t 0 ; {-# INLINE buffer #-}
 
-type Buffer = VectorText
-type instance State VectorText = Buffer
+type Buffer = Text32
+type instance State Text32 = Buffer
 
-type Failure r = T.Failure VectorText Buffer r
-type Success a r = T.Success VectorText Buffer a r
+type Failure r = T.Failure Text32 Buffer r
+type Success a r = T.Success Text32 Buffer a r
 
 
-instance Chunk VectorText where
-  type ChunkElem VectorText = Char
-  nullChunk                  = VectorText.null               ; {-# INLINE nullChunk       #-}
+instance Chunk Text32 where
+  type ChunkElem Text32 = Char
+  nullChunk                  = Text32.null               ; {-# INLINE nullChunk       #-}
   pappendChunk               = bufAppend                     ; {-# INLINE pappendChunk    #-}
-  atBufferEnd  _             = Pos . VectorText.length       ; {-# INLINE atBufferEnd     #-}
-  bufferElemAt _ (Pos i) b   = (,1) <$> VectorText.index b i ; {-# INLINE bufferElemAt    #-}
+  atBufferEnd  _             = Pos . Text32.length       ; {-# INLINE atBufferEnd     #-}
+  bufferElemAt _ (Pos i) b   = (,1) <$> Text32.index b i ; {-# INLINE bufferElemAt    #-}
   chunkElemToChar _          = id                            ; {-# INLINE chunkElemToChar #-}
 
-bufAppend :: Buffer -> VectorText -> Buffer
+bufAppend :: Buffer -> Text32 -> Buffer
 bufAppend = (<>) ; {-# INLINE bufAppend #-}
 
 -- instance (a ~ Text) => IsString (Parser a) where
@@ -62,7 +64,7 @@ bufAppend = (<>) ; {-# INLINE bufAppend #-}
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p = do
   c <- ensure 1
-  let !h = VectorText.unsafeHead c
+  let !h = Text32.unsafeHead c
   if p h then advance 1 >> return h
          else fail "satisfy"
 {-# INLINE satisfy #-}
@@ -70,14 +72,14 @@ satisfy p = do
 skip :: (Char -> Bool) -> Parser ()
 skip p = do
   c <- ensure 1
-  let !h = VectorText.unsafeHead c
+  let !h = Text32.unsafeHead c
   if p h then advance 1
          else fail "skip"
 
 satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
   s <- ensure 1
-  let c = f $! VectorText.unsafeHead s
+  let c = f $! Text32.unsafeHead s
   if p c then advance 1 >> return c
          else fail "satisfyWith"
 {-# INLINE satisfyWith #-}
@@ -109,46 +111,46 @@ satisfyWith f p = do
 -- -- partial match, and will consume the letters @\'f\'@ and @\'o\'@
 -- -- before failing.  In attoparsec, the above parser will /succeed/ on
 -- -- that input, because the failed first branch will consume nothing.
-string :: VectorText -> Parser VectorText
+string :: Text32 -> Parser Text32
 string s = string_ (stringSuspended id) id s
 {-# INLINE string #-}
 --
-string_ :: (forall r. VectorText -> VectorText -> Buffer -> Pos -> More
-            -> Failure r -> Success VectorText r -> Result r)
-        -> (VectorText -> VectorText)
-        -> VectorText -> Parser VectorText
+string_ :: (forall r. Text32 -> Text32 -> Buffer -> Pos -> More
+            -> Failure r -> Success Text32 r -> Result r)
+        -> (Text32 -> Text32)
+        -> Text32 -> Parser Text32
 string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
   let s  = f s0
     --   ft = f (Buf.unbufferAt (fromPos pos) t) - ???
-      ft = f (VectorText.drop (fromPos pos) t)
-  in case VectorText.commonPrefixes s ft of
+      ft = f (Text32.unsafeDrop (fromPos pos) t)
+  in case Text32.commonPrefixes s ft of
        Nothing
-         | VectorText.null s  -> succ t pos more mempty
-         | VectorText.null ft -> suspended s s t pos more lose succ
+         | Text32.null s  -> succ t pos more mempty
+         | Text32.null ft -> suspended s s t pos more lose succ
          | otherwise          -> lose t pos more [] "string"
        Just (pfx,ssfx,tsfx)
-         | VectorText.null ssfx       -> let l = Pos (VectorText.length pfx)
+         | Text32.null ssfx       -> let l = Pos (Text32.length pfx)
                                 in succ t (pos + l) more (substring pos l t)
-         | not (VectorText.null tsfx) -> lose t pos more [] "string"
+         | not (Text32.null tsfx) -> lose t pos more [] "string"
          | otherwise         -> suspended s ssfx t pos more lose succ
 {-# INLINE string_ #-}
 --
-stringSuspended :: (VectorText -> VectorText)
-                -> VectorText -> VectorText -> Buffer -> Pos -> More
+stringSuspended :: (Text32 -> Text32)
+                -> Text32 -> Text32 -> Buffer -> Pos -> More
                 -> Failure r
-                -> Success VectorText r
+                -> Success Text32 r
                 -> Result r
 stringSuspended f s000 s0 t0 pos0 more0 lose0 succ0 =
     runParser (demandInput_ >>= go) t0 pos0 more0 lose0 succ0
   where
     go s' = T.Parser $ \t pos more lose succ ->
       let s = f s'
-      in case VectorText.commonPrefixes s0 s of
+      in case Text32.commonPrefixes s0 s of
         Nothing         -> lose t pos more [] "string"
         Just (_pfx,ssfx,tsfx)
-          | VectorText.null ssfx -> let l = Pos (VectorText.length s000)
+          | Text32.null ssfx -> let l = Pos (Text32.length s000)
                            in succ t (pos + l) more (substring pos l t)
-          | VectorText.null tsfx -> stringSuspended f s000 ssfx t pos more lose succ
+          | Text32.null tsfx -> stringSuspended f s000 ssfx t pos more lose succ
           | otherwise   -> lose t pos more [] "string"
 --
 -- -- | Satisfy a literal string, ignoring case.
@@ -216,9 +218,9 @@ stringSuspended f s000 s0 t0 pos0 more0 lose0 succ0 =
 -- -- combinators such as 'Control.Applicative.many', because such
 -- -- parsers loop until a failure occurs.  Careless use will thus result
 -- -- in an infinite loop.
-takeWhile :: (Char -> Bool) -> Parser VectorText
+takeWhile :: (Char -> Bool) -> Parser Text32
 takeWhile p = do
-    h <- VectorText.takeWhile p <$> get
+    h <- Text32.takeWhile p <$> get
     continue <- inputSpansChunks (size h)
     -- only use slow concat path if necessary
     if continue
@@ -226,10 +228,10 @@ takeWhile p = do
       else return h
 {-# INLINE takeWhile #-}
 
-takeWhileAcc :: (Char -> Bool) -> [VectorText] -> Parser VectorText
+takeWhileAcc :: (Char -> Bool) -> [Text32] -> Parser Text32
 takeWhileAcc p = go where
     go acc = do
-        h <- VectorText.takeWhile p <$> get
+        h <- Text32.takeWhile p <$> get
         continue <- inputSpansChunks (size h)
         if continue then go (h:acc)
                     else return $ concatReverse (h:acc)
@@ -306,10 +308,10 @@ takeWhileAcc p = go where
 -- -- This parser requires the predicate to succeed on at least one
 -- -- character of input: it will fail if the predicate never returns
 -- -- 'True' or if there is no input left.
-takeWhile1 :: (Char -> Bool) -> Parser VectorText
+takeWhile1 :: (Char -> Bool) -> Parser Text32
 takeWhile1 p = do
   (`when` demandInput) =<< endOfChunk
-  h <- VectorText.takeWhile p <$> get
+  h <- Text32.takeWhile p <$> get
   let size' = size h
   when (size' == 0) $ fail "takeWhile1"
   advance size'
@@ -364,13 +366,13 @@ peekChar :: Parser (Maybe Char)
 peekChar = T.Parser $ \t pos more _lose succ ->
   case () of
     _| pos < lengthOf t ->
-       let !c = VectorText.unsafeIndex t (fromPos pos) -- Buf.iter t (fromPos pos) ???
+       let !c = Text32.unsafeIndex t (fromPos pos) -- Buf.iter t (fromPos pos) ???
        in succ t pos more (Just c)
      | more == Complete ->
        succ t pos more Nothing
      | otherwise ->
        let succ' t' pos' more' =
-             let !c = VectorText.unsafeIndex t' (fromPos pos')
+             let !c = Text32.unsafeIndex t' (fromPos pos')
              in succ t' pos' more' (Just c)
            lose' t' pos' more' = succ t' pos' more' Nothing
        in prompt t pos more lose' succ'
@@ -381,7 +383,7 @@ peekChar = T.Parser $ \t pos more _lose succ ->
 peekChar' :: Parser Char
 peekChar' = do
   s <- ensure 1
-  return $! VectorText.unsafeHead s
+  return $! Text32.unsafeHead s
 {-# INLINE peekChar' #-}
 --
 -- -- | Match either a single newline character @\'\\n\'@, or a carriage
@@ -391,16 +393,16 @@ peekChar' = do
 --
 -- | Terminal failure continuation.
 failK :: Failure a
-failK t (Pos pos) _more stack msg = Fail (VectorText.drop pos t) stack msg
+failK t (Pos pos) _more stack msg = Fail (Text32.unsafeDrop pos t) stack msg
 {-# INLINE failK #-}
 --
 -- -- | Terminal success continuation.
 successK :: Success a a
-successK t (Pos pos) _more a = Done (VectorText.drop pos t) a
+successK t (Pos pos) _more a = Done (Text32.unsafeDrop pos t) a
 {-# INLINE successK #-}
 
 -- -- | Run a parser.
-parse :: Parser a -> VectorText -> Result a
+parse :: Parser a -> Text32 -> Result a
 parse m s = runParser m (buffer s) 0 Incomplete failK successK ; {-# INLINE parse #-}
 --
 -- -- | Run a parser that cannot be resupplied via a 'Partial' result.
@@ -412,7 +414,7 @@ parse m s = runParser m (buffer s) 0 Incomplete failK successK ; {-# INLINE pars
 -- -- @
 -- --'parseOnly' (myParser 'Control.Applicative.<*' 'endOfInput')
 -- -- @
-parseOnly :: Parser a -> VectorText -> Either String a
+parseOnly :: Parser a -> Text32 -> Either String a
 parseOnly m s = case runParser m (buffer s) 0 Complete failK successK of
                   Fail _ [] err   -> Left err
                   Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
@@ -420,8 +422,8 @@ parseOnly m s = case runParser m (buffer s) 0 Complete failK successK of
                   _               -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
 --
-get :: Parser VectorText
-get = T.Parser $ \t pos more _lose succ -> succ t pos more (VectorText.drop (fromPos pos) t) ; {-# INLINE get #-}
+get :: Parser Text32
+get = T.Parser $ \t pos more _lose succ -> succ t pos more (Text32.unsafeDrop (fromPos pos) t) ; {-# INLINE get #-}
 --
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ -> succ t pos more (pos == lengthOf t) ; {-# INLINE endOfChunk #-}
@@ -440,7 +442,7 @@ advance :: Pos -> Parser ()
 advance n = T.Parser $ \t pos more _lose succ -> succ t (pos+n) more () ; {-# INLINE advance #-}
 
 ensureSuspended :: Int -> Buffer -> Pos -> More
-                -> Failure r -> Success VectorText r
+                -> Failure r -> Success Text32 r
                 -> Result r
 ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
@@ -452,7 +454,7 @@ ensureSuspended n t pos more lose succ =
 
 -- -- | If at least @n@ elements of input are available, return the
 -- -- current input, otherwise fail.
-ensure :: Int -> Parser VectorText
+ensure :: Int -> Parser Text32
 ensure n = T.Parser $ \t pos more lose succ -> case lengthAtLeast pos n t of
       Just n' -> succ t pos more (substring pos n' t)
       Nothing -> ensureSuspended n t pos more lose succ
@@ -469,7 +471,7 @@ ensure n = T.Parser $ \t pos more lose succ -> case lengthAtLeast pos n t of
 -- -- | Ensure that at least @n@ code points of input are available.
 -- -- Returns the number of words consumed while traversing.
 lengthAtLeast :: Pos -> Int -> Buffer -> Maybe Pos
-lengthAtLeast pos n t = if p' < VectorText.length t then Just (Pos p') else Nothing where
+lengthAtLeast pos n t = if p' < Text32.length t then Just (Pos p') else Nothing where
     !p' = fromPos pos + n
 {-# INLINE lengthAtLeast #-}
 
@@ -480,12 +482,12 @@ lengthAtLeast pos n t = if p' < VectorText.length t then Just (Pos p') else Noth
 --         Pos len = lengthOf t
 -- {-# INLINE lengthAtLeast #-}
 --
-substring :: Pos -> Pos -> Buffer -> VectorText
-substring (Pos pos) (Pos n) b = VectorText.take n $ VectorText.drop pos b ; {-# INLINE substring #-}
+substring :: Pos -> Pos -> Buffer -> Text32
+substring (Pos pos) (Pos n) b = Text32.unsafeTake n $ Text32.unsafeDrop pos b ; {-# INLINE substring #-}
 --
 lengthOf :: Buffer -> Pos
-lengthOf = Pos . VectorText.length ; {-# INLINE lengthOf #-}
+lengthOf = Pos . Text32.length ; {-# INLINE lengthOf #-}
 --
-size :: VectorText -> Pos
-size = Pos . VectorText.length ; {-# INLINE size #-}
+size :: Text32 -> Pos
+size = Pos . Text32.length ; {-# INLINE size #-}
 -- size (Text _ _ l) = Pos l

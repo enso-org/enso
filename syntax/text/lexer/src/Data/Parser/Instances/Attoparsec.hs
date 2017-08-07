@@ -11,8 +11,8 @@ import qualified Data.Attoparsec.Text32         as T32
 import           Data.Functor.Utils
 import           Data.Parser
 import qualified Data.Text                      as Strict
-import           Data.VectorText                (VectorText)
-import qualified Data.VectorText                as Text32
+import           Data.Container.Text32          (Text32)
+import qualified Data.Container.Text32          as Text32
 
 
 -- === Universal === --
@@ -46,11 +46,11 @@ instance PartialParser (Parser Strict.Text) where
     closePartialT = flip feedPartialT mempty ; {-# INLINE closePartialT #-}
 
 
--- === VectorText === --
+-- === Text32 === --
 
-type instance Token (Parser VectorText) = Char
+type instance Token (Parser Text32) = Char
 
-instance TokenParser (Parser VectorText) where
+instance TokenParser (Parser Text32) where
     satisfy    = T32.satisfy       ; {-# INLINE satisfy    #-}
     takeWhile  = T32.takeWhile     ; {-# INLINE takeWhile  #-}
     takeWhile1 = T32.takeWhile1    ; {-# INLINE takeWhile1 #-}
@@ -60,7 +60,7 @@ instance TokenParser (Parser VectorText) where
     peekToken  = T32.peekChar'     ; {-# INLINE peekToken  #-}
     peekToken' = T32.peekChar      ; {-# INLINE peekToken' #-}
 
-instance PartialParser (Parser VectorText) where
+instance PartialParser (Parser Text32) where
     parsePartialT = pure .: T32.parse        ; {-# INLINE parsePartialT #-}
     feedPartialT  = pure .: Atto.feed        ; {-# INLINE feedPartialT  #-}
     closePartialT = flip feedPartialT mempty ; {-# INLINE closePartialT #-}
