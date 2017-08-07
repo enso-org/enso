@@ -338,9 +338,9 @@ registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
 -- === Symbols === --
 ---------------------
 
-bof, eof, eol :: SymParser ()
-bof = symbol Lexer.BOF
-eof = symbol Lexer.EOF
+stx, etx, eol :: SymParser ()
+stx = symbol Lexer.STX
+etx = symbol Lexer.ETX
 eol = symbol Lexer.EOL
 
 braceBegin, braceEnd :: SymParser ()
@@ -880,7 +880,7 @@ nonEmptyBlock       = Indent.withCurrent . nonEmptyBlockBody
 nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
 nonEmptyBlockBody p = (,) <$> p <*> lines where
     spacing = many eol
-    indent  = spacing <* Indent.indentedEq <* notFollowedBy eof
+    indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
     lines   = many $ try indent *> p
 
 optionalBlock, optionalBlockTop, optionalBlockBody :: SymParser a -> SymParser [a]
@@ -955,8 +955,8 @@ parsingBase :: ( MonadPassManager m, ParsingPassReq_2 m
                ) => AsgParser a -> Text -> m (a, MarkedExprMap)
 parsingBase p src = do
     let stream = Lexer.evalDefLexer src
-    result <- runParserT p stream
-    -- result <- runParserT (bof *> p <* eof) stream
+    -- result <- runParserT p stream
+    result <- runParserT (stx *> p <* etx) stream
     case result of
         Left e -> putStrLn (parseErrorPretty e) >> error "Parser error" -- FIXME[WD]: handle it the proper way
         Right (AsgBldr (IRB irb)) -> do

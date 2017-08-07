@@ -65,6 +65,7 @@ mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-
 
 main = do
     -- pprint $ tagWithColumn 0 $ evalDefLexer "ala ' fo` x + y `\n o' ola"
+    pprint $ tagDisabled $ evalDefLexer ""
     pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
     defaultMain
         [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable

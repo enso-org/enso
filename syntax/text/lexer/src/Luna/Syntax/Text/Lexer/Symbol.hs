@@ -47,8 +47,8 @@ data Tagged a = Tagged Tags a deriving (Show, Functor, Foldable, Traversable)
 -- === Definitions === --
 
 data Symbol -- Layout
-            = BOF
-            | EOF
+            = STX
+            | ETX
             | EOL
             | Terminator
             | BlockStart
@@ -158,8 +158,8 @@ intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}
 
 pretty :: Symbol -> Text
 pretty = \case
-    BOF         {} -> "Begin of file"
-    EOF         {} -> "End of file"
+    STX         {} -> "Start of text"
+    ETX         {} -> "End of text"
     EOL         {} -> "End of line"
     Terminator  {} -> "Expression terminator"
     BlockStart  {} -> "Expression block start"
@@ -202,8 +202,8 @@ pretty = \case
 -- FIXME[WD]: Templatehaskellize vvv
 instance ShowCons Symbol where
     showCons = \case
-        BOF         {} -> "BOF"
-        EOF         {} -> "EOF"
+        STX         {} -> "STX"
+        ETX         {} -> "ETX"
         EOL         {} -> "EOL"
         Terminator  {} -> "Terminator"
         BlockStart  {} -> "BlockStart"
@@ -243,8 +243,8 @@ instance ShowCons Symbol where
 -- Tags
 instance IsTagged Symbol where
     getTags a = (<> [showCons a]) $ case a of
-        BOF         {} -> ["Layout"]
-        EOF         {} -> ["Layout"]
+        STX         {} -> ["Layout"]
+        ETX         {} -> ["Layout"]
         EOL         {} -> ["Layout"]
         Terminator  {} -> ["Layout"]
         BlockStart  {} -> ["Layout"]

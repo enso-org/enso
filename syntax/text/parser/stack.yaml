@@ -26,7 +26,7 @@ packages:
 - extra-dep: true
   location: {commit: 71a26613c43f76c3f5b61dc99046262065b91694, git: 'https://github.com/luna/dependent-state.git'}
 - extra-dep: true
-  location: {commit: c58fa095a8bbb9920af30bd0fee39c4da242e4cd, git: 'https://github.com/luna/functor-utils.git'}
+  location: {commit: ae5c538fd1d1d85b47c608c72a84330deb6850d0, git: 'https://github.com/luna/functor-utils.git'}
 - extra-dep: true
   location: {commit: 9f64b89d26d6064580669538e51c24c50320c2fd, git: 'https://github.com/luna/impossible.git'}
 - extra-dep: true
@@ -34,7 +34,7 @@ packages:
 - extra-dep: true
   location: {commit: 965e23539a001517994398ae02421334bf77c6e6, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: 18f6a1215444e18b26229a54ad06466ea6f8079c, git: 'https://github.com/luna/prologue.git'}
+  location: {commit: dc0b0c04efe1d8171636d98392627b23d7ab6d23, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
   location: {commit: f4292663aea639c17f66ba3d67e09c79ebf62982, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
@@ -52,13 +52,13 @@ packages:
 - extra-dep: true
   location: {commit: b00b9a7d91c2d4909574ff679b88b49df7282e64, git: 'https://github.com/luna/monoid'}
 - extra-dep: true
-  location: {commit: e8b0e9edc76eaf951348a44ae7fc3f5232f99101, git: 'https://github.com/luna/text-processing'}
+  location: {commit: 19cd9bd99caf29424def070783526335ee5bff8a, git: 'https://github.com/luna/text-processing'}
 - extra-dep: true
   location: {commit: 685084ab9a24b4e1a61b88b2591661f86a2d303b, git: 'https://github.com/luna/parsert'}
 - extra-dep: true
   location: {commit: 5c7ab0f3f2b0f95dd1848067ed94d29613800d3f, git: 'https://github.com/luna/layouting'}
 - extra-dep: true
-  location: {commit: df465672013704f571c4ca24c65813bf9c128431, git: 'https://github.com/luna/vector-text'}
+  location: {commit: 458feedd986bb1d495bb61e2b9edcc053470a633, git: 'https://github.com/luna/vector-text'}
 - extra-dep: true
   location: {commit: c028e7939bf79853e63bc40f2576d9280dffbb4c, git: 'https://github.com/luna/terminal-text'}
 resolver: lts-8.19

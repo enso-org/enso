@@ -21,7 +21,6 @@ import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 import           Data.VectorText              (VectorText)
 import qualified Data.VectorText              as VectorText
--- import           Luna.Syntax.Text.Lexer.Name  (isRegularOperatorChar, markerBeginChar, markerEndChar, metadataHeader)
 import qualified Data.Text                    as Text
 import           Luna.Syntax.Text.Lexer.Stream (ParseError, conduitParserEither)
 import           Conduit
@@ -335,7 +334,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '#'          -> handleHash =<< takeMany '#'
 
     -- Utils
-    | otherwise         -> unknownCharSym c
+    | otherwise         -> dropToken >> unknownCharSym c
 
     where between  a l r    = a >= l && a <= r
           decHead  c        = between c '0' '9'
@@ -414,13 +413,14 @@ spacing = Text.length <$> takeMany ' ' ; {-# INLINE spacing #-}
 fromLexerResult :: Either ParseError a -> a
 fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
 
-parseBase :: Monad m => Parser (t, Int) -> EntryStack -> ConduitM a Text m () -> ConduitM a c0 m [Either ParseError (Token t)]
-parseBase p s f = f .| conduitParserEither s (runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
+-- FIXME[WD]: concatenating STX to the end of could be slow
+parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text m () -> ConduitM a c0 m [Either ParseError (Token t)]
+parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
-parse        ::              Parser (a, Int) -> EntryStack -> Text     ->   [Token a]
-tryParse     ::              Parser (a, Int) -> EntryStack -> Text     ->   Either ParseError [Token a]
-parseFile    :: MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
-tryParseFile :: MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
+parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text     ->   [Token a]
+tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text     ->   Either ParseError [Token a]
+parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
+tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
 parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}
 parseFile          = fromLexerResult <∘∘∘> tryParseFile                                      ; {-# INLINE parseFile    #-}
 tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
@@ -432,3 +432,33 @@ evalDefLexer ::               Text -> [Token Symbol]
 runLexer     = parse lexerCont ; {-# INLINE runLexer     #-}
 evalLexer    = parse lexer     ; {-# INLINE evalLexer    #-}
 evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
+
+
+-- === STX / ETX handling === --
+
+prependSTX :: (Monad m, IsSourceBorder s) => ConduitM Text s m () -> ConduitM Text s m ()
+prependSTX f = await >>= \case
+    Nothing -> return ()
+    Just t  -> yield (stx $ Text.length s) >> when (not $ Text.null t') (leftover t') >> f where
+        (s,t') = Text.span (== ' ') t
+{-# INLINE prependSTX #-}
+
+class IsSourceBorder a where
+    stx :: Int -> a
+    etx :: a
+
+instance IsSourceBorder r => IsSourceBorder (Either l r) where
+    stx = Right . stx ; {-# INLINE stx #-}
+    etx = Right   etx ; {-# INLINE etx #-}
+
+instance IsSourceBorder t => IsSourceBorder (Token t) where
+    stx i = Token mempty (convert i) (stx i) ; {-# INLINE stx #-}
+    etx   = Token mempty mempty etx          ; {-# INLINE etx #-}
+
+instance IsSourceBorder Symbol where
+    stx _ = STX ; {-# INLINE stx #-}
+    etx   = ETX ; {-# INLINE etx #-}
+
+instance IsSourceBorder (Symbol, EntryStack) where
+    stx i = (stx i, mempty) ; {-# INLINE stx #-}
+    etx   = (etx, mempty) ; {-# INLINE etx #-}
