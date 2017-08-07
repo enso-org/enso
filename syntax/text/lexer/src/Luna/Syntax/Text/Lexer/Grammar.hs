@@ -341,7 +341,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           varHead  c        = between c 'a' 'z' || c == '_'
           consHead c        = between c 'A' 'Z'
           consBody          = indentBaseBody
-          varBody           = indentBaseBody <**> (option id $ Text.snoc <$> (token '?' <|> token '!'))
+          varBody           = indentBaseBody <**> (option id $ flip Text.snoc <$> (token '?' <|> token '!'))
                                              <**> (option id $ flip (<>)      <$> takeMany1 '\'')
           indentBaseBody    = takeWhile isIndentBodyChar
           handleColons      = handleReps  [BlockStart, Typed]
