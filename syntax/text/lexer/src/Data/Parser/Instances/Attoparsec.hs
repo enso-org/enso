@@ -1,19 +1,34 @@
 module Data.Parser.Instances.Attoparsec where
 
 import Prelude
-import Data.Parser
-import Control.Monad.Identity
-import qualified Data.Attoparsec.Text as SText
-import Data.Attoparsec.Internal.Types (Parser, IResult)
-import qualified Data.Text as Strict
-import Control.Monad (void)
-import Data.Functor.Utils
+
+import           Control.Monad (void)
+import           Control.Monad.Identity
+import qualified Data.Attoparsec.Combinator     as Atto
+import           Data.Attoparsec.Internal.Types (Parser, IResult)
+import qualified Data.Attoparsec.Text           as SText
+import qualified Data.Attoparsec.Text32         as T32
+import           Data.Functor.Utils
+import           Data.Parser
+import qualified Data.Text                      as Strict
+import           Data.VectorText                (VectorText)
+import qualified Data.VectorText                as Text32
+
+
+-- === Universal === --
+
+type instance Tokens        (Parser t) = t
+type instance BaseMonad     (Parser t) = Identity
+type instance PartialResult (Parser t) = IResult t
+type instance Result        (Parser t) = IResult t
+
+instance BacktrackParser (Parser a) where
+    try = id ; {-# INLINE try #-}
 
 
 -- === Strict.Text === --
 
 type instance Token  (Parser Strict.Text) = Char
-type instance Tokens (Parser t) = t
 
 instance TokenParser (Parser Strict.Text) where
     satisfy    = SText.satisfy       ; {-# INLINE satisfy    #-}
@@ -25,24 +40,27 @@ instance TokenParser (Parser Strict.Text) where
     peekToken  = SText.peekChar'     ; {-# INLINE peekToken  #-}
     peekToken' = SText.peekChar      ; {-# INLINE peekToken' #-}
 
-instance BacktrackParser (Parser a) where
-    try = id ; {-# INLINE try #-}
-
-
-type instance BaseMonad (Parser t) = Identity
-
-type instance PartialResult (Parser t) = IResult t
-type instance Result        (Parser t) = IResult t
-
 instance PartialParser (Parser Strict.Text) where
     parsePartialT = pure .: SText.parse      ; {-# INLINE parsePartialT #-}
-    feedPartialT  = pure .: SText.feed       ; {-# INLINE feedPartialT  #-}
+    feedPartialT  = pure .: Atto.feed        ; {-# INLINE feedPartialT  #-}
     closePartialT = flip feedPartialT mempty ; {-# INLINE closePartialT #-}
---
--- type  PartialParser  m = (PartialParserT m, BaseMonad m ~ Identity)
--- class PartialParserT m where
---     parsePartialT :: forall a. m a -> BaseMonad m (PartialResult m a)
---     feedPartialT  :: forall a. PartialResult m a -> Tokens m -> BaseMonad m (PartialResult m a)
---     closePartialT :: forall a. PartialResult m a -> BaseMonad m (Result m a)
 
--- feed :: Monoid i => IResult i r -> i -> IResult i r
+
+-- === VectorText === --
+
+type instance Token (Parser VectorText) = Char
+
+instance TokenParser (Parser VectorText) where
+    satisfy    = T32.satisfy       ; {-# INLINE satisfy    #-}
+    takeWhile  = T32.takeWhile     ; {-# INLINE takeWhile  #-}
+    takeWhile1 = T32.takeWhile1    ; {-# INLINE takeWhile1 #-}
+    anyToken   = T32.anyChar       ; {-# INLINE anyToken   #-}
+    token_     = void . T32.char   ; {-# INLINE token_     #-}
+    tokens_    = void . T32.string ; {-# INLINE tokens_    #-}
+    peekToken  = T32.peekChar'     ; {-# INLINE peekToken  #-}
+    peekToken' = T32.peekChar      ; {-# INLINE peekToken' #-}
+
+instance PartialParser (Parser VectorText) where
+    parsePartialT = pure .: T32.parse        ; {-# INLINE parsePartialT #-}
+    feedPartialT  = pure .: Atto.feed        ; {-# INLINE feedPartialT  #-}
+    closePartialT = flip feedPartialT mempty ; {-# INLINE closePartialT #-}

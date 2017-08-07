@@ -23,6 +23,8 @@ import System.IO (FilePath)
 import Control.Monad.State.Layered
 
 import Luna.Syntax.Text.Lexer.Analysis
+import qualified Data.Attoparsec.Text32 as T32
+import qualified Data.VectorText as VectorText
 
 eval :: NFData a => a -> IO a
 eval = evaluate . force
@@ -65,6 +67,14 @@ mkVariablesL10 i = Text.replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-
 
 main = do
     -- pprint $ tagWithColumn 0 $ evalDefLexer "ala ' fo` x + y `\n o' ola"
+    print $ T32.parse (T32.satisfy (== 'a')) "abcdefgh"
+    print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b')) "abcdefgh"
+    print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b') >> T32.satisfy (== 'c')) "abcdefgh"
+    print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b') >> T32.satisfy (== 'd')) "abcdefgh"
+
+    print $ VectorText.commonPrefixes "x" "fooquux"
+
+
     pprint $ tagDisabled $ evalDefLexer ""
     pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
     defaultMain

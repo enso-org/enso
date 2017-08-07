@@ -413,7 +413,7 @@ spacing = Text.length <$> takeMany ' ' ; {-# INLINE spacing #-}
 fromLexerResult :: Either ParseError a -> a
 fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
 
--- FIXME[WD]: concatenating STX to the end of could be slow
+-- FIXME[WD]: concatenating STX to the end of list could be slow
 parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text m () -> ConduitM a c0 m [Either ParseError (Token t)]
 parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
