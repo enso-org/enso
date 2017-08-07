@@ -1,0 +1,54 @@
+import Std.Base
+import Std.System
+
+class Time:
+    Time
+    TimeVal Int (TimeInterval Int)
+
+    def now: primGetCurrentTime
+
+    def diff other: primDiffTime self other
+
+    def add interval: case self of
+        TimeVal days diff: TimeVal days (diff.add interval)
+
+    def sub interval: case self of
+        TimeVal days diff: TimeVal days (diff.sub interval)
+
+    def toText: primShowTime self
+
+    def shortRep: self.toText
+
+    def equals other: primTimesEq self other
+
+
+class TimeInterval:
+    TimeInterval Int
+
+    def shortRep: self.toText
+
+    def toInt: case self of
+        TimeInterval d: d
+
+    def toReal: self.toInt.toReal
+
+    def toSeconds: self.toInt.div 1000000000000
+
+    def toMiliseconds: self.toInt.div 1000000000
+
+    def toText: (self.toReal./ 1000000000.0).toText + "ms"
+
+    def add other: TimeInterval (self.toInt + other.toInt)
+
+    def sub other: TimeInterval (self.toInt - other.toInt)
+
+    def before time: time.add self
+
+    def from time: time.sub self
+
+    def ago: self.before Time.now
+
+    def fromNow: self.from Time.now
+
+    def equals other: self.toInt.equals other.toInt
+
