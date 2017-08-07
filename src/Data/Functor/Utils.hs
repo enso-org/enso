@@ -38,11 +38,11 @@ infixr 9 ∘∘
 infixr 9 ∘∘∘
 infixr 9 ∘∘∘∘
 infixr 9 ∘∘∘∘∘
-(∘)      = fmap
-(∘∘)     = dot2
-(∘∘∘)    = dot3
-(∘∘∘∘)   = dot4
-(∘∘∘∘∘)  = dot5
+(∘)      = fmap ; {-# INLINE (∘)     #-}
+(∘∘)     = dot2 ; {-# INLINE (∘∘)    #-}
+(∘∘∘)    = dot3 ; {-# INLINE (∘∘∘)   #-}
+(∘∘∘∘)   = dot4 ; {-# INLINE (∘∘∘∘)  #-}
+(∘∘∘∘∘)  = dot5 ; {-# INLINE (∘∘∘∘∘) #-}
 
 -- infixr 9 .
 infixr 8 .:
@@ -73,11 +73,11 @@ infixl 4 <∘∘>
 infixl 4 <∘∘∘>
 infixl 4 <∘∘∘∘>
 infixl 4 <∘∘∘∘∘>
-f <∘>     a = fmap  f ∘     a
-f <∘∘>    a = fmap  f ∘∘    a
-f <∘∘∘>   a = fmap  f ∘∘∘   a
-f <∘∘∘∘>  a = fmap  f ∘∘∘∘  a
-f <∘∘∘∘∘> a = fmap  f ∘∘∘∘∘ a
+f <∘>     a = fmap  f ∘     a ; {-# INLINE (<∘>)     #-}
+f <∘∘>    a = fmap  f ∘∘    a ; {-# INLINE (<∘∘>)    #-}
+f <∘∘∘>   a = fmap  f ∘∘∘   a ; {-# INLINE (<∘∘∘>)   #-}
+f <∘∘∘∘>  a = fmap  f ∘∘∘∘  a ; {-# INLINE (<∘∘∘∘>)  #-}
+f <∘∘∘∘∘> a = fmap  f ∘∘∘∘∘ a ; {-# INLINE (<∘∘∘∘∘>) #-}
 
 
 
