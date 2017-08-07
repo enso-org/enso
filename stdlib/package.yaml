@@ -29,6 +29,7 @@ dependencies:
     - uuid
     - process
     - data-msgpack
+    - time
 
 default-extensions:
     - AllowAmbiguousTypes
