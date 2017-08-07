@@ -105,8 +105,9 @@ class Tuple3 a b c:
     def shortRep: case self of
         Tuple3 a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
 
-    def equals that:
-        self.first.equals that.first . and (self.second.equals that.second) . and (self.third.equals that.third)
+    def equals that: case that of
+        Tuple3 a b c: self.first.equals a . and (self.second.equals b) . and (self.third.equals c)
+        other:        False
 
 class Maybe a:
     Nothing
@@ -121,7 +122,8 @@ class Maybe a:
         Nothing: Empty
 
     def fromJust: case self of
-        Just a: a
+        Just a:  a
+        Nothing: errorStr "Maybe.fromJust: Nothing"
 
     def fromMaybe defVal: case self of
         Just a: a
@@ -199,7 +201,8 @@ class List a:
         Prepend x xs: if 0.equals i then self else xs . drop i.pred
 
     def at n: case (self) of
-        Prepend x xs: if 0.equals n then Just x else xs . at n.pred
+        Empty:        errorStr "List.at: index out of range"
+        Prepend x xs: if 0.equals n then x else xs . at n.pred
 
     def fold a f: case (self) of
         Empty: a
@@ -354,16 +357,49 @@ class JSON:
 
     def toReal: case self of
         JSONNumber a: a
+        other:        errorStr "Unable to convert to a number"
 
     def toText: case self of
         JSONString s: s
+        other:        errorStr "Unable to convert to text"
 
     def toList: case self of
         JSONArray a: a
+        other:       errorStr "Unable to convert to a list"
 
-    def lookupReal key: self . lookup key . fromJust . toReal
+    def lookupReal key: case self . lookup key of
+        Just val: val . toReal
+        Nothing:  errorStr "Key not found"
 
-    def lookupText key: self . lookup key . fromJust . toText
+    def lookupText key: case self . lookup key of
+        Just val: val . toText
+        Nothing:  errorStr "Key not found"
+
+    def at n: case self of
+        JSONArray a: a.at n
+        other:       errorStr "Object not indexable"
+
+    def map f: case self of
+        JSONArray a:  a.map f
+        JSONObject o: o.map f
+        other:        errorStr "Cannot map over a non-iterable object"
+
+    def filter f: case self of
+        JSONArray a:  a.filter f
+        JSONObject o: errorStr "Cannot use filter on JSONObject"
+        other:        errorStr "Cannot filter a non-iterable object"
+
+    def each f: case self of
+        JSONArray a: a.each f
+        other:       errorStr "Cannot call each on a non-iterable object"
+
+    def sum: case self of
+        JSONArray a: a.sum
+        other:       errorStr "Cannot compute sum of a non-iterable object"
+
+    def average: case self of
+        JSONArray a: a.average
+        other:       errorStr "Cannot compute average of a non-iterable object"
 
 class MsgPack:
     MPNull
@@ -422,11 +458,13 @@ class MsgPack:
     def shortRep: self.toText
 
     def toReal: case self of
-        MPInt i: i.toReal
+        MPInt i:  i.toReal
         MPReal r: r
+        other:    errorStr "Unable to convert to a number"
 
     def toList: case self of
         MPArray a: a
+        other:     errorStr "Unable to convert to a list"
 
     def _lookup_list_key key pairList: case pairList of
         Empty: Nothing
@@ -445,25 +483,33 @@ class MsgPack:
 
     def safeLookupText key: self.lookup (MPString key)
 
-    def lookupText key: self.safeLookupText key . fromJust
+    def lookupText key: case self.safeLookupText key of
+        Just val: val
+        Nothing:  errorStr "Key not found"
 
     def at n: case self of
         MPArray a: a.at n
+        other:     errorStr "Object not indexable"
 
     def sum: case self of
         MPArray a: a.sum
+        other:     errorStr "Cannot compute sum of a non-iterable object"
 
     def average: case self of
         MPArray a: a.average
+        other:     errorStr "Cannot compute average of a non-iterable object"
 
     def map f: case self of
         MPArray a: a.map f
+        other:     errorStr "Cannot map over a non-iterable object"
 
     def filter f: case self of
         MPArray a: a.filter f
+        other:     errorStr "Cannot filter a non-iterable object"
 
     def each f: case self of
         MPArray a: a.each f
+        other:     errorStr "Cannot call each on a non-iterable object"
 
 def newMVar:
     primNewMVar

@@ -21,8 +21,6 @@ import qualified Luna.Pass.UnitCompilation.MethodProcessing as MethodProcessing
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
-import Data.Future (delay)
-
 data ClassProcessing
 type instance Abstract   ClassProcessing = ClassProcessing
 type instance Pass.Inputs     Net   ClassProcessing = '[AnyExpr, AnyExprLink]
