@@ -186,9 +186,10 @@ force = wrapped %~ Vector.force ; {-# INLINE force #-}
 
 type instance Item VectorText = Char
 
-instance Convertible Char   VectorText   where convert = singleton              ; {-# INLINE convert #-}
-instance Convertible [Char] VectorText   where convert = wrap . Vector.fromList ; {-# INLINE convert #-}
-instance Convertible VectorText   [Char] where convert = Vector.toList . unwrap ; {-# INLINE convert #-}
+instance Convertible Char   VectorText where convert = singleton              ; {-# INLINE convert #-}
+instance Convertible [Char] VectorText where convert = wrap . Vector.fromList ; {-# INLINE convert #-}
+instance Convertible VectorText [Char] where convert = Vector.toList . unwrap ; {-# INLINE convert #-}
+instance Convertible Text   VectorText where convert = convertVia @[Char]     ; {-# INLINE convert #-}
 
 instance FromList VectorText where fromList   = convert ; {-# INLINE fromList   #-}
 instance ToList   VectorText where toList     = convert ; {-# INLINE toList     #-}
