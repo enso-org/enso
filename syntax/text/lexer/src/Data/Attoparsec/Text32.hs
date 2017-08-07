@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Data.Attoparsec.Text32 where
 
 import Control.Applicative ((<$>))
@@ -119,9 +121,9 @@ string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
       ft = f (VectorText.drop (fromPos pos) $ t ^. txt)
   in case VectorText.commonPrefixes s ft of
        Nothing
-         | VectorText.null s          -> succ t pos more mempty
-         | VectorText.null ft         -> suspended s s t pos more lose succ
-         | otherwise         -> lose t pos more [] "string"
+         | VectorText.null s  -> succ t pos more mempty
+         | VectorText.null ft -> suspended s s t pos more lose succ
+         | otherwise          -> lose t pos more [] "string"
        Just (pfx,ssfx,tsfx)
          | VectorText.null ssfx       -> let l = Pos (VectorText.length pfx)
                                 in succ t (pos + l) more (substring pos l t)

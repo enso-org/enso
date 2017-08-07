@@ -21,6 +21,8 @@ import Data.Text.Position (Delta)
 import Data.Parser hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
 import Luna.Syntax.Text.Lexer.Token
+import Data.VectorText (VectorText)
+import qualified Data.VectorText as VectorText
 
 
 ---------------------------
@@ -78,6 +80,11 @@ instance AttoparsecInput T.Text where
     isNull    = T.null                     ; {-# INLINE isNull    #-}
     getLength = convert . T.length         ; {-# INLINE getLength #-}
     stripEnd (TI.Text arr1 off1 len1) (TI.Text _ _ len2) = TI.text arr1 off1 (len1 - len2) ; {-# INLINE stripEnd #-}
+
+instance AttoparsecInput VectorText where
+    isNull    = VectorText.null                     ; {-# INLINE isNull    #-}
+    getLength = convert . VectorText.length         ; {-# INLINE getLength #-}
+    stripEnd v v' = VectorText.take (VectorText.length v - VectorText.length v') v ; {-# INLINE stripEnd #-}
 
 
 conduitParserEither :: (AttoparsecInput a, PartialParser (Parser a), Default cfg, Monad m, Mempty a)
