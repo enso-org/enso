@@ -14,6 +14,8 @@ import qualified Data.Vector.Unboxed         as Vector
 import qualified Data.Vector.Unboxed.Mutable as MVector
 import           Data.VectorText.Mutable     (MVectorText(MVectorText))
 import qualified Data.VectorText.Mutable     as Mutable
+import qualified GHC.Exts                    as Exts
+import           GHC.Exts                    (IsList)
 
 
 -- FIXME[WD]: remove when we hit next LTS stage
@@ -31,6 +33,10 @@ makeLenses ''VectorText
 
 
 -- === Info === --
+
+-- | O(1)
+null :: VectorText -> Bool
+null = Vector.null . unwrap ; {-# INLINE null #-}
 
 -- | O(1)
 length :: VectorText -> Int
@@ -52,12 +58,24 @@ replicate :: Int -> Char -> VectorText
 replicate = wrap .: Vector.replicate ; {-# INLINE replicate #-}
 
 -- | O(n)
+replicate' :: Int -> VectorText -> VectorText
+replicate' i = concat . P.replicate i ; {-# INLINE replicate' #-}
+
+-- | O(n)
 generate :: Int -> (Int -> Char) -> VectorText
 generate = wrap .: Vector.generate ; {-# INLINE generate #-}
 
 -- | O(n)
 concat :: [VectorText] -> VectorText
 concat ts = wrap $ Vector.concat (unwrap <$> ts) ; {-# INLINE concat #-}
+
+-- | O(n)
+cons :: Char -> VectorText -> VectorText
+cons = (<>) . singleton ; {-# INLINE cons #-}
+
+-- | O(n)
+snoc :: Char -> VectorText -> VectorText
+snoc = flip (<>) . singleton ; {-# INLINE snoc #-}
 
 
 -- === Deconstruction === --
@@ -159,6 +177,10 @@ unsafeSlice idx len = wrapped %~ Vector.unsafeSlice idx len ; {-# INLINE unsafeS
 splitAt :: Int -> VectorText -> (VectorText, VectorText)
 splitAt i = over both wrap . Vector.splitAt i . unwrap ; {-# INLINE splitAt #-}
 
+-- | O(n)
+span :: (Char -> Bool) -> VectorText -> (VectorText, VectorText)
+span f v = over both wrap $ Vector.span f (unwrap v) ; {-# INLINE span #-}
+
 
 -- === Mutable conversions === --
 
@@ -182,19 +204,35 @@ force :: VectorText -> VectorText
 force = wrapped %~ Vector.force ; {-# INLINE force #-}
 
 
+-- === Utils === --
+
+commonPrefixes :: VectorText -> VectorText -> Maybe (VectorText, VectorText, VectorText)
+commonPrefixes v v' = go 0 where
+    minlen = min (length v) (length v')
+    go i | i < minlen && a == b = go (i+1)
+         | i > 0                = Just (take i v, drop i v, drop i v')
+         | otherwise            = Nothing
+         where a = unsafeIndex v  i
+               b = unsafeIndex v' i
+
+
 -- === Conversions === --
 
 type instance Item VectorText = Char
 
-instance Convertible Char   VectorText where convert = singleton              ; {-# INLINE convert #-}
-instance Convertible [Char] VectorText where convert = wrap . Vector.fromList ; {-# INLINE convert #-}
-instance Convertible VectorText [Char] where convert = Vector.toList . unwrap ; {-# INLINE convert #-}
-instance Convertible Text   VectorText where convert = convertVia @[Char]     ; {-# INLINE convert #-}
+instance Convertible Char       VectorText where convert = singleton              ; {-# INLINE convert #-}
+instance Convertible [Char]     VectorText where convert = wrap . Vector.fromList ; {-# INLINE convert #-}
+instance Convertible VectorText [Char]     where convert = Vector.toList . unwrap ; {-# INLINE convert #-}
+instance Convertible Text       VectorText where convert = convertVia @[Char]     ; {-# INLINE convert #-}
+instance Convertible VectorText Text       where convert = convertVia @[Char]     ; {-# INLINE convert #-}
 
-instance FromList VectorText where fromList   = convert ; {-# INLINE fromList   #-}
-instance ToList   VectorText where toList     = convert ; {-# INLINE toList     #-}
-instance IsString VectorText where fromString = convert ; {-# INLINE fromString #-}
-
+instance FromList    VectorText where fromList   = convert ; {-# INLINE fromList   #-}
+instance ToList      VectorText where toList     = convert ; {-# INLINE toList     #-}
+instance IsString    VectorText where fromString = convert ; {-# INLINE fromString #-}
+instance Exts.IsList VectorText where
+    type Item VectorText = Char
+    fromList = fromList ; {-# INLINE fromList #-}
+    toList   = toList   ; {-# INLINE toList   #-}
 
 
 -- === Instances === --
