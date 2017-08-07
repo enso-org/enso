@@ -74,6 +74,7 @@ import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPr
 import Data.List.NonEmpty         as X (NonEmpty ((:|)))
 import GHC.Stack                  as X (CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack, getCallStack, popCallStack, prettyCallStack, pushCallStack, withFrozenCallStack, currentCallStack)
 import Control.Monad.Fail         as X (MonadFail, fail)
+import Data.Coerce                as X (Coercible, coerce)
 
 -- === Lenses === --
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -311,6 +312,13 @@ maybeHead :: ToList a => a -> Maybe (Item a)
 maybeHead a = case toList a of
     []      -> Nothing
     (a : _) -> Just a
+{-# INLINE maybeHead #-}
+
+maybeTail :: [a] -> Maybe [a]
+maybeTail = \case
+    []    -> Nothing
+    (_:s) -> Just s
+{-# INLINE maybeTail #-}
 
 maybeLast :: ToList a => a -> Maybe (Item a)
 maybeLast a = go $ toList a where
