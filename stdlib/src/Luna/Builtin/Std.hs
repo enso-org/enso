@@ -504,27 +504,9 @@ systemStd imps = do
     let primShowTimeVal = toLunaValue std (convert . show :: Time.UTCTime -> Text)
         primShowTime    = Function time2TextIr primShowTimeVal time2TextAssu
 
-    Right (ti2TextAssu, ti2TextIr) <- oneArgFun "TimeInterval" "Text"
-    let primShowTimeIntervalVal = toLunaValue std (convert . show :: Time.DiffTime -> Text)
-        primShowTimeInterval    = Function ti2TextIr primShowTimeIntervalVal ti2TextAssu
-
-    Right (addTIAssu, addTIIr) <- twoArgFun "TimeInterval" "Time" "Time"
-    let addTime :: Time.DiffTime -> Time.UTCTime -> Time.UTCTime
-        addTime = \ti t -> Time.addUTCTime (realToFrac ti) t
-        subTime = addTime . negate
-        primAddTimeIntervalVal = toLunaValue std addTime
-        primAddTimeInterval    = Function addTIIr primAddTimeIntervalVal addTIAssu
-        primSubTimeIntervalVal = toLunaValue std subTime
-        primSubTimeInterval    = Function addTIIr primSubTimeIntervalVal addTIAssu
-
     Right (times2BoolAssu, times2BoolIr) <- twoArgFun "Time" "Time" "Bool"
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
         primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
-
-    Right (ti2BoolAssu, ti2BoolIr) <- twoArgFun "TimeInterval" "TimeInterval" "Bool"
-    let primTIEqVal = toLunaValue std ((==) :: Time.DiffTime -> Time.DiffTime -> Bool)
-        primTIEq    = Function ti2BoolIr primTIEqVal ti2BoolAssu
-
 
     let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
@@ -599,11 +581,7 @@ systemStd imps = do
                                     , ("primGetCurrentTime", primGetCurrentTime)
                                     , ("primDiffTimes", primDiffTimes)
                                     , ("primShowTime", primShowTime)
-                                    , ("primShowTimeInterval", primShowTimeInterval)
-                                    , ("primAddTimeInterval", primAddTimeInterval)
-                                    , ("primSubTimeInterval", primSubTimeInterval)
                                     , ("primTimesEq", primTimesEq)
-                                    , ("primTIEq", primTIEq)
                                     , ("primFork", fork)
                                     , ("sleep", sleep)
                                     , ("primNewMVar", newEmptyMVar')
@@ -711,8 +689,8 @@ instance FromLunaData Time.UTCTime where
     fromLunaData t = let errorMsg = "Expected a Time luna object, got unexpected constructor" in
         force' t >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
-                "Time" -> Time.UTCTime <$> (Time.ModifiedJulianDay <$> fromLunaData days) <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
-                _      -> throw errorMsg
+                "TimeVal" -> Time.UTCTime <$> (Time.ModifiedJulianDay <$> fromLunaData days) <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
+                _         -> throw errorMsg
             _ -> throw errorMsg
 
 instance ToLunaData Time.DiffTime where
@@ -722,4 +700,4 @@ instance ToLunaData Time.NominalDiffTime where
     toLunaData imps nDiffTime = toLunaData imps (realToFrac nDiffTime :: Time.DiffTime)
 
 instance ToLunaData Time.UTCTime where
-    toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "Time" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
+    toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "TimeVal" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
