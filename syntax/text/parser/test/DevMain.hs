@@ -175,7 +175,7 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
         putStrLn . convert =<< CodeGen.subpass CodeGen.SimpleStyle (unsafeGeneralize result)
 
         putStrLn "\n--- === Marker map === ---\n"
-        gidMap <- unwrap <$> getAttr @MarkedExprMap
+        gidMap <- _unwrap <$> getAttr @MarkedExprMap
         pprint gidMap
 
 

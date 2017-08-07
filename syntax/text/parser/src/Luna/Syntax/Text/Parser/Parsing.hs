@@ -1010,13 +1010,13 @@ runParserInternal p s = liftIO $ Parser.runParserT p "" s
 
 
 cmpMarkedExprMaps :: IsomorphicCheckCtx m => MarkedExprMap -> MarkedExprMap -> m [ReparsingChange]
-cmpMarkedExprMaps (oldMap'@(unwrap -> oldMap)) (unwrap -> newMap) = (remExprs <>) <$> mapM (uncurry $ cmpMarkedExpr oldMap') newAssocs where
+cmpMarkedExprMaps (oldMap'@(_unwrap -> oldMap)) (_unwrap -> newMap) = (remExprs <>) <$> mapM (uncurry $ cmpMarkedExpr oldMap') newAssocs where
     newAssocs = Map.assocs newMap
     oldAssocs = Map.assocs oldMap
     remExprs  = fmap RemovedExpr . catMaybes $ (\(k,v) -> if_ (not $ Map.member k newMap) (Just v)) <$> oldAssocs
 
 cmpMarkedExpr :: IsomorphicCheckCtx m => MarkedExprMap -> MarkerId -> SomeExpr -> m ReparsingChange
-cmpMarkedExpr (unwrap -> map) mid newExpr = case map ^. at mid of
+cmpMarkedExpr (_unwrap -> map) mid newExpr = case map ^. at mid of
     Nothing      -> return $ AddedExpr newExpr
     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use Expr Draft / SomeExpr everywhere
         False -> ChangedExpr   oldExpr newExpr

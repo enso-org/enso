@@ -27,6 +27,8 @@ instance Binary Code
 
 instance Convertible Code VectorText where convert = unwrap
 instance Convertible VectorText Code where convert = wrap
+instance {-# OVERLAPPABLE #-} Convertible VectorText a => Convertible Code a where convert = convertVia @VectorText
+instance {-# OVERLAPPABLE #-} Convertible a VectorText => Convertible a Code where convert = convertVia @VectorText
 
 --------------------
 -- === Digest === --

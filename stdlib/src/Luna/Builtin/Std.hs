@@ -43,9 +43,9 @@ import           Luna.IR                                      hiding (Function)
 import           Luna.Pass.Data.ExprRoots
 import           Luna.Pass.Data.UniqueNameGen
 import           Luna.Pass.Evaluation.Interpreter
-import           Luna.Pass.Inference.Data.MergeQueue          (MergeQueue)
-import           Luna.Pass.Inference.Data.SimplifierQueue     (SimplifierQueue)
-import           Luna.Pass.Inference.Data.Unifications        (Unifications)
+import           Luna.Pass.Inference.Data.MergeQueue          (MergeQueue(..))
+import           Luna.Pass.Inference.Data.SimplifierQueue     (SimplifierQueue(..))
+import           Luna.Pass.Inference.Data.Unifications        (Unifications(..))
 import           Luna.Pass.Resolution.Data.CurrentTarget
 import           Luna.Pass.Resolution.Data.UnresolvedAccs     (getAccs, UnresolvedAccs)
 import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped as RemoveGrouped

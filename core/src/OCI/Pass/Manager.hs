@@ -39,7 +39,7 @@ instance Ord SortedListenerRep where
 -- === Errors === --
 --------------------
 
-data PassEvalError = PassEvalError SomeException deriving (Show)
+newtype PassEvalError = PassEvalError SomeException deriving (Show)
 makeWrapped ''PassEvalError
 
 instance Exception PassEvalError where
