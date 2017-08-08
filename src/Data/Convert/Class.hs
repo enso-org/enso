@@ -173,10 +173,14 @@ instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Maybe a) (Maybe b)
 
 -- === ConvertBy === --
 
-type ConvertBy p a b = (Convertible a p, Convertible p b)
+type ConvertBy  p a b = (Convertible  a p, Convertible  p b)
+type ConvertBy' p a b = (Convertible' a p, Convertible' p b)
 
 convertVia :: forall p a b. ConvertBy p a b => a -> b
 convertVia a = convert (convert a :: p) ; {-# INLINE convertVia #-}
+
+convertVia' :: forall p a b. ConvertBy' p a b => a -> b
+convertVia' a = convert' (convert' a :: p) ; {-# INLINE convertVia' #-}
 
 --
 
