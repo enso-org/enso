@@ -33,5 +33,5 @@ instance Show a => Show (Token a) where
         . showsPrec' (t ^. element)
     {-# INLINE showsPrec #-}
 
--- FIXME: Required by Megaparsec, it sould not be.
+-- FIXME: Required by Megaparsec in luna-parser, it sould not be.
 deriving instance Ord a => Ord (Token a)

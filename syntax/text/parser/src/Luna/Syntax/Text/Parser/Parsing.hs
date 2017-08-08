@@ -649,10 +649,10 @@ mfixVarSeg  = do
                 namedSegs   <- option mempty (parseMixfixSegments nameSet)
                 if null namedSegs then return (cvar <> segmentToks) else do
                     segment <- buildTokenExpr (buildExprTok segmentToks)
-                    let segments  = (snd <$> namedSegs)
+                    let segments  = snd <$> namedSegs
+                        nameParts = fst <$> namedSegs
                         mfixVar   = buildAsgFromSpan span (varIRB . convert $ mkMultipartName name nameParts)
                         mfixExpr  = apps (app mfixVar segment) segments
-                        nameParts = fst <$> namedSegs
                     return . posIndependent . unlabeledAtom $ mfixExpr
 
 opSeg :: SymParser ExprSegmentBuilder

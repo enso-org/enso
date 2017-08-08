@@ -6,6 +6,9 @@ maintainer: Luna Team <contact@luna-lang.org>
 library:
     source-dirs:
         - src
+        - src-libs/attoparsec-text32
+        - src-libs/parsing
+        - src-libs/conduit-utils
     other-modules: Paths_luna_syntax_text_lexer
 
 benchmarks:

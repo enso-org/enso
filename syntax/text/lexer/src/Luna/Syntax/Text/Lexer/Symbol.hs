@@ -244,48 +244,48 @@ instance ShowCons Symbol where
 
 -- Tags
 instance IsTagged Symbol where
-    getTags a = (<> [showCons a]) $ case a of
-        STX         {} -> ["Layout"]
-        ETX         {} -> ["Layout"]
-        EOL         {} -> ["Layout"]
-        Terminator  {} -> ["Layout"]
-        BlockStart  {} -> ["Layout"]
-        Block       {} -> ["Layout"]
-        Group       {} -> ["Layout"]
-        Marker      {} -> ["Layout"]
-        Var         {} -> ["Ident"]
-        Cons        {} -> ["Ident"]
-        Wildcard    {} -> ["Ident"]
-        KwAll       {} -> ["Keyword"]
-        KwCase      {} -> ["Keyword"]
-        KwClass     {} -> ["Keyword"]
-        KwDef       {} -> ["Keyword"]
-        KwImport    {} -> ["Keyword"]
-        KwOf        {} -> ["Keyword"]
-        Operator    {} -> ["Operator"]
-        Modifier    {} -> ["Operator"]
-        Accessor    {} -> ["Operator"]
-        Assignment  {} -> ["Operator"]
-        TypeApp     {} -> ["Operator"]
-        Merge       {} -> ["Operator"]
-        Range       {} -> ["Operator"]
-        Anything    {} -> ["Operator"]
-        Number      {} -> ["Literal"]
-        Quote       {} -> ["Literal"]
-        Str         {} -> ["Literal"]
-        StrEsc      {} -> ["Literal"]
-        List        {} -> ["Literal"]
-        StrWrongEsc {} -> ["Literal"]
-        Disable     {} -> ["Control"]
-        Doc         {} -> ["Comment"]
-        Metadata    {} -> ["Config"]
-        Unknown     {} -> ["Error"]
-        Incorrect   {} -> ["Error"]
+    getTags a = (: [showCons a]) $ case a of
+        STX         {} -> "Layout"
+        ETX         {} -> "Layout"
+        EOL         {} -> "Layout"
+        Terminator  {} -> "Layout"
+        BlockStart  {} -> "Layout"
+        Block       {} -> "Layout"
+        Group       {} -> "Layout"
+        Marker      {} -> "Layout"
+        Var         {} -> "Ident"
+        Cons        {} -> "Ident"
+        Wildcard    {} -> "Ident"
+        KwAll       {} -> "Keyword"
+        KwCase      {} -> "Keyword"
+        KwClass     {} -> "Keyword"
+        KwDef       {} -> "Keyword"
+        KwImport    {} -> "Keyword"
+        KwOf        {} -> "Keyword"
+        Operator    {} -> "Operator"
+        Modifier    {} -> "Operator"
+        Accessor    {} -> "Operator"
+        Assignment  {} -> "Operator"
+        TypeApp     {} -> "Operator"
+        Merge       {} -> "Operator"
+        Range       {} -> "Operator"
+        Anything    {} -> "Operator"
+        Number      {} -> "Literal"
+        Quote       {} -> "Literal"
+        Str         {} -> "Literal"
+        StrEsc      {} -> "Literal"
+        List        {} -> "Literal"
+        StrWrongEsc {} -> "Literal"
+        Disable     {} -> "Control"
+        Doc         {} -> "Comment"
+        Metadata    {} -> "Config"
+        Unknown     {} -> "Error"
+        Incorrect   {} -> "Error"
     {-# INLINE getTags #-}
 
 
 -- === Accessors === --
 
-instance  HasSymbol (Symbol, a) where symbol = _1 ; {-# INLINE symbol #-}
-instance  HasSymbol (a, Symbol) where symbol = _2 ; {-# INLINE symbol #-}
+instance HasSymbol (Symbol, a) where symbol = _1 ; {-# INLINE symbol #-}
+instance HasSymbol (a, Symbol) where symbol = _2 ; {-# INLINE symbol #-}
 instance HasSymbol a => HasSymbol (Token a) where symbol = element . symbol ; {-# INLINE symbol #-}
