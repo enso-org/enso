@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE PartialTypeSignatures     #-}
-{-# LANGUAGE Strict                    #-}
+-- {-# LANGUAGE Strict                    #-}
 
 module Luna.Syntax.Text.Lexer.Grammar where
 

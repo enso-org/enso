@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Syntax.Text.Lexer.Stream where
 
 import Prologue hiding (unless, span)
@@ -91,7 +89,7 @@ instance AttoparsecInput Text32 where
 
 conduitParserEither :: (AttoparsecInput a, PartialParser (Parser a), Default cfg, Monad m, Mempty a)
                     => cfg -> (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Token b)) m ()
-conduitParserEither cfg parser = loop cfg mempty where
+conduitParserEither !cfg parser = loop cfg mempty where
     loop !cfg !pos = whenNonEmpty $ sinkPosParser pos (parser cfg) >>= useRight go where
         go (!pos', !off, !cfg', !res) = yield (Right $ Token (pos' - pos) off res) >> loop cfg' pos'
 {-# INLINE conduitParserEither #-}
@@ -100,9 +98,9 @@ conduitParserEither cfg parser = loop cfg mempty where
 
 sinkPosParser :: forall a b cfg m any. (AttoparsecInput a, PartialParser (Parser a), Monad m, Mempty a)
               => Delta -> Parser a ((b, Int), cfg) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
-sinkPosParser pos0 p = sink mempty pos0 (parsePartial p) where
+sinkPosParser !pos0 p = sink mempty pos0 (parsePartial p) where
     sink :: a -> Delta -> (a -> IResult a ((b, Int), cfg)) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))
-    sink prev pos parse = await >>= maybe close push where
+    sink prev !pos parse = await >>= maybe close push where
 
         close    = go True prev $ closePartial (parse mempty)
         push str = if isNull str then sink prev pos parse

@@ -68,48 +68,20 @@ mkVariablesL10 i = fromString . mconcat $ replicate i "abcdefghij " ; {-# INLINE
 
 
 main = do
-    print $ Text32.breakAll (== 'a') ("abcadefaga" :: Text32)
-    print $ Text32.takeWhile (<= 'c') ("abcde" :: Text32)
-    -- (txt0 :: Text32) <- eval $ mkCodeTerminators (10^7)
-    -- (txt1 :: Text32) <- eval $ mkVariablesL1     (10^6)
-    -- print "start 0"
-    -- out <- eval $ manualTerminatorParser32 txt0
-    -- print "start 1"
-    -- out <- eval $ parsePrim txt1
-    -- -- out <- eval $ evalDefLexer txt1
-    -- print "end"
+    hSetBuffering stdout NoBuffering
 
--- parsePrim :: Text32 -> Either String [(Symbol, Int)]
-
-    -- -- pprint $ tagWithColumn 0 $ evalDefLexer "ala ' fo` x + y `\n o' ola"
-    -- print $ T32.parse (T32.satisfy (== 'a')) "abcdefgh"
-    -- print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b')) "abcdefgh"
-    -- print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b') >> T32.satisfy (== 'c')) "abcdefgh"
-    -- print $ T32.parse (T32.satisfy (== 'a') >> T32.satisfy (== 'b') >> T32.satisfy (== 'd')) "abcdefgh"
-    --
-    -- print $ Text32.commonPrefixes "x" "fooquux"
-    --
-    --
-    -- pprint $ tagDisabled $ evalDefLexer ""
-    -- pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
+    pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
     defaultMain
-        -- [ bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
-        -- , bgroup "manual terminator parser"    $ expCodeGenBenchs manualTerminatorParser   mkCodeTerminators
-        -- ]
-        -- --
-        -- [ bgroup "t32"             $ expCodeGenBenchs (Text32.takeWhile (== 'a')) mkBigVariable
-        -- , bgroup "t16"             $ expCodeGenBenchs (Text.takeWhile (== 'a'))   mkBigVariable
-        -- ]
-        [ bgroup "big variable"             $ expCodeGenBenchs evalDefLexer           mkBigVariable
-        , bgroup "variables L1"             $ expCodeGenBenchs evalDefLexer           mkVariablesL1
-        , bgroup "variables L5"             $ expCodeGenBenchs evalDefLexer           mkVariablesL5
-        , bgroup "variables L10"            $ expCodeGenBenchs evalDefLexer           mkVariablesL10
-        , bgroup "terminators"              $ expCodeGenBenchs evalDefLexer           mkCodeTerminators
-        -- , bgroup "manual terminator parser" $ expCodeGenBenchs manualTerminatorParser mkCodeTerminators
+        [ bgroup "big variable"                $ expCodeGenBenchs evalDefLexer           mkBigVariable
+        , bgroup "variables L1"                $ expCodeGenBenchs evalDefLexer           mkVariablesL1
+        , bgroup "variables L5"                $ expCodeGenBenchs evalDefLexer           mkVariablesL5
+        , bgroup "variables L10"               $ expCodeGenBenchs evalDefLexer           mkVariablesL10
+        , bgroup "terminators"                 $ expCodeGenBenchs evalDefLexer           mkCodeTerminators
+        , bgroup "manual terminator parser 16" $ expCodeGenBenchs manualTerminatorParser16 mkCodeTerminators
+        , bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
         ]
 
-manualTerminatorParser :: Text -> Either String [Char]
-manualTerminatorParser = parseOnly $ many (char ';') ; {-# INLINE manualTerminatorParser #-}
-
+manualTerminatorParser16 :: Text   -> Either String [Char]
 manualTerminatorParser32 :: Text32 -> Either String [Char]
+manualTerminatorParser16 = parseOnly     $ many (char ';')     ; {-# INLINE manualTerminatorParser16 #-}
 manualTerminatorParser32 = T32.parseOnly $ many (T32.char ';') ; {-# INLINE manualTerminatorParser32 #-}

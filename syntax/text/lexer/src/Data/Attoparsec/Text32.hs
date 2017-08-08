@@ -258,7 +258,7 @@ ensureSuspended n t pos more lose succ = runParser (demandInput >> go) t pos mor
 {-# INLINE ensureSuspended #-}
 
 lengthAtLeast :: Pos -> Int -> Text32 -> Maybe Pos
-lengthAtLeast pos n t = if p' < Text32.length t then Just (toPos p') else Nothing where
+lengthAtLeast pos n t = if p' <= Text32.length t then Just (toPos p') else Nothing where
     !p' = fromPos pos + n
 {-# INLINE lengthAtLeast #-}
 
