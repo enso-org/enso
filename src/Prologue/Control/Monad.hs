@@ -1,6 +1,6 @@
 module Prologue.Control.Monad (module Prologue.Control.Monad, module X) where
 
-import Prelude (flip, pure)
+import Prelude
 import Control.Monad as X ( Monad, (>>=), (>>), (=<<), (<=<), (>=>)
                           , MonadPlus, mplus, mzero
                           , guard, void, join
@@ -8,7 +8,7 @@ import Control.Monad as X ( Monad, (>>=), (>>), (=<<), (<=<), (>=>)
                           )
 
 {-# DEPRECATED return "Use `pure` instead" #-}
-return :: Monad m => a -> m a
+return :: Applicative m => a -> m a
 return = pure ; {-# INLINE return #-}
 
 infixr 1 <<
