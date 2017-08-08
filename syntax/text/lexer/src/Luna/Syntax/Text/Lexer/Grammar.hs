@@ -11,10 +11,10 @@ import qualified Prologue as P
 
 import           Control.Monad.State.Layered
 import qualified Data.Char                    as Char
-import           Data.Text32        (Text32)
-import qualified Data.Text32        as Text32
-import qualified Data.Map.Strict              as Map
 import           Data.Map.Strict              (Map)
+import qualified Data.Map.Strict              as Map
+import           Data.Text32                  (Text32)
+import qualified Data.Text32                  as Text32
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 
