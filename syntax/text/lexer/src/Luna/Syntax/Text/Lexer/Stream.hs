@@ -21,9 +21,9 @@ import Data.Text.Position (Delta)
 import Data.Parser hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
 import Luna.Syntax.Text.Lexer.Token
-import Data.Container.Text32 (Text32)
+import Data.Text32 (Text32)
 import Data.Conduit.Utils
-import qualified Data.Container.Text32 as Text32
+import qualified Data.Text32 as Text32
 
 
 

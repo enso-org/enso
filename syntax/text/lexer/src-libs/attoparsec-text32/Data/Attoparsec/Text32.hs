@@ -16,8 +16,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Unsafe as T
 
-import           Data.Container.Text32 (Text32)
-import qualified Data.Container.Text32 as Text32
+import           Data.Text32 (Text32)
+import qualified Data.Text32 as Text32
 import Data.Coerce
 import Control.Lens hiding (lengthOf)
 

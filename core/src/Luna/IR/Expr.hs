@@ -33,7 +33,7 @@ import Luna.IR.Format2 ()
 import Luna.IR.Format (Draft)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Container.Text32 (Text32)
+import Data.Text32 (Text32)
 
 
 type ExprCons' m a = (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr a))

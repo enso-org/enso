@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Luna.Syntax.Text.SpanTree where
+module Luna.Syntax.Text.Analysis.SpanTree where
 
 import Prologue hiding (span, (|>), (<|), empty)
 
@@ -8,8 +8,8 @@ import qualified Prelude                as P
 import qualified Data.FingerTree        as FT
 import           Data.FingerTree        (Measured, FingerTree, takeUntil, dropUntil, measure)
 import           Data.Text.Position     (Delta)
-import           Data.Container.Text32  (Text32)
-import qualified Data.Container.Text32  as Text32
+import           Data.Text32  (Text32)
+import qualified Data.Text32  as Text32
 import qualified Luna.Syntax.Text.Lexer as Lexer
 import qualified Luna.Syntax.Text.Lexer.Stream as Lexer
 

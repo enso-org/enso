@@ -11,8 +11,8 @@ import qualified Data.Attoparsec.Text32         as T32
 import           Data.Functor.Utils
 import           Data.Parser
 import qualified Data.Text                      as Strict
-import           Data.Container.Text32          (Text32)
-import qualified Data.Container.Text32          as Text32
+import           Data.Text32          (Text32)
+import qualified Data.Text32          as Text32
 
 
 -- === Universal === --

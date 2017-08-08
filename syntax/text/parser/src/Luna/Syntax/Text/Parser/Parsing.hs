@@ -96,8 +96,8 @@ import qualified Data.TreeSet as TreeSet
 import           Data.TreeSet (SparseTreeSet)
 import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
-import           Data.Container.Text32 (Text32)
-import qualified Data.Container.Text32 as Text32
+import           Data.Text32 (Text32)
+import qualified Data.Text32 as Text32
 import qualified Data.Text as Text
 
 

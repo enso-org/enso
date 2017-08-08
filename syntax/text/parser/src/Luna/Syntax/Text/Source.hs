@@ -3,7 +3,7 @@ module Luna.Syntax.Text.Source where
 import Prologue
 import Data.Text.Position (Delta)
 import Luna.IR (SomeExpr)
-import Data.Container.Text32 (Text32)
+import Data.Text32 (Text32)
 
 
 --------------------

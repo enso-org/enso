@@ -15,7 +15,7 @@ import           OCI.IR.Term   (TermType)
 import qualified OCI.IR.Layout as Layout
 import qualified Luna.IR.Term.Literal as Literal
 import           Luna.IR.Term.Literal (HasLiteral, LiteralOf, literal)
-import           Data.Container.Text32 (Text32)
+import           Data.Text32 (Text32)
 
 import Data.Property
 import Data.Families (makeLunaComponents, makeLensedTerms)

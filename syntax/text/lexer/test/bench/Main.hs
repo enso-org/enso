@@ -23,10 +23,10 @@ import System.IO (FilePath)
 
 import Control.Monad.State.Layered
 
-import Luna.Syntax.Text.Lexer.Analysis
+import Luna.Syntax.Text.Analysis.Disabled
 import qualified Data.Attoparsec.Text32 as T32
-import           Data.Container.Text32 (Text32)
-import qualified Data.Container.Text32 as Text32
+import           Data.Text32 (Text32)
+import qualified Data.Text32 as Text32
 
 eval :: NFData a => a -> IO a
 eval = evaluate . force

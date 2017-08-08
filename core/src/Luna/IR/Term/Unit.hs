@@ -18,7 +18,7 @@ import           Data.TreeSet (SparseTreeSet)
 import qualified GHC.Exts as GHC
 import Data.Map (Map)
 
-import Data.Container.Text32 (Text32)
+import Data.Text32 (Text32)
 
 newtype Code = Code Text32 deriving (Show, Generic)
 makeLenses ''Code

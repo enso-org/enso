@@ -11,16 +11,12 @@ import qualified Prologue as P
 
 import           Control.Monad.State.Layered
 import qualified Data.Char                    as Char
-import qualified Data.List                    as List
+import           Data.Text32        (Text32)
+import qualified Data.Text32        as Text32
 import qualified Data.Map.Strict              as Map
 import           Data.Map.Strict              (Map)
-import qualified Data.Text.Span               as Span
-import           Data.Text.Position           (Delta, Position, Offset)
-import qualified Data.Text.Position           as Position
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
-import           Data.Container.Text32        (Text32)
-import qualified Data.Container.Text32        as Text32
 
 import qualified Data.Attoparsec.Text32 as Parsec
 import           Luna.Syntax.Text.Lexer.Token

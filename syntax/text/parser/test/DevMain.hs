@@ -62,13 +62,13 @@ import qualified Data.Text as Text
 import qualified Luna.Syntax.Text.Lexer as Lexer
 -- import qualified Data.VectorText as VectorText
 -- import           Data.VectorText (VectorText)
-import Data.Container.Text32 (Text32)
+import Data.Text32 (Text32)
 
 import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
 import qualified Data.Text.Span as Span
 
 import qualified Data.Layout as D
-import Luna.Syntax.Text.SpanTree
+import Luna.Syntax.Text.Analysis.SpanTree
 
 data ShellTest
 type instance Abstract ShellTest = ShellTest

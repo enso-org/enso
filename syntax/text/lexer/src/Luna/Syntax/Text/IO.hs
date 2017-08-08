@@ -9,8 +9,8 @@ import           Data.Conduit.Combinators     hiding (replicate)
 import           Data.Convert
 import           Control.Monad.Trans.Resource (MonadResource)
 
-import           Data.Container.Text32 (Text32)
-import qualified Data.Container.Text32 as Text32
+import           Data.Text32 (Text32)
+import qualified Data.Text32 as Text32
 
 
 -- FIXME[WD]: SourceReader reads bytestring to Data.Text and converts it to Text32 via [Char], which is very inefficient

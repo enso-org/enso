@@ -1,4 +1,4 @@
-module Luna.Syntax.Text.Lexer.Analysis where
+module Luna.Syntax.Text.Analysis.Disabled where
 
 import Prologue                      hiding (span)
 import Data.Text.Position            (Delta)

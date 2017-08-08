@@ -21,7 +21,7 @@ import OCI.IR.Layer
 import OCI.IR.Term (Term(Term), TermDef)
 import Data.Event (type(//))
 import Data.AssocList (AssocList)
-import           Data.Container.Text32 (Text32)
+import           Data.Text32 (Text32)
 
 
 

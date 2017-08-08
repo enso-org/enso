@@ -2,8 +2,8 @@ module Luna.Syntax.Text.Lexer.Runner where
 
 import Prologue hiding (Symbol)
 
-import           Data.Container.Text32          (Text32)
-import qualified Data.Container.Text32          as Text32
+import           Data.Text32          (Text32)
+import qualified Data.Text32          as Text32
 import           Control.Monad.State.Layered
 import           Luna.Syntax.Text.IO
 import           Luna.Syntax.Text.Lexer.Grammar
