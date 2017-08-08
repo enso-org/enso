@@ -9,7 +9,7 @@ default-extensions: [AllowAmbiguousTypes, ApplicativeDo, Arrows, BangPatterns, B
   RecursiveDo, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TupleSections,
   TypeApplications, TypeFamilies, TypeFamilyDependencies, TypeOperators, ViewPatterns,
   LiberalTypeSynonyms, RelaxedPolyRec]
-dependencies: [base, vector, prologue, binary, vector-binary-instances]
+dependencies: [base, vector, prologue, binary, vector-binary-instances, text]
 github: https://github.com/luna/vector-text
 library: {ghc-options: -Wall -O2, source-dirs: src}
 license: Apache-2.0
@@ -18,4 +18,4 @@ name: vector-text
 stability: experimental
 synopsis: Text implementation based on unboxed char vector. It allows for high-performance
   indexing and slicing operations.
-version: 1.0.5
+version: 1.0.6
