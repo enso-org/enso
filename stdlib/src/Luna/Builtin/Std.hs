@@ -210,6 +210,8 @@ doubleClass imps = do
         minusVal    = toLunaValue tmpImps ((-)  :: Double -> Double -> Double)
         divVal      = toLunaValue tmpImps ((/)  :: Double -> Double -> Double)
         eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
+        ltVal       = toLunaValue tmpImps ((<)  :: Double -> Double -> Bool)
+        gtVal       = toLunaValue tmpImps ((>)  :: Double -> Double -> Bool)
         showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
         toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
         toRealVal   = toLunaValue tmpImps (id   :: Double -> Double)
@@ -287,12 +289,13 @@ binaryClass imps = do
 
 stringClass :: Imports -> IO Class
 stringClass imps = do
-    Right (plusAssu, plusIr)         <- twoArgFun "Text" "Text" "Text"
-    Right (eqAssu, eqIr)             <- twoArgFun "Text" "Text" "Bool"
-    Right (textAssu, textIr)         <- oneArgFun "Text" "Text"
-    Right (toJSONAssu, toJSONIr)     <- oneArgFun "Text" "JSON"
-    Right (toBinaryAssu, toBinaryIr) <- oneArgFun "Text" "Binary"
-    Right (wordsAssu, wordsIr)       <- runGraph $ do
+    Right (plusAssu, plusIr)           <- twoArgFun "Text" "Text" "Text"
+    Right (eqAssu, eqIr)               <- twoArgFun "Text" "Text" "Bool"
+    Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
+    Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
+    Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
+    Right (text2TimeAssu, text2TimeIr) <- oneArgFun "Text" "Time"
+    Right (wordsAssu, wordsIr)         <- runGraph $ do
         tText <- cons_ @Draft "Text"
         tList   <- cons "List" [tText]
         l       <- lam tText tList
@@ -362,7 +365,7 @@ preludeArithOp op = compileFunction def $ do
 preludeCmpOp importBoxes op = compileFunction importBoxes $ do
     a    <- var "a"
     b    <- var "b"
-    acpl <- acc a ">"
+    acpl <- acc a op
     apb  <- app acpl b
     l1   <- lam b apb
     l2   <- lam a l1
@@ -508,6 +511,20 @@ systemStd imps = do
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
         primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
 
+    Right (text2TimeAssu, text2TimeIr) <- runGraph $ do
+        tText  <- cons_ @Draft "Text"
+        tTime  <- cons_ @Draft "Time"
+        tMaybe <- cons "Maybe" [tTime]
+        l1     <- lam tText tMaybe
+        l2     <- lam tText l1
+        (assu, r) <- mkMonadProofFun $ generalize l2
+        cmp    <- compile r
+        return (assu, cmp)
+    let parseTime :: Text -> Text -> Maybe Time.UTCTime
+        parseTime fmt str = Time.parseTime Time.defaultTimeLocale (convert fmt) (convert str)
+        primParseTimeVal  = toLunaValue std parseTime
+        primParseTime     = Function text2TimeIr primParseTimeVal text2TimeAssu
+
     let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
 
@@ -582,6 +599,7 @@ systemStd imps = do
                                     , ("primDiffTimes", primDiffTimes)
                                     , ("primShowTime", primShowTime)
                                     , ("primTimesEq", primTimesEq)
+                                    , ("primParseTime", primParseTime)
                                     , ("primFork", fork)
                                     , ("sleep", sleep)
                                     , ("primNewMVar", newEmptyMVar')
