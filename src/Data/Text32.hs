@@ -1,4 +1,4 @@
-module Data.Container.Text32 (module Data.Container.Text32, module X) where
+module Data.Text32 (module Data.Text32, module X) where
 
 import Prelude
 import           Data.Container.Vector as X
