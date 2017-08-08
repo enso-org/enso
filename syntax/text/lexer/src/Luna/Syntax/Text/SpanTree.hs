@@ -16,7 +16,7 @@ import qualified Luna.Syntax.Text.Lexer.Stream as Lexer
 
 -- vvv Missing instances vvv --
 
-instance Measured v a => Semigroup (FingerTree v a) where (<>) = (FT.><)
+instance Measured v a => Semigroup (FingerTree v a) where (<>) = (FT.><) ; {-# INLINE (<>) #-}
 
 -- ^^^ ----------------- ^^^ --
 
@@ -69,6 +69,7 @@ instance Convertible Span SpanGroup where
         Span TextSpan   l -> SpanGroup l l
         Span OffSpan    l -> SpanGroup l l
         Span MarkerSpan l -> SpanGroup l 0
+    {-# INLINE convert #-}
 
 
 -- === Instances === --
@@ -119,7 +120,7 @@ initSpannedText st = spannedText . Text32.unsafeInit $ st ^. value
 
 -- === Instances === --
 
-instance HasSpan (Spanned a) where span = spanned_span
+instance HasSpan (Spanned a) where span = spanned_span ; {-# INLINE span #-}
 
 
 
@@ -137,45 +138,48 @@ makeLenses ''Spantree
 -- === Utils === --
 
 empty :: Spantree a
-empty = wrap FT.empty
+empty = wrap FT.empty ; {-# INLINE empty #-}
 
 singleton :: Spanned a -> Spantree a
-singleton = wrap . FT.singleton
+singleton = wrap . FT.singleton ; {-# INLINE singleton #-}
 
 infixl 5 |>
 infixr 5 <|
 (|>) :: Spantree a -> Spanned  a -> Spantree a
 (<|) :: Spanned  a -> Spantree a -> Spantree a
-(|>) = flip append
-(<|) = prepend
+(|>) = flip append ; {-# INLINE (|>) #-}
+(<|) = prepend     ; {-# INLINE (<|) #-}
 
 append  :: Spanned a -> Spantree a -> Spantree a
 prepend :: Spanned a -> Spantree a -> Spantree a
-append  span = wrapped %~ (FT.|> convert' span)
-prepend span = wrapped %~ (convert' span FT.<|)
+append  span = wrapped %~ (FT.|> convert' span) ; {-# INLINE append  #-}
+prepend span = wrapped %~ (convert' span FT.<|) ; {-# INLINE prepend #-}
 
 split :: (SpanGroup -> Bool) -> Spantree a -> (Spantree a, Spantree a)
-split f = over both wrap . FT.split f . unwrap
+split f = over both wrap . FT.split f . unwrap ; {-# INLINE split #-}
 
 splitAtRealOffset :: Delta -> Spantree a -> (Spantree a, Spantree a)
-splitAtRealOffset t = split $ (> t) . view realLength
+splitAtRealOffset t = split $ (> t) . view realLength ; {-# INLINE splitAtRealOffset #-}
 
 splitAtViewOffset :: Bool -> Delta -> Spantree a -> (Spantree a, Spantree a)
 splitAtViewOffset skipMarkers t = split $ cmp . view viewLength where
     cmp = if skipMarkers then (> t) else (>= t)
+{-# INLINE splitAtViewOffset #-}
 
 splitFirst :: Spantree a -> Maybe (Spanned a, Spantree a)
 splitFirst st = case FT.viewl (unwrap st) of
     FT.EmptyL   -> Nothing
     a FT.:< st' -> Just (a, wrap st')
+{-# INLINE splitFirst #-}
 
 splitLast :: Spantree a -> Maybe (Spanned a, Spantree a)
 splitLast st = case FT.viewr (unwrap st) of
     FT.EmptyR   -> Nothing
     st' FT.:> a -> Just (a, wrap st')
+{-# INLINE splitLast #-}
 
 foldlSpans :: (b -> Spanned a -> b) -> b -> Spantree a -> b
-foldlSpans f b = foldl f b . unwrap
+foldlSpans f b = foldl f b . unwrap ; {-# INLINE foldlSpans #-}
 
 
 -- === Instances === --
@@ -184,12 +188,12 @@ foldlSpans f b = foldl f b . unwrap
 --            We can then drop such ugly hacks as `FingerTree.fmap'`
 instance Functor  Spantree where fmap f st = wrap $ FT.fmap' (fmap f) (unwrap st)
 
-instance Measured SpanGroup Span         where measure = convert
-instance Measured SpanGroup (Spanned  a) where measure = measure . view span
-instance Measured SpanGroup (Spantree a) where measure = measure . unwrap
+instance Measured SpanGroup Span         where measure = convert             ; {-# INLINE measure #-}
+instance Measured SpanGroup (Spanned  a) where measure = measure . view span ; {-# INLINE measure #-}
+instance Measured SpanGroup (Spantree a) where measure = measure . unwrap    ; {-# INLINE measure #-}
 
-instance Mempty    (Spantree a) where mempty = wrap mempty
-instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b
+instance Mempty    (Spantree a) where mempty = wrap mempty                 ; {-# INLINE mempty #-}
+instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b ; {-# INLINE (<>)   #-}
 
 
 
@@ -212,6 +216,7 @@ buildSpanTree src = \case
               (txtSrc, src')   = Text32.splitAt (convert span) src
               (offSrc, src'')  = Text32.splitAt (convert off)  src'
               preprendSpan d f = if d > 0 then (f d <|) else id
+{-# NOINLINE buildSpanTree #-}
 
 
 -- === View / Real position management === --
@@ -219,25 +224,27 @@ buildSpanTree src = \case
 viewToRealCursorSplitAfterMarker  ::         Spantree a -> Delta -> (Delta, (Delta, Spantree a, Spantree a))
 viewToRealCursorSplitBeforeMarker ::         Spantree a -> Delta -> (Delta, (Delta, Spantree a, Spantree a))
 viewToRealCursorSplit             :: Bool -> Spantree a -> Delta -> (Delta, (Delta, Spantree a, Spantree a))
-viewToRealCursorSplitAfterMarker       = viewToRealCursorSplit True
-viewToRealCursorSplitBeforeMarker      = viewToRealCursorSplit False
+viewToRealCursorSplitAfterMarker       = viewToRealCursorSplit True  ; {-# INLINE viewToRealCursorSplitAfterMarker  #-}
+viewToRealCursorSplitBeforeMarker      = viewToRealCursorSplit False ; {-# INLINE viewToRealCursorSplitBeforeMarker #-}
 viewToRealCursorSplit skipMarkers st d = (realLen + shift, (shift, pre, post)) where
     (pre, post) = splitAtViewOffset skipMarkers d st
     preSize     = measure pre
     shift       = d - preSize ^. viewLength
     realLen     = preSize ^. realLength
+{-# INLINE viewToRealCursorSplit #-}
 
 viewToRealCursorAfterMarker  ::         Spantree a -> Delta -> Delta
 viewToRealCursorBeforeMarker ::         Spantree a -> Delta -> Delta
 viewToRealCursor             :: Bool -> Spantree a -> Delta -> Delta
-viewToRealCursorAfterMarker  = viewToRealCursor True
-viewToRealCursorBeforeMarker = viewToRealCursor False
-viewToRealCursor = fst .:. viewToRealCursorSplit
+viewToRealCursorAfterMarker  = viewToRealCursor True         ; {-# INLINE viewToRealCursorAfterMarker  #-}
+viewToRealCursorBeforeMarker = viewToRealCursor False        ; {-# INLINE viewToRealCursorBeforeMarker #-}
+viewToRealCursor             = fst .:. viewToRealCursorSplit ; {-# INLINE viewToRealCursor             #-}
 
 viewToRealBlock :: Spantree a -> (Delta, Delta) -> (Delta, Delta)
 viewToRealBlock st (left, right) = (len, r' + len - shift) where
     (len, (shift, pre, post)) = viewToRealCursorSplitAfterMarker st left
     r' = viewToRealCursorBeforeMarker post (shift + right - left)
+{-# INLINE viewToRealBlock #-}
 
 
 -- === Text modification === --
@@ -245,8 +252,8 @@ viewToRealBlock st (left, right) = (len, r' + len - shift) where
 insertText             ::         Delta -> Text32 -> Spantree Text32 -> Spantree Text32
 insertTextBeforeMarker ::         Delta -> Text32 -> Spantree Text32 -> Spantree Text32
 insertTextByMarker     :: Bool -> Delta -> Text32 -> Spantree Text32 -> Spantree Text32
-insertText             = insertTextByMarker True
-insertTextBeforeMarker = insertTextByMarker False
+insertText             = insertTextByMarker True  ; {-# INLINE insertText             #-}
+insertTextBeforeMarker = insertTextByMarker False ; {-# INLINE insertTextBeforeMarker #-}
 insertTextByMarker skipMarkers d t st = pre <> if betweenSegments then simplePost else complexPost where
     (shift, pre, post) = snd $ viewToRealCursorSplit skipMarkers st d
     betweenSegments    = shift == mempty
@@ -254,6 +261,7 @@ insertTextByMarker skipMarkers d t st = pre <> if betweenSegments then simplePos
     complexPost        = case splitFirst post of
         Just (head, tail) -> insertIntoSpannedText (convert shift) t head <| tail
         Nothing           -> singleton $ spannedText t
+{-# INLINE insertTextByMarker #-}
 
 breakLine :: Delta -> Spantree Text32 -> Spantree Text32
-breakLine = flip (insertTextByMarker False) "\n"
+breakLine = flip (insertTextByMarker False) "\n" ; {-# INLINE breakLine #-}

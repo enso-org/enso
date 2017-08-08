@@ -6,6 +6,10 @@ import Luna.Syntax.Text.Lexer.Symbol
 import Luna.Syntax.Text.Lexer.Token
 
 
+-----------------------------------
+-- === Simple analysis utils === --
+-----------------------------------
+
 tagDisabled :: HasSymbol a => [Token a] -> [(Bool, Token a)]
 tagDisabled = columnToDisabledTag . tagColumn mempty ; {-# INLINE tagDisabled #-}
 

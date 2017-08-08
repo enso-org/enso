@@ -21,7 +21,6 @@ import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 import           Data.Container.Text32        (Text32)
 import qualified Data.Container.Text32        as Text
--- import qualified Data.Text                    as Text
 import           Luna.Syntax.Text.Lexer.Stream (ParseError, conduitParserEither)
 import           Conduit
 import qualified Data.Attoparsec.Text32 as Parsec
@@ -39,7 +38,6 @@ import Luna.Syntax.Text.IO
 
 type Parser = StateT EntryStack Parsec.Parser
 type Lexer  = Parser Symbol
-
 
 
 ------------------------
@@ -423,8 +421,8 @@ parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -
 tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
 parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}
 parseFile          = fromLexerResult <∘∘∘> tryParseFile                                      ; {-# INLINE parseFile    #-}
-tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer2 t)            ; {-# INLINE tryParse     #-}
-tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader2 t) ; {-# INLINE tryParseFile #-}
+tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
+tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 
 runLexer     :: EntryStack -> Text -> [Token (Symbol, EntryStack)]
 evalLexer    :: EntryStack -> Text -> [Token Symbol]
@@ -436,7 +434,6 @@ evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
 parsePrim :: Text32 -> Either String [(Symbol, Int)]
 parsePrim t = Parsec.parseOnly (flip (evalStateT @EntryStack) def (many lexer)) t ; {-# INLINE parsePrim #-}
 
--- parseOnly :: Parser a -> Text32 -> Either String a
 
 -- === STX / ETX handling === --
 

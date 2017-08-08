@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Syntax.Text.Lexer.Stream where
 
 import Prologue hiding (unless, span)

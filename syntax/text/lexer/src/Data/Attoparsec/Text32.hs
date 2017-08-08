@@ -1,5 +1,3 @@
--- {-# LANGUAGE Strict #-}
-
 module Data.Attoparsec.Text32 where
 
 import Control.Applicative ((<$>))
@@ -67,6 +65,7 @@ skip p = do
   let !h = Text32.unsafeHead c
   if p h then advance 1
          else fail "skip"
+{-# INLINE skip #-}
 
 satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
@@ -81,6 +80,7 @@ takeWith n p = do
   s <- ensure n
   if p s then advance 1 >> return s
          else fail "takeWith"
+{-# INLINE takeWith #-}
 
 -- | Consume exactly @n@ characters of input.
 take :: Int -> Parser Text32
@@ -123,6 +123,7 @@ stringSuspended f s000 s0 t0 pos0 more0 lose0 succ0 = runParser (demandInput_ >>
                                 in succ t (pos + l) more (substring pos l t)
           | Text32.null tsfx -> stringSuspended f s000 ssfx t pos more lose succ
           | otherwise        -> lose t pos more [] "string"
+{-# INLINE stringSuspended #-}
 
 skipWhile :: (Char -> Bool) -> Parser ()
 skipWhile p = go where
@@ -154,28 +155,27 @@ takeWhileAcc p = go where
 
 takeRest :: Parser [Text32]
 takeRest = go [] where
-    go acc = do
-        input <- wantInput
-        if input then do
+    go acc = wantInput >>= \case
+        False -> return (reverse acc)
+        True  -> do
             s <- get
             advance (size s)
             go (s:acc)
-        else return (reverse acc)
+{-# INLINE takeRest #-}
 
 takeText :: Parser Text32
 takeText = Text32.concat `fmap` takeRest ; {-# INLINE takeText #-}
 
 takeWhile1 :: (Char -> Bool) -> Parser Text32
 takeWhile1 p = do
-  (`when` demandInput) =<< endOfChunk
-  h <- Text32.takeWhile p <$> get
-  let size' = size h
-  when (size' == 0) $ fail "takeWhile1"
-  advance size'
-  eoc <- endOfChunk
-  if eoc
-    then takeWhileAcc p [h]
-    else return h
+    (`when` demandInput) =<< endOfChunk
+    h <- Text32.takeWhile p <$> get
+    let size' = size h
+    when (size' == 0) $ fail "takeWhile1"
+    advance size'
+    endOfChunk >>= \case
+        True  -> takeWhileAcc p [h]
+        False -> return h
 {-# INLINE takeWhile1 #-}
 
 anyChar :: Parser Char

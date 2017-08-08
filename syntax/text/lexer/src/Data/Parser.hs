@@ -1,5 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | Monadic / applicative parser abstractions.
+
 module Data.Parser where
 
 import Prelude hiding (takeWhile)
@@ -165,14 +167,7 @@ newline = escape_n <|> escape_rn where
 -- === PartialParser === --
 ---------------------------
 
--- data PartialResult e s a
---    = Fail    !s !e
---    | Done    !s !a
---    | Partial !(s -> PartialResult e s a)
---    deriving (Functor)
-
 type family BaseMonad (m :: * -> *) :: * -> *
-
 
 type family PartialResult (m :: * -> *) = (r :: * -> *) | r -> m
 type family Result        (m :: * -> *) = (r :: * -> *) | r -> m
