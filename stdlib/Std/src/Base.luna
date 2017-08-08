@@ -554,7 +554,10 @@ def delayAsync time act:
     fork (seq (sleep time) (var.put act))
     var
 
-def every time act:
+def every timeInterval act:
+    time = timeInterval.toMicroseconds
     current = act
     future  = delayAsync time (every time act)
     Stream current future.read
+
+def print x: putStr x.toText

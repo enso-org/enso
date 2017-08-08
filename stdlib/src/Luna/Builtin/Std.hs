@@ -210,6 +210,8 @@ doubleClass imps = do
         minusVal    = toLunaValue tmpImps ((-)  :: Double -> Double -> Double)
         divVal      = toLunaValue tmpImps ((/)  :: Double -> Double -> Double)
         eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
+        ltVal       = toLunaValue tmpImps ((<)  :: Double -> Double -> Bool)
+        gtVal       = toLunaValue tmpImps ((>)  :: Double -> Double -> Bool)
         showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
         toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
         toRealVal   = toLunaValue tmpImps (id   :: Double -> Double)
@@ -362,7 +364,7 @@ preludeArithOp op = compileFunction def $ do
 preludeCmpOp importBoxes op = compileFunction importBoxes $ do
     a    <- var "a"
     b    <- var "b"
-    acpl <- acc a ">"
+    acpl <- acc a op
     apb  <- app acpl b
     l1   <- lam b apb
     l2   <- lam a l1

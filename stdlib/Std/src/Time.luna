@@ -36,6 +36,8 @@ class TimeInterval:
 
     def toMiliseconds: self.toInt.div 1000000000
 
+    def toMicroseconds: self.toInt.div 1000000
+
     def toText: (self.toReal./ 1000000000.0).toText + "ms"
 
     def add other: TimeInterval (self.toInt + other.toInt)
@@ -52,3 +54,10 @@ class TimeInterval:
 
     def equals other: self.toInt.equals other.toInt
 
+    def < other: self.toInt.< (other.toInt)
+
+    def > other: self.toInt.> (other.toInt)
+
+    def + other: self.add other
+
+    def - other: self.sub other
