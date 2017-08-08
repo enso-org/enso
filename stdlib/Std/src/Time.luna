@@ -7,7 +7,7 @@ class Time:
 
     def now: primGetCurrentTime
 
-    def diff other: primDiffTime self other
+    def diff other: primDiffTimes self other
 
     def add interval: case self of
         TimeVal days diff: TimeVal days (diff.add interval)
@@ -21,6 +21,25 @@ class Time:
 
     def equals other: primTimesEq self other
 
+    def < other:
+        d = self.diff other
+        d.toInt.< 0
+
+    def > other:
+        d = self.diff other
+        d.toInt.> 0
+
+    def defaultFormat: "%FT%T.%q%z"
+
+    def safeParseFmt fmt str: primParseTime fmt str
+
+    def safeParse str: Time.safeParseFmt Time.defaultFormat str
+
+    def parseFmt fmt str: case Time.safeParseFmt fmt str of
+        Just t:  t
+        Nothing: errorStr ("Couldn't parse Time with the given format (" + fmt + ")")
+
+    def parse str: Time.parseFmt Time.defaultFormat str
 
 class TimeInterval:
     TimeInterval Int
