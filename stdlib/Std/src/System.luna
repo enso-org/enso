@@ -20,21 +20,20 @@ class ProcessHandle:
 class ProcessResults:
     ProcessResults (Maybe FileHandle) (Maybe FileHandle) (Maybe FileHandle) ProcessHandle
 
-    def getContentsFromStdOut: case self of
-        ProcessResults hin hout herr ph: hout . map .getContents
+    def stdin: case self of
+        ProcessResults hin _ _ _: hin
 
-    def getContentsFromStdErr: case self of
-        ProcessResults hin hout herr ph: herr . map .getContents
+    def stdout: case self of
+        ProcessResults _ hout _ _: hout
 
-    def putTextToStdIn input: case self of
-        ProcessResults hin hout herr ph: hin . maybe None (_ . putText input)
+    def stderr: case self of
+        ProcessResults _ _ herr _: herr
+
+    def handle: case self of
+        ProcessResults _ _ _ ph: ph
 
     def waitForProcess: case self of
         ProcessResults hin hout herr ph: ph . waitForProcess
-
-    def closeHandles: case self of
-        ProcessResults hin hout herr _:
-            [hin, hout, herr] . map (_ . maybe None (_ . close))
 
 class ProcessDescription:
     ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
@@ -43,29 +42,30 @@ class ProcessDescription:
 
 def withForkWait async body:
     mVar = newMVar
-    def forkB:
+    def fork' t:
         res = async
         mVar.put res
-    fork forkB
+    fork (fork' "")
     body mVar.take
 
 
 class Process:
     Process
 
-    def readProcessWithExitCode path args stdin:
+    def readProcessWithExitCode path args input:
         cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
         pr = cp . run
-        out = pr . getContentsFromStdOut
-        err = pr . getContentsFromStdErr
+        outh = pr . stdout . fromJust . getContents
+        errh = pr . stderr . fromJust . getContents
         def action waitOut waitErr:
-            unless (stdin . isEmpty) (pr . putTextToStdIn stdin)
-            waitOut
-            waitErr
-        def forkAction out err: withForkWait (primEvaluate out) (o: withForkWait (primEvaluate err) (action o))
-        out . map (o: err . map (forkAction o))
+            unless (input . isEmpty) (pr . stdin . fromJust . putText input)
+            pr . stdin . each .close
+            o = waitOut
+            e = waitErr
+            (o, e)
+        outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
         ex = pr . waitForProcess
-        Tuple3 out err ex
+        (outErr . first, outErr . second, ex)
 
 
 class ExitCode:

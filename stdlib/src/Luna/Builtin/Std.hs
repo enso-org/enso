@@ -12,7 +12,7 @@ import           Data.ByteString.Char8                        (pack)
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
 import           Control.DeepSeq                              (rnf)
-import           Control.Exception                            (evaluate)
+import qualified Control.Exception                            as Exception
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
@@ -32,6 +32,9 @@ import           Data.TypeDesc
 import           Data.UUID                                    (UUID)
 import qualified Data.UUID.V4                                 as UUID
 
+import           Foreign.C                                    (ePIPE, Errno (Errno))
+
+import           GHC.IO.Exception                             (IOErrorType (ResourceVanished), IOException (..))
 import           GHC.IO.Handle                                (Handle)
 import qualified GHC.IO.Handle                                as Handle
 
@@ -725,13 +728,20 @@ systemStd imps = do
         hIsClosedVal = withExceptions . Handle.hIsClosed
     hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [LCons "FileHandle" []] (LCons "Bool" [])
 
-    let hCloseVal :: Handle -> LunaEff ()
-        hCloseVal = withExceptions . Handle.hClose
+    let ignoreSigPipe :: IO () -> IO ()
+        ignoreSigPipe = Exception.handle $ \e -> case e of
+            IOError { ioe_type  = ResourceVanished
+                    , ioe_errno = Just ioe }
+                | Errno ioe == ePIPE -> return ()
+            _ -> Exception.throwIO e
+        hCloseVal :: Handle -> LunaEff ()
+        hCloseVal = withExceptions . ignoreSigPipe . Handle.hClose
+
     hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "FileHandle" []] (LCons "None" [])
 
     let evaluateVal :: Text -> LunaEff Text
         evaluateVal t = withExceptions $ do
-            evaluate $ rnf t
+            Exception.evaluate $ rnf t
             return t
     evaluate' <- typeRepForIO (toLunaValue std evaluateVal) [LCons "Text" []] (LCons "Text" [])
 

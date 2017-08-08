@@ -149,6 +149,16 @@ class Maybe a:
         Nothing: Nothing
         Just a: Just (f a)
 
+    def each f: case self of
+        Nothing: Nothing
+        Just a:
+            x = f a
+            Just x
+
+    def join: case self of
+        Nothing: Nothing
+        Just a: a
+        
     def toText: case self of
         Just a: "Just " + a.toText
         Nothing: "Nothing"
