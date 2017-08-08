@@ -21,6 +21,7 @@ import OCI.IR.Layer
 import OCI.IR.Term (Term(Term), TermDef)
 import Data.Event (type(//))
 import Data.AssocList (AssocList)
+import           Data.Container.Text32 (Text32)
 
 
 
@@ -70,7 +71,7 @@ data instance UniTerm a = Number    !Literal.Number
                         | UnresolvedImport    !a ! UnresolvedImportTgt
                         | UnresolvedImportSrc !ImportSource
                         | World               !(Map QualName a)
-                        | Invalid             !Text
+                        | Invalid             !Text32
                         | List                ![a]
                         | Tuple               ![a]
                         | AccSection          ![Name]
@@ -80,7 +81,7 @@ data instance UniTerm a = Number    !Literal.Number
                         | Disabled            !a
                         | Marker              !Word64
                         | Marked              !a !a
-                        | Metadata            !Text
+                        | Metadata            !Text32
                         deriving (Show)
 
 

@@ -254,7 +254,7 @@ instance ( MonadIO m -- DEBUG ONLY
                                                                in  imps <> glue <> foldl (</>) mempty defs
 
         AccSection   n         -> return . named (notSpaced accName) . atom $ "." <> intercalate "." (convert <$> n)
-        Metadata     t         -> return . unnamed . atom $ "###" <+> metadataHeader <+> convert t
+        Metadata     t         -> return . unnamed . atom $ "###" <+> metadataHeader <+> convertVia @Text t
         Disabled     a         -> unnamed . atom . ("#" <>) <$> subgenBody a
 
         --         FmtString str  -> unnamed . atom . squoted . mconcat <$> (mapM handleSegment $ unwrap str) where -- FIXME [WD]: add proper multi-strings indentation

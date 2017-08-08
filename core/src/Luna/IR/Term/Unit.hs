@@ -18,17 +18,17 @@ import           Data.TreeSet (SparseTreeSet)
 import qualified GHC.Exts as GHC
 import Data.Map (Map)
 
-import Data.VectorText (VectorText)
+import Data.Container.Text32 (Text32)
 
-newtype Code = Code VectorText deriving (Show, Generic)
+newtype Code = Code Text32 deriving (Show, Generic)
 makeLenses ''Code
 
 instance Binary Code
 
-instance Convertible Code VectorText where convert = unwrap
-instance Convertible VectorText Code where convert = wrap
-instance {-# OVERLAPPABLE #-} Convertible VectorText a => Convertible Code a where convert = convertVia @VectorText
-instance {-# OVERLAPPABLE #-} Convertible a VectorText => Convertible a Code where convert = convertVia @VectorText
+instance Convertible Code Text32 where convert = unwrap
+instance Convertible Text32 Code where convert = wrap
+instance {-# OVERLAPPABLE #-} Convertible Text32 a => Convertible Code a where convert = convertVia @Text32
+instance {-# OVERLAPPABLE #-} Convertible a Text32 => Convertible a Code where convert = convertVia @Text32
 
 --------------------
 -- === Digest === --

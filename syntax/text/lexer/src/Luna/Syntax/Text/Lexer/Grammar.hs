@@ -20,7 +20,7 @@ import qualified Data.Text.Position           as Position
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 import           Data.Container.Text32        (Text32)
-import qualified Data.Container.Text32        as Text
+import qualified Data.Container.Text32        as Text32
 import           Luna.Syntax.Text.Lexer.Stream (ParseError, conduitParserEither)
 import           Conduit
 import qualified Data.Attoparsec.Text32 as Parsec
@@ -115,7 +115,7 @@ lexNumber = check =<< number where
     hexBody = takeWhile1 isHexDigitChar
     octBody = takeWhile1 isOctDigitChar
     binBody = takeWhile1 isBinDigitChar
-    expBody = maybe id Text.cons <$> optional sign <*> decBody
+    expBody = maybe id Text32.cons <$> optional sign <*> decBody
     fracSfx = option mempty $ token '.' *> decBody
     expSfx  = option mempty $ token 'e' *> expBody
     sign    = satisfy (\s -> s == '-' || s == '+')
@@ -133,7 +133,7 @@ beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c) ; {-# INLINE beginQuotes 
 
 beginMultiQuotes :: Char -> Parser Int
 beginMultiQuotes !c = do
-    !len <- Text.length <$> takeMany1 c
+    !len <- Text32.length <$> takeMany1 c
     when (len == 2) $ fail "Empty string"
     return len
 {-# INLINE beginMultiQuotes #-}
@@ -160,7 +160,7 @@ natStrBody hlen = code <|> quotes where
     code   = Str <$> takeWhile1 (/= natStrQuote)
     quotes = do
         qs <- takeMany1 natStrQuote
-        if Text.length qs == hlen
+        if Text32.length qs == hlen
             then Quote NatStr End <$ unliftEntry
             else return $ Str qs
 {-# INLINE natStrBody #-}
@@ -174,11 +174,11 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
     linebr = EOL <$  newline
     escape = StrEsc <$ token escapeChar <*> esct
     esct   = (SlashEsc <$ token escapeChar)
-         <|> (QuoteEscape RawStr . Text.length <$> takeMany1 rawStrQuote)
-         <|> (QuoteEscape FmtStr . Text.length <$> takeMany1 fmtStrQuote)
+         <|> (QuoteEscape RawStr . Text32.length <$> takeMany1 rawStrQuote)
+         <|> (QuoteEscape FmtStr . Text32.length <$> takeMany1 fmtStrQuote)
     quotes = do
         qs <- takeMany1 rawStrQuote
-        if Text.length qs == hlen
+        if Text32.length qs == hlen
             then Quote RawStr End <$ unliftEntry
             else return $ Str qs
 {-# INLINE rawStrBody #-}
@@ -192,12 +192,12 @@ fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
     linebr = EOL <$  newline
     escape = token escapeChar *> esct
     esct   = (StrEsc   SlashEsc <$ token escapeChar)
-         <|> (StrEsc . QuoteEscape RawStr . Text.length <$> takeMany1 rawStrQuote)
-         <|> (StrEsc . QuoteEscape FmtStr . Text.length <$> takeMany1 fmtStrQuote)
+         <|> (StrEsc . QuoteEscape RawStr . Text32.length <$> takeMany1 rawStrQuote)
+         <|> (StrEsc . QuoteEscape FmtStr . Text32.length <$> takeMany1 fmtStrQuote)
          <|> lexEscSeq
     quotes = do
         qs <- takeMany1 fmtStrQuote
-        if Text.length qs == hlen
+        if Text32.length qs == hlen
             then Quote FmtStr End <$ unliftEntry
             else return $ Str qs
     code   = Block Begin <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
@@ -207,7 +207,7 @@ fmtStrCode :: Int -> Lexer
 fmtStrCode hlen = ending <|> topEntryPoint where
     ending = do
         qs <- takeMany1 natStrQuote
-        when (Text.length qs /= hlen) $ fail "Not an ending"
+        when (Text32.length qs /= hlen) $ fail "Not an ending"
         Block End <$ unliftEntry
 {-# INLINE fmtStrCode #-}
 
@@ -339,7 +339,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           varHead  c        = between c 'a' 'z' || c == '_'
           consHead c        = between c 'A' 'Z'
           consBody          = indentBaseBody
-          varBody           = indentBaseBody <**> (option id $ flip Text.snoc <$> (token '?' <|> token '!'))
+          varBody           = indentBaseBody <**> (option id $ flip Text32.snoc <$> (token '?' <|> token '!'))
                                              <**> (option id $ flip (<>)      <$> takeMany1 '\'')
           indentBaseBody    = takeWhile isIndentBodyChar
           handleColons      = handleReps  [BlockStart, Typed]
@@ -347,7 +347,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           handleEqs         = handleReps  [Assignment, Operator "=="]
           handleHash        = handleRepsM [pure Disable, lexComment, lexConfig]
           handleReps        = handleRepsM . fmap pure
-          handleRepsM ts s  = fromMaybe (return $ Unknown s) $ ts ^? ix (Text.length s - 1)
+          handleRepsM ts s  = fromMaybe (return $ Unknown s) $ ts ^? ix (Text32.length s - 1)
           handleOp    op    = \case "="  -> Modifier op
                                     ""   -> Operator op
                                     s    -> Unknown (op <> s)
@@ -400,7 +400,7 @@ lexeme s = case s of
 {-# INLINE lexeme #-}
 
 spacing :: Parser Int
-spacing = Text.length <$> takeMany ' ' ; {-# INLINE spacing #-}
+spacing = Text32.length <$> takeMany ' ' ; {-# INLINE spacing #-}
 
 
 
@@ -412,11 +412,11 @@ fromLexerResult :: Either ParseError a -> a
 fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
 
 -- FIXME[WD]: concatenating STX to the end of list could be slow
-parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text m () -> ConduitM a c0 m [Either ParseError (Token t)]
+parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text32 m () -> ConduitM a c0 m [Either ParseError (Token t)]
 parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
-parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text     ->   [Token a]
-tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text     ->   Either ParseError [Token a]
+parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32     ->   [Token a]
+tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32     ->   Either ParseError [Token a]
 parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
 tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
 parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}
@@ -424,9 +424,9 @@ parseFile          = fromLexerResult <∘∘∘> tryParseFile                   
 tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
 tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 
-runLexer     :: EntryStack -> Text -> [Token (Symbol, EntryStack)]
-evalLexer    :: EntryStack -> Text -> [Token Symbol]
-evalDefLexer ::               Text -> [Token Symbol]
+runLexer     :: EntryStack -> Text32 -> [Token (Symbol, EntryStack)]
+evalLexer    :: EntryStack -> Text32 -> [Token Symbol]
+evalDefLexer ::               Text32 -> [Token Symbol]
 runLexer     = parse lexerCont ; {-# INLINE runLexer     #-}
 evalLexer    = parse lexer     ; {-# INLINE evalLexer    #-}
 evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
@@ -437,11 +437,11 @@ parsePrim t = Parsec.parseOnly (flip (evalStateT @EntryStack) def (many lexer)) 
 
 -- === STX / ETX handling === --
 
-prependSTX :: (Monad m, IsSourceBorder s) => ConduitM Text s m () -> ConduitM Text s m ()
+prependSTX :: (Monad m, IsSourceBorder s) => ConduitM Text32 s m () -> ConduitM Text32 s m ()
 prependSTX f = await >>= \case
     Nothing -> return ()
-    Just t  -> yield (stx $ Text.length s) >> when (not $ Text.null t') (leftover t') >> f where
-        (s,t') = Text.span (== ' ') t
+    Just t  -> yield (stx $ Text32.length s) >> when (not $ Text32.null t') (leftover t') >> f where
+        (s,t') = Text32.span (== ' ') t
 {-# INLINE prependSTX #-}
 
 class IsSourceBorder a where

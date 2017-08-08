@@ -33,6 +33,7 @@ import Luna.IR.Format2 ()
 import Luna.IR.Format (Draft)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Container.Text32 (Text32)
 
 
 type ExprCons' m a = (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr a))
@@ -339,8 +340,8 @@ impHub imps = mdo
     return t
 
 
-invalid' :: ExprCons' m Invalid => Text -> m SomeExpr
-invalid  :: ExprCons' m Invalid => Text -> m (Expr Invalid)
+invalid' :: ExprCons' m Invalid => Text32 -> m SomeExpr
+invalid  :: ExprCons' m Invalid => Text32 -> m (Expr Invalid)
 invalid' = generalize <∘> invalid
 invalid  = expr . Term.uncheckedInvalid
 
@@ -390,7 +391,7 @@ marked l r = mdo
     lr <- link (unsafeRelayout r) t
     return t
 
-metadata' :: ExprCons' m Metadata => Text -> m SomeExpr
-metadata  :: ExprCons' m Metadata => Text -> m (Expr Metadata)
+metadata' :: ExprCons' m Metadata => Text32 -> m SomeExpr
+metadata  :: ExprCons' m Metadata => Text32 -> m (Expr Metadata)
 metadata' = fmap generalize . metadata
 metadata  = expr . Term.uncheckedMetadata

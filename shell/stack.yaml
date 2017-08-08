@@ -16,7 +16,7 @@ packages:
 - extra-dep: true
   location: {commit: 4cc75aeb82ad2885427211a1be9cb0c7d9582c01, git: 'https://github.com/luna/data-pool.git'}
 - extra-dep: true
-  location: {commit: abbd2fb105b2ac7bcd1f65feeaf3d8cad7bc59f3, git: 'https://github.com/luna/convert.git'}
+  location: {commit: d2e5ee90d59e2492c14aa825bcd9deef0af2f179, git: 'https://github.com/luna/convert.git'}
 - extra-dep: true
   location: {commit: a81f2eb37b0bddbc3391c8a29860b921aa94f3c8, git: 'https://github.com/luna/data-base.git'}
 - extra-dep: true
@@ -60,7 +60,7 @@ packages:
 - extra-dep: true
   location: {commit: 685084ab9a24b4e1a61b88b2591661f86a2d303b, git: 'https://github.com/luna/parsert'}
 - extra-dep: true
-  location: {commit: 4a601893b4d9244be6865026c2de2ef0d4bb3561, git: 'https://github.com/luna/vector-text'}
+  location: {commit: 3694e3e084958829ff10d4cf53eaba4a96892e63, git: 'https://github.com/luna/vector-text'}
 - extra-dep: true
   location: {commit: c028e7939bf79853e63bc40f2576d9280dffbb4c, git: 'https://github.com/luna/terminal-text'}
 - extra-dep: true

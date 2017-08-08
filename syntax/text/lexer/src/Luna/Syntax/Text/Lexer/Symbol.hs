@@ -3,15 +3,14 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue hiding (Symbol, List, element, Text)
+import Prologue hiding (Symbol, List, element, Text32)
 import Luna.Syntax.Text.Lexer.Token
 
 import Data.Container.Text32 (Text32)
 
-type Text = Text32
 -- FIXME[WD]: TO REFACTOR
 class ShowCons a where
-    showCons :: a -> Text
+    showCons :: a -> Text32
 
 
 ------------------
@@ -20,7 +19,7 @@ class ShowCons a where
 
 -- === Definition === --
 
-type Tags = [Text]
+type Tags = [Text32]
 
 class IsTagged a where
     getTags :: a -> Tags
@@ -30,7 +29,7 @@ class IsTagged a where
 
 -- === Utils === --
 
-singleTag :: Text -> Tags
+singleTag :: Text32 -> Tags
 singleTag = pure ; {-# INLINE singleTag #-}
 
 tagFromShow :: Show a => a -> Tags
@@ -60,8 +59,8 @@ data Symbol -- Layout
             | Marker      !Word64
 
             -- Ident
-            | Var         !Text
-            | Cons        !Text
+            | Var         !Text32
+            | Cons        !Text32
             | Wildcard
 
             -- Keyword
@@ -73,8 +72,8 @@ data Symbol -- Layout
             | KwOf
 
             -- Operator
-            | Operator    !Text
-            | Modifier    !Text
+            | Operator    !Text32
+            | Modifier    !Text32
             | Accessor
             -- | Arrow
             | Assignment
@@ -87,22 +86,22 @@ data Symbol -- Layout
             -- Literal
             | Number      !Number
             | Quote       !StrType  !Bound
-            | Str         !Text
+            | Str         !Text32
             | StrEsc      !StrEscType
             | List        !Bound
             | StrWrongEsc !Int
 
             -- Comment
             | Disable
-            | Doc         !Text
+            | Doc         !Text32
 
             -- Config
-            | Metadata    !Text
+            | Metadata    !Text32
             -- | Pragma ...
 
             -- Other
-            | Unknown     !Text
-            | Incorrect   !Text
+            | Unknown     !Text32
+            | Incorrect   !Text32
             deriving (Generic, Show, Eq, Ord)
 
 data StrEscType = CharStrEsc  !Int
@@ -115,9 +114,9 @@ data Bound   = Begin | End              deriving (Generic, Show, Eq, Ord)
 data StrType = RawStr | FmtStr | NatStr deriving (Generic, Show, Eq, Ord)
 data Numbase = Dec | Bin | Oct | Hex    deriving (Generic, Show, Eq, Ord)
 data Number  = NumRep { _base     :: Numbase
-                      , _intPart  :: Text
-                      , _fracPart :: Text
-                      , _expPart  :: Text
+                      , _intPart  :: Text32
+                      , _fracPart :: Text32
+                      , _expPart  :: Text32
                       } deriving (Generic, Show, Eq, Ord)
 
 instance NFData Symbol
@@ -132,7 +131,7 @@ makeLenses ''Number
 
 -- === Utils === --
 
-checkSpecialVar :: Text -> Symbol
+checkSpecialVar :: Text32 -> Symbol
 checkSpecialVar = \case
     "all"    -> KwAll
     "case"   -> KwCase
@@ -144,7 +143,7 @@ checkSpecialVar = \case
     name     -> Var name
 {-# INLINE checkSpecialVar #-}
 
-matchVar, matchCons, matchOperator, matchModifier, matchStr, matchMetadata :: Symbol -> Maybe Text
+matchVar, matchCons, matchOperator, matchModifier, matchStr, matchMetadata :: Symbol -> Maybe Text32
 matchNumber   :: Symbol -> Maybe Number
 matchMarker   :: Symbol -> Maybe Word64
 matchVar      = \case { Var      a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar      #-}
@@ -156,10 +155,10 @@ matchNumber   = \case { Number   a -> Just a ; _ -> Nothing } ; {-# INLINE match
 matchMarker   = \case { Marker   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker   #-}
 matchMetadata = \case { Metadata a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata #-}
 
-intNum :: Text -> Number
+intNum :: Text32 -> Number
 intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}
 
-pretty :: Symbol -> Text
+pretty :: Symbol -> Text32
 pretty = \case
     STX         {} -> "Start of text"
     ETX         {} -> "End of text"

@@ -60,8 +60,9 @@ import           Data.FingerTree (Measured, FingerTree, takeUntil, dropUntil, me
 import Data.Monoid (Sum(Sum))
 import qualified Data.Text as Text
 import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Data.VectorText as VectorText
-import           Data.VectorText (VectorText)
+-- import qualified Data.VectorText as VectorText
+-- import           Data.VectorText (VectorText)
+import Data.Container.Text32 (Text32)
 
 import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
 import qualified Data.Text.Span as Span
@@ -218,12 +219,12 @@ uncheckedDeleteStarType e = do
 
 main :: IO ()
 main = do
-    let input :: Text
+    let input :: Text32
         -- input = "«0»Vector x y z = v\n«1»Scalar a = t"
         input = "«0»Vector x y z = v"
         -- input = "«0"
     let stream = Lexer.evalDefLexer input :: [Lexer.Token Lexer.Symbol]
-        st     = buildSpanTree (convert input) stream
+        st     = buildSpanTree input stream
     -- pprint stream
     -- pprint st
     -- -- putStrLn $ convert (convert stream :: Text)

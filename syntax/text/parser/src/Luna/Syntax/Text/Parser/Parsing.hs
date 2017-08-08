@@ -96,8 +96,8 @@ import qualified Data.TreeSet as TreeSet
 import           Data.TreeSet (SparseTreeSet)
 import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
-import           Data.VectorText (VectorText)
-import qualified Data.VectorText as VectorText
+import           Data.Container.Text32 (Text32)
+import qualified Data.Container.Text32 as Text32
 import qualified Data.Text as Text
 
 
@@ -287,13 +287,13 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 -- === Errors === --
 --------------------
 
-invalid :: Text -> IRB SomeExpr
+invalid :: Text32 -> IRB SomeExpr
 invalid txt = liftIRBApp0 $ do
     inv <- IR.invalid txt
     registerInvalid inv
     return $ generalize inv
 
-invalidSymbol :: (Symbol -> Text) -> AsgParser SomeExpr
+invalidSymbol :: (Symbol -> Text32) -> AsgParser SomeExpr
 invalidSymbol f = buildAsg $ invalid . f <$> anySymbol
 
 catchParseErrors :: SymParser a -> SymParser (Either P.String a)
@@ -407,7 +407,7 @@ previewVarName = do
     s <- previewNextSymbol
     maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (return . convert) $ Lexer.matchVar =<< s
 
-specificVar, specificCons, specificOp :: Text -> SymParser ()
+specificVar, specificCons, specificOp :: Text32 -> SymParser ()
 specificVar  = symbol . Lexer.Var
 specificCons = symbol . Lexer.Cons
 specificOp   = symbol . Lexer.Operator
@@ -477,18 +477,18 @@ str = buildAsg $ do
     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
                  $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent strBody -- FIXME[WD]: We're converting Text -> String here.
 
-strBody :: SymParser Text
+strBody :: SymParser Text32
 strBody = segStr <|> end <|> nl where
     segStr = (<>) <$> strContent <*> strBody
     end    = mempty <$ rawQuoteEnd
-    nl     = Text.cons '\n' <$ eol <*> (line <|> nl)
+    nl     = Text32.cons '\n' <$ eol <*> (line <|> nl)
     line   = do Indent.indentedOrEq
                 (<>) . convert . flip replicate ' ' <$> indentation <*> strBody
 
-strContent :: SymParser Text
+strContent :: SymParser Text32
 strContent = satisfy Lexer.matchStr
 
-inlineStr :: SymParser Text
+inlineStr :: SymParser Text32
 inlineStr = Indent.withCurrent $ do
     strContent <* rawQuoteEnd
 
@@ -530,7 +530,7 @@ grouped p = buildAsg $ parensed $ (\g -> liftAstApp1 IR.grouped' g) <$> p where
 metadata :: AsgParser SomeExpr
 metadata = buildAsg $ (\t -> liftIRBApp0 $ IR.metadata' t) <$> metaContent
 
-metaContent :: SymParser Text
+metaContent :: SymParser Text32
 metaContent = satisfy Lexer.matchMetadata
 
 
@@ -952,7 +952,7 @@ parsingPassM p = do
 
 parsingBase :: ( MonadPassManager m, ParsingPassReq_2 m
                , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
-               ) => AsgParser a -> Text -> m (a, MarkedExprMap)
+               ) => AsgParser a -> Text32 -> m (a, MarkedExprMap)
 parsingBase p src = do
     let stream = Lexer.evalDefLexer src
     -- result <- runParserT p stream
@@ -965,7 +965,7 @@ parsingBase p src = do
 
 parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
                 , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
-                ) => AsgParser a -> Text -> m a
+                ) => AsgParser a -> Text32 -> m a
 parsingBase_ = view _1 <∘∘> parsingBase
 
 parserPassX  :: MonadPassManager m => AsgParser SomeExpr -> Pass Parsing   m
