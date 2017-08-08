@@ -1,5 +1,4 @@
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE LambdaCase                #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
@@ -11,24 +10,56 @@
 {-# LANGUAGE AllowAmbiguousTypes       #-}
 {-# LANGUAGE MultiWayIf                #-}
 
-module Prologue (
-    module Prologue,
+module Prologue2 (
+    module Prologue2,
     module X
 ) where
 
-import qualified Prelude
-import Prelude                    as X hiding (unlines, mapM, mapM_, print, putStr, putStrLn, curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat, fail)
-import Control.Applicative        as X
+
+-- === Data types === --
+import Prologue.Data.Basic              as X
+import Prologue.Data.Num                as X
+import Prologue.Data.Show               as X
+
+-- === Monads === --
+import Prologue.Control.Monad
+import Prologue.Control.Monad.IO        as X
+import Prologue.Control.Monad.Primitive as X
+import Control.Applicative              as X ( Applicative, pure, (<*>), (*>), (<*), (<$>), (<$), (<**>), liftA, liftA2, liftA3, optional
+                                             , Alternative, empty, (<|>), some, many
+                                             , ZipList
+                                             )
+import Control.Monad.Fix                as X (MonadFix, mfix, fix)
+import Control.Monad.Trans.Class        as X (MonadTrans, lift)
+import Control.Monad.Identity           as X (Identity, runIdentity)
+import Control.Monad.Trans.Identity     as X (IdentityT, runIdentityT)
+
+import qualified Prelude as Prelude
+import Prelude                   as X ( Enum (succ, pred, toEnum, fromEnum, enumFrom, enumFromThen, enumFromTo, enumFromThenTo)
+                                      , Bounded (minBound, maxBound)
+                                      , Functor (fmap, (<$)), (<$>)
+                                      , Foldable (foldMap, foldr, foldl, foldr1, foldl1, null, length, elem, maximum, minimum, sum, product)
+                                      , Traversable (traverse, sequenceA, mapM, sequence)
+                                      , id, const, (.), flip, ($), until, asTypeOf, error, errorWithoutStackTrace, undefined
+                                      , seq, ($!)
+                                      , map, filter, head, last, tail, init, null, length, (!!), reverse
+                                      , and, or, any, all, concat, concatMap
+                                      , scanl, scanl1, scanr, scanr1
+                                      , iterate, repeat, cycle
+                                      , take, drop, splitAt, takeWhile, dropWhile, span, break
+                                      , notElem, lookup
+                                      , zip, zip3, zipWith, zipWith3, unzip, unzip3
+                                      , lines, words, unwords
+                                      , ReadS, Read (readsPrec, readList), reads, readParen, read, lex
+                                      )
+-- hiding (unlines, mapM, mapM_, print, putStr, putStrLn, curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat, fail)
+
+
 import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
 import Control.Error.Util         as X (hush, hushT, note, isJustT, isNothingT, nothing, just, isLeftT, isRightT)
 import Control.Exception.Base     as X (assert)
-import Control.Monad              as X (MonadPlus, mplus, mzero, guard, void, join, (<=<), (>=>), zipWithM, zipWithM_, foldM, foldM_, forever)
-import Control.Monad.Base         as X
-import Control.Monad.Fix          as X (MonadFix, mfix)
-import Control.Monad.IO.Class     as X (MonadIO, liftIO)
-import Control.Monad.Trans        as X (MonadTrans, lift)
-import Control.Monad.Trans.Identity as X (IdentityT, runIdentityT)
-import Control.Monad.Primitive    as X (PrimState, PrimMonad, primitive)
+
+
 import Control.Comonad            as X (Comonad, extract, duplicate, extend, (=>=), (=<=), (<<=), (=>>))
 import Control.Comonad            as X (ComonadApply, (<@>), (<@), (@>), (<@@>), liftW2, liftW3)
 
@@ -54,7 +85,6 @@ import Data.Typeable.Proxy.Abbr   as X (P, p)
 import GHC.Exts                   as X (Constraint)
 import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
-import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
 import Type.Monoid                as X (type (<>))
@@ -81,11 +111,9 @@ import Control.Lens.Utils         as X
 
 -- === Data types === --
 import Data.Text                  as X (Text)
-import Data.Int                   as X (Int, Int8, Int16, Int32, Int64)
-import Data.Word                  as X (Word, Word8, Word16, Word32, Word64)
+
 
 -- === Bool === --
-import Data.Bool                  as X (bool)
 import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, ToBool, toBool)
 
 -- === Maybe === --
@@ -132,6 +160,7 @@ import qualified Data.List as List
 import           Data.List as X (sort)
 import Language.Haskell.TH.Quote (QuasiQuoter)
 
+
 txt :: QuasiQuoter
 txt = NeatInterpolation.text
 
@@ -146,27 +175,7 @@ hoistMaybe = maybe mzero return
 rangeIndex :: Ix a => (a, a) -> a -> Int
 rangeIndex = Ix.index
 
--- IO
 
-print :: (MonadIO m, Show s) => s -> m ()
-print    = liftIO . Prelude.print
-
-printLn :: MonadIO m => m ()
-printLn = putStrLn ""
-
-putStr :: MonadIO m => String -> m ()
-putStr   = liftIO . Prelude.putStr
-
-putStrLn :: MonadIO m => String -> m ()
-putStrLn = liftIO . Prelude.putStrLn
-
-pprint :: (MonadIO m, Show s) => s -> m ()
-pprint = putStrLn . ppShow
-
---
-
-infixr 1 <<
-(<<) = flip (>>)
 
 replicate :: (Num a, Eq a, Enum a, Ord a) => a -> t -> [t]
 replicate 0 _ = []
@@ -230,8 +239,7 @@ lift3 :: (Monad (t1 (t2 m)), Monad (t2 m), Monad m, MonadTrans t, MonadTrans t1,
       => m a -> t (t1 (t2 m)) a
 lift3 = lift . lift2
 
-switch :: a -> a -> Bool -> a
-switch ok fail cond = if cond then ok else fail
+
 --
 -- switchM :: Monad m => m Bool -> a -> a -> m a
 -- switchM cond fail ok = do
@@ -501,21 +509,6 @@ partitionMaybeTaggedList = \case
     ((a, mb) : ls) -> partitionMaybeTaggedList ls & case mb of
         Nothing -> _1 %~ (a:)
         Just b  -> _2 %~ ((a,b):)
-
-
--- | Here is a script fo generating Functor instances for tuples if somebody will need bigger ones
---     mkts i = ("t"<>) . show <$> [1..i]mkts i = ("t"<>) . show <$> [1..i]
---     mki i = "deriving instance Functor ((" <> replicate (i-1) ',' <> ") " <> intercalate " " (mkts (i-1)) <> ")"
---     mapM putStrLn $ mki <$> [3..10]
-
-deriving instance Functor ((,,) t1 t2)
-deriving instance Functor ((,,,) t1 t2 t3)
-deriving instance Functor ((,,,,) t1 t2 t3 t4)
-deriving instance Functor ((,,,,,) t1 t2 t3 t4 t5)
-deriving instance Functor ((,,,,,,) t1 t2 t3 t4 t5 t6)
-deriving instance Functor ((,,,,,,,) t1 t2 t3 t4 t5 t6 t7)
-deriving instance Functor ((,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8)
-deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
 
 
 
