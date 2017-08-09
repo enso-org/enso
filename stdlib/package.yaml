@@ -25,13 +25,13 @@ dependencies:
     - scientific
     - unordered-containers
     - aeson
+    - http-client
     - http-conduit
     - http-types
     - uuid
     - process
     - data-msgpack
     - time
-    - vector
 
 default-extensions:
     - AllowAmbiguousTypes

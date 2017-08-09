@@ -26,48 +26,54 @@ class HttpResponse:
         HttpResponse code body: code
 
 class HttpRequest:
-    HttpRequest Text HttpMethod (Map Text Text) Binary
+    HttpRequestClass
+    HttpRequest Text HttpMethod (Map Text Text) (Maybe (Tuple2 Text Text)) Binary
+
+    def default uri: HttpRequest "" GET Map.empty Nothing "".toBinary
 
     def method: case self of
-        HttpRequest uri method headers body: method
+        HttpRequest uri method headers auth body: method
 
     def setMethod m: case self of
-        HttpRequest uri method headers body: HttpRequest uri m headers body
+        HttpRequest uri method headers auth body: HttpRequest uri m headers auth body
 
     def body: case self of
-        HttpRequest uri method headers body: body
+        HttpRequest uri method headers auth body: body
 
     def setBody b: case self of
-        HttpRequest uri method headers body: HttpRequest uri method headers b
+        HttpRequest uri method headers auth body: HttpRequest uri method headers auth b
 
     def uri: case self of
-        HttpRequest uri method headers body: uri
+        HttpRequest uri method headers auth body: uri
 
     def setUri u: case self of
-        HttpRequest uri method headers body: HttpRequest u method headers body
+        HttpRequest uri method headers auth body: HttpRequest u method headers auth body
 
     def headers: case self of
-        HttpRequest uri method headers body: headers
+        HttpRequest uri method headers auth body: headers
 
     def addHeader key val: case self of
-        HttpRequest uri method headers body: HttpRequest uri method (headers.insert key val)
+        HttpRequest uri method headers auth body: HttpRequest uri method (headers.insert key val) auth body
 
-    def perform: primPerformHttp self.uri (self.method.toText) self.headers.toList self.body
+    def setAuth username password: case self of
+        HttpRequest uri method headers auth body: HttpRequest uri method headers (Just (username, password)) body
+
+    def perform: primPerformHttp self.uri (self.method.toText) (self.headers.toList) auth self.body
 
 class Http:
     Http
 
     def get uri:
-        HttpRequest uri GET Map.empty "".toBinary
+        HttpRequestClass.default uri
 
     def post uri body:
-        HttpRequest uri POST Map.empty body.toBinary
+        HttpRequestClass.default uri . setMethod POST . setBody body
 
     def put uri body:
-        HttpRequest uri PUT Map.empty body.toBinary
+        HttpRequestClass.default uri . setMethod PUT . setBody body
 
     def delete uri:
-        HttpRequest uri DELETE Map.empty "".toBinary
+        HttpRequestClass.default uri . setMethod DELETE
 
     def getBinary uri:
         Http.get uri . perform . body

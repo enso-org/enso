@@ -19,7 +19,7 @@ import           Data.Map                                     (Map)
 import qualified Data.Map                                     as Map
 import qualified Data.Map.Base                                as IMap
 import qualified Data.MessagePack                             as MsgPack
-import           Data.Scientific                              (Scientific, fromFloatDigits, toRealFloat)
+import           Data.Scientific                              (toRealFloat)
 import           Data.Set                                     (Set)
 import qualified Data.Set                                     as Set
 import           Data.Time                                    (DiffTime)
@@ -32,7 +32,6 @@ import qualified Data.Text.Encoding                           as T
 import           Data.TypeDesc
 import           Data.UUID                                    (UUID)
 import qualified Data.UUID.V4                                 as UUID
-import qualified Data.Vector                                  as Vector
 
 import           GHC.IO.Handle                                (Handle)
 import qualified GHC.IO.Handle                                as Handle
@@ -60,6 +59,7 @@ import           Luna.Prelude                                 as P hiding (cons,
 import           Luna.Test.IR.Runner
 import           Luna.Test.Utils
 
+import qualified Network.HTTP.Client                          as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
 
@@ -488,26 +488,32 @@ systemStd imps = do
         res    <- compile $ generalize lamP
         return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
 
-    Right (json2BinaryAssu, json2BinaryIr)   <- oneArgFun "JSON" "Binary"
     Right (mpack2BinaryAssu, mpack2BinaryIr) <- oneArgFun "MsgPack" "Binary"
-    let encodeJSONVal    = toLunaValue std (Aeson.encode :: Aeson.Value -> ByteString)
-        encodeJSON       = Function json2BinaryIr encodeJSONVal json2BinaryAssu
-        encodeMsgPackVal = toLunaValue std (MsgPack.pack :: MsgPack.Object -> ByteString)
+    let encodeMsgPackVal = toLunaValue std (MsgPack.pack :: MsgPack.Object -> ByteString)
         encodeMsgPack    = Function mpack2BinaryIr encodeMsgPackVal mpack2BinaryAssu
 
     let parseMsgPackVal :: ByteString -> LunaEff MsgPack.Object
         parseMsgPackVal = withExceptions . MsgPack.unpack
     parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
-    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> ByteString -> LunaEff (HTTP.Response ByteString)
-        primPerformHttpVal uri method headers body = performIO $ do
+    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
+        primPerformHttpVal uri method headers auth body = performIO $ do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
             baseReq <- HTTP.parseRequest (convert uri)
-            HTTP.httpLBS $ baseReq & HTTP.setRequestBodyLBS body
-                                   & HTTP.setRequestMethod  (convert method)
-                                   & HTTP.setRequestHeaders (map packHeader headers)
-                                   & HTTP.addRequestHeader  HTTP.hAccept (pack "*/*")
-    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [LCons "Text" [], LCons "Text" [], LCons "Binary" []] $ LCons "HttpResponse" []
+            manager <- HTTP.newManager HTTP.defaultManagerSettings
+            let req = baseReq
+                    & HTTP.setRequestBodyLBS body
+                    & HTTP.setRequestMethod  (convert method)
+                    & HTTP.setRequestHeaders (map packHeader headers)
+                    & HTTP.addRequestHeader  HTTP.hAccept (pack "*/*")
+                    & case auth of
+                        Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
+                        Nothing -> id
+            HTTP.responseOpen req manager
+
+    let textT      = LCons "Text" []
+        tupleListT = LCons "List" [LCons "Tuple2" [textT, textT]]
+    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [textT, textT, tupleListT, LCons "Binary" []] $ LCons "HttpResponse" []
 
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
         primGetCurrentTimeVal = performIO Time.getCurrentTime
@@ -608,7 +614,6 @@ systemStd imps = do
                                     , ("writeFile", writeFile')
                                     , ("parseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
-                                    , ("encodeJSON", encodeJSON)
                                     , ("encodeMsgPack", encodeMsgPack)
                                     , ("primPerformHttp", primPerformHttp)
                                     , ("primGetCurrentTime", primGetCurrentTime)
@@ -636,48 +641,29 @@ systemStd imps = do
 
 unexpectedConstructorFor name = throw $ "Expected a " <> name <> " luna object, got unexpected constructor"
 
-instance ToLunaData (HTTP.Response ByteString) where
-    toLunaData imps v = LunaObject $ Object (Constructor "HttpResponse" [toLunaData imps . integer $ HTTP.getResponseStatusCode v, toLunaData imps $ HTTP.getResponseBody v]) $ getObjectMethodMap "HttpResponse" imps
+-- instance (ToLunaData b) => ToLunaData (HTTP.Response b) where
+--     toLunaData imps (HTTP.Response status _ headers body _ _) = let fromHeader (name, s) = let n = CI.original name :: ByteString in (convert n :: Text, convert s :: Text) in
+--         LunaObject $ Object (Constructor "HttpResponse"
+--         [ toLunaData imps . integer . HTTP.statusCode $ status
+--         , toLunaData imps $ map fromHeader headers
+--         , toLunaData imps body
+--         ]) (getObjectMethodMap "HttpResponse" imps)
+
+instance ToLunaValue a => ToLunaValue (IO a) where
+    toLunaValue imps = toLunaValue imps <=< withExceptions
+
+instance (ToLunaValue b) => ToLunaValue (HTTP.Response b) where
+    toLunaValue imps v = LunaEff . LunaObject $ Object (
+            Constructor "HttpStreamedResponse"
+                [ toLunaValue imps . integer   $ HTTP.getResponseStatusCode v
+                , LunaThunk . toLunaValue imps $ HTTP.responseBody v
+                ]
+            ) (getObjectMethodMap "HttpStreamedResponse" imps)
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
         constructorOf IMap.Tip             = Constructor "Tip" []
         constructorOf (IMap.Bin s k v l r) = Constructor "Bin" [toLunaData imps $ integer s, toLunaData imps k, toLunaData imps v, toLunaData imps l, toLunaData imps r]
-
-instance (FromLunaData k, Ord k, FromLunaData v) => FromLunaData (Map.Map k v) where
-    fromLunaData v = force' v >>= \case
-        LunaObject obj -> case obj ^. constructor . tag of
-            "Tip" -> return Map.empty
-            "Bin" -> do
-                let [s, k, v, l, r] = obj ^. constructor . fields
-                key      <- fromLunaData k
-                val      <- fromLunaData v
-                leftMap  <- fromLunaData l
-                rightMap <- fromLunaData r
-                return $ Map.union (Map.insert key val leftMap) rightMap
-            _    -> unexpectedConstructorFor "Map"
-        _ -> unexpectedConstructorFor "Map"
-
-
-instance (FromLunaData a) => FromLunaData (Vector.Vector a) where
-    fromLunaData v = force' v >>= \case
-        LunaObject obj -> Vector.fromList <$> (fromLunaData . head $ obj ^. constructor . fields)
-        _              -> unexpectedConstructorFor "List"
-
-instance (ToLunaData a) => ToLunaData (Vector.Vector a) where
-    toLunaData imps v = toLunaData imps $ Vector.toList v
-
-instance FromLunaData Aeson.Value where
-    fromLunaData v = force' v >>= \case
-        LunaObject obj -> case obj ^. constructor . tag of
-                "JSONArray"  -> Aeson.Array  <$> (fromLunaData . head $ obj ^. constructor . fields)
-                "JSONString" -> Aeson.String <$> (fromLunaData . head $ obj ^. constructor . fields)
-                "JSONNumber" -> (Aeson.Number .  (fromFloatDigits :: Double -> Scientific)) <$> (fromLunaData . head $ obj ^. constructor . fields)
-                "JSONBool"   -> Aeson.Bool   <$> (fromLunaData . head $ obj ^. constructor . fields)
-                "JSONNull"   -> return Aeson.Null
-                "JSONObject" -> (Aeson.Object . HM.fromList . Map.toList . Map.mapKeys Text.toStrict) <$> (fromLunaData . head $ obj ^. constructor . fields)
-                _            -> unexpectedConstructorFor "JSON"
-        _ -> unexpectedConstructorFor "JSON"
 
 instance ToLunaData Aeson.Value where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "JSON" imps where
@@ -786,3 +772,4 @@ instance ToLunaData Time.NominalDiffTime where
 
 instance ToLunaData Time.UTCTime where
     toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "TimeVal" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
+
