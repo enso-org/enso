@@ -48,14 +48,16 @@ import Debug.Trace                      as X (trace, traceShow)
 import GHC.Exts                         as X (breakpoint, breakpointCond)
 import GHC.Stack                        as X ( CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack, getCallStack, popCallStack
                                              , prettyCallStack, pushCallStack, withFrozenCallStack, currentCallStack)
+import GHC.TypeLits                     as X (TypeError, ErrorMessage(Text, ShowType, (:<>:), (:$$:)))
 
 -- === Quasi Quoters == --
-import Data.String.QQ                   as X (s)
-import Text.RawString.QQ                as X (r)
+import Prologue.Data.String.QQ          as X (str, rawStr, txt)
 
 
 -- === Typelevel === --
-import Data.Kind                        as X (Type, Constraint, type (*))
+import GHC.TypeLits                     as X (Nat, Symbol, type (-), type (+), type (*), type (^), CmpNat, CmpSymbol) -- someSymbolVal and typelits reify?
+import Type.Known                       as X (KnownType, KnownTypeVal, fromType)
+import Data.Kind                        as X (Type, Constraint)
 
 
 
@@ -96,7 +98,6 @@ import Data.Tuple.Curry           as X (Curry)
 import Data.Tuple.Curry.Total     as X (Uncurried', Curry', curry')
 import Data.Typeable              as X (Typeable, Proxy(Proxy), typeOf, typeRep, TypeRep)
 import Data.Typeable.Proxy.Abbr   as X (P, p)
-import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
 import Type.Monoid                as X (type (<>))
@@ -159,21 +160,18 @@ import Data.Functor.Compose
 
 import qualified Data.Traversable                   as Traversable
 
-import qualified NeatInterpolation as NeatInterpolation
+
 
 -- Placeholders
 import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 import qualified Data.List as List
 import           Data.List as X (sort)
-import Language.Haskell.TH.Quote (QuasiQuoter)
 
 
-txt :: QuasiQuoter
-txt = NeatInterpolation.text
 
 unlines :: (IsString a, Monoid a, Foldable f) => f a -> a
-unlines = intercalate "\n"
+unlines = intercalate "\n" ; {-# INLINE unlines #-}
 
 
 
