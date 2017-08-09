@@ -11,6 +11,7 @@ import qualified Data.Aeson                                   as Aeson
 import           Data.ByteString.Char8                        (pack)
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
+import qualified Data.CaseInsensitive                         as CI
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
@@ -18,7 +19,7 @@ import           Data.Map                                     (Map)
 import qualified Data.Map                                     as Map
 import qualified Data.Map.Base                                as IMap
 import qualified Data.MessagePack                             as MsgPack
-import           Data.Scientific                              (toRealFloat)
+import           Data.Scientific                              (Scientific, fromFloatDigits, toRealFloat)
 import           Data.Set                                     (Set)
 import qualified Data.Set                                     as Set
 import           Data.Time                                    (DiffTime)
@@ -31,9 +32,11 @@ import qualified Data.Text.Encoding                           as T
 import           Data.TypeDesc
 import           Data.UUID                                    (UUID)
 import qualified Data.UUID.V4                                 as UUID
+import qualified Data.Vector                                  as Vector
 
 import           GHC.IO.Handle                                (Handle)
 import qualified GHC.IO.Handle                                as Handle
+import           GHC.Int                                      (Int64)
 
 import           Luna.Builtin.Data.Class                      (Class (..))
 import           Luna.Builtin.Data.Function                   as Function
@@ -278,11 +281,14 @@ intClass imps = do
 binaryClass :: Imports -> IO Class
 binaryClass imps = do
     Right (toTextAssu, toTextIr) <- oneArgFun "Binary" "Text"
+    Right (idAssu, idIr)         <- oneArgFun "Binary" "Binary"
     let toTextVal  = toLunaValue tmpImps Text.decodeUtf8
+        idVal      = toLunaValue tmpImps (id :: ByteString -> ByteString)
         bStrLen    = Text.pack . show . ByteString.length :: ByteString -> Text
         toShortRep = toLunaValue tmpImps $ \bs -> "Binary<" <> bStrLen bs <> ">"
         tmpImps    = imps & importedClasses . at "Binary" ?~ klass
         klass      = Class Map.empty $ Map.fromList [ ("toText",   Function toTextIr toTextVal  toTextAssu)
+                                                    , ("toBinary", Function idIr     idVal      idAssu)
                                                     , ("shortRep", Function toTextIr toShortRep toTextAssu)
                                                     ]
     return klass
@@ -482,17 +488,25 @@ systemStd imps = do
         res    <- compile $ generalize lamP
         return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
 
+    Right (json2BinaryAssu, json2BinaryIr)   <- oneArgFun "JSON" "Binary"
+    Right (mpack2BinaryAssu, mpack2BinaryIr) <- oneArgFun "MsgPack" "Binary"
+    let encodeJSONVal    = toLunaValue std (Aeson.encode :: Aeson.Value -> ByteString)
+        encodeJSON       = Function json2BinaryIr encodeJSONVal json2BinaryAssu
+        encodeMsgPackVal = toLunaValue std (MsgPack.pack :: MsgPack.Object -> ByteString)
+        encodeMsgPack    = Function mpack2BinaryIr encodeMsgPackVal mpack2BinaryAssu
+
     let parseMsgPackVal :: ByteString -> LunaEff MsgPack.Object
         parseMsgPackVal = withExceptions . MsgPack.unpack
-
     parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
-    let primPerformHttpVal :: Text -> Text -> ByteString -> LunaEff (HTTP.Response ByteString)
-        primPerformHttpVal uri method body = performIO $ do
+    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> ByteString -> LunaEff (HTTP.Response ByteString)
+        primPerformHttpVal uri method headers body = performIO $ do
+            let packHeader (k, v) = (CI.mk $ convert k, convert v)
             baseReq <- HTTP.parseRequest (convert uri)
             HTTP.httpLBS $ baseReq & HTTP.setRequestBodyLBS body
-                                   & HTTP.setRequestMethod (convert method)
-                                   & HTTP.addRequestHeader HTTP.hAccept (pack "*/*")
+                                   & HTTP.setRequestMethod  (convert method)
+                                   & HTTP.setRequestHeaders (map packHeader headers)
+                                   & HTTP.addRequestHeader  HTTP.hAccept (pack "*/*")
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [LCons "Text" [], LCons "Text" [], LCons "Binary" []] $ LCons "HttpResponse" []
 
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
@@ -594,6 +608,8 @@ systemStd imps = do
                                     , ("writeFile", writeFile')
                                     , ("parseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
+                                    , ("encodeJSON", encodeJSON)
+                                    , ("encodeMsgPack", encodeMsgPack)
                                     , ("primPerformHttp", primPerformHttp)
                                     , ("primGetCurrentTime", primGetCurrentTime)
                                     , ("primDiffTimes", primDiffTimes)
@@ -618,6 +634,8 @@ systemStd imps = do
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
 
+unexpectedConstructorFor name = throw $ "Expected a " <> name <> " luna object, got unexpected constructor"
+
 instance ToLunaData (HTTP.Response ByteString) where
     toLunaData imps v = LunaObject $ Object (Constructor "HttpResponse" [toLunaData imps . integer $ HTTP.getResponseStatusCode v, toLunaData imps $ HTTP.getResponseBody v]) $ getObjectMethodMap "HttpResponse" imps
 
@@ -625,6 +643,41 @@ instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
         constructorOf IMap.Tip             = Constructor "Tip" []
         constructorOf (IMap.Bin s k v l r) = Constructor "Bin" [toLunaData imps $ integer s, toLunaData imps k, toLunaData imps v, toLunaData imps l, toLunaData imps r]
+
+instance (FromLunaData k, Ord k, FromLunaData v) => FromLunaData (Map.Map k v) where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> case obj ^. constructor . tag of
+            "Tip" -> return Map.empty
+            "Bin" -> do
+                let [s, k, v, l, r] = obj ^. constructor . fields
+                key      <- fromLunaData k
+                val      <- fromLunaData v
+                leftMap  <- fromLunaData l
+                rightMap <- fromLunaData r
+                return $ Map.union (Map.insert key val leftMap) rightMap
+            _    -> unexpectedConstructorFor "Map"
+        _ -> unexpectedConstructorFor "Map"
+
+
+instance (FromLunaData a) => FromLunaData (Vector.Vector a) where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> Vector.fromList <$> (fromLunaData . head $ obj ^. constructor . fields)
+        _              -> unexpectedConstructorFor "List"
+
+instance (ToLunaData a) => ToLunaData (Vector.Vector a) where
+    toLunaData imps v = toLunaData imps $ Vector.toList v
+
+instance FromLunaData Aeson.Value where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> case obj ^. constructor . tag of
+                "JSONArray"  -> Aeson.Array  <$> (fromLunaData . head $ obj ^. constructor . fields)
+                "JSONString" -> Aeson.String <$> (fromLunaData . head $ obj ^. constructor . fields)
+                "JSONNumber" -> (Aeson.Number .  (fromFloatDigits :: Double -> Scientific)) <$> (fromLunaData . head $ obj ^. constructor . fields)
+                "JSONBool"   -> Aeson.Bool   <$> (fromLunaData . head $ obj ^. constructor . fields)
+                "JSONNull"   -> return Aeson.Null
+                "JSONObject" -> (Aeson.Object . HM.fromList . Map.toList . Map.mapKeys Text.toStrict) <$> (fromLunaData . head $ obj ^. constructor . fields)
+                _            -> unexpectedConstructorFor "JSON"
+        _ -> unexpectedConstructorFor "JSON"
 
 instance ToLunaData Aeson.Value where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "JSON" imps where
@@ -678,6 +731,20 @@ instance IsBoxed "StrictText"    AnyText.Text
 
 instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
+
+instance FromLunaData MsgPack.Object where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> case obj ^. constructor . tag of
+            "MPNull"   -> return MsgPack.ObjectNil
+            "MPBool"   -> MsgPack.ObjectBool <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPInt"    -> (MsgPack.ObjectInt . (fromIntegral :: Integer -> Int64)) <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPReal"   -> MsgPack.ObjectDouble <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPString" -> (MsgPack.ObjectStr . Text.toStrict)       <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPBinary" -> (MsgPack.ObjectBin . ByteString.toStrict) <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPArray"  -> MsgPack.ObjectArray <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPMap"    -> MsgPack.ObjectMap   <$> (fromLunaData . head $ obj ^. constructor . fields)
+            _          -> unexpectedConstructorFor "MsgPack"
+        _ -> unexpectedConstructorFor "MsgPack"
 
 instance ToLunaData MsgPack.Object where
     toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "MPNull"   [])                                              (getObjectMethodMap "MsgPack" imps)

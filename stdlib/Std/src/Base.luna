@@ -283,8 +283,11 @@ class List a:
         Prepend Nothing xs:  xs.collect
 
 class Map k v:
+    Map
     Tip
     Bin Int k v (Map k v) (Map k v)
+
+    def empty: Tip
 
     def isEmpty: case self of
         Tip: True
@@ -367,6 +370,8 @@ class JSON:
         JSONArray a: a
         other:       errorStr "Unable to convert to a list"
 
+    def toBinary: encodeJSON self
+
     def lookupReal key: case self . lookup key of
         Just val: val . toReal
         Nothing:  errorStr "Key not found"
@@ -430,6 +435,8 @@ class MsgPack:
         MPBinary b: JSONString b.toText
         MPArray a:  a.toJSON
         MPMap   m:  m.toJSON
+
+    def toBinary: encodeMsgPack self
 
     def equals that: case self of
         MPNil: case that of

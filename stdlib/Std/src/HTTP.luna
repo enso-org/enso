@@ -18,39 +18,59 @@ class HttpResponse:
     def body: case self of
         HttpResponse code body: body
 
+    def text: self.body.toText
+
+    def json: parseJSON self.body.toText
+
     def responseCode: case self of
         HttpResponse code body: code
 
 class HttpRequest:
-    HttpRequest Text HttpMethod Binary
+    HttpRequest Text HttpMethod (Map Text Text) Binary
 
     def method: case self of
-        HttpRequest uri method body: method
+        HttpRequest uri method headers body: method
 
     def setMethod m: case self of
-        HttpRequest uri method body: HttpRequest uri m body
+        HttpRequest uri method headers body: HttpRequest uri m headers body
 
     def body: case self of
-        HttpRequest uri method body: body
+        HttpRequest uri method headers body: body
 
     def setBody b: case self of
-        HttpRequest uri method body: HttpRequest uri method b
+        HttpRequest uri method headers body: HttpRequest uri method headers b
 
     def uri: case self of
-        HttpRequest uri method body: uri
+        HttpRequest uri method headers body: uri
 
     def setUri u: case self of
-        HttpRequest uri method body: HttpRequest u method body
+        HttpRequest uri method headers body: HttpRequest u method headers body
 
-    def perform: primPerformHttp self.uri (self.method.toText) self.body
+    def headers: case self of
+        HttpRequest uri method headers body: headers
+
+    def addHeader key val: case self of
+        HttpRequest uri method headers body: HttpRequest uri method (headers.insert key val)
+
+    def perform: primPerformHttp self.uri (self.method.toText) self.headers.toList self.body
 
 class Http:
     Http
 
+    def get uri:
+        HttpRequest uri GET Map.empty "".toBinary
+
+    def post uri body:
+        HttpRequest uri POST Map.empty body.toBinary
+
+    def put uri body:
+        HttpRequest uri PUT Map.empty body.toBinary
+
+    def delete uri:
+        HttpRequest uri DELETE Map.empty "".toBinary
+
     def getBinary uri:
-        HttpResponse code body = HttpRequest uri GET "".toBinary . perform
-        body
+        Http.get uri . perform . body
 
     def getJSON uri:
-        body = self.getBinary uri
-        parseJSON body.toText
+        Http.get uri . perform . json
