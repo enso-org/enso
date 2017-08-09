@@ -6,6 +6,10 @@ ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-st
 packages:
 - {location: .}
 - extra-dep: true
+  location: {commit: 7c7a6d657e7db8c3dcd80fbed0a7e02e02f43ae3, git: 'https://github.com/luna/monad-branch.git'}
+- extra-dep: true
+  location: {commit: 845acded84033cdcdac3d754c5c0b1fccfa4f299, git: 'https://github.com/luna/vector-text.git'}
+- extra-dep: true
   location: {commit: 07eaf49447cc02fb94a7dfcd0cbbb52727e0af97, git: 'https://github.com/luna/container.git'}
 - extra-dep: true
   location: {commit: 4cc75aeb82ad2885427211a1be9cb0c7d9582c01, git: 'https://github.com/luna/data-pool.git'}
@@ -32,7 +36,7 @@ packages:
 - extra-dep: true
   location: {commit: 965e23539a001517994398ae02421334bf77c6e6, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: 809d23e83298eac67ab5fdda040e11643a7b5e74, git: 'https://github.com/luna/prologue.git'}
+  location: {commit: 06e78228e9217568db204f86c66b4f0509e3d753, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
   location: {commit: f4292663aea639c17f66ba3d67e09c79ebf62982, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
@@ -52,5 +56,5 @@ packages:
 - extra-dep: true
   location: {commit: 19cd9bd99caf29424def070783526335ee5bff8a, git: 'https://github.com/luna/text-processing'}
 - extra-dep: true
-  location: {commit: 685084ab9a24b4e1a61b88b2591661f86a2d303b, git: 'https://github.com/luna/parsert'}
+  location: {commit: a00f3614c6af85d6ee87087f5fd6e886677327c1, git: 'https://github.com/luna/parsert'}
 resolver: lts-8.2
