@@ -24,8 +24,8 @@ fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . sh
 parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text32 m () -> ConduitM a c0 m [Either ParseError (Token t)]
 parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
-parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32     ->   [Token a]
-tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32     ->   Either ParseError [Token a]
+parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32   ->   [Token a]
+tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]
 parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
 tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
 parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}

@@ -10,8 +10,12 @@ import Luna.Syntax.Text.Lexer.Token
 -- === Simple analysis utils === --
 -----------------------------------
 
-tagDisabled :: HasSymbol a => [Token a] -> [(Bool, Token a)]
-tagDisabled = columnToDisabledTag . tagColumn mempty ; {-# INLINE tagDisabled #-}
+type ColumnStack = [Delta]
+
+tagDisabled  :: HasSymbol a =>                [Token a] -> [(ColumnStack, Token a)]
+tagDisabled' :: HasSymbol a => ColumnStack -> [Token a] -> [(ColumnStack, Token a)]
+tagDisabled    = tagDisabled' mempty                       ; {-# INLINE tagDisabled  #-}
+tagDisabled' s = columnToDisabledTag' s . tagColumn mempty ; {-# INLINE tagDisabled' #-}
 
 tagColumn :: HasSymbol a => Delta -> [Token a] -> [(Delta, Token a)]
 tagColumn d = \case
@@ -22,20 +26,23 @@ tagColumn d = \case
             s   -> d + a ^. span + a ^. offset
 {-# NOINLINE tagColumn #-}
 
-columnToDisabledTag  :: HasSymbol a =>                [(Delta, Token a)] -> [(Bool, Token a)]
-columnToDisabledTag' :: HasSymbol a => Maybe Delta -> [(Delta, Token a)] -> [(Bool, Token a)]
-columnToDisabledTag      = columnToDisabledTag' Nothing ; {-# INLINE columnToDisabledTag #-}
-columnToDisabledTag' ind = \case
+columnToDisabledTag  :: HasSymbol a =>                [(Delta, Token a)] -> [(ColumnStack, Token a)]
+columnToDisabledTag' :: HasSymbol a => ColumnStack -> [(Delta, Token a)] -> [(ColumnStack, Token a)]
+columnToDisabledTag  = columnToDisabledTag' mempty ; {-# INLINE columnToDisabledTag #-}
+columnToDisabledTag' disabledStack = \case
     []        -> []
-    ((d,t):s) -> (checkCurrent d, t) : columnToDisabledTag' ind' s where
-        ind' = case t ^. symbol of
+    ((d,t):s) -> (curDisabledStack, t) : columnToDisabledTag' subDisabledStack s where
+        curDisabledStack = updateCurrent d disabledStack
+        subDisabledStack = case t ^. symbol of
             Disable -> disableCurrent d
-            _       -> updateCurrent d
+            _       -> curDisabledStack
 
     where checkCurrent   :: Delta -> Bool
-          disableCurrent :: Delta -> Maybe Delta
-          updateCurrent  :: Delta -> Maybe Delta
-          checkCurrent   d = maybe False (d>) ind
-          disableCurrent d = Just $ maybe d (min d) ind
-          updateCurrent  d = ind >>= \d' -> if d > d' then Just d' else Nothing
+          disableCurrent :: Delta -> ColumnStack
+          updateCurrent  :: Delta -> ColumnStack -> ColumnStack
+          checkCurrent   d = maybe False (d>) (maybeHead disabledStack)
+          disableCurrent d = d : disabledStack
+          updateCurrent  d s = go s where
+              go = \case []     -> []
+                         (i:is) -> if d > i then s else go is
 {-# INLINE columnToDisabledTag' #-}
