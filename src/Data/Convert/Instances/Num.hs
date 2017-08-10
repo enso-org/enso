@@ -2,67 +2,120 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Data.Convert.Instances.Num where
 
 import Prelude
 
 import Data.Convert.Class
-import Data.Convert.Bound
 import Data.Monoid
 import qualified Data.ByteString as BS
 import GHC.Int
 import Data.Word
 import Data.Bits (shiftR)
 
-intTypes   = [ Type ''Int      $ layoutBounds $ IntLayout Signed 30 -- according to: https://hackage.haskell.org/package/base-4.8.0.0/docs/Data-Int.html#t:Int
-             , Type ''Integer  $ layoutBounds $ InfiniteLayout
-             , Type ''Int8     $ layoutBounds $ IntLayout Signed 8
-             , Type ''Int16    $ layoutBounds $ IntLayout Signed 16
-             , Type ''Int32    $ layoutBounds $ IntLayout Signed 32
-             , Type ''Int64    $ layoutBounds $ IntLayout Signed 64
+import Data.Coerce
+import Unsafe.Coerce
+import Language.Haskell.TH
+import Data.Default
+import Control.Lens
+import Data.Proxy
+
+
+-- === Errors === --
+
+data BoundError = BoundError deriving (Show)
+instance Default BoundError where def = BoundError ; {-# INLINE def #-}
+
+
+-- === Numeric types === --
+
+data Sign = Signed | Unsigned deriving (Show, Eq)
+
+data NumRange = BitRange Sign Integer
+              | InfiniteRange
+              deriving (Show, Eq)
+
+data NumType = NumType { _name   :: Name
+                       , _layout :: NumRange
+                       } deriving (Show, Eq)
+makeLenses ''NumType
+
+intTypes :: [NumType]
+intTypes   = [ NumType ''Int      $ BitRange Signed 30 -- according to: https://hackage.haskell.org/package/base-4.8.0.0/docs/Data-Int.html#t:Int
+             , NumType ''Integer  $ InfiniteRange
+             , NumType ''Int8     $ BitRange Signed 8
+             , NumType ''Int16    $ BitRange Signed 16
+             , NumType ''Int32    $ BitRange Signed 32
+             , NumType ''Int64    $ BitRange Signed 64
              ]
 
-wordTypes  = [ Type ''Word     $ layoutBounds $ IntLayout Signed 30 -- according to: https://hackage.haskell.org/package/base-4.8.0.0/docs/Data-Int.html#t:Int
-             , Type ''Word8    $ layoutBounds $ IntLayout Signed 8
-             , Type ''Word16   $ layoutBounds $ IntLayout Signed 16
-             , Type ''Word32   $ layoutBounds $ IntLayout Signed 32
-             , Type ''Word64   $ layoutBounds $ IntLayout Signed 64
+wordTypes :: [NumType]
+wordTypes  = [ NumType ''Word     $ BitRange Unsigned 30 -- according to: https://hackage.haskell.org/package/base-4.8.0.0/docs/Data-Int.html#t:Int
+             , NumType ''Word8    $ BitRange Unsigned 8
+             , NumType ''Word16   $ BitRange Unsigned 16
+             , NumType ''Word32   $ BitRange Unsigned 32
+             , NumType ''Word64   $ BitRange Unsigned 64
              ]
 
-floatTypes = [ Type ''Float    $ layoutBounds $ InfiniteLayout
-             , Type ''Double   $ layoutBounds $ InfiniteLayout
-             , Type ''Rational $ layoutBounds $ InfiniteLayout
+floatTypes :: [NumType]
+floatTypes = [ NumType ''Float    $ InfiniteRange
+             , NumType ''Double   $ InfiniteRange
+             , NumType ''Rational $ InfiniteRange
              ]
 
-charType = Type ''Char $ Bounds 0 1114111 -- max char enum is 1114111
-
+integralTypes :: [NumType]
 integralTypes = intTypes <> wordTypes
 
--------------
 
-instance Convertible ()                  [t] where convert _                            = []
-instance Convertible (t,t)               [t] where convert (t1,t2)                      = [t1,t2]
-instance Convertible (t,t,t)             [t] where convert (t1,t2,t3)                   = [t1,t2,t3]
-instance Convertible (t,t,t,t)           [t] where convert (t1,t2,t3,t4)                = [t1,t2,t3,t4]
-instance Convertible (t,t,t,t,t)         [t] where convert (t1,t2,t3,t4,t5)             = [t1,t2,t3,t4,t5]
-instance Convertible (t,t,t,t,t,t)       [t] where convert (t1,t2,t3,t4,t5,t6)          = [t1,t2,t3,t4,t5,t6]
-instance Convertible (t,t,t,t,t,t,t)     [t] where convert (t1,t2,t3,t4,t5,t6,t7)       = [t1,t2,t3,t4,t5,t6,t7]
-instance Convertible (t,t,t,t,t,t,t,t)   [t] where convert (t1,t2,t3,t4,t5,t6,t7,t8)    = [t1,t2,t3,t4,t5,t6,t7,t8]
-instance Convertible (t,t,t,t,t,t,t,t,t) [t] where convert (t1,t2,t3,t4,t5,t6,t7,t8,t9) = [t1,t2,t3,t4,t5,t6,t7,t8,t9]
+-- === Helpers === --
 
+defNumConvertAssert :: forall r a. (Num a, Ord a, Bounded r, Integral r) => a -> Maybe BoundError
+defNumConvertAssert = defConvertAssert (> fromIntegral (maxBound @r)) ; {-# INLINE defNumConvertAssert #-}
+
+defNumConvertAssertP :: forall r a. (Num a, Ord a, Bounded r, Integral r) => Proxy r -> a -> Maybe BoundError
+defNumConvertAssertP _ = defNumConvertAssert @r ; {-# INLINE defNumConvertAssertP #-}
+
+
+-- === TH numeric conversions generators === --
+
+mkConversion :: Q Exp -> NumType -> NumType -> Q Dec
+mkConversion mf l r = do
+    f <- mf
+    let mkSafeConv    = InstanceD Nothing [] (AppT (AppT (ConT $ mkName "Convertible")        (ConT $ l ^. name)) (ConT $ r ^. name)) (inlinedFn "convert" f)
+        mkPartialConv = InstanceD Nothing [] (AppT (AppT (ConT $ mkName "PartialConvertible") (ConT $ l ^. name)) (ConT $ r ^. name))
+                      $ cerrTInst
+                      : inlinedFn "unsafeConvert" f
+                     <> inlinedFn "convertAssert" (AppE (VarE $ mkName "defNumConvertAssertP") (proxy $ r ^. name))
+        cerrTInst     = TySynInstD (mkName "ConversionError") (TySynEqn [ConT $ l ^. name, ConT $ r ^. name] (ConT $ mkName "BoundError"))
+        inlineAll n   = PragmaD (InlineP (mkName n) Inline FunLike AllPhases)
+        inlinedFn n f = [ValD (VarP $ mkName n) (NormalB f) [], inlineAll n]
+        proxy     n   = SigE (ConE $ mkName "Proxy") (AppT (ConT $ mkName "Proxy") (ConT n))
+    return $ case (l ^. layout, r ^. layout) of
+        (BitRange Unsigned lbit, BitRange Unsigned rbit) -> if rbit   >= lbit   then mkSafeConv else mkPartialConv
+        (BitRange Signed   lbit, BitRange Signed   rbit) -> if rbit   >= lbit   then mkSafeConv else mkPartialConv
+        (BitRange Unsigned lbit, BitRange Signed   rbit) -> if rbit   >= 2*lbit then mkSafeConv else mkPartialConv
+        (BitRange Signed   lbit, BitRange Unsigned rbit) -> if 2*rbit >= lbit   then mkSafeConv else mkPartialConv
+        (InfiniteRange         , BitRange _ _          ) -> mkPartialConv
+        (BitRange _ _          , InfiniteRange         ) -> mkSafeConv
+        (InfiniteRange         , InfiniteRange         ) -> mkSafeConv
+
+mkConversions :: Q Exp -> [NumType] -> [NumType] -> Q [Dec]
+mkConversions exp ls rs = sequence $ mkConversion exp <$> ls <*> rs ; {-# INLINE mkConversions #-}
+
+conversions :: Q [Dec]
+conversions = do
+    mkConversions [| fromIntegral |] integralTypes (integralTypes <> floatTypes)
+    mkConversions [| truncate     |] floatTypes    integralTypes
+    mkConversions [| realToFrac   |] floatTypes    floatTypes
+{-# INLINE conversions #-}
+
+
+-- === Other instances === --
 
 -- TODO: http://stackoverflow.com/questions/8350814/converting-64-bit-double-to-bytestring-efficiently
 instance Convertible Word64 (Word8,Word8,Word8,Word8,Word8,Word8,Word8,Word8) where
     convert word = (unpack 56, unpack 48, unpack 40, unpack 32, unpack 24, unpack 16, unpack 8, unpack 0)
         where unpack = fromIntegral . shiftR word
-
--- ...
-
---------------
-
-numConversions =  conversions [| fromIntegral            |] integralTypes (integralTypes <> floatTypes)
-               <> conversions [| truncate                |] floatTypes    integralTypes
-               <> conversions [| realToFrac              |] floatTypes    floatTypes
-               <> conversions [| fromIntegral . fromEnum |] charType      (integralTypes <> floatTypes)
-               <> conversions [| toEnum . fromIntegral   |] integralTypes charType
+    {-# INLINE convert #-}

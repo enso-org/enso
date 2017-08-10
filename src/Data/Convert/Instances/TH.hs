@@ -3,8 +3,7 @@
 module Data.Convert.Instances.TH where
 
 import Data.Convert.Class
-import Data.Convert.Bound
-import Data.Convert.Instances.Num (numConversions)
+import Data.Convert.Instances.Num as Num
+import Data.Proxy
 
-
-genConversions numConversions
+Num.conversions

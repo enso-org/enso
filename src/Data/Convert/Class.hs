@@ -12,21 +12,7 @@ module Data.Convert.Class where
 import Prelude
 import Control.Lens
 import GHC.TypeLits
-
-
-
---------------------
--- === Errors === --
---------------------
-
-
-newtype SimpleConversionError = SimpleConversionError String
-makeWrapped ''SimpleConversionError
-
-instance Show SimpleConversionError where show = view _Wrapped
-
-simpleConversionError = SimpleConversionError "ConversionError"
-
+import Data.Default
 
 
 --------------------------
@@ -48,7 +34,7 @@ class Convertible5 t t' where convert5 :: forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s
 
 -- === Identity conversion errors === --
 
-type IdConversionErr (t :: k) = 'Text "Conversion of the same type (`" :<>: 'ShowType t :<>: 'Text "`) is disabled by default. Please use convert' if you want to enable it."
+type IdConversionErr (t :: k) = 'Text "Conversion of the same type (`" ':<>: 'ShowType t ':<>: 'Text "`) is disabled by default. Please use convert' if you want to enable it."
 instance TypeError (IdConversionErr t) => Convertible  t t where convert  = id ; {-# INLINE convert  #-}
 instance TypeError (IdConversionErr t) => Convertible1 t t where convert1 = id ; {-# INLINE convert1 #-}
 instance TypeError (IdConversionErr t) => Convertible2 t t where convert2 = id ; {-# INLINE convert2 #-}
@@ -60,17 +46,17 @@ instance TypeError (IdConversionErr t) => Convertible5 t t where convert5 = id ;
 -- === Utils === --
 
 convertTo  :: forall t' t. Convertible  t t' =>                        t                -> t'
-convert1To :: forall t' t. Convertible1 t t' => forall s1.             t s1             -> t' s1
-convert2To :: forall t' t. Convertible2 t t' => forall s1 s2.          t s1 s2          -> t' s1 s2
-convert3To :: forall t' t. Convertible3 t t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
-convert4To :: forall t' t. Convertible4 t t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
-convert5To :: forall t' t. Convertible5 t t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
+convertTo1 :: forall t' t. Convertible1 t t' => forall s1.             t s1             -> t' s1
+convertTo2 :: forall t' t. Convertible2 t t' => forall s1 s2.          t s1 s2          -> t' s1 s2
+convertTo3 :: forall t' t. Convertible3 t t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
+convertTo4 :: forall t' t. Convertible4 t t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
+convertTo5 :: forall t' t. Convertible5 t t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 convertTo  = convert  ; {-# INLINE convertTo  #-}
-convert1To = convert1 ; {-# INLINE convert1To #-}
-convert2To = convert2 ; {-# INLINE convert2To #-}
-convert3To = convert3 ; {-# INLINE convert3To #-}
-convert4To = convert4 ; {-# INLINE convert4To #-}
-convert5To = convert5 ; {-# INLINE convert5To #-}
+convertTo1 = convert1 ; {-# INLINE convertTo1 #-}
+convertTo2 = convert2 ; {-# INLINE convertTo2 #-}
+convertTo3 = convert3 ; {-# INLINE convertTo3 #-}
+convertTo4 = convert4 ; {-# INLINE convertTo4 #-}
+convertTo5 = convert5 ; {-# INLINE convertTo5 #-}
 
 
 -- === Conversion allowing the same types === --
@@ -82,12 +68,12 @@ class Convertible3' t t' where convert3' :: forall s1 s2 s3.       t s1 s2 s3   
 class Convertible4' t t' where convert4' :: forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
 class Convertible5' t t' where convert5' :: forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 
-instance {-# OVERLAPPING #-} Convertible'  t t where convert'  = id ; {-# INLINE convert'  #-}
-instance {-# OVERLAPPING #-} Convertible1' t t where convert1' = id ; {-# INLINE convert1' #-}
-instance {-# OVERLAPPING #-} Convertible2' t t where convert2' = id ; {-# INLINE convert2' #-}
-instance {-# OVERLAPPING #-} Convertible3' t t where convert3' = id ; {-# INLINE convert3' #-}
-instance {-# OVERLAPPING #-} Convertible4' t t where convert4' = id ; {-# INLINE convert4' #-}
-instance {-# OVERLAPPING #-} Convertible5' t t where convert5' = id ; {-# INLINE convert5' #-}
+instance {-# OVERLAPPING #-}  Convertible'  t t  where convert'  = id       ; {-# INLINE convert'  #-}
+instance {-# OVERLAPPING #-}  Convertible1' t t  where convert1' = id       ; {-# INLINE convert1' #-}
+instance {-# OVERLAPPING #-}  Convertible2' t t  where convert2' = id       ; {-# INLINE convert2' #-}
+instance {-# OVERLAPPING #-}  Convertible3' t t  where convert3' = id       ; {-# INLINE convert3' #-}
+instance {-# OVERLAPPING #-}  Convertible4' t t  where convert4' = id       ; {-# INLINE convert4' #-}
+instance {-# OVERLAPPING #-}  Convertible5' t t  where convert5' = id       ; {-# INLINE convert5' #-}
 instance Convertible  t t' => Convertible'  t t' where convert'  = convert  ; {-# INLINE convert'  #-}
 instance Convertible1 t t' => Convertible1' t t' where convert1' = convert1 ; {-# INLINE convert1' #-}
 instance Convertible2 t t' => Convertible2' t t' where convert2' = convert2 ; {-# INLINE convert2' #-}
@@ -96,40 +82,169 @@ instance Convertible4 t t' => Convertible4' t t' where convert4' = convert4 ; {-
 instance Convertible5 t t' => Convertible5' t t' where convert5' = convert5 ; {-# INLINE convert5' #-}
 
 convertTo'  :: forall t' t. Convertible'  t t' =>                        t                -> t'
-convert1To' :: forall t' t. Convertible1' t t' => forall s1.             t s1             -> t' s1
-convert2To' :: forall t' t. Convertible2' t t' => forall s1 s2.          t s1 s2          -> t' s1 s2
-convert3To' :: forall t' t. Convertible3' t t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
-convert4To' :: forall t' t. Convertible4' t t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
-convert5To' :: forall t' t. Convertible5' t t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
+convertTo1' :: forall t' t. Convertible1' t t' => forall s1.             t s1             -> t' s1
+convertTo2' :: forall t' t. Convertible2' t t' => forall s1 s2.          t s1 s2          -> t' s1 s2
+convertTo3' :: forall t' t. Convertible3' t t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
+convertTo4' :: forall t' t. Convertible4' t t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
+convertTo5' :: forall t' t. Convertible5' t t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 convertTo'  = convert'  ; {-# INLINE convertTo'  #-}
-convert1To' = convert1' ; {-# INLINE convert1To' #-}
-convert2To' = convert2' ; {-# INLINE convert2To' #-}
-convert3To' = convert3' ; {-# INLINE convert3To' #-}
-convert4To' = convert4' ; {-# INLINE convert4To' #-}
-convert5To' = convert5' ; {-# INLINE convert5To' #-}
+convertTo1' = convert1' ; {-# INLINE convertTo1' #-}
+convertTo2' = convert2' ; {-# INLINE convertTo2' #-}
+convertTo3' = convert3' ; {-# INLINE convertTo3' #-}
+convertTo4' = convert4' ; {-# INLINE convertTo4' #-}
+convertTo5' = convert5' ; {-# INLINE convertTo5' #-}
 
 
--- === Partial conversions === --
+
+----------------------------------
+-- === Partial convertibles === --
+----------------------------------
+
+-- === Errors === --
+
+data SimpleConversionError = SimpleConversionError deriving (Show)
+instance Default SimpleConversionError where def = SimpleConversionError ; {-# INLINE def #-}
+
+
+-- === Classes === --
 
 -- | PartialConvertible allows conversions that could fail with `ConversionError`.
-type family ConversionError a b
-class PartialConvertible a b where
-    tryConvert :: a -> Either (ConversionError a b) b
-    default tryConvert :: Convertible a b => a -> Either (ConversionError a b) b
-    tryConvert = Right . convert ; {-# INLINE tryConvert #-}
+class PartialConvertible t t' where
+    type family ConversionError t t'
+    convertAssert :: t -> Maybe (ConversionError t t')
+    unsafeConvert :: t -> t'
 
-maybeConvert :: PartialConvertible a b => a -> Maybe b
-maybeConvert a = case tryConvert a of
-    Left  _ -> Nothing
-    Right a -> Just a
-{-# INLINE maybeConvert #-}
+defConvertAssert :: Default e => (a -> Bool) -> a -> Maybe e
+defConvertAssert f = \s -> if f s then Just def else Nothing
 
-unsafeConvert :: Show (ConversionError a b) => PartialConvertible a b => a -> b
-unsafeConvert a = case tryConvert a of
-    Left  e -> error $ show e
-    Right r -> r
-{-# INLINE unsafeConvert #-}
+convertAssertTo :: forall t' t. PartialConvertible t t' => t -> Maybe (ConversionError t t')
+convertAssertTo = convertAssert @t @t' ; {-# INLINE convertAssertTo #-}
 
+maybeConvert :: forall t t'. PartialConvertible t t' => t -> Maybe t'
+maybeConvert t = const (unsafeConvert t) <$> convertAssertTo @t' t ; {-# INLINE maybeConvert #-}
+
+tryConvert :: forall t t'. PartialConvertible t t' => t -> Either (ConversionError t t') t'
+tryConvert t = maybe (Right $ unsafeConvert t) Left $ convertAssertTo @t' t ; {-# INLINE tryConvert #-}
+
+
+
+-----------------------------
+-- === Bi-convertibles === --
+-----------------------------
+
+type BiConvertible  t t' = (Convertible  t t', Convertible  t' t)
+type BiConvertible1 t t' = (Convertible1 t t', Convertible1 t' t)
+type BiConvertible2 t t' = (Convertible2 t t', Convertible2 t' t)
+type BiConvertible3 t t' = (Convertible3 t t', Convertible3 t' t)
+type BiConvertible4 t t' = (Convertible4 t t', Convertible4 t' t)
+type BiConvertible5 t t' = (Convertible5 t t', Convertible5 t' t)
+
+type BiConvertible'  t t' = (Convertible'  t t', Convertible'  t' t)
+type BiConvertible1' t t' = (Convertible1' t t', Convertible1' t' t)
+type BiConvertible2' t t' = (Convertible2' t t', Convertible2' t' t)
+type BiConvertible3' t t' = (Convertible3' t t', Convertible3' t' t)
+type BiConvertible4' t t' = (Convertible4' t t', Convertible4' t' t)
+type BiConvertible5' t t' = (Convertible5' t t', Convertible5' t' t)
+
+type BiPartialConvertible t t' = (PartialConvertible t t', PartialConvertible t t')
+
+converted   :: BiConvertible   t t' =>                        Iso' t                  t'
+converted1  :: BiConvertible1  t t' => forall s1.             Iso' (t s1)             (t' s1)
+converted2  :: BiConvertible2  t t' => forall s1 s2.          Iso' (t s1 s2)          (t' s1 s2)
+converted3  :: BiConvertible3  t t' => forall s1 s2 s3.       Iso' (t s1 s2 s3)       (t' s1 s2 s3)
+converted4  :: BiConvertible4  t t' => forall s1 s2 s3 s4.    Iso' (t s1 s2 s3 s4)    (t' s1 s2 s3 s4)
+converted5  :: BiConvertible5  t t' => forall s1 s2 s3 s4 s5. Iso' (t s1 s2 s3 s4 s5) (t' s1 s2 s3 s4 s5)
+converted'  :: BiConvertible'  t t' =>                        Iso' t                  t'
+converted1' :: BiConvertible1' t t' => forall s1.             Iso' (t s1)             (t' s1)
+converted2' :: BiConvertible2' t t' => forall s1 s2.          Iso' (t s1 s2)          (t' s1 s2)
+converted3' :: BiConvertible3' t t' => forall s1 s2 s3.       Iso' (t s1 s2 s3)       (t' s1 s2 s3)
+converted4' :: BiConvertible4' t t' => forall s1 s2 s3 s4.    Iso' (t s1 s2 s3 s4)    (t' s1 s2 s3 s4)
+converted5' :: BiConvertible5' t t' => forall s1 s2 s3 s4 s5. Iso' (t s1 s2 s3 s4 s5) (t' s1 s2 s3 s4 s5)
+converted   = iso convert   convert   ; {-# INLINE converted   #-}
+converted1  = iso convert1  convert1  ; {-# INLINE converted1  #-}
+converted2  = iso convert2  convert2  ; {-# INLINE converted2  #-}
+converted3  = iso convert3  convert3  ; {-# INLINE converted3  #-}
+converted4  = iso convert4  convert4  ; {-# INLINE converted4  #-}
+converted5  = iso convert5  convert5  ; {-# INLINE converted5  #-}
+converted'  = iso convert'  convert'  ; {-# INLINE converted'  #-}
+converted1' = iso convert1' convert1' ; {-# INLINE converted1' #-}
+converted2' = iso convert2' convert2' ; {-# INLINE converted2' #-}
+converted3' = iso convert3' convert3' ; {-# INLINE converted3' #-}
+converted4' = iso convert4' convert4' ; {-# INLINE converted4' #-}
+converted5' = iso convert5' convert5' ; {-# INLINE converted5' #-}
+
+convertedTo   :: BiConvertible   t' t =>                        Iso' t                  t'
+convertedTo1  :: BiConvertible1  t' t => forall s1.             Iso' (t s1)             (t' s1)
+convertedTo2  :: BiConvertible2  t' t => forall s1 s2.          Iso' (t s1 s2)          (t' s1 s2)
+convertedTo3  :: BiConvertible3  t' t => forall s1 s2 s3.       Iso' (t s1 s2 s3)       (t' s1 s2 s3)
+convertedTo4  :: BiConvertible4  t' t => forall s1 s2 s3 s4.    Iso' (t s1 s2 s3 s4)    (t' s1 s2 s3 s4)
+convertedTo5  :: BiConvertible5  t' t => forall s1 s2 s3 s4 s5. Iso' (t s1 s2 s3 s4 s5) (t' s1 s2 s3 s4 s5)
+convertedTo'  :: BiConvertible'  t' t =>                        Iso' t                  t'
+convertedTo1' :: BiConvertible1' t' t => forall s1.             Iso' (t s1)             (t' s1)
+convertedTo2' :: BiConvertible2' t' t => forall s1 s2.          Iso' (t s1 s2)          (t' s1 s2)
+convertedTo3' :: BiConvertible3' t' t => forall s1 s2 s3.       Iso' (t s1 s2 s3)       (t' s1 s2 s3)
+convertedTo4' :: BiConvertible4' t' t => forall s1 s2 s3 s4.    Iso' (t s1 s2 s3 s4)    (t' s1 s2 s3 s4)
+convertedTo5' :: BiConvertible5' t' t => forall s1 s2 s3 s4 s5. Iso' (t s1 s2 s3 s4 s5) (t' s1 s2 s3 s4 s5)
+convertedTo   = converted   ; {-# INLINE convertedTo   #-}
+convertedTo1  = converted1  ; {-# INLINE convertedTo1  #-}
+convertedTo2  = converted2  ; {-# INLINE convertedTo2  #-}
+convertedTo3  = converted3  ; {-# INLINE convertedTo3  #-}
+convertedTo4  = converted4  ; {-# INLINE convertedTo4  #-}
+convertedTo5  = converted5  ; {-# INLINE convertedTo5  #-}
+convertedTo'  = converted'  ; {-# INLINE convertedTo'  #-}
+convertedTo1' = converted1' ; {-# INLINE convertedTo1' #-}
+convertedTo2' = converted2' ; {-# INLINE convertedTo2' #-}
+convertedTo3' = converted3' ; {-# INLINE convertedTo3' #-}
+convertedTo4' = converted4' ; {-# INLINE convertedTo4' #-}
+convertedTo5' = converted5' ; {-# INLINE convertedTo5' #-}
+
+
+
+-- === ConvertVia === --
+
+type ConvertVia  t p t' = (Convertible  t p, Convertible  p t')
+type ConvertVia1 t p t' = (Convertible1 t p, Convertible1 p t')
+type ConvertVia2 t p t' = (Convertible2 t p, Convertible2 p t')
+type ConvertVia3 t p t' = (Convertible3 t p, Convertible3 p t')
+type ConvertVia4 t p t' = (Convertible4 t p, Convertible4 p t')
+type ConvertVia5 t p t' = (Convertible5 t p, Convertible5 p t')
+
+convertVia  :: forall p t t'. ConvertVia  t p t' =>                        t                -> t'
+convertVia1 :: forall p t t'. ConvertVia1 t p t' => forall s1.             t s1             -> t' s1
+convertVia2 :: forall p t t'. ConvertVia2 t p t' => forall s1 s2.          t s1 s2          -> t' s1 s2
+convertVia3 :: forall p t t'. ConvertVia3 t p t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
+convertVia4 :: forall p t t'. ConvertVia4 t p t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
+convertVia5 :: forall p t t'. ConvertVia5 t p t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
+convertVia  = convert  . convertTo  @p ; {-# INLINE convertVia #-}
+convertVia1 = convert1 . convertTo1 @p ; {-# INLINE convertVia1 #-}
+convertVia2 = convert2 . convertTo2 @p ; {-# INLINE convertVia2 #-}
+convertVia3 = convert3 . convertTo3 @p ; {-# INLINE convertVia3 #-}
+convertVia4 = convert4 . convertTo4 @p ; {-# INLINE convertVia4 #-}
+convertVia5 = convert5 . convertTo5 @p ; {-# INLINE convertVia5 #-}
+
+type ConvertVia'  t p t' = (Convertible'  t p, Convertible'  p t')
+type ConvertVia1' t p t' = (Convertible1' t p, Convertible1' p t')
+type ConvertVia2' t p t' = (Convertible2' t p, Convertible2' p t')
+type ConvertVia3' t p t' = (Convertible3' t p, Convertible3' p t')
+type ConvertVia4' t p t' = (Convertible4' t p, Convertible4' p t')
+type ConvertVia5' t p t' = (Convertible5' t p, Convertible5' p t')
+
+convertVia'  :: forall p t t'. ConvertVia'  t p t' =>                        t                -> t'
+convertVia1' :: forall p t t'. ConvertVia1' t p t' => forall s1.             t s1             -> t' s1
+convertVia2' :: forall p t t'. ConvertVia2' t p t' => forall s1 s2.          t s1 s2          -> t' s1 s2
+convertVia3' :: forall p t t'. ConvertVia3' t p t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
+convertVia4' :: forall p t t'. ConvertVia4' t p t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
+convertVia5' :: forall p t t'. ConvertVia5' t p t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
+convertVia'  = convert'  . convertTo'  @p ; {-# INLINE convertVia' #-}
+convertVia1' = convert1' . convertTo1' @p ; {-# INLINE convertVia1' #-}
+convertVia2' = convert2' . convertTo2' @p ; {-# INLINE convertVia2' #-}
+convertVia3' = convert3' . convertTo3' @p ; {-# INLINE convertVia3' #-}
+convertVia4' = convert4' . convertTo4' @p ; {-# INLINE convertVia4' #-}
+convertVia5' = convert5' . convertTo5' @p ; {-# INLINE convertVia5' #-}
+
+
+
+-- !!!!!!!!!!!!!!!!!!!!!!!! DEPRECATED
 
 -- === Casts === --
 
@@ -138,54 +253,3 @@ class Castable a b where
     cast :: a -> b
     default cast :: Convertible a b => a -> b
     cast = convert ; {-# INLINE cast #-}
-
-
--- === Isomorphisms === --
-
-type IsoPartialConvertible  a b = (PartialConvertible a b, PartialConvertible b a)
-type IsoConvertible         a b = (Convertible        a b, Convertible        b a)
-type IsoConvertible'        a b = (Convertible'       a b, Convertible'       b a)
--- type IsoCastable            a b = (Castable           a b, Castable           b a)
-
-converted  :: IsoConvertible  a b => Iso' a b
-converted' :: IsoConvertible' a b => Iso' a b
--- casted     :: IsoCastable     a b => Iso' a b
-converted  = iso convert  convert
-converted' = iso convert' convert'
--- casted     = iso cast     cast
-
-convertedTo  :: forall b a. IsoConvertible  a b => Iso' a b
-convertedTo' :: forall b a. IsoConvertible' a b => Iso' a b
--- castedTo     :: forall b a. IsoCastable     a b => Iso' a b
-convertedTo  = converted
-convertedTo' = converted'
--- castedTo     = casted
-
-
--- === Basic instances === --
-
--- instance {-# OVERLAPPABLE #-} Castable a a where
---     cast = id
-
-instance {-# OVERLAPPABLE #-} Convertible a b => Convertible (Maybe a) (Maybe b)where
-    convert = fmap convert ; {-# INLINE convert #-}
-
-
--- === ConvertBy === --
-
-type ConvertBy  p a b = (Convertible  a p, Convertible  p b)
-type ConvertBy' p a b = (Convertible' a p, Convertible' p b)
-
-convertVia :: forall p a b. ConvertBy p a b => a -> b
-convertVia a = convert (convert a :: p) ; {-# INLINE convertVia #-}
-
-convertVia' :: forall p a b. ConvertBy' p a b => a -> b
-convertVia' a = convert' (convert' a :: p) ; {-# INLINE convertVia' #-}
-
---
-
--- class ConvertibleM  m n where convertM  :: m t1 -> n t1
--- class ConvertibleM2 m n where convertM2 :: m t1 t2 -> n t1 t2
--- class ConvertibleM3 m n where convertM3 :: m t1 t2 t3 -> n t1 t2 t3
--- class ConvertibleM4 m n where convertM4 :: m t1 t2 t3 t4 -> n t1 t2 t3 t4
--- class ConvertibleM5 m n where convertM5 :: m t1 t2 t3 t4 t5 -> n t1 t2 t3 t4 t5

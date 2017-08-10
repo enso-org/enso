@@ -5,9 +5,5 @@ import Data.Convert.Class
 
 import qualified Data.Map as Map
 
-
-instance Ord k => Convertible [(k, a)] (Map.Map k a) where
-    convert = Map.fromList
-
-instance Convertible (Map.Map k a) [(k, a)] where
-    convert = Map.toList
+instance Ord k => Convertible [(k, a)]      (Map.Map k a) where convert = Map.fromList ; {-# INLINE convert #-}
+instance          Convertible (Map.Map k a) [(k, a)]      where convert = Map.toList   ; {-# INLINE convert #-}
