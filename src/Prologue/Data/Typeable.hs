@@ -32,7 +32,7 @@ instance                               Typeables '[]         where typeReps'_ = 
 type FromTypeRep a = Convertible' TypeRep a
 type ToTypeRep   a = Convertible' a TypeRep
 
-type IsTypeRep a = IsoConvertible' TypeRep a
+type IsTypeRep a = BiConvertible' TypeRep a
 
 asTypeRep :: IsTypeRep a => Iso' a TypeRep
 asTypeRep = converted'
