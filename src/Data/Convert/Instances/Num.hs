@@ -100,15 +100,17 @@ mkConversion mf l r = do
         (InfiniteRange         , BitRange _ _          ) -> mkPartialConv
         (BitRange _ _          , InfiniteRange         ) -> mkSafeConv
         (InfiniteRange         , InfiniteRange         ) -> mkSafeConv
+{-# INLINE mkConversion #-}
 
 mkConversions :: Q Exp -> [NumType] -> [NumType] -> Q [Dec]
 mkConversions exp ls rs = sequence $ mkConversion exp <$> ls <*> rs ; {-# INLINE mkConversions #-}
 
 conversions :: Q [Dec]
 conversions = do
-    mkConversions [| fromIntegral |] integralTypes (integralTypes <> floatTypes)
-    mkConversions [| truncate     |] floatTypes    integralTypes
-    mkConversions [| realToFrac   |] floatTypes    floatTypes
+    t1 <- mkConversions [| fromIntegral |] integralTypes (integralTypes <> floatTypes)
+    t2 <- mkConversions [| truncate     |] floatTypes    integralTypes
+    t3 <- mkConversions [| realToFrac   |] floatTypes    floatTypes
+    return $ t1 <> t2 <> t3
 {-# INLINE conversions #-}
 
 

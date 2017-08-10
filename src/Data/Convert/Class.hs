@@ -31,6 +31,12 @@ class Convertible3 t t' where convert3 :: forall s1 s2 s3.       t s1 s2 s3     
 class Convertible4 t t' where convert4 :: forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
 class Convertible5 t t' where convert5 :: forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 
+-- FIXME[WD]: following instances make a lot of instances illegal, we should probably make them default implementations instead
+-- instance {-# OVERLAPPABLE #-} Convertible1 t t' => Convertible  (t a) (t' a) where convert  = convert1 ; {-# INLINE convert  #-}
+-- instance {-# OVERLAPPABLE #-} Convertible2 t t' => Convertible1 (t a) (t' a) where convert1 = convert2 ; {-# INLINE convert1 #-}
+-- instance {-# OVERLAPPABLE #-} Convertible3 t t' => Convertible2 (t a) (t' a) where convert2 = convert3 ; {-# INLINE convert2 #-}
+-- instance {-# OVERLAPPABLE #-} Convertible4 t t' => Convertible3 (t a) (t' a) where convert3 = convert4 ; {-# INLINE convert3 #-}
+-- instance {-# OVERLAPPABLE #-} Convertible5 t t' => Convertible4 (t a) (t' a) where convert4 = convert5 ; {-# INLINE convert4 #-}
 
 -- === Identity conversion errors === --
 
@@ -117,6 +123,9 @@ class PartialConvertible t t' where
 defConvertAssert :: Default e => (a -> Bool) -> a -> Maybe e
 defConvertAssert f = \s -> if f s then Just def else Nothing
 
+unsafeConvertTo :: forall t' t. PartialConvertible t t' => t -> t'
+unsafeConvertTo = unsafeConvert ; {-# INLINE unsafeConvertTo #-}
+
 convertAssertTo :: forall t' t. PartialConvertible t t' => t -> Maybe (ConversionError t t')
 convertAssertTo = convertAssert @t @t' ; {-# INLINE convertAssertTo #-}
 
@@ -200,21 +209,21 @@ convertedTo5' = converted5' ; {-# INLINE convertedTo5' #-}
 
 
 
--- === ConvertVia === --
+-- === ConvertibleVia === --
 
-type ConvertVia  t p t' = (Convertible  t p, Convertible  p t')
-type ConvertVia1 t p t' = (Convertible1 t p, Convertible1 p t')
-type ConvertVia2 t p t' = (Convertible2 t p, Convertible2 p t')
-type ConvertVia3 t p t' = (Convertible3 t p, Convertible3 p t')
-type ConvertVia4 t p t' = (Convertible4 t p, Convertible4 p t')
-type ConvertVia5 t p t' = (Convertible5 t p, Convertible5 p t')
+type ConvertibleVia  t p t' = (Convertible  t p, Convertible  p t')
+type ConvertibleVia1 t p t' = (Convertible1 t p, Convertible1 p t')
+type ConvertibleVia2 t p t' = (Convertible2 t p, Convertible2 p t')
+type ConvertibleVia3 t p t' = (Convertible3 t p, Convertible3 p t')
+type ConvertibleVia4 t p t' = (Convertible4 t p, Convertible4 p t')
+type ConvertibleVia5 t p t' = (Convertible5 t p, Convertible5 p t')
 
-convertVia  :: forall p t t'. ConvertVia  t p t' =>                        t                -> t'
-convertVia1 :: forall p t t'. ConvertVia1 t p t' => forall s1.             t s1             -> t' s1
-convertVia2 :: forall p t t'. ConvertVia2 t p t' => forall s1 s2.          t s1 s2          -> t' s1 s2
-convertVia3 :: forall p t t'. ConvertVia3 t p t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
-convertVia4 :: forall p t t'. ConvertVia4 t p t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
-convertVia5 :: forall p t t'. ConvertVia5 t p t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
+convertVia  :: forall p t t'. ConvertibleVia  t p t' =>                        t                -> t'
+convertVia1 :: forall p t t'. ConvertibleVia1 t p t' => forall s1.             t s1             -> t' s1
+convertVia2 :: forall p t t'. ConvertibleVia2 t p t' => forall s1 s2.          t s1 s2          -> t' s1 s2
+convertVia3 :: forall p t t'. ConvertibleVia3 t p t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
+convertVia4 :: forall p t t'. ConvertibleVia4 t p t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
+convertVia5 :: forall p t t'. ConvertibleVia5 t p t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 convertVia  = convert  . convertTo  @p ; {-# INLINE convertVia #-}
 convertVia1 = convert1 . convertTo1 @p ; {-# INLINE convertVia1 #-}
 convertVia2 = convert2 . convertTo2 @p ; {-# INLINE convertVia2 #-}
@@ -222,19 +231,19 @@ convertVia3 = convert3 . convertTo3 @p ; {-# INLINE convertVia3 #-}
 convertVia4 = convert4 . convertTo4 @p ; {-# INLINE convertVia4 #-}
 convertVia5 = convert5 . convertTo5 @p ; {-# INLINE convertVia5 #-}
 
-type ConvertVia'  t p t' = (Convertible'  t p, Convertible'  p t')
-type ConvertVia1' t p t' = (Convertible1' t p, Convertible1' p t')
-type ConvertVia2' t p t' = (Convertible2' t p, Convertible2' p t')
-type ConvertVia3' t p t' = (Convertible3' t p, Convertible3' p t')
-type ConvertVia4' t p t' = (Convertible4' t p, Convertible4' p t')
-type ConvertVia5' t p t' = (Convertible5' t p, Convertible5' p t')
+type ConvertibleVia'  t p t' = (Convertible'  t p, Convertible'  p t')
+type ConvertibleVia1' t p t' = (Convertible1' t p, Convertible1' p t')
+type ConvertibleVia2' t p t' = (Convertible2' t p, Convertible2' p t')
+type ConvertibleVia3' t p t' = (Convertible3' t p, Convertible3' p t')
+type ConvertibleVia4' t p t' = (Convertible4' t p, Convertible4' p t')
+type ConvertibleVia5' t p t' = (Convertible5' t p, Convertible5' p t')
 
-convertVia'  :: forall p t t'. ConvertVia'  t p t' =>                        t                -> t'
-convertVia1' :: forall p t t'. ConvertVia1' t p t' => forall s1.             t s1             -> t' s1
-convertVia2' :: forall p t t'. ConvertVia2' t p t' => forall s1 s2.          t s1 s2          -> t' s1 s2
-convertVia3' :: forall p t t'. ConvertVia3' t p t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
-convertVia4' :: forall p t t'. ConvertVia4' t p t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
-convertVia5' :: forall p t t'. ConvertVia5' t p t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
+convertVia'  :: forall p t t'. ConvertibleVia'  t p t' =>                        t                -> t'
+convertVia1' :: forall p t t'. ConvertibleVia1' t p t' => forall s1.             t s1             -> t' s1
+convertVia2' :: forall p t t'. ConvertibleVia2' t p t' => forall s1 s2.          t s1 s2          -> t' s1 s2
+convertVia3' :: forall p t t'. ConvertibleVia3' t p t' => forall s1 s2 s3.       t s1 s2 s3       -> t' s1 s2 s3
+convertVia4' :: forall p t t'. ConvertibleVia4' t p t' => forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
+convertVia5' :: forall p t t'. ConvertibleVia5' t p t' => forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 convertVia'  = convert'  . convertTo'  @p ; {-# INLINE convertVia' #-}
 convertVia1' = convert1' . convertTo1' @p ; {-# INLINE convertVia1' #-}
 convertVia2' = convert2' . convertTo2' @p ; {-# INLINE convertVia2' #-}
@@ -242,6 +251,9 @@ convertVia3' = convert3' . convertTo3' @p ; {-# INLINE convertVia3' #-}
 convertVia4' = convert4' . convertTo4' @p ; {-# INLINE convertVia4' #-}
 convertVia5' = convert5' . convertTo5' @p ; {-# INLINE convertVia5' #-}
 
+type PartialConvertibleVia  t p t' = (PartialConvertible  t p, PartialConvertible  p t')
+unsafeConvertVia :: forall p t t'. PartialConvertibleVia t p t' => t -> t'
+unsafeConvertVia = unsafeConvert . unsafeConvertTo @p ; {-# INLINE unsafeConvertVia #-}
 
 
 -- !!!!!!!!!!!!!!!!!!!!!!!! DEPRECATED
