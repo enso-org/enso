@@ -28,23 +28,25 @@ tagColumn d = \case
             s   -> d + a ^. span + a ^. offset
 {-# NOINLINE tagColumn #-}
 
-columnToDisabledTag  :: HasSymbol a =>                [(Delta, Token a)] -> [(ColumnStack, Token a)]
-columnToDisabledTag' :: HasSymbol a => ColumnStack -> [(Delta, Token a)] -> [(ColumnStack, Token a)]
+columnToDisabledTag  :: forall a. HasSymbol a =>                [(Delta, Token a)] -> [(ColumnStack, Token a)]
+columnToDisabledTag' :: forall a. HasSymbol a => ColumnStack -> [(Delta, Token a)] -> [(ColumnStack, Token a)]
 columnToDisabledTag  = columnToDisabledTag' mempty ; {-# INLINE columnToDisabledTag #-}
 columnToDisabledTag' disabledStack = \case
     []        -> []
     ((d,t):s) -> (curDisabledStack, t) : columnToDisabledTag' subDisabledStack s where
-        curDisabledStack = updateCurrent d disabledStack
+        curDisabledStack = updateCurrent t d disabledStack
         subDisabledStack = case t ^. symbol of
             Disable -> disableCurrent d
             _       -> curDisabledStack
 
     where checkCurrent   :: Delta -> Bool
           disableCurrent :: Delta -> ColumnStack
-          updateCurrent  :: Delta -> ColumnStack -> ColumnStack
+          updateCurrent  :: Token a -> Delta -> ColumnStack -> ColumnStack
           checkCurrent   d = maybe False (d>) (maybeHead disabledStack)
           disableCurrent d = d : disabledStack
-          updateCurrent  d s = go s where
-              go = \case []     -> []
-                         (i:is) -> if d > i then s else go is
+          updateCurrent  t d s = case t ^. symbol of
+              STX -> s
+              _   -> go s where
+                  go = \case []     -> []
+                             (i:is) -> if d > i then (i:is) else go is
 {-# INLINE columnToDisabledTag' #-}

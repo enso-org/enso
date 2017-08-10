@@ -70,7 +70,8 @@ mkVariablesL10 i = fromString . mconcat $ replicate i "abcdefghij " ; {-# INLINE
 main = do
     hSetBuffering stdout NoBuffering
 
-    pprint $ tagDisabled $ evalDefLexer "off #def foo:\n      bar\n    def baz: pass"
+    pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
+    pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     defaultMain
         [ bgroup "big variable"                $ expCodeGenBenchs evalDefLexer           mkBigVariable
         , bgroup "variables L1"                $ expCodeGenBenchs evalDefLexer           mkVariablesL1
