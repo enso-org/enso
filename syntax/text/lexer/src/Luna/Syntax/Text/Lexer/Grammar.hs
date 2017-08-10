@@ -43,7 +43,7 @@ type Lexer  = Parser Symbol
 data EntryPoint = TopLevelEntry
                 | StrEntry !StrType !Int
                 | StrCodeEntry !Int
-                deriving (Show)
+                deriving (Generic, Show)
 
 type EntryStack = [EntryPoint]
 
