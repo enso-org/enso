@@ -326,7 +326,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '#'          -> handleHash =<< takeMany '#'
 
     -- Utils
-    | otherwise         -> dropToken >> unknownCharSym c
+    | otherwise         -> unknownCharSym c
 
     where between  a l r    = a >= l && a <= r
           decHead  c        = between c '0' '9'
@@ -351,7 +351,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 -- -- === Utils === --
 
 unknownCharSym :: Char -> Lexer
-unknownCharSym = pure . Unknown . convert ; {-# INLINE unknownCharSym #-}
+unknownCharSym c = dropToken >> pure (Unknown $ convert c) ; {-# INLINE unknownCharSym #-}
 
 
 
