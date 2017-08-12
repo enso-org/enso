@@ -28,18 +28,6 @@ swap (a,b) = (b,a) ; {-# INLINE swap #-}
 switch :: a -> a -> Bool -> a
 switch ok fail cond = if cond then ok else fail ; {-# INLINE switch #-}
 
-fromLeft :: (r -> l) -> Either l r -> l
-fromLeft f = \case
-    Right r -> f r
-    Left  l -> l
-{-# INLINE fromLeft #-}
-
-fromRight :: (l -> r) -> Either l r -> r
-fromRight f = \case
-    Right r -> r
-    Left  l -> f l
-{-# INLINE fromRight #-}
-
 infixr 2 ||.
 infixr 2 &&.
 (||.), (&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
