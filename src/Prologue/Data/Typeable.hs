@@ -3,47 +3,52 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Prologue.Data.Typeable where
+module Prologue.Data.Typeable (module Prologue.Data.Typeable, module X) where
 
 import Prelude
-import Data.Typeable
 import Data.Kind
 import Control.Lens.Utils
 import Data.Convert
+import qualified Data.Typeable as T
+import           Data.Typeable as X (Typeable, Proxy(Proxy), typeOf, TypeRep)
+
+
+---------------------
+-- === TypeRep === --
+---------------------
+
+-- === Conversions === --
+
+type FromTypeRep a = Convertible'   TypeRep a
+type ToTypeRep   a = Convertible'   a TypeRep
+type IsTypeRep   a = BiConvertible' TypeRep a
+
+asTypeRep :: IsTypeRep a => Iso' a TypeRep
+asTypeRep = converted' ; {-# INLINE asTypeRep #-}
+
+switchedTypeRep :: (IsTypeRep a, IsTypeRep b) => Lens' a b
+switchTypeRep   :: (IsTypeRep a, IsTypeRep b) => a -> b
+switchedTypeRep = asTypeRep . from asTypeRep ; {-# INLINE switchedTypeRep #-}
+switchTypeRep   = view switchedTypeRep       ; {-# INLINE switchTypeRep   #-}
+
+instance Convertible TypeRep String where convert = show ; {-# INLINE convert #-}
+
 
 ----------------------
 -- === Typeable === --
 ----------------------
 
-typeRep'_ :: forall a t. Typeable a => TypeRep
-typeRep'_ = typeRep (Proxy :: Proxy a) ; {-# INLINE typeRep'_ #-}
+typeOfProxy :: forall proxy a. Typeable a => proxy a -> TypeRep
+typeOfProxy = T.typeRep ; {-# INLINE typeOfProxy #-}
 
-typeRep' :: forall a t. (Typeable a, FromTypeRep t) => t
-typeRep' = convert' $ typeRep'_ @a ; {-# INLINE typeRep' #-}
+typeRep  :: forall a           t. (Typeable  a, FromTypeRep t)  => t
+typeRep' :: forall a           t.  Typeable  a                  => TypeRep
+typeReps :: forall (ls :: [*]) t. (Typeables ls, FromTypeRep t) => [t]
+typeRep  = convert' $ typeRep' @a         ; {-# INLINE typeRep  #-}
+typeRep' = typeOfProxy (Proxy :: Proxy a) ; {-# INLINE typeRep' #-}
+typeReps = convert' <$> typeReps' @ls     ; {-# INLINE typeReps #-}
 
-typeReps' :: forall (ls :: [*]) t. (Typeables ls, FromTypeRep t) => [t]
-typeReps' = convert' <$> typeReps'_ @ls ; {-# INLINE typeReps' #-}
-
-class                                  Typeables (ls :: [*]) where typeReps'_ :: [TypeRep]
-instance (Typeable l, Typeables ls) => Typeables (l ': ls)   where typeReps'_ = typeRep' @l : typeReps' @ls ; {-# INLINE typeReps'_ #-}
-instance                               Typeables '[]         where typeReps'_ = []                          ; {-# INLINE typeReps'_ #-}
-
-
-type FromTypeRep a = Convertible' TypeRep a
-type ToTypeRep   a = Convertible' a TypeRep
-
-type IsTypeRep a = BiConvertible' TypeRep a
-
-asTypeRep :: IsTypeRep a => Iso' a TypeRep
-asTypeRep = converted'
-
-
-
-instance Convertible TypeRep String where convert = show
-
-
-switchedRep :: (IsTypeRep a, IsTypeRep b) => Lens' a b
-switchedRep = asTypeRep . from asTypeRep ; {-# INLINE switchedRep #-}
-
-switchRep :: (IsTypeRep a, IsTypeRep b) => a -> b
-switchRep = view switchedRep ; {-# INLINE switchRep #-}
+class Typeables (ls :: [*]) where typeReps' :: [TypeRep]
+instance (Typeable l, Typeables ls)
+      => Typeables (l ': ls)   where typeReps' = typeRep @l : typeReps @ls ; {-# INLINE typeReps' #-}
+instance Typeables '[]         where typeReps' = []                        ; {-# INLINE typeReps' #-}

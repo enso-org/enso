@@ -17,7 +17,7 @@ module Prologue (
 ) where
 
 import qualified Prelude
-import Prelude                    as X hiding (unlines, mapM, mapM_, print, putStr, putStrLn, curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat, fail)
+import Prelude                    as X hiding ((.), unlines, mapM, mapM_, print, putStr, putStrLn, curry, uncurry, break, replicate, Monoid, mempty, mappend, mconcat, fail)
 import Control.Applicative        as X
 import Control.Error.Safe         as X hiding (tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryAt, tryRead, tryAssert, tryJust, tryRight)
 import Control.Error.Util         as X (hush, hushT, note, isJustT, isNothingT, nothing, just, isLeftT, isRightT)
@@ -37,7 +37,7 @@ import qualified Data.Ix          as Ix
 import Data.Bifunctor             as X (Bifunctor, bimap)
 import Data.Container.Class       as X (Container, Index, Item)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList, IsList)
-import Data.Convert               as X
+import Data.Convert               as X hiding (ToBool, toBool)
 import Data.Foldable              as X (Foldable, traverse_, foldl', foldrM, foldlM, forM_, mapM_, fold)
 import Data.Function              as X (on)
 import Data.Functor.Utils         as X
@@ -65,7 +65,7 @@ import Text.Read                  as X (readPrec) -- new style Read class implem
 import Data.Kind                  as X (Type, Constraint, type (★), type (*))
 import Data.Constraints           as X (Constraints)
 import Unsafe.Coerce              as X (unsafeCoerce)
-import Prologue.Data.Typeable     as X
+import Prologue.Data.Typeable_old as X
 import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
 import Data.Data                  as X (Data)
 import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
@@ -126,11 +126,12 @@ import Debug.Trace as X (trace, traceShow)
 import qualified NeatInterpolation as NeatInterpolation
 
 -- Placeholders
-import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
+import Prologue.Placeholders_old as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 import qualified Data.List as List
 import           Data.List as X (sort)
 import Language.Haskell.TH.Quote (QuasiQuoter)
+import Prologue.Data.Traversable ((<$>=))
 
 txt :: QuasiQuoter
 txt = NeatInterpolation.text
@@ -447,30 +448,12 @@ whenM  p s = flip when  s =<< p
 whenM' p s = flip when' s =<< p
 
 
-infixl 4 |$
-(|$) :: (a -> b) -> a -> (a, b)
-f |$ a = (a, f a)
-
-infixl 4 $|
-($|) :: (a -> b) -> a -> (b, a)
-f $| a = (f a, a)
-
-infixl 4 <|$>
-(<|$>) :: Functor f => (a -> b) -> f a -> f (a, b)
-f <|$> a = (f |$) <$> a
-
-infixl 4 <$|>
-(<$|>) :: Functor f => (a -> b) -> f a -> f (b, a)
-f <$|> a = (f $|) <$> a
-
-
-
 infixl 4 <|$$>
 infixl 4 <$$|>
 (<|$$>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t (a, b))
 (<$$|>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t (b, a))
-f <|$$> ta = (\a -> (a,) <$> f a) <$$> ta
-f <$$|> ta = (\a -> (,a) <$> f a) <$$> ta
+f <|$$> ta = (\a -> (a,) <$> f a) <$>= ta
+f <$$|> ta = (\a -> (,a) <$> f a) <$>= ta
 
 
 

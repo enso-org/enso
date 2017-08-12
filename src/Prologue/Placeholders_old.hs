@@ -1,4 +1,4 @@
-module Prologue.Placeholders (module Prologue.Placeholders, module X) where
+module Prologue.Placeholders_old (module Prologue.Placeholders_old, module X) where
 
 import Prelude
 import Language.Haskell.TH      (Q, Exp)

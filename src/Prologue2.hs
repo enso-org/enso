@@ -7,12 +7,15 @@ module Prologue2 (module Prologue2, module X) where
 import Prologue.Data.Basic              as X
 import Prologue.Data.Num                as X
 import Prologue.Data.Show               as X
-import Data.Function                    as X (id, const, (.), flip, ($), (&), on)
+import Prologue.Data.Maybe              as X
+import Data.Function                    as X (id, const, flip, ($), (&), on)
 import GHC.Generics                     as X (Generic)
 import Data.Text                        as X (Text)
+import Data.Data                        as X (Data)
+import Data.List.NonEmpty               as X (NonEmpty ((:|)))
 
 -- === Monads === --
-import Prologue.Control.Monad
+import Prologue.Control.Monad           as X
 import Prologue.Control.Monad.IO        as X
 import Prologue.Control.Monad.Primitive as X
 import Control.Applicative              as X ( Applicative, pure, (<*>), (*>), (<*), (<$>), (<$), (<**>), liftA, liftA2, liftA3, optional
@@ -20,28 +23,44 @@ import Control.Applicative              as X ( Applicative, pure, (<*>), (*>), (
                                              , ZipList
                                              )
 import Control.Monad.Fix                as X (MonadFix, mfix, fix)
-import Control.Monad.Trans.Class        as X (MonadTrans, lift)
+import Prologue.Control.Monad.Trans     as X
 import Control.Monad.Identity           as X (Identity, runIdentity)
 import Control.Monad.Trans.Identity     as X (IdentityT, runIdentityT)
+import Control.Comonad                  as X (Comonad, extract, duplicate, extend, (=>=), (=<=), (<<=), (=>>))
+import Control.Comonad                  as X (ComonadApply, (<@>), (<@), (@>), (<@@>), liftW2, liftW3)
+
 
 -- === Basic typeclasses === --
 import Prologue.Data.Foldable           as X
 import Prologue.Data.Traversable        as X
 import Prologue.Data.Bifunctor          as X
+import Prologue.Data.Ix                 as X
+import Data.Functor.Utils               as X
+import Data.String.Class                as X (IsString (fromString), ToString (toString))
+import Data.Functor.Classes             as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1) -- FIXME[WD]: Think if we can use (not yet exported) utils to better implement show instead of our fixes
+import Data.Monoids                     as X
 
 -- === Errors === --
 import Control.Exception.Base           as X (assert)
 import Prologue.Control.Error           as X
+import Control.Monad.Fail               as X (MonadFail, fail)
+import Control.Exception                as X (Exception, SomeException, toException, fromException, displayException)
+import Control.Monad.Catch              as X ( MonadThrow, throwM
+                                             , MonadCatch, catch, catchAll, catchIOError, catchJust, catchIf
+                                             , MonadMask, mask, uninterruptibleMask, mask_, uninterruptibleMask_
+                                             )
 
 -- === Conversions === --
 import Data.Coerce                      as X (Coercible, coerce)
+import Data.Convert                     as X
 
 -- === Exts === --
 import GHC.Exts                         as X (lazy, inline) -- + oneShot after base update
 
 -- === Types === --
+import Data.Constraints                 as X (Constraints)
 import Data.Type.Equality               as X ((:~:), type(==), TestEquality, testEquality) -- + (~~), (:~~:) after base update
-
+import Prologue.Data.Typeable           as X
 
 -- === Debugging === --
 import Debug.Trace                      as X (trace, traceShow)
@@ -49,6 +68,7 @@ import GHC.Exts                         as X (breakpoint, breakpointCond)
 import GHC.Stack                        as X ( CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack, getCallStack, popCallStack
                                              , prettyCallStack, pushCallStack, withFrozenCallStack, currentCallStack)
 import GHC.TypeLits                     as X (TypeError, ErrorMessage(Text, ShowType, (:<>:), (:$$:)))
+import Prologue.Debug.Placeholders      as X
 
 -- === Quasi Quoters == --
 import Prologue.Data.String.QQ          as X (str, rawStr, txt)
@@ -60,6 +80,16 @@ import Type.Known                       as X (KnownType, KnownTypeVal, fromType)
 import Data.Kind                        as X (Type, Constraint)
 
 
+-- === Unsafe === --
+import Unsafe.Coerce                    as X (unsafeCoerce)
+
+
+
+
+
+-- ////////////////////////////////////////// --
+-- To refactor below this line
+-- ////////////////////////////////////////// --
 
 import qualified Prelude as Prelude
 import Prelude                   as X ( Enum (succ, pred, toEnum, fromEnum, enumFrom, enumFromThen, enumFromTo, enumFromThenTo)
@@ -80,40 +110,21 @@ import Prelude                   as X ( Enum (succ, pred, toEnum, fromEnum, enum
 
 
 
-import Control.Comonad            as X (Comonad, extract, duplicate, extend, (=>=), (=<=), (<<=), (=>>))
-import Control.Comonad            as X (ComonadApply, (<@>), (<@), (@>), (<@@>), liftW2, liftW3)
-
-import Data.Ix                    as X (Ix, range, inRange, rangeSize)
-import qualified Data.Ix          as Ix
-
 import Data.Container.Class       as X (Container, Index, Item)
 import Data.Container.List        as X (FromList, fromList, ToList, toList, asList, IsList)
-import Data.Convert               as X
-import Data.Functor.Utils         as X
 import Data.Impossible            as X
---import Data.Layer_OLD.Cover_OLD           as X
-import Data.String.Class          as X (IsString (fromString), ToString (toString))
-
 import Data.Tuple.Curry           as X (Curry)
 import Data.Tuple.Curry.Total     as X (Uncurried', Curry', curry')
-import Data.Typeable              as X (Typeable, Proxy(Proxy), typeOf, typeRep, TypeRep)
-import Data.Typeable.Proxy.Abbr   as X (P, p)
 import Type.Operators             as X -- (($), (&))
 import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
 import Type.Monoid                as X (type (<>))
 import Type.Applicative           as X (type (<$>), type (<*>))
 import Type.Error                 as X
-import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 
-import Data.Constraints           as X (Constraints)
-import Unsafe.Coerce              as X (unsafeCoerce)
-import Prologue.Data.Typeable     as X
-import Control.Exception          as X (Exception, SomeException, toException, fromException, displayException)
-import Data.Data                  as X (Data)
-import Data.Functor.Classes       as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
-import Data.List.NonEmpty         as X (NonEmpty ((:|)))
-import Control.Monad.Fail         as X (MonadFail, fail)
+
+
+
 
 -- === Lenses === --
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
@@ -122,15 +133,6 @@ import Control.Lens.Utils         as X hiding (lazy)
 
 -- === Data types === --
 
-
-
--- === Bool === --
-import Control.Conditional        as X (if', ifM, unless, unlessM, notM, xorM, ToBool, toBool)
-
--- === Maybe === --
-import Data.Maybe                 as X (mapMaybe, catMaybes, fromJust, fromMaybe, isJust, isNothing)
-import Control.Error.Util         as X (maybeT)
-import Control.Monad.Trans.Maybe  as X (MaybeT, runMaybeT, mapMaybeT, maybeToExceptT, exceptToMaybeT)
 
 -- === Either === --
 import Control.Monad.Trans.Either as X (EitherT(EitherT), runEitherT, eitherT, hoistEither, left, right, swapEitherT, mapEitherT)
@@ -148,7 +150,6 @@ import Prologue.Data.Tuple        as X
 
 -- Data description
 import Prologue.Data.Default      as X
-import Data.Monoids               as X
 
 -- Normal Forms
 import Prologue.Control.DeepSeq   as X
@@ -158,41 +159,15 @@ import Data.Default.Instances.Missing ()
 
 import Data.Functor.Compose
 
-import qualified Data.Traversable                   as Traversable
 
 
 
 -- Placeholders
-import Prologue.Placeholders as X (notImplemented, todo, fixme, placeholder, placeholderNoWarning, PlaceholderException(..))
 
 import qualified Data.List as List
 import           Data.List as X (sort)
 
 
-
-unlines :: (IsString a, Monoid a, Foldable f) => f a -> a
-unlines = intercalate "\n" ; {-# INLINE unlines #-}
-
-
-
--- Ix
-
-rangeIndex :: Ix a => (a, a) -> a -> Int
-rangeIndex = Ix.index
-
-
-
-replicate :: (Num a, Eq a, Enum a, Ord a) => a -> t -> [t]
-replicate 0 _ = []
-replicate i c = if (i < 0) then [] else c : replicate (pred i) c
-
-
-swap :: (a,b) -> (b,a)
-swap (a,b) = (b,a)
-
-fromJustM :: (Monad m, MonadFail m) => Maybe a -> m a
-fromJustM Nothing  = fail "Prelude.fromJustM: Nothing"
-fromJustM (Just x) = return x
 
 
 whenLeft_ :: Monad m => Either a b -> m () -> m ()
@@ -211,38 +186,9 @@ withRightM f = \case
     Left  l -> return $ Left l
     Right r -> f r
 
-($>) :: (Functor f) => a -> f b -> f b
-($>) =  fmap . flip const
 
 
-withJust :: (Monad m, Mempty out) => Maybe a -> (a -> m out) -> m out
-withJust ma f = case ma of
-    Nothing -> return mempty
-    Just a  -> f a
 
-withJust_ :: Monad m => Maybe a -> (a -> m b) -> m ()
-withJust_ ma f = case ma of
-    Nothing -> return ()
-    Just a  -> void $ f a
-
-withJustM :: (Monad m, Mempty out) => m (Maybe a) -> (a -> m out) -> m out
-withJustM ma f = do
-    a <- ma
-    withJust a f
-
-withJustM_ :: Monad m => m (Maybe a) -> (a -> m b) -> m ()
-withJustM_ ma f = do
-    a <- ma
-    withJust_ a f
-
-lift2 :: (Monad (t1 m), Monad m, MonadTrans t, MonadTrans t1)
-      => m a -> t (t1 m) a
-lift2 = lift . lift
-
-
-lift3 :: (Monad (t1 (t2 m)), Monad (t2 m), Monad m, MonadTrans t, MonadTrans t1, MonadTrans t2)
-      => m a -> t (t1 (t2 m)) a
-lift3 = lift . lift2
 
 
 --
@@ -268,15 +214,7 @@ ifElseId :: Bool -> (a -> a) -> (a -> a)
 ifElseId cond a = if cond then a else id
 
 
-fromMaybeM :: Monad m => m a -> Maybe a -> m a
-fromMaybeM ma = \case
-    Just a  -> return a
-    Nothing -> ma
 
-fromMaybeWith :: b -> (a -> b) -> Maybe a -> b
-fromMaybeWith b f = \case
-    Just  a -> f a
-    Nothing -> b
 
 evalWhenLeft :: Monad m => m (Either l r) -> m () -> m (Either l r)
 evalWhenLeft me f = do
@@ -307,8 +245,7 @@ class CanBeWrong a where
 instance CanBeWrong (Maybe  a)   where isWrong = isNothing
 instance CanBeWrong (Either l r) where isWrong = isLeft
 
-justIf :: Bool -> a -> Maybe a
-justIf b a = if b then Just a else Nothing
+
 
 
 guarded :: Alternative f => Bool -> a -> f a
@@ -349,47 +286,6 @@ pointed = from copointed
 
 copointed' :: (Copointed t, Functor t) => Lens (t a) (t b) a b
 copointed' = lens copoint (\ta b -> fmap (const b) ta)
-
-
-
-
-if_ :: (ToBool cond, Mempty a) => cond -> a -> a
-if_ p s = if toBool p then s else mempty
-
-when   :: (Applicative f, ToBool cond)           =>   cond -> f a -> f ()
-whenM  :: (Monad m      , ToBool cond)           => m cond -> m a -> m ()
-when'  :: (Applicative f, ToBool cond, Mempty a) =>   cond -> f a -> f a
-whenM' :: (Monad m      , ToBool cond, Mempty a) => m cond -> m a -> m a
-when   p s = if toBool  p then void s else pure ()
-when'  p s = if toBool  p then s      else pure mempty
-whenM  p s = flip when  s =<< p
-whenM' p s = flip when' s =<< p
-
-
-infixl 4 |$
-(|$) :: (a -> b) -> a -> (a, b)
-f |$ a = (a, f a)
-
-infixl 4 $|
-($|) :: (a -> b) -> a -> (b, a)
-f $| a = (f a, a)
-
-infixl 4 <|$>
-(<|$>) :: Functor f => (a -> b) -> f a -> f (a, b)
-f <|$> a = (f |$) <$> a
-
-infixl 4 <$|>
-(<$|>) :: Functor f => (a -> b) -> f a -> f (b, a)
-f <$|> a = (f $|) <$> a
-
-
-
-infixl 4 <|$$>
-infixl 4 <$$|>
-(<|$$>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t (a, b))
-(<$$|>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t (b, a))
-f <|$$> ta = (\a -> (a,) <$> f a) <$$> ta
-f <$$|> ta = (\a -> (,a) <$> f a) <$$> ta
 
 
 

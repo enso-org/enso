@@ -2,7 +2,13 @@
 
 module Prologue.Data.Basic (module Prologue.Data.Basic, module X) where
 
+import Prelude (Num, Enum, ($), (.), (-))
+
 import Data.Functor
+import Data.Convert
+import Data.Monoids
+import Data.String.Class (IsString)
+import Data.Foldable
 import Prelude as X ( Bool(True,False), (&&), (||), not, otherwise
                     , Maybe(Just,Nothing), maybe
                     , Either(Left,Right), either
@@ -15,6 +21,9 @@ import Prelude as X ( Bool(True,False), (&&), (||), not, otherwise
                     )
 
 -- === Utils === --
+
+swap :: (a,b) -> (b,a)
+swap (a,b) = (b,a) ; {-# INLINE swap #-}
 
 switch :: a -> a -> Bool -> a
 switch ok fail cond = if cond then ok else fail ; {-# INLINE switch #-}
@@ -67,3 +76,24 @@ deriving instance Functor ((,,,,,,) t1 t2 t3 t4 t5 t6)
 deriving instance Functor ((,,,,,,,) t1 t2 t3 t4 t5 t6 t7)
 deriving instance Functor ((,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8)
 deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
+
+
+-- === General if-utils === --
+
+iff  :: (ToBool' cond)           => cond -> a -> a -> a
+iff' :: (ToBool' cond, Mempty a) => cond -> a -> a
+iff  cond ok fl = if toBool' cond then ok else fl     ; {-# INLINE iff  #-}
+iff' cond ok    = if toBool' cond then ok else mempty ; {-# INLINE iff' #-}
+
+
+-- === List-like manipulation === --
+
+unlines :: (IsString a, Monoid a, Foldable f) => f a -> a
+unlines = intercalate "\n" ; {-# INLINE unlines #-}
+
+replicate, unsafeReplicate :: (Num a, Ord a) => a -> t -> [t]
+replicate       i c = iff' (i>=0) $ unsafeReplicate i c ; {-# INLINE replicate #-}
+unsafeReplicate i c = go i where
+    go = \case 0 -> mempty
+               j -> c : go (j - 1)
+{-# INLINE unsafeReplicate #-}

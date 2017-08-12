@@ -2,7 +2,7 @@ module Prologue.Control.Monad.IO (module Prologue.Control.Monad.IO, module X) wh
 
 import qualified Prelude as P
 
-import Prelude                          (Char, String, (.))
+import Prelude                          (Char, String)
 import Prelude                          as X (FilePath, IOError, userError)
 import Prologue.Data.Show
 import Prologue.Control.Monad.Primitive
