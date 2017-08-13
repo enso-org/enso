@@ -5,7 +5,7 @@ module Control.Lens.Utils (module Control.Lens.Utils, module X) where
 
 import Prelude hiding (mempty)
 
-import Control.Lens               as X hiding (makeLenses, makeClassy)
+import Control.Lens               hiding (makeLenses, makeClassy)
 import Control.Lens.Wrapped.Utils as X
 
 import Data.Maybe          (fromMaybe)
