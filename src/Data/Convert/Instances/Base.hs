@@ -2,6 +2,7 @@ module Data.Convert.Instances.Base where
 
 import Prelude
 import Data.Convert.Class
+import Control.Lens
 
 
 -- === Tuples === --
@@ -19,6 +20,7 @@ instance Convertible (t,t,t,t,t,t,t,t,t) [t] where convert (t1,t2,t3,t4,t5,t6,t7
 
 -- === Boool === --
 
+-- TODO: TH vvv
 type ToBool    a = Convertible  a Bool
 type ToBool'   a = Convertible' a Bool
 type FromBool  a = Convertible  Bool a
@@ -30,7 +32,11 @@ toBool    :: ToBool    a => a -> Bool
 toBool'   :: ToBool'   a => a -> Bool
 fromBool  :: FromBool  a => Bool -> a
 fromBool' :: FromBool' a => Bool -> a
-toBool    = convert  ; {-# INLINE toBool    #-}
-toBool'   = convert' ; {-# INLINE toBool'   #-}
-fromBool  = convert  ; {-# INLINE fromBool  #-}
-fromBool' = convert' ; {-# INLINE fromBool' #-}
+asBool    :: IsBool    a => Iso' a Bool
+asBool'   :: IsBool'   a => Iso' a Bool
+toBool    = convert               ; {-# INLINE toBool    #-}
+toBool'   = convert'              ; {-# INLINE toBool'   #-}
+fromBool  = convert               ; {-# INLINE fromBool  #-}
+fromBool' = convert'              ; {-# INLINE fromBool' #-}
+asBool    = iso toBool  fromBool  ; {-# INLINE asBool    #-}
+asBool'   = iso toBool' fromBool' ; {-# INLINE asBool'   #-}
