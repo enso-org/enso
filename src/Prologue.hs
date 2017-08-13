@@ -56,10 +56,10 @@ import GHC.Generics               as X (Generic)
 import GHC.TypeLits               as X (Nat, Symbol, SomeNat, SomeSymbol, KnownNat, natVal, type (-), type (+))
 import Text.Show.Pretty           as X (ppShow)
 import Type.Operators             as X -- (($), (&))
-import Type.Show                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
+import Type.Show_old                  as X (TypeShow, showType, showType', printType, ppPrintType, ppShowType)
 import Type.Monoid                as X (type (<>))
 import Type.Applicative           as X (type (<$>), type (<*>))
-import Type.Error                 as X
+import Type.Error_old                 as X
 import Control.Monad.Catch        as X (MonadMask, MonadCatch, MonadThrow, throwM, catch, mask, uninterruptibleMask, mask_, uninterruptibleMask_, catchAll, catchIOError, catchJust, catchIf)
 import Text.Read                  as X (readPrec) -- new style Read class implementation
 import Data.Kind                  as X (Type, Constraint, type (★), type (*))
@@ -107,7 +107,7 @@ import Data.Copointed             as X (Copointed, copoint)
 import Data.Pointed               as X (Pointed, point)
 
 -- Tuple handling
-import Prologue.Data.Tuple        as X
+import Prologue.Data.Tuple_old    as X
 
 -- Data description
 import Prologue.Data.Default      as X
@@ -375,9 +375,6 @@ mapM3_ = void ∘∘ mapM3
 mapM4_ = void ∘∘ mapM4
 mapM5_ = void ∘∘ mapM5
 
-
-composed :: Iso' (f (g a)) (Compose f g a)
-composed = iso Compose getCompose
 
 
 -- Monads

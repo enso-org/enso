@@ -19,7 +19,7 @@ import qualified Data.Maybe as M
 -- === Conditionals === --
 
 justIf :: ToBool' cond => cond -> a -> Maybe a
-justIf cond a = iff cond (Just a) Nothing ; {-# INLINE justIf #-}
+justIf cond a = ifThenElse cond (Just a) Nothing ; {-# INLINE justIf #-}
 
 
 -- === FromJust === --

@@ -2,9 +2,16 @@
 
 module Prologue.Data.Default (module Prologue.Data.Default, module X) where
 
-import GHC.Exts     (Constraint)
+import qualified Data.Text.Lazy as Lazy
+import qualified Data.Text      as Strict
+
+import GHC.Exts (Constraint)
 import Data.Default as X
+
 
 type family Defaults lst :: Constraint where
     Defaults '[]       = ()
     Defaults (a ': as) = (Default a, Defaults as)
+
+instance Default Lazy.Text   where def = "" ; {-# INLINE def #-}
+instance Default Strict.Text where def = "" ; {-# INLINE def #-}

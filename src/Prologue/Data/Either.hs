@@ -1,6 +1,6 @@
 module Prologue.Data.Either (module Prologue.Data.Either, module X) where
 
-import Prelude (Either(Left, Right), const, id, ($), (.), flip)
+import Prelude (Either(Left, Right), const, id, ($), (.), flip, undefined)
 
 import Control.Monad.Trans.Either as X (EitherT(EitherT), runEitherT, eitherT, hoistEither, left, right, swapEitherT, mapEitherT)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, leftToMaybe, rightToMaybe, swapEither)
@@ -17,7 +17,7 @@ import Data.Monoids
 -- === Conditionals === --
 
 eitherIf :: ToBool' cond => cond -> ok -> fail -> Either fail ok
-eitherIf cond ok fl = iff cond (Right ok) (Left fl) ; {-# INLINE eitherIf #-}
+eitherIf cond ok fl = ifThenElse cond (Right ok) (Left fl) ; {-# INLINE eitherIf #-}
 
 
 -- === FromEither === --
@@ -35,14 +35,20 @@ fromLeftM d = either pure (const d) ; {-# INLINE fromLeftM #-}
 {-# WARNING unsafeFromRight "Do not use in production code" #-}
 unsafeFromRight  ::                           Either l r ->   r
 unsafeFromRightM :: (Monad m, MonadFail m) => Either l r -> m r
-unsafeFromRight (Right r) = r                                       ; {-# INLINE unsafeFromRight  #-}
 unsafeFromRightM = either (const $ fail "fromRightM: Nothing") pure ; {-# INLINE unsafeFromRightM #-}
+unsafeFromRight  = \case
+    Right r -> r
+    _       -> undefined
+{-# INLINE unsafeFromRight  #-}
 
 {-# WARNING unsafeFromLeft "Do not use in production code" #-}
 unsafeFromLeft  ::                           Either l r ->   l
 unsafeFromLeftM :: (Monad m, MonadFail m) => Either l r -> m l
-unsafeFromLeft (Left r) = r                                       ; {-# INLINE unsafeFromLeft  #-}
 unsafeFromLeftM = either pure (const $ fail "fromLeftM: Nothing") ; {-# INLINE unsafeFromLeftM #-}
+unsafeFromLeft  = \case
+    Left r -> r
+    _      -> undefined
+{-# INLINE unsafeFromLeft  #-}
 
 
 -- === Monadic === --

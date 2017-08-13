@@ -57,14 +57,14 @@ when  , unless   :: (Applicative m, ToBool' cond, Mempty a) =>   cond -> m a -> 
 when_ , unless_  :: (Applicative m, ToBool' cond)           =>   cond -> m a -> m ()
 whenM , unlessM  :: (Monad m      , ToBool' cond, Mempty a) => m cond -> m a -> m a
 whenM_, unlessM_ :: (Monad m      , ToBool' cond)           => m cond -> m a -> m ()
-when     p s = iff p s             (pure mempty) ; {-# INLINE when     #-}
-unless   p s = iff p (pure mempty) s             ; {-# INLINE unless   #-}
-when_    p s = iff p (void s)      (pure ())     ; {-# INLINE when_    #-}
-unless_  p s = iff p (pure ())     (void s)      ; {-# INLINE unless_  #-}
-whenM    p s = flip when    s =<< p              ; {-# INLINE whenM    #-}
-unlessM  p s = flip unless  s =<< p              ; {-# INLINE unlessM  #-}
-whenM_   p s = flip when_   s =<< p              ; {-# INLINE whenM_   #-}
-unlessM_ p s = flip unless_ s =<< p              ; {-# INLINE unlessM_ #-}
+when     p s = ifThenElse p s             (pure mempty) ; {-# INLINE when     #-}
+unless   p s = ifThenElse p (pure mempty) s             ; {-# INLINE unless   #-}
+when_    p s = ifThenElse p (void s)      (pure ())     ; {-# INLINE when_    #-}
+unless_  p s = ifThenElse p (pure ())     (void s)      ; {-# INLINE unless_  #-}
+whenM    p s = flip when    s =<< p                     ; {-# INLINE whenM    #-}
+unlessM  p s = flip unless  s =<< p                     ; {-# INLINE unlessM  #-}
+whenM_   p s = flip when_   s =<< p                     ; {-# INLINE whenM_   #-}
+unlessM_ p s = flip unless_ s =<< p                     ; {-# INLINE unlessM_ #-}
 
 guard :: (MonadPlus m, ToBool' cond) => cond -> m ()
 guard cond = case toBool' cond of

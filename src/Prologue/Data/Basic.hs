@@ -2,7 +2,7 @@
 
 module Prologue.Data.Basic (module Prologue.Data.Basic, module X) where
 
-import Prelude (Num, Enum, ($), (.), (-))
+import Prelude (Num, Enum, ($), (.), (-), id)
 
 import Data.Functor
 import Data.Convert
@@ -24,9 +24,6 @@ import Prelude as X ( Bool(True,False), (&&), (||), not, otherwise
 
 swap :: (a,b) -> (b,a)
 swap (a,b) = (b,a) ; {-# INLINE swap #-}
-
-switch :: a -> a -> Bool -> a
-switch ok fail cond = if cond then ok else fail ; {-# INLINE switch #-}
 
 infixr 2 ||.
 infixr 2 &&.
@@ -68,10 +65,15 @@ deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
 
 -- === General if-utils === --
 
-iff  :: (ToBool' cond)           => cond -> a -> a -> a
-iff' :: (ToBool' cond, Mempty a) => cond -> a -> a
-iff  cond ok fl = if toBool' cond then ok else fl     ; {-# INLINE iff  #-}
-iff' cond ok    = if toBool' cond then ok else mempty ; {-# INLINE iff' #-}
+ifThenElse   :: (ToBool' cond)           => cond -> a -> a -> a
+ifThenMempty :: (ToBool' cond, Mempty a) => cond -> a -> a
+ifThenId     :: (ToBool' cond)           => cond -> (a -> a) -> (a -> a)
+ifThenElse   cond ok fl = if toBool' cond then ok else fl     ; {-# INLINE ifThenElse   #-}
+ifThenMempty cond ok    = if toBool' cond then ok else mempty ; {-# INLINE ifThenMempty #-}
+ifThenId     cond f     = if toBool' cond then f  else id     ; {-# INLINE ifThenId     #-}
+
+switch :: a -> a -> Bool -> a
+switch ok fail cond = if cond then ok else fail ; {-# INLINE switch #-}
 
 
 -- === List-like manipulation === --
@@ -80,7 +82,7 @@ unlines :: (IsString a, Monoid a, Foldable f) => f a -> a
 unlines = intercalate "\n" ; {-# INLINE unlines #-}
 
 replicate, unsafeReplicate :: (Num a, Ord a) => a -> t -> [t]
-replicate       i c = iff' (i>=0) $ unsafeReplicate i c ; {-# INLINE replicate #-}
+replicate       i c = ifThenMempty (i>=0) $ unsafeReplicate i c ; {-# INLINE replicate #-}
 unsafeReplicate i c = go i where
     go = \case 0 -> mempty
                j -> c : go (j - 1)

@@ -2,12 +2,22 @@ module Prologue.Control.Monad.Trans (module Prologue.Control.Monad.Trans, module
 
 import Prelude
 import Control.Monad.Trans.Class as X (MonadTrans, lift)
-import Data.Kind
 
+import Control.Monad.Primitive (PrimState)
+import Data.Kind               (Constraint)
+
+
+-- === Type families === --
 
 type family MonadTranses (ts :: [(* -> *) -> * -> *]) :: Constraint where
     MonadTranses '[]       = ()
     MonadTranses (t ': ts) = (MonadTrans t, MonadTranses ts)
+
+type MonadTransInvariants     t m = (Monad m, Monad (t m), MonadTrans t)
+type PrimMonadTransInvariants t m = (MonadTransInvariants t m, PrimState m ~ PrimState (t m))
+
+
+-- === Lifting === --
 
 {-# WARNING lift2 "You should not use `lift2` in production code. Use monad transformer stack instead. If you really need it in a very specific use case, use `_lift2_` instead." #-}
 lift2, _lift2_ :: (Monad (t1 m), Monad m, MonadTranses '[t1,t2])
