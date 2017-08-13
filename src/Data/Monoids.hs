@@ -15,6 +15,47 @@ import qualified Data.Foldable   as Foldable
 
 
 --------------------
+-- === Mempty === --
+--------------------
+
+-- === Definition === --
+
+class Mempty a where
+    mempty :: a
+    default mempty :: M.Monoid a => a
+    mempty = M.mempty ; {-# INLINE mempty #-}
+
+instance {-# OVERLAPPABLE #-} M.Monoid a => Mempty a
+
+
+-- === Utils === --
+
+type family Mempties lst :: Constraint where
+    Mempties '[]       = ()
+    Mempties (a ': as) = (Mempty a, Mempties as)
+
+
+-----------------------
+-- === Semigroup === --
+-----------------------
+
+-- === Utils === --
+
+mappend :: Semigroup a => a -> a -> a
+mappend = (<>) ; {-# INLINE mappend #-}
+
+mappendWith :: Semigroup a => a -> a -> a -> a
+mappendWith m l r = l <> m <> r ; {-# INLINE mappendWith #-}
+
+mappendBetween :: Semigroup a => a -> a -> a -> a
+mappendBetween l r m = l <> m <> r ; {-# INLINE mappendBetween #-}
+
+type family Semigroups lst :: Constraint where
+    Semigroups '[]       = ()
+    Semigroups (a ': as) = (Semigroup a, Semigroups as)
+
+    
+--------------------
 -- === Monoid === --
 --------------------
 
@@ -57,46 +98,11 @@ type family Monoids lst :: Constraint where
 
 
 
------------------------
--- === Semigroup === --
------------------------
-
--- === Utils === --
-
-mappend :: Semigroup a => a -> a -> a
-mappend = (<>) ; {-# INLINE mappend #-}
-
-mappendWith :: Semigroup a => a -> a -> a -> a
-mappendWith m l r = l <> m <> r ; {-# INLINE mappendWith #-}
-
-mappendBetween :: Semigroup a => a -> a -> a -> a
-mappendBetween l r m = l <> m <> r ; {-# INLINE mappendBetween #-}
-
-type family Semigroups lst :: Constraint where
-    Semigroups '[]       = ()
-    Semigroups (a ': as) = (Semigroup a, Semigroups as)
 
 
 
---------------------
--- === Mempty === --
---------------------
-
--- === Definition === --
-
-class Mempty a where
-    mempty :: a
-    default mempty :: M.Monoid a => a
-    mempty = M.mempty ; {-# INLINE mempty #-}
-
-instance {-# OVERLAPPABLE #-} M.Monoid a => Mempty a
 
 
--- === Utils === --
-
-type family Mempties lst :: Constraint where
-    Mempties '[]       = ()
-    Mempties (a ': as) = (Mempty a, Mempties as)
 
 
 
