@@ -118,8 +118,8 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens.Wrapped.Utils       as X
-import Control.Lens.Utils               as X
+import Control.Lens.Utils.Wrapped       as X
+import Control.Lens.Utils.TH            as X
 
 import Control.Lens.At                  as X
 import Control.Lens.Cons                as X
