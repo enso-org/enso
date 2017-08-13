@@ -1,7 +1,6 @@
 module Luna.Syntax.Text.Lexer.Stream where
 
-import Prologue_old hiding (unless, span)
-
+import Prologue hiding (unless, span)
 
 import           Control.Exception          (Exception)
 import           Control.Monad              (unless)
@@ -10,12 +9,9 @@ import qualified Data.Text                  as T
 import qualified Data.Text.Internal         as TI
 import           Data.Typeable              (Typeable)
 
-import qualified Data.Attoparsec.ByteString
-import qualified Data.Attoparsec.Text
 import qualified Data.Attoparsec.Types      as Parser
 import           Data.Attoparsec.Types (Parser, IResult)
 import           Data.Conduit
-import Control.Monad.Trans.Resource (MonadThrow, monadThrow)
 
 import Data.Text.Position (Delta)
 import Data.Parser hiding (Token)
@@ -71,7 +67,7 @@ instance AttoparsecInput Text32 where
 conduitParserEither :: (AttoparsecInput a, PartialParser (Parser a), Default cfg, Monad m, Mempty a)
                     => cfg -> (cfg -> Parser a ((b, Int), cfg)) -> ConduitM a (Either ParseError (Token b)) m ()
 conduitParserEither !cfg parser = loop cfg mempty where
-    loop !cfg !pos = whenNonEmpty $ sinkPosParser pos (parser cfg) >>= useRight go where
+    loop !lcfg !pos = whenNonEmpty $ sinkPosParser pos (parser lcfg) >>= useRight go where
         go (!pos', !off, !cfg', !res) = yield (Right $ Token (pos' - pos) off res) >> loop cfg' pos'
 {-# INLINE conduitParserEither #-}
 -- {-# SPECIALIZE conduitParserEither :: Monad m => Parser T.Text       (b, Int) -> Conduit T.Text       m (Either ParseError (Span, b)) #-}
@@ -88,8 +84,8 @@ sinkPosParser !pos0 p = sink mempty pos0 (parsePartial p) where
                                  else go False str (parse str)
         go isEnd str = \case
             Parser.Done    rest ((out, off), cfg) -> (Right . (, convert off, cfg, out) $! npos rest - convert off) <$ unless (isNull rest) (leftover rest)
-            Parser.Fail    rest contexts msg -> return . Left . ParseError contexts msg $! npos rest
-            Parser.Partial parse'            -> if isEnd then return $ Left DivergentParser else sink str cpos parse'
+            Parser.Fail    rest contexts msg -> pure . Left . ParseError contexts msg $! npos rest
+            Parser.Partial parse'            -> if isEnd then pure $ Left DivergentParser else sink str cpos parse'
             where !pos' = if isEnd then pos else cpos
                   !cpos = updateOffset pos prev
                   !npos = updateOffset pos' . stripEnd str

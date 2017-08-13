@@ -38,6 +38,17 @@ liftM2' f a b = do
 {-# INLINE liftM2' #-}
 
 
+--------------------------
+-- === FiniteParser === --
+--------------------------
+
+class FiniteParser m where
+    endOfInput :: m ()
+
+instance {-# OVERLAPPABLE #-} (FiniteParser m, MonadTrans t, Monad m) => FiniteParser (t m) where
+    endOfInput = lift endOfInput ; {-# INLINE endOfInput #-}
+
+
 -------------------------
 -- === TokenParser === --
 -------------------------
@@ -67,7 +78,7 @@ class TokenParserCtx m => TokenParser m where
     tokens_    t = traverse_ token_ (toList t)         ; {-# INLINE tokens_    #-}
     peekToken'   = option Nothing $ Just <$> peekToken ; {-# INLINE peekToken' #-}
 
-instance (TokenParserCtx (t m), TokenParser m, TokenTrans t m, MonadTrans t, Monad m)
+instance {-# OVERLAPPABLE #-} (TokenParserCtx (t m), TokenParser m, TokenTrans t m, MonadTrans t, Monad m)
       => TokenParser (t m) where
     satisfy    = lift . satisfy    ; {-# INLINE satisfy    #-}
     takeWhile  = lift . takeWhile  ; {-# INLINE takeWhile  #-}

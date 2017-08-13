@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue_old hiding (Symbol, List, element, Text32)
+import Prologue hiding (Symbol, List, element)
 import Luna.Syntax.Text.Lexer.Token
 
 import Data.Text32 (Text32)
@@ -108,6 +108,7 @@ data StrEscType = CharStrEsc  !Int
                 | NumStrEsc   !Int
                 | QuoteEscape !StrType !Int
                 | SlashEsc
+                | OrphanEsc -- No escape code due to end of input or wrong escape code
                 deriving (Generic, Show, Eq, Ord)
 
 data Bound   = Begin | End              deriving (Generic, Show, Eq, Ord)
@@ -181,6 +182,7 @@ pretty = \case
     Modifier    {} -> "Modifier"
     Accessor    {} -> "Accessor"
     Assignment  {} -> "Assignment"
+    Typed       {} -> "Typed"
     TypeApp     {} -> "Type application"
     Merge       {} -> "Merge operator"
     Range       {} -> "Range operator"
@@ -225,6 +227,7 @@ instance ShowCons Symbol where
         Modifier    {} -> "Modifier"
         Accessor    {} -> "Accessor"
         Assignment  {} -> "Assignment"
+        Typed       {} -> "Typed"
         TypeApp     {} -> "TypeApp"
         Merge       {} -> "Merge"
         Range       {} -> "Range"
@@ -266,6 +269,7 @@ instance IsTagged Symbol where
         Modifier    {} -> "Operator"
         Accessor    {} -> "Operator"
         Assignment  {} -> "Operator"
+        Typed       {} -> "Operator"
         TypeApp     {} -> "Operator"
         Merge       {} -> "Operator"
         Range       {} -> "Operator"

@@ -1,17 +1,17 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Syntax.Text.Analysis.SpanTree where
 
-import Prologue_old hiding (span, (|>), (<|), empty)
+import Prologue hiding (span, (|>), (<|), empty)
 
-import qualified Prelude                as P
-import qualified Data.FingerTree        as FT
-import           Data.FingerTree        (Measured, FingerTree, takeUntil, dropUntil, measure)
-import           Data.Text.Position     (Delta)
-import           Data.Text32  (Text32)
-import qualified Data.Text32  as Text32
-import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Luna.Syntax.Text.Lexer.Stream as Lexer
+import qualified Prelude                       as P
+import qualified Data.FingerTree               as FT
+import qualified Data.Text32                   as Text32
+import qualified Luna.Syntax.Text.Lexer        as Lexer
+import           Data.FingerTree               (Measured, FingerTree, measure)
+import           Data.Text.Position            (Delta)
+import           Data.Text32                   (Text32)
 
 
 -- vvv Missing instances vvv --
@@ -152,8 +152,8 @@ infixr 5 <|
 
 append  :: Spanned a -> Spantree a -> Spantree a
 prepend :: Spanned a -> Spantree a -> Spantree a
-append  span = wrapped %~ (FT.|> convert' span) ; {-# INLINE append  #-}
-prepend span = wrapped %~ (convert' span FT.<|) ; {-# INLINE prepend #-}
+append  s = wrapped %~ (FT.|> convert' s) ; {-# INLINE append  #-}
+prepend s = wrapped %~ (convert' s FT.<|) ; {-# INLINE prepend #-}
 
 split :: (SpanGroup -> Bool) -> Spantree a -> (Spantree a, Spantree a)
 split f = over both wrap . FT.split f . unwrap ; {-# INLINE split #-}

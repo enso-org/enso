@@ -1,25 +1,21 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Data.Attoparsec.Text32 where
 
-import Control.Applicative ((<$>))
-import Control.Applicative ((<|>))
-import Control.Monad (when)
-import Data.Attoparsec.Combinator ((<?>))
+import Prelude                        hiding (getChar, succ, take, takeWhile)
+import Control.Applicative            ((<$>))
+import Control.Monad                  (when)
 import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success, fromPos)
-import Data.Char (chr, ord)
-import Data.List (intercalate)
-import Data.String (IsString(..))
-import Data.Text.Internal (Text(..))
-import Prelude hiding (getChar, succ, take, takeWhile)
-import qualified Data.Attoparsec.Internal.Types as T
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Unsafe as T
+import Data.List                      (intercalate)
 
 import           Data.Text32 (Text32)
 import qualified Data.Text32 as Text32
-import Data.Coerce
-import Control.Lens hiding (lengthOf)
+import           Data.Coerce
+
+import qualified Data.Attoparsec.Internal.Types as T
+
+
 
 
 

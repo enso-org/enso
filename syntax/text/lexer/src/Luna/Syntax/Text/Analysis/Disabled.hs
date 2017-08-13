@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Analysis.Disabled where
 
-import Prologue_old                      hiding (span)
+import Prologue                      hiding (span)
 import Data.Text.Position            (Delta)
 import Luna.Syntax.Text.Lexer.Symbol
 import Luna.Syntax.Text.Lexer.Token
@@ -25,7 +25,7 @@ tagColumn d = \case
     (a:as) -> (d,a) : tagColumn d' as where
         d' = case a ^. symbol of
             EOL -> a ^. offset
-            s   -> d + a ^. span + a ^. offset
+            _   -> d + a ^. span + a ^. offset
 {-# NOINLINE tagColumn #-}
 
 columnToDisabledTag  :: forall a. HasSymbol a =>                [(Delta, Token a)] -> [(ColumnStack, Token a)]
@@ -39,10 +39,8 @@ columnToDisabledTag' disabledStack = \case
             Disable -> disableCurrent d
             _       -> curDisabledStack
 
-    where checkCurrent   :: Delta -> Bool
-          disableCurrent :: Delta -> ColumnStack
+    where disableCurrent :: Delta -> ColumnStack
           updateCurrent  :: Token a -> Delta -> ColumnStack -> ColumnStack
-          checkCurrent   d = maybe False (d>) (maybeHead disabledStack)
           disableCurrent d = d : disabledStack
           updateCurrent  t d s = case t ^. symbol of
               STX -> s

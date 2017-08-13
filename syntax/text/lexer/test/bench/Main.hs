@@ -2,31 +2,18 @@
 
 module Main where
 
-import Prologue_old as P hiding (Symbol)
+import Prologue as P hiding (Symbol)
 import Criterion.Main
-import Luna.Syntax.Text.Lexer hiding (Text)
+import Luna.Syntax.Text.Lexer
+import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
+
 import System.Random
-import System.IO (hFlush, hSetBuffering, stdout, BufferMode(NoBuffering))
--- import Data.Text (Text)
--- import qualified Data.Text as Text
-import qualified Data.Text as Text
-import System.TimeIt
-
-import qualified Data.Char as Char
-
-import Conduit
-import Data.Char (toUpper)
 import Data.Attoparsec.Text as Parser
-import Luna.Syntax.Text.Lexer.Stream
-import Luna.Syntax.Text.Lexer (Symbol)
-import System.IO (FilePath)
-
-import Control.Monad.State.Layered
-
 import Luna.Syntax.Text.Analysis.Disabled
+import qualified Data.Char              as Char
 import qualified Data.Attoparsec.Text32 as T32
 import           Data.Text32 (Text32)
-import qualified Data.Text32 as Text32
+
 
 eval :: NFData a => a -> IO a
 eval = evaluate . force
@@ -39,22 +26,18 @@ expCodeGen f i = do
     putStrLn $ "generating input code (10e" <> show i <> " chars)"
     out <- eval $ liftExp f i
     putStrLn "code generated sucessfully"
-    return out
+    pure out
 
 maxExpCodeLen :: Int
 maxExpCodeLen = 6
 
--- expCodeGenBench  :: (Int -> Text) -> Int -> Benchmark
--- expCodeGenBenchs :: (Int -> Text) -> [Benchmark]
+expCodeGenBench  :: (NFData a, NFData env, Show env) => (env -> a) -> (Int -> env) -> Int -> Benchmark
+expCodeGenBenchs :: (NFData a, Show env, NFData env) => (env -> a) -> (Int -> env) -> [Benchmark]
 expCodeGenBench  p f i = env (expCodeGen f i) $ bench ("10e" <> show i) . nf p
 expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
---
---
--- mkCodeRandom :: Int -> Text32
--- mkCodeRandom i = convert . P.take i $ Char.chr <$> randomRs (32,100) (mkStdGen 0)
---
--- mkCodeNumbers :: Int -> Text
--- mkCodeNumbers i = Text.replicate i $ convert ['0'..'9']
+
+mkRandomCode :: Int -> Text32
+mkRandomCode i = convert . P.takePossible i $ Char.chr <$> randomRs (32,126) (mkStdGen 0)
 
 mkCodeTerminators, mkBigVariable :: IsString s => Int -> s
 mkCodeTerminators i = fromString $ replicate i ';' ; {-# INLINE mkCodeTerminators #-}
@@ -66,14 +49,19 @@ mkVariablesL5  i = fromString . mconcat $ replicate i "abcde "      ; {-# INLINE
 mkVariablesL10 i = fromString . mconcat $ replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
 
 
-
+main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
+
+    let code = mkRandomCode 300
+    putStrLn $ "'" <> convert code <> "'"
+    pprint $ evalDefLexer $ code
 
     pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     defaultMain
         [ bgroup "big variable"                $ expCodeGenBenchs evalDefLexer           mkBigVariable
+        , bgroup "random code"                 $ expCodeGenBenchs evalDefLexer           mkRandomCode
         , bgroup "variables L1"                $ expCodeGenBenchs evalDefLexer           mkVariablesL1
         , bgroup "variables L5"                $ expCodeGenBenchs evalDefLexer           mkVariablesL5
         , bgroup "variables L10"               $ expCodeGenBenchs evalDefLexer           mkVariablesL10

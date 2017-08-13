@@ -5,7 +5,6 @@ module Luna.Syntax.Text.IO where
 import Prelude
 
 import           Conduit
-import           Data.Conduit.Combinators     hiding (replicate)
 import           Data.Convert
 import           Control.Monad.Trans.Resource (MonadResource)
 

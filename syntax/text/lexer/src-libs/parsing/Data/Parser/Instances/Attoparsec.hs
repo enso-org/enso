@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Data.Parser.Instances.Attoparsec where
 
 import Prelude hiding ((.))
@@ -5,14 +7,13 @@ import Prelude hiding ((.))
 import           Control.Monad (void)
 import           Control.Monad.Identity
 import qualified Data.Attoparsec.Combinator     as Atto
-import           Data.Attoparsec.Internal.Types (Parser, IResult)
+import           Data.Attoparsec.Internal.Types (Parser, IResult, Chunk)
 import qualified Data.Attoparsec.Text           as SText
 import qualified Data.Attoparsec.Text32         as T32
 import           Data.Functor.Utils
 import           Data.Parser
 import qualified Data.Text                      as Strict
-import           Data.Text32          (Text32)
-import qualified Data.Text32          as Text32
+import           Data.Text32                    (Text32)
 
 
 -- === Universal === --
@@ -24,6 +25,9 @@ type instance Result        (Parser t) = IResult t
 
 instance BacktrackParser (Parser a) where
     try = id ; {-# INLINE try #-}
+
+instance Chunk a => FiniteParser (Parser a) where
+    endOfInput = Atto.endOfInput ; {-# INLINE endOfInput #-}
 
 
 -- === Strict.Text === --

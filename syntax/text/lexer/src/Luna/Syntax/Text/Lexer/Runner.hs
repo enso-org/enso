@@ -1,6 +1,8 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Luna.Syntax.Text.Lexer.Runner where
 
-import Prologue_old hiding (Symbol)
+import Prologue hiding (Symbol)
 
 import           Data.Text32          (Text32)
 import qualified Data.Text32          as Text32
@@ -10,7 +12,7 @@ import           Luna.Syntax.Text.Lexer.Grammar
 import           Luna.Syntax.Text.Lexer.Stream  (ParseError, conduitParserEither)
 import           Luna.Syntax.Text.Lexer.Symbol
 import           Luna.Syntax.Text.Lexer.Token
-import           Conduit
+import           Conduit hiding (liftIO)
 
 
 ---------------------
@@ -24,14 +26,14 @@ fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . sh
 parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text32 m () -> ConduitM a c0 m [Either ParseError (Token t)]
 parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
-parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32   ->   [Token a]
-tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]
-parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
-tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
-parse              = fromLexerResult .:. tryParse                                            ; {-# INLINE parse        #-}
-parseFile          = fromLexerResult .:: tryParseFile                                        ; {-# INLINE parseFile    #-}
-tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
-tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
+parse        :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   [Token a]
+tryParse     :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]
+parseFile    :: IsSourceBorder a => PrimMonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
+tryParseFile :: IsSourceBorder a => PrimMonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
+parse              = fromLexerResult .:. tryParse                                                ; {-# INLINE parse        #-}
+parseFile          = fromLexerResult .:: tryParseFile                                            ; {-# INLINE parseFile    #-}
+tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)                ; {-# INLINE tryParse     #-}
+tryParseFile p s t = liftPrimIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 
 runLexer     :: EntryStack -> Text32 -> [Token (Symbol, EntryStack)]
 evalLexer    :: EntryStack -> Text32 -> [Token Symbol]
@@ -45,7 +47,7 @@ evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
 
 prependSTX :: (Monad m, IsSourceBorder s) => ConduitM Text32 s m () -> ConduitM Text32 s m ()
 prependSTX f = await >>= \case
-    Nothing -> return ()
+    Nothing -> pure ()
     Just t  -> yield (stx $ Text32.length s) >> when (not $ Text32.null t') (leftover t') >> f where
         (s,t') = Text32.span (== ' ') t
 {-# INLINE prependSTX #-}

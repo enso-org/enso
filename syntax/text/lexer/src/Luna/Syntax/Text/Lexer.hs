@@ -1,4 +1,4 @@
-module Luna.Syntax.Text.Lexer (module Luna.Syntax.Text.Lexer, module X) where
+module Luna.Syntax.Text.Lexer (module X) where
 
 import Luna.Syntax.Text.Lexer.Grammar as X
 import Luna.Syntax.Text.Lexer.Runner  as X

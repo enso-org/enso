@@ -6,20 +6,17 @@
 
 module Luna.Syntax.Text.Lexer.Grammar where
 
-import Prologue_old hiding (List, Type, Symbol, cons, span, range, catch, takeWhile, Text)
-import qualified Prologue_old as P
+import Prologue hiding (List, Type, Symbol, cons, span, range, catch, takeWhile, Text)
 
 import           Control.Monad.State.Layered
 import qualified Data.Char                    as Char
 import           Data.Map.Strict              (Map)
 import qualified Data.Map.Strict              as Map
-import           Data.Text32                  (Text32)
 import qualified Data.Text32                  as Text32
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as Vector
 
 import qualified Data.Attoparsec.Text32 as Parsec
-import           Luna.Syntax.Text.Lexer.Token
 
 import Data.Parser hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
@@ -54,13 +51,13 @@ liftEntry :: MonadState EntryStack m => EntryPoint -> m ()
 liftEntry = modify_ @EntryStack . (:) ; {-# INLINE liftEntry #-}
 
 unliftEntry :: MonadState EntryStack m => m ()
-unliftEntry = modify_ @EntryStack $ \lst -> case maybeTail lst of
+unliftEntry = modify_ @EntryStack $ \lst -> case tail lst of
     Just p  -> p
     Nothing -> error "Impossible happened: trying to unlift global lexer entry. Please report this issue to Luna developers."
 {-# INLINE unliftEntry #-}
 
 getEntryPoint :: MonadState EntryStack m => m EntryPoint
-getEntryPoint = maybe def id . maybeHead <$> get @EntryStack ; {-# INLINE getEntryPoint #-}
+getEntryPoint = maybe def id . head <$> get @EntryStack ; {-# INLINE getEntryPoint #-}
 
 
 -- === Instances === --
@@ -128,14 +125,14 @@ beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c) ; {-# INLINE beginQuotes 
 beginMultiQuotes :: Char -> Parser Int
 beginMultiQuotes !c = do
     !len <- Text32.length <$> takeMany1 c
-    when (len == 2) $ fail "Empty string"
-    return len
+    when_ (len == 2) $ fail "Empty string"
+    pure len
 {-# INLINE beginMultiQuotes #-}
 
 
 -- === Top level string parsers === --
 
-natStrQuote, rawStrQuote, fmtStrQuote :: Char
+natStrQuote, rawStrQuote, fmtStrQuote, escapeChar :: Char
 natStrQuote = '`'  ; {-# INLINE natStrQuote #-}
 rawStrQuote = '"'  ; {-# INLINE rawStrQuote #-}
 fmtStrQuote = '\'' ; {-# INLINE fmtStrQuote #-}
@@ -156,7 +153,7 @@ natStrBody hlen = code <|> quotes where
         qs <- takeMany1 natStrQuote
         if Text32.length qs == hlen
             then Quote NatStr End <$ unliftEntry
-            else return $ Str qs
+            else pure $ Str qs
 {-# INLINE natStrBody #-}
 
 
@@ -170,11 +167,12 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
     esct   = (SlashEsc <$ token escapeChar)
          <|> (QuoteEscape RawStr . Text32.length <$> takeMany1 rawStrQuote)
          <|> (QuoteEscape FmtStr . Text32.length <$> takeMany1 fmtStrQuote)
+         <|> pure OrphanEsc
     quotes = do
         qs <- takeMany1 rawStrQuote
         if Text32.length qs == hlen
             then Quote RawStr End <$ unliftEntry
-            else return $ Str qs
+            else pure $ Str qs
 {-# INLINE rawStrBody #-}
 
 
@@ -193,7 +191,7 @@ fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
         qs <- takeMany1 fmtStrQuote
         if Text32.length qs == hlen
             then Quote FmtStr End <$ unliftEntry
-            else return $ Str qs
+            else pure $ Str qs
     code   = Block Begin <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
 {-# INLINE fmtStrBody #-}
 
@@ -201,7 +199,7 @@ fmtStrCode :: Int -> Lexer
 fmtStrCode hlen = ending <|> topEntryPoint where
     ending = do
         qs <- takeMany1 natStrQuote
-        when (Text32.length qs /= hlen) $ fail "Not an ending"
+        when_ (Text32.length qs /= hlen) $ fail "Not an ending"
         Block End <$ unliftEntry
 {-# INLINE fmtStrCode #-}
 
@@ -215,7 +213,7 @@ esc3Map = Char.ord <$> fromList [ ("NUL", '\NUL'), ("SOH", '\SOH'), ("STX", '\ST
 
 lexEscSeq :: Lexer
 lexEscSeq = numEsc <|> chrEcs <|> wrongEsc where
-    numEsc   = StrEsc . NumStrEsc . read . convert <$> takeWhile1 isDecDigitChar
+    numEsc   = StrEsc . NumStrEsc . unsafeRead . convert <$> takeWhile1 isDecDigitChar
     chrEcs   = choice $ uncurry parseEsc <$> zip [1..] [esc1Map, esc2Map, esc3Map]
     wrongEsc = StrWrongEsc . Char.ord <$> anyToken
 
@@ -223,7 +221,7 @@ parseEsc :: Int -> Map String Int -> Lexer
 parseEsc n m = do
     s <- count n anyToken
     case Map.lookup s m of
-        Just i  -> return . StrEsc $ CharStrEsc i
+        Just i  -> pure . StrEsc $ CharStrEsc i
         Nothing -> fail "Escape not matched"
 
 
@@ -254,7 +252,7 @@ lexComment = Doc <$> takeLine ; {-# INLINE lexComment #-}
 lexMarker :: Lexer
 lexMarker = token markerBeginChar *> (correct <|> incorrect) <* token markerEndChar where
     incorrect = Incorrect . ("Marker " <>) <$> takeTill (== markerEndChar)
-    correct   = Marker . read . convert <$> takeWhile1 isDecDigitChar
+    correct   = Marker . unsafeRead . convert <$> takeWhile1 isDecDigitChar
 {-# INLINE lexMarker #-}
 
 
@@ -273,7 +271,7 @@ isOperator :: Convertible' s String => s -> Bool
 isOperator = test . convertTo' @String where
     test s = all isRegularOperatorChar s
           || s `elem` [",", "..", "...", "=="]
-          || (maybeLast s == Just '=') && isOperator (init s)
+          || (last s == Just '=') && isOperator (unsafeInit s)
 {-# INLINE isOperator #-}
 
 
@@ -341,7 +339,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           handleEqs         = handleReps  [Assignment, Operator "=="]
           handleHash        = handleRepsM [pure Disable, lexComment, lexConfig]
           handleReps        = handleRepsM . fmap pure
-          handleRepsM ts s  = fromMaybe (return $ Unknown s) $ ts ^? ix (Text32.length s - 1)
+          handleRepsM ts s  = fromJust (pure $ Unknown s) $ ts ^? ix (Text32.length s - 1)
           handleOp    op    = \case "="  -> Modifier op
                                     ""   -> Operator op
                                     s    -> Unknown (op <> s)
@@ -366,7 +364,7 @@ lexerCont = do
     s         <- lexEntryPoint
     (s', off) <- lexeme s
     es        <- get @EntryStack
-    return ((s', es), off)
+    pure ((s', es), off)
 
 lexEntryPoint :: Lexer
 lexEntryPoint = getEntryPoint >>= \case
@@ -388,8 +386,8 @@ lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else u
 
 lexeme :: Symbol -> Parser (Symbol, Int)
 lexeme s = case s of
-    Quote _ Begin -> return (s, 0) -- Do not include whitespaces as offset inside text.
-    Block End     -> return (s, 0) -- Do not include whitespaces as offset after inline text code.
+    Quote _ Begin -> pure (s, 0) -- Do not include whitespaces as offset inside text.
+    Block End     -> pure (s, 0) -- Do not include whitespaces as offset after inline text code.
     _             -> (s,) <$> spacing
 {-# INLINE lexeme #-}
 
