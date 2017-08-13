@@ -16,11 +16,10 @@ type family Imp :: k
 
 -- === Utils === --
 
-impossible :: HasCallStack => a
-impossible = withFrozenCallStack $ error "Impossible happened."
-
-impossible' :: HasCallStack => String -> a
-impossible' = withFrozenCallStack . error . ("Impossible happened: " <>)
+impossible   :: HasCallStack => a
+impossibleTo :: HasCallStack => String -> a
+impossible   = withFrozenCallStack $ error "Impossible happened"         ; {-# INLINE impossible   #-}
+impossibleTo = withFrozenCallStack . error . ("Impossible happened: " <>) ; {-# INLINE impossibleTo #-}
 
 
 -- === Primitives === --
@@ -30,8 +29,8 @@ type instance Imp = ImpCls
 type instance Imp = '[Impossible]
 type instance Imp = 'Just Imp
 
-type instance Imp = 9223372036854775807 -- ImpNat is defined as the maximum Int on 64 bit architecture. If GHC has some optimizations of Nat Values, it is nice not to exceed the value.
-type instance Imp = "*I*M*P*O*S*S*I*B*L*E*"
+type instance Imp = 9223372036854775807     -- | ImpNat is defined as the maximum Int on 64 bit architecture. If GHC has some optimizations of Nat Values, it is nice not to exceed the value.
+type instance Imp = "*I*M*P*O*S*S*I*B*L*E*" -- | Impossible definition for typelevel Symbols
 
 
 -- === Parametrized impossibility === --
@@ -57,20 +56,19 @@ type instance Imp = ImpossibleM8
 type instance Imp = ImpossibleM9
 
 -- Dummy instances
-instance Applicative ImpossibleM1
-instance Monad       ImpossibleM1
+instance Monad       ImpossibleM1 where _ >>= _ = impossible ; {-# INLINE (>>=) #-}
+instance Applicative ImpossibleM1 where pure  _ = impossible ; {-# INLINE pure  #-}
+                                        _ <*> _ = impossible ; {-# INLINE (<*>) #-}
 
 
 -- === Abbreviations === --
 
-type I   = Impossible
-type IM  = ImpossibleM1
-type IM1 = ImpossibleM1
-type IM2 = ImpossibleM2
-type IM3 = ImpossibleM3
-type IM4 = ImpossibleM4
-type IM5 = ImpossibleM5
-type IM6 = ImpossibleM6
-type IM7 = ImpossibleM7
-type IM8 = ImpossibleM8
-type IM9 = ImpossibleM9
+type ImpM1 = ImpossibleM1
+type ImpM2 = ImpossibleM2
+type ImpM3 = ImpossibleM3
+type ImpM4 = ImpossibleM4
+type ImpM5 = ImpossibleM5
+type ImpM6 = ImpossibleM6
+type ImpM7 = ImpossibleM7
+type ImpM8 = ImpossibleM8
+type ImpM9 = ImpossibleM9
