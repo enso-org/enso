@@ -1,12 +1,33 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Data.Functor.Utils where
+module Data.Functor.Utils (module Data.Functor.Utils, module X) where
 
-import Prelude -- hiding ((.))
+import Prelude hiding ((.))
 import GHC.Exts (Constraint)
 import Data.Traversable (mapM)
+import Data.Functor.Compose as X (Compose(Compose), getCompose)
+import Control.Lens
 
--- Nested fmaps
+
+-- === Multi-constraint type families === --
+
+type family Functors lst :: Constraint where
+    Functors '[]       = ()
+    Functors (f ': fs) = (Functor f, Functors fs)
+
+type family Applicatives lst :: Constraint where
+    Applicatives '[]       = ()
+    Applicatives (f ': fs) = (Applicative f, Applicatives fs)
+
+
+-- === Nested fmaps === --
+
+fmap0                                  ::                               (a -> b) ->                    a     ->                    b
+(.)                          , (∘)     :: Functor  f1                => (a -> b) ->                 f1 a     ->                 f1 b
+fmap2, (.:)  , (<<$>>)       , (∘∘)    :: Functors '[f1,f2]          => (a -> b) ->             f2 (f1 a)    ->             f2 (f1 b)
+fmap3, (.:.) , (<<<$>>>)     , (∘∘∘)   :: Functors '[f1,f2,f3]       => (a -> b) ->         f3 (f2 (f1 a))   ->         f3 (f2 (f1 b))
+fmap4, (.::) , (<<<<$>>>>)   , (∘∘∘∘)  :: Functors '[f1,f2,f3,f4]    => (a -> b) ->     f4 (f3 (f2 (f1 a)))  ->     f4 (f3 (f2 (f1 b)))
+fmap5, (.::.), (<<<<<$>>>>>) , (∘∘∘∘∘) :: Functors '[f1,f2,f3,f4,f5] => (a -> b) -> f5 (f4 (f3 (f2 (f1 a)))) -> f5 (f4 (f3 (f2 (f1 b))))
 
 fmap0 = ($)        ; {-# INLINE fmap0 #-}
 fmap1 = fmap       ; {-# INLINE fmap1 #-}
@@ -14,103 +35,89 @@ fmap2 = fmap.fmap  ; {-# INLINE fmap2 #-}
 fmap3 = fmap.fmap2 ; {-# INLINE fmap3 #-}
 fmap4 = fmap.fmap3 ; {-# INLINE fmap4 #-}
 fmap5 = fmap.fmap4 ; {-# INLINE fmap5 #-}
-fmap6 = fmap.fmap5 ; {-# INLINE fmap6 #-}
-fmap7 = fmap.fmap6 ; {-# INLINE fmap7 #-}
-fmap8 = fmap.fmap7 ; {-# INLINE fmap8 #-}
-fmap9 = fmap.fmap8 ; {-# INLINE fmap9 #-}
 
--- Dots
+-- === Dot operators === --
 
-dot1 = (.)         ; {-# INLINE dot1 #-}
-dot2 = dot1 . dot1 ; {-# INLINE dot2 #-}
-dot3 = dot1 . dot2 ; {-# INLINE dot3 #-}
-dot4 = dot1 . dot3 ; {-# INLINE dot4 #-}
-dot5 = dot1 . dot4 ; {-# INLINE dot5 #-}
-dot6 = dot1 . dot5 ; {-# INLINE dot6 #-}
-dot7 = dot1 . dot6 ; {-# INLINE dot7 #-}
-dot8 = dot1 . dot7 ; {-# INLINE dot8 #-}
-dot9 = dot1 . dot8 ; {-# INLINE dot9 #-}
-
--- Operators
-
-infixr 9 ∘
-infixr 9 ∘∘
-infixr 9 ∘∘∘
-infixr 9 ∘∘∘∘
-infixr 9 ∘∘∘∘∘
-(∘)      = fmap ; {-# INLINE (∘)     #-}
-(∘∘)     = dot2 ; {-# INLINE (∘∘)    #-}
-(∘∘∘)    = dot3 ; {-# INLINE (∘∘∘)   #-}
-(∘∘∘∘)   = dot4 ; {-# INLINE (∘∘∘∘)  #-}
-(∘∘∘∘∘)  = dot5 ; {-# INLINE (∘∘∘∘∘) #-}
-
--- infixr 9 .
+infixr 9 .
 infixr 8 .:
 infixr 8 .:.
 infixr 8 .::
 infixr 8 .::.
-infixr 8 .:::
-infixr 8 .:::.
-infixr 8 .::::
-infixr 8 .::::.
--- (.) :: Functor f => (a -> b) -> f a -> f b
--- (.)      = fmap ; {-# INLINE (.)      #-}
-(.:)     = dot2 ; {-# INLINE (.:)     #-}
-(.:.)    = dot3 ; {-# INLINE (.:.)    #-}
-(.::)    = dot4 ; {-# INLINE (.::)    #-}
-(.::.)   = dot5 ; {-# INLINE (.::.)   #-}
-(.:::)   = dot6 ; {-# INLINE (.:::)   #-}
-(.:::.)  = dot7 ; {-# INLINE (.:::.)  #-}
-(.::::)  = dot8 ; {-# INLINE (.::::)  #-}
-(.::::.) = dot9 ; {-# INLINE (.::::.) #-}
--- (.) :: (b -> c) -> (a -> b) -> a -> c
--- (.) f g = \x -> f (g x)
--- {-# INLINE (.) #-}
+(.)      = fmap  ; {-# INLINE (.)      #-}
+(.:)     = fmap2 ; {-# INLINE (.:)     #-}
+(.:.)    = fmap3 ; {-# INLINE (.:.)    #-}
+(.::)    = fmap4 ; {-# INLINE (.::)    #-}
+(.::.)   = fmap5 ; {-# INLINE (.::.)   #-}
 
+-- === UTF8 operators === --
 
-infixl 4 <∘>
-infixl 4 <∘∘>
-infixl 4 <∘∘∘>
-infixl 4 <∘∘∘∘>
-infixl 4 <∘∘∘∘∘>
-f <∘>     a = fmap  f ∘     a ; {-# INLINE (<∘>)     #-}
-f <∘∘>    a = fmap  f ∘∘    a ; {-# INLINE (<∘∘>)    #-}
-f <∘∘∘>   a = fmap  f ∘∘∘   a ; {-# INLINE (<∘∘∘>)   #-}
-f <∘∘∘∘>  a = fmap  f ∘∘∘∘  a ; {-# INLINE (<∘∘∘∘>)  #-}
-f <∘∘∘∘∘> a = fmap  f ∘∘∘∘∘ a ; {-# INLINE (<∘∘∘∘∘>) #-}
+infixr 9 ∘
+infixr 8 ∘∘
+infixr 8 ∘∘∘
+infixr 8 ∘∘∘∘
+infixr 8 ∘∘∘∘∘
+(∘)      = fmap  ; {-# INLINE (∘)     #-}
+(∘∘)     = fmap2 ; {-# INLINE (∘∘)    #-}
+(∘∘∘)    = fmap3 ; {-# INLINE (∘∘∘)   #-}
+(∘∘∘∘)   = fmap4 ; {-# INLINE (∘∘∘∘)  #-}
+(∘∘∘∘∘)  = fmap5 ; {-# INLINE (∘∘∘∘∘) #-}
 
-
-
-f <<∘>>  a = fmap2 f ∘  a
-f <<∘∘>> a = fmap2 f ∘∘ a
+-- === Applicative operators === --
 
 infixl 4 <<$>>
-f <<$>> a = fmap f <$> a
-f <<<$>>> a = fmap f <<$>> a
+infixl 4 <<<$>>>
+infixl 4 <<<<$>>>>
+infixl 4 <<<<<$>>>>>
+(<<$>>)       = fmap2 ; {-# INLINE (<<$>>)       #-}
+(<<<$>>>)     = fmap3 ; {-# INLINE (<<<$>>>)     #-}
+(<<<<$>>>>)   = fmap4 ; {-# INLINE (<<<<$>>>>)   #-}
+(<<<<<$>>>>>) = fmap5 ; {-# INLINE (<<<<<$>>>>>) #-}
 
 infixl 4 <<*>>
-(<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
-(<<*>>) = (<*>) . fmap (<*>)
+infixl 4 <<<*>>>
+infixl 4 <<<<*>>>>
+infixl 4 <<<<<*>>>>>
+(<<*>>)       :: Applicatives '[f1, f2]             =>             f2 (f1 (a -> b))    ->             f2 (f1 a)    ->             f2 (f1 b)
+(<<<*>>>)     :: Applicatives '[f1, f2, f3]         =>         f3 (f2 (f1 (a -> b)))   ->         f3 (f2 (f1 a))   ->         f3 (f2 (f1 b))
+(<<<<*>>>>)   :: Applicatives '[f1, f2, f3, f4]     =>     f4 (f3 (f2 (f1 (a -> b))))  ->     f4 (f3 (f2 (f1 a)))  ->     f4 (f3 (f2 (f1 b)))
+(<<<<<*>>>>>) :: Applicatives '[f1, f2, f3, f4, f5] => f5 (f4 (f3 (f2 (f1 (a -> b))))) -> f5 (f4 (f3 (f2 (f1 a)))) -> f5 (f4 (f3 (f2 (f1 b))))
+(<<*>>)       = (<*>) . fmap (<*>)       ; {-# INLINE (<<*>>)       #-}
+(<<<*>>>)     = (<*>) . fmap (<<*>>)     ; {-# INLINE (<<<*>>>)     #-}
+(<<<<*>>>>)   = (<*>) . fmap (<<<*>>>)   ; {-# INLINE (<<<<*>>>>)   #-}
+(<<<<<*>>>>>) = (<*>) . fmap (<<<<*>>>>) ; {-# INLINE (<<<<<*>>>>>) #-}
+
+
+-- === Functors remembering call args === --
+
+infixl 4 |$
+infixl 4 $|
+(|$) :: (a -> b) -> a -> (a, b)
+($|) :: (a -> b) -> a -> (b, a)
+f |$ a = (a, f a) ; {-# INLINE (|$) #-}
+f $| a = (f a, a) ; {-# INLINE ($|) #-}
+
+infixl 4 <|$>
+infixl 4 <$|>
+(<|$>) :: Functor f => (a -> b) -> f a -> f (a, b)
+(<$|>) :: Functor f => (a -> b) -> f a -> f (b, a)
+f <|$> a = (f |$) <$> a ; {-# INLINE (<|$>) #-}
+f <$|> a = (f $|) <$> a ; {-# INLINE (<$|>) #-}
+
+
+-- === Functor composition === --
+
+composed :: Iso' (f (g a)) (Compose f g a)
+composed = iso Compose getCompose ; {-# INLINE composed #-}
+
+
+-- FIXME[WD]: Think if lenses doesnt provide any counterpart to it.
+-- === Nested functors === --
 
 -- nested lenses
 -- | following functions are usefull when operating on nested structures with lenses, for example
 -- | given function foo :: a -> m (n a) and a lens l :: Lens' x a, we can use
 -- | nested l foo to get signature of x -> m (n x)
 
-newtype NestedFunctor m n a = NestedFunctor { fromNestedFunctor :: m (n a)} deriving (Show)
-instance (Functor m, Functor n) => Functor (NestedFunctor m n) where fmap f = NestedFunctor . (fmap $ fmap f) . fromNestedFunctor
-
---nested :: (Functor m, Functor n) => Lens a b c d -> (c -> m (n d)) -> (a -> m (n b))
-nested l f = fromNestedFunctor . l (fmap NestedFunctor f)
-
-
-type family Functors lst :: Constraint where
-    Functors '[]       = ()
-    Functors (f ': fs) = (Functor f, Functors fs)
-
-
--- === Monadic interface === --
-
-infixl 4 <$$>
-(<$$>) :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t b)
-(<$$>) = mapM
+-- nested :: (Functor m, Functor n) => Lens a b c d -> (c -> m (n d)) -> (a -> m (n b))
+-- nested :: (Functor f10, Functor f0) => (f0 (Compose m1 n1 a1) -> f10 (Compose m n a)) -> f0 (m1 (n1 a1)) -> f10 (m (n a))
+nested l f = getCompose . l (fmap Compose f) ; {-# INLINE nested #-}

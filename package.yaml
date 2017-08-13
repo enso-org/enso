@@ -7,7 +7,7 @@ default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTy
   EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
   InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, StandaloneDeriving,
   TemplateHaskell, TupleSections, TypeOperators, ViewPatterns, TypeFamilies]
-dependencies: [base, ghc-prim]
+dependencies: [base, ghc-prim, lens]
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/functor-utils
 library:
@@ -19,4 +19,4 @@ name: functor-utils
 stability: stable
 synopsis: Collection of functor utilities, providing handy operators, like generalization
   of (.).
-version: '1.16'
+version: '1.17'
