@@ -6,7 +6,7 @@
 
 module Data.Container.Resizable where
 
-import Prelude 
+import Prelude hiding ((.))
 
 import           Control.Lens
 import           Control.Monad.Identity

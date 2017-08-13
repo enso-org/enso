@@ -9,7 +9,7 @@
 
 module Data.Container.Weak where
 
-import Prelude 
+import Prelude hiding ((.))
 
 import Control.Lens
 import Control.Lens.Utils
