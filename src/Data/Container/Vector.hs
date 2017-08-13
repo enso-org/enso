@@ -6,7 +6,7 @@ module Data.Container.Vector (module Data.Container.Vector, module X) where
 
 import qualified Prelude as P
 import qualified Data.Text as UTF16
-import           Prologue hiding (Text, length, splitHead, concat, take, drop, index)
+import           Prologue_old hiding (Text, length, splitHead, concat, take, drop, index)
 
 import           Control.Monad.ST            (runST)
 import           Data.Binary                 (Binary)
