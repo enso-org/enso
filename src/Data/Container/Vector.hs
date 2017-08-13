@@ -141,8 +141,11 @@ instance Unboxed.Unbox a => Semigroup (Unboxed.Vector a) where (<>) = P.mappend
 instance (Vector Unboxed.Vector a, Convertible' Char a) => IsString         (Unboxed.Vector a) where fromString = convert              ; {-# INLINE fromString #-}
 instance (Vector Unboxed.Vector a, Convertible' Char a) => Convertible Char (Unboxed.Vector a) where convert    = singleton . convert' ; {-# INLINE convert    #-}
 
-instance (Vector Unboxed.Vector a, Convertible' t a) => Convertible [t] (Unboxed.Vector a) where convert = V.fromList . fmap convert' ; {-# INLINE convert #-}
-instance (Vector Unboxed.Vector a, Convertible' a t) => Convertible (Unboxed.Vector a) [t] where convert = fmap convert' . V.toList   ; {-# INLINE convert #-}
+-- | We cannot use automatic Convertible1 -> Convertible lifting, because converting unboxed Vectors constraints `a` to be unboxed as well.
+instance {-# OVERLAPPABLE #-} (Vector Unboxed.Vector a, Convertible' t a) => Convertible [t] (Unboxed.Vector a) where convert = V.fromList . fmap convert' ; {-# INLINE convert #-}
+instance                      (Vector Unboxed.Vector a)                   => Convertible [a] (Unboxed.Vector a) where convert = V.fromList                 ; {-# INLINE convert #-}
+instance {-# OVERLAPPABLE #-} (Vector Unboxed.Vector a, Convertible' a t) => Convertible (Unboxed.Vector a) [t] where convert = fmap convert' . V.toList   ; {-# INLINE convert #-}
+instance                      (Vector Unboxed.Vector a)                   => Convertible (Unboxed.Vector a) [a] where convert = V.toList                   ; {-# INLINE convert #-}
 
 instance (Vector Unboxed.Vector a, Convertible' Char a) => Convertible UTF16.Text (Unboxed.Vector a) where convert = convertVia @[Char] ; {-# INLINE convert #-}
 instance (Vector Unboxed.Vector a, Convertible' a Char) => Convertible (Unboxed.Vector a) UTF16.Text where convert = convertVia @[Char] ; {-# INLINE convert #-}
