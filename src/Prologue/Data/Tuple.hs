@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Prologue.Data.Tuple (module Prologue.Data.Tuple, module X) where
@@ -23,7 +24,7 @@ makeWrapped ''OneTuple
 class Curry f where
     curry   :: f -> Curried f
     uncurry :: Curried f -> f
-    
+
 type family Curried t = f where
     Curried (() -> r) = r
     Curried ((OneTuple a1) -> r) = a1 -> r
