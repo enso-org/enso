@@ -4,7 +4,7 @@
 
 module Data.Parser where
 
-import Prelude hiding (takeWhile)
+import Prelude hiding (takeWhile, (.))
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans

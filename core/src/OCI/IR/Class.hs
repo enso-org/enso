@@ -30,7 +30,7 @@ import Type.Bool             (And)
 import Type.Container        (Every)
 import Type.Container        (In)
 import Type.Maybe            (FromJust)
-import Type.Error
+import Type.Error_old
 import Unsafe.Coerce        (unsafeCoerce)
 
 import qualified Control.Monad.State       as State

@@ -10,7 +10,7 @@ import OCI.IR.Layout.Format
 
 import Unsafe.Coerce (unsafeCoerce)
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)), TypeError)
-import Type.Error
+import Type.Error_old
 import Type.List (In)
 import           Type.Set    as Set
 import Data.Reprx

@@ -28,8 +28,8 @@ parse        :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -
 tryParse     :: IsSourceBorder a =>              Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]
 parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
 tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
-parse              = fromLexerResult .:.   tryParse                                          ; {-# INLINE parse        #-}
-parseFile          = fromLexerResult <∘∘∘> tryParseFile                                      ; {-# INLINE parseFile    #-}
+parse              = fromLexerResult .:. tryParse                                            ; {-# INLINE parse        #-}
+parseFile          = fromLexerResult .:: tryParseFile                                        ; {-# INLINE parseFile    #-}
 tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)            ; {-# INLINE tryParse     #-}
 tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 

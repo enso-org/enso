@@ -1,6 +1,6 @@
 module Data.Parser.Instances.Attoparsec where
 
-import Prelude
+import Prelude hiding ((.))
 
 import           Control.Monad (void)
 import           Control.Monad.Identity
