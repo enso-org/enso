@@ -3,6 +3,7 @@
 module Data.AutoVector where
 
 import Control.DeepSeq          (NFData)
+import Control.Lens
 import Control.Lens.Utils
 import Data.Default
 import Data.Container           (Item, Container, Tup2RTup, IsContainerM(fromContainerM), HasContainerM(setContainerM, viewContainerM), DataStore)

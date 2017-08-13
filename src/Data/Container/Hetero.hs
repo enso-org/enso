@@ -19,7 +19,8 @@ import Data.Typeable         hiding (cast)
 import Unsafe.Coerce         (unsafeCoerce)
 import Data.Container.Poly
 import Data.Default
-import Control.Lens.Utils    hiding (Getter, Setter)
+import Control.Lens          hiding (Getter, Setter)
+import Control.Lens.Utils    
 import Data.Functor.Utils
 import GHC.Generics    (Generic)
 import Control.DeepSeq (NFData)
