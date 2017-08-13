@@ -11,7 +11,7 @@ import GHC.Stack
 
 data  Impossible = Impossible deriving (Show)
 class ImpCls
-type family Imp :: k
+-- type family Imp :: k
 
 
 -- === Utils === --
@@ -24,13 +24,13 @@ impossibleTo = withFrozenCallStack . error . ("Impossible happened: " <>) ; {-# 
 
 -- === Primitives === --
 
-type instance Imp = Impossible
-type instance Imp = ImpCls
-type instance Imp = '[Impossible]
-type instance Imp = 'Just Imp
-
-type instance Imp = 9223372036854775807     -- | ImpNat is defined as the maximum Int on 64 bit architecture. If GHC has some optimizations of Nat Values, it is nice not to exceed the value.
-type instance Imp = "*I*M*P*O*S*S*I*B*L*E*" -- | Impossible definition for typelevel Symbols
+-- type instance Imp = Impossible
+-- type instance Imp = ImpCls
+-- type instance Imp = '[Impossible]
+-- type instance Imp = 'Just Imp
+--
+-- type instance Imp = 9223372036854775807     -- | ImpNat is defined as the maximum Int on 64 bit architecture. If GHC has some optimizations of Nat Values, it is nice not to exceed the value.
+-- type instance Imp = "*I*M*P*O*S*S*I*B*L*E*" -- | Impossible definition for typelevel Symbols
 
 
 -- === Parametrized impossibility === --
@@ -45,15 +45,15 @@ data ImpossibleM7 t1 t2 t3 t4 t5 t6 t7       = ImpossibleM7 deriving (Show, Func
 data ImpossibleM8 t1 t2 t3 t4 t5 t6 t7 t8    = ImpossibleM8 deriving (Show, Functor, Traversable, Foldable)
 data ImpossibleM9 t1 t2 t3 t4 t5 t6 t7 t8 t9 = ImpossibleM9 deriving (Show, Functor, Traversable, Foldable)
 
-type instance Imp = ImpossibleM1
-type instance Imp = ImpossibleM2
-type instance Imp = ImpossibleM3
-type instance Imp = ImpossibleM4
-type instance Imp = ImpossibleM5
-type instance Imp = ImpossibleM6
-type instance Imp = ImpossibleM7
-type instance Imp = ImpossibleM8
-type instance Imp = ImpossibleM9
+-- type instance Imp = ImpossibleM1
+-- type instance Imp = ImpossibleM2
+-- type instance Imp = ImpossibleM3
+-- type instance Imp = ImpossibleM4
+-- type instance Imp = ImpossibleM5
+-- type instance Imp = ImpossibleM6
+-- type instance Imp = ImpossibleM7
+-- type instance Imp = ImpossibleM8
+-- type instance Imp = ImpossibleM9
 
 -- Dummy instances
 instance Monad       ImpossibleM1 where _ >>= _ = impossible ; {-# INLINE (>>=) #-}
@@ -63,6 +63,7 @@ instance Applicative ImpossibleM1 where pure  _ = impossible ; {-# INLINE pure  
 
 -- === Abbreviations === --
 
+type Imp   = Impossible
 type ImpM1 = ImpossibleM1
 type ImpM2 = ImpossibleM2
 type ImpM3 = ImpossibleM3
