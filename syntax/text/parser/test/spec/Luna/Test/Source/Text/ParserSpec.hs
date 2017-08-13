@@ -69,7 +69,7 @@ testParsing_raw p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder
     Pass.eval' @Parsing     $ Parsing.parsingPassM p
     spans  <- Pass.eval' @ParsingTest $ do
         es <- exprs
-        ls <- getLayer @CodeSpan <$$> es
+        ls <- getLayer @CodeSpan <$>= es
         return $ (convert . view CodeSpan.realSpan) <$> ls
     code <- Pass.eval' @ParsingTest $ CodeGen.subpass CodeGen.SimpleStyle . unsafeGeneralize . unwrap =<< getAttr @ParsedExpr
     return (convert code, convert (spans :: [(Delta, Delta)]))
