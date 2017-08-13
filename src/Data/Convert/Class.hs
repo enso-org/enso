@@ -14,6 +14,17 @@ import Control.Lens
 import GHC.TypeLits
 import Data.Default
 
+-- TODO[WD]: file GHC Bug:
+-- data A a = A a
+-- data B a = B a deriving (Functor)
+-- data C = C
+--
+-- instance Convertible1 A B
+-- instance Convertible (A a) (B a)
+--
+-- test :: A a -> B a' -- WRONG CONSTRAINT INFERRED HERE! FILE A BUG
+-- test = convert'
+
 
 --------------------------
 -- === Convertibles === --
@@ -31,9 +42,15 @@ class Convertible3 t t' where convert3 :: forall s1 s2 s3.       t s1 s2 s3     
 class Convertible4 t t' where convert4 :: forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
 class Convertible5 t t' where convert5 :: forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 
-instance {-# OVERLAPPABLE #-}                    (Convertible  a a', Functor t)  => Convertible (t a) (t  a') where convert = fmap convert             ; {-# INLINE convert #-}
-instance {-# OVERLAPPABLE #-} (Convertible1 t t', Convertible' a a', Functor t') => Convertible (t a) (t' a') where convert = fmap convert' . convert1 ; {-# INLINE convert #-}
-instance {-# OVERLAPPABLE #-} (Convertible1 t t')                                => Convertible (t a) (t' a ) where convert = convert1                 ; {-# INLINE convert #-}
+-- | We cannot use OVERLAPPABLE instances here. Let's consider following instance:
+--       instance (s ~ s', t ~ t') => Convertible (Symbol s t) (Symbol2 s' t') where ...
+--   By writing it we indicate that during conversion from Symbol to Symbol2 the appropriate variables should be matched.
+--   If the following instances would be declared as OVERLAPPABLE, it will clash with the instance `Convertible (t a) (t' a)`.
+--   In other words, if user defines any conversion between type `X a` and `Y b`, we disable automatic lifting to `ConvertibleN`.
+--   TODO[WD]: File GHC proposal to choose more specific incoherent instance
+instance {-# OVERLAPPABLE #-}                  (Convertible  a a', Functor t)  => Convertible (t (a :: *)) (t  a') where convert = fmap convert             ; {-# INLINE convert #-}
+instance {-# INCOHERENT #-} (Convertible1 t t', Convertible' a a', Functor t') => Convertible (t (a :: *)) (t' a') where convert = fmap convert' . convert1 ; {-# INLINE convert #-}
+instance {-# INCOHERENT #-} (Convertible1 t t')                                => Convertible (t (a :: *)) (t' a ) where convert = convert1                 ; {-# INLINE convert #-}
 
 instance {-# OVERLAPPABLE #-} Convertible2 t t' => Convertible1 (t a) (t' a) where convert1 = convert2 ; {-# INLINE convert1 #-}
 instance {-# OVERLAPPABLE #-} Convertible3 t t' => Convertible2 (t a) (t' a) where convert2 = convert3 ; {-# INLINE convert2 #-}
@@ -43,7 +60,9 @@ instance {-# OVERLAPPABLE #-} Convertible5 t t' => Convertible4 (t a) (t' a) whe
 
 -- === Identity conversion errors === --
 
-type IdConversionErr (t :: k) = 'Text "Conversion of the same type (`" ':<>: 'ShowType t ':<>: 'Text "`) is disabled by default. Please use convert' if you want to enable it."
+type IdConversionErr (t :: k) = 'Text "Conversion of the same type (`"
+                          ':<>: 'ShowType t
+                          ':<>: 'Text "`) is disabled by default. Please use convert' if you want to enable it."
 instance TypeError (IdConversionErr t) => Convertible  t t where convert  = id ; {-# INLINE convert  #-}
 instance TypeError (IdConversionErr t) => Convertible1 t t where convert1 = id ; {-# INLINE convert1 #-}
 instance TypeError (IdConversionErr t) => Convertible2 t t where convert2 = id ; {-# INLINE convert2 #-}
@@ -77,18 +96,18 @@ class Convertible3' t t' where convert3' :: forall s1 s2 s3.       t s1 s2 s3   
 class Convertible4' t t' where convert4' :: forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
 class Convertible5' t t' where convert5' :: forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 
-instance {-# OVERLAPPING #-}  Convertible'  t t  where convert'  = id       ; {-# INLINE convert'  #-}
-instance {-# OVERLAPPING #-}  Convertible1' t t  where convert1' = id       ; {-# INLINE convert1' #-}
-instance {-# OVERLAPPING #-}  Convertible2' t t  where convert2' = id       ; {-# INLINE convert2' #-}
-instance {-# OVERLAPPING #-}  Convertible3' t t  where convert3' = id       ; {-# INLINE convert3' #-}
-instance {-# OVERLAPPING #-}  Convertible4' t t  where convert4' = id       ; {-# INLINE convert4' #-}
-instance {-# OVERLAPPING #-}  Convertible5' t t  where convert5' = id       ; {-# INLINE convert5' #-}
-instance Convertible  t t' => Convertible'  t t' where convert'  = convert  ; {-# INLINE convert'  #-}
-instance Convertible1 t t' => Convertible1' t t' where convert1' = convert1 ; {-# INLINE convert1' #-}
-instance Convertible2 t t' => Convertible2' t t' where convert2' = convert2 ; {-# INLINE convert2' #-}
-instance Convertible3 t t' => Convertible3' t t' where convert3' = convert3 ; {-# INLINE convert3' #-}
-instance Convertible4 t t' => Convertible4' t t' where convert4' = convert4 ; {-# INLINE convert4' #-}
-instance Convertible5 t t' => Convertible5' t t' where convert5' = convert5 ; {-# INLINE convert5' #-}
+instance {-# OVERLAPPABLE #-}                      Convertible'  t t  where convert'  = id       ; {-# INLINE convert'  #-}
+instance {-# OVERLAPPABLE #-}                      Convertible1' t t  where convert1' = id       ; {-# INLINE convert1' #-}
+instance {-# OVERLAPPABLE #-}                      Convertible2' t t  where convert2' = id       ; {-# INLINE convert2' #-}
+instance {-# OVERLAPPABLE #-}                      Convertible3' t t  where convert3' = id       ; {-# INLINE convert3' #-}
+instance {-# OVERLAPPABLE #-}                      Convertible4' t t  where convert4' = id       ; {-# INLINE convert4' #-}
+instance {-# OVERLAPPABLE #-}                      Convertible5' t t  where convert5' = id       ; {-# INLINE convert5' #-}
+instance {-# OVERLAPPABLE #-} Convertible  t t' => Convertible'  t t' where convert'  = convert  ; {-# INLINE convert'  #-}
+instance {-# OVERLAPPABLE #-} Convertible1 t t' => Convertible1' t t' where convert1' = convert1 ; {-# INLINE convert1' #-}
+instance {-# OVERLAPPABLE #-} Convertible2 t t' => Convertible2' t t' where convert2' = convert2 ; {-# INLINE convert2' #-}
+instance {-# OVERLAPPABLE #-} Convertible3 t t' => Convertible3' t t' where convert3' = convert3 ; {-# INLINE convert3' #-}
+instance {-# OVERLAPPABLE #-} Convertible4 t t' => Convertible4' t t' where convert4' = convert4 ; {-# INLINE convert4' #-}
+instance {-# OVERLAPPABLE #-} Convertible5 t t' => Convertible5' t t' where convert5' = convert5 ; {-# INLINE convert5' #-}
 
 convertTo'  :: forall t' t. Convertible'  t t' =>                        t                -> t'
 convertTo1' :: forall t' t. Convertible1' t t' => forall s1.             t s1             -> t' s1
