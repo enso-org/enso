@@ -31,12 +31,15 @@ class Convertible3 t t' where convert3 :: forall s1 s2 s3.       t s1 s2 s3     
 class Convertible4 t t' where convert4 :: forall s1 s2 s3 s4.    t s1 s2 s3 s4    -> t' s1 s2 s3 s4
 class Convertible5 t t' where convert5 :: forall s1 s2 s3 s4 s5. t s1 s2 s3 s4 s5 -> t' s1 s2 s3 s4 s5
 
--- FIXME[WD]: following instances make a lot of instances illegal, we should probably make them default implementations instead
--- instance {-# OVERLAPPABLE #-} Convertible1 t t' => Convertible  (t a) (t' a) where convert  = convert1 ; {-# INLINE convert  #-}
--- instance {-# OVERLAPPABLE #-} Convertible2 t t' => Convertible1 (t a) (t' a) where convert1 = convert2 ; {-# INLINE convert1 #-}
--- instance {-# OVERLAPPABLE #-} Convertible3 t t' => Convertible2 (t a) (t' a) where convert2 = convert3 ; {-# INLINE convert2 #-}
--- instance {-# OVERLAPPABLE #-} Convertible4 t t' => Convertible3 (t a) (t' a) where convert3 = convert4 ; {-# INLINE convert3 #-}
--- instance {-# OVERLAPPABLE #-} Convertible5 t t' => Convertible4 (t a) (t' a) where convert4 = convert5 ; {-# INLINE convert4 #-}
+instance {-# OVERLAPPABLE #-}                    (Convertible  a a', Functor t)  => Convertible (t a) (t  a') where convert = fmap convert             ; {-# INLINE convert #-}
+instance {-# OVERLAPPABLE #-} (Convertible1 t t', Convertible' a a', Functor t') => Convertible (t a) (t' a') where convert = fmap convert' . convert1 ; {-# INLINE convert #-}
+instance {-# OVERLAPPABLE #-} (Convertible1 t t')                                => Convertible (t a) (t' a ) where convert = convert1                 ; {-# INLINE convert #-}
+
+instance {-# OVERLAPPABLE #-} Convertible2 t t' => Convertible1 (t a) (t' a) where convert1 = convert2 ; {-# INLINE convert1 #-}
+instance {-# OVERLAPPABLE #-} Convertible3 t t' => Convertible2 (t a) (t' a) where convert2 = convert3 ; {-# INLINE convert2 #-}
+instance {-# OVERLAPPABLE #-} Convertible4 t t' => Convertible3 (t a) (t' a) where convert3 = convert4 ; {-# INLINE convert3 #-}
+instance {-# OVERLAPPABLE #-} Convertible5 t t' => Convertible4 (t a) (t' a) where convert4 = convert5 ; {-# INLINE convert4 #-}
+
 
 -- === Identity conversion errors === --
 
@@ -208,7 +211,6 @@ convertedTo4' = converted4' ; {-# INLINE convertedTo4' #-}
 convertedTo5' = converted5' ; {-# INLINE convertedTo5' #-}
 
 
-
 -- === ConvertibleVia === --
 
 type ConvertibleVia  t p t' = (Convertible  t p, Convertible  p t')
@@ -260,7 +262,7 @@ unsafeConvertVia = unsafeConvert . unsafeConvertTo @p ; {-# INLINE unsafeConvert
 
 -- === Casts === --
 
--- FIXME: Depreciated
+{-# DEPRECATED Castable "Use Data.Coerce instead" #-}
 class Castable a b where
     cast :: a -> b
     default cast :: Convertible a b => a -> b
