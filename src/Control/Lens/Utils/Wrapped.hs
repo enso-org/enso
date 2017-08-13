@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Control.Lens.Wrapped.Utils where
+module Control.Lens.Utils.Wrapped where
 
 import Prelude
 import Control.Lens
