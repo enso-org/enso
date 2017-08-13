@@ -4,7 +4,7 @@
 
 module Luna.Builtin.Prim where
 
-import Prologue                    hiding (force, Text)
+import Prologue_old                    hiding (force, Text)
 
 import Control.Concurrent
 import Control.Concurrent.MVar

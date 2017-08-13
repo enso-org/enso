@@ -1,6 +1,6 @@
 module Data.Text.Class where
 
-import Prologue
+import Prologue_old
 import Control.Lens
 import Data.Text
 

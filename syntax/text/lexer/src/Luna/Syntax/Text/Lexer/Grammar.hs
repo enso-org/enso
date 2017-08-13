@@ -6,8 +6,8 @@
 
 module Luna.Syntax.Text.Lexer.Grammar where
 
-import Prologue hiding (List, Type, Symbol, cons, span, range, catch, takeWhile, Text)
-import qualified Prologue as P
+import Prologue_old hiding (List, Type, Symbol, cons, span, range, catch, takeWhile, Text)
+import qualified Prologue_old as P
 
 import           Control.Monad.State.Layered
 import qualified Data.Char                    as Char

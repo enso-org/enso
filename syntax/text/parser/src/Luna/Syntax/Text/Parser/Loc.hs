@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Parser.Loc where
 
-import Prologue hiding (Symbol)
+import Prologue_old hiding (Symbol)
 
 import Data.Text.Position
 import Text.Megaparsec.Prim hiding (Stream, uncons)

@@ -1,6 +1,6 @@
 module Data.Future where
 
-import Prologue
+import Prologue_old
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Data.IORef

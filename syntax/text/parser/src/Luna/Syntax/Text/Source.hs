@@ -1,6 +1,6 @@
 module Luna.Syntax.Text.Source where
 
-import Prologue
+import Prologue_old
 import Data.Text.Position (Delta)
 import Luna.IR (SomeExpr)
 import Data.Text32 (Text32)

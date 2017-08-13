@@ -3,7 +3,7 @@
 
 module OCI.IR.Layer.Req where
 
-import Prologue hiding (pprint, Type)
+import Prologue_old hiding (pprint, Type)
 
 import OCI.IR.Class
 import Data.Event

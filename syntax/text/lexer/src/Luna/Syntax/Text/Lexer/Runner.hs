@@ -1,6 +1,6 @@
 module Luna.Syntax.Text.Lexer.Runner where
 
-import Prologue hiding (Symbol)
+import Prologue_old hiding (Symbol)
 
 import           Data.Text32          (Text32)
 import qualified Data.Text32          as Text32

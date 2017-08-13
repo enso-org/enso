@@ -7,7 +7,7 @@ packages:
 - {location: .}
 - {location: ../core}
 - extra-dep: true
-  location: {commit: 6c291bc4791cba364ce5763eda98292c96b66019, git: 'https://github.com/luna/container.git'}
+  location: {commit: 1fc7eda4c57d2d9a08c5953503c724504db26782, git: 'https://github.com/luna/container.git'}
 - extra-dep: true
   location: {commit: 4cc75aeb82ad2885427211a1be9cb0c7d9582c01, git: 'https://github.com/luna/data-pool.git'}
 - extra-dep: true
@@ -21,9 +21,9 @@ packages:
 - extra-dep: true
   location: {commit: 9da4c9b2534693cfe82adeb37f12eaadacb41e62, git: 'https://github.com/luna/data-repr.git'}
 - extra-dep: true
-  location: {commit: 71e17fc7e1b1ac3e5801042b2c99a6f6ad82df3c, git: 'https://github.com/luna/data-result.git'}
+  location: {commit: 89b0bb545ddde953c5692f234163748b9b4e84d2, git: 'https://github.com/luna/data-result.git'}
 - extra-dep: true
-  location: {commit: 71a26613c43f76c3f5b61dc99046262065b91694, git: 'https://github.com/luna/dependent-state.git'}
+  location: {commit: 8dc5c1c7738b72d2160bba3d5eb2256e385566f4, git: 'https://github.com/luna/dependent-state.git'}
 - extra-dep: true
   location: {commit: 1c6a4fd165e4b15cad114b0a554e0974fd119223, git: 'https://github.com/luna/functor-utils.git'}
 - extra-dep: true
@@ -33,7 +33,7 @@ packages:
 - extra-dep: true
   location: {commit: 965e23539a001517994398ae02421334bf77c6e6, git: 'https://github.com/luna/poly-control.git'}
 - extra-dep: true
-  location: {commit: d7dc75913103ff15e79d8e7b377b89cb49ae925b, git: 'https://github.com/luna/prologue.git'}
+  location: {commit: 3aeb01622e1871f1e0c0deb92ec5842b5d0e009b, git: 'https://github.com/luna/prologue.git'}
 - extra-dep: true
   location: {commit: f4292663aea639c17f66ba3d67e09c79ebf62982, git: 'https://github.com/luna/type-cache.git'}
 - extra-dep: true
@@ -45,7 +45,7 @@ packages:
 - extra-dep: true
   location: {commit: 5307f2e636fa9b80d991df183f7a594948ad2ad1, git: 'https://github.com/luna/data-rtuple.git'}
 - extra-dep: true
-  location: {commit: d0fe8fe9ffc82e57058e3119fa4bed6f307df2de, git: 'https://github.com/luna/data-shell.git'}
+  location: {commit: f58214001b64d35f7502ec76bdc5410ba97032ff, git: 'https://github.com/luna/data-shell.git'}
 - extra-dep: true
   location: {commit: ddfcd1e0372b93e947b380b911c123fe67227b21, git: 'https://github.com/luna/visualization-api.git'}
 - extra-dep: true

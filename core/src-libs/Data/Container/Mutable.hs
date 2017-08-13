@@ -1,6 +1,6 @@
 module Data.Container.Mutable where
 
-import Prologue
+import Prologue_old
 
 import qualified Data.Vector         as Vector
 import           Data.Vector         (Vector)

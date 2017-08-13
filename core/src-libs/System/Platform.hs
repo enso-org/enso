@@ -5,7 +5,7 @@
 module System.Platform where
 
 import           Data.Default
-import           Prologue        hiding (lookup, splitAt)
+import           Prologue_old        hiding (lookup, splitAt)
 import           GHC.Int         (Int32, Int64)
 
 

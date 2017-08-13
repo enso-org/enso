@@ -2,7 +2,7 @@
 
 module Main where
 
-import Prologue as P hiding (Symbol)
+import Prologue_old as P hiding (Symbol)
 import Criterion.Main
 import Luna.Syntax.Text.Lexer hiding (Text)
 import System.Random

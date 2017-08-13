@@ -4,8 +4,8 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
-import Prologue hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
-import qualified Prologue as P
+import Prologue_old hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
+import qualified Prologue_old as P
 
 import qualified Text.Megaparsec as Parser
 import           Text.Megaparsec (notFollowedBy, ErrorItem (Tokens), withRecovery, char, manyTill, anyChar, ParseError, try, hidden, spaceChar, skipMany, digitChar, letterChar, unexpected, between, lowerChar, upperChar, choice, string, lookAhead)

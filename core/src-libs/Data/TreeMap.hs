@@ -3,7 +3,7 @@
 
 module Data.TreeMap where
 
-import Prologue hiding (null)
+import Prologue_old hiding (null)
 
 import qualified Prelude  as P
 import qualified Data.Map as Map

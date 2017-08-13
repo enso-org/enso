@@ -4,7 +4,7 @@
 
 module Luna.Syntax.Text.Parser.CodeSpan where
 
-import Prologue hiding (String, Type, Span, span, length)
+import Prologue_old hiding (String, Type, Span, span, length)
 
 import Text.Megaparsec.Prim (MonadParsec)
 import           Data.Text.Span       (LeftSpacedSpan, offset, length)

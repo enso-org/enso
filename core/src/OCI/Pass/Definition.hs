@@ -4,7 +4,7 @@
 
 module OCI.Pass.Definition where
 
-import Prologue hiding (pprint, Type)
+import Prologue_old hiding (pprint, Type)
 
 import OCI.IR.Class
 

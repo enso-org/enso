@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Analysis.SpanTree where
 
-import Prologue hiding (span, (|>), (<|), empty)
+import Prologue_old hiding (span, (|>), (<|), empty)
 
 import qualified Prelude                as P
 import qualified Data.FingerTree        as FT

@@ -1,6 +1,6 @@
 module Data.Build where
 
-import Prologue
+import Prologue_old
 import Data.Version.Semantic
 
 data Build = Build { __number  :: Int

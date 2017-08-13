@@ -2,7 +2,7 @@
 
 module Text.Parser.Backend.Megaparsec where
 
-import Prologue
+import Prologue_old
 
 import Text.Megaparsec.Prim (getPosition)
 import Text.Megaparsec.Prim as MP

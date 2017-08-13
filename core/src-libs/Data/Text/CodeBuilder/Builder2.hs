@@ -8,7 +8,7 @@
 module Data.Text.CodeBuilder.Builder2 where
 
 import Prelude ()
-import Prologue
+import Prologue_old
 
 -- import qualified Data.Text.CodeBuilder.Tok as Tok
 -- import           Data.Text.CodeBuilder.Tok (Tok(Tok), Prec, doc, precParens)

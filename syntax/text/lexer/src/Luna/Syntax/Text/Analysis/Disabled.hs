@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Analysis.Disabled where
 
-import Prologue                      hiding (span)
+import Prologue_old                      hiding (span)
 import Data.Text.Position            (Delta)
 import Luna.Syntax.Text.Lexer.Symbol
 import Luna.Syntax.Text.Lexer.Token

@@ -5,7 +5,7 @@
 
 module Data.Families (module Data.Families, module X) where
 
-import Prologue (if_)
+import Prologue_old (if_)
 import Prelude
 import Data.Default
 import Data.Functor.Utils hiding ((.))

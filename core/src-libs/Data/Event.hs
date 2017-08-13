@@ -2,7 +2,7 @@
 
 module Data.Event (module Data.Event, module X) where
 
-import Prologue hiding (tail)
+import Prologue_old hiding (tail)
 
 import qualified GHC.Exts      as Prim
 import qualified Data.Map      as Map

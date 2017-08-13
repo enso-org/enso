@@ -1,6 +1,6 @@
 module Text.Parser.Indent.Class where
 
-import Prologue
+import Prologue_old
 import Data.Text.Position
 
 

@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Lexer.Token where
 
-import Prologue hiding (span, element)
+import Prologue_old hiding (span, element)
 import Data.Text.Position (Delta)
 
 

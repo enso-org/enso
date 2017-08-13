@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue hiding (Symbol, List, element, Text32)
+import Prologue_old hiding (Symbol, List, element, Text32)
 import Luna.Syntax.Text.Lexer.Token
 
 import Data.Text32 (Text32)
