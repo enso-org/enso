@@ -7,6 +7,7 @@ module Prologue.Data.Typeable_old where
 
 import Prelude
 import Data.Kind
+import Control.Lens
 import Control.Lens.Utils
 import Data.Convert
 import Data.Typeable

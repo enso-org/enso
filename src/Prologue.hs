@@ -8,14 +8,14 @@ module Prologue (module Prologue, module X) where
 
 import Prelude                         as X ( until, asTypeOf, error, errorWithoutStackTrace, undefined
                                             , seq, ($!)
-                                            , map, filter, head, last, tail, init, null, length, (!!), reverse
+                                            , map, filter, null, length, (!!), reverse
                                             , scanl, scanl1, scanr, scanr1
                                             , iterate, repeat, cycle
-                                            , take, drop, splitAt, takeWhile, dropWhile, span, break
+                                            , takeWhile, dropWhile, span, break
                                             , notElem, lookup
                                             , zip, zip3, zipWith, zipWith3, unzip, unzip3
                                             , lines, words, unwords
-                                            , ReadS, Read (readsPrec, readList), reads, readParen, read, lex
+                                            , ReadS, Read (readsPrec, readList), reads, readParen, lex
                                             )
 
 -- === Data types === --
@@ -36,6 +36,7 @@ import GHC.Enum                         as X ( Enum (succ, pred, toEnum, fromEnu
                                              , Bounded (minBound, maxBound)
                                              )
 import Text.Read                        as X (readPrec) -- new style Read class implementation
+import Prologue.Text.Show               as X
 
 
 -- === Monads === --
@@ -61,8 +62,7 @@ import Prologue.Data.Bifunctor          as X
 import Prologue.Data.Ix                 as X
 import Data.Functor                     as X (Functor, fmap, (<$), ($>), (<$>), void)
 import Data.Functor.Utils               as X
-import Data.Functor.Classes             as X ( Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1
-                                             , readsData, readsUnary, readsUnary1, readsBinary1, showsUnary, showsUnary1, showsBinary1 )
+import Data.Functor.Classes             as X ( Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.String.Class                as X (IsString (fromString), ToString (toString))
 import Data.Monoids                     as X
 import Prologue.Data.Pointed            as X
@@ -82,6 +82,9 @@ import Prologue.Control.Error           as X
 import Data.Coerce                      as X (Coercible, coerce)
 import Data.Convert                     as X
 
+-- === Containers === --
+import Data.Container.List2             as X
+
 -- === Exts === --
 import GHC.Exts                         as X (lazy, inline) -- + oneShot after base update
 
@@ -99,7 +102,7 @@ import Type.Error                       as X (TypeError, ErrorMessage(ShowType, 
 import Prologue.Debug.Placeholders      as X
 
 -- === Quasi Quoters == --
-import Prologue.Data.String.QQ          as X (str, rawStr, txt)
+import Prologue.Data.String.QQ          as X (qqStr, qqRawStr, qqTxt)
 
 
 -- === Typelevel === --
@@ -115,6 +118,27 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens.Wrapped             as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils       as X
-import Control.Lens.Utils               as X hiding (lazy)
+import Control.Lens.Utils               as X
+
+import Control.Lens.At                  as X
+import Control.Lens.Cons                as X
+import Control.Lens.Each                as X
+import Control.Lens.Empty               as X
+import Control.Lens.Equality            as X
+import Control.Lens.Fold                as X hiding (pre)
+import Control.Lens.Getter              as X
+import Control.Lens.Indexed             as X
+import Control.Lens.Iso                 as X hiding (lazy)
+import Control.Lens.Lens                as X
+import Control.Lens.Level               as X
+import Control.Lens.Prism               as X
+import Control.Lens.Reified             as X
+import Control.Lens.Review              as X
+import Control.Lens.Setter              as X
+import Control.Lens.TH                  as X hiding (makeLenses, makeClassy) -- Lens.Utils provide better versions
+import Control.Lens.Traversal           as X
+import Control.Lens.Tuple               as X
+import Control.Lens.Type                as X
+import Control.Lens.Wrapped             as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', ala, alaf)
+import Control.Lens.Zoom                as X

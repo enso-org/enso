@@ -2,9 +2,11 @@ module Prologue.Data.Foldable (module Prologue.Data.Foldable, module X) where
 
 import Prelude
 import Prologue.Data.Traversable
+import Control.Monad
 import           Data.Kind       (Constraint)
-import qualified Data.Foldable as F
-import           Data.Foldable as X ( Foldable, fold, foldMap, foldr, foldr', foldl, foldl', elem, maximum, minimum, sum, product, foldrM, foldlM
+import qualified Data.Foldable      as F
+import qualified Control.Error.Safe as S
+import           Data.Foldable as X ( Foldable, fold, foldMap, foldr, foldr', foldl, foldl', elem, sum, product, foldrM, foldlM
                                     , traverse_, for_, asum
                                     , concat, concatMap, and, or, any, all
                                     )
@@ -29,3 +31,13 @@ traverse2_ = traverse_ . traverse_  ; {-# INLINE traverse2_ #-}
 traverse3_ = traverse_ . traverse2_ ; {-# INLINE traverse3_ #-}
 traverse4_ = traverse_ . traverse3_ ; {-# INLINE traverse4_ #-}
 traverse5_ = traverse_ . traverse4_ ; {-# INLINE traverse5_ #-}
+
+unsafeMinimum :: Ord a => [a] -> a
+unsafeMaximum :: Ord a => [a] -> a
+unsafeMinimum = F.minimum ; {-# INLINE unsafeMinimum #-}
+unsafeMaximum = F.maximum ; {-# INLINE unsafeMaximum #-}
+
+minimum :: MonadPlus m => Ord a => [a] -> m a
+maximum :: MonadPlus m => Ord a => [a] -> m a
+minimum = S.minimumZ ; {-# INLINE minimum #-}
+maximum = S.maximumZ ; {-# INLINE maximum #-}

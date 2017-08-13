@@ -6,10 +6,10 @@ import qualified Text.RawString.QQ as QQ
 import qualified NeatInterpolation as NeatInterpolation
 
 -- FIXME[WD]: Drop all the QQ's and create proper one - similar to txt but with IsString output
-str    :: QuasiQuoter
-rawStr :: QuasiQuoter
-str    = QQ.s ; {-# INLINE str #-}
-rawStr = QQ.r ; {-# INLINE rawStr #-}
+qqStr    :: QuasiQuoter
+qqRawStr :: QuasiQuoter
+qqStr    = QQ.s ; {-# INLINE qqStr    #-}
+qqRawStr = QQ.r ; {-# INLINE qqRawStr #-}
 
-txt :: QuasiQuoter
-txt = NeatInterpolation.text ; {-# INLINE txt #-}
+qqTxt :: QuasiQuoter
+qqTxt = NeatInterpolation.text ; {-# INLINE qqTxt #-}

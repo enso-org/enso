@@ -77,6 +77,7 @@ import Data.Coerce                as X (Coercible, coerce)
 -- === Lenses === --
 import Control.Lens.Wrapped       as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', op, ala, alaf)
 import Control.Lens.Wrapped.Utils as X
+import Control.Lens               as X hiding (makeLenses, makeClassy)
 import Control.Lens.Utils         as X
 
 -- === Data types === --

@@ -7,6 +7,7 @@ module Prologue.Data.Typeable (module Prologue.Data.Typeable, module X) where
 
 import Prelude
 import Data.Kind
+import Control.Lens
 import Control.Lens.Utils
 import Data.Convert
 import qualified Data.Typeable as T

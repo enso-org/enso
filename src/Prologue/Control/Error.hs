@@ -1,10 +1,10 @@
 module Prologue.Control.Error (module Prologue.Control.Error, module X) where
 
-import Prelude
+import Prelude hiding (take, drop)
 import Control.Monad
+import Control.Monad.Identity
 import Control.Error.Safe as X
     ( tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryRead, tryAssert, tryAssert, tryJust, tryRight
-    , tailZ  , initZ  , headZ  , lastZ  , minimumZ  , maximumZ  , foldr1Z  , foldl1Z  , foldl1Z'  , readZ  , assertZ  , assertZ  , justZ  , rightZ
     , tailErr, initErr, headErr, lastErr, minimumErr, maximumErr, foldr1Err, foldl1Err, foldl1Err', readErr, assertErr, assertErr, justErr
     )
 import Control.Error.Util as X ( hush, hushT, note, noteT
@@ -12,29 +12,84 @@ import Control.Error.Util as X ( hush, hushT, note, noteT
                                )
 
 import Data.Maybe
-import qualified Data.List as List
+import qualified Prelude            as P
+import qualified Data.List          as P
+import qualified Control.Error.Safe as S
+import qualified Data.List          as List
 
 
-takeZ :: MonadPlus m => Int -> [a] -> m [a]
-takeZ i a = if
+unsafeTail    :: [a] -> [a]
+unsafeInit    :: [a] -> [a]
+unsafeHead    :: [a] -> a
+unsafeLast    :: [a] -> a
+unsafeFoldr1  :: (a -> a -> a) -> [a] -> a
+unsafeFoldl1  :: (a -> a -> a) -> [a] -> a
+unsafeFoldl1' :: (a -> a -> a) -> [a] -> a
+unsafeRead    :: Read a => String -> a
+unsafeTail    = P.tail    ; {-# INLINE unsafeTail    #-}
+unsafeInit    = P.init    ; {-# INLINE unsafeInit    #-}
+unsafeHead    = P.head    ; {-# INLINE unsafeHead    #-}
+unsafeLast    = P.last    ; {-# INLINE unsafeLast    #-}
+unsafeFoldr1  = P.foldr1  ; {-# INLINE unsafeFoldr1  #-}
+unsafeFoldl1  = P.foldl1  ; {-# INLINE unsafeFoldl1  #-}
+unsafeFoldl1' = P.foldl1' ; {-# INLINE unsafeFoldl1' #-}
+unsafeRead    = P.read    ; {-# INLINE unsafeRead    #-}
+
+tail    :: MonadPlus m => [a] -> m [a]
+init    :: MonadPlus m => [a] -> m [a]
+head    :: MonadPlus m => [a] -> m a
+last    :: MonadPlus m => [a] -> m a
+foldr1  :: MonadPlus m => (a -> a -> a) -> [a] -> m a
+foldl1  :: MonadPlus m => (a -> a -> a) -> [a] -> m a
+foldl1' :: MonadPlus m => (a -> a -> a) -> [a] -> m a
+read    :: MonadPlus m => Read a => String -> m a
+tail    = S.tailZ    ; {-# INLINE tail    #-}
+init    = S.initZ    ; {-# INLINE init    #-}
+head    = S.headZ    ; {-# INLINE head    #-}
+last    = S.lastZ    ; {-# INLINE last    #-}
+foldr1  = S.foldr1Z  ; {-# INLINE foldr1  #-}
+foldl1  = S.foldl1Z  ; {-# INLINE foldl1  #-}
+foldl1' = S.foldl1Z' ; {-# INLINE foldl1' #-}
+read    = S.readZ    ; {-# INLINE read    #-}
+
+take :: MonadPlus m => Int -> [a] -> m [a]
+take i a = if
     | i < 0     -> mzero
     | i == 0    -> pure mempty
     | otherwise -> case a of
-        (l:ls) -> (l :) <$> takeZ (i - 1) ls
+        (l:ls) -> (l :) <$> take (i - 1) ls
         []     -> mzero
-{-# NOINLINE takeZ #-}
+{-# NOINLINE take #-}
 
-dropZ :: MonadPlus m => Int -> [a] -> m [a]
-dropZ i a = if
+drop :: MonadPlus m => Int -> [a] -> m [a]
+drop i a = if
     | i < 0     -> mzero
     | i == 0    -> pure a
     | otherwise -> case a of
-        (l:ls) -> dropZ (i - 1) ls
+        (l:ls) -> drop (i - 1) ls
         []     -> mzero
-{-# NOINLINE dropZ #-}
+{-# NOINLINE drop #-}
 
-splitAtZ :: MonadPlus m => Int -> [a] -> m ([a], [a])
-splitAtZ i a = (,) <$> takeZ i a <*> dropZ i a ; {-# INLINE splitAtZ #-}
+takePossible :: Int -> [a] -> [a]
+takePossible i a = if
+    | i < 0     -> mempty
+    | i == 0    -> mempty
+    | otherwise -> case a of
+        (l:ls) -> l : takePossible (i - 1) ls
+        []     -> mempty
+{-# NOINLINE takePossible #-}
+
+dropPossible :: Int -> [a] -> [a]
+dropPossible i a = if
+    | i < 0     -> mempty
+    | i == 0    -> a
+    | otherwise -> case a of
+        (l:ls) -> dropPossible (i - 1) ls
+        []     -> mempty
+{-# NOINLINE dropPossible #-}
+
+splitAt :: MonadPlus m => Int -> [a] -> m ([a], [a])
+splitAt i a = (,) <$> take i a <*> drop i a ; {-# INLINE splitAt #-}
 
 -- FIXME[WD]: Are we sure this function belongs to Prologue?
 splitHead :: [a] -> (Maybe a, [a])

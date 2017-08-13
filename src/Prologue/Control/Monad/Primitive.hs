@@ -10,6 +10,9 @@ import Control.Monad.Primitive as X (PrimMonad (PrimState, primitive), RealWorld
 type PrimMonadST s m = (PrimMonad m, PrimState m ~ s)
 type PrimMonadIO   m = PrimMonadST RealWorld m
 
-{-# DEPRECATED liftIO "Use `liftPrim` instead" #-}
+{-# DEPRECATED liftIO "Use either `liftPrimIO` or `liftPrim` instead" #-}
 liftIO :: MonadIO m => IO a -> m a
 liftIO = IOClass.liftIO ; {-# INLINE liftIO #-}
+
+liftPrimIO :: PrimMonadIO m => IO a -> m a
+liftPrimIO = liftPrim ; {-# INLINE liftPrimIO #-}
