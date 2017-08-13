@@ -242,7 +242,7 @@ maybeSym def f = maybeToken def (f . untoken)
 
 -- FIXME[WD]: Remove MonadFail dep
 buildExpr :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Tokens (Labeled n (UniSymbol Expr a)) -> m a
-buildExpr = assembleExpr <∘> evalTokenStreamT buildExprTree
+buildExpr = assembleExpr .: evalTokenStreamT buildExprTree
 
 -- FIXME[WD]: Remove MonadFail dep
 buildExprTree :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => m (ExprTree n a)
@@ -286,4 +286,4 @@ buildExprTreeBody_termApp app tree = tryNextSym tree $ \(Labeled l s) -> case s 
 
 -- FIXME[WD]: Remove MonadFail dep
 buildExpr_termApp :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (ExprSymbol Infix a) -> Tokens (Labeled n (UniSymbol Expr a)) -> m a
-buildExpr_termApp app = assembleExpr <∘> evalTokenStreamT (buildExprTree_termApp app)
+buildExpr_termApp app = assembleExpr .: evalTokenStreamT (buildExprTree_termApp app)

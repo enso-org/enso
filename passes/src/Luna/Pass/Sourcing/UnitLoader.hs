@@ -362,11 +362,11 @@ type instance Preserves     UnitRequester = '[]
 unitRequester :: MonadPassRunner m => Pass UnitRequester m
 unitRequester = do
     reqs   <- unwrap <$> getAttr @UnitsToLoadRequest
-    unitsM <- World.lookupUnit <$$> reqs
+    unitsM <- World.lookupUnit <$>= reqs
     let namedUnits   = zipWith (\n u -> (n,) <$> note n u) reqs unitsM :: [Either QualName (QualName, SomeExpr)]
         (fails, oks) = partitionEithers namedUnits
     when (not $ null fails) . passErr $ modulesNotFound fails
-    void $ uncurry requestUnit <$$> oks
+    void $ uncurry requestUnit <$>= oks
 
 requestUnit :: ( MonadPassRunner m
                , Req m '[ Reader // Layer // AnyExpr // Model
@@ -404,7 +404,7 @@ runUnitInitializer = void initLibUnits
 initLibUnits :: MonadPassRunner m => SubPass UnitInitializer m [SomeExpr]
 initLibUnits = do
     libMap <- unwrap <$> getAttr @UnitSet
-    uncurry initLibUnit <$$> Map.assocs libMap
+    uncurry initLibUnit <$>= Map.assocs libMap
 
 initLibUnit :: MonadPassRunner m => Name -> SparseTreeSet Name -> SubPass UnitInitializer m SomeExpr
 initLibUnit libName unitSet = do
@@ -453,8 +453,8 @@ unitLoader = withJustM popUnitToLoad $ \p -> go p >> unitLoader where
             imphub   <- unit @^. Unit.imports
             cls      <- unit @^. Unit.cls
             imps     <- readWrappedSources (unsafeGeneralize imphub :: UnresolvedImportHubType)
-            impUnits <- resolveImpSrc name <$$> imps
-            withDebug "Requesting imports" $ uncurry requestUnit <$$> impUnits
+            impUnits <- resolveImpSrc name <$>= imps
+            withDebug "Requesting imports" $ uncurry requestUnit <$>= impUnits
             partitionASGCls (unsafeGeneralize cls :: Expr ClsASG)
             replace' unit req
 
@@ -569,7 +569,7 @@ resolveImp imp = do
         mkImport   n = mapM (imp' $ generalize src) =<< lookupName n
         impNames     = case tgt of Import.Everything -> allNames
                                    Import.Listed lst -> lst
-    maybeNewImps <- zip impNames <$> (mkImport <$$> impNames)
+    maybeNewImps <- zip impNames <$> (mkImport <$>= impNames)
     let (errNames, newImps) = partitionMaybeTaggedList maybeNewImps
     when (not $ null errNames) . passErr $ importsNotFoundError "LOC-TODO" errNames
     return newImps

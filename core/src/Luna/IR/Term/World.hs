@@ -140,4 +140,4 @@ modifyWorld f = do
 lookupUnit :: WorldReader m => QualName -> m (Maybe SomeExpr)
 lookupUnit name = do
     world <- readWorld
-    readSource <$$> world ^. at name
+    readSource <$>= world ^. at name

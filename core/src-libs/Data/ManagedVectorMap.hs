@@ -187,10 +187,10 @@ keys :: PrimMonad m => ManagedVectorMapRefM m k a -> m [k]
 keys s = Map.keys . view vec <$> readSTRef (unwrap' s) ; {-# INLINE keys #-}
 
 ixes :: PrimMonad m => ManagedVectorMapRefM m k a -> m [Int]
-ixes = ixes' <∘> readManagedVectorMapRef ; {-# INLINE ixes #-}
+ixes = ixes' .: readManagedVectorMapRef ; {-# INLINE ixes #-}
 
 assocs :: PrimMonad m => ManagedVectorMapRefM m k a -> m [(k, VectorRefM m a)]
-assocs = Map.assocs . view vec <∘> readManagedVectorMapRef ; {-# INLINE assocs #-}
+assocs = Map.assocs . view vec .: readManagedVectorMapRef ; {-# INLINE assocs #-}
 
 mapWithKey :: PrimMonad m => (k -> VectorRefM m a -> VectorRefM m a) -> ManagedVectorMapRefM m k a -> m ()
 mapWithKey = modifyManagedVectorMapRef'_ . mapWithKey' ; {-# INLINE mapWithKey #-}
@@ -199,7 +199,7 @@ traverseWithKey :: PrimMonad m => (k -> VectorRefM m a -> m (VectorRefM m a)) ->
 traverseWithKey = modifyManagedVectorMapRefM'_ . traverseWithKey' ; {-# INLINE traverseWithKey #-}
 
 readKey :: (PrimMonad m, Ord k) => k -> ManagedVectorMapRefM m k a -> m (Maybe (VectorRefM m a))
-readKey k = (^? (vec . ix k)) <∘> readManagedVectorMapRef ; {-# INLINE readKey #-}
+readKey k = (^? (vec . ix k)) .: readManagedVectorMapRef ; {-# INLINE readKey #-}
 
 
 -- === Mutability === --

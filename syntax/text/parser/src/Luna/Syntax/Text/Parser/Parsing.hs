@@ -966,7 +966,7 @@ parsingBase p src = do
 parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
                 , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
                 ) => AsgParser a -> Text32 -> m a
-parsingBase_ = view _1 <∘∘> parsingBase
+parsingBase_ = view _1 .:. parsingBase
 
 parserPassX  :: MonadPassManager m => AsgParser SomeExpr -> Pass Parsing   m
 parserPassX  = parsingPassM

@@ -158,7 +158,7 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
             --
         putStrLn "\n--- === CodeSpans === ---\n"
         es <- exprs
-        ls <- getLayer @CodeSpan <$$> es
+        ls <- getLayer @CodeSpan <$>= es
         pprint $ zip es ls
 
         -- putStrLn "\n--- === Abs CodeSpans === ---\n"

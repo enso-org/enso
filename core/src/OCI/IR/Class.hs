@@ -557,17 +557,17 @@ type InvalidFormat sel a format = 'ShowType sel
 
 class                                                       ValidateScope scope sel a
 instance {-# OVERLAPPABLE #-} ValidateScope_ scope sel a => ValidateScope scope sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope I     sel a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope I   a
-instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel I
+instance {-# OVERLAPPABLE #-}                               ValidateScope Imp   sel a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope Imp a
+instance {-# OVERLAPPABLE #-}                               ValidateScope scope sel Imp
 type ValidateScope_ scope sel a = Assert (a `In` TermTypesOf scope) (InvalidFormat sel a scope)
 
 
 class                                                        ValidateLayout model sel a
 instance {-# OVERLAPPABLE #-} ValidateLayout_ model sel a => ValidateLayout model sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout I     sel a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model I   a
-instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel I
+instance {-# OVERLAPPABLE #-}                                ValidateLayout Imp   sel a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model Imp a
+instance {-# OVERLAPPABLE #-}                                ValidateLayout model sel Imp
 type ValidateLayout_ model sel a = ValidateScope (model # sel) sel a
 type ValidateLayout' t     sel a = ValidateLayout (t # LAYOUT) sel a
 
@@ -630,7 +630,7 @@ makeWrapped ''ExprData
 -- === Encoding === --
 
 class                                                            TermEncoder atom where encodeTerm :: forall t. ExprTerm atom t -> ExprStore
-instance                                                         TermEncoder I    where encodeTerm = impossible
+instance                                                         TermEncoder Imp  where encodeTerm = impossible
 instance EncodeStore ExprStoreSlots (ExprTerm' atom) Identity => TermEncoder atom where
     encodeTerm = runIdentity . encodeStore . hideLayout
 
@@ -745,7 +745,7 @@ type family MonadRefStates k as m :: Constraint where
 
 
 unsafeToExprTerm :: forall atom l m. (MonadRef m, Reader Layer (AnyExpr // Model) m) => Expr l -> m (ExprTerm atom (Expr l))
-unsafeToExprTerm = unsafeCoerce . unwrap' . access @TERM . unwrap' <∘> getLayer @Model
+unsafeToExprTerm = unsafeCoerce . unwrap' . access @TERM . unwrap' .: getLayer @Model
 
 unsafeModifyExprTermDef :: forall atom l m. (MonadRef m, Editor Layer (AnyExpr // Model) m)
                         => Expr l -> (ExprTermDef atom (Expr l) -> ExprTermDef atom (Expr l)) -> m ()
@@ -757,7 +757,7 @@ unsafeModifyExprTermDef expr f = do
     putLayer @Model expr newModel
 
 unsafeToExprTermDef :: forall atom l m. (MonadRef m, Reader Layer (AnyExpr // Model) m) => Expr l -> m (ExprTermDef atom (Expr l))
-unsafeToExprTermDef = unwrap' <∘> unsafeToExprTerm
+unsafeToExprTermDef = unwrap' .: unsafeToExprTerm
 
 
 
