@@ -17,7 +17,8 @@ module Data.RTuple.Class where
 import           Prelude hiding (map, init, last, length, take, concat, mapM, head, tail, reverse, drop, zip, zip3, unzip, unzip3)
 import qualified Prelude as P
 
-import Control.Lens.Utils     hiding (Index, cons, uncons, reversed, index)
+import Control.Lens           hiding (Index, cons, uncons, reversed, index)
+import Control.Lens.Utils
 import Control.Monad.Identity hiding (mapM)
 import Data.Default
 import Data.List              (intercalate)

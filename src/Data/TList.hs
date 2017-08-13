@@ -2,6 +2,7 @@
 module Data.TList where
 
 import Prelude hiding (head, tail)
+import Control.Lens
 import Control.Lens.Utils
 
 
