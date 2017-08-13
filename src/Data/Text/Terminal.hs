@@ -1,8 +1,8 @@
 module Data.Text.Terminal where
 
 
-import qualified Prologue as P
-import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop)
+import qualified Prologue_old as P
+import Prologue_old hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop)
 
 import           Control.Monad.State.Layered
 import qualified Data.Text                 as Text
