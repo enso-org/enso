@@ -8,7 +8,7 @@
 
 module Data.Container.Poly where
 
---import Prologue hiding (Ixed, Indexed, Simple)
+--import Prologue_old hiding (Ixed, Indexed, Simple)
 --import           Data.TypeLevel.List (In)
 --import Data.Typeable
 --import GHC.Prim
