@@ -131,7 +131,7 @@ import Prologue.Placeholders_old as X (notImplemented, todo, fixme, placeholder,
 import qualified Data.List as List
 import           Data.List as X (sort)
 import Language.Haskell.TH.Quote (QuasiQuoter)
-import Prologue.Data.Traversable ((<$>=))
+import Prologue.Data.Traversable as X ((<$>=))
 
 txt :: QuasiQuoter
 txt = NeatInterpolation.text

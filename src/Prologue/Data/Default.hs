@@ -8,10 +8,6 @@ import qualified Data.Text      as Strict
 import GHC.Exts (Constraint)
 import Data.Default as X
 
-
 type family Defaults lst :: Constraint where
     Defaults '[]       = ()
     Defaults (a ': as) = (Default a, Defaults as)
-
-instance Default Lazy.Text   where def = "" ; {-# INLINE def #-}
-instance Default Strict.Text where def = "" ; {-# INLINE def #-}
