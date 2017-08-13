@@ -56,5 +56,5 @@ packages:
 - extra-dep: true
   location: {commit: fe9834f3f5583086d76b12779a1c2a5290c72b0d, git: 'https://github.com/luna/text-processing'}
 - extra-dep: true
-  location: {commit: 5f40e6c85b7fdc566527d0d6a3a2b86e5d1e7153, git: 'https://github.com/luna/parsert'}
+  location: {commit: cbcd88c87e8888ebfeacd258cca96b3d6d489d35, git: 'https://github.com/luna/parsert'}
 resolver: lts-8.2
