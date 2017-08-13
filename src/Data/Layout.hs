@@ -6,7 +6,7 @@
 module Data.Layout where
 
 import qualified Prelude as P
-import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop, nested, lines)
+import Prologue_old hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop, nested, lines)
 
 import Control.Monad.State.Layered
 import qualified Data.Foldable             as Foldable
