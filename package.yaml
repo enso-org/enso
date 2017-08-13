@@ -17,4 +17,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: container
 stability: experimental
 synopsis: Containers abstraction and utilities.
-version: 0.2.14
+version: 0.2.15

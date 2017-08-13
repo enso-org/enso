@@ -6,8 +6,7 @@ module Data.Hetero.Stack where
 
 import Prelude hiding (head, tail)
 
-import Control.Lens       hiding (cons)
-import Control.Lens.Utils
+import Control.Lens.Utils hiding (cons)
 import Data.Construction
 import Data.Default
 import Data.Monoid
