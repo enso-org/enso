@@ -282,6 +282,8 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
+    def makeString sep: self.fold "" (x: y: x.toString.+ y.toString)
+
 class Map k v:
     Map
     Tip
@@ -549,6 +551,9 @@ class Stream a:
 
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
+
+    def takeWhile f: case self of
+        Stream elt s: if f elt then Prepend elt (s.takeWhile f) else Empty
 
     def average:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)

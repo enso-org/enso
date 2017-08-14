@@ -9,6 +9,7 @@ import           Control.Monad.Trans.State                    (evalStateT, get)
 
 import qualified Data.Aeson                                   as Aeson
 import           Data.ByteString.Char8                        (pack)
+import qualified Data.ByteString                              as StrictByteString
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
 import qualified Data.CaseInsensitive                         as CI
@@ -282,13 +283,19 @@ binaryClass :: Imports -> IO Class
 binaryClass imps = do
     Right (toTextAssu, toTextIr) <- oneArgFun "Binary" "Text"
     Right (idAssu, idIr)         <- oneArgFun "Binary" "Binary"
+    Right (eqAssu, eqIr)         <- twoArgFun "Binary" "Binary" "Bool"
+    Right (plusAssu, plusIr)     <- twoArgFun "Binary" "Binary" "Binary"
     let toTextVal  = toLunaValue tmpImps Text.decodeUtf8
-        idVal      = toLunaValue tmpImps (id :: ByteString -> ByteString)
+        idVal      = toLunaValue tmpImps (id   :: ByteString -> ByteString)
+        eqVal      = toLunaValue tmpImps ((==) :: ByteString -> ByteString -> Bool)
+        plusVal    = toLunaValue tmpImps ((<>) :: ByteString -> ByteString -> ByteString)
         bStrLen    = Text.pack . show . ByteString.length :: ByteString -> Text
         toShortRep = toLunaValue tmpImps $ \bs -> "Binary<" <> bStrLen bs <> ">"
         tmpImps    = imps & importedClasses . at "Binary" ?~ klass
         klass      = Class Map.empty $ Map.fromList [ ("toText",   Function toTextIr toTextVal  toTextAssu)
                                                     , ("toBinary", Function idIr     idVal      idAssu)
+                                                    , ("equals",   Function eqIr     eqVal      eqAssu)
+                                                    , ("+",        Function plusIr   plusVal    plusAssu)
                                                     , ("shortRep", Function toTextIr toShortRep toTextAssu)
                                                     ]
     return klass
@@ -399,7 +406,8 @@ prelude imps = mdo
     plus  <- preludeArithOp "+"
     gt    <- preludeCmpOp importBoxes ">"
     lt    <- preludeCmpOp importBoxes "<"
-    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("%", mod)]
+    eq    <- preludeCmpOp importBoxes "equals"
+    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod)]
     string <- stringClass importBoxes
     int    <- intClass    importBoxes
     double <- doubleClass importBoxes
@@ -496,24 +504,33 @@ systemStd imps = do
         parseMsgPackVal = withExceptions . MsgPack.unpack
     parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
-    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
-        primPerformHttpVal uri method headers auth body = performIO $ do
+    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
+        primPerformHttpVal uri method headers auth params body = performIO $ do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
+                packParam  (k, v) = (convert k, convert <$> v)
             baseReq <- HTTP.parseRequest (convert uri)
             manager <- HTTP.newManager HTTP.defaultManagerSettings
-            let req = baseReq
+            let newHeaders = map packHeader headers
+                oldHeaders = HTTP.requestHeaders baseReq
+                req        = baseReq
                     & HTTP.setRequestBodyLBS body
                     & HTTP.setRequestMethod  (convert method)
-                    & HTTP.setRequestHeaders (map packHeader headers)
+                    & HTTP.setRequestHeaders (oldHeaders <> newHeaders)
                     & HTTP.addRequestHeader  HTTP.hAccept (pack "*/*")
+                    & HTTP.setRequestQueryString (map packParam params)
                     & case auth of
                         Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
                         Nothing -> id
             HTTP.responseOpen req manager
 
-    let textT      = LCons "Text" []
-        tupleListT = LCons "List" [LCons "Tuple2" [textT, textT]]
-    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [textT, textT, tupleListT, LCons "Binary" []] $ LCons "HttpResponse" []
+    let textT           = LCons "Text"   []
+        tupleT          = LCons "Tuple2" [textT, textT]
+        maybeTupleT     = LCons "Maybe"  [tupleT]
+        tupleListT      = LCons "List"   [tupleT]
+        tupleMaybeListT = LCons "List"   [LCons "Tuple2" [textT, LCons "Maybe" [textT]]]
+    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
+                                    [textT, textT, tupleListT, maybeTupleT, tupleMaybeListT, LCons "Binary" []]
+                                    (LCons "HttpResponse" [])
 
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
         primGetCurrentTimeVal = performIO Time.getCurrentTime
@@ -641,24 +658,19 @@ systemStd imps = do
 
 unexpectedConstructorFor name = throw $ "Expected a " <> name <> " luna object, got unexpected constructor"
 
--- instance (ToLunaData b) => ToLunaData (HTTP.Response b) where
---     toLunaData imps (HTTP.Response status _ headers body _ _) = let fromHeader (name, s) = let n = CI.original name :: ByteString in (convert n :: Text, convert s :: Text) in
---         LunaObject $ Object (Constructor "HttpResponse"
---         [ toLunaData imps . integer . HTTP.statusCode $ status
---         , toLunaData imps $ map fromHeader headers
---         , toLunaData imps body
---         ]) (getObjectMethodMap "HttpResponse" imps)
-
 instance ToLunaValue a => ToLunaValue (IO a) where
     toLunaValue imps = toLunaValue imps <=< withExceptions
 
-instance (ToLunaValue b) => ToLunaValue (HTTP.Response b) where
-    toLunaValue imps v = LunaEff . LunaObject $ Object (
-            Constructor "HttpStreamedResponse"
-                [ toLunaValue imps . integer   $ HTTP.getResponseStatusCode v
+instance ToLunaData StrictByteString.ByteString where
+    toLunaData imps = toLunaData imps . ByteString.fromStrict
+
+instance (ToLunaValue b) => ToLunaData (HTTP.Response b) where
+    toLunaData imps v = LunaObject $ Object (
+            Constructor "HttpResponse"
+                [ toLunaData imps . integer   $ HTTP.getResponseStatusCode v
                 , LunaThunk . toLunaValue imps $ HTTP.responseBody v
                 ]
-            ) (getObjectMethodMap "HttpStreamedResponse" imps)
+            ) (getObjectMethodMap "HttpResponse" imps)
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
