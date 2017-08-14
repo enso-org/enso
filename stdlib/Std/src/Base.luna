@@ -282,7 +282,7 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    def makeString sep: self.fold "" (x: y: x.toString.+ y.toString)
+    def makeString sep: self.fold "" (x: y: x.toString + sep + y.toString)
 
 class Map k v:
     Map
