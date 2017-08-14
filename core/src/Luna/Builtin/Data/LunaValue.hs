@@ -36,6 +36,12 @@ type LunaValue = LunaEff LunaData
 makeLenses ''Object
 makeLenses ''Constructor
 
+getObjectField :: Int -> LunaValue -> LunaValue
+getObjectField i v = force v >>= go where
+    go (LunaObject (Object (Constructor _ fs) _)) = return $ fs !! i
+    go (LunaError e)                              = throw e
+    go _                                          = throw "field getter: expected an object, got unexpected value type"
+
 dispatchMethod :: Name -> LunaData -> LunaValue
 dispatchMethod s = go where
     go :: LunaData -> LunaValue

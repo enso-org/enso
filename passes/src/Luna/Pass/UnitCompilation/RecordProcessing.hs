@@ -9,7 +9,9 @@ import qualified OCI.Pass.Manager as Pass
 import qualified Luna.IR.Expr     as Term
 import OCI.IR.Combinators
 import Luna.Builtin.Data.Class
-import Luna.Builtin.Data.Function (compile)
+import Luna.Builtin.Data.Function  (compile, Function (Function))
+import Luna.Builtin.Data.LunaValue (LunaData (LunaFunction), getObjectField)
+import qualified Luna.Builtin.Data.Function as Function
 import Luna.IR
 import Control.Monad.State.Dependent
 import Luna.Pass.Data.UniqueNameGen
@@ -37,9 +39,18 @@ data LRec = LVar Name | LCons Name [LRec] deriving (Show, Eq)
 processRecord :: (MonadPassManager m, MonadIO m, MonadState Cache m) => Name -> [Name] -> Expr RecASG -> m (Constructor, Destructor)
 processRecord className classVars root = do
     (recordName, fields) <- Pass.eval' $ dumpRecordStructure root
-    cons   <- Pass.evalWithFreshIR $ prepareConstructor   className classVars recordName fields
-    decons <- Pass.evalWithFreshIR $ prepareDeconstructor className classVars fields
+    cons   <- Pass.evalWithFreshIR $ prepareConstructor   className classVars recordName (snd <$> fields)
+    decons <- Pass.evalWithFreshIR $ prepareDeconstructor className classVars            (snd <$> fields)
     return (cons, decons)
+
+generateGetters :: (MonadPassManager m, MonadIO m, MonadState Cache m) => Name -> [Name] -> Expr RecASG -> m (Map Name Function)
+generateGetters className classVars root = do
+    fields  <- fmap snd $ Pass.eval' $ dumpRecordStructure root
+    getters <- forM (zip [0..] fields) $ \(fieldPos, (fnameMay, ftype)) -> forM fnameMay $ \fname -> do
+        tp  <- Pass.evalWithFreshIR $ prepareGetter className classVars ftype
+        let val = return $ LunaFunction $ getObjectField fieldPos
+        return (fname, Function tp val def)
+    return $ Map.fromList $ catMaybes getters
 
 flattenApps :: MonadPassManager m => Expr Draft -> SubPass RecordProcessing m (Expr Draft, [Expr Draft])
 flattenApps expr = matchExpr expr $ \case
@@ -59,14 +70,17 @@ getFieldRep expr = matchExpr expr $ \case
             Cons n _ -> LCons n . reverse <$> mapM getFieldRep args
             e        -> error $ "Expected a Cons, got: " ++ show e
 
-dumpRecordStructure :: MonadPassManager m => Expr RecASG -> SubPass RecordProcessing m (Name, [LRec])
+dumpRecordStructure :: MonadPassManager m => Expr RecASG -> SubPass RecordProcessing m (Name, [(Maybe Name, LRec)])
 dumpRecordStructure record = do
     Term (Term.RecASG name fields) <- readTerm record
     fields <- forM fields $ \f -> do
         field :: Expr FieldASG   <- unsafeGeneralize <$> source f
-        Term (Term.FieldASG _ t) <- readTerm field
-        getFieldRep =<< source t
-    return (name, fields)
+        Term (Term.FieldASG n t) <- readTerm field
+        tp <- getFieldRep =<< source t
+        return (n, tp)
+    let flattenFieldDef [] r = [(Nothing, r)]
+        flattenFieldDef ns r = (,) . Just <$> ns <*> pure r
+    return (name, concat $ uncurry flattenFieldDef <$> fields)
 
 rebuildFromStructure :: MonadPassManager m => Map Name (Expr Draft) -> LRec -> SubPass RecordProcessing m (Expr Draft)
 rebuildFromStructure binds (LVar n)         = return $ fromMaybe (error "Unresolved variable in record field declaration") $ Map.lookup n binds
@@ -80,6 +94,24 @@ changeType expr tp = do
     oldTp <- getLayer @Type expr >>= source
     reconnectLayer @Type tp expr
     deleteSubtree oldTp
+
+prepareGetter :: (MonadRef m, MonadPassManager m) => Name -> [Name] -> LRec -> SubPass RecordProcessing m (Rooted SomeExpr)
+prepareGetter className classVars recordTp = do
+    typeVars <- mapM var classVars
+    let typeVarMap = Map.fromList $ zip classVars (generalize <$> typeVars)
+    inType        <- cons' className typeVars
+    inMonad       <- var' =<< genName
+    inTypeInMonad <- monadic' inType inMonad
+
+    outType        <- rebuildFromStructure typeVarMap recordTp
+    outTypeInMonad <- monadic' outType inMonad
+
+    l       <- lam' inTypeInMonad outTypeInMonad
+    pure    <- cons'_ "Pure"
+    lInPure <- monadic' l pure
+
+    compile lInPure
+
 
 prepareConstructor :: (MonadRef m, MonadPassManager m) => Name -> [Name] -> Name -> [LRec] -> SubPass RecordProcessing m Constructor
 prepareConstructor className classVars recordName recordFields = do

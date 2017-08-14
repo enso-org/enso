@@ -56,8 +56,11 @@ processClass imports root = do
             _          -> return Nothing
         return (name, paramNames, resolvedConses, resolvedDecls)
     compiledRecords <- mapM (RecordProcessing.processRecord className paramNames . snd) records
+    getters         <- case records of
+        [(_, r)] -> RecordProcessing.generateGetters className paramNames r
+        _        -> return def
     let recordsMap = Map.fromList $ zip (fst <$> records) compiledRecords
-        bareClass  = Class recordsMap Map.empty
+        bareClass  = Class recordsMap getters
         imps       = imports & importedClasses . at className ?~ bareClass
     methodMap <- MethodProcessing.processMethods imps className paramNames (fst <$> records) methods
-    return $ Class recordsMap methodMap
+    return $ Class recordsMap (Map.union methodMap getters)
