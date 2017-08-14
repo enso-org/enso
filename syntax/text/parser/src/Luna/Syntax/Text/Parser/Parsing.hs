@@ -804,8 +804,8 @@ rootedRawFunc = buildAsg $ funcBase >>= \case
 -- === Classes == --
 
 cls :: AsgParser SomeExpr
-cls = buildAsg $ (\n args (cs,ds) -> liftAstApp3 (IR.clsASG' n) (sequence args) (sequence cs) (sequence ds))
-   <$ symbol Lexer.KwClass <*> consName <*> many var <*> body
+cls = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
+   <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
           funcBlock = optionalBlockBody rootedFunc
           consBlock = breakableNonEmptyBlockBody' clsRec <|> breakableOptionalBlockBody recNamedFieldLine
@@ -857,7 +857,7 @@ unit  = buildAsg $ (\imps cls -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit
     spacing = many eol
 
 unitCls :: AsgParser SomeExpr
-unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
+unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' False "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
 
 
 

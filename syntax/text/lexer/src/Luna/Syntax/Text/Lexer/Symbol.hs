@@ -69,6 +69,7 @@ data Symbol -- Layout
             | KwClass
             | KwDef
             | KwImport
+            | KwNative
             | KwOf
 
             -- Operator
@@ -139,6 +140,7 @@ checkSpecialVar = \case
     "class"  -> KwClass
     "def"    -> KwDef
     "import" -> KwImport
+    "native" -> KwNative
     "of"     -> KwOf
     "_"      -> Wildcard
     name     -> Var name
@@ -177,6 +179,7 @@ pretty = \case
     KwClass     {} -> "Keyword `Class`"
     KwDef       {} -> "Keyword `Def`"
     KwImport    {} -> "Keyword `Import`"
+    KwNative    {} -> "Keyword `Native`"
     KwOf        {} -> "Keyword `Of`"
     Operator    {} -> "Operator"
     Modifier    {} -> "Modifier"
@@ -222,6 +225,7 @@ instance ShowCons Symbol where
         KwClass     {} -> "KwClass"
         KwDef       {} -> "KwDef"
         KwImport    {} -> "KwImport"
+        KwNative    {} -> "KwNative"
         KwOf        {} -> "KwOf"
         Operator    {} -> "Operator"
         Modifier    {} -> "Modifier"
@@ -264,6 +268,7 @@ instance IsTagged Symbol where
         KwClass     {} -> "Keyword"
         KwDef       {} -> "Keyword"
         KwImport    {} -> "Keyword"
+        KwNative    {} -> "Keyword"
         KwOf        {} -> "Keyword"
         Operator    {} -> "Operator"
         Modifier    {} -> "Operator"

@@ -231,11 +231,11 @@ functionSig name sig = mdo
     lsig  <- link (unsafeRelayout sig)  t
     return t
 
-clsASG' :: ExprCons m ClsASG => Name -> [Expr a] -> [Expr b] -> [Expr c] -> m SomeExpr
-clsASG  :: ExprCons m ClsASG => Name -> [Expr a] -> [Expr b] -> [Expr c] -> m (Expr $ ClsASG >> (a <+> b <+> c))
-clsASG' = fmap generalize .:: clsASG
-clsASG name args conss decls = mdo
-    t  <- expr $ Term.uncheckedClsASG name an cn dn
+clsASG' :: ExprCons m ClsASG => Bool -> Name -> [Expr a] -> [Expr b] -> [Expr c] -> m SomeExpr
+clsASG  :: ExprCons m ClsASG => Bool -> Name -> [Expr a] -> [Expr b] -> [Expr c] -> m (Expr $ ClsASG >> (a <+> b <+> c))
+clsASG' = fmap generalize .::. clsASG
+clsASG native name args conss decls = mdo
+    t  <- expr $ Term.uncheckedClsASG native name an cn dn
     an <- mapM (flip link t . unsafeRelayout) args
     cn <- mapM (flip link t . unsafeRelayout) conss
     dn <- mapM (flip link t . unsafeRelayout) decls

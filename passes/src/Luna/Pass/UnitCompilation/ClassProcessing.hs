@@ -38,7 +38,7 @@ type instance Pass.Preserves        ClassProcessing = '[]
 processClass :: (MonadPassManager m, MonadIO m) => Imports -> Expr ClsASG -> m Class
 processClass imports root = do
     (className, paramNames, records, methods) <- Pass.eval' @ClassProcessing $ do
-        Term (Term.ClsASG name ps cs ds) <- readTerm root
+        Term (Term.ClsASG native name ps cs ds) <- readTerm root
         params <- mapM source ps
         paramNames <- forM params $ \p -> matchExpr p $ \case
             Var n -> return n

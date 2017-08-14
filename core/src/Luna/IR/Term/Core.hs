@@ -48,10 +48,10 @@ data    TermMatch     a = Match     { __arg     :: !a, __clauses :: ![a]        
 newtype TermFieldLens a = FieldLens { __path :: QualName                        } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: remove
 data    TermStar      a = Star                                                    deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: remove
 
-data    TermClsASG   a = ClsASG   { __name  :: !Name  , __params :: ![a], __conss :: ![a], __decls :: ![a] } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermRecASG   a = RecASG   { __name  :: !Name  , __fields :: ![a]                                   } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermFieldASG a = FieldASG { __names :: ![Name], __type   :: !a                                     } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermTyped    a = Typed    { __base  :: !a     , __type   :: !a                                     } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermClsASG   a = ClsASG   { __isNative :: Bool, __name  :: !Name  , __params :: ![a], __conss :: ![a], __decls :: ![a] } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermRecASG   a = RecASG   { __name  :: !Name  , __fields :: ![a]                                                       } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermFieldASG a = FieldASG { __names :: ![Name], __type   :: !a                                                         } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermTyped    a = Typed    { __base  :: !a     , __type   :: !a                                                         } deriving (Show, Eq, Functor, Foldable, Traversable)
 
 data    TermInvalid   a = Invalid { __desc  :: Text32                         } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: Text -> Doc
 data    TermList      a = List    { __items :: ![a]                           } deriving (Show, Eq, Functor, Foldable, Traversable)
