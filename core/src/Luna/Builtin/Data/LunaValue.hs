@@ -74,12 +74,20 @@ tryDispatchMethods (m : ms) s = do
         Nothing -> return Nothing
         Just r  -> r >>= tryDispatchMethods ms
 
-force' :: LunaData -> LunaValue
-force' (LunaThunk a) = force a
-force' a             = return a
+forceThunks' :: LunaData -> LunaValue
+forceThunks' (LunaThunk a) = forceThunks a
+forceThunks' a             = return a
+
+forceThunks :: LunaValue -> LunaValue
+forceThunks = (>>= forceThunks')
 
 force :: LunaValue -> LunaValue
 force = (>>= force')
+
+force' :: LunaData -> LunaValue
+force' (LunaThunk a) = force a
+force' (LunaSusp  a) = force a
+force' a             = return a
 
 applyFun :: LunaValue -> LunaValue -> LunaValue
 applyFun f a = do

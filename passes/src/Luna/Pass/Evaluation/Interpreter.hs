@@ -146,7 +146,7 @@ interpret' glob expr = do
                 env <- get
                 let rhs' = makeFuns as (localInsert n (LunaThunk rhs') env)
                 modify $ localInsert n (LunaThunk rhs')
-                return $ LunaThunk rhs'
+                return $ LunaSusp rhs'
         Seq l' r'  -> do
             l   <- source l'
             r   <- source r'
@@ -154,7 +154,7 @@ interpret' glob expr = do
             rhs <- interpret' glob r
             return $ do
                 lV <- lhs
-                lift $ force' lV
+                lift $ forceThunks' lV
                 rhs
         Cons n fs -> do
             fields <- mapM (interpret' glob <=< source) fs
