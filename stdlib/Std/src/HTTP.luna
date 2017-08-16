@@ -17,8 +17,7 @@ class HttpResponse:
 
     def stream: case self of
         HttpResponse code getChunk:
-            chunk = getChunk
-            Stream chunk self.stream
+            streamFrom getChunk
 
     def body:
         chunks = self.stream.takeWhile (_.equals "".toBinary . not)
