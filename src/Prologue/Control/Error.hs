@@ -52,44 +52,26 @@ foldl1  = S.foldl1Z  ; {-# INLINE foldl1  #-}
 foldl1' = S.foldl1Z' ; {-# INLINE foldl1' #-}
 read    = S.readZ    ; {-# INLINE read    #-}
 
-take :: MonadPlus m => Int -> [a] -> m [a]
-take i a = if
+takeExactly :: MonadPlus m => Int -> [a] -> m [a]
+takeExactly i a = if
     | i < 0     -> mzero
     | i == 0    -> pure mempty
     | otherwise -> case a of
-        (l:ls) -> (l :) <$> take (i - 1) ls
+        (l:ls) -> (l :) <$> takeExactly (i - 1) ls
         []     -> mzero
-{-# NOINLINE take #-}
+{-# NOINLINE takeExactly #-}
 
-drop :: MonadPlus m => Int -> [a] -> m [a]
-drop i a = if
+dropExactly :: MonadPlus m => Int -> [a] -> m [a]
+dropExactly i a = if
     | i < 0     -> mzero
     | i == 0    -> pure a
     | otherwise -> case a of
-        (l:ls) -> drop (i - 1) ls
+        (l:ls) -> dropExactly (i - 1) ls
         []     -> mzero
-{-# NOINLINE drop #-}
+{-# NOINLINE dropExactly #-}
 
-takePossible :: Int -> [a] -> [a]
-takePossible i a = if
-    | i < 0     -> mempty
-    | i == 0    -> mempty
-    | otherwise -> case a of
-        (l:ls) -> l : takePossible (i - 1) ls
-        []     -> mempty
-{-# NOINLINE takePossible #-}
-
-dropPossible :: Int -> [a] -> [a]
-dropPossible i a = if
-    | i < 0     -> mempty
-    | i == 0    -> a
-    | otherwise -> case a of
-        (l:ls) -> dropPossible (i - 1) ls
-        []     -> mempty
-{-# NOINLINE dropPossible #-}
-
-splitAt :: MonadPlus m => Int -> [a] -> m ([a], [a])
-splitAt i a = (,) <$> take i a <*> drop i a ; {-# INLINE splitAt #-}
+splitAtExactly :: MonadPlus m => Int -> [a] -> m ([a], [a])
+splitAtExactly i a = (,) <$> takeExactly i a <*> dropExactly i a ; {-# INLINE splitAtExactly #-}
 
 -- FIXME[WD]: Are we sure this function belongs to Prologue?
 splitHead :: [a] -> (Maybe a, [a])

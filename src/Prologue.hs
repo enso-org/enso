@@ -11,7 +11,7 @@ import Prelude                         as X ( until, asTypeOf, error, errorWitho
                                             , map, filter, null, length, (!!), reverse
                                             , scanl, scanl1, scanr, scanr1
                                             , iterate, repeat, cycle
-                                            , takeWhile, dropWhile, span, break
+                                            , take, drop, takeWhile, dropWhile, span, break, splitAt
                                             , notElem, lookup
                                             , zip, zip3, zipWith, zipWith3, unzip, unzip3
                                             , lines, words, unwords
@@ -83,6 +83,7 @@ import Data.Coerce                      as X (Coercible, coerce)
 import Data.Convert                     as X
 
 -- === Containers === --
+import Data.Container                   as X (Item)
 import Data.Container.List2             as X
 
 -- === Exts === --
@@ -140,5 +141,5 @@ import Control.Lens.TH                  as X hiding (makeLenses, makeClassy) -- 
 import Control.Lens.Traversal           as X
 import Control.Lens.Tuple               as X
 import Control.Lens.Type                as X
-import Control.Lens.Wrapped             as X (Wrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', ala, alaf)
+import Control.Lens.Wrapped             as X (Wrapped, Unwrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', ala, alaf)
 import Control.Lens.Zoom                as X

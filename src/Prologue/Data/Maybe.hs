@@ -24,8 +24,11 @@ justIf cond a = ifThenElse cond (Just a) Nothing ; {-# INLINE justIf #-}
 
 -- === FromJust === --
 
+{-# WARNING fromMaybe "use fromJust instead" #-}
+fromMaybe ::                    a -> Maybe a ->   a
 fromJust  ::                    a -> Maybe a ->   a
 fromJustM :: Applicative m => m a -> Maybe a -> m a
+fromMaybe   = fromJust     ; {-# INLINE fromMaybe #-}
 fromJust  d = maybe d id   ; {-# INLINE fromJust  #-}
 fromJustM d = maybe d pure ; {-# INLINE fromJustM #-}
 
