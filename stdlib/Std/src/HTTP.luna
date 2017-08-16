@@ -22,7 +22,7 @@ class HttpResponse:
 
     def body:
         chunks = self.stream.takeWhile (_.equals "".toBinary . not)
-        chunks.fold "".toBinary (_.+ _)
+        chunks.fold "".toBinary (+)
 
     def text: self.body.toText
 

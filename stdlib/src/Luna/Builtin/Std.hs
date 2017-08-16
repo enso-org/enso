@@ -16,6 +16,7 @@ import qualified Data.CaseInsensitive                         as CI
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
+import           Data.Int                                     (Int64)
 import           Data.Map                                     (Map)
 import qualified Data.Map                                     as Map
 import qualified Data.Map.Base                                as IMap
@@ -36,7 +37,6 @@ import qualified Data.UUID.V4                                 as UUID
 
 import           GHC.IO.Handle                                (Handle)
 import qualified GHC.IO.Handle                                as Handle
-import           GHC.Int                                      (Int64)
 
 import           Luna.Builtin.Data.Class                      (Class (..))
 import           Luna.Builtin.Data.Function                   as Function

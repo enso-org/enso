@@ -559,6 +559,12 @@ class Stream a:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
         self . foldFrom (Tuple2 0 0.0) folder . map ((Tuple2 count sum): sum./ count.toReal)
 
+def streamFrom act:
+    var = newMVar
+    head = act
+    fork (var.put (streamFrom act))
+    Stream head var.read
+
 def delayAsync time act:
     var = newMVar
     fork (seq (sleep time) (var.put act))
