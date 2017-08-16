@@ -46,6 +46,7 @@ dispatchMethod :: Name -> LunaData -> LunaValue
 dispatchMethod s = go where
     go :: LunaData -> LunaValue
     go   (LunaThunk    a) = a >>= dispatchMethod s
+    go   (LunaSusp     a) = a >>= dispatchMethod s
     go x@(LunaBoxed    a) = dispatchObject x a
     go x@(LunaObject   a) = dispatchObject x a
     go   (LunaError    e) = throw e
@@ -59,6 +60,7 @@ tryDispatchMethodWithError :: Name -> LunaData -> LunaEff (Maybe LunaValue)
 tryDispatchMethodWithError s = go where
     go   (LunaError  e) = throw e
     go   (LunaThunk  a) = a >>= tryDispatchMethodWithError s
+    go   (LunaSusp   a) = a >>= tryDispatchMethodWithError s
     go x@(LunaBoxed  a) = return $ tryDispatch x a
     go x@(LunaObject a) = return $ tryDispatch x a
     go _                = return Nothing
@@ -95,6 +97,7 @@ applyFun f a = do
     case fun of
         LunaError    e  -> throw e
         LunaThunk    t  -> applyFun t a
+        LunaSusp     t  -> applyFun t a
         LunaFunction f' -> f' a
         LunaBoxed    _  -> throw "Object is not a function."
         LunaObject   _  -> throw "Object is not a function."

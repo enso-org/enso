@@ -200,6 +200,7 @@ tryMatch name fieldMatchers d@(LunaObject (Object (Constructor n fs) ms)) = if n
             newObj = LunaObject (Object (Constructor n (snd <$> results)) ms)
         return (binds, newObj)
 tryMatch name fields (LunaThunk v) = v >>= tryMatch name fields
+tryMatch name fields (LunaSusp  v) = v >>= tryMatch name fields
 tryMatch _ _ d = return (Nothing, d)
 
 matcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
@@ -217,6 +218,7 @@ matchIrrefutably :: Name -> [LunaData -> LunaEff (Map (Expr Draft) LunaData)] ->
 matchIrrefutably name fieldMatchers d@(LunaObject (Object (Constructor n fs) _)) = if n /= name then throw "Irrefutable pattern match failed" else matchFields where
     matchFields = Map.unions <$> zipWithM ($) fieldMatchers fs
 matchIrrefutably name fieldMatchers (LunaThunk v) = v >>= matchIrrefutably name fieldMatchers
+matchIrrefutably name fieldMatchers (LunaSusp  v) = v >>= matchIrrefutably name fieldMatchers
 
 irrefutableMatcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
                    => Expr Draft -> m (LunaData -> LunaEff (Map (Expr Draft) LunaData))

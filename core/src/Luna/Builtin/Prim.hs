@@ -40,9 +40,9 @@ class FromLunaData a where
 instance {-# OVERLAPPABLE #-} IsBoxed n a => FromLunaData a where
     fromLunaData (LunaBoxed a)    = return $ fromBoxed a
     fromLunaData (LunaThunk a)    = a >>= fromLunaData
+    fromLunaData (LunaSusp  a)    = a >>= fromLunaData
     fromLunaData (LunaObject _)   = throw "Expected a Boxed value, got an Object"
     fromLunaData (LunaFunction _) = throw "Expected a Boxed value, got a Function"
-    fromLunaData (LunaSusp _)     = throw "Expected a Boxed value, got a Suspension"
     fromLunaData LunaNoValue      = throw "Expected a Boxed value, got a Compilation Error"
     fromLunaData (LunaError e)    = throw e
 
@@ -141,6 +141,7 @@ mkPrimFun f = LunaFunction $ (>>= thunkProof f)
 
 thunkProof :: (LunaData -> LunaValue) -> LunaData -> LunaValue
 thunkProof f (LunaThunk a) = return $ LunaThunk $ a >>= thunkProof f
+thunkProof f (LunaSusp  a) = return $ LunaSusp  $ a >>= thunkProof f
 thunkProof f a             = f a
 
 
