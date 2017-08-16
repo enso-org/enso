@@ -1,5 +1,6 @@
 import Std.Base
 
+
 class HttpMethod:
     POST
     GET
@@ -12,12 +13,12 @@ class HttpMethod:
         PUT:    "PUT"
         DELETE: "DELETE"
 
-class HttpResponse:
-    HttpResponse Int Binary
 
-    def stream: case self of
-        HttpResponse code getChunk:
-            streamFrom getChunk
+class HttpResponse:
+    responseCode :: Int
+    getChunk     :: Binary
+
+    def stream: streamFrom self.getChunk
 
     def body:
         chunks = self.stream.takeWhile (_.equals "".toBinary . not)
@@ -27,67 +28,54 @@ class HttpResponse:
 
     def json: parseJSON self.body.toText
 
-    def responseCode: case self of
-        HttpResponse code body: code
 
 class HttpRequest:
-    HttpRequestClass
-    HttpRequest Text HttpMethod (Map Text Text) (Maybe (Tuple2 Text Text)) (List (Tuple2 Text (Maybe Text))) Binary
-
-    def default uri: HttpRequest uri GET Map.empty Nothing Empty "".toBinary
-
-    def method: case self of
-        HttpRequest uri method headers auth params body: method
+    uri     :: Text
+    method  :: HttpMethod
+    headers :: Map Text Text
+    auth    :: Maybe (Tuple2 Text Text)
+    params  :: List (Tuple2 Text (Maybe Text))
+    body    :: Binary
 
     def setMethod m: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri m headers auth params body
 
-    def body: case self of
-        HttpRequest uri method headers auth params body: body
-
     def setBody b: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri method headers auth params b
-
-    def uri: case self of
-        HttpRequest uri method headers auth params body: uri
 
     def setUri u: case self of
         HttpRequest uri method headers auth params body: HttpRequest u method headers auth params body
 
-    def headers: case self of
-        HttpRequest uri method headers auth params body: headers
-
     def addHeader key val: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri method (headers.insert key val) auth params body
 
-    def auth: case self of
-        HttpRequest uri method headers auth params body: auth
-
     def setAuth username password: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri method headers (Just (username, password)) params body
-
-    def params: case self of
-        HttpRequest uri method headers auth params body: params
 
     def setParam key val: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri method headers auth (Prepend (key, val) params) body
 
     def perform: primPerformHttp self.uri (self.method.toText) (self.headers.toList) self.auth self.params self.body
 
+
+def defaultHttpRequest uri:
+    HttpRequest uri GET Map.empty Nothing Empty "".toBinary
+
+
 class Http:
     Http
 
     def get uri:
-        HttpRequestClass.default uri
+        defaultHttpRequest uri
 
     def post uri body:
-        HttpRequestClass.default uri . setMethod POST . setBody body
+        defaultHttpRequest uri . setMethod POST . setBody body
 
     def put uri body:
-        HttpRequestClass.default uri . setMethod PUT . setBody body
+        defaultHttpRequest uri . setMethod PUT . setBody body
 
     def delete uri:
-        HttpRequestClass.default uri . setMethod DELETE
+        defaultHttpRequest uri . setMethod DELETE
 
     def getBinary uri:
         Http.get uri . perform . body
