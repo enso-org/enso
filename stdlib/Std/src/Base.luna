@@ -282,9 +282,14 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
+    def makeString sep: self.fold "" (x: y: x.toString + sep + y.toString)
+
 class Map k v:
+    Map
     Tip
     Bin Int k v (Map k v) (Map k v)
+
+    def empty: Tip
 
     def isEmpty: case self of
         Tip: True
@@ -339,15 +344,17 @@ class JSON:
 
     def toJSON: self
 
-    def render: case self of
+    def toText: case self of
         JSONNumber d: d.shortRep
         JSONString s: s.escapeJSON
-        JSONArray  l: "[" + (l . map (x : x.render) . intersperse "," . fold "" (+)) + "]"
+        JSONArray  l: "[" + (l . map (x : x.toText) . intersperse "," . fold "" (+)) + "]"
         JSONBool   b: case b of
             True:  "true"
             False: "false"
         JSONNull: "null"
-        JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.render) . intersperse "," . fold "" (+)) + "}"
+        JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
+
+    def render: self.toText
 
     def shortRep: self.render
 
@@ -359,13 +366,11 @@ class JSON:
         JSONNumber a: a
         other:        errorStr "Unable to convert to a number"
 
-    def toText: case self of
-        JSONString s: s
-        other:        errorStr "Unable to convert to text"
-
     def toList: case self of
         JSONArray a: a
         other:       errorStr "Unable to convert to a list"
+
+    def toBinary: self.render.toBinary
 
     def lookupReal key: case self . lookup key of
         Just val: val . toReal
@@ -430,6 +435,8 @@ class MsgPack:
         MPBinary b: JSONString b.toText
         MPArray a:  a.toJSON
         MPMap   m:  m.toJSON
+
+    def toBinary: encodeMsgPack self
 
     def equals that: case self of
         MPNil: case that of
@@ -545,9 +552,18 @@ class Stream a:
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
+    def takeWhile f: case self of
+        Stream elt s: if f elt then Prepend elt (s.takeWhile f) else Empty
+
     def average:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
         self . foldFrom (Tuple2 0 0.0) folder . map ((Tuple2 count sum): sum./ count.toReal)
+
+def streamFrom act:
+    var = newMVar
+    head = act
+    fork (var.put (streamFrom act))
+    Stream head var.read
 
 def delayAsync time act:
     var = newMVar
