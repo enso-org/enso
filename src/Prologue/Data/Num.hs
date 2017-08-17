@@ -6,7 +6,7 @@ import Prelude as X ( Int, Integer, Float, Double, Rational, Word
                     , Real (toRational)
                     , Integral (quot, rem, div, mod, quotRem, divMod, toInteger)
                     , Fractional ((/), recip, fromRational)
-                    , Floating (pi, exp, log, sin, cos, asin, acos, atan, sinh, cosh, asinh, acosh, atanh)
+                    , Floating (pi, exp, log, sqrt, (**), logBase, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh)
                     , RealFrac (properFraction, truncate, round, ceiling, floor)
                     , RealFloat (floatRadix, floatDigits, floatRange, decodeFloat, encodeFloat, exponent, significand, scaleFloat, isNaN, isInfinite, isDenormalized, isNegativeZero, isIEEE, atan2)
                     , subtract, even, odd, gcd, lcm, (^), (^^), fromIntegral, realToFrac
