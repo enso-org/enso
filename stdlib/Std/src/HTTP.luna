@@ -14,9 +14,79 @@ class HttpMethod:
         DELETE: "DELETE"
 
 
+class OAuth2Data:
+    clientId            :: Int
+    clientSecret        :: Text
+    authorizeEndpoint   :: Text
+    accessTokenEndpoint :: Text
+    callback            :: Maybe Text
+
+    def toText:
+        "OAuth2Data {\n" +
+        "    clientId            = " + self.clientId.toText            + ",\n" +
+        "    clientSecret        = " + self.clientSecret               + ",\n" +
+        "    authorizeEndpoint   = " + self.authorizeEndpoint          + ",\n" +
+        "    accessTokenEndpoint = " + self.accessTokenEndpoint.toText + ",\n" +
+        "    callback            = " + self.callback.toText            + "\n"  +
+        "}"
+
+
+class OAuth2Token:
+    accessToken  :: Text
+    refreshToken :: Maybe Text
+    expiresIn    :: Maybe Int
+    tokenType    :: Maybe Text
+    idToken      :: Maybe Text
+
+    def toText:
+        "OAuth2Token {\n" +
+        "    accessToken  = " + self.accessToken         + ",\n" +
+        "    refreshToken = " + self.refreshToken.toText + ",\n" +
+        "    expiresIn    = " + self.expiresIn.toText    + ",\n" +
+        "    tokenType    = " + self.tokenType.toText    + ",\n" +
+        "    idToken      = " + self.idToken.toText      + "\n"  +
+        "}"
+
+
+class HttpSimpleBody:
+    values :: List (Tuple2 Text Text)
+
+    def toText: "HttpSimpleBody { values = " + self.values.toText " }"
+
+    def toBinary: primRenderQuery values
+
+    def addValue key val: HttpSimpleBody (Prepend (key, val) self.values)
+
+
+class OAuth2:
+    def postRequest oauth2data token body:
+        uri  = oauth2Data.accessTokenEndpoint
+        user = oauth2Data.clientId
+        pass = oauth2Data.clientSecret
+        Http.post uri body . setAuth user pass . perform
+
+    def fetchAccessToken oauth2Data token:
+        body = HttpSimpleBody [
+           ("code", token),
+           ("redirect_uri", oauth2Data.callback),
+           ("grant_type", "authorization_code")
+        ]
+        OAuth2.postRequest oauth2Data token body
+
+    def refreshAccessToken oauth2Data token:
+        body = HttpSimpleBody [
+            ("grant_type", "refresh_token"),
+            ("refresh_token", token)
+        ]
+        OAuth2.postRequest oauth2Data token body
+
+
 class HttpResponse:
     responseCode :: Int
     getChunk     :: Binary
+
+    def toText:
+        "HttpResponse { responseCode = " + self.responseCode + " }"
 
     def stream: streamFrom self.getChunk
 
@@ -37,6 +107,15 @@ class HttpRequest:
     params  :: List (Tuple2 Text (Maybe Text))
     body    :: Binary
 
+    def toText:
+        "HttpRequest {\n" +
+        "    uri =     "  + self.uri            + ",\n" +
+        "    method =  "  + self.method.toText  + ",\n" +
+        "    headers = "  + self.headers.toText + ",\n" +
+        "    params =  "  + self.params.toText  + ",\n" +
+        "    body =    "  + self.body.toText    + "\n"  +
+        "}"
+
     def setMethod m: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri m headers auth params body
 
@@ -54,6 +133,11 @@ class HttpRequest:
 
     def setParam key val: case self of
         HttpRequest uri method headers auth params body: HttpRequest uri method headers auth (Prepend (key, val) params) body
+
+    def setOAuth2Token token:
+        self . addHeader "User-Agent"    "hoauth2"
+             . addHeader "Accept"        "application/json"
+             . addHeader "Authorization" ("Bearer " + token)
 
     def perform: primPerformHttp self.uri (self.method.toText) (self.headers.toList) self.auth self.params self.body
 
