@@ -19,10 +19,6 @@ type family Foldables (lst :: [* -> *]) :: Constraint where
 sequence_ :: (Foldable t, Applicative f) => t (f a) -> f ()
 sequence_ = F.sequenceA_ ; {-# INLINE sequence_ #-}
 
-{-# DEPRECATED mapM_ "Use `traverse_` instead" #-}
-mapM_ :: (Foldable t, Applicative f) => (a -> f b) -> t a -> f ()
-mapM_ = traverse_ ; {-# INLINE mapM_ #-}
-
 traverse2_ :: (Applicative m, Foldables '[t1, t2])             => (a -> m b) -> t1 (t2 a)                -> m ()
 traverse3_ :: (Applicative m, Foldables '[t1, t2, t3])         => (a -> m b) -> t1 (t2 (t3 a))           -> m ()
 traverse4_ :: (Applicative m, Foldables '[t1, t2, t3, t4])     => (a -> m b) -> t1 (t2 (t3 (t4 a)))      -> m ()
@@ -41,3 +37,14 @@ minimum :: MonadPlus m => Ord a => [a] -> m a
 maximum :: MonadPlus m => Ord a => [a] -> m a
 minimum = S.minimumZ ; {-# INLINE minimum #-}
 maximum = S.maximumZ ; {-# INLINE maximum #-}
+
+
+-- === Deprecations === --
+
+{-# DEPRECATED mapM_ "Use `traverse_` instead" #-}
+mapM_ :: (Foldable t, Applicative f) => (a -> f b) -> t a -> f ()
+mapM_ = traverse_ ; {-# INLINE mapM_ #-}
+
+{-# DEPRECATED forM_ "Use `for_` instead" #-}
+forM_ :: (Foldable t, Applicative f) => t a -> (a -> f b) -> f ()
+forM_ = for_ ; {-# INLINE forM_ #-}
