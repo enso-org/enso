@@ -18,6 +18,7 @@ cabal.sandbox.config
 *.prof
 *.aux
 *.hp
+*.DS_Store
 .stack-work/
 
 
@@ -103,3 +104,4 @@ target/
 build/dist/
 build/.stack-work/
 bin/luna
+myproj
