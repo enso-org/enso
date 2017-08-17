@@ -1,6 +1,6 @@
 module Data.Container.Mono.Instances.Set where
 
-import Prologue
+import Prologue_old
 import Data.Set (Set)
 import qualified Data.Set as Set
 

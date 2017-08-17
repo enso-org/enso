@@ -1,4 +1,4 @@
-resolver: lts-8.22
+resolver: lts-8.23
 
 packages:
     - .
@@ -30,6 +30,7 @@ packages:
     - ../../../../libs/vector-text
     - ../../../../libs/terminal-text
     - ../../../../libs/layouting
+    - ../../../../libs/monad-branch
 
     - ../../../../libs/visualization-api
 

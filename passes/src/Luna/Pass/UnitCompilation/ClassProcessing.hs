@@ -38,7 +38,8 @@ type instance Pass.Preserves        ClassProcessing = '[]
 processClass :: (MonadPassManager m, MonadIO m) => Imports -> Expr ClsASG -> m Class
 processClass imports root = do
     (className, paramNames, records, methods) <- Pass.eval' @ClassProcessing $ do
-        Term (Term.ClsASG name ps cs ds) <- readTerm root
+        resolveToplevelFields root
+        Term (Term.ClsASG native name ps cs ds) <- readTerm root
         params <- mapM source ps
         paramNames <- forM params $ \p -> matchExpr p $ \case
             Var n -> return n
@@ -56,8 +57,25 @@ processClass imports root = do
             _          -> return Nothing
         return (name, paramNames, resolvedConses, resolvedDecls)
     compiledRecords <- mapM (RecordProcessing.processRecord className paramNames . snd) records
+    getters         <- case records of
+        [(_, r)] -> RecordProcessing.generateGetters className paramNames r
+        _        -> return def
     let recordsMap = Map.fromList $ zip (fst <$> records) compiledRecords
-        bareClass  = Class recordsMap Map.empty
+        bareClass  = Class recordsMap getters
         imps       = imports & importedClasses . at className ?~ bareClass
     methodMap <- MethodProcessing.processMethods imps className paramNames (fst <$> records) methods
-    return $ Class recordsMap methodMap
+    return $ Class recordsMap (Map.union methodMap getters)
+
+resolveToplevelFields :: (MonadPassManager m, MonadIO m) => Expr ClsASG -> Pass ClassProcessing m
+resolveToplevelFields cls = do
+    Term (Term.ClsASG native name _ cs _) <- readTerm cls
+    conses <- mapM source cs
+    (fields, records) <- fmap (partitionEithers . catMaybes) $ forM conses $ \r -> matchExpr r $ \case
+        RecASG{}   -> return $ Just $ Right r
+        FieldASG{} -> return $ Just $ Left  r
+        _          -> return $ Nothing
+    when (null records && not native) $ do
+        mapM delete cs
+        record <- recASG name fields
+        rl     <- link (unsafeRelayout record) cls
+        modifyExprTerm cls $ wrapped . termClsASG_conss .~ [rl]

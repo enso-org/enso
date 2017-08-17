@@ -73,7 +73,7 @@ importFunction (Function header value (Assumptions unis merges apps accs)) = do
 
 importRooted :: forall l r m. (MonadIR m, MonadRef m, Editors Net '[AnyExpr, AnyExprLink] m, Emitter (Import // AnyExpr) m, Emitter (Import // AnyExprLink) m)
                => Rooted (Expr l) -> m (Expr r -> Expr r)
-importRooted (Rooted ((unwrap . unwrap) -> map) _) = do
+importRooted (Rooted ((_unwrap . _unwrap) -> map) _) = do -- FIXME[WD]: Why we need to use _unwrap here and unwrap does not work?
     exprNet <- readNet @AnyExpr
     linkNet <- readNet @AnyExprLink
     let foreignExprs = fromJust $ Map.lookup (getTypeDesc @AnyExpr)     map -- until I can throw errors here

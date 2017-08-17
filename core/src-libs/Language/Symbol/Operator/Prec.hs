@@ -1,6 +1,6 @@
 module Language.Symbol.Operator.Prec where
 
-import Prologue
+import Prologue_old
 import Language.Symbol.Label
 import Control.Monad.State.Dependent (StateT)
 

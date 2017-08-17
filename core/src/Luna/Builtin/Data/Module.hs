@@ -1,6 +1,6 @@
 module Luna.Builtin.Data.Module where
 
-import Prologue
+import Prologue_old
 import Luna.Builtin.Data.Function
 import Luna.Builtin.Data.LunaValue (LunaValue)
 import Luna.Builtin.Data.Class

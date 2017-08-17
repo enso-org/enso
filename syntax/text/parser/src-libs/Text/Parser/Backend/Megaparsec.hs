@@ -2,7 +2,7 @@
 
 module Text.Parser.Backend.Megaparsec where
 
-import Prologue
+import Prologue_old
 
 import Text.Megaparsec.Prim (getPosition)
 import Text.Megaparsec.Prim as MP
@@ -18,7 +18,7 @@ import qualified Language.Symbol.Operator.Prec  as Prec
 -- === Instances === --
 
 -- Delta
-instance Convertible Pos Delta where convert = wrap . convert . unPos
+instance Convertible Pos Delta where convert = wrap . unsafeConvert . unPos
 instance Convertible Delta Pos where convert = unsafePos . convert . unwrap
 
 -- Position

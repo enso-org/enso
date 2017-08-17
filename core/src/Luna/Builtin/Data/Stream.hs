@@ -2,7 +2,7 @@
 
 module Luna.Builtin.Data.Stream where
 
-import Prologue hiding (Monoid, mappend, mempty, (<>), force)
+import Prologue_old hiding (Monoid, mappend, mempty, (<>), force)
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Control.Monad.IO.Class

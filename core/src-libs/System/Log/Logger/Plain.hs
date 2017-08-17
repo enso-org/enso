@@ -2,7 +2,7 @@
 
 module System.Log.Logger.Plain where
 
-import Prologue
+import Prologue_old
 
 import qualified Text.PrettyPrint.ANSI.Leijen as Doc
 

@@ -4,8 +4,8 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
-import Prologue hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
-import qualified Prologue as P
+import Prologue_old hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
+import qualified Prologue_old as P
 
 import qualified Text.Megaparsec as Parser
 import           Text.Megaparsec (notFollowedBy, ErrorItem (Tokens), withRecovery, char, manyTill, anyChar, ParseError, try, hidden, spaceChar, skipMany, digitChar, letterChar, unexpected, between, lowerChar, upperChar, choice, string, lookAhead)
@@ -96,9 +96,9 @@ import qualified Data.TreeSet as TreeSet
 import           Data.TreeSet (SparseTreeSet)
 import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
-import           Data.VectorText (VectorText)
-import qualified Data.VectorText as VectorText
-
+import           Data.Text32 (Text32)
+import qualified Data.Text32 as Text32
+import qualified Data.Text as Text
 
 
 some' :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
@@ -287,13 +287,13 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 -- === Errors === --
 --------------------
 
-invalid :: Text -> IRB SomeExpr
+invalid :: Text32 -> IRB SomeExpr
 invalid txt = liftIRBApp0 $ do
     inv <- IR.invalid txt
     registerInvalid inv
     return $ generalize inv
 
-invalidSymbol :: (Symbol -> Text) -> AsgParser SomeExpr
+invalidSymbol :: (Symbol -> Text32) -> AsgParser SomeExpr
 invalidSymbol f = buildAsg $ invalid . f <$> anySymbol
 
 catchParseErrors :: SymParser a -> SymParser (Either P.String a)
@@ -338,9 +338,9 @@ registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
 -- === Symbols === --
 ---------------------
 
-bof, eof, eol :: SymParser ()
-bof = symbol Lexer.BOF
-eof = symbol Lexer.EOF
+stx, etx, eol :: SymParser ()
+stx = symbol Lexer.STX
+etx = symbol Lexer.ETX
 eol = symbol Lexer.EOL
 
 braceBegin, braceEnd :: SymParser ()
@@ -355,7 +355,7 @@ groupEnd   = symbol $ Lexer.Group Lexer.End
 -- === Instances === --
 
 instance Convertible Lexer.Number Literal.Number where
-    convert (Lexer.NumRep base i f e) = Literal.Number (convert base) i f e
+    convert (Lexer.NumRep base i f e) = Literal.Number (convert base) (convert i) (convert f) (convert e)
 
 instance Convertible Lexer.Numbase Num.Base where
     convert = \case Lexer.Dec -> Num.Dec
@@ -396,18 +396,18 @@ namedOp    = mkNamedAsg IR.var'   opName
 namedIdent = namedVar <|> namedCons <|> namedOp
 
 consName, varName, opName, identName :: SymParser Name
-consName  = satisfy Lexer.matchCons
-varName   = satisfy Lexer.matchVar
-opName    = satisfy Lexer.matchOperator
+consName  = convert <$> satisfy Lexer.matchCons
+varName   = convert <$> satisfy Lexer.matchVar
+opName    = convert <$> satisfy Lexer.matchOperator
 identName = varName <|> consName <|> opName
 funcName  = varName <|> opName
 
 previewVarName :: SymParser Name
 previewVarName = do
     s <- previewNextSymbol
-    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) return $ Lexer.matchVar =<< s
+    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (return . convert) $ Lexer.matchVar =<< s
 
-specificVar, specificCons, specificOp :: Name -> SymParser ()
+specificVar, specificCons, specificOp :: Text32 -> SymParser ()
 specificVar  = symbol . Lexer.Var
 specificCons = symbol . Lexer.Cons
 specificOp   = symbol . Lexer.Operator
@@ -475,20 +475,20 @@ str :: AsgParser SomeExpr
 str = buildAsg $ do
     rawQuoteBegin
     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-                 $ (\s -> liftIRBApp0 $ IR.string' s) <$> Indent.withCurrent strBody
+                 $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent strBody -- FIXME[WD]: We're converting Text -> String here.
 
-strBody :: SymParser P.String
+strBody :: SymParser Text32
 strBody = segStr <|> end <|> nl where
     segStr = (<>) <$> strContent <*> strBody
     end    = mempty <$ rawQuoteEnd
-    nl     = ('\n':) <$ eol <*> (line <|> nl)
+    nl     = Text32.cons '\n' <$ eol <*> (line <|> nl)
     line   = do Indent.indentedOrEq
-                (<>) . flip replicate ' ' <$> indentation <*> strBody
+                (<>) . convert . flip replicate ' ' <$> indentation <*> strBody
 
-strContent :: SymParser P.String
+strContent :: SymParser Text32
 strContent = satisfy Lexer.matchStr
 
-inlineStr :: SymParser P.String
+inlineStr :: SymParser Text32
 inlineStr = Indent.withCurrent $ do
     strContent <* rawQuoteEnd
 
@@ -530,7 +530,7 @@ grouped p = buildAsg $ parensed $ (\g -> liftAstApp1 IR.grouped' g) <$> p where
 metadata :: AsgParser SomeExpr
 metadata = buildAsg $ (\t -> liftIRBApp0 $ IR.metadata' t) <$> metaContent
 
-metaContent :: SymParser Text
+metaContent :: SymParser Text32
 metaContent = satisfy Lexer.matchMetadata
 
 
@@ -644,15 +644,15 @@ mfixVarSeg  = do
     if TreeSet.null nameSet
         then return cvar
         else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
-           {-$-} withReservedSymbols (Lexer.Var <$> TreeSet.keys nameSet)
+           {-$-} withReservedSymbols (Lexer.Var . convert <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
            $ do segmentToks <- exprFreeSegmentsLocal
                 namedSegs   <- option mempty (parseMixfixSegments nameSet)
                 if null namedSegs then return (cvar <> segmentToks) else do
                     segment <- buildTokenExpr (buildExprTok segmentToks)
-                    let segments  = (snd <$> namedSegs)
+                    let segments  = snd <$> namedSegs
+                        nameParts = fst <$> namedSegs
                         mfixVar   = buildAsgFromSpan span (varIRB . convert $ mkMultipartName name nameParts)
                         mfixExpr  = apps (app mfixVar segment) segments
-                        nameParts = fst <$> namedSegs
                     return . posIndependent . unlabeledAtom $ mfixExpr
 
 opSeg :: SymParser ExprSegmentBuilder
@@ -740,7 +740,7 @@ parseMixfixSegments nameSet = do
         Just nameSet' -> do
             let possiblePaths = TreeSet.keys nameSet'
             dropNextToken
-            segment <- withReservedSymbols (Lexer.Var <$> possiblePaths) nonemptyValExpr
+            segment <- withReservedSymbols (Lexer.Var . convert <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
             let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
             ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
 
@@ -804,8 +804,8 @@ rootedRawFunc = buildAsg $ funcBase >>= \case
 -- === Classes == --
 
 cls :: AsgParser SomeExpr
-cls = buildAsg $ (\n args (cs,ds) -> liftAstApp3 (IR.clsASG' n) (sequence args) (sequence cs) (sequence ds))
-   <$ symbol Lexer.KwClass <*> consName <*> many var <*> body
+cls = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
+   <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
           funcBlock = optionalBlockBody rootedFunc
           consBlock = breakableNonEmptyBlockBody' clsRec <|> breakableOptionalBlockBody recNamedFieldLine
@@ -857,7 +857,7 @@ unit  = buildAsg $ (\imps cls -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit
     spacing = many eol
 
 unitCls :: AsgParser SomeExpr
-unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
+unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' False "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
 
 
 
@@ -880,7 +880,7 @@ nonEmptyBlock       = Indent.withCurrent . nonEmptyBlockBody
 nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
 nonEmptyBlockBody p = (,) <$> p <*> lines where
     spacing = many eol
-    indent  = spacing <* Indent.indentedEq <* notFollowedBy eof
+    indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
     lines   = many $ try indent *> p
 
 optionalBlock, optionalBlockTop, optionalBlockBody :: SymParser a -> SymParser [a]
@@ -952,11 +952,11 @@ parsingPassM p = do
 
 parsingBase :: ( MonadPassManager m, ParsingPassReq_2 m
                , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
-               ) => AsgParser a -> VectorText -> m (a, MarkedExprMap)
+               ) => AsgParser a -> Text32 -> m (a, MarkedExprMap)
 parsingBase p src = do
-    let stream = Lexer.runLexer src
-    -- pprint stream
-    result <- runParserT (bof *> p <* eof) stream
+    let stream = Lexer.evalDefLexer src
+    -- result <- runParserT p stream
+    result <- runParserT (stx *> p <* etx) stream
     case result of
         Left e -> putStrLn (parseErrorPretty e) >> error "Parser error" -- FIXME[WD]: handle it the proper way
         Right (AsgBldr (IRB irb)) -> do
@@ -965,8 +965,8 @@ parsingBase p src = do
 
 parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
                 , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeExpr -- FIXME[WD]: Constraint for testing only
-                ) => AsgParser a -> VectorText -> m a
-parsingBase_ = view _1 <∘∘> parsingBase
+                ) => AsgParser a -> Text32 -> m a
+parsingBase_ = view _1 .:. parsingBase
 
 parserPassX  :: MonadPassManager m => AsgParser SomeExpr -> Pass Parsing   m
 parserPassX  = parsingPassM
@@ -1010,13 +1010,13 @@ runParserInternal p s = liftIO $ Parser.runParserT p "" s
 
 
 cmpMarkedExprMaps :: IsomorphicCheckCtx m => MarkedExprMap -> MarkedExprMap -> m [ReparsingChange]
-cmpMarkedExprMaps (oldMap'@(unwrap -> oldMap)) (unwrap -> newMap) = (remExprs <>) <$> mapM (uncurry $ cmpMarkedExpr oldMap') newAssocs where
+cmpMarkedExprMaps (oldMap'@(_unwrap -> oldMap)) (_unwrap -> newMap) = (remExprs <>) <$> mapM (uncurry $ cmpMarkedExpr oldMap') newAssocs where
     newAssocs = Map.assocs newMap
     oldAssocs = Map.assocs oldMap
     remExprs  = fmap RemovedExpr . catMaybes $ (\(k,v) -> if_ (not $ Map.member k newMap) (Just v)) <$> oldAssocs
 
 cmpMarkedExpr :: IsomorphicCheckCtx m => MarkedExprMap -> MarkerId -> SomeExpr -> m ReparsingChange
-cmpMarkedExpr (unwrap -> map) mid newExpr = case map ^. at mid of
+cmpMarkedExpr (_unwrap -> map) mid newExpr = case map ^. at mid of
     Nothing      -> return $ AddedExpr newExpr
     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use Expr Draft / SomeExpr everywhere
         False -> ChangedExpr   oldExpr newExpr

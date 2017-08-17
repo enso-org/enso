@@ -4,7 +4,7 @@
 
 module Luna.Syntax.Text.Parser.Marker where
 
-import Prologue hiding (String, Type, Span, span)
+import Prologue_old hiding (String, Type, Span, span)
 
 import Text.Megaparsec.Prim (MonadParsec)
 import Type.Any (AnyType)
@@ -48,7 +48,7 @@ addUnmarkedExpr expr = modify_ @UnmarkedExprs $ wrapped %~ (expr :)
 
 -- === Definition === --
 
-type MarkerToken = Lexer.LexerToken MarkerId
+type MarkerToken = Lexer.Token MarkerId
 data MarkerState = MarkerState { _lastTokenMarker :: Maybe MarkerToken
                                , _allMarkers      :: [MarkerId]
                                } deriving (Show)

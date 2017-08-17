@@ -2,7 +2,7 @@
 
 module System.Log.Logger.Echo where
 
-import Prologue
+import Prologue_old
 import Text.PrettyPrint.ANSI.Leijen (putDoc)
 
 import System.Log.Logger.Class

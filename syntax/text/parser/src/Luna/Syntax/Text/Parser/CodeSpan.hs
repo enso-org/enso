@@ -4,7 +4,7 @@
 
 module Luna.Syntax.Text.Parser.CodeSpan where
 
-import Prologue hiding (String, Type, Span, span, length)
+import Prologue_old hiding (String, Type, Span, span, length)
 
 import Text.Megaparsec.Prim (MonadParsec)
 import           Data.Text.Span       (LeftSpacedSpan, offset, length)
@@ -118,7 +118,7 @@ absSpan a = (<>) <$> getParentSpan a <*> getLayer @CodeSpan a where
     spanUntil el current = do
         els <- readInputSources current
         let preds = takeWhile (/= el) els
-        predsSpans <- getLayer @CodeSpan <$$> preds
+        predsSpans <- getLayer @CodeSpan <$>= preds
         parentSpan <- getParentSpan current
         return $ parentSpan <> mconcat (asOffsetSpan <$> predsSpans)
 

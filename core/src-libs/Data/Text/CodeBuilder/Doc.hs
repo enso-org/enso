@@ -5,7 +5,7 @@
 
 module Data.Text.CodeBuilder.Doc where
 
-import Prologue hiding (Empty, Text)
+import Prologue_old hiding (Empty, Text)
 
 import           GHC.Int (Int64)
 import           Control.Monad.State

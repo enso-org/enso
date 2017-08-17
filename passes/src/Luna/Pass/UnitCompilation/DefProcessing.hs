@@ -24,9 +24,9 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Luna.Pass.Evaluation.Interpreter
 import Luna.Pass.Typechecking.Typecheck
-import Luna.Pass.Inference.Data.Unifications    (Unifications)
-import Luna.Pass.Inference.Data.SimplifierQueue (SimplifierQueue)
-import Luna.Pass.Inference.Data.MergeQueue      (MergeQueue)
+import Luna.Pass.Inference.Data.Unifications    (Unifications(Unifications))
+import Luna.Pass.Inference.Data.SimplifierQueue (SimplifierQueue(SimplifierQueue))
+import Luna.Pass.Inference.Data.MergeQueue      (MergeQueue(MergeQueue))
 import Luna.Pass.Resolution.Data.UnresolvedAccs (UnresolvedAccs, getAccs)
 import Luna.Pass.Resolution.Data.CurrentTarget
 import Data.TypeDesc

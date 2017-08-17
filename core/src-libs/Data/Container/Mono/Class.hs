@@ -2,7 +2,7 @@
 
 module Data.Container.Mono.Class (module Data.Container.Mono.Class, module X) where
 
-import Prologue hiding (empty)
+import Prologue_old hiding (empty)
 import Data.Container.Class as X (Item)
 
 -- type family Item a -- for now defined in Data.Container

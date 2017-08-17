@@ -12,6 +12,7 @@ dependencies:
     - base
     - bytestring
     - containers
+    - case-insensitive
     - deepseq
     - dependent-state
     - luna-core
@@ -25,11 +26,13 @@ dependencies:
     - scientific
     - unordered-containers
     - aeson
+    - http-client
     - http-conduit
     - http-types
     - uuid
     - process
     - data-msgpack
+    - time
 
 default-extensions:
     - AllowAmbiguousTypes

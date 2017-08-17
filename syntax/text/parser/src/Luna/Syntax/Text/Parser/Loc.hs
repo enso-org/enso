@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Parser.Loc where
 
-import Prologue hiding (Symbol)
+import Prologue_old hiding (Symbol)
 
 import Data.Text.Position
 import Text.Megaparsec.Prim hiding (Stream, uncons)
@@ -140,7 +140,7 @@ unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.el
 unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
 unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
 
-updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.LexerToken (Lexer.Symbol Name) -> m ()
+updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
 updatePositions t = do
     let len = t ^. Lexer.span
         off = t ^. Lexer.offset
@@ -164,14 +164,14 @@ withRecovery2 f ma = do
     pos  <- Parser.getPosition
     out  <- withRecovery f ma
     pos' <- Parser.getPosition
-    modify_ @FileOffset (+ convertVia @Int (Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
-    put @LeftSpanner $ wrap (convertVia @Int $ Parser.unPos (Parser.sourceLine pos') - 1)
+    modify_ @FileOffset (+ convert (unsafeConvertTo @Int $ Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
+    put @LeftSpanner $ wrap (convert $ unsafeConvertTo @Int $ Parser.unPos (Parser.sourceLine pos') - 1)
     return out
 -- updateFileOffset :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Symbol -> m ()
 -- updateFileOffset (Lexer.Token (RightSpacedSpan len off) tok) = do
 --     modify_ @FileOffset $ (+ (convert $ len + off))
 
-updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.LexerToken (Lexer.Symbol Name) -> m ()
+updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
 updateLineAndCol t = do
 -- updateLineAndCol (Lexer.Token (unwrap -> SpacedSpan off len) _ tok) = do
     incColumn (t ^. Lexer.span)

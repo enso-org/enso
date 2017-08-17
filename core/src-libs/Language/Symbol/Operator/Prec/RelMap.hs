@@ -1,6 +1,6 @@
 module Language.Symbol.Operator.Prec.RelMap where
 
-import Prologue
+import Prologue_old
 
 import           Data.Map             (Map)
 import qualified Data.Map             as Map

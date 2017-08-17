@@ -1,0 +1,82 @@
+import Std.Base
+import Std.System
+
+class Time:
+    Time
+    TimeVal Int (TimeInterval Int)
+
+    def now: primGetCurrentTime
+
+    def diff other: primDiffTimes self other
+
+    def add interval: case self of
+        TimeVal days diff: TimeVal days (diff.add interval)
+
+    def sub interval: case self of
+        TimeVal days diff: TimeVal days (diff.sub interval)
+
+    def toText: primShowTime self
+
+    def shortRep: self.toText
+
+    def equals other: primTimesEq self other
+
+    def < other:
+        d = self.diff other
+        d.toInt.< 0
+
+    def > other:
+        d = self.diff other
+        d.toInt.> 0
+
+    def defaultFormat: "%FT%T.%q%z"
+
+    def safeParseFmt fmt str: primParseTime fmt str
+
+    def safeParse str: Time.safeParseFmt Time.defaultFormat str
+
+    def parseFmt fmt str: case Time.safeParseFmt fmt str of
+        Just t:  t
+        Nothing: errorStr ("Couldn't parse Time with the given format (" + fmt + ")")
+
+    def parse str: Time.parseFmt Time.defaultFormat str
+
+class TimeInterval:
+    TimeInterval Int
+
+    def shortRep: self.toText
+
+    def toInt: case self of
+        TimeInterval d: d
+
+    def toReal: self.toInt.toReal
+
+    def toSeconds: self.toInt.div 1000000000000
+
+    def toMiliseconds: self.toInt.div 1000000000
+
+    def toMicroseconds: self.toInt.div 1000000
+
+    def toText: (self.toReal./ 1000000000.0).toText + "ms"
+
+    def add other: TimeInterval (self.toInt + other.toInt)
+
+    def sub other: TimeInterval (self.toInt - other.toInt)
+
+    def before time: time.add self
+
+    def from time: time.sub self
+
+    def ago: self.before Time.now
+
+    def fromNow: self.from Time.now
+
+    def equals other: self.toInt.equals other.toInt
+
+    def < other: self.toInt.< (other.toInt)
+
+    def > other: self.toInt.> (other.toInt)
+
+    def + other: self.add other
+
+    def - other: self.sub other

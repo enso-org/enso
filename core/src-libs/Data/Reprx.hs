@@ -11,7 +11,7 @@ module Data.Reprx ( module Data.Reprx
                  , module X
                  ) where
 
-import Prologue
+import Prologue_old
 import Data.Text.CodeBuilder
 import Data.Text.CodeBuilder     as X (Builder, renderStr)
 import Data.Text.CodeBuilder.Tok as X (Tok)

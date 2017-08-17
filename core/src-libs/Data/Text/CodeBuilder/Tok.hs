@@ -6,7 +6,7 @@
 
 module Data.Text.CodeBuilder.Tok where
 
-import Prologue
+import Prologue_old
 
 import           Data.Text.CodeBuilder.Doc (Doc, between)
 

@@ -2,7 +2,7 @@
 
 module System.Log.Logger.Format where
 
-import Prologue hiding (Simple)
+import Prologue_old hiding (Simple)
 
 import           Data.Map                     (Map)
 import qualified Data.Map                     as Map

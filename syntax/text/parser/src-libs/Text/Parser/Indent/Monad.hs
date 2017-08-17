@@ -1,6 +1,6 @@
 module Text.Parser.Indent.Monad where
 
-import Prologue hiding (guard)
+import Prologue_old hiding (guard)
 
 import           Control.Monad.State.Dependent hiding (get, with)
 import qualified Control.Monad.State.Dependent as State

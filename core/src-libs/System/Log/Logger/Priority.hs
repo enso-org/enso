@@ -2,7 +2,7 @@
 
 module System.Log.Logger.Priority where
 
-import Prologue
+import Prologue_old
 import qualified Type.List as List
 
 import System.Log.Logger.Class

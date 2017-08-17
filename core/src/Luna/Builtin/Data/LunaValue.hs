@@ -36,10 +36,17 @@ type LunaValue = LunaEff LunaData
 makeLenses ''Object
 makeLenses ''Constructor
 
+getObjectField :: Int -> LunaValue -> LunaValue
+getObjectField i v = force v >>= go where
+    go (LunaObject (Object (Constructor _ fs) _)) = return $ fs !! i
+    go (LunaError e)                              = throw e
+    go _                                          = throw "field getter: expected an object, got unexpected value type"
+
 dispatchMethod :: Name -> LunaData -> LunaValue
 dispatchMethod s = go where
     go :: LunaData -> LunaValue
     go   (LunaThunk    a) = a >>= dispatchMethod s
+    go   (LunaSusp     a) = a >>= dispatchMethod s
     go x@(LunaBoxed    a) = dispatchObject x a
     go x@(LunaObject   a) = dispatchObject x a
     go   (LunaError    e) = throw e
@@ -53,6 +60,7 @@ tryDispatchMethodWithError :: Name -> LunaData -> LunaEff (Maybe LunaValue)
 tryDispatchMethodWithError s = go where
     go   (LunaError  e) = throw e
     go   (LunaThunk  a) = a >>= tryDispatchMethodWithError s
+    go   (LunaSusp   a) = a >>= tryDispatchMethodWithError s
     go x@(LunaBoxed  a) = return $ tryDispatch x a
     go x@(LunaObject a) = return $ tryDispatch x a
     go _                = return Nothing
@@ -68,12 +76,20 @@ tryDispatchMethods (m : ms) s = do
         Nothing -> return Nothing
         Just r  -> r >>= tryDispatchMethods ms
 
-force' :: LunaData -> LunaValue
-force' (LunaThunk a) = force a
-force' a             = return a
+forceThunks' :: LunaData -> LunaValue
+forceThunks' (LunaThunk a) = forceThunks a
+forceThunks' a             = return a
+
+forceThunks :: LunaValue -> LunaValue
+forceThunks = (>>= forceThunks')
 
 force :: LunaValue -> LunaValue
 force = (>>= force')
+
+force' :: LunaData -> LunaValue
+force' (LunaThunk a) = force a
+force' (LunaSusp  a) = force a
+force' a             = return a
 
 applyFun :: LunaValue -> LunaValue -> LunaValue
 applyFun f a = do
@@ -81,6 +97,7 @@ applyFun f a = do
     case fun of
         LunaError    e  -> throw e
         LunaThunk    t  -> applyFun t a
+        LunaSusp     t  -> applyFun t a
         LunaFunction f' -> f' a
         LunaBoxed    _  -> throw "Object is not a function."
         LunaObject   _  -> throw "Object is not a function."

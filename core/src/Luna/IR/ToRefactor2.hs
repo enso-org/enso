@@ -146,7 +146,7 @@ type SourceEditCtx s t m = (MonadRef m, Editor Layer (Abstract (Link s t) // Mod
 
 readSource  :: SourceReadCtx s t m => Link s t      -> m s
 writeSource :: SourceEditCtx s t m => Link s t -> s -> m ()
-readSource      = fst <∘> getLayer @Model
+readSource      = fst .: getLayer @Model
 writeSource l s = modifyLayer_ @Model l $ _1 .~ s
 
 readSources :: (SourceReadCtx s t m, Traversable f) => f (Link s t) -> m (f s)
@@ -172,7 +172,7 @@ type TargetEditCtx s t m = (MonadRef m, Editor Layer (Abstract (Link s t) // Mod
 
 readTarget  :: TargetReadCtx s t m => Link s t      -> m t
 writeTarget :: TargetEditCtx s t m => Link s t -> t -> m ()
-readTarget      = snd <∘> getLayer @Model
+readTarget      = snd .: getLayer @Model
 writeTarget l s = modifyLayer_ @Model l $ _2 .~ s
 
 modifyTargetM  :: forall s t m a. TargetEditCtx s t m => Link s t -> (t -> m (a, t)) -> m a

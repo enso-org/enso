@@ -33,6 +33,7 @@ import Luna.IR.Format2 ()
 import Luna.IR.Format (Draft)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Text32 (Text32)
 
 
 type ExprCons' m a = (MonadRef m, Writer Net AnyExpr m, NewElemEvent m (Expr a))
@@ -230,11 +231,11 @@ functionSig name sig = mdo
     lsig  <- link (unsafeRelayout sig)  t
     return t
 
-clsASG' :: ExprCons m ClsASG => Name -> [Expr a] -> [Expr b] -> [Expr c] -> m SomeExpr
-clsASG  :: ExprCons m ClsASG => Name -> [Expr a] -> [Expr b] -> [Expr c] -> m (Expr $ ClsASG >> (a <+> b <+> c))
-clsASG' = fmap generalize .:: clsASG
-clsASG name args conss decls = mdo
-    t  <- expr $ Term.uncheckedClsASG name an cn dn
+clsASG' :: ExprCons m ClsASG => Bool -> Name -> [Expr a] -> [Expr b] -> [Expr c] -> m SomeExpr
+clsASG  :: ExprCons m ClsASG => Bool -> Name -> [Expr a] -> [Expr b] -> [Expr c] -> m (Expr $ ClsASG >> (a <+> b <+> c))
+clsASG' = fmap generalize .::. clsASG
+clsASG native name args conss decls = mdo
+    t  <- expr $ Term.uncheckedClsASG native name an cn dn
     an <- mapM (flip link t . unsafeRelayout) args
     cn <- mapM (flip link t . unsafeRelayout) conss
     dn <- mapM (flip link t . unsafeRelayout) decls
@@ -290,7 +291,7 @@ phantomUnit' name units = do
 
 unitProxy' :: (ExprCons m UnitProxy, UnitRegistration m) => QualName -> [Expr a] -> m SomeExpr
 unitProxy  :: (ExprCons m UnitProxy, UnitRegistration m) => QualName -> [Expr a] -> m (Expr UnitProxy)
-unitProxy' = generalize <∘∘> unitProxy
+unitProxy' = generalize .:. unitProxy
 unitProxy name units = mdo
     t      <- expr $ Term.uncheckedUnitProxy name lunits
     lunits <- mapM (flip link t . unsafeRelayout) units
@@ -302,7 +303,7 @@ simpleUnitProxy' = flip unitProxy' mempty
 
 imp' :: ExprCons m UnresolvedImport => Expr a -> Expr a -> m SomeExpr
 imp  :: ExprCons m UnresolvedImport => Expr a -> Expr a -> m (Expr $ UnresolvedImport >> a)
-imp' = generalize <∘∘> imp
+imp' = generalize .:. imp
 imp a tgt = mdo
     t    <- expr $ Term.uncheckedImport la ltgt
     la   <- link (unsafeRelayout a)   t
@@ -311,7 +312,7 @@ imp a tgt = mdo
 
 unresolvedImp' :: ExprCons m UnresolvedImport => Expr a -> UnresolvedImportTgt -> m SomeExpr
 unresolvedImp  :: ExprCons m UnresolvedImport => Expr a -> UnresolvedImportTgt -> m (Expr $ UnresolvedImport >> a)
-unresolvedImp' = generalize <∘∘> unresolvedImp
+unresolvedImp' = generalize .:. unresolvedImp
 unresolvedImp a tgts = mdo
     t  <- expr $ Term.uncheckedUnresolvedImport la tgts
     la <- link (unsafeRelayout a) t
@@ -319,12 +320,12 @@ unresolvedImp a tgts = mdo
 
 unresolvedImpSrc' :: ExprCons' m UnresolvedImportSrc => ImportSource -> m SomeExpr
 unresolvedImpSrc  :: ExprCons' m UnresolvedImportSrc => ImportSource -> m (Expr UnresolvedImportSrc)
-unresolvedImpSrc'   = generalize <∘> unresolvedImpSrc
+unresolvedImpSrc'   = generalize .: unresolvedImpSrc
 unresolvedImpSrc  a = expr $ Term.uncheckedUnresolvedImportSrc a
 
 unresolvedImpHub' :: ExprCons m UnresolvedImportHub => [Expr a] -> m SomeExpr
 unresolvedImpHub  :: ExprCons m UnresolvedImportHub => [Expr a] -> m (Expr UnresolvedImportHub)
-unresolvedImpHub' = generalize <∘> unresolvedImpHub
+unresolvedImpHub' = generalize .: unresolvedImpHub
 unresolvedImpHub imps = mdo
     t     <- expr $ Term.uncheckedUnresolvedImportHub limps
     limps <- mapM (flip link t . unsafeRelayout) imps
@@ -332,16 +333,16 @@ unresolvedImpHub imps = mdo
 
 impHub' :: ExprCons m UnresolvedImportHub => (Map Name (Expr a)) -> m SomeExpr
 impHub  :: ExprCons m UnresolvedImportHub => (Map Name (Expr a)) -> m (Expr UnresolvedImportHub)
-impHub' = generalize <∘> impHub
+impHub' = generalize .: impHub
 impHub imps = mdo
     t     <- expr $ Term.uncheckedImportHub limps
     limps <- mapM (flip link t . unsafeRelayout) imps
     return t
 
 
-invalid' :: ExprCons' m Invalid => Text -> m SomeExpr
-invalid  :: ExprCons' m Invalid => Text -> m (Expr Invalid)
-invalid' = generalize <∘> invalid
+invalid' :: ExprCons' m Invalid => Text32 -> m SomeExpr
+invalid  :: ExprCons' m Invalid => Text32 -> m (Expr Invalid)
+invalid' = generalize .: invalid
 invalid  = expr . Term.uncheckedInvalid
 
 
@@ -350,7 +351,7 @@ accSection name = expr $ Term.uncheckedAccSection name
 
 leftSection' :: ExprCons m LeftSection => Expr a -> Expr b -> m SomeExpr
 leftSection  :: ExprCons m LeftSection => Expr a -> Expr b -> m (Expr $ LeftSection >> (a <+> b))
-leftSection' = generalize <∘∘> leftSection
+leftSection' = generalize .:. leftSection
 leftSection op a = mdo
     t   <- expr $ Term.uncheckedLeftSection lop la
     lop <- link (unsafeRelayout op) t
@@ -359,7 +360,7 @@ leftSection op a = mdo
 
 rightSection' :: ExprCons m RightSection => Expr a -> Expr b -> m SomeExpr
 rightSection  :: ExprCons m RightSection => Expr a -> Expr b -> m (Expr $ RightSection >> (a <+> b))
-rightSection' = generalize <∘∘> rightSection
+rightSection' = generalize .:. rightSection
 rightSection op a = mdo
     t   <- expr $ Term.uncheckedRightSection lop la
     la  <- link (unsafeRelayout a)  t
@@ -378,7 +379,7 @@ disabled a = mdo
 
 marker' :: ExprCons' m Marker => Word64 -> m SomeExpr
 marker  :: ExprCons' m Marker => Word64 -> m (Expr Marker)
-marker' = generalize <∘> marker
+marker' = generalize .: marker
 marker  = expr . Term.uncheckedMarker
 
 marked' :: ExprCons m Marked => Expr l -> Expr r -> m SomeExpr
@@ -390,7 +391,7 @@ marked l r = mdo
     lr <- link (unsafeRelayout r) t
     return t
 
-metadata' :: ExprCons' m Metadata => Text -> m SomeExpr
-metadata  :: ExprCons' m Metadata => Text -> m (Expr Metadata)
+metadata' :: ExprCons' m Metadata => Text32 -> m SomeExpr
+metadata  :: ExprCons' m Metadata => Text32 -> m (Expr Metadata)
 metadata' = fmap generalize . metadata
 metadata  = expr . Term.uncheckedMetadata

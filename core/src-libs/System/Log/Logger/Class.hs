@@ -2,7 +2,7 @@
 
 module System.Log.Logger.Class where
 
-import Prologue
+import Prologue_old
 
 import           Control.Monad.State           (StateT, runStateT, evalStateT, execStateT)
 import qualified Control.Monad.State           as State

@@ -60,14 +60,15 @@ import           Data.FingerTree (Measured, FingerTree, takeUntil, dropUntil, me
 import Data.Monoid (Sum(Sum))
 import qualified Data.Text as Text
 import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Data.VectorText as VectorText
-import           Data.VectorText (VectorText)
+-- import qualified Data.VectorText as VectorText
+-- import           Data.VectorText (VectorText)
+import Data.Text32 (Text32)
 
 import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
 import qualified Data.Text.Span as Span
 
 import qualified Data.Layout as D
-import Luna.Syntax.Text.SpanTree
+import Luna.Syntax.Text.Analysis.SpanTree
 
 data ShellTest
 type instance Abstract ShellTest = ShellTest
@@ -157,7 +158,7 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
             --
         putStrLn "\n--- === CodeSpans === ---\n"
         es <- exprs
-        ls <- getLayer @CodeSpan <$$> es
+        ls <- getLayer @CodeSpan <$>= es
         pprint $ zip es ls
 
         -- putStrLn "\n--- === Abs CodeSpans === ---\n"
@@ -169,13 +170,13 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
         begin <- CodeSpan.viewToRealOffsetWithMarkers_ 1 result
         end   <- CodeSpan.viewToRealOffset_            4 result
         print (begin, end)
-        putStrLn $ "\"" <> convert (VectorText.replace (convert begin) (convert end) "foo" src) <> "\""
+        -- putStrLn $ "\"" <> convert (VectorText.replace (convert begin) (convert end) "foo" src) <> "\""
 
         putStrLn "\n--- === Codegen === ---\n"
         putStrLn . convert =<< CodeGen.subpass CodeGen.SimpleStyle (unsafeGeneralize result)
 
         putStrLn "\n--- === Marker map === ---\n"
-        gidMap <- unwrap <$> getAttr @MarkedExprMap
+        gidMap <- _unwrap <$> getAttr @MarkedExprMap
         pprint gidMap
 
 
@@ -218,11 +219,11 @@ uncheckedDeleteStarType e = do
 
 main :: IO ()
 main = do
-    let input :: VectorText
+    let input :: Text32
         -- input = "«0»Vector x y z = v\n«1»Scalar a = t"
         input = "«0»Vector x y z = v"
         -- input = "«0"
-    let stream = Lexer.runLexer input :: [Lexer.LexerToken (Lexer.Symbol Name)]
+    let stream = Lexer.evalDefLexer input :: [Lexer.Token Lexer.Symbol]
         st     = buildSpanTree input stream
     -- pprint stream
     -- pprint st

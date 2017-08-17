@@ -1,7 +1,7 @@
 module Luna.Prelude (module Luna.Prelude, module X) where
 
 import           Data.Reprx        as X
-import           Prologue          as X hiding (Type, Curry, Cons, Getter, Repr, Setter, cons, read, repr, (#), universe)
+import           Prologue_old          as X hiding (Type, Curry, Cons, Getter, Repr, Setter, cons, read, repr, (#), universe)
 import           Data.Construction as X hiding (Fields, Product, Product', fields, fields', product)
 import           Control.Monad     as X (forM, forM_, filterM)
 import           Data.Maybe        as X (maybeToList, maybe, fromMaybe)

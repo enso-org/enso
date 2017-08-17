@@ -3,7 +3,7 @@
 
 module Data.Graph.Class where
 
-import Prologue      hiding (Data)
+import Prologue_old      hiding (Data)
 import Prologue.Prim (AnyData)
 
 import           Data.TypeDesc

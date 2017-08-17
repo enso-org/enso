@@ -1,6 +1,6 @@
 module Language.Symbol.Operator.Assoc where
 
-import Prologue hiding (read)
+import Prologue_old hiding (read)
 
 import Language.Symbol.Label
 import Control.Monad.State.Dependent (StateT)

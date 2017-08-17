@@ -2,7 +2,7 @@
 
 module Data.Container.Measured where
 
-import Prologue
+import Prologue_old
 
 
 

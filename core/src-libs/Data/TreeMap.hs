@@ -3,7 +3,7 @@
 
 module Data.TreeMap where
 
-import Prologue hiding (null)
+import Prologue_old hiding (null)
 
 import qualified Prelude  as P
 import qualified Data.Map as Map
@@ -113,7 +113,7 @@ assocs = Map.assocs . unwrap
 
 paths_ :: IsValue t => TreeMap t k a -> [NonEmpty k]
 paths  :: IsValue t => TreeMap t k a -> [(NonEmpty k, a)]
-paths_ = fst <∘> paths
+paths_ = fst .: paths
 paths t = concat $ (\(k,v) -> branchPaths (pure k) v) <$> assocs t where
     treePaths   path tree             = concat $ (\(k,v) -> branchPaths (path <> [k]) v) <$> assocs tree
     branchPaths path (TreeBranch v s) = fromValWith id ((:) . (path,)) v $ treePaths path s

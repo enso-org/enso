@@ -4,18 +4,21 @@
 module Luna.Builtin.Std where
 
 import           Control.Concurrent
+import           Control.DeepSeq                              (rnf)
+import qualified Control.Exception                            as Exception
 import           Control.Monad.Except
 import           Control.Monad.Trans.State                    (evalStateT, get)
 
 import qualified Data.Aeson                                   as Aeson
 import           Data.ByteString.Char8                        (pack)
+import qualified Data.ByteString                              as StrictByteString
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
-import           Control.DeepSeq                              (rnf)
-import qualified Control.Exception                            as Exception
+import qualified Data.CaseInsensitive                         as CI
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
+import           Data.Int                                     (Int64)
 import           Data.Map                                     (Map)
 import qualified Data.Map                                     as Map
 import qualified Data.Map.Base                                as IMap
@@ -23,6 +26,8 @@ import qualified Data.MessagePack                             as MsgPack
 import           Data.Scientific                              (toRealFloat)
 import           Data.Set                                     (Set)
 import qualified Data.Set                                     as Set
+import           Data.Time                                    (DiffTime)
+import qualified Data.Time                                    as Time
 import           Data.Text.Lazy                               (Text)
 import qualified Data.Text                                    as AnyText
 import qualified Data.Text.Lazy                               as Text
@@ -48,9 +53,9 @@ import           Luna.IR                                      hiding (Function)
 import           Luna.Pass.Data.ExprRoots
 import           Luna.Pass.Data.UniqueNameGen
 import           Luna.Pass.Evaluation.Interpreter
-import           Luna.Pass.Inference.Data.MergeQueue          (MergeQueue)
-import           Luna.Pass.Inference.Data.SimplifierQueue     (SimplifierQueue)
-import           Luna.Pass.Inference.Data.Unifications        (Unifications)
+import           Luna.Pass.Inference.Data.MergeQueue          (MergeQueue(..))
+import           Luna.Pass.Inference.Data.SimplifierQueue     (SimplifierQueue(..))
+import           Luna.Pass.Inference.Data.Unifications        (Unifications(..))
 import           Luna.Pass.Resolution.Data.CurrentTarget
 import           Luna.Pass.Resolution.Data.UnresolvedAccs     (getAccs, UnresolvedAccs)
 import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped as RemoveGrouped
@@ -60,6 +65,7 @@ import           Luna.Prelude                                 as P hiding (cons,
 import           Luna.Test.IR.Runner
 import           Luna.Test.Utils
 
+import qualified Network.HTTP.Client                          as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
 
@@ -74,7 +80,7 @@ import qualified System.Process                               as Process
 
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"] ]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"]]
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -180,61 +186,41 @@ withExceptions a = do
         Left a  -> throw a
         Right r -> return r
 
+oneArgFun tArg1 tRes = runGraph $ do
+    t1  <- cons_ @Draft tArg1
+    t2  <- cons_ @Draft tRes
+    l   <- lam t1 t2
+    (assu, r) <- mkMonadProofFun $ generalize l
+    cmp <- compile r
+    return (assu, cmp)
+
+twoArgFun tArg1 tArg2 tRes = runGraph $ do
+    t1   <- cons_ @Draft tArg1
+    t2   <- cons_ @Draft tArg2
+    t3   <- cons_ @Draft tRes
+    l1   <- lam t2 t3
+    l2   <- lam t1 l1
+    (assu, r) <- mkMonadProofFun $ generalize l2
+    cmp <- compile r
+    return (assu, cmp)
+
+
 doubleClass :: Imports -> IO Class
 doubleClass imps = do
-    Right (boxed3DoublesAssumptions, boxed3Doubles) <- runGraph $ do
-        tDouble <- cons_ @Draft "Real"
-        l1   <- lam tDouble tDouble
-        l2   <- lam tDouble l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (boxed2DoublesAssumptions, boxed2Doubles) <- runGraph $ do
-        tDouble <- cons_ @Draft "Real"
-        l    <- lam tDouble tDouble
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (double2BoolAssumptions, double2Bool) <- runGraph $ do
-        tDouble   <- cons_ @Draft "Real"
-        tBool     <- cons_ @Draft "Bool"
-        l1        <- lam tDouble tBool
-        l2        <- lam tDouble l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp       <- compile r
-        return (assu, cmp)
-
-    Right (double2TextAssumptions, double2text) <- runGraph $ do
-        tDouble <- cons_ @Draft "Real"
-        tStr <- cons_ @Draft "Text"
-        l    <- lam tDouble tStr
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (double2JSONAssumptions, double2JSON) <- runGraph $ do
-        tDouble <- cons_ @Draft "Real"
-        tStr <- cons_ @Draft "JSON"
-        l    <- lam tDouble tStr
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (double2DoubleAssumptions, double2Double) <- runGraph $ do
-        tDouble   <- cons_ @Draft "Real"
-        l1        <- lam tDouble tDouble
-        l2        <- lam tDouble l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp       <- compile r
-        return (assu, cmp)
+    Right (boxed3DoublesAssumptions, boxed3Doubles) <- twoArgFun "Real" "Real" "Real"
+    Right (boxed2DoublesAssumptions, boxed2Doubles) <- oneArgFun "Real" "Real"
+    Right (double2BoolAssumptions, double2Bool)     <- twoArgFun "Real" "Real" "Bool"
+    Right (double2TextAssumptions, double2text)     <- oneArgFun "Real" "Text"
+    Right (double2JSONAssumptions, double2JSON)     <- oneArgFun "Real" "JSON"
+    Right (double2DoubleAssumptions, double2Double) <- oneArgFun "Real" "Real"
 
     let plusVal     = toLunaValue tmpImps ((+)  :: Double -> Double -> Double)
         timeVal     = toLunaValue tmpImps ((*)  :: Double -> Double -> Double)
         minusVal    = toLunaValue tmpImps ((-)  :: Double -> Double -> Double)
         divVal      = toLunaValue tmpImps ((/)  :: Double -> Double -> Double)
         eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
+        ltVal       = toLunaValue tmpImps ((<)  :: Double -> Double -> Bool)
+        gtVal       = toLunaValue tmpImps ((>)  :: Double -> Double -> Bool)
         showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
         toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
         toRealVal   = toLunaValue tmpImps (id   :: Double -> Double)
@@ -253,53 +239,13 @@ doubleClass imps = do
 
 intClass :: Imports -> IO Class
 intClass imps = do
-    Right (ints2BoolAssumptions, ints2Bool) <- runGraph $ do
-        tInt  <- cons_ @Draft "Int"
-        tBool <- cons_ @Draft "Bool"
-        l1    <- lam tInt tBool
-        l2    <- lam tInt l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (boxed3IntsAssumptions, boxed3Ints) <- runGraph $ do
-        tInt <- cons_ @Draft "Int"
-        l1   <- lam tInt tInt
-        l2   <- lam tInt l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (boxed2IntsAssumptions, boxed2Ints) <- runGraph $ do
-        tInt <- cons_ @Draft "Int"
-        l    <- lam tInt tInt
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (int2TextAssumptions, int2text) <- runGraph $ do
-        tInt <- cons_ @Draft "Int"
-        tStr <- cons_ @Draft "Text"
-        l    <- lam tInt tStr
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (int2RealAssumptions, int2Real) <- runGraph $ do
-        tInt <- cons_ @Draft "Int"
-        tStr <- cons_ @Draft "Real"
-        l    <- lam tInt tStr
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-
-    Right (int2JSONAssumptions, int2JSON) <- runGraph $ do
-        tInt <- cons_ @Draft "Int"
-        tStr <- cons_ @Draft "JSON"
-        l    <- lam tInt tStr
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
+    Right (ints2BoolAssumptions, ints2Bool)   <- twoArgFun "Int" "Int" "Bool"
+    Right (boxed3IntsAssumptions, boxed3Ints) <- twoArgFun "Int" "Int" "Int"
+    Right (boxed2IntsAssumptions, boxed2Ints) <- oneArgFun "Int" "Int"
+    Right (int2TextAssumptions, int2text)     <- oneArgFun "Int" "Text"
+    Right (int2RealAssumptions, int2Real)     <- oneArgFun "Int" "Real"
+    Right (int2JSONAssumptions, int2JSON)     <- oneArgFun "Int" "JSON"
+    Right (int2TIAssumptions, int2TI)         <- oneArgFun "Int" "TimeInterval"
 
     let plusVal        = toLunaValue tmpImps ((+)  :: Integer -> Integer -> Integer)
         timeVal        = toLunaValue tmpImps ((*)  :: Integer -> Integer -> Integer)
@@ -312,10 +258,11 @@ intClass imps = do
         predVal        = toLunaValue tmpImps (pred :: Integer -> Integer)
         succVal        = toLunaValue tmpImps (succ :: Integer -> Integer)
         showVal        = toLunaValue tmpImps (convert . show :: Integer -> Text)
-        toJSVal        = toLunaValue tmpImps (Aeson.toJSON :: Integer -> Aeson.Value)
-        toRealVal      = toLunaValue tmpImps (fromIntegral :: Integer -> Double)
-        secondsVal     = toLunaValue tmpImps ((* 1000000) ::  Integer -> Integer)
-        milisecondsVal = toLunaValue tmpImps ((* 1000)    ::  Integer -> Integer)
+        toJSVal        = toLunaValue tmpImps (Aeson.toJSON   :: Integer -> Aeson.Value)
+        toRealVal      = toLunaValue tmpImps (fromIntegral   :: Integer -> Double)
+        secondsVal     = toLunaValue tmpImps (realToFrac            ::  Integer -> Time.DiffTime)
+        minutesVal     = toLunaValue tmpImps ((* 60)   . realToFrac :: Integer -> Time.DiffTime)
+        milisecondsVal = toLunaValue tmpImps ((/ 1000) . realToFrac :: Integer -> Time.DiffTime)
         tmpImps        = imps & importedClasses . at "Int" ?~ klass
         klass          = Class Map.empty $ Map.fromList [ ("+",           Function boxed3Ints plusVal        boxed3IntsAssumptions)
                                                         , ("*",           Function boxed3Ints timeVal        boxed3IntsAssumptions)
@@ -324,8 +271,9 @@ intClass imps = do
                                                         , ("%",           Function boxed3Ints modVal         boxed3IntsAssumptions)
                                                         , ("pred",        Function boxed2Ints predVal        boxed2IntsAssumptions)
                                                         , ("succ",        Function boxed2Ints succVal        boxed2IntsAssumptions)
-                                                        , ("seconds",     Function boxed2Ints secondsVal     boxed2IntsAssumptions)
-                                                        , ("miliseconds", Function boxed2Ints milisecondsVal boxed2IntsAssumptions)
+                                                        , ("seconds",     Function int2TI     secondsVal     int2TIAssumptions)
+                                                        , ("minutes",     Function int2TI     minutesVal     int2TIAssumptions)
+                                                        , ("miliseconds", Function int2TI     milisecondsVal int2TIAssumptions)
                                                         , ("shortRep",    Function int2text   showVal        int2TextAssumptions)
                                                         , ("toText",      Function int2text   showVal        int2TextAssumptions)
                                                         , ("toJSON",      Function int2JSON   toJSVal        int2JSONAssumptions)
@@ -338,74 +286,34 @@ intClass imps = do
 
 binaryClass :: Imports -> IO Class
 binaryClass imps = do
-    Right (toTextAssu, toTextIr) <- runGraph $ do
-        tText     <- cons_ @Draft "Binary"
-        tJSON     <- cons_ @Draft "Text"
-        l         <- lam tText tJSON
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp       <- compile r
-        return (assu, cmp)
+    Right (toTextAssu, toTextIr) <- oneArgFun "Binary" "Text"
+    Right (idAssu, idIr)         <- oneArgFun "Binary" "Binary"
+    Right (eqAssu, eqIr)         <- twoArgFun "Binary" "Binary" "Bool"
+    Right (plusAssu, plusIr)     <- twoArgFun "Binary" "Binary" "Binary"
     let toTextVal  = toLunaValue tmpImps Text.decodeUtf8
+        idVal      = toLunaValue tmpImps (id   :: ByteString -> ByteString)
+        eqVal      = toLunaValue tmpImps ((==) :: ByteString -> ByteString -> Bool)
+        plusVal    = toLunaValue tmpImps ((<>) :: ByteString -> ByteString -> ByteString)
         bStrLen    = Text.pack . show . ByteString.length :: ByteString -> Text
         toShortRep = toLunaValue tmpImps $ \bs -> "Binary<" <> bStrLen bs <> ">"
         tmpImps    = imps & importedClasses . at "Binary" ?~ klass
         klass      = Class Map.empty $ Map.fromList [ ("toText",   Function toTextIr toTextVal  toTextAssu)
+                                                    , ("toBinary", Function idIr     idVal      idAssu)
+                                                    , ("equals",   Function eqIr     eqVal      eqAssu)
+                                                    , ("+",        Function plusIr   plusVal    plusAssu)
                                                     , ("shortRep", Function toTextIr toShortRep toTextAssu)
                                                     ]
     return klass
 
 stringClass :: Imports -> IO Class
 stringClass imps = do
-    Right (plusAssu, plusIr) <- runGraph $ do
-        tText <- cons_ @Draft "Text"
-        l1      <- lam tText tText
-        l2      <- lam tText l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp <- compile r
-        return (assu, cmp)
-    Right (eqAssu, eqIr) <- runGraph $ do
-        tText <- cons_ @Draft "Text"
-        tBool   <- cons_ @Draft "Bool"
-        l1      <- lam tText tBool
-        l2      <- lam tText l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp <- compile r
-        return (assu, cmp)
-    Right (isEmptyAssu, isEmptyIr) <- runGraph $ do
-        tText     <- cons_ @Draft "Text"
-        tBool     <- cons_ @Draft "Bool"
-        l         <- lam tText tBool
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp       <- compile r
-        return (assu, cmp)
-    Right (lengthAssu, lengthIr) <- runGraph $ do
-        tText     <- cons_ @Draft "Text"
-        tInt      <- cons_ @Draft "Int"
-        l         <- lam tText tInt
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp       <- compile r
-        return (assu, cmp)
-    Right (textAssu, textIr) <- runGraph $ do
-        tText <- cons_ @Draft "Text"
-        l       <- lam tText tText
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-    Right (toJSONAssu, toJSONIr) <- runGraph $ do
-        tText   <- cons_ @Draft "Text"
-        tJSON   <- cons_ @Draft "JSON"
-        l       <- lam tText tJSON
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-    Right (toBinaryAssu, toBinaryIr) <- runGraph $ do
-        tText   <- cons_ @Draft "Text"
-        tBinary   <- cons_ @Draft "Binary"
-        l       <- lam tText tBinary
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-    Right (wordsAssu, wordsIr) <- runGraph $ do
+    Right (plusAssu, plusIr)           <- twoArgFun "Text" "Text" "Text"
+    Right (eqAssu, eqIr)               <- twoArgFun "Text" "Text" "Bool"
+    Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
+    Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
+    Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
+    Right (text2TimeAssu, text2TimeIr) <- oneArgFun "Text" "Time"
+    Right (wordsAssu, wordsIr)         <- runGraph $ do
         tText <- cons_ @Draft "Text"
         tList   <- cons "List" [tText]
         l       <- lam tText tList
@@ -454,137 +362,61 @@ stringClass imps = do
                                                        ]
     return klass
 
+preludeArithOp op = compileFunction def $ do
+    a     <- var "a"
+    b     <- var "b"
+    acpl  <- acc a op
+    apb   <- app acpl b
+    l1    <- lam b apb
+    l2    <- lam a l1
+    tpA   <- var "a"
+    monA  <- var "monA"
+    monB  <- var "monB"
+    monC  <- var "monC"
+    montA <- monadic tpA monA
+    montB <- monadic tpA monB
+    montC <- monadic tpA monC
+    tl1   <- lam montA montB
+    pure  <- cons_ @Draft "Pure"
+    tl1M  <- monadic tl1 pure
+    tl2   <- lam montC tl1M
+    tl2M  <- monadic tl2 pure
+    reconnectLayer' @UserType (Just tl2M) l2
+    return $ generalize l2
+
+preludeCmpOp importBoxes op = compileFunction importBoxes $ do
+    a    <- var "a"
+    b    <- var "b"
+    acpl <- acc a op
+    apb  <- app acpl b
+    l1   <- lam b apb
+    l2   <- lam a l1
+    tpA  <- var "a"
+    bool' <- cons_ @Draft "Bool"
+    monA <- var "monA"
+    monB <- var "monB"
+    monC <- var "monC"
+    montA <- monadic tpA monA
+    montB <- monadic bool' monB
+    montC <- monadic tpA monC
+    tl1   <- lam montA montB
+    pure  <- cons_ @Draft "Pure"
+    tl1M  <- monadic tl1 pure
+    tl2   <- lam montC tl1M
+    tl2M  <- monadic tl2 pure
+    reconnectLayer' @UserType (Just tl2M) l2
+    return $ generalize l2
+
 prelude :: Imports -> IO Imports
 prelude imps = mdo
-    minus <- compileFunction def $ do
-        a    <- var "a"
-        b    <- var "b"
-        acpl <- acc a "-"
-        apb  <- app acpl b
-        l1   <- lam b apb
-        l2   <- lam a l1
-        tpA  <- var "a"
-        monA <- var "monA"
-        monB <- var "monB"
-        monC <- var "monC"
-        montA <- monadic tpA monA
-        montB <- monadic tpA monB
-        montC <- monadic tpA monC
-        tl1   <- lam montA montB
-        pure  <- cons_ @Draft "Pure"
-        tl1M  <- monadic tl1 pure
-        tl2   <- lam montC tl1M
-        tl2M  <- monadic tl2 pure
-        reconnectLayer' @UserType (Just tl2M) l2
-        return $ generalize l2
-    times <- compileFunction def $ do
-        a    <- var "a"
-        b    <- var "b"
-        acpl <- acc a "*"
-        apb  <- app acpl b
-        l1   <- lam b apb
-        l2   <- lam a l1
-        tpA  <- var "a"
-        monA <- var "monA"
-        monB <- var "monB"
-        monC <- var "monC"
-        montA <- monadic tpA monA
-        montB <- monadic tpA monB
-        montC <- monadic tpA monC
-        tl1   <- lam montA montB
-        pure  <- cons_ @Draft "Pure"
-        tl1M  <- monadic tl1 pure
-        tl2   <- lam montC tl1M
-        tl2M  <- monadic tl2 pure
-        reconnectLayer' @UserType (Just tl2M) l2
-        return $ generalize l2
-    mod <- compileFunction def $ do
-        a    <- var "a"
-        b    <- var "b"
-        acpl <- acc a "%"
-        apb  <- app acpl b
-        l1   <- lam b apb
-        l2   <- lam a l1
-        tpA  <- var "a"
-        monA <- var "monA"
-        monB <- var "monB"
-        monC <- var "monC"
-        montA <- monadic tpA monA
-        montB <- monadic tpA monB
-        montC <- monadic tpA monC
-        tl1   <- lam montA montB
-        pure  <- cons_ @Draft "Pure"
-        tl1M  <- monadic tl1 pure
-        tl2   <- lam montC tl1M
-        tl2M  <- monadic tl2 pure
-        reconnectLayer' @UserType (Just tl2M) l2
-        return $ generalize l2
-    plus <- compileFunction def $ do
-        a    <- var "a"
-        b    <- var "b"
-        acpl <- acc a "+"
-        apb  <- app acpl b
-        l1   <- lam b apb
-        l2   <- lam a l1
-        tpA  <- var "a"
-        monA <- var "monA"
-        monB <- var "monB"
-        monC <- var "monC"
-        montA <- monadic tpA monA
-        montB <- monadic tpA monB
-        montC <- monadic tpA monC
-        tl1   <- lam montA montB
-        pure  <- cons_ @Draft "Pure"
-        tl1M  <- monadic tl1 pure
-        tl2   <- lam montC tl1M
-        tl2M  <- monadic tl2 pure
-        reconnectLayer' @UserType (Just tl2M) l2
-        return $ generalize l2
-    gt <- compileFunction importBoxes $ do
-        a    <- var "a"
-        b    <- var "b"
-        acpl <- acc a ">"
-        apb  <- app acpl b
-        l1   <- lam b apb
-        l2   <- lam a l1
-        tpA  <- var "a"
-        bool' <- cons_ @Draft "Bool"
-        monA <- var "monA"
-        monB <- var "monB"
-        monC <- var "monC"
-        montA <- monadic tpA monA
-        montB <- monadic bool' monB
-        montC <- monadic tpA monC
-        tl1   <- lam montA montB
-        pure  <- cons_ @Draft "Pure"
-        tl1M  <- monadic tl1 pure
-        tl2   <- lam montC tl1M
-        tl2M  <- monadic tl2 pure
-        reconnectLayer' @UserType (Just tl2M) l2
-        return $ generalize l2
-    lt <- compileFunction importBoxes $ do
-        a    <- var "a"
-        b    <- var "b"
-        acpl <- acc a "<"
-        apb  <- app acpl b
-        l1   <- lam b apb
-        l2   <- lam a l1
-        tpA  <- var "a"
-        bool' <- cons_ @Draft "Bool"
-        monA <- var "monA"
-        monB <- var "monB"
-        monC <- var "monC"
-        montA <- monadic tpA monA
-        montB <- monadic bool' monB
-        montC <- monadic tpA monC
-        tl1   <- lam montA montB
-        pure  <- cons_ @Draft "Pure"
-        tl1M  <- monadic tl1 pure
-        tl2   <- lam montC tl1M
-        tl2M  <- monadic tl2 pure
-        reconnectLayer' @UserType (Just tl2M) l2
-        return $ generalize l2
-    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("%", mod)]
+    minus <- preludeArithOp "-"
+    times <- preludeArithOp "*"
+    mod   <- preludeArithOp "%"
+    plus  <- preludeArithOp "+"
+    gt    <- preludeCmpOp importBoxes ">"
+    lt    <- preludeCmpOp importBoxes "<"
+    eq    <- preludeCmpOp importBoxes "equals"
+    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod)]
     string <- stringClass importBoxes
     int    <- intClass    importBoxes
     double <- doubleClass importBoxes
@@ -673,18 +505,71 @@ systemStd imps = do
         res    <- compile $ generalize lamP
         return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
 
+    Right (mpack2BinaryAssu, mpack2BinaryIr) <- oneArgFun "MsgPack" "Binary"
+    let encodeMsgPackVal = toLunaValue std (MsgPack.pack :: MsgPack.Object -> ByteString)
+        encodeMsgPack    = Function mpack2BinaryIr encodeMsgPackVal mpack2BinaryAssu
+
     let parseMsgPackVal :: ByteString -> LunaEff MsgPack.Object
         parseMsgPackVal = withExceptions . MsgPack.unpack
-
     parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
-    let primPerformHttpVal :: Text -> Text -> ByteString -> LunaEff (HTTP.Response ByteString)
-        primPerformHttpVal uri method body = performIO $ do
+    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
+        primPerformHttpVal uri method headers auth params body = performIO $ do
+            let packHeader (k, v) = (CI.mk $ convert k, convert v)
+                packParam  (k, v) = (convert k, convert <$> v)
             baseReq <- HTTP.parseRequest (convert uri)
-            HTTP.httpLBS $ baseReq & HTTP.setRequestBodyLBS body
-                                   & HTTP.setRequestMethod (convert method)
-                                   & HTTP.addRequestHeader HTTP.hAccept (pack "*/*")
-    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal) [LCons "Text" [], LCons "Text" [], LCons "Binary" []] $ LCons "HttpResponse" []
+            manager <- HTTP.newManager HTTP.defaultManagerSettings
+            let newHeaders = map packHeader headers
+                oldHeaders = HTTP.requestHeaders baseReq
+                req        = baseReq
+                    & HTTP.setRequestBodyLBS body
+                    & HTTP.setRequestMethod  (convert method)
+                    & HTTP.setRequestHeaders (oldHeaders <> newHeaders)
+                    & HTTP.addRequestHeader  HTTP.hAccept (pack "*/*")
+                    & HTTP.setRequestQueryString (map packParam params)
+                    & case auth of
+                        Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
+                        Nothing -> id
+            HTTP.responseOpen req manager
+
+    let textT           = LCons "Text"   []
+        tupleT          = LCons "Tuple2" [textT, textT]
+        maybeTupleT     = LCons "Maybe"  [tupleT]
+        tupleListT      = LCons "List"   [tupleT]
+        tupleMaybeListT = LCons "List"   [LCons "Tuple2" [textT, LCons "Maybe" [textT]]]
+    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
+                                    [textT, textT, tupleListT, maybeTupleT, tupleMaybeListT, LCons "Binary" []]
+                                    (LCons "HttpResponse" [])
+
+    let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
+        primGetCurrentTimeVal = performIO Time.getCurrentTime
+    primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
+
+    Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "Time" "Time" "TimeInterval"
+    let primDiffTimesVal = toLunaValue std Time.diffUTCTime
+        primDiffTimes    = Function times2IntervalIr primDiffTimesVal times2IntervalAssu
+
+    Right (time2TextAssu, time2TextIr) <- oneArgFun "Time" "Text"
+    let primShowTimeVal = toLunaValue std (convert . show :: Time.UTCTime -> Text)
+        primShowTime    = Function time2TextIr primShowTimeVal time2TextAssu
+
+    Right (times2BoolAssu, times2BoolIr) <- twoArgFun "Time" "Time" "Bool"
+    let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
+        primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
+
+    Right (text2TimeAssu, text2TimeIr) <- runGraph $ do
+        tText  <- cons_ @Draft "Text"
+        tTime  <- cons_ @Draft "Time"
+        tMaybe <- cons "Maybe" [tTime]
+        l1     <- lam tText tMaybe
+        l2     <- lam tText l1
+        (assu, r) <- mkMonadProofFun $ generalize l2
+        cmp    <- compile r
+        return (assu, cmp)
+    let parseTime :: Text -> Text -> Maybe Time.UTCTime
+        parseTime fmt str = Time.parseTime Time.defaultTimeLocale (convert fmt) (convert str)
+        primParseTimeVal  = toLunaValue std parseTime
+        primParseTime     = Function text2TimeIr primParseTimeVal text2TimeAssu
 
     let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
@@ -768,7 +653,13 @@ systemStd imps = do
                                     , ("writeFile", writeFile')
                                     , ("parseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
+                                    , ("encodeMsgPack", encodeMsgPack)
                                     , ("primPerformHttp", primPerformHttp)
+                                    , ("primGetCurrentTime", primGetCurrentTime)
+                                    , ("primDiffTimes", primDiffTimes)
+                                    , ("primShowTime", primShowTime)
+                                    , ("primTimesEq", primTimesEq)
+                                    , ("primParseTime", primParseTime)
                                     , ("primFork", fork)
                                     , ("sleep", sleep)
                                     , ("primNewMVar", newEmptyMVar')
@@ -788,8 +679,21 @@ systemStd imps = do
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
 
-instance ToLunaData (HTTP.Response ByteString) where
-    toLunaData imps v = LunaObject $ Object (Constructor "HttpResponse" [toLunaData imps . integer $ HTTP.getResponseStatusCode v, toLunaData imps $ HTTP.getResponseBody v]) $ getObjectMethodMap "HttpResponse" imps
+unexpectedConstructorFor name = throw $ "Expected a " <> name <> " luna object, got unexpected constructor"
+
+instance ToLunaValue a => ToLunaValue (IO a) where
+    toLunaValue imps = toLunaValue imps <=< withExceptions
+
+instance ToLunaData StrictByteString.ByteString where
+    toLunaData imps = toLunaData imps . ByteString.fromStrict
+
+instance (ToLunaValue b) => ToLunaData (HTTP.Response b) where
+    toLunaData imps v = LunaObject $ Object (
+            Constructor "HttpResponse"
+                [ toLunaData imps . integer   $ HTTP.getResponseStatusCode v
+                , LunaThunk . toLunaValue imps $ HTTP.responseBody v
+                ]
+            ) (getObjectMethodMap "HttpResponse" imps)
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
@@ -849,6 +753,20 @@ instance IsBoxed "StrictText"    AnyText.Text
 instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
 
+instance FromLunaData MsgPack.Object where
+    fromLunaData v = force' v >>= \case
+        LunaObject obj -> case obj ^. constructor . tag of
+            "MPNull"   -> return MsgPack.ObjectNil
+            "MPBool"   -> MsgPack.ObjectBool <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPInt"    -> (MsgPack.ObjectInt . (fromIntegral :: Integer -> Int64)) <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPReal"   -> MsgPack.ObjectDouble <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPString" -> (MsgPack.ObjectStr . Text.toStrict)       <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPBinary" -> (MsgPack.ObjectBin . ByteString.toStrict) <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPArray"  -> MsgPack.ObjectArray <$> (fromLunaData . head $ obj ^. constructor . fields)
+            "MPMap"    -> MsgPack.ObjectMap   <$> (fromLunaData . head $ obj ^. constructor . fields)
+            _          -> unexpectedConstructorFor "MsgPack"
+        _ -> unexpectedConstructorFor "MsgPack"
+
 instance ToLunaData MsgPack.Object where
     toLunaData imps  MsgPack.ObjectNil       = LunaObject $ Object (Constructor "MPNull"   [])                                              (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectBool   b) = LunaObject $ Object (Constructor "MPBool"   [toLunaData imps b])                             (getObjectMethodMap "MsgPack" imps)
@@ -861,3 +779,31 @@ instance ToLunaData MsgPack.Object where
     toLunaData imps (MsgPack.ObjectArray  l) = LunaObject $ Object (Constructor "MPArray"  [toLunaData imps l])                             (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectMap    m) = LunaObject $ Object (Constructor "MPMap"    [toLunaData imps m])                             (getObjectMethodMap "MsgPack" imps)
     toLunaData imps (MsgPack.ObjectExt  _ _) = LunaError "MessagePack ObjectExt is not supported."
+
+instance FromLunaData Time.DiffTime where
+    fromLunaData dt = let errorMsg = "Expected a TimeInterval luna object, got unexpected constructor" in
+        force' dt >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeInterval" -> fmap Time.picosecondsToDiffTime . fromLunaData . head $ obj ^. constructor . fields
+                _              -> throw errorMsg
+            _  -> throw errorMsg
+
+instance FromLunaData Time.NominalDiffTime where
+    fromLunaData dt = realToFrac <$> (fromLunaData dt :: LunaEff Time.DiffTime)
+
+instance FromLunaData Time.UTCTime where
+    fromLunaData t = let errorMsg = "Expected a Time luna object, got unexpected constructor" in
+        force' t >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeVal" -> Time.UTCTime <$> (Time.ModifiedJulianDay <$> fromLunaData days) <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
+                _         -> throw errorMsg
+            _ -> throw errorMsg
+
+instance ToLunaData Time.DiffTime where
+    toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps)
+
+instance ToLunaData Time.NominalDiffTime where
+    toLunaData imps nDiffTime = toLunaData imps (realToFrac nDiffTime :: Time.DiffTime)
+
+instance ToLunaData Time.UTCTime where
+    toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "TimeVal" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)

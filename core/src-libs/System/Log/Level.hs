@@ -3,7 +3,7 @@
 
 module System.Log.Level where
 
-import Prologue  hiding (nested)
+import Prologue_old  hiding (nested)
 import qualified GHC.Stack as Stack
 import           GHC.Stack (HasCallStack, callStack, getCallStack)
 
