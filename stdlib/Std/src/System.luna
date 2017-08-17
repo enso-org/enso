@@ -48,24 +48,34 @@ def withForkWait async body:
     fork (fork' "")
     body mVar.take
 
+def readProcessWithExitCode path args input:
+    cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
+    pr = cp . run
+    outh = pr . stdout . fromJust . getContents
+    errh = pr . stderr . fromJust . getContents
+    def action waitOut waitErr:
+        unless (input . isEmpty) (pr . stdin . fromJust . putText input)
+        pr . stdin . each .close
+        o = waitOut
+        e = waitErr
+        (o, e)
+    outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
+    ex = pr . waitForProcess
+    (outErr . first, outErr . second, ex)
+
 
 class Process:
-    Process
+    Process (Maybe FileHandle)
 
-    def readProcessWithExitCode path args input:
-        cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
+    def runProcess path args input:
+        inhpr = case self of
+            Process Nothing: Just CreatePipe
+            Process (Just h): Just (UseHandle h)
+        cp = ProcessDescription path args inhpr (Just CreatePipe) (Just CreatePipe)
         pr = cp . run
-        outh = pr . stdout . fromJust . getContents
-        errh = pr . stderr . fromJust . getContents
-        def action waitOut waitErr:
-            unless (input . isEmpty) (pr . stdin . fromJust . putText input)
-            pr . stdin . each .close
-            o = waitOut
-            e = waitErr
-            (o, e)
-        outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
-        ex = pr . waitForProcess
-        (outErr . first, outErr . second, ex)
+        unless (input . isEmpty) (pr . stdin . fromJust . putText input)
+        pr . stdin . each .close
+        pr . stdout . fromJust
 
 
 class ExitCode:

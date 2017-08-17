@@ -819,15 +819,15 @@ instance FromLunaData CreateProcess where
             _ -> throw errorMsg
 
 instance FromLunaData StdStream where
-    fromLunaData v = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor: " in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
                 "Inherit"    -> return Inherit
                 "UseHandle"  -> UseHandle <$> (fromLunaData . head $ obj ^. constructor . fields)
                 "CreatePipe" -> return CreatePipe
                 "NoStream"   -> return NoStream
-                _            -> throw errorMsg
-            _ -> throw errorMsg
+                c            -> throw (errorMsg <> convert c)
+            c -> throw (errorMsg <> "Not a LunaObject")
 
 instance FromLunaData ExitCode where
     fromLunaData v = force' v >>= \case
