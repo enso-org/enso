@@ -56,7 +56,8 @@ main = do
     let code = mkRandomCode 300
     putStrLn $ "'" <> convert code <> "'"
     -- pprint $ evalDefLexer $ code
-    pprint $ evalDefLexer $ "[\"-cs\", \"[:alpha:]\", \"'\\n'\"]"
+    pprint $ evalDefLexer $ "a = a.x = 5"
+    pprint $ evalDefLexer $ "a = a.x += 5"
 
     pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
