@@ -252,6 +252,10 @@ spec = do
             it "grouped pattern"                            $ shouldParseItself' expr "(Vector x y z) = val"                      [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(1,12),(0,14),(3,3),(0,20)]
             it "module-qualified pattern"                   $ shouldParseAs'     expr "A.B.C x y z = val" "A . B . C x y z = val" [(0,1),(0,3),(0,5),(1,1),(0,7),(1,1),(0,9),(1,1),(0,11),(3,3),(0,17)]
 
+        -- describe "modifiers" $ do
+        --     it "variable update"                            $ shouldParseItself' expr "a = a.x = 5"                               [(0,1),(3,3),(0,7)]
+
+
         describe "lambdas" $ do
             it "identity (not spaced)"                      $ shouldParseAs'     expr "x:x"  "x: x"                               [(0,1),(1,1),(0,3)]
             it "identity (l   spaced)"                      $ shouldParseAs'     expr "x :x" "x: x"                               [(0,1),(2,1),(0,4)]
