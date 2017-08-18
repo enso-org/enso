@@ -24,4 +24,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: prologue
 stability: experimental
 synopsis: Better, more general Prelude exporting common utilities.
-version: 2.0.2
+version: 2.0.3
