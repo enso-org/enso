@@ -310,6 +310,8 @@ stringClass imps = do
     Right (plusAssu, plusIr)           <- twoArgFun "Text" "Text" "Text"
     Right (eqAssu, eqIr)               <- twoArgFun "Text" "Text" "Bool"
     Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
+    Right (isEmptyAssu, isEmptyIr)     <- oneArgFun "Text" "Bool"
+    Right (lengthAssu, lengthIr)       <- oneArgFun "Text" "Int"
     Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
     Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
     Right (text2TimeAssu, text2TimeIr) <- oneArgFun "Text" "Time"

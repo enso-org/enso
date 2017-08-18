@@ -107,9 +107,8 @@ data Symbol -- Layout
 
 data StrEscType = CharStrEsc  !Int
                 | NumStrEsc   !Int
-                | QuoteEscape !StrType !Int
+                | QuoteEscape !StrType
                 | SlashEsc
-                | OrphanEsc -- No escape code due to end of input or wrong escape code
                 deriving (Generic, Show, Eq, Ord)
 
 data Bound   = Begin | End              deriving (Generic, Show, Eq, Ord)

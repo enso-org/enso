@@ -37,7 +37,7 @@ expCodeGenBench  p f i = env (expCodeGen f i) $ bench ("10e" <> show i) . nf p
 expCodeGenBenchs p f   = expCodeGenBench p f <$> [6..maxExpCodeLen]
 
 mkRandomCode :: Int -> Text32
-mkRandomCode i = convert . P.takePossible i $ Char.chr <$> randomRs (32,126) (mkStdGen 0)
+mkRandomCode i = convert . P.take i $ Char.chr <$> randomRs (32,126) (mkStdGen 0)
 
 mkCodeTerminators, mkBigVariable :: IsString s => Int -> s
 mkCodeTerminators i = fromString $ replicate i ';' ; {-# INLINE mkCodeTerminators #-}
@@ -55,7 +55,9 @@ main = do
 
     let code = mkRandomCode 300
     putStrLn $ "'" <> convert code <> "'"
-    pprint $ evalDefLexer $ code
+    -- pprint $ evalDefLexer $ code
+    pprint $ evalDefLexer $ "a = a.x = 5"
+    pprint $ evalDefLexer $ "a = a.x += 5"
 
     pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"

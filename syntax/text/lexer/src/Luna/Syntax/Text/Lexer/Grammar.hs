@@ -163,11 +163,9 @@ rawStrBody :: Int -> Lexer
 rawStrBody hlen = choice [body, escape, quotes, linebr] where
     body   = Str <$> takeWhile1 (\c -> c /= rawStrQuote && notNewlineStart c && c /= escapeChar)
     linebr = EOL <$  newline
-    escape = StrEsc <$ token escapeChar <*> esct
+    escape = token escapeChar *> option (Str $ convert escapeChar) (StrEsc <$> esct)
     esct   = (SlashEsc <$ token escapeChar)
-         <|> (QuoteEscape RawStr . Text32.length <$> takeMany1 rawStrQuote)
-         <|> (QuoteEscape FmtStr . Text32.length <$> takeMany1 fmtStrQuote)
-         <|> pure OrphanEsc
+         <|> (QuoteEscape RawStr <$ takeMany1 rawStrQuote)
     quotes = do
         qs <- takeMany1 rawStrQuote
         if Text32.length qs == hlen
@@ -184,8 +182,8 @@ fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
     linebr = EOL <$  newline
     escape = token escapeChar *> esct
     esct   = (StrEsc   SlashEsc <$ token escapeChar)
-         <|> (StrEsc . QuoteEscape RawStr . Text32.length <$> takeMany1 rawStrQuote)
-         <|> (StrEsc . QuoteEscape FmtStr . Text32.length <$> takeMany1 fmtStrQuote)
+         <|> (StrEsc (QuoteEscape RawStr) <$ token rawStrQuote)
+         <|> (StrEsc (QuoteEscape FmtStr) <$ token fmtStrQuote)
          <|> lexEscSeq
     quotes = do
         qs <- takeMany1 fmtStrQuote
