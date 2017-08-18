@@ -230,7 +230,7 @@ instance ( MonadIO m -- DEBUG ONLY
         ASGFunction  n as body -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
         FunctionSig  n tp      -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
         Match        a cs      -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
-        ClsASG   n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
+        ClsASG _ n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
                                       go args conss decls = "class" <+> convert n <> arglist args <> body where
                                           body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock
                                           bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
@@ -248,7 +248,7 @@ instance ( MonadIO m -- DEBUG ONLY
         Unit      im _ b       -> do
                                   cls <- source b
                                   matchExpr cls $ \case
-                                      ClsASG _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
+                                      ClsASG _ _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
                                           where go imps defs = let --glue = if {-(imps == "") ||-} (null defs) then "" else newline
                                                                    glue = ""
                                                                in  imps <> glue <> foldl (</>) mempty defs

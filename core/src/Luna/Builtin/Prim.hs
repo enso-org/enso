@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TupleSections        #-}
 
 module Luna.Builtin.Prim where
 
@@ -39,9 +40,9 @@ class FromLunaData a where
 instance {-# OVERLAPPABLE #-} IsBoxed n a => FromLunaData a where
     fromLunaData (LunaBoxed a)    = return $ fromBoxed a
     fromLunaData (LunaThunk a)    = a >>= fromLunaData
+    fromLunaData (LunaSusp  a)    = a >>= fromLunaData
     fromLunaData (LunaObject _)   = throw "Expected a Boxed value, got an Object"
     fromLunaData (LunaFunction _) = throw "Expected a Boxed value, got a Function"
-    fromLunaData (LunaSusp _)     = throw "Expected a Boxed value, got a Suspension"
     fromLunaData LunaNoValue      = throw "Expected a Boxed value, got a Compilation Error"
     fromLunaData (LunaError e)    = throw e
 
@@ -66,6 +67,22 @@ instance {-# OVERLAPPABLE #-} ToLunaData a => ToLunaData [a] where
 
 instance ToLunaData Text where
     toLunaData = LunaBoxed .: toBoxed
+
+instance (FromLunaData a, FromLunaData b) => FromLunaData (a, b) where
+    fromLunaData v = let errorMsg = "Expected a Tuple2 luna object, got an unexpected constructor" in
+        force' v >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "Tuple2" -> (,) <$> fromLunaData a <*> fromLunaData b where [a, b] = obj ^. constructor . fields
+                _        ->  throw errorMsg
+            _              -> throw errorMsg
+
+instance (FromLunaData a, FromLunaData b, FromLunaData c) => FromLunaData (a, b, c) where
+    fromLunaData v = let errorMsg = "Expected a Tuple2 luna object, got an unexpected constructor" in
+        force' v >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "Tuple3" -> (,,) <$> fromLunaData a <*> fromLunaData b <*> fromLunaData c where [a, b, c] = obj ^. constructor . fields
+                _        -> throw errorMsg
+            _              -> throw errorMsg
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (a, b) where
     toLunaData imps (a, b) = LunaObject $ Object (Constructor "Tuple2" [toLunaData imps a, toLunaData imps b]) $ getObjectMethodMap "Tuple2" imps
@@ -124,6 +141,7 @@ mkPrimFun f = LunaFunction $ (>>= thunkProof f)
 
 thunkProof :: (LunaData -> LunaValue) -> LunaData -> LunaValue
 thunkProof f (LunaThunk a) = return $ LunaThunk $ a >>= thunkProof f
+thunkProof f (LunaSusp  a) = return $ LunaSusp  $ a >>= thunkProof f
 thunkProof f a             = f a
 
 

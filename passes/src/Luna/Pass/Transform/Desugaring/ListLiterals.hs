@@ -82,11 +82,9 @@ properTupleRep isPattern elts = do
     if isPattern then return tuple else makeLams binds tuple
 
 mkTupleOf :: (MonadRef m, MonadPassManager m) => [SomeExpr] -> SubPass DesugarLists m SomeExpr
-mkTupleOf elts = go elts where
+mkTupleOf elts = flip (foldlM app') elts =<< cons'_ consName where
     size     = length elts
     consName = convert $ "Tuple" <> show size
-    go []         = cons'_ consName
-    go (e : elts) = flip app' e =<< go elts
 
 prepareBinders :: (MonadRef m, MonadPassManager m) => [Maybe SomeExpr] -> SubPass DesugarLists m ([SomeExpr], [SomeExpr])
 prepareBinders []               = return ([], [])

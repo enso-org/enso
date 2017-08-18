@@ -499,7 +499,7 @@ parseUnit = withDebug "Parsing sources" . Parser.parsingBase_ Parser.unit . conv
 -- | Converting ASGCls to Cls
 partitionASGCls :: MonadPassRunner m => Expr ClsASG -> Pass UnitLoader m
 partitionASGCls t = do
-    Term (Term.ClsASG name _ _ unitDeclsl) <- readTerm t
+    Term (Term.ClsASG _ name _ _ unitDeclsl) <- readTerm t
     withDebug (convert $ "Converting ASGCls to Cls representation of '" <> convertTo @P.String name <> "'") $ do
         unitDecls <- mapM readSource unitDeclsl
         unitCls   <- Cls.wireCls' =<< (foldr ($) mempty <$> mapM partitionASGDecl unitDecls)
@@ -512,7 +512,7 @@ partitionASGDecl decl = matchExpr decl $ \case
         name <- matchExpr n' $ \case
             Var n -> return n
         set (Cls.methods . at name) . Just <$> rootedFunction body
-    cls@(ClsASG name _ _ _)     -> return $ Cls.classes . at name ?~ unsafeGeneralize decl
+    cls@(ClsASG _ name _ _ _)   -> return $ Cls.classes . at name ?~ unsafeGeneralize decl
     _                           -> return id
 
 

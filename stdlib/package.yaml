@@ -12,6 +12,7 @@ dependencies:
     - base
     - bytestring
     - containers
+    - case-insensitive
     - dependent-state
     - luna-core
     - luna-syntax-text-parser
@@ -24,6 +25,7 @@ dependencies:
     - scientific
     - unordered-containers
     - aeson
+    - http-client
     - http-conduit
     - http-types
     - uuid
