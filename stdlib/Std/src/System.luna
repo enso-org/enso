@@ -2,7 +2,7 @@ import Std.Base
 
 class PipeRequest:
     Inherit
-    UseHandle FileHandle
+    UseHandle: handle :: FileHandle
     CreatePipe
     NoStream
 
@@ -18,34 +18,28 @@ class ProcessHandle:
     def waitForProcess: primWaitForProcess self
 
 class ProcessResults:
-    ProcessResults (Maybe FileHandle) (Maybe FileHandle) (Maybe FileHandle) ProcessHandle
+    stdin  :: Maybe FileHandle
+    stdout :: Maybe FileHandle
+    stderr :: Maybe FileHandle
+    handle :: ProcessHandle
 
-    def stdin: case self of
-        ProcessResults hin _ _ _: hin
-
-    def stdout: case self of
-        ProcessResults _ hout _ _: hout
-
-    def stderr: case self of
-        ProcessResults _ _ herr _: herr
-
-    def handle: case self of
-        ProcessResults _ _ _ ph: ph
-
-    def waitForProcess: case self of
-        ProcessResults hin hout herr ph: ph . waitForProcess
+    def waitForProcess: self.handle . waitForProcess
 
 class ProcessDescription:
-    ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
+    command :: Text
+    args    :: List Text
+    stdin   :: Maybe PipeRequest
+    stdout  :: Maybe PipeRequest
+    stderr  :: Maybe PipeRequest
 
     def run: primRunProcess self
 
 def withForkWait async body:
     mVar = newMVar
-    def fork' t:
+    def fork':
         res = async
         mVar.put res
-    fork (fork' "")
+    fork fork'
     body mVar.take
 
 def readProcessWithExitCode path args input:
@@ -65,12 +59,10 @@ def readProcessWithExitCode path args input:
 
 
 class Process:
-    Process (Maybe FileHandle)
+    stdin :: Maybe FileHandle
 
     def runProcess path args input:
-        inhpr = case self of
-            Process Nothing: Just CreatePipe
-            Process (Just h): Just (UseHandle h)
+        inhpr = Just (self.stdin . maybe CreatePipe UseHandle)
         cp = ProcessDescription path args inhpr (Just CreatePipe) (Just CreatePipe)
         pr = cp . run
         unless (input . isEmpty) (pr . stdin . fromJust . putText input)
@@ -80,7 +72,7 @@ class Process:
 
 class ExitCode:
     ExitSuccess
-    ExitFailure Int
+    ExitFailure: errorCode :: Int
 
     def toInt: case self of
         ExitSuccess: 0
