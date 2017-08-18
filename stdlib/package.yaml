@@ -13,6 +13,7 @@ dependencies:
     - bytestring
     - containers
     - case-insensitive
+    - deepseq
     - dependent-state
     - luna-core
     - luna-syntax-text-parser

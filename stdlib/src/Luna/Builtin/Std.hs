@@ -4,6 +4,8 @@
 module Luna.Builtin.Std where
 
 import           Control.Concurrent
+import           Control.DeepSeq                              (rnf)
+import qualified Control.Exception                            as Exception
 import           Control.Monad.Except
 import           Control.Monad.Trans.State                    (evalStateT, get)
 
@@ -35,6 +37,9 @@ import           Data.TypeDesc
 import           Data.UUID                                    (UUID)
 import qualified Data.UUID.V4                                 as UUID
 
+import           Foreign.C                                    (ePIPE, Errno (Errno))
+
+import           GHC.IO.Exception                             (IOErrorType (ResourceVanished), IOException (..))
 import           GHC.IO.Handle                                (Handle)
 import qualified GHC.IO.Handle                                as Handle
 
@@ -305,6 +310,8 @@ stringClass imps = do
     Right (plusAssu, plusIr)           <- twoArgFun "Text" "Text" "Text"
     Right (eqAssu, eqIr)               <- twoArgFun "Text" "Text" "Bool"
     Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
+    Right (isEmptyAssu, isEmptyIr)     <- oneArgFun "Text" "Bool"
+    Right (lengthAssu, lengthIr)       <- oneArgFun "Text" "Int"
     Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
     Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
     Right (text2TimeAssu, text2TimeIr) <- oneArgFun "Text" "Time"
@@ -317,10 +324,12 @@ stringClass imps = do
         return (assu, cmp)
     let plusVal       = toLunaValue tmpImps ((<>) :: Text -> Text -> Text)
         shortRepVal   = toLunaValue tmpImps (Text.take 100 :: Text -> Text)
-        idVal         = toLunaValue tmpImps (id   :: Text -> Text)
+        idVal         = toLunaValue tmpImps (id :: Text -> Text)
         eqVal         = toLunaValue tmpImps ((==) :: Text -> Text -> Bool)
         gtVal         = toLunaValue tmpImps ((>)  :: Text -> Text -> Bool)
         ltVal         = toLunaValue tmpImps ((<)  :: Text -> Text -> Bool)
+        isEmptyVal    = toLunaValue tmpImps (Text.null :: Text -> Bool)
+        lengthVal     = toLunaValue tmpImps (fromIntegral . Text.length :: Text -> Integer)
         isPrefixOfVal = toLunaValue tmpImps Text.isPrefixOf
         hasPrefixVal  = toLunaValue tmpImps (flip Text.isPrefixOf)
         wordsVal      = toLunaValue tmpImps Text.words
@@ -335,6 +344,8 @@ stringClass imps = do
         tmpImps       = imps & importedClasses . at "Text" ?~ klass
         klass         = Class Map.empty $ Map.fromList [ ("+",          Function plusIr     plusVal       plusAssu)
                                                        , ("equals",     Function eqIr       eqVal         eqAssu)
+                                                       , ("isEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)
+                                                       , ("length",     Function lengthIr   lengthVal     lengthAssu)
                                                        , (">",          Function eqIr       gtVal         eqAssu)
                                                        , ("<",          Function eqIr       ltVal         eqAssu)
                                                        , ("isPrefixOf", Function eqIr       isPrefixOfVal eqAssu)
@@ -397,7 +408,7 @@ preludeCmpOp importBoxes op = compileFunction importBoxes $ do
     tl2M  <- monadic tl2 pure
     reconnectLayer' @UserType (Just tl2M) l2
     return $ generalize l2
-    
+
 prelude :: Imports -> IO Imports
 prelude imps = mdo
     minus <- preludeArithOp "-"
@@ -604,9 +615,22 @@ systemStd imps = do
         hIsClosedVal = withExceptions . Handle.hIsClosed
     hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [LCons "FileHandle" []] (LCons "Bool" [])
 
-    let hCloseVal :: Handle -> LunaEff ()
-        hCloseVal = withExceptions . Handle.hClose
+    let ignoreSigPipe :: IO () -> IO ()
+        ignoreSigPipe = Exception.handle $ \e -> case e of
+            IOError { ioe_type  = ResourceVanished
+                    , ioe_errno = Just ioe }
+                | Errno ioe == ePIPE -> return ()
+            _ -> Exception.throwIO e
+        hCloseVal :: Handle -> LunaEff ()
+        hCloseVal = withExceptions . ignoreSigPipe . Handle.hClose
+
     hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "FileHandle" []] (LCons "None" [])
+
+    let evaluateVal :: Text -> LunaEff Text
+        evaluateVal t = withExceptions $ do
+            Exception.evaluate $ rnf t
+            return t
+    evaluate' <- typeRepForIO (toLunaValue std evaluateVal) [LCons "Text" []] (LCons "Text" [])
 
     let hGetContentsVal :: Handle -> LunaEff Text
         hGetContentsVal = fmap Text.pack . withExceptions . Handle.hGetContents
@@ -652,6 +676,7 @@ systemStd imps = do
                                     , ("primHGetLine", hGetLine')
                                     , ("primHPutText", hPutText')
                                     , ("primWaitForProcess", waitForProcess')
+                                    , ("primEvaluate", evaluate')
                                     ]
 
     return $ (cleanup, std & importedFunctions %~ Map.union systemModule)
@@ -700,15 +725,15 @@ instance FromLunaData CreateProcess where
             _ -> throw errorMsg
 
 instance FromLunaData StdStream where
-    fromLunaData v = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor: " in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
                 "Inherit"    -> return Inherit
                 "UseHandle"  -> UseHandle <$> (fromLunaData . head $ obj ^. constructor . fields)
                 "CreatePipe" -> return CreatePipe
                 "NoStream"   -> return NoStream
-                _            -> throw errorMsg
-            _ -> throw errorMsg
+                c            -> throw (errorMsg <> convert c)
+            c -> throw (errorMsg <> "Not a LunaObject")
 
 instance FromLunaData ExitCode where
     fromLunaData v = force' v >>= \case
@@ -777,11 +802,10 @@ instance FromLunaData Time.UTCTime where
             _ -> throw errorMsg
 
 instance ToLunaData Time.DiffTime where
-    toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps) 
+    toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps)
 
 instance ToLunaData Time.NominalDiffTime where
     toLunaData imps nDiffTime = toLunaData imps (realToFrac nDiffTime :: Time.DiffTime)
 
 instance ToLunaData Time.UTCTime where
     toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "TimeVal" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
-
