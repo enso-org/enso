@@ -59,26 +59,19 @@ class HttpSimpleBody:
 
 
 class OAuth2:
-    def postRequest oauth2data token body:
+    def postRequest oauth2data body:
         uri  = oauth2Data.accessTokenEndpoint
         user = oauth2Data.clientId
         pass = oauth2Data.clientSecret
-        Http.post uri body . setAuth user pass . perform
+        Http.post uri body . setBasicAuth user pass . perform
 
-    def fetchAccessToken oauth2Data token:
-        body = HttpSimpleBody [
-           ("code", token),
-           ("redirect_uri", oauth2Data.callback),
-           ("grant_type", "authorization_code")
-        ]
-        OAuth2.postRequest oauth2Data token body
+    def fetchAccessToken oauth2Data tkn:
+        body = HttpSimpleBody [ ("code", tkn), ("redirect_uri", oauth2Data.callback), ("grant_type", "authorization_code") ]
+        OAuth2.postRequest oauth2Data tkn body
 
-    def refreshAccessToken oauth2Data token:
-        body = HttpSimpleBody [
-            ("grant_type", "refresh_token"),
-            ("refresh_token", token)
-        ]
-        OAuth2.postRequest oauth2Data token body
+    def refreshAccessToken oauth2Data tkn:
+        body = HttpSimpleBody [ ("grant_type", "refresh_token"), ("refresh_token", tkn) ]
+        OAuth2.postRequest oauth2Data tkn body
 
 
 class HttpResponse:
@@ -102,6 +95,7 @@ class HttpResponse:
 class HttpRequest:
     uri     :: Text
     method  :: HttpMethod
+    secure  :: Bool
     headers :: Map Text Text
     auth    :: Maybe (Tuple2 Text Text)
     params  :: List (Tuple2 Text (Maybe Text))
@@ -117,33 +111,43 @@ class HttpRequest:
         "}"
 
     def setMethod m: case self of
-        HttpRequest uri method headers auth params body: HttpRequest uri m headers auth params body
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest uri m secure headers auth params body
 
     def setBody b: case self of
-        HttpRequest uri method headers auth params body: HttpRequest uri method headers auth params b
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest uri method secure headers auth params b
 
     def setUri u: case self of
-        HttpRequest uri method headers auth params body: HttpRequest u method headers auth params body
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest u method secure headers auth params body
 
     def addHeader key val: case self of
-        HttpRequest uri method headers auth params body: HttpRequest uri method (headers.insert key val) auth params body
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest uri method secure (headers.insert key val) auth params body
 
-    def setAuth username password: case self of
-        HttpRequest uri method headers auth params body: HttpRequest uri method headers (Just (username, password)) params body
+    def setBasicAuth username password: case self of
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest uri method secure headers (Just (username, password)) params body
 
     def setParam key val: case self of
-        HttpRequest uri method headers auth params body: HttpRequest uri method headers auth (Prepend (key, val) params) body
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest uri method secure headers auth (Prepend (key, val) params) body
 
-    def setOAuth2Token token:
-        self . addHeader "User-Agent"    "hoauth2"
-             . addHeader "Accept"        "application/json"
-             . addHeader "Authorization" ("Bearer " + token)
+    def setOAuth2Token tkn:
+        self . addHeader "User-Agent" "hoauth2" . addHeader "Accept" "application/json" . addHeader "Authorization" ("Bearer " + tkn)
 
-    def perform: primPerformHttp self.uri (self.method.toText) (self.headers.toList) self.auth self.params self.body
+    def setSecure: case self of
+        HttpRequest uri method secure headers auth params body:
+            HttpRequest uri method True headers auth params body
+
+    def perform: case self of
+        HttpRequest uri method secure headers auth params body:
+            primPerformHttp uri method.toText secure headers.toList auth params body
 
 
 def defaultHttpRequest uri:
-    HttpRequest uri GET Map.empty Nothing Empty "".toBinary
+    HttpRequest uri GET False Map.empty Nothing Empty "".toBinary
 
 
 class Http:
