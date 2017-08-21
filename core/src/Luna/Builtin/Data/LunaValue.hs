@@ -20,7 +20,7 @@ data Constructor = Constructor { _tag    :: Name
                                }
 
 data Object a = Object { _constructor :: a
-                       , _methods     :: Map Name LunaValue
+                       , _methods     :: Map Name (Either [CompileError] LunaValue)
                        }
 
 data LunaData = LunaBoxed    (Object Any)
@@ -54,7 +54,10 @@ dispatchMethod s = go where
     go   LunaNoValue      = return LunaNoValue
 
     dispatchObject :: LunaData -> Object a -> LunaValue
-    dispatchObject x (Object _ ms) = applyFun (fromMaybe (throw $ "Cannot find method: " ++ show s ++ ".") $ Map.lookup s ms) $ return x
+    dispatchObject x (Object _ ms) = case Map.lookup s ms of
+        Nothing        -> throw $ "Cannot find method: " ++ show s ++ "."
+        Just (Left e)  -> return LunaNoValue
+        Just (Right f) -> applyFun f $ return x
 
 tryDispatchMethodWithError :: Name -> LunaData -> LunaEff (Maybe LunaValue)
 tryDispatchMethodWithError s = go where
@@ -66,7 +69,9 @@ tryDispatchMethodWithError s = go where
     go _                = return Nothing
 
     tryDispatch :: LunaData -> Object a -> Maybe LunaValue
-    tryDispatch x (Object _ ms) = (flip applyFun $ return x) <$> Map.lookup s ms
+    tryDispatch x (Object _ ms) = case Map.lookup s ms of
+        Just (Right f) -> Just $ applyFun f (return x)
+        _              -> Nothing
 
 tryDispatchMethods :: [Name] -> LunaData -> LunaEff (Maybe LunaValue)
 tryDispatchMethods [] s = return $ Just $ return s

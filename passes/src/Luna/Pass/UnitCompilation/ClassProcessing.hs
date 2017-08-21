@@ -61,10 +61,10 @@ processClass imports root = do
         [(_, r)] -> RecordProcessing.generateGetters className paramNames r
         _        -> return def
     let recordsMap = Map.fromList $ zip (fst <$> records) compiledRecords
-        bareClass  = Class recordsMap getters
+        bareClass  = Class recordsMap (Right <$> getters)
         imps       = imports & importedClasses . at className ?~ bareClass
     methodMap <- MethodProcessing.processMethods imps className paramNames (fst <$> records) methods
-    return $ Class recordsMap (Map.union methodMap getters)
+    return $ Class recordsMap (Map.union methodMap (Right <$> getters))
 
 resolveToplevelFields :: (MonadPassManager m, MonadIO m) => Expr ClsASG -> Pass ClassProcessing m
 resolveToplevelFields cls = do

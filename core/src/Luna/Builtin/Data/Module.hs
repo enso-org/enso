@@ -6,13 +6,14 @@ import Luna.Builtin.Data.LunaValue (LunaValue)
 import Luna.Builtin.Data.Class
 import OCI.IR.Name
 import OCI.IR
+import Luna.IR.Layer.Errors (CompileError)
 
 import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 
 
 data CompiledWorld = CompiledWorld { _classes   :: Map SomeExpr Class
-                                   , _functions :: Map SomeExpr Function
+                                   , _functions :: Map SomeExpr (Either [CompileError] Function)
                                    }
 makeLenses ''CompiledWorld
 
@@ -26,7 +27,7 @@ instance Default CompiledWorld where
     def = CompiledWorld def def
 
 data Imports = Imports { _importedClasses   :: Map Name Class
-                       , _importedFunctions :: Map Name Function
+                       , _importedFunctions :: Map Name (Either [CompileError] Function)
                        }
 makeLenses ''Imports
 
@@ -39,14 +40,14 @@ unionsImports = foldr unionImports def
 instance Default Imports where
     def = Imports def def
 
-getObjectMethodMap :: Name -> Imports -> Map Name LunaValue
-getObjectMethodMap className imps = view value <$> view methods klass where
+getObjectMethodMap :: Name -> Imports -> Map Name (Either [CompileError] LunaValue)
+getObjectMethodMap className imps = fmap (view value) <$> view methods klass where
     klass = case Map.lookup className (imps ^. importedClasses) of
         Nothing -> error $ "ObjectMethodMap for: " ++ show className ++ " does not exist."
         Just a  -> a
 
-getConstructorMethodMap :: Name -> Imports -> Map Name LunaValue
-getConstructorMethodMap consName imps = view value <$> view methods klass where
+getConstructorMethodMap :: Name -> Imports -> Map Name (Either [CompileError] LunaValue)
+getConstructorMethodMap consName imps = fmap (view value) <$> view methods klass where
     klass = case catMaybes $ fmap (whenHasConstructor consName) $ imps ^.. importedClasses . traverse of
         [] -> error $ "Class with a constructor: " ++ show consName ++ " does not exist."
         a : _ -> a

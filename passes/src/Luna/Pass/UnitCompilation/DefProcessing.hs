@@ -37,7 +37,7 @@ import Luna.Test.IR.Runner
 data DefProcessing
 type instance Abstract   DefProcessing = DefProcessing
 type instance Pass.Inputs     Net   DefProcessing = '[AnyExpr, AnyExprLink]
-type instance Pass.Inputs     Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model]
+type instance Pass.Inputs     Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors]
 type instance Pass.Inputs     Attr  DefProcessing = '[]
 type instance Pass.Inputs     Event DefProcessing = '[]
 
@@ -48,13 +48,13 @@ type instance Pass.Outputs    Event DefProcessing = '[Event.Import // AnyExpr, E
 
 type instance Pass.Preserves        DefProcessing = '[]
 
-processDef :: Imports -> Name -> Rooted SomeExpr -> IO Function
+processDef :: Imports -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
 processDef imps functionName defIR@(Rooted _ root) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     defRoot <- Pass.eval' @DefProcessing $ ($ root) <$> importRooted defIR
     mkDef imps def (TgtDef functionName) defRoot
 
-mkDef :: (MonadPassManager m, MonadIO m) => Imports -> Map Name (Map Name LunaValue) -> CurrentTarget -> SomeExpr -> m Function
+mkDef :: (MonadPassManager m, MonadIO m) => Imports -> Map Name (Map Name (Either [CompileError] LunaValue)) -> CurrentTarget -> SomeExpr -> m (Either [CompileError] Function)
 mkDef imports localMethods currentTarget defRoot = mdo
     typecheckedRoot <- fromJust . Map.lookup (unsafeGeneralize defRoot) <$> typecheck currentTarget imports [unsafeGeneralize defRoot]
     value           <- Pass.eval' @Interpreter $ interpret' imports typecheckedRoot
@@ -64,14 +64,18 @@ mkDef imports localMethods currentTarget defRoot = mdo
     Just (apps    :: SimplifierQueue) <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @SimplifierQueue)
     Just (accs    :: UnresolvedAccs)  <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @UnresolvedAccs)
 
-    rooted <- Pass.eval' @DefProcessing $ do
-        tp <- getLayer @Type (unsafeGeneralize typecheckedRoot :: SomeExpr) >>= source
-        compile tp
+    errors <- Pass.eval' @DefProcessing $ getLayer @Errors typecheckedRoot
+    case errors of
+        e@(_:_) -> return $ Left e
+        _       -> do
+            rooted <- Pass.eval' @DefProcessing $ do
+                tp <- getLayer @Type (unsafeGeneralize typecheckedRoot :: SomeExpr) >>= source
+                compile tp
 
 
-    let localDef = case currentTarget of
-          TgtDef n -> Map.singleton n val
-          _        -> def
-        val = evalStateT value $ LocalScope def localDef localMethods
+            let localDef = case currentTarget of
+                  TgtDef n -> Map.singleton n val
+                  _        -> def
+                val = evalStateT value $ LocalScope def localDef localMethods
 
-    return $ Function rooted val $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)
+            return $ Right $ Function rooted val $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)

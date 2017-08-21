@@ -39,7 +39,7 @@ type instance Preserves     Interpreter = '[]
 
 data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
                               , _localDefs   :: Map Name LunaValue
-                              , _localConses :: Map Name (Map Name LunaValue)
+                              , _localConses :: Map Name (Map Name (Either [CompileError] LunaValue))
                               }
 makeLenses ''LocalScope
 
@@ -49,7 +49,7 @@ instance Default LocalScope where
 localLookup :: Expr Draft -> LocalScope -> Maybe LunaData
 localLookup e = Map.lookup e . view localVars
 
-localLookupCons :: Name -> LocalScope -> Maybe (Map Name LunaValue)
+localLookupCons :: Name -> LocalScope -> Maybe (Map Name (Either [CompileError] LunaValue))
 localLookupCons e = Map.lookup e . view localConses
 
 localDefLookup :: Name -> LocalScope -> Maybe LunaValue
@@ -62,7 +62,7 @@ mergeScopes :: Map (Expr Draft) LunaData -> LocalScope -> LocalScope
 mergeScopes m = localVars %~ Map.union m
 
 globalLookup :: Name -> Imports -> Maybe LunaValue
-globalLookup n imps = imps ^? importedFunctions . ix n . value
+globalLookup n imps = imps ^? importedFunctions . ix n . _Right . value
 
 mkInt :: Imports -> Integer -> LunaData
 mkInt = toLunaData

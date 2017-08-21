@@ -57,15 +57,8 @@ runMethodResolution = do
     res <- forM accs $ \acc -> do
         result <- importAccessor acc
         case result of
-            Left AmbiguousType      -> return $ Just acc
-            Left (MethodNotFound m cl) -> do
-                req <- getLayer @Requester acc
-                forM_ req $ \r -> do
-                    requester <- source r
-                    modifyLayer_ @Errors requester (CompileError (importErrorDoc m cl) [] :)
-                reconnectLayer' @Requester (Nothing :: Maybe (Expr Draft)) acc
-                return Nothing
-            _                       -> return Nothing
+            False -> return $ Just acc
+            _     -> return Nothing
     putAttr @UnresolvedAccs $ putAccs $ catMaybes res
     return $ any isNothing res
 
@@ -74,7 +67,7 @@ destructMonad e = do
     Term (Term.Monadic t m) <- readTerm $ (unsafeGeneralize e :: Expr Monadic)
     (,) <$> source t <*> source m
 
-importAccessor :: MonadPassManager m => Expr Monadic -> SubPass AccessorFunction m (Either AccessorError ())
+importAccessor :: MonadPassManager m => Expr Monadic -> SubPass AccessorFunction m Bool
 importAccessor tacc = do
     Term (Term.Monadic ac' _) <- readTerm tacc
     ac <- source ac'
@@ -82,17 +75,22 @@ importAccessor tacc = do
         Acc tv n -> do
             tv' <- source tv
             (tgtT, _) <- destructMonad tv'
+            req <- mapM source =<< getLayer @Requester tacc
             matchExpr tgtT $ \case
-                Cons cls _args -> getLayer @Requester tacc >>= mapM source >>= importMethod cls n >>= \case
-                    Left SymbolNotFound -> return $ Left $ MethodNotFound n cls
-                    Right root          -> do
+                Cons cls _args -> importMethod cls n req >>= \case
+                    Left e      -> do
+                        forM_ req $ \requester -> do
+                            modifyLayer_ @Errors requester (e <>)
+                        reconnectLayer' @Requester (Nothing :: Maybe (Expr Draft)) tacc
+                        return True
+                    Right root  -> do
                         tap <- app root tv'
                         replace tap ac
-                        modifyAttr_ @SimplifierQueue $ wrapped %~ (generalize tacc :) -- FIXME[MK]: why unsafe?
-                        return $ Right ()
-                _ -> return $ Left AmbiguousType
+                        modifyAttr_ @SimplifierQueue $ wrapped %~ (generalize tacc :)
+                        return True
+                _ -> return False
 
-importMethod :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> SubPass AccessorFunction m (Either ImportError SomeExpr)
+importMethod :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> SubPass AccessorFunction m (Either [CompileError] SomeExpr)
 importMethod className methodName newReq = do
     current <- fromCurrentTarget className methodName
     case current of
@@ -107,10 +105,10 @@ fromCurrentTarget className methodName = do
         TgtMethod c m -> if c == className && m == methodName then Just $ generalize root else Nothing
         _             -> Nothing
 
-importMethodFromImports :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> SubPass AccessorFunction m (Either ImportError SomeExpr)
+importMethodFromImports :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> SubPass AccessorFunction m (Either [CompileError] SomeExpr)
 importMethodFromImports className methodName newReq = do
     imports <- getAttr @Imports
-    let  method = (lookupClass className >=> lookupMethod methodName) imports
+    let  method = (lookupClass methodName className >=> lookupMethod methodName className) imports
     case method of
         Left err -> return $ Left err
         Right f  -> do
@@ -125,12 +123,12 @@ importMethodFromImports className methodName newReq = do
             modifyAttr_ @UnresolvedAccs  $ flip (foldr addAcc) accs
             return $ Right root
 
-lookupClass :: Name -> Imports -> Either ImportError Class
-lookupClass n imps = case imps ^. importedClasses . at n of
-    Nothing -> Left  SymbolNotFound
+lookupClass :: Name -> Name -> Imports -> Either [CompileError] Class
+lookupClass n clsN imps = case imps ^. importedClasses . at clsN of
+    Nothing -> Left [CompileError (importErrorDoc n clsN) []]
     Just f  -> Right f
 
-lookupMethod :: Name -> Class -> Either ImportError Function
-lookupMethod n cls = case Map.lookup n (cls ^. methods) of
-    Just m -> Right m
-    _      -> Left SymbolNotFound
+lookupMethod :: Name -> Name -> Class -> Either [CompileError] Function
+lookupMethod n clsN cls = case Map.lookup n (cls ^. methods) of
+    Just e  -> e
+    _       -> Left [CompileError (importErrorDoc n clsN) []]

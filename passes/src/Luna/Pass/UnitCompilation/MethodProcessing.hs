@@ -50,18 +50,18 @@ type instance Pass.Outputs    Event MethodProcessing = '[Event.Import // AnyExpr
 
 type instance Pass.Preserves        MethodProcessing = '[]
 
-processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Imports -> Name -> [Name] -> [Name] -> [(Name, Rooted SomeExpr)] -> m (Map Name Function)
+processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Imports -> Name -> [Name] -> [Name] -> [(Name, Rooted SomeExpr)] -> m (Map Name (Either [CompileError] Function))
 processMethods imps className classParamNames consNames methodIRs = mdo
     methods <- flip evalStateT imps $ forM methodIRs $ \(n, body) -> do
         imports  <- get
         compiled <- lift $ liftIO $ delay $ mkMethod imports className classParamNames localMethods n body
         importedClasses . ix className . Class.methods . at n ?= compiled
         return (n, compiled)
-    let methodMap    = Map.fromList $ methods ^.. traverse . alongside id value
+    let methodMap    = Map.fromList $ methods ^.. traverse . alongside id (choosing (to Left) (value . to Right))
         localMethods = Map.fromList $ zip consNames $ repeat methodMap
     return $ Map.fromList methods
 
-mkMethod :: Imports -> Name -> [Name] -> Map Name (Map Name LunaValue) -> Name -> Rooted SomeExpr -> IO Function
+mkMethod :: Imports -> Name -> [Name] -> Map Name (Map Name (Either [CompileError] LunaValue)) -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
 mkMethod imports className classParamNames localMethods methodName methodIR@(Rooted _ methodRoot) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     initNameGen

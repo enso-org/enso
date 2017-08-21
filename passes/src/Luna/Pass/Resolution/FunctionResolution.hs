@@ -53,12 +53,13 @@ runFunctionResolution = do
     mapM_ importVar vars
     putAttr @UnresolvedVars $ UnresolvedVars []
 
-lookupSym :: Name -> Imports -> Either ImportError Function
+lookupSym :: Name -> Imports -> Either [CompileError] Function
 lookupSym n imps = case imps ^. importedFunctions . at n of
-    Nothing -> Left  SymbolNotFound
-    Just f  -> Right f
+    Nothing        -> Left [CompileError (importErrorDoc n SymbolNotFound) []]
+    Just (Left e)  -> Left e
+    Just (Right f) -> Right f
 
-resolveSymbol :: (MonadRef m, MonadPassManager m) => Name -> Expr Var -> SubPass FunctionResolution m (Either ImportError SomeExpr)
+resolveSymbol :: (MonadRef m, MonadPassManager m) => Name -> Expr Var -> SubPass FunctionResolution m (Either [CompileError] SomeExpr)
 resolveSymbol name var = do
     current <- getAttr @CurrentTarget
     if current == TgtDef name
@@ -89,7 +90,7 @@ importVar var = do
     sym  <- view name <$> readTerm var
     r    <- resolveSymbol sym var
     case r of
-        Left  err  -> modifyLayer_ @Errors var (CompileError (importErrorDoc sym err) [] :)
+        Left  err  -> modifyLayer_ @Errors var (err ++)
         Right root -> do
             tp  <- getLayer @Type   var  >>= source
             reconnectLayer @Type root (generalize var :: SomeExpr)

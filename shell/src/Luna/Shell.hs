@@ -89,7 +89,8 @@ main = void $ runPM True $ do
     putStrLn "Running main..."
 
     case mainFun of
-        Just f  -> do
+        Just (Left e)  -> error $ show e
+        Just (Right f) -> do
             res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
             case res of
                 Left err -> error $ "Luna encountered runtime error: " ++ err

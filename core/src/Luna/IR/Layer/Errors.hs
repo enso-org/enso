@@ -21,6 +21,8 @@ data CompileError = CompileError { _description :: Text
                                  } deriving (Show, Eq)
 type instance LayerData Errors a = [CompileError]
 
+makeLenses ''CompileError
+
 initErrors :: Req m '[Writer // Layer // AnyExpr // Errors] => Listener (New // Expr l) m
 initErrors = listener $ \(t, _) -> putLayer @Errors t []
 makePass 'initErrors
