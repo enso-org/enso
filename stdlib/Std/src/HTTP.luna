@@ -15,7 +15,7 @@ class HttpMethod:
 
 
 class OAuth2Data:
-    clientId            :: Int
+    clientId            :: Text
     clientSecret        :: Text
     authorizeEndpoint   :: Text
     accessTokenEndpoint :: Text
@@ -23,28 +23,11 @@ class OAuth2Data:
 
     def toText:
         "OAuth2Data {\n" +
-        "    clientId            = " + self.clientId.toText            + ",\n" +
+        "    clientId            = " + self.clientId                   + ",\n" +
         "    clientSecret        = " + self.clientSecret               + ",\n" +
         "    authorizeEndpoint   = " + self.authorizeEndpoint          + ",\n" +
         "    accessTokenEndpoint = " + self.accessTokenEndpoint.toText + ",\n" +
         "    callback            = " + self.callback.toText            + "\n"  +
-        "}"
-
-
-class OAuth2Token:
-    accessToken  :: Text
-    refreshToken :: Maybe Text
-    expiresIn    :: Maybe Int
-    tokenType    :: Maybe Text
-    idToken      :: Maybe Text
-
-    def toText:
-        "OAuth2Token {\n" +
-        "    accessToken  = " + self.accessToken         + ",\n" +
-        "    refreshToken = " + self.refreshToken.toText + ",\n" +
-        "    expiresIn    = " + self.expiresIn.toText    + ",\n" +
-        "    tokenType    = " + self.tokenType.toText    + ",\n" +
-        "    idToken      = " + self.idToken.toText      + "\n"  +
         "}"
 
 
@@ -53,25 +36,23 @@ class HttpSimpleBody:
 
     def toText: "HttpSimpleBody { values = " + self.values.toText " }"
 
-    def toBinary: primRenderQuery values
+    def toBinary: primRenderQuery self.values
 
     def addValue key val: HttpSimpleBody (Prepend (key, val) self.values)
 
+def emptyHttpBody: HttpSimpleBody Empty
+
 
 class OAuth2:
-    def postRequest oauth2data body:
+    def postRequest oauth2Data body:
         uri  = oauth2Data.accessTokenEndpoint
         user = oauth2Data.clientId
         pass = oauth2Data.clientSecret
-        Http.post uri body . setBasicAuth user pass . perform
+        Http.post uri body . setBasicAuth user pass . setSecure . addHeader "Content-Type" "application/x-www-form-urlencoded" . perform
 
-    def fetchAccessToken oauth2Data tkn:
-        body = HttpSimpleBody [ ("code", tkn), ("redirect_uri", oauth2Data.callback), ("grant_type", "authorization_code") ]
-        OAuth2.postRequest oauth2Data tkn body
-
-    def refreshAccessToken oauth2Data tkn:
-        body = HttpSimpleBody [ ("grant_type", "refresh_token"), ("refresh_token", tkn) ]
-        OAuth2.postRequest oauth2Data tkn body
+    def fetchAccessToken oauth2Data:
+        body = HttpSimpleBody [("grant_type", "client_credentials")]
+        OAuth2.postRequest oauth2Data body . json . lookupText "access_token"
 
 
 class HttpResponse:
@@ -116,7 +97,7 @@ class HttpRequest:
 
     def setBody b: case self of
         HttpRequest uri method secure headers auth params body:
-            HttpRequest uri method secure headers auth params b
+            HttpRequest uri method secure headers auth params b.toBinary
 
     def setUri u: case self of
         HttpRequest uri method secure headers auth params body:
