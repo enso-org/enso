@@ -44,6 +44,10 @@ def id a: a
 
 def const a b: a
 
+def when p f: if p then f else None
+
+def unless p f: if p then None else f
+
 def seq a b:
     a
     b
@@ -145,6 +149,16 @@ class Maybe a:
         Nothing: Nothing
         Just a: Just (f a)
 
+    def each f: case self of
+        Nothing: Nothing
+        Just a:
+            x = f a
+            Just x
+
+    def join: case self of
+        Nothing: Nothing
+        Just a: a
+        
     def toText: case self of
         Just a: "Just " + a.toText
         Nothing: "Nothing"

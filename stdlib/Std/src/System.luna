@@ -2,7 +2,7 @@ import Std.Base
 
 class PipeRequest:
     Inherit
-    UseHandle FileHandle
+    UseHandle: handle :: FileHandle
     CreatePipe
     NoStream
 
@@ -18,40 +18,61 @@ class ProcessHandle:
     def waitForProcess: primWaitForProcess self
 
 class ProcessResults:
-    ProcessResults (Maybe FileHandle) (Maybe FileHandle) (Maybe FileHandle) ProcessHandle
+    stdin  :: Maybe FileHandle
+    stdout :: Maybe FileHandle
+    stderr :: Maybe FileHandle
+    handle :: ProcessHandle
 
-    def getContentsFromStdOut: case self of
-        ProcessResults hin hout herr ph: hout . map .getContents
-
-    def getContentsFromStdErr: case self of
-        ProcessResults hin hout herr ph: herr . map .getContents
-
-    def putTextToStdIn: case self of
-        ProcessResults hin hout herr ph: hin . maybe None .putText
-
-    def waitForProcess: case self of
-        ProcessResults hin hout herr ph: ph . waitForProcess
+    def waitForProcess: self.handle . waitForProcess
 
 class ProcessDescription:
-    ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
+    command :: Text
+    args    :: List Text
+    stdin   :: Maybe PipeRequest
+    stdout  :: Maybe PipeRequest
+    stderr  :: Maybe PipeRequest
 
     def run: primRunProcess self
 
-class Process:
-    Process
+def withForkWait async body:
+    mVar = newMVar
+    def fork':
+        res = async
+        mVar.put res
+    fork fork'
+    body mVar.take
 
-    def readProcessWithExitCode path args stdin:
-        cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
+def readProcessWithExitCode path args input:
+    cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
+    pr = cp . run
+    outh = pr . stdout . fromJust . getContents
+    errh = pr . stderr . fromJust . getContents
+    def action waitOut waitErr:
+        unless (input . isEmpty) (pr . stdin . fromJust . putText input)
+        pr . stdin . each .close
+        o = waitOut
+        e = waitErr
+        (o, e)
+    outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
+    ex = pr . waitForProcess
+    (outErr . first, outErr . second, ex)
+
+
+class Process:
+    stdin :: Maybe FileHandle
+
+    def runProcess path args input:
+        inhpr = Just (self.stdin . maybe CreatePipe UseHandle)
+        cp = ProcessDescription path args inhpr (Just CreatePipe) (Just CreatePipe)
         pr = cp . run
-        out = pr . getContentsFromStdOut
-        err = pr . getContentsFromStdErr
-        ex  = pr . waitForProcess
-        Tuple3 out err ex
+        unless (input . isEmpty) (pr . stdin . fromJust . putText input)
+        pr . stdin . each .close
+        pr . stdout . fromJust
 
 
 class ExitCode:
     ExitSuccess
-    ExitFailure Int
+    ExitFailure: errorCode :: Int
 
     def toInt: case self of
         ExitSuccess: 0
