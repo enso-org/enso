@@ -3,7 +3,7 @@ module Luna.IR (module X) where
 
 import OCI.IR               as X hiding (Definition, Import, decls)
 import Luna.IR.ToRefactor   as X
-import Luna.IR.Layer        as X (Type, UserType, UID, Succs, Requester, Errors)
+import Luna.IR.Layer        as X (Type, UserType, UID, Succs, Requester, Errors, CompileError (..))
 import Luna.IR.Term.Uni     as X
 import Luna.IR.Format       as X
 import Luna.IR.Term.Literal as X (HasLiteral, literal)

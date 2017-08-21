@@ -103,7 +103,7 @@ reportError uni a b = do
     req <- getLayer @Requester uni >>= mapM source
     arep <- repType a
     brep <- repType b
-    forM_ req $ \requester -> modifyLayer_ @Errors requester (("Unification error: " <> arep <> " with " <> brep)  :)
+    forM_ req $ \requester -> modifyLayer_ @Errors requester (CompileError ("Unification error: " <> arep <> " with " <> brep) [] :)
     resolve_
 
 reflexivity :: (MonadRef m, MonadPassManager m, MonadSubPass UnificationSolver m, MonadResolution [Expr Unify] m) => Expr Draft -> Expr Draft -> Expr Draft -> m ()

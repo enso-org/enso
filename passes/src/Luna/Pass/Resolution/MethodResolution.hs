@@ -62,7 +62,7 @@ runMethodResolution = do
                 req <- getLayer @Requester acc
                 forM_ req $ \r -> do
                     requester <- source r
-                    modifyLayer_ @Errors requester (importErrorDoc m cl :)
+                    modifyLayer_ @Errors requester (CompileError (importErrorDoc m cl) [] :)
                 reconnectLayer' @Requester (Nothing :: Maybe (Expr Draft)) acc
                 return Nothing
             _                       -> return Nothing

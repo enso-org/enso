@@ -89,7 +89,7 @@ importVar var = do
     sym  <- view name <$> readTerm var
     r    <- resolveSymbol sym var
     case r of
-        Left  err  -> modifyLayer_ @Errors var (importErrorDoc sym err :)
+        Left  err  -> modifyLayer_ @Errors var (CompileError (importErrorDoc sym err) [] :)
         Right root -> do
             tp  <- getLayer @Type   var  >>= source
             reconnectLayer @Type root (generalize var :: SomeExpr)

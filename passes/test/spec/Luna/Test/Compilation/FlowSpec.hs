@@ -89,7 +89,7 @@ repMonad expr = getLayer @Type expr >>= source >>= go where
         Monadic _ m -> gatherMonads =<< source m
         _           -> return LMalformed
 
-subtreeErrors :: forall m. (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass TestPass m [Text]
+subtreeErrors :: forall m. (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass TestPass m [CompileError]
 subtreeErrors e = do
     locErr <- getLayer @Errors e
     recErr <- mapM subtreeErrors =<< mapM source =<< inputs e
@@ -119,7 +119,7 @@ eqUptoVarNames = flip State.evalState (Map.empty, Map.empty) .: go where
         (_,       _)       -> return False
     go _ _ = return False
 
-runTC :: Imports -> Bool -> SubPass TestPass (PMStack IO) ([Expr Draft], Expr Draft) -> IO (LType, LMonad, [Text])
+runTC :: Imports -> Bool -> SubPass TestPass (PMStack IO) ([Expr Draft], Expr Draft) -> IO (LType, LMonad, [CompileError])
 runTC imports vis c = do
     Right res <- runPM True $ do
         runRegs
