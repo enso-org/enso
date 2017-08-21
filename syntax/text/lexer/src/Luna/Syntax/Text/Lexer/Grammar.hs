@@ -165,7 +165,7 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
     linebr = EOL <$  newline
     escape = token escapeChar *> option (Str $ convert escapeChar) (StrEsc <$> esct)
     esct   = (SlashEsc <$ token escapeChar)
-         <|> (QuoteEscape RawStr <$ takeMany1 rawStrQuote)
+         <|> (QuoteEscape RawStr <$ token rawStrQuote)
     quotes = do
         qs <- takeMany1 rawStrQuote
         if Text32.length qs == hlen
