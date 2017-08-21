@@ -18,6 +18,7 @@ import qualified Control.Monad.State.Dependent as Dep
 import Control.Monad.Trans.State
 import Luna.Pass.Data.UniqueNameGen
 import qualified Luna.Pass.UnitCompilation.RecordProcessing as RecordProcessing
+import qualified Luna.IR.Layer.Errors as Errors
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -65,8 +66,12 @@ mkDef imports localMethods currentTarget defRoot = mdo
     Just (accs    :: UnresolvedAccs)  <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @UnresolvedAccs)
 
     errors <- Pass.eval' @DefProcessing $ getLayer @Errors typecheckedRoot
+    let addArisingFrom = maybe id (:) $ case currentTarget of
+            TgtDef n      -> Just $ Errors.FromFunction n
+            TgtMethod c m -> Just $ Errors.FromMethod c m
+            _             -> Nothing
     case errors of
-        e@(_:_) -> return $ Left e
+        e@(_:_) -> return $ Left $ e & traverse . Errors.arisingFrom %~ addArisingFrom
         _       -> do
             rooted <- Pass.eval' @DefProcessing $ do
                 tp <- getLayer @Type (unsafeGeneralize typecheckedRoot :: SomeExpr) >>= source

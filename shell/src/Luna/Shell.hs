@@ -27,6 +27,7 @@ import Luna.Builtin.Data.LunaEff
 import Luna.Builtin.Data.LunaValue  as LunaValue
 import qualified Luna.Builtin.Data.Function   as Function
 
+import Luna.IR.Layer.Errors
 import Luna.Pass.Data.UniqueNameGen
 import Luna.Pass.Data.ExprRoots
 
@@ -64,7 +65,16 @@ type instance Inputs  Event ShellTest = '[]
 type instance Outputs Event ShellTest = '[New // AnyExpr]
 type instance Preserves     ShellTest = '[]
 
-main :: HasCallStack => IO ()
+formatErrors :: [CompileError] -> P.String
+formatErrors errors = intercalate "\n\n" (formatErr <$> errors) where
+    formatErr (CompileError txt stack) = intercalate "\n    " (convert txt : fmap formatCallItem stack)
+
+    formatCallItem (FromFunction n) = "arising from function " <> convert n
+    formatCallItem (FromMethod c n) = "arising from method " <> convert n <> " of class " <> convert c
+
+
+
+main :: IO ()
 main = void $ runPM True $ do
     stdPath  <- (<> "/Std/") <$> liftIO (Env.getEnv "LUNA_HOME")
     mainPath <- liftIO $ getCurrentDirectory
@@ -86,13 +96,18 @@ main = void $ runPM True $ do
           Just m  -> world ^. functions . at m
           Nothing -> Nothing
 
-    putStrLn "Running main..."
 
     case mainFun of
-        Just (Left e)  -> error $ show e
+        Just (Left e)  -> do
+            putStrLn $ "Luna encountered the following compilation errors:"
+            putStrLn $ "\n"
+            putStrLn $ formatErrors e
+            putStrLn $ "\n"
+            error "Compilation failed."
         Just (Right f) -> do
+            putStrLn "Running main..."
             res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
             case res of
                 Left err -> error $ "Luna encountered runtime error: " ++ err
                 _        -> return ()
-        Nothing -> error "Function main not found in module Main"
+        Nothing -> error "Function main not found in module Main."
