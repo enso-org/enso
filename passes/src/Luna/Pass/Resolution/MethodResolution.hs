@@ -49,7 +49,7 @@ data AccessorError = MethodNotFound Name Name
     deriving (Eq, Show)
 
 importErrorDoc :: Name -> Name -> Text
-importErrorDoc n cl = "Can't find method " <> convert (show n) <> " of " <> convert (show cl)
+importErrorDoc n cl = "Can't find method " <> convert n <> " of " <> convert cl
 
 runMethodResolution :: MonadPassManager m => SubPass AccessorFunction m Bool
 runMethodResolution = do

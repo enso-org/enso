@@ -82,8 +82,8 @@ resolveSymbol name var = do
 
 
 importErrorDoc :: Name -> ImportError -> Text
-importErrorDoc n SymbolNotFound         = "Can't find function: " <> " " <> fromString (show n)
-importErrorDoc n (SymbolAmbiguous mods) = "Function" <> " " <> fromString (show n) <> " " <> "is ambiguous." <> "\n" <> "It's exported by the following modules:" <> " " <> (foldl (\l r -> l <> "\n" <> r) "" $ fromString . show <$> mods)
+importErrorDoc n SymbolNotFound         = "Can't find function: " <> " " <> convert n
+importErrorDoc n (SymbolAmbiguous mods) = "Function" <> " " <> convert n <> " " <> "is ambiguous." <> "\n" <> "It's exported by the following modules:" <> " " <> (foldl (\l r -> l <> "\n" <> r) "" $ convert <$> mods)
 
 importVar :: (MonadRef m, MonadPassManager m) => Expr Var -> SubPass FunctionResolution m ()
 importVar var = do

@@ -53,6 +53,8 @@ import           System.Directory   (getCurrentDirectory)
 import qualified Path               as Path
 import qualified System.Environment as Env
 
+import System.Exit (die)
+
 data ShellTest
 type instance Abstract ShellTest = ShellTest
 type instance Inputs  Net   ShellTest = '[AnyExpr]
@@ -67,7 +69,7 @@ type instance Preserves     ShellTest = '[]
 
 formatErrors :: [CompileError] -> P.String
 formatErrors errors = intercalate "\n\n" (formatErr <$> errors) where
-    formatErr (CompileError txt stack) = intercalate "\n    " (convert txt : fmap formatCallItem stack)
+    formatErr (CompileError txt stack) = intercalate "\n    " (convert txt : fmap formatCallItem (reverse stack))
 
     formatCallItem (FromFunction n) = "arising from function " <> convert n
     formatCallItem (FromMethod c n) = "arising from method " <> convert n <> " of class " <> convert c
@@ -99,11 +101,11 @@ main = void $ runPM True $ do
 
     case mainFun of
         Just (Left e)  -> do
-            putStrLn $ "Luna encountered the following compilation errors:"
-            putStrLn $ "\n"
+            putStrLn "Luna encountered the following compilation errors:"
+            putStrLn ""
             putStrLn $ formatErrors e
-            putStrLn $ "\n"
-            error "Compilation failed."
+            putStrLn ""
+            liftIO $ die "Compilation failed."
         Just (Right f) -> do
             putStrLn "Running main..."
             res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
