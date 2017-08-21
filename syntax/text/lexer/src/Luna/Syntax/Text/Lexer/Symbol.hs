@@ -148,14 +148,17 @@ checkSpecialVar = \case
 matchVar, matchCons, matchOperator, matchModifier, matchStr, matchMetadata :: Symbol -> Maybe Text32
 matchNumber   :: Symbol -> Maybe Number
 matchMarker   :: Symbol -> Maybe Word64
+matchStrEsc   :: Symbol -> Maybe StrEscType
 matchVar      = \case { Var      a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar      #-}
 matchCons     = \case { Cons     a -> Just a ; _ -> Nothing } ; {-# INLINE matchCons     #-}
 matchOperator = \case { Operator a -> Just a ; _ -> Nothing } ; {-# INLINE matchOperator #-}
 matchModifier = \case { Modifier a -> Just a ; _ -> Nothing } ; {-# INLINE matchModifier #-}
 matchStr      = \case { Str      a -> Just a ; _ -> Nothing } ; {-# INLINE matchStr      #-}
+matchStrEsc   = \case { StrEsc   a -> Just a ; _ -> Nothing } ; {-# INLINE matchStrEsc   #-}
 matchNumber   = \case { Number   a -> Just a ; _ -> Nothing } ; {-# INLINE matchNumber   #-}
 matchMarker   = \case { Marker   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker   #-}
 matchMetadata = \case { Metadata a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata #-}
+
 
 intNum :: Text32 -> Number
 intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}

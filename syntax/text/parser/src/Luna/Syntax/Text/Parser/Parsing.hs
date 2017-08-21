@@ -470,28 +470,40 @@ tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> lif
     parensed p = groupBegin *> p <* groupEnd
     separator  = symbol sep
 
-
 str :: AsgParser SomeExpr
-str = buildAsg $ do
+str = rawStr <|> fmtStr
+
+rawStr :: AsgParser SomeExpr
+rawStr = buildAsg $ do
     rawQuoteBegin
     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-                 $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent strBody -- FIXME[WD]: We're converting Text -> String here.
+                 $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
-strBody :: SymParser Text32
-strBody = segStr <|> end <|> nl where
-    segStr = (<>) <$> strContent <*> strBody
-    end    = mempty <$ rawQuoteEnd
+fmtStr :: AsgParser SomeExpr
+fmtStr = buildAsg $ do
+    fmtQuoteBegin
+    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
+                 $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+
+
+strBody :: SymParser () -> SymParser Text32
+strBody ending = segStr <|> end <|> nl where
+    segStr = (<>) <$> strContent <*> strBody ending
+    end    = mempty <$ ending
     nl     = Text32.cons '\n' <$ eol <*> (line <|> nl)
     line   = do Indent.indentedOrEq
-                (<>) . convert . flip replicate ' ' <$> indentation <*> strBody
+                (<>) . convert . flip replicate ' ' <$> indentation <*> strBody ending
 
 strContent :: SymParser Text32
-strContent = satisfy Lexer.matchStr
+strContent = satisfy Lexer.matchStr <|> strEsc
 
-inlineStr :: SymParser Text32
-inlineStr = Indent.withCurrent $ do
-    strContent <* rawQuoteEnd
-
+strEsc :: SymParser Text32
+strEsc = satisfy Lexer.matchStrEsc >>= return . \case
+    Lexer.CharStrEsc i             -> convert $ Char.chr i
+    Lexer.NumStrEsc i              -> convert $ Char.chr i
+    Lexer.SlashEsc                 -> "\\"
+    Lexer.QuoteEscape Lexer.RawStr -> "\""
+    Lexer.QuoteEscape Lexer.FmtStr -> "'"
 
 
 -------------------------

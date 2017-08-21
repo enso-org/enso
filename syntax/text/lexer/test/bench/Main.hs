@@ -54,10 +54,10 @@ main = do
     hSetBuffering stdout NoBuffering
 
     let code = mkRandomCode 300
-    putStrLn $ "'" <> convert code <> "'"
+    -- putStrLn $ "'" <> convert code <> "'"
     -- pprint $ evalDefLexer $ code
-    pprint $ evalDefLexer $ "a = a.x = 5"
-    pprint $ evalDefLexer $ "a = a.x += 5"
+    pprint $ evalDefLexer $ "a = 'foo'"
+    -- pprint $ evalDefLexer $ "a = a.x += 5"
 
     pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
