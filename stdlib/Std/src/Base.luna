@@ -158,7 +158,7 @@ class Maybe a:
     def join: case self of
         Nothing: Nothing
         Just a: a
-        
+
     def toText: case self of
         Just a: "Just " + a.toText
         Nothing: "Nothing"
@@ -587,7 +587,7 @@ def delayAsync time act:
 def every timeInterval act:
     time = timeInterval.toMicroseconds
     current = act
-    future  = delayAsync time (every time act)
+    future  = delayAsync time (every timeInterval act)
     Stream current future.read
 
 def print x: putStr x.toText
