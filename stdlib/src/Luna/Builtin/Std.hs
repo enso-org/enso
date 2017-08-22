@@ -517,21 +517,6 @@ systemStd imps = do
         parseMsgPackVal = withExceptions . MsgPack.unpack
     parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
-    Right (tuples2BinaryAssu, tuples2BinaryIr) <- runGraph $ do
-        tText   <- cons_ @Draft   "Text"
-        tTuple  <- cons  "Tuple2" [tText]
-        tList   <- cons  "List"   [tTuple]
-        tBinary <- cons_ @Draft   "Binary"
-        l       <- lam tList tBinary
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-    let convertHeaders :: [(Text, Text)] -> [(StrictByteString.ByteString, StrictByteString.ByteString)]
-        convertHeaders  = map (\(x, y) -> (convert x, convert y))
-        primRenderQueryVal :: [(Text, Text)] -> ByteString
-        primRenderQueryVal = ByteString.fromStrict . HTTP.renderSimpleQuery False . convertHeaders
-        primRenderQuery    = Function tuples2BinaryIr (toLunaValue std primRenderQueryVal) tuples2BinaryAssu
-
     let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
         primPerformHttpVal uri method headers auth params body = performIO $ do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
@@ -679,7 +664,6 @@ systemStd imps = do
                                     , ("parseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
                                     , ("encodeMsgPack", encodeMsgPack)
-                                    , ("primRenderQuery", primRenderQuery)
                                     , ("primPerformHttp", primPerformHttp)
                                     , ("primGetCurrentTime", primGetCurrentTime)
                                     , ("primDiffTimes", primDiffTimes)

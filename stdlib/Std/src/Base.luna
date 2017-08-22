@@ -296,7 +296,7 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    def makeString sep: self.fold "" (x: y: x.toString + sep + y.toString)
+    def makeString sep: self.map .toText . intersperse sep . fold "" (+)
 
 class Map k v:
     Map
@@ -360,7 +360,7 @@ class JSON:
 
     def toText: case self of
         JSONNumber d: d.shortRep
-        JSONString s: s
+        JSONString s: s.escapeJSON
         JSONArray  l: "[" + (l . map (x : x.toText) . intersperse "," . fold "" (+)) + "]"
         JSONBool   b: case b of
             True:  "true"
@@ -391,7 +391,9 @@ class JSON:
         Nothing:  errorStr "Key not found"
 
     def lookupText key: case self . lookup key of
-        Just val: val . toText
+        Just val: case val of
+            JSONString s: s
+            other: other.toText
         Nothing:  errorStr "Key not found"
 
     def at n: case self of

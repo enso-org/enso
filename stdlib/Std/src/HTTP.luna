@@ -17,9 +17,10 @@ class HttpMethod:
 class HttpSimpleBody:
     values :: List (Tuple2 Text Text)
 
-    def toText: "HttpSimpleBody { values = " + self.values.toText " }"
+    def toText:
+        self.values . map ((a, b): a + "=" + b) . makeString "&"
 
-    def toBinary: primRenderQuery self.values
+    def toBinary: self.toText.toBinary
 
     def addValue key val: HttpSimpleBody (Prepend (key, val) self.values)
 
