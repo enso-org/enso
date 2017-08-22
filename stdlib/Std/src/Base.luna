@@ -360,7 +360,7 @@ class JSON:
 
     def toText: case self of
         JSONNumber d: d.shortRep
-        JSONString s: s.escapeJSON
+        JSONString s: s
         JSONArray  l: "[" + (l . map (x : x.toText) . intersperse "," . fold "" (+)) + "]"
         JSONBool   b: case b of
             True:  "true"

@@ -532,13 +532,11 @@ systemStd imps = do
         primRenderQueryVal = ByteString.fromStrict . HTTP.renderSimpleQuery False . convertHeaders
         primRenderQuery    = Function tuples2BinaryIr (toLunaValue std primRenderQueryVal) tuples2BinaryAssu
 
-    let primPerformHttpVal :: Text -> Text -> Bool -> [(Text, Text)] -> Maybe (Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
-        primPerformHttpVal uri method secure headers auth params body = performIO $ do
+    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
+        primPerformHttpVal uri method headers auth params body = performIO $ do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
                 packParam  (k, v) = (convert k, convert <$> v)
-                managerSettings   = if secure then HTTP.tlsManagerSettings else HTTP.defaultManagerSettings
             baseReq <- HTTP.parseRequest (convert uri)
-            manager <- HTTP.newManager managerSettings
             let newHeaders = map packHeader headers
                 oldHeaders = HTTP.requestHeaders baseReq
                 req        = baseReq
@@ -550,16 +548,18 @@ systemStd imps = do
                     & case auth of
                         Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
                         Nothing -> id
+                managerSettings   = if HTTP.secure req then HTTP.tlsManagerSettings else HTTP.defaultManagerSettings
+            manager <- HTTP.newManager managerSettings
+            print req
             HTTP.responseOpen req manager
 
     let textT           = LCons "Text"   []
-        boolT           = LCons "Bool"   []
         tupleT          = LCons "Tuple2" [textT, textT]
         maybeTupleT     = LCons "Maybe"  [tupleT]
         tupleListT      = LCons "List"   [tupleT]
         tupleMaybeListT = LCons "List"   [LCons "Tuple2" [textT, LCons "Maybe" [textT]]]
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
-                                    [textT, textT, boolT, tupleListT, maybeTupleT, tupleMaybeListT, LCons "Binary" []]
+                                    [textT, textT, tupleListT, maybeTupleT, tupleMaybeListT, LCons "Binary" []]
                                     (LCons "HttpResponse" [])
 
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
