@@ -644,6 +644,10 @@ systemStd imps = do
         hPutTextVal h = withExceptions . Handle.hPutStr h . Text.unpack
     hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [LCons "FileHandle" [], LCons "Text" []] (LCons "None" [])
 
+    let hFlushVal :: Handle -> LunaEff ()
+        hFlushVal = withExceptions . Handle.hFlush
+    hFlush' <- typeRepForIO (toLunaValue std hFlushVal) [LCons "FileHandle" []] (LCons "None" [])
+
     let waitForProcessVal :: ProcessHandle -> LunaEff ExitCode
         waitForProcessVal = withExceptions . Process.waitForProcess
     waitForProcess' <- typeRepForIO (toLunaValue std waitForProcessVal) [LCons "ProcessHandle" []] (LCons "ExitCode" [])
@@ -675,6 +679,7 @@ systemStd imps = do
                                     , ("primHGetContents", hGetContents')
                                     , ("primHGetLine", hGetLine')
                                     , ("primHPutText", hPutText')
+                                    , ("primHFlush", hFlush')
                                     , ("primWaitForProcess", waitForProcess')
                                     , ("primEvaluate", evaluate')
                                     ]
