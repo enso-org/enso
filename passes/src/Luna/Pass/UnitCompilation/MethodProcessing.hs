@@ -57,7 +57,8 @@ processMethods modName imps className classParamNames consNames methodIRs = mdo
         compiled <- lift $ liftIO $ delay $ mkMethod modName imports className classParamNames localMethods n body
         importedClasses . ix className . Class.methods . at n ?= compiled
         return (n, compiled)
-    let methodMap    = Map.fromList $ methods ^.. traverse . alongside id (choosing (to Left) (value . to Right))
+    let baseMethods  = imps ^. importedClasses . ix className . Class.methods . to Map.toList
+        methodMap    = Map.fromList $ (methods <> baseMethods) ^.. traverse . alongside id (choosing (to Left) (value . to Right))
         localMethods = Map.fromList $ zip consNames $ repeat methodMap
     return $ Map.fromList methods
 
