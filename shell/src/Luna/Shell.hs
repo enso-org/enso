@@ -69,10 +69,13 @@ type instance Preserves     ShellTest = '[]
 
 formatErrors :: [CompileError] -> P.String
 formatErrors errors = intercalate "\n\n" (formatErr <$> errors) where
-    formatErr (CompileError txt stack) = intercalate "\n    " (convert txt : fmap formatCallItem (reverse stack))
+    formatErr (CompileError txt reqStack stack) = intercalate "\n    " (convert txt : (fmap formatReqItem (reverse reqStack) ++ fmap formatCallItem (reverse stack)))
 
     formatCallItem (FromFunction n) = "arising from function " <> convert n
     formatCallItem (FromMethod c n) = "arising from method " <> convert n <> " of class " <> convert c
+
+    formatReqItem (FromFunction n) = "required by function " <> convert n
+    formatReqItem (FromMethod c n) = "required by method " <> convert n <> " of class " <> convert c
 
 
 

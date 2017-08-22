@@ -55,7 +55,7 @@ runFunctionResolution = do
 
 lookupSym :: Name -> Imports -> Either [CompileError] Function
 lookupSym n imps = case imps ^. importedFunctions . at n of
-    Nothing        -> Left [CompileError (importErrorDoc n SymbolNotFound) []]
+    Nothing        -> Left [CompileError (importErrorDoc n SymbolNotFound) [] []]
     Just (Left e)  -> Left e
     Just (Right f) -> Right f
 

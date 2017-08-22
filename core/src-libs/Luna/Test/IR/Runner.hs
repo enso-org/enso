@@ -22,8 +22,8 @@ data TestPass
 type instance Abstract TestPass = TestPass
 type instance Inputs  Net   TestPass = '[AnyExpr, AnyExprLink]
 type instance Outputs Net   TestPass = '[AnyExpr, AnyExprLink]
-type instance Inputs  Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // UserType, AnyExpr // Errors, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
-type instance Outputs Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // UserType, AnyExpr // Errors, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
+type instance Inputs  Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // UserType, AnyExpr // Errors, AnyExpr // RequiredBy, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
+type instance Outputs Layer TestPass = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Type, AnyExpr // UserType, AnyExpr // Errors, AnyExpr // RequiredBy, AnyExpr // Succs, AnyExprLink // UID, AnyExprLink // Model]
 type instance Inputs  Attr  TestPass = '[]
 type instance Outputs Attr  TestPass = '[]
 type instance Inputs  Event TestPass = '[] -- will never be used

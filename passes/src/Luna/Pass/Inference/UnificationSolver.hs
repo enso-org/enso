@@ -20,8 +20,8 @@ data UnificationSolver
 type instance Abstract      UnificationSolver = UnificationSolver
 type instance Inputs  Net   UnificationSolver = '[AnyExpr, AnyExprLink]
 type instance Outputs Net   UnificationSolver = '[AnyExpr, AnyExprLink]
-type instance Inputs  Layer UnificationSolver = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Succs, AnyExpr // Type, AnyExpr // Requester, AnyExpr // Errors, AnyExprLink // UID, AnyExprLink // Model]
-type instance Outputs Layer UnificationSolver = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Succs, AnyExpr // Type, AnyExpr // Requester, AnyExpr // Errors, AnyExprLink // UID, AnyExprLink // Model]
+type instance Inputs  Layer UnificationSolver = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Succs, AnyExpr // Type, AnyExpr // Requester, AnyExpr // Errors, AnyExpr // RequiredBy, AnyExprLink // UID, AnyExprLink // Model]
+type instance Outputs Layer UnificationSolver = '[AnyExpr // Model, AnyExpr // UID, AnyExpr // Succs, AnyExpr // Type, AnyExpr // Requester, AnyExpr // Errors, AnyExpr // RequiredBy, AnyExprLink // UID, AnyExprLink // Model]
 type instance Inputs  Attr  UnificationSolver = '[Unifications]
 type instance Outputs Attr  UnificationSolver = '[Unifications]
 type instance Inputs  Event UnificationSolver = '[]
@@ -100,10 +100,11 @@ repType expr = matchExpr expr $ \case
 
 reportError :: (MonadRef m, MonadPassManager m, MonadSubPass UnificationSolver m, MonadResolution [Expr Unify] m) => Expr Draft -> Expr Draft -> Expr Draft -> m ()
 reportError uni a b = do
-    req <- getLayer @Requester uni >>= mapM source
+    req        <- getLayer @Requester uni >>= mapM source
+    requiredBy <- getLayer @RequiredBy uni
     arep <- repType a
     brep <- repType b
-    forM_ req $ \requester -> modifyLayer_ @Errors requester (CompileError ("Unification error: " <> arep <> " with " <> brep) [] :)
+    forM_ req $ \requester -> modifyLayer_ @Errors requester (CompileError ("Unification error: " <> arep <> " with " <> brep) requiredBy [] :)
     resolve_
 
 reflexivity :: (MonadRef m, MonadPassManager m, MonadSubPass UnificationSolver m, MonadResolution [Expr Unify] m) => Expr Draft -> Expr Draft -> Expr Draft -> m ()
@@ -173,7 +174,8 @@ monads uni a b = match2 a b $ curry $ \case
 
 solveUnification :: (MonadRef m, MonadPassManager m, MonadSubPass UnificationSolver m) => Expr Unify -> m (Either [Expr Unify] ())
 solveUnification uni = do
-    req <- getLayer @Requester uni >>= mapM source
+    req        <- getLayer @Requester uni >>= mapM source
+    requiredBy <- getLayer @RequiredBy uni
     solution <- runResolutionT $ do
         let uni' = generalize uni
         Term (Term.Unify l' r') <- readTerm uni
@@ -186,7 +188,9 @@ solveUnification uni = do
         conses uni' l r
         monads uni' l r
     case solution of
-        Left new -> mapM_ (reconnectLayer' @Requester req) new
+        Left new -> do
+            mapM_ (reconnectLayer' @Requester req) new
+            mapM_ (flip (putLayer @RequiredBy) requiredBy) new
         Right _  -> return ()
     return solution
 

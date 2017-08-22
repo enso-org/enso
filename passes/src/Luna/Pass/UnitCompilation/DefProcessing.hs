@@ -38,12 +38,12 @@ import Luna.Test.IR.Runner
 data DefProcessing
 type instance Abstract   DefProcessing = DefProcessing
 type instance Pass.Inputs     Net   DefProcessing = '[AnyExpr, AnyExprLink]
-type instance Pass.Inputs     Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors]
+type instance Pass.Inputs     Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors, AnyExpr // RequiredBy]
 type instance Pass.Inputs     Attr  DefProcessing = '[]
 type instance Pass.Inputs     Event DefProcessing = '[]
 
 type instance Pass.Outputs    Net   DefProcessing = '[AnyExpr, AnyExprLink]
-type instance Pass.Outputs    Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Succs]
+type instance Pass.Outputs    Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Succs, AnyExpr // RequiredBy]
 type instance Pass.Outputs    Attr  DefProcessing = '[]
 type instance Pass.Outputs    Event DefProcessing = '[Event.Import // AnyExpr, Event.Import // AnyExprLink, New // AnyExpr, Delete // AnyExpr, Delete // AnyExprLink, New // AnyExprLink, OnDeepDelete // AnyExpr]
 
@@ -74,9 +74,12 @@ mkDef imports localMethods currentTarget defRoot = mdo
         e@(_:_) -> return $ Left $ e & traverse . Errors.arisingFrom %~ addArisingFrom
         _       -> do
             rooted <- Pass.eval' @DefProcessing $ do
+                forM_ (unwrap unifies) $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                forM_ (unwrap merges)  $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                forM_ (unwrap apps)    $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                forM_ (getAccs accs)   $ flip (modifyLayer_ @RequiredBy) addArisingFrom
                 tp <- getLayer @Type (unsafeGeneralize typecheckedRoot :: SomeExpr) >>= source
                 compile tp
-
 
             let localDef = case currentTarget of
                   TgtDef n -> Map.singleton n val
