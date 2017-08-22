@@ -12,11 +12,11 @@ import OCI.Pass.Definition (makePass)
 import Luna.IR.ToRefactor2 (Listener, listener, addExprEventListener, tpElemPass)
 import Type.Any (AnyType)
 import Data.TypeDesc (getTypeDesc_, typeDesc)
-import Luna.IR.Layer.Errors (ErrorSource)
+import Luna.IR.Layer.Errors (ErrorSource, ModuleTagged)
 
 data RequiredBy = RequiredBy deriving (Show)
 
-type instance LayerData RequiredBy a = [ErrorSource]
+type instance LayerData RequiredBy a = [ModuleTagged ErrorSource]
 
 initRequiredBy :: Req m '[Writer // Layer // AnyExpr // RequiredBy] => Listener (New // Expr l) m
 initRequiredBy = listener $ \(t, _) -> putLayer @RequiredBy t []

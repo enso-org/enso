@@ -9,6 +9,7 @@ executables:
     source-dirs: src
     dependencies:
       - base
+      - layouting
       - luna-core
       - luna-project
       - luna-syntax-text-lexer
@@ -30,6 +31,7 @@ executables:
       - path
       - bimap
       - optparse-applicative
+      - terminal-text
       - text
       - ansi-wl-pprint
       

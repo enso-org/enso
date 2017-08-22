@@ -585,7 +585,7 @@ def delayAsync time act:
     var
 
 def every timeInterval act:
-    time = timeInterval.toMicroseconds
+    time    = timeInterval.toMicroseconds
     current = act
     future  = delayAsync time (every timeInterval act)
     Stream current future.read

@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE OverloadedLists    #-}
+{-# LANGUAGE CPP                #-}
 
 module Luna.Shell where
 
@@ -55,6 +56,9 @@ import qualified System.Environment as Env
 
 import System.Exit (die)
 
+import Data.Layout as Layout
+import qualified Data.Text.Terminal as Terminal
+
 data ShellTest
 type instance Abstract ShellTest = ShellTest
 type instance Inputs  Net   ShellTest = '[AnyExpr]
@@ -67,16 +71,46 @@ type instance Inputs  Event ShellTest = '[]
 type instance Outputs Event ShellTest = '[New // AnyExpr]
 type instance Preserves     ShellTest = '[]
 
-formatErrors :: [CompileError] -> P.String
-formatErrors errors = intercalate "\n\n" (formatErr <$> errors) where
-    formatErr (CompileError txt reqStack stack) = intercalate "\n    " (convert txt : (fmap formatReqItem (reverse reqStack) ++ fmap formatCallItem (reverse stack)))
+errorsEnumerator :: Doc Terminal.TermText
+#ifdef mingw32_HOST_OS
+errorsEnumerator = "-"
+#else
+errorsEnumerator = "•"
+#endif
 
-    formatCallItem (FromFunction n) = "arising from function " <> convert n
-    formatCallItem (FromMethod c n) = "arising from method " <> convert n <> " of class " <> convert c
+stackItemEnumerator :: Doc Terminal.TermText
+#ifdef mingw32_HOST_OS
+stackItemEnumerator = "-"
+#else
+stackItemEnumerator = "↳ "
+#endif
 
-    formatReqItem (FromFunction n) = "required by function " <> convert n
-    formatReqItem (FromMethod c n) = "required by method " <> convert n <> " of class " <> convert c
+colon :: Doc Terminal.TermText
+colon = ":"
 
+formatStack :: [ModuleTagged ErrorSource] -> Doc Terminal.TermText
+formatStack items = enumsCol Layout.<+> modsCol Layout.<+> colonsCol Layout.<+> defCol where
+    colonsCol = Layout.nested $ foldl (</>) mempty (colon <$ items)
+    enumsCol  = Layout.nested $ foldl (</>) mempty (stackItemEnumerator <$ items)
+
+    modsCol  = Layout.nested $ foldl (</>) mempty (convert      . view moduleTag <$> items)
+    defCol   = Layout.nested $ foldl (</>) mempty (formatSource . view contents  <$> items)
+
+    formatSource (FromFunction n) = convert n
+    formatSource (FromMethod c n) = convert c <> "." <> convert n
+
+formatError :: CompileError -> Doc Terminal.TermText
+formatError (CompileError txt reqStack stack) = Layout.nested (convert txt) </> (Layout.indented $ Layout.nested $ arisingBlock </> requiredBlock) where
+    arisingFrom   = "Arising from:"
+    requiredBy    = "Required by:"
+    arisingStack  = Layout.nested (formatStack $ reverse stack)
+    requiredStack = Layout.nested (formatStack reqStack)
+    arisingBlock  = arisingFrom </> Layout.indented arisingStack
+    requiredBlock = if null reqStack then Layout.phantom else requiredBy  </> Layout.indented requiredStack
+
+formatErrors :: [CompileError] -> Doc Terminal.TermText
+formatErrors errs = foldl (<//>) mempty items where
+    items = Layout.nested . (errorsEnumerator Layout.<+>) . formatError <$> errs
 
 
 main :: IO ()
@@ -105,8 +139,7 @@ main = void $ runPM True $ do
     case mainFun of
         Just (Left e)  -> do
             putStrLn "Luna encountered the following compilation errors:"
-            putStrLn ""
-            putStrLn $ formatErrors e
+            Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $ formatErrors e
             putStrLn ""
             liftIO $ die "Compilation failed."
         Just (Right f) -> do

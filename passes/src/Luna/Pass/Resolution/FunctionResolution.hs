@@ -62,7 +62,7 @@ lookupSym n imps = case imps ^. importedFunctions . at n of
 resolveSymbol :: (MonadRef m, MonadPassManager m) => Name -> Expr Var -> SubPass FunctionResolution m (Either [CompileError] SomeExpr)
 resolveSymbol name var = do
     current <- getAttr @CurrentTarget
-    if current == TgtDef name
+    if Just name == current ^? _TgtDef . _2
         then do
             root <- head . unwrap <$> getAttr @ExprRoots
             fmap (Right . generalize) $ getLayer @Type root >>= source
@@ -82,7 +82,7 @@ resolveSymbol name var = do
 
 
 importErrorDoc :: Name -> ImportError -> Text
-importErrorDoc n SymbolNotFound         = "Can't find function: " <> " " <> convert n
+importErrorDoc n SymbolNotFound         = "Can't find function " <> convert n
 importErrorDoc n (SymbolAmbiguous mods) = "Function" <> " " <> convert n <> " " <> "is ambiguous." <> "\n" <> "It's exported by the following modules:" <> " " <> (foldl (\l r -> l <> "\n" <> r) "" $ convert <$> mods)
 
 importVar :: (MonadRef m, MonadPassManager m) => Expr Var -> SubPass FunctionResolution m ()

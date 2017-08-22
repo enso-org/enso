@@ -35,8 +35,8 @@ type instance Pass.Outputs    Event ClassProcessing = '[New // AnyExpr, Delete /
 
 type instance Pass.Preserves        ClassProcessing = '[]
 
-processClass :: (MonadPassManager m, MonadIO m) => Imports -> Expr ClsASG -> m Class
-processClass imports root = do
+processClass :: (MonadPassManager m, MonadIO m) => Name -> Imports -> Expr ClsASG -> m Class
+processClass modName imports root = do
     (className, paramNames, records, methods) <- Pass.eval' @ClassProcessing $ do
         resolveToplevelFields root
         Term (Term.ClsASG native name ps cs ds) <- readTerm root
@@ -63,7 +63,7 @@ processClass imports root = do
     let recordsMap = Map.fromList $ zip (fst <$> records) compiledRecords
         bareClass  = Class recordsMap (Right <$> getters)
         imps       = imports & importedClasses . at className ?~ bareClass
-    methodMap <- MethodProcessing.processMethods imps className paramNames (fst <$> records) methods
+    methodMap <- MethodProcessing.processMethods modName imps className paramNames (fst <$> records) methods
     return $ Class recordsMap (Map.union methodMap (Right <$> getters))
 
 resolveToplevelFields :: (MonadPassManager m, MonadIO m) => Expr ClsASG -> Pass ClassProcessing m

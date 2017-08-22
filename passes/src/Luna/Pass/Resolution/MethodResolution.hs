@@ -18,7 +18,7 @@ import           Luna.Builtin.Data.Module   (Imports)
 import           Luna.Builtin.Data.Class    as Class
 import Luna.IR                              hiding (Function, Import)
 import OCI.IR.Class (Import)
-import Luna.IR.Layer.Errors (ErrorSource)
+import Luna.IR.Layer.Errors (ModuleTagged, ErrorSource)
 
 import Luna.Pass.Resolution.FunctionResolution (ImportError(..))
 
@@ -92,7 +92,7 @@ importAccessor tacc = do
                         return True
                 _ -> return False
 
-importMethod :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> [ErrorSource] -> SubPass AccessorFunction m (Either [CompileError] SomeExpr)
+importMethod :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> [ModuleTagged ErrorSource] -> SubPass AccessorFunction m (Either [CompileError] SomeExpr)
 importMethod className methodName newReq requiredBy = do
     current <- fromCurrentTarget className methodName
     case current of
@@ -104,10 +104,10 @@ fromCurrentTarget className methodName = do
     currentTgt <- getAttr @CurrentTarget
     root       <- (head . unwrap <$> getAttr @ExprRoots) >>= getLayer @Type >>= source
     return $ case currentTgt of
-        TgtMethod c m -> if c == className && m == methodName then Just $ generalize root else Nothing
-        _             -> Nothing
+        TgtMethod _ c m -> if c == className && m == methodName then Just $ generalize root else Nothing
+        _               -> Nothing
 
-importMethodFromImports :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> [ErrorSource] ->  SubPass AccessorFunction m (Either [CompileError] SomeExpr)
+importMethodFromImports :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> [ModuleTagged ErrorSource] ->  SubPass AccessorFunction m (Either [CompileError] SomeExpr)
 importMethodFromImports className methodName newReq requiredBy = do
     imports <- getAttr @Imports
     let  method = lookupClass methodName className imports requiredBy >>= lookupMethod methodName className requiredBy
@@ -125,12 +125,12 @@ importMethodFromImports className methodName newReq requiredBy = do
             modifyAttr_ @UnresolvedAccs  $ flip (foldr addAcc) accs
             return $ Right root
 
-lookupClass :: Name -> Name -> Imports -> [ErrorSource] -> Either [CompileError] Class
+lookupClass :: Name -> Name -> Imports -> [ModuleTagged ErrorSource] -> Either [CompileError] Class
 lookupClass n clsN imps reqBy = case imps ^. importedClasses . at clsN of
     Nothing -> Left [CompileError (importErrorDoc n clsN) reqBy []]
     Just f  -> Right f
 
-lookupMethod :: Name -> Name -> [ErrorSource] -> Class -> Either [CompileError] Function
+lookupMethod :: Name -> Name -> [ModuleTagged ErrorSource] -> Class -> Either [CompileError] Function
 lookupMethod n clsN reqBy cls = case Map.lookup n (cls ^. methods) of
     Just e  -> e
     _       -> Left [CompileError (importErrorDoc n clsN) reqBy []]

@@ -16,9 +16,13 @@ import Data.TypeDesc (getTypeDesc_, typeDesc)
 data Errors = Errors deriving (Show)
 
 data ErrorSource  = FromMethod Name Name | FromFunction Name deriving (Show, Eq)
+
+data ModuleTagged a = ModuleTagged { _moduleTag :: Name, _contents :: a } deriving (Show, Eq)
+makeLenses ''ModuleTagged
+
 data CompileError = CompileError { _description :: Text
-                                 , _requiredBy  :: [ErrorSource]
-                                 , _arisingFrom :: [ErrorSource]
+                                 , _requiredBy  :: [ModuleTagged ErrorSource]
+                                 , _arisingFrom :: [ModuleTagged ErrorSource]
                                  } deriving (Show, Eq)
 type instance LayerData Errors a = [CompileError]
 

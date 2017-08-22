@@ -49,14 +49,14 @@ type instance Pass.Outputs    Event DefProcessing = '[Event.Import // AnyExpr, E
 
 type instance Pass.Preserves        DefProcessing = '[]
 
-processDef :: Imports -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
-processDef imps functionName defIR@(Rooted _ root) = fmap (\(Right x) -> x) $ runPM False $ do
+processDef :: Name -> Imports -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
+processDef modName imps functionName defIR@(Rooted _ root) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     defRoot <- Pass.eval' @DefProcessing $ ($ root) <$> importRooted defIR
-    mkDef imps def (TgtDef functionName) defRoot
+    mkDef modName imps def (TgtDef modName functionName) defRoot
 
-mkDef :: (MonadPassManager m, MonadIO m) => Imports -> Map Name (Map Name (Either [CompileError] LunaValue)) -> CurrentTarget -> SomeExpr -> m (Either [CompileError] Function)
-mkDef imports localMethods currentTarget defRoot = mdo
+mkDef :: (MonadPassManager m, MonadIO m) => Name -> Imports -> Map Name (Map Name (Either [CompileError] LunaValue)) -> CurrentTarget -> SomeExpr -> m (Either [CompileError] Function)
+mkDef modName imports localMethods currentTarget defRoot = mdo
     typecheckedRoot <- fromJust . Map.lookup (unsafeGeneralize defRoot) <$> typecheck currentTarget imports [unsafeGeneralize defRoot]
     value           <- Pass.eval' @Interpreter $ interpret' imports typecheckedRoot
 
@@ -67,8 +67,8 @@ mkDef imports localMethods currentTarget defRoot = mdo
 
     errors <- Pass.eval' @DefProcessing $ getLayer @Errors typecheckedRoot
     let addArisingFrom = maybe id (:) $ case currentTarget of
-            TgtDef n      -> Just $ Errors.FromFunction n
-            TgtMethod c m -> Just $ Errors.FromMethod c m
+            TgtDef    mod n   -> Just $ Errors.ModuleTagged mod $ Errors.FromFunction n
+            TgtMethod mod c m -> Just $ Errors.ModuleTagged mod $ Errors.FromMethod c m
             _             -> Nothing
     case errors of
         e@(_:_) -> return $ Left $ e & traverse . Errors.arisingFrom %~ addArisingFrom
@@ -82,8 +82,8 @@ mkDef imports localMethods currentTarget defRoot = mdo
                 compile tp
 
             let localDef = case currentTarget of
-                  TgtDef n -> Map.singleton n val
-                  _        -> def
+                  TgtDef _ n -> Map.singleton n val
+                  _          -> def
                 val = evalStateT value $ LocalScope def localDef localMethods
 
             return $ Right $ Function rooted val $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)

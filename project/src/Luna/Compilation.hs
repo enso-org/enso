@@ -140,19 +140,19 @@ compileProject' libs forceModules = do
 
     (modules, stdImportsMaker) <- Pass.eval' @ProjectCompilation $ do
         allModules <- fmap (Map.mapMaybe id) $ matchExpr root $ \case
-            World m -> forM m $ \u -> do
+            World m -> iforM m $ \n u -> do
                 unit <- source u
                 matchExpr unit $ \case
-                    Unit{} -> return $ Just $ unsafeGeneralize unit
+                    Unit{} -> return $ Just (convert n, unsafeGeneralize unit)
                     _      -> return Nothing
             _       -> error "malformed world"
-        stdImps <- importAll allModules stdlibImports
+        stdImps <- importAll (snd <$> allModules) stdlibImports
         return (allModules, stdImps)
 
     (world, clean, std) <- mdo
         (clean, std) <- liftIO $ systemStd $ stdImportsMaker world
-        results      <- forM modules $ ModuleProcessing.processModule std world
+        results      <- forM modules $ uncurry $ ModuleProcessing.processModule std world
         let world = unionsWorlds $ Map.elems results
         return (world, clean, std)
 
-    return (world, modules, std, clean)
+    return (world, (snd <$> modules), std, clean)
