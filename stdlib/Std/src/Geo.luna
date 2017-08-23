@@ -1,6 +1,6 @@
 import Std.Base
 
-class GeoJSON
+class GeoJSON:
     json :: JSON
 
     def toJSON: self.json
