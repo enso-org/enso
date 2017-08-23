@@ -52,18 +52,13 @@ type instance Pass.Preserves        MethodProcessing = '[]
 
 processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Name -> Imports -> Name -> [Name] -> [Name] -> [(Name, Rooted SomeExpr)] -> m (Map Name (Either [CompileError] Function))
 processMethods modName imps className classParamNames consNames methodIRs = mdo
-    methods <- flip evalStateT imps $ forM methodIRs $ \(n, body) -> do
-        imports  <- get
-        compiled <- lift $ liftIO $ delay $ mkMethod modName imports className classParamNames localMethods n body
-        importedClasses . ix className . Class.methods . at n ?= compiled
-        return (n, compiled)
-    let baseMethods  = imps ^. importedClasses . ix className . Class.methods . to Map.toList
-        methodMap    = Map.fromList $ (methods <> baseMethods) ^.. traverse . alongside id (choosing (to Left) (value . to Right))
-        localMethods = Map.fromList $ zip consNames $ repeat methodMap
-    return $ Map.fromList methods
+    result <- forM methodIRs $ \(n, body) -> liftIO $ delay $ mkMethod modName allImports className classParamNames n body
+    let meths      = zip (fst <$> methodIRs) result
+        allImports = imps & importedClasses . ix className . Class.methods %~ Map.union (Map.fromList meths)
+    return $ Map.fromList meths
 
-mkMethod ::  Name -> Imports -> Name -> [Name] -> Map Name (Map Name (Either [CompileError] LunaValue)) -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
-mkMethod modName imports className classParamNames localMethods methodName methodIR@(Rooted _ methodRoot) = fmap (\(Right x) -> x) $ runPM False $ do
+mkMethod ::  Name -> Imports -> Name -> [Name] -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
+mkMethod modName imports className classParamNames methodName methodIR@(Rooted _ methodRoot) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     initNameGen
     methodRoot <- Pass.eval' @MethodProcessing $ do
@@ -80,4 +75,4 @@ mkMethod modName imports className classParamNames localMethods methodName metho
 
         lambda <- lam self root
         return $ unsafeGeneralize lambda
-    mkDef modName imports localMethods (TgtMethod modName className methodName) methodRoot
+    mkDef modName imports (TgtMethod modName className methodName) methodRoot

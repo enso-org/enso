@@ -53,10 +53,10 @@ processDef :: Name -> Imports -> Name -> Rooted SomeExpr -> IO (Either [CompileE
 processDef modName imps functionName defIR@(Rooted _ root) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     defRoot <- Pass.eval' @DefProcessing $ ($ root) <$> importRooted defIR
-    mkDef modName imps def (TgtDef modName functionName) defRoot
+    mkDef modName imps (TgtDef modName functionName) defRoot
 
-mkDef :: (MonadPassManager m, MonadIO m) => Name -> Imports -> Map Name (Map Name (Either [CompileError] LunaValue)) -> CurrentTarget -> SomeExpr -> m (Either [CompileError] Function)
-mkDef modName imports localMethods currentTarget defRoot = mdo
+mkDef :: (MonadPassManager m, MonadIO m) => Name -> Imports -> CurrentTarget -> SomeExpr -> m (Either [CompileError] Function)
+mkDef modName imports currentTarget defRoot = mdo
     typecheckedRoot <- fromJust . Map.lookup (unsafeGeneralize defRoot) <$> typecheck currentTarget imports [unsafeGeneralize defRoot]
     value           <- Pass.eval' @Interpreter $ interpret' imports typecheckedRoot
 
@@ -84,6 +84,6 @@ mkDef modName imports localMethods currentTarget defRoot = mdo
             let localDef = case currentTarget of
                   TgtDef _ n -> Map.singleton n val
                   _          -> def
-                val = evalStateT value $ LocalScope def localDef localMethods
+                val = evalStateT value $ LocalScope def localDef
 
             return $ Right $ Function rooted val $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)
