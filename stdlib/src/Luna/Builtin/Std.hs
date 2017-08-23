@@ -66,7 +66,9 @@ import           Luna.Test.IR.Runner
 import           Luna.Test.Utils
 
 import qualified Network.HTTP.Client                          as HTTP
+import qualified Network.HTTP.Client.TLS                      as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
+import qualified Network.HTTP.Types                           as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
 
 import           OCI.IR.Combinators
@@ -520,7 +522,6 @@ systemStd imps = do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
                 packParam  (k, v) = (convert k, convert <$> v)
             baseReq <- HTTP.parseRequest (convert uri)
-            manager <- HTTP.newManager HTTP.defaultManagerSettings
             let newHeaders = map packHeader headers
                 oldHeaders = HTTP.requestHeaders baseReq
                 req        = baseReq
@@ -532,6 +533,9 @@ systemStd imps = do
                     & case auth of
                         Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
                         Nothing -> id
+                managerSettings   = if HTTP.secure req then HTTP.tlsManagerSettings else HTTP.defaultManagerSettings
+            manager <- HTTP.newManager managerSettings
+            print req
             HTTP.responseOpen req manager
 
     let textT           = LCons "Text"   []

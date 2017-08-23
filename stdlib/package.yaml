@@ -27,6 +27,7 @@ dependencies:
     - unordered-containers
     - aeson
     - http-client
+    - http-client-tls
     - http-conduit
     - http-types
     - uuid
