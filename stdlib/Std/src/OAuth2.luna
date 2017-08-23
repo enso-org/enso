@@ -35,16 +35,3 @@ class OAuth2:
         uri  = oauth2Data.invalidateTokenEndpoint
         OAuth2.postRequest oauth2Data uri body
 
-
-class TwitterData:
-    clientId     :: Text
-    clientSecret :: Text
-
-    def accessTokenEndpoint:
-        "https://api.twitter.com/oauth2/token"
-
-    def invalidateTokenEndpoint:
-        "https://api.twitter.com/oauth2/invalidate_token"
-
-    def callback:
-        Nothing
