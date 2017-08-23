@@ -40,7 +40,7 @@ import qualified Data.UUID.V4                                 as UUID
 import           Foreign.C                                    (ePIPE, Errno (Errno))
 
 import           GHC.IO.Exception                             (IOErrorType (ResourceVanished), IOException (..))
-import           GHC.IO.Handle                                (Handle)
+import           GHC.IO.Handle                                (Handle, BufferMode (..))
 import qualified GHC.IO.Handle                                as Handle
 
 import           Luna.Builtin.Data.Class                      (Class (..))
@@ -666,6 +666,10 @@ systemStd imps = do
         waitForProcessVal = withExceptions . Process.waitForProcess
     waitForProcess' <- typeRepForIO (toLunaValue std waitForProcessVal) [LCons "ProcessHandle" []] (LCons "ExitCode" [])
 
+    let hSetBufferingVal :: Handle -> BufferMode -> LunaEff ()
+        hSetBufferingVal = withExceptions .: Handle.hSetBuffering
+    hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [LCons "FileHandle" [], LCons "BufferMode" []] (LCons "None" [])
+
     let systemModule = Map.fromList [ ("putStr", printLn)
                                     , ("errorStr", err)
                                     , ("readFile", readFileF)
@@ -694,6 +698,7 @@ systemStd imps = do
                                     , ("primHGetLine", hGetLine')
                                     , ("primHPutText", hPutText')
                                     , ("primHFlush", hFlush')
+                                    , ("primHSetBuffering", hSetBuffering')
                                     , ("primWaitForProcess", waitForProcess')
                                     , ("primEvaluate", evaluate')
                                     ]
@@ -752,6 +757,16 @@ instance FromLunaData StdStream where
                 "CreatePipe" -> return CreatePipe
                 "NoStream"   -> return NoStream
                 c            -> throw (errorMsg <> convert c)
+            c -> throw (errorMsg <> "Not a LunaObject")
+
+instance FromLunaData BufferMode where
+    fromLunaData v = let errorMsg = "Expected a BufferMode luna object, got unexpected constructor: " in
+        force' v >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "NoBuffering"    -> return NoBuffering
+                "LineBuffering"  -> return LineBuffering
+                "BlockBuffering" -> fmap (BlockBuffering . fmap int) . fromLunaData . head $ obj ^. constructor . fields
+                c                -> throw (errorMsg <> convert c)
             c -> throw (errorMsg <> "Not a LunaObject")
 
 instance FromLunaData ExitCode where

@@ -6,15 +6,25 @@ class PipeRequest:
     CreatePipe
     NoStream
 
+class BufferMode:
+    NoBuffering
+    LineBuffering
+    BlockBuffering: size :: Maybe Int
+
+
 native class FileHandle:
+    def setBuffering bm: primHSetBuffering self bm
     def isOpen: primHIsOpen self
     def isClosed: primHIsClosed self
     def close: primHClose self
+    def flush: primHFlush self
     def getContents: primHGetContents self
     def getLine: primHGetLine self
     def putText t: primHPutText self t
-    def putLine t: primHPutText self (t + '\n')
-    def flush: primHFlush self
+    def putLine t:
+        primHPutText self (t + '\n')
+        self.flush
+
 
 class ProcessHandle:
     def waitForProcess: primWaitForProcess self
@@ -79,8 +89,10 @@ def runProcessFromStream path args inputStream input:
     cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
     pr = cp . run
     inh = pr . stdin . fromJust
-    fork (inputStream . each inh.putLine)
+    inh.setBuffering NoBuffering
     outh = pr . stdout . fromJust
+    outh.setBuffering NoBuffering
+    fork (inputStream . each inh.putLine)
     streamFrom outh.getLine
 
 class ExitCode:
