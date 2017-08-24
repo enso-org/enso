@@ -113,6 +113,36 @@ class Tuple3 a b c:
         Tuple3 a b c: self.first.equals a . and (self.second.equals b) . and (self.third.equals c)
         other:        False
 
+class Tuple4 a b c d:
+    Tuple4 a b c d
+
+    def toJSON: case self of
+        Tuple4 a b c d: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON (Prepend d.toJSON Empty))))
+
+    def first: case self of
+        Tuple4 a b c d: a
+
+    def second: case self of
+        Tuple4 a b c d: b
+
+    def third: case self of
+        Tuple4 a b c d: c
+
+    def fourth: case self of
+        Tuple4 a b c d: d
+
+    def map f: Tuple4 (f self.first) (f self.second) (f self.third) (f self.fourth)
+
+    def toText: case self of
+        Tuple4 a b c d: "Tuple4 " + a.toText + " " + b.toText + " " + c.toText + " " + d.toText
+
+    def shortRep: case self of
+        Tuple4 a b c d: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ", " + d.shortRep + ")"
+
+    def equals that: case that of
+        Tuple4 a b c d: self.first.equals a . and (self.second.equals b) . and (self.third.equals c) . and (self.fourth.equals d)
+        other:        False
+
 class Maybe a:
     Nothing
     Just a

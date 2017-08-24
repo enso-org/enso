@@ -70,6 +70,7 @@ import qualified Network.HTTP.Client.TLS                      as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
 import qualified Network.HTTP.Types                           as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
+import qualified Web.Authenticate.OAuth                       as OAuth
 
 import           OCI.IR.Combinators
 import           OCI.IR.Name.Qualified
@@ -517,14 +518,20 @@ systemStd imps = do
         parseMsgPackVal = withExceptions . MsgPack.unpack
     parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
 
-    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
-        primPerformHttpVal uri method headers auth params body = performIO $ do
+    let signOAuth1 :: (Text, Text, Text, Text) -> HTTP.Request -> IO HTTP.Request
+        signOAuth1 (cak, cas, ot, ots) req = do
+            let oauth = OAuth.newOAuth { OAuth.oauthConsumerKey = convert cak, OAuth.oauthConsumerSecret = convert cas }
+                creds = OAuth.newCredential (convert ot) (convert ots)
+            OAuth.signOAuth oauth creds req
+
+    let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> Maybe (Text, Text, Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
+        primPerformHttpVal uri method headers auth oauth params body = performIO $ do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
                 packParam  (k, v) = (convert k, convert <$> v)
             baseReq <- HTTP.parseRequest (convert uri)
             let newHeaders = map packHeader headers
                 oldHeaders = HTTP.requestHeaders baseReq
-                req        = baseReq
+            req <- baseReq
                     & HTTP.setRequestBodyLBS body
                     & HTTP.setRequestMethod  (convert method)
                     & HTTP.setRequestHeaders (oldHeaders <> newHeaders)
@@ -532,19 +539,22 @@ systemStd imps = do
                     & HTTP.setRequestQueryString (map packParam params)
                     & case auth of
                         Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
-                        Nothing -> id
-                managerSettings   = if HTTP.secure req then HTTP.tlsManagerSettings else HTTP.defaultManagerSettings
+                        Nothing     -> id
+                    & case oauth of
+                        Just oauthData -> signOAuth1 oauthData
+                        Nothing        -> return
+            let managerSettings = if HTTP.secure req then HTTP.tlsManagerSettings else HTTP.defaultManagerSettings
             manager <- HTTP.newManager managerSettings
-            print req
             HTTP.responseOpen req manager
 
     let textT           = LCons "Text"   []
         tupleT          = LCons "Tuple2" [textT, textT]
+        oauthT          = LCons "Maybe"  [LCons "Tuple4" [textT, textT, textT, textT]]
         maybeTupleT     = LCons "Maybe"  [tupleT]
         tupleListT      = LCons "List"   [tupleT]
         tupleMaybeListT = LCons "List"   [LCons "Tuple2" [textT, LCons "Maybe" [textT]]]
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
-                                    [textT, textT, tupleListT, maybeTupleT, tupleMaybeListT, LCons "Binary" []]
+                                    [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, LCons "Binary" []]
                                     (LCons "HttpResponse" [])
 
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
@@ -761,7 +771,7 @@ instance IsBoxed "FileHandle"    Handle
 instance IsBoxed "ProcessHandle" ProcessHandle
 instance IsBoxed "StrictText"    AnyText.Text
 
-instance ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
+instance {-# OVERLAPS #-} ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
 
 instance FromLunaData MsgPack.Object where

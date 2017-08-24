@@ -50,6 +50,7 @@ class HttpRequest:
     method  :: HttpMethod
     headers :: Map Text Text
     auth    :: Maybe (Tuple2 Text Text)
+    oauth1  :: Maybe (Tuple4 Text Text Text Text)
     params  :: List (Tuple2 Text (Maybe Text))
     body    :: Binary
 
@@ -63,39 +64,44 @@ class HttpRequest:
         "}"
 
     def setMethod m: case self of
-        HttpRequest uri method headers auth params body:
-            HttpRequest uri m headers auth params body
+        HttpRequest uri _ headers auth oauth1 params body:
+            HttpRequest uri m headers auth oauth1 params body
 
     def setBody b: case self of
-        HttpRequest uri method headers auth params body:
-            HttpRequest uri method headers auth params b.toBinary
+        HttpRequest uri method headers auth oauth1 params _:
+            HttpRequest uri method headers auth oauth1 params b.toBinary
 
     def setUri u: case self of
-        HttpRequest uri method headers auth params body:
-            HttpRequest u method headers auth params body
+        HttpRequest _ method headers auth oauth1 params body:
+            HttpRequest u method headers auth oauth1 params body
 
     def addHeader key val: case self of
-        HttpRequest uri method headers auth params body:
-            HttpRequest uri method (headers.insert key val) auth params body
+        HttpRequest uri method _ auth oauth1 params body:
+            HttpRequest uri method (headers.insert key val) auth oauth1 params body
 
     def setBasicAuth username password: case self of
-        HttpRequest uri method headers auth params body:
-            HttpRequest uri method headers (Just (username, password)) params body
+        HttpRequest uri method headers _ oauth1 params body:
+            HttpRequest uri method headers (Just (username, password)) oauth1 params body
 
     def setParam key val: case self of
-        HttpRequest uri method headers auth params body:
-            HttpRequest uri method headers auth (Prepend (key, val) params) body
+        HttpRequest uri method headers auth oauth1 params body:
+            HttpRequest uri method headers auth oauth1 (Prepend (key, val) params) body
 
-    def setOAuth2Token tkn:
+    def setOAuth1 oauthData: case self of
+        HttpRequest uri method headers auth _ params body:
+            oauth = (oauthData.clientKey, oauthData.clientSecret, oauthData.oauthToken, oauthData.oauthTokenSecret)
+            HttpRequest uri method headers auth (Just oauth) params body
+
+    def setOAuth2 tkn:
         self . addHeader "Authorization" ("Bearer " + tkn)
 
     def perform: case self of
-        HttpRequest uri method headers auth params body:
-            primPerformHttp uri method.toText headers.toList auth params body
+        HttpRequest uri method headers auth oauth1 params body:
+            primPerformHttp uri method.toText headers.toList auth oauth1 params body
 
 
 def defaultHttpRequest uri:
-    HttpRequest uri GET Map.empty Nothing Empty "".toBinary
+    HttpRequest uri GET Map.empty Nothing Nothing Empty "".toBinary
 
 
 class Http:
