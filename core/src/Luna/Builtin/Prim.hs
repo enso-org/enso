@@ -77,10 +77,18 @@ instance (FromLunaData a, FromLunaData b) => FromLunaData (a, b) where
             _              -> throw errorMsg
 
 instance (FromLunaData a, FromLunaData b, FromLunaData c) => FromLunaData (a, b, c) where
-    fromLunaData v = let errorMsg = "Expected a Tuple2 luna object, got an unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a Tuple3 luna object, got an unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
                 "Tuple3" -> (,,) <$> fromLunaData a <*> fromLunaData b <*> fromLunaData c where [a, b, c] = obj ^. constructor . fields
+                _        -> throw errorMsg
+            _              -> throw errorMsg
+
+instance (FromLunaData a, FromLunaData b, FromLunaData c, FromLunaData d) => FromLunaData (a, b, c, d) where
+    fromLunaData v = let errorMsg = "Expected a Tuple4 luna object, got an unexpected constructor" in
+        force' v >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "Tuple4" -> (,,,) <$> fromLunaData a <*> fromLunaData b <*> fromLunaData c <*> fromLunaData d where [a, b, c, d] = obj ^. constructor . fields
                 _        -> throw errorMsg
             _              -> throw errorMsg
 
@@ -89,6 +97,9 @@ instance (ToLunaData a, ToLunaData b) => ToLunaData (a, b) where
 
 instance (ToLunaData a, ToLunaData b, ToLunaData c) => ToLunaData (a, b, c) where
     toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Tuple3" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Tuple3" imps
+
+instance (ToLunaData a, ToLunaData b, ToLunaData c, ToLunaData d) => ToLunaData (a, b, c, d) where
+    toLunaData imps (a, b, c, d) = LunaObject $ Object (Constructor "Tuple3" [toLunaData imps a, toLunaData imps b, toLunaData imps c, toLunaData imps d]) $ getObjectMethodMap "Tuple4" imps
 
 instance ToLunaData a => ToLunaData (Maybe a) where
     toLunaData imps Nothing  = LunaObject $ Object (Constructor "Nothing" [])               $ getObjectMethodMap "Maybe" imps
