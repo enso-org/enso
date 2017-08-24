@@ -2,6 +2,20 @@ import Std.Base
 import Std.HTTP
 
 
+class OAuth1Data:
+    clientKey        :: Text
+    clientSecret     :: Text
+    oauthToken       :: Text
+    oauthTokenSecret :: Text
+
+    def toText:
+        "OAuth1Data {\n" +
+        "    clientKey        = " + self.clientKey        + ",\n" +
+        "    clientSecret     = " + self.clientSecret     + ",\n" +
+        "    oauthToken       = " + self.oauthToken       + ",\n" +
+        "    oauthTokenSecret = " + self.oauthTokenSecret + ",\n" +
+        "}"
+
 class OAuth2Data:
     clientId                :: Text
     clientSecret            :: Text
