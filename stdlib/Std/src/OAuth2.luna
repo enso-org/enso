@@ -1,0 +1,37 @@
+import Std.Base
+import Std.HTTP
+
+
+class OAuth2Data:
+    clientId                :: Text
+    clientSecret            :: Text
+    accessTokenEndpoint     :: Text
+    invalidateTokenEndpoint :: Text
+    callback                :: Maybe Text
+
+    def toText:
+        "OAuth2Data {\n" +
+        "    clientId                 = " + self.clientId                + ",\n" +
+        "    clientSecret             = " + self.clientSecret            + ",\n" +
+        "    accessTokenEndpoint      = " + self.accessTokenEndpoint     + ",\n" +
+        "    invalidateTokenEndpoint  = " + self.invalidateTokenEndpoint + ",\n" +
+        "    callback                 = " + self.callback.toText         + "\n"  +
+        "}"
+
+
+class OAuth2:
+    def postRequest oauth2Data uri body:
+        user = oauth2Data.clientId
+        pass = oauth2Data.clientSecret
+        Http.post uri body . setBasicAuth user pass . addHeader "Content-Type" "application/x-www-form-urlencoded;charset=UTF-8" . perform
+
+    def fetchAccessToken oauth2Data:
+        body = HttpSimpleBody [("grant_type", "client_credentials")]
+        uri  = oauth2Data.accessTokenEndpoint
+        OAuth2.postRequest oauth2Data uri body . json . lookupText "access_token"
+
+    def invalidateToken oauth2Data token:
+        body = HttpSimpleBody [("access_token", token)]
+        uri  = oauth2Data.invalidateTokenEndpoint
+        OAuth2.postRequest oauth2Data uri body
+

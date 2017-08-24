@@ -39,18 +39,14 @@ type instance Preserves     Interpreter = '[]
 
 data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
                               , _localDefs   :: Map Name LunaValue
-                              , _localConses :: Map Name (Map Name (Either [CompileError] LunaValue))
                               }
 makeLenses ''LocalScope
 
 instance Default LocalScope where
-    def = LocalScope def def def
+    def = LocalScope def def
 
 localLookup :: Expr Draft -> LocalScope -> Maybe LunaData
 localLookup e = Map.lookup e . view localVars
-
-localLookupCons :: Name -> LocalScope -> Maybe (Map Name (Either [CompileError] LunaValue))
-localLookupCons e = Map.lookup e . view localConses
 
 localDefLookup :: Name -> LocalScope -> Maybe LunaValue
 localDefLookup e = Map.lookup e . view localDefs
@@ -161,9 +157,7 @@ interpret' glob expr = do
             let mets = getConstructorMethodMap n glob
             return $ do
                 fs        <- sequence fields
-                localMets <- gets $ localLookupCons n
-                let ms = fromMaybe mets localMets
-                return $ LunaObject $ Object (Constructor n fs) ms
+                return $ LunaObject $ Object (Constructor n fs) mets
         Match t' cls' -> do
             t       <- source t'
             cls     <- mapM source cls'

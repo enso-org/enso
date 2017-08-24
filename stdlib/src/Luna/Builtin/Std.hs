@@ -83,7 +83,7 @@ import qualified System.Process                               as Process
 
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"]]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"] ]
 
 data LTp = LVar Name | LCons Name [LTp]
 
