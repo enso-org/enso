@@ -617,10 +617,10 @@ systemStd imps = do
 
     let runProcessVal :: CreateProcess -> LunaEff (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
         runProcessVal = withExceptions . Process.createProcess
-    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "Process" [] ] ( LCons "ProcessResults" [ LCons "Maybe" [ LCons "FileHandle" [] ]
-                                                                                                                           , LCons "Maybe" [ LCons "FileHandle" [] ]
-                                                                                                                           , LCons "Maybe" [ LCons "FileHandle" [] ]
-                                                                                                                           , LCons "ProcessHandle" [] ] )
+    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "ProcessDescription" [] ] ( LCons "Process" [ LCons "Maybe" [ LCons "FileHandle" [] ]
+                                                                                                                    , LCons "Maybe" [ LCons "FileHandle" [] ]
+                                                                                                                    , LCons "Maybe" [ LCons "FileHandle" [] ]
+                                                                                                                    , LCons "ProcessHandle" [] ] )
     let hIsOpenVal :: Handle -> LunaEff Bool
         hIsOpenVal = withExceptions . Handle.hIsOpen
     hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [LCons "FileHandle" []] (LCons "Bool" [])
@@ -736,10 +736,10 @@ instance ToLunaData Aeson.Value where
         constructorOf (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
 
 instance FromLunaData CreateProcess where
-    fromLunaData v = let errorMsg = "Expected a Process luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . fields of
-                [command, args, stdin, stdout, stderr, _] -> do
+                [command, args, stdin, stdout, stderr] -> do
                     p       <- Process.proc <$> fmap Text.unpack (fromLunaData command) <*> fmap (map Text.unpack) (fromLunaData args)
                     stdin'  <- fromLunaData stdin
                     stdout' <- fromLunaData stdout
@@ -787,7 +787,7 @@ instance IsBoxed "ProcessHandle" ProcessHandle
 instance IsBoxed "StrictText"    AnyText.Text
 
 instance {-# OVERLAPS #-} ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
-    toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "ProcessResults" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "ProcessResults" imps
+    toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "Process" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "Process" imps
 
 instance FromLunaData MsgPack.Object where
     fromLunaData v = force' v >>= \case

@@ -21,84 +21,80 @@ native class FileHandle:
     def getContents: primHGetContents self
     def getLine: primHGetLine self
     def putText t: primHPutText self t
-    def putLine t:
-        primHPutText self (t + '\n')
-        self.flush
-
+    def putLine t: primHPutText self (t + '\n')
+    def toStream: streamFrom self.getLine
 
 class ProcessHandle:
-    def waitForProcess: primWaitForProcess self
+    def wait: primWaitForProcess self
 
-class ProcessResults:
+class Process:
     stdin  :: Maybe FileHandle
     stdout :: Maybe FileHandle
     stderr :: Maybe FileHandle
     handle :: ProcessHandle
 
-    def waitForProcess: self.handle . waitForProcess
+    def wait: self.handle . wait
 
-class Process:
+class ProcessDescription:
     command :: Text
     args    :: List Text
     stdin   :: PipeRequest
     stdout  :: PipeRequest
     stderr  :: PipeRequest
-    input   :: Either Text (Stream Text)
 
     def setCommand command: case self of
-        Process _ args stdin stdout stderr input: Process command args stdin stdout stderr input
+        ProcessDescription _ args stdin stdout stderr input: ProcessDescription command args stdin stdout stderr input
 
     def setArgs args: case self of
-        Process command _ stdin stdout stderr input: Process command args stdin stdout stderr input
+        ProcessDescription command _ stdin stdout stderr input: ProcessDescription command args stdin stdout stderr input
 
     def setStdin stdin: case self of
-        Process command args _ stdout stderr input: Process command args stdin stdout stderr input
+        ProcessDescription command args _ stdout stderr input: ProcessDescription command args stdin stdout stderr input
 
     def setStdout stdout: case self of
-        Process command args stdin _ stderr input: Process command args stdin stdout stderr input
+        ProcessDescription command args stdin _ stderr input: ProcessDescription command args stdin stdout stderr input
 
     def setStderr stderr: case self of
-        Process command args stdin stdout _ input: Process command args stdin stdout stderr input
+        ProcessDescription command args stdin stdout _ input: ProcessDescription command args stdin stdout stderr input
 
-    def setInput input: case self of
-        Process command args stdin stdout stderr _: Process command args stdin stdout stderr (Left input)
+    def run: primRunProcess self
 
-    def setInputStream inputStream: case self of
-        Process command args stdin stdout stderr _: Process command args stdin stdout stderr (Right inputStream)
+class Command:
+    command :: Text
+    args    :: List Text
+
+    def processDescription:
+        ProcessDescription self.command self.args CreatePipe CreatePipe CreatePipe
 
     def run:
-        pr = primRunProcess self
-        def applyInput t:
-            unless (t.isEmpty) (pr.stdin.fromJust.putText t)
-            pr.stdin.each .close
-            None
-        def applyStream s: fork (s.each pr.stdin.fromJust.putLine)
-        self.input.either applyInput applyStream
-        pr.stdout.fromJust
+        self.processDescription.run
 
-    def runStream:
-        streamFrom self.run.getLine
+    def runWithInput input:
+        p = self.run
+        unless (t.isEmpty) (p.stdin.fromJust.putText t)
+        p.stdin.each .close
+        p
 
-    def execute:
-        def throwStreamError: errorStr "Cannot execute process when input is infinite stream"
-        def executeProcess:
-            pr = primRunProcess self
-            outh = pr.stdout.fromJust.getContents
-            errh = pr.stderr.fromJust.getContents
-            def action waitOut waitErr:
-                unless self.input.left.isEmpty (pr.stdin.fromJust.putText self.input.left)
-                pr.stdin.each .close
-                o = waitOut
-                e = waitErr
-                (o, e)
-            outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
-            ex = pr.waitForProcess
-            (outErr.first, outErr.second, ex)
-        if self.input.isLeft then executeProcess else throwStreamError
+    def runWithStream stream:
+        p = self.run
+        fork (stream.each p.stdin.fromJust.putLine)
+        p
+
+    def execute input:
+        p = self.run
+        outh = p.stdout.fromJust.getContents
+        errh = p.stderr.fromJust.getContents
+        def action waitOut waitErr:
+            unless input.isEmpty (p.stdin.fromJust.putText input)
+            p.stdin.each .close
+            o = waitOut
+            e = waitErr
+            (o, e)
+        outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
+        ex = p.wait
+        (outErr.first, outErr.second, ex)
 
 
-def defaultProcess command args:
-    Process command args CreatePipe CreatePipe CreatePipe (Left "")
 
 def withForkWait async body:
     mVar = newMVar
