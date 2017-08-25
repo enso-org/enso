@@ -105,6 +105,9 @@ instance ToLunaData a => ToLunaData (Maybe a) where
     toLunaData imps Nothing  = LunaObject $ Object (Constructor "Nothing" [])               $ getObjectMethodMap "Maybe" imps
     toLunaData imps (Just a) = LunaObject $ Object (Constructor "Just" [toLunaData imps a]) $ getObjectMethodMap "Maybe" imps
 
+instance (ToLunaData a, ToLunaData b) => ToLunaData (Either a b) where
+    toLunaData imps (Left  a) = LunaObject $ Object (Constructor "Left"  [toLunaData imps a]) $ getObjectMethodMap "Either" imps
+    toLunaData imps (Right b) = LunaObject $ Object (Constructor "Right" [toLunaData imps b]) $ getObjectMethodMap "Either" imps
 
 instance ToLunaData () where
     toLunaData imps _ = LunaObject $ Object (Constructor "None" []) $ getObjectMethodMap "None" imps

@@ -37,14 +37,68 @@ class ProcessResults:
 
     def waitForProcess: self.handle . waitForProcess
 
-class ProcessDescription:
+class Process:
     command :: Text
     args    :: List Text
-    stdin   :: Maybe PipeRequest
-    stdout  :: Maybe PipeRequest
-    stderr  :: Maybe PipeRequest
+    stdin   :: PipeRequest
+    stdout  :: PipeRequest
+    stderr  :: PipeRequest
+    input   :: Either Text (Stream Text)
 
-    def run: primRunProcess self
+    def setCommand command: case self of
+        Process _ args stdin stdout stderr input: Process command args stdin stdout stderr input
+
+    def setArgs args: case self of
+        Process command _ stdin stdout stderr input: Process command args stdin stdout stderr input
+
+    def setStdin stdin: case self of
+        Process command args _ stdout stderr input: Process command args stdin stdout stderr input
+
+    def setStdout stdout: case self of
+        Process command args stdin _ stderr input: Process command args stdin stdout stderr input
+
+    def setStderr stderr: case self of
+        Process command args stdin stdout _ input: Process command args stdin stdout stderr input
+
+    def setInput input: case self of
+        Process command args stdin stdout stderr _: Process command args stdin stdout stderr (Left input)
+
+    def setInputStream inputStream: case self of
+        Process command args stdin stdout stderr _: Process command args stdin stdout stderr (Right inputStream)
+
+    def run:
+        pr = primRunProcess self
+        def applyInput t:
+            unless (t.isEmpty) (pr.stdin.fromJust.putText t)
+            pr.stdin.each .close
+            None
+        def applyStream s: fork (s.each pr.stdin.fromJust.putLine)
+        self.input.either applyInput applyStream
+        pr.stdout.fromJust
+
+    def runStream:
+        streamFrom self.run.getLine
+
+    def execute:
+        def throwStreamError: errorStr "Cannot execute process when input is infinite stream"
+        def executeProcess:
+            pr = primRunProcess self
+            outh = pr.stdout.fromJust.getContents
+            errh = pr.stderr.fromJust.getContents
+            def action waitOut waitErr:
+                unless self.input.left.isEmpty (pr.stdin.fromJust.putText self.input.left)
+                pr.stdin.each .close
+                o = waitOut
+                e = waitErr
+                (o, e)
+            outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
+            ex = pr.waitForProcess
+            (outErr.first, outErr.second, ex)
+        if self.input.isLeft then executeProcess else throwStreamError
+
+
+def defaultProcess command args:
+    Process command args CreatePipe CreatePipe CreatePipe (Left "")
 
 def withForkWait async body:
     mVar = newMVar
@@ -53,47 +107,6 @@ def withForkWait async body:
         mVar.put res
     fork fork'
     body mVar.take
-
-def readProcessWithExitCode path args input:
-    cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
-    pr = cp . run
-    outh = pr . stdout . fromJust . getContents
-    errh = pr . stderr . fromJust . getContents
-    def action waitOut waitErr:
-        unless (input . isEmpty) (pr . stdin . fromJust . putText input)
-        pr . stdin . each .close
-        o = waitOut
-        e = waitErr
-        (o, e)
-    outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
-    ex = pr . waitForProcess
-    (outErr . first, outErr . second, ex)
-
-
-class Process:
-    stdin :: Maybe FileHandle
-
-    def runProcess path args input:
-        inhpr = Just (self.stdin . maybe CreatePipe UseHandle)
-        cp = ProcessDescription path args inhpr (Just CreatePipe) (Just CreatePipe)
-        pr = cp . run
-        unless (input . isEmpty) (pr . stdin . fromJust . putText input)
-        pr . stdin . each .close
-        pr . stdout . fromJust
-
-    def streamProcess path args input:
-        outh = self . runProcess path args input
-        streamFrom outh.getLine
-
-def runProcessFromStream path args inputStream input:
-    cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
-    pr = cp . run
-    inh = pr . stdin . fromJust
-    inh.setBuffering NoBuffering
-    outh = pr . stdout . fromJust
-    outh.setBuffering NoBuffering
-    fork (inputStream . each inh.putLine)
-    streamFrom outh.getLine
 
 class ExitCode:
     ExitSuccess

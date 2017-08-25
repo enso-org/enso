@@ -197,8 +197,6 @@ class Maybe a:
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"
 
-    def toText: self.shortRep
-
     def equals that: case self of
         Just a: case that of
             Just b:  a.equals b
@@ -206,6 +204,46 @@ class Maybe a:
         Nothing: case that of
             Nothing: True
             other:   False
+
+class Either a b:
+    Left  a
+    Right b
+
+    def toJSON: case self of
+        Left  a: a.toJSON
+        Right b: b.toJSON
+
+    def either lf rf: case self of
+        Left  a: lf a
+        Right b: rf b
+
+    def isLeft: case self of
+        Left  _: True
+        Right _: False
+
+    def isRight: case self of
+        Left  _: False
+        Right _: True
+
+    def left: case self of
+        Left  a: a
+        Right _: errorStr "Either.left: Right"
+
+    def right: case self of
+        Left  _: errorStr "Either.right: Left"
+        Right b: b
+
+    def toText: case self of
+        Left  a: "Left " + a.toText
+        Right b: "Right " + b.toText
+
+    def shortRep: case self of
+        Left  a: "Left " + a.shortRep
+        Right b: "Right " + b.shortRep
+
+    def equals that: case self of
+        Left  a: if that.isLeft  then a.equals that.left  else False
+        Right b: if that.isRight then b.equals that.right else False
 
 class List a:
     Empty

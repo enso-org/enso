@@ -617,7 +617,7 @@ systemStd imps = do
 
     let runProcessVal :: CreateProcess -> LunaEff (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
         runProcessVal = withExceptions . Process.createProcess
-    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "ProcessDescription" [] ] ( LCons "ProcessResults" [ LCons "Maybe" [ LCons "FileHandle" [] ]
+    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "Process" [] ] ( LCons "ProcessResults" [ LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                            , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                            , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                            , LCons "ProcessHandle" [] ] )
@@ -736,15 +736,15 @@ instance ToLunaData Aeson.Value where
         constructorOf (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
 
 instance FromLunaData CreateProcess where
-    fromLunaData v = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
+    fromLunaData v = let errorMsg = "Expected a Process luna object, got unexpected constructor" in
         force' v >>= \case
             LunaObject obj -> case obj ^. constructor . fields of
-                [processPath, args, mayStdIn, mayStdOut, mayStdErr] -> do
-                    p      <- Process.proc <$> fmap Text.unpack (fromLunaData processPath) <*> fmap (map Text.unpack) (fromLunaData args)
-                    stdIn  <- fromMaybe Inherit <$> fromLunaData mayStdIn
-                    stdOut <- fromMaybe Inherit <$> fromLunaData mayStdOut
-                    stdErr <- fromMaybe Inherit <$> fromLunaData mayStdErr
-                    return $ p { Process.std_in = stdIn, Process.std_out = stdOut, Process.std_err = stdErr }
+                [command, args, stdin, stdout, stderr, _] -> do
+                    p       <- Process.proc <$> fmap Text.unpack (fromLunaData command) <*> fmap (map Text.unpack) (fromLunaData args)
+                    stdin'  <- fromLunaData stdin
+                    stdout' <- fromLunaData stdout
+                    stderr' <- fromLunaData stderr
+                    return $ p { Process.std_in = stdin', Process.std_out = stdout', Process.std_err = stderr' }
                 _ -> throw errorMsg
             _ -> throw errorMsg
 
