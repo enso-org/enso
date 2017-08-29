@@ -62,10 +62,18 @@ import Prologue.Data.Bifunctor          as X
 import Prologue.Data.Ix                 as X
 import Data.Functor                     as X (Functor, fmap, (<$), ($>), (<$>), void)
 import Data.Functor.Utils               as X
-import Data.Functor.Classes             as X ( Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
+import Data.Functor.Classes             as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
+import Data.Functor.Foldable            as X (Fix(Fix))
 import Data.String.Class                as X (IsString (fromString), ToString (toString))
 import Data.Monoids                     as X
 import Prologue.Data.Pointed            as X
+import GHC.OverloadedLabels             as X (IsLabel, fromLabel)
+
+-- === Deriving === --
+import Text.Show.Deriving               as X (deriveShow1, deriveShow2)
+import Text.Read.Deriving               as X (deriveRead1, deriveRead2)
+import Data.Eq.Deriving                 as X (deriveEq1, deriveEq2)
+import Data.Ord.Deriving                as X (deriveOrd1, deriveOrd2)
 
 -- === Errors === --
 import Control.Exception.Base           as X (assert)
@@ -108,7 +116,7 @@ import Prologue.Data.String.QQ          as X (qqStr, qqRawStr, qqTxt)
 
 -- === Typelevel === --
 import GHC.TypeLits                     as X (Nat, Symbol, type (-), type (+), type (*), type (^), CmpNat, CmpSymbol) -- someSymbolVal and typelits reify?
-import Type.Known                       as X (KnownType, KnownTypeVal, fromType)
+import Type.Known                       as X (KnownType, KnownTypeVal, fromType, fromType', KnownNat, KnownSymbol)
 import Type.Show                        as X
 import Data.Kind                        as X (Type, Constraint)
 import Type.Operators                   as X
@@ -141,5 +149,5 @@ import Control.Lens.TH                  as X hiding (makeLenses, makeClassy) -- 
 import Control.Lens.Traversal           as X
 import Control.Lens.Tuple               as X
 import Control.Lens.Type                as X
-import Control.Lens.Wrapped             as X (Wrapped, Unwrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', ala, alaf)
+import Control.Lens.Wrapped             as X (Wrapped, Unwrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', Rewrapped, ala, alaf)
 import Control.Lens.Zoom                as X

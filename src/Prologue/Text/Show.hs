@@ -1,7 +1,7 @@
 module Prologue.Text.Show (module Prologue.Text.Show, module X) where
 
 import Prelude (Int, (+), (>))
-import Text.Show as X (Show, ShowS, show, showsPrec, showList, shows, showString, showChar, showParen)
+import Text.Show          as X (Show, ShowS, show, showsPrec, showList, shows, showString, showChar, showParen)
 
 -- needed for tryReads only:
 import Prelude (Read, String, Either(..), reads)

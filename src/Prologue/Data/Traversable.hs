@@ -2,16 +2,20 @@ module Prologue.Data.Traversable (module Prologue.Data.Traversable, module X) wh
 
 import Prelude
 import           Data.Kind       (Constraint)
-import qualified Data.Traversable as T
-import           Data.Traversable as X (Traversable, traverse, mapM, for)
+import qualified Data.Traversable   as T
+import qualified Data.Bitraversable as T
+import           Data.Traversable   as X (Traversable  , traverse  , mapM  , for)
+import           Data.Bitraversable as X (Bitraversable, bitraverse, bimapM, bifor)
 
 
 type family Traversables (lst :: [* -> *]) :: Constraint where
     Traversables '[]       = ()
     Traversables (t ': ts) = (Traversable t, Traversables ts)
 
-sequence :: (Traversable t, Applicative f) => t (f a) -> f (t a)
-sequence = T.sequenceA ; {-# INLINE sequence #-}
+sequence   :: (Traversable   t, Applicative f) => t (f a)       -> f (t a)
+bisequence :: (Bitraversable t, Applicative f) => t (f a) (f b) -> f (t a b)
+sequence   = T.sequenceA   ; {-# INLINE sequence   #-}
+bisequence = T.bisequenceA ; {-# INLINE bisequence #-}
 
 infixl 4 <$>=
 infixl 4 <<$>>=

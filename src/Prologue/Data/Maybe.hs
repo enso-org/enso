@@ -1,6 +1,6 @@
 module Prologue.Data.Maybe (module Prologue.Data.Maybe, module X) where
 
-import Prelude hiding (mempty, fail)
+import Prelude hiding ((.), mempty, fail)
 
 import Data.Maybe                 as X (Maybe(Just, Nothing), maybe, isJust, isNothing, catMaybes, mapMaybe)
 import Control.Monad.Trans.Maybe  as X (MaybeT(MaybeT), runMaybeT, mapMaybeT, maybeToExceptT, exceptToMaybeT)
@@ -11,6 +11,7 @@ import Control.Monad       hiding (fail)
 import Control.Monad.Fail
 import Data.Convert
 import Data.Monoids
+import Data.Functor.Utils
 import Prologue.Data.Basic
 
 import qualified Data.Maybe as M
@@ -18,8 +19,10 @@ import qualified Data.Maybe as M
 
 -- === Conditionals === --
 
-justIf :: ToBool' cond => cond -> a -> Maybe a
-justIf cond a = ifThenElse cond (Just a) Nothing ; {-# INLINE justIf #-}
+justIf   :: (ToBool' cond)          => cond -> a -> Maybe a
+justWhen :: (ToBool' cond, Monad m) => cond -> a -> m (Maybe a)
+justIf p = ifThenMempty p . Just ; {-# INLINE justIf   #-}
+justWhen = return .: justIf      ; {-# INLINE justWhen #-}
 
 
 -- === FromJust === --

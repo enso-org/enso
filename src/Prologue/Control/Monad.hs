@@ -22,6 +22,10 @@ infixr 1 <<
 (<<) :: Monad m => m a -> m b -> m a
 (<<) = flip (>>) ; {-# INLINE (<<) #-}
 
+infixr 0 >>$
+(>>$) :: Monad m => m a -> m b -> m b
+(>>$) = (>>) ; {-# INLINE (>>$) #-}
+
 infixr 1 >>=>, >>>=>, >>>>=>
 (>>=>)   :: Monad m => (t1 -> t2             -> m a) -> (a -> m b) -> (t1 -> t2             -> m b)
 (>>>=>)  :: Monad m => (t1 -> t2 -> t3       -> m a) -> (a -> m b) -> (t1 -> t2 -> t3       -> m b)
