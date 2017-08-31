@@ -1,3 +1,23 @@
+class Complex:
+    real :: Real
+    imaginary :: Real
+
+    def shortRep: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
+
+    def + that:
+        r = self.real.+ that.real
+        i = self.imaginary.+ that.imaginary
+        Complex r i
+
+    def * that:
+        r = self.real.* that.real      - self.imaginary.* that.imaginary
+        i = self.real.* that.imaginary + self.imaginary.* that.real
+        Complex r i
+
+    def modulus: self.real*self.real + self.imaginary*self.imaginary
+
+
+
 class Bool:
     True
     False
@@ -197,6 +217,8 @@ class Maybe a:
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"
 
+    def toText: self.shortRep
+
     def equals that: case self of
         Just a: case that of
             Just b:  a.equals b
@@ -364,7 +386,12 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    def makeString sep: self.map .toText . intersperse sep . fold "" (+)
+    def makeString sep: self.fold "" (x: y: x.toString + sep + y.toString)
+
+    def concat: case self of
+        Empty: Empty
+        Prepend Empty r: r.concat
+        Prepend (Prepend x xs) ys: Prepend x (Prepend xs ys).concat
 
 class Map k v:
     Map
@@ -436,6 +463,12 @@ class JSON:
         JSONNull: "null"
         JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
 
+    def fromObject: case self of
+        JSONObject m: m
+
+    def fromText: case self of
+        JSONString t: t
+
     def render: self.toText
 
     def shortRep: self.render
@@ -456,13 +489,11 @@ class JSON:
 
     def lookupReal key: case self . lookup key of
         Just val: val . toReal
-        Nothing:  errorStr "Key not found"
+        Nothing:  errorStr ("Key not found: " + key)
 
     def lookupText key: case self . lookup key of
-        Just val: case val of
-            JSONString s: s
-            other: other.toText
-        Nothing:  errorStr "Key not found"
+        Just (JSONString val): val
+        Nothing:  errorStr ("Key not found: " + key)
 
     def at n: case self of
         JSONArray a: a.at n
@@ -576,7 +607,7 @@ class MsgPack:
 
     def lookupText key: case self.safeLookupText key of
         Just val: val
-        Nothing:  errorStr "Key not found"
+        Nothing:  errorStr ("Key not found: " + key)
 
     def at n: case self of
         MPArray a: a.at n

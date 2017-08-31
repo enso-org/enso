@@ -210,12 +210,13 @@ twoArgFun tArg1 tArg2 tRes = runGraph $ do
 
 doubleClass :: Imports -> IO Class
 doubleClass imps = do
-    Right (boxed3DoublesAssumptions, boxed3Doubles) <- twoArgFun "Real" "Real" "Real"
-    Right (boxed2DoublesAssumptions, boxed2Doubles) <- oneArgFun "Real" "Real"
-    Right (double2BoolAssumptions, double2Bool)     <- twoArgFun "Real" "Real" "Bool"
-    Right (double2TextAssumptions, double2text)     <- oneArgFun "Real" "Text"
-    Right (double2JSONAssumptions, double2JSON)     <- oneArgFun "Real" "JSON"
-    Right (double2DoubleAssumptions, double2Double) <- oneArgFun "Real" "Real"
+    Right (boxed3DoublesAssumptions, boxed3Doubles)     <- twoArgFun "Real" "Real" "Real"
+    Right (boxed2DoublesAssumptions, boxed2Doubles)     <- oneArgFun "Real" "Real"
+    Right (double2BoolAssumptions, double2Bool)         <- twoArgFun "Real" "Real" "Bool"
+    Right (double2TextAssumptions, double2text)         <- oneArgFun "Real" "Text"
+    Right (double2JSONAssumptions, double2JSON)         <- oneArgFun "Real" "JSON"
+    Right (double2DoubleAssumptions, double2Double)     <- oneArgFun "Real" "Real"
+    Right (doubleIntDoubleAssumptions, doubleIntDouble) <- twoArgFun "Real" "Int" "Real"
 
     let plusVal     = toLunaValue tmpImps ((+)  :: Double -> Double -> Double)
         timeVal     = toLunaValue tmpImps ((*)  :: Double -> Double -> Double)
@@ -224,19 +225,25 @@ doubleClass imps = do
         eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
         ltVal       = toLunaValue tmpImps ((<)  :: Double -> Double -> Bool)
         gtVal       = toLunaValue tmpImps ((>)  :: Double -> Double -> Bool)
+        roundVal    = toLunaValue tmpImps ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
         showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
         toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
         toRealVal   = toLunaValue tmpImps (id   :: Double -> Double)
+        uminusVal   = toLunaValue tmpImps ((* (-1)) :: Double -> Double)
         tmpImps     = imps & importedClasses . at "Real" ?~ klass
-        klass       = Class Map.empty $ fmap Right $ Map.fromList [ ("+",        Function boxed3Doubles plusVal   boxed3DoublesAssumptions)
-                                                                  , ("*",        Function boxed3Doubles timeVal   boxed3DoublesAssumptions)
-                                                                  , ("-",        Function boxed3Doubles minusVal  boxed3DoublesAssumptions)
-                                                                  , ("/",        Function boxed3Doubles divVal    boxed3DoublesAssumptions)
-                                                                  , ("equals",   Function double2Bool   eqVal     double2BoolAssumptions)
-                                                                  , ("shortRep", Function double2text   showVal   double2TextAssumptions)
-                                                                  , ("toText",   Function double2text   showVal   double2TextAssumptions)
-                                                                  , ("toJSON",   Function double2JSON   toJSVal   double2JSONAssumptions)
-                                                                  , ("toReal",   Function double2Double toRealVal double2DoubleAssumptions)
+        klass       = Class Map.empty $ fmap Right $ Map.fromList [ ("+",        Function boxed3Doubles   plusVal   boxed3DoublesAssumptions)
+                                                                  , ("*",        Function boxed3Doubles   timeVal   boxed3DoublesAssumptions)
+                                                                  , ("-",        Function boxed3Doubles   minusVal  boxed3DoublesAssumptions)
+                                                                  , ("/",        Function boxed3Doubles   divVal    boxed3DoublesAssumptions)
+                                                                  , ("equals",   Function double2Bool     eqVal     double2BoolAssumptions)
+                                                                  , ("<",        Function double2Bool     ltVal     double2BoolAssumptions)
+                                                                  , (">",        Function double2Bool     gtVal     double2BoolAssumptions)
+                                                                  , ("shortRep", Function double2text     showVal   double2TextAssumptions)
+                                                                  , ("toText",   Function double2text     showVal   double2TextAssumptions)
+                                                                  , ("toJSON",   Function double2JSON     toJSVal   double2JSONAssumptions)
+                                                                  , ("toReal",   Function double2Double   toRealVal double2DoubleAssumptions)
+                                                                  , ("#uminus#", Function double2Double   uminusVal double2DoubleAssumptions)
+                                                                  , ("round",    Function doubleIntDouble roundVal  doubleIntDoubleAssumptions)
                                                                   ]
     return klass
 
@@ -367,6 +374,21 @@ stringClass imps = do
                                                                     ]
     return klass
 
+preludeUnaryOp op = compileFunction def $ do
+    a     <- var "a"
+    acpl  <- acc a op
+    l1    <- lam a acpl
+    tpA   <- var "a"
+    monA  <- var "monA"
+    monB  <- var "monB"
+    montA <- monadic tpA monA
+    montB <- monadic tpA monB
+    tl1   <- lam montA montB
+    pure  <- cons_ @Draft "Pure"
+    tl1M  <- monadic tl1 pure
+    reconnectLayer' @UserType (Just tl1M) l1
+    return $ generalize l1
+
 preludeArithOp op = compileFunction def $ do
     a     <- var "a"
     b     <- var "b"
@@ -414,14 +436,15 @@ preludeCmpOp importBoxes op = compileFunction importBoxes $ do
 
 prelude :: Imports -> IO Imports
 prelude imps = mdo
-    minus <- preludeArithOp "-"
-    times <- preludeArithOp "*"
-    mod   <- preludeArithOp "%"
-    plus  <- preludeArithOp "+"
-    gt    <- preludeCmpOp importBoxes ">"
-    lt    <- preludeCmpOp importBoxes "<"
-    eq    <- preludeCmpOp importBoxes "equals"
-    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod)]
+    minus  <- preludeArithOp "-"
+    times  <- preludeArithOp "*"
+    mod    <- preludeArithOp "%"
+    plus   <- preludeArithOp "+"
+    uminus <- preludeUnaryOp "#uminus#"
+    gt     <- preludeCmpOp importBoxes ">"
+    lt     <- preludeCmpOp importBoxes "<"
+    eq     <- preludeCmpOp importBoxes "equals"
+    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod), ("#uminus#", uminus)]
     string <- stringClass importBoxes
     int    <- intClass    importBoxes
     double <- doubleClass importBoxes
