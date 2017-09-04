@@ -554,12 +554,13 @@ systemStd imps = do
             baseReq <- HTTP.parseRequest (convert uri)
             let newHeaders = map packHeader headers
                 oldHeaders = HTTP.requestHeaders baseReq
+                oldParams  = HTTP.getRequestQueryString baseReq
             req <- baseReq
                     & HTTP.setRequestBodyLBS body
                     & HTTP.setRequestMethod  (convert method)
                     & HTTP.setRequestHeaders (oldHeaders <> newHeaders)
                     & HTTP.addRequestHeader  HTTP.hAccept (pack "*/*")
-                    & HTTP.setRequestQueryString (map packParam params)
+                    & HTTP.setRequestQueryString (oldParams <> map packParam params)
                     & case auth of
                         Just (u, p) -> HTTP.setRequestBasicAuth (convert u) (convert p)
                         Nothing     -> id
