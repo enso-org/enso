@@ -99,7 +99,7 @@ instance (ToLunaData a, ToLunaData b, ToLunaData c) => ToLunaData (a, b, c) wher
     toLunaData imps (a, b, c) = LunaObject $ Object (Constructor "Tuple3" [toLunaData imps a, toLunaData imps b, toLunaData imps c]) $ getObjectMethodMap "Tuple3" imps
 
 instance (ToLunaData a, ToLunaData b, ToLunaData c, ToLunaData d) => ToLunaData (a, b, c, d) where
-    toLunaData imps (a, b, c, d) = LunaObject $ Object (Constructor "Tuple3" [toLunaData imps a, toLunaData imps b, toLunaData imps c, toLunaData imps d]) $ getObjectMethodMap "Tuple4" imps
+    toLunaData imps (a, b, c, d) = LunaObject $ Object (Constructor "Tuple4" [toLunaData imps a, toLunaData imps b, toLunaData imps c, toLunaData imps d]) $ getObjectMethodMap "Tuple4" imps
 
 instance ToLunaData a => ToLunaData (Maybe a) where
     toLunaData imps Nothing  = LunaObject $ Object (Constructor "Nothing" [])               $ getObjectMethodMap "Maybe" imps
