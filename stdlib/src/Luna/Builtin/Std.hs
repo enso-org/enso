@@ -81,6 +81,8 @@ import           System.Exit                                  (ExitCode (ExitFai
 import           System.Process                               (CreateProcess, ProcessHandle, StdStream (CreatePipe, Inherit, NoStream, UseHandle))
 import qualified System.Process                               as Process
 
+import           System.Random                                (randomIO)
+
 
 stdlibImports :: [QualName]
 stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"] ]
@@ -611,6 +613,9 @@ systemStd imps = do
         primParseTimeVal  = toLunaValue std parseTime
         primParseTime     = Function text2TimeIr primParseTimeVal text2TimeAssu
 
+    let randomRealVal = performIO randomIO :: LunaEff Double
+    randomReal <- typeRepForIO (toLunaValue std randomRealVal) [] $ LCons "Real" []
+
     let sleepVal = performIO . threadDelay . int
     sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
 
@@ -708,6 +713,7 @@ systemStd imps = do
                                     , ("primShowTime", primShowTime)
                                     , ("primTimesEq", primTimesEq)
                                     , ("primParseTime", primParseTime)
+                                    , ("randomReal", randomReal)
                                     , ("primFork", fork)
                                     , ("sleep", sleep)
                                     , ("primNewMVar", newEmptyMVar')
@@ -750,14 +756,14 @@ instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
         constructorOf IMap.Tip             = Constructor "Tip" []
         constructorOf (IMap.Bin s k v l r) = Constructor "Bin" [toLunaData imps $ integer s, toLunaData imps k, toLunaData imps v, toLunaData imps l, toLunaData imps r]
 
-instance ToLunaData Aeson.Value where
-    toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "JSON" imps where
-        constructorOf (Aeson.Array  a) = Constructor "JSONArray"  [toLunaData imps . toList $ a]
-        constructorOf (Aeson.String a) = Constructor "JSONString" [toLunaData imps (convert a :: Text)]
-        constructorOf (Aeson.Number a) = Constructor "JSONNumber" [toLunaData imps (toRealFloat a :: Double)]
-        constructorOf (Aeson.Bool   a) = Constructor "JSONBool"   [toLunaData imps a]
-        constructorOf  Aeson.Null      = Constructor "JSONNull"   []
-        constructorOf (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
+type instance RuntimeRepOf Aeson.Value = AsClass "JSON" Aeson.Value
+instance ToLunaObject Aeson.Value where
+    toConstructor imps (Aeson.Array  a) = Constructor "JSONArray"  [toLunaData imps . toList $ a]
+    toConstructor imps (Aeson.String a) = Constructor "JSONString" [toLunaData imps (convert a :: Text)]
+    toConstructor imps (Aeson.Number a) = Constructor "JSONNumber" [toLunaData imps (toRealFloat a :: Double)]
+    toConstructor imps (Aeson.Bool   a) = Constructor "JSONBool"   [toLunaData imps a]
+    toConstructor imps  Aeson.Null      = Constructor "JSONNull"   []
+    toConstructor imps (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
 
 instance FromLunaData CreateProcess where
     fromLunaData v = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
@@ -806,9 +812,8 @@ instance ToLunaData ExitCode where
             makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps $ integer c] in
         LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
 
-instance IsBoxed "FileHandle"    Handle
-instance IsBoxed "ProcessHandle" ProcessHandle
-instance IsBoxed "StrictText"    AnyText.Text
+type instance RuntimeRepOf Handle        = AsNative "FileHandle"
+type instance RuntimeRepOf ProcessHandle = AsNative "ProcessHandle"
 
 instance {-# OVERLAPS #-} ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "Process" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "Process" imps
