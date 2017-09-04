@@ -51,11 +51,11 @@ class TimeInterval:
 
     def toReal: self.toInt.toReal
 
-    def toSeconds: self.toInt.div 1000000000000
+    def toSeconds: self.toInt / 1000000000000
 
-    def toMiliseconds: self.toInt.div 1000000000
+    def toMiliseconds: self.toInt / 1000000000
 
-    def toMicroseconds: self.toInt.div 1000000
+    def toMicroseconds: self.toInt / 1000000
 
     def toText: (self.toReal./ 1000000000.0).toText + "ms"
 

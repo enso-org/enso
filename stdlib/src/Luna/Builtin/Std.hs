@@ -210,8 +210,8 @@ twoArgFun tArg1 tArg2 tRes = runGraph $ do
     return (assu, cmp)
 
 
-doubleClass :: Imports -> IO Class
-doubleClass imps = do
+primReal :: Imports -> IO (Map Name Function)
+primReal imps = do
     Right (boxed3DoublesAssumptions, boxed3Doubles)     <- twoArgFun "Real" "Real" "Real"
     Right (boxed2DoublesAssumptions, boxed2Doubles)     <- oneArgFun "Real" "Real"
     Right (double2BoolAssumptions, double2Bool)         <- twoArgFun "Real" "Real" "Bool"
@@ -220,37 +220,31 @@ doubleClass imps = do
     Right (double2DoubleAssumptions, double2Double)     <- oneArgFun "Real" "Real"
     Right (doubleIntDoubleAssumptions, doubleIntDouble) <- twoArgFun "Real" "Int" "Real"
 
-    let plusVal     = toLunaValue tmpImps ((+)  :: Double -> Double -> Double)
-        timeVal     = toLunaValue tmpImps ((*)  :: Double -> Double -> Double)
-        minusVal    = toLunaValue tmpImps ((-)  :: Double -> Double -> Double)
-        divVal      = toLunaValue tmpImps ((/)  :: Double -> Double -> Double)
-        eqVal       = toLunaValue tmpImps ((==) :: Double -> Double -> Bool)
-        ltVal       = toLunaValue tmpImps ((<)  :: Double -> Double -> Bool)
-        gtVal       = toLunaValue tmpImps ((>)  :: Double -> Double -> Bool)
-        roundVal    = toLunaValue tmpImps ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
-        showVal     = toLunaValue tmpImps (convert . show :: Double -> Text)
-        toJSVal     = toLunaValue tmpImps (Aeson.toJSON :: Double -> Aeson.Value)
-        toRealVal   = toLunaValue tmpImps (id   :: Double -> Double)
-        uminusVal   = toLunaValue tmpImps ((* (-1)) :: Double -> Double)
-        tmpImps     = imps & importedClasses . at "Real" ?~ klass
-        klass       = Class Map.empty $ fmap Right $ Map.fromList [ ("+",        Function boxed3Doubles   plusVal   boxed3DoublesAssumptions)
-                                                                  , ("*",        Function boxed3Doubles   timeVal   boxed3DoublesAssumptions)
-                                                                  , ("-",        Function boxed3Doubles   minusVal  boxed3DoublesAssumptions)
-                                                                  , ("/",        Function boxed3Doubles   divVal    boxed3DoublesAssumptions)
-                                                                  , ("equals",   Function double2Bool     eqVal     double2BoolAssumptions)
-                                                                  , ("<",        Function double2Bool     ltVal     double2BoolAssumptions)
-                                                                  , (">",        Function double2Bool     gtVal     double2BoolAssumptions)
-                                                                  , ("shortRep", Function double2text     showVal   double2TextAssumptions)
-                                                                  , ("toText",   Function double2text     showVal   double2TextAssumptions)
-                                                                  , ("toJSON",   Function double2JSON     toJSVal   double2JSONAssumptions)
-                                                                  , ("toReal",   Function double2Double   toRealVal double2DoubleAssumptions)
-                                                                  , ("#uminus#", Function double2Double   uminusVal double2DoubleAssumptions)
-                                                                  , ("round",    Function doubleIntDouble roundVal  doubleIntDoubleAssumptions)
-                                                                  ]
-    return klass
+    let plusVal     = toLunaValue imps ((+)  :: Double -> Double -> Double)
+        timeVal     = toLunaValue imps ((*)  :: Double -> Double -> Double)
+        minusVal    = toLunaValue imps ((-)  :: Double -> Double -> Double)
+        divVal      = toLunaValue imps ((/)  :: Double -> Double -> Double)
+        eqVal       = toLunaValue imps ((==) :: Double -> Double -> Bool)
+        ltVal       = toLunaValue imps ((<)  :: Double -> Double -> Bool)
+        gtVal       = toLunaValue imps ((>)  :: Double -> Double -> Bool)
+        roundVal    = toLunaValue imps ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
+        showVal     = toLunaValue imps (convert . show :: Double -> Text)
+        toRealVal   = toLunaValue imps (id   :: Double -> Double)
+        uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
+    return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal   boxed3DoublesAssumptions)
+                          , ("primRealMultiply", Function boxed3Doubles   timeVal   boxed3DoublesAssumptions)
+                          , ("primRealSubtract", Function boxed3Doubles   minusVal  boxed3DoublesAssumptions)
+                          , ("primRealDivide",   Function boxed3Doubles   divVal    boxed3DoublesAssumptions)
+                          , ("primRealEquals",   Function double2Bool     eqVal     double2BoolAssumptions)
+                          , ("primRealLt",       Function double2Bool     ltVal     double2BoolAssumptions)
+                          , ("primRealGt",       Function double2Bool     gtVal     double2BoolAssumptions)
+                          , ("primRealToText",   Function double2text     showVal   double2TextAssumptions)
+                          , ("primRealNegate",   Function double2Double   uminusVal double2DoubleAssumptions)
+                          , ("primRealRound",    Function doubleIntDouble roundVal  doubleIntDoubleAssumptions)
+                          ]
 
-intClass :: Imports -> IO Class
-intClass imps = do
+primInt :: Imports -> IO (Map Name Function)
+primInt imps = do
     Right (ints2BoolAssumptions, ints2Bool)   <- twoArgFun "Int" "Int" "Bool"
     Right (boxed3IntsAssumptions, boxed3Ints) <- twoArgFun "Int" "Int" "Int"
     Right (boxed2IntsAssumptions, boxed2Ints) <- oneArgFun "Int" "Int"
@@ -259,66 +253,54 @@ intClass imps = do
     Right (int2JSONAssumptions, int2JSON)     <- oneArgFun "Int" "JSON"
     Right (int2TIAssumptions, int2TI)         <- oneArgFun "Int" "TimeInterval"
 
-    let plusVal        = toLunaValue tmpImps ((+)  :: Integer -> Integer -> Integer)
-        timeVal        = toLunaValue tmpImps ((*)  :: Integer -> Integer -> Integer)
-        minusVal       = toLunaValue tmpImps ((-)  :: Integer -> Integer -> Integer)
-        divVal         = toLunaValue tmpImps (div  :: Integer -> Integer -> Integer)
-        eqVal          = toLunaValue tmpImps ((==) :: Integer -> Integer -> Bool)
-        gtVal          = toLunaValue tmpImps ((>)  :: Integer -> Integer -> Bool)
-        ltVal          = toLunaValue tmpImps ((<)  :: Integer -> Integer -> Bool)
-        modVal         = toLunaValue tmpImps (mod  :: Integer -> Integer -> Integer)
-        predVal        = toLunaValue tmpImps (pred :: Integer -> Integer)
-        succVal        = toLunaValue tmpImps (succ :: Integer -> Integer)
-        showVal        = toLunaValue tmpImps (convert . show :: Integer -> Text)
-        toJSVal        = toLunaValue tmpImps (Aeson.toJSON   :: Integer -> Aeson.Value)
-        toRealVal      = toLunaValue tmpImps (fromIntegral   :: Integer -> Double)
-        secondsVal     = toLunaValue tmpImps (realToFrac            ::  Integer -> Time.DiffTime)
-        minutesVal     = toLunaValue tmpImps ((* 60)   . realToFrac :: Integer -> Time.DiffTime)
-        milisecondsVal = toLunaValue tmpImps ((/ 1000) . realToFrac :: Integer -> Time.DiffTime)
-        tmpImps        = imps & importedClasses . at "Int" ?~ klass
-        klass          = Class Map.empty $ fmap Right $ Map.fromList [ ("+",           Function boxed3Ints plusVal        boxed3IntsAssumptions)
-                                                                     , ("*",           Function boxed3Ints timeVal        boxed3IntsAssumptions)
-                                                                     , ("-",           Function boxed3Ints minusVal       boxed3IntsAssumptions)
-                                                                     , ("div",         Function boxed3Ints divVal         boxed3IntsAssumptions)
-                                                                     , ("%",           Function boxed3Ints modVal         boxed3IntsAssumptions)
-                                                                     , ("pred",        Function boxed2Ints predVal        boxed2IntsAssumptions)
-                                                                     , ("succ",        Function boxed2Ints succVal        boxed2IntsAssumptions)
-                                                                     , ("seconds",     Function int2TI     secondsVal     int2TIAssumptions)
-                                                                     , ("minutes",     Function int2TI     minutesVal     int2TIAssumptions)
-                                                                     , ("miliseconds", Function int2TI     milisecondsVal int2TIAssumptions)
-                                                                     , ("shortRep",    Function int2text   showVal        int2TextAssumptions)
-                                                                     , ("toText",      Function int2text   showVal        int2TextAssumptions)
-                                                                     , ("toJSON",      Function int2JSON   toJSVal        int2JSONAssumptions)
-                                                                     , ("toReal",      Function int2Real   toRealVal      int2RealAssumptions)
-                                                                     , ("equals",      Function ints2Bool  eqVal          ints2BoolAssumptions)
-                                                                     , (">",           Function ints2Bool  gtVal          ints2BoolAssumptions)
-                                                                     , ("<",           Function ints2Bool  ltVal          ints2BoolAssumptions)
-                                                                     ]
-    return klass
+    let plusVal        = toLunaValue imps ((+)      :: Integer -> Integer -> Integer)
+        timeVal        = toLunaValue imps ((*)      :: Integer -> Integer -> Integer)
+        minusVal       = toLunaValue imps ((-)      :: Integer -> Integer -> Integer)
+        divVal         = toLunaValue imps (div      :: Integer -> Integer -> Integer)
+        eqVal          = toLunaValue imps ((==)     :: Integer -> Integer -> Bool)
+        gtVal          = toLunaValue imps ((>)      :: Integer -> Integer -> Bool)
+        ltVal          = toLunaValue imps ((<)      :: Integer -> Integer -> Bool)
+        modVal         = toLunaValue imps (mod      :: Integer -> Integer -> Integer)
+        predVal        = toLunaValue imps (pred     :: Integer -> Integer)
+        negateVal      = toLunaValue imps ((* (-1)) :: Integer -> Integer)
+        succVal        = toLunaValue imps (succ     :: Integer -> Integer)
+        showVal        = toLunaValue imps (convert . show :: Integer -> Text)
+        toRealVal      = toLunaValue imps (fromIntegral   :: Integer -> Double)
+        milisecondsVal = toLunaValue imps ((/ 1000) . realToFrac :: Integer -> Time.DiffTime)
+    return $ Map.fromList [ ("primIntAdd",         Function boxed3Ints plusVal        boxed3IntsAssumptions)
+                          , ("primIntMultiply",    Function boxed3Ints timeVal        boxed3IntsAssumptions)
+                          , ("primIntSubtract",    Function boxed3Ints minusVal       boxed3IntsAssumptions)
+                          , ("primIntDivide",      Function boxed3Ints divVal         boxed3IntsAssumptions)
+                          , ("primIntModulo",      Function boxed3Ints modVal         boxed3IntsAssumptions)
+                          , ("primIntPred",        Function boxed2Ints predVal        boxed2IntsAssumptions)
+                          , ("primIntSucc",        Function boxed2Ints succVal        boxed2IntsAssumptions)
+                          , ("primIntNegate",      Function boxed2Ints negateVal      boxed2IntsAssumptions)
+                          , ("primIntMiliseconds", Function int2TI     milisecondsVal int2TIAssumptions)
+                          , ("primIntToText",      Function int2text   showVal        int2TextAssumptions)
+                          , ("primIntToReal",      Function int2Real   toRealVal      int2RealAssumptions)
+                          , ("primIntEquals",      Function ints2Bool  eqVal          ints2BoolAssumptions)
+                          , ("primIntGt",          Function ints2Bool  gtVal          ints2BoolAssumptions)
+                          , ("primIntLt",          Function ints2Bool  ltVal          ints2BoolAssumptions)
+                          ]
 
-binaryClass :: Imports -> IO Class
-binaryClass imps = do
+primBinary :: Imports -> IO (Map Name Function)
+primBinary imps = do
     Right (toTextAssu, toTextIr) <- oneArgFun "Binary" "Text"
-    Right (idAssu, idIr)         <- oneArgFun "Binary" "Binary"
-    Right (eqAssu, eqIr)         <- twoArgFun "Binary" "Binary" "Bool"
-    Right (plusAssu, plusIr)     <- twoArgFun "Binary" "Binary" "Binary"
-    let toTextVal  = toLunaValue tmpImps Text.decodeUtf8
-        idVal      = toLunaValue tmpImps (id   :: ByteString -> ByteString)
-        eqVal      = toLunaValue tmpImps ((==) :: ByteString -> ByteString -> Bool)
-        plusVal    = toLunaValue tmpImps ((<>) :: ByteString -> ByteString -> ByteString)
-        bStrLen    = Text.pack . show . ByteString.length :: ByteString -> Text
-        toShortRep = toLunaValue tmpImps $ \bs -> "Binary<" <> bStrLen bs <> ">"
-        tmpImps    = imps & importedClasses . at "Binary" ?~ klass
-        klass      = Class Map.empty $ fmap Right $ Map.fromList [ ("toText",   Function toTextIr toTextVal  toTextAssu)
-                                                                 , ("toBinary", Function idIr     idVal      idAssu)
-                                                                 , ("equals",   Function eqIr     eqVal      eqAssu)
-                                                                 , ("+",        Function plusIr   plusVal    plusAssu)
-                                                                 , ("shortRep", Function toTextIr toShortRep toTextAssu)
-                                                                 ]
-    return klass
+    Right (lenAssu,    lenIr)    <- oneArgFun "Binary" "Int"
+    Right (eqAssu,     eqIr)     <- twoArgFun "Binary" "Binary" "Bool"
+    Right (plusAssu,   plusIr)   <- twoArgFun "Binary" "Binary" "Binary"
+    let toTextVal  = toLunaValue imps Text.decodeUtf8
+        eqVal      = toLunaValue imps ((==) :: ByteString -> ByteString -> Bool)
+        plusVal    = toLunaValue imps ((<>) :: ByteString -> ByteString -> ByteString)
+        lenVal     = toLunaValue imps (fromIntegral . ByteString.length :: ByteString -> Integer)
+    return $ Map.fromList [ ("primBinaryToText",   Function toTextIr toTextVal  toTextAssu)
+                          , ("primBinaryEquals",   Function eqIr     eqVal      eqAssu)
+                          , ("primBinaryConcat",   Function plusIr   plusVal    plusAssu)
+                          , ("primBinaryLength",   Function lenIr    lenVal     lenAssu)
+                          ]
 
-stringClass :: Imports -> IO Class
-stringClass imps = do
+primText :: Imports -> IO (Map Name Function)
+primText imps = do
     Right (plusAssu, plusIr)           <- twoArgFun "Text" "Text" "Text"
     Right (eqAssu, eqIr)               <- twoArgFun "Text" "Text" "Bool"
     Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
@@ -326,7 +308,6 @@ stringClass imps = do
     Right (lengthAssu, lengthIr)       <- oneArgFun "Text" "Int"
     Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
     Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
-    Right (text2TimeAssu, text2TimeIr) <- oneArgFun "Text" "Time"
     Right (wordsAssu, wordsIr)         <- runGraph $ do
         tText <- cons_ @Draft "Text"
         tList   <- cons "List" [tText]
@@ -334,47 +315,40 @@ stringClass imps = do
         (assu, r) <- mkMonadProofFun $ generalize l
         cmp <- compile r
         return (assu, cmp)
-    let plusVal       = toLunaValue tmpImps ((<>) :: Text -> Text -> Text)
-        shortRepVal   = toLunaValue tmpImps (Text.take 100 :: Text -> Text)
-        idVal         = toLunaValue tmpImps (id :: Text -> Text)
-        eqVal         = toLunaValue tmpImps ((==) :: Text -> Text -> Bool)
-        gtVal         = toLunaValue tmpImps ((>)  :: Text -> Text -> Bool)
-        ltVal         = toLunaValue tmpImps ((<)  :: Text -> Text -> Bool)
-        isEmptyVal    = toLunaValue tmpImps (Text.null :: Text -> Bool)
-        lengthVal     = toLunaValue tmpImps (fromIntegral . Text.length :: Text -> Integer)
-        isPrefixOfVal = toLunaValue tmpImps Text.isPrefixOf
-        hasPrefixVal  = toLunaValue tmpImps (flip Text.isPrefixOf)
-        wordsVal      = toLunaValue tmpImps Text.words
-        linesVal      = toLunaValue tmpImps Text.lines
-        lowercaseVal  = toLunaValue tmpImps Text.toLower
-        uppercaseVal  = toLunaValue tmpImps Text.toUpper
-        reverseVal    = toLunaValue tmpImps Text.reverse
-        charsVal      = toLunaValue tmpImps (Text.chunksOf 1)
-        toJSONVal     = toLunaValue tmpImps (Aeson.toJSON :: Text -> Aeson.Value)
-        toBinaryVal   = toLunaValue tmpImps (Text.encodeUtf8 :: Text -> ByteString)
-        escapeJSONVal = toLunaValue tmpImps (Text.decodeUtf8 . Aeson.encode :: Text -> Text)
-        tmpImps       = imps & importedClasses . at "Text" ?~ klass
-        klass         = Class Map.empty $ fmap Right $ Map.fromList [ ("+",          Function plusIr     plusVal       plusAssu)
-                                                                    , ("equals",     Function eqIr       eqVal         eqAssu)
-                                                                    , ("isEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)
-                                                                    , ("length",     Function lengthIr   lengthVal     lengthAssu)
-                                                                    , (">",          Function eqIr       gtVal         eqAssu)
-                                                                    , ("<",          Function eqIr       ltVal         eqAssu)
-                                                                    , ("isPrefixOf", Function eqIr       isPrefixOfVal eqAssu)
-                                                                    , ("hasPrefix",  Function eqIr       hasPrefixVal  eqAssu)
-                                                                    , ("words",      Function wordsIr    wordsVal      wordsAssu)
-                                                                    , ("lines",      Function wordsIr    linesVal      wordsAssu)
-                                                                    , ("characters", Function wordsIr    charsVal      wordsAssu)
-                                                                    , ("lowercase",  Function textIr     lowercaseVal  textAssu)
-                                                                    , ("uppercase",  Function textIr     uppercaseVal  textAssu)
-                                                                    , ("reverse",    Function textIr     reverseVal    textAssu)
-                                                                    , ("shortRep",   Function textIr     shortRepVal   textAssu)
-                                                                    , ("toText",     Function textIr     idVal         textAssu)
-                                                                    , ("escapeJSON", Function textIr     escapeJSONVal textAssu)
-                                                                    , ("toJSON",     Function toJSONIr   toJSONVal     toJSONAssu)
-                                                                    , ("toBinary",   Function toBinaryIr toBinaryVal   toBinaryAssu)
-                                                                    ]
-    return klass
+    let plusVal       = toLunaValue imps ((<>) :: Text -> Text -> Text)
+        shortRepVal   = toLunaValue imps (Text.take 100 :: Text -> Text)
+        idVal         = toLunaValue imps (id :: Text -> Text)
+        eqVal         = toLunaValue imps ((==) :: Text -> Text -> Bool)
+        gtVal         = toLunaValue imps ((>)  :: Text -> Text -> Bool)
+        ltVal         = toLunaValue imps ((<)  :: Text -> Text -> Bool)
+        isEmptyVal    = toLunaValue imps (Text.null :: Text -> Bool)
+        lengthVal     = toLunaValue imps (fromIntegral . Text.length :: Text -> Integer)
+        hasPrefixVal  = toLunaValue imps (flip Text.isPrefixOf)
+        wordsVal      = toLunaValue imps Text.words
+        linesVal      = toLunaValue imps Text.lines
+        lowercaseVal  = toLunaValue imps Text.toLower
+        uppercaseVal  = toLunaValue imps Text.toUpper
+        reverseVal    = toLunaValue imps Text.reverse
+        charsVal      = toLunaValue imps (Text.chunksOf 1)
+        toBinaryVal   = toLunaValue imps (Text.encodeUtf8 :: Text -> ByteString)
+        escapeJSONVal = toLunaValue imps (Text.decodeUtf8 . Aeson.encode :: Text -> Text)
+    return $ Map.fromList [ ("primTextConcat",     Function plusIr     plusVal       plusAssu)
+                          , ("primTextEquals",     Function eqIr       eqVal         eqAssu)
+                          , ("primTextIsEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)
+                          , ("primTextLength",     Function lengthIr   lengthVal     lengthAssu)
+                          , ("primTextGt",         Function eqIr       gtVal         eqAssu)
+                          , ("primTextLt",         Function eqIr       ltVal         eqAssu)
+                          , ("primTextHasPrefix",  Function eqIr       hasPrefixVal  eqAssu)
+                          , ("primTextWords",      Function wordsIr    wordsVal      wordsAssu)
+                          , ("primTextLines",      Function wordsIr    linesVal      wordsAssu)
+                          , ("primTextCharacters", Function wordsIr    charsVal      wordsAssu)
+                          , ("primTextLowercase",  Function textIr     lowercaseVal  textAssu)
+                          , ("primTextUppercase",  Function textIr     uppercaseVal  textAssu)
+                          , ("primTextReverse",    Function textIr     reverseVal    textAssu)
+                          , ("primTextShortRep",   Function textIr     shortRepVal   textAssu)
+                          , ("primTextEscapeJSON", Function textIr     escapeJSONVal textAssu)
+                          , ("primTextToBinary",   Function toBinaryIr toBinaryVal   toBinaryAssu)
+                          ]
 
 preludeUnaryOp op = compileFunction def $ do
     a     <- var "a"
@@ -438,20 +412,22 @@ preludeCmpOp importBoxes op = compileFunction importBoxes $ do
 
 prelude :: Imports -> IO Imports
 prelude imps = mdo
-    minus  <- preludeArithOp "-"
-    times  <- preludeArithOp "*"
-    mod    <- preludeArithOp "%"
-    plus   <- preludeArithOp "+"
-    uminus <- preludeUnaryOp "#uminus#"
-    gt     <- preludeCmpOp importBoxes ">"
-    lt     <- preludeCmpOp importBoxes "<"
-    eq     <- preludeCmpOp importBoxes "equals"
-    let funMap = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod), ("#uminus#", uminus)]
-    string <- stringClass importBoxes
-    int    <- intClass    importBoxes
-    double <- doubleClass importBoxes
-    binary <- binaryClass importBoxes
-    let importBoxes = unionImports imps $ Imports (Map.fromList [("Int", int), ("Text", string), ("Real", double), ("Binary", binary)]) (Right <$> funMap)
+    minus    <- preludeArithOp "-"
+    times    <- preludeArithOp "*"
+    mod      <- preludeArithOp "%"
+    plus     <- preludeArithOp "+"
+    div      <- preludeArithOp "/"
+    uminus   <- preludeUnaryOp "negate"
+    gt       <- preludeCmpOp importBoxes ">"
+    lt       <- preludeCmpOp importBoxes "<"
+    eq       <- preludeCmpOp importBoxes "equals"
+    realFuns <- primReal     importBoxes
+    intFuns  <- primInt      importBoxes
+    textFuns <- primText     importBoxes
+    binFuns  <- primBinary   importBoxes
+    let opMap  = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod), ("/", div), ("#uminus#", uminus)]
+        funMap = Map.unions   [realFuns, intFuns, textFuns, binFuns, opMap]
+    let importBoxes = unionImports imps $ Imports def (Right <$> funMap)
     return importBoxes
 
 

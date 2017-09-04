@@ -1,5 +1,79 @@
+native class Int:
+    def +  that: primIntAdd      self that
+    def *  that: primIntMultiply self that
+    def -  that: primIntSubtract self that
+    def /  that: primIntDivide   self that
+    def %  that: primIntModulo   self that
+    def >  that: primIntGt       self that
+    def <  that: primIntLt       self that
+    def == that: primIntEquals   self that
+
+    def negate: primIntNegate self
+    def toReal: primIntToReal self
+    def toText: primIntToText self
+
+    def shortRep: self.toText
+    def toJSON: JSONNumber self.toReal
+
+    def miliseconds: primIntMiliseconds self
+    def seconds: self*1000 . miliseconds
+    def minutes: self*60 . seconds
+
+native class Real:
+    def +  that: primRealAdd      self that
+    def *  that: primRealMultiply self that
+    def -  that: primRealSubtract self that
+    def /  that: primRealDivide   self that
+    def >  that: primRealGt       self that
+    def <  that: primRealLt       self that
+    def == that: primRealEquals   self that
+
+    def negate:     primRealNegate self
+    def toText:     primRealToText self
+    def round prec: primRealRound  self prec
+
+    def shortRep: self.toText
+    def toJSON: JSONNumber self
+
+native class Text:
+    def +  that: primTextConcat self that
+    def >  that: primTextGt     self that
+    def <  that: primTextLt     self that
+    def == that: primTextEquals self that
+
+    def isEmpty: primTextIsEmpty self
+    def length:  primTerxtLength self
+
+    def hasPrefix  p: primTextHasPrefix self p
+    def isPrefixOf t: t.hasPrefix p
+
+    def characters: primTextCharacters self
+    def words:      primTextWords      self
+    def lines:      primTextLines      self
+
+    def lowercase: primTextLowercase self
+    def uppercase: primTextUppercase self
+    def reverse:   primTextReverse   self
+
+    def escapeJSON: primTextEscapeJSON self
+    def shortRep:   primTextShortRep   self
+    def toBinary:   primTextToBinary   self
+    def toText:     self
+    def toJSON:     JSONString self.escapeJSON
+
+native class Binary:
+    def +  that: primBinaryConcat self that
+    def == that: primBinaryEquals self that
+
+    def length: primBinaryLength self
+    def toText: primBinaryToText self
+
+    def shortRep: "Binary<" + self.length.toText + ">"
+    def toBinary: self
+
+
 class Complex:
-    real :: Real
+    real      :: Real
     imaginary :: Real
 
     def shortRep: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
@@ -15,8 +89,6 @@ class Complex:
         Complex r i
 
     def modulus: self.real*self.real + self.imaginary*self.imaginary
-
-
 
 class Bool:
     True
@@ -344,7 +416,7 @@ class List a:
         Tuple2 Empty y: y
 
     def sort:
-        halfLen = self.length.div 2
+        halfLen = self.length / 2
         case 0.equals halfLen of
             True: self
             False:
