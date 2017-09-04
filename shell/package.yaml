@@ -7,6 +7,7 @@ executables:
   luna:
     main: Main.hs
     source-dirs: src
+    ghc-options: -threaded "-with-rtsopts=-N -T"
     dependencies:
       - base
       - layouting
@@ -34,7 +35,7 @@ executables:
       - terminal-text
       - text
       - ansi-wl-pprint
-      
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
