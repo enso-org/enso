@@ -19,6 +19,11 @@ native class Int:
     def seconds: self*1000 . miliseconds
     def minutes: self*60 . seconds
 
+    def equals a: self == a
+
+    def pred: self - 1
+    def succ: self + 1
+
 native class Real:
     def +  that: primRealAdd      self that
     def *  that: primRealMultiply self that
