@@ -159,6 +159,10 @@ def seq a b:
     a
     b
 
+def force a:
+    x = a
+    a
+
 class None:
     None
 
@@ -473,7 +477,7 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    def makeString sep: self.fold "" (x: y: x.toString + sep + y.toString)
+    def makeString sep: self.fold "" (x: y: x.toText + sep + y.toText)
 
     def concat: case self of
         Empty: Empty
@@ -531,12 +535,19 @@ class Map k v:
         other: False
 
 class JSON:
+    JSON
     JSONNumber Real
     JSONString Text
     JSONBool   Bool
     JSONArray  (List JSON)
     JSONObject (Map Text JSON)
     JSONNull
+
+    def safeParse data: primParseJSON (data.toText)
+
+    def parse data: case JSON.safeParse data of
+       Just json: json
+       Nothing:   errorStr "Unable to parse data to JSON"
 
     def toJSON: self
 
@@ -754,12 +765,36 @@ class Stream a:
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
-    def takeWhile f: case self of
-        Stream elt s: if f elt then Prepend elt (s.takeWhile f) else Empty
+    def nipOff n: case self of
+        Stream elt s:
+            case (n == 0) of
+                True: (Empty, Stream elt s)
+                False:
+                    (elems, stream) = s.nipOff (n - 1)
+                    (Prepend elt elems, stream)
+
+    def nipOffWhile f: case self of
+        Stream elt s:
+            case (f elt) of
+                False: (Empty, Stream elt s)
+                True:
+                    (elems, stream) = s.nipOffWhile f
+                    (Prepend elt elems, stream)
+
+    def take n: self.nipOff n . first
+
+    def drop n: self.nipOff n . second
+
+    def takeWhile f: self.nipOffWhile f . first
+
+    def dropWhile f: self.nipOffWhile f . second
 
     def average:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
         self . foldFrom (Tuple2 0 0.0) folder . map ((Tuple2 count sum): sum./ count.toReal)
+
+    def eval:
+        self.each force
 
 def streamFrom act:
     var = newMVar
@@ -776,6 +811,13 @@ def every timeInterval act:
     time    = timeInterval.toMicroseconds
     current = act
     future  = delayAsync time (every timeInterval act)
+    Stream current future.read
+
+def everyWithState timeInterval act stateGetter stateTrans state:
+    time = timeInterval.toMicroseconds
+    newState = stateTrans state
+    current = act (stateGetter state)
+    future = delayAsync time (everyWithState timeInterval act stateGetter stateTrans newState)
     Stream current future.read
 
 def print x: putStr x.toText
