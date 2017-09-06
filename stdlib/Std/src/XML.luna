@@ -1,0 +1,15 @@
+import Std.Base
+
+class XNode:
+    XText Text
+    XTag  Text (List (Tuple2 Text Text)) (List XNode)
+
+    def render: case self of
+        XText t: t
+        XTag name attrs children:
+            chld = children . each .render . intersperse '\n' . fold '' (+)
+            att  = attrs . each ((n, v): n + '="' + v + '"') . intersperse ' ' . fold '' (+)
+            '<' + name + (if att.isEmpty then '' else ' ') + att + '>\n' + chld + '\n</' + name + '>'
+
+    def setAttr n v: case self of
+        XTag name attrs children: XTag name (attrs . prepend (n,v)) children

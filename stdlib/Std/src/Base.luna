@@ -399,9 +399,9 @@ class List a:
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
-    def plus that: case (self) of
+    def + that: case (self) of
         Empty: that
-        Prepend x xs: Prepend x (xs.plus that)
+        Prepend x xs: Prepend x (xs.+ that)
 
     def length: case (self) of
         Empty: 0
@@ -473,7 +473,7 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    def makeString sep: self.fold "" (x: y: x.toString + sep + y.toString)
+    def makeText sep: self . each .toText . intersperse sep . fold '' (+)
 
     def concat: case self of
         Empty: Empty
@@ -498,7 +498,7 @@ class Map k v:
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
-            l . toList . plus (Empty . prepend (Tuple2 k v)) . plus r.toList
+            l.toList + Empty.prepend (Tuple2 k v) + r.toList
 
     def map f: case self of
         Tip: Tip

@@ -90,6 +90,11 @@ importAccessor tacc = do
                         replace tap ac
                         modifyAttr_ @SimplifierQueue $ wrapped %~ (generalize tacc :)
                         return True
+                Lam{} -> do
+                    forM_ req $ \requester -> do
+                        modifyLayer_ @Errors requester (CompileError (importErrorDoc n "(->)") requiredBy [] :)
+                    reconnectLayer' @Requester (Nothing :: Maybe (Expr Draft)) tacc
+                    return True
                 _ -> return False
 
 importMethod :: MonadPassManager m => Name -> Name -> Maybe (Expr Draft) -> [ModuleTagged ErrorSource] -> SubPass AccessorFunction m (Either [CompileError] SomeExpr)
