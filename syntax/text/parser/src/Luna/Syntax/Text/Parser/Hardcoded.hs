@@ -33,6 +33,7 @@ hardcodePrecRelMap = do
     Prec.writeRel EQ (">"     :: Name) ("<" :: Name)
     Prec.writeRel EQ ("-"     :: Name) (uminusName :: Name)
     Prec.writeRel EQ ("%"     :: Name) ("*" :: Name)
+    Prec.writeRel EQ ("/"     :: Name) ("*" :: Name)
 
 hardcodeMultiNames :: MonadState Scope m => m ()
 hardcodeMultiNames = do

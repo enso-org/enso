@@ -7,6 +7,9 @@ class Time:
 
     def now: primGetCurrentTime
 
+    def timeOfDay: case self of
+        TimeVal _ ti: primTimeOfDay ti
+
     def diff other: primDiffTimes self other
 
     def add interval: case self of

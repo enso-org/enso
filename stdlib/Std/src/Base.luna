@@ -7,6 +7,7 @@ native class Int:
     def >  that: primIntGt       self that
     def <  that: primIntLt       self that
     def == that: primIntEquals   self that
+    def equals that: primIntEquals self that
 
     def negate: primIntNegate self
     def toReal: primIntToReal self
@@ -19,10 +20,10 @@ native class Int:
     def seconds: self*1000 . miliseconds
     def minutes: self*60 . seconds
 
-    def equals a: self == a
-
     def pred: self - 1
     def succ: self + 1
+
+    def upto i: if self < i then Prepend self (self+1 . upto i) else (if self == i then [self] else [])
 
 native class Real:
     def +  that: primRealAdd      self that
@@ -32,19 +33,27 @@ native class Real:
     def >  that: primRealGt       self that
     def <  that: primRealLt       self that
     def == that: primRealEquals   self that
+    def equals that: primRealEquals self that
 
     def negate:     primRealNegate self
     def toText:     primRealToText self
     def round prec: primRealRound  self prec
 
+    def sin: primRealSin self
+    def cos: primRealCos self
+    def tan: primRealTan self
+
     def shortRep: self.toText
     def toJSON: JSONNumber self
+
+def pi: 3.14159265359
 
 native class Text:
     def +  that: primTextConcat self that
     def >  that: primTextGt     self that
     def <  that: primTextLt     self that
     def == that: primTextEquals self that
+    def equals that: primTextEquals self that
 
     def isEmpty: primTextIsEmpty self
     def length:  primTerxtLength self
@@ -64,11 +73,12 @@ native class Text:
     def shortRep:   primTextShortRep   self
     def toBinary:   primTextToBinary   self
     def toText:     self
-    def toJSON:     JSONString self.escapeJSON
+    def toJSON:     JSONString self
 
 native class Binary:
     def +  that: primBinaryConcat self that
     def == that: primBinaryEquals self that
+    def equals that: primBinaryEquals self that
 
     def length: primBinaryLength self
     def toText: primBinaryToText self

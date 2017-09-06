@@ -85,7 +85,7 @@ import           System.Random                                (randomIO)
 
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"] ]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"], ["Std", "Graphics2D"] ]
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -114,6 +114,31 @@ mkType vars (LCons n fs) = do
     cs     <- cons n fields
     mon    <- monadic cs mv
     return (generalize mon, generalize mv)
+
+typeRepForPure :: LunaValue -> [LTp] -> LTp -> IO Function
+typeRepForPure val args out = do
+    res <- runPM False $ do
+        runRegs
+        Pass.eval' @TestPass $ do
+            let varNames = Set.toList $ varNamesFromTypes $ out : args
+            vars <- fmap generalize <$> mapM var varNames
+            let varMap = Map.fromList $ zip varNames vars
+            fieldTypes <- mapM (mkType varMap) args
+            (outType, outM) <- mkType varMap out
+            pure       <- cons_ @Draft "Pure"
+            let lamInPure o i = do
+                    l  <- lam i o
+                    lm <- monadic l pure
+                    return $ generalize lm
+            funType <- foldM lamInPure outType $ fst <$> reverse fieldTypes
+            monads  <- scanM (fmap generalize .: unify) (unsafeGeneralize pure) (snd <$> fieldTypes)
+            let lastMonad = head $ reverse monads
+            replace lastMonad outM
+            res <- compile $ generalize funType
+            return $ Function res val $ Assumptions def (tail monads) def def
+    case res of
+        Right r -> return r
+        Left e  -> error $ show e
 
 typeRepForIO :: LunaValue -> [LTp] -> LTp -> IO Function
 typeRepForIO val args out = do
@@ -229,7 +254,9 @@ primReal imps = do
         gtVal       = toLunaValue imps ((>)  :: Double -> Double -> Bool)
         roundVal    = toLunaValue imps ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
         showVal     = toLunaValue imps (convert . show :: Double -> Text)
-        toRealVal   = toLunaValue imps (id   :: Double -> Double)
+        sinVal      = toLunaValue imps (sin  :: Double -> Double)
+        cosVal      = toLunaValue imps (cos  :: Double -> Double)
+        tanVal      = toLunaValue imps (tan  :: Double -> Double)
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
     return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal   boxed3DoublesAssumptions)
                           , ("primRealMultiply", Function boxed3Doubles   timeVal   boxed3DoublesAssumptions)
@@ -238,9 +265,12 @@ primReal imps = do
                           , ("primRealEquals",   Function double2Bool     eqVal     double2BoolAssumptions)
                           , ("primRealLt",       Function double2Bool     ltVal     double2BoolAssumptions)
                           , ("primRealGt",       Function double2Bool     gtVal     double2BoolAssumptions)
-                          , ("primRealToText",   Function double2text     showVal   double2TextAssumptions)
-                          , ("primRealNegate",   Function double2Double   uminusVal double2DoubleAssumptions)
                           , ("primRealRound",    Function doubleIntDouble roundVal  doubleIntDoubleAssumptions)
+                          , ("primRealToText",   Function double2text     showVal   double2TextAssumptions)
+                          , ("primRealSin",      Function double2Double   sinVal    double2DoubleAssumptions)
+                          , ("primRealCos",      Function double2Double   cosVal    double2DoubleAssumptions)
+                          , ("primRealTan",      Function double2Double   tanVal    double2DoubleAssumptions)
+                          , ("primRealNegate",   Function double2Double   uminusVal double2DoubleAssumptions)
                           ]
 
 primInt :: Imports -> IO (Map Name Function)
@@ -575,6 +605,10 @@ systemStd imps = do
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
         primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
 
+    let primTimeOfDayVal :: Time.DiffTime -> (Integer, Integer, Double)
+        primTimeOfDayVal t = let Time.TimeOfDay h m s = Time.timeToTimeOfDay t in (convert h, convert m, realToFrac s)
+    primTimeOfDay <- typeRepForPure (toLunaValue std primTimeOfDayVal) [LCons "TimeInterval" []] $ LCons "Tuple3" [LCons "Int" [], LCons "Int" [], LCons "Real" []]
+
     Right (text2TimeAssu, text2TimeIr) <- runGraph $ do
         tText  <- cons_ @Draft "Text"
         tTime  <- cons_ @Draft "Time"
@@ -688,6 +722,7 @@ systemStd imps = do
                                     , ("primDiffTimes", primDiffTimes)
                                     , ("primShowTime", primShowTime)
                                     , ("primTimesEq", primTimesEq)
+                                    , ("primTimeOfDay", primTimeOfDay)
                                     , ("primParseTime", primParseTime)
                                     , ("randomReal", randomReal)
                                     , ("primFork", fork)

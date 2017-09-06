@@ -1,0 +1,120 @@
+import Std.Base
+
+class Point:
+    x :: Real
+    y :: Real
+
+    def toJSON: [self.x, self.y] . toJSON
+
+class ControlPoint:
+    leftHandle  :: Maybe Point
+    point       :: Point
+    rightHandle :: Maybe Point
+
+    def toJSON: JSONObject (Tip . insert "leftHandle" self.leftHandle.toJSON . insert "point" self.point.toJSON . insert "rightHandle" self.rightHandle.toJSON)
+
+def point           px py:         ControlPoint Nothing                (Point px py) Nothing
+def lpoint  lpx lpy px py:         ControlPoint (Just (Point lpx lpy)) (Point px py) Nothing
+def rpoint          px py rpx rpy: ControlPoint Nothing                (Point px py) (Just (Point rpx rpy))
+def lrpoint lpx lpy px py rpx rpy: ControlPoint (Just (Point lpx lpy)) (Point px py) (Just (Point rpx rpy))
+
+class AffineTransformation:
+    a :: Real
+    b :: Real
+    c :: Real
+    d :: Real
+    tx :: Real
+    ty :: Real
+
+    def + that: case self of
+        AffineTransformation a1 b1 c1 d1 tx1 ty1: case that of
+            AffineTransformation a2 b2 c2 d2 tx2 ty2:
+                a = a1.+ a2
+                b = b1.+ b2
+                c = c1.+ c2
+                d = d1.+ d2
+                tx = tx1.+ tx2
+                ty = ty1.+ ty2
+                AffineTransformation a b c d tx ty
+
+    def * that: case self of
+        AffineTransformation a1 b1 c1 d1 tx1 ty1: case that of
+            AffineTransformation a2 b2 c2 d2 tx2 ty2:
+                a = (a1.* a2) + (c1.* b2)
+                b = (b1.* a2) + (d1.* b2)
+                c = (a1.* c2) + (c1.* d2)
+                d = (b1.* c2) + (d1.* d2)
+                tx = tx1 + (c1.* ty2) + (a1.* tx2)
+                ty = ty1 + (d1.* ty2) + (b1.* tx2)
+                AffineTransformation a b c d tx ty
+
+    def toJSON: case self of
+        AffineTransformation a b c d tx ty: [a, b, c, d, tx, ty].toJSON
+
+def identityTrans:          AffineTransformation 1.0 0.0 0.0 1.0 0.0 0.0
+def translationTrans tx ty: AffineTransformation 1.0 0.0 0.0 1.0 tx ty
+def rotationTrans a:        AffineTransformation a.cos a.sin a.sin.negate a.cos 0.0 0.0
+
+class Shape:
+    Circle Real
+    Rectangle Real Real
+    Path (List ControlPoint)
+
+    def toJSON: case self of
+        Circle r: JSONObject (Tip . insert "type" "circle".toJSON . insert "radius" r.toJSON)
+        Rectangle w h: JSONObject (Tip . insert "type" "rect".toJSON . insert "width" w.toJSON . insert "height" h.toJSON)
+        Path pts: JSONObject (Tip . insert "type" "path".toJSON . insert "points" pts.toJSON)
+
+class BooleanOperation a:
+    Union
+    Difference
+    Intersection
+
+    def toJSON:
+        tag = case self of
+            Union: "union"
+            Difference: "difference"
+            Intersection: "intersection"
+        tag.toJSON
+
+class Boolean a:
+    type :: BooleanOperation
+    operands :: Tuple2 a
+
+    def toJSON:
+        tp  = self.type.toJSON
+        ops = self.operands.toJSON
+        Map . empty . insert "type" tp . insert "operands" ops . toJSON
+
+class GeoDef:
+    GeoEmpty
+    GeoSimple Shape
+    GeoCompound (Boolean Geo)
+
+    def toJSON: case self of
+        GeoEmpty: JSONObject (Tip . insert "type" "empty".toJSON)
+        GeoSimple shape: shape.toJSON
+        GeoCompound cmpd: cmpd.toJSON
+
+class Geo:
+    transformation :: AffineTransformation
+    definition     :: GeoDef
+
+    def toJSON: Tip . insert "definition" self.definition.toJSON . insert "transformation" self.transformation.toJSON . toJSON
+
+    def transform t: case self of
+        Geo tt d:
+            newT = t * tt
+            Geo newT d
+
+    def translate tx ty: self.transform (translationTrans tx ty)
+    def rotate alpha: self.transform (rotationTrans (alpha * pi / 180.0))
+
+    def + that: Geo identityTrans (GeoCompound (Boolean Union        (self, that)))
+    def - that: Geo identityTrans (GeoCompound (Boolean Difference   (self, that)))
+    def * that: Geo identityTrans (GeoCompound (Boolean Intersection (self, that)))
+
+def circle r:      Geo identityTrans (GeoSimple (Circle r))
+def rectangle x y: Geo identityTrans (GeoSimple (Rectangle x y))
+def path pts:      Geo identityTrans (GeoSimple (Path pts))
+def emptyGeo:      Geo identityTrans GeoEmpty
