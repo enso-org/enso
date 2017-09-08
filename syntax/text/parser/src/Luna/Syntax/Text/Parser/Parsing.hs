@@ -403,12 +403,13 @@ namedVar   = mkNamedAsg IR.var'   varName
 namedOp    = mkNamedAsg IR.var'   opName
 namedIdent = namedVar <|> namedCons <|> namedOp
 
-consName, varName, opName, identName :: SymParser Name
-consName  = convert <$> satisfy Lexer.matchCons
-varName   = convert <$> satisfy Lexer.matchVar
-opName    = convert <$> satisfy Lexer.matchOperator
-identName = varName <|> consName <|> opName
-funcName  = varName <|> opName
+consName, varName, opName, identName, modifierName :: SymParser Name
+consName     = convert <$> satisfy Lexer.matchCons
+varName      = convert <$> satisfy Lexer.matchVar
+opName       = convert <$> satisfy Lexer.matchOperator
+identName    = varName <|> consName <|> opName
+funcName     = varName <|> opName
+modifierName = convert <$> satisfy Lexer.matchModifier
 
 previewVarName :: SymParser Name
 previewVarName = do
@@ -715,11 +716,15 @@ accSectNames = do
 updateIRB :: [Name] -> SomeExpr -> SomeExpr -> IRB SomeExpr
 updateIRB name = liftIRB2 $ flip IR.update' name
 
+modifyIRB :: [Name] -> Name -> SomeExpr -> SomeExpr -> IRB SomeExpr
+modifyIRB ns n = liftIRB2 $ flip (flip IR.modify' ns) n
+
 accSeg :: SymParser ExprSegmentBuilder
 accSeg = fmap2 tokenx $ do
     (beforeDot, afterDot) <- checkOffsets
     snames@(n :| ns) <- accSectNames
     mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
+    mmod  <- option Nothing (Just .: (,) <$> modifierName <*> nonemptyValExpr)
     let (spans, names) = unzip $ convert snames
         symmetrical    = beforeDot == afterDot
         accCons s n    = inheritCodeSpan1With (<> s) (accIRB n)
@@ -728,14 +733,23 @@ accSeg = fmap2 tokenx $ do
         sname          = spacedNameIf beforeDot accName
         accConss       =  labeled sname ( suffix $ uncurry accCons n )
                       :| (labeled uname . suffix . uncurry accCons <$> ns)
-        Just updt      = mupdt -- FIXME[WD]: make it nicer
+        Just fupdt           = mupdt -- FIXME[WD]: make it nicer
+        Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
 
         updateAtom = labeled sname . suffix
-                   $ flip (inheritCodeSpan2With (\s1 s2 -> s1 <> mconcat spans <> s2) (updateIRB names))
-                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) updt)
+                   $ flip (inheritCodeSpan2With (<>) (updateIRB names))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
+        modifyAtom = labeled sname . suffix
+                   $ flip (inheritCodeSpan2With (<>) (modifyIRB names modName))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
+
         segment (isFirst, isLast) = if
             | isFirst     -> pure accSect
-            | symmetrical -> if isJust mupdt then pure updateAtom else accConss
+             -- FIXME[WD]: make it nicer vvv
+            | symmetrical -> if
+                | isJust mupdt -> pure updateAtom
+                | isJust mmod  -> pure modifyAtom
+                | otherwise    -> accConss
             | beforeDot   -> pure accSect
             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
     return $ SegmentBuilder segment

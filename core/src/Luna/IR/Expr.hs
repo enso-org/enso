@@ -209,6 +209,16 @@ update a ns b = mdo
     lb <- link (unsafeRelayout b) t
     return t
 
+modify' :: ExprCons m Modify => Expr l -> [Name] -> Name -> Expr l' -> m SomeExpr
+modify  :: ExprCons m Modify => Expr l -> [Name] -> Name -> Expr l' -> m (Expr $ Modify >> (l <+> l'))
+modify' = fmap generalize .:: modify
+modify a ns n b = mdo
+    t  <- expr $ Term.uncheckedModify la ns n lb
+    la <- link (unsafeRelayout a) t
+    lb <- link (unsafeRelayout b) t
+    return t
+
+
 
 -- === Definitions === --
 

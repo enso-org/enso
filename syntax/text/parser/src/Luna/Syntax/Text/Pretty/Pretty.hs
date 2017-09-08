@@ -256,7 +256,8 @@ instance ( MonadIO m -- DEBUG ONLY
         AccSection   n         -> return . named (notSpaced accName) . atom $ "." <> intercalate "." (convert <$> n)
         Metadata     t         -> return . unnamed . atom $ "###" <+> metadataHeader <+> convertVia @Text t
         Disabled     a         -> unnamed . atom . ("#" <>) <$> subgenBody a
-        Update       a ns v    -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+> "=" <+> convert v') <$> subgen a <*> subgen v
+        Update       a ns v    -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+>              "=" <+> convert v') <$> subgen a <*> subgen v
+        Modify       a ns n v  -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+> convert n <> "=" <+> convert v') <$> subgen a <*> subgen v
 
         --         FmtString str  -> unnamed . atom . squoted . mconcat <$> (mapM handleSegment $ unwrap str) where -- FIXME [WD]: add proper multi-strings indentation
         --                           handleSegment = \case (Literal.StrSegment  s) -> fmap convert $ gen1 =<< source s

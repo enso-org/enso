@@ -255,8 +255,10 @@ spec = do
             it "module-qualified pattern"                   $ shouldParseAs'     expr "A.B.C x y z = val" "A . B . C x y z = val" [(0,1),(0,3),(0,5),(1,1),(0,7),(1,1),(0,9),(1,1),(0,11),(3,3),(0,17)]
 
         describe "modifiers" $ do
-            it "variable update"                            $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,9),(0,13)]
-            it "variable drop update"                       $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,9)]
+            it "variable's field update"                    $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,7),(0,11)]
+            it "variable's field drop update"               $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,7)]
+            it "variable's field modification"              $ shouldParseItself' expr "a = a.x += v"                              [(0,1),(0,1),(6,1),(3,8),(0,12)]
+            it "variable's field drop modification"         $ shouldParseItself' expr "a.x += v"                                  [(0,1),(6,1),(0,8)]
 
 
         describe "lambdas" $ do
