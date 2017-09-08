@@ -590,6 +590,11 @@ systemStd imps = do
                                     [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, LCons "Binary" []]
                                     (LCons "HttpResponse" [])
 
+    Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
+    let primUrlEncodeVal :: Text -> Text
+        primUrlEncodeVal = convert . HTTP.urlEncode False . convert
+        primUrlEncode    = Function primUEIR (toLunaValue std primUrlEncodeVal) primUEAssu
+
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
         primGetCurrentTimeVal = performIO Time.getCurrentTime
     primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
@@ -719,6 +724,7 @@ systemStd imps = do
                                     , ("parseMsgPack", parseMsgPack)
                                     , ("encodeMsgPack", encodeMsgPack)
                                     , ("primPerformHttp", primPerformHttp)
+                                    , ("primUrlEncode", primUrlEncode)
                                     , ("primGetCurrentTime", primGetCurrentTime)
                                     , ("primDiffTimes", primDiffTimes)
                                     , ("primShowTime", primShowTime)
