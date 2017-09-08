@@ -198,6 +198,18 @@ grouped e = mdo
     return t
 
 
+-- === Sugar === --
+
+update' :: ExprCons m Update => Expr l -> [Name] -> Expr l' -> m SomeExpr
+update  :: ExprCons m Update => Expr l -> [Name] -> Expr l' -> m (Expr $ Update >> (l <+> l'))
+update' = fmap generalize .:. update
+update a ns b = mdo
+    t  <- expr $ Term.uncheckedUpdate la ns lb
+    la <- link (unsafeRelayout a) t
+    lb <- link (unsafeRelayout b) t
+    return t
+
+
 -- === Definitions === --
 
 rootedFunction :: ExprCons m RootedFunction => IR.Rooted SomeExpr -> m SomeExpr

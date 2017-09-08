@@ -17,7 +17,7 @@ import qualified Luna.IR.Term.Literal as Literal
 import           Luna.IR.Term.Literal (HasLiteral, LiteralOf, literal)
 import           Data.Text32 (Text32)
 
-import Data.Property
+import Data.Property hiding (Update)
 import Data.Families (makeLunaComponents, makeLensedTerms)
 
 
@@ -63,11 +63,13 @@ newtype TermDisabled     a = Disabled     { __body     :: a                   } 
 newtype TermMarker       a = Marker       { __markerId :: Word64              } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermMarked       a = Marked       { __marker   :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
 newtype TermMetadata     a = Metadata     { __content  :: Text32              } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermUpdate       a = Update       { __base     :: !a , __names :: ![Name] , __value :: !a }                      deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermModify       a = Modify       { __base     :: !a , __names :: ![Name] , __operator :: !Name, __value :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
 
 makeLensedTerms "CoreTerms" [ ''TermNumber, ''TermString, ''TermFmtString, ''TermAcc, ''TermApp, ''TermLam, ''TermSeq, ''TermUnify
                             , ''TermCons, ''TermMatch, ''TermMonadic, ''TermVar, ''TermFieldLens, ''TermGrouped, ''TermBlank, ''TermStar, ''TermMissing, ''TermClsASG
                             , ''TermRecASG, ''TermFieldASG, ''TermTyped, ''TermInvalid, ''TermList, ''TermTuple, ''TermLeftSection, ''TermRightSection, ''TermAccSection
-                            , ''TermDisabled, ''TermMarker, ''TermMarked, ''TermMetadata
+                            , ''TermDisabled, ''TermMarker, ''TermMarked, ''TermMetadata, ''TermUpdate, ''TermModify
                             ]
 
 

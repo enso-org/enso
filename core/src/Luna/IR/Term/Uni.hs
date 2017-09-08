@@ -74,6 +74,8 @@ data instance UniTerm a = Number    !Literal.Number
                         | Invalid             !Text32
                         | List                ![a]
                         | Tuple               ![a]
+                        | Update              !a ![Name] !a
+                        | Modify              !a ![Name] !Name !a
                         | AccSection          ![Name]
                         | LeftSection         !a !a
                         | RightSection        !a !a
@@ -83,7 +85,6 @@ data instance UniTerm a = Number    !Literal.Number
                         | Marked              !a !a
                         | Metadata            !Text32
                         deriving (Show)
-
 
 instance IsUniTerm (TermDef atom) => IsUniTerm (Term atom) where uniTerm = uniTerm . unwrap
 
@@ -126,7 +127,9 @@ instance IsUniTerm Term.TermUnresolvedImportSrc where uniTerm (Term.UnresolvedIm
 instance IsUniTerm Term.TermWorld               where uniTerm (Term.World               t1)             = World               t1
 instance IsUniTerm Term.TermInvalid             where uniTerm (Term.Invalid             t1)             = Invalid             t1
 instance IsUniTerm Term.TermList                where uniTerm (Term.List                t1)             = List                t1
-instance IsUniTerm Term.TermTuple                where uniTerm (Term.Tuple              t1)             = Tuple               t1
+instance IsUniTerm Term.TermTuple               where uniTerm (Term.Tuple               t1)             = Tuple               t1
+instance IsUniTerm Term.TermUpdate              where uniTerm (Term.Update              t1 t2 t3)       = Update              t1 t2 t3
+instance IsUniTerm Term.TermModify              where uniTerm (Term.Modify              t1 t2 t3 t4)    = Modify              t1 t2 t3 t4
 instance IsUniTerm Term.TermAccSection          where uniTerm (Term.AccSection          t1)             = AccSection          t1
 instance IsUniTerm Term.TermLeftSection         where uniTerm (Term.LeftSection         t1 t2)          = LeftSection         t1 t2
 instance IsUniTerm Term.TermRightSection        where uniTerm (Term.RightSection        t1 t2)          = RightSection        t1 t2

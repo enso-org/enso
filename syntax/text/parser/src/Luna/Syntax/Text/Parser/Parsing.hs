@@ -250,14 +250,14 @@ inheritCodeSpan1 = inheritCodeSpan1With id
 inheritCodeSpan2 :: (SomeExpr -> SomeExpr -> IRB SomeExpr) -> AsgBldr SomeExpr -> AsgBldr SomeExpr -> AsgBldr SomeExpr
 inheritCodeSpan2 = inheritCodeSpan2With CodeSpan.concat
 
-inheritCodeSpan1With :: ( CodeSpan -> CodeSpan) -> (SomeExpr -> IRB SomeExpr) -> AsgBldr SomeExpr -> AsgBldr SomeExpr
+inheritCodeSpan1With :: (CodeSpan -> CodeSpan) -> (SomeExpr -> IRB SomeExpr) -> AsgBldr SomeExpr -> AsgBldr SomeExpr
 inheritCodeSpan1With sf f (AsgBldr (IRB irb1)) = wrap $ IRB $ do
     t1 <- irb1
     s1 <- getLayer @CodeSpan t1
     putLayer @CodeSpan t1 (CodeSpan.dropOffset s1) -- the newly constructed IR is the new parent, so it handles the left offset
     fromIRB . unwrap . buildAsgFromSpan (sf s1) $ f t1
 
-inheritCodeSpan2With :: ( CodeSpan -> CodeSpan -> CodeSpan)
+inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
                      -> (SomeExpr -> SomeExpr -> IRB SomeExpr)
                      -> AsgBldr SomeExpr -> AsgBldr SomeExpr -> AsgBldr SomeExpr
 inheritCodeSpan2With sf f (AsgBldr (IRB irb1)) (AsgBldr (IRB irb2)) = wrap $ IRB $ do
@@ -267,6 +267,14 @@ inheritCodeSpan2With sf f (AsgBldr (IRB irb1)) (AsgBldr (IRB irb2)) = wrap $ IRB
     t2 <- irb2
     s2 <- getLayer @CodeSpan t2
     fromIRB . unwrap . buildAsgFromSpan (sf s1 s2) $ f t1 t2
+
+-- | Magic helper. Use with care only if you really know what you do.
+modifyCodeSpan :: (CodeSpan -> CodeSpan) -> AsgBldr SomeExpr -> AsgBldr SomeExpr
+modifyCodeSpan f (AsgBldr (IRB irb1)) = wrap $ IRB $ do
+    t1 <- irb1
+    s1 <- getLayer @CodeSpan t1
+    putLayer @CodeSpan t1 (f s1)
+    return t1
 
 
 -- === ASG preparation === --
@@ -703,21 +711,31 @@ accSectNames = do
     (sname :|) <$> if beforeDot || afterDot then pure   mempty
                                             else option mempty (convert <$> accSectNames)
 
+
+updateIRB :: [Name] -> SomeExpr -> SomeExpr -> IRB SomeExpr
+updateIRB name = liftIRB2 $ flip IR.update' name
+
 accSeg :: SymParser ExprSegmentBuilder
 accSeg = fmap2 tokenx $ do
     (beforeDot, afterDot) <- checkOffsets
     snames@(n :| ns) <- accSectNames
+    mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
     let (spans, names) = unzip $ convert snames
         symmetrical    = beforeDot == afterDot
         accCons s n    = inheritCodeSpan1With (<> s) (accIRB n)
         accSect        = labeled uname . atom $ buildAsgFromSpan (mconcat spans) (accSectionIRB names)
         uname          = unspaced accName
         sname          = spacedNameIf beforeDot accName
-        accConss       =  labeled sname (suffix $ uncurry accCons n)
+        accConss       =  labeled sname ( suffix $ uncurry accCons n )
                       :| (labeled uname . suffix . uncurry accCons <$> ns)
+        Just updt      = mupdt -- FIXME[WD]: make it nicer
+
+        updateAtom = labeled sname . suffix
+                   $ flip (inheritCodeSpan2With (\s1 s2 -> s1 <> mconcat spans <> s2) (updateIRB names))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) updt)
         segment (isFirst, isLast) = if
             | isFirst     -> pure accSect
-            | symmetrical -> accConss
+            | symmetrical -> if isJust mupdt then pure updateAtom else accConss
             | beforeDot   -> pure accSect
             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
     return $ SegmentBuilder segment
