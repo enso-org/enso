@@ -326,6 +326,8 @@ class Either a b:
         Left  a: lf a
         Right b: rf b
 
+    def toMaybe: self.either (_: Nothing) Just
+
     def isLeft: case self of
         Left  _: True
         Right _: False
@@ -542,8 +544,8 @@ class JSON:
     def safeParse data: primParseJSON (data.toText)
 
     def parse data: case JSON.safeParse data of
-       Just json: json
-       Nothing:   errorStr "Unable to parse data to JSON"
+       Right json: json
+       Left err:   errorStr err
 
     def toJSON: self
 
@@ -762,29 +764,29 @@ class Stream a:
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
-    def nipOff n: case self of
+    def consume n: case self of
         Stream elt s:
             case (n == 0) of
                 True: (Empty, Stream elt s)
                 False:
-                    (elems, stream) = s.nipOff (n - 1)
+                    (elems, stream) = s.consume (n - 1)
                     (Prepend elt elems, stream)
 
-    def nipOffWhile f: case self of
+    def consumeWhile f: case self of
         Stream elt s:
             case (f elt) of
                 False: (Empty, Stream elt s)
                 True:
-                    (elems, stream) = s.nipOffWhile f
+                    (elems, stream) = s.consumeWhile f
                     (Prepend elt elems, stream)
 
-    def take n: self.nipOff n . first
+    def take n: self.consume n . first
 
-    def drop n: self.nipOff n . second
+    def drop n: self.consume n . second
 
-    def takeWhile f: self.nipOffWhile f . first
+    def takeWhile f: self.consumeWhile f . first
 
-    def dropWhile f: self.nipOffWhile f . second
+    def dropWhile f: self.consumeWhile f . second
 
     def average:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
@@ -810,11 +812,10 @@ def every timeInterval act:
     future  = delayAsync time (every timeInterval act)
     Stream current future.read
 
-def everyWithState timeInterval stateAct stateTrans state:
+def everyWithState timeInterval stateFunc state:
     time = timeInterval.toMicroseconds
-    newState = stateTrans state
-    current = stateAct state
-    future = delayAsync time (everyWithState timeInterval stateAct stateTrans newState)
+    (current, newState) = stateFunc state
+    future = delayAsync time (everyWithState timeInterval stateFunc newState)
     Stream current future.read
 
 def print x: putStr x.toText

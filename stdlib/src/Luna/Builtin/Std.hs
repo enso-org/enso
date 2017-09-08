@@ -10,6 +10,7 @@ import           Control.Monad.Except
 import           Control.Monad.Trans.State                    (evalStateT, get)
 
 import qualified Data.Aeson                                   as Aeson
+import qualified Data.Bifunctor                               as Bifunc
 import           Data.ByteString.Char8                        (pack)
 import qualified Data.ByteString                              as StrictByteString
 import           Data.ByteString.Lazy                         (ByteString)
@@ -524,22 +525,20 @@ systemStd imps = do
         readBinaryVal = withExceptions . ByteString.readFile . convert
     readBinaryF <- typeRepForIO (toLunaValue std readBinaryVal) [LCons "Text"[]] $ LCons "Binary" []
 
-    let parseJSONVal :: Text -> LunaEff (Maybe Aeson.Value)
-        parseJSONVal t = return $ case Aeson.eitherDecode $ Text.encodeUtf8 t of
-            Left e  -> Nothing
-            Right a -> Just a
+    let parseJSONVal :: Text -> LunaEff (Either Text Aeson.Value)
+        parseJSONVal = return . Bifunc.first convert . Aeson.eitherDecode . Text.encodeUtf8
     Right parseJSON <- runGraph $ do
-        mA     <- var "a"
-        pure   <- cons_ @Draft "Pure"
-        comm   <- unify mA pure
-        tpInt  <- cons_ @Draft "Text"
-        tpIntM <- monadic tpInt mA
-        tpJSON <- cons_ @Draft "JSON"
-        tpMJ   <- cons "Maybe" [tpJSON]
-        tpMJM  <- monadic tpMJ comm
-        intl   <- lam tpIntM tpMJM
-        lamP   <- monadic intl pure
-        res    <- compile $ generalize lamP
+        mA      <- var "a"
+        pure    <- cons_ @Draft "Pure"
+        comm    <- unify mA pure
+        tpText  <- cons_ @Draft "Text"
+        tpTextM <- monadic tpText mA
+        tpJSON  <- cons_ @Draft "JSON"
+        tpMJ    <- cons "Either" [tpText, tpJSON]
+        tpMJM   <- monadic tpMJ comm
+        intl    <- lam tpTextM tpMJM
+        lamP    <- monadic intl pure
+        res     <- compile $ generalize lamP
         return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
 
     Right (mpack2BinaryAssu, mpack2BinaryIr) <- oneArgFun "MsgPack" "Binary"
