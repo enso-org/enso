@@ -103,7 +103,7 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
     setAttr (getTypeDesc @ReparsingStatus) $ (mempty :: ReparsingStatus)
 
     -- setAttr (getTypeDesc @Source) $ ("main:\n    «0»pi = 5\n    «1»a = 60" :: Source)
-    setAttr (getTypeDesc @Source) $ ("a = b.x = d" :: Source)
+    setAttr (getTypeDesc @Source) $ ("## A sample function\ndef foo a: a" :: Source)
     -- setAttr (getTypeDesc @Source) $ ("main :   «1777»a" :: Source)
 
     -- World initialization
@@ -202,6 +202,8 @@ uncheckedDeleteStarType e = do
 --
 main :: HasCallStack => IO ()
 main = do
+    let stream = Lexer.evalDefLexer "## A sample function\ndef foo a: a" :: [Lexer.Token Lexer.Symbol]
+    pprint stream
     -- D.main
     runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
         (p, vis) <- Vis.newRunDiffT $ tryAll test_pass1

@@ -17,7 +17,7 @@ import qualified Text.Megaparsec.Lexer as Lex
 import qualified Text.Megaparsec.Char  as Charhiding (eol)
 
 import qualified Luna.IR as IR
-import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled)
+import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled, documented)
 import Luna.IR.ToRefactor
 import OCI.Pass.Class hiding (get, put, modify_)
 import OCI.Pass.Definition
@@ -385,6 +385,11 @@ accIRB name a = liftIRB1 (flip IR.acc' name) a
 accSectionIRB :: [Name] -> IRB SomeExpr
 accSectionIRB name = liftIRB0 $ IR.accSection name
 
+updateIRB :: [Name] -> SomeExpr -> SomeExpr -> IRB SomeExpr
+updateIRB name = liftIRB2 $ flip IR.update' name
+
+modifyIRB :: [Name] -> Name -> SomeExpr -> SomeExpr -> IRB SomeExpr
+modifyIRB ns n = liftIRB2 $ flip (flip IR.modify' ns) n
 
 
 -------------------------
@@ -583,7 +588,7 @@ expr :: AsgParser SomeExpr
 expr = func <|> lineExpr
 
 lineExpr :: AsgParser SomeExpr
-lineExpr = marked <*> possiblyDisabled (valExpr <**> option id assignment) where
+lineExpr = marked <*> possiblyDocumented (possiblyDisabled (valExpr <**> option id assignment)) where
     assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
 
 valExpr :: AsgParser SomeExpr
@@ -713,11 +718,6 @@ accSectNames = do
                                             else option mempty (convert <$> accSectNames)
 
 
-updateIRB :: [Name] -> SomeExpr -> SomeExpr -> IRB SomeExpr
-updateIRB name = liftIRB2 $ flip IR.update' name
-
-modifyIRB :: [Name] -> Name -> SomeExpr -> SomeExpr -> IRB SomeExpr
-modifyIRB ns n = liftIRB2 $ flip (flip IR.modify' ns) n
 
 accSeg :: SymParser ExprSegmentBuilder
 accSeg = fmap2 tokenx $ do
@@ -736,6 +736,7 @@ accSeg = fmap2 tokenx $ do
         Just fupdt           = mupdt -- FIXME[WD]: make it nicer
         Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
 
+        -- FIXME[WD]: make it nicer vvv
         updateAtom = labeled sname . suffix
                    $ flip (inheritCodeSpan2With (<>) (updateIRB names))
                           (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
@@ -793,6 +794,19 @@ buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 buildTokenExpr' :: Tokens (Labeled SpacedName (UniSymbol Symbol.Expr (AsgBldr SomeExpr))) -> SymParser (AsgBldr SomeExpr)
 buildTokenExpr' = buildExpr_termApp . Labeled (spaced appName) $ Tok.Symbol app
 
+
+---------------------------
+-- === Documentation === --
+---------------------------
+
+possiblyDocumented :: AsgParser SomeExpr -> AsgParser SomeExpr
+possiblyDocumented p = documented p <|> p
+
+documented :: AsgParser SomeExpr -> AsgParser SomeExpr
+documented p = buildAsg $ (\d t -> liftAstApp1 (IR.documented' d) t) <$> doc <*> p
+
+doc :: SymParser Text32
+doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
 
 
 --------------------------

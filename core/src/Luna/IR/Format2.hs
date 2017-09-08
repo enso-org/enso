@@ -83,4 +83,5 @@ type instance Access Format Invalid             = Draft
 type instance Access Format Disabled            = Draft
 type instance Access Format Marker              = Draft
 type instance Access Format Marked              = Draft
+type instance Access Format Documented          = Draft
 type instance Access Format Metadata            = Draft

@@ -357,6 +357,9 @@ spec = do
             it "disabled app expression"                 $ shouldParseItself' expr "#foo bar"              [(0,3),(1,3),(1,7),(0,8)]
             it "disabled multiline lambda"               $ shouldParseItself' expr "#a:\n    foo\n    bar" [(0,1),(0,3),(5,3),(6,11),(1,18),(0,19)]
 
+        describe "documentation" $ do
+            it "single line doc comment"                 $ shouldParseItself' expr "## A sample function\ndef foo a: a" [(4,3),(1,1),(2,1),(21,12),(0,33)]
+
         describe "metadata" $ do
             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]
 

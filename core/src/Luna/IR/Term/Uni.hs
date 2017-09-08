@@ -83,6 +83,7 @@ data instance UniTerm a = Number    !Literal.Number
                         | Disabled            !a
                         | Marker              !Word64
                         | Marked              !a !a
+                        | Documented          !Text32 !a
                         | Metadata            !Text32
                         deriving (Show)
 
@@ -137,6 +138,7 @@ instance IsUniTerm Term.TermRightSection        where uniTerm (Term.RightSection
 instance IsUniTerm Term.TermDisabled            where uniTerm (Term.Disabled            t1)             = Disabled            t1
 instance IsUniTerm Term.TermMarker              where uniTerm (Term.Marker              t1)             = Marker              t1
 instance IsUniTerm Term.TermMarked              where uniTerm (Term.Marked              t1 t2)          = Marked              t1 t2
+instance IsUniTerm Term.TermDocumented          where uniTerm (Term.Documented          t1 t2)          = Documented          t1 t2
 instance IsUniTerm Term.TermMetadata            where uniTerm (Term.Metadata            t1)             = Metadata            t1
 
 
