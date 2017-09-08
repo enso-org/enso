@@ -1,4 +1,5 @@
 import Std.Base
+import Std.XML
 
 class Point:
     x :: Real
@@ -48,8 +49,10 @@ class AffineTransformation:
                 ty = ty1 + (d1.* ty2) + (b1.* tx2)
                 AffineTransformation a b c d tx ty
 
-    def toJSON: case self of
-        AffineTransformation a b c d tx ty: [a, b, c, d, tx, ty].toJSON
+    def toList: case self of
+        AffineTransformation a b c d tx ty: [a, b, c, d, tx, ty]
+
+    def toJSON: self.toList.toJSON
 
 def identityTrans:          AffineTransformation 1.0 0.0 0.0 1.0 0.0 0.0
 def translationTrans tx ty: AffineTransformation 1.0 0.0 0.0 1.0 tx ty
@@ -65,7 +68,11 @@ class Shape:
         Rectangle w h: JSONObject (Tip . insert "type" "rect".toJSON . insert "width" w.toJSON . insert "height" h.toJSON)
         Path pts: JSONObject (Tip . insert "type" "path".toJSON . insert "points" pts.toJSON)
 
-class BooleanOperation a:
+    def toSVGDefs id: case self of
+        Circle r: (id, XTag "circle" [("r", r.toText), ("fill", "black")] [], [])
+        Rectangle w h: (id, XTag "rect" [("width", w.toText), ("height", h.toText), ("fill", "black"), ("x", w.negate/2.0 . toText), ("y", h.negate/2.0 . toText)] [], [])
+
+class BooleanOperation:
     Union
     Difference
     Intersection
@@ -79,12 +86,39 @@ class BooleanOperation a:
 
 class Boolean a:
     type :: BooleanOperation
-    operands :: Tuple2 a
+    operands :: Tuple2 a a
 
     def toJSON:
         tp  = self.type.toJSON
         ops = self.operands.toJSON
         Map . empty . insert "type" tp . insert "operands" ops . toJSON
+
+    def toSVGDefs id: case self.type of
+        Union:
+            (leftId, leftShape, leftChildren)    = self.operands.first.toSVGDefs id
+            (rightId, rightShape, rightChildren) = self.operands.second.toSVGDefs leftId
+            useL = XTag "use" [("href", "#s" + leftId.toText)]  []
+            useR = XTag "use" [("href", "#s" + rightId.toText)] []
+            g    = XTag "g" [] [useL, useR]
+            allChildren = [leftShape, rightShape] + (leftChildren + rightChildren)
+            (rightId, g, allChildren)
+        Intersection:
+            (leftId, leftShape, leftChildren)    = self.operands.first.toSVGDefs  id
+            (rightId, rightShape, rightChildren) = self.operands.second.toSVGDefs leftId
+            maskId      = "m" + rightId.toText
+            maskR       = XTag "mask" [("id", maskId)] [rightShape . setAttr "fill" "white"]
+            useL        = XTag "use" [("href", "#s" + leftId.toText), ("mask", "url(#" + maskId + ")")] []
+            allChildren = [leftShape, maskR] + (leftChildren + rightChildren)
+            (rightId, useL, allChildren)
+        Difference:
+            (leftId, leftShape, leftChildren)    = self.operands.first.toSVGDefs  id
+            (rightId, rightShape, rightChildren) = self.operands.second.toSVGDefs leftId
+            maskId        = "m" + rightId.toText
+            hugeRectangle = XTag "rect" [("width", "2000"), ("height", "2000"), ("x", "-1000"), ("y", "-1000"), ("fill", "white")] []
+            mask          = XTag "mask" [("id", maskId)] [hugeRectangle, rightShape . setAttr "fill" "black"]
+            useL          = XTag "use"  [("href", "#s" + leftId.toText), ("mask", "url(#" + maskId + ")")] []
+            allChildren = [leftShape, mask] + (leftChildren + rightChildren)
+            (rightId, useL, allChildren)
 
 class GeoDef:
     GeoEmpty
@@ -95,6 +129,11 @@ class GeoDef:
         GeoEmpty: JSONObject (Tip . insert "type" "empty".toJSON)
         GeoSimple shape: shape.toJSON
         GeoCompound cmpd: cmpd.toJSON
+
+    def toSVGDefs id: case self of
+        GeoEmpty: (id, XTag "path" [("d", "")] [], [])
+        GeoSimple shape: shape.toSVGDefs id
+        GeoCompound b: b.toSVGDefs id
 
 class Geo:
     transformation :: AffineTransformation
@@ -113,6 +152,21 @@ class Geo:
     def + that: Geo identityTrans (GeoCompound (Boolean Union        (self, that)))
     def - that: Geo identityTrans (GeoCompound (Boolean Difference   (self, that)))
     def * that: Geo identityTrans (GeoCompound (Boolean Intersection (self, that)))
+
+    def toSVGDefs id:
+        (lastUsedId, shape, childDefs) = self.definition.toSVGDefs id
+        newId = lastUsedId + 1
+        withTrans = shape.setAttr 'transform' ('matrix(' + self.transformation.toList.makeText ',' + ')')
+        withId = withTrans.setAttr 'id' ('s' + newId.toText)
+        (newId, withId, childDefs)
+
+    def toSVG width height:
+        (_, topDef, childDefs) = self.toSVGDefs 0
+        defs = XTag "defs" [] childDefs
+        viewBox = [width.negate / 2.0, height.negate / 2.0, width, height].makeText ' '
+        svg = XTag "svg" [("width", width.toText), ("height", height.toText), ("viewBox", viewBox)] [defs, topDef]
+        svg
+
 
 def circle r:      Geo identityTrans (GeoSimple (Circle r))
 def rectangle x y: Geo identityTrans (GeoSimple (Rectangle x y))

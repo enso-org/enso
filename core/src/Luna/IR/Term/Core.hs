@@ -17,7 +17,7 @@ import qualified Luna.IR.Term.Literal as Literal
 import           Luna.IR.Term.Literal (HasLiteral, LiteralOf, literal)
 import           Data.Text32 (Text32)
 
-import Data.Property
+import Data.Property hiding (Update)
 import Data.Families (makeLunaComponents, makeLensedTerms)
 
 
@@ -53,21 +53,24 @@ data    TermRecASG   a = RecASG   { __name  :: !Name  , __fields :: ![a]        
 data    TermFieldASG a = FieldASG { __names :: ![Name], __type   :: !a                                                         } deriving (Show, Eq, Functor, Foldable, Traversable)
 data    TermTyped    a = Typed    { __base  :: !a     , __type   :: !a                                                         } deriving (Show, Eq, Functor, Foldable, Traversable)
 
-data    TermInvalid   a = Invalid { __desc  :: Text32                         } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: Text -> Doc
-data    TermList      a = List    { __items :: ![a]                           } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermTuple     a = Tuple   { __items :: ![a]                           } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermAccSection   a = AccSection   { __name     :: ![Name]             } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermLeftSection  a = LeftSection  { __operator :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermRightSection a = RightSection { __operator :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
-newtype TermDisabled     a = Disabled     { __body     :: a                   } deriving (Show, Eq, Functor, Foldable, Traversable)
-newtype TermMarker       a = Marker       { __markerId :: Word64              } deriving (Show, Eq, Functor, Foldable, Traversable)
-data    TermMarked       a = Marked       { __marker   :: !a   , __body :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
-newtype TermMetadata     a = Metadata     { __content  :: Text32              } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermInvalid   a = Invalid { __desc  :: Text32                              } deriving (Show, Eq, Functor, Foldable, Traversable) -- TODO: Text -> Doc
+data    TermList      a = List    { __items :: ![a]                                } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermTuple     a = Tuple   { __items :: ![a]                                } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermAccSection   a = AccSection   { __name     :: ![Name]                  } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermLeftSection  a = LeftSection  { __operator :: !a   , __body :: !a      } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermRightSection a = RightSection { __operator :: !a   , __body :: !a      } deriving (Show, Eq, Functor, Foldable, Traversable)
+newtype TermDisabled     a = Disabled     { __body     :: a                        } deriving (Show, Eq, Functor, Foldable, Traversable)
+newtype TermMarker       a = Marker       { __markerId :: Word64                   } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermMarked       a = Marked       { __marker   :: !a   , __body :: !a      } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermDocumented   a = Documented   { __doc      :: !Text32, __base :: !a    } deriving (Show, Eq, Functor, Foldable, Traversable)
+newtype TermMetadata     a = Metadata     { __content  :: Text32                   } deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermUpdate       a = Update       { __base     :: !a , __names :: ![Name] , __value :: !a }                      deriving (Show, Eq, Functor, Foldable, Traversable)
+data    TermModify       a = Modify       { __base     :: !a , __names :: ![Name] , __operator :: !Name, __value :: !a } deriving (Show, Eq, Functor, Foldable, Traversable)
 
 makeLensedTerms "CoreTerms" [ ''TermNumber, ''TermString, ''TermFmtString, ''TermAcc, ''TermApp, ''TermLam, ''TermSeq, ''TermUnify
                             , ''TermCons, ''TermMatch, ''TermMonadic, ''TermVar, ''TermFieldLens, ''TermGrouped, ''TermBlank, ''TermStar, ''TermMissing, ''TermClsASG
                             , ''TermRecASG, ''TermFieldASG, ''TermTyped, ''TermInvalid, ''TermList, ''TermTuple, ''TermLeftSection, ''TermRightSection, ''TermAccSection
-                            , ''TermDisabled, ''TermMarker, ''TermMarked, ''TermMetadata
+                            , ''TermDisabled, ''TermMarker, ''TermMarked, ''TermDocumented, ''TermMetadata, ''TermUpdate, ''TermModify
                             ]
 
 

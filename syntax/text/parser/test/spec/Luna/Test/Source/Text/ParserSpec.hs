@@ -254,8 +254,11 @@ spec = do
             it "grouped pattern"                            $ shouldParseItself' expr "(Vector x y z) = val"                      [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(1,12),(0,14),(3,3),(0,20)]
             it "module-qualified pattern"                   $ shouldParseAs'     expr "A.B.C x y z = val" "A . B . C x y z = val" [(0,1),(0,3),(0,5),(1,1),(0,7),(1,1),(0,9),(1,1),(0,11),(3,3),(0,17)]
 
-        -- describe "modifiers" $ do
-        --     it "variable update"                            $ shouldParseItself' expr "a = a.x = 5"                               [(0,1),(3,3),(0,7)]
+        describe "modifiers" $ do
+            it "variable's field update"                    $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,7),(0,11)]
+            it "variable's field drop update"               $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,7)]
+            it "variable's field modification"              $ shouldParseItself' expr "a = a.x += v"                              [(0,1),(0,1),(6,1),(3,8),(0,12)]
+            it "variable's field drop modification"         $ shouldParseItself' expr "a.x += v"                                  [(0,1),(6,1),(0,8)]
 
 
         describe "lambdas" $ do
@@ -353,6 +356,9 @@ spec = do
             it "disabled var expression"                 $ shouldParseItself' expr "#foo"                  [(1,3),(0,4)]
             it "disabled app expression"                 $ shouldParseItself' expr "#foo bar"              [(0,3),(1,3),(1,7),(0,8)]
             it "disabled multiline lambda"               $ shouldParseItself' expr "#a:\n    foo\n    bar" [(0,1),(0,3),(5,3),(6,11),(1,18),(0,19)]
+
+        describe "documentation" $ do
+            it "single line doc comment"                 $ shouldParseItself' expr "## A sample function\ndef foo a: a" [(4,3),(1,1),(2,1),(21,12),(0,33)]
 
         describe "metadata" $ do
             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]

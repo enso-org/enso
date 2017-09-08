@@ -49,7 +49,7 @@ hardcode = do
 
 
 
-minusName, uminusName, appName, accName, lamName, typedName, wildcardName, unifyName, arrowName :: IsString s => s
+minusName, uminusName, appName, accName, lamName, typedName, wildcardName, unifyName, updateName, arrowName :: IsString s => s
 minusName    = "-"
 uminusName   = "#uminus#"
 appName      = "#app#"
@@ -58,4 +58,5 @@ lamName      = ":"
 typedName    = "::"
 wildcardName = "_"
 unifyName    = "="
+updateName   = "=" -- #update# ?
 arrowName    = "->"

@@ -197,6 +197,36 @@ grouped e = mdo
     le <- link (unsafeRelayout e) t
     return t
 
+documented' :: ExprCons m Documented => Text32 -> Expr l -> m SomeExpr
+documented  :: ExprCons m Documented => Text32 -> Expr l -> m (Expr $ Documented >> l)
+documented' = fmap generalize .: documented
+documented doc a = mdo
+    t  <- expr $ Term.uncheckedDocumented doc la
+    la <- link (unsafeRelayout a) t
+    return t
+
+
+-- === Sugar === --
+
+update' :: ExprCons m Update => Expr l -> [Name] -> Expr l' -> m SomeExpr
+update  :: ExprCons m Update => Expr l -> [Name] -> Expr l' -> m (Expr $ Update >> (l <+> l'))
+update' = fmap generalize .:. update
+update a ns b = mdo
+    t  <- expr $ Term.uncheckedUpdate la ns lb
+    la <- link (unsafeRelayout a) t
+    lb <- link (unsafeRelayout b) t
+    return t
+
+modify' :: ExprCons m Modify => Expr l -> [Name] -> Name -> Expr l' -> m SomeExpr
+modify  :: ExprCons m Modify => Expr l -> [Name] -> Name -> Expr l' -> m (Expr $ Modify >> (l <+> l'))
+modify' = fmap generalize .:: modify
+modify a ns n b = mdo
+    t  <- expr $ Term.uncheckedModify la ns n lb
+    la <- link (unsafeRelayout a) t
+    lb <- link (unsafeRelayout b) t
+    return t
+
+
 
 -- === Definitions === --
 

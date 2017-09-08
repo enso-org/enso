@@ -18,7 +18,7 @@ class HttpSimpleBody:
     values :: List (Tuple2 Text Text)
 
     def toText:
-        self.values . map ((a, b): a + "=" + b) . makeString "&"
+        self.values . map ((a, b): a + "=" + b) . makeText "&"
 
     def toBinary: self.toText.toBinary
 

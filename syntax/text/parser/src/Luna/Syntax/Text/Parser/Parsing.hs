@@ -17,7 +17,7 @@ import qualified Text.Megaparsec.Lexer as Lex
 import qualified Text.Megaparsec.Char  as Charhiding (eol)
 
 import qualified Luna.IR as IR
-import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled)
+import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled, documented)
 import Luna.IR.ToRefactor
 import OCI.Pass.Class hiding (get, put, modify_)
 import OCI.Pass.Definition
@@ -250,14 +250,14 @@ inheritCodeSpan1 = inheritCodeSpan1With id
 inheritCodeSpan2 :: (SomeExpr -> SomeExpr -> IRB SomeExpr) -> AsgBldr SomeExpr -> AsgBldr SomeExpr -> AsgBldr SomeExpr
 inheritCodeSpan2 = inheritCodeSpan2With CodeSpan.concat
 
-inheritCodeSpan1With :: ( CodeSpan -> CodeSpan) -> (SomeExpr -> IRB SomeExpr) -> AsgBldr SomeExpr -> AsgBldr SomeExpr
+inheritCodeSpan1With :: (CodeSpan -> CodeSpan) -> (SomeExpr -> IRB SomeExpr) -> AsgBldr SomeExpr -> AsgBldr SomeExpr
 inheritCodeSpan1With sf f (AsgBldr (IRB irb1)) = wrap $ IRB $ do
     t1 <- irb1
     s1 <- getLayer @CodeSpan t1
     putLayer @CodeSpan t1 (CodeSpan.dropOffset s1) -- the newly constructed IR is the new parent, so it handles the left offset
     fromIRB . unwrap . buildAsgFromSpan (sf s1) $ f t1
 
-inheritCodeSpan2With :: ( CodeSpan -> CodeSpan -> CodeSpan)
+inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
                      -> (SomeExpr -> SomeExpr -> IRB SomeExpr)
                      -> AsgBldr SomeExpr -> AsgBldr SomeExpr -> AsgBldr SomeExpr
 inheritCodeSpan2With sf f (AsgBldr (IRB irb1)) (AsgBldr (IRB irb2)) = wrap $ IRB $ do
@@ -267,6 +267,14 @@ inheritCodeSpan2With sf f (AsgBldr (IRB irb1)) (AsgBldr (IRB irb2)) = wrap $ IRB
     t2 <- irb2
     s2 <- getLayer @CodeSpan t2
     fromIRB . unwrap . buildAsgFromSpan (sf s1 s2) $ f t1 t2
+
+-- | Magic helper. Use with care only if you really know what you do.
+modifyCodeSpan :: (CodeSpan -> CodeSpan) -> AsgBldr SomeExpr -> AsgBldr SomeExpr
+modifyCodeSpan f (AsgBldr (IRB irb1)) = wrap $ IRB $ do
+    t1 <- irb1
+    s1 <- getLayer @CodeSpan t1
+    putLayer @CodeSpan t1 (f s1)
+    return t1
 
 
 -- === ASG preparation === --
@@ -377,6 +385,11 @@ accIRB name a = liftIRB1 (flip IR.acc' name) a
 accSectionIRB :: [Name] -> IRB SomeExpr
 accSectionIRB name = liftIRB0 $ IR.accSection name
 
+updateIRB :: [Name] -> SomeExpr -> SomeExpr -> IRB SomeExpr
+updateIRB name = liftIRB2 $ flip IR.update' name
+
+modifyIRB :: [Name] -> Name -> SomeExpr -> SomeExpr -> IRB SomeExpr
+modifyIRB ns n = liftIRB2 $ flip (flip IR.modify' ns) n
 
 
 -------------------------
@@ -395,12 +408,13 @@ namedVar   = mkNamedAsg IR.var'   varName
 namedOp    = mkNamedAsg IR.var'   opName
 namedIdent = namedVar <|> namedCons <|> namedOp
 
-consName, varName, opName, identName :: SymParser Name
-consName  = convert <$> satisfy Lexer.matchCons
-varName   = convert <$> satisfy Lexer.matchVar
-opName    = convert <$> satisfy Lexer.matchOperator
-identName = varName <|> consName <|> opName
-funcName  = varName <|> opName
+consName, varName, opName, identName, modifierName :: SymParser Name
+consName     = convert <$> satisfy Lexer.matchCons
+varName      = convert <$> satisfy Lexer.matchVar
+opName       = convert <$> satisfy Lexer.matchOperator
+identName    = varName <|> consName <|> opName
+funcName     = varName <|> opName
+modifierName = convert <$> satisfy Lexer.matchModifier
 
 previewVarName :: SymParser Name
 previewVarName = do
@@ -574,7 +588,7 @@ expr :: AsgParser SomeExpr
 expr = func <|> lineExpr
 
 lineExpr :: AsgParser SomeExpr
-lineExpr = marked <*> possiblyDisabled (valExpr <**> option id assignment) where
+lineExpr = marked <*> possiblyDocumented (possiblyDisabled (valExpr <**> option id assignment)) where
     assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
 
 valExpr :: AsgParser SomeExpr
@@ -703,21 +717,40 @@ accSectNames = do
     (sname :|) <$> if beforeDot || afterDot then pure   mempty
                                             else option mempty (convert <$> accSectNames)
 
+
+
 accSeg :: SymParser ExprSegmentBuilder
 accSeg = fmap2 tokenx $ do
     (beforeDot, afterDot) <- checkOffsets
     snames@(n :| ns) <- accSectNames
+    mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
+    mmod  <- option Nothing (Just .: (,) <$> modifierName <*> nonemptyValExpr)
     let (spans, names) = unzip $ convert snames
         symmetrical    = beforeDot == afterDot
         accCons s n    = inheritCodeSpan1With (<> s) (accIRB n)
         accSect        = labeled uname . atom $ buildAsgFromSpan (mconcat spans) (accSectionIRB names)
         uname          = unspaced accName
         sname          = spacedNameIf beforeDot accName
-        accConss       =  labeled sname (suffix $ uncurry accCons n)
+        accConss       =  labeled sname ( suffix $ uncurry accCons n )
                       :| (labeled uname . suffix . uncurry accCons <$> ns)
+        Just fupdt           = mupdt -- FIXME[WD]: make it nicer
+        Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
+
+        -- FIXME[WD]: make it nicer vvv
+        updateAtom = labeled sname . suffix
+                   $ flip (inheritCodeSpan2With (<>) (updateIRB names))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
+        modifyAtom = labeled sname . suffix
+                   $ flip (inheritCodeSpan2With (<>) (modifyIRB names modName))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
+
         segment (isFirst, isLast) = if
             | isFirst     -> pure accSect
-            | symmetrical -> accConss
+             -- FIXME[WD]: make it nicer vvv
+            | symmetrical -> if
+                | isJust mupdt -> pure updateAtom
+                | isJust mmod  -> pure modifyAtom
+                | otherwise    -> accConss
             | beforeDot   -> pure accSect
             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
     return $ SegmentBuilder segment
@@ -761,6 +794,19 @@ buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 buildTokenExpr' :: Tokens (Labeled SpacedName (UniSymbol Symbol.Expr (AsgBldr SomeExpr))) -> SymParser (AsgBldr SomeExpr)
 buildTokenExpr' = buildExpr_termApp . Labeled (spaced appName) $ Tok.Symbol app
 
+
+---------------------------
+-- === Documentation === --
+---------------------------
+
+possiblyDocumented :: AsgParser SomeExpr -> AsgParser SomeExpr
+possiblyDocumented p = documented p <|> p
+
+documented :: AsgParser SomeExpr -> AsgParser SomeExpr
+documented p = buildAsg $ (\d t -> liftAstApp1 (IR.documented' d) t) <$> doc <*> p
+
+doc :: SymParser Text32
+doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
 
 
 --------------------------
