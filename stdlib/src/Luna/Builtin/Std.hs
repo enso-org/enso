@@ -524,19 +524,20 @@ systemStd imps = do
         readBinaryVal = withExceptions . ByteString.readFile . convert
     readBinaryF <- typeRepForIO (toLunaValue std readBinaryVal) [LCons "Text"[]] $ LCons "Binary" []
 
-    let parseJSONVal :: Text -> LunaEff Aeson.Value
-        parseJSONVal t = case Aeson.eitherDecode $ Text.encodeUtf8 t of
-            Left e  -> throw e
-            Right a -> return a
+    let parseJSONVal :: Text -> LunaEff (Maybe Aeson.Value)
+        parseJSONVal t = return $ case Aeson.eitherDecode $ Text.encodeUtf8 t of
+            Left e  -> Nothing
+            Right a -> Just a
     Right parseJSON <- runGraph $ do
         mA     <- var "a"
         pure   <- cons_ @Draft "Pure"
         comm   <- unify mA pure
         tpInt  <- cons_ @Draft "Text"
         tpIntM <- monadic tpInt mA
-        tpNo   <- cons_ @Draft "JSON"
-        tpNoM  <- monadic tpNo comm
-        intl   <- lam tpIntM tpNoM
+        tpJSON <- cons_ @Draft "JSON"
+        tpMJ   <- cons "Maybe" [tpJSON]
+        tpMJM  <- monadic tpMJ comm
+        intl   <- lam tpIntM tpMJM
         lamP   <- monadic intl pure
         res    <- compile $ generalize lamP
         return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
@@ -588,6 +589,11 @@ systemStd imps = do
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
                                     [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, LCons "Binary" []]
                                     (LCons "HttpResponse" [])
+
+    Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
+    let primUrlEncodeVal :: Text -> Text
+        primUrlEncodeVal = convert . HTTP.urlEncode False . convert
+        primUrlEncode    = Function primUEIR (toLunaValue std primUrlEncodeVal) primUEAssu
 
     let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
         primGetCurrentTimeVal = performIO Time.getCurrentTime
@@ -714,10 +720,11 @@ systemStd imps = do
                                     , ("readFile", readFileF)
                                     , ("readBinary", readBinaryF)
                                     , ("writeFile", writeFile')
-                                    , ("parseJSON", parseJSON)
+                                    , ("primParseJSON", parseJSON)
                                     , ("parseMsgPack", parseMsgPack)
                                     , ("encodeMsgPack", encodeMsgPack)
                                     , ("primPerformHttp", primPerformHttp)
+                                    , ("primUrlEncode", primUrlEncode)
                                     , ("primGetCurrentTime", primGetCurrentTime)
                                     , ("primDiffTimes", primDiffTimes)
                                     , ("primShowTime", primShowTime)
