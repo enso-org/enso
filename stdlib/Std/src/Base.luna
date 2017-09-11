@@ -286,6 +286,10 @@ class Maybe a:
         Nothing: Nothing
         Just a: Just (f a)
 
+    def flatMap f: case self of
+        Nothing: Nothing
+        Just a: f a
+
     def each f: case self of
         Nothing: Nothing
         Just a:
@@ -363,6 +367,10 @@ class List a:
     def head: case (self) of
         Empty: Nothing
         Prepend x xs: Just x
+
+    def tail: case self of
+        Empty: Nothing
+        Prepend x xs: Just xs
 
     def prepend a: Prepend a self
 
@@ -481,6 +489,8 @@ class List a:
         Empty: Empty
         Prepend Empty r: r.concat
         Prepend (Prepend x xs) ys: Prepend x (Prepend xs ys).concat
+
+    def flatMap f: self.map f . concat
 
 class Map k v:
     Map
@@ -792,8 +802,10 @@ class Stream a:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
         self . foldFrom (Tuple2 0 0.0) folder . map ((Tuple2 count sum): sum./ count.toReal)
 
-    def eval:
-        self.each id
+    def eval: self.each id
+
+    def rateLimit timeInterval:
+        everyWithState timeInterval (s: (s.head, s.tail)) self
 
 def streamFrom act:
     var = newMVar

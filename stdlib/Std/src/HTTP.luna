@@ -42,7 +42,7 @@ class HttpResponse:
 
     def text: self.body.toText
 
-    def json: parseJSON self.body.toText
+    def json: JSON.parse self.body.toText
 
 
 class HttpRequest:
