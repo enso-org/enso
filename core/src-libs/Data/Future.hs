@@ -27,21 +27,27 @@ capsList minCap caps | caps <= 1      = repeat 0
                      | minCap >= caps = let maxCap = caps - 1 in cycle [0..maxCap]
                      | otherwise      = let maxCap = caps - 1 in cycle [minCap..maxCap]
 
-mkFuture :: IO (a, a -> IO ())
+data Future a = Future { getFuture :: IO a }
+
+mkFuture :: IO (Future a, a -> IO ())
 mkFuture = do
     v <- newEmptyMVar
-    return (unsafePerformIO $ readMVar v, putMVar v)
+    return (Future $ readMVar v, putMVar v)
 
 nextCapability :: IO Int
 nextCapability = atomicModifyIORef availableCapabilities $ \(a:rest) -> (rest, a)
 
 delay :: IO a -> IO a
 delay act = do
+    resolution     <- newMVar False
     (fut, resolve) <- mkFuture
-    cap            <- nextCapability
-    forkOn cap $ act >>= resolve
-    return fut
-
+    return $ unsafePerformIO $ do
+        res <- takeMVar resolution
+        when (not res) $ do
+            cap <- nextCapability
+            forkOn cap $ act >>= resolve
+        putMVar resolution True
+        getFuture fut
 
 resolveWith :: IO a -> (a -> IO ()) -> IO ()
 resolveWith = void .: forkIO .: (>>=)

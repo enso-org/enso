@@ -34,7 +34,7 @@ import Data.TypeDesc
 
 
 import Luna.Test.IR.Runner
-import Data.Future (delay)
+import Data.Future (delay, Future)
 
 data MethodProcessing
 type instance Abstract   MethodProcessing = MethodProcessing
