@@ -86,7 +86,7 @@ import           System.Random                                (randomIO)
 
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"], ["Std", "Graphics2D"], ["Std", "XML"] ]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"], ["Std", "Graphics2D"], ["Std", "XML"], ["Std", "OAuth"] ]
 
 data LTp = LVar Name | LCons Name [LTp]
 
