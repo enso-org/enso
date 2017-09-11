@@ -14,7 +14,7 @@ import Data.Ratio (numerator)
 import Data.Maybe (fromMaybe)
 import Luna.IR.Term.Literal (isInteger, toDouble, toInt)
 
-import           Luna.IR   hiding (get, put)
+import           Luna.IR   hiding (get, put, modify)
 import           OCI.Pass (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified OCI.Pass        as Pass
 import           Control.Monad.Trans.State.Lazy (StateT, runStateT, evalStateT, get, gets, put, modify)
