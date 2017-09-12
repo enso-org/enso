@@ -20,6 +20,8 @@ class HttpSimpleBody:
     def toText:
         self.values . map ((a, b): a + "=" + b) . makeText "&"
 
+    def shortRep: self.toText
+
     def toBinary: self.toText.toBinary
 
     def addValue key val: HttpSimpleBody (Prepend (key, val) self.values)
@@ -33,6 +35,8 @@ class HttpResponse:
 
     def toText:
         "HttpResponse { responseCode = " + self.responseCode.toText + " }"
+
+    def shortRep: self.toText
 
     def successful:
         successCodes = [200, 201, 202]
@@ -59,13 +63,15 @@ class HttpRequest:
     body    :: Binary
 
     def toText:
-        "HttpRequest {\n" +
-        "    uri =     "  + self.uri            + ",\n" +
-        "    method =  "  + self.method.toText  + ",\n" +
-        "    headers = "  + self.headers.toText + ",\n" +
-        "    params =  "  + self.params.toText  + ",\n" +
-        "    body =    "  + self.body.toText    + "\n"  +
+        "HttpRequest { " +
+        "uri     = "  + self.uri            + ", " +
+        "method  = "  + self.method.toText  + ", " +
+        "headers = "  + self.headers.toText + ", " +
+        "params  = "  + self.params.toText  + ", " +
+        "body    = "  + self.body.toText    + " "  +
         "}"
+
+    def shortRep: self.toText
 
     def setMethod m: case self of
         HttpRequest uri _ headers auth oauth1 params body:

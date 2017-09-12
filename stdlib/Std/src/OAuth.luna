@@ -9,12 +9,14 @@ class OAuth1Data:
     oauthTokenSecret :: Text
 
     def toText:
-        "OAuth1Data {\n" +
-        "    clientKey        = " + self.clientKey        + ",\n" +
-        "    clientSecret     = " + self.clientSecret     + ",\n" +
-        "    oauthToken       = " + self.oauthToken       + ",\n" +
-        "    oauthTokenSecret = " + self.oauthTokenSecret + ",\n" +
+        "OAuth1Data { " +
+        "clientKey        = " + self.clientKey        + ", " +
+        "clientSecret     = " + self.clientSecret     + ", " +
+        "oauthToken       = " + self.oauthToken       + ", " +
+        "oauthTokenSecret = " + self.oauthTokenSecret + " "  +
         "}"
+
+    def shortRep: self.toText
 
 class OAuth2Data:
     clientId                :: Text
@@ -24,14 +26,15 @@ class OAuth2Data:
     callback                :: Maybe Text
 
     def toText:
-        "OAuth2Data {\n" +
-        "    clientId                 = " + self.clientId                + ",\n" +
-        "    clientSecret             = " + self.clientSecret            + ",\n" +
-        "    accessTokenEndpoint      = " + self.accessTokenEndpoint     + ",\n" +
-        "    invalidateTokenEndpoint  = " + self.invalidateTokenEndpoint + ",\n" +
-        "    callback                 = " + self.callback.toText         + "\n"  +
+        "OAuth2Data { " +
+        "clientId                 = " + self.clientId                + ", " +
+        "clientSecret             = " + self.clientSecret            + ", " +
+        "accessTokenEndpoint      = " + self.accessTokenEndpoint     + ", " +
+        "invalidateTokenEndpoint  = " + self.invalidateTokenEndpoint + ", " +
+        "callback                 = " + self.callback.toText         + " "  +
         "}"
 
+    def shortRep: self.toText
 
 class OAuth2:
     def postRequest oauth2Data uri body:

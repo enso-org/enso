@@ -817,6 +817,10 @@ class Stream a:
     def rateLimit timeInterval:
         everyWithState timeInterval (s: (s.head, s.tail)) self
 
+    def collect: case self.head of
+        Just  x: Stream x self.tail.collect
+        Nothing: self.tail.collect
+
 def streamFrom act:
     var = newMVar
     head = act
