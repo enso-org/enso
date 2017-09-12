@@ -32,7 +32,11 @@ class HttpResponse:
     getChunk     :: Binary
 
     def toText:
-        "HttpResponse { responseCode = " + self.responseCode + " }"
+        "HttpResponse { responseCode = " + self.responseCode.toText + " }"
+
+    def successful:
+        successCodes = [200, 201, 202]
+        successCodes.contains self.responseCode
 
     def stream: streamFrom self.getChunk
 

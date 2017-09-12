@@ -360,6 +360,14 @@ class Either a b:
         Left  a: if that.isLeft  then a.equals that.left  else False
         Right b: if that.isRight then b.equals that.right else False
 
+    def map f: case self of
+        Left  a: Left a
+        Right b: Right (f b)
+
+    def flatMap f: case self of
+        Left  a: Left a
+        Right b: f b
+
 class List a:
     Empty
     Prepend a (List a)
@@ -491,6 +499,8 @@ class List a:
         Prepend (Prepend x xs) ys: Prepend x (Prepend xs ys).concat
 
     def flatMap f: self.map f . concat
+
+    def contains elem: self._any (x: x == elem)
 
 class Map k v:
     Map

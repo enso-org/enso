@@ -556,7 +556,7 @@ systemStd imps = do
             OAuth.signOAuth oauth creds req
 
     let primPerformHttpVal :: Text -> Text -> [(Text, Text)] -> Maybe (Text, Text) -> Maybe (Text, Text, Text, Text) -> [(Text, Maybe Text)] -> ByteString -> LunaEff (HTTP.Response HTTP.BodyReader)
-        primPerformHttpVal uri method headers auth oauth params body = performIO $ do
+        primPerformHttpVal uri method headers auth oauth params body = withExceptions $ do
             let packHeader (k, v) = (CI.mk $ convert k, convert v)
                 packParam  (k, v) = (convert k, convert <$> v)
             baseReq <- HTTP.parseRequest (convert uri)
