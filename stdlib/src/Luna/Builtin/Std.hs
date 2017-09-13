@@ -86,7 +86,11 @@ import           System.Random                                (randomIO)
 
 
 stdlibImports :: [QualName]
+<<<<<<< HEAD
 stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"], ["Std", "Graphics2D"], ["Std", "XML"], ["Std", "OAuth"] ]
+=======
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"] ]
+>>>>>>> rework module compilation to allow for interactive recompilation
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -441,7 +445,7 @@ preludeCmpOp importBoxes op = compileFunction importBoxes $ do
     reconnectLayer' @UserType (Just tl2M) l2
     return $ generalize l2
 
-prelude :: Imports -> IO Imports
+prelude :: Imports -> IO (Map Name Function)
 prelude imps = mdo
     minus    <- preludeArithOp "-"
     times    <- preludeArithOp "*"
@@ -459,10 +463,10 @@ prelude imps = mdo
     let opMap  = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod), ("/", div), ("#uminus#", uminus)]
         funMap = Map.unions   [realFuns, intFuns, textFuns, binFuns, opMap]
     let importBoxes = unionImports imps $ Imports def (Right <$> funMap)
-    return importBoxes
+    return funMap
 
 
-stdlib :: Imports -> IO Imports
+stdlib :: Imports -> IO (Map Name Function)
 stdlib = prelude
 
 newtype GCState = GCState (Map UUID (IO ()))
@@ -474,9 +478,9 @@ instance Default GCState where
 cleanupGC :: GCState -> IO GCState
 cleanupGC st = sequence (unwrap st) >> return def
 
-systemStd :: Imports -> IO (IO (), Imports)
-systemStd imps = do
-    std     <- stdlib imps
+systemStd :: Imports -> IO (IO (), Map Name Function)
+systemStd std = do
+    stdFuncs <- stdlib std
 
     gcState <- newMVar $ GCState Map.empty
 
@@ -713,44 +717,43 @@ systemStd imps = do
     let hSetBufferingVal :: Handle -> BufferMode -> LunaEff ()
         hSetBufferingVal = withExceptions .: Handle.hSetBuffering
     hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [LCons "FileHandle" [], LCons "BufferMode" []] (LCons "None" [])
-
-    let systemModule = Map.fromList [ ("putStr", printLn)
-                                    , ("errorStr", err)
-                                    , ("readFile", readFileF)
-                                    , ("readBinary", readBinaryF)
-                                    , ("writeFile", writeFile')
-                                    , ("primParseJSON", parseJSON)
-                                    , ("parseMsgPack", parseMsgPack)
-                                    , ("encodeMsgPack", encodeMsgPack)
-                                    , ("primPerformHttp", primPerformHttp)
+    let systemFuncs = Map.fromList [ ("putStr", printLn)
+                                   , ("errorStr", err)
+                                   , ("readFile", readFileF)
+                                   , ("readBinary", readBinaryF)
+                                   , ("writeFile", writeFile')
+                                   , ("parseJSON", parseJSON)
+                                   , ("parseMsgPack", parseMsgPack)
+                                   , ("encodeMsgPack", encodeMsgPack)
+                                   , ("primPerformHttp", primPerformHttp)
                                     , ("primUrlEncode", primUrlEncode)
-                                    , ("primGetCurrentTime", primGetCurrentTime)
-                                    , ("primDiffTimes", primDiffTimes)
-                                    , ("primShowTime", primShowTime)
-                                    , ("primTimesEq", primTimesEq)
-                                    , ("primTimeOfDay", primTimeOfDay)
-                                    , ("primParseTime", primParseTime)
-                                    , ("randomReal", randomReal)
-                                    , ("primFork", fork)
-                                    , ("sleep", sleep)
-                                    , ("primNewMVar", newEmptyMVar')
-                                    , ("primPutMVar", putMVar')
-                                    , ("primTakeMVar", takeMVar')
-                                    , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
-                                    , ("primRunProcess", runProcess')
-                                    , ("primHIsOpen", hIsOpen')
-                                    , ("primHIsClosed", hIsClosed')
-                                    , ("primHClose", hClose')
-                                    , ("primHGetContents", hGetContents')
-                                    , ("primHGetLine", hGetLine')
-                                    , ("primHPutText", hPutText')
-                                    , ("primHFlush", hFlush')
-                                    , ("primHSetBuffering", hSetBuffering')
-                                    , ("primWaitForProcess", waitForProcess')
-                                    , ("primEvaluate", evaluate')
-                                    ]
+                                   , ("primGetCurrentTime", primGetCurrentTime)
+                                   , ("primDiffTimes", primDiffTimes)
+                                   , ("primShowTime", primShowTime)
+                                   , ("primTimesEq", primTimesEq)
+                                   , ("primTimeOfDay", primTimeOfDay)
+                                   , ("primParseTime", primParseTime)
+                                   , ("randomReal", randomReal)
+                                   , ("primFork", fork)
+                                   , ("sleep", sleep)
+                                   , ("primNewMVar", newEmptyMVar')
+                                   , ("primPutMVar", putMVar')
+                                   , ("primTakeMVar", takeMVar')
+                                   , ("primReadMVar", takeMVar' & Function.value .~ toLunaValue std readMVarVal)
+                                   , ("primRunProcess", runProcess')
+                                   , ("primHIsOpen", hIsOpen')
+                                   , ("primHIsClosed", hIsClosed')
+                                   , ("primHClose", hClose')
+                                   , ("primHGetContents", hGetContents')
+                                   , ("primHGetLine", hGetLine')
+                                   , ("primHPutText", hPutText')
+                                   , ("primHFlush", hFlush')
+                                   , ("primHSetBuffering", hSetBuffering')
+                                   , ("primWaitForProcess", waitForProcess')
+                                   , ("primEvaluate", evaluate')
+                                   ]
 
-    return $ (cleanup, std & importedFunctions %~ Map.union (Right <$> systemModule))
+    return (cleanup, Map.union systemFuncs stdFuncs)
 
 unexpectedConstructorFor name = throw $ "Expected a " <> name <> " luna object, got unexpected constructor"
 

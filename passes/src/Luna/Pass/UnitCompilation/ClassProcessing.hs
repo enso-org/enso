@@ -15,8 +15,11 @@ import Luna.IR
 import Control.Monad.State.Dependent
 import Control.Monad.Raise
 import Luna.Pass.Data.UniqueNameGen
+import Luna.Pass.Data.ExprRoots
+import Data.TypeDesc
 import qualified Luna.Pass.UnitCompilation.RecordProcessing as RecordProcessing
 import qualified Luna.Pass.UnitCompilation.MethodProcessing as MethodProcessing
+import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped  as RemoveGrouped
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -37,6 +40,8 @@ type instance Pass.Preserves        ClassProcessing = '[]
 
 processClass :: (MonadPassManager m, MonadIO m) => Name -> Imports -> Expr ClsASG -> m Class
 processClass modName imports root = do
+    setAttr (getTypeDesc @ExprRoots) $ ExprRoots [unsafeGeneralize root]
+    Pass.eval' RemoveGrouped.runRemoveGrouped
     (className, paramNames, records, methods) <- Pass.eval' @ClassProcessing $ do
         resolveToplevelFields root
         Term (Term.ClsASG native name ps cs ds) <- readTerm root
