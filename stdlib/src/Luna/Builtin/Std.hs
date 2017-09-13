@@ -86,11 +86,7 @@ import           System.Random                                (randomIO)
 
 
 stdlibImports :: [QualName]
-<<<<<<< HEAD
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "Geo"], ["Std", "Graphics2D"], ["Std", "XML"], ["Std", "OAuth"] ]
-=======
 stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"] ]
->>>>>>> rework module compilation to allow for interactive recompilation
 
 data LTp = LVar Name | LCons Name [LTp]
 
