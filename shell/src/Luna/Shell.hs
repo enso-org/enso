@@ -155,7 +155,7 @@ main = do
     stdPath   <- (<> "/Std/") <$> Env.getEnv "LUNA_HOME"
     mainPath  <- getCurrentDirectory
     (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
-    Right imp <- Project.requestModules (Map.fromList [("Std", stdPath), ("Main", mainPath)]) ["Main.Main"] std
+    Right (_, imp) <- Project.requestModules (Map.fromList [("Std", stdPath), ("Main", mainPath)]) ["Main.Main"] std
     let mainFun = imp ^? Project.modules . ix ["Main", "Main"] . importedFunctions . ix "main"
     case mainFun of
         Just (Left e)  -> do

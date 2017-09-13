@@ -10,7 +10,7 @@ import           Data.Map            (Map)
 import qualified Data.TreeSet        as TreeSet
 import qualified Data.Bimap          as Bimap
 import           Control.Monad.Raise
-import           Control.Monad.State  (execStateT, MonadState)
+import           Control.Monad.State  (runStateT, MonadState)
 import           Control.Monad.Except (runExceptT, MonadError, throwError)
 
 import Luna.Builtin.Std
@@ -105,16 +105,26 @@ prepareStdlib srcs = mdo
     let system  = Imports def $ Right <$> std
         initial = CompiledModules def system
     (cln, std) <- systemStd $ unionsImports $ Map.elems $ modules
-    Right res@(CompiledModules modules _) <- requestModules srcs stdlibImports initial
+    Right (_, res@(CompiledModules modules _)) <- requestModules srcs stdlibImports initial
     return (cln, res)
 
-requestModules :: Map Name FilePath -> [QualName] -> CompiledModules -> IO (Either ModuleCompilationError CompiledModules)
-requestModules libs modules cached = do
-    sources <- mapM (Project.findProjectSources <=< Path.parseAbsDir) libs
+requestModules :: Map Name FilePath -> [QualName] -> CompiledModules -> IO (Either ModuleCompilationError (Map QualName Imports, CompiledModules))
+requestModules libs modules cached = runEitherT $ flip runStateT cached $ requestModules' libs modules
+
+requestModules' :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => Map Name FilePath -> [QualName] -> m (Map QualName Imports)
+requestModules' libs modules = do
+    sources <- liftIO $ mapM (Project.findProjectSources <=< Path.parseAbsDir) libs
     let mkSourcesMap libName sources = foldl (\m (p, n) -> Map.insert (fromList . (libName :) . toList $ n) (UL.Source (Path.toFilePath p) def) m) def (Bimap.toList sources)
         sourcesMgr = UL.fsSourceManager $ Map.unions $ uncurry mkSourcesMap <$> Map.toList sources
-    res <- runExceptT $ flip execStateT cached $ mapM (requestModule sourcesMgr []) modules
-    return res
+    res <- mapM (getOrCompileModule sourcesMgr []) modules
+    return $ Map.fromList $ zip modules res
+
+getOrCompileModule :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => UL.SourcesManager -> [QualName] -> QualName -> m Imports
+getOrCompileModule srcs stack current = do
+    scope <- use modules
+    case scope ^? ix current of
+        Just i -> return i
+        _      -> requestModule srcs stack current
 
 requestModule :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => UL.SourcesManager -> [QualName] -> QualName -> m Imports
 requestModule srcs stack current = do
