@@ -36,6 +36,8 @@ dependencies:
     - time
     - random
     - authenticate-oauth
+    - network
+    - websockets
 
 default-extensions:
     - AllowAmbiguousTypes

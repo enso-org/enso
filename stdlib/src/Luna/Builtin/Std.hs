@@ -71,6 +71,8 @@ import qualified Network.HTTP.Client.TLS                      as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
 import qualified Network.HTTP.Types                           as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
+import           Network.Socket                               (withSocketsDo)
+import qualified Network.WebSockets                           as WebSocket
 import qualified Web.Authenticate.OAuth                       as OAuth
 
 import           OCI.IR.Combinators
@@ -580,6 +582,7 @@ systemStd std = do
             HTTP.responseOpen req manager
 
     let textT           = LCons "Text"   []
+        intT            = LCons "Int"    []
         tupleT          = LCons "Tuple2" [textT, textT]
         oauthT          = LCons "Maybe"  [LCons "Tuple4" [textT, textT, textT, textT]]
         maybeTupleT     = LCons "Maybe"  [tupleT]
@@ -588,6 +591,36 @@ systemStd std = do
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
                                     [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, LCons "Binary" []]
                                     (LCons "HttpResponse" [])
+
+    let primWebSocketConnectVal :: Text -> Integer -> Text -> LunaEff WebSocket.Connection
+        primWebSocketConnectVal host port path = withExceptions $ do
+            connection <- newEmptyMVar :: IO (MVar WebSocket.Connection)
+            semaphore   <- newEmptyMVar :: IO (MVar ())
+
+            let app :: WebSocket.ClientApp ()
+                app conn = do
+                    putMVar connection conn
+                    let loop = do
+                            sem <- tryReadMVar semaphore
+                            P.unless (isJust sem) $ threadDelay 100 >> loop
+                    loop
+                    WebSocket.sendClose conn ("bye" :: Text)
+
+            registerGC $ putMVar semaphore ()
+            forkIO $ withSocketsDo $ WebSocket.runClient (convert host) (int port) (convert path) app
+            readMVar connection
+    primWebSocketConnect <- typeRepForIO (toLunaValue std primWebSocketConnectVal)
+                                         [textT, intT, textT] (LCons "WSConnection" [])
+
+    let primWebSocketReadVal :: WebSocket.Connection -> LunaEff ByteString
+        primWebSocketReadVal = withExceptions . WebSocket.receiveData
+    primWebSocketRead <- typeRepForIO (toLunaValue std primWebSocketReadVal)
+                                      [LCons "WSConnection" []] (LCons "Binary" [])
+
+    let primWebSocketWriteVal :: WebSocket.Connection -> ByteString -> LunaEff ()
+        primWebSocketWriteVal conn = withExceptions . WebSocket.sendBinaryData conn
+    primWebSocketWrite <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
+                                      [LCons "WSConnection" [], LCons "Binary" []] (LCons "None" [])
 
     Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
     let primUrlEncodeVal :: Text -> Text
@@ -722,7 +755,10 @@ systemStd std = do
                                    , ("parseMsgPack", parseMsgPack)
                                    , ("encodeMsgPack", encodeMsgPack)
                                    , ("primPerformHttp", primPerformHttp)
-                                    , ("primUrlEncode", primUrlEncode)
+                                   , ("primWebSocketConnect", primWebSocketConnect)
+                                   , ("primWebSocketRead", primWebSocketRead)
+                                   , ("primWebSocketWrite", primWebSocketWrite)
+                                   , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
                                    , ("primDiffTimes", primDiffTimes)
                                    , ("primShowTime", primShowTime)
@@ -766,6 +802,8 @@ instance (ToLunaValue b) => ToLunaData (HTTP.Response b) where
                 , LunaThunk . toLunaValue imps $ HTTP.responseBody v
                 ]
             ) (getObjectMethodMap "HttpResponse" imps)
+
+type instance RuntimeRepOf WebSocket.Connection = AsNative "WSConnection"
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
