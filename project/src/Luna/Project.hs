@@ -33,18 +33,18 @@ import qualified System.FilePath.Find as Find
 -- getUnitSources :: Path -> m Text
 -- getUnitSources = undefined
 
-projectSourcesForFile :: Path.Path Path.Abs Path.File -> IO (Bimap (Path.Path Path.Abs Path.File) QualName)
+projectSourcesForFile :: Path.Path Path.Abs Path.File -> IO (Maybe (Bimap (Path.Path Path.Abs Path.File) QualName))
 projectSourcesForFile file = do
     projectRoot <- findProjectRootForFile file
-    findProjectSources projectRoot
+    mapM findProjectSources projectRoot
 
 lunaProjectExt :: String
 lunaProjectExt = ".lunaproject"
 
-findProjectRootForFile :: Path.Path Path.Abs Path.File -> IO (Path.Path Path.Abs Path.Dir)
+findProjectRootForFile :: Path.Path Path.Abs Path.File -> IO (Maybe (Path.Path Path.Abs Path.Dir))
 findProjectRootForFile file = findProjectRoot (Path.parent file)
 
-findProjectRoot :: Path.Path Path.Abs Path.Dir -> IO (Path.Path Path.Abs Path.Dir)
+findProjectRoot :: Path.Path Path.Abs Path.Dir -> IO (Maybe (Path.Path Path.Abs Path.Dir))
 findProjectRoot dir = do
     filesInDir <- Dir.listDirectory (Path.toFilePath dir)
     files      <- mapM Path.parseRelFile filesInDir
@@ -54,10 +54,13 @@ findProjectRoot dir = do
         []            -> do
             let parentDir = Path.parent dir
             if parentDir == dir
-            then error "reached root directory"
+            then return Nothing
             else findProjectRoot parentDir
-        [projectFile] -> return dir
-        _             -> error "found multiple projects"
+        [projectFile] -> return $ Just dir
+        _             -> return Nothing
+
+getProjectName :: Path.Path Path.Abs Path.Dir -> Name
+getProjectName = convert . FP.takeBaseName . FP.takeDirectory . Path.toFilePath
 
 lunaFileExt :: String
 lunaFileExt = ".luna"
