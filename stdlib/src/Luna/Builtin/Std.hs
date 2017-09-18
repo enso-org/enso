@@ -476,7 +476,7 @@ instance Default GCState where
 cleanupGC :: GCState -> IO GCState
 cleanupGC st = sequence (unwrap st) >> return def
 
-data WSConnection = WSConnection { wsConnectionId :: Int, conn :: WebSocket.Connection }
+data WSConnection = WSConnection { conn :: WebSocket.Connection, sem :: MVar () }
 
 systemStd :: Imports -> IO (IO (), Map Name Function)
 systemStd std = do
@@ -595,50 +595,28 @@ systemStd std = do
                                     (LCons "HttpResponse" [])
 
     -- web sockets state and connections --
-    wsConnId   <- newMVar 0         :: IO (MVar Int)
-    semaphores <- newMVar Map.empty :: IO (MVar (Map Int (MVar ())))
-    let newWsConnId :: IO Int
-        newWsConnId = do
-            currId <- readMVar wsConnId
-            modifyMVar_ wsConnId (return . (+1))
-            return currId
+    let wrapWSConnection :: WebSocket.Connection -> IO WSConnection
+        wrapWSConnection conn = WSConnection conn <$> newEmptyMVar
 
-        registerConnection :: IO Int
-        registerConnection = do
-            connId <- newWsConnId
-            sem    <- newEmptyMVar :: IO (MVar ())
-            modifyMVar_ semaphores (return . Map.insert connId sem)
-            return connId
+        unregisterConnection :: WSConnection -> IO ()
+        unregisterConnection (WSConnection _ sem) = putMVar sem ()
 
-        unregisterConnection :: Int -> IO ()
-        unregisterConnection connId = do
-            sems <- readMVar semaphores
-            case Map.lookup connId sems of
-                Nothing -> void $ putStrLn "[WARNING] WebSockets: Attempting to close a non-existent socket connection"
-                Just s  -> do
-                    putMVar s ()
-                    modifyMVar_ semaphores (return . Map.insert connId s)
-
-        waitForConnectionClose :: Int -> IO ()
-        waitForConnectionClose connId = do
-            sems <- readMVar semaphores
-            case Map.lookup connId sems of
-                Nothing -> void $ putStrLn "[WARNING] WebSockets: Attempting to operate on a non-existent socket connection"
-                Just s  -> void $ readMVar s
+        waitForConnectionClose :: WSConnection -> IO ()
+        waitForConnectionClose (WSConnection _ sem) = readMVar sem
 
         primWebSocketConnectVal :: Text -> Integer -> Text -> LunaEff WSConnection
         primWebSocketConnectVal host port path = withExceptions $ do
             connection <- newEmptyMVar :: IO (MVar WSConnection)
             let app :: WebSocket.ClientApp ()
                 app conn = do
-                    connId <- registerConnection
-                    putMVar connection $ WSConnection connId conn
-                    sems  <- waitForConnectionClose connId
+                    wsConn <- wrapWSConnection conn
+                    putMVar connection wsConn
+                    waitForConnectionClose wsConn
                     WebSocket.sendClose conn ("bye" :: Text)
 
             forkIO $ withSocketsDo $ WebSocket.runClient (convert host) (int port) (convert path) app
             wsConnection <- readMVar connection
-            let cleanup = unregisterConnection $ wsConnectionId wsConnection
+            let cleanup = unregisterConnection wsConnection
             registerGC cleanup
             return wsConnection
 
@@ -646,17 +624,17 @@ systemStd std = do
                                          [textT, intT, textT] (LCons "WSConnection" [])
 
     let primWebSocketReadVal :: WSConnection -> LunaEff ByteString
-        primWebSocketReadVal (WSConnection _ conn) = withExceptions $ WebSocket.receiveData conn
+        primWebSocketReadVal (WSConnection conn _) = withExceptions $ WebSocket.receiveData conn
     primWebSocketRead <- typeRepForIO (toLunaValue std primWebSocketReadVal)
                                       [LCons "WSConnection" []] (LCons "Binary" [])
 
     let primWebSocketWriteVal :: WSConnection -> ByteString -> LunaEff ()
-        primWebSocketWriteVal (WSConnection _ conn) s = withExceptions $ WebSocket.sendBinaryData conn s
+        primWebSocketWriteVal (WSConnection conn _) s = withExceptions $ WebSocket.sendBinaryData conn s
     primWebSocketWrite <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
                                        [LCons "WSConnection" [], LCons "Binary" []] (LCons "None" [])
 
     let primWebSocketCloseVal :: WSConnection -> LunaEff ()
-        primWebSocketCloseVal (WSConnection connId _) = withExceptions $ unregisterConnection connId
+        primWebSocketCloseVal = withExceptions . unregisterConnection
     primWebSocketClose <- typeRepForIO (toLunaValue std primWebSocketCloseVal)
                                        [LCons "WSConnection" []] (LCons "None" [])
 
