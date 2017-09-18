@@ -135,7 +135,11 @@ commonPrefixes v v' = go 0 where
 
 
 -- FIXME[WD]: remove when we hit next LTS stage
+#if MIN_VERSION_vector(0,12,0)
+-- instance present in vector
+#else
 instance Unboxed.Unbox a => Semigroup (Unboxed.Vector a) where (<>) = P.mappend
+#endif
 
 -- instance Convertible Char       Text       where convert = singleton              ; {-# INLINE convert #-}
 instance (Vector Unboxed.Vector a, Convertible' Char a) => IsString         (Unboxed.Vector a) where fromString = convert              ; {-# INLINE fromString #-}
