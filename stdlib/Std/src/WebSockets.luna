@@ -1,0 +1,17 @@
+import Std.Base
+
+def createWSConnection host port path:
+    primWebSocketConnect host port path
+
+native class WSConnection:
+    def write data:
+        primWebSocketWrite self data.toBinary
+
+    def read:
+        primWebSocketRead self
+
+    def stream:
+        streamFrom self.read
+
+    def close:
+        primWebSocketClose self

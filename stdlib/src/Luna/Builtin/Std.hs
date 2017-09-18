@@ -88,7 +88,7 @@ import           System.Random                                (randomIO)
 
 
 stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"] ]
+stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "WebSockets"] ]
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -476,6 +476,8 @@ instance Default GCState where
 cleanupGC :: GCState -> IO GCState
 cleanupGC st = sequence (unwrap st) >> return def
 
+data WSConnection = WSConnection { wsConnectionId :: Int, conn :: WebSocket.Connection }
+
 systemStd :: Imports -> IO (IO (), Map Name Function)
 systemStd std = do
     stdFuncs <- stdlib std
@@ -592,35 +594,71 @@ systemStd std = do
                                     [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, LCons "Binary" []]
                                     (LCons "HttpResponse" [])
 
-    let primWebSocketConnectVal :: Text -> Integer -> Text -> LunaEff WebSocket.Connection
-        primWebSocketConnectVal host port path = withExceptions $ do
-            connection <- newEmptyMVar :: IO (MVar WebSocket.Connection)
-            semaphore   <- newEmptyMVar :: IO (MVar ())
+    -- web sockets state and connections --
+    wsConnId   <- newMVar 0         :: IO (MVar Int)
+    semaphores <- newMVar Map.empty :: IO (MVar (Map Int (MVar ())))
+    let newWsConnId :: IO Int
+        newWsConnId = do
+            currId <- readMVar wsConnId
+            modifyMVar_ wsConnId (return . (+1))
+            return currId
 
+        registerConnection :: IO Int
+        registerConnection = do
+            connId <- newWsConnId
+            sem    <- newEmptyMVar :: IO (MVar ())
+            modifyMVar_ semaphores (return . Map.insert connId sem)
+            return connId
+
+        unregisterConnection :: Int -> IO ()
+        unregisterConnection connId = do
+            sems <- readMVar semaphores
+            case Map.lookup connId sems of
+                Nothing -> void $ putStrLn "[WARNING] WebSockets: Attempting to close a non-existent socket connection"
+                Just s  -> do
+                    putMVar s ()
+                    modifyMVar_ semaphores (return . Map.insert connId s)
+
+        waitForConnectionClose :: Int -> IO ()
+        waitForConnectionClose connId = do
+            sems <- readMVar semaphores
+            case Map.lookup connId sems of
+                Nothing -> void $ putStrLn "[WARNING] WebSockets: Attempting to operate on a non-existent socket connection"
+                Just s  -> void $ readMVar s
+
+        primWebSocketConnectVal :: Text -> Integer -> Text -> LunaEff WSConnection
+        primWebSocketConnectVal host port path = withExceptions $ do
+            connection <- newEmptyMVar :: IO (MVar WSConnection)
             let app :: WebSocket.ClientApp ()
                 app conn = do
-                    putMVar connection conn
-                    let loop = do
-                            sem <- tryReadMVar semaphore
-                            P.unless (isJust sem) $ threadDelay 100 >> loop
-                    loop
+                    connId <- registerConnection
+                    putMVar connection $ WSConnection connId conn
+                    sems  <- waitForConnectionClose connId
                     WebSocket.sendClose conn ("bye" :: Text)
 
-            registerGC $ putMVar semaphore ()
             forkIO $ withSocketsDo $ WebSocket.runClient (convert host) (int port) (convert path) app
-            readMVar connection
+            wsConnection <- readMVar connection
+            let cleanup = unregisterConnection $ wsConnectionId wsConnection
+            registerGC cleanup
+            return wsConnection
+
     primWebSocketConnect <- typeRepForIO (toLunaValue std primWebSocketConnectVal)
                                          [textT, intT, textT] (LCons "WSConnection" [])
 
-    let primWebSocketReadVal :: WebSocket.Connection -> LunaEff ByteString
-        primWebSocketReadVal = withExceptions . WebSocket.receiveData
+    let primWebSocketReadVal :: WSConnection -> LunaEff ByteString
+        primWebSocketReadVal (WSConnection _ conn) = withExceptions $ WebSocket.receiveData conn
     primWebSocketRead <- typeRepForIO (toLunaValue std primWebSocketReadVal)
                                       [LCons "WSConnection" []] (LCons "Binary" [])
 
-    let primWebSocketWriteVal :: WebSocket.Connection -> ByteString -> LunaEff ()
-        primWebSocketWriteVal conn = withExceptions . WebSocket.sendBinaryData conn
+    let primWebSocketWriteVal :: WSConnection -> ByteString -> LunaEff ()
+        primWebSocketWriteVal (WSConnection _ conn) s = withExceptions $ WebSocket.sendBinaryData conn s
     primWebSocketWrite <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
-                                      [LCons "WSConnection" [], LCons "Binary" []] (LCons "None" [])
+                                       [LCons "WSConnection" [], LCons "Binary" []] (LCons "None" [])
+
+    let primWebSocketCloseVal :: WSConnection -> LunaEff ()
+        primWebSocketCloseVal (WSConnection connId _) = withExceptions $ unregisterConnection connId
+    primWebSocketClose <- typeRepForIO (toLunaValue std primWebSocketCloseVal)
+                                       [LCons "WSConnection" []] (LCons "None" [])
 
     Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
     let primUrlEncodeVal :: Text -> Text
@@ -758,6 +796,7 @@ systemStd std = do
                                    , ("primWebSocketConnect", primWebSocketConnect)
                                    , ("primWebSocketRead", primWebSocketRead)
                                    , ("primWebSocketWrite", primWebSocketWrite)
+                                   , ("primWebSocketClose", primWebSocketClose)
                                    , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
                                    , ("primDiffTimes", primDiffTimes)
@@ -803,7 +842,7 @@ instance (ToLunaValue b) => ToLunaData (HTTP.Response b) where
                 ]
             ) (getObjectMethodMap "HttpResponse" imps)
 
-type instance RuntimeRepOf WebSocket.Connection = AsNative "WSConnection"
+type instance RuntimeRepOf WSConnection = AsNative "WSConnection"
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
