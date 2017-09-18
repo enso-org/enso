@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP                  #-}
 
 module System.Log.Logger.Format where
 
@@ -20,8 +21,11 @@ import System.Log.Data
 
 
 -- TODO: This should be moved somewhere ...
+#if MIN_VERSION_ansi-wl-pprint(0,6,8)
+-- instance provided
+#else
 instance Semigroup Doc
-
+#endif
 
 -------------------
 -- === Style === --
