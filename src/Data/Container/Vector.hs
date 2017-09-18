@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE Strict               #-}
+{-# LANGUAGE CPP                  #-}
 
 module Data.Container.Vector (module Data.Container.Vector, module X) where
 
