@@ -71,9 +71,10 @@ import qualified Network.HTTP.Client.TLS                      as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
 import qualified Network.HTTP.Types                           as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
-import           Network.Socket                               (withSocketsDo)
+import           Network.Socket                               (withSocketsDo, PortNumber)
 import qualified Network.WebSockets                           as WebSocket
 import qualified Web.Authenticate.OAuth                       as OAuth
+import qualified Wuss                                         as WebSocket
 
 import           OCI.IR.Combinators
 import           OCI.IR.Name.Qualified
@@ -585,6 +586,7 @@ systemStd std = do
 
     let textT           = LCons "Text"   []
         intT            = LCons "Int"    []
+        boolT           = LCons "Bool"   []
         tupleT          = LCons "Tuple2" [textT, textT]
         oauthT          = LCons "Maybe"  [LCons "Tuple4" [textT, textT, textT, textT]]
         maybeTupleT     = LCons "Maybe"  [tupleT]
@@ -604,8 +606,13 @@ systemStd std = do
         waitForConnectionClose :: WSConnection -> IO ()
         waitForConnectionClose (WSConnection _ sem) = readMVar sem
 
-        primWebSocketConnectVal :: Text -> Integer -> Text -> LunaEff WSConnection
-        primWebSocketConnectVal host port path = withExceptions $ do
+        runClient :: (Integral p) => P.String -> p -> P.String -> Bool -> WebSocket.ClientApp a -> IO a
+        runClient host port path secure client = if secure
+            then WebSocket.runSecureClient host (fromIntegral port :: PortNumber) path client
+            else WebSocket.runClient       host (fromIntegral port :: Int)        path client
+
+        primWebSocketConnectVal :: Text -> Integer -> Text -> Bool -> LunaEff WSConnection
+        primWebSocketConnectVal host port path secure = withExceptions $ do
             connection <- newEmptyMVar :: IO (MVar WSConnection)
             let app :: WebSocket.ClientApp ()
                 app conn = do
@@ -614,23 +621,29 @@ systemStd std = do
                     waitForConnectionClose wsConn
                     WebSocket.sendClose conn ("bye" :: Text)
 
-            forkIO $ withSocketsDo $ WebSocket.runClient (convert host) (int port) (convert path) app
+            let strippedHost = Text.stripPrefix "ws://" host <|> Text.stripPrefix "wss://" host <|> Just host & fromJust
+            forkIO $ withSocketsDo $ runClient (convert strippedHost) port (convert path) secure app
             wsConnection <- readMVar connection
             let cleanup = unregisterConnection wsConnection
             registerGC cleanup
             return wsConnection
 
     primWebSocketConnect <- typeRepForIO (toLunaValue std primWebSocketConnectVal)
-                                         [textT, intT, textT] (LCons "WSConnection" [])
+                                         [textT, intT, textT, boolT] (LCons "WSConnection" [])
 
     let primWebSocketReadVal :: WSConnection -> LunaEff ByteString
         primWebSocketReadVal (WSConnection conn _) = withExceptions $ WebSocket.receiveData conn
     primWebSocketRead <- typeRepForIO (toLunaValue std primWebSocketReadVal)
                                       [LCons "WSConnection" []] (LCons "Binary" [])
 
-    let primWebSocketWriteVal :: WSConnection -> ByteString -> LunaEff ()
-        primWebSocketWriteVal (WSConnection conn _) s = withExceptions $ WebSocket.sendBinaryData conn s
+    let primWebSocketWriteVal :: WSConnection -> Text -> LunaEff ()
+        primWebSocketWriteVal (WSConnection conn _) s = withExceptions $ WebSocket.sendTextData conn s
     primWebSocketWrite <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
+                                       [LCons "WSConnection" [], LCons "Text" []] (LCons "None" [])
+
+    let primWebSocketWriteBinVal :: WSConnection -> ByteString -> LunaEff ()
+        primWebSocketWriteBinVal (WSConnection conn _) s = withExceptions $ WebSocket.sendBinaryData conn s
+    primWebSocketWriteBin <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
                                        [LCons "WSConnection" [], LCons "Binary" []] (LCons "None" [])
 
     let primWebSocketCloseVal :: WSConnection -> LunaEff ()
@@ -774,6 +787,7 @@ systemStd std = do
                                    , ("primWebSocketConnect", primWebSocketConnect)
                                    , ("primWebSocketRead", primWebSocketRead)
                                    , ("primWebSocketWrite", primWebSocketWrite)
+                                   , ("primWebSocketWriteBin", primWebSocketWriteBin)
                                    , ("primWebSocketClose", primWebSocketClose)
                                    , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
