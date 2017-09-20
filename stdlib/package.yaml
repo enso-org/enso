@@ -36,6 +36,9 @@ dependencies:
     - time
     - random
     - authenticate-oauth
+    - network
+    - websockets
+    - wuss
 
 default-extensions:
     - AllowAmbiguousTypes

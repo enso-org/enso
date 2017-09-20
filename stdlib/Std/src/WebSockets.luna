@@ -1,0 +1,51 @@
+import Std.Base
+
+
+class WebSocketInstance:
+    host   :: Text
+    port   :: Int
+    path   :: Text
+    secure :: Bool
+
+    def setHost h: case self of
+        WebSocket _ path port secure:
+            WebSocket h path port secure
+
+    def setPath p: case self of
+        WebSocket host _ port secure:
+            WebSocket host p port secure
+
+    def setPort p: case self of
+        WebSocket host path _ secure:
+            WebSocket host path p secure
+
+    def setSecure: case self of
+        WebSocket host path port _:
+            WebSocket host path port True
+
+    def connect:
+        primWebSocketConnect self.host self.port self.path self.secure
+
+
+class WebSocket:
+    def create host:
+        secure = host.hasPrefix "wss"
+        port   = if secure then 443 else 80
+        WebSocketInstance host port "/" secure
+
+
+native class WSConnection:
+    def write data:
+        primWebSocketWrite self data.toText
+
+    def writeBinary data:
+        primWebSocketWriteBin self data.toBinary
+
+    def read:
+        primWebSocketRead self
+
+    def stream:
+        streamFrom self.read
+
+    def close:
+        primWebSocketClose self
