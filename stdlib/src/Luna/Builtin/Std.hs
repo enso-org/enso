@@ -71,7 +71,8 @@ import qualified Network.HTTP.Client.TLS                      as HTTP
 import qualified Network.HTTP.Simple                          as HTTP
 import qualified Network.HTTP.Types                           as HTTP
 import qualified Network.HTTP.Types.Header                    as HTTP
-import           Network.Socket                               (withSocketsDo, PortNumber)
+import           Network.Socket                               (withSocketsDo, PortNumber, SockAddr, Socket)
+import qualified Network.Socket                               as Socket
 import qualified Network.WebSockets                           as WebSocket
 import qualified Web.Authenticate.OAuth                       as OAuth
 import qualified Wuss                                         as WebSocket
@@ -478,6 +479,9 @@ cleanupGC :: GCState -> IO GCState
 cleanupGC st = sequence (unwrap st) >> return def
 
 data WSConnection = WSConnection { conn :: WebSocket.Connection, sem :: MVar () }
+data WSServer     = WSServer     { wsServerSock  :: Socket
+                                 , wsServerConns :: MVar (Map SockAddr WebSocket.Connection)
+                                 }
 
 systemStd :: Imports -> IO (IO (), Map Name Function)
 systemStd std = do
@@ -651,6 +655,55 @@ systemStd std = do
     primWebSocketClose <- typeRepForIO (toLunaValue std primWebSocketCloseVal)
                                        [LCons "WSConnection" []] (LCons "None" [])
 
+    let wsServerT = LCons "WSServer" []
+        addWSServerConn saddr conn conns = modifyMVar_ conns $ return . Map.insert saddr conn
+        remWSServerConn saddr conns      = modifyMVar_ conns $ return . Map.delete saddr
+        initServer host port = do
+            serverSock <- newEmptyMVar      :: IO (MVar Socket)
+            conns      <- newMVar Map.empty :: IO (MVar (Map SockAddr WebSocket.Connection))
+            sock       <- WebSocket.makeListenSocket (convert host) (int port)
+            let wss = WSServer sock conns
+            putMVar serverSock sock
+            return wss
+
+        awaitConnections (WSServer sock conns) = do
+            mvar <- newEmptyMVar :: IO (MVar ())
+            (flip forkFinally) (\_ -> putMVar mvar ()) $ forever $ do
+                (sc, saddr) <- Socket.accept sock
+                pc          <- WebSocket.makePendingConnection sc WebSocket.defaultConnectionOptions
+                conn        <- WebSocket.acceptRequest pc
+                addWSServerConn saddr conn conns
+            void $ readMVar mvar
+
+        disconnectClients (WSServer _ conns) = do
+            connMap <- readMVar conns
+            forM_ connMap (flip WebSocket.sendClose ("bye" :: Text))
+            putMVar conns Map.empty
+
+        primCreateWSServerVal :: Text -> Integer -> LunaEff WSServer
+        primCreateWSServerVal host port = withExceptions $ do
+            server <- initServer host port
+            forkIO $ Exception.bracket_ (return ()) (disconnectClients server) (awaitConnections server)
+            return server
+    primCreateWSServer <- typeRepForIO (toLunaValue std primCreateWSServerVal)
+                                       [textT, intT] wsServerT
+
+    let primWSSBroadcastTextVal :: WSServer -> Text -> LunaEff WSServer
+        primWSSBroadcastTextVal ws@(WSServer _ conns) msg = withExceptions $ do
+            connMap <- readMVar conns
+            forM_ connMap (\c -> WebSocket.sendTextData c msg)
+            return ws
+    primWSSBroadcastText <- typeRepForIO (toLunaValue std primWSSBroadcastTextVal)
+                                         [wsServerT, textT] wsServerT
+
+    let primWSSBroadcastBinaryVal :: WSServer -> ByteString -> LunaEff WSServer
+        primWSSBroadcastBinaryVal ws@(WSServer _ conns) msg = withExceptions $ do
+            connMap <- readMVar conns
+            forM_ connMap (\c -> WebSocket.sendBinaryData c msg)
+            return ws
+    primWSSBroadcastBinary <- typeRepForIO (toLunaValue std primWSSBroadcastBinaryVal)
+                                           [wsServerT, LCons "Binary" []] wsServerT
+
     Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
     let primUrlEncodeVal :: Text -> Text
         primUrlEncodeVal = convert . HTTP.urlEncode False . convert
@@ -789,6 +842,9 @@ systemStd std = do
                                    , ("primWebSocketWrite", primWebSocketWrite)
                                    , ("primWebSocketWriteBin", primWebSocketWriteBin)
                                    , ("primWebSocketClose", primWebSocketClose)
+                                   , ("primCreateWSServer", primCreateWSServer)
+                                   , ("primWSSBroadcastText", primWSSBroadcastText)
+                                   , ("primWSSBroadcastBinary", primWSSBroadcastBinary)
                                    , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
                                    , ("primDiffTimes", primDiffTimes)
@@ -835,6 +891,7 @@ instance (ToLunaValue b) => ToLunaData (HTTP.Response b) where
             ) (getObjectMethodMap "HttpResponse" imps)
 
 type instance RuntimeRepOf WSConnection = AsNative "WSConnection"
+type instance RuntimeRepOf WSServer     = AsNative "WSServer"
 
 instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
     toLunaData imps v = LunaObject $ Object (constructorOf v) $ getObjectMethodMap "Map" imps where
