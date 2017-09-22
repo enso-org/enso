@@ -10,6 +10,7 @@ import OCI
 import OCI.IR.Name.Qualified (QualName)
 import qualified OCI.IR.Name.Qualified as Qual
 
+import           Control.Monad.Catch  (try)
 import           Data.Bimap           (Bimap)
 import qualified Data.Bimap           as Bimap
 import qualified Path                 as Path
@@ -42,22 +43,35 @@ lunaProjectExt :: String
 lunaProjectExt = ".lunaproject"
 
 findProjectRootForFile :: Path.Path Path.Abs Path.File -> IO (Maybe (Path.Path Path.Abs Path.Dir))
-findProjectRootForFile file = findProjectRoot (Path.parent file)
+findProjectRootForFile = findProjectRoot . Path.parent
 
-findProjectRoot :: Path.Path Path.Abs Path.Dir -> IO (Maybe (Path.Path Path.Abs Path.Dir))
-findProjectRoot dir = do
+findProjectFileForFile :: Path.Path Path.Abs Path.File -> IO (Maybe (Path.Path Path.Abs Path.File))
+findProjectFileForFile = findProjectFile . Path.parent
+
+getRelativePathForModule :: Path.Path Path.Abs Path.File -> Path.Path Path.Abs Path.File -> IO (Maybe (Path.Path Path.Rel Path.File))
+getRelativePathForModule projectFile = fmap eitherToMaybe . try . Path.stripProperPrefix (Path.parent projectFile) where
+    eitherToMaybe :: Either Path.PathException (Path.Path Path.Rel Path.File) -> Maybe (Path.Path Path.Rel Path.File)
+    eitherToMaybe = either (const Nothing) Just
+
+getLunaProjectsFromDir :: Path.Path Path.Abs Path.Dir -> IO [Path.Path Path.Abs Path.File]
+getLunaProjectsFromDir dir = do
     filesInDir <- Dir.listDirectory (Path.toFilePath dir)
     files      <- mapM Path.parseRelFile filesInDir
+    return . map (dir Path.</>) $ filter (\file -> Path.fileExtension file == lunaProjectExt) files
+    
+findProjectFile :: Path.Path Path.Abs Path.Dir -> IO (Maybe (Path.Path Path.Abs Path.File))
+findProjectFile dir = getLunaProjectsFromDir dir >>= \case
+    [] -> let parentDir = Path.parent dir in
+        if parentDir == dir then return Nothing else findProjectFile parentDir
+    [projectFile] -> return $ Just projectFile
+    _             -> return Nothing
 
-    let lunaProjects = filter (\file -> Path.fileExtension file == lunaProjectExt) files
-    case lunaProjects of
-        []            -> do
-            let parentDir = Path.parent dir
-            if parentDir == dir
-            then return Nothing
-            else findProjectRoot parentDir
-        [projectFile] -> return $ Just dir
-        _             -> return Nothing
+findProjectRoot :: Path.Path Path.Abs Path.Dir -> IO (Maybe (Path.Path Path.Abs Path.Dir))
+findProjectRoot dir = getLunaProjectsFromDir dir >>= \case
+    [] -> let parentDir = Path.parent dir in
+        if parentDir == dir then return Nothing else findProjectRoot parentDir
+    [projectFile] -> return $ Just dir
+    _             -> return Nothing
 
 getProjectName :: Path.Path Path.Abs Path.Dir -> Name
 getProjectName = convert . FP.takeBaseName . FP.takeDirectory . Path.toFilePath

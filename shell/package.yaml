@@ -29,7 +29,7 @@ executables:
       - data-prop
       - dependent-state
       - directory
-      - path
+      - path >= 0.6.0
       - bimap
       - optparse-applicative
       - terminal-text

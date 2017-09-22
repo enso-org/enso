@@ -15,6 +15,7 @@ dependencies:
     - dependent-state
     - bimap
     - directory
+    - exceptions
     - filemanip
     - filepath
     - mtl
@@ -24,7 +25,7 @@ dependencies:
     - luna-syntax-text-lexer
     - luna-syntax-text-parser
     - text-processing
-    - path
+    - path >= 0.6.0
 
 default-extensions:
     - AllowAmbiguousTypes

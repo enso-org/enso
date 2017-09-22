@@ -1,6 +1,6 @@
 extra-deps: [error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.1.0, serialport-0.4.7,
   hspec-jenkins-0.1.1, hspec-2.2.4, hspec-core-2.2.4, hspec-discover-2.2.4, hspec-expectations-0.7.2,
-  HUnit-1.3.1.2, containers-0.5.8.2]
+  HUnit-1.3.1.2, containers-0.5.8.2, path-0.6.1]
 ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields
     -O0 -fconstraint-solver-iterations=100}
 packages:
