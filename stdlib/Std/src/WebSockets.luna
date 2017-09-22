@@ -51,6 +51,11 @@ native class WSServer:
     def sendBinaryToAll msg:
         primWSSBroadcastBinary self msg.toBinary
 
+    def nextMessage:
+        primWSSGetMessage self
+
+    def messageStream:
+        streamFrom self.nextMessage
 
 class WebSocket:
     def connection host:
