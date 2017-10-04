@@ -719,9 +719,9 @@ systemStd std = do
     primWSSBroadcastBinary <- typeRepForIO (toLunaValue std primWSSBroadcastBinaryVal)
                                            [wsServerT, LCons "Binary" []] wsServerT
 
-    let primWSSGetMessagesVal :: WSServer -> LunaEff (WSConnection, Text)
-        primWSSGetMessagesVal = withExceptions . readMVar . wsServerMsg
-    primWSSGetMessages <- typeRepForIO (toLunaValue std primWSSGetMessagesVal)
+    let primWSSGetMessageVal :: WSServer -> LunaEff (WSConnection, Text)
+        primWSSGetMessageVal = withExceptions . readMVar . wsServerMsg
+    primWSSGetMessage <- typeRepForIO (toLunaValue std primWSSGetMessageVal)
                                        [wsServerT] (LCons "MVar" [textT])
 
     Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
@@ -865,7 +865,7 @@ systemStd std = do
                                    , ("primCreateWSServer", primCreateWSServer)
                                    , ("primWSSBroadcastText", primWSSBroadcastText)
                                    , ("primWSSBroadcastBinary", primWSSBroadcastBinary)
-                                   , ("primWSSGetMessages", primWSSGetMessages)
+                                   , ("primWSSGetMessage", primWSSGetMessage)
                                    , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
                                    , ("primDiffTimes", primDiffTimes)
