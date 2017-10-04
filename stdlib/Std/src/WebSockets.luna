@@ -8,30 +8,23 @@ class WebSocketInstance:
     secure :: Bool
 
     def setHost h: case self of
-        WebSocket _ path port secure:
-            WebSocket h path port secure
+        WebSocketInstance _  port path secure:
+            WebSocketInstance h port path secure
 
     def setPath p: case self of
-        WebSocket host _ port secure:
-            WebSocket host p port secure
+        WebSocketInstance host port _ secure:
+            WebSocketInstance host port p secure
 
     def setPort p: case self of
-        WebSocket host path _ secure:
-            WebSocket host path p secure
+        WebSocketInstance host _ path secure:
+            WebSocketInstance host p path secure
 
     def setSecure: case self of
-        WebSocket host path port _:
-            WebSocket host path port True
+        WebSocketInstance host port path _:
+            WebSocketInstance host port path True
 
-    def connect:
+    def create:
         primWebSocketConnect self.host self.port self.path self.secure
-
-
-class WebSocket:
-    def create host:
-        secure = host.hasPrefix "wss"
-        port   = if secure then 443 else 80
-        WebSocketInstance host port "/" secure
 
 
 native class WSConnection:
@@ -49,3 +42,26 @@ native class WSConnection:
 
     def close:
         primWebSocketClose self
+
+
+native class WSServer:
+    def sendToAll msg:
+        primWSSBroadcastText self msg.toText
+
+    def sendBinaryToAll msg:
+        primWSSBroadcastBinary self msg.toBinary
+
+    def nextMessage:
+        primWSSGetMessage self
+
+    def messageStream:
+        streamFrom self.nextMessage
+
+class WebSocket:
+    def connection host:
+        secure = host.hasPrefix "wss"
+        port   = if secure then 443 else 80
+        WebSocketInstance host port "/" secure
+
+    def server host port:
+        primCreateWSServer host port
