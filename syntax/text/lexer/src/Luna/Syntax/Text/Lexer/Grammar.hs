@@ -108,7 +108,7 @@ lexNumber = check =<< number where
     binBody = takeWhile1 isBinDigitChar
     expBody = maybe id Text32.cons <$> optional sign <*> decBody
     fracSfx = option mempty $ token '.' *> decBody
-    expSfx  = option mempty $ token 'e' *> expBody
+    expSfx  = option mempty $ (token 'e' <|> token 'E') *> expBody
     sign    = satisfy (\s -> s == '-' || s == '+')
     check n = option (Number n) $ (\s -> Incorrect $ "Unexpected characters '" <> s <> "' found on the end of number literal") <$> takeWhile1 Char.isAlphaNum
 {-# INLINE lexNumber #-}
