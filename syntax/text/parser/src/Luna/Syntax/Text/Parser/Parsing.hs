@@ -1032,7 +1032,7 @@ parsingBase p src = do
     -- result <- runParserT p stream
     result <- runParserT (stx *> p <* etx) stream
     case result of
-        Left e -> putStrLn (parseErrorPretty e) >> error "Parser error" -- FIXME[WD]: handle it the proper way
+        Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
         Right (AsgBldr (IRB irb)) -> do
             ((ref, unmarked), gidMap) <- runDefStateT @MarkedExprMap $ runDefStateT @UnmarkedExprs irb
             return (ref, gidMap)
