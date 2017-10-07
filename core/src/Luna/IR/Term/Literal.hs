@@ -45,13 +45,15 @@ frac i = Number Dec mempty i mempty
 -- === Utils === --
 
 isInteger :: Number -> Bool
-isInteger n = n ^. fracPart == ""
+isInteger n = n ^. fracPart == "" && n ^. expPart == ""
 
 toInt :: Number -> Integer
 toInt = read . view intPart
 
 toDouble :: Number -> Double
-toDouble x = read $ x ^. intPart <> "." <> x ^. fracPart <> (if not $ null (x ^. expPart) then "e" <> x ^. expPart else "")
+toDouble x = read $ x ^. intPart
+                <> (if x ^. fracPart . to null . to not then "." <> x ^. fracPart else "")
+                <> (if not $ null (x ^. expPart) then "e" <> x ^. expPart else "")
 
 fromDouble :: Double -> Number
 fromDouble d = Number Dec i f mempty where
