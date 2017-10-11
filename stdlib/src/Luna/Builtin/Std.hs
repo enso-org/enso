@@ -87,6 +87,7 @@ import           System.Process                               (CreateProcess, Pr
 import qualified System.Process                               as Process
 
 import           System.Random                                (randomIO)
+import           System.Directory                             (canonicalizePath)
 
 
 stdlibImports :: [QualName]
@@ -527,6 +528,10 @@ systemStd std = do
         cmp <- compile r
         return $ Function cmp errVal assu
 
+    let expandPathVal :: Text -> LunaEff Text
+        expandPathVal = withExceptions . fmap convert . canonicalizePath . convert
+    expandPathF <- typeRepForIO (toLunaValue std expandPathVal) [LCons "Text" []] $ LCons "Text" []
+
     let readFileVal :: Text -> LunaEff Text
         readFileVal = withExceptions . fmap convert . readFile . convert
     readFileF <- typeRepForIO (toLunaValue std readFileVal) [LCons "Text" []] $ LCons "Text" []
@@ -850,9 +855,10 @@ systemStd std = do
     hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [LCons "FileHandle" [], LCons "BufferMode" []] (LCons "None" [])
     let systemFuncs = Map.fromList [ ("putStr", printLn)
                                    , ("errorStr", err)
-                                   , ("readFile", readFileF)
+                                   , ("primReadFile", readFileF)
+                                   , ("expandPath", expandPathF)
                                    , ("readBinary", readBinaryF)
-                                   , ("writeFile", writeFile')
+                                   , ("primWriteFile", writeFile')
                                    , ("parseJSON", parseJSON)
                                    , ("parseMsgPack", parseMsgPack)
                                    , ("encodeMsgPack", encodeMsgPack)

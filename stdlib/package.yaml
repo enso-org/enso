@@ -15,6 +15,7 @@ dependencies:
     - case-insensitive
     - deepseq
     - dependent-state
+    - directory
     - luna-core
     - luna-syntax-text-parser
     - mtl

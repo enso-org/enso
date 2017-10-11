@@ -561,7 +561,7 @@ class JSON:
     JSONObject (Map Text JSON)
     JSONNull
 
-    def safeParse data: primParseJSON (data.toText)
+    def safeParse data: parseJSON (data.toText)
 
     def parse data: case JSON.safeParse data of
        Right json: json
@@ -845,3 +845,7 @@ def everyWithState timeInterval stateFunc state:
     Stream current future.read
 
 def print x: putStr x.toText
+
+def readFile f: primReadFile (expandPath f)
+
+def writeFile f c: primWriteFile (expandPath f c)
