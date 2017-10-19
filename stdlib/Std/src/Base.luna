@@ -75,6 +75,9 @@ native class Text:
     def toText:     self
     def toJSON:     JSONString self
 
+    def parseInt:   primTextToInt  self
+    def parseReal:  primTextToReal self
+
 native class Binary:
     def +  that: primBinaryConcat self that
     def == that: primBinaryEquals self that

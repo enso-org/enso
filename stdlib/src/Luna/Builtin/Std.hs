@@ -3,6 +3,9 @@
 
 module Luna.Builtin.Std where
 
+
+import qualified Prelude (read)
+
 import           Control.Concurrent
 import           Control.DeepSeq                              (rnf)
 import qualified Control.Exception                            as Exception
@@ -342,6 +345,7 @@ primText imps = do
     Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
     Right (isEmptyAssu, isEmptyIr)     <- oneArgFun "Text" "Bool"
     Right (lengthAssu, lengthIr)       <- oneArgFun "Text" "Int"
+    Right (toRealAssu, toRealIr)       <- oneArgFun "Text" "Real"
     Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
     Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
     Right (wordsAssu, wordsIr)         <- runGraph $ do
@@ -368,6 +372,8 @@ primText imps = do
         charsVal      = toLunaValue imps (Text.chunksOf 1)
         toBinaryVal   = toLunaValue imps (Text.encodeUtf8 :: Text -> ByteString)
         escapeJSONVal = toLunaValue imps (Text.decodeUtf8 . Aeson.encode :: Text -> Text)
+        toIntVal      = toLunaValue imps (Prelude.read . convert :: Text -> Integer)
+        toRealVal     = toLunaValue imps (Prelude.read . convert :: Text -> Double)
     return $ Map.fromList [ ("primTextConcat",     Function plusIr     plusVal       plusAssu)
                           , ("primTextEquals",     Function eqIr       eqVal         eqAssu)
                           , ("primTextIsEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)
@@ -384,6 +390,8 @@ primText imps = do
                           , ("primTextShortRep",   Function textIr     shortRepVal   textAssu)
                           , ("primTextEscapeJSON", Function textIr     escapeJSONVal textAssu)
                           , ("primTextToBinary",   Function toBinaryIr toBinaryVal   toBinaryAssu)
+                          , ("primTextToInt",      Function lengthIr   toIntVal      lengthAssu)
+                          , ("primTextToReal",     Function toRealIr   toRealVal     toRealAssu)
                           ]
 
 preludeUnaryOp op = compileFunction def $ do
