@@ -2,6 +2,7 @@
 
 module Luna.Pass.Inference.TypeSimplification where
 
+import qualified Data.List as List
 import OCI.IR.Combinators
 import Luna.IR
 import OCI.Pass        (Pass, SubPass, Inputs, Outputs, Preserves, Events)
@@ -64,6 +65,7 @@ trySimplify tapp = do
             modifyAttr_ @MergeQueue $ wrap . (generalize jointM :) . unwrap
             outInJoint <- monadic outT jointM
             replace jointM     appMonads
+            modifyAttr_ @MergeQueue $ wrap . List.delete (unsafeGeneralize appMonads) . unwrap
             replace outT       onlyApp
             replace outInJoint tapp
             return True
