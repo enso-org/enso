@@ -836,7 +836,7 @@ topLvlDecl = rootedFunc <|> cls <|> metadata
 -- === Functions === --
 
 func :: AsgParser SomeExpr
-func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
+func = possiblyDocumented $ buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
     funcDef, funcSig :: SymParser (AsgBldr SomeExpr -> IRB SomeExpr)
     funcHdr = symbol Lexer.KwDef *> (var <|> op)
     funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
@@ -846,7 +846,7 @@ func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
         <*> discover (nonEmptyBlock lineExpr)
 
 rootedFunc :: AsgParser SomeExpr
-rootedFunc = marked <*> rootedRawFunc
+rootedFunc = possiblyDocumented $ marked <*> possiblyDocumented rootedRawFunc
 
 -- ======================================================
 -- !!! Very hacky implementation of rooted function, which duplicates its name inside rooted IR's function definition
@@ -878,7 +878,7 @@ rootedRawFunc = buildAsg $ funcBase >>= \case
 -- === Classes == --
 
 cls :: AsgParser SomeExpr
-cls = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
+cls = possiblyDocumented $ buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
           funcBlock = optionalBlockBody rootedFunc
