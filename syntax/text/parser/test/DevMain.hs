@@ -83,6 +83,8 @@ type instance Outputs Event ShellTest = '[New // AnyExpr]
 type instance Preserves     ShellTest = '[]
 
 
+input = "## this class is cool\n##c2\nclass Cool a:\n    field :: a\n    ##c3\n    def foo: a\n##c4\ndef topdef:x"
+
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Throws '[RefLookupError, IRError, PassEvalError] m) => m ()
 test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
     return ()
@@ -103,14 +105,14 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
     setAttr (getTypeDesc @ReparsingStatus) $ (mempty :: ReparsingStatus)
 
     -- setAttr (getTypeDesc @Source) $ ("main:\n    «0»pi = 5\n    «1»a = 60" :: Source)
-    setAttr (getTypeDesc @Source) $ ("## A sample function\ndef foo a: a" :: Source)
+    setAttr (getTypeDesc @Source) $ (input :: Source)
     -- setAttr (getTypeDesc @Source) $ ("main :   «1777»a" :: Source)
 
     -- World initialization
     setAttr (getTypeDesc @WorldExpr) (undefined :: WorldExpr) -- FIXME[WD]: it's ugly, we have to find a way to initialize attrs by pass manager
     Pass.eval' initWorld
 
-    Pass.eval' (Parsing.parserPassX Parsing.expr)
+    Pass.eval' (Parsing.parserPassX Parsing.unit')
 
     -- Unit initialization
     -- setAttr (getTypeDesc @UnitSet) ( [ ("MyLib", [ ["Main"] ])
@@ -202,7 +204,7 @@ uncheckedDeleteStarType e = do
 --
 main :: HasCallStack => IO ()
 main = do
-    let stream = Lexer.evalDefLexer "## A sample function\ndef foo a: a" :: [Lexer.Token Lexer.Symbol]
+    let stream = Lexer.evalDefLexer input :: [Lexer.Token Lexer.Symbol]
     pprint stream
     -- D.main
     runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do

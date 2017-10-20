@@ -585,10 +585,10 @@ instance Semigroup ExprSegmentBuilder where
     a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
 
 expr :: AsgParser SomeExpr
-expr = func <|> lineExpr
+expr = possiblyDocumented $ func <|> lineExpr
 
 lineExpr :: AsgParser SomeExpr
-lineExpr = marked <*> possiblyDocumented (possiblyDisabled (valExpr <**> option id assignment)) where
+lineExpr = marked <*> (possiblyDisabled (valExpr <**> option id assignment)) where
     assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
 
 valExpr :: AsgParser SomeExpr
@@ -830,13 +830,13 @@ doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
 --------------------------
 
 topLvlDecl :: AsgParser SomeExpr
-topLvlDecl = rootedFunc <|> cls <|> metadata
+topLvlDecl = possiblyDocumented $ rootedFunc <|> cls <|> metadata
 
 
 -- === Functions === --
 
 func :: AsgParser SomeExpr
-func = possiblyDocumented $ buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
+func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
     funcDef, funcSig :: SymParser (AsgBldr SomeExpr -> IRB SomeExpr)
     funcHdr = symbol Lexer.KwDef *> (var <|> op)
     funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
@@ -846,7 +846,7 @@ func = possiblyDocumented $ buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
         <*> discover (nonEmptyBlock lineExpr)
 
 rootedFunc :: AsgParser SomeExpr
-rootedFunc = possiblyDocumented $ marked <*> possiblyDocumented rootedRawFunc
+rootedFunc = marked <*> rootedRawFunc
 
 -- ======================================================
 -- !!! Very hacky implementation of rooted function, which duplicates its name inside rooted IR's function definition
@@ -878,10 +878,10 @@ rootedRawFunc = buildAsg $ funcBase >>= \case
 -- === Classes == --
 
 cls :: AsgParser SomeExpr
-cls = possiblyDocumented $ buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
+cls = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
-          funcBlock = optionalBlockBody rootedFunc
+          funcBlock = optionalBlockBody (possiblyDocumented rootedFunc)
           consBlock = breakableNonEmptyBlockBody' clsRec <|> breakableOptionalBlockBody recNamedFieldLine
           bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
 
