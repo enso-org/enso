@@ -1,27 +1,39 @@
 #!/usr/bin/env python3
 
-from . import utils as utils
+from distutils import dir_util
+from utils import prep_path, working_directory
 import os
 import subprocess
 
-shell_path = backend_dir  = utils.prep_path('../shell')
 
-def create_bin_dirs():
-    os.makedirs(utils.prep_path('../dist/bin/public/luna'), exist_ok=True)
+shell_path = prep_path('../shell')
+backend_dir = prep_path('../shell')
+
+
+def create_dirs():
+    os.makedirs(prep_path('../dist/bin/public/luna'), exist_ok=True)
+    os.makedirs(prep_path('../dist/config/env'), exist_ok=True)
+
 
 def build(shell):
-    os.chdir(shell)
-    subprocess.check_output(['stack', 'build', '--copy-bins'])
+    with working_directory(shell):
+        subprocess.check_output(['stack', 'build', '--copy-bins'])
 
 
 def link_main_bin ():
-    os.chdir(utils.prep_path('../dist/bin'))
-    os.symlink('./public/luna', 'main', target_is_directory=True)
+    with working_directory(prep_path('../dist/bin')):
+        os.symlink('./public/luna', 'main', target_is_directory=True)
+
+
+def copy_stdlib():
+    dir_util.copy_tree()
+
 
 def run():
-    create_bin_dirs()
+    create_dirs()
     build(shell_path)
-    link_main_bin ()
+    link_main_bin()
+
 
 if __name__ == '__main__':
     run()

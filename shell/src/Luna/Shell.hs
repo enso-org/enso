@@ -66,8 +66,10 @@ type instance Preserves     ShellTest = '[]
 
 main :: HasCallStack => IO ()
 main = void $ runPM True $ do
-    stdPath  <- (<> "/Std/") <$> liftIO (Env.getEnv "LUNA_HOME")
+    env      <- Map.fromList <$> Env.getEnvironment
     mainPath <- liftIO $ getCurrentDirectory
+    let defaultStdPath = Path.parent (Path.parent mainPath) </> "config" </> "env"
+        stdPath        =  (</>) "Std" $ fromMaybe defaultStdPath $ Map.lookup "LUNA_HOME" env
 
     (world, modules, _) <- Project.compileProject (Map.fromList [("Std", stdPath), ("Main", mainPath)]) [["Main", "Main"]]
 
