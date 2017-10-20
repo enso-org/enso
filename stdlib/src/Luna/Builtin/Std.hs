@@ -91,6 +91,7 @@ import qualified System.Process                               as Process
 
 import           System.Random                                (randomIO)
 import           System.Directory                             (canonicalizePath)
+import           Text.Read                                    (readMaybe)
 
 
 stdlibImports :: [QualName]
@@ -355,6 +356,23 @@ primText imps = do
         (assu, r) <- mkMonadProofFun $ generalize l
         cmp <- compile r
         return (assu, cmp)
+    Right (toMaybeIntAssu, toMaybeIntIr) <- runGraph $ do
+        tText  <- cons_ @Draft "Text"
+        tInt   <- cons_ @Draft "Int"
+        tMaybe <- cons "Maybe" [tInt]
+        l      <- lam tText tMaybe
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp <- compile r
+        return (assu, cmp)
+    Right (toMaybeRealAssu, toMaybeRealIr) <- runGraph $ do
+        tText  <- cons_ @Draft "Text"
+        tReal  <- cons_ @Draft "Real"
+        tMaybe <- cons "Maybe" [tReal]
+        l      <- lam tText tMaybe
+        (assu, r) <- mkMonadProofFun $ generalize l
+        cmp <- compile r
+        return (assu, cmp)
+
     let plusVal       = toLunaValue imps ((<>) :: Text -> Text -> Text)
         shortRepVal   = toLunaValue imps (Text.take 100 :: Text -> Text)
         idVal         = toLunaValue imps (id :: Text -> Text)
@@ -372,8 +390,8 @@ primText imps = do
         charsVal      = toLunaValue imps (Text.chunksOf 1)
         toBinaryVal   = toLunaValue imps (Text.encodeUtf8 :: Text -> ByteString)
         escapeJSONVal = toLunaValue imps (Text.decodeUtf8 . Aeson.encode :: Text -> Text)
-        toIntVal      = toLunaValue imps (Prelude.read . convert :: Text -> Integer)
-        toRealVal     = toLunaValue imps (Prelude.read . convert :: Text -> Double)
+        toIntVal      = toLunaValue imps (readMaybe . convert :: Text -> Maybe Integer)
+        toRealVal     = toLunaValue imps (readMaybe . convert :: Text -> Maybe Double)
     return $ Map.fromList [ ("primTextConcat",     Function plusIr     plusVal       plusAssu)
                           , ("primTextEquals",     Function eqIr       eqVal         eqAssu)
                           , ("primTextIsEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)

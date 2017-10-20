@@ -75,8 +75,16 @@ native class Text:
     def toText:     self
     def toJSON:     JSONString self
 
-    def parseInt:   primTextToInt  self
-    def parseReal:  primTextToReal self
+    def safeToInt:   primTextToInt  self
+    def safeToReal:  primTextToReal self
+
+    def toInt: case self.safeToInt of
+        Just val: val
+        Nothing:  errorStr ("Could not convert " + self + " to an Int")
+
+    def toReal: case self.safeToReal of
+        Just val: val
+        Nothing:  errorStr ("Could not convert " + self + " to a Real")
 
 native class Binary:
     def +  that: primBinaryConcat self that
