@@ -48,13 +48,14 @@ import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped  as RemoveGrouped
 import qualified Luna.Pass.UnitCompilation.ModuleProcessing    as ModuleProcessing
 import qualified Luna.Pass.Sourcing.UnitLoader as UL
 
-import qualified Luna.Project       as Project
-import qualified Luna.Compilation   as Project
-import           System.Directory   (getCurrentDirectory)
-import qualified Path               as Path
-import qualified System.Environment as Env
-
-import System.Exit (die)
+import qualified Luna.Project                  as Project
+import qualified Luna.Compilation              as Project
+import           System.Directory              (doesDirectoryExist, getCurrentDirectory)
+import qualified System.FilePath               as FilePath
+import           System.FilePath               (FilePath)
+import qualified System.Environment            as Env
+import           System.Environment.Executable (splitExecutablePath)
+import           System.Exit                   (die)
 
 import Data.Layout as Layout
 import qualified Data.Text.Terminal as Terminal
@@ -150,10 +151,25 @@ formatErrors errs = foldl (<//>) mempty items where
                 {-_        -> return ()-}
         {-Nothing -> error "Function main not found in module Main."-}
 
+stdlibPath :: IO FilePath
+stdlibPath = do
+    env     <- Map.fromList <$> Env.getEnvironment
+    exePath <- fst <$> splitExecutablePath
+    let (<</>>)        = (FilePath.</>)  -- purely for convenience, because </> is defined elswhere
+        parent         = let p = FilePath.takeDirectory in \x -> if FilePath.hasTrailingPathSeparator x then p (p x) else p x
+        defaultStdPath = (parent . parent . parent $ exePath) <</>> "config" <</>> "env"
+        envStdPath     = Map.lookup "LUNA_HOME" env
+        stdPath        = fromMaybe defaultStdPath envStdPath <</>> "Std"
+    exists <- doesDirectoryExist stdPath
+    if exists
+        then putStrLn $ "Found the standard library at: " <> stdPath
+        else die "Standard library not found. Set the LUNA_HOME environment variable"
+    return stdPath
+
 main :: IO ()
 main = do
-    stdPath   <- (<> "/Std/") <$> Env.getEnv "LUNA_HOME"
     mainPath  <- getCurrentDirectory
+    stdPath   <- stdlibPath
     (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
     Right (_, imp) <- Project.requestModules (Map.fromList [("Std", stdPath), ("Main", mainPath)]) ["Main.Main"] std
     let mainFun = imp ^? Project.modules . ix ["Main", "Main"] . importedFunctions . ix "main"
