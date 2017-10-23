@@ -2,56 +2,111 @@ import Std.Base
 
 class PipeRequest:
     Inherit
-    UseHandle FileHandle
+    UseHandle: handle :: FileHandle
     CreatePipe
     NoStream
 
-class FileHandle:
+class BufferMode:
+    NoBuffering
+    LineBuffering
+    BlockBuffering: size :: Maybe Int
+
+
+native class FileHandle:
+    def setBuffering bm: primHSetBuffering self bm
     def isOpen: primHIsOpen self
     def isClosed: primHIsClosed self
     def close: primHClose self
+    def flush: primHFlush self
     def getContents: primHGetContents self
     def getLine: primHGetLine self
     def putText t: primHPutText self t
+    def putLine t: primHPutText self (t + '\n')
+    def toStream: streamFrom self.getLine
 
 class ProcessHandle:
-    def waitForProcess: primWaitForProcess self
+    def wait: primWaitForProcess self
 
-class ProcessResults:
-    ProcessResults (Maybe FileHandle) (Maybe FileHandle) (Maybe FileHandle) ProcessHandle
+class Process:
+    stdin  :: Maybe FileHandle
+    stdout :: Maybe FileHandle
+    stderr :: Maybe FileHandle
+    handle :: ProcessHandle
 
-    def getContentsFromStdOut: case self of
-        ProcessResults hin hout herr ph: hout . map .getContents
-
-    def getContentsFromStdErr: case self of
-        ProcessResults hin hout herr ph: herr . map .getContents
-
-    def putTextToStdIn: case self of
-        ProcessResults hin hout herr ph: hin . maybe None .putText
-
-    def waitForProcess: case self of
-        ProcessResults hin hout herr ph: ph . waitForProcess
+    def wait: self.handle . wait
 
 class ProcessDescription:
-    ProcessDescription Text (List Text) (Maybe PipeRequest) (Maybe PipeRequest) (Maybe PipeRequest)
+    command :: Text
+    args    :: List Text
+    stdin   :: PipeRequest
+    stdout  :: PipeRequest
+    stderr  :: PipeRequest
+
+    def setCommand command: case self of
+        ProcessDescription _ args stdin stdout stderr input: ProcessDescription command args stdin stdout stderr input
+
+    def setArgs args: case self of
+        ProcessDescription command _ stdin stdout stderr input: ProcessDescription command args stdin stdout stderr input
+
+    def setStdin stdin: case self of
+        ProcessDescription command args _ stdout stderr input: ProcessDescription command args stdin stdout stderr input
+
+    def setStdout stdout: case self of
+        ProcessDescription command args stdin _ stderr input: ProcessDescription command args stdin stdout stderr input
+
+    def setStderr stderr: case self of
+        ProcessDescription command args stdin stdout _ input: ProcessDescription command args stdin stdout stderr input
 
     def run: primRunProcess self
 
-class Process:
-    Process
+class Command:
+    command :: Text
+    args    :: List Text
 
-    def readProcessWithExitCode path args stdin:
-        cp = ProcessDescription path args (Just CreatePipe) (Just CreatePipe) (Just CreatePipe)
-        pr = cp . run
-        out = pr . getContentsFromStdOut
-        err = pr . getContentsFromStdErr
-        ex  = pr . waitForProcess
-        Tuple3 out err ex
+    def processDescription:
+        ProcessDescription self.command self.args CreatePipe CreatePipe CreatePipe
 
+    def run:
+        self.processDescription.run
+
+    def runWithInput input:
+        p = self.run
+        unless (t.isEmpty) (p.stdin.fromJust.putText t)
+        p.stdin.each .close
+        p
+
+    def runWithStream stream:
+        p = self.run
+        fork (stream.each p.stdin.fromJust.putLine)
+        p
+
+    def execute input:
+        p = self.run
+        outh = p.stdout.fromJust.getContents
+        errh = p.stderr.fromJust.getContents
+        def action waitOut waitErr:
+            unless input.isEmpty (p.stdin.fromJust.putText input)
+            p.stdin.each .close
+            o = waitOut
+            e = waitErr
+            (o, e)
+        outErr = withForkWait (primEvaluate outh) (o: withForkWait (primEvaluate errh) (action o))
+        ex = p.wait
+        (outErr.first, outErr.second, ex)
+
+
+
+def withForkWait async body:
+    mVar = newMVar
+    def fork':
+        res = async
+        mVar.put res
+    fork fork'
+    body mVar.take
 
 class ExitCode:
     ExitSuccess
-    ExitFailure Int
+    ExitFailure: errorCode :: Int
 
     def toInt: case self of
         ExitSuccess: 0

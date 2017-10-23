@@ -1,6 +1,6 @@
 module Data.Version.Semantic where
 
-import Prologue
+import Prologue_old
 
 -- === Definitions === --
 

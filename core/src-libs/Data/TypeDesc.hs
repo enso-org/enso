@@ -4,7 +4,7 @@
 module Data.TypeDesc (module Data.TypeDesc, module X) where
 
 import Data.Typeable.Proxy.Abbr
-import Prologue hiding (Simple)
+import Prologue_old hiding (Simple)
 import Data.Reflection
 import Data.Typeable as X (TypeRep, TyCon, tyConFingerprint, typeRepTyCon)
 import Data.Kind

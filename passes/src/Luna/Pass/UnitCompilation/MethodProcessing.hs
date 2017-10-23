@@ -34,7 +34,7 @@ import Data.TypeDesc
 
 
 import Luna.Test.IR.Runner
-import Data.Future (delay)
+import Data.Future (delay, Future)
 
 data MethodProcessing
 type instance Abstract   MethodProcessing = MethodProcessing
@@ -50,19 +50,15 @@ type instance Pass.Outputs    Event MethodProcessing = '[Event.Import // AnyExpr
 
 type instance Pass.Preserves        MethodProcessing = '[]
 
-processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Imports -> Name -> [Name] -> [Name] -> [(Name, Rooted SomeExpr)] -> m (Map Name Function)
-processMethods imps className classParamNames consNames methodIRs = mdo
-    methods <- flip evalStateT imps $ forM methodIRs $ \(n, body) -> do
-        imports  <- get
-        compiled <- lift $ liftIO $ delay $ mkMethod imports className classParamNames localMethods n body
-        importedClasses . ix className . Class.methods . at n ?= compiled
-        return (n, compiled)
-    let methodMap    = Map.fromList $ methods ^.. traverse . alongside id value
-        localMethods = Map.fromList $ zip consNames $ repeat methodMap
-    return $ Map.fromList methods
+processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Name -> Imports -> Name -> [Name] -> [Name] -> [(Name, Rooted SomeExpr)] -> m (Map Name (Either [CompileError] Function))
+processMethods modName imps className classParamNames consNames methodIRs = mdo
+    result <- forM methodIRs $ \(n, body) -> liftIO $ delay $ mkMethod modName allImports className classParamNames n body
+    let meths      = zip (fst <$> methodIRs) result
+        allImports = imps & importedClasses . ix className . Class.methods %~ Map.union (Map.fromList meths)
+    return $ Map.fromList meths
 
-mkMethod :: Imports -> Name -> [Name] -> Map Name (Map Name LunaValue) -> Name -> Rooted SomeExpr -> IO Function
-mkMethod imports className classParamNames localMethods methodName methodIR@(Rooted _ methodRoot) = fmap (\(Right x) -> x) $ runPM False $ do
+mkMethod ::  Name -> Imports -> Name -> [Name] -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
+mkMethod modName imports className classParamNames methodName methodIR@(Rooted _ methodRoot) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     initNameGen
     methodRoot <- Pass.eval' @MethodProcessing $ do
@@ -79,4 +75,4 @@ mkMethod imports className classParamNames localMethods methodName methodIR@(Roo
 
         lambda <- lam self root
         return $ unsafeGeneralize lambda
-    mkDef imports localMethods (TgtMethod className methodName) methodRoot
+    mkDef modName imports (TgtMethod modName className methodName) methodRoot

@@ -1,6 +1,6 @@
 module Language.Symbol.Label where
 
-import Prologue
+import Prologue_old
 
 
 

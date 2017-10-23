@@ -6,7 +6,25 @@ maintainer: Luna Team <contact@luna-lang.org>
 library:
     source-dirs:
         - src
+        - src-libs/attoparsec-text32
+        - src-libs/parsing
+        - src-libs/conduit-utils
     other-modules: Paths_luna_syntax_text_lexer
+
+benchmarks:
+    lexer-benchmark:
+        main:        Main.hs
+        source-dirs: test/bench
+        dependencies:
+            - criterion
+            - luna-syntax-text-lexer
+            - random
+            - timeit
+            - conduit
+            - conduit-combinators
+            - conduit-extra
+            - attoparsec
+
 
 dependencies:
     - base
@@ -20,6 +38,14 @@ dependencies:
     - parsert
     - vector-text
     - fingertree
+    - attoparsec
+    - text
+    - conduit
+    - conduit-combinators
+    - bytestring
+    - resourcet
+    - convert
+    - functor-utils
 
     # remove:
     - lens-utils

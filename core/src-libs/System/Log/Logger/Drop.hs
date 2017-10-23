@@ -1,6 +1,6 @@
 module System.Log.Logger.Drop where
 
-import Prologue
+import Prologue_old
 import System.Log.Logger.Class
 import System.Log.Data
 

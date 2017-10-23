@@ -69,7 +69,7 @@ testParsing_raw p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder
     Pass.eval' @Parsing     $ Parsing.parsingPassM p
     spans  <- Pass.eval' @ParsingTest $ do
         es <- exprs
-        ls <- getLayer @CodeSpan <$$> es
+        ls <- getLayer @CodeSpan <$>= es
         return $ (convert . view CodeSpan.realSpan) <$> ls
     code <- Pass.eval' @ParsingTest $ CodeGen.subpass CodeGen.SimpleStyle . unsafeGeneralize . unwrap =<< getAttr @ParsedExpr
     return (convert code, convert (spans :: [(Delta, Delta)]))
@@ -127,8 +127,10 @@ spec = do
             describe "raw" $ do
                 it "oneliner"                                   $ do shouldParseItself' expr "\"The quick brown fox jumps over the lazy dog\"" [(0,45)]
                 it "tripple double-quoted oneliner"             $ do shouldParseAs'     expr [s|"""The quick brown fox jumps over the lazy dog"""|] [s|"The quick brown fox jumps over the lazy dog"|] [(0,49)]
-            -- describe "interpolated" $ do
-            --     it "oneliner"                                   $ do shouldParseItself expr "'The quick brown fox jumps over the lazy dog'"
+                it "escaping qote"                              $ do shouldParseAs'     expr [s|"foo\""|] [s|"foo""|] [(0,7)] -- FIXME: Fix escaping in pretty printer
+                it "escaping newline"                           $ do shouldParseAs'     expr [s|'\n'|] "\"\n\"" [(0,4)]
+            describe "interpolated" $ do
+                it "oneliner"                                   $ do shouldParseAs      expr "'The quick brown fox jumps over the lazy dog'" "\"The quick brown fox jumps over the lazy dog\""
             --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
             --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
             --     it "multiline string with non-indented newline" $ do shouldParseAs expr     "'The quick \n\n brown fox jumps over the lazy dog'"   "'The quick \n\nbrown fox jumps over the lazy dog'"
@@ -252,6 +254,21 @@ spec = do
             it "grouped pattern"                            $ shouldParseItself' expr "(Vector x y z) = val"                      [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(1,12),(0,14),(3,3),(0,20)]
             it "module-qualified pattern"                   $ shouldParseAs'     expr "A.B.C x y z = val" "A . B . C x y z = val" [(0,1),(0,3),(0,5),(1,1),(0,7),(1,1),(0,9),(1,1),(0,11),(3,3),(0,17)]
 
+        -- FIXME: Hack, for details see Parsing.hs
+        describe "modifiers" $ do
+            it "variable's field update"                    $ shouldParseAs' expr "a = a.x = v"  "a = a . x= v"                    [(0,1),(0,1),(0,3),(3,1),(3,7),(0,11)]
+            it "variable's field drop update"               $ shouldParseAs' expr "a.x = v"      "a . x= v"                        [(0,1),(0,3),(3,1),(0,7)]
+            it "variable's field modification"              $ shouldParseAs' expr "a = a.x += v" "a = a . x+= v"                   [(0,1),(0,1),(0,3),(4,1),(3,8),(0,12)]
+            it "variable's field drop modification"         $ shouldParseAs' expr "a.x += v"     "a . x+= v"                       [(0,1),(0,3),(4,1),(0,8)]
+
+        -- FIXME: Correct implementation (vvv). Uncomment when above hack will be invalid.
+        -- describe "modifiers" $ do
+        --     it "variable's field update"                    $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,7),(0,11)]
+        --     it "variable's field drop update"               $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,7)]
+        --     it "variable's field modification"              $ shouldParseItself' expr "a = a.x += v"                              [(0,1),(0,1),(6,1),(3,8),(0,12)]
+        --     it "variable's field drop modification"         $ shouldParseItself' expr "a.x += v"                                  [(0,1),(6,1),(0,8)]
+
+
         describe "lambdas" $ do
             it "identity (not spaced)"                      $ shouldParseAs'     expr "x:x"  "x: x"                               [(0,1),(1,1),(0,3)]
             it "identity (l   spaced)"                      $ shouldParseAs'     expr "x :x" "x: x"                               [(0,1),(2,1),(0,4)]
@@ -347,6 +364,9 @@ spec = do
             it "disabled var expression"                 $ shouldParseItself' expr "#foo"                  [(1,3),(0,4)]
             it "disabled app expression"                 $ shouldParseItself' expr "#foo bar"              [(0,3),(1,3),(1,7),(0,8)]
             it "disabled multiline lambda"               $ shouldParseItself' expr "#a:\n    foo\n    bar" [(0,1),(0,3),(5,3),(6,11),(1,18),(0,19)]
+
+        describe "documentation" $ do
+            it "single line doc comment"                 $ shouldParseItself' expr "def foo a: a" [(4,3),(1,1),(2,1),(0,12)]
 
         describe "metadata" $ do
             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]

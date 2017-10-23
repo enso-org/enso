@@ -1,0 +1,54 @@
+import Std.Base
+import Std.HTTP
+
+
+class OAuth1Data:
+    clientKey        :: Text
+    clientSecret     :: Text
+    oauthToken       :: Text
+    oauthTokenSecret :: Text
+
+    def toText:
+        "OAuth1Data { " +
+        "clientKey        = " + self.clientKey        + ", " +
+        "clientSecret     = " + self.clientSecret     + ", " +
+        "oauthToken       = " + self.oauthToken       + ", " +
+        "oauthTokenSecret = " + self.oauthTokenSecret + " "  +
+        "}"
+
+    def shortRep: self.toText
+
+class OAuth2Data:
+    clientId                :: Text
+    clientSecret            :: Text
+    accessTokenEndpoint     :: Text
+    invalidateTokenEndpoint :: Text
+    callback                :: Maybe Text
+
+    def toText:
+        "OAuth2Data { " +
+        "clientId                 = " + self.clientId                + ", " +
+        "clientSecret             = " + self.clientSecret            + ", " +
+        "accessTokenEndpoint      = " + self.accessTokenEndpoint     + ", " +
+        "invalidateTokenEndpoint  = " + self.invalidateTokenEndpoint + ", " +
+        "callback                 = " + self.callback.toText         + " "  +
+        "}"
+
+    def shortRep: self.toText
+
+class OAuth2:
+    def postRequest oauth2Data uri body:
+        user = oauth2Data.clientId
+        pass = oauth2Data.clientSecret
+        Http.post uri body . setBasicAuth user pass . addHeader "Content-Type" "application/x-www-form-urlencoded;charset=UTF-8" . perform
+
+    def fetchAccessToken oauth2Data:
+        body = HttpSimpleBody [("grant_type", "client_credentials")]
+        uri  = oauth2Data.accessTokenEndpoint
+        OAuth2.postRequest oauth2Data uri body . json . lookupText "access_token"
+
+    def invalidateToken oauth2Data token:
+        body = HttpSimpleBody [("access_token", token)]
+        uri  = oauth2Data.invalidateTokenEndpoint
+        OAuth2.postRequest oauth2Data uri body
+

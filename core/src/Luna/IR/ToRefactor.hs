@@ -20,10 +20,11 @@ import OCI.IR.Layer.Model
 import Luna.IR.Layer.Succs
 import OCI.IR.Layer.Req
 import Luna.IR.Format
-import Luna.IR.Layer.UID       as UID
-import Luna.IR.Layer.Errors    as Errors
-import Luna.IR.Layer.UserType  as UserType
-import Luna.IR.Layer.Requester as Requester
+import Luna.IR.Layer.UID        as UID
+import Luna.IR.Layer.Errors     as Errors
+import Luna.IR.Layer.RequiredBy as RequiredBy
+import Luna.IR.Layer.UserType   as UserType
+import Luna.IR.Layer.Requester  as Requester
 import Data.Property
 import qualified OCI.Pass        as Pass
 import           OCI.Pass        (Pass, Preserves, Inputs, Outputs, Events, SubPass, Uninitialized, Template, ElemScope, KnownElemPass, elemPassDescription, genericDescription, genericDescriptionP)
@@ -236,17 +237,19 @@ runRegs' withType = do
     UID.init
     Requester.init
     Errors.init
+    RequiredBy.init
     UserType.init
     init3
     when withType init4
 
-    attachLayer 0 (getTypeDesc @Model)    (getTypeDesc @AnyExpr)
-    attachLayer 0 (getTypeDesc @Model)    (getTypeDesc @AnyExprLink)
-    attachLayer 5 (getTypeDesc @UID)      (getTypeDesc @AnyExpr)
-    attachLayer 5 (getTypeDesc @UID)      (getTypeDesc @AnyExprLink)
-    attachLayer 5 (getTypeDesc @Errors)   (getTypeDesc @AnyExpr)
-    attachLayer 5 (getTypeDesc @Succs)    (getTypeDesc @AnyExpr)
-    attachLayer 5 (getTypeDesc @UserType) (getTypeDesc @AnyExpr)
+    attachLayer 0 (getTypeDesc @Model)      (getTypeDesc @AnyExpr)
+    attachLayer 0 (getTypeDesc @Model)      (getTypeDesc @AnyExprLink)
+    attachLayer 5 (getTypeDesc @UID)        (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @UID)        (getTypeDesc @AnyExprLink)
+    attachLayer 5 (getTypeDesc @Errors)     (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @RequiredBy) (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @Succs)      (getTypeDesc @AnyExpr)
+    attachLayer 5 (getTypeDesc @UserType)   (getTypeDesc @AnyExpr)
 
     when withType $ do
         attachLayer 10 (getTypeDesc @Type)   (getTypeDesc @AnyExpr)

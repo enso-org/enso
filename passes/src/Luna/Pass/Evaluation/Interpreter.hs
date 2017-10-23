@@ -14,7 +14,7 @@ import Data.Ratio (numerator)
 import Data.Maybe (fromMaybe)
 import Luna.IR.Term.Literal (isInteger, toDouble, toInt)
 
-import           Luna.IR   hiding (get, put)
+import           Luna.IR   hiding (get, put, modify)
 import           OCI.Pass (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified OCI.Pass        as Pass
 import           Control.Monad.Trans.State.Lazy (StateT, runStateT, evalStateT, get, gets, put, modify)
@@ -39,18 +39,14 @@ type instance Preserves     Interpreter = '[]
 
 data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
                               , _localDefs   :: Map Name LunaValue
-                              , _localConses :: Map Name (Map Name LunaValue)
                               }
 makeLenses ''LocalScope
 
 instance Default LocalScope where
-    def = LocalScope def def def
+    def = LocalScope def def
 
 localLookup :: Expr Draft -> LocalScope -> Maybe LunaData
 localLookup e = Map.lookup e . view localVars
-
-localLookupCons :: Name -> LocalScope -> Maybe (Map Name LunaValue)
-localLookupCons e = Map.lookup e . view localConses
 
 localDefLookup :: Name -> LocalScope -> Maybe LunaValue
 localDefLookup e = Map.lookup e . view localDefs
@@ -62,9 +58,9 @@ mergeScopes :: Map (Expr Draft) LunaData -> LocalScope -> LocalScope
 mergeScopes m = localVars %~ Map.union m
 
 globalLookup :: Name -> Imports -> Maybe LunaValue
-globalLookup n imps = imps ^? importedFunctions . ix n . value
+globalLookup n imps = imps ^? importedFunctions . ix n . _Right . value
 
-mkInt :: Imports -> Int -> LunaData
+mkInt :: Imports -> Integer -> LunaData
 mkInt = toLunaData
 
 mkDouble :: Imports -> Double -> LunaData
@@ -146,7 +142,7 @@ interpret' glob expr = do
                 env <- get
                 let rhs' = makeFuns as (localInsert n (LunaThunk rhs') env)
                 modify $ localInsert n (LunaThunk rhs')
-                return $ LunaThunk rhs'
+                return $ LunaSusp rhs'
         Seq l' r'  -> do
             l   <- source l'
             r   <- source r'
@@ -154,16 +150,14 @@ interpret' glob expr = do
             rhs <- interpret' glob r
             return $ do
                 lV <- lhs
-                lift $ force' lV
+                lift $ forceThunks' lV
                 rhs
         Cons n fs -> do
             fields <- mapM (interpret' glob <=< source) fs
             let mets = getConstructorMethodMap n glob
             return $ do
                 fs        <- sequence fields
-                localMets <- gets $ localLookupCons n
-                let ms = fromMaybe mets localMets
-                return $ LunaObject $ Object (Constructor n fs) ms
+                return $ LunaObject $ Object (Constructor n fs) mets
         Match t' cls' -> do
             t       <- source t'
             cls     <- mapM source cls'
@@ -200,6 +194,7 @@ tryMatch name fieldMatchers d@(LunaObject (Object (Constructor n fs) ms)) = if n
             newObj = LunaObject (Object (Constructor n (snd <$> results)) ms)
         return (binds, newObj)
 tryMatch name fields (LunaThunk v) = v >>= tryMatch name fields
+tryMatch name fields (LunaSusp  v) = v >>= tryMatch name fields
 tryMatch _ _ d = return (Nothing, d)
 
 matcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
@@ -217,6 +212,7 @@ matchIrrefutably :: Name -> [LunaData -> LunaEff (Map (Expr Draft) LunaData)] ->
 matchIrrefutably name fieldMatchers d@(LunaObject (Object (Constructor n fs) _)) = if n /= name then throw "Irrefutable pattern match failed" else matchFields where
     matchFields = Map.unions <$> zipWithM ($) fieldMatchers fs
 matchIrrefutably name fieldMatchers (LunaThunk v) = v >>= matchIrrefutably name fieldMatchers
+matchIrrefutably name fieldMatchers (LunaSusp  v) = v >>= matchIrrefutably name fieldMatchers
 
 irrefutableMatcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
                    => Expr Draft -> m (LunaData -> LunaEff (Map (Expr Draft) LunaData))

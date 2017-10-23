@@ -58,7 +58,7 @@ resolveCons c = do
     Named.Term (Named.Cons n fields) <- readTerm c
     res <- lookupCons n <$> getAttr @Imports
     case res of
-        Left err   -> modifyLayer_ @Errors c (importErrorDoc n err :)
+        Left err   -> modifyLayer_ @Errors c (CompileError (importErrorDoc n err) [] [] :)
         Right cons -> do
             imported <- importConstructor $ cons ^. constructor
             args     <- mapM source fields

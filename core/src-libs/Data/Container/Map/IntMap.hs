@@ -1,6 +1,6 @@
 module Data.Container.Map.IntMap where
 
-import Prologue
+import Prologue_old
 import qualified Data.IntMap.Lazy as IM
 import GHC.Exts (IsList)
 

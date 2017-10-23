@@ -4,7 +4,7 @@
 
 module Language.Symbol (module Language.Symbol, module X) where
 
-import Prologue hiding (Symbol)
+import Prologue_old hiding (Symbol)
 
 import Language.Symbol.Label as X
 import Data.Text.CodeBuilder.Doc (Doc, between)

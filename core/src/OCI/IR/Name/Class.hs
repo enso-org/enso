@@ -54,8 +54,8 @@ instance Convertible FastString Name       where convert = wrap
 instance Convertible Name       FastString where convert = unwrap
 instance Convertible String     Name       where convert = wrap    ∘ convert
 instance Convertible Name       String     where convert = convert ∘ unwrap
-instance Convertible Text       Name       where convert = convertVia @String
-instance Convertible Name       Text       where convert = convertVia @String
+instance {-# OVERLAPPABLE #-} Convertible' a String => Convertible a Name where convert = convertVia' @String ; {-# INLINE convert #-}
+instance {-# OVERLAPPABLE #-} Convertible' String a => Convertible Name a where convert = convertVia' @String ; {-# INLINE convert #-}
 
 -- Symbol identity labels
 instance Symbol.HasLabel Name

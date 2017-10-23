@@ -14,7 +14,7 @@ import System.Log.Data   as X (nested)
 -- [ ] Threading loggers
 
 
-import Prologue
+import Prologue_old
 import System.Log.Logger.Format
 import System.Log.Data
 import GHC.Stack

@@ -31,10 +31,10 @@ infix 1 <?>
 (<?>) :: MonadParsec e s m => m a -> P.String -> m a
 (<?>) = (Parser.<?>) ; {-# INLINE (<?>) #-}
 
-type Symbol      = Lexer.Symbol Name
+type Symbol      = Lexer.Symbol
 type Stream      = [Tok]
 type Error       = Error.Dec
-type Tok         = Lexer.LexerToken (Lexer.Symbol Name)
+type Tok         = Lexer.Token Lexer.Symbol
 type MonadParser = MonadParsec Error Stream
 
 

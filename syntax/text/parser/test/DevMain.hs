@@ -60,14 +60,15 @@ import           Data.FingerTree (Measured, FingerTree, takeUntil, dropUntil, me
 import Data.Monoid (Sum(Sum))
 import qualified Data.Text as Text
 import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Data.VectorText as VectorText
-import           Data.VectorText (VectorText)
+-- import qualified Data.VectorText as VectorText
+-- import           Data.VectorText (VectorText)
+import Data.Text32 (Text32)
 
 import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
 import qualified Data.Text.Span as Span
 
 import qualified Data.Layout as D
-import Luna.Syntax.Text.SpanTree
+import Luna.Syntax.Text.Analysis.SpanTree
 
 data ShellTest
 type instance Abstract ShellTest = ShellTest
@@ -81,6 +82,8 @@ type instance Inputs  Event ShellTest = '[] -- will never be used
 type instance Outputs Event ShellTest = '[New // AnyExpr]
 type instance Preserves     ShellTest = '[]
 
+
+input = "## this class is cool\n##c2\nclass Cool a:\n    field :: a\n    ##c3\n    def foo: a\n##c4\ndef topdef:x"
 
 test_pass1 :: (MonadIO m, MonadFix m, PrimMonad m, MonadVis m, Logging m, Throws '[RefLookupError, IRError, PassEvalError] m) => m ()
 test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
@@ -102,14 +105,14 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
     setAttr (getTypeDesc @ReparsingStatus) $ (mempty :: ReparsingStatus)
 
     -- setAttr (getTypeDesc @Source) $ ("main:\n    «0»pi = 5\n    «1»a = 60" :: Source)
-    setAttr (getTypeDesc @Source) $ ("«0»foo bar" :: Source)
+    setAttr (getTypeDesc @Source) $ (input :: Source)
     -- setAttr (getTypeDesc @Source) $ ("main :   «1777»a" :: Source)
 
     -- World initialization
     setAttr (getTypeDesc @WorldExpr) (undefined :: WorldExpr) -- FIXME[WD]: it's ugly, we have to find a way to initialize attrs by pass manager
     Pass.eval' initWorld
 
-    Pass.eval' (Parsing.parserPassX Parsing.expr)
+    Pass.eval' (Parsing.parserPassX Parsing.unit')
 
     -- Unit initialization
     -- setAttr (getTypeDesc @UnitSet) ( [ ("MyLib", [ ["Main"] ])
@@ -157,7 +160,7 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
             --
         putStrLn "\n--- === CodeSpans === ---\n"
         es <- exprs
-        ls <- getLayer @CodeSpan <$$> es
+        ls <- getLayer @CodeSpan <$>= es
         pprint $ zip es ls
 
         -- putStrLn "\n--- === Abs CodeSpans === ---\n"
@@ -169,13 +172,13 @@ test_pass1 = evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
         begin <- CodeSpan.viewToRealOffsetWithMarkers_ 1 result
         end   <- CodeSpan.viewToRealOffset_            4 result
         print (begin, end)
-        putStrLn $ "\"" <> convert (VectorText.replace (convert begin) (convert end) "foo" src) <> "\""
+        -- putStrLn $ "\"" <> convert (VectorText.replace (convert begin) (convert end) "foo" src) <> "\""
 
         putStrLn "\n--- === Codegen === ---\n"
         putStrLn . convert =<< CodeGen.subpass CodeGen.SimpleStyle (unsafeGeneralize result)
 
         putStrLn "\n--- === Marker map === ---\n"
-        gidMap <- unwrap <$> getAttr @MarkedExprMap
+        gidMap <- _unwrap <$> getAttr @MarkedExprMap
         pprint gidMap
 
 
@@ -199,59 +202,61 @@ uncheckedDeleteStarType e = do
 
 
 --
--- main :: HasCallStack => IO ()
--- main = do
---     -- D.main
---     runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
---         (p, vis) <- Vis.newRunDiffT $ tryAll test_pass1
---         case p of
---             Left  e -> critical $ convert $ displayException e
---             Right _ -> do
---                 let cfg = replace "#" "%23" $ ByteString.unpack $ encode $ vis
---                 -- putStrLn cfg
---                 -- liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
---                 return ()
-
-
-
-
-
-main :: IO ()
+main :: HasCallStack => IO ()
 main = do
-    let input :: VectorText
-        -- input = "«0»Vector x y z = v\n«1»Scalar a = t"
-        input = "«0»Vector x y z = v"
-        -- input = "«0"
-    let stream = Lexer.runLexer input :: [Lexer.LexerToken (Lexer.Symbol Name)]
-        st     = buildSpanTree input stream
-    -- pprint stream
-    -- pprint st
-    -- -- putStrLn $ convert (convert stream :: Text)
-    -- -- Lexer.main
-    -- -- C2.mainc
-    -- let
-    --     st' = insertText 1 "!"  st
-    -- --     st' = breakLine 17 st
-    -- --     -- st = empty |> Spanned (Span 1 1) " " |> Spanned (Span 3 0) "«0»" |> Spanned (Span 7 7) "def foo"
-    -- -- print $ measure st
-    -- -- let i = 14
-    -- -- pprint $ splitAtViewOffset True i st
-    -- -- pprint $ viewToRealBlock st (i, i+1)
-    -- -- putStrLn "---"
-    -- pprint st'
-    -- let left = 1
-    --     right = 2
-    --     (len, (shift, pre, post)) = viewToRealCursorSplitAfterMarker st left
-    --     r' = viewToRealCursorBeforeMarker post (shift + right - left)
+    let stream = Lexer.evalDefLexer input :: [Lexer.Token Lexer.Symbol]
+    pprint stream
+    -- D.main
+    runTaggedLogging $ runEchoLogger $ runFormatLogger nestedColorFormatter $ do
+        (p, vis) <- Vis.newRunDiffT $ tryAll test_pass1
+        case p of
+            Left  e -> critical $ convert $ displayException e
+            Right _ -> do
+                let cfg = replace "#" "%23" $ ByteString.unpack $ encode $ vis
+                -- putStrLn cfg
+                liftIO $ openBrowser ("http://localhost:8000?cfg=" <> cfg)
+                return ()
 
-    print $ viewToRealBlock st (1,2)
-    -- pprint $ viewToRealCursorSplitAfterMarker st 1
-    -- pprint post
-    -- pprint (shift + right - left)
-    -- pprint (r' + len)
-    -- putStrLn . convert $ mconcat' st'
-    putStrLn "---"
-    --
+
+
+
+
+-- main :: IO ()
+-- main = do
+--     let input :: Text32
+--         -- input = "«0»Vector x y z = v\n«1»Scalar a = t"
+--         input = "«0»Vector x y z = v"
+--         -- input = "«0"
+--     let stream = Lexer.evalDefLexer input :: [Lexer.Token Lexer.Symbol]
+--         st     = buildSpanTree input stream
+--     -- pprint stream
+--     -- pprint st
+--     -- -- putStrLn $ convert (convert stream :: Text)
+--     -- -- Lexer.main
+--     -- -- C2.mainc
+--     -- let
+--     --     st' = insertText 1 "!"  st
+--     -- --     st' = breakLine 17 st
+--     -- --     -- st = empty |> Spanned (Span 1 1) " " |> Spanned (Span 3 0) "«0»" |> Spanned (Span 7 7) "def foo"
+--     -- -- print $ measure st
+--     -- -- let i = 14
+--     -- -- pprint $ splitAtViewOffset True i st
+--     -- -- pprint $ viewToRealBlock st (i, i+1)
+--     -- -- putStrLn "---"
+--     -- pprint st'
+--     -- let left = 1
+--     --     right = 2
+--     --     (len, (shift, pre, post)) = viewToRealCursorSplitAfterMarker st left
+--     --     r' = viewToRealCursorBeforeMarker post (shift + right - left)
+--
+--     print $ viewToRealBlock st (1,2)
+--     -- pprint $ viewToRealCursorSplitAfterMarker st 1
+--     -- pprint post
+--     -- pprint (shift + right - left)
+--     -- pprint (r' + len)
+--     -- putStrLn . convert $ mconcat' st'
+--     putStrLn "---"
+--     --
 -- viewToRealCursorSplitAfterMarker  ::         Spantree a -> Delta -> (Delta, (Delta, Spantree a, Spantree a))
 
 --

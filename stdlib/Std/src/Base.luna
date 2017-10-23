@@ -1,3 +1,121 @@
+native class Int:
+    def +  that: primIntAdd      self that
+    def *  that: primIntMultiply self that
+    def -  that: primIntSubtract self that
+    def /  that: primIntDivide   self that
+    def %  that: primIntModulo   self that
+    def >  that: primIntGt       self that
+    def <  that: primIntLt       self that
+    def == that: primIntEquals   self that
+    def equals that: primIntEquals self that
+
+    def negate: primIntNegate self
+    def toReal: primIntToReal self
+    def toText: primIntToText self
+
+    def shortRep: self.toText
+    def toJSON: JSONNumber self.toReal
+
+    def miliseconds: primIntMiliseconds self
+    def seconds: self*1000 . miliseconds
+    def minutes: self*60 . seconds
+
+    def pred: self - 1
+    def succ: self + 1
+
+    def upto i: if self < i then Prepend self (self+1 . upto i) else (if self == i then [self] else [])
+
+native class Real:
+    def +  that: primRealAdd      self that
+    def *  that: primRealMultiply self that
+    def -  that: primRealSubtract self that
+    def /  that: primRealDivide   self that
+    def >  that: primRealGt       self that
+    def <  that: primRealLt       self that
+    def == that: primRealEquals   self that
+    def equals that: primRealEquals self that
+
+    def negate:     primRealNegate self
+    def toText:     primRealToText self
+    def round prec: primRealRound  self prec
+
+    def sin: primRealSin self
+    def cos: primRealCos self
+    def tan: primRealTan self
+
+    def shortRep: self.toText
+    def toJSON: JSONNumber self
+
+def pi: 3.14159265359
+
+native class Text:
+    def +  that: primTextConcat self that
+    def >  that: primTextGt     self that
+    def <  that: primTextLt     self that
+    def == that: primTextEquals self that
+    def equals that: primTextEquals self that
+
+    def isEmpty: primTextIsEmpty self
+    def length:  primTextLength self
+
+    def hasPrefix  p: primTextHasPrefix self p
+    def isPrefixOf t: t.hasPrefix p
+
+    def characters: primTextCharacters self
+    def words:      primTextWords      self
+    def lines:      primTextLines      self
+
+    def lowercase: primTextLowercase self
+    def uppercase: primTextUppercase self
+    def reverse:   primTextReverse   self
+
+    def escapeJSON: primTextEscapeJSON self
+    def shortRep:   primTextShortRep   self
+    def toBinary:   primTextToBinary   self
+    def toText:     self
+    def toJSON:     JSONString self
+
+    def safeToInt:   primTextToInt  self
+    def safeToReal:  primTextToReal self
+
+    def toInt: case self.safeToInt of
+        Just val: val
+        Nothing:  errorStr ("Could not convert " + self + " to an Int")
+
+    def toReal: case self.safeToReal of
+        Just val: val
+        Nothing:  errorStr ("Could not convert " + self + " to a Real")
+
+native class Binary:
+    def +  that: primBinaryConcat self that
+    def == that: primBinaryEquals self that
+    def equals that: primBinaryEquals self that
+
+    def length: primBinaryLength self
+    def toText: primBinaryToText self
+
+    def shortRep: "Binary<" + self.length.toText + ">"
+    def toBinary: self
+
+
+class Complex:
+    real      :: Real
+    imaginary :: Real
+
+    def shortRep: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
+
+    def + that:
+        r = self.real.+ that.real
+        i = self.imaginary.+ that.imaginary
+        Complex r i
+
+    def * that:
+        r = self.real.* that.real      - self.imaginary.* that.imaginary
+        i = self.real.* that.imaginary + self.imaginary.* that.real
+        Complex r i
+
+    def modulus: self.real*self.real + self.imaginary*self.imaginary
+
 class Bool:
     True
     False
@@ -43,6 +161,10 @@ def switch: if_then_else
 def id a: a
 
 def const a b: a
+
+def when p f: if p then f else None
+
+def unless p f: if p then None else f
 
 def seq a b:
     a
@@ -105,8 +227,39 @@ class Tuple3 a b c:
     def shortRep: case self of
         Tuple3 a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
 
-    def equals that:
-        self.first.equals that.first . and (self.second.equals that.second) . and (self.third.equals that.third)
+    def equals that: case that of
+        Tuple3 a b c: self.first.equals a . and (self.second.equals b) . and (self.third.equals c)
+        other:        False
+
+class Tuple4 a b c d:
+    Tuple4 a b c d
+
+    def toJSON: case self of
+        Tuple4 a b c d: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON (Prepend d.toJSON Empty))))
+
+    def first: case self of
+        Tuple4 a b c d: a
+
+    def second: case self of
+        Tuple4 a b c d: b
+
+    def third: case self of
+        Tuple4 a b c d: c
+
+    def fourth: case self of
+        Tuple4 a b c d: d
+
+    def map f: Tuple4 (f self.first) (f self.second) (f self.third) (f self.fourth)
+
+    def toText: case self of
+        Tuple4 a b c d: "Tuple4 " + a.toText + " " + b.toText + " " + c.toText + " " + d.toText
+
+    def shortRep: case self of
+        Tuple4 a b c d: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ", " + d.shortRep + ")"
+
+    def equals that: case that of
+        Tuple4 a b c d: self.first.equals a . and (self.second.equals b) . and (self.third.equals c) . and (self.fourth.equals d)
+        other:        False
 
 class Maybe a:
     Nothing
@@ -121,7 +274,8 @@ class Maybe a:
         Nothing: Empty
 
     def fromJust: case self of
-        Just a: a
+        Just a:  a
+        Nothing: errorStr "Maybe.fromJust: Nothing"
 
     def fromMaybe defVal: case self of
         Just a: a
@@ -143,6 +297,20 @@ class Maybe a:
         Nothing: Nothing
         Just a: Just (f a)
 
+    def flatMap f: case self of
+        Nothing: Nothing
+        Just a: f a
+
+    def each f: case self of
+        Nothing: Nothing
+        Just a:
+            x = f a
+            Just x
+
+    def join: case self of
+        Nothing: Nothing
+        Just a: a
+
     def toText: case self of
         Just a: "Just " + a.toText
         Nothing: "Nothing"
@@ -161,6 +329,56 @@ class Maybe a:
             Nothing: True
             other:   False
 
+class Either a b:
+    Left  a
+    Right b
+
+    def toJSON: case self of
+        Left  a: a.toJSON
+        Right b: b.toJSON
+
+    def either lf rf: case self of
+        Left  a: lf a
+        Right b: rf b
+
+    def toMaybe: self.either (_: Nothing) Just
+
+    def isLeft: case self of
+        Left  _: True
+        Right _: False
+
+    def isRight: case self of
+        Left  _: False
+        Right _: True
+
+    def left: case self of
+        Left  a: a
+        Right _: errorStr "Either.left: Right"
+
+    def right: case self of
+        Left  _: errorStr "Either.right: Left"
+        Right b: b
+
+    def toText: case self of
+        Left  a: "Left " + a.toText
+        Right b: "Right " + b.toText
+
+    def shortRep: case self of
+        Left  a: "Left " + a.shortRep
+        Right b: "Right " + b.shortRep
+
+    def equals that: case self of
+        Left  a: if that.isLeft  then a.equals that.left  else False
+        Right b: if that.isRight then b.equals that.right else False
+
+    def map f: case self of
+        Left  a: Left a
+        Right b: Right (f b)
+
+    def flatMap f: case self of
+        Left  a: Left a
+        Right b: f b
+
 class List a:
     Empty
     Prepend a (List a)
@@ -168,6 +386,10 @@ class List a:
     def head: case (self) of
         Empty: Nothing
         Prepend x xs: Just x
+
+    def tail: case self of
+        Empty: Nothing
+        Prepend x xs: Just xs
 
     def prepend a: Prepend a self
 
@@ -199,15 +421,16 @@ class List a:
         Prepend x xs: if 0.equals i then self else xs . drop i.pred
 
     def at n: case (self) of
-        Prepend x xs: if 0.equals n then Just x else xs . at n.pred
+        Empty:        errorStr "List.at: index out of range"
+        Prepend x xs: if 0.equals n then x else xs . at n.pred
 
     def fold a f: case (self) of
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
-    def plus that: case (self) of
+    def + that: case (self) of
         Empty: that
-        Prepend x xs: Prepend x (xs.plus that)
+        Prepend x xs: Prepend x (xs.+ that)
 
     def length: case (self) of
         Empty: 0
@@ -237,7 +460,7 @@ class List a:
         Tuple2 Empty y: y
 
     def sort:
-        halfLen = self.length.div 2
+        halfLen = self.length / 2
         case 0.equals halfLen of
             True: self
             False:
@@ -279,9 +502,23 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
+    def makeText sep: self . each .toText . intersperse sep . fold '' (+)
+
+    def concat: case self of
+        Empty: Empty
+        Prepend Empty r: r.concat
+        Prepend (Prepend x xs) ys: Prepend x (Prepend xs ys).concat
+
+    def flatMap f: self.map f . concat
+
+    def contains elem: self._any (x: x == elem)
+
 class Map k v:
+    Map
     Tip
     Bin Int k v (Map k v) (Map k v)
+
+    def empty: Tip
 
     def isEmpty: case self of
         Tip: True
@@ -294,7 +531,7 @@ class Map k v:
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
-            l . toList . plus (Empty . prepend (Tuple2 k v)) . plus r.toList
+            l.toList + Empty.prepend (Tuple2 k v) + r.toList
 
     def map f: case self of
         Tip: Tip
@@ -327,6 +564,7 @@ class Map k v:
         other: False
 
 class JSON:
+    JSON
     JSONNumber Real
     JSONString Text
     JSONBool   Bool
@@ -334,17 +572,31 @@ class JSON:
     JSONObject (Map Text JSON)
     JSONNull
 
+    def safeParse data: parseJSON (data.toText)
+
+    def parse data: case JSON.safeParse data of
+       Right json: json
+       Left err:   errorStr err
+
     def toJSON: self
 
-    def render: case self of
+    def toText: case self of
         JSONNumber d: d.shortRep
         JSONString s: s.escapeJSON
-        JSONArray  l: "[" + (l . map (x : x.render) . intersperse "," . fold "" (+)) + "]"
+        JSONArray  l: "[" + (l . map (x : x.toText) . intersperse "," . fold "" (+)) + "]"
         JSONBool   b: case b of
             True:  "true"
             False: "false"
         JSONNull: "null"
-        JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.render) . intersperse "," . fold "" (+)) + "}"
+        JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
+
+    def fromObject: case self of
+        JSONObject m: m
+
+    def fromText: case self of
+        JSONString t: t
+
+    def render: self.toText
 
     def shortRep: self.render
 
@@ -354,16 +606,47 @@ class JSON:
 
     def toReal: case self of
         JSONNumber a: a
-
-    def toText: case self of
-        JSONString s: s
+        other:        errorStr "Unable to convert to a number"
 
     def toList: case self of
         JSONArray a: a
+        other:       errorStr "Unable to convert to a list"
 
-    def lookupReal key: self . lookup key . fromJust . toReal
+    def toBinary: self.render.toBinary
 
-    def lookupText key: self . lookup key . fromJust . toText
+    def lookupReal key: case self . lookup key of
+        Just val: val . toReal
+        Nothing:  errorStr ("Key not found: " + key)
+
+    def lookupText key: case self . lookup key of
+        Just (JSONString val): val
+        Nothing:  errorStr ("Key not found: " + key)
+
+    def at n: case self of
+        JSONArray a: a.at n
+        other:       errorStr "Object not indexable"
+
+    def map f: case self of
+        JSONArray a:  a.map f
+        JSONObject o: o.map f
+        other:        errorStr "Cannot map over a non-iterable object"
+
+    def filter f: case self of
+        JSONArray a:  a.filter f
+        JSONObject o: errorStr "Cannot use filter on JSONObject"
+        other:        errorStr "Cannot filter a non-iterable object"
+
+    def each f: case self of
+        JSONArray a: a.each f
+        other:       errorStr "Cannot call each on a non-iterable object"
+
+    def sum: case self of
+        JSONArray a: a.sum
+        other:       errorStr "Cannot compute sum of a non-iterable object"
+
+    def average: case self of
+        JSONArray a: a.average
+        other:       errorStr "Cannot compute average of a non-iterable object"
 
 class MsgPack:
     MPNull
@@ -395,6 +678,8 @@ class MsgPack:
         MPArray a:  a.toJSON
         MPMap   m:  m.toJSON
 
+    def toBinary: encodeMsgPack self
+
     def equals that: case self of
         MPNil: case that of
             MPNil:       True
@@ -422,11 +707,13 @@ class MsgPack:
     def shortRep: self.toText
 
     def toReal: case self of
-        MPInt i: i.toReal
+        MPInt i:  i.toReal
         MPReal r: r
+        other:    errorStr "Unable to convert to a number"
 
     def toList: case self of
         MPArray a: a
+        other:     errorStr "Unable to convert to a list"
 
     def _lookup_list_key key pairList: case pairList of
         Empty: Nothing
@@ -445,25 +732,33 @@ class MsgPack:
 
     def safeLookupText key: self.lookup (MPString key)
 
-    def lookupText key: self.safeLookupText key . fromJust
+    def lookupText key: case self.safeLookupText key of
+        Just val: val
+        Nothing:  errorStr ("Key not found: " + key)
 
     def at n: case self of
         MPArray a: a.at n
+        other:     errorStr "Object not indexable"
 
     def sum: case self of
         MPArray a: a.sum
+        other:     errorStr "Cannot compute sum of a non-iterable object"
 
     def average: case self of
         MPArray a: a.average
+        other:     errorStr "Cannot compute average of a non-iterable object"
 
     def map f: case self of
         MPArray a: a.map f
+        other:     errorStr "Cannot map over a non-iterable object"
 
     def filter f: case self of
         MPArray a: a.filter f
+        other:     errorStr "Cannot filter a non-iterable object"
 
     def each f: case self of
         MPArray a: a.each f
+        other:     errorStr "Cannot call each on a non-iterable object"
 
 def newMVar:
     primNewMVar
@@ -479,7 +774,8 @@ class MVar:
     def put v: primPutMVar  self v
 
 class Stream a:
-    Stream a (Stream a)
+    head :: a
+    tail :: Stream a
 
     def isStream: True
 
@@ -499,16 +795,68 @@ class Stream a:
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
+    def consume n: case self of
+        Stream elt s:
+            case (n == 0) of
+                True: (Empty, Stream elt s)
+                False:
+                    (elems, stream) = s.consume (n - 1)
+                    (Prepend elt elems, stream)
+
+    def consumeWhile f: case self of
+        Stream elt s:
+            case (f elt) of
+                False: (Empty, Stream elt s)
+                True:
+                    (elems, stream) = s.consumeWhile f
+                    (Prepend elt elems, stream)
+
+    def take n: self.consume n . first
+
+    def drop n: self.consume n . second
+
+    def takeWhile f: self.consumeWhile f . first
+
+    def dropWhile f: self.consumeWhile f . second
+
     def average:
         folder = el: (Tuple2 count sum): Tuple2 count.succ (sum + el)
         self . foldFrom (Tuple2 0 0.0) folder . map ((Tuple2 count sum): sum./ count.toReal)
+
+    def eval: self.each id
+
+    def rateLimit timeInterval:
+        everyWithState timeInterval (s: (s.head, s.tail)) self
+
+    def collect: case self.head of
+        Just  x: Stream x self.tail.collect
+        Nothing: self.tail.collect
+
+def streamFrom act:
+    var = newMVar
+    head = act
+    fork (var.put (streamFrom act))
+    Stream head var.read
 
 def delayAsync time act:
     var = newMVar
     fork (seq (sleep time) (var.put act))
     var
 
-def every time act:
+def every timeInterval act:
+    time    = timeInterval.toMicroseconds
     current = act
-    future  = delayAsync time (every time act)
+    future  = delayAsync time (every timeInterval act)
     Stream current future.read
+
+def everyWithState timeInterval stateFunc state:
+    time = timeInterval.toMicroseconds
+    (current, newState) = stateFunc state
+    future = delayAsync time (everyWithState timeInterval stateFunc newState)
+    Stream current future.read
+
+def print x: putStr x.toText
+
+def readFile f: primReadFile (expandPath f)
+
+def writeFile f c: primWriteFile (expandPath f c)

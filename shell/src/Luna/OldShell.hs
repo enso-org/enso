@@ -7,7 +7,7 @@
 
 module Luna.Shell where
 
--- import Prologue hiding (lookup, (!!), fromList, Empty)
+-- import Prologue_old hiding (lookup, (!!), fromList, Empty)
 
 -- data Interval t = Interval { _start :: !t
 --                            , _end   :: !t
@@ -576,7 +576,7 @@ main = do
 
 
 --
--- import Prologue hiding (Empty, null, reverse, fromList, (<|), (|>), deep, (:<), toList, (:>))
+-- import Prologue_old hiding (Empty, null, reverse, fromList, (<|), (|>), deep, (:<), toList, (:>))
 --
 -- import Control.Applicative (Applicative(pure, (<*>)), (<$>))
 -- import Data.Monoid

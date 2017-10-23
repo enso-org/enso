@@ -11,7 +11,7 @@ import Luna.IR.Term.Core
 import Luna.IR.Term.Function
 import Luna.IR.Term.Unit
 import Luna.IR.Term.World
-import Data.Property
+import Data.Property              hiding (Update)
 import Type.Relation              (Super)
 import Type.Bool
 import Data.Reprx
@@ -59,6 +59,8 @@ type instance Access Format Tuple        = Draft
 type instance Access Format AccSection   = Draft
 type instance Access Format LeftSection  = Draft
 type instance Access Format RightSection = Draft
+type instance Access Format Update       = Draft
+type instance Access Format Modify       = Draft
 
 type instance Access Format Unit                = Draft
 type instance Access Format UnitProxy           = Draft
@@ -81,4 +83,5 @@ type instance Access Format Invalid             = Draft
 type instance Access Format Disabled            = Draft
 type instance Access Format Marker              = Draft
 type instance Access Format Marked              = Draft
+type instance Access Format Documented          = Draft
 type instance Access Format Metadata            = Draft

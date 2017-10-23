@@ -10,6 +10,7 @@ import OCI.IR.Term
 import Data.Families (makeLensedTerm)
 import Data.Property
 import Data.Event
+import Luna.IR.Layer.Errors (CompileError)
 
 import qualified Data.Map    as Map
 
@@ -22,7 +23,7 @@ import qualified Data.Map    as Map
 
 
 data Class = Class { _constructors :: Map Name (Constructor, Destructor)
-                   , _methods      :: Map Name Function
+                   , _methods      :: Map Name (Either [CompileError] Function)
                    }
 
 data Constructor = Constructor { _constructor :: Rooted SomeExpr }

@@ -18,15 +18,16 @@ import qualified Control.Monad.State.Dependent as Dep
 import Control.Monad.Trans.State
 import Luna.Pass.Data.UniqueNameGen
 import qualified Luna.Pass.UnitCompilation.RecordProcessing as RecordProcessing
+import qualified Luna.IR.Layer.Errors as Errors
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Luna.Pass.Evaluation.Interpreter
 import Luna.Pass.Typechecking.Typecheck
-import Luna.Pass.Inference.Data.Unifications    (Unifications)
-import Luna.Pass.Inference.Data.SimplifierQueue (SimplifierQueue)
-import Luna.Pass.Inference.Data.MergeQueue      (MergeQueue)
+import Luna.Pass.Inference.Data.Unifications    (Unifications(Unifications))
+import Luna.Pass.Inference.Data.SimplifierQueue (SimplifierQueue(SimplifierQueue))
+import Luna.Pass.Inference.Data.MergeQueue      (MergeQueue(MergeQueue))
 import Luna.Pass.Resolution.Data.UnresolvedAccs (UnresolvedAccs, getAccs)
 import Luna.Pass.Resolution.Data.CurrentTarget
 import Data.TypeDesc
@@ -37,25 +38,25 @@ import Luna.Test.IR.Runner
 data DefProcessing
 type instance Abstract   DefProcessing = DefProcessing
 type instance Pass.Inputs     Net   DefProcessing = '[AnyExpr, AnyExprLink]
-type instance Pass.Inputs     Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model]
+type instance Pass.Inputs     Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Succs, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors, AnyExpr // RequiredBy]
 type instance Pass.Inputs     Attr  DefProcessing = '[]
 type instance Pass.Inputs     Event DefProcessing = '[]
 
 type instance Pass.Outputs    Net   DefProcessing = '[AnyExpr, AnyExprLink]
-type instance Pass.Outputs    Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Succs]
+type instance Pass.Outputs    Layer DefProcessing = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Succs, AnyExpr // RequiredBy]
 type instance Pass.Outputs    Attr  DefProcessing = '[]
 type instance Pass.Outputs    Event DefProcessing = '[Event.Import // AnyExpr, Event.Import // AnyExprLink, New // AnyExpr, Delete // AnyExpr, Delete // AnyExprLink, New // AnyExprLink, OnDeepDelete // AnyExpr]
 
 type instance Pass.Preserves        DefProcessing = '[]
 
-processDef :: Imports -> Name -> Rooted SomeExpr -> IO Function
-processDef imps functionName defIR@(Rooted _ root) = fmap (\(Right x) -> x) $ runPM False $ do
+processDef :: Name -> Imports -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)
+processDef modName imps functionName defIR@(Rooted _ root) = fmap (\(Right x) -> x) $ runPM False $ do
     runRegs
     defRoot <- Pass.eval' @DefProcessing $ ($ root) <$> importRooted defIR
-    mkDef imps def (TgtDef functionName) defRoot
+    mkDef modName imps (TgtDef modName functionName) defRoot
 
-mkDef :: (MonadPassManager m, MonadIO m) => Imports -> Map Name (Map Name LunaValue) -> CurrentTarget -> SomeExpr -> m Function
-mkDef imports localMethods currentTarget defRoot = mdo
+mkDef :: (MonadPassManager m, MonadIO m) => Name -> Imports -> CurrentTarget -> SomeExpr -> m (Either [CompileError] Function)
+mkDef modName imports currentTarget defRoot = mdo
     typecheckedRoot <- fromJust . Map.lookup (unsafeGeneralize defRoot) <$> typecheck currentTarget imports [unsafeGeneralize defRoot]
     value           <- Pass.eval' @Interpreter $ interpret' imports typecheckedRoot
 
@@ -64,14 +65,25 @@ mkDef imports localMethods currentTarget defRoot = mdo
     Just (apps    :: SimplifierQueue) <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @SimplifierQueue)
     Just (accs    :: UnresolvedAccs)  <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @UnresolvedAccs)
 
-    rooted <- Pass.eval' @DefProcessing $ do
-        tp <- getLayer @Type (unsafeGeneralize typecheckedRoot :: SomeExpr) >>= source
-        compile tp
+    errors <- Pass.eval' @DefProcessing $ getLayer @Errors typecheckedRoot
+    let addArisingFrom = maybe id (:) $ case currentTarget of
+            TgtDef    mod n   -> Just $ Errors.ModuleTagged mod $ Errors.FromFunction n
+            TgtMethod mod c m -> Just $ Errors.ModuleTagged mod $ Errors.FromMethod c m
+            _             -> Nothing
+    case errors of
+        e@(_:_) -> return $ Left $ e & traverse . Errors.arisingFrom %~ addArisingFrom
+        _       -> do
+            rooted <- Pass.eval' @DefProcessing $ do
+                forM_ (unwrap unifies) $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                forM_ (unwrap merges)  $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                forM_ (unwrap apps)    $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                forM_ (getAccs accs)   $ flip (modifyLayer_ @RequiredBy) addArisingFrom
+                tp <- getLayer @Type (unsafeGeneralize typecheckedRoot :: SomeExpr) >>= source
+                compile tp
 
+            let localDef = case currentTarget of
+                  TgtDef _ n -> Map.singleton n val
+                  _          -> def
+                val = evalStateT value $ LocalScope def localDef
 
-    let localDef = case currentTarget of
-          TgtDef n -> Map.singleton n val
-          _        -> def
-        val = evalStateT value $ LocalScope def localDef localMethods
-
-    return $ Function rooted val $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)
+            return $ Right $ Function rooted val $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)

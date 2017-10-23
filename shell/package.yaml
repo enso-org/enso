@@ -7,8 +7,10 @@ executables:
   luna:
     main: Main.hs
     source-dirs: src
+    ghc-options: -threaded "-with-rtsopts=-N -T"
     dependencies:
       - base
+      - layouting
       - luna-core
       - luna-project
       - luna-syntax-text-lexer
@@ -27,12 +29,13 @@ executables:
       - data-prop
       - dependent-state
       - directory
-      - path
+      - path >= 0.6.0
       - bimap
       - optparse-applicative
+      - terminal-text
       - text
       - ansi-wl-pprint
-      
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo

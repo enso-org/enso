@@ -1,8 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP                  #-}
 
 module System.Log.Logger.Format where
 
-import Prologue hiding (Simple)
+import Prologue_old hiding (Simple)
 
 import           Data.Map                     (Map)
 import qualified Data.Map                     as Map
@@ -20,8 +21,11 @@ import System.Log.Data
 
 
 -- TODO: This should be moved somewhere ...
+#if MIN_VERSION_ansi_wl_pprint(0,6,8)
+-- instance provided
+#else
 instance Semigroup Doc
-
+#endif
 
 -------------------
 -- === Style === --

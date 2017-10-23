@@ -1,4 +1,4 @@
-resolver: lts-8.19
+resolver: lts-8.23
 
 packages:
     - .
@@ -30,6 +30,7 @@ packages:
     - ../../../../libs/vector-text
     - ../../../../libs/terminal-text
     - ../../../../libs/layouting
+    - ../../../../libs/monad-branch
 
     - ../../../../libs/visualization-api
 
@@ -39,6 +40,7 @@ extra-deps:
     - ghc-mtl-1.2.1.0
     - serialport-0.4.7
     - hspec-jenkins-0.1.1
+    - ansi-terminal-0.6.3.1
 
     # https://github.com/worksap-ate/hspec-jenkins/issues/3 :
     - hspec-2.2.4
@@ -46,7 +48,6 @@ extra-deps:
     - hspec-discover-2.2.4
     - hspec-expectations-0.7.2
     - HUnit-1.3.1.2
-    - ansi-terminal-0.6.3.1
 
 ghc-options:
     "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100

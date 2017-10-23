@@ -246,7 +246,7 @@ newRunT :: Functor m => VisStateT m a -> m (a, Vis)
 newRunT = flip runT def ; {-# INLINE newRunT #-}
 
 newRunDiffT :: Functor m => VisStateT m a -> m (a, VisDiff)
-newRunDiffT = diff <<∘>> newRunT ; {-# INLINE newRunDiffT #-}
+newRunDiffT = diff .:. newRunT ; {-# INLINE newRunDiffT #-}
 
 
 -- -- === Component management === ---

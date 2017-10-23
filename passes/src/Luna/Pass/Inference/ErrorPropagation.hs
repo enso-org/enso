@@ -35,5 +35,5 @@ propagateErrors expr = matchExpr expr $ \case
         inpErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
         modifyLayer_ @Errors expr $ nub . (++ inpErrors)
 
-getErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m [Text]
+getErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m [CompileError]
 getErrors expr = (++) <$> getLayer @Errors expr <*> (fmap concat $ mapM (getErrors <=< source) =<< inputs expr)

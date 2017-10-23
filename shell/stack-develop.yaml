@@ -1,4 +1,4 @@
-resolver: lts-8.19
+resolver: lts-8.23
 
 packages:
     - .
@@ -34,7 +34,7 @@ packages:
     - ../../libs/vector-text
     - ../../libs/terminal-text
     - ../../libs/layouting
-    - ../../libs/cmd
+    - ../../libs/monad-branch
 
     - ../../libs/visualization-api
 
@@ -45,6 +45,7 @@ extra-deps:
     - serialport-0.4.7
     - hspec-jenkins-0.1.1
     - containers-0.5.8.2
+    - ansi-terminal-0.6.3.1
     - optparse-applicative-0.14.0.0
 
     # https://github.com/worksap-ate/hspec-jenkins/issues/3 :

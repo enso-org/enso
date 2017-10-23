@@ -2,7 +2,7 @@
 
 module System.Log.Data where
 
-import Prologue
+import Prologue_old
 
 import           Control.Monad.State                  (StateT, evalStateT)
 import           Control.Monad.Error.Class            (MonadError)

@@ -18,7 +18,7 @@ import qualified Language.Symbol.Operator.Assoc as Assoc
 import Luna.Syntax.Text.Scope (Scope, lookupMultipartName)
 import qualified Luna.Syntax.Text.Scope as Scope
 import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
-import Luna.Syntax.Text.Lexer.Name  (isOperator, markerBegin, markerEnd, metadataHeader)
+import Luna.Syntax.Text.Lexer.Grammar  (isOperator, markerBeginChar, markerEndChar, metadataHeader)
 import Language.Symbol (HasLabel, LabelOf, label)
 import System.Log
 import qualified OCI.IR.Name.Multipart as Name
@@ -225,12 +225,12 @@ instance ( MonadIO m -- DEBUG ONLY
         LeftSection  op a      -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
         RightSection op a      -> unnamed . atom . parensed .: flip (<+>) <$> subgenBody op  <*> subgenBody a
         Marked       m a       -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
-        Marker         a       -> return . unnamed . atom $ convert markerBegin <> convert (show a) <> convert markerEnd
+        Marker         a       -> return . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
         ASGRootedFunction  n _ -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
         ASGFunction  n as body -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
         FunctionSig  n tp      -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
         Match        a cs      -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
-        ClsASG   n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
+        ClsASG _ n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
                                       go args conss decls = "class" <+> convert n <> arglist args <> body where
                                           body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock
                                           bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
@@ -248,14 +248,17 @@ instance ( MonadIO m -- DEBUG ONLY
         Unit      im _ b       -> do
                                   cls <- source b
                                   matchExpr cls $ \case
-                                      ClsASG _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
+                                      ClsASG _ _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
                                           where go imps defs = let --glue = if {-(imps == "") ||-} (null defs) then "" else newline
                                                                    glue = ""
                                                                in  imps <> glue <> foldl (</>) mempty defs
 
         AccSection   n         -> return . named (notSpaced accName) . atom $ "." <> intercalate "." (convert <$> n)
-        Metadata     t         -> return . unnamed . atom $ "###" <+> metadataHeader <+> convert t
+        Metadata     t         -> return . unnamed . atom $ "###" <+> metadataHeader <+> convertVia @Text t
+        Documented   d a       -> unnamed . atom . (\a' -> "##" <> convertVia @P.String d </> a') <$> subgenBody a -- FIXME: Conversion via string is not efficient
         Disabled     a         -> unnamed . atom . ("#" <>) <$> subgenBody a
+        Update       a ns v    -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+>              "=" <+> convert v') <$> subgen a <*> subgen v
+        Modify       a ns n v  -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+> convert n <> "=" <+> convert v') <$> subgen a <*> subgen v
 
         --         FmtString str  -> unnamed . atom . squoted . mconcat <$> (mapM handleSegment $ unwrap str) where -- FIXME [WD]: add proper multi-strings indentation
         --                           handleSegment = \case (Literal.StrSegment  s) -> fmap convert $ gen1 =<< source s
@@ -317,11 +320,17 @@ instance ( MonadIO m -- DEBUG ONLY
                   ]
          ) => ChainedPrettyPrinter CompactStyle t m where
     chainedPrettyShow style subStyle root = matchExpr root $ \case
-        String str  -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
-        Var    name -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
-        Lam{}       -> return . unnamed $ atom "Ⓕ"
-        Marked m b  -> chainedPrettyShow style subStyle =<< source b
-        _           -> defGen
+        String str    -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
+        Var    name   -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
+        Lam{}         -> return . unnamed $ atom "Ⓕ"
+        ASGFunction{} -> return . unnamed $ atom "Ⓕ"
+        Marked m b    -> chainedPrettyShow style subStyle =<< source b
+        Grouped g     -> do
+            body <- chainedPrettyShow style subStyle =<< source g
+            return $ case unlabel body of
+                Atom{} -> body
+                _      -> unnamed . atom . parensed . getBody $ body
+        _             -> defGen
         where simpleGen = chainedPrettyShow SimpleStyle subStyle
               defGen    = simpleGen root
 

@@ -12,7 +12,10 @@ dependencies:
     - base
     - bytestring
     - containers
+    - case-insensitive
+    - deepseq
     - dependent-state
+    - directory
     - luna-core
     - luna-syntax-text-parser
     - mtl
@@ -24,11 +27,19 @@ dependencies:
     - scientific
     - unordered-containers
     - aeson
+    - http-client
+    - http-client-tls
     - http-conduit
     - http-types
     - uuid
     - process
     - data-msgpack
+    - time
+    - random
+    - authenticate-oauth
+    - network
+    - websockets
+    - wuss
 
 default-extensions:
     - AllowAmbiguousTypes

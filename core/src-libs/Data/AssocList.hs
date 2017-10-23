@@ -1,7 +1,7 @@
 module Data.AssocList where
 
 import qualified Prelude   as P
-import           Prologue  hiding (null, lookup)
+import           Prologue_old  hiding (null, lookup)
 import qualified Data.List as List
 
 

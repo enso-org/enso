@@ -1,6 +1,6 @@
 module Luna.Syntax.Text.Parser.AST where
 
-import Prologue
+import Prologue_old
 import Luna.IR
 import qualified Data.Set as Set
 
