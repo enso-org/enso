@@ -35,6 +35,8 @@ executables:
       - terminal-text
       - text
       - ansi-wl-pprint
+      - executable-path
+      - filepath
 
 default-extensions:
     - AllowAmbiguousTypes

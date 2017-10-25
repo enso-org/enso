@@ -1,0 +1,17 @@
+apps:
+- luna
+packages:
+  luna:
+    versions:
+      0.9.0:
+        darwin.x64:
+          path: ./
+          deps: []
+        linux.x64:
+          path: ./
+          deps: []
+        windows.x64:
+          path: ./
+          deps: []
+    appType: BatchApp
+    synopsis: luna synopsis

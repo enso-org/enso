@@ -3,6 +3,8 @@ extra-deps: [error-util-0.0.1.1, cond-0.4.1.1, ghc-mtl-1.2.1.0, serialport-0.4.7
   HUnit-1.3.1.2, containers-0.5.8.2, ansi-terminal-0.6.3.1, optparse-applicative-0.14.0.0, path-0.6.1]
 ghc-options: {'*': -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields
     -O0 -fconstraint-solver-iterations=100}
+local-bin-path:
+  ../dist/bin/public/luna
 packages:
 - {location: .}
 - {location: ../core}
