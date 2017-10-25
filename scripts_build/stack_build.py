@@ -11,6 +11,7 @@ shell_path = prep_path('../shell')
 luna_binary_path = prep_path('../dist/bin/public/luna')
 config_env_path = prep_path('../dist/config/env')
 stdlib_path = prep_path('../stdlib')
+resources_path = prep_path('../resources')
 
 
 def create_dirs():
@@ -33,18 +34,28 @@ def link_main_bin():
         os.symlink('./public/luna', 'main', target_is_directory=True)
 
 
-def copy_stdlib():
-    src = os.path.join(stdlib_path, "Std")
-    dst = os.path.join(config_env_path, "Std")
-    log_msg('Copying stdlib from {} to {}'.format(src, dst))
+def copy_files(src, dst):
+    log_msg('Copying from {} to {}'.format(src, dst))
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
 
 
+def copy_stdlib():
+    src = os.path.join(stdlib_path, "Std")
+    dst = os.path.join(config_env_path, "Std")
+    copy_files(src, dst)
+
+
+def copy_resources():
+    dst = os.path.join(luna_binary_path,"resources")
+    copy_files(resources_path, dst)
+
+
 def run():
     create_dirs()
     build()
+    copy_resources()
     link_main_bin()
     copy_stdlib()
 

@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=luna
+Exec=bin/public/luna/luna %F
+Icon=luna
+Type=Application
