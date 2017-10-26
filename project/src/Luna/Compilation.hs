@@ -7,6 +7,7 @@ import           Luna.Prelude        hiding (String, seq, cons, Constructor)
 import qualified Luna.Prelude        as P
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
+import qualified Data.Set            as Set
 import qualified Data.TreeSet        as TreeSet
 import qualified Data.Bimap          as Bimap
 import           Control.Monad.Raise
@@ -147,8 +148,11 @@ requestModule srcs stack current = do
                 src <- imp @^. Term.termUnresolvedImport_source
                 Term.Absolute path <- src @. wrapped
                 return path
+    let baseIncludedDeps = if "Std.Base" == current
+                           then dependencies
+                           else Set.toList $ Set.insert "Std.Base" $ Set.fromList dependencies
 
-    deps <- fmap Map.fromList $ forM dependencies $ \dep -> do
+    deps <- fmap Map.fromList $ forM baseIncludedDeps $ \dep -> do
         scope <- use modules
         case scope ^? ix dep of
             Just i  -> return (dep, i)
