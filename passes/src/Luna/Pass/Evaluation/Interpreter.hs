@@ -58,7 +58,7 @@ mergeScopes :: Map (Expr Draft) LunaData -> LocalScope -> LocalScope
 mergeScopes m = localVars %~ Map.union m
 
 globalLookup :: Name -> Imports -> Maybe LunaValue
-globalLookup n imps = imps ^? importedFunctions . ix n . _Right . value
+globalLookup n imps = imps ^? importedFunctions . ix n . documentedItem . _Right . value
 
 mkInt :: Imports -> Integer -> LunaData
 mkInt = toLunaData

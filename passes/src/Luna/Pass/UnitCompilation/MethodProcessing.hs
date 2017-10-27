@@ -32,6 +32,7 @@ import Luna.Pass.Resolution.Data.CurrentTarget
 import Luna.Pass.UnitCompilation.DefProcessing
 import Data.TypeDesc
 
+import Data.Text32 (Text32)
 
 import Luna.Test.IR.Runner
 import Data.Future (delay, Future)
@@ -50,11 +51,11 @@ type instance Pass.Outputs    Event MethodProcessing = '[Event.Import // AnyExpr
 
 type instance Pass.Preserves        MethodProcessing = '[]
 
-processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Name -> Imports -> Name -> [Name] -> [Name] -> [(Name, Rooted SomeExpr)] -> m (Map Name (Either [CompileError] Function))
+processMethods :: (MonadPassManager m, MonadIO m, Dep.MonadState Cache m) => Name -> Imports -> Name -> [Name] -> [Name] -> [(Name, Maybe Text32, Rooted SomeExpr)] -> m (Map Name (WithDocumentation (Either [CompileError] Function)))
 processMethods modName imps className classParamNames consNames methodIRs = mdo
-    result <- forM methodIRs $ \(n, body) -> liftIO $ delay $ mkMethod modName allImports className classParamNames n body
-    let meths      = zip (fst <$> methodIRs) result
-        allImports = imps & importedClasses . ix className . Class.methods %~ Map.union (Map.fromList meths)
+    result <- forM methodIRs $ \(n, doc, body) -> fmap (WithDocumentation doc) $ liftIO $ delay $ mkMethod modName allImports className classParamNames n body
+    let meths      = zip (view _1 <$> methodIRs) result
+        allImports = imps & importedClasses . ix className . documentedItem . Class.methods %~ Map.union (Map.fromList meths)
     return $ Map.fromList meths
 
 mkMethod ::  Name -> Imports -> Name -> [Name] -> Name -> Rooted SomeExpr -> IO (Either [CompileError] Function)

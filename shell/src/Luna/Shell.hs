@@ -172,7 +172,7 @@ main = do
     stdPath   <- stdlibPath
     (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
     Right (_, imp) <- Project.requestModules (Map.fromList [("Std", stdPath), ("Main", mainPath)]) ["Main.Main"] std
-    let mainFun = imp ^? Project.modules . ix ["Main", "Main"] . importedFunctions . ix "main"
+    let mainFun = imp ^? Project.modules . ix ["Main", "Main"] . importedFunctions . ix "main" . Function.documentedItem
     case mainFun of
         Just (Left e)  -> do
             putStrLn "Luna encountered the following compilation errors:"

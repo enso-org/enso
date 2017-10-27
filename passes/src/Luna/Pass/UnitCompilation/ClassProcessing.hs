@@ -10,13 +10,14 @@ import qualified Luna.IR.Expr     as Term
 import OCI.IR.Combinators
 import Luna.Builtin.Data.Class    as Class
 import Luna.Builtin.Data.Module   as Module
-import Luna.Builtin.Data.Function (compile)
+import Luna.Builtin.Data.Function (compile, WithDocumentation (..), documentation, documentedItem)
 import Luna.IR
 import Control.Monad.State.Dependent
 import Control.Monad.Raise
 import Luna.Pass.Data.UniqueNameGen
 import Luna.Pass.Data.ExprRoots
 import Data.TypeDesc
+import Data.Text32 (Text32)
 import qualified Luna.Pass.UnitCompilation.RecordProcessing as RecordProcessing
 import qualified Luna.Pass.UnitCompilation.MethodProcessing as MethodProcessing
 import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped  as RemoveGrouped
@@ -38,6 +39,11 @@ type instance Pass.Outputs    Event ClassProcessing = '[New // AnyExpr, Delete /
 
 type instance Pass.Preserves        ClassProcessing = '[]
 
+cutDoc :: (MonadPassManager m, MonadIO m) => Expr Draft -> SubPass ClassProcessing m (Expr Draft, Maybe Text32)
+cutDoc e = matchExpr e $ \case
+    Documented d a -> (,Just d) <$> source a
+    _              -> return (e, Nothing)
+
 processClass :: (MonadPassManager m, MonadIO m) => Name -> Imports -> Expr ClsASG -> m Class
 processClass modName imports root = do
     setAttr (getTypeDesc @ExprRoots) $ ExprRoots [unsafeGeneralize root]
@@ -50,26 +56,28 @@ processClass modName imports root = do
             Var n -> return n
             _     -> error "Unexpected class parameter type"
         decls <- mapM source ds
-        resolvedDecls <- fmap catMaybes $ forM decls $ \decl -> matchExpr decl $ \case
-            ASGRootedFunction n r -> do
-                n'   <- source n
-                name <- matchExpr n' $ \(Var n) -> return n
-                return $ Just (name, r)
-            _                     -> return $ Nothing
+        resolvedDecls <- fmap catMaybes $ forM decls $ \decl -> do
+            (d, doc) <- cutDoc decl
+            matchExpr d $ \case
+                ASGRootedFunction n r -> do
+                    n'   <- source n
+                    name <- matchExpr n' $ \(Var n) -> return n
+                    return $ Just (name, doc, r)
+                _                     -> return $ Nothing
         conses <- mapM source cs
         resolvedConses <- fmap catMaybes $ forM conses $ \cons -> matchExpr cons $ \case
             RecASG n _ -> return $ Just (n, unsafeGeneralize cons)
             _          -> return Nothing
         return (name, paramNames, resolvedConses, resolvedDecls)
     compiledRecords <- mapM (RecordProcessing.processRecord className paramNames . snd) records
-    getters         <- case records of
+    getters         <- fmap (fmap $ WithDocumentation (Just "Field getter.") . Right) $ case records of
         [(_, r)] -> RecordProcessing.generateGetters className paramNames r
         _        -> return def
     let recordsMap = Map.fromList $ zip (fst <$> records) compiledRecords
-        bareClass  = Class recordsMap (Right <$> getters)
-        imps       = imports & importedClasses . at className ?~ bareClass
+        bareClass  = Class recordsMap getters
+        imps       = imports & importedClasses . at className ?~ WithDocumentation Nothing bareClass
     methodMap <- MethodProcessing.processMethods modName imps className paramNames (fst <$> records) methods
-    return $ Class recordsMap (Map.union methodMap (Right <$> getters))
+    return $ Class recordsMap (Map.union methodMap getters)
 
 resolveToplevelFields :: (MonadPassManager m, MonadIO m) => Expr ClsASG -> Pass ClassProcessing m
 resolveToplevelFields cls = do

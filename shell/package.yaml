@@ -4,6 +4,22 @@ author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
 executables:
+  luna-gendoc:
+    main: GenDoc.hs
+    source-dirs: src
+    ghc-options: -threaded "-with-rtsopts=-N -T"
+    dependencies:
+      - base
+      - luna-core
+      - luna-project
+      - luna-syntax-text-lexer
+      - luna-syntax-text-parser
+      - luna-passes
+      - containers
+      - mtl
+      - prologue
+      - directory
+      - text-processing
   luna:
     main: Main.hs
     source-dirs: src

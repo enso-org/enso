@@ -502,18 +502,20 @@ partitionASGCls t = do
     Term (Term.ClsASG _ name _ _ unitDeclsl) <- readTerm t
     withDebug (convert $ "Converting ASGCls to Cls representation of '" <> convertTo @P.String name <> "'") $ do
         unitDecls <- mapM readSource unitDeclsl
-        unitCls   <- Cls.wireCls' =<< (foldr ($) mempty <$> mapM partitionASGDecl unitDecls)
+        unitCls   <- Cls.wireCls' =<< (foldr ($) mempty <$> mapM (partitionASGDecl . generalize) unitDecls)
         replace unitCls t
 
-partitionASGDecl :: MonadPassRunner m => Expr a -> SubPass UnitLoader m (Cls.TermCls SomeExpr -> Cls.TermCls SomeExpr)
-partitionASGDecl decl = matchExpr decl $ \case
-    ASGRootedFunction n body -> do
-        n'   <- source n
-        name <- matchExpr n' $ \case
-            Var n -> return n
-        set (Cls.methods . at name) . Just <$> rootedFunction body
-    cls@(ClsASG _ name _ _ _)   -> return $ Cls.classes . at name ?~ unsafeGeneralize decl
-    _                           -> return id
+partitionASGDecl :: MonadPassRunner m => SomeExpr -> SubPass UnitLoader m (Cls.TermCls SomeExpr -> Cls.TermCls SomeExpr)
+partitionASGDecl decl = go decl decl where
+    go root cur = matchExpr cur $ \case
+        ASGRootedFunction n body -> do
+            n'   <- source n
+            name <- matchExpr n' $ \case
+                Var n -> return n
+            return $ Cls.methods . at name ?~ unsafeGeneralize root
+        cls@(ClsASG _ name _ _ _)   -> return $ Cls.classes . at name ?~ unsafeGeneralize root
+        Documented d a              -> go root =<< source a
+        _                           -> return id
 
 
 

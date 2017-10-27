@@ -9,12 +9,13 @@ import qualified OCI.Pass.Manager as Pass
 import qualified Luna.IR.Expr     as Term
 import OCI.IR.Combinators
 import Luna.Builtin.Data.Class
-import Luna.Builtin.Data.Function  (compile, Function (Function))
+import Luna.Builtin.Data.Function  (compile, Function (Function), WithDocumentation (..))
 import Luna.Builtin.Data.LunaValue (LunaData (LunaFunction), getObjectField)
 import qualified Luna.Builtin.Data.Function as Function
 import Luna.IR
 import Control.Monad.State.Dependent
 import Luna.Pass.Data.UniqueNameGen
+import Data.Text32 ()
 
 import           Data.Map (Map)
 import qualified Data.Map as Map

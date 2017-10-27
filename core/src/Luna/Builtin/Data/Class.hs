@@ -3,7 +3,7 @@ module Luna.Builtin.Data.Class where
 import Luna.Prelude               hiding (Constructor, Destructor)
 
 import Data.Map                   (Map)
-import Luna.Builtin.Data.Function (Function, importRooted)
+import Luna.Builtin.Data.Function (Function, importRooted, WithDocumentation)
 import OCI.IR.Name
 import OCI.IR.Class
 import OCI.IR.Term
@@ -11,6 +11,7 @@ import Data.Families (makeLensedTerm)
 import Data.Property
 import Data.Event
 import Luna.IR.Layer.Errors (CompileError)
+import Data.Text32 (Text32)
 
 import qualified Data.Map    as Map
 
@@ -23,7 +24,7 @@ import qualified Data.Map    as Map
 
 
 data Class = Class { _constructors :: Map Name (Constructor, Destructor)
-                   , _methods      :: Map Name (Either [CompileError] Function)
+                   , _methods      :: Map Name (WithDocumentation (Either [CompileError] Function))
                    }
 
 data Constructor = Constructor { _constructor :: Rooted SomeExpr }
@@ -35,7 +36,6 @@ data Destructor  = Destructor  { _destructor :: Rooted SomeExpr
 makeLenses ''Class
 makeLenses ''Constructor
 makeLenses ''Destructor
-
 
 whenHasConstructor :: Name -> Class -> Maybe Class
 whenHasConstructor n c@(Class cs _) = const c <$> Map.lookup n cs

@@ -48,6 +48,7 @@ dependencies:
     - luna-syntax-text-lexer
     - binary
     - utf8-string
+    - vector-text
 
 default-extensions:
     - AllowAmbiguousTypes

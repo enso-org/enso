@@ -131,11 +131,11 @@ importMethodFromImports className methodName newReq requiredBy = do
             return $ Right root
 
 lookupClass :: Name -> Name -> Imports -> [ModuleTagged ErrorSource] -> Either [CompileError] Class
-lookupClass n clsN imps reqBy = case imps ^. importedClasses . at clsN of
+lookupClass n clsN imps reqBy = case imps ^? importedClasses . ix clsN . documentedItem of
     Nothing -> Left [CompileError (importErrorDoc n clsN) reqBy []]
     Just f  -> Right f
 
 lookupMethod :: Name -> Name -> [ModuleTagged ErrorSource] -> Class -> Either [CompileError] Function
-lookupMethod n clsN reqBy cls = case Map.lookup n (cls ^. methods) of
+lookupMethod n clsN reqBy cls = case cls ^? methods . ix n . documentedItem of
     Just e  -> e
     _       -> Left [CompileError (importErrorDoc n clsN) reqBy []]

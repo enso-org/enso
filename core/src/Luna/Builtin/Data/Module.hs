@@ -26,8 +26,8 @@ unionsWorlds = foldr unionWorlds def
 instance Default CompiledWorld where
     def = CompiledWorld def def
 
-data Imports = Imports { _importedClasses   :: Map Name Class
-                       , _importedFunctions :: Map Name (Either [CompileError] Function)
+data Imports = Imports { _importedClasses   :: Map Name (WithDocumentation Class)
+                       , _importedFunctions :: Map Name (WithDocumentation (Either [CompileError] Function))
                        }
 makeLenses ''Imports
 
@@ -41,13 +41,13 @@ instance Default Imports where
     def = Imports def def
 
 getObjectMethodMap :: Name -> Imports -> Map Name (Either [CompileError] LunaValue)
-getObjectMethodMap className imps = fmap (view value) <$> view methods klass where
+getObjectMethodMap className imps = fmap (view value) . view documentedItem <$> view (documentedItem . methods) klass where
     klass = case Map.lookup className (imps ^. importedClasses) of
         Nothing -> error $ "ObjectMethodMap for: " ++ show className ++ " does not exist."
         Just a  -> a
 
 getConstructorMethodMap :: Name -> Imports -> Map Name (Either [CompileError] LunaValue)
-getConstructorMethodMap consName imps = fmap (view value) <$> view methods klass where
-    klass = case catMaybes $ fmap (whenHasConstructor consName) $ imps ^.. importedClasses . traverse of
+getConstructorMethodMap consName imps = fmap (view value) . view documentedItem <$> view methods klass where
+    klass = case catMaybes $ fmap (whenHasConstructor consName) $ imps ^.. importedClasses . traverse . documentedItem of
         [] -> error $ "Class with a constructor: " ++ show consName ++ " does not exist."
         a : _ -> a

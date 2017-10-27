@@ -16,6 +16,7 @@ import OCI.IR.Name.Qualified
 import OCI.IR.Term
 import Data.Event
 import Data.Property
+import Data.Text32 (Text32)
 
 import           Control.Monad.State.Dependent
 import qualified Data.Map as Map
@@ -28,6 +29,12 @@ import           Data.Vector.Unboxed         (Vector)
 import           Luna.Builtin.Data.LunaValue (LunaValue)
 
 -- === Definition === --
+
+data WithDocumentation a = WithDocumentation { _documentation  :: (Maybe Text32)
+                                             , _documentedItem :: a
+                                             } deriving (Show, Foldable, Traversable, Functor)
+
+makeLenses ''WithDocumentation
 
 data Assumptions = Assumptions { _unifies      :: [Expr Unify]
                                , _merges       :: [Expr Unify]
@@ -44,8 +51,7 @@ data Function = Function { _header       :: Rooted SomeExpr
                          , _assumptions  :: Assumptions
                          }
 makeLenses ''Function
-
-
+--
 -- === Compilation === --
 
 compile :: forall l m. (MonadIR m, Editors Net '[AnyExpr, AnyExprLink] m, Editors Layer '[AnyExpr // Succs, AnyExpr // Type, AnyExpr // Model, AnyExprLink // Model] m)

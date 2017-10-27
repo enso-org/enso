@@ -42,7 +42,7 @@ runDeconstructorResolution = do
     putAttr @NegativeConses $ NegativeConses []
 
 lookupDestr :: Name -> Imports -> Either ImportError Destructor
-lookupDestr n imps = case itoListOf (importedClasses .> itraversed <. Class.constructors . ix n) imps of
+lookupDestr n imps = case itoListOf (importedClasses .> itraversed <. Function.documentedItem . Class.constructors . ix n) imps of
     []       -> Left SymbolNotFound
     [(_, d)] -> Right $ snd d
     matches  -> Left . SymbolAmbiguous $ fst <$> matches

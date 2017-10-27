@@ -145,7 +145,7 @@ typeRepForPure val args out = do
             let lastMonad = head $ reverse monads
             replace lastMonad outM
             res <- compile $ generalize funType
-            return $ Function res val $ Assumptions def (tail monads) def def
+            return $ Function res val (Assumptions def (tail monads) def def)
     case res of
         Right r -> return r
         Left e  -> error $ show e
@@ -171,7 +171,7 @@ typeRepForIO val args out = do
             let lastMonad = head $ reverse monads
             replace lastMonad outM
             res <- compile $ generalize funType
-            return $ Function res val $ Assumptions def (tail monads) def def
+            return $ Function res val (Assumptions def (tail monads) def def)
     case res of
         Right r -> return r
         Left e  -> error $ show e
@@ -193,7 +193,7 @@ compileFunction imps pass = do
             let whiteList = Set.unions [Set.singleton (generalize tp), Set.fromList (generalize <$> unwrap unifies), Set.fromList (generalize <$> unwrap merges), Set.fromList (generalize <$> unwrap apps), Set.fromList (generalize <$> getAccs accs)]
             deepDeleteWithWhitelist root whiteList
             compile tp
-        return $ Function rooted (evalStateT val def) $ Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs)
+        return $ Function rooted (evalStateT val def) (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
     return res
 
 mkMonadProofFun' :: (MonadRef m, MonadPassManager m) => Maybe (Expr Draft) -> Expr Draft -> SubPass TestPass m ([Expr Unify], Expr Draft)
@@ -268,19 +268,19 @@ primReal imps = do
         cosVal      = toLunaValue imps (cos  :: Double -> Double)
         tanVal      = toLunaValue imps (tan  :: Double -> Double)
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
-    return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal   boxed3DoublesAssumptions)
-                          , ("primRealMultiply", Function boxed3Doubles   timeVal   boxed3DoublesAssumptions)
-                          , ("primRealSubtract", Function boxed3Doubles   minusVal  boxed3DoublesAssumptions)
-                          , ("primRealDivide",   Function boxed3Doubles   divVal    boxed3DoublesAssumptions)
-                          , ("primRealEquals",   Function double2Bool     eqVal     double2BoolAssumptions)
-                          , ("primRealLt",       Function double2Bool     ltVal     double2BoolAssumptions)
-                          , ("primRealGt",       Function double2Bool     gtVal     double2BoolAssumptions)
+    return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal   boxed3DoublesAssumptions  )
+                          , ("primRealMultiply", Function boxed3Doubles   timeVal   boxed3DoublesAssumptions  )
+                          , ("primRealSubtract", Function boxed3Doubles   minusVal  boxed3DoublesAssumptions  )
+                          , ("primRealDivide",   Function boxed3Doubles   divVal    boxed3DoublesAssumptions  )
+                          , ("primRealEquals",   Function double2Bool     eqVal     double2BoolAssumptions    )
+                          , ("primRealLt",       Function double2Bool     ltVal     double2BoolAssumptions    )
+                          , ("primRealGt",       Function double2Bool     gtVal     double2BoolAssumptions    )
                           , ("primRealRound",    Function doubleIntDouble roundVal  doubleIntDoubleAssumptions)
-                          , ("primRealToText",   Function double2text     showVal   double2TextAssumptions)
-                          , ("primRealSin",      Function double2Double   sinVal    double2DoubleAssumptions)
-                          , ("primRealCos",      Function double2Double   cosVal    double2DoubleAssumptions)
-                          , ("primRealTan",      Function double2Double   tanVal    double2DoubleAssumptions)
-                          , ("primRealNegate",   Function double2Double   uminusVal double2DoubleAssumptions)
+                          , ("primRealToText",   Function double2text     showVal   double2TextAssumptions    )
+                          , ("primRealSin",      Function double2Double   sinVal    double2DoubleAssumptions  )
+                          , ("primRealCos",      Function double2Double   cosVal    double2DoubleAssumptions  )
+                          , ("primRealTan",      Function double2Double   tanVal    double2DoubleAssumptions  )
+                          , ("primRealNegate",   Function double2Double   uminusVal double2DoubleAssumptions  )
                           ]
 
 primInt :: Imports -> IO (Map Name Function)
@@ -315,12 +315,12 @@ primInt imps = do
                           , ("primIntPred",        Function boxed2Ints predVal        boxed2IntsAssumptions)
                           , ("primIntSucc",        Function boxed2Ints succVal        boxed2IntsAssumptions)
                           , ("primIntNegate",      Function boxed2Ints negateVal      boxed2IntsAssumptions)
-                          , ("primIntMiliseconds", Function int2TI     milisecondsVal int2TIAssumptions)
-                          , ("primIntToText",      Function int2text   showVal        int2TextAssumptions)
-                          , ("primIntToReal",      Function int2Real   toRealVal      int2RealAssumptions)
-                          , ("primIntEquals",      Function ints2Bool  eqVal          ints2BoolAssumptions)
-                          , ("primIntGt",          Function ints2Bool  gtVal          ints2BoolAssumptions)
-                          , ("primIntLt",          Function ints2Bool  ltVal          ints2BoolAssumptions)
+                          , ("primIntMiliseconds", Function int2TI     milisecondsVal int2TIAssumptions    )
+                          , ("primIntToText",      Function int2text   showVal        int2TextAssumptions  )
+                          , ("primIntToReal",      Function int2Real   toRealVal      int2RealAssumptions  )
+                          , ("primIntEquals",      Function ints2Bool  eqVal          ints2BoolAssumptions )
+                          , ("primIntGt",          Function ints2Bool  gtVal          ints2BoolAssumptions )
+                          , ("primIntLt",          Function ints2Bool  ltVal          ints2BoolAssumptions )
                           ]
 
 primBinary :: Imports -> IO (Map Name Function)
@@ -334,9 +334,9 @@ primBinary imps = do
         plusVal    = toLunaValue imps ((<>) :: ByteString -> ByteString -> ByteString)
         lenVal     = toLunaValue imps (fromIntegral . ByteString.length :: ByteString -> Integer)
     return $ Map.fromList [ ("primBinaryToText",   Function toTextIr toTextVal  toTextAssu)
-                          , ("primBinaryEquals",   Function eqIr     eqVal      eqAssu)
-                          , ("primBinaryConcat",   Function plusIr   plusVal    plusAssu)
-                          , ("primBinaryLength",   Function lenIr    lenVal     lenAssu)
+                          , ("primBinaryEquals",   Function eqIr     eqVal      eqAssu    )
+                          , ("primBinaryConcat",   Function plusIr   plusVal    plusAssu  )
+                          , ("primBinaryLength",   Function lenIr    lenVal     lenAssu   )
                           ]
 
 primText :: Imports -> IO (Map Name Function)
@@ -488,7 +488,7 @@ prelude imps = mdo
     binFuns  <- primBinary   importBoxes
     let opMap  = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), ("==", eq), ("%", mod), ("/", div), ("#uminus#", uminus)]
         funMap = Map.unions   [realFuns, intFuns, textFuns, binFuns, opMap]
-    let importBoxes = unionImports imps $ Imports def (Right <$> funMap)
+    let importBoxes = unionImports imps $ Imports def (WithDocumentation def . Right <$> funMap)
     return funMap
 
 
@@ -542,7 +542,7 @@ systemStd std = do
         pure   <- cons_ @Draft "Pure"
         lamP   <- monadic intl pure
         res    <- compile $ generalize lamP
-        return $ Function res (toLunaValue std putStr) $ Assumptions def [generalize comm] def def
+        return $ Function res (toLunaValue std putStr) (Assumptions def [generalize comm] def def)
 
     let errVal = toLunaValue std $ \(a :: Text) -> (throw $ "Luna error: " ++ convert a :: LunaValue)
     Right err <- runGraph $ do
@@ -579,7 +579,7 @@ systemStd std = do
         intl    <- lam tpTextM tpMJM
         lamP    <- monadic intl pure
         res     <- compile $ generalize lamP
-        return $ Function res (toLunaValue std parseJSONVal) $ Assumptions def [generalize comm] def def
+        return $ Function res (toLunaValue std parseJSONVal) (Assumptions def [generalize comm] def def)
 
     Right (mpack2BinaryAssu, mpack2BinaryIr) <- oneArgFun "MsgPack" "Binary"
     let encodeMsgPackVal = toLunaValue std (MsgPack.pack :: MsgPack.Object -> ByteString)

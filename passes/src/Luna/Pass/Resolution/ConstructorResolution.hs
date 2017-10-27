@@ -44,7 +44,7 @@ runConstructorResolution = do
     putAttr @UnresolvedConses $ UnresolvedConses []
 
 lookupCons :: Name -> Imports -> Either ImportError Constructor
-lookupCons n imps = case itoListOf (importedClasses .> itraversed <. Class.constructors . ix n . _1) imps of
+lookupCons n imps = case itoListOf (importedClasses .> itraversed <. documentedItem . Class.constructors . ix n . _1) imps of
     []       -> Left SymbolNotFound
     [(_, c)] -> Right c
     matches  -> Left . SymbolAmbiguous $ fst <$> matches

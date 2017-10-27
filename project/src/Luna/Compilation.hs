@@ -103,7 +103,7 @@ initPM = do
 
 prepareStdlib :: Map Name FilePath -> IO (IO (), CompiledModules)
 prepareStdlib srcs = mdo
-    let system  = Imports def $ Right <$> std
+    let system  = Imports def $ Function.WithDocumentation def . Right <$> std
         initial = CompiledModules def system
     (cln, std) <- systemStd $ unionsImports $ Map.elems $ modules
     Right (_, res@(CompiledModules modules _)) <- requestModules srcs stdlibImports initial
@@ -166,7 +166,7 @@ requestModule srcs stack current = do
             cls <- u @^. Unit.cls
             UL.partitionASGCls (unsafeGeneralize cls :: Expr ClsASG)
             return u
-        snd <$> ModuleProcessing.processModule' (unionsImports $ std : Map.elems deps) def (convert current) u
+        ModuleProcessing.processModule (unionsImports $ std : Map.elems deps) (convert current) u
     modules . at current .= Just mod
     return mod
 

@@ -3,6 +3,7 @@
 module Luna.Pass.UnitCompilation.ModuleProcessing where
 
 import Luna.Prelude hiding         (String, s, new, Constructor, Destructor, cons)
+import           Data.Text32       (Text32)
 import           OCI.Pass          (SubPass, Pass)
 import qualified OCI.Pass          as Pass
 import qualified OCI.Pass.Manager  as Pass
@@ -14,7 +15,7 @@ import           Luna.IR.Term.Cls  (Cls)
 import OCI.IR.Combinators
 import Luna.Builtin.Data.Class    as Class
 import Luna.Builtin.Data.Module   as Module
-import Luna.Builtin.Data.Function (compile)
+import Luna.Builtin.Data.Function (compile, documentation, WithDocumentation (..))
 import Luna.IR
 import Control.Monad.State.Dependent
 import Control.Monad.Raise
@@ -40,43 +41,33 @@ type instance Pass.Outputs    Event ModuleProcessing = '[New // AnyExpr, Delete 
 
 type instance Pass.Preserves        ModuleProcessing = '[]
 
-processModule' :: (MonadPassManager m, MonadIO m) => Imports -> CompiledWorld -> Name -> Expr Unit -> m (CompiledWorld, Imports)
-processModule' baseImports world modName root = do
-    (imports, definedClasses, definedFunctions) <- Pass.eval' @ModuleProcessing $ do
-        Term (Term.Unit imports _ cls) <- readTerm root
-        importHub <- source imports
-        imps <- matchExpr importHub $ \case
-            ImportHub imps -> return imps
-            _              -> return def
-        let addImport name imports i = do
-              imp :: Expr Import <- unsafeGeneralize <$> source i
-              Term (Term.Import _ tgt') <- readTerm imp
-              tgt <- source tgt'
-              matchExpr tgt $ \case
-                  RootedFunction {} -> return $ imports & importedFunctions . at name ?~ (world ^?! functions . ix (generalize tgt))
-                  ClsASG         {} -> return $ imports & importedClasses   . at name ?~ (world ^?! classes   . ix (generalize tgt))
-        imports <- ifoldlMOf itraversed addImport baseImports imps
+cutDoc :: (MonadPassManager m, MonadIO m) => Expr Draft -> SubPass ModuleProcessing m (Expr Draft, Maybe Text32)
+cutDoc e = matchExpr e $ \case
+    Documented d a -> (,Just d) <$> source a
+    _              -> return (e, Nothing)
+
+processModule :: (MonadPassManager m, MonadIO m) => Imports -> Name -> Expr Unit -> m Imports
+processModule imports modName root = do
+    (definedClasses, definedFunctions) <- Pass.eval' @ModuleProcessing $ do
+        Term (Term.Unit _ _ cls) <- readTerm root
         klass :: Expr Cls <- unsafeGeneralize <$> source cls
         Term (Term.Cls _ _ clss meths) <- readTerm klass
-        definedClasses   <- fmap Map.toList $ forM clss  $ fmap unsafeGeneralize . source
+        definedClasses   <- fmap Map.toList $ forM clss  $ cutDoc <=< source
         definedFunctions <- fmap Map.toList $ forM meths $ \f -> do
-            fun :: Expr RootedFunction <- unsafeGeneralize <$> source f
-            Term (Term.RootedFunction rooted) <- readTerm fun
-            return (fun, rooted)
-        return (imports, definedClasses, definedFunctions)
+            (fun', doc)  <- cutDoc =<< source f
+            let fun :: Expr ASGRootedFunction = unsafeGeneralize fun'
+            Term (Term.ASGRootedFunction n rooted) <- readTerm fun
+            return (rooted, doc)
+        return (definedClasses, definedFunctions)
 
-    let processDef   imps (n, (_, rooted)) = liftIO $ delay $ DefProcessing.processDef modName imps n rooted
-        processClass imps (n, cls)         = ClassProcessing.processClass modName imps cls
+    let processDef   imps (n, (rooted, doc)) = fmap (WithDocumentation doc) $ liftIO $ delay $ DefProcessing.processDef modName imps n rooted
+        processClass imps (n, (cls, doc))    = WithDocumentation doc <$> ClassProcessing.processClass modName imps (unsafeGeneralize cls)
 
-    mdo defs <- mapM (processDef allImports)   definedFunctions
+    mdo defs <- mapM (processDef   allImports) definedFunctions
         clss <- mapM (processClass allImports) definedClasses
         let classesByName   = Map.fromList $ zip (fst <$> definedClasses)   clss
-            classesByIR     = Map.fromList $ zip (generalize . snd <$> definedClasses)   clss
             functionsByName = Map.fromList $ zip (fst <$> definedFunctions) defs
-            functionsByIR   = Map.fromList $ zip (generalize . fst . snd <$> definedFunctions) defs
             allImports      = imports & importedClasses   %~ Map.union classesByName
                                       & importedFunctions %~ Map.union functionsByName
-        return (CompiledWorld classesByIR functionsByIR, Imports classesByName functionsByName)
+        return $ Imports classesByName functionsByName
 
-processModule :: (MonadPassManager m, MonadIO m) => Imports -> CompiledWorld -> Name -> Expr Unit -> m CompiledWorld
-processModule = fmap fst .:: processModule'

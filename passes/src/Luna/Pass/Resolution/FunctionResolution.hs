@@ -54,7 +54,7 @@ runFunctionResolution = do
     putAttr @UnresolvedVars $ UnresolvedVars []
 
 lookupSym :: Name -> Imports -> Either [CompileError] Function
-lookupSym n imps = case imps ^. importedFunctions . at n of
+lookupSym n imps = case imps ^? importedFunctions . ix n . documentedItem of
     Nothing        -> Left [CompileError (importErrorDoc n SymbolNotFound) [] []]
     Just (Left e)  -> Left e
     Just (Right f) -> Right f
