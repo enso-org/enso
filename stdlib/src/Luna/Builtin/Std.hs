@@ -346,7 +346,6 @@ primText imps = do
     Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
     Right (isEmptyAssu, isEmptyIr)     <- oneArgFun "Text" "Bool"
     Right (lengthAssu, lengthIr)       <- oneArgFun "Text" "Int"
-    Right (toRealAssu, toRealIr)       <- oneArgFun "Text" "Real"
     Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
     Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
     Right (wordsAssu, wordsIr)         <- runGraph $ do
@@ -392,24 +391,24 @@ primText imps = do
         escapeJSONVal = toLunaValue imps (Text.decodeUtf8 . Aeson.encode :: Text -> Text)
         toIntVal      = toLunaValue imps (readMaybe . convert :: Text -> Maybe Integer)
         toRealVal     = toLunaValue imps (readMaybe . convert :: Text -> Maybe Double)
-    return $ Map.fromList [ ("primTextConcat",     Function plusIr     plusVal       plusAssu)
-                          , ("primTextEquals",     Function eqIr       eqVal         eqAssu)
-                          , ("primTextIsEmpty",    Function isEmptyIr  isEmptyVal    isEmptyAssu)
-                          , ("primTextLength",     Function lengthIr   lengthVal     lengthAssu)
-                          , ("primTextGt",         Function eqIr       gtVal         eqAssu)
-                          , ("primTextLt",         Function eqIr       ltVal         eqAssu)
-                          , ("primTextHasPrefix",  Function eqIr       hasPrefixVal  eqAssu)
-                          , ("primTextWords",      Function wordsIr    wordsVal      wordsAssu)
-                          , ("primTextLines",      Function wordsIr    linesVal      wordsAssu)
-                          , ("primTextCharacters", Function wordsIr    charsVal      wordsAssu)
-                          , ("primTextLowercase",  Function textIr     lowercaseVal  textAssu)
-                          , ("primTextUppercase",  Function textIr     uppercaseVal  textAssu)
-                          , ("primTextReverse",    Function textIr     reverseVal    textAssu)
-                          , ("primTextShortRep",   Function textIr     shortRepVal   textAssu)
-                          , ("primTextEscapeJSON", Function textIr     escapeJSONVal textAssu)
-                          , ("primTextToBinary",   Function toBinaryIr toBinaryVal   toBinaryAssu)
-                          , ("primTextToInt",      Function lengthIr   toIntVal      lengthAssu)
-                          , ("primTextToReal",     Function toRealIr   toRealVal     toRealAssu)
+    return $ Map.fromList [ ("primTextConcat",     Function plusIr        plusVal       plusAssu)
+                          , ("primTextEquals",     Function eqIr          eqVal         eqAssu)
+                          , ("primTextIsEmpty",    Function isEmptyIr     isEmptyVal    isEmptyAssu)
+                          , ("primTextLength",     Function lengthIr      lengthVal     lengthAssu)
+                          , ("primTextGt",         Function eqIr          gtVal         eqAssu)
+                          , ("primTextLt",         Function eqIr          ltVal         eqAssu)
+                          , ("primTextHasPrefix",  Function eqIr          hasPrefixVal  eqAssu)
+                          , ("primTextWords",      Function wordsIr       wordsVal      wordsAssu)
+                          , ("primTextLines",      Function wordsIr       linesVal      wordsAssu)
+                          , ("primTextCharacters", Function wordsIr       charsVal      wordsAssu)
+                          , ("primTextLowercase",  Function textIr        lowercaseVal  textAssu)
+                          , ("primTextUppercase",  Function textIr        uppercaseVal  textAssu)
+                          , ("primTextReverse",    Function textIr        reverseVal    textAssu)
+                          , ("primTextShortRep",   Function textIr        shortRepVal   textAssu)
+                          , ("primTextEscapeJSON", Function textIr        escapeJSONVal textAssu)
+                          , ("primTextToBinary",   Function toBinaryIr    toBinaryVal   toBinaryAssu)
+                          , ("primTextToInt",      Function toMaybeIntIr  toIntVal      toMaybeIntAssu)
+                          , ("primTextToReal",     Function toMaybeRealIr toRealVal     toMaybeRealAssu)
                           ]
 
 preludeUnaryOp op = compileFunction def $ do
