@@ -2,6 +2,15 @@ import Std.Base
 import Std.HTTP
 
 
+## A class encapsulating all the necessary OAuth1 data.
+## That means: a `clientKey`, a `clientSecret`, an `oauthToken` and `oauthTokenSecret`.
+## It can be passed directly to `HttpResponse.setOAuth1` method, resulting in
+## the following usage:
+## ```
+## oauthData = OAuth1Data someClientKey someClientSecret someOAuthToken someOAuthTokenSecret
+## resp = Http.get "http://someurl.com/" . setOAuth1 oauthData . perform
+## # process the response...
+## ```
 class OAuth1Data:
     clientKey        :: Text
     clientSecret     :: Text
@@ -18,6 +27,9 @@ class OAuth1Data:
 
     def shortRep: self.toText
 
+## A class encapsulating all the necessary OAuth2 data.
+## That means: a `clientId`, a `clientSecret`, an `accessTokenEndpoint`,
+## an `invalidateTokenEndpoint` and an optional `callback` url.
 class OAuth2Data:
     clientId                :: Text
     clientSecret            :: Text
@@ -36,17 +48,35 @@ class OAuth2Data:
 
     def shortRep: self.toText
 
+## A class used for obtaining the OAuth2 authorization token.
+## Given the necessary `OAuth1Data` it will issue a call
+## to the `accessTokenEndpoint` and fetch the token. When the
+## token is no longer needed it can be invalidated with a call
+## to `invalidateToken`.
+## An example flow is the following:
+## ```
+## oauthData = OAuth1Data someClientId someClientSecret someOAuthToken someOAuthTokenSecret
+## token = OAuth2.fetchAccessToken oauthData
+## resp = Http.get "http://someurl.com/" . setOAuth2 token . perform
+## # process the response...
+## OAuth2.invalidateToken oauthData token
+## ```
+## For a more in-depth description of the OAuth2 flow, please see
+## https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2
 class OAuth2:
+    ## A helper method for issuing OAuth2-related requests.
     def postRequest oauth2Data uri body:
         user = oauth2Data.clientId
         pass = oauth2Data.clientSecret
         Http.post uri body . setBasicAuth user pass . addHeader "Content-Type" "application/x-www-form-urlencoded;charset=UTF-8" . perform
 
+    ## Fetches the authorization token using the provided `OAuth2Data` object.
     def fetchAccessToken oauth2Data:
         body = HttpSimpleBody [("grant_type", "client_credentials")]
         uri  = oauth2Data.accessTokenEndpoint
         OAuth2.postRequest oauth2Data uri body . json . lookupText "access_token"
 
+    ## Invalidates a token when it is no longer needed.
     def invalidateToken oauth2Data token:
         body = HttpSimpleBody [("access_token", token)]
         uri  = oauth2Data.invalidateTokenEndpoint

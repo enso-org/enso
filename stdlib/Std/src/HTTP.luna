@@ -1,6 +1,6 @@
 import Std.Base
 
-
+## A class representing Http request method
 class HttpMethod:
     POST
     GET
@@ -13,7 +13,7 @@ class HttpMethod:
         PUT:    "PUT"
         DELETE: "DELETE"
 
-
+## Helper class for passing parameters in the body of an Http request
 class HttpSimpleBody:
     values :: List (Tuple2 Text Text)
 
@@ -24,11 +24,16 @@ class HttpSimpleBody:
 
     def toBinary: self.toText.toBinary
 
+    ## Adds one pair to the body.
+    ## Returns an `HttpSimpleBody` with the new additional pair
     def addValue key val: HttpSimpleBody (Prepend (key, val) self.values)
 
+## Conveniently creates an empty `HttpSimpleBody`
 def emptyHttpBody: HttpSimpleBody Empty
 
 
+## Response of an Http request, allows for different methods
+## of accessing the body contents, see the methods.
 class HttpResponse:
     responseCode :: Int
     getChunk     :: Binary
@@ -38,21 +43,38 @@ class HttpResponse:
 
     def shortRep: self.toText
 
+    ## Tells us whether the response came back yielding a successful result.
+    ## We assume that response is successful when its code is one of: 200, 201, 202.
     def successful:
         successCodes = [200, 201, 202]
         successCodes.contains self.responseCode
 
+    ## Returns the body of the response as a stream.
+    ## Even though it can be used with any response, it is most
+    ## useful when combined with an inherently "streamy" data source,
+    ## for example responses from the Twitter Stream API.
+    ## See the `Std.Base` module's `Stream` class for information on
+    ## on working with streams of data in Luna.
     def stream: streamFrom self.getChunk
 
+    ## The body of the response as a `Binary` blob.
     def body:
         chunks = self.stream.takeWhile (_.equals "".toBinary . not)
         chunks.fold "".toBinary (+)
 
+    ## Body of the response converted to `Text`.
     def text: self.body.toText
 
+    ## Body of a response converted to `JSON`.
     def json: JSON.parse self.body.toText
 
 
+## A class representing an Http request.
+## Even though it is possible to construct members of this
+## class by hand, the idiomatic way of making the requests
+## uses the helper class `Http`. Please consult the documentation below.
+## This class provides a couple of setters to manipulate the default
+## requests created by `Http` methods.
 class HttpRequest:
     uri     :: Text
     method  :: HttpMethod
@@ -73,10 +95,14 @@ class HttpRequest:
 
     def shortRep: self.toText
 
+    ## Sets the method of this `HttpReuqest` to a given `HttpMethod`.
     def setMethod m: case self of
         HttpRequest uri _ headers auth oauth1 params body:
             HttpRequest uri m headers auth oauth1 params body
 
+    ## Sets the body of a request.
+    ## Can be called with anything that supports a `toBinary` method,
+    ## including `Text`, `Binary`, `JSON` and `HttpSimpleBody` instances.
     def setBody b: case self of
         HttpRequest uri method headers auth oauth1 params _:
             HttpRequest uri method headers auth oauth1 params b.toBinary
@@ -85,52 +111,101 @@ class HttpRequest:
         HttpRequest _ method headers auth oauth1 params body:
             HttpRequest u method headers auth oauth1 params body
 
+    ## Set the header (key) to a value (val). The header needs to be
+    ## a valid Http header name, like `Accept-Charset` (but the case
+    ## does not matter).
     def addHeader key val: case self of
         HttpRequest uri method _ auth oauth1 params body:
             HttpRequest uri method (headers.insert key val) auth oauth1 params body
 
+    ## Use the provided username and password as `HttpBasicAuth`.
     def setBasicAuth username password: case self of
         HttpRequest uri method headers _ oauth1 params body:
             HttpRequest uri method headers (Just (username, password)) oauth1 params body
 
+    ## Append given key and value to the request params.
+    ## Note: for params passed as the request body,
+    ## consider using `HttpSimpleBody` helper class.
     def setParam key val: case self of
         HttpRequest uri method headers auth oauth1 params body:
             HttpRequest uri method headers auth oauth1 (Prepend (key, val) params) body
 
+    ## Construct OAuth1 authentication headers using the provided
+    ## `OAuth1Data` object. For a more detailed description of OAuth, please
+    ## consult `Std.OAuth`.
     def setOAuth1 oauthData: case self of
         HttpRequest uri method headers auth _ params body:
             oauth = (oauthData.clientKey, oauthData.clientSecret, oauthData.oauthToken, oauthData.oauthTokenSecret)
             HttpRequest uri method headers auth (Just oauth) params body
 
+    ## Set the OAuth2 authorization token.
+    ## Note that this assumes that the caller already is in possesion of such a token,
+    ## which can be obtained, among other ways, by using the `OAuth2` class from `Std.OAuth`.
+    ## For a more detailed description of OAuth, please consult `Std.OAuth`.
     def setOAuth2 tkn:
         self . addHeader "Authorization" ("Bearer " + tkn)
 
+    ## Given a fully constructed `HttpRequest` object, this method
+    ## actually performs the request. Note: no data will actually
+    ## be sent until this method is called.
     def perform: case self of
         HttpRequest uri method headers auth oauth1 params body:
             primPerformHttp uri method.toText headers.toList auth oauth1 params body
 
 
+## A helper function constructing a default `HttpRequest`,
+## intended for internal use by the `Http` class.
+## It is actually equivalent to `Http.get`.
 def defaultHttpRequest uri:
     HttpRequest uri GET Map.empty Nothing Nothing Empty "".toBinary
 
 
+## The main class for issuing Http requests.
+## Provides methods for the most common request methods.
+## The basic usage is the following:
+## `resp = Http.get "http://someurl.com/" . perform`
+## When you want to customize the way the requests are made, you can use the setters
+## provided by the `HttpRequest` class in the following way:
+## ```
+## resp = Http.post "http://someurl.com/" . setHeader "Accept" "*"
+##                                        . setBasicAuth "user" "pass"
+##                                        . setParam "someParam" "someValue"
+##                                        . perform
+## ```
+## Note: the `get`, `post`, `put` and `delete` methods need to be followed
+## by a `perform` invocation to actually make the request.
+## Once we obtain the response object (`resp` in the examples above), we
+## can use the methods of the `HttpResponse` class to process it, meaning
+## in the examples above you can later call `resp.stream` or `resp.body`.
 class Http:
     Http
 
+    ## Create a basic Http GET request for a given uri.
     def get uri:
         defaultHttpRequest uri
 
+    ## Create an Http POST request for a given uri and body.
+    ## The body can be anything that provides a `toBinary` method,
+    ## including the `Text`, `Binary`, `JSON` and `HttpSimpleBody` types.
     def post uri body:
         defaultHttpRequest uri . setMethod POST . setBody body
 
+    ## Create an Http PUT request for a given uri and body.
+    ## The body can be anything that provides a `toBinary` method,
+    ## including the `Text`, `Binary`, `JSON` and `HttpSimpleBody` types.
     def put uri body:
         defaultHttpRequest uri . setMethod PUT . setBody body
 
+    ## Create an Http DELETE request for a given url.
     def delete uri:
         defaultHttpRequest uri . setMethod DELETE
 
+    ## A helper method that immediately gets a binary blob from a given url.
+    ## There is no need to call `perform` here, as it returns a `Binary` response.
     def getBinary uri:
         Http.get uri . perform . body
 
+    ## A helper method that immediately gets a JSON response from a given url.
+    ## There is no need to call `perform` here, as it returns a `JSON` response.
     def getJSON uri:
         Http.get uri . perform . json
