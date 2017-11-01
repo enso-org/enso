@@ -1,67 +1,137 @@
 import Std.Base
 
 
+## A class used for creating new `WSConnection` instances,
+## hence making the connections over web sockets. Please note
+## that it is advisable to use the `WebSocket.connection` method rather
+## than to create new connections instead of instantiating this class
+## directly. On the other hand, the setters of this class are
+## used well with the helper method. Please see the documentation for `WebSocket`.
 class WebSocketInstance:
     host   :: Text
     port   :: Int
     path   :: Text
     secure :: Bool
 
+    ## Sets the host part of the url to connect to.
     def setHost h: case self of
         WebSocketInstance _  port path secure:
             WebSocketInstance h port path secure
 
+    ## Sets the path part of the url to connect to.
     def setPath p: case self of
         WebSocketInstance host port _ secure:
             WebSocketInstance host port p secure
 
+    ## Specifies the port to which to connect.
     def setPort p: case self of
         WebSocketInstance host _ path secure:
             WebSocketInstance host p path secure
 
+    ## Used for explicitly making the connection secure.
+    ## Note that in the majority of use cases this will be deduced from
+    ## the url, hence rendering the usage of this method unnecessary.
     def setSecure: case self of
         WebSocketInstance host port path _:
             WebSocketInstance host port path True
 
+    ## A method actually connecting to the socket.
     def create:
         primWebSocketConnect self.host self.port self.path self.secure
 
 
+## A class representing the WebSocket connection.
+## This is the handle you are given after you create a WebSocket
+## connection with `WebSocket.connection`. It allows you to read
+## and write to the WebSocket and close it after it is no longer needed.
 native class WSConnection:
+    ## Send textual data over the WebSocket connection.
+    ## Can be given anything that is convertable to `Text` (exposing a `toText` method).
     def write data:
         primWebSocketWrite self data.toText
 
+    ## Send binary data over the WebSocket connection.
+    ## Can be given anything that is convertable to `Binary` (exposing a `toBinary` method).
     def writeBinary data:
         primWebSocketWriteBin self data.toBinary
 
+    ## Read from the WebSocket.
+    ## Returns a `Binary` blob that can later be converted
+    ## to any data type necessary.
     def read:
         primWebSocketRead self
 
+    ## Tap into the WebSocket, creating a `Stream` of `Binary` blobs.
+    ## Please see the documentation for `Stream` in `Std.Base` for
+    ## information on how to process streams in Luna.
     def stream:
         streamFrom self.read
 
+    ## Close the WebSocket connection after it is no longer needed.
     def close:
         primWebSocketClose self
 
 
+## A simple broadcast WebSocket server.
+## Allows you to send messages to all of the connected clients at once.
+## Note that you should use the `WebSocket.server` helper method to create
+## instances of this class. Refer to the documentation of the `WebSocket`
+## class for more information.
 native class WSServer:
+    ## Send a textual message to all of the connected clients.
+    ## The message may be of any type exposing a `toText` method.
     def sendToAll msg:
         primWSSBroadcastText self msg.toText
 
+    ## Send a binary message to all of the connected clients.
+    ## The message may be of any type exposing a `toBinary` method.
     def sendBinaryToAll msg:
         primWSSBroadcastBinary self msg.toBinary
 
+    ## Helper method that reads the next message that has arrived to the server.
     def nextMessage:
         primWSSGetMessage self
 
+    ## Taps into the stream of incoming messages, returning a `Stream` of `Binary` blobs.
+    ## Please see the documentation for `Stream` in `Std.Base` for
+    ## information on how to process streams in Luna.
     def messageStream:
         streamFrom self.nextMessage
 
+
+## The main class for dealing with WebSockets.
+## Supports creating client-side connections (with `connect`) and
+## servers (with `server`).
 class WebSocket:
+    ## Connect to the WebSocket at given address (the `host` param).
+    ## You must call `create` on the object created by this method to actually make the connection.
+    ## The host may or may not contain the `ws` or `wss` specifier.
+    ## If `wss` is specified, the connection will be assumed to be secure
+    ## and the port will be set to 443. For `ws` connections the default port
+    ## is 80. If you wish to create a secure connection but leave out the
+    ## `wss` part of the url, you must explicitly call `setSecure` to override
+    ## the defaults. Example usage:
+    ## ```
+    ## conn = WebSocket.connection "ws://somehost.com/sockets" . setPort 12345 . create
+    ## stream = conn.stream
+    ## # process the incoming stream...
+    ## conn.close
+    ## ```
     def connection host:
         secure = host.hasPrefix "wss"
         port   = if secure then 443 else 80
         WebSocketInstance host port "/" secure
 
+    ## Create a simple, broadcast server that recieves messages from its clients
+    ## and can send messages to all of the clients at once.
+    ## you need to specify what will be the address (`host`) of the server and
+    ## on which port it will be accepting the connections (`port`). Once you create it,
+    ## you can call all of the `WSServer` methods on the returned server instance.
+    ## Example usage:
+    ## ```
+    ## server = WebSocket.server "somehost" 55555
+    ## server.sendToAll "hello, clients"
+    ## responseStream = server.messageStream
+    ## ```
     def server host port:
         primCreateWSServer host port

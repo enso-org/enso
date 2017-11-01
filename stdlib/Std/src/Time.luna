@@ -1,20 +1,27 @@
 import Std.Base
 import Std.System
 
+
+## A class representing time (and date).
 class Time:
     Time
     TimeVal Int (TimeInterval Int)
 
+    ## Gets the current time. Usage: `Time.now`.
     def now: primGetCurrentTime
 
+    ## Gets time of day in form of a tuple: (hour, minute, seconds).
     def timeOfDay: case self of
         TimeVal _ ti: primTimeOfDay ti
 
+    ## Calculate difference between to time values.
     def diff other: primDiffTimes self other
 
+    ## Add a `TimeInterval` to this `Time`.
     def add interval: case self of
         TimeVal days diff: TimeVal days (diff.add interval)
 
+    ## Subtract a `TimeInterval` from this `Time`.
     def sub interval: case self of
         TimeVal days diff: TimeVal days (diff.sub interval)
 
@@ -22,28 +29,58 @@ class Time:
 
     def shortRep: self.toText
 
+    ## Does this and the `other` `Time` point to the same time?
     def equals other: primTimesEq self other
 
+    ## Is this `Time` earlier than the `other`?
     def < other:
         d = self.diff other
         d.toInt.< 0
 
+    ## Is this `Time` later than the `other`?
     def > other:
         d = self.diff other
         d.toInt.> 0
 
+    ## Default format for `Time`: YYYY-MM-DD.HH:MM:SS.
     def defaultFormat: "%FT%T.%q%z"
 
+    ## Tries to parse `Time` from `Text` using the specified format.
+    ## Returns `Just time` if successful and `Nothing` otherwise.
+    ## In most cases, you can use `safeParse`, which uses the default format.
+    ## If a custom format is needed, please see:
+    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def safeParseFmt fmt str: primParseTime fmt str
 
+    ## Try to parse `Time` from `Text` assuming the default format of date and time.
+    ## Returns `Just time` if successful, `Nothing` otherwise.
     def safeParse str: Time.safeParseFmt Time.defaultFormat str
 
+    ## Parse `Time` from `Text` using the supplied format.
+    ## Returns a `Time` object and throws an error if unable to parse the time.
+    ## In most cases, you can use `parse`, which uses the default format.
+    ## If a custom format is needed, please see:
+    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def parseFmt fmt str: case Time.safeParseFmt fmt str of
         Just t:  t
         Nothing: errorStr ("Couldn't parse Time with the given format (" + fmt + ")")
 
+    ## Parse `Time` from `Text`.
+    ## Returns a `Time` object and throws an error if unable to parse the time.
     def parse str: Time.parseFmt Time.defaultFormat str
 
+
+## A class representing time intervals, that is: a difference between two times.
+## Can be converted to different time resolutions like seconds, miliseconds and microseconds.
+## Internally the time interval is stored with picosecond resolution.
+## The main purpose of this class is to make working with time intuitive:
+## using the helper methods you can write things like:
+## ```
+## 5.seconds.ago
+## 10.minutes.fromNow
+## 15.seconds.before someTime
+## 20.minutes.after someTime
+## ```
 class TimeInterval:
     TimeInterval Int
 
@@ -52,12 +89,16 @@ class TimeInterval:
     def toInt: case self of
         TimeInterval d: d
 
+    ## Return a real representing the number of picoseconds in this `TimeInterval`.
     def toReal: self.toInt.toReal
 
+    ## Return the number of seconds in this interval.
     def toSeconds: self.toInt / 1000000000000
 
+    ## Return the number of miliseconds in this interval.
     def toMiliseconds: self.toInt / 1000000000
 
+    ## Return the number of microseconds in this interval.
     def toMicroseconds: self.toInt / 1000000
 
     def toText: (self.toReal./ 1000000000.0).toText + "ms"
@@ -66,14 +107,21 @@ class TimeInterval:
 
     def sub other: TimeInterval (self.toInt - other.toInt)
 
-    def before time: time.add self
+    ## Subtract this `TimeInterval` from a given `Time`, hence
+    ## returning a point in time `before` the given `Time`.
+    def before time: time.sub self
 
-    def from time: time.sub self
+    ## Add this `TimeInterval` to a given `Time`, hence
+    ## returning a point in time some `TimeInterval` `from` the given `Time`.
+    def from time: time.add self
 
+    ## Return this `TimeInterval` before now (so some amount of time ago).
     def ago: self.before Time.now
 
+    ## Return this `TimeInterval` after now (so some amount of time from now).
     def fromNow: self.from Time.now
 
+    ## Are this and the `other` `TimeIntervals` the same?
     def equals other: self.toInt.equals other.toInt
 
     def < other: self.toInt.< (other.toInt)
