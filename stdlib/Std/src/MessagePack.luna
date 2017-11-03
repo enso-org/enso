@@ -1,0 +1,114 @@
+import Std.Base
+
+class MsgPack:
+    MPNull
+    MPBool   Bool
+    MPInt    Int
+    MPReal   Real
+    MPString Text
+    MPBinary Binary
+    MPArray  (List MsgPack)
+    MPMap    (List (Tuple2 MsgPack MsgPack))
+
+    def toText: case self of
+        MPNull:     "MPNull"
+        MPBool b:   "MPBool " + b.shortRep
+        MPInt i:    "MPInt " + i.shortRep
+        MPReal r:   "MPReal" + r.shortRep
+        MPString s: "MPString " + s
+        MPBinary b: "MPBinary " + b.shortRep
+        MPArray a:  "MPArray " + a.shortRep
+        MPMap m:    "MPMap " + m.shortRep
+
+    def toJSON: case self of
+        MPNil:      JSONNull
+        MPBool b:   JSONBool b
+        MPInt i:    JSONNumber i.toReal
+        MPReal r:   JSONNumber r
+        MPString s: JSONString s
+        MPBinary b: JSONString b.toText
+        MPArray a:  a.toJSON
+        MPMap   m:  m.toJSON
+
+    def toBinary: encodeMsgPack self
+
+    def == that: case self of
+        MPNil: case that of
+            MPNil:       True
+            other:       False
+        MPBool b: case that of
+            MPBool b1:   b.== b1
+            other:       False
+        MPInt i: case that of
+            MPInt i1:    i.== i1
+            other:       False
+        MPReal r: case that of
+            MPReal r1:   r.== r1
+            other:       False
+        MPString s: case that of
+            MPString s1: s.== s1
+            other:       False
+        MPBinary b:      False
+        MPArray a: case that of
+            MPArray a1:  a.== a1
+            other:       False
+        MPMap m: case that of
+            MPMap m1:    m.== m1
+            other:       False
+
+    def shortRep: self.toText
+
+    def toReal: case self of
+        MPInt i:  i.toReal
+        MPReal r: r
+        other:    errorStr "Unable to convert to a number"
+
+    def toList: case self of
+        MPArray a: a
+        other:     errorStr "Unable to convert to a list"
+
+    def _lookup_list_key key pairList: case pairList of
+        Empty: Nothing
+        Prepend x xs: case x of
+            Tuple2 a b: if a.== key then Just b else self._lookup_list_key key xs
+
+    def lookup key: case self of
+        MPMap m: self._lookup_list_key key m
+        other:   Nothing
+
+    def hasKey key: case self.lookup key of
+        Just v:  True
+        Nothing: False
+
+    def hasText key: self.hasKey (MPString key)
+
+    def safeLookupText key: self.lookup (MPString key)
+
+    def lookupText key: case self.safeLookupText key of
+        Just val: val
+        Nothing:  errorStr ("Key not found: " + key)
+
+    def at n: case self of
+        MPArray a: a.at n
+        other:     errorStr "Object not indexable"
+
+    def sum: case self of
+        MPArray a: a.sum
+        other:     errorStr "Cannot compute sum of a non-iterable object"
+
+    def average: case self of
+        MPArray a: a.average
+        other:     errorStr "Cannot compute average of a non-iterable object"
+
+    def map f: case self of
+        MPArray a: a.map f
+        other:     errorStr "Cannot map over a non-iterable object"
+
+    def filter f: case self of
+        MPArray a: a.filter f
+        other:     errorStr "Cannot filter a non-iterable object"
+
+    def each f: case self of
+        MPArray a: a.each f
+        other:     errorStr "Cannot call each on a non-iterable object"
+

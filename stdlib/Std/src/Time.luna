@@ -30,7 +30,7 @@ class Time:
     def shortRep: self.toText
 
     ## Does this and the `other` `Time` point to the same time?
-    def equals other: primTimesEq self other
+    def == other: primTimesEq self other
 
     ## Is this `Time` earlier than the `other`?
     def < other:
@@ -122,7 +122,7 @@ class TimeInterval:
     def fromNow: self.from Time.now
 
     ## Are this and the `other` `TimeIntervals` the same?
-    def equals other: self.toInt.equals other.toInt
+    def == other: self.toInt.== other.toInt
 
     def < other: self.toInt.< (other.toInt)
 
