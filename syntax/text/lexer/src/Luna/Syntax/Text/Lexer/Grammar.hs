@@ -338,7 +338,8 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           handleHash        = handleRepsM [pure Disable, lexComment, lexConfig]
           handleReps        = handleRepsM . fmap pure
           handleRepsM ts s  = fromJust (pure $ Unknown s) $ ts ^? ix (Text32.length s - 1)
-          handleOp    op    = \case "="  -> Modifier op
+          handleOp    op s  = if (op == "<" || op == ">") && s == "=" then Operator (op <> s) else case s of
+                                    "="  -> Modifier op
                                     ""   -> Operator op
                                     s    -> Unknown (op <> s)
 {-# NOINLINE symmap #-}

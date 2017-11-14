@@ -12,12 +12,22 @@ class PipeRequest:
     CreatePipe
     NoStream
 
+    def isCreatePipe:
+        case self of
+            CreatePipe: True
+            _: False
+
 
 ## Data type used for specifying the buffering mode of the input-output operations.
 class BufferMode:
     NoBuffering
     LineBuffering
     BlockBuffering: size :: Maybe Int
+
+    def isBuffered:
+        case self of
+            NoBuffering: False
+            _: True
 
 
 ## A class representing a file in the filesytstem.

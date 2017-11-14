@@ -31,6 +31,8 @@ hardcodePrecRelMap = do
 
     Prec.writeRel EQ ("-"     :: Name) ("+" :: Name)
     Prec.writeRel EQ (">"     :: Name) ("<" :: Name)
+    Prec.writeRel EQ (">="    :: Name) (">" :: Name)
+    Prec.writeRel EQ ("<="    :: Name) ("<" :: Name)
     Prec.writeRel EQ ("-"     :: Name) (uminusName :: Name)
     Prec.writeRel EQ ("%"     :: Name) ("*" :: Name)
     Prec.writeRel EQ ("/"     :: Name) ("*" :: Name)

@@ -16,6 +16,10 @@ native class Int:
     def <  that: primIntLt       self that
     ## Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
+    ## Lesser than or equal to operator.
+    def <= that: self<that . or self==that
+    ## Greater than or equal to operator.
+    def >= that: self>that . or self==that
 
     ## Integer negation. `a.negate == -1 * a`.
     def negate: primIntNegate self
@@ -60,6 +64,10 @@ native class Real:
     def <  that: primRealLt       self that
     ## Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
+    ## Lesser than or equal to operator.
+    def <= that: self<that . or self==that
+    ## Greater than or equal to operator.
+    def >= that: self>that . or self==that
 
     ## Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self
@@ -93,6 +101,10 @@ native class Text:
     def <  that: primTextLt     self that
     ## Tests wheter two texts are equal.
     def == that: primTextEquals self that
+    ## Lesser than or equal to operator.
+    def <= that: self<that . or self==that
+    ## Greater than or equal to operator.
+    def >= that: self>that . or self==that
 
     ## Tests whether the text is empty (equal to `""`).
     def isEmpty: primTextIsEmpty self
@@ -591,7 +603,7 @@ class List a:
     def shortRep: "List<" + self.length.shortRep + ">"
 
     ## Text represenation of a list.
-    def toText: self.shortRep
+    def toText: "[" + (self . makeText ", ") + "]"
 
     ## Private.
     def prependAll it: case (self) of
@@ -867,6 +879,8 @@ native class MVar:
 class Stream a:
     head :: a
     tail :: Stream a
+
+    def isStream: True
 
     ## Runs a function on each element of the stream, immediately executing all side effects. Due to the stream being infinite, this function never terminates.
     def each f: case self of
