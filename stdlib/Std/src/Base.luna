@@ -951,6 +951,16 @@ def streamFrom act:
     fork (var.put (streamFrom act))
     Stream head var.read
 
+## Repeat an action while predicate returns `True`. Returns a List of all the values for which predicate returned `True`.
+def repeatWhile act predicate:
+    last = act
+    case predicate last of
+        True:
+            rest = repeatWhile act predicate
+            Prepend last rest
+        False:
+            Empty
+
 ## Executes an action in a separate thread, after waiting the specified time interval.
 def delayAsync time act:
     var = newMVar

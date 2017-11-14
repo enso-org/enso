@@ -59,7 +59,7 @@ class HttpResponse:
 
     ## The body of the response as a `Binary` blob.
     def body:
-        chunks = self.stream.takeWhile (_.== "".toBinary . not)
+        chunks = repeatWhile self.getChunk (_.== "".toBinary . not)
         chunks.fold "".toBinary (+)
 
     ## Body of the response converted to `Text`.
