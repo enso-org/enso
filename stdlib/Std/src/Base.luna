@@ -283,7 +283,8 @@ class Tuple2 a b:
     Tuple2 a b
 
     ## Short Text representation of a pair.
-    def shortRep: "(" + a.shortRep + ", " + b.shortRep + ")"
+    def shortRep: case self of
+        Tuple2 a b: "(" + a.shortRep + ", " + b.shortRep + ")"
 
     ## Converts a pair into a `JSON` object.
     def toJSON: case self of
