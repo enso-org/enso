@@ -13,6 +13,7 @@ import qualified Data.Map as Map
 import Data.Ratio (numerator)
 import Data.Maybe (fromMaybe)
 import Luna.IR.Term.Literal (isInteger, toDouble, toInt)
+import qualified Luna.IR.Layer.Errors as Errors
 
 import           Luna.IR   hiding (get, put, modify)
 import           OCI.Pass (SubPass, Inputs, Outputs, Preserves, Events)
@@ -80,7 +81,7 @@ interpret' :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, An
 interpret' glob expr = do
     errors <- getLayer @Errors expr
     hasErrors <- not . null <$> getLayer @Errors expr
-    if hasErrors then return $ lift $ throw $ show errors else matchExpr expr $ \case
+    if hasErrors then return $ lift $ throw $ convert $ head errors ^. Errors.description else matchExpr expr $ \case
         String s  -> let res = mkString glob (convert s) in return $ return res
         Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
         Var name  -> do
