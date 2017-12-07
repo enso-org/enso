@@ -43,7 +43,8 @@ type instance Pass.Preserves        ModuleProcessing = '[]
 
 cutDoc :: (MonadPassManager m, MonadIO m) => Expr Draft -> SubPass ModuleProcessing m (Expr Draft, Maybe Text32)
 cutDoc e = matchExpr e $ \case
-    Documented d a -> (,Just d) <$> source a
+    Documented d a -> (,Just d) . fst <$> (cutDoc =<< source a)
+    Marked     _ a -> cutDoc =<< source a
     _              -> return (e, Nothing)
 
 processModule :: (MonadPassManager m, MonadIO m) => Imports -> Name -> Expr Unit -> m Imports

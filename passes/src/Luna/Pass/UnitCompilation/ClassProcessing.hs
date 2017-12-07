@@ -41,7 +41,8 @@ type instance Pass.Preserves        ClassProcessing = '[]
 
 cutDoc :: (MonadPassManager m, MonadIO m) => Expr Draft -> SubPass ClassProcessing m (Expr Draft, Maybe Text32)
 cutDoc e = matchExpr e $ \case
-    Documented d a -> (,Just d) <$> source a
+    Documented d a -> (,Just d) . fst <$> (cutDoc =<< source a)
+    Marked     _ a -> cutDoc =<< source a
     _              -> return (e, Nothing)
 
 processClass :: (MonadPassManager m, MonadIO m) => Name -> Imports -> Expr ClsASG -> m Class
