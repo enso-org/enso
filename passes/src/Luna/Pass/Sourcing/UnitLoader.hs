@@ -515,6 +515,7 @@ partitionASGDecl decl = go decl decl where
             return $ Cls.methods . at name ?~ unsafeGeneralize root
         cls@(ClsASG _ name _ _ _)   -> return $ Cls.classes . at name ?~ unsafeGeneralize root
         Documented d a              -> go root =<< source a
+        Marked     m a              -> go root =<< source a
         _                           -> return id
 
 
