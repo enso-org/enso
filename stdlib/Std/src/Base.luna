@@ -112,9 +112,14 @@ native class Text:
     def length:  primTextLength self
 
     ## Tests whether the argument is a prefix of `self`.
-    def hasPrefix  p: primTextHasPrefix self p
+    def startsWith  p: primTextHasPrefix self p
     ## Tests whether `self` is a prefix of the argument.
-    def isPrefixOf t: t.hasPrefix p
+    def isPrefixOf t: t.startsWith self
+
+    ## Tests whether the argument is a suffix of `self`.
+    def endsWith p: self.reverse.startsWith p.reverse
+    ## Tests whether `self` is a suffix of the argument.
+    def isSuffixOf t: t.endsWith self
 
     ## Returns a list of all characters in the text.
     def characters: primTextCharacters self
@@ -590,6 +595,14 @@ class List a:
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
+    ## Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    def foldRight a f: case self of
+        Empty: a
+        Prepend x xs: xs.foldRight (f x a) f
+
+    ## Reverses the list.
+    def reverse: self . foldRight [] Prepend
+
     ## List concatenation.
     def + that: case (self) of
         Empty: that
@@ -625,20 +638,57 @@ class List a:
          Prepend x xs: switch (f x) (Prepend x (xs.filter f)) (xs.filter f)
 
     ## Private.
-    def _merge that: case Tuple2 self that of
-        Tuple2 (Prepend x xs) (Prepend y ys): if y < x then self . _merge ys . prepend y else xs . _merge that . prepend x
+    def _merge cmp that: case Tuple2 self that of
+        Tuple2 (Prepend x xs) (Prepend y ys): if cmp y x then self . _merge cmp ys . prepend y else xs . _merge cmp that . prepend x
         Tuple2 x Empty: x
         Tuple2 Empty y: y
 
-    ## Sorts the list in an increasing order.
-    def sort:
+    ## Sorts the list in an increasing order by the results of the given function.
+    def sortBy f:
         halfLen = self.length / 2
         case 0.== halfLen of
             True: self
             False:
-                fstHalf = self . take halfLen . sort
-                sndHalf = self . drop halfLen . sort
-                fstHalf._merge sndHalf
+                fstHalf = self . take halfLen . sortBy f
+                sndHalf = self . drop halfLen . sortBy f
+                fstHalf._merge (f _ < f _) sndHalf
+
+    ## Private.
+    def _chunkBy last f:
+        case (last, self) of
+            (Nothing, Prepend a rest):
+                v = f a
+                rest._chunkBy (Just (v, [a])) f
+            (Nothing, Empty): Empty
+            (Just (v, elts), Prepend a rest):
+                v1 = f a
+                case v1 == v of
+                    True: rest._chunkBy (Just (v, Prepend a elts)) f
+                    False:
+                        grp = elts . reverse
+                        r   = rest._chunkBy (Just (v1, [a])) f
+                        Prepend (v, grp) r
+            (Just (v, elts), Empty):
+                grp = elts . reverse
+                [(v, grp)]
+
+    ## Chunks the list into lists of consecutive values returning the same value of a given function.
+    ## For example:
+    ## ```
+    ## [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2]), (True, [3, 4]), (False, [2, 2])]
+    ## ```
+    def chunkBy f: self._chunkBy Nothing f
+
+    ## Groups the list into lists of values returning the same value of a given function. Requires the return value of the function to be ordered.
+    ## For example:
+    ## ```
+    ## [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2, 2, 2]), (True, [3, 4])]
+    ## ```
+    def groupBy f:
+        self . sortBy f . chunkBy f
+
+    ## Sorts the list in an increasing order.
+    def sort: self . sortBy id
 
     ## Private.
     def _prefixes i: Prepend (self.take i) (self._prefixes i.succ)
