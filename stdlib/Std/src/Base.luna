@@ -590,6 +590,12 @@ class List a:
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
+    def foldLeft a f: case self of
+        Empty: a
+        Prepend x xs:
+            na = f x a
+            xs . foldLeft na f
+
     ## List concatenation.
     def + that: case (self) of
         Empty: that
@@ -717,7 +723,9 @@ class Map k v:
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
-            l.toList + [(k, v)] + r.toList
+            left = l.toList
+            right = r.toList
+            left + ([(k, v)] + right)
 
     ## Applies a function to each value in the map.
     def map f: case self of
@@ -727,32 +735,145 @@ class Map k v:
     ## Converts a map with `Text` keys to JSON.
     def toJSON: JSONObject (self . map (x : x.toJSON))
 
+    def toText: self . toList . toText
+
     ## Lookups an element for a given key.
-    def lookup k: case self of
-        Tip: Nothing
-        Bin s kx x l r:
-            if kx.== k then Just x else (if kx < k then r.lookup k else l.lookup k)
+    def lookup k:
+        case self of
+            Tip: Nothing
+            Bin s kx x l r:
+                if kx.== k then Just x else (if kx > k then l.lookup k else r.lookup k)
 
     ## Inserts an element at a given key.
     def insert k v: case self of
         Tip: Bin 1 k v Tip Tip
-        Bin s kx x l r:
-            case kx.== k of
-                True: Bin s kx v l r
-                False: case kx < k of
-                    True:
-                        newR = r.insert k v
-                        Bin (l.size + newR.size) kx x l newR
-                    False:
-                        newL = l.insert k v
-                        Bin (newL.size + r.size) kx x newL r
+        Bin s ky y l r: case (ky == k) of
+            True:  Bin s k v l r
+            False: case (k < ky) of
+                True:
+                    newL = l.insert k v
+                    Map._bin ky y newL r . _balanceL
+                False:
+                    newR = r.insert k v
+                    Map._bin ky y l newR . _balanceR
 
     ## Map equality. Two maps are equal when they contain the same keys and the elements associated with each key are equal.
-    def == that: case Tuple2 self that of
-        Tuple2 Tip Tip: True
-        Tuple2 (Bin s1 k1 v1 l1 r1) (Bin s2 k2 v2 l2 r2):
-            if s1.== s2 . and (k1.== k2) . and (v1.== v2) then l1.== l2 . and (r1.== r2) else False
-        other: False
+    def == that:
+        s = self.toList
+        t = that.toList
+        s.== t
+
+    def _delta: 3
+    def _ratio: 2
+
+    def _bin k v l r:
+        l' = l
+        r' = r
+        s  = l'.size + r'.size + 1
+        Bin s k v l' r'
+
+    def _singleL: case self of
+        Bin s k v l (Bin rs rk rv rl rr):
+            nl = Map._bin k v l rl
+            Map._bin rk rv nl rr
+
+    def _singleR: case self of
+        Bin s k v (Bin ls lk lv ll lr) r:
+            nr = Map._bin k v lr r
+            Map._bin lk lv ll nr
+
+    def _doubleL: case self of
+        Bin s k v l (Bin rs rk rv (Bin rls rlk rlv rll rlr) rr):
+            nl = Map._bin k v l rll
+            nr = Map._bin rk rv rlr rr
+            Map._bin rlk rlv nl nr
+
+    def _doubleR: case self of
+        Bin s k v (Bin ls lk lv ll (Bin lrs lrk lrv lrl lrr)) r:
+            nl = Map._bin lk lv ll lrl
+            nr = Map._bin k v lrr r
+            Map._bin lrk lrv nl nr
+
+    def _rotateL: case self of
+        Bin _ _ _ _ (Bin _ _ _ l r):
+            if l.size < Map._ratio * r.size then self._singleL else self._doubleL
+
+    def _rotateR: case self of
+        Bin _ _ _ (Bin _ _ _ l r) _:
+            if r.size < Map._ratio * l.size then self._singleR else self._doubleR
+
+    def _balance: case self of
+        Bin _ _ _ l r:
+            ls = l.size
+            rs = r.size
+            case ls + rs < 2 of
+                True: self
+                False: case rs > Map._delta * ls of
+                    True: self._rotateL
+                    False: case ls > Map._delta * rs of
+                        True: self._rotateR
+                        False: self
+
+    def _balanceL: case self of
+        Bin _ _ _ l r:
+            ls = l.size
+            rs = r.size
+            case ls + rs < 2 of
+                True: self
+                False: case ls > Map._delta * rs of
+                    True: self._rotateR
+                    False: self
+
+    def _balanceR: case self of
+        Bin _ _ _ l r:
+            ls = l.size
+            rs = r.size
+            case ls + rs < 2 of
+                True: self
+                False: case rs > Map._delta * ls of
+                    True: self._rotateL
+                    False: self
+
+    def _maxView: case self of
+        Bin _ k v l r: case r of
+            Tip: (k, v, l)
+            Bin _ _ _ _ _:
+                (km, vm, r') = r._maxView
+                res = Map._bin k v l r' . _balanceL
+                (km, vm, res)
+
+    def _minView: case self of
+        Bin _ k v l r: case l of
+            Tip: (k, v, r)
+            Bin _ _ _ _ _:
+                (km, vm, l') = l._minView
+                res = Map._bin k v l' r . _balanceR
+                (km, vm, res)
+
+    def _glue that: case (self, that) of
+        (l, Tip): l
+        (Tip, r): r
+        (Bin ls lk lv ll lr, Bin rs rk rv rl rr): case ls > rs of
+            True:
+                (km, vm, l') = self . _maxView
+                Map._bin km vm l' that . _balanceR
+            False:
+                (km, vm, r') = that . _minView
+                Map._bin km vm self r' . _balanceR
+
+    ## Deletes a key from the given map. If the the key is missing, it returns the original map.
+    def delete key: case self of
+        Tip: Tip
+        Bin _ k v l r: case key == k of
+            True: l._glue r
+            False: case key > k of
+                True:
+                    r' = r . delete key
+                    Map._bin k v l r' . _balanceL
+                False:
+                    l' = l . delete key
+                    Map._bin k v l' r . _balanceR
+
 
 ## Class representing JSON objects.
 class JSON:

@@ -17,17 +17,16 @@ class Assertion:
     negatedErrorMessage :: Text
 
     def run: case runError self.body of
-        Left e:      Just ("Exception when evaluating assertion: " + e)
-        Right False: Just self.errorMessage
-        Right True:  Nothing
+        Left e:      throw ("Exception when evaluating assertion: " + e)
+        Right False: throw self.errorMessage
+        Right True:  None
 
     def not: Assertion self.body.not self.negatedErrorMessage self.errorMessage
 
 class Test:
     def specify description assertion:
-        msg = case assertion.run of
-            Nothing: description
-            Just e:
+        msg = case runError assertion of
+            Left e:
                 tag  = '[FAILED] '
                 newL = ':\n'
                 reformatE = e . lines . each ('    ' +) . makeText '\n'
@@ -38,5 +37,5 @@ class Test:
 class TestSubject a:
     subject :: a
 
-    def should    pred: pred self.subject
-    def shouldNot pred: pred self.subject . not
+    def should    pred: pred self.subject . run
+    def shouldNot pred: pred self.subject . not . run

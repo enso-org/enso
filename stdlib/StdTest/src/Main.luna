@@ -1,0 +1,5 @@
+import Std.Base
+import StdTest.Map
+
+def main:
+    MapTest.run
