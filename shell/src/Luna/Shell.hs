@@ -59,6 +59,7 @@ import           System.Exit                   (die)
 
 import Data.Layout as Layout
 import qualified Data.Text.Terminal as Terminal
+import qualified Path as Path
 
 data ShellTest
 type instance Abstract ShellTest = ShellTest
@@ -114,43 +115,6 @@ formatErrors errs = foldl (<//>) mempty items where
     items = Layout.nested . (errorsEnumerator Layout.<+>) . formatError <$> errs
 
 
-{-main' :: IO ()-}
-{-main' = void $ runPM True $ do-}
-    {-stdPath  <- (<> "/Std/") <$> liftIO (Env.getEnv "LUNA_HOME")-}
-    {-mainPath <- liftIO $ getCurrentDirectory-}
-
-    {-(world, modules, _) <- Project.compileProject (Map.fromList [("Std", stdPath), ("Main", mainPath)]) [["Main", "Main"]]-}
-
-    {-main <- Pass.eval' @Project.ProjectCompilation $ do-}
-        {-let mainModule = Map.lookup ["Main", "Main"] modules-}
-        {-case mainModule of-}
-            {-Just unit -> do-}
-                {-Term (Term.Unit _ _ cls) <- readTerm unit-}
-                {-klass :: Expr Cls <- unsafeGeneralize <$> source cls-}
-                {-Term (Term.Cls _ _ _ meths) <- readTerm klass-}
-                {-main <- mapM (fmap unsafeGeneralize . source) $ Map.lookup "main" meths-}
-                {-return main-}
-            {-Nothing -> return Nothing-}
-
-    {-let mainFun = case main of-}
-          {-Just m  -> world ^. functions . at m-}
-          {-Nothing -> Nothing-}
-
-
-    {-case mainFun of-}
-        {-Just (Left e)  -> do-}
-            {-putStrLn "Luna encountered the following compilation errors:"-}
-            {-Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $ formatErrors e-}
-            {-putStrLn ""-}
-            {-liftIO $ die "Compilation failed."-}
-        {-Just (Right f) -> do-}
-            {-putStrLn "Running main..."-}
-            {-res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value-}
-            {-case res of-}
-                {-Left err -> error $ "Luna encountered runtime error: " ++ err-}
-                {-_        -> return ()-}
-        {-Nothing -> error "Function main not found in module Main."-}
-
 stdlibPath :: IO FilePath
 stdlibPath = do
     env     <- Map.fromList <$> Env.getEnvironment
@@ -169,10 +133,11 @@ stdlibPath = do
 main :: IO ()
 main = do
     mainPath  <- getCurrentDirectory
+    mainName  <- Project.getProjectName <$> Path.parseAbsDir mainPath
     stdPath   <- stdlibPath
     (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
-    Right (_, imp) <- Project.requestModules (Map.fromList [("Std", stdPath), ("Main", mainPath)]) ["Main.Main"] std
-    let mainFun = imp ^? Project.modules . ix ["Main", "Main"] . importedFunctions . ix "main" . Function.documentedItem
+    Right (_, imp) <- Project.requestModules (Map.fromList [("Std", stdPath), (mainName, mainPath)]) [[mainName, "Main"]] std
+    let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
     case mainFun of
         Just (Left e)  -> do
             putStrLn "Luna encountered the following compilation errors:"

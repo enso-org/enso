@@ -58,7 +58,7 @@ getLunaProjectsFromDir dir = do
     filesInDir <- Dir.listDirectory (Path.toFilePath dir)
     files      <- mapM Path.parseRelFile filesInDir
     return . map (dir Path.</>) $ filter (\file -> Path.fileExtension file == lunaProjectExt) files
-    
+
 findProjectFile :: Path.Path Path.Abs Path.Dir -> IO (Maybe (Path.Path Path.Abs Path.File))
 findProjectFile dir = getLunaProjectsFromDir dir >>= \case
     [] -> let parentDir = Path.parent dir in
