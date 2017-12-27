@@ -700,6 +700,9 @@ class Map k v:
     ## Returns an empty map.
     def empty: Tip
 
+    ## Returns a map with a single element.
+    def singleton k v: Bin 1 k v Tip Tip
+
     ## Tests whether the map is empty.
     def isEmpty: case self of
         Tip: True
@@ -714,7 +717,7 @@ class Map k v:
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
-            l.toList + Empty.prepend (Tuple2 k v) + r.toList
+            l.toList + [(k, v)] + r.toList
 
     ## Applies a function to each value in the map.
     def map f: case self of
@@ -991,3 +994,11 @@ def readFile f: primReadFile (expandPath f)
 
 ## Write a Text object into a file with a given path.
 def writeFile f c: primWriteFile (expandPath f) c
+
+## Takes a Text and throws it as an error.
+def throw e: errorStr e
+
+## Takes a value and a function from Text to value. Returns the value if it was correct or calls the function if the value was erroneous.
+def catch v f: case runError v of
+    Left e:  f e
+    Right d: d

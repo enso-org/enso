@@ -1,0 +1,42 @@
+import Std.Base
+
+def be exp act:
+    def expLine:   "Expected: " + exp.toText
+    def actLine:   "Actual: "   + act.toText
+    def errMsg:    'Expected the values to be equal, but got:\n' + expLine + '\n' + actLine
+    def negErrMsg: 'Expected the values not to be equal, but got:\n' + expLine + '\n' + actLine
+    Assertion (exp == act) errMsg negErrMsg
+
+def satisfy pred val:
+    Assertion (pred val) "Expected the predicate to be True, but got False" "Expected the predicate to be False, but got True"
+
+
+class Assertion:
+    body                :: Bool
+    errorMessage        :: Text
+    negatedErrorMessage :: Text
+
+    def run: case runError self.body of
+        Left e:      Just ("Exception when evaluating assertion: " + e)
+        Right False: Just self.errorMessage
+        Right True:  Nothing
+
+    def not: Assertion self.body.not self.negatedErrorMessage self.errorMessage
+
+class Test:
+    def specify description assertion:
+        msg = case assertion.run of
+            Nothing: description
+            Just e:
+                tag  = '[FAILED] '
+                newL = ':\n'
+                reformatE = e . lines . each ('    ' +) . makeText '\n'
+                tag + description + newL + reformatE
+            Right v: description
+        print msg
+
+class TestSubject a:
+    subject :: a
+
+    def should    pred: pred self.subject
+    def shouldNot pred: pred self.subject . not

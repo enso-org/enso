@@ -50,7 +50,7 @@ import qualified GHC.IO.Handle                                as Handle
 import           Luna.Builtin.Data.Class                      (Class (..))
 import           Luna.Builtin.Data.Function                   as Function
 import           Luna.Builtin.Data.LunaEff                    (LunaEff, performIO, runError, runIO, throw)
-import           Luna.Builtin.Data.LunaValue                  (constructor, Constructor (..), fields, force', LunaData (..), LunaValue, Object (..), tag)
+import           Luna.Builtin.Data.LunaValue                  (constructor, Constructor (..), fields, force', LunaData (..), LunaValue, Object (..), tag, force)
 import           Luna.Builtin.Data.Module                     as Module
 import           Luna.Builtin.Prim
 import           Luna.IR                                      hiding (Function)
@@ -65,7 +65,7 @@ import           Luna.Pass.Resolution.Data.UnresolvedAccs     (getAccs, Unresolv
 import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped as RemoveGrouped
 import           Luna.Pass.Typechecking.Typecheck
 import qualified Luna.Pass.UnitCompilation.ClassProcessing    as ClassProcessing
-import           Luna.Prelude                                 as P hiding (cons, Constructor, nothing, Text, toList)
+import           Luna.Prelude                                 as P hiding (cons, Constructor, nothing, Text, toList, force)
 import           Luna.Test.IR.Runner
 import           Luna.Test.Utils
 
@@ -546,7 +546,17 @@ systemStd std = do
         res    <- compile $ generalize lamP
         return $ Function res (toLunaValue std putStr) (Assumptions def [generalize comm] def def)
 
-    let errVal = toLunaValue std $ \(a :: Text) -> (throw $ "Luna error: " ++ convert a :: LunaValue)
+    let runErrVal = toLunaValue std $ \(x :: LunaValue) -> ((_Left %~ convert) <$> runError (force x) :: LunaEff (Either Text LunaData))
+    Right runErr <- runGraph $ do
+        tpA       <- var "a"
+        tpText    <- cons_ @Draft "Text"
+        tpEit     <- cons "Either" [generalize tpText :: Expr Draft, generalize tpA]
+        tl        <- lam tpA tpEit
+        (assu, r) <- mkMonadProofFun $ generalize tl
+        cmp       <- compile r
+        return $ Function cmp runErrVal assu
+
+    let errVal = toLunaValue std $ \(a :: Text) -> (throw $ convert a :: LunaValue)
     Right err <- runGraph $ do
         tpInt <- cons_ @Draft "Text"
         a     <- var "a"
@@ -882,6 +892,7 @@ systemStd std = do
     hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [LCons "FileHandle" [], LCons "BufferMode" []] (LCons "None" [])
     let systemFuncs = Map.fromList [ ("putStr", printLn)
                                    , ("errorStr", err)
+                                   , ("runError", runErr)
                                    , ("primReadFile", readFileF)
                                    , ("expandPath", expandPathF)
                                    , ("readBinary", readBinaryF)
