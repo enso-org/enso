@@ -46,7 +46,9 @@ native class Int:
     def succ: self + 1
 
     ## Generates a list representing a range. `a.upto b == [a, a + 1, a + 2, ..., b - 1, b]`
-    def upto i: if self < i then Prepend self (self+1 . upto i) else (if self == i then [self] else [])
+    def upto i:
+        ss = self.succ
+        if self <= i then Prepend self (ss . upto i) else []
 
 ## Class representing floating point numbers.
 native class Real:

@@ -1,4 +1,5 @@
 import Std.Base
+import Std.Time
 
 def be exp act:
     def expLine:   "Expected: " + exp.toText
@@ -39,3 +40,12 @@ class TestSubject a:
 
     def should    pred: pred self.subject . run
     def shouldNot pred: pred self.subject . not . run
+
+class Bench:
+    def run desc act:
+        print ("Benchmarking: " + desc)
+        t0 = Time.now
+        a = act
+        print a
+        t1 = Time.now
+        print (t1.diff t0)
