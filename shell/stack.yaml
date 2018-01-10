@@ -46,8 +46,6 @@ packages:
 - extra-dep: true
   location: {commit: 107db9368e95e192d70c0dec274ecfe3592101d2, git: 'https://github.com/luna/typelevel.git'}
 - extra-dep: true
-  location: {commit: a6afda3b96efe00938aba61ac12a2f5f2134ff3d, git: 'https://github.com/luna/data-construction.git'}
-- extra-dep: true
   location: {commit: b5f02ced2912501d923c07950789fbcf44a6a9ce, git: 'https://github.com/luna/data-prop.git'}
 - extra-dep: true
   location: {commit: 4f5153aed4944317942ff9025c79f7fc3be85181, git: 'https://github.com/luna/data-rtuple.git'}

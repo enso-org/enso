@@ -98,6 +98,9 @@ target/
 # ghc-mod
 .haskell-ghc-mod.json
 
+# vim
+*.swp
+
 ############################
 ## Luna compiler specific ##
 ############################

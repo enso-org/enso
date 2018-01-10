@@ -5,7 +5,7 @@ import Std.System
 ## A class representing time (and date).
 class Time:
     Time
-    TimeVal Int (TimeInterval Int)
+    TimeVal Int TimeInterval
 
     ## Gets the current time. Usage: `Time.now`.
     def now: primGetCurrentTime
@@ -13,6 +13,44 @@ class Time:
     ## Gets time of day in form of a tuple: (hour, minute, seconds).
     def timeOfDay: case self of
         TimeVal _ ti: primTimeOfDay ti
+
+    ## Gets the beginning of the current day.
+    ## If called on February 14th at 4:00, it will return February 14th 0:00
+    def beginningOfDay: case Time.now of
+        TimeVal days _: TimeVal days (TimeInterval 0)
+
+    ## Gets the end of the current day.
+    ## If called on February 14th at 4:00, it will return February 15th 0:00
+    def endOfDay: case Time.now of
+        TimeVal days _: TimeVal (days+1) (TimeInterval 0)
+
+    ## Gets the time of year in form of a tuple: (year, month, day)
+    def timeOfYear: case self of
+        TimeVal days _: primTimeOfYear days
+
+    ## Creates a `Time` object from its parameters: the year, month and day.
+    def fromTimeOfYear y m d:
+        TimeVal (primFromTimeOfYear y m d) (TimeInterval 0)
+
+    ## Gets the `Time` representing the first day of the current month.
+    def beginningOfMonth: case Time.now of
+        TimeVal days _: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y m 1
+
+    ## Gets the `Time` representing the last day of the current month.
+    def endOfMonth: case Time.now of
+        TimeVal days _: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y m (primMonthLength y m)
+
+    ## Gets the `Time` representing the first day (January 1st) of the current year.
+    def beginningOfYear: case Time.now of
+        TimeVal days _: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y 1 1
+
+    ## Gets the `Time` representing the last day (December 31st) of the current year.
+    def endOfYear: case Time.now of
+        TimeVal days _: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y 12 31
 
     ## Calculate difference between to time values.
     def diff other: primDiffTimes self other
@@ -24,10 +62,6 @@ class Time:
     ## Subtract a `TimeInterval` from this `Time`.
     def sub interval: case self of
         TimeVal days diff: TimeVal days (diff.sub interval)
-
-    def toText: primShowTime self
-
-    def shortRep: self.toText
 
     ## Does this and the `other` `Time` point to the same time?
     def == other: primTimesEq self other
@@ -43,7 +77,7 @@ class Time:
         d.toInt.> 0
 
     ## Default format for `Time`: YYYY-MM-DD.HH:MM:SS.
-    def defaultFormat: "%FT%T.%q%z"
+    def defaultFormat: "%FT%T"
 
     ## Tries to parse `Time` from `Text` using the specified format.
     ## Returns `Just time` if successful and `Nothing` otherwise.
@@ -63,12 +97,29 @@ class Time:
     ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def parseFmt fmt str: case Time.safeParseFmt fmt str of
         Just t:  t
-        Nothing: errorStr ("Couldn't parse Time with the given format (" + fmt + ")")
+        Nothing: throw ("Couldn't parse Time with the given format (" + fmt + ")")
 
     ## Parse `Time` from `Text`.
     ## Returns a `Time` object and throws an error if unable to parse the time.
     def parse str: Time.parseFmt Time.defaultFormat str
 
+    ## Formats a `Time` according to the specifier supplied (converting to `Text`).
+    ## If a custom format is needed, please see:
+    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
+    def format fmt: primFormatTime fmt self
+
+    ## Converts a `Time` to `Text` using the default format (YYYY-MM-DD.HH:MM:SS).
+    def toText: self.format Time.defaultFormat
+
+    def shortRep: self.toText
+
+    ## Parses a `Time` from a number representing the standard epoch.
+    def fromEpoch e: case Time.safeParseFmt "%s" e.toText of
+        Just t: t
+        Nothing: throw "Couldn't parse Time from epoch."
+
+    ## Converts a `Time` to an epoch.
+    def toEpoch: self.format "%s"
 
 ## A class representing time intervals, that is: a difference between two times.
 ## Can be converted to different time resolutions like seconds, miliseconds and microseconds.

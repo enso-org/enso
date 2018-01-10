@@ -39,6 +39,28 @@ native class Int:
     def seconds: self*1000 . miliseconds
     ## Returns a TimeInterval with the length of `self` minutes.
     def minutes: self*60 . seconds
+    ## Returns a TimeInterval with the length of `self` hours.
+    def hours: self*60 . minutes
+    ## Returns a TimeInterval with the length of `self` days.
+    def days: self*24 . hours
+    ## Returns a TimeInterval with the length of `self` weeks.
+    def days: self*7 . days
+    ## Returns a TimeInterval with the length of `self` fortnights.
+    def fortnights: self*2 . weeks
+    ## An alias for `miliseconds`
+    def milisecond: self.miliseconds
+    ## An alias for `seconds`
+    def second: self.seconds
+    ## An alias for `minutes`
+    def minute: self.minutes
+    ## An alias for `hours`
+    def hour: self.hours
+    ## An alias for `days`
+    def day: self.days
+    ## An alias for `weeks`
+    def week: self.weeks
+    ## An alias for `fortnights`
+    def fortnight: self.fortnight
 
     ## Predecessor. `a.pred == a - 1`
     def pred: self - 1
