@@ -255,32 +255,72 @@ primReal imps = do
     Right (double2DoubleAssumptions, double2Double)     <- oneArgFun "Real" "Real"
     Right (doubleIntDoubleAssumptions, doubleIntDouble) <- twoArgFun "Real" "Int" "Real"
 
-    let plusVal     = toLunaValue imps ((+)  :: Double -> Double -> Double)
-        timeVal     = toLunaValue imps ((*)  :: Double -> Double -> Double)
-        minusVal    = toLunaValue imps ((-)  :: Double -> Double -> Double)
-        divVal      = toLunaValue imps ((/)  :: Double -> Double -> Double)
-        eqVal       = toLunaValue imps ((==) :: Double -> Double -> Bool)
-        ltVal       = toLunaValue imps ((<)  :: Double -> Double -> Bool)
-        gtVal       = toLunaValue imps ((>)  :: Double -> Double -> Bool)
+    let plusVal     = toLunaValue imps ((+)          :: Double -> Double -> Double)
+        timeVal     = toLunaValue imps ((*)          :: Double -> Double -> Double)
+        minusVal    = toLunaValue imps ((-)          :: Double -> Double -> Double)
+        divVal      = toLunaValue imps ((/)          :: Double -> Double -> Double)
+        logBaseVal  = toLunaValue imps (flip logBase :: Double -> Double -> Double)
+        powVal      = toLunaValue imps ((**)         :: Double -> Double -> Double)
+        eqVal       = toLunaValue imps ((==)         :: Double -> Double -> Bool)
+        ltVal       = toLunaValue imps ((<)          :: Double -> Double -> Bool)
+        gtVal       = toLunaValue imps ((>)          :: Double -> Double -> Bool)
         roundVal    = toLunaValue imps ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
         showVal     = toLunaValue imps (convert . show :: Double -> Text)
+
         sinVal      = toLunaValue imps (sin  :: Double -> Double)
         cosVal      = toLunaValue imps (cos  :: Double -> Double)
         tanVal      = toLunaValue imps (tan  :: Double -> Double)
+
+        asinVal     = toLunaValue imps (asin :: Double -> Double)
+        acosVal     = toLunaValue imps (acos :: Double -> Double)
+        atanVal     = toLunaValue imps (atan :: Double -> Double)
+
+        sinhVal     = toLunaValue imps (sinh  :: Double -> Double)
+        coshVal     = toLunaValue imps (cosh  :: Double -> Double)
+        tanhVal     = toLunaValue imps (tanh  :: Double -> Double)
+
+        asinhVal    = toLunaValue imps (asinh :: Double -> Double)
+        acoshVal    = toLunaValue imps (acosh :: Double -> Double)
+        atanhVal    = toLunaValue imps (atanh :: Double -> Double)
+
+        expVal      = toLunaValue imps (exp  :: Double -> Double)
+        sqrtVal     = toLunaValue imps (sqrt :: Double -> Double)
+        logVal      = toLunaValue imps (log  :: Double -> Double)
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
-    return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal   boxed3DoublesAssumptions  )
-                          , ("primRealMultiply", Function boxed3Doubles   timeVal   boxed3DoublesAssumptions  )
-                          , ("primRealSubtract", Function boxed3Doubles   minusVal  boxed3DoublesAssumptions  )
-                          , ("primRealDivide",   Function boxed3Doubles   divVal    boxed3DoublesAssumptions  )
-                          , ("primRealEquals",   Function double2Bool     eqVal     double2BoolAssumptions    )
-                          , ("primRealLt",       Function double2Bool     ltVal     double2BoolAssumptions    )
-                          , ("primRealGt",       Function double2Bool     gtVal     double2BoolAssumptions    )
-                          , ("primRealRound",    Function doubleIntDouble roundVal  doubleIntDoubleAssumptions)
-                          , ("primRealToText",   Function double2text     showVal   double2TextAssumptions    )
-                          , ("primRealSin",      Function double2Double   sinVal    double2DoubleAssumptions  )
-                          , ("primRealCos",      Function double2Double   cosVal    double2DoubleAssumptions  )
-                          , ("primRealTan",      Function double2Double   tanVal    double2DoubleAssumptions  )
-                          , ("primRealNegate",   Function double2Double   uminusVal double2DoubleAssumptions  )
+    return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal    boxed3DoublesAssumptions  )
+                          , ("primRealMultiply", Function boxed3Doubles   timeVal    boxed3DoublesAssumptions  )
+                          , ("primRealSubtract", Function boxed3Doubles   minusVal   boxed3DoublesAssumptions  )
+                          , ("primRealDivide",   Function boxed3Doubles   divVal     boxed3DoublesAssumptions  )
+                          , ("primRealPow",      Function boxed3Doubles   powVal     boxed3DoublesAssumptions  )
+                          , ("primRealLog",      Function boxed3Doubles   logBaseVal boxed3DoublesAssumptions  )
+
+                          , ("primRealEquals",   Function double2Bool     eqVal      double2BoolAssumptions    )
+                          , ("primRealLt",       Function double2Bool     ltVal      double2BoolAssumptions    )
+                          , ("primRealGt",       Function double2Bool     gtVal      double2BoolAssumptions    )
+
+                          , ("primRealRound",    Function doubleIntDouble roundVal   doubleIntDoubleAssumptions)
+                          , ("primRealToText",   Function double2text     showVal    double2TextAssumptions    )
+
+                          , ("primRealSin",      Function double2Double   sinVal     double2DoubleAssumptions  )
+                          , ("primRealCos",      Function double2Double   cosVal     double2DoubleAssumptions  )
+                          , ("primRealTan",      Function double2Double   tanVal     double2DoubleAssumptions  )
+
+                          , ("primRealAsin",     Function double2Double   asinVal    double2DoubleAssumptions  )
+                          , ("primRealAcos",     Function double2Double   acosVal    double2DoubleAssumptions  )
+                          , ("primRealAtan",     Function double2Double   atanVal    double2DoubleAssumptions  )
+
+                          , ("primRealSinh",     Function double2Double   sinhVal    double2DoubleAssumptions  )
+                          , ("primRealCosh",     Function double2Double   coshVal    double2DoubleAssumptions  )
+                          , ("primRealTanh",     Function double2Double   tanhVal    double2DoubleAssumptions  )
+
+                          , ("primRealAsinh",    Function double2Double   asinhVal   double2DoubleAssumptions  )
+                          , ("primRealAcosh",    Function double2Double   acoshVal   double2DoubleAssumptions  )
+                          , ("primRealAtanh",    Function double2Double   atanhVal   double2DoubleAssumptions  )
+
+                          , ("primRealExp",      Function double2Double   expVal     double2DoubleAssumptions  )
+                          , ("primRealLn",       Function double2Double   logVal     double2DoubleAssumptions  )
+                          , ("primRealSqrt",     Function double2Double   sqrtVal    double2DoubleAssumptions  )
+                          , ("primRealNegate",   Function double2Double   uminusVal  double2DoubleAssumptions  )
                           ]
 
 primInt :: Imports -> IO (Map Name Function)
@@ -478,6 +518,7 @@ prelude imps = mdo
     mod      <- preludeArithOp "%"
     plus     <- preludeArithOp "+"
     div      <- preludeArithOp "/"
+    pow      <- preludeArithOp "^"
     uminus   <- preludeUnaryOp "negate"
     gt       <- preludeCmpOp importBoxes ">"
     lt       <- preludeCmpOp importBoxes "<"
@@ -488,7 +529,7 @@ prelude imps = mdo
     intFuns  <- primInt      importBoxes
     textFuns <- primText     importBoxes
     binFuns  <- primBinary   importBoxes
-    let opMap  = Map.fromList [("+", plus), ("-", minus), ("*", times), (">", gt), ("<", lt), (">=", gte), ("<=", lte), ("==", eq), ("%", mod), ("/", div), ("#uminus#", uminus)]
+    let opMap  = Map.fromList [("+", plus), ("-", minus), ("*", times), ("^", pow), (">", gt), ("<", lt), (">=", gte), ("<=", lte), ("==", eq), ("%", mod), ("/", div), ("#uminus#", uminus)]
         funMap = Map.unions   [realFuns, intFuns, textFuns, binFuns, opMap]
     let importBoxes = unionImports imps $ Imports def (WithDocumentation def . Right <$> funMap)
     return funMap

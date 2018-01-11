@@ -60,6 +60,10 @@ native class Real:
     def -  that: primRealSubtract self that
     ## Floating point division.
     def /  that: primRealDivide   self that
+    ## Flotaing point exponentiation.
+    def ^ that: primRealPow self that
+    ## Floating point logarithm with given basis.
+    def log that: primRealLog self that
     ## Tests whether `self` is greater than the argument.
     def >  that: primRealGt       self that
     ## Tests whether `self` is lesser than the argument.
@@ -84,6 +88,34 @@ native class Real:
     def cos: primRealCos self
     ## Tangent function.
     def tan: primRealTan self
+
+    ## Hyperbolic sine function.
+    def sinh: primRealSinh self
+    ## Hyperbolic cosine function.
+    def cosh: primRealCosh self
+    ## Hyperbolic tangent function.
+    def tanh: primRealTanh self
+
+    ## Inverse sine function.
+    def asin: primRealAsin self
+    ## Inverse cosine function.
+    def acos: primRealAcos self
+    ## Inverse tangent function.
+    def atan: primRealAtan self
+
+    ## Inverse hyperbolic sine function.
+    def asinh: primRealAsinh self
+    ## Inverse hyperbolic cosine function.
+    def acosh: primRealAcosh self
+    ## Inverse hyperbolic tangent function.
+    def atanh: primRealAtanh self
+
+    ## Natural exponential function.
+    def exp: primRealExp self
+    ## Natural logarithm function.
+    def ln: primRealLn self
+    ## Square root.
+    def sqrt: primRealSqrt self
 
     ## Displays a number as text.
     def shortRep: self.toText
