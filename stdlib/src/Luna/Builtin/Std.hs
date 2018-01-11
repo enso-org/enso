@@ -11,6 +11,7 @@ import           Control.DeepSeq                              (rnf)
 import qualified Control.Exception                            as Exception
 import           Control.Monad.Except
 import           Control.Monad.Trans.State                    (evalStateT, get)
+import           System.FilePath                              (pathSeparator)
 
 import qualified Data.Aeson                                   as Aeson
 import qualified Data.Bifunctor                               as Bifunc
@@ -890,12 +891,18 @@ systemStd std = do
     let hSetBufferingVal :: Handle -> BufferMode -> LunaEff ()
         hSetBufferingVal = withExceptions .: Handle.hSetBuffering
     hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [LCons "FileHandle" [], LCons "BufferMode" []] (LCons "None" [])
+
+    let pathSepVal :: Text
+        pathSepVal = convert pathSeparator
+    pathSep <- typeRepForPure (toLunaValue std pathSepVal) [] (LCons "Text" [])
+
     let systemFuncs = Map.fromList [ ("putStr", printLn)
                                    , ("errorStr", err)
                                    , ("runError", runErr)
                                    , ("primReadFile", readFileF)
                                    , ("expandPath", expandPathF)
                                    , ("readBinary", readBinaryF)
+                                   , ("pathSeparator", pathSep)
                                    , ("primWriteFile", writeFile')
                                    , ("parseJSON", parseJSON)
                                    , ("parseMsgPack", parseMsgPack)
