@@ -310,7 +310,7 @@ class Tuple2 a b:
 
     ## Text representation of a tuple.
     def toText: case self of
-        Tuple2 a b: "Tuple2 " + a.toText + " " + b.toText
+        Tuple2 a b: "(" + a.toText + ", " + b.toText + ")"
 
     ## Tuple equality. Two tuples are equal when their respective elements are equal.
     def == that:
@@ -341,7 +341,7 @@ class Tuple3 a b c:
 
     ## Text representation of a triple.
     def toText: case self of
-        Tuple3 a b c: "Tuple3 " + a.toText + " " + b.toText + " " + c.toText
+        Tuple3 a b c: "(" + a.toText + ", " + b.toText + ", " + c.toText + ")"
 
     ## Short Text representation of a triple.
     def shortRep: case self of
@@ -350,7 +350,6 @@ class Tuple3 a b c:
     ## Triple equality. Two triples are equal when their respective elements are equal.
     def == that: case that of
         Tuple3 a b c: self.first.== a . and (self.second.== b) . and (self.third.== c)
-        other:        False
 
 ## Class representing 4-tuples of elements of arbitrary type.
 class Tuple4 a b c d:
@@ -381,7 +380,7 @@ class Tuple4 a b c d:
 
     ## Text representation of a 4-tuple.
     def toText: case self of
-        Tuple4 a b c d: "Tuple4 " + a.toText + " " + b.toText + " " + c.toText + " " + d.toText
+        Tuple4 a b c d: "(" + a.toText + ", " + b.toText + ", " + c.toText + ", " + d.toText + ")"
 
     ## Short text representation of a 4-tuple.
     def shortRep: case self of
@@ -409,18 +408,13 @@ class Maybe a:
         Nothing: Empty
 
     ## Returns the value when called on `Just`, throws an error otherwise.
-    def fromJust: case self of
+    def get: case self of
         Just a:  a
-        Nothing: errorStr "Maybe.fromJust: Nothing"
+        Nothing: errorStr "Maybe.get: Nothing"
 
     ## Returns the value when called on `Just` or the provided default value when called on a `Nothing`.
-    def fromMaybe defVal: case self of
+    def withDefault defVal: case self of
         Just a: a
-        Nothing: defVal
-
-    ## Takes a default value and a function `f`. If `self` is `Just a` returns `f a`, otherwise returns the provided default value.
-    def maybe defVal f: case self of
-        Just a: f a
         Nothing: defVal
 
     ## Returns `True` when called on a `Just` and `False` otherwise.
@@ -443,12 +437,13 @@ class Maybe a:
         Nothing: Nothing
         Just a: f a
 
-    ## A variant of `map` that executes any effects attached to
+    ## A variant of `map` that executes any effects performed by the function.
     def each f: case self of
         Nothing: Nothing
         Just a:
             x = f a
             Just x
+
     ## Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)` and `Nothing` otherwise.
     def flatten: case self of
         Nothing: Nothing
@@ -465,13 +460,10 @@ class Maybe a:
         Nothing: "Nothing"
 
     ## Checks the equality of two `Maybe` values. Returns `True` when both values are `Nothing` or when they are `Just` and the values inside are equal.
-    def == that: case self of
-        Just a: case that of
-            Just b:  a.== b
-            Nothing: False
-        Nothing: case that of
-            Nothing: True
-            other:   False
+    def == that: case (self, that) of
+        (Just a, Just b): a.== b
+        (Nothing, Nothing): True
+        other: False
 
 ## `Either` represents an alternative of two different values – either one or the other is present.
 class Either a b:

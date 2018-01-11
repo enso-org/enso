@@ -122,24 +122,24 @@ class ProcessDescription:
     ## Run this process with specified `input`.
     def runWithInput input:
         p = self.run
-        unless (t.isEmpty) (p.stdin.fromJust.putText t)
+        unless (t.isEmpty) (p.stdin.get.putText t)
         p.stdin.each .close
         p
 
     ## Run this process, passing a stream as its input.
     def runWithStream stream:
         p = self.run
-        fork (stream.each p.stdin.fromJust.putLine)
+        fork (stream.each p.stdin.get.putLine)
         p
 
     ## Execute this process from beginning to end, returning its standard output, standard error
     ## and exit code instead of the `Process` object.
     def execute input:
         p = self.run
-        outh = p.stdout.fromJust.getContents
-        errh = p.stderr.fromJust.getContents
+        outh = p.stdout.get.getContents
+        errh = p.stderr.get.getContents
         def action waitOut waitErr:
-            unless input.isEmpty (p.stdin.fromJust.putText input)
+            unless input.isEmpty (p.stdin.get.putText input)
             p.stdin.each .close
             o = waitOut
             e = waitErr
