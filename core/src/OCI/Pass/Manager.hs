@@ -70,7 +70,7 @@ type    DynSubPass          = DynSubPassM     IO -- FIXME[WD]: refactor to Luna 
 
 
 data State m = State { _passes    :: Map PassRep (Pass.Describbed (Uninitialized m (m ()))) -- not used yet
-                     , _layers    :: Map ElemRep  $ Map LayerRep PassRep                         -- not used yet
+                     , _layers    :: Map ElemRep  $ Map LayerRep PassRep                    -- not used yet
                      , _listeners :: ListenerState m
                      , _attrs     :: Map AttrRep Prim.AnyData
                      } deriving (Show)
@@ -137,7 +137,6 @@ evalPassManager' = flip evalPassManager def
 
 registerElemEventListener :: MonadPassManager m => LayerRep -> PassRep -> ListenerDecl (GetRefHandler m) -> m ()
 registerElemEventListener l p f = modify_ @State $ listeners . decls . at l . subMapAt p ?~ f
-    -- where f' = flip (fmap . fmap) f $ \df -> (fmap . fmap . fmap) (withDebugBy ("Pass [" <> show (df ^. Pass.description . Pass.passRep) <> "]") "Running") df
 
 registerGenericElemEventListener :: MonadPassManager m => LayerRep -> PassRep -> Proto (Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (GetRefHandler m ()))))) -> m ()
 registerGenericElemEventListener l p f = withDebug (convert $ "Registering event listener " <> show p <> " (* // " <> show l <> ")") $ registerElemEventListener l p (GenericListener f')
@@ -147,12 +146,6 @@ registerSpecificElemEventListener :: MonadPassManager m => ElemRep -> LayerRep -
 registerSpecificElemEventListener e l p f = withDebug (convert $ "Registering event listener " <> show p <> " (" <> show e <> " // " <> show l <> ")") $ registerElemEventListener l p (SpecificListener e f')
     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (withDebugBy (convert $ "Pass [" <> show (df ^. Pass.description . Pass.passRep) <> "]") "Running") df
 
--- registerElemEventListener' :: MonadPassManager m => LayerRep -> PassRep -> Proto (Event.Tagged (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (Delayed_ (GetRefHandler m)))))) -> m ()
--- registerElemEventListener' = registerElemEventListener Nothing
-
--- registerElemEventListener2 :: MonadPassManager m => LayerRep -> Proto (Pass.Describbed (Uninitialized (GetRefHandler m) (Template (Delayed_ (GetRefHandler m))))) -> m ()
--- registerElemEventListener2 l f = withDebug ("Registering layer " <> show l) $ modify_ $ layers . prototypes . at l ?~ f'
---     where f' = flip fmap f $ \df -> (fmap . fmap . fmap) (\(Delayed p) -> withDebugBy ("Pass [" <> show (df ^. Pass.description . Pass.passRep) <> "]") "Running" (Delayed p)) df
 
 -- FIXME[WD]: pass manager should track pass deps so priority should be obsolete in the future!
 attachLayer :: (MonadPassManager m, Throws IRError m) => Int -> LayerRep -> ElemRep -> m ()
@@ -161,8 +154,6 @@ attachLayer priority l e = withDebug (convert $ "Attaching layer " <> show l <> 
     s <- get @State
     let Just layerDecls = Map.elems <$> s ^. listeners . decls . at l
         dpasses = catMaybes $ specializeListener e <$> layerDecls
-        -- s' = s & layers . attached . at e . non Map.empty . at l ?~ (dpass ^. Pass.description . Pass.passRep)
-    -- put s'
     mapM_ (\(Event.Tagged (Tag es) p) -> addEventListener_byPri priority (Tag $ es <> [switchTypeDesc e]) p) dpasses
     -- TODO: register new available pass!
 
@@ -301,12 +292,3 @@ withFreshIR m = do
 
 evalWithFreshIR :: forall pass m a. (MonadRef m, Pass.PassInit pass m, MonadPassManager m, MonadState Cache m) => SubPass pass m a -> m a
 evalWithFreshIR pass = withFreshIR $ Pass.eval' pass
-
-
--- -----------------------
--- -- === BuildPlan === --
--- -----------------------
---
--- newtype BuildPlan = BuildPlan [BuildStep]
---
--- data BuildStep = PassEvel

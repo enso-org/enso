@@ -40,8 +40,8 @@ testImports = do
         li  <- lam bl2 bl1
         l   <- lam bl1 li
         compile $ generalize l
-    let mod = Map.fromList [("id", Function id' undefined def), ("const", Function const' undefined def)]
-    return $ Imports def (Right <$> mod)
+    let mod = Map.fromList [("id", WithDocumentation def (Right $ Function id' undefined def)), ("const", WithDocumentation def (Right $ Function const' undefined def))]
+    return $ Imports def mod
 
 sizeAndCoherence :: (MonadRef m, MonadIO m, MonadPassManager m) => SubPass TestPass m (Int, [Incoherence])
 sizeAndCoherence = (,) <$> (length <$> exprs) <*> checkCoherence

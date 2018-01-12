@@ -80,8 +80,6 @@ instance Convertible QualName        (NonEmpty Name) where convert    = NonEmpty
 instance Convertible (NonEmpty Name) QualName        where convert    = convert . NonEmpty.toList
 instance IsString QualName where fromString = convert
 
--- splitHead :: forall a. IsList a => a -> (Maybe (Item a), a)
-
 -- Singleton
 instance Singleton QualName where
     singleton n = QualName mempty n n

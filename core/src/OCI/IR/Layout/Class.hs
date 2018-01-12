@@ -6,7 +6,6 @@ module OCI.IR.Layout.Class (module OCI.IR.Layout.Class, module X) where
 import Luna.Prelude as Prelude
 import Data.Property
 import OCI.IR.Layout.Format
--- import OCI.IR.Term
 
 import Unsafe.Coerce (unsafeCoerce)
 import GHC.TypeLits (ErrorMessage(Text, ShowType, (:<>:)), TypeError)

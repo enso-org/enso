@@ -156,21 +156,6 @@ instance HasQualName (TermUnitProxy a) where qualName = termUnitProxy_name
 
 
 
--- ----------------------
--- -- === UnitDecl === --
--- ----------------------
---
--- -- === Definition === --
---
--- data UnitDef = UnitSrcDef Code (Maybe Iface)
---              | UnitBinDef Iface
---              deriving (Show)
---
--- data TermUnitDecl a = UnitDecl { _declImports :: ![a] , _unitDef :: !UnitDef } deriving (Show, Functor, Foldable, Traversable)
--- makeLensedTerm ''TermUnitDecl
-
-
-
 ------------------
 -- === Unit === --
 ------------------
@@ -191,29 +176,6 @@ makeLensedTerm ''TermUnit
 
 newtype UnitSet = UnitSet (Map Name (SparseTreeSet Name)) deriving (Show)
 makeLenses ''UnitSet
-
-
--- === Utils === --
-
--- lookupPkgs :: Name -> UnitSet -> Pkgs
--- lookupPkgs n = fromMaybe mempty . TreeSet.lookup [n] . unwrap
---
--- atPath :: Name.Path -> Lens' UnitSet (Maybe UnitSet)
--- atPath n = wrapped . nestedAt (n ^. Name.segments) . mapping (from wrapped)
---
--- focusPath :: Name.Path -> Traversal' UnitSet UnitSet
--- focusPath n = atPath n . _Just
---
--- lookupUnitHeadPkgs :: UnitSet -> Name -> PackageLookupResult
--- lookupUnitHeadPkgs s n = case Set.elems (lookupPkgs n s) of
---     []  -> NotFound
---     [s] -> FoundSingle   s
---     a   -> FoundMultiple a
-
--- data PackageLookupResult = FoundSingle   Name
---                          | FoundMultiple [Name]
---                          | NotFound
---                          deriving (Show)
 
 
 -- === Instances === --

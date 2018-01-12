@@ -577,13 +577,3 @@ makeTerms famName pns = (<>) <$> (concat <$> mapM makeTerm pns) <*> (build $ do
     ns <- mapM extractName pns
     define $ alias (typeName famName) (typeName <$> ns)
     )
-
-
--- makeLensedTerms
-
--- type instance Access TermType        (Term atom _     ) = atom
-
-
--- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME [WD]
--- problem z ta biblioteka jest taki, ze apps lub typeInstance wymagaja takiego samego typu w liscie,
--- a czesto ccemy przekazywac tam raz name raz co innego. Wiec to wyjscia powinny byc polimorficzne, nie wejscia!

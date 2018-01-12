@@ -620,8 +620,6 @@ concatExprSegmentBuilders bldrs = SegmentBuilder $ \(l,r) -> case bldrs of
     (s:|[])     -> runSegmentBuilder s (l,r)
     (s:|(t:ts)) -> runSegmentBuilder s (l,False) <> runSegmentBuilder (concatExprSegmentBuilders $ t:|ts) (False,r)
 
--- prependSegmentToBuilder ::
-
 exprSegments    , exprSegmentsLocal     :: SymParser ExprSegments
 exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
 exprSegments          = buildExprTok <$> exprFreeSegments
@@ -1029,7 +1027,6 @@ parsingBase :: ( MonadPassManager m, ParsingPassReq_2 m
                ) => AsgParser a -> Text32 -> m (a, MarkedExprMap)
 parsingBase p src = do
     let stream = Lexer.evalDefLexer src
-    -- result <- runParserT p stream
     result <- runParserT (stx *> p <* etx) stream
     case result of
         Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
@@ -1050,7 +1047,6 @@ reparserPass p = do
     -- Reading previous analysis
     gidMapOld <- getAttr @MarkedExprMap
     refOld    <- getAttr @ParsedExpr
-    -- elsOld    <- exprs
 
     -- parsing new file and updating updated analysis
     putAttr @MarkedExprMap mempty
@@ -1061,11 +1057,6 @@ reparserPass p = do
     -- Preparing reparsing status
     rs        <- cmpMarkedExprMaps gidMapOld gidMap
     putAttr @ReparsingStatus (wrap rs)
-
-    -- Removing obsolete graph
-    -- mapM_ delete elsOld -- FIXME[WD]: to nie dziala bo `watchRemoveNode` wymaga warstwy Type ...
-
-
 
 runParserT :: MonadIO m => SymParser a -> Stream -> m (Either (ParseError Tok Error) a)
 runParserT p s = flip runParserInternal s

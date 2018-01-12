@@ -13,7 +13,7 @@ import           Data.Record
 import           Luna.Prelude                 hiding (elem {- fix: -} , Enum, log)
 import qualified Luna.Prelude as Prelude
 
-import Control.Monad.State.Dependent -- (StateT, runStateT)
+import Control.Monad.State.Dependent
 import Data.Map             (Map)
 import Data.Property
 import Data.RTuple          (TMap(..), empty, Assoc(..), Assocs, (:=:)) -- refactor empty to another library
@@ -25,7 +25,6 @@ import qualified OCI.IR.Term as A
 import OCI.IR.Layout.Format    (Format)
 import OCI.IR.Layout.Class   (LAYOUT, LayoutOf, Generalizable, Universal, universal, Abstract, Sub, abstract)
 import OCI.IR.Term     (TERM, Term, UncheckedFromTerm, FromTerm)
--- import Luna.IR.Term.Uni (UniTerm, IsUniTerm, uniTerm)
 import Type.Bool             (And)
 import Type.Container        (Every)
 import Type.Container        (In)
@@ -83,8 +82,6 @@ data OnQueryChildren = OnQueryChildren deriving (Show)
 -- === Elem === --
 ------------------
 
-
--- type family FromElem t where FromElem (Elem t) = t
 
 type instance Definition (Elem t) = Definition t
 type instance Abstract   (Elem t) = Elem (Abstract  t)
@@ -397,15 +394,11 @@ type MonadIR       m = (MonadIRBase m, MonadState (IRM m) m)
 type MonadIRTrans t m = (MonadIR m, MonadTrans t, MonadIRBase (t m), PrimState (t m) ~ PrimState m)
 
 instance s ~ IRM m => InferState IRST m s
--- instance {-# OVERLAPPABLE #-} s ~ IRM m => InferState IRST (t m) s
--- instance {-# OVERLAPPABLE #-} s ~ IRM m => InferState IRST (StateT x m) s
 
-
---FIXME: REFACTOR
+-- FIXME[WD]: REFACTOR
 class (MonadIR m, MonadIR (GetRefHandler m), EqPrims m (GetRefHandler m), GetRefHandler (GetRefHandler m) ~ GetRefHandler m)
    => MonadRef m where liftRefHandler :: forall a. GetRefHandler m a -> m a
 
--- instance {-# OVERLAPPABLE #-} (MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m, RefHandlerCtx (t m), MonadRef m)
 instance {-# OVERLAPPABLE #-} (MonadTransInvariants' t m, GetRefHandler (t m) ~ GetRefHandler m, MonadRef m, MonadIR (t m))
       => MonadRef (t m) where
     liftRefHandler = lift . liftRefHandler
@@ -517,12 +510,6 @@ group :: forall f a m. (Show a, MonadRef m, Foldable f, Ord a, NewElemEvent m (G
 group = newElem . foldl' (flip Set.insert) mempty
 
 
-
-
----------------------
-
--- data EXPR = EXPR deriving (Show)
-
 data ANY
 
 data EXPR layout
@@ -591,24 +578,9 @@ instance ValidateLayout (LayoutOf t) TermType atom
 -- Repr
 instance Repr s (Unwrapped (ExprTerm atom t))
       => Repr s (ExprTerm atom t) where repr = repr . unwrap'
---
--- -- Fields
--- type instance FieldsType (ExprTerm atom t) = FieldsType (Unwrapped (ExprTerm atom t))
--- instance HasFields (Unwrapped (ExprTerm atom t))
---       => HasFields (ExprTerm atom t) where fieldList = fieldList . unwrap'
-
--- ModifyFields
-
--- instance ModifiesFields (Unwrapped (ExprTerm atom t))
---       => ModifiesFields (ExprTerm atom t) where modifyFields f = wrap' . modifyFields f . unwrap'
 
 modifyFields :: Functor (N.TermDef atom) => (SubLink (Elem (EXPR ANY)) t -> SubLink (Elem (EXPR ANY)) t') -> ExprTerm atom t -> ExprTerm atom t'
 modifyFields f = wrapped %~ fmap f
-
--- Inputs
--- type instance InputsType (ExprTerm atom t) = InputsType (Unwrapped (ExprTerm atom t))
--- instance HasInputs (Unwrapped (ExprTerm atom t))
---       => HasInputs (ExprTerm atom t) where inputList = inputList . unwrap'
 
 inputList :: Foldable (N.TermDef atom) => ExprTerm atom t -> [SubLink (Elem (EXPR ANY)) t]
 inputList = Foldable.toList . unwrap
@@ -679,13 +651,6 @@ links :: (MonadRef m, Reader Net (Link' AnyExpr) m) => m [SomeExprLink]
 links = uncheckedElems
 
 
-
-
-
-
-
-
-
 -- === Instances === --
 
 type instance Sub s     (Expr l) = Expr (Sub s l)
@@ -722,18 +687,6 @@ unsafeGeneralize = unsafeCoerce
 
 type instance UnsafeGeneralizable [a] [b] = UnsafeGeneralizable a b
 
-
-
--- type ExprLayer     = Layer EXPR
--- type ExprLinkLayer = Layer (Link' AnyExpr)
--- type ExprNet       = Net   EXPR
--- type ExprLinkNet   = Net   (Link' AnyExpr)
--- type ExprGroupNet  = Net   (GROUP EXPR)
-
-
--- type ExprLayers     ls = ExprLayer     <$> ls
--- type ExprLinkLayers ls = ExprLinkLayer <$> ls
--- type Nets           ls = Net           <$> ls
 
 type Editors k as m = (Readers k as m, Writers k as m)
 
@@ -818,22 +771,10 @@ inplaceModifyFieldsWith f expr = do
     newModel <- withFields f expr
     modifyLayer_ @Model expr $ wrap' . update' @TERM newModel . unwrap'
 
-
--- class    (b ~ [FieldsType a], HasFields a) => HasFields2 a b
--- instance (b ~ [FieldsType a], HasFields a) => HasFields2 a b
---
--- -- WARNING: works only for Drafts for now as it assumes that the child-refs have the same type as the parent
--- -- type FieldsC t layout = TermMap2 HasFields2 (Expr t layout) [Ref (Link (Expr t layout) (Expr t layout))]
--- symbolFields :: (TermMapM_AB HasFields2 expr m out, expr ~ Expr layout, out ~ [Link expr expr]) => expr -> m out
--- symbolFields = symbolMapM_AB @HasFields2 fieldList
-
 class    HasInputs2 a b where inputList2 :: a -> b
 instance (a ~ ExprTerm atom t, b ~ [SubLink (Elem (EXPR ANY)) t], Foldable (N.TermDef atom)) => HasInputs2 a b where inputList2 = inputList
 inputs :: (TermMapM_AB HasInputs2 expr m out, expr ~ Expr layout, out ~ [SubLink (Elem (EXPR ANY)) t]) => expr -> m out
 inputs = symbolMapM_AB @HasInputs2 inputList2
-
--- inputList :: Foldable (N.TermDef atom) => ExprTerm atom t -> [SubLink (Elem (EXPR ANY)) t]
--- inputList = Foldable.toList . unwrap
 
 
 class    KnownType (TermTypeOf a) => HasTerm a
@@ -843,9 +784,6 @@ termTermDesc = symbolMapM_A @HasTerm atomDescOf
 
 isSameTerm :: (TermMapM_A HasTerm expr m out, expr ~ Expr layout, out ~ TermDesc) => expr -> expr -> m Bool
 isSameTerm a b = (==) <$> termTermDesc a <*> termTermDesc b
-
--- class Repr  s a        where repr  ::       a -> Builder s Tok
-
 
 class ReprExpr a b where reprSomeExpr :: a -> b
 instance (Repr s a, b ~ Builder s Tok) => ReprExpr a b where reprSomeExpr = repr

@@ -249,33 +249,6 @@ newRunDiffT :: Functor m => VisStateT m a -> m (a, VisDiff)
 newRunDiffT = diff .:. newRunT ; {-# INLINE newRunDiffT #-}
 
 
--- -- === Component management === ---
---
--- newStep :: MonadVis m => Name -> m ()
--- newStep n = modify_ V (newStep' n) ; {-# INLINE newStep #-}
---
--- newStep' :: Name -> VisBuilder -> VisBuilder
--- newStep' n v = v & vis.steps %~ (<> [v ^. currentStep])
---                  & currentStep .~ defStep n
--- {-# INLINE newStep' #-}
---
--- addNode :: MonadVis m => Node -> m ()
--- addNode a = modify_ V $ ((vis.nodes)                  %~ Map.insert nid a)
---                       . ((currentStep.step_stepNodes) %~ Set.insert nid) where
---     nid = a ^. uid
---
--- addNodes :: (Traversable f, MonadVis m) => f Node -> m ()
--- addNodes = mapM_ addNode ; {-# INLINE addNodes #-}
---
---
--- addEdge :: MonadVis m => Edge -> m ()
--- addEdge a = modify_ V $ ((vis.edges)             %~ Map.insert nid a)
---                       . ((currentStep.step_stepEdges) %~ Set.insert nid) where
---     nid = a ^. uid
---
--- addEdges :: (Traversable f, MonadVis m) => f Edge -> m ()
--- addEdges = mapM_ addEdge ; {-# INLINE addEdges #-}
-
 addStep :: MonadVis m => Name -> [Node] -> [Edge] -> m ()
 addStep title ns es = do
     mapM_ registerNode ns

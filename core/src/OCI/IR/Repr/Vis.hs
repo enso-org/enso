@@ -54,7 +54,6 @@ visNodeWith nodeLabeler edgeLabeler t = do
         UnitProxy u _ -> "UnitProxy '" <> show u <> "'"
         _             -> header
 
-    -- let node   = Vis.Node (fromString value) euid euid (fromList [header])
     let node   = Vis.Node (fromString value) euid (convert $ t ^. idx) (fromList [fromString header]) nlabel
         tpVis  = if tlUID == trUID then [] else [Vis.Edge (fromString "") tpUid tpUid tlUID trUID (fromList [fromString "type"]) Nothing]
         mkEdge (ei, (i,l,r), lb) = Vis.Edge (fromString "") i i l r (fromList [fromString ei]) lb

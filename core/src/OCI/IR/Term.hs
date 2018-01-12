@@ -69,10 +69,6 @@ term' :: IsTerm' s    => Iso' s    (AsTerm s)
 term  = iso toTerm fromTerm
 term' = term
 
---
--- uncheckedFromTermDef :: UncheckedFromTerm s => AsTermDef s -> s
--- uncheckedFromTermDef = uncheckedFromTerm . Term
-
 uncheckedFromTermDef :: (TermDef atom a ~ t, atom ~ (t # TermType), atom ~ (s # TermType), a ~ (s # LAYOUT), UncheckedFromTerm s) => t -> s
 uncheckedFromTermDef = uncheckedFromTerm . mkTerm
 

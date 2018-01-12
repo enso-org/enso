@@ -28,7 +28,6 @@ makeLunaComponents "Format" "Form"
     , "Thunk"
     , "Phrase"
     , "Draft"
-    -- , "Definition"
     ]
 
 

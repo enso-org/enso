@@ -14,7 +14,6 @@ import OCI.IR.Layer.Class
 -------------------
 
 -- We may want to move it somewhere else after removing Model dependencies from IR.Internal.IR
-----
 
 data Model = Model deriving (Show)
 

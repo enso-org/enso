@@ -46,7 +46,6 @@ token' :: (MonadParsec e Stream m, MonadLoc m, MonadGetter Reservation m)
        => (Reservation -> Tok -> Either (Set (ErrorItem Tok), Set (ErrorItem Tok), Set e) a) -> Maybe Tok -> m a
 token' f mt = do
     s <- get @Reservation
-    -- print $ "reserved: " <> show s
     let f' t = (t,) <$> f s t
     (tok, a) <- token f' mt
     updatePositions tok
@@ -101,7 +100,6 @@ getNextToken'' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
 getNextToken'' = mapM handle . uncons =<< getStream where
     handle (t,s) = do
         putStream s
-        -- updatePositions t
         return t
 
 getTokens :: (MonadParsec e Stream m, MonadLoc m) => Int -> m [Tok]
@@ -129,7 +127,6 @@ dropNextTokenAsMarker :: (MonadParsec e Stream m, MonadLoc m) => m ()
 dropNextTokenAsMarker = withJustM getNextToken'' go where
     go t = modify_ @FileOffset (+ (convert delta)) >> modify_ @LeftSpanner (wrapped %~ (+delta)) where
         delta = (t ^. Lexer.span) + (t ^. Lexer.offset)
--- dropNextTokenAsMarker = withJustM getNextToken'' $ \(Lexer.Token (unwrap -> SpacedSpan off len) _ tok) -> modify_ @FileOffset (+ (convert $ len + off)) >> modify_ @LeftSpanner (wrapped %~ (+(len + off)))
 
 unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Tok -> Bool) -> m ()
 unregisteredDropTokensUntil f = withJustM previewNextToken $ \t -> if f t then return () else unregisteredDropNextToken >> unregisteredDropTokensUntil f
@@ -167,13 +164,9 @@ withRecovery2 f ma = do
     modify_ @FileOffset (+ convert (unsafeConvertTo @Int $ Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
     put @LeftSpanner $ wrap (convert $ unsafeConvertTo @Int $ Parser.unPos (Parser.sourceLine pos') - 1)
     return out
--- updateFileOffset :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Symbol -> m ()
--- updateFileOffset (Lexer.Token (RightSpacedSpan len off) tok) = do
---     modify_ @FileOffset $ (+ (convert $ len + off))
 
 updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
 updateLineAndCol t = do
--- updateLineAndCol (Lexer.Token (unwrap -> SpacedSpan off len) _ tok) = do
     incColumn (t ^. Lexer.span)
     when ((t ^. Lexer.element) == Lexer.EOL) $ succLine
     incColumn (t ^. Lexer.offset)

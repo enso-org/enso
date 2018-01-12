@@ -21,7 +21,5 @@ expectedOneOf s = failure Set.empty s Set.empty
 unexpectedAnyOf :: MonadParsec e s m => Set (ErrorItem (Token s)) -> m a
 unexpectedAnyOf s = failure s Set.empty Set.empty
 
-
--- Removing shit from Megaparsec
 instance IsString (ErrorItem p) where
     fromString (s:ss) = Label $ s :| ss

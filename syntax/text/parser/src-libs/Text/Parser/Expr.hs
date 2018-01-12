@@ -258,14 +258,6 @@ buildExprTreeBody tree = tryNextSym tree . matchInfixM $ \op ->
 
 
 
--- handleAffix :: (MonadSymStream n a m, MonadParsec e s m) => UniSymbol (Labeled n Expr) a -> m (UniSymbol (Labeled n Expr) a)
--- handleAffix el = case el of
---     SymPrefix t -> popSym >>= matchAtom (Atom . fmap (t ^. body))
---     Atom   t -> maybeSym el . matchSuffix $ Atom . (`fmap` t) . view body
---     SymInfix  _ -> return el
---     SymSuffix _ -> unexpected "suffix operator"
-
-
 -- FIXME[WD]: Remove MonadFail dep
 buildExprTree_termApp :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (ExprSymbol Infix a) -> m (ExprTree n a)
 buildExprTree_termApp app = nextSym >>= \case

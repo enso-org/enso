@@ -41,7 +41,6 @@ import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 type ParserBase = ParsecT Error Text (StateT Scope IO)
 type ParserBase2 = ParsecT Error Stream IO
 
--- type SymParser = StatesT '[DeltaSpan, Indent, Offset] ParserBase
 type SymParser = StatesT '[Indent, FileOffset, Position, MarkerState, LeftSpanner, Scope, Reservation, CodeSpanRange] ParserBase2
 
 

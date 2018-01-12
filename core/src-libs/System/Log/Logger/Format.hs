@@ -62,8 +62,8 @@ class Monad m => Render style a m where
 
 instance {-# OVERLAPPABLE #-} (DataStore d m, RenderDataM s d m)
                  => Render s      d      m where render _ = renderDataM @s @d . unwrap' =<< getData @d 
-instance Monad m => Render Simple String m where render   = return . pretty                            
-instance Monad m => Render Simple Doc    m where render   = return                                     
+instance Monad m => Render Simple String m where render   = return . pretty
+instance Monad m => Render Simple Doc    m where render   = return
 
 
 -- === Monadic data rendering === --
@@ -84,13 +84,13 @@ class RenderData style d where
 
 -- === Built-in data simple rendering === --
 
-instance RenderData Simple Msg      where renderData     = id                                                                                     
-instance RenderData Simple Reporter where renderData     = text . convert {- FIXME: Text -> String -> Doc is not the optimal path. -}             
-instance RenderData Simple Priority where renderData     = pretty                                                                                 
-instance RenderData Simple Time     where renderData     = text . formatTime defaultTimeLocale "%c"                                               
-instance RenderData Simple Nesting  where renderData n   = fold $ replicate (2 * n) Doc.space                                                     
-instance RenderData Simple Loc      where renderData loc = text $ Stack.srcLocFile loc <> ":" <> show (Stack.srcLocStartLine loc)                 
-instance RenderData Simple DynTags  where renderData     = text . intercalate' ", " . fmap (Typeable.tyConName . Typeable.typeRepTyCon) . convert 
+instance RenderData Simple Msg      where renderData     = id
+instance RenderData Simple Reporter where renderData     = text . convert {- FIXME: Text -> String -> Doc is not the optimal path. -}
+instance RenderData Simple Priority where renderData     = pretty
+instance RenderData Simple Time     where renderData     = text . formatTime defaultTimeLocale "%c"
+instance RenderData Simple Nesting  where renderData n   = fold $ replicate (2 * n) Doc.space
+instance RenderData Simple Loc      where renderData loc = text $ Stack.srcLocFile loc <> ":" <> show (Stack.srcLocStartLine loc)
+instance RenderData Simple DynTags  where renderData     = text . intercalate' ", " . fmap (Typeable.tyConName . Typeable.typeRepTyCon) . convert
 
 
 
@@ -118,9 +118,9 @@ class IsFormatter a m where
 type IsSimpleFormatter a m = IsFormatter (Styled Simple a) m
 
 instance {-# OVERLAPPABLE #-}
-         IsSimpleFormatter a m => IsFormatter a                 m where formatter = formatter . Styled @Simple 
-instance Render s d m          => IsFormatter (Styled s d)      m where formatter = renderStyled               
-instance (m ~ n)               => IsFormatter (Formatter n Doc) m where formatter = id                         
+         IsSimpleFormatter a m => IsFormatter a                 m where formatter = formatter . Styled @Simple
+instance Render s d m          => IsFormatter (Styled s d)      m where formatter = renderStyled
+instance (m ~ n)               => IsFormatter (Formatter n Doc) m where formatter = id
 
 
 -- === Combinators === --
@@ -155,7 +155,7 @@ line = (<:> eol)
 -- === Instances === --
 
 instance Monad m => Applicative (Formatter m) where
-    pure    = wrap' . const . return                             
+    pure    = wrap' . const . return
     f <*> a = wrap' $ \doc -> unwrap' f doc <*> unwrap' a mempty 
 
 
@@ -208,16 +208,16 @@ type instance StateOf FORMAT m = Formatter m Doc
 type MonadFormatLogger = MonadLoggerState FORMAT
 
 getFormatter :: MonadFormatLogger m => m (Formatter m Doc)
-getFormatter = getLoggerState @FORMAT 
+getFormatter = getLoggerState @FORMAT
 
 runFormatLogger :: Monad m => Formatter (Logger FormatLogger m) Doc -> Logger FormatLogger m a -> m a
-runFormatLogger = flip evalStateLogger 
+runFormatLogger = flip evalStateLogger
 
 
 -- === Instances === --
 
 instance DataStore Msg m => IsLogger FormatLogger m where
-    runLogger = putData' @Msg =<< flip unwrap' mempty =<< getFormatter 
+    runLogger = putData' @Msg =<< flip unwrap' mempty =<< getFormatter
 
 
 
@@ -227,10 +227,10 @@ instance DataStore Msg m => IsLogger FormatLogger m where
 
 nestedColorFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc
 -- nestedColorFormatter = line $ Nesting <:> dynTagsColorFormatter Msg <+> parensed Reporter 
-nestedColorFormatter = line $ Nesting <:> Reporter <:> ":" <+> dynTagsColorFormatter Msg 
+nestedColorFormatter = line $ Nesting <:> Reporter <:> ":" <+> dynTagsColorFormatter Msg
 
 bulletNestingFormatter :: DataStores '[DynTags, Nesting, Reporter, Msg] m => Formatter m Doc
-bulletNestingFormatter = line $ "•" <+> Nesting <:> Reporter <:> ":" <+> Msg 
+bulletNestingFormatter = line $ "•" <+> Nesting <:> Reporter <:> ":" <+> Msg
 
 examplePriorityFormatter :: DataStores '[Priority, Loc, Msg] m => Formatter m Doc
-examplePriorityFormatter = line $ bracked Priority <+> Loc <:> ":" <+> Msg 
+examplePriorityFormatter = line $ bracked Priority <+> Loc <:> ":" <+> Msg

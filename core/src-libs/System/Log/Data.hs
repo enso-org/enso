@@ -153,7 +153,7 @@ time = wrap'
 
 instance DataStore Time IO where
     getData = time <$> getCurrentTime 
-    putData = error "impossible"      
+    putData = error "impossible"
 
 
 -- === Msg === --
@@ -192,9 +192,9 @@ dynTags = wrap'
 
 
 instance (MonadTagged tag m, Typeable tag) => MonadTagged tag (DataProvider DynTags m) where
-    preTagged  = modifyData_ @DynTags (wrapped' %~ Set.insert (typeRep' @tag)) >> lift (preTagged  @tag) 
-    postTagged = modifyData_ @DynTags (wrapped' %~ Set.delete (typeRep' @tag)) >> lift (postTagged @tag) 
-    inTagged   = lift . inTagged @tag                                                                    
+    preTagged  = modifyData_ @DynTags (wrapped' %~ Set.insert (typeRep' @tag)) >> lift (preTagged  @tag)
+    postTagged = modifyData_ @DynTags (wrapped' %~ Set.delete (typeRep' @tag)) >> lift (postTagged @tag)
+    inTagged   = lift . inTagged @tag
 
 
 -- === Priority === --
@@ -203,7 +203,7 @@ data Priority = Priority deriving (Show)
 type instance DataOf Priority = Int
 
 priority :: Enum p => p -> LogData Priority
-priority = wrap' . fromEnum 
+priority = wrap' . fromEnum
 
 
 -- === Nesting === --
@@ -212,16 +212,16 @@ data Nesting = Nesting deriving (Show)
 type instance DataOf Nesting = Int
 
 nesting :: Int -> LogData Nesting
-nesting = wrap' 
+nesting = wrap'
 
 withNesting :: DataStore Nesting m => (LogData Nesting -> LogData Nesting) -> m ()
-withNesting = modifyData_ @Nesting 
+withNesting = modifyData_ @Nesting
 
 incNesting :: DataStore Nesting m => m ()
-incNesting = withNesting succ 
+incNesting = withNesting succ
 
 decNesting :: DataStore Nesting m => m ()
-decNesting = withNesting pred 
+decNesting = withNesting pred
 
 nested :: DataStore Nesting m => m a -> m a
-nested = withModData @Nesting succ 
+nested = withModData @Nesting succ

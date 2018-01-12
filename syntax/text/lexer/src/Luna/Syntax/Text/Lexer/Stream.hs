@@ -70,8 +70,6 @@ conduitParserEither !cfg parser = loop cfg mempty where
     loop !lcfg !pos = whenNonEmpty $ sinkPosParser pos (parser lcfg) >>= useRight go where
         go (!pos', !off, !cfg', !res) = yield (Right $ Token (pos' - pos) off res) >> loop cfg' pos'
 {-# INLINE conduitParserEither #-}
--- {-# SPECIALIZE conduitParserEither :: Monad m => Parser T.Text       (b, Int) -> Conduit T.Text       m (Either ParseError (Span, b)) #-}
--- {-# SPECIALIZE conduitParserEither :: Monad m => Parser B.ByteString (b, Int) -> Conduit B.ByteString m (Either ParseError (Span, b)) #-}
 
 sinkPosParser :: forall a b cfg m any. (AttoparsecInput a, PartialParser (Parser a), Monad m, Mempty a)
               => Delta -> Parser a ((b, Int), cfg) -> ConduitM a any m (Either ParseError (Delta, Delta, cfg, b))

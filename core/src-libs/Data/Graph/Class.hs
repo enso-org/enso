@@ -272,9 +272,6 @@ edge = addElem
 
 type instance Data Layer l el = LayerData l el
 
--- !!! Ustawiajac explicite Store Layer m ~ ... mozemy pozbyc sie `el` z constraintu i spelnic warunki potrzebne w IR (!)
--- W IR `el` nie moze istniec w constraincie, bo moze to byc np. Expr Draft, moze natomiast istniec `Abstract el`
--- wiec mozemy ustawic `Store Layer m ~ IRM m`
 writeLayer :: forall layer el m. MonadElemStore Layer layer el m => Elem el -> LayerData layer el -> m ()
 writeLayer = writeElemProp @Layer @layer
 

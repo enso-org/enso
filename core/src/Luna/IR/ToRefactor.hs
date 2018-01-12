@@ -50,11 +50,6 @@ import OCI.IR.Name
 
 import Luna.IR.ToRefactor2 as X
 import Control.Monad.Trans.Except (ExceptT)
--- import System.Log.Logger.Class (Logger)
-
--- type instance GetRefHandler (ExceptT e m) = GetRefHandler m
--- type instance GetRefHandler (Logger l m) = GetRefHandler m
-
 
 generalize' :: AssertGeneralizable a SomeExpr => a -> SomeExpr
 generalize' = generalize
@@ -221,9 +216,6 @@ init4 = do
     addExprEventListener @Type   $ getTypeOnQueryChildrenPass
 
 
--------------------------------------------
--------------------------------------------
--------------------------------------------
 -------------------------------------------
 
 runRegs :: (MonadPassManager m, Throws IRError m) => m ()

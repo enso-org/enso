@@ -91,19 +91,6 @@ bothTrivial uni a b = when (uni == a && uni == b) $ do
     replace c uni
     resolve_
 
-{-lambda :: (MonadRef m, MonadPassManager m, MonadSubPass MergeSolver m, MonadResolution [Expr Unify] m) => Expr Draft -> Expr Draft -> Expr Draft -> m ()-}
-{-lambda uni a b = match2 a b $ \x y -> case (x, y) of-}
-    {-(Lam a1 o1, Lam a2 o2) -> do-}
-        {-arg1 <- source a1-}
-        {-arg2 <- source a2-}
-        {-out1 <- source o1-}
-        {-out2 <- source o2-}
-        {-uniA <- unify arg1 arg2-}
-        {-uniO <- unify out1 out2-}
-        {-deleteWithoutInputs uni-}
-        {-resolve $ [generalize uniA, generalize uniO]-}
-    {-_ -> return ()-}
-
 conses :: (MonadRef m, MonadPassManager m, MonadSubPass MergeSolver m, MonadResolution [Expr Unify] m) => Expr Draft -> Expr Draft -> Expr Draft -> m ()
 conses uni a b = match2 a b $ \x y -> case (x, y) of
     (Cons n1 fs1, Cons n2 fs2) -> when (n1 == n2) $ replace a uni >> resolve_

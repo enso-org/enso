@@ -54,8 +54,6 @@ putPrecRelMap p = modify_ @Scope $ precRelMap .~ p
 addMultipartName :: MonadState Scope m => MultipartName -> m ()
 addMultipartName n = modify_ @Scope $ \s -> s & nameTree %~ TreeSet.insert (convert n)
                                               & multiNames . at (convert n) .~ Just n
-                                            --   & segBaseMap %~ Map.insertWith (<>) (n ^. Name.base) (singleton n)
-                                            --   & multiNames %~ Map.insert (convert n) n
 
 lookupMultipartNames :: MonadState Scope m => Name -> m (SparseTreeSet Name)
 lookupMultipartNames n = (^. nameTree . ix n) <$> get @Scope
@@ -65,8 +63,7 @@ lookupMultipartName n = view (multiNames . at n) <$> get @Scope
 
 
 -- === Instances === --
---
--- instance Semigroup Scope where Scope p a s m <> Scope p' a' s' m' = Scope (p <> p') (a <> a') (s <> s') (m <> m')
+
 instance Mempty  Scope where mempty = Scope mempty mempty mempty mempty
 instance Default Scope where def    = mempty
 

@@ -44,11 +44,6 @@ import Control.Monad.Raise
 import OCI.IR.Name
 import OCI.IR.Term
 
-
----------------------------------------
--- Some important utils
-
-
 type GraphElems = '[AnyExpr, AnyExprLink]
 
 
@@ -61,9 +56,6 @@ type instance Abstract (TypeRef s) = TypeRef (Abstracted s)
 
 
 
--------------------------------------------
--------------------------------------------
--------------------------------------------
 -------------------------------------------
 
 newtype Listener event m = Listener (PayloadData event -> m ())
@@ -78,7 +70,6 @@ runListener :: Listener event m -> (PayloadData event -> m ())
 runListener = unwrap'
                 -- => Template (SubPass pass m a) -> Uninitialized m (Template (m a))
 
--- Pass.Proto (Event.Tagged (Pass.Describbed (Uninitialized m (Template (m ())))))
 makeOrdinaryEventListener :: forall p event m. (Pass.PassInit p (GetRefHandler m), Pass.KnownPass p)
     => Listener event (SubPass p (GetRefHandler m)) -> Pass.Describbed (Uninitialized (GetRefHandler m) (Template (GetRefHandler m ())))
 makeOrdinaryEventListener p = Pass.describbed @p $ Pass.compileTemplate $ Pass.template $ runListener p
@@ -86,7 +77,6 @@ makeOrdinaryEventListener p = Pass.describbed @p $ Pass.compileTemplate $ Pass.t
 makeOrdinaryEventListener2 :: forall tag p event m. (Event.KnownTag tag, MonadPassManager m, Pass.PassInit p (GetRefHandler m), Pass.KnownPass p)
     => Listener event (SubPass p (GetRefHandler m)) -> m ()
 makeOrdinaryEventListener2 p = addEventListener @tag $ Pass.describbed @p $ Pass.compileTemplate $ Pass.template $ runListener p
--- addEventListener :: forall tag m. (Event.KnownTag tag, MonadPassManager m) => Pass.Describbed (Uninitialized (GetRefHandler m) (Template (GetRefHandler m ()))) -> m ()
 
 
 addElemEventListener :: forall l p e m. (MonadPassManager m, KnownElemPass p, KnownType l, KnownType p, Event.KnownTag e)
@@ -138,9 +128,6 @@ tpElemPass _ = id
 source :: (MonadRef m, Reader Layer (Abstract (Link a b) // Model) m) => Link a b -> m a
 source = fmap fst . getLayer @Model
 
--- -- strName :: _ => _
--- strName v = getName v >>= \n -> readTerm n >>= \ (Term.Sym_String s) -> return s
-
 type SourceReadCtx s t m = (MonadRef m, Reader Layer (Abstract (Link s t) // Model) m)
 type SourceEditCtx s t m = (MonadRef m, Editor Layer (Abstract (Link s t) // Model) m)
 
@@ -188,7 +175,7 @@ modifyTargetM  t f = do (a,s) <- f =<< readTarget @s t
 
 -- === KnownExpr === --
 
-type KnownExpr l m = (MonadRef m, Readers Layer '[AnyExpr // Model, Link' AnyExpr // Model] m) -- CheckTermicType (ExprHead l))
+type KnownExpr l m = (MonadRef m, Readers Layer '[AnyExpr // Model, Link' AnyExpr // Model] m)
 
 {-# DEPRECATED readTerm "Use `read` instead" #-}
 readTerm :: forall l m. KnownExpr l m => Expr l -> m (ExprHeadDef l)
@@ -234,20 +221,6 @@ modifyExprTerm :: forall l m. (KnownExpr l m, Writer Layer (AnyExpr // Model) m)
 modifyExprTerm = unsafeModifyExprTermDef @(ExprHead l)
 
 
-
-
--- === KnownName === --
-
--- type       KnownName l m = (KnownExpr l m, HasName (ExprHeadDef l))
--- getName :: KnownName l m => Expr l -> m (Expr (Sub NAME l))
--- getName = getSource name
-
-
-
-
-
-
-
 type family Head a
 
 type instance Access AnyExpr (ET e _) = e
@@ -261,8 +234,5 @@ type ExprHead l = Head (l # AnyExpr)
 type ExprHeadDef l = ExprTermDef (ExprHead l) (Expr l)
 
 
-
----------- TRASH
------- TO BE DELETED WHEN POSSIBLE
-
+-- FIXME[WD]: This should be deleted ASAP.
 instance MonadLogging m => MonadLogging (DepState.StateT a b m)

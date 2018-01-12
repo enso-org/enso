@@ -223,29 +223,3 @@ instance IsList (TreeMap t k a) => GHC.IsList (TreeMap t k a) where
     type Item   (TreeMap t k a) = Item (TreeMap t k a)
     toList   = toList
     fromList = fromList
-
-
-
--------------------
--- === Tests === --
--------------------
-
--- main :: IO ()
--- main = do
---     let a = mempty :: SparseTreeMap Int Int
---         a' = insert (5 :| [6,7]) 8 a
---         b  = delete (5 :| [6,7]) a'
---         c  = delete (pure 5) a'
---         d  = deleteSubtree [5] a'
---         e1 = modify (5 :| [6]) (+1) a'
---         e2 = modify (5 :| [6,7]) (+1) a'
---         x  = [(1 :| [2,3], 4)] :: SparseTreeMap Int Int
---     print $ a' ^. at 5
---     print $ a' ^. nestedAt [5,6,7]
---     print $ b
---     print $ c
---     print $ d
---     print $ e1
---     print $ e2
---     print $ toList a'
---     print "test"

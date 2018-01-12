@@ -2,11 +2,9 @@ module Luna.Project where
 
 import Luna.Prelude hiding (FilePath)
 
-import Luna.IR.Term.Library
 import Luna.IR.Term.Unit as Unit
 import Control.Monad.State.Dependent
 import OCI
--- import OCI.IR.Name.Path
 import OCI.IR.Name.Qualified (QualName)
 import qualified OCI.IR.Name.Qualified as Qual
 
@@ -22,17 +20,6 @@ import qualified System.FilePath.Find as Find
 ---------------------
 -- === Project === --
 ---------------------
-
--- === Management === --
-
--- openUnitSources :: Path -> m ()
--- openUnitSources = undefined
---
--- closeUnitSources :: Path -> m ()
--- closeUnitSources = undefined
---
--- getUnitSources :: Path -> m Text
--- getUnitSources = undefined
 
 projectSourcesForFile :: Path.Path Path.Abs Path.File -> IO (Maybe (Bimap (Path.Path Path.Abs Path.File) QualName))
 projectSourcesForFile file = do

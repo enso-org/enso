@@ -7,22 +7,6 @@ library:
     source-dirs:
         - src
         - src-libs
-    # other-modules: Paths_luna_syntax_text_parser
-
-executables:
-  luna-parser-dev:
-    main: DevMain.hs
-    source-dirs: test
-    dependencies:
-      - base
-      - luna-core
-      - luna-syntax-text-parser
-      - luna-syntax-text-lexer
-      - bytestring
-      - open-browser
-      - aeson
-      - MissingH
-      - fingertree
 
 tests:
     spec:

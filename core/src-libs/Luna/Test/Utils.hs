@@ -31,71 +31,6 @@ withRight :: Show (Either a b) => Either a b -> (b -> Expectation) -> Expectatio
 withRight e exp = either (const $ expectationFailure $ "Expected a Right, got: (" <> show e <> ")") exp e
 
 
-
--- ---------------------------------
--- -- === Isomorphism checker === --
--- ---------------------------------
---
--- -- === Definition === --
---
--- type IsomorphicCheckCtx m = (IsomorphicCheckReq m, MonadRef m)
--- type IsomorphicCheckReq m = Req m '[ Reader // Net   // '[AnyExpr, AnyExprLink]
---                                    , Reader // Layer // AnyExpr     // Model
---                                    , Reader // Layer // AnyExprLink // Model
---                                    ]
---
--- data ExprIsoChecker l = ExprIsoChecker { _isoPairs :: Set (Expr l, Expr l)
---                                        , _isoElems :: Set (Expr l)
---                                        } deriving (Show)
--- makeLenses ''ExprIsoChecker
---
---
--- -- === Utils === --
---
--- areExpressionsIsomorphic :: IsomorphicCheckCtx m => Expr Draft -> Expr Draft -> m Bool
--- areExpressionsIsomorphic l r = isJust <$> runMaybeT (checkIsoExpr def l r)
---
--- checkIsoLinks     :: IsomorphicCheckCtx m => ExprIsoChecker Draft -> ExprLink' Draft -> ExprLink' Draft   -> MaybeT m (ExprIsoChecker Draft)
--- checkManyIsoLinks :: IsomorphicCheckCtx m => ExprIsoChecker Draft -> [(ExprLink' Draft, ExprLink' Draft)] -> MaybeT m (ExprIsoChecker Draft)
--- checkIsoLinks iso le re = join $ liftA2 (checkIsoExpr iso) (source le) (source re)
--- checkManyIsoLinks       = foldM (uncurry . checkIsoLinks)
---
--- assumeIsomorphism :: Expr l -> Expr l -> ExprIsoChecker l -> Maybe (ExprIsoChecker l)
--- assumeIsomorphism e1 e2 iso = if_ unchecked $ Just (iso & isoPairs %~ Set.insert (e1, e2)) where
---     unchecked = nowhere e1 && nowhere e2
---     nowhere   = flip Set.notMember (iso ^. isoElems)
---
--- checkIsoPair :: Expr l -> Expr l -> ExprIsoChecker l -> Bool
--- checkIsoPair e1 e2 iso = Set.member (e1, e2) $ iso ^. isoPairs
---
--- checkIsoExpr, checkIsoExpr' :: IsomorphicCheckCtx m => ExprIsoChecker Draft -> Expr Draft -> Expr Draft -> MaybeT m (ExprIsoChecker Draft)
--- checkIsoExpr  iso l r = if checkIsoPair l r iso then return iso else checkIsoExpr' iso l r
--- checkIsoExpr' iso l r = do
---     assumption <- hoistMaybe $ assumeIsomorphism l r iso
---     match2 l r $ \x y -> case (x, y) of
---         (Number      a, Number  a'   ) -> guard (a == a') >> return assumption
---         (String      a, String  a'   ) -> guard (a == a') >> return assumption
---         (Var       v  , Var     v'   ) -> guard (v == v') >> return assumption
---         (Acc       a n, Acc     a' n') -> guard (n == n') >> checkIsoLinks     assumption a a'
---         (Cons      c s, Cons    c' s') -> guard (c == c') >> checkManyIsoLinks assumption (zip s s')
---         (App       f a, App     f' a') -> checkManyIsoLinks assumption [(f,f'), (a,a')]
---         (Unify     l r, Unify   l' r') -> checkManyIsoLinks assumption [(l,l'), (r,r')]
---         (Lam       a b, Lam     a' b') -> checkManyIsoLinks assumption [(a,a'), (b,b')]
---         (Grouped   a  , Grouped a'   ) -> checkIsoLinks assumption a a'
---         (Blank        , Blank        ) -> return assumption
---         (Missing      , Missing      ) -> return assumption
---         (Star         , Star         ) -> return assumption
---         (_, _)                         -> mzero
---
---
--- -- === Instances === --
---
--- instance Mempty  (ExprIsoChecker l) where mempty = def
--- instance Default (ExprIsoChecker l) where
---     def = ExprIsoChecker def def
-
-
-
 -----------------------------
 -- === Coherence check === --
 -----------------------------
@@ -219,11 +154,6 @@ reachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m,
                   Reader Layer (AnyExpr // Type) m) => [SomeExpr] -> m (Set SomeExpr)
 reachableExprs seeds = Set.unions <$> mapM reachableExprs' seeds
     where
-        {-reachableExprs' :: (MonadRef m, Reader Layer (AnyExpr // Model) m, Reader-}
-                          {-Layer-}
-                          {-AnyExprLink // Model)-}
-                          {-m,-}
-                          {-Reader Layer (AnyExpr // Type) m) => SomeExpr -> m (Set SomeExpr)-}
         reachableExprs' e = do
             t <- getLayer @Type e   >>= source
             set <- inputs e >>= mapM source >>= reachableExprs

@@ -6,9 +6,6 @@
 module OCI.Pass.Class where
 
 import Luna.Prelude hiding (head, tail, elem, repr, Args)
---
--- import           Data.RTuple (List ((:-:)))
--- import qualified Data.RTuple as List
 
 import qualified Control.Monad.Catch      as Catch
 import           Control.Monad.Fix
@@ -40,8 +37,6 @@ import Control.Monad.Raise
 
 proxify :: a -> Proxy a
 proxify _ = Proxy
-
--------------------------------
 
 -- === Errors === --
 
@@ -445,8 +440,6 @@ setAttrKey k = modify_ (findRef .~ k)
 
 setAttr3 :: forall a m. (MonadPass m, ContainsRef (GetPass m) Attr a (GetRefHandler m)) => IR.RefData Attr a (GetRefHandler m) -> m ()
 setAttr3 = setAttrKey @a . wrap'
--- <-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<
-
 
 instance ( Monad m, ContainsRef pass k a (GetRefHandler m) ) -- FIXME[WD]: we can hopefully remove some args from this constraint
       => MonadRefState k a (SubPass pass m) where

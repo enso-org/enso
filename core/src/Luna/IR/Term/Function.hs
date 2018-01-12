@@ -34,22 +34,6 @@ instance Show (TermASGFunction a) where show _ = "Function"
 
 
 
--- ----------------------
--- -- === Function === --
--- ----------------------
---
--- -- === Definition === --
---
--- newtype TermFunction a = Function { __body :: a } deriving (Functor, Foldable, Traversable)
--- makeLensedTerm ''TermFunction
---
---
--- -- === Instances === --
---
--- instance Show (TermFunction a) where show _ = "Function"
-
-
-
 ----------------------
 -- === FunctionSig === --
 ----------------------

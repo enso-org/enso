@@ -249,8 +249,7 @@ instance ( MonadIO m -- DEBUG ONLY
                                   cls <- source b
                                   matchExpr cls $ \case
                                       ClsASG _ _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
-                                          where go imps defs = let --glue = if {-(imps == "") ||-} (null defs) then "" else newline
-                                                                   glue = ""
+                                          where go imps defs = let glue = ""
                                                                in  imps <> glue <> foldl (</>) mempty defs
 
         AccSection   n         -> return . named (notSpaced accName) . atom $ "." <> intercalate "." (convert <$> n)
@@ -259,11 +258,7 @@ instance ( MonadIO m -- DEBUG ONLY
         Disabled     a         -> unnamed . atom . ("#" <>) <$> subgenBody a
         Update       a ns v    -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+>              "=" <+> convert v') <$> subgen a <*> subgen v
         Modify       a ns n v  -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+> convert n <> "=" <+> convert v') <$> subgen a <*> subgen v
-
-        --         FmtString str  -> unnamed . atom . squoted . mconcat <$> (mapM handleSegment $ unwrap str) where -- FIXME [WD]: add proper multi-strings indentation
-        --                           handleSegment = \case (Literal.StrSegment  s) -> fmap convert $ gen1 =<< source s
-        --                                                 (Literal.ExprSegment s) -> fmap (braced . convert) $ gen1 =<< source s
-        x                      -> print "NIEOBSLUZONE" >> print x >> print root >> undefined
+        x                      -> error $ "Pretty printer: unexpected: " <> show x <> " (" <> show root <> ")"
 
         where subgen     = chainedPrettyShow subStyle subStyle <=< source
               subgenBody = fmap getBody . subgen
