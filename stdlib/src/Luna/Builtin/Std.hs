@@ -20,6 +20,7 @@ import qualified Data.ByteString                              as StrictByteStrin
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
 import qualified Data.CaseInsensitive                         as CI
+import           Data.Fixed                                   (Pico)
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
@@ -114,6 +115,12 @@ int = fromIntegral
 
 integer :: Int -> Integer
 integer = fromIntegral
+
+real :: Real a => a -> Double
+real = realToFrac
+
+pico :: Double -> Pico
+pico = realToFrac
 
 mkType :: (MonadRef m, MonadPassManager m) => Map Name (Expr Draft) -> LTp -> SubPass TestPass m (Expr Draft, Expr Draft)
 mkType vars (LVar n)         = do
@@ -827,16 +834,28 @@ systemStd std = do
         primUrlEncodeVal = convert . HTTP.urlEncode False . convert
         primUrlEncode    = Function primUEIR (toLunaValue std primUrlEncodeVal) primUEAssu
 
-    let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
-        primGetCurrentTimeVal = performIO Time.getCurrentTime
+    let primGetCurrentTimeVal :: LunaEff Time.ZonedTime
+        primGetCurrentTimeVal = withExceptions Time.getZonedTime
     primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
 
-    Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "Time" "Time" "TimeInterval"
+    let primGetCurrentTimeZoneVal :: LunaEff Time.TimeZone
+        primGetCurrentTimeZoneVal = withExceptions Time.getCurrentTimeZone
+    primGetCurrentTimeZone <- typeRepForIO (toLunaValue std primGetCurrentTimeZoneVal) [] $ LCons "TimeZone" []
+
+    Right (time2UTCAssu, time2UTCIr) <- oneArgFun "Time" "UTCTime"
+    let primTimeToUTCVal = toLunaValue std Time.zonedTimeToUTC
+        primTimeToUTC    = Function time2UTCIr primTimeToUTCVal time2UTCAssu
+
+    let primTimeFromUTCVal :: Time.UTCTime -> LunaEff Time.ZonedTime
+        primTimeFromUTCVal = withExceptions . Time.utcToLocalZonedTime
+    primTimeFromUTC <- typeRepForIO (toLunaValue std primTimeFromUTCVal) [LCons "UTCTime" []] $ LCons "Time" []
+
+    Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "UTCTime" "UTCTime" "TimeInterval"
     let primDiffTimesVal = toLunaValue std Time.diffUTCTime
         primDiffTimes    = Function times2IntervalIr primDiffTimesVal times2IntervalAssu
 
     Right (formatTimeAssu, formatTimeIr) <- twoArgFun "Text" "Time" "Text"
-    let fmtTime :: Text -> Time.UTCTime -> Text
+    let fmtTime :: Text -> Time.ZonedTime -> Text
         fmtTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: P.String)
         primFormatTimeVal = toLunaValue std fmtTime
         primFormatTime    = Function formatTimeIr primFormatTimeVal formatTimeAssu
@@ -990,6 +1009,9 @@ systemStd std = do
                                    , ("primWSSGetMessage", primWSSGetMessage)
                                    , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
+                                   , ("primGetCurrentTimeZone", primGetCurrentTimeZone)
+                                   , ("primTimeToUTC", primTimeToUTC)
+                                   , ("primTimeFromUTC", primTimeFromUTC)
                                    , ("primDiffTimes", primDiffTimes)
                                    , ("primFormatTime", primFormatTime)
                                    , ("primTimesEq", primTimesEq)
@@ -1148,15 +1170,45 @@ instance FromLunaData Time.Day where
     fromLunaData d = Time.ModifiedJulianDay <$> fromLunaData d
 
 instance FromLunaData Time.UTCTime where
-    fromLunaData t = let errorMsg = "Expected a Time luna object, got unexpected constructor" in
+    fromLunaData t = let errorMsg = "Expected a UTCTime luna object, got unexpected constructor" in
         force' t >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
-                "TimeVal" -> Time.UTCTime <$> fromLunaData days <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
+                "UTCTime" -> Time.UTCTime <$> fromLunaData days <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
                 _         -> throw errorMsg
             _ -> throw errorMsg
 
+instance FromLunaData Time.TimeOfDay where
+    fromLunaData tod = let errorMsg = "Expected a TimeOfDay Luna object, got unexpected constructor" in
+        force' tod >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeOfDayVal" -> Time.TimeOfDay <$> (int <$> fromLunaData h) <*> (int <$> fromLunaData m) <*> (pico <$> fromLunaData s)
+                                      where [h, m, s] = obj ^. constructor . fields
+                _              -> throw $ (show $ obj ^. constructor . tag) <> errorMsg
+            _ -> throw errorMsg
+
+instance FromLunaData Time.TimeZone where
+    fromLunaData tz = let errorMsg = "Excpected a TimeZone Luna object, got unexpected constructor" in
+        force' tz >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeZoneVal" -> Time.TimeZone <$> (int <$> fromLunaData mins) <*> fromLunaData summer <*> ((convert :: Text -> P.String) <$> fromLunaData name)
+                                     where [mins, summer, name] = obj ^. constructor . fields
+                _             -> throw errorMsg
+            _ -> throw errorMsg
+
+instance FromLunaData Time.ZonedTime where
+    fromLunaData zt = let errorMsg = "Expected a Time Luna object, got unexpected constructor" in
+        force' zt >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeWithZone" -> Time.ZonedTime <$> localTime <*> (fromLunaData tz)
+                                      where [days, tod, tz] = obj ^. constructor . fields
+                                            localTime       = Time.LocalTime <$> fromLunaData days <*> fromLunaData tod
+                _              -> throw errorMsg
+            _ -> throw errorMsg
+
 instance ToLunaData Time.DiffTime where
-    toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps)
+    toLunaData imps diffTime = LunaObject $
+        Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime])
+               (getObjectMethodMap "TimeInterval" imps)
 
 instance ToLunaData Time.NominalDiffTime where
     toLunaData imps nDiffTime = toLunaData imps (realToFrac nDiffTime :: Time.DiffTime)
@@ -1165,4 +1217,21 @@ instance ToLunaData Time.Day where
     toLunaData imps day = toLunaData imps $ Time.toModifiedJulianDay day
 
 instance ToLunaData Time.UTCTime where
-    toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "TimeVal" [toLunaData imps days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
+    toLunaData imps (Time.UTCTime days diff) = LunaObject $
+        Object (Constructor "UTCTime" [toLunaData imps days, toLunaData imps diff])
+               (getObjectMethodMap "UTCTime" imps)
+
+instance ToLunaData Time.TimeOfDay where
+    toLunaData imps (Time.TimeOfDay h m s) = LunaObject $
+        Object (Constructor "TimeOfDay" [toLunaData imps (integer h), toLunaData imps (integer m), toLunaData imps $ real s])
+               (getObjectMethodMap "TimeOfDay" imps)
+
+instance ToLunaData Time.TimeZone where
+    toLunaData imps (Time.TimeZone mins summer name) = LunaObject $
+        Object (Constructor "TimeZone" [toLunaData imps (integer mins), toLunaData imps summer, toLunaData imps (convert name :: Text)])
+               (getObjectMethodMap "TimeZone" imps)
+
+instance ToLunaData Time.ZonedTime where
+    toLunaData imps (Time.ZonedTime (Time.LocalTime days tod) tz) = LunaObject $
+        Object (Constructor "TimeWithZone" [toLunaData imps days, toLunaData imps tod, toLunaData imps tz])
+               (getObjectMethodMap "Time" imps)

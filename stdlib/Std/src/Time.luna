@@ -2,69 +2,188 @@ import Std.Base
 import Std.System
 
 
+## A class representing the time zone.
+## Please keep in mind that the offset is in minutes.
+class TimeZone:
+    TimeZone
+    TimeZoneVal Int Bool String
+
+    ## The offset (in minutes) from the UTC timezone.
+    def minutes: case self of
+        TimeZoneVal m _ _: m
+
+    ## Is this timezone valid only throughout the summertime?
+    def summerOnly: case self of
+        TimeZoneVal _ s _: s
+
+    ## The three letter shortcut name for this timezone, can be blank.
+    def name: case self of
+        TimeZoneVal _ _ n: n
+
+    ## Creates a nameless timezone with a given offset (in minutes).
+    def fromMinutes m: TimeZone m False ""
+
+    ## Creates a nameless timezone with a given offset (in hours).
+    def fromHours h: TimeZone (h * 60) False ""
+
+    ## Returns the `TimeZone` object representing the current timezone.
+    def current: primGetCurrentTimeZone
+
+    def utc: TimeZone 0 False "UTC"
+
+    def gmt: TimeZone 0 False "GMT"
+
+    def cst: TimeZone (-6) False "CST"
+
+    def pst: TimeZone (-8) False "PST"
+
+## A class representing the time of day (hours, minutes, seconds).
+class TimeOfDay:
+    TimeOfDay
+    TimeOfDayVal Int Int Real
+
+    def hour: case self of
+        TimeOfDayVal h _ _: h
+
+    def minute: case self of
+        TimeOfDayVal _ m _: m
+
+    def second: case self of
+        TimeOfDayVal _ _ s: s
+
+    def midnight: TimeOfDayVal 0 0 0.0
+
+    def midday: TimeOfDayVal 12 0 0.0
+
+    ## Does this `TimeOfDay` point to an earlier time during the day than the `other`?
+    def < other:
+        if self.hour.< other.hour then True else if self.minute.< other.minute then True else if self.second.< other.second then True else False
+
+    ## Is this `TimeOfDay` equal to the other? (Up to one second resolution).
+    def == other:
+        (self.hour.== other.hour) . and (self.minute.== other.minute) . and (self.second.== other.second)
+
+    ## Does this `TimeOfDay` point to a later time during the day than the `other`?
+    def > other: (self.< other . or self.== other) . not
+
+## A class representing the UTC time (mostly to facilitate other computations).
+class UTCTime:
+    days :: Int
+    diff :: TimeInterval
+
+    ## Converts this `UTCTime` instance to a `Time`, using the local timezone.
+    def toZonedTime: primTimeFromUTC self
+
+    ## Calculate difference between two time values.
+    def diff other: primDiffTimes self other
+
+    ## Add a `TimeInterval` to this `UTCTime`.
+    def add interval: case self of
+        UTCTime days diff: UTCTime days (diff.add interval)
+
+    ## Subtract a `TimeInterval` from this `UTCTime`.
+    def sub interval: case self of
+        UTCTime days diff: UTCTime days (diff.sub interval)
+
+    ## Does this and the `other` `UTCTime` point to the same time?
+    def == other: primTimesEq self other
+
+    ## Is this `UTCTime` earlier than the `other`?
+    def < other:
+        d = self.diff other
+        d.toInt.< 0
+
+    ## Is this `UTCTime` later than the `other`?
+    def > other:
+        d = self.diff other
+        d.toInt.> 0
+
+
 ## A class representing time (and date).
 class Time:
     Time
-    TimeVal Int TimeInterval
+    TimeWithZone Int TimeOfDay TimeZone
 
     ## Gets the current time. Usage: `Time.now`.
     def now: primGetCurrentTime
 
-    ## Gets time of day in form of a tuple: (hour, minute, seconds).
+    ## Gets time of day (hours, minutes, seconds) as a `TimeOfDay` instance.
     def timeOfDay: case self of
-        TimeVal _ ti: primTimeOfDay ti
+        TimeWithZone _ tod _: tod
+
+    ## Sets the time-of-day part of this `Time` to a given `TimeOfDay` instance.
+    def setTimeOfDay tod: case self of
+        TimeWithZone days _ tz: TimeWithZone days tod tz
+
+    ## Returns the timezone associated with this `Time`.
+    def timeZone: case self of
+        TimeWithZone _ _ tz: tz
+
+    ## Sets the timezone of this time to a given `TimeZone` instance.
+    def setTimeZone tz: case self of
+        TimeWithZone days tod _: TimeWithZone days tod tz
+
+    def _days: case self of
+        TimeWithZone days _ _: days
+
+    ## Advances the date by a given number of days.
+    def addDays d: case self of
+        TimeWithZone days tod tz: TimeWithZone (days + d) tod tz
+
+    ## Subtracts a given number of days from the date.
+    def subDays d: case self of
+        TimeWithZone days tod tz: TimeWithZone (days - d) tod tz
 
     ## Gets the beginning of the current day.
     ## If called on February 14th at 4:00, it will return February 14th 0:00
-    def beginningOfDay: case Time.now of
-        TimeVal days _: TimeVal days (TimeInterval 0)
+    def beginningOfDay: Time.now.setTimeOfDay TimeOfDay.midnight
 
     ## Gets the end of the current day.
     ## If called on February 14th at 4:00, it will return February 15th 0:00
-    def endOfDay: case Time.now of
-        TimeVal days _: TimeVal (days+1) (TimeInterval 0)
+    def endOfDay: Time.beginningOfDay . addDays 1
 
     ## Gets the time of year in form of a tuple: (year, month, day)
-    def timeOfYear: case self of
-        TimeVal days _: primTimeOfYear days
+    def timeOfYear: primTimeOfYear self._days
 
-    ## Creates a `Time` object from its parameters: the year, month and day.
-    def fromTimeOfYear y m d:
-        TimeVal (primFromTimeOfYear y m d) (TimeInterval 0)
+    ## Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`..
+    def fromTimeOfYear y m d tz:
+        timeZone = tz.withDefault TimeZone.current
+        TimeWithZone (primFromTimeOfYear y m d) TimeOfDay.midnight timeZone
 
     ## Gets the `Time` representing the first day of the current month.
     def beginningOfMonth: case Time.now of
-        TimeVal days _: case primTimeOfYear days of
-            (y, m, d): Time.fromTimeOfYear y m 1
+        TimeWithZone days _ tz: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y m 1 (Just tz)
 
     ## Gets the `Time` representing the last day of the current month.
     def endOfMonth: case Time.now of
-        TimeVal days _: case primTimeOfYear days of
-            (y, m, d): Time.fromTimeOfYear y m (primMonthLength y m)
+        TimeWithZone days _ tz: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y m (primMonthLength y m) (Just tz)
 
     ## Gets the `Time` representing the first day (January 1st) of the current year.
     def beginningOfYear: case Time.now of
-        TimeVal days _: case primTimeOfYear days of
-            (y, m, d): Time.fromTimeOfYear y 1 1
+        TimeWithZone days _ tz: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y 1 1 (Just tz)
 
     ## Gets the `Time` representing the last day (December 31st) of the current year.
     def endOfYear: case Time.now of
-        TimeVal days _: case primTimeOfYear days of
-            (y, m, d): Time.fromTimeOfYear y 12 31
+        TimeWithZone days _ tz: case primTimeOfYear days of
+            (y, m, d): Time.fromTimeOfYear y 12 31 (Just tz)
+
+    ## Converts this `Time` instance to a `UTCTime`.
+    def toUTC: primTimeToUTC self
 
     ## Calculate difference between to time values.
-    def diff other: primDiffTimes self other
+    def diff other: primDiffTimes self.toUTC other.toUTC
 
     ## Add a `TimeInterval` to this `Time`.
-    def add interval: case self of
-        TimeVal days diff: TimeVal days (diff.add interval)
+    def add interval: self.toUTC.add interval . toZonedTime
 
     ## Subtract a `TimeInterval` from this `Time`.
-    def sub interval: case self of
-        TimeVal days diff: TimeVal days (diff.sub interval)
+    def sub interval: self.toUTC.sub interval . toZonedTime
 
     ## Does this and the `other` `Time` point to the same time?
-    def == other: primTimesEq self other
+    def == other: primTimesEq self.toUTC other.toUTC
 
     ## Is this `Time` earlier than the `other`?
     def < other:
