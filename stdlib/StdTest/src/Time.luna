@@ -1,0 +1,45 @@
+import Std.Base
+import Std.Test
+import Std.Time
+
+class TimeTest:
+    def testFormatParseFmt:
+        t = Time.now
+        formatted = t.format Time.defaultFormat
+        parsed = Time.parseFmt Time.defaultFormat formatted
+        TestSubject parsed . should (equal t)
+
+    def testToTextParse:
+        t = Time.now
+        formatted = t.toText
+        parsed = Time.parse formatted
+        TestSubject parsed . should (equal t)
+
+    def testToFromEpoch:
+        t = Time.now
+        formatted = t.toEpoch
+        parsed = Time.fromEpoch formatted
+        TestSubject parsed . should (equal t)
+
+    def testFromYearAdd:
+        t1 = Time.fromTimeOfYear 2017 8 13 Nothing
+        t2 = Time.fromTimeOfYear 2017 8 15 Nothing
+        TestSubject t2 . should (equal (t1.add 2.days))
+        TestSubject (t2.diff t1) . should (equal 2.days)
+
+    def testReasonableIntervals:
+        TestSubject (2.days.+ 3.days) . should (equal 5.days)
+        TestSubject (30.seconds. + 30.seconds) . should (equal 1.minutes)
+        TestSubject 60.minutes . should (equal 1.hours)
+        TestSubject 7.days . should (equal 1.weeks)
+
+    def testCorrectTimeZone:
+        TestSubject Time.now.timeZone . should (be TimeZone.current)
+
+    def run:
+        Test.specify "format and parseFmt are each other's reverse"   self.testFormatParseFmt
+        Test.specify "toText and parse are each other's reverse"      self.testToTextParse
+        Test.specify "toEpoch and fromEpoch are each other's reverse" self.testToFromEpoch
+        Test.specify "time difference and addition works as expected" self.testFromYearAdd
+        Test.specify "time intervals should behave reasonably"        self.testReasonableIntervals
+        Test.specify "Time.now should have a correct timezone"        self.testCorrectTimeZone

@@ -860,6 +860,12 @@ systemStd std = do
         primFormatTimeVal = toLunaValue std fmtTime
         primFormatTime    = Function formatTimeIr primFormatTimeVal formatTimeAssu
 
+    Right (formatUTCTimeAssu, formatUTCTimeIr) <- twoArgFun "Text" "UTCTime" "Text"
+    let fmtUTCTime :: Text -> Time.UTCTime -> Text
+        fmtUTCTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: P.String)
+        primFormatUTCTimeVal = toLunaValue std fmtUTCTime
+        primFormatUTCTime    = Function formatUTCTimeIr primFormatUTCTimeVal formatUTCTimeAssu
+
     Right (times2BoolAssu, times2BoolIr) <- twoArgFun "Time" "Time" "Bool"
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
         primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
@@ -1014,6 +1020,7 @@ systemStd std = do
                                    , ("primTimeFromUTC", primTimeFromUTC)
                                    , ("primDiffTimes", primDiffTimes)
                                    , ("primFormatTime", primFormatTime)
+                                   , ("primFormatUTCTime", primFormatUTCTime)
                                    , ("primTimesEq", primTimesEq)
                                    , ("primTimeOfDay", primTimeOfDay)
                                    , ("primTimeOfYear", primTimeOfYear)
@@ -1173,8 +1180,8 @@ instance FromLunaData Time.UTCTime where
     fromLunaData t = let errorMsg = "Expected a UTCTime luna object, got unexpected constructor" in
         force' t >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
-                "UTCTime" -> Time.UTCTime <$> fromLunaData days <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
-                _         -> throw errorMsg
+                "UTCTimeVal" -> Time.UTCTime <$> fromLunaData days <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
+                _            -> throw errorMsg
             _ -> throw errorMsg
 
 instance FromLunaData Time.TimeOfDay where
@@ -1199,7 +1206,7 @@ instance FromLunaData Time.ZonedTime where
     fromLunaData zt = let errorMsg = "Expected a Time Luna object, got unexpected constructor" in
         force' zt >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
-                "TimeWithZone" -> Time.ZonedTime <$> localTime <*> (fromLunaData tz)
+                "TimeVal" -> Time.ZonedTime <$> localTime <*> (fromLunaData tz)
                                       where [days, tod, tz] = obj ^. constructor . fields
                                             localTime       = Time.LocalTime <$> fromLunaData days <*> fromLunaData tod
                 _              -> throw errorMsg
@@ -1218,20 +1225,20 @@ instance ToLunaData Time.Day where
 
 instance ToLunaData Time.UTCTime where
     toLunaData imps (Time.UTCTime days diff) = LunaObject $
-        Object (Constructor "UTCTime" [toLunaData imps days, toLunaData imps diff])
+        Object (Constructor "UTCTimeVal" [toLunaData imps days, toLunaData imps diff])
                (getObjectMethodMap "UTCTime" imps)
 
 instance ToLunaData Time.TimeOfDay where
     toLunaData imps (Time.TimeOfDay h m s) = LunaObject $
-        Object (Constructor "TimeOfDay" [toLunaData imps (integer h), toLunaData imps (integer m), toLunaData imps $ real s])
+        Object (Constructor "TimeOfDayVal" [toLunaData imps (integer h), toLunaData imps (integer m), toLunaData imps $ real s])
                (getObjectMethodMap "TimeOfDay" imps)
 
 instance ToLunaData Time.TimeZone where
     toLunaData imps (Time.TimeZone mins summer name) = LunaObject $
-        Object (Constructor "TimeZone" [toLunaData imps (integer mins), toLunaData imps summer, toLunaData imps (convert name :: Text)])
+        Object (Constructor "TimeZoneVal" [toLunaData imps (integer mins), toLunaData imps summer, toLunaData imps (convert name :: Text)])
                (getObjectMethodMap "TimeZone" imps)
 
 instance ToLunaData Time.ZonedTime where
     toLunaData imps (Time.ZonedTime (Time.LocalTime days tod) tz) = LunaObject $
-        Object (Constructor "TimeWithZone" [toLunaData imps days, toLunaData imps tod, toLunaData imps tz])
+        Object (Constructor "TimeVal" [toLunaData imps days, toLunaData imps tod, toLunaData imps tz])
                (getObjectMethodMap "Time" imps)
