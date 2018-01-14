@@ -20,6 +20,7 @@ dependencies:
     - luna-syntax-text-parser
     - mtl
     - transformers
+    - filepath
     - exceptions
     - typelevel
     - luna-passes

@@ -162,6 +162,8 @@ native class Text:
         Just val: val
         Nothing:  errorStr ("Could not convert " + self + " to a Real")
 
+    def addPathSegment segment: self + pathSeparator + segment
+
 ## Class for representing arbitrary binary data. Does not attempt to interpret the data in any way.
 native class Binary:
     ## Concatenates two pieces of binary data together.
