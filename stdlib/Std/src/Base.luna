@@ -997,6 +997,14 @@ class JSON:
     ## Short text representation for a `JSON` object.
     def shortRep: self.render
 
+    ## Returns an empty `JSON` object
+    def empty: JSONObject Tip
+
+    ## Inserts a value for a given key into the `JSON` object. Throws an exception when the `JSON` does not represent an object.
+    def insert k v: case self of
+        JSONObject m: JSONObject (m . insert k v.toJSON)
+        _: throw "JSON.insert: not an object."
+
     ## Returns `Just` the value associated with a given key. Returns `Nothing` when the `JSON` is not an object or when the key is missing.
     def lookup key: case self of
         JSONObject m: m.lookup key
