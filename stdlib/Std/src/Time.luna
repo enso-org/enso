@@ -65,7 +65,7 @@ class TimeOfDay:
 
     def midnight: TimeOfDayVal 0 0 0.0
 
-    def midday: TimeOfDayVal 12 0 0.0
+    def noon: TimeOfDayVal 12 0 0.0
 
     ## Does this `TimeOfDay` point to an earlier time during the day than the `other`?
     def < other:
