@@ -63,7 +63,7 @@ native class Real:
     ## Flotaing point exponentiation.
     def ^ that: primRealPow self that
     ## Floating point logarithm with given basis.
-    def log that: primRealLog self that
+    def log base: primRealLog self base
     ## Tests whether `self` is greater than the argument.
     def >  that: primRealGt       self that
     ## Tests whether `self` is lesser than the argument.
