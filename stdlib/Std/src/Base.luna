@@ -1015,7 +1015,7 @@ class JSON:
         JSONObject m: case m.lookup key of
             Just v: v
             Nothing: throw ("JSON.get: key not found: " + key.toText)
-        other: throw: "JSON.get: not an object."
+        other: throw "JSON.get: not an object."
 
     ## Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Throws an error otherwise.
     def asObject: case self of
