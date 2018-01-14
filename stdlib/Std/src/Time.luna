@@ -197,7 +197,7 @@ class Time:
 
     ## Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`..
     def fromTimeOfYear y m d tz:
-        timeZone = tz.fromMaybe TimeZone.current
+        timeZone = tz.withDefault TimeZone.current
         TimeVal (primFromTimeOfYear y m d) TimeOfDay.midnight timeZone
 
     ## Gets the `Time` representing the first day of the current month.
