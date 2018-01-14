@@ -846,9 +846,9 @@ systemStd std = do
     let primTimeToUTCVal = toLunaValue std Time.zonedTimeToUTC
         primTimeToUTC    = Function time2UTCIr primTimeToUTCVal time2UTCAssu
 
-    let primTimeFromUTCVal :: Time.UTCTime -> LunaEff Time.ZonedTime
-        primTimeFromUTCVal = withExceptions . Time.utcToLocalZonedTime
-    primTimeFromUTC <- typeRepForIO (toLunaValue std primTimeFromUTCVal) [LCons "UTCTime" []] $ LCons "Time" []
+    Right (utc2TimeAssu, utc2TimeIr) <- twoArgFun "TimeZone" "UTCTime" "Time"
+    let primTimeFromUTCVal = toLunaValue std Time.utcToZonedTime
+        primTimeFromUTC    = Function utc2TimeIr primTimeFromUTCVal utc2TimeAssu
 
     Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "UTCTime" "UTCTime" "TimeInterval"
     let primDiffTimesVal = toLunaValue std Time.diffUTCTime
@@ -866,9 +866,15 @@ systemStd std = do
         primFormatUTCTimeVal = toLunaValue std fmtUTCTime
         primFormatUTCTime    = Function formatUTCTimeIr primFormatUTCTimeVal formatUTCTimeAssu
 
-    Right (times2BoolAssu, times2BoolIr) <- twoArgFun "Time" "Time" "Bool"
+    Right (times2BoolAssu, times2BoolIr) <- twoArgFun "UTCTime" "UTCTime" "Bool"
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
         primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
+
+    Right (addTimeAssu, addTimeIr) <- twoArgFun "TimeInterval" "UTCTime" "UTCTime"
+    let primAddUTCTimeVal = toLunaValue std Time.addUTCTime
+        primSubUTCTimeVal = toLunaValue std (\d t -> Time.addUTCTime (-d) t)
+        primAddUTCTime    = Function addTimeIr primAddUTCTimeVal addTimeAssu
+        primSubUTCTime    = Function addTimeIr primSubUTCTimeVal addTimeAssu
 
     let primTimeOfDayVal :: Time.DiffTime -> (Integer, Integer, Double)
         primTimeOfDayVal t = let Time.TimeOfDay h m s = Time.timeToTimeOfDay t in (convert h, convert m, realToFrac s)
@@ -895,7 +901,7 @@ systemStd std = do
         (assu, r) <- mkMonadProofFun $ generalize l2
         cmp    <- compile r
         return (assu, cmp)
-    let parseTime :: Text -> Text -> Maybe Time.UTCTime
+    let parseTime :: Text -> Text -> Maybe Time.ZonedTime
         parseTime fmt str = Time.parseTime Time.defaultTimeLocale (convert fmt) (convert str)
         primParseTimeVal  = toLunaValue std parseTime
         primParseTime     = Function text2TimeIr primParseTimeVal text2TimeAssu
@@ -1022,6 +1028,8 @@ systemStd std = do
                                    , ("primFormatTime", primFormatTime)
                                    , ("primFormatUTCTime", primFormatUTCTime)
                                    , ("primTimesEq", primTimesEq)
+                                   , ("primAddUTCTime", primAddUTCTime)
+                                   , ("primSubUTCTime", primSubUTCTime)
                                    , ("primTimeOfDay", primTimeOfDay)
                                    , ("primTimeOfYear", primTimeOfYear)
                                    , ("primFromTimeOfYear", primFromTimeOfYear)

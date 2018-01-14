@@ -45,6 +45,10 @@ class TimeZone:
 
     def pst: TimeZoneVal (-8) False "PST"
 
+    ## Is the offset of this `TimeZone` the same as of the `other` one?
+    def == other:
+        self.minutes.== other.minutes
+
 ## A class representing the time of day (hours, minutes, seconds).
 class TimeOfDay:
     TimeOfDay
@@ -84,7 +88,7 @@ class UTCTime:
     UTCTimeVal Int TimeInterval
 
     ## Converts this `UTCTime` instance to a `Time`, using the local timezone.
-    def toZonedTime: primTimeFromUTC self
+    def toZonedTime: primTimeFromUTC TimeZone.current self
 
     ## Default format for `UTCTime`: YYYY-MM-DD.HH:MM:SS.
     def defaultFormat: "%FT%T"
@@ -103,12 +107,10 @@ class UTCTime:
     def diff other: primDiffTimes self other
 
     ## Add a `TimeInterval` to this `UTCTime`.
-    def add interval: case self of
-        UTCTimeVal days diff: UTCTimeVal days (diff.add interval)
+    def add interval: primAddUTCTime interval self
 
     ## Subtract a `TimeInterval` from this `UTCTime`.
-    def sub interval: case self of
-        UTCTimeVal days diff: UTCTimeVal days (diff.sub interval)
+    def sub interval: primSubUTCTime interval self
 
     ## Does this and the `other` `UTCTime` point to the same time?
     def == other: primTimesEq self other
@@ -129,7 +131,7 @@ class UTCTime:
 ## If you wish to override that behaviour, you can explicitly set the timezone
 ## with `setTimeZone`, like:
 ## ```
-## Time.nowi . setTimeZone TimeZone.cst
+## Time.now . setTimeZone TimeZone.cst
 ## ```
 ##
 ## `Time` supports various formatting and parsing methods, including the
