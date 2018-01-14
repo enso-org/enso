@@ -1,13 +1,13 @@
 import Std.Base
 
 class GeoJSONFeature:
-    properties :: Map Text JSON
+    properties :: JSON
     geometry   :: JSON
 
-    def toJSON: Tip . insert "type" (JSONString "Feature") . insert "properties" self.properties.toJSON . insert "geometry" self.geometry . toJSON
+    def toJSON: JSON . empty . insert "type" "Feature" . insert "properties" self.properties . insert "geometry" self.geometry
 
 class GeoJSONFeatureCollection:
 
     features :: List GeoJSONFeature
 
-    def toJSON: Tip . insert "type" (JSONString "FeatureCollection") . insert "features" self.features.toJSON . toJSON
+    def toJSON: JSON . empty . insert "type" "FeatureCollection" . insert "features" self.features
