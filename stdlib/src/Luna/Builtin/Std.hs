@@ -20,6 +20,7 @@ import qualified Data.ByteString                              as StrictByteStrin
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
 import qualified Data.CaseInsensitive                         as CI
+import           Data.Fixed                                   (Pico)
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
 import           Data.IORef
@@ -33,6 +34,8 @@ import           Data.Set                                     (Set)
 import qualified Data.Set                                     as Set
 import           Data.Time                                    (DiffTime)
 import qualified Data.Time                                    as Time
+import qualified Data.Time.Calendar                           as Time
+import qualified Data.Time.Format                             as Time
 import           Data.Text.Lazy                               (Text)
 import qualified Data.Text                                    as AnyText
 import qualified Data.Text.Lazy                               as Text
@@ -112,6 +115,12 @@ int = fromIntegral
 
 integer :: Int -> Integer
 integer = fromIntegral
+
+real :: Real a => a -> Double
+real = realToFrac
+
+pico :: Double -> Pico
+pico = realToFrac
 
 mkType :: (MonadRef m, MonadPassManager m) => Map Name (Expr Draft) -> LTp -> SubPass TestPass m (Expr Draft, Expr Draft)
 mkType vars (LVar n)         = do
@@ -560,6 +569,19 @@ systemStd std = do
 
     gcState <- newMVar $ GCState Map.empty
 
+    -- wrappers for simple types
+    let noneT   = LCons "None"   []
+        boolT   = LCons "Bool"   []
+        intT    = LCons "Int"    []
+        realT   = LCons "Real"   []
+        textT   = LCons "Text"   []
+        binaryT = LCons "Binary" []
+        tuple2T t1 t2       = LCons "Tuple2" [t1, t2]
+        tuple3T t1 t2 t3    = LCons "Tuple3" [t1, t2, t3]
+        tuple4T t1 t2 t3 t4 = LCons "Tuple4" [t1, t2, t3, t4]
+        listT t  = LCons "List"  [t]
+        maybeT t = LCons "Maybe" [t]
+
     let registerGC :: IO () -> IO UUID
         registerGC act = do
             uuid <- UUID.nextRandom
@@ -609,15 +631,15 @@ systemStd std = do
 
     let expandPathVal :: Text -> LunaEff Text
         expandPathVal = withExceptions . fmap convert . canonicalizePath . convert
-    expandPathF <- typeRepForIO (toLunaValue std expandPathVal) [LCons "Text" []] $ LCons "Text" []
+    expandPathF <- typeRepForIO (toLunaValue std expandPathVal) [textT] textT
 
     let readFileVal :: Text -> LunaEff Text
         readFileVal = withExceptions . fmap convert . readFile . convert
-    readFileF <- typeRepForIO (toLunaValue std readFileVal) [LCons "Text" []] $ LCons "Text" []
+    readFileF <- typeRepForIO (toLunaValue std readFileVal) [textT] textT
 
     let readBinaryVal :: Text -> LunaEff ByteString
         readBinaryVal = withExceptions . ByteString.readFile . convert
-    readBinaryF <- typeRepForIO (toLunaValue std readBinaryVal) [LCons "Text"[]] $ LCons "Binary" []
+    readBinaryF <- typeRepForIO (toLunaValue std readBinaryVal) [textT] binaryT
 
     let parseJSONVal :: Text -> LunaEff (Either Text Aeson.Value)
         parseJSONVal = return . Bifunc.first convert . Aeson.eitherDecode . Text.encodeUtf8
@@ -641,7 +663,7 @@ systemStd std = do
 
     let parseMsgPackVal :: ByteString -> LunaEff MsgPack.Object
         parseMsgPackVal = withExceptions . MsgPack.unpack
-    parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [LCons "Binary" []] $ LCons "MsgPack" []
+    parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [binaryT] $ LCons "MsgPack" []
 
     let signOAuth1 :: (Text, Text, Text, Text) -> HTTP.Request -> IO HTTP.Request
         signOAuth1 (cak, cas, ot, ots) req = do
@@ -673,16 +695,13 @@ systemStd std = do
             manager <- HTTP.newManager managerSettings
             HTTP.responseOpen req manager
 
-    let textT           = LCons "Text"   []
-        intT            = LCons "Int"    []
-        boolT           = LCons "Bool"   []
-        tupleT          = LCons "Tuple2" [textT, textT]
-        oauthT          = LCons "Maybe"  [LCons "Tuple4" [textT, textT, textT, textT]]
-        maybeTupleT     = LCons "Maybe"  [tupleT]
-        tupleListT      = LCons "List"   [tupleT]
-        tupleMaybeListT = LCons "List"   [LCons "Tuple2" [textT, LCons "Maybe" [textT]]]
+    let tupleT          = tuple2T textT textT
+        oauthT          = maybeT $ tuple4T textT textT textT textT
+        maybeTupleT     = maybeT tupleT
+        tupleListT      = listT  tupleT
+        tupleMaybeListT = listT $ tuple2T textT $ maybeT textT
     primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
-                                    [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, LCons "Binary" []]
+                                    [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, binaryT]
                                     (LCons "HttpResponse" [])
 
     -- web sockets state and connections --
@@ -717,28 +736,30 @@ systemStd std = do
             registerGC cleanup
             return wsConnection
 
+    let wsConnectionT = LCons "WSConnection" []
+
     primWebSocketConnect <- typeRepForIO (toLunaValue std primWebSocketConnectVal)
-                                         [textT, intT, textT, boolT] (LCons "WSConnection" [])
+                                         [textT, intT, textT, boolT] wsConnectionT
 
     let primWebSocketReadVal :: WSConnection -> LunaEff ByteString
         primWebSocketReadVal (WSConnection conn _) = withExceptions $ WebSocket.receiveData conn
     primWebSocketRead <- typeRepForIO (toLunaValue std primWebSocketReadVal)
-                                      [LCons "WSConnection" []] (LCons "Binary" [])
+                                      [wsConnectionT] binaryT
 
     let primWebSocketWriteVal :: WSConnection -> Text -> LunaEff ()
         primWebSocketWriteVal (WSConnection conn _) s = withExceptions $ WebSocket.sendTextData conn s
     primWebSocketWrite <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
-                                       [LCons "WSConnection" [], LCons "Text" []] (LCons "None" [])
+                                       [wsConnectionT, textT] noneT
 
     let primWebSocketWriteBinVal :: WSConnection -> ByteString -> LunaEff ()
         primWebSocketWriteBinVal (WSConnection conn _) s = withExceptions $ WebSocket.sendBinaryData conn s
     primWebSocketWriteBin <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
-                                       [LCons "WSConnection" [], LCons "Binary" []] (LCons "None" [])
+                                       [wsConnectionT, binaryT] noneT
 
     let primWebSocketCloseVal :: WSConnection -> LunaEff ()
         primWebSocketCloseVal = withExceptions . unregisterConnection
     primWebSocketClose <- typeRepForIO (toLunaValue std primWebSocketCloseVal)
-                                       [LCons "WSConnection" []] (LCons "None" [])
+                                       [wsConnectionT] noneT
 
     -- websocket servers --
     let wsServerT = LCons "WSServer" []
@@ -801,7 +822,7 @@ systemStd std = do
             forM_ connMap (\c -> WebSocket.sendBinaryData (wsConn c) msg)
             return wss
     primWSSBroadcastBinary <- typeRepForIO (toLunaValue std primWSSBroadcastBinaryVal)
-                                           [wsServerT, LCons "Binary" []] wsServerT
+                                           [wsServerT, binaryT] wsServerT
 
     let primWSSGetMessageVal :: WSServer -> LunaEff (WSConnection, Text)
         primWSSGetMessageVal = withExceptions . readMVar . wsServerMsg
@@ -813,25 +834,63 @@ systemStd std = do
         primUrlEncodeVal = convert . HTTP.urlEncode False . convert
         primUrlEncode    = Function primUEIR (toLunaValue std primUrlEncodeVal) primUEAssu
 
-    let primGetCurrentTimeVal :: LunaEff (Time.UTCTime)
-        primGetCurrentTimeVal = performIO Time.getCurrentTime
+    let primGetCurrentTimeVal :: LunaEff Time.ZonedTime
+        primGetCurrentTimeVal = withExceptions Time.getZonedTime
     primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
 
-    Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "Time" "Time" "TimeInterval"
+    let primGetCurrentTimeZoneVal :: LunaEff Time.TimeZone
+        primGetCurrentTimeZoneVal = withExceptions Time.getCurrentTimeZone
+    primGetCurrentTimeZone <- typeRepForIO (toLunaValue std primGetCurrentTimeZoneVal) [] $ LCons "TimeZone" []
+
+    Right (time2UTCAssu, time2UTCIr) <- oneArgFun "Time" "UTCTime"
+    let primTimeToUTCVal = toLunaValue std Time.zonedTimeToUTC
+        primTimeToUTC    = Function time2UTCIr primTimeToUTCVal time2UTCAssu
+
+    Right (utc2TimeAssu, utc2TimeIr) <- twoArgFun "TimeZone" "UTCTime" "Time"
+    let primTimeFromUTCVal = toLunaValue std Time.utcToZonedTime
+        primTimeFromUTC    = Function utc2TimeIr primTimeFromUTCVal utc2TimeAssu
+
+    Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "UTCTime" "UTCTime" "TimeInterval"
     let primDiffTimesVal = toLunaValue std Time.diffUTCTime
         primDiffTimes    = Function times2IntervalIr primDiffTimesVal times2IntervalAssu
 
-    Right (time2TextAssu, time2TextIr) <- oneArgFun "Time" "Text"
-    let primShowTimeVal = toLunaValue std (convert . show :: Time.UTCTime -> Text)
-        primShowTime    = Function time2TextIr primShowTimeVal time2TextAssu
+    Right (formatTimeAssu, formatTimeIr) <- twoArgFun "Text" "Time" "Text"
+    let fmtTime :: Text -> Time.ZonedTime -> Text
+        fmtTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: P.String)
+        primFormatTimeVal = toLunaValue std fmtTime
+        primFormatTime    = Function formatTimeIr primFormatTimeVal formatTimeAssu
 
-    Right (times2BoolAssu, times2BoolIr) <- twoArgFun "Time" "Time" "Bool"
+    Right (formatUTCTimeAssu, formatUTCTimeIr) <- twoArgFun "Text" "UTCTime" "Text"
+    let fmtUTCTime :: Text -> Time.UTCTime -> Text
+        fmtUTCTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: P.String)
+        primFormatUTCTimeVal = toLunaValue std fmtUTCTime
+        primFormatUTCTime    = Function formatUTCTimeIr primFormatUTCTimeVal formatUTCTimeAssu
+
+    Right (times2BoolAssu, times2BoolIr) <- twoArgFun "UTCTime" "UTCTime" "Bool"
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
         primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
 
+    Right (addTimeAssu, addTimeIr) <- twoArgFun "TimeInterval" "UTCTime" "UTCTime"
+    let primAddUTCTimeVal = toLunaValue std Time.addUTCTime
+        primSubUTCTimeVal = toLunaValue std (\d t -> Time.addUTCTime (-d) t)
+        primAddUTCTime    = Function addTimeIr primAddUTCTimeVal addTimeAssu
+        primSubUTCTime    = Function addTimeIr primSubUTCTimeVal addTimeAssu
+
     let primTimeOfDayVal :: Time.DiffTime -> (Integer, Integer, Double)
         primTimeOfDayVal t = let Time.TimeOfDay h m s = Time.timeToTimeOfDay t in (convert h, convert m, realToFrac s)
-    primTimeOfDay <- typeRepForPure (toLunaValue std primTimeOfDayVal) [LCons "TimeInterval" []] $ LCons "Tuple3" [LCons "Int" [], LCons "Int" [], LCons "Real" []]
+    primTimeOfDay <- typeRepForPure (toLunaValue std primTimeOfDayVal) [LCons "TimeInterval" []] $ tuple3T intT intT intT
+
+    let primTimeOfYearVal :: Time.Day -> (Integer, Integer, Integer)
+        primTimeOfYearVal t = let (y, m, d) = Time.toGregorian t in (y, integer m, integer d)
+    primTimeOfYear <- typeRepForPure (toLunaValue std primTimeOfYearVal) [intT] $ tuple3T intT intT intT
+
+    let primFromTimeOfYearVal :: Integer -> Integer -> Integer -> Time.Day
+        primFromTimeOfYearVal y m d = Time.fromGregorian y (int m) (int d)
+    primFromTimeOfYear <- typeRepForPure (toLunaValue std primFromTimeOfYearVal) [intT, intT, intT] intT
+
+    let primMonthLengthVal :: Integer -> Integer -> Integer
+        primMonthLengthVal y m = integer $ Time.gregorianMonthLength y (int m)
+    primMonthLength <- typeRepForPure (toLunaValue std primMonthLengthVal) [intT, intT] intT
 
     Right (text2TimeAssu, text2TimeIr) <- runGraph $ do
         tText  <- cons_ @Draft "Text"
@@ -842,23 +901,23 @@ systemStd std = do
         (assu, r) <- mkMonadProofFun $ generalize l2
         cmp    <- compile r
         return (assu, cmp)
-    let parseTime :: Text -> Text -> Maybe Time.UTCTime
+    let parseTime :: Text -> Text -> Maybe Time.ZonedTime
         parseTime fmt str = Time.parseTime Time.defaultTimeLocale (convert fmt) (convert str)
         primParseTimeVal  = toLunaValue std parseTime
         primParseTime     = Function text2TimeIr primParseTimeVal text2TimeAssu
 
     let randomRealVal = performIO randomIO :: LunaEff Double
-    randomReal <- typeRepForIO (toLunaValue std randomRealVal) [] $ LCons "Real" []
+    randomReal <- typeRepForIO (toLunaValue std randomRealVal) [] realT
 
     let sleepVal = performIO . threadDelay . int
-    sleep <- typeRepForIO (toLunaValue std sleepVal) [LCons "Int" []] $ LCons "None" []
+    sleep <- typeRepForIO (toLunaValue std sleepVal) [intT] noneT
 
     let forkVal :: LunaEff () -> LunaEff ()
         forkVal act = performIO $ mdo
             uid <- registerGC $ killThread tid
             tid <- forkFinally (void $ runIO $ runError act) $ const (deregisterGC uid)
             return ()
-    fork <- typeRepForIO (toLunaValue std forkVal) [LCons "None" []] $ LCons "None" []
+    fork <- typeRepForIO (toLunaValue std forkVal) [noneT] noneT
 
     let newEmptyMVarVal :: LunaEff (MVar LunaData)
         newEmptyMVarVal = performIO newEmptyMVar
@@ -866,7 +925,7 @@ systemStd std = do
 
     let putMVarVal :: MVar LunaData -> LunaData -> LunaEff ()
         putMVarVal = performIO .: putMVar
-    putMVar' <- typeRepForIO (toLunaValue std putMVarVal) [LCons "MVar" [LVar "a"], LVar "a"] (LCons "None" [])
+    putMVar' <- typeRepForIO (toLunaValue std putMVarVal) [LCons "MVar" [LVar "a"], LVar "a"] noneT
 
     let takeMVarVal :: MVar LunaData -> LunaValue
         takeMVarVal = performIO . takeMVar
@@ -874,9 +933,11 @@ systemStd std = do
         readMVarVal = performIO . readMVar
     takeMVar' <- typeRepForIO (toLunaValue std takeMVarVal) [LCons "MVar" [LVar "a"]] (LVar "a")
 
+    let fileHandleT = LCons "FileHandle" []
+
     let writeFileVal :: Text -> Text -> LunaEff ()
         writeFileVal p c = withExceptions $ writeFile (convert p) (convert c)
-    writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [LCons "Text" [], LCons "Text" []] (LCons "None" [])
+    writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [textT, textT] noneT
 
     let runProcessVal :: CreateProcess -> LunaEff (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
         runProcessVal = withExceptions . Process.createProcess
@@ -886,11 +947,11 @@ systemStd std = do
                                                                                                                     , LCons "ProcessHandle" [] ] )
     let hIsOpenVal :: Handle -> LunaEff Bool
         hIsOpenVal = withExceptions . Handle.hIsOpen
-    hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [LCons "FileHandle" []] (LCons "Bool" [])
+    hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [fileHandleT] boolT
 
     let hIsClosedVal :: Handle -> LunaEff Bool
         hIsClosedVal = withExceptions . Handle.hIsClosed
-    hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [LCons "FileHandle" []] (LCons "Bool" [])
+    hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [fileHandleT] boolT
 
     let ignoreSigPipe :: IO () -> IO ()
         ignoreSigPipe = Exception.handle $ \e -> case e of
@@ -901,29 +962,29 @@ systemStd std = do
         hCloseVal :: Handle -> LunaEff ()
         hCloseVal = withExceptions . ignoreSigPipe . Handle.hClose
 
-    hClose' <- typeRepForIO (toLunaValue std hCloseVal) [LCons "FileHandle" []] (LCons "None" [])
+    hClose' <- typeRepForIO (toLunaValue std hCloseVal) [fileHandleT] noneT
 
     let evaluateVal :: Text -> LunaEff Text
         evaluateVal t = withExceptions $ do
             Exception.evaluate $ rnf t
             return t
-    evaluate' <- typeRepForIO (toLunaValue std evaluateVal) [LCons "Text" []] (LCons "Text" [])
+    evaluate' <- typeRepForIO (toLunaValue std evaluateVal) [textT] textT
 
     let hGetContentsVal :: Handle -> LunaEff Text
         hGetContentsVal = fmap Text.pack . withExceptions . Handle.hGetContents
-    hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [LCons "FileHandle" []] (LCons "Text" [])
+    hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [fileHandleT] textT
 
     let hGetLineVal :: Handle -> LunaEff Text
         hGetLineVal = fmap Text.pack . withExceptions . Handle.hGetLine
-    hGetLine' <- typeRepForIO (toLunaValue std hGetLineVal) [LCons "FileHandle" []] (LCons "Text" [])
+    hGetLine' <- typeRepForIO (toLunaValue std hGetLineVal) [fileHandleT] textT
 
     let hPutTextVal :: Handle -> Text -> LunaEff ()
         hPutTextVal h = withExceptions . Handle.hPutStr h . Text.unpack
-    hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [LCons "FileHandle" [], LCons "Text" []] (LCons "None" [])
+    hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [fileHandleT, textT] noneT
 
     let hFlushVal :: Handle -> LunaEff ()
         hFlushVal = withExceptions . Handle.hFlush
-    hFlush' <- typeRepForIO (toLunaValue std hFlushVal) [LCons "FileHandle" []] (LCons "None" [])
+    hFlush' <- typeRepForIO (toLunaValue std hFlushVal) [fileHandleT] noneT
 
     let waitForProcessVal :: ProcessHandle -> LunaEff ExitCode
         waitForProcessVal = withExceptions . Process.waitForProcess
@@ -931,11 +992,11 @@ systemStd std = do
 
     let hSetBufferingVal :: Handle -> BufferMode -> LunaEff ()
         hSetBufferingVal = withExceptions .: Handle.hSetBuffering
-    hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [LCons "FileHandle" [], LCons "BufferMode" []] (LCons "None" [])
+    hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [fileHandleT, LCons "BufferMode" []] noneT
 
     let pathSepVal :: Text
         pathSepVal = convert pathSeparator
-    pathSep <- typeRepForPure (toLunaValue std pathSepVal) [] (LCons "Text" [])
+    pathSep <- typeRepForPure (toLunaValue std pathSepVal) [] textT
 
     let systemFuncs = Map.fromList [ ("putStr", printLn)
                                    , ("errorStr", err)
@@ -960,10 +1021,19 @@ systemStd std = do
                                    , ("primWSSGetMessage", primWSSGetMessage)
                                    , ("primUrlEncode", primUrlEncode)
                                    , ("primGetCurrentTime", primGetCurrentTime)
+                                   , ("primGetCurrentTimeZone", primGetCurrentTimeZone)
+                                   , ("primTimeToUTC", primTimeToUTC)
+                                   , ("primTimeFromUTC", primTimeFromUTC)
                                    , ("primDiffTimes", primDiffTimes)
-                                   , ("primShowTime", primShowTime)
+                                   , ("primFormatTime", primFormatTime)
+                                   , ("primFormatUTCTime", primFormatUTCTime)
                                    , ("primTimesEq", primTimesEq)
+                                   , ("primAddUTCTime", primAddUTCTime)
+                                   , ("primSubUTCTime", primSubUTCTime)
                                    , ("primTimeOfDay", primTimeOfDay)
+                                   , ("primTimeOfYear", primTimeOfYear)
+                                   , ("primFromTimeOfYear", primFromTimeOfYear)
+                                   , ("primMonthLength", primMonthLength)
                                    , ("primParseTime", primParseTime)
                                    , ("randomReal", randomReal)
                                    , ("primFork", fork)
@@ -1111,19 +1181,72 @@ instance FromLunaData Time.DiffTime where
 instance FromLunaData Time.NominalDiffTime where
     fromLunaData dt = realToFrac <$> (fromLunaData dt :: LunaEff Time.DiffTime)
 
+instance FromLunaData Time.Day where
+    fromLunaData d = Time.ModifiedJulianDay <$> fromLunaData d
+
 instance FromLunaData Time.UTCTime where
-    fromLunaData t = let errorMsg = "Expected a Time luna object, got unexpected constructor" in
+    fromLunaData t = let errorMsg = "Expected a UTCTime luna object, got unexpected constructor" in
         force' t >>= \case
             LunaObject obj -> case obj ^. constructor . tag of
-                "TimeVal" -> Time.UTCTime <$> (Time.ModifiedJulianDay <$> fromLunaData days) <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
-                _         -> throw errorMsg
+                "UTCTimeVal" -> Time.UTCTime <$> fromLunaData days <*> fromLunaData diff where [days, diff] = obj ^. constructor . fields
+                _            -> throw errorMsg
+            _ -> throw errorMsg
+
+instance FromLunaData Time.TimeOfDay where
+    fromLunaData tod = let errorMsg = "Expected a TimeOfDay Luna object, got unexpected constructor" in
+        force' tod >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeOfDayVal" -> Time.TimeOfDay <$> (int <$> fromLunaData h) <*> (int <$> fromLunaData m) <*> (pico <$> fromLunaData s)
+                                      where [h, m, s] = obj ^. constructor . fields
+                _              -> throw $ (show $ obj ^. constructor . tag) <> errorMsg
+            _ -> throw errorMsg
+
+instance FromLunaData Time.TimeZone where
+    fromLunaData tz = let errorMsg = "Excpected a TimeZone Luna object, got unexpected constructor" in
+        force' tz >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeZoneVal" -> Time.TimeZone <$> (int <$> fromLunaData mins) <*> fromLunaData summer <*> ((convert :: Text -> P.String) <$> fromLunaData name)
+                                     where [mins, summer, name] = obj ^. constructor . fields
+                _             -> throw errorMsg
+            _ -> throw errorMsg
+
+instance FromLunaData Time.ZonedTime where
+    fromLunaData zt = let errorMsg = "Expected a Time Luna object, got unexpected constructor" in
+        force' zt >>= \case
+            LunaObject obj -> case obj ^. constructor . tag of
+                "TimeVal" -> Time.ZonedTime <$> localTime <*> (fromLunaData tz)
+                                      where [days, tod, tz] = obj ^. constructor . fields
+                                            localTime       = Time.LocalTime <$> fromLunaData days <*> fromLunaData tod
+                _              -> throw errorMsg
             _ -> throw errorMsg
 
 instance ToLunaData Time.DiffTime where
-    toLunaData imps diffTime = LunaObject $ Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime]) (getObjectMethodMap "TimeInterval" imps)
+    toLunaData imps diffTime = LunaObject $
+        Object (Constructor "TimeInterval" [toLunaData imps $ Time.diffTimeToPicoseconds diffTime])
+               (getObjectMethodMap "TimeInterval" imps)
 
 instance ToLunaData Time.NominalDiffTime where
     toLunaData imps nDiffTime = toLunaData imps (realToFrac nDiffTime :: Time.DiffTime)
 
+instance ToLunaData Time.Day where
+    toLunaData imps day = toLunaData imps $ Time.toModifiedJulianDay day
+
 instance ToLunaData Time.UTCTime where
-    toLunaData imps (Time.UTCTime days diff) = LunaObject $ Object (Constructor "TimeVal" [toLunaData imps $ Time.toModifiedJulianDay days, toLunaData imps diff]) (getObjectMethodMap "Time" imps)
+    toLunaData imps (Time.UTCTime days diff) = LunaObject $
+        Object (Constructor "UTCTimeVal" [toLunaData imps days, toLunaData imps diff])
+               (getObjectMethodMap "UTCTime" imps)
+
+instance ToLunaData Time.TimeOfDay where
+    toLunaData imps (Time.TimeOfDay h m s) = LunaObject $
+        Object (Constructor "TimeOfDayVal" [toLunaData imps (integer h), toLunaData imps (integer m), toLunaData imps $ real s])
+               (getObjectMethodMap "TimeOfDay" imps)
+
+instance ToLunaData Time.TimeZone where
+    toLunaData imps (Time.TimeZone mins summer name) = LunaObject $
+        Object (Constructor "TimeZoneVal" [toLunaData imps (integer mins), toLunaData imps summer, toLunaData imps (convert name :: Text)])
+               (getObjectMethodMap "TimeZone" imps)
+
+instance ToLunaData Time.ZonedTime where
+    toLunaData imps (Time.ZonedTime (Time.LocalTime days tod) tz) = LunaObject $
+        Object (Constructor "TimeVal" [toLunaData imps days, toLunaData imps tod, toLunaData imps tz])
+               (getObjectMethodMap "Time" imps)
