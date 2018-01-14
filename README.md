@@ -5,56 +5,43 @@ Luna is a developer’s whiteboard on steroids. Design, prototype, develop and r
 
 Visit www.luna-lang.org to learn more!
 
+This repository contains the Luna compiler core and its command line version. For the full (visual) Luna Studio, please take a look at the https://github.com/luna/luna-studio repository. For installation and management tools, there is https://github.com/luna/luna-manager.
+
 ## Getting Started
 
-These instructions give the most direct path to a working Luna development environment. 
+This will get you up and running for Luna development, with only a minimal amount of setup required.
 
 ### System Requirements
 
-Linux (Ubuntu 14.04-LTS, 15.10), MacOS (...) and Windows (...) are officialy supported host development operating systems.
+Luna runs on all reasonably new Linuxes, Mac OSes and Windows. Luna was mostly tested on Ubuntu >= 14.04, Fedora >= 23, MacOS >= 10.11 (ElCapitan) and Windows 10, although it should run fine on all Linux distros like Mint, Debian or Arch. Some users were experiencing some issues on Gentoo, but that proved to be largely installation-dependent and hard to reproduce. Please report any issues on GitHub or shoot an email to contact@luna-lang.org.
 
-For MacOS, you need [the latest Xcode](https://developer.apple.com/xcode/downloads/) and the following dependencies:
-
-    brew install git python3 pkg-config ghc cabal-install
-
-For Ubuntu, you'll need the following development dependencies:
-
-    sudo apt-get install git python3 haskell-platform
-
+The only two dependencies necessary to build Luna are [The Haskell Stack](https://docs.haskellstack.org/en/stable/README/) and the program `happy`. To install stack, simply follow the instructions at https://docs.haskellstack.org/en/stable/README/. Remember that in order to run stack-installed executables, you need to add `${HOME}/.local/bin` to your `${PATH}`. To install happy, run:
+```
+stack install happy
+```
+(in your home directory, not inside any of the stack-managed projects you may have on your machine).
 
 ### Getting Sources for Luna compiler and its ecosystem tools
 
 **Via HTTPS**  For those checking out sources as read-only, HTTPS works best:
-
-    git clone https://github.com/wdanilo/luna.git
-    git clone https://github.com/wdanilo/workflow.git
-
+```
+git clone https://github.com/luna/luna.git
+```
 
 **Via SSH**  For those who plan on regularly making direct commits,
 cloning over SSH may provide a better experience (which requires
 uploading SSH keys to GitHub):
-
-    git clone git@github.com:wdanilo/luna.git
-    git clone git@github.com:wdanilo/workflow.git
+```
+git clone git@github.com:luna/luna.git
+```
 
 ### Building Luna
 
-The `workflow/build` script is a high-level build wrapper for every project from Luna's ecosystem. To learn about the supported options, use the `help` one:
+To build the command-line compiler interface along with all its sub-components, you will need to build the `shell` project. The instructions below assume that your `luna` repo is already cloned and we will refer to its location as `${LUNA_REPO_PATH}`.
+```
+cd ${LUNA_REPO_PATH/shell
+stack install
+```
+Note that the executable for the compiler will be located in `${LUNA_REPO_PATH}/dist/bin/public/luna` folder. You may wish to add it to your `${PATH}`.
 
-    workflow/build --help
-
-Note: Arguments after `--` above are passed directly to Haskell's build system [Stack](http://haskellstack.org).
-
-To fast start the development use the following command:
-
-    workflow/build luna/compiler
-
-If you want to use the newest available libraries that Luna depends on, you can use the newest available versions on GitHub instead of Hackage. It is usefull if you are developing the libraries as well and don't want to wait until Hackage propagates information about new library versions:
-
-    workflow/build --nightly luna/compiler
-
-You can also setup fully-flagged local development workspace and use local directories to override the sources of needed libraries. You will need a `libs` directory next to `workflow` and `luna` and use the `--develop` option:
-
-    workflow/build --develop luna/compiler
-
-If you want to release a final Luna compiler version, you can enable the highest possible optimizations and disable some tricks used for compilation fastening using the `--release` flag instead.
+Additionally, if you intend to simply use the compiler (as opposed to tinkering on it, which requires frequent rebuilds), you may consider adding `--ghc-options="-O2 -j4"` to the `stack install` command. This should make the compiler run considerably faster, at the cost of longer build times.
