@@ -45,3 +45,25 @@ stack install
 Note that the executable for the compiler will be located in `${LUNA_REPO_PATH}/dist/bin/public/luna` folder. You may wish to add it to your `${PATH}`.
 
 Additionally, if you intend to simply use the compiler (as opposed to tinkering on it, which requires frequent rebuilds), you may consider adding `--ghc-options="-O2 -j4"` to the `stack install` command. This should make the compiler run considerably faster, at the cost of longer build times.
+
+### Running Luna
+
+As a prerequisite, you need to set a `LUNA_HOME` variable to point to the location of the Luna standard library. Assuming your repo is at `${LUNA_REPO_PATH}`, you will need to set `LUNA_HOME` to `${LUNA_REPO_PATH}/stdlib`.
+
+Next, you need to create the project: create a directory structure like this:
+```
+- your_project/
+   - src/
+      - Main.luna
+      - any other *.luna files
+```
+A sample `Main.luna` file may look like this:
+```
+import Std.Base
+
+def main:
+    print "Hello world"
+    print (2 + 2)
+```
+
+Tu compile and run the project, simply type `luna` in the main project directory.
