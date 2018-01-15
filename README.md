@@ -1,4 +1,7 @@
 # Luna programming language
+
+<img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" align="right" style="margin: 0 auto;">
+
 ### Visual and textual functional programming language with a focus on productivity, collaboration and development ergonomics.
 
 Luna is a developer’s whiteboard on steroids. Design, prototype, develop and refactor any application simply by connecting visual elements together. Collaborate with co-workers, interactively fine tune parameters, inspect the results and visually profile the performance in real-time.
