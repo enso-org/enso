@@ -71,4 +71,4 @@ def main:
     print (2 + 2)
 ```
 
-Tu compile and run the project, simply type `luna` in the main project directory.
+To compile and run the project, simply type `luna` in the main project directory.
