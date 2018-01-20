@@ -49,7 +49,7 @@ $ stack install
 ```
 Note that the executable for the compiler will be located in `$LUNA_REPO_PATH/dist/bin/public/luna` folder. You may wish to add it to your `$PATH`.
 
-Additionally, if you intend to simply use the compiler (as opposed to tinkering with it, which requires frequent rebuilds), you may consider adding `--ghc-options="-O2 -j4"` to the `stack install` command. This should make the compiler run considerably faster, at the cost of longer build times.
+Additionally, if you intend to simply use the compiler (as opposed to tinkering with it, which requires frequent rebuilds), you may consider adding `--ghc-options="-O2 -j4"` to the `stack install` command. This should make the compiler create considerably faster programs, at the cost of longer build times.
 
 ### Running Luna
 
