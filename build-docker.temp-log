@@ -1,0 +1,1344 @@
+## First Run ##
+
+➜  luna git:(master) ✗ docker build . -t luna/ubuntu
+Sending build context to Docker daemon  5.243MB
+Step 1/5 : FROM haskell:8.2.1
+8.2.1: Pulling from library/haskell
+f49cf87b52c1: Already exists
+cd0563a041f9: Pull complete
+Digest: sha256:8ab2ecac34a01ba1fdc56f4413b2787abf5f33aeb8a629f4603b748bc18abe4d
+Status: Downloaded newer image for haskell:8.2.1
+ ---> 3d5550296927
+Step 2/5 : RUN mkdir -p /src/luna
+ ---> Running in e72176615b12
+Removing intermediate container e72176615b12
+ ---> 033ecf457092
+Step 3/5 : COPY . /src/app
+ ---> 5f97b9c33803
+Step 4/5 : WORKDIR /src/app/shell
+Removing intermediate container bb31d2ed6ad7
+ ---> b1f07d531b08
+Step 5/5 : RUN stack install
+ ---> Running in 0afbd8304ffa
+Downloading lts-8.16 build plan ...
+Downloaded lts-8.16 build plan.
+Updating package index Hackage (mirrored at https://s3.amazonaws.com/hackage.fpcomplete.com/) ...
+Selected mirror https://s3.amazonaws.com/hackage.fpcomplete.com/
+Downloading root
+Selected mirror https://s3.amazonaws.com/hackage.fpcomplete.com/
+Downloading timestamp
+Downloading snapshot
+Downloading mirrors
+Cannot update index (no local copy)
+Downloading index
+Updated package list downloaded
+Populating index cache ...
+Populated index cache.
+Compiler version mismatched, found ghc-8.2.1 (x86_64), but expected minor version match with ghc-8.0.2 (x86_64) (based on resolver setting in /src/app/shell/stack.yaml).
+To install the correct GHC into /root/.stack/programs/x86_64-linux/, try running "stack setup" or use the "--install-ghc" flag.
+
+##############################################################################################################################################################################
+
+## Second Run ##
+
+Sending build context to Docker daemon  5.246MB
+Step 1/5 : FROM haskell:8.2.1
+ ---> 3d5550296927
+Step 2/5 : RUN mkdir -p /src/luna
+ ---> Using cache
+ ---> 033ecf457092
+Step 3/5 : COPY . /src/app
+ ---> ff090f7fd483
+Step 4/5 : WORKDIR /src/app/shell
+Removing intermediate container 1e265d4d2672
+ ---> b275d7bddb71
+Step 5/5 : RUN stack install --install-ghc
+ ---> Running in d065c37050bd
+Downloading lts-8.16 build plan ...
+Downloaded lts-8.16 build plan.
+Updating package index Hackage (mirrored at https://s3.amazonaws.com/hackage.fpcomplete.com/) ...
+Selected mirror https://s3.amazonaws.com/hackage.fpcomplete.com/
+Downloading root
+Selected mirror https://s3.amazonaws.com/hackage.fpcomplete.com/
+Downloading timestamp
+Downloading snapshot
+Downloading mirrors
+Cannot update index (no local copy)
+Downloading index
+Updated package list downloaded
+Populating index cache ...
+Populated index cache.
+Preparing to install GHC to an isolated location.
+This will not interfere with any system-level installation.
+Preparing to download ghc-8.0.2 ...
+ghc-8.0.2: download has begun
+ghc-8.0.2:    1.03 MiB / 107.55 MiB (  0.96%) downloaded...
+ghc-8.0.2:    6.22 MiB / 107.55 MiB (  5.78%) downloaded...
+ghc-8.0.2:   15.75 MiB / 107.55 MiB ( 14.64%) downloaded...
+ghc-8.0.2:   25.09 MiB / 107.55 MiB ( 23.33%) downloaded...
+ghc-8.0.2:   34.58 MiB / 107.55 MiB ( 32.15%) downloaded...
+ghc-8.0.2:   43.97 MiB / 107.55 MiB ( 40.88%) downloaded...
+ghc-8.0.2:   53.76 MiB / 107.55 MiB ( 49.99%) downloaded...
+ghc-8.0.2:   63.11 MiB / 107.55 MiB ( 58.68%) downloaded...
+ghc-8.0.2:   72.56 MiB / 107.55 MiB ( 67.47%) downloaded...
+ghc-8.0.2:   82.14 MiB / 107.55 MiB ( 76.38%) downloaded...
+ghc-8.0.2:   91.84 MiB / 107.55 MiB ( 85.40%) downloaded...
+ghc-8.0.2:  101.25 MiB / 107.55 MiB ( 94.14%) downloaded...
+ghc-8.0.2:  107.55 MiB / 107.55 MiB (100.00%) downloaded...
+Downloaded ghc-8.0.2.
+The following executables are missing and must be installed: xz, make
+The command '/bin/sh -c stack install --install-ghc' returned a non-zero code: 1
+
+#####################################################################################################################
+
+## Second Run ##
+
+Sending build context to Docker daemon  5.248MB
+Step 1/6 : FROM haskell:8.2.1
+ ---> 3d5550296927
+Step 2/6 : RUN apt-get update &&     apt-get install -y --no-install-recommends xz-utils make &&     rm -rf /var/lib/apt/lists/*
+ ---> Running in dd7833739254
+Get:1 http://security.debian.org jessie/updates InRelease [63.1 kB]
+Get:2 http://ppa.launchpad.net trusty InRelease [15.4 kB]
+Ign http://deb.debian.org jessie InRelease
+Get:3 http://deb.debian.org jessie-updates InRelease [145 kB]
+Get:4 http://ppa.launchpad.net trusty/main amd64 Packages [13.9 kB]
+Get:5 http://deb.debian.org jessie Release.gpg [2434 B]
+Get:6 http://security.debian.org jessie/updates/main amd64 Packages [607 kB]
+Get:7 http://deb.debian.org jessie Release [148 kB]
+Get:8 http://deb.debian.org jessie-updates/main amd64 Packages [23.1 kB]
+Get:9 http://deb.debian.org jessie/main amd64 Packages [9064 kB]
+Fetched 10.1 MB in 4s (2121 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Suggested packages:
+  make-doc
+The following NEW packages will be installed:
+  make xz-utils
+0 upgraded, 2 newly installed, 0 to remove and 11 not upgraded.
+Need to get 570 kB of archives.
+After this operation, 1809 kB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian/ jessie/main xz-utils amd64 5.1.1alpha+20120614-2+b3 [221 kB]
+Get:2 http://deb.debian.org/debian/ jessie/main make amd64 4.0-8.1 [349 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 570 kB in 0s (627 kB/s)
+Selecting previously unselected package xz-utils.
+(Reading database ... 15796 files and directories currently installed.)
+Preparing to unpack .../xz-utils_5.1.1alpha+20120614-2+b3_amd64.deb ...
+Unpacking xz-utils (5.1.1alpha+20120614-2+b3) ...
+Selecting previously unselected package make.
+Preparing to unpack .../make_4.0-8.1_amd64.deb ...
+Unpacking make (4.0-8.1) ...
+Setting up xz-utils (5.1.1alpha+20120614-2+b3) ...
+update-alternatives: using /usr/bin/xz to provide /usr/bin/lzma (lzma) in auto mode
+Setting up make (4.0-8.1) ...
+Removing intermediate container dd7833739254
+ ---> bdac1dbc9a58
+Step 3/6 : RUN mkdir -p /src/luna
+ ---> Running in 6f7e38914eb1
+Removing intermediate container 6f7e38914eb1
+ ---> 8f17f439247e
+Step 4/6 : COPY . /src/app
+ ---> f018d0934f2a
+Step 5/6 : WORKDIR /src/app/shell
+Removing intermediate container 59eff1cf0fb5
+ ---> d9c216391630
+Step 6/6 : RUN stack install --install-ghc
+ ---> Running in e9c67b37ea5c
+Downloading lts-8.16 build plan ...
+Downloaded lts-8.16 build plan.
+Updating package index Hackage (mirrored at https://s3.amazonaws.com/hackage.fpcomplete.com/) ...
+Selected mirror https://s3.amazonaws.com/hackage.fpcomplete.com/
+Downloading root
+Selected mirror https://s3.amazonaws.com/hackage.fpcomplete.com/
+Downloading timestamp
+Downloading snapshot
+Downloading mirrors
+Cannot update index (no local copy)
+Downloading index
+Updated package list downloaded
+Populating index cache ...
+Populated index cache.
+Preparing to install GHC to an isolated location.
+This will not interfere with any system-level installation.
+Preparing to download ghc-8.0.2 ...
+ghc-8.0.2: download has begun
+ghc-8.0.2:    1.29 MiB / 107.55 MiB (  1.20%) downloaded...
+ghc-8.0.2:    8.33 MiB / 107.55 MiB (  7.74%) downloaded...
+ghc-8.0.2:   17.61 MiB / 107.55 MiB ( 16.37%) downloaded...
+ghc-8.0.2:   27.11 MiB / 107.55 MiB ( 25.21%) downloaded...
+ghc-8.0.2:   36.61 MiB / 107.55 MiB ( 34.04%) downloaded...
+ghc-8.0.2:   45.89 MiB / 107.55 MiB ( 42.67%) downloaded...
+ghc-8.0.2:   55.40 MiB / 107.55 MiB ( 51.52%) downloaded...
+ghc-8.0.2:   64.84 MiB / 107.55 MiB ( 60.29%) downloaded...
+ghc-8.0.2:   74.56 MiB / 107.55 MiB ( 69.33%) downloaded...
+ghc-8.0.2:   80.80 MiB / 107.55 MiB ( 75.13%) downloaded...
+ghc-8.0.2:   86.42 MiB / 107.55 MiB ( 80.36%) downloaded...
+ghc-8.0.2:   95.55 MiB / 107.55 MiB ( 88.84%) downloaded...
+ghc-8.0.2:  105.03 MiB / 107.55 MiB ( 97.66%) downloaded...
+ghc-8.0.2:  107.55 MiB / 107.55 MiB (100.00%) downloaded...
+Downloaded ghc-8.0.2.
+Unpacking GHC into /root/.stack/programs/x86_64-linux/ghc-8.0.2.temp/ ...
+Configuring GHC ...
+Installing GHC ...
+Installed GHC.
+Cloning into '/src/app/shell/.stack-work/downloaded/8YAB34ZbdTqf'...
+Cloning into '/src/app/shell/.stack-work/downloaded/-AaYAO9v66ce'...
+Cloning into '/src/app/shell/.stack-work/downloaded/wrmxGP_0XBW_'...
+Cloning into '/src/app/shell/.stack-work/downloaded/cnlks4edOaPE'...
+Cloning into '/src/app/shell/.stack-work/downloaded/NXxHWAKSQBDl'...
+Cloning into '/src/app/shell/.stack-work/downloaded/A5AMMbm6rKTz'...
+Cloning into '/src/app/shell/.stack-work/downloaded/yGxUSJxP7TQx'...
+Cloning into '/src/app/shell/.stack-work/downloaded/ofXqZrR8rFZg'...
+Cloning into '/src/app/shell/.stack-work/downloaded/kmnS4B3fomkW'...
+Cloning into '/src/app/shell/.stack-work/downloaded/xw7vf2Kow8no'...
+Cloning into '/src/app/shell/.stack-work/downloaded/UPDbRRWb5jWw'...
+Cloning into '/src/app/shell/.stack-work/downloaded/HvQFMvTsBXDS'...
+Cloning into '/src/app/shell/.stack-work/downloaded/Tkeqk7ODxasK'...
+Cloning into '/src/app/shell/.stack-work/downloaded/ZtPLwMscWW2U'...
+Cloning into '/src/app/shell/.stack-work/downloaded/kG5R2FiI8443'...
+Cloning into '/src/app/shell/.stack-work/downloaded/6Wc91OepitMp'...
+Cloning into '/src/app/shell/.stack-work/downloaded/SqgO7hJ2Etag'...
+Cloning into '/src/app/shell/.stack-work/downloaded/Ut9bu-mZX4WV'...
+Cloning into '/src/app/shell/.stack-work/downloaded/_iIMM4zfFOpw'...
+Cloning into '/src/app/shell/.stack-work/downloaded/Ftqmuak8tmSQ'...
+Cloning into '/src/app/shell/.stack-work/downloaded/sSbAW44vj__l'...
+Cloning into '/src/app/shell/.stack-work/downloaded/n0VVtQfiadlM'...
+Cloning into '/src/app/shell/.stack-work/downloaded/mKxE5ymMIj9W'...
+Cloning into '/src/app/shell/.stack-work/downloaded/iVk7hseTXNd1'...
+Cloning into '/src/app/shell/.stack-work/downloaded/8OU08qYiN-D0'...
+Cloning into '/src/app/shell/.stack-work/downloaded/iZ9copWyzvLM'...
+Cloning into '/src/app/shell/.stack-work/downloaded/HoGp3lZ6FDLd'...
+[1 of 2] Compiling Main             ( /root/.stack/setup-exe-src/setup-mPHDZzAJ.hs, /root/.stack/setup-exe-src/setup-mPHDZzAJ.o )
+[2 of 2] Compiling StackSetupShim   ( /root/.stack/setup-exe-src/setup-shim-mPHDZzAJ.hs, /root/.stack/setup-exe-src/setup-shim-mPHDZzAJ.o )
+Linking /root/.stack/setup-exe-cache/x86_64-linux/tmp-Cabal-simple_mPHDZzAJ_1.24.2.0_ghc-8.0.2 ...
+base-compat-0.9.3: download
+HUnit-1.3.1.2: download
+ansi-terminal-0.6.3.1: download
+OneTuple-0.2.1: download
+OneTuple-0.2.1: configure
+OneTuple-0.2.1: build
+HUnit-1.3.1.2: configure
+HUnit-1.3.1.2: build
+base-compat-0.9.3: configure
+OneTuple-0.2.1: copy/register
+base-compat-0.9.3: build
+ansi-terminal-0.6.3.1: configure
+base-orphans-0.5.4: download
+ansi-terminal-0.6.3.1: build
+base-orphans-0.5.4: configure
+HUnit-1.3.1.2: copy/register
+base-orphans-0.5.4: build
+base-orphans-0.5.4: copy/register
+base-prelude-1.0.1.1: download
+base-prelude-1.0.1.1: configure
+base-compat-0.9.3: copy/register
+base-prelude-1.0.1.1: build
+base16-bytestring-0.1.1.6: download
+base16-bytestring-0.1.1.6: configure
+ansi-terminal-0.6.3.1: copy/register
+base16-bytestring-0.1.1.6: build
+base64-bytestring-1.0.0.1: download
+base64-bytestring-1.0.0.1: configure
+base-prelude-1.0.1.1: copy/register
+ansi-wl-pprint-0.6.7.3: download
+base64-bytestring-1.0.0.1: build
+ansi-wl-pprint-0.6.7.3: configure
+base16-bytestring-0.1.1.6: copy/register
+byteable-0.1.1: download
+ansi-wl-pprint-0.6.7.3: build
+byteable-0.1.1: configure
+cond-0.4.1.1: download
+byteable-0.1.1: build
+cond-0.4.1.1: configure
+base64-bytestring-1.0.0.1: copy/register
+byteable-0.1.1: copy/register
+cond-0.4.1.1: build
+ansi-wl-pprint-0.6.7.3: copy/register
+containers-0.5.8.2: download
+cryptohash-md5-0.11.100.1: download
+cryptohash-md5-0.11.100.1: configure
+cryptohash-sha1-0.11.100.1: download
+cryptohash-md5-0.11.100.1: build
+cryptohash-sha1-0.11.100.1: configure
+cond-0.4.1.1: copy/register
+cryptohash-sha1-0.11.100.1: build
+containers-0.5.8.2: configure
+containers-0.5.8.2: build
+data-base-1.1.7: configure (lib)
+cryptohash-md5-0.11.100.1: copy/register
+data-base-1.1.7: build (lib)
+data-default-class-0.1.2.0: download
+data-default-class-0.1.2.0: configure
+cryptohash-sha1-0.11.100.1: copy/register
+data-default-class-0.1.2.0: build
+data-base-1.1.7: copy/register
+dlist-0.8.0.2: download
+dlist-0.8.0.2: configure
+executable-path-0.0.3.1: download
+data-default-class-0.1.2.0: copy/register
+dlist-0.8.0.2: build
+executable-path-0.0.3.1: configure
+fail-4.9.0.0: download
+executable-path-0.0.3.1: build
+fail-4.9.0.0: configure
+fail-4.9.0.0: build
+fail-4.9.0.0: copy/register
+dlist-0.8.0.2: copy/register
+executable-path-0.0.3.1: copy/register
+fingertree-0.1.1.0: download
+fingertree-0.1.1.0: configure
+data-default-instances-dlist-0.0.1: download
+foundation-0.0.9: download
+fingertree-0.1.1.0: build
+data-default-instances-dlist-0.0.1: configure
+data-default-instances-dlist-0.0.1: build
+foundation-0.0.9: configure
+data-default-instances-dlist-0.0.1: copy/register
+foundation-0.0.9: build
+haskell-lexer-1.0.1: download
+haskell-lexer-1.0.1: configure
+haskell-lexer-1.0.1: build
+fingertree-0.1.1.0: copy/register
+hourglass-0.2.10: download
+hourglass-0.2.10: configure
+hourglass-0.2.10: build
+hourglass-0.2.10: copy/register
+hspec-discover-2.2.4: download
+hspec-discover-2.2.4: configure
+hspec-discover-2.2.4: build
+hspec-discover-2.2.4: copy/register
+hspec-expectations-0.7.2: download
+hspec-expectations-0.7.2: configure
+hspec-expectations-0.7.2: build
+haskell-lexer-1.0.1: copy/register
+integer-logarithms-1.0.1: download
+integer-logarithms-1.0.1: configure
+hspec-expectations-0.7.2: copy/register
+integer-logarithms-1.0.1: build
+mtl-2.2.1: download
+mtl-2.2.1: configure
+integer-logarithms-1.0.1: copy/register
+mtl-2.2.1: build
+containers-0.5.8.2: copy/register
+network-2.6.3.1: download
+network-2.6.3.1: configure
+binary-0.8.3.0: download
+mtl-2.2.1: copy/register
+cereal-0.5.4.0: download
+network-2.6.3.1: build
+binary-0.8.3.0: configure
+binary-0.8.3.0: build
+cereal-0.5.4.0: configure
+cereal-0.5.4.0: build
+foundation-0.0.9: copy/register
+data-default-instances-containers-0.0.1: download
+data-default-instances-containers-0.0.1: configure
+binary-0.8.3.0: copy/register
+data-default-instances-containers-0.0.1: build
+Cabal-1.24.2.0: download
+cereal-0.5.4.0: copy/register
+data-default-instances-containers-0.0.1: copy/register
+Cabal-1.24.2.0: configure
+SHA-1.6.4.2: download
+data-binary-ieee754-0.4.4: download
+Cabal-1.24.2.0: build
+data-binary-ieee754-0.4.4: configure
+network-2.6.3.1: copy/register
+data-binary-ieee754-0.4.4: build
+generic-deriving-1.11.2: download
+SHA-1.6.4.2: configure
+data-binary-ieee754-0.4.4: copy/register
+SHA-1.6.4.2: build
+generic-deriving-1.11.2: configure
+memory-0.14.5: download
+generic-deriving-1.11.2: build
+memory-0.14.5: configure
+memory-0.14.5: build
+memory-0.14.5: copy/register
+SHA-1.6.4.2: copy/register
+asn1-types-0.3.2: download
+asn1-types-0.3.2: configure
+cryptonite-0.21: download
+asn1-types-0.3.2: build
+cryptonite-0.21: configure
+cryptonite-0.21: build
+asn1-types-0.3.2: copy/register
+asn1-encoding-0.9.5: download
+asn1-encoding-0.9.5: configure
+asn1-encoding-0.9.5: build
+generic-deriving-1.11.2: copy/register
+monad-branch-1.0.2: configure (lib)
+asn1-encoding-0.9.5: copy/register
+monad-branch-1.0.2: build (lib)
+asn1-parse-0.9.4: download
+asn1-parse-0.9.4: configure
+monad-branch-1.0.2: copy/register
+asn1-parse-0.9.4: build
+crypto-pubkey-types-0.4.3: download
+crypto-pubkey-types-0.4.3: configure
+asn1-parse-0.9.4: copy/register
+crypto-pubkey-types-0.4.3: build
+network-info-0.2.0.8: download
+network-info-0.2.0.8: configure
+network-info-0.2.0.8: build
+network-info-0.2.0.8: copy/register
+old-locale-1.0.0.7: download
+old-locale-1.0.0.7: configure
+crypto-pubkey-types-0.4.3: copy/register
+old-locale-1.0.0.7: build
+open-browser-0.2.1.0: download
+open-browser-0.2.1.0: configure
+old-locale-1.0.0.7: copy/register
+open-browser-0.2.1.0: build
+data-default-instances-old-locale-0.0.1: download
+data-default-instances-old-locale-0.0.1: configure
+data-default-instances-old-locale-0.0.1: build
+open-browser-0.2.1.0: copy/register
+data-default-instances-old-locale-0.0.1: copy/register
+hslogger-1.2.10: download
+data-default-0.7.1.1: download
+data-default-0.7.1.1: configure
+data-default-0.7.1.1: build
+hslogger-1.2.10: configure
+data-default-0.7.1.1: copy/register
+hslogger-1.2.10: build
+old-time-1.1.0.3: download
+old-time-1.1.0.3: configure
+hslogger-1.2.10: copy/register
+parallel-3.2.1.1: download
+old-time-1.1.0.3: build
+parallel-3.2.1.1: configure
+parallel-3.2.1.1: build
+parallel-3.2.1.1: copy/register
+pem-0.2.2: download
+pem-0.2.2: configure
+old-time-1.1.0.3: copy/register
+pem-0.2.2: build
+placeholders-0.1: download
+placeholders-0.1: configure
+placeholders-0.1: build
+pem-0.2.2: copy/register
+placeholders-0.1: copy/register
+prelude-extras-0.4.0.3: download
+prelude-extras-0.4.0.3: configure
+pretty-show-1.6.13: download
+prelude-extras-0.4.0.3: build
+pretty-show-1.6.13: configure
+pretty-show-1.6.13: build
+prelude-extras-0.4.0.3: copy/register
+primitive-0.6.1.0: download
+primitive-0.6.1.0: configure
+primitive-0.6.1.0: build
+pretty-show-1.6.13: copy/register
+random-1.1: download
+random-1.1: configure
+random-1.1: build
+primitive-0.6.1.0: copy/register
+raw-strings-qq-1.1: download
+raw-strings-qq-1.1: configure
+raw-strings-qq-1.1: build
+random-1.1: copy/register
+raw-strings-qq-1.1: copy/register
+reflection-2.1.2: download
+reflection-2.1.2: configure
+regex-base-0.93.2: download
+reflection-2.1.2: build
+regex-base-0.93.2: configure
+cryptonite-0.21: copy/register
+regex-base-0.93.2: build
+safe-0.3.14: download
+safe-0.3.14: configure
+regex-base-0.93.2: copy/register
+safe-0.3.14: build
+regex-posix-0.95.2: download
+regex-posix-0.95.2: configure
+reflection-2.1.2: copy/register
+safe-0.3.14: copy/register
+regex-posix-0.95.2: build
+semigroups-0.18.2: download
+semigroups-0.18.2: configure
+setenv-0.1.1.3: download
+semigroups-0.18.2: build
+setenv-0.1.1.3: configure
+setenv-0.1.1.3: build
+semigroups-0.18.2: copy/register
+setenv-0.1.1.3: copy/register
+socks-0.5.5: download
+socks-0.5.5: configure
+regex-posix-0.95.2: copy/register
+Cabal-1.24.2.0: copy/register
+split-0.2.3.2: download
+socks-0.5.5: build
+split-0.2.3.2: configure
+regex-compat-0.95.1: download
+split-0.2.3.2: build
+regex-compat-0.95.1: configure
+cabal-doctest-1.0.2: download
+regex-compat-0.95.1: build
+cabal-doctest-1.0.2: configure
+split-0.2.3.2: copy/register
+cabal-doctest-1.0.2: build
+regex-compat-0.95.1: copy/register
+socks-0.5.5: copy/register
+entropy-0.3.7: download
+entropy-0.3.7: configure
+stm-2.4.4.1: download
+cabal-doctest-1.0.2: copy/register
+string-qq-0.0.2: download
+text-1.2.2.1: download
+entropy-0.3.7: build
+stm-2.4.4.1: configure
+stm-2.4.4.1: build
+string-qq-0.0.2: configure
+entropy-0.3.7: copy/register
+tf-random-0.5: download
+stm-2.4.4.1: copy/register
+StateVar-1.1.0.4: download
+string-qq-0.0.2: build
+text-1.2.2.1: configure
+text-1.2.2.1: build
+tf-random-0.5: configure
+string-qq-0.0.2: copy/register
+async-2.1.1.1: download
+tf-random-0.5: build
+StateVar-1.1.0.4: configure
+StateVar-1.1.0.4: build
+async-2.1.1.1: configure
+async-2.1.1.1: build
+StateVar-1.1.0.4: copy/register
+tf-random-0.5: copy/register
+time-locale-compat-0.1.1.3: download
+time-locale-compat-0.1.1.3: configure
+async-2.1.1.1: copy/register
+QuickCheck-2.9.2: download
+time-locale-compat-0.1.1.3: build
+QuickCheck-2.9.2: configure
+transformers-compat-0.5.1.4: download
+time-locale-compat-0.1.1.3: copy/register
+QuickCheck-2.9.2: build
+transformers-compat-0.5.1.4: configure
+tuple-0.3.0.2: download
+transformers-compat-0.5.1.4: build
+tuple-0.3.0.2: configure
+tuple-0.3.0.2: build
+transformers-compat-0.5.1.4: copy/register
+MonadRandom-0.5.1: download
+MonadRandom-0.5.1: configure
+MonadRandom-0.5.1: build
+MonadRandom-0.5.1: copy/register
+exceptions-0.8.3: download
+exceptions-0.8.3: configure
+exceptions-0.8.3: build
+QuickCheck-2.9.2: copy/register
+text-1.2.2.1: copy/register
+mmorph-1.0.9: download
+mmorph-1.0.9: configure
+exceptions-0.8.3: copy/register
+mmorph-1.0.9: build
+blaze-builder-0.4.0.2: download
+bimap-0.3.3: download
+bimap-0.3.3: configure
+mmorph-1.0.9: copy/register
+bimap-0.3.3: build
+blaze-builder-0.4.0.2: configure
+hashable-1.2.6.0: download
+blaze-builder-0.4.0.2: build
+hashable-1.2.6.0: configure
+bimap-0.3.3: copy/register
+hashable-1.2.6.0: build
+tuple-0.3.0.2: copy/register
+mime-types-0.1.0.7: download
+mime-types-0.1.0.7: configure
+optparse-applicative-0.14.0.0: download
+mime-types-0.1.0.7: build
+optparse-applicative-0.14.0.0: configure
+blaze-builder-0.4.0.2: copy/register
+cookie-0.4.2.1: download
+optparse-applicative-0.14.0.0: build
+cookie-0.4.2.1: configure
+hashable-1.2.6.0: copy/register
+cookie-0.4.2.1: build
+case-insensitive-1.2.0.10: download
+case-insensitive-1.2.0.10: configure
+case-insensitive-1.2.0.10: build
+cookie-0.4.2.1: copy/register
+constraints-0.9.1: download
+constraints-0.9.1: configure
+case-insensitive-1.2.0.10: copy/register
+http-types-0.9.1: download
+constraints-0.9.1: build
+http-types-0.9.1: configure
+mime-types-0.1.0.7: copy/register
+optparse-applicative-0.14.0.0: copy/register
+http-types-0.9.1: build
+parsec-3.1.11: download
+parsec-3.1.11: configure
+polyparse-1.12: download
+parsec-3.1.11: build
+polyparse-1.12: configure
+polyparse-1.12: build
+http-types-0.9.1: copy/register
+quickcheck-io-0.1.4: download
+quickcheck-io-0.1.4: configure
+constraints-0.9.1: copy/register
+quickcheck-io-0.1.4: build
+tagged-0.8.5: download
+tagged-0.8.5: configure
+quickcheck-io-0.1.4: copy/register
+tagged-0.8.5: build
+hspec-core-2.2.4: download
+parsec-3.1.11: copy/register
+hspec-core-2.2.4: configure
+MissingH-1.4.0.1: download
+hspec-core-2.2.4: build
+MissingH-1.4.0.1: configure
+tagged-0.8.5: copy/register
+polyparse-1.12: copy/register
+MissingH-1.4.0.1: build
+crypto-api-0.13.2: download
+crypto-api-0.13.2: configure
+cpphs-1.20.5: download
+crypto-api-0.13.2: build
+cpphs-1.20.5: configure
+cpphs-1.20.5: build
+hspec-core-2.2.4: copy/register
+distributive-0.5.2: download
+distributive-0.5.2: configure
+crypto-api-0.13.2: copy/register
+hspec-2.2.4: download
+distributive-0.5.2: build
+hspec-2.2.4: configure
+hspec-2.2.4: build
+distributive-0.5.2: copy/register
+hspec-2.2.4: copy/register
+neat-interpolation-0.3.2.1: download
+neat-interpolation-0.3.2.1: configure
+network-uri-2.6.1.0: download
+cpphs-1.20.5: copy/register
+neat-interpolation-0.3.2.1: build
+network-uri-2.6.1.0: configure
+MissingH-1.4.0.1: copy/register
+network-uri-2.6.1.0: build
+haskell-src-exts-1.18.2: download
+pureMD5-2.1.3: download
+pureMD5-2.1.3: configure
+neat-interpolation-0.3.2.1: copy/register
+pureMD5-2.1.3: build
+transformers-base-0.4.4: download
+transformers-base-0.4.4: configure
+transformers-base-0.4.4: build
+haskell-src-exts-1.18.2: configure
+network-uri-2.6.1.0: copy/register
+transformers-base-0.4.4: copy/register
+haskell-src-exts-1.18.2: build
+unexceptionalio-0.3.0: download
+unexceptionalio-0.3.0: configure
+pureMD5-2.1.3: copy/register
+monad-control-1.0.1.0: download
+unexceptionalio-0.3.0: build
+monad-control-1.0.1.0: configure
+unexceptionalio-0.3.0: copy/register
+monad-control-1.0.1.0: build
+RSA-2.2.0: download
+RSA-2.2.0: configure
+errors-2.1.3: download
+RSA-2.2.0: build
+errors-2.1.3: configure
+monad-control-1.0.1.0: copy/register
+errors-2.1.3: build
+lifted-base-0.2.3.11: download
+lifted-base-0.2.3.11: configure
+lifted-base-0.2.3.11: build
+errors-2.1.3: copy/register
+RSA-2.2.0: copy/register
+unordered-containers-0.2.8.0: download
+unix-compat-0.4.3.1: download
+unordered-containers-0.2.8.0: configure
+lifted-base-0.2.3.11: copy/register
+unordered-containers-0.2.8.0: build
+unix-compat-0.4.3.1: configure
+resourcet-1.1.9: download
+unix-compat-0.4.3.1: build
+resourcet-1.1.9: configure
+resourcet-1.1.9: build
+unix-compat-0.4.3.1: copy/register
+filemanip-0.3.6.3: download
+filemanip-0.3.6.3: configure
+filemanip-0.3.6.3: build
+resourcet-1.1.9: copy/register
+conduit-1.2.10: download
+conduit-1.2.10: configure
+unordered-containers-0.2.8.0: copy/register
+conduit-1.2.10: build
+filemanip-0.3.6.3: copy/register
+utf8-string-1.0.1.1: download
+utf8-string-1.0.1.1: configure
+uuid-types-1.0.3: download
+utf8-string-1.0.1.1: build
+uuid-types-1.0.3: configure
+uuid-types-1.0.3: build
+utf8-string-1.0.1.1: copy/register
+uuid-types-1.0.3: copy/register
+vector-0.11.0.0: download
+conduit-1.2.10: copy/register
+vector-0.11.0.0: configure
+uuid-1.3.13: download
+void-0.7.2: download
+vector-0.11.0.0: build
+uuid-1.3.13: configure
+uuid-1.3.13: build
+void-0.7.2: configure
+void-0.7.2: build
+void-0.7.2: copy/register
+uuid-1.3.13: copy/register
+contravariant-1.4: download
+contravariant-1.4: configure
+x509-1.6.5: download
+contravariant-1.4: build
+x509-1.6.5: configure
+x509-1.6.5: build
+contravariant-1.4: copy/register
+comonad-5.0.1: download
+comonad-5.0.1: configure
+x509-1.6.5: copy/register
+x509-store-1.6.2: download
+comonad-5.0.1: build
+x509-store-1.6.2: configure
+x509-store-1.6.2: build
+vector-0.11.0.0: copy/register
+chunked-data-0.3.0: download
+chunked-data-0.3.0: configure
+x509-store-1.6.2: copy/register
+comonad-5.0.1: copy/register
+chunked-data-0.3.0: build
+scientific-0.3.4.13: download
+scientific-0.3.4.13: configure
+bifunctors-5.4.2: download
+scientific-0.3.4.13: build
+bifunctors-5.4.2: configure
+chunked-data-0.3.0: copy/register
+bifunctors-5.4.2: build
+vector-binary-instances-0.2.3.5: download
+vector-binary-instances-0.2.3.5: configure
+vector-binary-instances-0.2.3.5: build
+scientific-0.3.4.13: copy/register
+vector-binary-instances-0.2.3.5: copy/register
+attoparsec-0.13.1.0: download
+megaparsec-5.2.0: download
+attoparsec-0.13.1.0: configure
+attoparsec-0.13.1.0: build
+megaparsec-5.2.0: configure
+megaparsec-5.2.0: build
+bifunctors-5.4.2: copy/register
+profunctors-5.2: download
+profunctors-5.2: configure
+profunctors-5.2: build
+attoparsec-0.13.1.0: copy/register
+aeson-1.0.2.1: download
+megaparsec-5.2.0: copy/register
+aeson-1.0.2.1: configure
+aeson-1.0.2.1: build
+semigroupoids-5.1: download
+semigroupoids-5.1: configure
+profunctors-5.2: copy/register
+vector-th-unbox-0.2.1.6: download
+semigroupoids-5.1: build
+vector-th-unbox-0.2.1.6: configure
+vector-th-unbox-0.2.1.6: build
+vector-th-unbox-0.2.1.6: copy/register
+math-functions-0.2.1.0: download
+haskell-src-exts-1.18.2: copy/register
+math-functions-0.2.1.0: configure
+groom-0.1.2.1: download
+math-functions-0.2.1.0: build
+groom-0.1.2.1: configure
+groom-0.1.2.1: build
+semigroupoids-5.1: copy/register
+free-4.12.4: download
+free-4.12.4: configure
+free-4.12.4: build
+groom-0.1.2.1: copy/register
+data-msgpack-0.0.9: download
+data-msgpack-0.0.9: configure
+math-functions-0.2.1.0: copy/register
+data-msgpack-0.0.9: build
+mwc-random-0.13.6.0: download
+mwc-random-0.13.6.0: configure
+mwc-random-0.13.6.0: build
+aeson-1.0.2.1: copy/register
+path-0.6.1: download
+path-0.6.1: configure
+path-0.6.1: build
+path-0.6.1: copy/register
+mwc-random-0.13.6.0: copy/register
+websockets-0.10.0.0: download
+websockets-0.10.0.0: configure
+vector-algorithms-0.7.0.1: download
+free-4.12.4: copy/register
+data-msgpack-0.0.9: copy/register
+websockets-0.10.0.0: build
+vector-algorithms-0.7.0.1: configure
+adjunctions-4.3: download
+vector-algorithms-0.7.0.1: build
+adjunctions-4.3: configure
+either-4.4.1.1: download
+adjunctions-4.3: build
+either-4.4.1.1: configure
+either-4.4.1.1: build
+websockets-0.10.0.0: copy/register
+x509-system-1.6.4: download
+x509-system-1.6.4: configure
+x509-system-1.6.4: build
+either-4.4.1.1: copy/register
+adjunctions-4.3: copy/register
+x509-validation-1.6.5: download
+x509-validation-1.6.5: configure
+x509-system-1.6.4: copy/register
+kan-extensions-5.0.2: download
+zlib-0.6.1.2: download
+x509-validation-1.6.5: build
+kan-extensions-5.0.2: configure
+kan-extensions-5.0.2: build
+zlib-0.6.1.2: configure
+vector-algorithms-0.7.0.1: copy/register
+zlib-0.6.1.2: build
+x509-validation-1.6.5: copy/register
+mono-traversable-1.0.2: download
+mono-traversable-1.0.2: configure
+tls-1.3.10: download
+mono-traversable-1.0.2: build
+tls-1.3.10: configure
+kan-extensions-5.0.2: copy/register
+tls-1.3.10: build
+zlib-0.6.1.2: copy/register
+lens-4.15.1: download
+pointed-5: download
+pointed-5: configure
+pointed-5: build
+lens-4.15.1: configure
+pointed-5: copy/register
+streaming-commons-0.1.17: download
+mono-traversable-1.0.2: copy/register
+lens-4.15.1: build
+streaming-commons-0.1.17: configure
+streaming-commons-0.1.17: build
+tls-1.3.10: copy/register
+connection-0.2.8: download
+connection-0.2.8: configure
+connection-0.2.8: build
+streaming-commons-0.1.17: copy/register
+http-client-0.5.7.0: download
+http-client-0.5.7.0: configure
+connection-0.2.8: copy/register
+conduit-extra-1.1.16: download
+http-client-0.5.7.0: build
+conduit-extra-1.1.16: configure
+wuss-1.1.4: download
+conduit-extra-1.1.16: build
+wuss-1.1.4: configure
+wuss-1.1.4: build
+wuss-1.1.4: copy/register
+conduit-extra-1.1.16: copy/register
+conduit-combinators-1.1.1: download
+conduit-combinators-1.1.1: configure
+http-client-0.5.7.0: copy/register
+conduit-combinators-1.1.1: build
+authenticate-oauth-1.6: download
+http-client-tls-0.3.4.2: download
+authenticate-oauth-1.6: configure
+authenticate-oauth-1.6: build
+http-client-tls-0.3.4.2: configure
+http-client-tls-0.3.4.2: build
+authenticate-oauth-1.6: copy/register
+http-client-tls-0.3.4.2: copy/register
+conduit-combinators-1.1.1: copy/register
+http-conduit-2.2.3.1: download
+http-conduit-2.2.3.1: configure
+http-conduit-2.2.3.1: build
+http-conduit-2.2.3.1: copy/register
+lens-4.15.1: copy/register
+convert-1.3.2: configure (lib)
+convert-1.3.2: build (lib)
+data-prop-0.4: configure (lib)
+data-prop-0.4: build (lib)
+data-repr-1.0.8: configure (lib)
+data-prop-0.4: copy/register
+data-repr-1.0.8: build (lib)
+functor-utils-1.17: configure (lib)
+functor-utils-1.17: build (lib)
+impossible-1.0.10: configure (lib)
+data-repr-1.0.8: copy/register
+impossible-1.0.10: build (lib)
+monoid-0.1.7: configure (lib)
+functor-utils-1.17: copy/register
+monoid-0.1.7: build (lib)
+typelevel-1.1: configure (lib)
+impossible-1.0.10: copy/register
+monoid-0.1.7: copy/register
+typelevel-1.1: build (lib)
+lens-utils-1.4: configure (lib)
+convert-1.3.2: copy/register
+lens-utils-1.4: build (lib)
+typelevel-1.1: copy/register
+lens-utils-1.4: copy/register
+data-rtuple-1.1.15: configure (lib)
+data-rtuple-1.1.15: build (lib)
+data-rtuple-1.1.15: copy/register
+data-construction-1.1.12: configure (lib)
+data-construction-1.1.12: build (lib)
+data-construction-1.1.12: copy/register
+data-layer-1.0.13: configure (lib)
+data-layer-1.0.13: build (lib)
+data-layer-1.0.13: copy/register
+container-0.2.15: configure (lib)
+container-0.2.15: build (lib)
+container-0.2.15: copy/register
+prologue-2.0.3: configure (lib)
+prologue-2.0.3: build (lib)
+prologue-2.0.3: copy/register
+dependent-state-1.0.21: configure (lib)
+dependent-state-1.0.21: build (lib)
+vector-text-1.0.9: configure (lib)
+vector-text-1.0.9: build (lib)
+vector-text-1.0.9: copy/register
+dependent-state-1.0.21: copy/register
+parsert-1.0.12: configure (lib)
+parsert-1.0.12: build (lib)
+text-processing-1.0.7: configure (lib)
+text-processing-1.0.7: build (lib)
+terminal-text-1.0.5: configure (lib)
+terminal-text-1.0.5: build (lib)
+parsert-1.0.12: copy/register
+text-processing-1.0.7: copy/register
+terminal-text-1.0.5: copy/register
+luna-syntax-text-lexer-0.2: configure (lib)
+luna-syntax-text-lexer-0.2: build (lib)
+layouting-1.0.7: configure (lib)
+layouting-1.0.7: build (lib)
+luna-core-0.1: configure (lib)
+luna-core-0.1: build (lib)
+layouting-1.0.7: copy/register
+luna-syntax-text-lexer-0.2: copy/register
+
+--  Dumping log file due to warnings: /src/app/shell/.stack-work/logs/luna-core-0.1.log
+
+Configuring luna-core-0.1...
+Warning: Unknown extensions: TypeFamilyDependencies
+Warning: This package indirectly depends on multiple versions of the same
+package. This is highly likely to cause a compile failure.
+package ghci-8.0.2 requires binary-0.8.3.0
+package ghc-boot-8.0.2 requires binary-0.8.3.0
+package ghc-8.0.2 requires binary-0.8.3.0
+package vector-text-1.0.9 requires binary-0.8.3.0
+package vector-binary-instances-0.2.3.5 requires binary-0.8.3.0
+package text-1.2.2.1 requires binary-0.8.3.0
+package scientific-0.3.4.13 requires binary-0.8.3.0
+package prologue-2.0.3 requires binary-0.8.3.0
+package luna-core-0.1 requires binary-0.8.3.0
+package constraints-0.9.1 requires binary-0.8.3.0
+package hpc-0.6.0.3 requires containers-0.5.7.1
+package hoopl-3.10.2.1 requires containers-0.5.7.1
+package ghci-8.0.2 requires containers-0.5.7.1
+package ghc-8.0.2 requires containers-0.5.7.1
+package binary-0.8.3.0 requires containers-0.5.7.1
+package semigroupoids-5.1 requires containers-0.5.8.2
+package scientific-0.3.4.13 requires containers-0.5.8.2
+package pointed-5 requires containers-0.5.8.2
+package parallel-3.2.1.1 requires containers-0.5.8.2
+package monoid-0.1.7 requires containers-0.5.8.2
+package lens-utils-1.4 requires containers-0.5.8.2
+package lens-4.15.1 requires containers-0.5.8.2
+package kan-extensions-5.0.2 requires containers-0.5.8.2
+package generic-deriving-1.11.2 requires containers-0.5.8.2
+package free-4.12.4 requires containers-0.5.8.2
+package data-default-instances-containers-0.0.1 requires containers-0.5.8.2
+package convert-1.3.2 requires containers-0.5.8.2
+package container-0.2.15 requires containers-0.5.8.2
+package comonad-5.0.1 requires containers-0.5.8.2
+package binary-0.8.3.0 requires containers-0.5.8.2
+package bifunctors-5.4.2 requires containers-0.5.8.2
+package attoparsec-0.13.1.0 requires containers-0.5.8.2
+package aeson-1.0.2.1 requires containers-0.5.8.2
+package adjunctions-4.3 requires containers-0.5.8.2
+package QuickCheck-2.9.2 requires containers-0.5.8.2
+Preprocessing library luna-core-0.1...
+[  1 of 113] Compiling System.Platform  ( src-libs/System/Platform.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Platform.o )
+[  2 of 113] Compiling System.Log.Logger.Class ( src-libs/System/Log/Logger/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Class.o )
+[  3 of 113] Compiling System.Log.Data  ( src-libs/System/Log/Data.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Data.o )
+[  4 of 113] Compiling System.Log.Logger.Drop ( src-libs/System/Log/Logger/Drop.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Drop.o )
+[  5 of 113] Compiling System.Log.Logger.Echo ( src-libs/System/Log/Logger/Echo.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Echo.o )
+[  6 of 113] Compiling System.Log.Logger.Filter ( src-libs/System/Log/Logger/Filter.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Filter.o )
+[  7 of 113] Compiling System.Log.Logger.Plain ( src-libs/System/Log/Logger/Plain.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Plain.o )
+[  8 of 113] Compiling System.Log.Logger.Priority ( src-libs/System/Log/Logger/Priority.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Priority.o )
+[  9 of 113] Compiling System.Log.Level ( src-libs/System/Log/Level.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Level.o )
+[ 10 of 113] Compiling System.Log.Logger.Format ( src-libs/System/Log/Logger/Format.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Format.o )
+[ 11 of 113] Compiling System.Log.Logger.Writer ( src-libs/System/Log/Logger/Writer.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Writer.o )
+[ 12 of 113] Compiling System.Log.Logger ( src-libs/System/Log/Logger.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger.o )
+[ 13 of 113] Compiling System.Log       ( src-libs/System/Log.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log.o )
+[ 14 of 113] Compiling Paths_luna_core  ( .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/autogen/Paths_luna_core.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Paths_luna_core.o )
+[ 15 of 113] Compiling OCI.Pass.Type.Phantom ( src/OCI/Pass/Type/Phantom.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Phantom.o )
+[ 16 of 113] Compiling OCI.Pass.Type.Module ( src/OCI/Pass/Type/Module.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Module.o )
+[ 17 of 113] Compiling OCI.Pass.Type.Generator ( src/OCI/Pass/Type/Generator.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Generator.o )
+[ 18 of 113] Compiling OCI.Pass.Type.Function ( src/OCI/Pass/Type/Function.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Function.o )
+[ 19 of 113] Compiling Luna.Builtin.Data.Stream ( src/Luna/Builtin/Data/Stream.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/Builtin/Data/Stream.o )
+[ 20 of 113] Compiling Language.Symbol.Operator.Prec.RelMap ( src-libs/Language/Symbol/Operator/Prec/RelMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Operator/Prec/RelMap.o )
+[ 21 of 113] Compiling Language.Symbol.Label ( src-libs/Language/Symbol/Label.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Label.o )
+[ 22 of 113] Compiling Language.Symbol.Operator.Assoc ( src-libs/Language/Symbol/Operator/Assoc.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Operator/Assoc.o )
+[ 23 of 113] Compiling Language.Symbol.Operator.Prec ( src-libs/Language/Symbol/Operator/Prec.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Operator/Prec.o )
+[ 24 of 113] Compiling Data.Version.Semantic ( src-libs/Data/Version/Semantic.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Version/Semantic.o )
+[ 25 of 113] Compiling Data.TypeDesc    ( src-libs/Data/TypeDesc.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/TypeDesc.o )
+[ 26 of 113] Compiling Data.TreeMap     ( src-libs/Data/TreeMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/TreeMap.o )
+[ 27 of 113] Compiling Data.TreeSet     ( src-libs/Data/TreeSet.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/TreeSet.o )
+[ 28 of 113] Compiling Data.Text.CodeBuilder.Doc ( src-libs/Data/Text/CodeBuilder/Doc.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder/Doc.o )
+[ 29 of 113] Compiling Data.Text.CodeBuilder.Tok ( src-libs/Data/Text/CodeBuilder/Tok.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder/Tok.o )
+
+/src/app/core/src-libs/Data/Text/CodeBuilder/Tok.hs:60:10: warning: [-Wmissing-methods]
+    • No explicit implementation for
+        ‘+’, ‘*’, ‘abs’, ‘signum’, and (either ‘negate’ or ‘-’)
+    • In the instance declaration for ‘Num Prec’
+[ 30 of 113] Compiling Language.Symbol  ( src-libs/Language/Symbol.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol.o )
+
+/src/app/core/src-libs/Language/Symbol.hs:2:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 31 of 113] Compiling Data.Text.CodeBuilder.Builder ( src-libs/Data/Text/CodeBuilder/Builder.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder/Builder.o )
+[ 32 of 113] Compiling Data.Text.CodeBuilder ( src-libs/Data/Text/CodeBuilder.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder.o )
+[ 33 of 113] Compiling Data.Text.Class  ( src-libs/Data/Text/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/Class.o )
+[ 34 of 113] Compiling Data.Reprx       ( src-libs/Data/Reprx.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Reprx.o )
+[ 35 of 113] Compiling Luna.Prelude     ( src/Luna/Prelude.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/Prelude.o )
+[ 36 of 113] Compiling Luna.Builtin.Data.LunaEff ( src/Luna/Builtin/Data/LunaEff.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/Builtin/Data/LunaEff.o )
+[ 37 of 113] Compiling Luna.IR.Term.Literal ( src/Luna/IR/Term/Literal.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Literal.o )
+
+/src/app/core/src/Luna/IR/Term/Literal.hs:81:10: warning: [-Wmissing-methods]
+    • No explicit implementation for
+        ‘+’, ‘*’, ‘abs’, ‘signum’, and (either ‘negate’ or ‘-’)
+    • In the instance declaration for ‘Num Number’
+[ 38 of 113] Compiling OCI.IR.Layer.Class ( src/OCI/IR/Layer/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer/Class.o )
+[ 39 of 113] Compiling OCI.IR.Layer.Model ( src/OCI/IR/Layer/Model.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer/Model.o )
+[ 40 of 113] Compiling OCI.IR.Layout.Format ( src/OCI/IR/Layout/Format.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Format.o )
+[ 41 of 113] Compiling OCI.IR.Repr.Styles ( src/OCI/IR/Repr/Styles.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Repr/Styles.o )
+[ 42 of 113] Compiling Data.Record      ( src-libs/Data/Record.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Record.o )
+
+/src/app/core/src-libs/Data/Record.hs:13:1: warning: [-Wdeprecations]
+    Module ‘Type.Promotion’ is deprecated: Use Type.Known instead
+
+/src/app/core/src-libs/Data/Record.hs:122:65: warning: [-Wdeprecations]
+    In the use of type constructor or class ‘KnownNats’
+    (imported from Type.Promotion):
+    Deprecated: "Use Type.Known instead"
+
+/src/app/core/src-libs/Data/Record.hs:125:33: warning: [-Wdeprecations]
+    In the use of ‘natVals’ (imported from Type.Promotion):
+    Deprecated: "Use Type.Known instead"
+[ 43 of 113] Compiling Data.Path        ( src-libs/Data/Path.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Path.o )
+[ 44 of 113] Compiling Data.ManagedVectorMap ( src-libs/Data/ManagedVectorMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/ManagedVectorMap.o )
+[ 45 of 113] Compiling Data.Future      ( src-libs/Data/Future.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Future.o )
+[ 46 of 113] Compiling Data.FastString  ( src-libs/Data/FastString.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/FastString.o )
+
+/src/app/core/src-libs/Data/FastString.hs:3:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 47 of 113] Compiling OCI.IR.Name.Class ( src/OCI/IR/Name/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Class.o )
+
+/src/app/core/src/OCI/IR/Name/Class.hs:3:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 48 of 113] Compiling OCI.IR.Name      ( src/OCI/IR/Name.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name.o )
+[ 49 of 113] Compiling Data.Families    ( src-libs/Data/Families.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Families.o )
+[ 50 of 113] Compiling Luna.IR.Format   ( src/Luna/IR/Format.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Format.o )
+[ 51 of 113] Compiling Data.Container.Mutable ( src-libs/Data/Container/Mutable.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mutable.o )
+[ 52 of 113] Compiling Data.Container.Mono.Class ( src-libs/Data/Container/Mono/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono/Class.o )
+
+/src/app/core/src-libs/Data/Container/Mono/Class.hs:1:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 53 of 113] Compiling Data.Container.Mono.Instances.Set ( src-libs/Data/Container/Mono/Instances/Set.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono/Instances/Set.o )
+[ 54 of 113] Compiling Data.Container.Mono.Instances ( src-libs/Data/Container/Mono/Instances.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono/Instances.o )
+[ 55 of 113] Compiling Data.Container.Mono ( src-libs/Data/Container/Mono.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono.o )
+[ 56 of 113] Compiling OCI.IR.Name.Multipart ( src/OCI/IR/Name/Multipart.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Multipart.o )
+[ 57 of 113] Compiling OCI.IR.Name.Path ( src/OCI/IR/Name/Path.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Path.o )
+[ 58 of 113] Compiling OCI.IR.Name.Qualified ( src/OCI/IR/Name/Qualified.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Qualified.o )
+[ 59 of 113] Compiling Data.Container.Measured ( src-libs/Data/Container/Measured.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Measured.o )
+[ 60 of 113] Compiling Data.Container.Map.IntMap ( src-libs/Data/Container/Map/IntMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Map/IntMap.o )
+[ 61 of 113] Compiling Data.Container.Map ( src-libs/Data/Container/Map.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Map.o )
+[ 62 of 113] Compiling Data.Build       ( src-libs/Data/Build.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Build.o )
+[ 63 of 113] Compiling Data.AssocList   ( src-libs/Data/AssocList.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/AssocList.o )
+[ 64 of 113] Compiling Data.Abstract    ( src-libs/Data/Abstract.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Abstract.o )
+[ 65 of 113] Compiling Data.Graph.Class ( src-libs/Data/Graph/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Graph/Class.o )
+
+/src/app/core/src-libs/Data/Graph/Class.hs:401:10: warning: [-Wmissing-methods]
+    • No explicit implementation for
+        ‘elemsOf’
+    • In the instance declaration for
+        ‘ElemGraph a (TypeRepGraphST s) m’
+[ 66 of 113] Compiling OCI.IR.Layout.Class ( src/OCI/IR/Layout/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Class.o )
+[ 67 of 113] Compiling Data.Event       ( src-libs/Data/Event.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Event.o )
+[ 68 of 113] Compiling OCI.IR.Term      ( src/OCI/IR/Term.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Term.o )
+[ 69 of 113] Compiling OCI.IR.Layout.Nested ( src/OCI/IR/Layout/Nested.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Nested.o )
+[ 70 of 113] Compiling OCI.IR.Layout    ( src/OCI/IR/Layout.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout.o )
+[ 71 of 113] Compiling Luna.IR.Term.Core ( src/Luna/IR/Term/Core.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Core.o )
+
+/src/app/core/src/Luna/IR/Term/Core.hs:4:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 72 of 113] Compiling Control.Monad.Runner ( src-libs/Control/Monad/Runner.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Control/Monad/Runner.o )
+
+/src/app/core/src-libs/Control/Monad/Runner.hs:2:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 73 of 113] Compiling Control.Monad.Raise ( src-libs/Control/Monad/Raise.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Control/Monad/Raise.o )
+[ 74 of 113] Compiling OCI.IR.Class     ( src/OCI/IR/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Class.o )
+
+/src/app/core/src/OCI/IR/Class.hs:5:1: warning: [-Wunrecognised-pragmas]
+    Unrecognised pragma
+[ 75 of 113] Compiling Luna.IR.Layer.Succs ( src/Luna/IR/Layer/Succs.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Succs.o )
+[ 76 of 113] Compiling Luna.IR.Layer.Type ( src/Luna/IR/Layer/Type.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Type.o )
+[ 77 of 113] Compiling Luna.IR.Term.Function ( src/Luna/IR/Term/Function.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Function.o )
+[ 78 of 113] Compiling Luna.IR.Term.Unit ( src/Luna/IR/Term/Unit.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Unit.o )
+[ 79 of 113] Compiling OCI.IR.Layer.Req ( src/OCI/IR/Layer/Req.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer/Req.o )
+[ 80 of 113] Compiling OCI.IR.Layer     ( src/OCI/IR/Layer.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer.o )
+[ 81 of 113] Compiling OCI.IR.Layout.Typed ( src/OCI/IR/Layout/Typed.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Typed.o )
+[ 82 of 113] Compiling Luna.IR.Term.Cls ( src/Luna/IR/Term/Cls.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Cls.o )
+[ 83 of 113] Compiling OCI.Pass.Definition ( src/OCI/Pass/Definition.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Definition.o )
+
+/src/app/core/src/OCI/Pass/Definition.hs:101:18: warning: [-Wtabs]
+    Tab character found here.
+    Please use spaces instead.
+[ 84 of 113] Compiling OCI.Pass.Class   ( src/OCI/Pass/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Class.o )
+[ 85 of 113] Compiling OCI.Pass.Manager ( src/OCI/Pass/Manager.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Manager.o )
+[ 86 of 113] Compiling OCI.IR           ( src/OCI/IR.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR.o )
+[ 87 of 113] Compiling OCI.Pass         ( src/OCI/Pass.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass.o )
+[ 88 of 113] Compiling Luna.IR.ToRefactor2 ( src/Luna/IR/ToRefactor2.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/ToRefactor2.o )
+[ 89 of 113] Compiling Luna.IR.Layer.Errors ( src/Luna/IR/Layer/Errors.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Errors.o )
+[ 90 of 113] Compiling Luna.IR.Layer.Requester ( src/Luna/IR/Layer/Requester.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Requester.o )
+[ 91 of 113] Compiling Luna.IR.Layer.RequiredBy ( src/Luna/IR/Layer/RequiredBy.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/RequiredBy.o )
+[ 92 of 113] Compiling Luna.IR.Layer.UID ( src/Luna/IR/Layer/UID.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/UID.o )
+[ 93 of 113] Compiling OCI.IR.Repr.Vis.Class ( src/OCI/IR/Repr/Vis/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Repr/Vis/Class.o )
+[ 94 of 113] Compiling Luna.IR.Layer.UserType ( src/Luna/IR/Layer/UserType.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/UserType.o )
+[ 95 of 113] Compiling Luna.IR.Layer    ( src/Luna/IR/Layer.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer.o )
+[ 96 of 113] Compiling Luna.IR.Term.World ( src/Luna/IR/Term/World.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/World.o )
+
+/src/app/core/src/Luna/IR/Term/World.hs:124:34: warning: [-Wdeprecations]
+    In the use of ‘readTerm’ (imported from Luna.IR.ToRefactor2):
+    Deprecated: "Use `read` instead"
+[ 97 of 113] Compiling Luna.IR.Format2  ( src/Luna/IR/Format2.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Format2.o )
+[ 98 of 113] Compiling Luna.IR.Term     ( src/Luna/IR/Term.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term.o )
+[ 99 of 113] Compiling Luna.IR.Expr     ( src/Luna/IR/Expr.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Expr.o )
+[100 of 113] Compiling Luna.IR.Term.Uni ( src/Luna/IR/Term/Uni.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Uni.o )
+[101 of 113] Compiling Luna.IR.ToRefactor ( src/Luna/IR/ToRefactor.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/ToRefactor.o )
+
+/src/app/core/src/Luna/IR/ToRefactor.hs:101:18: warning: [-Wdeprecations]
+    In the use of ‘source’ (imported from Luna.IR.ToRefactor2):
+    Deprecated: "Use readSource instead"
+
+--  End of log file: /src/app/shell/.stack-work/logs/luna-core-0.1.log
+
+Log files have been written to: /src/app/shell/.stack-work/logs/
+
+--  While building package luna-core-0.1 using:
+      /root/.stack/setup-exe-cache/x86_64-linux/Cabal-simple_mPHDZzAJ_1.24.2.0_ghc-8.0.2 --builddir=.stack-work/dist/x86_64-linux/Cabal-1.24.2.0 build lib:luna-core --ghc-options " -ddump-hi -ddump-to-file"
+    Process exited with code: ExitFailure (-9) (THIS MAY INDICATE OUT OF MEMORY)
+    Logs have been written to: /src/app/shell/.stack-work/logs/luna-core-0.1.log
+
+    Configuring luna-core-0.1...
+    Warning: Unknown extensions: TypeFamilyDependencies
+    Warning: This package indirectly depends on multiple versions of the same
+    package. This is highly likely to cause a compile failure.
+    package ghci-8.0.2 requires binary-0.8.3.0
+    package ghc-boot-8.0.2 requires binary-0.8.3.0
+    package ghc-8.0.2 requires binary-0.8.3.0
+    package vector-text-1.0.9 requires binary-0.8.3.0
+    package vector-binary-instances-0.2.3.5 requires binary-0.8.3.0
+    package text-1.2.2.1 requires binary-0.8.3.0
+    package scientific-0.3.4.13 requires binary-0.8.3.0
+    package prologue-2.0.3 requires binary-0.8.3.0
+    package luna-core-0.1 requires binary-0.8.3.0
+    package constraints-0.9.1 requires binary-0.8.3.0
+    package hpc-0.6.0.3 requires containers-0.5.7.1
+    package hoopl-3.10.2.1 requires containers-0.5.7.1
+    package ghci-8.0.2 requires containers-0.5.7.1
+    package ghc-8.0.2 requires containers-0.5.7.1
+    package binary-0.8.3.0 requires containers-0.5.7.1
+    package semigroupoids-5.1 requires containers-0.5.8.2
+    package scientific-0.3.4.13 requires containers-0.5.8.2
+    package pointed-5 requires containers-0.5.8.2
+    package parallel-3.2.1.1 requires containers-0.5.8.2
+    package monoid-0.1.7 requires containers-0.5.8.2
+    package lens-utils-1.4 requires containers-0.5.8.2
+    package lens-4.15.1 requires containers-0.5.8.2
+    package kan-extensions-5.0.2 requires containers-0.5.8.2
+    package generic-deriving-1.11.2 requires containers-0.5.8.2
+    package free-4.12.4 requires containers-0.5.8.2
+    package data-default-instances-containers-0.0.1 requires containers-0.5.8.2
+    package convert-1.3.2 requires containers-0.5.8.2
+    package container-0.2.15 requires containers-0.5.8.2
+    package comonad-5.0.1 requires containers-0.5.8.2
+    package binary-0.8.3.0 requires containers-0.5.8.2
+    package bifunctors-5.4.2 requires containers-0.5.8.2
+    package attoparsec-0.13.1.0 requires containers-0.5.8.2
+    package aeson-1.0.2.1 requires containers-0.5.8.2
+    package adjunctions-4.3 requires containers-0.5.8.2
+    package QuickCheck-2.9.2 requires containers-0.5.8.2
+    Preprocessing library luna-core-0.1...
+    [  1 of 113] Compiling System.Platform  ( src-libs/System/Platform.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Platform.o )
+    [  2 of 113] Compiling System.Log.Logger.Class ( src-libs/System/Log/Logger/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Class.o )
+    [  3 of 113] Compiling System.Log.Data  ( src-libs/System/Log/Data.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Data.o )
+    [  4 of 113] Compiling System.Log.Logger.Drop ( src-libs/System/Log/Logger/Drop.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Drop.o )
+    [  5 of 113] Compiling System.Log.Logger.Echo ( src-libs/System/Log/Logger/Echo.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Echo.o )
+    [  6 of 113] Compiling System.Log.Logger.Filter ( src-libs/System/Log/Logger/Filter.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Filter.o )
+    [  7 of 113] Compiling System.Log.Logger.Plain ( src-libs/System/Log/Logger/Plain.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Plain.o )
+    [  8 of 113] Compiling System.Log.Logger.Priority ( src-libs/System/Log/Logger/Priority.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Priority.o )
+    [  9 of 113] Compiling System.Log.Level ( src-libs/System/Log/Level.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Level.o )
+    [ 10 of 113] Compiling System.Log.Logger.Format ( src-libs/System/Log/Logger/Format.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Format.o )
+    [ 11 of 113] Compiling System.Log.Logger.Writer ( src-libs/System/Log/Logger/Writer.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger/Writer.o )
+    [ 12 of 113] Compiling System.Log.Logger ( src-libs/System/Log/Logger.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log/Logger.o )
+    [ 13 of 113] Compiling System.Log       ( src-libs/System/Log.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/System/Log.o )
+    [ 14 of 113] Compiling Paths_luna_core  ( .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/autogen/Paths_luna_core.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Paths_luna_core.o )
+    [ 15 of 113] Compiling OCI.Pass.Type.Phantom ( src/OCI/Pass/Type/Phantom.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Phantom.o )
+    [ 16 of 113] Compiling OCI.Pass.Type.Module ( src/OCI/Pass/Type/Module.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Module.o )
+    [ 17 of 113] Compiling OCI.Pass.Type.Generator ( src/OCI/Pass/Type/Generator.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Generator.o )
+    [ 18 of 113] Compiling OCI.Pass.Type.Function ( src/OCI/Pass/Type/Function.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Type/Function.o )
+    [ 19 of 113] Compiling Luna.Builtin.Data.Stream ( src/Luna/Builtin/Data/Stream.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/Builtin/Data/Stream.o )
+    [ 20 of 113] Compiling Language.Symbol.Operator.Prec.RelMap ( src-libs/Language/Symbol/Operator/Prec/RelMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Operator/Prec/RelMap.o )
+    [ 21 of 113] Compiling Language.Symbol.Label ( src-libs/Language/Symbol/Label.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Label.o )
+    [ 22 of 113] Compiling Language.Symbol.Operator.Assoc ( src-libs/Language/Symbol/Operator/Assoc.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Operator/Assoc.o )
+    [ 23 of 113] Compiling Language.Symbol.Operator.Prec ( src-libs/Language/Symbol/Operator/Prec.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol/Operator/Prec.o )
+    [ 24 of 113] Compiling Data.Version.Semantic ( src-libs/Data/Version/Semantic.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Version/Semantic.o )
+    [ 25 of 113] Compiling Data.TypeDesc    ( src-libs/Data/TypeDesc.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/TypeDesc.o )
+    [ 26 of 113] Compiling Data.TreeMap     ( src-libs/Data/TreeMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/TreeMap.o )
+    [ 27 of 113] Compiling Data.TreeSet     ( src-libs/Data/TreeSet.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/TreeSet.o )
+    [ 28 of 113] Compiling Data.Text.CodeBuilder.Doc ( src-libs/Data/Text/CodeBuilder/Doc.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder/Doc.o )
+    [ 29 of 113] Compiling Data.Text.CodeBuilder.Tok ( src-libs/Data/Text/CodeBuilder/Tok.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder/Tok.o )
+
+    /src/app/core/src-libs/Data/Text/CodeBuilder/Tok.hs:60:10: warning: [-Wmissing-methods]
+        • No explicit implementation for
+            ‘+’, ‘*’, ‘abs’, ‘signum’, and (either ‘negate’ or ‘-’)
+        • In the instance declaration for ‘Num Prec’
+    [ 30 of 113] Compiling Language.Symbol  ( src-libs/Language/Symbol.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Language/Symbol.o )
+
+    /src/app/core/src-libs/Language/Symbol.hs:2:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 31 of 113] Compiling Data.Text.CodeBuilder.Builder ( src-libs/Data/Text/CodeBuilder/Builder.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder/Builder.o )
+    [ 32 of 113] Compiling Data.Text.CodeBuilder ( src-libs/Data/Text/CodeBuilder.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/CodeBuilder.o )
+    [ 33 of 113] Compiling Data.Text.Class  ( src-libs/Data/Text/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Text/Class.o )
+    [ 34 of 113] Compiling Data.Reprx       ( src-libs/Data/Reprx.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Reprx.o )
+    [ 35 of 113] Compiling Luna.Prelude     ( src/Luna/Prelude.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/Prelude.o )
+    [ 36 of 113] Compiling Luna.Builtin.Data.LunaEff ( src/Luna/Builtin/Data/LunaEff.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/Builtin/Data/LunaEff.o )
+    [ 37 of 113] Compiling Luna.IR.Term.Literal ( src/Luna/IR/Term/Literal.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Literal.o )
+
+    /src/app/core/src/Luna/IR/Term/Literal.hs:81:10: warning: [-Wmissing-methods]
+        • No explicit implementation for
+            ‘+’, ‘*’, ‘abs’, ‘signum’, and (either ‘negate’ or ‘-’)
+        • In the instance declaration for ‘Num Number’
+    [ 38 of 113] Compiling OCI.IR.Layer.Class ( src/OCI/IR/Layer/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer/Class.o )
+    [ 39 of 113] Compiling OCI.IR.Layer.Model ( src/OCI/IR/Layer/Model.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer/Model.o )
+    [ 40 of 113] Compiling OCI.IR.Layout.Format ( src/OCI/IR/Layout/Format.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Format.o )
+    [ 41 of 113] Compiling OCI.IR.Repr.Styles ( src/OCI/IR/Repr/Styles.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Repr/Styles.o )
+    [ 42 of 113] Compiling Data.Record      ( src-libs/Data/Record.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Record.o )
+
+    /src/app/core/src-libs/Data/Record.hs:13:1: warning: [-Wdeprecations]
+        Module ‘Type.Promotion’ is deprecated: Use Type.Known instead
+
+    /src/app/core/src-libs/Data/Record.hs:122:65: warning: [-Wdeprecations]
+        In the use of type constructor or class ‘KnownNats’
+        (imported from Type.Promotion):
+        Deprecated: "Use Type.Known instead"
+
+    /src/app/core/src-libs/Data/Record.hs:125:33: warning: [-Wdeprecations]
+        In the use of ‘natVals’ (imported from Type.Promotion):
+        Deprecated: "Use Type.Known instead"
+    [ 43 of 113] Compiling Data.Path        ( src-libs/Data/Path.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Path.o )
+    [ 44 of 113] Compiling Data.ManagedVectorMap ( src-libs/Data/ManagedVectorMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/ManagedVectorMap.o )
+    [ 45 of 113] Compiling Data.Future      ( src-libs/Data/Future.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Future.o )
+    [ 46 of 113] Compiling Data.FastString  ( src-libs/Data/FastString.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/FastString.o )
+
+    /src/app/core/src-libs/Data/FastString.hs:3:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 47 of 113] Compiling OCI.IR.Name.Class ( src/OCI/IR/Name/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Class.o )
+
+    /src/app/core/src/OCI/IR/Name/Class.hs:3:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 48 of 113] Compiling OCI.IR.Name      ( src/OCI/IR/Name.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name.o )
+    [ 49 of 113] Compiling Data.Families    ( src-libs/Data/Families.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Families.o )
+    [ 50 of 113] Compiling Luna.IR.Format   ( src/Luna/IR/Format.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Format.o )
+    [ 51 of 113] Compiling Data.Container.Mutable ( src-libs/Data/Container/Mutable.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mutable.o )
+    [ 52 of 113] Compiling Data.Container.Mono.Class ( src-libs/Data/Container/Mono/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono/Class.o )
+
+    /src/app/core/src-libs/Data/Container/Mono/Class.hs:1:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 53 of 113] Compiling Data.Container.Mono.Instances.Set ( src-libs/Data/Container/Mono/Instances/Set.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono/Instances/Set.o )
+    [ 54 of 113] Compiling Data.Container.Mono.Instances ( src-libs/Data/Container/Mono/Instances.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono/Instances.o )
+    [ 55 of 113] Compiling Data.Container.Mono ( src-libs/Data/Container/Mono.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Mono.o )
+    [ 56 of 113] Compiling OCI.IR.Name.Multipart ( src/OCI/IR/Name/Multipart.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Multipart.o )
+    [ 57 of 113] Compiling OCI.IR.Name.Path ( src/OCI/IR/Name/Path.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Path.o )
+    [ 58 of 113] Compiling OCI.IR.Name.Qualified ( src/OCI/IR/Name/Qualified.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Name/Qualified.o )
+    [ 59 of 113] Compiling Data.Container.Measured ( src-libs/Data/Container/Measured.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Measured.o )
+    [ 60 of 113] Compiling Data.Container.Map.IntMap ( src-libs/Data/Container/Map/IntMap.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Map/IntMap.o )
+    [ 61 of 113] Compiling Data.Container.Map ( src-libs/Data/Container/Map.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Container/Map.o )
+    [ 62 of 113] Compiling Data.Build       ( src-libs/Data/Build.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Build.o )
+    [ 63 of 113] Compiling Data.AssocList   ( src-libs/Data/AssocList.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/AssocList.o )
+    [ 64 of 113] Compiling Data.Abstract    ( src-libs/Data/Abstract.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Abstract.o )
+    [ 65 of 113] Compiling Data.Graph.Class ( src-libs/Data/Graph/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Graph/Class.o )
+
+    /src/app/core/src-libs/Data/Graph/Class.hs:401:10: warning: [-Wmissing-methods]
+        • No explicit implementation for
+            ‘elemsOf’
+        • In the instance declaration for
+            ‘ElemGraph a (TypeRepGraphST s) m’
+    [ 66 of 113] Compiling OCI.IR.Layout.Class ( src/OCI/IR/Layout/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Class.o )
+    [ 67 of 113] Compiling Data.Event       ( src-libs/Data/Event.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Data/Event.o )
+    [ 68 of 113] Compiling OCI.IR.Term      ( src/OCI/IR/Term.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Term.o )
+    [ 69 of 113] Compiling OCI.IR.Layout.Nested ( src/OCI/IR/Layout/Nested.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Nested.o )
+    [ 70 of 113] Compiling OCI.IR.Layout    ( src/OCI/IR/Layout.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout.o )
+    [ 71 of 113] Compiling Luna.IR.Term.Core ( src/Luna/IR/Term/Core.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Core.o )
+
+    /src/app/core/src/Luna/IR/Term/Core.hs:4:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 72 of 113] Compiling Control.Monad.Runner ( src-libs/Control/Monad/Runner.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Control/Monad/Runner.o )
+
+    /src/app/core/src-libs/Control/Monad/Runner.hs:2:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 73 of 113] Compiling Control.Monad.Raise ( src-libs/Control/Monad/Raise.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Control/Monad/Raise.o )
+    [ 74 of 113] Compiling OCI.IR.Class     ( src/OCI/IR/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Class.o )
+
+    /src/app/core/src/OCI/IR/Class.hs:5:1: warning: [-Wunrecognised-pragmas]
+        Unrecognised pragma
+    [ 75 of 113] Compiling Luna.IR.Layer.Succs ( src/Luna/IR/Layer/Succs.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Succs.o )
+    [ 76 of 113] Compiling Luna.IR.Layer.Type ( src/Luna/IR/Layer/Type.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Type.o )
+    [ 77 of 113] Compiling Luna.IR.Term.Function ( src/Luna/IR/Term/Function.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Function.o )
+    [ 78 of 113] Compiling Luna.IR.Term.Unit ( src/Luna/IR/Term/Unit.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Unit.o )
+    [ 79 of 113] Compiling OCI.IR.Layer.Req ( src/OCI/IR/Layer/Req.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer/Req.o )
+    [ 80 of 113] Compiling OCI.IR.Layer     ( src/OCI/IR/Layer.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layer.o )
+    [ 81 of 113] Compiling OCI.IR.Layout.Typed ( src/OCI/IR/Layout/Typed.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Layout/Typed.o )
+    [ 82 of 113] Compiling Luna.IR.Term.Cls ( src/Luna/IR/Term/Cls.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Cls.o )
+    [ 83 of 113] Compiling OCI.Pass.Definition ( src/OCI/Pass/Definition.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Definition.o )
+
+    /src/app/core/src/OCI/Pass/Definition.hs:101:18: warning: [-Wtabs]
+        Tab character found here.
+        Please use spaces instead.
+    [ 84 of 113] Compiling OCI.Pass.Class   ( src/OCI/Pass/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Class.o )
+    [ 85 of 113] Compiling OCI.Pass.Manager ( src/OCI/Pass/Manager.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass/Manager.o )
+    [ 86 of 113] Compiling OCI.IR           ( src/OCI/IR.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR.o )
+    [ 87 of 113] Compiling OCI.Pass         ( src/OCI/Pass.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/Pass.o )
+    [ 88 of 113] Compiling Luna.IR.ToRefactor2 ( src/Luna/IR/ToRefactor2.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/ToRefactor2.o )
+    [ 89 of 113] Compiling Luna.IR.Layer.Errors ( src/Luna/IR/Layer/Errors.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Errors.o )
+    [ 90 of 113] Compiling Luna.IR.Layer.Requester ( src/Luna/IR/Layer/Requester.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/Requester.o )
+    [ 91 of 113] Compiling Luna.IR.Layer.RequiredBy ( src/Luna/IR/Layer/RequiredBy.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/RequiredBy.o )
+    [ 92 of 113] Compiling Luna.IR.Layer.UID ( src/Luna/IR/Layer/UID.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/UID.o )
+    [ 93 of 113] Compiling OCI.IR.Repr.Vis.Class ( src/OCI/IR/Repr/Vis/Class.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/OCI/IR/Repr/Vis/Class.o )
+    [ 94 of 113] Compiling Luna.IR.Layer.UserType ( src/Luna/IR/Layer/UserType.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer/UserType.o )
+    [ 95 of 113] Compiling Luna.IR.Layer    ( src/Luna/IR/Layer.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Layer.o )
+    [ 96 of 113] Compiling Luna.IR.Term.World ( src/Luna/IR/Term/World.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/World.o )
+
+    /src/app/core/src/Luna/IR/Term/World.hs:124:34: warning: [-Wdeprecations]
+        In the use of ‘readTerm’ (imported from Luna.IR.ToRefactor2):
+        Deprecated: "Use `read` instead"
+    [ 97 of 113] Compiling Luna.IR.Format2  ( src/Luna/IR/Format2.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Format2.o )
+    [ 98 of 113] Compiling Luna.IR.Term     ( src/Luna/IR/Term.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term.o )
+    [ 99 of 113] Compiling Luna.IR.Expr     ( src/Luna/IR/Expr.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Expr.o )
+    [100 of 113] Compiling Luna.IR.Term.Uni ( src/Luna/IR/Term/Uni.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/Term/Uni.o )
+    [101 of 113] Compiling Luna.IR.ToRefactor ( src/Luna/IR/ToRefactor.hs, .stack-work/dist/x86_64-linux/Cabal-1.24.2.0/build/Luna/IR/ToRefactor.o )
+
+    /src/app/core/src/Luna/IR/ToRefactor.hs:101:18: warning: [-Wdeprecations]
+        In the use of ‘source’ (imported from Luna.IR.ToRefactor2):
+        Deprecated: "Use readSource instead"
+The command '/bin/sh -c stack install --install-ghc' returned a non-zero code: 1
+
+##############################################################################################################################################################################
