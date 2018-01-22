@@ -2,4 +2,4 @@
 
 set -eo pipefail;
 
-docker build . -f Dockerfile-test -t amagdy/luna:test
+docker build . -f Dockerfile-test -t quadric/luna:test

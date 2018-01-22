@@ -1,4 +1,4 @@
-FROM amagdy/luna:base_0.0.1 
+FROM quadric/luna:base_0.0.1 
 
 RUN mkdir -p /src/test-app
 
