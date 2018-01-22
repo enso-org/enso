@@ -20,6 +20,7 @@ data Windows    = Windows deriving (Show, Eq, Generic)
 data Linux      = Linux   deriving (Show, Eq, Generic)
 data Darwin     = Darwin  deriving (Show, Eq, Generic)
 data GHCJS      = GHCJS   deriving (Show, Eq, Generic)
+data FreeBSD    = FreeBSD deriving (Show, Eq, Generic)
 
 -- === utils ===
 
@@ -43,6 +44,11 @@ type Platform = GHCJS
 delimeter = '/'
 #endif
 
+#ifdef freebsd_HOST_OS
+type Platform = FreeBSD
+delimeter = '/'
+#endif
+
 platform :: Platform
 platform = def
 
@@ -58,5 +64,6 @@ instance Default Windows where def = Windows
 instance Default Darwin  where def = Darwin
 instance Default Linux   where def = Linux
 instance Default GHCJS   where def = GHCJS
+instance Default FreeBSD where def = FreeBSD
 
 ------------------------------------------------------------------------
