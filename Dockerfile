@@ -7,8 +7,10 @@ FROM haskell:8.2.1
 RUN mkdir -p /src/luna
 
 RUN apt-get update && \
+    apt-get upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils && \
     apt-get install -y --no-install-recommends xz-utils make && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Add $LUNA_REPO_PATH/dist/bin/public/luna to $PATH
 ENV PATH="/src/luna/dist/bin/public/luna:${PATH}"
