@@ -8,6 +8,7 @@ import Data.Maybe   (isJust)
 
 import OCI.IR.Combinators
 
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import OCI.IR.Name           (Name)
 import qualified Luna.IR.Expr as Term
@@ -58,10 +59,15 @@ runMethodResolution = do
     res <- forM accs $ \acc -> do
         result <- importAccessor acc
         case result of
-            False -> return $ Just acc
-            _     -> return Nothing
-    putAttr @UnresolvedAccs $ putAccs $ catMaybes res
-    return $ any isNothing res
+            True -> return $ Just acc
+            _    -> return Nothing
+    freshAccs <- getAccs <$> getAttr @UnresolvedAccs
+    let initialAccsSet   = Set.fromList accs
+        resolvedAccsSet  = Set.fromList $ catMaybes res
+        newlyAdded       = filter (`Set.notMember` initialAccsSet)  freshAccs
+        resolutionFailed = filter (`Set.notMember` resolvedAccsSet) freshAccs
+    putAttr @UnresolvedAccs $ putAccs $ newlyAdded <> resolutionFailed
+    return . not . Set.null $ resolvedAccsSet
 
 destructMonad :: (MonadRef m, MonadIO m, MonadPassManager m) => Expr Draft -> SubPass AccessorFunction m (Expr Draft, Expr Draft)
 destructMonad e = do
