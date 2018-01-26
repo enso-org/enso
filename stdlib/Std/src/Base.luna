@@ -1126,7 +1126,7 @@ def fork:
 ## An MVar can either be empty or can contain a value.
 ## Reading an empty `MVar` locks the thread until a value is written.
 ## Writing to a non-empty `MVar` locks the thread until a value is taken out.
-native class MVar:
+native class MVar a:
     ## Takes the value out of the `MVar` and returns it, leaving the `MVar` empty.
     ## Calling this on an empty `MVar` suspends the thread until the value is put in it.
     def take:  primTakeMVar self
