@@ -281,6 +281,8 @@ class Time:
     ## Converts a `Time` to `Text` using the default format (YYYY-MM-DD.HH:MM:SS).
     def toText: self.format Time.defaultFormat
 
+    def toJSON: self.toText.toJSON
+
     def shortRep: self.toText
 
     ## Parses a `Time` from a number representing the standard epoch.

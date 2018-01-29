@@ -12,7 +12,7 @@ class ControlPoint:
     point       :: Point
     rightHandle :: Maybe Point
 
-    def toJSON: JSONObject (Tip . insert "leftHandle" self.leftHandle.toJSON . insert "point" self.point.toJSON . insert "rightHandle" self.rightHandle.toJSON)
+    def toJSON: JSON . empty . insert "leftHandle" self.leftHandle . insert "point" self.point . insert "rightHandle" self.rightHandle
 
 def point           px py:         ControlPoint Nothing                (Point px py) Nothing
 def lpoint  lpx lpy px py:         ControlPoint (Just (Point lpx lpy)) (Point px py) Nothing
@@ -64,9 +64,9 @@ class Shape:
     Path (List ControlPoint)
 
     def toJSON: case self of
-        Circle r: JSONObject (Tip . insert "type" "circle".toJSON . insert "radius" r.toJSON)
-        Rectangle w h: JSONObject (Tip . insert "type" "rect".toJSON . insert "width" w.toJSON . insert "height" h.toJSON)
-        Path pts: JSONObject (Tip . insert "type" "path".toJSON . insert "points" pts.toJSON)
+        Circle r: JSON . empty . insert "type" "circle" . insert "radius" r
+        Rectangle w h: JSON . empty . insert "type" "rect" . insert "width" w . insert "height" h
+        Path pts: JSON . empty . insert "type" "path" . insert "points" pts
 
     def toSVGDefs id: case self of
         Circle r: (id, XTag "circle" [("r", r.toText), ("fill", "black")] [], [])
@@ -89,9 +89,7 @@ class Boolean a:
     operands :: Tuple2 a a
 
     def toJSON:
-        tp  = self.type.toJSON
-        ops = self.operands.toJSON
-        Map . empty . insert "type" tp . insert "operands" ops . toJSON
+        JSON . empty . insert "type" self.type . insert "operands" self.operands
 
     def toSVGDefs id: case self.type of
         Union:
@@ -126,7 +124,7 @@ class GeoDef:
     GeoCompound (Boolean Geo)
 
     def toJSON: case self of
-        GeoEmpty: JSONObject (Tip . insert "type" "empty".toJSON)
+        GeoEmpty: JSON . empty . insert "type" "empty"
         GeoSimple shape: shape.toJSON
         GeoCompound cmpd: cmpd.toJSON
 
@@ -139,7 +137,8 @@ class Geo:
     transformation :: AffineTransformation
     definition     :: GeoDef
 
-    def toJSON: Tip . insert "definition" self.definition.toJSON . insert "transformation" self.transformation.toJSON . toJSON
+    def toJSON:
+        JSON . empty . insert "definition" self.definition . insert "transformation" self.transfromation
 
     def transform t: case self of
         Geo tt d:

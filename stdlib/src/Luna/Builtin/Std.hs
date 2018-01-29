@@ -261,6 +261,7 @@ primReal imps = do
     Right (boxed2DoublesAssumptions, boxed2Doubles)     <- oneArgFun "Real" "Real"
     Right (double2BoolAssumptions, double2Bool)         <- twoArgFun "Real" "Real" "Bool"
     Right (double2TextAssumptions, double2text)         <- oneArgFun "Real" "Text"
+    Right (double2IntAssumptions, double2int)           <- oneArgFun "Real" "Int"
     Right (double2JSONAssumptions, double2JSON)         <- oneArgFun "Real" "JSON"
     Right (double2DoubleAssumptions, double2Double)     <- oneArgFun "Real" "Real"
     Right (doubleIntDoubleAssumptions, doubleIntDouble) <- twoArgFun "Real" "Int" "Real"
@@ -276,6 +277,8 @@ primReal imps = do
         gtVal       = toLunaValue imps ((>)          :: Double -> Double -> Bool)
         roundVal    = toLunaValue imps ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
         showVal     = toLunaValue imps (convert . show :: Double -> Text)
+        floorVal    = toLunaValue imps (floor   :: Double -> Integer)
+        ceilingVal  = toLunaValue imps (ceiling :: Double -> Integer)
 
         sinVal      = toLunaValue imps (sin  :: Double -> Double)
         cosVal      = toLunaValue imps (cos  :: Double -> Double)
@@ -303,6 +306,9 @@ primReal imps = do
                           , ("primRealDivide",   Function boxed3Doubles   divVal     boxed3DoublesAssumptions  )
                           , ("primRealPow",      Function boxed3Doubles   powVal     boxed3DoublesAssumptions  )
                           , ("primRealLog",      Function boxed3Doubles   logBaseVal boxed3DoublesAssumptions  )
+
+                          , ("primRealFloor",    Function double2int      floorVal   double2IntAssumptions     )
+                          , ("primRealCeiling",  Function double2int      ceilingVal double2IntAssumptions     )
 
                           , ("primRealEquals",   Function double2Bool     eqVal      double2BoolAssumptions    )
                           , ("primRealLt",       Function double2Bool     ltVal      double2BoolAssumptions    )
