@@ -79,15 +79,30 @@ notNewlineStart c = c /= '\n' && c /= '\r' ; {-# INLINE notNewlineStart #-}
 
 -- === Char by char checking === --
 
-isDecDigitChar, isOctDigitChar, isBinDigitChar, isHexDigitChar, isIndentBodyChar :: Char -> Bool
-isDecDigitChar   c = (c >= '0' && c <= '9')                                                           ; {-# INLINE isDecDigitChar   #-}
-isOctDigitChar   c = (c >= '0' && c <= '7')                                                           ; {-# INLINE isOctDigitChar   #-}
-isBinDigitChar   c = (c == '0' || c == '1')                                                           ; {-# INLINE isBinDigitChar   #-}
-isHexDigitChar   c = isDecDigitChar c || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')             ; {-# INLINE isHexDigitChar   #-}
-isIndentBodyChar c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || isDecDigitChar c || c == '_' ; {-# INLINE isIndentBodyChar #-}
+isDecDigitChar, isOctDigitChar, isBinDigitChar, isHexDigitChar, isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
+isDecDigitChar  c = (c >= '0' && c <= '9')                                               ; {-# INLINE isDecDigitChar   #-}
+isOctDigitChar  c = (c >= '0' && c <= '7')                                               ; {-# INLINE isOctDigitChar   #-}
+isBinDigitChar  c = (c == '0' || c == '1')                                               ; {-# INLINE isBinDigitChar   #-}
+isHexDigitChar  c = isDecDigitChar c || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') ; {-# INLINE isHexDigitChar   #-}
+isIdentBodyChar c = Char.isAlphaNum c || c == '_'                                        ; {-# INLINE isIdentBodyChar  #-}
+isVarHead       c = Char.isLower c || c == '_'                                           ; {-# INLINE isVarHead        #-}
+isConsHead        = Char.isUpper                                                         ; {-# INLINE isConsHead       #-}
 
 opChars :: [Char]
 opChars = "!$%&*+-/<>?^~\\" ; {-# INLINE opChars #-}
+
+-- === Names === --
+
+lexVariable :: Lexer
+lexVariable = checkSpecialVar
+    <$> (takeWhile isIdentBodyChar
+      <**> (option id $ flip Text32.snoc <$> (token '?' <|> token '!'))
+      <**> (option id $ flip (<>)        <$> takeMany1 '\''))
+{-# INLINE lexVariable #-}
+
+lexConstructor :: Lexer
+lexConstructor = Cons <$> takeWhile isIdentBodyChar
+{-# INLINE lexConstructor #-}
 
 
 -- === Numbers === --
@@ -299,8 +314,8 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == markerBeginChar  -> lexMarker
 
     -- Identifiers & Keywords
-    | varHead  c        -> checkSpecialVar <$> varBody
-    | consHead c        -> Cons            <$> consBody
+    | isVarHead  c      -> lexVariable
+    | isConsHead c      -> lexConstructor
 
     -- Operators
     | c == '@'          -> TypeApp <$ dropToken
@@ -316,7 +331,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == rawStrQuote  -> rawStr
     | c == fmtStrQuote  -> fmtStr
     | c == natStrQuote  -> natStr
-    | decHead c         -> lexNumber
+    | isDecDigitChar c  -> lexNumber
 
     -- Meta
     | c == '#'          -> handleHash =<< takeMany '#'
@@ -324,15 +339,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     -- Utils
     | otherwise         -> unknownCharSym c
 
-    where between  a l r    = a >= l && a <= r
-          decHead  c        = between c '0' '9'
-          varHead  c        = between c 'a' 'z' || c == '_'
-          consHead c        = between c 'A' 'Z'
-          consBody          = indentBaseBody
-          varBody           = indentBaseBody <**> (option id $ flip Text32.snoc <$> (token '?' <|> token '!'))
-                                             <**> (option id $ flip (<>)      <$> takeMany1 '\'')
-          indentBaseBody    = takeWhile isIndentBodyChar
-          handleColons      = handleReps  [BlockStart, Typed]
+    where handleColons      = handleReps  [BlockStart, Typed]
           handleDots        = handleReps  [Accessor  , Range, Anything]
           handleEqs         = handleReps  [Assignment, Operator "=="]
           handleHash        = handleRepsM [pure Disable, lexComment, lexConfig]
@@ -379,8 +386,14 @@ topEntryPoint :: Lexer
 topEntryPoint = peekToken >>= lexSymChar ; {-# INLINE topEntryPoint #-}
 
 lexSymChar :: Char -> Lexer
-lexSymChar c = if chord < symmapSize then Vector.unsafeIndex symmap chord else unknownCharSym c
-    where chord = Char.ord c
+lexSymChar c
+  -- fetch lexers for ASCII from precomputed cache
+  | chord < symmapSize = Vector.unsafeIndex symmap chord
+  -- create lexers for unicode names on the fly
+  | isVarHead  c       = lexVariable
+  | isConsHead c       = lexConstructor
+  | otherwise          = unknownCharSym c
+  where chord = Char.ord c
 {-# INLINE lexSymChar #-}
 
 lexeme :: Symbol -> Parser (Symbol, Int)

@@ -154,9 +154,11 @@ spec = do
             it "one letter variable"                        $ shouldParseItself' expr "a"                                        [(0,1)]
             it "variable with trailing apostrophe"          $ shouldParseItself' expr "foo'"                                     [(0,4)]
             it "variable with trailing apostrophes"         $ shouldParseItself' expr "foo''"                                    [(0,5)]
+            it "variable with unicode symbols"              $ shouldParseItself' expr "фываΧξωβ김동욱"                           [(0,11)]
             it "wildcard"                                   $ shouldParseItself' expr "_"                                        [(0,1)]
             it "simple constructors"                        $ shouldParseItself' expr "Vector"                                   [(0,6)]
             it "constructors with arguments"                $ shouldParseItself' expr "Vector x 1 z"                             [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(0,12)]
+            it "constructor with unicode symbols"           $ shouldParseItself' expr "Κοηστρυκτορ"                              [(0,11)]
 
     describe "expressions" $ do
         describe "applications" $ do
