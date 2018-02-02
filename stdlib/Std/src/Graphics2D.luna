@@ -118,10 +118,10 @@ class Boolean a:
             allChildren = [leftShape, mask] + (leftChildren + rightChildren)
             (rightId, useL, allChildren)
 
-class GeoDef:
+class GeoDef a:
     GeoEmpty
     GeoSimple Shape
-    GeoCompound (Boolean Geo)
+    GeoCompound (Boolean a)
 
     def toJSON: case self of
         GeoEmpty: JSON . empty . insert "type" "empty"
@@ -135,10 +135,10 @@ class GeoDef:
 
 class Geo:
     transformation :: AffineTransformation
-    definition     :: GeoDef
+    definition     :: GeoDef Geo
 
     def toJSON:
-        JSON . empty . insert "definition" self.definition . insert "transformation" self.transfromation
+        JSON . empty . insert "definition" self.definition . insert "transformation" self.transformation
 
     def transform t: case self of
         Geo tt d:
