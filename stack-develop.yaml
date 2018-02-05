@@ -1,0 +1,17 @@
+resolver: nightly-2017-07-31
+
+packages:
+    - .
+    - ../lens-utils
+    - ../monoid
+    - ../convert
+    - ../functor-utils
+
+extra-deps:
+    - c-storable-deriving-0.1.3
+    - monad-st-0.2.4.1
+
+ghc-options:
+    "*": -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+
+apply-ghc-options: locals

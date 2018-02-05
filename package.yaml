@@ -1,0 +1,88 @@
+author: Wojciech Danilo
+bug-reports: https://github.com/wdanilo/luna-core/issues
+category: Data
+copyright: Copyright (C) 2015 Wojciech Danilo
+
+ghc-options: [-Wall, -O2]
+homepage: https://github.com/wdanilo/luna-core
+library: {source-dirs: src}
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: luna-core
+stability: experimental
+synopsis: Control structure similar to Control.Monad.State, allowing multiple nested
+  states, distinguishable by provided phantom types.
+version: 0.0.1
+
+dependencies:
+    - base
+    - template-haskell
+
+benchmarks:
+  array-benchmark:
+    main:        Main.hs
+    source-dirs: test/bench
+    dependencies:
+      - criterion
+      - luna-core
+      - deepseq
+      - vector
+      - ghc
+      - containers
+      - c-storable-deriving
+      - lens-utils
+      - monoid
+      - primitive
+      - convert
+      - functor-utils
+      - async
+      - stm
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec
+    - DerivingStrategies
