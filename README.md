@@ -106,25 +106,23 @@ file.
 ## License
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/luna/luna/blob/master/LICENSE) file. All
-contributions to this repository are accepted under these terms.
+[LICENSE](https://github.com/luna/luna/blob/master/LICENSE) file. 
 
 Please be aware that, as the commercial backing for Luna, 
-**New Byte Order Sp. z o. o.** reserves the right under the Apache 2.0 license 
-to use contributions made to this repository as part of commercially available
-Luna products. 
+**New Byte Order Sp. z o. o.** reserves the right under the CLA to use 
+contributions made to this repository as part of commercially available Luna 
+products. 
 
 If these terms are unacceptable to you, please do not contribute to the 
 repository.
-
-### Contributions
-Any work intentionally submitted for inclusion in Luna shall be licensed under 
-the Apache 2.0 license.
 
 ### The Contributor License Agreement
 As part of your first contribution to this repository, you need to accept the 
 Contributor License Agreement. You will automatically be asked to sign the CLA 
 when you make your first pull request. 
+
+Any work intentionally submitted for inclusion in Luna shall be licensed under
+this CLA.
 
 The CLA you sign applies to all repositories associated with the Luna project 
 ([Luna](https://github.com/luna/luna-rfcs), 
