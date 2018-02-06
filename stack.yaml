@@ -1,5 +1,6 @@
-resolver: lts-8.23
+resolver: lts-10.4
 packages:
 - .
+allow-newer: true
 extra-deps:
 - data-construction-1.0

@@ -10,12 +10,21 @@ license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core
 stability: experimental
-synopsis: Control structure similar to Control.Monad.State, allowing multiple nested
-  states, distinguishable by provided phantom types.
+synopsis: A set of benchmarks for the underlying Luna representation.
 version: 0.0.1
 
 dependencies:
+    - array
     - base
+    - convert
+    - c-storable-deriving
+    - deepseq
+    - functor-utils
+    - lens-utils
+    - monoid
+    - primitive
+    - vector
+    - vector-th-unbox
     - template-haskell
 
 benchmarks:
@@ -25,18 +34,9 @@ benchmarks:
     dependencies:
       - criterion
       - luna-core
-      - deepseq
       - vector
       - ghc
-      - containers
-      - c-storable-deriving
-      - lens-utils
-      - monoid
-      - primitive
       - convert
-      - functor-utils
-      - async
-      - stm
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -85,4 +85,3 @@ default-extensions:
 
     - LiberalTypeSynonyms
     - RelaxedPolyRec
-    - DerivingStrategies
