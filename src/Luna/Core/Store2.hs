@@ -1,6 +1,6 @@
 {-# LANGUAGE Strict #-}
 
-module Luna.Core.Store where
+module Luna.Core.Store2 where
 
 import           Prelude                      hiding (length, (.))
 
@@ -21,10 +21,36 @@ import           GHC.Generics                 (Generic)
 
 import           Luna.Core.Data               (List(..), Spec(..))
 
+import qualified Foreign.ForeignPtr           as Ptr
+import           Foreign.ForeignPtr           (ForeignPtr, mallocForeignPtr, withForeignPtr)
+import           Foreign.Storable             (peek, poke)
+
+
+
+
+data LinkedList
+  = LLNull
+  | LLCons {-# UNPACK #-} !Int {- #UNPACK #-} !(ForeignPtr LinkedList)
+
+
+mkForeignPtr :: Storable a => a -> IO (ForeignPtr a)
+mkForeignPtr a = do
+    fptr <- mallocForeignPtr
+    withForeignPtr fptr $ \ptr -> poke ptr a
+    return fptr
+{-# INLINE mkForeignPtr #-}
+
+getAndMapForeignPtr :: Storable a => ForeignPtr a -> (a -> a) -> IO a
+getAndMapForeignPtr fptr f = withForeignPtr fptr $ \ptr -> do
+    val <- peek ptr
+    poke ptr (f val)
+    return val
+
 
 type StoreM' m   = StoreM (PrimState m)
 data StoreM  s a = StoreM { _vector   :: {-# UNPACK #-} !(MVector s a)
-                          , _freeIdxs ::                ![Int]
+                          , _freeIdxs :: {-# UNPACK #-} !(MVector s Int)
+                          , _counter  :: ForeignPtr Int
                           } deriving (Generic)
 makeLenses ''StoreM
 
@@ -43,10 +69,12 @@ length s = Vector.length $ s ^. vector ; {-# INLINE length #-}
 
 -- === Construction === --
 
-new   :: (PrimMonad m, Storable a) =>        m (StoreM' m a)
-alloc :: (PrimMonad m, Storable a) => Int -> m (StoreM' m a)
-new      = alloc 1024                                          ; {-# INLINE new   #-}
-alloc !i = StoreM <$> Vector.unsafeNew i <*> pure (fromList [0 .. i - 1]) ; {-# INLINE alloc #-}
+-- new   :: (PrimMonad m, Storable a) =>        m (StoreM' m a)
+-- alloc :: (PrimMonad m, Storable a) => Int -> m (StoreM' m a)
+alloc :: (Storable a) => Int -> IO (StoreM' IO a)
+-- new      = alloc 1024                                          ; {-# INLINE new   #-}
+alloc !i = StoreM <$> Vector.unsafeNew i <*> Vector.unsafeThaw (Vector.generate i id) <*> mkForeignPtr 0
+{-# INLINE alloc #-}
 
 
 -- === Direct modifications === --
@@ -66,9 +94,8 @@ alloc !i = StoreM <$> Vector.unsafeNew i <*> pure (fromList [0 .. i - 1]) ; {-# 
 --     {-# INLINE go #-}
 -- {-# INLINE reserveKey #-}
 
-reserveKey :: (PrimMonad m, Storable a) => StoreM' m a -> m (StoreM' m a, Int)
-reserveKey (StoreM v ixs) = case ixs of
-    (i:is) -> return (StoreM v is, i)
+reserveKey :: Storable a => StoreM' IO a -> IO Int
+reserveKey (StoreM v vixs counterPtr) = Vector.unsafeRead vixs =<< getAndMapForeignPtr counterPtr (+1)
 {-# INLINE reserveKey #-}
 
 --

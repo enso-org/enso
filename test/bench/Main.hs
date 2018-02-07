@@ -23,28 +23,35 @@ import           Unsafe.Coerce                (unsafeCoerce)
 import qualified Luna.Core.Array              as SArr
 import           Luna.Core.Data
 import           Luna.Core.ST
-import           Luna.Core.Store
+import           Luna.Core.Store2
 import qualified Luna.Core.StorableVector     as SVec
 -- import qualified Luna.Core.UnboxedVector      as UVec
 
 
 main :: IO ()
 main = do
-    vx <- alloc (10^(8::Int) + 1) -- FIXME: it should be done in env
+    -- vx <- alloc (10^(8::Int) + 1) -- FIXME: it should be done in env
+    vx2 <- alloc (10^(8::Int) + 1) -- FIXME: it should be done in env
 
-    defaultMain [
-          bgroup "Storable.MVector"
+    defaultMain
+        [ bgroup "Storable.MVector2"
+            $ (\(i :: Int) -> env (return())
+            $ \v -> bench ("10e" <> show i)
+            $ nfIO (SVec.mknodes_thawFreeze2 (10 ^ i) vx2))  <$> [7..8]
+
+        , bgroup "Storable.MVector"
               $ (\(i :: Int) -> env (SVec.mkVec (10 ^ i))
               $ \v -> bench ("10e" <> show i)
               $ nfIO (SVec.mknodes_thawFreeze (10 ^ i) v))  <$> [7..8]
-        , bgroup "StorableVector.mknodes2"
-              $ (\(i :: Int) -> env (return ())
-              $ \v -> bench ("10e" <> show i)
-              $ nfIO (SVec.mknodes2 (10 ^ i) vx)) <$> [7..8]
-        , bgroup "StorableArray.mknodes"
-              $ (\(i :: Int) -> env (SArr.mkArray (10 ^ i))
-              $ \v -> bench ("10e" <> show i)
-              $ nfIO (SArr.mknodes  (10 ^ i) v))  <$> [7..8]
+        --
+        -- , bgroup "StorableVector.mknodes2"
+        --       $ (\(i :: Int) -> env (return ())
+        --       $ \v -> bench ("10e" <> show i)
+        --       $ nfIO (SVec.mknodes2 (10 ^ i) vx)) <$> [7..8]
+        -- , bgroup "StorableArray.mknodes"
+        --       $ (\(i :: Int) -> env (SArr.mkArray (10 ^ i))
+        --       $ \v -> bench ("10e" <> show i)
+        --       $ nfIO (SArr.mknodes  (10 ^ i) v))  <$> [7..8]
         -- , bgroup "UnboxedVector.mknodes"
         --       $ (\(i :: Int) -> env (UVec.mkVec (10 ^ i))
         --       $ \v -> bench ("10e" <> show i)

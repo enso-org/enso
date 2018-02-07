@@ -12,6 +12,6 @@ extra-deps:
     - monad-st-0.2.4.1
 
 ghc-options:
-    "*": -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+    "*": -Wall -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
 
 apply-ghc-options: locals
