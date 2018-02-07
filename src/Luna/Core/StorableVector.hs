@@ -10,30 +10,29 @@ import           Data.Vector.Storable.Mutable (MVector, IOVector, STVector)
 
 import Luna.Core.Data
 import Luna.Core.Store
+import Control.Monad (when)
 
 
-mknodes :: Int -> Vector (UniCore ()) -> IO (Vector (UniCore ()))
-mknodes !i !v = do
+mknodes_thawFreeze :: Int -> Vector (UniCore ()) -> IO (Vector (UniCore ()))
+mknodes_thawFreeze !i !v = do
     nodes <- Vector.unsafeThaw v
-    let go 0 = return ()
-        go j = Vector.unsafeWrite nodes j (UAcc $ Acc (ULink (Keyx j)) (ULink (Keyx (j + 1)))) >> go (j - 1)
-    go i
+    let go j = do
+          x <- if j == 0 then return 0 else do
+            pd <- Vector.unsafeRead nodes (j - 1)
+            return $ fromSampleData pd
+          Vector.unsafeWrite nodes j (mkSampleData (x+1) (x+1))
+          when (j < i - 1) $ go (j + 1)
+    go 0
+    -- print =<< Vector.unsafeRead nodes (i - 1)
     Vector.unsafeFreeze nodes
-
-mknodesU :: Int -> IOVector (UniCore ()) -> IO (IOVector (UniCore ()))
-mknodesU !i !v = do
-    let go 0 = return ()
-        go j = Vector.unsafeWrite v j (UAcc $ Acc (ULink (Keyx j)) (ULink (Keyx (j + 1)))) >> go (j - 1)
-    go i
-    return v
 
 mknodes2 :: Int -> StoreM' IO (UniCore ()) -> IO ()
 mknodes2 !i !s = do
     let go 0 _  = return ()
         go j !v = do
             (v', (k :: Int)) <- reserveKey v
-            unsafeWriteSpec v k (Acc (ULink (Keyx j)) (ULink (Keyx (j + 1))) :: Acc ())
-            go (j - 1) v
+            unsafeWriteSpec v' k (mkSampleData j (j+1))
+            go (j - 1) v'
     go i s
     return ()
 

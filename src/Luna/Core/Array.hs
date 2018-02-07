@@ -22,13 +22,12 @@ instance NFData (ForeignPtr a) where rnf (ForeignPtr !_ !_) = ()
 instance NFData  SArr
 
 mkArray :: Int -> IO SArr
-mkArray !i = newArray_ (0, i + 1)
-{-# INLINE mkArray #-}
+mkArray !i = newArray_ (0, i + 1) ; {-# INLINE mkArray #-}
 
 mknodes :: Int -> SArr -> IO SArr
 mknodes !i arr = do
     let go 0 = return ()
-        go j = writeArray arr j (UAcc $ Acc (ULink (Keyx j)) (ULink (Keyx (j + 1)))) >> go (j - 1)
+        go j = writeArray arr j (mkSampleData j (j + 1)) >> go (j - 1)
     go i
     return arr
 {-# INLINE mknodes #-}

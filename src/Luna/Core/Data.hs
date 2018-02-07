@@ -15,28 +15,11 @@ import           Foreign.Storable          (Storable, alignment, peek,
                                             peekByteOff, poke, pokeByteOff,
                                             sizeOf)
 
-newtype Key a = Key Int deriving (Show)
-
-instance Convertible Int (Key a) where convert = coerce ; {-# INLINE convert #-}
-instance Convertible (Key a) Int where convert = coerce ; {-# INLINE convert #-}
-
-newtype Keyx     = Keyx Int deriving (Generic, Show, Storable, Eq)
-
-newtype ULink a = ULink Keyx deriving (Generic, Show, Storable, Eq)
-
-newtype Var a = Var { __name :: Int } deriving (Show, Eq)
-data    Acc a = Acc { __base :: {-# UNPACK #-} !(ULink a), __name :: {-# UNPACK #-} !(ULink a)} deriving (Show, Eq)
-
-data UniCore a = UVar {-# UNPACK #-} !(Var a)
-               | UAcc {-# UNPACK #-} !(Acc a)
-               deriving (Generic, Show, Eq)
 
 
-newtype Spec a = Spec a deriving (Show, Functor, Foldable, Traversable)
-makeLenses ''Spec
-
-
--- storable instances --
+-------------------
+-- === Utils === --
+-------------------
 
 sizeOf'    :: forall a. Storable a => Int
 alignment' :: forall a. Storable a => Int
@@ -47,36 +30,85 @@ castPtrTo :: forall b a. Ptr a -> Ptr b
 castPtrTo = castPtr ; {-# INLINE castPtrTo #-}
 
 
--- instances --
+
+------------------
+-- === Edge === --
+------------------
+
+newtype EdgeID = EdgeID Int  deriving (Generic, Show, Storable, Eq)
+newtype Edge a = Edge EdgeID deriving (Generic, Show, Storable, Eq)
+
+
+
+----------------
+-- === IR === --
+----------------
+
+-- === IR Atoms === ---
+
+newtype Var a = Var { __name :: Int } deriving (Show, Eq)
+data    Acc a = Acc { __base :: {-# UNPACK #-} !(Edge a)
+                    , __name :: {-# UNPACK #-} !(Edge a)
+                    } deriving (Show, Eq)
+
+data UniCore a
+    = UVar {-# UNPACK #-} !(Var a)
+    | UAcc {-# UNPACK #-} !(Acc a)
+    deriving (Generic, Show, Eq)
+
+
+
+
+-- === Instances === --
+
+intPtr :: Ptr a -> Ptr Int
+intPtr = castPtrTo @Int
+
+chunkSize :: Int
+chunkSize = sizeOf' @Int
 
 instance Storable a => Storable (UniCore a) where
-    sizeOf    _ = 2 * sizeOf' @Int + 1 ; {-# INLINE sizeOf #-}
-    alignment _ = alignment' @Int ; {-# INLINE alignment #-}
-    peek ptr = peekByteOff @Word8 ptr (2 * sizeOf' @Int) >>= \case
-        0 -> UVar <$> peek (castPtr ptr)
-        1 -> UAcc <$> peek (castPtr ptr)
+    sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
+    alignment _ = chunkSize     ; {-# INLINE alignment #-}
+    peek ptr = peek (intPtr ptr) >>= \case
+        0 -> UVar <$> peekByteOff ptr chunkSize
+        1 -> UAcc <$> peekByteOff ptr chunkSize
         _ -> error "Unrecognized constructor"
     {-# INLINE peek #-}
     poke ptr = \case
-        UVar !a -> poke (castPtr ptr) a
-        UAcc !a -> poke (castPtr ptr) a
+        UVar !a -> poke (intPtr ptr) 0 >> pokeByteOff ptr chunkSize a
+        UAcc !a -> poke (intPtr ptr) 1 >> pokeByteOff ptr chunkSize a
     {-# INLINE poke #-}
 
-
 instance Storable a => Storable (Acc a) where
-    sizeOf    _ = 2 * sizeOf' @Int ; {-# INLINE sizeOf #-}
-    alignment _ = alignment' @Int ; {-# INLINE alignment #-}
-    peek ptr = Acc <$> peek (castPtr ptr) <*> peekByteOff (castPtr ptr) (sizeOf' @Int) ; {-# INLINE peek #-}
-    poke ptr = \(Acc !b !n) -> poke (castPtr ptr) b >> pokeByteOff ptr (sizeOf' @Int) n ; {-# INLINE poke #-}
+    sizeOf    _ = 2 * chunkSize ; {-# INLINE sizeOf    #-}
+    alignment _ = chunkSize     ; {-# INLINE alignment #-}
+    peek ptr = Acc <$> peek (castPtr ptr) <*> peekByteOff ptr chunkSize ; {-# INLINE peek #-}
+    poke ptr = \(Acc !b !n) -> poke (castPtr ptr) b >> pokeByteOff ptr chunkSize n ; {-# INLINE poke #-}
 
 instance Storable a => Storable (Var a) where
-    sizeOf    _ = sizeOf' @Int
-    alignment _ = alignment' @Int
-    peek ptr = Var <$> peek (castPtr ptr)
-    poke ptr = \(Var !n) -> poke (castPtr ptr) n
+    sizeOf    _ = chunkSize ; {-# INLINE sizeOf    #-}
+    alignment _ = chunkSize ; {-# INLINE alignment #-}
+    peek ptr = Var <$> peek (castPtr ptr)        ; {-# INLINE peek #-}
+    poke ptr = \(Var !n) -> poke (castPtr ptr) n ; {-# INLINE poke #-}
 
 
-deriveStorable ''Var
+
+---------------------------
+-- === Testing utils === --
+---------------------------
+
+mkSampleData :: Int -> Int -> UniCore ()
+mkSampleData i j = UAcc $ Acc (Edge (EdgeID i)) (Edge (EdgeID j))
+
+fromSampleData :: UniCore () -> Int
+fromSampleData (UAcc (Acc (Edge (EdgeID i)) _)) = i
+
+
+
+newtype Spec a = Spec a deriving (Show, Functor, Foldable, Traversable)
+makeLenses ''Spec
+
 
 instance Storable a => Storable (Spec a) where
     sizeOf    _ = sizeOf' @a + 1                   ; {-# INLINE sizeOf    #-}

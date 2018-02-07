@@ -25,7 +25,7 @@ import           Luna.Core.Data
 import           Luna.Core.ST
 import           Luna.Core.Store
 import qualified Luna.Core.StorableVector     as SVec
-import qualified Luna.Core.UnboxedVector      as UVec
+-- import qualified Luna.Core.UnboxedVector      as UVec
 
 
 main :: IO ()
@@ -33,15 +33,11 @@ main = do
     vx <- alloc (10^(8::Int) + 1) -- FIXME: it should be done in env
 
     defaultMain [
-          bgroup "StorableVector.mknodes"
+          bgroup "Storable.MVector"
               $ (\(i :: Int) -> env (SVec.mkVec (10 ^ i))
               $ \v -> bench ("10e" <> show i)
-              $ nfIO (SVec.mknodes  (10 ^ i) v))  <$> [7..8]
-        , bgroup "StorableVector.mknodesU (unsafe)"
-              $ (\(i :: Int) -> env (SVec.mkVec (10 ^ i))
-              $ \v -> bench ("10e" <> show i)
-              $ nfIO (SVec.mknodes  (10 ^ i) v))  <$> [7..8]
-        , bgroup "StorableVector.mknodes2 (pre-allocated)"
+              $ nfIO (SVec.mknodes_thawFreeze (10 ^ i) v))  <$> [7..8]
+        , bgroup "StorableVector.mknodes2"
               $ (\(i :: Int) -> env (return ())
               $ \v -> bench ("10e" <> show i)
               $ nfIO (SVec.mknodes2 (10 ^ i) vx)) <$> [7..8]
@@ -49,23 +45,23 @@ main = do
               $ (\(i :: Int) -> env (SArr.mkArray (10 ^ i))
               $ \v -> bench ("10e" <> show i)
               $ nfIO (SArr.mknodes  (10 ^ i) v))  <$> [7..8]
-        , bgroup "UnboxedVector.mknodes"
-              $ (\(i :: Int) -> env (UVec.mkVec (10 ^ i))
-              $ \v -> bench ("10e" <> show i)
-              $ nfIO (UVec.mknodes  (10 ^ i) v))  <$> [7..8]
+        -- , bgroup "UnboxedVector.mknodes"
+        --       $ (\(i :: Int) -> env (UVec.mkVec (10 ^ i))
+        --       $ \v -> bench ("10e" <> show i)
+        --       $ nfIO (UVec.mknodes  (10 ^ i) v))  <$> [7..8]
         ]
 
     let v :: Vector (UniCore ())
         v = runST $ do
             nodes <- Vector.new 10
-            Vector.write nodes 0 (UAcc $ Acc (ULink (Keyx 1)) (ULink (Keyx 2)))
-            Vector.write nodes 1 (UAcc $ Acc (ULink (Keyx 17)) (ULink (Keyx 27)))
-            Vector.write nodes 2 (UAcc $ Acc (ULink (Keyx 15)) (ULink (Keyx 25)))
+            Vector.write nodes 0 (mkSampleData 1  2)
+            Vector.write nodes 1 (mkSampleData 17 27)
+            Vector.write nodes 2 (mkSampleData 15 25)
             Vector.freeze nodes
     print $ Vector.unsafeIndex v 0
-    print $ Vector.unsafeIndex (unsafeCoerce v :: Vector (Spec (Acc ()))) 0
-    print $ Vector.unsafeIndex (unsafeCoerce v :: Vector (Spec (Acc ()))) 1
-    print $ Vector.unsafeIndex (unsafeCoerce v :: Vector (Spec (Acc ()))) 2
+    -- print $ Vector.unsafeIndex (unsafeCoerce v :: Vector (Spec (Acc ()))) 0
+    -- print $ Vector.unsafeIndex (unsafeCoerce v :: Vector (Spec (Acc ()))) 1
+    -- print $ Vector.unsafeIndex (unsafeCoerce v :: Vector (Spec (Acc ()))) 2
     print $ alignment' @Int
     print $ alignment' @Char
     print $ alignment' @Bool

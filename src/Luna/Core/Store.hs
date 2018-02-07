@@ -71,6 +71,5 @@ unsafeDoubleGrow !s = unsafeGrow s (length s) ; {-# INLINE unsafeDoubleGrow #-}
 unsafeWrite :: (PrimMonad m, Storable a, Convertible' k Int) => StoreM' m a -> k -> a -> m ()
 unsafeWrite !s !k !a = Vector.unsafeWrite (s ^. vector) (convert' k) a ; {-# INLINE unsafeWrite #-}
 
-unsafeWriteSpec :: forall t a k m. (PrimMonad m, Storable t, Convertible' k Int) => StoreM' m a -> k -> t -> m ()
-unsafeWriteSpec !s !k !t = Vector.unsafeWrite (coerceVectorTo @(Spec t) $ s ^. vector) (convert' k) (Spec t) ; {-# INLINE unsafeWriteSpec #-}
-
+unsafeWriteSpec :: forall t a k m. (PrimMonad m, Storable t, Convertible' k Int, t~a) => StoreM' m a -> k -> t -> m ()
+unsafeWriteSpec !s !k !t = Vector.unsafeWrite (s ^. vector) (convert' k) t ; {-# INLINE unsafeWriteSpec #-}
