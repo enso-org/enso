@@ -135,7 +135,7 @@ commonPrefixes v v' = go 0 where
 
 
 -- FIXME[WD]: remove when we hit next LTS stage
-instance Unboxed.Unbox a => Semigroup (Unboxed.Vector a) where (<>) = P.mappend
+-- instance Unboxed.Unbox a => Semigroup (Unboxed.Vector a) where (<>) = P.mappend
 
 -- instance Convertible Char       Text       where convert = singleton              ; {-# INLINE convert #-}
 instance (Vector Unboxed.Vector a, Convertible' Char a) => IsString         (Unboxed.Vector a) where fromString = convert              ; {-# INLINE fromString #-}
