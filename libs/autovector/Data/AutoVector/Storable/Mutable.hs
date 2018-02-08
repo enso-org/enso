@@ -2,32 +2,19 @@
 
 module Data.AutoVector.Storable.Mutable where
 
-import           Prelude                      hiding (length, (.))
+import Prologue
 
-import           Control.Exception.Base (assert)
-import           Control.Lens.Utils
-import           Control.Monad.Primitive
-import           Data.Coerce
-import           Data.Convert
 import qualified Data.Vector.Storable         as Storable
 import qualified Data.Vector.Storable         as Vector hiding (length)
-import           Data.Vector.Storable         (Vector)
 import qualified Data.Vector.Storable.Mutable as Storable
 import qualified Data.Vector.Storable.Mutable as Vector
-import           Data.Vector.Storable.Mutable (MVector)
-import           Foreign.Storable             (Storable)
-import           GHC.Exts                     (fromList)
-import           GHC.Generics                 (Generic)
-
 import qualified Foreign.ForeignPtr           as Ptr
-import           Foreign.ForeignPtr           (ForeignPtr)
-import           Foreign.ForeignPtr.Utils     (mkForeignPtr, getAndMapForeignPtr, mapAndGetForeignPtr)
 
-
-import Control.Monad.IO.Class
-
-import Control.DeepSeq (NFData, rnf)
-import Control.Monad (when)
+import Data.Vector.Storable         (Vector)
+import Data.Vector.Storable.Mutable (MVector)
+import Foreign.Storable             (Storable)
+import Foreign.ForeignPtr           (ForeignPtr)
+import Foreign.ForeignPtr.Utils     (mkForeignPtr, getAndMapForeignPtr, mapAndGetForeignPtr)
 
 
 
@@ -72,7 +59,7 @@ alloc !i = MAutoVector <$> Vector.unsafeNew i
 reserveKey :: (MonadIO m, PrimMonad m) => MAutoVector' m a -> m Int
 reserveKey v = do
     kid <- getAndMapForeignPtr (v ^. counter) (subtract 1)
-    when (kid < 0) $ error "TODO: resize"
+    when_ (kid < 0) $ error "TODO: resize"
     Vector.unsafeRead (v ^. freeIxs) kid
 {-# INLINE reserveKey #-}
 

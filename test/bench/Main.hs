@@ -3,43 +3,24 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-orphans -fno-warn-unused-binds #-}
--- {-# LANGUAGE Strict #-}
 
 module Main where
 
 import Prologue
-import           Criterion.Main
 
 import qualified Data.Vector.Storable         as Vector
 import qualified Data.Vector.Storable.Mutable as Vector
+import qualified Test.Vector                  as Test
 
-import Data.Vector.Storable         (Vector)
-import Data.Vector.Storable.Mutable (MVector, IOVector, STVector)
-import Unsafe.Coerce                (unsafeCoerce)
-
-import           OCI.IR.Term
+import Criterion.Main
+import Criterion.Measurement            (initializeTime, getTime)
 import Data.AutoVector.Storable.Mutable
-import qualified Test.Vector     as Test
--- import qualified Luna.Core.UnboxedVector      as UVec
+import Data.Vector.Storable             (Vector)
+import Data.Vector.Storable.Mutable     (MVector, IOVector, STVector)
+import OCI.IR.Term
+import System.IO                        (hSetBuffering, stdout, BufferMode(NoBuffering))
+import Unsafe.Coerce                    (unsafeCoerce)
 
-
-import qualified Data.IntList.Storable.Mutable as ListM
-
-
-
-import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
-import Data.Int (Int64)
-
-import Criterion.Measurement (initializeTime, getTime)
-
-
-foo :: IO Int
-foo = do
-    let x = 5
-    print x
-    print x
-    print (x+1)
-    return 7
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
@@ -52,8 +33,6 @@ timeIt name f = do
 
 main :: IO ()
 main = do
-    y <- Test.voidx foo
-    print y
     hSetBuffering stdout NoBuffering
     initializeTime
 
@@ -84,4 +63,5 @@ main = do
             $ (\(i :: Int) -> bench ("10e" <> show i)
             $ perRunEnv (Vector.unsafeNew (10 ^ i))
             $ (Test.fillMVector_UniCore (10 ^ i)))  <$> [minExpVec..maxExpVec]
+
         ]

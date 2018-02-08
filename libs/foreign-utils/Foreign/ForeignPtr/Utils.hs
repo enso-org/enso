@@ -2,10 +2,10 @@
 
 module Foreign.ForeignPtr.Utils where
 
-import           Prelude
-import           Foreign.ForeignPtr           (ForeignPtr, mallocForeignPtr, withForeignPtr)
-import           Foreign.Storable             (Storable, peek, poke)
-import           Control.Monad.IO.Class
+import Prelude
+import Foreign.ForeignPtr           (ForeignPtr, mallocForeignPtr, withForeignPtr)
+import Foreign.Storable             (Storable, peek, poke)
+import Control.Monad.IO.Class
 
 
 mkForeignPtr :: (Storable a, MonadIO m) => a -> m (ForeignPtr a)

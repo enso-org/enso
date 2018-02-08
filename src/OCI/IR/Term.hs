@@ -1,19 +1,8 @@
 module OCI.IR.Term where
 
-import           Prelude
-
-import           Control.Lens.Utils
-import           Data.Coerce               (coerce)
-import           Data.Convert              (Convertible, convert)
-import           Data.Monoids
-import           Data.Word                 (Word8)
-import           GHC.Exts                  (IsList, Item, fromList, toList)
-import           GHC.Generics              (Generic)
-import           Foreign.Ptr               (Ptr, castPtr)
-import           Foreign.Storable          (Storable, alignment, peek,
-                                            peekByteOff, poke, pokeByteOff,
-                                            sizeOf)
-
+import Prologue
+import Foreign.Ptr            (Ptr, castPtr)
+import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 
 
@@ -100,27 +89,27 @@ instance Storable a => Storable (Spec a) where
     poke      p a = poke @a (castPtr p) (coerce a) ; {-# INLINE poke      #-}
 
 
--------------------------
--- === Strict List === --
--------------------------
--- NOTE[piotrMocz]: Could alternatively use Data.List.Strict
-
-data List = Cons {-# UNPACK #-} !Int List | Null deriving (Show) -- TODO: Why making strict spine makes it so slow to generate? With lazy one, even if we use all the elements, the whole process is shorter than generating it with strict spine.
-
-instance Mempty    List where mempty = Null ; {-# INLINE mempty  #-}
-instance Semigroup List where
-    l <> r = case l of
-        Null     -> r
-        Cons a t -> Cons a (t <> r)
-    {-# INLINE (<>) #-}
-
-instance IsList List where
-    type Item List = Int
-    toList   = \case
-        Null      -> []
-        Cons a as -> a : toList as
-    fromList x = case x of
-        (a:as) -> Cons a $ fromList as
-        []     -> Null
-    {-# INLINE toList   #-}
-    {-# INLINE fromList #-}
+-- -------------------------
+-- -- === Strict List === --
+-- -------------------------
+-- -- NOTE[piotrMocz]: Could alternatively use Data.List.Strict
+--
+-- data List = Cons {-# UNPACK #-} !Int List | Null deriving (Show) -- TODO: Why making strict spine makes it so slow to generate? With lazy one, even if we use all the elements, the whole process is shorter than generating it with strict spine.
+--
+-- instance Mempty    List where mempty = Null ; {-# INLINE mempty  #-}
+-- instance Semigroup List where
+--     l <> r = case l of
+--         Null     -> r
+--         Cons a t -> Cons a (t <> r)
+--     {-# INLINE (<>) #-}
+--
+-- instance IsList List where
+--     type Item List = Int
+--     toList   = \case
+--         Null      -> []
+--         Cons a as -> a : toList as
+--     fromList x = case x of
+--         (a:as) -> Cons a $ fromList as
+--         []     -> Null
+--     {-# INLINE toList   #-}
+--     {-# INLINE fromList #-}
