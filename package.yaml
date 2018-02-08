@@ -10,6 +10,7 @@ library:
     - src
     - libs/foreign-utils
     - libs/mutable-list
+    - libs/autovector
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core

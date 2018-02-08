@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Foreign.ForeignPtr.Utils where
 
 import           Prelude
@@ -7,15 +9,26 @@ import           Control.Monad.IO.Class
 
 
 mkForeignPtr :: (Storable a, MonadIO m) => a -> m (ForeignPtr a)
-mkForeignPtr a = liftIO $ do
-    fptr <- mallocForeignPtr
-    withForeignPtr fptr $ \ptr -> poke ptr a
-    return fptr
+mkForeignPtr a = do
+    ptr <- liftIO $ mallocForeignPtr
+    setForeignPtr ptr a
+    return ptr
 {-# INLINE mkForeignPtr #-}
 
-getAndMapForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m a
-getAndMapForeignPtr fptr f = liftIO $ withForeignPtr fptr $ \ptr -> do
+setForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> a -> m ()
+setForeignPtr fptr a = liftIO $ withForeignPtr fptr $ \ptr -> poke ptr a ; {-# INLINE setForeignPtr #-}
+
+getAndMapandGetForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m (a,a)
+getAndMapForeignPtr       :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m a
+mapAndGetForeignPtr       :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m a
+getAndMapForeignPtr       fptr f = fst <$> getAndMapandGetForeignPtr fptr f ; {-# INLINE getAndMapForeignPtr #-}
+mapAndGetForeignPtr       fptr f = snd <$> getAndMapandGetForeignPtr fptr f ; {-# INLINE mapAndGetForeignPtr #-}
+getAndMapandGetForeignPtr fptr f = liftIO $ withForeignPtr fptr $ \ptr -> do
     val <- peek ptr
-    poke ptr (f val)
-    return val
-{-# INLINE getAndMapForeignPtr #-}
+    let nval = f val
+    poke ptr nval
+    return (val,nval)
+{-# INLINE getAndMapandGetForeignPtr #-}
+
+mapForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m ()
+mapForeignPtr fptr f = () <$ getAndMapForeignPtr fptr f ; {-# INLINE mapForeignPtr #-}
