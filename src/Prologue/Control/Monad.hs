@@ -6,12 +6,13 @@ import Prelude hiding (return, mempty)
 import Control.Monad.Fix
 import Control.Monad as X ( Monad, (>>=), (>>), (=<<), (<=<), (>=>)
                           , MonadPlus, mplus, mzero
-                          , void, join
+                          , join
                           , zipWithM, zipWithM_, foldM, foldM_, forever
                           )
 import Data.Convert
 import Data.Monoids
 import Prologue.Data.Basic
+import Unsafe.Coerce (unsafeCoerce)
 
 
 {-# DEPRECATED return "Use `pure` instead" #-}
@@ -57,10 +58,16 @@ g =<<& f = mdo
     pure fa
 {-# INLINE (=<<&) #-}
 
-when  , unless   :: (Applicative m, ToBool' cond, Mempty a) =>   cond -> m a -> m a
-when_ , unless_  :: (Applicative m, ToBool' cond)           =>   cond -> m a -> m ()
-whenM , unlessM  :: (Monad m      , ToBool' cond, Mempty a) => m cond -> m a -> m a
-whenM_, unlessM_ :: (Monad m      , ToBool' cond)           => m cond -> m a -> m ()
+-- The void function implemented with Functor / Applicative or Monad is slow.
+-- GHC cannot optimize it, especially when using in IO monad, it could slow
+-- down function even more than 10 times (!).
+void :: m a -> m ()
+void = unsafeCoerce ; {-# INLINE void #-}
+
+when  , unless   :: (Applicative m, Mempty a) =>   Bool -> m a -> m a
+when_ , unless_  :: (Applicative m)           =>   Bool -> m a -> m ()
+whenM , unlessM  :: (Monad m      , Mempty a) => m Bool -> m a -> m a
+whenM_, unlessM_ :: (Monad m      )           => m Bool -> m a -> m ()
 when     p s = ifThenElse p s             (pure mempty) ; {-# INLINE when     #-}
 unless   p s = ifThenElse p (pure mempty) s             ; {-# INLINE unless   #-}
 when_    p s = ifThenElse p (void s)      (pure ())     ; {-# INLINE when_    #-}

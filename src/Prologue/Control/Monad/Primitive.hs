@@ -6,27 +6,28 @@ import qualified Control.Monad.IO.Class  as IOClass
 
 import Prelude
 import Prelude                 as X (IO)
-import Control.Monad.IO.Class  as X (MonadIO)
 import Control.Monad.Primitive as X (PrimMonad (PrimState, primitive), RealWorld, primitive_, PrimBase, liftPrim)
+
+import qualified Control.Monad.IO.Class  as IOClass
 
 
 -- === Definitions === --
 
 type PrimMonadST s m = (PrimMonad m, PrimState m ~ s)
-type PrimMonadIO   m = (PrimMonadST RealWorld m, MonadIO m)
 
 
 -- === Utils === --
 
-{-# DEPRECATED liftIO "Use either `liftPrimIO` or `liftPrim` instead" #-}
+type MonadIO m = (PrimMonadST RealWorld m, IOClass.MonadIO m)
+
 liftIO :: MonadIO m => IO a -> m a
-liftIO = IOClass.liftIO ; {-# INLINE liftIO #-}
+liftIO = liftPrim ; {-# INLINE liftIO #-}
 
-liftPrimIO :: PrimMonadIO m => IO a -> m a
-liftPrimIO = liftPrim ; {-# INLINE liftPrimIO #-}
+-- liftPrimIO :: MonadIO m => IO a -> m a
+-- liftPrimIO = liftPrim ; {-# INLINE liftPrimIO #-}
 
 
--- === Default instances === --
-
-instance {-# OVERLAPPABLE #-} (PrimMonadIO m, Monad m) => MonadIO m where
-  liftIO = liftPrimIO ; {-# INLINE liftIO #-}
+-- -- === Default instances === --
+--
+-- instance {-# OVERLAPPABLE #-} (PrimMonadIO m, Monad m) => MonadIO m where
+--   liftIO = liftPrimIO ; {-# INLINE liftIO #-}

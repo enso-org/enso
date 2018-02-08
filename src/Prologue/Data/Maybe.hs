@@ -19,8 +19,8 @@ import qualified Data.Maybe as M
 
 -- === Conditionals === --
 
-justIf   :: (ToBool' cond)          => cond -> a -> Maybe a
-justWhen :: (ToBool' cond, Monad m) => cond -> a -> m (Maybe a)
+justIf   ::              Bool -> a -> Maybe a
+justWhen :: (Monad m) => Bool -> a -> m (Maybe a)
 justIf p = ifThenMempty p . Just ; {-# INLINE justIf   #-}
 justWhen = return .: justIf      ; {-# INLINE justWhen #-}
 

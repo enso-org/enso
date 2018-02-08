@@ -60,7 +60,7 @@ import Prologue.Data.Foldable           as X
 import Prologue.Data.Traversable        as X
 import Prologue.Data.Bifunctor          as X
 import Prologue.Data.Ix                 as X
-import Data.Functor                     as X (Functor, fmap, (<$), ($>), (<$>), void)
+import Data.Functor                     as X (Functor, fmap, (<$), ($>), (<$>))
 import Data.Functor.Utils               as X
 import Data.Functor.Classes             as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.Functor.Foldable            as X (Fix(Fix))

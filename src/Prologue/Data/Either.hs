@@ -16,7 +16,7 @@ import Data.Monoids
 
 -- === Conditionals === --
 
-eitherIf :: ToBool' cond => cond -> ok -> fail -> Either fail ok
+eitherIf :: Bool -> ok -> fail -> Either fail ok
 eitherIf cond ok fl = ifThenElse cond (Right ok) (Left fl) ; {-# INLINE eitherIf #-}
 
 

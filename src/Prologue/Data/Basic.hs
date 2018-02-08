@@ -65,12 +65,12 @@ deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
 
 -- === General if-utils === --
 
-ifThenElse   :: (ToBool' cond)           => cond -> a -> a -> a
-ifThenMempty :: (ToBool' cond, Mempty a) => cond -> a -> a
-ifThenId     :: (ToBool' cond)           => cond -> (a -> a) -> (a -> a)
-ifThenElse   cond ok fl = if toBool' cond then ok else fl     ; {-# INLINE ifThenElse   #-}
-ifThenMempty cond ok    = if toBool' cond then ok else mempty ; {-# INLINE ifThenMempty #-}
-ifThenId     cond f     = if toBool' cond then f  else id     ; {-# INLINE ifThenId     #-}
+ifThenElse   ::               Bool -> a -> a -> a
+ifThenElseId ::               Bool -> (a -> a) -> (a -> a)
+ifThenMempty :: (Mempty a) => Bool -> a -> a
+ifThenElse   cond ok fl = if cond then ok else fl     ; {-# INLINE ifThenElse   #-}
+ifThenElseId cond f     = if cond then f  else id     ; {-# INLINE ifThenElseId #-}
+ifThenMempty cond ok    = if cond then ok else mempty ; {-# INLINE ifThenMempty #-}
 
 switch :: a -> a -> Bool -> a
 switch ok fail cond = if cond then ok else fail ; {-# INLINE switch #-}
