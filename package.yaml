@@ -5,7 +5,11 @@ copyright: Copyright (C) 2015 Wojciech Danilo
 
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/luna-core
-library: {source-dirs: src}
+library:
+  source-dirs:
+    - src
+    - libs/foreign-utils
+    - libs/mutable-list
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core
@@ -32,7 +36,7 @@ benchmarks:
     main:        Main.hs
     source-dirs: test/bench
     dependencies:
-      - criterion
+      - criterion >= 1.3.0.0
       - luna-core
       - vector
       - ghc

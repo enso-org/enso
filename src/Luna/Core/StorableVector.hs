@@ -14,30 +14,29 @@ import Luna.Core.Store2
 import Control.Monad (when)
 import Control.Lens.Utils
 
+import Control.Monad.Primitive (PrimState)
 
-mknodes_thawFreeze :: Int -> Vector (UniCore ()) -> IO (Vector (UniCore ()))
+mknodes_thawFreeze :: Int -> MVector (PrimState IO) (UniCore ()) -> IO ()
 mknodes_thawFreeze !i !v = do
-    nodes <- Vector.unsafeThaw v
     let go j = do
           x <- if j == 0 then return 0 else do
-            pd <- Vector.unsafeRead nodes (j - 1)
+            pd <- Vector.unsafeRead v (j - 1)
             return $ fromSampleData pd
-          Vector.unsafeWrite nodes j (mkSampleData (x+1) (x+1))
+          Vector.unsafeWrite v j (mkSampleData (x+1) (x+1))
           when (j < i - 1) $ go (j + 1)
     go 0
-    -- print =<< Vector.unsafeRead nodes (i - 1)
-    Vector.unsafeFreeze nodes
+    -- print =<< Vector.unsafeRead v (i - 1)
 
 mknodes_thawFreeze2 :: Int -> StoreM' IO (UniCore ()) -> IO ()
-mknodes_thawFreeze2 !i !v = do
+mknodes_thawFreeze2 !i !s = do
     let go j = do
-          (k :: Int) <- reserveKey v
           x <- if j == 0 then return 0 else do
-            pd <- Vector.unsafeRead (v ^. vector) (j - 1)
+            pd <- Vector.unsafeRead (s ^. vector) (j - 1)
             return $ fromSampleData pd
-          Vector.unsafeWrite (v ^. vector) k (mkSampleData (x+1) (x+1))
+          Vector.unsafeWrite (s ^. vector) j (mkSampleData (x+1) (x+1))
           when (j < i - 1) $ go (j + 1)
     go 0
+    -- print =<< Vector.unsafeRead (s ^. vector) (i - 1)
     return()
 
 -- mknodes_thawFreeze2 :: Int -> StoreM' IO (UniCore ()) -> IO ()

@@ -10,6 +10,7 @@ packages:
 extra-deps:
     - c-storable-deriving-0.1.3
     - monad-st-0.2.4.1
+    - criterion-1.3.0.0
 
 ghc-options:
     "*": -Wall -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100

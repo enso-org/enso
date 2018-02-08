@@ -15,20 +15,7 @@ import           Foreign.Storable          (Storable, alignment, peek,
                                             peekByteOff, poke, pokeByteOff,
                                             sizeOf)
 
-
-
--------------------
--- === Utils === --
--------------------
-
-sizeOf'    :: forall a. Storable a => Int
-alignment' :: forall a. Storable a => Int
-sizeOf'    = sizeOf    (undefined :: a) ; {-# INLINE sizeOf'    #-}
-alignment' = alignment (undefined :: a) ; {-# INLINE alignment' #-}
-
-castPtrTo :: forall b a. Ptr a -> Ptr b
-castPtrTo = castPtr ; {-# INLINE castPtrTo #-}
-
+import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 
 
 ------------------
@@ -60,9 +47,6 @@ data UniCore a
 
 
 -- === Instances === --
-
-intPtr :: Ptr a -> Ptr Int
-intPtr = castPtrTo @Int
 
 chunkSize :: Int
 chunkSize = sizeOf' @Int

@@ -22,29 +22,12 @@ import           GHC.Generics                 (Generic)
 import           Luna.Core.Data               (List(..), Spec(..))
 
 import qualified Foreign.ForeignPtr           as Ptr
-import           Foreign.ForeignPtr           (ForeignPtr, mallocForeignPtr, withForeignPtr)
-import           Foreign.Storable             (peek, poke)
+import           Foreign.ForeignPtr           (ForeignPtr)
+import           Foreign.ForeignPtr.Utils     (mkForeignPtr, getAndMapForeignPtr)
 
 
+import Control.DeepSeq (NFData, rnf)
 
-
-data LinkedList
-  = LLNull
-  | LLCons {-# UNPACK #-} !Int {- #UNPACK #-} !(ForeignPtr LinkedList)
-
-
-mkForeignPtr :: Storable a => a -> IO (ForeignPtr a)
-mkForeignPtr a = do
-    fptr <- mallocForeignPtr
-    withForeignPtr fptr $ \ptr -> poke ptr a
-    return fptr
-{-# INLINE mkForeignPtr #-}
-
-getAndMapForeignPtr :: Storable a => ForeignPtr a -> (a -> a) -> IO a
-getAndMapForeignPtr fptr f = withForeignPtr fptr $ \ptr -> do
-    val <- peek ptr
-    poke ptr (f val)
-    return val
 
 
 type StoreM' m   = StoreM (PrimState m)
@@ -94,9 +77,9 @@ alloc !i = StoreM <$> Vector.unsafeNew i <*> Vector.unsafeThaw (Vector.generate 
 --     {-# INLINE go #-}
 -- {-# INLINE reserveKey #-}
 
-reserveKey :: Storable a => StoreM' IO a -> IO Int
-reserveKey (StoreM v vixs counterPtr) = Vector.unsafeRead vixs =<< getAndMapForeignPtr counterPtr (+1)
-{-# INLINE reserveKey #-}
+-- reserveKey :: Storable a => StoreM' IO a -> IO Int
+-- reserveKey (StoreM v vixs counterPtr) = Vector.unsafeRead vixs =<< getAndMapForeignPtr counterPtr (+1)
+-- {-# INLINE reserveKey #-}
 
 --
 -- unsafeGrow :: (PrimMonad m, Storable a) => StoreM' m a -> Int -> m (StoreM' m a)
@@ -110,3 +93,8 @@ reserveKey (StoreM v vixs counterPtr) = Vector.unsafeRead vixs =<< getAndMapFore
 --
 -- unsafeWriteSpec :: forall t a k m. (PrimMonad m, Storable t, Convertible' k Int, t~a) => StoreM' m a -> k -> t -> m ()
 -- unsafeWriteSpec !s !k !t = Vector.unsafeWrite (s ^. vector) (convert' k) t ; {-# INLINE unsafeWriteSpec #-}
+
+
+-- FIXME: remove or write real instance!
+instance NFData (StoreM s a) where
+    rnf _ = ()
