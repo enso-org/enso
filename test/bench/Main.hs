@@ -7,22 +7,17 @@
 
 module Main where
 
-import           Prelude as P hiding (mempty, length)
-
+import Prologue
 import           Criterion.Main
-import           Control.DeepSeq
-import           Control.Monad.ST             (runST)
-import           Data.Monoids
 
-import qualified Data.Vector.Storable         as Vector hiding (length)
-import           Data.Vector.Storable         (Vector)
+import qualified Data.Vector.Storable         as Vector
 import qualified Data.Vector.Storable.Mutable as Vector
-import           Data.Vector.Storable.Mutable (MVector, IOVector, STVector)
-import           Unsafe.Coerce                (unsafeCoerce)
 
-import qualified Luna.Core.Array              as SArr
-import           Luna.Core.Data
-import           Luna.Core.ST
+import Data.Vector.Storable         (Vector)
+import Data.Vector.Storable.Mutable (MVector, IOVector, STVector)
+import Unsafe.Coerce                (unsafeCoerce)
+
+import           OCI.IR.Term
 import Data.AutoVector.Storable.Mutable
 import qualified Test.Vector     as Test
 -- import qualified Luna.Core.UnboxedVector      as UVec
@@ -35,10 +30,16 @@ import qualified Data.IntList.Storable.Mutable as ListM
 import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 import Data.Int (Int64)
 
-
 import Criterion.Measurement (initializeTime, getTime)
 
-import Control.Monad.IO.Class
+
+foo :: IO Int
+foo = do
+    let x = 5
+    print x
+    print x
+    print (x+1)
+    return 7
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
@@ -46,28 +47,41 @@ timeIt name f = do
     out <- f
     t2  <- liftIO getTime
     liftIO $ putStrLn (name <> ": " <> show (t2-t1))
-    return out
+    pure out
 
 
 main :: IO ()
 main = do
+    y <- Test.voidx foo
+    print y
     hSetBuffering stdout NoBuffering
     initializeTime
 
-    timeIt "r1" $ Test.fillMAutoVector (10^8) =<< alloc (10^8 + 1)
-    timeIt "r2" $ Test.fillMVector     (10^8) =<< Vector.unsafeNew (10 ^ 8)
+    let consTestSize = 10^(8::Int)
+    timeIt "r1" $ Test.fillMAutoVector_Int consTestSize =<< alloc (consTestSize + 1)
+    timeIt "r2" $ Test.fillMVector_Int     consTestSize =<< Vector.unsafeNew consTestSize
 
-    let minExpVec = 7
-        maxExpVec = 8
+    let minExpVec = 6
+        maxExpVec = 7
 
     defaultMain
-        [ bgroup "MAutoVector"
+        [ bgroup "Fill MAutoVector with Int"
             $ (\(i :: Int) -> bench ("10e" <> show i)
             $ perRunEnv (alloc (10^i + 1))
-            $ \v -> Test.fillMAutoVector (10 ^ i) v)  <$> [minExpVec..maxExpVec]
+            $ \v -> Test.fillMAutoVector_Int (10 ^ i) v)  <$> [minExpVec..maxExpVec]
 
-        , bgroup "MVector"
+        , bgroup "Fill MVector with Int"
             $ (\(i :: Int) -> bench ("10e" <> show i)
             $ perRunEnv (Vector.unsafeNew (10 ^ i))
-            $ (Test.fillMVector (10 ^ i)))  <$> [minExpVec..maxExpVec]
+            $ (Test.fillMVector_Int (10 ^ i)))  <$> [minExpVec..maxExpVec]
+
+        , bgroup "Fill MAutoVector with UniCore"
+            $ (\(i :: Int) -> bench ("10e" <> show i)
+            $ perRunEnv (alloc (10^i + 1))
+            $ \v -> Test.fillMAutoVector_UniCore (10 ^ i) v)  <$> [minExpVec..maxExpVec]
+
+        , bgroup "Fill MVector with UniCore"
+            $ (\(i :: Int) -> bench ("10e" <> show i)
+            $ perRunEnv (Vector.unsafeNew (10 ^ i))
+            $ (Test.fillMVector_UniCore (10 ^ i)))  <$> [minExpVec..maxExpVec]
         ]

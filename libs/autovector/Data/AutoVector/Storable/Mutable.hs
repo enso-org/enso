@@ -19,8 +19,6 @@ import           Foreign.Storable             (Storable)
 import           GHC.Exts                     (fromList)
 import           GHC.Generics                 (Generic)
 
-import           Luna.Core.Data               (List(..), Spec(..))
-
 import qualified Foreign.ForeignPtr           as Ptr
 import           Foreign.ForeignPtr           (ForeignPtr)
 import           Foreign.ForeignPtr.Utils     (mkForeignPtr, getAndMapForeignPtr, mapAndGetForeignPtr)

@@ -6,6 +6,16 @@ packages:
     - ../monoid
     - ../convert
     - ../functor-utils
+    - ../prologue
+    - ../container
+    - ../data-layer
+    - ../impossible
+    - ../typelevel
+    - ../data-construction
+    - ../data-repr
+    - ../data-rtuple
+    - ../data-prop
+
 
 extra-deps:
     - c-storable-deriving-0.1.3

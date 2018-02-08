@@ -1,4 +1,4 @@
-module Luna.Core.Data where
+module OCI.IR.Term where
 
 import           Prelude
 
@@ -9,7 +9,6 @@ import           Data.Monoids
 import           Data.Word                 (Word8)
 import           GHC.Exts                  (IsList, Item, fromList, toList)
 import           GHC.Generics              (Generic)
-import           Foreign.Storable.TH
 import           Foreign.Ptr               (Ptr, castPtr)
 import           Foreign.Storable          (Storable, alignment, peek,
                                             peekByteOff, poke, pokeByteOff,
