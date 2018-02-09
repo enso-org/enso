@@ -14,12 +14,14 @@ import qualified Test.Vector                  as Test
 
 import Criterion.Main
 import Criterion.Measurement            (initializeTime, getTime)
-import Data.AutoVector.Storable.Mutable
+import Data.AutoVector.Storable.Mutable as AVector
 import Data.Vector.Storable             (Vector)
 import Data.Vector.Storable.Mutable     (MVector, IOVector, STVector)
 import OCI.IR.Term
 import System.IO                        (hSetBuffering, stdout, BufferMode(NoBuffering))
 import Unsafe.Coerce                    (unsafeCoerce)
+
+import qualified Data.Graph as Graph
 
 
 timeIt :: MonadIO m => String -> m a -> m a
@@ -36,32 +38,92 @@ main = do
     hSetBuffering stdout NoBuffering
     initializeTime
 
+
+    (v :: AVector.MAutoVector' IO Int) <- unsafeNew 2
+    print v
+    -- AVector.
+
     let consTestSize = 10^(8::Int)
-    timeIt "r1" $ Test.fillMAutoVector_Int consTestSize =<< alloc (consTestSize + 1)
+    timeIt "r1" $ Test.fillMAutoVector_Int consTestSize =<< unsafeNew (consTestSize + 1)
     timeIt "r2" $ Test.fillMVector_Int     consTestSize =<< Vector.unsafeNew consTestSize
 
-    let minExpVec = 6
+    let minExpVec = 7
         maxExpVec = 7
 
     defaultMain
-        [ bgroup "Fill MAutoVector with Int"
-            $ (\(i :: Int) -> bench ("10e" <> show i)
-            $ perRunEnv (alloc (10^i + 1))
-            $ \v -> Test.fillMAutoVector_Int (10 ^ i) v)  <$> [minExpVec..maxExpVec]
+        [ bgroup "Construction"
+            [ bgroup "IORefU"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.test_newIORefU (10 ^ i))  <$> [minExpVec..maxExpVec]
 
-        , bgroup "Fill MVector with Int"
-            $ (\(i :: Int) -> bench ("10e" <> show i)
-            $ perRunEnv (Vector.unsafeNew (10 ^ i))
-            $ (Test.fillMVector_Int (10 ^ i)))  <$> [minExpVec..maxExpVec]
+            , bgroup "IORef"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.test_newIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
 
-        , bgroup "Fill MAutoVector with UniCore"
-            $ (\(i :: Int) -> bench ("10e" <> show i)
-            $ perRunEnv (alloc (10^i + 1))
-            $ \v -> Test.fillMAutoVector_UniCore (10 ^ i) v)  <$> [minExpVec..maxExpVec]
+            -- ,  bgroup "ForeignPtr"
+            --     $ (\(i :: Int) -> bench ("10e" <> show i)
+            --     $ perRunEnv (return ())
+            --     $ \v -> Test.test_mallocForeignPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+            --
+            -- ,  bgroup "StablePtr"
+            --     $ (\(i :: Int) -> bench ("10e" <> show i)
+            --     $ perRunEnv (return ())
+            --     $ \v -> Test.test_mallocSPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+            --
+            -- ,  bgroup "Ptr (+ free)"
+            --     $ (\(i :: Int) -> bench ("10e" <> show i)
+            --     $ perRunEnv (return ())
+            --     $ \v -> Test.test_mallocPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+            ]
 
-        , bgroup "Fill MVector with UniCore"
-            $ (\(i :: Int) -> bench ("10e" <> show i)
-            $ perRunEnv (Vector.unsafeNew (10 ^ i))
-            $ (Test.fillMVector_UniCore (10 ^ i)))  <$> [minExpVec..maxExpVec]
+        , bgroup "Read+Write"
+            [ bgroup "Pure loop"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.pureLoop (10 ^ i))  <$> [minExpVec..maxExpVec]
 
+            , bgroup "IORef"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWriteIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "IORefU"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWriteIORefU (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "ForeignPtr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWriteForeignPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Vector"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWriteVector (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Ptr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+            ]
+
+        , bgroup "Fill"
+            [ bgroup "Graph with Int"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.fillGraph (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "MAutoVector with Int"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \x -> do{v <- unsafeNew (10^i + 1); Test.fillMAutoVector_Int (10 ^ i) v})  <$> [minExpVec..maxExpVec]
+
+            , bgroup "MVector with Int"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (Vector.unsafeNew (10 ^ i))
+                $ (Test.fillMVector_Int (10 ^ i)))  <$> [minExpVec..maxExpVec]
+            ]
         ]

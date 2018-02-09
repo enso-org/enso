@@ -2,19 +2,49 @@
 
 module Data.AutoVector.Storable.Mutable where
 
-import Prologue
+import Prologue hiding (length)
 
-import qualified Data.Vector.Storable         as Storable
-import qualified Data.Vector.Storable         as Vector hiding (length)
-import qualified Data.Vector.Storable.Mutable as Storable
+import qualified Data.Vector.Storable         as PVector
 import qualified Data.Vector.Storable.Mutable as Vector
-import qualified Foreign.ForeignPtr           as Ptr
+import qualified Foreign.ForeignPtr.Utils     as Ptr
 
 import Data.Vector.Storable         (Vector)
 import Data.Vector.Storable.Mutable (MVector)
 import Foreign.Storable             (Storable)
 import Foreign.ForeignPtr           (ForeignPtr)
-import Foreign.ForeignPtr.Utils     (mkForeignPtr, getAndMapForeignPtr, mapAndGetForeignPtr)
+import System.IO.Unsafe             (unsafePerformIO)
+
+
+------------------------------
+-- === AutoVector Class === --
+------------------------------
+
+class IsAutoVector v where
+    type family ContainerOf (v :: * -> *) :: * -> *
+    type family PtrOf       (v :: * -> *) (a :: *) :: *
+    dataVector  :: forall a. Lens' (v a) (ContainerOf v a)
+    indexVector :: forall a. Lens' (v a) (ContainerOf v Int)
+    unusedSize  :: forall a. Lens' (v a) (PtrOf       v Int)
+
+
+
+------------------------
+-- === AutoVector === --
+------------------------
+
+data AutoVector a = AutoVector
+    { __dataVector  :: {-# UNPACK #-} !(Vector a)
+    , __indexVector :: {-# UNPACK #-} !(Vector Int)
+    , __unusedSize  :: {-# UNPACK #-} !Int
+    } deriving (Generic, Show)
+makeLenses ''AutoVector
+
+instance IsAutoVector AutoVector where
+    type ContainerOf  AutoVector   = Vector
+    type PtrOf        AutoVector a = a
+    dataVector  = autoVector_dataVector  ; {-# INLINE dataVector  #-}
+    indexVector = autoVector_indexVector ; {-# INLINE indexVector #-}
+    unusedSize  = autoVector_unusedSize  ; {-# INLINE unusedSize  #-}
 
 
 
@@ -26,11 +56,30 @@ import Foreign.ForeignPtr.Utils     (mkForeignPtr, getAndMapForeignPtr, mapAndGe
 
 type MAutoVector' m   = MAutoVector (PrimState m)
 data MAutoVector  s a = MAutoVector
-    { _vector  :: {-# UNPACK #-} !(MVector s a)
-    , _freeIxs :: {-# UNPACK #-} !(MVector s Int)
-    , _counter :: ForeignPtr Int
+    { __dataVector  :: {-# UNPACK #-} !(MVector s a)
+    , __indexVector :: {-# UNPACK #-} !(MVector s Int)
+    , __unusedSize  :: {-# UNPACK #-} !(ForeignPtr Int)
     } deriving (Generic)
 makeLenses ''MAutoVector
+
+instance IsAutoVector (MAutoVector s) where
+    type ContainerOf  (MAutoVector s)   = MVector s
+    type PtrOf        (MAutoVector s) a = ForeignPtr a
+    dataVector  = mAutoVector_dataVector  ; {-# INLINE dataVector  #-}
+    indexVector = mAutoVector_indexVector ; {-# INLINE indexVector #-}
+    unusedSize  = mAutoVector_unusedSize  ; {-# INLINE unusedSize  #-}
+
+
+
+-- === Construction === --
+
+unsafeNew :: (MonadIO m, PrimMonad m, Storable a) => Int -> m (MAutoVector' m a)
+unsafeNew !i = MAutoVector
+    <$> Vector.unsafeNew i
+    <*> PVector.unsafeThaw (PVector.generate i (maxKey-))
+    <*> Ptr.mkForeignPtr i
+    where maxKey = i - 1
+{-# INLINE unsafeNew #-}
 
 
 
@@ -38,37 +87,90 @@ makeLenses ''MAutoVector
 
 -- | O(1)
 length :: Storable a => MAutoVector s a -> Int
-length s = Vector.length $ s ^. vector ; {-# INLINE length #-}
+length v = Vector.length $ v ^. dataVector ; {-# INLINE length #-}
+
+-- | O(1)
+used, unused :: (MonadIO m, Storable a) => MAutoVector' m a -> m Int
+used   v = (length v -) <$> unused v
+unused v = Ptr.readForeignPtr (v ^. unusedSize)
 
 
 
--- === Construction === --
+-- === Conversions === --
 
-alloc :: (MonadIO m, PrimMonad m, Storable a) => Int -> m (MAutoVector' m a)
-alloc !i = MAutoVector <$> Vector.unsafeNew i
-                       <*> Vector.unsafeThaw (Vector.generate i (maxKey-))
-                       <*> mkForeignPtr maxKey
-    where maxKey = i - 1
-{-# INLINE alloc #-}
+unsafeThaw :: (MonadIO m, Storable a) => AutoVector a -> m (MAutoVector' m a)
+unsafeThaw v = do
+    dataVector'  <- PVector.unsafeThaw $ v ^. dataVector
+    indexVector' <- PVector.unsafeThaw $ v ^. indexVector
+    unusedSize'  <- Ptr.mkForeignPtr   $ v ^. unusedSize
+    return $ MAutoVector dataVector' indexVector' unusedSize'
+{-# INLINE unsafeThaw #-}
+
+unsafeFreeze :: (MonadIO m, Storable a) => MAutoVector' m a -> m (AutoVector a)
+unsafeFreeze v = do
+    dataVector'  <- PVector.unsafeFreeze $ v ^. dataVector
+    indexVector' <- PVector.unsafeFreeze $ v ^. indexVector
+    unusedSize'  <- Ptr.readForeignPtr   $ v ^. unusedSize
+    return $ AutoVector dataVector' indexVector' unusedSize'
+{-# INLINE unsafeFreeze #-}
 
 
 
 -- === Modifications === --
 
 -- | O(1) / O(1) + memcpy
-reserveKey :: (MonadIO m, PrimMonad m) => MAutoVector' m a -> m Int
-reserveKey v = do
-    kid <- getAndMapForeignPtr (v ^. counter) (subtract 1)
+reserveIndex :: (MonadIO m, PrimMonad m) => MAutoVector' m a -> m Int
+reserveIndex v = do
+    kid <- Ptr.mapAndGetForeignPtr (v ^. unusedSize) (subtract 1)
     when_ (kid < 0) $ error "TODO: resize"
-    Vector.unsafeRead (v ^. freeIxs) kid
-{-# INLINE reserveKey #-}
+    Vector.unsafeRead (v ^. indexVector) kid
+{-# INLINE reserveIndex #-}
 
 -- | O(1)
-releaseKey :: (MonadIO m, PrimMonad m) => MAutoVector' m a -> Int -> m ()
-releaseKey v i = do
-    kid <- mapAndGetForeignPtr (v ^. counter) (+1)
-    Vector.unsafeWrite (v ^. freeIxs) kid i
-{-# INLINE releaseKey #-}
+releaseIndex :: (MonadIO m, PrimMonad m) => MAutoVector' m a -> Int -> m ()
+releaseIndex v i = do
+    kid <- Ptr.mapAndGetForeignPtr (v ^. unusedSize) (+1)
+    Vector.unsafeWrite (v ^. indexVector) kid i
+{-# INLINE releaseIndex #-}
+
+
+unsafeWrite :: (PrimMonad m, Storable a) => MAutoVector' m a -> Int -> a -> m ()
+unsafeWrite v ix a = Vector.unsafeWrite (v ^. dataVector) ix a
+
+-- pushBack :: MAutoVector' m a -> a -> m ()
+-- pushBack v a = do
+--     idx <- reserveIndex v
+
+
+-- -- | Copy a vector with an offset. The source vectors must have the length of
+-- --   the target vector - offset. This is not checked.
+-- --
+-- --   >>> unsafeCopyWithOffset 3 [0, 0, 0, 0, 0, 0] [1, 2, 3]
+-- --   [0, 0, 0, 1, 2, 3]
+-- unsafeCopyWithOffset :: (PrimMonad m, Storable a) => Int -> MVector (PrimState m) a -> MVector (PrimState m) a -> m ()
+-- unsafeCopyWithOffset off dst src = do
+--     dstView <- Vector.unsafeDrop off dst
+--     Vector.unsafeCopy dstView src
+-- {-# INLINE unsafeCopyWithOffset #-}
+
+
+-- -- | grows the whole MAutoVector', taking into account the moving of indices
+-- --
+-- -- >>> let s = MAutoVector [x1, x2, x3, x4] [i1, i2, i3, i4] 0
+-- -- >>> unsafeDoubleGrow s yields MAutoVector [x1, x2, x3, x4, _, _, _, _] [7,6,5,4] 4
+-- unsafeDoubleGrow :: (MonadIO m, PrimMonad m, Storable a) => MAutoVector' m a -> m (MAutoVector' m a)
+-- unsafeDoubleGrow v = do
+--     let len  = length v
+--         len' = 2 * len
+--     dataVector' <- Vector.unsafeNew len'
+--     indexVector'    <- Vector.unsafeNew len'
+--
+--     let dstView = Vector.unsafeTake len dataVector'
+--     Vector.unsafeCopy dstView (v ^. vector)
+--
+--     -- TODO: fill indexVector'
+--
+--     return $ MAutoVector dataVector' indexVector' len
 
 
 --
@@ -88,7 +190,10 @@ releaseKey v i = do
 
 -- === Instances === --
 
+instance (s ~ RealWorld, Show a, Storable a) => Show (MAutoVector s a) where
+    show = show . unsafePerformIO . unsafeFreeze ; {-# INLINE show #-}
+
 instance NFData (MAutoVector s a) where
     rnf v = () where
-        !_ = rnf (v ^. vector)
-        !_ = rnf (v ^. freeIxs)
+        !_ = rnf (v ^. dataVector)
+        !_ = rnf (v ^. indexVector)

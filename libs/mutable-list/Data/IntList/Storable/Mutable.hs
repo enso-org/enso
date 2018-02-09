@@ -1,8 +1,7 @@
 module Data.IntList.Storable.Mutable where
 
 import Prelude
-import Foreign.ForeignPtr hiding (newForeignPtr)
-import Foreign.ForeignPtr.Utils
+import Foreign.ForeignPtr.Utils hiding (newForeignPtr)
 import Foreign.Storable.Utils
 import Control.Monad.IO.Class
 

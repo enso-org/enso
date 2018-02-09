@@ -1,8 +1,10 @@
 {-# LANGUAGE Strict #-}
 
-module Foreign.ForeignPtr.Utils where
+module Foreign.ForeignPtr.Utils (module Foreign.ForeignPtr.Utils, module X) where
 
 import Prelude
+import Foreign.ForeignPtr           as X
+
 import Foreign.ForeignPtr           (ForeignPtr, mallocForeignPtr, withForeignPtr)
 import Foreign.Storable             (Storable, peek, poke)
 import Control.Monad.IO.Class
@@ -11,12 +13,14 @@ import Control.Monad.IO.Class
 mkForeignPtr :: (Storable a, MonadIO m) => a -> m (ForeignPtr a)
 mkForeignPtr a = do
     ptr <- liftIO $ mallocForeignPtr
-    setForeignPtr ptr a
+    writeForeignPtr ptr a
     return ptr
 {-# INLINE mkForeignPtr #-}
 
-setForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> a -> m ()
-setForeignPtr fptr a = liftIO $ withForeignPtr fptr $ \ptr -> poke ptr a ; {-# INLINE setForeignPtr #-}
+readForeignPtr  :: (Storable a, MonadIO m) => ForeignPtr a -> m a
+writeForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> a -> m ()
+readForeignPtr  fptr   = liftIO $ withForeignPtr fptr $ \ptr -> peek ptr   ; {-# INLINE readForeignPtr  #-}
+writeForeignPtr fptr a = liftIO $ withForeignPtr fptr $ \ptr -> poke ptr a ; {-# INLINE writeForeignPtr #-}
 
 getAndMapandGetForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m (a,a)
 getAndMapForeignPtr       :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m a
