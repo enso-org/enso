@@ -1154,50 +1154,57 @@ native class MVar a:
     ## Puts a value inside the `MVar`. Calling this method on a non-empty `MVar` suspends the thread until the old value is taken out.
     def put v: primPutMVar  self v
 
-## `Stream` represents an infinite data source, with a list-like API.
+## `Stream` represents a data source, with a list-like API.
 class Stream a:
-    head :: a
-    tail :: Stream a
+    Next a (Stream a)
+    End
 
     def isStream: True
 
-    ## Runs a function on each element of the stream, immediately executing all side effects. Due to the stream being infinite, this function never terminates.
+    ## Runs a function on each element of the stream, immediately executing all side effects. If the stream is infinite, this function never terminates.
     def each f: case self of
-        Stream elt s:
-            f elt
-            s.each f
+        Next elt s:
+            fst = f elt
+            rest = s.each f
+            Next fst rest
+        End: End
 
     ## Takes an initial value and function. Returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value.
     def foldFrom a f: case self of
-        Stream elt s:
+        Next elt s:
             new = f elt a
-            Stream new (s.foldFrom new f)
+            Next new (s.foldFrom new f)
+        End: End
 
     ## Takes a function and returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value, where the first accumulated value is the first element in the stream.
     def fold f: case self of
-        Stream elt s: s.foldFrom elt f
+        Next elt s: s.foldFrom elt f
+        End: End
 
     ## Runs a function on each element on the stream, not executing any side effects.
     def map f: case self of
-        Stream elt s: Stream (f elt) (s.map f)
+        Next elt s: Next (f elt) (s.map f)
+        End: End
 
     ## `s.consume n` returns a list of the first `n` elements of `s` and the result of dropping the first `n` values of `s`.
     def consume n: case self of
-        Stream elt s:
+        Next elt s:
             case (n == 0) of
-                True: (Empty, Stream elt s)
+                True: (Empty, Next elt s)
                 False:
                     (elems, stream) = s.consume (n - 1)
                     (Prepend elt elems, stream)
+        End: (Empty, End)
 
     ## Returns the longest prefix in which all elements satisfy the given predicate, and the result of dropping this prefix from the original stream.
     def consumeWhile f: case self of
-        Stream elt s:
+        Next elt s:
             case (f elt) of
-                False: (Empty, Stream elt s)
+                False: (Empty, Next elt s)
                 True:
                     (elems, stream) = s.consumeWhile f
                     (Prepend elt elems, stream)
+        End: (Empty, End)
 
     ## Returns the prefix of the stream of given length.
     def take n: self.consume n . first
@@ -1215,20 +1222,25 @@ class Stream a:
     def eval: self.each id
 
     ## Returns a stream containing the same values as the original stream, but produces them no more often than the given time interval.
-    def rateLimit timeInterval:
-        everyWithState timeInterval (s: (s.head, s.tail)) self
+    def rateLimit timeInterval: case self of
+        End: End
+        Next elt s:
+            future = delayAsync timeInterval.toMicroseconds (s.rateLimit timeInterval)
+            Next elt future.read
 
     ## Transforms a stream containing `Maybe` values into one containing only the `Just` items.
-    def collect: case self.head of
-        Just  x: Stream x self.tail.collect
-        Nothing: self.tail.collect
+    def collect: case self of
+        Next elt s: case elt of
+            Just x: Next x s.collect
+            Nothing: s.collect
+        End: End
 
 ## Builds a stream by repeatedly calling an action. Useful for consuming low-level streaming data sources.
 def streamFrom act:
     var = newMVar
     head = act
     fork (var.put (streamFrom act))
-    Stream head var.read
+    Next head var.read
 
 ## Repeat an action while predicate returns `True`. Returns a List of all the values for which predicate returned `True`.
 def repeatWhile act predicate:
@@ -1252,14 +1264,14 @@ def every timeInterval act:
     time    = timeInterval.toMicroseconds
     current = act
     future  = delayAsync time (every timeInterval act)
-    Stream current future.read
+    Next current future.read
 
 ## A variant of `every` in which the action modifies some local state while running.
 def everyWithState timeInterval stateFunc state:
     time = timeInterval.toMicroseconds
     (current, newState) = stateFunc state
     future = delayAsync time (everyWithState timeInterval stateFunc newState)
-    Stream current future.read
+    Next current future.read
 
 ## Print the value to standard output. Can be called on any value which defines a `toText` method returning `Text`.
 def print x: putStr x.toText
