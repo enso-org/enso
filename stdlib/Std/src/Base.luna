@@ -16,10 +16,6 @@ native class Int:
     def <  that: primIntLt       self that
     ## Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
-    ## Lesser than or equal to operator.
-    def <= that: self<that . or self==that
-    ## Greater than or equal to operator.
-    def >= that: self>that . or self==that
 
     ## Integer negation. `a.negate == -1 * a`.
     def negate: primIntNegate self
@@ -76,10 +72,6 @@ native class Real:
     def <  that: primRealLt       self that
     ## Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
-    ## Lesser than or equal to operator.
-    def <= that: self<that . or self==that
-    ## Greater than or equal to operator.
-    def >= that: self>that . or self==that
 
     ## Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self
@@ -145,10 +137,6 @@ native class Text:
     def <  that: primTextLt     self that
     ## Tests wheter two texts are equal.
     def == that: primTextEquals self that
-    ## Lesser than or equal to operator.
-    def <= that: self<that . or self==that
-    ## Greater than or equal to operator.
-    def >= that: self>that . or self==that
 
     ## Tests whether the text is empty (equal to `""`).
     def isEmpty: primTextIsEmpty self
@@ -311,6 +299,12 @@ def when p f: if p then (seq f None) else None
 
 ## Takes an action returning `None` and evaluating the action only unless a given condition is met.
 def unless p f: if p then None else f
+
+## Greater or equal operator. Requires the objects to define both `>` and `==` methods.
+def >= a b: (a > b).or (a == b)
+
+## Less than or equal to operator. Requires the objects to define both `<` and `==` methods.
+def <= a b: (a < b).or (a == b)
 
 def seq a b:
     a
@@ -581,6 +575,11 @@ class List a:
     def head: case (self) of
         Empty: Nothing
         Prepend x xs: Just x
+
+    def last: case self of
+        Prepend a Empty: Just a
+        Prepend _ rest: rest.last
+        Empty: Nothing
 
     ## Returns `Just` the list without the first element when the list is not empty, `Nothing` otherwise.
     def tail: case self of
