@@ -184,3 +184,12 @@ preludeCmpOp imports op = compileFunction imports $ do
     tl2M  <- monadic tl2 pure
     reconnectLayer' @UserType (Just tl2M) l2
     return $ generalize l2
+
+int :: Integer -> Int
+int = fromIntegral
+
+integer :: Int -> Integer
+integer = fromIntegral
+
+real :: Real a => a -> Double
+real = realToFrac

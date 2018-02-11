@@ -1,4 +1,5 @@
 import Std.Base
+import Std.Time
 import Std.Test
 import StdTest.Map
 
@@ -42,4 +43,8 @@ def main:
     benchList 100
     benchList 1000
     benchList 10000
-    benchList 100000
+
+    print "foo"
+    print 10.hours
+    print 10.days.ago
+    print 10.days.fromNow
