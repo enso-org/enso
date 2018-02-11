@@ -16,6 +16,8 @@ import Data.Aeson                           (encode)
 import System.Log.Logger.Format (nestedColorFormatter, bulletNestingFormatter)
 import Control.Monad.Raise
 import System.Environment (lookupEnv)
+import qualified Data.UUID.V4 as UUID
+import qualified Data.UUID    as UUID
 import Control.Monad.State.Dependent
 
 data TestPass
@@ -52,5 +54,10 @@ withVis m = do
     let cfg = ByteString.unpack $ encode vis
     when (not . null $ vis ^. Vis.steps) $ do
         env <- liftIO $ lookupEnv "DEBUGVIS"
-        if isJust env then void $ liftIO $ openBrowser $ "http://localhost:8000?cfg=" <> cfg else return ()
+        case env of
+            Just path -> liftIO $ do
+                uid <- UUID.toString <$> UUID.nextRandom
+                writeFile (path ++ "/" ++ uid ++ ".json") cfg
+                void $ openBrowser $ "http://localhost:8000?cfgPath=" <> uid
+            _ -> return ()
     return p

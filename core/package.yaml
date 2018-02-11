@@ -71,6 +71,7 @@ dependencies:
     - time
     - time-locale-compat
     - typelevel
+    - uuid
     - vector
     - ansi-terminal
     - text-processing
