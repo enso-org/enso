@@ -1,11 +1,11 @@
 module Luna.Std.Finalizers where
 
 import Luna.Prelude
-import Data.Map (Map)
-import Control.Concurrent
+import Data.Map                (Map)
+import Control.Concurrent      (newMVar, modifyMVar_, MVar)
 
-import           Data.UUID                                    (UUID)
-import qualified Data.UUID.V4                                 as UUID
+import           Data.UUID     (UUID)
+import qualified Data.UUID.V4  as UUID
 
 newtype Finalizers = Finalizers (Map UUID (IO ()))
 makeWrapped ''Finalizers
