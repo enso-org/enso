@@ -20,6 +20,7 @@ import qualified Data.ByteString                              as StrictByteStrin
 import           Data.ByteString.Lazy                         (ByteString)
 import qualified Data.ByteString.Lazy                         as ByteString
 import qualified Data.CaseInsensitive                         as CI
+import           Data.Char                                    (isUpper)
 import           Data.Fixed                                   (Pico)
 import           Data.Foldable                                (toList)
 import qualified Data.HashMap.Lazy                            as HM
@@ -103,12 +104,25 @@ stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", 
 
 data LTp = LVar Name | LCons Name [LTp]
 
+instance IsString LTp where
+    fromString ""      = error "LTp.fromString: empty string does not represent a type"
+    fromString s@(c:_) = let s' = convert s in if isUpper c then LCons s' [] else LVar s'
+
 varNamesFromType :: LTp -> Set Name
 varNamesFromType (LVar n)    = Set.singleton n
 varNamesFromType (LCons n s) = varNamesFromTypes s
 
 varNamesFromTypes :: [LTp] -> Set Name
 varNamesFromTypes = Set.unions . fmap varNamesFromType
+
+listLT :: LTp -> LTp
+listLT t  = LCons "List"  [t]
+
+maybeLT :: LTp -> LTp
+maybeLT t = LCons "Maybe" [t]
+
+eitherLT :: LTp -> LTp -> LTp
+eitherLT l r = LCons "Either" [l, r]
 
 int :: Integer -> Int
 int = fromIntegral
@@ -135,8 +149,8 @@ mkType vars (LCons n fs) = do
     mon    <- monadic cs mv
     return (generalize mon, generalize mv)
 
-typeRepForPure :: LunaValue -> [LTp] -> LTp -> IO Function
-typeRepForPure val args out = do
+makeType :: [LTp] -> LTp -> Name -> IO (Assumptions, Rooted SomeExpr)
+makeType args out outMonadName = do
     res <- runPM False $ do
         runRegs
         Pass.eval' @TestPass $ do
@@ -146,45 +160,34 @@ typeRepForPure val args out = do
             fieldTypes <- mapM (mkType varMap) args
             (outType, outM) <- mkType varMap out
             pure       <- cons_ @Draft "Pure"
+            outMonad   <- cons_ @Draft outMonadName
             let lamInPure o i = do
                     l  <- lam i o
                     lm <- monadic l pure
                     return $ generalize lm
             funType <- foldM lamInPure outType $ fst <$> reverse fieldTypes
-            monads  <- scanM (fmap generalize .: unify) (unsafeGeneralize pure) (snd <$> fieldTypes)
+            monads  <- scanM (fmap generalize .: unify) (unsafeGeneralize outMonad) (snd <$> fieldTypes)
             let lastMonad = head $ reverse monads
             replace lastMonad outM
             res <- compile $ generalize funType
-            return $ Function res val (Assumptions def (tail monads) def def)
+            return (Assumptions def (tail monads) def def, res)
     case res of
         Right r -> return r
         Left e  -> error $ show e
 
-typeRepForIO :: LunaValue -> [LTp] -> LTp -> IO Function
-typeRepForIO val args out = do
-    res <- runPM False $ do
-        runRegs
-        Pass.eval' @TestPass $ do
-            let varNames = Set.toList $ varNamesFromTypes $ out : args
-            vars <- fmap generalize <$> mapM var varNames
-            let varMap = Map.fromList $ zip varNames vars
-            fieldTypes <- mapM (mkType varMap) args
-            (outType, outM) <- mkType varMap out
-            pure       <- cons_ @Draft "Pure"
-            io         <- cons_ @Draft "IO"
-            let lamInPure o i = do
-                    l  <- lam i o
-                    lm <- monadic l pure
-                    return $ generalize lm
-            funType <- foldM lamInPure outType $ fst <$> reverse fieldTypes
-            monads  <- scanM (fmap generalize .: unify) (unsafeGeneralize io) (snd <$> fieldTypes)
-            let lastMonad = head $ reverse monads
-            replace lastMonad outM
-            res <- compile $ generalize funType
-            return $ Function res val (Assumptions def (tail monads) def def)
-    case res of
-        Right r -> return r
-        Left e  -> error $ show e
+makeTypePure :: [LTp] -> LTp -> IO (Assumptions, Rooted SomeExpr)
+makeTypePure args out = makeType args out "IO"
+
+makeFunction :: LunaValue -> [LTp] -> LTp -> Name -> IO Function
+makeFunction val args out outMonad = do
+    (assumptions, rooted) <- makeType args out outMonad
+    return $ Function rooted val assumptions
+
+makeFunctionPure :: LunaValue -> [LTp] -> LTp -> IO Function
+makeFunctionPure val args out = makeFunction val args out "Pure"
+
+makeFunctionIO :: LunaValue -> [LTp] -> LTp -> IO Function
+makeFunctionIO val args out = makeFunction val args out "IO"
 
 compileFunction :: Imports -> SubPass TestPass (PMStack IO) SomeExpr -> IO Function
 compileFunction imps pass = do
@@ -206,29 +209,6 @@ compileFunction imps pass = do
         return $ Function rooted (evalStateT val def) (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
     return res
 
-mkMonadProofFun' :: (MonadRef m, MonadPassManager m) => Maybe (Expr Draft) -> Expr Draft -> SubPass TestPass m ([Expr Unify], Expr Draft)
-mkMonadProofFun' mon root = matchExpr root $ \case
-    Lam i o -> do
-        i'     <- source i
-        newVar <- var "__mon"
-        newArg <- monadic i' newVar
-        (newMon, res) <- case mon of
-            Just x  -> do
-                m <- unify x newVar
-                return (generalize m, [generalize m])
-            Nothing -> return (generalize newVar, [])
-        (r', newOut) <- mkMonadProofFun' (Just newMon) =<< source o
-        newLam <- lam newArg newOut
-        resultExpr <- fmap generalize  $ monadic newLam =<< cons_ @Draft "Pure"
-        return (res ++ r', resultExpr)
-    _ -> fmap ([],) $ fmap generalize $ monadic root $ fromJust mon
-
-mkMonadProofFun :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass TestPass m (Assumptions, SomeExpr)
-mkMonadProofFun tp = do
-    (merges, transTp) <- mkMonadProofFun' Nothing tp
-    deleteSubtree tp
-    return (Assumptions def merges def def, generalize transTp)
-
 withExceptions :: IO a -> LunaEff a
 withExceptions a = do
     res <- performIO $ catchAll (Right <$> a) (return . Left . show)
@@ -236,35 +216,15 @@ withExceptions a = do
         Left a  -> throw a
         Right r -> return r
 
-oneArgFun tArg1 tRes = runGraph $ do
-    t1  <- cons_ @Draft tArg1
-    t2  <- cons_ @Draft tRes
-    l   <- lam t1 t2
-    (assu, r) <- mkMonadProofFun $ generalize l
-    cmp <- compile r
-    return (assu, cmp)
-
-twoArgFun tArg1 tArg2 tRes = runGraph $ do
-    t1   <- cons_ @Draft tArg1
-    t2   <- cons_ @Draft tArg2
-    t3   <- cons_ @Draft tRes
-    l1   <- lam t2 t3
-    l2   <- lam t1 l1
-    (assu, r) <- mkMonadProofFun $ generalize l2
-    cmp <- compile r
-    return (assu, cmp)
-
-
 primReal :: Imports -> IO (Map Name Function)
 primReal imps = do
-    Right (boxed3DoublesAssumptions, boxed3Doubles)     <- twoArgFun "Real" "Real" "Real"
-    Right (boxed2DoublesAssumptions, boxed2Doubles)     <- oneArgFun "Real" "Real"
-    Right (double2BoolAssumptions, double2Bool)         <- twoArgFun "Real" "Real" "Bool"
-    Right (double2TextAssumptions, double2text)         <- oneArgFun "Real" "Text"
-    Right (double2IntAssumptions, double2int)           <- oneArgFun "Real" "Int"
-    Right (double2JSONAssumptions, double2JSON)         <- oneArgFun "Real" "JSON"
-    Right (double2DoubleAssumptions, double2Double)     <- oneArgFun "Real" "Real"
-    Right (doubleIntDoubleAssumptions, doubleIntDouble) <- twoArgFun "Real" "Int" "Real"
+    (doubleIntDoubleAssumptions, doubleIntDouble) <- makeTypePure ["Real", "Int"]  "Real"
+    (boxed3DoublesAssumptions,   boxed3Doubles)   <- makeTypePure ["Real", "Real"] "Real"
+    (double2BoolAssumptions,     double2Bool)     <- makeTypePure ["Real", "Real"] "Bool"
+    (double2TextAssumptions,     double2text)     <- makeTypePure ["Real"]         "Text"
+    (double2IntAssumptions,      double2int)      <- makeTypePure ["Real"]         "Int"
+    (double2JSONAssumptions,     double2JSON)     <- makeTypePure ["Real"]         "JSON"
+    (double2DoubleAssumptions,   double2Double)   <- makeTypePure ["Real"]         "Real"
 
     let plusVal     = toLunaValue imps ((+)          :: Double -> Double -> Double)
         timeVal     = toLunaValue imps ((*)          :: Double -> Double -> Double)
@@ -341,13 +301,13 @@ primReal imps = do
 
 primInt :: Imports -> IO (Map Name Function)
 primInt imps = do
-    Right (ints2BoolAssumptions, ints2Bool)   <- twoArgFun "Int" "Int" "Bool"
-    Right (boxed3IntsAssumptions, boxed3Ints) <- twoArgFun "Int" "Int" "Int"
-    Right (boxed2IntsAssumptions, boxed2Ints) <- oneArgFun "Int" "Int"
-    Right (int2TextAssumptions, int2text)     <- oneArgFun "Int" "Text"
-    Right (int2RealAssumptions, int2Real)     <- oneArgFun "Int" "Real"
-    Right (int2JSONAssumptions, int2JSON)     <- oneArgFun "Int" "JSON"
-    Right (int2TIAssumptions, int2TI)         <- oneArgFun "Int" "TimeInterval"
+    (ints2BoolAssumptions,  ints2Bool)  <- makeTypePure ["Int", "Int"] "Bool"
+    (boxed3IntsAssumptions, boxed3Ints) <- makeTypePure ["Int", "Int"] "Int"
+    (boxed2IntsAssumptions, boxed2Ints) <- makeTypePure ["Int"]        "Int"
+    (int2TextAssumptions,   int2text)   <- makeTypePure ["Int"]        "Text"
+    (int2RealAssumptions,   int2Real)   <- makeTypePure ["Int"]        "Real"
+    (int2JSONAssumptions,   int2JSON)   <- makeTypePure ["Int"]        "JSON"
+    (int2TIAssumptions,     int2TI)     <- makeTypePure ["Int"]        "TimeInterval"
 
     let plusVal        = toLunaValue imps ((+)      :: Integer -> Integer -> Integer)
         timeVal        = toLunaValue imps ((*)      :: Integer -> Integer -> Integer)
@@ -381,10 +341,10 @@ primInt imps = do
 
 primBinary :: Imports -> IO (Map Name Function)
 primBinary imps = do
-    Right (toTextAssu, toTextIr) <- oneArgFun "Binary" "Text"
-    Right (lenAssu,    lenIr)    <- oneArgFun "Binary" "Int"
-    Right (eqAssu,     eqIr)     <- twoArgFun "Binary" "Binary" "Bool"
-    Right (plusAssu,   plusIr)   <- twoArgFun "Binary" "Binary" "Binary"
+    (eqAssu,     eqIr)     <- makeTypePure ["Binary", "Binary"] "Bool"
+    (plusAssu,   plusIr)   <- makeTypePure ["Binary", "Binary"] "Binary"
+    (toTextAssu, toTextIr) <- makeTypePure ["Binary"]           "Text"
+    (lenAssu,    lenIr)    <- makeTypePure ["Binary"]           "Int"
     let toTextVal  = toLunaValue imps Text.decodeUtf8
         eqVal      = toLunaValue imps ((==) :: ByteString -> ByteString -> Bool)
         plusVal    = toLunaValue imps ((<>) :: ByteString -> ByteString -> ByteString)
@@ -397,36 +357,16 @@ primBinary imps = do
 
 primText :: Imports -> IO (Map Name Function)
 primText imps = do
-    Right (plusAssu, plusIr)           <- twoArgFun "Text" "Text" "Text"
-    Right (eqAssu, eqIr)               <- twoArgFun "Text" "Text" "Bool"
-    Right (textAssu, textIr)           <- oneArgFun "Text" "Text"
-    Right (isEmptyAssu, isEmptyIr)     <- oneArgFun "Text" "Bool"
-    Right (lengthAssu, lengthIr)       <- oneArgFun "Text" "Int"
-    Right (toJSONAssu, toJSONIr)       <- oneArgFun "Text" "JSON"
-    Right (toBinaryAssu, toBinaryIr)   <- oneArgFun "Text" "Binary"
-    Right (wordsAssu, wordsIr)         <- runGraph $ do
-        tText <- cons_ @Draft "Text"
-        tList   <- cons "List" [tText]
-        l       <- lam tText tList
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-    Right (toMaybeIntAssu, toMaybeIntIr) <- runGraph $ do
-        tText  <- cons_ @Draft "Text"
-        tInt   <- cons_ @Draft "Int"
-        tMaybe <- cons "Maybe" [tInt]
-        l      <- lam tText tMaybe
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
-    Right (toMaybeRealAssu, toMaybeRealIr) <- runGraph $ do
-        tText  <- cons_ @Draft "Text"
-        tReal  <- cons_ @Draft "Real"
-        tMaybe <- cons "Maybe" [tReal]
-        l      <- lam tText tMaybe
-        (assu, r) <- mkMonadProofFun $ generalize l
-        cmp <- compile r
-        return (assu, cmp)
+    (plusAssu,        plusIr)        <- makeTypePure ["Text", "Text"] "Text"
+    (eqAssu,          eqIr)          <- makeTypePure ["Text", "Text"] "Bool"
+    (textAssu,        textIr)        <- makeTypePure ["Text"]         "Text"
+    (isEmptyAssu,     isEmptyIr)     <- makeTypePure ["Text"]         "Bool"
+    (lengthAssu,      lengthIr)      <- makeTypePure ["Text"]         "Int"
+    (toJSONAssu,      toJSONIr)      <- makeTypePure ["Text"]         "JSON"
+    (toBinaryAssu,    toBinaryIr)    <- makeTypePure ["Text"]         "Binary"
+    (wordsAssu,       wordsIr)       <- makeTypePure ["Text"]         (listLT  "Text")
+    (toMaybeIntAssu,  toMaybeIntIr)  <- makeTypePure ["Text"]         (maybeLT "Int")
+    (toMaybeRealAssu, toMaybeRealIr) <- makeTypePure ["Text"]         (maybeLT "Real")
 
     let plusVal       = toLunaValue imps ((<>) :: Text -> Text -> Text)
         shortRepVal   = toLunaValue imps (Text.take 100 :: Text -> Text)
@@ -585,8 +525,6 @@ systemStd std = do
         tuple2T t1 t2       = LCons "Tuple2" [t1, t2]
         tuple3T t1 t2 t3    = LCons "Tuple3" [t1, t2, t3]
         tuple4T t1 t2 t3 t4 = LCons "Tuple4" [t1, t2, t3, t4]
-        listT t  = LCons "List"  [t]
-        maybeT t = LCons "Maybe" [t]
 
     let registerGC :: IO () -> IO UUID
         registerGC act = do
@@ -602,74 +540,36 @@ systemStd std = do
 
     let putStr :: Text -> LunaEff ()
         putStr = performIO . putStrLn . convert
-    Right printLn <- runGraph $ do
-        mA     <- var "a"
-        io     <- cons_ @Draft "IO"
-        comm   <- unify mA io
-        tpInt  <- cons_ @Draft "Text"
-        tpIntM <- monadic tpInt mA
-        tpNo   <- cons_ @Draft "None"
-        tpNoM  <- monadic tpNo comm
-        intl   <- lam tpIntM tpNoM
-        pure   <- cons_ @Draft "Pure"
-        lamP   <- monadic intl pure
-        res    <- compile $ generalize lamP
-        return $ Function res (toLunaValue std putStr) (Assumptions def [generalize comm] def def)
+    printLn <- makeFunctionIO (toLunaValue std putStr) ["Text"] "None"
 
     let runErrVal = toLunaValue std $ \(x :: LunaValue) -> ((_Left %~ convert) <$> runError (force x) :: LunaEff (Either Text LunaData))
-    Right runErr <- runGraph $ do
-        tpA       <- var "a"
-        tpText    <- cons_ @Draft "Text"
-        tpEit     <- cons "Either" [generalize tpText :: Expr Draft, generalize tpA]
-        tl        <- lam tpA tpEit
-        (assu, r) <- mkMonadProofFun $ generalize tl
-        cmp       <- compile r
-        return $ Function cmp runErrVal assu
+    runErr <- makeFunctionPure runErrVal ["a"] (eitherLT "Text" "a")
 
     let errVal = toLunaValue std $ \(a :: Text) -> (throw $ convert a :: LunaValue)
-    Right err <- runGraph $ do
-        tpInt <- cons_ @Draft "Text"
-        a     <- var "a"
-        tl    <- lam tpInt a
-        (assu, r) <- mkMonadProofFun $ generalize tl
-        cmp <- compile r
-        return $ Function cmp errVal assu
+    err <- makeFunctionPure errVal ["Text"] "a"
 
     let expandPathVal :: Text -> LunaEff Text
         expandPathVal = withExceptions . fmap convert . canonicalizePath . convert
-    expandPathF <- typeRepForIO (toLunaValue std expandPathVal) [textT] textT
+    expandPathF <- makeFunctionIO (toLunaValue std expandPathVal) [textT] textT
 
     let readFileVal :: Text -> LunaEff Text
         readFileVal = withExceptions . fmap convert . readFile . convert
-    readFileF <- typeRepForIO (toLunaValue std readFileVal) [textT] textT
+    readFileF <- makeFunctionIO (toLunaValue std readFileVal) [textT] textT
 
     let readBinaryVal :: Text -> LunaEff ByteString
         readBinaryVal = withExceptions . ByteString.readFile . convert
-    readBinaryF <- typeRepForIO (toLunaValue std readBinaryVal) [textT] binaryT
+    readBinaryF <- makeFunctionIO (toLunaValue std readBinaryVal) [textT] binaryT
 
     let parseJSONVal :: Text -> LunaEff (Either Text Aeson.Value)
         parseJSONVal = return . Bifunc.first convert . Aeson.eitherDecode . Text.encodeUtf8
-    Right parseJSON <- runGraph $ do
-        mA      <- var "a"
-        pure    <- cons_ @Draft "Pure"
-        comm    <- unify mA pure
-        tpText  <- cons_ @Draft "Text"
-        tpTextM <- monadic tpText mA
-        tpJSON  <- cons_ @Draft "JSON"
-        tpMJ    <- cons "Either" [tpText, tpJSON]
-        tpMJM   <- monadic tpMJ comm
-        intl    <- lam tpTextM tpMJM
-        lamP    <- monadic intl pure
-        res     <- compile $ generalize lamP
-        return $ Function res (toLunaValue std parseJSONVal) (Assumptions def [generalize comm] def def)
+    parseJSON <- makeFunctionPure (toLunaValue std parseJSONVal) ["Text"] (eitherLT "Text" "JSON")
 
-    Right (mpack2BinaryAssu, mpack2BinaryIr) <- oneArgFun "MsgPack" "Binary"
     let encodeMsgPackVal = toLunaValue std (MsgPack.pack :: MsgPack.Object -> ByteString)
-        encodeMsgPack    = Function mpack2BinaryIr encodeMsgPackVal mpack2BinaryAssu
+    encodeMsgPack <- makeFunctionPure encodeMsgPackVal ["MsgPack"] "Binary"
 
     let parseMsgPackVal :: ByteString -> LunaEff MsgPack.Object
         parseMsgPackVal = withExceptions . MsgPack.unpack
-    parseMsgPack <- typeRepForIO (toLunaValue std parseMsgPackVal) [binaryT] $ LCons "MsgPack" []
+    parseMsgPack <- makeFunctionIO (toLunaValue std parseMsgPackVal) [binaryT] $ LCons "MsgPack" []
 
     let signOAuth1 :: (Text, Text, Text, Text) -> HTTP.Request -> IO HTTP.Request
         signOAuth1 (cak, cas, ot, ots) req = do
@@ -702,12 +602,12 @@ systemStd std = do
             HTTP.responseOpen req manager
 
     let tupleT          = tuple2T textT textT
-        oauthT          = maybeT $ tuple4T textT textT textT textT
-        maybeTupleT     = maybeT tupleT
-        tupleListT      = listT  tupleT
-        tupleMaybeListT = listT $ tuple2T textT $ maybeT textT
-    primPerformHttp <- typeRepForIO (toLunaValue std primPerformHttpVal)
-                                    [textT, textT, tupleListT, maybeTupleT, oauthT, tupleMaybeListT, binaryT]
+        oauthT          = maybeLT $ tuple4T textT textT textT textT
+        maybeLTupleT    = maybeLT tupleT
+        tupleListT      = listLT  tupleT
+        tupleMaybeListT = listLT $ tuple2T textT $ maybeLT textT
+    primPerformHttp <- makeFunctionIO (toLunaValue std primPerformHttpVal)
+                                    [textT, textT, tupleListT, maybeLTupleT, oauthT, tupleMaybeListT, binaryT]
                                     (LCons "HttpResponse" [])
 
     -- web sockets state and connections --
@@ -744,27 +644,27 @@ systemStd std = do
 
     let wsConnectionT = LCons "WSConnection" []
 
-    primWebSocketConnect <- typeRepForIO (toLunaValue std primWebSocketConnectVal)
+    primWebSocketConnect <- makeFunctionIO (toLunaValue std primWebSocketConnectVal)
                                          [textT, intT, textT, boolT] wsConnectionT
 
     let primWebSocketReadVal :: WSConnection -> LunaEff ByteString
         primWebSocketReadVal (WSConnection conn _) = withExceptions $ WebSocket.receiveData conn
-    primWebSocketRead <- typeRepForIO (toLunaValue std primWebSocketReadVal)
+    primWebSocketRead <- makeFunctionIO (toLunaValue std primWebSocketReadVal)
                                       [wsConnectionT] binaryT
 
     let primWebSocketWriteVal :: WSConnection -> Text -> LunaEff ()
         primWebSocketWriteVal (WSConnection conn _) s = withExceptions $ WebSocket.sendTextData conn s
-    primWebSocketWrite <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
+    primWebSocketWrite <- makeFunctionIO (toLunaValue std primWebSocketWriteVal)
                                        [wsConnectionT, textT] noneT
 
     let primWebSocketWriteBinVal :: WSConnection -> ByteString -> LunaEff ()
         primWebSocketWriteBinVal (WSConnection conn _) s = withExceptions $ WebSocket.sendBinaryData conn s
-    primWebSocketWriteBin <- typeRepForIO (toLunaValue std primWebSocketWriteVal)
+    primWebSocketWriteBin <- makeFunctionIO (toLunaValue std primWebSocketWriteVal)
                                        [wsConnectionT, binaryT] noneT
 
     let primWebSocketCloseVal :: WSConnection -> LunaEff ()
         primWebSocketCloseVal = withExceptions . unregisterConnection
-    primWebSocketClose <- typeRepForIO (toLunaValue std primWebSocketCloseVal)
+    primWebSocketClose <- makeFunctionIO (toLunaValue std primWebSocketCloseVal)
                                        [wsConnectionT] noneT
 
     -- websocket servers --
@@ -811,7 +711,7 @@ systemStd std = do
             server <- initServer host port
             forkIO $ Exception.bracket_ (return ()) (disconnectClients server) (awaitConnections server)
             return server
-    primCreateWSServer <- typeRepForIO (toLunaValue std primCreateWSServerVal)
+    primCreateWSServer <- makeFunctionIO (toLunaValue std primCreateWSServerVal)
                                        [textT, intT] wsServerT
 
     let primWSSBroadcastTextVal :: WSServer -> Text -> LunaEff WSServer
@@ -819,7 +719,7 @@ systemStd std = do
             connMap <- readMVar $ wsServerConns wss
             forM_ connMap (\c -> WebSocket.sendTextData (wsConn c) msg)
             return wss
-    primWSSBroadcastText <- typeRepForIO (toLunaValue std primWSSBroadcastTextVal)
+    primWSSBroadcastText <- makeFunctionIO (toLunaValue std primWSSBroadcastTextVal)
                                          [wsServerT, textT] wsServerT
 
     let primWSSBroadcastBinaryVal :: WSServer -> ByteString -> LunaEff WSServer
@@ -827,137 +727,117 @@ systemStd std = do
             connMap <- readMVar $ wsServerConns wss
             forM_ connMap (\c -> WebSocket.sendBinaryData (wsConn c) msg)
             return wss
-    primWSSBroadcastBinary <- typeRepForIO (toLunaValue std primWSSBroadcastBinaryVal)
+    primWSSBroadcastBinary <- makeFunctionIO (toLunaValue std primWSSBroadcastBinaryVal)
                                            [wsServerT, binaryT] wsServerT
 
     let primWSSGetMessageVal :: WSServer -> LunaEff (WSConnection, Text)
         primWSSGetMessageVal = withExceptions . readMVar . wsServerMsg
-    primWSSGetMessage <- typeRepForIO (toLunaValue std primWSSGetMessageVal)
+    primWSSGetMessage <- makeFunctionIO (toLunaValue std primWSSGetMessageVal)
                                        [wsServerT] (LCons "MVar" [textT])
 
-    Right (primUEAssu, primUEIR) <- oneArgFun "Text" "Text"
     let primUrlEncodeVal :: Text -> Text
         primUrlEncodeVal = convert . HTTP.urlEncode False . convert
-        primUrlEncode    = Function primUEIR (toLunaValue std primUrlEncodeVal) primUEAssu
+    primUrlEncode <- makeFunctionPure (toLunaValue std primUrlEncodeVal) ["Text"] "Text"
 
     let primGetCurrentTimeVal :: LunaEff Time.ZonedTime
         primGetCurrentTimeVal = withExceptions Time.getZonedTime
-    primGetCurrentTime <- typeRepForIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
+    primGetCurrentTime <- makeFunctionIO (toLunaValue std primGetCurrentTimeVal) [] $ LCons "Time" []
 
     let primGetCurrentTimeZoneVal :: LunaEff Time.TimeZone
         primGetCurrentTimeZoneVal = withExceptions Time.getCurrentTimeZone
-    primGetCurrentTimeZone <- typeRepForIO (toLunaValue std primGetCurrentTimeZoneVal) [] $ LCons "TimeZone" []
+    primGetCurrentTimeZone <- makeFunctionIO (toLunaValue std primGetCurrentTimeZoneVal) [] $ LCons "TimeZone" []
 
-    Right (time2UTCAssu, time2UTCIr) <- oneArgFun "Time" "UTCTime"
     let primTimeToUTCVal = toLunaValue std Time.zonedTimeToUTC
-        primTimeToUTC    = Function time2UTCIr primTimeToUTCVal time2UTCAssu
+    primTimeToUTC <- makeFunctionPure primTimeToUTCVal ["Time"] "UTCTime"
 
-    Right (utc2TimeAssu, utc2TimeIr) <- twoArgFun "TimeZone" "UTCTime" "Time"
     let primTimeFromUTCVal = toLunaValue std Time.utcToZonedTime
-        primTimeFromUTC    = Function utc2TimeIr primTimeFromUTCVal utc2TimeAssu
+    primTimeFromUTC <- makeFunctionPure primTimeFromUTCVal ["TimeZone", "UTCTime"] "Time"
 
-    Right (times2IntervalAssu, times2IntervalIr) <- twoArgFun "UTCTime" "UTCTime" "TimeInterval"
     let primDiffTimesVal = toLunaValue std Time.diffUTCTime
-        primDiffTimes    = Function times2IntervalIr primDiffTimesVal times2IntervalAssu
+    primDiffTimes <- makeFunctionPure primDiffTimesVal ["UTCTime", "UTCTime"] "TimeInterval"
 
-    Right (formatTimeAssu, formatTimeIr) <- twoArgFun "Text" "Time" "Text"
     let fmtTime :: Text -> Time.ZonedTime -> Text
         fmtTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: P.String)
-        primFormatTimeVal = toLunaValue std fmtTime
-        primFormatTime    = Function formatTimeIr primFormatTimeVal formatTimeAssu
+    primFormatTime <- makeFunctionPure (toLunaValue std fmtTime) ["Text", "Time"] "Text"
 
-    Right (formatUTCTimeAssu, formatUTCTimeIr) <- twoArgFun "Text" "UTCTime" "Text"
     let fmtUTCTime :: Text -> Time.UTCTime -> Text
         fmtUTCTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: P.String)
-        primFormatUTCTimeVal = toLunaValue std fmtUTCTime
-        primFormatUTCTime    = Function formatUTCTimeIr primFormatUTCTimeVal formatUTCTimeAssu
+    primFormatUTCTime <- makeFunctionPure (toLunaValue std fmtUTCTime) ["Text", "UTCTime"] "Text"
 
-    Right (times2BoolAssu, times2BoolIr) <- twoArgFun "UTCTime" "UTCTime" "Bool"
     let primTimesEqVal = toLunaValue std ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
-        primTimesEq    = Function times2BoolIr primTimesEqVal times2BoolAssu
+    primTimesEq <- makeFunctionPure primTimesEqVal ["UTCTime", "UTCTime"] "Bool"
 
-    Right (addTimeAssu, addTimeIr) <- twoArgFun "TimeInterval" "UTCTime" "UTCTime"
     let primAddUTCTimeVal = toLunaValue std Time.addUTCTime
         primSubUTCTimeVal = toLunaValue std (\d t -> Time.addUTCTime (-d) t)
-        primAddUTCTime    = Function addTimeIr primAddUTCTimeVal addTimeAssu
-        primSubUTCTime    = Function addTimeIr primSubUTCTimeVal addTimeAssu
+    primAddUTCTime <- makeFunctionPure primAddUTCTimeVal ["TimeInterval", "UTCTime"] "UTCTime"
+    primSubUTCTime <- makeFunctionPure primSubUTCTimeVal ["TimeInterval", "UTCTime"] "UTCTime"
 
     let primTimeOfDayVal :: Time.DiffTime -> (Integer, Integer, Double)
         primTimeOfDayVal t = let Time.TimeOfDay h m s = Time.timeToTimeOfDay t in (convert h, convert m, realToFrac s)
-    primTimeOfDay <- typeRepForPure (toLunaValue std primTimeOfDayVal) [LCons "TimeInterval" []] $ tuple3T intT intT intT
+    primTimeOfDay <- makeFunctionPure (toLunaValue std primTimeOfDayVal) [LCons "TimeInterval" []] $ tuple3T intT intT intT
 
     let primTimeOfYearVal :: Time.Day -> (Integer, Integer, Integer)
         primTimeOfYearVal t = let (y, m, d) = Time.toGregorian t in (y, integer m, integer d)
-    primTimeOfYear <- typeRepForPure (toLunaValue std primTimeOfYearVal) [intT] $ tuple3T intT intT intT
+    primTimeOfYear <- makeFunctionPure (toLunaValue std primTimeOfYearVal) [intT] $ tuple3T intT intT intT
 
     let primFromTimeOfYearVal :: Integer -> Integer -> Integer -> Time.Day
         primFromTimeOfYearVal y m d = Time.fromGregorian y (int m) (int d)
-    primFromTimeOfYear <- typeRepForPure (toLunaValue std primFromTimeOfYearVal) [intT, intT, intT] intT
+    primFromTimeOfYear <- makeFunctionPure (toLunaValue std primFromTimeOfYearVal) [intT, intT, intT] intT
 
     let primMonthLengthVal :: Integer -> Integer -> Integer
         primMonthLengthVal y m = integer $ Time.gregorianMonthLength y (int m)
-    primMonthLength <- typeRepForPure (toLunaValue std primMonthLengthVal) [intT, intT] intT
+    primMonthLength <- makeFunctionPure (toLunaValue std primMonthLengthVal) [intT, intT] intT
 
-    Right (text2TimeAssu, text2TimeIr) <- runGraph $ do
-        tText  <- cons_ @Draft "Text"
-        tTime  <- cons_ @Draft "Time"
-        tMaybe <- cons "Maybe" [tTime]
-        l1     <- lam tText tMaybe
-        l2     <- lam tText l1
-        (assu, r) <- mkMonadProofFun $ generalize l2
-        cmp    <- compile r
-        return (assu, cmp)
     let parseTime :: Text -> Text -> Maybe Time.ZonedTime
         parseTime fmt str = Time.parseTime Time.defaultTimeLocale (convert fmt) (convert str)
-        primParseTimeVal  = toLunaValue std parseTime
-        primParseTime     = Function text2TimeIr primParseTimeVal text2TimeAssu
+    primParseTime <- makeFunctionPure (toLunaValue std parseTime) ["Text", "Text"] (maybeLT "Time")
 
     let randomRealVal = performIO randomIO :: LunaEff Double
-    randomReal <- typeRepForIO (toLunaValue std randomRealVal) [] realT
+    randomReal <- makeFunctionIO (toLunaValue std randomRealVal) [] realT
 
     let sleepVal = performIO . threadDelay . int
-    sleep <- typeRepForIO (toLunaValue std sleepVal) [intT] noneT
+    sleep <- makeFunctionIO (toLunaValue std sleepVal) [intT] noneT
 
     let forkVal :: LunaEff () -> LunaEff ()
         forkVal act = performIO $ mdo
             uid <- registerGC $ killThread tid
             tid <- forkFinally (void $ runIO $ runError act) $ const (deregisterGC uid)
             return ()
-    fork <- typeRepForIO (toLunaValue std forkVal) [noneT] noneT
+    fork <- makeFunctionIO (toLunaValue std forkVal) [noneT] noneT
 
     let newEmptyMVarVal :: LunaEff (MVar LunaData)
         newEmptyMVarVal = performIO newEmptyMVar
-    newEmptyMVar' <- typeRepForIO (toLunaValue std newEmptyMVarVal) [] (LCons "MVar" [LVar "a"])
+    newEmptyMVar' <- makeFunctionIO (toLunaValue std newEmptyMVarVal) [] (LCons "MVar" [LVar "a"])
 
     let putMVarVal :: MVar LunaData -> LunaData -> LunaEff ()
         putMVarVal = performIO .: putMVar
-    putMVar' <- typeRepForIO (toLunaValue std putMVarVal) [LCons "MVar" [LVar "a"], LVar "a"] noneT
+    putMVar' <- makeFunctionIO (toLunaValue std putMVarVal) [LCons "MVar" [LVar "a"], LVar "a"] noneT
 
     let takeMVarVal :: MVar LunaData -> LunaValue
         takeMVarVal = performIO . takeMVar
         readMVarVal :: MVar LunaData -> LunaValue
         readMVarVal = performIO . readMVar
-    takeMVar' <- typeRepForIO (toLunaValue std takeMVarVal) [LCons "MVar" [LVar "a"]] (LVar "a")
+    takeMVar' <- makeFunctionIO (toLunaValue std takeMVarVal) [LCons "MVar" [LVar "a"]] (LVar "a")
 
     let fileHandleT = LCons "FileHandle" []
 
     let writeFileVal :: Text -> Text -> LunaEff ()
         writeFileVal p c = withExceptions $ writeFile (convert p) (convert c)
-    writeFile' <- typeRepForIO (toLunaValue std writeFileVal) [textT, textT] noneT
+    writeFile' <- makeFunctionIO (toLunaValue std writeFileVal) [textT, textT] noneT
 
     let runProcessVal :: CreateProcess -> LunaEff (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
         runProcessVal = withExceptions . Process.createProcess
-    runProcess' <- typeRepForIO (toLunaValue std runProcessVal) [ LCons "ProcessDescription" [] ] ( LCons "Process" [ LCons "Maybe" [ LCons "FileHandle" [] ]
+    runProcess' <- makeFunctionIO (toLunaValue std runProcessVal) [ LCons "ProcessDescription" [] ] ( LCons "Process" [ LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                     , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                     , LCons "Maybe" [ LCons "FileHandle" [] ]
                                                                                                                     , LCons "ProcessHandle" [] ] )
     let hIsOpenVal :: Handle -> LunaEff Bool
         hIsOpenVal = withExceptions . Handle.hIsOpen
-    hIsOpen' <- typeRepForIO (toLunaValue std hIsOpenVal) [fileHandleT] boolT
+    hIsOpen' <- makeFunctionIO (toLunaValue std hIsOpenVal) [fileHandleT] boolT
 
     let hIsClosedVal :: Handle -> LunaEff Bool
         hIsClosedVal = withExceptions . Handle.hIsClosed
-    hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [fileHandleT] boolT
+    hIsClosed' <- makeFunctionIO (toLunaValue std hIsClosedVal) [fileHandleT] boolT
 
     let ignoreSigPipe :: IO () -> IO ()
         ignoreSigPipe = Exception.handle $ \e -> case e of
@@ -968,41 +848,41 @@ systemStd std = do
         hCloseVal :: Handle -> LunaEff ()
         hCloseVal = withExceptions . ignoreSigPipe . Handle.hClose
 
-    hClose' <- typeRepForIO (toLunaValue std hCloseVal) [fileHandleT] noneT
+    hClose' <- makeFunctionIO (toLunaValue std hCloseVal) [fileHandleT] noneT
 
     let evaluateVal :: Text -> LunaEff Text
         evaluateVal t = withExceptions $ do
             Exception.evaluate $ rnf t
             return t
-    evaluate' <- typeRepForIO (toLunaValue std evaluateVal) [textT] textT
+    evaluate' <- makeFunctionIO (toLunaValue std evaluateVal) [textT] textT
 
     let hGetContentsVal :: Handle -> LunaEff Text
         hGetContentsVal = fmap Text.pack . withExceptions . Handle.hGetContents
-    hGetContents' <- typeRepForIO (toLunaValue std hGetContentsVal) [fileHandleT] textT
+    hGetContents' <- makeFunctionIO (toLunaValue std hGetContentsVal) [fileHandleT] textT
 
     let hGetLineVal :: Handle -> LunaEff Text
         hGetLineVal = fmap Text.pack . withExceptions . Handle.hGetLine
-    hGetLine' <- typeRepForIO (toLunaValue std hGetLineVal) [fileHandleT] textT
+    hGetLine' <- makeFunctionIO (toLunaValue std hGetLineVal) [fileHandleT] textT
 
     let hPutTextVal :: Handle -> Text -> LunaEff ()
         hPutTextVal h = withExceptions . Handle.hPutStr h . Text.unpack
-    hPutText' <- typeRepForIO (toLunaValue std hPutTextVal) [fileHandleT, textT] noneT
+    hPutText' <- makeFunctionIO (toLunaValue std hPutTextVal) [fileHandleT, textT] noneT
 
     let hFlushVal :: Handle -> LunaEff ()
         hFlushVal = withExceptions . Handle.hFlush
-    hFlush' <- typeRepForIO (toLunaValue std hFlushVal) [fileHandleT] noneT
+    hFlush' <- makeFunctionIO (toLunaValue std hFlushVal) [fileHandleT] noneT
 
     let waitForProcessVal :: ProcessHandle -> LunaEff ExitCode
         waitForProcessVal = withExceptions . Process.waitForProcess
-    waitForProcess' <- typeRepForIO (toLunaValue std waitForProcessVal) [LCons "ProcessHandle" []] (LCons "ExitCode" [])
+    waitForProcess' <- makeFunctionIO (toLunaValue std waitForProcessVal) [LCons "ProcessHandle" []] (LCons "ExitCode" [])
 
     let hSetBufferingVal :: Handle -> BufferMode -> LunaEff ()
         hSetBufferingVal = withExceptions .: Handle.hSetBuffering
-    hSetBuffering' <- typeRepForIO (toLunaValue std hSetBufferingVal) [fileHandleT, LCons "BufferMode" []] noneT
+    hSetBuffering' <- makeFunctionIO (toLunaValue std hSetBufferingVal) [fileHandleT, LCons "BufferMode" []] noneT
 
     let pathSepVal :: Text
         pathSepVal = convert pathSeparator
-    pathSep <- typeRepForPure (toLunaValue std pathSepVal) [] textT
+    pathSep <- makeFunctionPure (toLunaValue std pathSepVal) [] textT
 
     let systemFuncs = Map.fromList [ ("putStr", printLn)
                                    , ("errorStr", err)
