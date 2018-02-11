@@ -43,8 +43,6 @@ import qualified Data.Text.Lazy                               as Text
 import qualified Data.Text.Lazy.Encoding                      as Text
 import qualified Data.Text.Encoding                           as T
 import           Data.TypeDesc
-import           Data.UUID                                    (UUID)
-import qualified Data.UUID.V4                                 as UUID
 
 import           Foreign.C                                    (ePIPE, Errno (Errno))
 
@@ -98,6 +96,7 @@ import           System.Random                                (randomIO)
 import           System.Directory                             (canonicalizePath)
 import           Text.Read                                    (readMaybe)
 
+import           Luna.Std.Finalizers (registerFinalizer, cancelFinalizer, finalize, initFinalizersCtx)
 
 stdlibImports :: [QualName]
 stdlibImports = [ ["Std", "Base"] , ["Std", "HTTP"], ["Std", "System"], ["Std", "Time"], ["Std", "WebSockets"] ]
@@ -494,15 +493,6 @@ prelude imps = mdo
 stdlib :: Imports -> IO (Map Name Function)
 stdlib = prelude
 
-newtype GCState = GCState (Map UUID (IO ()))
-makeWrapped ''GCState
-
-instance Default GCState where
-    def = GCState def
-
-cleanupGC :: GCState -> IO GCState
-cleanupGC st = sequence (unwrap st) >> return def
-
 data WSConnection = WSConnection { wsConn :: WebSocket.Connection, sem :: MVar () }
 data WSServer     = WSServer     { wsServerSock   :: Socket
                                  , wsServerConns  :: MVar (Map SockAddr WSConnection)
@@ -513,7 +503,8 @@ systemStd :: Imports -> IO (IO (), Map Name Function)
 systemStd std = do
     stdFuncs <- stdlib std
 
-    gcState <- newMVar $ GCState Map.empty
+    finalizersCtx <- initFinalizersCtx
+
 
     -- wrappers for simple types
     let noneT   = LCons "None"   []
@@ -525,18 +516,6 @@ systemStd std = do
         tuple2T t1 t2       = LCons "Tuple2" [t1, t2]
         tuple3T t1 t2 t3    = LCons "Tuple3" [t1, t2, t3]
         tuple4T t1 t2 t3 t4 = LCons "Tuple4" [t1, t2, t3, t4]
-
-    let registerGC :: IO () -> IO UUID
-        registerGC act = do
-            uuid <- UUID.nextRandom
-            modifyMVar_ gcState $ return . (wrapped . at uuid ?~ act)
-            return uuid
-
-        deregisterGC :: UUID -> IO ()
-        deregisterGC uuid = modifyMVar_ gcState $ return . (wrapped . at uuid .~ Nothing)
-
-        cleanup :: IO ()
-        cleanup = modifyMVar_ gcState cleanupGC
 
     let putStr :: Text -> LunaEff ()
         putStr = performIO . putStrLn . convert
@@ -639,7 +618,7 @@ systemStd std = do
             forkIO $ withSocketsDo $ runClient (convert strippedHost) port (convert path) secure app
             wsConnection <- readMVar connection
             let cleanup = unregisterConnection wsConnection
-            registerGC cleanup
+            registerFinalizer finalizersCtx cleanup
             return wsConnection
 
     let wsConnectionT = LCons "WSConnection" []
@@ -800,8 +779,8 @@ systemStd std = do
 
     let forkVal :: LunaEff () -> LunaEff ()
         forkVal act = performIO $ mdo
-            uid <- registerGC $ killThread tid
-            tid <- forkFinally (void $ runIO $ runError act) $ const (deregisterGC uid)
+            uid <- registerFinalizer finalizersCtx $ killThread tid
+            tid <- forkFinally (void $ runIO $ runError act) $ const (cancelFinalizer finalizersCtx uid)
             return ()
     fork <- makeFunctionIO (toLunaValue std forkVal) [noneT] noneT
 
@@ -941,7 +920,7 @@ systemStd std = do
                                    , ("primEvaluate", evaluate')
                                    ]
 
-    return (cleanup, Map.union systemFuncs stdFuncs)
+    return (finalize finalizersCtx, Map.union systemFuncs stdFuncs)
 
 unexpectedConstructorFor name = throw $ "Expected a " <> name <> " luna object, got unexpected constructor"
 
