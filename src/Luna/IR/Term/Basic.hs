@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeInType #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Basic where
 
@@ -8,7 +9,7 @@ import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pok
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 
 import qualified Data.Graph as Graph
-
+import qualified Foreign.Memory.Pool as MemPool
 
 
 
@@ -62,15 +63,40 @@ type instance Term (Tag t a) = TermDef (Tag t a) ('Layout.Flat (Tag t a))
 
 data Layer_Term
 
-data Layer = Layer
-    { _bytes      :: !Int
-    , _byteOffset :: !Int
-    }
+newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
+makeLenses ''LayerLoc
+
+termLayer :: LayerLoc Layer_Term
+termLayer = LayerLoc 0 ; {-# INLINE termLayer #-}
 
 
+class Storable (LayerData layer layout) => Layer (layer :: Type) (layout :: Type) where
+    type family LayerData layer layout :: Type
+    layerOffset :: Int
+    layerOffset = 0
+
+instance Layer Layer_Term (FormatTag f) where
+    type LayerData Layer_Term (FormatTag f) = Term (FormatTag f)
+
+-- instance Layer Layer_Term (TermTag f) where
+--     type LayerData Layer_Term (TermTag f) = Term (TermTag f)
+--     layerOffset = constructorSize
+
+
+-- type instance LayerData Layer_Term (Tag t a) = Term (Tag t a)
+
+-- class LayerStorable layer (layout :: Layout) where
+--     type family LayerData layer layout :: Type
+--     layerByteSize   :: Int
+--     layerByteOffset :: Int
+--
+-- instance LayerStorable Layer_Term
+
+constructorSize :: Int
+constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 
 chunkSize :: Int
-chunkSize = sizeOf' @Int
+chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 
 instance Storable (TermUni fmt a) where
     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
@@ -87,11 +113,44 @@ instance Storable (TermUni fmt a) where
 
 
 
+newtype IR (t :: Type) = IR (Ptr ()) deriving (Show)
+makeLenses ''IR
+
 
 -- class Reader layer where
---     readIO :: forall layout. IR layout -> IO (LayerDef SubLayout layer)
+
+mockNewIR :: MonadIO m => m (IR Draft)
+mockNewIR = IR . coerce <$> MemPool.alloc @(Term Draft) ; {-# INLINE mockNewIR #-}
+
+readLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> m (LayerData layer layout)
+readLayer loc ir = liftIO $ peekByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) ; {-# INLINE readLayer #-}
+
+writeLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> (LayerData layer layout) -> m ()
+writeLayer loc ir val = liftIO $ pokeByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) val ; {-# INLINE writeLayer #-}
 
 
+test :: IO ()
+test = do
+    ir <- mockNewIR
+    writeLayer termLayer ir (Var 7)
+    x <- readLayer termLayer ir
+    print ir
+    print x
+
+
+test_readWriteLayer :: Int -> IO ()
+test_readWriteLayer i = do
+    ir <- mockNewIR
+    writeLayer termLayer ir (Var 0)
+    let go 0 = return ()
+        go j = do
+            Var x <- readLayer termLayer ir
+            writeLayer termLayer ir (Var (x+1))
+            go (j - 1)
+    go i
+    -- Ptr.free ptr
+
+-- readIO @Layer_Term
 
 -- termLayer = Layer (sizeOf' @)
 -- newtype IRDef (layers :: [Type]) = IRDef (Ptr ()) deriving (Show)
@@ -101,7 +160,6 @@ instance Storable (TermUni fmt a) where
 -- class Layer l where
 
 
--- newtype IR (t :: k) = IR (Ptr ()) deriving (Show)
 
 -- var :: Int -> IR Var
 

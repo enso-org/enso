@@ -157,13 +157,13 @@ test_mallocForeignPtr i = do
     go i
 
 
-test_mallocMemPool :: Int -> IO ()
-test_mallocMemPool i = do
-    let go 0 = return ()
-        go j = do
-            ptr <- MemPool.allocPtr
-            go (j - 1)
-    MemPool.evalMemoryPoolT 8 1024 $ go i
+-- test_mallocMemPool :: Int -> IO ()
+-- test_mallocMemPool i = do
+--     let go 0 = return ()
+--         go j = do
+--             ptr <- MemPool.allocPtr
+--             go (j - 1)
+--     MemPool.evalMemoryPoolT 8 1024 $ go i
 
 
 
