@@ -12,6 +12,8 @@ library:
     - libs/mutable-list
     - libs/autovector
     - libs/graph
+    - libs/memory-pool
+    - libs/data-tag
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core

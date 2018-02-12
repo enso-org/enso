@@ -7,21 +7,26 @@ import Prologue
 import qualified Data.Vector.Storable.Mutable as Vector
 
 import Data.Vector.Storable.Mutable (MVector)
-import OCI.IR.Term
+import Luna.IR.Term
 import Data.AutoVector.Storable.Mutable
 
 import qualified Data.Graph as Graph
 import Data.IORef
 import Foreign.ForeignPtr.Utils
 import Control.Exception.Base (evaluate)
+import Foreign (Ptr, castPtr)
 
 import qualified Foreign.Marshal.Utils as Ptr
 import qualified Foreign.Marshal.Alloc as Ptr
-import Foreign.Storable (peek, poke)
+import Foreign.Storable (Storable(..), peek, poke)
+import Foreign.Storable.Utils
 
 import qualified Foreign.StablePtr as SPtr
 
 import Data.IORef.Unboxed
+
+import qualified Foreign.Memory.Pool as MemPool
+
 
 
 fillMVector_Int :: Int -> MVector (PrimState IO) Int -> IO ()
@@ -151,12 +156,32 @@ test_mallocForeignPtr i = do
             go (j - 1)
     go i
 
-test_mallocPtr :: Int -> IO ()
-test_mallocPtr i = do
+
+test_mallocMemPool :: Int -> IO ()
+test_mallocMemPool i = do
     let go 0 = return ()
         go j = do
-            ptr <- Ptr.new (0 :: Int)
-            -- Ptr.free ptr
+            ptr <- MemPool.allocPtr
+            go (j - 1)
+    MemPool.evalMemoryPoolT 8 1024 $ go i
+
+
+
+test_malloc1 :: Int -> IO ()
+test_malloc1 i = do
+    let go 0 = return ()
+        go j = do
+            (ptr :: Ptr()) <- Ptr.mallocBytes 1
+            Ptr.free ptr
+            go (j - 1)
+    go i
+
+test_malloc100 :: Int -> IO ()
+test_malloc100 i = do
+    let go 0 = return ()
+        go j = do
+            (ptr :: Ptr()) <- Ptr.mallocBytes 100
+            Ptr.free ptr
             go (j - 1)
     go i
 
@@ -168,3 +193,43 @@ test_mallocSPtr i = do
             -- Ptr.free ptr
             go (j - 1)
     go i
+
+
+
+
+data TwoPart = TwoPart {-# UNBOX #-} !Int {-# UNBOX #-} !Int deriving Show
+
+chunkSize :: Int
+chunkSize = sizeOf' @Int
+instance Storable TwoPart where
+    sizeOf    (~_) = 2 * chunkSize ; {-# INLINE sizeOf    #-}
+    alignment (~_) = chunkSize     ; {-# INLINE alignment #-}
+    peek !ptr = TwoPart <$> peek (castPtr ptr) <*> peekByteOff ptr chunkSize ; {-# INLINE peek #-}
+    poke !ptr = \(TwoPart !b !n) -> poke (castPtr ptr) b >> pokeByteOff ptr chunkSize n ; {-# INLINE poke #-}
+
+
+
+test_singleStorable :: Int -> IO ()
+test_singleStorable i = do
+    ptr <- Ptr.new (TwoPart 0 0)
+    let go 0 = return ()
+        go j = do
+            (TwoPart x y) <- peek ptr
+            poke ptr (TwoPart (x+1) (y+1))
+            go (j - 1)
+    go i
+    Ptr.free ptr
+
+
+test_partialStorable :: Int -> IO ()
+test_partialStorable i = do
+    ptr <- Ptr.new (TwoPart 0 0)
+    let go 0 = return ()
+        go j = do
+            (x :: Int) <- peek (castPtr ptr)
+            (y :: Int) <- peekByteOff ptr chunkSize
+            poke (castPtr ptr) (x + 1)
+            pokeByteOff ptr chunkSize (y + 1)
+            go (j - 1)
+    go i
+    Ptr.free ptr
