@@ -50,17 +50,14 @@ eitherLT :: LTp -> LTp -> LTp
 eitherLT l r = LCons "Either" [l, r]
 
 mkType :: (MonadRef m, MonadPassManager m) => Map Name (Expr Draft) -> LTp -> SubPass TestPass m (Expr Draft, Expr Draft)
-mkType vars (LVar n)         = do
-    let v = fromJust $ Map.lookup n vars
+mkType vars ltp = do
     mv  <- var "a"
-    mon <- monadic v mv
+    res <- go ltp
+    mon <- monadic res mv
     return (generalize mon, generalize mv)
-mkType vars (LCons n fs) = do
-    fields <- fmap fst <$> mapM (mkType vars) fs
-    mv     <- var "a"
-    cs     <- cons n fields
-    mon    <- monadic cs mv
-    return (generalize mon, generalize mv)
+  where
+    go (LVar  n)    = return $ fromJust $ Map.lookup n vars
+    go (LCons n fs) = fmap generalize $ mapM go fs >>= cons n
 
 makeType :: [LTp] -> LTp -> Name -> IO (Assumptions, Rooted SomeExpr)
 makeType args out outMonadName = do
