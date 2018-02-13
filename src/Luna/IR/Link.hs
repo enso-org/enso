@@ -3,7 +3,7 @@ module Luna.IR.Link where
 import Prologue
 
 import OCI.IR.Link
-import OCI.IR.Layout
+import qualified OCI.IR.Layout as Layout
 
 
 
@@ -12,10 +12,6 @@ import OCI.IR.Layout
 ------------------------
 
 
-data TERM
-data TYPE
-data NAME
-
-type Term t src = SubLinkRef (Rebase t src) TERM
-type Type t src = SubLinkRef (Rebase t src) TYPE
-type Name t src = SubLinkRef (Rebase t src) NAME
+type Term t src = SubLinkRef (Layout.Rebase t src) Layout.Term
+type Type t src = SubLinkRef (Layout.Rebase t src) Layout.Type
+type Name t src = SubLinkRef (Layout.Rebase t src) Layout.Name

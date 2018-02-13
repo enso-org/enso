@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Basic where
@@ -16,7 +15,7 @@ import qualified Foreign.Memory.Pool as MemPool
 
 import Luna.IR.Class
 import OCI.IR.Term hiding (TermDef)
-import OCI.IR.Layout as Layout
+import qualified OCI.IR.Layout as Layout
 
 import qualified Luna.IR.Link as Link
 import Luna.IR.Format
@@ -28,11 +27,11 @@ import Data.Tag (Tag)
 
 -- === IR Atoms === ---
 
-type family TermDef (t :: Type) :: Layout -> Type
--- data family TermDef (t :: Type) (a :: Layout)
+type family TermDef t :: * -> *
+-- data family TermDef (t :: *) (a :: Layout)
 
 
-type family Term (a :: k)
+type family Term a
 
 
 type Var = TermTag VAR; data VAR
@@ -58,7 +57,7 @@ type instance TermDef (FormatTag f) = TermUni (FormatTag f)
 
 
 
-type instance Term (Tag t a) = TermDef (Tag t a) ('Layout.Flat (Tag t a))
+type instance Term (Tag t a) = TermDef (Tag t a) (Tag t a)
 
 
 data Layer_Term
@@ -70,8 +69,8 @@ termLayer :: LayerLoc Layer_Term
 termLayer = LayerLoc 0 ; {-# INLINE termLayer #-}
 
 
-class Storable (LayerData layer layout) => Layer (layer :: Type) (layout :: Type) where
-    type family LayerData layer layout :: Type
+class Storable (LayerData layer layout) => Layer layer layout where
+    type family LayerData layer layout
     layerOffset :: Int
     layerOffset = 0
 
@@ -86,7 +85,7 @@ instance Layer Layer_Term (FormatTag f) where
 -- type instance LayerData Layer_Term (Tag t a) = Term (Tag t a)
 
 -- class LayerStorable layer (layout :: Layout) where
---     type family LayerData layer layout :: Type
+--     type family LayerData layer layout :: *
 --     layerByteSize   :: Int
 --     layerByteOffset :: Int
 --
@@ -113,7 +112,7 @@ instance Storable (TermUni fmt a) where
 
 
 
-newtype IR (t :: Type) = IR (Ptr ()) deriving (Show)
+newtype IR (t :: *) = IR (Ptr ()) deriving (Show)
 makeLenses ''IR
 
 

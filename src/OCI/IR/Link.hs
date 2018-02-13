@@ -19,7 +19,7 @@ type family IRDef a
 
 -- === Definition === ---
 
-data IRLink (src :: Layout) (tgt :: Layout) = IRLink
+data IRLink src tgt = IRLink
     { _source :: {-# UNPACK #-} !(TermRef src)
     , _target :: {-# UNPACK #-} !(TermRef tgt)
     } deriving (Eq, Show)
@@ -28,4 +28,4 @@ newtype LinkRef src tgt = LinkRef (Ptr (IRLink src tgt))
     deriving (Eq, Show, Storable)
 
 
-type SubLinkRef src tgtType = LinkRef src (SubLayout tgtType src)
+type SubLinkRef src tgtType = LinkRef src (GetSublayout tgtType src)

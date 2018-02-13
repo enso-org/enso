@@ -14,6 +14,7 @@ library:
     - libs/graph
     - libs/memory-pool
     - libs/data-tag
+    - libs/typelevel
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core
@@ -52,7 +53,6 @@ benchmarks:
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
