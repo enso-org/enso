@@ -1,15 +1,15 @@
-
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE EmptyDataDecls     #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE PolyKinds          #-}
+{-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Type.Data.Ord where
 
 import Prelude
+import Type.Data.Bool
 
 
+type family Cmp (a :: k) (b :: k) :: Ordering
 
-type family (a :: k) > (b :: k) :: Bool
-type family (a :: k) < (b :: k) :: Bool
+type family a >  b where a >  b = Cmp a b == GT
+type family a >= b where a >= b = Cmp a b != LT
+type family a <  b where a <  b = Cmp a b == LT
+type family a <= b where a <= b = Cmp a b != GT
