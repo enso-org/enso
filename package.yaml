@@ -15,6 +15,7 @@ library:
     - libs/memory-pool
     - libs/data-tag
     - libs/typelevel
+    - libs/data-mutable
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core

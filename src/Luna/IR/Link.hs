@@ -12,6 +12,6 @@ import qualified OCI.IR.Layout as Layout
 ------------------------
 
 
-type Term t src = SubLinkRef (Layout.Rebase t src) Layout.Term
-type Type t src = SubLinkRef (Layout.Rebase t src) Layout.Type
-type Name t src = SubLinkRef (Layout.Rebase t src) Layout.Name
+type Term t src = SubLink (Layout.Rebase t src) Layout.Term
+type Type t src = SubLink (Layout.Rebase t src) Layout.Type
+type Name t src = SubLink (Layout.Rebase t src) Layout.Name

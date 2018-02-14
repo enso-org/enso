@@ -16,10 +16,13 @@ import qualified Foreign.Memory.Pool as MemPool
 import Luna.IR.Class
 import OCI.IR.Term hiding (TermDef)
 import qualified OCI.IR.Layout as Layout
+import OCI.IR.Link as Link
 
 import qualified Luna.IR.Link as Link
 import Luna.IR.Format
 import Data.Tag (Tag)
+
+import qualified Data.Mutable as MData
 
 ----------------
 -- === IR === --
@@ -61,12 +64,16 @@ type instance Term (Tag t a) = TermDef (Tag t a) (Tag t a)
 
 
 data Layer_Term
+data Layer_Link
 
 newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
 
 termLayer :: LayerLoc Layer_Term
 termLayer = LayerLoc 0 ; {-# INLINE termLayer #-}
+
+linkLayer :: LayerLoc Layer_Link
+linkLayer = LayerLoc 0 ; {-# INLINE linkLayer #-}
 
 
 class Storable (LayerData layer layout) => Layer layer layout where
@@ -77,10 +84,14 @@ class Storable (LayerData layer layout) => Layer layer layout where
 instance Layer Layer_Term (FormatTag f) where
     type LayerData Layer_Term (FormatTag f) = Term (FormatTag f)
 
--- instance Layer Layer_Term (TermTag f) where
---     type LayerData Layer_Term (TermTag f) = Term (TermTag f)
---     layerOffset = constructorSize
+instance Storable (LayerData Layer_Term (TermTag f))
+      => Layer Layer_Term (TermTag f) where
+    type LayerData Layer_Term (TermTag f) = Term (TermTag f)
+    layerOffset = constructorSize
 
+
+instance Layer Layer_Link a where
+    type LayerData Layer_Link a = LinkData Draft Draft
 
 -- type instance LayerData Layer_Term (Tag t a) = Term (Tag t a)
 
@@ -112,8 +123,6 @@ instance Storable (TermUni fmt a) where
 
 
 
-newtype IR (t :: *) = IR (Ptr ()) deriving (Show)
-makeLenses ''IR
 
 
 -- class Reader layer where
@@ -121,19 +130,37 @@ makeLenses ''IR
 mockNewIR :: MonadIO m => m (IR Draft)
 mockNewIR = IR . coerce <$> MemPool.alloc @(Term Draft) ; {-# INLINE mockNewIR #-}
 
-readLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> m (LayerData layer layout)
-readLayer loc ir = liftIO $ peekByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) ; {-# INLINE readLayer #-}
+mockNewLink :: forall m. MonadIO m => m (Link Draft Draft)
+mockNewLink = Link . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
-writeLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> (LayerData layer layout) -> m ()
-writeLayer loc ir val = liftIO $ pokeByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) val ; {-# INLINE writeLayer #-}
+-- readLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> m (LayerData layer layout)
+-- readLayer loc ir = liftIO $ peekByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) ; {-# INLINE readLayer #-}
+--
+-- writeLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> (LayerData layer layout) -> m ()
+-- writeLayer loc ir val = liftIO $ pokeByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) val ; {-# INLINE writeLayer #-}
+
+readLayer :: forall t layer layout m. (Layer layer layout, MonadIO m, DataLayout t ~ layout, MutableData t) => LayerLoc layer -> t -> m (LayerData layer layout)
+readLayer loc t = liftIO $ peekByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @layout) ; {-# INLINE readLayer #-}
+
+writeLayer :: forall t layer layout m. (Layer layer layout, MonadIO m,  DataLayout t ~ layout, MutableData t) => LayerLoc layer -> t -> (LayerData layer layout) -> m ()
+writeLayer loc t val = liftIO $ pokeByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @layout) val ; {-# INLINE writeLayer #-}
 
 
 test :: IO ()
 test = do
-    ir <- mockNewIR
-    writeLayer termLayer ir (Var 7)
-    x <- readLayer termLayer ir
-    print ir
+    var1 <- mockNewIR
+    var2 <- mockNewIR
+    acc1 <- mockNewIR
+    writeLayer termLayer var1 (Var 7)
+    writeLayer termLayer var2 (Var 5)
+
+    l1 <- mockNewLink
+    writeLayer linkLayer l1 (LinkData var1 acc1)
+
+    writeLayer termLayer acc1 (Acc l1 l1)
+
+    print var1
+    x <- readLayer termLayer var1
     print x
 
 
