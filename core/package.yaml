@@ -66,16 +66,17 @@ dependencies:
     - open-browser
     - primitive
     - reflection
+    - safe-exceptions
     - template-haskell
     - text
     - time
     - time-locale-compat
     - typelevel
+    - uuid
     - vector
     - ansi-terminal
     - text-processing
     - vector-text
-    - ansi-terminal
     - terminal-text
 
 default-extensions:

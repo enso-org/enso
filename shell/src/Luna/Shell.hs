@@ -11,7 +11,6 @@ import           Data.Map            (Map)
 import qualified Data.TreeSet        as TreeSet
 import qualified Data.Bimap          as Bimap
 
-import Luna.Builtin.Std
 import qualified OCI.Pass           as Pass
 import           OCI.Pass           (SubPass, Preserves, Inputs, Outputs)
 import qualified OCI.IR.Repr.Vis    as Vis

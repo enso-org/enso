@@ -14,7 +14,7 @@ import           Control.Monad.Raise
 import           Control.Monad.State  (runStateT, MonadState)
 import           Control.Monad.Except (runExceptT, MonadError, throwError)
 
-import Luna.Builtin.Std
+import Luna.Std (stdlib, stdlibImports)
 import qualified OCI.Pass           as Pass
 import           OCI.Pass           (SubPass, Preserves, Inputs, Outputs)
 import qualified OCI.IR.Repr.Vis    as Vis
@@ -105,7 +105,7 @@ prepareStdlib :: Map Name FilePath -> IO (IO (), CompiledModules)
 prepareStdlib srcs = mdo
     let system  = Imports def $ Function.WithDocumentation def . Right <$> std
         initial = CompiledModules def system
-    (cln, std) <- systemStd $ unionsImports $ Map.elems $ modules
+    (cln, std) <- stdlib $ unionsImports $ Map.elems $ modules
     Right (_, res@(CompiledModules modules _)) <- requestModules srcs stdlibImports initial
     return (cln, res)
 

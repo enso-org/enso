@@ -9,6 +9,7 @@ import Prologue_old                    hiding (force, Text)
 
 import Control.Concurrent
 import Control.Concurrent.MVar
+import qualified Control.Exception.Safe as Exception
 import Data.ByteString.Lazy        hiding (head)
 import Data.Maybe                  (fromMaybe, maybeToList)
 import Data.Text.Lazy              hiding (head)
@@ -290,12 +291,23 @@ thunkProof f (LunaThunk a) = return $ LunaThunk $ a >>= thunkProof f
 thunkProof f (LunaSusp  a) = return $ LunaSusp  $ a >>= thunkProof f
 thunkProof f a             = f a
 
+rethrowExceptions :: IO a -> LunaEff a
+rethrowExceptions a = do
+    res <- performIO $ Exception.catchAny (Right <$> a) (return . Left . displayException)
+    case res of
+        Left a  -> throw a
+        Right r -> return r
+
+
 instance {-# OVERLAPPABLE #-} (FromLunaData a, ToLunaValue b) => ToLunaData (a -> b) where
     toLunaData imps f = mkPrimFun $ \d -> fromLunaData d >>= toLunaValue imps . f
 
 instance {-# OVERLAPPABLE #-} (FromLunaData a, ToLunaValue b) => ToLunaData (LunaEff a -> b) where
     toLunaData imps f = LunaFunction fun where
         fun v = toLunaValue imps $ f (v >>= fromLunaData)
+
+instance ToLunaValue a => ToLunaValue (IO a) where
+    toLunaValue imps = toLunaValue imps <=< rethrowExceptions
 
 instance ToLunaData a => ToLunaValue (LunaEff a) where
     toLunaValue imps a = toLunaData imps <$> a

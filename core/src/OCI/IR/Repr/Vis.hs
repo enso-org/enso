@@ -48,6 +48,7 @@ visNodeWith nodeLabeler edgeLabeler t = do
     value  <- matchExpr t $ return . \case
         String    s   -> "'" <> s <> "'"
         Number    n   -> show n
+        Acc       t n -> "Acc "  <> show n
         Var       n   -> "Var "  <> show n
         Cons      n _ -> "Cons " <> show n
         FieldLens p   -> "Lens " <> show p
