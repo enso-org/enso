@@ -3,7 +3,7 @@
 module Luna.IR.Term.Basic where
 
 import Prologue
-import Foreign.Ptr            (Ptr, castPtr)
+import Foreign.Ptr            (Ptr, castPtr, plusPtr)
 import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 
@@ -76,10 +76,21 @@ linkLayer :: LayerLoc Layer_Link
 linkLayer = LayerLoc 0 ; {-# INLINE linkLayer #-}
 
 
-class Storable (LayerData layer layout) => Layer layer layout where
-    type family LayerData layer layout
-    layerOffset :: Int
-    layerOffset = 0
+class Storable (LayerData layer t) => Layer layer t where
+    type family   LayerData layer t
+    type instance LayerData layer t = layer
+
+    layerPeek :: forall a. Ptr a -> IO (LayerData layer t)
+    layerPoke :: forall a. Ptr a -> LayerData layer t -> IO ()
+    layerPeek ptr = peek (castPtr ptr) ; {-# INLINE layerPeek #-}
+    layerPoke ptr = poke (castPtr ptr) ; {-# INLINE layerPoke #-}
+
+
+layerPeekByteOff :: forall l t a. Layer l t => Ptr a -> Int -> IO (LayerData l t)
+layerPokeByteOff :: forall l t a. Layer l t => Ptr a -> Int -> LayerData l t -> IO ()
+layerPeekByteOff ptr off = layerPeek @l @t (ptr `plusPtr` off) ; {-# INLINE layerPeekByteOff #-}
+layerPokeByteOff ptr off = layerPoke @l @t (ptr `plusPtr` off) ; {-# INLINE layerPokeByteOff #-}
+
 
 instance Layer     Layer_Term (IR (FormatTag f)) where
     type LayerData Layer_Term (IR (FormatTag f)) = Term (FormatTag f)
@@ -87,7 +98,7 @@ instance Layer     Layer_Term (IR (FormatTag f)) where
 instance Storable (LayerData Layer_Term (IR (TermTag f)))
       => Layer     Layer_Term (IR (TermTag f)) where
     type LayerData Layer_Term (IR (TermTag f)) = Term (TermTag f)
-    layerOffset = constructorSize
+    layerPeek ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE layerPeek #-}
 
 
 instance Layer     Layer_Link a where
@@ -134,11 +145,10 @@ mockNewLink :: forall m. MonadIO m => m (Link Draft Draft)
 mockNewLink = Link . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
-readLayer :: forall t layer layout m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t -> m (LayerData layer t)
-readLayer loc t = liftIO $ peekByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @t) ; {-# INLINE readLayer #-}
-
-writeLayer :: forall t layer layout m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t -> (LayerData layer t) -> m ()
-writeLayer loc t val = liftIO $ pokeByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @t) val ; {-# INLINE writeLayer #-}
+readLayer  :: forall t layer m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t -> m (LayerData layer t)
+writeLayer :: forall t layer m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t ->   (LayerData layer t) -> m ()
+readLayer  loc t     = liftIO $ layerPeekByteOff @layer @t (coerce $ t ^. mdata) (unwrap loc)     ; {-# INLINE readLayer  #-}
+writeLayer loc t val = liftIO $ layerPokeByteOff @layer @t (coerce $ t ^. mdata) (unwrap loc) val ; {-# INLINE writeLayer #-}
 
 
 test :: IO ()
