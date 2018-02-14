@@ -31,15 +31,13 @@ type TermTag = Tag TERM
 --     deriving (Eq, Show, Storable)
 
 
-newtype MData (layout :: k) = MData (Ptr()) deriving (Eq, Show, Storable)
+newtype MData = MData (Ptr()) deriving (Eq, Show, Storable)
 
 class MutableData a where
-    type family DataLayout a
-    mdata :: Iso' a (MData (DataLayout a))
+    mdata :: Iso' a MData
 
-newtype IR (t :: Type) = IR (MData t) deriving (Eq, Show, Storable)
+newtype IR (t :: Type) = IR MData deriving (Eq, Show, Storable)
 makeLenses ''IR
 
 instance MutableData (IR t) where
-    type DataLayout  (IR t) = t
     mdata = wrapped ; {-# INLINE mdata #-}

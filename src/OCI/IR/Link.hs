@@ -28,11 +28,10 @@ data LinkData src tgt = LinkData
 -- newtype Link src tgt = Link (Ptr (LinkData src tgt))
 --     deriving (Eq, Show, Storable)
 
-newtype Link (src :: Type) (tgt :: Type) = Link (MData tgt) deriving (Eq, Show, Storable) -- FIXME: src not used
+newtype Link (src :: Type) (tgt :: Type) = Link MData deriving (Eq, Show, Storable) -- FIXME: src not used
 makeLenses ''Link
 
 instance MutableData (Link src tgt) where
-    type DataLayout  (Link src tgt) = tgt
     mdata = wrapped ; {-# INLINE mdata #-}
 
 

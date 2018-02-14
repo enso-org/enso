@@ -81,16 +81,16 @@ class Storable (LayerData layer layout) => Layer layer layout where
     layerOffset :: Int
     layerOffset = 0
 
-instance Layer Layer_Term (FormatTag f) where
-    type LayerData Layer_Term (FormatTag f) = Term (FormatTag f)
+instance Layer     Layer_Term (IR (FormatTag f)) where
+    type LayerData Layer_Term (IR (FormatTag f)) = Term (FormatTag f)
 
-instance Storable (LayerData Layer_Term (TermTag f))
-      => Layer Layer_Term (TermTag f) where
-    type LayerData Layer_Term (TermTag f) = Term (TermTag f)
+instance Storable (LayerData Layer_Term (IR (TermTag f)))
+      => Layer     Layer_Term (IR (TermTag f)) where
+    type LayerData Layer_Term (IR (TermTag f)) = Term (TermTag f)
     layerOffset = constructorSize
 
 
-instance Layer Layer_Link a where
+instance Layer     Layer_Link a where
     type LayerData Layer_Link a = LinkData Draft Draft
 
 -- type instance LayerData Layer_Term (Tag t a) = Term (Tag t a)
@@ -133,17 +133,12 @@ mockNewIR = IR . coerce <$> MemPool.alloc @(Term Draft) ; {-# INLINE mockNewIR #
 mockNewLink :: forall m. MonadIO m => m (Link Draft Draft)
 mockNewLink = Link . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
--- readLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> m (LayerData layer layout)
--- readLayer loc ir = liftIO $ peekByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) ; {-# INLINE readLayer #-}
---
--- writeLayer :: forall layer layout m. (Layer layer layout, MonadIO m) => LayerLoc layer -> IR layout -> (LayerData layer layout) -> m ()
--- writeLayer loc ir val = liftIO $ pokeByteOff (unwrap ir) (unwrap loc + layerOffset @layer @layout) val ; {-# INLINE writeLayer #-}
 
-readLayer :: forall t layer layout m. (Layer layer layout, MonadIO m, DataLayout t ~ layout, MutableData t) => LayerLoc layer -> t -> m (LayerData layer layout)
-readLayer loc t = liftIO $ peekByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @layout) ; {-# INLINE readLayer #-}
+readLayer :: forall t layer layout m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t -> m (LayerData layer t)
+readLayer loc t = liftIO $ peekByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @t) ; {-# INLINE readLayer #-}
 
-writeLayer :: forall t layer layout m. (Layer layer layout, MonadIO m,  DataLayout t ~ layout, MutableData t) => LayerLoc layer -> t -> (LayerData layer layout) -> m ()
-writeLayer loc t val = liftIO $ pokeByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @layout) val ; {-# INLINE writeLayer #-}
+writeLayer :: forall t layer layout m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t -> (LayerData layer t) -> m ()
+writeLayer loc t val = liftIO $ pokeByteOff (coerce $ t ^. mdata) (unwrap loc + layerOffset @layer @t) val ; {-# INLINE writeLayer #-}
 
 
 test :: IO ()
