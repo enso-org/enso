@@ -27,13 +27,18 @@ run = do
     mapM_ propagateErrors roots
 
 propagateErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m ()
-propagateErrors expr = matchExpr expr $ \case
-    Seq a b   -> do
-        propagateErrors =<< source a
-        propagateErrors =<< source b
-    _ -> do
-        inpErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
-        modifyLayer_ @Errors expr $ nub . (++ inpErrors)
+propagateErrors expr = do
+    matchExpr expr $ \case
+        Seq a b   -> do
+            propagateErrors =<< source a
+            propagateErrors =<< source b
+        ASGFunction _ _ g -> propagateErrors =<< source g
+        _ -> do
+            inpErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
+            modifyLayer_ @Errors expr $ nub . (++ inpErrors)
 
 getErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m [CompileError]
-getErrors expr = (++) <$> getLayer @Errors expr <*> (fmap concat $ mapM (getErrors <=< source) =<< inputs expr)
+getErrors expr = do
+    ownErrors    <- getLayer @Errors expr
+    inputsErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
+    return (ownErrors ++ inputsErrors)

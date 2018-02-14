@@ -7,8 +7,10 @@ module Luna.Builtin.Std where
 import qualified Prelude (read)
 
 import           Control.Concurrent
+import qualified Control.Concurrent.Async                     as Async
 import           Control.DeepSeq                              (rnf)
 import qualified Control.Exception                            as Exception
+import qualified Control.Exception.Safe                       as Exc.Safe
 import           Control.Monad.Except
 import           Control.Monad.Trans.State                    (evalStateT, get)
 import           System.FilePath                              (pathSeparator)
@@ -231,7 +233,7 @@ mkMonadProofFun tp = do
 
 withExceptions :: IO a -> LunaEff a
 withExceptions a = do
-    res <- performIO $ catchAll (Right <$> a) (return . Left . show)
+    res <- performIO $ Exc.Safe.catchAny (Right <$> a) (return . Left . displayException)
     case res of
         Left a  -> throw a
         Right r -> return r
@@ -595,7 +597,13 @@ systemStd std = do
             return uuid
 
         deregisterGC :: UUID -> IO ()
-        deregisterGC uuid = modifyMVar_ gcState $ return . (wrapped . at uuid .~ Nothing)
+        deregisterGC uuid = do
+            gcstate <- tryTakeMVar gcState
+            case gcstate of
+                Nothing -> return ()
+                Just gc -> do
+                    let retgc = (wrapped . at uuid .~ Nothing) gc
+                    putMVar gcState retgc
 
         cleanup :: IO ()
         cleanup = modifyMVar_ gcState cleanupGC
@@ -809,7 +817,7 @@ systemStd std = do
         primCreateWSServerVal :: Text -> Integer -> LunaEff WSServer
         primCreateWSServerVal host port = withExceptions $ do
             server <- initServer host port
-            forkIO $ Exception.bracket_ (return ()) (disconnectClients server) (awaitConnections server)
+            forkIO $ Exc.Safe.bracket_ (return ()) (disconnectClients server) (awaitConnections server)
             return server
     primCreateWSServer <- typeRepForIO (toLunaValue std primCreateWSServerVal)
                                        [textT, intT] wsServerT
@@ -920,8 +928,8 @@ systemStd std = do
 
     let forkVal :: LunaEff () -> LunaEff ()
         forkVal act = performIO $ mdo
-            uid <- registerGC $ killThread tid
-            tid <- forkFinally (void $ runIO $ runError act) $ const (deregisterGC uid)
+            uid <- registerGC $ Async.uninterruptibleCancel a
+            a   <- Async.async $ (void $ runIO $ runError act) `Exc.Safe.finally` deregisterGC uid
             return ()
     fork <- typeRepForIO (toLunaValue std forkVal) [noneT] noneT
 
@@ -960,11 +968,11 @@ systemStd std = do
     hIsClosed' <- typeRepForIO (toLunaValue std hIsClosedVal) [fileHandleT] boolT
 
     let ignoreSigPipe :: IO () -> IO ()
-        ignoreSigPipe = Exception.handle $ \e -> case e of
+        ignoreSigPipe = Exc.Safe.handle $ \e -> case e of
             IOError { ioe_type  = ResourceVanished
                     , ioe_errno = Just ioe }
                 | Errno ioe == ePIPE -> return ()
-            _ -> Exception.throwIO e
+            _ -> Exc.Safe.throwIO e
         hCloseVal :: Handle -> LunaEff ()
         hCloseVal = withExceptions . ignoreSigPipe . Handle.hClose
 
