@@ -28,11 +28,12 @@ thd (_, _, x) = x
 ------------------------------
 
 unpackCon :: Num a => TH.Con -> (Name, [Type])
-unpackCon (NormalC n fs)  = (n, map snd fs)
-unpackCon (RecC    n fs)  = (n, map (\(_, _, x) -> x) fs)
-unpackCon (InfixC a n b)  = (n, [snd a, snd b])
-unpackCon (ForallC _ _ c) = unpackCon c
-unpackCon _               = error "***error*** deriveStorable: GADT constructors not supported"
+unpackCon = \case
+    NormalC n fs  -> (n, map snd fs)
+    RecC    n fs  -> (n, map (\(_, _, x) -> x) fs)
+    InfixC a n b  -> (n, [snd a, snd b])
+    ForallC _ _ c -> unpackCon c
+    _             -> error "***error*** deriveStorable: GADT constructors not supported"
 
 -- | extract the name and number of params from the consturctor
 conInfo :: Num a => TH.Con -> (Name, a)
