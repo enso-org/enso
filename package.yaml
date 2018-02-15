@@ -30,6 +30,7 @@ dependencies:
     - base
     - convert
     - c-storable-deriving
+    - data-default
     - deepseq
     - functor-utils
     - lens-utils

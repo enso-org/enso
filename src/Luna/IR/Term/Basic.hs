@@ -1,4 +1,6 @@
+{-# OPTIONS_GHC -ddump-splices    #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell      #-}
 
 module Luna.IR.Term.Basic where
 
@@ -10,8 +12,7 @@ import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 import qualified Data.Graph as Graph
 import qualified Foreign.Memory.Pool as MemPool
 
-
-
+import Foreign.Storable.Deriving
 
 import Luna.IR.Class
 import OCI.IR.Term hiding (TermDef)
@@ -43,6 +44,8 @@ newtype TermVar a = TermVar
     } deriving (Show, Eq)
 type instance TermDef Var = TermVar
 
+deriveStorable ''TermVar
+
 type Acc = TermTag ACC; data ACC
 data TermAcc a = TermAcc
     { __base :: !(Link.Term Acc a)
@@ -50,11 +53,15 @@ data TermAcc a = TermAcc
     } deriving (Show, Eq)
 type instance TermDef Acc = TermAcc
 
+deriveStorable ''TermAcc
+
 data TermUni fmt a
     = Var !Int
     | Acc !(Link.Term fmt a) !(Link.Term fmt a)
     deriving (Show, Eq)
 type instance TermDef (FormatTag f) = TermUni (FormatTag f)
+
+deriveStorable ''TermUni
 
 -- data instance TermDef
 
@@ -144,18 +151,18 @@ constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 chunkSize :: Int
 chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 
-instance Storable (TermUni fmt a) where
-    sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
-    alignment _ = chunkSize     ; {-# INLINE alignment #-}
-    peek ptr = peek (intPtr ptr) >>= \case
-        0 -> Var <$> peekByteOff ptr chunkSize
-        1 -> Acc <$> peekByteOff ptr chunkSize <*> peekByteOff ptr (chunkSize*2)
-        _ -> error "Unrecognized constructor"
-    {-# INLINE peek #-}
-    poke ptr = \case
-        Var !a    -> poke (intPtr ptr) 0 >> pokeByteOff ptr chunkSize a
-        Acc !a !b -> poke (intPtr ptr) 1 >> pokeByteOff ptr (chunkSize*2) b
-    {-# INLINE poke #-}
+-- instance Storable (TermUni fmt a) where
+--     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
+--     alignment _ = chunkSize     ; {-# INLINE alignment #-}
+--     peek ptr = peek (intPtr ptr) >>= \case
+--         0 -> Var <$> peekByteOff ptr chunkSize
+--         1 -> Acc <$> peekByteOff ptr chunkSize <*> peekByteOff ptr (chunkSize*2)
+--         _ -> error "Unrecognized constructor"
+--     {-# INLINE peek #-}
+--     poke ptr = \case
+--         Var !a    -> poke (intPtr ptr) 0 >> pokeByteOff ptr chunkSize a
+--         Acc !a !b -> poke (intPtr ptr) 1 >> pokeByteOff ptr (chunkSize*2) b
+--     {-# INLINE poke #-}
 
 
 
