@@ -43,7 +43,6 @@ newtype TermVar a = TermVar
     { __name :: Int
     } deriving (Show, Eq)
 type instance TermDef Var = TermVar
-
 deriveStorable ''TermVar
 
 type Acc = TermTag ACC; data ACC
@@ -52,7 +51,6 @@ data TermAcc a = TermAcc
     , __name :: !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance TermDef Acc = TermAcc
-
 deriveStorable ''TermAcc
 
 data TermUni fmt a
@@ -60,10 +58,8 @@ data TermUni fmt a
     | Acc !(Link.Term fmt a) !(Link.Term fmt a)
     deriving (Show, Eq)
 type instance TermDef (FormatTag f) = TermUni (FormatTag f)
-
 deriveStorable ''TermUni
 
--- data instance TermDef
 
 
 

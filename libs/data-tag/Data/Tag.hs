@@ -1,3 +1,4 @@
-module Data.Tag where
+module Data.Tag (module Data.Tag, module X) where
 
-data Tag (tagType :: *) (tagInstance :: *)
+import Data.Tag.Class as X
+import Data.Tag.TH    as X

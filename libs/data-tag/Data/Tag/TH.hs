@@ -1,9 +1,9 @@
-module OCI.IR.TH where
+module Data.Tag.TH where
 
 import Prelude
 
 import Data.Monoid ((<>))
-import Data.Tag
+import Data.Tag.Class
 import Foreign.Storable.TH
 import Language.Haskell.TH as TH
 
