@@ -1,10 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Foreign.Storable.Deriving where
 
+import Prologue ((.:))
+import Data.Convert
 import Foreign.Storable
-import Foreign.Storable.TH
-import Language.Haskell.TH.Lib
-import Language.Haskell.TH as TH
+import Foreign.Storable.TH()
+import Language.Haskell.TH.Lib hiding (clause)
+import qualified Language.Haskell.TH as TH
+import Language.Haskell.TH hiding (clause)
 import Prelude
 import Control.Monad
 import GHC.Num
@@ -12,6 +15,9 @@ import System.IO.Unsafe
 import Control.Monad.IO.Class
 
 import Data.List (maximum)
+
+
+import Language.Haskell.TH.Builder
 
 
 thd :: (a, b, c) -> c
@@ -53,24 +59,25 @@ extractConcreteTypes _ = error "***error*** deriveStorable: type not yet support
 -----------------------------
 
 sizeOfType :: Type -> ExpQ
-sizeOfType tp = let undefinedAsT = sigE (varE 'undefined) (return tp)
-                in  appE (varE 'sizeOf) undefinedAsT
+sizeOfType tp = let undefinedAsT = sigE (return $ var 'undefined) (return tp)
+                in  appQ (return $ var 'sizeOf) undefinedAsT
 
-nNewNames :: Int -> Q [Name]
-nNewNames n = mapM (\x -> newName [x]) $ take n ['a'..]
+opWrong :: Name -> ExpQ -> ExpQ -> ExpQ
+opWrong name lhs rhs = infixE (Just lhs) (return $ var name) (Just rhs)
 
-op :: Name -> ExpQ -> ExpQ -> ExpQ
-op name lhs rhs = infixE (Just lhs) (varE name) (Just rhs)
+
+op :: Name -> Exp -> Exp -> Exp
+op = app2 . var
 
 plus, mul :: ExpQ -> ExpQ -> ExpQ
-plus = op '(+)
-mul  = op '(*)
+plus = opWrong '(+)
+mul  = opWrong '(*)
 
 intLit :: Integer -> ExpQ
 intLit = litE . integerL
 
 undefinedAsInt :: ExpQ
-undefinedAsInt = sigE (varE 'undefined) (conT ''Int)
+undefinedAsInt = sigE (return $ var 'undefined) (conT ''Int)
 
 conFieldSizes :: TH.Con -> [ExpQ]
 conFieldSizes = map sizeOfType . extractConcreteTypes
@@ -81,10 +88,10 @@ sizeOfCon con
     | otherwise        = intLit 0
 
 align :: ExpQ
-align = appE (varE 'alignment) $ undefinedAsInt
+align = appQ (return $ var 'alignment) $ undefinedAsInt
 
 whereClause :: Name -> ExpQ -> DecQ
-whereClause n e = valD (varP n) (normalB e) []
+whereClause n e = valD (return $ var n) (normalB e) []
 
 ------------------------
 -- Main instance code --
@@ -129,12 +136,12 @@ genOffsets con = do
 
     let off0D   = whereClause (head names) $ intLit 0
     if arity == 0 then return (names, [off0D]) else do
-        let off1D   = whereClause (names !! 1) $ appE (varE 'sizeOf) undefinedAsInt
+        let off1D   = whereClause (names !! 1) $ appQ (return $ var 'sizeOf) undefinedAsInt
             headers = zip3 (drop 2 names) (tail names) fSizes
 
             mkDecl :: (Name, Name, ExpQ) -> DecQ
             mkDecl (declName, refName, fSize) =
-                whereClause declName (plus (varE refName) fSize) --  where declName = refName + size
+                whereClause declName (plus (return $ var refName) fSize) --  where declName = refName + size
 
             clauses = (off0D : off1D : (map mkDecl headers))
 
@@ -146,35 +153,36 @@ genSizeOf cs = funD 'sizeOf [genSizeOfClause cs]
 
 genSizeOfClause :: [TH.Con] -> ClauseQ
 genSizeOfClause cs = do
-    let sizeOfInt  = appE (varE 'sizeOf) undefinedAsInt
+    let sizeOfInt  = appQ (return $ var 'sizeOf) undefinedAsInt
         conSizes   = listE $ map sizeOfCon cs
-        maxConSize = appE (varE 'maximum) conSizes
+        maxConSize = appQ (return $ var 'maximum) conSizes
         maxConSizePlusOne = plus maxConSize sizeOfInt
         body       = normalB $ maxConSizePlusOne
-    clause [wildP] body []
+    TH.clause [wildP] body []
 
 genAlignment :: DecQ
 genAlignment = funD 'alignment [genAlignmentClause]
 
 genAlignmentClause :: ClauseQ
-genAlignmentClause = let body = normalB $ appE (varE 'sizeOf) undefinedAsInt
-                     in  clause [wildP] body []
+genAlignmentClause = let body = normalB $ appQ (return $ var 'sizeOf) undefinedAsInt
+                     in  TH.clause [wildP] body []
 
 genPeek :: [TH.Con] -> DecQ
 genPeek cs = funD 'peek [genPeekClause cs]
 
 genPeekCaseMatch :: Name -> (Integer, TH.Con) -> MatchQ
 genPeekCaseMatch ptr (idx, con) = do
+    -- FIXME[WD -> PM]: use proper TODO comments syntax
     -- we can be dead sure the offsets/wheres contain at least 2 elems
     -- BUT we need to handle no-param type constructors, huh  TODO[piotrMocz]
     (_:offNames, whereCs) <- genOffsets con
     let (cName, arity) = conInfo con
-        peekByteOffPtr   = appE (varE 'peekByteOff) (varE ptr)
-        peekByte off     = appE peekByteOffPtr $ varE off
-        appPeekByte t x  = op '(<*>) t $ peekByte x
+        peekByteOffPtr   = appQ (return $ var 'peekByteOff) (return $ var ptr)
+        peekByte off     = appQ peekByteOffPtr $ return $ var off
+        appPeekByte t x  = opWrong '(<*>) t $ peekByte x
         -- no-field constructors are a special case of just the constructor being returned
-        firstCon         = if arity > 0 then op '(<$>) (conE cName) (peekByte $ head offNames)
-                                        else appE (varE 'return) (conE cName)
+        firstCon         = if arity > 0 then opWrong '(<$>) (conE cName) (peekByte $ head offNames)
+                                        else appQ (return $ var 'return) (conE cName)
         offs             = if arity > 0 then tail offNames else []
         body = normalB $ foldl appPeekByte firstCon offs
         pat  = litP $ integerL idx
@@ -184,30 +192,31 @@ genPeekClause :: [TH.Con] -> ClauseQ
 genPeekClause cs = do
     ptr <- newName "ptr"
     tag <- newName "tag"
-    let v            = varP ptr
-        peekTag      = appE (appE (varE 'peekByteOff) (varE ptr)) (intLit 0)
+    let v            = return $ var ptr
+        peekTag      = appQ (appQ (return $ var 'peekByteOff) (return $ var ptr)) (intLit 0)
         peekTagTyped = sigE peekTag (appT (conT ''IO) (conT ''Int))
-        bind         = bindS (varP tag) peekTagTyped
-        cases        = caseE (varE tag) $ map (genPeekCaseMatch ptr) $ zip [0..] cs
+        bind         = bindS (return $ var tag) peekTagTyped
+        cases        = caseE (return $ var tag) $ map (genPeekCaseMatch ptr) $ zip [0..] cs
         doBlock      = doE [bind, noBindS cases]
-    clause [v] (normalB doBlock) []
+    TH.clause [v] (normalB doBlock) []
 
 genPoke :: [TH.Con] -> DecQ
-genPoke = funD 'poke . map genPokeClause . zip [0..]
+genPoke = funD 'poke . map (uncurry genPokeClause) . zip [0..]
 
-genPokeClause :: (Integer, TH.Con) -> ClauseQ
-genPokeClause (idx, con) = do
+genPokeClause :: Integer -> TH.Con -> ClauseQ
+genPokeClause idx con = do
     let (cName, nParams) = conInfo con
     ptr         <- newName "ptr"
-    patVarNames <- nNewNames nParams
-    (off:offNames, whereClauses) <- genOffsets con
-    let pat                  = [varP ptr, conP cName $ map varP patVarNames]
-        pokeByteOffPtr       = appE (varE 'pokeByteOff) (varE ptr)
-        pokeByte o           = appE (appE pokeByteOffPtr $ varE o)
-        appPokeByte t (o, p) = op '(>>) t $ pokeByte o p
-        idxAsInt             = sigE (intLit idx) (conT ''Int)
-        firstPoke            = pokeByte off idxAsInt
-        varExps              = map varE patVarNames
-        body                 = normalB $ foldl appPokeByte firstPoke
-                                       $ zip offNames varExps
-    clause pat body whereClauses
+    patVarNames <- newNames nParams
+    (off:offNames, whereClauses') <- genOffsets con
+    whereClauses <- sequence whereClauses' -- FIXME: make it pure!
+    let pat            = [var ptr, cons cName $ var <$> patVarNames]
+        pokeByteOffPtr = app (var 'pokeByteOff) (var ptr)
+        pokeByte a     = app2 pokeByteOffPtr (var a)
+        nextPoke t     = app2 (var '(>>)) t .: pokeByte
+        idxAsInt       = convert idx -:: cons ''Int [] -- FIXME: it's strange. It seems like we do a lot of it, check if necessary
+        firstPoke      = pokeByte off idxAsInt
+        varxps         = var <$> patVarNames
+        body           = foldl (uncurry . nextPoke) firstPoke
+                       $ zip offNames varxps
+    return $ clause pat body whereClauses

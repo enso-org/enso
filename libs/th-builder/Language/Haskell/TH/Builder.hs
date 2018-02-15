@@ -1,50 +1,78 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder) where -- , module X) where
+module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X) where
 
-import Prologue hiding (Type)
+import Prologue hiding (Cons, Data, Type)
 
+import Language.Haskell.TH as X (newName)
+import Language.Haskell.TH (Q, Name)
 import qualified Language.Haskell.TH as TH
-import           Language.Haskell.TH (Q, Name)
-import qualified Data.Char as Char
 
 
---
--- class HasName    a where name    :: Lens' a (NameOf a)
--- class HasCtx     a where ctx     :: Lens' a [Pred]
--- class HasKind    a where kind    :: Lens' a (Maybe Kind)
--- class HasDerivs  a where derivs  :: Lens' a [Pred]
+
+---------------------------
+-- === Common Fields === --
+---------------------------
+
+class HasExpr t where
+    expr :: forall a. Lens' (t a) a
 
 
-class IsTH t a where
-    th :: a -> t
+class HasName a where
+    type family   NameOf a
+    type instance NameOf a = Name
+    name :: Lens' a (NameOf a)
 
-instance IsTH t a => IsTH (Q t) a where
-    th = return . th ; {-# INLINE th #-}
+class HasParams a where
+    type family ParamOf a
+    params :: Lens' a [ParamOf a]
+
+class HasKind a where
+    type family   KindOf a
+    type instance KindOf a = TH.Kind
+    kind :: Lens' a (KindOf a)
+
+class HasCtx    a where ctx    :: Lens' a [TH.Pred]
+class HasCons   a where conses :: Lens' a [TH.Con]
+class HasDerivs a where derivs :: Lens' a [TH.DerivClause]
 
 
---
--- -- instance {-# OVERLAPPABLE #-}             IsTH a    a  where th = id          ; {-# INLINE th #-}
--- instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t]  a  where th = return . th ; {-# INLINE th #-}
--- instance {-# OVERLAPPABLE #-} IsTH t a => IsTH [t] [a] where th = fmap th     ; {-# INLINE th #-}
--- instance {-# OVERLAPPABLE #-} (IsTH a b', b ~ Maybe b')
---       => IsTH (Maybe a) b  where th = fmap th ; {-# INLINE th #-}
---
---
--- type ToOverlap = IsTH Overlap
--- type ToCxt     = IsTH Cxt
---
+
+-------------------
+-- === Names === --
+-------------------
+
+-- === Generation === --
+
+strNameCycle :: [String]
+strNameCycle = (return <$> ['a' .. 'z']) <> strNameCycle' [] (show <$> [0..]) where
+    strNameCycle' []     (n:ns) = strNameCycle' ['a' .. 'z'] ns
+    strNameCycle' (b:bs) ns     = (b : unsafeHead ns) : strNameCycle' bs ns
+
+unsafeNameCycle :: Convertible' Name a => [a]
+unsafeGenName   :: Convertible' Name a => a
+unsafeGenNames  :: Convertible' Name a => Int -> [a]
+unsafeNameCycle = convert' . TH.mkName <$> strNameCycle
+unsafeGenName   = unsafeHead unsafeNameCycle
+unsafeGenNames  = flip take unsafeNameCycle
+
+newNames :: Convertible' Name a => Int -> Q [a]
+newNames = mapM (fmap convert' . newName) . flip take strNameCycle
 
 
-------------------
--- === Name === --
-------------------
+-- === TH Conversions === --
 
-class FromName a where
-    fromName :: Name -> a
+instance Convertible Name TH.TyVarBndr where convert = TH.PlainTV
 
-name :: FromName a => String -> a
-name = fromName . TH.mkName
+
+
+
+----------------------
+-- === Literals === --
+----------------------
+
+instance Convertible Integer TH.Exp where convert = TH.LitE . TH.IntegerL
 
 
 
@@ -52,47 +80,28 @@ name = fromName . TH.mkName
 -- === Var === --
 -----------------
 
-data Var = Var { __name :: Name }
+-- === Definition === --
 
-class FromVar a where
-    fromVar :: Var -> a
-
-var :: FromVar a => Name -> a
-var = fromVar . Var
+newtype Var = Var { __name :: Name }
+makeLenses ''Var
 
 
--- makeLenses ''Var
--- instance HasName     Var where name    = var_name ; {-# INLINE name    #-}
--- instance MayHaveType Var where checkTp = var_tp   ; {-# INLINE checkTp #-}
---
--- type instance NameOf Var = VarName
--- class HasParams a where params  :: Lens' a [Var]
---
---
--- -- === Instances === --
---
--- instance {-# OVERLAPPING #-} n ~ VarName => Default (n -> Var) where
---     def n = Var n def ; {-# INLINE def #-}
---
--- instance FromName Var where
---     fromName = def . fromName ; {-# INLINE fromName #-}
---
--- instance IsTH TyVarBndr Var where
---     th a = maybe PlainTV (flip KindedTV) (a ^. checkTp) (th $ a ^. name) ; {-# INLINE th #-}
+-- === Utils === --
+
+var :: Convertible Var a => Name -> a
+var = convert . Var
 
 
+-- === Conversions === --
+
+instance Convertible Name Var   where convert = wrap
+instance Convertible Var  Name  where convert = unwrap
 
 
-------------------
--- === Expr === --
-------------------
+-- === TH Conversions === --
 
--- data Expr = forall a. (IsTH TH.Exp a, IsTH TH.Type, IsTH TH. => Expr a
-
-data Expr
-    = VarE Var
-
-instance FromVar Expr where fromVar = VarE
+instance Convertible Var TH.Pat where convert = TH.VarP . convert
+instance Convertible Var TH.Exp where convert = TH.VarE . convert
 
 
 
@@ -100,335 +109,204 @@ instance FromVar Expr where fromVar = VarE
 -- === App === --
 -----------------
 
--- data App a = App 
---   { __base :: a
---   , __args :: [a]
---   } deriving (Show)
--- makeLenses ''App
---
---
--- class FromApp a t where
---     fromApp :: App a -> a
---
---
---
--- apps :: a -> [a] -> App a
--- apps = App ; {-# INLINE apps #-}
---
--- app :: a -> a -> App a
--- app a = apps a . return ; {-# INLINE app #-}
---
---
--- instance ToType a => IsTH TH.Type (App a) where
---     th (App src args) = foldl AppT (th src) (th <$> args) ; {-# INLINE th #-}
---
--- instance ToExp a => IsTH TH.Exp (App a) where
---     th (App src args) = foldl AppE (th src) (th <$> args) ; {-# INLINE th #-}
--- --
+-- === Definition === --
 
--- -------------------
--- -- === Utils === --
--- -------------------
---
--- class ToUpper a where
---     toUpper :: a -> a
---
--- instance ToUpper String where
---     toUpper []     = []
---     toUpper (c:cs) = Char.toUpper c : toUpper cs
---     {-# INLINE toUpper #-}
---
---
--- ------------------
--- -- === Type === --
--- ------------------
---
--- class HasType a where
---     tp :: Lens' a Type
---
--- class MayHaveType a where
---     checkTp :: Lens' a (Maybe Type)
---
--- type ToType = IsTH Type
--- toType :: ToType a => a -> Type
--- toType = th
---
--- type ToExp = IsTH Exp
--- toExp :: ToExp a => a -> Exp
--- toExp = th
---
--- instance IsTH Type Type where th = id ; {-# INLINE th #-}
--- instance IsTH Exp  Exp  where th = id ; {-# INLINE th #-}
--- instance IsTH Type String where
---     th = LitT . StrTyLit ; {-# INLINE th #-}
---
--- instance ToType a => IsTH Type (ZipList a) where
---     th = toType . getZipList ; {-# INLINE th #-}
---
--- instance {-# OVERLAPPABLE #-} ToType a => IsTH Type [a] where
---     th lst = foldr AppT PromotedNilT (AppT PromotedConsT . toType <$> lst) ; {-# INLINE th #-}
---
---
---
--- ------------------
--- -- === Name === --
--- ------------------
---
--- type family NameOf a
---
--- data TypeName = TypeName Name
--- data VarName  = VarName  Name
--- makeWrapped ''TypeName
--- makeWrapped ''VarName
---
--- class FromName     a where fromName     :: Name     -> a
--- class FromTypeName a where fromTypeName :: TypeName -> a
--- class FromVarName  a where fromVarName  :: VarName  -> a
---
--- class ToName     a where toName     :: a -> Name
--- class ToTypeName a where toTypeName :: a -> TypeName
--- class ToVarName  a where toVarName  :: a -> VarName
---
--- instance FromName Name where
---     fromName = id ; {-# INLINE fromName #-}
---
--- instance FromName TypeName where
---     fromName = TypeName ; {-# INLINE fromName #-} -- FIXME[WD]: add letter case assertions
---
--- instance FromName VarName where
---     fromName = VarName ; {-# INLINE fromName #-} -- FIXME[WD]: add letter case assertions
---
--- instance FromTypeName TypeName where
---     fromTypeName = id ; {-# INLINE fromTypeName #-}
---
--- instance FromVarName VarName where
---     fromVarName = id ; {-# INLINE fromVarName #-}
---
--- instance IsTH Type TypeName where
---     th = ConT . unwrap' ; {-# INLINE th #-}
---
--- instance ToUpper TypeName where
---     toUpper = wrapped' %~ toUpper ; {-# INLINE toUpper #-}
---
--- instance ToUpper Name where
---     toUpper = mkName . toUpper . nameBase ; {-# INLINE toUpper #-}
---
--- instance ToName     Name     where toName     = id ; {-# INLINE toName     #-}
--- instance ToVarName  VarName  where toVarName  = id ; {-# INLINE toVarName  #-}
--- instance ToTypeName TypeName where toTypeName = id ; {-# INLINE toTypeName #-}
---
--- instance ToVarName  Name     where toVarName  = VarName  ; {-# INLINE toVarName  #-} -- FIXME[WD]: add letter case assertions
--- instance ToTypeName Name     where toTypeName = TypeName ; {-# INLINE toTypeName #-} -- FIXME[WD]: add letter case assertions
---
--- instance ToName     String   where toName     = mkName              ; {-# INLINE toName     #-}
--- instance ToVarName  String   where toVarName  = toVarName  . toName ; {-# INLINE toVarName  #-}
--- instance ToTypeName String   where toTypeName = toTypeName . toName ; {-# INLINE toTypeName #-}
---
--- instance IsTH Name VarName  where th = unwrap' ; {-# INLINE th #-}
--- instance IsTH Name TypeName where th = unwrap' ; {-# INLINE th #-}
---
--- instance IsTH Exp VarName  where th = VarE . unwrap' ; {-# INLINE th #-}
--- instance IsTH Exp TypeName where th = ConE . unwrap' ; {-# INLINE th #-}
---
--- instance IsTH Type VarName  where th = VarT . unwrap' ; {-# INLINE th #-}
---
---
--- -- === Generation === --
---
--- strNameCycle :: [String]
--- strNameCycle = (return <$> ['a' .. 'z']) <> strNameCycle' [] (show <$> [0..]) where
---     strNameCycle' []     (n:ns) = strNameCycle' ['a' .. 'z'] ns
---     strNameCycle' (b:bs) ns     = (b : head ns) : strNameCycle' bs ns
---
--- nameCycle :: FromName a => [a]
--- nameCycle = fromName . mkName <$> strNameCycle ; {-# INLINE nameCycle #-}
---
--- newNameCycle :: Q [Name]
--- newNameCycle = mapM newName strNameCycle ; {-# INLINE newNameCycle #-}
---
--- genNames :: FromName a => Int -> [a]
--- genNames = flip take nameCycle ; {-# INLINE genNames #-}
---
--- genName :: FromName a => a
--- genName = head nameCycle ; {-# INLINE genName #-}
---
--- newNames :: Int -> Q [Name]
--- newNames = mapM newName . flip take strNameCycle ; {-# INLINE newNames #-}
---
--- varName :: String -> VarName
--- varName = fromString ; {-# INLINE varName #-}
---
--- typeName :: String -> TypeName
--- typeName = fromTypeName . fromString ; {-# INLINE typeName #-}
---
---
--- -- === Instances === --
---
--- instance IsString Name where
---     fromString = mkName ; {-# INLINE fromString #-}
---
--- instance IsString VarName where
---     fromString = VarName . fromString ; {-# INLINE fromString #-} -- FIXME[WD]: add letter case assertions
---
--- instance IsString TypeName where
---     fromString = TypeName . fromString ; {-# INLINE fromString #-} -- FIXME[WD]: add letter case assertions
---
---
--- -----------------
--- -- === App === --
--- -----------------
---
--- data App a = App { _app_src  :: a
---                  , _app_args :: [a]
---                  }
---
--- makeLenses ''App
---
---
--- class FromApp a where
---     fromApp :: App a -> a
---
---
---
--- apps :: a -> [a] -> App a
--- apps = App ; {-# INLINE apps #-}
---
--- app :: a -> a -> App a
--- app a = apps a . return ; {-# INLINE app #-}
---
---
--- instance ToType a => IsTH TH.Type (App a) where
---     th (App src args) = foldl AppT (th src) (th <$> args) ; {-# INLINE th #-}
---
--- instance ToExp a => IsTH TH.Exp (App a) where
---     th (App src args) = foldl AppE (th src) (th <$> args) ; {-# INLINE th #-}
---
---
--- -----------------
--- -- === Var === --
--- -----------------
---
--- data Var = Var { _var_name :: VarName
---                , _var_tp   :: Maybe Type
---                }
---
--- makeLenses ''Var
--- instance HasName     Var where name    = var_name ; {-# INLINE name    #-}
--- instance MayHaveType Var where checkTp = var_tp   ; {-# INLINE checkTp #-}
---
--- type instance NameOf Var = VarName
--- class HasParams a where params  :: Lens' a [Var]
---
---
--- -- === Instances === --
---
--- instance {-# OVERLAPPING #-} n ~ VarName => Default (n -> Var) where
---     def n = Var n def ; {-# INLINE def #-}
---
--- instance FromName Var where
---     fromName = def . fromName ; {-# INLINE fromName #-}
---
--- instance IsTH TyVarBndr Var where
---     th a = maybe PlainTV (flip KindedTV) (a ^. checkTp) (th $ a ^. name) ; {-# INLINE th #-}
---
---
---
--- -----------------
--- -- === Con === --
--- -----------------
---
--- data Con = Con { _con_name   :: TypeName
---                , _con_params :: [Var]
---                }
---
--- class HasCons a where cons :: Lens' a [Con]
---
--- makeLenses ''Con
--- instance HasName   Con where name   = con_name   ; {-# INLINE name   #-}
--- instance HasParams Con where params = con_params ; {-# INLINE params #-}
---
--- type instance NameOf Con = TypeName
---
---
--- -- === Modification === --
---
--- addCon :: HasCons t => Con -> t -> t
--- addCon a = cons %~ (<> [a]) ; {-# INLINE addCon #-}
---
--- addParam :: HasParams t => Var -> t -> t
--- addParam a = params %~ (<> [a]) ; {-# INLINE addParam #-}
---
---
--- -- === Instances === --
---
--- instance {-# OVERLAPPING #-} n ~ TypeName => Default (n -> Con) where
---     def n = Con n def ; {-# INLINE def #-}
---
--- instance IsTH TH.Con Con where
---     th a = NormalC (a ^. name . wrapped') [] -- FIXME[WD]: finish cases
---
---
--- ------------------
--- -- === Data === --
--- ------------------
---
--- data Data = Data { _data_ctx     :: [Pred]
---                  , _data_name    :: TypeName
---                  , _data_params  :: [Var]
---                  , _data_kind    :: Maybe Kind
---                  , _data_cons    :: [Con]
---                  , _data_derivs  :: [Pred]
---                  }
---
--- makeLenses ''Data
--- instance HasName   Data where name    = data_name    ; {-# INLINE name    #-}
--- instance HasCtx    Data where ctx     = data_ctx     ; {-# INLINE ctx     #-}
--- instance HasParams Data where params  = data_params  ; {-# INLINE params  #-}
--- instance HasKind   Data where kind    = data_kind    ; {-# INLINE kind    #-}
--- instance HasCons   Data where cons    = data_cons    ; {-# INLINE cons    #-}
--- instance HasDerivs Data where derivs  = data_derivs  ; {-# INLINE derivs  #-}
---
--- type instance NameOf Data = TypeName
---
---
--- -- === Construction === --
---
--- data' :: TypeName -> Data
--- data' = def ; {-# INLINE data' #-}
---
--- -- | phantom takes number of data parameters and generates a phantom data type
--- --   for example `phantom 2 "Foo"` generated `data Foo a b`
--- phantomN :: Int -> TypeName -> Data
--- phantomN i n = data' n & params .~ genNames i ; {-# INLINE phantomN #-}
---
--- phantom :: TypeName -> Data
--- phantom = phantomN 0 ; {-# INLINE phantom #-}
---
--- phantom' :: TypeName -> Data
--- phantom' = phantomN 1 ; {-# INLINE phantom' #-}
---
--- phantom'' :: TypeName -> Data
--- phantom'' = phantomN 2 ; {-# INLINE phantom'' #-}
---
--- phantom''' :: TypeName -> Data
--- phantom''' = phantomN 3 ; {-# INLINE phantom''' #-}
---
--- phantom'''' :: TypeName -> Data
--- phantom'''' = phantomN 4 ; {-# INLINE phantom'''' #-}
---
--- phantom''''' :: TypeName -> Data
--- phantom''''' = phantomN 5 ; {-# INLINE phantom''''' #-}
---
--- instance {-# OVERLAPPING #-} n ~ TypeName => Default (n -> Data) where
---     def n = Data def n def def def def ; {-# INLINE def #-}
---
---
--- -- === conversions === --
---
--- instance IsTH TH.Dec Data where
---     th a = DataD (a ^. ctx) (th $ a ^. name) (th $ a ^. params) (a ^. kind) (th $ a ^. cons) (a ^. derivs) ; {-# INLINE th #-}
---
---
+data App a = App
+    { __base :: a
+    , __arg  :: a
+    } deriving (Foldable, Functor, Show, Traversable)
+
+
+-- === Utils === --
+
+app  :: Convertible (App a) a => a -> a -> a
+app2 :: Convertible (App a) a => a -> a -> a -> a
+app3 :: Convertible (App a) a => a -> a -> a -> a -> a
+app4 :: Convertible (App a) a => a -> a -> a -> a -> a -> a
+app5 :: Convertible (App a) a => a -> a -> a -> a -> a -> a -> a
+app                   = convert .: App
+app2 a t1 t2          = apps a [t1, t2]
+app3 a t1 t2 t3       = apps a [t1, t2, t3]
+app4 a t1 t2 t3 t4    = apps a [t1, t2, t3, t4]
+app5 a t1 t2 t3 t4 t5 = apps a [t1, t2, t3, t4, t5]
+
+apps :: Convertible (App a) a => a -> [a] -> a
+apps = foldl app
+
+appQ :: Convertible (App a) a => Q a -> Q a -> Q a
+appQ base arg = app <$> base <*> arg
+
+
+-- === TH Conversions === --
+
+instance a ~ TH.Exp => Convertible (App a) TH.Exp where
+    convert (App a b) = TH.AppE a b
+
+
+
+-------------------
+-- === Typed === --
+-------------------
+
+-- === Definition === --
+
+data Typed e t = Typed
+    { __expr :: e
+    , __tp   :: t
+    } deriving (Foldable, Functor, Show, Traversable)
+
+
+-- === Utils === --
+
+typed, (-::) :: Convertible (Typed e t) e => e -> t -> e
+typed = convert .: Typed
+(-::) = typed
+
+
+-- === TH Conversions === --
+
+instance (e ~ TH.Exp, t ~ TH.Type) => Convertible (Typed e t) TH.Exp where
+    convert (Typed e t) = TH.SigE e t
+
+
+
+------------------
+-- === Cons === --
+------------------
+
+-- === Definition === --
+
+data Field a = Field
+    { __name :: Maybe Name
+    , __expr :: a
+    } deriving (Foldable, Functor, Show, Traversable)
+makeLenses ''Field
+
+data Cons a = Cons
+    { __name   :: Name
+    , __fields :: [Field a]
+    } deriving (Foldable, Functor, Show, Traversable)
+makeLenses ''Cons
+
+
+-- === Utils === --
+
+cons :: Convertible (Cons a) a => Name -> [Field a] -> a
+cons = convert .: Cons
+
+
+-- === Properties === --
+
+instance HasExpr Field     where expr = field_expr
+instance HasName (Field a) where
+    type NameOf  (Field a) = Maybe Name
+    name = field_name
+
+
+-- === Conversions === --
+
+instance Convertible Var a => Convertible Var (Field a) where
+    convert = Field Nothing . convert
+
+
+-- === TH conversions === --
+
+instance a ~ TH.Pat => Convertible (Cons a) TH.Pat where
+    convert (Cons n fs) = if not usesNames then conP else error "TODO" where
+        usesNames = not . null $ catMaybes (view name <$> fs)
+        conP      = TH.ConP n $ view expr <$> fs
+
+instance a ~ TH.Type => Convertible (Cons a) TH.Type where
+    convert (Cons n fs) = foldl TH.AppT (TH.ConT n) (view expr <$> fs)
+
+
+
+--------------------
+-- === Clause === --
+--------------------
+
+-- === Definition === --
+
+data Clause = Clause
+    { __pats       :: [TH.Pat]
+    , __body       :: TH.Exp
+    , __whereDecls :: [TH.Dec]
+    }
+
+
+-- === Utils === --
+
+clause :: Convertible Clause t => [TH.Pat] -> TH.Exp -> [TH.Dec] -> t
+clause = convert .:. Clause
+
+
+-- === TH Conversions === --
+
+instance Convertible Clause TH.Clause where
+    convert (Clause ps b w) = TH.Clause ps (TH.NormalB b) w
+
+
+
+------------------
+-- === Data === --
+------------------
+
+data Data = Data
+    { __ctx    :: [TH.Pred]
+    , __name   :: Name
+    , __params :: [TH.TyVarBndr]
+    , __kind   :: Maybe TH.Kind
+    , __cons   :: [TH.Con]
+    , __derivs :: [TH.DerivClause]
+    }
+makeLenses ''Data
+--
+instance HasName   Data where name   = data_name
+instance HasCtx    Data where ctx    = data_ctx
+instance HasCons   Data where conses = data_cons
+instance HasDerivs Data where derivs = data_derivs
+
+instance HasKind Data where
+    type KindOf  Data = Maybe TH.Kind
+    kind = data_kind
+
+instance HasParams Data where
+    type ParamOf   Data = TH.TyVarBndr
+    params = data_params
+
+
+-- === Construction === --
+
+data' :: Name -> Data
+data' n = Data def n def def def def
+
+-- | Function 'phantom' takes number of data parameters and generates a phantom
+--   data type, for example `phantom 2 "Foo"` generates `data Foo a b`
+phantomN :: Int -> Name -> Data
+phantomN i n = data' n & params .~ unsafeGenNames i
+
+phantom0, phantom1, phantom2, phantom3, phantom4, phantom5 :: Name -> Data
+phantom0 = phantomN 0
+phantom1 = phantomN 1
+phantom2 = phantomN 2
+phantom3 = phantomN 3
+phantom4 = phantomN 4
+phantom5 = phantomN 5
+
+-- === TH Conversions === --
+
+instance Convertible Data TH.Dec where
+    convert (Data ctx name params kind cons derivs) = TH.DataD ctx name params kind cons derivs
+
+
+
+
+-- TODO: We keep old code for now in case anything will be needed.
+--       It should be removed before releasing final version.
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
 -- ---------------------
 -- -- === TypeSyn === --
 -- ---------------------
