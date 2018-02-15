@@ -28,7 +28,7 @@ import qualified Foreign.Memory.Pool as MemPool
 import qualified Luna.IR.Term.Basic as Basic
 
 import Type.Data.Map
-import Data.TypeMap ()
+import Data.TypeSet ()
 import Language.Haskell.TH.Builder()
 
 timeIt :: MonadIO m => String -> m a -> m a
