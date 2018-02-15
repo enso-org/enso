@@ -32,7 +32,10 @@ propagateErrors expr = do
         Seq a b   -> do
             propagateErrors =<< source a
             propagateErrors =<< source b
-        ASGFunction _ _ g -> propagateErrors =<< source g
+        -- FIXME[MM]: this line causes correct reporting of compile errors
+        --            we don't want that until interpreter can cope with them
+        --            and interpret the rest of the program
+        -- ASGFunction _ _ g -> propagateErrors =<< source g
         _ -> do
             inpErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
             modifyLayer_ @Errors expr $ nub . (++ inpErrors)
