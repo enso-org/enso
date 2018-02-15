@@ -16,6 +16,8 @@ library:
     - libs/data-tag
     - libs/typelevel
     - libs/data-mutable
+    - libs/data-typemap
+    - libs/th-builder
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core
