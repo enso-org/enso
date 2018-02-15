@@ -2,7 +2,7 @@ module Luna.Std.Finalizers where
 
 import Luna.Prelude
 import Data.Map                (Map)
-import Control.Concurrent      (MVar, newMVar, modifyMVar_, putMVar, tryTakeMVar)
+import Control.Concurrent      (MVar, newMVar, modifyMVar_, putMVar, swapMVar)
 
 import           Data.UUID     (UUID)
 import qualified Data.UUID.V4  as UUID
@@ -26,19 +26,12 @@ registerFinalizer ctx finalizer = do
     return uuid
 
 cancelFinalizer :: FinalizersCtx -> UUID -> IO ()
-cancelFinalizer ctx uuid = do
-    -- [MM]: tc seems to deadlock if this function uses modifyMVar_ here
-    -- I suspect that is because this function can be run under another
-    -- modifyMVar_, from finalize below
-    finalizers <- tryTakeMVar (unwrap ctx)
-    case finalizers of
-        Nothing   -> return ()
-        Just fins -> do
-            let retfins = (wrapped . at uuid .~ Nothing) fins
-            putMVar (unwrap ctx) retfins
+cancelFinalizer ctx uuid = modifyMVar_ (unwrap ctx) $ return . (wrapped . at uuid .~ Nothing)
 
 finalize :: FinalizersCtx -> IO ()
-finalize ctx = modifyMVar_ (unwrap ctx) runFinalizers
+finalize ctx = do
+    map <- swapMVar (unwrap ctx) def
+    void $ runFinalizers map
 
 initFinalizersCtx :: IO FinalizersCtx
 initFinalizersCtx = FinalizersCtx <$> newMVar def
