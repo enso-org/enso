@@ -100,9 +100,9 @@ instance Convertible Var  Name  where convert = unwrap
 
 -- === TH Conversions === --
 
-instance Convertible Var TH.Pat where convert = TH.VarP . convert
-instance Convertible Var TH.Exp where convert = TH.VarE . convert
-
+instance Convertible Var TH.Pat  where convert = TH.VarP . convert
+instance Convertible Var TH.Exp  where convert = TH.VarE . convert
+instance Convertible Var TH.Type where convert = TH.ConT . convert
 
 
 -----------------
@@ -141,6 +141,9 @@ appQ base arg = app <$> base <*> arg
 
 instance a ~ TH.Exp => Convertible (App a) TH.Exp where
     convert (App a b) = TH.AppE a b
+
+instance a ~ TH.Type => Convertible (App a) TH.Type where
+    convert (App a b) = TH.AppT a b
 
 
 
