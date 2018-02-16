@@ -81,7 +81,7 @@ interpret' :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, An
 interpret' glob expr = do
     errors <- getLayer @Errors expr
     hasErrors <- not . null <$> getLayer @Errors expr
-    if hasErrors then return $ lift $ throw $ convert $ head errors ^. Errors.description else matchExpr expr $ \case
+    if hasErrors then return $ return $ LunaError (head errors ^. Errors.description . to convert) else matchExpr expr $ \case
         String s  -> let res = mkString glob (convert s) in return $ return res
         Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
         Var name  -> do
