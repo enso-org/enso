@@ -342,6 +342,33 @@ instance Convertible TypeSyn TH.Dec where
 
 
 
+---------------------------
+-- === Type Instance === --
+---------------------------
+
+data TypeInstance = TypeInstance { _typeInstance_name   :: Name
+                                 , _typeInstance_args   :: [TH.Type]
+                                 , _typeInstance_result :: TH.Type
+                                 }
+
+
+typeInstance :: Convertible TypeInstance t => Name -> [TH.Type] -> TH.Type -> t
+typeInstance = convert .:. TypeInstance
+{-# INLINE typeInstance #-}
+
+typeInstance1 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type -> t
+typeInstance1 n t = typeInstance n [t]
+{-# INLINE typeInstance1 #-}
+
+typeInstance2 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type -> TH.Type -> t
+typeInstance2 n t1 t2 = typeInstance n [t1, t2]
+{-# INLINE typeInstance2 #-}
+
+instance Convertible TypeInstance TH.Dec where
+    convert (TypeInstance n as r) = TH.TySynInstD n (TH.TySynEqn as r) ; {-# INLINE convert #-}
+
+
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -351,27 +378,6 @@ instance Convertible TypeSyn TH.Dec where
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
---
---
--- ---------------------------
--- -- === Type Instance === --
--- ---------------------------
---
--- data TypeInstance = TypeInstance { _typeInstance_name   :: TypeName
---                                  , _typeInstance_args   :: [Type]
---                                  , _typeInstance_result :: Type
---                                  }
---
---
--- typeInstance :: (ToTypeName n, ToType t, ToType t') => n -> [t] -> t' -> TypeInstance
--- typeInstance n args res = TypeInstance (toTypeName n) (toType <$> args) (toType res) ; {-# INLINE typeInstance #-}
---
--- typeInstance' :: (ToTypeName n, ToType t, ToType t') => n -> t -> t' -> TypeInstance
--- typeInstance' n = typeInstance n . return ; {-# INLINE typeInstance' #-}
---
---
--- instance IsTH TH.Dec TypeInstance where
---     th (TypeInstance n as r) = TySynInstD (th n) (TySynEqn as r) ; {-# INLINE th #-}
 --
 --
 -- ----------------------------
