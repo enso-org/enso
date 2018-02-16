@@ -4,7 +4,6 @@ module Foreign.Storable.Deriving where
 import Prologue ((.:))
 import Data.Convert
 import Foreign.Storable
-import Foreign.Storable.TH()
 import Language.Haskell.TH.Lib hiding (clause)
 import qualified Language.Haskell.TH as TH
 import Language.Haskell.TH hiding (clause)

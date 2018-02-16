@@ -5,6 +5,8 @@ module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X
 
 import Prologue hiding (Cons, Data, Type)
 
+import qualified Data.Char  as Char
+
 import Language.Haskell.TH as X (newName)
 import Language.Haskell.TH (Q, Name)
 import qualified Language.Haskell.TH as TH
@@ -59,6 +61,12 @@ unsafeGenNames  = flip take unsafeNameCycle
 
 newNames :: Convertible' Name a => Int -> Q [a]
 newNames = mapM (fmap convert' . newName) . flip take strNameCycle
+
+mapName :: (String -> String) -> Name -> Name
+mapName f n = TH.mkName $ (fromMaybe "" $ TH.nameModule n) <> (f $ TH.nameBase n)
+
+toUpper :: Name -> Name
+toUpper = mapName (map Char.toUpper)
 
 
 -- === TH Conversions === --
@@ -263,7 +271,7 @@ data Data = Data
     , __derivs :: [TH.DerivClause]
     }
 makeLenses ''Data
---
+
 instance HasName   Data where name   = data_name
 instance HasCtx    Data where ctx    = data_ctx
 instance HasCons   Data where conses = data_cons
@@ -280,13 +288,16 @@ instance HasParams Data where
 
 -- === Construction === --
 
-data' :: Name -> Data
-data' n = Data def n def def def def
+data'' :: Name -> Data
+data'' n = Data def n def def def def
+
+data' :: Convertible Data t => Name -> t
+data' = convert . data''
 
 -- | Function 'phantom' takes number of data parameters and generates a phantom
 --   data type, for example `phantom 2 "Foo"` generates `data Foo a b`
 phantomN :: Int -> Name -> Data
-phantomN i n = data' n & params .~ unsafeGenNames i
+phantomN i n = data'' n & params .~ unsafeGenNames i
 
 phantom0, phantom1, phantom2, phantom3, phantom4, phantom5 :: Name -> Data
 phantom0 = phantomN 0
@@ -303,40 +314,43 @@ instance Convertible Data TH.Dec where
 
 
 
+---------------------
+-- === TypeSyn === --
+---------------------
 
+data TypeSyn = TypeSyn { _typeSyn_name   :: Name
+                       , _typeSyn_params :: [TH.TyVarBndr]
+                       , _typeSyn_tp     :: TH.Type
+                       }
+makeLenses ''TypeSyn
+instance HasName   TypeSyn where name   = typeSyn_name   ; {-# INLINE name   #-}
+instance HasParams TypeSyn where
+    type ParamOf TypeSyn = TH.TyVarBndr
+    params = typeSyn_params ; {-# INLINE params #-}
+
+
+-- === Construction === --
+
+alias :: Convertible TypeSyn t => Name -> TH.Type -> t
+alias n t = convert $ TypeSyn n def t ; {-# INLINE alias #-}
+
+
+-- === TH Convertsion === --
+
+instance Convertible TypeSyn TH.Dec where
+    convert (TypeSyn name params typ) = TH.TySynD name params typ
+
+
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- TODO: We keep old code for now in case anything will be needed.
 --       It should be removed before releasing final version.
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
--- ---------------------
--- -- === TypeSyn === --
--- ---------------------
---
--- data TypeSyn = TypeSyn { _typeSyn_name   :: TypeName
---                        , _typeSyn_params :: [Var]
---                        , _typeSyn_tp     :: Type
---                        }
--- makeLenses ''TypeSyn
--- instance HasName   TypeSyn where name   = typeSyn_name   ; {-# INLINE name   #-}
--- instance HasParams TypeSyn where params = typeSyn_params ; {-# INLINE params #-}
--- instance HasType   TypeSyn where tp     = typeSyn_tp     ; {-# INLINE tp     #-}
---
--- type instance NameOf TypeSyn = TypeName
---
---
--- -- === Construction === --
---
--- alias :: ToType t => TypeName -> t -> TypeSyn
--- alias n t = TypeSyn n def (toType t) ; {-# INLINE alias #-}
---
---
--- -- === Instances === --
---
--- instance IsTH TH.Dec TypeSyn where
---     th a = TySynD (th $ a ^. name) (th $ a ^. params) (a ^. tp) ; {-# INLINE th #-}
---
 --
 --
 -- ---------------------------
