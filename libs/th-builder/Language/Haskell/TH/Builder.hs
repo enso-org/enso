@@ -318,12 +318,14 @@ instance Convertible Data TH.Dec where
 -- === TypeSyn === --
 ---------------------
 
-data TypeSyn = TypeSyn { _typeSyn_name   :: Name
-                       , _typeSyn_params :: [TH.TyVarBndr]
-                       , _typeSyn_tp     :: TH.Type
-                       }
+data TypeSyn = TypeSyn
+    { _typeSyn_name   :: Name
+    , _typeSyn_params :: [TH.TyVarBndr]
+    , _typeSyn_tp     :: TH.Type
+    }
 makeLenses ''TypeSyn
-instance HasName   TypeSyn where name   = typeSyn_name   ; {-# INLINE name   #-}
+
+instance HasName   TypeSyn where name = typeSyn_name; {-# INLINE name #-}
 instance HasParams TypeSyn where
     type ParamOf TypeSyn = TH.TyVarBndr
     params = typeSyn_params ; {-# INLINE params #-}

@@ -26,9 +26,11 @@ import Data.Tag (Tag)
 
 import qualified Data.Mutable as MData
 import qualified Data.TypeSet as TypeSet
-import Control.Monad.State.Layered
+import Control.Monad.State.Layered hiding ((.))
+-- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
 import Type.Data.Ord (Cmp)
+import Foreign.Marshal.Alloc (mallocBytes)
 
 ----------------
 -- === IR === --
@@ -215,28 +217,30 @@ test_readWriteLayer i = do
     go i
     -- Ptr.free ptr
 
+--
+-- test_readWriteLayer2 :: Int -> IO ()
+-- test_readWriteLayer2 i = do
+--     ir <- mockNewIR
+--     writeLayer termLayer ir (Var 0)
+--     let -- go :: Int -> StateT Int IO ()
+--         go 0 = return ()
+--         go j = do
+--             set <- get'
+--             let layer = TypeSet.unsafeLookup @(LayerLoc Layer_Term) set
+--             Var x <- readLayer layer ir
+--             writeLayer layer ir (Var (x+1))
+--             go (j - 1)
+--     evalStateT (go i)
+--         $ TypeSet.insert (XInt 1)
+--         $ TypeSet.insert (6 :: Int)
+--         $ TypeSet.insert termLayer
+--         $ mempty
 
-test_readWriteLayer2 :: Int -> IO ()
-test_readWriteLayer2 i = do
-    ir <- mockNewIR
-    writeLayer termLayer ir (Var 0)
-    let -- go :: Int -> StateT Int IO ()
-        go 0 = return ()
-        go j = do
-            set <- get'
-            let layer = TypeSet.unsafeLookup @(LayerLoc Layer_Term) set
-            Var x <- readLayer layer ir
-            writeLayer layer ir (Var (x+1))
-            go (j - 1)
-    evalStateT (go i)
-        $ TypeSet.insert (XInt 1)
-        $ TypeSet.insert (6 :: Int)
-        $ TypeSet.insert termLayer
-        $ mempty
 
 
 test_readWriteLayer_ptrOff :: Int -> IO ()
 test_readWriteLayer_ptrOff i = do
+    -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
     ir <- mockNewIR
     writeLayer termLayer ir (Var 0)
@@ -250,6 +254,37 @@ test_readWriteLayer_ptrOff i = do
             writeLayer layer ir (Var (x+1))
             go (j - 1)
     (go i)
+
+_MAX_LAYERS :: Int
+_MAX_LAYERS = 16
+
+test_readWriteLayer_ptrBuffOff :: Int -> IO ()
+test_readWriteLayer_ptrBuffOff i = do
+    (ptr :: Ptr Int) <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
+    poke ptr 0
+    pokeByteOff ptr (sizeOf' @Int) (0 :: Int)
+    pokeByteOff ptr (sizeOf' @Int * 2) (0 :: Int)
+    pokeByteOff ptr (sizeOf' @Int * 3) (0 :: Int)
+    pokeByteOff ptr (sizeOf' @Int * 4) (0 :: Int)
+    pokeByteOff ptr (sizeOf' @Int * 5) (0 :: Int)
+    pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
+    pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
+    ir <- mockNewIR
+    writeLayer termLayer ir (Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go 0 = return ()
+        go j = do
+            p <- get @(Ptr Int)
+            x <- get @Int
+            put @Int (x+1)
+            _layer_ <- liftIO $ peek p
+            let layer = coerce _layer_ :: LayerLoc Layer_Term
+            Var x <- readLayer layer ir
+            writeLayer layer ir (Var (x+1))
+            go (j - 1)
+    flip evalStateT (7::Int)
+       $ flip evalStateT ptr (go i)
+
     -- evalStateT (go i)
     --     $ TypeSet.insert (XInt 1)
     --     $ TypeSet.insert (6 :: Int)

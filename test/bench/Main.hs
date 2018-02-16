@@ -65,15 +65,20 @@ main = do
     --
     defaultMain
         [ bgroup "IR"
-            [ bgroup "Read/Write Layer + State config"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+            -- [ bgroup "Read/Write Layer + State config"
+            --     $ (\(i :: Int) -> bench ("10e" <> show i)
+            --     $ perRunEnv (return ())
+            --     $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
 
-            , bgroup "Read/Write Layer + State config from Ptr"
+            [ bgroup "Read/Write Layer + State config from Ptr"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer_ptrOff (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer + State config from BuffPtr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_readWriteLayer_ptrBuffOff (10 ^ i))  <$> [minExpVec..maxExpVec]
 
             , bgroup "Read/Write Ptr"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
