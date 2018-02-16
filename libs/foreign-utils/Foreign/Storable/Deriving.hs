@@ -57,6 +57,8 @@ extractConcreteTypes = \case
     RecC    n bts -> map (concretizeType . thd) bts
     _ -> error "***error*** deriveStorable: type not yet supported"
 
+
+
 -------------------------------------
 -- === TH convenience wrappers === --
 -------------------------------------
@@ -94,6 +96,8 @@ align = app (var 'alignment) $ undefinedAsInt
 whereClause :: Name -> Exp -> Dec
 whereClause n e = ValD (var n) (NormalB e) []
 
+
+
 --------------------------------
 -- === Main instance code === --
 --------------------------------
@@ -112,25 +116,27 @@ deriveStorable ty = do
     instanceCxt <- mapM (apply $ conT ''Storable) tyVars
     sequence [instanceD (return []) instanceType [return $ genSizeOf cs, return genAlignment, genPeek cs, genPoke cs]]
 
+
+
 -------------------------------
 -- === Method generators === --
 -------------------------------
 
 -- | Generate the offsets for a constructor (also returns the names of the variables in wheres).
--- Example:
--- > data T = Cons x y
--- >
--- > [...] where off0 = 0
--- >             off1 = sizeOf (undefined :: Int)
--- >             off2 = off1 + sizeOf (undefined :: x)
--- >             off3 = off2 + sizeOf (undefined :: y)
+--   Example:
+--   > data T = Cons x y
+--   >
+--   > [...] where off0 = 0
+--   >             off1 = sizeOf (undefined :: Int)
+--   >             off2 = off1 + sizeOf (undefined :: x)
+--   >             off3 = off2 + sizeOf (undefined :: y)
 genOffsets :: TH.Con -> Q ([Name], [Dec])
 genOffsets con = do
     let fSizes  = conFieldSizes con
         arity   = length fSizes
         name i  = newName $ "off" ++ show i
 
-    -- this needs to bind, because it would generate new names every time
+    -- This needs to bind, because it would generate new names every time
     names <- mapM name $ take (arity + 1) [0..]
 
     let off0D   = whereClause (head names) $ intLit 0
@@ -140,7 +146,7 @@ genOffsets con = do
 
             mkDecl :: (Name, Name, Exp) -> Dec
             mkDecl (declName, refName, fSize) =
-                whereClause declName (plus (var refName) fSize) --  where declName = refName + size
+                whereClause declName (plus (var refName) fSize) -- >> where declName = refName + size
 
             clauses = (off0D : off1D : (map mkDecl headers))
 
@@ -173,7 +179,7 @@ genPeekCaseMatch ptr idx con = do
         peekByteOffPtr   = app (var 'peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
-        -- no-field constructors are a special case of just the constructor being returned
+        -- No-field constructors are a special case of just the constructor being returned
         firstCon         = if arity > 0 then op '(<$>) (ConE cName) (peekByte $ head offNames)
                                         else app (var 'return) (ConE cName)
         offs             = if arity > 0 then tail offNames else []
@@ -206,7 +212,7 @@ genPokeClause idx con = do
         pokeByteOffPtr = app (var 'pokeByteOff) (var ptr)
         pokeByte a     = app2 pokeByteOffPtr (var a)
         nextPoke t     = app2 (var '(>>)) t .: pokeByte
-        idxAsInt       = convert idx -:: cons ''Int [] -- FIXME: it's strange. It seems like we do a lot of it, check if necessary
+        idxAsInt       = convert idx -:: var ''Int
         firstPoke      = pokeByte off idxAsInt
         varxps         = var <$> patVarNames
         body           = foldl (uncurry . nextPoke) firstPoke

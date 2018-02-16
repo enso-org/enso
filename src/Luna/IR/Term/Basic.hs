@@ -9,6 +9,7 @@ import Foreign.Ptr            (Ptr, castPtr, plusPtr)
 import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 
+import qualified Foreign            as Ptr
 import qualified Data.Graph as Graph
 import qualified Foreign.Memory.Pool as MemPool
 
@@ -24,6 +25,10 @@ import Luna.IR.Format
 import Data.Tag (Tag)
 
 import qualified Data.Mutable as MData
+import qualified Data.TypeSet as TypeSet
+import Control.Monad.State.Layered
+
+import Type.Data.Ord (Cmp)
 
 ----------------
 -- === IR === --
@@ -194,17 +199,102 @@ test = do
     print x
 
 
+
+
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
     ir <- mockNewIR
     writeLayer termLayer ir (Var 0)
     let go 0 = return ()
         go j = do
-            Var x <- readLayer termLayer ir
+            Var !y <- readLayer termLayer ir
+            Var !z <- readLayer termLayer ir
+            Var !x <- readLayer termLayer ir
             writeLayer termLayer ir (Var (x+1))
             go (j - 1)
     go i
     -- Ptr.free ptr
+
+
+test_readWriteLayer2 :: Int -> IO ()
+test_readWriteLayer2 i = do
+    ir <- mockNewIR
+    writeLayer termLayer ir (Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go 0 = return ()
+        go j = do
+            set <- get'
+            let layer = TypeSet.unsafeLookup @(LayerLoc Layer_Term) set
+            Var x <- readLayer layer ir
+            writeLayer layer ir (Var (x+1))
+            go (j - 1)
+    evalStateT (go i)
+        $ TypeSet.insert (XInt 1)
+        $ TypeSet.insert (6 :: Int)
+        $ TypeSet.insert termLayer
+        $ mempty
+
+
+test_readWriteLayer_ptrOff :: Int -> IO ()
+test_readWriteLayer_ptrOff i = do
+    ptr <- Ptr.new (0 :: Int)
+    ir <- mockNewIR
+    writeLayer termLayer ir (Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go 0 = return ()
+        go j = do
+            -- set <- get'
+            _layer_ <- peek ptr
+            let layer = coerce _layer_ :: LayerLoc Layer_Term
+            Var x <- readLayer layer ir
+            writeLayer layer ir (Var (x+1))
+            go (j - 1)
+    (go i)
+    -- evalStateT (go i)
+    --     $ TypeSet.insert (XInt 1)
+    --     $ TypeSet.insert (6 :: Int)
+    --     $ TypeSet.insert termLayer
+    --     $ mempty
+
+    -- Ptr.free ptr
+
+--
+-- readWritePtr :: Int -> IO ()
+-- readWritePtr i = do
+--     ptr <- Ptr.new (0 :: Int)
+--     let go 0 = return ()
+--         go j = do
+--             x <- peek ptr
+--             poke ptr (x+1)
+--             go (j - 1)
+--     go i
+--     Ptr.free ptr
+
+
+
+newtype XInt = XInt Int
+
+type instance Cmp Int XInt = GT
+type instance Cmp XInt Int = LT
+
+type instance Cmp (LayerLoc Layer_Term) Int = GT
+type instance Cmp Int (LayerLoc Layer_Term) = LT
+
+-- test_readWriteLayer2 :: Int -> IO ()
+-- test_readWriteLayer2 i = do
+--     ir <- mockNewIR
+--     writeLayer termLayer ir (Var 0)
+--     let -- go :: Int -> StateT Int IO ()
+--         go 0 = return ()
+--         go j = do
+--             set <- get'
+--             let layer = TypeSet.unsafeLookup @(LayerLoc Layer_Term) set
+--             Var x <- readLayer layer ir
+--             writeLayer layer ir (Var (x+1))
+--             go (j - 1)
+--     evalStateT (go i) (TypeSet.insert termLayer mempty)
+--     -- Ptr.free ptr
+
 
 -- readIO @Layer_Term
 

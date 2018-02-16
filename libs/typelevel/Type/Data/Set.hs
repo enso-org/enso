@@ -23,18 +23,28 @@ type family FromSet s where
     FromSet ('Set s) = s
 
 
--- === Operations === --
+-- === Bindings to raw operations === --
 
-type Singleton t = 'Set '[t] 
+type Singleton t = 'Set (RawSingleton t)
+type family Insert k s where Insert k ('Set s) = 'Set (RawInsert k s)
+type family Member k s where Member k ('Set s) = RawMember k s
 
-type family Insert k s where
-    Insert k ('Set '[])       = 'Set '[k]
-    Insert k ('Set (k ': as)) = 'Set (k ': as)
-    Insert k ('Set (a ': as)) = If (k < a)
-        ('Set (k ': a ': as))
-        ('Set (a ': FromSet (Insert k ('Set as))))
 
-type family Member k s where
-    Member k ('Set '[])     = 'False
-    Member k ('Set (k ': _)) = 'True
-    Member k ('Set (_ ': s)) = Member k ('Set s)
+-- === Raw list operations === --
+
+type RawSingleton t = '[t]
+
+type family RawInsert k s where
+    RawInsert k '[]       = '[k]
+    RawInsert k (k ': as) = (k ': as)
+    RawInsert k (a ': as) = RawSubInsert (k < a) k a as
+
+type family RawSubInsert b k a as where
+    RawSubInsert b k a as = If b
+        (k ': a ': as)
+        (a ': (RawInsert k as))
+
+type family RawMember k s where
+    RawMember k '[]     = 'False
+    RawMember k (k ': _) = 'True
+    RawMember k (_ ': s) = RawMember k s

@@ -15,6 +15,8 @@ packages:
     - ../data-repr
     - ../data-rtuple
     - ../data-prop
+    - ../dependent-state
+    - ../monad-branch
 
 
 extra-deps:

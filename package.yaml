@@ -42,6 +42,7 @@ dependencies:
     - prologue >= 3.0.0
     - mtl
     - unboxed-ref >= 0.4.0.0
+    - dependent-state
 
 benchmarks:
   array-benchmark:
