@@ -10,8 +10,7 @@ import qualified Prologue as P
 import Type.Data.Property hiding (Set)
 import Type.Data.Maybe
 import Data.Tag
-import Type.Data.Ord (Cmp)
-import Type.Data.Ord.TH
+import Type.Data.Ord
 
 -- import Type.Data.Set.Proxy (Set)
 import Type.Data.Set (Set)
@@ -75,7 +74,7 @@ data TERM; type Term = LayoutTag TERM
 data TYPE; type Type = LayoutTag TYPE
 data NAME; type Name = LayoutTag NAME
 
-$(defOrder [''Name, ''Type, ''Term])
+defOrder [''Name, ''Type, ''Term]
 
 -- === Utils === --
 

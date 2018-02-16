@@ -9,7 +9,7 @@ import qualified Language.Haskell.TH         as TH
 import           Language.Haskell.TH         (Type, Q, Name)
 import           Language.Haskell.TH.Builder
 
-import           Type.Data.Ord
+import           Type.Data.Ord.Class
 
 
 pairs :: [a] -> [(a, a)]
@@ -32,14 +32,14 @@ defEQ (var -> t) = typeInstance2 ''Cmp t t eq
 -- | Generate an instance of the `Cmp` family to impose the following ordering:
 --   > type instance Cmp tlt tgt = LT
 --   > type instance Cmp tgt tlt = GT
---   > type instance Cmp tlt tgt = EQ
---   > type instance Cmp tgt tlt = EQ
 --
 --   which is equivalent to saying: tlt < tgt
 defOrderedPair :: Name -> Name -> [TH.Dec]
-defOrderedPair tlt tgt = [defLT tlt tgt, defGT tlt tgt, defEQ tlt, defEQ tgt]
+defOrderedPair tlt tgt = [defLT tlt tgt, defGT tlt tgt]
 
 -- | Define a total ordering on the list of types.
 --   [T1, T2, ..., Tn] => T1 < T2 < ... < Tn
 defOrder :: [Name] -> Q [TH.Dec]
-defOrder = return . concatMap (uncurry defOrderedPair) . pairs
+defOrder ns = return $ ltgts <> eqs
+    where ltgts = concatMap (uncurry defOrderedPair) $ pairs ns
+          eqs   = map defEQ ns

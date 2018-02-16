@@ -7,6 +7,7 @@ import Prelude
 import Data.Kind
 import Type.Data.Bool
 import Type.Data.Ord
+import Type.Data.Ord.Class
 import Data.Proxy (Proxy)
 import Type.Data.Maybe (FromJust)
 
@@ -25,7 +26,7 @@ type family FromSet s where
 
 -- === Operations === --
 
-type Singleton t = 'Set '[t] 
+type Singleton t = 'Set '[t]
 
 type family Insert k s where
     Insert k ('Set '[])       = 'Set '[k]
