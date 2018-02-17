@@ -1,0 +1,30 @@
+import Std.Base
+import Std.Test
+
+class PatternMatchTest:
+    def testCorrectMatch:
+        subject = case 0 of
+            1: "1"
+            0: "0"
+            _: "_"
+        TestSubject subject . should (be "0")
+
+    def testInexhaustiveMatch:
+        def inexhaustive:
+            case "foo" of
+                "bar": "bar"
+                "baz": "baz"
+        TestSubject inexhaustive . should throwError
+
+    def testDoubleMatch:
+        res = case "foo" of
+            "foo": "foo1"
+            "foo": "foo2"
+            _: "other"
+        TestSubject res . should (be "foo1")
+
+    def run:
+        Test.specify "exhaustive pattern match returns correct value"     self.testCorrectMatch
+        Test.specify "inexhaustive pattern match throws an exception"     self.testInexhaustiveMatch
+        Test.specify "the first matching clause wins when multiple match" self.testDoubleMatch
+
