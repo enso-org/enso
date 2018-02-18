@@ -43,6 +43,7 @@ dependencies:
     - mtl
     - unboxed-ref >= 0.4.0.0
     - dependent-state
+    - monad-branch
 
 benchmarks:
   array-benchmark:

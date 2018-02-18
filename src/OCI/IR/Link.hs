@@ -5,9 +5,9 @@ import Foreign          (Ptr)
 import Foreign.Storable (Storable)
 
 import OCI.IR.Term
-import OCI.IR.Layout hiding (Type)
+import OCI.IR.Layout hiding (Type, Term)
 
-
+import Data.Tag
 import Foreign.Storable.Utils
 import Foreign(castPtr)
 
@@ -20,23 +20,30 @@ type family IRDef a
 
 -- === Definition === ---
 
+data LINK
+type LinkTag = Tag LINK
+type Link = Component LINK
+
 data LinkData src tgt = LinkData
-    { _source :: {-# UNPACK #-} !(IR src)
-    , _target :: {-# UNPACK #-} !(IR tgt)
+    { _source :: {-# UNPACK #-} !(Term src)
+    , _target :: {-# UNPACK #-} !(Term tgt)
     } deriving (Eq, Show)
+
+
+data src :-: tgt
 
 -- newtype Link src tgt = Link (Ptr (LinkData src tgt))
 --     deriving (Eq, Show, Storable)
 
-newtype Link (src :: Type) (tgt :: Type) = Link MData deriving (Eq, Show, Storable) -- FIXME: src not used
-makeLenses ''Link
-
-instance MutableData (Link src tgt) where
-    mdata = wrapped ; {-# INLINE mdata #-}
+-- newtype Link (src :: Type) (tgt :: Type) = Link MData deriving (Eq, Show, Storable) -- FIXME: src not used
+-- makeLenses ''Link
+--
+-- instance MutableData (Link src tgt) where
+--     mdata = wrapped ; {-# INLINE mdata #-}
 
 
 -- type SubLink src tgtType = Link src (GetSublayout tgtType src)
-type SubLink src tgtType = Link src (GetSublayout tgtType src)
+type SubLink src tgtType = Link (src :-: GetSublayout tgtType src)
 
 
 

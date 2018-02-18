@@ -15,29 +15,39 @@ import Data.Tag
 
 -- === Definition === --
 
-data TERM
-type TermTag = Tag TERM
 --
 -- === Instances === --
 
 -- type instance
 
 
+-- data COMPONENT
+-- type ComponentTag = Tag COMPONENT
+
+newtype Component t cfg = Component (Ptr()) deriving (Eq, Show, Storable)
 
 
--- type family TermDef a
+
+
+data TERM
+type TermTag = Tag TERM
+type Term = Component TERM
+
+
+-- newtype Component = Component (Ptr()) deriving (Eq, Show, Storable)
+
+-- class IsComponent a where
+    -- component :: Iso' a Component
+
+
+
+-- data IR_COMPONENT
 --
--- newtype TermRef a = TermRef (Ptr (TermDef a))
---     deriving (Eq, Show, Storable)
+--
+--
+--
+-- newtype IR (t :: Type) = IR Component deriving (Eq, Show, Storable)
+-- makeLenses ''IR
 
-
-newtype MData = MData (Ptr()) deriving (Eq, Show, Storable)
-
-class MutableData a where
-    mdata :: Iso' a MData
-
-newtype IR (t :: Type) = IR MData deriving (Eq, Show, Storable)
-makeLenses ''IR
-
-instance MutableData (IR t) where
-    mdata = wrapped ; {-# INLINE mdata #-}
+-- instance IsComponent (IR t) where
+    -- component = wrapped ; {-# INLINE component #-}

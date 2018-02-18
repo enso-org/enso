@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -ddump-simpl -ddump-to-file #-}
+-- {-# OPTIONS_GHC -ddump-simpl -ddump-to-file #-}
 {-# LANGUAGE Strict #-}
 module Test.Vector where
 
@@ -113,9 +113,9 @@ readWritePtr i = do
     ptr <- Ptr.new (0 :: Int)
     let go 0 = return ()
         go j = do
-            x <- peek ptr
-            poke ptr (x+1)
-            go (j - 1)
+            !x <- peek ptr
+            poke ptr $! x+1
+            go $! j - 1
     go i
     Ptr.free ptr
 

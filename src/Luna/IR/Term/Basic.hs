@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -ddump-splices    #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell      #-}
 
@@ -16,7 +15,7 @@ import qualified Foreign.Memory.Pool as MemPool
 import Foreign.Storable.Deriving
 
 import Luna.IR.Class
-import OCI.IR.Term hiding (TermDef)
+import OCI.IR.Term hiding (TermModelDef)
 import qualified OCI.IR.Layout as Layout
 import OCI.IR.Link as Link
 
@@ -38,18 +37,18 @@ import Foreign.Marshal.Alloc (mallocBytes)
 
 -- === IR Atoms === ---
 
-type family TermDef t :: * -> *
--- data family TermDef (t :: *) (a :: Layout)
+type family TermModelDef t :: * -> *
+-- data family TermModelDef (t :: *) (a :: Layout)
 
 
-type family Term a
+type family TermModel a
 
 
 type Var = TermTag VAR; data VAR
 newtype TermVar a = TermVar
     { __name :: Int
     } deriving (Show, Eq)
-type instance TermDef Var = TermVar
+type instance TermModelDef Var = TermVar
 deriveStorable ''TermVar
 
 type Acc = TermTag ACC; data ACC
@@ -57,33 +56,29 @@ data TermAcc a = TermAcc
     { __base :: !(Link.Term Acc a)
     , __name :: !(Link.Name Acc a)
     } deriving (Show, Eq)
-type instance TermDef Acc = TermAcc
+type instance TermModelDef Acc = TermAcc
 deriveStorable ''TermAcc
 
 data TermUni fmt a
     = Var !Int
     | Acc !(Link.Term fmt a) !(Link.Term fmt a)
     deriving (Show, Eq)
-type instance TermDef (FormatTag f) = TermUni (FormatTag f)
+type instance TermModelDef (FormatTag f) = TermUni (FormatTag f)
 deriveStorable ''TermUni
 
 
 
 
-type instance Term (Tag t a) = TermDef (Tag t a) (Tag t a)
+type instance TermModel (Tag t a) = TermModelDef (Tag t a) (Tag t a)
 
 
-data Layer_Term
-data Layer_Link
+data Model
 
 newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
 
-termLayer :: LayerLoc Layer_Term
-termLayer = LayerLoc 0 ; {-# INLINE termLayer #-}
-
-linkLayer :: LayerLoc Layer_Link
-linkLayer = LayerLoc 0 ; {-# INLINE linkLayer #-}
+layerLoc0 :: LayerLoc Model
+layerLoc0 = LayerLoc 0 ; {-# INLINE layerLoc0 #-}
 
 
 
@@ -94,6 +89,7 @@ linkLayer = LayerLoc 0 ; {-# INLINE linkLayer #-}
 -- === Definition === --
 
 class Storable (LayerData layer t) => Layer layer t where
+    type family   LayerSize layer t :: Nat
     type family   LayerData layer t
     type instance LayerData layer t = layer
 
@@ -115,38 +111,42 @@ layerPokeByteOff :: forall l t a m. (Layer l t, MonadIO m) => Ptr a -> Int -> La
 layerPeekByteOff ptr off = layerPeek @l @t (ptr `plusPtr` off) ; {-# INLINE layerPeekByteOff #-}
 layerPokeByteOff ptr off = layerPoke @l @t (ptr `plusPtr` off) ; {-# INLINE layerPokeByteOff #-}
 
-readLayer  :: forall t layer m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t -> m (LayerData layer t)
-writeLayer :: forall t layer m. (Layer layer t, MonadIO m, MutableData t) => LayerLoc layer -> t ->   (LayerData layer t) -> m ()
-readLayer  loc t     = layerPeekByteOff @layer @t (coerce $ t ^. mdata) (unwrap loc)     ; {-# INLINE readLayer  #-}
-writeLayer loc t val = layerPokeByteOff @layer @t (coerce $ t ^. mdata) (unwrap loc) val ; {-# INLINE writeLayer #-}
+readLayer  :: forall t cfg layer m. (Layer layer (Component t cfg), MonadIO m) => LayerLoc layer -> Component t cfg -> m (LayerData layer (Component t cfg))
+writeLayer :: forall t cfg layer m. (Layer layer (Component t cfg), MonadIO m) => LayerLoc layer -> Component t cfg ->   (LayerData layer (Component t cfg)) -> m ()
+readLayer  !loc !t      = layerPeekByteOff @layer @(Component t cfg) (coerce t) (unwrap loc)     ; {-# INLINE readLayer  #-}
+writeLayer !loc !t !val = layerPokeByteOff @layer @(Component t cfg) (coerce t) (unwrap loc) val ; {-# INLINE writeLayer #-}
 
 
 
 
 
 
+type family SizeOf a :: Nat
+type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
 
 
-instance Layer     Layer_Term (IR (FormatTag f)) where
-    type LayerData Layer_Term (IR (FormatTag f)) = Term (FormatTag f)
+instance Layer     Model (Term (FormatTag f)) where
+    type LayerSize Model (Term (FormatTag f)) = 3 * SizeOf Int
+    type LayerData Model (Term (FormatTag f)) = TermModel (FormatTag f)
 
-instance Storable (LayerData Layer_Term (IR (TermTag f)))
-      => Layer     Layer_Term (IR (TermTag f)) where
-    type LayerData Layer_Term (IR (TermTag f)) = Term (TermTag f)
+instance Storable (LayerData Model (Term (TermTag f)))
+      => Layer     Model (Term (TermTag f)) where
+    type LayerSize Model (Term (TermTag f)) = LayerSize Model (Term (FormatTag f)) 
+    type LayerData Model (Term (TermTag f)) = TermModel (TermTag f)
     layerPeekIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE layerPeekIO #-}
 
 
-instance Layer     Layer_Link a where
-    type LayerData Layer_Link a = LinkData Draft Draft
+instance Layer     Model (Link a) where
+    type LayerData Model (Link a) = LinkData Draft Draft
 
--- type instance LayerData Layer_Term (Tag t a) = Term (Tag t a)
+-- type instance LayerData Model (Tag t a) = TermModel (Tag t a)
 
 -- class LayerStorable layer (layout :: Layout) where
 --     type family LayerData layer layout :: *
 --     layerByteSize   :: Int
 --     layerByteOffset :: Int
 --
--- instance LayerStorable Layer_Term
+-- instance LayerStorable Model
 
 constructorSize :: Int
 constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
@@ -167,17 +167,22 @@ chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 --         Acc !a !b -> poke (intPtr ptr) 1 >> pokeByteOff ptr (chunkSize*2) b
 --     {-# INLINE poke #-}
 
+type family AllLayers component :: [*]
 
+type instance AllLayers TERM = '[Model]
+type instance AllLayers LINK = '[Model]
 
 
 
 -- class Reader layer where
 
-mockNewIR :: MonadIO m => m (IR Draft)
-mockNewIR = IR . coerce <$> MemPool.alloc @(Term Draft) ; {-# INLINE mockNewIR #-}
+mockNewIR :: MonadIO m => m (Term Draft)
+mockNewIR = Component . coerce <$> MemPool.alloc @(TermModel Draft) ; {-# INLINE mockNewIR #-}
 
-mockNewLink :: forall m. MonadIO m => m (Link Draft Draft)
-mockNewLink = Link . coerce <$> MemPool.alloc @(LinkData Draft Draft)
+mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
+mockNewLink = Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
+
+
 
 
 
@@ -188,16 +193,16 @@ test = do
     var1 <- mockNewIR
     var2 <- mockNewIR
     acc1 <- mockNewIR
-    writeLayer termLayer var1 (Var 7)
-    writeLayer termLayer var2 (Var 5)
+    writeLayer layerLoc0 var1 (Var 7)
+    writeLayer layerLoc0 var2 (Var 5)
 
     l1 <- mockNewLink
-    writeLayer linkLayer l1 (LinkData var1 acc1)
+    writeLayer layerLoc0 l1 (LinkData var1 acc1)
 
-    writeLayer termLayer acc1 (Acc l1 l1)
+    writeLayer layerLoc0 acc1 (Acc l1 l1)
 
     print var1
-    x <- readLayer termLayer var1
+    x <- readLayer layerLoc0 var1
     print x
 
 
@@ -205,15 +210,15 @@ test = do
 
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
-    ir <- mockNewIR
-    writeLayer termLayer ir (Var 0)
+    !ir <- mockNewIR
+    writeLayer layerLoc0 ir (Var 0)
     let go 0 = return ()
         go j = do
-            Var !y <- readLayer termLayer ir
-            Var !z <- readLayer termLayer ir
-            Var !x <- readLayer termLayer ir
-            writeLayer termLayer ir (Var (x+1))
-            go (j - 1)
+            Var !y <- readLayer layerLoc0 ir
+            Var !z <- readLayer layerLoc0 ir
+            Var !x <- readLayer layerLoc0 ir
+            writeLayer layerLoc0 ir (Var $! x+1)
+            go $! (j - 1)
     go i
     -- Ptr.free ptr
 
@@ -221,19 +226,19 @@ test_readWriteLayer i = do
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer termLayer ir (Var 0)
+--     writeLayer layerLoc0 ir (Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
 --             set <- get'
---             let layer = TypeSet.unsafeLookup @(LayerLoc Layer_Term) set
+--             let layer = TypeSet.unsafeLookup @(LayerLoc Model) set
 --             Var x <- readLayer layer ir
 --             writeLayer layer ir (Var (x+1))
 --             go (j - 1)
 --     evalStateT (go i)
 --         $ TypeSet.insert (XInt 1)
 --         $ TypeSet.insert (6 :: Int)
---         $ TypeSet.insert termLayer
+--         $ TypeSet.insert layerLoc0
 --         $ mempty
 
 
@@ -243,13 +248,13 @@ test_readWriteLayer_ptrOff i = do
     -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
     ir <- mockNewIR
-    writeLayer termLayer ir (Var 0)
+    writeLayer layerLoc0 ir (Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             -- set <- get'
             _layer_ <- peek ptr
-            let layer = coerce _layer_ :: LayerLoc Layer_Term
+            let layer = coerce _layer_ :: LayerLoc Model
             Var x <- readLayer layer ir
             writeLayer layer ir (Var (x+1))
             go (j - 1)
@@ -270,7 +275,7 @@ test_readWriteLayer_ptrBuffOff i = do
     pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
     ir <- mockNewIR
-    writeLayer termLayer ir (Var 0)
+    writeLayer layerLoc0 ir (Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
@@ -278,7 +283,7 @@ test_readWriteLayer_ptrBuffOff i = do
             x <- get @Int
             put @Int (x+1)
             _layer_ <- liftIO $ peek p
-            let layer = coerce _layer_ :: LayerLoc Layer_Term
+            let layer = coerce _layer_ :: LayerLoc Model
             Var x <- readLayer layer ir
             writeLayer layer ir (Var (x+1))
             go (j - 1)
@@ -288,7 +293,7 @@ test_readWriteLayer_ptrBuffOff i = do
     -- evalStateT (go i)
     --     $ TypeSet.insert (XInt 1)
     --     $ TypeSet.insert (6 :: Int)
-    --     $ TypeSet.insert termLayer
+    --     $ TypeSet.insert layerLoc0
     --     $ mempty
 
     -- Ptr.free ptr
@@ -312,28 +317,28 @@ newtype XInt = XInt Int
 type instance Cmp Int XInt = GT
 type instance Cmp XInt Int = LT
 
-type instance Cmp (LayerLoc Layer_Term) Int = GT
-type instance Cmp Int (LayerLoc Layer_Term) = LT
+type instance Cmp (LayerLoc Model) Int = GT
+type instance Cmp Int (LayerLoc Model) = LT
 
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer termLayer ir (Var 0)
+--     writeLayer layerLoc0 ir (Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
 --             set <- get'
---             let layer = TypeSet.unsafeLookup @(LayerLoc Layer_Term) set
+--             let layer = TypeSet.unsafeLookup @(LayerLoc Model) set
 --             Var x <- readLayer layer ir
 --             writeLayer layer ir (Var (x+1))
 --             go (j - 1)
---     evalStateT (go i) (TypeSet.insert termLayer mempty)
+--     evalStateT (go i) (TypeSet.insert layerLoc0 mempty)
 --     -- Ptr.free ptr
 
 
--- readIO @Layer_Term
+-- readIO @Model
 
--- termLayer = Layer (sizeOf' @)
+-- layerLoc0 = Layer (sizeOf' @)
 -- newtype IRDef (layers :: [Type]) = IRDef (Ptr ()) deriving (Show)
 
 
@@ -354,29 +359,29 @@ type instance Cmp Int (LayerLoc Layer_Term) = LT
 
 
 
--- newtype TermDefVar (a :: Layout) = TermDefVar
+-- newtype TermModelDefVar (a :: Layout) = TermModelDefVar
 --     { __name :: Int
 --     } deriving (Show, Eq)
--- type instance TermDef Var a = TermDefVar a
+-- type instance TermModelDef Var a = TermModelDefVar a
 
 -- data IRDefVar (a :: Layout) = IRDefVar
 --     { __type :: {-# UNPACK #-} !(Link.Type Var a)
---     , __term :: {-# UNPACK #-} !(TermDefVar a)
+--     , __term :: {-# UNPACK #-} !(TermModelDefVar a)
 --     }
 
 
 
 
--- data TermDefAcc a = TermDefAcc
+-- data TermModelDefAcc a = TermModelDefAcc
 --     { __base :: !(Link.Term Acc a)
 --     , __name :: !(Link.Name Acc a)
 --     } deriving (Show, Eq)
--- type instance TermDef Acc a = TermDefAcc a
+-- type instance TermModelDef Acc a = TermModelDefAcc a
 
 -- vvv - moze nie trzeba takich datatypow jezeli trzymalibysmy to w pamieci i skakli poitnerem robiac read @LayerName ?x
 -- data IRDefAcc (a :: Layout) = IRDefAcc
 --     { __type :: {-# UNPACK #-} !(Link.Type Acc a)
---     , __term :: {-# UNPACK #-} !(TermDefAcc a)
+--     , __term :: {-# UNPACK #-} !(TermModelDefAcc a)
 --     }
 
 -- data family Term t (a :: Layout)
@@ -385,7 +390,7 @@ type instance Cmp Int (LayerLoc Layer_Term) = LT
 
 
 
--- type Term (l :: Layout) = TermDef (Base l) l
+-- type Term (l :: Layout) = TermModelDef (Base l) l
 
 
 -- read @Term :: IR Draft -> IR.Term Draft
@@ -410,7 +415,7 @@ type instance Cmp Int (LayerLoc Layer_Term) = LT
 
 -- data family TermX (t :: *) (a :: Layout)
 --
--- data instance TermX Acc a = TermDefAcc
+-- data instance TermX Acc a = TermModelDefAcc
 --     { __base :: !(Link.Term Acc a)
 --     , __name :: !(Link.Name Acc a)
 --     } deriving (Show, Eq)

@@ -98,7 +98,7 @@ unused v = Ptr.readForeignPtr (v ^. unusedSize)
 
 -- === Conversions === --
 
-unsafeThaw :: (MonadIO m, Storable a) => AutoVector a -> m (MAutoVector' m a)
+unsafeThaw :: (MonadIO m, PrimMonad m, Storable a) => AutoVector a -> m (MAutoVector' m a)
 unsafeThaw v = do
     dataVector'  <- PVector.unsafeThaw $ v ^. dataVector
     indexVector' <- PVector.unsafeThaw $ v ^. indexVector
@@ -106,7 +106,7 @@ unsafeThaw v = do
     return $ MAutoVector dataVector' indexVector' unusedSize'
 {-# INLINE unsafeThaw #-}
 
-unsafeFreeze :: (MonadIO m, Storable a) => MAutoVector' m a -> m (AutoVector a)
+unsafeFreeze :: (MonadIO m, PrimMonad m, Storable a) => MAutoVector' m a -> m (AutoVector a)
 unsafeFreeze v = do
     dataVector'  <- PVector.unsafeFreeze $ v ^. dataVector
     indexVector' <- PVector.unsafeFreeze $ v ^. indexVector
