@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeInType      #-}
 {-# LANGUAGE TemplateHaskell      #-}
 
 module Luna.IR.Term.Basic where
@@ -31,13 +32,26 @@ import Control.Monad.State.Layered hiding ((.))
 import Type.Data.Ord (Cmp)
 import Foreign.Marshal.Alloc (mallocBytes)
 
+
+
+
+
+type SomePtr = Ptr ()
+
+type family SizeOf a :: Nat
+type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
+
+
+
+
+
 ----------------
 -- === IR === --
 ----------------
 
 -- === IR Atoms === ---
 
-type family TermModelDef t :: * -> *
+type family TermModelDef t :: Type -> Type
 -- data family TermModelDef (t :: *) (a :: Layout)
 
 
@@ -77,8 +91,8 @@ data Model
 newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
 
-layerLoc0 :: LayerLoc Model
-layerLoc0 = LayerLoc 0 ; {-# INLINE layerLoc0 #-}
+
+
 
 
 
@@ -88,56 +102,95 @@ layerLoc0 = LayerLoc 0 ; {-# INLINE layerLoc0 #-}
 
 -- === Definition === --
 
-class Storable (LayerData layer t) => Layer layer t where
-    type family   LayerSize layer t :: Nat
-    type family   LayerData layer t
-    type instance LayerData layer t = layer
+type family LayerSize component layer :: Nat
 
-    layerPeekIO :: forall a. Ptr a -> IO (LayerData layer t)
-    layerPokeIO :: forall a. Ptr a -> LayerData layer t -> IO ()
-    layerPeekIO ptr = peek (castPtr ptr) ; {-# INLINE layerPeekIO #-}
-    layerPokeIO ptr = poke (castPtr ptr) ; {-# INLINE layerPokeIO #-}
+class Storable (LayerData t layer cfg) => Layer (t :: Type) (layer :: Type) (cfg :: Type) where
+    type family LayerData t layer cfg :: Type
+
+    peekLayerIO :: SomePtr -> IO (LayerData t layer cfg)
+    pokeLayerIO :: SomePtr -> LayerData t layer cfg -> IO ()
+    initLayerIO :: SomePtr -> IO ()
+    peekLayerIO !ptr = peek $ coerce ptr ; {-# INLINE peekLayerIO #-}
+    pokeLayerIO !ptr = poke $ coerce ptr ; {-# INLINE pokeLayerIO #-}
+    initLayerIO _ = return ()
 
 
 -- === API === --
 
-layerPeek :: forall l t a m. (Layer l t, MonadIO m) => Ptr a -> m (LayerData l t)
-layerPoke :: forall l t a m. (Layer l t, MonadIO m) => Ptr a -> LayerData l t -> m ()
-layerPeek ptr   = liftIO $ layerPeekIO @l @t ptr   ; {-# INLINE layerPeek #-}
-layerPoke ptr v = liftIO $ layerPokeIO @l @t ptr v ; {-# INLINE layerPoke #-}
+peekLayer :: forall t l cfg m. (Layer t l cfg, MonadIO m) => SomePtr -> m (LayerData t l cfg)
+pokeLayer :: forall t l cfg m. (Layer t l cfg, MonadIO m) => SomePtr -> LayerData t l cfg -> m ()
+peekLayer !ptr    = liftIO $ peekLayerIO @t @l @cfg ptr   ; {-# INLINE peekLayer #-}
+pokeLayer !ptr !v = liftIO $ pokeLayerIO @t @l @cfg ptr v ; {-# INLINE pokeLayer #-}
 
-layerPeekByteOff :: forall l t a m. (Layer l t, MonadIO m) => Ptr a -> Int -> m (LayerData l t)
-layerPokeByteOff :: forall l t a m. (Layer l t, MonadIO m) => Ptr a -> Int -> LayerData l t -> m ()
-layerPeekByteOff ptr off = layerPeek @l @t (ptr `plusPtr` off) ; {-# INLINE layerPeekByteOff #-}
-layerPokeByteOff ptr off = layerPoke @l @t (ptr `plusPtr` off) ; {-# INLINE layerPokeByteOff #-}
+peekLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> SomePtr -> m (LayerData t layer cfg)
+pokeLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> SomePtr ->   (LayerData t layer cfg) -> m ()
+peekLayerByteOff !off !ptr      = peekLayer @t @layer @cfg (ptr `plusPtr` off)     ; {-# INLINE peekLayerByteOff #-}
+pokeLayerByteOff !off !ptr !val = pokeLayer @t @layer @cfg (ptr `plusPtr` off) val ; {-# INLINE pokeLayerByteOff #-}
 
-readLayer  :: forall t cfg layer m. (Layer layer (Component t cfg), MonadIO m) => LayerLoc layer -> Component t cfg -> m (LayerData layer (Component t cfg))
-writeLayer :: forall t cfg layer m. (Layer layer (Component t cfg), MonadIO m) => LayerLoc layer -> Component t cfg ->   (LayerData layer (Component t cfg)) -> m ()
-readLayer  !loc !t      = layerPeekByteOff @layer @(Component t cfg) (coerce t) (unwrap loc)     ; {-# INLINE readLayer  #-}
-writeLayer !loc !t !val = layerPokeByteOff @layer @(Component t cfg) (coerce t) (unwrap loc) val ; {-# INLINE writeLayer #-}
+unsafeReadLayerByteOff  :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> Component t cfg -> m (LayerData t layer cfg)
+unsafeWriteLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> Component t cfg ->   (LayerData t layer cfg) -> m ()
+unsafeReadLayerByteOff  !off !t = peekLayerByteOff @layer @t @cfg off (coerce t) ; {-# INLINE unsafeReadLayerByteOff  #-}
+unsafeWriteLayerByteOff !off !t = pokeLayerByteOff @layer @t @cfg off (coerce t) ; {-# INLINE unsafeWriteLayerByteOff #-}
 
-
-
-
-
-
-type family SizeOf a :: Nat
-type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
+readLayer  :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg -> m (LayerData t layer cfg)
+writeLayer :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg ->   (LayerData t layer cfg) -> m ()
+readLayer  = unsafeReadLayerByteOff  @layer (layerOffset @t @layer) ; {-# INLINE readLayer  #-}
+writeLayer = unsafeWriteLayerByteOff @layer (layerOffset @t @layer) ; {-# INLINE writeLayer #-}
 
 
-instance Layer     Model (Term (FormatTag f)) where
-    type LayerSize Model (Term (FormatTag f)) = 3 * SizeOf Int
-    type LayerData Model (Term (FormatTag f)) = TermModel (FormatTag f)
-
-instance Storable (LayerData Model (Term (TermTag f)))
-      => Layer     Model (Term (TermTag f)) where
-    type LayerSize Model (Term (TermTag f)) = LayerSize Model (Term (FormatTag f)) 
-    type LayerData Model (Term (TermTag f)) = TermModel (TermTag f)
-    layerPeekIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE layerPeekIO #-}
 
 
-instance Layer     Model (Link a) where
-    type LayerData Model (Link a) = LinkData Draft Draft
+
+
+-------------------------------------
+-- === Global Layer Management === --
+-------------------------------------
+
+-- === Layer registry === --
+
+type family AllLayers component :: [Type]
+
+
+-- === LayerOffset === --
+
+type LayerOffset component layer = LayerOffset' 0 component layer (AllLayers component)
+type family LayerOffset' off component layer ls where
+    LayerOffset' s _ l (l ': _)  = s
+    LayerOffset' s t l (p ': ps) = LayerOffset' (s + LayerSize t p) t l ps
+
+type KnownLayer component layer = KnownType (LayerOffset component layer)
+layerOffset :: forall component layer. (KnownLayer component layer) => Int
+layerOffset = fromInteger $ fromType @(LayerOffset component layer) ; {-# INLINE layerOffset #-}
+
+
+
+
+
+
+
+type instance LayerSize TERM Model = 3 * SizeOf Int
+instance Layer     TERM Model (FormatTag f) where
+    type LayerData TERM Model (FormatTag f) = TermModel (FormatTag f)
+
+instance Storable (LayerData TERM Model (TermTag f))
+      => Layer     TERM Model (TermTag f) where
+    type LayerData TERM Model (TermTag f) = TermModel (TermTag f)
+    peekLayerIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE peekLayerIO #-}
+
+
+instance Layer     LINK Model a where
+    type LayerData LINK Model a = LinkData Draft Draft
+
+
+
+
+
+
+type instance AllLayers TERM = '[Model]
+type instance AllLayers LINK = '[Model]
+
+
+
 
 -- type instance LayerData Model (Tag t a) = TermModel (Tag t a)
 
@@ -167,10 +220,7 @@ chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 --         Acc !a !b -> poke (intPtr ptr) 1 >> pokeByteOff ptr (chunkSize*2) b
 --     {-# INLINE poke #-}
 
-type family AllLayers component :: [*]
 
-type instance AllLayers TERM = '[Model]
-type instance AllLayers LINK = '[Model]
 
 
 
@@ -187,22 +237,24 @@ mockNewLink = Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
 
+layerLoc0 :: Int
+layerLoc0 = 0 ; {-# INLINE layerLoc0 #-}
 
 test :: IO ()
 test = do
     var1 <- mockNewIR
     var2 <- mockNewIR
     acc1 <- mockNewIR
-    writeLayer layerLoc0 var1 (Var 7)
-    writeLayer layerLoc0 var2 (Var 5)
+    unsafeWriteLayerByteOff @Model layerLoc0 var1 (Var 7)
+    unsafeWriteLayerByteOff @Model layerLoc0 var2 (Var 5)
 
     l1 <- mockNewLink
-    writeLayer layerLoc0 l1 (LinkData var1 acc1)
+    unsafeWriteLayerByteOff @Model layerLoc0 l1 (LinkData var1 acc1)
 
-    writeLayer layerLoc0 acc1 (Acc l1 l1)
+    unsafeWriteLayerByteOff @Model layerLoc0 acc1 (Acc l1 l1)
 
     print var1
-    x <- readLayer layerLoc0 var1
+    x <- unsafeReadLayerByteOff @Model layerLoc0 var1
     print x
 
 
@@ -211,13 +263,13 @@ test = do
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
     !ir <- mockNewIR
-    writeLayer layerLoc0 ir (Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (Var 0)
     let go 0 = return ()
         go j = do
-            Var !y <- readLayer layerLoc0 ir
-            Var !z <- readLayer layerLoc0 ir
-            Var !x <- readLayer layerLoc0 ir
-            writeLayer layerLoc0 ir (Var $! x+1)
+            Var !y <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            Var !z <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            Var !x <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            unsafeWriteLayerByteOff @Model layerLoc0 ir (Var $! x+1)
             go $! (j - 1)
     go i
     -- Ptr.free ptr
@@ -248,15 +300,14 @@ test_readWriteLayer_ptrOff i = do
     -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
     ir <- mockNewIR
-    writeLayer layerLoc0 ir (Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             -- set <- get'
-            _layer_ <- peek ptr
-            let layer = coerce _layer_ :: LayerLoc Model
-            Var x <- readLayer layer ir
-            writeLayer layer ir (Var (x+1))
+            layer <- peek ptr
+            Var x <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (Var (x+1))
             go (j - 1)
     (go i)
 
@@ -275,20 +326,31 @@ test_readWriteLayer_ptrBuffOff i = do
     pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
     ir <- mockNewIR
-    writeLayer layerLoc0 ir (Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             p <- get @(Ptr Int)
             x <- get @Int
             put @Int (x+1)
-            _layer_ <- liftIO $ peek p
-            let layer = coerce _layer_ :: LayerLoc Model
-            Var x <- readLayer layer ir
-            writeLayer layer ir (Var (x+1))
+            layer <- liftIO $ peek p
+            Var x <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (Var (x+1))
             go (j - 1)
     flip evalStateT (7::Int)
        $ flip evalStateT ptr (go i)
+
+test_readWriteLayer_static :: Int -> IO ()
+test_readWriteLayer_static i = do
+    ir <- mockNewIR
+    writeLayer @Model ir (Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go 0 = return ()
+        go j = do
+            Var x <- readLayer @Model ir
+            writeLayer @Model ir (Var (x+1))
+            go (j - 1)
+    (go i)
 
     -- evalStateT (go i)
     --     $ TypeSet.insert (XInt 1)
