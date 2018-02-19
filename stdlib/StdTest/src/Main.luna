@@ -1,50 +1,6 @@
 import Std.Base
-import Std.Time
 import Std.Test
-import StdTest.Map
-
-def benchList n:
-    desc = "Lists: " + n.toText
-    Bench.run desc (1 . upto n . length)
-
-def getInc mv n:
-    v = mv.take
-    v' = v.succ
-    mv.put v'
-    n
-
-def countUptoTwoLines n:
-    np = n.pred
-    if n == 0 then 0 else countUptoTwoLines np . succ
-
-def countUptoSingleLine n:
-    if n == 0 then 0 else countUptoSingleLine n.pred . succ
-
-def benchCountSingleLine n:
-    desc = "Counting (single line): " + n.toText
-    Bench.run desc (countUptoSingleLine n)
-
-def benchCountTwoLines n:
-    desc = "Counting (two lines): " + n.toText
-    Bench.run desc (countUptoTwoLines n)
+import StdTest.Lang.PatternMatch
 
 def main:
-    benchCountSingleLine 10
-    benchCountSingleLine 100
-    benchCountSingleLine 1000
-    benchCountSingleLine 10000
-
-    benchCountTwoLines 10
-    benchCountTwoLines 100
-    benchCountTwoLines 1000
-    benchCountTwoLines 10000
-
-    benchList 10
-    benchList 100
-    benchList 1000
-    benchList 10000
-
-    print "foo"
-    print 10.hours
-    print 10.days.ago
-    print 10.days.fromNow
+    PatternMatchTest.run

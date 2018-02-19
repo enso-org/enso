@@ -11,6 +11,11 @@ def be exp act:
 def equal exp act:
     be exp act
 
+def throwError act:
+    errMsg = 'Expected the action to throw an error, but it did not.'
+    negErrMsg = 'Expected the action not to throw an exception, but it did.'
+    Assertion (runError act . isLeft) errMsg negErrMsg
+
 def satisfy pred val:
     Assertion (pred val) "Expected the predicate to be True, but got False" "Expected the predicate to be False, but got True"
 
