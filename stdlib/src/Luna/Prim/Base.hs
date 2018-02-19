@@ -6,7 +6,9 @@ import           Luna.Prelude                hiding (Text, force, toList)
 import           Luna.IR
 
 import           Control.Concurrent          (MVar, newEmptyMVar, takeMVar, readMVar, putMVar, forkFinally, killThread, threadDelay)
-import qualified Control.Exception           as Exception
+import qualified Control.Concurrent.Async    as Async
+import qualified Control.Exception           as Exception (evaluate)
+import qualified Control.Exception.Safe      as Exception
 import qualified Data.Aeson                  as Aeson
 import qualified Data.Bifunctor              as Bifunc
 import           Data.ByteString.Lazy        (ByteString)
@@ -291,8 +293,8 @@ io std finalizersCtx = do
 
     let forkVal :: LunaEff () -> IO ()
         forkVal act = mdo
-            uid <- registerFinalizer finalizersCtx $ killThread tid
-            tid <- forkFinally (void $ runIO $ runError act) $ const (cancelFinalizer finalizersCtx uid)
+            uid <- registerFinalizer finalizersCtx $ Async.uninterruptibleCancel a
+            a   <- Async.async $ void (runIO $ runError act) `Exception.finally` cancelFinalizer finalizersCtx uid
             return ()
     fork <- makeFunctionIO (toLunaValue std forkVal) [noneT] noneT
 

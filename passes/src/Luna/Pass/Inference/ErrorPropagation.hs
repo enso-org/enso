@@ -42,4 +42,7 @@ propagateErrors expr = do
             updateErrors expr
 
 getErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m [CompileError]
-getErrors expr = (++) <$> getLayer @Errors expr <*> (fmap concat $ mapM (getErrors <=< source) =<< inputs expr)
+getErrors expr = do
+    ownErrors    <- getLayer @Errors expr
+    inputsErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
+    return (ownErrors ++ inputsErrors)
