@@ -237,8 +237,6 @@ operators imps = do
     uminus   <- preludeUnaryOp "negate"
     gt       <- preludeCmpOp imps ">"
     lt       <- preludeCmpOp imps "<"
-    gte      <- preludeCmpOp imps ">="
-    lte      <- preludeCmpOp imps "<="
     eq       <- preludeCmpOp imps "=="
     return $ Map.fromList [ ("+",        plus)
                           , ("-",        minus)
@@ -246,8 +244,6 @@ operators imps = do
                           , ("^",        pow)
                           , (">",        gt)
                           , ("<",        lt)
-                          , (">=",       gte)
-                          , ("<=",       lte)
                           , ("==",       eq)
                           , ("%",        mod)
                           , ("/",        div)

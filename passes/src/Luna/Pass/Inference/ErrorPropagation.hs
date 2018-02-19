@@ -28,17 +28,18 @@ run = do
 
 propagateErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m ()
 propagateErrors expr = do
+    let updateErrors e = do
+            inpErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs e
+            modifyLayer_ @Errors expr $ nub . (++ inpErrors)
     matchExpr expr $ \case
         Seq a b   -> do
             propagateErrors =<< source a
             propagateErrors =<< source b
-        -- FIXME[MM]: this line causes correct reporting of compile errors
-        --            we don't want that until interpreter can cope with them
-        --            and interpret the rest of the program
-        -- ASGFunction _ _ g -> propagateErrors =<< source g
+        ASGFunction _ _ g -> do
+            propagateErrors =<< source g
+            updateErrors expr
         _ -> do
-            inpErrors <- fmap concat $ mapM (getErrors <=< source) =<< inputs expr
-            modifyLayer_ @Errors expr $ nub . (++ inpErrors)
+            updateErrors expr
 
 getErrors :: (MonadRef m, MonadPassManager m) => Expr Draft -> SubPass ErrorPropagation m [CompileError]
 getErrors expr = do
