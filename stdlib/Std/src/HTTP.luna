@@ -7,13 +7,15 @@ class HttpMethod:
     PUT
     PATCH
     DELETE
+    OPTIONS
 
     def toText: case self of
-        POST:   "POST"
-        GET:    "GET"
-        PUT:    "PUT"
-        PATCH:  "PATCH"
-        DELETE: "DELETE"
+        POST:    "POST"
+        GET:     "GET"
+        PUT:     "PUT"
+        PATCH:   "PATCH"
+        DELETE:  "DELETE"
+        OPTIONS: "OPTIONS"
 
 ## Helper class for passing parameters in the body of an Http request
 class HttpSimpleBody:
@@ -207,6 +209,10 @@ class Http:
     ## Create an Http DELETE request for a given url.
     def delete uri:
         defaultHttpRequest uri . setMethod DELETE
+
+    ## Create an Http OPTIONS request for a given url.
+    def options uri:
+        defaultHttpRequest uri . setMethod OPTIONS
 
     ## A helper method that immediately gets a binary blob from a given url.
     ## There is no need to call `perform` here, as it returns a `Binary` response.
