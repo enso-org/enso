@@ -8,6 +8,7 @@ class HttpMethod:
     PUT
     PATCH
     DELETE
+    TRACE
     OPTIONS
 
     def toText: case self of
@@ -17,6 +18,7 @@ class HttpMethod:
         PUT:     "PUT"
         PATCH:   "PATCH"
         DELETE:  "DELETE"
+        TRACE:   "TRACE"
         OPTIONS: "OPTIONS"
 
 ## Helper class for passing parameters in the body of an Http request
@@ -215,6 +217,10 @@ class Http:
     ## Create an Http DELETE request for a given url.
     def delete uri:
         defaultHttpRequest uri . setMethod DELETE
+
+    ## Create a basic Http TRACE request for a given uri.
+    def trace uri:
+        defaultHttpRequest uri . setMethod TRACE
 
     ## Create an Http OPTIONS request for a given url.
     def options uri:
