@@ -6,14 +6,20 @@
 Visual and textual functional programming language with a focus on productivity, collaboration and development ergonomics.
 </h3>
 
-Luna is a developer’s whiteboard on steroids. Design, prototype, develop and refactor any application simply by connecting visual elements together. Collaborate with co-workers, interactively fine tune parameters, inspect the results and visually profile the performance in real-time.
+Luna is a developer’s whiteboard on steroids. Design, prototype, develop and 
+refactor any application simply by connecting visual elements together. 
+Collaborate with co-workers, interactively fine tune parameters, inspect the 
+results and visually profile the performance in real-time.
 
-Visit www.luna-lang.org to learn more!
+Visit [The Luna Website](www.luna-lang.org) to learn more!
 
-This repository contains the Luna compiler core and its command line version. For the full (visual) Luna Studio, please take a look at the https://github.com/luna/luna-studio repository. For installation and management tools, there is https://github.com/luna/luna-manager.
+This repository contains the Luna compiler core and its command line version. 
+For the full (visual) Luna Studio, please take a look at the 
+[Luna Studio](https://github.com/luna/luna-studio) repository. For installation 
+and management tools, there is 
+[Luna Manager](https://github.com/luna/luna-manager).
 
 ## Getting Started
-
 This will get you up and running for Luna development, with only a minimal 
 amount of setup required.
 
@@ -52,7 +58,7 @@ git clone git@github.com:luna/luna.git
 ```
 
 ### Building Luna
-o build the command-line compiler interface along with all its sub-components, 
+To build the command-line compiler interface along with all its sub-components, 
 you will need to build the `shell` project. The instructions below assume that 
 your `luna` repo is already cloned and we will refer to its location as 
 `$LUNA_REPO_PATH`.
@@ -67,9 +73,10 @@ Note that the executable for the compiler will be located in
 `$PATH`.
 
 Additionally, if you intend to simply use the Luna compiler (as opposed to 
-tinkering with it, which requires frequent rebuilds), you may consider adding `--ghc-options="-O2 -j4"` to the stack install command. This should make the Luna
-compiler run considerably faster, at the cost of longer build times for building
-it.
+tinkering with it, which requires frequent rebuilds), you may consider adding 
+`--ghc-options="-O2 -j4"` to the stack install command. This should make the 
+Luna compiler run considerably faster, at the cost of longer build times for 
+building it.
 
 ### Running Luna
 As a prerequisite, you need to set a `LUNA_HOME` variable to point to the 
