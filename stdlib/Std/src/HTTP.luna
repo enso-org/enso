@@ -8,6 +8,7 @@ class HttpMethod:
     PUT
     PATCH
     DELETE
+    CONNECT
     TRACE
     OPTIONS
 
@@ -18,6 +19,7 @@ class HttpMethod:
         PUT:     "PUT"
         PATCH:   "PATCH"
         DELETE:  "DELETE"
+        CONNECT: "CONNECT"
         TRACE:   "TRACE"
         OPTIONS: "OPTIONS"
 
@@ -217,6 +219,10 @@ class Http:
     ## Create an Http DELETE request for a given url.
     def delete uri:
         defaultHttpRequest uri . setMethod DELETE
+
+    ## Create a basic Http CONNECT request for a given uri.
+    def connect uri:
+        defaultHttpRequest uri . setMethod CONNECT
 
     ## Create a basic Http TRACE request for a given uri.
     def trace uri:
