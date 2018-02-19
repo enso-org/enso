@@ -5,6 +5,7 @@ class HttpMethod:
     POST
     GET
     PUT
+    PATCH
     DELETE
     OPTIONS
 
@@ -12,6 +13,7 @@ class HttpMethod:
         POST:    "POST"
         GET:     "GET"
         PUT:     "PUT"
+        PATCH:   "PATCH"
         DELETE:  "DELETE"
         OPTIONS: "OPTIONS"
 
@@ -197,6 +199,12 @@ class Http:
     ## including the `Text`, `Binary`, `JSON` and `HttpSimpleBody` types.
     def put uri body:
         defaultHttpRequest uri . setMethod PUT . setBody body
+
+    ## Create an Http PATCH request for a given uri and body.
+    ## The body can be anything that provides a `toBinary` method,
+    ## including the `Text`, `Binary`, `JSON` and `HttpSimpleBody` types.
+    def patch uri body:
+        defaultHttpRequest uri . setMethod PATCH . setBody body
 
     ## Create an Http DELETE request for a given url.
     def delete uri:

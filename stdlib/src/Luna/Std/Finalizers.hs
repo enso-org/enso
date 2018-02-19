@@ -2,7 +2,7 @@ module Luna.Std.Finalizers where
 
 import Luna.Prelude
 import Data.Map                (Map)
-import Control.Concurrent      (newMVar, modifyMVar_, MVar)
+import Control.Concurrent      (MVar, newMVar, modifyMVar_, putMVar, swapMVar)
 
 import           Data.UUID     (UUID)
 import qualified Data.UUID.V4  as UUID
@@ -29,7 +29,9 @@ cancelFinalizer :: FinalizersCtx -> UUID -> IO ()
 cancelFinalizer ctx uuid = modifyMVar_ (unwrap ctx) $ return . (wrapped . at uuid .~ Nothing)
 
 finalize :: FinalizersCtx -> IO ()
-finalize ctx = modifyMVar_ (unwrap ctx) runFinalizers
+finalize ctx = do
+    map <- swapMVar (unwrap ctx) def
+    void $ runFinalizers map
 
 initFinalizersCtx :: IO FinalizersCtx
 initFinalizersCtx = FinalizersCtx <$> newMVar def
