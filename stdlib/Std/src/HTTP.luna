@@ -4,16 +4,24 @@ import Std.Base
 class HttpMethod:
     POST
     GET
+    HEAD
     PUT
+    PATCH
     DELETE
     CONNECT
+    TRACE
+    OPTIONS
 
     def toText: case self of
         POST:    "POST"
         GET:     "GET"
+        HEAD:    "HEAD"
         PUT:     "PUT"
+        PATCH:   "PATCH"
         DELETE:  "DELETE"
         CONNECT: "CONNECT"
+        TRACE:   "TRACE"
+        OPTIONS: "OPTIONS"
 
 ## Helper class for passing parameters in the body of an Http request
 class HttpSimpleBody:
@@ -186,6 +194,10 @@ class Http:
     def get uri:
         defaultHttpRequest uri
 
+    ## Create a basic Http HEAD request for a given uri.
+    def head uri :
+        defaultHttpRequest uri . setMethod HEAD . setBody body
+
     ## Create an Http POST request for a given uri and body.
     ## The body can be anything that provides a `toBinary` method,
     ## including the `Text`, `Binary`, `JSON` and `HttpSimpleBody` types.
@@ -198,6 +210,12 @@ class Http:
     def put uri body:
         defaultHttpRequest uri . setMethod PUT . setBody body
 
+    ## Create an Http PATCH request for a given uri and body.
+    ## The body can be anything that provides a `toBinary` method,
+    ## including the `Text`, `Binary`, `JSON` and `HttpSimpleBody` types.
+    def patch uri body:
+        defaultHttpRequest uri . setMethod PATCH . setBody body
+
     ## Create an Http DELETE request for a given url.
     def delete uri:
         defaultHttpRequest uri . setMethod DELETE
@@ -205,6 +223,14 @@ class Http:
     ## Create a basic Http CONNECT request for a given uri.
     def connect uri:
         defaultHttpRequest uri . setMethod CONNECT
+
+    ## Create a basic Http TRACE request for a given uri.
+    def trace uri:
+        defaultHttpRequest uri . setMethod TRACE
+
+    ## Create an Http OPTIONS request for a given url.
+    def options uri:
+        defaultHttpRequest uri . setMethod OPTIONS
 
     ## A helper method that immediately gets a binary blob from a given url.
     ## There is no need to call `perform` here, as it returns a `Binary` response.
