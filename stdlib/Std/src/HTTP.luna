@@ -4,6 +4,7 @@ import Std.Base
 class HttpMethod:
     POST
     GET
+    HEAD
     PUT
     PATCH
     DELETE
@@ -12,6 +13,7 @@ class HttpMethod:
     def toText: case self of
         POST:    "POST"
         GET:     "GET"
+        HEAD:    "HEAD"
         PUT:     "PUT"
         PATCH:   "PATCH"
         DELETE:  "DELETE"
@@ -187,6 +189,10 @@ class Http:
     ## Create a basic Http GET request for a given uri.
     def get uri:
         defaultHttpRequest uri
+
+    ## Create a basic Http HEAD request for a given uri.
+    def head uri :
+        defaultHttpRequest uri . setMethod HEAD . setBody body
 
     ## Create an Http POST request for a given uri and body.
     ## The body can be anything that provides a `toBinary` method,
