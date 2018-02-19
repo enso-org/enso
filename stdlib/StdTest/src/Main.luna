@@ -1,6 +1,0 @@
-import Std.Base
-import Std.Test
-import StdTest.Lang.PatternMatch
-
-def main:
-    PatternMatchTest.run

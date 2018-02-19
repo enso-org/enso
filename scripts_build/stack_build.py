@@ -10,7 +10,7 @@ from .utils import prep_path, working_directory, log_msg
 shell_path = prep_path('../shell')
 luna_binary_path = prep_path('../dist/bin/public/luna')
 config_env_path = prep_path('../dist/config/env')
-stdlib_path = prep_path('../stdlib')
+stdlib_path = prep_path('../../stdlib')
 resources_path = prep_path('../resources')
 
 

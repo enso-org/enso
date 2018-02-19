@@ -5,7 +5,7 @@ ghc-options: {'*': -fenable-rewrite-rules -threaded -funbox-strict-fields -fcons
 packages:
 - {location: .}
 - {location: ../core}
-- {location: ../stdlib}
+- {location: ../../stdlib}
 - {location: ../syntax/text}
 - extra-dep: true
   location: {commit: 61ff909efd466735cd4820f9ab2c564e324b5546, git: 'https://github.com/luna/container.git'}

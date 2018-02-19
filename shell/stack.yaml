@@ -9,7 +9,7 @@ packages:
 - {location: .}
 - {location: ../core}
 - {location: ../passes}
-- {location: ../stdlib}
+- {location: ../../stdlib}
 - {location: ../project}
 - {location: ../syntax/text/parser}
 - {location: ../syntax/text/lexer}
