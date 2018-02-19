@@ -9,6 +9,7 @@ import Prologue_old                    hiding (force, Text)
 
 import Control.Concurrent
 import Control.Concurrent.MVar
+import qualified Control.Exception.Safe as Exception
 import Data.ByteString.Lazy        hiding (head)
 import Data.Maybe                  (fromMaybe, maybeToList)
 import Data.Text.Lazy              hiding (head)
@@ -292,7 +293,7 @@ thunkProof f a             = f a
 
 rethrowExceptions :: IO a -> LunaEff a
 rethrowExceptions a = do
-    res <- performIO $ catchAll (Right <$> a) (return . Left . show)
+    res <- performIO $ Exception.catchAny (Right <$> a) (return . Left . displayException)
     case res of
         Left a  -> throw a
         Right r -> return r

@@ -81,7 +81,7 @@ interpret' :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, An
 interpret' glob expr = do
     errors <- getLayer @Errors expr
     hasErrors <- not . null <$> getLayer @Errors expr
-    if hasErrors then return $ lift $ throw $ convert $ head errors ^. Errors.description else matchExpr expr $ \case
+    if hasErrors then return $ return $ LunaError (head errors ^. Errors.description . to convert) else matchExpr expr $ \case
         String s  -> let res = mkString glob (convert s) in return $ return res
         Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
         Var name  -> do
@@ -186,17 +186,21 @@ runMatch ((m, p) : ms) d = do
         Just newScope -> return (newScope, p)
         Nothing       -> runMatch ms nextObj
 
-tryMatch :: Name -> [Matcher] -> Matcher
-tryMatch name fieldMatchers d@(LunaObject (Object (Constructor n fs) ms)) = if n == name then matchFields else return (Nothing, d) where
-    matchFields :: MatchResM
-    matchFields = do
-        results <- zipWithM ($) fieldMatchers fs
-        let binds  = fmap Map.unions $ sequence $ fst <$> results
-            newObj = LunaObject (Object (Constructor n (snd <$> results)) ms)
-        return (binds, newObj)
-tryMatch name fields (LunaThunk v) = v >>= tryMatch name fields
-tryMatch name fields (LunaSusp  v) = v >>= tryMatch name fields
-tryMatch _ _ d = return (Nothing, d)
+tryConsMatch :: Name -> [Matcher] -> Matcher
+tryConsMatch name fieldMatchers d' = force' d' >>= go where
+    go d@(LunaObject (Object (Constructor n fs) ms)) = if n == name then matchFields else return (Nothing, d) where
+        matchFields :: MatchResM
+        matchFields = do
+            results <- zipWithM ($) fieldMatchers fs
+            let binds  = fmap Map.unions $ sequence $ fst <$> results
+                newObj = LunaObject (Object (Constructor n (snd <$> results)) ms)
+            return (binds, newObj)
+    go d = return (Nothing, d)
+
+tryBoxedMatch :: (Eq a, IsBoxed a) => a -> Matcher
+tryBoxedMatch i d' = force' d' >>= go where
+    go d@(LunaBoxed o) = return (if fromBoxed o == i then Just def else Nothing, d)
+    go d = return (Nothing, d)
 
 matcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
         => Expr Draft -> m Matcher
@@ -205,22 +209,16 @@ matcher expr = matchExpr expr $ \case
     Grouped g -> matcher =<< source g
     Cons n as -> do
         argMatchers <- mapM (matcher <=< source) as
-        return $ tryMatch n argMatchers
+        return $ tryConsMatch n argMatchers
+    Number n -> if isInteger n then return $ tryBoxedMatch $ toInt n else return $ tryBoxedMatch $ toDouble n
+    String s -> return $ tryBoxedMatch $ (convert s :: Text)
     Blank -> return $ \d -> return (Just def, d)
     s -> error $ "unexpected pattern: " ++ show s
 
-matchIrrefutably :: Name -> [LunaData -> LunaEff (Map (Expr Draft) LunaData)] -> LunaData -> LunaEff (Map (Expr Draft) LunaData)
-matchIrrefutably name fieldMatchers d@(LunaObject (Object (Constructor n fs) _)) = if n /= name then throw "Irrefutable pattern match failed" else matchFields where
-    matchFields = Map.unions <$> zipWithM ($) fieldMatchers fs
-matchIrrefutably name fieldMatchers (LunaThunk v) = v >>= matchIrrefutably name fieldMatchers
-matchIrrefutably name fieldMatchers (LunaSusp  v) = v >>= matchIrrefutably name fieldMatchers
-
 irrefutableMatcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
                    => Expr Draft -> m (LunaData -> LunaEff (Map (Expr Draft) LunaData))
-irrefutableMatcher expr = matchExpr expr $ \case
-    Var _     -> return $ \d -> return $ Map.singleton expr d
-    Cons n as -> do
-        args <- mapM (irrefutableMatcher <=< source) as
-        return $ matchIrrefutably n args
-    Blank -> return $ \d -> return def
-    s -> error $ "unexpected pattern: " ++ show s
+irrefutableMatcher expr = do
+    m <- matcher expr
+    return $ \d -> do
+        res <- fst <$> m d
+        maybe (throw "Irrefutable pattern match failed.") return res
