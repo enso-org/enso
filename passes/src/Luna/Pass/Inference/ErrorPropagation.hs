@@ -38,6 +38,15 @@ propagateErrors expr = do
         ASGFunction _ _ g -> do
             propagateErrors =<< source g
             updateErrors expr
+        Marked _ e -> do
+            propagateErrors =<< source e
+            updateErrors expr
+        Unify a b -> do
+            propagateErrors =<< source a
+            propagateErrors =<< source b
+            updateErrors expr
+            unifyErrors <- getLayer @Errors expr
+            (flip (modifyLayer_ @Errors)) (nub . (++ unifyErrors)) =<< source a
         _ -> do
             updateErrors expr
 
