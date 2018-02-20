@@ -46,7 +46,7 @@ propagateErrors expr = do
             propagateErrors =<< source b
             updateErrors expr
             unifyErrors <- getLayer @Errors expr
-            (flip (putLayer @Errors)) unifyErrors =<< source a
+            (flip (modifyLayer_ @Errors)) (nub . (++ unifyErrors)) =<< source a
         _ -> do
             updateErrors expr
 
