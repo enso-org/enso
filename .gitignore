@@ -22,3 +22,6 @@ cabal.project.local
 
 # OSX
 .DS_Store
+
+# Vim
+*.swp

@@ -10,7 +10,7 @@ import Language.Haskell.TH as TH
 dataWithAlias :: Name -> Name -> Name -> [TH.Dec]
 dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
     where dataDecl  = data' dataName
-          aliasDecl = alias aliasName $ app (var aliasCons) (var dataName)
+          aliasDecl = alias aliasName $ app (cons' aliasCons) (cons' dataName)
 
 -- | Define a subtype of the parent type.
 --   `defineSubtype "Fam" "Foo"` will generate:

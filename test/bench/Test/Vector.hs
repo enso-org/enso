@@ -28,6 +28,19 @@ import Data.IORef.Unboxed
 import qualified Foreign.Memory.Pool as MemPool
 
 
+data Test = Test {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int{-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int{-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int deriving (Show)
+
+
+ccc :: Int
+ccc = sizeOf (undefined :: Int)
+
+instance Storable Test where
+    sizeOf ~_ = 15 * ccc ; {-# INLINE sizeOf #-}
+    alignment ~_ = ccc ; {-# INLINE alignment #-}
+    poke ptr (Test t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15) = poke (castPtr ptr) t1 >> pokeByteOff ptr ccc t2 >> pokeByteOff ptr (ccc*2) t3 >> pokeByteOff ptr (ccc*3) t4 >> pokeByteOff ptr (ccc*4) t5 >> pokeByteOff ptr (ccc*5) t6 >> pokeByteOff ptr (ccc*6) t7 >> pokeByteOff ptr (ccc*7) t8 >> pokeByteOff ptr (ccc*8) t9 >> pokeByteOff ptr (ccc*9) t10 >> pokeByteOff ptr (ccc*10) t11 >> pokeByteOff ptr (ccc*11) t12 >> pokeByteOff ptr (ccc*12) t13 >> pokeByteOff ptr (ccc*13) t14 >> pokeByteOff ptr (ccc*14) t15 ; {-# INLINE poke #-}
+    peek ptr = Test <$> peek (castPtr ptr) <*> peekByteOff ptr ccc <*> peekByteOff ptr (ccc*2) <*> peekByteOff ptr (ccc*3) <*> peekByteOff ptr (ccc*4) <*> peekByteOff ptr (ccc*5) <*> peekByteOff ptr (ccc*6) <*> peekByteOff ptr (ccc*7) <*> peekByteOff ptr (ccc*8) <*> peekByteOff ptr (ccc*9) <*> peekByteOff ptr (ccc*10) <*> peekByteOff ptr (ccc*11) <*> peekByteOff ptr (ccc*12) <*> peekByteOff ptr (ccc*13) <*> peekByteOff ptr (ccc*14) ; {-# INLINE peek #-}
+
+
 
 fillMVector_Int :: Int -> MVector (PrimState IO) Int -> IO ()
 fillMVector_Int !i !v = do
@@ -69,21 +82,31 @@ fillGraph i = do
 
 pureLoop :: Int -> IO ()
 pureLoop i = do
-    ref <- newIORef (0 :: Int)
-    let go x 0 = evaluate x
-        go x j = do
-            go (x+1) (j - 1)
+    let go !x 0 = evaluate x
+        go !x j = do
+            let !y = x+1
+            go y $! j - 1
     go (0 :: Int) i
     return ()
 
 readWriteIORef :: Int -> IO ()
 readWriteIORef i = do
-    ref <- newIORef (0 :: Int)
+    !ref <- newIORef (0 :: Int)
     let go 0 = return ()
-        go j = do
-            x <- readIORef ref
-            writeIORef ref (x+1)
-            go (j - 1)
+        go !j = do
+            !x <- readIORef ref
+            writeIORef ref $! x+1
+            go $! j - 1
+    go i
+
+readWriteIORef_T :: Int -> IO ()
+readWriteIORef_T i = do
+    !ref <- newIORef (Test 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
+    let go 0 = return ()
+        go !j = do
+            !(Test t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15) <- readIORef ref
+            writeIORef ref $! (Test (t1+1) t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15)
+            go $! j - 1
     go i
 
 
@@ -115,6 +138,30 @@ readWritePtr i = do
         go j = do
             !x <- peek ptr
             poke ptr $! x+1
+            go $! j - 1
+    go i
+    Ptr.free ptr
+
+readWritePtr_T :: Int -> IO ()
+readWritePtr_T i = do
+    ptr <- Ptr.new (Test 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
+    let go 0 = return ()
+        go j = do
+            !(Test t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15) <- peek ptr
+            poke ptr $! (Test (t1+1) t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15)
+            go $! j - 1
+    go i
+    Ptr.free ptr
+
+readWritePtr_T2 :: Int -> IO ()
+readWritePtr_T2 i = do
+    ptr <- Ptr.new (Test 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
+    let go 0 = return ()
+        go j = do
+            !(x :: Int) <- peek (castPtr ptr)
+            poke (castPtr ptr) $! (x+1)
+            !(x :: Int) <- peekByteOff ptr ccc
+            pokeByteOff ptr ccc $! (x+1)
             go $! j - 1
     go i
     Ptr.free ptr

@@ -7,14 +7,22 @@ import Prologue
 import qualified Foreign
 
 import Foreign (Ptr, Storable)
+import Foreign.Ptr.Utils (SomePtr)
+import qualified Foreign.Marshal.Utils as Ptr
 
 
 
-
-
-alloc :: forall a m. MonadIO m => Storable a => m (Ptr a)
+alloc :: forall a m. (MonadIO m, Storable a) => m (Ptr a)
 alloc = liftIO Foreign.malloc ; {-# INLINE alloc #-}
 
+allocBytes :: forall a m. MonadIO m => Int -> m SomePtr
+allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
+
+
+-- newtype MemPool = MemPool (Ptr Int) deriving (Show)
+--
+-- newMemPool :: MonadIO m => Int -> m MemPool
+-- newMemPool i = liftIO $ cast <$> Ptr.new i ; {-# INLINE newMemPool #-}
 
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)

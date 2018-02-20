@@ -7,6 +7,7 @@ import Prelude
 import Data.Kind
 import Type.Data.Bool
 import Type.Data.Ord
+import Type.Data.Ord.Class
 import Data.Proxy (Proxy)
 import Type.Data.Maybe (FromJust)
 

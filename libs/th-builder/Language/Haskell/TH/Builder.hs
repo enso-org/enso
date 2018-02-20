@@ -1,9 +1,10 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE UndecidableInstances      #-}
 
 module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X) where
 
-import Prologue hiding (Cons, Data, Type)
+import Prologue hiding (Cons, Data, Type, cons)
 
 import qualified Data.Char  as Char
 
@@ -52,12 +53,14 @@ strNameCycle = (return <$> ['a' .. 'z']) <> strNameCycle' [] (show <$> [0..]) wh
     strNameCycle' []     (n:ns) = strNameCycle' ['a' .. 'z'] ns
     strNameCycle' (b:bs) ns     = (b : unsafeHead ns) : strNameCycle' bs ns
 
-unsafeNameCycle :: Convertible' Name a => [a]
-unsafeGenName   :: Convertible' Name a => a
-unsafeGenNames  :: Convertible' Name a => Int -> [a]
-unsafeNameCycle = convert' . TH.mkName <$> strNameCycle
-unsafeGenName   = unsafeHead unsafeNameCycle
-unsafeGenNames  = flip take unsafeNameCycle
+unsafeNameCycle  :: Convertible' String a => [a]
+unsafeGenName    :: Convertible' String a => a
+unsafeGenNames   :: Convertible' String a => Int -> [a]
+unsafeGenNamesTN :: Convertible' String a => Int -> [a]
+unsafeNameCycle    = convert' <$> strNameCycle
+unsafeGenName      = unsafeHead unsafeNameCycle
+unsafeGenNames     = flip take unsafeNameCycle
+unsafeGenNamesTN i = convert' . ("t" <>) . show <$> [1..i]
 
 newNames :: Convertible' Name a => Int -> Q [a]
 newNames = mapM (fmap convert' . newName) . flip take strNameCycle
@@ -71,8 +74,12 @@ toUpper = mapName (map Char.toUpper)
 
 -- === TH Conversions === --
 
-instance Convertible Name TH.TyVarBndr where convert = TH.PlainTV
+instance Convertible Name   TH.TyVarBndr where convert = TH.PlainTV
+instance Convertible String Name         where convert = TH.mkName
+instance Convertible String TH.TyVarBndr where convert = TH.PlainTV . convert
 
+instance IsString Name         where fromString = convert
+instance IsString TH.TyVarBndr where fromString = convert
 
 
 
@@ -80,7 +87,10 @@ instance Convertible Name TH.TyVarBndr where convert = TH.PlainTV
 -- === Literals === --
 ----------------------
 
-instance Convertible Integer TH.Exp where convert = TH.LitE . TH.IntegerL
+instance Convertible Integer TH.Exp  where convert = TH.LitE . TH.IntegerL
+instance Convertible Integer TH.Type where convert = TH.LitT . TH.NumTyLit
+instance Convertible Int     TH.Exp  where convert = convertVia @Integer
+instance Convertible Int     TH.Type where convert = convertVia @Integer
 
 
 
@@ -108,9 +118,16 @@ instance Convertible Var  Name  where convert = unwrap
 
 -- === TH Conversions === --
 
-instance Convertible Var TH.Pat  where convert = TH.VarP . convert
-instance Convertible Var TH.Exp  where convert = TH.VarE . convert
-instance Convertible Var TH.Type where convert = TH.ConT . convert
+instance Convertible Var TH.Pat       where convert = TH.VarP    . convert
+instance Convertible Var TH.Exp       where convert = TH.VarE    . convert
+instance Convertible Var TH.Type      where convert = TH.VarT    . convert
+instance Convertible Var TH.TyVarBndr where convert = TH.PlainTV . convert
+
+instance Convertible String Var where convert = Var . convert
+
+instance IsString TH.Exp  where fromString = convertVia @Var
+instance IsString TH.Pat  where fromString = convertVia @Var
+instance IsString TH.Type where fromString = convertVia @Var
 
 
 -----------------
@@ -205,6 +222,12 @@ makeLenses ''Cons
 cons :: Convertible (Cons a) a => Name -> [Field a] -> a
 cons = convert .: Cons
 
+cons' :: Convertible (Cons a) a => Name -> a
+cons' n = cons n []
+
+field' :: a -> Field a
+field' = Field Nothing
+
 
 -- === Properties === --
 
@@ -229,6 +252,9 @@ instance a ~ TH.Pat => Convertible (Cons a) TH.Pat where
 
 instance a ~ TH.Type => Convertible (Cons a) TH.Type where
     convert (Cons n fs) = foldl TH.AppT (TH.ConT n) (view expr <$> fs)
+
+instance a ~ TH.Exp => Convertible (Cons a) TH.Exp where
+    convert (Cons n fs) = foldl TH.AppE (TH.ConE n) (view expr <$> fs)
 
 
 
@@ -344,6 +370,57 @@ instance Convertible TypeSyn TH.Dec where
 
 
 
+---------------------------
+-- === Type Instance === --
+---------------------------
+
+data TypeInstance = TypeInstance { _typeInstance_name   :: Name
+                                 , _typeInstance_args   :: [TH.Type]
+                                 , _typeInstance_result :: TH.Type
+                                 }
+
+
+typeInstance :: Convertible TypeInstance t => Name -> [TH.Type] -> TH.Type -> t
+typeInstance = convert .:. TypeInstance
+{-# INLINE typeInstance #-}
+
+typeInstance1 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type -> t
+typeInstance1 n t = typeInstance n [t]
+{-# INLINE typeInstance1 #-}
+
+typeInstance2 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type -> TH.Type -> t
+typeInstance2 n t1 t2 = typeInstance n [t1, t2]
+{-# INLINE typeInstance2 #-}
+
+instance Convertible TypeInstance TH.Dec where
+    convert (TypeInstance n as r) = TH.TySynInstD n (TH.TySynEqn as r) ; {-# INLINE convert #-}
+
+
+
+-------------------
+-- === Tuple === --
+-------------------
+
+-- === Definition === --
+
+data Tuple a = Tuple Int [a] deriving (Show, Foldable, Functor, Traversable)
+
+tuple :: Convertible (Tuple a) a => [a] -> a
+tuple els = tupleCons (length els) els
+
+tupleCons :: Convertible (Tuple a) a => Int -> [a] -> a
+tupleCons = convert .: Tuple
+
+
+-- === Instances === --
+
+instance a ~ TH.Type => Convertible (Tuple a) TH.Type where convert (Tuple len els) = if len == 1 then apps (cons' "OneTuple") els else apps (TH.TupleT len) els
+instance a ~ TH.Pat  => Convertible (Tuple a) TH.Pat  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupP els
+instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupE els
+
+
+
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -353,27 +430,6 @@ instance Convertible TypeSyn TH.Dec where
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
---
---
--- ---------------------------
--- -- === Type Instance === --
--- ---------------------------
---
--- data TypeInstance = TypeInstance { _typeInstance_name   :: TypeName
---                                  , _typeInstance_args   :: [Type]
---                                  , _typeInstance_result :: Type
---                                  }
---
---
--- typeInstance :: (ToTypeName n, ToType t, ToType t') => n -> [t] -> t' -> TypeInstance
--- typeInstance n args res = TypeInstance (toTypeName n) (toType <$> args) (toType res) ; {-# INLINE typeInstance #-}
---
--- typeInstance' :: (ToTypeName n, ToType t, ToType t') => n -> t -> t' -> TypeInstance
--- typeInstance' n = typeInstance n . return ; {-# INLINE typeInstance' #-}
---
---
--- instance IsTH TH.Dec TypeInstance where
---     th (TypeInstance n as r) = TySynInstD (th n) (TySynEqn as r) ; {-# INLINE th #-}
 --
 --
 -- ----------------------------

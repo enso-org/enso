@@ -66,7 +66,7 @@ sizeOfType :: Type -> Exp
 sizeOfType = app (var 'sizeOf) . ((var 'undefined) -::)
 
 sizeOfInt :: Exp
-sizeOfInt = sizeOfType $ var ''Int
+sizeOfInt = sizeOfType $ cons' ''Int
 
 op :: Name -> Exp -> Exp -> Exp
 op = app2 . var
@@ -79,7 +79,7 @@ intLit :: Integer -> Exp
 intLit = LitE . IntegerL
 
 undefinedAsInt :: Exp
-undefinedAsInt = (var 'undefined) -:: (var ''Int)
+undefinedAsInt = (var 'undefined) -:: (cons' ''Int)
 
 conFieldSizes :: TH.Con -> [Exp]
 conFieldSizes = map sizeOfType . extractConcreteTypes
@@ -192,7 +192,7 @@ genPeekClause cs = do
     tag       <- newName "tag"
     peekCases <- mapM (uncurry $ genPeekCaseMatch ptr) $ zip [0..] cs
     let peekTag      = app (app (var 'peekByteOff) (var ptr)) (intLit 0)
-        peekTagTyped = peekTag -:: (app (var ''IO) (var ''Int))
+        peekTagTyped = peekTag -:: (app (cons' ''IO) (cons' ''Int))
         bind         = BindS (var tag) peekTagTyped
         cases        = CaseE (var tag) peekCases
         doBlock      = DoE [bind, NoBindS cases]
@@ -211,7 +211,7 @@ genPokeClause idx con = do
         pokeByteOffPtr = app (var 'pokeByteOff) (var ptr)
         pokeByte a     = app2 pokeByteOffPtr (var a)
         nextPoke t     = app2 (var '(>>)) t .: pokeByte
-        idxAsInt       = convert idx -:: var ''Int
+        idxAsInt       = convert idx -:: cons' ''Int
         firstPoke      = pokeByte off idxAsInt
         varxps         = var <$> patVarNames
         body           = foldl (uncurry . nextPoke) firstPoke

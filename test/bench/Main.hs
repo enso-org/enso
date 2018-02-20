@@ -30,6 +30,8 @@ import qualified Luna.IR.Term.Basic as Basic
 import Type.Data.Map
 import qualified Data.TypeSet as TS
 import Language.Haskell.TH.Builder()
+import qualified Luna.IR.Test as TT
+import qualified  Data.TypeSet3 as TS3
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
@@ -44,7 +46,6 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     initializeTime
-
 
     -- (v :: AVector.MAutoVector' IO Int) <- unsafeNew 2
     -- print v
@@ -61,6 +62,7 @@ main = do
     return ()
 
     Basic.test
+    TS3.test
     -- TS.test
     --
     defaultMain
@@ -70,7 +72,42 @@ main = do
             --     $ perRunEnv (return ())
             --     $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
 
-            [ bgroup "Read/Write Layer static"
+            [ bgroup "Pure loop"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.pureLoop (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "TS3 X"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> TS3.pureLoop_X (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "TS3 Z"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> TS3.pureLoop_Z (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Tup X"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> TT.pureLoop_X2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Tup Z"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> TT.pureLoop_Z2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "GADTs X"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> TT.pureLoop_X (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "GADTs Z"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> TT.pureLoop_Z (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer static"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer_static (10 ^ i))  <$> [minExpVec..maxExpVec]
@@ -89,6 +126,26 @@ main = do
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write T Ptr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWritePtr_T (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write T Ptr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWritePtr_T2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write IORef"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWriteIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write T IORef"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWriteIORef_T (10 ^ i))  <$> [minExpVec..maxExpVec]
 
             , bgroup "Read/Write Layer"
                 $ (\(i :: Int) -> bench ("10e" <> show i)

@@ -3,9 +3,9 @@
 module OCI.IR.Term where
 
 import Prologue
-import Foreign          (Ptr)
-import Foreign.Storable (Storable)
-
+import Foreign           (Ptr)
+import Foreign.Storable  (Storable)
+import Foreign.Ptr.Utils (SomePtr)
 
 import Data.Tag
 
@@ -24,7 +24,7 @@ import Data.Tag
 -- data COMPONENT
 -- type ComponentTag = Tag COMPONENT
 
-newtype Component t cfg = Component (Ptr()) deriving (Eq, Show, Storable)
+newtype Component t cfg = Component SomePtr deriving (Eq, Show, Storable)
 
 
 

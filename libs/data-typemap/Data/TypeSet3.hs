@@ -1,0 +1,219 @@
+{-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE Strict           #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+module Data.TypeSet3 where
+
+import Prologue hiding (FromList, set)
+
+import qualified Type.Data.Set              as Type
+import qualified Type.Data.List             as List
+import qualified Data.Tuple.Strict.IntTuple as Tuple
+
+import Type.Data.Ord
+
+
+
+
+
+
+
+class MemptyTuple tup where memptyTuple :: tup
+instance MemptyTuple Tuple.T0  where memptyTuple = Tuple.T0 ; {-# INLINE memptyTuple #-}
+instance MemptyTuple Tuple.T1  where memptyTuple = Tuple.T1 0 ; {-# INLINE memptyTuple #-}
+instance MemptyTuple Tuple.T2  where memptyTuple = Tuple.T2 0 0 ; {-# INLINE memptyTuple #-}
+instance MemptyTuple Tuple.T3  where memptyTuple = Tuple.T3 0 0 0 ; {-# INLINE memptyTuple #-}
+instance MemptyTuple Tuple.T4  where memptyTuple = Tuple.T4 0 0 0 0 ; {-# INLINE memptyTuple #-}
+instance MemptyTuple Tuple.T5  where memptyTuple = Tuple.T5 0 0 0 0 0 ; {-# INLINE memptyTuple #-}
+instance MemptyTuple Tuple.T20 where memptyTuple = Tuple.T20 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE memptyTuple #-}
+
+
+newTS :: MemptyTuple (IntTypeMapData ts) => IntTypeMap ts
+newTS = IntTypeMap memptyTuple ; {-# INLINE newTS #-}
+
+
+
+
+
+
+
+------------------------
+-- === IntTypeMap === --
+------------------------
+
+-- === Definition === --
+
+type IntTypeMapData els = Tuple.FromNat (List.Length els)
+newtype IntTypeMap (els :: [Nat]) = IntTypeMap (IntTypeMapData els)
+
+
+-- === API === --
+
+type IntTypeMapIndexable idx els =
+    ( Tuple.ElemGetter idx (IntTypeMapData els)
+    , Tuple.ElemSetter idx (IntTypeMapData els)
+    )
+
+getAt :: forall (idx :: Nat) els. IntTypeMapIndexable idx els => IntTypeMap els -> Int
+setAt :: forall (idx :: Nat) els. IntTypeMapIndexable idx els => Int -> IntTypeMap els -> IntTypeMap els
+getAt   (IntTypeMap tup) = Tuple.getElemAt @idx tup                ; {-# INLINE getAt #-}
+setAt a (IntTypeMap tup) = IntTypeMap $ Tuple.setElemAt @idx a tup ; {-# INLINE setAt #-}
+
+
+-- === Instances === --
+
+deriving instance Mempty (IntTypeMapData els) => Mempty (IntTypeMap els)
+deriving instance Show   (IntTypeMapData els) => Show   (IntTypeMap els)
+
+
+
+
+-- instance ElemGetter idx (IntTypeMapData els) => ElemGetter idx (IntTypeMap els) where Tuple.getElemAt (IntTypeMap tup) = Tuple.getElemAt @idx tup ; {-# INLINE Tuple.getElemAt #-}
+
+
+
+data X
+data Y
+data Z
+
+test :: IO ()
+test = do
+    return ()
+    -- let lst = setAt @0 11
+    --         $ newTS :: IntTypeMap '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+    --
+    -- print lst
+
+
+myLst :: IntTypeMap '[1,2,3,4,5]
+myLst = setAt @0 11
+      $ newTS
+{-# INLINE myLst #-}
+
+pureLoop_X :: Int -> IO ()
+pureLoop_X i = do
+    let go :: IntTypeMap '[1,2,3,4,5] -> Int -> IO ()
+        go !l 0 = return()
+        go !l j = do
+            let !x' = getAt @0 l + 1
+                !l' = setAt @0 x' l
+            go l' $! j - 1
+    go myLst i
+    return ()
+
+pureLoop_Z :: Int -> IO ()
+pureLoop_Z i = do
+    let go :: IntTypeMap '[1,2,3,4,5] -> Int -> IO ()
+        go !l 0 = return()
+        go !l j = do
+            let !x' = getAt @4 l + 1
+                !l' = setAt @4 x' l
+            go l' $! j - 1
+    go myLst i
+    return ()
+
+
+
+-- newtype IntTypeMap (els :: [Type]) = IntTypeMap (TupleFrom els)
+--
+-- type family TupleFrom els where
+--     TupleFrom '[]   = ()
+--     TupleFrom '[t1] = t1
+--     TupleFrom '' = a
+--
+-- data T = T !Int !T
+--        | Z
+--
+--
+-- ---------------------
+-- -- === IntTypeMap === --
+-- ---------------------
+--
+-- -- === Definition === --
+--
+-- newtype IntTypeMap (ks :: [Type]) = IntTypeMap { fromIntTypeMap :: T }
+-- makeLenses ''IntTypeMap
+--
+-- -- type family IntTypeMapData lst where
+-- --     IntTypeMapData '[]       = Z
+-- --     IntTypeMapData (a ': as) = T a (IntTypeMapData as)
+--
+--
+-- untt :: IntTypeMap ks -> T
+-- untt = coerce ; {-# INLINE untt #-}
+--
+--
+-- -- === Construction === --
+--
+-- instance ks ~ '[] => Mempty (IntTypeMap ks) where
+--     mempty = IntTypeMap Z ; {-# INLINE mempty #-}
+--
+--
+-- -- === Insert === --
+--
+-- class Insert a ks where
+--     insert :: a -> IntTypeMap ks -> IntTypeMap (Type.RawInsert a ks)
+--
+-- instance Coercible k Int => Insert k '[] where
+--     insert a (IntTypeMap s) = IntTypeMap (T (coerce a) s) ; {-# INLINE insert #-}
+--
+-- instance Coercible k Int => Insert k (k ': as) where
+--     insert a (IntTypeMap (T _ as)) = IntTypeMap (T (coerce a) as) ; {-# INLINE insert #-}
+--
+-- instance {-# OVERLAPPABLE #-}
+--     ( b ~ (k < a), SubInsert__ b k a as
+--     , Type.RawInsert k (a ': as) ~ Type.RawSubInsert b k a as)
+--     => Insert k (a ': as) where insert = subInsert__ @b ; {-# INLINE insert #-}
+--
+-- class SubInsert__ (b :: Bool) k a as where
+--     subInsert__ :: k -> IntTypeMap (a ': as) -> IntTypeMap (Type.RawSubInsert b k a as)
+--
+-- instance Coercible k Int => SubInsert__ 'True k a as where
+--     subInsert__ k (IntTypeMap s) = IntTypeMap (T (coerce k) s)
+--     {-# INLINE subInsert__ #-}
+--
+-- instance Insert k as => SubInsert__ 'False k a as where
+--     subInsert__ k (IntTypeMap (T a as)) = IntTypeMap (T a $ coerce $ insert k (IntTypeMap @as as))
+--     {-# INLINE subInsert__ #-}
+--
+--
+--
+-- -- === UnsafeLookup === --
+--
+-- class UnsafeLookup k ks where
+--     unsafeLookup :: IntTypeMap ks -> k
+--
+-- instance {-# OVERLAPPABLE #-} UnsafeLookup k ks
+--  => UnsafeLookup k (l ': ks) where
+--     unsafeLookup (untt -> (T _ as)) = unsafeLookup @k (coerce as :: IntTypeMap ks) ; {-# INLINE unsafeLookup #-}
+--
+-- instance Coercible k Int => UnsafeLookup k (k ': ks) where
+--     unsafeLookup (untt -> (T a _)) = coerce a ; {-# INLINE unsafeLookup #-}
+--
+-- --
+-- --
+-- -- -- === Show === --
+-- --
+-- -- class Show__ ks where show__ :: IntTypeMap ks -> [String]
+-- -- instance Show__ '[] where show__ _ = []
+-- -- instance (Show a, Show__ as) => Show__ (a ': as) where
+-- --     show__ (IntTypeMap (a, as)) = show a : show__ (IntTypeMap @as as)
+-- -- instance Show__ ks => Show (IntTypeMap ks) where
+-- --     show s = "[" <> intercalate ", " (show__ s) <> "]"
+-- --
+-- -- --
+-- -- -- type instance Cmp Int String = LT
+-- -- -- type instance Cmp String Int = GT
+-- -- --
+-- -- --
+-- -- --
+-- -- -- test :: IO ()
+-- -- -- test = do
+-- -- --     let a = mempty :: IntTypeMap '[]
+-- -- --         a2 = insert (5 :: Int) a
+-- -- --         a3 = insert ("ala" :: String) a2
+-- -- --         a4 = insert ("ala2" :: String) a3
+-- -- --     print a2
+-- -- --     print a3
+-- -- --     print a4
+-- -- --     print "test"

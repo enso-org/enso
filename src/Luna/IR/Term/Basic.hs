@@ -32,11 +32,10 @@ import Control.Monad.State.Layered hiding ((.))
 import Type.Data.Ord (Cmp)
 import Foreign.Marshal.Alloc (mallocBytes)
 
+import Foreign.Ptr.Utils (SomePtr)
 
 
 
-
-type SomePtr = Ptr ()
 
 type family SizeOf a :: Nat
 type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
@@ -163,6 +162,16 @@ layerOffset :: forall component layer. (KnownLayer component layer) => Int
 layerOffset = fromInteger $ fromType @(LayerOffset component layer) ; {-# INLINE layerOffset #-}
 
 
+-- === TotalLayersSize === --
+
+type TotalLayersSize component = TotalLayersSize' component 0 (AllLayers component)
+type family TotalLayersSize' t s ls where
+    TotalLayersSize' _ s '[] = s
+    TotalLayersSize' t s (l ': ls) = TotalLayersSize' t (s + LayerSize t l) ls
+
+type KnownLayers component = KnownType (TotalLayersSize component)
+totalLayersSize :: forall component. KnownLayers component => Int
+totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLINE totalLayersSize #-}
 
 
 
@@ -234,8 +243,15 @@ mockNewLink = Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
 
+newComponent :: forall t a m. (KnownLayers t, MonadIO m) => m (Component t a)
+newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
 
 
+-- termMemPool, linkMemPool :: MemPool
+-- termMemPool = unsafePerfromIO newMemPool ; {-# NOINLINE termMemPool #-}
+-- linkMemPool = unsafePerfromIO newMemPool ; {-# NOINLINE linkMemPool #-}
+--
+--
 
 layerLoc0 :: Int
 layerLoc0 = 0 ; {-# INLINE layerLoc0 #-}

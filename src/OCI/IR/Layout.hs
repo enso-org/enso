@@ -1,5 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeInType           #-}
 
 module OCI.IR.Layout where
 
@@ -9,7 +10,7 @@ import qualified Prologue as P
 import Type.Data.Property hiding (Set)
 import Type.Data.Maybe
 import Data.Tag
-import Type.Data.Ord (Cmp)
+import Type.Data.Ord
 
 -- import Type.Data.Set.Proxy (Set)
 import Type.Data.Set (Set)
@@ -73,6 +74,7 @@ data TERM; type Term = LayoutTag TERM
 data TYPE; type Type = LayoutTag TYPE
 data NAME; type Name = LayoutTag NAME
 
+defOrder [''Name, ''Type, ''Term]
 
 -- === Utils === --
 
@@ -83,26 +85,6 @@ type family SetSublayout k v l where
 type l -*  t = SetSublayout Term t l
 type l -:: t = SetSublayout Type t l
 type l -#  t = SetSublayout Name t l
-
-
-
--- TODO: Make it TH-gen vvv
--- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-type instance Cmp Term Term = 'EQ
-type instance Cmp Type Type = 'EQ
-type instance Cmp Name Name = 'EQ
-
-type instance Cmp Term Type = 'GT
-type instance Cmp Type Term = 'LT
-
-type instance Cmp Term Name = 'GT
-type instance Cmp Name Term = 'LT
-
-type instance Cmp Type Name = 'GT
-type instance Cmp Name Type = 'LT
-
--- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 -------------------------

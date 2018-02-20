@@ -3,6 +3,7 @@
 module Type.Data.Maybe where
 
 import Prelude
+import GHC.TypeLits
 
 type family IsJust a where
     IsJust ('Just a) = 'True
@@ -23,3 +24,7 @@ type family FromJust (m :: Maybe k) :: k where
 type family FromMaybe a (m :: Maybe k) where
     FromMaybe _ ('Just a) = a
     FromMaybe a 'Nothing  = a
+
+type family SuccMaybe (m :: Maybe Nat) where
+    SuccMaybe ('Just n) = 'Just (n + 1)
+    SuccMaybe 'Nothing  = 'Nothing
