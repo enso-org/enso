@@ -98,7 +98,7 @@ removeInputsOnDeepDeleteNode :: Req m '[ Reader  // Layer // AnyExprLink // Mode
                                        ] => Listener (OnDeepDelete // Expr l) m
 removeInputsOnDeepDeleteNode = listener $ \(t, s) -> when (Set.notMember (generalize t) s) $ whenM (isSafeToRemove t) $ do
     inps <- queryChildren t
-    srcs <- mapM source inps
+    srcs <- mapM readSource inps
     delete t
     mapM_ (flip deepDeleteWithWhitelist s) $ Set.toList $ Set.delete (generalize t) $ Set.fromList srcs
 makePass 'removeInputsOnDeepDeleteNode

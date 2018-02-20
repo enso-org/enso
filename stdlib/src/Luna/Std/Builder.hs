@@ -112,7 +112,7 @@ compileFunction imps pass = do
         Just (apps    :: SimplifierQueue) <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @SimplifierQueue)
         Just (accs    :: UnresolvedAccs)  <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @UnresolvedAccs)
         rooted <- Pass.eval' @TestPass $ do
-            tp <- getLayer @Type root >>= source
+            tp <- getLayer @Type root >>= readSource
             let whiteList = Set.unions [Set.singleton (generalize tp), Set.fromList (generalize <$> unwrap unifies), Set.fromList (generalize <$> unwrap merges), Set.fromList (generalize <$> unwrap apps), Set.fromList (generalize <$> getAccs accs)]
             deepDeleteWithWhitelist root whiteList
             compile tp

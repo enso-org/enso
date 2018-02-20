@@ -41,7 +41,7 @@ checkIsoRootedMExpr a b = isJustT $ evalDefStateT @ExprIsoChecker $ maybeIsoRoot
 
 checkIsoLinks     :: IsomorphicCheckCtx m =>   RootedM m (ExprLink' Draft) -> RootedM m (ExprLink' Draft)   -> CheckerT m ()
 checkManyIsoLinks :: IsomorphicCheckCtx m => [(RootedM m (ExprLink' Draft),   RootedM m (ExprLink' Draft))] -> CheckerT m ()
-checkIsoLinks le re = join  $ maybeIsoRootedMExpr <$> mapM source le <*> mapM source re
+checkIsoLinks le re = join  $ maybeIsoRootedMExpr <$> mapM readSource le <*> mapM readSource re
 checkManyIsoLinks   = mapM_ $ uncurry checkIsoLinks
 
 assumeIsomorphism :: Monad m => Expr Draft -> Expr Draft -> CheckerT m ()

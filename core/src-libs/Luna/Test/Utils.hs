@@ -155,6 +155,6 @@ reachableExprs :: (MonadRef m, Reader Layer (AnyExpr // Model) m,
 reachableExprs seeds = Set.unions <$> mapM reachableExprs' seeds
     where
         reachableExprs' e = do
-            t <- getLayer @Type e   >>= source
-            set <- inputs e >>= mapM source >>= reachableExprs
+            t <- getLayer @Type e   >>= readSource
+            set <- inputs e >>= mapM readSource >>= reachableExprs
             return $ Set.insert t $ Set.insert e $ set

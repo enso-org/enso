@@ -41,7 +41,7 @@ deleteWithoutInputs :: DelNoInputsCtx m => Expr t -> m ()
 deleteWithoutInputs (toSomeExpr -> expr) = do
     removable <- isSafeToRemove expr
     when removable $ do
-        tp  <- getLayer @Type   expr >>= source
+        tp  <- getLayer @Type   expr >>= readSource
         delete expr
         deleteSubtree tp
 
