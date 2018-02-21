@@ -3,11 +3,14 @@ bug-reports: https://github.com/wdanilo/luna-core/issues
 category: Data
 copyright: Copyright (C) 2015 Wojciech Danilo
 
+extra-source-files: libs/cpp-containers/cbits/*
+
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/luna-core
 library:
   source-dirs:
     - src
+    - libs/cpp-containers
     - libs/foreign-utils
     - libs/mutable-list
     - libs/autovector
@@ -19,6 +22,11 @@ library:
     - libs/data-typemap
     - libs/th-builder
     - libs/tuple-utils
+  c-sources:       libs/cpp-containers/cbits/set.cpp
+  include-dirs:    libs/cpp-containers/cbits
+  extra-libraries: stdc++
+  cc-options:      -std=c++11
+
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core

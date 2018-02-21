@@ -51,7 +51,7 @@ newtype LayerOffsets = LayerOffsets (Ptr())
 type       Pass pass m   = SubPass pass m ()
 newtype SubPass pass m a = SubPass (StateT LayerOffsets m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
-             , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
+             , MonadPlus, MonadTrans, MonadThrow, MonadBranch)
 makeLenses ''SubPass
 
 
