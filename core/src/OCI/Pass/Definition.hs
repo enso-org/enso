@@ -98,7 +98,7 @@ ctxfold :: (ctx Type, ctx TyVarBndr, ctx Cxt, ctx Name, ctx TyLit)
            => IsoCtxFold ctx -> Type -> Type
 ctxfold f t = case t of
     ForallT   ts ctx tp -> ForallT   (subFold f <$> ts) (subFold f ctx) (subFold f tp)
-    AppT      a b	    -> AppT      (subFold f a) (subFold f b)
+    AppT      a b       -> AppT      (subFold f a) (subFold f b)
     SigT      t k       -> SigT      (subFold f t) (subFold f k)
     VarT      n         -> VarT      (subFold f n)
     ConT      n         -> ConT      (subFold f n)

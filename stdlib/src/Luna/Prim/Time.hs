@@ -79,7 +79,7 @@ exports std = do
     primMonthLength <- makeFunctionPure (toLunaValue std primMonthLengthVal) [intT, intT] intT
 
     let parseTime :: Text -> Text -> Maybe Time.ZonedTime
-        parseTime fmt str = Time.parseTime Time.defaultTimeLocale (convert fmt) (convert str)
+        parseTime fmt str = Time.parseTimeM True Time.defaultTimeLocale (convert fmt) (convert str)
     primParseTime <- makeFunctionPure (toLunaValue std parseTime) ["Text", "Text"] (maybeLT "Time")
 
     let primIntMilisecondsVal :: Integer -> Time.DiffTime
