@@ -22,6 +22,7 @@ import Luna.Builtin.Data.Stream    (Stream)
 import GHC.TypeLits
 import Data.Proxy
 import Unsafe.Coerce
+import qualified Foreign.LibFFI as LibFFI
 
 data RuntimeRep = AsNative Symbol
                 | AsClass  Symbol Type
@@ -282,6 +283,7 @@ instance ToLunaData a => ToLunaObject [a] where
     toConstructor _    []       = Constructor "Empty" []
     toConstructor imps (a : as) = Constructor "Prepend" [toLunaData imps a, toLunaData imps as]
 
+type instance RuntimeRepOf LibFFI.Arg             = AsNative "Arg"
 
 mkPrimFun :: (LunaData -> LunaValue) -> LunaData
 mkPrimFun f = LunaFunction $ (>>= thunkProof f)

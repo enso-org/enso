@@ -17,8 +17,10 @@ dependencies:
     - deepseq
     - dependent-state
     - directory
+    - libffi
     - luna-core
     - luna-parser
+    - unix
     - mtl
     - transformers
     - filepath

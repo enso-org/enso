@@ -17,6 +17,8 @@ native class Int:
     ## Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
 
+    def toCArg: primIntToCArg self
+
     ## Integer negation. `a.negate == -1 * a`.
     def negate: primIntNegate self
     ## Promote an integer to a real number.

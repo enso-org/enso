@@ -22,6 +22,7 @@ import           Data.Scientific             (toRealFloat)
 import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
 import qualified Data.Text.Lazy.Encoding     as Text
+import qualified Foreign.LibFFI              as LibFFI
 
 import           Luna.Builtin.Prim           (toLunaValue, ToLunaData, toLunaData, ToLunaObject, toConstructor, RuntimeRepOf, RuntimeRep (..))
 import           Luna.Builtin.Data.Function  (Function (Function), value)
@@ -143,6 +144,10 @@ primInt imps = do
         succVal        = toLunaValue imps (succ     :: Integer -> Integer)
         showVal        = toLunaValue imps (convert . show :: Integer -> Text)
         toRealVal      = toLunaValue imps (fromIntegral   :: Integer -> Double)
+
+    let primIntToCArgVal :: Integer -> LibFFI.Arg
+        primIntToCArgVal i = LibFFI.argCInt $ fromIntegral i
+    primIntToCArg <- makeFunctionPure (toLunaValue imps primIntToCArgVal) ["Int"] $ LCons "Arg" []
     return $ Map.fromList [ ("primIntAdd",         Function boxed3Ints plusVal        boxed3IntsAssumptions)
                           , ("primIntMultiply",    Function boxed3Ints timeVal        boxed3IntsAssumptions)
                           , ("primIntSubtract",    Function boxed3Ints minusVal       boxed3IntsAssumptions)
@@ -156,6 +161,7 @@ primInt imps = do
                           , ("primIntEquals",      Function ints2Bool  eqVal          ints2BoolAssumptions )
                           , ("primIntGt",          Function ints2Bool  gtVal          ints2BoolAssumptions )
                           , ("primIntLt",          Function ints2Bool  ltVal          ints2BoolAssumptions )
+                          , ("primIntToCArg",      primIntToCArg)
                           ]
 
 primBinary :: Imports -> IO (Map Name Function)

@@ -1,0 +1,24 @@
+import Std.Base
+import Std.System
+
+
+def lookupSymbol dll symbol:
+    case primLookupSymbol dll symbol of
+        Just ptr: ptr
+        Nothing:  throw "foo"
+
+native class FunPtr:
+    def call retType args:
+        primCallFunPtr self (args.map (_.toCArg))
+
+    def shortRep: "FunPtr"
+    def toJSON: "FunPtr"
+
+class CArgType:
+    CInt Int
+    CPointer Int
+
+class CRetType:
+    CRVoid
+    CRInt
+    CRPointer
