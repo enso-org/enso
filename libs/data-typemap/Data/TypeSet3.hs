@@ -4,37 +4,13 @@
 
 module Data.TypeSet3 where
 
-import Prologue hiding (FromList, set)
+import Prologue hiding (set)
 
 import qualified Type.Data.Set              as Type
 import qualified Type.Data.List             as List
 import qualified Data.Tuple.Strict.IntTuple as Tuple
 
 import Type.Data.Ord
-
-
-
-
-
-
-
-class MemptyTuple tup where memptyTuple :: tup
-instance MemptyTuple Tuple.T0  where memptyTuple = Tuple.T0 ; {-# INLINE memptyTuple #-}
-instance MemptyTuple Tuple.T1  where memptyTuple = Tuple.T1 0 ; {-# INLINE memptyTuple #-}
-instance MemptyTuple Tuple.T2  where memptyTuple = Tuple.T2 0 0 ; {-# INLINE memptyTuple #-}
-instance MemptyTuple Tuple.T3  where memptyTuple = Tuple.T3 0 0 0 ; {-# INLINE memptyTuple #-}
-instance MemptyTuple Tuple.T4  where memptyTuple = Tuple.T4 0 0 0 0 ; {-# INLINE memptyTuple #-}
-instance MemptyTuple Tuple.T5  where memptyTuple = Tuple.T5 0 0 0 0 0 ; {-# INLINE memptyTuple #-}
-instance MemptyTuple Tuple.T20 where memptyTuple = Tuple.T20 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE memptyTuple #-}
-
-
-newTS :: MemptyTuple (IntTypeMapData ts) => IntTypeMap ts
-newTS = IntTypeMap memptyTuple ; {-# INLINE newTS #-}
-
-
-
-
-
 
 
 ------------------------
@@ -60,6 +36,38 @@ getAt   (IntTypeMap tup) = Tuple.getElemAt @idx tup                ; {-# INLINE 
 setAt a (IntTypeMap tup) = IntTypeMap $ Tuple.setElemAt @idx a tup ; {-# INLINE setAt #-}
 
 
+
+-- === Construction utils === --
+
+class    ZeroTuple tup       where zeroTuple :: tup
+instance ZeroTuple Tuple.T0  where zeroTuple = Tuple.T0  ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T1  where zeroTuple = Tuple.T1  0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T2  where zeroTuple = Tuple.T2  0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T3  where zeroTuple = Tuple.T3  0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T4  where zeroTuple = Tuple.T4  0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T5  where zeroTuple = Tuple.T5  0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T6  where zeroTuple = Tuple.T6  0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T7  where zeroTuple = Tuple.T7  0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T8  where zeroTuple = Tuple.T8  0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T9  where zeroTuple = Tuple.T9  0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T10 where zeroTuple = Tuple.T10 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T11 where zeroTuple = Tuple.T11 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T12 where zeroTuple = Tuple.T12 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T13 where zeroTuple = Tuple.T13 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T14 where zeroTuple = Tuple.T14 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T15 where zeroTuple = Tuple.T15 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T16 where zeroTuple = Tuple.T16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T17 where zeroTuple = Tuple.T17 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T18 where zeroTuple = Tuple.T18 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T19 where zeroTuple = Tuple.T19 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+instance ZeroTuple Tuple.T20 where zeroTuple = Tuple.T20 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ; {-# INLINE zeroTuple #-}
+
+
+zeroIntTypeMap :: ZeroTuple (IntTypeMapData ts) => IntTypeMap ts
+zeroIntTypeMap = IntTypeMap zeroTuple ; {-# INLINE zeroIntTypeMap #-}
+
+
+
 -- === Instances === --
 
 deriving instance Mempty (IntTypeMapData els) => Mempty (IntTypeMap els)
@@ -68,7 +76,6 @@ deriving instance Show   (IntTypeMapData els) => Show   (IntTypeMap els)
 
 
 
--- instance ElemGetter idx (IntTypeMapData els) => ElemGetter idx (IntTypeMap els) where Tuple.getElemAt (IntTypeMap tup) = Tuple.getElemAt @idx tup ; {-# INLINE Tuple.getElemAt #-}
 
 
 
@@ -80,14 +87,14 @@ test :: IO ()
 test = do
     return ()
     -- let lst = setAt @0 11
-    --         $ newTS :: IntTypeMap '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+    --         $ zeroIntTypeMap :: IntTypeMap '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     --
     -- print lst
 
 
 myLst :: IntTypeMap '[1,2,3,4,5]
 myLst = setAt @0 11
-      $ newTS
+      $ zeroIntTypeMap
 {-# INLINE myLst #-}
 
 pureLoop_X :: Int -> IO ()

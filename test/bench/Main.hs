@@ -65,95 +65,115 @@ main = do
     TS3.test
     -- TS.test
     --
-    defaultMain
-        [ bgroup "IR"
-            -- [ bgroup "Read/Write Layer + State config"
-            --     $ (\(i :: Int) -> bench ("10e" <> show i)
-            --     $ perRunEnv (return ())
-            --     $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            [ bgroup "Pure loop"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Test.pureLoop (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "TS3 X"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> TS3.pureLoop_X (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "TS3 Z"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> TS3.pureLoop_Z (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Tup X"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> TT.pureLoop_X2 (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Tup Z"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> TT.pureLoop_Z2 (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "GADTs X"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> TT.pureLoop_X (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "GADTs Z"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> TT.pureLoop_Z (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write Layer static"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Basic.test_readWriteLayer_static (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write Layer + State config from Ptr"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Basic.test_readWriteLayer_ptrOff (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write Layer + State config from BuffPtr"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Basic.test_readWriteLayer_ptrBuffOff (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write Ptr"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write T Ptr"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Test.readWritePtr_T (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write T Ptr"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Test.readWritePtr_T2 (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write IORef"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Test.readWriteIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write T IORef"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Test.readWriteIORef_T (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            , bgroup "Read/Write Layer"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Basic.test_readWriteLayer (10 ^ i))  <$> [minExpVec..maxExpVec]
-
-            ]
-        ]
+    -- defaultMain
+    --     [ bgroup "IR"
+    --         -- [ bgroup "Read/Write Layer + State config"
+    --         --     $ (\(i :: Int) -> bench ("10e" <> show i)
+    --         --     $ perRunEnv (return ())
+    --         --     $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         [ bgroup "Vector creation Hardcoded"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_VectorCreationHardcoded (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "List creation Hardcoded"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_ListCreationHardcoded (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Vector creation"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_VectorCreation (10 ^ i))  <$> [5]
+    --
+    --         , bgroup "List creation"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_ListCreation (10 ^ i))  <$> [5]
+    --
+    --         , bgroup "Pure loop"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.pureLoop (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "TS3 X"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> TS3.pureLoop_X (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "TS3 Z"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> TS3.pureLoop_Z (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Tup X"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> TT.pureLoop_X2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Tup Z"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> TT.pureLoop_Z2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "GADTs X"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> TT.pureLoop_X (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "GADTs Z"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> TT.pureLoop_Z (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write Layer static"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Basic.test_readWriteLayer_static (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write Layer + State config from Ptr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Basic.test_readWriteLayer_ptrOff (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write Layer + State config from BuffPtr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Basic.test_readWriteLayer_ptrBuffOff (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write Ptr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write T Ptr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWritePtr_T (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write T Ptr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWritePtr_T2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write IORef"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWriteIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write T IORef"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWriteIORef_T (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Read/Write Layer"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Basic.test_readWriteLayer (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         ]
+    --     ]
 
         -- , bgroup "Storable"
         --     [ bgroup "Single storable"

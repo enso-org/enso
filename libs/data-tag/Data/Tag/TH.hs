@@ -12,35 +12,47 @@ dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
     where dataDecl  = data' dataName
           aliasDecl = alias aliasName $ app (cons' aliasCons) (cons' dataName)
 
+
 -- | Define a subtype of the parent type.
---   `defineSubtype "Fam" "Foo"` will generate:
+--   `Tag.familyInstance "Fam" "Foo"` will generate:
 --   > data FOO; type Foo = FamTag FOO
-defineSubtype :: Name -> Name -> [TH.Dec]
-defineSubtype famName name = dataWithAlias upperName name prefixedFamName
-    where upperName       = toUpper name
+familyInstance  :: String -> String -> Q [TH.Dec]
+familyInstance' :: String -> String ->   [TH.Dec]
+familyInstance = return .: familyInstance'
+familyInstance' famNameStr nameStr = dataWithAlias upperName name prefixedFamName
+    where name            = convert nameStr
+          famName         = convert famNameStr
+          upperName       = toUpper name
           prefixedFamName = mapName (<> "Tag") famName
+
 
 -- | Define a parent type definition that can later be used to construct
 --   its effectively-subtypes.
---   `defineType "Fam"` will generate:
+--   `Tag.familyHeader "Fam"` will generate:
 --   > data FAM; type FamTag = Tag FAM
-defineType :: Name -> [TH.Dec]
-defineType famName = dataWithAlias upperFamName prefixedFamName ''Tag
-    where upperFamName    = toUpper famName
+familyHeader :: String -> [TH.Dec]
+familyHeader famNameStr = dataWithAlias upperFamName prefixedFamName ''Tag
+    where famName         = convert famNameStr
+          upperFamName    = toUpper famName
           prefixedFamName = mapName (<> "Tag") famName
 
 
 -- | Create a set of datatypes along with aliases like the following:
---   `tagFamily "Fam" ["Foo", "Bar"]` will generate:
+--   `Tag.familyWithInstances "Fam" ["Foo", "Bar"]` will generate:
 --
 --   > data FAM; type FamTag = Tag FAM
 --   > data FOO; type Foo    = FamTag FOO
 --   > data BAR; type Bar    = FamTag Bar
-tagFamily :: String -> [String] -> Q [TH.Dec]
-tagFamily famNameStr subTypeNamesStr = return $ mainDecls <> subDecls
-    where famName         = mkName famNameStr
-          upperFamName    = toUpper famName
-          prefixedFamName = mapName (<> "Tag") famName
-          subTypeNames    = map mkName subTypeNamesStr
-          mainDecls       = defineType famName
-          subDecls        = concatMap (defineSubtype famName) subTypeNames
+familyWithInstances :: String -> [String] -> [TH.Dec]
+familyWithInstances famNameStr subTypeNamesStr = mainDecls <> subDecls
+    where mainDecls = familyHeader famNameStr
+          subDecls  = concat $ familyInstance' famNameStr <$> subTypeNamesStr
+
+
+-- | Create tag family with optional provided instances.
+--   You can always add further instances by using `familyInstance`
+--   `Tag.family "Fam" ["Foo", "Bar"]` will generate closed family.
+--   `Tag.family "Fam"                 will generate open   family.
+class Family a where family :: String -> a
+instance t ~ [String] => Family (t -> Q [TH.Dec]) where family = return .: familyWithInstances
+instance                 Family      (Q [TH.Dec]) where family = return .  familyHeader

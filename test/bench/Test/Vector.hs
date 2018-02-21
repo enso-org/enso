@@ -7,6 +7,7 @@ import Prologue
 import qualified Data.Vector.Storable.Mutable as Vector
 
 import Data.Vector.Storable.Mutable (MVector)
+import qualified Data.Vector.Storable as V
 import Luna.IR.Term
 import Data.AutoVector.Storable.Mutable
 
@@ -280,3 +281,54 @@ test_partialStorable i = do
             go (j - 1)
     go i
     Ptr.free ptr
+
+
+vn :: Int
+vn = 20
+
+test_VectorCreation :: Int -> IO ()
+test_VectorCreation i = do
+    let go 0 = return ()
+        go j = do
+            (v :: Vector.IOVector Int) <- Vector.new vn
+            go' v (vn - 1)
+            go (j - 1)
+
+        go' :: Vector.IOVector Int -> Int -> IO ()
+        go' v j = go'' j where
+            go'' 0 = return ()
+            go'' j = do
+                Vector.unsafeWrite v j j
+                go'' (j - 1)
+        {-# INLINE go' #-}
+    go i
+
+test_ListCreation :: Int -> IO ()
+test_ListCreation i = do
+    let go 0 = return ()
+        go j = do
+            evaluate =<< go' vn
+            go (j - 1)
+
+        go' 0 = return []
+        go' j = (j :) <$> go' (j - 1)
+    go i
+
+
+test_VectorCreationHardcoded :: Int -> IO ()
+test_VectorCreationHardcoded i = do
+    let go 0 = return ()
+        go j = do
+            let (v :: V.Vector Int) = V.fromList [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+            evaluate v
+            go (j - 1)
+    go i
+
+test_ListCreationHardcoded :: Int -> IO ()
+test_ListCreationHardcoded i = do
+    let go 0 = return ()
+        go j = do
+            let (lst :: [Int]) = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+            evaluate lst
+            go (j - 1)
+    go i

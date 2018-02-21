@@ -24,6 +24,7 @@ import qualified Luna.IR.Link as Link
 import Luna.IR.Format
 import Data.Tag (Tag)
 
+import qualified Data.Tag     as Tag
 import qualified Data.Mutable as MData
 import qualified Data.TypeSet as TypeSet
 import Control.Monad.State.Layered hiding ((.))
@@ -33,7 +34,6 @@ import Type.Data.Ord (Cmp)
 import Foreign.Marshal.Alloc (mallocBytes)
 
 import Foreign.Ptr.Utils (SomePtr)
-
 
 
 
@@ -56,15 +56,14 @@ type family TermModelDef t :: Type -> Type
 
 type family TermModel a
 
-
-type Var = TermTag VAR; data VAR
+Tag.familyInstance "Term" "Var"
 newtype TermVar a = TermVar
     { __name :: Int
     } deriving (Show, Eq)
 type instance TermModelDef Var = TermVar
 deriveStorable ''TermVar
 
-type Acc = TermTag ACC; data ACC
+Tag.familyInstance "Term" "Acc"
 data TermAcc a = TermAcc
     { __base :: !(Link.Term Acc a)
     , __name :: !(Link.Name Acc a)
@@ -81,6 +80,12 @@ deriveStorable ''TermUni
 
 
 
+data TermDraft a
+    = TermDraft_Var !(TermVar a)
+    | TermDraft_Acc !(TermAcc a)
+    deriving (Show, Eq)
+
+
 
 type instance TermModel (Tag t a) = TermModelDef (Tag t a) (Tag t a)
 
@@ -91,6 +96,8 @@ newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
 
 
+
+-- class HasLinks a where
 
 
 
