@@ -1,6 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeInType      #-}
 {-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE GADTs      #-}
 
 module Luna.IR.Term.Basic where
 
@@ -35,6 +36,7 @@ import Foreign.Marshal.Alloc (mallocBytes)
 
 import Foreign.Ptr.Utils (SomePtr)
 
+import Luna.IR.Term.TH
 
 
 type family SizeOf a :: Nat
@@ -57,34 +59,32 @@ type family TermModelDef t :: Type -> Type
 type family TermModel a
 
 Tag.familyInstance "Term" "Var"
-newtype TermVar a = TermVar
+newtype ModelVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
-type instance TermModelDef Var = TermVar
-deriveStorable ''TermVar
+type instance TermModelDef Var = ModelVar
+deriveStorable ''ModelVar
 
 Tag.familyInstance "Term" "Acc"
-data TermAcc a = TermAcc
+data ModelAcc a = Acc
     { __base :: !(Link.Term Acc a)
     , __name :: !(Link.Name Acc a)
     } deriving (Show, Eq)
-type instance TermModelDef Acc = TermAcc
-deriveStorable ''TermAcc
+type instance TermModelDef Acc = ModelAcc
+deriveStorable ''ModelAcc
 
-data TermUni fmt a
-    = Var !Int
-    | Acc !(Link.Term fmt a) !(Link.Term fmt a)
+data UniModel a
+    = UniModelVar !(ModelVar a)
+    | UniModelAcc !(ModelAcc a)
     deriving (Show, Eq)
-type instance TermModelDef (FormatTag f) = TermUni (FormatTag f)
-deriveStorable ''TermUni
+type instance TermModelDef (Format f) = UniModel
+deriveStorable ''UniModel
 
 
-
-data TermDraft a
-    = TermDraft_Var !(TermVar a)
-    | TermDraft_Acc !(TermAcc a)
-    deriving (Show, Eq)
-
+-- defineModels [|
+-- data Var a = Var { name :: Int                     }
+-- data Acc a = Acc { base :: Link a , name :: Link a }
+-- |]
 
 
 type instance TermModel (Tag t a) = TermModelDef (Tag t a) (Tag t a)
@@ -185,8 +185,8 @@ totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLI
 
 
 type instance LayerSize TERM Model = 3 * SizeOf Int
-instance Layer     TERM Model (FormatTag f) where
-    type LayerData TERM Model (FormatTag f) = TermModel (FormatTag f)
+instance Layer     TERM Model (Format f) where
+    type LayerData TERM Model (Format f) = TermModel (Format f)
 
 instance Storable (LayerData TERM Model (TermTag f))
       => Layer     TERM Model (TermTag f) where
@@ -223,7 +223,7 @@ constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 chunkSize :: Int
 chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 
--- instance Storable (TermUni fmt a) where
+-- instance Storable (UniModel fmt a) where
 --     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
 --     alignment _ = chunkSize     ; {-# INLINE alignment #-}
 --     peek ptr = peek (intPtr ptr) >>= \case
@@ -268,17 +268,17 @@ test = do
     var1 <- mockNewIR
     var2 <- mockNewIR
     acc1 <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 var1 (Var 7)
-    unsafeWriteLayerByteOff @Model layerLoc0 var2 (Var 5)
+    unsafeWriteLayerByteOff @Model layerLoc0 var1 (UniModelVar $ Var 7)
+    unsafeWriteLayerByteOff @Model layerLoc0 var2 (UniModelVar $ Var 5)
 
     l1 <- mockNewLink
     unsafeWriteLayerByteOff @Model layerLoc0 l1 (LinkData var1 acc1)
 
-    unsafeWriteLayerByteOff @Model layerLoc0 acc1 (Acc l1 l1)
+    -- unsafeWriteLayerByteOff @Model layerLoc0 acc1 (UniModelAcc $ Acc l1 l1)
 
-    print var1
-    x <- unsafeReadLayerByteOff @Model layerLoc0 var1
-    print x
+    -- print var1
+    -- x <- unsafeReadLayerByteOff @Model layerLoc0 var1
+    -- print x
 
 
 
@@ -286,13 +286,13 @@ test = do
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
     !ir <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 ir (Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var 0)
     let go 0 = return ()
         go j = do
-            Var !y <- unsafeReadLayerByteOff @Model layerLoc0 ir
-            Var !z <- unsafeReadLayerByteOff @Model layerLoc0 ir
-            Var !x <- unsafeReadLayerByteOff @Model layerLoc0 ir
-            unsafeWriteLayerByteOff @Model layerLoc0 ir (Var $! x+1)
+            UniModelVar (Var !y) <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            UniModelVar (Var !z) <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            UniModelVar (Var !x) <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var $! x+1)
             go $! (j - 1)
     go i
     -- Ptr.free ptr
@@ -301,7 +301,7 @@ test_readWriteLayer i = do
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer layerLoc0 ir (Var 0)
+--     writeLayer layerLoc0 ir (UniModelVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
@@ -323,14 +323,14 @@ test_readWriteLayer_ptrOff i = do
     -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
     ir <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 ir (Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             -- set <- get'
             layer <- peek ptr
-            Var x <- unsafeReadLayerByteOff @Model layer ir
-            unsafeWriteLayerByteOff @Model layer ir (Var (x+1))
+            UniModelVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (UniModelVar $ Var (x+1))
             go (j - 1)
     (go i)
 
@@ -349,7 +349,7 @@ test_readWriteLayer_ptrBuffOff i = do
     pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
     ir <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 ir (Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
@@ -357,8 +357,8 @@ test_readWriteLayer_ptrBuffOff i = do
             x <- get @Int
             put @Int (x+1)
             layer <- liftIO $ peek p
-            Var x <- unsafeReadLayerByteOff @Model layer ir
-            unsafeWriteLayerByteOff @Model layer ir (Var (x+1))
+            UniModelVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (UniModelVar $ Var (x+1))
             go (j - 1)
     flip evalStateT (7::Int)
        $ flip evalStateT ptr (go i)
@@ -366,12 +366,12 @@ test_readWriteLayer_ptrBuffOff i = do
 test_readWriteLayer_static :: Int -> IO ()
 test_readWriteLayer_static i = do
     ir <- mockNewIR
-    writeLayer @Model ir (Var 0)
+    writeLayer @Model ir (UniModelVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
-            Var x <- readLayer @Model ir
-            writeLayer @Model ir (Var (x+1))
+            UniModelVar (Var x) <- readLayer @Model ir
+            writeLayer @Model ir (UniModelVar $ Var (x+1))
             go (j - 1)
     (go i)
 
@@ -408,7 +408,7 @@ type instance Cmp Int (LayerLoc Model) = LT
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer layerLoc0 ir (Var 0)
+--     writeLayer layerLoc0 ir (UniModelVar 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do

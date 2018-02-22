@@ -7,7 +7,7 @@ import Foreign.Storable (Storable)
 import OCI.IR.Term
 import OCI.IR.Layout hiding (Type, Term)
 
-import Data.Tag
+import qualified Data.Tag as Tag
 import Foreign.Storable.Utils
 import Foreign(castPtr)
 
@@ -20,9 +20,8 @@ type family IRDef a
 
 -- === Definition === ---
 
-data LINK
-type LinkTag = Tag LINK
-type Link = Component LINK
+Tag.familyInstance "Component" "Link"
+type SomeLink = Link ()
 
 data LinkData src tgt = LinkData
     { _source :: {-# UNPACK #-} !(Term src)
