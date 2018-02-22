@@ -22,7 +22,7 @@ library:
     - libs/data-typemap
     - libs/th-builder
     - libs/tuple-utils
-  c-sources:       libs/cpp-containers/cbits/set.cpp
+  c-sources:       libs/cpp-containers/cbits/*.cpp
   include-dirs:    libs/cpp-containers/cbits
   extra-libraries: stdc++
   cc-options:      -std=c++11

@@ -1,10 +1,13 @@
 module Data.IntSet.Cpp where
 
 import Prelude
+import Control.Monad         ((<=<))
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
+
+import Foreign.Utils (fromCBool)
 
 
 ---------------------------------------------------
@@ -21,32 +24,32 @@ newtype RawSetPtr = RawSetPtr { toRawPtr :: Ptr RawSetPtr }
 -- === Foreign calls === --
 ---------------------------
 
-foreign import ccall unsafe "c_create_std_set"
+foreign import ccall unsafe "c_set_create"
     c_createStdSet :: IO RawSetPtr
 
-foreign import ccall unsafe "c_insert"
+foreign import ccall unsafe "c_set_insert"
     c_insert :: Int -> RawSetPtr -> IO ()
 
-foreign import ccall unsafe "c_insert_many"
+foreign import ccall unsafe "c_set_insert_many"
     c_insertMany :: Ptr Int -> Int -> RawSetPtr -> IO ()
 
-foreign import ccall unsafe "c_member"
-    c_member :: Int -> RawSetPtr -> IO Bool
+foreign import ccall unsafe "c_set_member"
+    c_member :: Int -> RawSetPtr -> IO Int
 
-foreign import ccall unsafe "c_delete"
+foreign import ccall unsafe "c_set_delete"
     c_delete :: Int -> RawSetPtr -> IO ()
 
-foreign import ccall unsafe "&c_delete_set"
+foreign import ccall unsafe "&c_set_delete_set"
     c_deleteSet :: FunPtr (Ptr RawSetPtr -> IO ())
 
-foreign import ccall unsafe "c_to_list"
+foreign import ccall unsafe "c_set_to_list"
     c_toList :: Ptr Int -> RawSetPtr -> IO ()
 
-foreign import ccall unsafe "c_size"
+foreign import ccall unsafe "c_set_size"
     c_size :: RawSetPtr -> IO Int
 
-foreign import ccall unsafe "c_null"
-    c_null :: RawSetPtr -> IO Bool
+foreign import ccall unsafe "c_set_null"
+    c_null :: RawSetPtr -> IO Int
 
 
 
@@ -92,7 +95,7 @@ insertMany es = withStdSet (\ptr ->
 --   Since the set can only contain 'Int' values,
 --   This is also equivalent to the `find` function.
 member :: Int -> StdSet -> IO Bool
-member e = withStdSet' (c_member e)
+member e = fromCBool <=< withStdSet' (c_member e)
 
 -- | Remove an element from the set, using `std::set::erase`.
 delete :: Int -> StdSet -> IO StdSet
@@ -101,6 +104,9 @@ delete e = withStdSet (c_delete e)
 -- | Return the number of elements in the set.
 size :: StdSet -> IO Int
 size = withStdSet' c_size
+
+null :: StdSet -> IO Bool
+null = fromCBool <=< withStdSet' c_null
 
 -- | Get all of the elements from the set (in ascending order).
 --   Note: do not overuse this function, as it will not perform very well.
