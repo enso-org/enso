@@ -22,6 +22,7 @@ import           Data.Scientific             (toRealFloat)
 import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
 import qualified Data.Text.Lazy.Encoding     as Text
+import           Foreign.C.Types             (CDouble(..))
 import qualified Foreign.LibFFI              as LibFFI
 
 import           Luna.Builtin.Prim           (toLunaValue, ToLunaData, toLunaData, ToLunaObject, toConstructor, RuntimeRepOf, RuntimeRep (..))
@@ -82,6 +83,11 @@ primReal imps = do
         sqrtVal     = toLunaValue imps (sqrt :: Double -> Double)
         logVal      = toLunaValue imps (log  :: Double -> Double)
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
+
+    let primDoubleToCArgVal :: Double -> LibFFI.Arg
+        primDoubleToCArgVal d = LibFFI.argCDouble $ coerce d
+    primDoubleToCArg <- makeFunctionPure (toLunaValue imps primDoubleToCArgVal) ["Real"] "Arg"
+
     return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal    boxed3DoublesAssumptions  )
                           , ("primRealMultiply", Function boxed3Doubles   timeVal    boxed3DoublesAssumptions  )
                           , ("primRealSubtract", Function boxed3Doubles   minusVal   boxed3DoublesAssumptions  )
@@ -119,6 +125,7 @@ primReal imps = do
                           , ("primRealLn",       Function double2Double   logVal     double2DoubleAssumptions  )
                           , ("primRealSqrt",     Function double2Double   sqrtVal    double2DoubleAssumptions  )
                           , ("primRealNegate",   Function double2Double   uminusVal  double2DoubleAssumptions  )
+                          , ("primDoubleToCArg", primDoubleToCArg)
                           ]
 
 primInt :: Imports -> IO (Map Name Function)
@@ -147,7 +154,7 @@ primInt imps = do
 
     let primIntToCArgVal :: Integer -> LibFFI.Arg
         primIntToCArgVal i = LibFFI.argCInt $ fromIntegral i
-    primIntToCArg <- makeFunctionPure (toLunaValue imps primIntToCArgVal) ["Int"] $ LCons "Arg" []
+    primIntToCArg <- makeFunctionPure (toLunaValue imps primIntToCArgVal) ["Int"] "Arg"
     return $ Map.fromList [ ("primIntAdd",         Function boxed3Ints plusVal        boxed3IntsAssumptions)
                           , ("primIntMultiply",    Function boxed3Ints timeVal        boxed3IntsAssumptions)
                           , ("primIntSubtract",    Function boxed3Ints minusVal       boxed3IntsAssumptions)

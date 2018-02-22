@@ -64,7 +64,7 @@ native class Real:
     def -  that: primRealSubtract self that
     ## Floating point division.
     def /  that: primRealDivide   self that
-    ## Flotaing point exponentiation.
+    ## Floating point exponentiation.
     def ^ that: primRealPow self that
     ## Floating point logarithm with given basis.
     def log base: primRealLog self base
@@ -74,6 +74,8 @@ native class Real:
     def <  that: primRealLt       self that
     ## Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
+
+    def toCArg: primDoubleToCArg self
 
     ## Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self

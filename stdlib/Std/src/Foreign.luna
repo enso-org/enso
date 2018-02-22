@@ -9,16 +9,61 @@ def lookupSymbol dll symbol:
 
 native class FunPtr:
     def call retType args:
-        primCallFunPtr self (args.map (_.toCArg))
+        primCallFunPtr self retType (args.map (_.toCArg))
 
     def shortRep: "FunPtr"
     def toJSON: "FunPtr"
 
-class CArgType:
-    CInt Int
-    CPointer Int
+native class Ptr:
+    Ptr
+    def toCArg: primPtrToCArg self
+    def shortRep: "Ptr"
+    def toJSON: "Ptr"
+    def toText: "Ptr"
 
-class CRetType:
-    CRVoid
-    CRInt
-    CRPointer
+def nullPtr: primNullPtr
+
+native class CVoid:
+    CVoid
+
+native class CChar:
+    CChar
+
+native class CUChar:
+    CUChar
+
+native class CInt:
+    CInt
+
+native class CInt32:
+    CInt32
+
+native class CInt64:
+    CInt64
+
+native class CUInt:
+    CUInt
+
+native class CUInt32:
+    CUInt32
+
+native class CUInt64:
+    CUInt64
+
+native class CLong:
+    CLong
+
+native class CULong:
+    CULong
+
+native class CLongLong:
+    CLongLong
+
+native class CULongLong:
+    CULongLong
+
+native class CFloat:
+    CFloat
+
+native class CDouble:
+    CDouble

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Luna.Prim.Foreign where
 
@@ -10,8 +11,9 @@ import           Control.Exception.Safe      (handleAny, throwString)
 import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 import           Data.Text.Lazy              (Text)
+import           Foreign.C.Types             (CDouble(..))
 import qualified Foreign.LibFFI              as LibFFI
-import           Foreign.Ptr                 (FunPtr, castPtrToFunPtr)
+import           Foreign.Ptr                 (Ptr, FunPtr, castPtrToFunPtr, nullPtr)
 import qualified System.Posix.DynamicLinker  as Linker
 import           Luna.Builtin.Data.Function  (Function)
 import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
@@ -27,33 +29,35 @@ exports std = do
         primLookupSymbolVal (convert -> dll) (convert -> symbol) = handleAny (\_ -> return Nothing) $ do
             dl <- Linker.dlopen dll [Linker.RTLD_LAZY]
             Just <$> Linker.dlsym dl symbol
-    primLookupSymbol <- makeFunctionIO (toLunaValue std primLookupSymbolVal) ["Text", "Text"] $ LCons "Maybe" [LCons "FunPtr" []] 
+    primLookupSymbol <- makeFunctionIO (toLunaValue std primLookupSymbolVal) ["Text", "Text"] $ LCons "Maybe" ["FunPtr"]
 
-    let primCallFunPtrVal :: FunPtr LunaData -> [LunaData] -> IO Integer
-        primCallFunPtrVal funPtr args = do
-            args <- runIO $ runError $ mapM fromLunaData args :: IO (Either P.String [LibFFI.Arg])
-            case args of
-                Left err -> throwString err
-                Right a  -> fromIntegral <$> LibFFI.callFFI funPtr LibFFI.retCInt a
-    primCallFunPtr <- makeFunctionIO (toLunaValue std primCallFunPtrVal) [LCons "FunPtr" [], LCons "List" [LVar "a"]] $ LCons "Int" []
+    let primCallFunPtrVal :: FunPtr LunaData -> ExistRetType -> [LibFFI.Arg] -> IO LunaData
+        primCallFunPtrVal funPtr retType args = case retType of
+            ExistRetType c -> toLunaData std <$> LibFFI.callFFI funPtr c args
+    primCallFunPtr <- makeFunctionIO (toLunaValue std primCallFunPtrVal) ["FunPtr", "c", LCons "List" ["a"]] "b"
+
+    primNullPtr <- makeFunctionPure (toLunaValue std (nullPtr :: Ptr LunaData)) [] "Ptr"
+
+    let primPtrToCArgVal :: Ptr LunaData -> LibFFI.Arg
+        primPtrToCArgVal ptr = LibFFI.argPtr ptr
+    primPtrToCArg <- makeFunctionPure (toLunaValue std primPtrToCArgVal) ["Ptr"] "Arg"
 
     return $ Map.fromList [ ("primLookupSymbol", primLookupSymbol)
                           , ("primCallFunPtr", primCallFunPtr)
+                          , ("primNullPtr", primNullPtr)
+                          , ("primPtrToCArg", primPtrToCArg)
                           ]
 
--- instance FromLunaData Time.ZonedTime where
---     fromLunaData zt = let errorMsg = "Expected a Time Luna object, got unexpected constructor" in
---         force' zt >>= \case
---             LunaObject obj -> case obj ^. constructor . tag of
---                 "TimeVal" -> Time.ZonedTime <$> localTime <*> (fromLunaData tz)
---                                       where [days, tod, tz] = obj ^. constructor . fields
---                                             localTime       = Time.LocalTime <$> fromLunaData days <*> fromLunaData tod
---                 _              -> throw errorMsg
---             _ -> throw errorMsg
+data ExistRetType = forall a. ToLunaData a => ExistRetType (LibFFI.RetType a)
+
+instance FromLunaData ExistRetType where
+    fromLunaData t = force' t >>= \case
+        LunaObject obj -> case obj ^. constructor . tag of
+            "CInt"     -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt :: LibFFI.RetType Integer)
+            "CVoid"    -> return $ ExistRetType LibFFI.retVoid
+            "CDouble"  -> return $ ExistRetType $ fmap (\(CDouble d) -> d) LibFFI.retCDouble
+            "Ptr"      -> return $ ExistRetType $ LibFFI.retPtr (undefined :: LibFFI.RetType LunaData)
+            _          -> throw "unknown return type"
 
 type instance RuntimeRepOf (FunPtr LunaData)      = AsNative "FunPtr"
-
--- instance ToLunaData Time.ZonedTime where
---     toLunaData imps (Time.ZonedTime (Time.LocalTime days tod) tz) = LunaObject $
---         Object (Constructor "TimeVal" [toLunaData imps days, toLunaData imps tod, toLunaData imps tz])
---                (getObjectMethodMap "Time" imps)
+type instance RuntimeRepOf (Ptr LunaData)         = AsNative "Ptr"
