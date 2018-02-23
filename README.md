@@ -11,7 +11,7 @@ refactor any application simply by connecting visual elements together.
 Collaborate with co-workers, interactively fine tune parameters, inspect the 
 results and visually profile the performance in real-time.
 
-Visit [The Luna Website](www.luna-lang.org) to learn more!
+Visit [The Luna Website](http://www.luna-lang.org) to learn more!
 
 This repository contains the Luna compiler core and its command line version. 
 For the full (visual) Luna Studio, please take a look at the 
