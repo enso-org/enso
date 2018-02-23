@@ -10,6 +10,8 @@ import OCI.IR.Layout hiding (Type, Term)
 import qualified Data.Tag as Tag
 import Foreign.Storable.Utils
 import Foreign(castPtr)
+import OCI.IR.Component
+
 
 type family IRDef a
 
@@ -23,10 +25,13 @@ type family IRDef a
 Tag.familyInstance "Component" "Link"
 type SomeLink = Link ()
 
-data LinkData src tgt = LinkData
-    { _source :: {-# UNPACK #-} !(Term src)
-    , _target :: {-# UNPACK #-} !(Term tgt)
-    } deriving (Eq, Show)
+-- data LinkData src tgt = LinkData
+--     { _source :: {-# UNPACK #-} !(Term src)
+--     , _target :: {-# UNPACK #-} !(Term tgt)
+--     } deriving (Eq, Show)
+
+data Source
+data Target
 
 
 data src :-: tgt
@@ -51,9 +56,9 @@ type SubLink src tgtType = Link (src :-: GetSublayout tgtType src)
 chunkSize' :: Int
 chunkSize' = sizeOf' @Int ; {-# INLINE chunkSize' #-}
 
-instance Storable (LinkData src tgt) where
-    sizeOf    _ = 2 * chunkSize' ; {-# INLINE sizeOf    #-}
-    alignment _ = chunkSize'     ; {-# INLINE alignment #-}
-    peek ptr = LinkData <$> peek (castPtr ptr) <*> peekByteOff ptr chunkSize'; {-# INLINE peek #-}
-    poke ptr (LinkData !a !b) = poke (castPtr ptr) a >> pokeByteOff ptr chunkSize' b
-    {-# INLINE poke #-}
+-- instance Storable (LinkData src tgt) where
+--     sizeOf    _ = 2 * chunkSize' ; {-# INLINE sizeOf    #-}
+--     alignment _ = chunkSize'     ; {-# INLINE alignment #-}
+--     peek ptr = LinkData <$> peek (castPtr ptr) <*> peekByteOff ptr chunkSize'; {-# INLINE peek #-}
+--     poke ptr (LinkData !a !b) = poke (castPtr ptr) a >> pokeByteOff ptr chunkSize' b
+--     {-# INLINE poke #-}

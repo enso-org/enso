@@ -17,7 +17,7 @@ import qualified Foreign.Memory.Pool as MemPool
 import Foreign.Storable.Deriving
 
 import Luna.IR.Class
-import OCI.IR.Term hiding (TermModelDef)
+import OCI.IR.Term
 import qualified OCI.IR.Layout as Layout
 import OCI.IR.Link as Link
 
@@ -29,14 +29,15 @@ import qualified Data.Tag     as Tag
 import qualified Data.Mutable as MData
 import qualified Data.TypeSet as TypeSet
 import Control.Monad.State.Layered hiding ((.))
+import OCI.IR.Component
+import OCI.IR.Conversion
+
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
 import Type.Data.Ord (Cmp)
 import Foreign.Marshal.Alloc (mallocBytes)
 
 import Foreign.Ptr.Utils (SomePtr)
-
-import Luna.IR.Term.TH
 
 
 type family SizeOf a :: Nat
@@ -52,42 +53,41 @@ type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
 
 -- === IR Atoms === ---
 
-type family TermModelDef t :: Type -> Type
--- data family TermModelDef (t :: *) (a :: Layout)
+type family TermConsDef t :: Type -> Type
+type family TermConsOf a
 
 
-type family TermModel a
 
-Tag.familyInstance "Term" "Var"
-newtype ModelVar a = Var
+Tag.familyInstance "TermCons" "Var"
+newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
-type instance TermModelDef Var = ModelVar
-deriveStorable ''ModelVar
+type instance TermConsDef Var = ConsVar
+deriveStorable ''ConsVar
 
-Tag.familyInstance "Term" "Acc"
-data ModelAcc a = Acc
+Tag.familyInstance "TermCons" "Acc"
+data ConsAcc a = Acc
     { __base :: !(Link.Term Acc a)
     , __name :: !(Link.Name Acc a)
     } deriving (Show, Eq)
-type instance TermModelDef Acc = ModelAcc
-deriveStorable ''ModelAcc
+type instance TermConsDef Acc = ConsAcc
+deriveStorable ''ConsAcc
 
-data UniModel a
-    = UniModelVar !(ModelVar a)
-    | UniModelAcc !(ModelAcc a)
+data UniCons a
+    = UniConsVar !(ConsVar a)
+    | UniConsAcc !(ConsAcc a)
     deriving (Show, Eq)
-type instance TermModelDef (Format f) = UniModel
-deriveStorable ''UniModel
+type instance TermConsDef (Format f) = UniCons
+deriveStorable ''UniCons
 
 
--- defineModels [|
+-- defineTermConses [|
 -- data Var a = Var { name :: Int                     }
 -- data Acc a = Acc { base :: Link a , name :: Link a }
 -- |]
 
 
-type instance TermModel (Tag t a) = TermModelDef (Tag t a) (Tag t a)
+type instance TermConsOf (Tag t a) = TermConsDef (Tag t a) (Tag t a)
 
 
 data Model
@@ -97,9 +97,18 @@ makeLenses ''LayerLoc
 
 
 
--- class HasLinks a where
+class HasLinks a where
+    readLinksIO :: a -> IO [SomeLink]
+
+readLinks :: (HasLinks a, MonadIO m) => a -> m [SomeLink]
+readLinks = liftIO . readLinksIO
 
 
+instance HasLinks (ConsVar a) where
+    readLinksIO _ = return []
+
+instance HasLinks (ConsAcc a) where
+    readLinksIO (Acc b n) = return [generalize b, generalize n]
 
 
 -------------------
@@ -186,16 +195,19 @@ totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLI
 
 type instance LayerSize TERM Model = 3 * SizeOf Int
 instance Layer     TERM Model (Format f) where
-    type LayerData TERM Model (Format f) = TermModel (Format f)
+    type LayerData TERM Model (Format f) = TermConsOf (Format f)
 
-instance Storable (LayerData TERM Model (TermTag f))
-      => Layer     TERM Model (TermTag f) where
-    type LayerData TERM Model (TermTag f) = TermModel (TermTag f)
+instance Storable (LayerData TERM Model (TermCons f))
+      => Layer     TERM Model (TermCons f) where
+    type LayerData TERM Model (TermCons f) = TermConsOf (TermCons f)
     peekLayerIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE peekLayerIO #-}
 
 
-instance Layer     LINK Model a where
-    type LayerData LINK Model a = LinkData Draft Draft
+instance Layer     LINK Source a where
+    type LayerData LINK Source a = Term Draft
+
+instance Layer     LINK Target a where
+    type LayerData LINK Target a = Term Draft
 
 
 
@@ -208,7 +220,7 @@ type instance AllLayers LINK = '[Model]
 
 
 
--- type instance LayerData Model (Tag t a) = TermModel (Tag t a)
+-- type instance LayerData Model (Tag t a) = TermCons (Tag t a)
 
 -- class LayerStorable layer (layout :: Layout) where
 --     type family LayerData layer layout :: *
@@ -223,7 +235,7 @@ constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 chunkSize :: Int
 chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 
--- instance Storable (UniModel fmt a) where
+-- instance Storable (UniCons fmt a) where
 --     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
 --     alignment _ = chunkSize     ; {-# INLINE alignment #-}
 --     peek ptr = peek (intPtr ptr) >>= \case
@@ -243,10 +255,10 @@ chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 -- class Reader layer where
 
 mockNewIR :: MonadIO m => m (Term Draft)
-mockNewIR = Component . coerce <$> MemPool.alloc @(TermModel Draft) ; {-# INLINE mockNewIR #-}
+mockNewIR = Component . coerce <$> MemPool.alloc @(TermConsOf Draft) ; {-# INLINE mockNewIR #-}
 
 mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
-mockNewLink = Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
+mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
 
@@ -268,13 +280,13 @@ test = do
     var1 <- mockNewIR
     var2 <- mockNewIR
     acc1 <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 var1 (UniModelVar $ Var 7)
-    unsafeWriteLayerByteOff @Model layerLoc0 var2 (UniModelVar $ Var 5)
+    unsafeWriteLayerByteOff @Model layerLoc0 var1 (UniConsVar $ Var 7)
+    unsafeWriteLayerByteOff @Model layerLoc0 var2 (UniConsVar $ Var 5)
 
-    l1 <- mockNewLink
-    unsafeWriteLayerByteOff @Model layerLoc0 l1 (LinkData var1 acc1)
+    -- l1 <- mockNewLink
+    -- unsafeWriteLayerByteOff @Model layerLoc0 l1 (LinkData var1 acc1)
 
-    -- unsafeWriteLayerByteOff @Model layerLoc0 acc1 (UniModelAcc $ Acc l1 l1)
+    -- unsafeWriteLayerByteOff @Model layerLoc0 acc1 (UniConsAcc $ Acc l1 l1)
 
     -- print var1
     -- x <- unsafeReadLayerByteOff @Model layerLoc0 var1
@@ -286,13 +298,13 @@ test = do
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
     !ir <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
     let go 0 = return ()
         go j = do
-            UniModelVar (Var !y) <- unsafeReadLayerByteOff @Model layerLoc0 ir
-            UniModelVar (Var !z) <- unsafeReadLayerByteOff @Model layerLoc0 ir
-            UniModelVar (Var !x) <- unsafeReadLayerByteOff @Model layerLoc0 ir
-            unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var $! x+1)
+            UniConsVar (Var !y) <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            UniConsVar (Var !z) <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            UniConsVar (Var !x) <- unsafeReadLayerByteOff @Model layerLoc0 ir
+            unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var $! x+1)
             go $! (j - 1)
     go i
     -- Ptr.free ptr
@@ -301,7 +313,7 @@ test_readWriteLayer i = do
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer layerLoc0 ir (UniModelVar $ Var 0)
+--     writeLayer layerLoc0 ir (UniConsVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
@@ -323,14 +335,14 @@ test_readWriteLayer_ptrOff i = do
     -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
     ir <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             -- set <- get'
             layer <- peek ptr
-            UniModelVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
-            unsafeWriteLayerByteOff @Model layer ir (UniModelVar $ Var (x+1))
+            UniConsVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var (x+1))
             go (j - 1)
     (go i)
 
@@ -349,7 +361,7 @@ test_readWriteLayer_ptrBuffOff i = do
     pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
     ir <- mockNewIR
-    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniModelVar $ Var 0)
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
@@ -357,8 +369,8 @@ test_readWriteLayer_ptrBuffOff i = do
             x <- get @Int
             put @Int (x+1)
             layer <- liftIO $ peek p
-            UniModelVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
-            unsafeWriteLayerByteOff @Model layer ir (UniModelVar $ Var (x+1))
+            UniConsVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var (x+1))
             go (j - 1)
     flip evalStateT (7::Int)
        $ flip evalStateT ptr (go i)
@@ -366,12 +378,12 @@ test_readWriteLayer_ptrBuffOff i = do
 test_readWriteLayer_static :: Int -> IO ()
 test_readWriteLayer_static i = do
     ir <- mockNewIR
-    writeLayer @Model ir (UniModelVar $ Var 0)
+    writeLayer @Model ir (UniConsVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
-            UniModelVar (Var x) <- readLayer @Model ir
-            writeLayer @Model ir (UniModelVar $ Var (x+1))
+            UniConsVar (Var x) <- readLayer @Model ir
+            writeLayer @Model ir (UniConsVar $ Var (x+1))
             go (j - 1)
     (go i)
 
@@ -408,7 +420,7 @@ type instance Cmp Int (LayerLoc Model) = LT
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer layerLoc0 ir (UniModelVar 0)
+--     writeLayer layerLoc0 ir (UniConsVar 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
@@ -444,38 +456,38 @@ type instance Cmp Int (LayerLoc Model) = LT
 
 
 
--- newtype TermModelDefVar (a :: Layout) = TermModelDefVar
+-- newtype TermConsDefVar (a :: Layout) = TermConsDefVar
 --     { __name :: Int
 --     } deriving (Show, Eq)
--- type instance TermModelDef Var a = TermModelDefVar a
+-- type instance TermConsDef Var a = TermConsDefVar a
 
 -- data IRDefVar (a :: Layout) = IRDefVar
 --     { __type :: {-# UNPACK #-} !(Link.Type Var a)
---     , __term :: {-# UNPACK #-} !(TermModelDefVar a)
+--     , __term :: {-# UNPACK #-} !(TermConsDefVar a)
 --     }
 
 
 
 
--- data TermModelDefAcc a = TermModelDefAcc
+-- data TermConsDefAcc a = TermConsDefAcc
 --     { __base :: !(Link.Term Acc a)
 --     , __name :: !(Link.Name Acc a)
 --     } deriving (Show, Eq)
--- type instance TermModelDef Acc a = TermModelDefAcc a
+-- type instance TermConsDef Acc a = TermConsDefAcc a
 
 -- vvv - moze nie trzeba takich datatypow jezeli trzymalibysmy to w pamieci i skakli poitnerem robiac read @LayerName ?x
 -- data IRDefAcc (a :: Layout) = IRDefAcc
 --     { __type :: {-# UNPACK #-} !(Link.Type Acc a)
---     , __term :: {-# UNPACK #-} !(TermModelDefAcc a)
+--     , __term :: {-# UNPACK #-} !(TermConsDefAcc a)
 --     }
 
 -- data family Term t (a :: Layout)
 --
--- data instance Term (TermTag t) a = Foo Int
+-- data instance Term (TermCons t) a = Foo Int
 
 
 
--- type Term (l :: Layout) = TermModelDef (Base l) l
+-- type Term (l :: Layout) = TermConsDef (Base l) l
 
 
 -- read @Term :: IR Draft -> IR.Term Draft
@@ -500,7 +512,7 @@ type instance Cmp Int (LayerLoc Model) = LT
 
 -- data family TermX (t :: *) (a :: Layout)
 --
--- data instance TermX Acc a = TermModelDefAcc
+-- data instance TermX Acc a = TermConsDefAcc
 --     { __base :: !(Link.Term Acc a)
 --     , __name :: !(Link.Name Acc a)
 --     } deriving (Show, Eq)
