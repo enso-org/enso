@@ -9,7 +9,7 @@ def lookupSymbol dll symbol:
 
 native class FunPtr:
     def call retType args:
-        primCallFunPtr self retType (args.map (_.toCArg))
+        primCallFunPtr self retType args
 
     def shortRep: "FunPtr"
     def toJSON: "FunPtr"
@@ -20,6 +20,9 @@ native class Ptr:
     def shortRep: "Ptr"
     def toJSON: "Ptr"
     def toText: "Ptr"
+
+    def peek retType: primPeekPtr self retType
+    def poke retType val: primPokePtr self val retType
 
 def nullPtr: primNullPtr
 
@@ -67,3 +70,6 @@ native class CFloat:
 
 native class CDouble:
     CDouble
+
+native class CString:
+    CString

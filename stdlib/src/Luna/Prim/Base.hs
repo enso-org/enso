@@ -84,9 +84,13 @@ primReal imps = do
         logVal      = toLunaValue imps (log  :: Double -> Double)
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
 
-    let primDoubleToCArgVal :: Double -> LibFFI.Arg
-        primDoubleToCArgVal d = LibFFI.argCDouble $ coerce d
-    primDoubleToCArg <- makeFunctionPure (toLunaValue imps primDoubleToCArgVal) ["Real"] "Arg"
+    let primRealToCDoubleArgVal :: Double -> LibFFI.Arg
+        primRealToCDoubleArgVal d = LibFFI.argCDouble $ coerce d
+    primRealToCDoubleArg <- makeFunctionPure (toLunaValue imps primRealToCDoubleArgVal) ["Real"] "Arg"
+
+    let primRealToCFloatArgVal :: Double -> LibFFI.Arg
+        primRealToCFloatArgVal d = LibFFI.argCFloat $ realToFrac d
+    primRealToCFloatArg <- makeFunctionPure (toLunaValue imps primRealToCFloatArgVal) ["Real"] "Arg"
 
     return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal    boxed3DoublesAssumptions  )
                           , ("primRealMultiply", Function boxed3Doubles   timeVal    boxed3DoublesAssumptions  )
@@ -125,7 +129,8 @@ primReal imps = do
                           , ("primRealLn",       Function double2Double   logVal     double2DoubleAssumptions  )
                           , ("primRealSqrt",     Function double2Double   sqrtVal    double2DoubleAssumptions  )
                           , ("primRealNegate",   Function double2Double   uminusVal  double2DoubleAssumptions  )
-                          , ("primDoubleToCArg", primDoubleToCArg)
+                          , ("primRealToCDoubleArg", primRealToCDoubleArg)
+                          , ("primRealToCFloatArg", primRealToCFloatArg)
                           ]
 
 primInt :: Imports -> IO (Map Name Function)
@@ -219,6 +224,10 @@ primText imps = do
         escapeJSONVal = toLunaValue imps (Text.decodeUtf8 . Aeson.encode :: Text -> Text)
         toIntVal      = toLunaValue imps (readMaybe . convert :: Text -> Maybe Integer)
         toRealVal     = toLunaValue imps (readMaybe . convert :: Text -> Maybe Double)
+
+    let primTextToCArgVal :: Text -> LibFFI.Arg
+        primTextToCArgVal t = LibFFI.argString $ Text.unpack t
+    primTextToCArg <- makeFunctionPure (toLunaValue imps primTextToCArgVal) ["Text"] "Arg"
     return $ Map.fromList [ ("primTextConcat",     Function plusIr        plusVal       plusAssu)
                           , ("primTextEquals",     Function eqIr          eqVal         eqAssu)
                           , ("primTextIsEmpty",    Function isEmptyIr     isEmptyVal    isEmptyAssu)
@@ -237,6 +246,7 @@ primText imps = do
                           , ("primTextToBinary",   Function toBinaryIr    toBinaryVal   toBinaryAssu)
                           , ("primTextToInt",      Function toMaybeIntIr  toIntVal      toMaybeIntAssu)
                           , ("primTextToReal",     Function toMaybeRealIr toRealVal     toMaybeRealAssu)
+                          , ("primTextToCArg",     primTextToCArg)
                           ]
 
 operators :: Imports -> IO (Map Name Function)

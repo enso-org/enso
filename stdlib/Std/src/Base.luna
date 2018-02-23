@@ -75,7 +75,9 @@ native class Real:
     ## Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
 
-    def toCArg: primDoubleToCArg self
+    def toCArg: primRealToCDoubleArg self
+    def toCDouble: primRealToCDoubleArg self
+    def toCFloat: primRealToCFloatArg self
 
     ## Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self
@@ -146,6 +148,8 @@ native class Text:
     def isEmpty: primTextIsEmpty self
     ## Measures the text length.
     def length:  primTextLength self
+
+    def toCArg: primTextToCArg self
 
     ## Tests whether the argument is a prefix of `self`.
     def startsWith  p: primTextHasPrefix self p
