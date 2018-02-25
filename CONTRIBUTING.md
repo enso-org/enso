@@ -55,6 +55,7 @@ A set of steps and a code sample that produces the issue.
 
 ## Metadata
 Include your operating system, Luna version and any other relevant data.
+```
 
 All three bits of this are important, especially what you did to cause the 
 issue. The more detail you provide, the more easily we can reproduce it and fix
