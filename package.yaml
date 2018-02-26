@@ -5,8 +5,9 @@ copyright: Copyright (C) 2015 Wojciech Danilo
 default-extensions: [ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable,
   DeriveFoldable, DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse,
   EmptyDataDecls, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving,
-  InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, StandaloneDeriving,
-  TemplateHaskell, TupleSections, TypeOperators, ViewPatterns, TypeFamilies]
+  InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
+  StandaloneDeriving, TemplateHaskell, TupleSections, TypeOperators, ViewPatterns,
+  TypeFamilies]
 dependencies: [base, lens, template-haskell, containers, monoid, data-default, aeson]
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/lens-utils
@@ -16,4 +17,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: lens-utils
 stability: stable
 synopsis: Collection of missing lens utilities.
-version: '1.4'
+version: 1.4.1
