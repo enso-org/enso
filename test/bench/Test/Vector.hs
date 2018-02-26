@@ -11,7 +11,6 @@ import qualified Data.Vector.Storable as V
 import Luna.IR.Term
 import Data.AutoVector.Storable.Mutable
 
--- import qualified Data.Graph as Graph
 import Data.IORef
 import Foreign.ForeignPtr.Utils
 import Control.Exception.Base (evaluate)
