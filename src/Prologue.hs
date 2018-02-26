@@ -95,12 +95,12 @@ import Data.Container                   as X (Item)
 import Data.Container.List2             as X
 
 -- === Exts === --
-import GHC.Exts                         as X (lazy, inline) -- + oneShot after base update
+import GHC.Exts                         as X (lazy, inline, oneShot)
 
 -- === Types === --
 import Data.Constraints                 as X (Constraints)
 import Data.Type.Equality               as X ((:~:), type(==), TestEquality, testEquality) -- + (~~), (:~~:) after base update
-import Prologue.Data.Typeable           as X
+import Prologue.Type.Reflection         as X
 
 -- === Debugging === --
 import Debug.Trace                      as X (trace, traceShow)
@@ -127,27 +127,30 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens.Utils.Wrapped       as X
-import Control.Lens.Utils.TH            as X
+import Control.Lens                     as X (Lens, Lens')
+import Control.Lens                     as X (view, set)
+import Control.Lens                     as X ((^.), (.~), (%~))
+import Control.Lens.Utils.Wrapped       as X (wrap, unwrap, wrapped)
+import Control.Lens.Utils.TH            as X (makeLenses)
 
-import Control.Lens.At                  as X
-import Control.Lens.Cons                as X
-import Control.Lens.Each                as X
-import Control.Lens.Empty               as X
-import Control.Lens.Equality            as X
-import Control.Lens.Fold                as X hiding (pre)
-import Control.Lens.Getter              as X
-import Control.Lens.Indexed             as X
-import Control.Lens.Iso                 as X hiding (lazy)
-import Control.Lens.Lens                as X
-import Control.Lens.Level               as X
-import Control.Lens.Prism               as X
-import Control.Lens.Reified             as X
-import Control.Lens.Review              as X
-import Control.Lens.Setter              as X
-import Control.Lens.TH                  as X hiding (makeLenses, makeClassy) -- Lens.Utils provide better versions
-import Control.Lens.Traversal           as X
-import Control.Lens.Tuple               as X
-import Control.Lens.Type                as X
+import Control.Lens.At                  as X ()
+import Control.Lens.Cons                as X ()
+import Control.Lens.Each                as X ()
+import Control.Lens.Empty               as X ()
+import Control.Lens.Equality            as X ()
+import Control.Lens.Fold                as X () -- hiding (pre)
+import Control.Lens.Getter              as X ()
+import Control.Lens.Indexed             as X ()
+import Control.Lens.Iso                 as X () -- hiding (lazy)
+import Control.Lens.Lens                as X ()
+import Control.Lens.Level               as X ()
+import Control.Lens.Prism               as X ()
+import Control.Lens.Reified             as X ()
+import Control.Lens.Review              as X ()
+import Control.Lens.Setter              as X ()
+import Control.Lens.TH                  as X () -- hiding (makeLenses, makeClassy) -- Lens.Utils provide better versions
+import Control.Lens.Traversal           as X ()
+import Control.Lens.Tuple               as X ()
+import Control.Lens.Type                as X ()
 import Control.Lens.Wrapped             as X (Wrapped, Unwrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', Rewrapped, ala, alaf)
-import Control.Lens.Zoom                as X
+import Control.Lens.Zoom                as X ()
