@@ -14,15 +14,41 @@ native class FunPtr:
     def shortRep: "FunPtr"
     def toJSON: "FunPtr"
 
-native class Ptr:
+def malloc size:
+    m = lookupSymbol "" "malloc"
+    m.call Ptr [size . toCArg]
+
+def free ptr:
+    f = lookupSymbol "" "free"
+    f.call CVoid [ptr . toCArg]
+
+def strlen str:
+    s = lookupSymbol "" "strlen"
+    s.call CInt [str . toCArg]
+
+native class Ptr a:
     Ptr
     def toCArg: primPtrToCArg self
-    def shortRep: "Ptr"
-    def toJSON: "Ptr"
-    def toText: "Ptr"
+    def shortRep: primPtrToJSON self
+    def toJSON: primPtrToJSON self
+    def toText: primPtrToJSON self
+    def + bytes: primPlusPtr self bytes
 
-    def peek retType: primPeekPtr self retType
-    def poke retType val: primPokePtr self val retType
+    def read ptr: primReadPtrPtr ptr
+    def write ptr: primWritePtrPtr ptr self
+
+class Matrix:
+    nrows :: Int
+    ncols :: Int
+    data  :: Ptr Double
+
+    def toJSON:
+        (0.upto self.nrows-1).map (row: (0.upto self.ncols-1).map (col: CDouble.read (self.data.+ ((row*self.ncols + col) * 8)))) . toJSON
+
+def newMatrix nrows ncols:
+    size = nrows * ncols * 8
+    mem  = malloc size
+    Matrix nrows ncols mem
 
 def nullPtr: primNullPtr
 
@@ -37,18 +63,33 @@ native class CUChar:
 
 native class CInt:
     CInt
+    def byteSize: primByteSizeInt
+    def read ptr: primReadPtrInt ptr
+    def write ptr: primWritePtrInt ptr self
 
 native class CInt32:
     CInt32
+    def byteSize: primByteSizeInt32
+    def read ptr: primReadPtrInt32 ptr
+    def write ptr: primWritePtrInt32 ptr self
 
 native class CInt64:
     CInt64
+    def byteSize: primByteSizeInt64
+    def read ptr: primReadPtrInt64 ptr
+    def write ptr: primWritePtrInt64 ptr self
 
 native class CUInt:
     CUInt
+    def byteSize: primByteSizeUInt
+    def read ptr: primReadPtrUInt ptr
+    def write ptr: primWritePtrUInt ptr self
 
 native class CUInt32:
     CUInt32
+    def byteSize: primByteSizeUInt32
+    def read ptr: primReadPtrUInt32 ptr
+    def write ptr: primWritePtrUInt32 ptr self
 
 native class CUInt64:
     CUInt64
@@ -67,9 +108,80 @@ native class CULongLong:
 
 native class CFloat:
     CFloat
+    def byteSize: primByteSizeFloat
+    def read ptr: primReadPtrFloat ptr
+    def write ptr: primWritePtrFloat ptr self
 
 native class CDouble:
     CDouble
+    def byteSize: primByteSizeDouble
+    def read ptr: primReadPtrDouble ptr
+    def write ptr: primWritePtrDouble ptr self
 
 native class CString:
     CString
+
+def blasImpl: "libopenblas.so.0"
+
+class CBLASOrder:
+    CblasRowMajor
+    CblasColMajor
+
+    def toCArg: case self of
+        CblasRowMajor: 101.toCArg
+        CblasColMajor: 102.toCArg
+
+class CBLASTranspose:
+    CblasNoTrans
+    CblasTrans
+    CblasConjTrans
+    CblasConjNoTrans
+
+    def toCArg: case self of
+        CblasNoTrans: 111.toCArg
+        CblasTrans: 112.toCArg
+        CblasConjTrans: 113.toCArg
+        CblasConjNoTrans: 114.toCArg
+
+class CBLASUpLo:
+    CblasUpper
+    CblasLower
+
+    def toCArg: case self of
+        CblasUpper: 121.toCArg
+        CblasLower: 122.toCArg
+
+class CBLASDiag:
+    CblasNonUnit
+    CblasUnit
+
+    def toCArg: case self of
+        CblasNonUnit: 131.toCArg
+        CblasUnit: 132.toCArg
+
+class CBLASSide:
+    CblasLeft
+    CblasRight
+
+    def toCArg: case self of
+        CblasLeft: 141.toCArg
+        CblasRight: 142.toCArg
+
+def drotg a b:
+    f = lookupSymbol "libopenblas.so.0" "cblas_drotg"
+    ap = malloc 8
+    a.write ap
+    bp = malloc 8
+    b.write bp
+    cp = malloc 8
+    sp = malloc 8
+    f.call CVoid [ap.toCArg, bp.toCArg, cp.toCArg, sp.toCArg]
+    r = a.read ap
+    z = a.read bp
+    c = a.read cp
+    s = a.read sp
+    free ap
+    free bp
+    free cp
+    free sp
+    (r,z,c,s)
