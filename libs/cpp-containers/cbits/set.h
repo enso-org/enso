@@ -1,14 +1,13 @@
 #include <set>
-#include <iostream>
 
 extern "C" {
-    void *c_create_std_set();
-    void c_insert(long, void *);
-    void c_insert_many(long *, long, void *);
-    long c_member(long, void *);
-    void c_delete(long, void *);
-    void c_delete_set(void *);
-    void c_to_list(long *, void *);
-    long c_size(void *);
-    bool c_null(void *);
+    void *c_set_create();
+    void c_set_insert(long, void *);
+    void c_set_insert_many(long *, long, void *);
+    long c_set_member(long, void *);
+    void c_set_delete(long, void *);
+    void c_set_delete_set(void *);
+    void c_set_to_list(long *, void *);
+    long c_set_size(void *);
+    long c_set_null(void *);
 }
