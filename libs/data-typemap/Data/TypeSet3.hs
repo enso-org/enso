@@ -26,8 +26,8 @@ newtype IntTypeMap (els :: [Nat]) = IntTypeMap (IntTypeMapData els)
 -- === API === --
 
 type IntTypeMapIndexable idx els =
-    ( Tuple.ElemGetter idx (IntTypeMapData els)
-    , Tuple.ElemSetter idx (IntTypeMapData els)
+    ( Tuple.IxElemGetter idx (IntTypeMapData els)
+    , Tuple.IxElemSetter idx (IntTypeMapData els)
     )
 
 getAt :: forall (idx :: Nat) els. IntTypeMapIndexable idx els => IntTypeMap els -> Int

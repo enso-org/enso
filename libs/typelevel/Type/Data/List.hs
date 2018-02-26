@@ -4,10 +4,11 @@
 module Type.Data.List (module Type.Data.List) where
 
 import Prelude
+
+import Data.Kind
 import GHC.TypeLits
 import Type.Data.Bool
 import Type.Data.Maybe
-import GHC.TypeLits
 
 
 
@@ -38,6 +39,10 @@ type family Uncons (lst :: [k]) :: Maybe (k, [k]) where
 type family Append (lst :: [k]) (lst' :: [k]) :: [k] where
     Append '[]       lst = lst
     Append (l ': ls) lst = l ': Append ls lst
+
+type family ConsAll (el :: k) (lst :: [[k]]) :: [[k]] where
+    ConsAll _ '[] = '[]
+    ConsAll a (l ': ls) = (a ': l) ': ConsAll a ls
 
 
 
@@ -73,6 +78,10 @@ type family DropInit (lst :: [k]) :: [k] where
 
 
 -- === Transformations === --
+
+type family Map (f :: a -> b) (lst :: [a]) :: [b] where
+    Map f '[]       = '[]
+    Map f (a ': as) = f a ': Map f as
 
 type Reverse lst = Reverse__ lst '[]
 type family Reverse__ lst lst' where
@@ -145,22 +154,67 @@ type family Replicate (n :: Nat) a where
     Replicate n a = a ': Replicate (n - 1) a
 
 
+-- === Cartesian === --
+
+type family CartesianWith (f :: k -> l -> m) (a :: [k]) (b :: [l]) :: [m] where
+    CartesianWith f '[]       _  = '[]
+    CartesianWith f (a ': as) ls = Append (CartesianWith__ f a  ls)
+                                          (CartesianWith   f as ls)
+
+type family CartesianWith__ (f :: k -> l -> m) (a :: k) (b :: [l]) :: [m] where
+    CartesianWith__ _ _ '[]       = '[]
+    CartesianWith__ f a (t ': ts) = f a t ': CartesianWith__ f a ts
+
+
+
 
 -- === Zipping === --
 
-type Zip a b = Zip2 a b
-type family Zip2 (l1 :: [k1]) (l2 :: [k2]) :: [(k1,k2)] where
-    Zip2 (t1 ': ts1) (t2 ': ts2) = '(t1,t2) ': Zip2 ts1 ts2
-    Zip2 _ _ = '[]
+type Zip  l1 l2          = Zip2             l1 l2
+type Zip2 l1 l2          = ZipWith2 '(,)    l1 l2
+type Zip3 l1 l2 l3       = ZipWith3 '(,,)   l1 l2 l3
+type Zip4 l1 l2 l3 l4    = ZipWith4 '(,,,)  l1 l2 l3 l4
+type Zip5 l1 l2 l3 l4 l5 = ZipWith5 '(,,,,) l1 l2 l3 l4 l5
 
-type family Zip3 (l1 :: [k1]) (l2 :: [k2]) (l3 :: [k3]) :: [(k1,k2,k3)] where
-    Zip3 (t1 ': ts1) (t2 ': ts2) (t3 ': ts3) = '(t1,t2,t3) ': Zip3 ts1 ts2 ts3
-    Zip3 _ _ _ = '[]
+type family ZipWith2 (f :: k1 -> k2 -> k) (l1 :: [k1]) (l2 :: [k2]) :: [k] where
+    ZipWith2 f (t1 ': ts1) (t2 ': ts2) = f t1 t2 ': ZipWith2 f ts1 ts2
+    ZipWith2 _ _ _ = '[]
 
-type family Zip4 (l1 :: [k1]) (l2 :: [k2]) (l3 :: [k3]) (l4 :: [k4]) :: [(k1,k2,k3,k4)] where
-    Zip4 (t1 ': ts1) (t2 ': ts2) (t3 ': ts3) (t4 ': ts4) = '(t1,t2,t3,t4) ': Zip4 ts1 ts2 ts3 ts4
-    Zip4 _ _ _ _ = '[]
+type family ZipWith3 (f :: k1 -> k2 -> k3 -> k) (l1 :: [k1]) (l2 :: [k2]) (l3 :: [k3]) :: [k] where
+    ZipWith3 f (t1 ': ts1) (t2 ': ts2) (t3 ': ts3) = f t1 t2 t3 ': ZipWith3 f ts1 ts2 ts3
+    ZipWith3 _ _ _ _ = '[]
 
-type family Zip5 (l1 :: [k1]) (l2 :: [k2]) (l3 :: [k3]) (l4 :: [k4]) (l5 :: [k5]) :: [(k1,k2,k3,k4,k5)] where
-    Zip5 (t1 ': ts1) (t2 ': ts2) (t3 ': ts3) (t4 ': ts4) (t5 ': ts5) = '(t1,t2,t3,t4,t5) ': Zip5 ts1 ts2 ts3 ts4 ts5
-    Zip5 _ _ _ _ _ = '[]
+type family ZipWith4 (f :: k1 -> k2 -> k3 -> k4 -> k) (l1 :: [k1]) (l2 :: [k2]) (l3 :: [k3]) (l4 :: [k4]) :: [k] where
+    ZipWith4 f (t1 ': ts1) (t2 ': ts2) (t3 ': ts3) (t4 ': ts4) = f t1 t2 t3 t4 ': ZipWith4 f ts1 ts2 ts3 ts4
+    ZipWith4 _ _ _ _ _ = '[]
+
+type family ZipWith5 (f :: k1 -> k2 -> k3 -> k4 -> k5 -> k) (l1 :: [k1]) (l2 :: [k2]) (l3 :: [k3]) (l4 :: [k4]) (l5 :: [k5]) :: [k] where
+    ZipWith5 f (t1 ': ts1) (t2 ': ts2) (t3 ': ts3) (t4 ': ts4) (t5 ': ts5) = f t1 t2 t3 t4 t5 ': ZipWith5 f ts1 ts2 ts3 ts4 ts5
+    ZipWith5 _ _ _ _ _ _ = '[]
+
+
+
+----------------------
+-- === TreeList === --
+----------------------
+
+-- === Typed === --
+
+data TreeList a
+    = FlatList [a]
+    | TreeList (TreeList a) (TreeList a)
+
+type family FlattenTreeList (t :: TreeList a) :: [a] where
+    FlattenTreeList ('FlatList a)   = a
+    FlattenTreeList ('TreeList l r) = Append (FlattenTreeList l)
+                                             (FlattenTreeList r)
+
+
+-- === Dynamic === --
+
+data DynTreeList (l :: Type) (r :: Type)
+
+type family FlattenDynTreeList (lst :: Type) :: [Type] where
+    FlattenDynTreeList (DynTreeList l r) =
+        Append (FlattenDynTreeList l) (FlattenDynTreeList r)
+    FlattenDynTreeList a = '[a]

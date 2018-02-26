@@ -21,8 +21,6 @@ import Luna.IR.Term
 import System.IO                        (hSetBuffering, stdout, BufferMode(NoBuffering))
 import Unsafe.Coerce                    (unsafeCoerce)
 
-import qualified Data.Graph as Graph
-
 import qualified Foreign.Memory.Pool as MemPool
 
 import qualified Luna.IR.Term.Basic as Basic

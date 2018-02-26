@@ -22,7 +22,7 @@ type family IRDef a
 
 -- === Definition === ---
 
-Tag.familyInstance "Component" "Link"
+componentInstance "Link"
 type SomeLink = Link ()
 
 -- data LinkData src tgt = LinkData

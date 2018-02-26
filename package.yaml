@@ -1,7 +1,7 @@
-author: Wojciech Danilo
+author: Luna Team
 bug-reports: https://github.com/wdanilo/luna-core/issues
 category: Data
-copyright: Copyright (C) 2015 Wojciech Danilo
+copyright: Copyright (C) 2018 Luna Team
 
 extra-source-files: libs/cpp-containers/cbits/*
 
@@ -31,13 +31,14 @@ license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: luna-core
 stability: experimental
-synopsis: A set of benchmarks for the underlying Luna representation.
+synopsis: Luna Core
 version: 0.0.1
 
 dependencies:
     - array
     - base
     - convert
+    - containers
     - c-storable-deriving
     - data-default
     - deepseq
@@ -51,7 +52,7 @@ dependencies:
     - prologue >= 3.0.0
     - mtl
     - unboxed-ref >= 0.4.0.0
-    - dependent-state
+    - layered-state
     - monad-branch
 
 benchmarks:
@@ -108,6 +109,7 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
 
     - LiberalTypeSynonyms

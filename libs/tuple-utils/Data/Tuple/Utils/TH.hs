@@ -22,8 +22,11 @@ genTupleSyn = return decs where
         synNameS = "T" <> show i
         synName  = convert synNameS
         tpSyn    = TySynD synName [] $ tupleCons i []
-        sig      = PatSynSigD synName (ForallT tvvs [] (ForallT [] [] (foldr AppT (tuple tvs) (AppT ArrowT <$> tvs))))
-        syn      = PatSynD synName (RecordPatSyn ns') ImplBidir (tuple pvs :: TH.Pat)
+        sig      = PatSynSigD synName
+                 $ ForallT tvvs []
+                 $ ForallT [] []
+                 $ foldr AppT (tuple tvs) (AppT ArrowT <$> tvs)
+        syn      = PatSynD synName (RecordPatSyn ns') ImplBidir (tuple pvs)
         nsStr    = unsafeGenNamesTN i
         nsStr'   = (\n -> "_" <> synNameS <> "_" <> n) <$> nsStr
         ns       = convert <$> nsStr
@@ -36,22 +39,28 @@ genTupleSyn = return decs where
 
 genStrictTupDecls :: Q [Dec]
 genStrictTupDecls = return decs where
-    genDec i = [DataD [] name tvvs Nothing [con] [DerivClause Nothing [cons' ''Show]]] where
-        con     = NormalC name $ (Bang NoSourceUnpackedness SourceStrict,) <$> tvs
+    genDec i = [decl] where
+        con     = NormalC name
+                $ (Bang NoSourceUnpackedness SourceStrict,) <$> tvs
         ns      = unsafeGenNamesTN i
         tvvs    = var <$> ns
         tvs     = var <$> ns
         nameStr = "T" <> show i
         name    = convert nameStr
+        decl    = DataD [] name tvvs Nothing [con]
+                  [DerivClause Nothing [cons' ''Show]]
     decs = concat $ genDec <$> [0.._MAX_TUPLE_SIZE]
 
 -- >> data T2 = T2 {-# UNPACK #-} !Int {-# UNPACK #-} !Int deriving (Show)
 genStrictIntTupDecls :: Q [Dec]
 genStrictIntTupDecls = return decs where
-    genDec i = [DataD [] name [] Nothing [con] [DerivClause Nothing [cons' ''Show]]] where
-        con     = NormalC name $ replicate i (Bang SourceUnpack SourceStrict, cons' ''Int)
+    genDec i = [decl] where
+        con     = NormalC name
+                $ replicate i (Bang SourceUnpack SourceStrict, cons' ''Int)
         nameStr = "T" <> show i
         name    = convert nameStr
+        decl    = DataD [] name [] Nothing [con]
+                  [DerivClause Nothing [cons' ''Show]]
     decs = concat $ genDec <$> [0.._MAX_TUPLE_SIZE]
 
 -- >> FromNat 3 = T3
@@ -68,79 +77,96 @@ genFromList :: Q [Dec]
 genFromList = return [fam] where
     name   = mkName "FromList"
     header = TypeFamilyHead name ["t"] NoSig Nothing
-    line i = TySynEqn [foldr app PromotedNilT (app PromotedConsT <$> vs)] (tup vs) where
-        vs = var <$> unsafeGenNamesTN i
+    line i = TySynEqn [foldr app PromotedNilT (app PromotedConsT <$> vs)]
+             (tup vs)
+             where vs = var <$> unsafeGenNamesTN i
+    fam    = ClosedTypeFamilyD header (line <$> [0.._MAX_TUPLE_SIZE])
+
+-- >> ToList T2 t1 t2 = '[t1, t2]
+genToList :: Q [Dec]
+genToList = return [fam] where
+    name   = mkName "ToList"
+    header = TypeFamilyHead name ["t"] NoSig Nothing
+    line i = TySynEqn [tup vs]
+             (foldr app PromotedNilT (app PromotedConsT <$> vs))
+             where vs = var <$> unsafeGenNamesTN i
     fam    = ClosedTypeFamilyD header (line <$> [0.._MAX_TUPLE_SIZE])
 
 -- >> type instance GetElemAt 0 (T2 t1 t2) = t1
 genGetElemAt :: Q [Dec]
 genGetElemAt = return decls where
-    genDecl elIdx tupLen = TySynInstD "GetElemAt" (TySynEqn [convert elIdx, tup vs] (vs !! elIdx)) where
-        vs = var <$> unsafeGenNamesTN tupLen
+    genDecl elIdx tupLen = TySynInstD "GetElemAt"
+        (TySynEqn [convert elIdx, tup vs] (vs !! elIdx)) where
+            vs = var <$> unsafeGenNamesTN tupLen
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 -- >> type instance SetElemAt 0 v (T2 t1 t2) = T2 v t2
 genSetElemAt :: Q [Dec]
 genSetElemAt = return decls where
-    genDecl elIdx tupLen = TySynInstD "SetElemAt" (TySynEqn [convert elIdx, "v", tup vs] (tup $ replaceLst elIdx "v" vs)) where
-        vs = var <$> unsafeGenNamesTN tupLen
+    genDecl elIdx tupLen = TySynInstD "SetElemAt"
+        (TySynEqn [convert elIdx, "v", tup vs] (tup $ replaceLst elIdx "v" vs))
+        where vs = var <$> unsafeGenNamesTN tupLen
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
-genElemGetters :: Q [Dec]
-genElemGetters = return decls where
+genIxElemGetters :: Q [Dec]
+genIxElemGetters = return decls where
     genDecl elIdx tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
         pvs    = var <$> ns
         evs    = var <$> ns
-        header = apps (cons' "ElemGetter") [convert elIdx, tup tvs]
-        fun    = FunD "getElemAt" [ TH.Clause [tup $ BangP <$> pvs] (NormalB (evs !! elIdx)) []]
+        header = apps (cons' "IxElemGetter") [convert elIdx, tup tvs]
+        fun    = FunD "getElemAt" [ TH.Clause [tup $ BangP <$> pvs]
+                 (NormalB (evs !! elIdx)) []]
         prag   = PragmaD (InlineP "getElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
-genElemSetters :: Q [Dec]
-genElemSetters = return decls where
+genIxElemSetters :: Q [Dec]
+genIxElemSetters = return decls where
     genDecl elIdx tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
         pvs    = var <$> ns
         evs    = var <$> ns
-        header = apps (cons' "ElemSetter") [convert elIdx, tup tvs]
-        fun    = FunD "setElemAt" [ TH.Clause ["v", tup $ BangP <$> pvs] (NormalB (tup $ replaceLst elIdx "v" evs)) []]
+        header = apps (cons' "IxElemSetter") [convert elIdx, tup tvs]
+        fun    = FunD "setElemAt" [ TH.Clause ["v", tup $ BangP <$> pvs]
+                 (NormalB (tup $ replaceLst elIdx "v" evs)) []]
         prag   = PragmaD (InlineP "setElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 
-genIntTupleElemGetters :: Q [Dec]
-genIntTupleElemGetters = return decls where
+genIntTupleIxElemGetters :: Q [Dec]
+genIntTupleIxElemGetters = return decls where
     genDecl elIdx tupLen = decl where
         name   = convert $ "T" <> show tupLen
         ns     = unsafeGenNamesTN tupLen
         pvs    = var <$> ns
         evs    = var <$> ns
-        header = apps (cons' "ElemGetter") [convert elIdx, cons' name]
-        fun    = FunD "getElemAt" [ TH.Clause [tup $ BangP <$> pvs] (NormalB (evs !! elIdx)) []]
+        header = apps (cons' "IxElemGetter") [convert elIdx, cons' name]
+        fun    = FunD "getElemAt" [ TH.Clause [tup $ BangP <$> pvs]
+                 (NormalB (evs !! elIdx)) []]
         prag   = PragmaD (InlineP "getElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 
-genIntTupleElemSetters :: Q [Dec]
-genIntTupleElemSetters = return decls where
+genIntTupleIxElemSetters :: Q [Dec]
+genIntTupleIxElemSetters = return decls where
     genDecl elIdx tupLen = decl where
         name   = convert $ "T" <> show tupLen
         ns     = unsafeGenNamesTN tupLen
         pvs    = var <$> ns
         evs    = var <$> ns
-        header = apps (cons' "ElemSetter") [convert elIdx, cons' name]
-        fun    = FunD "setElemAt" [ TH.Clause ["v", tup $ BangP <$> pvs] (NormalB (tup $ replaceLst elIdx "v" evs)) []]
+        header = apps (cons' "IxElemSetter") [convert elIdx, cons' name]
+        fun    = FunD "setElemAt" [ TH.Clause ["v", tup $ BangP <$> pvs]
+                 (NormalB (tup $ replaceLst elIdx "v" evs)) []]
         prag   = PragmaD (InlineP "setElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]

@@ -28,9 +28,11 @@ import Data.Tag (Tag)
 import qualified Data.Tag     as Tag
 import qualified Data.Mutable as MData
 import qualified Data.TypeSet as TypeSet
-import Control.Monad.State.Layered hiding ((.))
+import Control.Monad.State.Layered (get, put)
+import qualified Control.Monad.State.Layered as State
 import OCI.IR.Component
 import OCI.IR.Conversion
+import OCI.IR.Selector
 
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
@@ -39,6 +41,7 @@ import Foreign.Marshal.Alloc (mallocBytes)
 
 import Foreign.Ptr.Utils (SomePtr)
 
+import OCI.Pass.Class as Pass
 
 type family SizeOf a :: Nat
 type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
@@ -111,6 +114,7 @@ instance HasLinks (ConsAcc a) where
     readLinksIO (Acc b n) = return [generalize b, generalize n]
 
 
+
 -------------------
 -- === Layer === --
 -------------------
@@ -119,7 +123,9 @@ instance HasLinks (ConsAcc a) where
 
 type family LayerSize component layer :: Nat
 
-class Storable (LayerData t layer cfg) => Layer (t :: Type) (layer :: Type) (cfg :: Type) where
+data AnyLayer
+class Storable (LayerData t layer cfg)
+   => Layer (t :: Type) (layer :: Type) (cfg :: Type) where
     type family LayerData t layer cfg :: Type
 
     peekLayerIO :: SomePtr -> IO (LayerData t layer cfg)
@@ -193,29 +199,29 @@ totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLI
 
 
 
-type instance LayerSize TERM Model = 3 * SizeOf Int
-instance Layer     TERM Model (Format f) where
-    type LayerData TERM Model (Format f) = TermConsOf (Format f)
+type instance LayerSize Terms Model = 3 * SizeOf Int
+instance Layer     Terms Model (Format f) where
+    type LayerData Terms Model (Format f) = TermConsOf (Format f)
 
-instance Storable (LayerData TERM Model (TermCons f))
-      => Layer     TERM Model (TermCons f) where
-    type LayerData TERM Model (TermCons f) = TermConsOf (TermCons f)
+instance Storable (LayerData Terms Model (TermCons f))
+      => Layer     Terms Model (TermCons f) where
+    type LayerData Terms Model (TermCons f) = TermConsOf (TermCons f)
     peekLayerIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE peekLayerIO #-}
 
 
-instance Layer     LINK Source a where
-    type LayerData LINK Source a = Term Draft
+instance Layer     Links Source a where
+    type LayerData Links Source a = Term Draft
 
-instance Layer     LINK Target a where
-    type LayerData LINK Target a = Term Draft
-
-
+instance Layer     Links Target a where
+    type LayerData Links Target a = Term Draft
 
 
 
 
-type instance AllLayers TERM = '[Model]
-type instance AllLayers LINK = '[Model]
+
+
+type instance AllLayers Terms = '[Model]
+type instance AllLayers Links = '[Model]
 
 
 
@@ -255,7 +261,7 @@ chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 -- class Reader layer where
 
 mockNewIR :: MonadIO m => m (Term Draft)
-mockNewIR = Component . coerce <$> MemPool.alloc @(TermConsOf Draft) ; {-# INLINE mockNewIR #-}
+mockNewIR = Component . coerce <$> MemPool.allocPtr @(TermConsOf Draft) ; {-# INLINE mockNewIR #-}
 
 mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
 mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
@@ -271,6 +277,27 @@ newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
 -- linkMemPool = unsafePerfromIO newMemPool ; {-# NOINLINE linkMemPool #-}
 --
 --
+
+type TermLayers = Terms / AnyLayer
+
+data MyPass
+type instance Pass.Components MyPass            = '[Terms, Links]
+type instance Pass.In         MyPass TermLayers = '[Model]
+type instance Pass.Out        MyPass TermLayers = '[Model]
+
+
+passTest :: Pass.SubPass MyPass IO ()
+passTest = do
+    return ()
+
+passRunTest :: IO ()
+passRunTest = Pass.runPass undefined passTest
+-- runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+
+
+--
+-- type instance Pass.In AnyLayer Terms MyPass = '[Model]
+
 
 layerLoc0 :: Int
 layerLoc0 = 0 ; {-# INLINE layerLoc0 #-}
@@ -322,7 +349,7 @@ test_readWriteLayer i = do
 --             Var x <- readLayer layer ir
 --             writeLayer layer ir (Var (x+1))
 --             go (j - 1)
---     evalStateT (go i)
+--     State.evalT (go i)
 --         $ TypeSet.insert (XInt 1)
 --         $ TypeSet.insert (6 :: Int)
 --         $ TypeSet.insert layerLoc0
@@ -372,8 +399,8 @@ test_readWriteLayer_ptrBuffOff i = do
             UniConsVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
             unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var (x+1))
             go (j - 1)
-    flip evalStateT (7::Int)
-       $ flip evalStateT ptr (go i)
+    flip State.evalT (7::Int)
+       $ flip State.evalT ptr (go i)
 
 test_readWriteLayer_static :: Int -> IO ()
 test_readWriteLayer_static i = do
@@ -387,7 +414,7 @@ test_readWriteLayer_static i = do
             go (j - 1)
     (go i)
 
-    -- evalStateT (go i)
+    -- State.evalT (go i)
     --     $ TypeSet.insert (XInt 1)
     --     $ TypeSet.insert (6 :: Int)
     --     $ TypeSet.insert layerLoc0
@@ -429,7 +456,7 @@ type instance Cmp Int (LayerLoc Model) = LT
 --             Var x <- readLayer layer ir
 --             writeLayer layer ir (Var (x+1))
 --             go (j - 1)
---     evalStateT (go i) (TypeSet.insert layerLoc0 mempty)
+--     State.evalT (go i) (TypeSet.insert layerLoc0 mempty)
 --     -- Ptr.free ptr
 
 

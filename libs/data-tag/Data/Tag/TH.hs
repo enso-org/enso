@@ -6,6 +6,8 @@ import Data.Tag.Class
 import Language.Haskell.TH.Builder
 import Language.Haskell.TH as TH
 
+import qualified Data.Char as Char
+
 
 dataWithAlias :: Name -> Name -> Name -> [TH.Dec]
 dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
@@ -13,17 +15,24 @@ dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
           aliasDecl = alias aliasName $ app (cons' aliasCons) (cons' dataName)
 
 
--- | Define a subtype of the parent type.
+-- | Define a tag family instance.
 --   `Tag.familyInstance "Fam" "Foo"` will generate:
 --   > data FOO; type Foo = Fam FOO
 familyInstance  :: String -> String -> Q [TH.Dec]
 familyInstance' :: String -> String ->   [TH.Dec]
 familyInstance = return .: familyInstance'
-familyInstance' famNameStr nameStr = dataWithAlias upperName name prefixedFamName
-    where name            = convert nameStr
-          famName         = convert famNameStr
-          upperName       = toUpper name
-          prefixedFamName = famName
+familyInstance' fam el = nonStandardFamilyInstance' fam el (Char.toUpper <$> el)
+
+-- | Define a custom-named tag family instance.
+--   `Tag.nonStandardFamilyInstance "Fam" "Foo" "AnyFoo"` will generate:
+--   > data AnyFoo; type Foo = Fam AnyFoo
+nonStandardFamilyInstance  :: String -> String -> String -> Q [TH.Dec]
+nonStandardFamilyInstance' :: String -> String -> String ->   [TH.Dec]
+nonStandardFamilyInstance = return .:. nonStandardFamilyInstance'
+nonStandardFamilyInstance' fam el inst = dataWithAlias instName elName famName
+    where elName   = convert el
+          famName  = convert fam
+          instName = convert inst
 
 
 -- | Define a parent type definition that can later be used to construct

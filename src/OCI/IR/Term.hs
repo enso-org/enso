@@ -12,7 +12,7 @@ import qualified Data.Tag as Tag
 
 
 
-Tag.familyInstance "Component" "Term"
+componentInstance "Term"
 Tag.family "TermCons"
 
 

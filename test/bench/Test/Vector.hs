@@ -11,7 +11,7 @@ import qualified Data.Vector.Storable as V
 import Luna.IR.Term
 import Data.AutoVector.Storable.Mutable
 
-import qualified Data.Graph as Graph
+-- import qualified Data.Graph as Graph
 import Data.IORef
 import Foreign.ForeignPtr.Utils
 import Control.Exception.Base (evaluate)
@@ -67,16 +67,16 @@ fillMAutoVector_Int !i !s = do
 {-# NOINLINE fillMAutoVector_Int #-}
 
 
-fillGraph :: Int -> IO ()
-fillGraph i = do
-    let go :: Graph.Node Int -> Int -> IO ()
-        go (~prev) j = do
-          x <- if j == 0 then pure 0 else Graph.read prev
-          n <- Graph.newNode (x+1)
-          when_ (j < i - 1) $ go n (j + 1)
-    go undefined 0
-    -- print =<< Vector.unsafeRead (s ^. dataVector) (i - 1)
-    pure()
+-- fillGraph :: Int -> IO ()
+-- fillGraph i = do
+--     let go :: Graph.Node Int -> Int -> IO ()
+--         go (~prev) j = do
+--           x <- if j == 0 then pure 0 else Graph.read prev
+--           n <- Graph.newNode (x+1)
+--           when_ (j < i - 1) $ go n (j + 1)
+--     go undefined 0
+--     -- print =<< Vector.unsafeRead (s ^. dataVector) (i - 1)
+--     pure()
 
 
 
