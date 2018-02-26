@@ -1,0 +1,2 @@
+stack --stack-yaml stack-develop.yaml bench dependent-state:layered-state-benchmark --file-watch --ghc-options "-threaded -funbox-strict-fields -O2 -flate-dmd-anal -fconstraint-solver-iterations=100 -funfolding-use-threshold=10000 -fexpose-all-unfoldings -fsimpl-tick-factor=1000"
+

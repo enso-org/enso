@@ -1,0 +1,31 @@
+resolver: lts-8.23
+# resolver: nightly-2017-07-31
+
+packages:
+    - .
+
+    - ../typelevel
+    - ../lens-utils
+    - ../monad-branch
+    - ../monoid
+
+
+extra-deps:
+    - cond-0.4.1.1
+    - mtl-c-0.1.1
+
+# ghc-options:
+#     # "*": -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+#     # -fsimpl-tick-factor=1000 -funbox-strict-fields
+#     "*": -threaded -funbox-strict-fields -O2 -flate-dmd-anal -fconstraint-solver-iterations=100 -funfolding-use-threshold=10000 -fexpose-all-unfoldings -fsimpl-tick-factor=1000  -funbox-strict-fields
+# #   -fpedantic-bottoms -fpedantic-bottoms -ffun-to-thunk
+# #  -fno-state-hack -funfolding-creation-threshold=200 -funfolding-use-threshold=100 -fstatic-argument-transformation
+# # -flate-dmd-anal ?
+
+ghc-options:
+    "*": -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+    # "*": -threaded -funbox-strict-fields -O2 -flate-dmd-anal -fconstraint-solver-iterations=100 -funfolding-use-threshold=10000 -fexpose-all-unfoldings -fsimpl-tick-factor=1000  -funbox-strict-fields
+    # "*": -fenable-rewrite-rules -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100
+    # "*": -DFastCompilation -fenable-rewrite-rules -threaded -funbox-strict-fields -O0 -fconstraint-solver-iterations=100
+
+apply-ghc-options: locals
