@@ -20,7 +20,7 @@ long c_set_test_insert_lookup_ordered(long n) {
 
     long sum = 0;
     for (long i = 0; i < n; ++i)
-        sum = c_set_member(n - i, s) ? 1 : 0;
+        sum += (c_set_member(n - i, s) == 1) ? 1 : 0;
 
     return sum;
 }

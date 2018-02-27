@@ -60,10 +60,12 @@ foreign import ccall unsafe "c_set_null"
 -- | A utility function for easily using the C calls that use `Ptr ()` with the StdSet.
 withStdSet' :: (RawSetPtr -> IO a) -> StdSet -> IO a
 withStdSet' f s = withForeignPtr (toRawSet s) (f . RawSetPtr . castPtr)
+{-# INLINE withStdSet' #-}
 
 -- | A utility function to perform a foreign C call on the set and return the resulting set.
 withStdSet :: (RawSetPtr -> IO a) -> StdSet -> IO StdSet
 withStdSet f s = withStdSet' f s >> return s
+{-# INLINE withStdSet #-}
 
 -- | Creates an `std::set` object in C++ and attaches a finalizer.
 --   The memory will be automatically deallocated by Haskell's GC.

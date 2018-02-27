@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Test.Data.IntSet.Cpp where
 
 import           Prelude
@@ -41,45 +42,44 @@ randomList n = take n . unfoldr (Just . random) $ mkStdGen 123456
 -- === Testing logic === --
 ---------------------------
 
-testInsertAndLookupIntSet :: Int -> Int
-testInsertAndLookupIntSet n = suma
-    where rndm  = randomList n
-          rndm2 = randomList (n `div` 2)
+testInsertAndLookupIntSet :: Int -> IO Int
+testInsertAndLookupIntSet n = do
+    let rndm  = randomList n
+        rndm2 = randomList (n `div` 2)
+        go  !s !(x:xs) = go (IntSet.insert x s) xs
+        go  !s []      = s
 
-          go  s (x:xs)    = go (IntSet.insert x s) xs
-          go  s []        = s
+        go2 !s !sm !(x:xs) = go2 s (sm + (if IntSet.member x s then 1 else 0)) xs
+        go2 !s !sm []      = sm
 
-          go2 s sm (x:xs) = go2 s (sm + (if IntSet.member x s then 1 else 0)) xs
-          go2 s sm []     = sm
-
-          s1   = go IntSet.empty rndm
-          suma = go2 s1 0 rndm2
+        s1   = go IntSet.empty rndm
+        suma = go2 s1 0 rndm2
+    return suma
 
 testInsertAndLookupCSet :: Int -> IO Int
 testInsertAndLookupCSet n = do
     -- create a set based on a random list
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
-
-        go  s (x:xs) = (CSet.insert x s) >> go s xs
-        go  s []     = return s
-
-        go2 s sm (x:xs) = do
-                mem <- CSet.member x s
-                go2 s (sm + (if mem then 1 else 0)) xs
-        go2 s sm [] = return sm
-
     s  <- CSet.empty
-    s1 <- go s rndm
-    go2 s1 0 rndm2
+    let go  !(x:xs) = (CSet.insert x s) >> go xs
+        go  ![]     = return ()
+
+        go2 !sm !(x:xs) = do
+                mem <- CSet.member x s
+                go2 (sm + (if mem then 1 else 0)) xs
+        go2 !sm ![] = return sm
+
+    go rndm
+    go2 0 rndm2
 
 testInsertLookupOrderedCSet :: Int -> IO Int
 testInsertLookupOrderedCSet n = do
     s <- CSet.empty
-    let go x = if x < n then (CSet.insert x s) >> go (x + 1) else return ()
+    let go !x = if x < n then (CSet.insert x s) >> go (x + 1) else return ()
     go 0
 
-    let go2 x sm = if x < n
+    let go2 !x !sm = if x < n
         then do
             m <- CSet.member (n - 1) s
             go2 (x + 1) $ sm + (if m then 1 else 0)

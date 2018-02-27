@@ -66,7 +66,7 @@ main = do
         [ bgroup "CppContainers"
             [ bgroup "Data.IntSet"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ nf SetTest.testInsertAndLookupIntSet (10^i)) <$> expSizes
+                $ nfIO (SetTest.testInsertAndLookupIntSet $ 10^i)) <$> expSizes
             , bgroup "Data.IntSet.Cpp"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ nfIO (SetTest.testInsertAndLookupCSet $ 10^i)) <$> expSizes
