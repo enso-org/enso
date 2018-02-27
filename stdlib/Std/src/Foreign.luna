@@ -1,6 +1,4 @@
 import Std.Base
-import Std.System
-
 
 def lookupSymbol dll symbol:
     case primLookupSymbol dll symbol of
@@ -36,19 +34,6 @@ native class Ptr a:
 
     def read ptr: primReadPtrPtr ptr
     def write ptr: primWritePtrPtr ptr self
-
-class Matrix:
-    nrows :: Int
-    ncols :: Int
-    data  :: Ptr Double
-
-    def toJSON:
-        (0.upto self.nrows-1).map (row: (0.upto self.ncols-1).map (col: CDouble.read (self.data.+ ((row*self.ncols + col) * 8)))) . toJSON
-
-def newMatrix nrows ncols:
-    size = nrows * ncols * 8
-    mem  = malloc size
-    Matrix nrows ncols mem
 
 def nullPtr: primNullPtr
 
@@ -121,67 +106,3 @@ native class CDouble:
 native class CString:
     CString
 
-def blasImpl: "libopenblas.so.0"
-
-class CBLASOrder:
-    CblasRowMajor
-    CblasColMajor
-
-    def toCArg: case self of
-        CblasRowMajor: 101.toCArg
-        CblasColMajor: 102.toCArg
-
-class CBLASTranspose:
-    CblasNoTrans
-    CblasTrans
-    CblasConjTrans
-    CblasConjNoTrans
-
-    def toCArg: case self of
-        CblasNoTrans: 111.toCArg
-        CblasTrans: 112.toCArg
-        CblasConjTrans: 113.toCArg
-        CblasConjNoTrans: 114.toCArg
-
-class CBLASUpLo:
-    CblasUpper
-    CblasLower
-
-    def toCArg: case self of
-        CblasUpper: 121.toCArg
-        CblasLower: 122.toCArg
-
-class CBLASDiag:
-    CblasNonUnit
-    CblasUnit
-
-    def toCArg: case self of
-        CblasNonUnit: 131.toCArg
-        CblasUnit: 132.toCArg
-
-class CBLASSide:
-    CblasLeft
-    CblasRight
-
-    def toCArg: case self of
-        CblasLeft: 141.toCArg
-        CblasRight: 142.toCArg
-
-def drotg a b:
-    f = lookupSymbol "libopenblas.so.0" "cblas_drotg"
-    ap = malloc 8
-    a.write ap
-    bp = malloc 8
-    b.write bp
-    cp = malloc 8
-    sp = malloc 8
-    f.call CVoid [ap.toCArg, bp.toCArg, cp.toCArg, sp.toCArg]
-    r = a.read ap
-    z = a.read bp
-    c = a.read cp
-    s = a.read sp
-    free ap
-    free bp
-    free cp
-    free sp
-    (r,z,c,s)

@@ -26,13 +26,13 @@ import           Luna.Builtin.Data.LunaEff   (LunaEff, throw, runIO, runError)
 import           Luna.Builtin.Prim           (RuntimeRep(..), RuntimeRepOf, toLunaValue, ToLunaData, toLunaData, FromLunaData, fromLunaData)
 import           Luna.Std.Builder            (makeFunctionIO, makeFunctionPure, maybeLT, LTp (..), int, integer, real)
 
-
 exports :: Imports -> IO (Map Name Function)
 exports std = do
     let primLookupSymbolVal :: Text -> Text -> IO (Maybe (FunPtr LunaData))
-        primLookupSymbolVal (convert -> dll) (convert -> symbol) = handleAny (\_ -> return Nothing) $ do
-            dl <- Linker.dlopen dll [Linker.RTLD_LAZY]
-            Just <$> Linker.dlsym dl symbol
+        primLookupSymbolVal (convert -> dll) (convert -> symbol) = do
+            dl       <- Linker.dlopen dll [Linker.RTLD_LAZY]
+            sym      <- Linker.dlsym dl symbol
+            return $ Just sym
     primLookupSymbol <- makeFunctionIO (toLunaValue std primLookupSymbolVal) ["Text", "Text"] $ LCons "Maybe" ["FunPtr"]
 
     let primCallFunPtrVal :: FunPtr LunaData -> ExistRetType -> [LibFFI.Arg] -> IO LunaData

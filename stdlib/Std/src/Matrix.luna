@@ -1,0 +1,52 @@
+import Std.Foreign
+import Std.BLAS
+
+
+class Matrix:
+    nrows :: Int
+    ncols :: Int
+    data  :: Ptr Double
+
+    def + that:
+        sameDim = (self.nrows, self.ncols) == (that.nrows, that.ncols)
+        case sameDim of
+            False: throw "Matrix.+: different dimensions"
+            True:
+                res = newMatrix self.nrows self.ncols
+                dcopy (self.nrows * self.ncols) that.data 1 res.data 1
+                daxpy (self.nrows * self.ncols) 1.0 self.data 1 res.data 1
+                res
+
+    def * that:
+        correctDim = self.ncols == that.nrows
+        case correctDim of
+            False: throw "Matrix.*: invalid dimensions"
+            True:
+                res = newMatrix self.nrows that.ncols
+                dgemm CblasRowMajor CblasNoTrans CblasNoTrans self.nrows that.ncols self.ncols 1.0 self.data self.nrows that.data that.nrows 0.0 res.data self.nrows
+                res
+
+    def set coords val:
+        (row, col) = coords
+        ptr = self.data.+ ((row*self.ncols + col) * 8)
+        val.write ptr
+
+    def norm:
+        case (self.nrows, self.ncols) of
+            (1, _): dnrm2 self.ncols self.data 1
+            (_, 1): dnrm2 self.nrows self.data 1
+            _: throw "Matrix.norm: non-vector"
+
+    def dot vec:
+        case (self.nrows, self.ncols) of
+            (1, _): ddot self.ncols self.data 1 vec.data 1
+            (_, 1): ddot self.nrows self.data 1 vec.data 1
+            _: throw "Matrix.dot: non-vector"
+
+    def toJSON:
+        (0.upto self.nrows-1).map (row: (0.upto self.ncols-1).map (col: CDouble.read (self.data.+ ((row*self.ncols + col) * 8)))) . toJSON
+
+def newMatrix nrows ncols:
+    size = nrows * ncols * 8
+    mem  = malloc size
+    Matrix nrows ncols mem
