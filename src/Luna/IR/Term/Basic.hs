@@ -27,12 +27,14 @@ import Data.Tag (Tag)
 
 import qualified Data.Tag     as Tag
 import qualified Data.Mutable as MData
-import qualified Data.TypeSet as TypeSet
 import Control.Monad.State.Layered (get, put)
 import qualified Control.Monad.State.Layered as State
 import OCI.IR.Component
 import OCI.IR.Conversion
 import OCI.IR.Selector
+
+import qualified Data.TypeMap.Strict as TypeMap
+import qualified Data.Tuple.Strict as Tuple
 
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
@@ -164,9 +166,6 @@ writeLayer = unsafeWriteLayerByteOff @layer (layerOffset @t @layer) ; {-# INLINE
 
 
 
-
-
-
 -------------------------------------
 -- === Global Layer Management === --
 -------------------------------------
@@ -294,6 +293,7 @@ passTest :: Pass.SubPass MyPass IO ()
 passTest = do
     s <- getPassState
     print s
+    print =<< getPassData @(Pass.ByteSize Terms)
     return ()
 
 passRunTest :: IO ()
@@ -458,21 +458,56 @@ type instance Cmp XInt Int = LT
 type instance Cmp (LayerLoc Model) Int = GT
 type instance Cmp Int (LayerLoc Model) = LT
 
+
+test_readWriteLayer2 :: Int -> IO ()
+test_readWriteLayer2 i = do
+    ir <- mockNewIR
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go 0 = return ()
+        go j = do
+            !set <- State.get'
+            let !layer = TypeMap.getElem @Int set
+            UniConsVar (Var !x) <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+            go (j - 1)
+    State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
+    -- Ptr.free ptr
+
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer layerLoc0 ir (UniConsVar 0)
+--     unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
---             set <- get'
---             let layer = TypeSet.unsafeLookup @(LayerLoc Model) set
---             Var x <- readLayer layer ir
---             writeLayer layer ir (Var (x+1))
+--             layer <- State.get'
+--             -- let LayerLoc layer = TypeSet.unsafeLookup @(LayerLoc Model) set
+--             UniConsVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
+--             unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var (x+1))
 --             go (j - 1)
---     State.evalT (go i) (TypeSet.insert layerLoc0 mempty)
+--     State.evalT (go i) (0 :: Int)
+--     -- State.evalT (go i) (TypeSet.insert (LayerLoc 0 :: LayerLoc Model) mempty)
 --     -- Ptr.free ptr
 
+
+-- test_readWriteLayer2 :: Int -> IO ()
+-- test_readWriteLayer2 i = do
+--     ir <- mockNewIR
+--     unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+--     let -- go :: Int -> StateT Int IO ()
+--         go 0 = return ()
+--         go j = do
+--             set <- State.get'
+--             let LayerLoc layer = TypeSet.unsafeLookup @(LayerLoc Model) set
+--             UniConsVar (Var x) <- unsafeReadLayerByteOff @Model layer ir
+--             unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var (x+1))
+--             go (j - 1)
+--     State.evalT (go i) (TypeSet.insert (LayerLoc 0 :: LayerLoc Model) mempty)
+--     -- Ptr.free ptr
+
+-- unsafeWriteLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) =>
+--   Int -> Component t cfg ->   (LayerData t layer cfg) -> m ()
 
 -- readIO @Model
 

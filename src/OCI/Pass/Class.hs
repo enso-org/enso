@@ -149,12 +149,16 @@ newtype SubPass pass m a = SubPass (StateT (PassState pass) m a)
              , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
 makeLenses ''SubPass
 
-
 type family DiscoverPass m where
     DiscoverPass (SubPass pass m) = pass
     DiscoverPass (t m)            = DiscoverPass m
 
-type DiscoverPassState m = PassState (DiscoverPass m)
+type DiscoverPassState       m = PassState       (DiscoverPass m)
+type DiscoverPassStateData   m = PassStateData   (DiscoverPass m)
+type DiscoverPassStateLayout m = PassStateLayout (DiscoverPass m)
+
+
+--- === MonadPass === --
 
 class Monad m => MonadPass m where
     getPassState :: m (DiscoverPassState m)
@@ -170,10 +174,18 @@ instance {-# OVERLAPPABLE #-}
          ) => MonadPass (t m) where
     getPassState = lift getPassState ; {-# INLINE getPassState #-}
 
-runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
-runPass s = flip State.evalT s . coerce
 
-{-# INLINE runPass #-}
+-- === API === --
+
+runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+runPass s = flip State.evalT s . coerce ; {-# INLINE runPass #-}
+
+type PassDataGetter a m =
+    ( MonadPass m
+    , TypeMap.ElemGetter a (DiscoverPassStateLayout m) )
+
+getPassData :: ∀ a m. PassDataGetter a m => m a
+getPassData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getPassData #-}
 
 
 

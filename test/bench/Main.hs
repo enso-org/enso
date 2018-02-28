@@ -28,7 +28,6 @@ import qualified Foreign.Memory.Pool as MemPool
 import qualified Luna.IR.Term.Basic as Basic
 
 import Type.Data.Map
-import qualified Data.TypeSet as TS
 import Language.Haskell.TH.Builder()
 import qualified Luna.IR.Test as TT
 import qualified  Data.TypeSet3 as TS3
@@ -53,10 +52,11 @@ main = do
     print "---"
     Basic.passRunTest
 
-    -- let minExpVec = 4
-    -- maxExpVec = 6
-    -- expSizes  = [minExpVec .. maxExpVec]
-    -- defaultMain
+    let minExpVec = 7 :: Int
+        maxExpVec = 7 :: Int
+        expSizes  = [minExpVec .. maxExpVec] :: [Int]
+
+    defaultMain
     --     [ bgroup "CppContainers"
     --         [ bgroup "Data.IntSet"
     --             $ (\(i :: Int) -> bench ("10e" <> show i)
@@ -79,11 +79,11 @@ main = do
     --                 $ nfIO (SetTest.testInsertLookupOrderedForeignSet $ 10^i)) <$> expSizes
     --             ]
     --         ]
-    --     , bgroup "IR"
-    --         -- [ bgroup "Read/Write Layer + State config"
-    --         --     $ (\(i :: Int) -> bench ("10e" <> show i)
-    --         --     $ perRunEnv (return ())
-    --         --     $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+        [ bgroup "IR"
+            [ bgroup "Read/Write Layer + State config"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
     --
     --         [ bgroup "Vector creation Hardcoded"
     --             $ (\(i :: Int) -> bench ("10e" <> show i)
@@ -155,10 +155,10 @@ main = do
     --             $ perRunEnv (return ())
     --             $ \v -> Basic.test_readWriteLayer_ptrBuffOff (10 ^ i))  <$> [minExpVec..maxExpVec]
     --
-    --         , bgroup "Read/Write Ptr"
-    --             $ (\(i :: Int) -> bench ("10e" <> show i)
-    --             $ perRunEnv (return ())
-    --             $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+            , bgroup "Read/Write Ptr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
     --
     --         , bgroup "Read/Write T Ptr"
     --             $ (\(i :: Int) -> bench ("10e" <> show i)
@@ -185,7 +185,8 @@ main = do
     --             $ perRunEnv (return ())
     --             $ \v -> Basic.test_readWriteLayer (10 ^ i))  <$> [minExpVec..maxExpVec]
     --
-    --         ]
+            ]
+            ]
     --     , bgroup "Storable"
     --         [ bgroup "Single storable"
     --             $ (\(i :: Int) -> bench ("10e" <> show i)
