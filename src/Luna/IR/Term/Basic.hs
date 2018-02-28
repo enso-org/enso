@@ -7,11 +7,11 @@ module Luna.IR.Term.Basic where
 
 import Prologue
 import Foreign.Ptr            (Ptr, castPtr, plusPtr)
-import qualified Foreign.Marshal.Utils as Ptr
 import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 
-import qualified Data.GraphLuna as Graph
+import qualified Foreign            as Ptr
+import qualified Data.Graph as Graph
 import qualified Foreign.Memory.Pool as MemPool
 
 import Foreign.Storable.Deriving

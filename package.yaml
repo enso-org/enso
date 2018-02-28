@@ -25,7 +25,7 @@ library:
   c-sources:       libs/cpp-containers/cbits/*.cpp
   include-dirs:    libs/cpp-containers/cbits
   extra-libraries: stdc++
-  cc-options:      -std=c++11 -O3
+  cc-options:      -std=c++11 -O2
 
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
