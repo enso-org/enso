@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module OCI.Pass.Class where
 
@@ -26,6 +27,13 @@ makeLenses ''ByteSize
 newtype LayerByteOffset component layer = LayerByteOffset Int deriving (Show)
 makeLenses ''LayerByteOffset
 
+
+instance Default (ByteSize a) where
+    def = ByteSize 0 ; {-# INLINE def #-}
+
+instance Default (LayerByteOffset c l) where
+    def = LayerByteOffset 0 ; {-# INLINE def #-}
+
 -- data LayerInfo = LayerInfo
 --     { _layerRep :: SomeTypeRep
 --     , _layerByteOffset :: !Int
@@ -33,9 +41,9 @@ makeLenses ''LayerByteOffset
 --
 -- }
 
-panic :: a
-panic = error "Internal error. Please report it as a bug at\
-             \ https://github.com/luna/luna/issues"
+panic :: String -> a
+panic e = error $ "Luna compiler error. " <> e <> "\n\n"
+       <> "Please report it here https://github.com/luna/luna/issues"
 {-# INLINE panic #-}
 
 
@@ -99,77 +107,126 @@ type ComponentLayers pass component
 makeLenses ''PassState
 
 
+data CompilerException = ∀ e. Exception e => CompilerException e
 
-type PassStateEncoder pass =
-    ( ComponentLayoutEncoder pass
-    , LayerLayoutEncoder     pass
-    , Default (PassState pass)
-    )
+instance Show CompilerException where
+    show (CompilerException e) = show e
 
-encodePassState :: PassStateEncoder pass => PassConfig -> PassState pass
-encodePassState cfg = encodeLayersLayout     cfg
-                    $ encodeComponentsLayout cfg
-                    $ def
-{-# INLINE encodePassState #-}
-
-class ComponentLayoutEncoder pass where
-    encodeComponentsLayout :: PassConfig -> PassState pass -> PassState pass
-
-instance ( comps     ~ Components pass
-         , compSizes ~ List.Map ByteSize comps
-         , EncodePassDataByteElems pass compSizes
-         , Typeables comps
-         ) => ComponentLayoutEncoder pass where
-    encodeComponentsLayout cfg = encodePassDataElems @compSizes compSizes where
-        !comps     = someTypeReps @comps
-        !compInfos = fromJust panic
-                   $ sequence $ flip Map.lookup (cfg ^. components) <$> comps
-        !compSizes = view byteSize <$> compInfos
+instance Exception CompilerException where
+    displayException (CompilerException e) =
+        "Luna compiler error.\n" <> displayException e <> "\n\n" <>
+        "Please report it on https://github.com/luna/luna/issues"
 
 
-type LayerLayoutEncoder pass = LayerLayoutEncoder__ (Components pass) pass
-encodeLayersLayout :: ∀ pass. LayerLayoutEncoder pass
-                   => PassConfig -> PassState pass -> PassState pass
-encodeLayersLayout = encodeLayersLayout__ @(Components pass) ; {-# INLINE encodeLayersLayout #-}
 
-class LayerLayoutEncoder__ (cs :: [Type]) pass where
-    encodeLayersLayout__ :: PassConfig -> PassState pass -> PassState pass
+-- instance Exception CompilerException
+--
+--
+-- newtype PassManagerException = PassManagerException SomeException
+--     deriving (Show)
+--
+--
+-- instance Exception PassManagerException where
+--     toException = toException . PassManagerException . toException
 
-instance LayerLayoutEncoder__ '[] pass where
-    encodeLayersLayout__ _ = id ; {-# INLINE encodeLayersLayout__ #-}
 
-instance ( layers  ~ ComponentLayers      pass comp
-         , targets ~ ComponentLayerLayout pass comp
+
+type EncodingResult = Either [EncodingError]
+data EncodingError
+    = MissingComponent SomeTypeRep
+    | MissingLayer     SomeTypeRep
+    deriving (Show)
+
+-- instance Exception EncodingError where
+
+
+showEncodingError :: EncodingError -> String
+showEncodingError = \case
+    MissingComponent cs -> "Pass was not provided with components " <> show cs
+
+encodePassStateX :: (PassStateEncoder pass, Default (PassState pass)) => PassConfig -> PassState pass
+encodePassStateX cfg = case encodePassState cfg of
+    Left e -> error (show e)
+    Right f -> f def
+{-# INLINE encodePassStateX #-}
+
+
+lookupComponent :: SomeTypeRep -> Map SomeTypeRep v -> Either EncodingError v
+lookupComponent k m = justErr (MissingComponent k) $ Map.lookup k m ; {-# INLINE lookupComponent #-}
+
+lookupLayer :: SomeTypeRep -> Map SomeTypeRep v -> Either EncodingError v
+lookupLayer k m = justErr (MissingLayer k) $ Map.lookup k m ; {-# INLINE lookupLayer #-}
+
+
+
+
+-- === PassStateEncoder === --
+
+encodePassState :: ∀ pass. PassStateEncoder pass
+    => PassConfig -> EncodingResult (PassState pass -> PassState pass)
+encodePassState = encodePassState__ @(Components pass) ; {-# INLINE encodePassState #-}
+
+type  PassStateEncoder pass = PassStateEncoder__ (Components pass) pass
+class PassStateEncoder__ (cs :: [Type]) pass where
+    encodePassState__ :: PassConfig
+                      -> EncodingResult (PassState pass -> PassState pass)
+
+instance PassStateEncoder__ '[] pass where
+    encodePassState__ _ = Right id ; {-# INLINE encodePassState__ #-}
+
+instance ( layers   ~ ComponentLayers      pass comp
+         , targets  ~ ComponentLayerLayout pass comp
+         , compSize ~ ByteSize comp
          , Typeables layers
          , Typeable  comp
-         , LayerLayoutEncoder__  comps pass
+         , PassStateEncoder__  comps pass
          , EncodePassDataByteElems pass targets
-         ) => LayerLayoutEncoder__ (comp ': comps) pass where
-    encodeLayersLayout__ cfg = trans . encodeLayersLayout__ @comps cfg where
-        !trans        = encodePassDataElems @targets layerOffsets
-        !compInfo     = fromJust panic
-                      $ Map.lookup (someTypeRep @comp) (cfg ^. components)
-        !layerTypes   = someTypeReps @layers
-        !layerInfos   = fromJust panic $ sequence
-                      $ flip Map.lookup (compInfo ^. layers) <$> layerTypes
-        !layerOffsets = view byteOffset <$> layerInfos
-    {-# INLINE encodeLayersLayout__ #-}
-
--- instance EncodeLayerLayout '[] ls where
---     encodeLayerLayout _ = id ; {-# INLINE encodeLayerLayout #-}
---
--- instance EncodeLayerLayout (c ': cs) (l ': ls) where
---     encodeLayerLayout inf = where
---         Map.lookup (inf ^. )
-
+         , EncodePassDataByteElem  pass (ByteSize comp)
+         ) => PassStateEncoder__ (comp ': comps) pass where
+    encodePassState__ cfg = encoders where
+        encoders   = appSemiLeft encoder subEncoder
+        encoder    = procComp =<< mcomp
+        subEncoder = encodePassState__ @comps cfg
+        mcomp      = mapLeft pure . lookupComponent tgtComp $ cfg ^. components
+        tgtComp    = someTypeRep  @comp
+        procComp i = (compEncoder .) <$> layerEncoder where
+            compEncoder  = encodePassDataElem  @compSize (i ^. byteSize)
+            layerEncoder = encodePassDataElems @targets <$> layerOffsets
+            layerTypes   = someTypeReps @layers
+            layerOffsets = view byteOffset <<$>> layerInfos
+            layerInfos   = catEithers
+                         $ flip lookupLayer (i ^. layers) <$> layerTypes
+    {-# INLINE encodePassState__ #-}
 
 
--- class EncodeComponentByteOffsets pass t where
---     encodeComponentByteOffsets :: PassConfig -> t -> t
+catEithers :: [Either l r] -> Either [l] [r]
+catEithers lst = case partitionEithers lst of
+    ([],rs) -> Right rs
+    (ls,_)  -> Left ls
+{-# INLINE catEithers #-}
+
+-- TODO: We should probably think about using other structure than Either here
+--       Data.Validation is almost what we need, but its Semigroup instance
+--       uses only lefts, which makes is not suitable for the purpose of
+--       simple Either replacement.
+appSemiLeft :: Semigroup e
+            => (Either e (b -> c)) -> Either e (a -> b) -> Either e (a -> c)
+appSemiLeft f a = case f of
+    Left e -> case a of
+        Left e' -> Left (e <> e')
+        _       -> Left e
+    Right ff -> case a of
+        Left e -> Left e
+        Right aa -> Right $ ff . aa
+{-# INLINE appSemiLeft #-}
+
+
 
 -- === API === --
 
+type EncodePassDataByteElem  pass el  = EncodePassDataByteElems pass '[el]
 type EncodePassDataByteElems pass els = EncodePassDataElems Int pass els
+type EncodePassDataElem    t pass el  = EncodePassDataElems t pass '[el]
 type EncodePassDataElems   t pass els = TypeMap.SetElemsFromList els t
                                         (PassStateLayout pass)
 
@@ -177,9 +234,14 @@ encodePassDataElems :: ∀ (els :: [Type]) t pass. EncodePassDataElems t pass el
      => [t] -> PassState pass -> PassState pass
 encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}
 
+encodePassDataElem :: ∀ (el :: Type) t pass. EncodePassDataElem t pass el
+    => t -> PassState pass -> PassState pass
+encodePassDataElem = encodePassDataElems @'[el] . pure ; {-# INLINE encodePassDataElem #-}
+
 
 -- === Instances === --
 
+deriving instance Show    (PassStateData pass) => Show    (PassState pass)
 deriving instance Default (PassStateData pass) => Default (PassState pass)
 
 
@@ -193,9 +255,29 @@ deriving instance Default (PassStateData pass) => Default (PassState pass)
 type       Pass pass m   = SubPass pass m ()
 newtype SubPass pass m a = SubPass (StateT (PassState pass) m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
-             , MonadPlus, MonadTrans, MonadThrow, MonadBranch)
+             , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
 makeLenses ''SubPass
 
+
+type family DiscoverPass m where
+    DiscoverPass (SubPass pass m) = pass
+    DiscoverPass (t m)            = DiscoverPass m
+
+type DiscoverPassState m = PassState (DiscoverPass m)
+
+class Monad m => MonadPass m where
+    getPassState :: m (DiscoverPassState m)
+    putPassState :: DiscoverPassState m -> m ()
+
+instance Monad m => MonadPass (SubPass pass m) where
+    getPassState = wrap State.get'   ; {-# INLINE getPassState #-}
+    putPassState = wrap . State.put' ; {-# INLINE putPassState #-}
+
+instance {-# OVERLAPPABLE #-}
+         ( Monad (t m), MonadPass m, MonadTrans t
+         , DiscoverPass (t m) ~ DiscoverPass m
+         ) => MonadPass (t m) where
+    getPassState = lift getPassState ; {-# INLINE getPassState #-}
 
 runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
 runPass s = flip State.evalT s . coerce

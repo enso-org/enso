@@ -29,6 +29,10 @@ genSetElemAt
 genIxElemGetters
 genIxElemSetters
 
+-- >> instance (Default t1, Default t2) => Default (T2 t1 t2) where
+-- >>     def = T2 def def ; {-# INLINE def #-}
+genDefaultInstances
+
 
 type ElemIndex  el t = (List.ElemIndex' el (ToList t))
 type ElemSetter el t = IxElemSetter (ElemIndex el t) t

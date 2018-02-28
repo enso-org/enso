@@ -43,6 +43,10 @@ import Foreign.Ptr.Utils (SomePtr)
 
 import OCI.Pass.Class as Pass
 
+import qualified Data.Map                    as Map
+
+
+
 type family SizeOf a :: Nat
 type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
 
@@ -281,17 +285,27 @@ newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
 type TermLayers = Terms / AnyLayer
 
 data MyPass
-type instance Pass.Components MyPass            = '[Terms, Links]
-type instance Pass.In         MyPass TermLayers = '[Model]
-type instance Pass.Out        MyPass TermLayers = '[Model]
+type instance Pass.Components MyPass       = '[Terms]
+type instance Pass.In         MyPass Terms = '[Model]
+type instance Pass.Out        MyPass Terms = '[Model]
 
 
 passTest :: Pass.SubPass MyPass IO ()
 passTest = do
+    s <- getPassState
+    print s
     return ()
 
 passRunTest :: IO ()
-passRunTest = Pass.runPass undefined passTest
+passRunTest = Pass.runPass (Pass.encodePassStateX cfg) passTest where
+    cfg = Pass.PassConfig
+        $ Map.insert (someTypeRep @Terms)
+          (Pass.ComponentInfo 7
+              $ Map.insert (someTypeRep @Model)
+                (Pass.LayerInfo 11)
+              $ mempty
+          )
+        $ mempty
 -- runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 

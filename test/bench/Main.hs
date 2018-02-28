@@ -61,6 +61,8 @@ main = do
 
     Basic.test
     TS3.test
+    print "---"
+    Basic.passRunTest
     -- TS.test
     --
     -- defaultMain
