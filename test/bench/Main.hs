@@ -6,7 +6,7 @@
 
 module Main where
 
-import Prologue
+import Prologue hiding (take)
 
 import qualified Data.Vector.Storable         as Vector
 import qualified Data.Vector.Storable.Mutable as Vector
@@ -21,6 +21,8 @@ import Luna.IR.Term
 import System.IO                        (hSetBuffering, stdout, BufferMode(NoBuffering))
 import Unsafe.Coerce                    (unsafeCoerce)
 
+-- import qualified Data.GraphLuna as Graph
+
 import qualified Foreign.Memory.Pool as MemPool
 
 import qualified Luna.IR.Term.Basic as Basic
@@ -31,6 +33,8 @@ import Language.Haskell.TH.Builder()
 import qualified Luna.IR.Test as TT
 import qualified  Data.TypeSet3 as TS3
 
+import qualified Test.Data.IntSet.Cpp as SetTest
+
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
     t1  <- liftIO getTime
@@ -39,34 +43,43 @@ timeIt name f = do
     liftIO $ putStrLn (name <> ": " <> show (t2-t1))
     pure out
 
-
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     initializeTime
 
-    -- (v :: AVector.MAutoVector' IO Int) <- unsafeNew 2
-    -- print v
-    -- -- AVector.
-    --
-    -- let consTestSize = 10^(8::Int)
-    -- timeIt "r1" $ Test.fillMAutoVector_Int consTestSize =<< unsafeNew (consTestSize + 1)
-    -- timeIt "r2" $ Test.fillMVector_Int     consTestSize =<< Vector.unsafeNew consTestSize
-
-    -- MemPool.test
-    -- MemPool.test2
-    let minExpVec = 7
-        maxExpVec = 7
-    return ()
-
     Basic.test
     TS3.test
     print "---"
     Basic.passRunTest
-    -- TS.test
-    --
+
+    -- let minExpVec = 4
+    -- maxExpVec = 6
+    -- expSizes  = [minExpVec .. maxExpVec]
     -- defaultMain
-    --     [ bgroup "IR"
+    --     [ bgroup "CppContainers"
+    --         [ bgroup "Data.IntSet"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ nfIO (SetTest.testInsertAndLookupIntSet $ 10^i)) <$> expSizes
+    --         , bgroup "Data.IntSet.Cpp"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ nfIO (SetTest.testInsertAndLookupCSet $ 10^i)) <$> expSizes
+    --         , bgroup "Test.Data.IntSet.Cpp"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ nfIO (SetTest.testInsertAndLookupForeignSet $ 10^i)) <$> expSizes
+    --         , bgroup "testWithArrayLen"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ nfIO (SetTest.testWithArrayLen $ 10^i)) <$> expSizes
+    --         , bgroup "FFICost"
+    --             [ bgroup "Data.IntSet.Cpp"
+    --                 $ (\(i :: Int) -> bench ("10e" <> show i)
+    --                 $ nfIO (SetTest.testInsertLookupOrderedCSet $ 10^i)) <$> expSizes
+    --             , bgroup "Test.Data.IntSet.Cpp"
+    --                 $ (\(i :: Int) -> bench ("10e" <> show i)
+    --                 $ nfIO (SetTest.testInsertLookupOrderedForeignSet $ 10^i)) <$> expSizes
+    --             ]
+    --         ]
+    --     , bgroup "IR"
     --         -- [ bgroup "Read/Write Layer + State config"
     --         --     $ (\(i :: Int) -> bench ("10e" <> show i)
     --         --     $ perRunEnv (return ())
@@ -173,96 +186,89 @@ main = do
     --             $ \v -> Basic.test_readWriteLayer (10 ^ i))  <$> [minExpVec..maxExpVec]
     --
     --         ]
+    --     , bgroup "Storable"
+    --         [ bgroup "Single storable"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_singleStorable (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         , bgroup "Partial storable"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_partialStorable (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         ]
+    --     , bgroup "Construction"
+    --         -- [ bgroup "IORefU"
+    --         --     $ (\(i :: Int) -> bench ("10e" <> show i)
+    --         --     $ perRunEnv (return ())
+    --         --     $ \v -> Test.test_newIORefU (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         --
+    --         -- , bgroup "IORef"
+    --         --     $ (\(i :: Int) -> bench ("10e" <> show i)
+    --         --     $ perRunEnv (return ())
+    --         --     $ \v -> Test.test_newIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         [ bgroup "ForeignPtr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_mallocForeignPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         --
+    --         -- ,  bgroup "StablePtr"
+    --         --     $ (\(i :: Int) -> bench ("10e" <> show i)
+    --         --     $ perRunEnv (return ())
+    --         --     $ \v -> Test.test_mallocSPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         --
+    --         ,  bgroup "malloc 1 (+ free)"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_malloc1 (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         ,  bgroup "malloc 100 (+ free)"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.test_malloc100 (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         ]
+    --
+    --     , bgroup "Read+Write"
+    --         [ bgroup "Pure loop"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.pureLoop (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "IORef"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWriteIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "IORefU"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWriteIORefU (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "ForeignPtr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWriteForeignPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Vector"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWriteVector (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "Ptr"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+    --         ]
+    --
+    --     , bgroup "Fill"
+    --         [ bgroup "MAutoVector with Int"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (return ())
+    --             $ \x -> do{v <- unsafeNew (10^i + 1); Test.fillMAutoVector_Int (10 ^ i) v})  <$> [minExpVec..maxExpVec]
+    --
+    --         , bgroup "MVector with Int"
+    --             $ (\(i :: Int) -> bench ("10e" <> show i)
+    --             $ perRunEnv (Vector.unsafeNew (10 ^ i))
+    --             $ (Test.fillMVector_Int (10 ^ i)))  <$> [minExpVec..maxExpVec]
+    --         ]
     --     ]
-
-        -- , bgroup "Storable"
-        --     [ bgroup "Single storable"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.test_singleStorable (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     , bgroup "Partial storable"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.test_partialStorable (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     ]
-        -- , bgroup "Construction"
-        --     -- [ bgroup "IORefU"
-        --     --     $ (\(i :: Int) -> bench ("10e" <> show i)
-        --     --     $ perRunEnv (return ())
-        --     --     $ \v -> Test.test_newIORefU (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     --
-        --     -- , bgroup "IORef"
-        --     --     $ (\(i :: Int) -> bench ("10e" <> show i)
-        --     --     $ perRunEnv (return ())
-        --     --     $ \v -> Test.test_newIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     [ bgroup "ForeignPtr"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.test_mallocForeignPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     --
-        --     -- ,  bgroup "StablePtr"
-        --     --     $ (\(i :: Int) -> bench ("10e" <> show i)
-        --     --     $ perRunEnv (return ())
-        --     --     $ \v -> Test.test_mallocSPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     --
-        --     ,  bgroup "malloc 1 (+ free)"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.test_malloc1 (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     ,  bgroup "malloc 100 (+ free)"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.test_malloc100 (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     ]
-        --
-        -- , bgroup "Read+Write"
-        --     [ bgroup "Pure loop"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.pureLoop (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "IORef"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.readWriteIORef (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "IORefU"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.readWriteIORefU (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "ForeignPtr"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.readWriteForeignPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "Vector"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.readWriteVector (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "Ptr"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.readWritePtr (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --     ]
-        --
-        -- , bgroup "Fill"
-        --     [ bgroup "Graph with Int"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \v -> Test.fillGraph (10 ^ i))  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "MAutoVector with Int"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (return ())
-        --         $ \x -> do{v <- unsafeNew (10^i + 1); Test.fillMAutoVector_Int (10 ^ i) v})  <$> [minExpVec..maxExpVec]
-        --
-        --     , bgroup "MVector with Int"
-        --         $ (\(i :: Int) -> bench ("10e" <> show i)
-        --         $ perRunEnv (Vector.unsafeNew (10 ^ i))
-        --         $ (Test.fillMVector_Int (10 ^ i)))  <$> [minExpVec..maxExpVec]
-        --     ]
-        -- ]

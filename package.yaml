@@ -54,6 +54,7 @@ dependencies:
     - unboxed-ref >= 0.4.0.0
     - layered-state
     - monad-branch
+    - random
 
 benchmarks:
   array-benchmark:
