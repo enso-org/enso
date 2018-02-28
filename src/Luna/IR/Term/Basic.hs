@@ -297,7 +297,7 @@ passTest = do
     return ()
 
 passRunTest :: IO ()
-passRunTest = Pass.runPass (Pass.encodePassStateX cfg) passTest where
+passRunTest = Pass.runPass (Pass.encodePassStateTEMP cfg) passTest where
     cfg = Pass.PassConfig
         $ Map.insert (someTypeRep @Terms)
           (Pass.ComponentInfo 7

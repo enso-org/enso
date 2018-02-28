@@ -22,6 +22,7 @@ library:
     - libs/data-typemap
     - libs/th-builder
     - libs/tuple-utils
+    - libs/exception
   c-sources:       libs/cpp-containers/cbits/*.cpp
   include-dirs:    libs/cpp-containers/cbits
   extra-libraries: stdc++
@@ -55,6 +56,7 @@ dependencies:
     - layered-state
     - monad-branch
     - random
+    - transformers
 
 benchmarks:
   array-benchmark:
