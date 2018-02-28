@@ -45,39 +45,14 @@ instance Exception CompilerException where
 
 
 
+------------------------
+-- === PassConfig === --
+------------------------
 
--- import Data.List.NonEmpty (NonEmpty, (:|))
+-- === Definition === --
 
-
-newtype ByteSize a = ByteSize Int deriving (Show)
-makeLenses ''ByteSize
-
-newtype LayerByteOffset component layer = LayerByteOffset Int deriving (Show)
-makeLenses ''LayerByteOffset
-
-
-instance Default (ByteSize a) where
-    def = ByteSize 0 ; {-# INLINE def #-}
-
-instance Default (LayerByteOffset c l) where
-    def = LayerByteOffset 0 ; {-# INLINE def #-}
-
--- data LayerInfo = LayerInfo
---     { _layerRep :: SomeTypeRep
---     , _layerByteOffset :: !Int
---     ,
---
--- }
-
-panic :: String -> a
-panic e = error $ "Luna compiler error. " <> e <> "\n\n"
-       <> "Please report it here https://github.com/luna/luna/issues"
-{-# INLINE panic #-}
-
-
-
-data LayerInfo = LayerInfo
-    { _byteOffset :: !Int
+data PassConfig = PassConfig
+    { _components :: !(Map SomeTypeRep ComponentInfo)
     } deriving (Show)
 
 data ComponentInfo = ComponentInfo
@@ -85,14 +60,33 @@ data ComponentInfo = ComponentInfo
     , _layers   :: !(Map SomeTypeRep LayerInfo)
     } deriving (Show)
 
-data PassConfig = PassConfig
-    { _components :: !(Map SomeTypeRep ComponentInfo)
+data LayerInfo = LayerInfo
+    { _byteOffset :: !Int
     } deriving (Show)
-
 
 makeLenses ''LayerInfo
 makeLenses ''ComponentInfo
 makeLenses ''PassConfig
+
+
+
+---------------------------------------
+-- === Pass Layout configuration === --
+---------------------------------------
+
+-- === Definition === --
+
+newtype ByteSize a = ByteSize Int deriving (Show)
+newtype LayerByteOffset component layer = LayerByteOffset Int deriving (Show)
+makeLenses ''ByteSize
+makeLenses ''LayerByteOffset
+
+
+-- === Instances === --
+
+instance Default (ByteSize a)          where def = ByteSize        0 ; {-# INLINE def #-}
+instance Default (LayerByteOffset c l) where def = LayerByteOffset 0 ; {-# INLINE def #-}
+
 
 
 ------------------------------
@@ -141,6 +135,45 @@ makeLenses ''PassState
 deriving instance Show    (PassStateData pass) => Show    (PassState pass)
 deriving instance Default (PassStateData pass) => Default (PassState pass)
 
+
+
+------------------
+-- === Pass === --
+------------------
+
+-- === Definition === --
+
+type       Pass pass m   = SubPass pass m ()
+newtype SubPass pass m a = SubPass (StateT (PassState pass) m a)
+    deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
+             , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
+makeLenses ''SubPass
+
+
+type family DiscoverPass m where
+    DiscoverPass (SubPass pass m) = pass
+    DiscoverPass (t m)            = DiscoverPass m
+
+type DiscoverPassState m = PassState (DiscoverPass m)
+
+class Monad m => MonadPass m where
+    getPassState :: m (DiscoverPassState m)
+    putPassState :: DiscoverPassState m -> m ()
+
+instance Monad m => MonadPass (SubPass pass m) where
+    getPassState = wrap State.get'   ; {-# INLINE getPassState #-}
+    putPassState = wrap . State.put' ; {-# INLINE putPassState #-}
+
+instance {-# OVERLAPPABLE #-}
+         ( Monad (t m), MonadPass m, MonadTrans t
+         , DiscoverPass (t m) ~ DiscoverPass m
+         ) => MonadPass (t m) where
+    getPassState = lift getPassState ; {-# INLINE getPassState #-}
+
+runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+runPass s = flip State.evalT s . coerce
+
+{-# INLINE runPass #-}
 
 
 
@@ -260,47 +293,3 @@ encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# I
 encodePassDataElem :: ∀ (el :: Type) t pass. EncodePassDataElem t pass el
     => t -> PassState pass -> PassState pass
 encodePassDataElem = encodePassDataElems @'[el] . pure ; {-# INLINE encodePassDataElem #-}
-
-
-
-
-
-
-------------------
--- === Pass === --
-------------------
-
--- === Definition === --
-
-type       Pass pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (PassState pass) m a)
-    deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
-             , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
-makeLenses ''SubPass
-
-
-type family DiscoverPass m where
-    DiscoverPass (SubPass pass m) = pass
-    DiscoverPass (t m)            = DiscoverPass m
-
-type DiscoverPassState m = PassState (DiscoverPass m)
-
-class Monad m => MonadPass m where
-    getPassState :: m (DiscoverPassState m)
-    putPassState :: DiscoverPassState m -> m ()
-
-instance Monad m => MonadPass (SubPass pass m) where
-    getPassState = wrap State.get'   ; {-# INLINE getPassState #-}
-    putPassState = wrap . State.put' ; {-# INLINE putPassState #-}
-
-instance {-# OVERLAPPABLE #-}
-         ( Monad (t m), MonadPass m, MonadTrans t
-         , DiscoverPass (t m) ~ DiscoverPass m
-         ) => MonadPass (t m) where
-    getPassState = lift getPassState ; {-# INLINE getPassState #-}
-
-runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
-runPass s = flip State.evalT s . coerce
-    -- termLayers = [someTypeRep @(TERM,Model)]
-
-{-# INLINE runPass #-}
