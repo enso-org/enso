@@ -293,7 +293,7 @@ passTest :: Pass.SubPass MyPass IO ()
 passTest = do
     s <- getPassState
     print s
-    print =<< getPassData @(Pass.ByteSize Terms)
+    print =<< getPassData @(Pass.LayerByteOffset Terms Model)
     return ()
 
 passRunTest :: IO ()
@@ -450,14 +450,6 @@ test_readWriteLayer_static i = do
 
 
 
-newtype XInt = XInt Int
-
-type instance Cmp Int XInt = GT
-type instance Cmp XInt Int = LT
-
-type instance Cmp (LayerLoc Model) Int = GT
-type instance Cmp Int (LayerLoc Model) = LT
-
 
 test_readWriteLayer2 :: Int -> IO ()
 test_readWriteLayer2 i = do
@@ -474,6 +466,52 @@ test_readWriteLayer2 i = do
     State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
     -- Ptr.free ptr
 
+test_readWriteLayer3 :: Int -> IO ()
+test_readWriteLayer3 i = do
+    ir <- mockNewIR
+    unsafeWriteLayerByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go :: Int -> Pass.SubPass MyPass IO ()
+        go 0 = return ()
+        go j = do
+            !s <- getPassState
+            Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
+            -- !set <- State.get'
+            -- let !layer = TypeMap.getElem @Int set
+            UniConsVar (Var !x) <- unsafeReadLayerByteOff @Model layer ir
+            unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+            go (j - 1)
+    Pass.runPass (Pass.encodePassStateTEMP cfg) (go i) where
+        cfg = Pass.PassConfig
+            $ Map.insert (someTypeRep @Terms)
+              (Pass.ComponentInfo 0
+                  $ Map.insert (someTypeRep @Model)
+                    (Pass.LayerInfo 0)
+                  $ mempty
+              )
+            $ mempty
+    -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
+
+
+
+-- passTest :: Pass.SubPass MyPass IO ()
+-- passTest = do
+--     s <- getPassState
+--     print s
+--     print =<< getPassData @(Pass.LayerByteOffset Terms Model)
+--     return ()
+--
+-- passRunTest :: IO ()
+-- passRunTest = Pass.runPass (Pass.encodePassStateTEMP cfg) passTest where
+--     cfg = Pass.PassConfig
+--         $ Map.insert (someTypeRep @Terms)
+--           (Pass.ComponentInfo 7
+--               $ Map.insert (someTypeRep @Model)
+--                 (Pass.LayerInfo 11)
+--               $ mempty
+--           )
+--         $ mempty
+    -- Ptr.free ptr
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR

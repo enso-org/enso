@@ -178,7 +178,7 @@ instance {-# OVERLAPPABLE #-}
 -- === API === --
 
 runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
-runPass s = flip State.evalT s . coerce ; {-# INLINE runPass #-}
+runPass !s p = flip State.evalT s (coerce p) ; {-# INLINE runPass #-}
 
 type PassDataGetter a m =
     ( MonadPass m

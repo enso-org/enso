@@ -52,8 +52,8 @@ main = do
     print "---"
     Basic.passRunTest
 
-    let minExpVec = 7 :: Int
-        maxExpVec = 7 :: Int
+    let minExpVec = 8 :: Int
+        maxExpVec = 8 :: Int
         expSizes  = [minExpVec .. maxExpVec] :: [Int]
 
     defaultMain
@@ -80,7 +80,12 @@ main = do
     --             ]
     --         ]
         [ bgroup "IR"
-            [ bgroup "Read/Write Layer + State config"
+            [ bgroup "Read/Write Layer + State config 3"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_readWriteLayer3 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer + State config 2"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
