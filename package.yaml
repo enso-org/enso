@@ -34,12 +34,6 @@ stability: experimental
 synopsis: Luna Core
 version: 0.0.1
 
-executables:
-    test-ffi:
-        dependencies: [base, luna-core]
-        source-dirs: src
-        main: Main.hs
-
 dependencies:
     - array
     - base
