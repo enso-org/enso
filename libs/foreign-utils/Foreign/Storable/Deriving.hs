@@ -103,18 +103,10 @@ whereClause n e = ValD (var n) (NormalB e) []
 
 deriveStorable :: Name -> Q [TH.Dec]
 deriveStorable ty = do
-    (TyConI tyCon) <- reify ty
-    let (tyConName, tyVars, cs) = case tyCon of
-            DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
-            NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
-            _ -> error "***error*** deriveStorable: type may not be a type synonym."
-        instanceType              = appT (conT ''Storable) (foldl apply (conT tyConName) tyVars)
-        apply t (PlainTV name)    = appT t (varT name)
-        apply t (KindedTV name _) = appT t (varT name)
-
-    instanceCxt <- mapM (apply $ conT ''Storable) tyVars
-    sequence [instanceD (return []) instanceType [return $ genSizeOf cs, return genAlignment, genPeek cs, genPoke cs]]
-
+    TypeInfo tyConName tyVars cs <- getTypeInfo ty
+    decs <- sequence [return $ genSizeOf cs, return genAlignment, genPeek cs, genPoke cs]
+    let inst = classInstance ''Storable tyConName tyVars decs
+    return [inst]
 
 
 -------------------------------

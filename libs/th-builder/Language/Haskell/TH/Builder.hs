@@ -289,12 +289,12 @@ instance Convertible Clause TH.Clause where
 ------------------
 
 data Data = Data
-    { __ctx    :: [TH.Pred]
-    , __name   :: Name
-    , __params :: [TH.TyVarBndr]
-    , __kind   :: Maybe TH.Kind
-    , __cons   :: [TH.Con]
-    , __derivs :: [TH.DerivClause]
+    { _data_ctx    :: [TH.Pred]
+    , _data_name   :: Name
+    , _data_params :: [TH.TyVarBndr]
+    , _data_kind   :: Maybe TH.Kind
+    , _data_cons   :: [TH.Con]
+    , _data_derivs :: [TH.DerivClause]
     }
 makeLenses ''Data
 
@@ -419,7 +419,50 @@ instance a ~ TH.Pat  => Convertible (Tuple a) TH.Pat  where convert (Tuple len e
 instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupE els
 
 
+data TypeInfo = TypeInfo { _tiName   :: Name
+                         , _tiTyVats :: [TH.TyVarBndr]
+                         , _tiConss  :: [TH.Con]
+                         }
+makeLenses ''TypeInfo
 
+getTypeInfo :: Name -> TH.Q TypeInfo
+getTypeInfo ty = do
+    (TH.TyConI tyCon) <- TH.reify ty
+    let (tyConName, tyVars, cs) = case tyCon of
+            TH.DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
+            TH.NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
+            _ -> error "***error*** deriveStorable: type may not be a type synonym."
+    return $ TypeInfo tyConName tyVars cs
+
+----------------------------
+-- === Class Instance === --
+----------------------------
+
+data ClassInstance = ClassInstance { _classInstance_overlap :: Maybe TH.Overlap
+                                   , _classInstance_ctx     :: TH.Cxt
+                                   , _classInstance_name    :: Name
+                                   , _classInstance_tpname  :: Name
+                                   , _classInstance_params  :: [TH.TyVarBndr]
+                                   , _classInstance_decs    :: [TH.Dec]
+                                   }
+
+
+classInstance :: (Convertible ClassInstance a)
+              => Name -> Name -> [TH.TyVarBndr] -> [TH.Dec] -> a
+classInstance n tn ts decs = convert $ ClassInstance Nothing ([] :: TH.Cxt) n tn ts decs
+{-# INLINE classInstance #-}
+
+-- classInstance' :: (ToTypeName n, ToType t, IsDec dec)
+--               => n -> [t] -> [dec] -> ClassInstance
+-- classInstance' = classInstance ([] :: Cxt) ; {-# INLINE classInstance' #-}
+
+instance Convertible ClassInstance TH.Dec where
+    convert (ClassInstance olap cxt n tn ts decs) =
+        TH.InstanceD olap cxt instanceT decs
+            where instanceT = TH.AppT (TH.ConT n) (foldl apply (TH.ConT tn) ts)
+                  apply t (TH.PlainTV name)    = TH.AppT t (TH.VarT name)
+                  apply t (TH.KindedTV name _) = TH.AppT t (TH.VarT name)
+    {-# INLINE convert #-}
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -431,30 +474,6 @@ instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len e
 --------------------------------------------------------------------------------
 
 --
---
--- ----------------------------
--- -- === Class Instance === --
--- ----------------------------
---
--- data ClassInstance = ClassInstance { _classInstance_overlap :: Maybe Overlap
---                                    , _classInstance_ctx     :: Cxt
---                                    , _classInstance_name    :: TypeName
---                                    , _classInstance_tp      :: [Type]
---                                    , _classInstance_decs    :: [Dec]
---                                    }
---
---
--- classInstance :: (ToCxt ctx, ToTypeName n, ToType t, IsDec dec)
---               => ctx -> n -> [t] -> [dec] -> ClassInstance
--- classInstance ctx n ts desc = ClassInstance Nothing (th ctx) (toTypeName n) (th <$> ts) (toDec <$> desc) ; {-# INLINE classInstance #-}
---
--- classInstance' :: (ToTypeName n, ToType t, IsDec dec)
---               => n -> [t] -> [dec] -> ClassInstance
--- classInstance' = classInstance ([] :: Cxt) ; {-# INLINE classInstance' #-}
---
---
--- instance IsTH TH.Dec ClassInstance where
---     th (ClassInstance olap cxt n ts decs) = InstanceD olap cxt (th $ apps (th n) ts) (th decs) ; {-# INLINE th #-}
 --
 --
 -- ----------------------
