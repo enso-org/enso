@@ -3,16 +3,24 @@ import Std.BLAS
 
 
 class Matrix:
-    nrows :: Int
-    ncols :: Int
-    data  :: Ptr Double
+    Matrix
+    MatrixVal Int Int (Ptr Double)
+
+    def nrows: case self of
+        MatrixVal nrows _ _: nrows
+
+    def ncols: case self of
+        MatrixVal _ ncols _: ncols
+
+    def data: case self of
+        MatrixVal _ _ data: data
 
     def + that:
         sameDim = (self.nrows, self.ncols) == (that.nrows, that.ncols)
         case sameDim of
             False: throw "Matrix.+: different dimensions"
             True:
-                res = newMatrix self.nrows self.ncols
+                res = Matrix.new self.nrows self.ncols
                 dcopy (self.nrows * self.ncols) that.data 1 res.data 1
                 daxpy (self.nrows * self.ncols) 1.0 self.data 1 res.data 1
                 res
@@ -22,7 +30,7 @@ class Matrix:
         case correctDim of
             False: throw "Matrix.*: invalid dimensions"
             True:
-                res = newMatrix self.nrows that.ncols
+                res = Matrix.new self.nrows that.ncols
                 dgemm CblasRowMajor CblasNoTrans CblasNoTrans self.nrows that.ncols self.ncols 1.0 self.data self.nrows that.data that.nrows 0.0 res.data self.nrows
                 res
 
@@ -46,42 +54,39 @@ class Matrix:
     def toJSON:
         (0.upto self.nrows-1).map (row: (0.upto self.ncols-1).map (col: CDouble.read (self.data.+ ((row*self.ncols + col) * 8)))) . toJSON
 
-def newMatrix nrows ncols:
-    size = nrows * ncols * 8
-    mem  = malloc size
-    Matrix nrows ncols mem
+    def new nrows ncols:
+        size = nrows * ncols * 8
+        mem  = malloc size
+        MatrixVal nrows ncols mem
 
-def zeros nrows ncols:
-    _initializer 0.0 nrows ncols
+    def _initializer val nrows ncols:
+        m = Matrix.new nrows ncols
+        0 . upto (nrows * ncols - 1) . each (ind: val . write (m.data.+ (ind*8)))
+        m
 
-def ones nrows ncols:
-    _initializer 1.0 nrows ncols
+    def zeros nrows ncols:
+        _initializer 0.0 nrows ncols
 
-def rand nrows ncols:
-    _initializer randomReal nrows ncols
+    def ones nrows ncols:
+        _initializer 1.0 nrows ncols
+
+    def rand nrows ncols:
+        _initializer randomReal nrows ncols
+
+    def eye nrows ncols:
+        z = zeros nrows ncols
+        0 . upto (min nrows ncols - 1) . each (ind: z.set (ind, ind) 1.0)
+        z
+
+    def fromList nrows ncols vals:
+        elems = nrows * ncols
+        correctSize = elems == vals.length
+        case correctSize of
+            False: throw "Matrix.fromList: number of values do not match size"
+            True:
+                m = Matrix.new nrows ncols
+                vals . zip (0.upto (elems-1)) . each (a: case a of (val, ind): val . write (m.data.+ (ind*8)))
+                m
 
 def min a b:
     if a < b then a else b
-
-def eye nrows ncols:
-    z = zeros nrows ncols
-    0 . upto (min nrows ncols - 1) . each (ind: z.set (ind, ind) 1.0)
-    z
-
-def _initializer val nrows ncols:
-    size = nrows * ncols * 8
-    mem  = malloc size
-    0 . upto (nrows * ncols - 1) . each (ind: val . write (mem.+ (ind*8)))
-    Matrix nrows ncols mem
-
-
-def newMatrixFromList nrows ncols vals:
-    elems = nrows * ncols
-    correctSize = elems == vals.length
-    case correctSize of
-        False: throw "Matrix.fromList: number of values do not match size"
-        True:
-            size = elems * 8
-            mem = malloc size
-            vals . zip (0.upto (elems-1)) . each (a: case a of (val, ind): val . write (mem.+ (ind*8)))
-            Matrix nrows ncols mem
