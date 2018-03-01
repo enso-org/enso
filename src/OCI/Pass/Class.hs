@@ -1,5 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeInType #-}
 
 module OCI.Pass.Class where
 
@@ -96,11 +97,24 @@ instance Default (LayerByteOffset c l) where def = LayerByteOffset 0 ; {-# INLIN
 
 -- | For example:
 --   >> In MyPass (Terms / Layers) = '[Model]
-type family Components pass :: [*]
-type family In         pass component :: [*]
-type family Out        pass component :: [*]
-type family Preserves  pass component :: [*]
+-- type family Components pass :: [Type]
+-- type family In         pass component :: [Type]
+-- type family Out        pass component :: [Type]
+-- type family Preserves  pass component :: [Type]
 
+data Elems
+
+-- type Declaration = Property -> [Type]
+
+data Property
+    = In        Type
+    | Out       Type
+    | Preserves Type
+
+type family Spec (pass :: Type) (prop :: Property) :: [Type]
+
+type Ins  pass prop = Spec pass (In  prop)
+type Outs pass prop = Spec pass (Out prop)
 
 
 ------------------------
@@ -112,8 +126,8 @@ type    PassStateData   pass = TypeMap (PassStateLayout pass)
 type    PassStateLayout pass = List.Append (ComponentLayout pass)
                                            (LayersLayout    pass)
 
-type ComponentLayout pass = List.Map ByteSize   (Components pass)
-type LayersLayout    pass = LayersLayout__ pass (Components pass)
+type ComponentLayout pass = List.Map ByteSize   (Ins pass Elems)
+type LayersLayout    pass = LayersLayout__ pass (Ins pass Elems)
 
 type family LayersLayout__ pass cs where
     LayersLayout__ pass '[] = '[]
@@ -124,7 +138,7 @@ type ComponentLayerLayout pass component
     = List.Map (LayerByteOffset component) (ComponentLayers pass component)
 
 type ComponentLayers pass component
-    = (List.Append (In pass component) (Out pass component))
+    = List.Append (Ins pass component) (Outs pass component)
 
 makeLenses ''PassState
 
@@ -144,7 +158,7 @@ deriving instance Default (PassStateData pass) => Default (PassState pass)
 -- === Definition === --
 
 type       Pass pass m   = SubPass pass m ()
-newtype SubPass pass m a = SubPass (StateT (PassState pass) m a)
+newtype SubPass (pass :: Type) m a = SubPass (StateT (PassState pass) m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
 makeLenses ''SubPass
@@ -226,9 +240,9 @@ encodePassState cfg = ($ def) <$> passStateEncoder cfg ; {-# INLINE encodePassSt
 
 passStateEncoder :: ∀ pass. PassStateEncoder pass
     => PassConfig -> EncoderResult (PassState pass -> PassState pass)
-passStateEncoder = passStateEncoder__ @(Components pass) ; {-# INLINE passStateEncoder #-}
+passStateEncoder = passStateEncoder__ @(Ins pass Elems) ; {-# INLINE passStateEncoder #-}
 
-type  PassStateEncoder pass = PassStateEncoder__ (Components pass) pass
+type  PassStateEncoder pass = PassStateEncoder__ (Ins pass Elems) pass
 class PassStateEncoder__ (cs :: [Type]) pass where
     passStateEncoder__ :: PassConfig
                       -> EncoderResult (PassState pass -> PassState pass)

@@ -283,62 +283,16 @@ newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
 
 type TermLayers = Terms / AnyLayer
 
+
 data MyPass
-type instance Pass.Components MyPass       = '[Terms]
-type instance Pass.In         MyPass Terms = '[Model]
-type instance Pass.Out        MyPass Terms = '[Model]
-
--- type family MyPass2 t where
---     MyPass2 (In2 Elems) = '[Terms]
---     MyPass2 (In2 Term)  = '[Model]
---     MyPass2 (Out2 a)    = MyPass2 (In2 a)
---     MyPass2 t           = '[]
-
---
-
--- data MyPass
--- type instance Pass.Components MyPass        = '[Terms]
--- type instance Pass.In         MyPass Layers = '[Terms / Model]
--- type instance Pass.Out        MyPass Layers = '[Terms / Model]
-
--- instance Pass.Declaration MyPass where
---     type In    MyPass Elems  = '[Terms]
---     type In    MyPass Layers = '[ Terms / '[Model]
---                                 , Links / '[Source, Target]
---                                 ]
---     type Out   MyPass Layers = '[Terms / Model]
--- --
--- --
--- instance Pass.Declaration MyPass where
---     type In    MyPass Elems = '[Terms]
---     type In    MyPass Terms = '[Model]
---     type In    MyPass Links = '[Source, Target]
---     type Out   MyPass Terms = In MyPass Terms
---     type Out   MyPass Links = In MyPass Links
--- --
---
--- type family MyPass t a where
---     MyPass In Elems = '[Terms, Links]
---     MyPass In Term  = '[Model]
---     MyPass Out a    = MyPass In a
---     MyPass t   a    = '[]
---
+type instance Spec MyPass t = Spec_MyPass t
+type family   Spec_MyPass t where
+    Spec_MyPass (In Elems) = '[Terms]
+    Spec_MyPass (In Terms) = '[Model]
+    Spec_MyPass (Out a)    = Spec_MyPass (In a)
+    Spec_MyPass t          = '[]
 
 
-class XC a where
-    type family XCT a b :: Type
-    type XCT a b = Char
-    -- type XCT a String = Char
-
-instance XC Int where
-    -- type XCT Int Int    = Int
-    -- type XCT Int String = Int
-
-foo :: XCT Int Char
-foo = undefined
-
-bar :: Char
-bar = foo
 
 passTest :: Pass.SubPass MyPass IO ()
 passTest = do
