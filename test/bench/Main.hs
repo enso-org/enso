@@ -52,8 +52,8 @@ main = do
     print "---"
     Basic.passRunTest
 
-    let minExpVec = 8 :: Int
-        maxExpVec = 8 :: Int
+    let minExpVec = 7 :: Int
+        maxExpVec = 7 :: Int
         expSizes  = [minExpVec .. maxExpVec] :: [Int]
 
     defaultMain

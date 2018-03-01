@@ -57,6 +57,7 @@ dependencies:
     - monad-branch
     - random
     - transformers
+    - lens
 
 benchmarks:
   array-benchmark:

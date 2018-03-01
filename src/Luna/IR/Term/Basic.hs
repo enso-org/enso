@@ -47,7 +47,10 @@ import OCI.Pass.Class as Pass
 
 import qualified Data.Map                    as Map
 
+import qualified OCI.Pass.Manager as PassManager
+import           OCI.Pass.Manager (MonadPassManager)
 
+import qualified Control.Monad.Exception as Exception
 
 type family SizeOf a :: Nat
 type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
@@ -127,7 +130,7 @@ instance HasLinks (ConsAcc a) where
 
 -- === Definition === --
 
-type family LayerSize component layer :: Nat
+-- type family LayerSize component layer :: Nat
 
 data AnyLayer
 class Storable (LayerData t layer cfg)
@@ -159,50 +162,50 @@ unsafeWriteLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) 
 unsafeReadLayerByteOff  !off !t = peekLayerByteOff @layer @t @cfg off (coerce t) ; {-# INLINE unsafeReadLayerByteOff  #-}
 unsafeWriteLayerByteOff !off !t = pokeLayerByteOff @layer @t @cfg off (coerce t) ; {-# INLINE unsafeWriteLayerByteOff #-}
 
-readLayer  :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg -> m (LayerData t layer cfg)
-writeLayer :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg ->   (LayerData t layer cfg) -> m ()
-readLayer  = unsafeReadLayerByteOff  @layer (layerOffset @t @layer) ; {-# INLINE readLayer  #-}
-writeLayer = unsafeWriteLayerByteOff @layer (layerOffset @t @layer) ; {-# INLINE writeLayer #-}
+-- readLayer  :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg -> m (LayerData t layer cfg)
+-- writeLayer :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg ->   (LayerData t layer cfg) -> m ()
+-- readLayer  = unsafeReadLayerByteOff  @layer (layerOffset @t @layer) ; {-# INLINE readLayer  #-}
+-- writeLayer = unsafeWriteLayerByteOff @layer (layerOffset @t @layer) ; {-# INLINE writeLayer #-}
 
 
 
--------------------------------------
--- === Global Layer Management === --
--------------------------------------
+-- -------------------------------------
+-- -- === Global Layer Management === --
+-- -------------------------------------
+--
+-- -- === Layer registry === --
+--
+-- type family AllLayers component :: [Type]
+--
+--
+-- -- === LayerOffset === --
+--
+-- type LayerOffset component layer = LayerOffset' 0 component layer (AllLayers component)
+-- type family LayerOffset' off component layer ls where
+--     LayerOffset' s _ l (l ': _)  = s
+--     LayerOffset' s t l (p ': ps) = LayerOffset' (s + LayerSize t p) t l ps
+--
+-- type KnownLayer component layer = KnownType (LayerOffset component layer)
+-- layerOffset :: forall component layer. (KnownLayer component layer) => Int
+-- layerOffset = fromInteger $ fromType @(LayerOffset component layer) ; {-# INLINE layerOffset #-}
+--
+--
+-- -- === TotalLayersSize === --
+--
+-- type TotalLayersSize component = TotalLayersSize' component 0 (AllLayers component)
+-- type family TotalLayersSize' t s ls where
+--     TotalLayersSize' _ s '[] = s
+--     TotalLayersSize' t s (l ': ls) = TotalLayersSize' t (s + LayerSize t l) ls
+--
+-- type KnownLayers component = KnownType (TotalLayersSize component)
+-- totalLayersSize :: forall component. KnownLayers component => Int
+-- totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLINE totalLayersSize #-}
+--
+--
 
--- === Layer registry === --
-
-type family AllLayers component :: [Type]
 
 
--- === LayerOffset === --
-
-type LayerOffset component layer = LayerOffset' 0 component layer (AllLayers component)
-type family LayerOffset' off component layer ls where
-    LayerOffset' s _ l (l ': _)  = s
-    LayerOffset' s t l (p ': ps) = LayerOffset' (s + LayerSize t p) t l ps
-
-type KnownLayer component layer = KnownType (LayerOffset component layer)
-layerOffset :: forall component layer. (KnownLayer component layer) => Int
-layerOffset = fromInteger $ fromType @(LayerOffset component layer) ; {-# INLINE layerOffset #-}
-
-
--- === TotalLayersSize === --
-
-type TotalLayersSize component = TotalLayersSize' component 0 (AllLayers component)
-type family TotalLayersSize' t s ls where
-    TotalLayersSize' _ s '[] = s
-    TotalLayersSize' t s (l ': ls) = TotalLayersSize' t (s + LayerSize t l) ls
-
-type KnownLayers component = KnownType (TotalLayersSize component)
-totalLayersSize :: forall component. KnownLayers component => Int
-totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLINE totalLayersSize #-}
-
-
-
-
-
-type instance LayerSize Terms Model = 3 * SizeOf Int
+-- type instance LayerSize Terms Model = 3 * SizeOf Int
 instance Layer     Terms Model (Format f) where
     type LayerData Terms Model (Format f) = TermConsOf (Format f)
 
@@ -223,8 +226,8 @@ instance Layer     Links Target a where
 
 
 
-type instance AllLayers Terms = '[Model]
-type instance AllLayers Links = '[Model]
+-- type instance AllLayers Terms = '[Model]
+-- type instance AllLayers Links = '[Model]
 
 
 
@@ -271,8 +274,8 @@ mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft
 
 
 
-newComponent :: forall t a m. (KnownLayers t, MonadIO m) => m (Component t a)
-newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
+-- newComponent :: forall t a m. (KnownLayers t, MonadIO m) => m (Component t a)
+-- newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
 
 
 -- termMemPool, linkMemPool :: MemPool
@@ -421,17 +424,17 @@ test_readWriteLayer_ptrBuffOff i = do
     flip State.evalT (7::Int)
        $ flip State.evalT ptr (go i)
 
-test_readWriteLayer_static :: Int -> IO ()
-test_readWriteLayer_static i = do
-    ir <- mockNewIR
-    writeLayer @Model ir (UniConsVar $ Var 0)
-    let -- go :: Int -> StateT Int IO ()
-        go 0 = return ()
-        go j = do
-            UniConsVar (Var x) <- readLayer @Model ir
-            writeLayer @Model ir (UniConsVar $ Var (x+1))
-            go (j - 1)
-    (go i)
+-- test_readWriteLayer_static :: Int -> IO ()
+-- test_readWriteLayer_static i = do
+--     ir <- mockNewIR
+--     writeLayer @Model ir (UniConsVar $ Var 0)
+--     let -- go :: Int -> StateT Int IO ()
+--         go 0 = return ()
+--         go j = do
+--             UniConsVar (Var x) <- readLayer @Model ir
+--             writeLayer @Model ir (UniConsVar $ Var (x+1))
+--             go (j - 1)
+--     (go i)
 
     -- State.evalT (go i)
     --     $ TypeSet.insert (XInt 1)
@@ -481,8 +484,6 @@ test_readWriteLayer3 i = do
         go j = do
             !s <- getPassState
             Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
-            -- !set <- State.get'
-            -- let !layer = TypeMap.getElem @Int set
             UniConsVar (Var !x) <- unsafeReadLayerByteOff @Model layer ir
             unsafeWriteLayerByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
             go (j - 1)
@@ -498,6 +499,14 @@ test_readWriteLayer3 i = do
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
+test_pm_run :: IO ()
+test_pm_run = Exception.catchAll print $ PassManager.evalT test_pm
+
+test_pm :: MonadPassManager m => m ()
+test_pm = do
+    PassManager.registerComponent @Terms
+    PassManager.registerPrimLayer @Terms @Model
+    return ()
 
 -- passTest :: Pass.SubPass MyPass IO ()
 -- passTest = do
