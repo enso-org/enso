@@ -50,3 +50,38 @@ def newMatrix nrows ncols:
     size = nrows * ncols * 8
     mem  = malloc size
     Matrix nrows ncols mem
+
+def zeros nrows ncols:
+    _initializer 0.0 nrows ncols
+
+def ones nrows ncols:
+    _initializer 1.0 nrows ncols
+
+def rand nrows ncols:
+    _initializer randomReal nrows ncols
+
+def min a b:
+    if a < b then a else b
+
+def eye nrows ncols:
+    z = zeros nrows ncols
+    0 . upto (min nrows ncols - 1) . each (ind: z.set (ind, ind) 1.0)
+    z
+
+def _initializer val nrows ncols:
+    size = nrows * ncols * 8
+    mem  = malloc size
+    0 . upto (nrows * ncols - 1) . each (ind: val . write (mem.+ (ind*8)))
+    Matrix nrows ncols mem
+
+
+def newMatrixFromList nrows ncols vals:
+    elems = nrows * ncols
+    correctSize = elems == vals.length
+    case correctSize of
+        False: throw "Matrix.fromList: number of values do not match size"
+        True:
+            size = elems * 8
+            mem = malloc size
+            vals . zip (0.upto (elems-1)) . each (a: case a of (val, ind): val . write (mem.+ (ind*8)))
+            Matrix nrows ncols mem
