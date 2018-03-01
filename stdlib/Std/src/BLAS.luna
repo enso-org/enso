@@ -47,7 +47,7 @@ class CBLASSide:
         CblasRight: 142.toCArg
 
 def drotg a b:
-    f = lookupSymbol "libcblas.so.3.8.0" "cblas_drotg"
+    f = lookupSymbol blasImpl "cblas_drotg"
     ap = malloc 8
     a.write ap
     bp = malloc 8
@@ -66,21 +66,21 @@ def drotg a b:
     (r,z,c,s)
 
 def ddot n x incx y incy:
-    f = lookupSymbol "libcblas.so.3.8.0" "cblas_ddot"
+    f = lookupSymbol blasImpl "cblas_ddot"
     f.call CDouble [n.toCArg, x.toCArg, incx.toCArg, y.toCArg, incy.toCArg]
 
 def dnrm2 n x incx:
-    f = lookupSymbol "libcblas.so.3.8.0" "cblas_dnrm2"
+    f = lookupSymbol blasImpl "cblas_dnrm2"
     f.call CDouble [n.toCArg, x.toCArg, incx.toCArg]
 
 def daxpy n alpha x incx y incy:
-    f = lookupSymbol "libcblas.so.3.8.0" "cblas_daxpy"
+    f = lookupSymbol blasImpl "cblas_daxpy"
     f.call CVoid [n.toCArg, alpha.toCArg, x.toCArg, incx.toCArg, y.toCArg, incy.toCArg]
 
 def dcopy n x incx y incy:
-    f = lookupSymbol "libcblas.so.3.8.0" "cblas_dcopy"
+    f = lookupSymbol blasImpl "cblas_dcopy"
     f.call CVoid [n.toCArg, x.toCArg, incx.toCArg, y.toCArg, incy.toCArg]
 
 def dgemm layout transA transB m n k alpha a lda b ldb beta c ldc:
-    f = lookupSymbol "libcblas.so.3.8.0" "cblas_dgemm"
+    f = lookupSymbol blasImpl "cblas_dgemm"
     f.call CVoid [layout.toCArg, transA.toCArg, transB.toCArg, m.toCArg, n.toCArg, k.toCArg, alpha.toCArg, a.toCArg, lda.toCArg, b.toCArg, ldb.toCArg, beta.toCArg, c.toCArg, ldc.toCArg]
