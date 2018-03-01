@@ -1,4 +1,5 @@
 import Std.Base
+import Std.FFI.C.Value
 
 def lookupSymbol dll symbol:
     case primLookupSymbol dll symbol of
@@ -14,95 +15,13 @@ native class FunPtr:
 
 def malloc size:
     m = lookupSymbol "" "malloc"
-    m.call Ptr [size . toCArg]
+    m.call Ptr [CSize.from size]
 
 def free ptr:
     f = lookupSymbol "" "free"
-    f.call CVoid [ptr . toCArg]
+    f.call CVoid [Ptr.from ptr]
 
 def strlen str:
     s = lookupSymbol "" "strlen"
-    s.call CInt [str . toCArg]
-
-native class Ptr a:
-    Ptr
-    def toCArg: primPtrToCArg self
-    def shortRep: primPtrToJSON self
-    def toJSON: primPtrToJSON self
-    def toText: primPtrToJSON self
-    def + bytes: primPlusPtr self bytes
-
-    def read ptr: primReadPtrPtr ptr
-    def write ptr: primWritePtrPtr ptr self
-
-def nullPtr: primNullPtr
-
-native class CVoid:
-    CVoid
-
-native class CChar:
-    CChar
-
-native class CUChar:
-    CUChar
-
-native class CInt:
-    CInt
-    def byteSize: primByteSizeInt
-    def read ptr: primReadPtrInt ptr
-    def write ptr: primWritePtrInt ptr self
-
-native class CInt32:
-    CInt32
-    def byteSize: primByteSizeInt32
-    def read ptr: primReadPtrInt32 ptr
-    def write ptr: primWritePtrInt32 ptr self
-
-native class CInt64:
-    CInt64
-    def byteSize: primByteSizeInt64
-    def read ptr: primReadPtrInt64 ptr
-    def write ptr: primWritePtrInt64 ptr self
-
-native class CUInt:
-    CUInt
-    def byteSize: primByteSizeUInt
-    def read ptr: primReadPtrUInt ptr
-    def write ptr: primWritePtrUInt ptr self
-
-native class CUInt32:
-    CUInt32
-    def byteSize: primByteSizeUInt32
-    def read ptr: primReadPtrUInt32 ptr
-    def write ptr: primWritePtrUInt32 ptr self
-
-native class CUInt64:
-    CUInt64
-
-native class CLong:
-    CLong
-
-native class CULong:
-    CULong
-
-native class CLongLong:
-    CLongLong
-
-native class CULongLong:
-    CULongLong
-
-native class CFloat:
-    CFloat
-    def byteSize: primByteSizeFloat
-    def read ptr: primReadPtrFloat ptr
-    def write ptr: primWritePtrFloat ptr self
-
-native class CDouble:
-    CDouble
-    def byteSize: primByteSizeDouble
-    def read ptr: primReadPtrDouble ptr
-    def write ptr: primWritePtrDouble ptr self
-
-native class CString:
-    CString
+    s.call CSize [CString.from str]
 

@@ -17,6 +17,7 @@ native class Int:
     ## Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
 
+    def toInt: self
     def toCArg: primIntToCArg self
     def read ptr: primReadPtrInt ptr
     def write ptr: primWritePtrInt ptr self

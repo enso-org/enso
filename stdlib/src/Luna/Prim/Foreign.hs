@@ -77,11 +77,14 @@ exports std = do
     let primByteSizeFloatVal :: Integer
         primByteSizeFloatVal = fromIntegral $ sizeOf (undefined :: CFloat)
     primByteSizeFloat <- makeFunctionPure (toLunaValue std primByteSizeFloatVal) [] "Int"
-
+    let primIntToCSizeVal :: Integer -> LibFFI.Arg
+        primIntToCSizeVal i = LibFFI.argCSize $ fromIntegral i
+    primIntToCSize <- makeFunctionPure (toLunaValue std primIntToCSizeVal) ["Int"] "Arg"
     return $ Map.fromList [ ("primLookupSymbol", primLookupSymbol)
                           , ("primCallFunPtr", primCallFunPtr)
                           , ("primNullPtr", primNullPtr)
                           , ("primPtrToCArg", primPtrToCArg)
+                          , ("primIntToCSize", primIntToCSize)
                           , ("primPlusPtr", primPlusPtr)
                           , ("primReadPtrInt", primReadPtrInt)
                           , ("primWritePtrInt", primWritePtrInt)
@@ -96,12 +99,26 @@ data ExistRetType = forall a. ToLunaData a => ExistRetType (LibFFI.RetType a)
 instance FromLunaData ExistRetType where
     fromLunaData t = force' t >>= \case
         LunaObject obj -> case obj ^. constructor . tag of
-            "CInt"     -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt :: LibFFI.RetType Integer)
-            "CVoid"    -> return $ ExistRetType LibFFI.retVoid
-            "CDouble"  -> return $ ExistRetType $ fmap (\(CDouble d) -> d) LibFFI.retCDouble
-            "Ptr"      -> return $ ExistRetType $ LibFFI.retPtr (undefined :: LibFFI.RetType LunaData)
-            "CString"  -> return $ ExistRetType $ fmap Text.pack LibFFI.retString
-            _          -> throw "unknown return type"
+            "CVoid"      -> return $ ExistRetType   LibFFI.retVoid
+            "CInt"       -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retCInt   :: LibFFI.RetType Integer)
+            "CInt8"      -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt8   :: LibFFI.RetType Integer)
+            "CInt16"     -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt16  :: LibFFI.RetType Integer)
+            "CInt32"     -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt32  :: LibFFI.RetType Integer)
+            "CInt64"     -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt64  :: LibFFI.RetType Integer)
+            "CUInt"      -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retCUInt  :: LibFFI.RetType Integer)
+            "CUInt8"     -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retWord8  :: LibFFI.RetType Integer)
+            "CUInt16"    -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retWord16 :: LibFFI.RetType Integer)
+            "CUInt32"    -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retWord32 :: LibFFI.RetType Integer)
+            "CUInt64"    -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retWord64 :: LibFFI.RetType Integer)
+            "CLong"      -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retCLong  :: LibFFI.RetType Integer)
+            "CLongLong"  -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retInt64  :: LibFFI.RetType Integer)
+            "CULongLong" -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retWord64 :: LibFFI.RetType Integer)
+            "CSize"      -> return $ ExistRetType $ (fmap fromIntegral LibFFI.retCSize  :: LibFFI.RetType Integer)
+            "CFloat"     -> return $ ExistRetType $ fmap (\d -> realToFrac d :: Double) LibFFI.retCFloat
+            "CDouble"    -> return $ ExistRetType $ fmap (\(CDouble d) -> d) LibFFI.retCDouble
+            "Ptr"        -> return $ ExistRetType $ LibFFI.retPtr (undefined :: LibFFI.RetType LunaData)
+            "CString"    -> return $ ExistRetType $ fmap Text.pack LibFFI.retString
+            invalid      -> throw $ "CFFI: invalid return type: " <> convert invalid
 
 type instance RuntimeRepOf (FunPtr LunaData)      = AsNative "FunPtr"
 type instance RuntimeRepOf (Ptr LunaData)         = AsNative "Ptr"

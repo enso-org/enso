@@ -1,0 +1,173 @@
+native class CVoid:
+    CVoid
+
+native class CChar:
+    CChar
+    def byteSize: primByteSizeCChar
+    def from a: CChar.fromInt a.toInt
+    def fromInt a: primIntToCChar a
+    def read ptr: primReadPtrCChar ptr
+    def write ptr: primWritePtrCChar ptr self
+
+native class CUChar:
+    CUChar
+    def byteSize: primByteSizeCUChar
+    def from a: CUChar.fromInt a.toInt
+    def fromInt a: primIntToCUChar a
+    def read ptr: primReadPtrCUChar ptr
+    def write ptr: primWritePtrCUChar ptr self
+
+native class CInt:
+    CInt
+    def from a: CInt.fromInt a.toInt
+    def fromInt a: primIntToCInt a
+    def byteSize: primByteSizeInt
+    def read ptr: primReadPtrInt ptr
+    def write ptr: primWritePtrInt ptr self
+
+native class CInt8:
+    CInt8
+    def from a: CInt8.fromInt a.toInt
+    def fromInt a: primIntToCInt8 a
+    def byteSize: primByteSizeInt8
+    def read ptr: primReadPtrInt8 ptr
+    def write ptr: primWritePtrInt8 ptr self
+
+native class CInt16:
+    CInt16
+    def from a: CInt16.fromInt a.toInt
+    def fromInt a: primIntToCInt16 a
+    def byteSize: primByteSizeInt16
+    def read ptr: primReadPtrInt16 ptr
+    def write ptr: primWritePtrInt16 ptr self
+
+native class CInt32:
+    CInt32
+    def from a: CInt32.fromInt a.toInt
+    def fromInt a: primIntToCInt32 a
+    def byteSize: primByteSizeInt32
+    def read ptr: primReadPtrInt32 ptr
+    def write ptr: primWritePtrInt32 ptr self
+
+native class CInt64:
+    CInt64
+    def from a: CInt64.fromInt a.toInt
+    def fromInt a: primIntToCInt64 a
+    def byteSize: primByteSizeInt64
+    def read ptr: primReadPtrInt64 ptr
+    def write ptr: primWritePtrInt64 ptr self
+
+native class CUInt:
+    CUInt
+    def from a: CUInt.fromInt a.toInt
+    def fromInt a: primIntToCUInt a
+    def byteSize: primByteSizeUInt
+    def read ptr: primReadPtrUInt ptr
+    def write ptr: primWritePtrUInt ptr self
+
+native class CUInt8:
+    CUInt8
+    def from a: CUInt8.fromInt a.toInt
+    def fromInt a: primIntToCUInt8 a
+    def byteSize: primByteSizeUInt8
+    def read ptr: primReadPtrUInt8 ptr
+    def write ptr: primWritePtrUInt8 ptr self
+
+native class CUInt16:
+    CUInt16
+    def from a: CUInt16.fromInt a.toInt
+    def fromInt a: primIntToCUInt16 a
+    def byteSize: primByteSizeUInt16
+    def read ptr: primReadPtrUInt16 ptr
+    def write ptr: primWritePtrUInt16 ptr self
+
+native class CUInt32:
+    CUInt32
+    def from a: CUInt32.fromInt a.toInt
+    def fromInt a: primIntToCUInt32 a
+    def byteSize: primByteSizeUInt32
+    def read ptr: primReadPtrUInt32 ptr
+    def write ptr: primWritePtrUInt32 ptr self
+
+native class CUInt64:
+    CUInt64
+    def from a: CUInt64.fromInt a.toInt
+    def fromInt a: primIntToCUInt64 a
+    def byteSize: primByteSizeUInt64
+    def read ptr: primReadPtrUInt64 ptr
+    def write ptr: primWritePtrUInt64 ptr self
+
+native class CLong:
+    CLong
+    def from a: CLong.fromInt a.toInt
+    def fromInt a: primIntToCLong a
+    def byteSize: primByteSizeLong
+    def read ptr: primReadPtrLong ptr
+    def write ptr: primWritePtrLong ptr self
+
+native class CULong:
+    CULong
+    def from a: CULong.fromInt a.toInt
+    def fromInt a: primIntToCULong a
+    def byteSize: primByteSizeULong
+    def read ptr: primReadPtrULong ptr
+    def write ptr: primWritePtrULong ptr self
+
+native class CLongLong:
+    CLongLong
+    def from a: CLongLong.fromInt a.toInt
+    def fromInt a: primIntToCLongLong a
+    def byteSize: primByteSizeLongLong
+    def read ptr: primReadPtrLongLong ptr
+    def write ptr: primWritePtrLongLong ptr self
+
+native class CULongLong:
+    CULongLong
+    def from a: CULongLong.fromInt a.toInt
+    def fromInt a: primIntToCULongLong a
+    def byteSize: primByteSizeULongLong
+    def read ptr: primReadPtrULongLong ptr
+    def write ptr: primWritePtrULongLong ptr self
+
+native class CSize:
+    CSize
+    def from a: CSize.fromInt a.toInt
+    def fromInt a: primIntToCSize a
+    def byteSize: primByteSizeSize
+    def read ptr: primReadPtrSize ptr
+    def write ptr: primWritePtrSize ptr self
+
+native class CFloat:
+    CFloat
+    def from a: CFloat.fromReal a.toReal
+    def fromReal a: primRealToCFloat a
+    def byteSize: primByteSizeFloat
+    def read ptr: primReadPtrFloat ptr
+    def write ptr: primWritePtrFloat ptr self
+
+native class CDouble:
+    CDouble
+    def from a: CDouble.fromReal a.toReal
+    def fromReal a: primRealToCDouble a
+    def byteSize: primByteSizeDouble
+    def read ptr: primReadPtrDouble ptr
+    def write ptr: primWritePtrDouble ptr self
+
+native class CString:
+    CString
+    def from a: primTextToCArg a
+
+native class Ptr a:
+    Ptr
+    def from a: a.toCArg
+    def toCArg: primPtrToCArg self
+    def shortRep: primPtrToJSON self
+    def toJSON: primPtrToJSON self
+    def toText: primPtrToJSON self
+    def + bytes: primPlusPtr self bytes
+
+    def read ptr: primReadPtrPtr ptr
+    def write ptr: primWritePtrPtr ptr self
+
+def nullPtr: primNullPtr
+
