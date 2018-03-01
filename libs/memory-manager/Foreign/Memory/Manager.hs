@@ -54,3 +54,4 @@ newItem mm = liftIO $ castPtr <$> c_newItem mm
 
 deleteItem :: MonadIO m => MemoryManager -> Ptr a -> m ()
 deleteItem mm = liftIO . c_deleteItem mm . castPtr
+{-# INLINE deleteItem #-}
