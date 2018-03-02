@@ -26,22 +26,6 @@ thd (_, _, x) = x
 -- === TH info extracting utils === --
 --------------------------------------
 
-unpackCon :: TH.Con -> (Name, [Type])
-unpackCon = \case
-    NormalC n fs  -> (n, map snd fs)
-    RecC    n fs  -> (n, map (\(_, _, x) -> x) fs)
-    InfixC a n b  -> (n, [snd a, snd b])
-    ForallC _ _ c -> unpackCon c
-    _             -> error "***error*** deriveStorable: GADT constructors not supported"
-
--- | Extract the name and number of params from the consturctor
-conInfo :: Num a => TH.Con -> (Name, a)
-conInfo c = let (n, fs) = unpackCon c in (n, fromIntegral $ length fs)
-
--- | Extract the number of params from the constructor
-conArity :: Num a => TH.Con -> a
-conArity = snd . conInfo
-
 concretizeType :: Type -> Type
 concretizeType = \case
     ConT n   -> ConT n

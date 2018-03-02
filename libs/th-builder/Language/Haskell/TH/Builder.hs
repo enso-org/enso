@@ -464,6 +464,26 @@ instance Convertible ClassInstance TH.Dec where
                   apply t (TH.KindedTV name _) = TH.AppT t (TH.VarT name)
     {-# INLINE convert #-}
 
+------------------------
+-- === Misc utils === --
+------------------------
+
+unpackCon :: TH.Con -> (Name, [TH.Type])
+unpackCon = \case
+    TH.NormalC n fs  -> (n, map snd fs)
+    TH.RecC    n fs  -> (n, map (\(_, _, x) -> x) fs)
+    TH.InfixC a n b  -> (n, [snd a, snd b])
+    TH.ForallC _ _ c -> unpackCon c
+    _             -> error "***error*** deriveStorable: GADT constructors not supported"
+
+-- | Extract the name and number of params from the consturctor
+conInfo :: Num a => TH.Con -> (Name, a)
+conInfo c = let (n, fs) = unpackCon c in (n, fromIntegral $ length fs)
+
+-- | Extract the number of params from the constructor
+conArity :: Num a => TH.Con -> a
+conArity = snd . conInfo
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

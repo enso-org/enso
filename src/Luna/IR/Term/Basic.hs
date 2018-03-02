@@ -47,7 +47,7 @@ import OCI.Pass.Class as Pass
 
 import qualified Data.Map                    as Map
 
-
+import Luna.IR.Term.TH
 
 type family SizeOf a :: Nat
 type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
@@ -73,6 +73,7 @@ newtype ConsVar a = Var
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
 deriveStorable ''ConsVar
+deriveLinks ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
@@ -81,6 +82,7 @@ data ConsAcc a = Acc
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 deriveStorable ''ConsAcc
+deriveLinks ''ConsAcc
 
 data UniCons a
     = UniConsVar !(ConsVar a)
@@ -88,7 +90,7 @@ data UniCons a
     deriving (Show, Eq)
 type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
-
+deriveLinks ''UniCons
 
 -- defineTermConses [|
 -- data Var a = Var { name :: Int                     }
@@ -103,21 +105,6 @@ data Model
 
 newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
-
-
-
-class HasLinks a where
-    readLinksIO :: a -> IO [SomeLink]
-
-readLinks :: (HasLinks a, MonadIO m) => a -> m [SomeLink]
-readLinks = liftIO . readLinksIO
-
-
-instance HasLinks (ConsVar a) where
-    readLinksIO _ = return []
-
-instance HasLinks (ConsAcc a) where
-    readLinksIO (Acc b n) = return [generalize b, generalize n]
 
 
 
