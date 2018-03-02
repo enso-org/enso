@@ -68,6 +68,7 @@ data Symbol -- Layout
             | KwCase
             | KwClass
             | KwDef
+            | KwForeign
             | KwImport
             | KwNative
             | KwOf
@@ -134,15 +135,16 @@ makeLenses ''Number
 
 checkSpecialVar :: Text32 -> Symbol
 checkSpecialVar = \case
-    "all"    -> KwAll
-    "case"   -> KwCase
-    "class"  -> KwClass
-    "def"    -> KwDef
-    "import" -> KwImport
-    "native" -> KwNative
-    "of"     -> KwOf
-    "_"      -> Wildcard
-    name     -> Var name
+    "all"     -> KwAll
+    "case"    -> KwCase
+    "class"   -> KwClass
+    "def"     -> KwDef
+    "foreign" -> KwForeign
+    "import"  -> KwImport
+    "native"  -> KwNative
+    "of"      -> KwOf
+    "_"       -> Wildcard
+    name      -> Var name
 {-# INLINE checkSpecialVar #-}
 
 matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment, matchMetadata :: Symbol -> Maybe Text32
@@ -181,6 +183,7 @@ pretty = \case
     KwCase      {} -> "Keyword `Case`"
     KwClass     {} -> "Keyword `Class`"
     KwDef       {} -> "Keyword `Def`"
+    KwForeign   {} -> "Keyword `Foreign`"
     KwImport    {} -> "Keyword `Import`"
     KwNative    {} -> "Keyword `Native`"
     KwOf        {} -> "Keyword `Of`"
@@ -227,6 +230,7 @@ instance ShowCons Symbol where
         KwCase      {} -> "KwCase"
         KwClass     {} -> "KwClass"
         KwDef       {} -> "KwDef"
+        KwForeign   {} -> "KwForeign"
         KwImport    {} -> "KwImport"
         KwNative    {} -> "KwNative"
         KwOf        {} -> "KwOf"
@@ -270,6 +274,7 @@ instance IsTagged Symbol where
         KwCase      {} -> "Keyword"
         KwClass     {} -> "Keyword"
         KwDef       {} -> "Keyword"
+        KwForeign   {} -> "Keyword"
         KwImport    {} -> "Keyword"
         KwNative    {} -> "Keyword"
         KwOf        {} -> "Keyword"

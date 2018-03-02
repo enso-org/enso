@@ -373,6 +373,30 @@ spec = do
         describe "metadata" $ do
             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]
 
+        {- describe "foreign symbol declaration" $ do -}
+            {- it "unspecified safety symbol"               $ shouldParseItself' unit' "\"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
+            {- it "safe symbol"                             $ shouldParseItself' unit' "safe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
+            {- it "unsafe symbol"                           $ shouldParseItself' unit' "unsafe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
+
+        describe "C-FFI Syntax" $ do
+            it "partial"                                 $ shouldParseItself' unit' "foreign"
+            {- it "single line import"                      $ shouldParseItself' unit' "foreign import C \"Tensor.so\" \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
+            {- it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:" -}
+                                                                                    {- </> "    \"tensor.so\":" -}
+                                                                                    {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
+                                                                                    {- </> "        \"freeTensor\" freeTensor :: C.Int64 -> C.Ptr" -}
+                                                                                    {- ) [] -}
+            {- it "multiple object files, single symbol"    $ shouldParseItself' unit' ("foreign import C:" -}
+                                                                                    {- </> "    \"tensor.so\":" -}
+                                                                                    {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
+                                                                                    {- </> "    \"foo.dylib\":" -}
+                                                                                    {- </> "        \"init_foo\" initFoo :: C.UInt32 -> C.UInt32 -> C.Ptr" -}
+                                                                                    {- )[] -}
+            {- it "multiple object files, multiple symbols" $ shouldParseItself' unit' ("foreign import C:" -}
+                                                                                    {- </> "    \"tensor.so\":" -}
+                                                                                    {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
+                                                                                    {- </> "        \"freeTensor\" freeTensor :: C.Int64 -> C.Ptr" -}
+                                                                                    {- ) [] -}
 
 -- foo . pos . x += 1
 --           . y += 2
