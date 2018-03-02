@@ -33,6 +33,7 @@ import qualified Luna.IR.Test as TT
 import qualified  Data.TypeSet3 as TS3
 
 import qualified Test.Data.IntSet.Cpp as SetTest
+import OCI.IR.Layout2 ()
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do

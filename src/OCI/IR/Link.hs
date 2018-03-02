@@ -5,7 +5,7 @@ import Foreign          (Ptr)
 import Foreign.Storable (Storable)
 
 import OCI.IR.Term
-import OCI.IR.Layout hiding (Type, Term)
+import qualified OCI.IR.Layout2 as Layout
 
 import qualified Data.Tag as Tag
 import Foreign.Storable.Utils
@@ -46,8 +46,7 @@ data src :-: tgt
 --     mdata = wrapped ; {-# INLINE mdata #-}
 
 
--- type SubLink src tgtType = Link src (GetSublayout tgtType src)
-type SubLink src tgtType = Link (src :-: GetSublayout tgtType src)
+-- type SubLink src tgtType = Link (src :-: GetSublayout tgtType src)
 
 
 

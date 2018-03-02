@@ -79,8 +79,8 @@ deriveStorable ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
-    { __base :: !(Link.Term Acc a)
-    , __name :: !(Link.Name Acc a)
+    { __base :: !SomeLink -- !(Link.Term Acc a)
+    , __name :: !SomeLink -- !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 deriveStorable ''ConsAcc
@@ -133,12 +133,12 @@ instance HasLinks (ConsAcc a) where
 -- type family LayerSize component layer :: Nat
 
 data AnyLayer
-class Storable (LayerData t layer cfg)
-   => Layer (t :: Type) (layer :: Type) (cfg :: Type) where
-    type family LayerData t layer cfg :: Type
+class Storable (LayerData comp layer layout)
+   => Layer (comp :: Type) (layer :: Type) (layout :: Type) where
+    type family LayerData comp layer layout :: Type
 
-    peekLayerIO :: SomePtr -> IO (LayerData t layer cfg)
-    pokeLayerIO :: SomePtr -> LayerData t layer cfg -> IO ()
+    peekLayerIO :: SomePtr -> IO (LayerData comp layer layout)
+    pokeLayerIO :: SomePtr -> LayerData comp layer layout -> IO ()
     initLayerIO :: SomePtr -> IO ()
     peekLayerIO !ptr = peek $ coerce ptr ; {-# INLINE peekLayerIO #-}
     pokeLayerIO !ptr = poke $ coerce ptr ; {-# INLINE pokeLayerIO #-}
@@ -147,23 +147,23 @@ class Storable (LayerData t layer cfg)
 
 -- === API === --
 
-peekLayer :: forall t l cfg m. (Layer t l cfg, MonadIO m) => SomePtr -> m (LayerData t l cfg)
-pokeLayer :: forall t l cfg m. (Layer t l cfg, MonadIO m) => SomePtr -> LayerData t l cfg -> m ()
-peekLayer !ptr    = liftIO $ peekLayerIO @t @l @cfg ptr   ; {-# INLINE peekLayer #-}
-pokeLayer !ptr !v = liftIO $ pokeLayerIO @t @l @cfg ptr v ; {-# INLINE pokeLayer #-}
+peekLayer :: forall comp layer layout m. (Layer comp layer layout, MonadIO m) => SomePtr -> m (LayerData comp layer layout)
+pokeLayer :: forall comp layer layout m. (Layer comp layer layout, MonadIO m) => SomePtr -> LayerData comp layer layout -> m ()
+peekLayer !ptr    = liftIO $ peekLayerIO @comp @layer @layout ptr   ; {-# INLINE peekLayer #-}
+pokeLayer !ptr !v = liftIO $ pokeLayerIO @comp @layer @layout ptr v ; {-# INLINE pokeLayer #-}
 
-peekLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> SomePtr -> m (LayerData t layer cfg)
-pokeLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> SomePtr ->   (LayerData t layer cfg) -> m ()
-peekLayerByteOff !off !ptr      = peekLayer @t @layer @cfg (ptr `plusPtr` off)     ; {-# INLINE peekLayerByteOff #-}
-pokeLayerByteOff !off !ptr !val = pokeLayer @t @layer @cfg (ptr `plusPtr` off) val ; {-# INLINE pokeLayerByteOff #-}
+peekLayerByteOff :: forall layer t layout m. (Layer t layer layout, MonadIO m) => Int -> SomePtr -> m (LayerData t layer layout)
+pokeLayerByteOff :: forall layer t layout m. (Layer t layer layout, MonadIO m) => Int -> SomePtr ->   (LayerData t layer layout) -> m ()
+peekLayerByteOff !off !ptr      = peekLayer @t @layer @layout (ptr `plusPtr` off)     ; {-# INLINE peekLayerByteOff #-}
+pokeLayerByteOff !off !ptr !val = pokeLayer @t @layer @layout (ptr `plusPtr` off) val ; {-# INLINE pokeLayerByteOff #-}
 
-unsafeReadLayerByteOff  :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> Component t cfg -> m (LayerData t layer cfg)
-unsafeWriteLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) => Int -> Component t cfg ->   (LayerData t layer cfg) -> m ()
-unsafeReadLayerByteOff  !off !t = peekLayerByteOff @layer @t @cfg off (coerce t) ; {-# INLINE unsafeReadLayerByteOff  #-}
-unsafeWriteLayerByteOff !off !t = pokeLayerByteOff @layer @t @cfg off (coerce t) ; {-# INLINE unsafeWriteLayerByteOff #-}
+unsafeReadLayerByteOff  :: forall layer comp layout m. (Layer comp layer layout, MonadIO m) => Int -> Component comp layout -> m (LayerData comp layer layout)
+unsafeWriteLayerByteOff :: forall layer comp layout m. (Layer comp layer layout, MonadIO m) => Int -> Component comp layout ->   (LayerData comp layer layout) -> m ()
+unsafeReadLayerByteOff  !off !t = peekLayerByteOff @layer @comp @layout off (coerce t) ; {-# INLINE unsafeReadLayerByteOff  #-}
+unsafeWriteLayerByteOff !off !t = pokeLayerByteOff @layer @comp @layout off (coerce t) ; {-# INLINE unsafeWriteLayerByteOff #-}
 
--- readLayer  :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg -> m (LayerData t layer cfg)
--- writeLayer :: forall layer t cfg m. (KnownLayer t layer, Layer t layer cfg, MonadIO m) => Component t cfg ->   (LayerData t layer cfg) -> m ()
+-- readLayer  :: forall layer t layout m. (KnownLayer t layer, Layer t layer layout, MonadIO m) => Component t layout -> m (LayerData t layer layout)
+-- writeLayer :: forall layer t layout m. (KnownLayer t layer, Layer t layer layout, MonadIO m) => Component t layout ->   (LayerData t layer layout) -> m ()
 -- readLayer  = unsafeReadLayerByteOff  @layer (layerOffset @t @layer) ; {-# INLINE readLayer  #-}
 -- writeLayer = unsafeWriteLayerByteOff @layer (layerOffset @t @layer) ; {-# INLINE writeLayer #-}
 
@@ -516,8 +516,8 @@ test_pm = do
 --     return ()
 --
 -- passRunTest :: IO ()
--- passRunTest = Pass.runPass (Pass.encodePassStateTEMP cfg) passTest where
---     cfg = Pass.PassConfig
+-- passRunTest = Pass.runPass (Pass.encodePassStateTEMP layout) passTest where
+--     layout = Pass.PassConfig
 --         $ Map.insert (someTypeRep @Terms)
 --           (Pass.ComponentInfo 7
 --               $ Map.insert (someTypeRep @Model)
@@ -558,8 +558,8 @@ test_pm = do
 --     State.evalT (go i) (TypeSet.insert (LayerLoc 0 :: LayerLoc Model) mempty)
 --     -- Ptr.free ptr
 
--- unsafeWriteLayerByteOff :: forall layer t cfg m. (Layer t layer cfg, MonadIO m) =>
---   Int -> Component t cfg ->   (LayerData t layer cfg) -> m ()
+-- unsafeWriteLayerByteOff :: forall layer t layout m. (Layer t layer layout, MonadIO m) =>
+--   Int -> Component t layout ->   (LayerData t layer layout) -> m ()
 
 -- readIO @Model
 

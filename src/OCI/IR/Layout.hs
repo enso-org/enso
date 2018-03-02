@@ -2,7 +2,9 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
 
-module OCI.IR.Layout where
+module OCI.IR.Layout (module X) where
+
+import qualified OCI.IR.Layout2 as X
 
 import Prologue hiding (Type)
 import qualified Prologue as P
