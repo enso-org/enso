@@ -20,14 +20,14 @@ import qualified Type.Data.Set as Set
 
 --
 -- L1 = Layout $ 'Map
---   '[ Model := Draft -< [...]
---    , Type  := Value -< [...]
+--   '[ Model := Draft -< Layout [...]
+--    , Type  := Value -< Layout [...]
 --    ]
 --
 -- B1 = Branch Model L1
 -- >> Draft -< [...]
 --
--- Base B1
+-- BranchBase B1
 -- >> Draft
 --
 -- Children B1
@@ -58,6 +58,11 @@ type family Branch    key layout
 type family DefBranch key
 
 
+-- === Utils === --
+
+type EmptyLayout = Layout Map.Empty
+
+
 -- === Instances === --
 
 type instance Branch t (Layout s) = FromMaybe (DefBranch t) (s !? t)
@@ -77,24 +82,29 @@ data BranchLayout (a :: Type) (b :: Type)
 
 -- === API === --
 
-type family Base     layout
+type family BranchBase     layout
 type family Children layout
 type family Rebase   newBase layout
 
 
 -- === Instances === --
 
-type instance Base       (a -< _) = a
+type instance BranchBase       (a -< _) = a
 type instance Children   (_ -< b) = b
 type instance Rebase   a (_ -< b) = a -< b
 
+
+-- === Utils === --
+
+type EmptyBranch a = a -< EmptyLayout
 
 
 -------------------
 -- === Utils === --
 -------------------
 
-type SubLayout key layout = Children (Branch key layout)
+type SubLayout key layout = Children   (Branch key layout)
+type Base      key layout = BranchBase (Branch key layout)
 
 
 --------------------
