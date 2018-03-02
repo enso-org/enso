@@ -6,7 +6,8 @@ packages:
 - {location: .}
 - {location: ../core}
 - {location: ../stdlib}
-- {location: ../syntax/text}
+- {location: ../syntax/text/parser}
+- {location: ../syntax/text/lexer}
 - extra-dep: true
   location: {commit: 61ff909efd466735cd4820f9ab2c564e324b5546, git: 'https://github.com/luna/container.git'}
 - extra-dep: true
@@ -40,8 +41,6 @@ packages:
 - extra-dep: true
   location: {commit: 107db9368e95e192d70c0dec274ecfe3592101d2, git: 'https://github.com/luna/typelevel.git'}
 - extra-dep: true
-  location: {commit: a6afda3b96efe00938aba61ac12a2f5f2134ff3d, git: 'https://github.com/luna/data-construction.git'}
-- extra-dep: true
   location: {commit: b5f02ced2912501d923c07950789fbcf44a6a9ce, git: 'https://github.com/luna/data-prop.git'}
 - extra-dep: true
   location: {commit: 4f5153aed4944317942ff9025c79f7fc3be85181, git: 'https://github.com/luna/data-rtuple.git'}
@@ -51,4 +50,16 @@ packages:
   location: {commit: ddfcd1e0372b93e947b380b911c123fe67227b21, git: 'https://github.com/luna/visualization-api.git'}
 - extra-dep: true
   location: {commit: e63e373d67cd8dd7c179a618f5d32f6ffb3abdd3, git: 'https://github.com/luna/monoid'}
-resolver: lts-8.2
+- extra-dep: true
+  location: {commit: fe9834f3f5583086d76b12779a1c2a5290c72b0d, git: 'https://github.com/luna/text-processing'}
+- extra-dep: true
+  location: {commit: cbcd88c87e8888ebfeacd258cca96b3d6d489d35, git: 'https://github.com/luna/parsert'}
+- extra-dep: true
+  location: {commit: ed546316cdd896467276913a45073a0cb9e447b2, git: 'https://github.com/luna/vector-text'}
+- extra-dep: true
+  location: {commit: a7f6158465aaa9998fcb094d74906f608ce385c5, git: 'https://github.com/luna/terminal-text'}
+- extra-dep: true
+  location: {commit: c75acefee30d1c853da7e651c358d72b60386a07, git: 'https://github.com/luna/layouting'}
+- extra-dep: true
+  location: {commit: 7c7a6d657e7db8c3dcd80fbed0a7e02e02f43ae3, git: 'https://github.com/luna/monad-branch'}
+resolver: lts-8.16
