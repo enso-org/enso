@@ -2,16 +2,18 @@ module OCI.Pass.Manager where
 
 import Prologue
 
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Map.Strict             as Map
+import qualified Data.Set                    as Set
+import qualified OCI.IR.Layer                as Layer
+
+import Control.Lens                (at)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
+import OCI.IR.Layer                (Layer)
 
-import qualified Control.Monad.State.Layered as State
-import qualified Data.Map.Strict             as Map
-import qualified Data.Set                    as Set
-
-import Control.Lens (at)
 
 ---------------------------
 -- === ComponentInfo === --
@@ -20,10 +22,12 @@ import Control.Lens (at)
 -- === Definition === --
 
 data ComponentInfo = ComponentInfo
-    { _layers :: Map SomeTypeRep LayerInfo
+    { _layers :: !(Map SomeTypeRep LayerInfo)
     } deriving (Show)
 
-data LayerInfo = LayerInfo deriving (Show)
+data LayerInfo = LayerInfo
+    { _byteSize :: !Int
+    } deriving (Show)
 
 instance Default ComponentInfo where
     def = ComponentInfo def ; {-# INLINE def #-}
@@ -89,21 +93,21 @@ registerComponentRep comp = State.modifyM_ @State $ \m -> do
     return $ m & components %~ Map.insert comp def
 {-# INLINE registerComponentRep #-}
 
-registerPrimLayerRep :: MonadPassManager m => SomeTypeRep -> SomeTypeRep -> m ()
-registerPrimLayerRep comp layer = State.modifyM_ @State $ \m -> do
+registerPrimLayerRep :: MonadPassManager m => Int -> SomeTypeRep -> SomeTypeRep -> m ()
+registerPrimLayerRep s comp layer = State.modifyM_ @State $ \m -> do
     components' <- flip (at comp) (m ^. components) $ \case
         Nothing       -> throw $ MissingComponent comp
         Just compInfo -> do
             when_ (Map.member layer $ compInfo ^. layers) $
                 throw $ DuplicateLayer comp layer
-            return $ Just $ compInfo & layers %~ Map.insert layer LayerInfo
+            return $ Just $ compInfo & layers %~ Map.insert layer (LayerInfo s)
     return $ m & components .~ components'
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadPassManager m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
-registerPrimLayer = registerPrimLayerRep (someTypeRep @comp) (someTypeRep @layer) ; {-# INLINE registerPrimLayer #-}
+registerPrimLayer = registerPrimLayerRep (Layer.byteSize @comp @layer) (someTypeRep @comp) (someTypeRep @layer) ; {-# INLINE registerPrimLayer #-}
 
 
 -- === Instances === --
