@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeInType      #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE GADTs      #-}
+{-# LANGUAGE CPP      #-}
 
 module Luna.IR.Term.Basic where
 
@@ -9,6 +10,7 @@ import Prologue
 import Foreign.Ptr            (Ptr, castPtr, plusPtr)
 import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
+import qualified Foreign.Storable as Storable
 
 import qualified Foreign            as Ptr
 import qualified Data.Graph as Graph
@@ -94,7 +96,11 @@ data UniCons a
 type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
 
-
+--
+-- x :: Term '[Model := Draft, Type := Value]
+--
+-- match x of
+--     Acc l r -> ... (l :: Link )
 -- defineTermConses [|
 -- data Var a = Var { name :: Int                     }
 -- data Acc a = Acc { base :: Link a , name :: Link a }
@@ -136,12 +142,12 @@ instance HasLinks (ConsAcc a) where
 type family Layer     comp layer        :: Type -> Type
 type family LayerView comp layer layout :: Type -> Type
 
-type SomeLayerView comp layer layout = LayerView     comp layer layout ()
-type SomeLayerData comp layer layout = LayerDataCons comp layer layout ()
-type LayerData     comp layer layout
-   = LayerDataCons comp layer layout (Layout.SubLayout layer layout)
-type LayerDataCons comp layer layout
-   = LayerView     comp layer        (Layout.Base      layer layout)
+type Layer'        comp layer        = Layer         comp layer        ()
+type LayerView'    comp layer layout = LayerView     comp layer layout ()
+type LayerData'    comp layer layout = LayerDataCons comp layer layout ()
+type LayerData     comp layer layout = LayerDataCons comp layer layout layout -- (Layout.SubLayout layer layout)
+type LayerDataCons comp layer layout = LayerView     comp layer
+                                                     (Layout.Base layer layout)
 
 
 
@@ -150,20 +156,20 @@ type LayerDataCons comp layer layout
 type StorableLayer comp layer layout
    = StorableLayerView comp layer (Layout.Base layer layout)
 
-class Storable (SomeLayerView comp layer layout)
+class Storable (LayerView' comp layer layout)
    => StorableLayerView comp layer layout where
-    peekLayerViewIO :: SomePtr -> IO (SomeLayerView comp layer layout)
-    pokeLayerViewIO :: SomePtr -> SomeLayerView comp layer layout -> IO ()
+    peekLayerViewIO :: SomePtr -> IO (LayerView' comp layer layout)
+    pokeLayerViewIO :: SomePtr -> LayerView' comp layer layout -> IO ()
 
     default peekLayerViewIO :: AutoStorableLayerView comp layer layout
-                    => SomePtr -> IO (SomeLayerView comp layer layout)
+                    => SomePtr -> IO (LayerView' comp layer layout)
     default pokeLayerViewIO :: AutoStorableLayerView comp layer layout
-                    => SomePtr -> SomeLayerView comp layer layout -> IO ()
+                    => SomePtr -> LayerView' comp layer layout -> IO ()
     peekLayerViewIO = autoPeekLayerViewIO @comp @layer @layout; {-# INLINE peekLayerViewIO #-}
     pokeLayerViewIO = autoPokeLayerViewIO @comp @layer @layout; {-# INLINE pokeLayerViewIO #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( Storable (SomeLayerView comp layer layout)
+    ( Storable (LayerView' comp layer layout)
     , AutoStorableLayerView comp layer layout
     ) => StorableLayerView comp layer layout
 
@@ -184,50 +190,56 @@ type IsLayerFullView comp layer layout
    = (Layer comp layer != LayerView comp layer layout)
 
 class AutoStorableLayerView__ (skipCons :: Bool) comp layer layout where
-    autoPeekLayerViewIO__ :: SomePtr -> IO (SomeLayerView comp layer layout)
-    autoPokeLayerViewIO__ :: SomePtr -> SomeLayerView comp layer layout -> IO ()
+    autoPeekLayerViewIO__ :: SomePtr -> IO (LayerView' comp layer layout)
+    autoPokeLayerViewIO__ :: SomePtr -> LayerView' comp layer layout -> IO ()
 
-instance Storable (SomeLayerView comp layer layout)
+instance Storable (LayerView' comp layer layout)
       => AutoStorableLayerView__ 'True comp layer layout where
     autoPeekLayerViewIO__ !ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE autoPeekLayerViewIO__ #-}
     autoPokeLayerViewIO__ !ptr = poke (ptr `plusPtr` constructorSize) ; {-# INLINE autoPokeLayerViewIO__ #-}
 
-instance Storable (SomeLayerView comp layer layout)
+instance Storable (LayerView' comp layer layout)
       => AutoStorableLayerView__ 'False comp layer layout where
     autoPeekLayerViewIO__ !ptr = peek (coerce ptr) ; {-# INLINE autoPeekLayerViewIO__ #-}
     autoPokeLayerViewIO__ !ptr = poke (coerce ptr) ; {-# INLINE autoPokeLayerViewIO__ #-}
 
 autoPeekLayerViewIO :: ∀ c l s. AutoStorableLayerView c l s
-                    => SomePtr -> IO (SomeLayerView c l s)
+                    => SomePtr -> IO (LayerView' c l s)
 autoPeekLayerViewIO = autoPeekLayerViewIO__ @(IsLayerFullView c l s) @c @l @s ; {-# INLINE autoPeekLayerViewIO #-}
 
 autoPokeLayerViewIO :: ∀ c l s. AutoStorableLayerView c l s
-                    => SomePtr -> SomeLayerView c l s -> IO ()
+                    => SomePtr -> LayerView' c l s -> IO ()
 autoPokeLayerViewIO = autoPokeLayerViewIO__ @(IsLayerFullView c l s) @c @l @s ; {-# INLINE autoPokeLayerViewIO #-}
 
 
 
 -- === API === --
 
-peekSomeLayer :: ∀ comp layer layout m. (StorableLayer comp layer layout, MonadIO m) => SomePtr -> m (SomeLayerData comp layer layout)
-pokeSomeLayer :: ∀ comp layer layout m. (StorableLayer comp layer layout, MonadIO m) => SomePtr -> (SomeLayerData comp layer layout) -> m ()
-peekSomeLayer !ptr    = liftIO $ peekLayerViewIO @comp @layer @(Layout.Base layer layout) ptr   ; {-# INLINE peekSomeLayer #-}
-pokeSomeLayer !ptr !v = liftIO $ pokeLayerViewIO @comp @layer @(Layout.Base layer layout) ptr v ; {-# INLINE pokeSomeLayer #-}
+layerSize :: ∀ comp layer. Storable (Layer' comp layer) => Int
+layerSize = Storable.sizeOf (undefined :: Layer' comp layer) ; {-# INLINE layerSize #-}
 
-peekLayer :: ∀ comp layer layout m. (StorableLayer comp layer layout, MonadIO m) => SomePtr -> m (LayerData comp layer layout)
-pokeLayer :: ∀ comp layer layout m. (StorableLayer comp layer layout, MonadIO m) => SomePtr -> (LayerData comp layer layout) -> m ()
-peekLayer !ptr    = fmap unsafeCoerce $ peekSomeLayer @comp @layer @layout ptr ; {-# INLINE peekLayer #-}
-pokeLayer !ptr !v = pokeSomeLayer @comp @layer @layout ptr (unsafeCoerce v)    ; {-# INLINE pokeLayer #-}
 
-peekLayerByteOff :: ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m) => Int -> SomePtr -> m (LayerData comp layer layout)
-pokeLayerByteOff :: ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m) => Int -> SomePtr ->   (LayerData comp layer layout) -> m ()
-peekLayerByteOff !off !ptr      = peekLayer @comp @layer @layout (ptr `plusPtr` off)     ; {-# INLINE peekLayerByteOff #-}
-pokeLayerByteOff !off !ptr !val = pokeLayer @comp @layer @layout (ptr `plusPtr` off) val ; {-# INLINE pokeLayerByteOff #-}
+#define LayerCtx ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)
 
-unsafeReadLayerByteOff  :: ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m) => Int -> Component comp layout -> m (LayerData comp layer layout)
-unsafeWriteLayerByteOff :: ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m) => Int -> Component comp layout ->   (LayerData comp layer layout) -> m ()
-unsafeReadLayerByteOff  !off !t = peekLayerByteOff @layer @comp @layout off (coerce t) ; {-# INLINE unsafeReadLayerByteOff  #-}
-unsafeWriteLayerByteOff !off !t = pokeLayerByteOff @layer @comp @layout off (coerce t) ; {-# INLINE unsafeWriteLayerByteOff #-}
+peekSomeLayer :: LayerCtx => SomePtr -> m (LayerData' comp layer layout)
+pokeSomeLayer :: LayerCtx => SomePtr -> (LayerData' comp layer layout) -> m ()
+peekSomeLayer = liftIO .  peekLayerViewIO @comp @layer @(Layout.Base layer layout) ; {-# INLINE peekSomeLayer #-}
+pokeSomeLayer = liftIO .: pokeLayerViewIO @comp @layer @(Layout.Base layer layout) ; {-# INLINE pokeSomeLayer #-}
+
+peekLayer :: LayerCtx => SomePtr -> m (LayerData comp layer layout)
+pokeLayer :: LayerCtx => SomePtr ->   (LayerData comp layer layout) -> m ()
+peekLayer !ptr    = fmap unsafeCoerce $ peekSomeLayer @layer @comp @layout ptr ; {-# INLINE peekLayer #-}
+pokeLayer !ptr !v = pokeSomeLayer @layer @comp @layout ptr (unsafeCoerce v)    ; {-# INLINE pokeLayer #-}
+
+peekLayerByteOff :: LayerCtx => Int -> SomePtr -> m (LayerData comp layer layout)
+pokeLayerByteOff :: LayerCtx => Int -> SomePtr ->   (LayerData comp layer layout) -> m ()
+peekLayerByteOff !d !ptr = peekLayer @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE peekLayerByteOff #-}
+pokeLayerByteOff !d !ptr = pokeLayer @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE pokeLayerByteOff #-}
+
+unsafeReadLayerByteOff  :: LayerCtx => Int -> Component comp layout -> m (LayerData comp layer layout)
+unsafeWriteLayerByteOff :: LayerCtx => Int -> Component comp layout ->   (LayerData comp layer layout) -> m ()
+unsafeReadLayerByteOff  !d = peekLayerByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadLayerByteOff  #-}
+unsafeWriteLayerByteOff !d = pokeLayerByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteLayerByteOff #-}
 
 -- readLayer  :: forall layer t layout m. (KnownLayer t layer, Layer t layer layout, MonadIO m) => Component t layout -> m (LayerView t layer layout)
 -- writeLayer :: forall layer t layout m. (KnownLayer t layer, Layer t layer layout, MonadIO m) => Component t layout ->   (LayerView t layer layout) -> m ()
@@ -281,7 +293,7 @@ type instance LayerView Terms Model (Format   f) = UniCons
 type instance LayerView Terms Model (TermCons f) = TermConsDef (TermCons f)
 
 -- instance StorableLayerView Terms Model (Format f)
--- instance Storable (SomeLayerView Terms Model (TermCons f))
+-- instance Storable (LayerView' Terms Model (TermCons f))
 --     => StorableLayerView Terms Model (TermCons f) where
 --     peekLayerViewIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE peekLayerViewIO #-}
 
