@@ -19,13 +19,6 @@ void c_map_insert(long key, long elem, void *ptr) {
     to_map(ptr)->insert(std::pair<long, long>(key, elem));
 }
 
-void c_map_insert_many(long *keys, long *elems, long n, void *ptr) {
-    auto m = to_map(ptr);
-    for (long i = 0; i < n; ++i) {
-        m->insert(std::pair<long, long>(keys[i], elems[i]));
-    }
-}
-
 long c_map_member(long elem, void *ptr) {
     auto m = to_map(ptr);
     return (m->find(elem) != m->end()) ? 1 : 0;

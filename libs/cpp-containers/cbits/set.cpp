@@ -18,12 +18,6 @@ void c_set_insert(long elem, void *ptr) {
     to_set(ptr)->insert(elem);
 }
 
-void c_set_insert_many(long *elems, long n, void *ptr) {
-    auto s = to_set(ptr);
-    for (long i = 0; i < n; ++i)
-        s->insert(elems[i]);
-}
-
 long c_set_member(long elem, void *ptr) {
     auto s = to_set(ptr);
     return (s->find(elem) != s->end()) ? 1 : 0;

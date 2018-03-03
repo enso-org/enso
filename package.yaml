@@ -33,7 +33,7 @@ library:
     - libs/cpp-containers/cbits
     - libs/memory-manager/cbits
   extra-libraries: stdc++
-  cc-options:      -std=c++17
+  cc-options:      -std=c++17 -O2
 
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
