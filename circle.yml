@@ -7,16 +7,16 @@ dependencies:
         - curl -L https://github.com/commercialhaskell/stack/releases/download/v1.6.5/stack-1.6.5-linux-x86_64.tar.gz | tar zx -C /tmp
         - sudo mv /tmp/stack-1.6.5-linux-x86_64/stack /usr/bin
     override:
-        - stack build --stack-yaml stack.yaml --only-dependencies --fast --install-ghc --test --ghc-options="-O0"
+        - /usr/bin/stack build --stack-yaml stack.yaml --only-dependencies --fast --install-ghc --test --ghc-options="-O0"
     # cache_directories:
         # - "~/.stack"
         # - ".stack-work"
 
 compile:
     override:
-        - stack build --stack-yaml stack.yaml --fast --test --no-run-tests --no-run-benchmarks --ghc-options="-j2 -O0"
+        - /usr/bin/stack build --stack-yaml stack.yaml --fast --test --no-run-tests --no-run-benchmarks --ghc-options="-j2 -O0"
 
 test:
     override:
         #- if [ "$CIRCLE_BRANCH" == "master" ]; then ~/.local/bin/hlint -XTypeApplications -XRecursiveDo .; fi
-        - stack build --stack-yaml stack.yaml --fast --test
+        - /usr/bin/stack build --stack-yaml stack.yaml --fast --test
