@@ -13,14 +13,13 @@ ghc-options:
         -funbox-strict-fields
         -O0
         -fconstraint-solver-iterations=100
-local-bin-path:
-  ../dist/bin/public/luna
+local-bin-path: ../dist/bin/public/luna
 packages:
-- {location: ./shell}
-- {location: ./core}
-- {location: ./passes}
-- {location: ./stdlib}
-- {location: ./project}
-- {location: ./syntax/text/parser}
-- {location: ./syntax/text/lexer}
+    - {location: ./shell}
+    - {location: ./core}
+    - {location: ./passes}
+    - {location: ./stdlib}
+    - {location: ./project}
+    - {location: ./syntax/text/parser}
+    - {location: ./syntax/text/lexer}
 resolver: ./build/luna-snapshot.yaml

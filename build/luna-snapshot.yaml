@@ -17,14 +17,14 @@ packages:
     - path-0.6.1
     - git: 'https://github.com/luna/container.git'
       commit: 61ff909efd466735cd4820f9ab2c564e324b5546
-    - git: 'https://github.com/luna/data-pool.git'
-      commit: 4cc75aeb82ad2885427211a1be9cb0c7d9582c01
     - git: 'https://github.com/luna/convert.git'
       commit: b84f6fcc7b466760327b1d0f2e7150d9f78dfdc6
     - git: 'https://github.com/luna/data-base.git'
       commit: a81f2eb37b0bddbc3391c8a29860b921aa94f3c8
     - git: 'https://github.com/luna/data-construction.git'
       commit: a6afda3b96efe00938aba61ac12a2f5f2134ff3d
+    - git: 'https://github.com/luna/data-pool.git'
+      commit: 4cc75aeb82ad2885427211a1be9cb0c7d9582c01
     - git: 'https://github.com/luna/data-layer.git'
       commit: 8a5773adba33d71a311ba0b4123b744213b0be91
     - git: 'https://github.com/luna/data-repr.git'

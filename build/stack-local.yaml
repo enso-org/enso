@@ -1,0 +1,52 @@
+ghc-options:
+    $locals:
+        -DFastCompilation
+        -fenable-rewrite-rules
+        -threaded
+        -funbox-strict-fields
+        -O0
+        -fconstraint-solver-iterations=100
+    $everything:
+        -DFastCompilation
+        -fenable-rewrite-rules
+        -threaded
+        -funbox-strict-fields
+        -O0
+        -fconstraint-solver-iterations=100
+local-bin-path: ../dist/bin/public/luna
+packages:
+    - {location: ./shell}
+    - {location: ./core}
+    - {location: ./passes}
+    - {location: ./stdlib}
+    - {location: ./project}
+    - {location: ./syntax/text/parser}
+    - {location: ./syntax/text/lexer}
+    - ../libs/container
+    - ../libs/convert
+    - ../libs/data-base
+    - ../libs/data-construction
+    - ../libs/data-pool
+    - ../libs/data-layer
+    - ../libs/data-repr
+    - ../libs/data-result
+    - ../libs/dependent-state
+    - ../libs/functor-utils
+    - ../libs/impossible
+    - ../libs/lens-utils
+    - ../libs/poly-control
+    - ../libs/prologue
+    - ../libs/type-cache
+    - ../libs/typelevel
+    - ../libs/data-prop
+    - ../libs/data-rtuple
+    - ../libs/data-shell
+    - ../libs/visualisation-api
+    - ../libs/monoid
+    - ../libs/text-processing
+    - ../libs/parsert
+    - ../libs/vector-text
+    - ../libs/terminal-text
+    - ../libs/layouting
+    - ../libs/monad-branch
+resolver: ./build/luna-snapshot.yaml

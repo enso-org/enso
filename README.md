@@ -64,8 +64,8 @@ your `luna` repo is already cloned and we will refer to its location as
 `$LUNA_REPO_PATH`.
 
 ```
-$ cd $LUNA_REPO_PATH/shell
-$ stack install
+cd $LUNA_REPO_PATH
+stack install
 ```
 
 Note that the executable for the compiler will be located in 
@@ -77,6 +77,43 @@ tinkering with it, which requires frequent rebuilds), you may consider adding
 `--ghc-options="-O2 -j4"` to the stack install command. This should make the 
 Luna compiler run considerably faster, at the cost of longer build times for 
 building it.
+
+#### Building Luna Components
+It is also possible to build and test each component of Luna (e.g. core, parser)
+separately. To do this, pick the component you want from the following list, and
+then execute the following command:
+
+```
+stack build <component>
+stack test <component>
+```
+
+Where `<component>` is one of the following:
+
+- `luna-core` (found in `$LUNA_REPO_PATH/core`)
+- `lune-passes` (found in `$LUNA_REPO_PATH/passes`)
+- `luna-project` (found in `$LUNA_REPO_PATH/project`)
+- `luna-shell` (found in `$LUNA_REPO_PATH/shell`)
+- `luna-stdlib` (found in `$LUNA_REPO_PATH/stdlib`)
+- `luna-lexer` (found in `$LUNA_REPO_PATH/syntax/text/lexer`)
+- `luna-parser` (found in `$LUNA_REPO_PATH/syntax/text/parser`)
+
+#### Developing with Local Libraries
+If you are hacking on the libraries that Luna uses, you'll want to be building
+Luna using your local copies of these libraries. These libraries should have
+their standard names and be located in the following path:
+
+```
+$LUNA_REPO_PATH/../libs/
+```
+
+If your libraries are located in this path, you can use the local development 
+stack `.yaml` file located in `build/stack-local.yaml` to build and test your
+version of Luna as follows:
+
+```
+stack build --stack-yaml build/stack-local.yaml1
+```
 
 ### Running Luna
 As a prerequisite, you need to set a `LUNA_HOME` variable to point to the 
