@@ -18,7 +18,7 @@ dependencies:
     - dependent-state
     - directory
     - luna-core
-    - luna-syntax-text-parser
+    - luna-parser
     - mtl
     - transformers
     - filepath

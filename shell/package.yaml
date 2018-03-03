@@ -12,8 +12,8 @@ executables:
       - base
       - luna-core
       - luna-project
-      - luna-syntax-text-lexer
-      - luna-syntax-text-parser
+      - luna-lexer
+      - luna-parser
       - luna-passes
       - containers
       - mtl
@@ -29,8 +29,8 @@ executables:
       - layouting
       - luna-core
       - luna-project
-      - luna-syntax-text-lexer
-      - luna-syntax-text-parser
+      - luna-lexer
+      - luna-parser
       - luna-passes
       - luna-stdlib
       - open-browser

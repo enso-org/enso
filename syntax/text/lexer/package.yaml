@@ -1,4 +1,4 @@
-name:       luna-syntax-text-lexer
+name:       luna-lexer
 version:    "0.2"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
