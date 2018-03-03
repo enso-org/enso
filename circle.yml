@@ -8,9 +8,9 @@ dependencies:
         - sudo mv /tmp/stack-1.6.5-linux-x86_64/stack /usr/bin
     override:
         - /usr/bin/stack build --stack-yaml stack.yaml --only-dependencies --fast --install-ghc --test --ghc-options="-O0"
-    # cache_directories:
-        # - "~/.stack"
-        # - ".stack-work"
+    cache_directories:
+        - "~/.stack"
+        - ".stack-work"
 
 compile:
     override:
