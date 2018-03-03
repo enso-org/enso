@@ -52,8 +52,7 @@ instance ( ElemSetter s ts
 
 
 
-
-
 -- === Instances === --
 
-deriving instance Show (TypeMapData ts) => Show (TypeMap ts)
+deriving instance Show    (TypeMapData ts) => Show    (TypeMap ts)
+deriving instance Default (TypeMapData ts) => Default (TypeMap ts)

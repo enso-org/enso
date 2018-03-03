@@ -140,6 +140,21 @@ genIxElemSetters = return decls where
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
+genDefaultInstances :: Q [Dec]
+genDefaultInstances = return decls where
+    genDecl tupLen = decl where
+        ns     = unsafeGenNamesTN tupLen
+        tvs    = var <$> ns
+        header = apps (cons' "Default") [tup tvs]
+        fun    = FunD "def" [ TH.Clause []
+                 (NormalB (tup $ replicate tupLen "def")) []]
+        prag   = PragmaD (InlineP "def" Inline FunLike AllPhases)
+        ctx    = app (cons' "Default") <$> tvs
+        decl   = InstanceD Nothing ctx header [fun, prag]
+    decls = genDecl <$> [0.._MAX_TUPLE_SIZE]
+
+-- >> instance IxElemSetter 0 (T3 t1 t2 t3) where
+-- >>     setElemAt v (T3 !t1 !t2 !t3) = T3 v t2 t3 ; {-# INLINE setElemAt #-}
 
 genIntTupleIxElemGetters :: Q [Dec]
 genIntTupleIxElemGetters = return decls where

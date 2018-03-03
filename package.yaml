@@ -3,7 +3,9 @@ bug-reports: https://github.com/wdanilo/luna-core/issues
 category: Data
 copyright: Copyright (C) 2018 Luna Team
 
-extra-source-files: libs/cpp-containers/cbits/*
+extra-source-files:
+- libs/cpp-containers/cbits/*
+- libs/memory-manager/cbits/*
 
 ghc-options: [-Wall, -O2]
 homepage: https://github.com/wdanilo/luna-core
@@ -15,6 +17,7 @@ library:
     - libs/mutable-list
     - libs/autovector
     - libs/graph
+    - libs/memory-manager
     - libs/memory-pool
     - libs/data-tag
     - libs/typelevel
@@ -22,10 +25,15 @@ library:
     - libs/data-typemap
     - libs/th-builder
     - libs/tuple-utils
-  c-sources:       libs/cpp-containers/cbits/*.cpp
-  include-dirs:    libs/cpp-containers/cbits
+    - libs/exception
+  c-sources:
+    - libs/cpp-containers/cbits/*.cpp
+    - libs/memory-manager/cbits/*.cpp
+  include-dirs:
+    - libs/cpp-containers/cbits
+    - libs/memory-manager/cbits
   extra-libraries: stdc++
-  cc-options:      -std=c++11 -O2
+  cc-options:      -std=c++17 -O2
 
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
@@ -55,6 +63,8 @@ dependencies:
     - layered-state
     - monad-branch
     - random
+    - transformers
+    - lens
 
 benchmarks:
   array-benchmark:
