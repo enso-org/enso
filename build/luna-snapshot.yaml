@@ -6,10 +6,10 @@ packages:
     - ghc-mtl-1.2.1.0
     - serialport-0.4.7
     - hspec-jenkins-0.1.1
-    - hspec-2.2.4
-    - hspec-core-2.2.4
-    - hspec-discover-2.2.4
-    - hspec-expectations-0.7.2
+    # - hspec-2.2.4
+    # - hspec-core-2.2.4
+    # - hspec-discover-2.2.4
+    # - hspec-expectations-0.7.2
     - HUnit-1.3.1.2
     - containers-0.5.8.2
     - ansi-terminal-0.6.3.1
@@ -18,7 +18,7 @@ packages:
     - git: 'https://github.com/luna/container.git'
       commit: 61ff909efd466735cd4820f9ab2c564e324b5546
     - git: 'https://github.com/luna/convert.git'
-      commit: b84f6fcc7b466760327b1d0f2e7150d9f78dfdc6
+      commit: 5d7acbac13a9131c26baa2da27ef6f76f329e019
     - git: 'https://github.com/luna/data-base.git'
       commit: a81f2eb37b0bddbc3391c8a29860b921aa94f3c8
     - git: 'https://github.com/luna/data-construction.git'
@@ -62,7 +62,7 @@ packages:
     - git: 'https://github.com/luna/parsert'
       commit: cbcd88c87e8888ebfeacd258cca96b3d6d489d35
     - git: 'https://github.com/luna/vector-text'
-      commit: ed546316cdd896467276913a45073a0cb9e447b2
+      commit: 538138470bde297bbf32f5e08d1fadfdcc22b328
     - git: 'https://github.com/luna/terminal-text'
       commit: a7f6158465aaa9998fcb094d74906f608ce385c5
     - git: 'https://github.com/luna/layouting'
