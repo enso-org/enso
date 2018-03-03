@@ -27,99 +27,102 @@ import qualified Type.Data.Set as Set
 -- B1 = Branch Model L1
 -- >> Draft -< [...]
 --
--- BranchBase B1
+-- GetBranchBase B1
 -- >> Draft
 --
 -- Children B1
 -- >> [...]
 --
-
-
---------------------------
--- === Associations === --
---------------------------
-
--- data (:=) (a :: Type) (b :: Type)
-
-
-
---------------------
--- === Layout === --
---------------------
-
--- === Layouts === --
-
-data Layout (layout :: Map Type Type)
-
-
--- === API === --
-
-type family Branch    key layout
-type family DefBranch key
-
-
--- === Utils === --
-
-type EmptyLayout = Layout Map.Empty
-
-
--- === Instances === --
-
-type instance Branch t (Layout s) = FromMaybe (DefBranch t) (s !? t)
-
-
-
----------------------------
--- === Branch Layout === --
----------------------------
-
--- === Definition === --
-
-infixr 7 -<
-type (-<) = BranchLayout
-data BranchLayout (a :: Type) (b :: Type)
-
-
--- === API === --
-
-type family BranchBase     layout
-type family Children layout
-type family Rebase   newBase layout
-
-
--- === Instances === --
-
-type instance BranchBase       (a -< _) = a
-type instance Children   (_ -< b) = b
-type instance Rebase   a (_ -< b) = a -< b
-
-
--- === Utils === --
-
-type EmptyBranch a = a -< EmptyLayout
-
-
--------------------
--- === Utils === --
--------------------
-
-type SubLayout key layout = Children   (Branch key layout)
-type Base      key layout = BranchBase (Branch key layout)
-
-
---------------------
--- === Layout === --
---------------------
-
--- === Definition === --
-
-
-
-
-
-
-
--- === Instances === --
+--
+--
+-- --------------------------
+-- -- === Associations === --
+-- --------------------------
+--
+-- -- data (:=) (a :: Type) (b :: Type)
+--
+--
+--
+-- --------------------
+-- -- === Layout === --
+-- --------------------
+--
+-- -- === Layouts === --
+--
+-- data Layout (layout :: Map Type Type)
+--
+--
+-- -- === API === --
+--
+-- type family GetBranch key layout
+-- type family SetBranch key branch layout
+-- type family DefBranch key
+--
+--
+-- -- === Utils === --
+--
+-- type EmptyLayout = Layout Map.Empty
+--
+--
+-- -- === Instances === --
+--
+-- type instance GetBranch t   (Layout s) = FromMaybe (DefBranch t) (s !? t)
+-- type instance SetBranch t b (Layout s) = Layout (Map.Insert t b s)
+--
+--
+-- ---------------------------
+-- -- === Branch Layout === --
+-- ---------------------------
+--
+-- -- === Definition === --
+--
+-- infixr 7 -<
+-- type (-<) = BranchLayout
+-- data BranchLayout (a :: Type) (b :: Type)
+--
+--
+-- -- === API === --
+--
+-- type family GetBranchBase             layout
+-- type family SetBranchBase     newBase layout
+-- type family GetBranchChildren         layout
+--
+--
+-- -- === Instances === --
+--
+-- type instance GetBranchBase       (a -< _) = a
+-- type instance SetBranchBase     a (_ -< b) = a -< b
+-- type instance GetBranchChildren   (_ -< b) = b
+--
+--
+-- -- === Utils === --
+--
+-- type EmptyBranch a = a -< EmptyLayout
+--
+--
+-- -------------------
+-- -- === Utils === --
+-- -------------------
+--
+-- type SubLayout key layout = GetBranchChildren (GetBranch key layout)
+-- type Base      key layout = GetBranchBase     (GetBranch key layout)
+-- type Rebase    key base layout = SetBranch key (SetBranchBase base (GetBranch key layout)) layout
+--
+--
+--
+-- --------------------
+-- -- === Layout === --
+-- --------------------
+--
+-- -- === Definition === --
+--
+--
+--
+--
+--
+--
+--
+-- -- === Instances === --
 
 
 

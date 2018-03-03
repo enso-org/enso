@@ -38,7 +38,7 @@ import OCI.IR.Selector
 import qualified Data.TypeMap.Strict as TypeMap
 import qualified Data.Tuple.Strict as Tuple
 
-import qualified OCI.IR.Layout2 as Layout
+import qualified OCI.IR.Layout as Layout
 
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
@@ -61,6 +61,7 @@ type family SizeOf a :: Nat
 type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
 
 
+data Model
 
 
 ----------------
@@ -83,8 +84,8 @@ deriveStorable ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
-    { __base :: !SomeLink -- !(Link.Term Acc a)
-    , __name :: !SomeLink -- !(Link.Name Acc a)
+    { __base :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Term Acc a)
+    , __name :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 deriveStorable ''ConsAcc
@@ -97,7 +98,9 @@ type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
 
 --
--- x :: Term '[Model := Draft, Type := Value]
+-- x :: Term '[ Model := Draft -< '[Model := Value]
+--            , Type  := Value
+--            ]
 --
 -- match x of
 --     Acc l r -> ... (l :: Link )
@@ -107,10 +110,14 @@ deriveStorable ''UniCons
 -- |]
 
 
+-- Model, Argument, Model, Name ...
+--
+-- Type, Model,
+
+
 type instance TermConsOf (Tag t a) = TermConsDef (Tag t a) (Tag t a)
 
 
-data Model
 
 newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
@@ -147,14 +154,14 @@ type LayerView'    comp layer layout = LayerView     comp layer layout ()
 type LayerData'    comp layer layout = LayerDataCons comp layer layout ()
 type LayerData     comp layer layout = LayerDataCons comp layer layout layout -- (Layout.SubLayout layer layout)
 type LayerDataCons comp layer layout = LayerView     comp layer
-                                                     (Layout.Base layer layout)
+                                                     (Layout.GetBase layout)
 
 
 
 -- === Storable === --
 
 type StorableLayer comp layer layout
-   = StorableLayerView comp layer (Layout.Base layer layout)
+   = StorableLayerView comp layer (Layout.GetBase layout)
 
 class Storable (LayerView' comp layer layout)
    => StorableLayerView comp layer layout where
@@ -219,12 +226,13 @@ layerSize :: ∀ comp layer. Storable (Layer' comp layer) => Int
 layerSize = Storable.sizeOf (undefined :: Layer' comp layer) ; {-# INLINE layerSize #-}
 
 
-#define LayerCtx ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)
+#define LayerCtx ∀ layer comp layout m. ( StorableLayer comp layer layout \
+                                        , MonadIO m)
 
 peekSomeLayer :: LayerCtx => SomePtr -> m (LayerData' comp layer layout)
 pokeSomeLayer :: LayerCtx => SomePtr -> (LayerData' comp layer layout) -> m ()
-peekSomeLayer = liftIO .  peekLayerViewIO @comp @layer @(Layout.Base layer layout) ; {-# INLINE peekSomeLayer #-}
-pokeSomeLayer = liftIO .: pokeLayerViewIO @comp @layer @(Layout.Base layer layout) ; {-# INLINE pokeSomeLayer #-}
+peekSomeLayer = liftIO .  peekLayerViewIO @comp @layer @(Layout.GetBase layout) ; {-# INLINE peekSomeLayer #-}
+pokeSomeLayer = liftIO .: pokeLayerViewIO @comp @layer @(Layout.GetBase layout) ; {-# INLINE pokeSomeLayer #-}
 
 peekLayer :: LayerCtx => SomePtr -> m (LayerData comp layer layout)
 pokeLayer :: LayerCtx => SomePtr ->   (LayerData comp layer layout) -> m ()

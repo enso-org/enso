@@ -28,8 +28,8 @@ data LayerInfo = LayerInfo deriving (Show)
 instance Default ComponentInfo where
     def = ComponentInfo def ; {-# INLINE def #-}
 
-instance Default LayerInfo where
-    def = LayerInfo ; {-# INLINE def #-}
+-- instance Default LayerInfo where
+--     def = LayerInfo ; {-# INLINE def #-}
 
 
 makeLenses ''ComponentInfo
@@ -96,7 +96,7 @@ registerPrimLayerRep comp layer = State.modifyM_ @State $ \m -> do
         Just compInfo -> do
             when_ (Map.member layer $ compInfo ^. layers) $
                 throw $ DuplicateLayer comp layer
-            return $ Just $ compInfo & layers %~ Map.insert layer def
+            return $ Just $ compInfo & layers %~ Map.insert layer LayerInfo
     return $ m & components .~ components'
 {-# INLINE registerPrimLayerRep #-}
 

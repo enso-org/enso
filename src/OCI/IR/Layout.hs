@@ -2,95 +2,60 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
 
-module OCI.IR.Layout (module X) where
+module OCI.IR.Layout where
 
-import qualified OCI.IR.Layout2 as X
-
-import Prologue hiding (Type)
-import qualified Prologue as P
+import Prologue
 -- import Type.Data.Map
 import Type.Data.Property hiding (Set)
 import Type.Data.Maybe
 import Data.Tag
 import Type.Data.Ord
-
 -- import Type.Data.Set.Proxy (Set)
 import Type.Data.Set (Set)
+import Type.Data.Map (Map)
+import qualified Type.Data.Map as Map
 import qualified Type.Data.Set as Set
 
+
+
+-- L1 = Draft -< '[ Type    := ...
+--                , Name    := ...
+--                , SubTerm := ...
+--                ]
 
 
 --------------------
 -- === Layout === --
 --------------------
 
--- === Definition === --
+-- === Types === --
 
-data LAYOUT
-type LayoutTag = Tag LAYOUT
-
-
--- === Modification === --
-
-type family Base         layout
-type family Rebase       base   layout
-type family GetSublayout tp     layout
-type family DefLayout    tp
+type BranchMap = Map Type Type
 
 
+-- === Class === --
 
----------------------------
--- === Nested Layout === --
----------------------------
-
--- === Definition === --
-
-infixr 7 -<
-type a -< b = Nested a b
-data Nested (a :: P.Type) (b :: Set P.Type)
+type family GetBase     layout
+type family SetBase     base layout
+type family GetBranches layout :: BranchMap
+type family SetBranches (branches :: BranchMap) layout
+type family DefLayout   key
 
 
--- === Instances === --
-type instance Base           (a -< _) = a
-type instance Rebase       a (_ -< b) = Nested a b
-type instance GetSublayout t (_ -< b) = FromMaybe (DefLayout t) (b !? t)
+-- === API === --
+
+type SubLayout t layout = FromMaybe (DefLayout t) (GetBranches layout !? t)
 
 
 
---------------------------
--- === Associations === --
---------------------------
+--------------------
+-- === Nested === --
+--------------------
 
-data k := v
-type instance Cmp (k := _) (k' := _) = Cmp k k'
+data Nested base (branches :: BranchMap)
+type (-<) = Nested
 
-
-
---------------------------------
--- === Basic Layout Types === --
---------------------------------
-
--- === Definition === --
-
-data TERM; type Term = LayoutTag TERM
-data TYPE; type Type = LayoutTag TYPE
-data NAME; type Name = LayoutTag NAME
-
-defOrder [''Name, ''Type, ''Term]
-
--- === Utils === --
-
-type family SetSublayout k v l where
-    SetSublayout k v (a -< b) = a -< (Set.Insert (k := v) b)
-    SetSublayout k v a        = a -< (Set.Singleton (k := v))
-
-type l -*  t = SetSublayout Term t l
-type l -:: t = SetSublayout Type t l
-type l -#  t = SetSublayout Name t l
-
-
--------------------------
--- === Conversions === --
--------------------------
-
--- type family Coerce
+type instance GetBase       (a -< _) = a
+type instance SetBase     a (_ -< b) = a -< b
+type instance GetBranches   (_ -< b) = b
+type instance SetBranches b (a -< _) = a -< b
