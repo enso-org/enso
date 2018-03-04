@@ -138,7 +138,7 @@ type ComponentLayerLayout pass component
     = List.Map (LayerByteOffset component) (ComponentLayers pass component)
 
 type ComponentLayers pass component
-    = List.Append (Ins pass component) (Outs pass component)
+    = List.Unique (List.Append (Ins pass component) (Outs pass component))
 
 makeLenses ''PassState
 

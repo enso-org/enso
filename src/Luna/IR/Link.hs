@@ -12,10 +12,9 @@ import           OCI.IR.Conversion (generalize)
 -- === Link types === --
 ------------------------
 
-
-type Term t src = SubLink (Layout.Rebase t src) Layout.Term
-type Type t src = SubLink (Layout.Rebase t src) Layout.Type
-type Name t src = SubLink (Layout.Rebase t src) Layout.Name
+-- type Term t src = SubLink (Layout.Rebase t src) Layout.Term
+-- type Type t src = SubLink (Layout.Rebase t src) Layout.Type
+-- type Name t src = SubLink (Layout.Rebase t src) Layout.Name
 
 
 

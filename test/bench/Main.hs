@@ -33,6 +33,8 @@ import qualified Luna.IR.Test as TT
 import qualified  Data.TypeSet3 as TS3
 
 import qualified Test.Data.IntSet.Cpp as SetTest
+import qualified Test.MemoryManager as MManager
+import OCI.IR.Layout2 ()
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
@@ -47,13 +49,14 @@ main = do
     hSetBuffering stdout NoBuffering
     initializeTime
 
+    -- MManager.runBenchmarks
     Basic.test
     TS3.test
     print "---"
     Basic.passRunTest
 
-    let minExpVec = 8 :: Int
-        maxExpVec = 8 :: Int
+    let minExpVec = 7 :: Int
+        maxExpVec = 7 :: Int
         expSizes  = [minExpVec .. maxExpVec] :: [Int]
 
     defaultMain

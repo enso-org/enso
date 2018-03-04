@@ -5,7 +5,7 @@ import           Prelude
 
 import qualified Data.IntSet     as IntSet
 import qualified Data.IntSet.Cpp as CSet
-import           Data.IntSet.Cpp (StdSet, RawSetPtr, withStdSet, withStdSet')
+import           Data.IntSet.Cpp (StdSet, RawSetPtr, withStdSet, mapStdSet)
 
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
@@ -62,11 +62,11 @@ testInsertAndLookupCSet n = do
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
     s  <- CSet.empty
-    let go  !(x:xs) = (CSet.insert x s) >> go xs
+    let go  !(x:xs) = (CSet.insert s x) >> go xs
         go  ![]     = return ()
 
         go2 !sm !(x:xs) = do
-                mem <- CSet.member x s
+                mem <- CSet.member s x
                 go2 (sm + (if mem then 1 else 0)) xs
         go2 !sm ![] = return sm
 
@@ -76,12 +76,12 @@ testInsertAndLookupCSet n = do
 testInsertLookupOrderedCSet :: Int -> IO Int
 testInsertLookupOrderedCSet n = do
     s <- CSet.empty
-    let go !x = if x < n then (CSet.insert x s) >> go (x + 1) else return ()
+    let go !x = if x < n then (CSet.insert s x) >> go (x + 1) else return ()
     go 0
 
     let go2 !x !sm = if x < n
         then do
-            m <- CSet.member (n - 1) s
+            m <- CSet.member s (n - 1)
             go2 (x + 1) $ sm + (if m then 1 else 0)
         else return sm
 
@@ -92,10 +92,10 @@ testInsertAndLookupForeignSet n = do
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
     s <- CSet.empty
-    withStdSet' (\ptrSet ->
+    withStdSet s (\ptrSet ->
         withArrayLen rndm  (\n1 ptrInsert ->
         withArrayLen rndm2 (\n2 ptrIdx    ->
-            c_set_testInsertAndLookup ptrInsert n1 ptrIdx n2 ptrSet))) s
+            c_set_testInsertAndLookup ptrInsert n1 ptrIdx n2 ptrSet)))
 
 testInsertLookupOrderedForeignSet :: Int -> IO Int
 testInsertLookupOrderedForeignSet n = c_set_testInsertLookupOrdered n
