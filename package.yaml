@@ -48,6 +48,7 @@ dependencies:
     - data-default
     - deepseq
     - functor-utils
+    - lens
     - lens-utils
     - monoid
     - primitive

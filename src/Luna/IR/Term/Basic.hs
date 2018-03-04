@@ -50,6 +50,8 @@ import OCI.Pass.Class as Pass
 
 import qualified Data.Map                    as Map
 
+import Luna.IR.Term.TH
+
 import qualified OCI.Pass.Manager as PassManager
 import           OCI.Pass.Manager (MonadPassManager)
 
@@ -84,6 +86,7 @@ newtype ConsVar a = Var
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
 deriveStorable ''ConsVar
+deriveLinks ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
@@ -92,6 +95,7 @@ data ConsAcc a = Acc
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 deriveStorable ''ConsAcc
+deriveLinks ''ConsAcc
 
 data UniCons a
     = UniConsVar !(ConsVar a)
@@ -99,6 +103,7 @@ data UniCons a
     deriving (Show, Eq)
 type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
+deriveLinks ''UniCons
 
 --
 -- x :: Term '[ Model := Draft -< '[Model := Value]
@@ -107,6 +112,7 @@ deriveStorable ''UniCons
 --
 -- match x of
 --     Acc l r -> ... (l :: Link )
+
 -- defineTermConses [|
 -- data Var a = Var { name :: Int                     }
 -- data Acc a = Acc { base :: Link a , name :: Link a }
@@ -124,22 +130,6 @@ type instance TermConsOf (Tag t a) = TermConsDef (Tag t a) (Tag t a)
 
 newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
 makeLenses ''LayerLoc
-
-
-
-class HasLinks a where
-    readLinksIO :: a -> IO [SomeLink]
-
-readLinks :: (HasLinks a, MonadIO m) => a -> m [SomeLink]
-readLinks = liftIO . readLinksIO
-
-
-instance HasLinks (ConsVar a) where
-    readLinksIO _ = return []
-
-instance HasLinks (ConsAcc a) where
-    readLinksIO (Acc b n) = return [generalize b, generalize n]
-
 
 
 
