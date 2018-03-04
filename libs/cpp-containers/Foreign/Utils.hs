@@ -9,3 +9,4 @@ import Control.Monad.IO.Class (MonadIO)
 --   Note: it's lifted to IO so that it composes nicely with IO functions.
 fromCBool :: MonadIO m => Int -> m Bool
 fromCBool = return . (/= 0)
+{-# INLINE fromCBool #-}

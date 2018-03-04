@@ -1,7 +1,7 @@
 module Data.IntSet.Cpp where
 
 import Prelude
-import Control.Monad         ((<=<))
+import Control.Monad.IO.Class
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
@@ -30,9 +30,6 @@ foreign import ccall unsafe "c_set_create"
 foreign import ccall unsafe "c_set_insert"
     c_insert :: Int -> RawSetPtr -> IO ()
 
-foreign import ccall unsafe "c_set_insert_many"
-    c_insertMany :: Ptr Int -> Int -> RawSetPtr -> IO ()
-
 foreign import ccall unsafe "c_set_member"
     c_member :: Int -> RawSetPtr -> IO Int
 
@@ -58,68 +55,83 @@ foreign import ccall unsafe "c_set_null"
 --------------------------------------------
 
 -- | A utility function for easily using the C calls that use `Ptr ()` with the StdSet.
-withStdSet' :: (RawSetPtr -> IO a) -> StdSet -> IO a
-withStdSet' f s = withForeignPtr (toRawSet s) (f . RawSetPtr . castPtr)
-{-# INLINE withStdSet' #-}
+withStdSet :: MonadIO m => StdSet -> (RawSetPtr -> IO a) -> m a
+withStdSet s f = liftIO $ withForeignPtr (toRawSet s) (f . RawSetPtr . castPtr)
+{-# INLINE withStdSet #-}
 
 -- | A utility function to perform a foreign C call on the set and return the resulting set.
-withStdSet :: (RawSetPtr -> IO a) -> StdSet -> IO StdSet
-withStdSet f s = withStdSet' f s >> return s
-{-# INLINE withStdSet #-}
+mapStdSet :: StdSet -> (RawSetPtr -> IO a) -> IO StdSet
+mapStdSet s f = withStdSet s f >> return s
+{-# INLINE mapStdSet #-}
 
 -- | Creates an `std::set` object in C++ and attaches a finalizer.
 --   The memory will be automatically deallocated by Haskell's GC.
-createStdSet :: IO StdSet
-createStdSet = do
+createStdSet :: MonadIO m => m StdSet
+createStdSet = liftIO $ do
     ptr        <- c_createStdSet
     foreignPtr <- newForeignPtr c_deleteSet (toRawPtr ptr)
-    return $ StdSet $ castForeignPtr foreignPtr
+    return . StdSet $ castForeignPtr foreignPtr
+{-# INLINE createStdSet #-}
 
 -- | Create an empty Cpp IntSet
-empty :: IO StdSet
+empty :: MonadIO m => m StdSet
 empty = createStdSet
+{-# INLINE empty #-}
 
 -- | Create a set with one element
-singleton :: Int -> IO StdSet
-singleton e = empty >>= insert e
+singleton :: MonadIO m => Int -> m StdSet
+singleton e = do
+    s <- empty
+    insert s e
+    return s
+{-# INLINE singleton #-}
 
 -- | Insert a single element into the set.
-insert :: Int -> StdSet -> IO StdSet
-insert e = withStdSet (c_insert e)
+insert :: MonadIO m => StdSet -> Int -> m ()
+insert s e = withStdSet s (c_insert e)
+{-# INLINE insert #-}
 
 -- | Bulk-insert a list of elements into the set.
-insertMany :: [Int] -> StdSet -> IO StdSet
-insertMany es = withStdSet (\ptr ->
-    withArrayLen es (\n esPtr ->
-        c_insertMany esPtr n ptr))
+insertMany :: MonadIO m => StdSet -> [Int] -> m ()
+insertMany s es = mapM_ (insert s) es
+{-# INLINE insertMany #-}
 
 -- | Check whether the set contains a given key.
 --   Since the set can only contain 'Int' values,
 --   This is also equivalent to the `find` function.
-member :: Int -> StdSet -> IO Bool
-member e = fromCBool <=< withStdSet' (c_member e)
+member :: MonadIO m => StdSet -> Int -> m Bool
+member s e = fromCBool =<< withStdSet s (c_member e)
+{-# INLINE member #-}
 
 -- | Remove an element from the set, using `std::set::erase`.
-delete :: Int -> StdSet -> IO StdSet
-delete e = withStdSet (c_delete e)
+delete :: MonadIO m => StdSet -> Int -> m ()
+delete s e = withStdSet s (c_delete e)
+{-# INLINE delete #-}
 
 -- | Return the number of elements in the set.
-size :: StdSet -> IO Int
-size = withStdSet' c_size
+size :: MonadIO m => StdSet -> m Int
+size s = withStdSet s c_size
+{-# INLINE size #-}
 
-null :: StdSet -> IO Bool
-null = fromCBool <=< withStdSet' c_null
+null :: MonadIO m => StdSet -> m Bool
+null s = fromCBool =<< withStdSet s c_null
+{-# INLINE null #-}
 
 -- | Get all of the elements from the set (in ascending order).
 --   Note: do not overuse this function, as it will not perform very well.
-toList :: StdSet -> IO [Int]
+toList :: MonadIO m => StdSet -> m [Int]
 toList s = do
     n <- size s
-    withStdSet' (\ptr ->
+    withStdSet s (\ptr ->
         allocaArray @Int n (\arr -> do
             c_toList arr ptr
-            peekArray n arr)) s
+            peekArray n arr))
+{-# INLINE toList #-}
 
 -- | Convert a list to the set.
-fromList :: [Int] -> IO StdSet
-fromList es = empty >>= insertMany es
+fromList :: MonadIO m => [Int] -> m StdSet
+fromList es = do
+    s <- empty
+    insertMany s es
+    return s
+{-# INLINE fromList #-}
