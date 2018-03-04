@@ -486,6 +486,32 @@ test_readWriteLayer3 i = do
             $ mempty
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
+-- 
+-- test_readWriteLayer4 :: Int -> IO ()
+-- test_readWriteLayer4 i = do
+--     ir <- mockNewIR
+--     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+--     let -- go :: Int -> StateT Int IO ()
+--         go :: Int -> Pass.SubPass MyPass IO ()
+--         go 0 = return ()
+--         go j = do
+--             !s <- getPassState
+--             Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
+--             UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
+--             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+--             go (j - 1)
+--     Pass.runPass (Pass.encodePassStateTEMP cfg) (go i) where
+--         cfg = Pass.PassConfig
+--             $ Map.insert (someTypeRep @Terms)
+--               (Pass.ComponentInfo 0
+--                   $ Map.insert (someTypeRep @Model)
+--                     (Pass.LayerInfo 0)
+--                   $ mempty
+--               )
+--             $ mempty
+--     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
+
+
 
 test_pm_run :: IO ()
 test_pm_run = Exception.catchAll print $ PassManager.evalT test_pm

@@ -145,6 +145,15 @@ type family Delete a lst where
     Delete a (l ': ls) = l ': Delete a ls
     Delete a '[] = '[]
 
+type family UniqueInsert a lst where
+    UniqueInsert a '[]       = '[a]
+    UniqueInsert a (a ': as) = a ': as
+    UniqueInsert a (b ': as) = b ': UniqueInsert a as
+
+type family Unique lst where
+    Unique '[]       = '[]
+    Unique (a ': as) = UniqueInsert a (Unique as)
+
 
 
 -- === Repeat lists === --

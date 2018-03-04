@@ -48,18 +48,20 @@ makeLenses ''ComponentInfo
 --------------------
 
 
-data PassManagerError
+data Error
     = DuplicateComponent SomeTypeRep
     | DuplicateLayer     SomeTypeRep SomeTypeRep
     | MissingComponent   SomeTypeRep
     deriving (Show)
 
+instance Exception Error
 
-instance Exception PassManagerError
+
 
 -------------------------
 -- === PassManager === --
 -------------------------
+
 
 -- === Definition === --
 
@@ -69,7 +71,7 @@ data State = State
     } deriving (Show)
 makeLenses ''State
 
-type MonadPassManager m = (MonadState State m, Throws PassManagerError m)
+type MonadPassManager m = (MonadState State m, Throws Error m)
 
 newtype PassManagerT m a = PassManagerT (StateT State m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
@@ -77,11 +79,11 @@ newtype PassManagerT m a = PassManagerT (StateT State m a)
 makeLenses ''PassManagerT
 
 
+
 -- === Running === --
 
 evalT :: Functor m => PassManagerT m a -> m a
 evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
-
 
 
 
