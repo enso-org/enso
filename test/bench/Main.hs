@@ -49,7 +49,7 @@ main = do
     hSetBuffering stdout NoBuffering
     initializeTime
 
-    MManager.runBenchmarks
+    -- MManager.runBenchmarks
     Basic.test
     TS3.test
     print "---"

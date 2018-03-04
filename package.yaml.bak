@@ -28,9 +28,12 @@ library:
     - libs/exception
   c-sources:
     - libs/cpp-containers/cbits/*.cpp
+    - libs/memory-manager/cbits/*.cpp
   include-dirs:
     - libs/cpp-containers/cbits
-  cc-options:      -std=c++11 -O2
+    - libs/memory-manager/cbits
+  extra-libraries: stdc++
+  cc-options:      -std=c++17 -O2
 
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
