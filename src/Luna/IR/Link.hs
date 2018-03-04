@@ -32,7 +32,7 @@ readLinks = liftIO . readLinksIO
 {-# INLINE readLinks #-}
 
 instance HasLinks (Link a) where
-    readLinksIO l = return [generalize l] ; {-# INLINE readLinksIO #-}
+    readLinksIO l = return . pure $ generalize l ; {-# INLINE readLinksIO #-}
 
 instance HasLinks Int where
-    readLinksIO _ = return [] ; {-# INLINE readLinksIO #-}
+    readLinksIO _ = return mempty ; {-# INLINE readLinksIO #-}

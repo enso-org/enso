@@ -6,6 +6,7 @@ module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X
 
 import Prologue hiding (Cons, Data, Type, cons, inline)
 
+import Control.Lens (_3)
 import qualified Data.Char  as Char
 
 import Language.Haskell.TH as X (newName)
@@ -345,9 +346,9 @@ instance Convertible Data TH.Dec where
 ---------------------
 
 data TypeSyn = TypeSyn
-    { _typeSyn_name   :: Name
-    , _typeSyn_params :: [TH.TyVarBndr]
-    , _typeSyn_tp     :: TH.Type
+    { __name   :: Name
+    , __params :: [TH.TyVarBndr]
+    , __tp     :: TH.Type
     }
 makeLenses ''TypeSyn
 
@@ -375,9 +376,9 @@ instance Convertible TypeSyn TH.Dec where
 ---------------------------
 
 data TypeInstance = TypeInstance
-    { _typeInstance_name   :: Name
-    , _typeInstance_args   :: [TH.Type]
-    , _typeInstance_result :: TH.Type
+    { __name   :: Name
+    , __args   :: [TH.Type]
+    , __result :: TH.Type
     }
 
 
@@ -431,12 +432,11 @@ instance HasName TypeInfo where name = typeInfo_name
 
 getTypeInfo :: Name -> TH.Q TypeInfo
 getTypeInfo ty = do
-    (TH.TyConI tyCon) <- TH.reify ty
-    let (tyConName, tyVars, cs) = case tyCon of
+    TH.TyConI tyCon <- TH.reify ty
+    return . (uncurry TypeInfo) $ case tyCon of
             TH.DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
             TH.NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
             _ -> error "***error*** deriveStorable: type may not be a type synonym."
-    return $ TypeInfo tyConName tyVars cs
 
 ----------------------------
 -- === Class Instance === --
@@ -453,7 +453,7 @@ data ClassInstance = ClassInstance
 
 classInstance :: (Convertible ClassInstance a)
               => Name -> Name -> [TH.TyVarBndr] -> [TH.Dec] -> a
-classInstance n tn ts decs = convert $ ClassInstance Nothing ([] :: TH.Cxt) n tn ts decs
+classInstance n tn ts decs = convert $ ClassInstance Nothing mempty n tn ts decs
 {-# INLINE classInstance #-}
 
 -- classInstance' :: (ToTypeName n, ToType t, IsDec dec)
@@ -474,18 +474,18 @@ instance Convertible ClassInstance TH.Dec where
 
 conNameTypes :: TH.Con -> (Name, [TH.Type])
 conNameTypes = \case
-    TH.NormalC n fs  -> (n, map snd fs)
-    TH.RecC    n fs  -> (n, map (\(_, _, x) -> x) fs)
-    TH.InfixC a n b  -> (n, [snd a, snd b])
+    TH.NormalC n fs  -> (n, snd <$> fs)
+    TH.RecC    n fs  -> (n, (view _3) <$> fs)
+    TH.InfixC a n b  -> (n, snd <$> [a, b])
     TH.ForallC _ _ c -> conNameTypes c
     _ -> error "***error*** deriveStorable: GADT constructors not supported"
 
 -- | Extract the name and number of params from the consturctor
-conNameArity :: Num a => TH.Con -> (Name, a)
+conNameArity :: TH.Con -> (Name, Int)
 conNameArity c = let (n, fs) = conNameTypes c in (n, fromIntegral $ length fs)
 
 -- | Extract the number of params from the constructor
-conArity :: Num a => TH.Con -> a
+conArity :: TH.Con -> Int
 conArity = snd . conNameArity
 
 inline :: TH.RuleMatch -> Name -> TH.Dec
