@@ -150,7 +150,7 @@ genPeek cs = funD 'peek [genPeekClause cs]
 genPeekCaseMatch :: Name -> Integer -> TH.Con -> Q Match
 genPeekCaseMatch ptr idx con = do
     (_:offNames, whereCs) <- genOffsets con
-    let (cName, arity)   = conInfo con
+    let (cName, arity)   = conNameArity con
         peekByteOffPtr   = app (var 'peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
@@ -179,7 +179,7 @@ genPoke = funD 'poke . map (uncurry genPokeClause) . zip [0..]
 
 genPokeClause :: Integer -> TH.Con -> Q TH.Clause
 genPokeClause idx con = do
-    let (cName, nParams) = conInfo con
+    let (cName, nParams) = conNameArity con
     ptr         <- newName "ptr"
     patVarNames <- newNames nParams
     (off:offNames, whereClauses) <- genOffsets con

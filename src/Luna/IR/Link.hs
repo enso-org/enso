@@ -29,9 +29,10 @@ class HasLinks a where
 
 readLinks :: (HasLinks a, MonadIO m) => a -> m [SomeLink]
 readLinks = liftIO . readLinksIO
+{-# INLINE readLinks #-}
 
 instance HasLinks (Link a) where
-    readLinksIO l = return [generalize l]
+    readLinksIO l = return [generalize l] ; {-# INLINE readLinksIO #-}
 
 instance HasLinks Int where
-    readLinksIO _ = return []
+    readLinksIO _ = return [] ; {-# INLINE readLinksIO #-}

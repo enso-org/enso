@@ -4,7 +4,7 @@
 
 module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X) where
 
-import Prologue hiding (Cons, Data, Type, cons)
+import Prologue hiding (Cons, Data, Type, cons, inline)
 
 import qualified Data.Char  as Char
 
@@ -289,12 +289,12 @@ instance Convertible Clause TH.Clause where
 ------------------
 
 data Data = Data
-    { _data_ctx    :: [TH.Pred]
-    , _data_name   :: Name
-    , _data_params :: [TH.TyVarBndr]
-    , _data_kind   :: Maybe TH.Kind
-    , _data_cons   :: [TH.Con]
-    , _data_derivs :: [TH.DerivClause]
+    { __ctx    :: [TH.Pred]
+    , __name   :: Name
+    , __params :: [TH.TyVarBndr]
+    , __kind   :: Maybe TH.Kind
+    , __cons   :: [TH.Con]
+    , __derivs :: [TH.DerivClause]
     }
 makeLenses ''Data
 
@@ -374,10 +374,11 @@ instance Convertible TypeSyn TH.Dec where
 -- === Type Instance === --
 ---------------------------
 
-data TypeInstance = TypeInstance { _typeInstance_name   :: Name
-                                 , _typeInstance_args   :: [TH.Type]
-                                 , _typeInstance_result :: TH.Type
-                                 }
+data TypeInstance = TypeInstance
+    { _typeInstance_name   :: Name
+    , _typeInstance_args   :: [TH.Type]
+    , _typeInstance_result :: TH.Type
+    }
 
 
 typeInstance :: Convertible TypeInstance t => Name -> [TH.Type] -> TH.Type -> t
@@ -419,11 +420,14 @@ instance a ~ TH.Pat  => Convertible (Tuple a) TH.Pat  where convert (Tuple len e
 instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupE els
 
 
-data TypeInfo = TypeInfo { _tiName   :: Name
-                         , _tiTyVats :: [TH.TyVarBndr]
-                         , _tiConss  :: [TH.Con]
-                         }
+data TypeInfo = TypeInfo
+    { __name   :: Name
+    , __tyVars :: [TH.TyVarBndr]
+    , __conss  :: [TH.Con]
+    }
 makeLenses ''TypeInfo
+
+instance HasName TypeInfo where name = typeInfo_name
 
 getTypeInfo :: Name -> TH.Q TypeInfo
 getTypeInfo ty = do
@@ -438,14 +442,14 @@ getTypeInfo ty = do
 -- === Class Instance === --
 ----------------------------
 
-data ClassInstance = ClassInstance { _classInstance_overlap :: Maybe TH.Overlap
-                                   , _classInstance_ctx     :: TH.Cxt
-                                   , _classInstance_name    :: Name
-                                   , _classInstance_tpname  :: Name
-                                   , _classInstance_params  :: [TH.TyVarBndr]
-                                   , _classInstance_decs    :: [TH.Dec]
-                                   }
-
+data ClassInstance = ClassInstance
+    { __overlap :: Maybe TH.Overlap
+    , __ctx     :: TH.Cxt
+    , __name    :: Name
+    , __tpname  :: Name
+    , __params  :: [TH.TyVarBndr]
+    , __decs    :: [TH.Dec]
+    }
 
 classInstance :: (Convertible ClassInstance a)
               => Name -> Name -> [TH.TyVarBndr] -> [TH.Dec] -> a
@@ -468,21 +472,30 @@ instance Convertible ClassInstance TH.Dec where
 -- === Misc utils === --
 ------------------------
 
-unpackCon :: TH.Con -> (Name, [TH.Type])
-unpackCon = \case
+conNameTypes :: TH.Con -> (Name, [TH.Type])
+conNameTypes = \case
     TH.NormalC n fs  -> (n, map snd fs)
     TH.RecC    n fs  -> (n, map (\(_, _, x) -> x) fs)
     TH.InfixC a n b  -> (n, [snd a, snd b])
-    TH.ForallC _ _ c -> unpackCon c
-    _             -> error "***error*** deriveStorable: GADT constructors not supported"
+    TH.ForallC _ _ c -> conNameTypes c
+    _ -> error "***error*** deriveStorable: GADT constructors not supported"
 
 -- | Extract the name and number of params from the consturctor
-conInfo :: Num a => TH.Con -> (Name, a)
-conInfo c = let (n, fs) = unpackCon c in (n, fromIntegral $ length fs)
+conNameArity :: Num a => TH.Con -> (Name, a)
+conNameArity c = let (n, fs) = conNameTypes c in (n, fromIntegral $ length fs)
 
 -- | Extract the number of params from the constructor
 conArity :: Num a => TH.Con -> a
-conArity = snd . conInfo
+conArity = snd . conNameArity
+
+inline :: TH.RuleMatch -> Name -> TH.Dec
+inline rule n = TH.PragmaD $ TH.InlineP n TH.Inline rule TH.AllPhases
+
+inlineF :: Name -> TH.Dec
+inlineF = inline TH.FunLike
+
+inlineC :: Name -> TH.Dec
+inlineC = inline TH.ConLike
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
