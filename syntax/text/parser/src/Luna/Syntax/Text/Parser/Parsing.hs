@@ -919,19 +919,34 @@ impSrc = buildAsg $ (\s -> liftIRBApp0 $ IR.unresolvedImpSrc' s) <$> (wrd <|> re
     rel = Import.Relative <$  symbol Lexer.Accessor <*> qualConsName
     abs = Import.Absolute <$> qualConsName
 
+------------------------------------
+-- === Foreign Import Parsing === --
+------------------------------------
+
+foreignImportList :: AsgParser SomeExpr
+foreignImportList = buildAsg $ (\imps -> liftIRBApp0 $ IR.foreignImpList' []) <$> symbol Lexer.KwForeign
+
+foreignLocationImportList :: AsgParser SomeExpr
+foreignLocationImportList = buildAsg $ undefined
+
+foreignSymbolImport :: AsgParser SomeExpr
+foreignSymbolImport = buildAsg $ undefined
+
 
 -- === Unit body === --
 
 unit' :: AsgParser SomeExpr
 unit  :: AsgParser (Expr Unit)
 unit' = generalize <<$>> unit
-unit  = buildAsg $ (\imps cls -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit' []) imps cls) <$ spacing <*> impHub <*> unitCls <* spacing where
-    spacing = many eol
+unit  = buildAsg $
+    (\imps cls
+        -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit' []) imps cls)
+        <$ spacing <*> (impHub <|> foreignImportList) <*> unitCls <* spacing
+    where
+        spacing = many eol
 
 unitCls :: AsgParser SomeExpr
 unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' False "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
-
-
 
 ----------------------------
 -- === Layout parsing === --
