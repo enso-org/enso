@@ -369,6 +369,10 @@ impHub imps = mdo
     limps <- mapM (flip link t . unsafeRelayout) imps
     return t
 
+foreignImpList' :: (ExprCons m ForeignImportList) => [Expr a] -> m SomeExpr
+foreignImpList  :: (ExprCons m ForeignImportList) => [Expr a] -> m (Expr ForeignImportList)
+oreignImpList' = generalize .: foreignImpList
+foreignImpList  = undefined
 
 invalid' :: ExprCons' m Invalid => Text32 -> m SomeExpr
 invalid  :: ExprCons' m Invalid => Text32 -> m (Expr Invalid)

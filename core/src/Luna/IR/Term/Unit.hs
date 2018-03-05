@@ -112,7 +112,40 @@ makeLensedTerm ''TermImport
 newtype TermImportHub a = ImportHub (Map Name a) deriving (Show, Functor, Foldable, Traversable, Generic)
 makeLensedTerm ''TermImportHub
 
+-----------------------
+-- === FFI Nodes === --
+-----------------------
 
+data TermForeignImportList a = ForeignImportList
+    { __imports :: ![a]
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignImportList
+
+data TermForeignLocationImportList a = ForeignLocationImportList
+    { __importLocation :: !a
+    , __imports        :: ![a]
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignLocationImportList
+
+data TermForeignSymbolImport a = ForeignSymbolImport
+    { __importName :: !a
+    , __localName  :: !Name
+    , __type       :: !a
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignSymbolImport
+
+{- data TermResolvedForeignImport a = ResolvedForeignImport -}
+    {- { __importLocation :: !a -}
+    {- , __importName     :: !a -}
+    {- , __localName      :: !Name -}
+    {- } deriving (Eq, Foldable, Functor, Generic, Show) -}
+{- makeLensedTerm ''TermResolvedForeignImport -}
+
+{-
+foreign import C:
+    "foo.so":
+        "bar" bar :: C.Ptr -> C.Ptr
+-}
 
 -----------------------
 -- === Interface === --
