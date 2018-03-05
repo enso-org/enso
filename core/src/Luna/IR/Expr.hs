@@ -392,7 +392,12 @@ foreignSymbolImp
     -> Expr a
     -> m (Expr ForeignSymbolImport)
 foreignSymbolImp' = generalize .:: foreignSymbolImp
-foreignSymbolImp  = undefined
+foreignSymbolImp foreignName localName importType = mdo
+    newTerm     <- expr $
+        Term.uncheckedForeignSymbolImport forNameExpr localName typeExpr
+    forNameExpr <- link (unsafeRelayout foreignName) newTerm
+    typeExpr    <- link (unsafeRelayout importType) newTerm
+    return newTerm
 
 foreignLocationImpList'
     :: (ExprCons m ForeignLocationImportList)
@@ -405,7 +410,11 @@ foreignLocationImpList
     -> [Expr a]
     -> m (Expr ForeignLocationImportList)
 foreignLocationImpList' = generalize .:. foreignLocationImpList
-foreignLocationImpList  = undefined
+foreignLocationImpList location imports = mdo
+    newTerm <- expr $ Term.uncheckedForeignLocationImportList locExpr impExpr
+    locExpr <- link (unsafeRelayout location) newTerm
+    impExpr <- mapM (flip link newTerm . unsafeRelayout) imports
+    return newTerm
 
 foreignImpList'
     :: (ExprCons m ForeignImportList)
@@ -416,7 +425,10 @@ foreignImpList
     => [Expr a]
    -> m (Expr ForeignImportList)
 foreignImpList' = generalize .: foreignImpList
-foreignImpList  = undefined
+foreignImpList imports = mdo
+    newTerm   <- expr $ Term.uncheckedForeignImportList impLayout
+    impLayout <- mapM (flip link newTerm . unsafeRelayout) imports
+    return newTerm
 
 invalid' :: ExprCons' m Invalid => Text32 -> m SomeExpr
 invalid  :: ExprCons' m Invalid => Text32 -> m (Expr Invalid)
