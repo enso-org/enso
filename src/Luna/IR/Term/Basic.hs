@@ -60,8 +60,8 @@ import qualified Control.Monad.Exception as Exception
 import Type.Data.Bool
 
 -- import OCI.IR.Layer (Layer)
-import qualified OCI.IR.Layer as Layer
-import qualified OCI.IR.Layer2 as Layer2
+import qualified OCI.IR.Layer2 as Layer
+-- import qualified OCI.IR.Layer2 as Layer2
 
 
 type family SizeOf a :: Nat
@@ -89,7 +89,7 @@ newtype ConsVar a = Var
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
 type instance TermConsDef2 Var = ConsVar
-type instance Layer2.ConsLayout ConsVar = Var
+type instance Layer.ConsLayout ConsVar = Var
 deriveStorable ''ConsVar
 deriveLinks ''ConsVar
 
@@ -100,7 +100,7 @@ data ConsAcc a = Acc
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 type instance TermConsDef2 Acc = ConsAcc
-type instance Layer2.ConsLayout ConsAcc = Acc
+type instance Layer.ConsLayout ConsAcc = Acc
 deriveStorable ''ConsAcc
 deriveLinks ''ConsAcc
 
@@ -112,26 +112,23 @@ type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
 deriveLinks ''UniCons
 
-__chunkSize :: Int
-__chunkSize = sizeOf' @Int
-
 instance Storable1.Storable1 ConsVar where
-    sizeOf    = __chunkSize   ; {-# INLINE sizeOf    #-}
-    alignment = __chunkSize   ; {-# INLINE alignment #-}
-    peek      = Storable.peek ; {-# INLINE peek      #-}
-    poke      = Storable.poke ; {-# INLINE poke      #-}
+    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+    alignment = Storable.alignment ; {-# INLINE alignment #-}
+    peek      = Storable.peek      ; {-# INLINE peek      #-}
+    poke      = Storable.poke      ; {-# INLINE poke      #-}
 
 instance Storable1.Storable1 ConsAcc where
-    sizeOf    = __chunkSize * 2 ; {-# INLINE sizeOf    #-}
-    alignment = __chunkSize     ; {-# INLINE alignment #-}
-    peek      = Storable.peek   ; {-# INLINE peek      #-}
-    poke      = Storable.poke   ; {-# INLINE poke      #-}
+    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+    alignment = Storable.alignment ; {-# INLINE alignment #-}
+    peek      = Storable.peek      ; {-# INLINE peek      #-}
+    poke      = Storable.poke      ; {-# INLINE poke      #-}
 
 instance Storable1.Storable1 UniCons where
-    sizeOf    = __chunkSize * 3 ; {-# INLINE sizeOf    #-}
-    alignment = __chunkSize     ; {-# INLINE alignment #-}
-    peek      = Storable.peek   ; {-# INLINE peek      #-}
-    poke      = Storable.poke   ; {-# INLINE poke      #-}
+    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+    alignment = Storable.alignment ; {-# INLINE alignment #-}
+    peek      = Storable.peek      ; {-# INLINE peek      #-}
+    poke      = Storable.poke      ; {-# INLINE poke      #-}
 
 -- instance Storable (UniCons fmt a) where
 --     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
@@ -224,12 +221,11 @@ makeLenses ''LayerLoc
 
 -- instance Layer Terms Model where
 
-type instance Layer.Data Terms Model              = UniCons
-type instance Layer.View Terms Model (Format   f) = UniCons
-type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
+-- type instance Layer.View Terms Model (Format   f) = UniCons
+-- type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
-type instance Layer2.Data     Terms Model = UniCons
-type instance Layer2.ConsData Terms Model (TermCons f) = TermConsDef2 (TermCons f)
+type instance Layer.Data     Terms Model = UniCons
+type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef2 (TermCons f)
 -- type instance Layer     Terms Type   =
 -- type instance Layer.View Terms Type a =
 -- instance StorableLayer.View Terms Model (Format f)
@@ -241,8 +237,8 @@ type instance Layer2.ConsData Terms Model (TermCons f) = TermConsDef2 (TermCons 
 
 type instance Layer.Data Links Source   = Term
 type instance Layer.Data Links Target   = Term
-type instance Layer.View Links Source a = Term
-type instance Layer.View Links Target a = Term
+-- type instance Layer.View Links Source a = Term
+-- type instance Layer.View Links Target a = Term
 
 -- instance StorableLayer.View Links Source a
 -- instance StorableLayer.View Links Target a
@@ -537,30 +533,32 @@ test_readWriteLayer4 :: Int -> IO ()
 test_readWriteLayer4 i = do
     ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
-    let -- go :: Int -> StateT Int IO ()
-        go :: Int -> Pass.SubPass MyPass IO ()
+    let go :: Int -> Pass.SubPass MyPass IO ()
         go 0 = return ()
         go j = do
-            Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
-            UniConsVar (Var !x) <- readLayer @Model ir
-            Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+            UniConsVar (Var !x) <- Layer.read @Model ir
+            Layer.write @Model ir (UniConsVar $ Var $! (x+1))
             go (j - 1)
 
     cfg <- test_pm_run
     Pass.runPass (Pass.encodePassStateTEMP cfg) (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
-
-
+type instance Layout.GetBase Var = Var
+tttest :: Term Var -> Pass.SubPass MyPass IO ()
+tttest n = do
+    -- (x :: _) <- Layer.read @Model n
+    -- (x :: _) <- Layer.readCons__ @Terms @Model n
+    return ()
 -- unsafeReadByteOff  :: CTX => Int -> Component comp layout -> m (LayoutView comp layer layout)
 -- #define CTX ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)
 
-readLayer :: ∀ layer comp layout m. (Layer.StorableLayer comp layer layout, MonadIO m, Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m)
-          => Component comp layout -> m (Layer.LayoutView comp layer layout)
-readLayer comp = do
-    Pass.LayerByteOffset !off <- getPassData @(Pass.LayerByteOffset comp layer)
-    Layer.unsafeReadByteOff @layer off comp
-{-# INLINE readLayer #-}
+-- readLayer :: ∀ layer comp layout m. (Layer.StorableLayer comp layer layout, MonadIO m, Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m)
+--           => Component comp layout -> m (Layer.LayoutView comp layer layout)
+-- readLayer comp = do
+--     Pass.LayerByteOffset !off <- getPassData @(Pass.LayerByteOffset comp layer)
+--     Layer.unsafeReadByteOff @layer off comp
+-- {-# INLINE readLayer #-}
 -- Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
 -- UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
 

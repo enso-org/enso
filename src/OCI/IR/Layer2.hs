@@ -59,7 +59,7 @@ type LayerCons comp layer layout = Storable1 (ConsData comp layer (Layout.GetBas
 -- === General Information === --
 
 byteSize :: ∀ comp layer. Layer comp layer => Int
-byteSize = Storable1.sizeOf @(Data comp layer) ; {-# INLINE byteSize #-}
+byteSize = Storable1.sizeOf' @(Data comp layer) ; {-# INLINE byteSize #-}
 
 
 -- === Layer.Data API === --
