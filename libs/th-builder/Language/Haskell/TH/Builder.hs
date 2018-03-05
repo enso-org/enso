@@ -4,8 +4,9 @@
 
 module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X) where
 
-import Prologue hiding (Cons, Data, Type, cons)
+import Prologue hiding (Cons, Data, Type, cons, inline)
 
+import Control.Lens (_3)
 import qualified Data.Char  as Char
 
 import Language.Haskell.TH as X (newName)
@@ -345,9 +346,9 @@ instance Convertible Data TH.Dec where
 ---------------------
 
 data TypeSyn = TypeSyn
-    { _typeSyn_name   :: Name
-    , _typeSyn_params :: [TH.TyVarBndr]
-    , _typeSyn_tp     :: TH.Type
+    { __name   :: Name
+    , __params :: [TH.TyVarBndr]
+    , __tp     :: TH.Type
     }
 makeLenses ''TypeSyn
 
@@ -374,10 +375,11 @@ instance Convertible TypeSyn TH.Dec where
 -- === Type Instance === --
 ---------------------------
 
-data TypeInstance = TypeInstance { _typeInstance_name   :: Name
-                                 , _typeInstance_args   :: [TH.Type]
-                                 , _typeInstance_result :: TH.Type
-                                 }
+data TypeInstance = TypeInstance
+    { __name   :: Name
+    , __args   :: [TH.Type]
+    , __result :: TH.Type
+    }
 
 
 typeInstance :: Convertible TypeInstance t => Name -> [TH.Type] -> TH.Type -> t
@@ -419,7 +421,81 @@ instance a ~ TH.Pat  => Convertible (Tuple a) TH.Pat  where convert (Tuple len e
 instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupE els
 
 
+data TypeInfo = TypeInfo
+    { __name   :: Name
+    , __tyVars :: [TH.TyVarBndr]
+    , __conss  :: [TH.Con]
+    }
+makeLenses ''TypeInfo
 
+instance HasName TypeInfo where name = typeInfo_name
+
+getTypeInfo :: Name -> TH.Q TypeInfo
+getTypeInfo ty = do
+    TH.TyConI tyCon <- TH.reify ty
+    return . (uncurry TypeInfo) $ case tyCon of
+            TH.DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
+            TH.NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
+            _ -> error "***error*** deriveStorable: type may not be a type synonym."
+
+----------------------------
+-- === Class Instance === --
+----------------------------
+
+data ClassInstance = ClassInstance
+    { __overlap :: Maybe TH.Overlap
+    , __ctx     :: TH.Cxt
+    , __name    :: Name
+    , __tpname  :: Name
+    , __params  :: [TH.TyVarBndr]
+    , __decs    :: [TH.Dec]
+    }
+
+classInstance :: (Convertible ClassInstance a)
+              => Name -> Name -> [TH.TyVarBndr] -> [TH.Dec] -> a
+classInstance n tn ts decs = convert $ ClassInstance Nothing mempty n tn ts decs
+{-# INLINE classInstance #-}
+
+-- classInstance' :: (ToTypeName n, ToType t, IsDec dec)
+--               => n -> [t] -> [dec] -> ClassInstance
+-- classInstance' = classInstance ([] :: Cxt) ; {-# INLINE classInstance' #-}
+
+instance Convertible ClassInstance TH.Dec where
+    convert (ClassInstance olap cxt n tn ts decs) =
+        TH.InstanceD olap cxt instanceT decs
+            where instanceT = TH.AppT (TH.ConT n) (foldl apply (TH.ConT tn) ts)
+                  apply t (TH.PlainTV name)    = TH.AppT t (TH.VarT name)
+                  apply t (TH.KindedTV name _) = TH.AppT t (TH.VarT name)
+    {-# INLINE convert #-}
+
+------------------------
+-- === Misc utils === --
+------------------------
+
+conNameTypes :: TH.Con -> (Name, [TH.Type])
+conNameTypes = \case
+    TH.NormalC n fs  -> (n, snd <$> fs)
+    TH.RecC    n fs  -> (n, (view _3) <$> fs)
+    TH.InfixC a n b  -> (n, snd <$> [a, b])
+    TH.ForallC _ _ c -> conNameTypes c
+    _ -> error "***error*** deriveStorable: GADT constructors not supported"
+
+-- | Extract the name and number of params from the consturctor
+conNameArity :: TH.Con -> (Name, Int)
+conNameArity c = let (n, fs) = conNameTypes c in (n, fromIntegral $ length fs)
+
+-- | Extract the number of params from the constructor
+conArity :: TH.Con -> Int
+conArity = snd . conNameArity
+
+inline :: TH.RuleMatch -> Name -> TH.Dec
+inline rule n = TH.PragmaD $ TH.InlineP n TH.Inline rule TH.AllPhases
+
+inlineF :: Name -> TH.Dec
+inlineF = inline TH.FunLike
+
+inlineC :: Name -> TH.Dec
+inlineC = inline TH.ConLike
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -431,30 +507,6 @@ instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len e
 --------------------------------------------------------------------------------
 
 --
---
--- ----------------------------
--- -- === Class Instance === --
--- ----------------------------
---
--- data ClassInstance = ClassInstance { _classInstance_overlap :: Maybe Overlap
---                                    , _classInstance_ctx     :: Cxt
---                                    , _classInstance_name    :: TypeName
---                                    , _classInstance_tp      :: [Type]
---                                    , _classInstance_decs    :: [Dec]
---                                    }
---
---
--- classInstance :: (ToCxt ctx, ToTypeName n, ToType t, IsDec dec)
---               => ctx -> n -> [t] -> [dec] -> ClassInstance
--- classInstance ctx n ts desc = ClassInstance Nothing (th ctx) (toTypeName n) (th <$> ts) (toDec <$> desc) ; {-# INLINE classInstance #-}
---
--- classInstance' :: (ToTypeName n, ToType t, IsDec dec)
---               => n -> [t] -> [dec] -> ClassInstance
--- classInstance' = classInstance ([] :: Cxt) ; {-# INLINE classInstance' #-}
---
---
--- instance IsTH TH.Dec ClassInstance where
---     th (ClassInstance olap cxt n ts decs) = InstanceD olap cxt (th $ apps (th n) ts) (th decs) ; {-# INLINE th #-}
 --
 --
 -- ----------------------

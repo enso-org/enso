@@ -26,22 +26,6 @@ thd (_, _, x) = x
 -- === TH info extracting utils === --
 --------------------------------------
 
-unpackCon :: TH.Con -> (Name, [Type])
-unpackCon = \case
-    NormalC n fs  -> (n, map snd fs)
-    RecC    n fs  -> (n, map (\(_, _, x) -> x) fs)
-    InfixC a n b  -> (n, [snd a, snd b])
-    ForallC _ _ c -> unpackCon c
-    _             -> error "***error*** deriveStorable: GADT constructors not supported"
-
--- | Extract the name and number of params from the consturctor
-conInfo :: Num a => TH.Con -> (Name, a)
-conInfo c = let (n, fs) = unpackCon c in (n, fromIntegral $ length fs)
-
--- | Extract the number of params from the constructor
-conArity :: Num a => TH.Con -> a
-conArity = snd . conInfo
-
 concretizeType :: Type -> Type
 concretizeType = \case
     ConT n   -> ConT n
@@ -103,18 +87,10 @@ whereClause n e = ValD (var n) (NormalB e) []
 
 deriveStorable :: Name -> Q [TH.Dec]
 deriveStorable ty = do
-    (TyConI tyCon) <- reify ty
-    let (tyConName, tyVars, cs) = case tyCon of
-            DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
-            NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
-            _ -> error "***error*** deriveStorable: type may not be a type synonym."
-        instanceType              = appT (conT ''Storable) (foldl apply (conT tyConName) tyVars)
-        apply t (PlainTV name)    = appT t (varT name)
-        apply t (KindedTV name _) = appT t (varT name)
-
-    instanceCxt <- mapM (apply $ conT ''Storable) tyVars
-    sequence [instanceD (return []) instanceType [return $ genSizeOf cs, return genAlignment, genPeek cs, genPoke cs]]
-
+    TypeInfo tyConName tyVars cs <- getTypeInfo ty
+    decs <- sequence [return $ genSizeOf cs, return genAlignment, genPeek cs, genPoke cs]
+    let inst = classInstance ''Storable tyConName tyVars decs
+    return [inst]
 
 
 -------------------------------
@@ -174,7 +150,7 @@ genPeek cs = funD 'peek [genPeekClause cs]
 genPeekCaseMatch :: Name -> Integer -> TH.Con -> Q Match
 genPeekCaseMatch ptr idx con = do
     (_:offNames, whereCs) <- genOffsets con
-    let (cName, arity)   = conInfo con
+    let (cName, arity)   = conNameArity con
         peekByteOffPtr   = app (var 'peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
@@ -203,7 +179,7 @@ genPoke = funD 'poke . map (uncurry genPokeClause) . zip [0..]
 
 genPokeClause :: Integer -> TH.Con -> Q TH.Clause
 genPokeClause idx con = do
-    let (cName, nParams) = conInfo con
+    let (cName, nParams) = conNameArity con
     ptr         <- newName "ptr"
     patVarNames <- newNames nParams
     (off:offNames, whereClauses) <- genOffsets con
