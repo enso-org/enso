@@ -1,4 +1,4 @@
-# Contributing to Luna
+ Contributing to Luna
 Thank you for your interest in contributing to Luna! We believe that only 
 through community involvement can Luna be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major 
@@ -153,7 +153,7 @@ stack `.yaml` file located in `build/stack-local.yaml` to build and test your
 version of Luna as follows:
 
 ```
-stack build --stack-yaml build/stack-local.yaml1
+stack build --stack-yaml build/stack-local.yaml
 ```
 
 ### Running Luna

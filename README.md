@@ -112,7 +112,7 @@ stack `.yaml` file located in `build/stack-local.yaml` to build and test your
 version of Luna as follows:
 
 ```
-stack build --stack-yaml build/stack-local.yaml1
+stack build --stack-yaml build/stack-local.yaml
 ```
 
 ### Running Luna
