@@ -134,6 +134,7 @@ data TermForeignSymbolImport a = ForeignSymbolImport
     } deriving (Eq, Foldable, Functor, Generic, Show)
 makeLensedTerm ''TermForeignSymbolImport
 
+-- Useful for a resolution pass after parse time.
 {- data TermResolvedForeignImport a = ResolvedForeignImport -}
     {- { __importLocation :: !a -}
     {- , __importName     :: !a -}

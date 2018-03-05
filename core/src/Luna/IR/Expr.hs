@@ -20,7 +20,17 @@ import OCI.IR.Name.Qualified
 import Luna.IR.Term.Core     as X
 import Luna.IR.Term.Function as X
 import Luna.IR.Term.World    as X
-import Luna.IR.Term.Unit as X (UnitProxy, UnresolvedImport, UnresolvedImportSrc, UnresolvedImportTgt, UnresolvedImportHub, ImportSource, Unit)
+import Luna.IR.Term.Unit as X
+    ( UnitProxy
+    , UnresolvedImport
+    , UnresolvedImportSrc
+    , UnresolvedImportTgt
+    , UnresolvedImportHub
+    , ImportSource
+    , ForeignSymbolImport
+    , ForeignLocationImportList
+    , ForeignImportList
+    , Unit)
 import qualified Luna.IR.Term.Unit as Import
 import OCI.IR.Term  as X
 
@@ -369,9 +379,43 @@ impHub imps = mdo
     limps <- mapM (flip link t . unsafeRelayout) imps
     return t
 
-foreignImpList' :: (ExprCons m ForeignImportList) => [Expr a] -> m SomeExpr
-foreignImpList  :: (ExprCons m ForeignImportList) => [Expr a] -> m (Expr ForeignImportList)
-oreignImpList' = generalize .: foreignImpList
+foreignSymbolImp'
+    :: (ExprCons m ForeignSymbolImport)
+    => Expr a
+    -> Name
+    -> Expr a
+    -> m SomeExpr
+foreignSymbolImp
+    :: (ExprCons m ForeignSymbolImport)
+    => Expr a
+    -> Name
+    -> Expr a
+    -> m (Expr ForeignSymbolImport)
+foreignSymbolImp' = generalize .:: foreignSymbolImp
+foreignSymbolImp  = undefined
+
+foreignLocationImpList'
+    :: (ExprCons m ForeignLocationImportList)
+    => Expr a
+    -> [Expr a]
+    -> m SomeExpr
+foreignLocationImpList
+    :: (ExprCons m ForeignLocationImportList)
+    => Expr a
+    -> [Expr a]
+    -> m (Expr ForeignLocationImportList)
+foreignLocationImpList' = generalize .:. foreignLocationImpList
+foreignLocationImpList  = undefined
+
+foreignImpList'
+    :: (ExprCons m ForeignImportList)
+    => [Expr a]
+    -> m SomeExpr
+foreignImpList
+    :: (ExprCons m ForeignImportList)
+    => [Expr a]
+   -> m (Expr ForeignImportList)
+foreignImpList' = generalize .: foreignImpList
 foreignImpList  = undefined
 
 invalid' :: ExprCons' m Invalid => Text32 -> m SomeExpr
