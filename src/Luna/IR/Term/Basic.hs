@@ -10,6 +10,7 @@ import Foreign.Ptr            (Ptr, castPtr, plusPtr)
 import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
 import qualified Foreign.Storable as Storable
+import qualified Foreign.Storable1 as Storable1
 
 import qualified Foreign            as Ptr
 import qualified Data.Graph as Graph
@@ -60,6 +61,7 @@ import Type.Data.Bool
 
 -- import OCI.IR.Layer (Layer)
 import qualified OCI.IR.Layer as Layer
+import qualified OCI.IR.Layer2 as Layer2
 
 
 type family SizeOf a :: Nat
@@ -78,6 +80,7 @@ data Model
 type family TermConsDef t :: Type -> Type
 type family TermConsOf a
 
+type family TermConsDef2 t = (def :: Type -> Type) | def -> t
 
 
 Tag.familyInstance "TermCons" "Var"
@@ -85,6 +88,8 @@ newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
+type instance TermConsDef2 Var = ConsVar
+type instance Layer2.ConsLayout ConsVar = Var
 deriveStorable ''ConsVar
 deriveLinks ''ConsVar
 
@@ -94,6 +99,8 @@ data ConsAcc a = Acc
     , __name :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
+type instance TermConsDef2 Acc = ConsAcc
+type instance Layer2.ConsLayout ConsAcc = Acc
 deriveStorable ''ConsAcc
 deriveLinks ''ConsAcc
 
@@ -105,6 +112,43 @@ type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
 deriveLinks ''UniCons
 
+__chunkSize :: Int
+__chunkSize = sizeOf' @Int
+
+instance Storable1.Storable1 ConsVar where
+    sizeOf    = __chunkSize   ; {-# INLINE sizeOf    #-}
+    alignment = __chunkSize   ; {-# INLINE alignment #-}
+    peek      = Storable.peek ; {-# INLINE peek      #-}
+    poke      = Storable.poke ; {-# INLINE poke      #-}
+
+instance Storable1.Storable1 ConsAcc where
+    sizeOf    = __chunkSize * 2 ; {-# INLINE sizeOf    #-}
+    alignment = __chunkSize     ; {-# INLINE alignment #-}
+    peek      = Storable.peek   ; {-# INLINE peek      #-}
+    poke      = Storable.poke   ; {-# INLINE poke      #-}
+
+instance Storable1.Storable1 UniCons where
+    sizeOf    = __chunkSize * 3 ; {-# INLINE sizeOf    #-}
+    alignment = __chunkSize     ; {-# INLINE alignment #-}
+    peek      = Storable.peek   ; {-# INLINE peek      #-}
+    poke      = Storable.poke   ; {-# INLINE poke      #-}
+
+-- instance Storable (UniCons fmt a) where
+--     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
+--     alignment _ = chunkSize     ; {-# INLINE alignment #-}
+--     peek ptr = peek (intPtr ptr) >>= \case
+--         0 -> Var <$> peekByteOff ptr chunkSize
+--         1 -> Acc <$> peekByteOff ptr chunkSize <*> peekByteOff ptr (chunkSize*2)
+--         _ -> error "Unrecognized constructor"
+--     {-# INLINE peek #-}
+--     poke ptr = \case
+--         Var !a    -> poke (intPtr ptr) 0 >> pokeByteOff ptr chunkSize a
+--         Acc !a !b -> poke (intPtr ptr) 1 >> pokeByteOff ptr (chunkSize*2) b
+--     {-# INLINE poke #-}
+
+
+            -- peek        :: ∀ a.   Ptr (t a)               -> IO (t a)
+            -- poke        :: ∀ a.   Ptr (t a)        -> t a -> IO ()
 --
 -- x :: Term '[ Model := Draft -< '[Model := Value]
 --            , Type  := Value
@@ -184,6 +228,8 @@ type instance Layer.Data Terms Model              = UniCons
 type instance Layer.View Terms Model (Format   f) = UniCons
 type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
+type instance Layer2.Data     Terms Model = UniCons
+type instance Layer2.ConsData Terms Model (TermCons f) = TermConsDef2 (TermCons f)
 -- type instance Layer     Terms Type   =
 -- type instance Layer.View Terms Type a =
 -- instance StorableLayer.View Terms Model (Format f)
