@@ -85,6 +85,14 @@ newtype ConsVar a = Var
 type instance TermConsDef Var = ConsVar
 deriveStorable ''ConsVar
 
+Tag.familyInstance "TermCons" "Var2"
+data ConsVar2 a = Var2
+    { __name :: Int
+    , _x1 :: Int
+    } deriving (Show, Eq)
+type instance TermConsDef Var2 = ConsVar2
+deriveStorable ''ConsVar2
+
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
     { __base :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Term Acc a)
@@ -95,6 +103,7 @@ deriveStorable ''ConsAcc
 
 data UniCons a
     = UniConsVar !(ConsVar a)
+    | UniConsVar2 !(ConsVar2 a)
     | UniConsAcc !(ConsAcc a)
     deriving (Show, Eq)
 type instance TermConsDef (Format f) = UniCons
@@ -293,16 +302,23 @@ passTest = do
     return ()
 
 passRunTest :: IO ()
-passRunTest = Pass.runPass (Pass.encodePassStateTEMP cfg) passTest where
-    cfg = Pass.PassConfig
-        $ Map.insert (someTypeRep @Terms)
-          (Pass.ComponentInfo 7
-              $ Map.insert (someTypeRep @Model)
-                (Pass.LayerInfo 11)
-              $ mempty
-          )
-        $ mempty
+passRunTest = do
+    mp <- MemPool.new 100
+    let cfg = Pass.PassConfig
+            $ Map.insert (someTypeRep @Terms)
+              (Pass.ComponentConfig 7
+                  ( Map.insert (someTypeRep @Model)
+                    (Pass.LayerConfig 11)
+                  $ mempty
+                  ) mp
+              )
+            $ mempty
+
+    Pass.runPass (Pass.encodePassStateTEMP cfg) passTest
 -- runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+
+
+
 
 
 --
@@ -409,7 +425,7 @@ test_readWriteLayer_ptrBuffOff i = do
             UniConsVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var (x+1))
             go (j - 1)
-    flip State.evalT (7::Int)
+    flip State.evalT (0::Int)
        $ flip State.evalT ptr (go i)
 
 -- test_readWriteLayer_static :: Int -> IO ()
@@ -459,7 +475,7 @@ test_readWriteLayer2 i = do
             UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
             go (j - 1)
-    State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
+    State.evalT (go i) (TypeMap.TypeMap (Tuple.T3 ('x' :: Char) ("a" :: String) (0 :: Int)) :: TypeMap.TypeMap '[Char, String, Int])
     -- Ptr.free ptr
 
 test_readWriteLayer3 :: Int -> IO ()
@@ -475,52 +491,70 @@ test_readWriteLayer3 i = do
             UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
             go (j - 1)
-    Pass.runPass (Pass.encodePassStateTEMP cfg) (go i) where
-        cfg = Pass.PassConfig
+
+    mp <- MemPool.new 100
+    let cfg = Pass.PassConfig
             $ Map.insert (someTypeRep @Terms)
-              (Pass.ComponentInfo 0
-                  $ Map.insert (someTypeRep @Model)
-                    (Pass.LayerInfo 0)
+              (Pass.ComponentConfig 0
+                  ( Map.insert (someTypeRep @Model)
+                    (Pass.LayerConfig 0)
                   $ mempty
+                  ) mp
               )
             $ mempty
+    Pass.runPass (Pass.encodePassStateTEMP cfg) (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
--- 
--- test_readWriteLayer4 :: Int -> IO ()
--- test_readWriteLayer4 i = do
---     ir <- mockNewIR
---     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
---     let -- go :: Int -> StateT Int IO ()
---         go :: Int -> Pass.SubPass MyPass IO ()
---         go 0 = return ()
---         go j = do
---             !s <- getPassState
---             Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
---             UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
---             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
---             go (j - 1)
---     Pass.runPass (Pass.encodePassStateTEMP cfg) (go i) where
---         cfg = Pass.PassConfig
---             $ Map.insert (someTypeRep @Terms)
---               (Pass.ComponentInfo 0
---                   $ Map.insert (someTypeRep @Model)
---                     (Pass.LayerInfo 0)
---                   $ mempty
---               )
---             $ mempty
---     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
+
+test_readWriteLayer4 :: Int -> IO ()
+test_readWriteLayer4 i = do
+    ir <- mockNewIR
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    let -- go :: Int -> StateT Int IO ()
+        go :: Int -> Pass.SubPass MyPass IO ()
+        go 0 = return ()
+        go j = do
+            Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
+            UniConsVar (Var !x) <- readLayer @Model ir
+            Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+            go (j - 1)
+
+    cfg <- test_pm_run
+    Pass.runPass (Pass.encodePassStateTEMP cfg) (go i)
+    -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
 
-test_pm_run :: IO ()
-test_pm_run = Exception.catchAll print $ PassManager.evalT test_pm
+-- unsafeReadByteOff  :: CTX => Int -> Component comp layout -> m (LayoutView comp layer layout)
+-- #define CTX ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)
 
-test_pm :: MonadPassManager m => m ()
+readLayer :: ∀ layer comp layout m. (Layer.StorableLayer comp layer layout, MonadIO m, Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m)
+          => Component comp layout -> m (Layer.LayoutView comp layer layout)
+readLayer comp = do
+    Pass.LayerByteOffset !off <- getPassData @(Pass.LayerByteOffset comp layer)
+    Layer.unsafeReadByteOff @layer off comp
+{-# INLINE readLayer #-}
+-- Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
+-- UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
+
+
+test_pm_run :: MonadIO m => m Pass.PassConfig
+test_pm_run = Exception.catchAll undefined $ PassManager.evalT test_pm
+
+test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
 test_pm = do
     PassManager.registerComponent @Terms
     PassManager.registerPrimLayer @Terms @Model
-    return ()
+    print "iii"
+    reg <- State.get @PassManager.Registry
+    print reg
+    passCfg <- PassManager.mkPassConfig reg
+
+    return passCfg
+
+
+
+
 
 -- passTest :: Pass.SubPass MyPass IO ()
 -- passTest = do
@@ -533,9 +567,9 @@ test_pm = do
 -- passRunTest = Pass.runPass (Pass.encodePassStateTEMP layout) passTest where
 --     layout = Pass.PassConfig
 --         $ Map.insert (someTypeRep @Terms)
---           (Pass.ComponentInfo 7
+--           (Pass.ComponentConfig 7
 --               $ Map.insert (someTypeRep @Model)
---                 (Pass.LayerInfo 11)
+--                 (Pass.LayerConfig 11)
 --               $ mempty
 --           )
 --         $ mempty

@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 
 module Foreign.Memory.Pool where
 
@@ -19,10 +18,10 @@ allocBytes :: forall a m. MonadIO m => Int -> m SomePtr
 allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 
 
-newtype MemPool = MemPool (Ptr Int) deriving (Show)
+newtype MemPool = MemPool (Ptr Int) deriving (Show, Storable)
 
-newMemPool :: MonadIO m => Int -> m MemPool
-newMemPool i = liftIO $ coerce <$> Ptr.new i ; {-# INLINE newMemPool #-}
+new :: MonadIO m => Int -> m MemPool
+new i = liftIO $ coerce <$> Ptr.new i ; {-# INLINE new #-}
 
 
 alloc :: MonadIO m => MemPool -> m SomePtr

@@ -54,6 +54,7 @@ main = do
     TS3.test
     print "---"
     Basic.passRunTest
+    Basic.test_pm_run
 
     let minExpVec = 7 :: Int
         maxExpVec = 7 :: Int
@@ -83,7 +84,12 @@ main = do
     --             ]
     --         ]
         [ bgroup "IR"
-            [ bgroup "Read/Write Layer + State config 3"
+            [ bgroup "Read/Write Layer + State config 4"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_readWriteLayer4 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer + State config 3"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer3 (10 ^ i))  <$> [minExpVec..maxExpVec]
@@ -92,6 +98,12 @@ main = do
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer + State"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_readWriteLayer_ptrBuffOff (10 ^ i))  <$> [minExpVec..maxExpVec]
+
     --
     --         [ bgroup "Vector creation Hardcoded"
     --             $ (\(i :: Int) -> bench ("10e" <> show i)

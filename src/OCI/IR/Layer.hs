@@ -7,6 +7,7 @@ import Prologue hiding (Data)
 import Type.Data.Bool
 
 import qualified OCI.IR.Layout    as Layout
+import qualified OCI.Pass.Class   as Pass
 import qualified Foreign.Storable as Storable
 
 import Foreign.Ptr            (plusPtr)
@@ -14,7 +15,6 @@ import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable       (Storable)
 import Foreign.Storable.Utils (sizeOf')
 import OCI.IR.Component       (Component(Component))
-
 
 
 -----------------------
@@ -135,5 +135,13 @@ unsafeReadByteOff  :: CTX => Int -> Component comp layout -> m (LayoutView comp 
 unsafeWriteByteOff :: CTX => Int -> Component comp layout ->   (LayoutView comp layer layout) -> m ()
 unsafeReadByteOff  !d = peekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
 unsafeWriteByteOff !d = pokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
+
+
+read :: CTX => Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m
+     => Component comp layout -> m (LayoutView comp layer layout)
+read comp = do
+    Pass.LayerByteOffset !off <- Pass.getPassData @(Pass.LayerByteOffset comp layer)
+    unsafeReadByteOff @layer off comp
+{-# INLINE read #-}
 
 #undef CTX

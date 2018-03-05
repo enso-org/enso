@@ -13,17 +13,16 @@ import Foreign (Ptr)
 import OCI.IR.Selector
 import OCI.IR.SelectorT
 
-import Data.TypeMap.Strict (TypeMap)
-import Data.Map.Strict     (Map)
-
-import qualified Type.Data.List              as List
-import qualified Data.Map                    as Map
+import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
+import qualified Data.Map                    as Map
 import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
+import qualified Type.Data.List              as List
 
-import qualified Control.Monad.Exception     as Exception
-
+import Data.TypeMap.Strict (TypeMap)
+import Data.Map.Strict     (Map)
+import Foreign.Memory.Pool (MemPool)
 
 
 
@@ -53,20 +52,21 @@ instance Exception CompilerException where
 -- === Definition === --
 
 data PassConfig = PassConfig
-    { _components :: !(Map SomeTypeRep ComponentInfo)
+    { _components :: !(Map SomeTypeRep ComponentConfig)
     } deriving (Show)
 
-data ComponentInfo = ComponentInfo
+data ComponentConfig = ComponentConfig
     { _byteSize :: !Int
-    , _layers   :: !(Map SomeTypeRep LayerInfo)
+    , _layers   :: !(Map SomeTypeRep LayerConfig)
+    , _memPool  :: !MemPool
     } deriving (Show)
 
-data LayerInfo = LayerInfo
+data LayerConfig = LayerConfig
     { _byteOffset :: !Int
     } deriving (Show)
 
-makeLenses ''LayerInfo
-makeLenses ''ComponentInfo
+makeLenses ''LayerConfig
+makeLenses ''ComponentConfig
 makeLenses ''PassConfig
 
 
@@ -78,7 +78,7 @@ makeLenses ''PassConfig
 -- === Definition === --
 
 newtype ByteSize a = ByteSize Int deriving (Show)
-newtype LayerByteOffset component layer = LayerByteOffset Int deriving (Show)
+newtype LayerByteOffset component layer = LayerByteOffset Int
 makeLenses ''ByteSize
 makeLenses ''LayerByteOffset
 
@@ -87,6 +87,14 @@ makeLenses ''LayerByteOffset
 
 instance Default (ByteSize a)          where def = ByteSize        0 ; {-# INLINE def #-}
 instance Default (LayerByteOffset c l) where def = LayerByteOffset 0 ; {-# INLINE def #-}
+
+instance (Typeable comp, Typeable layer) => Show (LayerByteOffset comp layer) where
+    showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
+        where name = (<> " ") $ unwords
+                   [ "LayerByteOffset"
+                   , '@' : show (typeRep @comp)
+                   , '@' : show (typeRep @layer)
+                   ]
 
 
 
