@@ -1,4 +1,4 @@
- Contributing to Luna
+# Contributing to Luna
 Thank you for your interest in contributing to Luna! We believe that only 
 through community involvement can Luna be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major 
