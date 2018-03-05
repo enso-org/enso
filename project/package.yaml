@@ -25,6 +25,7 @@ dependencies:
     - luna-syntax-text-lexer
     - luna-syntax-text-parser
     - text-processing
+    - safe-exceptions
     - path >= 0.6.0
 
 default-extensions:
