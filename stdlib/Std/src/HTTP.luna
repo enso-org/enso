@@ -46,6 +46,7 @@ def emptyHttpBody: HttpSimpleBody Empty
 ## of accessing the body contents, see the methods.
 class HttpResponse:
     responseCode :: Int
+    headers      :: Map Text Text
     getChunk     :: Binary
 
     def toText:
