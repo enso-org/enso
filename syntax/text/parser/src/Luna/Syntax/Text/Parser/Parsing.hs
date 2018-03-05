@@ -923,8 +923,14 @@ impSrc = buildAsg $ (\s -> liftIRBApp0 $ IR.unresolvedImpSrc' s) <$> (wrd <|> re
 -- === Foreign Import Parsing === --
 ------------------------------------
 
+-- TODO [Ara] Using empty list as debug for now.
 foreignImportList :: AsgParser SomeExpr
-foreignImportList = buildAsg $ (\imps -> liftIRBApp0 $ IR.foreignImpList' []) <$> symbol Lexer.KwForeign
+foreignImportList = buildAsg $ (\imps -> liftIRBApp0 $ IR.foreignImpList' [])
+                            <$> parse
+    where
+        parse = do
+            symbol Lexer.KwForeign
+            {- Lexer.KwImport -}
 
 foreignLocationImportList :: AsgParser SomeExpr
 foreignLocationImportList = buildAsg $ undefined
