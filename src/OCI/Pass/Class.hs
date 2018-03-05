@@ -206,9 +206,15 @@ type PassDataGetter a m =
     ( MonadPass m
     , TypeMap.ElemGetter a (DiscoverPassStateLayout m) )
 
+type LayerByteOffsetGetter comp layer m =
+    PassDataGetter (LayerByteOffset comp layer) m
+
+
 getPassData :: ∀ a m. PassDataGetter a m => m a
 getPassData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getPassData #-}
 
+getLayerByteOffset :: ∀ comp layer m. LayerByteOffsetGetter comp layer m => m Int
+getLayerByteOffset = unwrap <$> getPassData @(LayerByteOffset comp layer) ; {-# INLINE getLayerByteOffset #-}
 
 
 --------------------------

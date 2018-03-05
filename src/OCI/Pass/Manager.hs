@@ -16,7 +16,7 @@ import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
 import Foreign.Memory.Pool         (MemPool)
-import OCI.IR.Layer                (Layer)
+import OCI.IR.Layer                (Layerx)
 
 
 ---------------------------
@@ -144,7 +144,7 @@ registerPrimLayerRep s comp layer = State.modifyM_ @Registry $ \m -> do
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadPassManager m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer comp layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layerx comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
 registerPrimLayer = registerPrimLayerRep (Layer.byteSize @comp @layer) (someTypeRep @comp) (someTypeRep @layer) ; {-# INLINE registerPrimLayer #-}
 

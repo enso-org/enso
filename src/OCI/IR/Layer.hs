@@ -6,14 +6,16 @@ module OCI.IR.Layer where
 import Prologue hiding (Data)
 import Type.Data.Bool
 
-import qualified OCI.IR.Layout    as Layout
-import qualified OCI.Pass.Class   as Pass
-import qualified Foreign.Storable as Storable
+import qualified OCI.IR.Layout     as Layout
+import qualified OCI.Pass.Class    as Pass
+import qualified Foreign.Storable  as Storable
+import qualified Foreign.Storable1 as Storable1
 
 import Foreign.Ptr            (plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable       (Storable)
 import Foreign.Storable.Utils (sizeOf')
+import Foreign.Storable1      (Storable1)
 import OCI.IR.Component       (Component(Component))
 
 
@@ -108,10 +110,96 @@ autoPokeViewIO = autoPokeViewIO__ @(IsLayerFullView c l s) @c @l @s ; {-# INLINE
 
 -- === API === --
 
-type Layer comp layer = Storable (Data_ comp layer)
 
-byteSize :: ∀ comp layer. Layer comp layer => Int
+type Layer comp layer = Storable1 (Data comp layer)
+
+byteSize2 :: ∀ comp layer. Layer comp layer => Int
+byteSize2 = Storable1.sizeOf @(Data comp layer) ; {-# INLINE byteSize2 #-}
+
+#define CTX ∀ layer comp layout m. (Layer comp layer, MonadIO m)
+
+unsafePeek :: CTX => SomePtr -> m (Data comp layer layout)
+unsafePoke :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeek !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
+unsafePoke !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
+
+unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data comp layer layout)
+unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
+unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
+
+unsafeReadByteOff2  :: CTX => Int -> Component comp layout -> m (Data comp layer layout)
+unsafeWriteByteOff2 :: CTX => Int -> Component comp layout ->   (Data comp layer layout) -> m ()
+unsafeReadByteOff2  !d = unsafePeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff2  #-}
+unsafeWriteByteOff2 !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff2 #-}
+
+#undef CTX
+
+
+--------------------------------------
+-- === Reader / Writer / Editor === --
+--------------------------------------
+
+-- === Definition === --
+
+type Editor comp layer m =
+   ( Reader comp layer m
+   , Writer comp layer m
+   )
+
+class Reader comp layer m where
+    read__  :: ∀ layout. Component comp layout -> m (Data comp layer layout)
+
+class Writer comp layer m where
+    write__ :: ∀ layout. Component comp layout -> Data comp layer layout -> m ()
+
+read :: ∀ layer comp layout m. Reader comp layer m
+     => Component comp layout -> m (Data comp layer layout)
+read = read__ @comp @layer @m ; {-# INLINE read #-}
+
+write :: ∀ layer comp layout m. Writer comp layer m
+     => Component comp layout -> Data comp layer layout -> m ()
+write = write__ @comp @layer @m ; {-# INLINE write #-}
+
+
+-- === Implementation === --
+
+instance {-# OVERLAPPABLE #-}
+    (Layer comp layer, MonadIO m, Pass.LayerByteOffsetGetter comp layer m)
+    => Reader comp layer m where
+    read__ comp = do
+        !off <- Pass.getLayerByteOffset @comp @layer
+        unsafeReadByteOff2 @layer off comp
+    {-# INLINE read__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    (Layer comp layer, MonadIO m, Pass.LayerByteOffsetGetter comp layer m)
+    => Writer comp layer m where
+    write__ comp d = do
+        !off <- Pass.getLayerByteOffset @comp @layer
+        unsafeWriteByteOff2 @layer off comp d
+    {-# INLINE write__ #-}
+
+
+-- === Early resolution block === --
+
+instance Reader Imp  layer m    where read__ _ = impossible
+instance Reader comp Imp   m    where read__ _ = impossible
+instance Reader comp layer ImpM where read__ _ = impossible
+
+instance Writer Imp  layer m    where write__ _ _ = impossible
+instance Writer comp Imp   m    where write__ _ _ = impossible
+instance Writer comp layer ImpM where write__ _ _ = impossible
+
+
+
+
+
+type Layerx comp layer = Storable (Data_ comp layer)
+
+byteSize :: ∀ comp layer. Layerx comp layer => Int
 byteSize = Storable.sizeOf (undefined :: Data_ comp layer) ; {-# INLINE byteSize #-}
+
 
 
 #define CTX ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)
@@ -137,11 +225,12 @@ unsafeReadByteOff  !d = peekByteOff @layer @comp @layout d . coerce ; {-# INLINE
 unsafeWriteByteOff !d = pokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
 
-read :: CTX => Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m
-     => Component comp layout -> m (LayoutView comp layer layout)
-read comp = do
-    Pass.LayerByteOffset !off <- Pass.getPassData @(Pass.LayerByteOffset comp layer)
-    unsafeReadByteOff @layer off comp
-{-# INLINE read #-}
+-- -- read :: Layer comp layer layout
+-- read :: CTX => Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m
+--      => Component comp layout -> m (LayoutView comp layer layout)
+-- read comp = do
+--     Pass.LayerByteOffset !off <- Pass.getPassData @(Pass.LayerByteOffset comp layer)
+--     unsafeReadByteOff @layer off comp
+-- {-# INLINE read #-}
 
 #undef CTX
