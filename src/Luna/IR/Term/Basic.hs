@@ -88,14 +88,6 @@ type instance TermConsDef Var = ConsVar
 deriveStorable ''ConsVar
 deriveLinks ''ConsVar
 
-Tag.familyInstance "TermCons" "Var2"
-data ConsVar2 a = Var2
-    { __name :: Int
-    , _x1 :: Int
-    } deriving (Show, Eq)
-type instance TermConsDef Var2 = ConsVar2
-deriveStorable ''ConsVar2
-
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
     { __base :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Term Acc a)
@@ -107,7 +99,6 @@ deriveLinks ''ConsAcc
 
 data UniCons a
     = UniConsVar !(ConsVar a)
-    | UniConsVar2 !(ConsVar2 a)
     | UniConsAcc !(ConsAcc a)
     deriving (Show, Eq)
 type instance TermConsDef (Format f) = UniCons
