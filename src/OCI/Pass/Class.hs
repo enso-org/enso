@@ -28,23 +28,6 @@ import Control.Monad.Exception (Throws, throw)
 
 
 
-
-
-data CompilerException = ∀ e. Exception e => CompilerException e
-
-instance Show CompilerException where
-    show (CompilerException e) = show e
-
-instance Exception CompilerException where
-    displayException (CompilerException e) =
-        "Luna compiler error.\n" <> displayException e <> "\n\n" <>
-        "Please report it on https://github.com/luna/luna/issues"
-
-
-
-
-
-
 ------------------------
 -- === PassConfig === --
 ------------------------
@@ -71,11 +54,34 @@ makeLenses ''PassConfig
 
 
 
+------------------------------
+-- === Pass Declaration === --
+------------------------------
+
+
+-- | For example: ...
+
+data Elems
+
+data Property
+    = In        Type
+    | Out       Type
+    | Preserves Type
+
+type family Spec (pass :: Type) (prop :: Property) :: [Type]
+
+type Ins  pass prop = Spec pass (In  prop)
+type Outs pass prop = Spec pass (Out prop)
+type Vars pass prop
+    = List.Unique (List.Append (Ins pass prop) (Outs pass prop))
+
+
+
 ---------------------------
 -- === Pass Metadata === --
 ---------------------------
 
--- === Definition === --
+-- === ComponentMemPool === --
 
 newtype ComponentMemPool comp       = ComponentMemPool MemPool
 newtype LayerByteOffset  comp layer = LayerByteOffset  Int
@@ -105,31 +111,11 @@ instance Typeable comp => Show (ComponentMemPool comp) where
 
 
 
-------------------------------
--- === Pass Declaration === --
-------------------------------
-
-
--- | For example: ...
-
-data Elems
-
-data Property
-    = In        Type
-    | Out       Type
-    | Preserves Type
-
-type family Spec (pass :: Type) (prop :: Property) :: [Type]
-
-type Ins  pass prop = Spec pass (In  prop)
-type Outs pass prop = Spec pass (Out prop)
-type Vars pass prop
-    = List.Unique (List.Append (Ins pass prop) (Outs pass prop))
-
-
 ------------------------
 -- === Pass State === --
 ------------------------
+
+-- === Definition === --
 
 newtype PassState       pass = PassState (PassStateData pass)
 type    PassStateData   pass = TypeMap (PassStateLayout pass)
@@ -147,10 +133,7 @@ type family MapComponentLayerLayout pass cs where
 type ComponentLayerLayout pass component
     = List.Map (LayerByteOffset component) (Vars pass component)
 
-
-
 makeLenses ''PassState
-
 
 
 -- === Instances === --
@@ -181,7 +164,18 @@ type DiscoverPassStateData   m = PassStateData   (DiscoverPass m)
 type DiscoverPassStateLayout m = PassStateLayout (DiscoverPass m)
 
 
+-- === API === --
+
+runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+runPass !s p = flip State.evalT s (coerce p) ; {-# INLINE runPass #-}
+
+
+
+------------------------
 --- === MonadPass === --
+------------------------
+
+-- === Definition === --
 
 class Monad m => MonadPass m where
     getPassState :: m (DiscoverPassState m)
@@ -200,27 +194,26 @@ instance {-# OVERLAPPABLE #-}
 
 -- === API === --
 
-runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
-runPass !s p = flip State.evalT s (coerce p) ; {-# INLINE runPass #-}
-
-type PassDataGetter a m =
-    ( MonadPass m
-    , TypeMap.ElemGetter a (DiscoverPassStateLayout m) )
-
-type LayerByteOffsetGetter comp layer m =
-    PassDataGetter (LayerByteOffset comp layer) m
+class    Monad m => DataGetter a   m    where getData :: m a
+instance Monad m => DataGetter Imp m    where getData = impossible
+instance            DataGetter a   ImpM where getData = impossible
+instance (MonadPass m, TypeMap.ElemGetter a (DiscoverPassStateLayout m))
+      => DataGetter a m where
+    getData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getData #-}
 
 
-getPassData :: ∀ a m. PassDataGetter a m => m a
-getPassData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getPassData #-}
+type LayerByteOffsetGetter  comp layer m = DataGetter (LayerByteOffset  comp layer) m
+type ComponentMemPoolGetter comp       m = DataGetter (ComponentMemPool comp)       m
+getLayerByteOffset  :: ∀ comp layer m. LayerByteOffsetGetter  comp layer m => m Int
+getComponentMemPool :: ∀ comp       m. ComponentMemPoolGetter comp       m => m MemPool
+getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  comp layer) ; {-# INLINE getLayerByteOffset  #-}
+getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# INLINE getComponentMemPool #-}
 
-getLayerByteOffset :: ∀ comp layer m. LayerByteOffsetGetter comp layer m => m Int
-getLayerByteOffset = unwrap <$> getPassData @(LayerByteOffset comp layer) ; {-# INLINE getLayerByteOffset #-}
 
 
---------------------------
--- === Pass Encoder === --
---------------------------
+--------------------------------
+-- === Pass State Encoder === --
+--------------------------------
 
 -- === Errors === --
 

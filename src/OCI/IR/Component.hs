@@ -7,7 +7,7 @@ import Prologue hiding (ConversionError)
 
 import Foreign.Storable  (Storable)
 import Foreign.Ptr.Utils (SomePtr)
-import OCI.IR.Conversion (Generalizable, ConversionError)
+import OCI.IR.Conversion (Castable, Generalizable, ConversionError)
 import Type.Error        ((:<+>:))
 
 import qualified Data.Tag            as Tag
@@ -22,33 +22,41 @@ import qualified Type.Error          as Error
 
 -- === Definition === --
 
-newtype Component t cfg = Component SomePtr deriving (Eq, Show, Storable)
+newtype Component t layout = Component SomePtr deriving (Eq, Show, Storable)
 type SomeComponent t = Component t ()
+makeLenses ''Component
 
 
 -- === Generalization === --
 
-class GeneralizableComponent (t :: Type) (cfg :: Type) (cfg' :: Type)
-instance GeneralizableComponent t cfg ()
+class GeneralizableComponent (t :: Type) (layout :: Type) (layout' :: Type)
+instance GeneralizableComponent t layout ()
 
 instance {-# OVERLAPPABLE #-}
     ConversionError (Error.Str "Cannot generalize" :<+>: Error.ShowType t) a b
  => GeneralizableComponent t a b
 
 instance {-# OVERLAPPABLE #-}
-    ( a ~ Component t cfg'
-    , GeneralizableComponent t cfg cfg'
-    ) => Generalizable a (Component t cfg)
+    ( a ~ Component t layout'
+    , GeneralizableComponent t layout layout'
+    ) => Generalizable a (Component t layout)
 
 instance {-# OVERLAPPABLE #-}
-    ( a ~ Component t cfg'
-    , GeneralizableComponent t cfg cfg'
-    ) => Generalizable (Component t cfg) a
+    ( a ~ Component t layout'
+    , GeneralizableComponent t layout layout'
+    ) => Generalizable (Component t layout) a
 
 instance {-# OVERLAPPABLE #-}
     ( t ~ t'
-    , GeneralizableComponent t cfg cfg'
-    ) => Generalizable (Component t cfg) (Component t' cfg')
+    , GeneralizableComponent t layout layout'
+    ) => Generalizable (Component t layout) (Component t' layout')
+
+
+-- === Instances === --
+
+instance {-# OVERLAPPABLE #-} a ~ Component t l' => Castable (Component t l) a
+instance {-# OVERLAPPABLE #-} a ~ Component t l' => Castable a (Component t l)
+instance t ~ t' => Castable (Component t l) (Component t' l')
 
 
 -- === TH === --

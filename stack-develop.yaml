@@ -2,13 +2,12 @@ resolver: lts-10.4
 
 packages:
     - .
+    - ../container
+    - ../convert
     - ../lens-utils
     - ../monoid
-    - ../convert
     - ../functor-utils
     - ../prologue
-    - ../container
-    - ../data-layer
     - ../impossible
     - ../typelevel
     - ../data-construction

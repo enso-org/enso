@@ -19,10 +19,10 @@ type family ConversionError' b s d where
 type family ConversionError  b s d where
             ConversionError  b s d = TypeError (ConversionErrorMsg b s d)
 
-type ConversionErrorMsg (base :: ErrorMessage) (src :: Type) (dst :: Type)
+type ConversionErrorMsg (base :: ErrorMessage) (src :: Type) (tgt :: Type)
     = Error.Sentence ( base :<+>: Error.Type src
                             :<+>: Error.Str "to"
-                            :<+>: Error.Type dst )
+                            :<+>: Error.Type tgt )
 
 
 
@@ -32,12 +32,13 @@ type ConversionErrorMsg (base :: ErrorMessage) (src :: Type) (dst :: Type)
 
 -- === Definition === --
 
-class Generalizable (src :: Type) (dst :: Type)
-instance {-# OVERLAPPABLE #-} ConversionError' "Cannot generalize" src dst
-      => Generalizable src dst
+class Coercible src tgt => Generalizable (src :: Type) (tgt :: Type)
+instance {-# OVERLAPPABLE #-}
+    (Coercible src tgt, ConversionError' "Cannot generalize" src tgt)
+    => Generalizable src tgt
 
-generalize :: Generalizable src dst => src -> dst
-generalize = unsafeCoerce ; {-# INLINE generalize #-}
+generalize :: Generalizable src tgt => src -> tgt
+generalize = coerce ; {-# INLINE generalize #-}
 
 
 
@@ -47,9 +48,10 @@ generalize = unsafeCoerce ; {-# INLINE generalize #-}
 
 -- === Definition === --
 
-class UnsafeCastable (src :: Type) (dst :: Type)
-instance {-# OVERLAPPABLE #-} ConversionError' "Cannot cast" src dst
-      => UnsafeCastable src dst
+class Coercible src tgt => Castable (src :: Type) (tgt :: Type)
+instance {-# OVERLAPPABLE #-}
+    (Coercible src tgt, ConversionError' "Cannot cast" src tgt)
+    => Castable src tgt
 
-unsafeCast :: UnsafeCastable src dst => src -> dst
-unsafeCast = unsafeCoerce ; {-# INLINE unsafeCast #-}
+cast :: Castable src tgt => src -> tgt
+cast = coerce ; {-# INLINE cast #-}

@@ -15,7 +15,7 @@ import qualified Foreign.Marshal.Utils as Ptr
 allocPtr :: forall a m. (MonadIO m, Storable a) => m (Ptr a)
 allocPtr = liftIO Foreign.malloc ; {-# INLINE allocPtr #-}
 
-allocBytes :: forall a m. MonadIO m => Int -> m SomePtr
+allocBytes :: forall a m. MonadIO m => Int -> m (Ptr a)
 allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 
 
@@ -29,7 +29,7 @@ new :: MonadIO m => Int -> m MemPool
 new i = liftIO $ coerce <$> Ptr.new i ; {-# INLINE new #-}
 
 
-alloc :: MonadIO m => MemPool -> m SomePtr
+alloc :: MonadIO m => MemPool -> m (Ptr a)
 alloc pool = do
     i <- liftIO $ peek $ coerce pool
     allocBytes i

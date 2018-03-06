@@ -25,7 +25,7 @@ import OCI.IR.Link as Link
 
 import qualified Luna.IR.Link as Link
 import Luna.IR.Format
-import Data.Tag (Tag)
+import Data.Tag (Tag, TagOf)
 
 import qualified Data.Tag     as Tag
 import qualified Data.Mutable as MData
@@ -99,12 +99,20 @@ type instance Layer.ConsLayout ConsAcc = Acc
 deriveStorable ''ConsAcc
 deriveLinks ''ConsAcc
 
-data UniCons a
-    = UniConsVar !(ConsVar a)
-    | UniConsAcc !(ConsAcc a)
+data UniTerm a
+    = UniTermVar !(ConsVar a)
+    | UniTermAcc !(ConsAcc a)
     deriving (Show, Eq)
-deriveStorable ''UniCons
-deriveLinks ''UniCons
+deriveStorable ''UniTerm
+deriveLinks ''UniTerm
+
+class IsTermCons t where
+    toUniTerm :: ∀ a. t a -> UniTerm a
+
+instance IsTermCons ConsVar where toUniTerm = UniTermVar ; {-# INLINE toUniTerm #-}
+instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm #-}
+
+
 
 instance Storable1.Storable1 ConsVar where
     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
@@ -118,13 +126,13 @@ instance Storable1.Storable1 ConsAcc where
     peek      = Storable.peek      ; {-# INLINE peek      #-}
     poke      = Storable.poke      ; {-# INLINE poke      #-}
 
-instance Storable1.Storable1 UniCons where
+instance Storable1.Storable1 UniTerm where
     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
     alignment = Storable.alignment ; {-# INLINE alignment #-}
     peek      = Storable.peek      ; {-# INLINE peek      #-}
     poke      = Storable.poke      ; {-# INLINE poke      #-}
 
--- instance Storable (UniCons fmt a) where
+-- instance Storable (UniTerm fmt a) where
 --     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
 --     alignment _ = chunkSize     ; {-# INLINE alignment #-}
 --     peek ptr = peek (intPtr ptr) >>= \case
@@ -215,10 +223,10 @@ makeLenses ''LayerLoc
 
 -- instance Layer Terms Model where
 
--- type instance Layer.View Terms Model (Format   f) = UniCons
+-- type instance Layer.View Terms Model (Format   f) = UniTerm
 -- type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
-type instance Layer.Data     Terms Model = UniCons
+type instance Layer.Data     Terms Model = UniTerm
 type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef (TermCons f)
 -- type instance Layer     Terms Type   =
 -- type instance Layer.View Terms Type a =
@@ -262,7 +270,7 @@ type instance Layer.Data Links Target   = Term
 chunkSize :: Int
 chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 
--- instance Storable (UniCons fmt a) where
+-- instance Storable (UniTerm fmt a) where
 --     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
 --     alignment _ = chunkSize     ; {-# INLINE alignment #-}
 --     peek ptr = peek (intPtr ptr) >>= \case
@@ -282,12 +290,45 @@ chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 -- class Reader layer where
 
 mockNewIR :: MonadIO m => m (Term Draft)
-mockNewIR = Component . coerce <$> MemPool.allocPtr @(UniCons ()) ; {-# INLINE mockNewIR #-}
+mockNewIR = Component . coerce <$> MemPool.allocPtr @(UniTerm ()) ; {-# INLINE mockNewIR #-}
 
 mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
 mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
+
+type IRAllocator comp m = (MonadIO m, Pass.ComponentMemPoolGetter comp m)
+
+-- | Its unsafe because it only allocates raw memory.
+unsafeAllocIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
+unsafeAllocIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-# INLINE unsafeAllocIR #-}
+
+
+
+term  :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term (Layout.SetBase (Layer.ConsLayout t) a))
+term' :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term b)
+term = term' ; {-# INLINE term #-}
+term' term = do
+    ir <- unsafeAllocIR
+    Layer.write @Model ir (toUniTerm term)
+    return $ cast ir
+{-# INLINE term' #-}
+
+
+var :: (IRAllocator Terms m, Layer.Writer Terms Model m) => Int -> m (Term Var)
+var name = term' $ Var name ; {-# INLINE var #-}
+
+
+
+
+-- Tag.familyInstance "TermCons" "Var"
+-- newtype ConsVar a = Var
+--     { __name :: Int
+--     } deriving (Show, Eq)
+-- type instance TermConsDef Var = ConsVar
+-- type instance Layer.ConsLayout ConsVar = Var
+-- deriveStorable ''ConsVar
+-- deriveLinks ''ConsVar
 
 -- newComponent :: forall t a m. (KnownLayers t, MonadIO m) => m (Component t a)
 -- newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
@@ -315,7 +356,7 @@ passTest :: Pass.SubPass MyPass IO ()
 passTest = do
     s <- getPassState
     print s
-    print =<< getPassData @(Pass.LayerByteOffset Terms Model)
+    print =<< Pass.getData @(Pass.LayerByteOffset Terms Model)
     return ()
 
 passRunTest :: IO ()
@@ -351,13 +392,13 @@ test = do
     var1 <- mockNewIR
     var2 <- mockNewIR
     acc1 <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 var1 (UniConsVar $ Var 7)
-    Layer.unsafeWriteByteOff @Model layerLoc0 var2 (UniConsVar $ Var 5)
+    Layer.unsafeWriteByteOff @Model layerLoc0 var1 (UniTermVar $ Var 7)
+    Layer.unsafeWriteByteOff @Model layerLoc0 var2 (UniTermVar $ Var 5)
 
     -- l1 <- mockNewLink
     -- Layer.unsafeWriteByteOff @Model layerLoc0 l1 (LinkData var1 acc1)
 
-    -- Layer.unsafeWriteByteOff @Model layerLoc0 acc1 (UniConsAcc $ Acc l1 l1)
+    -- Layer.unsafeWriteByteOff @Model layerLoc0 acc1 (UniTermAcc $ Acc l1 l1)
 
     -- print var1
     -- x <- Layer.unsafeReadByteOff @Model layerLoc0 var1
@@ -369,13 +410,13 @@ test = do
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
     !ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let go 0 = return ()
         go j = do
-            UniConsVar (Var !y) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
-            UniConsVar (Var !z) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
-            UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
-            Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var $! x+1)
+            UniTermVar (Var !y) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
+            UniTermVar (Var !z) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
+            UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
+            Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var $! x+1)
             go $! (j - 1)
     go i
     -- Ptr.free ptr
@@ -384,7 +425,7 @@ test_readWriteLayer i = do
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     writeLayer layerLoc0 ir (UniConsVar $ Var 0)
+--     writeLayer layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
@@ -406,14 +447,14 @@ test_readWriteLayer_ptrOff i = do
     -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
     ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             -- set <- get'
             layer <- peek ptr
-            UniConsVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
-            Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var (x+1))
+            UniTermVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
+            Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var (x+1))
             go (j - 1)
     (go i)
 
@@ -432,7 +473,7 @@ test_readWriteLayer_ptrBuffOff i = do
     pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
     ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
@@ -440,8 +481,8 @@ test_readWriteLayer_ptrBuffOff i = do
             x <- get @Int
             put @Int (x+1)
             layer <- liftIO $ peek p
-            UniConsVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
-            Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var (x+1))
+            UniTermVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
+            Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var (x+1))
             go (j - 1)
     flip State.evalT (0::Int)
        $ flip State.evalT ptr (go i)
@@ -449,12 +490,12 @@ test_readWriteLayer_ptrBuffOff i = do
 -- test_readWriteLayer_static :: Int -> IO ()
 -- test_readWriteLayer_static i = do
 --     ir <- mockNewIR
---     writeLayer @Model ir (UniConsVar $ Var 0)
+--     writeLayer @Model ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
---             UniConsVar (Var x) <- readLayer @Model ir
---             writeLayer @Model ir (UniConsVar $ Var (x+1))
+--             UniTermVar (Var x) <- readLayer @Model ir
+--             writeLayer @Model ir (UniTermVar $ Var (x+1))
 --             go (j - 1)
 --     (go i)
 
@@ -484,14 +525,14 @@ test_readWriteLayer_ptrBuffOff i = do
 test_readWriteLayer2 :: Int -> IO ()
 test_readWriteLayer2 i = do
     ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = return ()
         go j = do
             !set <- State.get'
             let !layer = TypeMap.getElem @Int set
-            UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
-            Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+            UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
+            Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var $! (x+1))
             go (j - 1)
     State.evalT (go i) (TypeMap.TypeMap (Tuple.T3 ('x' :: Char) ("a" :: String) (0 :: Int)) :: TypeMap.TypeMap '[Char, String, Int])
     -- Ptr.free ptr
@@ -499,15 +540,15 @@ test_readWriteLayer2 i = do
 test_readWriteLayer3 :: Int -> IO ()
 test_readWriteLayer3 i = do
     ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go :: Int -> Pass.SubPass MyPass IO ()
         go 0 = return ()
         go j = do
             !s <- getPassState
-            Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
-            UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
-            Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var $! (x+1))
+            Pass.LayerByteOffset !layer <- Pass.getData @(Pass.LayerByteOffset Terms Model)
+            UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
+            Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var $! (x+1))
             go (j - 1)
 
     mp <- MemPool.new 100
@@ -528,12 +569,12 @@ test_readWriteLayer3 i = do
 test_readWriteLayer4 :: Int -> IO ()
 test_readWriteLayer4 i = do
     ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let go :: Int -> Pass.SubPass MyPass IO ()
         go 0 = return ()
         go j = do
-            UniConsVar (Var !x) <- Layer.read @Model ir
-            Layer.write @Model ir (UniConsVar $ Var $! (x+1))
+            UniTermVar (Var !x) <- Layer.read @Model ir
+            Layer.write @Model ir (UniTermVar $ Var $! (x+1))
             go (j - 1)
 
     cfg <- test_pm_run
@@ -553,11 +594,11 @@ tttest n = do
 -- readLayer :: ∀ layer comp layout m. (Layer.StorableLayer comp layer layout, MonadIO m, Pass.PassDataGetter (Pass.LayerByteOffset comp layer) m)
 --           => Component comp layout -> m (Layer.LayoutView comp layer layout)
 -- readLayer comp = do
---     Pass.LayerByteOffset !off <- getPassData @(Pass.LayerByteOffset comp layer)
+--     Pass.LayerByteOffset !off <- Pass.getData @(Pass.LayerByteOffset comp layer)
 --     Layer.unsafeReadByteOff @layer off comp
 -- {-# INLINE readLayer #-}
--- Pass.LayerByteOffset !layer <- getPassData @(Pass.LayerByteOffset Terms Model)
--- UniConsVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
+-- Pass.LayerByteOffset !layer <- Pass.getData @(Pass.LayerByteOffset Terms Model)
+-- UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
 
 
 test_pm_run :: MonadIO m => m Pass.PassConfig
@@ -582,7 +623,7 @@ test_pm = do
 -- passTest = do
 --     s <- getPassState
 --     print s
---     print =<< getPassData @(Pass.LayerByteOffset Terms Model)
+--     print =<< Pass.getData @(Pass.LayerByteOffset Terms Model)
 --     return ()
 --
 -- passRunTest :: IO ()
@@ -599,14 +640,14 @@ test_pm = do
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+--     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
 --             layer <- State.get'
 --             -- let LayerLoc layer = TypeSet.unsafeLookup @(LayerLoc Model) set
---             UniConsVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
---             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var (x+1))
+--             UniTermVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
+--             Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var (x+1))
 --             go (j - 1)
 --     State.evalT (go i) (0 :: Int)
 --     -- State.evalT (go i) (TypeSet.insert (LayerLoc 0 :: LayerLoc Model) mempty)
@@ -616,14 +657,14 @@ test_pm = do
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
 --     ir <- mockNewIR
---     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniConsVar $ Var 0)
+--     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = return ()
 --         go j = do
 --             set <- State.get'
 --             let LayerLoc layer = TypeSet.unsafeLookup @(LayerLoc Model) set
---             UniConsVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
---             Layer.unsafeWriteByteOff @Model layer ir (UniConsVar $ Var (x+1))
+--             UniTermVar (Var x) <- Layer.unsafeReadByteOff @Model layer ir
+--             Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var (x+1))
 --             go (j - 1)
 --     State.evalT (go i) (TypeSet.insert (LayerLoc 0 :: LayerLoc Model) mempty)
 --     -- Ptr.free ptr
