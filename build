@@ -5,7 +5,7 @@ import subprocess
 import sys
 import traceback
 
-from scripts_build import stack_build
+from build_config import stack_build
 
 
 def main ():

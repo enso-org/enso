@@ -22,8 +22,8 @@ dependencies:
     - luna-core
     - luna-passes
     - luna-stdlib
-    - luna-syntax-text-lexer
-    - luna-syntax-text-parser
+    - luna-lexer
+    - luna-parser
     - text-processing
     - path >= 0.6.0
 

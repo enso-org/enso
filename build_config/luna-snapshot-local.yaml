@@ -1,0 +1,17 @@
+resolver: lts-8.16
+name: luna-local
+packages:
+    - error-util-0.0.1.1
+    - cond-0.4.1.1
+    - ghc-mtl-1.2.1.0
+    - serialport-0.4.7
+    - hspec-jenkins-0.1.1
+    - hspec-2.2.4
+    - hspec-core-2.2.4
+    - hspec-discover-2.2.4
+    - hspec-expectations-0.7.2
+    - HUnit-1.3.1.2
+    - containers-0.5.8.2
+    - ansi-terminal-0.6.3.1
+    - optparse-applicative-0.14.0.0
+    - path-0.6.1
