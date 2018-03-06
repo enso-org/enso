@@ -19,12 +19,12 @@ import qualified Data.Map                    as Map
 import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Type.Data.List              as List
+import qualified Foreign.Memory.Pool         as MemPool
 
 import Data.TypeMap.Strict     (TypeMap)
 import Data.Map.Strict         (Map)
 import Foreign.Memory.Pool     (MemPool)
 import Control.Monad.Exception (Throws, throw)
-
 
 
 
@@ -71,21 +71,21 @@ makeLenses ''PassConfig
 
 
 
----------------------------------------
--- === Pass Layout configuration === --
----------------------------------------
+---------------------------
+-- === Pass Metadata === --
+---------------------------
 
 -- === Definition === --
 
-newtype ByteSize a = ByteSize Int deriving (Show)
-newtype LayerByteOffset component layer = LayerByteOffset Int
-makeLenses ''ByteSize
+newtype ComponentMemPool comp       = ComponentMemPool MemPool
+newtype LayerByteOffset  comp layer = LayerByteOffset  Int
+makeLenses ''ComponentMemPool
 makeLenses ''LayerByteOffset
 
 
 -- === Instances === --
 
-instance Default (ByteSize a)          where def = ByteSize        0 ; {-# INLINE def #-}
+instance Default (ComponentMemPool a)  where def = ComponentMemPool MemPool.unsafeNull ; {-# INLINE def #-}
 instance Default (LayerByteOffset c l) where def = LayerByteOffset 0 ; {-# INLINE def #-}
 
 instance (Typeable comp, Typeable layer) => Show (LayerByteOffset comp layer) where
@@ -94,6 +94,13 @@ instance (Typeable comp, Typeable layer) => Show (LayerByteOffset comp layer) wh
                    [ "LayerByteOffset"
                    , '@' : show (typeRep @comp)
                    , '@' : show (typeRep @layer)
+                   ]
+
+instance Typeable comp => Show (ComponentMemPool comp) where
+    showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
+        where name = (<> " ") $ unwords
+                   [ "ComponentMemPool"
+                   , '@' : show (typeRep @comp)
                    ]
 
 
@@ -107,8 +114,6 @@ instance (Typeable comp, Typeable layer) => Show (LayerByteOffset comp layer) wh
 
 data Elems
 
--- type Declaration = Property -> [Type]
-
 data Property
     = In        Type
     | Out       Type
@@ -118,6 +123,8 @@ type family Spec (pass :: Type) (prop :: Property) :: [Type]
 
 type Ins  pass prop = Spec pass (In  prop)
 type Outs pass prop = Spec pass (Out prop)
+type Vars pass prop
+    = List.Unique (List.Append (Ins pass prop) (Outs pass prop))
 
 
 ------------------------
@@ -126,22 +133,21 @@ type Outs pass prop = Spec pass (Out prop)
 
 newtype PassState       pass = PassState (PassStateData pass)
 type    PassStateData   pass = TypeMap (PassStateLayout pass)
-type    PassStateLayout pass = List.Append (ComponentLayout pass)
-                                           (LayersLayout    pass)
+type    PassStateLayout pass = List.Append (ComponentMemPools pass)
+                                           (LayersLayout      pass)
 
-type ComponentLayout pass = List.Map ByteSize   (Ins pass Elems)
-type LayersLayout    pass = LayersLayout__ pass (Ins pass Elems)
+type ComponentMemPools pass = List.Map ComponentMemPool    (Vars pass Elems)
+type LayersLayout      pass = MapComponentLayerLayout pass (Vars pass Elems)
 
-type family LayersLayout__ pass cs where
-    LayersLayout__ pass '[] = '[]
-    LayersLayout__ pass (c ': cs) = List.Append
-        (ComponentLayerLayout pass c) (LayersLayout__ pass cs)
+type family MapComponentLayerLayout pass cs where
+    MapComponentLayerLayout pass '[] = '[]
+    MapComponentLayerLayout pass (c ': cs) = List.Append
+        (ComponentLayerLayout pass c) (MapComponentLayerLayout pass cs)
 
 type ComponentLayerLayout pass component
-    = List.Map (LayerByteOffset component) (ComponentLayers pass component)
+    = List.Map (LayerByteOffset component) (Vars pass component)
 
-type ComponentLayers pass component
-    = List.Unique (List.Append (Ins pass component) (Outs pass component))
+
 
 makeLenses ''PassState
 
@@ -254,9 +260,9 @@ encodePassState cfg = case tryEncodePassState cfg of
 
 passStateEncoder :: ∀ pass. PassStateEncoder pass
     => PassConfig -> EncoderResult (PassState pass -> PassState pass)
-passStateEncoder = passStateEncoder__ @(Ins pass Elems) ; {-# INLINE passStateEncoder #-}
+passStateEncoder = passStateEncoder__ @(Vars pass Elems) ; {-# INLINE passStateEncoder #-}
 
-type  PassStateEncoder pass = PassStateEncoder__ (Ins pass Elems) pass
+type  PassStateEncoder pass = PassStateEncoder__ (Vars pass Elems) pass
 class PassStateEncoder__ (cs :: [Type]) pass where
     passStateEncoder__ :: PassConfig
                       -> EncoderResult (PassState pass -> PassState pass)
@@ -264,14 +270,14 @@ class PassStateEncoder__ (cs :: [Type]) pass where
 instance PassStateEncoder__ '[] pass where
     passStateEncoder__ _ = Right id ; {-# INLINE passStateEncoder__ #-}
 
-instance ( layers   ~ ComponentLayers      pass comp
+instance ( layers   ~ Vars      pass comp
          , targets  ~ ComponentLayerLayout pass comp
-         , compSize ~ ByteSize comp
+         , compMemPool ~ ComponentMemPool comp
          , Typeables layers
          , Typeable  comp
          , PassStateEncoder__  comps pass
-         , EncodePassDataByteElems pass targets
-         , EncodePassDataByteElem  pass (ByteSize comp)
+         , PassDataElemEncoder  compMemPool MemPool pass
+         , PassDataElemsEncoder targets Int pass
          ) => PassStateEncoder__ (comp ': comps) pass where
     passStateEncoder__ cfg = encoders where
         encoders   = appSemiLeft encoder subEncoder
@@ -281,7 +287,7 @@ instance ( layers   ~ ComponentLayers      pass comp
                    . lookupComponent tgtComp $ cfg ^. components
         tgtComp    = someTypeRep  @comp
         procComp i = (compEncoder .) <$> layerEncoder where
-            compEncoder  = encodePassDataElem  @compSize (i ^. byteSize)
+            compEncoder  = encodePassDataElem  @compMemPool (i ^. memPool)
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             layerTypes   = someTypeReps @layers
             layerOffsets = view byteOffset <<$>> layerInfos
@@ -301,10 +307,11 @@ catEithers lst = case partitionEithers lst of
     ((l:ls),_) -> Left (l :| ls)
 {-# INLINE catEithers #-}
 
--- TODO: We should probably think about using other structure than Either here
---       Data.Validation is almost what we need, but its Semigroup instance
---       uses only lefts, which makes is not suitable for the purpose of
---       simple Either replacement.
+-- TODO
+-- We should probably think about using other structure than Either here
+-- Data.Validation is almost what we need, but its Semigroup instance
+-- uses only lefts, which makes is not suitable for the purpose of
+-- simple Either replacement.
 appSemiLeft :: Semigroup e
             => (Either e (b -> c)) -> Either e (a -> b) -> Either e (a -> c)
 appSemiLeft f a = case f of
@@ -320,16 +327,17 @@ appSemiLeft f a = case f of
 
 -- === Element encoders === --
 
-type EncodePassDataByteElem  pass el  = EncodePassDataByteElems pass '[el]
-type EncodePassDataByteElems pass els = EncodePassDataElems Int pass els
-type EncodePassDataElem    t pass el  = EncodePassDataElems t pass '[el]
-type EncodePassDataElems   t pass els = TypeMap.SetElemsFromList els t
-                                        (PassStateLayout pass)
+type PassDataElemEncoder   el t pass = PassDataElemsEncoder '[el] t pass
+class PassDataElemsEncoder (els :: [Type]) t pass where
+    encodePassDataElems :: [t] -> PassState pass -> PassState pass
 
-encodePassDataElems :: ∀ (els :: [Type]) t pass. EncodePassDataElems t pass els
-     => [t] -> PassState pass -> PassState pass
-encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}
+encodePassDataElem :: ∀ el t pass. PassDataElemEncoder el t pass
+                   => t -> PassState pass -> PassState pass
+encodePassDataElem = encodePassDataElems @'[el] @t @pass . pure
 
-encodePassDataElem :: ∀ (el :: Type) t pass. EncodePassDataElem t pass el
-    => t -> PassState pass -> PassState pass
-encodePassDataElem = encodePassDataElems @'[el] . pure ; {-# INLINE encodePassDataElem #-}
+instance PassDataElemsEncoder '[Imp] t   pass where encodePassDataElems = impossible
+instance PassDataElemsEncoder els    Imp pass where encodePassDataElems = impossible
+instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = impossible
+instance TypeMap.SetElemsFromList els t (PassStateLayout pass)
+      => PassDataElemsEncoder els t pass where
+    encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}

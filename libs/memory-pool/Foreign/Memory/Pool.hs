@@ -7,6 +7,7 @@ import qualified Foreign
 
 import Foreign (Ptr, Storable, peek)
 import Foreign.Ptr.Utils (SomePtr)
+import qualified Foreign.Ptr as Ptr
 import qualified Foreign.Marshal.Utils as Ptr
 
 
@@ -19,6 +20,10 @@ allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 
 
 newtype MemPool = MemPool (Ptr Int) deriving (Show, Storable)
+
+
+unsafeNull :: MemPool
+unsafeNull = MemPool Ptr.nullPtr ; {-# INLINE unsafeNull #-}
 
 new :: MonadIO m => Int -> m MemPool
 new i = liftIO $ coerce <$> Ptr.new i ; {-# INLINE new #-}
