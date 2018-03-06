@@ -1,0 +1,47 @@
+ghc-options:
+    $locals:
+        -DFastCompilation
+        -fenable-rewrite-rules
+        -threaded
+        -funbox-strict-fields
+        -O0
+        -fconstraint-solver-iterations=100
+    $everything:
+        -fconstraint-solver-iterations=100
+local-bin-path: ../dist/bin/public/luna
+packages:
+    - location: ../shell
+    - location: ../core
+    - location: ../passes
+    - location: ../stdlib
+    - location: ../project
+    - location: ../syntax/text/parser
+    - location: ../syntax/text/lexer
+    - location: ../../libs/container
+    - location: ../../libs/convert
+    - location: ../../libs/data-base
+    - location: ../../libs/data-construction
+    - location: ../../libs/data-pool
+    - location: ../../libs/data-layer
+    - location: ../../libs/data-repr
+    - location: ../../libs/data-result
+    - location: ../../libs/dependent-state
+    - location: ../../libs/functor-utils
+    - location: ../../libs/impossible
+    - location: ../../libs/lens-utils
+    - location: ../../libs/poly-control
+    - location: ../../libs/prologue
+    - location: ../../libs/type-cache
+    - location: ../../libs/typelevel
+    - location: ../../libs/data-prop
+    - location: ../../libs/data-rtuple
+    - location: ../../libs/data-shell
+    - location: ../../libs/visualisation-api
+    - location: ../../libs/monoid
+    - location: ../../libs/text-processing
+    - location: ../../libs/parsert
+    - location: ../../libs/vector-text
+    - location: ../../libs/terminal-text
+    - location: ../../libs/layouting
+    - location: ../../libs/monad-branch
+resolver: ./luna-snapshot-local.yaml

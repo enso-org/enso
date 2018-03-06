@@ -23,8 +23,8 @@ tests:
         dependencies:
             - luna-core
             - luna-passes
-            - luna-syntax-text-parser
-            - luna-syntax-text-lexer
+            - luna-parser
+            - luna-lexer
             - luna-stdlib
             - directory
             - filepath
@@ -44,8 +44,8 @@ dependencies:
     - bytestring
     - cryptonite
     - functor-utils
-    - luna-syntax-text-parser
-    - luna-syntax-text-lexer
+    - luna-parser
+    - luna-lexer
     - binary
     - utf8-string
     - vector-text

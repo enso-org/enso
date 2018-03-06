@@ -1,0 +1,72 @@
+resolver: lts-8.16
+name: luna
+packages:
+    - error-util-0.0.1.1
+    - cond-0.4.1.1
+    - ghc-mtl-1.2.1.0
+    - serialport-0.4.7
+    - hspec-jenkins-0.1.1
+    - hspec-2.2.4
+    - hspec-core-2.2.4
+    - hspec-discover-2.2.4
+    - hspec-expectations-0.7.2
+    - HUnit-1.3.1.2
+    - containers-0.5.8.2
+    - ansi-terminal-0.6.3.1
+    - optparse-applicative-0.14.0.0
+    - path-0.6.1
+    - git: 'https://github.com/luna/container.git'
+      commit: 61ff909efd466735cd4820f9ab2c564e324b5546
+    - git: 'https://github.com/luna/convert.git'
+      commit: 5d7acbac13a9131c26baa2da27ef6f76f329e019
+    - git: 'https://github.com/luna/data-base.git'
+      commit: a81f2eb37b0bddbc3391c8a29860b921aa94f3c8
+    - git: 'https://github.com/luna/data-construction.git'
+      commit: a6afda3b96efe00938aba61ac12a2f5f2134ff3d
+    - git: 'https://github.com/luna/data-pool.git'
+      commit: 4cc75aeb82ad2885427211a1be9cb0c7d9582c01
+    - git: 'https://github.com/luna/data-layer.git'
+      commit: 8a5773adba33d71a311ba0b4123b744213b0be91
+    - git: 'https://github.com/luna/data-repr.git'
+      commit: 9da4c9b2534693cfe82adeb37f12eaadacb41e62
+    - git: 'https://github.com/luna/data-result.git'
+      commit: 89b0bb545ddde953c5692f234163748b9b4e84d2
+    - git: 'https://github.com/luna/dependent-state.git'
+      commit: 8c3d63bb78c24fcfadd22efe1a0b8071c4240ff6
+    - git: 'https://github.com/luna/functor-utils.git'
+      commit: 1c6a4fd165e4b15cad114b0a554e0974fd119223
+    - git: 'https://github.com/luna/impossible.git'
+      commit: a1606cccc12cb521acbc598e52c481b9054b42a7
+    - git: 'https://github.com/luna/lens-utils.git'
+      commit: 3ba7d5da78aab023fc74c44fc7445ffab0bc18e0
+    - git: 'https://github.com/luna/poly-control.git'
+      commit: 965e23539a001517994398ae02421334bf77c6e6
+    - git: 'https://github.com/luna/prologue.git'
+      commit: c1c525d71b5e749f24e26f71d2d1a68019cae850
+    - git: 'https://github.com/luna/type-cache.git'
+      commit: f4292663aea639c17f66ba3d67e09c79ebf62982
+    - git: 'https://github.com/luna/typelevel.git'
+      commit: 107db9368e95e192d70c0dec274ecfe3592101d2
+    - git: 'https://github.com/luna/data-prop.git'
+      commit: b5f02ced2912501d923c07950789fbcf44a6a9ce
+    - git: 'https://github.com/luna/data-rtuple.git'
+      commit: 4f5153aed4944317942ff9025c79f7fc3be85181
+    - git: 'https://github.com/luna/data-shell.git'
+      commit: f58214001b64d35f7502ec76bdc5410ba97032ff
+    - git: 'https://github.com/luna/visualization-api.git'
+      commit: ddfcd1e0372b93e947b380b911c123fe67227b21
+    - git: 'https://github.com/luna/monoid'
+      commit: e63e373d67cd8dd7c179a618f5d32f6ffb3abdd3
+    - git: 'https://github.com/luna/text-processing'
+      commit: fe9834f3f5583086d76b12779a1c2a5290c72b0d
+    - git: 'https://github.com/luna/parsert'
+      commit: cbcd88c87e8888ebfeacd258cca96b3d6d489d35
+    - git: 'https://github.com/luna/vector-text'
+      commit: 538138470bde297bbf32f5e08d1fadfdcc22b328
+    - git: 'https://github.com/luna/terminal-text'
+      commit: a7f6158465aaa9998fcb094d74906f608ce385c5
+    - git: 'https://github.com/luna/layouting'
+      commit: c75acefee30d1c853da7e651c358d72b60386a07
+    - git: 'https://github.com/luna/monad-branch'
+      commit: 7c7a6d657e7db8c3dcd80fbed0a7e02e02f43ae3
+

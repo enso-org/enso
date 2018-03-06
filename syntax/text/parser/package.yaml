@@ -1,4 +1,4 @@
-name:       luna-syntax-text-parser
+name:       luna-parser
 version:    "0.2"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -14,8 +14,8 @@ tests:
         source-dirs: test/spec
         dependencies:
             - luna-core
-            - luna-syntax-text-parser
-            - luna-syntax-text-lexer
+            - luna-parser
+            - luna-lexer
             - directory
             - filepath
             - hspec
@@ -27,7 +27,7 @@ tests:
 dependencies:
     - base
     - luna-core
-    - luna-syntax-text-lexer
+    - luna-lexer
     - prologue
     - dependent-state
     - lens

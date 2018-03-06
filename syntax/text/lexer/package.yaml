@@ -1,4 +1,4 @@
-name:       luna-syntax-text-lexer
+name:       luna-lexer
 version:    "0.2"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -9,7 +9,7 @@ library:
         - src-libs/attoparsec-text32
         - src-libs/parsing
         - src-libs/conduit-utils
-    other-modules: Paths_luna_syntax_text_lexer
+    other-modules: Paths_luna_lexer
 
 benchmarks:
     lexer-benchmark:
@@ -17,7 +17,7 @@ benchmarks:
         source-dirs: test/bench
         dependencies:
             - criterion
-            - luna-syntax-text-lexer
+            - luna-lexer
             - random
             - timeit
             - conduit
