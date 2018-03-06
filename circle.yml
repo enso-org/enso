@@ -7,7 +7,7 @@ dependencies:
         - curl -L https://github.com/commercialhaskell/stack/releases/download/v1.6.5/stack-1.6.5-linux-x86_64.tar.gz | tar zx -C /tmp
         - sudo mv /tmp/stack-1.6.5-linux-x86_64/stack /usr/local/bin
     override:
-        - /usr/local/bin/stack build --only-dependencies --fast --install-ghc --test --ghc-options="-O0"
+        - /usr/local/bin/stack build --only-dependencies --fast --install-ghc --test --ghc-options="-O0 -j1" -j1
     cache_directories:
         - "~/.stack"
         - ".stack-work"
