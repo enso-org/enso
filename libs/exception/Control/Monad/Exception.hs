@@ -5,13 +5,14 @@ module Control.Monad.Exception where
 import Prelude
 import Data.Kind
 
+import qualified Control.Exception as IO
+
 import Control.Lens.Utils
 import Control.Exception          (Exception, SomeException, toException)
 import Control.Monad              (join)
 import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)
 import Control.Monad.Trans        (MonadTrans, lift)
 import GHC.Exts                   (Constraint)
-
 
 -------------------------------
 -- === Exception raising === --
@@ -62,3 +63,6 @@ instance {-# OVERLAPPABLE #-} (Monad m, Exception e)
 instance (Monad m, Exception e)
     => MonadException e (ExceptT SomeException m) where
     throw = throwE . toException ; {-# INLINE throw #-}
+
+instance Exception e => MonadException e IO where
+    throw = IO.throw ; {-# INLINE throw #-}

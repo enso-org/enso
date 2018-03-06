@@ -20,10 +20,10 @@ import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Type.Data.List              as List
 
-import Data.TypeMap.Strict (TypeMap)
-import Data.Map.Strict     (Map)
-import Foreign.Memory.Pool (MemPool)
-
+import Data.TypeMap.Strict     (TypeMap)
+import Data.Map.Strict         (Map)
+import Foreign.Memory.Pool     (MemPool)
+import Control.Monad.Exception (Throws, throw)
 
 
 
@@ -103,12 +103,7 @@ instance (Typeable comp, Typeable layer) => Show (LayerByteOffset comp layer) wh
 ------------------------------
 
 
--- | For example:
---   >> In MyPass (Terms / Layers) = '[Model]
--- type family Components pass :: [Type]
--- type family In         pass component :: [Type]
--- type family Out        pass component :: [Type]
--- type family Preserves  pass component :: [Type]
+-- | For example: ...
 
 data Elems
 
@@ -165,7 +160,7 @@ deriving instance Default (PassStateData pass) => Default (PassState pass)
 
 -- === Definition === --
 
-type       Pass pass m   = SubPass pass m ()
+type    Pass    (pass :: Type) m   = SubPass pass m ()
 newtype SubPass (pass :: Type) m a = SubPass (StateT (PassState pass) m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
@@ -235,19 +230,24 @@ makeLenses ''EncoderError
 type EncoderResult  = Either EncoderError
 type EncodingResult = Either EncodingError
 
+instance Exception EncoderError
+
 
 -- === API === --
 
-encodePassStateTEMP :: (PassStateEncoder pass, Default (PassState pass)) => PassConfig -> PassState pass
-encodePassStateTEMP cfg = case passStateEncoder cfg of
-    Left e -> error (show e)
-    Right f -> f def
-{-# INLINE encodePassStateTEMP #-}
+tryEncodePassState :: (PassStateEncoder pass, Default (PassState pass))
+                   => PassConfig -> EncoderResult (PassState pass)
+tryEncodePassState cfg = ($ def) <$> passStateEncoder cfg ; {-# INLINE tryEncodePassState #-}
 
-encodePassState :: (PassStateEncoder pass, Default (PassState pass))
-                => PassConfig -> EncoderResult (PassState pass)
-encodePassState cfg = ($ def) <$> passStateEncoder cfg ; {-# INLINE encodePassState #-}
-
+encodePassState ::
+    ( PassStateEncoder pass
+    , Default (PassState pass)
+    , Throws EncoderError m
+    ) => PassConfig -> m (PassState pass)
+encodePassState cfg = case tryEncodePassState cfg of
+    Left  e -> throw e
+    Right a -> return a
+{-# INLINE encodePassState #-}
 
 
 -- === Encoding utils === --

@@ -79,17 +79,12 @@ data Model
 -- === IR Atoms === ---
 
 type family TermConsDef t :: Type -> Type
-type family TermConsOf a
-
-type family TermConsDef2 t = (def :: Type -> Type) | def -> t
-
 
 Tag.familyInstance "TermCons" "Var"
 newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
-type instance TermConsDef2 Var = ConsVar
 type instance Layer.ConsLayout ConsVar = Var
 deriveStorable ''ConsVar
 deriveLinks ''ConsVar
@@ -100,7 +95,6 @@ data ConsAcc a = Acc
     , __name :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
-type instance TermConsDef2 Acc = ConsAcc
 type instance Layer.ConsLayout ConsAcc = Acc
 deriveStorable ''ConsAcc
 deriveLinks ''ConsAcc
@@ -109,7 +103,6 @@ data UniCons a
     = UniConsVar !(ConsVar a)
     | UniConsAcc !(ConsAcc a)
     deriving (Show, Eq)
-type instance TermConsDef (Format f) = UniCons
 deriveStorable ''UniCons
 deriveLinks ''UniCons
 
@@ -166,7 +159,7 @@ instance Storable1.Storable1 UniCons where
 -- Type, Model,
 
 
-type instance TermConsOf (Tag t a) = TermConsDef (Tag t a) (Tag t a)
+-- type instance TermConsOf (Tag t a) = TermConsDef (Tag t a) (Tag t a)
 
 
 
@@ -226,7 +219,7 @@ makeLenses ''LayerLoc
 -- type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
 type instance Layer.Data     Terms Model = UniCons
-type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef2 (TermCons f)
+type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef (TermCons f)
 -- type instance Layer     Terms Type   =
 -- type instance Layer.View Terms Type a =
 -- instance StorableLayer.View Terms Model (Format f)
@@ -289,7 +282,7 @@ chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
 -- class Reader layer where
 
 mockNewIR :: MonadIO m => m (Term Draft)
-mockNewIR = Component . coerce <$> MemPool.allocPtr @(TermConsOf Draft) ; {-# INLINE mockNewIR #-}
+mockNewIR = Component . coerce <$> MemPool.allocPtr @(UniCons ()) ; {-# INLINE mockNewIR #-}
 
 mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
 mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
@@ -338,7 +331,8 @@ passRunTest = do
               )
             $ mempty
 
-    Pass.runPass (Pass.encodePassStateTEMP cfg) passTest
+    xx <- Pass.encodePassState cfg
+    Pass.runPass xx passTest
 -- runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 
@@ -526,7 +520,8 @@ test_readWriteLayer3 i = do
                   ) mp
               )
             $ mempty
-    Pass.runPass (Pass.encodePassStateTEMP cfg) (go i)
+    xx <- Pass.encodePassState cfg
+    Pass.runPass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -542,7 +537,8 @@ test_readWriteLayer4 i = do
             go (j - 1)
 
     cfg <- test_pm_run
-    Pass.runPass (Pass.encodePassStateTEMP cfg) (go i)
+    xx <- Pass.encodePassState cfg
+    Pass.runPass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 type instance Layout.GetBase Var = Var
