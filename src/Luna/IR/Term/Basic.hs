@@ -60,7 +60,8 @@ import qualified Control.Monad.Exception as Exception
 import Type.Data.Bool
 
 -- import OCI.IR.Layer (Layer)
-import qualified OCI.IR.Layer2 as Layer
+import qualified OCI.IR.Layer as Layer
+import qualified OCI.IR.Layer.Internal as Layer
 -- import qualified OCI.IR.Layer2 as Layer2
 
 
