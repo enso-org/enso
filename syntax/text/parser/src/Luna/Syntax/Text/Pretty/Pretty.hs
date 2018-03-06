@@ -245,6 +245,7 @@ instance ( MonadIO m -- DEBUG ONLY
             Import.World       -> "#World#"
             Import.Absolute ss -> convertVia @P.String ss
             Import.Relative ss -> "." <> convertVia @P.String ss
+        ForeignImportList imps -> return . unnamed . atom $ "foreign import" -- TODO [Ara] Codegen
         Unit      im _ b       -> do
                                   cls <- source b
                                   matchExpr cls $ \case

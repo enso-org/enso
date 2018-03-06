@@ -926,11 +926,17 @@ impSrc = buildAsg $ (\s -> liftIRBApp0 $ IR.unresolvedImpSrc' s) <$> (wrd <|> re
 -- TODO [Ara] Using empty list as debug for now.
 foreignImportList :: AsgParser SomeExpr
 foreignImportList = buildAsg $ (\imps -> liftIRBApp0 $ IR.foreignImpList' [])
-                            <$> parse
+                            <$> foreignImportHeader
     where
         parse = do
             symbol Lexer.KwForeign
+
             {- Lexer.KwImport -}
+
+foreignImportHeader :: SymParser ()
+foreignImportHeader = do
+    symbol Lexer.KwForeign
+    symbol Lexer.KwImport
 
 foreignLocationImportList :: AsgParser SomeExpr
 foreignLocationImportList = buildAsg $ undefined
@@ -947,7 +953,7 @@ unit' = generalize <<$>> unit
 unit  = buildAsg $
     (\imps cls
         -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit' []) imps cls)
-        <$ spacing <*> (impHub <|> foreignImportList) <*> unitCls <* spacing
+        <$ spacing <*> (foreignImportList <|> impHub) <*> unitCls <* spacing
     where
         spacing = many eol
 
