@@ -1,7 +1,9 @@
 module Prologue.Data.Foldable (module Prologue.Data.Foldable, module X) where
 
-import Prelude
+import Prelude                   hiding (minimum, maximum)
+import Prologue.Data.Maybe       (fromJust)
 import Prologue.Data.Traversable
+
 import Control.Monad
 import           Data.Kind       (Constraint)
 import qualified Data.Foldable      as F
@@ -43,6 +45,10 @@ maximum :: MonadPlus m => Ord a => [a] -> m a
 minimum = S.minimumZ ; {-# INLINE minimum #-}
 maximum = S.maximumZ ; {-# INLINE maximum #-}
 
+minimumDef :: Ord a => a -> [a] -> a
+maximumDef :: Ord a => a -> [a] -> a
+minimumDef d = fromJust d . minimum ; {-# INLINE minimumDef #-}
+maximumDef d = fromJust d . maximum ; {-# INLINE maximumDef #-}
 
 -- === Deprecations === --
 
