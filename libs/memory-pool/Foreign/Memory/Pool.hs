@@ -14,35 +14,24 @@ import qualified Foreign.Marshal.Utils as Ptr
 import qualified Foreign.Memory.Manager as Mgr
 
 
+type MemPool = Mgr.MemoryManager
+
+
 allocPtr :: forall a m. (MonadIO m, Storable a) => m (Ptr a)
-allocPtr = do
-    mgr <- Mgr.newManager . fromIntegral $ sizeOf' @a
-    Mgr.newItem mgr
--- liftIO Foreign.malloc
-{-# INLINE allocPtr #-}
+allocPtr = liftIO Foreign.malloc ; {-# INLINE allocPtr #-}
 
 allocBytes :: forall a m. MonadIO m => Int -> m (Ptr a)
 allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 
-type MemPool = Mgr.MemoryManager
--- newtype MemPool = MemPool (Ptr Int) deriving (Show, Storable)
-
-
 unsafeNull :: MemPool
-unsafeNull = Mgr.MemoryManager Ptr.nullPtr ; {-# INLINE unsafeNull #-}
+unsafeNull = Mgr.unsafeNull ; {-# INLINE unsafeNull #-}
 
 new :: MonadIO m => Int -> m MemPool
-new = Mgr.newManager . fromIntegral
--- liftIO $ coerce <$> Ptr.new i
-{-# INLINE new #-}
+new = Mgr.newManager ; {-# INLINE new #-}
 
+alloc :: MonadIO m => MemPool -> m (Ptr a)
+alloc = Mgr.newItem ; {-# INLINE alloc #-}
 
-alloc :: MonadIO m => Mgr.MemoryManager -> m (Ptr a)
-alloc = Mgr.newItem
--- alloc pool = do
---     i <- liftIO $ peek $ coerce pool
---     allocBytes i
-{-# INLINE alloc #-}
 
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)

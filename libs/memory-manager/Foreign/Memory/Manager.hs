@@ -10,7 +10,8 @@ module Foreign.Memory.Manager where
 import Prelude
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Foreign (Ptr, castPtr)
+import Data.Convert (convert)
+import Foreign (Ptr, castPtr, nullPtr)
 import Foreign.C (CDouble(..), CSize(..))
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
@@ -41,7 +42,7 @@ foreign import ccall unsafe "deleteItem"    c_deleteItem    :: MemoryManager -> 
 ----------------------------------------
 
 newManager :: MonadIO m => Int -> m MemoryManager
-newManager = liftIO . c_newManager . fromIntegral
+newManager = liftIO . c_newManager . convert
 {-# INLINE newManager #-}
 
 deleteManager :: MonadIO m => MemoryManager -> m ()
@@ -55,3 +56,6 @@ newItem mm = liftIO $ castPtr <$> c_newItem mm
 deleteItem :: MonadIO m => MemoryManager -> Ptr a -> m ()
 deleteItem mm = liftIO . c_deleteItem mm . castPtr
 {-# INLINE deleteItem #-}
+
+unsafeNull :: MemoryManager
+unsafeNull = MemoryManager nullPtr
