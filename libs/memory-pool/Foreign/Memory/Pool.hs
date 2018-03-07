@@ -5,34 +5,48 @@ import Prologue
 
 import qualified Foreign
 
-import Foreign (Ptr, Storable, peek)
+import Foreign (Ptr, Storable, peek, sizeOf, poke)
 import Foreign.Ptr.Utils (SomePtr)
 import qualified Foreign.Ptr as Ptr
 import qualified Foreign.Marshal.Utils as Ptr
 
+import qualified Foreign.Memory.Manager as Mgr
 
 
 allocPtr :: forall a m. (MonadIO m, Storable a) => m (Ptr a)
-allocPtr = liftIO Foreign.malloc ; {-# INLINE allocPtr #-}
+allocPtr = do
+    let s  = sizeOf (undefined :: a)
+    mgr <- Mgr.newManager $ fromIntegral s
+    Mgr.newItem mgr
+-- liftIO Foreign.malloc
+{-# INLINE allocPtr #-}
 
 allocBytes :: forall a m. MonadIO m => Int -> m (Ptr a)
 allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 
-
-newtype MemPool = MemPool (Ptr Int) deriving (Show, Storable)
+type MemPool = Mgr.MemoryManager
+-- newtype MemPool = MemPool (Ptr Int) deriving (Show, Storable)
 
 
 unsafeNull :: MemPool
-unsafeNull = MemPool Ptr.nullPtr ; {-# INLINE unsafeNull #-}
+unsafeNull = Mgr.MemoryManager Ptr.nullPtr ; {-# INLINE unsafeNull #-}
 
 new :: MonadIO m => Int -> m MemPool
-new i = liftIO $ coerce <$> Ptr.new i ; {-# INLINE new #-}
+new i = do
+    let s = sizeOf (undefined :: Int)
+    mgr <- Mgr.newManager $ fromIntegral s
+    ptr :: Ptr Int <- Mgr.newItem mgr
+    liftIO $ poke ptr i
+    return mgr
+-- liftIO $ coerce <$> Ptr.new i
+{-# INLINE new #-}
 
 
-alloc :: MonadIO m => MemPool -> m (Ptr a)
-alloc pool = do
-    i <- liftIO $ peek $ coerce pool
-    allocBytes i
+alloc :: MonadIO m => Mgr.MemoryManager -> m (Ptr a)
+alloc = Mgr.newItem
+-- alloc pool = do
+--     i <- liftIO $ peek $ coerce pool
+--     allocBytes i
 {-# INLINE alloc #-}
 
 --
