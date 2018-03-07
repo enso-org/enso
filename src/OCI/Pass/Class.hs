@@ -20,6 +20,7 @@ import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Type.Data.List              as List
 import qualified Foreign.Memory.Pool         as MemPool
+import qualified OCI.IR.Layer.Internal       as Layer
 
 import Data.TypeMap.Strict     (TypeMap)
 import Data.Map.Strict         (Map)
@@ -149,14 +150,18 @@ deriving instance Default (PassStateData pass) => Default (PassState pass)
 
 -- === Definition === --
 
-type    Pass    (pass :: Type) m   = SubPass pass m ()
-newtype SubPass (pass :: Type) m a = SubPass (StateT (PassState pass) m a)
+type PassStdBase = IO
+
+type    Pass     (pass :: Type)     = PassT    pass PassStdBase
+type    SubPass  (pass :: Type)     = SubPassT pass PassStdBase
+type    PassT    (pass :: Type) m   = SubPassT pass m ()
+newtype SubPassT (pass :: Type) m a = SubPassT (StateT (PassState pass) m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
-makeLenses ''SubPass
+makeLenses ''SubPassT
 
 type family DiscoverPass m where
-    DiscoverPass (SubPass pass m) = pass
+    DiscoverPass (SubPassT pass m) = pass
     DiscoverPass (t m)            = DiscoverPass m
 
 type DiscoverPassState       m = PassState       (DiscoverPass m)
@@ -166,7 +171,7 @@ type DiscoverPassStateLayout m = PassStateLayout (DiscoverPass m)
 
 -- === API === --
 
-runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+runPass :: Functor m => PassState pass -> SubPassT pass m a -> m a
 runPass !s p = flip State.evalT s (coerce p) ; {-# INLINE runPass #-}
 
 
@@ -181,7 +186,7 @@ class Monad m => MonadPass m where
     getPassState :: m (DiscoverPassState m)
     putPassState :: DiscoverPassState m -> m ()
 
-instance Monad m => MonadPass (SubPass pass m) where
+instance Monad m => MonadPass (SubPassT pass m) where
     getPassState = wrap State.get'   ; {-# INLINE getPassState #-}
     putPassState = wrap . State.put' ; {-# INLINE putPassState #-}
 
@@ -208,6 +213,29 @@ getLayerByteOffset  :: ∀ comp layer m. LayerByteOffsetGetter  comp layer m => 
 getComponentMemPool :: ∀ comp       m. ComponentMemPoolGetter comp       m => m MemPool
 getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  comp layer) ; {-# INLINE getLayerByteOffset  #-}
 getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# INLINE getComponentMemPool #-}
+
+
+-- === Instances === --
+
+instance {-# OVERLAPPABLE #-}
+    ( Layer.StorableData comp layer
+    , LayerByteOffsetGetter comp layer (SubPassT pass m)
+    , MonadIO m
+    ) => Layer.Reader comp layer (SubPassT pass m) where
+    read__ !comp = do
+        !off <- getLayerByteOffset @comp @layer
+        Layer.unsafeReadByteOff @layer off comp
+    {-# INLINE read__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Layer.StorableData comp layer
+    , LayerByteOffsetGetter comp layer (SubPassT pass m)
+    , MonadIO m
+    ) => Layer.Writer comp layer (SubPassT pass m) where
+    write__ !comp !d = do
+        !off <- getLayerByteOffset @comp @layer
+        Layer.unsafeWriteByteOff @layer off comp d
+    {-# INLINE write__ #-}
 
 
 

@@ -308,8 +308,8 @@ mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft
 type IRAllocator comp m = (MonadIO m, Pass.ComponentMemPoolGetter comp m)
 
 -- | Its unsafe because it only allocates raw memory.
-unsafeAllocIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
-unsafeAllocIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-# INLINE unsafeAllocIR #-}
+noInitAllocIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
+noInitAllocIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-# INLINE noInitAllocIR #-}
 
 
 
@@ -317,7 +317,7 @@ term  :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a 
 term' :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term b)
 term = term' ; {-# INLINE term #-}
 term' term = do
-    ir <- unsafeAllocIR
+    ir <- noInitAllocIR
     Layer.write @Model ir (toUniTerm term)
     return $ cast ir
 {-# INLINE term' #-}
@@ -329,7 +329,7 @@ var name = term' $ Var name ; {-# INLINE var #-}
 
 link :: (IRAllocator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
 link src tgt = do
-    ir <- unsafeAllocIR @Links
+    ir <- noInitAllocIR @Links
     Layer.write @Source ir src
     Layer.write @Target ir tgt
     return $ ir
@@ -390,7 +390,7 @@ test_pm = do
     return passCfg
 
 
-passTest :: Pass.SubPass MyPass IO ()
+passTest :: Pass.Pass MyPass
 passTest = do
     v1 <- var 5
     v2 <- var 7
@@ -595,7 +595,7 @@ test_readWriteLayer2 i = do
 --     ir <- mockNewIR
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
---         go :: Int -> Pass.SubPass MyPass IO ()
+--         go :: Int -> Pass.Pass MyPass
 --         go 0 = return ()
 --         go j = do
 --             !s <- getPassState
@@ -623,7 +623,7 @@ test_readWriteLayer4 :: Int -> IO ()
 test_readWriteLayer4 i = do
     ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
-    let go :: Int -> Pass.SubPass MyPass IO ()
+    let go :: Int -> Pass.Pass MyPass
         go 0 = return ()
         go j = do
             UniTermVar (Var !x) <- Layer.read @Model ir
@@ -636,7 +636,7 @@ test_readWriteLayer4 i = do
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 -- type instance Layout.GetBase Var = Var
-tttest :: Term Var -> Pass.SubPass MyPass IO ()
+tttest :: Term Var -> Pass.Pass MyPass
 tttest n = do
     -- (x :: _) <- Layer.read @Model n
     -- (x :: _) <- Layer.readCons__ @Terms @Model n
@@ -660,7 +660,7 @@ tttest n = do
 
 
 
--- passTest :: Pass.SubPass MyPass IO ()
+-- passTest :: Pass.Pass MyPass
 -- passTest = do
 --     s <- getPassState
 --     print s

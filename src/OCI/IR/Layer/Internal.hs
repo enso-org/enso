@@ -8,17 +8,15 @@ import Prologue hiding (Data)
 import Type.Data.Bool
 
 import qualified OCI.IR.Layout     as Layout
-import qualified OCI.Pass.Class    as Pass
 import qualified Foreign.Storable  as Storable
 import qualified Foreign.Storable1 as Storable1
 
-import Foreign.Ptr            (plusPtr)
+import Foreign.Ptr            (Ptr, plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable       (Storable)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
 import OCI.IR.Component       (Component(Component))
-
 
 
 -----------------------
@@ -47,6 +45,14 @@ type family ConsLayout (cons :: Cons)    :: Type
 type StorableData     comp layer        = Storable1 (Data comp layer)
 -- type StorableConsData comp layer layout = Storable1 (ConsData comp layer
 --                                                         (Layout.GetBase layout))
+
+class Layer comp layer where
+    init :: ∀ layout. Ptr (Data comp layer layout) -> IO ()
+
+instance {-# OVERLAPPABLE #-}
+    (StorableData comp layer, Default1 (Data comp layer))
+    => Layer comp layer where
+    init !ptr = Storable1.poke ptr def1 ; {-# INLINE init #-}
 
 
 type Data' comp layer layout = Data comp layer (Layout comp layer layout)
@@ -111,21 +117,21 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 -- === Instances === --
 
-instance {-# OVERLAPPABLE #-}
-    (StorableData comp layer, MonadIO m, Pass.LayerByteOffsetGetter comp layer m)
-    => Reader comp layer m where
-    read__ !comp = do
-        !off <- Pass.getLayerByteOffset @comp @layer
-        unsafeReadByteOff @layer off comp
-    {-# INLINE read__ #-}
-
-instance {-# OVERLAPPABLE #-}
-    (StorableData comp layer, MonadIO m, Pass.LayerByteOffsetGetter comp layer m)
-    => Writer comp layer m where
-    write__ !comp !d = do
-        !off <- Pass.getLayerByteOffset @comp @layer
-        unsafeWriteByteOff @layer off comp d
-    {-# INLINE write__ #-}
+-- instance {-# OVERLAPPABLE #-}
+--     (StorableData comp layer, MonadIO m, Pass.LayerByteOffsetGetter comp layer m)
+--     => Reader comp layer m where
+--     read__ !comp = do
+--         !off <- Pass.getLayerByteOffset @comp @layer
+--         unsafeReadByteOff @layer off comp
+--     {-# INLINE read__ #-}
+--
+-- instance {-# OVERLAPPABLE #-}
+--     (StorableData comp layer, MonadIO m, Pass.LayerByteOffsetGetter comp layer m)
+--     => Writer comp layer m where
+--     write__ !comp !d = do
+--         !off <- Pass.getLayerByteOffset @comp @layer
+--         unsafeWriteByteOff @layer off comp d
+--     {-# INLINE write__ #-}
 
 
 -- === Early resolution block === --
