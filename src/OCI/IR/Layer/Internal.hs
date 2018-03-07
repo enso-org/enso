@@ -132,11 +132,11 @@ instance {-# OVERLAPPABLE #-}
 
 instance Reader Imp  layer m    where read__ _ = impossible
 instance Reader comp Imp   m    where read__ _ = impossible
-instance Reader comp layer ImpM where read__ _ = impossible
+instance Reader comp layer ImpM1 where read__ _ = impossible
 
 instance Writer Imp  layer m    where write__ _ _ = impossible
 instance Writer comp Imp   m    where write__ _ _ = impossible
-instance Writer comp layer ImpM where write__ _ _ = impossible
+instance Writer comp layer ImpM1 where write__ _ _ = impossible
 
 
 

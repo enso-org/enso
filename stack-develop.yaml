@@ -12,6 +12,7 @@ packages:
     - ../typelevel
     - ../data-construction
     - ../data-repr
+    - ../data-layer
     - ../data-rtuple
     - ../data-prop
     - ../layered-state

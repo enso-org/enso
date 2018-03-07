@@ -3,7 +3,7 @@
 
 module OCI.IR.Conversion where
 
-import Prologue hiding (ConversionError)
+import Prologue hiding (Castable, ConversionError)
 
 import qualified Type.Error as Error
 import           Type.Error ((:<+>:))
