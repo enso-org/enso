@@ -21,6 +21,7 @@ import Language.Haskell.TH
 import Data.Default
 import Control.Lens
 import Data.Proxy
+import Foreign.C.Types (CSize)
 
 
 -- === Errors === --
@@ -121,3 +122,6 @@ instance Convertible Word64 (Word8,Word8,Word8,Word8,Word8,Word8,Word8,Word8) wh
     convert word = (unpack 56, unpack 48, unpack 40, unpack 32, unpack 24, unpack 16, unpack 8, unpack 0)
         where unpack = fromIntegral . shiftR word
     {-# INLINE convert #-}
+
+instance Convertible Int CSize where
+    convert = fromIntegral ; {-# INLINE convert #-}
