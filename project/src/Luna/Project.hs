@@ -8,6 +8,7 @@ import OCI
 import OCI.IR.Name.Qualified (QualName)
 import qualified OCI.IR.Name.Qualified as Qual
 
+import           Control.Arrow          ((&&&))
 import           Control.Exception.Safe (try, tryAny)
 import           Data.Bimap             (Bimap)
 import qualified Data.Bimap             as Bimap
@@ -106,4 +107,4 @@ listDependencies projectSrc = do
             indirectDeps <- forM directDeps $ \proj -> do
                 path <- Path.parseRelDir proj
                 listDependencies (lunaModules Path.</> path)
-            return $ map (\fp -> (convert fp, lunaModulesPath FP.</> fp)) directDeps <> concat indirectDeps
+            return $ map (convert &&& (lunaModulesPath FP.</>)) directDeps <> concat indirectDeps
