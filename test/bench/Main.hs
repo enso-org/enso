@@ -54,8 +54,9 @@ main = do
     Basic.test
     TS3.test
     print "---"
-    Basic.passRunTest
-    Basic.test_pm_run
+    Basic.passTest_run
+    -- Basic.passRunTest
+    -- Basic.test_pm_run
 
     let minExpVec = 7 :: Int
         maxExpVec = 7 :: Int
@@ -90,10 +91,10 @@ main = do
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer4 (10 ^ i))  <$> [minExpVec..maxExpVec]
 
-            , bgroup "Read/Write Layer + State config 3"
-                $ (\(i :: Int) -> bench ("10e" <> show i)
-                $ perRunEnv (return ())
-                $ \v -> Basic.test_readWriteLayer3 (10 ^ i))  <$> [minExpVec..maxExpVec]
+            -- , bgroup "Read/Write Layer + State config 3"
+            --     $ (\(i :: Int) -> bench ("10e" <> show i)
+            --     $ perRunEnv (return ())
+            --     $ \v -> Basic.test_readWriteLayer3 (10 ^ i))  <$> [minExpVec..maxExpVec]
 
             , bgroup "Read/Write Layer + State config 2"
                 $ (\(i :: Int) -> bench ("10e" <> show i)

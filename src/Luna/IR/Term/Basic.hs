@@ -227,6 +227,7 @@ makeLenses ''LayerLoc
 -- type instance Layer.View Terms Model (Format   f) = UniTerm
 -- type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
+type instance Layer.Layout   Terms Model layout = layout
 type instance Layer.Data     Terms Model = UniTerm
 type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef (TermCons f)
 -- type instance Layer     Terms Type   =
@@ -237,9 +238,10 @@ type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef (TermCons f)
 --     peekLayer.ViewIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE peekLayer.ViewIO #-}
 
 
-
-type instance Layer.Data Links Source   = Term
-type instance Layer.Data Links Target   = Term
+type instance Layer.Layout Links Source layout = Layout.Get Source layout
+type instance Layer.Layout Links Target layout = Layout.Get Target layout
+type instance Layer.Data   Links Source        = Term
+type instance Layer.Data   Links Target        = Term
 -- type instance Layer.View Links Source a = Term
 -- type instance Layer.View Links Target a = Term
 
@@ -320,11 +322,12 @@ var :: (IRAllocator Terms m, Layer.Writer Terms Model m) => Int -> m (Term Var)
 var name = term' $ Var name ; {-# INLINE var #-}
 
 
-link :: (IRAllocator Links m, Layer.Writer Links Source m) => Term src -> Term tgt -> m (Link (src *-* tgt))
+link :: (IRAllocator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
 link src tgt = do
     ir <- unsafeAllocIR @Links
     Layer.write @Source ir src
-    return $ cast ir
+    Layer.write @Target ir tgt
+    return $ ir
 {-# INLINE link #-}
 
 
@@ -354,35 +357,65 @@ type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
 data MyPass
 type instance Spec MyPass t = Spec_MyPass t
 type family   Spec_MyPass t where
-    Spec_MyPass (In Elems) = '[Terms]
+    Spec_MyPass (In Elems) = '[Terms, Links]
     Spec_MyPass (In Terms) = '[Model]
+    Spec_MyPass (In Links) = '[Source, Target]
     Spec_MyPass (Out a)    = Spec_MyPass (In a)
     Spec_MyPass t          = '[]
 
 
+test_pm_run :: MonadIO m => m Pass.PassConfig
+test_pm_run = Exception.catchAll undefined $ PassManager.evalT test_pm
+
+test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
+test_pm = do
+    PassManager.registerComponent @Terms
+    PassManager.registerPrimLayer @Terms @Model
+
+    PassManager.registerComponent @Links
+    PassManager.registerPrimLayer @Links @Source
+    PassManager.registerPrimLayer @Links @Target
+
+    reg <- State.get @PassManager.Registry
+    passCfg <- PassManager.mkPassConfig reg
+
+    return passCfg
+
 
 passTest :: Pass.SubPass MyPass IO ()
 passTest = do
-    s <- getPassState
-    print s
-    print =<< Pass.getData @(Pass.LayerByteOffset Terms Model)
+    v1 <- var 5
+    v2 <- var 7
+    l1 <- link v1 v2
+
+    s <- Layer.read @Source l1
+    m <- Layer.read @Model s
+    print m
     return ()
 
-passRunTest :: IO ()
-passRunTest = do
-    mp <- MemPool.new 100
-    let cfg = Pass.PassConfig
-            $ Map.insert (someTypeRep @Terms)
-              (Pass.ComponentConfig 7
-                  ( Map.insert (someTypeRep @Model)
-                    (Pass.LayerConfig 11)
-                  $ mempty
-                  ) mp
-              )
-            $ mempty
+passTest_run :: IO ()
+passTest_run = do
 
+    cfg <- test_pm_run
     xx <- Pass.encodePassState cfg
     Pass.runPass xx passTest
+
+--
+-- passRunTest :: IO ()
+-- passRunTest = do
+--     mp <- MemPool.new 100
+--     let cfg = Pass.PassConfig
+--             $ Map.insert (someTypeRep @Terms)
+--               (Pass.ComponentConfig 7
+--                   ( Map.insert (someTypeRep @Model)
+--                     (Pass.LayerConfig 11)
+--                   $ mempty
+--                   ) mp
+--               )
+--             $ mempty
+--
+--     xx <- Pass.encodePassState cfg
+--     Pass.runPass xx passTest
 -- runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 
@@ -546,32 +579,32 @@ test_readWriteLayer2 i = do
     State.evalT (go i) (TypeMap.TypeMap (Tuple.T3 ('x' :: Char) ("a" :: String) (0 :: Int)) :: TypeMap.TypeMap '[Char, String, Int])
     -- Ptr.free ptr
 
-test_readWriteLayer3 :: Int -> IO ()
-test_readWriteLayer3 i = do
-    ir <- mockNewIR
-    Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
-    let -- go :: Int -> StateT Int IO ()
-        go :: Int -> Pass.SubPass MyPass IO ()
-        go 0 = return ()
-        go j = do
-            !s <- getPassState
-            Pass.LayerByteOffset !layer <- Pass.getData @(Pass.LayerByteOffset Terms Model)
-            UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
-            Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var $! (x+1))
-            go (j - 1)
-
-    mp <- MemPool.new 100
-    let cfg = Pass.PassConfig
-            $ Map.insert (someTypeRep @Terms)
-              (Pass.ComponentConfig 0
-                  ( Map.insert (someTypeRep @Model)
-                    (Pass.LayerConfig 0)
-                  $ mempty
-                  ) mp
-              )
-            $ mempty
-    xx <- Pass.encodePassState cfg
-    Pass.runPass xx (go i)
+-- test_readWriteLayer3 :: Int -> IO ()
+-- test_readWriteLayer3 i = do
+--     ir <- mockNewIR
+--     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
+--     let -- go :: Int -> StateT Int IO ()
+--         go :: Int -> Pass.SubPass MyPass IO ()
+--         go 0 = return ()
+--         go j = do
+--             !s <- getPassState
+--             Pass.LayerByteOffset !layer <- Pass.getData @(Pass.LayerByteOffset Terms Model)
+--             UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
+--             Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var $! (x+1))
+--             go (j - 1)
+--
+--     mp <- MemPool.new 100
+--     let cfg = Pass.PassConfig
+--             $ Map.insert (someTypeRep @Terms)
+--               (Pass.ComponentConfig 0
+--                   ( Map.insert (someTypeRep @Model)
+--                     (Pass.LayerConfig 0)
+--                   $ mempty
+--                   ) mp
+--               )
+--             $ mempty
+--     xx <- Pass.encodePassState cfg
+--     Pass.runPass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -610,19 +643,7 @@ tttest n = do
 -- UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
 
 
-test_pm_run :: MonadIO m => m Pass.PassConfig
-test_pm_run = Exception.catchAll undefined $ PassManager.evalT test_pm
 
-test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
-test_pm = do
-    PassManager.registerComponent @Terms
-    PassManager.registerPrimLayer @Terms @Model
-    print "iii"
-    reg <- State.get @PassManager.Registry
-    print reg
-    passCfg <- PassManager.mkPassConfig reg
-
-    return passCfg
 
 
 

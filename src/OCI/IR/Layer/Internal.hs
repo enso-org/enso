@@ -40,6 +40,7 @@ constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 type Cons = Type -> Type
 
 type family Data       comp layer        :: Cons
+type family Layout     comp layer layout :: Type
 type family ConsData   comp layer layout :: Cons
 type family ConsLayout (cons :: Cons)    :: Type
 
@@ -47,6 +48,8 @@ type StorableData     comp layer        = Storable1 (Data comp layer)
 -- type StorableConsData comp layer layout = Storable1 (ConsData comp layer
 --                                                         (Layout.GetBase layout))
 
+
+type Data' comp layer layout = Data comp layer (Layout comp layer layout)
 
 -- === General Information === --
 
@@ -67,40 +70,40 @@ type Editor comp layer m =
    )
 
 class Reader comp layer m where
-    read__  :: ∀ layout. Component comp layout -> m (Data comp layer layout)
+    read__  :: ∀ layout. Component comp layout -> m (Data' comp layer layout)
 
 class Writer comp layer m where
-    write__ :: ∀ layout. Component comp layout -> Data comp layer layout -> m ()
+    write__ :: ∀ layout. Component comp layout -> Data' comp layer layout -> m ()
 
 
 -- === API === --
 
 #define CTX ∀ layer comp layout m. (StorableData comp layer, MonadIO m)
 
-unsafePeek :: CTX => SomePtr -> m (Data comp layer layout)
-unsafePoke :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeek :: CTX => SomePtr -> m (Data' comp layer layout)
+unsafePoke :: CTX => SomePtr ->   (Data' comp layer layout) -> m ()
 unsafePeek !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
 unsafePoke !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
 
-unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data comp layer layout)
-unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data' comp layer layout)
+unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data' comp layer layout) -> m ()
 unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
 unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
 unsafeReadByteOff ::
-    CTX => Int -> Component comp layout -> m (Data comp layer layout)
+    CTX => Int -> Component comp layout -> m (Data' comp layer layout)
 unsafeReadByteOff  !d = unsafePeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
 
 unsafeWriteByteOff ::
-    CTX => Int -> Component comp layout -> (Data comp layer layout) -> m ()
+    CTX => Int -> Component comp layout -> (Data' comp layer layout) -> m ()
 unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
 read :: ∀ layer comp layout m. Reader comp layer m
-     => Component comp layout -> m (Data comp layer layout)
+     => Component comp layout -> m (Data' comp layer layout)
 read = read__ @comp @layer @m ; {-# INLINE read #-}
 
 write :: ∀ layer comp layout m. Writer comp layer m
-      => Component comp layout -> Data comp layer layout -> m ()
+      => Component comp layout -> Data' comp layer layout -> m ()
 write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 #undef CTX
