@@ -46,13 +46,14 @@ type StorableData     comp layer        = Storable1 (Data comp layer)
 -- type StorableConsData comp layer layout = Storable1 (ConsData comp layer
 --                                                         (Layout.GetBase layout))
 
-class Layer comp layer where
-    init :: ∀ layout. Ptr (Data comp layer layout) -> IO ()
-
-instance {-# OVERLAPPABLE #-}
-    (StorableData comp layer, Default1 (Data comp layer))
-    => Layer comp layer where
-    init !ptr = Storable1.poke ptr def1 ; {-# INLINE init #-}
+type DefaultData comp layer = Default1 (Data comp layer)
+-- class Layer comp layer where
+--     init :: ∀ layout. Ptr (Data comp layer layout) -> IO ()
+--
+-- instance {-# OVERLAPPABLE #-}
+--     (StorableData comp layer, Default1 (Data comp layer))
+--     => Layer comp layer where
+--     init !ptr = Storable1.poke ptr def1 ; {-# INLINE init #-}
 
 
 type Data' comp layer layout = Data comp layer (Layout comp layer layout)

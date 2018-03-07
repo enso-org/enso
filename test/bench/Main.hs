@@ -86,7 +86,17 @@ main = do
     --             ]
     --         ]
         [ bgroup "IR"
-            [ bgroup "Read/Write Layer + State config 4"
+            [ bgroup "Create node"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_createNode (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Malloc ptr"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.test_mallocPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer + State config 4"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer4 (10 ^ i))  <$> [minExpVec..maxExpVec]

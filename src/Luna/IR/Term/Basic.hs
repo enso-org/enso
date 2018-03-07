@@ -654,6 +654,29 @@ test_readWriteLayer4 i = do
     Pass.runPass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
+
+test_mallocPtr :: Int -> IO ()
+test_mallocPtr i = do
+    let go !0 = return ()
+        go !j = do
+            !ptr <- Ptr.new (0 :: Int)
+            go $! j - 1
+    go i
+
+
+test_createNode :: Int -> IO ()
+test_createNode i = do
+    let go :: Int -> Pass.Pass MyPass
+        go 0 = return ()
+        go j = do
+            v <- var 5
+            go (j - 1)
+
+    cfg <- test_pm_run
+    xx <- Pass.encodePassState cfg
+    Pass.runPass xx (go i)
+
+
 -- type instance Layout.GetBase Var = Var
 tttest :: Term Var -> Pass.Pass MyPass
 tttest n = do

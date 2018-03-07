@@ -1,5 +1,4 @@
 -- {-# OPTIONS_GHC -ddump-simpl -ddump-to-file #-}
-{-# LANGUAGE Strict #-}
 module Test.Vector where
 
 import Prologue
@@ -134,8 +133,8 @@ readWriteForeignPtr i = do
 readWritePtr :: Int -> IO ()
 readWritePtr i = do
     ptr <- Ptr.new (0 :: Int)
-    let go 0 = return ()
-        go j = do
+    let go !0 = return ()
+        go !j = do
             !x <- peek ptr
             poke ptr $! x+1
             go $! j - 1
