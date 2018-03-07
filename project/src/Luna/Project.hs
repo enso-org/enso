@@ -8,13 +8,14 @@ import OCI
 import OCI.IR.Name.Qualified (QualName)
 import qualified OCI.IR.Name.Qualified as Qual
 
-import           Control.Monad.Catch  (try)
-import           Data.Bimap           (Bimap)
-import qualified Data.Bimap           as Bimap
-import qualified Path                 as Path
-import qualified System.Directory     as Dir
-import qualified System.FilePath      as FP
-import qualified System.FilePath.Find as Find
+import           Control.Arrow          ((&&&))
+import           Control.Exception.Safe (try, tryAny)
+import           Data.Bimap             (Bimap)
+import qualified Data.Bimap             as Bimap
+import qualified Path                   as Path
+import qualified System.Directory       as Dir
+import qualified System.FilePath        as FP
+import qualified System.FilePath.Find   as Find
 
 
 ---------------------
@@ -91,3 +92,19 @@ findProjectSources project = do
     lunaFilesAbs <- mapM Path.parseAbsFile lunaFiles
     let modules  = map (assignQualName srcDir) lunaFilesAbs
     return $ Bimap.fromList modules
+
+localLibsPath :: Path.Path Path.Rel Path.Dir
+localLibsPath = $(Path.mkRelDir "local_libs")
+
+listDependencies :: Path.Path Path.Abs Path.Dir -> IO [(Name, FP.FilePath)]
+listDependencies projectSrc = do
+    let lunaModules     = projectSrc Path.</> localLibsPath
+        lunaModulesPath = Path.toFilePath lunaModules
+    dependencies <- tryAny $ Dir.listDirectory lunaModulesPath
+    case dependencies of
+        Left exc         -> return []
+        Right directDeps -> do
+            indirectDeps <- forM directDeps $ \proj -> do
+                path <- Path.parseRelDir proj
+                listDependencies (lunaModules Path.</> path)
+            return $ map (convert &&& (lunaModulesPath FP.</>)) directDeps <> concat indirectDeps
