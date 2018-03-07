@@ -275,14 +275,3 @@ convertVia5' = convert5' . convertTo5' @p ; {-# INLINE convertVia5' #-}
 type PartialConvertibleVia  t p t' = (PartialConvertible  t p, PartialConvertible  p t')
 unsafeConvertVia :: forall p t t'. PartialConvertibleVia t p t' => t -> t'
 unsafeConvertVia = unsafeConvert . unsafeConvertTo @p ; {-# INLINE unsafeConvertVia #-}
-
-
--- !!!!!!!!!!!!!!!!!!!!!!!! DEPRECATED
-
--- === Casts === --
-
-{-# DEPRECATED Castable "Use Data.Coerce instead" #-}
-class Castable a b where
-    cast :: a -> b
-    default cast :: Convertible a b => a -> b
-    cast = convert ; {-# INLINE cast #-}
