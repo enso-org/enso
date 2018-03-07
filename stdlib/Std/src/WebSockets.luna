@@ -118,7 +118,7 @@ class WebSocket:
     ## conn.close
     ## ```
     def connection host:
-        secure = host.hasPrefix "wss"
+        secure = host.startsWith "wss"
         port   = if secure then 443 else 80
         WebSocketInstance host port "/" secure
 
