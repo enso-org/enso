@@ -227,6 +227,11 @@ makeLenses ''LayerLoc
 -- type instance Layer.View Terms Model (Format   f) = UniTerm
 -- type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
+type instance Layer.Data   Terms XType = Link
+-- type instance Layer.Layout Terms XType layout = layout *-* Layout.Get XType layout
+type instance Layer.Layout Terms XType layout = layout *-* layout
+
+
 type instance Layer.Layout   Terms Model layout = layout
 type instance Layer.Data     Terms Model = UniTerm
 type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef (TermCons f)
@@ -352,13 +357,15 @@ type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
 --
 --
 
+data XType
 
+-- type instance Layout.DefLayout layout (TermCons t) = Draft
 
 data MyPass
 type instance Spec MyPass t = Spec_MyPass t
 type family   Spec_MyPass t where
     Spec_MyPass (In Elems) = '[Terms, Links]
-    Spec_MyPass (In Terms) = '[Model]
+    Spec_MyPass (In Terms) = '[Model, XType]
     Spec_MyPass (In Links) = '[Source, Target]
     Spec_MyPass (Out a)    = Spec_MyPass (In a)
     Spec_MyPass t          = '[]
@@ -371,6 +378,7 @@ test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
 test_pm = do
     PassManager.registerComponent @Terms
     PassManager.registerPrimLayer @Terms @Model
+    PassManager.registerPrimLayer @Terms @XType
 
     PassManager.registerComponent @Links
     PassManager.registerPrimLayer @Links @Source
@@ -386,7 +394,10 @@ passTest :: Pass.SubPass MyPass IO ()
 passTest = do
     v1 <- var 5
     v2 <- var 7
+    v3 <- var 9
     l1 <- link v1 v2
+
+    Layer.write @XType v1 l1
 
     s <- Layer.read @Source l1
     m <- Layer.read @Model s

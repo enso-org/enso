@@ -41,8 +41,9 @@ type family DefLayout key
 
 type FromList lst = Layout (Map.FromAssocListRaw lst)
 
-type family Get key layout where
+type family Get (key :: Type) (layout :: Type) :: Type where
     Get key (Layout map) = FromMaybe (DefLayout key) (Map.LookupRaw key map)
+    Get key _            = DefLayout key
 
 type family Set key val layout where
     Set key val (Layout map) = Layout (Map.InsertRaw key val map)
