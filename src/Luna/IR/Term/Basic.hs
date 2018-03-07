@@ -5,7 +5,8 @@
 
 module Luna.IR.Term.Basic where
 
-import Prologue
+import Prologue               hiding (cast)
+
 import Foreign.Ptr            (Ptr, castPtr, plusPtr)
 import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
 import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
@@ -16,7 +17,8 @@ import qualified Foreign            as Ptr
 import qualified Data.Graph as Graph
 import qualified Foreign.Memory.Pool as MemPool
 
-import Foreign.Storable.Deriving
+import Foreign.Storable.Deriving  (deriveStorable)
+import Foreign.Storable1.Deriving (deriveStorable1)
 
 import Luna.IR.Class
 import OCI.IR.Term
@@ -88,6 +90,7 @@ newtype ConsVar a = Var
 type instance TermConsDef Var = ConsVar
 type instance Layer.ConsLayout ConsVar = Var
 deriveStorable ''ConsVar
+deriveStorable1 ''ConsVar
 deriveLinks ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
@@ -98,6 +101,7 @@ data ConsAcc a = Acc
 type instance TermConsDef Acc = ConsAcc
 type instance Layer.ConsLayout ConsAcc = Acc
 deriveStorable ''ConsAcc
+deriveStorable1 ''ConsAcc
 deriveLinks ''ConsAcc
 
 data UniTerm a
@@ -105,6 +109,7 @@ data UniTerm a
     | UniTermAcc !(ConsAcc a)
     deriving (Show, Eq)
 deriveStorable ''UniTerm
+deriveStorable1 ''UniTerm
 deriveLinks ''UniTerm
 
 class IsTermCons t where
@@ -113,25 +118,23 @@ class IsTermCons t where
 instance IsTermCons ConsVar where toUniTerm = UniTermVar ; {-# INLINE toUniTerm #-}
 instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm #-}
 
-
-
-instance Storable1.Storable1 ConsVar where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
-
-instance Storable1.Storable1 ConsAcc where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
-
-instance Storable1.Storable1 UniTerm where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
+-- instance Storable1.Storable1 ConsVar where
+--     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+--     alignment = Storable.alignment ; {-# INLINE alignment #-}
+--     peek      = Storable.peek      ; {-# INLINE peek      #-}
+--     poke      = Storable.poke      ; {-# INLINE poke      #-}
+--
+-- instance Storable1.Storable1 ConsAcc where
+--     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+--     alignment = Storable.alignment ; {-# INLINE alignment #-}
+--     peek      = Storable.peek      ; {-# INLINE peek      #-}
+--     poke      = Storable.poke      ; {-# INLINE poke      #-}
+--
+-- instance Storable1.Storable1 UniCons where
+--     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+--     alignment = Storable.alignment ; {-# INLINE alignment #-}
+--     peek      = Storable.peek      ; {-# INLINE peek      #-}
+--     poke      = Storable.poke      ; {-# INLINE poke      #-}
 
 -- instance Storable (UniTerm fmt a) where
 --     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}

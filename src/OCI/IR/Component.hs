@@ -3,7 +3,7 @@
 
 module OCI.IR.Component where
 
-import Prologue hiding (ConversionError)
+import Prologue hiding (Castable, ConversionError)
 
 import Foreign.Storable  (Storable)
 import Foreign.Ptr.Utils (SomePtr)

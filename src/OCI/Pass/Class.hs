@@ -199,9 +199,9 @@ instance {-# OVERLAPPABLE #-}
 
 -- === API === --
 
-class    Monad m => DataGetter a   m    where getData :: m a
-instance Monad m => DataGetter Imp m    where getData = impossible
-instance            DataGetter a   ImpM where getData = impossible
+class    Monad m => DataGetter a   m     where getData :: m a
+instance Monad m => DataGetter Imp m     where getData = impossible
+instance            DataGetter a   ImpM1 where getData = impossible
 instance (MonadPass m, TypeMap.ElemGetter a (DiscoverPassStateLayout m))
       => DataGetter a m where
     getData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getData #-}
