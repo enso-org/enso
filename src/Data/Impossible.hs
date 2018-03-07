@@ -11,7 +11,6 @@ import GHC.Stack
 
 data  Impossible = Impossible deriving (Show)
 class ImpCls
--- type family Imp :: k
 
 
 -- === Utils === --
@@ -64,6 +63,7 @@ instance Applicative ImpossibleM1 where pure  _ = impossible ; {-# INLINE pure  
 -- === Abbreviations === --
 
 type Imp   = Impossible
+type ImpM  = ImpossibleM1
 type ImpM1 = ImpossibleM1
 type ImpM2 = ImpossibleM2
 type ImpM3 = ImpossibleM3
