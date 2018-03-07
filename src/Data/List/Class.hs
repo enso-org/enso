@@ -1,14 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Container.List2 where
+module Data.List.Class where
 
-import Data.Container.Class
-
+import Data.Item
 import Prelude
 import Data.Convert
 import Control.Lens
 
--- TODO: TH vvv
 type ToList    a = Convertible  a [Item a]
 type ToList'   a = Convertible' a [Item a]
 type FromList  a = Convertible  [Item a] a
