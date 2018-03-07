@@ -2,9 +2,7 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
 
-module OCI.IR.Layout (module OCI.IR.Layout, module X) where
-
-import Type.Data.Map as X ((:=))
+module OCI.IR.Layout2 where
 
 import Prologue
 -- import Type.Data.Map
@@ -39,8 +37,6 @@ data Layout (map :: Map.Raw Type Type)
 
 type family DefLayout key
 
-type FromList lst = Layout (Map.FromAssocListRaw lst)
-
 type family Get key layout where
     Get key (Layout map) = FromMaybe (DefLayout key) (Map.LookupRaw key map)
 
@@ -50,7 +46,7 @@ type family Set key val layout where
 
 --
 -- -- === Types === --
---
+-- 
 -- type BranchMap = Map Type Type
 --
 --

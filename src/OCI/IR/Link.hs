@@ -10,6 +10,7 @@ import qualified Data.Tag as Tag
 import Foreign.Storable.Utils
 import Foreign(castPtr)
 import OCI.IR.Component
+import Type.Data.Ord
 
 
 type family IRDef a
@@ -35,6 +36,8 @@ data Target
 
 data src :-: tgt
 
+type instance Cmp Source Target = LT
+type instance Cmp Target Source = GT
 -- newtype Link src tgt = Link (Ptr (LinkData src tgt))
 --     deriving (Eq, Show, Storable)
 

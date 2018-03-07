@@ -38,6 +38,7 @@ import OCI.IR.Selector
 import qualified Data.TypeMap.Strict as TypeMap
 import qualified Data.Tuple.Strict as Tuple
 
+import  OCI.IR.Layout ((:=))
 import qualified OCI.IR.Layout as Layout
 
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
@@ -91,8 +92,8 @@ deriveLinks ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
-    { __base :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Term Acc a)
-    , __name :: !(Link (Layout.SubLayout Terms a :-: Layout.SetBase Acc a)) -- !(Link.Name Acc a)
+    { __base :: !(Link (Layout.Get Terms a :-: Layout.Set Model Acc a)) -- !(Link.Term Acc a)
+    , __name :: !(Link (Layout.Get Terms a :-: Layout.Set Model Acc a)) -- !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 type instance Layer.ConsLayout ConsAcc = Acc
@@ -305,7 +306,7 @@ unsafeAllocIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-
 
 
 
-term  :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term (Layout.SetBase (Layer.ConsLayout t) a))
+term  :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term (Layout.Set Model (Layer.ConsLayout t) a))
 term' :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term b)
 term = term' ; {-# INLINE term #-}
 term' term = do
@@ -319,7 +320,15 @@ var :: (IRAllocator Terms m, Layer.Writer Terms Model m) => Int -> m (Term Var)
 var name = term' $ Var name ; {-# INLINE var #-}
 
 
+link :: (IRAllocator Links m, Layer.Writer Links Source m) => Term src -> Term tgt -> m (Link (src *-* tgt))
+link src tgt = do
+    ir <- unsafeAllocIR @Links
+    Layer.write @Source ir src
+    return $ cast ir
+{-# INLINE link #-}
 
+
+type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
 
 -- Tag.familyInstance "TermCons" "Var"
 -- newtype ConsVar a = Var
@@ -582,7 +591,7 @@ test_readWriteLayer4 i = do
     Pass.runPass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
-type instance Layout.GetBase Var = Var
+-- type instance Layout.GetBase Var = Var
 tttest :: Term Var -> Pass.SubPass MyPass IO ()
 tttest n = do
     -- (x :: _) <- Layer.read @Model n

@@ -12,6 +12,8 @@ import Data.Proxy (Proxy)
 import Type.Data.Maybe (FromJust)
 import Type.Data.Wrapped
 import Type.Data.Ord
+import Type.Data.Maybe
+
 
 --------------------------
 -- === Map - PART 1 === --
@@ -19,8 +21,8 @@ import Type.Data.Ord
 -- --!!! Its defined in such way because of GHC BUG: https://ghc.haskell.org/trac/ghc/ticket/14668
 -- TODO: Move it and refactor to Type.Data.Property when the bug gets resolved
 
-
-data Map (k :: Type) (v :: Type) = Map [Assoc k v]
+type Raw (k :: Type) (v :: Type) = [Assoc k v]
+data Map k v = Map (Raw k v)
 type family FromMap m where FromMap ('Map m) = m
 
 data Assoc a b = Assoc a b
@@ -100,12 +102,17 @@ type family InsertRaw (k :: kk) (v :: kv) (m :: [Assoc kk kv]) :: [Assoc kk kv] 
          ((l := w) ': InsertRaw k v s)
 
 
-type family Lookup k m where Lookup k ('Map m) = LookupRaw k m
+type family Lookup     k m where Lookup k ('Map m) = LookupRaw k m
+type        LookupRaw' k m = FromJust (LookupRaw k m)
 type family LookupRaw (k :: kk) (m :: [Assoc kk kv]) :: Maybe kv where
     LookupRaw k '[]             = 'Nothing
     LookupRaw k ((k := v) ': _) = 'Just v
     LookupRaw k (_        ': s) = LookupRaw k s
 
+
+type family FromAssocListRaw (lst :: [Assoc k v]) :: [Assoc k v] where
+    FromAssocListRaw '[]            = '[]
+    FromAssocListRaw (k := v ': as) = InsertRaw k v (FromAssocListRaw as)
 
 
 -- === Instances === --
