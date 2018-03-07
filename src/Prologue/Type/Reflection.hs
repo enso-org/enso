@@ -25,6 +25,11 @@ someTypeRep = T.someTypeRep (Proxy :: Proxy a) ; {-# INLINE someTypeRep #-}
 typeOfProxy :: forall proxy a. Typeable a => proxy a -> TypeRep a
 typeOfProxy _ = typeRep @a ; {-# INLINE typeOfProxy #-}
 
+
+-- type family Typeables ls :: Constraint where
+--     Typeables '[] = ()
+--     Typeables (l ': ls) = (Typeable l, Typeables2 ls)
+
 class Typeables (ls :: [*]) where someTypeReps :: [SomeTypeRep]
 instance (Typeable l, Typeables ls) => Typeables (l ': ls) where
     someTypeReps = someTypeRep @l : someTypeReps @ls ; {-# INLINE someTypeReps #-}

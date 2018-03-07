@@ -22,6 +22,7 @@ import Prelude                         as X ( until, asTypeOf, error, errorWitho
 import Prologue.Control.DeepSeq         as X
 import Prologue.Data.Basic              as X
 import Prologue.Data.Default            as X
+import Prologue.Data.Default1           as X
 import Prologue.Data.Either             as X
 import Prologue.Data.Maybe              as X
 import Prologue.Data.Num                as X
@@ -91,8 +92,8 @@ import Data.Coerce                      as X (Coercible, coerce)
 import Data.Convert                     as X
 
 -- === Containers === --
-import Data.Container                   as X (Item)
-import Data.Container.List2             as X
+import Data.Item                        as X
+import Data.List.Class                  as X
 
 -- === Exts === --
 import GHC.Exts                         as X (lazy, inline, oneShot)
