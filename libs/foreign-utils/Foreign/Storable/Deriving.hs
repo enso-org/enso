@@ -144,16 +144,16 @@ genAlignmentClause = clause [WildP] (app (var 'Storable.sizeOf) undefinedAsInt) 
 genPeek :: [TH.Con] -> Q TH.Dec
 genPeek cs = funD 'Storable.peek [genPeekClause cs]
 
-genPeekCaseMatch :: Name -> Integer -> TH.Con -> Q TH.Match
-genPeekCaseMatch ptr idx con = do
-    (_ :| offNames, whereCs) <- genOffsets con
+genPeekCaseMatch :: Bool -> Name -> Integer -> TH.Con -> Q TH.Match
+genPeekCaseMatch single ptr idx con = do
+    (off0 :| offNames, whereCs) <- genOffsets con
     let (cName, arity)   = conNameArity con
         peekByteOffPtr   = app (var 'Storable.peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
         -- No-field constructors are a special case of just the constructor being returned
         (firstCon, offs) = case offNames of
-                (off1:os) -> (op '(<$>) (ConE cName) (peekByte off1), os)
+                (off1:os) -> (op '(<$>) (ConE cName) (peekByte $ if single then off0 else off1), os)
                 _         -> (app (var 'return) (ConE cName), [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
@@ -161,14 +161,14 @@ genPeekCaseMatch ptr idx con = do
 
 genPeekSingleCons :: Name -> TH.Con -> Q TH.Clause
 genPeekSingleCons ptr con = do
-    TH.Match _ body whereCs <- genPeekCaseMatch ptr 0 con
+    TH.Match _ body whereCs <- genPeekCaseMatch True ptr 0 con
     case body of
         TH.NormalB e  -> return $ clause [var ptr] e whereCs
         TH.GuardedB _ -> fail "[genPeekSingleCons] Guarded bodies not supported"
 
 genPeekMultiCons :: Name -> Name -> [TH.Con] -> Q TH.Clause
 genPeekMultiCons ptr tag cs = do
-    peekCases <- mapM (uncurry $ genPeekCaseMatch ptr) $ zip [0..] cs
+    peekCases <- mapM (uncurry $ genPeekCaseMatch False ptr) $ zip [0..] cs
     let peekTag      = app (app (var 'Storable.peekByteOff) (var ptr)) (intLit 0)
         peekTagTyped = peekTag -:: (app (cons' ''IO) (cons' ''Int))
         bind         = BindS (var tag) peekTagTyped
@@ -186,21 +186,48 @@ genPeekClause cs = do
         cs  -> genPeekMultiCons ptr tag cs
 
 genPoke :: [TH.Con] -> Q TH.Dec
-genPoke = funD 'Storable.poke . map (uncurry genPokeClause) . zip [0..]
+genPoke conss = funD 'Storable.poke $ case conss of
+    []  -> error "[genPoke] Phantom types not supported"
+    [c] -> [genPokeClauseSingle c]
+    cs  -> map (uncurry genPokeClauseMulti) $ zip [0..] cs
 
-genPokeClause :: Integer -> TH.Con -> Q TH.Clause
-genPokeClause idx con = do
+nonEmptyParamNames :: Int -> Q (NonEmpty Name)
+nonEmptyParamNames n = newNames n >>= \case
+    (firstPat:restPats) -> return $ firstPat :| restPats
+    -- TODO[piotrMocz] this could work, with some love
+    _ -> fail "[genPokeClause] No-field constructors not supported"
+
+genPokePat :: Name -> Name -> [Name] -> [TH.Pat]
+genPokePat ptr cName patVarNames =
+    [var ptr, cons cName $ var <$> patVarNames]
+
+genPokeExpr :: Name -> NonEmpty Name -> [Name] -> TH.Exp -> TH.Exp
+genPokeExpr ptr (off :| offNames) varNames firstExpr = body
+    where pokeByteOffPtr = app (var 'Storable.pokeByteOff) (var ptr)
+          pokeByte a     = app2 pokeByteOffPtr (var a)
+          nextPoke t     = app2 (var '(>>)) t .: pokeByte
+          firstPoke      = pokeByte off firstExpr
+          varxps         = var <$> varNames
+          body           = foldl (uncurry . nextPoke) firstPoke
+                         $ zip offNames varxps
+
+genPokeClauseSingle :: TH.Con -> Q TH.Clause
+genPokeClauseSingle con = do
     let (cName, nParams) = conNameArity con
-    ptr              <- newName "ptr"
-    patVarNames      <- newNames nParams
-    (off :| offNames, whereCs) <- genOffsets con
-    let pat            = [var ptr, cons cName $ var <$> patVarNames]
-        pokeByteOffPtr = app (var 'Storable.pokeByteOff) (var ptr)
-        pokeByte a     = app2 pokeByteOffPtr (var a)
-        nextPoke t     = app2 (var '(>>)) t .: pokeByte
+    ptr <- newName "ptr"
+    patVarNames@(firstP :| restP) <- nonEmptyParamNames nParams
+    (offNames, whereCs) <- genOffsets con
+    let pat  = genPokePat  ptr cName $ NonEmpty.toList patVarNames
+        body = genPokeExpr ptr offNames restP (var firstP)
+    return $ clause pat body (NonEmpty.toList whereCs)
+
+genPokeClauseMulti :: Integer -> TH.Con -> Q TH.Clause
+genPokeClauseMulti idx con = do
+    let (cName, nParams) = conNameArity con
+    ptr         <- newName "ptr"
+    patVarNames <- newNames nParams
+    (offNames, whereCs) <- genOffsets con
+    let pat            = genPokePat ptr cName patVarNames
         idxAsInt       = convert idx -:: cons' ''Int
-        firstPoke      = pokeByte off idxAsInt
-        varxps         = var <$> patVarNames
-        body           = foldl (uncurry . nextPoke) firstPoke
-                       $ zip offNames varxps
+        body           = genPokeExpr ptr offNames patVarNames idxAsInt
     return $ clause pat body (NonEmpty.toList whereCs)

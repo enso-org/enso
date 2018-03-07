@@ -89,8 +89,8 @@ newtype ConsVar a = Var
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
 type instance Layer.ConsLayout ConsVar = Var
--- deriveStorable ''ConsVar
--- deriveStorable1 ''ConsVar
+deriveStorable ''ConsVar
+deriveStorable1 ''ConsVar
 deriveLinks ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
@@ -100,16 +100,16 @@ data ConsAcc a = Acc
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 type instance Layer.ConsLayout ConsAcc = Acc
--- deriveStorable ''ConsAcc
--- deriveStorable1 ''ConsAcc
+deriveStorable ''ConsAcc
+deriveStorable1 ''ConsAcc
 deriveLinks ''ConsAcc
 
 data UniTerm a
     = UniTermVar !(ConsVar a)
     | UniTermAcc !(ConsAcc a)
     deriving (Show, Eq)
--- deriveStorable ''UniTerm
--- deriveStorable1 ''UniTerm
+deriveStorable ''UniTerm
+deriveStorable1 ''UniTerm
 deriveLinks ''UniTerm
 
 class IsTermCons t where
@@ -118,52 +118,52 @@ class IsTermCons t where
 instance IsTermCons ConsVar where toUniTerm = UniTermVar ; {-# INLINE toUniTerm #-}
 instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm #-}
 
-instance Storable1.Storable1 ConsVar where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
+-- instance Storable1.Storable1 ConsVar where
+--     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+--     alignment = Storable.alignment ; {-# INLINE alignment #-}
+--     peek      = Storable.peek      ; {-# INLINE peek      #-}
+--     poke      = Storable.poke      ; {-# INLINE poke      #-}
+--
+-- instance Storable1.Storable1 ConsAcc where
+--     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+--     alignment = Storable.alignment ; {-# INLINE alignment #-}
+--     peek      = Storable.peek      ; {-# INLINE peek      #-}
+--     poke      = Storable.poke      ; {-# INLINE poke      #-}
+--
+-- instance Storable1.Storable1 UniTerm where
+--     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
+--     alignment = Storable.alignment ; {-# INLINE alignment #-}
+--     peek      = Storable.peek      ; {-# INLINE peek      #-}
+--     poke      = Storable.poke      ; {-# INLINE poke      #-}
 
-instance Storable1.Storable1 ConsAcc where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
-
-instance Storable1.Storable1 UniTerm where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
 
 
-
-xchunkSize = sizeOf' @Int
-
-instance Storable (ConsVar a) where
-    sizeOf    _ = xchunkSize ; {-# INLINE sizeOf    #-}
-    alignment _ = xchunkSize     ; {-# INLINE alignment #-}
-    peek ptr = Var <$> peek (intPtr ptr) ; {-# INLINE peek #-}
-    poke ptr (Var !a) = poke (intPtr ptr) a ; {-# INLINE poke #-}
-
-instance Storable (ConsAcc a) where
-    sizeOf    _ = 2 * xchunkSize ; {-# INLINE sizeOf    #-}
-    alignment _ = xchunkSize     ; {-# INLINE alignment #-}
-    peek ptr = Acc <$> peek (castPtr ptr) <*> peekByteOff ptr xchunkSize ; {-# INLINE peek #-}
-    poke ptr (Acc !a !b) = poke (castPtr ptr) a >> pokeByteOff ptr xchunkSize b ; {-# INLINE poke #-}
-
-instance Storable (UniTerm a) where
-    sizeOf    _ = 3 * xchunkSize ; {-# INLINE sizeOf    #-}
-    alignment _ = xchunkSize     ; {-# INLINE alignment #-}
-    peek ptr = peek (intPtr ptr) >>= \case
-        0 -> UniTermVar <$> peekByteOff ptr xchunkSize
-        1 -> UniTermAcc <$> peekByteOff ptr xchunkSize
-        _ -> error "Unrecognized constructor"
-    {-# INLINE peek #-}
-    poke ptr = \case
-        UniTermVar !a -> poke (intPtr ptr) 0 >> pokeByteOff ptr xchunkSize a
-        UniTermAcc !a -> poke (intPtr ptr) 1 >> pokeByteOff ptr xchunkSize a
-    {-# INLINE poke #-}
+-- xchunkSize = sizeOf' @Int
+--
+-- instance Storable (ConsVar a) where
+--     sizeOf    _ = xchunkSize ; {-# INLINE sizeOf    #-}
+--     alignment _ = xchunkSize     ; {-# INLINE alignment #-}
+--     peek ptr = Var <$> peek (intPtr ptr) ; {-# INLINE peek #-}
+--     poke ptr (Var !a) = poke (intPtr ptr) a ; {-# INLINE poke #-}
+--
+-- instance Storable (ConsAcc a) where
+--     sizeOf    _ = 2 * xchunkSize ; {-# INLINE sizeOf    #-}
+--     alignment _ = xchunkSize     ; {-# INLINE alignment #-}
+--     peek ptr = Acc <$> peek (castPtr ptr) <*> peekByteOff ptr xchunkSize ; {-# INLINE peek #-}
+--     poke ptr (Acc !a !b) = poke (castPtr ptr) a >> pokeByteOff ptr xchunkSize b ; {-# INLINE poke #-}
+--
+-- instance Storable (UniTerm a) where
+--     sizeOf    _ = 3 * xchunkSize ; {-# INLINE sizeOf    #-}
+--     alignment _ = xchunkSize     ; {-# INLINE alignment #-}
+--     peek ptr = peek (intPtr ptr) >>= \case
+--         0 -> UniTermVar <$> peekByteOff ptr xchunkSize
+--         1 -> UniTermAcc <$> peekByteOff ptr xchunkSize
+--         _ -> error "Unrecognized constructor"
+--     {-# INLINE peek #-}
+--     poke ptr = \case
+--         UniTermVar !a -> poke (intPtr ptr) 0 >> pokeByteOff ptr xchunkSize a
+--         UniTermAcc !a -> poke (intPtr ptr) 1 >> pokeByteOff ptr xchunkSize a
+--     {-# INLINE poke #-}
 
 
             -- peek        :: ∀ a.   Ptr (t a)               -> IO (t a)
