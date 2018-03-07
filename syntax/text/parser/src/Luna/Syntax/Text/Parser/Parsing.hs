@@ -408,13 +408,15 @@ namedVar   = mkNamedAsg IR.var'   varName
 namedOp    = mkNamedAsg IR.var'   opName
 namedIdent = namedVar <|> namedCons <|> namedOp
 
-consName, varName, opName, identName, modifierName :: SymParser Name
-consName     = convert <$> satisfy Lexer.matchCons
-varName      = convert <$> satisfy Lexer.matchVar
-opName       = convert <$> satisfy Lexer.matchOperator
-identName    = varName <|> consName <|> opName
-funcName     = varName <|> opName
-modifierName = convert <$> satisfy Lexer.matchModifier
+consName, varName, opName, identName, modifierName, foreignLangName
+    :: SymParser Name
+consName        = convert <$> satisfy Lexer.matchCons
+varName         = convert <$> satisfy Lexer.matchVar
+opName          = convert <$> satisfy Lexer.matchOperator
+identName       = varName <|> consName <|> opName
+funcName        = varName <|> opName
+modifierName    = convert <$> satisfy Lexer.matchModifier
+foreignLangName = consName
 
 previewVarName :: SymParser Name
 previewVarName = do
@@ -923,27 +925,41 @@ impSrc = buildAsg $ (\s -> liftIRBApp0 $ IR.unresolvedImpSrc' s) <$> (wrd <|> re
 -- === Foreign Import Parsing === --
 ------------------------------------
 
--- TODO [Ara] Using empty list as debug for now.
 foreignImportList :: AsgParser SomeExpr
-foreignImportList = buildAsg $ (\imps -> liftIRBApp0 $ IR.foreignImpList' [])
-                            <$> foreignImportHeader
-    where
-        parse = do
-            symbol Lexer.KwForeign
-
-            {- Lexer.KwImport -}
-
-foreignImportHeader :: SymParser ()
-foreignImportHeader = do
-    symbol Lexer.KwForeign
-    symbol Lexer.KwImport
+foreignImportList = buildAsg
+    $  (\lang imports ->
+            liftAstApp1 (IR.foreignImpList' lang) (sequence imports))
+   <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
+   <*> foreignLangName
+   <*  symbol Lexer.BlockStart
+   <*> discover (nonEmptyBlock' foreignLocationImportList)
 
 foreignLocationImportList :: AsgParser SomeExpr
-foreignLocationImportList = buildAsg $ undefined
+foreignLocationImportList = buildAsg
+    $ (\loc imports ->
+        liftAstApp2 IR.foreignLocationImpList' loc (sequence imports))
+   <$> stringOrVarName
+   <*  symbol Lexer.BlockStart
+   <*> discover (nonEmptyBlock' foreignSymbolImport)
 
 foreignSymbolImport :: AsgParser SomeExpr
-foreignSymbolImport = buildAsg $ undefined
+foreignSymbolImport = buildAsg
+    $ (\foreignName localName importType ->
+        liftAstApp2
+        ((flip IR.foreignSymbolImp') localName)
+        foreignName
+        importType)
+   <$> stringOrVarName
+   <*> funcName
+   <*  symbol Lexer.Typed
+   <*> valExpr
 
+stringOrVarName :: AsgParser SomeExpr
+stringOrVarName = str <|> (asgNameParser varName)
+
+asgNameParser :: SymParser Name -> AsgParser SomeExpr
+asgNameParser nameParser = buildAsg $ (\varN -> liftIRBApp0 (IR.var' varN))
+     <$> nameParser
 
 -- === Unit body === --
 

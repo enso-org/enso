@@ -379,7 +379,10 @@ spec = do
             {- it "unsafe symbol"                           $ shouldParseItself' unit' "unsafe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
 
         describe "C-FFI Syntax" $ do
-            it "partial"                                 $ shouldParseItself' unit' "foreign import" []
+            it "partial"                                 $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "       \"alloc_tensor\" allocTensor :: C.Int64 -> C.Int64"
+                                                                                    ) []
             {- it "single line import"                      $ shouldParseItself' unit' "foreign import C \"Tensor.so\" \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
             {- it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:" -}
                                                                                     {- </> "    \"tensor.so\":" -}

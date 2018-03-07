@@ -201,65 +201,72 @@ instance ( MonadIO m -- DEBUG ONLY
                   ]
          ) => ChainedPrettyPrinter SimpleStyle t m where
     chainedPrettyShow style subStyle root = matchExpr root $ \case
-        Blank                  -> return . unnamed $ atom wildcardName
-        Missing                -> return . unnamed $ atom mempty
-        String    str          -> return . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
-        Number    num          -> return . unnamed $ atom (convert $ show num)
-        Acc       a name       -> named (spaced accName)   . atom . (\an -> convert an <+> accName <+> convert name) <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
-        Unify     l r          -> named (spaced unifyName) . atom .: mappendWith (Doc.spaced unifyName) <$> subgenBody l <*> subgenBody r
-        App       f a          -> join $ appSymbols <$> subgen f <*> subgen a
-        Cons      name args    -> foldM appSymbols (unnamed . atom $ convert name) =<< mapM subgen args
-        RecASG    name args    -> unnamed . atom . (convert name <>) . (\x -> if null x then mempty else space <> intercalate space x) <$> mapM subgenBody args
-        Var       name         -> lookupMultipartName name <&> \case
-                                      Just n -> labeled Nothing $ mixfix (convert $ n ^. Name.base, n ^. Name.segments)
-                                      Nothing -> if | isOperator name    -> named (spaced    name) $ infixx (convert name)
-                                                    | name == appName    -> named (notSpaced name) $ infixx (convert name)
-                                                    | name == uminusName -> named (notSpaced name) $ prefix minusName
-                                                    | otherwise          -> unnamed                $ atom   (convert name)
-        Grouped   expr         -> unnamed . atom . parensed <$> subgenBody expr
-        Typed     expr tp      -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
-        List      elems        -> unnamed . atom . bracked  . (intercalate ", ") <$> mapM subgenBody elems
-        Tuple      elems       -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
-        Seq       a b          -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
-        Lam       arg body     -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
-        LeftSection  op a      -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
-        RightSection op a      -> unnamed . atom . parensed .: flip (<+>) <$> subgenBody op  <*> subgenBody a
-        Marked       m a       -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
-        Marker         a       -> return . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
-        ASGRootedFunction  n _ -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
-        ASGFunction  n as body -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
-        FunctionSig  n tp      -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
-        Match        a cs      -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
-        ClsASG _ n as cs ds    -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
-                                      go args conss decls = "class" <+> convert n <> arglist args <> body where
-                                          body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock
-                                          bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
+        Blank                       -> return . unnamed $ atom wildcardName
+        Missing                     -> return . unnamed $ atom mempty
+        String    str               -> return . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
+        Number    num               -> return . unnamed $ atom (convert $ show num)
+        Acc       a name            -> named (spaced accName)   . atom . (\an -> convert an <+> accName <+> convert name) <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
+        Unify     l r               -> named (spaced unifyName) . atom .: mappendWith (Doc.spaced unifyName) <$> subgenBody l <*> subgenBody r
+        App       f a               -> join $ appSymbols <$> subgen f <*> subgen a
+        Cons      name args         -> foldM appSymbols (unnamed . atom $ convert name) =<< mapM subgen args
+        RecASG    name args         -> unnamed . atom . (convert name <>) . (\x -> if null x then mempty else space <> intercalate space x) <$> mapM subgenBody args
+        Var       name              -> lookupMultipartName name <&> \case
+                                           Just n -> labeled Nothing $ mixfix (convert $ n ^. Name.base, n ^. Name.segments)
+                                           Nothing -> if | isOperator name    -> named (spaced    name) $ infixx (convert name)
+                                                         | name == appName    -> named (notSpaced name) $ infixx (convert name)
+                                                         | name == uminusName -> named (notSpaced name) $ prefix minusName
+                                                         | otherwise          -> unnamed                $ atom   (convert name)
+        Grouped   expr              -> unnamed . atom . parensed <$> subgenBody expr
+        Typed     expr tp           -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
+        List      elems             -> unnamed . atom . bracked  . (intercalate ", ") <$> mapM subgenBody elems
+        Tuple      elems            -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
+        Seq       a b               -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
+        Lam       arg body          -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
+        LeftSection  op a           -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
+        RightSection op a           -> unnamed . atom . parensed .: flip (<+>) <$> subgenBody op  <*> subgenBody a
+        Marked       m a            -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
+        Marker         a            -> return . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
+        ASGRootedFunction  n _      -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
+        ASGFunction  n as body      -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
+        FunctionSig  n tp           -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
+        Match        a cs           -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
+        ClsASG _ n as cs ds         -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
+                                           go args conss decls = "class" <+> convert n <> arglist args <> body where
+                                               body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock
+                                               bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
 
-        FieldASG mn a          -> unnamed . atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
-        Invalid t              -> return . named (spaced appName) . atom $ "Invalid" <+> convert (show t)
-        UnresolvedImportHub is -> unnamed . atom . foldl (</>) mempty <$> mapM subgenBody is
-        UnresolvedImport i t   -> unnamed . atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where
-                                  tgts = case t of Import.Everything -> ""
-                                                   Import.Listed ns  -> ": " <> intercalate " " (convert <$> ns)
-        UnresolvedImportSrc i  -> return . unnamed . atom $ case i of
-            Import.World       -> "#World#"
-            Import.Absolute ss -> convertVia @P.String ss
-            Import.Relative ss -> "." <> convertVia @P.String ss
-        ForeignImportList imps -> return . unnamed . atom $ "foreign import" -- TODO [Ara] Codegen
-        Unit      im _ b       -> do
-                                  cls <- source b
-                                  matchExpr cls $ \case
-                                      ClsASG _ _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
-                                          where go imps defs = let glue = ""
-                                                               in  imps <> glue <> foldl (</>) mempty defs
+        FieldASG mn a               -> unnamed . atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
+        Invalid t                   -> return . named (spaced appName) . atom $ "Invalid" <+> convert (show t)
+        UnresolvedImportHub is      -> unnamed . atom . foldl (</>) mempty <$> mapM subgenBody is
+        UnresolvedImport i t        -> unnamed . atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where
+                                       tgts = case t of Import.Everything -> ""
+                                                        Import.Listed ns  -> ": " <> intercalate " " (convert <$> ns)
+        UnresolvedImportSrc i       -> return . unnamed . atom $ case i of
+            Import.World            -> "#World#"
+            Import.Absolute ss      -> convertVia @P.String ss
+            Import.Relative ss      -> "." <> convertVia @P.String ss
 
-        AccSection   n         -> return . named (notSpaced accName) . atom $ "." <> intercalate "." (convert <$> n)
-        Metadata     t         -> return . unnamed . atom $ "###" <+> metadataHeader <+> convertVia @Text t
-        Documented   d a       -> unnamed . atom . (\a' -> "##" <> convertVia @P.String d </> a') <$> subgenBody a -- FIXME: Conversion via string is not efficient
-        Disabled     a         -> unnamed . atom . ("#" <>) <$> subgenBody a
-        Update       a ns v    -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+>              "=" <+> convert v') <$> subgen a <*> subgen v
-        Modify       a ns n v  -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+> convert n <> "=" <+> convert v') <$> subgen a <*> subgen v
-        x                      -> error $ "Pretty printer: unexpected: " <> show x <> " (" <> show root <> ")"
+        ForeignImportList lang imps ->
+            (return . unnamed . atom $ "foreign import" <> " " <> convertVia @P.String lang)
+        ForeignLocationImportList location imports ->
+            subgen location
+        ForeignSymbolImport foreignName localName typeSig ->
+            subgen foreignName
+
+        Unit      im _ b            -> do
+                                       cls <- source b
+                                       matchExpr cls $ \case
+                                           ClsASG _ _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
+                                               where go imps defs = let glue = ""
+                                                                    in  imps <> glue <> foldl (</>) mempty defs
+
+        AccSection   n              -> return . named (notSpaced accName) . atom $ "." <> intercalate "." (convert <$> n)
+        Metadata     t              -> return . unnamed . atom $ "###" <+> metadataHeader <+> convertVia @Text t
+        Documented   d a            -> unnamed . atom . (\a' -> "##" <> convertVia @P.String d </> a') <$> subgenBody a -- FIXME: Conversion via string is not efficient
+        Disabled     a              -> unnamed . atom . ("#" <>) <$> subgenBody a
+        Update       a ns v         -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+>              "=" <+> convert v') <$> subgen a <*> subgen v
+        Modify       a ns n v       -> named (spaced updateName) . atom .: (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns) <+> convert n <> "=" <+> convert v') <$> subgen a <*> subgen v
+        x                           -> error $ "Pretty printer: unexpected: " <> show x <> " (" <> show root <> ")"
 
         where subgen     = chainedPrettyShow subStyle subStyle <=< source
               subgenBody = fmap getBody . subgen

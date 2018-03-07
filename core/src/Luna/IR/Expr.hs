@@ -418,15 +418,17 @@ foreignLocationImpList location imports = mdo
 
 foreignImpList'
     :: (ExprCons m ForeignImportList)
-    => [Expr a]
+    => Name
+    -> [Expr a]
     -> m SomeExpr
 foreignImpList
     :: (ExprCons m ForeignImportList)
-    => [Expr a]
+    => Name
+    -> [Expr a]
    -> m (Expr ForeignImportList)
-foreignImpList' = generalize .: foreignImpList
-foreignImpList imports = mdo
-    newTerm   <- expr $ Term.uncheckedForeignImportList impLayout
+foreignImpList' = generalize .:. foreignImpList
+foreignImpList lang imports = mdo
+    newTerm   <- expr $ Term.uncheckedForeignImportList lang impLayout
     impLayout <- mapM (flip link newTerm . unsafeRelayout) imports
     return newTerm
 

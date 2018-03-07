@@ -117,7 +117,8 @@ makeLensedTerm ''TermImportHub
 -----------------------
 
 data TermForeignImportList a = ForeignImportList
-    { __imports :: ![a]
+    { __language :: !Name
+    , __imports  :: ![a]
     } deriving (Eq, Foldable, Functor, Generic, Show)
 makeLensedTerm ''TermForeignImportList
 

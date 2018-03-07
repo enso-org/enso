@@ -72,7 +72,7 @@ data instance UniTerm a = Number    !Literal.Number
                         | UnresolvedImportSrc       !ImportSource
                         | ForeignSymbolImport       !a !Name !a
                         | ForeignLocationImportList !a ![a]
-                        | ForeignImportList         ![a]
+                        | ForeignImportList         !Name ![a]
                         | World                     !(Map QualName a)
                         | Invalid                   !Text32
                         | List                      ![a]
@@ -130,7 +130,7 @@ instance IsUniTerm Term.TermUnresolvedImport          where uniTerm (Term.Unreso
 instance IsUniTerm Term.TermUnresolvedImportSrc       where uniTerm (Term.UnresolvedImportSrc       t1)             = UnresolvedImportSrc       t1
 instance IsUniTerm Term.TermForeignSymbolImport       where uniTerm (Term.ForeignSymbolImport       t1 t2 t3)       = ForeignSymbolImport       t1 t2 t3
 instance IsUniTerm Term.TermForeignLocationImportList where uniTerm (Term.ForeignLocationImportList t1 t2)          = ForeignLocationImportList t1 t2
-instance IsUniTerm Term.TermForeignImportList         where uniTerm (Term.ForeignImportList         t1)             = ForeignImportList         t1
+instance IsUniTerm Term.TermForeignImportList         where uniTerm (Term.ForeignImportList         t1 t2)          = ForeignImportList         t1 t2
 instance IsUniTerm Term.TermWorld                     where uniTerm (Term.World                     t1)             = World                     t1
 instance IsUniTerm Term.TermInvalid                   where uniTerm (Term.Invalid                   t1)             = Invalid                   t1
 instance IsUniTerm Term.TermList                      where uniTerm (Term.List                      t1)             = List                      t1
