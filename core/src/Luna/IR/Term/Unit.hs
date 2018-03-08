@@ -143,12 +143,6 @@ makeLensedTerm ''TermForeignSymbolImport
     {- } deriving (Eq, Foldable, Functor, Generic, Show) -}
 {- makeLensedTerm ''TermResolvedForeignImport -}
 
-{-
-foreign import C:
-    "foo.so":
-        "bar" bar :: C.Ptr -> C.Ptr
--}
-
 -----------------------
 -- === Interface === --
 -----------------------

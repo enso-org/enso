@@ -247,7 +247,11 @@ instance ( MonadIO m -- DEBUG ONLY
             Import.Relative ss      -> "." <> convertVia @P.String ss
 
         ForeignImportList lang imps ->
-            (return . unnamed . atom $ "foreign import" <> " " <> convertVia @P.String lang)
+            unnamed . atom . (\imports -> "foreign import"
+                <+> convert lang
+                <>  ":"
+                </> indented (block $ foldl (</>) mempty imports))
+            <$> mapM subgenBody imps
         ForeignLocationImportList location imports ->
             subgen location
         ForeignSymbolImport foreignName localName typeSig ->
