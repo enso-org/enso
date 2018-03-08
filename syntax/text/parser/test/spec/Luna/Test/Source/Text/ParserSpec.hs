@@ -387,7 +387,6 @@ spec = do
                                                                                     </> "    \"tensor.so\":"
                                                                                     </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64"
                                                                                     ) []
-            {- it "single line import"                      $ shouldParseItself' unit' "foreign import C \"Tensor.so\" \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
             {- it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:" -}
                                                                                     {- </> "    \"tensor.so\":" -}
                                                                                     {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
@@ -403,6 +402,8 @@ spec = do
                                                                                     {- </> "    \"tensor.so\":" -}
                                                                                     {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
                                                                                     {- </> "        \"freeTensor\" freeTensor :: C.Int64 -> C.Ptr" -}
+                                                                                    {- </> "    \"foo.dylib\":" -}
+                                                                                    {- </> "        \"init_foo\" initFoo :: C.UInt32 -> C.UInt32 -> C.Ptr" -}
                                                                                     {- ) [] -}
 
 -- foo . pos . x += 1

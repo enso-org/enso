@@ -135,6 +135,17 @@ data TermForeignSymbolImport a = ForeignSymbolImport
     } deriving (Eq, Foldable, Functor, Generic, Show)
 makeLensedTerm ''TermForeignSymbolImport
 
+data ForeignImportType
+    = Default -- Unsafe if not specified.
+    | Safe
+    | Unsafe
+    deriving (Eq, Generic, Show)
+
+data TermForeignImportSafety a = ForeignImportSafety
+    { __safety :: !ForeignImportType
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignImportSafety
+
 -- Useful for a resolution pass after parse time.
 {- data TermResolvedForeignImport a = ResolvedForeignImport -}
     {- { __importLocation :: !a -}

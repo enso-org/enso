@@ -11,7 +11,7 @@ import qualified OCI.IR.Layout         as Layout
 import Luna.IR.Term ()
 import qualified Luna.IR.Term.Core     as Term
 import qualified Luna.IR.Term.Function as Term
-import           Luna.IR.Term.Unit     (UnresolvedImport, UnresolvedImportSrc, UnresolvedImportTgt, ImportSource)
+import           Luna.IR.Term.Unit     (UnresolvedImport, UnresolvedImportSrc, UnresolvedImportTgt, ImportSource, ForeignImportType)
 import qualified Luna.IR.Term.Unit     as Term hiding (World)
 import qualified Luna.IR.Term.World    as Term
 import qualified Luna.IR.Term.Cls    as Term
@@ -73,6 +73,7 @@ data instance UniTerm a = Number    !Literal.Number
                         | ForeignSymbolImport       !a !Name !a
                         | ForeignLocationImportList !a ![a]
                         | ForeignImportList         !Name ![a]
+                        | ForeignImportSafety       !ForeignImportType
                         | World                     !(Map QualName a)
                         | Invalid                   !Text32
                         | List                      ![a]
@@ -131,6 +132,7 @@ instance IsUniTerm Term.TermUnresolvedImportSrc       where uniTerm (Term.Unreso
 instance IsUniTerm Term.TermForeignSymbolImport       where uniTerm (Term.ForeignSymbolImport       t1 t2 t3)       = ForeignSymbolImport       t1 t2 t3
 instance IsUniTerm Term.TermForeignLocationImportList where uniTerm (Term.ForeignLocationImportList t1 t2)          = ForeignLocationImportList t1 t2
 instance IsUniTerm Term.TermForeignImportList         where uniTerm (Term.ForeignImportList         t1 t2)          = ForeignImportList         t1 t2
+instance IsUniTerm Term.TermForeignImportSafety       where uniTerm (Term.ForeignImportSafety       t1)             = ForeignImportSafety       t1
 instance IsUniTerm Term.TermWorld                     where uniTerm (Term.World                     t1)             = World                     t1
 instance IsUniTerm Term.TermInvalid                   where uniTerm (Term.Invalid                   t1)             = Invalid                   t1
 instance IsUniTerm Term.TermList                      where uniTerm (Term.List                      t1)             = List                      t1

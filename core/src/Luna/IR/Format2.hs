@@ -73,6 +73,7 @@ type instance Access Format UnresolvedImportHub       = Draft
 type instance Access Format ForeignImportList         = Draft
 type instance Access Format ForeignLocationImportList = Draft
 type instance Access Format ForeignSymbolImport       = Draft
+type instance Access Format ForeignImportSafety       = Draft
 type instance Access Format ClsASG                    = Draft
 type instance Access Format RecASG                    = Draft
 type instance Access Format FieldASG                  = Draft

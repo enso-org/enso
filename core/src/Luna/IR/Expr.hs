@@ -30,6 +30,8 @@ import Luna.IR.Term.Unit as X
     , ForeignSymbolImport
     , ForeignLocationImportList
     , ForeignImportList
+    , ForeignImportSafety
+    , ForeignImportType
     , Unit)
 import qualified Luna.IR.Term.Unit as Import
 import OCI.IR.Term  as X
@@ -378,6 +380,19 @@ impHub imps = mdo
     t     <- expr $ Term.uncheckedImportHub limps
     limps <- mapM (flip link t . unsafeRelayout) imps
     return t
+
+foreignImpSafety'
+    :: (ExprCons m ForeignImportSafety)
+    => ForeignImportType
+    -> m SomeExpr
+foreignImpSafety
+    :: (ExprCons m ForeignImportSafety)
+    => ForeignImportType
+    -> m (Expr ForeignImportSafety)
+foreignImpSafety' = generalize .: foreignImpSafety
+foreignImpSafety impType = mdo
+    newTerm <- expr $ Term.uncheckedForeignImportSafety impType
+    return newTerm
 
 foreignSymbolImp'
     :: (ExprCons m ForeignSymbolImport)
