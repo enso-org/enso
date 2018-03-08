@@ -129,7 +129,8 @@ data TermForeignLocationImportList a = ForeignLocationImportList
 makeLensedTerm ''TermForeignLocationImportList
 
 data TermForeignSymbolImport a = ForeignSymbolImport
-    { __importName :: !a
+    { __safety     :: !a
+    , __importName :: !a
     , __localName  :: !Name
     , __type       :: !a
     } deriving (Eq, Foldable, Functor, Generic, Show)

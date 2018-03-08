@@ -944,16 +944,26 @@ foreignLocationImportList = buildAsg
 
 foreignSymbolImport :: AsgParser SomeExpr
 foreignSymbolImport = buildAsg
-    $ (\foreignName localName importType ->
-        liftAstApp2
-        ((flip IR.foreignSymbolImp') localName)
+    $ (\safety foreignName localName importType ->
+        liftAstApp3
+        (foreignSymbolProxy localName)
+        safety
         foreignName
         importType)
-   <$> stringOrVarName
+   <$> foreignImportSafety
+   <*> stringOrVarName
    <*> funcName
    <*  symbol Lexer.Typed
    <*> valExpr
+   where
+       foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
 
+-- TODO [Ara] Lookahead to try and parse without the annotation first, and then
+-- if that fails go back and try with the annotation.
+-- TODO [Ara] Need to use `withRecovery` here too.
+
+-- FIXME [Ara] Need to have the lexer deal with these as contextual keywords
+-- using a positive lookahead in the _Lexer_.
 foreignImportSafety :: AsgParser SomeExpr
 foreignImportSafety = buildAsg
     $ (\(importSafety :: ForeignImportType) ->

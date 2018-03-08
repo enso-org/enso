@@ -397,19 +397,22 @@ foreignImpSafety impType = mdo
 foreignSymbolImp'
     :: (ExprCons m ForeignSymbolImport)
     => Expr a
+    -> Expr a
     -> Name
     -> Expr a
     -> m SomeExpr
 foreignSymbolImp
     :: (ExprCons m ForeignSymbolImport)
     => Expr a
+    -> Expr a
     -> Name
     -> Expr a
     -> m (Expr ForeignSymbolImport)
-foreignSymbolImp' = generalize .:: foreignSymbolImp
-foreignSymbolImp foreignName localName importType = mdo
+foreignSymbolImp' = generalize .::. foreignSymbolImp
+foreignSymbolImp safety foreignName localName importType = mdo
     newTerm     <- expr $
-        Term.uncheckedForeignSymbolImport forNameExpr localName typeExpr
+        Term.uncheckedForeignSymbolImport safetyExpr forNameExpr localName typeExpr
+    safetyExpr  <- link (unsafeRelayout safety) newTerm
     forNameExpr <- link (unsafeRelayout foreignName) newTerm
     typeExpr    <- link (unsafeRelayout importType) newTerm
     return newTerm

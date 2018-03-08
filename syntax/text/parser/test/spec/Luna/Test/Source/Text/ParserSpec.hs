@@ -377,35 +377,43 @@ spec = do
             it "symbol checking dot spacing"             $ shouldParseAs'     foreignSymbolImport
                                                                               "\"alloc_tensor\" allocTensor :: C.Int64 -> C.Ptr"
                                                                               "\"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
-                                                                              []
+                                                                              [(0,14),(0,1),(0,7),(1,2),(0,10),(0,1),(1,5),(16,16),(0,46)]
             it "symbol with unspecified safety"          $ shouldParseItself' foreignSymbolImport "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" []
-            {- it "symbol with invalid safety keyword"      $ shouldFailOn       foreignSymbolImport "foo \"alloc_tensor\" allocTensor :: C.Int64 -> C.Ptr" -}
-            {- it "safe symbol"                             $ shouldParseItself' unit' "safe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
-            {- it "unsafe symbol"                           $ shouldParseItself' unit' "unsafe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
+            {- it "symbol with variable for symbol name"    $ shouldParseItself' foreignSymbolImport "myVar myFunc :: C . Ptr" [] -- Should definitely parse -}
+            it "safe symbol"                             $ shouldParseItself' foreignSymbolImport "safe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" []
+            it "unsafe symbol"                           $ shouldParseItself' foreignSymbolImport "unsafe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" []
 
         describe "C-FFI Syntax" $ do
-            it "partial"                                 $ shouldParseItself' unit' ("foreign import C:"
+            it "single object file, single import"       $ shouldParseItself' unit' ("foreign import C:"
                                                                                     </> "    \"tensor.so\":"
                                                                                     </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64"
                                                                                     ) []
-            {- it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:" -}
-                                                                                    {- </> "    \"tensor.so\":" -}
-                                                                                    {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
-                                                                                    {- </> "        \"freeTensor\" freeTensor :: C.Int64 -> C.Ptr" -}
-                                                                                    {- ) [] -}
-            {- it "multiple object files, single symbol"    $ shouldParseItself' unit' ("foreign import C:" -}
-                                                                                    {- </> "    \"tensor.so\":" -}
-                                                                                    {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
-                                                                                    {- </> "    \"foo.dylib\":" -}
-                                                                                    {- </> "        \"init_foo\" initFoo :: C.UInt32 -> C.UInt32 -> C.Ptr" -}
-                                                                                    {- )[] -}
-            {- it "multiple object files, multiple symbols" $ shouldParseItself' unit' ("foreign import C:" -}
-                                                                                    {- </> "    \"tensor.so\":" -}
-                                                                                    {- </> "        \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" -}
-                                                                                    {- </> "        \"freeTensor\" freeTensor :: C.Int64 -> C.Ptr" -}
-                                                                                    {- </> "    \"foo.dylib\":" -}
-                                                                                    {- </> "        \"init_foo\" initFoo :: C.UInt32 -> C.UInt32 -> C.Ptr" -}
-                                                                                    {- ) [] -}
+            it "variable for object file"                $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    tensorObjectName:"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64"
+                                                                                    ) []
+            it "import something other than C"           $ shouldParseItself' unit' ("foreign import Js:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64"
+                                                                                    ) []
+            it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "        \"free_tensor\" freeTensor :: C . Int64 -> C . Ptr"
+                                                                                    ) []
+            it "multiple object files, single symbol"    $ shouldParseItself' unit' ("foreign import C:" -- FIXME [Ara] Currently an extra trailing newline is added.
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "    \"foo.dylib\":"
+                                                                                    </> "        \"init_foo\" initFoo :: C . UInt32 -> C . UInt32 -> C . Ptr"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(10,50),(22,71),(0,11),(0,10),(0,1),(0,10),(1,2),(0,13),(0,1),(1,10),(0,24),(1,2),(0,27),(0,1),(1,7),(12,35),(10,57),(5,78),(0,176),(0,176)]
+            it "multiple object files, multiple symbols" $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "        \"free_tensor\" freeTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "    \"foo.dylib\":"
+                                                                                    </> "        \"init_foo\" initFoo :: C . UInt32 -> C . UInt32 -> C . Ptr"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(10,50),(0,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(15,20),(9,48),(22,128),(0,11),(0,10),(0,1),(0,10),(1,2),(0,13),(0,1),(1,10),(0,24),(1,2),(0,27),(0,1),(1,7),(12,35),(10,57),(5,78),(0,233),(0,233)]
 
 -- foo . pos . x += 1
 --           . y += 2

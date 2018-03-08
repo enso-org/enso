@@ -70,7 +70,7 @@ data instance UniTerm a = Number    !Literal.Number
                         | UnresolvedImportHub       ![a]
                         | UnresolvedImport          !a ! UnresolvedImportTgt
                         | UnresolvedImportSrc       !ImportSource
-                        | ForeignSymbolImport       !a !Name !a
+                        | ForeignSymbolImport       !a !a !Name !a
                         | ForeignLocationImportList !a ![a]
                         | ForeignImportList         !Name ![a]
                         | ForeignImportSafety       !ForeignImportType
@@ -129,7 +129,7 @@ instance IsUniTerm Term.TermImport                    where uniTerm (Term.Import
 instance IsUniTerm Term.TermUnresolvedImportHub       where uniTerm (Term.UnresolvedImportHub       t1)             = UnresolvedImportHub       t1
 instance IsUniTerm Term.TermUnresolvedImport          where uniTerm (Term.UnresolvedImport          t1 t2)          = UnresolvedImport          t1 t2
 instance IsUniTerm Term.TermUnresolvedImportSrc       where uniTerm (Term.UnresolvedImportSrc       t1)             = UnresolvedImportSrc       t1
-instance IsUniTerm Term.TermForeignSymbolImport       where uniTerm (Term.ForeignSymbolImport       t1 t2 t3)       = ForeignSymbolImport       t1 t2 t3
+instance IsUniTerm Term.TermForeignSymbolImport       where uniTerm (Term.ForeignSymbolImport       t1 t2 t3 t4)    = ForeignSymbolImport       t1 t2 t3 t4
 instance IsUniTerm Term.TermForeignLocationImportList where uniTerm (Term.ForeignLocationImportList t1 t2)          = ForeignLocationImportList t1 t2
 instance IsUniTerm Term.TermForeignImportList         where uniTerm (Term.ForeignImportList         t1 t2)          = ForeignImportList         t1 t2
 instance IsUniTerm Term.TermForeignImportSafety       where uniTerm (Term.ForeignImportSafety       t1)             = ForeignImportSafety       t1

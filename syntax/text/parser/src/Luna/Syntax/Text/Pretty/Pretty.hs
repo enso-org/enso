@@ -258,13 +258,19 @@ instance ( MonadIO m -- DEBUG ONLY
                 </> indented (block $ foldl (</>) mempty imps))
             <$> subgenBody location
             <*> mapM subgenBody imports
-        ForeignSymbolImport foreignName localName typeSig ->
-            unnamed . atom .: (\forName tSig -> forName
+        ForeignSymbolImport safety foreignName localName typeSig ->
+            unnamed . atom .:. (\safetyAn forName tSig -> safetyAn
+                <>  forName
                 <+> convert localName
                 <+> typedName
                 <+> tSig)
-            <$> subgenBody foreignName
+            <$> subgenBody safety
+            <*> subgenBody foreignName
             <*> subgenBody typeSig
+        ForeignImportSafety safety -> return . unnamed. atom $ case safety of
+            Import.Safe    -> "safe " -- Space is required.
+            Import.Unsafe  -> "unsafe "
+            Import.Default -> ""
 
         Unit      im _ b            -> do
                                        cls <- source b
