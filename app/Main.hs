@@ -3,9 +3,11 @@ module Main where
 
 import Prologue
 
+import System.Remote.Monitoring as EKG
+
 import Control.Concurrent       (threadDelay)
 import Luna.IR.Term.Basic       (passTest_run)
-import System.Remote.Monitoring as EKG
+
 
 sleep :: Int -> IO ()
 sleep = threadDelay . (* 1e6)
