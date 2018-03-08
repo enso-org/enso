@@ -246,16 +246,25 @@ instance ( MonadIO m -- DEBUG ONLY
             Import.Absolute ss      -> convertVia @P.String ss
             Import.Relative ss      -> "." <> convertVia @P.String ss
 
-        ForeignImportList lang imps ->
-            unnamed . atom . (\imports -> "foreign import"
-                <+> convert lang
-                <>  ":"
-                </> indented (block $ foldl (</>) mempty imports))
-            <$> mapM subgenBody imps
+        ForeignImportList language imports ->
+            unnamed . atom . (\imps -> "foreign import"
+                <+> convert language
+                <>  lamName
+                </> indented (block $ foldl (</>) mempty imps))
+            <$> mapM subgenBody imports
         ForeignLocationImportList location imports ->
-            subgen location
+            unnamed . atom .: (\loc imps -> loc
+                <>  lamName
+                </> indented (block $ foldl (</>) mempty imps))
+            <$> subgenBody location
+            <*> mapM subgenBody imports
         ForeignSymbolImport foreignName localName typeSig ->
-            subgen foreignName
+            unnamed . atom .: (\forName tSig -> forName
+                <+> convert localName
+                <+> typedName
+                <+> tSig)
+            <$> subgenBody foreignName
+            <*> subgenBody typeSig
 
         Unit      im _ b            -> do
                                        cls <- source b
