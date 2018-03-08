@@ -131,11 +131,14 @@ stdlibPath = do
 
 main :: IO ()
 main = do
-    mainPath  <- getCurrentDirectory
-    mainName  <- Project.getProjectName <$> Path.parseAbsDir mainPath
+    mainPath' <- getCurrentDirectory
+    mainPath  <- Path.parseAbsDir mainPath'
+    let mainName = Project.getProjectName mainPath
     stdPath   <- stdlibPath
     (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
-    Right (_, imp) <- Project.requestModules (Map.fromList [("Std", stdPath), (mainName, mainPath)]) [[mainName, "Main"]] std
+    dependencies <- Project.listDependencies mainPath
+    let libs = Map.fromList $ [("Std", stdPath), (mainName, mainPath')] ++ dependencies
+    Right (_, imp) <- Project.requestModules libs [[mainName, "Main"]] std
     let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
     case mainFun of
         Just (Left e)  -> do

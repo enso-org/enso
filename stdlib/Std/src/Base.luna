@@ -1007,6 +1007,9 @@ class JSON:
         JSONNull: "null"
         JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
 
+    ## Dumps a `JSON` structure into a `Binary` object, by rendering it into `Text` and converting it to `Binary`.
+    def toBinary: self.toText.toBinary
+
     ## Dumps a `JSON` structure into a `Text` object.
     def render: self.toText
 
