@@ -27,7 +27,7 @@ native class Int:
     ## Alias for `toText`, for the purpose of pretty printing the number.
     def shortRep: self.toText
     ## JSON representation of an integer.
-    def toJSON: JSONNumber self.toReal
+    def toJSON: JSONNumber (Scientific self 0)
 
     ## Returns a TimeInterval with the length of `self` miliseconds.
     def miliseconds: primIntMiliseconds self
@@ -122,7 +122,7 @@ native class Real:
     ## Displays a number as text.
     def shortRep: self.toText
     ## Converts a number to `JSON`.
-    def toJSON: JSONNumber self
+    def toJSON: JSONNumber (primRealToScientific self)
 
 ## The mathematical constant π = 3.14159265359.
 def pi: 3.14159265359
@@ -974,11 +974,24 @@ class Map k v:
                     l' = l . delete key
                     Map._bin k v l' r . _balanceR
 
+class Scientific:
+    coefficient :: Int
+    exponent :: Int
+
+    def toText: case self.exponent >= 0 of
+        True:
+            coeff = self.coefficient.toText
+            1 . upto self.exponent . each (_: "0") . prepend coeff . makeText ""
+        False:
+            self . toReal . toText
+
+    def toReal:
+        self.coefficient.toReal * (10.0 ^ self.exponent.toReal)
 
 ## Class representing JSON objects.
 class JSON:
     JSON
-    JSONNumber Real
+    JSONNumber Scientific
     JSONString Text
     JSONBool   Bool
     JSONArray  (List JSON)
@@ -998,7 +1011,7 @@ class JSON:
 
     ## Dumps a `JSON` structure into a `Text` object.
     def toText: case self of
-        JSONNumber d: d.shortRep
+        JSONNumber d: d.toText
         JSONString s: s.escapeJSON
         JSONArray  l: "[" + (l . map (x : x.toText) . intersperse "," . fold "" (+)) + "]"
         JSONBool   b: case b of
@@ -1010,6 +1023,7 @@ class JSON:
     ## Dumps a `JSON` structure into a `Text` object.
     def render: self.toText
 
+    def toBinary: self.toText.toBinary
     ## Short text representation for a `JSON` object.
     def shortRep: self.render
 
@@ -1050,12 +1064,12 @@ class JSON:
 
     ## Returns a `Real` assuming the `JSON` represents a number. Throws an error otherwise.
     def asReal: case self of
-        JSONNumber a: a
+        JSONNumber a: a.toReal
         other: throw "JSON.asReal: not a number."
 
     ## Returns a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
     def asBool: case self of
-        JSONNumber a: a
+        JSONBool a: a
         other: throw "JSON.asBool: not a boolean."
 
     ## Returns a list of `JSON` object assuming the `JSON` represents an array. Throws an error otherwise.
@@ -1075,12 +1089,12 @@ class JSON:
 
     ## Returns `Just` a `Real` assuming the `JSON` represents a number. Throws an error otherwise.
     def safeAsReal: case self of
-        JSONNumber a: Just a
+        JSONNumber a: Just a.toReal
         other: Nothing
 
     ## Returns `Just` a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
     def safeAsBool: case self of
-        JSONNumber a: Just a
+        JSONBool a: Just a
         other: Nothing
 
     ## Returns `Just` a list of `JSON` object assuming the `JSON` represents an array. Throws an error otherwise.
