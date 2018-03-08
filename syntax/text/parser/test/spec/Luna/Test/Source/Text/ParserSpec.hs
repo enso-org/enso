@@ -375,10 +375,11 @@ spec = do
 
         describe "foreign symbol declaration" $ do
             it "symbol checking dot spacing"             $ shouldParseAs'     foreignSymbolImport
-                                                                              "\"allocTensor\" allocTensor :: C.Int64 -> C.Ptr"
-                                                                              "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                              "\"alloc_tensor\" allocTensor :: C.Int64 -> C.Ptr"
+                                                                              "\"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
                                                                               []
             it "symbol with unspecified safety"          $ shouldParseItself' foreignSymbolImport "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" []
+            {- it "symbol with invalid safety keyword"      $ shouldFailOn       foreignSymbolImport "foo \"alloc_tensor\" allocTensor :: C.Int64 -> C.Ptr" -}
             {- it "safe symbol"                             $ shouldParseItself' unit' "safe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
             {- it "unsafe symbol"                           $ shouldParseItself' unit' "unsafe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
 

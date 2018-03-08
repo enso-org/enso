@@ -954,6 +954,20 @@ foreignSymbolImport = buildAsg
    <*  symbol Lexer.Typed
    <*> valExpr
 
+foreignImportSafety :: AsgParser SomeExpr
+foreignImportSafety = buildAsg
+    $ (\(importSafety :: ForeignImportType) ->
+        liftIRBApp0 (IR.foreignImpSafety' importSafety))
+   <$> getImpSafety (optionMaybe varName)
+    where
+        getImpSafety :: SymParser (Maybe Name) -> SymParser ForeignImportType
+        getImpSafety p = p >>= \case
+            Nothing               -> return Import.Default
+            Just (Name.Name text) -> case text of
+                "safe"   -> return Import.Safe
+                "unsafe" -> return Import.Unsafe
+                _        -> fail "Invalid safety specification."
+
 stringOrVarName :: AsgParser SomeExpr
 stringOrVarName = str <|> (asgNameParser varName)
 
