@@ -373,15 +373,19 @@ spec = do
         describe "metadata" $ do
             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]
 
-        {- describe "foreign symbol declaration" $ do -}
-            {- it "unspecified safety symbol"               $ shouldParseItself' unit' "\"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
+        describe "foreign symbol declaration" $ do
+            it "symbol checking dot spacing"             $ shouldParseAs'     foreignSymbolImport
+                                                                              "\"allocTensor\" allocTensor :: C.Int64 -> C.Ptr"
+                                                                              "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                              []
+            it "symbol with unspecified safety"          $ shouldParseItself' foreignSymbolImport "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" []
             {- it "safe symbol"                             $ shouldParseItself' unit' "safe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
             {- it "unsafe symbol"                           $ shouldParseItself' unit' "unsafe \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
 
         describe "C-FFI Syntax" $ do
             it "partial"                                 $ shouldParseItself' unit' ("foreign import C:"
                                                                                     </> "    \"tensor.so\":"
-                                                                                    </> "        \"alloc_tensor\" allocTensor :: C.Int64 -> C.Int64"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64"
                                                                                     ) []
             {- it "single line import"                      $ shouldParseItself' unit' "foreign import C \"Tensor.so\" \"allocTensor\" allocTensor :: C.Int64 -> C.Ptr" [] -}
             {- it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:" -}
