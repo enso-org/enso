@@ -159,6 +159,10 @@ genPeekCaseMatch single ptr idx con = do
         pat              = LitP $ IntegerL idx
     return $ Match pat body (NonEmpty.toList whereCs)
 
+genPeekCatchAllMatch :: TH.Match
+genPeekCatchAllMatch = TH.Match TH.WildP (TH.NormalB body) mempty
+    where body = app (var 'error) (TH.LitE $ TH.StringL "[peek] Unrecognized constructor")
+
 genPeekSingleCons :: Name -> TH.Con -> Q TH.Clause
 genPeekSingleCons ptr con = do
     TH.Match _ body whereCs <- genPeekCaseMatch True ptr 0 con
@@ -172,7 +176,7 @@ genPeekMultiCons ptr tag cs = do
     let peekTag      = app (app (var 'Storable.peekByteOff) (var ptr)) (intLit 0)
         peekTagTyped = peekTag -:: (app (cons' ''IO) (cons' ''Int))
         bind         = BindS (var tag) peekTagTyped
-        cases        = CaseE (var tag) peekCases
+        cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
         doE          = DoE [bind, NoBindS cases]
     return $ clause [var ptr] doE mempty
 
