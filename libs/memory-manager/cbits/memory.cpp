@@ -20,13 +20,13 @@
 #include <wrl/wrappers/corewrappers.h>
 #endif
 
-// Define when using C++ benchmark - so root API calls don't get inlined 
+// Define when using C++ benchmark - so root API calls don't get inlined
 // (similarly like Haskell FFI prevents inlining)
 #ifdef PREVENT_INLINE
 #ifdef _MSC_VER
 #define NOINLINE  __declspec(noinline)
 #else
-#define NOINLINE  __attribute__ ((noinline)) 
+#define NOINLINE  __attribute__ ((noinline))
 #endif
 #else
 #define NOINLINE
@@ -82,7 +82,7 @@ namespace locking_policy
 			{
 				rhs.s = nullptr;
 			}
-			~Guardian() 
+			~Guardian()
 			{
 				if(s)
 					s->state.store(Unlocked, std::memory_order_release);
@@ -132,7 +132,7 @@ class MemoryManager
 	};
 
 	const size_t itemSize;
-	const size_t itemsPerBlock = 1'024;
+	const size_t itemsPerBlock;
 	const size_t blockSize = itemSize * itemsPerBlock;
 
 	//boost::container::small_vector<Block, 200> blocks;
@@ -168,7 +168,7 @@ class MemoryManager
 	{
 		return block.memory <= item && static_cast<char*>(block.memory) + blockSize > item;
 	}
-	
+
 	void *obtainUnitializedItem(Block &block)
 	{
 		const auto ret = static_cast<char*>(block.memory) + (itemsPerBlock - block.unitializedItems) * itemSize;
@@ -177,8 +177,9 @@ class MemoryManager
 	}
 
 public:
-	MemoryManager(size_t itemSize)
+	MemoryManager(size_t itemSize, size_t itemsPerBlock)
 		: itemSize(itemSize)
+		, itemsPerBlock(itemsPerBlock)
 	{
 		if(itemSize < sizeof(void*))
 			throw std::runtime_error("item size must be at least of size of a pointer");
@@ -186,7 +187,7 @@ public:
 		addBlock();
 	}
 
-	void *newItem() 
+	void *newItem()
 	{
 		const auto lockGuard = mx.lock();
 		if(head != nullptr)
@@ -280,9 +281,9 @@ template<typename Manager>
 struct Test
 {
 private:
-	NOINLINE static void *newManager(size_t itemSize)
+	NOINLINE static void *newManager(size_t itemSize, size_t itemsPerBlock)
 	{
-		return new Manager(itemSize);
+		return new Manager(itemSize, itemsPerBlock);
 	}
 	NOINLINE static void deleteManager(void *manager)
 	{
@@ -304,7 +305,7 @@ private:
 	}
 
 public:
-	void test(std::string text, int N, size_t size)
+	void test(std::string text, int N, size_t size, size_t itemsPerBlock)
 	{
 		const auto actions = generateRandomizedActions(N, 0.7);
 
@@ -313,7 +314,7 @@ public:
 		{
 			measure(text + " alloc+free sequence", [&]
 			{
-				const auto mgr = newManager(size);
+				const auto mgr = newManager(size, itemsPerBlock);
 				for(int i = 0; i < N; i++)
 				{
 					const auto item = newItem(mgr);
@@ -326,7 +327,7 @@ public:
 			items.resize(N);
 			measure(text + " all allocs; all frees", [&]() mutable
 			{
-				const auto mgr = newManager(size);
+				const auto mgr = newManager(size, itemsPerBlock);
 				for(auto &ptr : items)
 					ptr = newItem(mgr);
 				for(auto &ptr : items)
@@ -337,7 +338,7 @@ public:
 			items.clear();
 			measure(text + " random", [&]() mutable
 			{
-				const auto mgr = newManager(size);
+				const auto mgr = newManager(size, itemsPerBlock);
 				execute(mgr, items, actions);
 				deleteManager(mgr);
 			});
@@ -349,7 +350,7 @@ public:
 		auto threadActions = generateRandomizedActions(N, 0.7);
 		for(int i = 0; i < 10; i++)
 		{
-			const auto mgr = newManager(size);
+			const auto mgr = newManager(size, 1024);
 			std::atomic_int readyThreads{ 0 };
 			std::vector<std::thread> threads;
 			for(int j = 0; j < 4; j++)
@@ -377,14 +378,30 @@ public:
 	}
 };
 
-// using MemoryManager = MemoryManagerC;
-using MemoryManagerToUse = MemoryManager<locking_policy::Spinlock>;
+// Note: rough performance results (for alloc N elements, then free N elements benchmark)
+//       of different locking policies across platforms:
+//
+//               | std::mutex | spinlock
+//---------------+------------+-----------
+// Windows VS    | 443 ms     | 107 ms
+// Windows MinGW | 248 ms     | 144 ms
+// Linux GCC     | 12 ms      | 220 ms
+//---------------+------------+-----------
+// Therefore, Windows uses spinlock, non-Windows uses std::mutex
+#ifdef _WIN32
+using LockingPolicyToUse = locking_policy::Spinlock;
+#else
+using LockingPolicyToUse = locking_policy::StdMutex;
+#endif
+
+using MemoryManagerToUse = MemoryManager<LockingPolicyToUse>;
+
 
 extern "C"
 {
-	void *newManager(size_t itemSize)
+	void *newManager(size_t itemSize, size_t itemsPerBlock)
 	{
-		return new MemoryManagerToUse(itemSize);
+		return new MemoryManagerToUse(itemSize, itemsPerBlock);
 	}
 	void deleteManager(void *manager)
 	{
@@ -400,10 +417,10 @@ extern "C"
 	}
 
 	// BELOW APIs are for tests / benchmarks only //////////////////
-	void benchmark(size_t N, size_t itemSize)
+	void benchmark(size_t N, size_t itemSize, size_t itemsPerBlock)
 	{
 		Test<MemoryManagerToUse> test;
-		test.test("c++ memory manager", N, itemSize);
+		test.test("c++ memory manager", N, itemSize, itemsPerBlock);
 	}
 	void randomizedBenchmark(size_t N, size_t itemSize, double probability)
 	{
@@ -411,7 +428,7 @@ extern "C"
 		std::vector<void*> items;
 		items.reserve(N);
 
-		MemoryManagerToUse mgr{itemSize};
+		MemoryManagerToUse mgr{itemSize, 1024};
 		//measure("inner", ::execute<MemoryManagerToUse>, mgr, items, actions);
 		::execute(mgr, items, actions);
 

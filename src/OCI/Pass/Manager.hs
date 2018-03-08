@@ -6,13 +6,14 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import qualified Data.Set                    as Set
 import qualified Foreign.Storable.Utils      as Storable
-import qualified OCI.IR.Layer.Internal        as Layer
+import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.Pass.Class              as Pass
 import qualified Foreign.Memory.Pool         as MemPool
 
 import Control.Lens                (at)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (MonadState, StateT)
+import Data.Default                (def)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
 import Foreign.Memory.Pool         (MemPool)
@@ -60,7 +61,7 @@ mkCompConfig compCfg = compInfo where
     compSize     = sum layerSizes
     compInfo     = Pass.ComponentConfig compSize
                    (fromList $ zip layerReps layerCfgs)
-               <$> MemPool.new compSize
+               <$> MemPool.new def (MemPool.ItemSize compSize)
 {-# INLINE mkCompConfig #-}
 
 

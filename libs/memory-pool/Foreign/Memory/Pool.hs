@@ -5,6 +5,7 @@ import Prologue
 
 import qualified Foreign
 
+import Data.Default
 import Foreign (Ptr, Storable, peek, poke)
 import Foreign.Ptr.Utils (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
@@ -15,7 +16,12 @@ import qualified Foreign.Memory.Manager as Mgr
 
 
 type MemPool = Mgr.MemoryManager
+newtype BlockSize = BlockSize { _blockSize :: Int }
+newtype ItemSize  = ItemSize  { _itemSize  :: Int }
+makeLenses ''BlockSize
+makeLenses ''ItemSize
 
+instance Default BlockSize where def = BlockSize 2048
 
 allocPtr :: forall a m. (MonadIO m, Storable a) => m (Ptr a)
 allocPtr = liftIO Foreign.malloc ; {-# INLINE allocPtr #-}
@@ -26,12 +32,26 @@ allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 unsafeNull :: MemPool
 unsafeNull = Mgr.unsafeNull ; {-# INLINE unsafeNull #-}
 
-new :: MonadIO m => Int -> m MemPool
-new = Mgr.newManager ; {-# INLINE new #-}
+-- | Create a new memory manager.
+new :: MonadIO m => BlockSize -- ^ the number of items to pre-allocate
+                 -> ItemSize  -- ^ the size of one item
+                 -> m MemPool -- ^ a new manager instance
+new (BlockSize bs) (ItemSize is) = Mgr.newManager bs is ; {-# INLINE new #-}
 
+-- | Allocate an element using the provided manager instance.
+--   Note that even though the function is polymorphic in its
+--   return type, the size of the allocated piece of memory will
+--   be based on the manager used as the argument.
 alloc :: MonadIO m => MemPool -> m (Ptr a)
 alloc = Mgr.newItem ; {-# INLINE alloc #-}
 
+-- | Free the memory obtained by using `alloc`.
+free :: MonadIO m => MemPool -> Ptr a -> m ()
+free = Mgr.deleteItem ; {-# INLINE free #-}
+
+-- | Delete the manager, freeing all of the memory it allocated.
+delete :: MonadIO m => MemPool -> m ()
+delete = Mgr.deleteManager ; {-# INLINE delete #-}
 
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)
