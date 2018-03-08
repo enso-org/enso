@@ -388,11 +388,11 @@ public:
 // Linux GCC     | 12 ms      | 220 ms
 //---------------+------------+-----------
 // Therefore, Windows uses spinlock, non-Windows uses std::mutex
-#ifdef _WIN32
+// #ifdef _WIN32
 using LockingPolicyToUse = locking_policy::Spinlock;
-#else
-using LockingPolicyToUse = locking_policy::StdMutex;
-#endif
+// #else
+// using LockingPolicyToUse = locking_policy::StdMutex;
+// #endif
 
 using MemoryManagerToUse = MemoryManager<LockingPolicyToUse>;
 
