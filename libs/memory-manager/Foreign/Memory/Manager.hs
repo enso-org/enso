@@ -1,9 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE MagicHash #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE UnliftedFFITypes #-}
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MagicHash                #-}
+{-# LANGUAGE BangPatterns             #-}
+{-# LANGUAGE UnliftedFFITypes         #-}
+{-# LANGUAGE DeriveGeneric            #-}
+{-# LANGUAGE DeriveAnyClass           #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE ViewPatterns             #-}
 
 module Foreign.Memory.Manager where
 
@@ -30,7 +32,7 @@ type Item = Ptr ()
 -- === Foreign imports from C++ === --
 --------------------------------------
 
-foreign import ccall unsafe "newManager"    c_newManager    :: CSize -> IO MemoryManager
+foreign import ccall unsafe "newManager"    c_newManager    :: CSize -> CSize -> IO MemoryManager
 foreign import ccall unsafe "deleteManager" c_deleteManager :: MemoryManager -> IO ()
 foreign import ccall unsafe "newItem"       c_newItem       :: MemoryManager -> IO Item
 foreign import ccall unsafe "deleteItem"    c_deleteItem    :: MemoryManager -> Item -> IO ()
@@ -41,8 +43,8 @@ foreign import ccall unsafe "deleteItem"    c_deleteItem    :: MemoryManager -> 
 -- === Wrappers for foreign calls === --
 ----------------------------------------
 
-newManager :: MonadIO m => Int -> m MemoryManager
-newManager = liftIO . c_newManager . convert
+newManager :: MonadIO m => Int -> Int -> m MemoryManager
+newManager (convert -> blockSize) (convert -> itemSize) = liftIO $ c_newManager itemSize blockSize
 {-# INLINE newManager #-}
 
 deleteManager :: MonadIO m => MemoryManager -> m ()

@@ -15,6 +15,7 @@ import qualified Foreign.Storable1.Ptr       as Ptr1
 import Control.Lens                (at)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (MonadState, StateT)
+import Data.Default                (def)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
 import Foreign.Memory.Pool         (MemPool)
@@ -63,7 +64,7 @@ mkCompConfig compCfg = compInfo where
     compSize     = sum layerSizes
     compInfo     = Pass.ComponentConfig compSize
                    (fromList $ zip layerReps layerCfgs)
-               <$> MemPool.new compSize
+               <$> MemPool.new def (MemPool.ItemSize compSize)
 {-# INLINE mkCompConfig #-}
 
 -- bakeDefLayers :: [LayerInfo] -> Maybe SomePtr
