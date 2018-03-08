@@ -66,6 +66,15 @@ dependencies:
     - transformers
     - lens
 
+executables:
+  luna-core:
+    main:         Main.hs
+    source-dirs:  app
+    ghc-options:  -with-rtsopts=-T
+    dependencies:
+      - luna-core
+      - ekg
+
 benchmarks:
   array-benchmark:
     main:        Main.hs
