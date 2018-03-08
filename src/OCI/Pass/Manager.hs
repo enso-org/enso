@@ -6,9 +6,11 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import qualified Data.Set                    as Set
 import qualified Foreign.Storable.Utils      as Storable
-import qualified OCI.IR.Layer.Internal        as Layer
+import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.Pass.Class              as Pass
+import qualified Foreign.Marshal.Utils       as Ptr
 import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Storable1.Ptr       as Ptr1
 
 import Control.Lens                (at)
 import Control.Monad.Exception     (Throws, throw)
@@ -16,7 +18,7 @@ import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
 import Foreign.Memory.Pool         (MemPool)
-
+import Foreign.Ptr.Utils           (SomePtr)
 
 ---------------------------
 -- === Configuration === --
@@ -32,8 +34,9 @@ newtype ComponentInfo = ComponentInfo
     { _layers :: Map SomeTypeRep LayerInfo
     } deriving (Default, Mempty, Semigroup, Show)
 
-newtype LayerInfo = LayerInfo
-    { _byteSize :: Int
+data LayerInfo = LayerInfo
+    { _byteSize :: !Int
+    , _defPtr   :: !(Maybe SomePtr)
     } deriving (Show)
 
 makeLenses ''Registry
@@ -62,6 +65,18 @@ mkCompConfig compCfg = compInfo where
                    (fromList $ zip layerReps layerCfgs)
                <$> MemPool.new compSize
 {-# INLINE mkCompConfig #-}
+
+-- bakeDefLayers :: [LayerInfo] -> Maybe SomePtr
+-- bakeDefLayers = \case
+--     [] -> Nothing
+--     ls -> do
+--         let size    = sum $ view byteSize <$> ls
+--             defPtrs = view defPtr <$> ls
+--
+--         if isJust (catMaybes defPtrs)
+--             then return Nothing
+--             else return Nothign
+
 
 
 -- data Config = Config
@@ -107,7 +122,7 @@ instance Exception Error
 --     } deriving (Show)
 -- makeLenses ''State
 
-type MonadPassManager m = (MonadState Registry m, Throws Error m)
+type MonadPassManager m = (MonadState Registry m, Throws Error m, MonadIO m)
 
 newtype PassManagerT m a = PassManagerT (StateT Registry m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
@@ -131,21 +146,24 @@ registerComponentRep comp = State.modifyM_ @Registry $ \m -> do
     return $ m & components %~ Map.insert comp def
 {-# INLINE registerComponentRep #-}
 
-registerPrimLayerRep :: MonadPassManager m => Int -> SomeTypeRep -> SomeTypeRep -> m ()
-registerPrimLayerRep s comp layer = State.modifyM_ @Registry $ \m -> do
+registerPrimLayerRep :: MonadPassManager m => Int -> Maybe SomePtr -> SomeTypeRep -> SomeTypeRep -> m ()
+registerPrimLayerRep s layerDef comp layer = State.modifyM_ @Registry $ \m -> do
     components' <- flip (at comp) (m ^. components) $ \case
         Nothing       -> throw $ MissingComponent comp
         Just compInfo -> do
             when_ (Map.member layer $ compInfo ^. layers) $
                 throw $ DuplicateLayer comp layer
-            return $ Just $ compInfo & layers %~ Map.insert layer (LayerInfo s)
+            return $ Just $ compInfo & layers %~ Map.insert layer (LayerInfo s layerDef)
     return $ m & components .~ components'
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadPassManager m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer.StorableData comp layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer.StorableData comp layer, Layer.Layer comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
-registerPrimLayer = registerPrimLayerRep (Layer.byteSize @comp @layer) (someTypeRep @comp) (someTypeRep @layer) ; {-# INLINE registerPrimLayer #-}
+registerPrimLayer = do
+    layerDef <- sequence $ Ptr1.new <$> Layer.init @comp @layer
+    registerPrimLayerRep (Layer.byteSize @comp @layer) (coerce layerDef) (someTypeRep @comp) (someTypeRep @layer)
+{-# INLINE registerPrimLayer #-}
 
 
 -- === Instances === --

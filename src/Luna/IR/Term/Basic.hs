@@ -89,9 +89,9 @@ newtype ConsVar a = Var
     } deriving (Show, Eq)
 type instance TermConsDef Var = ConsVar
 type instance Layer.ConsLayout ConsVar = Var
-deriveStorable ''ConsVar
+deriveStorable  ''ConsVar
 deriveStorable1 ''ConsVar
-deriveLinks ''ConsVar
+deriveLinks     ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
@@ -100,17 +100,17 @@ data ConsAcc a = Acc
     } deriving (Show, Eq)
 type instance TermConsDef Acc = ConsAcc
 type instance Layer.ConsLayout ConsAcc = Acc
-deriveStorable ''ConsAcc
+deriveStorable  ''ConsAcc
 deriveStorable1 ''ConsAcc
-deriveLinks ''ConsAcc
+deriveLinks     ''ConsAcc
 
 data UniTerm a
     = UniTermVar !(ConsVar a)
     | UniTermAcc !(ConsAcc a)
     deriving (Show, Eq)
-deriveStorable ''UniTerm
+deriveStorable  ''UniTerm
 deriveStorable1 ''UniTerm
-deriveLinks ''UniTerm
+deriveLinks     ''UniTerm
 
 class IsTermCons t where
     toUniTerm :: ∀ a. t a -> UniTerm a
@@ -118,133 +118,10 @@ class IsTermCons t where
 instance IsTermCons ConsVar where toUniTerm = UniTermVar ; {-# INLINE toUniTerm #-}
 instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm #-}
 
--- instance Storable1.Storable1 ConsVar where
---     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
---     alignment = Storable.alignment ; {-# INLINE alignment #-}
---     peek      = Storable.peek      ; {-# INLINE peek      #-}
---     poke      = Storable.poke      ; {-# INLINE poke      #-}
---
--- instance Storable1.Storable1 ConsAcc where
---     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
---     alignment = Storable.alignment ; {-# INLINE alignment #-}
---     peek      = Storable.peek      ; {-# INLINE peek      #-}
---     poke      = Storable.poke      ; {-# INLINE poke      #-}
---
--- instance Storable1.Storable1 UniTerm where
---     sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
---     alignment = Storable.alignment ; {-# INLINE alignment #-}
---     peek      = Storable.peek      ; {-# INLINE peek      #-}
---     poke      = Storable.poke      ; {-# INLINE poke      #-}
 
 
 
--- xchunkSize = sizeOf' @Int
---
--- instance Storable (ConsVar a) where
---     sizeOf    _ = xchunkSize ; {-# INLINE sizeOf    #-}
---     alignment _ = xchunkSize     ; {-# INLINE alignment #-}
---     peek ptr = Var <$> peek (intPtr ptr) ; {-# INLINE peek #-}
---     poke ptr (Var !a) = poke (intPtr ptr) a ; {-# INLINE poke #-}
---
--- instance Storable (ConsAcc a) where
---     sizeOf    _ = 2 * xchunkSize ; {-# INLINE sizeOf    #-}
---     alignment _ = xchunkSize     ; {-# INLINE alignment #-}
---     peek ptr = Acc <$> peek (castPtr ptr) <*> peekByteOff ptr xchunkSize ; {-# INLINE peek #-}
---     poke ptr (Acc !a !b) = poke (castPtr ptr) a >> pokeByteOff ptr xchunkSize b ; {-# INLINE poke #-}
---
--- instance Storable (UniTerm a) where
---     sizeOf    _ = 3 * xchunkSize ; {-# INLINE sizeOf    #-}
---     alignment _ = xchunkSize     ; {-# INLINE alignment #-}
---     peek ptr = peek (intPtr ptr) >>= \case
---         0 -> UniTermVar <$> peekByteOff ptr xchunkSize
---         1 -> UniTermAcc <$> peekByteOff ptr xchunkSize
---         _ -> error "Unrecognized constructor"
---     {-# INLINE peek #-}
---     poke ptr = \case
---         UniTermVar !a -> poke (intPtr ptr) 0 >> pokeByteOff ptr xchunkSize a
---         UniTermAcc !a -> poke (intPtr ptr) 1 >> pokeByteOff ptr xchunkSize a
---     {-# INLINE poke #-}
 
-
-            -- peek        :: ∀ a.   Ptr (t a)               -> IO (t a)
-            -- poke        :: ∀ a.   Ptr (t a)        -> t a -> IO ()
---
--- x :: Term '[ Model := Draft -< '[Model := Value]
---            , Type  := Value
---            ]
---
--- match x of
---     Acc l r -> ... (l :: Link )
-
--- defineTermConses [|
--- data Var a = Var { name :: Int                     }
--- data Acc a = Acc { base :: Link a , name :: Link a }
--- |]
-
-
--- Model, Argument, Model, Name ...
---
--- Type, Model,
-
-
--- type instance TermConsOf (Tag t a) = TermConsDef (Tag t a) (Tag t a)
-
-
-
-newtype LayerLoc a = LayerLoc {_byteOffset :: Int } deriving (Show)
-makeLenses ''LayerLoc
-
-
-
--- readLayer  :: forall layer t layout m. (KnownLayer t layer, Layer t layer layout, MonadIO m) => Component t layout -> m (Layer.View t layer layout)
--- writeLayer :: forall layer t layout m. (KnownLayer t layer, Layer t layer layout, MonadIO m) => Component t layout ->   (Layer.View t layer layout) -> m ()
--- readLayer  = Layer.unsafeReadByteOff  @layer (layerOffset @t @layer) ; {-# INLINE readLayer  #-}
--- writeLayer = Layer.unsafeWriteByteOff @layer (layerOffset @t @layer) ; {-# INLINE writeLayer #-}
-
--- Component comp layout -> m (LayerData comp layer layout)
-
--- -------------------------------------
--- -- === Global Layer Management === --
--- -------------------------------------
---
--- -- === Layer registry === --
---
--- type family AllLayers component :: [Type]
---
---
--- -- === LayerOffset === --
---
--- type LayerOffset component layer = LayerOffset' 0 component layer (AllLayers component)
--- type family LayerOffset' off component layer ls where
---     LayerOffset' s _ l (l ': _)  = s
---     LayerOffset' s t l (p ': ps) = LayerOffset' (s + LayerSize t p) t l ps
---
--- type KnownLayer component layer = KnownType (LayerOffset component layer)
--- layerOffset :: forall component layer. (KnownLayer component layer) => Int
--- layerOffset = fromInteger $ fromType @(LayerOffset component layer) ; {-# INLINE layerOffset #-}
---
---
--- -- === TotalLayersSize === --
---
--- type TotalLayersSize component = TotalLayersSize' component 0 (AllLayers component)
--- type family TotalLayersSize' t s ls where
---     TotalLayersSize' _ s '[] = s
---     TotalLayersSize' t s (l ': ls) = TotalLayersSize' t (s + LayerSize t l) ls
---
--- type KnownLayers component = KnownType (TotalLayersSize component)
--- totalLayersSize :: forall component. KnownLayers component => Int
--- totalLayersSize = fromInteger $ fromType @(TotalLayersSize component) ; {-# INLINE totalLayersSize #-}
---
---
-
-
-
--- type instance LayerSize Terms Model = 3 * SizeOf Int
-
--- instance Layer Terms Model where
-
--- type instance Layer.View Terms Model (Format   f) = UniTerm
--- type instance Layer.View Terms Model (TermCons f) = TermConsDef (TermCons f)
 
 type instance Layer.Data   Terms XType = Link
 -- type instance Layer.Layout Terms XType layout = layout *-* Layout.Get XType layout
@@ -266,49 +143,8 @@ type instance Layer.Layout Links Source layout = Layout.Get Source layout
 type instance Layer.Layout Links Target layout = Layout.Get Target layout
 type instance Layer.Data   Links Source        = Term
 type instance Layer.Data   Links Target        = Term
--- type instance Layer.View Links Source a = Term
--- type instance Layer.View Links Target a = Term
-
--- instance StorableLayer.View Links Source a
--- instance StorableLayer.View Links Target a
 
 
-
-
-
-
--- type instance AllLayers Terms = '[Model]
--- type instance AllLayers Links = '[Model]
-
-
-
-
--- type instance Layer.View Model (Tag t a) = TermCons (Tag t a)
-
--- class LayerStorable layer (layout :: Layout) where
---     type family Layer.View layer layout :: *
---     layerByteSize   :: Int
---     layerByteOffset :: Int
---
--- instance LayerStorable Model
-
-
-
-chunkSize :: Int
-chunkSize = sizeOf' @Int ; {-# INLINE chunkSize #-}
-
--- instance Storable (UniTerm fmt a) where
---     sizeOf    _ = 3 * chunkSize ; {-# INLINE sizeOf    #-}
---     alignment _ = chunkSize     ; {-# INLINE alignment #-}
---     peek ptr = peek (intPtr ptr) >>= \case
---         0 -> Var <$> peekByteOff ptr chunkSize
---         1 -> Acc <$> peekByteOff ptr chunkSize <*> peekByteOff ptr (chunkSize*2)
---         _ -> error "Unrecognized constructor"
---     {-# INLINE peek #-}
---     poke ptr = \case
---         Var !a    -> poke (intPtr ptr) 0 >> pokeByteOff ptr chunkSize a
---         Acc !a !b -> poke (intPtr ptr) 1 >> pokeByteOff ptr (chunkSize*2) b
---     {-# INLINE poke #-}
 
 
 
