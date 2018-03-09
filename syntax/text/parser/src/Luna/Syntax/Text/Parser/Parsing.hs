@@ -942,8 +942,15 @@ foreignLocationImportList = buildAsg
    <*  symbol Lexer.BlockStart
    <*> discover (nonEmptyBlock' foreignSymbolImport)
 
+-- TODO [Ara] Need to use `withRecovery` here too.
 foreignSymbolImport :: AsgParser SomeExpr
-foreignSymbolImport = foreignSymbolImportSpecifiedSafety
+foreignSymbolImport = withRecovery recover parse
+    where
+        parse = try foreignSymbolImportNoSafety
+              <|> foreignSymbolImportSpecifiedSafety
+        recover = undefined
+        {- recover err = (\e -> invalid "Invalid safety specification." -}
+                  {- <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.EOL))) -}
 
 foreignSymbolImportSpecifiedSafety :: AsgParser SomeExpr
 foreignSymbolImportSpecifiedSafety =
@@ -970,10 +977,6 @@ foreignSymbolImportWithSafety getSafety = buildAsg $
     <*> valExpr
     where
         foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
-
--- TODO [Ara] Lookahead to try and parse without the annotation first, and then
--- if that fails go back and try with the annotation.
--- TODO [Ara] Need to use `withRecovery` here too.
 
 defaultForeignImportSafety :: AsgParser SomeExpr
 defaultForeignImportSafety = buildAsg $

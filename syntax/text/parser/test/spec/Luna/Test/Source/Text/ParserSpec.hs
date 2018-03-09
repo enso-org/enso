@@ -379,7 +379,8 @@ spec = do
                                                                               "\"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
                                                                               [(0,14),(0,1),(0,7),(1,2),(0,10),(0,1),(1,5),(16,16),(0,46)]
             it "symbol with unspecified safety"          $ shouldParseItself' foreignSymbolImport "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,49)]
-            it "symbol with variable for symbol name"    $ shouldParseItself' foreignSymbolImport "myVar myFunc :: C . Ptr" [] -- Should definitely parse
+            it "symbol with variable for symbol name"    $ shouldParseItself' foreignSymbolImport "myVar myFunc :: C . Ptr" [(0,5),(0,1),(11,7),(0,23)]
+            it "symbol with safety and variable name"    $ shouldParseItself' foreignSymbolImport "foo myVar myFunc :: C . Ptr" [(0,4),(1,5),(0,1),(11,7),(0,28)]
             it "safe symbol"                             $ shouldParseItself' foreignSymbolImport "safe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,4),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,54)]
             it "unsafe symbol"                           $ shouldParseItself' foreignSymbolImport "unsafe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,6),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,56)]
 
