@@ -32,6 +32,7 @@
           , EmptyDataDecls
           , FlexibleContexts
           , FlexibleInstances
+          , ForeignFunctionInterface
           , FunctionalDependencies
           , GeneralizedNewtypeDeriving
           , InstanceSigs
@@ -44,8 +45,10 @@
           , NoImplicitPrelude
           , NumDecimals
           , OverloadedLabels
+          , OverloadedLists
           , OverloadedStrings
           , PackageImports
+          , PolyKinds
           , QuasiQuotes
           , PatternSynonyms
           , RankNTypes
