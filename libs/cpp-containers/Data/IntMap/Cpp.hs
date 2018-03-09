@@ -1,13 +1,13 @@
 module Data.IntMap.Cpp where
 
-import Prelude
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
-import Foreign.Storable (peek)
+import Foreign.Storable       (peek)
+import Prelude
 
 import Foreign.Utils
 

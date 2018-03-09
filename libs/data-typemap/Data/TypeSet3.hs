@@ -1,14 +1,14 @@
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE TypeInType           #-}
-{-# LANGUAGE Strict           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.TypeSet3 where
 
 import Prologue hiding (set)
 
-import qualified Type.Data.Set              as Type
-import qualified Type.Data.List             as List
 import qualified Data.Tuple.Strict.IntTuple as Tuple
+import qualified Type.Data.List             as List
+import qualified Type.Data.Set              as Type
 
 import Type.Data.Ord
 

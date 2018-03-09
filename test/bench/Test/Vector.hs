@@ -5,20 +5,20 @@ import Prologue
 
 import qualified Data.Vector.Storable.Mutable as Vector
 
-import Data.Vector.Storable.Mutable (MVector)
-import qualified Data.Vector.Storable as V
-import Luna.IR.Term
-import Data.AutoVector.Storable.Mutable
+import           Data.AutoVector.Storable.Mutable
+import qualified Data.Vector.Storable             as V
+import           Data.Vector.Storable.Mutable     (MVector)
+import           Luna.IR.Term
 
+import Control.Exception.Base   (evaluate)
 import Data.IORef
+import Foreign                  (Ptr, castPtr)
 import Foreign.ForeignPtr.Utils
-import Control.Exception.Base (evaluate)
-import Foreign (Ptr, castPtr)
 
-import qualified Foreign.Marshal.Utils as Ptr
-import qualified Foreign.Marshal.Alloc as Ptr
-import Foreign.Storable (Storable(..), peek, poke)
-import Foreign.Storable.Utils
+import qualified Foreign.Marshal.Alloc  as Ptr
+import qualified Foreign.Marshal.Utils  as Ptr
+import           Foreign.Storable       (Storable (..), peek, poke)
+import           Foreign.Storable.Utils
 
 import qualified Foreign.StablePtr as SPtr
 

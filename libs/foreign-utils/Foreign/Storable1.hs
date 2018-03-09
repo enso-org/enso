@@ -1,7 +1,7 @@
 module Foreign.Storable1 where
 
-import Prelude
 import Data.Kind
+import Prelude
 
 import Foreign.Ptr (Ptr, castPtr, plusPtr)
 

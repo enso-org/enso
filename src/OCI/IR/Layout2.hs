@@ -1,17 +1,17 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module OCI.IR.Layout2 where
 
 import Prologue
 -- import Type.Data.Map
-import Type.Data.Property hiding (Set)
-import Type.Data.Maybe
 import Data.Tag
+import Type.Data.Maybe
 import Type.Data.Ord
+import Type.Data.Property hiding (Set)
 -- import Type.Data.Set.Proxy (Set)
-import Type.Data.Map (Map)
+import           Type.Data.Map (Map)
 import qualified Type.Data.Map as Map
 
 
@@ -46,7 +46,7 @@ type family Set key val layout where
 
 --
 -- -- === Types === --
--- 
+--
 -- type BranchMap = Map Type Type
 --
 --

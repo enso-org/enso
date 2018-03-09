@@ -1,11 +1,11 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings         #-}
 
 module Data.Tuple.Utils.TH where
 
+import Language.Haskell.TH         as TH
 import Language.Haskell.TH.Builder
-import Language.Haskell.TH as TH
-import Prologue hiding (cons)
+import Prologue                    hiding (cons)
 
 _MAX_TUPLE_SIZE :: Int
 _MAX_TUPLE_SIZE = 20

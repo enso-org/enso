@@ -5,11 +5,11 @@ module Type.Data.Ord.TH where
 import Prologue hiding (Type)
 
 import           Data.List                   (subsequences)
+import           Language.Haskell.TH         (Name, Q, Type)
 import qualified Language.Haskell.TH         as TH
-import           Language.Haskell.TH         (Type, Q, Name)
 import           Language.Haskell.TH.Builder
 
-import           Type.Data.Ord.Class
+import Type.Data.Ord.Class
 
 
 pairs :: [a] -> [(a, a)]

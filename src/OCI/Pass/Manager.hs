@@ -5,14 +5,14 @@ import Prologue
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import qualified Data.Set                    as Set
-import qualified Foreign.Storable.Utils      as Storable
-import qualified OCI.IR.Layer.Internal       as Layer
-import qualified OCI.Pass.Class              as Pass
 import qualified Foreign.Marshal.Alloc       as Mem
 import qualified Foreign.Marshal.Utils       as Mem
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
+import qualified Foreign.Storable.Utils      as Storable
 import qualified Foreign.Storable1.Ptr       as Ptr1
+import qualified OCI.IR.Layer.Internal       as Layer
+import qualified OCI.Pass.Class              as Pass
 
 import Control.Lens                (at)
 import Control.Monad.Exception     (Throws, throw)

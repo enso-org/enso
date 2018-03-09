@@ -1,17 +1,17 @@
-{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Type.Data.Map (module Type.Data.Map, module X) where
 
 import Type.Data.Property as X
 
-import Prelude
 import Data.Kind
+import Data.Proxy        (Proxy)
+import Prelude
 import Type.Data.Bool
-import Data.Proxy (Proxy)
-import Type.Data.Wrapped
-import Type.Data.Ord
 import Type.Data.Maybe
+import Type.Data.Ord
+import Type.Data.Wrapped
 
 
 --------------------------

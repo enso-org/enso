@@ -3,8 +3,8 @@ module Data.Tag.TH where
 import Prologue
 
 import Data.Tag.Class
+import Language.Haskell.TH         as TH
 import Language.Haskell.TH.Builder
-import Language.Haskell.TH as TH
 
 import qualified Data.Char as Char
 

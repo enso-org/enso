@@ -4,9 +4,9 @@ module OCI.Pass.TH where
 
 import qualified OCI.Pass.Class as Pass
 
-import Prologue
 import Language.Haskell.TH
 import Language.Haskell.TH.Builder
+import Prologue
 import Type.Cache
 
 mkLayoutName :: Name -> Name

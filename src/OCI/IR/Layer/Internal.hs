@@ -4,19 +4,19 @@
 
 module OCI.IR.Layer.Internal where
 
-import Prologue hiding (Data)
+import Prologue       hiding (Data)
 import Type.Data.Bool
 
-import qualified OCI.IR.Layout     as Layout
 import qualified Foreign.Storable  as Storable
 import qualified Foreign.Storable1 as Storable1
+import qualified OCI.IR.Layout     as Layout
 
 import Foreign.Ptr            (Ptr, plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable       (Storable)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
-import OCI.IR.Component       (Component(Component))
+import OCI.IR.Component       (Component (Component))
 
 
 -----------------------

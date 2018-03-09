@@ -1,16 +1,16 @@
 module OCI.IR.Link where
 
-import Prologue
 import Foreign          (Ptr)
 import Foreign.Storable (Storable)
+import Prologue
 
 import OCI.IR.Term
 
-import qualified Data.Tag as Tag
-import Foreign.Storable.Utils
-import Foreign(castPtr)
-import OCI.IR.Component
-import Type.Data.Ord
+import qualified Data.Tag               as Tag
+import           Foreign                (castPtr)
+import           Foreign.Storable.Utils
+import           OCI.IR.Component
+import           Type.Data.Ord
 
 
 type family IRDef a

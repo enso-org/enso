@@ -1,12 +1,12 @@
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE PolyKinds          #-}
+{-# LANGUAGE PolyKinds     #-}
+{-# LANGUAGE TypeFamilies  #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Type.Data.Bool where
 
 import Data.Typeable
+import GHC.Exts      (Constraint)
 import Prelude
-import GHC.Exts (Constraint)
 
 
 -- === Basic operations ===

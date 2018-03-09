@@ -5,8 +5,8 @@ import Prologue
 
 import System.Remote.Monitoring as EKG
 
-import Control.Concurrent       (threadDelay)
-import Luna.IR.Term.Basic       (passTest_run)
+import Control.Concurrent (threadDelay)
+import Luna.IR.Term.Basic (passTest_run)
 
 
 sleep :: Int -> IO ()

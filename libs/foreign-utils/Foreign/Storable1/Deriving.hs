@@ -5,9 +5,9 @@ import Prologue
 
 import Foreign.Storable            (Storable)
 import Foreign.Storable1           (Storable1)
-import Language.Haskell.TH.Lib     hiding (clause)
-import Language.Haskell.TH.Builder
 import Language.Haskell.TH         hiding (clause)
+import Language.Haskell.TH.Builder
+import Language.Haskell.TH.Lib     hiding (clause)
 
 import qualified Foreign.Storable    as Storable
 import qualified Foreign.Storable1   as Storable1

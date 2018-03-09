@@ -1,22 +1,20 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE MagicHash                #-}
-{-# LANGUAGE BangPatterns             #-}
-{-# LANGUAGE UnliftedFFITypes         #-}
-{-# LANGUAGE DeriveGeneric            #-}
 {-# LANGUAGE DeriveAnyClass           #-}
+{-# LANGUAGE DeriveGeneric            #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE UnliftedFFITypes         #-}
 {-# LANGUAGE ViewPatterns             #-}
 
 module Foreign.Memory.Manager where
 
 import Prelude
 
+import Control.DeepSeq        (NFData)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Convert (convert)
-import Foreign (Ptr, castPtr, nullPtr)
-import Foreign.C (CDouble(..), CSize(..))
-import GHC.Generics (Generic)
-import Control.DeepSeq (NFData)
+import Data.Convert           (convert)
+import Foreign                (Ptr, castPtr, nullPtr)
+import Foreign.C              (CDouble (..), CSize (..))
+import GHC.Generics           (Generic)
 
 
 ---------------------------

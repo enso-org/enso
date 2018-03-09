@@ -2,8 +2,8 @@
 
 module OCI.IR.Layout.TH where
 
-import Prologue
 import Language.Haskell.TH
+import Prologue
 
 test a = do
     runIO $ print "------"

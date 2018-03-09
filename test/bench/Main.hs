@@ -1,7 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE OverloadedLists     #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-orphans -fno-warn-unused-binds #-}
 
 module Main where
@@ -13,12 +13,13 @@ import qualified Data.Vector.Storable.Mutable as Vector
 import qualified Test.Vector                  as Test
 
 import Criterion.Main
-import Criterion.Measurement            (initializeTime, getTime)
+import Criterion.Measurement            (getTime, initializeTime)
 import Data.AutoVector.Storable.Mutable as AVector
 import Data.Vector.Storable             (Vector)
-import Data.Vector.Storable.Mutable     (MVector, IOVector, STVector)
+import Data.Vector.Storable.Mutable     (IOVector, MVector, STVector)
 import Luna.IR.Term
-import System.IO                        (hSetBuffering, stdout, BufferMode(NoBuffering))
+import System.IO                        (BufferMode (NoBuffering),
+                                         hSetBuffering, stdout)
 import Unsafe.Coerce                    (unsafeCoerce)
 
 -- import qualified Data.GraphLuna as Graph
@@ -27,13 +28,13 @@ import qualified Foreign.Memory.Pool as MemPool
 
 import qualified Luna.IR.Term.Basic as Basic
 
-import Type.Data.Map
-import Language.Haskell.TH.Builder()
-import qualified Luna.IR.Test as TT
-import qualified  Data.TypeSet3 as TS3
+import qualified Data.TypeSet3               as TS3
+import           Language.Haskell.TH.Builder ()
+import qualified Luna.IR.Test                as TT
+import           Type.Data.Map
 
 import qualified Test.Data.IntSet.Cpp as SetTest
-import qualified Test.MemoryManager as MManager
+import qualified Test.MemoryManager   as MManager
 
 import OCI.IR.Layout2 ()
 

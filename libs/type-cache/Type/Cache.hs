@@ -5,8 +5,8 @@ module Type.Cache where
 import Prologue
 
 import Data.Proxy
-import Language.Haskell.TH.Builder
 import Language.Haskell.TH
+import Language.Haskell.TH.Builder
 
 mkHelperName :: Name -> Name
 mkHelperName = ("_TYPE_CACHE_HELPER_" <>)

@@ -10,8 +10,8 @@ import qualified Foreign.ForeignPtr.Utils     as Ptr
 
 import Data.Vector.Storable         (Vector)
 import Data.Vector.Storable.Mutable (MVector)
-import Foreign.Storable             (Storable)
 import Foreign.ForeignPtr           (ForeignPtr)
+import Foreign.Storable             (Storable)
 import System.IO.Unsafe             (unsafePerformIO)
 
 

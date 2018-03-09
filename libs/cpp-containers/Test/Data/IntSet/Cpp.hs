@@ -1,17 +1,17 @@
 {-# LANGUAGE BangPatterns #-}
 module Test.Data.IntSet.Cpp where
 
-import           Prelude
+import Prelude
 
 import qualified Data.IntSet     as IntSet
+import           Data.IntSet.Cpp (RawSetPtr, StdSet, mapStdSet, withStdSet)
 import qualified Data.IntSet.Cpp as CSet
-import           Data.IntSet.Cpp (StdSet, RawSetPtr, withStdSet, mapStdSet)
 
+import Data.List             (unfoldr)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
-import Data.List     (unfoldr)
 import System.Random
 
 

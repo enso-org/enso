@@ -2,9 +2,9 @@
 
 module Type.Error (module Type.Error, module X) where
 
+import GHC.TypeLits as X (ErrorMessage ((:$$:), (:<>:), ShowType), TypeError)
+import GHC.TypeLits (ErrorMessage (Text))
 import Prelude
-import GHC.TypeLits as X (ErrorMessage (ShowType, (:<>:), (:$$:)), TypeError)
-import GHC.TypeLits      (ErrorMessage (Text))
 
 
 -- === ErrMsg === --

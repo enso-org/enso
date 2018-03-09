@@ -1,18 +1,18 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module OCI.IR.Layout3 where
 
 import Prologue
 -- import Type.Data.Map
-import Type.Data.Property hiding (Set)
-import Type.Data.Maybe
 import Data.Tag
+import Type.Data.Maybe
 import Type.Data.Ord
+import Type.Data.Property hiding (Set)
 -- import Type.Data.Set.Proxy (Set)
-import Type.Data.Set (Set)
-import Type.Data.Map (Map)
+import           Type.Data.Map (Map)
 import qualified Type.Data.Map as Map
+import           Type.Data.Set (Set)
 import qualified Type.Data.Set as Set
 
 

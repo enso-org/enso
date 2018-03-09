@@ -2,8 +2,8 @@
 
 module Type.Data.Maybe where
 
-import Prelude
 import GHC.TypeLits
+import Prelude
 
 type family IsJust a where
     IsJust ('Just a) = 'True

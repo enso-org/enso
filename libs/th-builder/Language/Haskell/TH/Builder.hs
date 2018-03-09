@@ -6,10 +6,10 @@ module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X
 
 import Prologue hiding (Cons, Data, Type, cons, inline)
 
-import Control.Lens (_3)
-import qualified Data.Char  as Char
+import           Control.Lens (_3)
+import qualified Data.Char    as Char
 
-import Language.Haskell.TH as X (Q, Name, Dec, newName, reify, runIO)
+import           Language.Haskell.TH as X (Dec, Name, Q, newName, reify, runIO)
 import qualified Language.Haskell.TH as TH
 
 

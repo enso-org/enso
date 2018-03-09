@@ -60,6 +60,7 @@ language_extensions:
     - PackageImports
     - QuasiQuotes
     - PatternSynonyms
+    - PolyKinds
     - RankNTypes
     - RecursiveDo
     - ScopedTypeVariables

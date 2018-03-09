@@ -2,9 +2,9 @@ module Luna.IR.Link where
 
 import Prologue
 
-import           OCI.IR.Link
-import qualified OCI.IR.Layout     as Layout
 import           OCI.IR.Conversion (generalize)
+import qualified OCI.IR.Layout     as Layout
+import           OCI.IR.Link
 
 
 

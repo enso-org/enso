@@ -1,7 +1,7 @@
 module Foreign.Storable1.Ptr where
 
-import Prelude
 import Control.Monad.IO.Class
+import Prelude
 
 import qualified Foreign.Storable1 as Storable1
 

@@ -2,16 +2,16 @@
 
 module Control.Monad.Exception where
 
-import Prelude
 import Data.Kind
+import Prelude
 
 import qualified Control.Exception as IO
 
-import Control.Lens.Utils
 import Control.Exception          (Exception, SomeException, toException)
+import Control.Lens.Utils
 import Control.Monad              (join)
-import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)
 import Control.Monad.Trans        (MonadTrans, lift)
+import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)
 import GHC.Exts                   (Constraint)
 
 -------------------------------

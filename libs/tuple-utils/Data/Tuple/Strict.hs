@@ -2,8 +2,8 @@ module Data.Tuple.Strict (module Data.Tuple.Strict, module X) where
 
 import Data.Tuple.Utils.Class as X
 
-import Prologue hiding (FromList, ToList)
 import Data.Tuple.Utils.TH
+import Prologue            hiding (FromList, ToList)
 
 import qualified Type.Data.List as List
 

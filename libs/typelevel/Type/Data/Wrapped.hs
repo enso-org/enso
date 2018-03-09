@@ -1,13 +1,13 @@
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE TypeInType         #-}
+{-# LANGUAGE TypeFamilies  #-}
+{-# LANGUAGE TypeInType    #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Type.Data.Wrapped where
 
-import Data.Typeable
-import Prelude
 import Data.Kind
-import GHC.Exts (Constraint)
+import Data.Typeable
+import GHC.Exts      (Constraint)
+import Prelude
 
 
 -- === Basic operations ===

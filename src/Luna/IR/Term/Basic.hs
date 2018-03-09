@@ -1,20 +1,21 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeInType      #-}
+{-# LANGUAGE GADTs                #-}
 {-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE GADTs      #-}
+{-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Basic where
 
-import Prologue               hiding (cast)
+import Prologue hiding (cast)
 
-import Foreign.Ptr            (Ptr, castPtr, plusPtr)
-import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
-import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
-import qualified Foreign.Storable as Storable
-import qualified Foreign.Storable1 as Storable1
+import           Foreign.Ptr            (Ptr, castPtr, plusPtr)
+import           Foreign.Storable       (Storable, alignment, peek, peekByteOff,
+                                         poke, pokeByteOff, sizeOf)
+import qualified Foreign.Storable       as Storable
+import           Foreign.Storable.Utils (alignment', castPtrTo, intPtr, sizeOf')
+import qualified Foreign.Storable1      as Storable1
 
-import qualified Foreign            as Ptr
-import qualified Data.Graph as Graph
+import qualified Data.Graph          as Graph
+import qualified Foreign             as Ptr
 import qualified Foreign.Memory.Pool as MemPool
 
 import Foreign.Storable.Deriving  (deriveStorable)
@@ -25,51 +26,51 @@ import OCI.IR.Term
 -- import qualified OCI.IR.Layout as Layout
 import OCI.IR.Link as Link
 
-import qualified Luna.IR.Link as Link
-import Luna.IR.Format
-import Data.Tag (Tag, TagOf)
+import           Data.Tag       (Tag, TagOf)
+import           Luna.IR.Format
+import qualified Luna.IR.Link   as Link
 
-import qualified Data.Tag     as Tag
-import qualified Data.Mutable as MData
-import Control.Monad.State.Layered (get, put)
+import           Control.Monad.State.Layered (get, put)
 import qualified Control.Monad.State.Layered as State
-import OCI.IR.Component
-import OCI.IR.Conversion
-import OCI.IR.Selector
-import qualified OCI.IR.Component as Component
+import qualified Data.Mutable                as MData
+import qualified Data.Tag                    as Tag
+import           OCI.IR.Component
+import qualified OCI.IR.Component            as Component
+import           OCI.IR.Conversion
+import           OCI.IR.Selector
 
+import qualified Data.Tuple.Strict   as Tuple
 import qualified Data.TypeMap.Strict as TypeMap
-import qualified Data.Tuple.Strict as Tuple
 
-import  OCI.IR.Layout ((:=))
+import           OCI.IR.Layout ((:=))
 import qualified OCI.IR.Layout as Layout
 
 import OCI.Pass.TH
 
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
-import Type.Data.Ord (Cmp)
 import Foreign.Marshal.Alloc (mallocBytes)
+import Type.Data.Ord         (Cmp)
 
 import Foreign.Ptr.Utils (SomePtr)
 
 import OCI.Pass.Class as Pass
 
-import qualified Data.Map                    as Map
+import qualified Data.Map as Map
 
 import Luna.IR.Term.TH
 import Type.Cache
 
-import qualified OCI.Pass.Manager as PassManager
 import           OCI.Pass.Manager (MonadPassManager)
+import qualified OCI.Pass.Manager as PassManager
 
 import qualified Control.Monad.Exception as Exception
-import Type.Data.Bool
+import           Type.Data.Bool
 
 -- import OCI.IR.Layer (Layer)
-import qualified OCI.IR.Layer as Layer
-import qualified OCI.IR.Layer.Internal as Layer
 import qualified Foreign.Marshal.Utils as Mem
+import qualified OCI.IR.Layer          as Layer
+import qualified OCI.IR.Layer.Internal as Layer
 -- import qualified OCI.IR.Layer2 as Layer2
 
 

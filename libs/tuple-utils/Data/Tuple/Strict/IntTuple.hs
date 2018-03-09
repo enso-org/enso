@@ -1,7 +1,7 @@
 module Data.Tuple.Strict.IntTuple (module Data.Tuple.Strict.IntTuple) where
 
-import Prologue hiding (FromList)
 import Data.Tuple.Utils.TH
+import Prologue            hiding (FromList)
 
 
 

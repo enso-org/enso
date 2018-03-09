@@ -1,11 +1,11 @@
+{-# LANGUAGE GADTs      #-}
 {-# LANGUAGE TypeInType #-}
-{-# LANGUAGE GADTs #-}
 
 module Luna.IR.Test where
 
-import Prelude
-import Data.Kind
 import Data.Coerce
+import Data.Kind
+import Prelude
 
 
 ----------------------------------------

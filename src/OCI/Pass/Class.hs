@@ -1,6 +1,6 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE TypeInType                #-}
+{-# LANGUAGE UndecidableInstances      #-}
 
 module OCI.Pass.Class where
 
@@ -8,13 +8,12 @@ import Prologue
 
 import Control.Monad.Branch
 import Control.Monad.State.Layered (StateT)
-import Foreign (Ptr)
-import Foreign.Ptr.Utils (SomePtr)
+import Foreign                     (Ptr)
+import Foreign.Ptr.Utils           (SomePtr)
 
 import OCI.IR.Selector
 import OCI.IR.SelectorT
 
-import qualified Type.Data.List              as List
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map                    as Map
@@ -23,11 +22,12 @@ import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified OCI.IR.Layer.Internal       as Layer
+import qualified Type.Data.List              as List
 
-import Data.TypeMap.Strict     (TypeMap)
-import Data.Map.Strict         (Map)
-import Foreign.Memory.Pool     (MemPool)
 import Control.Monad.Exception (Throws, throw)
+import Data.Map.Strict         (Map)
+import Data.TypeMap.Strict     (TypeMap)
+import Foreign.Memory.Pool     (MemPool)
 
 
 
@@ -369,7 +369,7 @@ appSemiLeft f a = case f of
         Left e' -> Left (e <> e')
         _       -> Left e
     Right ff -> case a of
-        Left e -> Left e
+        Left e   -> Left e
         Right aa -> Right $ ff . aa
 {-# INLINE appSemiLeft #-}
 

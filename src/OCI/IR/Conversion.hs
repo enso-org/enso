@@ -5,8 +5,8 @@ module OCI.IR.Conversion where
 
 import Prologue hiding (Castable, ConversionError)
 
-import qualified Type.Error as Error
 import           Type.Error ((:<+>:))
+import qualified Type.Error as Error
 
 
 

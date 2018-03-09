@@ -1,9 +1,10 @@
 module Luna.IR.Term where
 
-import Prologue
 import Foreign.Ptr            (Ptr, castPtr)
-import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
-import Foreign.Storable.Utils (sizeOf', alignment', castPtrTo, intPtr)
+import Foreign.Storable       (Storable, alignment, peek, peekByteOff, poke,
+                               pokeByteOff, sizeOf)
+import Foreign.Storable.Utils (alignment', castPtrTo, intPtr, sizeOf')
+import Prologue
 
 import qualified Data.Graph as Graph
 

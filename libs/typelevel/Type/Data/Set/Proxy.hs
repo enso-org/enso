@@ -1,10 +1,10 @@
-{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Type.Data.Set.Proxy where
 
-import Prelude
-import Data.Proxy
+import           Data.Proxy
+import           Prelude
 import qualified Type.Data.Set as Set
 
 

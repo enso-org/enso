@@ -6,15 +6,15 @@ module OCI.IR.Component where
 import Prologue hiding (Castable, ConversionError)
 
 import qualified Data.Tag            as Tag
-import qualified Language.Haskell.TH as TH
-import qualified Type.Error          as Error
 import qualified Foreign.Ptr         as Ptr
 import qualified Foreign.Storable    as Storable
 import qualified Foreign.Storable1   as Storable1
+import qualified Language.Haskell.TH as TH
+import qualified Type.Error          as Error
 
-import Foreign.Storable  (Storable)
 import Foreign.Ptr.Utils (SomePtr)
-import OCI.IR.Conversion (Castable, Generalizable, ConversionError)
+import Foreign.Storable  (Storable)
+import OCI.IR.Conversion (Castable, ConversionError, Generalizable)
 import Type.Error        ((:<+>:))
 
 

@@ -3,12 +3,12 @@ module Foreign.Storable.Deriving (deriveStorable) where
 
 import Prologue
 
-import Control.Lens (view, _2, _3)
-import Foreign.Storable (Storable)
+import Control.Lens                (view, _2, _3)
+import Foreign.Storable            (Storable)
 import GHC.Num
-import Language.Haskell.TH.Lib     hiding (clause)
 import Language.Haskell.TH         hiding (clause)
 import Language.Haskell.TH.Builder
+import Language.Haskell.TH.Lib     hiding (clause)
 
 import qualified Data.List.NonEmpty  as NonEmpty
 import qualified Foreign.Storable    as Storable

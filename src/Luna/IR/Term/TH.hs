@@ -2,14 +2,14 @@ module Luna.IR.Term.TH where
 
 import Prelude
 
-import qualified Language.Haskell.TH         as TH
-import qualified Language.Haskell.TH.Syntax  as TH
-import qualified Luna.IR.Link                as Link
-import qualified OCI.IR.Link                 as Link
+import qualified Language.Haskell.TH        as TH
+import qualified Language.Haskell.TH.Syntax as TH
+import qualified Luna.IR.Link               as Link
+import qualified OCI.IR.Link                as Link
 
 import Control.Monad               (mapM)
 import Data.List                   (splitAt)
-import Language.Haskell.TH         (Q, Name)
+import Language.Haskell.TH         (Name, Q)
 import Language.Haskell.TH.Builder
 import Luna.IR.Link                (HasLinks, readLinksIO)
 import OCI.IR.Conversion           (generalize)

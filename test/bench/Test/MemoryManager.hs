@@ -3,11 +3,11 @@ module Test.MemoryManager where
 
 import Prelude
 
+import Control.DeepSeq       (NFData)
 import Criterion.Main
-import Control.DeepSeq (NFData)
-import Foreign (Ptr)
-import Foreign.C (CDouble(..), CSize(..))
-import Foreign.Marshal.Alloc (mallocBytes, free)
+import Foreign               (Ptr)
+import Foreign.C             (CDouble (..), CSize (..))
+import Foreign.Marshal.Alloc (free, mallocBytes)
 
 import Foreign.Memory.Manager
 

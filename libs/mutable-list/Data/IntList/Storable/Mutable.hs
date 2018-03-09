@@ -1,15 +1,16 @@
 module Data.IntList.Storable.Mutable where
 
-import Prelude
+import Control.Monad.IO.Class
 import Foreign.ForeignPtr.Utils hiding (newForeignPtr)
 import Foreign.Storable.Utils
-import Control.Monad.IO.Class
+import Prelude
 
-import Foreign (ForeignPtr, Ptr, FunPtr, castPtr, nullPtr)
-import qualified Foreign.Marshal.Utils as Ptr
+import           Foreign               (ForeignPtr, FunPtr, Ptr, castPtr,
+                                        nullPtr)
+import           Foreign.Concurrent    (newForeignPtr)
 import qualified Foreign.Marshal.Alloc as Ptr
-import Foreign.Concurrent (newForeignPtr)
-import System.IO.Unsafe (unsafePerformIO)
+import qualified Foreign.Marshal.Utils as Ptr
+import           System.IO.Unsafe      (unsafePerformIO)
 
 import Data.Monoid
 -------------------

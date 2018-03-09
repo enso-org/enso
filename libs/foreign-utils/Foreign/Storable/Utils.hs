@@ -2,9 +2,10 @@ module Foreign.Storable.Utils (module Foreign.Storable.Utils, module X) where
 
 import qualified Foreign.Storable as X
 
-import Prelude
 import Foreign.Ptr      (Ptr, castPtr)
-import Foreign.Storable (Storable, alignment, peek, peekByteOff, poke, pokeByteOff, sizeOf)
+import Foreign.Storable (Storable, alignment, peek, peekByteOff, poke,
+                         pokeByteOff, sizeOf)
+import Prelude
 
 sizeOf'    :: forall a. Storable a => Int
 alignment' :: forall a. Storable a => Int

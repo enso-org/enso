@@ -1,17 +1,17 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeInType          #-}
 
 module Type.Known (module Type.Known, module X) where
 
 import GHC.TypeLits as X (KnownNat, KnownSymbol)
 
-import Prelude
 import Data.Convert
-import Data.Kind (Type)
+import Data.Kind    (Type)
 import Data.Proxy
 import GHC.TypeLits
+import Prelude
 
 
 ----------------------------------------
