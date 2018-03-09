@@ -949,8 +949,8 @@ foreignSymbolImport = buildAsg $ withRecovery recover
     where
         recover = (\e ->
             invalid "Invalid safety specification."
-            <$ Loc.unregisteredDropSymbolsUntil'
-            (`elem` [Lexer.EOL, Lexer.ETX]))
+            <$ Loc.unregisteredDropSymbolsUntil
+            (`elem` [Lexer.ETX, Lexer.EOL]))
 
 foreignSymbolImportWithSafety
     :: AsgParser SomeExpr

@@ -386,7 +386,7 @@ spec = do
             it "safe symbol"                             $ shouldParseItself' foreignSymbolImport "safe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,4),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,54)]
             it "unsafe symbol"                           $ shouldParseItself' foreignSymbolImport "unsafe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,6),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,56)]
             it "symbol with bad safety specification"    $ shouldParseAs'     foreignSymbolImport
-                                                                              "foo myVar myFunc :: C . Ptr\n"
+                                                                              "foo myVar myFunc :: C . Ptr"
                                                                               "Invalid \"Invalid safety specification.\""
                                                                               [(0,23)]
 
