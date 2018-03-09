@@ -13,7 +13,7 @@ import Type.Data.Ord.Class
 
 
 pairs :: [a] -> [(a, a)]
-pairs = map (\[x, y] -> (x, y)) . filter ((== 2) . length) . subsequences
+pairs = fmap (\[x, y] -> (x, y)) . filter ((== 2) . length) . subsequences
 
 lt, gt, eq :: TH.Type
 lt = cons' 'LT
@@ -42,4 +42,4 @@ defOrderedPair tlt tgt = [defLT tlt tgt, defGT tlt tgt]
 defOrder :: [Name] -> Q [TH.Dec]
 defOrder ns = return $ ltgts <> eqs
     where ltgts = concatMap (uncurry defOrderedPair) $ pairs ns
-          eqs   = map defEQ ns
+          eqs   = defEQ <$> ns
