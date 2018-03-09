@@ -2,7 +2,7 @@
 module Type.Data.Ord.TH where
 
 
-import Prologue hiding (Type, cons)
+import Prologue hiding (Type)
 
 import           Data.List                   (subsequences)
 import qualified Language.Haskell.TH         as TH

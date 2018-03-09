@@ -12,7 +12,7 @@ import Control.Monad.IO.Class
 
 mkForeignPtr :: (Storable a, MonadIO m) => a -> m (ForeignPtr a)
 mkForeignPtr a = do
-    ptr <- liftIO $ mallocForeignPtr
+    ptr <- liftIO mallocForeignPtr
     writeForeignPtr ptr a
     return ptr
 {-# INLINE mkForeignPtr #-}

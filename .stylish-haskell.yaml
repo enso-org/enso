@@ -1,0 +1,76 @@
+steps:
+  - simple_align:
+      cases              : true
+      top_level_patterns : true
+      records            : true
+
+  - imports:
+      align            : group
+      list_align       : after_alias
+      pad_module_names : true
+      long_list_align  : inline
+      empty_list_align : inherit
+      list_padding     : 4
+      separate_lists   : true
+      space_surround   : false
+
+  - language_pragmas:
+      style            : vertical
+      align            : true
+      remove_redundant : false
+
+  - tabs:
+      spaces: 4
+
+  - trailing_whitespace: {}
+
+columns: 80
+newline: native
+
+language_extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+    - MultiParamTypeClasses
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - PatternSynonyms
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

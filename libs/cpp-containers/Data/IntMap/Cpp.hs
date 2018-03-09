@@ -109,10 +109,10 @@ member m k = fromCBool =<< withStdMap m (c_member k)
 
 -- | Try to find the element in the map, returning Maybe elem.
 lookup :: MonadIO m => StdMap -> Int -> m (Maybe Int)
-lookup m k = withStdMap m (\ptr ->
-    alloca @Int (\res -> do
+lookup m k = withStdMap m $ \ptr ->
+    alloca @Int $ \res -> do
         exists <- fromCBool =<< c_lookup k res ptr
-        if exists then Just <$> peek res else return Nothing))
+        if exists then Just <$> peek res else return Nothing
 {-# INLINE lookup #-}
 
 -- | Remove an element under a given key from the map, using `std::map::erase`.
@@ -135,11 +135,11 @@ null m = fromCBool =<< withStdMap m c_null
 toList :: MonadIO m => StdMap -> m [(Int, Int)]
 toList m = do
     n <- size m
-    withStdMap m (\ptr ->
-        allocaArray @Int n (\ks -> do
-        allocaArray @Int n (\vs -> do
+    withStdMap m $ \ptr ->
+        allocaArray @Int n $ \ks -> do
+        allocaArray @Int n $ \vs -> do
             c_toList ks vs ptr
-            zip <$> peekArray n ks <*> peekArray n vs)))
+            zip <$> peekArray n ks <*> peekArray n vs
 {-# INLINE toList #-}
 
 -- | Convert a list to the map.

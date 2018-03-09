@@ -3,7 +3,7 @@
 
 module Data.Tuple.Utils.Class where
 
-import Prologue hiding (FromList, set)
+import Prologue
 
 import Data.Tuple.Utils.TH
 

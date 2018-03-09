@@ -98,7 +98,7 @@ genGetElemAt = return decls where
     genDecl elIdx tupLen = TySynInstD "GetElemAt"
         (TySynEqn [convert elIdx, tup vs] (vs !! elIdx)) where
             vs = var <$> unsafeGenNamesTN tupLen
-    genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
+    genDeclsForTup i = (`genDecl` i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 -- >> type instance SetElemAt 0 v (T2 t1 t2) = T2 v t2
@@ -122,7 +122,7 @@ genIxElemGetters = return decls where
                  (NormalB (evs !! elIdx)) []]
         prag   = PragmaD (InlineP "getElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
-    genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
+    genDeclsForTup i = (`genDecl` i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 genIxElemSetters :: Q [Dec]
@@ -137,7 +137,7 @@ genIxElemSetters = return decls where
                  (NormalB (tup $ replaceLst elIdx "v" evs)) []]
         prag   = PragmaD (InlineP "setElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
-    genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
+    genDeclsForTup i = (`genDecl` i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 genDefaultInstances :: Q [Dec]
@@ -168,7 +168,7 @@ genIntTupleIxElemGetters = return decls where
                  (NormalB (evs !! elIdx)) []]
         prag   = PragmaD (InlineP "getElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
-    genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
+    genDeclsForTup i = (`genDecl` i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 
@@ -184,7 +184,7 @@ genIntTupleIxElemSetters = return decls where
                  (NormalB (tup $ replaceLst elIdx "v" evs)) []]
         prag   = PragmaD (InlineP "setElemAt" Inline FunLike AllPhases)
         decl   = InstanceD Nothing [] header [fun, prag]
-    genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
+    genDeclsForTup i = (`genDecl` i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 

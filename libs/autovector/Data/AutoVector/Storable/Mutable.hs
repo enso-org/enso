@@ -135,7 +135,7 @@ releaseIndex v i = do
 
 
 unsafeWrite :: (PrimMonad m, Storable a) => MAutoVector' m a -> Int -> a -> m ()
-unsafeWrite v ix a = Vector.unsafeWrite (v ^. dataVector) ix a
+unsafeWrite v = Vector.unsafeWrite (v ^. dataVector)
 
 -- pushBack :: MAutoVector' m a -> a -> m ()
 -- pushBack v a = do

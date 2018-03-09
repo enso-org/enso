@@ -18,7 +18,7 @@ import Type.Data.Maybe (FromJust)
 
 -- === Definition === --
 
-data Set k = Set [k]
+newtype Set k = Set [k]
 
 type family FromSet s where
     FromSet ('Set s) = s

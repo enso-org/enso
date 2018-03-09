@@ -2,7 +2,7 @@
 
 module Type.Cache where
 
-import Prologue hiding (catch)
+import Prologue
 
 import Data.Proxy
 import Language.Haskell.TH.Builder
@@ -30,8 +30,7 @@ cache_phase2 name = do
     case info of
         VarI vname (AppT (ConT p) t) _ ->
             if (nameBase vname == nameBase helperName)
-            && (p == ''Proxy) then do
-                return $ [TySynD cacheName [] t]
+            && (p == ''Proxy) then return [TySynD cacheName [] t]
             else internalError
         _ -> internalError
 

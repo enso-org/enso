@@ -16,7 +16,6 @@ library:
     - libs/foreign-utils
     - libs/mutable-list
     - libs/autovector
-    - libs/graph
     - libs/memory-manager
     - libs/memory-pool
     - libs/data-tag
@@ -35,6 +34,25 @@ library:
     - libs/memory-manager/cbits
   extra-libraries: stdc++
   cc-options: -std=c++17 -O2
+  dependencies:
+      - base
+      - convert
+      - containers
+      - data-default
+      - deepseq
+      - functor-utils
+      - lens-utils
+      - monoid
+      - primitive
+      - vector
+      - template-haskell
+      - prologue >= 3.0.0
+      - mtl
+      - layered-state
+      - monad-branch
+      - random
+      - transformers
+      - lens
 
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
@@ -43,29 +61,7 @@ stability: experimental
 synopsis: Luna Core
 version: 0.0.1
 
-dependencies:
-    - array
-    - base
-    - convert
-    - containers
-    - c-storable-deriving
-    - data-default
-    - deepseq
-    - functor-utils
-    - lens-utils
-    - monoid
-    - primitive
-    - vector
-    - vector-th-unbox
-    - template-haskell
-    - prologue >= 3.0.0
-    - mtl
-    - unboxed-ref >= 0.4.0.0
-    - layered-state
-    - monad-branch
-    - random
-    - transformers
-    - lens
+
 
 executables:
   luna-core:
@@ -73,6 +69,7 @@ executables:
     source-dirs:  app
     ghc-options:  -with-rtsopts=-T
     dependencies:
+      - base
       - luna-core
       - ekg
 
@@ -81,11 +78,15 @@ benchmarks:
     main:        Main.hs
     source-dirs: test/bench
     dependencies:
+      - base
       - criterion >= 1.3.0.0
       - luna-core
       - vector
       - ghc
       - convert
+      - deepseq
+      - prologue
+      - unboxed-ref >= 0.4.0.0
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -110,7 +111,6 @@ default-extensions:
     - InstanceSigs
     - LambdaCase
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -132,6 +132,5 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
-
     - LiberalTypeSynonyms
     - RelaxedPolyRec

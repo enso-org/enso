@@ -14,12 +14,12 @@ import Foreign.Ptr.Utils (SomePtr)
 import OCI.IR.Selector
 import OCI.IR.SelectorT
 
+import qualified Type.Data.List              as List
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map                    as Map
 import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
-import qualified Type.Data.List              as List
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified OCI.IR.Layer.Internal       as Layer

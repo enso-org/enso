@@ -30,7 +30,7 @@ genReadLinksClause :: TH.Con -> Q TH.Clause
 genReadLinksClause con = do
     (pat, names, freeNames) <- conPat con
     let calls = map readLinkCall names
-        binds = map (uncurry readLinkBind) $ zip freeNames names
+        binds = zipWith readLinkBind freeNames names
         ret   = readLinkReturn freeNames
         body  = TH.DoE $ binds ++ [ret]
     return $ TH.Clause [pat] (TH.NormalB body) []

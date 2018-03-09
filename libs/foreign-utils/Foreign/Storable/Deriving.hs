@@ -29,8 +29,8 @@ concretizeType = \case
 -- | Instantiate all the free type variables to Int for a consturctor
 extractConcreteTypes :: TH.Con -> [TH.Type]
 extractConcreteTypes = \case
-    NormalC n bts -> map (concretizeType . (view _2)) bts
-    RecC    n bts -> map (concretizeType . (view _3)) bts
+    NormalC n bts -> map (concretizeType . view _2) bts
+    RecC    n bts -> map (concretizeType . view _3) bts
     _ -> error "***error*** deriveStorable: type not yet supported"
 
 
@@ -40,7 +40,7 @@ extractConcreteTypes = \case
 -------------------------------------
 
 sizeOfType :: TH.Type -> TH.Exp
-sizeOfType = app (var 'Storable.sizeOf) . ((var 'undefined) -::)
+sizeOfType = app (var 'Storable.sizeOf) . (var 'undefined -::)
 
 sizeOfInt :: TH.Exp
 sizeOfInt = sizeOfType $ cons' ''Int
@@ -56,7 +56,7 @@ intLit :: Integer -> TH.Exp
 intLit = LitE . IntegerL
 
 undefinedAsInt :: TH.Exp
-undefinedAsInt = (var 'undefined) -:: (cons' ''Int)
+undefinedAsInt = var 'undefined -:: cons' ''Int
 
 conFieldSizes :: TH.Con -> [TH.Exp]
 conFieldSizes = fmap sizeOfType . extractConcreteTypes
@@ -108,7 +108,7 @@ genOffsets con = do
     namesList <- mapM name $ take arity [1..]
     let names = name0 :| namesList
     case names of
-        n :| [] -> return (names, (whereClause n $ intLit 0) :| [])
+        n :| [] -> return (names, whereClause n (intLit 0) :| [])
         names@(n1 :| (n2:ns)) -> do
             let off0D   = whereClause n1 $ intLit 0
                 off1D   = whereClause n2 $ app (var 'Storable.sizeOf) undefinedAsInt
@@ -118,14 +118,14 @@ genOffsets con = do
                 mkDecl (declName, refName, fSize) =
                     whereClause declName (plus (var refName) fSize) -- >> where declName = refName + size
 
-                clauses = off0D :| (off1D : (map mkDecl headers))
+                clauses = off0D :| (off1D : map mkDecl headers)
 
             return (names, clauses)
 
 genSizeOf :: [TH.Con] -> TH.Dec
 genSizeOf conss  = FunD 'Storable.sizeOf $ case conss of
     []  -> error "[genSizeOf] Phantom types not supported"
-    [c] -> [clause [WildP] (sizeOfInt) mempty]
+    [c] -> [clause [WildP] sizeOfInt mempty]
     cs  -> [genSizeOfClause cs]
 
 genSizeOfClause :: [TH.Con] -> TH.Clause
@@ -172,9 +172,9 @@ genPeekSingleCons ptr con = do
 
 genPeekMultiCons :: Name -> Name -> [TH.Con] -> Q TH.Clause
 genPeekMultiCons ptr tag cs = do
-    peekCases <- mapM (uncurry $ genPeekCaseMatch False ptr) $ zip [0..] cs
+    peekCases <- zipWithM (genPeekCaseMatch False ptr) [0..] cs
     let peekTag      = app (app (var 'Storable.peekByteOff) (var ptr)) (intLit 0)
-        peekTagTyped = peekTag -:: (app (cons' ''IO) (cons' ''Int))
+        peekTagTyped = peekTag -:: app (cons' ''IO) (cons' ''Int)
         bind         = BindS (var tag) peekTagTyped
         cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
         doE          = DoE [bind, NoBindS cases]
@@ -193,7 +193,7 @@ genPoke :: [TH.Con] -> Q TH.Dec
 genPoke conss = funD 'Storable.poke $ case conss of
     []  -> error "[genPoke] Phantom types not supported"
     [c] -> [genPokeClauseSingle c]
-    cs  -> map (uncurry genPokeClauseMulti) $ zip [0..] cs
+    cs  -> zipWith genPokeClauseMulti [0 ..] cs
 
 nonEmptyParamNames :: Int -> Q (NonEmpty Name)
 nonEmptyParamNames n = newNames n >>= \case

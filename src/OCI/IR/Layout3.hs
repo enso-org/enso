@@ -1,5 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
 
 module OCI.IR.Layout3 where

@@ -9,7 +9,6 @@ import Prelude
 import Data.Kind
 import Type.Data.Bool
 import Data.Proxy (Proxy)
-import Type.Data.Maybe (FromJust)
 import Type.Data.Wrapped
 import Type.Data.Ord
 import Type.Data.Maybe
@@ -22,7 +21,7 @@ import Type.Data.Maybe
 -- TODO: Move it and refactor to Type.Data.Property when the bug gets resolved
 
 type Raw (k :: Type) (v :: Type) = [Assoc k v]
-data Map k v = Map (Raw k v)
+newtype Map k v = Map (Raw k v)
 type family FromMap m where FromMap ('Map m) = m
 
 data Assoc a b = Assoc a b
@@ -58,7 +57,7 @@ type family (obj :: a) --!! (key :: KeyKind obj) :: ValKind obj where
 
 type instance KeyKind (map :: Map k v) = k
 type instance ValKind (map :: Map k v) = v
-type instance 'Map ((mk := mv) ': ms) --!? k = If (mk == k) ('Just mv) (('Map ms) --!? k)
+type instance 'Map ((mk := mv) ': ms) --!? k = If (mk == k) ('Just mv) ('Map ms --!? k)
 type instance 'Map ('[])              --!? k = 'Nothing
 
 type instance KeyKind (Proxy (map :: Map k v)) = KeyKind map

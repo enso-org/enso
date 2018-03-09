@@ -25,3 +25,6 @@ cabal.project.local
 
 # Vim
 *.swp
+
+# hlint
+report.html
