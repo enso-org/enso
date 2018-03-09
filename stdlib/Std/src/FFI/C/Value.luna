@@ -1,14 +1,6 @@
 native class CVoid:
     CVoid
 
-native class CChar:
-    CChar
-    def byteSize: primByteSizeCChar
-    def from a: CChar.fromInt a.toInt
-    def fromInt a: primIntToCChar a
-    def read ptr: primReadPtrCChar ptr
-    def write ptr: primWritePtrCChar ptr self
-
 native class CUChar:
     CUChar
     def byteSize: primByteSizeCUChar
@@ -16,14 +8,6 @@ native class CUChar:
     def fromInt a: primIntToCUChar a
     def read ptr: primReadPtrCUChar ptr
     def write ptr: primWritePtrCUChar ptr self
-
-native class CInt:
-    CInt
-    def from a: CInt.fromInt a.toInt
-    def fromInt a: primIntToCInt a
-    def byteSize: primByteSizeInt
-    def read ptr: primReadPtrInt ptr
-    def write ptr: primWritePtrInt ptr self
 
 native class CInt8:
     CInt8
@@ -153,21 +137,48 @@ native class CDouble:
     def read ptr: primReadPtrDouble ptr
     def write ptr: primWritePtrDouble ptr self
 
-native class CString:
+native class CChar:
+    CChar
+    def retType: primCCharRetType
+    def toCArg: primCCharToArg self
+
+class CString:
     CString
-    def from a: primTextToCArg a
+    CStringVal (Ptr CChar)
+
+    def ptr: case self of
+        CStringVal ptr: ptr
+
+    def toText: primCStringToText self.ptr
+
+    def fromText t:
+        ptr = primCStringFromText t
+        CStringVal ptr
+
+    def toCArg: case self of
+        CStringVal c: c.toCArg
+
+native class CInt:
+    CInt
+
+    def fromInt a: primCIntFromInt a
+    def toInt: primCIntToInt self
+    def retType: primCIntRetType
+    def toCArg: primCIntToArg self
+
+native class RetType:
+    RetType
+
+    def cInt: primCIntRetType
+    def ptr: primPtrRetType self
+    def retType: self
+
 
 native class Ptr a:
-    Ptr
-    def from a: a.toCArg
+    Ptr a
     def toCArg: primPtrToCArg self
-    def shortRep: primPtrToJSON self
-    def toJSON: primPtrToJSON self
-    def toText: primPtrToJSON self
-    def + bytes: primPlusPtr self bytes
-
-    def read ptr: primReadPtrPtr ptr
-    def write ptr: primWritePtrPtr ptr self
+    def retType: case self of
+        Ptr a: a . retType . ptr
 
 def nullPtr: primNullPtr
 

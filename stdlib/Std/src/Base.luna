@@ -336,6 +336,8 @@ class None:
     ## Converts a `None` value into `JSON`.
     def toJSON: JSONNull
 
+    def retType: primVoidRetType
+
 ## Class representing pairs of elements of arbitrary type.
 class Tuple2 a b:
     Tuple2 a b
