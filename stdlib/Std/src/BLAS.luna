@@ -1,7 +1,7 @@
 import Std.Foreign
 import Std.FFI.C.Value
 
-def blasImpl: "libopenblas.so.0"
+def blasImpl: "openblas"
 
 class CBLASOrder:
     CblasRowMajor

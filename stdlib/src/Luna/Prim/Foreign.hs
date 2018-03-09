@@ -19,7 +19,7 @@ import qualified Foreign.LibFFI              as LibFFI
 import           Foreign.Marshal.Alloc       (alloca, allocaBytes)
 import           Foreign.Ptr                 (Ptr, FunPtr, castPtr, castPtrToFunPtr, nullPtr, plusPtr)
 import           Foreign.Storable            (Storable(..))
-import qualified System.Posix.DynamicLinker  as Linker
+import qualified Luna.Prim.DynamicLinker     as Linker
 import           Luna.Builtin.Data.Function  (Function)
 import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
 import           Luna.Builtin.Data.LunaValue (LunaData (LunaObject), Constructor (..), Object (..), constructor, tag, fields, force')
@@ -37,8 +37,8 @@ exports :: Imports -> IO (Map Name Function)
 exports std = do
     let primLookupSymbolVal :: Text -> Text -> IO (Maybe (FunPtr LunaData))
         primLookupSymbolVal (convert -> dll) (convert -> symbol) = do
-            dl       <- Linker.dlopen dll [Linker.RTLD_LAZY]
-            sym      <- Linker.dlsym dl symbol
+            dl       <- Linker.loadLibrary dll
+            sym      <- Linker.loadSymbol dl symbol
             return $ Just sym
     primLookupSymbol <- makeFunctionIO (toLunaValue std primLookupSymbolVal) ["Text", "Text"] $ LCons "Maybe" ["FunPtr"]
 
