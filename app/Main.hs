@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Prologue
+import Prelude
 
 import System.Remote.Monitoring as EKG
 

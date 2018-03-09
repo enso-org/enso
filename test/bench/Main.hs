@@ -1,12 +1,11 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-orphans -fno-warn-unused-binds #-}
 
 module Main where
 
-import Prologue hiding (take)
+import Prologue
 
 import qualified Data.Vector.Storable         as Vector
 import qualified Data.Vector.Storable.Mutable as Vector
@@ -36,6 +35,7 @@ import qualified Test.MemoryManager   as MManager
 
 
 
+
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
     t1  <- liftIO getTime
@@ -44,6 +44,7 @@ timeIt name f = do
     liftIO $ putStrLn (name <> ": " <> show (t2-t1))
     pure out
 
+{-# ANN main ("HLint: ignore Use ." :: String) #-}
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering

@@ -1,6 +1,6 @@
 module Luna.IR.Term.TH where
 
-import Prelude
+import Prologue
 
 import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
@@ -29,11 +29,11 @@ genReadLinksIO cs = do
 genReadLinksClause :: TH.Con -> Q TH.Clause
 genReadLinksClause con = do
     (pat, names, freeNames) <- conPat con
-    let calls = map readLinkCall names
+    let calls = readLinkCall <$> names
         binds = zipWith readLinkBind freeNames names
         ret   = readLinkReturn freeNames
-        body  = TH.DoE $ binds ++ [ret]
-    return $ TH.Clause [pat] (TH.NormalB body) []
+        body  = TH.DoE $ binds <> [ret]
+    return $ TH.Clause [pat] (TH.NormalB body) mempty
 
 readLinkCall :: Name -> TH.Exp
 readLinkCall n = app (var 'readLinksIO) (var n)
@@ -42,14 +42,14 @@ readLinkBind :: Name -> Name -> TH.Stmt
 readLinkBind n1 n2 = TH.BindS (TH.VarP n1) $ app (var 'readLinksIO) (var n2)
 
 readLinkReturn :: [Name] -> TH.Stmt
-readLinkReturn ns = TH.NoBindS $ app (var 'return) $ app (var 'mconcat) vars
-    where vars = TH.ListE $ map TH.VarE ns
+readLinkReturn ns = TH.NoBindS . app (var 'return) $ app (var 'mconcat) vars
+    where vars = TH.ListE $ TH.VarE <$> ns
 
 conPat :: TH.Con -> Q (TH.Pat, [Name], [Name])
 conPat con = do
     let (cName, cArity) = conNameArity con
     names <- newNames (2 * cArity)
     let (pNames, freeNames) = splitAt cArity names
-        patVars             = map TH.VarP pNames
+        patVars             = TH.VarP <$> pNames
         pat                 = TH.ConP cName patVars
     return (pat, pNames, freeNames)

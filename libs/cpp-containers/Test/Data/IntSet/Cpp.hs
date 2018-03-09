@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 module Test.Data.IntSet.Cpp where
 
-import Prelude
+import Prologue
 
 import qualified Data.IntSet     as IntSet
 import           Data.IntSet.Cpp (RawSetPtr, StdSet, mapStdSet, withStdSet)
@@ -46,11 +46,11 @@ testInsertAndLookupIntSet :: Int -> IO Int
 testInsertAndLookupIntSet n = do
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
-        go  !s (!x:xs) = go (IntSet.insert x s) xs
-        go  !s []      = s
+        go  !s ((!x):xs) = go (IntSet.insert x s) xs
+        go  !s []        = s
 
-        go2 !s !sm (!x:xs) = go2 s (sm + (if IntSet.member x s then 1 else 0)) xs
-        go2 !s !sm []      = sm
+        go2 !s !sm ((!x):xs) = go2 s (sm + (if IntSet.member x s then 1 else 0)) xs
+        go2 !s !sm []        = sm
 
         s1   = go IntSet.empty rndm
         suma = go2 s1 0 rndm2
@@ -62,10 +62,10 @@ testInsertAndLookupCSet n = do
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
     s  <- CSet.empty
-    let go  (!x:xs) = CSet.insert s x >> go xs
-        go  []      = return ()
+    let go  ((!x):xs) = CSet.insert s x >> go xs
+        go  []        = return ()
 
-        go2 !sm (!x:xs) = do
+        go2 !sm ((!x):xs) = do
                 mem <- CSet.member s x
                 go2 (sm + (if mem then 1 else 0)) xs
         go2 !sm [] = return sm
@@ -76,7 +76,7 @@ testInsertAndLookupCSet n = do
 testInsertLookupOrderedCSet :: Int -> IO Int
 testInsertLookupOrderedCSet n = do
     s <- CSet.empty
-    let go !x = if x < n then CSet.insert s x >> go (x + 1) else return ()
+    let go !x = when_ (x < n) $ CSet.insert s x >> go (x + 1)
     go 0
 
     let go2 !x !sm = if x < n

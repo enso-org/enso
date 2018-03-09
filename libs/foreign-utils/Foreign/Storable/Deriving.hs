@@ -29,8 +29,8 @@ concretizeType = \case
 -- | Instantiate all the free type variables to Int for a consturctor
 extractConcreteTypes :: TH.Con -> [TH.Type]
 extractConcreteTypes = \case
-    NormalC n bts -> map (concretizeType . view _2) bts
-    RecC    n bts -> map (concretizeType . view _3) bts
+    NormalC n bts -> (concretizeType . view _2) <$> bts
+    RecC    n bts -> (concretizeType . view _3) <$> bts
     _ -> error "***error*** deriveStorable: type not yet supported"
 
 
@@ -118,7 +118,7 @@ genOffsets con = do
                 mkDecl (declName, refName, fSize) =
                     whereClause declName (plus (var refName) fSize) -- >> where declName = refName + size
 
-                clauses = off0D :| (off1D : map mkDecl headers)
+                clauses = off0D :| (off1D : fmap mkDecl headers)
 
             return (names, clauses)
 
@@ -130,7 +130,7 @@ genSizeOf conss  = FunD 'Storable.sizeOf $ case conss of
 
 genSizeOfClause :: [TH.Con] -> TH.Clause
 genSizeOfClause cs = do
-    let conSizes   = ListE $ map sizeOfCon cs
+    let conSizes   = ListE $ sizeOfCon <$> cs
         maxConSize = app2 (var 'maximumDef) (intLit 0) conSizes
         maxConSizePlusOne = plus maxConSize sizeOfInt
     clause [WildP] maxConSizePlusOne mempty

@@ -32,7 +32,7 @@ benchmarkWithManager :: NFData a
 benchmarkWithManager name action blockSize itemSize = envWithCleanup
     (newManager blockSize itemSize)
     deleteManager
-    (\mgr -> bench name $ nfIO (action mgr))
+    (bench name . nfIO . action)
 
 testAllocFreePairsCpp :: Int -> Int -> Benchmark
 testAllocFreePairsCpp = benchmarkWithManager
@@ -40,13 +40,12 @@ testAllocFreePairsCpp = benchmarkWithManager
     (\mgr -> newItem mgr >>= deleteItem mgr)
 
 runBenchmarks :: IO ()
-runBenchmarks = do
-    defaultMain
-        [ testAllocFreePairsCpp 1024 64
-        , benchmarkWithManager "FFI: C++ manager (new)" newItem 1024 64
-        , bench "FFI: trivial call" $ nfIO $ c_justReturn 5 -- TODO allocates much memory, so for higher iteration count there will be slow downs
-        , bench "Foreign.Marshal.Alloc" $ nfIO $ (mallocBytes 64 >>= free)
-        , bench "C++: randomized pattern" $ nfIO $ c_randomizedBenchmark 10000000 64 0.7
-        ]
+runBenchmarks = defaultMain
+    [ testAllocFreePairsCpp 1024 64
+    , benchmarkWithManager "FFI: C++ manager (new)" newItem 1024 64
+    , bench "FFI: trivial call" $ nfIO (c_justReturn 5) -- TODO allocates much memory, so for higher iteration count there will be slow downs
+    , bench "Foreign.Marshal.Alloc" $ nfIO (mallocBytes 64 >>= free)
+    , bench "C++: randomized pattern" $ nfIO (c_randomizedBenchmark 10000000 64 0.7)
+    ]
     -- benchmark 10000000 64
 
