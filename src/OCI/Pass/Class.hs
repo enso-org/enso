@@ -88,9 +88,11 @@ type Vars pass prop
 -- === ComponentMemPool === --
 
 newtype ComponentMemPool comp       = ComponentMemPool MemPool
+newtype ComponentSize    comp       = ComponentSize    Int
 newtype LayerInitializer comp       = LayerInitializer SomePtr
 newtype LayerByteOffset  comp layer = LayerByteOffset  Int
 makeLenses ''ComponentMemPool
+makeLenses ''ComponentSize
 makeLenses ''LayerByteOffset
 makeLenses ''LayerInitializer
 
@@ -98,6 +100,7 @@ makeLenses ''LayerInitializer
 -- === Instances === --
 
 instance Default (ComponentMemPool c)   where def = wrap MemPool.unsafeNull ; {-# INLINE def #-}
+instance Default (ComponentSize    c)   where def = wrap 0                  ; {-# INLINE def #-}
 instance Default (LayerInitializer c)   where def = wrap Ptr.nullPtr        ; {-# INLINE def #-}
 instance Default (LayerByteOffset  c l) where def = wrap 0                  ; {-# INLINE def #-}
 
@@ -129,10 +132,12 @@ newtype     PassState       pass = PassState (PassStateData pass)
 type        PassStateData   pass = TypeMap (PassStateLayout pass)
 type family PassStateLayout pass :: [Type] -- CACHED WITH definePass TH
 type ComputePassStateLayout pass = List.Append (ComponentMemPools pass)
+                                 ( List.Append (ComponentSizes    pass)
                                  ( List.Append (LayersLayout      pass)
-                                               (LayerInitializers pass) )
+                                               (LayerInitializers pass) ))
 
 type ComponentMemPools pass = List.Map ComponentMemPool      (Vars pass Elems)
+type ComponentSizes    pass = List.Map ComponentSize         (Vars pass Elems)
 type LayerInitializers pass = List.Map LayerInitializer      (Vars pass Elems)
 type LayersLayout      pass = MapLayerByteOffset        pass (Vars pass Elems)
 
@@ -218,13 +223,18 @@ instance (MonadPass m, TypeMap.ElemGetter a (DiscoverPassStateLayout m))
       => DataGetter a m where
     getData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getData #-}
 
-
 type LayerByteOffsetGetter  comp layer m = DataGetter (LayerByteOffset  comp layer) m
+type LayerInitializerGetter comp       m = DataGetter (LayerInitializer comp)       m
 type ComponentMemPoolGetter comp       m = DataGetter (ComponentMemPool comp)       m
+type ComponentSizeGetter    comp       m = DataGetter (ComponentSize    comp)       m
 getLayerByteOffset  :: ∀ comp layer m. LayerByteOffsetGetter  comp layer m => m Int
+getLayerInitializer :: ∀ comp       m. LayerInitializerGetter comp       m => m SomePtr
 getComponentMemPool :: ∀ comp       m. ComponentMemPoolGetter comp       m => m MemPool
+getComponentSize    :: ∀ comp       m. ComponentSizeGetter    comp       m => m Int
 getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  comp layer) ; {-# INLINE getLayerByteOffset  #-}
+getLayerInitializer = unwrap <$> getData @(LayerInitializer comp)       ; {-# INLINE getLayerInitializer #-}
 getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# INLINE getComponentMemPool #-}
+getComponentSize    = unwrap <$> getData @(ComponentSize    comp)       ; {-# INLINE getComponentSize    #-}
 
 
 -- === Instances === --
@@ -298,21 +308,23 @@ passStateEncoder = passStateEncoder__ @(Vars pass Elems) ; {-# INLINE passStateE
 type  PassStateEncoder pass = PassStateEncoder__ (Vars pass Elems) pass
 class PassStateEncoder__ (cs :: [Type]) pass where
     passStateEncoder__ :: PassConfig
-                      -> EncoderResult (PassState pass -> PassState pass)
+                       -> EncoderResult (PassState pass -> PassState pass)
 
 instance PassStateEncoder__ '[] pass where
     passStateEncoder__ _ = Right id ; {-# INLINE passStateEncoder__ #-}
 
-instance ( layers   ~ Vars      pass comp
+instance ( layers   ~ Vars pass comp
          , targets  ~ ComponentLayerLayout LayerByteOffset pass comp
          , compMemPool ~ ComponentMemPool comp
+         , compSize    ~ ComponentSize    comp
          , layerInit   ~ LayerInitializer comp
          , Typeables layers
          , Typeable  comp
          , PassStateEncoder__  comps pass
          , PassDataElemEncoder  compMemPool MemPool pass
+         , PassDataElemEncoder  compSize    Int     pass
          , PassDataElemEncoder  layerInit   SomePtr pass
-         , PassDataElemsEncoder targets Int pass
+         , PassDataElemsEncoder targets     Int     pass
          ) => PassStateEncoder__ (comp ': comps) pass where
     passStateEncoder__ cfg = encoders where
         encoders   = appSemiLeft encoder subEncoder
@@ -320,10 +332,12 @@ instance ( layers   ~ Vars      pass comp
         subEncoder = passStateEncoder__ @comps cfg
         mcomp      = mapLeft (wrap . pure)
                    . lookupComponent tgtComp $ cfg ^. components
-        tgtComp    = someTypeRep  @comp
-        procComp i = ((initEncoder . compEncoder) .) <$> layerEncoder where
-            compEncoder  = encodePassDataElem  @compMemPool (i ^. memPool)
-            initEncoder  = encodePassDataElem  @layerInit   (i ^. layerInit)
+        tgtComp    = someTypeRep @comp
+        procComp i = (encoders .) <$> layerEncoder where
+            encoders     = initEncoder . memEncoder . sizeEncoder
+            memEncoder   = encodePassDataElem  @compMemPool $ i ^. memPool
+            initEncoder  = encodePassDataElem  @layerInit   $ i ^. layerInit
+            sizeEncoder  = encodePassDataElem  @compSize    $ i ^. byteSize
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             layerTypes   = someTypeReps @layers
             layerOffsets = view byteOffset <<$>> layerInfos
@@ -339,8 +353,8 @@ lookupLayer k m = justErr (MissingLayer k) $ Map.lookup k m ; {-# INLINE lookupL
 
 catEithers :: [Either l r] -> Either (NonEmpty l) [r]
 catEithers lst = case partitionEithers lst of
-    ([],rs)    -> Right rs
-    ((l:ls),_) -> Left (l :| ls)
+    ([]    ,rs) -> Right rs
+    ((l:ls),_)  -> Left $ l :| ls
 {-# INLINE catEithers #-}
 
 -- TODO

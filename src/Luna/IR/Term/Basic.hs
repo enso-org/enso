@@ -69,6 +69,7 @@ import Type.Data.Bool
 -- import OCI.IR.Layer (Layer)
 import qualified OCI.IR.Layer as Layer
 import qualified OCI.IR.Layer.Internal as Layer
+import qualified Foreign.Marshal.Utils as Mem
 -- import qualified OCI.IR.Layer2 as Layer2
 
 
@@ -191,33 +192,43 @@ mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft
 
 
 
-type IRAllocator comp m = (MonadIO m, Pass.ComponentMemPoolGetter comp m)
+type IRAllocator comp m = ( MonadIO m, Pass.ComponentMemPoolGetter comp m )
+type IRCreator   comp m = ( IRAllocator                 comp m
+                          , Pass.LayerInitializerGetter comp m
+                          , Pass.ComponentSizeGetter    comp m
+                          )
 
 -- | Its unsafe because it only allocates raw memory.
-noInitAllocIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
-noInitAllocIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-# INLINE noInitAllocIR #-}
+newUninitializedIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
+newUninitializedIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-# INLINE newUninitializedIR #-}
+
+newIR :: ∀ comp m layout. IRCreator comp m => m (Component comp layout)
+newIR = do
+    ir   <- newUninitializedIR
+    ptr  <- Pass.getLayerInitializer @comp
+    size <- Pass.getComponentSize    @comp
+    liftIO $ Mem.copyBytes (coerce ir) ptr size
+    return ir
+{-# INLINE newIR #-}
 
 
-
-term  :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term (Layout.Set Model (Layer.ConsLayout t) a))
-term' :: (IRAllocator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term b)
+term  :: (IRCreator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term (Layout.Set Model (Layer.ConsLayout t) a))
+term' :: (IRCreator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term b)
 term = term' ; {-# INLINE term #-}
 term' term = do
-    ir <- noInitAllocIR
+    ir <- newIR
     Layer.write @Model ir (toUniTerm term)
-    -- Pass.LayerInit f <- Pass.getData @Pass.LayerInit
-    -- liftIO $ f (coerce ir)
     return $ cast ir
 {-# INLINE term' #-}
 
 
-var :: (IRAllocator Terms m, Layer.Writer Terms Model m) => Int -> m (Term Var)
+var :: (IRCreator Terms m, Layer.Writer Terms Model m) => Int -> m (Term Var)
 var name = term' $ Var name ; {-# INLINE var #-}
 
 
-link :: (IRAllocator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
+link :: (IRCreator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
 link src tgt = do
-    ir <- noInitAllocIR @Links
+    ir <- newIR @Links
     Layer.write @Source ir src
     Layer.write @Target ir tgt
     return $ ir
