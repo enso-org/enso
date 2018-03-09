@@ -72,12 +72,17 @@ align = app (var 'Storable.alignment) undefinedAsInt
 whereClause :: Name -> TH.Exp -> TH.Dec
 whereClause n e = ValD (var n) (NormalB e) mempty
 
+wildCardClause :: TH.Exp -> TH.Clause
+wildCardClause expr = clause [WildP] expr mempty
 
 
 --------------------------------
 -- === Main instance code === --
 --------------------------------
 
+-- | Generate the `Storable` instance for a type.
+--   The constraint is that all of the fields of
+--   the type's constructor must be Ints.
 deriveStorable :: Name -> Q [TH.Dec]
 deriveStorable ty = do
     TypeInfo tyConName tyVars cs <- getTypeInfo ty
@@ -122,28 +127,39 @@ genOffsets con = do
 
             return (names, clauses)
 
+-- | Generate the `sizeOf` method of the `Storable` class.
+--   It will return the largest possible size of a given data type.
+--   The mechanism is much like unions in C.
 genSizeOf :: [TH.Con] -> TH.Dec
-genSizeOf conss  = FunD 'Storable.sizeOf $ case conss of
-    []  -> error "[genSizeOf] Phantom types not supported"
-    [c] -> [clause [WildP] sizeOfInt mempty]
-    cs  -> [genSizeOfClause cs]
+genSizeOf conss = FunD 'Storable.sizeOf [wildCardClause expr]
+    where expr = case conss of
+            []  -> intLit 0
+            [c] -> sizeOfCon c
+            cs  -> genSizeOfExpr cs
 
-genSizeOfClause :: [TH.Con] -> TH.Clause
-genSizeOfClause cs = do
-    let conSizes   = ListE $ sizeOfCon <$> cs
-        maxConSize = app2 (var 'maximumDef) (intLit 0) conSizes
-        maxConSizePlusOne = plus maxConSize sizeOfInt
-    clause [WildP] maxConSizePlusOne mempty
+genSizeOfExpr :: [TH.Con] -> TH.Exp
+genSizeOfExpr cs = plus maxConSize sizeOfInt
+    where conSizes   = ListE $ sizeOfCon <$> cs
+          maxConSize = app2 (var 'maximumDef) (intLit 0) conSizes
 
+-- | Generate the `alignment` method of the `Storable` class.
+--   It will always be the size of `Int`.
 genAlignment :: TH.Dec
 genAlignment = FunD 'Storable.alignment [genAlignmentClause]
 
 genAlignmentClause :: TH.Clause
-genAlignmentClause = clause [WildP] (app (var 'Storable.sizeOf) undefinedAsInt) mempty
+genAlignmentClause = wildCardClause $ app (var 'Storable.sizeOf) undefinedAsInt
 
+-- | Generate the `peek` method of the `Storable` class.
+--   It will behave differently for single- and multi-constructor types,
+--   as well as for no-argument constructors. For details, please refer to
+--   the docs for the `genPoke` method, where the memory layout is described
+--   in detail.
 genPeek :: [TH.Con] -> Q TH.Dec
 genPeek cs = funD 'Storable.peek [genPeekClause cs]
 
+-- | Generate the `case` expression that given a tag of the constructor
+--   will perform the appropriate number of pokes.
 genPeekCaseMatch :: Bool -> Name -> Integer -> TH.Con -> Q TH.Match
 genPeekCaseMatch single ptr idx con = do
     (off0 :| offNames, whereCs) <- genOffsets con
@@ -157,19 +173,25 @@ genPeekCaseMatch single ptr idx con = do
                 _         -> (app (var 'return) (ConE cName), [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
-    return $ Match pat body (NonEmpty.toList whereCs)
+    return $ TH.Match pat body (NonEmpty.toList whereCs)
 
+-- | Generate a catch-all branch of the case to account for
+--   non-exhaustive patterns warnings.
 genPeekCatchAllMatch :: TH.Match
 genPeekCatchAllMatch = TH.Match TH.WildP (TH.NormalB body) mempty
     where body = app (var 'error) (TH.LitE $ TH.StringL "[peek] Unrecognized constructor")
 
+-- | Generate the `peek` clause for a single-constructor types.
+--   In this case the fields are stored raw, without the tag.
 genPeekSingleCons :: Name -> TH.Con -> Q TH.Clause
 genPeekSingleCons ptr con = do
     TH.Match _ body whereCs <- genPeekCaseMatch True ptr 0 con
+    let pat = if noArgCon con then TH.WildP else var ptr
     case body of
-        TH.NormalB e  -> return $ clause [var ptr] e whereCs
+        TH.NormalB e  -> return $ clause [pat] e whereCs
         TH.GuardedB _ -> fail "[genPeekSingleCons] Guarded bodies not supported"
 
+-- Generate the `peek` method for multi-constructor data types.
 genPeekMultiCons :: Name -> Name -> [TH.Con] -> Q TH.Clause
 genPeekMultiCons ptr tag cs = do
     peekCases <- zipWithM (genPeekCaseMatch False ptr) [0..] cs
@@ -178,33 +200,50 @@ genPeekMultiCons ptr tag cs = do
         bind         = BindS (var tag) peekTagTyped
         cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
         doE          = DoE [bind, NoBindS cases]
-    return $ clause [var ptr] doE mempty
+        pat          = if all noArgCon cs then TH.WildP else var ptr
+    return $ clause [pat] doE mempty
 
+-- | Generate the clause for the `peek` method,
+--   deciding between single- and multi-constructor implementations.
 genPeekClause :: [TH.Con] -> Q TH.Clause
 genPeekClause cs = do
-    ptr       <- newName "ptr"
-    tag       <- newName "tag"
+    ptr <- newName "ptr"
+    tag <- newName "tag"
     case cs of
         []  -> fail "[genPeekClause] Phantom types not supported"
         [c] -> genPeekSingleCons ptr c
         cs  -> genPeekMultiCons ptr tag cs
 
+-- | Generate a `poke` method of the `Storable` class.
+--   Behaves differently for single- and multi-constructor types
+--   as well as for constructors with no arguments.
+--
+--   When the type has a single constructor, we will just store
+--   the elements in the memory one after the other.
+--   Example: `data Bar = Bar Int Int Int` will be stored as:
+--                  ----------------
+--   Bar 1 10 100:  | 1 | 10 | 100 |
+--                  ----------------
+--
+--   In the multi-constructor case we need to add a tag that will
+--   encode the constructor that this value was created with.
+--   Example: `data Foo = A Int | B Int | C Int` will be stored as:
+--         ----------       ----------          -----------
+--   A 12: | 0 | 12 | B 32: | 1 | 32 |  C 132 : | 2 | 132 |
+--         ----------       ----------          -----------
 genPoke :: [TH.Con] -> Q TH.Dec
 genPoke conss = funD 'Storable.poke $ case conss of
     []  -> error "[genPoke] Phantom types not supported"
     [c] -> [genPokeClauseSingle c]
     cs  -> zipWith genPokeClauseMulti [0 ..] cs
 
-nonEmptyParamNames :: Int -> Q (NonEmpty Name)
-nonEmptyParamNames n = newNames n >>= \case
-    (firstPat:restPats) -> return $ firstPat :| restPats
-    -- TODO[piotrMocz] this could work, with some love
-    _ -> fail "[genPokeClause] No-field constructors not supported"
-
+-- | Generate the pattern for the `poke` method.
+--   like: `poke ptr (SomeCons consArgs)`.
 genPokePat :: Name -> Name -> [Name] -> [TH.Pat]
 genPokePat ptr cName patVarNames =
     [var ptr, cons cName $ var <$> patVarNames]
 
+-- | A wrapper utility for generating the poking expressions.
 genPokeExpr :: Name -> NonEmpty Name -> [Name] -> TH.Exp -> TH.Exp
 genPokeExpr ptr (off :| offNames) varNames firstExpr = body
     where pokeByteOffPtr = app (var 'Storable.pokeByteOff) (var ptr)
@@ -215,23 +254,41 @@ genPokeExpr ptr (off :| offNames) varNames firstExpr = body
           body           = foldl (uncurry . nextPoke) firstPoke
                          $ zip offNames varxps
 
+-- | Generate a `poke` clause ignoring its params and returning unit.
+genEmptyPoke :: Q TH.Clause
+genEmptyPoke = return $ clause [WildP, WildP] returnUnit mempty
+    where returnUnit = app (var 'return) (TH.ConE '())
+
+-- | Generate a `poke` clause for single-constructor data types.
+--   In this case we don't add the tag to the stored memory,
+--   as it is unambiguous.
 genPokeClauseSingle :: TH.Con -> Q TH.Clause
 genPokeClauseSingle con = do
     let (cName, nParams) = conNameArity con
-    ptr <- newName "ptr"
-    patVarNames@(firstP :| restP) <- nonEmptyParamNames nParams
-    (offNames, whereCs) <- genOffsets con
-    let pat  = genPokePat  ptr cName $ NonEmpty.toList patVarNames
-        body = genPokeExpr ptr offNames restP (var firstP)
-    return $ clause pat body (NonEmpty.toList whereCs)
+    ptr         <- newName "ptr"
+    patVarNames <- newNames nParams
+    -- if the constructor has no params, we will generate `poke _ _ = return ()`
+    case patVarNames of
+        [] -> genEmptyPoke
+        (firstP : restP) -> do
+            (offNames, whereCs) <- genOffsets con
+            let pat  = genPokePat  ptr cName patVarNames
+                body = genPokeExpr ptr offNames restP (var firstP)
+            return $ clause pat body (NonEmpty.toList whereCs)
 
+-- | Generate a `poke` clause for multi-constructor data types.
+--   In this case we add a tag to the stored memory, so that
+--   when poking we know which constructor to choose.
 genPokeClauseMulti :: Integer -> TH.Con -> Q TH.Clause
 genPokeClauseMulti idx con = do
     let (cName, nParams) = conNameArity con
-    ptr         <- newName "ptr"
-    patVarNames <- newNames nParams
-    (offNames, whereCs) <- genOffsets con
-    let pat            = genPokePat ptr cName patVarNames
-        idxAsInt       = convert idx -:: cons' ''Int
-        body           = genPokeExpr ptr offNames patVarNames idxAsInt
-    return $ clause pat body (NonEmpty.toList whereCs)
+    -- if the constructor has no params, we will generate `poke _ _ = return ()`
+    if nParams == 0 then genEmptyPoke
+    else do
+        ptr         <- newName "ptr"
+        patVarNames <- newNames nParams
+        (offNames, whereCs) <- genOffsets con
+        let pat            = genPokePat ptr cName patVarNames
+            idxAsInt       = convert idx -:: cons' ''Int
+            body           = genPokeExpr ptr offNames patVarNames idxAsInt
+        return $ clause pat body (NonEmpty.toList whereCs)

@@ -114,8 +114,8 @@ Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
 type instance TermConsDef Missing = ConsMissing
 type instance Layer.ConsLayout ConsMissing = Missing
--- deriveStorable  ''ConsMissing
--- deriveStorable1 ''ConsMissing
+deriveStorable  ''ConsMissing
+deriveStorable1 ''ConsMissing
 deriveLinks     ''ConsMissing
 
 data UniTerm a
@@ -138,11 +138,11 @@ instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm 
 chunkSizex :: Int
 chunkSizex = sizeOf' @Int
 
-instance Storable (ConsMissing a) where
-    sizeOf    _   = 0              ; {-# INLINE sizeOf    #-}
-    alignment _   = chunkSizex     ; {-# INLINE alignment #-}
-    peek      _   = return Missing ; {-# INLINE peek      #-}
-    poke      _ _ = return ()      ; {-# INLINE poke      #-}
+-- instance Storable (ConsMissing a) where
+--     sizeOf    _   = 0              ; {-# INLINE sizeOf    #-}
+--     alignment _   = chunkSizex     ; {-# INLINE alignment #-}
+--     peek      _   = return Missing ; {-# INLINE peek      #-}
+--     poke      _ _ = return ()      ; {-# INLINE poke      #-}
 
 
 
