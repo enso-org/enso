@@ -192,11 +192,16 @@ mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft
 
 
 
-type IRAllocator comp m = ( MonadIO m, Pass.ComponentMemPoolGetter comp m )
-type IRCreator   comp m = ( IRAllocator                 comp m
-                          , Pass.LayerInitializerGetter comp m
-                          , Pass.ComponentSizeGetter    comp m
-                          )
+type IRAllocator comp m =
+    ( MonadIO m
+    , Pass.ComponentMemPoolGetter comp m
+    )
+
+type IRCreator comp m =
+    ( IRAllocator                 comp m
+    , Pass.LayerInitializerGetter comp m
+    , Pass.ComponentSizeGetter    comp m
+    )
 
 -- | Its unsafe because it only allocates raw memory.
 newUninitializedIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
