@@ -20,10 +20,11 @@ import qualified Language.Haskell.TH as TH
 
 deriveStorable1 :: Name -> Q [TH.Dec]
 deriveStorable1 ty = do
-    TypeInfo tyConName _ _ <- getTypeInfo ty
+    TypeInfo tyConName tyVars _ <- getTypeInfo ty
     let decs = concat [genSizeOf, genAlignment, genPeek, genPoke]
-        inst = classInstance ''Storable1 tyConName mempty decs
-    return [inst]
+    case tyVars of
+        [] -> fail "[deriveStorable1] Kind of type needs to be: * -> *"
+        _  -> pure [classInstance ''Storable1 tyConName (unsafeInit tyVars) decs]
 
 
 
