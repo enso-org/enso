@@ -926,44 +926,36 @@ impSrc = buildAsg $ (\s -> liftIRBApp0 $ IR.unresolvedImpSrc' s) <$> (wrd <|> re
 ------------------------------------
 
 foreignImportList :: AsgParser SomeExpr
-foreignImportList = buildAsg
-    $  (\lang imports ->
-            liftAstApp1 (IR.foreignImpList' lang) (sequence imports))
-   <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
-   <*> foreignLangName
-   <*  symbol Lexer.BlockStart
-   <*> discover (nonEmptyBlock' foreignLocationImportList)
+foreignImportList = buildAsg $
+    (\lang imports ->
+        liftAstApp1 (IR.foreignImpList' lang) (sequence imports))
+    <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
+    <*> foreignLangName
+    <*  symbol Lexer.BlockStart
+    <*> discover (nonEmptyBlock' foreignLocationImportList)
 
 foreignLocationImportList :: AsgParser SomeExpr
-foreignLocationImportList = buildAsg
-    $ (\loc imports ->
+foreignLocationImportList = buildAsg $
+    (\loc imports ->
         liftAstApp2 IR.foreignLocationImpList' loc (sequence imports))
-   <$> stringOrVarName
-   <*  symbol Lexer.BlockStart
-   <*> discover (nonEmptyBlock' foreignSymbolImport)
+    <$> stringOrVarName
+    <*  symbol Lexer.BlockStart
+    <*> discover (nonEmptyBlock' foreignSymbolImport)
 
--- TODO [Ara] Need to use `withRecovery` here too.
 foreignSymbolImport :: AsgParser SomeExpr
-foreignSymbolImport = withRecovery recover parse
+foreignSymbolImport = buildAsg $ withRecovery recover
+    $   try (foreignSymbolImportWithSafety defaultFISafety)
+    <|> foreignSymbolImportWithSafety specifiedFISafety
     where
-        parse = try foreignSymbolImportNoSafety
-              <|> foreignSymbolImportSpecifiedSafety
-        recover = undefined
-        {- recover err = (\e -> invalid "Invalid safety specification." -}
-                  {- <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.EOL))) -}
-
-foreignSymbolImportSpecifiedSafety :: AsgParser SomeExpr
-foreignSymbolImportSpecifiedSafety =
-    foreignSymbolImportWithSafety specifiedForeignImportSafety
-
-foreignSymbolImportNoSafety :: AsgParser SomeExpr
-foreignSymbolImportNoSafety =
-    foreignSymbolImportWithSafety defaultForeignImportSafety
+        recover = (\e ->
+            invalid "Invalid safety specification."
+            <$ Loc.unregisteredDropSymbolsUntil'
+            (`elem` [Lexer.EOL, Lexer.ETX]))
 
 foreignSymbolImportWithSafety
     :: AsgParser SomeExpr
-    -> AsgParser SomeExpr
-foreignSymbolImportWithSafety getSafety = buildAsg $
+    -> IRParser SomeExpr
+foreignSymbolImportWithSafety getSafety =
     (\safety foreignName localName importType ->
         liftAstApp3
         (foreignSymbolProxy localName)
@@ -978,15 +970,15 @@ foreignSymbolImportWithSafety getSafety = buildAsg $
     where
         foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
 
-defaultForeignImportSafety :: AsgParser SomeExpr
-defaultForeignImportSafety = buildAsg $
+defaultFISafety :: AsgParser SomeExpr
+defaultFISafety = buildAsg $
     (\safety -> liftIRBApp0 (IR.foreignImpSafety' safety))
     <$> ((return Import.Default) :: SymParser ForeignImportType)
 
--- TODO [Ara] Need to have the lexer deal with these as contextual keywords
+-- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
 -- using a positive lookahead in the _Lexer_.
-specifiedForeignImportSafety :: AsgParser SomeExpr
-specifiedForeignImportSafety = buildAsg $
+specifiedFISafety :: AsgParser SomeExpr
+specifiedFISafety = buildAsg $
     (\(importSafety :: ForeignImportType) ->
         liftIRBApp0 (IR.foreignImpSafety' importSafety))
     <$> getImpSafety (optionMaybe varName)

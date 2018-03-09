@@ -36,6 +36,8 @@ import Control.Monad.State.Dependent
 import Luna.Syntax.Text.Parser.Marker (MarkedExprMap)
 import Luna.Syntax.Text.Source
 
+import qualified Luna.Syntax.Text.Lexer as Lexer
+import Data.Text32
 
 --
 
@@ -380,11 +382,15 @@ spec = do
                                                                               [(0,14),(0,1),(0,7),(1,2),(0,10),(0,1),(1,5),(16,16),(0,46)]
             it "symbol with unspecified safety"          $ shouldParseItself' foreignSymbolImport "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,49)]
             it "symbol with variable for symbol name"    $ shouldParseItself' foreignSymbolImport "myVar myFunc :: C . Ptr" [(0,5),(0,1),(11,7),(0,23)]
-            it "symbol with safety and variable name"    $ shouldParseItself' foreignSymbolImport "foo myVar myFunc :: C . Ptr" [(0,4),(1,5),(0,1),(11,7),(0,28)]
+            it "symbol with safety and variable name"    $ shouldParseItself' foreignSymbolImport "safe myVar myFunc :: C . Ptr" [(0,4),(1,5),(0,1),(11,7),(0,28)]
             it "safe symbol"                             $ shouldParseItself' foreignSymbolImport "safe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,4),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,54)]
             it "unsafe symbol"                           $ shouldParseItself' foreignSymbolImport "unsafe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,6),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,56)]
+            it "symbol with bad safety specification"    $ shouldParseAs'     foreignSymbolImport
+                                                                              "foo myVar myFunc :: C . Ptr\n"
+                                                                              "Invalid \"Invalid safety specification.\""
+                                                                              [(0,23)]
 
-        -- FIXME [Ara] Work out why the pretty printer is putting an extra newline at the end of these.
+        -- FIXME [Ara, WD] Work out why the pretty printer is putting an extra newline at the end of these.
         describe "C-FFI Syntax" $ do
             it "single object file, single import"       $ shouldParseItself' unit' ("foreign import C:"
                                                                                     </> "    \"tensor.so\":"
