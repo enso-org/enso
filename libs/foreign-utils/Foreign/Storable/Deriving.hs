@@ -86,16 +86,16 @@ wildCardClause expr = clause [WildP] expr mempty
 deriveStorable :: Name -> Q [TH.Dec]
 deriveStorable ty = do
     TypeInfo tyConName tyVars cs <- getTypeInfo ty
-    decs <- sequence [return $ genSizeOf cs, return genAlignment, genPeek cs, genPoke cs]
+    decs <- sequence [pure $ genSizeOf cs, pure genAlignment, genPeek cs, genPoke cs]
     let inst = classInstance ''Storable tyConName tyVars decs
-    return [inst]
+    pure [inst]
 
 
 -------------------------------
 -- === Method generators === --
 -------------------------------
 
--- | Generate the offsets for a constructor (also returns the names of the variables in wheres).
+-- | Generate the offsets for a constructor (also pures the names of the variables in wheres).
 --   Example:
 --   > data T = Cons x y
 --   >
@@ -113,7 +113,7 @@ genOffsets con = do
     namesList <- mapM name $ take arity [1..]
     let names = name0 :| namesList
     case names of
-        n :| [] -> return (names, whereClause n (intLit 0 -:: cons' ''Int) :| [])
+        n :| [] -> pure (names, whereClause n (intLit 0 -:: cons' ''Int) :| [])
         names@(n1 :| (n2:ns)) -> do
             let off0D   = whereClause n1 $ intLit 0 -:: cons' ''Int
                 off1D   = whereClause n2 $ app (var 'Storable.sizeOf) undefinedAsInt
@@ -125,10 +125,10 @@ genOffsets con = do
 
                 clauses = off0D :| (off1D : fmap mkDecl headers)
 
-            return (names, clauses)
+            pure (names, clauses)
 
 -- | Generate the `sizeOf` method of the `Storable` class.
---   It will return the largest possible size of a given data type.
+--   It will pure the largest possible size of a given data type.
 --   The mechanism is much like unions in C.
 genSizeOf :: [TH.Con] -> TH.Dec
 genSizeOf conss = FunD 'Storable.sizeOf [wildCardClause expr]
@@ -167,13 +167,13 @@ genPeekCaseMatch single ptr idx con = do
         peekByteOffPtr   = app (var 'Storable.peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
-        -- No-field constructors are a special case of just the constructor being returned
+        -- No-field constructors are a special case of just the constructor being pureed
         (firstCon, offs) = case offNames of
                 (off1:os) -> (op '(<$>) (ConE cName) (peekByte $ if single then off0 else off1), os)
-                _         -> (app (var 'return) (ConE cName), [])
+                _         -> (app (var 'pure) (ConE cName), [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
-    return $ TH.Match pat body (NonEmpty.toList whereCs)
+    pure $ TH.Match pat body (NonEmpty.toList whereCs)
 
 -- | Generate a catch-all branch of the case to account for
 --   non-exhaustive patterns warnings.
@@ -188,7 +188,7 @@ genPeekSingleCons ptr con = do
     TH.Match _ body whereCs <- genPeekCaseMatch True ptr 0 con
     let pat = if noArgCon con then TH.WildP else var ptr
     case body of
-        TH.NormalB e  -> return $ clause [pat] e whereCs
+        TH.NormalB e  -> pure $ clause [pat] e whereCs
         TH.GuardedB _ -> fail "[genPeekSingleCons] Guarded bodies not supported"
 
 -- Generate the `peek` method for multi-constructor data types.
@@ -201,7 +201,7 @@ genPeekMultiCons ptr tag cs = do
         cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
         doE          = DoE [bind, NoBindS cases]
         pat          = if all noArgCon cs then TH.WildP else var ptr
-    return $ clause [pat] doE mempty
+    pure $ clause [pat] doE mempty
 
 -- | Generate the clause for the `peek` method,
 --   deciding between single- and multi-constructor implementations.
@@ -254,10 +254,10 @@ genPokeExpr ptr (off :| offNames) varNames firstExpr = body
           body           = foldl (uncurry . nextPoke) firstPoke
                          $ zip offNames varxps
 
--- | Generate a `poke` clause ignoring its params and returning unit.
+-- | Generate a `poke` clause ignoring its params and pureing unit.
 genEmptyPoke :: Q TH.Clause
-genEmptyPoke = return $ clause [WildP, WildP] returnUnit mempty
-    where returnUnit = app (var 'return) (TH.ConE '())
+genEmptyPoke = pure $ clause [WildP, WildP] pureUnit mempty
+    where pureUnit = app (var 'pure) (TH.ConE '())
 
 -- | Generate a `poke` clause for single-constructor data types.
 --   In this case we don't add the tag to the stored memory,
@@ -267,14 +267,14 @@ genPokeClauseSingle con = do
     let (cName, nParams) = conNameArity con
     ptr         <- newName "ptr"
     patVarNames <- newNames nParams
-    -- if the constructor has no params, we will generate `poke _ _ = return ()`
+    -- if the constructor has no params, we will generate `poke _ _ = pure ()`
     case patVarNames of
         [] -> genEmptyPoke
         (firstP : restP) -> do
             (offNames, whereCs) <- genOffsets con
             let pat  = genPokePat  ptr cName patVarNames
                 body = genPokeExpr ptr offNames restP (var firstP)
-            return $ clause pat body (NonEmpty.toList whereCs)
+            pure $ clause pat body (NonEmpty.toList whereCs)
 
 -- | Generate a `poke` clause for multi-constructor data types.
 --   In this case we add a tag to the stored memory, so that
@@ -282,7 +282,7 @@ genPokeClauseSingle con = do
 genPokeClauseMulti :: Integer -> TH.Con -> Q TH.Clause
 genPokeClauseMulti idx con = do
     let (cName, nParams) = conNameArity con
-    -- if the constructor has no params, we will generate `poke _ _ = return ()`
+    -- if the constructor has no params, we will generate `poke _ _ = pure ()`
     if nParams == 0 then genEmptyPoke
     else do
         ptr         <- newName "ptr"
@@ -291,4 +291,4 @@ genPokeClauseMulti idx con = do
         let pat            = genPokePat ptr cName patVarNames
             idxAsInt       = convert idx -:: cons' ''Int
             body           = genPokeExpr ptr offNames patVarNames idxAsInt
-        return $ clause pat body (NonEmpty.toList whereCs)
+        pure $ clause pat body (NonEmpty.toList whereCs)
