@@ -113,9 +113,9 @@ genOffsets con = do
     namesList <- mapM name $ take arity [1..]
     let names = name0 :| namesList
     case names of
-        n :| [] -> return (names, whereClause n (intLit 0) :| [])
+        n :| [] -> return (names, whereClause n (intLit 0 -:: cons' ''Int) :| [])
         names@(n1 :| (n2:ns)) -> do
-            let off0D   = whereClause n1 $ intLit 0
+            let off0D   = whereClause n1 $ intLit 0 -:: cons' ''Int
                 off1D   = whereClause n2 $ app (var 'Storable.sizeOf) undefinedAsInt
                 headers = zip3 ns (n2:ns) fSizes
 
