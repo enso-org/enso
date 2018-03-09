@@ -28,7 +28,8 @@ import Type.Error                 ((:<+>:))
 
 newtype Component t layout = Component SomePtr deriving (Eq, Show, Storable)
 type SomeComponent t = Component t ()
-makeLenses ''Component
+makeLenses      ''Component
+deriveStorable1 ''Component
 
 
 -- === API === --
@@ -43,7 +44,7 @@ class GeneralizableComponent (t :: Type) (layout :: Type) (layout' :: Type)
 instance GeneralizableComponent t layout ()
 
 instance {-# OVERLAPPABLE #-}
-    ConversionError (Error.Str "Cannot generalize" :<+>: Error.ShowType t) a b
+    ConversionError (Error.Str "Cannot generalize" :<+>: 'Error.ShowType t) a b
  => GeneralizableComponent t a b
 
 instance {-# OVERLAPPABLE #-}
@@ -67,13 +68,6 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-} a ~ Component t l' => Castable (Component t l) a
 instance {-# OVERLAPPABLE #-} a ~ Component t l' => Castable a (Component t l)
 instance t ~ t' => Castable (Component t l) (Component t' l')
-
-instance Storable1.Storable1 (Component t) where
-    sizeOf    = Storable.sizeOf    ; {-# INLINE sizeOf    #-}
-    alignment = Storable.alignment ; {-# INLINE alignment #-}
-    peek      = Storable.peek      ; {-# INLINE peek      #-}
-    poke      = Storable.poke      ; {-# INLINE poke      #-}
-
 
 
 -- === TH === --

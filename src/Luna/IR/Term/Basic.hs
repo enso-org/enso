@@ -21,9 +21,9 @@ import qualified Foreign.Memory.Pool as MemPool
 import Foreign.Storable.Deriving  (deriveStorable)
 import Foreign.Storable1.Deriving (deriveStorable1)
 
-import OCI.IR.Term
+import Luna.IR.Term
 -- import qualified OCI.IR.Layout as Layout
-import OCI.IR.Link as Link
+import Luna.IR.Link as Link
 
 import           Data.Tag       (Tag, TagOf)
 import           Luna.IR.Format
@@ -72,8 +72,6 @@ import qualified OCI.IR.Layer.Internal as Layer
 -- import qualified OCI.IR.Layer2 as Layer2
 
 
-type family SizeOf a :: Nat
-type instance SizeOf Int = 8 -- FIXME: support 32 bit platforms too!
 
 
 data Model
@@ -112,8 +110,8 @@ Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
 type instance TermConsDef Missing = ConsMissing
 type instance Layer.ConsLayout ConsMissing = Missing
--- deriveStorable  ''ConsMissing
--- deriveStorable1 ''ConsMissing
+deriveStorable  ''ConsMissing
+deriveStorable1 ''ConsMissing
 deriveLinks     ''ConsMissing
 
 data UniTerm a
@@ -136,11 +134,11 @@ instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm 
 chunkSizex :: Int
 chunkSizex = sizeOf' @Int
 
-instance Storable (ConsMissing a) where
-    sizeOf    _   = 0            ; {-# INLINE sizeOf    #-}
-    alignment _   = chunkSizex   ; {-# INLINE alignment #-}
-    peek      _   = pure Missing ; {-# INLINE peek      #-}
-    poke      _ _ = pure ()      ; {-# INLINE poke      #-}
+-- instance Storable (ConsMissing a) where
+--     sizeOf    _   = 0              ; {-# INLINE sizeOf    #-}
+--     alignment _   = chunkSizex     ; {-# INLINE alignment #-}
+--     peek      _   = return Missing ; {-# INLINE peek      #-}
+--     poke      _ _ = return ()      ; {-# INLINE poke      #-}
 
 
 

@@ -91,8 +91,8 @@ fillLayerInitializer ptr = liftIO . \case
         --     defPtrs = view defPtr <$> ls
         --
         -- if isJust (catMaybes defPtrs)
-        --     then return Nothing
-        --     else return Nothing
+        --     then pure Nothing
+        --     else pure Nothing
 
 
 
@@ -160,7 +160,7 @@ evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
 registerComponentRep :: MonadPassManager m => SomeTypeRep -> m ()
 registerComponentRep comp = State.modifyM_ @Registry $ \m -> do
     when_ (Map.member comp $ m ^. components) . throw $ DuplicateComponent comp
-    return $ m & components %~ Map.insert comp def
+    pure $ m & components %~ Map.insert comp def
 {-# INLINE registerComponentRep #-}
 
 registerPrimLayerRep :: MonadPassManager m => Int -> SomePtr -> SomeTypeRep -> SomeTypeRep -> m ()
@@ -170,8 +170,8 @@ registerPrimLayerRep s layerDef comp layer = State.modifyM_ @Registry $ \m -> do
         Just compInfo -> do
             when_ (Map.member layer $ compInfo ^. layers) $
                 throw $ DuplicateLayer comp layer
-            return $ Just $ compInfo & layers %~ Map.insert layer (LayerInfo s layerDef)
-    return $ m & components .~ components'
+            pure $ Just $ compInfo & layers %~ Map.insert layer (LayerInfo s layerDef)
+    pure $ m & components .~ components'
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadPassManager m, Typeable comp) => m ()
@@ -195,4 +195,4 @@ instance Monad m => State.MonadSetter Registry (PassManagerT m) where
 test :: PassManagerT IO ()
 test = do
     x <- State.get @Registry
-    return ()
+    pure ()

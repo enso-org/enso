@@ -1,26 +1,53 @@
 module Luna.IR.Link where
 
+import Foreign          (Ptr)
+import Foreign.Storable (Storable)
 import Prologue
 
-import           OCI.IR.Conversion (generalize)
-import qualified OCI.IR.Layout     as Layout
-import           OCI.IR.Link
+import Luna.IR.Term
+
+import qualified Data.Tag as Tag
+
+import Foreign                (castPtr)
+import Foreign.Storable.Utils
+import OCI.IR.Component
+import OCI.IR.Conversion      (generalize)
+import Type.Data.Ord
 
 
 
-------------------------
--- === Link types === --
-------------------------
-
--- type Term t src = SubLink (Layout.Rebase t src) Layout.Term
--- type Type t src = SubLink (Layout.Rebase t src) Layout.Type
--- type Name t src = SubLink (Layout.Rebase t src) Layout.Name
+-- type family IRDef a
 
 
+------------------
+-- === Link === --
+------------------
 
------------------------
--- === Instances === --
------------------------
+-- === Definition === ---
+
+componentInstance "Link"
+type SomeLink = Link ()
+
+
+data src :-: tgt
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+data Source
+data Target
+
+type instance Cmp Source Target = 'LT
+type instance Cmp Target Source = 'GT
+
+
+
+
+----------------------
+-- === HasLinks === --
+----------------------
 
 
 class HasLinks a where
@@ -31,7 +58,7 @@ readLinks = liftIO . readLinksIO
 {-# INLINE readLinks #-}
 
 instance HasLinks (Link a) where
-    readLinksIO l = return . pure $ generalize l ; {-# INLINE readLinksIO #-}
+    readLinksIO l = pure . pure $ generalize l ; {-# INLINE readLinksIO #-}
 
 instance HasLinks Int where
-    readLinksIO _ = return mempty ; {-# INLINE readLinksIO #-}
+    readLinksIO _ = pure mempty ; {-# INLINE readLinksIO #-}

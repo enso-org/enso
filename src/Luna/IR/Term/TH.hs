@@ -5,7 +5,6 @@ import Prologue
 import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Luna.IR.Link               as Link
-import qualified OCI.IR.Link                as Link
 
 import Control.Monad               (mapM)
 import Data.List                   (splitAt)

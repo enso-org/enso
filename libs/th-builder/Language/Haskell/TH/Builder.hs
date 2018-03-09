@@ -489,6 +489,9 @@ conNameArity c = let (n, fs) = conNameTypes c in (n, fromIntegral $ length fs)
 conArity :: TH.Con -> Int
 conArity = snd . conNameArity
 
+noArgCon :: TH.Con -> Bool
+noArgCon = (== 0) . conArity
+
 inline :: TH.RuleMatch -> Name -> TH.Dec
 inline rule n = TH.PragmaD $ TH.InlineP n TH.Inline rule TH.AllPhases
 
