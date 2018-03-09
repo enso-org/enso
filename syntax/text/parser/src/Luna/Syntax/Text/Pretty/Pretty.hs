@@ -30,6 +30,7 @@ import Luna.Syntax.Text.Parser.Hardcoded
 import qualified Luna.IR.Term.Unit as Import
 import qualified Data.Text as Text
 
+import Debug.Trace
 
 -- TODO: Refactor:
 type instance GetRefHandler (StateT Scope m) = GetRefHandler m

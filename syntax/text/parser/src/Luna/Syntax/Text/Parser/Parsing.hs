@@ -943,32 +943,50 @@ foreignLocationImportList = buildAsg
    <*> discover (nonEmptyBlock' foreignSymbolImport)
 
 foreignSymbolImport :: AsgParser SomeExpr
-foreignSymbolImport = buildAsg
-    $ (\safety foreignName localName importType ->
+foreignSymbolImport = foreignSymbolImportSpecifiedSafety
+
+foreignSymbolImportSpecifiedSafety :: AsgParser SomeExpr
+foreignSymbolImportSpecifiedSafety =
+    foreignSymbolImportWithSafety specifiedForeignImportSafety
+
+foreignSymbolImportNoSafety :: AsgParser SomeExpr
+foreignSymbolImportNoSafety =
+    foreignSymbolImportWithSafety defaultForeignImportSafety
+
+foreignSymbolImportWithSafety
+    :: AsgParser SomeExpr
+    -> AsgParser SomeExpr
+foreignSymbolImportWithSafety getSafety = buildAsg $
+    (\safety foreignName localName importType ->
         liftAstApp3
         (foreignSymbolProxy localName)
         safety
         foreignName
         importType)
-   <$> foreignImportSafety
-   <*> stringOrVarName
-   <*> funcName
-   <*  symbol Lexer.Typed
-   <*> valExpr
-   where
-       foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
+    <$> getSafety
+    <*> stringOrVarName
+    <*> funcName
+    <*  symbol Lexer.Typed
+    <*> valExpr
+    where
+        foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
 
 -- TODO [Ara] Lookahead to try and parse without the annotation first, and then
 -- if that fails go back and try with the annotation.
 -- TODO [Ara] Need to use `withRecovery` here too.
 
--- FIXME [Ara] Need to have the lexer deal with these as contextual keywords
+defaultForeignImportSafety :: AsgParser SomeExpr
+defaultForeignImportSafety = buildAsg $
+    (\safety -> liftIRBApp0 (IR.foreignImpSafety' safety))
+    <$> ((return Import.Default) :: SymParser ForeignImportType)
+
+-- TODO [Ara] Need to have the lexer deal with these as contextual keywords
 -- using a positive lookahead in the _Lexer_.
-foreignImportSafety :: AsgParser SomeExpr
-foreignImportSafety = buildAsg
-    $ (\(importSafety :: ForeignImportType) ->
+specifiedForeignImportSafety :: AsgParser SomeExpr
+specifiedForeignImportSafety = buildAsg $
+    (\(importSafety :: ForeignImportType) ->
         liftIRBApp0 (IR.foreignImpSafety' importSafety))
-   <$> getImpSafety (optionMaybe varName)
+    <$> getImpSafety (optionMaybe varName)
     where
         getImpSafety :: SymParser (Maybe Name) -> SymParser ForeignImportType
         getImpSafety p = p >>= \case
