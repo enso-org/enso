@@ -2,7 +2,9 @@
 
 ## Development
 
-1. Before commiting new code use `hlint`:
+Before commiting new code:
+
+1. Use `hlint` to improve yours code quality:
    ```bash
    stack install hlint
    hlint . --report
