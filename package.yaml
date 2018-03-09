@@ -71,6 +71,7 @@ executables:
     dependencies:
       - base
       - luna-core
+      - prologue
       - ekg
 
 benchmarks:

@@ -17,7 +17,6 @@ import Criterion.Measurement            (getTime, initializeTime)
 import Data.AutoVector.Storable.Mutable as AVector
 import Data.Vector.Storable             (Vector)
 import Data.Vector.Storable.Mutable     (IOVector, MVector, STVector)
-import Luna.IR.Term
 import System.IO                        (BufferMode (NoBuffering),
                                          hSetBuffering, stdout)
 import Unsafe.Coerce                    (unsafeCoerce)
@@ -30,13 +29,12 @@ import qualified Luna.IR.Term.Basic as Basic
 
 import qualified Data.TypeSet3               as TS3
 import           Language.Haskell.TH.Builder ()
-import qualified Luna.IR.Test                as TT
 import           Type.Data.Map
 
 import qualified Test.Data.IntSet.Cpp as SetTest
 import qualified Test.MemoryManager   as MManager
 
-import OCI.IR.Layout2 ()
+
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do

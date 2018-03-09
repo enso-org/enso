@@ -21,7 +21,6 @@ import qualified Foreign.Memory.Pool as MemPool
 import Foreign.Storable.Deriving  (deriveStorable)
 import Foreign.Storable1.Deriving (deriveStorable1)
 
-import Luna.IR.Class
 import OCI.IR.Term
 -- import qualified OCI.IR.Layout as Layout
 import OCI.IR.Link as Link
@@ -37,7 +36,6 @@ import qualified Data.Tag                    as Tag
 import           OCI.IR.Component
 import qualified OCI.IR.Component            as Component
 import           OCI.IR.Conversion
-import           OCI.IR.Selector
 
 import qualified Data.Tuple.Strict   as Tuple
 import qualified Data.TypeMap.Strict as TypeMap

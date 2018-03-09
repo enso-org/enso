@@ -3,12 +3,9 @@
 
 module OCI.IR.Term where
 
-import Prologue hiding (ConversionError)
+import qualified Data.Tag as Tag
 
 import OCI.IR.Component
-import OCI.IR.Conversion
-
-import qualified Data.Tag as Tag
 
 
 

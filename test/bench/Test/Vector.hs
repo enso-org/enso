@@ -8,7 +8,6 @@ import qualified Data.Vector.Storable.Mutable as Vector
 import           Data.AutoVector.Storable.Mutable
 import qualified Data.Vector.Storable             as V
 import           Data.Vector.Storable.Mutable     (MVector)
-import           Luna.IR.Term
 
 import Control.Exception.Base   (evaluate)
 import Data.IORef

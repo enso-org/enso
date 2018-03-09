@@ -11,9 +11,6 @@ import Control.Monad.State.Layered (StateT)
 import Foreign                     (Ptr)
 import Foreign.Ptr.Utils           (SomePtr)
 
-import OCI.IR.Selector
-import OCI.IR.SelectorT
-
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map                    as Map

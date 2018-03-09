@@ -12,10 +12,11 @@ import qualified Foreign.Storable1   as Storable1
 import qualified Language.Haskell.TH as TH
 import qualified Type.Error          as Error
 
-import Foreign.Ptr.Utils (SomePtr)
-import Foreign.Storable  (Storable)
-import OCI.IR.Conversion (Castable, ConversionError, Generalizable)
-import Type.Error        ((:<+>:))
+import Foreign.Ptr.Utils          (SomePtr)
+import Foreign.Storable           (Storable)
+import Foreign.Storable1.Deriving (deriveStorable1)
+import OCI.IR.Conversion          (Castable, ConversionError, Generalizable)
+import Type.Error                 ((:<+>:))
 
 
 
