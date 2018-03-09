@@ -26,6 +26,7 @@ library:
     - libs/th-builder
     - libs/tuple-utils
     - libs/exception
+    - libs/type-cache
   c-sources:
     - libs/cpp-containers/cbits/*.cpp
     - libs/memory-manager/cbits/*.cpp

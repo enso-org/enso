@@ -49,10 +49,10 @@ type StorableData     comp layer        = Storable1 (Data comp layer)
 type DefaultData comp layer = Default1 (Data comp layer)
 
 class Layer comp layer where
-    init :: ∀ layout. Maybe (Data comp layer layout)
+    init :: ∀ layout. Data comp layer layout
 
-instance {-# OVERLAPPABLE #-} Layer comp layer where
-    init = Nothing ; {-# INLINE init #-}
+-- instance {-# OVERLAPPABLE #-} Layer comp layer where
+--     init = Nothing ; {-# INLINE init #-}
 
 -- class Layer comp layer where
 --     init :: ∀ layout. Ptr (Data comp layer layout) -> IO ()

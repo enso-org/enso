@@ -9,6 +9,7 @@ import Prologue
 import Control.Monad.Branch
 import Control.Monad.State.Layered (StateT)
 import Foreign (Ptr)
+import Foreign.Ptr.Utils (SomePtr)
 
 import OCI.IR.Selector
 import OCI.IR.SelectorT
@@ -20,6 +21,7 @@ import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Type.Data.List              as List
 import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Ptr                 as Ptr
 import qualified OCI.IR.Layer.Internal       as Layer
 
 import Data.TypeMap.Strict     (TypeMap)
@@ -40,9 +42,10 @@ data PassConfig = PassConfig
     } deriving (Show)
 
 data ComponentConfig = ComponentConfig
-    { _byteSize :: !Int
-    , _layers   :: !(Map SomeTypeRep LayerConfig)
-    , _memPool  :: !MemPool
+    { _byteSize  :: !Int
+    , _layers    :: !(Map SomeTypeRep LayerConfig)
+    , _layerInit :: !SomePtr
+    , _memPool   :: !MemPool
     } deriving (Show)
 
 data LayerConfig = LayerConfig
@@ -85,17 +88,21 @@ type Vars pass prop
 -- === ComponentMemPool === --
 
 newtype ComponentMemPool comp       = ComponentMemPool MemPool
+newtype LayerInitializer comp       = LayerInitializer SomePtr
 newtype LayerByteOffset  comp layer = LayerByteOffset  Int
 makeLenses ''ComponentMemPool
 makeLenses ''LayerByteOffset
+makeLenses ''LayerInitializer
 
 
 -- === Instances === --
 
-instance Default (ComponentMemPool a)  where def = ComponentMemPool MemPool.unsafeNull ; {-# INLINE def #-}
-instance Default (LayerByteOffset c l) where def = LayerByteOffset 0 ; {-# INLINE def #-}
+instance Default (ComponentMemPool c)   where def = wrap MemPool.unsafeNull ; {-# INLINE def #-}
+instance Default (LayerInitializer c)   where def = wrap Ptr.nullPtr        ; {-# INLINE def #-}
+instance Default (LayerByteOffset  c l) where def = wrap 0                  ; {-# INLINE def #-}
 
-instance (Typeable comp, Typeable layer) => Show (LayerByteOffset comp layer) where
+instance (Typeable comp, Typeable layer)
+      => Show (LayerByteOffset comp layer) where
     showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
         where name = (<> " ") $ unwords
                    [ "LayerByteOffset"
@@ -118,21 +125,26 @@ instance Typeable comp => Show (ComponentMemPool comp) where
 
 -- === Definition === --
 
-newtype PassState       pass = PassState (PassStateData pass)
-type    PassStateData   pass = TypeMap (PassStateLayout pass)
-type    PassStateLayout pass = List.Append (ComponentMemPools pass)
-                                           (LayersLayout      pass)
+newtype     PassState       pass = PassState (PassStateData pass)
+type        PassStateData   pass = TypeMap (PassStateLayout pass)
+type family PassStateLayout pass :: [Type] -- CACHED WITH definePass TH
+type ComputePassStateLayout pass = List.Append (ComponentMemPools pass)
+                                 ( List.Append (LayersLayout      pass)
+                                               (LayerInitializers pass) )
 
-type ComponentMemPools pass = List.Map ComponentMemPool    (Vars pass Elems)
-type LayersLayout      pass = MapComponentLayerLayout pass (Vars pass Elems)
+type ComponentMemPools pass = List.Map ComponentMemPool      (Vars pass Elems)
+type LayerInitializers pass = List.Map LayerInitializer      (Vars pass Elems)
+type LayersLayout      pass = MapLayerByteOffset        pass (Vars pass Elems)
 
-type family MapComponentLayerLayout pass cs where
-    MapComponentLayerLayout pass '[] = '[]
-    MapComponentLayerLayout pass (c ': cs) = List.Append
-        (ComponentLayerLayout pass c) (MapComponentLayerLayout pass cs)
+type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
-type ComponentLayerLayout pass component
-    = List.Map (LayerByteOffset component) (Vars pass component)
+type family MapOverCompsAndVars t pass comps where
+    MapOverCompsAndVars t pass '[] = '[]
+    MapOverCompsAndVars t pass (c ': cs) = List.Append
+        (ComponentLayerLayout t pass c) (MapOverCompsAndVars t pass cs)
+
+type ComponentLayerLayout t pass component
+    = List.Map (t component) (Vars pass component)
 
 makeLenses ''PassState
 
@@ -292,12 +304,14 @@ instance PassStateEncoder__ '[] pass where
     passStateEncoder__ _ = Right id ; {-# INLINE passStateEncoder__ #-}
 
 instance ( layers   ~ Vars      pass comp
-         , targets  ~ ComponentLayerLayout pass comp
+         , targets  ~ ComponentLayerLayout LayerByteOffset pass comp
          , compMemPool ~ ComponentMemPool comp
+         , layerInit   ~ LayerInitializer comp
          , Typeables layers
          , Typeable  comp
          , PassStateEncoder__  comps pass
          , PassDataElemEncoder  compMemPool MemPool pass
+         , PassDataElemEncoder  layerInit   SomePtr pass
          , PassDataElemsEncoder targets Int pass
          ) => PassStateEncoder__ (comp ': comps) pass where
     passStateEncoder__ cfg = encoders where
@@ -307,8 +321,9 @@ instance ( layers   ~ Vars      pass comp
         mcomp      = mapLeft (wrap . pure)
                    . lookupComponent tgtComp $ cfg ^. components
         tgtComp    = someTypeRep  @comp
-        procComp i = (compEncoder .) <$> layerEncoder where
+        procComp i = ((initEncoder . compEncoder) .) <$> layerEncoder where
             compEncoder  = encodePassDataElem  @compMemPool (i ^. memPool)
+            initEncoder  = encodePassDataElem  @layerInit   (i ^. layerInit)
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             layerTypes   = someTypeReps @layers
             layerOffsets = view byteOffset <<$>> layerInfos

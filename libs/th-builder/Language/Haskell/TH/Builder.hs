@@ -9,8 +9,7 @@ import Prologue hiding (Cons, Data, Type, cons, inline)
 import Control.Lens (_3)
 import qualified Data.Char  as Char
 
-import Language.Haskell.TH as X (newName)
-import Language.Haskell.TH (Q, Name)
+import Language.Haskell.TH as X (Q, Name, Dec, newName, reify, runIO)
 import qualified Language.Haskell.TH as TH
 
 
@@ -78,10 +77,12 @@ toUpper = mapName (map Char.toUpper)
 instance Convertible Name   TH.TyVarBndr where convert = TH.PlainTV
 instance Convertible String Name         where convert = TH.mkName
 instance Convertible String TH.TyVarBndr where convert = TH.PlainTV . convert
+instance Convertible Name   String       where convert = TH.nameBase
 
 instance IsString Name         where fromString = convert
 instance IsString TH.TyVarBndr where fromString = convert
-
+instance Semigroup Name where
+    n <> n' = convert (convert n <> convert n' :: String)
 
 
 ----------------------

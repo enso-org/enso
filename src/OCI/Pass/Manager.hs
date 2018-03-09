@@ -8,8 +8,10 @@ import qualified Data.Set                    as Set
 import qualified Foreign.Storable.Utils      as Storable
 import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.Pass.Class              as Pass
-import qualified Foreign.Marshal.Utils       as Ptr
+import qualified Foreign.Marshal.Alloc       as Mem
+import qualified Foreign.Marshal.Utils       as Mem
 import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable1.Ptr       as Ptr1
 
 import Control.Lens                (at)
@@ -19,7 +21,9 @@ import Data.Default                (def)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
 import Foreign.Memory.Pool         (MemPool)
+import Foreign.Ptr                 (plusPtr)
 import Foreign.Ptr.Utils           (SomePtr)
+
 
 ---------------------------
 -- === Configuration === --
@@ -37,7 +41,7 @@ newtype ComponentInfo = ComponentInfo
 
 data LayerInfo = LayerInfo
     { _byteSize :: !Int
-    , _defPtr   :: !(Maybe SomePtr)
+    , _defPtr   :: !SomePtr
     } deriving (Show)
 
 makeLenses ''Registry
@@ -63,20 +67,35 @@ mkCompConfig compCfg = compInfo where
     layerCfgs    = Pass.LayerConfig <$> layerOffsets
     compSize     = sum layerSizes
     compInfo     = Pass.ComponentConfig compSize
-                   (fromList $ zip layerReps layerCfgs)
-               <$> MemPool.new def (MemPool.ItemSize compSize)
+               <$> pure (fromList $ zip layerReps layerCfgs)
+               <*> prepareLayerInitializer layerInfos
+               <*> MemPool.new def (MemPool.ItemSize compSize)
 {-# INLINE mkCompConfig #-}
 
--- bakeDefLayers :: [LayerInfo] -> Maybe SomePtr
--- bakeDefLayers = \case
---     [] -> Nothing
---     ls -> do
---         let size    = sum $ view byteSize <$> ls
---             defPtrs = view defPtr <$> ls
---
---         if isJust (catMaybes defPtrs)
---             then return Nothing
---             else return Nothign
+prepareLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
+prepareLayerInitializer ls = do
+    ptr <- mallocLayerInitializer ls
+    fillLayerInitializer ptr ls
+    return ptr
+
+mallocLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
+mallocLayerInitializer = \case
+    [] -> return Ptr.nullPtr
+    ls -> liftIO . Mem.mallocBytes . sum $ view byteSize <$> ls
+
+fillLayerInitializer :: MonadIO m => SomePtr -> [LayerInfo] -> m ()
+fillLayerInitializer ptr = liftIO . \case
+    []     -> return ()
+    (l:ls) -> Mem.copyBytes ptr (l ^. defPtr) (l ^. byteSize)
+           >> fillLayerInitializer (ptr `plusPtr` (l ^. byteSize)) ls
+
+
+
+        --     defPtrs = view defPtr <$> ls
+        --
+        -- if isJust (catMaybes defPtrs)
+        --     then return Nothing
+        --     else return Nothing
 
 
 
@@ -147,7 +166,7 @@ registerComponentRep comp = State.modifyM_ @Registry $ \m -> do
     return $ m & components %~ Map.insert comp def
 {-# INLINE registerComponentRep #-}
 
-registerPrimLayerRep :: MonadPassManager m => Int -> Maybe SomePtr -> SomeTypeRep -> SomeTypeRep -> m ()
+registerPrimLayerRep :: MonadPassManager m => Int -> SomePtr -> SomeTypeRep -> SomeTypeRep -> m ()
 registerPrimLayerRep s layerDef comp layer = State.modifyM_ @Registry $ \m -> do
     components' <- flip (at comp) (m ^. components) $ \case
         Nothing       -> throw $ MissingComponent comp
@@ -162,7 +181,7 @@ registerComponent :: ∀ comp m.       (MonadPassManager m, Typeable comp) => m 
 registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer.StorableData comp layer, Layer.Layer comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
 registerPrimLayer = do
-    layerDef <- sequence $ Ptr1.new <$> Layer.init @comp @layer
+    layerDef <- Ptr1.new $ Layer.init @comp @layer
     registerPrimLayerRep (Layer.byteSize @comp @layer) (coerce layerDef) (someTypeRep @comp) (someTypeRep @layer)
 {-# INLINE registerPrimLayer #-}
 

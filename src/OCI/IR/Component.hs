@@ -5,16 +5,17 @@ module OCI.IR.Component where
 
 import Prologue hiding (Castable, ConversionError)
 
+import qualified Data.Tag            as Tag
+import qualified Language.Haskell.TH as TH
+import qualified Type.Error          as Error
+import qualified Foreign.Ptr         as Ptr
+import qualified Foreign.Storable    as Storable
+import qualified Foreign.Storable1   as Storable1
+
 import Foreign.Storable  (Storable)
 import Foreign.Ptr.Utils (SomePtr)
 import OCI.IR.Conversion (Castable, Generalizable, ConversionError)
 import Type.Error        ((:<+>:))
-
-import qualified Data.Tag            as Tag
-import qualified Language.Haskell.TH as TH
-import qualified Type.Error          as Error
-import qualified Foreign.Storable    as Storable
-import qualified Foreign.Storable1   as Storable1
 
 
 
@@ -27,6 +28,12 @@ import qualified Foreign.Storable1   as Storable1
 newtype Component t layout = Component SomePtr deriving (Eq, Show, Storable)
 type SomeComponent t = Component t ()
 makeLenses ''Component
+
+
+-- === API === --
+
+unsafeNull :: Component comp layout
+unsafeNull = Component Ptr.nullPtr ; {-# INLINE unsafeNull #-}
 
 
 -- === Generalization === --

@@ -36,12 +36,15 @@ import qualified Control.Monad.State.Layered as State
 import OCI.IR.Component
 import OCI.IR.Conversion
 import OCI.IR.Selector
+import qualified OCI.IR.Component as Component
 
 import qualified Data.TypeMap.Strict as TypeMap
 import qualified Data.Tuple.Strict as Tuple
 
 import  OCI.IR.Layout ((:=))
 import qualified OCI.IR.Layout as Layout
+
+import OCI.Pass.TH
 
 -- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
 
@@ -55,6 +58,7 @@ import OCI.Pass.Class as Pass
 import qualified Data.Map                    as Map
 
 import Luna.IR.Term.TH
+import Type.Cache
 
 import qualified OCI.Pass.Manager as PassManager
 import           OCI.Pass.Manager (MonadPassManager)
@@ -104,9 +108,18 @@ deriveStorable  ''ConsAcc
 deriveStorable1 ''ConsAcc
 deriveLinks     ''ConsAcc
 
+Tag.familyInstance "TermCons" "Missing"
+data ConsMissing a = Missing deriving (Show, Eq)
+type instance TermConsDef Missing = ConsMissing
+type instance Layer.ConsLayout ConsMissing = Missing
+-- deriveStorable  ''ConsMissing
+-- deriveStorable1 ''ConsMissing
+deriveLinks     ''ConsMissing
+
 data UniTerm a
-    = UniTermVar !(ConsVar a)
-    | UniTermAcc !(ConsAcc a)
+    = UniTermVar     !(ConsVar     a)
+    | UniTermAcc     !(ConsAcc     a)
+    | UniTermMissing !(ConsMissing a)
     deriving (Show, Eq)
 deriveStorable  ''UniTerm
 deriveStorable1 ''UniTerm
@@ -120,12 +133,24 @@ instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm 
 
 
 
+chunkSizex :: Int
+chunkSizex = sizeOf' @Int
+
+instance Storable (ConsMissing a) where
+    sizeOf    _   = 0              ; {-# INLINE sizeOf    #-}
+    alignment _   = chunkSizex     ; {-# INLINE alignment #-}
+    peek      _   = return Missing ; {-# INLINE peek      #-}
+    poke      _ _ = return ()      ; {-# INLINE poke      #-}
 
 
 
-type instance Layer.Data   Terms XType = Link
--- type instance Layer.Layout Terms XType layout = layout *-* Layout.Get XType layout
-type instance Layer.Layout Terms XType layout = layout *-* layout
+
+type instance Layer.Data   Terms Type = Link
+-- type instance Layer.Layout Terms Type layout = layout *-* Layout.Get Type layout
+type instance Layer.Layout Terms Type layout = layout *-* layout
+
+instance Layer.Layer Terms Type where
+    init = Component.unsafeNull ; {-# INLINE init #-}
 
 
 type instance Layer.Layout   Terms Model layout = layout
@@ -144,9 +169,15 @@ type instance Layer.Layout Links Target layout = Layout.Get Target layout
 type instance Layer.Data   Links Source        = Term
 type instance Layer.Data   Links Target        = Term
 
+instance Layer.Layer Links Source where
+    init = Component.unsafeNull ; {-# INLINE init #-}
+
+instance Layer.Layer Links Target where
+    init = Component.unsafeNull ; {-# INLINE init #-}
 
 
-
+instance Layer.Layer Terms Model where
+    init = UniTermMissing Missing ; {-# INLINE init #-}
 
 
 
@@ -174,6 +205,8 @@ term = term' ; {-# INLINE term #-}
 term' term = do
     ir <- noInitAllocIR
     Layer.write @Model ir (toUniTerm term)
+    -- Pass.LayerInit f <- Pass.getData @Pass.LayerInit
+    -- liftIO $ f (coerce ir)
     return $ cast ir
 {-# INLINE term' #-}
 
@@ -212,7 +245,6 @@ type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
 --
 --
 
-data XType
 
 -- type instance Layout.DefLayout layout (TermCons t) = Draft
 
@@ -220,10 +252,15 @@ data MyPass
 type instance Spec MyPass t = Spec_MyPass t
 type family   Spec_MyPass t where
     Spec_MyPass (In Elems) = '[Terms, Links]
-    Spec_MyPass (In Terms) = '[Model, XType]
+    Spec_MyPass (In Terms) = '[Model, Type]
     Spec_MyPass (In Links) = '[Source, Target]
-    Spec_MyPass (Out a)    = Spec_MyPass (In a)
+    Spec_MyPass (Out a)    = '[] -- Spec_MyPass (In a)
     Spec_MyPass t          = '[]
+
+-- type instance PassStateLayout MyPass = ComputePassStateLayout MyPass
+cachePassConfig_phase1 ''MyPass
+cachePassConfig_phase2 ''MyPass
+
 
 
 test_pm_run :: MonadIO m => m Pass.PassConfig
@@ -233,7 +270,7 @@ test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
 test_pm = do
     PassManager.registerComponent @Terms
     PassManager.registerPrimLayer @Terms @Model
-    PassManager.registerPrimLayer @Terms @XType
+    PassManager.registerPrimLayer @Terms @Type
 
     PassManager.registerComponent @Links
     PassManager.registerPrimLayer @Links @Source
@@ -252,7 +289,7 @@ passTest = do
     v3 <- var 9
     l1 <- link v1 v2
 
-    Layer.write @XType v1 l1
+    Layer.write @Type v1 l1
 
     s <- Layer.read @Source l1
     m <- Layer.read @Model s
