@@ -45,7 +45,7 @@ import qualified OCI.IR.Layout as Layout
 
 import OCI.Pass.TH
 
--- import Control.Monad.State.Strict hiding (return, liftIO, MonadIO)
+-- import Control.Monad.State.Strict hiding (pure, liftIO, MonadIO)
 
 import Foreign.Marshal.Alloc (mallocBytes)
 import Type.Data.Ord         (Cmp)
@@ -137,10 +137,10 @@ chunkSizex :: Int
 chunkSizex = sizeOf' @Int
 
 instance Storable (ConsMissing a) where
-    sizeOf    _   = 0              ; {-# INLINE sizeOf    #-}
-    alignment _   = chunkSizex     ; {-# INLINE alignment #-}
-    peek      _   = return Missing ; {-# INLINE peek      #-}
-    poke      _ _ = return ()      ; {-# INLINE poke      #-}
+    sizeOf    _   = 0            ; {-# INLINE sizeOf    #-}
+    alignment _   = chunkSizex   ; {-# INLINE alignment #-}
+    peek      _   = pure Missing ; {-# INLINE peek      #-}
+    poke      _ _ = pure ()      ; {-# INLINE poke      #-}
 
 
 
@@ -212,7 +212,7 @@ newIR = do
     ptr  <- Pass.getLayerInitializer @comp
     size <- Pass.getComponentSize    @comp
     liftIO $ Mem.copyBytes (coerce ir) ptr size
-    return ir
+    pure ir
 {-# INLINE newIR #-}
 
 
@@ -222,7 +222,7 @@ term = term' ; {-# INLINE term #-}
 term' term = do
     ir <- newIR
     Layer.write @Model ir (toUniTerm term)
-    return $ cast ir
+    pure $ cast ir
 {-# INLINE term' #-}
 
 
@@ -235,7 +235,7 @@ link src tgt = do
     ir <- newIR @Links
     Layer.write @Source ir src
     Layer.write @Target ir tgt
-    return $ ir
+    pure $ ir
 {-# INLINE link #-}
 
 
@@ -294,7 +294,7 @@ test_pm = do
     reg <- State.get @PassManager.Registry
     passCfg <- PassManager.mkPassConfig reg
 
-    return passCfg
+    pure passCfg
 
 
 passTest :: Pass.Pass MyPass
@@ -309,7 +309,7 @@ passTest = do
     s <- Layer.read @Source l1
     m <- Layer.read @Model s
     print m
-    return ()
+    pure ()
 
 passTest_run :: IO ()
 passTest_run = do
@@ -371,7 +371,7 @@ test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
     !ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
-    let go 0 = return ()
+    let go 0 = pure ()
         go j = do
             UniTermVar (Var !y) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
             UniTermVar (Var !z) <- Layer.unsafeReadByteOff @Model layerLoc0 ir
@@ -387,7 +387,7 @@ test_readWriteLayer i = do
 --     ir <- mockNewIR
 --     writeLayer layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
---         go 0 = return ()
+--         go 0 = pure ()
 --         go j = do
 --             set <- get'
 --             let layer = TypeSet.unsafeLookup @(LayerLoc Model) set
@@ -409,7 +409,7 @@ test_readWriteLayer_ptrOff i = do
     ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
-        go 0 = return ()
+        go 0 = pure ()
         go j = do
             -- set <- get'
             layer <- peek ptr
@@ -435,7 +435,7 @@ test_readWriteLayer_ptrBuffOff i = do
     ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
-        go 0 = return ()
+        go 0 = pure ()
         go j = do
             p <- get @(Ptr Int)
             x <- get @Int
@@ -452,7 +452,7 @@ test_readWriteLayer_ptrBuffOff i = do
 --     ir <- mockNewIR
 --     writeLayer @Model ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
---         go 0 = return ()
+--         go 0 = pure ()
 --         go j = do
 --             UniTermVar (Var x) <- readLayer @Model ir
 --             writeLayer @Model ir (UniTermVar $ Var (x+1))
@@ -471,7 +471,7 @@ test_readWriteLayer_ptrBuffOff i = do
 -- readWritePtr :: Int -> IO ()
 -- readWritePtr i = do
 --     ptr <- Ptr.new (0 :: Int)
---     let go 0 = return ()
+--     let go 0 = pure ()
 --         go j = do
 --             x <- peek ptr
 --             poke ptr (x+1)
@@ -487,7 +487,7 @@ test_readWriteLayer2 i = do
     ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
-        go 0 = return ()
+        go 0 = pure ()
         go j = do
             !set <- State.get'
             let !layer = TypeMap.getElem @Int set
@@ -503,7 +503,7 @@ test_readWriteLayer2 i = do
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go :: Int -> Pass.Pass MyPass
---         go 0 = return ()
+--         go 0 = pure ()
 --         go j = do
 --             !s <- getPassState
 --             Pass.LayerByteOffset !layer <- Pass.getData @(Pass.LayerByteOffset Terms Model)
@@ -531,7 +531,7 @@ test_readWriteLayer4 i = do
     ir <- mockNewIR
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let go :: Int -> Pass.Pass MyPass
-        go 0 = return ()
+        go 0 = pure ()
         go j = do
             UniTermVar (Var !x) <- Layer.read @Model ir
             Layer.write @Model ir (UniTermVar $ Var $! (x+1))
@@ -545,7 +545,7 @@ test_readWriteLayer4 i = do
 
 test_mallocPtr :: Int -> IO ()
 test_mallocPtr i = do
-    let go !0 = return ()
+    let go !0 = pure ()
         go !j = do
             !ptr <- Ptr.new (0 :: Int)
             go $! j - 1
@@ -555,7 +555,7 @@ test_mallocPtr i = do
 test_createNode :: Int -> IO ()
 test_createNode i = do
     let go :: Int -> Pass.Pass MyPass
-        go 0 = return ()
+        go 0 = pure ()
         go j = do
             v <- var 5
             go (j - 1)
@@ -570,7 +570,7 @@ tttest :: Term Var -> Pass.Pass MyPass
 tttest n = do
     -- (x :: _) <- Layer.read @Model n
     -- (x :: _) <- Layer.readCons__ @Terms @Model n
-    return ()
+    pure ()
 -- unsafeReadByteOff  :: CTX => Int -> Component comp layout -> m (LayoutView comp layer layout)
 -- #define CTX ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)
 
@@ -595,7 +595,7 @@ tttest n = do
 --     s <- getPassState
 --     print s
 --     print =<< Pass.getData @(Pass.LayerByteOffset Terms Model)
---     return ()
+--     pure ()
 --
 -- passRunTest :: IO ()
 -- passRunTest = Pass.runPass (Pass.encodePassStateTEMP layout) passTest where
@@ -613,7 +613,7 @@ tttest n = do
 --     ir <- mockNewIR
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
---         go 0 = return ()
+--         go 0 = pure ()
 --         go j = do
 --             layer <- State.get'
 --             -- let LayerLoc layer = TypeSet.unsafeLookup @(LayerLoc Model) set
@@ -630,7 +630,7 @@ tttest n = do
 --     ir <- mockNewIR
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
---         go 0 = return ()
+--         go 0 = pure ()
 --         go j = do
 --             set <- State.get'
 --             let LayerLoc layer = TypeSet.unsafeLookup @(LayerLoc Model) set
@@ -662,7 +662,7 @@ tttest n = do
 --     let x = undefined :: Term Var
 --         y = x
 --         y :: Int
---     return ()
+--     pure ()
 
 
 
@@ -713,7 +713,7 @@ tttest n = do
 --         x = undefined
 --         y = x
 --         y :: Int
---     return ()
+--     pure ()
 
 -- data IR a = IR
 --     { __tp   :: !(Link.Type )
