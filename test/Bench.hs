@@ -7,9 +7,9 @@ module Main where
 
 import Prologue
 
+import qualified Bench.Vector                 as Test
 import qualified Data.Vector.Storable         as Vector
 import qualified Data.Vector.Storable.Mutable as Vector
-import qualified Test.Vector                  as Test
 
 import Criterion.Main
 import Criterion.Measurement            (getTime, initializeTime)
@@ -30,8 +30,8 @@ import qualified Data.TypeSet3               as TS3
 import           Language.Haskell.TH.Builder ()
 import           Type.Data.Map
 
+import qualified Bench.MemoryManager  as MManager
 import qualified Test.Data.IntSet.Cpp as SetTest
-import qualified Test.MemoryManager   as MManager
 
 
 
