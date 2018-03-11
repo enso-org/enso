@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                  #-}
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
@@ -41,7 +42,7 @@ import           OCI.IR.Conversion
 import qualified Data.Tuple.Strict   as Tuple
 import qualified Data.TypeMap.Strict as TypeMap
 
-import           OCI.IR.Layout ((:=))
+import           OCI.IR.Layout ((:=), Layout)
 import qualified OCI.IR.Layout as Layout
 
 import OCI.Pass.TH
@@ -72,12 +73,11 @@ import qualified OCI.IR.Layer          as Layer
 import qualified OCI.IR.Layer.Internal as Layer
 
 -- import qualified OCI.IR.Layer2 as Layer2
+import Luna.IR.Layout
 
 
 
-data Names
-
-type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
+type src *-* tgt = Layout [Source := src, Target := tgt]
 
 ----------------
 -- === IR === --
@@ -138,11 +138,18 @@ instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni 
 
 -- === Smart constructors === --
 
-var :: Term.Creator Var m => Int -> m (Term Var)
+#define CTX(name) (Term.Creator name m, LinkCreator m)
+
+var :: CTX(Var) => Int -> m (Term Var)
 var = Term.uncheckedNew . Var ; {-# INLINE var #-}
 
-missing :: Term.Creator Missing m => m (Term Missing)
+missing :: CTX(Missing) => m (Term Missing)
 missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
+
+acc :: CTX(Acc) => Term base -> Term name -> m (Term (Acc -* base -# name))
+acc base name = Term.newM $ \term -> Acc <$> link base term <*> link name term ; {-# INLINE acc #-}
+
+#undef CTX
 
 
 
@@ -210,15 +217,8 @@ type instance Cmp Terms Names = 'GT
 -- x = undefined
 -- y :: Proxy T2
 -- y = x
-acc :: forall base name layout m. (LinkCreator m, Component.Creator Terms m
-    , layout ~ Layout.FromList '[Terms := base, Names := name, Model := Acc]
-    ) => Term base -> Term name -> m (Term layout)
-acc base name = do
-    ir    <- Component.new @Terms
-    lbase <- link base ir
-    lname <- link name ir
-    let acc = Acc @layout lbase lname
-    return ir
+
+
 
 
 type LinkCreator m = (Component.Creator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m)
@@ -231,6 +231,7 @@ link src tgt = do
     Layer.write @Target ir tgt
     pure $ ir
 {-# INLINE link #-}
+
 
 
 

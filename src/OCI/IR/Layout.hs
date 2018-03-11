@@ -5,7 +5,7 @@ module OCI.IR.Layout (module OCI.IR.Layout, module X) where
 
 import Type.Data.Map as X ((:=))
 
-import Prologue
+import Prologue hiding (Default)
 -- import Type.Data.Map
 import Data.Tag
 import Type.Data.Maybe
@@ -34,18 +34,28 @@ import qualified Type.Data.Map as Map
 -- === Layout === --
 --------------------
 
-data Layout (map :: Map.Raw Type Type)
+type Layout lst = Layout__ (Map.FromAssocListRaw lst)
+data Layout__ (map :: Map.Raw Type Type)
 
-type family DefLayout key
-
-type FromList lst = Layout (Map.FromAssocListRaw lst)
+type family Default key
 
 type family Get (key :: Type) (layout :: Type) :: Type where
-    Get key (Layout map) = FromMaybe (DefLayout key) (Map.LookupRaw key map)
-    Get key _            = DefLayout key
+    Get key (Layout__ map) = FromMaybe (Default key) (Map.LookupRaw key map)
+    Get key _            = Default key
 
 type family Set key val layout where
-    Set key val (Layout map) = Layout (Map.InsertRaw key val map)
+    Set key val (Layout__ map) = Layout__ (Map.InsertRaw key val map)
+
+
+
+
+type family ToLayout a
+type instance ToLayout (Layout__ m) = Layout__ m
+
+
+-- === Validation === --
+
+type AssertEQ key layout val = Get key layout ~ val
 
 
 --
@@ -64,7 +74,7 @@ type family Set key val layout where
 --
 -- -- === API === --
 --
--- type SubLayout t layout = FromMaybe (DefLayout t) (GetBranches layout !? t)
+-- type SubLayout t layout = FromMaybe (Default t) (GetBranches layout !? t)
 --
 --
 --

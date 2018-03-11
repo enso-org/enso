@@ -10,16 +10,16 @@ import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
-import OCI.IR.Component      (Component)
-import OCI.IR.Conversion     (cast)
-import OCI.IR.Layer.Internal (Layer)
-
+import OCI.IR.Component  (Component)
+import OCI.IR.Conversion (cast)
 
 
 ---------------------
 -- === UniTerm === --
 ---------------------
 
+-- | The implementation of Uni is delayed until we know
+--   all possible Term constructors.
 type family Uni :: Type -> Type
 
 class IsUni t where
@@ -54,16 +54,27 @@ type Creator t m =
     , Layer.DataCons1 Terms Model (TagToCons t)
     )
 
-uncheckedNew :: forall tag layout m any. Creator tag m
-             => TagToCons tag layout -> m (Term any)
-uncheckedNew term = do
+uncheckedNewM :: Creator tag m
+    => (Term any -> m (TagToCons tag layout)) -> m (Term any)
+uncheckedNewM cons = do
     ir <- Component.new
+    let ir' = cast ir
+    term <- cons ir'
     Layer.write @Model ir (Layer.consData1 @Terms @Model term)
-    pure $ cast ir
-{-# INLINE uncheckedNew #-}
+    pure ir'
+{-# INLINE uncheckedNewM #-}
 
-new :: forall tag layout m. Creator tag m
-    => TagToCons tag layout -> m (Term (Layout.Set Model tag layout))
+newM :: ( Creator tag m
+        , Layout.Get Model layout ~ tag
+        , Layout.AssertEQ Model layout tag
+        ) => (Term layout -> m (TagToCons tag layout)) -> m (Term layout)
+newM = uncheckedNewM ; {-# INLINE newM #-}
+
+uncheckedNew :: Creator tag m => TagToCons tag layout -> m (Term any)
+uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
+
+new :: (Creator tag m, Layout.AssertEQ Model layout tag)
+    => TagToCons tag layout -> m (Term layout)
 new = uncheckedNew ; {-# INLINE new #-}
 
 
