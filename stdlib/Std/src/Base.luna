@@ -78,12 +78,6 @@ native class Real:
     ## Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
 
-    def toCArg: primRealToCDoubleArg self
-    def toCDouble: primRealToCDoubleArg self
-    def toCFloat: primRealToCFloatArg self
-    def read ptr: primReadPtrDouble ptr
-    def write ptr: primWritePtrDouble ptr self
-
     ## Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self
     ## Display a real number as text.
@@ -337,6 +331,7 @@ class None:
     def toJSON: JSONNull
 
     def retType: primVoidRetType
+    def retTypeTrans a: None
 
 ## Class representing pairs of elements of arbitrary type.
 class Tuple2 a b:

@@ -29,6 +29,7 @@ stdlibImports = [ ["Std", "Base"]
                 , ["Std", "Time"]
                 , ["Std", "WebSockets"]
                 , ["Std", "Foreign"]
+                , ["Std", "FFI", "C", "Value"]
                 ]
 
 stdlib :: Imports -> IO (IO (), Map Name Function)

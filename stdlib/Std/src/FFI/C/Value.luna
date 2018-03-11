@@ -1,147 +1,3 @@
-native class CVoid:
-    CVoid
-
-native class CUChar:
-    CUChar
-    def byteSize: primByteSizeCUChar
-    def from a: CUChar.fromInt a.toInt
-    def fromInt a: primIntToCUChar a
-    def read ptr: primReadPtrCUChar ptr
-    def write ptr: primWritePtrCUChar ptr self
-
-native class CInt8:
-    CInt8
-    def from a: CInt8.fromInt a.toInt
-    def fromInt a: primIntToCInt8 a
-    def byteSize: primByteSizeInt8
-    def read ptr: primReadPtrInt8 ptr
-    def write ptr: primWritePtrInt8 ptr self
-
-native class CInt16:
-    CInt16
-    def from a: CInt16.fromInt a.toInt
-    def fromInt a: primIntToCInt16 a
-    def byteSize: primByteSizeInt16
-    def read ptr: primReadPtrInt16 ptr
-    def write ptr: primWritePtrInt16 ptr self
-
-native class CInt32:
-    CInt32
-    def from a: CInt32.fromInt a.toInt
-    def fromInt a: primIntToCInt32 a
-    def byteSize: primByteSizeInt32
-    def read ptr: primReadPtrInt32 ptr
-    def write ptr: primWritePtrInt32 ptr self
-
-native class CInt64:
-    CInt64
-    def from a: CInt64.fromInt a.toInt
-    def fromInt a: primIntToCInt64 a
-    def byteSize: primByteSizeInt64
-    def read ptr: primReadPtrInt64 ptr
-    def write ptr: primWritePtrInt64 ptr self
-
-native class CUInt:
-    CUInt
-    def from a: CUInt.fromInt a.toInt
-    def fromInt a: primIntToCUInt a
-    def byteSize: primByteSizeUInt
-    def read ptr: primReadPtrUInt ptr
-    def write ptr: primWritePtrUInt ptr self
-
-native class CUInt8:
-    CUInt8
-    def from a: CUInt8.fromInt a.toInt
-    def fromInt a: primIntToCUInt8 a
-    def byteSize: primByteSizeUInt8
-    def read ptr: primReadPtrUInt8 ptr
-    def write ptr: primWritePtrUInt8 ptr self
-
-native class CUInt16:
-    CUInt16
-    def from a: CUInt16.fromInt a.toInt
-    def fromInt a: primIntToCUInt16 a
-    def byteSize: primByteSizeUInt16
-    def read ptr: primReadPtrUInt16 ptr
-    def write ptr: primWritePtrUInt16 ptr self
-
-native class CUInt32:
-    CUInt32
-    def from a: CUInt32.fromInt a.toInt
-    def fromInt a: primIntToCUInt32 a
-    def byteSize: primByteSizeUInt32
-    def read ptr: primReadPtrUInt32 ptr
-    def write ptr: primWritePtrUInt32 ptr self
-
-native class CUInt64:
-    CUInt64
-    def from a: CUInt64.fromInt a.toInt
-    def fromInt a: primIntToCUInt64 a
-    def byteSize: primByteSizeUInt64
-    def read ptr: primReadPtrUInt64 ptr
-    def write ptr: primWritePtrUInt64 ptr self
-
-native class CLong:
-    CLong
-    def from a: CLong.fromInt a.toInt
-    def fromInt a: primIntToCLong a
-    def byteSize: primByteSizeLong
-    def read ptr: primReadPtrLong ptr
-    def write ptr: primWritePtrLong ptr self
-
-native class CULong:
-    CULong
-    def from a: CULong.fromInt a.toInt
-    def fromInt a: primIntToCULong a
-    def byteSize: primByteSizeULong
-    def read ptr: primReadPtrULong ptr
-    def write ptr: primWritePtrULong ptr self
-
-native class CLongLong:
-    CLongLong
-    def from a: CLongLong.fromInt a.toInt
-    def fromInt a: primIntToCLongLong a
-    def byteSize: primByteSizeLongLong
-    def read ptr: primReadPtrLongLong ptr
-    def write ptr: primWritePtrLongLong ptr self
-
-native class CULongLong:
-    CULongLong
-    def from a: CULongLong.fromInt a.toInt
-    def fromInt a: primIntToCULongLong a
-    def byteSize: primByteSizeULongLong
-    def read ptr: primReadPtrULongLong ptr
-    def write ptr: primWritePtrULongLong ptr self
-
-native class CSize:
-    CSize
-    def from a: CSize.fromInt a.toInt
-    def fromInt a: primIntToCSize a
-    def byteSize: primByteSizeSize
-    def read ptr: primReadPtrSize ptr
-    def write ptr: primWritePtrSize ptr self
-
-native class CFloat:
-    CFloat
-    def from a: CFloat.fromReal a.toReal
-    def fromReal a: primRealToCFloat a
-    def byteSize: primByteSizeFloat
-    def read ptr: primReadPtrFloat ptr
-    def write ptr: primWritePtrFloat ptr self
-
-native class CDouble:
-    CDouble
-    def from a: CDouble.fromReal a.toReal
-    def fromReal a: primRealToCDouble a
-    def byteSize: primByteSizeDouble
-    def read ptr: primReadPtrDouble ptr
-    def write ptr: primWritePtrDouble ptr self
-
-native class CChar:
-    CChar
-    def retType: primCCharRetType
-    def toCArg: primCCharToArg self
-
 class CString:
     CString
     CStringVal (Ptr CChar)
@@ -155,30 +11,248 @@ class CString:
         ptr = primCStringFromText t
         CStringVal ptr
 
+    def retType: Pointer CChar . retType
+    def fromRetType: CStringVal
+
     def toCArg: case self of
         CStringVal c: c.toCArg
+
+    def byteSize: Pointer CChar . byteSize
+
+    def readPtr p:
+        cptr = primPtrReadPtr p.cast
+        CStringVal cptr
+
+    def isNull: primPtrEq self.ptr primNullPtr
+
+class NullTerminatedArray a:
+    NullTerminatedArray a
+    NullTerminatedArrayVal (Pointer a)
+
+    def typeRep: case self of
+        NullTerminatedArray a: a
+
+    def ptr: case self of
+        NullTerminatedArrayVal p: p
+        NullTerminatedArray a: Pointer a
+
+    def retType: self.ptr.retType
+    def fromRetType v: NullTerminatedArrayVal (self.ptr.fromRetType v)
+
+    def toCArg: self . ptr . toCArg
+
+    def toList:
+        fst = self.ptr.read
+        case fst.isNull of
+            True: []
+            False:
+                rest = NullTerminatedArrayVal (self.ptr.moveElems 1) . toList
+                rest . prepend fst
+
+native class XXXI:
+    XXXI
+
+    def retType: primXXXIRetType
+    def fromRetType: id
+    def toCArg: primXXXIToArg self
+    def byteSize: primXXXIByteSize
+    def writePtr p: primXXXIWritePtr p self
+    def readPtr p: primXXXIReadPtr p
+
+    def toText: primXXXIToText self
+
+    def == that: primXXXIEq self that
+    def <  that: primXXXILt self that
+    def >  that: primXXXIGt self that
+
+    def + that: primXXXIPlus self that
+    def * that: primXXXIMul  self that
+    def - that: primXXXISub  self that
+    def / that: primXXXIDiv  self that
+    def % that: primXXXIMod  self that
+
+    def negate: primXXXINegate self
+    def abs:    primXXXIAbs    self
+
+    def toInt: primXXXIToInt self
+    def fromInt i: primXXXIFromInt i
+
+native class CChar:
+    CChar
+
+    def retType: primCCharRetType
+    def fromRetType: id
+    def toCArg: primCCharToArg self
+    def byteSize: primCCharByteSize
+    def writePtr p: primCCharWritePtr p self
+    def readPtr p: primCCharReadPtr p
+
+    def toText: primCCharToText self
+
+    def == that: primCCharEq self that
+    def <  that: primCCharLt self that
+    def >  that: primCCharGt self that
+
+    def + that: primCCharPlus self that
+    def * that: primCCharMul  self that
+    def - that: primCCharSub  self that
+    def / that: primCCharDiv  self that
+    def % that: primCCharMod  self that
+
+    def negate: primCCharNegate self
+    def abs:    primCCharAbs    self
+
+    def toInt: primCCharToInt self
+    def fromInt i: primCCharFromInt i
 
 native class CInt:
     CInt
 
-    def fromInt a: primCIntFromInt a
-    def toInt: primCIntToInt self
     def retType: primCIntRetType
+    def fromRetType: id
     def toCArg: primCIntToArg self
+    def byteSize: primCIntByteSize
+    def writePtr p: primCIntWritePtr p self
+    def readPtr p: primCIntReadPtr p
+
+    def toText: primCIntToText self
+
+    def == that: primCIntEq self that
+    def <  that: primCIntLt self that
+    def >  that: primCIntGt self that
+
+    def + that: primCIntPlus self that
+    def * that: primCIntMul  self that
+    def - that: primCIntSub  self that
+    def / that: primCIntDiv  self that
+    def % that: primCIntMod  self that
+
+    def negate: primCIntNegate self
+    def abs:    primCIntAbs    self
+
+    def toInt: primCIntToInt self
+    def fromInt i: primCIntFromInt i
+
+native class XXXR:
+    XXXR
+
+    def retType: primXXXRRetType
+    def fromRetType: id
+    def toCArg: primXXXRToArg self
+    def byteSize: primXXXRByteSize
+    def writePtr p: primXXXRWritePtr p self
+    def readPtr p: primXXXRReadPtr p
+
+    def toText: primXXXRToText self
+
+    def == that: primXXXREq self that
+    def <  that: primXXXRLt self that
+    def >  that: primXXXRGt self that
+
+    def + that: primXXXRPlus self that
+    def * that: primXXXRMul  self that
+    def - that: primXXXRSub  self that
+    def / that: primXXXRDiv  self that
+
+    def negate: primXXXRNegate self
+    def abs:    primXXXRAbs    self
+
+    def toReal: primXXXRToReal self
+    def fromReal r: primXXXRFromReal r
+
+native class CFloat:
+    CFloat
+
+    def retType: primCFloatRetType
+    def fromRetType: id
+    def toCArg: primCFloatToArg self
+    def byteSize: primCFloatByteSize
+    def writePtr p: primCFloatWritePtr p self
+    def readPtr p: primCFloatReadPtr p
+
+    def toText: primCFloatToText self
+
+    def == that: primCFloatEq self that
+    def <  that: primCFloatLt self that
+    def >  that: primCFloatGt self that
+
+    def + that: primCFloatPlus self that
+    def * that: primCFloatMul  self that
+    def - that: primCFloatSub  self that
+    def / that: primCFloatDiv  self that
+
+    def negate: primCFloatNegate self
+    def abs:    primCFloatAbs    self
+
+    def toReal: primCFloatToReal self
+    def fromReal r: primCFloatFromReal r
+
+native class CDouble:
+    CDouble
+
+    def retType: primCDoubleRetType
+    def fromRetType: id
+    def toCArg: primCDoubleToArg self
+    def byteSize: primCDoubleByteSize
+    def writePtr p: primCDoubleWritePtr p self
+    def readPtr p: primCDoubleReadPtr p
+
+    def toText: primCDoubleToText self
+
+    def == that: primCDoubleEq self that
+    def <  that: primCDoubleLt self that
+    def >  that: primCDoubleGt self that
+
+    def + that: primCDoublePlus self that
+    def * that: primCDoubleMul  self that
+    def - that: primCDoubleSub  self that
+    def / that: primCDoubleDiv  self that
+
+    def negate: primCDoubleNegate self
+    def abs:    primCDoubleAbs    self
+
+    def toReal: primCDoubleToReal self
+    def fromReal r: primCDoubleFromReal r
 
 native class RetType:
-    RetType
-
-    def cInt: primCIntRetType
-    def ptr: primPtrRetType self
     def retType: self
 
-
 native class Ptr a:
-    Ptr a
     def toCArg: primPtrToCArg self
-    def retType: case self of
-        Ptr a: a . retType . ptr
+    def cast: primPtrCast self
+    def == that: primPtrEq self that
+    def isNull: self == primNullPtr
+    def moveBytes i: primPtrPlus self i
 
-def nullPtr: primNullPtr
+class Pointer a:
+    Pointer    a
+    PointerVal a (Ptr a)
 
+    def typeRep: case self of
+        Pointer a: a
+        PointerVal a _: a
+
+    def ptr: case self of
+        PointerVal _ p: p
+
+    def retType: primPtrRetType self.typeRep.retType
+    def fromRetType p: PointerVal self.typeRep p.cast
+
+    def toCArg: self.ptr.toCArg
+
+    def byteSize: primPtrByteSize
+
+    def moveBytes i:
+        nptr = self.ptr.moveBytes i
+        tr = self.typeRep
+        PointerVal tr nptr
+
+    def moveElems i:
+        elemSize = self . typeRep . byteSize
+        self . moveBytes (i * elemSize)
+
+    def read: self . typeRep . readPtr self.ptr
+
+    def write v: v . writePtr self.ptr
+
+    def isNull: self.ptr.isNull

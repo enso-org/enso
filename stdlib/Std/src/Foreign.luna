@@ -8,7 +8,8 @@ def lookupSymbol dll symbol:
 
 native class FunPtr:
     def call retType args:
-        primCallFunPtr self retType.retType args
+        r = primCallFunPtr self retType.retType args
+        retType.fromRetType r
 
     def shortRep: "FunPtr"
     def toJSON: "FunPtr"
