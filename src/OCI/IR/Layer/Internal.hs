@@ -15,6 +15,7 @@ import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
 import OCI.IR.Component       (Component (Component))
+import OCI.Pass.Class         (Pass)
 
 
 -----------------------
@@ -138,9 +139,8 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 instance {-# OVERLAPPABLE #-}
     ( StorableData comp layer
-    , Pass.LayerByteOffsetGetter comp layer (Pass.SubPassT pass m)
-    , MonadIO m
-    ) => Reader comp layer (Pass.SubPassT pass m) where
+    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+    ) => Reader comp layer (Pass pass) where
     read__ !comp = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeReadByteOff @layer off comp
@@ -148,9 +148,8 @@ instance {-# OVERLAPPABLE #-}
 
 instance {-# OVERLAPPABLE #-}
     ( StorableData comp layer
-    , Pass.LayerByteOffsetGetter comp layer (Pass.SubPassT pass m)
-    , MonadIO m
-    ) => Writer comp layer (Pass.SubPassT pass m) where
+    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+    ) => Writer comp layer (Pass pass) where
     write__ !comp !d = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeWriteByteOff @layer off comp d

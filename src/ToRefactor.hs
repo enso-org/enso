@@ -22,6 +22,7 @@ import qualified OCI.IR.Layer                as Layer
 import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.IR.Layout               as Layout
 import qualified OCI.Pass.Cache              as Pass
+import qualified OCI.Pass.Class              as Pass
 import qualified OCI.Pass.Manager            as PassManager
 
 import Control.Monad.State.Layered (get, put)
@@ -35,7 +36,7 @@ import Luna.IR.Format
 import Luna.IR.Layout
 import Luna.IR.Term                (Model, Term, TermCons, Terms)
 import OCI.IR.Component
-import OCI.Pass.Class              as Pass
+import OCI.Pass.Class              (Elems, In, Out, Pass, Spec)
 import OCI.Pass.Manager            (MonadPassManager)
 import Type.Data.Ord               (Cmp)
 
@@ -85,7 +86,7 @@ test_pm = do
     pure passCfg
 
 
-passTest :: Pass.Pass BasicPass
+passTest :: Pass BasicPass ()
 passTest = do
     v1 <- var 5
     v2 <- var 7
@@ -327,7 +328,7 @@ test_readWriteLayer4 :: Int -> IO ()
 test_readWriteLayer4 i = do
     ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
-    let go :: Int -> Pass.Pass BasicPass
+    let go :: Int -> Pass BasicPass ()
         go 0 = pure ()
         go j = do
             UniTermVar (Var !x) <- Layer.read @Model ir
@@ -351,7 +352,7 @@ test_mallocPtr i = do
 
 test_createNode :: Int -> IO ()
 test_createNode i = do
-    let go :: Int -> Pass.Pass BasicPass
+    let go :: Int -> Pass BasicPass ()
         go 0 = pure ()
         go j = do
             v <- var 5
@@ -363,7 +364,7 @@ test_createNode i = do
 
 
 -- type instance Layout.GetBase Var = Var
-tttest :: Term Var -> Pass.Pass BasicPass
+tttest :: Term Var -> Pass BasicPass ()
 tttest n = do
     -- (x :: _) <- Layer.read @Model n
     -- (x :: _) <- Layer.readCons__ @Terms @Model n

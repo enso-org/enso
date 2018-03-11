@@ -13,7 +13,6 @@ import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified Type.Data.List              as List
 
-import Control.Monad.Branch        (MonadBranch)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
@@ -171,19 +170,14 @@ deriving instance Default (PassStateData pass) => Default (PassState pass)
 
 -- === Definition === --
 
-type PassStdBase = IO
-
-type    Pass     (pass :: Type)     = PassT    pass PassStdBase
-type    SubPass  (pass :: Type)     = SubPassT pass PassStdBase
-type    PassT    (pass :: Type) m   = SubPassT pass m ()
-newtype SubPassT (pass :: Type) m a = SubPassT (StateT (PassState pass) m a)
+newtype Pass (pass :: Type) a = Pass (StateT (PassState pass) IO a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
-             , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch)
-makeLenses ''SubPassT
+             , MonadIO, MonadPlus, MonadThrow)
+makeLenses ''Pass
 
 type family DiscoverPass m where
-    DiscoverPass (SubPassT pass m) = pass
-    DiscoverPass (t m)            = DiscoverPass m
+    DiscoverPass (Pass pass) = pass
+    DiscoverPass (t m)       = DiscoverPass m
 
 type DiscoverPassState       m = PassState       (DiscoverPass m)
 type DiscoverPassStateData   m = PassStateData   (DiscoverPass m)
@@ -192,30 +186,32 @@ type DiscoverPassStateLayout m = PassStateLayout (DiscoverPass m)
 
 -- === API === --
 
-runPass :: Functor m => PassState pass -> SubPassT pass m a -> m a
+runPass :: PassState pass -> Pass pass a -> IO a
 runPass !s p = flip State.evalT s (coerce p) ; {-# INLINE runPass #-}
 
 
 
-------------------------
---- === MonadPass === --
-------------------------
+-------------------------
+--- === MonadState === --
+-------------------------
 
 -- === Definition === --
 
-class Monad m => MonadPass m where
+type  MonadStateCtx m = MonadIO m
+class MonadStateCtx m => MonadState m where
     getPassState :: m (DiscoverPassState m)
     putPassState :: DiscoverPassState m -> m ()
 
-instance Monad m => MonadPass (SubPassT pass m) where
+instance MonadState (Pass pass) where
     getPassState = wrap State.get'   ; {-# INLINE getPassState #-}
     putPassState = wrap . State.put' ; {-# INLINE putPassState #-}
 
 instance {-# OVERLAPPABLE #-}
-         ( Monad (t m), MonadPass m, MonadTrans t
+         ( MonadStateCtx (t m), MonadState m, MonadTrans t
          , DiscoverPass (t m) ~ DiscoverPass m
-         ) => MonadPass (t m) where
-    getPassState = lift getPassState ; {-# INLINE getPassState #-}
+         ) => MonadState (t m) where
+    getPassState = lift   getPassState ; {-# INLINE getPassState #-}
+    putPassState = lift . putPassState ; {-# INLINE putPassState #-}
 
 
 -- === API === --
@@ -223,7 +219,7 @@ instance {-# OVERLAPPABLE #-}
 class    Monad m => DataGetter a   m     where getData :: m a
 instance Monad m => DataGetter Imp m     where getData = impossible
 instance            DataGetter a   ImpM1 where getData = impossible
-instance (MonadPass m, TypeMap.ElemGetter a (DiscoverPassStateLayout m))
+instance (MonadState m, TypeMap.ElemGetter a (DiscoverPassStateLayout m))
       => DataGetter a m where
     getData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getData #-}
 
