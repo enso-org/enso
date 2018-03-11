@@ -76,8 +76,9 @@ executables:
 
 benchmarks:
   array-benchmark:
-    main:        Bench.hs
+    main:        Test/Bench.hs
     source-dirs: test
+    ghc-options: -main-is Test.Bench
     dependencies:
       - base
       - criterion >= 1.3.0.0

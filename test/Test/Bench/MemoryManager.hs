@@ -1,5 +1,5 @@
 {-# LANGUAGE UnliftedFFITypes #-}
-module Bench.MemoryManager where
+module Test.Bench.MemoryManager where
 
 import Prelude
 

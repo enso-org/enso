@@ -3,13 +3,13 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-orphans -fno-warn-unused-binds #-}
 
-module Main where
+module Test.Bench where
 
 import Prologue
 
-import qualified Bench.Vector                 as Test
 import qualified Data.Vector.Storable         as Vector
 import qualified Data.Vector.Storable.Mutable as Vector
+import qualified Test.Bench.Vector            as Test
 
 import Criterion.Main
 import Criterion.Measurement            (getTime, initializeTime)
@@ -18,6 +18,7 @@ import Data.Vector.Storable             (Vector)
 import Data.Vector.Storable.Mutable     (IOVector, MVector, STVector)
 import System.IO                        (BufferMode (NoBuffering),
                                          hSetBuffering, stdout)
+import Test.Pass
 import Unsafe.Coerce                    (unsafeCoerce)
 
 -- import qualified Data.GraphLuna as Graph
@@ -30,9 +31,10 @@ import qualified Data.TypeSet3               as TS3
 import           Language.Haskell.TH.Builder ()
 import           Type.Data.Map
 
-import qualified Bench.MemoryManager  as MManager
-import qualified Test.Data.IntSet.Cpp as SetTest
+import qualified Test.Bench.MemoryManager as MManager
+import qualified Test.Data.IntSet.Cpp     as SetTest
 
+import Luna.Pass ()
 
 
 
