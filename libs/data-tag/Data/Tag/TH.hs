@@ -26,13 +26,13 @@ familyInstance' fam el = nonStandardFamilyInstance' fam el (Char.toUpper <$> el)
 -- | Define a custom-named tag family instance.
 --   `Tag.nonStandardFamilyInstance "Fam" "Foo" "AnyFoo"` will generate:
 --   > data AnyFoo; type Foo = Fam AnyFoo
-nonStandardFamilyInstance  :: String -> String -> String -> Q [TH.Dec]
-nonStandardFamilyInstance' :: String -> String -> String ->   [TH.Dec]
+nonStandardFamilyInstance  :: (Convertible' fam Name, Convertible' el Name) => fam -> el -> String -> Q [TH.Dec]
+nonStandardFamilyInstance' :: (Convertible' fam Name, Convertible' el Name) => fam -> el -> String ->   [TH.Dec]
 nonStandardFamilyInstance = return .:. nonStandardFamilyInstance'
 nonStandardFamilyInstance' fam el inst = dataWithAlias instName elName famName
-    where elName   = convert el
-          famName  = convert fam
-          instName = convert inst
+    where elName   = convert' el
+          famName  = convert' fam
+          instName = convert' inst
 
 
 -- | Define a parent type definition that can later be used to construct

@@ -101,5 +101,5 @@ instance t ~ t' => Castable (Component t l) (Component t' l')
 
 -- === TH === --
 
-componentInstance :: String -> TH.Q [TH.Dec]
-componentInstance el = Tag.nonStandardFamilyInstance "Component" el (el <> "s") -- FIXME: Pass Component as name, not to require its imports!
+define :: String -> TH.Q [TH.Dec]
+define el = Tag.nonStandardFamilyInstance ''Component el (el <> "s")

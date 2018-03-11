@@ -7,6 +7,7 @@ module OCI.IR.Layer.Internal where
 import Prologue hiding (Data)
 
 import qualified Foreign.Storable1 as Storable1
+import qualified OCI.IR.Component  as Component
 import qualified OCI.Pass.Class    as Pass
 
 import Foreign.Ptr            (plusPtr)
@@ -47,9 +48,19 @@ type DefaultData comp layer = Default1 (Data comp layer)
 class Initializer comp layer where
     init :: ∀ layout. Data comp layer layout
 
+instance {-# OVERLAPPABLE #-} DataInitializer (Data comp layer)
+      => Initializer comp layer where
+    init = initData ; {-# INLINE init #-}
+
+class DataInitializer t where
+    initData :: ∀ layout. t layout
+
 class DataCons1 comp layer t where
     consData1 :: ∀ a. t a -> Data comp layer a
 
+
+instance DataInitializer (Component comp) where
+    initData = Component.unsafeNull ; {-# INLINE initData #-}
 
 -- instance {-# OVERLAPPABLE #-} Layer comp layer where
 --     init = Nothing ; {-# INLINE init #-}

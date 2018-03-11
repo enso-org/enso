@@ -10,7 +10,6 @@ import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
-import OCI.IR.Component  (Component)
 import OCI.IR.Conversion (cast)
 
 
@@ -33,7 +32,7 @@ class IsUni t where
 
 -- === Definition === --
 
-Component.componentInstance "Term"
+Component.define "Term"
 Tag.family "TermCons"
 
 type SomeTerm = Term ()

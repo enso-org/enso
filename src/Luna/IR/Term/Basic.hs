@@ -77,7 +77,6 @@ import Luna.IR.Layout
 
 
 
-type src *-* tgt = Layout [Source := src, Target := tgt]
 
 ----------------
 -- === IR === --
@@ -136,9 +135,15 @@ instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni 
 
 
 
+
+instance Layer.DataInitializer UniTerm where
+    initData = UniTermMissing Missing ; {-# INLINE initData #-}
+
+
+
 -- === Smart constructors === --
 
-#define CTX(name) (Term.Creator name m, LinkCreator m)
+#define CTX(name) (Term.Creator name m, Link.Creator m)
 
 var :: CTX(Var) => Int -> m (Term Var)
 var = Term.uncheckedNew . Var ; {-# INLINE var #-}
@@ -147,7 +152,7 @@ missing :: CTX(Missing) => m (Term Missing)
 missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
 
 acc :: CTX(Acc) => Term base -> Term name -> m (Term (Acc -* base -# name))
-acc base name = Term.newM $ \term -> Acc <$> link base term <*> link name term ; {-# INLINE acc #-}
+acc base name = Term.newM $ \term -> Acc <$> Link.new base term <*> Link.new name term ; {-# INLINE acc #-}
 
 #undef CTX
 
@@ -158,37 +163,10 @@ type instance Layer.Data   Terms Type = Link
 -- type instance Layer.Layout Terms Type layout = layout *-* Layout.Get Type layout
 type instance Layer.Layout Terms Type layout = layout *-* layout
 
-instance Layer.Initializer Terms Type where
-    init = Component.unsafeNull ; {-# INLINE init #-}
 
 
 
--- type instance Layer.ConsData Terms Model (TermCons f) = Term.TagToCons (TermCons f)
 
-
-
--- type instance Layer     Terms Type   =
--- type instance Layer.View Terms Type a =
--- instance StorableLayer.View Terms Model (Format f)
--- instance Storable (Layer.View' Terms Model (TermCons f))
---     => StorableLayer.View Terms Model (TermCons f) where
---     peekLayer.ViewIO ptr = peek (ptr `plusPtr` constructorSize) ; {-# INLINE peekLayer.ViewIO #-}
-
-
-type instance Layer.Layout Links Source layout = Layout.Get Source layout
-type instance Layer.Layout Links Target layout = Layout.Get Target layout
-type instance Layer.Data   Links Source        = Term
-type instance Layer.Data   Links Target        = Term
-
-instance Layer.Initializer Links Source where
-    init = Component.unsafeNull ; {-# INLINE init #-}
-
-instance Layer.Initializer Links Target where
-    init = Component.unsafeNull ; {-# INLINE init #-}
-
-
-instance Layer.Initializer Terms Model where
-    init = UniTermMissing Missing ; {-# INLINE init #-}
 
 
 
@@ -201,62 +179,9 @@ type instance Cmp Names Model = 'GT
 
 type instance Cmp Names Terms = 'LT
 type instance Cmp Terms Names = 'GT
--- class Reader layer where
-
-
--- data ConsAcc a = Acc
--- { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a)) -- !(Link.Term Acc a)
--- , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a)) -- !(Link.Name Acc a)
--- } deriving (Show, Eq)
-
-
--- type T1 = Layout.FromList '[Terms := Int, Names := Char, Model := Acc]
--- type T2 = Layout.Set Model Acc T1
-
--- x :: Proxy T1
--- x = undefined
--- y :: Proxy T2
--- y = x
 
 
 
-
-type LinkCreator m = (Component.Creator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m)
-
-link :: LinkCreator m
-     => Term src -> Term tgt -> m (Link (src *-* tgt))
-link src tgt = do
-    ir <- Component.new
-    Layer.write @Source ir src
-    Layer.write @Target ir tgt
-    pure $ ir
-{-# INLINE link #-}
-
-
-
-
-
--- acc ::
-
-
--- Tag.familyInstance "TermCons" "Var"
--- newtype ConsVar a = Var
---     { __name :: Int
---     } deriving (Show, Eq)
--- type instance Term.TagToCons Var = ConsVar
--- type instance Layer.ConsLayout ConsVar = Var
--- deriveStorable ''ConsVar
--- deriveLinksDiscovery nsVar
-
--- newComponent :: forall t a m. (KnownLayers t, MonadIO m) => m (Component t a)
--- newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
-
-
--- termMemPool, linkMemPool :: MemPool
--- termMemPool = unsafePerfromIO newMemPool ; {-# NOINLINE termMemPool #-}
--- linkMemPool = unsafePerfromIO newMemPool ; {-# NOINLINE linkMemPool #-}
---
---
 
 
 -- type instance Layout.DefLayout layout (TermCons t) = Draft
@@ -300,7 +225,7 @@ passTest = do
     v1 <- var 5
     v2 <- var 7
     v3 <- var 9
-    l1 <- link v1 v2
+    l1 <- Link.new v1 v2
 
     Layer.write @Type v1 l1
 
@@ -346,7 +271,6 @@ passTest_run = do
 mockNewComponent :: MonadIO m => m (Term Draft)
 mockNewComponent = Component . coerce <$> MemPool.allocPtr @(UniTerm ()) ; {-# INLINE mockNewComponent #-}
 
-mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
 mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
