@@ -1,6 +1,4 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -8,36 +6,18 @@ module Luna.IR.Term.Core where
 
 import Prologue
 
-import qualified Control.Monad.Exception     as Exception
-import qualified Control.Monad.State.Layered as State
-import qualified Data.Tag                    as Tag
-import qualified Data.Tuple.Strict           as Tuple
-import qualified Data.TypeMap.Strict         as TypeMap
-import qualified Foreign                     as Ptr
-import qualified Foreign.Memory.Pool         as MemPool
-import           Luna.IR.Link                as Link
-import qualified Luna.IR.Link.TH             as Link
-import qualified Luna.IR.Term                as Term
-import qualified OCI.IR.Layer                as Layer
-import qualified OCI.IR.Layer.Internal       as Layer
-import qualified OCI.IR.Layout               as Layout
-import qualified OCI.Pass.Manager            as PassManager
+import qualified Data.Tag              as Tag
+import           Luna.IR.Link          as Link
+import qualified Luna.IR.Link.TH       as Link
+import qualified Luna.IR.Term          as Term
+import qualified OCI.IR.Layer.Internal as Layer
+import qualified OCI.IR.Layout         as Layout
 
-import Control.Monad.State.Layered (get, put)
-import Foreign.Marshal.Alloc       (mallocBytes)
-import Foreign.Ptr                 (Ptr)
-import Foreign.Storable            (peek, poke, pokeByteOff)
-import Foreign.Storable.Deriving   (deriveStorable)
-import Foreign.Storable.Utils      (sizeOf')
-import Foreign.Storable1.Deriving  (deriveStorable1)
-import Luna.IR.Format
+import Foreign.Storable.Deriving  (deriveStorable)
+import Foreign.Storable1.Deriving (deriveStorable1)
 import Luna.IR.Layout
-import Luna.IR.Term                (Model, Term, TermCons, Terms)
-import OCI.IR.Component
-import OCI.Pass.Class              as Pass
-import OCI.Pass.Manager            (MonadPassManager)
-import OCI.Pass.TH
-import Type.Data.Ord               (Cmp)
+import Luna.IR.Term               (Model, Term, TermCons, Terms)
+import Type.Data.Ord              (Cmp)
 
 
 

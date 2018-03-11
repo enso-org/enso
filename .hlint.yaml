@@ -20,6 +20,7 @@
           , BangPatterns
           , BinaryLiterals
           , ConstraintKinds
+          , CPP
           , DataKinds
           , DefaultSignatures
           , DeriveDataTypeable
@@ -34,6 +35,7 @@
           , FlexibleInstances
           , ForeignFunctionInterface
           , FunctionalDependencies
+          , GADTs
           , GeneralizedNewtypeDeriving
           , InstanceSigs
           , LambdaCase

@@ -60,18 +60,18 @@ type instance Layer.Layout Terms Type layout = layout *-* layout
 
 -- type instance Layout.DefLayout layout (TermCons t) = Draft
 
-data MyPass
-type instance Spec MyPass t = Spec_MyPass t
-type family   Spec_MyPass t where
-    Spec_MyPass (In Elems) = '[Terms, Links]
-    Spec_MyPass (In Terms) = '[Model, Type]
-    Spec_MyPass (In Links) = '[Source, Target]
-    Spec_MyPass (Out a)    = '[] -- Spec_MyPass (In a)
-    Spec_MyPass t          = '[]
+data BasicPass
+type instance Spec BasicPass t = Spec_BasicPass t
+type family   Spec_BasicPass t where
+    Spec_BasicPass (In Elems) = '[Terms, Links]
+    Spec_BasicPass (In Terms) = '[Model, Type]
+    Spec_BasicPass (In Links) = '[Source, Target]
+    Spec_BasicPass (Out a)    = Spec_BasicPass (In a)
+    Spec_BasicPass t          = '[]
 
--- type instance PassStateLayout MyPass = ComputePassStateLayout MyPass
-cachePassConfig_phase1 ''MyPass
-cachePassConfig_phase2 ''MyPass
+-- type instance PassStateLayout BasicPass = ComputePassStateLayout BasicPass
+cachePassConfig_phase1 ''BasicPass
+cachePassConfig_phase2 ''BasicPass
 
 
 
@@ -94,7 +94,7 @@ test_pm = do
     pure passCfg
 
 
-passTest :: Pass.Pass MyPass
+passTest :: Pass.Pass BasicPass
 passTest = do
     v1 <- var 5
     v2 <- var 7
@@ -138,7 +138,7 @@ passTest_run = do
 
 
 --
--- type instance Pass.In AnyLayer Terms MyPass = '[Model]
+-- type instance Pass.In AnyLayer Terms BasicPass = '[Model]
 
 
 
@@ -308,7 +308,7 @@ test_readWriteLayer2 i = do
 --     ir <- mockNewComponent
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
---         go :: Int -> Pass.Pass MyPass
+--         go :: Int -> Pass.Pass BasicPass
 --         go 0 = pure ()
 --         go j = do
 --             !s <- getPassState
@@ -336,7 +336,7 @@ test_readWriteLayer4 :: Int -> IO ()
 test_readWriteLayer4 i = do
     ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
-    let go :: Int -> Pass.Pass MyPass
+    let go :: Int -> Pass.Pass BasicPass
         go 0 = pure ()
         go j = do
             UniTermVar (Var !x) <- Layer.read @Model ir
@@ -360,7 +360,7 @@ test_mallocPtr i = do
 
 test_createNode :: Int -> IO ()
 test_createNode i = do
-    let go :: Int -> Pass.Pass MyPass
+    let go :: Int -> Pass.Pass BasicPass
         go 0 = pure ()
         go j = do
             v <- var 5
@@ -372,7 +372,7 @@ test_createNode i = do
 
 
 -- type instance Layout.GetBase Var = Var
-tttest :: Term Var -> Pass.Pass MyPass
+tttest :: Term Var -> Pass.Pass BasicPass
 tttest n = do
     -- (x :: _) <- Layer.read @Model n
     -- (x :: _) <- Layer.readCons__ @Terms @Model n
@@ -396,7 +396,7 @@ tttest n = do
 
 
 
--- passTest :: Pass.Pass MyPass
+-- passTest :: Pass.Pass BasicPass
 -- passTest = do
 --     s <- getPassState
 --     print s
