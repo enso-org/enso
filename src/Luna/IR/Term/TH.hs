@@ -14,8 +14,8 @@ import Luna.IR.Link                (HasLinks, readLinksIO)
 import OCI.IR.Conversion           (generalize)
 
 
-deriveLinks :: Name -> Q [TH.Dec]
-deriveLinks ty = do
+deriveLinksDiscovery :: Name -> Q [TH.Dec]
+deriveLinksDiscovery ty = do
     TypeInfo tyConName tyVars cs <- getTypeInfo ty
     decs <- genReadLinksIO cs
     return [classInstance ''HasLinks tyConName tyVars decs]

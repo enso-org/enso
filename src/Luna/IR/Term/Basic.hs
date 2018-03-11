@@ -21,7 +21,8 @@ import qualified Foreign.Memory.Pool as MemPool
 import Foreign.Storable.Deriving  (deriveStorable)
 import Foreign.Storable1.Deriving (deriveStorable1)
 
-import Luna.IR.Term
+import           Luna.IR.Term (Model, Term, TermCons, Terms)
+import qualified Luna.IR.Term as Term
 -- import qualified OCI.IR.Layout as Layout
 import Luna.IR.Link as Link
 
@@ -69,12 +70,12 @@ import           Type.Data.Bool
 import qualified Foreign.Marshal.Utils as Mem
 import qualified OCI.IR.Layer          as Layer
 import qualified OCI.IR.Layer.Internal as Layer
+
 -- import qualified OCI.IR.Layer2 as Layer2
 
 
 
 
-data Model
 
 
 ----------------
@@ -83,62 +84,54 @@ data Model
 
 -- === IR Atoms === ---
 
-type family TermConsDef t :: Type -> Type
 
 Tag.familyInstance "TermCons" "Var"
 newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
-type instance TermConsDef Var = ConsVar
-type instance Layer.ConsLayout ConsVar = Var
-deriveStorable  ''ConsVar
-deriveStorable1 ''ConsVar
-deriveLinks     ''ConsVar
+type instance Term.TagToCons Var     = ConsVar
+type instance Term.ConsToTag ConsVar = Var
+makeLenses           ''ConsVar
+deriveStorable       ''ConsVar
+deriveStorable1      ''ConsVar
+deriveLinksDiscovery ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
     { __base :: !(Link (Layout.Get Terms a :-: Layout.Set Model Acc a)) -- !(Link.Term Acc a)
     , __name :: !(Link (Layout.Get Terms a :-: Layout.Set Model Acc a)) -- !(Link.Name Acc a)
     } deriving (Show, Eq)
-type instance TermConsDef Acc = ConsAcc
-type instance Layer.ConsLayout ConsAcc = Acc
-deriveStorable  ''ConsAcc
-deriveStorable1 ''ConsAcc
-deriveLinks     ''ConsAcc
+type instance Term.TagToCons Acc     = ConsAcc
+type instance Term.ConsToTag ConsAcc = Acc
+makeLenses           ''ConsAcc
+deriveStorable       ''ConsAcc
+deriveStorable1      ''ConsAcc
+deriveLinksDiscovery ''ConsAcc
 
 Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
-type instance TermConsDef Missing = ConsMissing
-type instance Layer.ConsLayout ConsMissing = Missing
-deriveStorable  ''ConsMissing
-deriveStorable1 ''ConsMissing
-deriveLinks     ''ConsMissing
+type instance Term.TagToCons Missing     = ConsMissing
+type instance Term.ConsToTag ConsMissing = Missing
+makeLenses           ''ConsMissing
+deriveStorable       ''ConsMissing
+deriveStorable1      ''ConsMissing
+deriveLinksDiscovery ''ConsMissing
 
 data UniTerm a
     = UniTermVar     !(ConsVar     a)
     | UniTermAcc     !(ConsAcc     a)
     | UniTermMissing !(ConsMissing a)
     deriving (Show, Eq)
-deriveStorable  ''UniTerm
-deriveStorable1 ''UniTerm
-deriveLinks     ''UniTerm
+makeLenses           ''UniTerm
+deriveStorable       ''UniTerm
+deriveStorable1      ''UniTerm
+deriveLinksDiscovery ''UniTerm
 
-class IsTermCons t where
-    toUniTerm :: ∀ a. t a -> UniTerm a
+type instance Term.Uni = UniTerm
 
-instance IsTermCons ConsVar where toUniTerm = UniTermVar ; {-# INLINE toUniTerm #-}
-instance IsTermCons ConsAcc where toUniTerm = UniTermAcc ; {-# INLINE toUniTerm #-}
-
-
-
-chunkSizex :: Int
-chunkSizex = sizeOf' @Int
-
--- instance Storable (ConsMissing a) where
---     sizeOf    _   = 0              ; {-# INLINE sizeOf    #-}
---     alignment _   = chunkSizex     ; {-# INLINE alignment #-}
---     peek      _   = return Missing ; {-# INLINE peek      #-}
---     poke      _ _ = return ()      ; {-# INLINE poke      #-}
+instance Term.IsUni ConsVar     where toUni = UniTermVar     ; {-# INLINE toUni #-}
+instance Term.IsUni ConsAcc     where toUni = UniTermAcc     ; {-# INLINE toUni #-}
+instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni #-}
 
 
 
@@ -151,9 +144,11 @@ instance Layer.Layer Terms Type where
     init = Component.unsafeNull ; {-# INLINE init #-}
 
 
-type instance Layer.Layout   Terms Model layout = layout
-type instance Layer.Data     Terms Model = UniTerm
-type instance Layer.ConsData Terms Model (TermCons f) = TermConsDef (TermCons f)
+
+-- type instance Layer.ConsData Terms Model (TermCons f) = Term.TagToCons (TermCons f)
+
+
+
 -- type instance Layer     Terms Type   =
 -- type instance Layer.View Terms Type a =
 -- instance StorableLayer.View Terms Model (Format f)
@@ -181,56 +176,16 @@ instance Layer.Layer Terms Model where
 
 -- class Reader layer where
 
-mockNewIR :: MonadIO m => m (Term Draft)
-mockNewIR = Component . coerce <$> MemPool.allocPtr @(UniTerm ()) ; {-# INLINE mockNewIR #-}
-
-mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
-mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
 
 
 
-type IRAllocator comp m =
-    ( MonadIO m
-    , Pass.ComponentMemPoolGetter comp m
-    )
-
-type IRCreator comp m =
-    ( IRAllocator                 comp m
-    , Pass.LayerInitializerGetter comp m
-    , Pass.ComponentSizeGetter    comp m
-    )
-
--- | Its unsafe because it only allocates raw memory.
-newUninitializedIR :: ∀ comp m layout. IRAllocator comp m => m (Component comp layout)
-newUninitializedIR = wrap <$> (MemPool.alloc =<< Pass.getComponentMemPool @comp) ; {-# INLINE newUninitializedIR #-}
-
-newIR :: ∀ comp m layout. IRCreator comp m => m (Component comp layout)
-newIR = do
-    ir   <- newUninitializedIR
-    ptr  <- Pass.getLayerInitializer @comp
-    size <- Pass.getComponentSize    @comp
-    liftIO $ Mem.copyBytes (coerce ir) ptr size
-    pure ir
-{-# INLINE newIR #-}
+var :: Term.Creator Var m => Int -> m (Term Var)
+var name = Term.uncheckedNew $ Var name ; {-# INLINE var #-}
 
 
-term  :: (IRCreator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term (Layout.Set Model (Layer.ConsLayout t) a))
-term' :: (IRCreator Terms m, Layer.Writer Terms Model m, IsTermCons t) => t a -> m (Term b)
-term = term' ; {-# INLINE term #-}
-term' term = do
-    ir <- newIR
-    Layer.write @Model ir (toUniTerm term)
-    pure $ cast ir
-{-# INLINE term' #-}
-
-
-var :: (IRCreator Terms m, Layer.Writer Terms Model m) => Int -> m (Term Var)
-var name = term' $ Var name ; {-# INLINE var #-}
-
-
-link :: (IRCreator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
+link :: (Component.Creator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
 link src tgt = do
-    ir <- newIR @Links
+    ir <- Component.new
     Layer.write @Source ir src
     Layer.write @Target ir tgt
     pure $ ir
@@ -243,10 +198,10 @@ type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
 -- newtype ConsVar a = Var
 --     { __name :: Int
 --     } deriving (Show, Eq)
--- type instance TermConsDef Var = ConsVar
+-- type instance Term.TagToCons Var = ConsVar
 -- type instance Layer.ConsLayout ConsVar = Var
 -- deriveStorable ''ConsVar
--- deriveLinks ''ConsVar
+-- deriveLinksDiscovery nsVar
 
 -- newComponent :: forall t a m. (KnownLayers t, MonadIO m) => m (Component t a)
 -- newComponent = Component . coerce <$> MemPool.allocBytes (totalLayersSize @t)
@@ -342,14 +297,24 @@ passTest_run = do
 -- type instance Pass.In AnyLayer Terms MyPass = '[Model]
 
 
+
+mockNewComponent :: MonadIO m => m (Term Draft)
+mockNewComponent = Component . coerce <$> MemPool.allocPtr @(UniTerm ()) ; {-# INLINE mockNewComponent #-}
+
+mockNewLink :: forall m. MonadIO m => m (Link (Draft :-: Draft))
+mockNewLink = undefined -- Component . coerce <$> MemPool.alloc @(LinkData Draft Draft)
+
+
+
+
 layerLoc0 :: Int
 layerLoc0 = 0 ; {-# INLINE layerLoc0 #-}
 
 test :: IO ()
 test = do
-    var1 <- mockNewIR
-    var2 <- mockNewIR
-    acc1 <- mockNewIR
+    var1 <- mockNewComponent
+    var2 <- mockNewComponent
+    acc1 <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 var1 (UniTermVar $ Var 7)
     Layer.unsafeWriteByteOff @Model layerLoc0 var2 (UniTermVar $ Var 5)
 
@@ -367,7 +332,7 @@ test = do
 
 test_readWriteLayer :: Int -> IO ()
 test_readWriteLayer i = do
-    !ir <- mockNewIR
+    !ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let go 0 = pure ()
         go j = do
@@ -382,7 +347,7 @@ test_readWriteLayer i = do
 --
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
---     ir <- mockNewIR
+--     ir <- mockNewComponent
 --     writeLayer layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = pure ()
@@ -404,7 +369,7 @@ test_readWriteLayer_ptrOff :: Int -> IO ()
 test_readWriteLayer_ptrOff i = do
     -- ptr <- mallocBytes (sizeOf' @Int * _MAX_LAYERS)
     ptr <- Ptr.new (0 :: Int)
-    ir <- mockNewIR
+    ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = pure ()
@@ -430,7 +395,7 @@ test_readWriteLayer_ptrBuffOff i = do
     pokeByteOff ptr (sizeOf' @Int * 5) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 6) (0 :: Int)
     pokeByteOff ptr (sizeOf' @Int * 7) (0 :: Int)
-    ir <- mockNewIR
+    ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = pure ()
@@ -447,7 +412,7 @@ test_readWriteLayer_ptrBuffOff i = do
 
 -- test_readWriteLayer_static :: Int -> IO ()
 -- test_readWriteLayer_static i = do
---     ir <- mockNewIR
+--     ir <- mockNewComponent
 --     writeLayer @Model ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = pure ()
@@ -482,7 +447,7 @@ test_readWriteLayer_ptrBuffOff i = do
 
 test_readWriteLayer2 :: Int -> IO ()
 test_readWriteLayer2 i = do
-    ir <- mockNewIR
+    ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let -- go :: Int -> StateT Int IO ()
         go 0 = pure ()
@@ -497,7 +462,7 @@ test_readWriteLayer2 i = do
 
 -- test_readWriteLayer3 :: Int -> IO ()
 -- test_readWriteLayer3 i = do
---     ir <- mockNewIR
+--     ir <- mockNewComponent
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go :: Int -> Pass.Pass MyPass
@@ -526,7 +491,7 @@ test_readWriteLayer2 i = do
 
 test_readWriteLayer4 :: Int -> IO ()
 test_readWriteLayer4 i = do
-    ir <- mockNewIR
+    ir <- mockNewComponent
     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
     let go :: Int -> Pass.Pass MyPass
         go 0 = pure ()
@@ -608,7 +573,7 @@ tttest n = do
     -- Ptr.free ptr
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
---     ir <- mockNewIR
+--     ir <- mockNewComponent
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = pure ()
@@ -625,7 +590,7 @@ tttest n = do
 
 -- test_readWriteLayer2 :: Int -> IO ()
 -- test_readWriteLayer2 i = do
---     ir <- mockNewIR
+--     ir <- mockNewComponent
 --     Layer.unsafeWriteByteOff @Model layerLoc0 ir (UniTermVar $ Var 0)
 --     let -- go :: Int -> StateT Int IO ()
 --         go 0 = pure ()
@@ -664,29 +629,29 @@ tttest n = do
 
 
 
--- newtype TermConsDefVar (a :: Layout) = TermConsDefVar
+-- newtype Term.TagToConsVar (a :: Layout) = Term.TagToConsVar
 --     { __name :: Int
 --     } deriving (Show, Eq)
--- type instance TermConsDef Var a = TermConsDefVar a
+-- type instance Term.TagToCons Var a = Term.TagToConsVar a
 
 -- data IRDefVar (a :: Layout) = IRDefVar
 --     { __type :: {-# UNPACK #-} !(Link.Type Var a)
---     , __term :: {-# UNPACK #-} !(TermConsDefVar a)
+--     , __term :: {-# UNPACK #-} !(Term.TagToConsVar a)
 --     }
 
 
 
 
--- data TermConsDefAcc a = TermConsDefAcc
+-- data Term.TagToConsAcc a = Term.TagToConsAcc
 --     { __base :: !(Link.Term Acc a)
 --     , __name :: !(Link.Name Acc a)
 --     } deriving (Show, Eq)
--- type instance TermConsDef Acc a = TermConsDefAcc a
+-- type instance Term.TagToCons Acc a = Term.TagToConsAcc a
 
 -- vvv - moze nie trzeba takich datatypow jezeli trzymalibysmy to w pamieci i skakli poitnerem robiac read @LayerName ?x
 -- data IRDefAcc (a :: Layout) = IRDefAcc
 --     { __type :: {-# UNPACK #-} !(Link.Type Acc a)
---     , __term :: {-# UNPACK #-} !(TermConsDefAcc a)
+--     , __term :: {-# UNPACK #-} !(Term.TagToConsAcc a)
 --     }
 
 -- data family Term t (a :: Layout)
@@ -695,7 +660,7 @@ tttest n = do
 
 
 
--- type Term (l :: Layout) = TermConsDef (Base l) l
+-- type Term (l :: Layout) = Term.TagToCons (Base l) l
 
 
 -- read @Term :: IR Draft -> IR.Term Draft
@@ -720,7 +685,7 @@ tttest n = do
 
 -- data family TermX (t :: *) (a :: Layout)
 --
--- data instance TermX Acc a = TermConsDefAcc
+-- data instance TermX Acc a = Term.TagToConsAcc
 --     { __base :: !(Link.Term Acc a)
 --     , __name :: !(Link.Name Acc a)
 --     } deriving (Show, Eq)

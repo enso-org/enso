@@ -18,8 +18,8 @@ import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
-import qualified OCI.IR.Layer.Internal       as Layer
-import qualified Type.Data.List              as List
+-- import qualified OCI.IR.Layer.Internal       as Layer
+import qualified Type.Data.List as List
 
 import Control.Monad.Exception (Throws, throw)
 import Data.Map.Strict         (Map)
@@ -234,27 +234,9 @@ getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# IN
 getComponentSize    = unwrap <$> getData @(ComponentSize    comp)       ; {-# INLINE getComponentSize    #-}
 
 
--- === Instances === --
+-- -- === Instances === --
 
-instance {-# OVERLAPPABLE #-}
-    ( Layer.StorableData comp layer
-    , LayerByteOffsetGetter comp layer (SubPassT pass m)
-    , MonadIO m
-    ) => Layer.Reader comp layer (SubPassT pass m) where
-    read__ !comp = do
-        !off <- getLayerByteOffset @comp @layer
-        Layer.unsafeReadByteOff @layer off comp
-    {-# INLINE read__ #-}
 
-instance {-# OVERLAPPABLE #-}
-    ( Layer.StorableData comp layer
-    , LayerByteOffsetGetter comp layer (SubPassT pass m)
-    , MonadIO m
-    ) => Layer.Writer comp layer (SubPassT pass m) where
-    write__ !comp !d = do
-        !off <- getLayerByteOffset @comp @layer
-        Layer.unsafeWriteByteOff @layer off comp d
-    {-# INLINE write__ #-}
 
 
 
