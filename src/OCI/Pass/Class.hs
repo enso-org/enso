@@ -6,25 +6,20 @@ module OCI.Pass.Class where
 
 import Prologue
 
-import Control.Monad.Branch
-import Control.Monad.State.Layered (StateT)
-import Foreign                     (Ptr)
-import Foreign.Ptr.Utils           (SomePtr)
-
-import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map                    as Map
-import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
--- import qualified OCI.IR.Layer.Internal       as Layer
-import qualified Type.Data.List as List
+import qualified Type.Data.List              as List
 
-import Control.Monad.Exception (Throws, throw)
-import Data.Map.Strict         (Map)
-import Data.TypeMap.Strict     (TypeMap)
-import Foreign.Memory.Pool     (MemPool)
+import Control.Monad.Branch        (MonadBranch)
+import Control.Monad.Exception     (Throws, throw)
+import Control.Monad.State.Layered (StateT)
+import Data.Map.Strict             (Map)
+import Data.TypeMap.Strict         (TypeMap)
+import Foreign.Memory.Pool         (MemPool)
+import Foreign.Ptr.Utils           (SomePtr)
 
 
 
@@ -59,15 +54,27 @@ makeLenses ''PassConfig
 -- === Pass Declaration === --
 ------------------------------
 
-
--- | For example: ...
+-- | For example:
+--
+--   data MyPass
+--   type instance Spec MyPass t = Spec_MyPass t
+--   type family   Spec_MyPass t where
+--       Spec_MyPass (In Elems) = '[Terms, Links]
+--       Spec_MyPass (In Terms) = '[Model, Type]
+--       Spec_MyPass (In Links) = '[Source, Target]
+--       Spec_MyPass (Out a)    = Spec_MyPass (In a)
+--       Spec_MyPass t          = '[]
 
 data Elems
 
 data Property
-    = In        Type
-    | Out       Type
-    | Preserves Type
+    = PassIn        Type
+    | PassOut       Type
+    | PassPreserves Type
+
+type In        = 'PassIn
+type Out       = 'PassOut
+type Preserves = 'PassPreserves
 
 type family Spec (pass :: Type) (prop :: Property) :: [Type]
 
@@ -274,7 +281,7 @@ encodePassState ::
     ) => PassConfig -> m (PassState pass)
 encodePassState cfg = case tryEncodePassState cfg of
     Left  e -> throw e
-    Right a -> return a
+    Right a -> pure a
 {-# INLINE encodePassState #-}
 
 

@@ -4,157 +4,43 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Basic where
+module ToRefactor where
 
-import Prologue hiding (cast)
+import Prologue
 
-import           Foreign.Ptr            (Ptr, castPtr, plusPtr)
-import           Foreign.Storable       (Storable, alignment, peek, peekByteOff,
-                                         poke, pokeByteOff, sizeOf)
-import qualified Foreign.Storable       as Storable
-import           Foreign.Storable.Utils (alignment', castPtrTo, intPtr, sizeOf')
-import qualified Foreign.Storable1      as Storable1
-
-import qualified Data.Graph          as Graph
-import qualified Foreign             as Ptr
-import qualified Foreign.Memory.Pool as MemPool
-
-import Foreign.Storable.Deriving  (deriveStorable)
-import Foreign.Storable1.Deriving (deriveStorable1)
-
-import           Luna.IR.Term (Model, Term, TermCons, Terms)
-import qualified Luna.IR.Term as Term
--- import qualified OCI.IR.Layout as Layout
-import Luna.IR.Link as Link
-
-import           Data.Tag       (Tag, TagOf)
-import           Luna.IR.Format
-import qualified Luna.IR.Link   as Link
-
-import           Control.Monad.State.Layered (get, put)
+import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Mutable                as MData
 import qualified Data.Tag                    as Tag
-import           OCI.IR.Component
-import qualified OCI.IR.Component            as Component
-import           OCI.IR.Conversion
+import qualified Data.Tuple.Strict           as Tuple
+import qualified Data.TypeMap.Strict         as TypeMap
+import qualified Foreign                     as Ptr
+import qualified Foreign.Memory.Pool         as MemPool
+import           Luna.IR.Link                as Link
+import qualified Luna.IR.Link.TH             as Link
+import qualified Luna.IR.Term                as Term
+import qualified OCI.IR.Layer                as Layer
+import qualified OCI.IR.Layer.Internal       as Layer
+import qualified OCI.IR.Layout               as Layout
+import qualified OCI.Pass.Manager            as PassManager
 
-import qualified Data.Tuple.Strict   as Tuple
-import qualified Data.TypeMap.Strict as TypeMap
-
-import           OCI.IR.Layout ((:=), Layout)
-import qualified OCI.IR.Layout as Layout
-
-import OCI.Pass.TH
-
--- import Control.Monad.State.Strict hiding (pure, liftIO, MonadIO)
-
-import Foreign.Marshal.Alloc (mallocBytes)
-import Type.Data.Ord         (Cmp)
-
-import Foreign.Ptr.Utils (SomePtr)
-
-import OCI.Pass.Class as Pass
-
-import qualified Data.Map as Map
-
-import Luna.IR.Term.TH
-import Type.Cache
-
-import           OCI.Pass.Manager (MonadPassManager)
-import qualified OCI.Pass.Manager as PassManager
-
-import qualified Control.Monad.Exception as Exception
-import           Type.Data.Bool
-
--- import OCI.IR.Layer (Layer)
-import qualified Foreign.Marshal.Utils as Mem
-import qualified OCI.IR.Layer          as Layer
-import qualified OCI.IR.Layer.Internal as Layer
-
--- import qualified OCI.IR.Layer2 as Layer2
+import Control.Monad.State.Layered (get, put)
+import Foreign.Marshal.Alloc       (mallocBytes)
+import Foreign.Ptr                 (Ptr)
+import Foreign.Storable            (peek, poke, pokeByteOff)
+import Foreign.Storable.Deriving   (deriveStorable)
+import Foreign.Storable.Utils      (sizeOf')
+import Foreign.Storable1.Deriving  (deriveStorable1)
+import Luna.IR.Format
 import Luna.IR.Layout
+import Luna.IR.Term                (Model, Term, TermCons, Terms)
+import OCI.IR.Component
+import OCI.Pass.Class              as Pass
+import OCI.Pass.Manager            (MonadPassManager)
+import OCI.Pass.TH
+import Type.Data.Ord               (Cmp)
 
 
-
-
-----------------
--- === IR === --
-----------------
-
--- === IR Atoms === ---
-
-
-Tag.familyInstance "TermCons" "Var"
-newtype ConsVar a = Var
-    { __name :: Int
-    } deriving (Show, Eq)
-type instance Term.TagToCons Var     = ConsVar
-type instance Term.ConsToTag ConsVar = Var
-makeLenses           ''ConsVar
-deriveStorable       ''ConsVar
-deriveStorable1      ''ConsVar
-deriveLinksDiscovery ''ConsVar
-
-Tag.familyInstance "TermCons" "Acc"
-data ConsAcc a = Acc
-    { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a)) -- !(Link.Term Acc a)
-    , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a)) -- !(Link.Name Acc a)
-    } deriving (Show, Eq)
-type instance Term.TagToCons Acc     = ConsAcc
-type instance Term.ConsToTag ConsAcc = Acc
-makeLenses           ''ConsAcc
-deriveStorable       ''ConsAcc
-deriveStorable1      ''ConsAcc
-deriveLinksDiscovery ''ConsAcc
-
-Tag.familyInstance "TermCons" "Missing"
-data ConsMissing a = Missing deriving (Show, Eq)
-type instance Term.TagToCons Missing     = ConsMissing
-type instance Term.ConsToTag ConsMissing = Missing
-makeLenses           ''ConsMissing
-deriveStorable       ''ConsMissing
-deriveStorable1      ''ConsMissing
-deriveLinksDiscovery ''ConsMissing
-
-data UniTerm a
-    = UniTermVar     !(ConsVar     a)
-    | UniTermAcc     !(ConsAcc     a)
-    | UniTermMissing !(ConsMissing a)
-    deriving (Show, Eq)
-makeLenses           ''UniTerm
-deriveStorable       ''UniTerm
-deriveStorable1      ''UniTerm
-deriveLinksDiscovery ''UniTerm
-
-type instance Term.Uni = UniTerm
-
-instance Term.IsUni ConsVar     where toUni = UniTermVar     ; {-# INLINE toUni #-}
-instance Term.IsUni ConsAcc     where toUni = UniTermAcc     ; {-# INLINE toUni #-}
-instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni #-}
-
-
-
-
-instance Layer.DataInitializer UniTerm where
-    initData = UniTermMissing Missing ; {-# INLINE initData #-}
-
-
-
--- === Smart constructors === --
-
-#define CTX(name) (Term.Creator name m, Link.Creator m)
-
-var :: CTX(Var) => Int -> m (Term Var)
-var = Term.uncheckedNew . Var ; {-# INLINE var #-}
-
-missing :: CTX(Missing) => m (Term Missing)
-missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
-
-acc :: CTX(Acc) => Term base -> Term name -> m (Term (Acc -* base -# name))
-acc base name = Term.newM $ \term -> Acc <$> Link.new base term <*> Link.new name term ; {-# INLINE acc #-}
-
-#undef CTX
+import Luna.IR.Term.Core
 
 
 
@@ -167,18 +53,6 @@ type instance Layer.Layout Terms Type layout = layout *-* layout
 
 
 
-
-
-
-type instance Cmp Model Terms = 'LT
-type instance Cmp Terms Model = 'GT
-
-
-type instance Cmp Model Names = 'LT
-type instance Cmp Names Model = 'GT
-
-type instance Cmp Names Terms = 'LT
-type instance Cmp Terms Names = 'GT
 
 
 

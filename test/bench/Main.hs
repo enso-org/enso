@@ -24,7 +24,7 @@ import Unsafe.Coerce                    (unsafeCoerce)
 
 import qualified Foreign.Memory.Pool as MemPool
 
-import qualified Luna.IR.Term.Basic as Basic
+import qualified ToRefactor as Basic
 
 import qualified Data.TypeSet3               as TS3
 import           Language.Haskell.TH.Builder ()

@@ -4,3 +4,7 @@ packages:
 allow-newer: true
 extra-deps:
 - data-construction-1.0
+
+
+ghc-options:
+    "*": -Wall -fwarn-name-shadowing -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100 -fexcess-precision -fexpose-all-unfoldings -flate-dmd-anal -fspec-constr-keen -fspecialise-aggressively -fstatic-argument-transformation -fmax-worker-args=200
