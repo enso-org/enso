@@ -10,8 +10,20 @@ import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
-import OCI.IR.Component  (Component)
-import OCI.IR.Conversion (cast)
+import OCI.IR.Component      (Component)
+import OCI.IR.Conversion     (cast)
+import OCI.IR.Layer.Internal (Layer)
+
+
+
+---------------------
+-- === UniTerm === --
+---------------------
+
+type family Uni :: Type -> Type
+
+class IsUni t where
+    toUni :: ∀ a. t a -> Uni a
 
 
 
@@ -34,23 +46,6 @@ type TagConsInvariant tag cons =
     )
 
 
--- === Uni === --
-
-type family Uni :: Type -> Type
-
-class IsUni t where
-    toUni :: ∀ a. t a -> Uni a
-
-
--- === Basic layers === --
-
-data Model
-type instance Layer.Layout Terms Model layout = layout
-type instance Layer.Data   Terms Model = Uni
-instance IsUni t => Layer.DataCons1 Terms Model t where
-    consData1 = toUni ; {-# INLINE consData1 #-}
-
-
 -- === Creation === --
 
 type Creator t m =
@@ -70,3 +65,17 @@ uncheckedNew term = do
 new :: forall tag layout m. Creator tag m
     => TagToCons tag layout -> m (Term (Layout.Set Model tag layout))
 new = uncheckedNew ; {-# INLINE new #-}
+
+
+
+--------------------
+-- === Layers === --
+--------------------
+
+-- === Model === --
+
+data Model
+type instance Layer.Layout Terms Model layout = layout
+type instance Layer.Data   Terms Model = Uni
+instance IsUni t => Layer.DataCons1 Terms Model t where
+    consData1 = toUni ; {-# INLINE consData1 #-}

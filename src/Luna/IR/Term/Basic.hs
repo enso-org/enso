@@ -75,8 +75,9 @@ import qualified OCI.IR.Layer.Internal as Layer
 
 
 
+data Names
 
-
+type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
 
 ----------------
 -- === IR === --
@@ -98,8 +99,8 @@ deriveLinksDiscovery ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
-    { __base :: !(Link (Layout.Get Terms a :-: Layout.Set Model Acc a)) -- !(Link.Term Acc a)
-    , __name :: !(Link (Layout.Get Terms a :-: Layout.Set Model Acc a)) -- !(Link.Name Acc a)
+    { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a)) -- !(Link.Term Acc a)
+    , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a)) -- !(Link.Name Acc a)
     } deriving (Show, Eq)
 type instance Term.TagToCons Acc     = ConsAcc
 type instance Term.ConsToTag ConsAcc = Acc
@@ -135,12 +136,22 @@ instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni 
 
 
 
+-- === Smart constructors === --
+
+var :: Term.Creator Var m => Int -> m (Term Var)
+var = Term.uncheckedNew . Var ; {-# INLINE var #-}
+
+missing :: Term.Creator Missing m => m (Term Missing)
+missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
+
+
+
 
 type instance Layer.Data   Terms Type = Link
 -- type instance Layer.Layout Terms Type layout = layout *-* Layout.Get Type layout
 type instance Layer.Layout Terms Type layout = layout *-* layout
 
-instance Layer.Layer Terms Type where
+instance Layer.Initializer Terms Type where
     init = Component.unsafeNull ; {-# INLINE init #-}
 
 
@@ -162,28 +173,58 @@ type instance Layer.Layout Links Target layout = Layout.Get Target layout
 type instance Layer.Data   Links Source        = Term
 type instance Layer.Data   Links Target        = Term
 
-instance Layer.Layer Links Source where
+instance Layer.Initializer Links Source where
     init = Component.unsafeNull ; {-# INLINE init #-}
 
-instance Layer.Layer Links Target where
+instance Layer.Initializer Links Target where
     init = Component.unsafeNull ; {-# INLINE init #-}
 
 
-instance Layer.Layer Terms Model where
+instance Layer.Initializer Terms Model where
     init = UniTermMissing Missing ; {-# INLINE init #-}
 
 
 
+type instance Cmp Model Terms = 'LT
+type instance Cmp Terms Model = 'GT
+
+
+type instance Cmp Model Names = 'LT
+type instance Cmp Names Model = 'GT
+
+type instance Cmp Names Terms = 'LT
+type instance Cmp Terms Names = 'GT
 -- class Reader layer where
 
 
+-- data ConsAcc a = Acc
+-- { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a)) -- !(Link.Term Acc a)
+-- , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a)) -- !(Link.Name Acc a)
+-- } deriving (Show, Eq)
 
 
-var :: Term.Creator Var m => Int -> m (Term Var)
-var name = Term.uncheckedNew $ Var name ; {-# INLINE var #-}
+-- type T1 = Layout.FromList '[Terms := Int, Names := Char, Model := Acc]
+-- type T2 = Layout.Set Model Acc T1
+
+-- x :: Proxy T1
+-- x = undefined
+-- y :: Proxy T2
+-- y = x
+acc :: forall base name layout m. (LinkCreator m, Component.Creator Terms m
+    , layout ~ Layout.FromList '[Terms := base, Names := name, Model := Acc]
+    ) => Term base -> Term name -> m (Term layout)
+acc base name = do
+    ir    <- Component.new @Terms
+    lbase <- link base ir
+    lname <- link name ir
+    let acc = Acc @layout lbase lname
+    return ir
 
 
-link :: (Component.Creator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m) => Term src -> Term tgt -> m (Link (src *-* tgt))
+type LinkCreator m = (Component.Creator Links m, Layer.Writer Links Source m, Layer.Writer Links Target m)
+
+link :: LinkCreator m
+     => Term src -> Term tgt -> m (Link (src *-* tgt))
 link src tgt = do
     ir <- Component.new
     Layer.write @Source ir src
@@ -192,7 +233,10 @@ link src tgt = do
 {-# INLINE link #-}
 
 
-type src *-* tgt = Layout.FromList [Source := src, Target := tgt]
+
+
+-- acc ::
+
 
 -- Tag.familyInstance "TermCons" "Var"
 -- newtype ConsVar a = Var

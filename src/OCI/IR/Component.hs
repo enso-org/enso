@@ -28,7 +28,7 @@ import Type.Error                 ((:<+>:))
 
 -- === Definition === --
 
-newtype Component     t layout = Component SomePtr deriving (Eq, Show, Storable)
+newtype Component     t (layout :: Type) = Component SomePtr deriving (Eq, Show, Storable)
 type    SomeComponent t = Component t ()
 makeLenses      ''Component
 deriveStorable1 ''Component

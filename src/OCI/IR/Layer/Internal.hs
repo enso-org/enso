@@ -29,7 +29,6 @@ constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 -- === Layer === --
 -------------------
 
-
 -- === Definition === --
 
 type Cons = Type -> Type
@@ -45,7 +44,7 @@ type StorableData     comp layer        = Storable1 (Data comp layer)
 
 type DefaultData comp layer = Default1 (Data comp layer)
 
-class Layer comp layer where
+class Initializer comp layer where
     init :: ∀ layout. Data comp layer layout
 
 class DataCons1 comp layer t where

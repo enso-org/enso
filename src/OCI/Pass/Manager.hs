@@ -175,7 +175,7 @@ registerPrimLayerRep s layerDef comp layer = State.modifyM_ @Registry $ \m -> do
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadPassManager m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer.StorableData comp layer, Layer.Layer comp layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadPassManager m, Typeable comp, Typeable layer, Layer.StorableData comp layer, Layer.Initializer comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
 registerPrimLayer = do
     layerDef <- Ptr1.new $ Layer.init @comp @layer
