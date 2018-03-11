@@ -21,6 +21,7 @@ import qualified Luna.IR.Term                as Term
 import qualified OCI.IR.Layer                as Layer
 import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.IR.Layout               as Layout
+import qualified OCI.Pass.Cache              as Pass
 import qualified OCI.Pass.Manager            as PassManager
 
 import Control.Monad.State.Layered (get, put)
@@ -36,7 +37,6 @@ import Luna.IR.Term                (Model, Term, TermCons, Terms)
 import OCI.IR.Component
 import OCI.Pass.Class              as Pass
 import OCI.Pass.Manager            (MonadPassManager)
-import OCI.Pass.TH
 import Type.Data.Ord               (Cmp)
 
 
@@ -52,14 +52,6 @@ type instance Layer.Layout Terms Type layout = layout *-* layout
 
 
 
-
-
-
-
-
-
--- type instance Layout.DefLayout layout (TermCons t) = Draft
-
 data BasicPass
 type instance Spec BasicPass t = Spec_BasicPass t
 type family   Spec_BasicPass t where
@@ -69,9 +61,8 @@ type family   Spec_BasicPass t where
     Spec_BasicPass (Out a)    = Spec_BasicPass (In a)
     Spec_BasicPass t          = '[]
 
--- type instance PassStateLayout BasicPass = ComputePassStateLayout BasicPass
-cachePassConfig_phase1 ''BasicPass
-cachePassConfig_phase2 ''BasicPass
+Pass.cache_phase1 ''BasicPass
+Pass.cache_phase2 ''BasicPass
 
 
 
