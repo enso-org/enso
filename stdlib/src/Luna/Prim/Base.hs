@@ -185,16 +185,21 @@ primBinary :: Imports -> IO (Map Name Function)
 primBinary imps = do
     (eqAssu,     eqIr)     <- makeTypePure ["Binary", "Binary"] "Bool"
     (plusAssu,   plusIr)   <- makeTypePure ["Binary", "Binary"] "Binary"
+    (takeAssu,   takeIr)   <- makeTypePure ["Binary", "Int"]    "Binary"
     (toTextAssu, toTextIr) <- makeTypePure ["Binary"]           "Text"
     (lenAssu,    lenIr)    <- makeTypePure ["Binary"]           "Int"
     let toTextVal  = toLunaValue imps Text.decodeUtf8
         eqVal      = toLunaValue imps ((==) :: ByteString -> ByteString -> Bool)
         plusVal    = toLunaValue imps ((<>) :: ByteString -> ByteString -> ByteString)
         lenVal     = toLunaValue imps (fromIntegral . ByteString.length :: ByteString -> Integer)
+        takeVal    = toLunaValue imps (flip (ByteString.take . fromIntegral) :: ByteString -> Integer -> ByteString)
+        dropVal    = toLunaValue imps (flip (ByteString.drop . fromIntegral) :: ByteString -> Integer -> ByteString)
     return $ Map.fromList [ ("primBinaryToText",   Function toTextIr toTextVal  toTextAssu)
                           , ("primBinaryEquals",   Function eqIr     eqVal      eqAssu    )
                           , ("primBinaryConcat",   Function plusIr   plusVal    plusAssu  )
                           , ("primBinaryLength",   Function lenIr    lenVal     lenAssu   )
+                          , ("primBinaryTake",     Function takeIr   takeVal    takeAssu  )
+                          , ("primBinaryDrop",     Function takeIr   dropVal    takeAssu  )
                           ]
 
 primText :: Imports -> IO (Map Name Function)

@@ -213,6 +213,11 @@ native class Binary:
     ## Encodes the binary object as an UTF-8 `Text`. Throws an error when the data does not represent a valid text.
     def toText: primBinaryToText self
 
+    ## Returns a prefix consisting of the given number of bytes.
+    def take i: primBinaryTake self i
+    ## Returns a suffix resulting from dropping the given number of bytes at the beginning.
+    def drop i: primBinaryDrop self i
+
     ## Displays a short representation of `Binary` object for use in interactive mode.
     def shortRep: "Binary<" + self.length.toText + ">"
     ## Identity function, included for consistency with other classes.
@@ -331,7 +336,7 @@ class None:
     def toJSON: JSONNull
 
     def retType: primVoidRetType
-    def retTypeTrans a: None
+    def fromRetType a: None
 
 ## Class representing pairs of elements of arbitrary type.
 class Tuple2 a b:
