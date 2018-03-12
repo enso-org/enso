@@ -43,6 +43,7 @@ language_extensions:
     - DoAndIfThenElse
     - DuplicateRecordFields
     - EmptyDataDecls
+    - ExplicitNamespaces
     - FlexibleContexts
     - FlexibleInstances
     - FunctionalDependencies

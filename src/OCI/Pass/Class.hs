@@ -133,7 +133,7 @@ instance Typeable comp => Show (ComponentMemPool comp) where
 
 newtype     PassState       pass = PassState (PassStateData pass)
 type        PassStateData   pass = TypeMap (PassStateLayout pass)
-type family PassStateLayout pass :: [Type] -- CACHED WITH definePass TH
+type family PassStateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
 type ComputePassStateLayout pass = List.Append (ComponentMemPools pass)
                                  ( List.Append (ComponentSizes    pass)
                                  ( List.Append (LayersLayout      pass)
@@ -184,10 +184,20 @@ type DiscoverPassStateData   m = PassStateData   (DiscoverPass m)
 type DiscoverPassStateLayout m = PassStateLayout (DiscoverPass m)
 
 
+-- === Compiled Pass === --
+
+newtype Compiled = Compiled { uncheckedRunCompiled :: IO () }
+
+
 -- === API === --
 
-runPass :: PassState pass -> Pass pass a -> IO a
-runPass !s p = flip State.evalT s (coerce p) ; {-# INLINE runPass #-}
+compilePass :: PassState pass -> Pass pass a -> Compiled
+compilePass !s p = Compiled . void $ flip State.evalT s (coerce p) ; {-# INLINE compilePass #-}
+
+
+-- === Instances === --
+
+instance Show Compiled where show _ = "Pass.Compiled" ; {-# INLINE show #-}
 
 
 
@@ -235,11 +245,6 @@ getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  comp layer) ; {-# IN
 getLayerInitializer = unwrap <$> getData @(LayerInitializer comp)       ; {-# INLINE getLayerInitializer #-}
 getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# INLINE getComponentMemPool #-}
 getComponentSize    = unwrap <$> getData @(ComponentSize    comp)       ; {-# INLINE getComponentSize    #-}
-
-
--- -- === Instances === --
-
-
 
 
 

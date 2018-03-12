@@ -12,10 +12,8 @@ import qualified Foreign.Storable1.Ptr       as Ptr1
 import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.Pass.Class              as Pass
 
-import Control.Lens                (at)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (MonadState, StateT)
-import Data.Default                (def)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr                 (plusPtr)
 import Foreign.Ptr.Utils           (SomePtr)
@@ -27,9 +25,10 @@ import Foreign.Ptr.Utils           (SomePtr)
 
 -- === Definition === --
 
-newtype Registry = Registry
-    { _components :: Map SomeTypeRep ComponentInfo
-    } deriving (Default, Mempty, Semigroup, Show)
+data Registry = Registry
+    { _components :: !(Map SomeTypeRep ComponentInfo)
+    , _passes     :: !(Map SomeTypeRep Pass.Compiled)
+    } deriving (Show)
 
 newtype ComponentInfo = ComponentInfo
     { _layers :: Map SomeTypeRep LayerInfo
@@ -40,13 +39,15 @@ data LayerInfo = LayerInfo
     , _defPtr   :: !SomePtr
     } deriving (Show)
 
-makeLenses ''Registry
-makeLenses ''ComponentInfo
-makeLenses ''LayerInfo
-
 
 -- === Instances === --
 
+instance Default Registry where
+    def = Registry def def ; {-# INLINE def #-}
+
+makeLenses ''Registry
+makeLenses ''ComponentInfo
+makeLenses ''LayerInfo
 
 
 -- === Pass config preparation === --
@@ -87,30 +88,6 @@ fillLayerInitializer ptr = liftIO . \case
 
 
 
-
-        --     defPtrs = view defPtr <$> ls
-        --
-        -- if isJust (catMaybes defPtrs)
-        --     then pure Nothing
-        --     else pure Nothing
-
-
-
--- data Config = Config
---     { _components :: !(Map SomeTypeRep ComponentInfo)
---     } deriving (Show)
---
--- data ComponentInfo = ComponentInfo
---     { _byteSize :: !Int
---     , _layers   :: !(Map SomeTypeRep LayerInfo)
---     , _memPool  :: !MemPool
---     } deriving (Show)
---
--- data LayerInfo = LayerInfo
---     { _byteOffset :: !Int
---     } deriving (Show)
-
-
 --------------------
 -- === Errors === --
 --------------------
@@ -132,12 +109,6 @@ instance Exception Error
 
 
 -- === Definition === --
-
--- data State = State
---     { _components :: Map SomeTypeRep ComponentInfo
---     -- , _primLayers :: Map SomeTypeRep LayerInfo
---     } deriving (Show)
--- makeLenses ''State
 
 type MonadPassManager m = (MonadState Registry m, Throws Error m, MonadIO m)
 
@@ -182,6 +153,10 @@ registerPrimLayer = do
     registerPrimLayerRep (Layer.byteSize @comp @layer) (coerce layerDef) (someTypeRep @comp) (someTypeRep @layer)
 {-# INLINE registerPrimLayer #-}
 
+-- registerPass :: Pass pass a -> m ()
+-- registerPass pass = do
+
+
 
 -- === Instances === --
 
@@ -190,9 +165,3 @@ instance Monad m => State.MonadGetter Registry (PassManagerT m) where
 
 instance Monad m => State.MonadSetter Registry (PassManagerT m) where
     put = wrap . State.put' ; {-# INLINE put #-}
-
-
-test :: PassManagerT IO ()
-test = do
-    x <- State.get @Registry
-    pure ()

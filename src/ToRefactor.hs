@@ -105,7 +105,7 @@ passTest_run = do
 
     cfg <- test_pm_run
     xx <- Pass.encodePassState cfg
-    Pass.runPass xx passTest
+    Pass.uncheckedRunCompiled $ Pass.compilePass xx passTest
 
 --
 -- passRunTest :: IO ()
@@ -122,8 +122,8 @@ passTest_run = do
 --             $ mempty
 --
 --     xx <- Pass.encodePassState cfg
---     Pass.runPass xx passTest
--- runPass :: Functor m => PassState pass -> SubPass pass m a -> m a
+--     Pass.uncheckedRunCompiled $ Pass.compilePass xx passTest
+-- compilePass :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 
 
@@ -320,7 +320,7 @@ test_readWriteLayer2 i = do
 --               )
 --             $ mempty
 --     xx <- Pass.encodePassState cfg
---     Pass.runPass xx (go i)
+--     Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -337,7 +337,7 @@ test_readWriteLayer4 i = do
 
     cfg <- test_pm_run
     xx <- Pass.encodePassState cfg
-    Pass.runPass xx (go i)
+    Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -360,7 +360,7 @@ test_createNode i = do
 
     cfg <- test_pm_run
     xx <- Pass.encodePassState cfg
-    Pass.runPass xx (go i)
+    Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
 
 
 -- type instance Layout.GetBase Var = Var
@@ -396,7 +396,7 @@ tttest n = do
 --     pure ()
 --
 -- passRunTest :: IO ()
--- passRunTest = Pass.runPass (Pass.encodePassStateTEMP layout) passTest where
+-- passRunTest = Pass.compilePass (Pass.encodePassStateTEMP layout) passTest where
 --     layout = Pass.PassConfig
 --         $ Map.insert (someTypeRep @Terms)
 --           (Pass.ComponentConfig 7
