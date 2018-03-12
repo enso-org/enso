@@ -30,6 +30,13 @@ type Handle = Unix.DL
 nativeLibs :: FilePath
 nativeLibs = "native_libs"
 
+data NativeLibraryLoadingException = NativeLibraryLoadingException String [String]
+    deriving Show
+
+instance Exception NativeLibraryLoadingException where
+    displayException (NativeLibraryLoadingException name details) =
+        "Native library " ++ name ++ " could not be loaded. Details:\n\n" ++ unlines details
+
 
 loadLibrary :: String -> IO Handle
 loadLibrary ""          = cLibrary
@@ -42,23 +49,18 @@ loadLibrary namePattern = do
         possiblePaths = [ dir </> name | dir  <- ["", projectNativeDirectory]
                                        , name <- possibleNames
                         ]
-    a <- runExceptT $ EitherR.runExceptRT $ do
-        forM_ possiblePaths $ \path -> do
-            putStrLn $ "trying to load dynamic library: " ++ path
+    result <- runExceptT $ EitherR.runExceptRT $ do
+        forM possiblePaths $ \path -> do
             EitherR.ExceptRT $ ExceptT $ do
                 loadRes <- tryAny $ nativeLoadLibrary path
                 case loadRes of
                     Left exc -> do
-                        liftIO $ putStrLn $ "loading " ++ path ++ " failed with: " ++ displayException exc
-                        return $ Left ()
+                        return $ Left $ "loading \"" ++ path ++ "\" failed with: " ++ displayException exc
                     Right  h -> do
-                        liftIO $ putStrLn $ "loading " ++ path ++ " succeeded"
                         return $ Right h
-    case a of
-        Left  _ -> throwString $ namePattern ++ " could not be loaded"
+    case result of
+        Left  e -> throwM $ NativeLibraryLoadingException namePattern e
         Right h -> return h
-
-
 
 loadSymbol :: Handle -> String -> IO (FunPtr a)
 loadSymbol handle symbol = nativeLoadSymbol handle symbol
