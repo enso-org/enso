@@ -203,20 +203,19 @@ class    Monad m => DataGetter a   m     where getData :: m a
 instance Monad m => DataGetter Imp m     where getData = impossible
 instance            DataGetter a   ImpM1 where getData = impossible
 instance (MonadState m, TypeMap.ElemGetter a (DiscoverStateLayout m))
-      => DataGetter a m where
-    getData = TypeMap.getElem @a . unwrap <$> getState ; {-# INLINE getData #-}
+      => DataGetter a m where getData = TypeMap.getElem @a . unwrap <$> getState ; {-# INLINE getData #-}
 
-type LayerByteOffsetGetter  comp layer m = DataGetter (LayerByteOffset  comp layer) m
-type LayerInitializerGetter comp       m = DataGetter (LayerInitializer comp)       m
-type ComponentMemPoolGetter comp       m = DataGetter (ComponentMemPool comp)       m
-type ComponentSizeGetter    comp       m = DataGetter (ComponentSize    comp)       m
-getLayerByteOffset  :: ∀ comp layer m. LayerByteOffsetGetter  comp layer m => m Int
-getLayerInitializer :: ∀ comp       m. LayerInitializerGetter comp       m => m SomePtr
-getComponentMemPool :: ∀ comp       m. ComponentMemPoolGetter comp       m => m MemPool
-getComponentSize    :: ∀ comp       m. ComponentSizeGetter    comp       m => m Int
-getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  comp layer) ; {-# INLINE getLayerByteOffset  #-}
-getLayerInitializer = unwrap <$> getData @(LayerInitializer comp)       ; {-# INLINE getLayerInitializer #-}
-getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# INLINE getComponentMemPool #-}
-getComponentSize    = unwrap <$> getData @(ComponentSize    comp)       ; {-# INLINE getComponentSize    #-}
+type LayerByteOffsetGetter  c l m = DataGetter (LayerByteOffset  c l) m
+type LayerInitializerGetter c   m = DataGetter (LayerInitializer c)   m
+type ComponentMemPoolGetter c   m = DataGetter (ComponentMemPool c)   m
+type ComponentSizeGetter    c   m = DataGetter (ComponentSize    c)   m
+getLayerByteOffset  :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
+getLayerInitializer :: ∀ c   m. LayerInitializerGetter c   m => m SomePtr
+getComponentMemPool :: ∀ c   m. ComponentMemPoolGetter c   m => m MemPool
+getComponentSize    :: ∀ c   m. ComponentSizeGetter    c   m => m Int
+getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE getLayerByteOffset  #-}
+getLayerInitializer = unwrap <$> getData @(LayerInitializer c)   ; {-# INLINE getLayerInitializer #-}
+getComponentMemPool = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool #-}
+getComponentSize    = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize    #-}
 
 
