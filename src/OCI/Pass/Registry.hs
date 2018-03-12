@@ -13,9 +13,9 @@ import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 
 
----------------------------
--- === Configuration === --
----------------------------
+-------------------
+-- === State === --
+-------------------
 
 -- === Definition === --
 
@@ -55,9 +55,9 @@ instance Exception Error
 
 
 
--------------------------
--- === PassManager === --
--------------------------
+----------------------
+-- === Registry === --
+----------------------
 
 -- === Definition === --
 
@@ -74,6 +74,9 @@ makeLenses ''RegistryT
 
 evalT :: Functor m => RegistryT m a -> m a
 evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
+
+execT :: Functor m => RegistryT m a -> m State
+execT = State.execDefT . unwrap ; {-# INLINE execT #-}
 
 
 -- === Component management === --

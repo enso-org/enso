@@ -25,6 +25,7 @@ import qualified OCI.Pass.Cache              as Pass
 import qualified OCI.Pass.Definition         as Pass
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
+import qualified OCI.Pass.Scheduler          as Scheduler
 
 import Control.Monad.State.Layered (get, put)
 import Foreign.Marshal.Alloc       (mallocBytes)
@@ -38,6 +39,8 @@ import Luna.IR.Layout
 import Luna.IR.Term                (Model, Term, TermCons, Terms)
 import OCI.IR.Component
 import OCI.Pass.Definition         (Attrs, Elems, In, Out, Pass, Spec)
+import OCI.Pass.Registry           (RegistryT)
+import OCI.Pass.Scheduler          (SchedulerT)
 import Type.Data.Ord               (Cmp)
 
 
@@ -68,6 +71,11 @@ Pass.cache_phase1 ''BasicPass
 Pass.cache_phase2 ''BasicPass
 
 
+runWithManualScheduling :: MonadIO m => RegistryT m a -> SchedulerT m b -> m ()
+runWithManualScheduling freg fsched = do
+    reg <- Registry.execT freg
+    _   <- Scheduler.execT fsched reg
+    pure ()
 
 test_pm_run :: MonadIO m => m Encoder.State
 test_pm_run = Exception.catchAll undefined $ Registry.evalT test_pm
