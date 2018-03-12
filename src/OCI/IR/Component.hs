@@ -12,7 +12,7 @@ import qualified Foreign.Ptr           as Ptr
 import qualified Foreign.Storable      as Storable
 import qualified Foreign.Storable1     as Storable1
 import qualified Language.Haskell.TH   as TH
-import qualified OCI.Pass.Class        as Pass
+import qualified OCI.Pass.Definition   as Pass
 import qualified Type.Error            as Error
 
 import Foreign.Ptr.Utils          (SomePtr)

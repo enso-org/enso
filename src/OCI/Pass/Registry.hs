@@ -10,7 +10,7 @@ import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable1.Ptr       as Ptr1
 import qualified OCI.IR.Layer.Internal       as Layer
-import qualified OCI.Pass.Class              as Pass
+-- import qualified OCI.Pass.Class              as Pass
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (MonadState, StateT)
@@ -46,41 +46,41 @@ makeLenses ''ComponentInfo
 makeLenses ''LayerInfo
 
 
--- === Pass config preparation === --
+-- -- === Pass config preparation === --
 
-mkPassConfig :: MonadIO m => State -> m Pass.PassConfig
-mkPassConfig cfg = Pass.PassConfig <$> mapM mkCompConfig (cfg ^. components) ; {-# INLINE mkPassConfig #-}
+-- mkPassConfig :: MonadIO m => State -> m Pass.PassConfig
+-- mkPassConfig cfg = Pass.PassConfig <$> mapM mkCompConfig (cfg ^. components) ; {-# INLINE mkPassConfig #-}
 
-mkCompConfig :: MonadIO m => ComponentInfo -> m Pass.ComponentConfig
-mkCompConfig compCfg = compInfo where
-    layerReps    = Map.keys  $ compCfg ^. layers
-    layerInfos   = Map.elems $ compCfg ^. layers
-    layerSizes   = view byteSize <$> layerInfos
-    layerOffsets = scanl (+) 0 layerSizes
-    layerCfgs    = Pass.LayerConfig <$> layerOffsets
-    compSize     = sum layerSizes
-    compInfo     = Pass.ComponentConfig compSize
-               <$> pure (fromList $ zip layerReps layerCfgs)
-               <*> prepareLayerInitializer layerInfos
-               <*> MemPool.new def (MemPool.ItemSize compSize)
-{-# INLINE mkCompConfig #-}
+-- mkCompConfig :: MonadIO m => ComponentInfo -> m Pass.ComponentConfig
+-- mkCompConfig compCfg = compInfo where
+--     layerReps    = Map.keys  $ compCfg ^. layers
+--     layerInfos   = Map.elems $ compCfg ^. layers
+--     layerSizes   = view byteSize <$> layerInfos
+--     layerOffsets = scanl (+) 0 layerSizes
+--     layerCfgs    = Pass.LayerConfig <$> layerOffsets
+--     compSize     = sum layerSizes
+--     compInfo     = Pass.ComponentConfig compSize
+--                <$> pure (fromList $ zip layerReps layerCfgs)
+--                <*> prepareLayerInitializer layerInfos
+--                <*> MemPool.new def (MemPool.ItemSize compSize)
+-- {-# INLINE mkCompConfig #-}
 
-prepareLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
-prepareLayerInitializer ls = do
-    ptr <- mallocLayerInitializer ls
-    fillLayerInitializer ptr ls
-    pure ptr
+-- prepareLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
+-- prepareLayerInitializer ls = do
+--     ptr <- mallocLayerInitializer ls
+--     fillLayerInitializer ptr ls
+--     pure ptr
 
-mallocLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
-mallocLayerInitializer = \case
-    [] -> pure Ptr.nullPtr
-    ls -> liftIO . Mem.mallocBytes . sum $ view byteSize <$> ls
+-- mallocLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
+-- mallocLayerInitializer = \case
+--     [] -> pure Ptr.nullPtr
+--     ls -> liftIO . Mem.mallocBytes . sum $ view byteSize <$> ls
 
-fillLayerInitializer :: MonadIO m => SomePtr -> [LayerInfo] -> m ()
-fillLayerInitializer ptr = liftIO . \case
-    []     -> pure ()
-    (l:ls) -> Mem.copyBytes ptr (l ^. defPtr) (l ^. byteSize)
-           >> fillLayerInitializer (ptr `plusPtr` (l ^. byteSize)) ls
+-- fillLayerInitializer :: MonadIO m => SomePtr -> [LayerInfo] -> m ()
+-- fillLayerInitializer ptr = liftIO . \case
+--     []     -> pure ()
+--     (l:ls) -> Mem.copyBytes ptr (l ^. defPtr) (l ^. byteSize)
+--            >> fillLayerInitializer (ptr `plusPtr` (l ^. byteSize)) ls
 
 
 

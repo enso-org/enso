@@ -22,7 +22,8 @@ import qualified OCI.IR.Layer                as Layer
 import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.IR.Layout               as Layout
 import qualified OCI.Pass.Cache              as Pass
-import qualified OCI.Pass.Class              as Pass
+import qualified OCI.Pass.Definition         as Pass
+import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 
 import Control.Monad.State.Layered (get, put)
@@ -36,7 +37,7 @@ import Luna.IR.Format
 import Luna.IR.Layout
 import Luna.IR.Term                (Model, Term, TermCons, Terms)
 import OCI.IR.Component
-import OCI.Pass.Class              (Attrs, Elems, In, Out, Pass, Spec)
+import OCI.Pass.Definition         (Attrs, Elems, In, Out, Pass, Spec)
 import Type.Data.Ord               (Cmp)
 
 
@@ -68,10 +69,10 @@ Pass.cache_phase2 ''BasicPass
 
 
 
-test_pm_run :: MonadIO m => m Pass.PassConfig
+test_pm_run :: MonadIO m => m Encoder.State
 test_pm_run = Exception.catchAll undefined $ Registry.evalT test_pm
 
-test_pm :: (Registry.Monad m, MonadIO m) => m Pass.PassConfig
+test_pm :: (Registry.Monad m, MonadIO m) => m Encoder.State
 test_pm = do
     Registry.registerComponent @Terms
     Registry.registerPrimLayer @Terms @Model
@@ -82,7 +83,7 @@ test_pm = do
     Registry.registerPrimLayer @Links @Target
 
     reg <- State.get @Registry.State
-    passCfg <- Registry.mkPassConfig reg
+    passCfg <- Encoder.computeConfig reg
 
     pure passCfg
 
@@ -105,14 +106,14 @@ passTest_run :: IO ()
 passTest_run = do
 
     cfg <- test_pm_run
-    xx <- Pass.encodeState cfg
-    Pass.uncheckedRunCompiled $ Pass.compilePass xx passTest
+    xx <- Encoder.run cfg
+    Pass.uncheckedRunCompiled $ Pass.compile xx passTest
 
 --
 -- passRunTest :: IO ()
 -- passRunTest = do
 --     mp <- MemPool.new 100
---     let cfg = Pass.PassConfig
+--     let cfg = Encoder.State
 --             $ Map.insert (someTypeRep @Terms)
 --               (Pass.ComponentConfig 7
 --                   ( Map.insert (someTypeRep @Model)
@@ -122,9 +123,9 @@ passTest_run = do
 --               )
 --             $ mempty
 --
---     xx <- Pass.encodeState cfg
---     Pass.uncheckedRunCompiled $ Pass.compilePass xx passTest
--- compilePass :: Functor m => PassState pass -> SubPass pass m a -> m a
+--     xx <- Encoder.run cfg
+--     Pass.uncheckedRunCompiled $ Pass.compile xx passTest
+-- compile :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 
 
@@ -311,7 +312,7 @@ test_readWriteLayer2 i = do
 --             go (j - 1)
 --
 --     mp <- MemPool.new 100
---     let cfg = Pass.PassConfig
+--     let cfg = Encoder.State
 --             $ Map.insert (someTypeRep @Terms)
 --               (Pass.ComponentConfig 0
 --                   ( Map.insert (someTypeRep @Model)
@@ -320,8 +321,8 @@ test_readWriteLayer2 i = do
 --                   ) mp
 --               )
 --             $ mempty
---     xx <- Pass.encodeState cfg
---     Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
+--     xx <- Encoder.run cfg
+--     Pass.uncheckedRunCompiled $ Pass.compile xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -337,8 +338,8 @@ test_readWriteLayer4 i = do
             go (j - 1)
 
     cfg <- test_pm_run
-    xx <- Pass.encodeState cfg
-    Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
+    xx <- Encoder.run cfg
+    Pass.uncheckedRunCompiled $ Pass.compile xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -360,8 +361,8 @@ test_createNode i = do
             go (j - 1)
 
     cfg <- test_pm_run
-    xx <- Pass.encodeState cfg
-    Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
+    xx <- Encoder.run cfg
+    Pass.uncheckedRunCompiled $ Pass.compile xx (go i)
 
 
 -- type instance Layout.GetBase Var = Var
@@ -397,8 +398,8 @@ tttest n = do
 --     pure ()
 --
 -- passRunTest :: IO ()
--- passRunTest = Pass.compilePass (Pass.encodeStateTEMP layout) passTest where
---     layout = Pass.PassConfig
+-- passRunTest = Pass.compile (Encoder.runTEMP layout) passTest where
+--     layout = Encoder.State
 --         $ Map.insert (someTypeRep @Terms)
 --           (Pass.ComponentConfig 7
 --               $ Map.insert (someTypeRep @Model)

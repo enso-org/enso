@@ -6,16 +6,16 @@ module OCI.IR.Layer.Internal where
 
 import Prologue hiding (Data)
 
-import qualified Foreign.Storable1 as Storable1
-import qualified OCI.IR.Component  as Component
-import qualified OCI.Pass.Class    as Pass
+import qualified Foreign.Storable1   as Storable1
+import qualified OCI.IR.Component    as Component
+import qualified OCI.Pass.Definition as Pass
 
 import Foreign.Ptr            (plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
 import OCI.IR.Component       (Component (Component))
-import OCI.Pass.Class         (Pass)
+import OCI.Pass.Definition    (Pass)
 
 
 -----------------------

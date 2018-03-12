@@ -2,51 +2,20 @@
 {-# LANGUAGE TypeInType                #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module OCI.Pass.Class where
+module OCI.Pass.Definition where
 
 import Prologue
 
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Map                    as Map
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified Type.Data.List              as List
 
-import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
-import Data.Map.Strict             (Map)
 import Data.TypeMap.Strict         (TypeMap)
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
-
-
-
-------------------------
--- === PassConfig === --
-------------------------
-
--- === Definition === --
-
-newtype PassConfig = PassConfig
-    { _components :: Map SomeTypeRep ComponentConfig
-    } deriving (Show)
-
-data ComponentConfig = ComponentConfig
-    { _byteSize  :: !Int
-    , _layers    :: !(Map SomeTypeRep LayerConfig)
-    , _layerInit :: !SomePtr
-    , _memPool   :: !MemPool
-    } deriving (Show)
-
-newtype LayerConfig = LayerConfig
-    { _byteOffset :: Int
-    } deriving (Show)
-
-makeLenses ''LayerConfig
-makeLenses ''ComponentConfig
-makeLenses ''PassConfig
-
 
 
 ------------------------------
@@ -136,9 +105,9 @@ newtype     State       pass = State (StateData pass)
 type        StateData   pass = TypeMap (StateLayout pass)
 type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
 type ComputeStateLayout pass = List.Append (ComponentMemPools pass)
-                                 ( List.Append (ComponentSizes    pass)
-                                 ( List.Append (LayersLayout      pass)
-                                               (LayerInitializers pass) ))
+                             ( List.Append (ComponentSizes    pass)
+                             ( List.Append (LayersLayout      pass)
+                                           (LayerInitializers pass) ))
 
 type ComponentMemPools pass = List.Map ComponentMemPool      (Vars pass Elems)
 type ComponentSizes    pass = List.Map ComponentSize         (Vars pass Elems)
@@ -192,11 +161,11 @@ newtype Compiled = Compiled { uncheckedRunCompiled :: IO () }
 
 -- === API === --
 
-compilePass :: State pass -> Pass pass a -> Compiled
-compilePass !s p = Compiled . void $ flip State.evalT s (coerce p) ; {-# INLINE compilePass #-}
+compile :: State pass -> Pass pass a -> Compiled
+compile !s p = Compiled . void $ flip State.evalT s (coerce p) ; {-# INLINE compile #-}
 
-execPass :: State pass -> Pass pass a -> IO (State pass)
-execPass !s p = flip State.execT s (coerce p) ; {-# INLINE execPass #-}
+exec :: State pass -> Pass pass a -> IO (State pass)
+exec !s p = flip State.execT s (coerce p) ; {-# INLINE exec #-}
 
 
 -- === Instances === --
@@ -251,134 +220,3 @@ getComponentMemPool = unwrap <$> getData @(ComponentMemPool comp)       ; {-# IN
 getComponentSize    = unwrap <$> getData @(ComponentSize    comp)       ; {-# INLINE getComponentSize    #-}
 
 
-
---------------------------------
--- === Pass State Encoder === --
---------------------------------
-
--- === Errors === --
-
-data EncodingError
-    = MissingComponent SomeTypeRep
-    | MissingLayer     SomeTypeRep
-    deriving (Show)
-
-newtype EncoderError = EncoderError (NonEmpty EncodingError)
-    deriving (Semigroup, Show)
-makeLenses ''EncoderError
-
-type EncoderResult  = Either EncoderError
-type EncodingResult = Either EncodingError
-
-instance Exception EncoderError
-
-
--- === API === --
-
-tryEncodeState :: (StateEncoder pass, Default (State pass))
-                   => PassConfig -> EncoderResult (State pass)
-tryEncodeState cfg = ($ def) <$> passStateEncoder cfg ; {-# INLINE tryEncodeState #-}
-
-encodeState ::
-    ( StateEncoder pass
-    , Default (State pass)
-    , Throws EncoderError m
-    ) => PassConfig -> m (State pass)
-encodeState cfg = case tryEncodeState cfg of
-    Left  e -> throw e
-    Right a -> pure a
-{-# INLINE encodeState #-}
-
-
--- === Encoding utils === --
-
-passStateEncoder :: ∀ pass. StateEncoder pass
-    => PassConfig -> EncoderResult (State pass -> State pass)
-passStateEncoder = passStateEncoder__ @(Vars pass Elems) ; {-# INLINE passStateEncoder #-}
-
-type  StateEncoder pass = StateEncoder__ (Vars pass Elems) pass
-class StateEncoder__ (cs :: [Type]) pass where
-    passStateEncoder__ :: PassConfig
-                       -> EncoderResult (State pass -> State pass)
-
-instance StateEncoder__ '[] pass where
-    passStateEncoder__ _ = Right id ; {-# INLINE passStateEncoder__ #-}
-
-instance ( layers   ~ Vars pass comp
-         , targets  ~ ComponentLayerLayout LayerByteOffset pass comp
-         , compMemPool ~ ComponentMemPool comp
-         , compSize    ~ ComponentSize    comp
-         , layerInit   ~ LayerInitializer comp
-         , Typeables layers
-         , Typeable  comp
-         , StateEncoder__  comps pass
-         , PassDataElemEncoder  compMemPool MemPool pass
-         , PassDataElemEncoder  compSize    Int     pass
-         , PassDataElemEncoder  layerInit   SomePtr pass
-         , PassDataElemsEncoder targets     Int     pass
-         ) => StateEncoder__ (comp ': comps) pass where
-    passStateEncoder__ cfg = encoders where
-        encoders   = appSemiLeft encoder subEncoder
-        encoder    = procComp =<< mcomp
-        subEncoder = passStateEncoder__ @comps cfg
-        mcomp      = mapLeft (wrap . pure)
-                   . lookupComponent tgtComp $ cfg ^. components
-        tgtComp    = someTypeRep @comp
-        procComp i = (encoders .) <$> layerEncoder where
-            encoders     = initEncoder . memEncoder . sizeEncoder
-            memEncoder   = encodePassDataElem  @compMemPool $ i ^. memPool
-            initEncoder  = encodePassDataElem  @layerInit   $ i ^. layerInit
-            sizeEncoder  = encodePassDataElem  @compSize    $ i ^. byteSize
-            layerEncoder = encodePassDataElems @targets <$> layerOffsets
-            layerTypes   = someTypeReps @layers
-            layerOffsets = view byteOffset <<$>> layerInfos
-            layerInfos   = mapLeft wrap $ catEithers
-                         $ flip lookupLayer (i ^. layers) <$> layerTypes
-    {-# INLINE passStateEncoder__ #-}
-
-lookupComponent :: SomeTypeRep -> Map SomeTypeRep v -> EncodingResult v
-lookupComponent k m = justErr (MissingComponent k) $ Map.lookup k m ; {-# INLINE lookupComponent #-}
-
-lookupLayer :: SomeTypeRep -> Map SomeTypeRep v -> EncodingResult v
-lookupLayer k m = justErr (MissingLayer k) $ Map.lookup k m ; {-# INLINE lookupLayer #-}
-
-catEithers :: [Either l r] -> Either (NonEmpty l) [r]
-catEithers lst = case partitionEithers lst of
-    ([]    ,rs) -> Right rs
-    ((l:ls),_)  -> Left $ l :| ls
-{-# INLINE catEithers #-}
-
--- TODO
--- We should probably think about using other structure than Either here
--- Data.Validation is almost what we need, but its Semigroup instance
--- uses only lefts, which makes is not suitable for the purpose of
--- simple Either replacement.
-appSemiLeft :: Semigroup e
-            => (Either e (b -> c)) -> Either e (a -> b) -> Either e (a -> c)
-appSemiLeft f a = case f of
-    Left e -> case a of
-        Left e' -> Left (e <> e')
-        _       -> Left e
-    Right ff -> case a of
-        Left e   -> Left e
-        Right aa -> Right $ ff . aa
-{-# INLINE appSemiLeft #-}
-
-
-
--- === Element encoders === --
-
-type PassDataElemEncoder   el t pass = PassDataElemsEncoder '[el] t pass
-class PassDataElemsEncoder (els :: [Type]) t pass where
-    encodePassDataElems :: [t] -> State pass -> State pass
-
-encodePassDataElem :: ∀ el t pass. PassDataElemEncoder el t pass
-                   => t -> State pass -> State pass
-encodePassDataElem = encodePassDataElems @'[el] @t @pass . pure
-
-instance PassDataElemsEncoder '[Imp] t   pass where encodePassDataElems = impossible
-instance PassDataElemsEncoder els    Imp pass where encodePassDataElems = impossible
-instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = impossible
-instance TypeMap.SetElemsFromList els t (StateLayout pass)
-      => PassDataElemsEncoder els t pass where
-    encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}

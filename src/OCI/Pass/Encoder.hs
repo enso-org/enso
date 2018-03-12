@@ -10,7 +10,7 @@ import qualified Foreign.Marshal.Alloc as Mem
 import qualified Foreign.Marshal.Utils as Mem
 import qualified Foreign.Memory.Pool   as MemPool
 import qualified Foreign.Ptr           as Ptr
-import qualified OCI.Pass.Class        as Pass
+import qualified OCI.Pass.Definition   as Pass
 import qualified OCI.Pass.Registry     as Registry
 
 import Control.Monad.Exception (Throws, throw)
