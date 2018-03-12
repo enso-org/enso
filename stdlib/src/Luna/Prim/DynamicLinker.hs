@@ -12,7 +12,8 @@ import qualified Foreign
 import           System.FilePath        ((</>), pathSeparator)
 
 #if mingw32_HOST_OS
-import qualified System.Win32.DLL as Win32
+import qualified System.Win32.DLL   as Win32
+import qualified System.Win32.Types as Win32 (HINSTANCE)
 #else
 import qualified System.Posix.DynamicLinker as Unix
 #endif
@@ -31,7 +32,7 @@ nativeLibs = "native_libs"
 
 
 loadLibrary :: String -> IO Handle
-loadLibrary ""          = thisBinary
+loadLibrary ""          = cLibrary
 loadLibrary namePattern = do
     projectDir <- return ""
     let possibleNames = [ prefix ++ namePattern ++ extension | prefix    <- ["lib", ""]
@@ -73,8 +74,8 @@ nativeLoadLibrary library = Win32.loadLibrary library
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr <$> Win32.getProcAddress handle symbol
 
-thisBinary :: IO Handle
-thisBinary = Win32.getModuleHandle Nothing
+cLibrary :: IO Handle
+cLibrary = nativeLoadLibrary "msvcrt"
 
 dynamicLibraryExtensions :: [String]
 dynamicLibraryExtensions = [".dll"]
@@ -90,8 +91,8 @@ nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_LAZY]
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Unix.dlsym handle symbol
 
-thisBinary :: IO Handle
-thisBinary = return Unix.Default
+cLibrary :: IO Handle
+cLibrary = nativeLoadLibrary ""
 
 dynamicLibraryExtensions :: [String]
 nativeLibraryProjectDir  :: String
