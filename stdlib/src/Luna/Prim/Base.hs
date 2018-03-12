@@ -18,7 +18,7 @@ import qualified Data.HashMap.Lazy           as HM
 import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 import qualified Data.Map.Base               as IMap
-import           Data.Scientific             (toRealFloat)
+import           Data.Scientific             (toRealFloat, Scientific, coefficient, base10Exponent, fromFloatDigits)
 import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
 import qualified Data.Text.Lazy.Encoding     as Text
@@ -41,13 +41,14 @@ import           System.FilePath             (pathSeparator)
 
 primReal :: Imports -> IO (Map Name Function)
 primReal imps = do
-    (doubleIntDoubleAssumptions, doubleIntDouble) <- makeTypePure ["Real", "Int"]  "Real"
-    (boxed3DoublesAssumptions,   boxed3Doubles)   <- makeTypePure ["Real", "Real"] "Real"
-    (double2BoolAssumptions,     double2Bool)     <- makeTypePure ["Real", "Real"] "Bool"
-    (double2TextAssumptions,     double2text)     <- makeTypePure ["Real"]         "Text"
-    (double2IntAssumptions,      double2int)      <- makeTypePure ["Real"]         "Int"
-    (double2JSONAssumptions,     double2JSON)     <- makeTypePure ["Real"]         "JSON"
-    (double2DoubleAssumptions,   double2Double)   <- makeTypePure ["Real"]         "Real"
+    (doubleIntDoubleAssumptions,   doubleIntDouble)   <- makeTypePure ["Real", "Int"]  "Real"
+    (boxed3DoublesAssumptions,     boxed3Doubles)     <- makeTypePure ["Real", "Real"] "Real"
+    (double2BoolAssumptions,       double2Bool)       <- makeTypePure ["Real", "Real"] "Bool"
+    (double2TextAssumptions,       double2text)       <- makeTypePure ["Real"]         "Text"
+    (double2IntAssumptions,        double2int)        <- makeTypePure ["Real"]         "Int"
+    (double2JSONAssumptions,       double2JSON)       <- makeTypePure ["Real"]         "JSON"
+    (double2DoubleAssumptions,     double2Double)     <- makeTypePure ["Real"]         "Real"
+    (double2ScientificAssumptions, double2Scientific) <- makeTypePure ["Real"]         "Scientific"
 
     let plusVal     = toLunaValue imps ((+)          :: Double -> Double -> Double)
         timeVal     = toLunaValue imps ((*)          :: Double -> Double -> Double)
@@ -83,6 +84,7 @@ primReal imps = do
         sqrtVal     = toLunaValue imps (sqrt :: Double -> Double)
         logVal      = toLunaValue imps (log  :: Double -> Double)
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
+        toScientificVal = toLunaValue imps (fromFloatDigits :: Double -> Scientific)
 
     let primRealToCDoubleArgVal :: Double -> LibFFI.Arg
         primRealToCDoubleArgVal d = LibFFI.argCDouble $ coerce d
@@ -129,8 +131,11 @@ primReal imps = do
                           , ("primRealLn",       Function double2Double   logVal     double2DoubleAssumptions  )
                           , ("primRealSqrt",     Function double2Double   sqrtVal    double2DoubleAssumptions  )
                           , ("primRealNegate",   Function double2Double   uminusVal  double2DoubleAssumptions  )
+
                           , ("primRealToCDoubleArg", primRealToCDoubleArg)
                           , ("primRealToCFloatArg", primRealToCFloatArg)
+
+                          , ("primRealToScientific", Function double2Scientific toScientificVal double2ScientificAssumptions)
                           ]
 
 primInt :: Imports -> IO (Map Name Function)
@@ -385,11 +390,15 @@ instance (ToLunaData a, ToLunaData b) => ToLunaData (IMap.Map a b) where
         constructorOf IMap.Tip             = Constructor "Tip" []
         constructorOf (IMap.Bin s k v l r) = Constructor "Bin" [toLunaData imps $ integer s, toLunaData imps k, toLunaData imps v, toLunaData imps l, toLunaData imps r]
 
+type instance RuntimeRepOf Scientific = AsClass "Scientific" Scientific
+instance ToLunaObject Scientific where
+    toConstructor imps s = Constructor "Scientific" [toLunaData imps $ coefficient s, toLunaData imps $ integer $ base10Exponent s]
+
 type instance RuntimeRepOf Aeson.Value = AsClass "JSON" Aeson.Value
 instance ToLunaObject Aeson.Value where
     toConstructor imps (Aeson.Array  a) = Constructor "JSONArray"  [toLunaData imps . toList $ a]
     toConstructor imps (Aeson.String a) = Constructor "JSONString" [toLunaData imps (convert a :: Text)]
-    toConstructor imps (Aeson.Number a) = Constructor "JSONNumber" [toLunaData imps (toRealFloat a :: Double)]
+    toConstructor imps (Aeson.Number a) = Constructor "JSONNumber" [toLunaData imps a]
     toConstructor imps (Aeson.Bool   a) = Constructor "JSONBool"   [toLunaData imps a]
     toConstructor imps  Aeson.Null      = Constructor "JSONNull"   []
     toConstructor imps (Aeson.Object a) = Constructor "JSONObject" [toLunaData imps $ (Map.mapKeys convert $ Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
