@@ -2,49 +2,48 @@
 
 module Luna.Pass where
 
-import Prologue
+-- import Prologue
 
-import qualified Control.Monad.Exception     as Exception
-import qualified Control.Monad.State.Layered as State
-import qualified OCI.Pass.Cache              as Pass
-import qualified OCI.Pass.Manager            as PassManager
+-- import qualified Control.Monad.Exception     as Exception
+-- import qualified Control.Monad.State.Layered as State
+-- import qualified OCI.Pass.Cache              as Pass
+-- import qualified OCI.Pass.Manager.Registry   as Registry
 
-import Luna.IR.Link     (Links, Source, Target)
-import Luna.IR.Term     (Model, Terms)
-import OCI.Pass.Class   as Pass
-import OCI.Pass.Manager (MonadPassManager)
+-- import Luna.IR.Link   (Links, Source, Target)
+-- import Luna.IR.Term   (Model, Terms)
+-- import OCI.Pass.Class as Pass
 
-import ToRefactor ()
-
+-- import ToRefactor ()
 
 
 
-type family BasicSpec t where
-    BasicSpec (In Elems) = '[Terms, Links]
-    BasicSpec (In Terms) = '[Model, Type]
-    BasicSpec (In Links) = '[Source, Target]
-    BasicSpec (Out a)    = BasicSpec (In a)
-    BasicSpec t          = '[]
+
+-- type family BasicSpec t where
+--     BasicSpec (In Elems) = '[Terms, Links]
+--     BasicSpec (In Terms) = '[Model, Type]
+--     BasicSpec (In Links) = '[Source, Target]
+--     BasicSpec (Out a)    = BasicSpec (In a)
+--     BasicSpec t          = '[]
 
 
 
-test_pm_run :: MonadIO m => m Pass.PassConfig
-test_pm_run = Exception.catchAll undefined $ PassManager.evalT test_pm
+-- test_pm_run :: MonadIO m => m Pass.PassConfig
+-- test_pm_run = Exception.catchAll undefined $ Registry.evalT test_pm
 
-test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
-test_pm = do
-    PassManager.registerComponent @Terms
-    PassManager.registerPrimLayer @Terms @Model
-    PassManager.registerPrimLayer @Terms @Type
+-- test_pm :: (Registry.Monad m, MonadIO m) => m Pass.PassConfig
+-- test_pm = do
+--     Registry.registerComponent @Terms
+--     Registry.registerPrimLayer @Terms @Model
+--     Registry.registerPrimLayer @Terms @Type
 
-    PassManager.registerComponent @Links
-    PassManager.registerPrimLayer @Links @Source
-    PassManager.registerPrimLayer @Links @Target
+--     Registry.registerComponent @Links
+--     Registry.registerPrimLayer @Links @Source
+--     Registry.registerPrimLayer @Links @Target
 
-    reg <- State.get @PassManager.Registry
-    passCfg <- PassManager.mkPassConfig reg
+--     reg <- State.get @Registry.Registry
+--     passCfg <- Registry.mkPassConfig reg
 
-    pure passCfg
+--     pure passCfg
 
 
 -- passTest :: Pass.Pass BasicPass

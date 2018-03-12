@@ -23,7 +23,7 @@ import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.IR.Layout               as Layout
 import qualified OCI.Pass.Cache              as Pass
 import qualified OCI.Pass.Class              as Pass
-import qualified OCI.Pass.Manager            as PassManager
+import qualified OCI.Pass.Registry           as Registry
 
 import Control.Monad.State.Layered (get, put)
 import Foreign.Marshal.Alloc       (mallocBytes)
@@ -36,8 +36,7 @@ import Luna.IR.Format
 import Luna.IR.Layout
 import Luna.IR.Term                (Model, Term, TermCons, Terms)
 import OCI.IR.Component
-import OCI.Pass.Class              (Elems, In, Out, Pass, Spec)
-import OCI.Pass.Manager            (MonadPassManager)
+import OCI.Pass.Class              (Attrs, Elems, In, Out, Pass, Spec)
 import Type.Data.Ord               (Cmp)
 
 
@@ -51,6 +50,7 @@ type instance Layer.Data   Terms Type = Link
 type instance Layer.Layout Terms Type layout = layout *-* layout
 
 
+newtype MyAttr = MyAttr Int deriving (Show)
 
 
 data BasicPass
@@ -59,6 +59,7 @@ type family   Spec_BasicPass t where
     Spec_BasicPass (In Elems) = '[Terms, Links]
     Spec_BasicPass (In Terms) = '[Model, Type]
     Spec_BasicPass (In Links) = '[Source, Target]
+    Spec_BasicPass (In Attrs) = '[MyAttr]
     Spec_BasicPass (Out a)    = Spec_BasicPass (In a)
     Spec_BasicPass t          = '[]
 
@@ -68,20 +69,20 @@ Pass.cache_phase2 ''BasicPass
 
 
 test_pm_run :: MonadIO m => m Pass.PassConfig
-test_pm_run = Exception.catchAll undefined $ PassManager.evalT test_pm
+test_pm_run = Exception.catchAll undefined $ Registry.evalT test_pm
 
-test_pm :: (MonadPassManager m, MonadIO m) => m Pass.PassConfig
+test_pm :: (Registry.Monad m, MonadIO m) => m Pass.PassConfig
 test_pm = do
-    PassManager.registerComponent @Terms
-    PassManager.registerPrimLayer @Terms @Model
-    PassManager.registerPrimLayer @Terms @Type
+    Registry.registerComponent @Terms
+    Registry.registerPrimLayer @Terms @Model
+    Registry.registerPrimLayer @Terms @Type
 
-    PassManager.registerComponent @Links
-    PassManager.registerPrimLayer @Links @Source
-    PassManager.registerPrimLayer @Links @Target
+    Registry.registerComponent @Links
+    Registry.registerPrimLayer @Links @Source
+    Registry.registerPrimLayer @Links @Target
 
-    reg <- State.get @PassManager.Registry
-    passCfg <- PassManager.mkPassConfig reg
+    reg <- State.get @Registry.State
+    passCfg <- Registry.mkPassConfig reg
 
     pure passCfg
 
@@ -104,7 +105,7 @@ passTest_run :: IO ()
 passTest_run = do
 
     cfg <- test_pm_run
-    xx <- Pass.encodePassState cfg
+    xx <- Pass.encodeState cfg
     Pass.uncheckedRunCompiled $ Pass.compilePass xx passTest
 
 --
@@ -121,7 +122,7 @@ passTest_run = do
 --               )
 --             $ mempty
 --
---     xx <- Pass.encodePassState cfg
+--     xx <- Pass.encodeState cfg
 --     Pass.uncheckedRunCompiled $ Pass.compilePass xx passTest
 -- compilePass :: Functor m => PassState pass -> SubPass pass m a -> m a
 
@@ -319,7 +320,7 @@ test_readWriteLayer2 i = do
 --                   ) mp
 --               )
 --             $ mempty
---     xx <- Pass.encodePassState cfg
+--     xx <- Pass.encodeState cfg
 --     Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
@@ -336,7 +337,7 @@ test_readWriteLayer4 i = do
             go (j - 1)
 
     cfg <- test_pm_run
-    xx <- Pass.encodePassState cfg
+    xx <- Pass.encodeState cfg
     Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
@@ -359,7 +360,7 @@ test_createNode i = do
             go (j - 1)
 
     cfg <- test_pm_run
-    xx <- Pass.encodePassState cfg
+    xx <- Pass.encodeState cfg
     Pass.uncheckedRunCompiled $ Pass.compilePass xx (go i)
 
 
@@ -396,7 +397,7 @@ tttest n = do
 --     pure ()
 --
 -- passRunTest :: IO ()
--- passRunTest = Pass.compilePass (Pass.encodePassStateTEMP layout) passTest where
+-- passRunTest = Pass.compilePass (Pass.encodeStateTEMP layout) passTest where
 --     layout = Pass.PassConfig
 --         $ Map.insert (someTypeRep @Terms)
 --           (Pass.ComponentConfig 7

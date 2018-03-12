@@ -18,12 +18,12 @@ mkLayoutName = ("PassStateLayout_" <>)
 cache_phase1 :: Name -> Q [Dec]
 cache_phase1 name = (layoutDecl:) <$> Type.cache_phase1 layoutName where
     layoutName = mkLayoutName name
-    layoutType = ConT ''Pass.ComputePassStateLayout
+    layoutType = ConT ''Pass.ComputeStateLayout
     layoutDecl = TySynD layoutName [] $ app layoutType (ConT name)
 
 cache_phase2 :: Name -> Q [Dec]
 cache_phase2 name = (passInst:) <$> Type.cache_phase2 layoutName where
     layoutName  = mkLayoutName name
     layoutCache = Type.mkCacheName layoutName
-    passInst   = TySynInstD ''Pass.PassStateLayout
+    passInst   = TySynInstD ''Pass.StateLayout
                $ TySynEqn [ConT name] (ConT layoutCache)

@@ -28,8 +28,8 @@ import Foreign.Ptr.Utils           (SomePtr)
 
 -- === Definition === --
 
-data PassConfig = PassConfig
-    { _components :: !(Map SomeTypeRep ComponentConfig)
+newtype PassConfig = PassConfig
+    { _components :: Map SomeTypeRep ComponentConfig
     } deriving (Show)
 
 data ComponentConfig = ComponentConfig
@@ -39,8 +39,8 @@ data ComponentConfig = ComponentConfig
     , _memPool   :: !MemPool
     } deriving (Show)
 
-data LayerConfig = LayerConfig
-    { _byteOffset :: !Int
+newtype LayerConfig = LayerConfig
+    { _byteOffset :: Int
     } deriving (Show)
 
 makeLenses ''LayerConfig
@@ -65,6 +65,7 @@ makeLenses ''PassConfig
 --       Spec_MyPass t          = '[]
 
 data Elems
+data Attrs
 
 data Property
     = PassIn        Type
@@ -131,10 +132,10 @@ instance Typeable comp => Show (ComponentMemPool comp) where
 
 -- === Definition === --
 
-newtype     PassState       pass = PassState (PassStateData pass)
-type        PassStateData   pass = TypeMap (PassStateLayout pass)
-type family PassStateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
-type ComputePassStateLayout pass = List.Append (ComponentMemPools pass)
+newtype     State       pass = State (StateData pass)
+type        StateData   pass = TypeMap (StateLayout pass)
+type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
+type ComputeStateLayout pass = List.Append (ComponentMemPools pass)
                                  ( List.Append (ComponentSizes    pass)
                                  ( List.Append (LayersLayout      pass)
                                                (LayerInitializers pass) ))
@@ -154,13 +155,13 @@ type family MapOverCompsAndVars t pass comps where
 type ComponentLayerLayout t pass component
     = List.Map (t component) (Vars pass component)
 
-makeLenses ''PassState
+makeLenses ''State
 
 
 -- === Instances === --
 
-deriving instance Show    (PassStateData pass) => Show    (PassState pass)
-deriving instance Default (PassStateData pass) => Default (PassState pass)
+deriving instance Show    (StateData pass) => Show    (State pass)
+deriving instance Default (StateData pass) => Default (State pass)
 
 
 
@@ -170,7 +171,7 @@ deriving instance Default (PassStateData pass) => Default (PassState pass)
 
 -- === Definition === --
 
-newtype Pass (pass :: Type) a = Pass (StateT (PassState pass) IO a)
+newtype Pass (pass :: Type) a = Pass (StateT (State pass) IO a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadThrow)
 makeLenses ''Pass
@@ -179,9 +180,9 @@ type family DiscoverPass m where
     DiscoverPass (Pass pass) = pass
     DiscoverPass (t m)       = DiscoverPass m
 
-type DiscoverPassState       m = PassState       (DiscoverPass m)
-type DiscoverPassStateData   m = PassStateData   (DiscoverPass m)
-type DiscoverPassStateLayout m = PassStateLayout (DiscoverPass m)
+type DiscoverState       m = State       (DiscoverPass m)
+type DiscoverStateData   m = StateData   (DiscoverPass m)
+type DiscoverStateLayout m = StateLayout (DiscoverPass m)
 
 
 -- === Compiled Pass === --
@@ -191,8 +192,11 @@ newtype Compiled = Compiled { uncheckedRunCompiled :: IO () }
 
 -- === API === --
 
-compilePass :: PassState pass -> Pass pass a -> Compiled
+compilePass :: State pass -> Pass pass a -> Compiled
 compilePass !s p = Compiled . void $ flip State.evalT s (coerce p) ; {-# INLINE compilePass #-}
+
+execPass :: State pass -> Pass pass a -> IO (State pass)
+execPass !s p = flip State.execT s (coerce p) ; {-# INLINE execPass #-}
 
 
 -- === Instances === --
@@ -209,19 +213,19 @@ instance Show Compiled where show _ = "Pass.Compiled" ; {-# INLINE show #-}
 
 type  MonadStateCtx m = MonadIO m
 class MonadStateCtx m => MonadState m where
-    getPassState :: m (DiscoverPassState m)
-    putPassState :: DiscoverPassState m -> m ()
+    getState :: m (DiscoverState m)
+    putState :: DiscoverState m -> m ()
 
 instance MonadState (Pass pass) where
-    getPassState = wrap State.get'   ; {-# INLINE getPassState #-}
-    putPassState = wrap . State.put' ; {-# INLINE putPassState #-}
+    getState = wrap State.get'   ; {-# INLINE getState #-}
+    putState = wrap . State.put' ; {-# INLINE putState #-}
 
 instance {-# OVERLAPPABLE #-}
          ( MonadStateCtx (t m), MonadState m, MonadTrans t
          , DiscoverPass (t m) ~ DiscoverPass m
          ) => MonadState (t m) where
-    getPassState = lift   getPassState ; {-# INLINE getPassState #-}
-    putPassState = lift . putPassState ; {-# INLINE putPassState #-}
+    getState = lift   getState ; {-# INLINE getState #-}
+    putState = lift . putState ; {-# INLINE putState #-}
 
 
 -- === API === --
@@ -229,9 +233,9 @@ instance {-# OVERLAPPABLE #-}
 class    Monad m => DataGetter a   m     where getData :: m a
 instance Monad m => DataGetter Imp m     where getData = impossible
 instance            DataGetter a   ImpM1 where getData = impossible
-instance (MonadState m, TypeMap.ElemGetter a (DiscoverPassStateLayout m))
+instance (MonadState m, TypeMap.ElemGetter a (DiscoverStateLayout m))
       => DataGetter a m where
-    getData = TypeMap.getElem @a . unwrap <$> getPassState ; {-# INLINE getData #-}
+    getData = TypeMap.getElem @a . unwrap <$> getState ; {-# INLINE getData #-}
 
 type LayerByteOffsetGetter  comp layer m = DataGetter (LayerByteOffset  comp layer) m
 type LayerInitializerGetter comp       m = DataGetter (LayerInitializer comp)       m
@@ -271,33 +275,33 @@ instance Exception EncoderError
 
 -- === API === --
 
-tryEncodePassState :: (PassStateEncoder pass, Default (PassState pass))
-                   => PassConfig -> EncoderResult (PassState pass)
-tryEncodePassState cfg = ($ def) <$> passStateEncoder cfg ; {-# INLINE tryEncodePassState #-}
+tryEncodeState :: (StateEncoder pass, Default (State pass))
+                   => PassConfig -> EncoderResult (State pass)
+tryEncodeState cfg = ($ def) <$> passStateEncoder cfg ; {-# INLINE tryEncodeState #-}
 
-encodePassState ::
-    ( PassStateEncoder pass
-    , Default (PassState pass)
+encodeState ::
+    ( StateEncoder pass
+    , Default (State pass)
     , Throws EncoderError m
-    ) => PassConfig -> m (PassState pass)
-encodePassState cfg = case tryEncodePassState cfg of
+    ) => PassConfig -> m (State pass)
+encodeState cfg = case tryEncodeState cfg of
     Left  e -> throw e
     Right a -> pure a
-{-# INLINE encodePassState #-}
+{-# INLINE encodeState #-}
 
 
 -- === Encoding utils === --
 
-passStateEncoder :: ∀ pass. PassStateEncoder pass
-    => PassConfig -> EncoderResult (PassState pass -> PassState pass)
+passStateEncoder :: ∀ pass. StateEncoder pass
+    => PassConfig -> EncoderResult (State pass -> State pass)
 passStateEncoder = passStateEncoder__ @(Vars pass Elems) ; {-# INLINE passStateEncoder #-}
 
-type  PassStateEncoder pass = PassStateEncoder__ (Vars pass Elems) pass
-class PassStateEncoder__ (cs :: [Type]) pass where
+type  StateEncoder pass = StateEncoder__ (Vars pass Elems) pass
+class StateEncoder__ (cs :: [Type]) pass where
     passStateEncoder__ :: PassConfig
-                       -> EncoderResult (PassState pass -> PassState pass)
+                       -> EncoderResult (State pass -> State pass)
 
-instance PassStateEncoder__ '[] pass where
+instance StateEncoder__ '[] pass where
     passStateEncoder__ _ = Right id ; {-# INLINE passStateEncoder__ #-}
 
 instance ( layers   ~ Vars pass comp
@@ -307,12 +311,12 @@ instance ( layers   ~ Vars pass comp
          , layerInit   ~ LayerInitializer comp
          , Typeables layers
          , Typeable  comp
-         , PassStateEncoder__  comps pass
+         , StateEncoder__  comps pass
          , PassDataElemEncoder  compMemPool MemPool pass
          , PassDataElemEncoder  compSize    Int     pass
          , PassDataElemEncoder  layerInit   SomePtr pass
          , PassDataElemsEncoder targets     Int     pass
-         ) => PassStateEncoder__ (comp ': comps) pass where
+         ) => StateEncoder__ (comp ': comps) pass where
     passStateEncoder__ cfg = encoders where
         encoders   = appSemiLeft encoder subEncoder
         encoder    = procComp =<< mcomp
@@ -366,15 +370,15 @@ appSemiLeft f a = case f of
 
 type PassDataElemEncoder   el t pass = PassDataElemsEncoder '[el] t pass
 class PassDataElemsEncoder (els :: [Type]) t pass where
-    encodePassDataElems :: [t] -> PassState pass -> PassState pass
+    encodePassDataElems :: [t] -> State pass -> State pass
 
 encodePassDataElem :: ∀ el t pass. PassDataElemEncoder el t pass
-                   => t -> PassState pass -> PassState pass
+                   => t -> State pass -> State pass
 encodePassDataElem = encodePassDataElems @'[el] @t @pass . pure
 
 instance PassDataElemsEncoder '[Imp] t   pass where encodePassDataElems = impossible
 instance PassDataElemsEncoder els    Imp pass where encodePassDataElems = impossible
 instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = impossible
-instance TypeMap.SetElemsFromList els t (PassStateLayout pass)
+instance TypeMap.SetElemsFromList els t (StateLayout pass)
       => PassDataElemsEncoder els t pass where
     encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}
