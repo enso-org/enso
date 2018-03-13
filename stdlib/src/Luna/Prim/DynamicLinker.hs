@@ -2,18 +2,22 @@
 
 module Luna.Prim.DynamicLinker where
 
-import           Luna.Prelude
+import           Luna.Prelude hiding (throwM)
 
-import           Control.Exception.Safe (throwString, tryAny)
+import           Control.Exception.Safe (throwM, tryAny)
 import           Control.Monad.Except   (ExceptT(..), runExceptT)
 import qualified Data.EitherR           as EitherR
 import           Foreign                (FunPtr)
 import qualified Foreign
 import qualified System.Directory       as Dir
+import qualified System.Environment     as Env
 import           System.FilePath        ((</>), pathSeparator)
+import qualified System.FilePath        as FP
+import           System.IO.Unsafe       (unsafePerformIO)
 
 #if mingw32_HOST_OS
 import qualified System.Win32.DLL   as Win32
+import qualified System.Win32.Info  as Win32
 import qualified System.Win32.Types as Win32 (HINSTANCE)
 #else
 import qualified System.Posix.DynamicLinker as Unix
@@ -93,6 +97,25 @@ dynamicLibraryExtensions = [".dll"]
 nativeLibraryProjectDir :: String
 nativeLibraryProjectDir = "windows"
 
+-- based on https://msdn.microsoft.com/en-us/library/windows/desktop/ms682586(v=vs.85).aspx
+nativeSearchPaths :: [FilePath]
+nativeSearchPaths = unsafePerformIO $ do
+    exeDirectory <- do
+        handle <- Win32.getModuleHandle ""
+        exe    <- Win32.getModuleFileName handle
+        return $ Dir.takeDirectory exe
+    systemDirectory  <- Win32.getSystemDirectory
+    windowsDirectory <- Win32.getWindowsDirectory
+    currentDirectory <- Win32.getCurrentDirectory
+    pathDirectories  <- do
+        pathEnv <- FP.getSearchPath
+        return $ FP.splitSearchPath pathEnv
+    return $ exeDirectory
+           : systemDirectory
+           : windowsDirectory
+           : currentDirectory
+           : pathDirectories
+
 #else
 
 nativeLoadLibrary :: String -> IO Handle
@@ -104,12 +127,16 @@ nativeLoadSymbol handle symbol = Unix.dlsym handle symbol
 cLibrary :: IO Handle
 cLibrary = nativeLoadLibrary ""
 
+nativeSearchPaths        :: [FilePath]
+nativeSearchPaths = unsafePerformIO $ return []
+
 dynamicLibraryExtensions :: [String]
 nativeLibraryProjectDir  :: String
 #if linux_HOST_OS
 dynamicLibraryExtensions = [".so", ""]
 
 nativeLibraryProjectDir = "linux"
+
 #elif darwin_HOST_OS
 dynamicLibraryExtensions = [".dylib", ""]
 
