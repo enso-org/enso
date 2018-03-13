@@ -9,6 +9,7 @@ import           Control.Monad.Except   (ExceptT(..), runExceptT)
 import qualified Data.EitherR           as EitherR
 import           Foreign                (FunPtr)
 import qualified Foreign
+import qualified System.Directory       as Dir
 import           System.FilePath        ((</>), pathSeparator)
 
 #if mingw32_HOST_OS
@@ -37,27 +38,34 @@ instance Exception NativeLibraryLoadingException where
     displayException (NativeLibraryLoadingException name details) =
         "Native library " ++ name ++ " could not be loaded. Details:\n\n" ++ unlines details
 
+findLocalNativeLibsDirs :: FilePath -> IO [FilePath]
+findLocalNativeLibsDirs projectDir = do
+    let localDepsDir = projectDir </> "local_libs"
+    localDeps <- tryAny $ Dir.listDirectory localDepsDir
+    case localDeps of
+        Left  exc  -> return []
+        Right dirs -> do
+            localNativeDirs <- forM dirs $ \dir -> findLocalNativeLibsDirs (localDepsDir </> dir)
+            return $ map (\a -> localDepsDir </> a </> nativeLibs) dirs <> concat localNativeDirs
 
 loadLibrary :: String -> IO Handle
 loadLibrary ""          = cLibrary
 loadLibrary namePattern = do
     projectDir <- return ""
+    nativeDirs <- (nativeLibs :) <$> findLocalNativeLibsDirs projectDir
     let possibleNames = [ prefix ++ namePattern ++ extension | prefix    <- ["lib", ""]
                                                              , extension <- dynamicLibraryExtensions
                         ]
-        projectNativeDirectory = projectDir </> nativeLibs </> nativeLibraryProjectDir
-        possiblePaths = [ dir </> name | dir  <- ["", projectNativeDirectory]
+        projectNativeDirectories = [ nativeDir </> nativeLibraryProjectDir | nativeDir <- nativeDirs ]
+        possiblePaths = [ dir </> name | dir  <- ("" : projectNativeDirectories)
                                        , name <- possibleNames
                         ]
     result <- runExceptT $ EitherR.runExceptRT $ do
-        forM possiblePaths $ \path -> do
-            EitherR.ExceptRT $ ExceptT $ do
-                loadRes <- tryAny $ nativeLoadLibrary path
-                case loadRes of
-                    Left exc -> do
-                        return $ Left $ "loading \"" ++ path ++ "\" failed with: " ++ displayException exc
-                    Right  h -> do
-                        return $ Right h
+        forM possiblePaths $ \path -> EitherR.ExceptRT $ ExceptT $ do
+            loadRes <- tryAny $ nativeLoadLibrary path
+            let errorDetails exc =
+                    "loading \"" ++ path ++ "\" failed with: " ++ displayException exc
+            return $ EitherR.fmapL errorDetails loadRes
     case result of
         Left  e -> throwM $ NativeLibraryLoadingException namePattern e
         Right h -> return h
