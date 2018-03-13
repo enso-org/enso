@@ -11,6 +11,8 @@ import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
 import OCI.Pass.Definition         (Pass)
+import OCI.Pass.Dynamic            (DynamicPass)
+
 
 
 -------------------
@@ -18,7 +20,7 @@ import OCI.Pass.Definition         (Pass)
 -------------------
 
 data State = State
-    { _passes        :: !(Map SomeTypeRep Pass.Dynamic)
+    { _passes        :: !(Map SomeTypeRep DynamicPass)
     , _attrs         :: !(Map SomeTypeRep Any)
     , _encoderConfig :: !Encoder.State
     }

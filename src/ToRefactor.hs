@@ -23,6 +23,7 @@ import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.IR.Layout               as Layout
 import qualified OCI.Pass.Cache              as Pass
 import qualified OCI.Pass.Definition         as Pass
+import qualified OCI.Pass.Dynamic            as DynamicPass
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified OCI.Pass.Scheduler          as Scheduler
@@ -115,7 +116,7 @@ passTest_run = do
 
     cfg <- test_pm_run
     xx <- Encoder.run @BasicPass cfg
-    Pass.uncheckedRunDynamic $ Pass.compile2 passTest (unsafeCoerce xx)
+    DynamicPass.runPass xx passTest
 
 --
 -- passRunTest :: IO ()
@@ -132,7 +133,7 @@ passTest_run = do
 --             $ mempty
 --
 --     xx <- Encoder.run cfg
---     Pass.uncheckedRunDynamic $ Pass.compile xx passTest
+--     DynamicPass.uncheckedRunDynamic $ Pass.compile xx passTest
 -- compile :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 
@@ -330,7 +331,7 @@ test_readWriteLayer2 i = do
 --               )
 --             $ mempty
 --     xx <- Encoder.run cfg
---     Pass.uncheckedRunDynamic $ Pass.compile xx (go i)
+--     DynamicPass.uncheckedRunDynamic $ Pass.compile xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -347,7 +348,7 @@ test_readWriteLayer4 i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run @BasicPass cfg
-    Pass.uncheckedRunDynamic $ Pass.compile2 (go i) (unsafeCoerce xx)
+    DynamicPass.runPass xx (go i)
 
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
@@ -371,7 +372,7 @@ test_createNode i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run cfg
-    Pass.uncheckedRunDynamic $ Pass.compile xx (go i)
+    DynamicPass.runPass xx (go i)
 
 
 -- type instance Layout.GetBase Var = Var

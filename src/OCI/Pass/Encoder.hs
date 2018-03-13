@@ -120,6 +120,11 @@ tryRun :: (Encoder pass, Default (Pass.State pass))
        => State -> EncoderResult (Pass.State pass)
 tryRun cfg = ($ def) <$> encode cfg ; {-# INLINE tryRun #-}
 
+-- FIXME vvv
+type EncoderX pass m = ( Encoder pass
+  , Default (Pass.State pass)
+  , Throws EncoderError m)
+
 run :: ∀ pass m.
     ( Encoder pass
     , Default (Pass.State pass)
