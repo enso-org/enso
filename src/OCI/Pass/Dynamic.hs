@@ -48,6 +48,7 @@ data IODesc = IODesc
 type    LayerDesc = Set SomeTypeRep
 type    AttrDesc  = Set SomeTypeRep
 newtype AttrMap   = AttrMap (Map SomeTypeRep Any)
+    deriving (Default, Mempty, Semigroup)
 
 
 -- === Instances === --
@@ -136,32 +137,3 @@ instance ( layers ~ Pass.Spec pass (t comp)
         compType  = someTypeRep @comp
         layers    = Set.fromList (someTypeReps @layers)
     {-# INLINE descComps #-}
-
-
--- class    DescComps pass (comps :: [Type]) where descComps :: Desc -> Desc
--- instance DescComps pass '[]               where descComps = id ; {-# INLINE descComps #-}
--- instance ( isIn      ~ List.In comp (Pass.Ins  pass Pass.Elems)
---          , isOut     ~ List.In comp (Pass.Outs pass Pass.Elems)
---          , inLayers  ~ Pass.Ins pass comp
---          , outLayers ~ Pass.Ins pass comp
---          , Type.Knowns '[isIn, isOut]
---          , Typeable  comp
---          , Typeables inLayers
---          , Typeables outLayers
---          , DescComps pass comps
---          ) => DescComps pass (comp ': comps) where
---     descComps = trans . descComps @pass @comps where
---         trans     = comps %~ Map.insert compType compDesc
---         compType  = someTypeRep @comp
---         compDesc  = CompDesc compIO $ descIOMap inLayers outLayers
---         compIO    = IODesc (Type.from @isIn) (Type.from @isOut)
---         inLayers  = someTypeReps @inLayers
---         outLayers = someTypeReps @outLayers
---     {-# INLINE descComps #-}
-
--- descIOMap :: [SomeTypeRep] -> [SomeTypeRep] -> Map SomeTypeRep LayerDesc
--- descIOMap ins outs = map where
---     map   = flip (foldr ($)) updts
---           $ Map.fromList . zip ins . repeat $ IODesc True False
---     updts = flip (Map.insertWith (<>)) (IODesc False True) <$> outs
--- {-# INLINE descIOMap #-}

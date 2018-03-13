@@ -4,6 +4,7 @@ import Prologue as P
 
 import qualified Control.Monad.State.Layered as State
 import qualified OCI.Pass.Definition         as Pass
+import qualified OCI.Pass.Dynamic            as Dynamic
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 
@@ -19,14 +20,20 @@ import OCI.Pass.Dynamic            (DynamicPass)
 -- === State === --
 -------------------
 
+-- === Definition === --
+
 data State = State
     { _passes        :: !(Map SomeTypeRep DynamicPass)
     , _attrs         :: !(Map SomeTypeRep Any)
     , _encoderConfig :: !Encoder.State
     }
 
-defState :: Encoder.State -> State
-defState = State def def ; {-# INLINE defState #-}
+
+-- === API === --
+
+buildState :: Encoder.State -> State
+buildState = State mempty mempty ; {-# INLINE buildState #-}
+
 
 
 ----------------------
@@ -48,12 +55,13 @@ makeLenses ''SchedulerT
 
 runT  :: MonadIO m => SchedulerT m a -> Registry.State -> m (a, State)
 execT :: MonadIO m => SchedulerT m a -> Registry.State -> m State
-runT f = State.runT (unwrap f) . defState <=< Encoder.computeConfig ; {-# INLINE runT  #-}
-execT  = fmap snd .: runT ; {-# INLINE execT #-}
+runT  f = State.runT (unwrap f) . buildState <=< Encoder.computeConfig ; {-# INLINE runT  #-}
+execT   = fmap snd .: runT ; {-# INLINE execT #-}
 
 
 -- === API === --
 
+-- setAttr
 -- registerPass :: Pass pass a -> m ()
 -- registerPass =
 
