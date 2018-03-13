@@ -28,10 +28,10 @@ dependencies:
     - libffi
     - luna-core
     - luna-parser
-    - unix
     - mtl
     - transformers
     - filepath
+    - safe
     - safe-exceptions
     - exceptions
     - typelevel
