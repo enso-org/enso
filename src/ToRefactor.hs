@@ -116,7 +116,7 @@ passTest_run = do
 
     cfg <- test_pm_run
     xx <- Encoder.run @BasicPass cfg
-    DynamicPass.runPass xx passTest
+    Pass.run passTest xx
 
 --
 -- passRunTest :: IO ()
@@ -348,7 +348,7 @@ test_readWriteLayer4 i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run @BasicPass cfg
-    DynamicPass.runPass xx (go i)
+    Pass.run (go i) xx
 
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
@@ -372,7 +372,7 @@ test_createNode i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run cfg
-    DynamicPass.runPass xx (go i)
+    Pass.run (go i) xx
 
 
 -- type instance Layout.GetBase Var = Var

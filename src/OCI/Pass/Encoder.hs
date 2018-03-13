@@ -215,25 +215,26 @@ appSemiLeft f a = case f of
 -- === Attr encoder === --
 
 encodeAttrs :: ∀ pass. AttrEncoder pass
-            => [Any] -> (Pass.State pass -> Pass.State pass)
+            => Map SomeTypeRep Any -> (Pass.State pass -> Pass.State pass)
 encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
 
 type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
 type  AttrEncoderTarget pass = Pass.Vars pass Pass.Elems
 class AttrEncoder__     pass (attrs :: [Type]) where
-    encodeAttrs__ :: [Any] -> (Pass.State pass -> Pass.State pass)
+    encodeAttrs__ :: Map SomeTypeRep Any -> (Pass.State pass -> Pass.State pass)
 
 instance AttrEncoder__ pass '[] where
     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
 
 instance ( attr ~ Pass.Attr a
-         , PassDataElemEncoder attr attr pass
          , AttrEncoder__ pass as
+         , PassDataElemEncoder attr attr pass
+         , Typeable a
          ) => AttrEncoder__ pass (a ': as) where
-    encodeAttrs__ []     = impossible
-    encodeAttrs__ (a:as) = encoder . subEncoder where
+    encodeAttrs__ m = encoder . subEncoder where
+        Just a = Map.lookup (someTypeRep @a) m -- FIXME: unsafe match!
         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
-        subEncoder = encodeAttrs__ @pass @as as
+        subEncoder = encodeAttrs__ @pass @as m
     {-# INLINE encodeAttrs__ #-}
 
 
