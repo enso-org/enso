@@ -121,6 +121,11 @@ type family ElemIndex (a :: k) (lst :: [k]) :: Maybe Nat where
     ElemIndex a (_ ': ls) = SuccMaybe (ElemIndex a ls)
     ElemIndex _ '[]       = 'Nothing
 
+type family In (a :: k) (lst :: [k]) :: Bool where
+    In _ '[]       = 'False
+    In a (a ': as) = 'True
+    In a (_ ': as) = In a as
+
 
 -- === Modification === --
 

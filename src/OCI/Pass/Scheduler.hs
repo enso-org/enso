@@ -18,7 +18,7 @@ import OCI.Pass.Definition         (Pass)
 -------------------
 
 data State = State
-    { _passes        :: !(Map SomeTypeRep Pass.Compiled)
+    { _passes        :: !(Map SomeTypeRep Pass.Dynamic)
     , _attrs         :: !(Map SomeTypeRep Any)
     , _encoderConfig :: !Encoder.State
     }

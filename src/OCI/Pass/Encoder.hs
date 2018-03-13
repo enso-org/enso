@@ -17,6 +17,7 @@ import Control.Monad.Exception (Throws, throw)
 import Data.Map.Strict         (Map)
 import Foreign.Memory.Pool     (MemPool)
 import Foreign.Ptr.Utils       (SomePtr)
+import GHC.Exts                (Any)
 
 
 
@@ -119,10 +120,11 @@ tryRun :: (Encoder pass, Default (Pass.State pass))
        => State -> EncoderResult (Pass.State pass)
 tryRun cfg = ($ def) <$> encode cfg ; {-# INLINE tryRun #-}
 
-run :: ( Encoder pass
-       , Default (Pass.State pass)
-       , Throws EncoderError m
-       ) => State -> m (Pass.State pass)
+run :: ∀ pass m.
+    ( Encoder pass
+    , Default (Pass.State pass)
+    , Throws EncoderError m
+    ) => State -> m (Pass.State pass)
 run cfg = case tryRun cfg of
     Left  e -> throw e
     Right a -> pure a
@@ -132,15 +134,15 @@ run cfg = case tryRun cfg of
 -- === Encoding utils === --
 
 encode :: ∀ pass. Encoder pass
-    => State -> EncoderResult (Pass.State pass -> Pass.State pass)
-encode = encode__ @(Pass.Vars pass Pass.Elems) ; {-# INLINE encode #-}
+       => State -> EncoderResult (Pass.State pass -> Pass.State pass)
+encode = encode__ @pass @(EncoderTarget pass) ; {-# INLINE encode #-}
 
-type  Encoder pass = Encoder__ (Pass.Vars pass Pass.Elems) pass
-class Encoder__ (cs :: [Type]) pass where
-    encode__ :: State
-                       -> EncoderResult (Pass.State pass -> Pass.State pass)
+type  Encoder       pass = Encoder__ pass (EncoderTarget pass)
+type  EncoderTarget pass = Pass.Vars pass Pass.Elems
+class Encoder__     pass (cs :: [Type]) where
+    encode__ :: State -> EncoderResult (Pass.State pass -> Pass.State pass)
 
-instance Encoder__ '[] pass where
+instance Encoder__ pass '[] where
     encode__ _ = Right id ; {-# INLINE encode__ #-}
 
 instance ( layers   ~ Pass.Vars pass comp
@@ -150,16 +152,16 @@ instance ( layers   ~ Pass.Vars pass comp
          , layerInit   ~ Pass.LayerInitializer comp
          , Typeables layers
          , Typeable  comp
-         , Encoder__  comps pass
+         , Encoder__ pass comps
          , PassDataElemEncoder  compMemPool MemPool pass
          , PassDataElemEncoder  compSize    Int     pass
          , PassDataElemEncoder  layerInit   SomePtr pass
          , PassDataElemsEncoder targets     Int     pass
-         ) => Encoder__ (comp ': comps) pass where
+         ) => Encoder__ pass (comp ': comps) where
     encode__ cfg = encoders where
         encoders   = appSemiLeft encoder subEncoder
         encoder    = procComp =<< mcomp
-        subEncoder = encode__ @comps cfg
+        subEncoder = encode__ @pass @comps cfg
         mcomp      = mapLeft (wrap . pure)
                    . lookupComponent tgtComp $ cfg ^. components
         tgtComp    = someTypeRep @comp
@@ -205,9 +207,36 @@ appSemiLeft f a = case f of
 
 
 
+-- === Attr encoder === --
+
+encodeAttrs :: ∀ pass. AttrEncoder pass
+            => [Any] -> (Pass.State pass -> Pass.State pass)
+encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
+
+type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
+type  AttrEncoderTarget pass = Pass.Vars pass Pass.Elems
+class AttrEncoder__     pass (attrs :: [Type]) where
+    encodeAttrs__ :: [Any] -> (Pass.State pass -> Pass.State pass)
+
+instance AttrEncoder__ pass '[] where
+    encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
+
+instance ( attr ~ Pass.Attr a
+         , PassDataElemEncoder attr attr pass
+         , AttrEncoder__ pass as
+         ) => AttrEncoder__ pass (a ': as) where
+    encodeAttrs__ []     = impossible
+    encodeAttrs__ (a:as) = encoder . subEncoder where
+        encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
+        subEncoder = encodeAttrs__ @pass @as as
+    {-# INLINE encodeAttrs__ #-}
+
+
+
+
 -- === Element encoders === --
 
-type PassDataElemEncoder   el t pass = PassDataElemsEncoder '[el] t pass
+type  PassDataElemEncoder  el t pass = PassDataElemsEncoder '[el] t pass
 class PassDataElemsEncoder (els :: [Type]) t pass where
     encodePassDataElems :: [t] -> Pass.State pass -> Pass.State pass
 

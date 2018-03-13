@@ -114,8 +114,8 @@ passTest_run :: IO ()
 passTest_run = do
 
     cfg <- test_pm_run
-    xx <- Encoder.run cfg
-    Pass.uncheckedRunCompiled $ Pass.compile xx passTest
+    xx <- Encoder.run @BasicPass cfg
+    Pass.uncheckedRunDynamic $ Pass.compile2 passTest (unsafeCoerce xx)
 
 --
 -- passRunTest :: IO ()
@@ -132,7 +132,7 @@ passTest_run = do
 --             $ mempty
 --
 --     xx <- Encoder.run cfg
---     Pass.uncheckedRunCompiled $ Pass.compile xx passTest
+--     Pass.uncheckedRunDynamic $ Pass.compile xx passTest
 -- compile :: Functor m => PassState pass -> SubPass pass m a -> m a
 
 
@@ -330,7 +330,7 @@ test_readWriteLayer2 i = do
 --               )
 --             $ mempty
 --     xx <- Encoder.run cfg
---     Pass.uncheckedRunCompiled $ Pass.compile xx (go i)
+--     Pass.uncheckedRunDynamic $ Pass.compile xx (go i)
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -346,8 +346,9 @@ test_readWriteLayer4 i = do
             go (j - 1)
 
     cfg <- test_pm_run
-    xx <- Encoder.run cfg
-    Pass.uncheckedRunCompiled $ Pass.compile xx (go i)
+    xx <- Encoder.run @BasicPass cfg
+    Pass.uncheckedRunDynamic $ Pass.compile2 (go i) (unsafeCoerce xx)
+
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
 
@@ -370,7 +371,7 @@ test_createNode i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run cfg
-    Pass.uncheckedRunCompiled $ Pass.compile xx (go i)
+    Pass.uncheckedRunDynamic $ Pass.compile xx (go i)
 
 
 -- type instance Layout.GetBase Var = Var
