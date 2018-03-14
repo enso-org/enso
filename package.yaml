@@ -35,24 +35,25 @@ library:
   extra-libraries: stdc++
   cc-options: -std=c++17 -O2
   dependencies:
+      - async
       - base
       - convert
       - containers
       - data-default
       - deepseq
       - functor-utils
-      - lens-utils
-      - monoid
-      - primitive
-      - vector
-      - template-haskell
-      - prologue >= 3.0.0
-      - mtl
       - layered-state
-      - monad-branch
-      - random
-      - transformers
       - lens
+      - lens-utils
+      - monad-branch
+      - monoid
+      - mtl
+      - primitive
+      - prologue >= 3.0.0
+      - random
+      - template-haskell
+      - transformers
+      - vector
 
 license: Apache-2.0
 maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>

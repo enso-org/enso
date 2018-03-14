@@ -103,7 +103,7 @@ runScheduler = do
 
     Scheduler.enableAttrByType @MyAttr
 
-    Scheduler.forkPassByType @BasicPass
+    Scheduler.wait =<< Scheduler.runPassByType @BasicPass
 
     print "test scheduler!"
     pure ()

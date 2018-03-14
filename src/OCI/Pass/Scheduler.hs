@@ -2,6 +2,7 @@ module OCI.Pass.Scheduler where
 
 import Prologue as P
 
+import qualified Control.Concurrent.Async    as Async
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Attr               as Attr
@@ -10,12 +11,12 @@ import qualified OCI.Pass.Dynamic            as Pass.Dynamic
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 
+import Control.Concurrent.Async    (Async, async)
 import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
 import OCI.Pass.Definition         (Pass)
 import OCI.Pass.Dynamic            (DynamicPass)
-
 
 type M = P.Monad
 
@@ -85,16 +86,6 @@ registerPass = do
     State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
 {-# INLINE registerPass #-}
 
-forkPass :: MonadScheduler m => Pass.Rep -> m ThreadId
-forkPass passRep = do
-    state <- State.get @State
-    let Just dynPass = Map.lookup passRep $ state ^. passes -- FIXME[WD]
-    liftIO $ forkIO . Pass.Dynamic.run dynPass $ (wrap $ state ^. attrs) -- FIXME: wrap on AttrMap is ugly
-{-# INLINE forkPass #-}
-
-forkPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ThreadId
-forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
-
 
 -- === Attrs === --
 
@@ -127,3 +118,30 @@ instance P.Monad m => State.MonadGetter State (SchedulerT m) where
 
 instance P.Monad m => State.MonadSetter State (SchedulerT m) where
     put = wrap . State.put' ; {-# INLINE put #-}
+
+
+
+------------------------
+-- === PassWorker === --
+------------------------
+
+-- === Defintion === --
+
+newtype PassWorker = PassWorker (Async ())
+makeLenses ''PassWorker
+
+
+-- === API === --
+
+runPass :: MonadScheduler m => Pass.Rep -> m PassWorker
+runPass passRep = do
+    state <- State.get @State
+    let Just dynPass = Map.lookup passRep $ state ^. passes -- FIXME[WD]
+    liftIO $ fmap wrap . async . Pass.Dynamic.run dynPass $ (wrap $ state ^. attrs) -- FIXME: wrap on AttrMap is ugly
+{-# INLINE runPass #-}
+
+runPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m PassWorker
+runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
+
+wait :: MonadIO m => PassWorker -> m ()
+wait = liftIO . Async.wait . unwrap ; {-# INLINE wait #-}
