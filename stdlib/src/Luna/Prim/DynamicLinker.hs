@@ -100,7 +100,6 @@ loadLibrary namePattern = do
         return $ map (path </>) matchingFiles
     result <- runExceptT $ EitherR.runExceptRT $ do
         let allPaths = possiblePaths <> linkerCache <> extendedSearchPaths
-        print allPaths
         forM allPaths $ \path -> do
             EitherR.ExceptRT $ ExceptT $ tryLoad path
     case result of
