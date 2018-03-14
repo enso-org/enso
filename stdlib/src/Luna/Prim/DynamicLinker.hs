@@ -204,7 +204,7 @@ dynamicLibraryExtensions = [".dylib", ""]
 
 nativeLibraryProjectDir = "macos"
 
--- based on https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/dlopen.3.html
+-- based on https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/UsingDynamicLibraries.html
 nativeSearchPaths :: [FilePath]
 nativeSearchPaths = unsafePerformIO $ do
     ldLibraryPathDirectories <- lookupSearchPath "LD_LIBRARY_PATH"
