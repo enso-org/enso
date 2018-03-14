@@ -441,3 +441,5 @@ class Pointer a:
         PointerVal tp ptr
 
     def free: self.ptr.free
+
+def nullPtr: primNullPtr
