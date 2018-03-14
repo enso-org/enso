@@ -136,6 +136,8 @@ data TermForeignSymbolImport a = ForeignSymbolImport
     } deriving (Eq, Foldable, Functor, Generic, Show)
 makeLensedTerm ''TermForeignSymbolImport
 
+-- FIXME [Ara] May be able to become a `Maybe` pending discussion in the
+-- following issue: https://github.com/luna/luna/issues/179
 data ForeignImportType
     = Default -- Unsafe if not specified.
     | Safe
