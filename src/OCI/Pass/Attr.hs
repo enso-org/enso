@@ -28,6 +28,14 @@ newtype Attr    attr = Attr (Wrapped attr (Data attr))
 makeLenses ''Attr
 
 
+-- === Construction === --
+
+type DefData attr = Default (Data attr)
+defData :: ∀ attr. DefData attr => Data attr
+defData = def ; {-# INLINE defData #-}
+
+
+
 -- === State management === --
 -- | Attributes live in some state. We can access them or update them.
 --   However, in order to change their value, we do not always have to write
@@ -64,6 +72,31 @@ class Monad m => TypedWriter t attr m where
 
 class Monad m => FanIn t attr m where
     fanIn :: t ~ Type attr => NonEmpty (Attr attr) -> m (Attr attr)
+
+class Monad m => FanOut t attr m where
+    fanOut     :: t ~ Type attr => m (Attr attr)
+    fanOutMany :: t ~ Type attr => Int -> m [Attr attr]
+    fanOutMany = flip replicateM fanOut ; {-# INLINE fanOutMany #-}
+
+
+
+---------------------
+-- === AttrRep === --
+---------------------
+
+-- === Definition === --
+
+newtype AttrRep = AttrRep SomeTypeRep deriving (Show)
+makeLenses ''AttrRep
+
+
+-- === API === --
+
+rep :: ∀ (attr :: T). Typeable attr => AttrRep
+rep = wrap $ someTypeRep @attr ; {-# INLINE rep #-}
+
+repOf :: ∀ attr. Typeable attr => Attr attr -> AttrRep
+repOf _ = rep @attr ; {-# INLINE repOf #-}
 
 
 

@@ -28,6 +28,7 @@ import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified OCI.Pass.Scheduler          as Scheduler
 
+import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (get, put)
 import Foreign.Marshal.Alloc       (mallocBytes)
 import Foreign.Ptr                 (Ptr)
@@ -77,6 +78,26 @@ runWithManualScheduling freg fsched = do
     reg <- Registry.execT freg
     _   <- Scheduler.execT fsched reg
     pure ()
+
+runRegistry :: Registry.Monad m => m ()
+runRegistry = do
+    Registry.registerComponent @Terms
+    Registry.registerPrimLayer @Terms @Model
+    Registry.registerPrimLayer @Terms @Type
+
+    Registry.registerComponent @Links
+    Registry.registerPrimLayer @Links @Source
+    Registry.registerPrimLayer @Links @Target
+
+runScheduler :: MonadIO m => m ()
+runScheduler = do
+    -- Scheduler.registerAttr @MyAttr
+    print "test scheduler!"
+    pure ()
+
+runCompiler :: (MonadIO m, Throws Registry.Error m) => m ()
+runCompiler = runWithManualScheduling runRegistry runScheduler
+
 
 test_pm_run :: MonadIO m => m Encoder.State
 test_pm_run = Exception.catchAll undefined $ Registry.evalT test_pm
