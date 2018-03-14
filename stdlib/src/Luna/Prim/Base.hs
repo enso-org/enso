@@ -23,7 +23,6 @@ import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
 import qualified Data.Text.Lazy.Encoding     as Text
 import           Foreign.C.Types             (CDouble(..))
-import qualified Foreign.LibFFI              as LibFFI
 
 import           Luna.Builtin.Prim           (toLunaValue, ToLunaData, toLunaData, ToLunaObject, toConstructor, RuntimeRepOf, RuntimeRep (..))
 import           Luna.Builtin.Data.Function  (Function (Function), value)
@@ -86,14 +85,6 @@ primReal imps = do
         uminusVal   = toLunaValue imps ((* (-1)) :: Double -> Double)
         toScientificVal = toLunaValue imps (fromFloatDigits :: Double -> Scientific)
 
-    let primRealToCDoubleArgVal :: Double -> LibFFI.Arg
-        primRealToCDoubleArgVal d = LibFFI.argCDouble $ coerce d
-    primRealToCDoubleArg <- makeFunctionPure (toLunaValue imps primRealToCDoubleArgVal) ["Real"] "Arg"
-
-    let primRealToCFloatArgVal :: Double -> LibFFI.Arg
-        primRealToCFloatArgVal d = LibFFI.argCFloat $ realToFrac d
-    primRealToCFloatArg <- makeFunctionPure (toLunaValue imps primRealToCFloatArgVal) ["Real"] "Arg"
-
     return $ Map.fromList [ ("primRealAdd",      Function boxed3Doubles   plusVal    boxed3DoublesAssumptions  )
                           , ("primRealMultiply", Function boxed3Doubles   timeVal    boxed3DoublesAssumptions  )
                           , ("primRealSubtract", Function boxed3Doubles   minusVal   boxed3DoublesAssumptions  )
@@ -132,9 +123,6 @@ primReal imps = do
                           , ("primRealSqrt",     Function double2Double   sqrtVal    double2DoubleAssumptions  )
                           , ("primRealNegate",   Function double2Double   uminusVal  double2DoubleAssumptions  )
 
-                          , ("primRealToCDoubleArg", primRealToCDoubleArg)
-                          , ("primRealToCFloatArg", primRealToCFloatArg)
-
                           , ("primRealToScientific", Function double2Scientific toScientificVal double2ScientificAssumptions)
                           ]
 
@@ -162,9 +150,6 @@ primInt imps = do
         showVal        = toLunaValue imps (convert . show :: Integer -> Text)
         toRealVal      = toLunaValue imps (fromIntegral   :: Integer -> Double)
 
-    let primIntToCArgVal :: Integer -> LibFFI.Arg
-        primIntToCArgVal i = LibFFI.argCInt $ fromIntegral i
-    primIntToCArg <- makeFunctionPure (toLunaValue imps primIntToCArgVal) ["Int"] "Arg"
     return $ Map.fromList [ ("primIntAdd",         Function boxed3Ints plusVal        boxed3IntsAssumptions)
                           , ("primIntMultiply",    Function boxed3Ints timeVal        boxed3IntsAssumptions)
                           , ("primIntSubtract",    Function boxed3Ints minusVal       boxed3IntsAssumptions)
@@ -178,7 +163,6 @@ primInt imps = do
                           , ("primIntEquals",      Function ints2Bool  eqVal          ints2BoolAssumptions )
                           , ("primIntGt",          Function ints2Bool  gtVal          ints2BoolAssumptions )
                           , ("primIntLt",          Function ints2Bool  ltVal          ints2BoolAssumptions )
-                          , ("primIntToCArg",      primIntToCArg)
                           ]
 
 primBinary :: Imports -> IO (Map Name Function)
@@ -235,9 +219,6 @@ primText imps = do
         toIntVal      = toLunaValue imps (readMaybe . convert :: Text -> Maybe Integer)
         toRealVal     = toLunaValue imps (readMaybe . convert :: Text -> Maybe Double)
 
-    let primTextToCArgVal :: Text -> LibFFI.Arg
-        primTextToCArgVal t = LibFFI.argString $ Text.unpack t
-    primTextToCArg <- makeFunctionPure (toLunaValue imps primTextToCArgVal) ["Text"] "Arg"
     return $ Map.fromList [ ("primTextConcat",     Function plusIr        plusVal       plusAssu)
                           , ("primTextEquals",     Function eqIr          eqVal         eqAssu)
                           , ("primTextIsEmpty",    Function isEmptyIr     isEmptyVal    isEmptyAssu)
@@ -256,7 +237,6 @@ primText imps = do
                           , ("primTextToBinary",   Function toBinaryIr    toBinaryVal   toBinaryAssu)
                           , ("primTextToInt",      Function toMaybeIntIr  toIntVal      toMaybeIntAssu)
                           , ("primTextToReal",     Function toMaybeRealIr toRealVal     toMaybeRealAssu)
-                          , ("primTextToCArg",     primTextToCArg)
                           ]
 
 operators :: Imports -> IO (Map Name Function)

@@ -18,7 +18,6 @@ native class Int:
     def == that: primIntEquals   self that
 
     def toInt: self
-    def toCArg: primIntToCArg self
     def read ptr: primReadPtrInt ptr
     def write ptr: primWritePtrInt ptr self
 
@@ -147,8 +146,6 @@ native class Text:
     def isEmpty: primTextIsEmpty self
     ## Measures the text length.
     def length:  primTextLength self
-
-    def toCArg: primTextToCArg self
 
     ## Tests whether the argument is a prefix of `self`.
     def startsWith  p: primTextHasPrefix self p
