@@ -9,7 +9,7 @@ module Luna.Prim.DynamicLinker (
 
 import           Luna.Prelude hiding (throwM)
 
-import           Control.Exception.Safe (throwM, tryAny)
+import           Control.Exception.Safe (catchAny, throwM, tryAny)
 import           Control.Monad.Except   (ExceptT(..), runExceptT)
 import           Data.Char              (isSpace)
 import qualified Data.EitherR           as EitherR
@@ -95,7 +95,7 @@ loadLibrary namePattern = do
                   ]
     linkerCache <- maybeToList <$> nativeLoadFromCache library
     extendedSearchPaths <- fmap concat $ forM nativeSearchPaths $ \path -> do
-        files <- Dir.listDirectory path
+        files <- Dir.listDirectory path `catchAny` \_ -> return []
         let matchingFiles = filter (List.isInfixOf library) files
         return $ map (path </>) matchingFiles
     result <- runExceptT $ EitherR.runExceptRT $ do
