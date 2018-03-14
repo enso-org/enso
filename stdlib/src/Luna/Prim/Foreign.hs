@@ -13,10 +13,10 @@ import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
-import           Foreign.C.Types             (CDouble(..), CFloat(..), CInt, CChar)
+import           Foreign.C.Types             (CDouble, CFloat, CChar, CUChar, CWchar, CInt, CUInt, CLong, CULong, CSize, CTime)
 import           Foreign.C.String            (peekCString, newCString, CString)
 import qualified Foreign.LibFFI              as LibFFI
-import           Foreign.Marshal.Alloc       (alloca, allocaBytes)
+import           Foreign.Marshal.Alloc       (mallocBytes, free)
 import           Foreign.Ptr                 (Ptr, FunPtr, castPtr, castPtrToFunPtr, nullPtr, plusPtr)
 import           Foreign.Storable            (Storable(..))
 import qualified Luna.Prim.DynamicLinker     as Linker
@@ -59,13 +59,21 @@ exports std = do
     ptr     <- primPtr std
     cstring <- primCString std
 
-    cint    <- Map.unions <$> sequence [primStorable @CInt  std, primNum @CInt  std, primIntegral @CInt  std]
-    cchar   <- Map.unions <$> sequence [primStorable @CChar std, primNum @CChar std, primIntegral @CChar std]
+    cchar  <- Map.unions <$> sequence [primStorable @CChar  std, primNum @CChar  std, primIntegral @CChar  std]
+    cuchar <- Map.unions <$> sequence [primStorable @CUChar std, primNum @CUChar std, primIntegral @CUChar std]
+    cwchar <- Map.unions <$> sequence [primStorable @CWchar std, primNum @CWchar std, primIntegral @CWchar std]
+    cint   <- Map.unions <$> sequence [primStorable @CInt   std, primNum @CInt   std, primIntegral @CInt   std]
+    cuint  <- Map.unions <$> sequence [primStorable @CUInt  std, primNum @CUInt  std, primIntegral @CUInt  std]
+    clong  <- Map.unions <$> sequence [primStorable @CLong  std, primNum @CLong  std, primIntegral @CLong  std]
+    culong <- Map.unions <$> sequence [primStorable @CULong std, primNum @CULong std, primIntegral @CULong std]
+    csize  <- Map.unions <$> sequence [primStorable @CSize  std, primNum @CSize  std, primIntegral @CSize  std]
 
-    cdouble <- Map.unions <$> sequence [primStorable @CDouble std, primNum @CDouble std, primReal @CDouble std]
-    cfloat  <- Map.unions <$> sequence [primStorable @CFloat  std, primNum @CFloat  std, primReal @CFloat  std]
+    ctime  <- Map.unions <$> sequence [primStorable @CTime  std, primNum @CTime  std, primReal @CTime  std]
 
-    return $ Map.unions [local, ptr, cstring, cint, cchar, cdouble, cfloat]
+    cdouble <- Map.unions <$> sequence [primStorable @CDouble std, primNum @CDouble std, primReal @CDouble std, primFrac @CDouble std]
+    cfloat  <- Map.unions <$> sequence [primStorable @CFloat  std, primNum @CFloat  std, primReal @CFloat  std, primFrac @CFloat  std]
+
+    return $ Map.unions [local, ptr, cstring, cchar, cuchar, cwchar, cint, cuint, clong, culong, csize, ctime, cdouble, cfloat]
 
 primPtr :: Imports -> IO (Map Name Function)
 primPtr std = do
@@ -103,6 +111,15 @@ primPtr std = do
 
     primNullPtr <- makeFunctionPure (toLunaValue std (nullPtr :: Ptr LunaData)) [] (ptrT "a")
 
+    let primMallocVal :: Integer -> IO (Ptr LunaData)
+        primMallocVal = mallocBytes . fromIntegral
+    primMalloc <- makeFunctionIO (toLunaValue std primMallocVal) ["Int"] (ptrT "a")
+
+    let primFreeVal :: Ptr LunaData -> IO ()
+        primFreeVal = free
+    primFree <- makeFunctionIO (toLunaValue std primFreeVal) [ptrT "a"] "None"
+
+
     return $ Map.fromList [ ("primNullPtr", primNullPtr)
                           , ("primPtrToCArg", primPtrToCArg)
                           , ("primPtrRetType", primPtrRetType)
@@ -112,17 +129,19 @@ primPtr std = do
                           , ("primPtrCast", primPtrCast)
                           , ("primPtrPlus", primPtrPlus)
                           , ("primPtrEq", primPtrEq)
+                          , ("primMalloc", primMalloc)
+                          , ("primFree", primFree)
                           ]
 
 primCString :: Imports -> IO (Map Name Function)
 primCString std = do
     let primCStringFromTextVal :: Text -> IO (Ptr LunaData)
         primCStringFromTextVal = fmap castPtr . newCString . convert
-    primCStringFromText <- makeFunctionIO (toLunaValue std primCStringFromTextVal) ["Text"] (LCons "Ptr" ["CChar"])
+    primCStringFromText <- makeFunctionIO (toLunaValue std primCStringFromTextVal) ["Text"] (ptrT "CChar")
 
     let primCStringToTextVal :: Ptr LunaData -> IO Text
         primCStringToTextVal = fmap convert . peekCString . castPtr
-    primCStringToText <- makeFunctionIO (toLunaValue std primCStringToTextVal) [LCons "Ptr" ["CChar"]] "Text"
+    primCStringToText <- makeFunctionIO (toLunaValue std primCStringToTextVal) [ptrT "CChar"] "Text"
 
     return $ Map.fromList [ ("primCStringFromText", primCStringFromText)
                           , ("primCStringToText", primCStringToText)
@@ -148,15 +167,15 @@ primStorable std = do
     let typeName = classNameOf @a
         tp       = LCons typeName []
     !primToArg   <- makeFunctionPure (toLunaValue std (toArg @a)) [tp] "Arg"
-    !primRetType <- makeFunctionPure (toLunaValue std (toLunaData std <$> (retType @a))) [] (LCons "RetType" [tp])
+    !primRetType <- makeFunctionPure (toLunaValue std (toLunaData std <$> (retType @a))) [] (retTypeT tp)
 
     let primWritePtrVal :: Ptr LunaData -> a -> IO ()
         primWritePtrVal p = poke $ coerce p
-    !primWritePtr <- makeFunctionIO (toLunaValue std primWritePtrVal) [LCons "Ptr" [tp], tp] "None"
+    !primWritePtr <- makeFunctionIO (toLunaValue std primWritePtrVal) [ptrT tp, tp] "None"
 
     let primReadPtrVal :: Ptr LunaData -> IO a
         primReadPtrVal p = peek $ coerce p
-    !primReadPtr <- makeFunctionIO (toLunaValue std primReadPtrVal) [LCons "Ptr" [tp]] tp
+    !primReadPtr <- makeFunctionIO (toLunaValue std primReadPtrVal) [ptrT tp] tp
 
     let primByteSizeVal :: Integer
         primByteSizeVal = fromIntegral $ sizeOf (undefined :: a)
@@ -237,50 +256,98 @@ primIntegral std = do
                           , (mkName "Mod", primMod)
                           ]
 
-primReal :: forall a. ( Real a
+primFrac :: forall a. ( Real a
                       , Fractional a
                       , IsBoxed a
                       , ToLunaData a
                       , ToLunaValue a
-                      , ToLunaValue (a -> Double)
                       , ToLunaValue (a -> a -> a)
                       ) => Imports -> IO (Map Name Function)
-primReal std = do
+primFrac std = do
     let typeName = classNameOf @a
         tp       = LCons typeName []
 
     primDiv      <- makeFunctionPure (toLunaValue std ((/) :: a -> a -> a))        [tp, tp] tp
-    primToReal   <- makeFunctionPure (toLunaValue std (realToFrac :: a -> Double)) [tp]     "Real"
     primFromReal <- makeFunctionPure (toLunaValue std (realToFrac :: Double -> a)) ["Real"] tp
 
     let mkName = makePrimFunName typeName
 
     return $ Map.fromList [ (mkName "Div", primDiv)
-                          , (mkName "ToReal", primToReal)
                           , (mkName "FromReal", primFromReal)
                           ]
 
-instance PrimCFFI CInt where
-    retType = LibFFI.retCInt ; {-# INLINE retType #-}
-    toArg   = LibFFI.argCInt ; {-# INLINE toArg   #-}
+primReal :: forall a. ( Real a
+                      , IsBoxed a
+                      , ToLunaValue a
+                      , ToLunaValue (a -> Double)
+                      ) => Imports -> IO (Map Name Function)
+primReal std = do
+    let typeName = classNameOf @a
+        tp       = LCons typeName []
 
+    primToReal  <- makeFunctionPure (toLunaValue std (realToFrac :: a -> Double))      [tp]    "Real"
+    primFromInt <- makeFunctionPure (toLunaValue std (fromIntegral :: Integer -> a))   ["Int"] tp
+
+    let mkName = makePrimFunName typeName
+
+    return $ Map.fromList [ (mkName "ToReal", primToReal)
+                          , (mkName "FromInt", primFromInt)]
+
+type instance RuntimeRepOf CChar = AsNative "CChar"
 instance PrimCFFI CChar where
     retType = LibFFI.retCChar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCChar ; {-# INLINE toArg   #-}
 
+type instance RuntimeRepOf CUChar = AsNative "CUChar"
+instance PrimCFFI CUChar where
+    retType = LibFFI.retCUChar ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCUChar ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CWchar = AsNative "CWChar"
+instance PrimCFFI CWchar where
+    retType = LibFFI.retCWchar ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCWchar ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CInt = AsNative "CInt"
+instance PrimCFFI CInt where
+    retType = LibFFI.retCInt ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCInt ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CUInt = AsNative "CUInt"
+instance PrimCFFI CUInt where
+    retType = LibFFI.retCUInt ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCUInt ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CLong = AsNative "CLong"
+instance PrimCFFI CLong where
+    retType = LibFFI.retCLong ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCLong ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CULong = AsNative "CULong"
+instance PrimCFFI CULong where
+    retType = LibFFI.retCULong ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCULong ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CSize = AsNative "CSize"
+instance PrimCFFI CSize where
+    retType = LibFFI.retCSize ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCSize ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CTime = AsNative "CTime"
+instance PrimCFFI CTime where
+    retType = LibFFI.retCTime ; {-# INLINE retType #-}
+    toArg   = LibFFI.argCTime ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CFloat = AsNative "CFloat"
 instance PrimCFFI CFloat where
     retType = LibFFI.retCFloat ; {-# INLINE retType #-}
     toArg   = LibFFI.argCFloat ; {-# INLINE toArg   #-}
 
+type instance RuntimeRepOf CDouble = AsNative "CDouble"
 instance PrimCFFI CDouble where
     retType = LibFFI.retCDouble ; {-# INLINE retType #-}
     toArg   = LibFFI.argCDouble ; {-# INLINE toArg   #-}
 
-
-type instance RuntimeRepOf CInt                      = AsNative "CInt"
-type instance RuntimeRepOf CChar                     = AsNative "CChar"
-type instance RuntimeRepOf CFloat                    = AsNative "CFloat"
-type instance RuntimeRepOf CDouble                   = AsNative "CDouble"
 
 type instance RuntimeRepOf LibFFI.Arg                = AsNative "Arg"
 type instance RuntimeRepOf (LibFFI.RetType LunaData) = AsNative "RetType"
