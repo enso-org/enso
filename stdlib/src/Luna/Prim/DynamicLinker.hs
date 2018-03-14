@@ -134,15 +134,13 @@ nativeLibraryProjectDir = "windows"
 nativeSearchPaths :: [FilePath]
 nativeSearchPaths = unsafePerformIO $ do
     exeDirectory <- do
-        handle <- Win32.getModuleHandle ""
+        handle <- Win32.getModuleHandle Nothing
         exe    <- Win32.getModuleFileName handle
-        return $ Dir.takeDirectory exe
+        return $ FP.takeDirectory exe
     systemDirectory  <- Win32.getSystemDirectory
     windowsDirectory <- Win32.getWindowsDirectory
     currentDirectory <- Win32.getCurrentDirectory
-    pathDirectories  <- do
-        pathEnv <- FP.getSearchPath
-        return $ FP.splitSearchPath pathEnv
+    pathDirectories  <- FP.getSearchPath
     return $ exeDirectory
            : systemDirectory
            : windowsDirectory
@@ -214,20 +212,19 @@ nativeSearchPaths = unsafePerformIO $ do
     dyLibraryPathDirectories <- lookupSearchPath "DYLD_LIBRARY_PATH"
     currentDirectory         <- Dir.getCurrentDirectory
     fallbackPathDirectories  <- do
-        fallback <- Env.lookup "DYLD_FALLBACK_LIBRARY_PATH"
+        fallback <- Env.lookupEnv "DYLD_FALLBACK_LIBRARY_PATH"
         case fallback of
             Just val -> return $ FP.splitSearchPath val
             _        -> do
                 home <- Env.getEnv "HOME"
-                return $ home </> "lib"
+                return $ (home </> "lib")
                        : "/usr/local/lib"
                        : "/usr/lib"
                        : []
     return $ ldLibraryPathDirectories
-           : dyLibraryPathDirectories
-           : currentDirectory
-           : fallbackPathDirectories
-           : []
+          <> dyLibraryPathDirectories
+          <> [currentDirectory]
+          <> fallbackPathDirectories
 
 nativeLoadFromCache :: String -> IO (Maybe FilePath)
 nativeLoadFromCache _ = return Nothing
