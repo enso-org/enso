@@ -955,8 +955,7 @@ foreignSymbolImportWithSafety safe =
     (\safety forName localName importType ->
         liftAstApp3 (foreignSymbolProxy localName) safety forName importType)
     <$> safe <*> stringOrVarName <*> funcName <*  symbol Lexer.Typed <*> valExpr
-    where
-        foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
+    where foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
 
 defaultFISafety :: AsgParser SomeExpr
 defaultFISafety = buildAsg $
@@ -970,14 +969,13 @@ specifiedFISafety = buildAsg $
     (\(importSafety :: ForeignImportType) ->
         liftIRBApp0 (IR.foreignImpSafety' importSafety))
     <$> getImpSafety (optionMaybe varName)
-    where
-        getImpSafety :: SymParser (Maybe Name) -> SymParser ForeignImportType
-        getImpSafety p = p >>= \case
-            Nothing               -> return Import.Default
-            Just (Name.Name text) -> case text of
-                "safe"   -> return Import.Safe
-                "unsafe" -> return Import.Unsafe
-                _        -> fail "Invalid safety specification."
+    where getImpSafety :: SymParser (Maybe Name) -> SymParser ForeignImportType
+          getImpSafety p = p >>= \case
+              Nothing               -> return Import.Default
+              Just (Name.Name text) -> case text of
+                  "safe"   -> return Import.Safe
+                  "unsafe" -> return Import.Unsafe
+                  _        -> fail "Invalid safety specification."
 
 stringOrVarName :: AsgParser SomeExpr
 stringOrVarName = str <|> (asgNameParser varName)
@@ -995,8 +993,7 @@ unit  = buildAsg $
     (\imps cls
         -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit' []) imps cls)
         <$ spacing <*> (foreignImportList <|> impHub) <*> unitCls <* spacing
-    where
-        spacing = many eol
+    where spacing = many eol
 
 unitCls :: AsgParser SomeExpr
 unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' False "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl

@@ -386,9 +386,7 @@ foreignImpSafety' :: (ExprCons m ForeignImportSafety)
 foreignImpSafety  :: (ExprCons m ForeignImportSafety)
                   => ForeignImportType -> m (Expr ForeignImportSafety)
 foreignImpSafety' = generalize .: foreignImpSafety
-foreignImpSafety impType = mdo
-    newTerm <- expr $ Term.uncheckedForeignImportSafety impType
-    return newTerm
+foreignImpSafety impType = expr $ Term.uncheckedForeignImportSafety impType
 
 foreignSymbolImp' :: (ExprCons m ForeignSymbolImport)
                   => Expr a -> Expr a -> Name -> Expr a -> m SomeExpr
