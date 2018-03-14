@@ -18,8 +18,6 @@ native class Int:
     def == that: primIntEquals   self that
 
     def toInt: self
-    def read ptr: primReadPtrInt ptr
-    def write ptr: primWritePtrInt ptr self
 
     ## Integer negation. `a.negate == -1 * a`.
     def negate: primIntNegate self

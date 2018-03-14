@@ -35,12 +35,12 @@ retTypeT t = LCons "RetType" [t]
 
 exports :: Imports -> IO (Map Name Function)
 exports std = do
-    let primLookupSymbolVal :: Text -> Text -> IO (Maybe (FunPtr LunaData))
+    let primLookupSymbolVal :: Text -> Text -> IO (FunPtr LunaData)
         primLookupSymbolVal (convert -> dll) (convert -> symbol) = do
             dl       <- Linker.loadLibrary dll
             sym      <- Linker.loadSymbol dl symbol
-            return $ Just sym
-    primLookupSymbol <- makeFunctionIO (toLunaValue std primLookupSymbolVal) ["Text", "Text"] $ LCons "Maybe" ["FunPtr"]
+            return sym
+    primLookupSymbol <- makeFunctionIO (toLunaValue std primLookupSymbolVal) ["Text", "Text"] "FunPtr"
 
     let primCallFunPtrVal :: FunPtr LunaData -> LibFFI.RetType LunaData -> [LibFFI.Arg] -> IO LunaData
         primCallFunPtrVal = LibFFI.callFFI

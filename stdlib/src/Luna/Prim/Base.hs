@@ -22,7 +22,6 @@ import           Data.Scientific             (toRealFloat, Scientific, coefficie
 import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
 import qualified Data.Text.Lazy.Encoding     as Text
-import           Foreign.C.Types             (CDouble(..))
 
 import           Luna.Builtin.Prim           (toLunaValue, ToLunaData, toLunaData, ToLunaObject, toConstructor, RuntimeRepOf, RuntimeRep (..))
 import           Luna.Builtin.Data.Function  (Function (Function), value)

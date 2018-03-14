@@ -47,7 +47,6 @@ dependencies:
     - dependent-state
     - ghc
     - mtl
-    - libffi
     - prologue
     - transformers
     - ansi-wl-pprint # from now on src-libs deps vvv

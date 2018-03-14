@@ -1,10 +1,7 @@
 import Std.Base
 import Std.FFI.C.Value
 
-def lookupSymbol dll symbol:
-    case primLookupSymbol dll symbol of
-        Just ptr: ptr
-        Nothing:  throw "foo"
+def lookupSymbol dll symbol: primLookupSymbol dll symbol
 
 native class FunPtr:
     def call retType args:
@@ -13,16 +10,3 @@ native class FunPtr:
 
     def shortRep: "FunPtr"
     def toJSON: "FunPtr"
-
-def malloc size:
-    m = lookupSymbol "" "malloc"
-    m.call Ptr [CSize.from size]
-
-def free ptr:
-    f = lookupSymbol "" "free"
-    f.call CVoid [Ptr.from ptr]
-
-def strlen str:
-    s = lookupSymbol "" "strlen"
-    s.call CSize [CString.from str]
-
