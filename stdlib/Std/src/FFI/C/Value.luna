@@ -23,7 +23,11 @@ class CString:
         cptr = primPtrReadPtr p.cast
         CStringVal cptr
 
+    def writePtr p: primPtrWritePtr p.cast self.ptr
+
     def isNull: primPtrEq self.ptr primNullPtr
+
+    def null: CStringVal primNullPtr
 
     def free: self.ptr.free
 
@@ -33,6 +37,7 @@ class NullTerminatedArray a:
 
     def typeRep: case self of
         NullTerminatedArray a: a
+        NullTerminatedArrayVal p: p.typeRep
 
     def ptr: case self of
         NullTerminatedArrayVal p: p
@@ -50,6 +55,18 @@ class NullTerminatedArray a:
             False:
                 rest = NullTerminatedArrayVal (self.ptr.moveElems 1) . toList
                 rest . prepend fst
+
+    def fromList l:
+        len = l.length
+        ptr = Pointer self.typeRep . mallocElems (len + 1)
+        ptr . moveElems len . write self.typeRep.null
+        0 . upto len . zip l . each (index, elem):
+            ptr . moveElems index . write elem
+        NullTerminatedArrayVal ptr
+
+    def free: self.ptr.free
+
+
 
 native class CChar:
     CChar
@@ -372,6 +389,9 @@ native class Ptr a:
     def moveBytes i: primPtrPlus self i
     def free: primFree self
 
+    def writePtr p: primPtrWritePtr p self
+    def readPtr p: primPtrReadPtr p
+
 class Pointer a:
     Pointer    a
     PointerVal a (Ptr a)
@@ -400,16 +420,24 @@ class Pointer a:
         self . moveBytes (i * elemSize)
 
     def read: self . typeRep . readPtr self.ptr
-
     def write v: v . writePtr self.ptr
 
+    def readPtr p:
+        r = primPtrReadPtr p.cast . cast
+        PointerVal self.typeRep r
+
+    def writePtr p: primPtrWritePtr p.cast self.ptr
+
     def isNull: self.ptr.isNull
+    def null:
+        t = self.typeRep
+        Pointer t primNullPtr
 
     def malloc: self . mallocElems 1
 
     def mallocElems i:
         tp  = self.typeRep
         ptr = primMalloc (tp.byteSize * i)
-        Pointer tp ptr
+        PointerVal tp ptr
 
     def free: self.ptr.free
