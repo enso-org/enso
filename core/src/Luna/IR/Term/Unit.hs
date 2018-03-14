@@ -112,7 +112,50 @@ makeLensedTerm ''TermImport
 newtype TermImportHub a = ImportHub (Map Name a) deriving (Show, Functor, Foldable, Traversable, Generic)
 makeLensedTerm ''TermImportHub
 
+-----------------------
+-- === FFI Nodes === --
+-----------------------
 
+data TermForeignImportList a = ForeignImportList
+    { __language :: !Name
+    , __imports  :: ![a]
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignImportList
+
+data TermForeignLocationImportList a = ForeignLocationImportList
+    { __importLocation :: !a
+    , __imports        :: ![a]
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignLocationImportList
+
+data TermForeignSymbolImport a = ForeignSymbolImport
+    { __safety     :: !a
+    , __importName :: !a
+    , __localName  :: !Name
+    , __type       :: !a
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignSymbolImport
+
+-- FIXME [Ara] May be able to become a `Maybe` pending discussion in the
+-- following issue: https://github.com/luna/luna/issues/179
+data ForeignImportType
+    = Default -- Unsafe if not specified.
+    | Safe
+    | Unsafe
+    deriving (Eq, Generic, Show)
+
+data TermForeignImportSafety a = ForeignImportSafety
+    { __safety :: !ForeignImportType
+    } deriving (Eq, Foldable, Functor, Generic, Show)
+makeLensedTerm ''TermForeignImportSafety
+
+-- Useful for a resolution pass after parse time.
+{- data TermResolvedForeignImport a = ResolvedForeignImport -}
+    {- { __importLocation :: !a -}
+    {- , __importName     :: !a -}
+    {- , __localName      :: !Name -}
+    {- } deriving (Eq, Foldable, Functor, Generic, Show) -}
+{- makeLensedTerm ''TermResolvedForeignImport -}
 
 -----------------------
 -- === Interface === --

@@ -11,7 +11,7 @@ import qualified OCI.IR.Layout         as Layout
 import Luna.IR.Term ()
 import qualified Luna.IR.Term.Core     as Term
 import qualified Luna.IR.Term.Function as Term
-import           Luna.IR.Term.Unit     (UnresolvedImport, UnresolvedImportSrc, UnresolvedImportTgt, ImportSource)
+import           Luna.IR.Term.Unit     (UnresolvedImport, UnresolvedImportSrc, UnresolvedImportTgt, ImportSource, ForeignImportType)
 import qualified Luna.IR.Term.Unit     as Term hiding (World)
 import qualified Luna.IR.Term.World    as Term
 import qualified Luna.IR.Term.Cls    as Term
@@ -52,39 +52,43 @@ data instance UniTerm a = Number    !Literal.Number
                         | Star
                         | Missing
 
-                        -- | Function            !a
-                        | ASGFunction         !a ![a] !a
-                        | FunctionSig         !a !a
-                        | RootedFunction      !(IR.Rooted SomeExpr)
-                        | ASGRootedFunction   !a !(IR.Rooted SomeExpr)
-                        | ClsASG              !Bool !Name ![a] ![a] ![a]
-                        | RecASG              !Name ![a]
-                        | FieldASG            ![Name] !a
-                        | Typed               !a !a
-                        | Cls                 ![a] !(Map Name a) !(Map Name a) !(Map Name a)
-                        | Rec                 !(AssocList Name a)
-                        | Unit                !a ![a] !a
-                        | UnitProxy           !QualName ![a]
-                        | ImportHub           !(Map Name a)
-                        | Import              !a !a
-                        | UnresolvedImportHub ![a]
-                        | UnresolvedImport    !a ! UnresolvedImportTgt
-                        | UnresolvedImportSrc !ImportSource
-                        | World               !(Map QualName a)
-                        | Invalid             !Text32
-                        | List                ![a]
-                        | Tuple               ![a]
-                        | Update              !a ![Name] !a
-                        | Modify              !a ![Name] !Name !a
-                        | AccSection          ![Name]
-                        | LeftSection         !a !a
-                        | RightSection        !a !a
+                        -- | Function                  !a
+                        | ASGFunction               !a ![a] !a
+                        | FunctionSig               !a !a
+                        | RootedFunction            !(IR.Rooted SomeExpr)
+                        | ASGRootedFunction         !a !(IR.Rooted SomeExpr)
+                        | ClsASG                    !Bool !Name ![a] ![a] ![a]
+                        | RecASG                    !Name ![a]
+                        | FieldASG                  ![Name] !a
+                        | Typed                     !a !a
+                        | Cls                       ![a] !(Map Name a) !(Map Name a) !(Map Name a)
+                        | Rec                       !(AssocList Name a)
+                        | Unit                      !a ![a] !a
+                        | UnitProxy                 !QualName ![a]
+                        | ImportHub                 !(Map Name a)
+                        | Import                    !a !a
+                        | UnresolvedImportHub       ![a]
+                        | UnresolvedImport          !a ! UnresolvedImportTgt
+                        | UnresolvedImportSrc       !ImportSource
+                        | ForeignSymbolImport       !a !a !Name !a
+                        | ForeignLocationImportList !a ![a]
+                        | ForeignImportList         !Name ![a]
+                        | ForeignImportSafety       !ForeignImportType
+                        | World                     !(Map QualName a)
+                        | Invalid                   !Text32
+                        | List                      ![a]
+                        | Tuple                     ![a]
+                        | Update                    !a ![Name] !a
+                        | Modify                    !a ![Name] !Name !a
+                        | AccSection                ![Name]
+                        | LeftSection               !a !a
+                        | RightSection              !a !a
 
-                        | Disabled            !a
-                        | Marker              !Word64
-                        | Marked              !a !a
-                        | Documented          !Text32 !a
-                        | Metadata            !Text32
+                        | Disabled                  !a
+                        | Marker                    !Word64
+                        | Marked                    !a !a
+                        | Documented                !Text32 !a
+                        | Metadata                  !Text32
                         deriving (Show)
 
 instance IsUniTerm (TermDef atom) => IsUniTerm (Term atom) where uniTerm = uniTerm . unwrap
@@ -107,39 +111,43 @@ instance IsUniTerm Term.TermBlank     where uniTerm  Term.Blank            = Bla
 instance IsUniTerm Term.TermStar      where uniTerm  Term.Star             = Star
 instance IsUniTerm Term.TermMissing   where uniTerm  Term.Missing          = Missing
 
-instance IsUniTerm Term.TermASGFunction         where uniTerm (Term.ASGFunction         t1 t2 t3)       = ASGFunction         t1 t2 t3
--- instance IsUniTerm Term.TermFunction            where uniTerm (Term.Function            t1)             = Function            t1
-instance IsUniTerm Term.TermFunctionSig         where uniTerm (Term.FunctionSig         t1 t2)          = FunctionSig         t1 t2
-instance IsUniTerm Term.TermASGRootedFunction   where uniTerm (Term.ASGRootedFunction   t1 t2)          = ASGRootedFunction   t1 t2
-instance IsUniTerm Term.TermRootedFunction      where uniTerm (Term.RootedFunction      t1)             = RootedFunction      t1
-instance IsUniTerm Term.TermClsASG              where uniTerm (Term.ClsASG              t1 t2 t3 t4 t5) = ClsASG              t1 t2 t3 t4 t5
-instance IsUniTerm Term.TermRecASG              where uniTerm (Term.RecASG              t1 t2)          = RecASG              t1 t2
-instance IsUniTerm Term.TermFieldASG            where uniTerm (Term.FieldASG            t1 t2)          = FieldASG            t1 t2
-instance IsUniTerm Term.TermTyped               where uniTerm (Term.Typed               t1 t2)          = Typed               t1 t2
-instance IsUniTerm Term.TermCls                 where uniTerm (Term.Cls                 t1 t2 t3 t4)    = Cls                 t1 t2 t3 t4
-instance IsUniTerm Term.TermRec                 where uniTerm (Term.Rec                 t1)             = Rec                 t1
-instance IsUniTerm Term.TermUnit                where uniTerm (Term.Unit                t1 t2 t3)       = Unit                t1 t2 t3
-instance IsUniTerm Term.TermUnitProxy           where uniTerm (Term.UnitProxy           t1 t2)          = UnitProxy           t1 t2
-instance IsUniTerm Term.TermImportHub           where uniTerm (Term.ImportHub           t1)             = ImportHub           t1
-instance IsUniTerm Term.TermImport              where uniTerm (Term.Import              t1 t2)          = Import              t1 t2
-instance IsUniTerm Term.TermUnresolvedImportHub where uniTerm (Term.UnresolvedImportHub t1)             = UnresolvedImportHub t1
-instance IsUniTerm Term.TermUnresolvedImport    where uniTerm (Term.UnresolvedImport    t1 t2)          = UnresolvedImport    t1 t2
-instance IsUniTerm Term.TermUnresolvedImportSrc where uniTerm (Term.UnresolvedImportSrc t1)             = UnresolvedImportSrc t1
-instance IsUniTerm Term.TermWorld               where uniTerm (Term.World               t1)             = World               t1
-instance IsUniTerm Term.TermInvalid             where uniTerm (Term.Invalid             t1)             = Invalid             t1
-instance IsUniTerm Term.TermList                where uniTerm (Term.List                t1)             = List                t1
-instance IsUniTerm Term.TermTuple               where uniTerm (Term.Tuple               t1)             = Tuple               t1
-instance IsUniTerm Term.TermUpdate              where uniTerm (Term.Update              t1 t2 t3)       = Update              t1 t2 t3
-instance IsUniTerm Term.TermModify              where uniTerm (Term.Modify              t1 t2 t3 t4)    = Modify              t1 t2 t3 t4
-instance IsUniTerm Term.TermAccSection          where uniTerm (Term.AccSection          t1)             = AccSection          t1
-instance IsUniTerm Term.TermLeftSection         where uniTerm (Term.LeftSection         t1 t2)          = LeftSection         t1 t2
-instance IsUniTerm Term.TermRightSection        where uniTerm (Term.RightSection        t1 t2)          = RightSection        t1 t2
+instance IsUniTerm Term.TermASGFunction               where uniTerm (Term.ASGFunction               t1 t2 t3)       = ASGFunction               t1 t2 t3
+-- instance IsUniTerm Term.TermFunction                  where uniTerm (Term.Function                  t1)             = Function            t1
+instance IsUniTerm Term.TermFunctionSig               where uniTerm (Term.FunctionSig               t1 t2)          = FunctionSig               t1 t2
+instance IsUniTerm Term.TermASGRootedFunction         where uniTerm (Term.ASGRootedFunction         t1 t2)          = ASGRootedFunction         t1 t2
+instance IsUniTerm Term.TermRootedFunction            where uniTerm (Term.RootedFunction            t1)             = RootedFunction            t1
+instance IsUniTerm Term.TermClsASG                    where uniTerm (Term.ClsASG                    t1 t2 t3 t4 t5) = ClsASG                    t1 t2 t3 t4 t5
+instance IsUniTerm Term.TermRecASG                    where uniTerm (Term.RecASG                    t1 t2)          = RecASG                    t1 t2
+instance IsUniTerm Term.TermFieldASG                  where uniTerm (Term.FieldASG                  t1 t2)          = FieldASG                  t1 t2
+instance IsUniTerm Term.TermTyped                     where uniTerm (Term.Typed                     t1 t2)          = Typed                     t1 t2
+instance IsUniTerm Term.TermCls                       where uniTerm (Term.Cls                       t1 t2 t3 t4)    = Cls                       t1 t2 t3 t4
+instance IsUniTerm Term.TermRec                       where uniTerm (Term.Rec                       t1)             = Rec                       t1
+instance IsUniTerm Term.TermUnit                      where uniTerm (Term.Unit                      t1 t2 t3)       = Unit                      t1 t2 t3
+instance IsUniTerm Term.TermUnitProxy                 where uniTerm (Term.UnitProxy                 t1 t2)          = UnitProxy                 t1 t2
+instance IsUniTerm Term.TermImportHub                 where uniTerm (Term.ImportHub                 t1)             = ImportHub                 t1
+instance IsUniTerm Term.TermImport                    where uniTerm (Term.Import                    t1 t2)          = Import                    t1 t2
+instance IsUniTerm Term.TermUnresolvedImportHub       where uniTerm (Term.UnresolvedImportHub       t1)             = UnresolvedImportHub       t1
+instance IsUniTerm Term.TermUnresolvedImport          where uniTerm (Term.UnresolvedImport          t1 t2)          = UnresolvedImport          t1 t2
+instance IsUniTerm Term.TermUnresolvedImportSrc       where uniTerm (Term.UnresolvedImportSrc       t1)             = UnresolvedImportSrc       t1
+instance IsUniTerm Term.TermForeignSymbolImport       where uniTerm (Term.ForeignSymbolImport       t1 t2 t3 t4)    = ForeignSymbolImport       t1 t2 t3 t4
+instance IsUniTerm Term.TermForeignLocationImportList where uniTerm (Term.ForeignLocationImportList t1 t2)          = ForeignLocationImportList t1 t2
+instance IsUniTerm Term.TermForeignImportList         where uniTerm (Term.ForeignImportList         t1 t2)          = ForeignImportList         t1 t2
+instance IsUniTerm Term.TermForeignImportSafety       where uniTerm (Term.ForeignImportSafety       t1)             = ForeignImportSafety       t1
+instance IsUniTerm Term.TermWorld                     where uniTerm (Term.World                     t1)             = World                     t1
+instance IsUniTerm Term.TermInvalid                   where uniTerm (Term.Invalid                   t1)             = Invalid                   t1
+instance IsUniTerm Term.TermList                      where uniTerm (Term.List                      t1)             = List                      t1
+instance IsUniTerm Term.TermTuple                     where uniTerm (Term.Tuple                     t1)             = Tuple                     t1
+instance IsUniTerm Term.TermUpdate                    where uniTerm (Term.Update                    t1 t2 t3)       = Update                    t1 t2 t3
+instance IsUniTerm Term.TermModify                    where uniTerm (Term.Modify                    t1 t2 t3 t4)    = Modify                    t1 t2 t3 t4
+instance IsUniTerm Term.TermAccSection                where uniTerm (Term.AccSection                t1)             = AccSection                t1
+instance IsUniTerm Term.TermLeftSection               where uniTerm (Term.LeftSection               t1 t2)          = LeftSection               t1 t2
+instance IsUniTerm Term.TermRightSection              where uniTerm (Term.RightSection              t1 t2)          = RightSection              t1 t2
 
-instance IsUniTerm Term.TermDisabled            where uniTerm (Term.Disabled            t1)             = Disabled            t1
-instance IsUniTerm Term.TermMarker              where uniTerm (Term.Marker              t1)             = Marker              t1
-instance IsUniTerm Term.TermMarked              where uniTerm (Term.Marked              t1 t2)          = Marked              t1 t2
-instance IsUniTerm Term.TermDocumented          where uniTerm (Term.Documented          t1 t2)          = Documented          t1 t2
-instance IsUniTerm Term.TermMetadata            where uniTerm (Term.Metadata            t1)             = Metadata            t1
+instance IsUniTerm Term.TermDisabled                  where uniTerm (Term.Disabled                  t1)             = Disabled                  t1
+instance IsUniTerm Term.TermMarker                    where uniTerm (Term.Marker                    t1)             = Marker                    t1
+instance IsUniTerm Term.TermMarked                    where uniTerm (Term.Marked                    t1 t2)          = Marked                    t1 t2
+instance IsUniTerm Term.TermDocumented                where uniTerm (Term.Documented                t1 t2)          = Documented                t1 t2
+instance IsUniTerm Term.TermMetadata                  where uniTerm (Term.Metadata                  t1)             = Metadata                  t1
 
 
 
