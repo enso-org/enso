@@ -6,6 +6,7 @@ import qualified Prelude                     as P
 import           Luna.Prelude                hiding (Text)
 import           Luna.IR
 
+import           Control.Arrow               ((***))
 import           Data.ByteString.Lazy        (ByteString)
 import qualified Data.ByteString.Lazy        as ByteString
 import           Data.ByteString.Char8       (pack)
@@ -14,6 +15,7 @@ import qualified Data.CaseInsensitive        as CI
 import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 import           Data.Text.Lazy              (Text)
+import           Luna.Prim.Base              ()
 
 import qualified Network.HTTP.Client         as HTTP
 import qualified Network.HTTP.Client.TLS     as HTTP
@@ -90,6 +92,7 @@ instance (ToLunaValue b) => ToLunaData (HTTP.Response b) where
     toLunaData imps v = LunaObject $ Object (
             Constructor "HttpResponse"
                 [ toLunaData imps . integer   $ HTTP.getResponseStatusCode v
+                , toLunaData imps $ (Map.fromList $ (convert . CI.original *** convert) <$> HTTP.responseHeaders v :: Map Text Text)
                 , LunaThunk . toLunaValue imps $ HTTP.responseBody v
                 ]
             ) (getObjectMethodMap "HttpResponse" imps)
