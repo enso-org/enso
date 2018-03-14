@@ -8,13 +8,15 @@ import Prologue
 
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
+import qualified OCI.Pass.Attr       as Attr
 import qualified OCI.Pass.Definition as Pass
 import qualified OCI.Pass.Encoder    as Encoder
 
-import Data.Map.Strict     (Map)
-import Data.Set            (Set)
-import GHC.Exts            (Any)
-import OCI.Pass.Definition (Pass)
+import Control.Monad.Exception (Throws)
+import Data.Map.Strict         (Map)
+import Data.Set                (Set)
+import GHC.Exts                (Any)
+import OCI.Pass.Definition     (Pass)
 
 
 ---------------------
@@ -47,7 +49,7 @@ data IODesc = IODesc
 
 type    LayerDesc = Set SomeTypeRep
 type    AttrDesc  = Set SomeTypeRep
-newtype AttrMap   = AttrMap (Map SomeTypeRep Any)
+newtype AttrMap   = AttrMap (Map Attr.Rep Any)
     deriving (Default, Mempty, Semigroup)
 
 
@@ -70,11 +72,15 @@ makeLenses ''AttrMap
 
 -- === API === --
 
-compile :: ∀ pass a m.
-    ( Encoder.EncoderX    pass m
+type Compile pass m =
+    ( Encoder.Encoding    pass
     , Encoder.AttrEncoder pass
     , Known pass
-    ) => Pass pass a -> Encoder.State -> m DynamicPass
+    , Throws Encoder.Error m
+    )
+
+compile :: ∀ pass a m. Compile pass m
+        => Pass pass a -> Encoder.State -> m DynamicPass
 compile !pass !cfg = do
     !staticData <- Encoder.run @pass cfg
     let !desc         = describe @pass
@@ -83,8 +89,8 @@ compile !pass !cfg = do
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: DynamicPass -> AttrMap -> IO ()
-run = view runner ; {-# INLINE run #-}
+run :: MonadIO m => DynamicPass -> AttrMap -> m ()
+run pass attrs = liftIO $ (pass ^. runner) attrs ; {-# INLINE run #-}
 
 
 -- === Description === --

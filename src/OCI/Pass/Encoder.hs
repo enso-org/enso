@@ -10,6 +10,7 @@ import qualified Foreign.Marshal.Alloc as Mem
 import qualified Foreign.Marshal.Utils as Mem
 import qualified Foreign.Memory.Pool   as MemPool
 import qualified Foreign.Ptr           as Ptr
+import qualified OCI.Pass.Attr         as Attr
 import qualified OCI.Pass.Definition   as Pass
 import qualified OCI.Pass.Registry     as Registry
 
@@ -104,32 +105,25 @@ data EncodingError
     | MissingLayer     SomeTypeRep
     deriving (Show)
 
-newtype EncoderError = EncoderError (NonEmpty EncodingError)
+newtype Error = Error (NonEmpty EncodingError)
     deriving (Semigroup, Show)
-makeLenses ''EncoderError
+makeLenses ''Error
 
-type EncoderResult  = Either EncoderError
+type EncoderResult  = Either Error
 type EncodingResult = Either EncodingError
 
-instance Exception EncoderError
+instance Exception Error
 
 
 -- === API === --
 
-tryRun :: (Encoder pass, Default (Pass.State pass))
-       => State -> EncoderResult (Pass.State pass)
+type Encoding pass = (Encoder pass, Default (Pass.State pass))
+
+tryRun :: Encoding pass => State -> EncoderResult (Pass.State pass)
 tryRun cfg = ($ def) <$> encode cfg ; {-# INLINE tryRun #-}
 
--- FIXME vvv
-type EncoderX pass m = ( Encoder pass
-  , Default (Pass.State pass)
-  , Throws EncoderError m)
-
-run :: ∀ pass m.
-    ( Encoder pass
-    , Default (Pass.State pass)
-    , Throws EncoderError m
-    ) => State -> m (Pass.State pass)
+run :: ∀ pass m. (Encoding pass, Throws Error m)
+    => State -> m (Pass.State pass)
 run cfg = case tryRun cfg of
     Left  e -> throw e
     Right a -> pure a
@@ -215,13 +209,13 @@ appSemiLeft f a = case f of
 -- === Attr encoder === --
 
 encodeAttrs :: ∀ pass. AttrEncoder pass
-            => Map SomeTypeRep Any -> (Pass.State pass -> Pass.State pass)
+            => Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
 encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
 
 type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
-type  AttrEncoderTarget pass = Pass.Vars pass Pass.Elems
+type  AttrEncoderTarget pass = Pass.Vars pass Pass.Attrs
 class AttrEncoder__     pass (attrs :: [Type]) where
-    encodeAttrs__ :: Map SomeTypeRep Any -> (Pass.State pass -> Pass.State pass)
+    encodeAttrs__ :: Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
 
 instance AttrEncoder__ pass '[] where
     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
@@ -232,7 +226,7 @@ instance ( attr ~ Pass.Attr a
          , Typeable a
          ) => AttrEncoder__ pass (a ': as) where
     encodeAttrs__ m = encoder . subEncoder where
-        Just a = Map.lookup (someTypeRep @a) m -- FIXME: unsafe match!
+        Just a = Map.lookup (Attr.rep @a) m -- FIXME: unsafe match!
         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
         subEncoder = encodeAttrs__ @pass @as m
     {-# INLINE encodeAttrs__ #-}

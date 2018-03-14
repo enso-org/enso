@@ -3,9 +3,10 @@ module OCI.Pass.Scheduler where
 import Prologue as P
 
 import qualified Control.Monad.State.Layered as State
+import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Attr               as Attr
 import qualified OCI.Pass.Definition         as Pass
-import qualified OCI.Pass.Dynamic            as Dynamic
+import qualified OCI.Pass.Dynamic            as Pass.Dynamic
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 
@@ -20,8 +21,10 @@ type M = P.Monad
 
 
 data DynAttr = DynAttr
-    { _defAttr :: Any
+    { _defVal :: Any
     }
+makeLenses ''DynAttr
+
 
 -------------------
 -- === State === --
@@ -30,10 +33,10 @@ data DynAttr = DynAttr
 -- === Definition === --
 
 data State = State
-    { _passes        :: !(Map SomeTypeRep DynamicPass)
-    , _attrDefs      :: !(Map SomeTypeRep DynAttr)
-    , _attrs         :: !(Map SomeTypeRep Any)
-    , _encoderConfig :: !Encoder.State
+    { _passes   :: !(Map Pass.Rep DynamicPass)
+    , _attrDefs :: !(Map Attr.Rep DynAttr)
+    , _attrs    :: !(Map Attr.Rep Any)
+    , _layout   :: !Encoder.State
     }
 makeLenses ''State
 
@@ -51,8 +54,8 @@ buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
 
 -- === Definition === --
 
-type Monad m = MonadRegistry m
-type MonadRegistry m = (MonadState State m, MonadIO m)
+type Monad m = MonadScheduler m
+type MonadScheduler m = (MonadState State m, MonadIO m)
 
 newtype SchedulerT m a = SchedulerT (StateT State m a)
     deriving ( Applicative, Alternative, Functor, M, MonadFail, MonadFix
@@ -68,18 +71,53 @@ runT  f = State.runT (unwrap f) . buildState <=< Encoder.computeConfig ; {-# INL
 execT   = fmap snd .: runT ; {-# INLINE execT #-}
 
 
--- === API === --
+-- === Passes === --
 
-registerAttr :: ∀ attr m. (Attr.DefData attr, MonadRegistry m, Typeable attr)
-             => m ()
+registerPass :: ∀ pass m.
+    ( Typeable             pass
+    , Pass.Definition      pass
+    , Pass.Dynamic.Compile pass m
+    , MonadScheduler            m
+    ) => m ()
+registerPass = do
+    lyt     <- view layout <$> State.get @State
+    dynPass <- Pass.Dynamic.compile (Pass.definition @pass) lyt
+    State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
+{-# INLINE registerPass #-}
+
+forkPass :: MonadScheduler m => Pass.Rep -> m ThreadId
+forkPass passRep = do
+    state <- State.get @State
+    let Just dynPass = Map.lookup passRep $ state ^. passes -- FIXME[WD]
+    liftIO $ forkIO . Pass.Dynamic.run dynPass $ (wrap $ state ^. attrs) -- FIXME: wrap on AttrMap is ugly
+{-# INLINE forkPass #-}
+
+forkPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ThreadId
+forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
+
+
+-- === Attrs === --
+
+registerAttr :: ∀ a m. (Default a, MonadScheduler m, Typeable a) => m ()
 registerAttr = State.modify_ @State
-             $ attrDefs . at (someTypeRep @attr) .~ Just da
-    where da = DynAttr . unsafeCoerce $ Attr.defData @attr
+             $ attrDefs . at (Attr.rep @a) .~ Just da
+    where da = DynAttr . unsafeCoerce $ def @a
 {-# INLINE registerAttr #-}
 
--- setAttr
--- registerPass :: Pass pass a -> m ()
--- registerPass =
+enableAttr :: MonadScheduler m => Attr.Rep -> m ()
+enableAttr rep = State.modify_ @State $ \s ->
+    let Just dynAttr = Map.lookup rep (s ^. attrDefs) -- FIXME[WD]
+    in  s & attrs . at rep .~ Just (dynAttr ^. defVal)
+{-# INLINE enableAttr #-}
+
+disableAttr :: MonadScheduler m => Attr.Rep -> m ()
+disableAttr rep = State.modify_ @State $ attrs . at rep .~ Nothing
+{-# INLINE disableAttr #-}
+
+enableAttrByType  :: ∀ attr m. (MonadScheduler m, Typeable attr) => m ()
+disableAttrByType :: ∀ attr m. (MonadScheduler m, Typeable attr) => m ()
+enableAttrByType  = enableAttr  $ Attr.rep @attr ; {-# INLINE enableAttrByType #-}
+disableAttrByType = disableAttr $ Attr.rep @attr ; {-# INLINE disableAttrByType #-}
 
 
 -- === Instances === --

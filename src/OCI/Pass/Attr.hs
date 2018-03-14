@@ -3,7 +3,7 @@
 
 module OCI.Pass.Attr where
 
-import           Prologue hiding (Data, Type, Wrapped)
+import           Prologue hiding (Type, Wrapped)
 import qualified Prologue as P
 
 import           Control.Concurrent.MVar (MVar)
@@ -19,21 +19,12 @@ type T = P.Type
 
 -- === Definition === --
 
-type family Data attr :: T
 type family Type attr :: T
 type family Wrapper t :: T -> T
 
 type    Wrapped attr = Wrapper (Type attr)
-newtype Attr    attr = Attr (Wrapped attr (Data attr))
+newtype Attr    attr = Attr (Wrapped attr attr)
 makeLenses ''Attr
-
-
--- === Construction === --
-
-type DefData attr = Default (Data attr)
-defData :: ∀ attr. DefData attr => Data attr
-defData = def ; {-# INLINE defData #-}
-
 
 
 -- === State management === --
@@ -61,11 +52,11 @@ class Monad m => StateWriter attr m where
 
 type Reader attr = TypedReader (Type attr) attr
 class Monad m => TypedReader t attr m where
-    read :: Type attr ~ t => m (Data attr)
+    read :: Type attr ~ t => m attr
 
 type Writer attr = TypedWriter (Type attr) attr
 class Monad m => TypedWriter t attr m where
-    write :: Type attr ~ t => Data attr -> m ()
+    write :: Type attr ~ t => attr -> m ()
 
 
 -- === Fan in / out === --
@@ -80,22 +71,22 @@ class Monad m => FanOut t attr m where
 
 
 
----------------------
--- === AttrRep === --
----------------------
+-----------------
+-- === Rep === --
+-----------------
 
 -- === Definition === --
 
-newtype AttrRep = AttrRep SomeTypeRep deriving (Show)
-makeLenses ''AttrRep
+newtype Rep = Rep SomeTypeRep deriving (Eq, Ord, Show)
+makeLenses ''Rep
 
 
 -- === API === --
 
-rep :: ∀ (attr :: T). Typeable attr => AttrRep
+rep :: ∀ (attr :: T). Typeable attr => Rep
 rep = wrap $ someTypeRep @attr ; {-# INLINE rep #-}
 
-repOf :: ∀ attr. Typeable attr => Attr attr -> AttrRep
+repOf :: ∀ attr. Typeable attr => Attr attr -> Rep
 repOf _ = rep @attr ; {-# INLINE repOf #-}
 
 
@@ -142,7 +133,7 @@ instance StateReader attr m => TypedReader ParAppend attr m where
 instance StateWriter attr m => TypedWriter ParAppend attr m where
     write = put @attr . wrap . wrap ; {-# INLINE write #-}
 
-instance (Monad m, Semigroup (Data attr))
+instance (Monad m, Semigroup attr)
       => FanIn ParAppend attr m where
     fanIn = pure . wrap . wrap . fold1 . fmap (unwrap . unwrap)
     {-# INLINE fanIn #-}
@@ -175,7 +166,6 @@ instance (MonadIO m, StateReader attr m)
         liftIO $ MVar.putMVar mvar a
     {-# INLINE write #-}
 
-instance (Monad m, Semigroup (Data attr))
-    => FanIn UncheckedMutable attr m where
+instance Monad m => FanIn UncheckedMutable attr m where
   fanIn (mvar :| _) = pure mvar
   {-# INLINE fanIn #-}

@@ -25,6 +25,7 @@ import qualified OCI.Pass.Cache              as Pass
 import qualified OCI.Pass.Definition         as Pass
 import qualified OCI.Pass.Dynamic            as DynamicPass
 import qualified OCI.Pass.Encoder            as Encoder
+import qualified OCI.Pass.Encoder            as Pass.Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified OCI.Pass.Scheduler          as Scheduler
 
@@ -57,7 +58,8 @@ type instance Layer.Layout Terms Type layout = layout *-* layout
 
 
 newtype MyAttr = MyAttr Int deriving (Show)
-
+instance Default MyAttr where
+    def = MyAttr 0 ; {-# INLINE def #-}
 
 data BasicPass
 type instance Spec BasicPass t = Spec_BasicPass t
@@ -65,12 +67,15 @@ type family   Spec_BasicPass t where
     Spec_BasicPass (In Elems) = '[Terms, Links]
     Spec_BasicPass (In Terms) = '[Model, Type]
     Spec_BasicPass (In Links) = '[Source, Target]
-    Spec_BasicPass (In Attrs) = '[MyAttr]
+    Spec_BasicPass (In Attrs) = '[]
     Spec_BasicPass (Out a)    = Spec_BasicPass (In a)
     Spec_BasicPass t          = '[]
 
 Pass.cache_phase1 ''BasicPass
 Pass.cache_phase2 ''BasicPass
+
+instance Pass.Definition BasicPass where
+    definition = passTest
 
 
 runWithManualScheduling :: MonadIO m => RegistryT m a -> SchedulerT m b -> m ()
@@ -89,13 +94,22 @@ runRegistry = do
     Registry.registerPrimLayer @Links @Source
     Registry.registerPrimLayer @Links @Target
 
-runScheduler :: MonadIO m => m ()
+runScheduler ::
+    (MonadIO m, Scheduler.Monad m, Throws Pass.Encoder.Error m)
+             => m ()
 runScheduler = do
-    -- Scheduler.registerAttr @MyAttr
+    Scheduler.registerAttr @MyAttr
+    Scheduler.registerPass @BasicPass
+
+    Scheduler.enableAttrByType @MyAttr
+
+    Scheduler.forkPassByType @BasicPass
+
     print "test scheduler!"
     pure ()
 
-runCompiler :: (MonadIO m, Throws Registry.Error m) => m ()
+runCompiler :: (MonadIO m, Throws '[Registry.Error, Pass.Encoder.Error] m)
+            => m ()
 runCompiler = runWithManualScheduling runRegistry runScheduler
 
 

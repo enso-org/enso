@@ -37,6 +37,8 @@ import GHC.Exts                    (Any)
 --       Spec_MyPass (Out a)    = Spec_MyPass (In a)
 --       Spec_MyPass t          = '[]
 
+-- === Definition === --
+
 data Elems
 data Attrs
 
@@ -44,6 +46,9 @@ data Property
     = PassIn        Type
     | PassOut       Type
     | PassPreserves Type
+
+
+-- === Utils === --
 
 type In        = 'PassIn
 type Out       = 'PassOut
@@ -152,6 +157,12 @@ newtype Pass (pass :: Type) a = Pass (StateT (State pass) IO a)
              , MonadIO, MonadPlus, MonadThrow)
 makeLenses ''Pass
 
+class Definition pass where
+    definition :: Pass pass ()
+
+
+-- === Discovery === --
+
 type family DiscoverPass m where
     DiscoverPass (Pass pass) = pass
     DiscoverPass (t m)       = DiscoverPass m
@@ -165,6 +176,21 @@ type DiscoverStateLayout m = StateLayout (DiscoverPass m)
 
 run :: ∀ pass a. Pass pass a -> State pass -> IO ()
 run !pass !state = void $ State.evalT (coerce pass) state ; {-# INLINE run #-}
+
+
+
+-----------------
+-- === Rep === --
+-----------------
+
+newtype Rep = Rep SomeTypeRep deriving (Eq, Ord, Show)
+makeLenses ''Rep
+
+rep :: ∀ (pass :: Type). Typeable pass => Rep
+rep = wrap $ someTypeRep @pass ; {-# INLINE rep #-}
+
+repOf :: ∀ pass a. Typeable pass => Pass pass a -> Rep
+repOf _ = rep @pass ; {-# INLINE repOf #-}
 
 
 
