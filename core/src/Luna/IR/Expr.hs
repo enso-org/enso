@@ -381,33 +381,20 @@ impHub imps = mdo
     limps <- mapM (flip link t . unsafeRelayout) imps
     return t
 
-foreignImpSafety'
-    :: (ExprCons m ForeignImportSafety)
-    => ForeignImportType
-    -> m SomeExpr
-foreignImpSafety
-    :: (ExprCons m ForeignImportSafety)
-    => ForeignImportType
-    -> m (Expr ForeignImportSafety)
+foreignImpSafety' :: (ExprCons m ForeignImportSafety)
+                  => ForeignImportType -> m SomeExpr
+foreignImpSafety  :: (ExprCons m ForeignImportSafety)
+                  => ForeignImportType -> m (Expr ForeignImportSafety)
 foreignImpSafety' = generalize .: foreignImpSafety
 foreignImpSafety impType = mdo
     newTerm <- expr $ Term.uncheckedForeignImportSafety impType
     return newTerm
 
-foreignSymbolImp'
-    :: (ExprCons m ForeignSymbolImport)
-    => Expr a
-    -> Expr a
-    -> Name
-    -> Expr a
-    -> m SomeExpr
-foreignSymbolImp
-    :: (ExprCons m ForeignSymbolImport)
-    => Expr a
-    -> Expr a
-    -> Name
-    -> Expr a
-    -> m (Expr ForeignSymbolImport)
+foreignSymbolImp' :: (ExprCons m ForeignSymbolImport)
+                  => Expr a -> Expr a -> Name -> Expr a -> m SomeExpr
+foreignSymbolImp  :: (ExprCons m ForeignSymbolImport)
+                  => Expr a -> Expr a -> Name -> Expr a
+                  -> m (Expr ForeignSymbolImport)
 foreignSymbolImp' = generalize .::. foreignSymbolImp
 foreignSymbolImp safety foreignName localName importType = mdo
     newTerm     <- expr $
@@ -417,16 +404,11 @@ foreignSymbolImp safety foreignName localName importType = mdo
     typeExpr    <- link (unsafeRelayout importType) newTerm
     return newTerm
 
-foreignLocationImpList'
-    :: (ExprCons m ForeignLocationImportList)
-    => Expr a
-    -> [Expr a]
-    -> m SomeExpr
-foreignLocationImpList
-    :: (ExprCons m ForeignLocationImportList)
-    => Expr a
-    -> [Expr a]
-    -> m (Expr ForeignLocationImportList)
+foreignLocationImpList' :: (ExprCons m ForeignLocationImportList)
+                        => Expr a -> [Expr a] -> m SomeExpr
+foreignLocationImpList  :: (ExprCons m ForeignLocationImportList)
+                        => Expr a -> [Expr a]
+                        -> m (Expr ForeignLocationImportList)
 foreignLocationImpList' = generalize .:. foreignLocationImpList
 foreignLocationImpList location imports = mdo
     newTerm <- expr $ Term.uncheckedForeignLocationImportList locExpr impExpr
@@ -434,16 +416,10 @@ foreignLocationImpList location imports = mdo
     impExpr <- mapM (flip link newTerm . unsafeRelayout) imports
     return newTerm
 
-foreignImpList'
-    :: (ExprCons m ForeignImportList)
-    => Name
-    -> [Expr a]
-    -> m SomeExpr
-foreignImpList
-    :: (ExprCons m ForeignImportList)
-    => Name
-    -> [Expr a]
-   -> m (Expr ForeignImportList)
+foreignImpList' :: (ExprCons m ForeignImportList)
+                => Name -> [Expr a] -> m SomeExpr
+foreignImpList  :: (ExprCons m ForeignImportList)
+                => Name -> [Expr a] -> m (Expr ForeignImportList)
 foreignImpList' = generalize .:. foreignImpList
 foreignImpList lang imports = mdo
     newTerm   <- expr $ Term.uncheckedForeignImportList lang impLayout

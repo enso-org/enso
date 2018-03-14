@@ -946,27 +946,15 @@ foreignSymbolImport :: AsgParser SomeExpr
 foreignSymbolImport = buildAsg $ withRecovery recover
     $   try (foreignSymbolImportWithSafety defaultFISafety)
     <|> foreignSymbolImportWithSafety specifiedFISafety
-    where
-        recover = (\e ->
-            invalid "Invalid safety specification."
-            <$ Loc.unregisteredDropSymbolsUntil
-            (`elem` [Lexer.ETX, Lexer.EOL]))
+    where recover e = invalid "Invalid safety specification."
+                      <$ Loc.unregisteredDropSymbolsUntil
+                      (`elem` [Lexer.ETX, Lexer.EOL])
 
-foreignSymbolImportWithSafety
-    :: AsgParser SomeExpr
-    -> IRParser SomeExpr
-foreignSymbolImportWithSafety getSafety =
-    (\safety foreignName localName importType ->
-        liftAstApp3
-        (foreignSymbolProxy localName)
-        safety
-        foreignName
-        importType)
-    <$> getSafety
-    <*> stringOrVarName
-    <*> funcName
-    <*  symbol Lexer.Typed
-    <*> valExpr
+foreignSymbolImportWithSafety :: AsgParser SomeExpr -> IRParser SomeExpr
+foreignSymbolImportWithSafety safe =
+    (\safety forName localName importType ->
+        liftAstApp3 (foreignSymbolProxy localName) safety forName importType)
+    <$> safe <*> stringOrVarName <*> funcName <*  symbol Lexer.Typed <*> valExpr
     where
         foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
 

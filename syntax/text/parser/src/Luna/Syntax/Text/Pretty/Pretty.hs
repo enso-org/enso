@@ -247,27 +247,18 @@ instance ( MonadIO m -- DEBUG ONLY
             Import.Absolute ss      -> convertVia @P.String ss
             Import.Relative ss      -> "." <> convertVia @P.String ss
 
-        ForeignImportList language imports ->
-            unnamed . atom . (\imps -> "foreign import"
-                <+> convert language
-                <>  lamName
+        ForeignImportList language imports -> unnamed . atom .
+            (\imps -> "foreign import" <+> convert language <>  lamName
                 </> indented (block $ foldl (</>) mempty imps))
             <$> mapM subgenBody imports
-        ForeignLocationImportList location imports ->
-            unnamed . atom .: (\loc imps -> loc
-                <>  lamName
+        ForeignLocationImportList location imports -> unnamed . atom .:
+            (\loc imps -> loc <>  lamName
                 </> indented (block $ foldl (</>) mempty imps))
-            <$> subgenBody location
-            <*> mapM subgenBody imports
-        ForeignSymbolImport safety foreignName localName typeSig ->
+            <$> subgenBody location <*> mapM subgenBody imports
+        ForeignSymbolImport safety foreignName localName sig ->
             unnamed . atom .:. (\safetyAn forName tSig -> safetyAn
-                <>  forName
-                <+> convert localName
-                <+> typedName
-                <+> tSig)
-            <$> subgenBody safety
-            <*> subgenBody foreignName
-            <*> subgenBody typeSig
+                <>  forName <+> convert localName <+> typedName <+> tSig)
+            <$> subgenBody safety <*> subgenBody foreignName <*> subgenBody sig
         ForeignImportSafety safety -> return . unnamed. atom $ case safety of
             Import.Safe    -> "safe " -- Space is required.
             Import.Unsafe  -> "unsafe "
