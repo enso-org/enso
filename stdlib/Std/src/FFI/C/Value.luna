@@ -431,7 +431,7 @@ class Pointer a:
     def isNull: self.ptr.isNull
     def null:
         t = self.typeRep
-        Pointer t primNullPtr
+        PointerVal t primNullPtr
 
     def malloc: self . mallocElems 1
 
