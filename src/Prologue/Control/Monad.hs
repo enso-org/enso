@@ -2,17 +2,16 @@
 
 module Prologue.Control.Monad (module Prologue.Control.Monad, module X) where
 
-import Prelude hiding (return, mempty)
-import Control.Monad.Fix
-import Control.Monad as X ( Monad, (>>=), (>>), (=<<), (<=<), (>=>)
-                          , MonadPlus, mplus, mzero
-                          , join
-                          , zipWithM, zipWithM_, foldM, foldM_, forever
-                          )
-import Data.Convert
-import Data.Monoids
-import Prologue.Data.Basic
-import Unsafe.Coerce (unsafeCoerce)
+import           Control.Monad       as X (Monad, MonadPlus, foldM, foldM_,
+                                           forever, join, mplus, mzero,
+                                           replicateM, zipWithM, zipWithM_,
+                                           (<=<), (=<<), (>=>), (>>), (>>=))
+import           Control.Monad.Fix
+import           Data.Convert
+import           Data.Monoids
+import           Prelude             hiding (mempty, return)
+import           Prologue.Data.Basic
+import           Unsafe.Coerce       (unsafeCoerce)
 
 
 {-# DEPRECATED return "Use `pure` instead" #-}

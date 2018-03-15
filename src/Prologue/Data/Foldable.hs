@@ -16,6 +16,8 @@ import           Data.Bifoldable    as X (bitraverse_, bifor_, biasum)
 import           Data.Foldable      as X (concat  , concatMap  , and  , or  , any  , all)
 import           Data.Bifoldable    as X (biconcat, biconcatMap, biand, bior, biany, biall)
 
+import Data.Semigroup.Foldable as X (Foldable1, fold1, foldMap1, toNonEmpty)
+
 
 type family Foldables (lst :: [* -> *]) :: Constraint where
     Foldables '[]       = ()

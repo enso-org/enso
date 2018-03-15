@@ -1,5 +1,3 @@
-{-# LANGUAGE NoMonomorphismRestriction #-} -- FIXME: remove
-
 module Prologue (module Prologue, module X) where
 
 
@@ -65,6 +63,7 @@ import Data.Functor                     as X (Functor, fmap, (<$), ($>), (<$>))
 import Data.Functor.Utils               as X
 import Data.Functor.Classes             as X (Eq1, eq1, Ord1, compare1, Read1, readsPrec1, Show1, showsPrec1)
 import Data.Functor.Foldable            as X (Fix(Fix))
+import Data.Functor.Identity            as X (Identity(Identity), runIdentity)
 import Data.String.Class                as X (IsString (fromString), ToString (toString))
 import Data.Monoids                     as X
 import Prologue.Data.Pointed            as X
@@ -128,7 +127,7 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens                     as X (Lens, Lens')
+import Control.Lens                     as X (Lens, Lens', at)
 import Control.Lens                     as X (view, set)
 import Control.Lens                     as X ((^.), (.~), (%~))
 import Control.Lens.Utils.Wrapped       as X (wrap, unwrap, wrapped)
@@ -155,3 +154,8 @@ import Control.Lens.Tuple               as X ()
 import Control.Lens.Type                as X ()
 import Control.Lens.Wrapped             as X (Wrapped, Unwrapped, _Wrapped, _Unwrapped, _Wrapping, _Unwrapping, _Wrapped', _Unwrapped', _Wrapping', _Unwrapping', Rewrapped, ala, alaf)
 import Control.Lens.Zoom                as X ()
+
+
+-- === Concurrency === --
+
+import Control.Concurrent               as X (ThreadId, myThreadId, forkIO, forkFinally, killThread)
