@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE MagicHash         #-}
 
 module Luna.Prim.Foreign where
 
@@ -15,10 +14,14 @@ import           Data.Text.Lazy              (Text)
 import qualified Data.Text.Lazy              as Text
 import           Foreign.C.Types             (CDouble, CFloat, CChar, CUChar, CWchar, CInt, CUInt, CLong, CULong, CSize, CTime)
 import           Foreign.C.String            (peekCString, newCString, CString)
+import           Foreign.ForeignPtr.Unsafe   (unsafeForeignPtrToPtr)
+import qualified Foreign.ForeignPtr          as ForeignPtr
 import qualified Foreign.LibFFI              as LibFFI
-import           Foreign.Marshal.Alloc       (mallocBytes, free)
+import           Foreign.Marshal.Alloc       (mallocBytes, finalizerFree, free)
 import           Foreign.Ptr                 (Ptr, FunPtr, castPtr, castPtrToFunPtr, nullPtr, plusPtr)
 import           Foreign.Storable            (Storable(..))
+import           GHC.ForeignPtr              (ForeignPtr(..))
+import           GHC.Exts                    (Int(..), plusAddr#)
 import qualified Luna.Prim.DynamicLinker     as Linker
 import           Luna.Builtin.Data.Function  (Function)
 import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
@@ -29,6 +32,9 @@ import           Luna.Std.Builder            (makeFunctionIO, makeFunctionPure, 
 
 ptrT :: LTp -> LTp
 ptrT t = LCons "Ptr" [t]
+
+fPtrT :: LTp -> LTp
+fPtrT t = LCons "ForeignPtr" [t]
 
 retTypeT :: LTp -> LTp
 retTypeT t = LCons "RetType" [t]
@@ -131,6 +137,56 @@ primPtr std = do
                           , ("primPtrEq", primPtrEq)
                           , ("primMalloc", primMalloc)
                           , ("primFree", primFree)
+                          ]
+
+-- FIXME[MM]: remove when GHC 8.2
+plusForeignPtr :: ForeignPtr a -> Int -> ForeignPtr b
+plusForeignPtr (ForeignPtr addr c) (I# d) = ForeignPtr (plusAddr# addr d) c
+
+primForeignPtr :: Imports -> IO (Map Name Function)
+primForeignPtr std = do
+    let primForeignPtrToCArgVal :: ForeignPtr LunaData -> LibFFI.Arg
+        primForeignPtrToCArgVal fptr = LibFFI.argPtr $ unsafeForeignPtrToPtr fptr
+    primForeignPtrToCArg <- makeFunctionIO (toLunaValue std primForeignPtrToCArgVal) [fPtrT "a"] "Arg"
+
+    let primForeignPtrCastVal :: ForeignPtr LunaData -> ForeignPtr LunaData
+        primForeignPtrCastVal = id
+    primForeignPtrCast <- makeFunctionPure (toLunaValue std primForeignPtrCastVal) [fPtrT "a"] (fPtrT "b")
+
+    let primForeignPtrEqVal :: ForeignPtr LunaData -> ForeignPtr LunaData -> Bool
+        primForeignPtrEqVal = (==)
+    primForeignPtrEq <- makeFunctionPure (toLunaValue std primForeignPtrEqVal) [fPtrT "a", fPtrT "a"] "Bool"
+
+    let primNullForeignPtrVal :: IO (ForeignPtr LunaData)
+        primNullForeignPtrVal = ForeignPtr.newForeignPtr_ nullPtr
+    primNullForeignPtr <- makeFunctionIO (toLunaValue std primNullForeignPtrVal) [] (fPtrT "a")
+
+    let primForeignPtrPlusVal :: ForeignPtr LunaData -> Integer -> ForeignPtr LunaData
+        primForeignPtrPlusVal fptr i = plusForeignPtr fptr (fromIntegral i)
+    primForeignPtrPlus <- makeFunctionPure (toLunaValue std primForeignPtrPlusVal) [fPtrT "a", "Int"] (fPtrT "a")
+
+    let primForeignPtrFreeVal :: ForeignPtr LunaData -> IO ()
+        primForeignPtrFreeVal fptr = ForeignPtr.finalizeForeignPtr fptr
+    primForeignPtrFree <- makeFunctionIO (toLunaValue std primForeignPtrFreeVal) [fPtrT "a"] "None"
+
+    let primMallocForeignPtrBytesVal :: Integer -> IO (ForeignPtr LunaData)
+        primMallocForeignPtrBytesVal bytes = do
+            ptr <- mallocBytes (fromIntegral bytes)
+            ForeignPtr.newForeignPtr finalizerFree ptr
+    primMallocForeignPtrBytes <- makeFunctionIO (toLunaValue std primMallocForeignPtrBytesVal) ["Int"] (fPtrT "a")
+
+    let primForeignPtrToPtrVal :: ForeignPtr LunaData -> Ptr LunaData
+        primForeignPtrToPtrVal = unsafeForeignPtrToPtr
+    primForeignPtrToPtr <- makeFunctionPure (toLunaValue std primForeignPtrToPtrVal) [fPtrT "a"] (ptrT "a")
+
+    return $ Map.fromList [ ("primForeignPtrToCArg", primForeignPtrToCArg)
+                          , ("primForeignPtrCast", primForeignPtrCast)
+                          , ("primForeignPtrEq", primForeignPtrEq)
+                          , ("primNullForeignPtr", primNullForeignPtr)
+                          , ("primForeignPtrPlus", primForeignPtrPlus)
+                          , ("primForeignPtrFree", primForeignPtrFree)
+                          , ("primMallocForeignPtrBytes", primMallocForeignPtrBytes)
+                          , ("primForeignPtrToPtr", primForeignPtrToPtr)
                           ]
 
 primCString :: Imports -> IO (Map Name Function)
@@ -351,5 +407,6 @@ instance PrimCFFI CDouble where
 
 type instance RuntimeRepOf LibFFI.Arg                = AsNative "Arg"
 type instance RuntimeRepOf (LibFFI.RetType LunaData) = AsNative "RetType"
-type instance RuntimeRepOf (FunPtr LunaData)         = AsNative "FunPtr"
-type instance RuntimeRepOf (Ptr    LunaData)         = AsNative "Ptr"
+type instance RuntimeRepOf (FunPtr         LunaData) = AsNative "FunPtr"
+type instance RuntimeRepOf (Ptr            LunaData) = AsNative "Ptr"
+type instance RuntimeRepOf (ForeignPtr     LunaData) = AsNative "ForeignPtr"
