@@ -86,6 +86,9 @@ makeLenses ''Rep
 rep :: ∀ (attr :: T). Typeable attr => Rep
 rep = wrap $ someTypeRep @attr ; {-# INLINE rep #-}
 
+reps :: ∀ (attrs :: [T]). Typeables attrs => [Rep]
+reps = wrap <$> someTypeReps @attrs ; {-# INLINE reps #-}
+
 repOf :: ∀ attr. Typeable attr => Attr attr -> Rep
 repOf _ = rep @attr ; {-# INLINE repOf #-}
 

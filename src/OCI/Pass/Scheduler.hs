@@ -4,6 +4,7 @@ import Prologue as P
 
 import qualified Control.Concurrent.Async    as Async
 import qualified Control.Monad.State.Layered as State
+import qualified Data.List                   as List
 import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Attr               as Attr
 import qualified OCI.Pass.Definition         as Pass
@@ -15,7 +16,6 @@ import Control.Concurrent.Async    (Async, async)
 import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
-import OCI.Pass.Definition         (Pass)
 import OCI.Pass.Dynamic            (DynamicPass)
 
 type M = P.Monad
@@ -122,26 +122,40 @@ instance P.Monad m => State.MonadSetter State (SchedulerT m) where
 
 
 ------------------------
--- === PassWorker === --
+-- === PassThread === --
 ------------------------
 
 -- === Defintion === --
 
-newtype PassWorker = PassWorker (Async ())
-makeLenses ''PassWorker
+newtype PassThread = PassThread (Async Pass.Dynamic.AttrVals)
+makeLenses ''PassThread
 
 
 -- === API === --
 
-runPass :: MonadScheduler m => Pass.Rep -> m PassWorker
-runPass passRep = do
+forkPass :: MonadScheduler m => Pass.Rep -> m PassThread
+forkPass passRep = do
     state <- State.get @State
     let Just dynPass = Map.lookup passRep $ state ^. passes -- FIXME[WD]
-    liftIO $ fmap wrap . async . Pass.Dynamic.run dynPass $ (wrap $ state ^. attrs) -- FIXME: wrap on AttrMap is ugly
-{-# INLINE runPass #-}
+        attrReps = dynPass ^. (Pass.Dynamic.desc . Pass.Dynamic.attrLayout)
+        Just attrVals = sequence $ flip Map.lookup (state ^. attrs) <$> attrReps -- FIXME[WD]
+    liftIO $ fmap wrap . async . Pass.Dynamic.run dynPass
+           $ (wrap attrVals) -- $ state ^. attrs) -- FIXME: wrap on AttrMap is ugly
+{-# INLINE forkPass #-}
 
-runPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m PassWorker
-runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
+forkPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m PassThread
+forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
 
-wait :: MonadIO m => PassWorker -> m ()
+runPass :: MonadScheduler m => Pass.Rep -> m Pass.Dynamic.AttrVals
+runPass = wait <=< forkPass ; {-# INLINE runPass #-}
+
+runPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m Pass.Dynamic.AttrVals
+runPassByType = wait =<< forkPassByType @pass ; {-# INLINE runPassByType #-}
+
+wait :: MonadIO m => PassThread -> m Pass.Dynamic.AttrVals
 wait = liftIO . Async.wait . unwrap ; {-# INLINE wait #-}
+
+
+-- gather :: MonadIO m => [PassThread] -> m ()
+-- gather ps = do
+--     vs <- mapM wait ps

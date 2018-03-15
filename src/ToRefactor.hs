@@ -103,7 +103,7 @@ runScheduler = do
 
     Scheduler.enableAttrByType @MyAttr
 
-    Scheduler.wait =<< Scheduler.runPassByType @BasicPass
+    Scheduler.runPassByType @BasicPass
 
     print "test scheduler!"
     pure ()
@@ -151,7 +151,7 @@ passTest_run = do
 
     cfg <- test_pm_run
     xx <- Encoder.run @BasicPass cfg
-    Pass.run passTest xx
+    Pass.eval passTest xx
 
 --
 -- passRunTest :: IO ()
@@ -383,7 +383,7 @@ test_readWriteLayer4 i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run @BasicPass cfg
-    Pass.run (go i) xx
+    Pass.eval (go i) xx
 
     -- State.evalT (go i) (TypeMap.TypeMap (Tuple.T1 (0 :: Int)) :: TypeMap.TypeMap '[Int])
 
@@ -407,7 +407,7 @@ test_createNode i = do
 
     cfg <- test_pm_run
     xx <- Encoder.run cfg
-    Pass.run (go i) xx
+    Pass.eval (go i) xx
 
 
 -- type instance Layout.GetBase Var = Var

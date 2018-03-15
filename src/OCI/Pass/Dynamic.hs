@@ -34,12 +34,13 @@ import OCI.Pass.Definition     (Pass)
 
 data DynamicPass = DynamicPass
     { _desc   :: !Desc
-    , _runner :: !(AttrMap -> IO ())
+    , _runner :: !(AttrVals -> IO AttrVals)
     }
 
 data Desc = Desc
-    { _inputs  :: IODesc
-    , _outputs :: IODesc
+    { _inputs     :: IODesc
+    , _outputs    :: IODesc
+    , _attrLayout :: [Attr.Rep]
     }
 
 data IODesc = IODesc
@@ -48,9 +49,13 @@ data IODesc = IODesc
     }
 
 type    LayerDesc = Set SomeTypeRep
-type    AttrDesc  = Set SomeTypeRep
-newtype AttrMap   = AttrMap (Map Attr.Rep Any)
-    deriving (Default, Mempty, Semigroup)
+-- type    AttrDesc  = [Attr.Rep]
+type    AttrDesc  = Set Attr.Rep
+-- newtype AttrMap   = AttrMap (Map Attr.Rep Any)
+--     deriving (Default, Mempty, Semigroup)
+
+newtype AttrVals = AttrVals [Any]
+
 
 
 -- === Instances === --
@@ -59,7 +64,7 @@ instance Show DynamicPass where
     show _ = "DynamicPass" ; {-# INLINE show #-}
 
 instance Mempty Desc where
-    mempty = Desc mempty mempty ; {-# INLINE mempty #-}
+    mempty = Desc mempty mempty mempty ; {-# INLINE mempty #-}
 
 instance Mempty IODesc where
     mempty = IODesc mempty mempty ; {-# INLINE mempty #-}
@@ -67,14 +72,16 @@ instance Mempty IODesc where
 makeLenses ''DynamicPass
 makeLenses ''Desc
 makeLenses ''IODesc
-makeLenses ''AttrMap
+-- makeLenses ''AttrMap
+makeLenses ''AttrVals
 
 
 -- === API === --
 
 type Compile pass m =
-    ( Encoder.Encoding    pass
-    , Encoder.AttrEncoder pass
+    ( Encoder.Encoding       pass
+    , Encoder.AttrEncoder    pass
+    , Encoder.OutAttrDecoder pass
     , Known pass
     , Throws Encoder.Error m
     )
@@ -82,14 +89,15 @@ type Compile pass m =
 compile :: ∀ pass a m. Compile pass m
         => Pass pass a -> Encoder.State -> m DynamicPass
 compile !pass !cfg = do
-    !staticData <- Encoder.run @pass cfg
+    !s <- Encoder.run @pass cfg
     let !desc         = describe @pass
-        runner !attrs = Pass.run pass
-                     $! Encoder.encodeAttrs (unwrap attrs) staticData
+        runner !attrs = do
+            s' <- Pass.exec pass $! Encoder.encodeAttrs (unwrap attrs) s
+            pure . wrap $ Encoder.decodeOutAttrs s'
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: MonadIO m => DynamicPass -> AttrMap -> m ()
+run :: MonadIO m => DynamicPass -> AttrVals -> m AttrVals
 run pass attrs = liftIO $ (pass ^. runner) attrs ; {-# INLINE run #-}
 
 
@@ -99,15 +107,18 @@ class    Known pass       where describe :: Desc
 instance Known Impossible where describe = impossible
 instance {-# OVERLAPPABLE #-}
     ( comps ~ Pass.Vars pass Pass.Elems
+    , attrs ~ Pass.Vars pass Pass.Attrs
     , DescAttrs Pass.In pass
     , DescAttrs Pass.Out pass
     , DescComps Pass.In pass comps
     , DescComps Pass.Out pass comps
+    , Typeables attrs
     ) => Known pass where
     describe = descAttrs @Pass.In  @pass inputs
              . descAttrs @Pass.Out @pass outputs
              . descComps @Pass.In  @pass @comps inputs
              . descComps @Pass.Out @pass @comps outputs
+             . (attrLayout .~ Attr.reps @attrs)
              $ mempty
     {-# INLINE describe #-}
 
@@ -122,7 +133,7 @@ instance DescAttrs t Impossible where
 instance ( attrs  ~ Pass.Spec pass (t Pass.Attrs)
          , Typeables attrs
          ) => DescAttrs t pass where
-    descAttrs f = (f . attrs) .~ Set.fromList (someTypeReps @attrs)
+    descAttrs f = (f . attrs) .~ Set.fromList (Attr.reps @attrs)
     {-# INLINE descAttrs #-}
 
 

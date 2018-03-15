@@ -208,14 +208,40 @@ appSemiLeft f a = case f of
 
 -- === Attr encoder === --
 
+-- encodeAttrs :: ∀ pass. AttrEncoder pass
+--             => Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
+-- encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
+
+-- type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
+-- type  AttrEncoderTarget pass = Pass.Vars pass Pass.Attrs
+-- class AttrEncoder__     pass (attrs :: [Type]) where
+--     encodeAttrs__ :: Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
+
+-- instance AttrEncoder__ pass '[] where
+--     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
+
+-- instance ( attr ~ Pass.Attr a
+--          , AttrEncoder__ pass as
+--          , PassDataElemEncoder attr attr pass
+--          , Typeable a
+--          ) => AttrEncoder__ pass (a ': as) where
+--     encodeAttrs__ m = encoder . subEncoder where
+--         Just a = Map.lookup (Attr.rep @a) m -- FIXME: unsafe match!
+--         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
+--         subEncoder = encodeAttrs__ @pass @as m
+--     {-# INLINE encodeAttrs__ #-}
+
+
+-- === Attr encoder === --
+
 encodeAttrs :: ∀ pass. AttrEncoder pass
-            => Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
+            => [Any] -> (Pass.State pass -> Pass.State pass)
 encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
 
 type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
 type  AttrEncoderTarget pass = Pass.Vars pass Pass.Attrs
 class AttrEncoder__     pass (attrs :: [Type]) where
-    encodeAttrs__ :: Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
+    encodeAttrs__ :: [Any] -> (Pass.State pass -> Pass.State pass)
 
 instance AttrEncoder__ pass '[] where
     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
@@ -225,11 +251,41 @@ instance ( attr ~ Pass.Attr a
          , PassDataElemEncoder attr attr pass
          , Typeable a
          ) => AttrEncoder__ pass (a ': as) where
-    encodeAttrs__ m = encoder . subEncoder where
-        Just a = Map.lookup (Attr.rep @a) m -- FIXME: unsafe match!
+    encodeAttrs__ []     = impossible
+    encodeAttrs__ (a:as) = encoder . subEncoder where
         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
-        subEncoder = encodeAttrs__ @pass @as m
+        subEncoder = encodeAttrs__ @pass @as as
     {-# INLINE encodeAttrs__ #-}
+
+
+
+-- === Attr encoder === --
+
+decodeAttrs    :: ∀ pass. AttrDecoder    pass => Pass.State pass -> [Any]
+decodeOutAttrs :: ∀ pass. OutAttrDecoder pass => Pass.State pass -> [Any]
+decodeAttrs    = decodeAttrs__ @pass @(AttrDecoderTarget    pass) ; {-# INLINE decodeAttrs #-}
+decodeOutAttrs = decodeAttrs__ @pass @(OutAttrDecoderTarget pass) ; {-# INLINE decodeOutAttrs #-}
+
+type  AttrDecoder          pass = AttrDecoder__ pass (AttrDecoderTarget    pass)
+type  OutAttrDecoder       pass = AttrDecoder__ pass (OutAttrDecoderTarget pass)
+type  AttrDecoderTarget    pass = Pass.Vars pass Pass.Attrs
+type  OutAttrDecoderTarget pass = Pass.Outs pass Pass.Attrs
+class AttrDecoder__        pass (attrs :: [Type]) where
+    decodeAttrs__ :: Pass.State pass -> [Any]
+
+instance AttrDecoder__ pass '[] where
+    decodeAttrs__ _ = mempty ; {-# INLINE decodeAttrs__ #-}
+
+instance ( attr ~ Pass.Attr a
+         , AttrDecoder__ pass as
+         , PassDataElemDecoder attr pass
+         , Typeable a
+         ) => AttrDecoder__ pass (a ': as) where
+    decodeAttrs__ s = a : as where
+        a  = unsafeCoerce $ decodePassDataElem @attr s
+        as = decodeAttrs__ @pass @as s
+    {-# INLINE decodeAttrs__ #-}
+
 
 
 
@@ -250,3 +306,10 @@ instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = imposs
 instance TypeMap.SetElemsFromList els t (Pass.StateLayout pass)
       => PassDataElemsEncoder els t pass where
     encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}
+
+
+type PassDataElemDecoder t pass = TypeMap.ElemGetter t (Pass.StateLayout pass)
+
+decodePassDataElem :: ∀ t pass. PassDataElemDecoder t pass
+                   => Pass.State pass -> t
+decodePassDataElem = TypeMap.getElem @t . unwrap ; {-# INLINE decodePassDataElem #-}

@@ -174,8 +174,11 @@ type DiscoverStateLayout m = StateLayout (DiscoverPass m)
 
 -- === API === --
 
-run :: ∀ pass a. Pass pass a -> State pass -> IO ()
-run !pass !state = void $ State.evalT (coerce pass) state ; {-# INLINE run #-}
+exec :: ∀ pass a. Pass pass a -> State pass -> IO (State pass)
+exec !pass !state = State.execT (coerce pass) state ; {-# INLINE exec #-}
+
+eval :: ∀ pass a. Pass pass a -> State pass -> IO ()
+eval !pass !state = void $ exec pass state ; {-# INLINE eval #-}
 
 
 
