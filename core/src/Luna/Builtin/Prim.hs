@@ -282,7 +282,6 @@ instance ToLunaData a => ToLunaObject [a] where
     toConstructor _    []       = Constructor "Empty" []
     toConstructor imps (a : as) = Constructor "Prepend" [toLunaData imps a, toLunaData imps as]
 
-
 mkPrimFun :: (LunaData -> LunaValue) -> LunaData
 mkPrimFun f = LunaFunction $ (>>= thunkProof f)
 

@@ -45,6 +45,7 @@ import qualified Data.Text.Position               as Pos
 import Luna.Test.IR.Runner
 import Data.TypeDesc
 import System.IO.Unsafe
+import qualified System.IO as IO
 
 import qualified Luna.Pass.Transform.Desugaring.RemoveGrouped  as RemoveGrouped
 import qualified Luna.Pass.UnitCompilation.ModuleProcessing    as ModuleProcessing
@@ -110,7 +111,11 @@ prepareStdlib srcs = mdo
     return (cln, res)
 
 requestModules :: Map Name FilePath -> [QualName] -> CompiledModules -> IO (Either ModuleCompilationError (Map QualName Imports, CompiledModules))
-requestModules libs modules cached = runEitherT $ flip runStateT cached $ requestModules' libs modules
+requestModules libs modules cached = do
+    res <- runEitherT $ flip runStateT cached $ requestModules' libs modules
+    case res of
+        Left err -> liftIO (print err >> IO.hFlush IO.stdout) >> return res
+        _        -> return res
 
 requestModules' :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => Map Name FilePath -> [QualName] -> m (Map QualName Imports)
 requestModules' libs modules = do

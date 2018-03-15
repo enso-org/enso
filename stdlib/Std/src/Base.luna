@@ -17,6 +17,8 @@ native class Int:
     ## Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
 
+    def toInt: self
+
     ## Integer negation. `a.negate == -1 * a`.
     def negate: primIntNegate self
     ## Promote an integer to a real number.
@@ -62,7 +64,7 @@ native class Real:
     def -  that: primRealSubtract self that
     ## Floating point division.
     def /  that: primRealDivide   self that
-    ## Flotaing point exponentiation.
+    ## Floating point exponentiation.
     def ^ that: primRealPow self that
     ## Floating point logarithm with given basis.
     def log base: primRealLog self base
@@ -206,6 +208,11 @@ native class Binary:
     ## Encodes the binary object as an UTF-8 `Text`. Throws an error when the data does not represent a valid text.
     def toText: primBinaryToText self
 
+    ## Returns a prefix consisting of the given number of bytes.
+    def take i: primBinaryTake self i
+    ## Returns a suffix resulting from dropping the given number of bytes at the beginning.
+    def drop i: primBinaryDrop self i
+
     ## Displays a short representation of `Binary` object for use in interactive mode.
     def shortRep: "Binary<" + self.length.toText + ">"
     ## Identity function, included for consistency with other classes.
@@ -322,6 +329,9 @@ class None:
 
     ## Converts a `None` value into `JSON`.
     def toJSON: JSONNull
+
+    def retType: primVoidRetType
+    def fromRetType a: None
 
 ## Class representing pairs of elements of arbitrary type.
 class Tuple2 a b:

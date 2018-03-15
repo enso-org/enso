@@ -1,0 +1,12 @@
+import Std.Base
+import Std.FFI.C.Value
+
+def lookupSymbol dll symbol: primLookupSymbol dll symbol
+
+native class FunPtr:
+    def call retType args:
+        r = primCallFunPtr self retType.retType args
+        retType.fromRetType r
+
+    def shortRep: "FunPtr"
+    def toJSON: "FunPtr"

@@ -8,6 +8,13 @@ library:
         - src
     other-modules: Paths_luna_stdlib
 
+when:
+    - condition: os(windows)
+      then:
+          dependencies: Win32
+      else:
+          dependencies: unix
+
 dependencies:
     - async
     - base
@@ -17,11 +24,14 @@ dependencies:
     - deepseq
     - dependent-state
     - directory
+    - errors
+    - libffi
     - luna-core
     - luna-parser
     - mtl
     - transformers
     - filepath
+    - safe
     - safe-exceptions
     - exceptions
     - typelevel

@@ -15,6 +15,7 @@ import           Luna.Builtin.Data.Module    (Imports)
 import           Luna.Builtin.Data.Function  (Function)
 
 import qualified Luna.Prim.Base as Base
+import qualified Luna.Prim.Foreign as Foreign
 import qualified Luna.Prim.Time as Time
 import qualified Luna.Prim.WebSockets as WebSockets
 import qualified Luna.Prim.System as System
@@ -27,19 +28,22 @@ stdlibImports = [ ["Std", "Base"]
                 , ["Std", "System"]
                 , ["Std", "Time"]
                 , ["Std", "WebSockets"]
+                , ["Std", "Foreign"]
+                , ["Std", "FFI", "C", "Value"]
                 ]
 
 stdlib :: Imports -> IO (IO (), Map Name Function)
 stdlib std = do
     finalizersCtx <- initFinalizersCtx
 
-    baseFuncs <- Base.exports std finalizersCtx
-    timeFuncs <- Time.exports std
-    wsFuncs   <- WebSockets.exports std finalizersCtx
-    sysFuncs  <- System.exports std
-    httpFuncs <- HTTP.exports std
+    baseFuncs    <- Base.exports std finalizersCtx
+    timeFuncs    <- Time.exports std
+    wsFuncs      <- WebSockets.exports std finalizersCtx
+    sysFuncs     <- System.exports std
+    httpFuncs    <- HTTP.exports std
     msgPackFuncs <- MsgPack.exports std
+    foreignFuncs <- Foreign.exports std
 
-    return (finalize finalizersCtx, Map.unions [baseFuncs, timeFuncs, wsFuncs, sysFuncs, httpFuncs, msgPackFuncs])
+    return (finalize finalizersCtx, Map.unions [baseFuncs, timeFuncs, wsFuncs, sysFuncs, httpFuncs, msgPackFuncs, foreignFuncs])
 
 
