@@ -21,6 +21,10 @@ import           Foreign.Ptr                 (Ptr, FunPtr, castPtr,
                                               castPtrToFunPtr, nullPtr,
                                               plusPtr)
 import           Foreign.Storable            (Storable(..))
+import           Luna.Prim.CTypes            (CInt8(..), CInt16(..),
+                                              CInt32(..), CInt64(..),
+                                              CUInt8(..), CUInt16(..),
+                                              CUInt32(..), CUInt64(..))
 import qualified Luna.Prim.DynamicLinker     as Linker
 import           Luna.Builtin.Data.Function  (Function)
 import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
@@ -89,10 +93,42 @@ exports std = do
                                       , primNum      @CInt   std
                                       , primIntegral @CInt   std
                                       ]
+    cint8  <- Map.unions <$> sequence [ primStorable @CInt8  std
+                                      , primNum      @CInt8  std
+                                      , primIntegral @CInt8  std
+                                      ]
+    cint16 <- Map.unions <$> sequence [ primStorable @CInt16 std
+                                      , primNum      @CInt16 std
+                                      , primIntegral @CInt16 std
+                                      ]
+    cint32 <- Map.unions <$> sequence [ primStorable @CInt32 std
+                                      , primNum      @CInt32 std
+                                      , primIntegral @CInt32 std
+                                      ]
+    cint64 <- Map.unions <$> sequence [ primStorable @CInt64 std
+                                      , primNum      @CInt64 std
+                                      , primIntegral @CInt64 std
+                                      ]
     cuint  <- Map.unions <$> sequence [ primStorable @CUInt  std
                                       , primNum      @CUInt  std
                                       , primIntegral @CUInt  std
                                       ]
+    cuint8  <- Map.unions <$> sequence [ primStorable @CUInt8 std
+                                       , primNum      @CUInt8 std
+                                       , primIntegral @CUInt8 std
+                                       ]
+    cuint16 <- Map.unions <$> sequence [ primStorable @CUInt16 std
+                                       , primNum      @CUInt16 std
+                                       , primIntegral @CUInt16 std
+                                       ]
+    cuint32 <- Map.unions <$> sequence [ primStorable @CUInt32 std
+                                       , primNum      @CUInt32 std
+                                       , primIntegral @CUInt32 std
+                                       ]
+    cuint64 <- Map.unions <$> sequence [ primStorable @CUInt64 std
+                                       , primNum      @CUInt64 std
+                                       , primIntegral @CUInt64 std
+                                       ]
     clong  <- Map.unions <$> sequence [ primStorable @CLong  std
                                       , primNum      @CLong  std
                                       , primIntegral @CLong  std
@@ -125,6 +161,8 @@ exports std = do
     return $ Map.unions [ local, ptr
                         , cstring, cchar, cuchar, cwchar
                         , cint, cuint, clong, culong
+                        , cint8, cint16, cint32, cint64
+                        , cuint8, cuint16, cuint32, cuint64
                         , csize, ctime
                         , cdouble, cfloat
                         ]
@@ -414,10 +452,50 @@ instance PrimCFFI CInt where
     retType = LibFFI.retCInt ; {-# INLINE retType #-}
     toArg   = LibFFI.argCInt ; {-# INLINE toArg   #-}
 
+type instance RuntimeRepOf CInt8 = AsNative "CInt8"
+instance PrimCFFI CInt8 where
+    retType = fmap coerce LibFFI.retInt8 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argInt8 . coerce    ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CInt16 = AsNative "CInt16"
+instance PrimCFFI CInt16 where
+    retType = fmap coerce LibFFI.retInt16 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argInt16 . coerce    ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CInt32 = AsNative "CInt32"
+instance PrimCFFI CInt32 where
+    retType = fmap coerce LibFFI.retInt32 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argInt32 . coerce    ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CInt64 = AsNative "CInt64"
+instance PrimCFFI CInt64 where
+    retType = fmap coerce LibFFI.retInt64 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argInt64 . coerce    ; {-# INLINE toArg   #-}
+
 type instance RuntimeRepOf CUInt = AsNative "CUInt"
 instance PrimCFFI CUInt where
     retType = LibFFI.retCUInt ; {-# INLINE retType #-}
     toArg   = LibFFI.argCUInt ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CUInt8 = AsNative "CUInt8"
+instance PrimCFFI CUInt8 where
+    retType = fmap coerce LibFFI.retWord8 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argWord8  . coerce   ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CUInt16 = AsNative "CUInt16"
+instance PrimCFFI CUInt16 where
+    retType = fmap coerce LibFFI.retWord16 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argWord16 . coerce    ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CUInt32 = AsNative "CUInt32"
+instance PrimCFFI CUInt32 where
+    retType = fmap coerce LibFFI.retWord32 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argWord32 . coerce    ; {-# INLINE toArg   #-}
+
+type instance RuntimeRepOf CUInt64 = AsNative "CUInt64"
+instance PrimCFFI CUInt64 where
+    retType = fmap coerce LibFFI.retWord64 ; {-# INLINE retType #-}
+    toArg   = LibFFI.argWord64 . coerce    ; {-# INLINE toArg   #-}
 
 type instance RuntimeRepOf CLong = AsNative "CLong"
 instance PrimCFFI CLong where
