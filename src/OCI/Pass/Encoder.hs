@@ -246,7 +246,7 @@ class AttrEncoder__     pass (attrs :: [Type]) where
 instance AttrEncoder__ pass '[] where
     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
 
-instance ( attr ~ Pass.Attr a
+instance ( attr ~ Pass.AttrValue a
          , AttrEncoder__ pass as
          , PassDataElemEncoder attr attr pass
          , Typeable a
@@ -276,7 +276,7 @@ class AttrDecoder__        pass (attrs :: [Type]) where
 instance AttrDecoder__ pass '[] where
     decodeAttrs__ _ = mempty ; {-# INLINE decodeAttrs__ #-}
 
-instance ( attr ~ Pass.Attr a
+instance ( attr ~ Pass.AttrValue a
          , AttrDecoder__ pass as
          , PassDataElemDecoder attr pass
          , Typeable a

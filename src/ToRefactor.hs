@@ -21,6 +21,7 @@ import qualified Luna.IR.Term                as Term
 import qualified OCI.IR.Layer                as Layer
 import qualified OCI.IR.Layer.Internal       as Layer
 import qualified OCI.IR.Layout               as Layout
+import qualified OCI.Pass.Attr               as Attr
 import qualified OCI.Pass.Cache              as Pass
 import qualified OCI.Pass.Definition         as Pass
 import qualified OCI.Pass.Dynamic            as DynamicPass
@@ -58,8 +59,9 @@ type instance Layer.Layout Terms Type layout = layout *-* layout
 
 
 newtype MyAttr = MyAttr Int deriving (Show)
+type instance Attr.Type MyAttr = Attr.Atomic
 instance Default MyAttr where
-    def = MyAttr 0 ; {-# INLINE def #-}
+    def = MyAttr 7 ; {-# INLINE def #-}
 
 data BasicPass
 type instance Spec BasicPass t = Spec_BasicPass t
@@ -67,7 +69,7 @@ type family   Spec_BasicPass t where
     Spec_BasicPass (In Elems) = '[Terms, Links]
     Spec_BasicPass (In Terms) = '[Model, Type]
     Spec_BasicPass (In Links) = '[Source, Target]
-    Spec_BasicPass (In Attrs) = '[]
+    Spec_BasicPass (In Attrs) = '[MyAttr]
     Spec_BasicPass (Out a)    = Spec_BasicPass (In a)
     Spec_BasicPass t          = '[]
 
@@ -104,6 +106,7 @@ runScheduler = do
     Scheduler.enableAttrByType @MyAttr
 
     Scheduler.runPassByType @BasicPass
+    Scheduler.runPassByType @BasicPass
 
     print "test scheduler!"
     pure ()
@@ -139,19 +142,21 @@ passTest = do
     v3 <- var 9
     l1 <- Link.new v1 v2
 
-    Layer.write @Type v1 l1
+    Layer.put @Type v1 l1
 
-    s <- Layer.read @Source l1
-    m <- Layer.read @Model s
+    s <- Layer.get @Source l1
+    m <- Layer.get @Model s
     print m
+    print "attr:"
+    print =<< Attr.get @MyAttr
     pure ()
 
-passTest_run :: IO ()
-passTest_run = do
+-- passTest_run :: IO ()
+-- passTest_run = do
 
-    cfg <- test_pm_run
-    xx <- Encoder.run @BasicPass cfg
-    Pass.eval passTest xx
+--     cfg <- test_pm_run
+--     xx <- Encoder.run @BasicPass cfg
+--     Pass.eval passTest xx
 
 --
 -- passRunTest :: IO ()
@@ -377,8 +382,8 @@ test_readWriteLayer4 i = do
     let go :: Int -> Pass BasicPass ()
         go 0 = pure ()
         go j = do
-            UniTermVar (Var !x) <- Layer.read @Model ir
-            Layer.write @Model ir (UniTermVar $ Var $! (x+1))
+            UniTermVar (Var !x) <- Layer.get @Model ir
+            Layer.put @Model ir (UniTermVar $ Var $! (x+1))
             go (j - 1)
 
     cfg <- test_pm_run
@@ -413,8 +418,8 @@ test_createNode i = do
 -- type instance Layout.GetBase Var = Var
 tttest :: Term Var -> Pass BasicPass ()
 tttest n = do
-    -- (x :: _) <- Layer.read @Model n
-    -- (x :: _) <- Layer.readCons__ @Terms @Model n
+    -- (x :: _) <- Layer.get @Model n
+    -- (x :: _) <- Layer.getCons__ @Terms @Model n
     pure ()
 -- unsafeReadByteOff  :: CTX => Int -> Component comp layout -> m (LayoutView comp layer layout)
 -- #define CTX ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)

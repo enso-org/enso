@@ -3,7 +3,7 @@
 
 module OCI.Pass.Attr where
 
-import           Prologue hiding (Type, Wrapped)
+import           Prologue hiding (Type, Wrapped, read)
 import qualified Prologue as P
 
 import           Control.Concurrent.MVar (MVar)
@@ -27,20 +27,25 @@ newtype Attr    attr = Attr (Wrapped attr attr)
 makeLenses ''Attr
 
 
+-- === Instances === --
+
+deriving instance Show (Wrapped attr attr) => Show (Attr attr)
+
+
 -- === State management === --
 -- | Attributes live in some state. We can access them or update them.
 --   However, in order to change their value, we do not always have to write
 --   them back to state. If they were implemented using some mutable structure
 --   (like 'MVar'), we only need to read them (their reference) and mutate it.
---   Thus the attribute type determines if the 'put' is needed.
+--   Thus the attribute type determines if the 'write' is needed.
 
-type StateEditor attr m = (StateReader attr m, StateWriter attr m)
+type Editor attr m = (Reader attr m, Writer attr m)
 
-class Monad m => StateReader attr m where
-    get :: m (Attr attr)
+class Monad m => Reader attr m where
+    read :: m (Attr attr)
 
-class Monad m => StateWriter attr m where
-    put :: Attr attr -> m ()
+class Monad m => Writer attr m where
+    write :: Attr attr -> m ()
 
 
 -- === Attr Reader / Writer === --
@@ -48,26 +53,39 @@ class Monad m => StateWriter attr m where
 -- | Attributes can be 'read' and 'write' using these smart functions.
 --   Default instances are the most common use case, when dealing with
 --   immutable wrappers. However, if a mutable wrapper is used, like 'MVar'
---   there is no need to 'put' back the 'MVar' when its value is updated.
+--   there is no need to 'write' back the 'MVar' when its value is updated.
 
-type Reader attr = TypedReader (Type attr) attr
-class Monad m => TypedReader t attr m where
-    read :: Type attr ~ t => m attr
+class Monad m => Getter     attr m where get   :: m attr
+class Monad m => Setter     attr m where put   :: attr -> m ()
+class Monad m => Getter__ t attr m where get__ :: Type attr ~ t => m attr
+class Monad m => Setter__ t attr m where put__ :: Type attr ~ t => attr -> m ()
 
-type Writer attr = TypedWriter (Type attr) attr
-class Monad m => TypedWriter t attr m where
-    write :: Type attr ~ t => attr -> m ()
+instance (Monad m, Getter__ (Type attr) attr m)
+      => Getter attr m where get = get__ ; {-# INLINE get #-}
+
+instance (Monad m, Setter__ (Type attr) attr m)
+      => Setter attr m where put = put__ ; {-# INLINE put #-}
+
+instance {-# OVERLAPPABLE #-} Monad m => Getter Imp  m where get = impossible
+instance {-# OVERLAPPABLE #-} Monad m => Setter Imp  m where put = impossible
+instance {-# OVERLAPPABLE #-} Getter attr ImpM where get = impossible
+instance {-# OVERLAPPABLE #-} Setter attr ImpM where put = impossible
 
 
 -- === Fan in / out === --
 
-class Monad m => FanIn t attr m where
-    fanIn :: t ~ Type attr => NonEmpty (Attr attr) -> m (Attr attr)
+type FanIn attr = FanIn__ (Type attr) attr
+class Monad m => FanIn__ t attr m where
+    fanIn__ :: t ~ Type attr => NonEmpty (Attr attr) -> m (Attr attr)
 
-class Monad m => FanOut t attr m where
+class Monad m => FanOut__ t attr m where
     fanOut     :: t ~ Type attr => m (Attr attr)
     fanOutMany :: t ~ Type attr => Int -> m [Attr attr]
     fanOutMany = flip replicateM fanOut ; {-# INLINE fanOutMany #-}
+
+
+fanIn :: ∀ attr m. FanIn attr m => NonEmpty (Attr attr) -> m (Attr attr)
+fanIn = fanIn__ ; {-# INLINE fanIn #-}
 
 
 
@@ -105,17 +123,17 @@ repOf _ = rep @attr ; {-# INLINE repOf #-}
 data Atomic
 type instance Wrapper Atomic = Identity
 
-instance StateReader attr m => TypedReader Atomic attr m where
-    read = unwrap . unwrap <$> get @attr ; {-# INLINE read #-}
+instance Reader attr m => Getter__ Atomic attr m where
+    get__ = unwrap . unwrap <$> read @attr ; {-# INLINE get__ #-}
 
-instance StateWriter attr m => TypedWriter Atomic attr m where
-    write = put @attr . wrap . wrap ; {-# INLINE write #-}
+instance Writer attr m => Setter__ Atomic attr m where
+    put__ = write @attr . wrap . wrap ; {-# INLINE put__ #-}
 
-instance Monad m => FanIn Atomic attr m where
-    fanIn = \case
+instance Monad m => FanIn__ Atomic attr m where
+    fanIn__ = \case
         a :| [] -> pure a
         _ -> error "Impossible happened: Atomic attribute used in parallel."
-    {-# INLINE fanIn #-}
+    {-# INLINE fanIn__ #-}
 
 
 
@@ -130,16 +148,16 @@ instance Monad m => FanIn Atomic attr m where
 data ParAppend
 type instance Wrapper ParAppend = Identity
 
-instance StateReader attr m => TypedReader ParAppend attr m where
-    read = unwrap . unwrap <$> get @attr ; {-# INLINE read #-}
+instance Reader attr m => Getter__ ParAppend attr m where
+    get__ = unwrap . unwrap <$> read @attr ; {-# INLINE get__ #-}
 
-instance StateWriter attr m => TypedWriter ParAppend attr m where
-    write = put @attr . wrap . wrap ; {-# INLINE write #-}
+instance Writer attr m => Setter__ ParAppend attr m where
+    put__ = write @attr . wrap . wrap ; {-# INLINE put__ #-}
 
 instance (Monad m, Semigroup attr)
-      => FanIn ParAppend attr m where
-    fanIn = pure . wrap . wrap . fold1 . fmap (unwrap . unwrap)
-    {-# INLINE fanIn #-}
+      => FanIn__ ParAppend attr m where
+    fanIn__ = pure . wrap . wrap . fold1 . fmap (unwrap . unwrap)
+    {-# INLINE fanIn__ #-}
 
 
 
@@ -155,20 +173,20 @@ instance (Monad m, Semigroup attr)
 data UncheckedMutable
 type instance Wrapper UncheckedMutable = MVar
 
-instance (MonadIO m, StateReader attr m)
-      => TypedReader UncheckedMutable attr m where
-    read = do
-        mvar <- unwrap <$> get @attr
+instance (MonadIO m, Reader attr m)
+      => Getter__ UncheckedMutable attr m where
+    get__ = do
+        mvar <- unwrap <$> read @attr
         liftIO $ MVar.readMVar mvar
-    {-# INLINE read #-}
+    {-# INLINE get__ #-}
 
-instance (MonadIO m, StateReader attr m)
-      => TypedWriter UncheckedMutable attr m where
-    write a = do
-        mvar <- unwrap <$> get @attr
+instance (MonadIO m, Reader attr m)
+      => Setter__ UncheckedMutable attr m where
+    put__ a = do
+        mvar <- unwrap <$> read @attr
         liftIO $ MVar.putMVar mvar a
-    {-# INLINE write #-}
+    {-# INLINE put__ #-}
 
-instance Monad m => FanIn UncheckedMutable attr m where
-  fanIn (mvar :| _) = pure mvar
-  {-# INLINE fanIn #-}
+instance Monad m => FanIn__ UncheckedMutable attr m where
+  fanIn__ (mvar :| _) = pure mvar
+  {-# INLINE fanIn__ #-}

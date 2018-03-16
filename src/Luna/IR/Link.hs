@@ -28,15 +28,15 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 type Creator m =
     ( Component.Creator Links m
-    , Layer.Writer Links Source m
-    , Layer.Writer Links Target m
+    , Layer.Setter Links Source m
+    , Layer.Setter Links Target m
     )
 
 new :: Creator m => Term src -> Term tgt -> m (Link (src *-* tgt))
 new src tgt = do
     ir <- Component.new
-    Layer.write @Source ir src
-    Layer.write @Target ir tgt
+    Layer.put @Source ir src
+    Layer.put @Target ir tgt
     pure $ ir
 {-# INLINE new #-}
 

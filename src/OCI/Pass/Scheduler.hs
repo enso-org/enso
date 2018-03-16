@@ -23,6 +23,7 @@ type M = P.Monad
 
 data DynAttr = DynAttr
     { _defVal :: Any
+    , _fanIn  :: NonEmpty Any -> IO Any
     }
 makeLenses ''DynAttr
 
@@ -89,10 +90,11 @@ registerPass = do
 
 -- === Attrs === --
 
-registerAttr :: ∀ a m. (Default a, MonadScheduler m, Typeable a) => m ()
+registerAttr :: ∀ a m. (Default a, MonadScheduler m, Typeable a, Attr.FanIn a IO) => m ()
 registerAttr = State.modify_ @State
              $ attrDefs . at (Attr.rep @a) .~ Just da
-    where da = DynAttr . unsafeCoerce $ def @a
+    where da = DynAttr (unsafeCoerce $ def @a)
+             $ unsafeCoerce $ Attr.fanIn @a @IO
 {-# INLINE registerAttr #-}
 
 enableAttr :: MonadScheduler m => Attr.Rep -> m ()
@@ -156,6 +158,21 @@ wait :: MonadIO m => PassThread -> m Pass.Dynamic.AttrVals
 wait = liftIO . Async.wait . unwrap ; {-# INLINE wait #-}
 
 
--- gather :: MonadIO m => [PassThread] -> m ()
--- gather ps = do
---     vs <- mapM wait ps
+gather :: MonadScheduler m => Pass.Rep -> NonEmpty PassThread -> m ()
+gather passRep passThreads = do
+    state          <- State.get @State
+    passesAttrVals <- mapM wait passThreads
+    let Just dynPass = Map.lookup passRep $ state ^. passes -- FIXME[WD]
+        groupedAttrVals = transx $ unwrap <$> passesAttrVals
+        outArgReprs = dynPass ^. (Pass.Dynamic.desc . Pass.Dynamic.outputs . Pass.Dynamic.attrs)
+        Just dynAttrs = sequence $ flip Map.lookup (state ^. attrDefs) <$> outArgReprs -- FIXME [WD]
+        zippers = view fanIn <$> dynAttrs
+    newAttrVals <- liftIO $ zipWithM ($) zippers groupedAttrVals
+    let attrs' = foldl' (flip $ uncurry Map.insert) (state ^. attrs) $ zip outArgReprs newAttrVals
+        state' = state & attrs .~ attrs'
+    State.put @State state'
+    pure ()
+
+
+transx :: ∀ a. NonEmpty [a] -> [NonEmpty a]
+transx l = fmap unsafeConvert $ List.transpose (convert l :: [[a]])

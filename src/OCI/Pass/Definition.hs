@@ -7,15 +7,13 @@ module OCI.Pass.Definition where
 import Prologue
 
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Map.Strict             as Map
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
+import qualified OCI.Pass.Attr               as Attr
 import qualified Type.Data.List              as List
-import qualified Type.Known                  as Type
 
 import Control.Monad.State.Layered (StateT)
-import Data.Map.Strict             (Map)
 import Data.TypeMap.Strict         (TypeMap)
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
@@ -69,12 +67,12 @@ type Vars pass prop
 
 -- === ComponentMemPool === --
 
-newtype Attr             attr       = Attr             Any
+newtype AttrValue        attr       = AttrValue        Any
 newtype ComponentMemPool comp       = ComponentMemPool MemPool
 newtype ComponentSize    comp       = ComponentSize    Int
 newtype LayerInitializer comp       = LayerInitializer SomePtr
 newtype LayerByteOffset  comp layer = LayerByteOffset  Int
-makeLenses ''Attr
+makeLenses ''AttrValue
 makeLenses ''ComponentMemPool
 makeLenses ''ComponentSize
 makeLenses ''LayerByteOffset
@@ -83,7 +81,7 @@ makeLenses ''LayerInitializer
 
 -- === Instances === --
 
-instance Default (Attr             a)   where def = wrap $ unsafeCoerce ()  ; {-# INLINE def #-}
+instance Default (AttrValue        a)   where def = wrap $ unsafeCoerce ()  ; {-# INLINE def #-}
 instance Default (ComponentMemPool c)   where def = wrap MemPool.unsafeNull ; {-# INLINE def #-}
 instance Default (ComponentSize    c)   where def = wrap 0                  ; {-# INLINE def #-}
 instance Default (LayerInitializer c)   where def = wrap Ptr.nullPtr        ; {-# INLINE def #-}
@@ -116,15 +114,17 @@ instance Typeable comp => Show (ComponentMemPool comp) where
 newtype     State       pass = State (StateData pass)
 type        StateData   pass = TypeMap (StateLayout pass)
 type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
-type ComputeStateLayout pass = List.Append (ComponentMemPools pass)
+type ComputeStateLayout pass = List.Append (LayersLayout      pass)
+                             ( List.Append (AttrValues        pass)
+                             ( List.Append (ComponentMemPools pass)
                              ( List.Append (ComponentSizes    pass)
-                             ( List.Append (LayersLayout      pass)
-                                           (LayerInitializers pass) ))
+                                           (LayerInitializers pass) )))
 
+type LayersLayout      pass = MapLayerByteOffset        pass (Vars pass Elems)
 type ComponentMemPools pass = List.Map ComponentMemPool      (Vars pass Elems)
 type ComponentSizes    pass = List.Map ComponentSize         (Vars pass Elems)
 type LayerInitializers pass = List.Map LayerInitializer      (Vars pass Elems)
-type LayersLayout      pass = MapLayerByteOffset        pass (Vars pass Elems)
+type AttrValues        pass = List.Map AttrValue             (Vars pass Attrs)
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
@@ -200,43 +200,61 @@ repOf _ = rep @pass ; {-# INLINE repOf #-}
 -------------------------
 --- === MonadState === --
 -------------------------
-
 -- === Definition === --
 
-type  MonadStateCtx m = MonadIO m
-class MonadStateCtx m => MonadState m where
-    getState :: m (DiscoverState m)
-    putState :: DiscoverState m -> m ()
+type MonadState m = State.MonadState (DiscoverState m) m
 
-instance MonadState (Pass pass) where
-    getState = wrap State.get'   ; {-# INLINE getState #-}
-    putState = wrap . State.put' ; {-# INLINE putState #-}
+instance State.MonadGetter (State pass) (Pass pass) where
+    get = wrap State.get' ; {-# INLINE get #-}
 
-instance {-# OVERLAPPABLE #-}
-         ( MonadStateCtx (t m), MonadState m, MonadTrans t
-         , DiscoverPass (t m) ~ DiscoverPass m
-         ) => MonadState (t m) where
-    getState = lift   getState ; {-# INLINE getState #-}
-    putState = lift . putState ; {-# INLINE putState #-}
+instance State.MonadSetter (State pass) (Pass pass) where
+    put = wrap . State.put' ; {-# INLINE put #-}
 
 
 -- === API === --
 
-class    Monad m => DataGetter a   m     where getData :: m a
+class Monad m => DataGetter a m where getData :: m a
+class Monad m => DataSetter a m where putData :: a -> m ()
+
 instance Monad m => DataGetter Imp m     where getData = impossible
+instance Monad m => DataSetter Imp m     where putData = impossible
 instance            DataGetter a   ImpM1 where getData = impossible
-instance (MonadState m, TypeMap.ElemGetter a (DiscoverStateLayout m))
-      => DataGetter a m where getData = TypeMap.getElem @a . unwrap <$> getState ; {-# INLINE getData #-}
+instance            DataSetter a   ImpM1 where putData = impossible
+
+instance (Monad m, MonadState m, TypeMap.ElemGetter a (DiscoverStateLayout m))
+    => DataGetter a m where
+    getData = TypeMap.getElem @a . unwrap <$> State.get @(DiscoverState m) ; {-# INLINE getData #-}
+
+instance (Monad m, MonadState m, TypeMap.ElemSetter a (DiscoverStateLayout m))
+    => DataSetter a m where
+    putData a = State.modify_ @(DiscoverState m) $ wrapped %~ TypeMap.setElem a ; {-# INLINE putData #-}
 
 type LayerByteOffsetGetter  c l m = DataGetter (LayerByteOffset  c l) m
 type LayerInitializerGetter c   m = DataGetter (LayerInitializer c)   m
 type ComponentMemPoolGetter c   m = DataGetter (ComponentMemPool c)   m
 type ComponentSizeGetter    c   m = DataGetter (ComponentSize    c)   m
+type AttrValueGetter        a   m = DataGetter (AttrValue        a)   m
+type AttrValueSetter        a   m = DataSetter (AttrValue        a)   m
 getLayerByteOffset  :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
 getLayerInitializer :: ∀ c   m. LayerInitializerGetter c   m => m SomePtr
 getComponentMemPool :: ∀ c   m. ComponentMemPoolGetter c   m => m MemPool
 getComponentSize    :: ∀ c   m. ComponentSizeGetter    c   m => m Int
+getAttrValue        :: ∀ a   m. AttrValueGetter        a   m => m Any
+putAttrValue        :: ∀ a   m. AttrValueSetter        a   m => Any -> m ()
 getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE getLayerByteOffset  #-}
 getLayerInitializer = unwrap <$> getData @(LayerInitializer c)   ; {-# INLINE getLayerInitializer #-}
 getComponentMemPool = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool #-}
 getComponentSize    = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize    #-}
+getAttrValue        = unwrap <$> getData @(AttrValue        a)   ; {-# INLINE getAttrValue        #-}
+putAttrValue        = putData @(AttrValue a) . wrap              ; {-# INLINE putAttrValue        #-}
+
+
+-- === Instances === --
+
+instance AttrValueGetter attr (Pass pass)
+      => Attr.Reader attr (Pass pass) where
+    read = unsafeCoerce <$> getAttrValue @attr ; {-# INLINE read #-}
+
+instance AttrValueSetter attr (Pass pass)
+      => Attr.Writer attr (Pass pass) where
+    write = putAttrValue @attr . unsafeCoerce ; {-# INLINE write #-}

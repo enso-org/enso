@@ -49,8 +49,8 @@ data IODesc = IODesc
     }
 
 type    LayerDesc = Set SomeTypeRep
--- type    AttrDesc  = [Attr.Rep]
-type    AttrDesc  = Set Attr.Rep
+type    AttrDesc  = [Attr.Rep]
+-- type    AttrDesc  = Set Attr.Rep
 -- newtype AttrMap   = AttrMap (Map Attr.Rep Any)
 --     deriving (Default, Mempty, Semigroup)
 
@@ -133,7 +133,7 @@ instance DescAttrs t Impossible where
 instance ( attrs  ~ Pass.Spec pass (t Pass.Attrs)
          , Typeables attrs
          ) => DescAttrs t pass where
-    descAttrs f = (f . attrs) .~ Set.fromList (Attr.reps @attrs)
+    descAttrs f = (f . attrs) .~ Attr.reps @attrs
     {-# INLINE descAttrs #-}
 
 

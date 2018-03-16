@@ -85,21 +85,21 @@ byteSize = Storable1.sizeOf' @(Data comp layer) ; {-# INLINE byteSize #-}
 
 
 -----------------------------------
--- === Layer Reader / Writer === --
+-- === Layer Getter / Setter === --
 -----------------------------------
 
 -- === Definition === --
 
 type Editor comp layer m =
-   ( Reader comp layer m
-   , Writer comp layer m
+   ( Getter comp layer m
+   , Setter comp layer m
    )
 
-class Reader comp layer m where
-    read__  :: ∀ layout. Component comp layout -> m (Data' comp layer layout)
+class Getter comp layer m where
+    get__  :: ∀ layout. Component comp layout -> m (Data' comp layer layout)
 
-class Writer comp layer m where
-    write__ :: ∀ layout. Component comp layout -> Data' comp layer layout -> m ()
+class Setter comp layer m where
+    put__ :: ∀ layout. Component comp layout -> Data' comp layer layout -> m ()
 
 
 -- === API === --
@@ -124,13 +124,13 @@ unsafeWriteByteOff ::
     CTX => Int -> Component comp layout -> (Data' comp layer layout) -> m ()
 unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
-read :: ∀ layer comp layout m. Reader comp layer m
-     => Component comp layout -> m (Data' comp layer layout)
-read = read__ @comp @layer @m ; {-# INLINE read #-}
+get :: ∀ layer comp layout m. Getter comp layer m
+    => Component comp layout -> m (Data' comp layer layout)
+get = get__ @comp @layer @m ; {-# INLINE get #-}
 
-write :: ∀ layer comp layout m. Writer comp layer m
-      => Component comp layout -> Data' comp layer layout -> m ()
-write = write__ @comp @layer @m ; {-# INLINE write #-}
+put :: ∀ layer comp layout m. Setter comp layer m
+    => Component comp layout -> Data' comp layer layout -> m ()
+put = put__ @comp @layer @m ; {-# INLINE put #-}
 
 #undef CTX
 
@@ -140,37 +140,37 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 instance {-# OVERLAPPABLE #-}
     ( StorableData comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    ) => Reader comp layer (Pass pass) where
-    read__ !comp = do
+    ) => Getter comp layer (Pass pass) where
+    get__ !comp = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeReadByteOff @layer off comp
-    {-# INLINE read__ #-}
+    {-# INLINE get__ #-}
 
 instance {-# OVERLAPPABLE #-}
     ( StorableData comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    ) => Writer comp layer (Pass pass) where
-    write__ !comp !d = do
+    ) => Setter comp layer (Pass pass) where
+    put__ !comp !d = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeWriteByteOff @layer off comp d
-    {-# INLINE write__ #-}
+    {-# INLINE put__ #-}
 
 
 
 -- === Early resolution block === --
 
-instance Reader Imp  layer m    where read__ _ = impossible
-instance Reader comp Imp   m    where read__ _ = impossible
-instance Reader comp layer ImpM1 where read__ _ = impossible
+instance Getter Imp  layer m    where get__ _ = impossible
+instance Getter comp Imp   m    where get__ _ = impossible
+instance Getter comp layer ImpM1 where get__ _ = impossible
 
-instance Writer Imp  layer m    where write__ _ _ = impossible
-instance Writer comp Imp   m    where write__ _ _ = impossible
-instance Writer comp layer ImpM1 where write__ _ _ = impossible
+instance Setter Imp  layer m    where put__ _ _ = impossible
+instance Setter comp Imp   m    where put__ _ _ = impossible
+instance Setter comp layer ImpM1 where put__ _ _ = impossible
 
 
 
 -- ----------------------------------------
--- -- === Layer Cons Reader / Writer === --
+-- -- === Layer Cons Getter / Setter === --
 -- ----------------------------------------
 --
 -- -- === Ctx === --
@@ -190,16 +190,16 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- -- === Definition === --
 --
 -- type ConsEditor comp layer m =
---    ( ConsReader comp layer m
---    , ConsWriter comp layer m
+--    ( ConsGetter comp layer m
+--    , ConsSetter comp layer m
 --    )
 --
--- class ConsReader comp layer m where
---     readCons__ :: ∀ layout baseLayout cons out. CTXBody
+-- class ConsGetter comp layer m where
+--     getCons__ :: ∀ layout baseLayout cons out. CTXBody
 --                => Component comp layout -> m out
 --
--- class ConsWriter comp layer m where
---     writeCons__ :: ∀ layout baseLayout cons out. CTXBody
+-- class ConsSetter comp layer m where
+--     setCons__ :: ∀ layout baseLayout cons out. CTXBody
 --                 => Component comp layout -> out -> m ()
 --
 --
@@ -220,10 +220,10 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- unsafeConsReadByteOff  !d = unsafeConsPeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeConsReadByteOff  #-}
 -- unsafeConsWriteByteOff !d = unsafeConsPokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeConsWriteByteOff #-}
 --
--- readCons  :: CTX => ConsReader comp layer m => Component comp layout -> m out
--- writeCons :: CTX => ConsWriter comp layer m => Component comp layout -> out -> m ()
--- readCons  = readCons__  @comp @layer ; {-# INLINE readCons  #-}
--- writeCons = writeCons__ @comp @layer ; {-# INLINE writeCons #-}
+-- getCons  :: CTX => ConsGetter comp layer m => Component comp layout -> m out
+-- setCons :: CTX => ConsSetter comp layer m => Component comp layout -> out -> m ()
+-- getCons  = getCons__  @comp @layer ; {-# INLINE getCons  #-}
+-- setCons = setCons__ @comp @layer ; {-# INLINE setCons #-}
 --
 -- #undef CTX
 --
@@ -231,26 +231,26 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- -- === Instances === --
 --
 -- instance {-# OVERLAPPABLE #-} Pass.LayerByteOffsetGetter comp layer m
---     => ConsReader comp layer m where
---     readCons__ !comp = do
+--     => ConsGetter comp layer m where
+--     getCons__ !comp = do
 --         !off <- Pass.getLayerByteOffset @comp @layer
 --         unsafeConsReadByteOff @layer off comp
---     {-# INLINE readCons__ #-}
+--     {-# INLINE getCons__ #-}
 --
 -- instance {-# OVERLAPPABLE #-} Pass.LayerByteOffsetGetter comp layer m
---     => ConsWriter comp layer m where
---     writeCons__ !comp !d = do
+--     => ConsSetter comp layer m where
+--     setCons__ !comp !d = do
 --         !off <- Pass.getLayerByteOffset @comp @layer
 --         unsafeConsWriteByteOff @layer off comp d
---     {-# INLINE writeCons__ #-}
+--     {-# INLINE setCons__ #-}
 --
 --
 -- -- === Early resolution block === --
 --
--- instance ConsReader Imp  layer m    where readCons__ _ = impossible
--- instance ConsReader comp Imp   m    where readCons__ _ = impossible
--- instance ConsReader comp layer ImpM where readCons__ _ = impossible
+-- instance ConsGetter Imp  layer m    where getCons__ _ = impossible
+-- instance ConsGetter comp Imp   m    where getCons__ _ = impossible
+-- instance ConsGetter comp layer ImpM where getCons__ _ = impossible
 --
--- instance ConsWriter Imp  layer m    where writeCons__ _ _ = impossible
--- instance ConsWriter comp Imp   m    where writeCons__ _ _ = impossible
--- instance ConsWriter comp layer ImpM where writeCons__ _ _ = impossible
+-- instance ConsSetter Imp  layer m    where setCons__ _ _ = impossible
+-- instance ConsSetter comp Imp   m    where setCons__ _ _ = impossible
+-- instance ConsSetter comp layer ImpM where setCons__ _ _ = impossible

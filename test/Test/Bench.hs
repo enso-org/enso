@@ -56,7 +56,7 @@ main = do
     Basic.test
     TS3.test
     print "---"
-    Basic.passTest_run
+    -- Basic.passTest_run
 
     Basic.runCompiler
     -- Basic.passRunTest
