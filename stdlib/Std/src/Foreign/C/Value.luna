@@ -666,3 +666,55 @@ class Pointer a:
     def free: self.ptr.free
 
 def nullPtr: primNullPtr
+
+native class ForeignPtr a:
+    def toCArg: primForeignPtrToCArg self
+    def cast: primForeignPtrCast self
+    def == that: primForeignPtrEq self that
+    def isNull: self == primNullForeignPtr
+    def moveBytes i: primForeignPtrPlus self i
+    def free: primForeignPtrFree self
+    def _ptr: primForeignPtrToPtr self
+
+class ManagedPointer a:
+    ManagedPointer    a
+    ManagedPointerVal a (ForeignPtr a)
+
+    def typeRep: case self of
+        ManagedPointer a: a
+        ManagedPointerVal a _: a
+
+    def ptr: case self of
+        ManagedPointerVal _ p: p._ptr
+
+    def fromPointer finalizer p:
+        ptr = primNewForeignPtr finalizer p.ptr
+        ManagedPointerVal p.typeRep ptr
+
+    def toCArg: self.ptr.toCArg
+
+    def moveBytes i:
+        nptr = self.ptr.moveBytes i
+        tr = self.typeRep
+        ManagedPointerVal tr nptr
+
+    def moveElems i:
+        elemSize = self . typeRep . byteSize
+        self . moveBytes (i * elemSize)
+
+    def read: self . typeRep . readPtr self.ptr
+    def write v: v . writePtr self.ptr
+
+    def isNull: self.ptr.isNull
+    def null:
+        t = self.typeRep
+        ManagedPointerVal t primNullForeignPtr
+
+    def malloc: self . mallocElems 1
+
+    def mallocElems i:
+        tp  = self.typeRep
+        ptr = primMallocForeignPtrBytes (tp.byteSize * i)
+        ManagedPointerVal tp ptr
+
+    def free: self.ptr.free
