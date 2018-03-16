@@ -49,7 +49,7 @@ type TagConsInvariant tag cons =
 
 type Creator t m =
     ( Component.Creator Terms     m
-    , Layer.Setter Terms Model    m
+    , Layer.Writer Terms Model    m
     , Layer.DataCons1 Terms Model (TagToCons t)
     )
 
@@ -59,7 +59,7 @@ uncheckedNewM cons = do
     ir <- Component.new
     let ir' = cast ir
     term <- cons ir'
-    Layer.put @Model ir (Layer.consData1 @Terms @Model term)
+    Layer.write @Model ir (Layer.consData1 @Terms @Model term)
     pure ir'
 {-# INLINE uncheckedNewM #-}
 

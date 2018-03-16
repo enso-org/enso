@@ -58,7 +58,7 @@ type instance Layer.Data   Terms Type = Link
 type instance Layer.Layout Terms Type layout = layout *-* layout
 
 
-newtype MyAttr = MyAttr Int deriving (Show)
+newtype MyAttr = MyAttr Int deriving (Num, Show)
 type instance Attr.Type MyAttr = Attr.Atomic
 instance Default MyAttr where
     def = MyAttr 7 ; {-# INLINE def #-}
@@ -97,7 +97,7 @@ runRegistry = do
     Registry.registerPrimLayer @Links @Target
 
 runScheduler ::
-    (MonadIO m, Scheduler.Monad m, Throws Pass.Encoder.Error m)
+    (MonadIO m, Scheduler.Monad m, Throws '[Pass.Encoder.Error, Scheduler.Error] m)
              => m ()
 runScheduler = do
     Scheduler.registerAttr @MyAttr
@@ -111,7 +111,7 @@ runScheduler = do
     print "test scheduler!"
     pure ()
 
-runCompiler :: (MonadIO m, Throws '[Registry.Error, Pass.Encoder.Error] m)
+runCompiler :: (MonadIO m, Throws '[Registry.Error, Pass.Encoder.Error, Scheduler.Error] m)
             => m ()
 runCompiler = runWithManualScheduling runRegistry runScheduler
 
@@ -142,13 +142,14 @@ passTest = do
     v3 <- var 9
     l1 <- Link.new v1 v2
 
-    Layer.put @Type v1 l1
+    Layer.write @Type v1 l1
 
-    s <- Layer.get @Source l1
-    m <- Layer.get @Model s
+    s <- Layer.read @Source l1
+    m <- Layer.read @Model s
     print m
-    print "attr:"
-    print =<< Attr.get @MyAttr
+    a <- Attr.get @MyAttr
+    print $ "attr: " <> show a
+    Attr.put (a + 1)
     pure ()
 
 -- passTest_run :: IO ()
@@ -382,8 +383,8 @@ test_readWriteLayer4 i = do
     let go :: Int -> Pass BasicPass ()
         go 0 = pure ()
         go j = do
-            UniTermVar (Var !x) <- Layer.get @Model ir
-            Layer.put @Model ir (UniTermVar $ Var $! (x+1))
+            UniTermVar (Var !x) <- Layer.read @Model ir
+            Layer.write @Model ir (UniTermVar $ Var $! (x+1))
             go (j - 1)
 
     cfg <- test_pm_run
@@ -418,8 +419,8 @@ test_createNode i = do
 -- type instance Layout.GetBase Var = Var
 tttest :: Term Var -> Pass BasicPass ()
 tttest n = do
-    -- (x :: _) <- Layer.get @Model n
-    -- (x :: _) <- Layer.getCons__ @Terms @Model n
+    -- (x :: _) <- Layer.read @Model n
+    -- (x :: _) <- Layer.readCons__ @Terms @Model n
     pure ()
 -- unsafeReadByteOff  :: CTX => Int -> Component comp layout -> m (LayoutView comp layer layout)
 -- #define CTX ∀ layer comp layout m. (StorableLayer comp layer layout, MonadIO m)

@@ -85,21 +85,21 @@ byteSize = Storable1.sizeOf' @(Data comp layer) ; {-# INLINE byteSize #-}
 
 
 -----------------------------------
--- === Layer Getter / Setter === --
+-- === Layer Reader / Writer === --
 -----------------------------------
 
 -- === Definition === --
 
 type Editor comp layer m =
-   ( Getter comp layer m
-   , Setter comp layer m
+   ( Reader comp layer m
+   , Writer comp layer m
    )
 
-class Getter comp layer m where
-    get__  :: ∀ layout. Component comp layout -> m (Data' comp layer layout)
+class Reader comp layer m where
+    read__  :: ∀ layout. Component comp layout -> m (Data' comp layer layout)
 
-class Setter comp layer m where
-    put__ :: ∀ layout. Component comp layout -> Data' comp layer layout -> m ()
+class Writer comp layer m where
+    write__ :: ∀ layout. Component comp layout -> Data' comp layer layout -> m ()
 
 
 -- === API === --
@@ -124,13 +124,13 @@ unsafeWriteByteOff ::
     CTX => Int -> Component comp layout -> (Data' comp layer layout) -> m ()
 unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
-get :: ∀ layer comp layout m. Getter comp layer m
-    => Component comp layout -> m (Data' comp layer layout)
-get = get__ @comp @layer @m ; {-# INLINE get #-}
+read :: ∀ layer comp layout m. Reader comp layer m
+     => Component comp layout -> m (Data' comp layer layout)
+read = read__ @comp @layer @m ; {-# INLINE read #-}
 
-put :: ∀ layer comp layout m. Setter comp layer m
-    => Component comp layout -> Data' comp layer layout -> m ()
-put = put__ @comp @layer @m ; {-# INLINE put #-}
+write :: ∀ layer comp layout m. Writer comp layer m
+      => Component comp layout -> Data' comp layer layout -> m ()
+write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 #undef CTX
 
@@ -140,37 +140,37 @@ put = put__ @comp @layer @m ; {-# INLINE put #-}
 instance {-# OVERLAPPABLE #-}
     ( StorableData comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    ) => Getter comp layer (Pass pass) where
-    get__ !comp = do
+    ) => Reader comp layer (Pass pass) where
+    read__ !comp = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeReadByteOff @layer off comp
-    {-# INLINE get__ #-}
+    {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
     ( StorableData comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    ) => Setter comp layer (Pass pass) where
-    put__ !comp !d = do
+    ) => Writer comp layer (Pass pass) where
+    write__ !comp !d = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeWriteByteOff @layer off comp d
-    {-# INLINE put__ #-}
+    {-# INLINE write__ #-}
 
 
 
 -- === Early resolution block === --
 
-instance Getter Imp  layer m    where get__ _ = impossible
-instance Getter comp Imp   m    where get__ _ = impossible
-instance Getter comp layer ImpM1 where get__ _ = impossible
+instance Reader Imp  layer m     where read__ _ = impossible
+instance Reader comp Imp   m     where read__ _ = impossible
+instance Reader comp layer ImpM1 where read__ _ = impossible
 
-instance Setter Imp  layer m    where put__ _ _ = impossible
-instance Setter comp Imp   m    where put__ _ _ = impossible
-instance Setter comp layer ImpM1 where put__ _ _ = impossible
+instance Writer Imp  layer m     where write__ _ _ = impossible
+instance Writer comp Imp   m     where write__ _ _ = impossible
+instance Writer comp layer ImpM1 where write__ _ _ = impossible
 
 
 
 -- ----------------------------------------
--- -- === Layer Cons Getter / Setter === --
+-- -- === Layer Cons Reader / Writer === --
 -- ----------------------------------------
 --
 -- -- === Ctx === --

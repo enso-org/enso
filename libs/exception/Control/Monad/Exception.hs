@@ -66,3 +66,15 @@ instance (Monad m, Exception e)
 
 instance Exception e => MonadException e IO where
     throw = IO.throw ; {-# INLINE throw #-}
+
+
+
+-------------------
+-- === Utils === --
+-------------------
+
+fromJust :: Throws e m => e -> Maybe a -> m a
+fromJust e = \case
+    Nothing -> throw e
+    Just a  -> return a
+{-# INLINE fromJust #-}
