@@ -20,7 +20,19 @@ import OCI.IR.Name.Qualified
 import Luna.IR.Term.Core     as X
 import Luna.IR.Term.Function as X
 import Luna.IR.Term.World    as X
-import Luna.IR.Term.Unit as X (UnitProxy, UnresolvedImport, UnresolvedImportSrc, UnresolvedImportTgt, UnresolvedImportHub, ImportSource, Unit)
+import Luna.IR.Term.Unit as X
+    ( UnitProxy
+    , UnresolvedImport
+    , UnresolvedImportSrc
+    , UnresolvedImportTgt
+    , UnresolvedImportHub
+    , ImportSource
+    , ForeignSymbolImport
+    , ForeignLocationImportList
+    , ForeignImportList
+    , ForeignImportSafety
+    , ForeignImportType
+    , Unit)
 import qualified Luna.IR.Term.Unit as Import
 import OCI.IR.Term  as X
 
@@ -369,6 +381,48 @@ impHub imps = mdo
     limps <- mapM (flip link t . unsafeRelayout) imps
     return t
 
+foreignImpSafety' :: (ExprCons m ForeignImportSafety)
+                  => ForeignImportType -> m SomeExpr
+foreignImpSafety  :: (ExprCons m ForeignImportSafety)
+                  => ForeignImportType -> m (Expr ForeignImportSafety)
+foreignImpSafety' = generalize .: foreignImpSafety
+foreignImpSafety impType = expr $ Term.uncheckedForeignImportSafety impType
+
+foreignSymbolImp' :: (ExprCons m ForeignSymbolImport)
+                  => Expr a -> Expr a -> Name -> Expr a -> m SomeExpr
+foreignSymbolImp  :: (ExprCons m ForeignSymbolImport)
+                  => Expr a -> Expr a -> Name -> Expr a
+                  -> m (Expr ForeignSymbolImport)
+foreignSymbolImp' = generalize .::. foreignSymbolImp
+foreignSymbolImp safety foreignName localName importType = mdo
+    newTerm     <- expr $
+        Term.uncheckedForeignSymbolImport safetyExpr forNameExpr localName typeExpr
+    safetyExpr  <- link (unsafeRelayout safety) newTerm
+    forNameExpr <- link (unsafeRelayout foreignName) newTerm
+    typeExpr    <- link (unsafeRelayout importType) newTerm
+    return newTerm
+
+foreignLocationImpList' :: (ExprCons m ForeignLocationImportList)
+                        => Expr a -> [Expr a] -> m SomeExpr
+foreignLocationImpList  :: (ExprCons m ForeignLocationImportList)
+                        => Expr a -> [Expr a]
+                        -> m (Expr ForeignLocationImportList)
+foreignLocationImpList' = generalize .:. foreignLocationImpList
+foreignLocationImpList location imports = mdo
+    newTerm <- expr $ Term.uncheckedForeignLocationImportList locExpr impExpr
+    locExpr <- link (unsafeRelayout location) newTerm
+    impExpr <- mapM (flip link newTerm . unsafeRelayout) imports
+    return newTerm
+
+foreignImpList' :: (ExprCons m ForeignImportList)
+                => Name -> [Expr a] -> m SomeExpr
+foreignImpList  :: (ExprCons m ForeignImportList)
+                => Name -> [Expr a] -> m (Expr ForeignImportList)
+foreignImpList' = generalize .:. foreignImpList
+foreignImpList lang imports = mdo
+    newTerm   <- expr $ Term.uncheckedForeignImportList lang impLayout
+    impLayout <- mapM (flip link newTerm . unsafeRelayout) imports
+    return newTerm
 
 invalid' :: ExprCons' m Invalid => Text32 -> m SomeExpr
 invalid  :: ExprCons' m Invalid => Text32 -> m (Expr Invalid)

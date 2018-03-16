@@ -12,4 +12,4 @@ import Type.Container (Every)
 import OCI.IR.Term
 import Type.List
 
-type instance Every TermType = CoreTerms <> '[Cls, Rec, World, Unit, UnitProxy, UnresolvedImport, UnresolvedImportSrc, UnresolvedImportHub, Import, ImportHub, ASGFunction, FunctionSig, RootedFunction, ASGRootedFunction]
+type instance Every TermType = CoreTerms <> '[Cls, Rec, World, Unit, UnitProxy, UnresolvedImport, UnresolvedImportSrc, UnresolvedImportHub, Import, ImportHub, ForeignImportList, ForeignLocationImportList, ForeignSymbolImport, ForeignImportSafety, ASGFunction, FunctionSig, RootedFunction, ASGRootedFunction]

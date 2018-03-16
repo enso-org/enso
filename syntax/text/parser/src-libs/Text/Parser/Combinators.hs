@@ -17,6 +17,9 @@ option x p = p <|> pure x
 option_ :: Alternative m => m a -> m ()
 option_ = option () . void
 
+optionMaybe :: Alternative m => m a -> m (Maybe a)
+optionMaybe = option Nothing . fmap Just
+
 optionSkip :: Alternative m => a -> m b -> m a
 optionSkip s p = option s (s <$ p)
 

@@ -36,6 +36,8 @@ import Control.Monad.State.Dependent
 import Luna.Syntax.Text.Parser.Marker (MarkedExprMap)
 import Luna.Syntax.Text.Source
 
+import qualified Luna.Syntax.Text.Lexer as Lexer
+import Data.Text32
 
 --
 
@@ -320,7 +322,7 @@ spec = do
                                                                                      </> "    False"
                                                                                         ) [(16,4),(5,5),(0,30),(0,30),(0,30)]
 
-            it "implicite constructor, parametrized class"  $ shouldParseItself'' unit' ("class Vector a:"
+            it "implicit constructor, parametrized class"   $ shouldParseItself'' unit' ("class Vector a:"
                                                                                      </> "    x y z :: a"
                                                                                         ) [(13,1),(9,1),(6,10),(0,30),(0,30),(0,30)]
 
@@ -373,6 +375,53 @@ spec = do
         describe "metadata" $ do
             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]
 
+        describe "foreign symbol declaration" $ do
+            it "symbol checking dot spacing"             $ shouldParseAs'     foreignSymbolImport
+                                                                              "\"alloc_tensor\" allocTensor :: C.Int64 -> C.Ptr"
+                                                                              "\"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                              [(0,14),(0,1),(0,7),(1,2),(0,10),(0,1),(1,5),(16,16),(0,46)]
+            it "symbol with unspecified safety"          $ shouldParseItself' foreignSymbolImport "\"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,49)]
+            it "symbol with variable for symbol name"    $ shouldParseItself' foreignSymbolImport "myVar myFunc :: C . Ptr" [(0,5),(0,1),(11,7),(0,23)]
+            it "symbol with safety and variable name"    $ shouldParseItself' foreignSymbolImport "safe myVar myFunc :: C . Ptr" [(0,4),(1,5),(0,1),(11,7),(0,28)]
+            it "safe symbol"                             $ shouldParseItself' foreignSymbolImport "safe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,4),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,54)]
+            it "unsafe symbol"                           $ shouldParseItself' foreignSymbolImport "unsafe \"allocTensor\" allocTensor :: C . Int64 -> C . Ptr" [(0,6),(1,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(0,56)]
+            it "symbol with bad safety specification"    $ shouldParseAs'     foreignSymbolImport
+                                                                              "foo myVar myFunc :: C . Ptr"
+                                                                              "Invalid \"Invalid safety specification.\""
+                                                                              [(0,23)]
+
+        -- FIXME [Ara, WD] Work out why the pretty printer is putting an extra newline at the end of these.
+        describe "C-FFI Syntax" $ do
+            it "single object file, single import"       $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64\n"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,9),(16,22),(10,52),(22,73),(0,95),(0,95)]
+            it "variable for object file"                $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    tensorObjectName:"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64\n"
+                                                                                    ) [(0,16),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,9),(16,22),(10,52),(22,78),(0,100),(0,100)]
+            it "import something other than C"           $ shouldParseItself' unit' ("foreign import Js:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Int64\n"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,9),(16,22),(10,52),(23,73),(0,96),(0,96)]
+            it "single object file, multiple symbols"    $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "        \"free_tensor\" freeTensor :: C . Int64 -> C . Ptr\n"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(10,50),(0,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(15,20),(9,48),(22,128),(0,150),(0,150)]
+            it "multiple object files, single symbol"    $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "    \"foo.dylib\":"
+                                                                                    </> "        \"init_foo\" initFoo :: C . UInt32 -> C . UInt32 -> C . Ptr\n"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(10,50),(22,71),(0,11),(0,10),(0,1),(0,10),(1,2),(0,13),(0,1),(1,10),(0,24),(1,2),(0,27),(0,1),(1,7),(12,35),(10,57),(5,78),(0,176),(0,176)]
+            it "multiple object files, multiple symbols" $ shouldParseItself' unit' ("foreign import C:"
+                                                                                    </> "    \"tensor.so\":"
+                                                                                    </> "        \"alloc_tensor\" allocTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "        \"free_tensor\" freeTensor :: C . Int64 -> C . Ptr"
+                                                                                    </> "    \"foo.dylib\":"
+                                                                                    </> "        \"init_foo\" initFoo :: C . UInt32 -> C . UInt32 -> C . Ptr\n"
+                                                                                    ) [(0,11),(0,14),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(16,20),(10,50),(0,13),(0,1),(0,9),(1,2),(0,12),(0,1),(1,7),(15,20),(9,48),(22,128),(0,11),(0,10),(0,1),(0,10),(1,2),(0,13),(0,1),(1,10),(0,24),(1,2),(0,27),(0,1),(1,7),(12,35),(10,57),(5,78),(0,233),(0,233)]
 
 -- foo . pos . x += 1
 --           . y += 2

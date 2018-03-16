@@ -1,0 +1,668 @@
+class CString:
+    CString
+    CStringVal (Ptr CChar)
+
+    def ptr: case self of
+        CStringVal ptr: ptr
+
+    def toText: primCStringToText self.ptr
+
+    def fromText t:
+        ptr = primCStringFromText t
+        CStringVal ptr
+
+    def retType: Pointer CChar . retType
+    def fromRetType: CStringVal
+
+    def toCArg: case self of
+        CStringVal c: c.toCArg
+
+    def byteSize: Pointer CChar . byteSize
+
+    def readPtr p:
+        cptr = primPtrReadPtr p.cast
+        CStringVal cptr
+
+    def writePtr p: primPtrWritePtr p.cast self.ptr
+
+    def isNull: primPtrEq self.ptr primNullPtr
+
+    def null: CStringVal primNullPtr
+
+    def free: self.ptr.free
+
+class NullTerminatedArray a:
+    NullTerminatedArray a
+    NullTerminatedArrayVal (Pointer a)
+
+    def typeRep: case self of
+        NullTerminatedArray a: a
+        NullTerminatedArrayVal p: p.typeRep
+
+    def ptr: case self of
+        NullTerminatedArrayVal p: p
+        NullTerminatedArray a: Pointer a
+
+    def retType: self.ptr.retType
+    def fromRetType v: NullTerminatedArrayVal (self.ptr.fromRetType v)
+
+    def toCArg: self . ptr . toCArg
+
+    def toList:
+        fst = self.ptr.read
+        case fst.isNull of
+            True: []
+            False:
+                rest = NullTerminatedArrayVal (self.ptr.moveElems 1) . toList
+                rest . prepend fst
+
+    def fromList l:
+        len = l.length
+        ptr = Pointer self.typeRep . mallocElems (len + 1)
+        ptr . moveElems len . write self.typeRep.null
+        0 . upto len . zip l . each (index, elem):
+            ptr . moveElems index . write elem
+        NullTerminatedArrayVal ptr
+
+    def free: self.ptr.free
+
+
+
+native class CChar:
+    CChar
+
+    def retType: primCCharRetType
+    def fromRetType: id
+    def toCArg: primCCharToArg self
+    def byteSize: primCCharByteSize
+    def writePtr p: primCCharWritePtr p self
+    def readPtr p: primCCharReadPtr p
+
+    def toText: primCCharToText self
+
+    def == that: primCCharEq self that
+    def <  that: primCCharLt self that
+    def >  that: primCCharGt self that
+
+    def + that: primCCharPlus self that
+    def * that: primCCharMul  self that
+    def - that: primCCharSub  self that
+    def / that: primCCharDiv  self that
+    def % that: primCCharMod  self that
+
+    def negate: primCCharNegate self
+    def abs:    primCCharAbs    self
+
+    def toInt: primCCharToInt self
+    def fromInt i: primCCharFromInt i
+
+native class CUChar:
+    CUChar
+
+    def retType: primCUCharRetType
+    def fromRetType: id
+    def toCArg: primCUCharToArg self
+    def byteSize: primCUCharByteSize
+    def writePtr p: primCUCharWritePtr p self
+    def readPtr p: primCUCharReadPtr p
+
+    def toText: primCUCharToText self
+
+    def == that: primCUCharEq self that
+    def <  that: primCUCharLt self that
+    def >  that: primCUCharGt self that
+
+    def + that: primCUCharPlus self that
+    def * that: primCUCharMul  self that
+    def - that: primCUCharSub  self that
+    def / that: primCUCharDiv  self that
+    def % that: primCUCharMod  self that
+
+    def negate: primCUCharNegate self
+    def abs:    primCUCharAbs    self
+
+    def toInt: primCUCharToInt self
+    def fromInt i: primCUCharFromInt i
+
+
+native class CWChar:
+    CWChar
+
+    def retType: primCWCharRetType
+    def fromRetType: id
+    def toCArg: primCWCharToArg self
+    def byteSize: primCWCharByteSize
+    def writePtr p: primCWCharWritePtr p self
+    def readPtr p: primCWCharReadPtr p
+
+    def toText: primCWCharToText self
+
+    def == that: primCWCharEq self that
+    def <  that: primCWCharLt self that
+    def >  that: primCWCharGt self that
+
+    def + that: primCWCharPlus self that
+    def * that: primCWCharMul  self that
+    def - that: primCWCharSub  self that
+    def / that: primCWCharDiv  self that
+    def % that: primCWCharMod  self that
+
+    def negate: primCWCharNegate self
+    def abs:    primCWCharAbs    self
+
+    def toInt: primCWCharToInt self
+    def fromInt i: primCWCharFromInt i
+
+native class CInt:
+    CInt
+
+    def retType: primCIntRetType
+    def fromRetType: id
+    def toCArg: primCIntToArg self
+    def byteSize: primCIntByteSize
+    def writePtr p: primCIntWritePtr p self
+    def readPtr p: primCIntReadPtr p
+
+    def toText: primCIntToText self
+
+    def == that: primCIntEq self that
+    def <  that: primCIntLt self that
+    def >  that: primCIntGt self that
+
+    def + that: primCIntPlus self that
+    def * that: primCIntMul  self that
+    def - that: primCIntSub  self that
+    def / that: primCIntDiv  self that
+    def % that: primCIntMod  self that
+
+    def negate: primCIntNegate self
+    def abs:    primCIntAbs    self
+
+    def toInt: primCIntToInt self
+    def fromInt i: primCIntFromInt i
+
+native class CInt8:
+    CInt8
+
+    def retType: primCInt8RetType
+    def fromRetType: id
+    def toCArg: primCInt8ToArg self
+    def byteSize: primCInt8ByteSize
+    def writePtr p: primCInt8WritePtr p self
+    def readPtr p: primCInt8ReadPtr p
+
+    def toText: primCInt8ToText self
+
+    def == that: primCInt8Eq self that
+    def <  that: primCInt8Lt self that
+    def >  that: primCInt8Gt self that
+
+    def + that: primCInt8Plus self that
+    def * that: primCInt8Mul  self that
+    def - that: primCInt8Sub  self that
+    def / that: primCInt8Div  self that
+    def % that: primCInt8Mod  self that
+
+    def negate: primCInt8Negate self
+    def abs:    primCInt8Abs    self
+
+    def toInt: primCInt8ToInt self
+    def fromInt i: primCInt8FromInt i
+
+native class CInt16:
+    CInt16
+
+    def retType: primCInt16RetType
+    def fromRetType: id
+    def toCArg: primCInt16ToArg self
+    def byteSize: primCInt16ByteSize
+    def writePtr p: primCInt16WritePtr p self
+    def readPtr p: primCInt16ReadPtr p
+
+    def toText: primCInt16ToText self
+
+    def == that: primCInt16Eq self that
+    def <  that: primCInt16Lt self that
+    def >  that: primCInt16Gt self that
+
+    def + that: primCInt16Plus self that
+    def * that: primCInt16Mul  self that
+    def - that: primCInt16Sub  self that
+    def / that: primCInt16Div  self that
+    def % that: primCInt16Mod  self that
+
+    def negate: primCInt16Negate self
+    def abs:    primCInt16Abs    self
+
+    def toInt: primCInt16ToInt self
+    def fromInt i: primCInt16FromInt i
+
+native class CInt32:
+    CInt32
+
+    def retType: primCInt32RetType
+    def fromRetType: id
+    def toCArg: primCInt32ToArg self
+    def byteSize: primCInt32ByteSize
+    def writePtr p: primCInt32WritePtr p self
+    def readPtr p: primCInt32ReadPtr p
+
+    def toText: primCInt32ToText self
+
+    def == that: primCInt32Eq self that
+    def <  that: primCInt32Lt self that
+    def >  that: primCInt32Gt self that
+
+    def + that: primCInt32Plus self that
+    def * that: primCInt32Mul  self that
+    def - that: primCInt32Sub  self that
+    def / that: primCInt32Div  self that
+    def % that: primCInt32Mod  self that
+
+    def negate: primCInt32Negate self
+    def abs:    primCInt32Abs    self
+
+    def toInt: primCInt32ToInt self
+    def fromInt i: primCInt32FromInt i
+
+native class CInt64:
+    CInt64
+
+    def retType: primCInt64RetType
+    def fromRetType: id
+    def toCArg: primCInt64ToArg self
+    def byteSize: primCInt64ByteSize
+    def writePtr p: primCInt64WritePtr p self
+    def readPtr p: primCInt64ReadPtr p
+
+    def toText: primCInt64ToText self
+
+    def == that: primCInt64Eq self that
+    def <  that: primCInt64Lt self that
+    def >  that: primCInt64Gt self that
+
+    def + that: primCInt64Plus self that
+    def * that: primCInt64Mul  self that
+    def - that: primCInt64Sub  self that
+    def / that: primCInt64Div  self that
+    def % that: primCInt64Mod  self that
+
+    def negate: primCInt64Negate self
+    def abs:    primCInt64Abs    self
+
+    def toInt: primCInt64ToInt self
+    def fromInt i: primCInt64FromInt i
+
+native class CUInt:
+    CUInt
+
+    def retType: primCUIntRetType
+    def fromRetType: id
+    def toCArg: primCUIntToArg self
+    def byteSize: primCUIntByteSize
+    def writePtr p: primCUIntWritePtr p self
+    def readPtr p: primCUIntReadPtr p
+
+    def toText: primCUIntToText self
+
+    def == that: primCUIntEq self that
+    def <  that: primCUIntLt self that
+    def >  that: primCUIntGt self that
+
+    def + that: primCUIntPlus self that
+    def * that: primCUIntMul  self that
+    def - that: primCUIntSub  self that
+    def / that: primCUIntDiv  self that
+    def % that: primCUIntMod  self that
+
+    def negate: primCUIntNegate self
+    def abs:    primCUIntAbs    self
+
+    def toInt: primCUIntToInt self
+    def fromInt i: primCUIntFromInt i
+
+
+native class CUInt8:
+    CUInt8
+
+    def retType: primCUInt8RetType
+    def fromRetType: id
+    def toCArg: primCUInt8ToArg self
+    def byteSize: primCUInt8ByteSize
+    def writePtr p: primCUInt8WritePtr p self
+    def readPtr p: primCUInt8ReadPtr p
+
+    def toText: primCUInt8ToText self
+
+    def == that: primCUInt8Eq self that
+    def <  that: primCUInt8Lt self that
+    def >  that: primCUInt8Gt self that
+
+    def + that: primCUInt8Plus self that
+    def * that: primCUInt8Mul  self that
+    def - that: primCUInt8Sub  self that
+    def / that: primCUInt8Div  self that
+    def % that: primCUInt8Mod  self that
+
+    def negate: primCUInt8Negate self
+    def abs:    primCUInt8Abs    self
+
+    def toInt: primCUInt8ToInt self
+    def fromInt i: primCUInt8FromInt i
+
+native class CUInt16:
+    CUInt16
+
+    def retType: primCUInt16RetType
+    def fromRetType: id
+    def toCArg: primCUInt16ToArg self
+    def byteSize: primCUInt16ByteSize
+    def writePtr p: primCUInt16WritePtr p self
+    def readPtr p: primCUInt16ReadPtr p
+
+    def toText: primCUInt16ToText self
+
+    def == that: primCUInt16Eq self that
+    def <  that: primCUInt16Lt self that
+    def >  that: primCUInt16Gt self that
+
+    def + that: primCUInt16Plus self that
+    def * that: primCUInt16Mul  self that
+    def - that: primCUInt16Sub  self that
+    def / that: primCUInt16Div  self that
+    def % that: primCUInt16Mod  self that
+
+    def negate: primCUInt16Negate self
+    def abs:    primCUInt16Abs    self
+
+    def toInt: primCUInt16ToInt self
+    def fromInt i: primCUInt16FromInt i
+
+native class CUInt32:
+    CUInt32
+
+    def retType: primCUInt32RetType
+    def fromRetType: id
+    def toCArg: primCUInt32ToArg self
+    def byteSize: primCUInt32ByteSize
+    def writePtr p: primCUInt32WritePtr p self
+    def readPtr p: primCUInt32ReadPtr p
+
+    def toText: primCUInt32ToText self
+
+    def == that: primCUInt32Eq self that
+    def <  that: primCUInt32Lt self that
+    def >  that: primCUInt32Gt self that
+
+    def + that: primCUInt32Plus self that
+    def * that: primCUInt32Mul  self that
+    def - that: primCUInt32Sub  self that
+    def / that: primCUInt32Div  self that
+    def % that: primCUInt32Mod  self that
+
+    def negate: primCUInt32Negate self
+    def abs:    primCUInt32Abs    self
+
+    def toInt: primCUInt32ToInt self
+    def fromInt i: primCUInt32FromInt i
+
+native class CUInt64:
+    CUInt64
+
+    def retType: primCUInt64RetType
+    def fromRetType: id
+    def toCArg: primCUInt64ToArg self
+    def byteSize: primCUInt64ByteSize
+    def writePtr p: primCUInt64WritePtr p self
+    def readPtr p: primCUInt64ReadPtr p
+
+    def toText: primCUInt64ToText self
+
+    def == that: primCUInt64Eq self that
+    def <  that: primCUInt64Lt self that
+    def >  that: primCUInt64Gt self that
+
+    def + that: primCUInt64Plus self that
+    def * that: primCUInt64Mul  self that
+    def - that: primCUInt64Sub  self that
+    def / that: primCUInt64Div  self that
+    def % that: primCUInt64Mod  self that
+
+    def negate: primCUInt64Negate self
+    def abs:    primCUInt64Abs    self
+
+    def toInt: primCUInt64ToInt self
+    def fromInt i: primCUInt64FromInt i
+
+native class CLong:
+    CLong
+
+    def retType: primCLongRetType
+    def fromRetType: id
+    def toCArg: primCLongToArg self
+    def byteSize: primCLongByteSize
+    def writePtr p: primCLongWritePtr p self
+    def readPtr p: primCLongReadPtr p
+
+    def toText: primCLongToText self
+
+    def == that: primCLongEq self that
+    def <  that: primCLongLt self that
+    def >  that: primCLongGt self that
+
+    def + that: primCLongPlus self that
+    def * that: primCLongMul  self that
+    def - that: primCLongSub  self that
+    def / that: primCLongDiv  self that
+    def % that: primCLongMod  self that
+
+    def negate: primCLongNegate self
+    def abs:    primCLongAbs    self
+
+    def toInt: primCLongToInt self
+    def fromInt i: primCLongFromInt i
+
+
+native class CULong:
+    CULong
+
+    def retType: primCULongRetType
+    def fromRetType: id
+    def toCArg: primCULongToArg self
+    def byteSize: primCULongByteSize
+    def writePtr p: primCULongWritePtr p self
+    def readPtr p: primCULongReadPtr p
+
+    def toText: primCULongToText self
+
+    def == that: primCULongEq self that
+    def <  that: primCULongLt self that
+    def >  that: primCULongGt self that
+
+    def + that: primCULongPlus self that
+    def * that: primCULongMul  self that
+    def - that: primCULongSub  self that
+    def / that: primCULongDiv  self that
+    def % that: primCULongMod  self that
+
+    def negate: primCULongNegate self
+    def abs:    primCULongAbs    self
+
+    def toInt: primCULongToInt self
+    def fromInt i: primCULongFromInt i
+
+native class CSize:
+    CSize
+
+    def retType: primCSizeRetType
+    def fromRetType: id
+    def toCArg: primCSizeToArg self
+    def byteSize: primCSizeByteSize
+    def writePtr p: primCSizeWritePtr p self
+    def readPtr p: primCSizeReadPtr p
+
+    def toText: primCSizeToText self
+
+    def == that: primCSizeEq self that
+    def <  that: primCSizeLt self that
+    def >  that: primCSizeGt self that
+
+    def + that: primCSizePlus self that
+    def * that: primCSizeMul  self that
+    def - that: primCSizeSub  self that
+    def / that: primCSizeDiv  self that
+    def % that: primCSizeMod  self that
+
+    def negate: primCSizeNegate self
+    def abs:    primCSizeAbs    self
+
+    def toInt: primCSizeToInt self
+    def fromInt i: primCSizeFromInt i
+
+native class CTime:
+    CTime
+
+    def retType: primCTimeRetType
+    def fromRetType: id
+    def toCArg: primCTimeToArg self
+    def byteSize: primCTimeByteSize
+    def writePtr p: primCTimeWritePtr p self
+    def readPtr p: primCTimeReadPtr p
+
+    def toText: primCTimeToText self
+
+    def == that: primCTimeEq self that
+    def <  that: primCTimeLt self that
+    def >  that: primCTimeGt self that
+
+    def + that: primCTimePlus self that
+    def * that: primCTimeMul  self that
+    def - that: primCTimeSub  self that
+    def / that: primCTimeDiv  self that
+    def % that: primCTimeMod  self that
+
+    def negate: primCTimeNegate self
+    def abs:    primCTimeAbs    self
+
+    def toReal: primCTimeToReal self
+    def fromInt i: primCTimeFromInt i
+
+native class CFloat:
+    CFloat
+
+    def retType: primCFloatRetType
+    def fromRetType: id
+    def toCArg: primCFloatToArg self
+    def byteSize: primCFloatByteSize
+    def writePtr p: primCFloatWritePtr p self
+    def readPtr p: primCFloatReadPtr p
+
+    def toText: primCFloatToText self
+
+    def == that: primCFloatEq self that
+    def <  that: primCFloatLt self that
+    def >  that: primCFloatGt self that
+
+    def + that: primCFloatPlus self that
+    def * that: primCFloatMul  self that
+    def - that: primCFloatSub  self that
+    def / that: primCFloatDiv  self that
+
+    def negate: primCFloatNegate self
+    def abs:    primCFloatAbs    self
+
+    def toReal: primCFloatToReal self
+    def fromReal r: primCFloatFromReal r
+
+native class CDouble:
+    CDouble
+
+    def retType: primCDoubleRetType
+    def fromRetType: id
+    def toCArg: primCDoubleToArg self
+    def byteSize: primCDoubleByteSize
+    def writePtr p: primCDoubleWritePtr p self
+    def readPtr p: primCDoubleReadPtr p
+
+    def toText: primCDoubleToText self
+
+    def == that: primCDoubleEq self that
+    def <  that: primCDoubleLt self that
+    def >  that: primCDoubleGt self that
+
+    def + that: primCDoublePlus self that
+    def * that: primCDoubleMul  self that
+    def - that: primCDoubleSub  self that
+    def / that: primCDoubleDiv  self that
+
+    def negate: primCDoubleNegate self
+    def abs:    primCDoubleAbs    self
+
+    def toReal: primCDoubleToReal self
+    def fromReal r: primCDoubleFromReal r
+
+native class RetType:
+    def retType: self
+
+native class Ptr a:
+    def toCArg: primPtrToCArg self
+    def cast: primPtrCast self
+    def == that: primPtrEq self that
+    def isNull: self == primNullPtr
+    def moveBytes i: primPtrPlus self i
+    def free: primFree self
+
+    def writePtr p: primPtrWritePtr p self
+    def readPtr p: primPtrReadPtr p
+
+class Pointer a:
+    Pointer    a
+    PointerVal a (Ptr a)
+
+    def typeRep: case self of
+        Pointer a: a
+        PointerVal a _: a
+
+    def ptr: case self of
+        PointerVal _ p: p
+
+    def retType: primPtrRetType self.typeRep.retType
+    def fromRetType p: PointerVal self.typeRep p.cast
+
+    def toCArg: self.ptr.toCArg
+
+    def byteSize: primPtrByteSize
+
+    def moveBytes i:
+        nptr = self.ptr.moveBytes i
+        tr = self.typeRep
+        PointerVal tr nptr
+
+    def moveElems i:
+        elemSize = self . typeRep . byteSize
+        self . moveBytes (i * elemSize)
+
+    def read: self . typeRep . readPtr self.ptr
+    def write v: v . writePtr self.ptr
+
+    def readPtr p:
+        r = primPtrReadPtr p.cast . cast
+        PointerVal self.typeRep r
+
+    def writePtr p: primPtrWritePtr p.cast self.ptr
+
+    def isNull: self.ptr.isNull
+    def null:
+        t = self.typeRep
+        PointerVal t primNullPtr
+
+    def malloc: self . mallocElems 1
+
+    def mallocElems i:
+        tp  = self.typeRep
+        ptr = primMalloc (tp.byteSize * i)
+        PointerVal tp ptr
+
+    def free: self.ptr.free
+
+def nullPtr: primNullPtr
