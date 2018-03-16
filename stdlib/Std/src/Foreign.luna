@@ -1,5 +1,5 @@
 import Std.Base
-import Std.FFI.C.Value
+import Std.Foreign.C.Value
 
 def lookupSymbol dll symbol: primLookupSymbol dll symbol
 
