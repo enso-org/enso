@@ -18,7 +18,9 @@ import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (MonadState, StateT)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
+import OCI.Pass.Definition         (Pass)
 import OCI.Pass.Dynamic            (DynamicPass)
+import OCI.Pass.Registry           (RegistryT)
 
 type M = P.Monad
 
@@ -84,23 +86,35 @@ makeLenses ''SchedulerT
 
 runT  :: MonadIO m => SchedulerT m a -> Registry.State -> m (a, State)
 execT :: MonadIO m => SchedulerT m a -> Registry.State -> m State
+evalT :: MonadIO m => SchedulerT m a -> Registry.State -> m a
 runT  f = State.runT (unwrap f) . buildState <=< Encoder.computeConfig ; {-# INLINE runT  #-}
 execT   = fmap snd .: runT ; {-# INLINE execT #-}
+evalT   = fmap fst .: runT ; {-# INLINE evalT #-}
+
+runManual :: MonadIO m => RegistryT m () -> SchedulerT m a -> m a
+runManual freg fsched = do
+    reg <- Registry.execT freg
+    evalT fsched reg
 
 
 -- === Passes === --
 
-registerPass :: ∀ pass m.
-    ( Typeable        pass
-    , Pass.Definition pass
-    , Pass.Compile pass m
-    , MonadScheduler       m
-    ) => m ()
-registerPass = do
+type PassRegister pass m =
+    ( Typeable       pass
+    , Pass.Compile   pass m
+    , MonadScheduler m
+    )
+
+registerPass :: ∀ pass m. (PassRegister pass m, Pass.Definition pass) => m ()
+registerPass = registerPassFromFunction__ (Pass.definition @pass) ; {-# INLINE registerPass #-}
+
+registerPassFromFunction__ :: ∀ pass m.
+    PassRegister pass m => Pass pass () -> m ()
+registerPassFromFunction__ pass = do
     lyt     <- view layout <$> State.get @State
-    dynPass <- Pass.compile (Pass.definition @pass) lyt
+    dynPass <- Pass.compile pass lyt
     State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
-{-# INLINE registerPass #-}
+{-# INLINE registerPassFromFunction__ #-}
 
 
 -- === Attrs === --
@@ -127,6 +141,12 @@ enableAttrByType  :: ∀ attr m. (MonadScheduler m, Typeable attr) => m ()
 disableAttrByType :: ∀ attr m. (MonadScheduler m, Typeable attr) => m ()
 enableAttrByType  = enableAttr  $ Attr.rep @attr ; {-# INLINE enableAttrByType #-}
 disableAttrByType = disableAttr $ Attr.rep @attr ; {-# INLINE disableAttrByType #-}
+
+lookupAttr :: ∀ attr m. (MonadScheduler m, Typeable attr)
+           => m (Maybe attr)
+lookupAttr = fmap unsafeCoerce . Map.lookup (Attr.rep @attr) . view attrs
+         <$> State.get @State
+{-# INLINE lookupAttr #-}
 
 
 -- === Instances === --

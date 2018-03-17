@@ -86,8 +86,8 @@ type Compile pass m =
     , Throws Encoder.Error m
     )
 
-compile :: ∀ pass a m. Compile pass m
-        => Pass pass a -> Encoder.State -> m DynamicPass
+compile :: ∀ pass m. Compile pass m
+        => Pass pass () -> Encoder.State -> m DynamicPass
 compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass

@@ -80,11 +80,6 @@ instance Pass.Definition BasicPass where
     definition = passTest
 
 
-runWithManualScheduling :: MonadIO m => RegistryT m a -> SchedulerT m b -> m ()
-runWithManualScheduling freg fsched = do
-    reg <- Registry.execT freg
-    _   <- Scheduler.execT fsched reg
-    pure ()
 
 runRegistry :: Registry.Monad m => m ()
 runRegistry = do
@@ -113,7 +108,7 @@ runScheduler = do
 
 runCompiler :: (MonadIO m, Throws '[Registry.Error, Pass.Encoder.Error, Scheduler.Error] m)
             => m ()
-runCompiler = runWithManualScheduling runRegistry runScheduler
+runCompiler = Scheduler.runManual runRegistry runScheduler
 
 
 test_pm_run :: MonadIO m => m Encoder.State

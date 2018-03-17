@@ -1,5 +1,5 @@
 -- {-# OPTIONS_GHC -ddump-simpl -ddump-to-file #-}
-module Test.Bench.Vector where
+module Luna.Test.Bench.Vector where
 
 import Prologue
 

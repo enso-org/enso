@@ -42,12 +42,14 @@ instance SetElemsFromList '[] t ts where
 
 instance ( ElemSetter s ts
          , SetElemsFromList ss t ts
-         , Coercible t s
          ) => SetElemsFromList (s ': ss) t ts where
     setElemsFromList lst t = case lst of
         []     -> impossible
         (s:ss) -> setElemsFromList @ss ss
-                $ setElem (coerce s :: s) t
+                $ setElem (unsafeCoerce s :: s) t
+-- FIXME[WD]: unsafeCoerce is very unsafe here. We should consider making
+--            it safer. We cannot use `coerce` because it requires having
+--            a lot of constructors in scope in clients code.
     {-# INLINE setElemsFromList #-}
 
 

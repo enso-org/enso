@@ -1,4 +1,4 @@
-resolver: lts-10.4
+resolver: nightly-2018-03-16
 
 packages:
     - .
@@ -22,6 +22,13 @@ extra-deps:
     - c-storable-deriving-0.1.3
     - monad-st-0.2.4.1
     - criterion-1.3.0.0
+    - hspec-2.5.0
+    - hspec-core-2.5.0
+    - hspec-discover-2.5.0
+    - placeholders-0.1
+    - either-5
+
+
 
 ghc-options:
     "*": -Wall -fwarn-name-shadowing -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100 -fexcess-precision -fexpose-all-unfoldings -flate-dmd-anal -fspec-constr-keen -fspecialise-aggressively -fstatic-argument-transformation -fmax-worker-args=200

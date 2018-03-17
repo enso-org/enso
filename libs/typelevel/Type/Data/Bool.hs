@@ -42,7 +42,7 @@ type family If' (cond :: Bool) (a :: Constraint) (b :: Constraint) :: Constraint
   If' 'True  a b = a
   If' 'False a b = b
 
-type family (a :: k) == (b :: l) where
+type family (a :: k) == (b :: k) where
     a == a = 'True
     a == b = 'False
 
