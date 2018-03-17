@@ -4,7 +4,7 @@
 module Prologue.Data.Tuple (module Prologue.Data.Tuple, module X) where
 
 import Control.Lens
-import Data.Tuple.OneTuple as X (OneTuple(OneTuple))
+import Prologue.Data.OneTuple as X (OneTuple(OneTuple))
 
 
 -- === Missing instances === --

@@ -2,7 +2,6 @@ module Prologue.Data.Either (module Prologue.Data.Either, module X) where
 
 import Prelude (Either(Left, Right), const, id, ($), (.), flip, undefined)
 
-import Control.Monad.Trans.Either as X (EitherT(EitherT), runEitherT, eitherT, hoistEither, left, right, swapEitherT, mapEitherT)
 import Data.Either.Combinators    as X (isLeft, isRight, mapLeft, mapRight, leftToMaybe, rightToMaybe, swapEither)
 import Data.Either                as X (either, partitionEithers)
 

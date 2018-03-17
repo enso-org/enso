@@ -1,8 +1,8 @@
-{-# LANGUAGE TypeFamilyDependencies    #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 
 module Data.Tuple.Curry.Total where
 
-import Data.Tuple.OneTuple
+import           Prologue.Data.OneTuple
 
 
 class Curry' a where
