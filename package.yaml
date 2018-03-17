@@ -98,6 +98,7 @@ tests:
     dependencies:
       - base
       - hspec
+      - hspec-expectations-lifted
       - luna-core
       - prologue
             
