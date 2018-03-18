@@ -95,6 +95,7 @@ runManual :: MonadIO m => RegistryT m () -> SchedulerT m a -> m a
 runManual freg fsched = do
     reg <- Registry.execT freg
     evalT fsched reg
+{-# INLINE runManual #-}
 
 
 -- === Passes === --
@@ -169,42 +170,25 @@ newtype PassThread = PassThread (Async Pass.AttrVals)
 makeLenses ''PassThread
 
 
--- === API === --
 
-forkPass :: MonadScheduler m => Pass.Rep -> m PassThread
-forkPass passRep = do
-    state   <- State.get @State
-    dynPass <- Exception.fromJust (MissingPass passRep)
-             $ Map.lookup passRep $ state ^. passes
-    let attrReps         = dynPass ^. (Pass.desc . Pass.attrLayout)
-        (errs, attrVals) = partitionEithers
-                         $ flip lookupEither (state ^. attrs) <$> attrReps
-    when_ (not $ null errs) . throw $ MissingAttrs errs
-    liftIO $ fmap wrap . async . Pass.run dynPass
-           $ wrap attrVals
-{-# INLINE forkPass #-}
 
-forkPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m PassThread
-forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
 
-runPass :: (MonadScheduler m, Throws Error m) => Pass.Rep -> m ()
-runPass !rep = gatherSingle rep =<< forkPass rep ; {-# INLINE runPass #-}
+-- === Attrib gather === --
 
-runPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
-runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
-
-waitGetAttrs :: MonadIO m => PassThread -> m Pass.AttrVals
-waitGetAttrs = liftIO . Async.wait . unwrap ; {-# INLINE waitGetAttrs #-}
+waitAndGetAttrs :: MonadIO m => PassThread -> m Pass.AttrVals
+waitAndGetAttrs = liftIO . Async.wait . unwrap ; {-# INLINE waitAndGetAttrs #-}
 
 gatherSingle :: MonadScheduler m => Pass.Rep -> PassThread -> m ()
 gatherSingle pass = gather pass . pure ; {-# INLINE gatherSingle #-}
 
 gather :: MonadScheduler m => Pass.Rep -> NonEmpty PassThread -> m ()
-gather passRep passThreads = do
-    state       <- State.get @State
-    resultAttrs <- mapM waitGetAttrs passThreads
-    dynPass     <- Exception.fromJust (MissingPass passRep)
-                 $ Map.lookup passRep $ state ^. passes
+gather passRep threads = gatherAttrs passRep =<< mapM waitAndGetAttrs threads ; {-# INLINE gather #-}
+
+gatherAttrs :: MonadScheduler m => Pass.Rep -> NonEmpty Pass.AttrVals -> m ()
+gatherAttrs passRep resultAttrs = do
+    state   <- State.get @State
+    dynPass <- Exception.fromJust (MissingPass passRep)
+             $ Map.lookup passRep $ state ^. passes
     let grpAttrs = transposeList $ unwrap <$> resultAttrs
         outAttrs = dynPass ^. (Pass.desc . Pass.outputs . Pass.attrs)
         zippers  = view fanIn <$> dynAttrs
@@ -216,9 +200,52 @@ gather passRep passThreads = do
                  $ zip outAttrs newAttrs
         state'   = state & attrs .~ attrs'
     State.put @State state'
+{-# INLINE gatherAttrs #-}
+
+
+-- === Pass Threads === --
+
+initPass :: MonadScheduler m => Pass.Rep -> m (IO Pass.AttrVals)
+initPass passRep = do
+    state   <- State.get @State
+    dynPass <- Exception.fromJust (MissingPass passRep)
+             $ Map.lookup passRep $ state ^. passes
+    let attrReps         = dynPass ^. (Pass.desc . Pass.attrLayout)
+        (errs, attrVals) = partitionEithers
+                         $ flip lookupEither (state ^. attrs) <$> attrReps
+    when_ (not $ null errs) . throw $ MissingAttrs errs
+    pure $ Pass.run dynPass $ wrap attrVals
+{-# INLINE initPass #-}
+
+forkPass :: MonadScheduler m => Pass.Rep -> m PassThread
+forkPass passRep = liftIO . fmap wrap . async =<< initPass passRep ; {-# INLINE forkPass #-}
+
+forkPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m PassThread
+forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
+
+runPass :: (MonadScheduler m, Throws Error m) => Pass.Rep -> m ()
+runPass !rep = gatherSingle rep =<< forkPass rep ; {-# INLINE runPass #-}
+
+runPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
+runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
+
+
+-- === Debug Pass runners === --
+
+runPassSameThread :: MonadScheduler m => Pass.Rep -> m ()
+runPassSameThread rep = do
+    attrs <- join (liftIO <$> initPass rep)
+    gatherAttrs rep $ pure attrs
+{-# INLINE runPassSameThread #-}
+
+runPassSameThreadByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
+runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
+
+
+-- === Utils === --
 
 lookupEither :: Ord k => k -> Map k v -> Either k v
-lookupEither k = note k . Map.lookup k
+lookupEither k = note k . Map.lookup k ; {-# INLINE lookupEither #-}
 
 transposeList :: ∀ a. NonEmpty [a] -> [NonEmpty a]
-transposeList l = fmap unsafeConvert $ List.transpose (convert l :: [[a]])
+transposeList l = fmap unsafeConvert $ List.transpose (convert l :: [[a]]) ; {-# INLINE transposeList #-}

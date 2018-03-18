@@ -35,7 +35,7 @@ import qualified Test.Data.IntSet.Cpp          as SetTest
 
 import Luna.Pass ()
 
-
+import qualified Luna.Test.Bench.IR as IRBench
 
 timeIt :: MonadIO m => String -> m a -> m a
 timeIt name f = do
@@ -64,6 +64,8 @@ main = do
     let minExpVec = 7 :: Int
         maxExpVec = 7 :: Int
         expSizes  = [minExpVec .. maxExpVec] :: [Int]
+
+    IRBench.main
 
     defaultMain
     --     [ bgroup "CppContainers"

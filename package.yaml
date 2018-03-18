@@ -87,7 +87,8 @@ benchmarks:
       - luna-core
       - prologue
       - unboxed-ref >= 0.4.0.0
-      - vector
+      - vector 
+      - layered-state
 
 tests:
   spec:

@@ -32,12 +32,12 @@ Pass.cache_phase1 ''BasicPass
 Pass.cache_phase2 ''BasicPass
 
 
-defaultRegistry :: Registry.Monad m => m ()
-defaultRegistry = do
-    Registry.registerComponent @Terms
-    Registry.registerPrimLayer @Terms @Model
-    -- Registry.registerPrimLayer @Terms @Type
+-- defaultRegistry :: Registry.Monad m => m ()
+-- defaultRegistry = do
+--     Registry.registerComponent @Terms
+--     Registry.registerPrimLayer @Terms @Model
+--     -- Registry.registerPrimLayer @Terms @Type
 
-    Registry.registerComponent @Links
-    Registry.registerPrimLayer @Links @Source
-    Registry.registerPrimLayer @Links @Target
+--     Registry.registerComponent @Links
+--     Registry.registerPrimLayer @Links @Source
+--     Registry.registerPrimLayer @Links @Target
