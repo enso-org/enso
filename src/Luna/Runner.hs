@@ -12,7 +12,7 @@ import qualified OCI.Pass.Encoder   as Pass.Encoder
 import qualified OCI.Pass.Registry  as Registry
 import qualified OCI.Pass.Scheduler as Scheduler
 
-import Luna.IR.Term.Core ()
+import Luna.IR
 
 import Control.Monad.Exception (Throws)
 import OCI.Pass.Scheduler      (SchedulerT)

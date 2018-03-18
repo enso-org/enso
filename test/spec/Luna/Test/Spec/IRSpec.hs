@@ -5,18 +5,15 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Luna.IR.Term.Core     as IR
-import qualified Luna.Pass             as Pass
-import qualified Luna.Runner           as Luna
-import qualified OCI.IR.Layer.Internal as Layer
-import qualified OCI.Pass.Attr         as Attr
-import qualified OCI.Pass.Cache        as Pass
-import qualified OCI.Pass.Dynamic      as Pass
-import qualified OCI.Pass.Scheduler    as Scheduler
+import qualified Luna.IR             as IR
+import qualified Luna.IR.Layer       as Layer
+import qualified Luna.Pass           as Pass
+import qualified Luna.Pass.Attr      as Attr
+import qualified Luna.Pass.Scheduler as Scheduler
+import qualified Luna.Runner         as Runner
 
-import Luna.IR.Term        (Model)
-import OCI.Pass.Definition (Pass)
-import Test.Hspec          (Expectation, Spec, describe, it)
+import Luna.Pass  (Pass)
+import Test.Hspec (Expectation, Spec, describe, it)
 
 
 -----------------------
@@ -49,7 +46,7 @@ runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
 runPass = runPasses . pure
 
 runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
-runPasses passes = Luna.runManual $ do
+runPasses passes = Runner.runManual $ do
     Scheduler.registerAttr     @IntAttr
     Scheduler.enableAttrByType @IntAttr
     for_ passes $ \pass -> do
@@ -76,7 +73,7 @@ spec = do
     describe "Terms creation" $ do
         it "Single var" $ runPass' $ do
             v <- IR.var 7
-            m <- Layer.read @Model v
+            m <- Layer.read @IR.Model v
             m `shouldBe` (IR.UniTermVar $ IR.Var 7)
 
     describe "Attributes" $ do

@@ -9,14 +9,14 @@ import Prologue
 import qualified Data.Tag              as Tag
 import           Luna.IR.Link          as Link
 import qualified Luna.IR.Link.TH       as Link
-import qualified Luna.IR.Term          as Term
+import qualified Luna.IR.Term.Class    as Term
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
 import Foreign.Storable.Deriving  (deriveStorable)
 import Foreign.Storable1.Deriving (deriveStorable1)
 import Luna.IR.Layout
-import Luna.IR.Term               (Model, Term, TermCons, Terms)
+import Luna.IR.Term.Class         (Model, Term, TermCons, Terms)
 import Type.Data.Ord              (Cmp)
 
 

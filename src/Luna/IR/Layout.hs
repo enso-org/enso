@@ -4,11 +4,11 @@ module Luna.IR.Layout where
 
 import Prologue
 
-import qualified Luna.IR.Term  as Term
-import qualified OCI.IR.Layout as Layout
+import qualified Luna.IR.Term.Class as Term
+import qualified OCI.IR.Layout      as Layout
 
-import Luna.IR.Term  (Model, Terms)
-import OCI.IR.Layout ((:=), Layout)
+import Luna.IR.Term.Class (Model, Terms)
+import OCI.IR.Layout      ((:=), Layout)
 
 
 

@@ -40,7 +40,7 @@ import Foreign.Storable.Utils      (sizeOf')
 import Foreign.Storable1.Deriving  (deriveStorable1)
 import Luna.IR.Format
 import Luna.IR.Layout
-import Luna.IR.Term                (Model, Term, TermCons, Terms)
+import Luna.IR.Term                (Model, Term, Terms)
 import OCI.IR.Component
 import OCI.Pass.Definition         (Attrs, Elems, In, Out, Pass, Spec)
 import OCI.Pass.Registry           (RegistryT)
