@@ -1,4 +1,5 @@
-resolver: lts-10.4
+resolver: lts-11.1
+# resolver: nightly-2018-03-18
 
 packages:
     - .
@@ -31,6 +32,6 @@ extra-deps:
 
 
 ghc-options:
-    "*": -Wall -fwarn-name-shadowing -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100 -fexcess-precision -fexpose-all-unfoldings -flate-dmd-anal -fspec-constr-keen -fspecialise-aggressively -fstatic-argument-transformation -fmax-worker-args=200
+    "*": -Wall -fwarn-name-shadowing -threaded -funbox-strict-fields -O2 -fconstraint-solver-iterations=100 -fexcess-precision -fexpose-all-unfoldings -flate-dmd-anal -fspec-constr-keen -fspecialise-aggressively -fmax-worker-args=200
 
 apply-ghc-options: locals

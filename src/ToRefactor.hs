@@ -15,6 +15,7 @@ import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign                     as Ptr
 import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Storable            as Storable
 import           Luna.IR.Link                as Link
 import qualified Luna.IR.Link.TH             as Link
 import qualified Luna.IR.Term                as Term
@@ -50,7 +51,7 @@ import Type.Data.Ord               (Cmp)
 
 import Luna.IR.Term.Core
 
-
+import qualified Control.Monad.State.Strict as S
 
 
 type instance Layer.Data   Terms Type = Link
@@ -339,7 +340,67 @@ test_readWriteLayer2 i = do
             UniTermVar (Var !x) <- Layer.unsafeReadByteOff @Model layer ir
             Layer.unsafeWriteByteOff @Model layer ir (UniTermVar $ Var $! (x+1))
             go (j - 1)
-    State.evalT (go i) (TypeMap.TypeMap (Tuple.T3 ('x' :: Char) ("a" :: String) (0 :: Int)) :: TypeMap.TypeMap '[Char, String, Int])
+    State.evalT (go i) (TypeMap.TypeMap
+        ( Tuple.T2 (Proxy :: Proxy 1)
+                   (0 :: Int)
+        ) :: TypeMap.TypeMap '[ Proxy 1
+                              , Int]
+                              )
+
+newtype Foo a = Foo a
+
+intSize :: Int
+intSize = Storable.sizeOf (undefined :: Int)
+
+ghc84bug :: Int -> IO ()
+ghc84bug i = do
+    ptr <- mallocBytes $ 2 * intSize
+    Storable.pokeByteOff ptr intSize (0 :: Int)
+    let go 0 = pure ()
+        go j = do
+            Foo (!_, !off) <- S.get
+            !(x :: Int) <- liftIO $ Storable.peekByteOff ptr off
+            liftIO $ Storable.pokeByteOff ptr off $! (x + 1)
+            go (j - 1)
+    S.evalStateT (go i) (Foo ((0::Int), (intSize::Int)))
+
+
+ghc84bug2 :: Int -> IO ()
+ghc84bug2 i = do
+    ptr <- mallocBytes $ 2 * intSize
+    Storable.pokeByteOff ptr intSize (0 :: Int)
+    let go 0 = pure ()
+        go j = do
+            (!_, !off) <- S.get
+            !(x :: Int) <- liftIO $ Storable.peekByteOff ptr off
+            liftIO $ Storable.pokeByteOff ptr off $! (x + 1)
+            go (j - 1)
+    S.evalStateT (go i) ((0::Int),(intSize::Int))
+
+    -- State.evalT (go i) (TypeMap.TypeMap
+    --     ( Tuple.T11 (Proxy :: Proxy 1)
+    --                 (Proxy :: Proxy 2)
+    --                 (Proxy :: Proxy 3)
+    --                 (Proxy :: Proxy 4)
+    --                 (Proxy :: Proxy 5)
+    --                 (Proxy :: Proxy 6)
+    --                 (Proxy :: Proxy 7)
+    --                 (Proxy :: Proxy 8)
+    --                 (Proxy :: Proxy 9)
+    --                 (Proxy :: Proxy 10)
+    --                 (0 :: Int)
+    --     ) :: TypeMap.TypeMap '[ Proxy 1
+    --                           , Proxy 2
+    --                           , Proxy 3
+    --                           , Proxy 4
+    --                           , Proxy 5
+    --                           , Proxy 6
+    --                           , Proxy 7
+    --                           , Proxy 8
+    --                           , Proxy 9
+    --                           , Proxy 10
+    --                           , Int]
+    --                           )
     -- Ptr.free ptr
 
 -- test_readWriteLayer3 :: Int -> IO ()

@@ -101,7 +101,17 @@ main = do
             --     $ perRunEnv (return ())
             --     $ \v -> Basic.test_mallocPtr (10 ^ i))  <$> [minExpVec..maxExpVec]
 
-            [ bgroup "Read/Write Layer + State config 4"
+            [ bgroup "ghc 8.4 bug"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.ghc84bug (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "ghc 8.4 bug 2"
+                $ (\(i :: Int) -> bench ("10e" <> show i)
+                $ perRunEnv (return ())
+                $ \v -> Basic.ghc84bug2 (10 ^ i))  <$> [minExpVec..maxExpVec]
+
+            , bgroup "Read/Write Layer + State config 4"
                 $ (\(i :: Int) -> bench ("10e" <> show i)
                 $ perRunEnv (return ())
                 $ \v -> Basic.test_readWriteLayer4 (10 ^ i))  <$> [minExpVec..maxExpVec]

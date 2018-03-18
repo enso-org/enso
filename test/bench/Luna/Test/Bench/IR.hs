@@ -7,6 +7,9 @@ import qualified ToRefactor     as Basic
 
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
+import qualified Foreign.Marshal.Alloc       as Ptr
+import qualified Foreign.Marshal.Utils       as Ptr
+import qualified Foreign.Storable            as Storable
 import qualified Luna.IR                     as IR
 import qualified Luna.IR.Layer               as Layer
 import qualified Luna.Pass                   as Pass
@@ -18,7 +21,6 @@ import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 
 import Luna.Pass (Pass)
-
 
 
 -----------------------------
@@ -46,28 +48,17 @@ bench i s f = Criterion.bgroup s $ expNFIO f <$> loop i
 type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
 
 runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
-runPass pass = Runner.runManual $ do
+runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
 runPass' :: Pass Pass.BasicPass () -> IO ()
-runPass' = runPass ; {-# INLINE runPass' #-}
+runPass' = runPass
+{-# INLINE runPass' #-}
 
 
-test1 :: Int -> IO ()
-test1 i = runPass' $ do
-    a <- Basic.mockNewComponent
-    Layer.unsafeWriteByteOff @IR.Model Basic.layerLoc0 a (IR.UniTermVar $ IR.Var 0)
-    let go :: Int -> Pass Pass.BasicPass ()
-        go 0 = pure ()
-        go j = do
-            IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
-            Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! (x+1))
-            go (j - 1)
-    go i
-    return ()
-{-# INLINE test1 #-}
+
 
 
 test_readWriteLayer4 :: Int -> IO ()
@@ -100,9 +91,35 @@ test_pm = do
     pure passCfg
 
 
+readWrite_Ptr :: Int -> IO ()
+readWrite_Ptr i = do
+    !ptr <- Ptr.new (0 :: Int)
+    let go !0 = return ()
+        go !j = do
+            !x <- Storable.peek ptr
+            Storable.poke ptr $! x+1
+            go $! j - 1
+    go i
+    Ptr.free ptr
+{-# NOINLINE readWrite_Ptr #-}
+
+readWrite_Layer :: Int -> IO ()
+readWrite_Layer i = runPass' $ do
+    !a <- IR.var 0
+    let go :: Int -> Pass Pass.BasicPass ()
+        go 0 = pure ()
+        go j = do
+            IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
+            Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! (x+1))
+            go (j - 1)
+    go i
+{-# NOINLINE readWrite_Layer #-}
+
 
 main :: IO ()
 main = Criterion.defaultMain
-    [ bench 8 "Read/Write Layer + State config 4 xx" test_readWriteLayer4
-    , bench 8 "Read/Write Layer + State config 4 xx" test1
+    [ Criterion.bgroup "Read/Write"
+        [ bench 7 "Raw Ptr"  readWrite_Ptr
+        , bench 7 "IR Layer" readWrite_Layer
+        ]
     ]

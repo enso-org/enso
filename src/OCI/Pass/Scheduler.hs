@@ -111,9 +111,9 @@ registerPass = registerPassFromFunction__ (Pass.definition @pass) ; {-# INLINE r
 
 registerPassFromFunction__ :: ∀ pass m.
     PassRegister pass m => Pass pass () -> m ()
-registerPassFromFunction__ pass = do
-    lyt     <- view layout <$> State.get @State
-    dynPass <- Pass.compile pass lyt
+registerPassFromFunction__ !pass = do
+    !lyt     <- view layout <$> State.get @State
+    !dynPass <- Pass.compile pass lyt
     State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
 {-# INLINE registerPassFromFunction__ #-}
 
@@ -179,26 +179,26 @@ waitAndGetAttrs :: MonadIO m => PassThread -> m Pass.AttrVals
 waitAndGetAttrs = liftIO . Async.wait . unwrap ; {-# INLINE waitAndGetAttrs #-}
 
 gatherSingle :: MonadScheduler m => Pass.Rep -> PassThread -> m ()
-gatherSingle pass = gather pass . pure ; {-# INLINE gatherSingle #-}
+gatherSingle !pass = gather pass . pure ; {-# INLINE gatherSingle #-}
 
 gather :: MonadScheduler m => Pass.Rep -> NonEmpty PassThread -> m ()
-gather passRep threads = gatherAttrs passRep =<< mapM waitAndGetAttrs threads ; {-# INLINE gather #-}
+gather !passRep !threads = gatherAttrs passRep =<< mapM waitAndGetAttrs threads ; {-# INLINE gather #-}
 
 gatherAttrs :: MonadScheduler m => Pass.Rep -> NonEmpty Pass.AttrVals -> m ()
-gatherAttrs passRep resultAttrs = do
-    state   <- State.get @State
-    dynPass <- Exception.fromJust (MissingPass passRep)
-             $ Map.lookup passRep $ state ^. passes
-    let grpAttrs = transposeList $ unwrap <$> resultAttrs
-        outAttrs = dynPass ^. (Pass.desc . Pass.outputs . Pass.attrs)
-        zippers  = view fanIn <$> dynAttrs
-        (errs, dynAttrs) = partitionEithers
-                         $ flip lookupEither (state ^. attrDefs) <$> outAttrs
+gatherAttrs !passRep !resultAttrs = do
+    !state   <- State.get @State
+    !dynPass <- Exception.fromJust (MissingPass passRep)
+              $ Map.lookup passRep $ state ^. passes
+    let !grpAttrs = transposeList $ unwrap <$> resultAttrs
+        !outAttrs = dynPass ^. (Pass.desc . Pass.outputs . Pass.attrs)
+        !zippers  = view fanIn <$> dynAttrs
+        (!errs, !dynAttrs) = partitionEithers
+                           $ flip lookupEither (state ^. attrDefs) <$> outAttrs
     when_ (not $ null errs) . throw $ MissingAttrs errs
-    newAttrs    <- liftIO $ zipWithM ($) zippers grpAttrs
-    let attrs'   = foldl' (flip $ uncurry Map.insert) (state ^. attrs)
+    !newAttrs   <- liftIO $ zipWithM ($) zippers grpAttrs
+    let !attrs'  = foldl' (flip $ uncurry Map.insert) (state ^. attrs)
                  $ zip outAttrs newAttrs
-        state'   = state & attrs .~ attrs'
+        !state'  = state & attrs .~ attrs'
     State.put @State state'
 {-# INLINE gatherAttrs #-}
 
@@ -206,15 +206,15 @@ gatherAttrs passRep resultAttrs = do
 -- === Pass Threads === --
 
 initPass :: MonadScheduler m => Pass.Rep -> m (IO Pass.AttrVals)
-initPass passRep = do
-    state   <- State.get @State
-    dynPass <- Exception.fromJust (MissingPass passRep)
-             $ Map.lookup passRep $ state ^. passes
-    let attrReps         = dynPass ^. (Pass.desc . Pass.attrLayout)
-        (errs, attrVals) = partitionEithers
-                         $ flip lookupEither (state ^. attrs) <$> attrReps
+initPass !passRep = do
+    !state   <- State.get @State
+    !dynPass <- Exception.fromJust (MissingPass passRep)
+              $ Map.lookup passRep $ state ^. passes
+    let !attrReps          = dynPass ^. (Pass.desc . Pass.attrLayout)
+        (!errs, !attrVals) = partitionEithers
+                           $ flip lookupEither (state ^. attrs) <$> attrReps
     when_ (not $ null errs) . throw $ MissingAttrs errs
-    pure $ Pass.run dynPass $ wrap attrVals
+    pure . Pass.run dynPass $ wrap attrVals
 {-# INLINE initPass #-}
 
 forkPass :: MonadScheduler m => Pass.Rep -> m PassThread
@@ -233,8 +233,8 @@ runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
 -- === Debug Pass runners === --
 
 runPassSameThread :: MonadScheduler m => Pass.Rep -> m ()
-runPassSameThread rep = do
-    attrs <- join (liftIO <$> initPass rep)
+runPassSameThread !rep = do
+    !attrs <- join (liftIO <$> initPass rep)
     gatherAttrs rep $ pure attrs
 {-# INLINE runPassSameThread #-}
 
