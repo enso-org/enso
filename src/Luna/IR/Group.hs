@@ -3,6 +3,7 @@ module Luna.IR.Group where
 import Prologue
 import Type.Data.Ord
 
+import qualified Data.IntSet.Cpp       as IntSet
 import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
@@ -10,7 +11,6 @@ import qualified OCI.IR.Layout         as Layout
 import Luna.IR.Term.Class (Term)
 import OCI.IR.Conversion  (generalize)
 import OCI.IR.Layout      ((:=), Layout)
-
 
 
 ------------------
@@ -47,5 +47,6 @@ type SomeGroup = Group ()
 
 data Children
 
+-- newtype ChildSet layout =
 -- type instance Layer.Layout Groups Source layout = Layout.Get Source layout
 -- type instance Layer.Data   Groups Source        = Term

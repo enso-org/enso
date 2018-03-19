@@ -4,9 +4,9 @@ module Test.Data.IntSet.Cpp where
 import Prologue
 
 import qualified Data.IntSet     as IntSet
-import           Data.IntSet.Cpp (RawSetPtr, StdSet, mapStdSet, withStdSet)
-import qualified Data.IntSet.Cpp as CSet
+import qualified Data.IntSet.Cpp as CIntSet
 
+import Data.IntSet.Cpp       (IntSet, RawSetPtr)
 import Data.List             (unfoldr)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
@@ -54,36 +54,36 @@ testInsertAndLookupIntSet n = do
 
         s1   = go IntSet.empty rndm
         suma = go2 s1 0 rndm2
-    return suma
+    pure suma
 
-testInsertAndLookupCSet :: Int -> IO Int
-testInsertAndLookupCSet n = do
+testInsertAndLookupCIntSet :: Int -> IO Int
+testInsertAndLookupCIntSet n = do
     -- create a set based on a random list
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
-    s  <- CSet.empty
-    let go  ((!x):xs) = CSet.insert s x >> go xs
-        go  []        = return ()
+    s  <- CIntSet.new
+    let go  ((!x):xs) = CIntSet.insert s x >> go xs
+        go  []        = pure ()
 
         go2 !sm ((!x):xs) = do
-                mem <- CSet.member s x
+                mem <- CIntSet.member s x
                 go2 (sm + (if mem then 1 else 0)) xs
-        go2 !sm [] = return sm
+        go2 !sm [] = pure sm
 
     go rndm
     go2 0 rndm2
 
-testInsertLookupOrderedCSet :: Int -> IO Int
-testInsertLookupOrderedCSet n = do
-    s <- CSet.empty
-    let go !x = when_ (x < n) $ CSet.insert s x >> go (x + 1)
+testInsertLookupOrderedCIntSet :: Int -> IO Int
+testInsertLookupOrderedCIntSet n = do
+    s <- CIntSet.new
+    let go !x = when_ (x < n) $ CIntSet.insert s x >> go (x + 1)
     go 0
 
     let go2 !x !sm = if x < n
         then do
-            m <- CSet.member s (n - 1)
+            m <- CIntSet.member s (n - 1)
             go2 (x + 1) $ sm + (if m then 1 else 0)
-        else return sm
+        else pure sm
 
     go2 0 0
 
@@ -91,11 +91,11 @@ testInsertAndLookupForeignSet :: Int -> IO Int
 testInsertAndLookupForeignSet n = do
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
-    s <- CSet.empty
-    withStdSet s (\ptrSet ->
-        withArrayLen rndm  (\n1 ptrInsert ->
-        withArrayLen rndm2 (\n2 ptrIdx    ->
-            c_set_testInsertAndLookup ptrInsert n1 ptrIdx n2 ptrSet)))
+    s <- CIntSet.new
+    CIntSet.with s $ \ptrSet ->
+        withArrayLen rndm  $ \n1 ptrInsert ->
+        withArrayLen rndm2 $ \n2 ptrIdx    ->
+            c_set_testInsertAndLookup ptrInsert n1 ptrIdx n2 ptrSet
 
 testInsertLookupOrderedForeignSet :: Int -> IO Int
 testInsertLookupOrderedForeignSet = c_set_testInsertLookupOrdered
