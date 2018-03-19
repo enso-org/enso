@@ -1,12 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Luna.Test.Bench.IR where
 
 import Prologue
 
-import qualified Criterion.Main as Criterion
-import qualified ToRefactor     as Basic
-
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
+import qualified Criterion.Main              as Criterion
 import qualified Criterion.Measurement       as Criterion
 import qualified Criterion.Types             as Criterion hiding (measure)
 import qualified Data.List                   as List
@@ -30,9 +30,8 @@ import qualified System.Console.ANSI         as ANSI
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
+import Luna.Pass         (Pass)
 import OCI.IR.Component  (Component (Component))
-
-import Luna.Pass (Pass)
 
 
 
@@ -111,12 +110,13 @@ checkInvariants invs = do
     putStrLn ""
     ok <- and <$> sequence invs
     when_ (not ok) $ do
+        ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]
         putStrLn $ "One or more invariants failed."
         putStrLn $ "Invariants may fail depending on current CPU usage."
         putStrLn $ "Try running them again. If the problem persist, it means"
         putStrLn $ "that the implementation is broken and need to be fixed."
+        ANSI.setSGR [ANSI.Reset]
     putStrLn ""
-
 
 loopRange :: Int
 loopRange = 1
@@ -158,11 +158,11 @@ runPass' = runPass
 foreign import ccall unsafe "c_ptr_rwloop"
     c_ptr_rwloop :: Int -> Int -> IO Int
 
-readWrite_CPtr :: Bench
-readWrite_CPtr = Bench "CPtr" $ void . c_ptr_rwloop 1 ; {-# INLINE readWrite_CPtr #-}
+readWrite_cptr :: Bench
+readWrite_cptr = Bench "cptr" $ void . c_ptr_rwloop 1 ; {-# INLINE readWrite_cptr #-}
 
-readWrite_Ptr :: Bench
-readWrite_Ptr = Bench "RawPtr" $ \i -> do
+readWrite_ptr :: Bench
+readWrite_ptr = Bench "rawPtr" $ \i -> do
     !ptr <- Ptr.new (0 :: Int)
     let go !0 = return ()
         go !j = do
@@ -171,14 +171,14 @@ readWrite_Ptr = Bench "RawPtr" $ \i -> do
             go $! j - 1
     go i
     Ptr.free ptr
-{-# NOINLINE readWrite_Ptr #-}
+{-# NOINLINE readWrite_ptr #-}
 
 mockNewComponent :: MonadIO m => m (IR.Term Format.Draft)
 mockNewComponent = Component . coerce <$> MemPool.allocPtr @(IR.UniTerm ()) ; {-# INLINE mockNewComponent #-}
 
 readWrite_expTM :: Bench
-readWrite_expTM = Bench "ExplicitTypeMap" $ \i -> do
-    a <- Basic.mockNewComponent
+readWrite_expTM = Bench "explicitTypeMap" $ \i -> do
+    a <- mockNewComponent
     Layer.unsafeWriteByteOff @IR.Model layerLoc a (IR.UniTermVar $ IR.Var 0)
     let go 0 = pure ()
         go j = do
@@ -200,9 +200,9 @@ readWrite_expTM = Bench "ExplicitTypeMap" $ \i -> do
               (0 :: Int)
 {-# NOINLINE readWrite_expTM #-}
 
-readWrite_LayerMock :: Bench
-readWrite_LayerMock = Bench "StaticRun" $ \i -> do
-    ir <- Basic.mockNewComponent
+readWrite_layerMock :: Bench
+readWrite_layerMock = Bench "staticRun" $ \i -> do
+    ir <- mockNewComponent
     Layer.unsafeWriteByteOff @IR.Model layerLoc ir (IR.UniTermVar $ IR.Var 0)
     let go :: Int -> Pass Pass.BasicPass ()
         go 0 = pure ()
@@ -222,10 +222,10 @@ readWrite_LayerMock = Bench "StaticRun" $ \i -> do
                reg     <- State.get @Registry.State
                passCfg <- Encoder.computeConfig reg
                pure passCfg
-{-# NOINLINE readWrite_LayerMock #-}
+{-# NOINLINE readWrite_layerMock #-}
 
-readWrite_Layer :: Bench
-readWrite_Layer = Bench "Normal" $ \i -> runPass' $ do
+readWrite_layer :: Bench
+readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
     let go :: Int -> Pass Pass.BasicPass ()
         go 0 = pure ()
@@ -234,8 +234,31 @@ readWrite_Layer = Bench "Normal" $ \i -> runPass' $ do
             Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! (x+1))
             go (j - 1)
     go i
-{-# NOINLINE readWrite_Layer #-}
+{-# NOINLINE readWrite_layer #-}
 
+
+
+-----------------------
+-- === Create IR === --
+-----------------------
+
+createIR_mallocPtr :: Bench
+createIR_mallocPtr = Bench "mallocPtr" $ \i -> do
+    let go !0 = pure ()
+        go !j = do
+            !ptr <- Ptr.new (0 :: Int)
+            go $! j - 1
+    go i
+{-# NOINLINE createIR_mallocPtr #-}
+
+createIR_normal :: Bench
+createIR_normal = Bench "normal" $ \i -> runPass' $ do
+    let go !0 = pure ()
+        go !j = do
+            !ir <- IR.var 0
+            go $! j - 1
+    go i
+{-# NOINLINE createIR_normal #-}
 
 
 --------------------------------
@@ -244,17 +267,27 @@ readWrite_Layer = Bench "Normal" $ \i -> runPass' $ do
 
 invariants :: IO ()
 invariants = checkInvariants $
-    [ assertBenchToRef "Layer R/W" 7 10 readWrite_CPtr readWrite_Layer
+    [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
+    , assertBenchToRef "Layer R/W" 7 10 readWrite_cptr readWrite_layer
     ]
 
 benchmarks :: IO ()
-benchmarks = Criterion.defaultMain $ Criterion.bgroup "IR" . pure
-    [ Criterion.bgroup "Layer" . pure . Criterion.bgroup "RW" $ bench 7 <$>
-        [ readWrite_CPtr
-        , readWrite_Ptr
-        , readWrite_expTM
-        , readWrite_LayerMock
-        , readWrite_Layer
+benchmarks = Criterion.defaultMain
+    [ "ir"
+        [ "layer"
+            [ "rw" $ bench 7 <$>
+                [ readWrite_cptr
+                , readWrite_ptr
+                , readWrite_expTM
+                , readWrite_layerMock
+                , readWrite_layer
+                ]
+            ]
+
+        , "create" $ bench 6 <$>
+            [ createIR_mallocPtr
+            , createIR_normal
+            ]
         ]
     ]
 
@@ -262,3 +295,8 @@ main :: IO ()
 main = do
     invariants
     benchmarks
+
+
+instance a ~ Criterion.Benchmark
+      => IsString ([Criterion.Benchmark] -> a) where
+    fromString = Criterion.bgroup
