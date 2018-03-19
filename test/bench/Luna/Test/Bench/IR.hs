@@ -82,7 +82,7 @@ checkRetry = checkRetry' 1 where
 
 assertBenchToRef :: String -> Int -> Double -> Bench -> Bench -> IO Bool
 assertBenchToRef str exp percAllow ref f = do
-    let desc = str <+> f ^. name <+> "as fast as" <+> ref ^. name
+    let desc = str <+> (f ^. name) <+> "as fast as" <+> (ref ^. name)
         msg  = ("[TEST:" <> show maxRetries <> "]") <+> desc
     putStrLn msg
     checkRetry (checkToRef exp percAllow ref f) >>= \case
