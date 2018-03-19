@@ -78,17 +78,24 @@ benchmarks:
     source-dirs: 
       - test/bench
       - test/common
+    c-sources:
+      - test/bench/cbits/*.cpp
+    include-dirs:
+      - test/bench/cbits
+    extra-libraries: stdc++
+    cc-options:      -std=c++17 -O2
     dependencies:
+      - ansi-terminal
       - base
       - convert
       - criterion >= 1.3.0.0
       - deepseq
       - ghc
+      - layered-state
       - luna-core
       - prologue
       - unboxed-ref >= 0.4.0.0
       - vector 
-      - layered-state
 
 tests:
   spec:
