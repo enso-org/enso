@@ -1,5 +1,9 @@
 module Prologue.Data.OneTuple where
 
+-- Implemented unless OneTuple package will not be GHC 8.4 compatible.
+-- Moreover, we may want to leave it because its newtype, while the
+-- package's version is just a data type.
+
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Fix
