@@ -271,17 +271,16 @@ instance ( MonadIO m -- DEBUG ONLY
                                                where go imps defs = let glue = ""
                                                                     in  imps <> glue <> foldl (</>) mempty defs
 
-        AccSection n -> return . named (notSpaced accName) . atom $ "."
-            <> intercalate "." (convert <$> n)
-        Metadata t -> return . unnamed . atom $ "###" <+> metadataHeader
-            <+> convertVia @Text t
+        AccSection n -> return . named (notSpaced accName) . atom
+            $ "." <> intercalate "." (convert <$> n)
+        Metadata t -> return . unnamed . atom
+            $ "###" <+> metadataHeader <+> convertVia @Text t
         -- FIXME [Ara, WD] Conversion via Text is not efficient
-        Documented d a -> let
-                docLines = Text.split (== '\n') $ convertVia @P.String d
-                docComments = map ("##" `Text.append`) docLines
-                docJoined = Text.intercalate "\n" docComments
-            in unnamed . atom .
-                (\a' -> convertVia @P.String docJoined </> a') <$> subgenBody a
+        Documented d a -> unnamed . atom .
+            (\a' -> convertVia @P.String docJoined </> a') <$> subgenBody a
+            where docLines    = Text.split (== '\n') $ convertVia @P.String d
+                  docComments = map ("##" `Text.append`) docLines
+                  docJoined   = Text.intercalate "\n" docComments
         Disabled a -> unnamed . atom . ("#" <>) <$> subgenBody a
         Update a ns v -> named (spaced updateName) . atom .:
             (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns)
@@ -290,8 +289,8 @@ instance ( MonadIO m -- DEBUG ONLY
             (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns)
                 <+> convert n <> "=" <+> convert v')
             <$> subgen a <*> subgen v
-        x -> error $ "Pretty printer: unexpected: " <> show x <> " ("
-            <> show root <> ")"
+        x -> error $ msg <> show x <> " (" <> show root <> ")" where
+            msg = "Pretty printer: unexpected"
 
         where subgen     = chainedPrettyShow subStyle subStyle <=< source
               subgenBody = fmap getBody . subgen
