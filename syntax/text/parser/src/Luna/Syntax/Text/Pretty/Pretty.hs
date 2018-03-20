@@ -279,9 +279,9 @@ instance ( MonadIO m -- DEBUG ONLY
         Documented d a -> unnamed . atom .
             (\a' -> convertVia @P.String docJoined </> a') <$> subgenBody a
             where docLines    = Text.split (== '\n') $ convertVia @P.String d
-                  docComments = map ("##" `Text.append`) docLines
+                  docComments = map ("#" `Text.append`) docLines
                   docJoined   = Text.intercalate "\n" docComments
-        Disabled a -> unnamed . atom . ("#" <>) <$> subgenBody a
+        Disabled a -> unnamed . atom . ("##" <>) <$> subgenBody a
         Update a ns v -> named (spaced updateName) . atom .:
             (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns)
             <+> "=" <+> convert v') <$> subgen a <*> subgen v
