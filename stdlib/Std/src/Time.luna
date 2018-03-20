@@ -2,39 +2,39 @@ import Std.Base
 import Std.System
 
 
-## A class representing the time zone.
-## Please keep in mind that the offset is in minutes, as some timezones
-## use the multiple of 15 minutes as the offset.
+# A class representing the time zone.
+# Please keep in mind that the offset is in minutes, as some timezones
+# use the multiple of 15 minutes as the offset.
 class TimeZone:
     TimeZone
     TimeZoneVal Int Bool Text
 
-    ## Creates a new `TimeZoneInstance`.
+    # Creates a new `TimeZoneInstance`.
     def create offsetMins summerOnly name:
         TimeZoneVal offsetMins summerOnly name
 
     def toText: case self of
         TimeZoneVal m s n: "TimeZone { minutes = " + m.toText + ", summerOnly = " + s.toText + ", name = " + n + "}"
 
-    ## The offset (in minutes) from the UTC timezone.
+    # The offset (in minutes) from the UTC timezone.
     def minutes: case self of
         TimeZoneVal m _ _: m
 
-    ## Is this timezone valid only throughout the summertime?
+    # Is this timezone valid only throughout the summertime?
     def summerOnly: case self of
         TimeZoneVal _ s _: s
 
-    ## The three letter shortcut name for this timezone, can be blank.
+    # The three letter shortcut name for this timezone, can be blank.
     def name: case self of
         TimeZoneVal _ _ n: n
 
-    ## Creates a nameless timezone with a given offset (in minutes).
+    # Creates a nameless timezone with a given offset (in minutes).
     def fromMinutes m: TimeZoneVal m False ""
 
-    ## Creates a nameless timezone with a given offset (in hours).
+    # Creates a nameless timezone with a given offset (in hours).
     def fromHours h: TimeZoneVal (h * 60) False ""
 
-    ## Returns the `TimeZone` object representing the current timezone.
+    # Returns the `TimeZone` object representing the current timezone.
     def current: primGetCurrentTimeZone
 
     def utc: TimeZoneVal 0 False "UTC"
@@ -45,11 +45,11 @@ class TimeZone:
 
     def pst: TimeZoneVal (-8) False "PST"
 
-    ## Is the offset of this `TimeZone` the same as of the `other` one?
+    # Is the offset of this `TimeZone` the same as of the `other` one?
     def == other:
         self.minutes.== other.minutes
 
-## A class representing the time of day (hours, minutes, seconds).
+# A class representing the time of day (hours, minutes, seconds).
 class TimeOfDay:
     TimeOfDay
     TimeOfDayVal Int Int Real
@@ -67,243 +67,243 @@ class TimeOfDay:
 
     def noon: TimeOfDayVal 12 0 0.0
 
-    ## Does this `TimeOfDay` point to an earlier time during the day than the `other`?
+    # Does this `TimeOfDay` point to an earlier time during the day than the `other`?
     def < other:
         if self.hour.< other.hour then True else if self.minute.< other.minute then True else if self.second.< other.second then True else False
 
-    ## Is this `TimeOfDay` equal to the other? (Up to one second resolution).
+    # Is this `TimeOfDay` equal to the other? (Up to one second resolution).
     def == other:
         (self.hour.== other.hour) . and (self.minute.== other.minute) . and (self.second.== other.second)
 
-    ## Does this `TimeOfDay` point to a later time during the day than the `other`?
+    # Does this `TimeOfDay` point to a later time during the day than the `other`?
     def > other: (self.< other . or self.== other) . not
 
-## A class representing the UTC time (mostly to facilitate other computations).
-## For the majority of use-cases it is recommended to use the `Time` class, which
-## supports timezones and provides a much richer API. However, for frequent
-## operations involving time differences and arithmetic operations, this class
-## will provide slightly better performance.
+# A class representing the UTC time (mostly to facilitate other computations).
+# For the majority of use-cases it is recommended to use the `Time` class, which
+# supports timezones and provides a much richer API. However, for frequent
+# operations involving time differences and arithmetic operations, this class
+# will provide slightly better performance.
 class UTCTime:
     UTCTime
     UTCTimeVal Int TimeInterval
 
-    ## Converts this `UTCTime` instance to a `Time`, using the local timezone.
+    # Converts this `UTCTime` instance to a `Time`, using the local timezone.
     def toZonedTime: primTimeFromUTC TimeZone.current self
 
-    ## Default format for `UTCTime`: YYYY-MM-DD.HH:MM:SS.
+    # Default format for `UTCTime`: YYYY-MM-DD.HH:MM:SS.
     def defaultFormat: "%FT%T"
 
-    ## Formats a `Time` according to the specifier supplied (converting to `Text`).
-    ## If a custom format is needed, please see:
-    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
+    # Formats a `Time` according to the specifier supplied (converting to `Text`).
+    # If a custom format is needed, please see:
+    # https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def format fmt: primFormatUTCTime fmt self
 
-    ## Converts a `Time` to `Text` using the default format (YYYY-MM-DD.HH:MM:SS).
+    # Converts a `Time` to `Text` using the default format (YYYY-MM-DD.HH:MM:SS).
     def toText: self.format Time.defaultFormat
 
     def shortRep: self.toText
 
-    ## Calculate difference between two time values.
+    # Calculate difference between two time values.
     def diff other: primDiffTimes self other
 
-    ## Add a `TimeInterval` to this `UTCTime`.
+    # Add a `TimeInterval` to this `UTCTime`.
     def add interval: primAddUTCTime interval self
 
-    ## Subtract a `TimeInterval` from this `UTCTime`.
+    # Subtract a `TimeInterval` from this `UTCTime`.
     def sub interval: primSubUTCTime interval self
 
-    ## Does this and the `other` `UTCTime` point to the same time?
+    # Does this and the `other` `UTCTime` point to the same time?
     def == other: primTimesEq self other
 
-    ## Is this `UTCTime` earlier than the `other`?
+    # Is this `UTCTime` earlier than the `other`?
     def < other:
         d = self.diff other
         d.toInt.< 0
 
-    ## Is this `UTCTime` later than the `other`?
+    # Is this `UTCTime` later than the `other`?
     def > other:
         d = self.diff other
         d.toInt.> 0
 
 
-## A class representing time (and date), with timezone.
-## By default it will use the current timezone as set on the user's machine.
-## If you wish to override that behaviour, you can explicitly set the timezone
-## with `setTimeZone`, like:
-## ```
-## Time.now . setTimeZone TimeZone.cst
-## ```
-##
-## `Time` supports various formatting and parsing methods, including the
-## default `toText` method, `format` (accepting a format string), `toEpoch`,
-## `parse`, `parseFmt` (for custom formats) and `fromEpoch`.
-##
-## `Time` instances can be compared and you can add and subtract `TimeIntervals`,
-## like:
-## ```
-## Time.now . add 2.minutes
-## ```
-## The above can also be expressed in a more natural syntax with:
-## ```
-## 2.minutes.fromNow
-## ```
-##
-## Additional helper methods exist to make working with `Time` easier, please
-## consult the docstring for each method for further information.
+# A class representing time (and date), with timezone.
+# By default it will use the current timezone as set on the user's machine.
+# If you wish to override that behaviour, you can explicitly set the timezone
+# with `setTimeZone`, like:
+# ```
+# Time.now . setTimeZone TimeZone.cst
+# ```
+#
+# `Time` supports various formatting and parsing methods, including the
+# default `toText` method, `format` (accepting a format string), `toEpoch`,
+# `parse`, `parseFmt` (for custom formats) and `fromEpoch`.
+#
+# `Time` instances can be compared and you can add and subtract `TimeIntervals`,
+# like:
+# ```
+# Time.now . add 2.minutes
+# ```
+# The above can also be expressed in a more natural syntax with:
+# ```
+# 2.minutes.fromNow
+# ```
+#
+# Additional helper methods exist to make working with `Time` easier, please
+# consult the docstring for each method for further information.
 class Time:
     Time
     TimeVal Int TimeOfDay TimeZone
 
-    ## Gets the current time in the users timezone. Usage: `Time.now`.
+    # Gets the current time in the users timezone. Usage: `Time.now`.
     def now: primGetCurrentTime
 
-    ## Gets time of day (hours, minutes, seconds) as a `TimeOfDay` instance.
+    # Gets time of day (hours, minutes, seconds) as a `TimeOfDay` instance.
     def timeOfDay: case self of
         TimeVal _ tod _: tod
 
-    ## Sets the time-of-day part of this `Time` to a given `TimeOfDay` instance.
+    # Sets the time-of-day part of this `Time` to a given `TimeOfDay` instance.
     def setTimeOfDay tod: case self of
         TimeVal days _ tz: TimeVal days tod tz
 
-    ## Returns the timezone associated with this `Time`.
+    # Returns the timezone associated with this `Time`.
     def timeZone: case self of
         TimeVal _ _ tz: tz
 
-    ## Sets the timezone of this time to a given `TimeZone` instance.
+    # Sets the timezone of this time to a given `TimeZone` instance.
     def setTimeZone tz: case self of
         TimeVal days tod _: TimeVal days tod tz
 
     def _days: case self of
         TimeVal days _ _: days
 
-    ## Advances the date by a given number of days.
+    # Advances the date by a given number of days.
     def addDays d: case self of
         TimeVal days tod tz: TimeVal (days + d) tod tz
 
-    ## Subtracts a given number of days from the date.
+    # Subtracts a given number of days from the date.
     def subDays d: case self of
         TimeVal days tod tz: TimeVal (days - d) tod tz
 
-    ## Gets the beginning of the current day.
-    ## If called on February 14th at 4:00, it will return February 14th 0:00
+    # Gets the beginning of the current day.
+    # If called on February 14th at 4:00, it will return February 14th 0:00
     def beginningOfDay: Time.now.setTimeOfDay TimeOfDay.midnight
 
-    ## Gets the end of the current day.
-    ## If called on February 14th at 4:00, it will return February 15th 0:00
+    # Gets the end of the current day.
+    # If called on February 14th at 4:00, it will return February 15th 0:00
     def endOfDay: Time.beginningOfDay . addDays 1
 
-    ## Gets the time of year in form of a tuple: (year, month, day)
+    # Gets the time of year in form of a tuple: (year, month, day)
     def timeOfYear: primTimeOfYear self._days
 
-    ## Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`..
+    # Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`..
     def fromTimeOfYear y m d tz:
         timeZone = tz.withDefault TimeZone.current
         TimeVal (primFromTimeOfYear y m d) TimeOfDay.midnight timeZone
 
-    ## Gets the `Time` representing the first day of the current month.
+    # Gets the `Time` representing the first day of the current month.
     def beginningOfMonth: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y m 1 (Just tz)
 
-    ## Gets the `Time` representing the last day of the current month.
+    # Gets the `Time` representing the last day of the current month.
     def endOfMonth: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y m (primMonthLength y m) (Just tz)
 
-    ## Gets the `Time` representing the first day (January 1st) of the current year.
+    # Gets the `Time` representing the first day (January 1st) of the current year.
     def beginningOfYear: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y 1 1 (Just tz)
 
-    ## Gets the `Time` representing the last day (December 31st) of the current year.
+    # Gets the `Time` representing the last day (December 31st) of the current year.
     def endOfYear: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y 12 31 (Just tz)
 
-    ## Converts this `Time` instance to a `UTCTime`.
+    # Converts this `Time` instance to a `UTCTime`.
     def toUTC: primTimeToUTC self
 
-    ## Calculate difference between to time values.
+    # Calculate difference between to time values.
     def diff other: primDiffTimes self.toUTC other.toUTC
 
-    ## Add a `TimeInterval` to this `Time`.
+    # Add a `TimeInterval` to this `Time`.
     def add interval: self.toUTC.add interval . toZonedTime
 
-    ## Subtract a `TimeInterval` from this `Time`.
+    # Subtract a `TimeInterval` from this `Time`.
     def sub interval: self.toUTC.sub interval . toZonedTime
 
-    ## Does this and the `other` `Time` point to the same time?
+    # Does this and the `other` `Time` point to the same time?
     def == other: primTimesEq self.toUTC other.toUTC
 
-    ## Is this `Time` earlier than the `other`?
+    # Is this `Time` earlier than the `other`?
     def < other:
         d = self.diff other
         d.toInt.< 0
 
-    ## Is this `Time` later than the `other`?
+    # Is this `Time` later than the `other`?
     def > other:
         d = self.diff other
         d.toInt.> 0
 
-    ## Default format for `Time`: YYYY-MM-DD.HH:MM:SS+TTTT.
-    ## The `TTTT` in the format above stands for the timezone offset.
+    # Default format for `Time`: YYYY-MM-DD.HH:MM:SS+TTTT.
+    # The `TTTT` in the format above stands for the timezone offset.
     def defaultFormat: "%FT%T%z"
 
-    ## Tries to parse `Time` from `Text` using the specified format.
-    ## Returns `Just time` if successful and `Nothing` otherwise.
-    ## In most cases, you can use `safeParse`, which uses the default format.
-    ## If a custom format is needed, please see:
-    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
+    # Tries to parse `Time` from `Text` using the specified format.
+    # Returns `Just time` if successful and `Nothing` otherwise.
+    # In most cases, you can use `safeParse`, which uses the default format.
+    # If a custom format is needed, please see:
+    # https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def safeParseFmt fmt str: primParseTime fmt str
 
-    ## Try to parse `Time` from `Text` assuming the default format of date and time.
-    ## Returns `Just time` if successful, `Nothing` otherwise.
+    # Try to parse `Time` from `Text` assuming the default format of date and time.
+    # Returns `Just time` if successful, `Nothing` otherwise.
     def safeParse str: Time.safeParseFmt Time.defaultFormat str
 
-    ## Parse `Time` from `Text` using the supplied format.
-    ## Returns a `Time` object and throws an error if unable to parse the time.
-    ## In most cases, you can use `parse`, which uses the default format.
-    ## If a custom format is needed, please see:
-    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
+    # Parse `Time` from `Text` using the supplied format.
+    # Returns a `Time` object and throws an error if unable to parse the time.
+    # In most cases, you can use `parse`, which uses the default format.
+    # If a custom format is needed, please see:
+    # https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def parseFmt fmt str: case Time.safeParseFmt fmt str of
         Just t:  t
         Nothing: throw ("Couldn't parse Time with the given format (" + fmt + ")")
 
-    ## Parse `Time` from `Text`.
-    ## Returns a `Time` object and throws an error if unable to parse the time.
+    # Parse `Time` from `Text`.
+    # Returns a `Time` object and throws an error if unable to parse the time.
     def parse str: Time.parseFmt Time.defaultFormat str
 
-    ## Formats a `Time` according to the specifier supplied (converting to `Text`).
-    ## If a custom format is needed, please see:
-    ## https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
+    # Formats a `Time` according to the specifier supplied (converting to `Text`).
+    # If a custom format is needed, please see:
+    # https://hackage.haskell.org/package/time-1.8.0.3/docs/Data-Time-Format.html#v:formatTime
     def format fmt: primFormatTime fmt self
 
-    ## Converts a `Time` to `Text` using the default format (YYYY-MM-DD.HH:MM:SS).
+    # Converts a `Time` to `Text` using the default format (YYYY-MM-DD.HH:MM:SS).
     def toText: self.format Time.defaultFormat
 
     def toJSON: self.toText.toJSON
 
     def shortRep: self.toText
 
-    ## Parses a `Time` from a number representing the standard epoch.
+    # Parses a `Time` from a number representing the standard epoch.
     def fromEpoch e: case Time.safeParseFmt "%s" e.toText of
         Just t: t
         Nothing: throw "Couldn't parse Time from epoch."
 
-    ## Converts a `Time` to an epoch.
+    # Converts a `Time` to an epoch.
     def toEpoch: self.format "%s"
 
-## A class representing time intervals, that is: a difference between two times.
-## Can be converted to different time resolutions like seconds, miliseconds and microseconds.
-## Internally the time interval is stored with picosecond resolution.
-## The main purpose of this class is to make working with time intuitive:
-## using the helper methods you can write things like:
-## ```
-## 5.seconds.ago
-## 10.minutes.fromNow
-## 15.seconds.before someTime
-## 20.minutes.after someTime
-## ```
+# A class representing time intervals, that is: a difference between two times.
+# Can be converted to different time resolutions like seconds, miliseconds and microseconds.
+# Internally the time interval is stored with picosecond resolution.
+# The main purpose of this class is to make working with time intuitive:
+# using the helper methods you can write things like:
+# ```
+# 5.seconds.ago
+# 10.minutes.fromNow
+# 15.seconds.before someTime
+# 20.minutes.after someTime
+# ```
 class TimeInterval:
     TimeInterval Int
 
@@ -312,16 +312,16 @@ class TimeInterval:
     def toInt: case self of
         TimeInterval d: d
 
-    ## Return a real representing the number of picoseconds in this `TimeInterval`.
+    # Return a real representing the number of picoseconds in this `TimeInterval`.
     def toReal: self.toInt.toReal
 
-    ## Return the number of seconds in this interval.
+    # Return the number of seconds in this interval.
     def toSeconds: self.toInt / 1000000000000
 
-    ## Return the number of miliseconds in this interval.
+    # Return the number of miliseconds in this interval.
     def toMiliseconds: self.toInt / 1000000000
 
-    ## Return the number of microseconds in this interval.
+    # Return the number of microseconds in this interval.
     def toMicroseconds: self.toInt / 1000000
 
     def toText: (self.toReal./ 1000000000.0).toText + "ms"
@@ -330,21 +330,21 @@ class TimeInterval:
 
     def sub other: TimeInterval (self.toInt - other.toInt)
 
-    ## Subtract this `TimeInterval` from a given `Time`, hence
-    ## returning a point in time `before` the given `Time`.
+    # Subtract this `TimeInterval` from a given `Time`, hence
+    # returning a point in time `before` the given `Time`.
     def before time: time.sub self
 
-    ## Add this `TimeInterval` to a given `Time`, hence
-    ## returning a point in time some `TimeInterval` `from` the given `Time`.
+    # Add this `TimeInterval` to a given `Time`, hence
+    # returning a point in time some `TimeInterval` `from` the given `Time`.
     def from time: time.add self
 
-    ## Return this `TimeInterval` before now (so some amount of time ago).
+    # Return this `TimeInterval` before now (so some amount of time ago).
     def ago: self.before Time.now
 
-    ## Return this `TimeInterval` after now (so some amount of time from now).
+    # Return this `TimeInterval` after now (so some amount of time from now).
     def fromNow: self.from Time.now
 
-    ## Are this and the `other` `TimeIntervals` the same?
+    # Are this and the `other` `TimeIntervals` the same?
     def == other: self.toInt.== other.toInt
 
     def < other: self.toInt.< (other.toInt)

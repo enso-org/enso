@@ -1,11 +1,11 @@
 import Std.Base
 
 
-## Data type representing different ways of connecting the processes outputs (e.g. stdout).
-## `Inherit` means that the process gets a given pipe after the process that created it.
-## `UseHandle` lets you specify a file to connect to the process instead of, for example, stdout.
-## `CreatePipe` creates a fresh connection (pipe) that you can later use to communicate with the process.
-## `NoStream` leaves a given pipe closed (e.g. if you don't need the processes stdin).
+# Data type representing different ways of connecting the processes outputs (e.g. stdout).
+# `Inherit` means that the process gets a given pipe after the process that created it.
+# `UseHandle` lets you specify a file to connect to the process instead of, for example, stdout.
+# `CreatePipe` creates a fresh connection (pipe) that you can later use to communicate with the process.
+# `NoStream` leaves a given pipe closed (e.g. if you don't need the processes stdin).
 class PipeRequest:
     Inherit
     UseHandle: handle :: FileHandle
@@ -18,7 +18,7 @@ class PipeRequest:
             _: False
 
 
-## Data type used for specifying the buffering mode of the input-output operations.
+# Data type used for specifying the buffering mode of the input-output operations.
 class BufferMode:
     NoBuffering
     LineBuffering
@@ -30,61 +30,61 @@ class BufferMode:
             _: True
 
 
-## A class representing a file in the filesytstem.
+# A class representing a file in the filesytstem.
 native class FileHandle:
-    ## Lets you specify the `BufferMode` for this file.
+    # Lets you specify the `BufferMode` for this file.
     def setBuffering bm: primHSetBuffering self bm
-    ## Checks whether the file this handle is referring to is open.
+    # Checks whether the file this handle is referring to is open.
     def isOpen: primHIsOpen self
-    ## Checks whether the file this handle is referring to is closed.
+    # Checks whether the file this handle is referring to is closed.
     def isClosed: primHIsClosed self
-    ## Closes the file.
+    # Closes the file.
     def close: primHClose self
-    ## Flushes any buffered content to make sure that it actually goes through.
+    # Flushes any buffered content to make sure that it actually goes through.
     def flush: primHFlush self
-    ## Return the contents of the file.
+    # Return the contents of the file.
     def getContents: primHGetContents self
-    ## Get one line of the file.
+    # Get one line of the file.
     def getLine: primHGetLine self
-    ## Write some `Text` to the file.
+    # Write some `Text` to the file.
     def putText t: primHPutText self t
-    ## Write some `Text` to the file, appending a new line at the end.
+    # Write some `Text` to the file, appending a new line at the end.
     def putLine t: primHPutText self (t + '\n')
-    ## Access this file's contents as a `Stream`.
-    ## For more information on dealing with streams in Luna
-    ## please consult the `Stream` class documentation for `Std.Base`.
+    # Access this file's contents as a `Stream`.
+    # For more information on dealing with streams in Luna
+    # please consult the `Stream` class documentation for `Std.Base`.
     def toStream: streamFrom self.getLine
 
 
-## A class representing the low-level handle to the process in the operating system.
-## Note that this class is used internally by `Std.System` and
-## most users should use `Process` instead.
+# A class representing the low-level handle to the process in the operating system.
+# Note that this class is used internally by `Std.System` and
+# most users should use `Process` instead.
 class ProcessHandle:
-    ## Wait for the process described by this handle to finish.
+    # Wait for the process described by this handle to finish.
     def wait: primWaitForProcess self
 
 
-## A class representing an operating system process.
-## It allows you to access the standard input (`stdin`), the standard output
-## (`stdout`) and standard error (`stderr`) of this process, hence allowing
-## other processes to communicate with this one.
-## It also exposes the `wait` method.
+# A class representing an operating system process.
+# It allows you to access the standard input (`stdin`), the standard output
+# (`stdout`) and standard error (`stderr`) of this process, hence allowing
+# other processes to communicate with this one.
+# It also exposes the `wait` method.
 class Process:
     stdin  :: Maybe FileHandle
     stdout :: Maybe FileHandle
     stderr :: Maybe FileHandle
     handle :: ProcessHandle
 
-    ## Wait for this process to finish execution.
+    # Wait for this process to finish execution.
     def wait: self.handle . wait
 
 
-## An object representing a process to launch (as opposed to `Process`, which is an already running process).
-## Note: in most cases the constructor for this class should not be called directly.
-## It is advisable to use `Command.create` instead. Please see the documentation for `Command`.
-## This class provides a set of setters for changing the arguments to the process
-## or changing its input and outputs.
-## A `ProcessDescription` class will transform into a running `Process` once its `run` method is called.
+# An object representing a process to launch (as opposed to `Process`, which is an already running process).
+# Note: in most cases the constructor for this class should not be called directly.
+# It is advisable to use `Command.create` instead. Please see the documentation for `Command`.
+# This class provides a set of setters for changing the arguments to the process
+# or changing its input and outputs.
+# A `ProcessDescription` class will transform into a running `Process` once its `run` method is called.
 class ProcessDescription:
     command :: Text
     args    :: List Text
@@ -92,48 +92,48 @@ class ProcessDescription:
     stdout  :: PipeRequest
     stderr  :: PipeRequest
 
-    ## Set the command to run.
-    ## In general, calls to this method should be avoided, as the command is best passed
-    ## to the `Command.create` call.
+    # Set the command to run.
+    # In general, calls to this method should be avoided, as the command is best passed
+    # to the `Command.create` call.
     def setCommand command: case self of
         ProcessDescription _ args stdin stdout stderr input: ProcessDescription command args stdin stdout stderr input
 
-    ## Set the arguments to the process.
-    ## In general, calls to this method should be avoided, as the arguments are best passed
-    ## to the `Command.create` call.
+    # Set the arguments to the process.
+    # In general, calls to this method should be avoided, as the arguments are best passed
+    # to the `Command.create` call.
     def setArgs args: case self of
         ProcessDescription command _ stdin stdout stderr input: ProcessDescription command args stdin stdout stderr input
 
-    ## Set the standard input of the process to a specified `PipeRequest`.
+    # Set the standard input of the process to a specified `PipeRequest`.
     def setStdin stdin: case self of
         ProcessDescription command args _ stdout stderr input: ProcessDescription command args stdin stdout stderr input
 
-    ## Set the standard output of the process to a specified `PipeRequest`.
+    # Set the standard output of the process to a specified `PipeRequest`.
     def setStdout stdout: case self of
         ProcessDescription command args stdin _ stderr input: ProcessDescription command args stdin stdout stderr input
 
-    ## Set the standard error of the process to a specified `PipeRequest`.
+    # Set the standard error of the process to a specified `PipeRequest`.
     def setStderr stderr: case self of
         ProcessDescription command args stdin stdout _ input: ProcessDescription command args stdin stdout stderr input
 
-    ## Actually run this process, returning a `Process` instance.
+    # Actually run this process, returning a `Process` instance.
     def run: primRunProcess self
 
-    ## Run this process with specified `input`.
+    # Run this process with specified `input`.
     def runWithInput input:
         p = self.run
         unless (t.isEmpty) (p.stdin.get.putText t)
         p.stdin.each .close
         p
 
-    ## Run this process, passing a stream as its input.
+    # Run this process, passing a stream as its input.
     def runWithStream stream:
         p = self.run
         fork (stream.each p.stdin.get.putLine)
         p
 
-    ## Execute this process from beginning to end, returning its standard output, standard error
-    ## and exit code instead of the `Process` object.
+    # Execute this process from beginning to end, returning its standard output, standard error
+    # and exit code instead of the `Process` object.
     def execute input:
         p = self.run
         outh = p.stdout.get.getContents
@@ -149,17 +149,17 @@ class ProcessDescription:
         (outErr.first, outErr.second, ex)
 
 
-## The entry point to creating new processes and running system commands.
-## It facilitates easy creation of processes by passing the command to run and its arguments.
-## Once you call `Command.create <cmd> <args>`, you can modify it using the `ProcessDescription`
-## methods like `setStdin`. Then, you need to call `run` (or one of its variants) to actually
-## execute the process. Example of redirecting the output of `ls -al` to a file:
-## ```
-## cmd = Command.create "ls" ["-al"] . setStdout (UseHandle somefile)
-## cmd.run
-## ```
+# The entry point to creating new processes and running system commands.
+# It facilitates easy creation of processes by passing the command to run and its arguments.
+# Once you call `Command.create <cmd> <args>`, you can modify it using the `ProcessDescription`
+# methods like `setStdin`. Then, you need to call `run` (or one of its variants) to actually
+# execute the process. Example of redirecting the output of `ls -al` to a file:
+# ```
+# cmd = Command.create "ls" ["-al"] . setStdout (UseHandle somefile)
+# cmd.run
+# ```
 class Command:
-    ## Create the command to be run.
+    # Create the command to be run.
     def create command args:
         ProcessDescription command args CreatePipe CreatePipe CreatePipe
 
@@ -173,9 +173,9 @@ def withForkWait async body:
     body mVar.take
 
 
-## Exit code of a process.
-## Can either be `ExitSuccess` or `ExitFailure`, in which case it will
-## additionally contain the exit code.
+# Exit code of a process.
+# Can either be `ExitSuccess` or `ExitFailure`, in which case it will
+# additionally contain the exit code.
 class ExitCode:
     ExitSuccess
     ExitFailure: errorCode :: Int
@@ -184,12 +184,12 @@ class ExitCode:
         ExitSuccess: 0
         ExitFailure e: e
 
-    ## Is this code a successful one?
+    # Is this code a successful one?
     def exitSuccess: case self of
         ExitSuccess: True
         ExitFailure e: False
 
-    ## Is this code not a successful one?
+    # Is this code not a successful one?
     def exitFailure: case self of
         ExitFailure e: True
         ExitSuccess: False
