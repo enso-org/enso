@@ -365,41 +365,31 @@ spec = do
             it "mixfix (if .. then .. else)"             $ shouldParseItself' expr "if a b then c d else e f" [(0,2),(0,1),(1,1),(1,3),(0,6),(0,1),(1,1),(6,3),(0,15),(0,1),(1,1),(6,3),(0,24)]
 
         describe "disabled" $ do
-            it "disabled var expression" $ shouldParseItself' expr
-                "##foo" [(2,3),(0,5)]
-            it "disabled app expression" $ shouldParseItself' expr
-                "##foo bar" [(0,3),(1,3),(2,7),(0,9)]
-            it "disabled expression with space" $ shouldParseAs' expr
-                "## foo bar"
-               "##foo bar"
-               [(0,3),(1,3),(3,7),(0,10)]
-            it "disabled multiline lambda" $ shouldParseItself' expr
-                "##a:\n    foo\n    bar"
-                [(0,1),(0,3),(5,3),(6,11),(2,18),(0,20)]
+            it "disabled var expression"                 $ shouldParseItself' expr "##foo"                   [(2,3),(0,5)]
+            it "disabled app expression"                 $ shouldParseItself' expr "##foo bar"               [(0,3),(1,3),(2,7),(0,9)]
+            it "disabled expression with space"          $ shouldParseAs'     expr "## foo bar"
+                                                                                   "##foo bar"
+                                                                                   [(0,3),(1,3),(3,7),(0,10)]
+            it "disabled multiline lambda"               $ shouldParseItself' expr "##a:\n    foo\n    bar" [(0,1),(0,3),(5,3),(6,11),(2,18),(0,20)]
 
         describe "documentation" $ do
-            it "single line doc comment" $ shouldParseItself' expr
-                ("# doc comment stuff"
-                </> "def foo a: a"
-                ) [(4,3),(1,1),(2,1),(20,12),(0,32)]
-            it "multi-line doc comment" $ shouldParseItself' expr
-                ("# Foo bar baz"
-                </> "# quux bam"
-                </> "def foo a: a"
-                ) [(4,3),(1,1),(2,1),(25,12),(0,37)]
-            it "single-line doc comment above expr" $ shouldParseItself' expr
-                ("# Doc comment _stuff_"
-                </> "a = b + c"
-                ) [(0,1),(0,1),(1,1),(0,3),(1,1),(3,5),(22,9),(0,31)]
-            it "multi-line doc comment above expr" $ shouldParseItself' expr
-                ("# Doc line one"
-                </> "# doc line two"
-                </> "foo = a . b bar"
-                ) [(0,3),(0,1),(0,5),(1,3),(3,9),(30,15),(0,45)]
+            it "single line doc comment"                 $ shouldParseItself' expr ("# doc comment stuff"
+                                                                                   </> "def foo a: a"
+                                                                                   ) [(4,3),(1,1),(2,1),(20,12),(0,32)]
+            it "multi-line doc comment"                  $ shouldParseItself' expr ("# Foo bar baz"
+                                                                                   </> "# quux bam"
+                                                                                   </> "def foo a: a"
+                                                                                   ) [(4,3),(1,1),(2,1),(25,12),(0,37)]
+            it "single-line doc comment above expr"      $ shouldParseItself' expr ("# Doc comment _stuff_"
+                                                                                   </> "a = b + c"
+                                                                                   ) [(0,1),(0,1),(1,1),(0,3),(1,1),(3,5),(22,9),(0,31)]
+            it "multi-line doc comment above expr"       $ shouldParseItself' expr ("# Doc line one"
+                                                                                   </> "# doc line two"
+                                                                                   </> "foo = a . b bar"
+                                                                                   ) [(0,3),(0,1),(0,5),(1,3),(3,9),(30,15),(0,45)]
 
         describe "metadata" $ do
-            it "metadata line" $ shouldParseItself'' unit'
-                "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]
+            it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]
 
         describe "foreign symbol declaration" $ do
             it "symbol checking dot spacing"             $ shouldParseAs'     foreignSymbolImport

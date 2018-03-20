@@ -6,16 +6,8 @@
 
 module Luna.Syntax.Text.Lexer.Grammar where
 
-import Prologue hiding
-    ( List
-    , Type
-    , Symbol
-    , cons
-    , span
-    , range
-    , catch
-    , takeWhile
-    , Text)
+import Prologue hiding ( List, Type, Symbol, cons, span, range, catch, takeWhile
+                       , Text)
 
 import           Control.Monad.State.Layered
 import qualified Data.Char                    as Char
@@ -354,8 +346,8 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
           handleEqs         = handleReps  [Assignment, Operator "=="]
           handleHash        = handleRepsM [lexComment, pure Disable, lexConfig]
           handleReps        = handleRepsM . fmap pure
-          handleRepsM ts s  = fromJust (pure $ Unknown s) $
-              ts ^? ix (Text32.length s - 1)
+          handleRepsM ts s  = fromJust (pure $ Unknown s)
+                            $ ts ^? ix (Text32.length s - 1)
           handleOp    op s  = if (op == "<" || op == ">") && s == "="
                               then Operator (op <> s)
                               else case s of

@@ -279,7 +279,7 @@ instance ( MonadIO m -- DEBUG ONLY
         Documented d a -> unnamed . atom .
             (\a' -> convertVia @P.String docJoined </> a') <$> subgenBody a
             where docLines    = Text.split (== '\n') $ convertVia @P.String d
-                  docComments = map ("#" `Text.append`) docLines
+                  docComments = map ("#" <>) docLines
                   docJoined   = Text.intercalate "\n" docComments
         Disabled a -> unnamed . atom . ("##" <>) <$> subgenBody a
         Update a ns v -> named (spaced updateName) . atom .:
@@ -289,7 +289,7 @@ instance ( MonadIO m -- DEBUG ONLY
             (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns)
                 <+> convert n <> "=" <+> convert v')
             <$> subgen a <*> subgen v
-        x -> error $ msg <> show x <> " (" <> show root <> ")" where
+        x -> error $ msg <> " " <> show x <> " (" <> show root <> ")" where
             msg = "Pretty printer: unexpected"
 
         where subgen     = chainedPrettyShow subStyle subStyle <=< source
