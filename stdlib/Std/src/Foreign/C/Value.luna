@@ -56,7 +56,7 @@ class Array a:
     def writeAt index val: self . ptr . moveElems index . write val
 
     def toList:
-        0 . upto self.size.pred . each self.getAt
+        0 . upto self.size.pred . each self.readAt
 
     def fromList l:
         size = l.length
