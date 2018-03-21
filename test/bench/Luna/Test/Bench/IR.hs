@@ -17,8 +17,8 @@ import qualified Foreign.Marshal.Utils       as Ptr
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Storable            as Storable
 import qualified Luna.IR                     as IR
-import qualified Luna.IR.Format              as Format
 import qualified Luna.IR.Layer               as Layer
+import qualified Luna.IR.Term.Format         as Format
 import qualified Luna.Pass                   as Pass
 import qualified Luna.Pass.Scheduler         as Scheduler
 import qualified Luna.Runner                 as Runner

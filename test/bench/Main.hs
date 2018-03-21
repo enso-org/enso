@@ -1,69 +1,89 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE OverloadedLists     #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-orphans -fno-warn-unused-binds #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Main where
 
 import Prologue
 
-import qualified Data.Vector.Storable         as Vector
-import qualified Data.Vector.Storable.Mutable as Vector
-import qualified Luna.Test.Bench.Vector       as Test
+import qualified Luna.IR             as IR
+import qualified Luna.IR.Layer       as Layer
+import qualified Luna.Pass           as Pass
+import qualified Luna.Pass.Attr      as Attr
+import qualified Luna.Pass.Scheduler as Scheduler
+import qualified Luna.Runner         as Runner
+import qualified Luna.Test.Bench.IR  as IRBench
+import qualified OCI.Pass.Registry   as Registry
 
-import Criterion.Main
-import Criterion.Measurement            (getTime, initializeTime)
-import Data.AutoVector.Storable.Mutable as AVector
-import Data.Vector.Storable             (Vector)
-import Data.Vector.Storable.Mutable     (IOVector, MVector, STVector)
-import System.IO                        (BufferMode (NoBuffering),
-                                         hSetBuffering, stdout)
-import Unsafe.Coerce                    (unsafeCoerce)
+import Criterion.Measurement (getTime, initializeTime)
+import Luna.Pass             (Pass)
+import System.IO             (BufferMode (NoBuffering), hSetBuffering, stdout)
 
--- import qualified Data.GraphLuna as Graph
 
-import qualified Foreign.Memory.Pool as MemPool
+-----------------------
+-- === Test pass === --
+-----------------------
 
--- import qualified ToRefactor as Basic
+-- === Definition === --
 
-import qualified Data.TypeSet3               as TS3
-import           Language.Haskell.TH.Builder ()
-import           Type.Data.Map
+data TestPass
+type instance Pass.Spec TestPass t = TestPassSpec t
+type family   TestPassSpec  t where
+    TestPassSpec (Pass.In  IR.Terms) = IR.Type ': Pass.BasicPassSpec (Pass.In  IR.Terms)
+    TestPassSpec (Pass.Out IR.Terms) = IR.Type ': Pass.BasicPassSpec (Pass.Out IR.Terms)
+    TestPassSpec t = Pass.BasicPassSpec t
 
-import qualified Luna.Test.Bench.MemoryManager as MManager
-import qualified Test.Data.IntSet.Cpp          as SetTest
+Pass.cache_phase1 ''TestPass
+Pass.cache_phase2 ''TestPass
 
-import Luna.Pass ()
 
-import qualified Luna.Test.Bench.IR as IRBench
+-- === API === --
 
-timeIt :: MonadIO m => String -> m a -> m a
-timeIt name f = do
-    t1  <- liftIO getTime
-    out <- f
-    t2  <- liftIO getTime
-    liftIO $ putStrLn (name <> ": " <> show (t2-t1))
-    pure out
+type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
 
-{-# ANN main ("HLint: ignore Use ." :: String) #-}
+runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
+runPass = runPasses . pure
+
+runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
+runPasses passes = Scheduler.runManual registry $ do
+    Scheduler.debugRunPassDefs passes
+    where registry = do
+              Runner.registerAll
+              Registry.registerPrimLayer @IR.Terms @IR.Type
+
+
+run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()
+run2Passes p1 p2 = runPasses [p1,p2]
+
+runPass' :: Pass TestPass () -> IO ()
+runPass' = runPass
+
+run2Passes' :: Pass TestPass () -> Pass TestPass () -> IO ()
+run2Passes' p1 p2 = runPasses [p1,p2]
+
+
+
+-------------------
+-- === Tests === --
+-------------------
+
+test :: IO ()
+test = runPass' $ do
+    v <- IR.var 5
+    print =<< Layer.read @IR.Model v
+    print "done!"
+
+
+
+
+--------------------------------
+-- === Running benchmarks === --
+--------------------------------
+
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     initializeTime
 
-    -- MManager.runBenchmarks
-    -- Basic.test
-    -- TS3.test
-    -- print "---"
-    -- Basic.passTest_run
-
-    -- Basic.runCompiler
-    -- Basic.passRunTest
-    -- Basic.test_pm_run
-
-    -- let minExpVec = 7 :: Int
-    --     maxExpVec = 7 :: Int
-    --     expSizes  = [minExpVec .. maxExpVec] :: [Int]
+    test
 
     IRBench.main
 

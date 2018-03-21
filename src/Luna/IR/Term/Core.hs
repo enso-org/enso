@@ -6,18 +6,20 @@ module Luna.IR.Term.Core where
 
 import Prologue
 
-import qualified Data.Tag              as Tag
-import           Luna.IR.Link          as Link
-import qualified Luna.IR.Link.TH       as Link
-import qualified Luna.IR.Term.Class    as Term
-import qualified OCI.IR.Layer.Internal as Layer
-import qualified OCI.IR.Layout         as Layout
+import qualified Data.Tag                            as Tag
+import           Luna.IR.Component.Link              as Link
+import qualified Luna.IR.Component.Link.TH           as Link
+import qualified Luna.IR.Component.Term.Class        as Term
+import qualified Luna.IR.Component.Term.Construction as Term
+import qualified OCI.IR.Layer.Internal               as Layer
+import qualified OCI.IR.Layout                       as Layout
 
-import Foreign.Storable.Deriving  (deriveStorable)
-import Foreign.Storable1.Deriving (deriveStorable1)
-import Luna.IR.Layout
-import Luna.IR.Term.Class         (Model, Term, TermCons, Terms)
-import Type.Data.Ord              (Cmp)
+import Foreign.Storable.Deriving     (deriveStorable)
+import Foreign.Storable1.Deriving    (deriveStorable1)
+import Luna.IR.Component.Term.Class  (Term, TermCons, Terms)
+import Luna.IR.Component.Term.Layer (Model)
+import Luna.IR.Component.Term.Layout
+import Type.Data.Ord                 (Cmp)
 
 
 

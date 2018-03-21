@@ -4,9 +4,9 @@ module Luna.Pass.Basic where
 
 import Prologue
 
-import qualified Luna.IR.Link      as Link
-import qualified OCI.Pass.Cache    as Pass
-import qualified OCI.Pass.Registry as Registry
+import qualified Luna.IR.Component.Link as Link
+import qualified OCI.Pass.Cache         as Pass
+import qualified OCI.Pass.Registry      as Registry
 
 -- import Luna.IR.Link        as X (Link, Links, Source, Target)
 -- import Luna.IR.Term        as X (Model, Term, Terms)

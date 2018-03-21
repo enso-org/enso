@@ -6,11 +6,11 @@ import Prologue
 
 import Luna.Pass
 
-import qualified Luna.IR.Link       as Link
-import qualified OCI.Pass.Cache     as Pass
-import qualified OCI.Pass.Encoder   as Pass.Encoder
-import qualified OCI.Pass.Registry  as Registry
-import qualified OCI.Pass.Scheduler as Scheduler
+import qualified Luna.IR.Component.Link as Link
+import qualified OCI.Pass.Cache         as Pass
+import qualified OCI.Pass.Encoder       as Pass.Encoder
+import qualified OCI.Pass.Registry      as Registry
+import qualified OCI.Pass.Scheduler     as Scheduler
 
 import Luna.IR
 

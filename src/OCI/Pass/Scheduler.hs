@@ -241,6 +241,18 @@ runPassSameThread !rep = do
 runPassSameThreadByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
+debugRunPassDefs :: ∀ pass m. (Typeable pass, PassRegister pass m)
+                 => [Pass pass ()] -> m ()
+debugRunPassDefs passes = for_ passes $ \pass -> do
+    registerPassFromFunction__ pass
+    runPassByType @pass
+{-# INLINE debugRunPassDefs #-}
+
+debugRunPassDef :: ∀ pass m. (Typeable pass, PassRegister pass m)
+                => Pass pass () -> m ()
+debugRunPassDef = debugRunPassDefs . pure ; {-# INLINE debugRunPassDef #-}
+
+
 
 -- === Utils === --
 

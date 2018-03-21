@@ -1,4 +1,4 @@
-module Luna.IR.Link.TH where
+module Luna.IR.Component.Link.TH where
 
 import Prologue
 
@@ -8,7 +8,7 @@ import Control.Monad               (mapM)
 import Data.List                   (splitAt)
 import Language.Haskell.TH         (Name, Q)
 import Language.Haskell.TH.Builder
-import Luna.IR.Link                (HasLinks, readLinksIO)
+import Luna.IR.Component.Link      (HasLinks, readLinksIO)
 
 
 discover :: Name -> Q [TH.Dec]

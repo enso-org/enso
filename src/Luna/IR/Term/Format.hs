@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Luna.IR.Format where
+module Luna.IR.Term.Format where
 
 import Prologue
 

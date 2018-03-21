@@ -1,49 +1,22 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Class where
+module Luna.IR.Component.Term.Construction where
 
 import Prologue
 
-import qualified Data.Tag              as Tag
 import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
-import OCI.IR.Conversion (cast)
-
-
----------------------
--- === UniTerm === --
----------------------
-
--- | The implementation of Uni is delayed until we know
---   all possible Term constructors.
-type family Uni :: Type -> Type
-
-class IsUni t where
-    toUni :: ∀ a. t a -> Uni a
-
+import Luna.IR.Component.Term.Class
+import Luna.IR.Component.Term.Layer
+import OCI.IR.Conversion             (cast)
 
 
 ------------------
 -- === Term === --
 ------------------
-
--- === Definition === --
-
-Component.define "Term"
-Tag.family "TermCons"
-
-type SomeTerm = Term ()
-
-type family TagToCons tag = (cons :: Type -> Type) | cons -> tag
-type family ConsToTag (cons :: Type -> Type) = tag | tag  -> cons
-type TagConsInvariant tag cons =
-    ( cons ~ TagToCons tag
-    , tag  ~ ConsToTag cons
-    )
-
 
 -- === Creation === --
 
@@ -76,16 +49,3 @@ new :: (Creator tag m, Layout.AssertEQ Model layout tag)
     => TagToCons tag layout -> m (Term layout)
 new = uncheckedNew ; {-# INLINE new #-}
 
-
-
---------------------
--- === Layers === --
---------------------
-
--- === Model === --
-
-data Model
-type instance Layer.Layout Terms Model layout = layout
-type instance Layer.Data   Terms Model = Uni
-instance IsUni t => Layer.DataCons1 Terms Model t where
-    consData1 = toUni ; {-# INLINE consData1 #-}
