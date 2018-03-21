@@ -11,7 +11,7 @@ import qualified OCI.IR.Layout         as Layout
 
 import Luna.IR.Component.Term.Class
 import Luna.IR.Component.Term.Layer
-import OCI.IR.Conversion             (cast)
+import OCI.IR.Conversion            (cast)
 
 
 ------------------
@@ -26,20 +26,23 @@ type Creator t m =
     , Layer.DataCons1 Terms Model (TagToCons t)
     )
 
+type LayoutInference tag layout =
+    ( Layout.Get Model layout ~ tag
+    , Layout.AssertEQ Model layout tag
+    )
+
 uncheckedNewM :: Creator tag m
     => (Term any -> m (TagToCons tag layout)) -> m (Term any)
-uncheckedNewM cons = do
+uncheckedNewM !cons = do
     ir <- Component.new
-    let ir' = cast ir
-    term <- cons ir'
-    Layer.write @Model ir (Layer.consData1 @Terms @Model term)
+    let !ir' = cast ir
+    !term <- cons ir'
+    Layer.write @Model ir $! Layer.consData1 @Terms @Model term
     pure ir'
 {-# INLINE uncheckedNewM #-}
 
-newM :: ( Creator tag m
-        , Layout.Get Model layout ~ tag
-        , Layout.AssertEQ Model layout tag
-        ) => (Term layout -> m (TagToCons tag layout)) -> m (Term layout)
+newM :: ( Creator tag m, LayoutInference tag layout)
+     => (Term layout -> m (TagToCons tag layout)) -> m (Term layout)
 newM = uncheckedNewM ; {-# INLINE newM #-}
 
 uncheckedNew :: Creator tag m => TagToCons tag layout -> m (Term any)

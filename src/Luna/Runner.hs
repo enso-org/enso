@@ -2,7 +2,7 @@
 
 module Luna.Runner where
 
-import Prologue
+import Prologue hiding (Type)
 
 import Luna.Pass
 
@@ -22,7 +22,7 @@ registerAll :: Registry.Monad m => m ()
 registerAll = do
     Registry.registerComponent @Terms
     Registry.registerPrimLayer @Terms @Model
-    -- Registry.registerPrimLayer @Terms @Type
+    Registry.registerPrimLayer @Terms @Type
 
     Registry.registerComponent @Links
     Registry.registerPrimLayer @Links @Source

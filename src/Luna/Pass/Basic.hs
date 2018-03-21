@@ -2,7 +2,7 @@
 
 module Luna.Pass.Basic where
 
-import Prologue
+import Prologue hiding (Type)
 
 import qualified Luna.IR.Component.Link as Link
 import qualified OCI.Pass.Cache         as Pass
@@ -22,7 +22,7 @@ data BasicPass
 type instance Spec BasicPass t = BasicPassSpec t
 type family   BasicPassSpec  t where
     BasicPassSpec (In Elems) = '[Terms, Links]
-    BasicPassSpec (In Terms) = '[Model]
+    BasicPassSpec (In Terms) = '[Model, Type]
     BasicPassSpec (In Links) = '[Source, Target]
     BasicPassSpec (In Attrs) = '[]
     BasicPassSpec (Out a)    = BasicPassSpec (In a)

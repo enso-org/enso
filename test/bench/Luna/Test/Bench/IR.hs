@@ -279,7 +279,7 @@ benchmarks = Criterion.defaultMain
                 [ readWrite_cptr
                 , readWrite_ptr
                 , readWrite_expTM
-                , readWrite_layerMock
+                -- , readWrite_layerMock
                 , readWrite_layer
                 ]
             ]

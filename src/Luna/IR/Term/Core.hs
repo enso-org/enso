@@ -7,20 +7,22 @@ module Luna.IR.Term.Core where
 import Prologue
 
 import qualified Data.Tag                            as Tag
-import           Luna.IR.Component.Link              as Link
+import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
+import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified OCI.IR.Layer.Internal               as Layer
 import qualified OCI.IR.Layout                       as Layout
 
 import Foreign.Storable.Deriving     (deriveStorable)
 import Foreign.Storable1.Deriving    (deriveStorable1)
+import Luna.IR.Component.Link        (type (*-*), Link)
 import Luna.IR.Component.Term.Class  (Term, TermCons, Terms)
-import Luna.IR.Component.Term.Layer (Model)
+import Luna.IR.Component.Term.Layer  (Model)
 import Luna.IR.Component.Term.Layout
+import OCI.IR.Conversion             (generalize)
 import Type.Data.Ord                 (Cmp)
-
 
 
 ----------------
@@ -29,6 +31,14 @@ import Type.Data.Ord                 (Cmp)
 
 -- === IR Atoms === ---
 
+Tag.familyInstance "TermCons" "Top"
+data ConsTop a = Top deriving (Show, Eq)
+type instance Term.TagToCons Top     = ConsTop
+type instance Term.ConsToTag ConsTop = Top
+makeLenses      ''ConsTop
+deriveStorable  ''ConsTop
+deriveStorable1 ''ConsTop
+Link.discover   ''ConsTop
 
 Tag.familyInstance "TermCons" "Var"
 newtype ConsVar a = Var
@@ -63,7 +73,8 @@ deriveStorable1 ''ConsMissing
 Link.discover   ''ConsMissing
 
 data UniTerm a
-    = UniTermVar     !(ConsVar     a)
+    = UniTermTop     !(ConsTop     a)
+    | UniTermVar     !(ConsVar     a)
     | UniTermAcc     !(ConsAcc     a)
     | UniTermMissing !(ConsMissing a)
     deriving (Show, Eq)
@@ -74,6 +85,7 @@ Link.discover   ''UniTerm
 
 type instance Term.Uni = UniTerm
 
+instance Term.IsUni ConsTop     where toUni = UniTermTop     ; {-# INLINE toUni #-}
 instance Term.IsUni ConsVar     where toUni = UniTermVar     ; {-# INLINE toUni #-}
 instance Term.IsUni ConsAcc     where toUni = UniTermAcc     ; {-# INLINE toUni #-}
 instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni #-}
@@ -86,18 +98,53 @@ instance Layer.DataInitializer UniTerm where
 
 
 
--- === Smart constructors === --
+-- === Constructor helpers === --
 
 #define CTX(name) (Term.Creator name m, Link.Creator m)
 
-var :: CTX(Var) => Int -> m (Term Var)
-var = Term.uncheckedNew . Var ; {-# INLINE var #-}
+type Creator tag m =
+    ( Term.Creator tag m
+    , Term.Creator Top m
+    , Link.Creator m
+    , Layer.Writer Terms Layer.Type m
+    )
 
-missing :: CTX(Missing) => m (Term Missing)
-missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
+uncheckedNewM :: Creator tag m
+              => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
+uncheckedNewM !cons = Term.uncheckedNewM $ \self -> do
+    typeTerm <- top
+    typeLink <- Link.new typeTerm self
+    Layer.write @Layer.Type self (unsafeCoerce typeLink) -- FIXME[WD]: unsafeCoerce -> generalize
+    cons self
+{-# INLINE uncheckedNewM #-}
 
-acc :: CTX(Acc) => Term base -> Term name -> m (Term (Acc -* base -# name))
-acc base name = Term.newM $ \term -> Acc <$> Link.new base term <*> Link.new name term ; {-# INLINE acc #-}
+newM :: (Creator tag m, Term.LayoutInference tag layout)
+     => (Term layout -> m (Term.TagToCons tag layout)) -> m (Term layout)
+newM = uncheckedNewM ; {-# INLINE newM #-}
+
+uncheckedNew :: Creator tag m => Term.TagToCons tag layout -> m (Term any)
+uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
+
+
+-- === Smart constructors === --
+
+top :: Creator Top m => m (Term Top)
+top = Term.uncheckedNewM $ \self -> do
+    typeLink <- Link.new self self
+    Layer.write @Layer.Type self (unsafeCoerce typeLink) -- FIXME[WD]: unsafeCoerce -> generalize
+    pure Top
+{-# INLINE top #-}
+
+var :: Creator Var m => Int -> m (Term Var)
+var = uncheckedNew . Var ; {-# INLINE var #-}
+
+missing :: Creator Missing m => m (Term Missing)
+missing = uncheckedNew Missing ; {-# INLINE missing #-}
+
+acc :: Creator Acc m => Term base -> Term name -> m (Term (Acc -* base -# name))
+acc base name = newM $ \self -> Acc <$> Link.new base self
+                                    <*> Link.new name self
+{-# INLINE acc #-}
 
 #undef CTX
 

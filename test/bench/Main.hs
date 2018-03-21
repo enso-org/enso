@@ -27,8 +27,6 @@ import System.IO             (BufferMode (NoBuffering), hSetBuffering, stdout)
 data TestPass
 type instance Pass.Spec TestPass t = TestPassSpec t
 type family   TestPassSpec  t where
-    TestPassSpec (Pass.In  IR.Terms) = IR.Type ': Pass.BasicPassSpec (Pass.In  IR.Terms)
-    TestPassSpec (Pass.Out IR.Terms) = IR.Type ': Pass.BasicPassSpec (Pass.Out IR.Terms)
     TestPassSpec t = Pass.BasicPassSpec t
 
 Pass.cache_phase1 ''TestPass
@@ -47,7 +45,6 @@ runPasses passes = Scheduler.runManual registry $ do
     Scheduler.debugRunPassDefs passes
     where registry = do
               Runner.registerAll
-              Registry.registerPrimLayer @IR.Terms @IR.Type
 
 
 run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()

@@ -10,6 +10,7 @@ import qualified Foreign.Storable             as Storable
 import qualified Foreign.Storable.Utils       as Storable
 import qualified Foreign.Storable1            as Storable1
 import qualified Luna.IR.Component.Term.Class as Term
+import qualified Luna.IR.Term.Format          as Format
 import qualified OCI.IR.Component             as Component
 import qualified OCI.IR.Layer.Internal        as Layer
 import qualified OCI.IR.Layout                as Layout
@@ -41,32 +42,34 @@ instance Term.IsUni t => Layer.DataCons1 Terms Model t where
 
 data Type
 
-newtype MaybeType a = MaybeType (Maybe (Link (Layout.Get Type a *-* a)))
-    deriving (Show)
+type instance Layer.Layout Terms Type layout = Layout.Get Type layout *-* layout
+type instance Layer.Data   Terms Type        = Link
 
-instance Storable (Maybe (Link a)) where
-    sizeOf    _   = Storable.sizeOf'    @(Link a)
-    alignment _   = Storable.alignment' @(Link a)
-    peek      ptr = Storable.peek (coerce ptr) >>= \case
-        False -> pure Nothing
-        True  -> Storable.peekByteOff ptr (Storable.sizeOf' @Bool)
-    poke      ptr = \case
-        Nothing -> Storable.poke (coerce ptr) False
-        Just a  -> Storable.poke (coerce ptr) True
-                >> Storable.pokeByteOff ptr (Storable.sizeOf' @Bool) a
-    {-# INLINE sizeOf    #-}
-    {-# INLINE alignment #-}
-    {-# INLINE peek      #-}
-    {-# INLINE poke      #-}
+type instance Layout.Default Type = ()
 
-makeLenses      ''MaybeType
-deriveStorable  ''MaybeType
-deriveStorable1 ''MaybeType
+-- newtype MaybeType a = MaybeType (Maybe (Link (Layout.Get Type a *-* a)))
+--     deriving (Show)
 
-type instance Layer.Layout Terms Type layout = Layout.Get Type layout
-type instance Layer.Data   Terms Type        = MaybeType
+-- instance Storable (Maybe (Link a)) where
+--     sizeOf    _   = Storable.sizeOf'    @(Link a)
+--     alignment _   = Storable.alignment' @(Link a)
+--     peek      ptr = Storable.peek (coerce ptr) >>= \case
+--         False -> pure Nothing
+--         True  -> Storable.peekByteOff ptr (Storable.sizeOf' @Bool)
+--     poke      ptr = \case
+--         Nothing -> Storable.poke (coerce ptr) False
+--         Just a  -> Storable.poke (coerce ptr) True
+--                 >> Storable.pokeByteOff ptr (Storable.sizeOf' @Bool) a
+--     {-# INLINE sizeOf    #-}
+--     {-# INLINE alignment #-}
+--     {-# INLINE peek      #-}
+--     {-# INLINE poke      #-}
 
-instance Layer.DataInitializer MaybeType where
-    initData = wrap Nothing ; {-# INLINE initData #-}
+-- makeLenses      ''MaybeType
+-- deriveStorable  ''MaybeType
+-- deriveStorable1 ''MaybeType
+
+-- instance Layer.DataInitializer MaybeType where
+--     initData = wrap Nothing ; {-# INLINE initData #-}
 
 
