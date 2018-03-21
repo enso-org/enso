@@ -687,6 +687,9 @@ class ManagedPointer a:
     def ptr: case self of
         ManagedPointerVal _ p: p._ptr
 
+    def fptr: case self of
+        ManagedPointerVal _ p: p
+
     def fromPointer finalizer p:
         ptr = primNewForeignPtr finalizer p.ptr
         ManagedPointerVal p.typeRep ptr
@@ -694,7 +697,7 @@ class ManagedPointer a:
     def toCArg: self.ptr.toCArg
 
     def moveBytes i:
-        nptr = self.ptr.moveBytes i
+        nptr = self.fptr.moveBytes i
         tr = self.typeRep
         ManagedPointerVal tr nptr
 
