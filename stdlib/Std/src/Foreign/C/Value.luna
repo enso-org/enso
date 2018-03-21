@@ -31,6 +31,41 @@ class CString:
 
     def free: self.ptr.free
 
+class Array a:
+    Array a
+    ArrayVal Int (Pointer a)
+
+    def ptr: case self of
+        Array a: Pointer a
+        ArrayVal _ p: p
+
+    def size: case self of
+        ArrayVal s _: s
+
+    def make: ArrayVal
+
+    def alloc size:
+        ptr = self.ptr.mallocElems size
+        ArrayVal size ptr
+
+    def free:
+        self.ptr.free
+
+    def readAt index: self . ptr . moveElems index . read
+
+    def writeAt index val: self . ptr . moveElems index . write val
+
+    def toList:
+        0 . upto self.size.pred . each self.getAt
+
+    def fromList l:
+        size = l.length
+        arr  = self.alloc size
+        withIndex = 0 . upto size . zip l
+        withIndex . each (i, e): arr.writeAt i e
+        arr
+
+
 class NullTerminatedArray a:
     NullTerminatedArray a
     NullTerminatedArrayVal (Pointer a)
@@ -64,7 +99,11 @@ class NullTerminatedArray a:
             ptr . moveElems index . write elem
         NullTerminatedArrayVal ptr
 
+    def make: NullTerminatedArrayVal
+
     def free: self.ptr.free
+
+
 
 
 
@@ -661,6 +700,11 @@ class Pointer a:
     def mallocElems i:
         tp  = self.typeRep
         ptr = primMalloc (tp.byteSize * i)
+        PointerVal tp ptr
+
+    def mallocBytes i:
+        tp = self.typeRep
+        ptr = primMalloc i
         PointerVal tp ptr
 
     def free: self.ptr.free
