@@ -1113,7 +1113,7 @@ class JSON:
         other: Nothing
 
     # Returns `Just` an `Int` assuming the `JSON` represents a number and it didn't contain a decimal point. Returns `Nothing` otherwise.
-    def asInt: case self of
+    def safeAsInt: case self of
         JSONNumber a: Just a.toInt
         other: Nothing
 
