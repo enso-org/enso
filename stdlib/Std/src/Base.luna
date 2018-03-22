@@ -998,6 +998,8 @@ class Scientific:
     def toReal:
         self.coefficient.toReal * (10.0 ^ self.exponent.toReal)
 
+    def toInt: self.coefficient
+
 # Class representing JSON objects.
 class JSON:
     JSON
@@ -1080,6 +1082,11 @@ class JSON:
         JSONNumber a: a.toReal
         other: throw "JSON.asReal: not a number."
 
+    # Returns an `Int` assuming the `JSON` represents a number and it didn't contain a decimal point. Throws an error otherwise.
+    def asInt: case self of
+        JSONNumber a: a.toInt
+        other: throw "JSON.asInt: not a number"
+
     # Returns a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
     def asBool: case self of
         JSONBool a: a
@@ -1090,27 +1097,32 @@ class JSON:
         JSONArray a: a
         other: throw "JSON.asList: not a list."
 
-    # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Throws an error otherwise.
+    # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Returns `Nothing` otherwise.
     def safeAsObject: case self of
         JSONObject m: Just m
         other: Nothing
 
-    # Returns `Just` a `Text` assuming the `JSON` represents text. Throws an error otherwise.
+    # Returns `Just` a `Text` assuming the `JSON` represents text. Returns `Nothing` otherwise.
     def safeAsText: case self of
         JSONString t: Just t
         other: Nothing
 
-    # Returns `Just` a `Real` assuming the `JSON` represents a number. Throws an error otherwise.
+    # Returns `Just` a `Real` assuming the `JSON` represents a number. Returns `Nothing` otherwise.
     def safeAsReal: case self of
         JSONNumber a: Just a.toReal
         other: Nothing
 
-    # Returns `Just` a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
+    # Returns `Just` an `Int` assuming the `JSON` represents a number and it didn't contain a decimal point. Returns `Nothing` otherwise.
+    def asInt: case self of
+        JSONNumber a: Just a.toInt
+        other: Nothing
+
+    # Returns `Just` a `Bool` assuming the `JSON` represents a boolean. Returns `Nothing` otherwise.
     def safeAsBool: case self of
         JSONBool a: Just a
         other: Nothing
 
-    # Returns `Just` a list of `JSON` object assuming the `JSON` represents an array. Throws an error otherwise.
+    # Returns `Just` a list of `JSON` object assuming the `JSON` represents an array. Returns `Nothing` otherwise.
     def safeAsList: case self of
         JSONArray a: Just a
         other: Nothing
@@ -1123,6 +1135,9 @@ class JSON:
 
     # Gets a `Real` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a number.
     def getReal k: self . get k . asReal
+
+    # Gets an `Int` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not an integer.
+    def getInt k: self . get k . asInt
 
     # Gets a `Bool` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a boolean.
     def getBool k: self . get k . asBool
@@ -1138,6 +1153,9 @@ class JSON:
 
     # Looks up a `Real` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a number.
     def lookupReal k: self . lookup k . flatMap .safeAsReal
+
+    # Looks up an `Int` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not an integer.
+    def lookupInt k: self . lookup k . flatMap .safeAsInt
 
     # Looks up a `Bool` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a boolean.
     def lookupBool k: self . lookup k . flatMap .safeAsBool
