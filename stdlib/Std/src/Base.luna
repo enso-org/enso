@@ -1,279 +1,279 @@
-## Class representing integer numbers of arbitrary size.
+# Class representing integer numbers of arbitrary size.
 native class Int:
-    ## Integer addition.
+    # Integer addition.
     def +  that: primIntAdd      self that
-    ## Integer multiplication.
+    # Integer multiplication.
     def *  that: primIntMultiply self that
-    ## Integer subtraction.
+    # Integer subtraction.
     def -  that: primIntSubtract self that
-    ## Integral division – `a./ b` returns the largest integer `c` such that `c * b <= a`.
+    # Integral division – `a./ b` returns the largest integer `c` such that `c * b <= a`.
     def /  that: primIntDivide   self that
-    ## Division remainder `a.% b == a - (a / b) * b`
+    # Division remainder `a.% b == a - (a / b) * b`
     def %  that: primIntModulo   self that
-    ## `a.> b` returns True when `a` is greater than `b`.
+    # `a.> b` returns True when `a` is greater than `b`.
     def >  that: primIntGt       self that
-    ## `a.< b` returns True when `a` is lesser than `b`.
+    # `a.< b` returns True when `a` is lesser than `b`.
     def <  that: primIntLt       self that
-    ## Integer equality. `a.== b` returns True when `a` equals `b`.
+    # Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
 
     def toInt: self
 
-    ## Integer negation. `a.negate == -1 * a`.
+    # Integer negation. `a.negate == -1 * a`.
     def negate: primIntNegate self
-    ## Promote an integer to a real number.
+    # Promote an integer to a real number.
     def toReal: primIntToReal self
-    ## Display an integer as text.
+    # Display an integer as text.
     def toText: primIntToText self
 
-    ## Alias for `toText`, for the purpose of pretty printing the number.
+    # Alias for `toText`, for the purpose of pretty printing the number.
     def shortRep: self.toText
-    ## JSON representation of an integer.
+    # JSON representation of an integer.
     def toJSON: JSONNumber (Scientific self 0)
 
-    ## Returns a TimeInterval with the length of `self` miliseconds.
+    # Returns a TimeInterval with the length of `self` miliseconds.
     def miliseconds: primIntMiliseconds self
-    ## Returns a TimeInterval with the length of `self` seconds.
+    # Returns a TimeInterval with the length of `self` seconds.
     def seconds: self*1000 . miliseconds
-    ## Returns a TimeInterval with the length of `self` minutes.
+    # Returns a TimeInterval with the length of `self` minutes.
     def minutes: self*60 . seconds
-    ## Returns a TimeInterval with the length of `self` hours.
+    # Returns a TimeInterval with the length of `self` hours.
     def hours: self*60 . minutes
-    ## Returns a TimeInterval with the length of `self` days.
+    # Returns a TimeInterval with the length of `self` days.
     def days: self*24 . hours
-    ## Returns a TimeInterval with the length of `self` weeks.
+    # Returns a TimeInterval with the length of `self` weeks.
     def weeks: self*7 . days
 
-    ## Predecessor. `a.pred == a - 1`
+    # Predecessor. `a.pred == a - 1`
     def pred: self - 1
-    ## Successor. `a.succ == a + 1`
+    # Successor. `a.succ == a + 1`
     def succ: self + 1
 
-    ## Generates a list representing a range. `a.upto b == [a, a + 1, a + 2, ..., b - 1, b]`
+    # Generates a list representing a range. `a.upto b == [a, a + 1, a + 2, ..., b - 1, b]`
     def upto i:
         ss = self.succ
         if self <= i then Prepend self (ss . upto i) else []
 
-## Class representing floating point numbers.
+# Class representing floating point numbers.
 native class Real:
-    ## Floating point addition.
+    # Floating point addition.
     def +  that: primRealAdd      self that
-    ## Floating point multiplication.
+    # Floating point multiplication.
     def *  that: primRealMultiply self that
-    ## Floating point subtraction.
+    # Floating point subtraction.
     def -  that: primRealSubtract self that
-    ## Floating point division.
+    # Floating point division.
     def /  that: primRealDivide   self that
-    ## Floating point exponentiation.
+    # Floating point exponentiation.
     def ^ that: primRealPow self that
-    ## Floating point logarithm with given basis.
+    # Floating point logarithm with given basis.
     def log base: primRealLog self base
-    ## Tests whether `self` is greater than the argument.
+    # Tests whether `self` is greater than the argument.
     def >  that: primRealGt       self that
-    ## Tests whether `self` is lesser than the argument.
+    # Tests whether `self` is lesser than the argument.
     def <  that: primRealLt       self that
-    ## Tests whether `self` is equal to the argument.
+    # Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
 
-    ## Negation. `a.negate == -1.0 * a`
+    # Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self
-    ## Display a real number as text.
+    # Display a real number as text.
     def toText:     primRealToText self
-    ## Round a number with given precision – the result is a real number with the number of digits after the decimal dot equal to the argument.
+    # Round a number with given precision – the result is a real number with the number of digits after the decimal dot equal to the argument.
     def round prec: primRealRound  self prec
-    ## Round a number down to the closest `Int`
+    # Round a number down to the closest `Int`
     def floor: primRealFloor self
-    ## Round a number up to the closest `Int`
+    # Round a number up to the closest `Int`
     def ceiling: primRealCeiling self
 
-    ## Sine function.
+    # Sine function.
     def sin: primRealSin self
-    ## Cosine function.
+    # Cosine function.
     def cos: primRealCos self
-    ## Tangent function.
+    # Tangent function.
     def tan: primRealTan self
 
-    ## Hyperbolic sine function.
+    # Hyperbolic sine function.
     def sinh: primRealSinh self
-    ## Hyperbolic cosine function.
+    # Hyperbolic cosine function.
     def cosh: primRealCosh self
-    ## Hyperbolic tangent function.
+    # Hyperbolic tangent function.
     def tanh: primRealTanh self
 
-    ## Inverse sine function.
+    # Inverse sine function.
     def asin: primRealAsin self
-    ## Inverse cosine function.
+    # Inverse cosine function.
     def acos: primRealAcos self
-    ## Inverse tangent function.
+    # Inverse tangent function.
     def atan: primRealAtan self
 
-    ## Inverse hyperbolic sine function.
+    # Inverse hyperbolic sine function.
     def asinh: primRealAsinh self
-    ## Inverse hyperbolic cosine function.
+    # Inverse hyperbolic cosine function.
     def acosh: primRealAcosh self
-    ## Inverse hyperbolic tangent function.
+    # Inverse hyperbolic tangent function.
     def atanh: primRealAtanh self
 
-    ## Natural exponential function.
+    # Natural exponential function.
     def exp: primRealExp self
-    ## Natural logarithm function.
+    # Natural logarithm function.
     def ln: primRealLn self
-    ## Square root.
+    # Square root.
     def sqrt: primRealSqrt self
 
-    ## Displays a number as text.
+    # Displays a number as text.
     def shortRep: self.toText
-    ## Converts a number to `JSON`.
+    # Converts a number to `JSON`.
     def toJSON: JSONNumber (primRealToScientific self)
 
-## The mathematical constant π = 3.14159265359.
+# The mathematical constant π = 3.14159265359.
 def pi: 3.14159265359
 
-## The basic class for representing Texts.
+# The basic class for representing Texts.
 native class Text:
-    ## Concatenates two texts together.
+    # Concatenates two texts together.
     def +  that: primTextConcat self that
-    ## Tests whether `self` is greater than the argument in lexicographical order.
+    # Tests whether `self` is greater than the argument in lexicographical order.
     def >  that: primTextGt     self that
-    ## Tests whether `self` is lesser than the argument in lexicographical order.
+    # Tests whether `self` is lesser than the argument in lexicographical order.
     def <  that: primTextLt     self that
-    ## Tests wheter two texts are equal.
+    # Tests wheter two texts are equal.
     def == that: primTextEquals self that
 
-    ## Tests whether the text is empty (equal to `""`).
+    # Tests whether the text is empty (equal to `""`).
     def isEmpty: primTextIsEmpty self
-    ## Measures the text length.
+    # Measures the text length.
     def length:  primTextLength self
 
-    ## Tests whether the argument is a prefix of `self`.
+    # Tests whether the argument is a prefix of `self`.
     def startsWith  p: primTextHasPrefix self p
-    ## Tests whether `self` is a prefix of the argument.
+    # Tests whether `self` is a prefix of the argument.
     def isPrefixOf t: t.startsWith self
 
-    ## Tests whether the argument is a suffix of `self`.
+    # Tests whether the argument is a suffix of `self`.
     def endsWith p: self.reverse.startsWith p.reverse
-    ## Tests whether `self` is a suffix of the argument.
+    # Tests whether `self` is a suffix of the argument.
     def isSuffixOf t: t.endsWith self
 
-    ## Returns a list of all characters in the text.
+    # Returns a list of all characters in the text.
     def characters: primTextCharacters self
-    ## Returns a list of all words (white-space delimited) in the text.
+    # Returns a list of all words (white-space delimited) in the text.
     def words:      primTextWords      self
-    ## Returns a list of all lines (newline delimited) in the text.
+    # Returns a list of all lines (newline delimited) in the text.
     def lines:      primTextLines      self
 
-    ## Changes all characters to lowercase.
+    # Changes all characters to lowercase.
     def lowercase: primTextLowercase self
-    ## Changes all characters to uppercase.
+    # Changes all characters to uppercase.
     def uppercase: primTextUppercase self
-    ## Reverses the text.
+    # Reverses the text.
     def reverse:   primTextReverse   self
 
     def escapeJSON: primTextEscapeJSON self
-    ## Truncates the text for optimal display in interactive mode.
+    # Truncates the text for optimal display in interactive mode.
     def shortRep:   primTextShortRep   self
-    ## Convert the text to bare binary data.
+    # Convert the text to bare binary data.
     def toBinary:   primTextToBinary   self
-    ## Identity function, included for consistency with other types.
+    # Identity function, included for consistency with other types.
     def toText:     self
-    ## Converts the text to `JSON`.
+    # Converts the text to `JSON`.
     def toJSON:     JSONString self
 
-    ## Tries to reinterpret the string as an integer in decimal system. Returns `Nothing` when the text does not represent a valid integer.
+    # Tries to reinterpret the string as an integer in decimal system. Returns `Nothing` when the text does not represent a valid integer.
     def safeToInt:   primTextToInt  self
-    ## Tries to reinterpret the string as a real number in decimal system. Returns `Nothing` when the text does not represent a valid real number.
+    # Tries to reinterpret the string as a real number in decimal system. Returns `Nothing` when the text does not represent a valid real number.
     def safeToReal:  primTextToReal self
 
-    ## Reinterprets the string as an integer in decimal system. Throws an error when the text does not represent a valid integer.
+    # Reinterprets the string as an integer in decimal system. Throws an error when the text does not represent a valid integer.
     def toInt: case self.safeToInt of
         Just val: val
         Nothing:  errorStr ("Could not convert " + self + " to an Int")
 
-    ## Reinterprets the string as a real number in decimal system. Throws an error when the text does not represent a valid real number.
+    # Reinterprets the string as a real number in decimal system. Throws an error when the text does not represent a valid real number.
     def toReal: case self.safeToReal of
         Just val: val
         Nothing:  errorStr ("Could not convert " + self + " to a Real")
 
     def addPathSegment segment: self + pathSeparator + segment
 
-## Class for representing arbitrary binary data. Does not attempt to interpret the data in any way.
+# Class for representing arbitrary binary data. Does not attempt to interpret the data in any way.
 native class Binary:
-    ## Concatenates two pieces of binary data together.
+    # Concatenates two pieces of binary data together.
     def +  that: primBinaryConcat self that
-    ## Checks whether two pieces of data are equal.
+    # Checks whether two pieces of data are equal.
     def == that: primBinaryEquals self that
 
-    ## Measures the length in bytes of binary object.
+    # Measures the length in bytes of binary object.
     def length: primBinaryLength self
-    ## Encodes the binary object as an UTF-8 `Text`. Throws an error when the data does not represent a valid text.
+    # Encodes the binary object as an UTF-8 `Text`. Throws an error when the data does not represent a valid text.
     def toText: primBinaryToText self
 
-    ## Returns a prefix consisting of the given number of bytes.
+    # Returns a prefix consisting of the given number of bytes.
     def take i: primBinaryTake self i
-    ## Returns a suffix resulting from dropping the given number of bytes at the beginning.
+    # Returns a suffix resulting from dropping the given number of bytes at the beginning.
     def drop i: primBinaryDrop self i
 
-    ## Displays a short representation of `Binary` object for use in interactive mode.
+    # Displays a short representation of `Binary` object for use in interactive mode.
     def shortRep: "Binary<" + self.length.toText + ">"
-    ## Identity function, included for consistency with other classes.
+    # Identity function, included for consistency with other classes.
     def toBinary: self
 
-## Class representing complex numbers over `Real` numbers.
+# Class representing complex numbers over `Real` numbers.
 class Complex:
     real      :: Real
     imaginary :: Real
 
-    ## Displays a complex number as text.
+    # Displays a complex number as text.
     def shortRep: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
-    ## Displays a complex number as text.
+    # Displays a complex number as text.
     def toText: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
 
-    ## Complex number addition.
+    # Complex number addition.
     def + that:
         r = self.real.+ that.real
         i = self.imaginary.+ that.imaginary
         Complex r i
 
-    ## Complex number multiplication.
+    # Complex number multiplication.
     def * that:
         r = self.real.* that.real      - self.imaginary.* that.imaginary
         i = self.real.* that.imaginary + self.imaginary.* that.real
         Complex r i
 
-    ## Complex number modulus.
+    # Complex number modulus.
     def modulus: self.real*self.real + self.imaginary*self.imaginary
 
-## Class representing boolean values
+# Class representing boolean values
 class Bool:
     True
     False
 
-    ## Represents logical values as `Text`.
+    # Represents logical values as `Text`.
     def toText: case self of
         True:  "True"
         False: "False"
 
-    ## Converts a boolean value to `JSON`.
+    # Converts a boolean value to `JSON`.
     def toJSON: JSONBool self
 
-    ## Represents logical values as `Text`.
+    # Represents logical values as `Text`.
     def shortRep: self . toText
 
-    ## Boolean and.
+    # Boolean and.
     def and that: case self of
         True: case that of
             True: True
             False: False
         False: False
 
-    ## Boolean or.
+    # Boolean or.
     def or that: case self of
         True: True
         False: case that of
             True:  True
             False: False
 
-    ## Equality of booleans, semantically the same as logical equivalence.
+    # Equality of booleans, semantically the same as logical equivalence.
     def == that: case self of
         True: case that of
             True:  True
@@ -282,306 +282,306 @@ class Bool:
             True:  False
             False: True
 
-    ## Logical negation.
+    # Logical negation.
     def not: case self of
         True:  False
         False: True
 
-## The basic conditional operator. `if a then b else c` is `b` when `a` is `True` and `c` otherwise.
+# The basic conditional operator. `if a then b else c` is `b` when `a` is `True` and `c` otherwise.
 def if_then_else pred ifTrue ifFalse: case pred of
     True:  ifTrue
     False: ifFalse
 
-## Alias for the `if then else` construction, looks better with currying.
+# Alias for the `if then else` construction, looks better with currying.
 def switch: if_then_else
 
-## Identity function. `id a` is the same as `a` for any `a`.
+# Identity function. `id a` is the same as `a` for any `a`.
 def id a: a
 
-## Constant function. Ignores its second argument and always returns the first.
+# Constant function. Ignores its second argument and always returns the first.
 def const a b: a
 
-## Takes an action and evaluates it only when a given condition is met. Always returns `None`.
+# Takes an action and evaluates it only when a given condition is met. Always returns `None`.
 def when p f: if p then (seq f None) else None
 
-## Takes an action returning `None` and evaluating the action only unless a given condition is met.
+# Takes an action returning `None` and evaluating the action only unless a given condition is met.
 def unless p f: if p then None else f
 
-## Greater or equal operator. Requires the objects to define both `>` and `==` methods.
+# Greater or equal operator. Requires the objects to define both `>` and `==` methods.
 def >= a b: (a > b).or (a == b)
 
-## Less than or equal to operator. Requires the objects to define both `<` and `==` methods.
+# Less than or equal to operator. Requires the objects to define both `<` and `==` methods.
 def <= a b: (a < b).or (a == b)
 
 def seq a b:
     a
     b
 
-## Class representing the lack of interesting value. Mostly used for actions executed solely for their side effects, without any interesting return value.
+# Class representing the lack of interesting value. Mostly used for actions executed solely for their side effects, without any interesting return value.
 class None:
     None
 
-    ## Represents a `None` value as `Text`.
+    # Represents a `None` value as `Text`.
     def toText: "None"
 
-    ## Represents a `None` value as `Text`.
+    # Represents a `None` value as `Text`.
     def shortRep: self.toText
 
-    ## Converts a `None` value into `JSON`.
+    # Converts a `None` value into `JSON`.
     def toJSON: JSONNull
 
     def retType: primVoidRetType
     def fromRetType a: None
 
-## Class representing pairs of elements of arbitrary type.
+# Class representing pairs of elements of arbitrary type.
 class Tuple2 a b:
     Tuple2 a b
 
-    ## Short Text representation of a pair.
+    # Short Text representation of a pair.
     def shortRep: case self of
         Tuple2 a b: "(" + a.shortRep + ", " + b.shortRep + ")"
 
-    ## Converts a pair into a `JSON` object.
+    # Converts a pair into a `JSON` object.
     def toJSON: case self of
         Tuple2 a b: JSONArray [a.toJSON, b.toJSON]
 
-    ## Plucks the first element of a tuple.
+    # Plucks the first element of a tuple.
     def first: case self of
         Tuple2 a b: a
 
-    ## Plucks the second element of a tuple.
+    # Plucks the second element of a tuple.
     def second: case self of
         Tuple2 a b: b
 
-    ## Maps a function over both elements of a tuple.
+    # Maps a function over both elements of a tuple.
     def map f: Tuple2 (f self.first) (f self.second)
 
-    ## Text representation of a tuple.
+    # Text representation of a tuple.
     def toText: case self of
         Tuple2 a b: "(" + a.toText + ", " + b.toText + ")"
 
-    ## Tuple equality. Two tuples are equal when their respective elements are equal.
+    # Tuple equality. Two tuples are equal when their respective elements are equal.
     def == that:
         self.first.== that.first . and (self.second.== that.second)
 
-## Class representing triples of elements of arbitrary type.
+# Class representing triples of elements of arbitrary type.
 class Tuple3 a b c:
     Tuple3 a b c
 
-    ## Converts a triple into a `JSON` object.
+    # Converts a triple into a `JSON` object.
     def toJSON: case self of
         Tuple3 a b c: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON Empty)))
 
-    ## Plucks the first element of a triple.
+    # Plucks the first element of a triple.
     def first: case self of
         Tuple3 a b c: a
 
-    ## Plucks the second element of a triple.
+    # Plucks the second element of a triple.
     def second: case self of
         Tuple3 a b c: b
 
-    ## Plucks the third element of a triple.
+    # Plucks the third element of a triple.
     def third: case self of
         Tuple3 a b c: c
 
-    ## Maps a function over all elements of a triple.
+    # Maps a function over all elements of a triple.
     def map f: Tuple3 (f self.first) (f self.second) (f self.third)
 
-    ## Text representation of a triple.
+    # Text representation of a triple.
     def toText: case self of
         Tuple3 a b c: "(" + a.toText + ", " + b.toText + ", " + c.toText + ")"
 
-    ## Short Text representation of a triple.
+    # Short Text representation of a triple.
     def shortRep: case self of
         Tuple3 a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
 
-    ## Triple equality. Two triples are equal when their respective elements are equal.
+    # Triple equality. Two triples are equal when their respective elements are equal.
     def == that: case that of
         Tuple3 a b c: self.first.== a . and (self.second.== b) . and (self.third.== c)
 
-## Class representing 4-tuples of elements of arbitrary type.
+# Class representing 4-tuples of elements of arbitrary type.
 class Tuple4 a b c d:
     Tuple4 a b c d
 
-    ## Converts a 4-tuple to a `JSON` object.
+    # Converts a 4-tuple to a `JSON` object.
     def toJSON: case self of
         Tuple4 a b c d: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON (Prepend d.toJSON Empty))))
 
-    ## Plucks the first element of a 4-tuple.
+    # Plucks the first element of a 4-tuple.
     def first: case self of
         Tuple4 a b c d: a
 
-    ## Plucks the second element of a 4-tuple.
+    # Plucks the second element of a 4-tuple.
     def second: case self of
         Tuple4 a b c d: b
 
-    ## Plucks the third element of a 4-tuple.
+    # Plucks the third element of a 4-tuple.
     def third: case self of
         Tuple4 a b c d: c
 
-    ## Plucks the fourth element of a 4-tuple.
+    # Plucks the fourth element of a 4-tuple.
     def fourth: case self of
         Tuple4 a b c d: d
 
-    ## Maps a function over all elements of a 4-tuple.
+    # Maps a function over all elements of a 4-tuple.
     def map f: Tuple4 (f self.first) (f self.second) (f self.third) (f self.fourth)
 
-    ## Text representation of a 4-tuple.
+    # Text representation of a 4-tuple.
     def toText: case self of
         Tuple4 a b c d: "(" + a.toText + ", " + b.toText + ", " + c.toText + ", " + d.toText + ")"
 
-    ## Short text representation of a 4-tuple.
+    # Short text representation of a 4-tuple.
     def shortRep: case self of
         Tuple4 a b c d: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ", " + d.shortRep + ")"
 
-    ## 4-tuple equality. Two 4-tuples are equal when their respective elements are equal.
+    # 4-tuple equality. Two 4-tuples are equal when their respective elements are equal.
     def == that: case that of
         Tuple4 a b c d: self.first.== a . and (self.second.== b) . and (self.third.== c) . and (self.fourth.== d)
         other:        False
 
-## The basic optional type in Luna. The value of this class can either be a `Nothing` (representing the lack of value) or a `Just value` (in the case value is present).
-## This is a type-safe substitute for nullable values known from other languages.
+# The basic optional type in Luna. The value of this class can either be a `Nothing` (representing the lack of value) or a `Just value` (in the case value is present).
+# This is a type-safe substitute for nullable values known from other languages.
 class Maybe a:
     Nothing
     Just a
 
-    ## Converts a `Maybe` object to `JSON`.
+    # Converts a `Maybe` object to `JSON`.
     def toJSON: case (self) of
         Just a: a.toJSON
         Nothing: JSONNull
 
-    ## Cast a `Maybe` value into a `List`. Returns an empty list when the value is missing and a singleton list otherwise.
+    # Cast a `Maybe` value into a `List`. Returns an empty list when the value is missing and a singleton list otherwise.
     def toList: case (self) of
         Just a: Prepend a Empty
         Nothing: Empty
 
-    ## Returns the value when called on `Just`, throws an error otherwise.
+    # Returns the value when called on `Just`, throws an error otherwise.
     def get: case self of
         Just a:  a
         Nothing: errorStr "Maybe.get: Nothing"
 
-    ## Returns the value when called on `Just` or the provided default value when called on a `Nothing`.
+    # Returns the value when called on `Just` or the provided default value when called on a `Nothing`.
     def withDefault defVal: case self of
         Just a: a
         Nothing: defVal
 
-    ## Returns `True` when called on a `Just` and `False` otherwise.
+    # Returns `True` when called on a `Just` and `False` otherwise.
     def isJust: case self of
         Just a: True
         Nothing: False
 
-    ## Returns `True` when called on a `Nothing` and `False` otherwise.
+    # Returns `True` when called on a `Nothing` and `False` otherwise.
     def isNothing: case self of
         Nothing: True
         Just a: False
 
-    ## Takes a function `f` and returns `Just (f a)` when called on `Just a` and `Nothing` otherwise.
+    # Takes a function `f` and returns `Just (f a)` when called on `Just a` and `Nothing` otherwise.
     def map f: case self of
         Nothing: Nothing
         Just a: Just (f a)
 
-    ## Takes a function returning `Maybe`, maps it over `self` and flattens the result.
+    # Takes a function returning `Maybe`, maps it over `self` and flattens the result.
     def flatMap f: case self of
         Nothing: Nothing
         Just a: f a
 
-    ## A variant of `map` that executes any effects performed by the function.
+    # A variant of `map` that executes any effects performed by the function.
     def each f: case self of
         Nothing: Nothing
         Just a:
             x = f a
             Just x
 
-    ## Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)` and `Nothing` otherwise.
+    # Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)` and `Nothing` otherwise.
     def flatten: case self of
         Nothing: Nothing
         Just a: a
 
-    ## Text representation of a `Maybe` object.
+    # Text representation of a `Maybe` object.
     def toText: case self of
         Just a: "Just " + a.toText
         Nothing: "Nothing"
 
-    ## Short text representation of a `Maybe` object.
+    # Short text representation of a `Maybe` object.
     def shortRep: case self of
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"
 
-    ## Checks the equality of two `Maybe` values. Returns `True` when both values are `Nothing` or when they are `Just` and the values inside are equal.
+    # Checks the equality of two `Maybe` values. Returns `True` when both values are `Nothing` or when they are `Just` and the values inside are equal.
     def == that: case (self, that) of
         (Just a, Just b): a.== b
         (Nothing, Nothing): True
         other: False
 
-## `Either` represents an alternative of two different values – either one or the other is present.
+# `Either` represents an alternative of two different values – either one or the other is present.
 class Either a b:
     Left  a
     Right b
 
-    ## Converts an `Either` value into a `JSON` object.
+    # Converts an `Either` value into a `JSON` object.
     def toJSON: case self of
         Left  a: a.toJSON
         Right b: b.toJSON
 
-    ## Takes two functions returning the same type, calls the first when called on `Left` and the second for `Right`.
+    # Takes two functions returning the same type, calls the first when called on `Left` and the second for `Right`.
     def either lf rf: case self of
         Left  a: lf a
         Right b: rf b
 
-    ## Convert an `Either a b` into a `Maybe` by turning a `Left` into `Nothing` (thus forgetting the value in this case) and a `Right a` into `Just a`.
+    # Convert an `Either a b` into a `Maybe` by turning a `Left` into `Nothing` (thus forgetting the value in this case) and a `Right a` into `Just a`.
     def toMaybe: self.either (_: Nothing) Just
 
-    ## Checks whether the value is `Left a`.
+    # Checks whether the value is `Left a`.
     def isLeft: case self of
         Left  _: True
         Right _: False
 
-    ## Checks whether the value is `Right a`.
+    # Checks whether the value is `Right a`.
     def isRight: case self of
         Left  _: False
         Right _: True
 
-    ## Returns `a` when called on a `Left a`, throws an error otherwise.
+    # Returns `a` when called on a `Left a`, throws an error otherwise.
     def left: case self of
         Left  a: a
         Right _: errorStr "Either.left: Right"
 
-    ## Returns `a` when called on a `Right a`, throws an error otherwise.
+    # Returns `a` when called on a `Right a`, throws an error otherwise.
     def right: case self of
         Left  _: errorStr "Either.right: Left"
         Right b: b
 
-    ## Text representation of an `Either` value.
+    # Text representation of an `Either` value.
     def toText: case self of
         Left  a: "Left " + a.toText
         Right b: "Right " + b.toText
 
-    ## Short text representation of an `Either` value.
+    # Short text representation of an `Either` value.
     def shortRep: case self of
         Left  a: "Left " + a.shortRep
         Right b: "Right " + b.shortRep
 
-    ## Checks whether two `Either` values are equal. Returns `True` when both values are `Left` or both are `Right` and when the contained values are equal.
+    # Checks whether two `Either` values are equal. Returns `True` when both values are `Left` or both are `Right` and when the contained values are equal.
     def == that: case self of
         Left  a: if that.isLeft  then a.== that.left  else False
         Right b: if that.isRight then b.== that.right else False
 
-    ## Runs the provided function on a `Right` value and returns `Left` values unchanged. `a.map f` is the same as `a.either id f`.
+    # Runs the provided function on a `Right` value and returns `Left` values unchanged. `a.map f` is the same as `a.either id f`.
     def map f: case self of
         Left  a: Left a
         Right b: Right (f b)
 
-    ## Takes a function returning an `Either` and runs it when run on a `Right`. Returns the `Left` value unchangeds.
+    # Takes a function returning an `Either` and runs it when run on a `Right`. Returns the `Left` value unchangeds.
     def flatMap f: case self of
         Left  a: Left a
         Right b: f b
 
-## Lists of arbitrary length, consisting of elements of the same type.
+# Lists of arbitrary length, consisting of elements of the same type.
 class List a:
     Empty
     Prepend a (List a)
 
-    ## Returns `Just` the first element when the list is not empty, `Nothing` otherwise.
+    # Returns `Just` the first element when the list is not empty, `Nothing` otherwise.
     def head: case (self) of
         Empty: Nothing
         Prepend x xs: Just x
@@ -591,30 +591,30 @@ class List a:
         Prepend _ rest: rest.last
         Empty: Nothing
 
-    ## Returns `Just` the list without the first element when the list is not empty, `Nothing` otherwise.
+    # Returns `Just` the list without the first element when the list is not empty, `Nothing` otherwise.
     def tail: case self of
         Empty: Nothing
         Prepend x xs: Just xs
 
-    ## Prepends an element to the list.
+    # Prepends an element to the list.
     def prepend a: Prepend a self
 
-    ## Tests whether the list is empty.
+    # Tests whether the list is empty.
     def isEmpty: case self of
         Empty: True
         Prepend x xs: False
 
-    ## Maps a function over each element of the list.
+    # Maps a function over each element of the list.
     def map f: case (self) of
         Empty: Empty
         Prepend x xs: Prepend (f x) (xs.map f)
 
-    ## Executes the actions from each element of the list.
+    # Executes the actions from each element of the list.
     def sequence: case (self) of
         Empty: None
         Prepend x xs: seq x xs.sequence
 
-    ## Maps a function over each element of the list, immediately executing all side effects and returning a list of results.
+    # Maps a function over each element of the list, immediately executing all side effects and returning a list of results.
     def each f: case (self) of
         Empty: Empty
         Prepend x xs:
@@ -622,82 +622,82 @@ class List a:
             rest = xs . each f
             Prepend fst rest
 
-    ## Returns the list prefix of a given length or the whole list, when the requested prefix is longer than the list.
+    # Returns the list prefix of a given length or the whole list, when the requested prefix is longer than the list.
     def take i: case (self) of
         Empty: Empty
         Prepend x xs: switch (0.== i) Empty (Prepend x (xs.take i.pred))
 
-    ## Returns the list without the prefix of a requested length, or an empty list if the number of dropped elements is larger than the list length.
+    # Returns the list without the prefix of a requested length, or an empty list if the number of dropped elements is larger than the list length.
     def drop i: case (self) of
         Empty: Empty
         Prepend x xs: if 0.== i then self else xs . drop i.pred
 
-    ## Returns `Just` the element at a given position in the list. Returns `Nothing` when the index does not exist.
+    # Returns `Just` the element at a given position in the list. Returns `Nothing` when the index does not exist.
     def at n: case (self) of
         Empty: Nothing
         Prepend x xs: if 0.== n then Just x else xs . at n.pred
 
-    ## Returns the element at a given position in the list. Throws an error when the index does not exist.
+    # Returns the element at a given position in the list. Throws an error when the index does not exist.
     def getAt n: case self . at n of
         Just v: v
         Nothing: throw "List.getAt: Index out of range."
 
-    ## Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    # Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
     def fold a f: case (self) of
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
-    ## Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    # Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
     def foldLeft a f: case self of
         Empty: a
         Prepend x xs:
             na = f x a
             xs . foldLeft na f
 
-    ## Reverses the list.
+    # Reverses the list.
     def reverse: self . foldLeft [] Prepend
 
-    ## List concatenation.
+    # List concatenation.
     def + that: case (self) of
         Empty: that
         Prepend x xs: Prepend x (xs.+ that)
 
-    ## Computes the length of a list.
+    # Computes the length of a list.
     def length: case (self) of
         Empty: 0
         Prepend x xs: xs.length.succ
 
-    ## Short text representation of a list.
+    # Short text representation of a list.
     def shortRep: "List<" + self.length.shortRep + ">"
 
-    ## Text represenation of a list.
+    # Text represenation of a list.
     def toText: "[" + (self . makeText ", ") + "]"
 
-    ## Private.
+    # Private.
     def prependAll it: case (self) of
         Empty: Empty
         Prepend x xs: xs . prependAll it . prepend x . prepend it
 
-    ## Inserts an element between every two elements of a list.
+    # Inserts an element between every two elements of a list.
     def intersperse sep: case (self) of
         Empty: Empty
         Prepend x xs: xs . prependAll sep . prepend x
 
-    ## Converts a list to a `JSON` object.
+    # Converts a list to a `JSON` object.
     def toJSON: JSONArray (self . map (x: x.toJSON))
 
-    ## Returns a list of all the elements for which the given predicate returns `True`.
+    # Returns a list of all the elements for which the given predicate returns `True`.
     def filter f: case (self) of
          Empty: Empty
          Prepend x xs: switch (f x) (Prepend x (xs.filter f)) (xs.filter f)
 
-    ## Private.
+    # Private.
     def _merge cmp that: case Tuple2 self that of
         Tuple2 (Prepend x xs) (Prepend y ys): if cmp y x then self . _merge cmp ys . prepend y else xs . _merge cmp that . prepend x
         Tuple2 x Empty: x
         Tuple2 Empty y: y
 
-    ## Sorts the list in an increasing order by the results of the given function.
+    # Sorts the list in an increasing order by the results of the given function.
     def sortBy f:
         halfLen = self.length / 2
         case 0.== halfLen of
@@ -707,7 +707,7 @@ class List a:
                 sndHalf = self . drop halfLen . sortBy f
                 fstHalf._merge (f _ < f _) sndHalf
 
-    ## Private.
+    # Private.
     def _chunkBy last f:
         case (last, self) of
             (Nothing, Prepend a rest):
@@ -726,105 +726,105 @@ class List a:
                 grp = elts . reverse
                 [(v, grp)]
 
-    ## Chunks the list into lists of consecutive values returning the same value of a given function.
-    ## For example:
-    ## ```
-    ## [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2]), (True, [3, 4]), (False, [2, 2])]
-    ## ```
+    # Chunks the list into lists of consecutive values returning the same value of a given function.
+    # For example:
+    # ```
+    # [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2]), (True, [3, 4]), (False, [2, 2])]
+    # ```
     def chunkBy f: self._chunkBy Nothing f
 
-    ## Groups the list into lists of values returning the same value of a given function. Requires the return value of the function to be ordered.
-    ## For example:
-    ## ```
-    ## [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2, 2, 2]), (True, [3, 4])]
-    ## ```
+    # Groups the list into lists of values returning the same value of a given function. Requires the return value of the function to be ordered.
+    # For example:
+    # ```
+    # [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2, 2, 2]), (True, [3, 4])]
+    # ```
     def groupBy f:
         self . sortBy f . chunkBy f
 
-    ## Sorts the list in an increasing order.
+    # Sorts the list in an increasing order.
     def sort: self . sortBy id
 
-    ## Private.
+    # Private.
     def _prefixes i: Prepend (self.take i) (self._prefixes i.succ)
 
-    ## Returns a list of all prefixes of the given list.
+    # Returns a list of all prefixes of the given list.
     def prefixes: self._prefixes 1
 
-    ## Returns a list resulting from combining respective elements of two lists with the provided function. The length of the result is the length of the shorter of the lists.
+    # Returns a list resulting from combining respective elements of two lists with the provided function. The length of the result is the length of the shorter of the lists.
     def zipWith f that: case Tuple2 self that of
         Tuple2 (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
         Tuple2 x y: Empty
 
-    ## Returns a list of pairs of respective elements of two lists. The length of the result is the length of the shorter of the lists.
+    # Returns a list of pairs of respective elements of two lists. The length of the result is the length of the shorter of the lists.
     def zip l: self . zipWith Tuple2 l
 
-    ## Checks whether all elements of a list satisfy a provided predicate.
+    # Checks whether all elements of a list satisfy a provided predicate.
     def _all f: case self of
         Empty: True
         Prepend x xs: if f x then xs . _all f else False
 
-    ## Checks whether any element of a list satisfies a provided predicate.
+    # Checks whether any element of a list satisfies a provided predicate.
     def _any f: case self of
         Empty: False
         Prepend x xs: if f x then True else xs . _any f
 
-    ## List equality. Two lists are equal when they have the same length and their respective elements are equal.
+    # List equality. Two lists are equal when they have the same length and their respective elements are equal.
     def == that: case Tuple2 self that of
         Tuple2 Empty Empty: True
         Tuple2 (Prepend x xs) (Prepend y ys): if x.== y then xs.== ys else False
         other: False
 
-    ## Takes a list of `Maybes` and returns a list of all the `Just` elements.
+    # Takes a list of `Maybes` and returns a list of all the `Just` elements.
     def collect: case self of
         Empty: Empty
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    ## Converts a list into text by converting each element to text and concatenating them using the provided separator.
+    # Converts a list into text by converting each element to text and concatenating them using the provided separator.
     def makeText sep: self . each .toText . intersperse sep . fold '' (+)
 
-    ## Takes a list of lists and concatenates them into a single list.
+    # Takes a list of lists and concatenates them into a single list.
     def concat: case self of
         Empty: Empty
         Prepend Empty r: r.concat
         Prepend (Prepend x xs) ys: Prepend x (Prepend xs ys).concat
 
-    ## Maps a list-returning function over each element and concatenates the results.
+    # Maps a list-returning function over each element and concatenates the results.
     def flatMap f: self.map f . concat
 
-    ## Checks whether the list contains a given element.
+    # Checks whether the list contains a given element.
     def contains elem: self._any (x: x == elem)
 
-    ## Returns the longest prefix of the list for which a given predicate is satisfied.
+    # Returns the longest prefix of the list for which a given predicate is satisfied.
     def takeWhile pred: case self of
         Empty: Empty
         Prepend a as:
             p = pred a
             if p then Prepend a (as.takeWhile pred) else []
 
-## Represents a dictionary from keys of given type to values of given type. The keys need to have ordering defined.
+# Represents a dictionary from keys of given type to values of given type. The keys need to have ordering defined.
 class Map k v:
     Map
     Tip
     Bin Int k v (Map k v) (Map k v)
 
-    ## Returns an empty map.
+    # Returns an empty map.
     def empty: Tip
 
-    ## Returns a map with a single element.
+    # Returns a map with a single element.
     def singleton k v: Bin 1 k v Tip Tip
 
-    ## Tests whether the map is empty.
+    # Tests whether the map is empty.
     def isEmpty: case self of
         Tip: True
         Bin s k v l r: False
 
-    ## Returns the number of values stored in the map.
+    # Returns the number of values stored in the map.
     def size: case self of
         Tip: 0
         Bin s k v l r: s
 
-    ## Converts the map into a list of `(key, value)` pairs.
+    # Converts the map into a list of `(key, value)` pairs.
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
@@ -832,29 +832,29 @@ class Map k v:
             right = r.toList
             left + ([(k, v)] + right)
 
-    ## Applies a function to each value in the map.
+    # Applies a function to each value in the map.
     def map f: case self of
         Tip: Tip
         Bin s k v l r: Bin s k (f v) (l . map f) (r . map f)
 
-    ## Converts a map with `Text` keys to JSON.
+    # Converts a map with `Text` keys to JSON.
     def toJSON: JSONObject (self . map (x : x.toJSON))
 
     def toText: self . toList . toText
 
-    ## Looks up an element for a given key.
+    # Looks up an element for a given key.
     def lookup k:
         case self of
             Tip: Nothing
             Bin s kx x l r:
                 if kx.== k then Just x else (if kx > k then l.lookup k else r.lookup k)
 
-    ## Gets an element for a given key. Throws an exception when the key is not present in the Map.
+    # Gets an element for a given key. Throws an exception when the key is not present in the Map.
     def get k: case self . lookup k of
         Just v: v
         Nothing: throw "Map.get: key not found"
 
-    ## Inserts an element at a given key.
+    # Inserts an element at a given key.
     def insert k v: case self of
         Tip: Bin 1 k v Tip Tip
         Bin s ky y l r: case (ky == k) of
@@ -867,7 +867,7 @@ class Map k v:
                     newR = r.insert k v
                     Map._bin ky y l newR
 
-    ## Map equality. Two maps are equal when they contain the same keys and the elements associated with each key are equal.
+    # Map equality. Two maps are equal when they contain the same keys and the elements associated with each key are equal.
     def == that:
         s = self.toList
         t = that.toList
@@ -971,7 +971,7 @@ class Map k v:
                 (km, vm, r') = that . _minView
                 Map._bin km vm self r' . _balanceR
 
-    ## Deletes a key from the given map. If the the key is missing, it returns the original map.
+    # Deletes a key from the given map. If the the key is missing, it returns the original map.
     def delete key: case self of
         Tip: Tip
         Bin _ k v l r: case key == k of
@@ -998,7 +998,9 @@ class Scientific:
     def toReal:
         self.coefficient.toReal * (10.0 ^ self.exponent.toReal)
 
-## Class representing JSON objects.
+    def toInt: self.coefficient
+
+# Class representing JSON objects.
 class JSON:
     JSON
     JSONNumber Scientific
@@ -1008,18 +1010,20 @@ class JSON:
     JSONObject (Map Text JSON)
     JSONNull
 
-    ## Parses a `Text` into a `JSON` object. Returns `Left` containing error message when the `Text` does not contain a valid `JSON` object.
+    # Parses a `Text` into a `JSON` object. Returns `Left` containing error
+    # message when the `Text` does not contain a valid `JSON` object.
     def safeParse data: parseJSON (data.toText)
 
-    ## Parses a `Text` into a `JSON` object. Throws an error when the `Text` does not contain a valid `JSON` object.
+    # Parses a `Text` into a `JSON` object. Throws an error when the `Text`
+    # does not contain a valid `JSON` object.
     def parse data: case JSON.safeParse data of
        Right json: json
        Left err:   errorStr err
 
-    ## Identity. Included for consistency with other classes.
+    # Identity. Included for consistency with other classes.
     def toJSON: self
 
-    ## Dumps a `JSON` structure into a `Text` object.
+    # Dumps a `JSON` structure into a `Text` object.
     def toText: case self of
         JSONNumber d: d.toText
         JSONString s: s.escapeJSON
@@ -1030,184 +1034,243 @@ class JSON:
         JSONNull: "null"
         JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
 
-    ## Dumps a `JSON` structure into a `Binary` object, by rendering it into `Text` and converting it to `Binary`.
+    # Dumps a `JSON` structure into a `Binary` object, by rendering it
+    # into `Text` and converting it to `Binary`.
     def toBinary: self.toText.toBinary
 
-    ## Dumps a `JSON` structure into a `Text` object.
+    # Dumps a `JSON` structure into a `Text` object.
     def render: self.toText
 
     def toBinary: self.toText.toBinary
-    ## Short text representation for a `JSON` object.
+    # Short text representation for a `JSON` object.
     def shortRep: self.render
 
-    ## Returns an empty `JSON` object
+    # Returns an empty `JSON` object
     def empty: JSONObject Tip
 
-    ## Inserts a value for a given key into the `JSON` object. Throws an exception when the `JSON` does not represent an object.
+    # Inserts a value for a given key into the `JSON` object.
+    # Throws an exception when the `JSON` does not represent an object.
     def insert k v: case self of
         JSONObject m: JSONObject (m . insert k v.toJSON)
         _: throw "JSON.insert: not an object."
 
-    ## Deletes a value for a given key from the `JSON` object. Does nothing when the `JSON` does not represent an object or does not contain the key.
+    # Deletes a value for a given key from the `JSON` object. Does nothing when
+    # the `JSON` does not represent an object or does not contain the key.
     def delete k: case self of
         JSONObject m: JSONObject (m.delete k)
         _: self
 
-    ## Returns `Just` the value associated with a given key. Returns `Nothing` when the `JSON` is not an object or when the key is missing.
+    # Returns `Just` the value associated with a given key. Returns `Nothing`
+    # when the `JSON` is not an object or when the key is missing.
     def lookup key: case self of
         JSONObject m: m.lookup key
         other: Nothing
 
-    ## Returns the value associated with a given key. Throws an error when the `JSON` is not an object or the key is missing.
+    # Returns the value associated with a given key. Throws an error when
+    # the `JSON` is not an object or the key is missing.
     def get key: case self of
         JSONObject m: case m.lookup key of
             Just v: v
             Nothing: throw ("JSON.get: key not found: " + key.toText)
         other: throw "JSON.get: not an object."
 
-    ## Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Throws an error otherwise.
+    # Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents
+    # an object. Throws an error otherwise.
     def asObject: case self of
         JSONObject m: m
         other: throw "JSON.asObject: not an object."
 
-    ## Returns a `Text` assuming the `JSON` represents text. Throws an error otherwise.
+    # Returns a `Text` assuming the `JSON` represents text.
+    # Throws an error otherwise.
     def asText: case self of
         JSONString t: t
         other: throw "JSON.asText: not a text."
 
-    ## Returns a `Real` assuming the `JSON` represents a number. Throws an error otherwise.
+    # Returns a `Real` assuming the `JSON` represents a number.
+    # Throws an error otherwise.
     def asReal: case self of
         JSONNumber a: a.toReal
         other: throw "JSON.asReal: not a number."
 
-    ## Returns a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
+    # Returns an `Int` assuming the `JSON` represents a number and it
+    # didn't contain a decimal point. Throws an error otherwise.
+    def asInt: case self of
+        JSONNumber a: a.toInt
+        other: throw "JSON.asInt: not a number"
+
+    # Returns a `Bool` assuming the `JSON` represents a boolean.
+    # Throws an error otherwise.
     def asBool: case self of
         JSONBool a: a
         other: throw "JSON.asBool: not a boolean."
 
-    ## Returns a list of `JSON` object assuming the `JSON` represents an array. Throws an error otherwise.
+    # Returns a list of `JSON` object assuming the `JSON` represents an array.
+    # Throws an error otherwise.
     def asList: case self of
         JSONArray a: a
         other: throw "JSON.asList: not a list."
 
-    ## Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Throws an error otherwise.
+    # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON`
+    # represents an object. Returns `Nothing` otherwise.
     def safeAsObject: case self of
         JSONObject m: Just m
         other: Nothing
 
-    ## Returns `Just` a `Text` assuming the `JSON` represents text. Throws an error otherwise.
+    # Returns `Just` a `Text` assuming the `JSON` represents text.
+    # Returns `Nothing` otherwise.
     def safeAsText: case self of
         JSONString t: Just t
         other: Nothing
 
-    ## Returns `Just` a `Real` assuming the `JSON` represents a number. Throws an error otherwise.
+    # Returns `Just` a `Real` assuming the `JSON` represents a number.
+    # Returns `Nothing` otherwise.
     def safeAsReal: case self of
         JSONNumber a: Just a.toReal
         other: Nothing
 
-    ## Returns `Just` a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
+    # Returns `Just` an `Int` assuming the `JSON` represents a number and it
+    # didn't contain a decimal point. Returns `Nothing` otherwise.
+    def safeAsInt: case self of
+        JSONNumber a: Just a.toInt
+        other: Nothing
+
+    # Returns `Just` a `Bool` assuming the `JSON` represents a boolean.
+    # Returns `Nothing` otherwise.
     def safeAsBool: case self of
         JSONBool a: Just a
         other: Nothing
 
-    ## Returns `Just` a list of `JSON` object assuming the `JSON` represents an array. Throws an error otherwise.
+    # Returns `Just` a list of `JSON` object assuming the `JSON` represents
+    # an array. Returns `Nothing` otherwise.
     def safeAsList: case self of
         JSONArray a: Just a
         other: Nothing
 
-    ## Gets a `Map` from `Text` to `JSON` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not an object.
+    # Gets a `Map` from `Text` to `JSON` associated with a given key.
+    # Throws an error when the `JSON` is not an object, the key is not present
+    # or the associated value is not an object.
     def getObject k: self . get k . asObject
 
-    ## Gets a `Text` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a text.
+    # Gets a `Text` associated with a given key.
+    # Throws an error when the `JSON` is not an object, the key is not present
+    # or the associated value is not a text.
     def getText k: self . get k . asText
 
-    ## Gets a `Real` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a number.
+    # Gets a `Real` associated with a given key. Throws an error when
+    # the `JSON` is not an object, the key is not present
+    # or the associated value is not a number.
     def getReal k: self . get k . asReal
 
-    ## Gets a `Bool` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a boolean.
+    # Gets an `Int` associated with a given key. Throws an error when the
+    # `JSON` is not an object, the key is not present or the associated value
+    # is not an integer.
+    def getInt k: self . get k . asInt
+
+    # Gets a `Bool` associated with a given key. Throws an error when the
+    # `JSON` is not an object, the key is not present or the associated value
+    # is not a boolean.
     def getBool k: self . get k . asBool
 
-    ## Gets a `List` of `JSON` values associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not an array.
+    # Gets a `List` of `JSON` values associated with a given key. Throws
+    # an error when the `JSON` is not an object, the key is not present
+    # or the associated value is not an array.
     def getList k: self . get k . asList
 
-    ## Looks up a `Map` from `Text` to `JSON` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not an object.
+    # Looks up a `Map` from `Text` to `JSON` associated with a given key.
+    # Returns `Nothing` when the `JSON` is not an object, the key is not
+    # present or the associated value is not an object.
     def lookupObject k: self . lookup k . flatMap .safeAsObject
 
-    ## Looks up a `Text` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a text.
+    # Looks up a `Text` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not a text.
     def lookupText k: self . lookup k . flatMap .safeAsText
 
-    ## Looks up a `Real` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a number.
+    # Looks up a `Real` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not a number.
     def lookupReal k: self . lookup k . flatMap .safeAsReal
 
-    ## Looks up a `Bool` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a boolean.
+    # Looks up an `Int` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not an integer.
+    def lookupInt k: self . lookup k . flatMap .safeAsInt
+
+    # Looks up a `Bool` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not a boolean.
     def lookupBool k: self . lookup k . flatMap .safeAsBool
 
-    ## Looks up a `List` of `JSON` values associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not an array.
+    # Looks up a `List` of `JSON` values associated with a given key.
+    # Returns `Nothing` when the `JSON` is not an object, the key is not
+    # present or the associated value is not an array.
     def lookupList k: self . lookup k . flatMap .safeAsList
 
-    ## Returns `Just` the element with a given index assuming the `JSON` represents an array and the index is in range. Returns `Nothing` otherwise.
+    # Returns `Just` the element with a given index assuming the `JSON`
+    # represents an array and the index is in range. Returns `Nothing` otherwise.
     def at n: self . safeAsList . flatMap (_.at n)
 
-    ## Returns the element with a given index assuming the `JSON` represents an array and the index is in range. Throws an error otherwise.
+    # Returns the element with a given index assuming the `JSON` represents
+    # an array and the index is in range. Throws an error otherwise.
     def getAt n: self . asList . getAt n
 
-## Creates an empty MVar object.
-## MVar is a mutable variable, safe to read and modify in a multi-threaded environment.
-## An MVar can either be empty or can contain a value.
-## Reading an empty `MVar` suspends the thread until a value is written.
-## Writing to a non-empty `MVar` suspends the thread until a value is taken out.
+# Creates an empty MVar object.
+# MVar is a mutable variable, safe to read and modify in a multi-threaded environment.
+# An MVar can either be empty or can contain a value.
+# Reading an empty `MVar` suspends the thread until a value is written.
+# Writing to a non-empty `MVar` suspends the thread until a value is taken out.
 def newMVar:
     primNewMVar
 
-## Takes an action and executes it in a separate thread.
+# Takes an action and executes it in a separate thread.
 def fork:
     primFork
 
 
-## MVar is a mutable variable, safe to read and modify in a multi-threaded environment.
-## An MVar can either be empty or can contain a value.
-## Reading an empty `MVar` locks the thread until a value is written.
-## Writing to a non-empty `MVar` locks the thread until a value is taken out.
+# MVar is a mutable variable, safe to read and modify in a multi-threaded environment.
+# An MVar can either be empty or can contain a value.
+# Reading an empty `MVar` locks the thread until a value is written.
+# Writing to a non-empty `MVar` locks the thread until a value is taken out.
 native class MVar a:
-    ## Takes the value out of the `MVar` and returns it, leaving the `MVar` empty.
-    ## Calling this on an empty `MVar` suspends the thread until the value is put in it.
+    # Takes the value out of the `MVar` and returns it, leaving the `MVar` empty.
+    # Calling this on an empty `MVar` suspends the thread until the value is put in it.
     def take:  primTakeMVar self
 
-    ## Takes the value out of the `MVar` and returns it, leaving the original value in the `MVar`.
-    ## Calling this on an empty `MVar` suspends the thread until the value is put in it.
+    # Takes the value out of the `MVar` and returns it, leaving the original value in the `MVar`.
+    # Calling this on an empty `MVar` suspends the thread until the value is put in it.
     def read:  primReadMVar self
 
-    ## Puts a value inside the `MVar`. Calling this method on a non-empty `MVar` suspends the thread until the old value is taken out.
+    # Puts a value inside the `MVar`. Calling this method on a non-empty `MVar` suspends the thread until the old value is taken out.
     def put v: primPutMVar  self v
 
-## `Stream` represents an infinite data source, with a list-like API.
+# `Stream` represents an infinite data source, with a list-like API.
 class Stream a:
     head :: a
     tail :: Stream a
 
     def isStream: True
 
-    ## Runs a function on each element of the stream, immediately executing all side effects. Due to the stream being infinite, this function never terminates.
+    # Runs a function on each element of the stream, immediately executing all side effects. Due to the stream being infinite, this function never terminates.
     def each f: case self of
         Stream elt s:
             f elt
             s.each f
 
-    ## Takes an initial value and function. Returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value.
+    # Takes an initial value and function. Returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value.
     def foldFrom a f: case self of
         Stream elt s:
             new = f elt a
             Stream new (s.foldFrom new f)
 
-    ## Takes a function and returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value, where the first accumulated value is the first element in the stream.
+    # Takes a function and returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value, where the first accumulated value is the first element in the stream.
     def fold f: case self of
         Stream elt s: s.foldFrom elt f
 
-    ## Runs a function on each element on the stream, not executing any side effects.
+    # Runs a function on each element on the stream, not executing any side effects.
     def map f: case self of
         Stream elt s: Stream (f elt) (s.map f)
 
-    ## `s.consume n` returns a list of the first `n` elements of `s` and the result of dropping the first `n` values of `s`.
+    # `s.consume n` returns a list of the first `n` elements of `s` and the result of dropping the first `n` values of `s`.
     def consume n: case self of
         Stream elt s:
             case (n == 0) of
@@ -1216,7 +1279,7 @@ class Stream a:
                     (elems, stream) = s.consume (n - 1)
                     (Prepend elt elems, stream)
 
-    ## Returns the longest prefix in which all elements satisfy the given predicate, and the result of dropping this prefix from the original stream.
+    # Returns the longest prefix in which all elements satisfy the given predicate, and the result of dropping this prefix from the original stream.
     def consumeWhile f: case self of
         Stream elt s:
             case (f elt) of
@@ -1225,38 +1288,38 @@ class Stream a:
                     (elems, stream) = s.consumeWhile f
                     (Prepend elt elems, stream)
 
-    ## Returns the prefix of the stream of given length.
+    # Returns the prefix of the stream of given length.
     def take n: self.consume n . first
 
-    ## Drops the given number of elements from the stream.
+    # Drops the given number of elements from the stream.
     def drop n: self.consume n . second
 
-    ## Returns the longest prefix of stream in which all elements satisfy the given predicate.
+    # Returns the longest prefix of stream in which all elements satisfy the given predicate.
     def takeWhile f: self.consumeWhile f . first
 
-    ## Drops the longest prefix of stream in which all elements satisfy the given predicate.
+    # Drops the longest prefix of stream in which all elements satisfy the given predicate.
     def dropWhile f: self.consumeWhile f . second
 
-    ## Evaluates all actions associated with stream elements sequentially. Due to the stream being infinite, this function never terminates.
+    # Evaluates all actions associated with stream elements sequentially. Due to the stream being infinite, this function never terminates.
     def eval: self.each id
 
-    ## Returns a stream containing the same values as the original stream, but produces them no more often than the given time interval.
+    # Returns a stream containing the same values as the original stream, but produces them no more often than the given time interval.
     def rateLimit timeInterval:
         everyWithState timeInterval (s: (s.head, s.tail)) self
 
-    ## Transforms a stream containing `Maybe` values into one containing only the `Just` items.
+    # Transforms a stream containing `Maybe` values into one containing only the `Just` items.
     def collect: case self.head of
         Just  x: Stream x self.tail.collect
         Nothing: self.tail.collect
 
-## Builds a stream by repeatedly calling an action. Useful for consuming low-level streaming data sources.
+# Builds a stream by repeatedly calling an action. Useful for consuming low-level streaming data sources.
 def streamFrom act:
     var = newMVar
     head = act
     fork (var.put (streamFrom act))
     Stream head var.read
 
-## Repeat an action while predicate returns `True`. Returns a List of all the values for which predicate returned `True`.
+# Repeat an action while predicate returns `True`. Returns a List of all the values for which predicate returned `True`.
 def repeatWhile act predicate:
     last = act
     case predicate last of
@@ -1266,40 +1329,40 @@ def repeatWhile act predicate:
         False:
             Empty
 
-## Executes an action in a separate thread, after waiting the specified time interval.
+# Executes an action in a separate thread, after waiting the specified time interval.
 def delayAsync time act:
     var = newMVar
     fork (seq (sleep time) (var.put act))
     var
 
-## Takes an action and a `TimeInterval`. Evaluates the action in given intervals, returning a `Stream` of consecutive values.
-## Particularly useful for polling webservices or scheduling tasks.
+# Takes an action and a `TimeInterval`. Evaluates the action in given intervals, returning a `Stream` of consecutive values.
+# Particularly useful for polling webservices or scheduling tasks.
 def every timeInterval act:
     time    = timeInterval.toMicroseconds
     current = act
     future  = delayAsync time (every timeInterval act)
     Stream current future.read
 
-## A variant of `every` in which the action modifies some local state while running.
+# A variant of `every` in which the action modifies some local state while running.
 def everyWithState timeInterval stateFunc state:
     time = timeInterval.toMicroseconds
     (current, newState) = stateFunc state
     future = delayAsync time (everyWithState timeInterval stateFunc newState)
     Stream current future.read
 
-## Print the value to standard output. Can be called on any value which defines a `toText` method returning `Text`.
+# Print the value to standard output. Can be called on any value which defines a `toText` method returning `Text`.
 def print x: putStr x.toText
 
-## Read file from the hard drive, returning a `Text` value.
+# Read file from the hard drive, returning a `Text` value.
 def readFile f: primReadFile (expandPath f)
 
-## Write a Text object into a file with a given path.
+# Write a Text object into a file with a given path.
 def writeFile f c: primWriteFile (expandPath f) c
 
-## Takes a Text and throws it as an error.
+# Takes a Text and throws it as an error.
 def throw e: errorStr e
 
-## Takes a value and a function from Text to value. Returns the value if it was correct or calls the function if the value was erroneous.
+# Takes a value and a function from Text to value. Returns the value if it was correct or calls the function if the value was erroneous.
 def catch v f: case runError v of
     Left e:  f e
     Right d: d
