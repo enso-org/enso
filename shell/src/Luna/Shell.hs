@@ -23,6 +23,7 @@ import qualified Luna.IR.Term.Unit  as Term
 import qualified Luna.IR.Term.Cls   as Term
 import Luna.Builtin.Data.Module     as Module
 import Luna.Builtin.Data.Class
+import Luna.Builtin.Data.Class as Class
 import Luna.Builtin.Data.LunaEff
 import Luna.Builtin.Data.LunaValue  as LunaValue
 import qualified Luna.Builtin.Data.Function   as Function
@@ -129,27 +130,50 @@ stdlibPath = do
         else die "Standard library not found. Set the LUNA_HOME environment variable"
     return stdPath
 
+forceCompilation :: Project.CompiledModules -> IO ()
+forceCompilation (Project.CompiledModules m p) = do
+    let forceImports imp = do
+            let functions = Map.map (view Function.documentedItem) $ view importedFunctions imp
+                methods   = map (view Function.documentedItem) $ concatMap (Map.elems . view Class.methods) $ Map.elems $ Map.map (view Function.documentedItem) $ view importedClasses imp
+            forM_ (Map.elems functions ++ methods) $ \case
+                Left errors -> print errors
+                Right     _ -> return ()
+    forceImports p
+    forM_ (Map.elems m) forceImports
+
 main :: IO ()
 main = do
     mainPath' <- getCurrentDirectory
     mainPath  <- Path.parseAbsDir mainPath'
     let mainName = Project.getProjectName mainPath
     stdPath   <- stdlibPath
-    (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
+    stdPath'  <- Path.parseAbsDir stdPath
+    (fin, std) <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
     dependencies <- Project.listDependencies mainPath
     let libs = Map.fromList $ [("Std", stdPath), (mainName, mainPath')] ++ dependencies
-    Right (_, imp) <- Project.requestModules libs [[mainName, "Main"]] std
-    let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
-    case mainFun of
-        Just (Left e)  -> do
-            putStrLn "Luna encountered the following compilation errors:"
-            Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $ formatErrors e
-            putStrLn ""
-            liftIO $ die "Compilation failed."
-        Just (Right f) -> do
-            putStrLn "Running main..."
-            res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
-            case res of
-                Left err -> error $ "Luna encountered runtime error: " ++ err
-                _        -> return ()
-        Nothing -> error "Function main not found in module Main."
+    let loop = do
+            allStd <- Project.findProjectSources stdPath'
+            allProj <- Project.findProjectSources mainPath
+
+            Right (_, imp) <- Project.requestModules libs ([mainName, "Main"] : (map ("Std" <>) $ Bimap.elems allStd) <> (map (convert mainName <>) $ Bimap.elems allProj)) std
+            forceCompilation imp
+            let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
+            case mainFun of
+                Just (Left e)  -> do
+                    putStrLn "Luna encountered the following compilation errors:"
+                    Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $ formatErrors e
+                    putStrLn ""
+                    liftIO $ putStrLn "Compilation failed."
+                Just (Right f) -> do
+                    putStrLn "Running main..."
+                    res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
+                    case res of
+                        Left err -> putStrLn $ "Luna encountered runtime error: " ++ err
+                        _        -> return ()
+                Nothing -> putStrLn "Function main not found in module Main."
+            e <- getLine
+            fin
+            case e of
+                "exit" -> return ()
+                _      -> loop
+    loop
