@@ -1010,10 +1010,12 @@ class JSON:
     JSONObject (Map Text JSON)
     JSONNull
 
-    # Parses a `Text` into a `JSON` object. Returns `Left` containing error message when the `Text` does not contain a valid `JSON` object.
+    # Parses a `Text` into a `JSON` object. Returns `Left` containing error
+    # message when the `Text` does not contain a valid `JSON` object.
     def safeParse data: parseJSON (data.toText)
 
-    # Parses a `Text` into a `JSON` object. Throws an error when the `Text` does not contain a valid `JSON` object.
+    # Parses a `Text` into a `JSON` object. Throws an error when the `Text`
+    # does not contain a valid `JSON` object.
     def parse data: case JSON.safeParse data of
        Right json: json
        Left err:   errorStr err
@@ -1032,7 +1034,8 @@ class JSON:
         JSONNull: "null"
         JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
 
-    # Dumps a `JSON` structure into a `Binary` object, by rendering it into `Text` and converting it to `Binary`.
+    # Dumps a `JSON` structure into a `Binary` object, by rendering it
+    # into `Text` and converting it to `Binary`.
     def toBinary: self.toText.toBinary
 
     # Dumps a `JSON` structure into a `Text` object.
@@ -1045,128 +1048,170 @@ class JSON:
     # Returns an empty `JSON` object
     def empty: JSONObject Tip
 
-    # Inserts a value for a given key into the `JSON` object. Throws an exception when the `JSON` does not represent an object.
+    # Inserts a value for a given key into the `JSON` object.
+    # Throws an exception when the `JSON` does not represent an object.
     def insert k v: case self of
         JSONObject m: JSONObject (m . insert k v.toJSON)
         _: throw "JSON.insert: not an object."
 
-    # Deletes a value for a given key from the `JSON` object. Does nothing when the `JSON` does not represent an object or does not contain the key.
+    # Deletes a value for a given key from the `JSON` object. Does nothing when
+    # the `JSON` does not represent an object or does not contain the key.
     def delete k: case self of
         JSONObject m: JSONObject (m.delete k)
         _: self
 
-    # Returns `Just` the value associated with a given key. Returns `Nothing` when the `JSON` is not an object or when the key is missing.
+    # Returns `Just` the value associated with a given key. Returns `Nothing`
+    # when the `JSON` is not an object or when the key is missing.
     def lookup key: case self of
         JSONObject m: m.lookup key
         other: Nothing
 
-    # Returns the value associated with a given key. Throws an error when the `JSON` is not an object or the key is missing.
+    # Returns the value associated with a given key. Throws an error when
+    # the `JSON` is not an object or the key is missing.
     def get key: case self of
         JSONObject m: case m.lookup key of
             Just v: v
             Nothing: throw ("JSON.get: key not found: " + key.toText)
         other: throw "JSON.get: not an object."
 
-    # Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Throws an error otherwise.
+    # Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents
+    # an object. Throws an error otherwise.
     def asObject: case self of
         JSONObject m: m
         other: throw "JSON.asObject: not an object."
 
-    # Returns a `Text` assuming the `JSON` represents text. Throws an error otherwise.
+    # Returns a `Text` assuming the `JSON` represents text.
+    # Throws an error otherwise.
     def asText: case self of
         JSONString t: t
         other: throw "JSON.asText: not a text."
 
-    # Returns a `Real` assuming the `JSON` represents a number. Throws an error otherwise.
+    # Returns a `Real` assuming the `JSON` represents a number.
+    # Throws an error otherwise.
     def asReal: case self of
         JSONNumber a: a.toReal
         other: throw "JSON.asReal: not a number."
 
-    # Returns an `Int` assuming the `JSON` represents a number and it didn't contain a decimal point. Throws an error otherwise.
+    # Returns an `Int` assuming the `JSON` represents a number and it
+    # didn't contain a decimal point. Throws an error otherwise.
     def asInt: case self of
         JSONNumber a: a.toInt
         other: throw "JSON.asInt: not a number"
 
-    # Returns a `Bool` assuming the `JSON` represents a boolean. Throws an error otherwise.
+    # Returns a `Bool` assuming the `JSON` represents a boolean.
+    # Throws an error otherwise.
     def asBool: case self of
         JSONBool a: a
         other: throw "JSON.asBool: not a boolean."
 
-    # Returns a list of `JSON` object assuming the `JSON` represents an array. Throws an error otherwise.
+    # Returns a list of `JSON` object assuming the `JSON` represents an array.
+    # Throws an error otherwise.
     def asList: case self of
         JSONArray a: a
         other: throw "JSON.asList: not a list."
 
-    # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON` represents an object. Returns `Nothing` otherwise.
+    # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON`
+    # represents an object. Returns `Nothing` otherwise.
     def safeAsObject: case self of
         JSONObject m: Just m
         other: Nothing
 
-    # Returns `Just` a `Text` assuming the `JSON` represents text. Returns `Nothing` otherwise.
+    # Returns `Just` a `Text` assuming the `JSON` represents text.
+    # Returns `Nothing` otherwise.
     def safeAsText: case self of
         JSONString t: Just t
         other: Nothing
 
-    # Returns `Just` a `Real` assuming the `JSON` represents a number. Returns `Nothing` otherwise.
+    # Returns `Just` a `Real` assuming the `JSON` represents a number.
+    # Returns `Nothing` otherwise.
     def safeAsReal: case self of
         JSONNumber a: Just a.toReal
         other: Nothing
 
-    # Returns `Just` an `Int` assuming the `JSON` represents a number and it didn't contain a decimal point. Returns `Nothing` otherwise.
+    # Returns `Just` an `Int` assuming the `JSON` represents a number and it
+    # didn't contain a decimal point. Returns `Nothing` otherwise.
     def safeAsInt: case self of
         JSONNumber a: Just a.toInt
         other: Nothing
 
-    # Returns `Just` a `Bool` assuming the `JSON` represents a boolean. Returns `Nothing` otherwise.
+    # Returns `Just` a `Bool` assuming the `JSON` represents a boolean.
+    # Returns `Nothing` otherwise.
     def safeAsBool: case self of
         JSONBool a: Just a
         other: Nothing
 
-    # Returns `Just` a list of `JSON` object assuming the `JSON` represents an array. Returns `Nothing` otherwise.
+    # Returns `Just` a list of `JSON` object assuming the `JSON` represents
+    # an array. Returns `Nothing` otherwise.
     def safeAsList: case self of
         JSONArray a: Just a
         other: Nothing
 
-    # Gets a `Map` from `Text` to `JSON` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not an object.
+    # Gets a `Map` from `Text` to `JSON` associated with a given key.
+    # Throws an error when the `JSON` is not an object, the key is not present
+    # or the associated value is not an object.
     def getObject k: self . get k . asObject
 
-    # Gets a `Text` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a text.
+    # Gets a `Text` associated with a given key.
+    # Throws an error when the `JSON` is not an object, the key is not present
+    # or the associated value is not a text.
     def getText k: self . get k . asText
 
-    # Gets a `Real` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a number.
+    # Gets a `Real` associated with a given key. Throws an error when
+    # the `JSON` is not an object, the key is not present
+    # or the associated value is not a number.
     def getReal k: self . get k . asReal
 
-    # Gets an `Int` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not an integer.
+    # Gets an `Int` associated with a given key. Throws an error when the
+    # `JSON` is not an object, the key is not present or the associated value
+    # is not an integer.
     def getInt k: self . get k . asInt
 
-    # Gets a `Bool` associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not a boolean.
+    # Gets a `Bool` associated with a given key. Throws an error when the
+    # `JSON` is not an object, the key is not present or the associated value
+    # is not a boolean.
     def getBool k: self . get k . asBool
 
-    # Gets a `List` of `JSON` values associated with a given key. Throws an error when the `JSON` is not an object, the key is not present or the associated value is not an array.
+    # Gets a `List` of `JSON` values associated with a given key. Throws
+    # an error when the `JSON` is not an object, the key is not present
+    # or the associated value is not an array.
     def getList k: self . get k . asList
 
-    # Looks up a `Map` from `Text` to `JSON` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not an object.
+    # Looks up a `Map` from `Text` to `JSON` associated with a given key.
+    # Returns `Nothing` when the `JSON` is not an object, the key is not
+    # present or the associated value is not an object.
     def lookupObject k: self . lookup k . flatMap .safeAsObject
 
-    # Looks up a `Text` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a text.
+    # Looks up a `Text` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not a text.
     def lookupText k: self . lookup k . flatMap .safeAsText
 
-    # Looks up a `Real` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a number.
+    # Looks up a `Real` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not a number.
     def lookupReal k: self . lookup k . flatMap .safeAsReal
 
-    # Looks up an `Int` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not an integer.
+    # Looks up an `Int` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not an integer.
     def lookupInt k: self . lookup k . flatMap .safeAsInt
 
-    # Looks up a `Bool` associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not a boolean.
+    # Looks up a `Bool` associated with a given key. Returns `Nothing` when
+    # the `JSON` is not an object, the key is not present or the associated
+    # value is not a boolean.
     def lookupBool k: self . lookup k . flatMap .safeAsBool
 
-    # Looks up a `List` of `JSON` values associated with a given key. Returns `Nothing` when the `JSON` is not an object, the key is not present or the associated value is not an array.
+    # Looks up a `List` of `JSON` values associated with a given key.
+    # Returns `Nothing` when the `JSON` is not an object, the key is not
+    # present or the associated value is not an array.
     def lookupList k: self . lookup k . flatMap .safeAsList
 
-    # Returns `Just` the element with a given index assuming the `JSON` represents an array and the index is in range. Returns `Nothing` otherwise.
+    # Returns `Just` the element with a given index assuming the `JSON`
+    # represents an array and the index is in range. Returns `Nothing` otherwise.
     def at n: self . safeAsList . flatMap (_.at n)
 
-    # Returns the element with a given index assuming the `JSON` represents an array and the index is in range. Throws an error otherwise.
+    # Returns the element with a given index assuming the `JSON` represents
+    # an array and the index is in range. Throws an error otherwise.
     def getAt n: self . asList . getAt n
 
 # Creates an empty MVar object.
