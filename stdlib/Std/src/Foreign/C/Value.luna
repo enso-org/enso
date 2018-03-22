@@ -51,9 +51,23 @@ class Array a:
     def free:
         self.ptr.free
 
-    def readAt index: self . ptr . moveElems index . read
+    def assertInBounds index:
+        inBounds = (index < self.size) . and (index >= 0)
+        when (inBounds.not) (throw "Array index out of bounds.")
 
-    def writeAt index val: self . ptr . moveElems index . write val
+    def uncheckedReadAt index:
+        self . ptr . moveElems index . read
+
+    def readAt index:
+        self.assertInBouds index
+        self.uncheckedReadAt index
+
+    def uncheckedWriteAt index val:
+        self . ptr . moveElems index . write val
+
+    def writeAt index val:
+        self.assertInBounds index
+        self.uncheckedWriteAt index val
 
     def toList:
         0 . upto self.size.pred . each self.readAt
