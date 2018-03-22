@@ -59,7 +59,7 @@ class Array a:
         self . ptr . moveElems index . read
 
     def readAt index:
-        self.assertInBouds index
+        self.assertInBounds index
         self.uncheckedReadAt index
 
     def uncheckedWriteAt index val:
