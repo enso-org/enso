@@ -42,7 +42,7 @@ stdlib std = do
     sysFuncs     <- System.exports std
     httpFuncs    <- HTTP.exports std
     msgPackFuncs <- MsgPack.exports std
-    foreignFuncs <- Foreign.exports std
+    foreignFuncs <- Foreign.exports std finalizersCtx
 
     return (finalize finalizersCtx, Map.unions [baseFuncs, timeFuncs, wsFuncs, sysFuncs, httpFuncs, msgPackFuncs, foreignFuncs])
 
