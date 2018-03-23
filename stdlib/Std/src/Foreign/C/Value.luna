@@ -31,6 +31,55 @@ class CString:
 
     def free: self.ptr.free
 
+class Array a:
+    Array a
+    ArrayVal Int (Pointer a)
+
+    def ptr: case self of
+        Array a: Pointer a
+        ArrayVal _ p: p
+
+    def size: case self of
+        ArrayVal s _: s
+
+    def make: ArrayVal
+
+    def alloc size:
+        ptr = self.ptr.mallocElems size
+        ArrayVal size ptr
+
+    def free:
+        self.ptr.free
+
+    def assertInBounds index:
+        inBounds = (index < self.size) . and (index >= 0)
+        when (inBounds.not) (throw "Array index out of bounds.")
+
+    def uncheckedReadAt index:
+        self . ptr . moveElems index . read
+
+    def readAt index:
+        self.assertInBounds index
+        self.uncheckedReadAt index
+
+    def uncheckedWriteAt index val:
+        self . ptr . moveElems index . write val
+
+    def writeAt index val:
+        self.assertInBounds index
+        self.uncheckedWriteAt index val
+
+    def toList:
+        0 . upto self.size.pred . each self.readAt
+
+    def fromList l:
+        size = l.length
+        arr  = self.alloc size
+        withIndex = 0 . upto size . zip l
+        withIndex . each (i, e): arr.writeAt i e
+        arr
+
+
 class NullTerminatedArray a:
     NullTerminatedArray a
     NullTerminatedArrayVal (Pointer a)
@@ -64,7 +113,11 @@ class NullTerminatedArray a:
             ptr . moveElems index . write elem
         NullTerminatedArrayVal ptr
 
+    def make: NullTerminatedArrayVal
+
     def free: self.ptr.free
+
+
 
 
 
@@ -663,6 +716,66 @@ class Pointer a:
         ptr = primMalloc (tp.byteSize * i)
         PointerVal tp ptr
 
+    def mallocBytes i:
+        tp = self.typeRep
+        ptr = primMalloc i
+        PointerVal tp ptr
+
     def free: self.ptr.free
 
 def nullPtr: primNullPtr
+
+native class ForeignPtr a:
+    def toCArg: primForeignPtrToCArg self
+    def cast: primForeignPtrCast self
+    def == that: primForeignPtrEq self that
+    def isNull: self == primNullForeignPtr
+    def moveBytes i: primForeignPtrPlus self i
+    def free: primForeignPtrFree self
+    def _ptr: primForeignPtrToPtr self
+
+class ManagedPointer a:
+    ManagedPointer    a
+    ManagedPointerVal a (ForeignPtr a)
+
+    def typeRep: case self of
+        ManagedPointer a: a
+        ManagedPointerVal a _: a
+
+    def ptr: case self of
+        ManagedPointerVal _ p: p._ptr
+
+    def fptr: case self of
+        ManagedPointerVal _ p: p
+
+    def fromPointer finalizer p:
+        ptr = primNewForeignPtr finalizer p.ptr
+        ManagedPointerVal p.typeRep ptr
+
+    def toCArg: self.ptr.toCArg
+
+    def moveBytes i:
+        nptr = self.fptr.moveBytes i
+        tr = self.typeRep
+        ManagedPointerVal tr nptr
+
+    def moveElems i:
+        elemSize = self . typeRep . byteSize
+        self . moveBytes (i * elemSize)
+
+    def read: self . typeRep . readPtr self.ptr
+    def write v: v . writePtr self.ptr
+
+    def isNull: self.ptr.isNull
+    def null:
+        t = self.typeRep
+        ManagedPointerVal t primNullForeignPtr
+
+    def malloc: self . mallocElems 1
+
+    def mallocElems i:
+        tp  = self.typeRep
+        ptr = primMallocForeignPtrBytes (tp.byteSize * i)
+        ManagedPointerVal tp ptr
+
+    def free: self.ptr.free
