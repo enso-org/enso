@@ -69,7 +69,19 @@ test = runPass' $ do
     print "done!"
 
 
+class Foo a b where
+    foo :: a -> b -> Int
 
+instance {-# INCOHERENT #-} Foo a a where
+    foo _ _ = 5
+
+
+instance {-# OVERLAPPABLE #-} Foo Int Int where
+    foo _ _ = 7
+
+
+bar :: a -> a -> Int
+bar x y = foo x y
 
 --------------------------------
 -- === Running benchmarks === --
@@ -79,6 +91,8 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     initializeTime
+
+    print $ bar (1::Int) (2::Int)
 
     test
 

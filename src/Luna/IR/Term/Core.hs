@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                  #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -21,7 +20,6 @@ import Luna.IR.Component.Link        (type (*-*), Link)
 import Luna.IR.Component.Term.Class  (Term, TermCons, Terms)
 import Luna.IR.Component.Term.Layer  (Model)
 import Luna.IR.Component.Term.Layout
-import OCI.IR.Conversion             (generalize)
 import Type.Data.Ord                 (Cmp)
 
 
@@ -100,8 +98,6 @@ instance Layer.DataInitializer UniTerm where
 
 -- === Constructor helpers === --
 
-#define CTX(name) (Term.Creator name m, Link.Creator m)
-
 type Creator tag m =
     ( Term.Creator tag m
     , Term.Creator Top m
@@ -114,7 +110,7 @@ uncheckedNewM :: Creator tag m
 uncheckedNewM !cons = Term.uncheckedNewM $ \self -> do
     typeTerm <- top
     typeLink <- Link.new typeTerm self
-    Layer.write @Layer.Type self (unsafeCoerce typeLink) -- FIXME[WD]: unsafeCoerce -> generalize
+    Layer.write @Layer.Type self (Layout.unsafeRelayout typeLink)
     cons self
 {-# INLINE uncheckedNewM #-}
 
@@ -131,7 +127,7 @@ uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
 top :: Creator Top m => m (Term Top)
 top = Term.uncheckedNewM $ \self -> do
     typeLink <- Link.new self self
-    Layer.write @Layer.Type self (unsafeCoerce typeLink) -- FIXME[WD]: unsafeCoerce -> generalize
+    Layer.write @Layer.Type self (Layout.relayout typeLink)
     pure Top
 {-# INLINE top #-}
 
@@ -145,9 +141,6 @@ acc :: Creator Acc m => Term base -> Term name -> m (Term (Acc -* base -# name))
 acc base name = newM $ \self -> Acc <$> Link.new base self
                                     <*> Link.new name self
 {-# INLINE acc #-}
-
-#undef CTX
-
 
 
 

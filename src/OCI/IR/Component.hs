@@ -18,7 +18,7 @@ import qualified Type.Error            as Error
 import Foreign.Ptr.Utils          (SomePtr)
 import Foreign.Storable           (Storable)
 import Foreign.Storable1.Deriving (deriveStorable1)
-import OCI.IR.Conversion          (Castable, ConversionError, Generalizable)
+import OCI.IR.Layout              (Relayout, UnsafeRelayout)
 import Type.Error                 ((:<+>:))
 
 
@@ -66,37 +66,30 @@ new = do
 {-# INLINE new #-}
 
 
+-- === Relayout === --
 
--- === Generalization === --
+class Relayout__ (t :: Type) (layout :: Type) (layout' :: Type)
+instance {-# OVERLAPPABLE #-} Relayout l l'
+      => Relayout__ t l l'
+instance Relayout__ t l ()
 
-class GeneralizableComponent (t :: Type) (layout :: Type) (layout' :: Type)
-instance GeneralizableComponent t layout ()
+instance {-# OVERLAPPABLE #-} (Relayout__ t l l', a ~ Component t l')
+      => Relayout a (Component t l)
 
-instance {-# OVERLAPPABLE #-}
-    ConversionError (Error.Str "Cannot generalize" :<+>: 'Error.ShowType t) a b
- => GeneralizableComponent t a b
+instance {-# OVERLAPPABLE #-} (Relayout__ t l l', a ~ Component t l')
+      => Relayout (Component t l) a
 
-instance {-# OVERLAPPABLE #-}
-    ( a ~ Component t layout'
-    , GeneralizableComponent t layout layout'
-    ) => Generalizable a (Component t layout)
+instance {-# OVERLAPPABLE #-} (Relayout__ t l l', t ~ t')
+      => Relayout (Component t l) (Component t' l')
 
-instance {-# OVERLAPPABLE #-}
-    ( a ~ Component t layout'
-    , GeneralizableComponent t layout layout'
-    ) => Generalizable (Component t layout) a
+instance {-# OVERLAPPABLE #-} a ~ Component t l'
+      => UnsafeRelayout a (Component t l)
 
-instance {-# OVERLAPPABLE #-}
-    ( t ~ t'
-    , GeneralizableComponent t layout layout'
-    ) => Generalizable (Component t layout) (Component t' layout')
+instance {-# OVERLAPPABLE #-} a ~ Component t l'
+      => UnsafeRelayout (Component t l) a
 
-
--- === Instances === --
-
-instance {-# OVERLAPPABLE #-} a ~ Component t l' => Castable (Component t l) a
-instance {-# OVERLAPPABLE #-} a ~ Component t l' => Castable a (Component t l)
-instance t ~ t' => Castable (Component t l) (Component t' l')
+instance {-# OVERLAPPABLE #-} t ~ t'
+      => UnsafeRelayout (Component t l) (Component t' l')
 
 
 -- === TH === --

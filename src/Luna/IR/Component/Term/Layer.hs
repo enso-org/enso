@@ -21,7 +21,7 @@ import Foreign.Storable1            (Storable1)
 import Foreign.Storable1.Deriving   (deriveStorable1)
 import Luna.IR.Component.Link       (type (*-*), Link)
 import Luna.IR.Component.Term.Class (Term, Terms)
-import OCI.IR.Conversion            (cast)
+-- import OCI.IR.Conversion            (cast)
 
 
 -------------------

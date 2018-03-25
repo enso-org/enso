@@ -8,7 +8,6 @@ import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
 import Luna.IR.Component.Term.Class (Term)
-import OCI.IR.Conversion            (generalize)
 import OCI.IR.Layout                ((:=), Layout)
 
 
@@ -41,6 +40,11 @@ new src tgt = do
 {-# INLINE new #-}
 
 
+-- === Instances === --
+
+-- type instance Generalizable2 (Link l) (Link l') = Generalizable2 l l'
+-- instance Generalizable l l' => Generalizable (Link l) (Link l')
+
 
 --------------------
 -- === Layers === --
@@ -72,7 +76,6 @@ readLinks = liftIO . readLinksIO
 {-# INLINE readLinks #-}
 
 instance HasLinks (Link a) where
-    readLinksIO l = pure . pure $ generalize l ; {-# INLINE readLinksIO #-}
 
 instance HasLinks Int where
     readLinksIO _ = pure mempty ; {-# INLINE readLinksIO #-}

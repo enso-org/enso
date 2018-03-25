@@ -9,8 +9,8 @@ import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
 import Luna.IR.Component.Term.Class (Term)
-import OCI.IR.Conversion            (generalize)
-import OCI.IR.Layout                ((:=), Layout)
+-- import OCI.IR.Conversion            (generalize)
+import OCI.IR.Layout ((:=), Layout)
 
 
 ------------------

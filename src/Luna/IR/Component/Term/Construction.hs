@@ -11,7 +11,6 @@ import qualified OCI.IR.Layout         as Layout
 
 import Luna.IR.Component.Term.Class
 import Luna.IR.Component.Term.Layer
-import OCI.IR.Conversion            (cast)
 
 
 ------------------
@@ -35,7 +34,7 @@ uncheckedNewM :: Creator tag m
     => (Term any -> m (TagToCons tag layout)) -> m (Term any)
 uncheckedNewM !cons = do
     ir <- Component.new
-    let !ir' = cast ir
+    let !ir' = Layout.unsafeRelayout ir
     !term <- cons ir'
     Layer.write @Model ir $! Layer.consData1 @Terms @Model term
     pure ir'
