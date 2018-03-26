@@ -10,9 +10,6 @@ import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
 
--- import OCI.IR.Conversion (cast)
--- import OCI.IR.Conversion (Generalizable2)
-
 
 ---------------------
 -- === UniTerm === --
@@ -45,8 +42,3 @@ type TagConsInvariant tag cons =
     , tag  ~ ConsToTag cons
     )
 
-
--- -- === Instances === --
-
--- type instance Generalizable2 (TermCons a) () = 'True
--- type instance Generalizable2 (TermCons a) (TermCons b) = a == b

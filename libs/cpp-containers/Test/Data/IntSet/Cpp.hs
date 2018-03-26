@@ -6,7 +6,7 @@ import Prologue
 import qualified Data.IntSet     as IntSet
 import qualified Data.IntSet.Cpp as CIntSet
 
-import Data.IntSet.Cpp       (IntSet, RawSetPtr)
+import Data.IntSet.Cpp       (IntSet, UnmanagedIntSet)
 import Data.List             (unfoldr)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
@@ -20,7 +20,8 @@ import System.Random
 ---------------------------
 
 foreign import ccall unsafe "c_set_test_insert_and_lookup"
-    c_set_testInsertAndLookup :: Ptr Int -> Int -> Ptr Int -> Int -> RawSetPtr -> IO Int
+    c_set_testInsertAndLookup :: Ptr Int -> Int -> Ptr Int -> Int
+                              -> UnmanagedIntSet -> IO Int
 
 foreign import ccall unsafe "c_set_test_insert_lookup_ordered"
     c_set_testInsertLookupOrdered :: Int -> IO Int
@@ -49,7 +50,8 @@ testInsertAndLookupIntSet n = do
         go  !s ((!x):xs) = go (IntSet.insert x s) xs
         go  !s []        = s
 
-        go2 !s !sm ((!x):xs) = go2 s (sm + (if IntSet.member x s then 1 else 0)) xs
+        go2 !s !sm ((!x):xs) = go2 s (sm + (if IntSet.member x s then 1 else 0))
+                               xs
         go2 !s !sm []        = sm
 
         s1   = go IntSet.empty rndm
@@ -61,7 +63,7 @@ testInsertAndLookupCIntSet n = do
     -- create a set based on a random list
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
-    s  <- CIntSet.new
+    s  <- CIntSet.new @IntSet
     let go  ((!x):xs) = CIntSet.insert s x >> go xs
         go  []        = pure ()
 
@@ -75,7 +77,7 @@ testInsertAndLookupCIntSet n = do
 
 testInsertLookupOrderedCIntSet :: Int -> IO Int
 testInsertLookupOrderedCIntSet n = do
-    s <- CIntSet.new
+    s <- CIntSet.new @IntSet
     let go !x = when_ (x < n) $ CIntSet.insert s x >> go (x + 1)
     go 0
 
@@ -91,7 +93,7 @@ testInsertAndLookupForeignSet :: Int -> IO Int
 testInsertAndLookupForeignSet n = do
     let rndm  = randomList n
         rndm2 = randomList (n `div` 2)
-    s <- CIntSet.new
+    s <- CIntSet.new @IntSet
     CIntSet.with s $ \ptrSet ->
         withArrayLen rndm  $ \n1 ptrInsert ->
         withArrayLen rndm2 $ \n2 ptrIdx    ->
