@@ -21,7 +21,7 @@ import Foreign.Storable             (Storable)
 import Foreign.Storable.Deriving    (deriveStorable)
 import Foreign.Storable1            (Storable1)
 import Foreign.Storable1.Deriving   (deriveStorable1)
-import Luna.IR.Component.Link       (type (*-*), Link)
+import Luna.IR.Component.Link.Class (type (*-*), Link)
 import Luna.IR.Component.Term.Class (Term, Terms)
 
 
@@ -49,13 +49,16 @@ type instance Layout.Default Type = ()
 
 
 
---------------------
--- === Usages === --
---------------------
+-------------------
+-- === Users === --
+-------------------
 
-data Usages
-newtype UsagesSet layout = UsagesSet UnmanagedIntSet deriving (Show, Storable)
-deriveStorable1 ''UsagesSet
+data Users
+newtype UsersSet layout = UsersSet UnmanagedIntSet deriving (Show, Storable)
+makeLenses      ''UsersSet
+deriveStorable1 ''UsersSet
+instance Layer.DataInitializer UsersSet where
+    initData = wrap IntSet.new' ; {-# INLINE initData #-}
 
-type instance Layer.Layout Terms Usages layout = Layout.Get Usages layout
-type instance Layer.Data   Terms Usages        = UsagesSet
+type instance Layer.Layout Terms Users layout = Layout.Get Users layout
+type instance Layer.Data   Terms Users        = UsersSet

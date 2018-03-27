@@ -23,7 +23,7 @@ registerAll = do
     Registry.registerComponent @Terms
     Registry.registerPrimLayer @Terms @Model
     Registry.registerPrimLayer @Terms @Type
-    -- Registry.registerPrimLayer @Terms @Usages
+    Registry.registerPrimLayer @Terms @Users
 
     Registry.registerComponent @Links
     Registry.registerPrimLayer @Links @Source

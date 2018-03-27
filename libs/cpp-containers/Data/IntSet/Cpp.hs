@@ -11,7 +11,8 @@ import Foreign.Storable       (Storable)
 import Foreign.Utils          (fromCBool)
 import System.IO.Unsafe       (unsafePerformIO)
 
-
+-- foo :: Ptr () -> Int
+-- foo = coerce
 --------------------
 -- === IntSet === --
 --------------------
@@ -43,8 +44,16 @@ foreign import ccall unsafe "c_set_member"
 foreign import ccall unsafe "c_set_delete"
     c_delete :: Int -> UnmanagedIntSet -> IO ()
 
-foreign import ccall unsafe "&c_set_delete_set"
-    c_deleteSet :: FunPtr (Ptr UnmanagedIntSet -> IO ())
+-- FIXME[WD, PM]
+-- Sometimes breakes GHC:
+--
+--   Compiling Luna.IR.Term.Core ( src/Luna/IR/Term/Core.hs, .stack-work/dist/x86_64-linux-tinfo6/Cabal-2.0.1.0/build/Luna/IR/Term/Core.o ) [TH]
+--   ghc: panic! (the 'impossible' happened)
+--   (GHC version 8.2.2 for x86_64-unknown-linux):
+--     Loading temp shared object failed: /tmp/ghc19938_0/libghc_21.so: undefined symbol: c_set_delete_set
+--
+-- foreign import ccall unsafe "&c_set_delete_set"
+--     c_deleteSet :: FunPtr (Ptr UnmanagedIntSet -> IO ())
 
 foreign import ccall unsafe "c_set_to_list"
     c_toList :: Ptr Int -> UnmanagedIntSet -> IO ()
@@ -69,12 +78,12 @@ instance IsIntSet UnmanagedIntSet where
     withIO !s !f = f s            ; {-# INLINE withIO #-}
 
 instance IsIntSet IntSet where
-    newIO = do
-        ptr        <- newIO @UnmanagedIntSet
-        foreignPtr <- newForeignPtr c_deleteSet (unwrap ptr)
-        return . wrap $ coerce foreignPtr
-    {-# INLINE newIO #-}
-    withIO !s !f = withForeignPtr (unwrap s) (f . wrap) ; {-# INLINE withIO #-}
+    newIO = undefined -- do
+    --     ptr        <- newIO @UnmanagedIntSet
+    --     foreignPtr <- newForeignPtr c_deleteSet (unwrap ptr)
+    --     return . wrap $ coerce foreignPtr
+    -- {-# INLINE newIO #-}
+    -- withIO !s !f = withForeignPtr (unwrap s) (f . wrap) ; {-# INLINE withIO #-}
 
 
 -- === API === --
@@ -84,7 +93,8 @@ instance IsIntSet IntSet where
 with :: (IsIntSet s, MonadIO m) => s -> (UnmanagedIntSet -> IO a) -> m a
 with !s !f = liftIO $ withIO s f ; {-# INLINE with #-}
 
--- | A utility function to perform a foreign C call on the set and return the resulting set.
+-- | A utility function to perform a foreign C call on the set and return
+--   the resulting set.
 map :: (IsIntSet s, MonadIO m)
     => s -> (UnmanagedIntSet -> IO a) -> m s
 map s f = with s f >> return s ; {-# INLINE map #-}
@@ -93,6 +103,9 @@ map s f = with s f >> return s ; {-# INLINE map #-}
 --   The memory will be automatically deallocated by Haskell's GC.
 new :: (IsIntSet s, MonadIO m) => m s
 new = liftIO newIO ; {-# INLINE new #-}
+
+new' :: IsIntSet s => s
+new' = unsafePerformIO new ; {-# NOINLINE new' #-}
 
 -- | Create a set with one element
 singleton :: (IsIntSet s, MonadIO m) => Int -> m s
