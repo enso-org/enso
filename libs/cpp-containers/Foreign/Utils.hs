@@ -1,8 +1,12 @@
 module Foreign.Utils where
 
-import Control.Monad.IO.Class (MonadIO)
 import Prelude
 
+import Control.Monad.IO.Class (MonadIO)
+import Foreign.Ptr            (Ptr)
+
+
+type SomePtr = Ptr ()
 
 -- | Function converting the c-like Int-encoded boolean to a Haskell one.
 --   Exists just for the purpose of pinning-down this simple logic.
