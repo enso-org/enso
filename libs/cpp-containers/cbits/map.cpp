@@ -1,30 +1,30 @@
 #include "map.h"
 #include <iostream>
 
-std::map<long, long> *to_map(void *ptr) {
-    return static_cast<std::map<long, long> *>(ptr);
+ptrmap_t *to_map(void *ptr) {
+    return static_cast<ptrmap_t *>(ptr);
 }
 
-void *to_void(std::map<long, long> *s) {
+void *to_void(ptrmap_t *s) {
     return static_cast<void *>(s);
 }
 
 extern "C" {
 
 void *c_map_create() {
-    return to_void(new std::map<long, long>());
+    return to_void(new ptrmap_t());
 }
 
-void c_map_insert(long key, long elem, void *ptr) {
-    to_map(ptr)->insert(std::pair<long, long>(key, elem));
+void c_map_insert(elem_t key, elem_t elem, void *ptr) {
+    to_map(ptr)->insert(std::pair<elem_t, elem_t>(key, elem));
 }
 
-long c_map_member(long elem, void *ptr) {
+long c_map_member(elem_t elem, void *ptr) {
     auto m = to_map(ptr);
     return (m->find(elem) != m->end()) ? 1 : 0;
 }
 
-long c_map_lookup(long elem, long *found, void *ptr) {
+long c_map_lookup(elem_t elem, elem_t *found, void *ptr) {
     auto m = to_map(ptr);
     auto res = m->find(elem);
     if (res != m->end()) {
@@ -33,14 +33,14 @@ long c_map_lookup(long elem, long *found, void *ptr) {
     } else return 0;
 }
 
-void c_map_delete(long elem, void *ptr) {
+void c_map_delete(elem_t elem, void *ptr) {
     to_map(ptr)->erase(elem);
 }
 
-void c_map_to_list(long *keys, long *vals, void *ptr) {
+void c_map_to_list(elem_t *keys, elem_t *vals, void *ptr) {
     auto m = *to_map(ptr);
     long idx = 0;
-    for (std::pair<long, long> p : m) {
+    for (std::pair<elem_t, elem_t> p : m) {
         keys[idx] = p.first;
         vals[idx] = p.second;
         idx++;

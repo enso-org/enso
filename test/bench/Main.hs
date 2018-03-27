@@ -103,20 +103,20 @@ main = do
     -- --         [ bgroup "Data.IntSet"
     -- --             $ (\(i :: Int) -> bench ("10e" <> show i)
     -- --             $ nfIO (SetTest.testInsertAndLookupIntSet $ 10^i)) <$> expSizes
-    -- --         , bgroup "Data.IntSet.Cpp"
+    -- --         , bgroup "Data.PtrSet.Cpp"
     -- --             $ (\(i :: Int) -> bench ("10e" <> show i)
     -- --             $ nfIO (SetTest.testInsertAndLookupCSet $ 10^i)) <$> expSizes
-    -- --         , bgroup "Test.Data.IntSet.Cpp"
+    -- --         , bgroup "Test.Data.PtrSet.Cpp"
     -- --             $ (\(i :: Int) -> bench ("10e" <> show i)
     -- --             $ nfIO (SetTest.testInsertAndLookupForeignSet $ 10^i)) <$> expSizes
     -- --         , bgroup "testWithArrayLen"
     -- --             $ (\(i :: Int) -> bench ("10e" <> show i)
     -- --             $ nfIO (SetTest.testWithArrayLen $ 10^i)) <$> expSizes
     -- --         , bgroup "FFICost"
-    -- --             [ bgroup "Data.IntSet.Cpp"
+    -- --             [ bgroup "Data.PtrSet.Cpp"
     -- --                 $ (\(i :: Int) -> bench ("10e" <> show i)
     -- --                 $ nfIO (SetTest.testInsertLookupOrderedCSet $ 10^i)) <$> expSizes
-    -- --             , bgroup "Test.Data.IntSet.Cpp"
+    -- --             , bgroup "Test.Data.PtrSet.Cpp"
     -- --                 $ (\(i :: Int) -> bench ("10e" <> show i)
     -- --                 $ nfIO (SetTest.testInsertLookupOrderedForeignSet $ 10^i)) <$> expSizes
     -- --             ]

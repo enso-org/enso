@@ -1,57 +1,57 @@
 #include "list.h"
 
-std::deque<long> *to_list(void *ptr) {
-    return static_cast<std::deque<long> *>(ptr);
+ptrlist_t *to_list(void *ptr) {
+    return static_cast<ptrlist_t *>(ptr);
 }
 
-void *to_void(std::deque<long> *s) {
-    return static_cast<std::deque<long> *>(s);
+void *to_void(ptrlist_t *s) {
+    return static_cast<void *>(s);
 }
 
 extern "C" {
 
 void *c_list_create() {
-    return to_void(new std::deque<long>());
+    return to_void(new ptrlist_t());
 }
 
-void c_list_push_front(long elem, void *ptr) {
+void c_list_push_front(elem_t elem, void *ptr) {
     to_list(ptr)->push_front(elem);
 }
 
-void c_list_push_back(long elem, void *ptr) {
+void c_list_push_back(elem_t elem, void *ptr) {
     to_list(ptr)->push_back(elem);
 }
 
-long c_list_pop_front(void *ptr) {
+elem_t c_list_pop_front(void *ptr) {
     auto l = to_list(ptr);
-    long res = l->front();
+    elem_t res = l->front();
     to_list(ptr)->pop_front();
     return res;
 }
 
-long c_list_pop_back(void *ptr) {
+elem_t c_list_pop_back(void *ptr) {
     auto l = to_list(ptr);
-    long res = l->back();
+    elem_t res = l->back();
     to_list(ptr)->pop_back();
     return res;
 }
 
-long c_list_at(long idx, void *ptr) {
+elem_t c_list_at(long idx, void *ptr) {
     return to_list(ptr)->at(idx);
 }
 
-long c_list_front(void *ptr) {
-    to_list(ptr)->front();
+elem_t c_list_front(void *ptr) {
+    return to_list(ptr)->front();
 }
 
-long c_list_back(void *ptr) {
-    to_list(ptr)->back();
+elem_t c_list_back(void *ptr) {
+    return to_list(ptr)->back();
 }
 
-void c_list_to_list(long *arr, void *ptr) {
+void c_list_to_list(elem_t *arr, void *ptr) {
     auto l = to_list(ptr);
     long idx = 0;
-    for (const long& el : *l)
+    for (const elem_t& el : *l)
         arr[idx++] = el;
 }
 

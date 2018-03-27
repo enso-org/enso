@@ -5,7 +5,7 @@ module Luna.IR.Component.Term.Layer where
 
 import Prologue hiding (Type)
 
-import qualified Data.IntSet.Cpp              as IntSet
+import qualified Data.PtrSet.Cpp              as PtrSet
 import qualified Foreign.Ptr                  as Ptr
 import qualified Foreign.Storable             as Storable
 import qualified Foreign.Storable.Utils       as Storable
@@ -16,7 +16,7 @@ import qualified OCI.IR.Component             as Component
 import qualified OCI.IR.Layer.Internal        as Layer
 import qualified OCI.IR.Layout                as Layout
 
-import Data.IntSet.Cpp              (UnmanagedIntSet)
+import Data.PtrSet.Cpp              (UnmanagedPtrSet)
 import Foreign.Storable             (Storable)
 import Foreign.Storable.Deriving    (deriveStorable)
 import Foreign.Storable1            (Storable1)
@@ -54,11 +54,11 @@ type instance Layout.Default Type = ()
 -------------------
 
 data Users
-newtype UsersSet layout = UsersSet UnmanagedIntSet deriving (Show, Storable)
+newtype UsersSet layout = UsersSet UnmanagedPtrSet deriving (Show, Storable)
 makeLenses      ''UsersSet
 deriveStorable1 ''UsersSet
 instance Layer.DataInitializer UsersSet where
-    initData = wrap IntSet.new' ; {-# INLINE initData #-}
+    initData = wrap PtrSet.new' ; {-# INLINE initData #-}
 
 type instance Layer.Layout Terms Users layout = Layout.Get Users layout
 type instance Layer.Data   Terms Users        = UsersSet

@@ -3,7 +3,7 @@ module Luna.IR.Component.Group where
 import Prologue
 import Type.Data.Ord
 
-import qualified Data.IntSet.Cpp       as IntSet
+import qualified Data.PtrSet.Cpp       as PtrSet
 import qualified OCI.IR.Component      as Component
 import qualified OCI.IR.Layer.Internal as Layer
 import qualified OCI.IR.Layout         as Layout
