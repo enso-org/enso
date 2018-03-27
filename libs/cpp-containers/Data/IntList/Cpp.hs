@@ -11,6 +11,8 @@
 {-# LANGUAGE TupleSections #-}
 module Data.IntList.Cpp where
 
+import Prelude hiding (head, init, length, null, tail)
+
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
 import Data.Maybe             (fromJust)
@@ -18,9 +20,8 @@ import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
-import Prelude                hiding (head, init, length, null, tail)
+import Foreign.Ptr.Utils
 
-import Foreign.Utils (fromCBool)
 
 
 ---------------------------------------------------

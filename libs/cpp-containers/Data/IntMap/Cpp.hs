@@ -1,15 +1,16 @@
 module Data.IntMap.Cpp where
 
+import Prelude
+
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
+import Foreign.Ptr.Utils
 import Foreign.Storable       (peek)
-import Prelude
 
-import Foreign.Utils
 
 ---------------------------------------------------
 -- === Newtype wrappers for the map pointers === --
@@ -77,7 +78,7 @@ createStdMap = liftIO $ do
     return . StdMap $ castForeignPtr foreignPtr
 {-# INLINE createStdMap #-}
 
--- | Create an empty Cpp IntMap
+-- | Create an empty Cpp PtrMap
 empty :: MonadIO m => m StdMap
 empty = createStdMap
 {-# INLINE empty #-}
