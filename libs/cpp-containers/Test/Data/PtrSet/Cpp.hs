@@ -7,7 +7,7 @@ import qualified Data.IntSet     as IntSet
 import qualified Data.PtrSet.Cpp as PtrSet
 
 import Data.List             (unfoldr)
-import Data.PtrSet.Cpp       (PtrSet, UnmanagedPtrSet)
+import Data.PtrSet.Cpp       (UnmanagedPtrSet)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array

@@ -11,18 +11,15 @@ import Foreign.Storable       (Storable)
 import Foreign.Utils          (SomePtr, fromCBool)
 import System.IO.Unsafe       (unsafePerformIO)
 
--- foo :: Ptr () -> Int
--- foo = coerce
+
 --------------------
 -- === PtrSet === --
 --------------------
 
 -- === Definition === --
 
-newtype PtrSet          = PtrSet          (ForeignPtr UnmanagedPtrSet)
 newtype UnmanagedPtrSet = UnmanagedPtrSet (Ptr UnmanagedPtrSet)
     deriving (Storable)
-makeLenses ''PtrSet
 makeLenses ''UnmanagedPtrSet
 
 class IsPtrSet s where
@@ -44,16 +41,8 @@ foreign import ccall unsafe "c_set_member"
 foreign import ccall unsafe "c_set_delete"
     c_delete :: SomePtr -> UnmanagedPtrSet -> IO ()
 
--- FIXME[WD, PM]
--- Sometimes breakes GHC:
---
---   Compiling Luna.IR.Term.Core ( src/Luna/IR/Term/Core.hs, .stack-work/dist/x86_64-linux-tinfo6/Cabal-2.0.1.0/build/Luna/IR/Term/Core.o ) [TH]
---   ghc: panic! (the 'impossible' happened)
---   (GHC version 8.2.2 for x86_64-unknown-linux):
---     Loading temp shared object failed: /tmp/ghc19938_0/libghc_21.so: undefined symbol: c_set_delete_set
---
--- foreign import ccall unsafe "&c_set_delete_set"
---     c_deleteSet :: FunPtr (Ptr UnmanagedPtrSet -> IO ())
+foreign import ccall "c_set_delete_set"
+    c_deleteSet :: UnmanagedPtrSet -> IO ()
 
 foreign import ccall unsafe "c_set_to_list"
     c_toList :: Ptr SomePtr -> UnmanagedPtrSet -> IO ()
@@ -67,23 +56,12 @@ foreign import ccall unsafe "c_set_null"
 
 -- === Instances === --
 
-instance Show PtrSet where
-    show = show . unsafePerformIO . toList
-
 instance Show UnmanagedPtrSet where
     show = show . unsafePerformIO . toList
 
 instance IsPtrSet UnmanagedPtrSet where
     newIO        = c_createPtrSet ; {-# INLINE newIO  #-}
     withIO !s !f = f s            ; {-# INLINE withIO #-}
-
-instance IsPtrSet PtrSet where
-    newIO = undefined -- do
-    --     ptr        <- newIO @UnmanagedPtrSet
-    --     foreignPtr <- newForeignPtr c_deleteSet (unwrap ptr)
-    --     return . wrap $ coerce foreignPtr
-    -- {-# INLINE newIO #-}
-    -- withIO !s !f = withForeignPtr (unwrap s) (f . wrap) ; {-# INLINE withIO #-}
 
 
 -- === API === --
@@ -106,6 +84,9 @@ new = liftIO newIO ; {-# INLINE new #-}
 
 new' :: IsPtrSet s => s
 new' = unsafePerformIO new ; {-# NOINLINE new' #-}
+
+free :: (IsPtrSet s, MonadIO m) => s -> m ()
+free s = with s c_deleteSet ; {-# INLINE free #-}
 
 -- | Create a set with one element
 singleton :: (IsPtrSet s, MonadIO m) => SomePtr -> m s
@@ -160,3 +141,4 @@ fromList es = do
     insertMany s es
     return s
 {-# INLINE fromList #-}
+
