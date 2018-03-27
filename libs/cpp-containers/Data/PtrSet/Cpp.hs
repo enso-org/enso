@@ -7,8 +7,8 @@ import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
+import Foreign.Ptr.Utils      (SomePtr, fromCBool)
 import Foreign.Storable       (Storable)
-import Foreign.Utils          (SomePtr, fromCBool)
 import System.IO.Unsafe       (unsafePerformIO)
 
 -- foo :: Ptr () -> Int
