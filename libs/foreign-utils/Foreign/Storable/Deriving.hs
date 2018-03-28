@@ -76,10 +76,6 @@ whereClause n e = ValD (var n) (NormalB e) mempty
 wildCardClause :: TH.Exp -> TH.Clause
 wildCardClause expr = clause [WildP] expr mempty
 
--- A utility that makes you know which function param you are passing.
-setTo :: String -> a -> a
-setTo label = id
-
 
 
 --------------------------------
@@ -111,7 +107,7 @@ deriveStorable ty = do
 --   >             off2 = off1 + sizeOf (undefined :: x)
 --   >             off3 = off2 + sizeOf (undefined :: y)
 genOffsets :: Bool -> TH.Con -> Q (NonEmpty Name, NonEmpty TH.Dec)
-genOffsets single con = do
+genOffsets isSingleCons con = do
     let fSizes  = conFieldSizes con
         arity   = length fSizes
         name i  = newName $ "off" <> show i
@@ -124,7 +120,7 @@ genOffsets single con = do
         names@(n0 :| (n1:ns)) -> do
             let off0D   = whereClause n0 $ intLit 0 -:: cons' ''Int
                 off1D   = whereClause n1 $ app (var 'Storable.sizeOf) undefinedAsInt
-                headers = zip3 ns ((if single then n0 else n1):ns) fSizes
+                headers = zip3 ns ((if isSingleCons then n0 else n1):ns) fSizes
 
                 mkDecl :: (Name, Name, TH.Exp) -> Dec
                 mkDecl (declName, refName, fSize) =
@@ -133,7 +129,7 @@ genOffsets single con = do
                 offDecls = mkDecl <$> headers
                 -- if a type has one constructor, we need to omit the offset (and name) of the tag
                 addIfMulti :: a -> [a] -> [a]
-                addIfMulti e es = if single then es else e:es
+                addIfMulti e es = if isSingleCons then es else e:es
 
                 clauses    = off0D :| (addIfMulti off1D offDecls)
                 finalNames = n0    :| (addIfMulti n1    ns)
@@ -174,8 +170,8 @@ genPeek cs = funD 'Storable.peek [genPeekClause cs]
 -- | Generate the `case` expression that given a tag of the constructor
 --   will perform the appropriate number of pokes.
 genPeekCaseMatch :: Bool -> Name -> Integer -> TH.Con -> Q TH.Match
-genPeekCaseMatch single ptr idx con = do
-    (off0 :| offNames, whereCs) <- genOffsets ("single" `setTo` single) con
+genPeekCaseMatch isSingleCons ptr idx con = do
+    (off0 :| offNames, whereCs) <- genOffsets isSingleCons con
     let (cName, arity)   = conNameArity con
         peekByteOffPtr   = app (var 'Storable.peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
@@ -193,7 +189,7 @@ genPeekCaseMatch single ptr idx con = do
         -- * otherwise (data A = A Int | B Int Int, etc) we need to skip the first offset, because
         --   it was used
         (firstCon, offs) = case offNames of
-                allOs@(off1:os) -> first mkFirstCon $ if single then (off0, allOs) else (off1, os)
+                allOs@(off1:os) -> first mkFirstCon $ if isSingleCons then (off0, allOs) else (off1, os)
                 _               -> if (arity == 0) then (app (var 'pure) (ConE cName), [])
                                                    else (mkFirstCon off0, [])
         body             = NormalB $ foldl appPeekByte firstCon offs
@@ -295,7 +291,7 @@ genPokeClauseSingle con = do
     case patVarNames of
         [] -> genEmptyPoke
         (firstP : restP) -> do
-            (offNames, whereCs) <- genOffsets ("single" `setTo` True) con
+            (offNames, whereCs) <- genOffsets True con
             let pat  = genPokePat  ptr cName patVarNames
                 body = genPokeExpr ptr offNames restP (var firstP)
             pure $ clause pat body (NonEmpty.toList whereCs)
@@ -308,7 +304,7 @@ genPokeClauseMulti idx con = do
     let (cName, nParams) = conNameArity con
     ptr         <- newName "ptr"
     patVarNames <- newNames nParams
-    (offNames, whereCs) <- genOffsets ("single" `setTo` False) con
+    (offNames, whereCs) <- genOffsets False con
     let pat            = genPokePat ptr cName patVarNames
         idxAsInt       = convert idx -:: cons' ''Int
         body           = genPokeExpr ptr offNames patVarNames idxAsInt
