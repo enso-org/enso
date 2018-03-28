@@ -99,6 +99,7 @@ spec = do
                 _ -> fail "Wrong encoding"
 
     describe "Attributes" $ do
-        it "Passing between passes" $ run2Passes' (Attr.put $ IntAttr 9) $ do
-            Attr.get >>= (`shouldBe` (IntAttr 9))
+        it "Passing between passes" $ run2Passes'
+            (Attr.put $ IntAttr 9)
+            (Attr.get >>= (`shouldBe` (IntAttr 9)))
     pure ()

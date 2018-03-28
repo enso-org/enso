@@ -158,8 +158,8 @@ acc base name = newM $ \self -> Acc <$> Link.new base self
 
 -- FIXME: double left vvv
 unify :: Creator Unify m => Term left -> Term left -> m (Term (Unify -* left))
-unify left right = Term.newM $ \self -> Unify <$> Link.new left self
-                                              <*> Link.new right self
+unify left right = newM $ \self -> Unify <$> Link.new left  self
+                                         <*> Link.new right self
 {-# INLINE unify #-}
 
 
