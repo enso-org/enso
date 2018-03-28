@@ -306,13 +306,10 @@ genPokeClauseSingle con = do
 genPokeClauseMulti :: Integer -> TH.Con -> Q TH.Clause
 genPokeClauseMulti idx con = do
     let (cName, nParams) = conNameArity con
-    -- if the constructor has no params, we will generate `poke _ _ = pure ()`
-    if nParams < 0 then genEmptyPoke
-    else do
-        ptr         <- newName "ptr"
-        patVarNames <- newNames nParams
-        (offNames, whereCs) <- genOffsets ("single" `setTo` False) con
-        let pat            = genPokePat ptr cName patVarNames
-            idxAsInt       = convert idx -:: cons' ''Int
-            body           = genPokeExpr ptr offNames patVarNames idxAsInt
-        pure $ clause pat body (NonEmpty.toList whereCs)
+    ptr         <- newName "ptr"
+    patVarNames <- newNames nParams
+    (offNames, whereCs) <- genOffsets ("single" `setTo` False) con
+    let pat            = genPokePat ptr cName patVarNames
+        idxAsInt       = convert idx -:: cons' ''Int
+        body           = genPokeExpr ptr offNames patVarNames idxAsInt
+    pure $ clause pat body (NonEmpty.toList whereCs)
