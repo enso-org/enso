@@ -16,8 +16,6 @@ import qualified Foreign.Storable    as Storable
 import qualified Language.Haskell.TH as TH
 
 
-import System.IO.Unsafe (unsafePerformIO)
-
 --------------------------------------
 -- === TH info extracting utils === --
 --------------------------------------
@@ -82,6 +80,8 @@ wildCardClause expr = clause [WildP] expr mempty
 setTo :: String -> a -> a
 setTo label = id
 
+
+
 --------------------------------
 -- === Main instance code === --
 --------------------------------
@@ -95,6 +95,7 @@ deriveStorable ty = do
     decs <- sequence [pure $ genSizeOf cs, pure genAlignment, genPeek cs, genPoke cs]
     let inst = classInstance ''Storable tyConName tyVars decs
     pure [inst]
+
 
 
 -------------------------------
@@ -133,12 +134,11 @@ genOffsets single con = do
                 -- if a type has one constructor, we need to omit the offset (and name) of the tag
                 addIfMulti :: a -> [a] -> [a]
                 addIfMulti e es = if single then es else e:es
+
                 clauses    = off0D :| (addIfMulti off1D offDecls)
                 finalNames = n0    :| (addIfMulti n1    ns)
-                trim :: NonEmpty a -> NonEmpty a
-                trim xs = NonEmpty.fromList $ fst <$> zip (NonEmpty.toList xs) fSizes
 
-            pure (trim finalNames, trim clauses)
+            pure (finalNames, clauses)
 
 -- | Generate the `sizeOf` method of the `Storable` class.
 --   It will pure the largest possible size of a given data type.
@@ -181,11 +181,21 @@ genPeekCaseMatch single ptr idx con = do
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
         mkFirstCon off   = op '(<$>) (ConE cName) (peekByte off)
-        -- No-field constructors are a special case of just the constructor being pureed
+        -- This piece of logic is tricky due to different handling of (arity == 0, nCons > 1) configs
+        -- * if the constructor has no arguments and we have no offsets, it's a data A = A case,
+        --   so the peek is a simple `pure A`
+        -- * if the cons. has no args, but is part of complex type, like data A = A | B [..],
+        --   (we have offsets) we handle it like any other complex type's constructor
+        -- * if the cons. has args, but is the only constructor in a type, like data A = A Int,
+        --   we want it to start reading the values from 0 (off0)
+        -- * if the cons. has no offsets, but its arity is not 0, it means we have data A = A Int
+        --   single cons, single field. We then do just one peek and wrap it with constructor.
+        -- * otherwise (data A = A Int | B Int Int, etc) we need to skip the first offset, because
+        --   it was used
         (firstCon, offs) = case offNames of
-                allOs@(off1:os) -> first mkFirstCon $ (off0, allOs)
+                allOs@(off1:os) -> first mkFirstCon $ if single then (off0, allOs) else (off1, os)
                 _               -> if (arity == 0) then (app (var 'pure) (ConE cName), [])
-                                                   else first mkFirstCon (off0, [])
+                                                   else (mkFirstCon off0, [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
     pure $ TH.Match pat body (NonEmpty.toList whereCs)
@@ -215,8 +225,7 @@ genPeekMultiCons ptr tag cs = do
         bind         = BindS (var tag) peekTagTyped
         cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
         doE          = DoE [bind, NoBindS cases]
-        pat          = if all noArgCon cs then TH.WildP else var ptr
-    pure $ clause [pat] doE mempty
+    pure $ clause [var ptr] doE mempty
 
 -- | Generate the clause for the `peek` method,
 --   deciding between single- and multi-constructor implementations.
@@ -298,7 +307,7 @@ genPokeClauseMulti :: Integer -> TH.Con -> Q TH.Clause
 genPokeClauseMulti idx con = do
     let (cName, nParams) = conNameArity con
     -- if the constructor has no params, we will generate `poke _ _ = pure ()`
-    if nParams == 0 then genEmptyPoke
+    if nParams < 0 then genEmptyPoke
     else do
         ptr         <- newName "ptr"
         patVarNames <- newNames nParams
