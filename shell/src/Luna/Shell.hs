@@ -126,7 +126,7 @@ stdlibPath = do
     exists <- doesDirectoryExist stdPath
     if exists
         then putStrLn $ "Found the standard library at: " <> stdPath
-        else die "Standard library not found. Set the " <> Project.lunaRootEnv <> " environment variable"
+        else die $ "Standard library not found. Set the " <> Project.lunaRootEnv <> " environment variable"
     return stdPath
 
 main :: IO ()
@@ -137,7 +137,7 @@ main = do
     stdPath      <- stdlibPath
     (_, std)     <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
     dependencies <- Project.listDependencies mainPath
-    libs         <- Project.projectImportPaths mainPath
+    libs         <- Map.fromList <$> Project.projectImportPaths mainPath
     Right (_, imp) <- Project.requestModules libs [[mainName, "Main"]] std
     let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
     case mainFun of
