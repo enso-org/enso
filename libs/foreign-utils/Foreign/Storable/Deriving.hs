@@ -4,6 +4,7 @@ module Foreign.Storable.Deriving (deriveStorable) where
 import Prologue
 
 import Control.Lens                (view, _2, _3)
+import Data.Bifunctor              (first)
 import Foreign.Storable            (Storable)
 import GHC.Num
 import Language.Haskell.TH         hiding (clause)
@@ -76,6 +77,7 @@ wildCardClause :: TH.Exp -> TH.Clause
 wildCardClause expr = clause [WildP] expr mempty
 
 
+
 --------------------------------
 -- === Main instance code === --
 --------------------------------
@@ -91,6 +93,7 @@ deriveStorable ty = do
     pure [inst]
 
 
+
 -------------------------------
 -- === Method generators === --
 -------------------------------
@@ -103,8 +106,8 @@ deriveStorable ty = do
 --   >             off1 = sizeOf (undefined :: Int)
 --   >             off2 = off1 + sizeOf (undefined :: x)
 --   >             off3 = off2 + sizeOf (undefined :: y)
-genOffsets :: TH.Con -> Q (NonEmpty Name, NonEmpty TH.Dec)
-genOffsets con = do
+genOffsets :: Bool -> TH.Con -> Q (NonEmpty Name, NonEmpty TH.Dec)
+genOffsets isSingleCons con = do
     let fSizes  = conFieldSizes con
         arity   = length fSizes
         name i  = newName $ "off" <> show i
@@ -114,18 +117,24 @@ genOffsets con = do
     let names = name0 :| namesList
     case names of
         n :| [] -> pure (names, whereClause n (intLit 0 -:: cons' ''Int) :| [])
-        names@(n1 :| (n2:ns)) -> do
-            let off0D   = whereClause n1 $ intLit 0 -:: cons' ''Int
-                off1D   = whereClause n2 $ app (var 'Storable.sizeOf) undefinedAsInt
-                headers = zip3 ns (n2:ns) fSizes
+        names@(n0 :| (n1:ns)) -> do
+            let off0D   = whereClause n0 $ intLit 0 -:: cons' ''Int
+                off1D   = whereClause n1 $ app (var 'Storable.sizeOf) undefinedAsInt
+                headers = zip3 ns ((if isSingleCons then n0 else n1):ns) fSizes
 
                 mkDecl :: (Name, Name, TH.Exp) -> Dec
                 mkDecl (declName, refName, fSize) =
                     whereClause declName (plus (var refName) fSize) -- >> where declName = refName + size
 
-                clauses = off0D :| (off1D : fmap mkDecl headers)
+                offDecls = mkDecl <$> headers
+                -- if a type has one constructor, we need to omit the offset (and name) of the tag
+                addIfMulti :: a -> [a] -> [a]
+                addIfMulti e es = if isSingleCons then es else e:es
 
-            pure (names, clauses)
+                clauses    = off0D :| (addIfMulti off1D offDecls)
+                finalNames = n0    :| (addIfMulti n1    ns)
+
+            pure (finalNames, clauses)
 
 -- | Generate the `sizeOf` method of the `Storable` class.
 --   It will pure the largest possible size of a given data type.
@@ -161,16 +170,28 @@ genPeek cs = funD 'Storable.peek [genPeekClause cs]
 -- | Generate the `case` expression that given a tag of the constructor
 --   will perform the appropriate number of pokes.
 genPeekCaseMatch :: Bool -> Name -> Integer -> TH.Con -> Q TH.Match
-genPeekCaseMatch single ptr idx con = do
-    (off0 :| offNames, whereCs) <- genOffsets con
+genPeekCaseMatch isSingleCons ptr idx con = do
+    (off0 :| offNames, whereCs) <- genOffsets isSingleCons con
     let (cName, arity)   = conNameArity con
         peekByteOffPtr   = app (var 'Storable.peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
-        -- No-field constructors are a special case of just the constructor being pureed
+        mkFirstCon off   = op '(<$>) (ConE cName) (peekByte off)
+        -- This piece of logic is tricky due to different handling of (arity == 0, nCons > 1) configs
+        -- * if the constructor has no arguments and we have no offsets, it's a data A = A case,
+        --   so the peek is a simple `pure A`
+        -- * if the cons. has no args, but is part of complex type, like data A = A | B [..],
+        --   (we have offsets) we handle it like any other complex type's constructor
+        -- * if the cons. has args, but is the only constructor in a type, like data A = A Int,
+        --   we want it to start reading the values from 0 (off0)
+        -- * if the cons. has no offsets, but its arity is not 0, it means we have data A = A Int
+        --   single cons, single field. We then do just one peek and wrap it with constructor.
+        -- * otherwise (data A = A Int | B Int Int, etc) we need to skip the first offset, because
+        --   it was used
         (firstCon, offs) = case offNames of
-                (off1:os) -> (op '(<$>) (ConE cName) (peekByte $ if single then off0 else off1), os)
-                _         -> (app (var 'pure) (ConE cName), [])
+                allOs@(off1:os) -> first mkFirstCon $ if isSingleCons then (off0, allOs) else (off1, os)
+                _               -> if (arity == 0) then (app (var 'pure) (ConE cName), [])
+                                                   else (mkFirstCon off0, [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
     pure $ TH.Match pat body (NonEmpty.toList whereCs)
@@ -200,8 +221,7 @@ genPeekMultiCons ptr tag cs = do
         bind         = BindS (var tag) peekTagTyped
         cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
         doE          = DoE [bind, NoBindS cases]
-        pat          = if all noArgCon cs then TH.WildP else var ptr
-    pure $ clause [pat] doE mempty
+    pure $ clause [var ptr] doE mempty
 
 -- | Generate the clause for the `peek` method,
 --   deciding between single- and multi-constructor implementations.
@@ -271,7 +291,7 @@ genPokeClauseSingle con = do
     case patVarNames of
         [] -> genEmptyPoke
         (firstP : restP) -> do
-            (offNames, whereCs) <- genOffsets con
+            (offNames, whereCs) <- genOffsets True con
             let pat  = genPokePat  ptr cName patVarNames
                 body = genPokeExpr ptr offNames restP (var firstP)
             pure $ clause pat body (NonEmpty.toList whereCs)
@@ -282,13 +302,10 @@ genPokeClauseSingle con = do
 genPokeClauseMulti :: Integer -> TH.Con -> Q TH.Clause
 genPokeClauseMulti idx con = do
     let (cName, nParams) = conNameArity con
-    -- if the constructor has no params, we will generate `poke _ _ = pure ()`
-    if nParams == 0 then genEmptyPoke
-    else do
-        ptr         <- newName "ptr"
-        patVarNames <- newNames nParams
-        (offNames, whereCs) <- genOffsets con
-        let pat            = genPokePat ptr cName patVarNames
-            idxAsInt       = convert idx -:: cons' ''Int
-            body           = genPokeExpr ptr offNames patVarNames idxAsInt
-        pure $ clause pat body (NonEmpty.toList whereCs)
+    ptr         <- newName "ptr"
+    patVarNames <- newNames nParams
+    (offNames, whereCs) <- genOffsets False con
+    let pat            = genPokePat ptr cName patVarNames
+        idxAsInt       = convert idx -:: cons' ''Int
+        body           = genPokeExpr ptr offNames patVarNames idxAsInt
+    pure $ clause pat body (NonEmpty.toList whereCs)
