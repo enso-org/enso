@@ -53,6 +53,10 @@ executables:
       - ansi-wl-pprint
       - executable-path
       - filepath
+      - fsnotify
+      - stm
+      - async
+      - safe-exceptions
 
 default-extensions:
     - AllowAmbiguousTypes

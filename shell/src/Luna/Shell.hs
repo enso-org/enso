@@ -6,6 +6,10 @@ module Luna.Shell where
 
 import           Luna.Prelude        hiding (String, seq, cons, Constructor)
 import qualified Luna.Prelude        as P
+import           Control.Concurrent  (threadDelay)
+import           Control.Concurrent.Async (race_)
+import           Control.Concurrent.STM
+import qualified Control.Exception.Safe as Exc
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
 import qualified Data.TreeSet        as TreeSet
@@ -60,6 +64,9 @@ import           System.Exit                   (die)
 import Data.Layout as Layout
 import qualified Data.Text.Terminal as Terminal
 import qualified Path as Path
+
+import qualified Options.Applicative as OptParse
+import qualified System.FSNotify     as FSNotify
 
 data ShellTest
 type instance Abstract ShellTest = ShellTest
@@ -122,12 +129,12 @@ stdlibPath = do
     let (<</>>)        = (FilePath.</>)  -- purely for convenience, because </> is defined elswhere
         parent         = let p = FilePath.takeDirectory in \x -> if FilePath.hasTrailingPathSeparator x then p (p x) else p x
         defaultStdPath = (parent . parent . parent $ exePath) <</>> "config" <</>> "env"
-        envStdPath     = Map.lookup "LUNA_HOME" env
+        envStdPath     = Map.lookup Project.lunaRootEnv env
         stdPath        = fromMaybe defaultStdPath envStdPath <</>> "Std"
     exists <- doesDirectoryExist stdPath
     if exists
         then putStrLn $ "Found the standard library at: " <> stdPath
-        else die "Standard library not found. Set the LUNA_HOME environment variable"
+        else die $ "Standard library not found. Set the " <> Project.lunaRootEnv <> " environment variable"
     return stdPath
 
 forceCompilation :: Project.CompiledModules -> IO ()
@@ -141,23 +148,53 @@ forceCompilation (Project.CompiledModules m p) = do
     forceImports p
     forM_ (Map.elems m) forceImports
 
+data Options = Options { _projectDirectory      :: Maybe FilePath
+                       , _exhaustiveCompilation :: Bool
+                       , _fileWatch             :: Bool
+                       }
+
+makeLenses ''Options
+
+options :: OptParse.Parser Options
+options = Options
+      <$> OptParse.optional (OptParse.argument OptParse.str (OptParse.metavar "PROJECT_DIR"))
+      <*> OptParse.switch (
+              OptParse.long "exhaustive"
+           <> OptParse.help "Enables exhaustive compilation of all sources and functions")
+      <*> OptParse.switch (
+              OptParse.long "file-watch"
+           <> OptParse.help "Enables recompilation on a file change")
+
+
 main :: IO ()
-main = do
-    mainPath' <- getCurrentDirectory
+main = shell =<< OptParse.execParser opts
+    where
+        opts = OptParse.info (options <**> OptParse.helper)
+            (OptParse.fullDesc <> OptParse.header "luna compiler")
+
+
+shell :: Options -> IO ()
+shell opts = do
+    mainPath' <- maybe getCurrentDirectory return $ opts ^. projectDirectory
     mainPath  <- Path.parseAbsDir mainPath'
     let mainName = Project.getProjectName mainPath
     stdPath   <- stdlibPath
     stdPath'  <- Path.parseAbsDir stdPath
     (fin, std) <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
     dependencies <- Project.listDependencies mainPath
-    let libs = Map.fromList $ [("Std", stdPath), (mainName, mainPath')] ++ dependencies
+    libs         <- Map.fromList <$> Project.projectImportPaths mainPath
     let loop = do
-            allStd <- Project.findProjectSources stdPath'
-            allProj <- Project.findProjectSources mainPath
-
-            Right (_, imp) <- Project.requestModules libs ([mainName, "Main"] : (map ("Std" <>) $ Bimap.elems allStd) <> (map (convert mainName <>) $ Bimap.elems allProj)) std
-            forceCompilation imp
-            let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
+            let mainModule = [mainName, "Main"]
+            modsToCompile <- (mainModule :) <$>
+                if (opts ^. exhaustiveCompilation) then do
+                    allStd <- Project.findProjectSources stdPath'
+                    allProj <- Project.findProjectSources mainPath
+                    return (Bimap.elems allStd <> Bimap.elems allProj)
+                else
+                    return []
+            Right (_, imp) <- Project.requestModules libs modsToCompile std
+            when (opts ^. exhaustiveCompilation) $ forceCompilation imp
+            let mainFun = imp ^? Project.modules . ix mainModule . importedFunctions . ix "main" . Function.documentedItem
             case mainFun of
                 Just (Left e)  -> do
                     putStrLn "Luna encountered the following compilation errors:"
@@ -169,11 +206,32 @@ main = do
                     res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
                     case res of
                         Left err -> putStrLn $ "Luna encountered runtime error: " ++ err
-                        _        -> return ()
+                        _        -> putStrLn "main finished"
                 Nothing -> putStrLn "Function main not found in module Main."
-            e <- getLine
-            fin
-            case e of
-                "exit" -> return ()
-                _      -> loop
-    loop
+
+    if opts ^. fileWatch then do
+        dirtyVar <- newTVarIO True
+
+        let watchInput = do
+                e <- getLine
+                unless (e `P.elem` (["exit", "quit"] :: [P.String])) $ do
+                    atomically $ writeTVar dirtyVar True
+                    watchInput
+
+        FSNotify.withManager $ \mgr -> do
+            let predicate ev =
+                    FilePath.takeExtension (FSNotify.eventPath ev) == ".luna" 
+            FSNotify.watchTree mgr mainPath' predicate
+                (\_ -> atomically $ writeTVar dirtyVar True)
+            race_ watchInput $ forever $ do
+                atomically $ do
+                    dirty <- readTVar dirtyVar
+                    check dirty
+
+                (fin >> loop) `Exc.catchAny` (putStrLn . displayException)
+
+                atomically $ writeTVar dirtyVar False
+
+                putStrLn "Build finished. Press Enter to force a rebuild"
+    else
+        loop
