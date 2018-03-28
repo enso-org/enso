@@ -4,6 +4,7 @@ module Foreign.Storable.Deriving (deriveStorable) where
 import Prologue
 
 import Control.Lens                (view, _2, _3)
+import Data.Bifunctor              (first)
 import Foreign.Storable            (Storable)
 import GHC.Num
 import Language.Haskell.TH         hiding (clause)
@@ -14,6 +15,8 @@ import qualified Data.List.NonEmpty  as NonEmpty
 import qualified Foreign.Storable    as Storable
 import qualified Language.Haskell.TH as TH
 
+
+import System.IO.Unsafe (unsafePerformIO)
 
 --------------------------------------
 -- === TH info extracting utils === --
@@ -75,6 +78,9 @@ whereClause n e = ValD (var n) (NormalB e) mempty
 wildCardClause :: TH.Exp -> TH.Clause
 wildCardClause expr = clause [WildP] expr mempty
 
+-- A utility that makes you know which function param you are passing.
+setTo :: String -> a -> a
+setTo label = id
 
 --------------------------------
 -- === Main instance code === --
@@ -103,8 +109,8 @@ deriveStorable ty = do
 --   >             off1 = sizeOf (undefined :: Int)
 --   >             off2 = off1 + sizeOf (undefined :: x)
 --   >             off3 = off2 + sizeOf (undefined :: y)
-genOffsets :: TH.Con -> Q (NonEmpty Name, NonEmpty TH.Dec)
-genOffsets con = do
+genOffsets :: Bool -> TH.Con -> Q (NonEmpty Name, NonEmpty TH.Dec)
+genOffsets single con = do
     let fSizes  = conFieldSizes con
         arity   = length fSizes
         name i  = newName $ "off" <> show i
@@ -114,18 +120,25 @@ genOffsets con = do
     let names = name0 :| namesList
     case names of
         n :| [] -> pure (names, whereClause n (intLit 0 -:: cons' ''Int) :| [])
-        names@(n1 :| (n2:ns)) -> do
-            let off0D   = whereClause n1 $ intLit 0 -:: cons' ''Int
-                off1D   = whereClause n2 $ app (var 'Storable.sizeOf) undefinedAsInt
-                headers = zip3 ns (n2:ns) fSizes
+        names@(n0 :| (n1:ns)) -> do
+            let off0D   = whereClause n0 $ intLit 0 -:: cons' ''Int
+                off1D   = whereClause n1 $ app (var 'Storable.sizeOf) undefinedAsInt
+                headers = zip3 ns ((if single then n0 else n1):ns) fSizes
 
                 mkDecl :: (Name, Name, TH.Exp) -> Dec
                 mkDecl (declName, refName, fSize) =
                     whereClause declName (plus (var refName) fSize) -- >> where declName = refName + size
 
-                clauses = off0D :| (off1D : fmap mkDecl headers)
+                offDecls = mkDecl <$> headers
+                -- if a type has one constructor, we need to omit the offset (and name) of the tag
+                addIfMulti :: a -> [a] -> [a]
+                addIfMulti e es = if single then es else e:es
+                clauses    = off0D :| (addIfMulti off1D offDecls)
+                finalNames = n0    :| (addIfMulti n1    ns)
+                trim :: NonEmpty a -> NonEmpty a
+                trim xs = NonEmpty.fromList $ fst <$> zip (NonEmpty.toList xs) fSizes
 
-            pure (names, clauses)
+            pure (trim finalNames, trim clauses)
 
 -- | Generate the `sizeOf` method of the `Storable` class.
 --   It will pure the largest possible size of a given data type.
@@ -162,15 +175,17 @@ genPeek cs = funD 'Storable.peek [genPeekClause cs]
 --   will perform the appropriate number of pokes.
 genPeekCaseMatch :: Bool -> Name -> Integer -> TH.Con -> Q TH.Match
 genPeekCaseMatch single ptr idx con = do
-    (off0 :| offNames, whereCs) <- genOffsets con
+    (off0 :| offNames, whereCs) <- genOffsets ("single" `setTo` single) con
     let (cName, arity)   = conNameArity con
         peekByteOffPtr   = app (var 'Storable.peekByteOff) (var ptr)
         peekByte off     = app peekByteOffPtr $ var off
         appPeekByte t x  = op '(<*>) t $ peekByte x
+        mkFirstCon off   = op '(<$>) (ConE cName) (peekByte off)
         -- No-field constructors are a special case of just the constructor being pureed
         (firstCon, offs) = case offNames of
-                (off1:os) -> (op '(<$>) (ConE cName) (peekByte $ if single then off0 else off1), os)
-                _         -> (app (var 'pure) (ConE cName), [])
+                allOs@(off1:os) -> first mkFirstCon $ (off0, allOs)
+                _               -> if (arity == 0) then (app (var 'pure) (ConE cName), [])
+                                                   else first mkFirstCon (off0, [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
     pure $ TH.Match pat body (NonEmpty.toList whereCs)
@@ -271,7 +286,7 @@ genPokeClauseSingle con = do
     case patVarNames of
         [] -> genEmptyPoke
         (firstP : restP) -> do
-            (offNames, whereCs) <- genOffsets con
+            (offNames, whereCs) <- genOffsets ("single" `setTo` True) con
             let pat  = genPokePat  ptr cName patVarNames
                 body = genPokeExpr ptr offNames restP (var firstP)
             pure $ clause pat body (NonEmpty.toList whereCs)
@@ -287,7 +302,7 @@ genPokeClauseMulti idx con = do
     else do
         ptr         <- newName "ptr"
         patVarNames <- newNames nParams
-        (offNames, whereCs) <- genOffsets con
+        (offNames, whereCs) <- genOffsets ("single" `setTo` False) con
         let pat            = genPokePat ptr cName patVarNames
             idxAsInt       = convert idx -:: cons' ''Int
             body           = genPokeExpr ptr offNames patVarNames idxAsInt
