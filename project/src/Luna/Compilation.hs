@@ -71,7 +71,7 @@ type instance Inputs  Event ProjectCompilation = '[]
 type instance Outputs Event ProjectCompilation = '[New // AnyExpr]
 type instance Preserves     ProjectCompilation = '[]
 
-data ModuleCompilationError = ModuleSourcesNotFound QualName
+data ModuleCompilationError = ModuleSourcesNotFound [QualName] QualName
                             | ImportsCycleError [QualName]
                             deriving (Show)
 
@@ -120,8 +120,9 @@ requestModules libs modules cached = do
 requestModules' :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => Map Name FilePath -> [QualName] -> m (Map QualName Imports)
 requestModules' libs modules = do
     sources <- liftIO $ mapM (Project.findProjectSources <=< Path.parseAbsDir) libs
-    let mkSourcesMap libName sources = foldl (\m (p, n) -> Map.insert (fromList . (libName :) . toList $ n) (UL.Source (Path.toFilePath p) def) m) def (Bimap.toList sources)
-        sourcesMgr = UL.fsSourceManager $ Map.unions $ uncurry mkSourcesMap <$> Map.toList sources
+    let mkSourcesMap libName sources = foldl (\m (p, n) -> Map.insert n (UL.Source (Path.toFilePath p) def) m) def (Bimap.toList sources)
+        sourcesMap = Map.unions $ uncurry mkSourcesMap <$> Map.toList sources
+        sourcesMgr = UL.fsSourceManager sourcesMap
     res <- mapM (getOrCompileModule sourcesMgr []) modules
     return $ Map.fromList $ zip modules res
 
@@ -135,13 +136,14 @@ getOrCompileModule srcs stack current = do
 requestModule :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => UL.SourcesManager -> [QualName] -> QualName -> m Imports
 requestModule srcs stack current = do
     putStrLn $ "Requested module: " <> convert current
+    liftIO $ IO.hFlush IO.stdout
     case dropWhile (/= current) stack of
         [] -> return ()
         _  -> throwError $ ImportsCycleError (current : takeWhile (/= current) stack)
 
     codeE <- dropLogs $ srcs ^. UL.readCode $ current
     code  <- case codeE of
-        Left  _ -> throwError $ ModuleSourcesNotFound current
+        Left  _ -> throwError $ ModuleSourcesNotFound stack current
         Right c -> return c
     Right dependencies <- liftIO $ runPM False $ do
         initPM
@@ -164,6 +166,7 @@ requestModule srcs stack current = do
             Nothing -> (dep,) <$> requestModule srcs (current : stack) dep
     std <- use prims
     putStrLn $ "Compiling module: " <> convert current
+    liftIO $ IO.hFlush IO.stdout
     Right mod <- liftIO $ runPM False $ do
         initPM
         u <- Pass.eval' @UL.UnitLoader $ do
