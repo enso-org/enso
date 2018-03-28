@@ -127,7 +127,7 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens                     as X (Lens, Lens', at)
+import Control.Lens                     as X (Lens, Lens', Iso, Iso', iso, at, from)
 import Control.Lens                     as X (view, set)
 import Control.Lens                     as X ((^.), (.~), (%~))
 import Control.Lens.Utils.Wrapped       as X (wrap, unwrap, wrapped)
