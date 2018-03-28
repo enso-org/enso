@@ -46,6 +46,7 @@ library:
     - async
     - base
     - convert
+    - container
     - containers
     - data-default
     - deepseq

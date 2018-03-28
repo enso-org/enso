@@ -1,0 +1,163 @@
+module Data.PtrSet.Cpp2 where
+
+import Prologue hiding (null, toList)
+
+import Control.Monad.IO.Class
+import Foreign.ForeignPtr
+import Foreign.Marshal.Alloc
+import Foreign.Marshal.Array
+import Foreign.Ptr
+import Foreign.Ptr.Utils      (SomePtr, fromCBool)
+import Foreign.Storable       (Storable)
+import System.IO.Unsafe       (unsafePerformIO)
+
+import qualified Data.Set.Mutable.Class as Set
+
+
+class IsPtr a where
+    asSomePtr :: Iso' a SomePtr
+    default asSomePtr :: Coercible a SomePtr => Iso' a SomePtr
+    asSomePtr = iso unsafeCoerce unsafeCoerce ; {-# INLINE asSomePtr #-}
+
+instance IsPtr (Ptr a)
+
+
+--------------------
+-- === PtrSet === --
+--------------------
+
+-- === Definition === --
+
+newtype UnmanagedPtrSet a = UnmanagedPtrSet SomePtr deriving (Storable)
+makeLenses ''UnmanagedPtrSet
+
+class IsPtrSet s where
+    newIO  :: forall a. IO (s a)
+    withIO :: forall a b. s a -> (UnmanagedPtrSet a -> IO b) -> IO b
+
+
+-- === Foreign calls === --
+
+foreign import ccall unsafe "c_set_create"
+    c_createPtrSet :: IO (UnmanagedPtrSet a)
+
+foreign import ccall unsafe "c_set_insert"
+    c_insert :: SomePtr -> UnmanagedPtrSet a -> IO ()
+
+foreign import ccall unsafe "c_set_member"
+    c_member :: SomePtr -> UnmanagedPtrSet a -> IO Int
+
+foreign import ccall unsafe "c_set_delete"
+    c_delete :: SomePtr -> UnmanagedPtrSet a -> IO ()
+
+foreign import ccall "c_set_delete_set"
+    c_deleteSet :: UnmanagedPtrSet a -> IO ()
+
+foreign import ccall unsafe "c_set_to_list"
+    c_toList :: Ptr SomePtr -> UnmanagedPtrSet a -> IO ()
+
+foreign import ccall unsafe "c_set_size"
+    c_size :: UnmanagedPtrSet a -> IO Int
+
+foreign import ccall unsafe "c_set_null"
+    c_null :: UnmanagedPtrSet a -> IO Int
+
+
+
+-- === API === --
+
+-- | A utility function for easily using the C calls that use `Ptr ()`
+--   with the PtrSet.
+with :: (IsPtrSet s, MonadIO m) => s a -> (UnmanagedPtrSet a -> IO b) -> m b
+with !s !f = liftIO $ withIO s f ; {-# INLINE with #-}
+
+-- -- | A utility function to perform a foreign C call on the set and return
+-- --   the resulting set.
+-- map :: (IsPtrSet s, MonadIO m)
+--     => s -> (UnmanagedPtrSet -> IO a) -> m s
+-- map s f = with s f >> return s ; {-# INLINE map #-}
+
+-- | Creates an `std::set` object in C++ and attaches a finalizer.
+--   The memory will be automatically deallocated by Haskell's GC.
+new :: (IsPtrSet s, MonadIO m) => m (s a)
+new = liftIO newIO ; {-# INLINE new #-}
+
+new' :: IsPtrSet s => (s a)
+new' = unsafePerformIO new ; {-# NOINLINE new' #-}
+
+free :: (IsPtrSet s, MonadIO m) => s a -> m ()
+free s = with s c_deleteSet ; {-# INLINE free #-}
+
+-- | Create a set with one element
+singleton :: (IsPtr a, IsPtrSet s, MonadIO m) => a -> m (s a)
+singleton e = do
+    s <- new
+    insert s e
+    return s
+{-# INLINE singleton #-}
+
+-- | Insert a single element into the set.
+insert :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m ()
+insert s e = with s $ c_insert (e ^. asSomePtr) ; {-# INLINE insert #-}
+
+insertMany :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> [a] -> m ()
+insertMany s es = mapM_ (insert s) es ; {-# INLINE insertMany #-}
+
+-- | Check whether the set contains a given key.
+--   Since the set can only contain 'Int' values,
+--   This is also equivalent to the `find` function.
+member :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m Bool
+member s e = fromCBool =<< with s (c_member $ e ^. asSomePtr) ; {-# INLINE member #-}
+
+-- | Remove an element from the set, using `std::set::erase`.
+delete :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m ()
+delete s e = with s $ c_delete $ e ^. asSomePtr ; {-# INLINE delete #-}
+
+-- | Return the number of elements in the set.
+size :: (IsPtrSet s, MonadIO m) => s a -> m Int
+size s = with s c_size ; {-# INLINE size #-}
+
+null :: (IsPtrSet s, MonadIO m) => s a -> m Bool
+null s = fromCBool =<< with s c_null ; {-# INLINE null #-}
+
+-- | Get all of the elements from the set (in ascending order).
+--   Note: do not overuse this function, as it will not perform very well.
+toList :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> m [a]
+toList s = do
+    n <- size s
+    with s $ \ptr ->
+        allocaArray @SomePtr n $ \arr -> do
+            c_toList arr ptr
+            view (from asSomePtr) <<$>> peekArray n arr
+{-# INLINE toList #-}
+
+-- | Convert a list to the set.
+fromList :: (IsPtr a, IsPtrSet s, MonadIO m) => [a] -> m (s a)
+fromList es = do
+    s <- new
+    insertMany s es
+    return s
+{-# INLINE fromList #-}
+
+
+
+
+-- === Instances === --
+
+instance (IsPtr a, Show a) => Show (UnmanagedPtrSet a) where
+    show = show . unsafePerformIO . toList
+
+instance IsPtrSet UnmanagedPtrSet where
+    newIO        = c_createPtrSet ; {-# INLINE newIO  #-}
+    withIO !s !f = f s            ; {-# INLINE withIO #-}
+
+type instance Set.Item (UnmanagedPtrSet a) = a
+instance (IsPtr a, MonadIO m)
+      => Set.Set m (UnmanagedPtrSet a) where
+    new    = new    ; {-# INLINE new #-}
+    insert = insert ; {-# INLINE insert #-}
+    delete = delete ; {-# INLINE delete #-}
+    member = member ; {-# INLINE member #-}
+    size   = size   ; {-# INLINE size   #-}
+    null   = null   ; {-# INLINE null   #-}
+    toList = toList ; {-# INLINE toList #-}

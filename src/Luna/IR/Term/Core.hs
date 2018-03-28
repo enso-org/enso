@@ -61,6 +61,18 @@ deriveStorable  ''ConsAcc
 deriveStorable1 ''ConsAcc
 Link.discover   ''ConsAcc
 
+Tag.familyInstance "TermCons" "Unify"
+data ConsUnify a = Unify
+    { __left  :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
+    , __right :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
+    } deriving (Show, Eq)
+type instance Term.TagToCons Unify     = ConsUnify
+type instance Term.ConsToTag ConsUnify = Unify
+makeLenses      ''ConsUnify
+deriveStorable  ''ConsUnify
+deriveStorable1 ''ConsUnify
+Link.discover   ''ConsUnify
+
 Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
 type instance Term.TagToCons Missing     = ConsMissing
@@ -74,6 +86,7 @@ data UniTerm a
     = UniTermTop     !(ConsTop     a)
     | UniTermVar     !(ConsVar     a)
     | UniTermAcc     !(ConsAcc     a)
+    | UniTermUnify   !(ConsUnify   a)
     | UniTermMissing !(ConsMissing a)
     deriving (Show, Eq)
 makeLenses      ''UniTerm
@@ -86,6 +99,7 @@ type instance Term.Uni = UniTerm
 instance Term.IsUni ConsTop     where toUni = UniTermTop     ; {-# INLINE toUni #-}
 instance Term.IsUni ConsVar     where toUni = UniTermVar     ; {-# INLINE toUni #-}
 instance Term.IsUni ConsAcc     where toUni = UniTermAcc     ; {-# INLINE toUni #-}
+instance Term.IsUni ConsUnify   where toUni = UniTermUnify   ; {-# INLINE toUni #-}
 instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni #-}
 
 
@@ -141,6 +155,12 @@ acc :: Creator Acc m => Term base -> Term name -> m (Term (Acc -* base -# name))
 acc base name = newM $ \self -> Acc <$> Link.new base self
                                     <*> Link.new name self
 {-# INLINE acc #-}
+
+-- FIXME: double left vvv
+unify :: Creator Unify m => Term left -> Term left -> m (Term (Unify -* left))
+unify left right = newM $ \self -> Unify <$> Link.new left  self
+                                         <*> Link.new right self
+{-# INLINE unify #-}
 
 
 

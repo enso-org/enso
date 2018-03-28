@@ -5,7 +5,8 @@ module Luna.IR.Component.Term.Layer where
 
 import Prologue hiding (Type)
 
-import qualified Data.PtrSet.Cpp              as PtrSet
+import qualified Data.PtrSet.Cpp2             as PtrSet
+import qualified Data.Set.Mutable.Class       as Set
 import qualified Foreign.Ptr                  as Ptr
 import qualified Foreign.Storable             as Storable
 import qualified Foreign.Storable.Utils       as Storable
@@ -16,7 +17,8 @@ import qualified OCI.IR.Component             as Component
 import qualified OCI.IR.Layer.Internal        as Layer
 import qualified OCI.IR.Layout                as Layout
 
-import Data.PtrSet.Cpp              (UnmanagedPtrSet)
+import Data.PtrSet.Cpp2             (IsPtr, UnmanagedPtrSet)
+import Data.Set.Mutable.Class       (Set)
 import Foreign.Storable             (Storable)
 import Foreign.Storable.Deriving    (deriveStorable)
 import Foreign.Storable1            (Storable1)
@@ -24,6 +26,9 @@ import Foreign.Storable1.Deriving   (deriveStorable1)
 import Luna.IR.Component.Link.Class (type (*-*), Link)
 import Luna.IR.Component.Term.Class (Term, Terms)
 
+
+-- TODO: refactor
+instance IsPtr (Link l)
 
 
 -------------------
@@ -53,12 +58,33 @@ type instance Layout.Default Type = ()
 -- === Users === --
 -------------------
 
+-- === Definition === --
+
 data Users
-newtype UsersSet layout = UsersSet UnmanagedPtrSet deriving (Show, Storable)
+type    UsersSetData layout = UnmanagedPtrSet (Link layout)
+newtype UsersSet     layout = UsersSet (UsersSetData layout)
+    deriving (Show, Storable)
 makeLenses      ''UsersSet
 deriveStorable1 ''UsersSet
+
+-- FIXME: change () to Top ?
+type instance Layer.Data   Terms Users = UsersSet
+type instance Layer.Layout Terms Users layout
+   = layout *-* Layout.Set Model () layout
+
+
+-- === Instances === --
+
+type instance Set.Item (UsersSet layout) = Set.Item (UsersSetData layout)
+instance MonadIO m => Set m (UsersSet l) where
+    new    = wrap <$> Set.new    ; {-# INLINE new    #-}
+    insert = Set.insert . unwrap ; {-# INLINE insert #-}
+    delete = Set.delete . unwrap ; {-# INLINE delete #-}
+    member = Set.member . unwrap ; {-# INLINE member #-}
+    size   = Set.size   . unwrap ; {-# INLINE size   #-}
+    null   = Set.null   . unwrap ; {-# INLINE null   #-}
+    toList = Set.toList . unwrap ; {-# INLINE toList #-}
+
 instance Layer.DataInitializer UsersSet where
     initData = wrap PtrSet.new' ; {-# INLINE initData #-}
 
-type instance Layer.Layout Terms Users layout = Layout.Get Users layout
-type instance Layer.Data   Terms Users        = UsersSet
