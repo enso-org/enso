@@ -25,7 +25,8 @@ import qualified System.FilePath.Find   as Find
 -- === Project === --
 ---------------------
 
-projectSourcesForFile :: Path Abs File -> IO (Maybe (Bimap (Path Abs File) QualName))
+projectSourcesForFile :: Path Abs File
+                      -> IO (Maybe (Bimap (Path Abs File) QualName))
 projectSourcesForFile file = do
     projectRoot <- findProjectRootForFile file
     mapM findProjectSources projectRoot
@@ -51,16 +52,22 @@ projectRootForFile file = do
 findProjectFileForFile :: Path Abs File -> IO (Maybe (Path Abs File))
 findProjectFileForFile = findProjectFile . Path.parent
 
-getRelativePathForModule :: Path Abs File -> Path Abs File -> IO (Maybe (Path Rel File))
-getRelativePathForModule projectFile = fmap eitherToMaybe . try . Path.stripProperPrefix (Path.parent projectFile) where
-    eitherToMaybe :: Either Path.PathException (Path Rel File) -> Maybe (Path Rel File)
-    eitherToMaybe = either (const Nothing) Just
+getRelativePathForModule :: Path Abs File
+                         -> Path Abs File
+                         -> IO (Maybe (Path Rel File))
+getRelativePathForModule projectFile =
+    fmap eitherToMaybe . try . Path.stripProperPrefix (Path.parent projectFile)
+    where
+        eitherToMaybe :: Either Path.PathException (Path Rel File)
+                      -> Maybe (Path Rel File)
+        eitherToMaybe = either (const Nothing) Just
 
 getLunaProjectsFromDir :: Path Abs Dir -> IO [Path Abs File]
 getLunaProjectsFromDir dir = do
     filesInDir <- Dir.listDirectory (Path.toFilePath dir)
     files      <- mapM Path.parseRelFile filesInDir
-    return . map (dir </>) $ filter (\file -> Path.fileExtension file == lunaProjectExt) files
+    return . map (dir </>)
+           $ filter (\file -> Path.fileExtension file == lunaProjectExt) files
 
 findProjectFile :: Path Abs Dir -> IO (Maybe (Path Abs File))
 findProjectFile dir = getLunaProjectsFromDir dir >>= \case
@@ -85,7 +92,9 @@ lunaFileExt = ".luna"
 mkQualName :: Name -> Path Rel File -> QualName
 mkQualName projectName file = qualName
     where
-        qualName        = Qual.mkQualName (convert (convert projectName : path)) (convert moduleName)
+        qualName        = Qual.mkQualName
+                              (convert (convert projectName : path))
+                              (convert moduleName)
         path            = filter (/= ".") $ FP.splitDirectories dir
         moduleName      = FP.dropExtensions filename
         (dir, filename) = FP.splitFileName (Path.toFilePath file)
@@ -101,9 +110,9 @@ sourceDirectory = $(Path.mkRelDir "src")
 
 findProjectSources :: Path Abs Dir -> IO (Bimap (Path Abs File) QualName)
 findProjectSources project = do
-    let srcDir            = project </> sourceDirectory
+    let srcDir            = Path.toFilePath $ project </> sourceDirectory
         lunaFilePredicate = Find.extension Find.~~? lunaFileExt
-    lunaFiles    <- Find.find Find.always lunaFilePredicate (Path.toFilePath srcDir)
+    lunaFiles    <- Find.find Find.always lunaFilePredicate srcDir
     lunaFilesAbs <- mapM Path.parseAbsFile lunaFiles
     let modules  = map (assignQualName project) lunaFilesAbs
     return $ Bimap.fromList modules
@@ -122,7 +131,8 @@ listDependencies projectSrc = do
             indirectDeps <- forM directDeps $ \proj -> do
                 path <- Path.parseRelDir proj
                 listDependencies (lunaModules </> path)
-            return $ map (convert &&& (lunaModulesPath FP.</>)) directDeps <> concat indirectDeps
+            return $ map (convert &&& (lunaModulesPath FP.</>)) directDeps
+                  <> concat indirectDeps
 
 projectImportPaths :: Path Abs Dir -> IO [(Name, FP.FilePath)]
 projectImportPaths projectRoot = do

@@ -115,7 +115,9 @@ formatError (CompileError txt reqStack stack) = Layout.nested (convert txt) </> 
     arisingStack  = Layout.nested (formatStack $ reverse stack)
     requiredStack = Layout.nested (formatStack reqStack)
     arisingBlock  = arisingFrom </> Layout.indented arisingStack
-    requiredBlock = if null reqStack then Layout.phantom else requiredBy  </> Layout.indented requiredStack
+    requiredBlock = if null reqStack
+                    then Layout.phantom
+                    else requiredBy  </> Layout.indented requiredStack
 
 formatErrors :: [CompileError] -> Doc Terminal.TermText
 formatErrors errs = foldl (<//>) mempty items where
@@ -126,15 +128,23 @@ stdlibPath :: IO FilePath
 stdlibPath = do
     env     <- Map.fromList <$> Env.getEnvironment
     exePath <- fst <$> splitExecutablePath
-    let (<</>>)        = (FilePath.</>)  -- purely for convenience, because </> is defined elswhere
-        parent         = let p = FilePath.takeDirectory in \x -> if FilePath.hasTrailingPathSeparator x then p (p x) else p x
-        defaultStdPath = (parent . parent . parent $ exePath) <</>> "config" <</>> "env"
+    let (<</>>)        = (FilePath.</>)  -- purely for convenience,
+                                         -- because </> is defined elswhere
+        parent         = let p = FilePath.takeDirectory
+                         in \x -> if FilePath.hasTrailingPathSeparator x
+                                  then p (p x)
+                                  else p x
+        defaultStdPath = (parent . parent . parent $ exePath)
+                    <</>> "config"
+                    <</>> "env"
         envStdPath     = Map.lookup Project.lunaRootEnv env
         stdPath        = fromMaybe defaultStdPath envStdPath <</>> "Std"
     exists <- doesDirectoryExist stdPath
     if exists
         then putStrLn $ "Found the standard library at: " <> stdPath
-        else die $ "Standard library not found. Set the " <> Project.lunaRootEnv <> " environment variable"
+        else die $ "Standard library not found. Set the "
+                <> Project.lunaRootEnv
+                <> " environment variable"
     return stdPath
 
 forceCompilation :: Project.CompiledModules -> IO ()
@@ -173,6 +183,23 @@ main = shell =<< OptParse.execParser opts
             (OptParse.fullDesc <> OptParse.header "luna compiler")
 
 
+evaluateMain :: Maybe (Either [CompileError] Function.Function) -> IO ()
+evaluateMain mainFun = case mainFun of
+    Just (Left e)  -> do
+        putStrLn "Luna encountered the following compilation errors:"
+        Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $
+            formatErrors e
+        putStrLn ""
+        liftIO $ putStrLn "Compilation failed."
+    Just (Right f) -> do
+        putStrLn "Running main..."
+        res <- liftIO $ runIO $ runError $ LunaValue.force $
+            f ^. Function.value
+        case res of
+            Left err -> putStrLn $ "Luna encountered runtime error: " ++ err
+            _        -> putStrLn "main finished"
+    Nothing -> putStrLn "Function main not found in module Main."
+
 shell :: Options -> IO ()
 shell opts = do
     mainPath' <- maybe getCurrentDirectory return $ opts ^. projectDirectory
@@ -194,20 +221,12 @@ shell opts = do
                     return []
             Right (_, imp) <- Project.requestModules libs modsToCompile std
             when (opts ^. exhaustiveCompilation) $ forceCompilation imp
-            let mainFun = imp ^? Project.modules . ix mainModule . importedFunctions . ix "main" . Function.documentedItem
-            case mainFun of
-                Just (Left e)  -> do
-                    putStrLn "Luna encountered the following compilation errors:"
-                    Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $ formatErrors e
-                    putStrLn ""
-                    liftIO $ putStrLn "Compilation failed."
-                Just (Right f) -> do
-                    putStrLn "Running main..."
-                    res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
-                    case res of
-                        Left err -> putStrLn $ "Luna encountered runtime error: " ++ err
-                        _        -> putStrLn "main finished"
-                Nothing -> putStrLn "Function main not found in module Main."
+            let mainFun = imp ^? Project.modules
+                               . ix [mainName, "Main"]
+                               . importedFunctions
+                               . ix "main"
+                               . Function.documentedItem
+            evaluateMain mainFun
 
     if opts ^. fileWatch then do
         dirtyVar <- newTVarIO True
