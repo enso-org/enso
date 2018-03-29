@@ -107,7 +107,9 @@ formatError (CompileError txt reqStack stack) = Layout.nested (convert txt) </> 
     arisingStack  = Layout.nested (formatStack $ reverse stack)
     requiredStack = Layout.nested (formatStack reqStack)
     arisingBlock  = arisingFrom </> Layout.indented arisingStack
-    requiredBlock = if null reqStack then Layout.phantom else requiredBy  </> Layout.indented requiredStack
+    requiredBlock = if null reqStack
+                    then Layout.phantom
+                    else requiredBy  </> Layout.indented requiredStack
 
 formatErrors :: [CompileError] -> Doc Terminal.TermText
 formatErrors errs = foldl (<//>) mempty items where
@@ -118,37 +120,51 @@ stdlibPath :: IO FilePath
 stdlibPath = do
     env     <- Map.fromList <$> Env.getEnvironment
     exePath <- fst <$> splitExecutablePath
-    let (<</>>)        = (FilePath.</>)  -- purely for convenience, because </> is defined elswhere
-        parent         = let p = FilePath.takeDirectory in \x -> if FilePath.hasTrailingPathSeparator x then p (p x) else p x
-        defaultStdPath = (parent . parent . parent $ exePath) <</>> "config" <</>> "env"
-        envStdPath     = Map.lookup "LUNA_HOME" env
+    let (<</>>)        = (FilePath.</>)  -- purely for convenience,
+                                         -- because </> is defined elswhere
+        parent         = let p = FilePath.takeDirectory
+                         in \x -> if FilePath.hasTrailingPathSeparator x
+                                  then p (p x)
+                                  else p x
+        defaultStdPath = (parent . parent . parent $ exePath)
+                    <</>> "config"
+                    <</>> "env"
+        envStdPath     = Map.lookup Project.lunaRootEnv env
         stdPath        = fromMaybe defaultStdPath envStdPath <</>> "Std"
     exists <- doesDirectoryExist stdPath
     if exists
         then putStrLn $ "Found the standard library at: " <> stdPath
-        else die "Standard library not found. Set the LUNA_HOME environment variable"
+        else die $ "Standard library not found. Set the "
+                <> Project.lunaRootEnv
+                <> " environment variable"
     return stdPath
 
 main :: IO ()
 main = do
-    mainPath' <- getCurrentDirectory
-    mainPath  <- Path.parseAbsDir mainPath'
-    let mainName = Project.getProjectName mainPath
-    stdPath   <- stdlibPath
-    (_, std)  <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
+    mainPath'    <- getCurrentDirectory
+    mainPath     <- Path.parseAbsDir mainPath'
+    let mainName  = Project.getProjectName mainPath
+    stdPath      <- stdlibPath
+    (_, std)     <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
     dependencies <- Project.listDependencies mainPath
-    let libs = Map.fromList $ [("Std", stdPath), (mainName, mainPath')] ++ dependencies
+    libs         <- Map.fromList <$> Project.projectImportPaths mainPath
     Right (_, imp) <- Project.requestModules libs [[mainName, "Main"]] std
-    let mainFun = imp ^? Project.modules . ix [mainName, "Main"] . importedFunctions . ix "main" . Function.documentedItem
+    let mainFun = imp ^? Project.modules
+                       . ix [mainName, "Main"]
+                       . importedFunctions
+                       . ix "main"
+                       . Function.documentedItem
     case mainFun of
         Just (Left e)  -> do
             putStrLn "Luna encountered the following compilation errors:"
-            Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $ formatErrors e
+            Terminal.putStrLn $ Layout.concatLineBlock $ Layout.render $
+                formatErrors e
             putStrLn ""
             liftIO $ die "Compilation failed."
         Just (Right f) -> do
             putStrLn "Running main..."
-            res <- liftIO $ runIO $ runError $ LunaValue.force $ f ^. Function.value
+            res <- liftIO $ runIO $ runError $ LunaValue.force $
+                f ^. Function.value
             case res of
                 Left err -> error $ "Luna encountered runtime error: " ++ err
                 _        -> return ()
