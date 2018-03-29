@@ -41,7 +41,7 @@ library:
     - libs/cpp-containers/cbits
     - libs/memory-manager/cbits
   extra-libraries: stdc++
-  cc-options:      -std=c++17 -O2
+  cc-options:      -std=c++17 -O3
   dependencies:
     - async
     - base
@@ -89,7 +89,7 @@ benchmarks:
     include-dirs:
       - test/bench/cbits
     extra-libraries: stdc++
-    cc-options:      -std=c++17 -O2
+    cc-options:      -std=c++17 -O3
     ghc-options:
       - -threaded
       - -rtsopts

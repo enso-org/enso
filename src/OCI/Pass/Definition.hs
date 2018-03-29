@@ -70,8 +70,11 @@ type Vars pass prop
 newtype AttrValue        attr       = AttrValue        Any
 newtype ComponentMemPool comp       = ComponentMemPool MemPool
 newtype ComponentSize    comp       = ComponentSize    Int
-newtype LayerInitializer comp       = LayerInitializer SomePtr
 newtype LayerByteOffset  comp layer = LayerByteOffset  Int
+data    LayerInitializer comp       = LayerInitializer
+    { _staticInit  :: SomePtr
+    , _dynamicInit :: SomePtr -> IO ()
+    }
 makeLenses ''AttrValue
 makeLenses ''ComponentMemPool
 makeLenses ''ComponentSize
@@ -84,8 +87,10 @@ makeLenses ''LayerInitializer
 instance Default (AttrValue        a)   where def = wrap $ unsafeCoerce ()  ; {-# INLINE def #-}
 instance Default (ComponentMemPool c)   where def = wrap MemPool.unsafeNull ; {-# INLINE def #-}
 instance Default (ComponentSize    c)   where def = wrap 0                  ; {-# INLINE def #-}
-instance Default (LayerInitializer c)   where def = wrap Ptr.nullPtr        ; {-# INLINE def #-}
 instance Default (LayerByteOffset  c l) where def = wrap 0                  ; {-# INLINE def #-}
+instance Default (LayerInitializer c)   where
+    def = LayerInitializer Ptr.nullPtr (const $ pure ())
+    {-# INLINE def #-}
 
 instance (Typeable comp, Typeable layer)
       => Show (LayerByteOffset comp layer) where
@@ -236,16 +241,16 @@ type ComponentSizeGetter    c   m = DataGetter (ComponentSize    c)   m
 type AttrValueGetter        a   m = DataGetter (AttrValue        a)   m
 type AttrValueSetter        a   m = DataSetter (AttrValue        a)   m
 getLayerByteOffset  :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
-getLayerInitializer :: ∀ c   m. LayerInitializerGetter c   m => m SomePtr
+getLayerInitializer :: ∀ c   m. LayerInitializerGetter c   m => m (LayerInitializer c)
 getComponentMemPool :: ∀ c   m. ComponentMemPoolGetter c   m => m MemPool
 getComponentSize    :: ∀ c   m. ComponentSizeGetter    c   m => m Int
 getAttrValue        :: ∀ a   m. AttrValueGetter        a   m => m Any
 putAttrValue        :: ∀ a   m. AttrValueSetter        a   m => Any -> m ()
 getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE getLayerByteOffset  #-}
-getLayerInitializer = unwrap <$> getData @(LayerInitializer c)   ; {-# INLINE getLayerInitializer #-}
 getComponentMemPool = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool #-}
 getComponentSize    = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize    #-}
 getAttrValue        = unwrap <$> getData @(AttrValue        a)   ; {-# INLINE getAttrValue        #-}
+getLayerInitializer = getData @(LayerInitializer c)              ; {-# INLINE getLayerInitializer #-}
 putAttrValue        = putData @(AttrValue a) . wrap              ; {-# INLINE putAttrValue        #-}
 
 

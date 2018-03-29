@@ -98,6 +98,16 @@ spec = do
                     rtgt `shouldSatisfy` (== u1)
                 _ -> fail "Wrong encoding"
 
+        it "Users layer" $ runPass' $ do
+            v1 <- IR.var 7
+            v2 <- IR.var 9
+            u1 <- IR.unify v1 v2
+            v1_users <- Layer.read @IR.Users v1
+            v2_users <- Layer.read @IR.Users v2
+            print v1_users
+            print v2_users
+            True `shouldBe` False
+
     describe "Attributes" $ do
         it "Passing between passes" $ run2Passes'
             (Attr.put $ IntAttr 9)

@@ -59,9 +59,11 @@ alloc = do
 new :: ∀ comp m layout. Creator comp m => m (Component comp layout)
 new = do
     ir   <- alloc
-    ptr  <- Pass.getLayerInitializer @comp
+    init <- Pass.getLayerInitializer @comp
     size <- Pass.getComponentSize    @comp
-    liftIO $ Mem.copyBytes (coerce ir) ptr size
+    let ptr = coerce ir
+    liftIO $ Mem.copyBytes ptr (init ^. Pass.staticInit) size
+    liftIO $ (init ^. Pass.dynamicInit) ptr
     pure ir
 {-# INLINE new #-}
 

@@ -12,7 +12,7 @@ import qualified Foreign.Memory.Pool   as MemPool
 import qualified Foreign.Ptr           as Ptr
 import qualified OCI.Pass.Attr         as Attr
 import qualified OCI.Pass.Definition   as Pass
-import qualified OCI.Pass.Registry     as Registry
+import qualified OCI.Pass.Registry     as Reg
 
 import Control.Monad.Exception (Throws, throw)
 import Data.Map.Strict         (Map)
@@ -35,14 +35,15 @@ import GHC.Exts                (Any)
 
 newtype State = State
     { _components :: Map SomeTypeRep ComponentInfo
-    } deriving (Show)
+    }
 
 data ComponentInfo = ComponentInfo
-    { _byteSize  :: !Int
-    , _layers    :: !(Map SomeTypeRep LayerInfo)
-    , _layerInit :: !SomePtr
-    , _memPool   :: !MemPool
-    } deriving (Show)
+    { _byteSize         :: !Int
+    , _layers           :: !(Map SomeTypeRep LayerInfo)
+    , _layerStaticInit  :: !SomePtr
+    , _layerDynamicInit :: !(SomePtr -> IO ())
+    , _memPool          :: !MemPool
+    }
 
 newtype LayerInfo = LayerInfo
     { _byteOffset :: Int
@@ -55,42 +56,58 @@ makeLenses ''State
 
 -- === Construction === --
 
-computeConfig :: MonadIO m => Registry.State -> m State
-computeConfig cfg = wrap <$> mapM computeComponentInfo
-                  ( cfg ^. Registry.components )
-{-# INLINE computeConfig #-}
+computeConfig :: MonadIO m => Reg.State -> m State
+computeConfig cfg = wrap <$> mapM computeComponentInfo (cfg ^. Reg.components) ; {-# INLINE computeConfig #-}
 
-computeComponentInfo :: MonadIO m
-                        => Registry.ComponentInfo -> m ComponentInfo
+computeComponentInfo :: MonadIO m => Reg.ComponentInfo -> m ComponentInfo
 computeComponentInfo compCfg = compInfo where
-    layerReps    = Map.keys  $ compCfg ^. Registry.layers
-    layerInfos   = Map.elems $ compCfg ^. Registry.layers
-    layerSizes   = view Registry.byteSize <$> layerInfos
+    layerReps    = Map.keys  $ compCfg ^. Reg.layers
+    layerInfos   = Map.elems $ compCfg ^. Reg.layers
+    layerSizes   = view Reg.byteSize <$> layerInfos
     layerOffsets = scanl (+) 0 layerSizes
     layerCfgs    = wrap <$> layerOffsets
     compSize     = sum layerSizes
     compInfo     = ComponentInfo compSize
-                <$> pure (fromList $ zip layerReps layerCfgs)
-                <*> prepareLayerInitializer layerInfos
-                <*> MemPool.new def (MemPool.ItemSize compSize)
-{-# INLINE computeComponentInfo #-}
+               <$> pure (fromList $ zip layerReps layerCfgs)
+               <*> prepareStaticLayerInitializer  layerInfos
+               <*> prepareDynamicLayerInitializer layerInfos
+               <*> MemPool.new def (MemPool.ItemSize compSize)
 
-prepareLayerInitializer :: MonadIO m => [Registry.LayerInfo] -> m SomePtr
-prepareLayerInitializer ls = do
-    ptr <- mallocLayerInitializer ls
-    fillLayerInitializer ptr ls
+prepareStaticLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
+prepareStaticLayerInitializer ls = do
+    ptr <- mallocStaticLayerInitializer ls
+    liftIO $ fillStaticLayerInitializer ptr ls
     pure ptr
 
-mallocLayerInitializer :: MonadIO m => [Registry.LayerInfo] -> m SomePtr
-mallocLayerInitializer = \case
+mallocStaticLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
+mallocStaticLayerInitializer = \case
     [] -> pure Ptr.nullPtr
-    ls -> liftIO . Mem.mallocBytes . sum $ view Registry.byteSize <$> ls
+    ls -> liftIO . Mem.mallocBytes . sum $ view Reg.byteSize <$> ls
 
-fillLayerInitializer :: MonadIO m => SomePtr -> [Registry.LayerInfo] -> m ()
-fillLayerInitializer ptr = liftIO . \case
-    []     -> pure ()
-    (l:ls) -> Mem.copyBytes ptr (l ^. Registry.defPtr) (l ^. Registry.byteSize)
-           >> fillLayerInitializer (Ptr.plusPtr ptr (l ^. Registry.byteSize)) ls
+fillStaticLayerInitializer :: SomePtr -> [Reg.LayerInfo] -> IO ()
+fillStaticLayerInitializer = go where
+    go ptr = \case
+        []     -> pure ()
+        (l:ls) -> mapM_ (flip (Mem.copyBytes ptr) byteSize) staticInit
+               >> go ptr' ls
+            where staticInit = l ^. Reg.staticInit
+                  byteSize   = l ^. Reg.byteSize
+                  ptr'       = Ptr.plusPtr ptr byteSize
+
+-- | The function is defined in monad in order to compute the dynamic
+--   initializer during monad resolution. Otherwise, the Maybe pattern
+--   matching would be deffered to the layer initializer, which will
+--   consequently run slower.
+prepareDynamicLayerInitializer :: Monad m => [Reg.LayerInfo] -> m (SomePtr -> IO ())
+prepareDynamicLayerInitializer = go where
+    go = \case
+        []           -> pure $ const (pure ())
+        (!l : (!ls)) -> flip fuse (l ^. Reg.dynamicInit) =<< go ls where
+            byteSize = l ^. Reg.byteSize
+            fuse !g  = \case
+                Nothing -> pure $ \ptr ->          g (Ptr.plusPtr ptr byteSize)
+                Just f  -> pure $ \ptr -> f ptr >> g (Ptr.plusPtr ptr byteSize)
+            {-# INLINE fuse #-}
 
 
 
@@ -154,7 +171,7 @@ instance ( layers   ~ Pass.Vars pass comp
          , Encoder__ pass comps
          , PassDataElemEncoder  compMemPool MemPool pass
          , PassDataElemEncoder  compSize    Int     pass
-         , PassDataElemEncoder  layerInit   SomePtr pass
+         , PassDataElemEncoder  layerInit   (Pass.LayerInitializer comp) pass
          , PassDataElemsEncoder targets     Int     pass
          ) => Encoder__ pass (comp ': comps) where
     encode__ cfg = encoders where
@@ -167,9 +184,11 @@ instance ( layers   ~ Pass.Vars pass comp
         procComp i = (encoders .) <$> layerEncoder where
             encoders     = initEncoder . memEncoder . sizeEncoder
             memEncoder   = encodePassDataElem  @compMemPool $ i ^. memPool
-            initEncoder  = encodePassDataElem  @layerInit   $ i ^. layerInit
             sizeEncoder  = encodePassDataElem  @compSize    $ i ^. byteSize
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
+            initEncoder  = encodePassDataElem  @layerInit
+                         $ Pass.LayerInitializer @comp (i ^. layerStaticInit)
+                                                       (i ^. layerDynamicInit)
             layerTypes   = someTypeReps @layers
             layerOffsets = view byteOffset <<$>> layerInfos
             layerInfos   = mapLeft wrap $ catEithers

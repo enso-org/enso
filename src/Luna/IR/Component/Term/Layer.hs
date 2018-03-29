@@ -86,5 +86,7 @@ instance MonadIO m => Set m (UsersSet l) where
     toList = Set.toList . unwrap ; {-# INLINE toList #-}
 
 instance Layer.DataInitializer UsersSet where
-    initData = wrap PtrSet.new' ; {-# INLINE initData #-}
-
+    initStaticData  = Just $ coerce Ptr.nullPtr ; {-# INLINE initStaticData #-}
+    -- initDynamicData = Just $ do
+    --     print "INIT DYNAMIC!!!"
+    --     Set.new

@@ -22,6 +22,7 @@ import Luna.IR.Component.Term.Layer  (Model)
 import Luna.IR.Component.Term.Layout
 import Type.Data.Ord                 (Cmp)
 
+import qualified Data.Set.Mutable.Class as Set
 
 ----------------
 -- === IR === --
@@ -106,7 +107,7 @@ instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni 
 
 
 instance Layer.DataInitializer UniTerm where
-    initData = UniTermMissing Missing ; {-# INLINE initData #-}
+    initStaticData = Just $ UniTermMissing Missing ; {-# INLINE initStaticData #-}
 
 
 
@@ -122,6 +123,7 @@ type Creator tag m =
 uncheckedNewM :: Creator tag m
               => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
 uncheckedNewM !cons = Term.uncheckedNewM $ \self -> do
+    Layer.write @Layer.Users self =<< Set.new
     typeTerm <- top
     typeLink <- Link.new typeTerm self
     Layer.write @Layer.Type self (Layout.unsafeRelayout typeLink)
@@ -140,6 +142,7 @@ uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
 
 top :: Creator Top m => m (Term Top)
 top = Term.uncheckedNewM $ \self -> do
+    Layer.write @Layer.Users self =<< Set.new
     typeLink <- Link.new self self
     Layer.write @Layer.Type self (Layout.relayout typeLink)
     pure Top

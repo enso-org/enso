@@ -46,22 +46,36 @@ type StorableData     comp layer        = Storable1 (Data comp layer)
 
 type DefaultData comp layer = Default1 (Data comp layer)
 
-class Initializer comp layer where
-    init :: ∀ layout. Data comp layer layout
+-- class Initializer comp layer where
+--     init :: ∀ layout. Data comp layer layout
 
-instance {-# OVERLAPPABLE #-} DataInitializer (Data comp layer)
-      => Initializer comp layer where
-    init = initData ; {-# INLINE init #-}
+-- instance {-# OVERLAPPABLE #-} StaticInitializer (Data comp layer)
+--       => Initializer comp layer where
+--     init = initStatic ; {-# INLINE init #-}
 
 class DataInitializer t where
-    initData :: ∀ layout. t layout
+    initStaticData  :: ∀ layout. Maybe     (t layout)
+    initDynamicData :: ∀ layout. Maybe (IO (t layout))
+    initStaticData  = Nothing ; {-# INLINE initStaticData  #-}
+    initDynamicData = Nothing ; {-# INLINE initDynamicData #-}
+    {-# MINIMAL initStaticData | initDynamicData #-}
+
+type Initializer  comp layer = DataInitializer (Data comp layer)
+
+initStatic :: forall comp layer layout. Initializer comp layer
+           => Maybe (Data comp layer layout)
+initStatic = initStaticData @(Data comp layer) ; {-# INLINE initStatic #-}
+
+initDynamic :: forall comp layer layout. Initializer comp layer
+           => Maybe (IO (Data comp layer layout))
+initDynamic = initDynamicData @(Data comp layer) ; {-# INLINE initDynamic #-}
 
 class DataCons1 comp layer t where
     consData1 :: ∀ a. t a -> Data comp layer a
 
 
 instance DataInitializer (Component comp) where
-    initData = Component.unsafeNull ; {-# INLINE initData #-}
+    initStaticData = Just Component.unsafeNull ; {-# INLINE initStaticData #-}
 
 -- instance {-# OVERLAPPABLE #-} Layer comp layer where
 --     init = Nothing ; {-# INLINE init #-}

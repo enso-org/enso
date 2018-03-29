@@ -28,6 +28,8 @@ import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified System.Console.ANSI         as ANSI
 
+import qualified Data.PtrSet.Cpp2 as PtrSet
+
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
 import Luna.Pass         (Pass)
@@ -265,6 +267,16 @@ createIR_normal = Bench "normal" $ \i -> runPass' $ do
 -- === Running Benchmarks === --
 --------------------------------
 
+test :: Bench
+test = Bench "test" $ \i -> do
+    let go !0 = return ()
+        go !j = do
+            (s :: PtrSet.UnmanagedPtrSet ()) <- PtrSet.new
+            go $! j - 1
+    go i
+{-# NOINLINE test #-}
+
+
 invariants :: IO ()
 invariants = checkInvariants $
     [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
@@ -274,19 +286,19 @@ invariants = checkInvariants $
 benchmarks :: IO ()
 benchmarks = Criterion.defaultMain
     [ "ir"
-        [ "layer"
-            [ "rw" $ bench 7 <$>
-                [ readWrite_cptr
-                , readWrite_ptr
-                , readWrite_expTM
-                -- , readWrite_layerMock
-                , readWrite_layer
-                ]
-            ]
+        -- [ "layer"
+        --     [ "rw" $ bench 7 <$>
+        --         [ test, readWrite_cptr
+        --         , readWrite_ptr
+        --         , readWrite_expTM
+        --         -- , readWrite_layerMock
+        --         , readWrite_layer
+        --         ]
+        --     ]
 
-        , "create" $ bench 6 <$>
-            [ createIR_mallocPtr
-            , createIR_normal
+        [ "create" $ bench 6 <$>
+            --[ createIR_mallocPtr
+            [ createIR_normal
             ]
         ]
     ]

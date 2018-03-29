@@ -100,6 +100,7 @@ singleton e = do
 insert :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m ()
 insert s e = with s $ c_insert (e ^. asSomePtr) ; {-# INLINE insert #-}
 
+-- | Bulk-insert a list of elements into the set.
 insertMany :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> [a] -> m ()
 insertMany s es = mapM_ (insert s) es ; {-# INLINE insertMany #-}
 
