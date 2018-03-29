@@ -78,13 +78,11 @@ type AssertEQ key layout val = Get key layout ~ val
 ----------------------
 
 -- The only way to properly implement the relayout functionality is by using
--- incoherent instances. No other util (including closed type families) would
--- help us here.
+-- incoherent instances. No other Haskell tool (including closed type families)
+-- would help us here. Let's consider the following layouts:
 --
--- Let's consider the following layouts:
---
--- type L1 = Layout [ X := x , Y := y  ]
--- type L2 = Layout [ X := x , Y := y' ]
+--     type L1 = Layout [ X := x , Y := y  ]
+--     type L2 = Layout [ X := x , Y := y' ]
 --
 -- Such layouts could be a sub-layout of bigger layout, thus we need to be able
 -- to check if they are identical even if not all types are resolved yet.
@@ -118,14 +116,14 @@ unsafeRelayout = unsafeCoerce ; {-# INLINE unsafeRelayout #-}
 instance {-# INCOHERENT #-} Relayout a a
 
 instance Relayout__ l l' => Relayout (Layout__ l) (Layout__ l')
-type family Relayout__ (src :: Map.Raw Type Type) (tgt :: Map.Raw Type Type) :: Constraint where
+type family Relayout__ src tgt :: Constraint where
     Relayout__ '[] '[] = ()
     Relayout__ ((k := v) ': l) ((k := v') ': l')
         = (SubRelayout__ v v', Relayout__ l l')
     Relayout__ _ _ = ()
 
 class SubRelayout__ (src :: Type) (tgt :: Type)
-instance {-# OVERLAPPABLE #-} Relayout src tgt => SubRelayout__ src tgt
-instance                                          SubRelayout__ src ()
-instance {-# INCOHERENT #-}                       SubRelayout__ a   a
+instance {-# INCOHERENT   #-}                 SubRelayout__ a a
+instance {-# OVERLAPPABLE #-} Relayout a b => SubRelayout__ a b
+instance                                      SubRelayout__ a ()
 

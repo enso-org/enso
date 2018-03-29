@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Foreign.Storable1.Deriving (deriveStorable1) where
+module Foreign.Storable1.Deriving (derive) where
 
 import Prologue
 
@@ -18,12 +18,12 @@ import qualified Language.Haskell.TH as TH
 -- === Main instance code === --
 --------------------------------
 
-deriveStorable1 :: Name -> Q [TH.Dec]
-deriveStorable1 ty = do
+derive :: Name -> Q [TH.Dec]
+derive ty = do
     TypeInfo tyConName tyVars _ <- getTypeInfo ty
     let decs = concat [genSizeOf, genAlignment, genPeek, genPoke]
     case tyVars of
-        [] -> fail "[deriveStorable1] Kind of type needs to be: * -> *"
+        [] -> fail "[Storable1.derive] Kind of type needs to be: * -> *"
         _  -> pure [classInstance ''Storable1 tyConName (unsafeInit tyVars) decs]
 
 

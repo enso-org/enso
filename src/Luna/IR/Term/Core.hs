@@ -1,11 +1,14 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Core where
+module Luna.IR.Term.Core (module Luna.IR.Term.Core, module X) where
+import Luna.IR.Component.Term.Construction as X (ConsTop (Top), Top, top)
 
 import Prologue
 
 import qualified Data.Tag                            as Tag
+import qualified Foreign.Storable.Deriving           as Storable
+import qualified Foreign.Storable1.Deriving          as Storable1
 import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Term.Class        as Term
@@ -14,8 +17,6 @@ import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified OCI.IR.Layer.Internal               as Layer
 import qualified OCI.IR.Layout                       as Layout
 
-import Foreign.Storable.Deriving     (deriveStorable)
-import Foreign.Storable1.Deriving    (deriveStorable1)
 import Luna.IR.Component.Link        (type (*-*), Link)
 import Luna.IR.Component.Term.Class  (Term, TermCons, Terms)
 import Luna.IR.Component.Term.Layer  (Model)
@@ -30,25 +31,16 @@ import qualified Data.Set.Mutable.Class as Set
 
 -- === IR Atoms === ---
 
-Tag.familyInstance "TermCons" "Top"
-data ConsTop a = Top deriving (Show, Eq)
-type instance Term.TagToCons Top     = ConsTop
-type instance Term.ConsToTag ConsTop = Top
-makeLenses      ''ConsTop
-deriveStorable  ''ConsTop
-deriveStorable1 ''ConsTop
-Link.discover   ''ConsTop
-
 Tag.familyInstance "TermCons" "Var"
 newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
 type instance Term.TagToCons Var     = ConsVar
 type instance Term.ConsToTag ConsVar = Var
-makeLenses      ''ConsVar
-deriveStorable  ''ConsVar
-deriveStorable1 ''ConsVar
-Link.discover   ''ConsVar
+makeLenses       ''ConsVar
+Storable.derive  ''ConsVar
+Storable1.derive ''ConsVar
+Link.discover    ''ConsVar
 
 Tag.familyInstance "TermCons" "Acc"
 data ConsAcc a = Acc
@@ -57,10 +49,10 @@ data ConsAcc a = Acc
     } deriving (Show, Eq)
 type instance Term.TagToCons Acc     = ConsAcc
 type instance Term.ConsToTag ConsAcc = Acc
-makeLenses      ''ConsAcc
-deriveStorable  ''ConsAcc
-deriveStorable1 ''ConsAcc
-Link.discover   ''ConsAcc
+makeLenses       ''ConsAcc
+Storable.derive  ''ConsAcc
+Storable1.derive ''ConsAcc
+Link.discover    ''ConsAcc
 
 Tag.familyInstance "TermCons" "Unify"
 data ConsUnify a = Unify
@@ -69,19 +61,19 @@ data ConsUnify a = Unify
     } deriving (Show, Eq)
 type instance Term.TagToCons Unify     = ConsUnify
 type instance Term.ConsToTag ConsUnify = Unify
-makeLenses      ''ConsUnify
-deriveStorable  ''ConsUnify
-deriveStorable1 ''ConsUnify
-Link.discover   ''ConsUnify
+makeLenses       ''ConsUnify
+Storable.derive  ''ConsUnify
+Storable1.derive ''ConsUnify
+Link.discover    ''ConsUnify
 
 Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
 type instance Term.TagToCons Missing     = ConsMissing
 type instance Term.ConsToTag ConsMissing = Missing
-makeLenses      ''ConsMissing
-deriveStorable  ''ConsMissing
-deriveStorable1 ''ConsMissing
-Link.discover   ''ConsMissing
+makeLenses       ''ConsMissing
+Storable.derive  ''ConsMissing
+Storable1.derive ''ConsMissing
+Link.discover    ''ConsMissing
 
 data UniTerm a
     = UniTermTop     !(ConsTop     a)
@@ -90,10 +82,10 @@ data UniTerm a
     | UniTermUnify   !(ConsUnify   a)
     | UniTermMissing !(ConsMissing a)
     deriving (Show, Eq)
-makeLenses      ''UniTerm
-deriveStorable  ''UniTerm
-deriveStorable1 ''UniTerm
-Link.discover   ''UniTerm
+makeLenses       ''UniTerm
+Storable.derive  ''UniTerm
+Storable1.derive ''UniTerm
+Link.discover    ''UniTerm
 
 type instance Term.Uni = UniTerm
 
@@ -114,17 +106,17 @@ instance Layer.DataInitializer UniTerm where
 -- === Constructor helpers === --
 
 type Creator tag m =
-    ( Term.Creator tag m
-    , Term.Creator Top m
+    ( Term.UntypedCreator tag m
+    , Term.UntypedCreator Top m
     , Link.Creator m
     , Layer.Writer Terms Layer.Type m
     )
 
 uncheckedNewM :: Creator tag m
               => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
-uncheckedNewM !cons = Term.uncheckedNewM $ \self -> do
+uncheckedNewM !cons = Term.uncheckedUntypedNewM $ \self -> do
     typeTerm <- top
-    typeLink <- Link.new2 typeTerm self
+    typeLink <- Link.new typeTerm self
     Layer.write @Layer.Type self (Layout.unsafeRelayout typeLink)
     cons self
 {-# INLINE uncheckedNewM #-}
@@ -138,13 +130,6 @@ uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
 
 
 -- === Smart constructors === --
-
-top :: Creator Top m => m (Term Top)
-top = Term.uncheckedNewM $ \self -> do
-    typeLink <- Link.new self self
-    Layer.write @Layer.Type self (Layout.relayout typeLink)
-    pure Top
-{-# INLINE top #-}
 
 var :: Creator Var m => Int -> m (Term Var)
 var = uncheckedNew . Var ; {-# INLINE var #-}

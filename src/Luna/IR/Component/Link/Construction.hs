@@ -38,18 +38,3 @@ new src tgt = do
     Layer.write @Target link tgt
     pure link
 {-# INLINE new #-}
-
-
-new2 :: Creator m => Term src -> Term tgt -> m (Link (src *-* tgt))
-new2 src tgt = do
-    putStrLn "\ncreating the LINK!"
-    link    <- Component.new
-    print ("src", src)
-    print ("tgt", tgt)
-    print ("link", link)
-    userMap <- Layer.read @Users src
-    Set.insert userMap (Layout.unsafeRelayout link) -- FIXME: can we do safe here?
-    Layer.write @Source link src
-    Layer.write @Target link tgt
-    pure link
-{-# INLINE new2 #-}

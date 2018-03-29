@@ -11,6 +11,7 @@ import qualified Foreign.Ptr                  as Ptr
 import qualified Foreign.Storable             as Storable
 import qualified Foreign.Storable.Utils       as Storable
 import qualified Foreign.Storable1            as Storable1
+import qualified Foreign.Storable1.Deriving   as Storable1
 import qualified Luna.IR.Component.Term.Class as Term
 import qualified Luna.IR.Term.Format          as Format
 import qualified OCI.IR.Component             as Component
@@ -20,9 +21,7 @@ import qualified OCI.IR.Layout                as Layout
 import Data.PtrSet.Cpp2             (IsPtr, UnmanagedPtrSet)
 import Data.Set.Mutable.Class       (Set)
 import Foreign.Storable             (Storable)
-import Foreign.Storable.Deriving    (deriveStorable)
 import Foreign.Storable1            (Storable1)
-import Foreign.Storable1.Deriving   (deriveStorable1)
 import Luna.IR.Component.Link.Class (type (*-*), Link)
 import Luna.IR.Component.Term.Class (Term, Terms)
 
@@ -64,8 +63,8 @@ data Users
 type    UsersSetData layout = UnmanagedPtrSet (Link layout)
 newtype UsersSet     layout = UsersSet (UsersSetData layout)
     deriving (Show, Storable)
-makeLenses      ''UsersSet
-deriveStorable1 ''UsersSet
+makeLenses       ''UsersSet
+Storable1.derive ''UsersSet
 
 -- FIXME: change () to Top ?
 type instance Layer.Data   Terms Users = UsersSet

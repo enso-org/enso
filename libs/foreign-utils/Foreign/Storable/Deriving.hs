@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Foreign.Storable.Deriving (deriveStorable) where
+module Foreign.Storable.Deriving (derive) where
 
 import Prologue
 
@@ -25,14 +25,14 @@ concretizeType = \case
     ConT n   -> ConT n
     VarT _   -> ConT ''Int
     AppT l r -> AppT (concretizeType l) (concretizeType r)
-    _        -> error "***error*** deriveStorable: only reasonably complex types supported"
+    _        -> error "***error*** Storable.derive: only reasonably complex types supported"
 
 -- | Instantiate all the free type variables to Int for a consturctor
 extractConcreteTypes :: TH.Con -> [TH.Type]
 extractConcreteTypes = \case
     NormalC n bts -> (concretizeType . view _2) <$> bts
     RecC    n bts -> (concretizeType . view _3) <$> bts
-    _ -> error "***error*** deriveStorable: type not yet supported"
+    _ -> error "***error*** Storable.derive: type not yet supported"
 
 
 
@@ -85,8 +85,8 @@ wildCardClause expr = clause [WildP] expr mempty
 -- | Generate the `Storable` instance for a type.
 --   The constraint is that all of the fields of
 --   the type's constructor must be Ints.
-deriveStorable :: Name -> Q [TH.Dec]
-deriveStorable ty = do
+derive :: Name -> Q [TH.Dec]
+derive ty = do
     TypeInfo tyConName tyVars cs <- getTypeInfo ty
     decs <- sequence [pure $ genSizeOf cs, pure genAlignment, genPeek cs, genPoke cs]
     let inst = classInstance ''Storable tyConName tyVars decs
