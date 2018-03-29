@@ -147,16 +147,32 @@ stdlibPath = do
                 <> " environment variable"
     return stdPath
 
+forceImports :: Imports -> [Maybe [CompileError]]
+forceImports imp =
+    let !functions = Map.map (view Function.documentedItem)
+                   $ view importedFunctions imp
+        !methods   = map (view Function.documentedItem)
+                   $ concatMap (Map.elems . view Class.methods)
+                   $ Map.elems
+                   $ Map.map (view Function.documentedItem)
+                   $ view importedClasses imp
+    in flip map (Map.elems functions ++ methods) $ \case
+        Left errors -> Just errors
+        Right     _ -> Nothing
+
 forceCompilation :: Project.CompiledModules -> IO ()
 forceCompilation (Project.CompiledModules m p) = do
-    let forceImports imp = do
-            let functions = Map.map (view Function.documentedItem) $ view importedFunctions imp
-                methods   = map (view Function.documentedItem) $ concatMap (Map.elems . view Class.methods) $ Map.elems $ Map.map (view Function.documentedItem) $ view importedClasses imp
-            forM_ (Map.elems functions ++ methods) $ \case
-                Left errors -> print errors
-                Right     _ -> return ()
-    forceImports p
-    forM_ (Map.elems m) forceImports
+    let !errors = P.concat $ map forceImports (p : Map.elems m)
+    case catMaybes errors of
+        []  -> return ()
+        err -> throwM $ CompilationError $ P.concat err
+
+data CompilationError = CompilationError [CompileError]
+    deriving Show
+
+instance Exception CompilationError where
+    displayException (CompilationError errors) =
+        convert $ Layout.concatLineBlock $ Layout.render $ formatErrors errors
 
 data Options = Options { _projectDirectory      :: Maybe FilePath
                        , _exhaustiveCompilation :: Bool
@@ -167,10 +183,13 @@ makeLenses ''Options
 
 options :: OptParse.Parser Options
 options = Options
-      <$> OptParse.optional (OptParse.argument OptParse.str (OptParse.metavar "PROJECT_DIR"))
+      <$> OptParse.optional (OptParse.argument OptParse.str (
+              OptParse.metavar "PROJECT_DIR"
+           <> OptParse.help "Path to a project"))
       <*> OptParse.switch (
               OptParse.long "exhaustive"
-           <> OptParse.help "Enables exhaustive compilation of all sources and functions")
+           <> OptParse.help ("Enables exhaustive compilation "
+                          <> "of all sources and functions"))
       <*> OptParse.switch (
               OptParse.long "file-watch"
            <> OptParse.help "Enables recompilation on a file change")
@@ -253,4 +272,4 @@ shell opts = do
 
                 putStrLn "Build finished. Press Enter to force a rebuild"
     else
-        loop
+        loop `Exc.catchAny` (die . displayException)
