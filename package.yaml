@@ -121,6 +121,7 @@ tests:
       - -with-rtsopts=-T
     dependencies:
       - base
+      - container
       - hspec
       - hspec-expectations-lifted
       - luna-core

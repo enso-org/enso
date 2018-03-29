@@ -20,3 +20,4 @@ type instance Layout.ToLayout (Term.TermCons a) = Layout '[Model := (Term.TermCo
 
 type layout -* term = Layout.Set Terms term (Layout.ToLayout layout)
 type layout -# name = Layout.Set Names name (Layout.ToLayout layout)
+

@@ -103,10 +103,16 @@ prepareDynamicLayerInitializer = go where
     go = \case
         []           -> pure $ const (pure ())
         (!l : (!ls)) -> flip fuse (l ^. Reg.dynamicInit) =<< go ls where
-            byteSize = l ^. Reg.byteSize
-            fuse !g  = \case
-                Nothing -> pure $ \ptr ->          g (Ptr.plusPtr ptr byteSize)
-                Just f  -> pure $ \ptr -> f ptr >> g (Ptr.plusPtr ptr byteSize)
+            !byteSize = l ^. Reg.byteSize
+            fuse !g   = \case
+                Nothing -> pure $ \(!ptr) ->
+                    let !out = g $! Ptr.plusPtr ptr byteSize
+                    in  out
+                Just f  -> pure $ \(!ptr) ->
+                    let !proc1 = f ptr
+                        !proc2 = g $! Ptr.plusPtr ptr byteSize
+                        !out   = proc1 >> proc2
+                    in  out
             {-# INLINE fuse #-}
 
 

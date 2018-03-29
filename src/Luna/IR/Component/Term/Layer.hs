@@ -87,6 +87,4 @@ instance MonadIO m => Set m (UsersSet l) where
 
 instance Layer.DataInitializer UsersSet where
     initStaticData  = Just $ coerce Ptr.nullPtr ; {-# INLINE initStaticData #-}
-    -- initDynamicData = Just $ do
-    --     print "INIT DYNAMIC!!!"
-    --     Set.new
+    initDynamicData = Just Set.new ; {-# INLINE initDynamicData #-}

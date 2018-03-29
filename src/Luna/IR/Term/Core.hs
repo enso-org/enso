@@ -123,9 +123,8 @@ type Creator tag m =
 uncheckedNewM :: Creator tag m
               => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
 uncheckedNewM !cons = Term.uncheckedNewM $ \self -> do
-    Layer.write @Layer.Users self =<< Set.new
     typeTerm <- top
-    typeLink <- Link.new typeTerm self
+    typeLink <- Link.new2 typeTerm self
     Layer.write @Layer.Type self (Layout.unsafeRelayout typeLink)
     cons self
 {-# INLINE uncheckedNewM #-}
@@ -142,7 +141,6 @@ uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
 
 top :: Creator Top m => m (Term Top)
 top = Term.uncheckedNewM $ \self -> do
-    Layer.write @Layer.Users self =<< Set.new
     typeLink <- Link.new self self
     Layer.write @Layer.Type self (Layout.relayout typeLink)
     pure Top

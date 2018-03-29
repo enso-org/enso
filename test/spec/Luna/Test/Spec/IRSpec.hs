@@ -5,6 +5,7 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
+import qualified Data.Set.Mutable.Class              as Set
 import qualified Foreign.Marshal.Alloc               as Mem
 import qualified Foreign.Storable                    as Storable
 import qualified Luna.IR                             as IR
@@ -18,9 +19,9 @@ import qualified Luna.Runner                         as Runner
 import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
 
-
-import Luna.Pass  (Pass)
-import Test.Hspec (Expectation, Spec, describe, it)
+import Luna.IR.Component.Link (type (*-*), Link)
+import Luna.Pass              (Pass)
+import Test.Hspec             (Expectation, Spec, describe, it)
 
 
 -----------------------
@@ -102,11 +103,14 @@ spec = do
             v1 <- IR.var 7
             v2 <- IR.var 9
             u1 <- IR.unify v1 v2
-            v1_users <- Layer.read @IR.Users v1
-            v2_users <- Layer.read @IR.Users v2
-            print v1_users
-            print v2_users
-            True `shouldBe` False
+            Layer.read @IR.Model u1 >>= \case
+                IR.UniTermUnify (IR.Unify l r) -> do
+                    v1_users <- Set.toList =<< Layer.read @IR.Users v1
+                    v2_users <- Set.toList =<< Layer.read @IR.Users v2
+                    pure ()
+                    v1_users `shouldBe` [Layout.relayout l]
+                    v2_users `shouldBe` [Layout.relayout r]
+                _ -> fail "Wrong encoding"
 
     describe "Attributes" $ do
         it "Passing between passes" $ run2Passes'

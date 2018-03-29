@@ -16,6 +16,22 @@ import Type.Data.Ord
 import Type.Data.Property hiding (Set)
 
 
+
+--------------------
+-- === Layout === --
+--------------------
+
+-- Each IR component is part of a graph. In particular, these components
+-- indicate the graph's nodes. Nodes have inputs and outputs and could have
+-- one of many forms (can be defined with one of many constructors or even
+-- one of many separate datatypes). A layout describes how the inputs and
+-- outputs look like. No matter what the internal encoding is, what layers
+-- a particular node uses, layout described what the connections are heading
+-- to. A layout is just a type-level map of values. The keys are either
+-- connection types (like 'Name' below is connection to node's name) or define
+-- the internal node structure (like 'Model' below, denotes what data types
+-- should we use to encode / decode the structure).
+
 -- TermLayout_1 =
 --      [ Model := ...
 --      , Type  := ...
@@ -29,10 +45,6 @@ import Type.Data.Property hiding (Set)
 --      ]
 
 
---------------------
--- === Layout === --
---------------------
-
 -- === Definition === --
 
 type Layout lst = Layout__ (Map.FromAssocListRaw lst)
@@ -45,10 +57,11 @@ type family Default key
 
 type family Get (key :: Type) (layout :: Type) :: Type where
     Get key (Layout__ map) = FromMaybe (Default key) (Map.LookupRaw key map)
-    Get key _              = Default key
+    Get key a              = Get key (ToLayout a)
 
 type family Set key val layout where
     Set key val (Layout__ map) = Layout__ (Map.InsertRaw key val map)
+    Set key val a              = Set key val (ToLayout a)
 
 type family ToLayout a
 type instance ToLayout (Layout__ m) = Layout__ m
