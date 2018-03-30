@@ -39,7 +39,6 @@ type        Data   comp layer layout
           = Cons   comp layer (Layout comp layer layout)
 
 type StorableCons comp layer = Storable1       (Cons comp layer)
-type DefaultData  comp layer = Default1        (Cons comp layer)
 type Initializer  comp layer = DataInitializer (Cons comp layer)
 
 
