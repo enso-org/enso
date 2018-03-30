@@ -106,9 +106,3 @@ newM = uncheckedNewM ; {-# INLINE newM #-}
 
 uncheckedNew :: Creator tag m => TagToCons tag layout -> m (Term any)
 uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
-
-
--- === Deconstruction === --
-
--- match :: Term layout -> TagToCons (Layout.Get Model layout) layout
--- match =

@@ -87,7 +87,7 @@ spec = do
             v1           <- IR.var 7
             v2           <- IR.var 9
             u1           <- IR.unify v1 v2
-            IR.Unify l r <- Layer.readView @IR.Model u1
+            IR.Unify l r <- IR.match u1
             lsrc         <- Layer.read @IR.Source l
             rsrc         <- Layer.read @IR.Source r
             ltgt         <- Layer.read @IR.Target l
@@ -101,7 +101,7 @@ spec = do
             v1           <- IR.var 7
             v2           <- IR.var 9
             u1           <- IR.unify v1 v2
-            IR.Unify l r <- Layer.readView @IR.Model u1
+            IR.Unify l r <- IR.match u1
             v1_users     <- Set.toList =<< Layer.read @IR.Users v1
             v2_users     <- Set.toList =<< Layer.read @IR.Users v2
             v1_users `shouldBe` [Layout.relayout l]
