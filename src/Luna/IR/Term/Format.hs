@@ -7,9 +7,7 @@ import qualified Data.Tag      as Tag
 import qualified OCI.IR.Layout as Layout
 
 
-Tag.family "Format" ["Literal", "Value", "Thunk", "Phrase", "Draft"]
+Tag.family "Format" ["Literal", "Value", "Thunk", "Phrase", "Draft", "Ast"]
 
--- type instance Layout.Rebase a (Format _) = a
--- type instance Layout.GetSublayout t (Format _) = Draft
-
--- type instance Layout.GetBase (Format a) = Format a
+type family Of    elem   ::  Type
+type family Elems format :: [Type]

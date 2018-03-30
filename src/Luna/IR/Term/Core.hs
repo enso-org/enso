@@ -14,6 +14,7 @@ import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Layer        as Layer
+import qualified Luna.IR.Term.Format                 as Format
 import qualified OCI.IR.Layer.Internal               as Layer
 import qualified OCI.IR.Layout                       as Layout
 
@@ -36,6 +37,7 @@ Tag.familyInstance "TermCons" "Var"
 newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
+type instance Format.Of      Var     = Format.Phrase
 type instance Term.TagToCons Var     = ConsVar
 type instance Term.ConsToTag ConsVar = Var
 makeLenses       ''ConsVar
@@ -48,6 +50,7 @@ data ConsAcc a = Acc
     { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a))
     , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a))
     } deriving (Show, Eq)
+type instance Format.Of      Acc     = Format.Thunk
 type instance Term.TagToCons Acc     = ConsAcc
 type instance Term.ConsToTag ConsAcc = Acc
 makeLenses       ''ConsAcc
@@ -60,6 +63,7 @@ data ConsUnify a = Unify
     { __left  :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
     , __right :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
     } deriving (Show, Eq)
+type instance Format.Of      Unify     = Format.Thunk
 type instance Term.TagToCons Unify     = ConsUnify
 type instance Term.ConsToTag ConsUnify = Unify
 makeLenses       ''ConsUnify
@@ -69,6 +73,7 @@ Link.discover    ''ConsUnify
 
 Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
+type instance Format.Of      Missing     = Format.Draft
 type instance Term.TagToCons Missing     = ConsMissing
 type instance Term.ConsToTag ConsMissing = Missing
 makeLenses       ''ConsMissing
@@ -118,9 +123,15 @@ acc base name = Term.newM $ \self -> Acc <$> Link.new base self
 {-# INLINE acc #-}
 
 -- FIXME: double left vvv
-unify :: Creator Unify m => Term left -> Term left -> m (Term (Unify -* left))
-unify left right = Term.newM $ \self -> Unify <$> Link.new left  self
-                                              <*> Link.new right self
+unify :: (Creator Unify m
+  , Layout.SubRelayout__ left (Layout.Merge left right)
+  , Layout.SubRelayout__ right (Layout.Merge left right)
+
+  )=> Term left -> Term right
+                         -> m (Term (Unify -* (Layout.Merge left right)))
+unify left right = Term.newM
+                 $ \self -> Unify <$> fmap Layout.relayout (Link.new left  self)
+                                  <*> fmap Layout.relayout (Link.new right self)
 {-# INLINE unify #-}
 
 

@@ -66,6 +66,8 @@ type family Set key val layout where
 type family ToLayout a
 type instance ToLayout (Layout__ m) = Layout__ m
 
+type family Merge a b
+
 
 -- === Validation === --
 

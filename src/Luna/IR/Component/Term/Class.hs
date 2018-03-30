@@ -42,3 +42,10 @@ type TagConsInvariant tag cons =
     , tag  ~ ConsToTag cons
     )
 
+
+-- === Instances === --
+
+type instance Layout.Merge (TermCons a) (TermCons b) = Merge__ a b
+type family Merge__ a b where
+    Merge__ a a = TermCons a
+    -- Merge__ a b =
