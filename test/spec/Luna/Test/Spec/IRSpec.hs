@@ -84,37 +84,28 @@ spec = do
             m `shouldBe` (IR.UniTermVar $ IR.Var 7)
 
         it "complex term" $ runPass' $ do
-            v1 <- IR.var 7
-            v2 <- IR.var 9
-            u1 <- IR.unify v1 v2
-            -- IR.Unify l r <- IR.match u1
-            -- IR.case u1 of
-            --     IR.Unify l r ->
-
-            Layer.read @IR.Model u1 >>= \case
-                IR.UniTermUnify (IR.Unify l r) -> do
-                    lsrc <- Layer.read @IR.Source l
-                    rsrc <- Layer.read @IR.Source r
-                    ltgt <- Layer.read @IR.Target l
-                    rtgt <- Layer.read @IR.Target r
-                    lsrc `shouldSatisfy` (== v1)
-                    ltgt `shouldSatisfy` (== u1)
-                    rsrc `shouldSatisfy` (== v2)
-                    rtgt `shouldSatisfy` (== u1)
-                _ -> fail "Wrong encoding"
+            v1           <- IR.var 7
+            v2           <- IR.var 9
+            u1           <- IR.unify v1 v2
+            IR.Unify l r <- Layer.readView @IR.Model u1
+            lsrc         <- Layer.read @IR.Source l
+            rsrc         <- Layer.read @IR.Source r
+            ltgt         <- Layer.read @IR.Target l
+            rtgt         <- Layer.read @IR.Target r
+            lsrc `shouldSatisfy` (== v1)
+            ltgt `shouldSatisfy` (== u1)
+            rsrc `shouldSatisfy` (== v2)
+            rtgt `shouldSatisfy` (== u1)
 
         it "Users layer" $ runPass' $ do
-            v1 <- IR.var 7
-            v2 <- IR.var 9
-            u1 <- IR.unify v1 v2
-            Layer.read @IR.Model u1 >>= \case
-                IR.UniTermUnify (IR.Unify l r) -> do
-                    v1_users <- Set.toList =<< Layer.read @IR.Users v1
-                    v2_users <- Set.toList =<< Layer.read @IR.Users v2
-                    pure ()
-                    v1_users `shouldBe` [Layout.relayout l]
-                    v2_users `shouldBe` [Layout.relayout r]
-                _ -> fail "Wrong encoding"
+            v1           <- IR.var 7
+            v2           <- IR.var 9
+            u1           <- IR.unify v1 v2
+            IR.Unify l r <- Layer.readView @IR.Model u1
+            v1_users     <- Set.toList =<< Layer.read @IR.Users v1
+            v2_users     <- Set.toList =<< Layer.read @IR.Users v2
+            v1_users `shouldBe` [Layout.relayout l]
+            v2_users `shouldBe` [Layout.relayout r]
 
     describe "Attributes" $ do
         it "Passing between passes" $ run2Passes'
