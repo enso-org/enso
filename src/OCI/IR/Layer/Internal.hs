@@ -33,25 +33,23 @@ constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
 
 -- === Definition === --
 
-type Cons = Type -> Type
+type family Cons   comp layer        :: Type -> Type
+type family Layout comp layer layout :: Type
+type        Data   comp layer layout
+          = Cons   comp layer (Layout comp layer layout)
 
-type family Data       comp layer        :: Cons
-type family Layout     comp layer layout :: Type
-type family ConsData   comp layer layout :: Cons
--- type family ConsLayout (cons :: Cons)    :: Type
+type StorableData comp layer = Storable1       (Cons comp layer)
+type DefaultData  comp layer = Default1        (Cons comp layer)
+type Initializer  comp layer = DataInitializer (Cons comp layer)
 
-type StorableData     comp layer        = Storable1 (Data comp layer)
--- type StorableConsData comp layer layout = Storable1 (ConsData comp layer
---                                                         (Layout.GetBase layout))
 
-type DefaultData comp layer = Default1 (Data comp layer)
+-- === Construction === --
 
--- class Initializer comp layer where
---     init :: ∀ layout. Data comp layer layout
+class IsCons1 comp layer t where
+    cons1 :: ∀ a. t a -> Cons comp layer a
 
--- instance {-# OVERLAPPABLE #-} StaticInitializer (Data comp layer)
---       => Initializer comp layer where
---     init = initStatic ; {-# INLINE init #-}
+
+-- === Initialization === --
 
 class DataInitializer t where
     initStaticData  :: ∀ layout. Maybe     (t layout)
@@ -60,41 +58,22 @@ class DataInitializer t where
     initDynamicData = Nothing ; {-# INLINE initDynamicData #-}
     {-# MINIMAL initStaticData | initDynamicData #-}
 
-type Initializer  comp layer = DataInitializer (Data comp layer)
-
-initStatic :: forall comp layer layout. Initializer comp layer
-           => Maybe (Data comp layer layout)
-initStatic = initStaticData @(Data comp layer) ; {-# INLINE initStatic #-}
-
-initDynamic :: forall comp layer layout. Initializer comp layer
-           => Maybe (IO (Data comp layer layout))
-initDynamic = initDynamicData @(Data comp layer) ; {-# INLINE initDynamic #-}
-
-class DataCons1 comp layer t where
-    consData1 :: ∀ a. t a -> Data comp layer a
-
-
 instance DataInitializer (Component comp) where
     initStaticData = Just Component.unsafeNull ; {-# INLINE initStaticData #-}
 
--- instance {-# OVERLAPPABLE #-} Layer comp layer where
---     init = Nothing ; {-# INLINE init #-}
+initStatic :: forall comp layer layout. Initializer comp layer
+           => Maybe (Cons comp layer layout)
+initStatic = initStaticData @(Cons comp layer) ; {-# INLINE initStatic #-}
 
--- class Layer comp layer where
---     init :: ∀ layout. Ptr (Data comp layer layout) -> IO ()
---
--- instance {-# OVERLAPPABLE #-}
---     (StorableData comp layer, Default1 (Data comp layer))
---     => Layer comp layer where
---     init !ptr = Storable1.poke ptr def1 ; {-# INLINE init #-}
+initDynamic :: forall comp layer layout. Initializer comp layer
+           => Maybe (IO (Cons comp layer layout))
+initDynamic = initDynamicData @(Cons comp layer) ; {-# INLINE initDynamic #-}
 
-
-type Data' comp layer layout = Data comp layer (Layout comp layer layout)
 
 -- === General Information === --
 
 byteSize :: ∀ comp layer. StorableData comp layer => Int
-byteSize = Storable1.sizeOf' @(Data comp layer) ; {-# INLINE byteSize #-}
+byteSize = Storable1.sizeOf' @(Cons comp layer) ; {-# INLINE byteSize #-}
 
 
 
@@ -110,40 +89,40 @@ type Editor comp layer m =
    )
 
 class Reader comp layer m where
-    read__  :: ∀ layout. Component comp layout -> m (Data' comp layer layout)
+    read__  :: ∀ layout. Component comp layout -> m (Data comp layer layout)
 
 class Writer comp layer m where
-    write__ :: ∀ layout. Component comp layout -> Data' comp layer layout -> m ()
+    write__ :: ∀ layout. Component comp layout -> Data comp layer layout -> m ()
 
 
 -- === API === --
 
 #define CTX ∀ layer comp layout m. (StorableData comp layer, MonadIO m)
 
-unsafePeek :: CTX => SomePtr -> m (Data' comp layer layout)
-unsafePoke :: CTX => SomePtr ->   (Data' comp layer layout) -> m ()
+unsafePeek :: CTX => SomePtr -> m (Data comp layer layout)
+unsafePoke :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
 unsafePeek !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
 unsafePoke !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
 
-unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data' comp layer layout)
-unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data' comp layer layout) -> m ()
+unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data comp layer layout)
+unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data comp layer layout) -> m ()
 unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
 unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
 unsafeReadByteOff ::
-    CTX => Int -> Component comp layout -> m (Data' comp layer layout)
+    CTX => Int -> Component comp layout -> m (Data comp layer layout)
 unsafeReadByteOff  !d = unsafePeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
 
 unsafeWriteByteOff ::
-    CTX => Int -> Component comp layout -> (Data' comp layer layout) -> m ()
+    CTX => Int -> Component comp layout -> (Data comp layer layout) -> m ()
 unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
 read :: ∀ layer comp layout m. Reader comp layer m
-     => Component comp layout -> m (Data' comp layer layout)
+     => Component comp layout -> m (Data comp layer layout)
 read = read__ @comp @layer @m ; {-# INLINE read #-}
 
 write :: ∀ layer comp layout m. Writer comp layer m
-      => Component comp layout -> Data' comp layer layout -> m ()
+      => Component comp layout -> Data comp layer layout -> m ()
 write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 #undef CTX
@@ -183,10 +162,10 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 
 
 
--- ----------------------------------------
--- -- === Layer Cons Reader / Writer === --
--- ----------------------------------------
---
+------------------------
+-- === Layer View === --
+------------------------
+
 -- -- === Ctx === --
 --
 -- #define CTXHeader ∀ layer comp layout out cons baseLayout m.

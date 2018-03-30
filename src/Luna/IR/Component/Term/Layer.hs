@@ -35,10 +35,10 @@ instance IsPtr (Link l)
 -------------------
 
 data Model
+type instance Layer.Cons   Terms Model = Term.Uni
 type instance Layer.Layout Terms Model layout = layout
-type instance Layer.Data   Terms Model = Term.Uni
-instance Term.IsUni t => Layer.DataCons1 Terms Model t where
-    consData1 = Term.toUni ; {-# INLINE consData1 #-}
+instance Term.IsUni t => Layer.IsCons1 Terms Model t where
+    cons1 = Term.toUni ; {-# INLINE cons1 #-}
 
 
 
@@ -47,8 +47,8 @@ instance Term.IsUni t => Layer.DataCons1 Terms Model t where
 ------------------
 
 data Type
+type instance Layer.Cons   Terms Type        = Link
 type instance Layer.Layout Terms Type layout = Layout.Get Type layout *-* layout
-type instance Layer.Data   Terms Type        = Link
 type instance Layout.Default Type = ()
 
 
@@ -67,7 +67,7 @@ makeLenses       ''UsersSet
 Storable1.derive ''UsersSet
 
 -- FIXME: change () to Top ?
-type instance Layer.Data   Terms Users = UsersSet
+type instance Layer.Cons   Terms Users = UsersSet
 type instance Layer.Layout Terms Users layout
    = layout *-* Layout.Set Model () layout
 

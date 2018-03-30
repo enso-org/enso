@@ -17,13 +17,14 @@ import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified OCI.IR.Layer.Internal               as Layer
 import qualified OCI.IR.Layout                       as Layout
 
-import Luna.IR.Component.Link        (type (*-*), Link)
-import Luna.IR.Component.Term.Class  (Term, TermCons, Terms)
-import Luna.IR.Component.Term.Layer  (Model)
+import Luna.IR.Component.Link              (type (*-*), Link)
+import Luna.IR.Component.Term.Class        (Term, TermCons, Terms)
+import Luna.IR.Component.Term.Construction (Creator)
+import Luna.IR.Component.Term.Layer        (Model)
 import Luna.IR.Component.Term.Layout
-import Type.Data.Ord                 (Cmp)
+import Type.Data.Ord                       (Cmp)
 
-import qualified Data.Set.Mutable.Class as Set
+
 
 ----------------
 -- === IR === --
@@ -103,49 +104,23 @@ instance Layer.DataInitializer UniTerm where
 
 
 
--- === Constructor helpers === --
-
-type Creator tag m =
-    ( Term.UntypedCreator tag m
-    , Term.UntypedCreator Top m
-    , Link.Creator m
-    , Layer.Writer Terms Layer.Type m
-    )
-
-uncheckedNewM :: Creator tag m
-              => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
-uncheckedNewM !cons = Term.uncheckedUntypedNewM $ \self -> do
-    typeTerm <- top
-    typeLink <- Link.new typeTerm self
-    Layer.write @Layer.Type self (Layout.unsafeRelayout typeLink)
-    cons self
-{-# INLINE uncheckedNewM #-}
-
-newM :: (Creator tag m, Term.LayoutInference tag layout)
-     => (Term layout -> m (Term.TagToCons tag layout)) -> m (Term layout)
-newM = uncheckedNewM ; {-# INLINE newM #-}
-
-uncheckedNew :: Creator tag m => Term.TagToCons tag layout -> m (Term any)
-uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
-
-
 -- === Smart constructors === --
 
 var :: Creator Var m => Int -> m (Term Var)
-var = uncheckedNew . Var ; {-# INLINE var #-}
+var = Term.uncheckedNew . Var ; {-# INLINE var #-}
 
 missing :: Creator Missing m => m (Term Missing)
-missing = uncheckedNew Missing ; {-# INLINE missing #-}
+missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
 
 acc :: Creator Acc m => Term base -> Term name -> m (Term (Acc -* base -# name))
-acc base name = newM $ \self -> Acc <$> Link.new base self
-                                    <*> Link.new name self
+acc base name = Term.newM $ \self -> Acc <$> Link.new base self
+                                         <*> Link.new name self
 {-# INLINE acc #-}
 
 -- FIXME: double left vvv
 unify :: Creator Unify m => Term left -> Term left -> m (Term (Unify -* left))
-unify left right = newM $ \self -> Unify <$> Link.new left  self
-                                         <*> Link.new right self
+unify left right = Term.newM $ \self -> Unify <$> Link.new left  self
+                                              <*> Link.new right self
 {-# INLINE unify #-}
 
 

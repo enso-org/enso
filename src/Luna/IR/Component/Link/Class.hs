@@ -33,8 +33,8 @@ data Target
 
 type instance Layer.Layout Links Source layout = Layout.Get Source layout
 type instance Layer.Layout Links Target layout = Layout.Get Target layout
-type instance Layer.Data   Links Source        = Term
-type instance Layer.Data   Links Target        = Term
+type instance Layer.Cons   Links Source        = Term
+type instance Layer.Cons   Links Target        = Term
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT

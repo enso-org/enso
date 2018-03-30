@@ -38,9 +38,9 @@ Storable1.derive ''ConsTop
 Link.discover    ''ConsTop
 
 type UntypedCreator t m =
-    ( Component.Creator Terms     m
-    , Layer.Writer Terms Model    m
-    , Layer.DataCons1 Terms Model (TagToCons t)
+    ( Component.Creator Terms   m
+    , Layer.Writer  Terms Model m
+    , Layer.IsCons1 Terms Model (TagToCons t)
     )
 
 type Creator tag m =
@@ -63,9 +63,7 @@ top = uncheckedUntypedNewM $ \self -> do
 -- === Term === --
 ------------------
 
--- === Creation === --
-
-
+-- === Construction === --
 
 type LayoutInference tag layout =
     ( Layout.Get Model layout ~ tag
@@ -78,7 +76,7 @@ uncheckedUntypedNewM !cons = do
     ir <- Component.new
     let !ir' = Layout.unsafeRelayout ir
     !term <- cons ir'
-    Layer.write @Model ir $! Layer.consData1 @Terms @Model term
+    Layer.write @Model ir $! Layer.cons1 @Terms @Model term
     pure ir'
 {-# INLINE uncheckedUntypedNewM #-}
 
@@ -108,3 +106,9 @@ newM = uncheckedNewM ; {-# INLINE newM #-}
 
 uncheckedNew :: Creator tag m => TagToCons tag layout -> m (Term any)
 uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
+
+
+-- === Deconstruction === --
+
+-- match :: Term layout -> TagToCons (Layout.Get Model layout) layout
+-- match =

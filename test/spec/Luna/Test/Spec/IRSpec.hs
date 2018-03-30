@@ -87,6 +87,10 @@ spec = do
             v1 <- IR.var 7
             v2 <- IR.var 9
             u1 <- IR.unify v1 v2
+            -- IR.Unify l r <- IR.match u1
+            -- IR.case u1 of
+            --     IR.Unify l r ->
+
             Layer.read @IR.Model u1 >>= \case
                 IR.UniTermUnify (IR.Unify l r) -> do
                     lsrc <- Layer.read @IR.Source l
