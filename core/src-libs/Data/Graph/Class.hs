@@ -10,6 +10,7 @@ import           Data.TypeDesc
 -- import           Control.Monad.State       (StateT, evalStateT)
 import qualified Control.Monad.State       as OldState
 import           Control.Monad.State.Dependent
+import qualified Control.Monad.Except      as Except
 import           Control.Monad.Trans.Maybe (MaybeT)
 import qualified Data.Map                  as Map
 import           Data.Map                  (Map)
@@ -325,8 +326,9 @@ instance {-# OVERLAPPABLE #-} (MonadRefStore k m, MonadTrans t, Monad (t m), Get
 -- === RefHandler === --
 
 type family   GetRefHandler (m :: * -> *) :: * -> *
-type instance GetRefHandler (MaybeT m)   = GetRefHandler m
-type instance GetRefHandler (StateT s m) = GetRefHandler m
+type instance GetRefHandler (MaybeT m)            = GetRefHandler m
+type instance GetRefHandler (Except.ExceptT e m)  = GetRefHandler m
+type instance GetRefHandler (StateT s m)          = GetRefHandler m
 type instance GetRefHandler (OldState.StateT s m) = GetRefHandler m
 
 type Ref'     k a m = Ref     k a (GetRefHandler m)
