@@ -35,8 +35,10 @@ instance IsPtr (Link l)
 -------------------
 
 data Model
-type instance Layer.Cons   Terms Model = Term.Uni
-type instance Layer.Layout Terms Model layout = layout
+type instance Layer.Cons     Terms Model        = Term.Uni
+type instance Layer.Layout   Terms Model layout = layout
+type instance Layer.ViewCons Terms Model layout
+            = Term.TagToCons (Layout.Get Model layout)
 instance Term.IsUni t => Layer.IsCons1 Terms Model t where
     cons1 = Term.toUni ; {-# INLINE cons1 #-}
 

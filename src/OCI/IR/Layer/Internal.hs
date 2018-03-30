@@ -22,8 +22,8 @@ import OCI.Pass.Definition    (Pass)
 -- === Constants === --
 -----------------------
 
-constructorSize :: Int
-constructorSize = sizeOf' @Int ; {-# INLINE constructorSize #-}
+consByteSize :: Int
+consByteSize = sizeOf' @Int ; {-# INLINE consByteSize #-}
 
 
 
@@ -38,7 +38,7 @@ type family Layout comp layer layout :: Type
 type        Data   comp layer layout
           = Cons   comp layer (Layout comp layer layout)
 
-type StorableData comp layer = Storable1       (Cons comp layer)
+type StorableCons comp layer = Storable1       (Cons comp layer)
 type DefaultData  comp layer = Default1        (Cons comp layer)
 type Initializer  comp layer = DataInitializer (Cons comp layer)
 
@@ -72,7 +72,7 @@ initDynamic = initDynamicData @(Cons comp layer) ; {-# INLINE initDynamic #-}
 
 -- === General Information === --
 
-byteSize :: ∀ comp layer. StorableData comp layer => Int
+byteSize :: ∀ comp layer. StorableCons comp layer => Int
 byteSize = Storable1.sizeOf' @(Cons comp layer) ; {-# INLINE byteSize #-}
 
 
@@ -97,7 +97,7 @@ class Writer comp layer m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m. (StorableData comp layer, MonadIO m)
+#define CTX ∀ layer comp layout m. (StorableCons comp layer, MonadIO m)
 
 unsafePeek :: CTX => SomePtr -> m (Data comp layer layout)
 unsafePoke :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
@@ -109,12 +109,12 @@ unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data comp layer layout) -> m ()
 unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
 unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
-unsafeReadByteOff ::
-    CTX => Int -> Component comp layout -> m (Data comp layer layout)
+unsafeReadByteOff :: CTX => Int -> Component comp layout
+                         -> m (Data comp layer layout)
 unsafeReadByteOff  !d = unsafePeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
 
-unsafeWriteByteOff ::
-    CTX => Int -> Component comp layout -> (Data comp layer layout) -> m ()
+unsafeWriteByteOff :: CTX => Int -> Component comp layout
+                          -> (Data comp layer layout) -> m ()
 unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
 read :: ∀ layer comp layout m. Reader comp layer m
@@ -131,7 +131,7 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableData comp layer
+    ( StorableCons comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => Reader comp layer (Pass pass) where
     read__ !comp = do
@@ -140,7 +140,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableData comp layer
+    ( StorableCons comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => Writer comp layer (Pass pass) where
     write__ !comp !d = do
@@ -166,84 +166,105 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- === Layer View === --
 ------------------------
 
--- -- === Ctx === --
---
--- #define CTXHeader ∀ layer comp layout out cons baseLayout m.
--- #define CTXBody                                        \
---     ( out        ~ cons layout                         \
---     , cons       ~ ConsData comp layer baseLayout      \
---     , baseLayout ~ ConsLayout cons                     \
---     , baseLayout ~ Layout.GetBase layout               \
---     , StorableConsData comp layer layout               \
---     , MonadIO m                                        \
---     )
--- #define CTX CTXHeader CTXBody
---
---
--- -- === Definition === --
---
--- type ConsEditor comp layer m =
---    ( ConsGetter comp layer m
---    , ConsSetter comp layer m
---    )
---
--- class ConsGetter comp layer m where
---     getCons__ :: ∀ layout baseLayout cons out. CTXBody
---                => Component comp layout -> m out
---
--- class ConsSetter comp layer m where
---     setCons__ :: ∀ layout baseLayout cons out. CTXBody
---                 => Component comp layout -> out -> m ()
---
---
--- -- === API === --
---
--- unsafeConsPeek :: CTX => SomePtr -> m out
--- unsafeConsPoke :: CTX => SomePtr ->   out -> m ()
--- unsafeConsPeek !ptr = liftIO $ Storable1.peekByteOff ptr constructorSize ; {-# INLINE unsafeConsPeek #-}
--- unsafeConsPoke !ptr = liftIO . Storable1.pokeByteOff ptr constructorSize ; {-# INLINE unsafeConsPoke #-}
---
--- unsafeConsPeekByteOff :: CTX => Int -> SomePtr -> m out
--- unsafeConsPokeByteOff :: CTX => Int -> SomePtr ->   out -> m ()
--- unsafeConsPokeByteOff !d !ptr = unsafeConsPoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafeConsPokeByteOff #-}
--- unsafeConsPeekByteOff !d !ptr = unsafeConsPeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafeConsPeekByteOff #-}
---
--- unsafeConsReadByteOff  :: CTX => Int -> Component comp layout -> m out
--- unsafeConsWriteByteOff :: CTX => Int -> Component comp layout ->   out -> m ()
--- unsafeConsReadByteOff  !d = unsafeConsPeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeConsReadByteOff  #-}
--- unsafeConsWriteByteOff !d = unsafeConsPokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeConsWriteByteOff #-}
---
--- getCons  :: CTX => ConsGetter comp layer m => Component comp layout -> m out
--- setCons :: CTX => ConsSetter comp layer m => Component comp layout -> out -> m ()
--- getCons  = getCons__  @comp @layer ; {-# INLINE getCons  #-}
--- setCons = setCons__ @comp @layer ; {-# INLINE setCons #-}
---
--- #undef CTX
---
---
--- -- === Instances === --
---
--- instance {-# OVERLAPPABLE #-} Pass.LayerByteOffsetGetter comp layer m
---     => ConsGetter comp layer m where
---     getCons__ !comp = do
---         !off <- Pass.getLayerByteOffset @comp @layer
---         unsafeConsReadByteOff @layer off comp
---     {-# INLINE getCons__ #-}
---
--- instance {-# OVERLAPPABLE #-} Pass.LayerByteOffsetGetter comp layer m
---     => ConsSetter comp layer m where
---     setCons__ !comp !d = do
---         !off <- Pass.getLayerByteOffset @comp @layer
---         unsafeConsWriteByteOff @layer off comp d
---     {-# INLINE setCons__ #-}
---
---
--- -- === Early resolution block === --
---
--- instance ConsGetter Imp  layer m    where getCons__ _ = impossible
--- instance ConsGetter comp Imp   m    where getCons__ _ = impossible
--- instance ConsGetter comp layer ImpM where getCons__ _ = impossible
---
--- instance ConsSetter Imp  layer m    where setCons__ _ _ = impossible
--- instance ConsSetter comp Imp   m    where setCons__ _ _ = impossible
--- instance ConsSetter comp layer ImpM where setCons__ _ _ = impossible
+type family ViewCons comp layer layout :: Type -> Type
+type        View     comp layer layout
+          = ViewCons comp layer layout (Layout comp layer layout)
+
+type StorableViewCons comp layer layout = Storable1 (ViewCons comp layer layout)
+
+
+
+----------------------------------------
+-- === Layer View Reader / Writer === --
+----------------------------------------
+
+-- === Definition === --
+
+type ViewEditor comp layer layout m =
+   ( ViewReader comp layer layout m
+   , ViewWriter comp layer layout m
+   )
+
+class ViewReader comp layer layout m where
+    readView__ :: Component comp layout -> m (View comp layer layout)
+
+class ViewWriter comp layer layout m where
+    writeView__ :: Component comp layout -> View comp layer layout -> m ()
+
+
+-- === API === --
+
+#define CTX ∀ layer comp layout m.           \
+        ( StorableViewCons comp layer layout \
+        , MonadIO m                          \
+        )
+
+unsafePeekView :: CTX => SomePtr -> m (View comp layer layout)
+unsafePokeView :: CTX => SomePtr ->   (View comp layer layout) -> m ()
+unsafePeekView !ptr = liftIO $ Storable1.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
+unsafePokeView !ptr = liftIO . Storable1.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
+
+unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (View comp layer layout)
+unsafePokeViewByteOff :: CTX => Int -> SomePtr -> View comp layer layout -> m ()
+unsafePeekViewByteOff !d !ptr = unsafePeekView @layer @comp @layout
+                              $ ptr `plusPtr` d
+unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @comp @layout
+                              $ ptr `plusPtr` d
+{-# INLINE unsafePeekViewByteOff #-}
+{-# INLINE unsafePokeViewByteOff #-}
+
+unsafeReadViewByteOff :: CTX => Int -> Component comp layout
+                      -> m (View comp layer layout)
+unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @comp @layout d
+                         . coerce
+unsafeWriteViewByteOff :: CTX => Int -> Component comp layout
+                       -> (View comp layer layout) -> m ()
+unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @comp @layout d
+                          . coerce
+{-# INLINE unsafeReadViewByteOff  #-}
+{-# INLINE unsafeWriteViewByteOff #-}
+
+readView :: ∀ layer comp layout m. ViewReader comp layer layout m
+         => Component comp layout -> m (View comp layer layout)
+readView = readView__ @comp @layer @layout @m ; {-# INLINE readView #-}
+
+writeView :: ∀ layer comp layout m. ViewWriter comp layer layout m
+          => Component comp layout -> View comp layer layout -> m ()
+writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
+
+#undef CTX
+
+
+-- === Instances === --
+
+instance {-# OVERLAPPABLE #-}
+    ( StorableViewCons comp layer layout
+    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+    ) => ViewReader comp layer layout (Pass pass) where
+    readView__ !comp = do
+        !off <- Pass.getLayerByteOffset @comp @layer
+        unsafeReadViewByteOff @layer off comp
+    {-# INLINE readView__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( StorableViewCons comp layer layout
+    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+    ) => ViewWriter comp layer layout (Pass pass) where
+    writeView__ !comp !d = do
+        !off <- Pass.getLayerByteOffset @comp @layer
+        unsafeWriteViewByteOff @layer off comp d
+    {-# INLINE writeView__ #-}
+
+
+-- === Early resolution block === --
+
+instance ViewReader Imp  layer layout m     where readView__ _ = impossible
+instance ViewReader comp Imp   layout m     where readView__ _ = impossible
+instance ViewReader comp layer Imp    m     where readView__ _ = impossible
+instance ViewReader comp layer layout ImpM1 where readView__ _ = impossible
+
+instance ViewWriter Imp  layer layout m     where writeView__ _ _ = impossible
+instance ViewWriter comp Imp   layout m     where writeView__ _ _ = impossible
+instance ViewWriter comp layer Imp    m     where writeView__ _ _ = impossible
+instance ViewWriter comp layer layout ImpM1 where writeView__ _ _ = impossible
+

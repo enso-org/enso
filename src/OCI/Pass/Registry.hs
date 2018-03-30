@@ -105,7 +105,7 @@ registerPrimLayerRep s staticInit dynamicInit comp layer =
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadRegistry m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableData comp layer, Layer.Initializer comp layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableCons comp layer, Layer.Initializer comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
 registerPrimLayer = do
     initStatic     <- fmap coerce . mapM Ptr1.new
