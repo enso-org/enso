@@ -58,31 +58,6 @@ run2Passes' p1 p2 = runPasses [p1,p2]
 
 
 
--------------------
--- === Tests === --
--------------------
-
-test :: IO ()
-test = runPass' $ do
-    v <- IR.var 5
-    print =<< Layer.read @IR.Model v
-    print "done!"
-
-
-class Foo a b where
-    foo :: a -> b -> Int
-
-instance {-# INCOHERENT #-} Foo a a where
-    foo _ _ = 5
-
-
-instance {-# OVERLAPPABLE #-} Foo Int Int where
-    foo _ _ = 7
-
-
-bar :: a -> a -> Int
-bar x y = foo x y
-
 --------------------------------
 -- === Running benchmarks === --
 --------------------------------
@@ -91,11 +66,6 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     initializeTime
-
-    print $ bar (1::Int) (2::Int)
-
-    test
-
     IRBench.main
 
     -- defaultMain

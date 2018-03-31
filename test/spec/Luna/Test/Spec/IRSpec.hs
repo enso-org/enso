@@ -119,7 +119,7 @@ irCreationSpec = describe "ir creation" $ do
 
 attribsSpec :: Spec
 attribsSpec = describe "attributes" $ do
-    it "Passing between passes" $ run2Passes'
+    it "passing between passes" $ run2Passes'
         (Attr.put $ IntAttr 9)
         (Attr.get >>= (`shouldBe` (IntAttr 9)))
 

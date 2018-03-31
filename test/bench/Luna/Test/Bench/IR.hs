@@ -169,7 +169,7 @@ readWrite_ptr = Bench "rawPtr" $ \i -> do
     let go !0 = return ()
         go !j = do
             !x <- Storable.peek ptr
-            Storable.poke ptr $! fromIntegral j
+            Storable.poke ptr $! x + 1
             go $! j - 1
     go i
     Ptr.free ptr
@@ -188,7 +188,7 @@ readWrite_expTM = Bench "explicitTypeMap" $ \i -> do
             let !off = TypeMap.getElem @Int set
             IR.UniTermVar (IR.Var !x) <- Layer.unsafeReadByteOff @IR.Model off a
             Layer.unsafeWriteByteOff @IR.Model off a
-                $ IR.UniTermVar $ IR.Var $! fromIntegral j
+                $ IR.UniTermVar $ IR.Var $! x + 1
             go (j - 1)
     State.evalT (go i) s
     where layerLoc :: Int
@@ -210,7 +210,7 @@ readWrite_layerMock = Bench "staticRun" $ \i -> do
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model ir
-            Layer.write @IR.Model ir (IR.UniTermVar $ IR.Var $! fromIntegral j)
+            Layer.write @IR.Model ir (IR.UniTermVar $ IR.Var $! x + 1)
             go (j - 1)
 
     cfg   <- Registry.evalT localRegistry
@@ -233,7 +233,7 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
-            Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! fromIntegral j)
+            Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
             go (j - 1)
     go i
 {-# NOINLINE readWrite_layer #-}

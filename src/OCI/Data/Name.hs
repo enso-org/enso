@@ -58,7 +58,7 @@ instance Show Name where
 
 -- === Definition === ---
 
-newtype Ref = Ref Int deriving (Eq, Storable)
+newtype Ref = Ref Int deriving (Eq, Num, Storable)
 makeLenses ''Ref
 
 
@@ -68,13 +68,6 @@ instance Convertible Name   Ref where convert = wrap . FastString.uniq . unwrap 
 instance Convertible String Ref where convert = convertVia @Name                ; {-# INLINE convert    #-}
 instance IsString           Ref where fromString = convert                      ; {-# INLINE fromString #-}
 instance Show               Ref where show       = show . convertTo @String     ; {-# INLINE show       #-}
-instance Num                Ref where
-    fromInteger = wrap . fromInteger ; {-# INLINE fromInteger #-}
-    (+)         = error "unsupported1"
-    (-)         = error "unsupported2"
-    (*)         = error "unsupported3"
-    abs         = error "unsupported4"
-    signum      = error "unsupported5"
 
 
 
