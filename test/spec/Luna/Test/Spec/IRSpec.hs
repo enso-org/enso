@@ -17,6 +17,7 @@ import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
+import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
 
@@ -72,44 +73,58 @@ run2Passes' :: Pass TestPass () -> Pass TestPass () -> IO ()
 run2Passes' p1 p2 = runPasses [p1,p2]
 
 
+
 -------------------
 -- === Tests === --
 -------------------
 
+nameSpec :: Spec
+nameSpec = describe "names" $ do
+    it "encoding" $ runPass' $ do
+        v        <- IR.var "a"
+        IR.Var n <- IR.match v
+        n `shouldBe`    "a"
+        n `shouldNotBe` "b"
+
+irCreationSpec :: Spec
+irCreationSpec = describe "ir creation" $ do
+    it "single term" $ runPass' $ do
+        v <- IR.var "a"
+        m <- Layer.read @IR.Model v
+        m `shouldBe` IR.UniTermVar (IR.Var "a")
+
+    it "complex term" $ runPass' $ do
+        v1           <- IR.var "a"
+        v2           <- IR.var "b"
+        u1           <- IR.unify v1 v2
+        IR.Unify l r <- IR.match u1
+        lsrc         <- Layer.read @IR.Source l
+        rsrc         <- Layer.read @IR.Source r
+        ltgt         <- Layer.read @IR.Target l
+        rtgt         <- Layer.read @IR.Target r
+        lsrc `shouldBe` v1
+        ltgt `shouldBe` u1
+        rsrc `shouldBe` v2
+        rtgt `shouldBe` u1
+
+    it "users layer" $ runPass' $ do
+        v1           <- IR.var "a"
+        v2           <- IR.var "b"
+        u1           <- IR.unify v1 v2
+        IR.Unify l r <- IR.match u1
+        v1_users     <- Set.toList =<< Layer.read @IR.Users v1
+        v2_users     <- Set.toList =<< Layer.read @IR.Users v2
+        v1_users `shouldBe` [Layout.relayout l]
+        v2_users `shouldBe` [Layout.relayout r]
+
+attribsSpec :: Spec
+attribsSpec = describe "attributes" $ do
+    it "Passing between passes" $ run2Passes'
+        (Attr.put $ IntAttr 9)
+        (Attr.get >>= (`shouldBe` (IntAttr 9)))
+
 spec :: Spec
 spec = do
-    describe "IR creation" $ do
-        it "single term" $ runPass' $ do
-            v <- IR.var "a"
-            m <- Layer.read @IR.Model v
-            m `shouldBe` (IR.UniTermVar $ IR.Var "a")
-
-        it "complex term" $ runPass' $ do
-            v1           <- IR.var "a"
-            v2           <- IR.var "b"
-            u1           <- IR.unify v1 v2
-            IR.Unify l r <- IR.match u1
-            lsrc         <- Layer.read @IR.Source l
-            rsrc         <- Layer.read @IR.Source r
-            ltgt         <- Layer.read @IR.Target l
-            rtgt         <- Layer.read @IR.Target r
-            lsrc `shouldSatisfy` (== v1)
-            ltgt `shouldSatisfy` (== u1)
-            rsrc `shouldSatisfy` (== v2)
-            rtgt `shouldSatisfy` (== u1)
-
-        it "Users layer" $ runPass' $ do
-            v1           <- IR.var "a"
-            v2           <- IR.var "b"
-            u1           <- IR.unify v1 v2
-            IR.Unify l r <- IR.match u1
-            v1_users     <- Set.toList =<< Layer.read @IR.Users v1
-            v2_users     <- Set.toList =<< Layer.read @IR.Users v2
-            v1_users `shouldBe` [Layout.relayout l]
-            v2_users `shouldBe` [Layout.relayout r]
-
-    describe "Attributes" $ do
-        it "Passing between passes" $ run2Passes'
-            (Attr.put $ IntAttr 9)
-            (Attr.get >>= (`shouldBe` (IntAttr 9)))
-    pure ()
+    nameSpec
+    irCreationSpec
+    attribsSpec
