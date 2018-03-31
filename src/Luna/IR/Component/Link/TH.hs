@@ -13,7 +13,7 @@ import Luna.IR.Component.Link      (HasLinks, readLinksIO)
 
 discover :: Name -> Q [TH.Dec]
 discover ty = do
-    TypeInfo tyConName tyVars cs <- getTypeInfo ty
+    TypeInfo tyConName tyVars cs <- reifyTypeInfo ty
     decs <- genReadLinksIO cs
     pure [classInstance ''HasLinks tyConName tyVars decs]
 

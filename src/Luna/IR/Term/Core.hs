@@ -1,3 +1,4 @@
+-- {-# LANGUAGE NoDuplicateRecordFields #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -13,6 +14,8 @@ import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
+import qualified Luna.IR.Component.Term.Definition   as Term
+import qualified Luna.IR.Component.Term.Discovery    as Discovery
 import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified Luna.IR.Term.Format                 as Format
 import qualified OCI.IR.Layer.Internal               as Layer
@@ -26,6 +29,11 @@ import Luna.IR.Component.Term.Layout
 import Type.Data.Ord                       (Cmp)
 
 
+import Luna.IR.Component.Term.Definition (Self)
+
+import Luna.IR.Term.Core2 ()
+
+type LinkTo t self a = Link (Layout.Get t a *-* Layout.Set Model self a)
 
 ----------------
 -- === IR === --
@@ -37,6 +45,7 @@ Tag.familyInstance "TermCons" "Var"
 newtype ConsVar a = Var
     { __name :: Int
     } deriving (Show, Eq)
+instance Discovery.IsTermTag Var
 type instance Format.Of      Var     = Format.Phrase
 type instance Term.TagToCons Var     = ConsVar
 type instance Term.ConsToTag ConsVar = Var
@@ -50,6 +59,7 @@ data ConsAcc a = Acc
     { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a))
     , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a))
     } deriving (Show, Eq)
+instance Discovery.IsTermTag Acc
 type instance Format.Of      Acc     = Format.Thunk
 type instance Term.TagToCons Acc     = ConsAcc
 type instance Term.ConsToTag ConsAcc = Acc
@@ -63,6 +73,7 @@ data ConsUnify a = Unify
     { __left  :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
     , __right :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
     } deriving (Show, Eq)
+instance Discovery.IsTermTag Unify
 type instance Format.Of      Unify     = Format.Thunk
 type instance Term.TagToCons Unify     = ConsUnify
 type instance Term.ConsToTag ConsUnify = Unify
@@ -73,6 +84,7 @@ Link.discover    ''ConsUnify
 
 Tag.familyInstance "TermCons" "Missing"
 data ConsMissing a = Missing deriving (Show, Eq)
+instance Discovery.IsTermTag Missing
 type instance Format.Of      Missing     = Format.Draft
 type instance Term.TagToCons Missing     = ConsMissing
 type instance Term.ConsToTag ConsMissing = Missing

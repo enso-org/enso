@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Foreign.Storable1.Deriving (derive) where
+module Foreign.Storable1.Deriving (derive, derive') where
 
 import Prologue
 
@@ -18,9 +18,15 @@ import qualified Language.Haskell.TH as TH
 -- === Main instance code === --
 --------------------------------
 
+-- FIXME[WD->PM]: IRREFUTABLE PATTERN!
 derive :: Name -> Q [TH.Dec]
 derive ty = do
-    TypeInfo tyConName tyVars _ <- getTypeInfo ty
+    TH.TyConI tyCon <- TH.reify ty
+    derive' tyCon
+
+derive' :: Dec -> Q [TH.Dec]
+derive' dec = do
+    let TypeInfo tyConName tyVars _ = getTypeInfo dec
     let decs = concat [genSizeOf, genAlignment, genPeek, genPoke]
     case tyVars of
         [] -> fail "[Storable1.derive] Kind of type needs to be: * -> *"

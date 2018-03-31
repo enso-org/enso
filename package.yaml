@@ -60,6 +60,7 @@ library:
     - primitive
     - prologue >= 3.0.0
     - random
+    - split
     - template-haskell
     - transformers
     - vector

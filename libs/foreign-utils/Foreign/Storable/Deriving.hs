@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Foreign.Storable.Deriving (derive) where
+module Foreign.Storable.Deriving (derive, derive') where
 
 import Prologue
 
@@ -82,16 +82,21 @@ wildCardClause expr = clause [WildP] expr mempty
 -- === Main instance code === --
 --------------------------------
 
+-- FIXME[WD->PM]: IRREFUTABLE PATTERN!
 -- | Generate the `Storable` instance for a type.
 --   The constraint is that all of the fields of
 --   the type's constructor must be Ints.
 derive :: Name -> Q [TH.Dec]
 derive ty = do
-    TypeInfo tyConName tyVars cs <- getTypeInfo ty
+    TH.TyConI tyCon <- TH.reify ty
+    derive' tyCon
+
+derive' :: Dec -> Q [TH.Dec]
+derive' dec = do
+    let TypeInfo tyConName tyVars cs = getTypeInfo dec
     decs <- sequence [pure $ genSizeOf cs, pure genAlignment, genPeek cs, genPoke cs]
     let inst = classInstance ''Storable tyConName tyVars decs
     pure [inst]
-
 
 
 -------------------------------

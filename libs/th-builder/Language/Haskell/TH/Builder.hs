@@ -6,11 +6,13 @@ module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X
 
 import Prologue hiding (Cons, Data, Type, cons, inline)
 
-import           Control.Lens (_3)
+import           Control.Lens (makePrisms, _3)
 import qualified Data.Char    as Char
 
-import           Language.Haskell.TH as X (Dec, Name, Q, newName, reify, runIO)
-import qualified Language.Haskell.TH as TH
+import           Language.Haskell.TH        as X (Dec, Name, Q, newName, reify,
+                                                  runIO)
+import qualified Language.Haskell.TH        as TH
+import qualified Language.Haskell.TH.Syntax as TH
 
 
 
@@ -27,6 +29,9 @@ class HasName a where
     type instance NameOf a = Name
     name :: Lens' a (NameOf a)
 
+class MayHaveName a where
+    maybeName :: Lens' a (Maybe Name)
+
 class HasParams a where
     type family ParamOf a
     params :: Lens' a [ParamOf a]
@@ -37,9 +42,65 @@ class HasKind a where
     kind :: Lens' a (KindOf a)
 
 class HasCtx    a where ctx    :: Lens' a [TH.Pred]
-class HasCons   a where conses :: Lens' a [TH.Con]
 class HasDerivs a where derivs :: Lens' a [TH.DerivClause]
 
+
+
+---------------------
+-- === TH Cons === --
+---------------------
+
+class HasCons a where
+    consList :: Lens' a [TH.Con]
+
+instance HasCons TH.Dec where
+    consList = lens getter (flip setter) where
+        getter = \case
+            TH.DataD        _ _ _ _ c _ -> c
+            TH.NewtypeD     _ _ _ _ c _ -> [c]
+            TH.DataInstD    _ _ _ _ c _ -> c
+            TH.NewtypeInstD _ _ _ _ c _ -> [c]
+            _                           -> []
+        setter x = \case
+            TH.DataD        t1 t2 t3 t4 _ t6 -> TH.DataD        t1 t2 t3 t4 x t6
+            TH.NewtypeD     t1 t2 t3 t4 _ t6 -> TH.NewtypeD     t1 t2 t3 t4 (unsafeHead x) t6
+            TH.DataInstD    t1 t2 t3 t4 _ t6 -> TH.DataInstD    t1 t2 t3 t4 x t6
+            TH.NewtypeInstD t1 t2 t3 t4 _ t6 -> TH.NewtypeInstD t1 t2 t3 t4 (unsafeHead x) t6
+            a                                -> a
+
+
+class HasNamedFields a where
+    namedFields :: Lens' a [TH.VarBangType]
+
+instance HasNamedFields TH.Con where
+    namedFields = lens getter (flip setter) where
+        getter = \case
+            TH.RecC     _ n   -> n
+            TH.RecGadtC _ n _ -> n
+            _                 -> []
+        setter x = \case
+            TH.RecC     t1 _    -> TH.RecC     t1 x
+            TH.RecGadtC t1 _ t3 -> TH.RecGadtC t1 x t3
+            a                   -> a
+
+class HasDerivClauses a where
+    derivClauses :: Lens' a [TH.DerivClause]
+
+instance HasDerivClauses TH.Dec where
+    derivClauses = lens getter (flip setter) where
+        getter = \case
+            TH.DataD        _ _ _ _ _ x -> x
+            TH.NewtypeD     _ _ _ _ _ x -> x
+            TH.DataInstD    _ _ _ _ _ x -> x
+            TH.NewtypeInstD _ _ _ _ _ x -> x
+            _                           -> []
+
+        setter x = \case
+            TH.DataD        t1 t2 t3 t4 t5 _ -> TH.DataD        t1 t2 t3 t4 t5 x
+            TH.NewtypeD     t1 t2 t3 t4 t5 _ -> TH.NewtypeD     t1 t2 t3 t4 t5 x
+            TH.DataInstD    t1 t2 t3 t4 t5 _ -> TH.DataInstD    t1 t2 t3 t4 t5 x
+            TH.NewtypeInstD t1 t2 t3 t4 t5 _ -> TH.NewtypeInstD t1 t2 t3 t4 t5 x
+            a                                -> a
 
 
 -------------------
@@ -83,6 +144,57 @@ instance IsString Name         where fromString = convert
 instance IsString TH.TyVarBndr where fromString = convert
 instance Semigroup Name where
     n <> n' = convert (convert n <> convert n' :: String)
+
+
+-- === Name getters === --
+
+instance MayHaveName TH.Dec where
+    maybeName = lens getter (flip setter) where
+        getter = \case
+            TH.FunD         n _         -> Just n
+            TH.DataD        _ n _ _ _ _ -> Just n
+            TH.NewtypeD     _ n _ _ _ _ -> Just n
+            TH.TySynD       n _ _       -> Just n
+            TH.ClassD       _ n _ _ _   -> Just n
+            TH.SigD         n _         -> Just n
+            TH.InfixD       _ n         -> Just n
+            TH.DataFamilyD  n _ _       -> Just n
+            TH.DataInstD    _ n _ _ _ _ -> Just n
+            TH.NewtypeInstD _ n _ _ _ _ -> Just n
+            TH.TySynInstD   n _         -> Just n
+            TH.RoleAnnotD   n _         -> Just n
+            TH.DefaultSigD  n _         -> Just n
+            TH.PatSynD      n _ _ _     -> Just n
+            TH.PatSynSigD   n _         -> Just n
+            _                           -> Nothing
+        setter Nothing  = id
+        setter (Just x) = \case
+            TH.FunD         _  t2             -> TH.FunD         x  t2
+            TH.DataD        t1 _  t3 t4 t5 t6 -> TH.DataD        t1 x  t3 t4 t5 t6
+            TH.NewtypeD     t1 _  t3 t4 t5 t6 -> TH.NewtypeD     t1 x  t3 t4 t5 t6
+            TH.TySynD       _  t2 t3          -> TH.TySynD       x  t2 t3
+            TH.ClassD       t1 _  t3 t4 t5    -> TH.ClassD       t1 x  t3 t4 t5
+            TH.SigD         _  t2             -> TH.SigD         x  t2
+            TH.InfixD       t1 _              -> TH.InfixD       t1 x
+            TH.DataFamilyD  _  t2 t3          -> TH.DataFamilyD  x  t2 t3
+            TH.DataInstD    t1 _  t3 t4 t5 t6 -> TH.DataInstD    t1 x  t3 t4 t5 t6
+            TH.NewtypeInstD t1 _  t3 t4 t5 t6 -> TH.NewtypeInstD t1 x  t3 t4 t5 t6
+            TH.TySynInstD   _  t2             -> TH.TySynInstD   x  t2
+            TH.RoleAnnotD   _  t2             -> TH.RoleAnnotD   x  t2
+            TH.DefaultSigD  _  t2             -> TH.DefaultSigD  x  t2
+            TH.PatSynD      _  t2 t3 t4       -> TH.PatSynD      x  t2 t3 t4
+            TH.PatSynSigD   _  t2             -> TH.PatSynSigD   x  t2
+            a                                 -> a
+
+instance MayHaveName TH.Con where
+    maybeName = lens getter setter where
+        getter = \case
+            TH.NormalC n _   -> Just n
+            TH.RecC    n _   -> Just n
+            TH.InfixC  _ n _ -> Just n
+            TH.ForallC _ _ a -> a ^. maybeName
+            _                -> Nothing
+        setter = error "TODO"
 
 
 ----------------------
@@ -300,10 +412,10 @@ data Data = Data
     }
 makeLenses ''Data
 
-instance HasName   Data where name   = data_name
-instance HasCtx    Data where ctx    = data_ctx
-instance HasCons   Data where conses = data_cons
-instance HasDerivs Data where derivs = data_derivs
+instance HasName   Data where name     = data_name
+instance HasCtx    Data where ctx      = data_ctx
+instance HasCons   Data where consList = data_cons
+instance HasDerivs Data where derivs   = data_derivs
 
 instance HasKind Data where
     type KindOf  Data = Maybe TH.Kind
@@ -431,13 +543,20 @@ makeLenses ''TypeInfo
 
 instance HasName TypeInfo where name = typeInfo_name
 
-getTypeInfo :: Name -> TH.Q TypeInfo
-getTypeInfo ty = do
+-- FIXME[WD->PM]: IRREFUTABLE PATTERN!
+reifyTypeInfo :: Name -> TH.Q TypeInfo
+reifyTypeInfo ty = do
     TH.TyConI tyCon <- TH.reify ty
-    return . (uncurry TypeInfo) $ case tyCon of
-            TH.DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
-            TH.NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
-            _ -> error "***error*** deriveStorable: type may not be a type synonym."
+    return $ getTypeInfo tyCon
+
+getTypeInfo :: Dec -> TypeInfo
+getTypeInfo = uncurry TypeInfo . \case
+    TH.DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
+    TH.NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
+    _ -> error "***error*** deriveStorable: type may not be a type synonym."
+
+
+
 
 ----------------------------
 -- === Class Instance === --
