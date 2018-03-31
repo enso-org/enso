@@ -36,6 +36,7 @@ import GHC.Enum                         as X ( Enum (succ, pred, toEnum, fromEnu
                                              )
 import Text.Read                        as X (readPrec) -- new style Read class implementation
 import Prologue.Text.Show               as X
+import Text.Show.Functions              as X ()
 
 
 -- === Monads === --
@@ -127,7 +128,7 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens                     as X (Lens, Lens', Iso, Iso', iso, at, from)
+import Control.Lens                     as X (Lens, Lens', Iso, Iso', iso, at, from, lens, _1, _2, _3, _4, _5, _6, _7, _8, _9)
 import Control.Lens                     as X (view, set)
 import Control.Lens                     as X ((^.), (.~), (%~))
 import Control.Lens.Utils.Wrapped       as X (wrap, unwrap, wrapped)
