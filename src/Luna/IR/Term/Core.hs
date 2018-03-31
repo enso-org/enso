@@ -18,6 +18,7 @@ import qualified Luna.IR.Component.Term.Definition   as Term
 import qualified Luna.IR.Component.Term.Discovery    as Discovery
 import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified Luna.IR.Term.Format                 as Format
+import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Layer.Internal               as Layer
 import qualified OCI.IR.Layout                       as Layout
 
@@ -47,7 +48,7 @@ Term.define [d|
     data Missing a = Missing
     data Unify   a = Unify   { left  :: LinkTo Terms Self a
                              , right :: LinkTo Terms Self a }
-    data Var     a = Var     { name  :: Int }
+    data Var     a = Var     { name  :: Name.Ref }
 
  |]
 
@@ -57,7 +58,7 @@ type instance Format.Of Unify   = Format.Thunk
 type instance Format.Of Var     = Format.Phrase
 
 
-makeUniTerm
+Term.makeUniTerm
 
 type instance Term.Uni = UniTerm
 
@@ -77,7 +78,7 @@ instance Layer.DataInitializer UniTerm where
 
 -- === Smart constructors === --
 
-var :: Creator Var m => Int -> m (Term Var)
+var :: Creator Var m => Name.Ref -> m (Term Var)
 var = Term.uncheckedNew . Var ; {-# INLINE var #-}
 
 missing :: Creator Missing m => m (Term Missing)
@@ -88,16 +89,11 @@ acc base name = Term.newM $ \self -> Acc <$> Link.new base self
                                          <*> Link.new name self
 {-# INLINE acc #-}
 
--- FIXME: double left vvv
-unify :: (Creator Unify m
-  , Layout.SubRelayout__ left (Layout.Merge left right)
-  , Layout.SubRelayout__ right (Layout.Merge left right)
-
-  )=> Term left -> Term right
+unify :: Creator Unify m => Term left -> Term right
                          -> m (Term (Unify -* (Layout.Merge left right)))
 unify left right = Term.newM
-                 $ \self -> Unify <$> fmap Layout.relayout (Link.new left  self)
-                                  <*> fmap Layout.relayout (Link.new right self)
+    $ \self -> Unify <$> fmap Layout.unsafeRelayout (Link.new left  self)
+                     <*> fmap Layout.unsafeRelayout (Link.new right self)
 {-# INLINE unify #-}
 
 

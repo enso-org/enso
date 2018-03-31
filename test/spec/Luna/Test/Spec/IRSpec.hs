@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Test.Spec.IRSpec where
@@ -79,13 +80,13 @@ spec :: Spec
 spec = do
     describe "IR creation" $ do
         it "single term" $ runPass' $ do
-            v <- IR.var 7
+            v <- IR.var "a"
             m <- Layer.read @IR.Model v
-            m `shouldBe` (IR.UniTermVar $ IR.Var 7)
+            m `shouldBe` (IR.UniTermVar $ IR.Var "a")
 
         it "complex term" $ runPass' $ do
-            v1           <- IR.var 7
-            v2           <- IR.var 9
+            v1           <- IR.var "a"
+            v2           <- IR.var "b"
             u1           <- IR.unify v1 v2
             IR.Unify l r <- IR.match u1
             lsrc         <- Layer.read @IR.Source l
@@ -98,8 +99,8 @@ spec = do
             rtgt `shouldSatisfy` (== u1)
 
         it "Users layer" $ runPass' $ do
-            v1           <- IR.var 7
-            v2           <- IR.var 9
+            v1           <- IR.var "a"
+            v2           <- IR.var "b"
             u1           <- IR.unify v1 v2
             IR.Unify l r <- IR.match u1
             v1_users     <- Set.toList =<< Layer.read @IR.Users v1

@@ -51,6 +51,7 @@ library:
     - data-default
     - deepseq
     - functor-utils
+    - ghc
     - layered-state
     - lens
     - lens-utils
