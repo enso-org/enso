@@ -620,6 +620,23 @@ inlineF = inline TH.FunLike
 inlineC :: Name -> TH.Dec
 inlineC = inline TH.ConLike
 
+
+
+-------------------
+-- === UTILS === --
+-------------------
+
+traverseType :: Applicative m => (TH.Type -> m TH.Type) -> TH.Type -> m TH.Type
+traverseType f = \case
+    TH.ForallT tvs cxt t -> TH.ForallT tvs cxt <$> f t
+    TH.AppT    t t2      -> TH.AppT    <$> f t <*> f t2
+    TH.SigT    t k       -> TH.SigT    <$> f t <*> pure k
+    TH.InfixT  t n t2    -> TH.InfixT  <$> f t <*> pure n <*> f t2
+    TH.UInfixT t n t2    -> TH.UInfixT <$> f t <*> pure n <*> f t2
+    TH.ParensT t         -> TH.ParensT <$> f t
+    a                    -> pure a
+
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

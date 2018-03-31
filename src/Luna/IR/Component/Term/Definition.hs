@@ -22,28 +22,32 @@ import Language.Haskell.TH.Builder
 data Self
 
 
+-- TODO: convert single constructor data to newtype by default
+
 -- | Term definition boilerplate
 --
 --       Term.define [d|
---           newtype Var a = Var
---               { name :: Char
---               } deriving (Show, Eq)
+--           data Unify a = Unify
+--               { left  :: LinkTo Terms Self a
+--               , right :: LinkTo Terms Self a
+--               }
 --        |]
 --
 --   Generates:
 --
---       Tag.familyInstance "TermCons" "Var"
---       newtype ConsVar a = Var
---           { __name :: Int
+--       Tag.familyInstance "TermCons" "Unify"
+--       data ConsUnify a = Unify
+--           { __left  :: {-# UNPACK #-} !(LinkTo Terms Unify a)
+--           , __right :: {-# UNPACK #-} !(LinkTo Terms Unify a)
 --           } deriving (Show, Eq)
---       instance Discovery.IsTermTag Var
---       type instance Format.Of      Var     = Format.Phrase
---       type instance Term.TagToCons Var     = ConsVar
---       type instance Term.ConsToTag ConsVar = Var
---       makeLenses       ''ConsVar
---       Storable.derive  ''ConsVar
---       Storable1.derive ''ConsVar
---       Link.discover    ''ConsVar
+--       instance Discovery.IsTermTag Unify
+--       type instance Format.Of      Unify     = Format.Phrase
+--       type instance Term.TagToCons Unify     = ConsUnify
+--       type instance Term.ConsToTag ConsUnify = Unify
+--       makeLenses       ''ConsUnify
+--       Storable.derive  ''ConsUnify
+--       Storable1.derive ''ConsUnify
+--       Link.discover    ''ConsUnify
 
 define :: Q [Dec] -> Q [Dec]
 define declsQ = do
@@ -64,12 +68,18 @@ defineSingle termDecl = do
     let typeNameStr     = "Cons" <> nameStr
         name            = convert nameStr
         typeName        = convert typeNameStr
-        mangleFields    = namedFields %~ fmap (mangleField nameStr)
+        unpackStrict    = TH.Bang TH.SourceUnpack TH.SourceStrict
+        mangleFields    = namedFields %~ fmap (_1 %~ mangleFieldName nameStr)
+        bangFields      = namedFields %~ fmap (_2 .~ unpackStrict)
+        rebindFields    = namedFields %~ fmap (_3 %~ rebindSelf)
         derivs          = cons' <$> [''Show, ''Eq]
         setTypeName     = maybeName    .~ Just typeName
         setDerivClauses = derivClauses .~ [TH.DerivClause Nothing derivs]
         tagDecls        = Tag.familyInstance' "TermCons" nameStr
-        con'            = mangleFields con
+        con'            = mangleFields
+                        . bangFields
+                        . rebindFields
+                        $ con
         termDecl'       = (consList .~ [con'])
                         . setTypeName
                         . setDerivClauses
@@ -78,6 +88,12 @@ defineSingle termDecl = do
         isTermTagInst   = TH.InstanceD Nothing []
                           (TH.AppT (cons' ''Discovery.IsTermTag) (cons' name))
                           []
+        rebindSelf      = runIdentity . rebindSelfM
+        rebindSelfM     = traverseType $ \case
+                              TH.ConT n -> pure $ if n == ''Self
+                                  then TH.ConT name
+                                  else TH.ConT n
+                              a -> rebindSelfM a
 
         tagToConsInst   = typeInstance ''Term.TagToCons [cons' name] (cons' typeName)
         consToTagInst   = typeInstance ''Term.ConsToTag [cons' typeName] (cons' name)
@@ -112,5 +128,44 @@ fixNameStr s = case splitOn ":" s of
     as  -> unsafeLast $ unsafeInit as
 
 
+----------
 
 
+-- | IMPORTANT: Use 'makeUniTerm' in a place in code where all possible
+--              terms are already declared.
+--
+--   The 'makeUniTerm' function discovers all already declared terms and
+--   creates an unified datatype for processing them. Its purpose is also
+--   to enumerate the terms, so we can use the ordering when serializing them.
+--
+--   The generated code looks like:
+--
+--       data UniTerm a
+--           = UniTermTop     !(ConsTop     a)
+--           | UniTermVar     !(ConsVar     a)
+--           | UniTermMissing !(ConsMissing a)
+--           ...
+--           deriving (Show, Eq)
+--       Storable.derive  ''UniTerm
+--       Storable1.derive ''UniTerm
+--
+
+makeUniTerm :: Q [Dec]
+makeUniTerm = do
+    let unpackInst = \case
+            TH.InstanceD _ _ (TH.AppT _ (TH.ConT n)) _ -> n
+            _ -> error "impossible"
+    termNames <- unpackInst <<$>> TH.reifyInstances ''Discovery.IsTermTag ["x"]
+    let dataName     = "UniTerm"
+        unpackStrict = TH.Bang TH.SourceUnpack TH.SourceStrict
+        mkCons n     = TH.NormalC consName [(unpackStrict, TH.AppT (TH.ConT childName) "a")] where
+            consName  = dataName <> n
+            childName = "Cons"   <> n
+        derivs       = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
+        dataDecl     = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
+                       derivs
+    storableInst  <- Storable.derive'   dataDecl
+    storable1Inst <- Storable1.derive'  dataDecl
+    pure $ [dataDecl]
+        <> storableInst
+        <> storable1Inst

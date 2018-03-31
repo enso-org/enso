@@ -31,9 +31,8 @@ import Type.Data.Ord                       (Cmp)
 
 import Luna.IR.Component.Term.Definition (Self)
 
-import Luna.IR.Term.Core2 ()
-
 type LinkTo t self a = Link (Layout.Get t a *-* Layout.Set Model self a)
+
 
 ----------------
 -- === IR === --
@@ -41,69 +40,24 @@ type LinkTo t self a = Link (Layout.Get t a *-* Layout.Set Model self a)
 
 -- === IR Atoms === ---
 
-Tag.familyInstance "TermCons" "Var"
-newtype ConsVar a = Var
-    { __name :: Int
-    } deriving (Show, Eq)
-instance Discovery.IsTermTag Var
-type instance Format.Of      Var     = Format.Phrase
-type instance Term.TagToCons Var     = ConsVar
-type instance Term.ConsToTag ConsVar = Var
-makeLenses       ''ConsVar
-Storable.derive  ''ConsVar
-Storable1.derive ''ConsVar
-Link.discover    ''ConsVar
+Term.define [d|
 
-Tag.familyInstance "TermCons" "Acc"
-data ConsAcc a = Acc
-    { __base :: !(Link (Layout.Get Terms a *-* Layout.Set Model Acc a))
-    , __name :: !(Link (Layout.Get Names a *-* Layout.Set Model Acc a))
-    } deriving (Show, Eq)
-instance Discovery.IsTermTag Acc
-type instance Format.Of      Acc     = Format.Thunk
-type instance Term.TagToCons Acc     = ConsAcc
-type instance Term.ConsToTag ConsAcc = Acc
-makeLenses       ''ConsAcc
-Storable.derive  ''ConsAcc
-Storable1.derive ''ConsAcc
-Link.discover    ''ConsAcc
+    data Acc     a = Acc     { base  :: LinkTo Terms Self a
+                             , name  :: LinkTo Names Self a }
+    data Missing a = Missing
+    data Unify   a = Unify   { left  :: LinkTo Terms Self a
+                             , right :: LinkTo Terms Self a }
+    data Var     a = Var     { name  :: Int }
 
-Tag.familyInstance "TermCons" "Unify"
-data ConsUnify a = Unify
-    { __left  :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
-    , __right :: !(Link (Layout.Get Terms a *-* Layout.Set Model Unify a))
-    } deriving (Show, Eq)
-instance Discovery.IsTermTag Unify
-type instance Format.Of      Unify     = Format.Thunk
-type instance Term.TagToCons Unify     = ConsUnify
-type instance Term.ConsToTag ConsUnify = Unify
-makeLenses       ''ConsUnify
-Storable.derive  ''ConsUnify
-Storable1.derive ''ConsUnify
-Link.discover    ''ConsUnify
+ |]
 
-Tag.familyInstance "TermCons" "Missing"
-data ConsMissing a = Missing deriving (Show, Eq)
-instance Discovery.IsTermTag Missing
-type instance Format.Of      Missing     = Format.Draft
-type instance Term.TagToCons Missing     = ConsMissing
-type instance Term.ConsToTag ConsMissing = Missing
-makeLenses       ''ConsMissing
-Storable.derive  ''ConsMissing
-Storable1.derive ''ConsMissing
-Link.discover    ''ConsMissing
+type instance Format.Of Acc     = Format.Thunk
+type instance Format.Of Missing = Format.Draft
+type instance Format.Of Unify   = Format.Thunk
+type instance Format.Of Var     = Format.Phrase
 
-data UniTerm a
-    = UniTermTop     !(ConsTop     a)
-    | UniTermVar     !(ConsVar     a)
-    | UniTermAcc     !(ConsAcc     a)
-    | UniTermUnify   !(ConsUnify   a)
-    | UniTermMissing !(ConsMissing a)
-    deriving (Show, Eq)
-makeLenses       ''UniTerm
-Storable.derive  ''UniTerm
-Storable1.derive ''UniTerm
-Link.discover    ''UniTerm
+
+makeUniTerm
 
 type instance Term.Uni = UniTerm
 
