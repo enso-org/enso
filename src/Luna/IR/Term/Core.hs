@@ -41,38 +41,22 @@ type LinkTo t self a = Link (Layout.Get t a *-* Layout.Set Model self a)
 
 -- === IR Atoms === ---
 
-Term.define [d|
-
+Term.define ''Format.Thunk [d|
     data Acc     a = Acc     { base  :: LinkTo Terms Self a
                              , name  :: LinkTo Names Self a }
-    data Missing a = Missing
     data Unify   a = Unify   { left  :: LinkTo Terms Self a
                              , right :: LinkTo Terms Self a }
+    |]
+
+Term.define ''Format.Draft [d|
     data Var     a = Var     { name  :: Name.Ref }
+    |]
 
- |]
-
-type instance Format.Of Acc     = Format.Thunk
-type instance Format.Of Missing = Format.Draft
-type instance Format.Of Unify   = Format.Thunk
-type instance Format.Of Var     = Format.Phrase
+Term.define ''Format.Phrase [d|
+    data Missing a = Missing
+    |]
 
 
-Term.makeUniTerm
-
-type instance Term.Uni = UniTerm
-
-instance Term.IsUni ConsTop     where toUni = UniTermTop     ; {-# INLINE toUni #-}
-instance Term.IsUni ConsVar     where toUni = UniTermVar     ; {-# INLINE toUni #-}
-instance Term.IsUni ConsAcc     where toUni = UniTermAcc     ; {-# INLINE toUni #-}
-instance Term.IsUni ConsUnify   where toUni = UniTermUnify   ; {-# INLINE toUni #-}
-instance Term.IsUni ConsMissing where toUni = UniTermMissing ; {-# INLINE toUni #-}
-
-
-
-
-instance Layer.DataInitializer UniTerm where
-    initStaticData = Just $ UniTermMissing Missing ; {-# INLINE initStaticData #-}
 
 
 

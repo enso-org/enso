@@ -13,6 +13,7 @@ import qualified Luna.IR.Component.Link.TH         as Link
 import qualified Luna.IR.Component.Term.Definition as Term
 import qualified Luna.IR.Component.Term.Discovery  as Discovery
 import qualified Luna.IR.Component.Term.Layer      as Layer
+import qualified Luna.IR.Term.Format               as Format
 import qualified OCI.IR.Component                  as Component
 import qualified OCI.IR.Layer.Internal             as Layer
 import qualified OCI.IR.Layout                     as Layout
@@ -30,7 +31,7 @@ import Luna.IR.Component.Term.Layout ()
 --   a term of any value. It belongs to 'Core', however it's defined here
 --   because of a special implementation of 'Type' layer initialization.
 
-Term.define [d| data Top a = Top |]
+Term.define ''Format.Value [d| data Top a = Top |]
 
 type UntypedCreator t m =
     ( Component.Creator Terms   m

@@ -13,6 +13,7 @@ import qualified Language.Haskell.TH.Syntax       as TH
 import qualified Luna.IR.Component.Link.TH        as Link
 import qualified Luna.IR.Component.Term.Class     as Term
 import qualified Luna.IR.Component.Term.Discovery as Discovery
+import qualified Luna.IR.Term.Format              as Format
 
 import Data.List.Split             (splitOn)
 import Language.Haskell.TH.Builder
@@ -26,7 +27,7 @@ data Self
 
 -- | Term definition boilerplate
 --
---       Term.define [d|
+--       Term.define ''Format.Thunk [d|
 --           data Unify a = Unify
 --               { left  :: LinkTo Terms Self a
 --               , right :: LinkTo Terms Self a
@@ -48,15 +49,18 @@ data Self
 --       Storable.derive  ''ConsUnify
 --       Storable1.derive ''ConsUnify
 --       Link.discover    ''ConsUnify
-
-define :: Q [Dec] -> Q [Dec]
-define declsQ = do
+--       type instance Format.Of Unify = Format.Thunk
+--
+define :: Name -> Q [Dec] -> Q [Dec]
+define format declsQ = do
     decls <- declsQ
-    concat <$> mapM defineSingle decls
+    concat <$> mapM (defineSingle format) decls
 
+mkConsName :: (IsString a, Semigroup a) => a -> a
+mkConsName = ("Cons" <>)
 
-defineSingle :: Dec -> Q [Dec]
-defineSingle termDecl = do
+defineSingle :: Name -> Dec -> Q [Dec]
+defineSingle format termDecl = do
     con  <- case termDecl ^. consList of
         [c] -> return c
         _   -> fail "Term constructor should be a single constructor data type."
@@ -65,7 +69,7 @@ defineSingle termDecl = do
             then return n
             else fail "Term type should have the same name as its constructor."
         _ -> fail "Term definition should have a named constructor."
-    let typeNameStr     = "Cons" <> nameStr
+    let typeNameStr     = mkConsName nameStr
         name            = convert nameStr
         typeName        = convert typeNameStr
         unpackStrict    = TH.Bang TH.SourceUnpack TH.SourceStrict
@@ -95,8 +99,11 @@ defineSingle termDecl = do
                                   else TH.ConT n
                               a -> rebindSelfM a
 
-        tagToConsInst   = typeInstance ''Term.TagToCons [cons' name] (cons' typeName)
-        consToTagInst   = typeInstance ''Term.ConsToTag [cons' typeName] (cons' name)
+        tagToConsInst   = typeInstance ''Term.TagToCons [cons' name]
+                          (cons' typeName)
+        consToTagInst   = typeInstance ''Term.ConsToTag [cons' typeName]
+                          (cons' name)
+        formatInst      = typeInstance ''Format.Of [cons' name] (cons' format)
 
     lensInst      <- Lens.declareLenses (pure [termDecl'])
     storableInst  <- Storable.derive'   termDecl'
@@ -107,6 +114,7 @@ defineSingle termDecl = do
              <> [ isTermTagInst
                 , tagToConsInst
                 , consToTagInst
+                , formatInst
                 ]
              <> storableInst
              <> storable1Inst
@@ -131,6 +139,9 @@ fixNameStr s = case splitOn ":" s of
 ----------
 
 
+mkUniTermName :: (IsString a, Semigroup a) => a -> a
+mkUniTermName = ("UniTerm" <>)
+
 -- | IMPORTANT: Use 'makeUniTerm' in a place in code where all possible
 --              terms are already declared.
 --
@@ -149,7 +160,10 @@ fixNameStr s = case splitOn ":" s of
 --       Storable.derive  ''UniTerm
 --       Storable1.derive ''UniTerm
 --
-
+--       instance Term.IsUni ConsTop     where toUni = UniTermTop
+--       instance Term.IsUni ConsVar     where toUni = UniTermVar
+--       instance Term.IsUni ConsMissing where toUni = UniTermMissing
+--
 makeUniTerm :: Q [Dec]
 makeUniTerm = do
     let unpackInst = \case
@@ -160,12 +174,18 @@ makeUniTerm = do
         unpackStrict = TH.Bang TH.SourceUnpack TH.SourceStrict
         mkCons n     = TH.NormalC consName [(unpackStrict, TH.AppT (TH.ConT childName) "a")] where
             consName  = dataName <> n
-            childName = "Cons"   <> n
+            childName = mkConsName n
         derivs       = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
         dataDecl     = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
                        derivs
+        isUniInst n  = TH.InstanceD Nothing []
+                       (TH.AppT (cons' ''Term.IsUni) (cons' $ mkConsName n))
+                       [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
+        isUniInsts   = isUniInst <$> termNames
     storableInst  <- Storable.derive'   dataDecl
     storable1Inst <- Storable1.derive'  dataDecl
-    pure $ [dataDecl]
+    pure $ [ dataDecl
+           ]
         <> storableInst
         <> storable1Inst
+        <> isUniInsts
