@@ -102,7 +102,7 @@ getRefMap = liftIO $! readIORef refMap
 registerName :: Name -> Name
 registerName !name = out where
     !out = unsafePerformIO $ do
-        let nameRef = convert name :: Ref
+        let nameRef = convertTo @Ref name
         atomicModifyIORef' refMap
             $ (,()) . (wrapped %~ IntMap.insert (coerce nameRef) name)
         return name
